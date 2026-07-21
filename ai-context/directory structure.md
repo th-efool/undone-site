@@ -9,7 +9,8 @@ Directory Structure
 ├── postcss.config.mjs
 ├── tsconfig.json
 ├── ai-context/
-│   └── directory structure
+│   ├── design-css-tokens.md
+│   └── directory structure.md
 ├── public/
 │   ├── file.svg
 │   ├── globe.svg
@@ -49,23 +50,27 @@ Directory Structure
 ├── client/
 │   ├── components/
 │   │   ├── global/
+│   │   │   ├── Footer.tsx
 │   │   │   ├── Footer/
-│   │   │   │   ├── Footer.tsx
-│   │   │   │   └── footer.css
+│   │   │   │   ├── Footer.module.css
+│   │   │   │   └── Footer.tsx
+│   │   │   ├── Logo.tsx
 │   │   │   ├── Logo/
-│   │   │   │   ├── Logo.tsx
-│   │   │   │   └── logo.css
+│   │   │   │   ├── Logo.module.css
+│   │   │   │   └── Logo.tsx
+│   │   │   ├── Navbar.tsx
 │   │   │   ├── Navbar/
-│   │   │   │   ├── Navbar.tsx
-│   │   │   │   └── navbar.css
+│   │   │   │   ├── Navbar.module.css
+│   │   │   │   └── Navbar.tsx
 │   │   │   └── layout/
 │   │   │       ├── Cluster.tsx
 │   │   │       ├── Container.tsx
-│   │   │       ├── Grid.tsx
+│   │   │       ├── Layout.module.css
 │   │   │       ├── Section.tsx
 │   │   │       ├── SectionHeader.tsx
 │   │   │       ├── Stack.tsx
-│   │   │       └── Surface.tsx
+│   │   │       ├── Surface.tsx
+│   │   │       └── layoutTokens.ts
 │   │   ├── screens/
 │   │   │   └── landing/
 │   │   │       ├── 01-hero/
@@ -89,13 +94,19 @@ Directory Structure
 │   │   ├── theme/
 │   │   │   └── theme.tsx
 │   │   └── ui/
-│   │       ├── Badge/Badge.tsx
+│   │       ├── Badge/
+│   │       │   ├── Badge.module.css
+│   │       │   └── Badge.tsx
 │   │       ├── Button/
-│   │       │   ├── Button.css
+│   │       │   ├── Button.module.css
 │   │       │   └── Button.tsx
-│   │       ├── Divider/Divider.tsx
+│   │       ├── Divider/
+│   │       │   ├── Divider.module.css
+│   │       │   └── Divider.tsx
 │   │       └── Typography/
+│   │           ├── Heading.module.css
 │   │           ├── Heading.tsx
+│   │           ├── Text.module.css
 │   │           └── Text.tsx
 │   ├── hooks/
 │   │   ├── useSession.ts

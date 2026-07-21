@@ -1,6 +1,8 @@
 import React from "react";
 import clsx from "clsx";
 
+import styles from "./Heading.module.css";
+
 type Level = 1 | 2 | 3 | 4 | 5 | 6;
 
 type HeadingElement =
@@ -13,13 +15,13 @@ type HeadingElement =
     | "div"
     | "span";
 
-const sizeMap: Record<Level, string> = {
-    1: "var(--font-hero-size)",
-    2: "var(--font-section-title-size)",
-    3: "var(--text-4xl)",
-    4: "var(--text-3xl)",
-    5: "var(--text-2xl)",
-    6: "var(--font-card-title-size)",
+const levelClasses: Record<Level, string> = {
+    1: styles.level1,
+    2: styles.level2,
+    3: styles.level3,
+    4: styles.level4,
+    5: styles.level5,
+    6: styles.level6,
 };
 
 export interface HeadingProps
@@ -35,47 +37,19 @@ export function Heading({
                             className,
                             style,
                             children,
+                            role,
+                            "aria-level": ariaLevel,
                             ...props
                         }: HeadingProps) {
     const Component = (as ?? `h${level}`) as HeadingElement;
+    const needsHeadingSemantics = Component === "div" || Component === "span";
 
     return (
         <Component
-            className={clsx(className)}
-            style={{
-                margin: 0,
-                color: "inherit",
-                fontFamily: "var(--font-display)",
-
-                fontSize: sizeMap[level],
-
-                fontWeight:
-                    level === 1
-                        ? "var(--font-hero-weight)"
-                        : level === 2
-                            ? "var(--font-section-title-weight)"
-                            : level === 6
-                                ? "var(--font-card-title-weight)"
-                                : "var(--font-bold)",
-
-                lineHeight:
-                    level === 1
-                        ? "var(--font-hero-line-height)"
-                        : level === 2
-                            ? "var(--font-section-title-line-height)"
-                            : level === 6
-                                ? "var(--font-card-title-line-height)"
-                                : "var(--leading-tight)",
-
-                letterSpacing:
-                    level === 1
-                        ? "var(--font-hero-tracking)"
-                        : level === 2
-                            ? "var(--font-section-title-tracking)"
-                            : "var(--tracking-tight)",
-
-                ...style,
-            }}
+            className={clsx(styles.heading, levelClasses[level], className)}
+            role={role ?? (needsHeadingSemantics ? "heading" : undefined)}
+            aria-level={ariaLevel ?? (needsHeadingSemantics ? level : undefined)}
+            style={style}
             {...props}
         >
             {children}

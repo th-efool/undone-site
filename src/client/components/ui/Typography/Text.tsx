@@ -1,32 +1,19 @@
 import React from "react";
 import clsx from "clsx";
 
+import styles from "./Text.module.css";
+
 type Variant =
     | "body"
     | "lead"
     | "small"
     | "muted";
 
-const styles: Record<Variant, React.CSSProperties> = {
-    body: {
-        fontSize: "var(--text-base)",
-        color: "var(--color-text-primary)",
-    },
-
-    lead: {
-        fontSize: "var(--text-lg)",
-        color: "var(--color-text-secondary)",
-    },
-
-    small: {
-        fontSize: "var(--text-sm)",
-        color: "var(--color-text-secondary)",
-    },
-
-    muted: {
-        fontSize: "var(--text-sm)",
-        color: "var(--color-text-muted)",
-    },
+const variantClasses: Record<Variant, string> = {
+    body: styles.body,
+    lead: styles.lead,
+    small: styles.small,
+    muted: styles.muted,
 };
 
 export interface TextProps
@@ -46,13 +33,8 @@ export function Text({
                      }: TextProps) {
     return (
         <Component
-            className={clsx(className)}
-            style={{
-                margin: 0,
-                lineHeight: "var(--leading-relaxed)",
-                ...styles[variant],
-                ...style,
-            }}
+            className={clsx(styles.text, variantClasses[variant], className)}
+            style={style}
             {...props}
         >
             {children}

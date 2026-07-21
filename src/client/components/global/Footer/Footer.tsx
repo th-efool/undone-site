@@ -6,7 +6,7 @@ import { Cluster } from "../layout/Cluster";
 import { Divider } from "@/src/client/components/ui/Divider/Divider";
 import { Logo } from "../Logo/Logo";
 
-import "./footer.css";
+import styles from "./Footer.module.css";
 
 export interface FooterLink {
     label: string;
@@ -51,6 +51,8 @@ const defaultSocial: FooterLink[] = [
     },
 ];
 
+const currentYear = new Date().getFullYear();
+
 export function Footer({
                            description = "The easiest way to stay consistent with everything you want to learn.",
 
@@ -59,24 +61,28 @@ export function Footer({
                            social = defaultSocial,
                        }: FooterProps) {
     return (
-        <footer className="footer">
+        <footer className={styles.footer}>
             <Container size="2xl">
 
-                <div className="footer-grid">
+                <div className={styles.grid}>
 
                     <Stack gap="4">
 
                         <Logo compact />
 
-                        <p className="footer-description">
+                        <p className={styles.description}>
                             {description}
                         </p>
 
                     </Stack>
 
-                    <Stack gap="4">
+                    <Stack
+                        as="nav"
+                        gap="4"
+                        aria-label="Footer explore"
+                    >
 
-                        <h4 className="footer-heading">
+                        <h4 className={styles.heading}>
                             Explore
                         </h4>
 
@@ -84,7 +90,7 @@ export function Footer({
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className="footer-link"
+                                className={styles.link}
                             >
                                 {item.label}
                             </Link>
@@ -92,9 +98,13 @@ export function Footer({
 
                     </Stack>
 
-                    <Stack gap="4">
+                    <Stack
+                        as="nav"
+                        gap="4"
+                        aria-label="Footer social"
+                    >
 
-                        <h4 className="footer-heading">
+                        <h4 className={styles.heading}>
                             Connect
                         </h4>
 
@@ -102,7 +112,7 @@ export function Footer({
                             <Link
                                 key={item.label}
                                 href={item.href}
-                                className="footer-link"
+                                className={styles.link}
                             >
                                 {item.label}
                             </Link>
@@ -113,29 +123,31 @@ export function Footer({
                 </div>
 
                 <Divider
-                    style={{
-                        marginBlock: "var(--space-10)",
-                    }}
+                    className={styles.divider}
                 />
 
                 <Cluster justify="between">
 
-                    <small className="footer-copy">
-                        © {new Date().getFullYear()} SideQuestHQ. All rights reserved.
+                    <small className={styles.copy}>
+                        © {currentYear} SideQuestHQ. All rights reserved.
                     </small>
 
-                    <Cluster gap="6">
+                    <Cluster
+                        as="nav"
+                        gap="6"
+                        aria-label="Footer legal"
+                    >
 
                         <Link
                             href="/privacy"
-                            className="footer-link"
+                            className={styles.link}
                         >
                             Privacy
                         </Link>
 
                         <Link
                             href="/terms"
-                            className="footer-link"
+                            className={styles.link}
                         >
                             Terms
                         </Link>

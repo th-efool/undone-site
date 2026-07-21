@@ -1,6 +1,8 @@
 import React from "react";
 import clsx from "clsx";
 
+import styles from "./Layout.module.css";
+
 type ContainerSize =
     | "xs"
     | "sm"
@@ -47,7 +49,7 @@ export const Container = React.forwardRef<HTMLDivElement, ContainerProps>(
             return (
                 <Component
                     ref={ref}
-                    className={clsx("container-fluid", className)}
+                    className={clsx(styles.containerFluid, className)}
                     style={style}
                     {...props}
                 >
@@ -59,7 +61,7 @@ export const Container = React.forwardRef<HTMLDivElement, ContainerProps>(
         return (
             <Component
                 ref={ref}
-                className={clsx("container", className)}
+                className={clsx(styles.container, className)}
                 style={{
                     maxWidth: widths[size],
                     ...style,

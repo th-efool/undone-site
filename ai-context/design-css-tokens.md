@@ -2,6 +2,13 @@
 
 ---
 
+
+# Component Styling
+
+Component styles live in component-local CSS Modules and consume CSS variables from the design token system. Design tokens remain the single source of truth for color, spacing, typography, radius, motion, and other shared values. Layout primitives share centralized layout token maps where appropriate. Accessibility is part of the component contract, including semantic HTML, ARIA, and keyboard support.
+
+---
+
 # Design Tokens
 
 ## Colors
@@ -397,129 +404,276 @@
 
 ---
 
-# Global Utility Classes
+# Design System Architecture
 
-## Layout
-### `.container`
-Constrains page width and applies horizontal page padding.
+## Style Ownership
 
-### `.container-fluid`
-Creates a full-width container.
+Component styles live beside their components as `Component.module.css`. Global CSS is reserved for design tokens, reset, base typography, forms, accessibility, and print rules.
 
-### `.section`
-Applies shared section positioning and vertical spacing.
+Components consume semantic design tokens through CSS variables. Do not hardcode palette values in component styles when a semantic token exists.
 
----
+Shared layout primitives use centralized layout token maps where appropriate, then apply static styles through CSS Modules.
 
-## Glass & Visual Effects
-
-### `.glass`
-Applies glass background, border, and backdrop blur.
-
-### `.bg-gradient-brand`
-Applies the primary brand gradient.
-
-### `.bg-gradient-learning`
-Applies the learning gradient.
-
-### `.bg-gradient-momentum`
-Applies the momentum gradient.
-
-### `.shadow-primary`
-Applies the primary brand shadow.
-
-### `.shadow-momentum`
-Applies the momentum accent shadow.
+Components expose visual options through props rather than globally available component classes.
 
 ---
 
-## Typography
+# Component Styling Contracts
 
-### `.text-balance`
-Applies balanced text wrapping.
+## Layout Primitives
 
-### `.text-pretty`
-Applies pretty text wrapping.
+### Container
+Constrains content width and page padding.
+
+#### Sizes
+- `xs`
+- `sm`
+- `md`
+- `lg`
+- `xl`
+- `2xl`
+- `reading`
+- `hero`
+- `wide`
+- `full`
+
+#### Contract
+- Uses container width tokens.
+- Supports rendered element overrides through `as`.
+
+### Stack
+Creates vertical rhythm.
+
+#### Props
+- `gap`
+- `align`
+- `as`
+
+#### Contract
+- Uses shared gap and alignment token maps.
+- Keeps spacing token-driven.
+
+### Cluster
+Creates horizontal or wrapping groups.
+
+#### Props
+- `gap`
+- `justify`
+- `align`
+- `wrap`
+- `as`
+
+#### Contract
+- Uses shared gap, justify, and alignment token maps.
+- Supports wrapping and non-wrapping layouts.
+
+### Section
+Defines page sections.
+
+#### Variants
+- `transparent`
+- `surface`
+- `subtle`
+- `brand`
+- `momentum`
+- `gradient`
+- `glass`
+
+#### Sizes
+- `none`
+- `xs`
+- `sm`
+- `md`
+- `lg`
+- `xl`
+
+#### Contract
+- Uses section spacing tokens.
+- Uses semantic background and text tokens.
+- Supports hero layout behavior.
+
+### Surface
+Defines card and panel surfaces.
+
+#### Variants
+- `default`
+- `subtle`
+- `outlined`
+- `elevated`
+- `glass`
+- `brand`
+
+#### Radius
+- `none`
+- `sm`
+- `md`
+- `lg`
+- `xl`
+- `2xl`
+- `full`
+
+#### Padding
+- `none`
+- `sm`
+- `md`
+- `lg`
+- `xl`
+
+#### Contract
+- Uses radius and spacing token maps.
+- Uses semantic surface, border, shadow, glass, and brand tokens.
+
+### SectionHeader
+Groups section eyebrow, title, description, and actions.
+
+#### Props
+- `eyebrow`
+- `title`
+- `description`
+- `actions`
+- `align`
+- `maxWidth`
+
+#### Contract
+- Composes Badge, Heading, and Text.
+- Supports left, center, and right alignment.
 
 ---
 
-## Print
+## Button Component
 
-### `.no-print`
-Hides content during printing.
+#### Variants
+- `primary`
+- `secondary`
+- `outline`
+- `ghost`
+- `momentum`
+- `danger`
 
-### `.print-only`
-Shows content only when printing.
+#### Sizes
+- `xs`
+- `sm`
+- `md`
+- `lg`
+- `xl`
 
----
+#### Modifiers
+- `fullWidth`
+- `iconOnly`
+- `loading`
 
-# Button Utility Classes
+#### State Styling
+- hover
+- focus-visible
+- disabled
+- aria-disabled
+- aria-busy
 
-## Base
+#### Contract
+- Uses button typography, radius, shadow, color, and motion tokens.
+- Supports rendered element overrides through `as`.
+- Loading and disabled states must remain accessible and non-interactive.
 
-### `.btn`
-Base button layout, typography, border radius, and transitions.
+## Navbar Component
 
----
+#### Variants
+- `sticky`
+- `transparent`
+- `solid`
 
-## Sizes
+#### Structure
+- header landmark
+- logo link
+- primary navigation
+- CTA action
 
-- `.btn-xs`
-- `.btn-sm`
-- `.btn-md`
-- `.btn-lg`
-- `.btn-xl`
+#### Accessibility
+- Uses a labeled primary navigation landmark.
+- Active/current links should expose semantic state when applicable.
 
----
+## Logo Component
 
-## Variants
+#### Variants
+- `compact`
+- `iconOnly`
 
-- `.btn-primary`
-- `.btn-secondary`
-- `.btn-ghost`
-- `.btn-outline`
-- `.btn-momentum`
-- `.btn-danger`
+#### Structure
+- linked brand mark
+- logo image
+- optional brand text
+- optional tagline
 
----
+#### Accessibility
+- Image alt text identifies the brand.
+- Icon-only presentation must remain understandable as a home/brand link.
 
-## Modifiers
+## Footer Component
 
-- `.btn-block`
-- `.btn-icon`
-- `.btn-loading`
+#### Structure
+- footer landmark
+- brand summary
+- explore navigation
+- social navigation
+- legal navigation
 
----
+#### Accessibility
+- Footer link groups use labeled navigation landmarks.
+- Legal and social links remain keyboard reachable.
 
-# Footer Classes
+## Badge Component
 
-- `.footer`
-- `.footer-grid`
-- `.footer-heading`
-- `.footer-description`
-- `.footer-link`
-- `.footer-copy`
+#### Variants
+- `brand`
+- `momentum`
+- `success`
+- `warning`
+- `danger`
+- `neutral`
 
----
+#### Sizes
+- `sm`
+- `md`
+- `lg`
 
-# Logo Classes
+#### Contract
+- Uses semantic status and brand tokens.
+- Text remains short and non-wrapping.
 
-- `.logo`
-- `.logo-icon`
-- `.logo-text`
-- `.logo-title`
-- `.logo-tagline`
+## Divider Component
 
----
+#### Props
+- `vertical`
+- `inset`
 
-# Navbar Classes
+#### Accessibility
+- Decorative dividers are hidden from assistive technologies by default.
+- Meaningful separators must provide appropriate role or label props.
 
-- `.navbar`
-- `.navbar-sticky`
-- `.navbar-transparent`
-- `.navbar-inner`
-- `.navbar-nav`
-- `.navbar-link`
+## Heading Component
+
+#### Levels
+- `1`
+- `2`
+- `3`
+- `4`
+- `5`
+- `6`
+
+#### Contract
+- Uses semantic typography tokens for heading levels.
+- Non-heading render targets must preserve heading semantics with ARIA.
+
+## Text Component
+
+#### Variants
+- `body`
+- `lead`
+- `small`
+- `muted`
+
+#### Contract
+- Uses text color, size, and line-height tokens.
+- Supports rendered element overrides through `as`.
 
 ---
 
@@ -528,7 +682,7 @@ Base button layout, typography, border radius, and transitions.
 ## Global Styles
 
 ### `src/app/globals.css`
-Imports Tailwind and all global stylesheets.
+Imports Tailwind and approved global stylesheets.
 
 ### `src/app/styles/tokens.css`
 Defines design tokens and theme mappings.
@@ -537,38 +691,16 @@ Defines design tokens and theme mappings.
 Global reset and base element normalization.
 
 ### `src/app/styles/typography.css`
-Body, headings, paragraphs, inline text, and text wrapping utilities.
+Base typography and text wrapping utilities.
 
 ### `src/app/styles/forms.css`
-Global form controls, labels, validation states, autofill, selects, fieldsets, and scrollbars.
-
-### `src/app/styles/layout.css`
-Layout primitives, glass utilities, gradient utilities, and shadow utilities.
-
-### `src/app/styles/buttons.css`
-Placeholder stylesheet for global button styles.
+Global form controls and validation states.
 
 ### `src/app/styles/accessibility.css`
-Selection, focus-visible, reduced motion, contrast, forced-colors, and touch-action rules.
+Focus, reduced motion, contrast, forced-colors, and touch-action rules.
 
 ### `src/app/styles/print.css`
 Print resets and print visibility utilities.
-
----
-
-## Component Stylesheets
-
-### `src/client/components/ui/Button/Button.css`
-Button component classes, variants, sizes, and modifiers.
-
-### `src/client/components/global/Footer/footer.css`
-Footer component styles.
-
-### `src/client/components/global/Logo/logo.css`
-Logo component styles.
-
-### `src/client/components/global/Navbar/navbar.css`
-Navbar component styles and variants.
 
 ---
 
@@ -631,60 +763,7 @@ Navbar component styles and variants.
 ## Z-Index
 - Use `--z-*`.
 
-## Utility Classes
-Use semantic utility names such as:
-
-- `.container`
-- `.section`
-- `.glass`
-- `.text-balance`
-
-## Background Utilities
-Use `.bg-gradient-*`.
-
-## Shadow Utilities
-Use `.shadow-*`.
-
-## Component Classes
-Use block-style prefixes:
-
-- `.btn-*`
-- `.navbar-*`
-- `.footer-*`
-- `.logo-*`
-
-## Button Classes
-
-### Sizes
-- `.btn-xs`
-- `.btn-sm`
-- `.btn-md`
-- `.btn-lg`
-- `.btn-xl`
-
-### Variants
-- `.btn-primary`
-- `.btn-secondary`
-- `.btn-ghost`
-- `.btn-outline`
-- `.btn-momentum`
-- `.btn-danger`
-
-### Modifiers
-- `.btn-block`
-- `.btn-icon`
-- `.btn-loading`
-
-## State Styling
-Use pseudo-classes and attributes:
-
-- `:hover`
-- `:focus`
-- `:focus-visible`
-- `:disabled`
-- `[disabled]`
-- `:invalid`
-
-## Navbar Variants
-- `.navbar-sticky`
-- `.navbar-transparent`
+## Component Modules
+- Use component-local class names.
+- Keep public variation in typed props.
+- Keep shared values in design tokens.

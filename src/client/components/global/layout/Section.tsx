@@ -1,13 +1,8 @@
 import React from "react";
 import clsx from "clsx";
 
-type Spacing =
-    | "none"
-    | "xs"
-    | "sm"
-    | "md"
-    | "lg"
-    | "xl";
+import styles from "./Layout.module.css";
+import { Spacing, spacingMap } from "./layoutTokens";
 
 type Background =
     | "transparent"
@@ -18,46 +13,14 @@ type Background =
     | "gradient"
     | "glass";
 
-const spacingMap: Record<Spacing, string> = {
-    none: "0",
-    xs: "var(--section-space-xs)",
-    sm: "var(--section-space-sm)",
-    md: "var(--section-space-md)",
-    lg: "var(--section-space-lg)",
-    xl: "var(--section-space-xl)",
-};
-
-const backgroundStyles: Record<Background, React.CSSProperties> = {
-    transparent: {},
-
-    surface: {
-        background: "var(--color-surface)",
-    },
-
-    subtle: {
-        background: "var(--color-surface-secondary)",
-    },
-
-    brand: {
-        background: "var(--gradient-brand)",
-        color: "var(--color-text-inverse)",
-    },
-
-    momentum: {
-        background: "var(--gradient-momentum)",
-        color: "var(--color-text-inverse)",
-    },
-
-    gradient: {
-        background:
-            "var(--gradient-hero), var(--color-background)",
-    },
-
-    glass: {
-        background: "var(--glass-light)",
-        backdropFilter: "blur(var(--blur-xl))",
-        WebkitBackdropFilter: "blur(var(--blur-xl))",
-    },
+const backgroundClasses: Record<Background, string> = {
+    transparent: "",
+    surface: styles.surfaceBackground,
+    subtle: styles.subtle,
+    brand: styles.brand,
+    momentum: styles.momentum,
+    gradient: styles.gradient,
+    glass: styles.glass,
 };
 
 export interface SectionProps
@@ -87,16 +50,14 @@ export const Section = React.forwardRef<HTMLElement, SectionProps>(
     ) => (
         <Component
             ref={ref}
-            className={clsx("section", className)}
+            className={clsx(
+                styles.section,
+                backgroundClasses[background],
+                hero && styles.hero,
+                className
+            )}
             style={{
                 paddingBlock: spacingMap[spacing],
-                ...(hero && {
-                    display: "flex",
-                    alignItems: "center",
-                    minHeight: "100vh",
-                    overflow: "hidden",
-                }),
-                ...backgroundStyles[background],
                 ...style,
             }}
             {...props}
