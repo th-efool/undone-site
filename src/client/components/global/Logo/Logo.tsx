@@ -1,8 +1,9 @@
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
+
 import clsx from "clsx";
 
-import "./logo.css";
+import styles from "./Logo.module.css";
 
 export interface LogoProps {
     href?: string;
@@ -16,33 +17,32 @@ export interface LogoProps {
     priority?: boolean;
 }
 
+/**
+ * Brand logo link with optional compact or icon-only presentation.
+ */
 export function Logo({
-                         href = "/",
-                         compact = false,
-                         iconOnly = false,
-                         className,
-                         priority = false,
-                     }: LogoProps) {
+    href = "/",
+    compact = false,
+    iconOnly = false,
+    className,
+    priority = false,
+}: LogoProps) {
     const logo = (
-        <div className={clsx("logo", className)}>
+        <div className={clsx(styles.root, className)}>
             <Image
                 src="/images/logo/sidequesthq-logo.webp"
-                alt="SideQuestHQ"
+                alt="SideQuestHQ logo"
                 width={44}
                 height={44}
-                priority
+                priority={priority}
             />
 
             {!iconOnly && (
-                <div className="logo-text">
-          <span className="logo-title">
-            SideQuestHQ
-          </span>
+                <div className={styles.text}>
+                    <span className={styles.title}>SideQuestHQ</span>
 
                     {!compact && (
-                        <span className="logo-tagline">
-              Learn Better.
-            </span>
+                        <span className={styles.tagline}>Learn Better.</span>
                     )}
                 </div>
             )}

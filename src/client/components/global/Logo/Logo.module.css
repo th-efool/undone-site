@@ -1,4 +1,4 @@
-.logo {
+.root {
     display: inline-flex;
     align-items: center;
     gap: var(--space-3);
@@ -8,16 +8,12 @@
     color: inherit;
 }
 
-.logo-icon {
-    flex-shrink: 0;
-}
-
-.logo-text {
+.text {
     display: flex;
     flex-direction: column;
 }
 
-.logo-title {
+.title {
     font-size: var(--text-lg);
     font-weight: var(--font-bold);
     line-height: 1;
@@ -25,7 +21,7 @@
     color: var(--color-text);
 }
 
-.logo-tagline {
+.tagline {
     margin-top: 2px;
 
     font-size: var(--font-caption-size);
