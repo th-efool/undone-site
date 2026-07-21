@@ -1,14 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 import clsx from "clsx";
 
-import { Container } from "../layout/Container";
-import { Cluster } from "../layout/Cluster";
-import { Logo } from "../Logo/Logo";
 import { Button } from "@/src/client/components/ui/Button/Button";
 
-import "./navbar.css";
+import { Cluster } from "../layout/Cluster";
+import { Container } from "../layout/Container";
+import { Logo } from "../Logo/Logo";
+import styles from "./Navbar.module.css";
 
 export interface NavItem {
     label: string;
@@ -44,39 +46,37 @@ const defaultLinks: NavItem[] = [
     },
 ];
 
+/**
+ * Site header with brand, primary navigation, and authentication actions.
+ */
 export function Navbar({
-                           links = defaultLinks,
+    links = defaultLinks,
+    sticky = true,
+    transparent = false,
+    ctaLabel = "Get Started",
+    ctaHref = "/signup",
+    className,
+}: NavbarProps) {
+    const pathname = usePathname();
 
-                           sticky = true,
-
-                           transparent = false,
-
-                           ctaLabel = "Get Started",
-
-                           ctaHref = "/signup",
-
-                           className,
-                       }: NavbarProps) {
     return (
         <header
             className={clsx(
-                "navbar",
-
+                styles.root,
                 {
-                    "navbar-sticky": sticky,
-                    "navbar-transparent": transparent,
+                    [styles.sticky]: sticky,
+                    [styles.transparent]: transparent,
+                    [styles.solid]: !transparent,
                 },
-
                 className
             )}
         >
             <Container size="2xl">
-                <div className="navbar-inner">
-
+                <div className={styles.inner}>
                     <Logo />
 
                     <nav
-                        className="navbar-nav"
+                        className={styles.nav}
                         aria-label="Primary Navigation"
                     >
                         <Cluster gap="8">
@@ -84,7 +84,10 @@ export function Navbar({
                                 <Link
                                     key={link.href}
                                     href={link.href}
-                                    className="navbar-link"
+                                    className={styles.link}
+                                    aria-current={
+                                        pathname === link.href ? "page" : undefined
+                                    }
                                 >
                                     {link.label}
                                 </Link>
@@ -93,21 +96,12 @@ export function Navbar({
                     </nav>
 
                     <Cluster gap="3">
+                        <Button variant="ghost">Login</Button>
 
-                        <Button
-                            variant="ghost"
-                        >
-                            Login
+                        <Button as={Link} href={ctaHref}>
+                            {ctaLabel}
                         </Button>
-
-                        <Link href={ctaHref}>
-                            <Button>
-                                {ctaLabel}
-                            </Button>
-                        </Link>
-
                     </Cluster>
-
                 </div>
             </Container>
         </header>
