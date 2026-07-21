@@ -1,0 +1,105 @@
+/* Base Elements */
+body {
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-body-size);
+  font-weight: var(--font-body-weight);
+  line-height: var(--font-body-line-height);
+  caret-color: var(--color-brand);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a:hover {
+  color: var(--color-brand);
+}
+
+svg {
+  flex-shrink: 0;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  transition: var(--transition-colors), var(--transition-shadow), var(--transition-transform);
+}
+
+/* Typography */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--color-text-primary);
+  font-family: var(--font-display);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: clamp(var(--text-5xl), 7vw, var(--display-md));
+}
+
+h2 {
+  font-size: var(--font-section-title-size);
+}
+
+h3 {
+  font-size: clamp(var(--text-2xl), 3vw, var(--text-3xl));
+}
+
+h4 {
+  font-size: var(--text-2xl);
+}
+
+h5 {
+  font-size: var(--text-xl);
+}
+
+h6 {
+  font-size: var(--text-lg);
+}
+
+p {
+  color: var(--color-text-secondary);
+  font-size: var(--font-body-size);
+  line-height: var(--font-body-line-height);
+  text-wrap: pretty;
+}
+
+small {
+  font-size: var(--text-sm);
+}
+
+strong {
+  font-weight: var(--font-semibold);
+}
+
+em {
+  font-style: italic;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-mono);
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
