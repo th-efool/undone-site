@@ -1,0 +1,35 @@
+.logo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-3);
+
+    text-decoration: none;
+
+    color: inherit;
+}
+
+.logo-icon {
+    flex-shrink: 0;
+}
+
+.logo-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.logo-title {
+    font-size: var(--text-lg);
+    font-weight: var(--font-bold);
+    line-height: 1;
+
+    color: var(--color-text);
+}
+
+.logo-tagline {
+    margin-top: 2px;
+
+    font-size: var(--font-caption-size);
+    font-weight: var(--font-caption-weight);
+
+    color: var(--color-text-secondary);
+}
