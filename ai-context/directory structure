@@ -31,7 +31,7 @@ src/
 ├── client/
 │   ├── components/
 │   │   ├── global/
-│   │   │   └── Navbar.tsx
+│   │   │   └──
 │   │   ├── screens/
 │   │   │   ├── auth/
 │   │   │   │   └── .gitkeep
