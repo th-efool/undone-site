@@ -52,7 +52,7 @@ const defaultSocial: FooterLink[] = [
 ];
 
 export function Footer({
-                           description = "Turn long-form content into daily learning adventures.",
+                           description = "The easiest way to stay consistent with everything you want to learn.",
 
                            navigation = defaultNavigation,
 
@@ -100,7 +100,7 @@ export function Footer({
 
                         {social.map((item) => (
                             <Link
-                                key={item.href}
+                                key={item.label}
                                 href={item.href}
                                 className="footer-link"
                             >
