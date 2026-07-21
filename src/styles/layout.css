@@ -1,0 +1,32 @@
+/* Layout Primitives */
+.container {
+  width: 100%;
+  max-width: var(--container-2xl);
+  margin-inline: auto;
+  padding-inline: var(--page-padding);
+}
+
+.container-fluid {
+  width: 100%;
+}
+
+
+.section {
+  position: relative;
+  padding-block: var(--section-space-lg);
+}
+
+
+.glass {
+  background: var(--glass-light);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--blur-lg));
+  -webkit-backdrop-filter: blur(var(--blur-lg));
+}
+
+.bg-gradient-brand { background: var(--gradient-brand); }
+.bg-gradient-learning { background: var(--gradient-learning); }
+.bg-gradient-momentum { background: var(--gradient-momentum); }
+.shadow-primary { box-shadow: var(--shadow-primary); }
+.shadow-momentum { box-shadow: var(--shadow-momentum); }
+

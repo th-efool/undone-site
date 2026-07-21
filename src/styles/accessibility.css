@@ -1,0 +1,68 @@
+/* Accessibility */
+::selection {
+  background: var(--color-brand);
+  color: var(--color-text-inverse);
+}
+
+::-moz-selection {
+  background: var(--color-brand);
+  color: var(--color-text-inverse);
+}
+
+:target {
+  scroll-margin-top: 6rem;
+}
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgb(var(--color-surface-rgb) / .9), 0 0 0 6px rgb(var(--color-brand-rgb) / .28);
+}
+
+button,
+a,
+input[type="checkbox"],
+input[type="radio"],
+summary {
+  touch-action: manipulation;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: .01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    transition-delay: 0ms !important;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --color-border: var(--gray-500);
+    --color-text-secondary: var(--gray-800);
+  }
+}
+
+@media (forced-colors: active) {
+  * {
+    forced-color-adjust: auto;
+  }
+
+  :focus-visible {
+    outline: 2px solid CanvasText;
+    outline-offset: 3px;
+    box-shadow: none;
+  }
+}
+
