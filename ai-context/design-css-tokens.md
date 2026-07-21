@@ -2,6 +2,13 @@
 
 ---
 
+
+# Component Styling
+
+Component styles live in component-local CSS Modules and consume CSS variables from the design token system. Design tokens remain the single source of truth for color, spacing, typography, radius, motion, and other shared values. Layout primitives share centralized layout token maps where appropriate. Accessibility is part of the component contract, including semantic HTML, ARIA, and keyboard support.
+
+---
+
 # Design Tokens
 
 ## Colors
@@ -491,35 +498,9 @@ Base button layout, typography, border radius, and transitions.
 
 ---
 
-# Footer Classes
+# Component CSS Modules
 
-- `.footer`
-- `.footer-grid`
-- `.footer-heading`
-- `.footer-description`
-- `.footer-link`
-- `.footer-copy`
-
----
-
-# Logo Classes
-
-- `.logo`
-- `.logo-icon`
-- `.logo-text`
-- `.logo-title`
-- `.logo-tagline`
-
----
-
-# Navbar Classes
-
-- `.navbar`
-- `.navbar-sticky`
-- `.navbar-transparent`
-- `.navbar-inner`
-- `.navbar-nav`
-- `.navbar-link`
+Component-local `*.module.css` files define component structure and variants while consuming design token CSS variables.
 
 ---
 
@@ -645,13 +626,8 @@ Use `.bg-gradient-*`.
 ## Shadow Utilities
 Use `.shadow-*`.
 
-## Component Classes
-Use block-style prefixes:
-
-- `.btn-*`
-- `.navbar-*`
-- `.footer-*`
-- `.logo-*`
+## Component CSS Modules
+Use component-local classes backed by shared design tokens.
 
 ## Button Classes
 
@@ -685,6 +661,5 @@ Use pseudo-classes and attributes:
 - `[disabled]`
 - `:invalid`
 
-## Navbar Variants
-- `.navbar-sticky`
-- `.navbar-transparent`
+## Component Variants
+Represent component variants with component-local CSS Module classes.
