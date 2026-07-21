@@ -1,6 +1,8 @@
 import React from "react";
 import clsx from "clsx";
 
+import styles from "./Divider.module.css";
+
 export interface DividerProps
     extends React.HTMLAttributes<HTMLHRElement> {
     vertical?: boolean;
@@ -13,30 +15,23 @@ export function Divider({
                             inset = false,
                             className,
                             style,
+                            "aria-hidden": ariaHidden,
+                            "aria-label": ariaLabel,
                             ...props
                         }: DividerProps) {
+    const decorative = ariaHidden ?? !(props.role || ariaLabel);
+
     return (
         <hr
-            className={clsx(className)}
-            style={{
-                border: 0,
-
-                margin: 0,
-
-                background: "var(--color-border)",
-
-                ...(vertical
-                    ? {
-                        width: "1px",
-                        height: "100%",
-                    }
-                    : {
-                        width: inset ? "calc(100% - var(--space-8))" : "100%",
-                        height: "1px",
-                    }),
-
-                ...style,
-            }}
+            aria-hidden={decorative}
+            aria-label={ariaLabel}
+            className={clsx(
+                styles.divider,
+                vertical ? styles.vertical : styles.horizontal,
+                !vertical && inset && styles.inset,
+                className
+            )}
+            style={style}
             {...props}
         />
     );

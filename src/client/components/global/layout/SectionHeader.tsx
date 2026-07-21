@@ -5,20 +5,15 @@ import { Stack } from "./Stack";
 import {Badge} from "@/src/client/components/ui/Badge/Badge";
 import { Heading } from "@/src/client/components/ui/Typography/Heading";
 import { Text } from "@/src/client/components/ui/Typography/Text";
+import styles from "./Layout.module.css";
 
 type Align = "left" | "center" | "right";
 
-const alignItems = {
-    left: "flex-start",
-    center: "center",
-    right: "flex-end",
-} as const;
-
-const textAlign = {
-    left: "left",
-    center: "center",
-    right: "right",
-} as const;
+const alignClasses: Record<Align, string> = {
+    left: styles.sectionHeaderLeft,
+    center: styles.sectionHeaderCenter,
+    right: styles.sectionHeaderRight,
+};
 
 export interface SectionHeaderProps
     extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
@@ -52,11 +47,9 @@ export const SectionHeader = React.forwardRef<
             <Stack
                 ref={ref}
                 gap="5"
-                className={clsx(className)}
+                className={clsx(alignClasses[align], className)}
                 style={{
                     maxWidth,
-                    textAlign: textAlign[align],
-                    alignItems: alignItems[align],
                     ...style,
                 }}
                 {...props}
