@@ -57,3 +57,36 @@
   font-size: 20px;
   line-height: 1;
 }
+
+@media (max-width: 1439px) {
+  .ticker {
+    bottom: clamp(24px, 2.36vw, 34px);
+    max-width: calc(100vw - 48px);
+    gap: clamp(20px, 2.36vw, 34px);
+  }
+
+  .learners,
+  .score {
+    font-size: clamp(15px, 1.25vw, 18px);
+  }
+
+  .stars {
+    font-size: clamp(17px, 1.39vw, 20px);
+  }
+}
+
+@media (max-width: 767px) {
+  .ticker {
+    width: calc(100vw - 40px);
+    justify-content: center;
+    flex-wrap: wrap;
+    row-gap: 12px;
+  }
+
+  .learners {
+    order: 3;
+    width: 100%;
+    text-align: center;
+    white-space: normal;
+  }
+}
