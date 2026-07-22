@@ -1,4 +1,8 @@
+"use client";
+import { useState } from "react";
+
 export function HeroContent() {
+    const [hoveredButton, setHoveredButton] = useState<"demo" | "cta" | null>(null);
     return (
         <section
             style={{
@@ -86,48 +90,76 @@ export function HeroContent() {
                 }}
             >
                 <button
+                    onMouseEnter={() => setHoveredButton("demo")}
+                    onMouseLeave={() => setHoveredButton(null)}
                     style={{
                         height: 60,
                         padding: "0 30px",
                         borderRadius: 999,
                         border: "2px solid #171A31",
-                        background: "rgba(255,255,255,.82)",
+                        background:
+                            hoveredButton === "demo"
+                                ? "#171A31"
+                                : "rgba(255,255,255,.82)",
                         backdropFilter: "blur(10px)",
                         fontSize: 18,
                         fontWeight: 700,
-                        color: "#171A31",
+                        color:
+                            hoveredButton === "demo"
+                                ? "#fff"
+                                : "#171A31",
                         display: "flex",
                         alignItems: "center",
                         gap: 12,
                         cursor: "pointer",
+                        transition: "all .22s ease",
+                        transform:
+                            hoveredButton === "demo"
+                                ? "translateY(-2px)"
+                                : "translateY(0)",
+                        boxShadow:
+                            hoveredButton === "demo"
+                                ? "0 12px 32px rgba(23,26,49,.22)"
+                                : "none",
                     }}
                 >
-                    <span
-                        style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: "50%",
-                            background: "#5B39F6",
-                            color: "#fff",
-                            display: "grid",
-                            placeItems: "center",
-                            fontSize: 12,
-                        }}
-                    >
-                        ▶
-                    </span>
+    <span
+        style={{
+            width: 24,
+            height: 24,
+            borderRadius: "50%",
+            background:
+                hoveredButton === "demo"
+                    ? "#fff"
+                    : "#5B39F6",
+            color:
+                hoveredButton === "demo"
+                    ? "#5B39F6"
+                    : "#fff",
+            display: "grid",
+            placeItems: "center",
+            fontSize: 12,
+            transition: "all .22s ease",
+        }}
+    >
+        ▶
+    </span>
 
                     See How It Works
                 </button>
 
                 <button
+                    onMouseEnter={() => setHoveredButton("cta")}
+                    onMouseLeave={() => setHoveredButton(null)}
                     style={{
                         height: 60,
                         padding: "0 34px",
                         borderRadius: 999,
                         border: "none",
                         background:
-                            "linear-gradient(90deg,#5B39F6 0%,#6C2BFF 100%)",
+                            hoveredButton === "cta"
+                                ? "linear-gradient(90deg,#6B4DFF 0%,#7C39FF 100%)"
+                                : "linear-gradient(90deg,#5B39F6 0%,#6C2BFF 100%)",
                         color: "#fff",
                         fontSize: 18,
                         fontWeight: 800,
@@ -135,11 +167,29 @@ export function HeroContent() {
                         alignItems: "center",
                         gap: 12,
                         cursor: "pointer",
-                        boxShadow: "0 18px 40px rgba(91,57,246,.35)",
+                        transition: "all .22s ease",
+                        transform:
+                            hoveredButton === "cta"
+                                ? "translateY(-2px) scale(1.03)"
+                                : "translateY(0) scale(1)",
+                        boxShadow:
+                            hoveredButton === "cta"
+                                ? "0 24px 54px rgba(91,57,246,.48)"
+                                : "0 18px 40px rgba(91,57,246,.35)",
                     }}
                 >
                     Start Your Next SideQuest
-                    <span>→</span>
+                    <span
+                        style={{
+                            transition: "transform .22s ease",
+                            transform:
+                                hoveredButton === "cta"
+                                    ? "translateX(4px)"
+                                    : "translateX(0)",
+                        }}
+                    >
+                    →
+                </span>
                 </button>
             </div>
 
