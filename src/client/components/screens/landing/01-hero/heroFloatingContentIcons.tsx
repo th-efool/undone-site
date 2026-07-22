@@ -1,3 +1,3 @@
-export function heroFloatingContentIcons() {
-
+export function HeroFloatingContentIcons() {
+    return <></>
 }
