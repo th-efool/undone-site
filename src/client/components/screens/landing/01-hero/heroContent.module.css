@@ -268,10 +268,3 @@
     justify-content: center;
   }
 }
-
-@media (max-width: 1023px) {
-  .eyebrow,
-  .description {
-    color: var(--color-text-primary);
-  }
-}

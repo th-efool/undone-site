@@ -294,16 +294,3 @@
         height: 390px;
     }
 }
-
-@media (max-width: 1023px) {
-    .readingWash,
-    .windowGlow,
-    .sunCorner,
-    .colorGrade,
-    .leftVignette,
-    .topFade,
-    .bottomFade,
-    .globalVignette {
-        opacity: 0;
-    }
-}
