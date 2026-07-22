@@ -1,0 +1,59 @@
+.ticker {
+  position: absolute;
+  bottom: 34px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  gap: 34px;
+  color: #fff;
+}
+
+.avatars {
+  display: flex;
+  align-items: center;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.96);
+  margin-left: -10px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  background: #fff;
+}
+
+.avatar:first-child {
+  margin-left: 0;
+}
+
+.learners {
+  font-size: 18px;
+  font-weight: var(--font-semibold);
+  color: rgba(255, 255, 255, 0.96);
+  white-space: nowrap;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  white-space: nowrap;
+}
+
+.score {
+  font-size: 18px;
+  font-weight: var(--font-bold);
+  color: #fff;
+}
+
+.stars {
+  display: flex;
+  gap: 5px;
+  color: #F7C948;
+  font-size: 20px;
+  line-height: 1;
+}
