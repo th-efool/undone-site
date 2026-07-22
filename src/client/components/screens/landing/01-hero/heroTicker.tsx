@@ -1,45 +1,15 @@
 import Image from "next/image";
+import styles from "./heroTicker.module.css";
 
 const avatars = ["a", "b", "c", "d", "e"];
 
 export function HeroTicker() {
     return (
-        <div
-            style={{
-                position: "absolute",
-                bottom: 34,
-                left: "50%",
-                transform: "translateX(-50%)",
-                zIndex: 25,
-
-                display: "flex",
-                alignItems: "center",
-                gap: 34,
-
-                color: "#fff",
-            }}
-        >
+        <div className={styles.ticker}>
             {/* Avatars */}
-            <div
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                }}
-            >
-                {avatars.map((avatar, index) => (
-                    <div
-                        key={avatar}
-                        style={{
-                            width: 42,
-                            height: 42,
-                            borderRadius: "50%",
-                            overflow: "hidden",
-                            border: "3px solid rgba(255,255,255,.96)",
-                            marginLeft: index === 0 ? 0 : -10,
-                            boxShadow: "0 4px 14px rgba(0,0,0,.18)",
-                            background: "#fff",
-                        }}
-                    >
+            <div className={styles.avatars}>
+                {avatars.map((avatar) => (
+                    <div key={avatar} className={styles.avatar}>
                         <Image
                             src={`/images/landing/${avatar}.webp`}
                             alt=""
@@ -51,47 +21,14 @@ export function HeroTicker() {
             </div>
 
             {/* Learners */}
-            <div
-                style={{
-                    fontSize: 18,
-                    fontWeight: 600,
-                    color: "rgba(255,255,255,.96)",
-                    whiteSpace: "nowrap",
-                }}
-            >
+            <div className={styles.learners}>
                 250K+ learners already on their journey
             </div>
 
             {/* Rating */}
-            <div
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 14,
-                    whiteSpace: "nowrap",
-                }}
-            >
-                <span
-                    style={{
-                        fontSize: 18,
-                        fontWeight: 700,
-                        color: "#fff",
-                    }}
-                >
-                    4.9
-                </span>
-
-                <div
-                    style={{
-                        display: "flex",
-                        gap: 5,
-                        color: "#F7C948",
-                        fontSize: 20,
-                        lineHeight: 1,
-                    }}
-                >
-                    ★★★★★
-                </div>
+            <div className={styles.rating}>
+                <span className={styles.score}>4.9</span>
+                <div className={styles.stars}>★★★★★</div>
             </div>
         </div>
     );
