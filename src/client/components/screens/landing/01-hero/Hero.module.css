@@ -97,39 +97,54 @@
 
     background:
             radial-gradient(
-                    ellipse,
-                    rgba(255,250,242,.70) 0%,
-                    rgba(255,249,242,.42) 34%,
-                    rgba(255,249,242,.18) 58%,
-                    transparent 82%
+                    ellipse at 58% 45%,
+
+                    rgba(255,252,248,.96) 0%,
+                    rgba(255,251,246,.86) 30%,
+                    rgba(255,249,243,.62) 55%,
+                    rgba(255,247,241,.34) 76%,
+                    rgba(255,246,239,.12) 90%,
+                    transparent 100%
             );
 
-    filter: blur(32px);
+    filter: blur(84px);
 }
 
 /* Typography readability */
 .readingWash {
     position: absolute;
 
-    right: -2%;
-    top: 8%;
+    left: 32%;
+    top: 28%;
 
-    width: 60%;
-    height: 72%;
+    width: 46%;
+    height: 58%;
 
     pointer-events: none;
 
     background:
             radial-gradient(
-                    ellipse at 55% 45%,
-                    rgba(255,252,248,.92) 0%,
-                    rgba(255,250,244,.72) 26%,
-                    rgba(255,248,242,.42) 48%,
-                    rgba(255,247,240,.18) 66%,
-                    transparent 86%
+                    1200px 850px at 73% 42%,
+                    rgba(255,252,248,.34) 0%,
+                    rgba(255,252,248,.26) 38%,
+                    rgba(255,252,248,.12) 68%,
+                    transparent 100%
+            ),
+
+            radial-gradient(
+                    900px 700px at 70% 62%,
+                    rgba(255,251,246,.20) 0%,
+                    rgba(255,251,246,.10) 62%,
+                    transparent 100%
+            ),
+
+            radial-gradient(
+                    850px 650px at 58% 46%,
+                    rgba(255,250,244,.14) 0%,
+                    transparent 85%
             );
 
-    filter: blur(64px);
+    filter: blur(60px);
 }
 
 /* Keeps logo / floating icons readable */
