@@ -135,11 +135,11 @@ export function IkigaiTimeline() {
 
                     <span className={styles.separator}>|</span>
 
-                    <span>You already have the time.</span>
+                    <strong>You already have the time.</strong>
 
                     <span className={styles.separator}>|</span>
 
-                    <strong>Let&#39;s use it.</strong>
+                    <span>Let&#39;s use it.</span>
 
                 </div>
             </div>
