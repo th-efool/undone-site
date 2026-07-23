@@ -30,7 +30,7 @@ export function Logo({
     const logo = (
         <div className={clsx(styles.root, className)}>
             <Image
-                src="/images/logo/sidequesthq-logo.webp"
+                src="/images/logos/sidequesthq-logo.webp"
                 alt="SideQuestHQ logo"
                 width={44}
                 height={44}

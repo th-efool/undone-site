@@ -4,10 +4,16 @@ import Image from "next/image";
 import styles from "./heroFloatingContentIcons.module.css";
 
 const source = {
-    x: 48,
-    y: 77,
+    x: 54,
+    y: 83,
 };
 const icons = {
+    logo : {
+        src: "/images/logos/floating-logo.webp",
+        x: 53,
+        y: 79.5,
+        rotate: 0,
+    },
     youtube: {
         src: "/images/icons/128/Youtube.webp",
         x: 9,
