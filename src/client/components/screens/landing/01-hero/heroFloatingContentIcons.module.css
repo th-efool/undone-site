@@ -102,8 +102,8 @@
             drop-shadow(0 0 36px rgba(124,92,255,.28));
 }
 
-/* Tablet */
-@media (max-width: 1024px) {
+/* Hide before the fixed scene anchor competes with the main hero content. */
+@media (max-width: 1320px) {
     .container {
         display: none;
     }
