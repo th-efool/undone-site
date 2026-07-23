@@ -146,6 +146,15 @@
 
     filter: blur(60px);
 }
+@media (max-width: 767px) {
+    .readingWash {
+        left: -25%;
+        width: 78%;
+        top: 7%;
+
+        /* leave everything else alone */
+    }
+}
 
 /* Keeps logo / floating icons readable */
 .leftVignette {

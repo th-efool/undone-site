@@ -4,8 +4,8 @@ import Image from "next/image";
 import styles from "./heroFloatingContentIcons.module.css";
 
 const source = {
-    x: 37,
-    y: 71,
+    x: 48,
+    y: 77,
 };
 const icons = {
     youtube: {
