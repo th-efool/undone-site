@@ -116,6 +116,7 @@ function Ribbon({
                 strokeWidth={16}
                 opacity={0.18}
                 strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
                 filter="url(#glow)"
             />
 
@@ -126,6 +127,7 @@ function Ribbon({
                 strokeWidth={8}
                 opacity={0.45}
                 strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
                 filter="url(#glow)"
             />
 
@@ -135,6 +137,7 @@ function Ribbon({
                 stroke="white"
                 strokeWidth={2.5}
                 strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
             />
         </>
     );
