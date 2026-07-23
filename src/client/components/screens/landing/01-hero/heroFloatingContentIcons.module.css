@@ -1,7 +1,10 @@
 .container {
     position: absolute;
-    inset: 0;
+    top: 0;
+    left: 0;
     z-index: 8;
+    width: 1288px;
+    height: 724.5px;
     pointer-events: none;
 }
 
@@ -97,22 +100,6 @@
     filter:
             drop-shadow(0 0 18px rgba(124,92,255,.45))
             drop-shadow(0 0 36px rgba(124,92,255,.28));
-}
-
-/* Large laptops */
-@media (max-width: 1400px) {
-    .container {
-        transform: scale(.92);
-        transform-origin: top left;
-    }
-}
-
-/* Smaller laptops */
-@media (max-width: 1200px) {
-    .container {
-        transform: scale(.82);
-        opacity: .9;
-    }
 }
 
 /* Tablet */
