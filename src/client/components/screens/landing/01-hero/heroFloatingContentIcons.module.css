@@ -1,0 +1,67 @@
+.container {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    pointer-events: none;
+}
+
+.icon {
+    position: absolute;
+
+    width: 76px;
+    aspect-ratio: 1;
+
+    border-radius: 22px;
+
+    background: rgba(255,255,255,.96);
+
+    padding: 14px;
+    box-sizing: border-box;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    box-shadow:
+            0 0 18px rgba(206,160,255,.75),
+            0 0 42px rgba(169,105,255,.45),
+            0 10px 26px rgba(25,20,60,.35);
+
+    animation: float 5.5s ease-in-out infinite;
+
+    overflow: hidden;
+}
+
+.icon:nth-child(2) {
+    animation-delay: .6s;
+}
+
+.icon:nth-child(3) {
+    animation-delay: 1.2s;
+}
+
+.icon:nth-child(4) {
+    animation-delay: .9s;
+}
+
+.icon:nth-child(5) {
+    animation-delay: 1.8s;
+}
+
+.icon:nth-child(6) {
+    animation-delay: .3s;
+}
+
+.icon img {
+    object-fit: contain;
+}
+
+@keyframes float {
+    0%,100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}

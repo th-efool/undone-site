@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { HeroFloatingContentIcons } from "./heroFloatingContentIcons";
 import styles from "./Hero.module.css";
+
 
 export function HeroScene() {
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -48,7 +48,7 @@ export function HeroScene() {
             <div className={styles.bottomFade} />
             <div className={styles.globalVignette} />
 
-            <HeroFloatingContentIcons />
+
 
         </div>
     );
