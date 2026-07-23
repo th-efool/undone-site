@@ -72,11 +72,30 @@
 
 }
 .feedPanel{
-    padding-right: 20px;
-    width:100%;
-    max-width:320px;
+    position:relative;
 
+    display:flex;
+    flex-direction:column;
     align-self:center;
+
+    width:100%;
+    max-width:360px;
+
+    padding:0 10px 0 32px;
+}
+
+.feedPanel::before{
+    content:"";
+
+    position:absolute;
+
+    left:0;
+    top:0;
+    bottom:0;
+
+    width:2px;
+
+    background:var(--color-brand);
 }
 
 .feedTitle{
@@ -90,7 +109,7 @@
 }
 
 .feedDescription{
-    margin-bottom:0px;
+    margin:0 0 18px;
 
     font-size:0.9rem;
     line-height:1.65;
@@ -99,21 +118,33 @@
 }
 
 .feedCaption{
-    margin-top:0px;
-
     font-size:.95rem;
-    line-height:1.55;
+    line-height:1.45;
+    margin:0;
 
     color:var(--color-text-secondary);
 }
 
 .feedBadge{
-    margin-top:0px;
+    align-self:center;
 
-    padding:8px 14px;
+    margin-top:14px;
+
+    padding:8px 16px;
+
+    border-radius:999px;
+
+    background:var(--color-brand-subtle);
+
+    color:var(--color-brand);
 
     font-size:.82rem;
+    font-weight:600;
+
+    white-space:nowrap;
 }
+
+
 
 .phoneIllustration{
     position:relative;
