@@ -7,9 +7,9 @@
 
 .icon {
     position: absolute;
+    width: 58px;
+    height: 58px;
 
-    width: 76px;
-    aspect-ratio: 1;
 
     border-radius: 22px;
 
@@ -30,6 +30,16 @@
     animation: float 5.5s ease-in-out infinite;
 
     overflow: hidden;
+}
+
+
+.ribbon {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
 }
 
 .icon:nth-child(2) {
@@ -62,6 +72,59 @@
     }
 
     50% {
-        transform: translateY(-10px);
+        transform: translateY(-6px);
+    }
+}
+
+.ribbon path {
+    animation: ribbonPulse 2.8s ease-in-out infinite;
+}
+
+.ribbon path:nth-child(odd) {
+    animation-delay: .5s;
+}
+
+.logo {
+    width: 72px;
+    height: 72px;
+
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+
+    box-shadow: none;
+
+    filter:
+            drop-shadow(0 0 18px rgba(124,92,255,.45))
+            drop-shadow(0 0 36px rgba(124,92,255,.28));
+}
+
+/* Large laptops */
+@media (max-width: 1400px) {
+    .container {
+        transform: scale(.92);
+        transform-origin: top left;
+    }
+}
+
+/* Smaller laptops */
+@media (max-width: 1200px) {
+    .container {
+        transform: scale(.82);
+        opacity: .9;
+    }
+}
+
+/* Tablet */
+@media (max-width: 1024px) {
+    .container {
+        display: none;
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .container {
+        display: none;
     }
 }
