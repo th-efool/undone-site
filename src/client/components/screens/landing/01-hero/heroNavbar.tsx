@@ -36,11 +36,11 @@ export function HeroNavbar() {
        </nav>
 
        <div className={styles.auth}>
-        <Link href="/login" className={styles.loginLink}>
+        <Link href="/auth" className={styles.loginLink}>
          Log in
         </Link>
 
-        <Link href="/signup" className={styles.signupLink}>
+        <Link href="/auth" className={styles.signupLink}>
          Start Your Next SideQuest
          <span>→</span>
         </Link>

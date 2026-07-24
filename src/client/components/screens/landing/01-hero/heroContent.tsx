@@ -1,4 +1,5 @@
 import styles from "./heroContent.module.css";
+import Link from "next/link";
 
 export function HeroContent() {
     return (
@@ -8,7 +9,7 @@ export function HeroContent() {
             </div>
 
             <h1 className={styles.title}>
-                Curiosity shouldn't feel like{" "}
+                Curiosity shouldn&#39;t feel like{" "}
                 <span className={styles.titleAccent}>a burden.</span>
             </h1>
 
@@ -23,10 +24,10 @@ export function HeroContent() {
                     See How It Works
                 </button>
 
-                <button className={styles.ctaButton}>
-                    Start Your Next SideQuest
+                <Link href="/auth" className={styles.ctaButton}>
+                    <span>Start Your Next SideQuest</span>
                     <span className={styles.ctaIcon}>→</span>
-                </button>
+                </Link>
             </div>
 
             <div className={styles.note}>
