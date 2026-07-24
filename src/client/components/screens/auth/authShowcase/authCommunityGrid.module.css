@@ -1,17 +1,41 @@
 .grid {
-    display: grid;
+    display: flex;
 
-    grid-template-columns: repeat(3, 1fr);
+    flex-direction: column;
 
     gap: 12px;
+}
+
+.row {
+    display: flex;
+
+    gap: 12px;
+}
+
+.row:nth-child(1) .card {
+    flex: 1;
+}
+
+.row:nth-child(2) {
+    width: 75%;
+}
+
+.row:nth-child(2) .card {
+    flex: 1;
+}
+
+.row:nth-child(3) {
+    width: calc(50% - 7px);
 }
 
 .card {
     position: relative;
 
-    overflow: hidden;
+    flex: 1;
 
-    aspect-ratio: 1.18;
+    aspect-ratio: 1.7;
+
+    overflow: hidden;
 
     border-radius: 18px;
 
@@ -37,46 +61,38 @@
     background:
             linear-gradient(
                     to top,
-                    rgba(0,0,0,.82) 0%,
-                    rgba(0,0,0,.35) 45%,
-                    rgba(0,0,0,.08) 100%
+                    rgba(0,0,0,.82),
+                    rgba(0,0,0,.25) 45%,
+                    transparent
             );
 }
 
 .topRow {
     position: absolute;
 
-    top: 12px;
     left: 12px;
     right: 12px;
+    top: 10px;
 
     display: flex;
 
     justify-content: space-between;
 
-    align-items: center;
+    color: white;
 
     z-index: 2;
 }
 
 .roomName {
-    color: white;
-
-    font-size: .85rem;
+    font-size: .78rem;
 
     font-weight: 700;
-
-    text-shadow: 0 2px 8px rgba(0,0,0,.6);
 }
 
 .members {
-    color: white;
-
-    font-size: .8rem;
+    font-size: .72rem;
 
     font-weight: 600;
-
-    text-shadow: 0 2px 8px rgba(0,0,0,.6);
 }
 
 .bottom {
@@ -84,29 +100,25 @@
 
     left: 12px;
     right: 12px;
-    bottom: 12px;
+    bottom: 10px;
 
     z-index: 2;
+
+    color: white;
 }
 
 .name {
-    color: white;
-
-    font-size: .95rem;
+    font-size: .9rem;
 
     font-weight: 700;
-
-    margin-bottom: 2px;
 }
 
 .activity {
-    color: rgba(255,255,255,.9);
+    margin-top: 2px;
 
-    font-size: .72rem;
+    font-size: .68rem;
 
-    line-height: 1.35;
-
-    margin-bottom: 8px;
+    opacity: .92;
 }
 
 .liveRow {
@@ -116,7 +128,7 @@
 
     gap: 6px;
 
-    color: white;
+    margin-top: 8px;
 
     font-size: .72rem;
 
@@ -127,7 +139,7 @@
     width: 8px;
     height: 8px;
 
-    border-radius: 50%;
+    border-radius: 999px;
 
     background: #22c55e;
 }

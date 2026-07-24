@@ -2,11 +2,11 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) 520px;
 
-    gap: 24px;
+    gap: 0px;
 
     min-height: 100vh;
 
-    padding: 16px;
+    padding: 0px;
 
     background: var(--color-background);
 
@@ -15,10 +15,10 @@
 
 .showcase {
     position: relative;
-
     min-width: 0;
 
-    overflow: hidden;
+    overflow: visible;
+    padding-right: 10px;
 }
 
 .panel {

@@ -9,32 +9,41 @@ export default function AuthFeaturedContent() {
                     key={card.id}
                     className={styles.card}
                 >
-                    <img
-                        src={card.image}
-                        alt=""
-                        className={styles.image}
-                    />
-
-                    <div className={styles.overlay} />
+                    <div className={styles.thumbnail}>
+                        <img
+                            src={card.image}
+                            alt=""
+                            className={styles.image}
+                        />
+                    </div>
 
                     <div className={styles.content}>
-                        <h3>{card.title}</h3>
 
-                        <p>{card.subtitle}</p>
+                        <h3 className={styles.title}>
+                            {card.title}
+                        </h3>
 
-                        <div className={styles.footer}>
-                            <span>{card.members}</span>
+                        <div className={styles.stats}>
 
-                            <span>{card.online}</span>
+                            <span>👥 {card.members}</span>
+
+                            <span>🟢 {card.online}</span>
+
+                            <span>Avg {card.progress}</span>
+
                         </div>
 
                         <div className={styles.progress}>
-                            <span
-                                className={styles.bar}
-                                style={{ width: card.progress }}
-                            />
+                        <span
+                            className={styles.progressFill}
+                            style={{
+                                width: card.progress,
+                            }}
+                        />
                         </div>
+
                     </div>
+
                 </article>
             ))}
         </section>

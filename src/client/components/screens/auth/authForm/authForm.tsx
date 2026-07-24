@@ -48,7 +48,7 @@ export function AuthForm() {
                 <AuthInput
                     label="Email"
                     type="email"
-                    placeholder="you@example.com"
+                    placeholder="example@example.in"
                 />
 
                 <AuthInput

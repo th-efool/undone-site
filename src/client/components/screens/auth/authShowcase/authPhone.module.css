@@ -1,15 +1,21 @@
 .phone {
     position: absolute;
 
-    right: 180px;
-    bottom: -8px;
+    right: -15%;
 
-    width: 420px;
-    aspect-ratio: 720 / 1450;
+    top: 9%;
 
-    z-index: 5;
+    width: clamp(200px, 24vw, 360px);
+
+    aspect-ratio: 560 / 1120;
+
+    transform: translateX(-50%) rotate(12deg);
+
+    z-index: 20;
 
     pointer-events: none;
+
+    filter: drop-shadow(0 32px 64px rgba(0,0,0,.22));
 }
 
 .image {

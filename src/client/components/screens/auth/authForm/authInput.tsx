@@ -21,9 +21,7 @@ export function AuthInput({
 
     return (
         <label className={styles.field}>
-            <span className={styles.label}>
-                {label}
-            </span>
+
 
             <div className={styles.inputWrapper}>
                 <input

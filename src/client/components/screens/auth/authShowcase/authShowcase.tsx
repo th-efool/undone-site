@@ -2,34 +2,52 @@ import styles from "./authShowcase.module.css";
 import AuthCommunityGrid from "./authCommunityGrid";
 import AuthFeaturedContent from "./authFeaturedContent";
 import { AuthPhone } from "./authPhone";
+import { ArrowRight } from "lucide-react";
+import AuthHighlights from "./authHighlights";
 
 export default function AuthShowcase() {
     return (
-        <div className={styles.showcase}>
+        <section className={styles.showcase}>
 
             <header className={styles.header}>
-                <div className={styles.heading}>
-                    Join a Community of{" "}
-                    <span className={styles.highlight}>
-                        Curious Minds
-                    </span>
-                </div>
+                <div>
+                    <h1 className={styles.heading}>
+                        Join a Community of{" "}
+                        <span className={styles.highlight}>
+                            Curious Minds
+                        </span>
+                    </h1>
 
-                <p className={styles.description}>
-                    Your next favorite people probably aren&#39;t on your social feed.
-                </p>
+                    <p className={styles.description}>
+                        Your next favorite people probably aren&#39;t on your social feed.
+                    </p>
+                </div>
             </header>
 
-            <div className={styles.community}>
-                <AuthCommunityGrid />
-            </div>
+            <section className={styles.communitySection}>
 
-            <div className={styles.featured}>
+                <div className={styles.communityStage}>
+
+                    <div className={styles.communityGrid}>
+                        <AuthCommunityGrid />
+                    </div>
+
+                    <AuthPhone />
+
+                </div>
+
+            </section>
+
+            <section className={styles.featuredSection}>
                 <AuthFeaturedContent />
-            </div>
+            </section>
 
-            <AuthPhone />
+            <section className={styles.highlights}>
+                <AuthHighlights />
+            </section>
 
-        </div>
+
+
+        </section>
     );
 }
