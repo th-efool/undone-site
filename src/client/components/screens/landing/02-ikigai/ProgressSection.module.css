@@ -1,0 +1,231 @@
+.progressSection{
+    display:grid;
+    grid-template-columns:
+        minmax(320px, .66fr)
+        minmax(780px, 1.65fr)
+        minmax(260px, .40fr);
+
+    align-items:start;
+
+    gap:clamp(20px,1.4vw,28px);
+    padding: 19px;
+
+    border-top:1px solid var(--color-border);
+}
+
+.learningPanel{
+    display:flex;
+    flex-direction:column;
+    gap:20px;
+    width:100%;
+
+}
+
+.learningCard{
+    padding:12px 14px;
+}
+
+.learningItem{
+    height:42px;
+    font-size:.9rem;
+}
+
+.calendarPanel{
+    display:grid;
+
+    grid-template-columns:repeat(3,minmax(220px,1fr));
+
+    gap:9px;
+}
+
+.calendarCard{
+    background:white;
+
+    border:1px solid var(--color-border);
+
+    border-radius:15px;
+
+    padding:18px;
+
+    box-shadow:var(--shadow-xs);
+}
+.calendarDay{
+    font-size:.86rem;
+    font-weight:600;
+}
+.weekday{
+    font-size:.68rem;
+    letter-spacing:.05em;
+    color:var(--color-text-muted);
+}
+
+.progressCard{
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+
+    gap:.45rem;
+    width:100%;
+    max-width:300px;
+
+    justify-self:end;
+    padding:.9rem;
+
+    border-radius:16px;
+}
+
+.progressRow{
+    display:flex;
+    align-items:center;
+    gap:12px;
+
+    width:100%;
+
+    min-height:56px;
+    padding:.7rem .85rem;
+
+    border-radius:12px;
+
+    color:#fff;
+}
+
+.progressHeader{
+    text-align:center;
+    margin-bottom:.5rem;
+    margin-bottom:.35rem;
+
+}
+
+.progressTitle{
+    font-size:1.25rem;
+    font-weight:900;
+    letter-spacing:.05em;
+    color:var(--color-brand);
+}
+
+.progressSubtitle{
+    margin-top:.2rem;
+
+    font-size:.78rem;
+}
+
+.progressDescription{
+    margin-top:14px;
+    font-size:.98rem;
+    line-height:1.55;
+    max-width:28ch;
+}
+
+.progressHours{
+    font-size:1.55rem;
+    font-weight:700;
+}
+
+.progressMeta{
+    font-size:.72rem;
+    opacity:.95;
+}
+
+
+
+.progressRow{
+    display:flex;
+    align-items:center;
+    gap:10px;
+
+    padding:.9rem 1rem;
+
+    border-radius:12px;
+}
+
+.progressInfo{
+    display:flex;
+    margin-left:12px;
+    flex-direction:column;
+
+    line-height:1.05;
+}
+
+.progressIcon{
+    width:36px;
+    height:36px;
+
+    object-fit:contain;
+
+    flex-shrink:0;
+}
+
+.progressCheck{
+    width:34px;
+    height:34px;
+    aspect-ratio:1;
+    font-size:1.25rem;
+    font-weight:1500;
+    display:grid;
+    place-items:center;
+
+    border-radius:999px;
+
+    background:rgba(255,255,255,0);
+    border:3px solid rgba(255,255,255,0.74);
+
+    flex-shrink:0;
+}
+
+.progressHours{
+    font-size:1.6rem;
+    font-weight:700;
+}
+
+.progressMeta{
+    margin-top:2px;
+
+    font-size:.78rem;
+
+    opacity:.92;
+}
+
+.completed{
+    display:flex;
+    align-items:center;
+    gap:.55rem;
+    margin-top:.15rem;
+
+
+    padding:.7rem .9rem;
+
+    border-radius:999px;
+
+    background:var(--green-50);
+    color:var(--green-700);
+
+    font-weight:600;
+}
+
+.youtube{
+    background:#ef4444;
+    color:#fff;
+}
+
+.coursera{
+    background:#3a48cc;
+    color:#fff;
+}
+
+.history{
+    background:#f59e0b;
+    color:#fff;
+}
+
+
+@media (max-width: 1024px){
+    .progressSection{grid-template-columns:minmax(220px,.8fr) minmax(390px,1.4fr) minmax(210px,.7fr);gap:14px;overflow-x:hidden;}
+    .calendarPanel{grid-template-columns:repeat(3,minmax(120px,1fr));}
+    .progressCard{max-width:none;}
+}
+
+@media (max-width: 768px){
+    .progressSection{grid-template-columns:1fr;overflow-x:hidden;}
+    .progressCard{width:100%;max-width:none;justify-self:stretch;}
+    .calendarPanel{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));}
+}
