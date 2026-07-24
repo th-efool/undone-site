@@ -33,7 +33,7 @@ export function HeroContent() {
             <div className={styles.note}>
                 It only takes 2 minutes.
                 <br />
-                It'll keep the momentum.
+                It&#39;ll keep the momentum.
             </div>
         </section>
     );
