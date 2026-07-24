@@ -1,6 +1,6 @@
 import styles from "./Auth.module.css";
-import AuthShowcase from "./authShowcase";
-import { AuthForm } from "./authForm";
+import AuthShowcase from "./authShowcase/authShowcase";
+import { AuthForm } from "./authForm/authForm";
 
 
 export function Auth() {

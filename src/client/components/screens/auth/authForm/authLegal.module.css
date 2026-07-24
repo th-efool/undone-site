@@ -1,0 +1,24 @@
+.legal {
+    margin: 0;
+
+    text-align: center;
+
+    font-size: var(--text-sm);
+    line-height: 1.6;
+
+    color: var(--color-text-secondary);
+}
+
+.link {
+    color: var(--color-brand);
+
+    font-weight: var(--font-medium);
+
+    text-decoration: none;
+
+    transition: color .2s;
+}
+
+.link:hover {
+    text-decoration: underline;
+}

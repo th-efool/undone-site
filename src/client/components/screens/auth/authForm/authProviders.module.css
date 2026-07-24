@@ -1,0 +1,64 @@
+.phone {
+    position: absolute;
+
+    right: 120px;
+    bottom: -24px;
+
+    width: 430px;
+    aspect-ratio: 720 / 1450;
+
+    pointer-events: none;
+
+    z-index: 20;
+}
+
+.image {
+    object-fit: contain;
+
+    user-select: none;
+}
+
+.providers {
+    display: grid;
+
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 12px;
+}
+
+.provider {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    gap: 12px;
+
+    height: 56px;
+
+    border: 1px solid var(--color-border);
+
+    border-radius: 18px;
+
+    background: white;
+
+    cursor: pointer;
+
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+
+    transition:
+            background .2s,
+            border-color .2s,
+            transform .15s;
+}
+
+.provider:hover {
+    background: var(--gray-50);
+
+    border-color: var(--gray-300);
+}
+
+.provider:active {
+    transform: scale(.98);
+}

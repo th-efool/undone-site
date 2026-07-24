@@ -1,0 +1,17 @@
+.phone {
+    position: absolute;
+
+    right: 180px;
+    bottom: -8px;
+
+    width: 420px;
+    aspect-ratio: 720 / 1450;
+
+    z-index: 5;
+
+    pointer-events: none;
+}
+
+.image {
+    object-fit: contain;
+}

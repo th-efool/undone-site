@@ -1,0 +1,77 @@
+.field {
+    display: flex;
+    flex-direction: column;
+
+    gap: 8px;
+}
+
+.label {
+    font-size: var(--text-sm);
+
+    font-weight: var(--font-semibold);
+
+    color: var(--gray-800);
+}
+
+.inputWrapper {
+    position: relative;
+}
+
+.input {
+    width: 100%;
+    height: 56px;
+
+    padding: 0 18px;
+
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+
+    background: white;
+
+    font: inherit;
+
+    transition:
+            border-color .2s,
+            box-shadow .2s;
+}
+
+.input::placeholder {
+    color: var(--color-text-secondary);
+}
+
+.input:focus {
+    outline: none;
+
+    border-color: var(--color-brand);
+
+    box-shadow: 0 0 0 4px color-mix(
+            in srgb,
+            var(--color-brand) 15%,
+            transparent
+    );
+}
+
+.toggle {
+    position: absolute;
+
+    top: 50%;
+    right: 16px;
+
+    translate: 0 -50%;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border: none;
+
+    background: transparent;
+
+    cursor: pointer;
+
+    color: var(--color-text-secondary);
+}
+
+.toggle:hover {
+    color: var(--gray-800);
+}
