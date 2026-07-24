@@ -1,0 +1,107 @@
+.wrapper{
+    display:flex;
+    flex-direction:column;
+    gap:18px;
+}
+
+.title{
+    margin:0;
+
+    font-family:var(--font-display);
+
+    font-size:clamp(2rem,2vw,2.8rem);
+
+    line-height:.92;
+
+    letter-spacing:-.03em;
+
+    font-weight:600;
+
+    color:var(--color-text);
+}
+
+.description{
+    margin:0;
+
+    color:var(--color-text-secondary);
+
+    font-size:.98rem;
+
+    line-height:1.65;
+
+    max-width:30ch;
+    color:var(--color-brand-hover);
+}
+
+.list{
+    display:flex;
+    flex-direction:column;
+
+    overflow:hidden;
+
+    border:1px solid var(--color-border);
+
+    border-radius:18px;
+
+    background:var(--color-background-elevated);
+
+    box-shadow:var(--shadow-xs);
+}
+
+.card{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    padding:18px 20px;
+
+    border-bottom:1px solid var(--color-border);
+
+    transition:background .2s ease;
+}
+
+.card:last-child{
+    border-bottom:none;
+}
+
+.card:hover{
+    background:var(--color-brand-subtle);
+}
+
+.left{
+    display:flex;
+    align-items:center;
+    gap:12px;
+
+    min-width:0;
+}
+
+.icon{
+    flex-shrink:0;
+}
+
+.course{
+    font-size:.95rem;
+
+    font-weight:600;
+
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+
+.right{
+    display:flex;
+    align-items:center;
+    gap:8px;
+
+    flex-shrink:0;
+
+    color:var(--color-text-secondary);
+
+    font-size:.84rem;
+}
+
+.dot{
+    color:var(--color-border);
+}
