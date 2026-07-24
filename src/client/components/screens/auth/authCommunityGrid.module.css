@@ -1,0 +1,133 @@
+.grid {
+    display: grid;
+
+    grid-template-columns: repeat(3, 1fr);
+
+    gap: 12px;
+}
+
+.card {
+    position: relative;
+
+    overflow: hidden;
+
+    aspect-ratio: 1.18;
+
+    border-radius: 18px;
+
+    background: #111;
+}
+
+.video {
+    position: absolute;
+
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+.overlay {
+    position: absolute;
+
+    inset: 0;
+
+    background:
+            linear-gradient(
+                    to top,
+                    rgba(0,0,0,.82) 0%,
+                    rgba(0,0,0,.35) 45%,
+                    rgba(0,0,0,.08) 100%
+            );
+}
+
+.topRow {
+    position: absolute;
+
+    top: 12px;
+    left: 12px;
+    right: 12px;
+
+    display: flex;
+
+    justify-content: space-between;
+
+    align-items: center;
+
+    z-index: 2;
+}
+
+.roomName {
+    color: white;
+
+    font-size: .85rem;
+
+    font-weight: 700;
+
+    text-shadow: 0 2px 8px rgba(0,0,0,.6);
+}
+
+.members {
+    color: white;
+
+    font-size: .8rem;
+
+    font-weight: 600;
+
+    text-shadow: 0 2px 8px rgba(0,0,0,.6);
+}
+
+.bottom {
+    position: absolute;
+
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+
+    z-index: 2;
+}
+
+.name {
+    color: white;
+
+    font-size: .95rem;
+
+    font-weight: 700;
+
+    margin-bottom: 2px;
+}
+
+.activity {
+    color: rgba(255,255,255,.9);
+
+    font-size: .72rem;
+
+    line-height: 1.35;
+
+    margin-bottom: 8px;
+}
+
+.liveRow {
+    display: flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    color: white;
+
+    font-size: .72rem;
+
+    font-weight: 600;
+}
+
+.liveDot {
+    width: 8px;
+    height: 8px;
+
+    border-radius: 50%;
+
+    background: #22c55e;
+}

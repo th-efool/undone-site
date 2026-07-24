@@ -1,0 +1,78 @@
+.showcase {
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+
+    height: 100%;
+
+    padding: 32px;
+
+    border-radius: 32px;
+
+    background: white;
+
+    overflow: hidden;
+}
+
+.header {
+    margin-bottom: 28px;
+
+    z-index: 2;
+}
+
+.heading {
+    max-width: 760px;
+
+    font-size: clamp(2.25rem, 3vw, 3.5rem);
+
+    font-weight: 800;
+
+    line-height: 1.05;
+
+    color: var(--gray-950);
+}
+
+.highlight {
+    color: var(--color-brand);
+}
+
+.description {
+    margin-top: 12px;
+
+    max-width: 560px;
+
+    color: var(--color-text-secondary);
+
+    font-size: 1.125rem;
+
+    line-height: 1.6;
+}
+
+.community {
+    position: relative;
+
+    flex: 1;
+
+    min-height: 0;
+}
+
+.featured {
+    position: relative;
+
+    margin-top: 28px;
+
+    z-index: 2;
+}
+
+.phone {
+    position: absolute;
+
+    right: 180px;
+
+    bottom: -8px;
+
+    z-index: 5;
+
+    pointer-events: none;
+}

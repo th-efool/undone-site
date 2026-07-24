@@ -1,0 +1,15 @@
+.form {
+    flex: 0 0 480px;
+
+    display: flex;
+    flex-direction: column;
+
+    background: #ffffff;
+    border-radius: 32px;
+
+    min-height: 760px;
+
+    padding: 56px;
+
+    position: relative;
+}
