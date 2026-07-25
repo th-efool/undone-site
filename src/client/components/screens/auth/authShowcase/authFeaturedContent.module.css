@@ -12,9 +12,22 @@
 
     overflow:hidden;
 
-    border-radius:20px;
+    border: var(--auth-border-subtle);
+    border-radius: var(--auth-radius-feature, 20px);
 
     background:white;
+
+    box-shadow: var(--auth-shadow-md);
+
+    transition:
+            transform .28s var(--auth-ease-premium),
+            box-shadow .28s var(--auth-ease-premium);
+}
+
+.card:hover{
+    transform: translateY(-2px);
+
+    box-shadow: var(--auth-shadow-hover);
 }
 
 .image{

@@ -1,5 +1,13 @@
 .showcase {
     --community-scale: 0.89;
+    --auth-radius-card: 18px;
+    --auth-radius-feature: 20px;
+    --auth-border-subtle: 1px solid rgba(15, 23, 42, .08);
+    --auth-shadow-sm: 0 8px 18px rgba(15, 23, 42, .08);
+    --auth-shadow-md: 0 12px 26px rgba(15, 23, 42, .1);
+    --auth-shadow-lg: 0 22px 44px rgba(15, 23, 42, .18);
+    --auth-shadow-hover: 0 14px 30px rgba(15, 23, 42, .12);
+    --auth-ease-premium: cubic-bezier(.22, 1, .36, 1);
 
     position: relative;
 
