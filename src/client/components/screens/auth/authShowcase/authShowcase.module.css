@@ -2,6 +2,7 @@
     --community-scale: 0.89;
     --auth-radius-card: 18px;
     --auth-radius-feature: 20px;
+    --auth-radius-shell: 32px;
     --auth-border-subtle: 1px solid rgba(15, 23, 42, .08);
     --auth-shadow-sm: 0 8px 18px rgba(15, 23, 42, .08);
     --auth-shadow-md: 0 12px 26px rgba(15, 23, 42, .1);
@@ -20,7 +21,7 @@
 
     background: white;
 
-    border-radius: 32px;
+    border-radius: var(--auth-radius-shell);
     overflow: visible;
 }
 
