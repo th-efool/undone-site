@@ -3,13 +3,13 @@
 
     flex-direction: column;
 
-    gap: 12px;
+    gap: clamp(.625rem, .65vw, .75rem);
 }
 
 .row {
     display: flex;
 
-    gap: 12px;
+    gap: clamp(.625rem, .65vw, .75rem);
 }
 
 .row:nth-child(1) .card {
@@ -25,7 +25,7 @@
 }
 
 .row:nth-child(3) {
-    width: calc(50% - 7px);
+    width: calc(50% - clamp(.375rem, .38vw, .4375rem));
 }
 
 .card {
@@ -89,9 +89,9 @@
 .topRow {
     position: absolute;
 
-    left: 12px;
-    right: 12px;
-    top: 10px;
+    left: clamp(.625rem, .65vw, .75rem);
+    right: clamp(.625rem, .65vw, .75rem);
+    top: clamp(.5rem, .55vw, .625rem);
 
     display: flex;
 
@@ -117,9 +117,9 @@
 .bottom {
     position: absolute;
 
-    left: 12px;
-    right: 12px;
-    bottom: 10px;
+    left: clamp(.625rem, .65vw, .75rem);
+    right: clamp(.625rem, .65vw, .75rem);
+    bottom: clamp(.5rem, .55vw, .625rem);
 
     z-index: 2;
 
@@ -145,9 +145,9 @@
 
     align-items: center;
 
-    gap: 6px;
+    gap: clamp(.3125rem, .32vw, .375rem);
 
-    margin-top: 8px;
+    margin-top: clamp(.375rem, .45vw, .5rem);
 
     font-size: .72rem;
 
@@ -155,8 +155,8 @@
 }
 
 .liveDot {
-    width: 8px;
-    height: 8px;
+    width: clamp(.375rem, .42vw, .5rem);
+    height: clamp(.375rem, .42vw, .5rem);
 
     border-radius: 999px;
 

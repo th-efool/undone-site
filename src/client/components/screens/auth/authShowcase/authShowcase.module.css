@@ -1,8 +1,8 @@
 .showcase {
     --community-scale: 0.89;
-    --auth-radius-card: 18px;
-    --auth-radius-feature: 20px;
-    --auth-radius-shell: 32px;
+    --auth-radius-card: clamp(1rem, .95vw, 1.125rem);
+    --auth-radius-feature: clamp(1.125rem, 1.05vw, 1.25rem);
+    --auth-radius-shell: clamp(1.5rem, 1.7vw, 2rem);
     --auth-border-subtle: 1px solid rgba(15, 23, 42, .08);
     --auth-shadow-sm: 0 8px 18px rgba(15, 23, 42, .08);
     --auth-shadow-md: 0 12px 26px rgba(15, 23, 42, .1);
@@ -17,7 +17,7 @@
 
     height: 100%;
 
-    padding: 28px;
+    padding: clamp(1.5rem, 1.45vw, 1.75rem);
 
     background: white;
 
@@ -32,7 +32,7 @@
     align-items: flex-end;
     justify-content: space-between;
 
-    margin-bottom: 12px;
+    margin-bottom: clamp(.625rem, .65vw, .75rem);
 
     z-index: 2;
 }
@@ -86,7 +86,7 @@
 
     align-items: center;
 
-    margin-bottom: 4px;
+    margin-bottom: clamp(.1875rem, .25vw, .25rem);
 }
 
 .explore {
@@ -94,7 +94,7 @@
 
     align-items: center;
 
-    gap: 8px;
+    gap: clamp(.375rem, .45vw, .5rem);
 
     border: none;
 
@@ -133,7 +133,7 @@
 /* ---------- BOTTOM ---------- */
 
 .highlights {
-    margin-top: 20px;
+    margin-top: clamp(1rem, 1.05vw, 1.25rem);
 
     z-index: 2;
 }

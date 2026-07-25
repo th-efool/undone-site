@@ -3,7 +3,7 @@
 
     grid-template-columns: repeat(3, minmax(0, 1fr));
 
-    gap: 14px;
+    gap: clamp(.75rem, .75vw, .875rem);
 }
 
 .card{
@@ -45,9 +45,9 @@
 
     flex-direction: column;
 
-    gap: 6px;
+    gap: clamp(.3125rem, .32vw, .375rem);
 
-    padding: 10px 12px;
+    padding: clamp(.5rem, .55vw, .625rem) clamp(.625rem, .65vw, .75rem);
 }
 
 .stats {
@@ -72,7 +72,7 @@
 
 
 .progress {
-    height: 5px;
+    height: clamp(.25rem, .3vw, .3125rem);
 
     overflow: hidden;
 
