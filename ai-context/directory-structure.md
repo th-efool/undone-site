@@ -194,6 +194,35 @@
 │   │   │   │   │   │   ├── Notes.tsx
 │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   └── play/
+│   │   │   │   │       ├── components/
+│   │   │   │   │       │   ├── LearningTimeline/
+│   │   │   │   │       │   │   ├── LearningTimeline.module.css
+│   │   │   │   │       │   │   └── LearningTimeline.tsx
+│   │   │   │   │       │   ├── LessonCard/
+│   │   │   │   │       │   │   ├── LessonCard.module.css
+│   │   │   │   │       │   │   └── LessonCard.tsx
+│   │   │   │   │       │   ├── PlaybackControls/
+│   │   │   │   │       │   │   ├── PlaybackControls.module.css
+│   │   │   │   │       │   │   └── PlaybackControls.tsx
+│   │   │   │   │       │   ├── PlayerSurface/
+│   │   │   │   │       │   │   ├── PlayerSurface.module.css
+│   │   │   │   │       │   │   └── PlayerSurface.tsx
+│   │   │   │   │       │   ├── PlayerToolbar/
+│   │   │   │   │       │   │   ├── components/
+│   │   │   │   │       │   │   │   ├── BookmarkButton.module.css
+│   │   │   │   │       │   │   │   ├── BookmarkButton.tsx
+│   │   │   │   │       │   │   │   ├── CaptureButton.module.css
+│   │   │   │   │       │   │   │   ├── CaptureButton.tsx
+│   │   │   │   │       │   │   │   ├── PlaybackSpeed.module.css
+│   │   │   │   │       │   │   │   ├── PlaybackSpeed.tsx
+│   │   │   │   │       │   │   │   ├── ScribeButton.module.css
+│   │   │   │   │       │   │   │   ├── ScribeButton.tsx
+│   │   │   │   │       │   │   │   ├── ToolbarMenu.module.css
+│   │   │   │   │       │   │   │   └── ToolbarMenu.tsx
+│   │   │   │   │       │   │   ├── PlayerToolbar.module.css
+│   │   │   │   │       │   │   └── PlayerToolbar.tsx
+│   │   │   │   │       │   └── index.ts
+│   │   │   │   │       ├── Play.module.css
 │   │   │   │   │       ├── Play.tsx
 │   │   │   │   │       └── index.ts
 │   │   │   │   └── landing/
@@ -330,4 +359,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-92 directories, 237 files
+99 directories, 259 files
