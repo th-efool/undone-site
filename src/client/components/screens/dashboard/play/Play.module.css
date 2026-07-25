@@ -1,0 +1,49 @@
+.play {
+    position: relative;
+
+    width: 100%;
+    height: 100vh;
+
+    padding: 18px;
+
+    overflow: hidden;
+
+    background: var(--color-background);
+}
+
+/* ---------- Floating Layers ---------- */
+
+.play > :nth-child(2) {
+    position: absolute;
+    top: 32px;
+    left: 32px;
+    z-index: 20;
+}
+
+.play > :nth-child(3) {
+    position: absolute;
+    top: 50%;
+    right: 34px;
+
+    transform: translateY(-50%);
+
+    z-index: 20;
+}
+
+.play > :nth-child(4) {
+    position: absolute;
+    right: 32px;
+    bottom: 72px;
+    left: 32px;
+
+    z-index: 15;
+}
+
+.play > :nth-child(5) {
+    position: absolute;
+    right: 32px;
+    bottom: 24px;
+    left: 32px;
+
+    z-index: 15;
+}
