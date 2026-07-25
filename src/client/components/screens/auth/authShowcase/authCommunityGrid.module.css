@@ -3,13 +3,13 @@
 
     flex-direction: column;
 
-    gap: 12px;
+    gap: clamp(.625rem, .65vw, .75rem);
 }
 
 .row {
     display: flex;
 
-    gap: 12px;
+    gap: clamp(.625rem, .65vw, .75rem);
 }
 
 .row:nth-child(1) .card {
@@ -25,7 +25,7 @@
 }
 
 .row:nth-child(3) {
-    width: calc(50% - 7px);
+    width: calc(50% - clamp(.375rem, .38vw, .4375rem));
 }
 
 .card {
@@ -37,9 +37,22 @@
 
     overflow: hidden;
 
-    border-radius: 18px;
+    border: var(--auth-border-subtle);
+    border-radius: var(--auth-radius-card, 18px);
 
     background: #111;
+
+    box-shadow: var(--auth-shadow-sm);
+
+    transition:
+            transform .28s var(--auth-ease-premium),
+            box-shadow .28s var(--auth-ease-premium);
+}
+
+.card:hover {
+    transform: translateY(-2px) scale(1.008);
+
+    box-shadow: var(--auth-shadow-hover);
 }
 
 .video {
@@ -60,19 +73,25 @@
 
     background:
             linear-gradient(
+                    to bottom,
+                    rgba(0,0,0,.46),
+                    rgba(0,0,0,.14) 22%,
+                    rgba(0,0,0,0) 46%
+            ),
+            linear-gradient(
                     to top,
-                    rgba(0,0,0,.82),
-                    rgba(0,0,0,.25) 45%,
-                    transparent
+                    rgba(0,0,0,.62),
+                    rgba(0,0,0,.18) 30%,
+                    rgba(0,0,0,0) 58%
             );
 }
 
 .topRow {
     position: absolute;
 
-    left: 12px;
-    right: 12px;
-    top: 10px;
+    left: clamp(.625rem, .65vw, .75rem);
+    right: clamp(.625rem, .65vw, .75rem);
+    top: clamp(.5rem, .55vw, .625rem);
 
     display: flex;
 
@@ -98,9 +117,9 @@
 .bottom {
     position: absolute;
 
-    left: 12px;
-    right: 12px;
-    bottom: 10px;
+    left: clamp(.625rem, .65vw, .75rem);
+    right: clamp(.625rem, .65vw, .75rem);
+    bottom: clamp(.5rem, .55vw, .625rem);
 
     z-index: 2;
 
@@ -126,9 +145,9 @@
 
     align-items: center;
 
-    gap: 6px;
+    gap: clamp(.3125rem, .32vw, .375rem);
 
-    margin-top: 8px;
+    margin-top: clamp(.375rem, .45vw, .5rem);
 
     font-size: .72rem;
 
@@ -136,10 +155,20 @@
 }
 
 .liveDot {
-    width: 8px;
-    height: 8px;
+    width: clamp(.375rem, .42vw, .5rem);
+    height: clamp(.375rem, .42vw, .5rem);
 
     border-radius: 999px;
 
     background: #22c55e;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .card {
+        transition: none;
+    }
+
+    .card:hover {
+        transform: none;
+    }
 }
