@@ -1,0 +1,30 @@
+
+.sidebar {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+
+    width: 64px;
+    height: 100vh;
+
+    padding: 16px 0 20px;
+
+    border-right: none;
+    background: transparent;
+}
+
+.logo {
+    justify-self: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.navigation {
+    display: flex;
+    flex-direction: column;
+    align-self: center;     /* vertically center within middle row */
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+}
