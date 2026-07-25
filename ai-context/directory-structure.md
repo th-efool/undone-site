@@ -6,7 +6,6 @@
 │       └── update-directory-structure.yml
 ├── ai-context/
 │   ├── design-css-tokens.md
-│   ├── directory structure.md
 │   ├── directory-structure.md
 │   └── hero-section-guidelines.md
 ├── public/
@@ -95,8 +94,9 @@
 │   │   │   │   └── page.tsx
 │   │   │   ├── notes/
 │   │   │   │   └── page.tsx
-│   │   │   └── play/
-│   │   │       └── page.tsx
+│   │   │   ├── play/
+│   │   │   │   └── page.tsx
+│   │   │   └── layout.tsx
 │   │   ├── (landing)/
 │   │   │   ├── layout.tsx
 │   │   │   ├── loading.tsx
@@ -116,6 +116,9 @@
 │   ├── client/
 │   │   ├── components/
 │   │   │   ├── global/
+│   │   │   │   ├── DashboardShell/
+│   │   │   │   │   ├── DashboardShell.module.css
+│   │   │   │   │   └── DashboardShell.tsx
 │   │   │   │   ├── Footer/
 │   │   │   │   │   ├── Footer.module.css
 │   │   │   │   │   └── Footer.tsx
@@ -125,6 +128,13 @@
 │   │   │   │   ├── Navbar/
 │   │   │   │   │   ├── Navbar.module.css
 │   │   │   │   │   └── Navbar.tsx
+│   │   │   │   ├── Sidebar/
+│   │   │   │   │   ├── Sidebar.module.css
+│   │   │   │   │   ├── Sidebar.tsx
+│   │   │   │   │   ├── SidebarItem.module.css
+│   │   │   │   │   ├── SidebarItem.tsx
+│   │   │   │   │   ├── index.ts
+│   │   │   │   │   └── sidebar.data.ts
 │   │   │   │   ├── layout/
 │   │   │   │   │   ├── Cluster.tsx
 │   │   │   │   │   ├── Container.tsx
@@ -320,4 +330,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-90 directories, 229 files
+92 directories, 237 files
