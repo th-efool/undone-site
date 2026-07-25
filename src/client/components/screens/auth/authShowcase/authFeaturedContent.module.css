@@ -88,7 +88,11 @@
 
     border-radius: inherit;
 
-    background: var(--color-brand);
+    background: linear-gradient(
+            90deg,
+            var(--color-brand),
+            color-mix(in srgb, var(--color-brand) 82%, white)
+    );
 }
 
 
