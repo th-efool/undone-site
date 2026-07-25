@@ -162,3 +162,13 @@
 
     background: #22c55e;
 }
+
+@media (prefers-reduced-motion: reduce) {
+    .card {
+        transition: none;
+    }
+
+    .card:hover {
+        transform: none;
+    }
+}

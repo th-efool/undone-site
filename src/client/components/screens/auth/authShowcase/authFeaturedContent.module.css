@@ -30,6 +30,10 @@
     box-shadow: var(--auth-shadow-hover);
 }
 
+.thumbnail{
+    overflow:hidden;
+}
+
 .image{
     width:100%;
 
@@ -38,6 +42,8 @@
     object-fit:cover;
 
     flex-shrink:0;
+
+    transition: transform .32s var(--auth-ease-premium);
 }
 
 .content {
@@ -138,3 +144,16 @@
 }
 
 
+
+
+@media (prefers-reduced-motion: reduce) {
+    .card,
+    .image {
+        transition: none;
+    }
+
+    .card:hover,
+    .card:hover .image {
+        transform: none;
+    }
+}

@@ -45,7 +45,7 @@
 }
 
 .button:active:not(:disabled) {
-    transform: scale(.985);
+    transform: translateY(0) scale(.99);
 }
 
 .button:disabled {
@@ -68,5 +68,16 @@
 @keyframes spin {
     to {
         transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .button {
+        transition: none;
+    }
+
+    .button:hover:not(:disabled),
+    .button:active:not(:disabled) {
+        transform: none;
     }
 }

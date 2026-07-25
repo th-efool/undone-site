@@ -16,8 +16,28 @@
     pointer-events: none;
 
     filter: drop-shadow(var(--auth-shadow-lg));
+
+    animation: phoneFloat 7s var(--auth-ease-premium) infinite;
 }
 
 .image {
     object-fit: contain;
+}
+
+@keyframes phoneFloat {
+    0%,
+    100% {
+        transform: translateX(-50%) translateY(0) rotate(12deg);
+    }
+
+    50% {
+        transform: translateX(-50%) translateY(-1.5%) rotate(12deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .phone {
+        animation: none;
+        transform: translateX(-50%) rotate(12deg);
+    }
 }
