@@ -1,0 +1,44 @@
+name: Update Directory Structure
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  update-directory:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tree
+        run: sudo apt-get update && sudo apt-get install tree
+
+      - name: Generate directory structure
+        run: |
+          {
+            echo "# Directory Structure"
+            echo
+            tree \
+            --dirsfirst \
+            -a \
+            -F \
+            -I '.git|node_modules|.next|dist|coverage|.idea|.DS_Store'
+          } > ai-context/directory-structure.md
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+          git add ai-context/directory-structure.md
+
+          git diff --cached --quiet || (
+            git commit -m "docs: update directory structure"
+            git push
+          )
