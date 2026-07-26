@@ -10,7 +10,7 @@ export function Play() {
     const playback = usePlayback();
 
     return (
-        <div className={styles.page}>
+        <div className={styles.play}>
             <PlayerSurface>
                 <div className={styles.lessonCard}>
                     <LessonCard
