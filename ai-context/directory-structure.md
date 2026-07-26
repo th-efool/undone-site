@@ -203,25 +203,28 @@
 │   │   │   │   │       │   │   └── LessonCard.tsx
 │   │   │   │   │       │   ├── PlaybackControls/
 │   │   │   │   │       │   │   ├── PlaybackControls.module.css
-│   │   │   │   │       │   │   └── PlaybackControls.tsx
+│   │   │   │   │       │   │   ├── PlaybackControls.tsx
+│   │   │   │   │       │   │   ├── VolumeControl.module.css
+│   │   │   │   │       │   │   └── VolumeControl.tsx
 │   │   │   │   │       │   ├── PlayerSurface/
 │   │   │   │   │       │   │   ├── PlayerSurface.module.css
 │   │   │   │   │       │   │   └── PlayerSurface.tsx
 │   │   │   │   │       │   ├── PlayerToolbar/
 │   │   │   │   │       │   │   ├── components/
-│   │   │   │   │       │   │   │   ├── BookmarkButton.module.css
 │   │   │   │   │       │   │   │   ├── BookmarkButton.tsx
-│   │   │   │   │       │   │   │   ├── CaptureButton.module.css
 │   │   │   │   │       │   │   │   ├── CaptureButton.tsx
-│   │   │   │   │       │   │   │   ├── PlaybackSpeed.module.css
 │   │   │   │   │       │   │   │   ├── PlaybackSpeed.tsx
-│   │   │   │   │       │   │   │   ├── ScribeButton.module.css
 │   │   │   │   │       │   │   │   ├── ScribeButton.tsx
-│   │   │   │   │       │   │   │   ├── ToolbarMenu.module.css
-│   │   │   │   │       │   │   │   └── ToolbarMenu.tsx
+│   │   │   │   │       │   │   │   ├── ToolbarMenu.tsx
+│   │   │   │   │       │   │   │   └── index.ts
 │   │   │   │   │       │   │   ├── PlayerToolbar.module.css
 │   │   │   │   │       │   │   └── PlayerToolbar.tsx
 │   │   │   │   │       │   └── index.ts
+│   │   │   │   │       ├── hooks/
+│   │   │   │   │       │   └── usePlayback.ts
+│   │   │   │   │       ├── types/
+│   │   │   │   │       │   ├── play.mock.ts
+│   │   │   │   │       │   └── play.ts
 │   │   │   │   │       ├── Play.module.css
 │   │   │   │   │       ├── Play.tsx
 │   │   │   │   │       └── index.ts
@@ -359,4 +362,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-99 directories, 259 files
+101 directories, 260 files
