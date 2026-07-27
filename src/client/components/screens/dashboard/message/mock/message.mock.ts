@@ -1,7 +1,7 @@
 import { MessageMock } from "../models";
 
 const avatars = ["/mock/avatars/a.webp", "/mock/avatars/b.webp", "/mock/avatars/c.webp", "/mock/avatars/d.webp", "/mock/avatars/e.webp"];
-const covers = ["/images/landing/before-sleep.webp", "/images/landing/screen.webp", "/images/landing/hand.webp", "/images/auth/phone.webp", "/images/auth/maker.webp"];
+const covers = ["/images/landing/before-sleep.webp", "/images/landing/screen.webp", "/mock/thumbnails/machine-learning.avif", "/mock/thumbnails/system-design.jpeg", "/mock/thumbnails/system-design.jpeg"];
 
 export const messageMock: MessageMock = {
     conversations: [

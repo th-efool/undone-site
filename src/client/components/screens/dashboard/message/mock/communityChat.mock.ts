@@ -15,7 +15,7 @@ const people = {
 export const communityChatMock: CommunityChatModel = {
     id: "ai-builders",
     name: "AI Builders",
-    avatar: "/images/landing/screen.webp",
+    avatar: "/mock/thumbnails/machine-learning.avif",
     description: "Cohort room for AI builders & tinkerers",
     onlineCount: 143,
     createdBy: "Shaqun",

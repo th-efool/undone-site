@@ -49,7 +49,7 @@ export const exploreMock: ExploreModel = {
 
                 provider: "youtube",
 
-                thumbnail: "/images/auth/docker.webp",
+                thumbnail: "/mock/thumbnails/docker.avif",
 
                 durationLabel: "10h 12m",
 
@@ -83,7 +83,7 @@ export const exploreMock: ExploreModel = {
 
                 provider: "vimeo",
 
-                thumbnail: "/images/auth/python.webp",
+                thumbnail: "/mock/thumbnails/data-science.avif",
 
                 durationLabel: "7h 32m",
 
@@ -116,7 +116,8 @@ export const exploreMock: ExploreModel = {
 
                 provider: "youtube",
 
-                thumbnail: "/images/auth/claude.webp",
+
+                thumbnail: "/mock/thumbnails/machine-learning.avif",
 
                 durationLabel: "8h 24m",
 
@@ -143,39 +144,6 @@ export const exploreMock: ExploreModel = {
                 rating: 4.9,
             },
 
-            {
-                id: "system-design",
-
-                title: "System Design Interview Course",
-
-                provider: "youtube",
-
-                thumbnail: "/images/auth/faceless.webp",
-
-                durationLabel: "12h 08m",
-
-                featuredLearners: [
-                    {
-                        id: "4",
-                        image: "/mock/avatars/b.webp",
-                        alt: "av4"
-                    },
-                    {
-                        id: "5",
-                        image: "/mock/avatars/c.webp",
-                        alt: "av5"
-                    },
-                    {
-                        id: "6",
-                        image: "/mock/avatars/d.webp",
-                        alt: "av6"
-                    },
-                ],
-
-                learnerCount: "9.7k learners",
-
-                rating: 4.8,
-            },
 
             {
                 id: "react",
@@ -184,7 +152,7 @@ export const exploreMock: ExploreModel = {
 
                 provider: "loom",
 
-                thumbnail: "/images/auth/maker.webp",
+                thumbnail: "/mock/thumbnails/react.webp",
 
                 durationLabel: "6h 45m",
 
@@ -218,7 +186,7 @@ export const exploreMock: ExploreModel = {
 
                 provider: "vimeo",
 
-                thumbnail: "/images/auth/phone.webp",
+                thumbnail: "/mock/thumbnails/ui-fundamentals.webp",
 
                 durationLabel: "3h 18m",
 
@@ -243,6 +211,41 @@ export const exploreMock: ExploreModel = {
                 learnerCount: "14.1k learners",
 
                 rating: 4.9,
+            },
+
+
+            {
+                id: "system-design",
+
+                title: "System Design Interview Course",
+
+                provider: "youtube",
+
+                thumbnail: "/mock/thumbnails/system-design.jpeg",
+
+                durationLabel: "12h 08m",
+
+                featuredLearners: [
+                    {
+                        id: "4",
+                        image: "/mock/avatars/b.webp",
+                        alt: "av4"
+                    },
+                    {
+                        id: "5",
+                        image: "/mock/avatars/c.webp",
+                        alt: "av5"
+                    },
+                    {
+                        id: "6",
+                        image: "/mock/avatars/d.webp",
+                        alt: "av6"
+                    },
+                ],
+
+                learnerCount: "9.7k learners",
+
+                rating: 4.8,
             },
         ],
     topics: [
@@ -387,7 +390,7 @@ export const exploreMock: ExploreModel = {
 
             dailyGoal: "",
 
-            thumbnail: "/mock/thumbnails/body-double.webp",
+            thumbnail: "/mock/thumbnails/doubling.webp",
 
             featuredParticipants: [
                 {
@@ -450,7 +453,7 @@ export const exploreMock: ExploreModel = {
 
             dailyGoal: "30 min/day",
 
-            thumbnail: "/mock/sidequests/100-days.webp",
+            thumbnail: "/mock/thumbnails/100dcode.jpg",
 
             featuredParticipants: [
                 {
@@ -482,7 +485,7 @@ export const exploreMock: ExploreModel = {
 
             dailyGoal: "10 min/day",
 
-            thumbnail: "/mock/sidequests/journaling.webp",
+            thumbnail: "/mock/thumbnails/reflections.jpeg",
 
             featuredParticipants: [
                 {
