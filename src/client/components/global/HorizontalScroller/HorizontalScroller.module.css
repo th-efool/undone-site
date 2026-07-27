@@ -1,4 +1,8 @@
 .wrapper {
+    width: 100%;
+}
+
+.viewportWrapper {
     position: relative;
 }
 
@@ -22,4 +26,61 @@
     gap: 16px;
 
     width: max-content;
+}
+
+.arrow {
+    position: absolute;
+
+    top: 50%;
+    transform: translateY(-50%);
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 48px;
+    height: 48px;
+
+    border: 1px solid rgba(255,255,255,.85);
+    border-radius: 999px;
+
+    background: rgba(255,255,255,.92);
+    backdrop-filter: blur(18px);
+
+    color: var(--color-text-primary);
+
+    cursor: pointer;
+
+    z-index: 20;
+
+    box-shadow:
+            0 10px 32px rgba(15,23,42,.14),
+            0 2px 8px rgba(15,23,42,.08);
+
+    transition:
+            transform .18s ease,
+            box-shadow .18s ease,
+            background .18s ease;
+}
+
+.arrow:hover {
+    transform: translateY(-50%) scale(1.05);
+
+    background: white;
+
+    box-shadow:
+            0 16px 36px rgba(15,23,42,.18),
+            0 6px 16px rgba(15,23,42,.12);
+}
+
+.arrow:active {
+    transform: translateY(-50%) scale(.96);
+}
+
+.left {
+    left: -24px;
+}
+
+.right {
+    right: -24px;
 }

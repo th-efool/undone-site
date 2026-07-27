@@ -1,1 +1,47 @@
-.root {}
+.chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    flex: 0 0 auto;
+
+    height: 46px;
+
+    padding: 0 18px;
+
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+
+    background: var(--color-surface);
+
+    cursor: pointer;
+
+    transition:
+            background-color 150ms ease,
+            border-color 150ms ease;
+}
+
+.chip:hover {
+    border-color: var(--color-brand);
+    background: rgba(79, 70, 229, 0.03);
+}
+
+.icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 24px;
+    height: 24px;
+
+    font-size: 18px;
+}
+
+.label {
+    white-space: nowrap;
+
+    color: var(--color-text-primary);
+
+    font-size: 15px;
+    font-weight: 600;
+}

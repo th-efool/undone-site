@@ -1,30 +1,46 @@
+.explore {
+  display: flex;
+  flex-direction: column;
 
+  gap: 22px;
+
+  padding: 16px 42px 56px;
+}
+
+.searchBar {
+  width: 500px;
+
+  align-self: center;
+
+  margin-bottom: -2px;
+}
 
 .hero {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
 
-  gap: 40px;
+  gap: 28px;
 }
 
 .greeting {
   display: flex;
   flex-direction: column;
 
-  gap: 10px;
+  gap: 6px;
 }
 
 .heading {
   display: flex;
   align-items: center;
-  gap: 10px;
+
+  gap: 8px;
 
   margin: 0;
 
-  font-size: 3rem;
+  font-size: 2.6rem;
   font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.05;
 
   color: var(--color-text-primary);
 }
@@ -36,23 +52,9 @@
 .subheading {
   margin: 0;
 
-  font-size: 1.45rem;
+  font-size: 1.25rem;
   font-weight: 500;
+  line-height: 1.35;
 
   color: var(--color-text-secondary);
-}
-
-.searchBar {
-  width: 540px;
-
-  align-self: center;
-}
-
-.explore {
-  display: flex;
-  flex-direction: column;
-
-  gap: 30px;
-
-  padding: 18px 42px 80px;
 }

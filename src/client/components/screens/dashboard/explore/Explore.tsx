@@ -28,12 +28,15 @@ export function Explore() {
             <PeopleFinishing
                 items={explore.peopleFinishing}
             />
-            <BrowseTopics />
-
-            <TrendingSideQuests />
-
-            <RecentlyPublished />
-
+            <BrowseTopics
+                items={explore.topics}
+            />
+            <TrendingSideQuests
+                items={explore.trendingSideQuests}
+            />
+            <RecentlyPublished
+                items={explore.recentlyPublished}
+            />
         </main>
     );
 }

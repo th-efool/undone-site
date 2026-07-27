@@ -43,10 +43,22 @@ export function HorizontalScroller({
     }
 
     function scroll(offset: number) {
-        viewportRef.current?.scrollBy({
+        const viewport = viewportRef.current;
+
+        if (!viewport) {
+            return;
+        }
+
+        viewport.scrollBy({
             left: offset,
             behavior: "smooth",
         });
+
+        requestAnimationFrame(updateButtons);
+
+        setTimeout(updateButtons, 100);
+
+        setTimeout(updateButtons, 250);
     }
 
     useEffect(() => {
@@ -77,34 +89,42 @@ export function HorizontalScroller({
 
     return (
         <div className={`${styles.wrapper} ${className ?? ""}`}>
-            {showLeft && (
-                <button
-                    className={`${styles.arrow} ${styles.left}`}
-                    onClick={() => scroll(-scrollAmount)}
-                    type="button"
-                >
-                    <ChevronLeft size={20} />
-                </button>
-            )}
 
-            <div
-                ref={viewportRef}
-                className={styles.viewport}
-            >
-                <div className={styles.track}>
-                    {children}
+            <div className={styles.viewportWrapper}>
+
+                {showLeft && (
+                    <button
+                        type="button"
+                        className={`${styles.arrow} ${styles.left}`}
+                        onClick={() => scroll(-scrollAmount)}
+                        aria-label="Scroll left"
+                    >
+                        <ChevronLeft size={20} />
+                    </button>
+                )}
+
+                <div
+                    ref={viewportRef}
+                    className={styles.viewport}
+                >
+                    <div className={styles.track}>
+                        {children}
+                    </div>
                 </div>
+
+                {showRight && (
+                    <button
+                        type="button"
+                        className={`${styles.arrow} ${styles.right}`}
+                        onClick={() => scroll(scrollAmount)}
+                        aria-label="Scroll right"
+                    >
+                        <ChevronRight size={20} />
+                    </button>
+                )}
+
             </div>
 
-            {showRight && (
-                <button
-                    className={`${styles.arrow} ${styles.right}`}
-                    onClick={() => scroll(scrollAmount)}
-                    type="button"
-                >
-                    <ChevronRight size={20} />
-                </button>
-            )}
         </div>
     );
 }

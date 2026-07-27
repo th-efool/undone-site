@@ -1,4 +1,9 @@
-export interface TopicChip {
-    id: string
-    label: string
+export interface Topic {
+    id: string;
+
+    name: string;
+
+    icon: string;
+
+    color: string;
 }
