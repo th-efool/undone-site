@@ -182,6 +182,62 @@
 │   │   │   │   │   └── index.ts
 │   │   │   │   ├── dashboard/
 │   │   │   │   │   ├── explore/
+│   │   │   │   │   │   ├── adapters/
+│   │   │   │   │   │   │   └── explore.adapter.ts
+│   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   ├── BrowseTopics/
+│   │   │   │   │   │   │   │   ├── BrowseTopics.module.css
+│   │   │   │   │   │   │   │   ├── BrowseTopics.tsx
+│   │   │   │   │   │   │   │   ├── TopicChip.module.css
+│   │   │   │   │   │   │   │   └── TopicChip.tsx
+│   │   │   │   │   │   │   ├── CarouselArrow/
+│   │   │   │   │   │   │   │   ├── CarouselArrow.module.css
+│   │   │   │   │   │   │   │   └── CarouselArrow.tsx
+│   │   │   │   │   │   │   ├── ContinueExploring/
+│   │   │   │   │   │   │   │   ├── ContinueExploring.module.css
+│   │   │   │   │   │   │   │   ├── ContinueExploring.tsx
+│   │   │   │   │   │   │   │   ├── ContinueExploringCard.module.css
+│   │   │   │   │   │   │   │   └── ContinueExploringCard.tsx
+│   │   │   │   │   │   │   ├── HorizontalScroller/
+│   │   │   │   │   │   │   │   ├── HorizontalScroller.module.css
+│   │   │   │   │   │   │   │   └── HorizontalScroller.tsx
+│   │   │   │   │   │   │   ├── PeopleFinishing/
+│   │   │   │   │   │   │   │   ├── PeopleFinishing.module.css
+│   │   │   │   │   │   │   │   ├── PeopleFinishing.tsx
+│   │   │   │   │   │   │   │   ├── TrendingCourseCard.module.css
+│   │   │   │   │   │   │   │   └── TrendingCourseCard.tsx
+│   │   │   │   │   │   │   ├── RecentlyPublished/
+│   │   │   │   │   │   │   │   ├── ArticleCard.module.css
+│   │   │   │   │   │   │   │   ├── ArticleCard.tsx
+│   │   │   │   │   │   │   │   ├── RecentlyPublished.module.css
+│   │   │   │   │   │   │   │   └── RecentlyPublished.tsx
+│   │   │   │   │   │   │   ├── SearchBar/
+│   │   │   │   │   │   │   │   ├── SearchBar.module.css
+│   │   │   │   │   │   │   │   └── SearchBar.tsx
+│   │   │   │   │   │   │   ├── SectionHeader/
+│   │   │   │   │   │   │   │   ├── SectionHeader.module.css
+│   │   │   │   │   │   │   │   └── SectionHeader.tsx
+│   │   │   │   │   │   │   └── TrendingSideQuests/
+│   │   │   │   │   │   │       ├── SideQuestCard.module.css
+│   │   │   │   │   │   │       ├── SideQuestCard.tsx
+│   │   │   │   │   │   │       ├── TrendingSideQuests.module.css
+│   │   │   │   │   │   │       └── TrendingSideQuests.tsx
+│   │   │   │   │   │   ├── hooks/
+│   │   │   │   │   │   │   └── useExplore.ts
+│   │   │   │   │   │   ├── mock/
+│   │   │   │   │   │   │   └── explore.mock.ts
+│   │   │   │   │   │   ├── models/
+│   │   │   │   │   │   │   ├── article.ts
+│   │   │   │   │   │   │   ├── continue-exploring.ts
+│   │   │   │   │   │   │   ├── explore.ts
+│   │   │   │   │   │   │   ├── index.ts
+│   │   │   │   │   │   │   ├── search.ts
+│   │   │   │   │   │   │   ├── sidequest.ts
+│   │   │   │   │   │   │   ├── topic.ts
+│   │   │   │   │   │   │   └── trending-course.ts
+│   │   │   │   │   │   ├── utils/
+│   │   │   │   │   │   │   └── scroll.ts
+│   │   │   │   │   │   ├── Explore.module.css
 │   │   │   │   │   │   ├── Explore.tsx
 │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   ├── home/
@@ -362,4 +418,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-101 directories, 260 files
+116 directories, 301 files
