@@ -1,5 +1,6 @@
 import { Center } from "../Center/Center";
 import { CommunityChat } from "../CommunityChat/CommunityChat";
+import { DMConversation } from "../DMConversation/DMConversation";
 import { LeftSidebar } from "../LeftSidebar/LeftSidebar";
 import { RightSidebar } from "../RightSidebar/RightSidebar";
 import { useMessage } from "../../hooks";
@@ -21,9 +22,16 @@ export function SocialLanding() {
                 onSelectConversation={message.actions.selectConversation}
             />
 
-            {message.view === "community" ? (
-                <CommunityChat community={message.communityChat} />
-            ) : (
+            {message.view === "community" && <CommunityChat community={message.communityChat} />}
+
+            {message.view === "dm" && (
+                <DMConversation
+                    conversation={message.dmConversation}
+                    onBack={message.actions.closeDMConversation}
+                />
+            )}
+
+            {message.view === "landing" && (
                 <>
                     <Center
                         query={message.searchQuery}

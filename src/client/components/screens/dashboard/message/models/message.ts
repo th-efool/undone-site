@@ -72,7 +72,7 @@ export interface MessageMock {
     friendsOnline: PersonPreview[];
 }
 
-export type MessageView = "landing" | "community";
+export type MessageView = "landing" | "community" | "dm";
 export type ChatAttachmentKind = "image" | "pdf";
 
 export interface ChatReaction {
@@ -149,4 +149,53 @@ export interface CommunityChatModel {
     pinnedMessages: PinnedMessage[];
     media: ChatAttachment[];
     events: CommunityEvent[];
+}
+
+export type DMMessageType = "incoming" | "outgoing";
+export type DMMessageStatus = "sent" | "delivered" | "read";
+
+export interface DMUser {
+    id: string;
+    name: string;
+    avatar: string;
+    online: boolean;
+    role: string;
+    company: string;
+    bio: string;
+}
+
+export interface DMReaction {
+    emoji: string;
+    count: number;
+}
+
+export interface DMMessage {
+    id: string;
+    type: DMMessageType;
+    text: string;
+    timestamp: string;
+    status?: DMMessageStatus;
+    reactions?: DMReaction[];
+    tail?: boolean;
+    showAvatar?: boolean;
+    dateLabel?: string;
+}
+
+export interface DMResource {
+    id: string;
+    title: string;
+    count: number;
+    icon: "files" | "pin" | "media" | "links";
+}
+
+export interface DMNotificationSettings {
+    enabled: boolean;
+}
+
+export interface DMConversationModel {
+    id: string;
+    user: DMUser;
+    messages: DMMessage[];
+    resources: DMResource[];
+    notifications: DMNotificationSettings;
 }
