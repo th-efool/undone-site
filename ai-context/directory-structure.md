@@ -436,9 +436,19 @@
 │   │   │   │   │   │   │   │   │   └── UpcomingEvents.tsx
 │   │   │   │   │   │   │   │   ├── RightSidebar.module.css
 │   │   │   │   │   │   │   │   └── RightSidebar.tsx
-│   │   │   │   │   │   │   └── SocialLanding/
-│   │   │   │   │   │   │       ├── SocialLanding.module.css
-│   │   │   │   │   │   │       └── SocialLanding.tsx
+│   │   │   │   │   │   │   ├── SocialLanding/
+│   │   │   │   │   │   │   │   ├── SocialLanding.module.css
+│   │   │   │   │   │   │   │   └── SocialLanding.tsx
+│   │   │   │   │   │   │   └── shared/
+│   │   │   │   │   │   │       ├── EmptyState/
+│   │   │   │   │   │   │       │   ├── EmptyState.module.css
+│   │   │   │   │   │   │       │   ├── EmptyState.tsx
+│   │   │   │   │   │   │       │   └── index.ts
+│   │   │   │   │   │   │       ├── Skeleton/
+│   │   │   │   │   │   │       │   ├── Skeleton.module.css
+│   │   │   │   │   │   │       │   ├── Skeleton.tsx
+│   │   │   │   │   │   │       │   └── index.ts
+│   │   │   │   │   │   │       └── index.ts
 │   │   │   │   │   │   ├── constants/
 │   │   │   │   │   │   │   ├── index.ts
 │   │   │   │   │   │   │   └── message.constants.ts
@@ -632,4 +642,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-188 directories, 443 files
+191 directories, 450 files
