@@ -57,7 +57,10 @@
 │   │   │   ├── floating-logo.png
 │   │   │   ├── floating-logo.webp
 │   │   │   └── sidequesthq-logo.webp
-│   │   └── hero-poster.webp
+│   │   ├── footer-bg.jpeg
+│   │   ├── footer-mascot.png
+│   │   ├── hero-poster.webp
+│   │   └── onlyMascot.png
 │   ├── mock/
 │   │   └── avatars/
 │   │       ├── a.webp
@@ -248,6 +251,46 @@
 │   │   │   │   │   │   ├── Explore.tsx
 │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   ├── home/
+│   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   ├── ActiveCohortRow/
+│   │   │   │   │   │   │   │   ├── ActiveCohortRow.module.css
+│   │   │   │   │   │   │   │   └── ActiveCohortRow.tsx
+│   │   │   │   │   │   │   ├── ActiveCohorts/
+│   │   │   │   │   │   │   │   ├── ActiveCohorts.module.css
+│   │   │   │   │   │   │   │   └── ActiveCohorts.tsx
+│   │   │   │   │   │   │   ├── CompletedCourseCard/
+│   │   │   │   │   │   │   │   ├── CompletedCourseCard.module.css
+│   │   │   │   │   │   │   │   └── CompletedCourseCard.tsx
+│   │   │   │   │   │   │   ├── ContinueLater/
+│   │   │   │   │   │   │   │   ├── ContinueLater.module.css
+│   │   │   │   │   │   │   │   └── ContinueLater.tsx
+│   │   │   │   │   │   │   ├── ContinueLaterCard/
+│   │   │   │   │   │   │   │   ├── ContinueLaterCard.module.css
+│   │   │   │   │   │   │   │   └── ContinueLaterCard.tsx
+│   │   │   │   │   │   │   ├── HomeHero/
+│   │   │   │   │   │   │   │   ├── HomeHero.module.css
+│   │   │   │   │   │   │   │   └── HomeHero.tsx
+│   │   │   │   │   │   │   ├── RecentlyCompleted/
+│   │   │   │   │   │   │   │   ├── RecentlyCompleted.module.css
+│   │   │   │   │   │   │   │   └── RecentlyCompleted.tsx
+│   │   │   │   │   │   │   ├── SectionHeader/
+│   │   │   │   │   │   │   │   ├── SectionHeader.module.css
+│   │   │   │   │   │   │   │   └── SectionHeader.tsx
+│   │   │   │   │   │   │   └── SummaryCards/
+│   │   │   │   │   │   │       ├── SummaryCards.module.css
+│   │   │   │   │   │   │       └── SummaryCards.tsx
+│   │   │   │   │   │   ├── hooks/
+│   │   │   │   │   │   │   └── useHome.ts
+│   │   │   │   │   │   ├── mock/
+│   │   │   │   │   │   │   └── home.mock.tsx
+│   │   │   │   │   │   ├── models/
+│   │   │   │   │   │   │   ├── home.ts
+│   │   │   │   │   │   │   └── index.ts
+│   │   │   │   │   │   ├── utils/
+│   │   │   │   │   │   │   ├── cohortManagement.ts
+│   │   │   │   │   │   │   ├── index.ts
+│   │   │   │   │   │   │   └── scroll.ts
+│   │   │   │   │   │   ├── Home.module.css
 │   │   │   │   │   │   ├── Home.tsx
 │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   ├── message/
@@ -425,4 +468,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-118 directories, 306 files
+132 directories, 335 files
