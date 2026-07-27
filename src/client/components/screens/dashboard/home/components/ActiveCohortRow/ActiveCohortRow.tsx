@@ -29,7 +29,6 @@ export function ActiveCohortRow({
     const [scheduleOpen, setScheduleOpen] = useState(false);
     const [goalOpen, setGoalOpen] = useState(false);
     const [pauseOpen, setPauseOpen] = useState(false);
-    const [moreOpen, setMoreOpen] = useState(false);
     const [selectedDays, setSelectedDays] = useState<Weekday[]>(item.schedule.days);
     const [goalMinutes, setGoalMinutes] = useState(item.dailyGoalMinutes);
     const [selectedPauseOption, setSelectedPauseOption] = useState(pauseOptions[0]?.id ?? "tomorrow");
@@ -39,28 +38,6 @@ export function ActiveCohortRow({
         setScheduleOpen(false);
         setGoalOpen(false);
         setPauseOpen(false);
-        setMoreOpen(false);
-    }
-
-    function openScheduleEditor() {
-        setScheduleOpen((open) => !open);
-        setGoalOpen(false);
-        setPauseOpen(false);
-        setMoreOpen(false);
-    }
-
-    function openGoalEditor() {
-        setGoalOpen((open) => !open);
-        setScheduleOpen(false);
-        setPauseOpen(false);
-        setMoreOpen(false);
-    }
-
-    function openPauseDialog() {
-        setPauseOpen((open) => !open);
-        setScheduleOpen(false);
-        setGoalOpen(false);
-        setMoreOpen(false);
     }
 
     useEffect(() => {
@@ -152,7 +129,11 @@ export function ActiveCohortRow({
                 <button
                     type="button"
                     className={styles.schedule}
-                    onClick={openScheduleEditor}
+                    onClick={() => {
+                        setScheduleOpen((open) => !open);
+                        setGoalOpen(false);
+                        setPauseOpen(false);
+                    }}
                 >
                     <Clock3 size={14} strokeWidth={2.2} />
                     {item.schedule.label}
@@ -182,7 +163,11 @@ export function ActiveCohortRow({
                 <button
                     type="button"
                     className={styles.goalButton}
-                    onClick={openGoalEditor}
+                    onClick={() => {
+                        setGoalOpen((open) => !open);
+                        setScheduleOpen(false);
+                        setPauseOpen(false);
+                    }}
                 >
                     {item.dailyGoalMinutes} <small>min</small>
                 </button>
@@ -230,7 +215,11 @@ export function ActiveCohortRow({
                 <button
                     type="button"
                     className={styles.pauseButton}
-                    onClick={openPauseDialog}
+                    onClick={() => {
+                        setPauseOpen((open) => !open);
+                        setScheduleOpen(false);
+                        setGoalOpen(false);
+                    }}
                 >
                     <Pause size={14} fill="currentColor" />
                     Pause
@@ -272,36 +261,9 @@ export function ActiveCohortRow({
                 )}
             </div>
 
-            <div className={styles.popoverAnchor}>
-                <button
-                    type="button"
-                    className={styles.moreButton}
-                    aria-label={`More actions for ${item.title}`}
-                    aria-expanded={moreOpen}
-                    onClick={() => {
-                        setMoreOpen((open) => !open);
-                        setScheduleOpen(false);
-                        setGoalOpen(false);
-                        setPauseOpen(false);
-                    }}
-                >
-                    <MoreHorizontal size={20} strokeWidth={2.7} />
-                </button>
-
-                {moreOpen && (
-                    <div className={styles.moreMenu} role="menu" aria-label={`Configuration actions for ${item.title}`}>
-                        <button type="button" role="menuitem" onClick={openScheduleEditor}>
-                            Edit schedule
-                        </button>
-                        <button type="button" role="menuitem" onClick={openGoalEditor}>
-                            Edit daily goal
-                        </button>
-                        <button type="button" role="menuitem" onClick={openPauseDialog}>
-                            Pause cohort
-                        </button>
-                    </div>
-                )}
-            </div>
+            <button type="button" className={styles.moreButton} aria-label={`More actions for ${item.title}`}>
+                <MoreHorizontal size={20} strokeWidth={2.7} />
+            </button>
         </article>
     );
 }
