@@ -1,0 +1,24 @@
+.home {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    padding: 16px 42px 18px;
+}
+
+.searchBar {
+    width: 500px;
+    align-self: center;
+    margin-bottom: -64px;
+}
+
+@media (max-width: 980px) {
+    .home {
+        padding: 18px 22px 36px;
+    }
+
+    .searchBar {
+        width: 100%;
+        margin-bottom: 0;
+        order: 1;
+    }
+}
