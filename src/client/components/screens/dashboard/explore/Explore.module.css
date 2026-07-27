@@ -1,5 +1,58 @@
+
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  gap: 40px;
+}
+
+.greeting {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  margin: 0;
+
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1.1;
+
+  color: var(--color-text-primary);
+}
+
+.sparkle {
+  color: var(--color-brand);
+}
+
+.subheading {
+  margin: 0;
+
+  font-size: 1.45rem;
+  font-weight: 500;
+
+  color: var(--color-text-secondary);
+}
+
+.searchBar {
+  width: 540px;
+
+  align-self: center;
+}
+
 .explore {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+
+  gap: 30px;
+
+  padding: 18px 42px 80px;
 }

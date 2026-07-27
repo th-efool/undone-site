@@ -23,8 +23,6 @@
 }
 
 .card:hover {
-    transform: translateY(-2px);
-
     border-color: var(--color-brand);
 
     box-shadow: 0 12px 28px rgb(0 0 0 / 0.08);
