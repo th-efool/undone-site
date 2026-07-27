@@ -1,4 +1,20 @@
+
 import Link from "next/link";
+import {
+  ArrowRight,
+  BookOpen,
+  Brain,
+  Compass,
+  MessageCircle,
+  Sparkles,
+  Layers3,
+  FileText,
+  ShieldCheck,
+  Map,
+ FolderOpen,
+ Star,
+Search,
+} from "lucide-react";
 
 import { Container } from "../layout/Container";
 import { Stack } from "../layout/Stack";
@@ -9,154 +25,286 @@ import { Logo } from "../Logo/Logo";
 import styles from "./Footer.module.css";
 
 export interface FooterLink {
-    label: string;
-    href: string;
+  label: string;
+  href: string;
 }
 
 export interface FooterProps {
-    description?: string;
-
-    navigation?: FooterLink[];
-
-    social?: FooterLink[];
+  description?: string;
 }
-
-const defaultNavigation: FooterLink[] = [
-    {
-        label: "Features",
-        href: "#features",
-    },
-    {
-        label: "Community",
-        href: "#community",
-    },
-    {
-        label: "Pricing",
-        href: "#pricing",
-    },
-];
-
-const defaultSocial: FooterLink[] = [
-    {
-        label: "Discord",
-        href: "#",
-    },
-    {
-        label: "GitHub",
-        href: "#",
-    },
-    {
-        label: "LinkedIn",
-        href: "#",
-    },
-];
 
 const currentYear = new Date().getFullYear();
 
+const productLinks = [
+  {
+    icon: <Sparkles size={16} />,
+    label: "AI Feed",
+    href: "#",
+  },
+  {
+    icon: <Layers3 size={16} />,
+    label: "Cohorts",
+    href: "#",
+  },
+  {
+    icon: <Brain size={16} />,
+    label: "Smart Queue",
+    href: "#",
+  },
+  {
+    icon: <Compass size={16} />,
+    label: "Challenges",
+    href: "#",
+  },
+];
+
+const learnLinks = [
+  {
+    icon: <Map size={16} />,
+    label: "Roadmaps",
+    href: "#",
+  },
+  {
+    icon: <FolderOpen size={16} />,
+    label: "Collections",
+    href: "#",
+  },
+  {
+    icon: <Star size={16} />,
+    label: "Weekly Picks",
+    href: "#",
+  },
+  {
+    icon: <Search size={16} />,
+    label: "Discover",
+    href: "#",
+  },
+];
+
+const companyLinks = [
+  {
+    icon: <Compass size={16} />,
+    label: "About",
+    href: "#",
+  },
+  {
+    icon: <FileText size={16} />,
+    label: "Blog",
+    href: "#",
+  },
+  {
+    icon: <ShieldCheck size={16} />,
+    label: "Privacy",
+    href: "#",
+  },
+  {
+    icon: <MessageCircle size={16} />,
+    label: "Contact",
+    href: "#",
+  },
+];
+
+const resourceLinks = [
+  {
+    icon: <FileText size={16} />,
+    label: "Documentation",
+    href: "#",
+  },
+  {
+    icon: <Compass size={16} />,
+    label: "Community",
+    href: "#",
+  },
+  {
+    icon: <ShieldCheck size={16} />,
+    label: "Terms",
+    href: "#",
+  },
+  {
+    icon: <Brain size={16} />,
+    label: "Status",
+    href: "#",
+  },
+];
+
 export function Footer({
-                           description = "The easiest way to stay consistent with everything you want to learn.",
+  description = "Every unfinished course, saved playlist, rabbit hole and late-night idea deserves another chance. SideQuestHQ remembers where curiosity paused, so you can continue where inspiration left off.",
+}: FooterProps) {
+  return (
+    <footer className={styles.footer}>
 
-                           navigation = defaultNavigation,
+      <div className={styles.overlay} />
 
-                           social = defaultSocial,
-                       }: FooterProps) {
-    return (
-        <footer className={styles.footer}>
-            <Container size="2xl">
+      <Container size="2xl">
 
-                <div className={styles.grid}>
+        <section className={styles.hero}>
 
-                    <Stack gap="4">
+          <div className={styles.heroContent}>
 
-                        <Logo compact />
+            {/* <div className={styles.badge}>
+            
+              <span>Built for Curious Minds</span>
+            </div> */}
 
-                        <p className={styles.description}>
-                            {description}
-                        </p>
+           <h2 className={styles.title}>
+            Curiosity deserves  more than 
+               <span className={styles.highlight}> bookmarks. </span>
+            {/* <br />
+           */}
+           </h2>
+            <div className={styles.heroDivider} />
 
-                    </Stack>
+            <p className={styles.description}>
+              {description}
+            </p>
 
-                    <Stack
-                        as="nav"
-                        gap="4"
-                        aria-label="Footer explore"
-                    >
+            <Cluster gap="4" className={styles.actions}>
 
-                        <h4 className={styles.heading}>
-                            Explore
-                        </h4>
+              {/* <Link
+                href="#"
+                className={styles.primaryButton}
+              >
+                Continue Your Journey
+                <ArrowRight size={18} />
+              </Link> */}
 
-                        {navigation.map((item) => (
-                            <Link
-                                key={item.href}
-                                href={item.href}
-                                className={styles.link}
-                            >
-                                {item.label}
-                            </Link>
-                        ))}
+              {/* <Link
+                href="#"
+                className={styles.secondaryButton}
+              >
+                Explore SideQuestHQ
+              </Link> */}
 
-                    </Stack>
+            </Cluster>
 
-                    <Stack
-                        as="nav"
-                        gap="4"
-                        aria-label="Footer social"
-                    >
+          </div>
 
-                        <h4 className={styles.heading}>
-                            Connect
-                        </h4>
+        </section>
 
-                        {social.map((item) => (
-                            <Link
-                                key={item.label}
-                                href={item.href}
-                                className={styles.link}
-                            >
-                                {item.label}
-                            </Link>
-                        ))}
+        <Divider className={styles.divider} />
 
-                    </Stack>
+        <section className={styles.linksGrid}>
 
-                </div>
+          <Stack gap="4">
 
-                <Divider
-                    className={styles.divider}
-                />
+            <Logo />
 
-                <Cluster justify="between">
+            <p className={styles.brandText}>
+              Curiosity with a finish line.
+              <br />
+              Learn consistently through AI-powered guidance,
+              personalized learning journeys and meaningful progress.
+            </p>
 
-                    <small className={styles.copy}>
-                        © {currentYear} SideQuestHQ. All rights reserved.
-                    </small>
+          </Stack>
 
-                    <Cluster
-                        as="nav"
-                        gap="6"
-                        aria-label="Footer legal"
-                    >
+          <Stack gap="5">
 
-                        <Link
-                            href="/privacy"
-                            className={styles.link}
-                        >
-                            Privacy
-                        </Link>
+            <h4 className={styles.heading}>
+              Product
+            </h4>
 
-                        <Link
-                            href="/terms"
-                            className={styles.link}
-                        >
-                            Terms
-                        </Link>
+            {productLinks.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={styles.footerLink}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </Link>
+            ))}
+                      </Stack>
 
-                    </Cluster>
+          <Stack gap="5">
 
-                </Cluster>
+            <h4 className={styles.heading}>
+              Learn
+            </h4>
 
-            </Container>
-        </footer>
-    );
+            {learnLinks.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={styles.footerLink}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </Link>
+            ))}
+
+          </Stack>
+
+          <Stack gap="5">
+
+            <h4 className={styles.heading}>
+              Company
+            </h4>
+
+            {companyLinks.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={styles.footerLink}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </Link>
+            ))}
+
+          </Stack>
+
+          <Stack gap="5">
+
+            <h4 className={styles.heading}>
+              Resources
+            </h4>
+
+            {resourceLinks.map((item) => (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={styles.footerLink}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </Link>
+            ))}
+
+          </Stack>
+
+        </section>
+
+        <Divider className={styles.divider} />
+
+        <div className={styles.bottomBar}>
+
+          <small className={styles.copy}>
+            © {currentYear} SideQuestHQ. Curiosity with a finish line.
+          </small>
+
+         <Cluster gap="5">
+  <Link href="#" className={styles.social}>
+    GitHub
+  </Link>
+
+  <Link href="#" className={styles.social}>
+    LinkedIn
+  </Link>
+
+  <Link href="#" className={styles.social}>
+    X
+  </Link>
+
+  <Link href="#" className={styles.social}>
+    Discord
+  </Link>
+</Cluster>
+
+        </div>
+
+      </Container>
+
+    </footer>
+  );
 }
