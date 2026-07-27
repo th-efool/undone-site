@@ -1,0 +1,26 @@
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+
+    min-width: 0;
+}
+
+.icon {
+    width: 14px;
+    height: 14px;
+
+    flex-shrink: 0;
+}
+
+.label {
+    overflow: hidden;
+
+    color: inherit;
+
+    font-size: 13px;
+    font-weight: 500;
+
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}

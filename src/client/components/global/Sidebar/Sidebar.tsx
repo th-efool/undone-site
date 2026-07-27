@@ -16,8 +16,9 @@ export function Sidebar() {
                 iconOnly
                 priority
                 className={styles.logo}
-            />
+                size={44}
 
+            />
             <nav className={styles.navigation}>
                 {SIDEBAR_ITEMS.map((item) => (
                     <SidebarItem

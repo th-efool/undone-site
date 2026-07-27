@@ -25,8 +25,9 @@ export function Explore() {
                 items={explore.continueExploring}
             />
 
-            <PeopleFinishing />
-
+            <PeopleFinishing
+                items={explore.peopleFinishing}
+            />
             <BrowseTopics />
 
             <TrendingSideQuests />

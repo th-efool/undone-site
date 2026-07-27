@@ -11,7 +11,7 @@ export function HeroTicker() {
                 {avatars.map((avatar) => (
                     <div key={avatar} className={styles.avatar}>
                         <Image
-                            src={`/images/landing/${avatar}.webp`}
+                            src={`/mock/avatars/${avatar}.webp`}
                             alt=""
                             width={42}
                             height={42}

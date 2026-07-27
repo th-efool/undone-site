@@ -8,6 +8,34 @@
     color: inherit;
 }
 
+.logoPlain {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+}
+
+.logoFrame {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 70px;
+    height: 70px;
+
+    flex-shrink: 0;
+
+    overflow: hidden;
+
+    border: 2px solid rgba(255, 255, 255, 0.92);
+    border-radius: 22px;
+
+    box-shadow:
+            0 0 18px rgba(142, 92, 255, 0.35),
+            0 0 48px rgba(255, 255, 255, 0.18);
+}
+
 .text {
     display: flex;
     flex-direction: column;

@@ -12,42 +12,73 @@ export interface LogoProps {
 
     iconOnly?: boolean;
 
+    variant?: "framed" | "plain";
+
     className?: string;
 
     priority?: boolean;
+    size?: number;
 }
 
-/**
- * Brand logo link with optional compact or icon-only presentation.
- */
 export function Logo({
-    href = "/",
-    compact = false,
-    iconOnly = false,
-    className,
-    priority = false,
-}: LogoProps) {
-    const logo = (
-        <div className={clsx(styles.root, className)}>
-            <Image
-                src="/images/logos/sidequesthq-logo.webp"
-                alt="SideQuestHQ logo"
-                width={44}
-                height={44}
-                priority={priority}
-            />
+                         href = "/",
+                         compact = false,
+                         iconOnly = false,
+                         variant = "framed",
+                         className,
+                         priority = false,
+                         size,
+                     }: LogoProps) {
+    const imageSize =
+        size ??
+        (variant === "framed" ? 78 : 44);
+
+    const image = (
+        <Image
+            src="/images/logos/sidequesthq-logo.webp"
+            alt="SideQuestHQ logo"
+            width={imageSize}
+            height={imageSize}
+            priority={priority}
+        />
+    );
+
+
+    return (
+        <Link
+            href={href}
+            className={clsx(styles.root, className)}
+        >
+            <div
+                className={clsx({
+                    [styles.logoFrame]: variant === "framed",
+                    [styles.logoPlain]: variant === "plain",
+                })}
+                style={
+                    variant === "framed" && size
+                        ? {
+                            width: size,
+                            height: size,
+                        }
+                        : undefined
+                }
+            >
+                {image}
+            </div>
 
             {!iconOnly && (
                 <div className={styles.text}>
-                    <span className={styles.title}>SideQuestHQ</span>
+                    <span className={styles.title}>
+                        SideQuestHQ
+                    </span>
 
                     {!compact && (
-                        <span className={styles.tagline}>Learn Better.</span>
+                        <span className={styles.tagline}>
+                            Learn Better.
+                        </span>
                     )}
                 </div>
             )}
-        </div>
+        </Link>
     );
-
-    return <Link href={href}>{logo}</Link>;
 }
