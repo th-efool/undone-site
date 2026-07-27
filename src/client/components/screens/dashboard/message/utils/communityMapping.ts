@@ -102,6 +102,31 @@ export function mapCohortToCommunity(cohortId: string | null): CommunityChatMode
             title: paused ? `${cohort.title} is paused. Group stays open for resources and questions.` : `${cohort.title} checkpoint follows ${cohort.schedule.label}.`,
             actionLabel: paused ? "View Resources" : "Join Session",
         },
+        messages: communityChatMock.messages.map((message, messageIndex) => ({
+            ...message,
+            id: `${cohort.id}-${message.id}`,
+            body: message.body
+                ? [
+                    `${cohort.title} checkpoint starts soon. Drop questions and wins here.`,
+                    `This ${cohort.provider} explanation finally made the next module click.`,
+                    `Can someone share notes for ${cohort.schedule.label}?`,
+                    `Queued up the next ${cohort.title} resource for review.`,
+                    `Progress check: ${cohort.progressPercent}% complete and moving.`,
+                ][messageIndex] ?? message.body
+                : message.body,
+            attachment: message.attachment?.kind === "pdf"
+                ? { ...message.attachment, id: `${cohort.id}-${message.attachment.id}`, title: `${cohort.title.replaceAll(" ", "_")}_Roadmap.pdf` }
+                : message.attachment,
+        })),
+        pinnedMessages: communityChatMock.pinnedMessages.map((message, messageIndex) => ({
+            ...message,
+            id: `${cohort.id}-${message.id}`,
+            preview: [
+                `${cohort.title} checkpoint follows ${cohort.schedule.label}.`,
+                `${cohort.provider} roadmap and resource list`,
+                `Review ${cohort.title} practice prompts before the next session.`,
+            ][messageIndex] ?? message.preview,
+        })),
         events: [mapCohortToUpcomingEvent(cohort, Math.max(index, 0)), ...communityChatMock.events.slice(1)],
     };
 }

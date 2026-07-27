@@ -12,15 +12,16 @@ interface Props {
     onBack(): void;
     onDraftChange(value: string): void;
     onScrollChange(scrollTop: number): void;
+    onSend(): void;
 }
 
-export function DMConversation({ conversation, draft, scrollTop, onBack, onDraftChange, onScrollChange }: Props) {
+export function DMConversation({ conversation, draft, scrollTop, onBack, onDraftChange, onScrollChange, onSend }: Props) {
     return (
         <div className={styles.dm}>
             <main className={styles.main}>
                 <DMHeader user={conversation.user} onBack={onBack} />
                 <MessageTimeline conversation={conversation} scrollTop={scrollTop} onScrollChange={onScrollChange} />
-                <DMComposer value={draft} onChange={onDraftChange} />
+                <DMComposer value={draft} onChange={onDraftChange} onSend={onSend} />
             </main>
             <DMProfileSidebar conversation={conversation} />
         </div>

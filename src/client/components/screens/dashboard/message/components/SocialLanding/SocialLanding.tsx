@@ -32,6 +32,7 @@ export function SocialLanding({ message }: Props) {
                     onBack={message.actions.backToLanding}
                     onDraftChange={(value) => message.actions.setDraft(message.communityChat.id, value)}
                     onScrollChange={(scrollTop) => message.actions.setConversationScroll(message.communityChat.id, scrollTop)}
+                    onSend={() => message.actions.sendCommunityMessage(message.communityChat.id)}
                 />
             )}
 
@@ -43,6 +44,7 @@ export function SocialLanding({ message }: Props) {
                     onBack={message.actions.backToLanding}
                     onDraftChange={(value) => message.actions.setDraft(message.dmConversation.id, value)}
                     onScrollChange={(scrollTop) => message.actions.setConversationScroll(message.dmConversation.id, scrollTop)}
+                    onSend={() => message.actions.sendDMMessage(message.dmConversation.id)}
                 />
             )}
 

@@ -14,9 +14,10 @@ interface Props {
     onBack(): void;
     onDraftChange(value: string): void;
     onScrollChange(scrollTop: number): void;
+    onSend(): void;
 }
 
-export function CommunityChat({ community, draft, scrollTop, onBack, onDraftChange, onScrollChange }: Props) {
+export function CommunityChat({ community, draft, scrollTop, onBack, onDraftChange, onScrollChange, onSend }: Props) {
     return (
         <div className={styles.chat}>
             <main className={styles.main}>
@@ -24,7 +25,7 @@ export function CommunityChat({ community, draft, scrollTop, onBack, onDraftChan
                 <ChannelTabs channels={community.channels} selectedChannel={community.selectedChannel} />
                 <PinnedBanner pinned={community.pinnedAnnouncement} />
                 <MessageTimeline messages={community.messages} scrollTop={scrollTop} onScrollChange={onScrollChange} />
-                <MessageComposer value={draft} onChange={onDraftChange} />
+                <MessageComposer value={draft} onChange={onDraftChange} onSend={onSend} />
             </main>
             <CommunitySidebar community={community} />
         </div>
