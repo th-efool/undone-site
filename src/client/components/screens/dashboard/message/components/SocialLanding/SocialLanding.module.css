@@ -1,0 +1,1 @@
+.landing{display:flex;min-height:100vh;background:linear-gradient(180deg,#fff 0%,#fbfbff 100%);color:var(--color-text-primary)}@media(max-width:1180px){.landing{overflow:auto}.landing>:first-child,.landing>:last-child{min-width:300px}}
