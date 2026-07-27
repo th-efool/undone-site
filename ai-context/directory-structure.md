@@ -69,8 +69,27 @@
 │   │   │   ├── d.webp
 │   │   │   └── e.webp
 │   │   └── thumbnails/
+│   │       ├── 100dcode.jpg
+│   │       ├── civilization.jpeg
 │   │       ├── content-bottle.webp
-│   │       └── deep-work.webp
+│   │       ├── data-science.avif
+│   │       ├── data-storytelling.jpg
+│   │       ├── deep-work-m.png
+│   │       ├── deep-work.webp
+│   │       ├── docker.avif
+│   │       ├── doubling.webp
+│   │       ├── german.webp
+│   │       ├── history-psych.jpg
+│   │       ├── japanese.webp
+│   │       ├── javascript.jpeg
+│   │       ├── machine-learning.avif
+│   │       ├── philosophy.jpg
+│   │       ├── react.webp
+│   │       ├── reader.webp
+│   │       ├── reading.webp
+│   │       ├── reflections.jpeg
+│   │       ├── system-design.jpeg
+│   │       └── ui-fundamentals.webp
 │   ├── mockups/
 │   │   └── dashboard-microlearning.png
 │   ├── videos/
@@ -94,6 +113,8 @@
 │   │   │   └── auth/
 │   │   │       └── page.tsx
 │   │   ├── (dashboard)/
+│   │   │   ├── cohort/
+│   │   │   │   └── page.tsx
 │   │   │   ├── explore/
 │   │   │   │   └── page.tsx
 │   │   │   ├── home/
@@ -642,4 +663,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-191 directories, 450 files
+192 directories, 470 files
