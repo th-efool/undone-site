@@ -45,14 +45,9 @@
 │   │   │   ├── youtube-white.webp
 │   │   │   └── youtube.webp
 │   │   ├── landing/
-│   │   │   ├── a.webp
-│   │   │   ├── b.webp
 │   │   │   ├── before-sleep.webp
-│   │   │   ├── c.webp
 │   │   │   ├── cab-ride.webp
 │   │   │   ├── coffee-break.webp
-│   │   │   ├── d.webp
-│   │   │   ├── e.webp
 │   │   │   ├── hand.webp
 │   │   │   ├── metro-ride.webp
 │   │   │   ├── phone.webp
@@ -63,6 +58,13 @@
 │   │   │   ├── floating-logo.webp
 │   │   │   └── sidequesthq-logo.webp
 │   │   └── hero-poster.webp
+│   ├── mock/
+│   │   └── avatars/
+│   │       ├── a.webp
+│   │       ├── b.webp
+│   │       ├── c.webp
+│   │       ├── d.webp
+│   │       └── e.webp
 │   ├── mockups/
 │   │   └── dashboard-microlearning.png
 │   ├── videos/
@@ -122,12 +124,25 @@
 │   │   │   │   ├── Footer/
 │   │   │   │   │   ├── Footer.module.css
 │   │   │   │   │   └── Footer.tsx
+│   │   │   │   ├── HorizontalScroller/
+│   │   │   │   │   ├── HorizontalScroller.module.css
+│   │   │   │   │   ├── HorizontalScroller.tsx
+│   │   │   │   │   └── index.ts
 │   │   │   │   ├── Logo/
 │   │   │   │   │   ├── Logo.module.css
 │   │   │   │   │   └── Logo.tsx
 │   │   │   │   ├── Navbar/
 │   │   │   │   │   ├── Navbar.module.css
 │   │   │   │   │   └── Navbar.tsx
+│   │   │   │   ├── ProviderBadge/
+│   │   │   │   │   ├── ProviderBadge.module.css
+│   │   │   │   │   ├── ProviderBadge.tsx
+│   │   │   │   │   ├── index.ts
+│   │   │   │   │   └── types.ts
+│   │   │   │   ├── SearchBar/
+│   │   │   │   │   ├── SearchBar.module.css
+│   │   │   │   │   ├── SearchBar.tsx
+│   │   │   │   │   └── index.ts
 │   │   │   │   ├── Sidebar/
 │   │   │   │   │   ├── Sidebar.module.css
 │   │   │   │   │   ├── Sidebar.tsx
@@ -188,17 +203,14 @@
 │   │   │   │   │   │   │   │   ├── BrowseTopics.tsx
 │   │   │   │   │   │   │   │   ├── TopicChip.module.css
 │   │   │   │   │   │   │   │   └── TopicChip.tsx
-│   │   │   │   │   │   │   ├── CarouselArrow/
-│   │   │   │   │   │   │   │   ├── CarouselArrow.module.css
-│   │   │   │   │   │   │   │   └── CarouselArrow.tsx
 │   │   │   │   │   │   │   ├── ContinueExploring/
 │   │   │   │   │   │   │   │   ├── ContinueExploring.module.css
 │   │   │   │   │   │   │   │   ├── ContinueExploring.tsx
 │   │   │   │   │   │   │   │   ├── ContinueExploringCard.module.css
 │   │   │   │   │   │   │   │   └── ContinueExploringCard.tsx
-│   │   │   │   │   │   │   ├── HorizontalScroller/
-│   │   │   │   │   │   │   │   ├── HorizontalScroller.module.css
-│   │   │   │   │   │   │   │   └── HorizontalScroller.tsx
+│   │   │   │   │   │   │   ├── ExploreHero/
+│   │   │   │   │   │   │   │   ├── ExploreHero.module.css
+│   │   │   │   │   │   │   │   └── ExploreHero.tsx
 │   │   │   │   │   │   │   ├── PeopleFinishing/
 │   │   │   │   │   │   │   │   ├── PeopleFinishing.module.css
 │   │   │   │   │   │   │   │   ├── PeopleFinishing.tsx
@@ -209,9 +221,6 @@
 │   │   │   │   │   │   │   │   ├── ArticleCard.tsx
 │   │   │   │   │   │   │   │   ├── RecentlyPublished.module.css
 │   │   │   │   │   │   │   │   └── RecentlyPublished.tsx
-│   │   │   │   │   │   │   ├── SearchBar/
-│   │   │   │   │   │   │   │   ├── SearchBar.module.css
-│   │   │   │   │   │   │   │   └── SearchBar.tsx
 │   │   │   │   │   │   │   ├── SectionHeader/
 │   │   │   │   │   │   │   │   ├── SectionHeader.module.css
 │   │   │   │   │   │   │   │   └── SectionHeader.tsx
@@ -416,4 +425,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-115 directories, 300 files
+118 directories, 306 files
