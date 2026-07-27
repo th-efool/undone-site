@@ -62,12 +62,15 @@
 │   │   ├── hero-poster.webp
 │   │   └── onlyMascot.png
 │   ├── mock/
-│   │   └── avatars/
-│   │       ├── a.webp
-│   │       ├── b.webp
-│   │       ├── c.webp
-│   │       ├── d.webp
-│   │       └── e.webp
+│   │   ├── avatars/
+│   │   │   ├── a.webp
+│   │   │   ├── b.webp
+│   │   │   ├── c.webp
+│   │   │   ├── d.webp
+│   │   │   └── e.webp
+│   │   └── thumbnails/
+│   │       ├── content-bottle.webp
+│   │       └── deep-work.webp
 │   ├── mockups/
 │   │   └── dashboard-microlearning.png
 │   ├── videos/
@@ -629,4 +632,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-187 directories, 441 files
+188 directories, 443 files
