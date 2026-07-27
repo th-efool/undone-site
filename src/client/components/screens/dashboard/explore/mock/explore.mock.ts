@@ -323,7 +323,7 @@ export const exploreMock: ExploreModel = {
 
             dailyGoal: "20 min/day",
 
-            thumbnail: "/mock/sidequests/deep-work.webp",
+            thumbnail: "/mock/thumbnails/deep-work.webp",
 
             featuredParticipants: [
                 {
@@ -355,7 +355,7 @@ export const exploreMock: ExploreModel = {
 
             dailyGoal: "15 min/day",
 
-            thumbnail: "/mock/sidequests/reader.webp",
+            thumbnail: "/mock/thumbnails/reader.webp",
 
             featuredParticipants: [
                 {
@@ -387,7 +387,7 @@ export const exploreMock: ExploreModel = {
 
             dailyGoal: "",
 
-            thumbnail: "/mock/sidequests/body-double.webp",
+            thumbnail: "/mock/thumbnails/body-double.webp",
 
             featuredParticipants: [
                 {
@@ -419,7 +419,7 @@ export const exploreMock: ExploreModel = {
 
             dailyGoal: "",
 
-            thumbnail: "/mock/sidequests/content-bottle.webp",
+            thumbnail: "/mock/thumbnails/content-bottle.webp",
 
             featuredParticipants: [
                 {
@@ -545,7 +545,7 @@ export const exploreMock: ExploreModel = {
 
             author: "Rohan Gupta",
 
-            thumbnail: "/mock/articles/deep-work.webp",
+            thumbnail: "/mock/thumbnails/deep-work.webp",
 
             learnerCount: "3.8K learners",
 
