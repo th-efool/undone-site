@@ -182,8 +182,6 @@
 │   │   │   │   │   └── index.ts
 │   │   │   │   ├── dashboard/
 │   │   │   │   │   ├── explore/
-│   │   │   │   │   │   ├── adapters/
-│   │   │   │   │   │   │   └── explore.adapter.ts
 │   │   │   │   │   │   ├── components/
 │   │   │   │   │   │   │   ├── BrowseTopics/
 │   │   │   │   │   │   │   │   ├── BrowseTopics.module.css
@@ -418,4 +416,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-116 directories, 301 files
+115 directories, 300 files
