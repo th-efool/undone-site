@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { PersonPreview } from "../../../../models";
 import styles from "./MembersStrip.module.css";
 interface Props { members: PersonPreview[]; count: number; }

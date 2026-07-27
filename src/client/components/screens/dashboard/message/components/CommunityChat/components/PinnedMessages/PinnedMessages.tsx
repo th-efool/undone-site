@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { PinnedMessage } from "../../../../models";
 import styles from "./PinnedMessages.module.css";
 interface Props { items: PinnedMessage[]; }

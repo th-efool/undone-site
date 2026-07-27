@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { DMUser } from "../../../../models";
 import styles from "./UserHero.module.css";
 interface Props { user: DMUser; }

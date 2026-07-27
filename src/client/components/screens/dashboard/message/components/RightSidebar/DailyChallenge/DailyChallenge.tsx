@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { ChevronRight, Trophy } from "lucide-react";
 import { ChallengeCard } from "../../../models";
 import styles from "./DailyChallenge.module.css";

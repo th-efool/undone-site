@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { DMConversationModel } from "../../../../models";
+import { EmptyState } from "../../../shared";
 import { DateDivider } from "../DateDivider/DateDivider";
 import { DMBubble } from "../DMBubble/DMBubble";
 import styles from "./MessageTimeline.module.css";
@@ -26,12 +27,12 @@ export function MessageTimeline({ conversation, scrollTop, onScrollChange }: Pro
             className={styles.timeline}
             onScroll={(event) => onScrollChange(event.currentTarget.scrollTop)}
         >
-            {conversation.messages.map((message) => (
+            {conversation.messages.length ? conversation.messages.map((message) => (
                 <div key={message.id}>
                     {message.dateLabel && <DateDivider label={message.dateLabel} />}
                     <DMBubble message={message} user={conversation.user} />
                 </div>
-            ))}
+            )) : <EmptyState title="No DMs yet" message="Send a note, resource, or quick checkpoint to begin." />}
         </section>
     );
 }

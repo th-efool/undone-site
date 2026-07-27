@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { ArrowLeft, MoreHorizontal, Phone, Video } from "lucide-react";
 import { DMUser } from "../../../../models";
 import styles from "./DMHeader.module.css";

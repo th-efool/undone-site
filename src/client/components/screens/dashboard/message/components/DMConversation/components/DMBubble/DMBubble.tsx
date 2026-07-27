@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { DMMessage, DMUser } from "../../../../models";
 import { MessageReaction } from "../MessageReaction/MessageReaction";
 import { MessageStatus } from "../MessageStatus/MessageStatus";
