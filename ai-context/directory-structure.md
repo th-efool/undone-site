@@ -245,8 +245,6 @@
 │   │   │   │   │   │   │   ├── sidequest.ts
 │   │   │   │   │   │   │   ├── topic.ts
 │   │   │   │   │   │   │   └── trending-course.ts
-│   │   │   │   │   │   ├── utils/
-│   │   │   │   │   │   │   └── scroll.ts
 │   │   │   │   │   │   ├── Explore.module.css
 │   │   │   │   │   │   ├── Explore.tsx
 │   │   │   │   │   │   └── index.ts
@@ -468,4 +466,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-132 directories, 335 files
+131 directories, 334 files
