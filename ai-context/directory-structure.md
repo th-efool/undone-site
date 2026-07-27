@@ -57,7 +57,10 @@
 │   │   │   ├── floating-logo.png
 │   │   │   ├── floating-logo.webp
 │   │   │   └── sidequesthq-logo.webp
-│   │   └── hero-poster.webp
+│   │   ├── footer-bg.jpeg
+│   │   ├── footer-mascot.png
+│   │   ├── hero-poster.webp
+│   │   └── onlyMascot.png
 │   ├── mock/
 │   │   └── avatars/
 │   │       ├── a.webp
@@ -465,4 +468,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-132 directories, 332 files
+132 directories, 335 files

@@ -21,64 +21,55 @@ export interface LogoProps {
 }
 
 export function Logo({
-                         href = "/",
-                         compact = false,
-                         iconOnly = false,
-                         variant = "framed",
-                         className,
-                         priority = false,
-                         size,
-                     }: LogoProps) {
-    const imageSize =
-        size ??
-        (variant === "framed" ? 78 : 44);
+    href = "/",
+    compact = false,
+    iconOnly = false,
+    className,
+    priority = false,
+}: LogoProps) {
+    // const logo = (
+    //     <div className={clsx(styles.root, className)}>
+    //         <Image
+    //             src="/images/logos/sidequesthq-logo.webp"
+    //             alt="SideQuestHQ logo"
+    //             width={44}
+    //             height={44}
+    //             priority={priority}
+    //         />
 
-    const image = (
-        <Image
-            src="/images/logos/sidequesthq-logo.webp"
-            alt="SideQuestHQ logo"
-            width={imageSize}
-            height={imageSize}
-            priority={priority}
-        />
-    );
+    //         {!iconOnly && (
+    //             <div className={styles.text}>
+    //                 <span className={styles.title}>SideQuestHQ</span>
 
+    //                 {!compact && (
+    //                     <span className={styles.tagline}>Learn Better.</span>
+    //                 )}
+    //             </div>
+    //         )}
+    //     </div>
+    // );
+const logo = (
+  <div className={clsx(styles.root, className)}>
+    <Image
+      src="/images/logos/sidequesthq-logo.webp"
+      alt="SideQuestHQ"
+      width={64}
+      height={64}
+      priority={priority}
+      className={styles.logoImage}
+    />
 
-    return (
-        <Link
-            href={href}
-            className={clsx(styles.root, className)}
-        >
-            <div
-                className={clsx({
-                    [styles.logoFrame]: variant === "framed",
-                    [styles.logoPlain]: variant === "plain",
-                })}
-                style={
-                    variant === "framed" && size
-                        ? {
-                            width: size,
-                            height: size,
-                        }
-                        : undefined
-                }
-            >
-                {image}
-            </div>
+    {!iconOnly && (
+      <div className={styles.text}>
+        <span className={styles.title}>SideQuestHQ</span>
 
-            {!iconOnly && (
-                <div className={styles.text}>
-                    <span className={styles.title}>
-                        SideQuestHQ
-                    </span>
+        {!compact && (
+          <span className={styles.tagline}>Built for Curious Minds.</span>
+        )}
+      </div>
+    )}
+  </div>
+);
 
-                    {!compact && (
-                        <span className={styles.tagline}>
-                            Learn Better.
-                        </span>
-                    )}
-                </div>
-            )}
-        </Link>
-    );
+    return <Link href={href}>{logo}</Link>;
 }
