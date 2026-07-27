@@ -234,7 +234,7 @@
 │   │   │   │   │   │   ├── mock/
 │   │   │   │   │   │   │   └── explore.mock.ts
 │   │   │   │   │   │   ├── models/
-│   │   │   │   │   │   │   ├── article.ts
+│   │   │   │   │   │   │   ├── articlePreview.ts
 │   │   │   │   │   │   │   ├── continue-exploring.ts
 │   │   │   │   │   │   │   ├── explore.ts
 │   │   │   │   │   │   │   ├── index.ts
