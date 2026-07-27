@@ -292,6 +292,169 @@
 │   │   │   │   │   │   ├── Home.tsx
 │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   ├── message/
+│   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   ├── Center/
+│   │   │   │   │   │   │   │   ├── LiveCard/
+│   │   │   │   │   │   │   │   │   ├── LiveCard.module.css
+│   │   │   │   │   │   │   │   │   └── LiveCard.tsx
+│   │   │   │   │   │   │   │   ├── LiveNow/
+│   │   │   │   │   │   │   │   │   ├── LiveNow.module.css
+│   │   │   │   │   │   │   │   │   └── LiveNow.tsx
+│   │   │   │   │   │   │   │   ├── RecentMessageItem/
+│   │   │   │   │   │   │   │   │   ├── RecentMessageItem.module.css
+│   │   │   │   │   │   │   │   │   └── RecentMessageItem.tsx
+│   │   │   │   │   │   │   │   ├── RecentMessages/
+│   │   │   │   │   │   │   │   │   ├── RecentMessages.module.css
+│   │   │   │   │   │   │   │   │   └── RecentMessages.tsx
+│   │   │   │   │   │   │   │   ├── SearchHeader/
+│   │   │   │   │   │   │   │   │   ├── SearchHeader.module.css
+│   │   │   │   │   │   │   │   │   └── SearchHeader.tsx
+│   │   │   │   │   │   │   │   ├── Center.module.css
+│   │   │   │   │   │   │   │   └── Center.tsx
+│   │   │   │   │   │   │   ├── CommunityChat/
+│   │   │   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   │   │   ├── ChannelTabs/
+│   │   │   │   │   │   │   │   │   │   ├── ChannelTabs.module.css
+│   │   │   │   │   │   │   │   │   │   └── ChannelTabs.tsx
+│   │   │   │   │   │   │   │   │   ├── CommunityHeader/
+│   │   │   │   │   │   │   │   │   │   ├── CommunityHeader.module.css
+│   │   │   │   │   │   │   │   │   │   └── CommunityHeader.tsx
+│   │   │   │   │   │   │   │   │   ├── CommunitySidebar/
+│   │   │   │   │   │   │   │   │   │   ├── CommunitySidebar.module.css
+│   │   │   │   │   │   │   │   │   │   └── CommunitySidebar.tsx
+│   │   │   │   │   │   │   │   │   ├── MediaGallery/
+│   │   │   │   │   │   │   │   │   │   ├── MediaGallery.module.css
+│   │   │   │   │   │   │   │   │   │   └── MediaGallery.tsx
+│   │   │   │   │   │   │   │   │   ├── MembersStrip/
+│   │   │   │   │   │   │   │   │   │   ├── MembersStrip.module.css
+│   │   │   │   │   │   │   │   │   │   └── MembersStrip.tsx
+│   │   │   │   │   │   │   │   │   ├── MessageAttachment/
+│   │   │   │   │   │   │   │   │   │   ├── MessageAttachment.module.css
+│   │   │   │   │   │   │   │   │   │   └── MessageAttachment.tsx
+│   │   │   │   │   │   │   │   │   ├── MessageBubble/
+│   │   │   │   │   │   │   │   │   │   ├── MessageBubble.module.css
+│   │   │   │   │   │   │   │   │   │   └── MessageBubble.tsx
+│   │   │   │   │   │   │   │   │   ├── MessageComposer/
+│   │   │   │   │   │   │   │   │   │   ├── MessageComposer.module.css
+│   │   │   │   │   │   │   │   │   │   └── MessageComposer.tsx
+│   │   │   │   │   │   │   │   │   ├── MessageTimeline/
+│   │   │   │   │   │   │   │   │   │   ├── MessageTimeline.module.css
+│   │   │   │   │   │   │   │   │   │   └── MessageTimeline.tsx
+│   │   │   │   │   │   │   │   │   ├── PinnedBanner/
+│   │   │   │   │   │   │   │   │   │   ├── PinnedBanner.module.css
+│   │   │   │   │   │   │   │   │   │   └── PinnedBanner.tsx
+│   │   │   │   │   │   │   │   │   ├── PinnedMessages/
+│   │   │   │   │   │   │   │   │   │   ├── PinnedMessages.module.css
+│   │   │   │   │   │   │   │   │   │   └── PinnedMessages.tsx
+│   │   │   │   │   │   │   │   │   ├── ReactionBar/
+│   │   │   │   │   │   │   │   │   │   ├── ReactionBar.module.css
+│   │   │   │   │   │   │   │   │   │   └── ReactionBar.tsx
+│   │   │   │   │   │   │   │   │   ├── ReplyPreview/
+│   │   │   │   │   │   │   │   │   │   ├── ReplyPreview.module.css
+│   │   │   │   │   │   │   │   │   │   └── ReplyPreview.tsx
+│   │   │   │   │   │   │   │   │   └── UpcomingEvents/
+│   │   │   │   │   │   │   │   │       ├── UpcomingEvents.module.css
+│   │   │   │   │   │   │   │   │       └── UpcomingEvents.tsx
+│   │   │   │   │   │   │   │   ├── CommunityChat.module.css
+│   │   │   │   │   │   │   │   └── CommunityChat.tsx
+│   │   │   │   │   │   │   ├── DMConversation/
+│   │   │   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   │   │   ├── AboutCard/
+│   │   │   │   │   │   │   │   │   │   ├── AboutCard.module.css
+│   │   │   │   │   │   │   │   │   │   └── AboutCard.tsx
+│   │   │   │   │   │   │   │   │   ├── DMBubble/
+│   │   │   │   │   │   │   │   │   │   ├── DMBubble.module.css
+│   │   │   │   │   │   │   │   │   │   └── DMBubble.tsx
+│   │   │   │   │   │   │   │   │   ├── DMComposer/
+│   │   │   │   │   │   │   │   │   │   ├── DMComposer.module.css
+│   │   │   │   │   │   │   │   │   │   └── DMComposer.tsx
+│   │   │   │   │   │   │   │   │   ├── DMHeader/
+│   │   │   │   │   │   │   │   │   │   ├── DMHeader.module.css
+│   │   │   │   │   │   │   │   │   │   └── DMHeader.tsx
+│   │   │   │   │   │   │   │   │   ├── DMProfileSidebar/
+│   │   │   │   │   │   │   │   │   │   ├── DMProfileSidebar.module.css
+│   │   │   │   │   │   │   │   │   │   └── DMProfileSidebar.tsx
+│   │   │   │   │   │   │   │   │   ├── DateDivider/
+│   │   │   │   │   │   │   │   │   │   ├── DateDivider.module.css
+│   │   │   │   │   │   │   │   │   │   └── DateDivider.tsx
+│   │   │   │   │   │   │   │   │   ├── MessageReaction/
+│   │   │   │   │   │   │   │   │   │   ├── MessageReaction.module.css
+│   │   │   │   │   │   │   │   │   │   └── MessageReaction.tsx
+│   │   │   │   │   │   │   │   │   ├── MessageStatus/
+│   │   │   │   │   │   │   │   │   │   ├── MessageStatus.module.css
+│   │   │   │   │   │   │   │   │   │   └── MessageStatus.tsx
+│   │   │   │   │   │   │   │   │   ├── MessageTimeline/
+│   │   │   │   │   │   │   │   │   │   ├── MessageTimeline.module.css
+│   │   │   │   │   │   │   │   │   │   └── MessageTimeline.tsx
+│   │   │   │   │   │   │   │   │   ├── NotificationCard/
+│   │   │   │   │   │   │   │   │   │   ├── NotificationCard.module.css
+│   │   │   │   │   │   │   │   │   │   └── NotificationCard.tsx
+│   │   │   │   │   │   │   │   │   ├── QuickActions/
+│   │   │   │   │   │   │   │   │   │   ├── QuickActions.module.css
+│   │   │   │   │   │   │   │   │   │   └── QuickActions.tsx
+│   │   │   │   │   │   │   │   │   ├── ResourceList/
+│   │   │   │   │   │   │   │   │   │   ├── ResourceList.module.css
+│   │   │   │   │   │   │   │   │   │   └── ResourceList.tsx
+│   │   │   │   │   │   │   │   │   └── UserHero/
+│   │   │   │   │   │   │   │   │       ├── UserHero.module.css
+│   │   │   │   │   │   │   │   │       └── UserHero.tsx
+│   │   │   │   │   │   │   │   ├── DMConversation.module.css
+│   │   │   │   │   │   │   │   └── DMConversation.tsx
+│   │   │   │   │   │   │   ├── LeftSidebar/
+│   │   │   │   │   │   │   │   ├── ConversationItem/
+│   │   │   │   │   │   │   │   │   ├── ConversationItem.module.css
+│   │   │   │   │   │   │   │   │   └── ConversationItem.tsx
+│   │   │   │   │   │   │   │   ├── ConversationList/
+│   │   │   │   │   │   │   │   │   ├── ConversationList.module.css
+│   │   │   │   │   │   │   │   │   └── ConversationList.tsx
+│   │   │   │   │   │   │   │   ├── SidebarFilters/
+│   │   │   │   │   │   │   │   │   ├── SidebarFilters.module.css
+│   │   │   │   │   │   │   │   │   └── SidebarFilters.tsx
+│   │   │   │   │   │   │   │   ├── SidebarHeader/
+│   │   │   │   │   │   │   │   │   ├── SidebarHeader.module.css
+│   │   │   │   │   │   │   │   │   └── SidebarHeader.tsx
+│   │   │   │   │   │   │   │   ├── LeftSidebar.module.css
+│   │   │   │   │   │   │   │   └── LeftSidebar.tsx
+│   │   │   │   │   │   │   ├── RightSidebar/
+│   │   │   │   │   │   │   │   ├── DailyChallenge/
+│   │   │   │   │   │   │   │   │   ├── DailyChallenge.module.css
+│   │   │   │   │   │   │   │   │   └── DailyChallenge.tsx
+│   │   │   │   │   │   │   │   ├── FriendAvatarGroup/
+│   │   │   │   │   │   │   │   │   ├── FriendAvatarGroup.module.css
+│   │   │   │   │   │   │   │   │   └── FriendAvatarGroup.tsx
+│   │   │   │   │   │   │   │   ├── FriendsOnline/
+│   │   │   │   │   │   │   │   │   ├── FriendsOnline.module.css
+│   │   │   │   │   │   │   │   │   └── FriendsOnline.tsx
+│   │   │   │   │   │   │   │   ├── UpcomingCard/
+│   │   │   │   │   │   │   │   │   ├── UpcomingCard.module.css
+│   │   │   │   │   │   │   │   │   └── UpcomingCard.tsx
+│   │   │   │   │   │   │   │   ├── UpcomingEvents/
+│   │   │   │   │   │   │   │   │   ├── UpcomingEvents.module.css
+│   │   │   │   │   │   │   │   │   └── UpcomingEvents.tsx
+│   │   │   │   │   │   │   │   ├── RightSidebar.module.css
+│   │   │   │   │   │   │   │   └── RightSidebar.tsx
+│   │   │   │   │   │   │   └── SocialLanding/
+│   │   │   │   │   │   │       ├── SocialLanding.module.css
+│   │   │   │   │   │   │       └── SocialLanding.tsx
+│   │   │   │   │   │   ├── constants/
+│   │   │   │   │   │   │   ├── index.ts
+│   │   │   │   │   │   │   └── message.constants.ts
+│   │   │   │   │   │   ├── hooks/
+│   │   │   │   │   │   │   ├── index.ts
+│   │   │   │   │   │   │   └── useMessage.ts
+│   │   │   │   │   │   ├── mock/
+│   │   │   │   │   │   │   ├── communityChat.mock.ts
+│   │   │   │   │   │   │   ├── dmConversation.mock.ts
+│   │   │   │   │   │   │   └── message.mock.ts
+│   │   │   │   │   │   ├── models/
+│   │   │   │   │   │   │   ├── index.ts
+│   │   │   │   │   │   │   └── message.ts
+│   │   │   │   │   │   ├── types/
+│   │   │   │   │   │   │   └── index.ts
+│   │   │   │   │   │   ├── utils/
+│   │   │   │   │   │   │   ├── communityMapping.ts
+│   │   │   │   │   │   │   └── index.ts
+│   │   │   │   │   │   ├── Message.module.css
 │   │   │   │   │   │   ├── Message.tsx
 │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   ├── notes/
@@ -466,4 +629,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-131 directories, 334 files
+187 directories, 441 files
