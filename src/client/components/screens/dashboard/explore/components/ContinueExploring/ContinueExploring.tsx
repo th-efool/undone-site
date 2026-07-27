@@ -3,6 +3,7 @@ import styles from "./ContinueExploring.module.css";
 import type { ContinueExploringItem } from "../../models";
 import { ContinueExploringCard } from "./ContinueExploringCard";
 import { ChevronRight } from "lucide-react";
+import { HorizontalScroller } from "@/src/client/components/global/HorizontalScroller";
 
 export interface ContinueExploringProps {
     items: ContinueExploringItem[];
@@ -35,7 +36,8 @@ export function ContinueExploring({
                 </button>
             </div>
 
-            <div className={styles.cards}>
+            <HorizontalScroller>
+
                 {items.map((item) => (
                     <ContinueExploringCard
                         key={item.id}
@@ -43,14 +45,7 @@ export function ContinueExploring({
                     />
                 ))}
 
-                <button
-                    type="button"
-                    className={styles.carouselArrow}
-                    aria-label="Next"
-                >
-                    <ChevronRight size={20} strokeWidth={2.5} />
-                </button>
-            </div>
+            </HorizontalScroller>
         </section>
     );
 }

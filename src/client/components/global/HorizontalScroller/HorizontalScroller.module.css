@@ -1,0 +1,25 @@
+.wrapper {
+    position: relative;
+}
+
+.viewport {
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    scroll-behavior: smooth;
+}
+
+.viewport::-webkit-scrollbar {
+    display: none;
+}
+
+.track {
+    display: inline-flex;
+
+    gap: 16px;
+
+    width: max-content;
+}

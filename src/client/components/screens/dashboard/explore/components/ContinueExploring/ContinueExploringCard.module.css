@@ -2,8 +2,7 @@
     display: flex;
     align-items: center;
     gap: 14px;
-
-    width: 284px;
+    flex: 0 0 284px;
     height: 76px;
 
     padding: 14px 18px;
