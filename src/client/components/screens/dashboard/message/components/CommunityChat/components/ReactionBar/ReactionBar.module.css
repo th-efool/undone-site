@@ -1,0 +1,1 @@
+.reactions{display:flex;gap:10px;margin-top:12px}.reactions button{height:28px;padding:0 12px;border:1px solid rgba(18,25,54,.1);border-radius:999px;background:#fff;color:#1f2748;font-weight:800;cursor:pointer;transition:.18s}.reactions button:hover{transform:translateY(-1px);border-color:#4d2cf4;background:#f7f5ff}.reactions span{margin-left:6px;font-size:.82rem}

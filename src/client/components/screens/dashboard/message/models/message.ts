@@ -71,3 +71,82 @@ export interface MessageMock {
     challenge: ChallengeCard;
     friendsOnline: PersonPreview[];
 }
+
+export type MessageView = "landing" | "community";
+export type ChatAttachmentKind = "image" | "pdf";
+
+export interface ChatReaction {
+    emoji: string;
+    count: number;
+}
+
+export interface ChatAttachment {
+    id: string;
+    kind: ChatAttachmentKind;
+    title: string;
+    url?: string;
+    caption?: string;
+    meta?: string;
+    duration?: string;
+}
+
+export interface ReplyPreviewModel {
+    avatars: PersonPreview[];
+    count: number;
+    lastReplyBy: string;
+    timestamp: string;
+}
+
+export interface CommunityMessage {
+    id: string;
+    author: PersonPreview;
+    badge?: string;
+    timestamp: string;
+    body?: string;
+    attachment?: ChatAttachment;
+    reactions?: ChatReaction[];
+    replies?: ReplyPreviewModel;
+}
+
+export interface ChannelTab {
+    id: string;
+    label: string;
+}
+
+export interface PinnedAnnouncement {
+    author: string;
+    title: string;
+    actionLabel: string;
+}
+
+export interface PinnedMessage {
+    id: string;
+    author: PersonPreview;
+    preview: string;
+    timestamp: string;
+}
+
+export interface CommunityEvent {
+    id: string;
+    title: string;
+    subtitle: string;
+    startsIn: string;
+}
+
+export interface CommunityChatModel {
+    id: string;
+    name: string;
+    avatar: string;
+    description: string;
+    onlineCount: number;
+    createdBy: string;
+    createdAt: string;
+    members: PersonPreview[];
+    channels: ChannelTab[];
+    selectedChannel: string;
+    pinnedAnnouncement: PinnedAnnouncement;
+    messages: CommunityMessage[];
+    pinnedMessages: PinnedMessage[];
+    media: ChatAttachment[];
+    events: CommunityEvent[];
+}
