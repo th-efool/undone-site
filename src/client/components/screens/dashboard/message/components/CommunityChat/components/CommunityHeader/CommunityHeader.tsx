@@ -1,12 +1,16 @@
-import { Bell, MoreHorizontal, Phone, UsersRound, Video } from "lucide-react";
+import { ArrowLeft, Bell, MoreHorizontal, Phone, UsersRound, Video } from "lucide-react";
 import { CommunityChatModel } from "../../../../models";
 import styles from "./CommunityHeader.module.css";
 
-interface Props { community: CommunityChatModel; }
+interface Props {
+    community: CommunityChatModel;
+    onBack(): void;
+}
 
-export function CommunityHeader({ community }: Props) {
+export function CommunityHeader({ community, onBack }: Props) {
     return (
         <header className={styles.header}>
+            <button type="button" className={styles.back} onClick={onBack} aria-label="Back to social landing"><ArrowLeft size={22} /></button>
             <img className={styles.avatar} src={community.avatar} alt="" />
             <div className={styles.info}>
                 <h1>{community.name}</h1>

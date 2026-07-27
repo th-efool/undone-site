@@ -6,9 +6,11 @@ import { RightSidebar } from "../RightSidebar/RightSidebar";
 import { useMessage } from "../../hooks";
 import styles from "./SocialLanding.module.css";
 
-export function SocialLanding() {
-    const message = useMessage();
+interface Props {
+    message: ReturnType<typeof useMessage>;
+}
 
+export function SocialLanding({ message }: Props) {
     return (
         <div className={styles.landing}>
             <LeftSidebar
@@ -22,12 +24,25 @@ export function SocialLanding() {
                 onSelectConversation={message.actions.selectConversation}
             />
 
-            {message.view === "community" && <CommunityChat community={message.communityChat} />}
+            {message.view === "community" && (
+                <CommunityChat
+                    community={message.communityChat}
+                    draft={message.communityDraft}
+                    scrollTop={message.communityScrollTop}
+                    onBack={message.actions.backToLanding}
+                    onDraftChange={(value) => message.actions.setDraft(message.communityChat.id, value)}
+                    onScrollChange={(scrollTop) => message.actions.setConversationScroll(message.communityChat.id, scrollTop)}
+                />
+            )}
 
             {message.view === "dm" && (
                 <DMConversation
                     conversation={message.dmConversation}
-                    onBack={message.actions.closeDMConversation}
+                    draft={message.dmDraft}
+                    scrollTop={message.dmScrollTop}
+                    onBack={message.actions.backToLanding}
+                    onDraftChange={(value) => message.actions.setDraft(message.dmConversation.id, value)}
+                    onScrollChange={(scrollTop) => message.actions.setConversationScroll(message.dmConversation.id, scrollTop)}
                 />
             )}
 

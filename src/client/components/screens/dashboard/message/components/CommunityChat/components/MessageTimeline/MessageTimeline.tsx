@@ -1,5 +1,31 @@
+import { useEffect, useRef } from "react";
+
 import { CommunityMessage } from "../../../../models";
 import { MessageBubble } from "../MessageBubble/MessageBubble";
 import styles from "./MessageTimeline.module.css";
-interface Props { messages: CommunityMessage[]; }
-export function MessageTimeline({ messages }: Props) {return <section className={styles.timeline}>{messages.map((message) => <MessageBubble key={message.id} message={message}/>)}</section>}
+
+interface Props {
+    messages: CommunityMessage[];
+    scrollTop: number;
+    onScrollChange(scrollTop: number): void;
+}
+
+export function MessageTimeline({ messages, scrollTop, onScrollChange }: Props) {
+    const viewportRef = useRef<HTMLElement>(null);
+
+    useEffect(() => {
+        const viewport = viewportRef.current;
+        if (!viewport) return;
+        viewport.scrollTop = scrollTop;
+    }, [scrollTop]);
+
+    return (
+        <section
+            ref={viewportRef}
+            className={styles.timeline}
+            onScroll={(event) => onScrollChange(event.currentTarget.scrollTop)}
+        >
+            {messages.map((message) => <MessageBubble key={message.id} message={message} />)}
+        </section>
+    );
+}
