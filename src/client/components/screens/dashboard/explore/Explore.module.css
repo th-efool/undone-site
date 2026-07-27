@@ -1,0 +1,60 @@
+.explore {
+  display: flex;
+  flex-direction: column;
+
+  gap: 22px;
+
+  padding: 16px 42px 56px;
+}
+
+.searchBar {
+  width: 500px;
+
+  align-self: center;
+
+  margin-bottom: -2px;
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+
+  gap: 28px;
+}
+
+.greeting {
+  display: flex;
+  flex-direction: column;
+
+  gap: 6px;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+
+  gap: 8px;
+
+  margin: 0;
+
+  font-size: 2.6rem;
+  font-weight: 700;
+  line-height: 1.05;
+
+  color: var(--color-text-primary);
+}
+
+.sparkle {
+  color: var(--color-brand);
+}
+
+.subheading {
+  margin: 0;
+
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.35;
+
+  color: var(--color-text-secondary);
+}

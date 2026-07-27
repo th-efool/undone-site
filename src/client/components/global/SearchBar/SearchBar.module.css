@@ -1,0 +1,74 @@
+.searchBar {
+    display: flex;
+    align-items: center;
+
+    width: 100%;
+    max-width: 560px;
+    height: 40px;
+
+    padding: 0 16px;
+    gap: 12px;
+
+    border: 1px solid var(--color-border);
+    border-radius: 16px;
+
+    background: var(--color-surface);
+
+    transition:
+            border-color 150ms ease,
+            box-shadow 150ms ease;
+}
+
+.searchBar:focus-within {
+    border-color: var(--color-brand);
+
+    box-shadow:
+            0 0 0 4px rgba(79, 70, 229, 0.08);
+}
+
+.icon {
+    flex-shrink: 0;
+
+    color: var(--color-text-secondary);
+}
+
+.input {
+    flex: 1;
+
+    border: none;
+    outline: none;
+    background: transparent;
+
+    color: var(--color-text-primary);
+
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.input::placeholder {
+    color: var(--color-text-secondary);
+}
+
+.shortcut {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    min-width: 42px;
+    height: 28px;
+
+    padding: 0 10px;
+
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+
+    background: var(--color-surface-secondary);
+
+    color: var(--color-text-secondary);
+
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+}

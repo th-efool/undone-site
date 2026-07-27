@@ -1,0 +1,29 @@
+.item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 52px;
+    height: 52px;
+
+    color: var(--color-text-secondary);
+
+    border-radius: 16px;
+
+    transition:
+            background-color var(--duration-fast),
+            color var(--duration-fast),
+            transform var(--duration-fast);
+}
+
+.item:hover {
+    color: var(--color-text-primary);
+    background: var(--color-surface);
+}
+
+.active {
+    color: var(--color-brand);
+    background: var(--color-brand-subtle);
+    border-radius: 18px;
+
+}

@@ -12,14 +12,14 @@ export interface LogoProps {
 
     iconOnly?: boolean;
 
+    variant?: "framed" | "plain";
+
     className?: string;
 
     priority?: boolean;
+    size?: number;
 }
 
-/**
- * Brand logo link with optional compact or icon-only presentation.
- */
 export function Logo({
     href = "/",
     compact = false,

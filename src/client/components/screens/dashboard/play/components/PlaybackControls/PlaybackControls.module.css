@@ -1,0 +1,55 @@
+.controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    width: 100%;
+}
+
+.left,
+.right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 40px;
+    height: 40px;
+
+    padding: 0;
+
+    color: rgba(255, 255, 255, 0.82);
+
+    border: 0;
+    border-radius: 999px;
+
+    background: transparent;
+
+    cursor: pointer;
+
+    transition:
+            background-color 180ms ease,
+            color 180ms ease;
+}
+
+.button:hover {
+    color: #ffffff;
+
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.time {
+    color: rgba(255, 255, 255, 0.82);
+
+    font-size: 0.92rem;
+    font-weight: 500;
+
+    letter-spacing: -0.02em;
+
+    user-select: none;
+}

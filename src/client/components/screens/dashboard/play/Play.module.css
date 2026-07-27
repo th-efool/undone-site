@@ -1,0 +1,48 @@
+.play {
+    width: 100%;
+    height: 100vh;
+
+    padding: 8px;
+
+    background: var(--color-background);
+}
+
+.lessonCard {
+    position: absolute;
+
+    top: 40px;
+    left: 40px;
+
+    z-index: 20;
+}
+
+.toolbar {
+    position: absolute;
+
+    top: 50%;
+    right: 36px;
+
+    transform: translateY(-50%);
+
+    z-index: 20;
+}
+
+.timeline {
+    position: absolute;
+
+    right: 40px;
+    bottom: 92px;
+    left: 40px;
+
+    z-index: 15;
+}
+
+.controls {
+    position: absolute;
+
+    right: 40px;
+    bottom: 34px;
+    left: 40px;
+
+    z-index: 15;
+}
