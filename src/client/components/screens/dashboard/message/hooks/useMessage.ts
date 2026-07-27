@@ -6,7 +6,7 @@ import { conversationFilters, sidebarTabs } from "../constants";
 import { dmConversationMock } from "../mock/dmConversation.mock";
 import { messageMock } from "../mock/message.mock";
 import { ConversationFilter, ConversationPreview, MessageView, SidebarTab } from "../models";
-import { getMessageCohorts, mapCohortToCommunity, mapCohortToConversation } from "../utils";
+import { getMessageCohorts, mapCohortToCommunity, mapCohortToConversation, mapCohortToLiveSession, mapCohortToRecentMessage, mapCohortToUpcomingEvent } from "../utils";
 
 function matchesSearch(conversation: ConversationPreview, query: string) {
     const normalized = query.trim().toLowerCase();
@@ -26,9 +26,11 @@ export function useMessage() {
     const [scrollPositions, setScrollPositions] = useState<Record<string, number>>({});
     const [drafts, setDrafts] = useState<Record<string, string>>({});
 
+    const messageCohorts = useMemo(() => getMessageCohorts(), []);
+
     const communityConversations = useMemo(() => {
-        return getMessageCohorts().map(mapCohortToConversation);
-    }, []);
+        return messageCohorts.map(mapCohortToConversation);
+    }, [messageCohorts]);
 
     const dmConversations = useMemo(() => {
         return messageMock.conversations.filter((item) => item.kind === "dm");
@@ -103,8 +105,8 @@ export function useMessage() {
         dmScrollTop: scrollPositions[selectedDMId ?? ""] ?? 0,
         communityDraft: drafts[selectedCommunityId ?? ""] ?? "",
         dmDraft: drafts[selectedDMId ?? ""] ?? "",
-        liveSessions: messageMock.liveSessions,
-        recentMessages: messageMock.recentMessages.filter((item) => matchesSearch({
+        liveSessions: messageCohorts.slice(0, 4).map(mapCohortToLiveSession),
+        recentMessages: messageCohorts.map(mapCohortToRecentMessage).filter((item) => matchesSearch({
             id: item.id,
             kind: "community",
             name: item.community,
@@ -113,7 +115,7 @@ export function useMessage() {
             preview: item.message || item.attachment || "",
             timestamp: item.timestamp,
         }, searchQuery)),
-        upcomingEvents: messageMock.upcomingEvents,
+        upcomingEvents: messageCohorts.slice(0, 3).map(mapCohortToUpcomingEvent),
         challenge: messageMock.challenge,
         friendsOnline: messageMock.friendsOnline,
         actions: {
