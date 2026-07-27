@@ -1,0 +1,153 @@
+import { BookOpen, Check, Clock3, Flame } from "lucide-react";
+
+import type { HomeModel } from "../models";
+
+export const homeMock: HomeModel = {
+    hero: {
+        title: "My Cohorts",
+        subtitle: "Your learning journeys, all in one place.",
+        actionLabel: "New Cohort",
+    },
+    sections: {
+        activeCohorts: { title: "Active Cohorts" },
+        continueLater: {
+            title: "Continue Later",
+            subtitle: "We'll bring these back when the time is right.",
+        },
+        recentlyCompleted: {
+            title: "Recently Completed",
+            subtitle: "Nice work! Keep the momentum going.",
+        },
+    },
+    searchPlaceholder: "Search cohorts, topics, lessons...",
+    summaries: [
+        {
+            id: "today-goal",
+            title: "Today's Goal",
+            value: "41 / 60 min",
+            icon: <Clock3 size={28} strokeWidth={2.4} />,
+            iconTone: "brand",
+            progress: {
+                current: 41,
+                target: 60,
+                unit: "min",
+                percent: 68,
+            },
+        },
+        {
+            id: "current-streak",
+            title: "Current Streak",
+            value: "82 days",
+            icon: <Flame size={28} strokeWidth={2.4} fill="currentColor" />,
+            iconTone: "orange",
+            trendPath: "M4 34 C19 34, 30 34, 44 34 S64 34, 76 34 S93 16, 107 24 S126 36, 139 20 S158 20, 172 11 S193 19, 212 6",
+        },
+        {
+            id: "active-cohorts",
+            title: "Active Cohorts",
+            value: "4",
+            helperText: "Keep learning!",
+            helperTone: "brand",
+            icon: <BookOpen size={28} strokeWidth={2.4} />,
+            iconTone: "brand",
+        },
+        {
+            id: "finished-week",
+            title: "Finished This Week",
+            value: "1",
+            helperText: "Great job!",
+            helperTone: "success",
+            icon: <Check size={28} strokeWidth={2.7} />,
+            iconTone: "green",
+        },
+    ],
+    activeCohorts: [
+        {
+            id: "deep-work-mastery",
+            rank: 1,
+            title: "Deep Work Mastery",
+            provider: "Cal Newport",
+            thumbnail: "/images/auth/faceless.webp",
+            minutesToday: 12,
+            dailyGoalMinutes: 20,
+            progressPercent: 72,
+            schedule: { label: "Mon, Wed, Fri" },
+            featured: true,
+        },
+        {
+            id: "system-design-bootcamp",
+            rank: 2,
+            title: "System Design Bootcamp",
+            provider: "ByteByteGo",
+            thumbnail: "/images/auth/claude.webp",
+            minutesToday: 8,
+            dailyGoalMinutes: 15,
+            progressPercent: 48,
+            schedule: { label: "Tue, Thu, Sat" },
+        },
+        {
+            id: "history-psychology",
+            rank: 3,
+            title: "History of Psychology",
+            provider: "CrashCourse",
+            thumbnail: "/images/auth/maker.webp",
+            minutesToday: 15,
+            dailyGoalMinutes: 10,
+            progressPercent: 36,
+            schedule: { label: "Everyday" },
+        },
+        {
+            id: "german-language-a1",
+            rank: 4,
+            title: "German Language A1",
+            provider: "Learn German",
+            thumbnail: "/images/auth/phone.webp",
+            minutesToday: 10,
+            dailyGoalMinutes: 12,
+            progressPercent: 24,
+            schedule: { label: "Mon, Wed, Fri, Sun" },
+        },
+    ],
+    continueLater: [
+        {
+            id: "advanced-javascript",
+            title: "Advanced JavaScript",
+            thumbnail: "/images/auth/phone.webp",
+            resumeLabel: "Resume in 2 weeks",
+        },
+        {
+            id: "japanese-beginners",
+            title: "Japanese for Beginners",
+            thumbnail: "/images/landing/metro-ride.webp",
+            resumeLabel: "Resume in 5 days",
+        },
+        {
+            id: "ancient-civilizations",
+            title: "Ancient Civilizations",
+            thumbnail: "/images/landing/cab-ride.webp",
+            resumeLabel: "Resume in 3 weeks",
+        },
+        {
+            id: "data-storytelling",
+            title: "Data Storytelling",
+            thumbnail: "/images/auth/claude.webp",
+            resumeLabel: "Resume next month",
+        },
+    ],
+    recentlyCompleted: [
+        {
+            id: "intro-philosophy",
+            title: "Introduction to Philosophy",
+            thumbnail: "/images/hero-poster.webp",
+            completedLabel: "Completed 3 days ago",
+            progressPercent: 100,
+        },
+        {
+            id: "productivity-systems",
+            title: "Productivity Systems",
+            thumbnail: "/images/landing/coffee-break.webp",
+            completedLabel: "Completed last week",
+            progressPercent: 100,
+        },
+    ],
+};
