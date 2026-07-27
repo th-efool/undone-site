@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { LiveSession } from "../../../models";
 import styles from "./LiveCard.module.css";
 interface Props{session:LiveSession;}

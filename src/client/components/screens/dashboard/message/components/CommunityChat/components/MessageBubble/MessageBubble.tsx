@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { CommunityMessage } from "../../../../models";
 import { MessageAttachment } from "../MessageAttachment/MessageAttachment";
 import { ReactionBar } from "../ReactionBar/ReactionBar";

@@ -1,3 +1,6 @@
+/* eslint-disable @next/next/no-img-element */
+import { KeyboardEvent } from "react";
+
 import { ConversationPreview } from "../../../models";
 import styles from "./ConversationItem.module.css";
 
@@ -7,10 +10,21 @@ interface Props {
 }
 
 export function ConversationItem({ conversation, onSelect }: Props) {
+    const select = () => onSelect(conversation);
+    const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        select();
+    };
+
     return (
         <article
             className={`${styles.item} ${conversation.selected ? styles.selected : ""}`}
-            onClick={() => onSelect(conversation)}
+            onClick={select}
+            onKeyDown={onKeyDown}
+            role="button"
+            tabIndex={0}
+            aria-current={conversation.selected ? "true" : undefined}
         >
             <img src={conversation.avatar} alt="" />
             <div className={styles.body}>
@@ -18,7 +32,7 @@ export function ConversationItem({ conversation, onSelect }: Props) {
                     <strong>{conversation.name}</strong>
                     {conversation.unreadCount && <span className={styles.badge}>{conversation.unreadCount}</span>}
                 </div>
-                <p><span>{conversation.sender}: </span>{conversation.preview}</p>
+                <p><span>{conversation.sender ? `${conversation.sender}: ` : ""}</span>{conversation.preview}</p>
                 <div className={styles.meta}>
                     <span className={styles.online} />
                     <span>{conversation.onlineCount ? `${conversation.onlineCount} online` : "Online"}</span>

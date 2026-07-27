@@ -1,1 +1,2 @@
 .center{display:flex;flex:1;min-width:0;flex-direction:column;gap:34px;padding:22px 28px 24px}
+@media(max-width:760px){.center{padding:18px 16px 28px;gap:24px}}

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { CommunityMessage } from "../../../../models";
+import { EmptyState } from "../../../shared";
 import { MessageBubble } from "../MessageBubble/MessageBubble";
 import styles from "./MessageTimeline.module.css";
 
@@ -25,7 +26,7 @@ export function MessageTimeline({ messages, scrollTop, onScrollChange }: Props) 
             className={styles.timeline}
             onScroll={(event) => onScrollChange(event.currentTarget.scrollTop)}
         >
-            {messages.map((message) => <MessageBubble key={message.id} message={message} />)}
+            {messages.length ? messages.map((message) => <MessageBubble key={message.id} message={message} />) : <EmptyState title="No messages yet" message="Start the first SideQuestHQ learning checkpoint here." />}
         </section>
     );
 }

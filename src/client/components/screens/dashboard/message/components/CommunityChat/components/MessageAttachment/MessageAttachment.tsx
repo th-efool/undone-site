@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { Download, FileText, Play } from "lucide-react";
 import { ChatAttachment } from "../../../../models";
 import styles from "./MessageAttachment.module.css";

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { PersonPreview } from "../../../models";
 import styles from "./FriendAvatarGroup.module.css";
 interface Props{friends:PersonPreview[];overflow:number;}

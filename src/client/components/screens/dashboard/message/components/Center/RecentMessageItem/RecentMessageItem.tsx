@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { FileText } from "lucide-react";
 import { RecentMessage } from "../../../models";
 import styles from "./RecentMessageItem.module.css";

@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { ArrowDown } from "lucide-react";
 import { ReplyPreviewModel } from "../../../../models";
 import styles from "./ReplyPreview.module.css";

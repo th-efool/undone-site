@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { ArrowLeft, Bell, MoreHorizontal, Phone, UsersRound, Video } from "lucide-react";
 import { CommunityChatModel } from "../../../../models";
 import styles from "./CommunityHeader.module.css";
