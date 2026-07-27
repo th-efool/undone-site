@@ -1,0 +1,1 @@
+.sidebar{position:relative;width:390px;min-width:340px;overflow:auto;border-left:1px solid rgba(18,25,54,.08);background:#fff}.close{position:absolute;top:30px;right:28px;display:grid;place-items:center;width:36px;height:36px;border:0;border-radius:10px;background:transparent;color:#17203c;cursor:pointer;transition:.2s}.close:hover{background:#f3f1ff;color:#4d2cf4}
