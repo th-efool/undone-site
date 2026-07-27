@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+export type Weekday = "Sun" | "Mon" | "Tue" | "Wed" | "Thu" | "Fri" | "Sat";
+
 export interface ProgressInfo {
     current: number;
     target: number;
@@ -21,6 +23,7 @@ export interface GoalSummary {
 }
 
 export interface LearningSchedule {
+    days: Weekday[];
     label: string;
 }
 
@@ -37,10 +40,9 @@ export interface ActiveCohort {
     featured?: boolean;
 }
 
-export interface PausedCohort {
-    id: string;
-    title: string;
-    thumbnail: string;
+export interface PausedCohort extends Omit<ActiveCohort, "rank"> {
+    pausedUntil: string;
+    pausedReason?: string;
     resumeLabel: string;
 }
 
@@ -50,6 +52,12 @@ export interface CompletedCourse {
     thumbnail: string;
     completedLabel: string;
     progressPercent: number;
+}
+
+export interface PauseOption {
+    id: string;
+    label: string;
+    days?: number;
 }
 
 export interface HomeHeroContent {
@@ -75,4 +83,5 @@ export interface HomeModel {
     activeCohorts: ActiveCohort[];
     continueLater: PausedCohort[];
     recentlyCompleted: CompletedCourse[];
+    pauseOptions: PauseOption[];
 }

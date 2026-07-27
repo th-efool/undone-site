@@ -4,9 +4,10 @@ import styles from "./ContinueLaterCard.module.css";
 
 export interface ContinueLaterCardProps {
     item: PausedCohort;
+    onResume(cohortId: string): void;
 }
 
-export function ContinueLaterCard({ item }: ContinueLaterCardProps) {
+export function ContinueLaterCard({ item, onResume }: ContinueLaterCardProps) {
     return (
         <article className={styles.card}>
             <img className={styles.thumbnail} src={item.thumbnail} alt="" />
@@ -16,7 +17,13 @@ export function ContinueLaterCard({ item }: ContinueLaterCardProps) {
                 <p className={styles.meta}>Paused&nbsp; • &nbsp;{item.resumeLabel}</p>
             </div>
 
-            <button type="button" className={styles.button}>Resume</button>
+            <button
+                type="button"
+                className={styles.button}
+                onClick={() => onResume(item.id)}
+            >
+                Resume
+            </button>
         </article>
     );
 }

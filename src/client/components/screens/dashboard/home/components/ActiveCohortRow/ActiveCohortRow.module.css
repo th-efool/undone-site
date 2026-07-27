@@ -190,3 +190,178 @@
         display: none;
     }
 }
+
+.dragOver {
+    background: rgba(79, 70, 229, .055);
+    box-shadow: inset 0 2px 0 var(--color-brand);
+}
+
+.popoverAnchor {
+    position: relative;
+}
+
+.schedule,
+.goalButton {
+    cursor: pointer;
+    transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+
+.schedule:hover,
+.goalButton:hover {
+    border-color: var(--color-brand);
+    color: var(--color-brand);
+    background: rgba(79, 70, 229, .035);
+}
+
+.goalButton {
+    width: max-content;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--color-text-primary);
+    font-size: 16px;
+    font-weight: 800;
+    text-align: left;
+}
+
+.goalButton small {
+    color: var(--color-text-secondary);
+    font-size: 13px;
+}
+
+.popover,
+.goalPopover,
+.pauseModal {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 30;
+    padding: 14px;
+    border: 1px solid var(--color-border);
+    border-radius: 14px;
+    background: var(--color-surface);
+    box-shadow: 0 18px 44px rgba(15, 23, 42, .15), 0 6px 16px rgba(15, 23, 42, .08);
+}
+
+.popover {
+    width: 246px;
+}
+
+.goalPopover {
+    right: auto;
+    left: 18px;
+    width: 238px;
+}
+
+.pauseModal {
+    width: 270px;
+}
+
+.pauseModal h3,
+.pauseModal p {
+    margin: 0;
+}
+
+.pauseModal h3 {
+    color: var(--color-text-primary);
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.pauseModal p {
+    margin-top: 6px;
+    color: var(--color-text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.dayGrid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.dayButton {
+    height: 34px;
+    border: 1px solid var(--color-border);
+    border-radius: 9px;
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.dayButtonActive {
+    border-color: var(--color-brand);
+    background: rgba(79, 70, 229, .1);
+    color: var(--color-brand);
+}
+
+.goalLabel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    color: var(--color-text-primary);
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.goalInput {
+    width: 100%;
+    height: 36px;
+    margin-top: 10px;
+    padding: 0 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 9px;
+    background: var(--color-surface);
+    color: var(--color-text-primary);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.editorActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.cancelButton,
+.saveButton {
+    height: 34px;
+    padding: 0 12px;
+    border-radius: 9px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.cancelButton {
+    border: 1px solid var(--color-border);
+    background: var(--color-surface);
+    color: var(--color-text-secondary);
+}
+
+.saveButton {
+    border: none;
+    background: var(--color-brand);
+    color: white;
+}
+
+.pauseOptions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.pauseOption {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-text-primary);
+    font-size: 13px;
+    font-weight: 700;
+}

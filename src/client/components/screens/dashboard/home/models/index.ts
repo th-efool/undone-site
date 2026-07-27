@@ -6,6 +6,8 @@ export type {
     HomeModel,
     HomeSectionContent,
     LearningSchedule,
+    PauseOption,
     PausedCohort,
     ProgressInfo,
+    Weekday,
 } from "./home";
