@@ -85,6 +85,7 @@
 .schedule {
     gap: 8px;
     height: 38px;
+    padding: 0 14px;
     border-radius: 9px;
     color: var(--color-text-secondary);
     font-size: 13px;
@@ -147,6 +148,7 @@
 .pauseButton {
     gap: 8px;
     height: 40px;
+    padding: 0 14px;
     border-radius: 9px;
     font-size: 13px;
     font-weight: 800;
@@ -231,11 +233,12 @@
 
 .popover,
 .goalPopover,
-.pauseModal {
+.pauseModal,
+.moreMenu {
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
-    z-index: 30;
+    z-index: 80;
     padding: 14px;
     border: 1px solid var(--color-border);
     border-radius: 14px;
@@ -255,6 +258,35 @@
 
 .pauseModal {
     width: 270px;
+}
+
+.moreMenu {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 178px;
+}
+
+.moreMenu button {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    min-height: 34px;
+    padding: 0 10px;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--color-text-primary);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 800;
+    text-align: left;
+    cursor: pointer;
+}
+
+.moreMenu button:hover {
+    background: rgba(79, 70, 229, .06);
+    color: var(--color-brand);
 }
 
 .pauseModal h3,
@@ -283,6 +315,7 @@
 
 .dayButton {
     height: 34px;
+    padding: 0 10px;
     border: 1px solid var(--color-border);
     border-radius: 9px;
     background: var(--color-surface);
