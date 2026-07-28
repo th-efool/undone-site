@@ -27,6 +27,7 @@ const avatars = ["/mock/avatars/a.webp", "/mock/avatars/b.webp", "/mock/avatars/
 function cat(label: string) { return { id: label.toLowerCase().replaceAll(" ", "-"), label }; }
 function obj(text: string, index: number) { return { id: `${index}-${text.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`, text }; }
 function stat(id: string, label: string, value: string) { return { id, icon: "target" as const, label, value }; }
+function chunks(duration: string) { return Math.max(2, Math.round((Number(duration.match(/\d+/)?.[0]) || 12) / 3.5)); }
 
 function build(seed: Seed): Cohort {
     const filters = deepWorkMastery.questline.filters;
@@ -59,7 +60,7 @@ function build(seed: Seed): Cohort {
             title: `${seed.title} Questline`,
             description: `Complete hands-on quests for ${seed.focus}.`,
             filters,
-            seasons: [{ id: "foundation", badge: "Season 1", title: seed.season, status: SeasonStatus.InProgress, progress: progress.journeyProgress, estimatedDuration: "~6 hrs", questCount: seed.lessons.length, summaryLabel: "View Season Summary", lessons: seed.lessons.map((title, index) => ({ id: `${seed.id}-${index}`, title, type: index % 3 === 0 ? LessonType.Video : index % 3 === 1 ? LessonType.Reading : LessonType.Assignment, duration: index % 2 ? "12 min" : "18 min", status: index < 2 ? LessonStatus.Completed : index === 2 ? LessonStatus.InProgress : LessonStatus.Ready, thumbnail: seed.coverImage })) }],
+            seasons: [{ id: "foundation", badge: "Season 1", title: seed.season, status: SeasonStatus.InProgress, progress: progress.journeyProgress, estimatedDuration: "~6 hrs", questCount: seed.lessons.length, summaryLabel: "View Season Summary", lessons: seed.lessons.map((title, index) => { const duration = index % 2 ? "12 min" : "18 min"; const totalChunks = chunks(duration); const status = index < 2 ? LessonStatus.Completed : index === 2 ? LessonStatus.InStream : LessonStatus.Ready; return { id: `${seed.id}-${index}`, title, type: index % 3 === 0 ? LessonType.Video : index % 3 === 1 ? LessonType.Reading : LessonType.Assignment, duration, status, totalChunks, completedChunks: status === LessonStatus.Completed ? totalChunks : status === LessonStatus.InStream ? Math.max(1, Math.floor(totalChunks / 2)) : 0, thumbnail: seed.coverImage }; }) }],
             feedTitle: `${seed.title} Assignments`,
             feedDescription: `Ship artifacts that prove your ${seed.focus} skills.`,
             assignmentFeed: seed.outcomes.slice(0, 3).map((title, index) => ({ id: `${seed.id}-assignment-${index}`, title, type: index === 2 ? LessonType.Project : LessonType.Assignment, description: `Create a practical ${title.toLowerCase()} artifact.`, duration: "~25 min", thumbnail: seed.coverImage, icon: index === 2 ? "project" : "assignment", participants: avatars.slice(0, 3).map((avatarUrl, i) => ({ id: `${seed.id}-p-${i}`, avatarUrl })), submittedCount: `+${90 + index * 47} submitted`, shareLabel: "Share Work", doneLabel: "Mark as Done" })),

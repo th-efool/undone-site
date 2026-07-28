@@ -13,8 +13,8 @@ const statusConfig = {
         icon: "check",
         className: styles.completed,
     },
-    [LessonStatus.InProgress]: {
-        label: "In Progress",
+    [LessonStatus.InStream]: {
+        label: "In Stream",
         icon: "circle",
         className: styles.inProgress,
     },

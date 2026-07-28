@@ -101,6 +101,10 @@
     border-left: 1px solid var(--color-border);
 }
 
+.dailyGoal {
+    position: relative;
+}
+
 .dailyGoal span,
 .progressCell span {
     color: var(--color-text-secondary);
