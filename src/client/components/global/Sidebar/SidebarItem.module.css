@@ -8,7 +8,7 @@
 
     color: var(--color-text-secondary);
 
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
 
     transition:
             background-color var(--duration-fast),
@@ -24,6 +24,5 @@
 .active {
     color: var(--color-brand);
     background: var(--color-brand-subtle);
-    border-radius: 18px;
-
+    border-radius: var(--radius-xl);
 }

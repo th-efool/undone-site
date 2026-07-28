@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
 import { Logo } from "../Logo";
 import { SIDEBAR_ITEMS } from "./sidebar.data";
 import { SidebarItem } from "./SidebarItem";

@@ -24,12 +24,13 @@ export function Overview({ cohortId }: OverviewProps) {
                 <JourneySummary items={overview.journeySummary} />
             </div>
 
-            <div className={styles.sidebar}>
-                <ExpeditionStatsCard
-                    items={overview.expeditionStats}
-                    activeExplorers={overview.activeExplorers}
-                    activeExplorerOverflow={overview.activeExplorerOverflow}
-                />
+            <ExpeditionStatsCard
+                items={overview.expeditionStats}
+                activeExplorers={overview.activeExplorers}
+                activeExplorerOverflow={overview.activeExplorerOverflow}
+            />
+
+            <div className={styles.rightColumn}>
                 <QuestGuideCard creator={cohort.creator} />
                 <ExpeditionProgressCard items={overview.expeditionProgress} />
             </div>

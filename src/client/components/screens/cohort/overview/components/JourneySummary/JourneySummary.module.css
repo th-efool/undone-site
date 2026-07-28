@@ -4,17 +4,21 @@
 
     overflow: hidden;
 
-    border-radius: 18px;
+    border-radius: var(--radius-lg);
 
     background: var(--color-brand-subtle);
 }
 
 .item {
+    position: relative;
+
     display: flex;
     align-items: center;
-    gap: 14px;
+    justify-content: center;
+    gap: var(--space-3);
 
-    padding: 18px 22px;
+    min-width: 0;
+    padding: var(--space-5) var(--space-6);
 }
 
 .item + .item {
@@ -22,6 +26,8 @@
 }
 
 .icon {
+    flex-shrink: 0;
+
     color: var(--color-brand);
 }
 
@@ -30,15 +36,17 @@
 
     font-size: var(--text-sm);
     font-weight: var(--font-medium);
+    line-height: var(--leading-normal);
 }
 
 .value {
-    margin-top: 4px;
+    margin-top: var(--space-1);
 
     color: var(--color-text-primary);
 
     font-size: var(--text-sm);
     font-weight: var(--font-bold);
+    line-height: var(--leading-normal);
 }
 
 @media (max-width: 700px) {

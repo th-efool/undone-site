@@ -1,12 +1,12 @@
 .card {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: var(--space-5);
 
-    padding: 24px;
+    padding: var(--space-6);
 
     border: 1px solid var(--color-border);
-    border-radius: 22px;
+    border-radius: var(--radius-card);
 
     background: var(--color-surface);
     box-shadow: var(--shadow-sm);
@@ -22,7 +22,7 @@
 }
 
 .title {
-    font-size: var(--text-xl);
+    font-size: var(--font-card-title-size);
 }
 
 .name {
@@ -32,11 +32,11 @@
 .profile {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: var(--space-3);
 }
 
 .avatar {
-    border-radius: 999px;
+    border-radius: var(--radius-circle);
 
     object-fit: cover;
 }
@@ -60,10 +60,10 @@
 
     min-width: 210px;
     min-height: 44px;
-    padding: 0 18px;
+    padding: 0 var(--space-5);
 
     border: 1px solid var(--color-border);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
 
     background: var(--color-surface);
 
