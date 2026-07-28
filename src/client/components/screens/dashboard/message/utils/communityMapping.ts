@@ -13,6 +13,8 @@ const eventTones: UpcomingEvent["tone"][] = ["purple", "orange", "blue"];
 type CommunityConversationTemplate = {
     messages: string[];
     pinnedMessages: string[];
+    reactions: string[];
+    media: string[];
 };
 
 const communityConversationTemplates: Record<string, CommunityConversationTemplate> = {
@@ -29,6 +31,8 @@ const communityConversationTemplates: Record<string, CommunityConversationTempla
             "Focus block tracker and shutdown ritual template",
             "Bring one distraction audit note to the next Deep Work clinic.",
         ],
+        reactions: ["🧠", "✅", "🌲"],
+        media: ["/images/landing/before-sleep.webp", "/images/auth/phone.webp"],
     },
     "system-design-bootcamp": {
         messages: [
@@ -43,6 +47,8 @@ const communityConversationTemplates: Record<string, CommunityConversationTempla
             "System design sizing cheatsheet and diagram kit",
             "Review CAP, queues, and cache patterns before the next session.",
         ],
+        reactions: ["🧩", "👍", "📌"],
+        media: ["/images/landing/screen.webp", "/images/auth/claude.webp"],
     },
     "history-psychology": {
         messages: [
@@ -57,6 +63,8 @@ const communityConversationTemplates: Record<string, CommunityConversationTempla
             "Psychology timeline flashcards and quiz notes",
             "Review major schools of thought before tomorrow's mini-test.",
         ],
+        reactions: ["📝", "🤔", "✅"],
+        media: ["/images/auth/maker.webp", "/images/landing/hand.webp"],
     },
     "german-language-a1": {
         messages: [
@@ -71,6 +79,8 @@ const communityConversationTemplates: Record<string, CommunityConversationTempla
             "A1 article chart and Kapitel 4 audio list",
             "Practice accusative food-ordering phrases before next session.",
         ],
+        reactions: ["🇩🇪", "👏", "🎧"],
+        media: ["/mock/thumbnails/german.webp", "/images/landing/before-sleep.webp"],
     },
     "advanced-javascript": {
         messages: [
@@ -85,6 +95,8 @@ const communityConversationTemplates: Record<string, CommunityConversationTempla
             "Advanced JS closure, prototype, and event loop resources",
             "Complete the debounce/throttle sandbox before the resume date.",
         ],
+        reactions: ["💻", "⚡", "🙌"],
+        media: ["/images/auth/claude.webp", "/images/landing/screen.webp"],
     },
     "japanese-beginners": {
         messages: [
@@ -99,6 +111,8 @@ const communityConversationTemplates: Record<string, CommunityConversationTempla
             "Hiragana, katakana, and particles catch-up pack",
             "Review family vocab and は/が examples before resuming.",
         ],
+        reactions: ["🇯🇵", "🎧", "✨"],
+        media: ["/mock/thumbnails/japanese.webp", "/images/auth/phone.webp"],
     },
     "ancient-civilizations": {
         messages: [
@@ -113,6 +127,8 @@ const communityConversationTemplates: Record<string, CommunityConversationTempla
             "Ancient civilizations map pack and documentary notes",
             "Bring one primary-source observation to the resume session.",
         ],
+        reactions: ["🏺", "📜", "🤯"],
+        media: ["/mock/thumbnails/ancient.webp", "/images/landing/hand.webp"],
     },
     "data-storytelling": {
         messages: [
@@ -127,11 +143,15 @@ const communityConversationTemplates: Record<string, CommunityConversationTempla
             "Data storytelling critique checklist and Observable notebooks",
             "Review headline, annotation, and chart choice prompts before resuming.",
         ],
+        reactions: ["📊", "💡", "👏"],
+        media: ["/images/landing/screen.webp", "/images/auth/maker.webp"],
     },
 };
 
 function getCommunityConversationTemplate(cohort: Cohort, paused: boolean): CommunityConversationTemplate {
-    return communityConversationTemplates[cohort.id] ?? {
+    const template = communityConversationTemplates[cohort.id];
+    if (template) return template;
+    return {
         messages: [
             `${cohort.title} checkpoint starts soon. Drop questions and wins here.`,
             `This ${cohort.provider} explanation finally made the next module click.`,
@@ -144,6 +164,8 @@ function getCommunityConversationTemplate(cohort: Cohort, paused: boolean): Comm
             `${cohort.provider} roadmap and resource list`,
             `Review ${cohort.title} practice prompts before the next session.`,
         ],
+        reactions: ["🔥", "👏", "💡", "✅"],
+        media: ["/images/landing/screen.webp", "/images/auth/maker.webp", "/images/auth/phone.webp"],
     };
 }
 
@@ -241,19 +263,30 @@ export function mapCohortToCommunity(cohortId: string | null): CommunityChatMode
             title: paused ? `${cohort.title} is paused. Group stays open for resources and questions.` : `${cohort.title} checkpoint follows ${cohort.schedule.label}.`,
             actionLabel: paused ? "View Resources" : "Join Session",
         },
-        messages: communityChatMock.messages.map((message, messageIndex) => ({
-            ...message,
-            id: `${cohort.id}-${message.id}`,
-            body: message.body ? template.messages[messageIndex] ?? message.body : message.body,
-            attachment: message.attachment?.kind === "pdf"
-                ? { ...message.attachment, id: `${cohort.id}-${message.attachment.id}`, title: `${cohort.title.replaceAll(" ", "_")}_Roadmap.pdf` }
-                : message.attachment,
-        })),
+        createdBy: cohort.provider,
+        createdAt: ["Jan 12, 2026", "Feb 3, 2026", "Mar 18, 2026", "Apr 6, 2026"][Math.max(index, 0) % 4],
+        members: avatars.map((avatar, memberIndex) => ({ id: `${cohort.id}-member-${memberIndex}`, name: people[(memberIndex + Math.max(index, 0)) % people.length], avatar, online: memberIndex < 3 + (Math.max(index, 0) % 2) })),
+        channels: [{ id: "general", label: "# general" }],
+        messages: communityChatMock.messages.map((message, messageIndex) => {
+            const image = template.media[messageIndex % template.media.length];
+            const hasAttachment = (messageIndex + Math.max(index, 0)) % 3 === 1;
+            return {
+                ...message,
+                author: { id: `${cohort.id}-${messageIndex}`, name: people[(messageIndex + Math.max(index, 0)) % people.length], avatar: avatars[(messageIndex + Math.max(index, 0)) % avatars.length], online: messageIndex < 4 },
+                id: `${cohort.id}-${message.id}`,
+                timestamp: [`Today at ${4 + messageIndex}:1${messageIndex} PM`, `Yesterday at ${8 + messageIndex}:0${messageIndex} PM`, `Mon at ${10 + messageIndex}:2${messageIndex} AM`][Math.max(index + messageIndex, 0) % 3],
+                body: message.body ? template.messages[messageIndex] ?? message.body : template.messages[messageIndex] ?? message.body,
+                reactions: [{ emoji: template.reactions[messageIndex % template.reactions.length], count: 3 + messageIndex + Math.max(index, 0) }, ...(messageIndex % 2 ? [{ emoji: "👏", count: 2 + messageIndex }] : [])],
+                replies: messageIndex === (Math.max(index, 0) % 4) ? { avatars: avatars.slice(0, 3).map((avatar, replyIndex) => ({ id: `${cohort.id}-reply-${replyIndex}`, name: people[(replyIndex + 1) % people.length], avatar })), count: 2 + (Math.max(index, 0) % 4), lastReplyBy: people[(messageIndex + 2) % people.length], timestamp: `${5 + messageIndex}:4${messageIndex} PM` } : undefined,
+                attachment: hasAttachment ? { id: `${cohort.id}-asset-${messageIndex}`, kind: messageIndex % 2 ? "image" : "pdf", title: messageIndex % 2 ? `${cohort.title} snapshot` : `${cohort.title.replaceAll(" ", "_")}_notes.pdf`, url: messageIndex % 2 ? image : undefined, caption: `${cohort.title} working notes`, meta: messageIndex % 2 ? "Mock image" : "1.2 MB · PDF" } : undefined,
+            };
+        }),
         pinnedMessages: communityChatMock.pinnedMessages.map((message, messageIndex) => ({
             ...message,
             id: `${cohort.id}-${message.id}`,
             preview: template.pinnedMessages[messageIndex] ?? message.preview,
         })),
-        events: [mapCohortToUpcomingEvent(cohort, Math.max(index, 0)), ...communityChatMock.events.slice(1)],
+        media: template.media.map((url, mediaIndex) => ({ id: `${cohort.id}-media-${mediaIndex}`, kind: "image", title: `${cohort.title} media ${mediaIndex + 1}`, url })),
+        events: [mapCohortToUpcomingEvent(cohort, Math.max(index, 0)), ...communityChatMock.events.slice((Math.max(index, 0) % 2))],
     };
 }

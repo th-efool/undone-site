@@ -33,6 +33,7 @@ export function SocialLanding({ message }: Props) {
                     onDraftChange={(value) => message.actions.setDraft(message.communityChat.id, value)}
                     onScrollChange={(scrollTop) => message.actions.setConversationScroll(message.communityChat.id, scrollTop)}
                     onSend={() => message.actions.sendCommunityMessage(message.communityChat.id)}
+                    onUpload={(file, kind) => message.actions.uploadCommunityAttachment(message.communityChat.id, file, kind)}
                 />
             )}
 
@@ -45,6 +46,7 @@ export function SocialLanding({ message }: Props) {
                     onDraftChange={(value) => message.actions.setDraft(message.dmConversation.id, value)}
                     onScrollChange={(scrollTop) => message.actions.setConversationScroll(message.dmConversation.id, scrollTop)}
                     onSend={() => message.actions.sendDMMessage(message.dmConversation.id)}
+                    onUpload={(file, kind) => message.actions.uploadDMAttachment(message.dmConversation.id, file, kind)}
                 />
             )}
 

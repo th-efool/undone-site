@@ -9,19 +9,19 @@
     --message-shadow-card: 0 16px 42px rgb(15 23 42 / 5%);
     --message-shadow-hover: 0 18px 40px rgb(15 23 42 / 9%);
 
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
     background: var(--message-bg);
     color: var(--color-text-primary);
 }
 
 .message :global(*) {
-    scrollbar-width: thin;
-    scrollbar-color: rgb(var(--color-brand-rgb) / 28%) transparent;
+    scrollbar-width: none;
 }
 
 .message :global(*::-webkit-scrollbar) {
-    width: 8px;
-    height: 8px;
+    width: 0;
+    height: 0;
 }
 
 .message :global(*::-webkit-scrollbar-thumb) {
