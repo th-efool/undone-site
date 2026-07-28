@@ -1,4 +1,20 @@
 export type Difficulty = "Beginner" | "Intermediate" | "Advanced";
+export type CohortIcon =
+    | "assignment"
+    | "book"
+    | "brain"
+    | "calendar"
+    | "check"
+    | "clock"
+    | "compass"
+    | "file"
+    | "flame"
+    | "heart"
+    | "leaf"
+    | "lesson"
+    | "notes"
+    | "project"
+    | "target";
 
 export interface Category {
     id: string;
@@ -9,6 +25,9 @@ export interface Creator {
     id: string;
     name: string;
     avatarUrl: string;
+    role: string;
+    bio: string;
+    ctaLabel: string;
 }
 
 export interface CohortStats {
@@ -25,6 +44,36 @@ export interface Progress {
     joinedDate: string;
 }
 
+export interface LearningPillar {
+    id: string;
+    icon: CohortIcon;
+    title: string;
+    description: string;
+}
+
+export interface LearningObjective {
+    id: string;
+    text: string;
+}
+
+export interface StatItem {
+    id: string;
+    icon: CohortIcon;
+    label: string;
+    value: string;
+}
+
+export interface CohortOverview {
+    description: string;
+    pillars: LearningPillar[];
+    learningObjectives: LearningObjective[];
+    journeySummary: StatItem[];
+    expeditionStats: StatItem[];
+    expeditionProgress: StatItem[];
+    activeExplorers: string[];
+    activeExplorerOverflow: string;
+}
+
 export interface Cohort {
     id: string;
     coverImage: string;
@@ -36,4 +85,5 @@ export interface Cohort {
     creator: Creator;
     stats: CohortStats;
     progress: Progress;
+    overview: CohortOverview;
 }
