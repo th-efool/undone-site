@@ -237,9 +237,6 @@
 │   │   │   │   │   ├── Auth.tsx
 │   │   │   │   │   └── index.ts
 │   │   │   │   ├── cohort/
-│   │   │   │   │   ├── archives/
-│   │   │   │   │   │   ├── Archives.module.css
-│   │   │   │   │   │   └── Archives.tsx
 │   │   │   │   │   ├── components/
 │   │   │   │   │   │   ├── CohortHero/
 │   │   │   │   │   │   │   ├── CohortHero.module.css
@@ -253,12 +250,6 @@
 │   │   │   │   │   │   └── ProgressSidebar/
 │   │   │   │   │   │       ├── ProgressSidebar.module.css
 │   │   │   │   │   │       └── ProgressSidebar.tsx
-│   │   │   │   │   ├── events/
-│   │   │   │   │   │   ├── Events.module.css
-│   │   │   │   │   │   └── Events.tsx
-│   │   │   │   │   ├── hallOfFame/
-│   │   │   │   │   │   ├── HallOfFame.module.css
-│   │   │   │   │   │   └── HallOfFame.tsx
 │   │   │   │   │   ├── hooks/
 │   │   │   │   │   │   ├── index.ts
 │   │   │   │   │   │   ├── useArchives.ts
@@ -275,75 +266,184 @@
 │   │   │   │   │   │   ├── index.ts
 │   │   │   │   │   │   ├── navigation.ts
 │   │   │   │   │   │   └── questline.ts
-│   │   │   │   │   ├── overview/
-│   │   │   │   │   │   ├── components/
-│   │   │   │   │   │   │   ├── AboutSection/
-│   │   │   │   │   │   │   │   ├── AboutSection.module.css
-│   │   │   │   │   │   │   │   └── AboutSection.tsx
-│   │   │   │   │   │   │   ├── ExpeditionProgressCard/
-│   │   │   │   │   │   │   │   ├── ExpeditionProgressCard.module.css
-│   │   │   │   │   │   │   │   └── ExpeditionProgressCard.tsx
-│   │   │   │   │   │   │   ├── ExpeditionStatsCard/
-│   │   │   │   │   │   │   │   ├── ExpeditionStatsCard.module.css
-│   │   │   │   │   │   │   │   └── ExpeditionStatsCard.tsx
-│   │   │   │   │   │   │   ├── JourneySummary/
-│   │   │   │   │   │   │   │   ├── JourneySummary.module.css
-│   │   │   │   │   │   │   │   └── JourneySummary.tsx
-│   │   │   │   │   │   │   ├── LearningChecklist/
-│   │   │   │   │   │   │   │   ├── LearningChecklist.module.css
-│   │   │   │   │   │   │   │   └── LearningChecklist.tsx
-│   │   │   │   │   │   │   ├── LearningPillars/
-│   │   │   │   │   │   │   │   ├── LearningPillars.module.css
-│   │   │   │   │   │   │   │   └── LearningPillars.tsx
-│   │   │   │   │   │   │   ├── OverviewIcon/
-│   │   │   │   │   │   │   │   └── OverviewIcon.tsx
-│   │   │   │   │   │   │   └── QuestGuideCard/
-│   │   │   │   │   │   │       ├── QuestGuideCard.module.css
-│   │   │   │   │   │   │       └── QuestGuideCard.tsx
-│   │   │   │   │   │   ├── Overview.module.css
-│   │   │   │   │   │   └── Overview.tsx
-│   │   │   │   │   ├── questline/
-│   │   │   │   │   │   ├── components/
-│   │   │   │   │   │   │   ├── AssignmentsProjectsFeed/
-│   │   │   │   │   │   │   │   ├── AssignmentsProjectsFeed.module.css
-│   │   │   │   │   │   │   │   └── AssignmentsProjectsFeed.tsx
-│   │   │   │   │   │   │   ├── FeedCard/
-│   │   │   │   │   │   │   │   ├── FeedCard.module.css
-│   │   │   │   │   │   │   │   └── FeedCard.tsx
-│   │   │   │   │   │   │   ├── LessonList/
-│   │   │   │   │   │   │   │   ├── LessonList.module.css
-│   │   │   │   │   │   │   │   └── LessonList.tsx
-│   │   │   │   │   │   │   ├── LessonRow/
-│   │   │   │   │   │   │   │   ├── LessonRow.module.css
-│   │   │   │   │   │   │   │   └── LessonRow.tsx
-│   │   │   │   │   │   │   ├── LessonStatusBadge/
-│   │   │   │   │   │   │   │   ├── LessonStatusBadge.module.css
-│   │   │   │   │   │   │   │   └── LessonStatusBadge.tsx
-│   │   │   │   │   │   │   ├── LessonTypeBadge/
-│   │   │   │   │   │   │   │   ├── LessonTypeBadge.module.css
-│   │   │   │   │   │   │   │   └── LessonTypeBadge.tsx
-│   │   │   │   │   │   │   ├── LockedFutureNotice/
-│   │   │   │   │   │   │   │   ├── LockedFutureNotice.module.css
-│   │   │   │   │   │   │   │   └── LockedFutureNotice.tsx
-│   │   │   │   │   │   │   ├── QuestlineFilters/
-│   │   │   │   │   │   │   │   ├── QuestlineFilters.module.css
-│   │   │   │   │   │   │   │   └── QuestlineFilters.tsx
-│   │   │   │   │   │   │   ├── QuestlineIcon/
-│   │   │   │   │   │   │   │   └── QuestlineIcon.tsx
-│   │   │   │   │   │   │   ├── SeasonCard/
-│   │   │   │   │   │   │   │   ├── SeasonCard.module.css
-│   │   │   │   │   │   │   │   └── SeasonCard.tsx
-│   │   │   │   │   │   │   ├── SeasonSummary/
-│   │   │   │   │   │   │   │   ├── SeasonSummary.module.css
-│   │   │   │   │   │   │   │   └── SeasonSummary.tsx
-│   │   │   │   │   │   │   ├── SeasonTimeline/
-│   │   │   │   │   │   │   │   ├── SeasonTimeline.module.css
-│   │   │   │   │   │   │   │   └── SeasonTimeline.tsx
-│   │   │   │   │   │   │   └── SkipSeasonDropdown/
-│   │   │   │   │   │   │       ├── SkipSeasonDropdown.module.css
-│   │   │   │   │   │   │       └── SkipSeasonDropdown.tsx
-│   │   │   │   │   │   ├── Questline.module.css
-│   │   │   │   │   │   └── Questline.tsx
+│   │   │   │   │   ├── tabs/
+│   │   │   │   │   │   ├── archives/
+│   │   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   │   ├── ArchiveCard/
+│   │   │   │   │   │   │   │   │   └── ArchiveCard.tsx
+│   │   │   │   │   │   │   │   ├── ArchiveFeed/
+│   │   │   │   │   │   │   │   │   └── ArchiveFeed.tsx
+│   │   │   │   │   │   │   │   ├── ArchiveFilters/
+│   │   │   │   │   │   │   │   │   └── ArchiveFilters.tsx
+│   │   │   │   │   │   │   │   ├── ArchiveSearch/
+│   │   │   │   │   │   │   │   │   └── ArchiveSearch.tsx
+│   │   │   │   │   │   │   │   ├── ArchiveThumbnail/
+│   │   │   │   │   │   │   │   │   └── ArchiveThumbnail.tsx
+│   │   │   │   │   │   │   │   ├── ArchiveTypeBadge/
+│   │   │   │   │   │   │   │   │   └── ArchiveTypeBadge.tsx
+│   │   │   │   │   │   │   │   ├── ArchiveVoting/
+│   │   │   │   │   │   │   │   │   └── ArchiveVoting.tsx
+│   │   │   │   │   │   │   │   ├── ArchivesHeader/
+│   │   │   │   │   │   │   │   │   └── ArchivesHeader.tsx
+│   │   │   │   │   │   │   │   ├── ArchivesPage/
+│   │   │   │   │   │   │   │   │   └── ArchivesPage.tsx
+│   │   │   │   │   │   │   │   ├── ArchivesSidebar/
+│   │   │   │   │   │   │   │   │   └── ArchivesSidebar.tsx
+│   │   │   │   │   │   │   │   ├── ContributorsCard/
+│   │   │   │   │   │   │   │   │   └── ContributorsCard.tsx
+│   │   │   │   │   │   │   │   ├── ShareKnowledgeCard/
+│   │   │   │   │   │   │   │   │   └── ShareKnowledgeCard.tsx
+│   │   │   │   │   │   │   │   ├── SideCard/
+│   │   │   │   │   │   │   │   │   └── SideCard.tsx
+│   │   │   │   │   │   │   │   ├── SortingControls/
+│   │   │   │   │   │   │   │   │   └── SortingControls.tsx
+│   │   │   │   │   │   │   │   └── TrendingCard/
+│   │   │   │   │   │   │   │       └── TrendingCard.tsx
+│   │   │   │   │   │   │   ├── Archives.module.css
+│   │   │   │   │   │   │   └── Archives.tsx
+│   │   │   │   │   │   ├── events/
+│   │   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   │   ├── CalendarSync/
+│   │   │   │   │   │   │   │   │   └── CalendarSync.tsx
+│   │   │   │   │   │   │   │   ├── Card/
+│   │   │   │   │   │   │   │   │   └── Card.tsx
+│   │   │   │   │   │   │   │   ├── EventActions/
+│   │   │   │   │   │   │   │   │   └── EventActions.tsx
+│   │   │   │   │   │   │   │   ├── EventAttendance/
+│   │   │   │   │   │   │   │   │   └── EventAttendance.tsx
+│   │   │   │   │   │   │   │   ├── EventCard/
+│   │   │   │   │   │   │   │   │   └── EventCard.tsx
+│   │   │   │   │   │   │   │   ├── EventDateCard/
+│   │   │   │   │   │   │   │   │   └── EventDateCard.tsx
+│   │   │   │   │   │   │   │   ├── EventList/
+│   │   │   │   │   │   │   │   │   └── EventList.tsx
+│   │   │   │   │   │   │   │   ├── EventStatusBadge/
+│   │   │   │   │   │   │   │   │   └── EventStatusBadge.tsx
+│   │   │   │   │   │   │   │   ├── EventsFilters/
+│   │   │   │   │   │   │   │   │   └── EventsFilters.tsx
+│   │   │   │   │   │   │   │   ├── EventsHeader/
+│   │   │   │   │   │   │   │   │   └── EventsHeader.tsx
+│   │   │   │   │   │   │   │   ├── EventsPage/
+│   │   │   │   │   │   │   │   │   └── EventsPage.tsx
+│   │   │   │   │   │   │   │   ├── EventsSidebar/
+│   │   │   │   │   │   │   │   │   └── EventsSidebar.tsx
+│   │   │   │   │   │   │   │   ├── RSVPButton/
+│   │   │   │   │   │   │   │   │   └── RSVPButton.tsx
+│   │   │   │   │   │   │   │   ├── SuggestEvent/
+│   │   │   │   │   │   │   │   │   └── SuggestEvent.tsx
+│   │   │   │   │   │   │   │   └── ThisWeek/
+│   │   │   │   │   │   │   │       └── ThisWeek.tsx
+│   │   │   │   │   │   │   ├── Events.module.css
+│   │   │   │   │   │   │   └── Events.tsx
+│   │   │   │   │   │   ├── hallOfFame/
+│   │   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   │   ├── AchievementBadge/
+│   │   │   │   │   │   │   │   │   └── AchievementBadge.tsx
+│   │   │   │   │   │   │   │   ├── AchievementRow/
+│   │   │   │   │   │   │   │   │   └── AchievementRow.tsx
+│   │   │   │   │   │   │   │   ├── AchievementsCard/
+│   │   │   │   │   │   │   │   │   └── AchievementsCard.tsx
+│   │   │   │   │   │   │   │   ├── CategoryFilter/
+│   │   │   │   │   │   │   │   │   └── CategoryFilter.tsx
+│   │   │   │   │   │   │   │   ├── CategoryFilters/
+│   │   │   │   │   │   │   │   │   └── CategoryFilters.tsx
+│   │   │   │   │   │   │   │   ├── HallOfFameHeader/
+│   │   │   │   │   │   │   │   │   └── HallOfFameHeader.tsx
+│   │   │   │   │   │   │   │   ├── HallOfFamePage/
+│   │   │   │   │   │   │   │   │   └── HallOfFamePage.tsx
+│   │   │   │   │   │   │   │   ├── HallOfLegends/
+│   │   │   │   │   │   │   │   │   └── HallOfLegends.tsx
+│   │   │   │   │   │   │   │   ├── HallSidebar/
+│   │   │   │   │   │   │   │   │   └── HallSidebar.tsx
+│   │   │   │   │   │   │   │   ├── HighlightRow/
+│   │   │   │   │   │   │   │   │   └── HighlightRow.tsx
+│   │   │   │   │   │   │   │   ├── HighlightsCard/
+│   │   │   │   │   │   │   │   │   └── HighlightsCard.tsx
+│   │   │   │   │   │   │   │   ├── LeaderboardCard/
+│   │   │   │   │   │   │   │   │   └── LeaderboardCard.tsx
+│   │   │   │   │   │   │   │   ├── LeaderboardGrid/
+│   │   │   │   │   │   │   │   │   └── LeaderboardGrid.tsx
+│   │   │   │   │   │   │   │   ├── LegendsRow/
+│   │   │   │   │   │   │   │   │   └── LegendsRow.tsx
+│   │   │   │   │   │   │   │   ├── MedalIcon/
+│   │   │   │   │   │   │   │   │   └── MedalIcon.tsx
+│   │   │   │   │   │   │   │   ├── MetricBadge/
+│   │   │   │   │   │   │   │   │   └── MetricBadge.tsx
+│   │   │   │   │   │   │   │   ├── SideCard/
+│   │   │   │   │   │   │   │   │   └── SideCard.tsx
+│   │   │   │   │   │   │   │   └── TimeRangeDropdown/
+│   │   │   │   │   │   │   │       └── TimeRangeDropdown.tsx
+│   │   │   │   │   │   │   ├── HallOfFame.module.css
+│   │   │   │   │   │   │   └── HallOfFame.tsx
+│   │   │   │   │   │   ├── overview/
+│   │   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   │   ├── AboutSection/
+│   │   │   │   │   │   │   │   │   ├── AboutSection.module.css
+│   │   │   │   │   │   │   │   │   └── AboutSection.tsx
+│   │   │   │   │   │   │   │   ├── ExpeditionProgressCard/
+│   │   │   │   │   │   │   │   │   ├── ExpeditionProgressCard.module.css
+│   │   │   │   │   │   │   │   │   └── ExpeditionProgressCard.tsx
+│   │   │   │   │   │   │   │   ├── ExpeditionStatsCard/
+│   │   │   │   │   │   │   │   │   ├── ExpeditionStatsCard.module.css
+│   │   │   │   │   │   │   │   │   └── ExpeditionStatsCard.tsx
+│   │   │   │   │   │   │   │   ├── JourneySummary/
+│   │   │   │   │   │   │   │   │   ├── JourneySummary.module.css
+│   │   │   │   │   │   │   │   │   └── JourneySummary.tsx
+│   │   │   │   │   │   │   │   ├── LearningChecklist/
+│   │   │   │   │   │   │   │   │   ├── LearningChecklist.module.css
+│   │   │   │   │   │   │   │   │   └── LearningChecklist.tsx
+│   │   │   │   │   │   │   │   ├── LearningPillars/
+│   │   │   │   │   │   │   │   │   ├── LearningPillars.module.css
+│   │   │   │   │   │   │   │   │   └── LearningPillars.tsx
+│   │   │   │   │   │   │   │   ├── OverviewIcon/
+│   │   │   │   │   │   │   │   │   └── OverviewIcon.tsx
+│   │   │   │   │   │   │   │   └── QuestGuideCard/
+│   │   │   │   │   │   │   │       ├── QuestGuideCard.module.css
+│   │   │   │   │   │   │   │       └── QuestGuideCard.tsx
+│   │   │   │   │   │   │   ├── Overview.module.css
+│   │   │   │   │   │   │   └── Overview.tsx
+│   │   │   │   │   │   └── questline/
+│   │   │   │   │   │       ├── components/
+│   │   │   │   │   │       │   ├── AssignmentsProjectsFeed/
+│   │   │   │   │   │       │   │   ├── AssignmentsProjectsFeed.module.css
+│   │   │   │   │   │       │   │   └── AssignmentsProjectsFeed.tsx
+│   │   │   │   │   │       │   ├── FeedCard/
+│   │   │   │   │   │       │   │   ├── FeedCard.module.css
+│   │   │   │   │   │       │   │   └── FeedCard.tsx
+│   │   │   │   │   │       │   ├── LessonList/
+│   │   │   │   │   │       │   │   ├── LessonList.module.css
+│   │   │   │   │   │       │   │   └── LessonList.tsx
+│   │   │   │   │   │       │   ├── LessonRow/
+│   │   │   │   │   │       │   │   ├── LessonRow.module.css
+│   │   │   │   │   │       │   │   └── LessonRow.tsx
+│   │   │   │   │   │       │   ├── LessonStatusBadge/
+│   │   │   │   │   │       │   │   ├── LessonStatusBadge.module.css
+│   │   │   │   │   │       │   │   └── LessonStatusBadge.tsx
+│   │   │   │   │   │       │   ├── LessonTypeBadge/
+│   │   │   │   │   │       │   │   ├── LessonTypeBadge.module.css
+│   │   │   │   │   │       │   │   └── LessonTypeBadge.tsx
+│   │   │   │   │   │       │   ├── LockedFutureNotice/
+│   │   │   │   │   │       │   │   ├── LockedFutureNotice.module.css
+│   │   │   │   │   │       │   │   └── LockedFutureNotice.tsx
+│   │   │   │   │   │       │   ├── QuestlineFilters/
+│   │   │   │   │   │       │   │   ├── QuestlineFilters.module.css
+│   │   │   │   │   │       │   │   └── QuestlineFilters.tsx
+│   │   │   │   │   │       │   ├── QuestlineIcon/
+│   │   │   │   │   │       │   │   └── QuestlineIcon.tsx
+│   │   │   │   │   │       │   ├── SeasonCard/
+│   │   │   │   │   │       │   │   ├── SeasonCard.module.css
+│   │   │   │   │   │       │   │   └── SeasonCard.tsx
+│   │   │   │   │   │       │   ├── SeasonSummary/
+│   │   │   │   │   │       │   │   ├── SeasonSummary.module.css
+│   │   │   │   │   │       │   │   └── SeasonSummary.tsx
+│   │   │   │   │   │       │   ├── SeasonTimeline/
+│   │   │   │   │   │       │   │   ├── SeasonTimeline.module.css
+│   │   │   │   │   │       │   │   └── SeasonTimeline.tsx
+│   │   │   │   │   │       │   └── SkipSeasonDropdown/
+│   │   │   │   │   │       │       ├── SkipSeasonDropdown.module.css
+│   │   │   │   │   │       │       └── SkipSeasonDropdown.tsx
+│   │   │   │   │   │       ├── Questline.module.css
+│   │   │   │   │   │       └── Questline.tsx
 │   │   │   │   │   ├── Cohort.module.css
 │   │   │   │   │   ├── Cohort.tsx
 │   │   │   │   │   └── index.ts
@@ -810,4 +910,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-244 directories, 565 files
+296 directories, 613 files
