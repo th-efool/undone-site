@@ -29,6 +29,7 @@ export interface LearningSchedule {
 
 export interface ActiveCohort {
     id: string;
+    cohortId?: string;
     rank: number;
     title: string;
     provider: string;
@@ -48,6 +49,7 @@ export interface PausedCohort extends Omit<ActiveCohort, "rank"> {
 
 export interface CompletedCourse {
     id: string;
+    cohortId?: string;
     title: string;
     thumbnail: string;
     completedLabel: string;

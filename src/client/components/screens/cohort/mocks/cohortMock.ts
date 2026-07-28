@@ -1,4 +1,4 @@
-import { LessonStatus, LessonType, SeasonStatus } from "../models";
+import { ArchiveType, EventStatus, LessonStatus, LessonType, SeasonStatus } from "../models";
 import type { Cohort, NavigationItem } from "../models";
 
 export const cohortMock: Cohort = {
@@ -349,6 +349,87 @@ export const cohortMock: Cohort = {
             title: "Upcoming items from future seasons are locked.",
             description: "Skip to a new season anytime to begin.",
         },
+    },
+    events: {
+        title: "Upcoming Events",
+        description: "Join live sessions, community gatherings, and special events.",
+        filters: [
+            { id: "upcoming", label: "Upcoming", active: true },
+            { id: "my-events", label: "My Events" },
+            { id: "filter", label: "Filter" },
+        ],
+        upcomingEvents: [
+            { id: "weekly-check-in", date: { month: "May", day: "18", weekday: "Sun" }, title: "Weekly Deep Work Check-in", description: "Share your progress, wins, and challenges. Stay accountable and learn from others.", avatars: [{ id: "a", avatarUrl: "/mock/avatars/a.webp" }, { id: "b", avatarUrl: "/mock/avatars/b.webp" }, { id: "c", avatarUrl: "/mock/avatars/c.webp" }], attendeeCount: "+124 attending", time: "7:00 PM – 8:00 PM", timezone: "IST", platform: "Google Meet", status: EventStatus.Upcoming },
+            { id: "ama", date: { month: "May", day: "22", weekday: "Thu" }, title: "Quest Guide AMA", description: "Ask Maya Rivers anything about deep work, focus, and building a meaningful career.", avatars: [{ id: "d", avatarUrl: "/mock/avatars/d.webp" }, { id: "e", avatarUrl: "/mock/avatars/e.webp" }, { id: "a", avatarUrl: "/mock/avatars/a.webp" }], attendeeCount: "+208 attending", time: "8:00 PM – 9:00 PM", timezone: "IST", platform: "Google Meet", status: EventStatus.Upcoming },
+            { id: "focus-sprint", date: { month: "May", day: "25", weekday: "Sun" }, title: "Focus Sprint: 90 Minutes Together", description: "A silent co-working sprint. Bring your goal, block distractions, and get in flow.", avatars: [{ id: "b", avatarUrl: "/mock/avatars/b.webp" }, { id: "c", avatarUrl: "/mock/avatars/c.webp" }, { id: "d", avatarUrl: "/mock/avatars/d.webp" }], attendeeCount: "+356 attending", time: "6:30 PM – 8:00 PM", timezone: "IST", platform: "Flow Club", status: EventStatus.Live },
+            { id: "showcase", date: { month: "May", day: "31", weekday: "Sat" }, title: "Season 1 Project Showcase", description: "Showcase your projects, get feedback, and celebrate each other's wins!", avatars: [{ id: "e", avatarUrl: "/mock/avatars/e.webp" }, { id: "a", avatarUrl: "/mock/avatars/a.webp" }, { id: "b", avatarUrl: "/mock/avatars/b.webp" }], attendeeCount: "+189 attending", time: "7:30 PM – 9:00 PM", timezone: "IST", platform: "Google Meet", status: EventStatus.Upcoming },
+        ],
+        weeklySchedule: [
+            { id: "w1", date: "Sun, May 18", time: "7:00 PM", title: "Weekly Deep Work Check-in", icon: "👥" },
+            { id: "w2", date: "Thu, May 22", time: "8:00 PM", title: "Quest Guide AMA", icon: "🎙" },
+            { id: "w3", date: "Sun, May 25", time: "6:30 PM", title: "Focus Sprint: 90 Minutes Together", icon: "⚡" },
+        ],
+        calendarSync: [{ id: "google", label: "Google Calendar", icon: "G" }, { id: "apple", label: "Apple Calendar", icon: "□" }, { id: "outlook", label: "Outlook", icon: "▣" }],
+        suggestEvent: { title: "Suggest an Event", description: "Have an idea for a session or gathering?", buttonLabel: "Suggest Event", illustration: "📝" },
+    },
+    archives: {
+        title: "Archives",
+        description: "Explore knowledge shared by fellow explorers. Learn, contribute, grow together.",
+        categories: [{ id: "all", label: "All", active: true }, { id: "field-notes", label: "Field Notes" }, { id: "mind-maps", label: "Mind Maps" }, { id: "cheat-sheets", label: "Cheat Sheets" }, { id: "diagrams", label: "Diagrams" }, { id: "code-snippets", label: "Code Snippets" }, { id: "flashcards", label: "Flashcards" }, { id: "more", label: "More" }],
+        sortControls: [{ id: "helpful", label: "Most Helpful" }, { id: "all-time", label: "All Time" }, { id: "filters", label: "Filters" }],
+        items: [
+            { id: "levels", thumbnail: "/mock/thumbnails/deep-work-m.png", title: "The 4 Levels of Deep Work", type: ArchiveType.FieldNote, description: "A simple model to understand depth and how to go deeper over time.", author: { name: "Arjun Dev", avatarUrl: "/mock/avatars/a.webp" }, publishedAt: "3 days ago", voteCount: 412, commentCount: 18 },
+            { id: "decision-tree", thumbnail: "/mock/thumbnails/system-design.jpeg", title: "Deep Work Decision Tree", type: ArchiveType.MindMap, description: "Use this before every task to decide if it deserves deep focus.", author: { name: "Meera R.", avatarUrl: "/mock/avatars/b.webp" }, publishedAt: "6 days ago", voteCount: 356, commentCount: 27 },
+            { id: "kill-list", thumbnail: "/mock/thumbnails/reading.webp", title: "Distraction Kill List", type: ArchiveType.CheatSheet, description: "A battle-tested checklist to eliminate common focus killers.", author: { name: "Rohit Kumar", avatarUrl: "/mock/avatars/c.webp" }, publishedAt: "1 week ago", voteCount: 289, commentCount: 15 },
+            { id: "ritual", thumbnail: "/mock/thumbnails/reflections.jpeg", title: "Deep Work Ritual (My Setup)", type: ArchiveType.FieldNote, description: "How I structure my day, setup, and environment for deep focus.", author: { name: "Aanya Singh", avatarUrl: "/mock/avatars/d.webp" }, publishedAt: "1 week ago", voteCount: 241, commentCount: 11 },
+        ],
+        contributors: [{ id: "c1", name: "Arjun Dev", avatarUrl: "/mock/avatars/a.webp", notes: 392 }, { id: "c2", name: "Meera R.", avatarUrl: "/mock/avatars/b.webp", notes: 287 }, { id: "c3", name: "Rohit Kumar", avatarUrl: "/mock/avatars/c.webp", notes: 215 }, { id: "c4", name: "Aanya Singh", avatarUrl: "/mock/avatars/d.webp", notes: 183 }, { id: "c5", name: "Karan Malhotra", avatarUrl: "/mock/avatars/e.webp", notes: 161 }],
+        trending: [{ id: "t1", title: "Deep Work Start-Up Checklist", score: "+189" }, { id: "t2", title: "Focus Environment Ideas", score: "+156" }, { id: "t3", title: "My 90-Minute Deep Work Flow", score: "+142" }, { id: "t4", title: "Analog Tools That Help", score: "+98" }, { id: "t5", title: "Why Shallow Work Feels Addictive", score: "+76" }],
+        shareKnowledge: { title: "Share your knowledge!", description: "Publish a field note or resource to help your fellow explorers.", buttonLabel: "Create New Note", illustration: "🧾" },
+    },
+    hallOfFame: {
+        title: "Hall of Fame",
+        subtitle: "Celebrating explorers who go above and beyond. Different paths, different legends.",
+        filters: [
+            { id: "all", label: "All Categories", active: true },
+            { id: "explorers", label: "Explorers" },
+            { id: "builders", label: "Builders" },
+            { id: "sages", label: "Sages" },
+            { id: "guides", label: "Guides" },
+            { id: "consistency", label: "Consistency" },
+            { id: "weekly-heroes", label: "Weekly Heroes" },
+        ],
+        timeRanges: [
+            { id: "month", label: "This Month", active: true },
+            { id: "week", label: "This Week" },
+            { id: "all-time", label: "All Time" },
+        ],
+        categories: [
+            { id: "explorers", title: "Explorers", subtitle: "Most XP", rank: 1, winner: { name: "Arjun Dev", avatarUrl: "/mock/avatars/a.webp" }, primaryMetric: "12,450 XP", growthMetric: "+1,250 this month", badge: "Focus Master", accent: "amber" },
+            { id: "builders", title: "Builders", subtitle: "Best Projects", rank: 2, winner: { name: "Meera R.", avatarUrl: "/mock/avatars/b.webp" }, primaryMetric: "8 Projects", growthMetric: "+2 this month", badge: "Creator", accent: "slate" },
+            { id: "sages", title: "Sages", subtitle: "Best Field Notes", rank: 3, winner: { name: "Rohit Kumar", avatarUrl: "/mock/avatars/c.webp" }, primaryMetric: "392 Notes", growthMetric: "+48 this month", badge: "Knowledge Keeper", accent: "green" },
+            { id: "guides", title: "Guides", subtitle: "Helpful Answers", rank: 4, winner: { name: "Aanya Singh", avatarUrl: "/mock/avatars/d.webp" }, primaryMetric: "183 Answers", growthMetric: "+26 this month", badge: "Community Helper", accent: "violet" },
+            { id: "consistency", title: "Consistency", subtitle: "Longest Streaks", rank: 5, winner: { name: "Karan Malhotra", avatarUrl: "/mock/avatars/e.webp" }, primaryMetric: "34 Days", growthMetric: "+5 this month", badge: "Streak Champion", accent: "orange" },
+            { id: "weekly-hero", title: "Weekly Heroes", subtitle: "Rising Stars", rank: 0, winner: { name: "Ishita Verma", avatarUrl: "/mock/avatars/b.webp" }, primaryMetric: "840 XP", growthMetric: "+420 this week", badge: "On Fire", accent: "blue" },
+        ],
+        legends: [
+            { id: "l1", rank: 1, avatarUrl: "/mock/avatars/a.webp", name: "Arjun Dev", achievementTitle: "All-time XP Leader", primaryMetric: "48,920 XP" },
+            { id: "l2", rank: 2, avatarUrl: "/mock/avatars/b.webp", name: "Meera R.", achievementTitle: "All-time Projects Leader", primaryMetric: "21 Projects" },
+            { id: "l3", rank: 3, avatarUrl: "/mock/avatars/d.webp", name: "Aanya Singh", achievementTitle: "All-time Notes Leader", primaryMetric: "1,082 Notes" },
+        ],
+        userHighlights: [
+            { id: "h1", rank: "#2", label: "Explorers (XP)", metric: "12,450 XP", icon: "🏆" },
+            { id: "h2", rank: "#3", label: "Builders (Projects)", metric: "4 Projects", icon: "♟" },
+            { id: "h3", rank: "#1", label: "Sages (Field Notes)", metric: "156 Notes", icon: "♙" },
+            { id: "h4", rank: "#4", label: "Guides (Answers)", metric: "37 Answers", icon: "♧" },
+            { id: "h5", rank: "#2", label: "Consistency (Streak)", metric: "21 Days", icon: "🔥" },
+            { id: "h6", rank: "#3", label: "Weekly Heroes", metric: "680 XP", icon: "⭐" },
+        ],
+        recentAchievements: [
+            { id: "a1", icon: "🔥", title: "Deep Focus Streak", description: "Reached a 21-day learning streak", earnedTime: "2 days ago" },
+            { id: "a2", icon: "📝", title: "Note Contributor", description: "Published 25 field notes", earnedTime: "5 days ago" },
+            { id: "a3", icon: "🎁", title: "Project Shipped", description: "Submitted your first project", earnedTime: "1 week ago" },
+        ],
     },
 };
 

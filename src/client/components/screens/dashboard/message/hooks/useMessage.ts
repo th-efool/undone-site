@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { conversationFilters, sidebarTabs } from "../constants";
-import { dmConversationMock } from "../mock/dmConversation.mock";
-import { messageMock } from "../mock/message.mock";
+import { messagesRepository } from "@/src/client/repositories/messagesRepository";
 import { CommunityMessage, ConversationFilter, ConversationPreview, DMConversationModel, DMMessage, MessageView, SidebarTab } from "../models";
 import { getMessageCohorts, mapCohortToCommunity, mapCohortToConversation, mapCohortToLiveSession, mapCohortToRecentMessage, mapCohortToUpcomingEvent } from "../utils";
 
@@ -34,18 +33,18 @@ function readRecord<T>(key: string): Record<string, T> {
 }
 
 function makeDMConversation(conversation?: ConversationPreview): DMConversationModel {
-    if (!conversation) return dmConversationMock;
+    if (!conversation) return messagesRepository.getDMConversation();
 
     return {
-        ...dmConversationMock,
+        ...messagesRepository.getDMConversation(),
         id: conversation.id,
         user: {
-            ...dmConversationMock.user,
+            ...messagesRepository.getDMConversation().user,
             id: conversation.id,
             name: conversation.name,
             avatar: conversation.avatar,
             role: conversation.sender || "SideQuestHQ learner",
-            company: conversation.kind === "dm" ? "Learning Circle" : dmConversationMock.user.company,
+            company: conversation.kind === "dm" ? "Learning Circle" : messagesRepository.getDMConversation().user.company,
             bio: `Learning partner for ${conversation.preview.toLowerCase()}`,
         },
         messages: [
@@ -88,7 +87,7 @@ export function useMessage() {
     }, [messageCohorts]);
 
     const dmConversations = useMemo(() => {
-        return messageMock.conversations.filter((item) => item.kind === "dm");
+        return messagesRepository.getMessageBase().conversations.filter((item) => item.kind === "dm");
     }, []);
 
     const conversations = useMemo(() => {
@@ -206,8 +205,8 @@ export function useMessage() {
             timestamp: item.timestamp,
         }, searchQuery)),
         upcomingEvents: messageCohorts.slice(0, 3).map(mapCohortToUpcomingEvent),
-        challenge: messageMock.challenge,
-        friendsOnline: messageMock.friendsOnline,
+        challenge: messagesRepository.getMessageBase().challenge,
+        friendsOnline: messagesRepository.getMessageBase().friendsOnline,
         actions: {
             setSelectedSidebarTab,
             setConversationFilter,

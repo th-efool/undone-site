@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { getCohortHref } from "@/src/client/navigation/cohortLinks";
 import { Bookmark, Users } from "lucide-react";
 
 import type { ArticlePreview } from "../../models";
@@ -13,6 +15,7 @@ export function ArticleCard({
                             }: ArticleCardProps) {
     return (
         <article className={styles.card}>
+            <Link href={getCohortHref(item.cohortId ?? item.id)} className={styles.content}>
 
             <img
                 src={item.thumbnail}
@@ -20,7 +23,7 @@ export function ArticleCard({
                 className={styles.thumbnail}
             />
 
-            <div className={styles.content}>
+            <div>
 
                 <div className={styles.top}>
 
@@ -36,17 +39,13 @@ export function ArticleCard({
 
                     </div>
 
-                    <button
-                        className={styles.bookmark}
-                        type="button"
-                        aria-label="Bookmark"
-                    >
+                    <span className={styles.bookmark}>
                         <Bookmark
                             size={17}
                             strokeWidth={2}
                             fill={item.bookmarked ? "currentColor" : "none"}
                         />
-                    </button>
+                    </span>
 
                 </div>
 
@@ -65,6 +64,7 @@ export function ArticleCard({
                 </div>
 
             </div>
+            </Link>
 
         </article>
     );

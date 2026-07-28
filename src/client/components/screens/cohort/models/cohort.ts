@@ -1,3 +1,6 @@
+import type { CohortArchives } from "./archives";
+import type { CohortEvents } from "./events";
+import type { CohortHallOfFame } from "./hallOfFame";
 import type { CohortQuestline } from "./questline";
 
 export type Difficulty = "Beginner" | "Intermediate" | "Advanced";
@@ -89,4 +92,7 @@ export interface Cohort {
     progress: Progress;
     overview: CohortOverview;
     questline: CohortQuestline;
+    events: CohortEvents;
+    archives: CohortArchives;
+    hallOfFame: CohortHallOfFame;
 }

@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { getCohortHref } from "@/src/client/navigation/cohortLinks";
 import styles from "./SideQuestCard.module.css";
 
 import type { SideQuest } from "../../models";
@@ -26,10 +28,7 @@ export function SideQuestCard({
                                                 subtitleLength <= 52 ? 200 :
                                                     228;
     return (
-        <button
-            type="button"
-            className={styles.card}
-        >
+        <Link href={getCohortHref(item.cohortId ?? item.id)} className={styles.card}>
             <img
                 src={item.thumbnail}
                 alt=""
@@ -83,6 +82,6 @@ export function SideQuestCard({
 
             </div>
 
-        </button>
+        </Link>
     );
 }

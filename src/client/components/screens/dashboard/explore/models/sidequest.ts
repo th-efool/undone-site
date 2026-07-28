@@ -2,6 +2,7 @@ import type {AvatarPreview} from "./explore"
 
 export interface SideQuest {
     id: string;
+    cohortId?: string;
 
     title: string;
 
