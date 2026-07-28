@@ -21,4 +21,8 @@ export type {
     QuestlineFilter,
     Season,
 } from "./questline";
+export type { CalendarSyncAction, CohortEvents, EventAvatar, EventDate, EventFilter, EventItem, EventPlatform, EventsCta, WeeklyEvent } from "./events";
+export { EventStatus } from "./events";
+export type { ArchiveAuthor, ArchiveCategory, ArchiveContributor, ArchiveCta, ArchiveItem, ArchiveSortControl, CohortArchives, TrendingArchive } from "./archives";
+export { ArchiveType } from "./archives";
 export { LessonStatus, LessonType, SeasonStatus } from "./questline";
