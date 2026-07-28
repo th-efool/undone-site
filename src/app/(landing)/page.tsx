@@ -10,9 +10,9 @@ export default function landing(){
         <main className="overflow-x-hidden">
             <Hero/>
             <Ikigai/>
-            <Problem/>
+            {/*<Problem/>
             <Community/>
-            <Features/>
+            <Features/> */}
             <Footer/>
         </main>
     )
