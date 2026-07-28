@@ -114,6 +114,19 @@
 │   │   │       └── page.tsx
 │   │   ├── (dashboard)/
 │   │   │   ├── cohort/
+│   │   │   │   ├── [cohortId]/
+│   │   │   │   │   ├── archives/
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── events/
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── hall-of-fame/
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── overview/
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── questline/
+│   │   │   │   │   │   └── page.tsx
+│   │   │   │   │   ├── layout.tsx
+│   │   │   │   │   └── page.tsx
 │   │   │   │   └── page.tsx
 │   │   │   ├── explore/
 │   │   │   │   └── page.tsx
@@ -221,6 +234,111 @@
 │   │   │   │   │   ├── .gitkeep
 │   │   │   │   │   ├── Auth.module.css
 │   │   │   │   │   ├── Auth.tsx
+│   │   │   │   │   └── index.ts
+│   │   │   │   ├── cohort/
+│   │   │   │   │   ├── archives/
+│   │   │   │   │   │   ├── Archives.module.css
+│   │   │   │   │   │   └── Archives.tsx
+│   │   │   │   │   ├── components/
+│   │   │   │   │   │   ├── CohortHero/
+│   │   │   │   │   │   │   ├── CohortHero.module.css
+│   │   │   │   │   │   │   └── CohortHero.tsx
+│   │   │   │   │   │   ├── CohortLayout/
+│   │   │   │   │   │   │   ├── CohortLayout.module.css
+│   │   │   │   │   │   │   └── CohortLayout.tsx
+│   │   │   │   │   │   ├── CohortNavigation/
+│   │   │   │   │   │   │   ├── CohortNavigation.module.css
+│   │   │   │   │   │   │   └── CohortNavigation.tsx
+│   │   │   │   │   │   └── ProgressSidebar/
+│   │   │   │   │   │       ├── ProgressSidebar.module.css
+│   │   │   │   │   │       └── ProgressSidebar.tsx
+│   │   │   │   │   ├── events/
+│   │   │   │   │   │   ├── Events.module.css
+│   │   │   │   │   │   └── Events.tsx
+│   │   │   │   │   ├── hallOfFame/
+│   │   │   │   │   │   ├── HallOfFame.module.css
+│   │   │   │   │   │   └── HallOfFame.tsx
+│   │   │   │   │   ├── hooks/
+│   │   │   │   │   │   ├── index.ts
+│   │   │   │   │   │   └── useCohort.ts
+│   │   │   │   │   ├── mocks/
+│   │   │   │   │   │   └── cohortMock.ts
+│   │   │   │   │   ├── models/
+│   │   │   │   │   │   ├── cohort.ts
+│   │   │   │   │   │   ├── index.ts
+│   │   │   │   │   │   ├── navigation.ts
+│   │   │   │   │   │   └── questline.ts
+│   │   │   │   │   ├── overview/
+│   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   ├── AboutSection/
+│   │   │   │   │   │   │   │   ├── AboutSection.module.css
+│   │   │   │   │   │   │   │   └── AboutSection.tsx
+│   │   │   │   │   │   │   ├── ExpeditionProgressCard/
+│   │   │   │   │   │   │   │   ├── ExpeditionProgressCard.module.css
+│   │   │   │   │   │   │   │   └── ExpeditionProgressCard.tsx
+│   │   │   │   │   │   │   ├── ExpeditionStatsCard/
+│   │   │   │   │   │   │   │   ├── ExpeditionStatsCard.module.css
+│   │   │   │   │   │   │   │   └── ExpeditionStatsCard.tsx
+│   │   │   │   │   │   │   ├── JourneySummary/
+│   │   │   │   │   │   │   │   ├── JourneySummary.module.css
+│   │   │   │   │   │   │   │   └── JourneySummary.tsx
+│   │   │   │   │   │   │   ├── LearningChecklist/
+│   │   │   │   │   │   │   │   ├── LearningChecklist.module.css
+│   │   │   │   │   │   │   │   └── LearningChecklist.tsx
+│   │   │   │   │   │   │   ├── LearningPillars/
+│   │   │   │   │   │   │   │   ├── LearningPillars.module.css
+│   │   │   │   │   │   │   │   └── LearningPillars.tsx
+│   │   │   │   │   │   │   ├── OverviewIcon/
+│   │   │   │   │   │   │   │   └── OverviewIcon.tsx
+│   │   │   │   │   │   │   └── QuestGuideCard/
+│   │   │   │   │   │   │       ├── QuestGuideCard.module.css
+│   │   │   │   │   │   │       └── QuestGuideCard.tsx
+│   │   │   │   │   │   ├── Overview.module.css
+│   │   │   │   │   │   └── Overview.tsx
+│   │   │   │   │   ├── questline/
+│   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   ├── AssignmentsProjectsFeed/
+│   │   │   │   │   │   │   │   ├── AssignmentsProjectsFeed.module.css
+│   │   │   │   │   │   │   │   └── AssignmentsProjectsFeed.tsx
+│   │   │   │   │   │   │   ├── FeedCard/
+│   │   │   │   │   │   │   │   ├── FeedCard.module.css
+│   │   │   │   │   │   │   │   └── FeedCard.tsx
+│   │   │   │   │   │   │   ├── LessonList/
+│   │   │   │   │   │   │   │   ├── LessonList.module.css
+│   │   │   │   │   │   │   │   └── LessonList.tsx
+│   │   │   │   │   │   │   ├── LessonRow/
+│   │   │   │   │   │   │   │   ├── LessonRow.module.css
+│   │   │   │   │   │   │   │   └── LessonRow.tsx
+│   │   │   │   │   │   │   ├── LessonStatusBadge/
+│   │   │   │   │   │   │   │   ├── LessonStatusBadge.module.css
+│   │   │   │   │   │   │   │   └── LessonStatusBadge.tsx
+│   │   │   │   │   │   │   ├── LessonTypeBadge/
+│   │   │   │   │   │   │   │   ├── LessonTypeBadge.module.css
+│   │   │   │   │   │   │   │   └── LessonTypeBadge.tsx
+│   │   │   │   │   │   │   ├── LockedFutureNotice/
+│   │   │   │   │   │   │   │   ├── LockedFutureNotice.module.css
+│   │   │   │   │   │   │   │   └── LockedFutureNotice.tsx
+│   │   │   │   │   │   │   ├── QuestlineFilters/
+│   │   │   │   │   │   │   │   ├── QuestlineFilters.module.css
+│   │   │   │   │   │   │   │   └── QuestlineFilters.tsx
+│   │   │   │   │   │   │   ├── QuestlineIcon/
+│   │   │   │   │   │   │   │   └── QuestlineIcon.tsx
+│   │   │   │   │   │   │   ├── SeasonCard/
+│   │   │   │   │   │   │   │   ├── SeasonCard.module.css
+│   │   │   │   │   │   │   │   └── SeasonCard.tsx
+│   │   │   │   │   │   │   ├── SeasonSummary/
+│   │   │   │   │   │   │   │   ├── SeasonSummary.module.css
+│   │   │   │   │   │   │   │   └── SeasonSummary.tsx
+│   │   │   │   │   │   │   ├── SeasonTimeline/
+│   │   │   │   │   │   │   │   ├── SeasonTimeline.module.css
+│   │   │   │   │   │   │   │   └── SeasonTimeline.tsx
+│   │   │   │   │   │   │   └── SkipSeasonDropdown/
+│   │   │   │   │   │   │       ├── SkipSeasonDropdown.module.css
+│   │   │   │   │   │   │       └── SkipSeasonDropdown.tsx
+│   │   │   │   │   │   ├── Questline.module.css
+│   │   │   │   │   │   └── Questline.tsx
+│   │   │   │   │   ├── Cohort.module.css
+│   │   │   │   │   ├── Cohort.tsx
 │   │   │   │   │   └── index.ts
 │   │   │   │   ├── dashboard/
 │   │   │   │   │   ├── explore/
@@ -663,4 +781,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-192 directories, 470 files
+235 directories, 545 files
