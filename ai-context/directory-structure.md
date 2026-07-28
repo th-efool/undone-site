@@ -88,6 +88,7 @@
 │   │       ├── reader.webp
 │   │       ├── reading.webp
 │   │       ├── reflections.jpeg
+│   │       ├── space.jpeg
 │   │       ├── system-design.jpeg
 │   │       └── ui-fundamentals.webp
 │   ├── mockups/
@@ -809,4 +810,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-244 directories, 564 files
+244 directories, 565 files
