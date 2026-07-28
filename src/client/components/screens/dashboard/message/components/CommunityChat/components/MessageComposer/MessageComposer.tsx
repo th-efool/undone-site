@@ -1,4 +1,4 @@
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Image as ImageIcon, Send, Plus, Smile } from "lucide-react";
 import styles from "./MessageComposer.module.css";
 
@@ -19,9 +19,12 @@ export function MessageComposer({ value, onChange, onSend, onUpload }: Props) {
     const imageRef = useRef<HTMLInputElement>(null);
     const [uploadKind, setUploadKind] = useState<"pdf" | "file" | "video" | "audio">("file");
 
+    useEffect(() => { if (!value) inputRef.current?.focus(); }, [value]);
+
     const submit = (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         onSend();
+        requestAnimationFrame(() => inputRef.current?.focus());
     };
 
     const insertEmoji = (emoji: string) => {

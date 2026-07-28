@@ -1,1 +1,2 @@
 .reactions{display:flex;gap:10px;margin-top:12px}.reactions button{height:28px;padding:0 12px;border:1px solid var(--message-border-strong);border-radius:999px;background:#fff;color:#1f2748;font-weight:800;cursor:pointer;transition:all var(--duration-fast) var(--ease-standard)}.reactions button:hover{transform:translateY(-1px);border-color:var(--message-brand);background:#f7f5ff}.reactions span{margin-left:6px;font-size:.82rem}
+.selected{background:#ede7ff!important;border-color:#c7b9ff!important;color:var(--color-brand)!important}
