@@ -13,18 +13,26 @@ import styles from "../../HallOfFame.module.css";
 export function HallOfFamePage({ hall }: { hall: CohortHallOfFame }) {
     return (
         <div className={styles.page}>
-            <section className={styles.mainCard}>
-                <div className={styles.topBar}>
-                    <HallOfFameHeader hall={hall} />
-                    <TimeRangeDropdown hall={hall} />
-                </div>
-                <CategoryFilters hall={hall} />
-                <LeaderboardGrid items={hall.categories} />
-                <button className={styles.fullButton}>See Full Leaderboards <ArrowRight size={17} /></button>
-            </section>
+            <div className={styles.mainColumn}>
+                <section className={styles.mainCard}>
+                    <div className={styles.topBar}>
+                        <HallOfFameHeader hall={hall} />
+                        <TimeRangeDropdown hall={hall} />
+                    </div>
+
+                    <CategoryFilters hall={hall} />
+                    <LeaderboardGrid items={hall.categories} />
+
+                    <button className={styles.fullButton}>
+                        See Full Leaderboards
+                        <ArrowRight size={17} />
+                    </button>
+                </section>
+
+                <HallOfLegends hall={hall} />
+            </div>
 
             <HallSidebar hall={hall} />
-            <HallOfLegends hall={hall} />
         </div>
     );
 }
