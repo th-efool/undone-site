@@ -125,6 +125,22 @@ export function useMessage() {
 
 
     useEffect(() => {
+        const syncCommunityFromUrl = () => {
+            const communityId = new URLSearchParams(window.location.search).get("community");
+            if (!communityId) return;
+
+            setSelectedSidebarTab("community");
+            setSelectedCommunityId(communityId);
+            setSelectedView("community");
+        };
+
+        syncCommunityFromUrl();
+        window.addEventListener("popstate", syncCommunityFromUrl);
+
+        return () => window.removeEventListener("popstate", syncCommunityFromUrl);
+    }, []);
+
+    useEffect(() => {
         window.localStorage.setItem(storageKeys.drafts, JSON.stringify(drafts));
     }, [drafts]);
 

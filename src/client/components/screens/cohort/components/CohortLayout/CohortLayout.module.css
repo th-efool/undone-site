@@ -1,28 +1,75 @@
 .layout {
     display: flex;
     flex-direction: column;
-    gap: 0;
+    gap: 16px;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 12px var(--cohort-page-gutter, var(--space-6)) 32px;
+}
 
-    width: min(100%, 1680px);
-    margin: 0 auto;
-    padding: 12px var(--cohort-page-gutter, var(--space-6)) 28px;
+.topBar {
+    display: grid;
+    grid-template-columns: minmax(140px, 1fr) minmax(320px, 580px) minmax(140px, 1fr);
+    align-items: center;
+    gap: var(--space-4);
 }
 
 .searchBar {
-    width: min(460px, 100%);
-    align-self: center;
-    margin-bottom: 10px;
+    width: 100%;
+    max-width: none;
+    justify-self: center;
+    background: rgb(255 255 255 / 82%);
+    box-shadow: 0 12px 34px rgb(15 23 42 / 6%);
+    backdrop-filter: blur(14px);
+}
+
+.pillButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: max-content;
+    min-height: 42px;
+    padding: 0 16px;
+    border: 1px solid var(--cohort-border-soft, var(--color-border));
+    border-radius: var(--radius-pill);
+    background: rgb(255 255 255 / 86%);
+    color: var(--color-text-primary);
+    font-size: var(--text-sm);
+    font-weight: var(--font-bold);
+    text-decoration: none;
+    box-shadow: 0 12px 28px rgb(15 23 42 / 5%);
+    backdrop-filter: blur(14px);
+    transition: transform var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard);
+}
+
+.pillButton:last-child {
+    justify-self: end;
+    color: var(--color-brand);
+}
+
+.pillButton:hover {
+    transform: translateY(-1px);
+    border-color: var(--color-brand-soft);
+    box-shadow: 0 16px 34px rgb(15 23 42 / 8%);
 }
 
 .content {
     min-height: 220px;
-    border: 1px solid var(--color-border);
-    border-top: 0;
-    border-radius: 0 0 var(--cohort-radius, 14px) var(--cohort-radius, 14px);
-    background: var(--color-surface);
+    margin-top: -16px;
     overflow: hidden;
+    border: 1px solid var(--cohort-border-soft, var(--color-border));
+    border-top: 0;
+    border-radius: 0 0 var(--cohort-radius, 24px) var(--cohort-radius, 24px);
+    background: rgb(255 255 255 / 72%);
+    box-shadow: var(--cohort-shadow-soft, 0 20px 60px rgb(15 23 42 / 6%));
+    backdrop-filter: blur(12px);
 }
 
 @media (max-width: 900px) {
     .layout { padding-inline: var(--space-3); }
+    .topBar { grid-template-columns: 1fr; }
+    .searchBar { order: 3; }
+    .pillButton:last-child { justify-self: start; }
 }
