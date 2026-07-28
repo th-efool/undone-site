@@ -1,13 +1,12 @@
 .card {
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: var(--space-5);
 
-    height: 100%;
-    padding: 24px;
+    padding: var(--space-6);
 
     border: 1px solid var(--color-border);
-    border-radius: 22px;
+    border-radius: var(--radius-card);
 
     background: var(--color-surface);
     box-shadow: var(--shadow-sm);
@@ -19,7 +18,7 @@
 
     color: var(--color-text-primary);
 
-    font-size: var(--text-xl);
+    font-size: var(--font-card-title-size);
     font-weight: var(--font-bold);
 }
 
@@ -36,9 +35,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
+    gap: var(--space-4);
 
-    padding: 12px 0;
+    padding: var(--space-3) 0;
 
     color: var(--color-text-secondary);
 
@@ -58,7 +57,7 @@
 .labelGroup {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--space-3);
 }
 
 .icon {
@@ -68,9 +67,9 @@
 .activeBlock {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: var(--space-4);
 
-    padding-top: 22px;
+    padding-top: var(--space-5);
 
     border-top: 1px solid var(--color-border);
 }
@@ -78,16 +77,17 @@
 .avatars {
     display: flex;
     align-items: center;
+    min-height: 38px;
 }
 
 .avatar,
 .overflow {
     width: 38px;
     height: 38px;
-    margin-left: -8px;
+    margin-left: calc(var(--space-2) * -1);
 
     border: 2px solid var(--color-surface);
-    border-radius: 999px;
+    border-radius: var(--radius-circle);
 }
 
 .avatar:first-child {
