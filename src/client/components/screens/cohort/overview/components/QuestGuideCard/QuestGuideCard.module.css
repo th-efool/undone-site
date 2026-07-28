@@ -1,0 +1,80 @@
+.card {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+
+    padding: 24px;
+
+    border: 1px solid var(--color-border);
+    border-radius: 22px;
+
+    background: var(--color-surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.title,
+.name {
+    margin: 0;
+
+    color: var(--color-text-primary);
+
+    font-weight: var(--font-bold);
+}
+
+.title {
+    font-size: var(--text-xl);
+}
+
+.name {
+    font-size: var(--text-lg);
+}
+
+.profile {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.avatar {
+    border-radius: 999px;
+
+    object-fit: cover;
+}
+
+.role,
+.bio {
+    margin: 0;
+
+    color: var(--color-text-secondary);
+
+    font-size: var(--text-sm);
+    line-height: var(--leading-relaxed);
+}
+
+.bio {
+    padding-left: 78px;
+}
+
+.button {
+    align-self: center;
+
+    min-width: 210px;
+    min-height: 44px;
+    padding: 0 18px;
+
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+
+    background: var(--color-surface);
+
+    color: var(--color-brand);
+
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: var(--font-bold);
+}
+
+.button:hover {
+    border-color: var(--color-brand);
+    background: var(--color-brand-subtle);
+}

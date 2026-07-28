@@ -1,0 +1,42 @@
+.wrapper {
+    position: relative;
+
+    display: inline-flex;
+    align-items: center;
+}
+
+.label {
+    position: absolute;
+
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+
+    clip: rect(0 0 0 0);
+}
+
+.select {
+    min-height: 38px;
+    padding: 0 34px 0 14px;
+
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+
+    appearance: none;
+    background: var(--color-surface);
+
+    color: var(--color-text-primary);
+
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+}
+
+.icon {
+    position: absolute;
+    right: 12px;
+
+    pointer-events: none;
+
+    color: var(--color-text-secondary);
+}
