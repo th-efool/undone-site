@@ -260,11 +260,17 @@
 │   │   │   │   │   │   └── HallOfFame.tsx
 │   │   │   │   │   ├── hooks/
 │   │   │   │   │   │   ├── index.ts
-│   │   │   │   │   │   └── useCohort.ts
+│   │   │   │   │   │   ├── useArchives.ts
+│   │   │   │   │   │   ├── useCohort.ts
+│   │   │   │   │   │   ├── useEvents.ts
+│   │   │   │   │   │   └── useQuestline.ts
 │   │   │   │   │   ├── mocks/
 │   │   │   │   │   │   └── cohortMock.ts
 │   │   │   │   │   ├── models/
+│   │   │   │   │   │   ├── archives.ts
 │   │   │   │   │   │   ├── cohort.ts
+│   │   │   │   │   │   ├── events.ts
+│   │   │   │   │   │   ├── hallOfFame.ts
 │   │   │   │   │   │   ├── index.ts
 │   │   │   │   │   │   ├── navigation.ts
 │   │   │   │   │   │   └── questline.ts
@@ -593,6 +599,7 @@
 │   │   │   │   │   │   │   └── message.constants.ts
 │   │   │   │   │   │   ├── hooks/
 │   │   │   │   │   │   │   ├── index.ts
+│   │   │   │   │   │   │   ├── useCommunity.ts
 │   │   │   │   │   │   │   └── useMessage.ts
 │   │   │   │   │   │   ├── mock/
 │   │   │   │   │   │   │   ├── communityChat.mock.ts
@@ -712,12 +719,22 @@
 │   │   ├── hooks/
 │   │   │   ├── useSession.ts
 │   │   │   └── useSessions.ts
+│   │   ├── mock/
+│   │   │   └── cohorts/
+│   │   │       └── cohortCatalog.ts
+│   │   ├── navigation/
+│   │   │   └── cohortLinks.ts
 │   │   ├── providers/
 │   │   │   └── .gitkeep
 │   │   ├── react-query/
 │   │   │   └── query-client.ts
-│   │   └── redux/
-│   │       └── store.ts
+│   │   ├── redux/
+│   │   │   └── store.ts
+│   │   └── repositories/
+│   │       ├── cohortRepository.ts
+│   │       ├── exploreRepository.ts
+│   │       ├── homeRepository.ts
+│   │       └── messagesRepository.ts
 │   ├── server/
 │   │   ├── adapters/
 │   │   │   ├── actions/
@@ -781,4 +798,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-235 directories, 545 files
+239 directories, 558 files
