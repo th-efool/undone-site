@@ -26,7 +26,7 @@ export function useNotes() {
     selectedNote: state.notes.find((n) => n.id === state.selectedNoteId) ?? null,
   } : null, [state, notebookQuery, noteQuery]);
 
-  const selectNotebook = (notebookId: string) => update((s) => ({ ...s, selectedNotebookId: notebookId, selectedNoteId: s.notes.find((n) => n.notebookId === notebookId && !n.archived)?.id ?? null }));
+  const selectNotebook = (notebookId: string) => update((s) => ({ ...s, selectedNotebookId: notebookId, selectedNoteId: s.selectedNoteId && s.notes.some((n) => n.id === s.selectedNoteId && n.notebookId === notebookId && !n.archived) ? s.selectedNoteId : s.notes.find((n) => n.notebookId === notebookId && !n.archived)?.id ?? null }));
   const createNotebook = () => update((s) => { const book = { id: id("nb"), title: "Untitled Notebook", description: "New thinking space", color: "#4f46e5", favorite: false, shared: false, archived: false, collapsed: false, createdAt: stamp(), updatedAt: stamp(), order: s.notebooks.length }; return { ...s, notebooks: [...s.notebooks, book], selectedNotebookId: book.id, selectedNoteId: null }; });
   const patchNotebook = (notebookId: string, patch: Partial<NotesStateEntity["notebooks"][number]>) => update((s) => ({ ...s, notebooks: s.notebooks.map((n) => n.id === notebookId ? { ...n, ...patch, updatedAt: stamp() } : n) }));
   const duplicateNotebook = (notebookId: string) => update((s) => { const b = s.notebooks.find((n) => n.id === notebookId); if (!b) return s; const newId = id("nb"); const notes = s.notes.filter((n) => n.notebookId === notebookId).map((n, i) => ({ ...n, id: id("note"), notebookId: newId, title: `${n.title} copy`, order: i, createdAt: stamp(), updatedAt: stamp() })); return { ...s, notebooks: [...s.notebooks, { ...b, id: newId, title: `${b.title} copy`, order: s.notebooks.length, createdAt: stamp(), updatedAt: stamp() }], notes: [...s.notes, ...notes] }; });
@@ -39,6 +39,28 @@ export function useNotes() {
   const moveNote = (noteId: string, notebookId: string) => update((s) => ({ ...s, notes: s.notes.map((n) => n.id === noteId ? { ...n, notebookId, order: s.notes.filter((x) => x.notebookId === notebookId).length, updatedAt: stamp() } : n), selectedNotebookId: notebookId, selectedNoteId: noteId }));
   const undo = () => update((s) => lastDeleted ? (setToast("Restored."), setLastDeleted(null), { ...s, notebooks: [...s.notebooks, ...lastDeleted.notebooks], notes: [...s.notes, ...lastDeleted.notes] }) : s);
 
-  return { state, data, notebookQuery, setNotebookQuery, noteQuery, setNoteQuery, toast, undo, actions: { selectNotebook, selectNote: (id: string) => update((s) => ({ ...s, selectedNoteId: id })), createNotebook, patchNotebook, duplicateNotebook, deleteNotebook, createNote, patchNote, duplicateNote, deleteNote, moveNotebook, moveNote, setNotebookSort: (sort: NotesSort) => update((s) => ({ ...s, notebookSort: sort })), setNoteSort: (sort: NotesSort) => update((s) => ({ ...s, noteSort: sort })), setFilter: (filter: NotesFilter) => update((s) => ({ ...s, filter })) } };
+  const archiveNotebook = (notebookId: string) => update((s) => {
+    const book = s.notebooks.find((n) => n.id === notebookId);
+    if (!book) return s;
+    if (!book.archived && !confirm(`Archive notebook "${book.title}" and hide it from normal lists?`)) return s;
+    const archived = !book.archived;
+    const notebooks = s.notebooks.map((n) => n.id === notebookId ? { ...n, archived, updatedAt: stamp() } : n);
+    const notes = s.notes.map((n) => n.notebookId === notebookId ? { ...n, archived, updatedAt: stamp() } : n);
+    const nextNotebookId = archived && s.selectedNotebookId === notebookId ? notebooks.find((n) => !n.archived)?.id ?? notebookId : s.selectedNotebookId;
+    const nextNoteId = archived && s.selectedNotebookId === notebookId ? notes.find((n) => n.notebookId === nextNotebookId && !n.archived)?.id ?? null : s.selectedNoteId;
+    setToast(archived ? "Notebook archived." : "Notebook restored.");
+    return { ...s, notebooks, notes, selectedNotebookId: nextNotebookId, selectedNoteId: nextNoteId };
+  });
+  const archiveNote = (noteId: string) => update((s) => {
+    const note = s.notes.find((n) => n.id === noteId);
+    if (!note) return s;
+    if (!note.archived && !confirm(`Archive note "${note.title}"?`)) return s;
+    const archived = !note.archived;
+    const notes = s.notes.map((n) => n.id === noteId ? { ...n, archived, updatedAt: stamp() } : n);
+    setToast(archived ? "Note archived." : "Note restored.");
+    return { ...s, notes, selectedNoteId: archived && s.selectedNoteId === noteId ? notes.find((n) => n.notebookId === s.selectedNotebookId && !n.archived)?.id ?? null : s.selectedNoteId };
+  });
+
+  return { state, data, notebookQuery, setNotebookQuery, noteQuery, setNoteQuery, toast, undo, actions: { selectNotebook, selectNote: (id: string) => update((s) => ({ ...s, selectedNoteId: id })), createNotebook, patchNotebook, duplicateNotebook, deleteNotebook, createNote, patchNote, duplicateNote, deleteNote, moveNotebook, moveNote, archiveNotebook, archiveNote, setNotebookSort: (sort: NotesSort) => update((s) => ({ ...s, notebookSort: sort })), setNoteSort: (sort: NotesSort) => update((s) => ({ ...s, noteSort: sort })), setFilter: (filter: NotesFilter) => update((s) => ({ ...s, filter })) } };
 }
 function reorder(s: NotesStateEntity, key: "notebooks", fromId: string, toId: string) { const arr = [...s[key]]; const from = arr.findIndex((x) => x.id === fromId); const to = arr.findIndex((x) => x.id === toId); if (from < 0 || to < 0) return s; const [item] = arr.splice(from, 1); arr.splice(to, 0, item); return { ...s, [key]: arr.map((x, order) => ({ ...x, order })) }; }
