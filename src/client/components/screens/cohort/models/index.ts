@@ -25,4 +25,5 @@ export type { CalendarSyncAction, CohortEvents, EventAvatar, EventDate, EventFil
 export { EventStatus } from "./events";
 export type { ArchiveAuthor, ArchiveCategory, ArchiveContributor, ArchiveCta, ArchiveItem, ArchiveSortControl, CohortArchives, TrendingArchive } from "./archives";
 export { ArchiveType } from "./archives";
+export type { AchievementEntry, CohortHallOfFame, HallAccent, HallCategory, HallFilter, HighlightEntry, LeaderboardWinner, LegendEntry, TimeRangeOption } from "./hallOfFame";
 export { LessonStatus, LessonType, SeasonStatus } from "./questline";
