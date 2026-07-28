@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Image as ImageIcon, Send, Plus, Smile } from "lucide-react";
+import { PillInput } from "@/src/client/components/global/PillInput";
 import styles from "./MessageComposer.module.css";
 
 interface Props {
@@ -59,14 +60,20 @@ export function MessageComposer({ value, onChange, onSend, onUpload }: Props) {
             </div>
             <input ref={fileRef} hidden type="file" accept={uploadKind === "video" ? "video/*" : uploadKind === "audio" ? "audio/*" : undefined} onChange={(e) => { const file = e.target.files?.[0]; if (file) onUpload(file, uploadKind); e.currentTarget.value = ""; }} />
             <input ref={imageRef} hidden type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) onUpload(file, "image"); e.currentTarget.value = ""; }} />
-            <div className={styles.input}>
-                <input ref={inputRef} placeholder="Message #general" value={value} onChange={(event) => onChange(event.target.value)} />
+            <PillInput
+                ref={inputRef}
+                className={styles.input}
+                placeholder="Message #general"
+                value={value}
+                onChange={(event) => onChange(event.target.value)}
+                rightSlot={<>
                 <div className={styles.toolWrap}>
                     <button type="button" aria-label="Add emoji" onClick={() => setEmojiOpen((open) => !open)}><Smile size={21} /></button>
                     {emojiOpen && <div className={styles.emoji}>{emojis.map((emoji) => <button key={emoji} type="button" onClick={() => insertEmoji(emoji)}>{emoji}</button>)}</div>}
                 </div>
                 <button type="button" aria-label="Add image" onClick={() => imageRef.current?.click()}><ImageIcon size={20} /></button>
-            </div>
+                </>}
+            />
             <button type="submit" className={styles.mic} aria-label="Send message"><Send size={21} /></button>
         </form>
     );

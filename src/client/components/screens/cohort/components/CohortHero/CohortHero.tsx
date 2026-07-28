@@ -12,7 +12,7 @@ interface CohortHeroProps {
 export function CohortHero({ cohort }: CohortHeroProps) {
     const currentQuest = cohort.questline.seasons
         .flatMap((season) => season.lessons)
-        .find((lesson) => lesson.status === "inProgress") ?? cohort.questline.seasons[0]?.lessons[0];
+        .find((lesson) => lesson.status === "inStream") ?? cohort.questline.seasons[0]?.lessons[0];
 
     return (
         <section className={styles.hero} style={{ backgroundImage: `linear-gradient(90deg, rgb(8 20 16 / 94%) 0%, rgb(20 69 42 / 90%) 52%, rgb(62 158 89 / 82%) 100%), url(${cohort.coverImage})` }}>

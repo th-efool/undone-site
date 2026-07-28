@@ -10,9 +10,10 @@ import styles from "./LessonRow.module.css";
 interface LessonRowProps {
     lesson: Lesson;
     index: number;
+    onToggleStatus(lessonId: string): void;
 }
 
-export function LessonRow({ lesson, index }: LessonRowProps) {
+export function LessonRow({ lesson, index, onToggleStatus }: LessonRowProps) {
     const isLocked = lesson.status === LessonStatus.Locked;
 
     return (
@@ -24,10 +25,19 @@ export function LessonRow({ lesson, index }: LessonRowProps) {
                 <div className={styles.meta}>
                     <LessonTypeBadge type={lesson.type} />
                     <span>{lesson.duration}</span>
+                    <span className={styles.chunkProgress}>{lesson.completedChunks}/{lesson.totalChunks} Chunks</span>
                 </div>
             </div>
 
-            <LessonStatusBadge status={lesson.status} />
+            <button
+                className={styles.statusButton}
+                type="button"
+                disabled={isLocked}
+                aria-label={`Change status for ${lesson.title}`}
+                onClick={() => onToggleStatus(lesson.id)}
+            >
+                <LessonStatusBadge status={lesson.status} />
+            </button>
 
             <button className={styles.expandButton} type="button" aria-label="Expand lesson">
                 <QuestlineIcon icon={isLocked ? "lock" : "chevronDown"} size={16} />

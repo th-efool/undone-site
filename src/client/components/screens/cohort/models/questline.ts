@@ -8,7 +8,7 @@ export enum SeasonStatus {
 
 export enum LessonStatus {
     Completed = "completed",
-    InProgress = "inProgress",
+    InStream = "inStream",
     Ready = "ready",
     Locked = "locked",
 }
@@ -33,6 +33,8 @@ export interface Lesson {
     type: LessonType;
     duration: string;
     status: LessonStatus;
+    totalChunks: number;
+    completedChunks: number;
     thumbnail: string;
 }
 
