@@ -1,9 +1,9 @@
-import { homeMock } from "../../home/mock/home.mock";
+import { messagesRepository } from "@/src/client/repositories/messagesRepository";
 import { CommunityChatModel, ConversationPreview, LiveSession, RecentMessage, UpcomingEvent } from "../models";
 
 import { communityChatMock } from "../mock/communityChat.mock";
 
-type Cohort = typeof homeMock.activeCohorts[number] | typeof homeMock.continueLater[number];
+type Cohort = ReturnType<typeof messagesRepository.getEnrolledCohorts>[number];
 
 const onlineCounts = [98, 64, 41, 22, 37, 18, 29, 33];
 const avatars = ["/mock/avatars/a.webp", "/mock/avatars/b.webp", "/mock/avatars/c.webp", "/mock/avatars/d.webp", "/mock/avatars/e.webp"];
@@ -148,7 +148,7 @@ function getCommunityConversationTemplate(cohort: Cohort, paused: boolean): Comm
 }
 
 export function getMessageCohorts(): Cohort[] {
-    return [...homeMock.activeCohorts, ...homeMock.continueLater];
+    return messagesRepository.getEnrolledCohorts();
 }
 
 export function mapCohortToConversation(cohort: Cohort, index: number): ConversationPreview {

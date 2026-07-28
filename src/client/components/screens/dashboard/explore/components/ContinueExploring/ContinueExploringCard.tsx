@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { getCohortHref } from "@/src/client/navigation/cohortLinks";
 import styles from "./ContinueExploringCard.module.css";
 
 import type { ContinueExploringItem } from "../../models";
@@ -12,10 +14,7 @@ export function ContinueExploringCard({
                                           item,
                                       }: ContinueExploringCardProps) {
     return (
-        <button
-            type="button"
-            className={styles.card}
-        >
+        <Link href={getCohortHref(item.cohortId ?? item.id)} className={styles.card}>
             <div
                 className={styles.icon}
                 style={{
@@ -49,6 +48,6 @@ export function ContinueExploringCard({
 
 
             </div>
-        </button>
+        </Link>
     );
 }

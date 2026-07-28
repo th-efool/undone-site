@@ -1,4 +1,4 @@
-import { cohortNavigationItems } from "./mocks/cohortMock";
+import { cohortRepository } from "@/src/client/repositories/cohortRepository";
 import { useCohort } from "./hooks";
 import { CohortLayout } from "./components/CohortLayout/CohortLayout";
 
@@ -11,7 +11,7 @@ interface CohortProps {
 
 export function Cohort({ cohortId, children }: CohortProps) {
     const cohort = useCohort(cohortId);
-    const navigationItems = cohortNavigationItems.map((item) => ({
+    const navigationItems = cohortRepository.navigationItems.map((item) => ({
         ...item,
         href: `/cohort/${cohort.id}/${item.id}`,
     }));

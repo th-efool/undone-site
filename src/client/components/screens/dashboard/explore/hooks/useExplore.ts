@@ -1,5 +1,5 @@
-import {exploreMock} from "../mock/explore.mock"
+import { exploreRepository } from "@/src/client/repositories/exploreRepository";
 
-export function useExplore(){
-    return exploreMock
+export function useExplore() {
+    return exploreRepository.getExplore();
 }

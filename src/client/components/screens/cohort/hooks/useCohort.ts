@@ -1,5 +1,5 @@
-import { cohortsMock } from "../mocks/cohortMock";
+import { cohortRepository } from "@/src/client/repositories/cohortRepository";
 
 export function useCohort(cohortId: string) {
-    return cohortsMock.find((cohort) => cohort.id === cohortId) ?? cohortsMock[0];
+    return cohortRepository.getById(cohortId);
 }

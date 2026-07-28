@@ -1,3 +1,5 @@
+import Link from "next/link";
+import { getCohortHref } from "@/src/client/navigation/cohortLinks";
 import {
     Flame,
     Star,
@@ -17,9 +19,7 @@ export function TrendingCourseCard({
                                    }: TrendingCourseCardProps) {
 
     return (
-        <article
-            className={styles.card}
-        >
+        <Link href={getCohortHref(item.cohortId ?? item.id)} className={styles.card}>
 
             <img
                 src={item.thumbnail}
@@ -90,17 +90,12 @@ export function TrendingCourseCard({
 
                     </div>
 
-                    <button
-                        className={styles.join}
-                        type="button"
-                    >
-                        Join
-                    </button>
+                    <span className={styles.join}>Join</span>
 
                 </div>
 
             </div>
 
-        </article>
+        </Link>
     );
 }

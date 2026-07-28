@@ -2,6 +2,7 @@ import type { ContentProvider } from "@/src/client/components/global/ProviderBad
 
 export interface ArticlePreview {
     id: string;
+    cohortId?: string;
 
     title: string;
 

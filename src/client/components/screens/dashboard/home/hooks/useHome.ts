@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 
-import { homeMock } from "../mock/home.mock";
+import { homeRepository } from "@/src/client/repositories/homeRepository";
 import type { Weekday } from "../models";
 import {
     addDays,
@@ -13,17 +13,18 @@ import {
 } from "../utils";
 
 export function useHome() {
-    const initialCohorts = useMemo(() => getActiveCohorts(homeMock.activeCohorts, homeMock.continueLater), []);
+    const home = useMemo(() => homeRepository.getHome(), []);
+    const initialCohorts = useMemo(() => getActiveCohorts(home.activeCohorts, home.continueLater), [home]);
     const [activeCohorts, setActiveCohorts] = useState(initialCohorts.activeCohorts);
     const [continueLater, setContinueLater] = useState(initialCohorts.continueLater);
 
-    const summaries = useMemo(() => homeMock.summaries.map((summary) => {
+    const summaries = useMemo(() => home.summaries.map((summary) => {
         if (summary.id === "active-cohorts") {
             return { ...summary, value: String(activeCohorts.length) };
         }
 
         return summary;
-    }), [activeCohorts.length]);
+    }), [activeCohorts.length, home.summaries]);
 
     function moveCohort(draggedId: string, targetId: string) {
         setActiveCohorts((items) => reorderCohorts(items, draggedId, targetId));
@@ -56,7 +57,7 @@ export function useHome() {
     }
 
     return {
-        ...homeMock,
+        ...home,
         summaries,
         activeCohorts,
         continueLater,

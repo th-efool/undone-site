@@ -9,6 +9,7 @@ export type ContentProvider =
 
 export interface TrendingCourse {
     id: string;
+    cohortId?: string;
     title: string;
     provider: ContentProvider;
     thumbnail: string;
