@@ -1,18 +1,64 @@
 .navigation {
+    position: sticky;
+    top: 10px;
+    z-index: 5;
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: max-content;
     align-items: center;
     justify-content: start;
-    gap: var(--space-2);
+    gap: 6px;
     overflow-x: auto;
-    padding: 0 10px;
-    border-right: 1px solid var(--color-border);
-    border-left: 1px solid var(--color-border);
-    border-bottom: 1px solid var(--color-border);
-    background: var(--color-surface-secondary);
+    width: fit-content;
+    max-width: calc(100% - 28px);
+    margin: -36px 14px 0;
+    padding: 7px;
+    border: 1px solid var(--cohort-border-soft, var(--color-border));
+    border-radius: var(--radius-pill);
+    background: rgb(255 255 255 / 82%);
+    box-shadow: 0 16px 42px rgb(15 23 42 / 8%);
+    backdrop-filter: blur(16px);
 }
-.link { position: relative; display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 0 12px; color: var(--color-text-secondary); font-size: var(--text-sm); font-weight: var(--font-semibold); text-decoration: none; white-space: nowrap; }
-.link::after { position: absolute; right: 10px; bottom: -1px; left: 10px; height: 2px; border-radius: var(--radius-pill); background: transparent; content: ""; }
-.link:hover,.active { color: var(--color-brand); }
+
+.link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 40px;
+    padding: 0 16px;
+    border-radius: var(--radius-pill);
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    font-weight: var(--font-bold);
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color var(--duration-fast) var(--ease-standard), background var(--duration-fast) var(--ease-standard), box-shadow var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+}
+
+.link::after {
+    position: absolute;
+    right: 18px;
+    bottom: 6px;
+    left: 18px;
+    height: 2px;
+    border-radius: var(--radius-pill);
+    background: transparent;
+    content: "";
+}
+
+.link:hover {
+    transform: translateY(-1px);
+    color: var(--color-brand);
+    background: var(--color-brand-subtle);
+}
+
+.active {
+    color: var(--color-brand);
+    background: #fff;
+    box-shadow: 0 10px 26px rgb(15 23 42 / 7%);
+}
+
 .active::after { background: var(--color-brand); }
+
+@media (max-width: 680px) { .navigation { width: auto; margin-top: -28px; } }

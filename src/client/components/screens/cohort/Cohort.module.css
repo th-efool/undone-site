@@ -1,12 +1,16 @@
 .cohort {
-    --cohort-page-gutter: clamp(14px, 2vw, 28px);
-    --cohort-panel-gap: 0;
-    --cohort-section-gap: 14px;
-    --cohort-panel-padding: 18px;
-    --cohort-sidebar-width: minmax(300px, 360px);
-    --cohort-radius: 14px;
-    --cohort-radius-sm: 9px;
-    --cohort-divider: 1px solid var(--color-border);
+    --cohort-page-gutter: clamp(14px, 1.8vw, 26px);
+    --cohort-panel-gap: 18px;
+    --cohort-section-gap: 16px;
+    --cohort-panel-padding: clamp(16px, 1.6vw, 24px);
+    --cohort-sidebar-width: minmax(300px, 380px);
+    --cohort-radius: 24px;
+    --cohort-radius-lg: 30px;
+    --cohort-radius-sm: 14px;
+    --cohort-border-soft: rgb(18 25 54 / 8%);
+    --cohort-divider: 1px solid var(--cohort-border-soft);
+    --cohort-shadow-soft: 0 18px 52px rgb(15 23 42 / 5%);
 
     width: 100%;
+    min-width: 0;
 }
