@@ -1,15 +1,14 @@
 .card {
     display: flex;
     flex-direction: column;
-    gap: var(--space-5);
+    gap: 12px;
 
-    padding: var(--space-6);
+    padding: var(--cohort-panel-padding, 18px);
 
     border: 1px solid var(--color-border);
-    border-radius: var(--radius-card);
+    border-radius: 0;
 
     background: var(--color-surface);
-    box-shadow: var(--shadow-sm);
 }
 
 .title,
@@ -35,9 +34,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: var(--space-4);
+    gap: 10px;
 
-    padding: var(--space-3) 0;
+    padding: 9px 0;
 
     color: var(--color-text-secondary);
 
@@ -57,7 +56,7 @@
 .labelGroup {
     display: flex;
     align-items: center;
-    gap: var(--space-3);
+    gap: 8px;
 }
 
 .icon {
@@ -67,9 +66,9 @@
 .activeBlock {
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: 10px;
 
-    padding-top: var(--space-5);
+    padding-top: 12px;
 
     border-top: 1px solid var(--color-border);
 }

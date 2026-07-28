@@ -1,7 +1,7 @@
 .controls {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 8px;
 }
 
 .filters {
@@ -9,14 +9,14 @@
     padding: 4px;
 
     border: 1px solid var(--color-border);
-    border-radius: 12px;
+    border-radius: 9px;
 
     background: var(--color-surface);
 }
 
 .filter {
-    min-height: 30px;
-    padding: 0 14px;
+    min-height: 28px;
+    padding: 0 10px;
 
     border: 0;
     border-radius: 8px;

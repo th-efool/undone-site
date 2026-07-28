@@ -1,83 +1,27 @@
 .hero {
     display: grid;
-    grid-template-columns: 180px minmax(0, 1fr) 280px;
-    gap: 24px;
+    grid-template-columns: 164px minmax(0, 1fr) 260px;
+    gap: 18px;
     align-items: stretch;
-
-    padding: 24px;
-
+    padding: 18px;
     border: 1px solid var(--color-border);
-    border-radius: 28px;
-
+    border-radius: var(--cohort-radius, 14px) var(--cohort-radius, 14px) 0 0;
     background: var(--color-surface);
 }
 
 .cover {
-    min-height: 180px;
-
-    border-radius: 22px;
-
+    min-height: 154px;
+    border-radius: 10px;
     background-color: var(--color-brand-subtle);
     background-position: center;
     background-size: cover;
 }
 
-.content {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-}
+.content { display: flex; flex-direction: column; gap: 10px; }
+.kicker { color: var(--color-brand); font-size: var(--text-sm); font-weight: var(--font-semibold); }
+.title { margin: 0; color: var(--color-text-primary); font-size: clamp(var(--text-2xl), 2.8vw, var(--text-4xl)); line-height: var(--leading-tight); }
+.description { max-width: 780px; margin: 0; color: var(--color-text-secondary); font-size: var(--text-sm); line-height: var(--leading-relaxed); }
+.meta,.stats { display: flex; flex-wrap: wrap; gap: 6px; }
+.meta span,.stats span { padding: 6px 9px; border: 1px solid var(--color-border); border-radius: 999px; background: var(--color-surface-secondary); color: var(--color-text-secondary); font-size: var(--text-xs); font-weight: var(--font-medium); }
 
-.kicker {
-    color: var(--color-brand);
-
-    font-size: var(--text-sm);
-    font-weight: var(--font-semibold);
-}
-
-.title {
-    margin: 0;
-
-    color: var(--color-text-primary);
-
-    font-size: var(--text-4xl);
-    line-height: var(--leading-tight);
-}
-
-.description {
-    max-width: 720px;
-    margin: 0;
-
-    color: var(--color-text-secondary);
-
-    font-size: var(--text-base);
-    line-height: var(--leading-relaxed);
-}
-
-.meta,
-.stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-}
-
-.meta span,
-.stats span {
-    padding: 8px 12px;
-
-    border: 1px solid var(--color-border);
-    border-radius: 999px;
-
-    background: var(--color-surface-secondary);
-
-    color: var(--color-text-secondary);
-
-    font-size: var(--text-sm);
-    font-weight: var(--font-medium);
-}
-
-@media (max-width: 1100px) {
-    .hero {
-        grid-template-columns: 1fr;
-    }
-}
+@media (max-width: 1100px) { .hero { grid-template-columns: 1fr; } }

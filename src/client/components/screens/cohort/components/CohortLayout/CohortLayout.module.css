@@ -1,27 +1,28 @@
 .layout {
     display: flex;
     flex-direction: column;
-    gap: var(--space-4);
+    gap: 0;
 
-    width: min(100%, 1510px);
+    width: min(100%, 1680px);
     margin: 0 auto;
-    padding: var(--space-4) var(--space-6) var(--space-12);
+    padding: 12px var(--cohort-page-gutter, var(--space-6)) 28px;
 }
 
 .searchBar {
-    width: min(500px, 100%);
-
+    width: min(460px, 100%);
     align-self: center;
-
-    margin-bottom: calc(var(--space-2) * -1);
+    margin-bottom: 10px;
 }
 
 .content {
     min-height: 220px;
+    border: 1px solid var(--color-border);
+    border-top: 0;
+    border-radius: 0 0 var(--cohort-radius, 14px) var(--cohort-radius, 14px);
+    background: var(--color-surface);
+    overflow: hidden;
 }
 
 @media (max-width: 900px) {
-    .layout {
-        padding-inline: var(--space-4);
-    }
+    .layout { padding-inline: var(--space-3); }
 }

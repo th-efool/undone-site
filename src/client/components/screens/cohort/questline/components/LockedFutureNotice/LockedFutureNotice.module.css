@@ -1,10 +1,10 @@
 .notice {
     display: flex;
-    gap: 14px;
+    gap: 10px;
 
-    padding: 18px;
+    padding: 12px;
 
-    border-radius: 16px;
+    border-radius: 9px;
 
     background: var(--color-brand-subtle);
 }

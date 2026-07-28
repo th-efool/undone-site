@@ -14,7 +14,7 @@
 
 .description {
     max-width: 680px;
-    margin: var(--space-4) 0 0;
+    margin: 10px 0 0;
 
     color: var(--color-text-secondary);
 
@@ -23,5 +23,5 @@
 }
 
 .description + :global(*) {
-    margin-top: var(--space-6);
+    margin-top: 14px;
 }
