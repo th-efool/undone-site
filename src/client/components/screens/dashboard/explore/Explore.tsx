@@ -21,9 +21,9 @@ export function Explore() {
 
             <ExploreHero />
 
-            <ContinueExploring
+            {/*<ContinueExploring
                 items={explore.continueExploring}
-            />
+            />*/}
 
             <PeopleFinishing
                 items={explore.peopleFinishing}
