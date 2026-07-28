@@ -1,3 +1,5 @@
+import type { CohortQuestline } from "./questline";
+
 export type Difficulty = "Beginner" | "Intermediate" | "Advanced";
 export type CohortIcon =
     | "assignment"
@@ -86,4 +88,5 @@ export interface Cohort {
     stats: CohortStats;
     progress: Progress;
     overview: CohortOverview;
+    questline: CohortQuestline;
 }

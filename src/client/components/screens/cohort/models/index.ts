@@ -12,3 +12,13 @@ export type {
     StatItem,
 } from "./cohort";
 export type { NavigationItem } from "./navigation";
+export type {
+    AssignmentFeedItem,
+    AssignmentFeedParticipant,
+    CohortQuestline,
+    Lesson,
+    LockedFutureNotice,
+    QuestlineFilter,
+    Season,
+} from "./questline";
+export { LessonStatus, LessonType, SeasonStatus } from "./questline";
