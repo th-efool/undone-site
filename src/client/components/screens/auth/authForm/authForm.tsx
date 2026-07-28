@@ -60,8 +60,12 @@ export function AuthForm() {
             </section>
 
             <section className={styles.cta}>
-                <AuthButton>
+                <AuthButton href="/explore">
                     Create Account
+                </AuthButton>
+
+                <AuthButton href="/explore" variant="secondary">
+                    Continue as Guest
                 </AuthButton>
             </section>
 

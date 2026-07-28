@@ -19,6 +19,8 @@
 
     cursor: pointer;
 
+    text-decoration: none;
+
     box-shadow: var(--auth-shadow-sm, 0 8px 18px rgba(15, 23, 42, .08));
 
     transition:
@@ -42,6 +44,18 @@
     filter: brightness(1.03);
 
     box-shadow: var(--auth-shadow-hover, 0 14px 30px rgba(15, 23, 42, .12));
+}
+
+.secondary {
+    margin-top: 12px;
+
+    background: white;
+
+    color: var(--color-brand);
+}
+
+.secondary:hover:not(:disabled) {
+    background: var(--color-brand-subtle);
 }
 
 .button:active:not(:disabled) {
