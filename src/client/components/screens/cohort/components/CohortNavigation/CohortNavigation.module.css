@@ -1,0 +1,31 @@
+.navigation {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+
+    padding: 8px;
+
+    border: 1px solid var(--color-border);
+    border-radius: 18px;
+
+    background: var(--color-surface);
+}
+
+.link {
+    padding: 10px 14px;
+
+    border-radius: 12px;
+
+    color: var(--color-text-secondary);
+
+    font-size: var(--text-sm);
+    font-weight: var(--font-semibold);
+    text-decoration: none;
+}
+
+.link:hover,
+.active {
+    background: var(--color-brand-subtle);
+
+    color: var(--color-brand);
+}
