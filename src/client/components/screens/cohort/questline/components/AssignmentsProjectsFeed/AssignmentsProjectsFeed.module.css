@@ -1,28 +1,27 @@
 .sidebar {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 0;
 }
 
 .card {
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 12px;
 
-    padding: 24px;
+    padding: var(--cohort-panel-padding, 18px);
 
     border: 1px solid var(--color-border);
-    border-radius: 22px;
+    border-radius: 0;
 
     background: var(--color-surface);
-    box-shadow: var(--shadow-sm);
 }
 
 .header {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
-    gap: 18px;
+    gap: 0;
 }
 
 .title,
@@ -38,7 +37,7 @@
 }
 
 .description {
-    margin-top: 8px;
+    margin-top: 5px;
 
     color: var(--color-text-secondary);
 
@@ -53,7 +52,7 @@
     justify-content: center;
     gap: 8px;
 
-    min-height: 36px;
+    min-height: 32px;
     padding: 0 14px;
 
     border: 1px solid var(--color-border);
@@ -71,10 +70,10 @@
 .feedList {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 8px;
 }
 
 .viewAllButton {
     align-self: center;
-    min-width: 270px;
+    min-width: 220px;
 }

@@ -1,3 +1,12 @@
 .cohort {
+    --cohort-page-gutter: clamp(14px, 2vw, 28px);
+    --cohort-panel-gap: 0;
+    --cohort-section-gap: 14px;
+    --cohort-panel-padding: 18px;
+    --cohort-sidebar-width: minmax(300px, 360px);
+    --cohort-radius: 14px;
+    --cohort-radius-sm: 9px;
+    --cohort-divider: 1px solid var(--color-border);
+
     width: 100%;
 }
