@@ -32,7 +32,7 @@ export function SocialLanding({ message }: Props) {
                     onBack={message.actions.backToLanding}
                     onDraftChange={(value) => message.actions.setDraft(message.communityChat.id, value)}
                     onScrollChange={(scrollTop) => message.actions.setConversationScroll(message.communityChat.id, scrollTop)}
-                    onSend={() => message.actions.sendCommunityMessage(message.communityChat.id)}
+                    onSend={() => message.actions.sendCommunityMessage(message.communityChat.id)} onReaction={(messageId, emoji) => message.actions.toggleCommunityReaction(message.communityChat.id, messageId, emoji)}
                     onUpload={(file, kind) => message.actions.uploadCommunityAttachment(message.communityChat.id, file, kind)}
                 />
             )}

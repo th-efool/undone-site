@@ -71,4 +71,4 @@
     font-size: 13px;
     font-weight: 600;
     font-family: inherit;
-}
+}.clear{width:30px;height:30px;border:0;border-radius:999px;background:#eef1f8;display:grid;place-items:center;cursor:pointer;color:#4b587c}.clear:hover{background:#e4e7f0}

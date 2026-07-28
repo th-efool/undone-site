@@ -22,3 +22,5 @@
         order: 1;
     }
 }
+.emptyState{border:1px dashed var(--color-border);border-radius:18px;padding:22px;text-align:center;color:var(--color-text-secondary);font-weight:750;background:#fff}
+.home{gap:20px;padding-top:18px;padding-bottom:28px}.searchBar{margin-bottom:2px}

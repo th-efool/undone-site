@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Search, X } from "lucide-react";
 
 import styles from "./SearchBar.module.css";
 
@@ -10,6 +10,7 @@ export interface SearchBarProps {
 
     onChange?(value: string): void;
     onSubmit?(): void;
+    onClear?(): void;
 
     className?: string;
 }
@@ -20,6 +21,7 @@ export function SearchBar({
                               onChange,
                               onSubmit,
                               className,
+                              onClear,
                           }: SearchBarProps) {
     return (
         <form
@@ -43,11 +45,12 @@ export function SearchBar({
                 onChange={(event) =>
                     onChange?.(event.target.value)
                 }
+                onKeyDown={(event) => { if (event.key === "Escape") { event.preventDefault(); onChange?.(""); onClear?.(); } }}
             />
 
-            <kbd className={styles.shortcut}>
+            {value ? <button type="button" className={styles.clear} aria-label="Clear search" onClick={() => { onChange?.(""); onClear?.(); }}><X size={15}/></button> : <kbd className={styles.shortcut}>
                 ⌘ K
-            </kbd>
+            </kbd>}
         </form>
     );
 }

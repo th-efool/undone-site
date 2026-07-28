@@ -9,11 +9,13 @@ interface Props {
     messages: CommunityMessage[];
     scrollTop: number;
     onScrollChange(scrollTop: number): void;
+    onReaction(messageId: string, emoji: string): void;
 }
 
-export function MessageTimeline({ messages, scrollTop, onScrollChange }: Props) {
+export function MessageTimeline({ messages, scrollTop, onScrollChange, onReaction }: Props) {
     const viewportRef = useRef<HTMLElement>(null);
     const previousCountRef = useRef(0);
+    const wasNearBottomRef = useRef(true);
 
     useEffect(() => {
         const viewport = viewportRef.current;
@@ -24,7 +26,7 @@ export function MessageTimeline({ messages, scrollTop, onScrollChange }: Props) 
     useEffect(() => {
         const viewport = viewportRef.current;
         if (!viewport) return;
-        if (previousCountRef.current && messages.length > previousCountRef.current) {
+        if (previousCountRef.current && messages.length > previousCountRef.current && wasNearBottomRef.current) {
             viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
         }
         previousCountRef.current = messages.length;
@@ -34,9 +36,9 @@ export function MessageTimeline({ messages, scrollTop, onScrollChange }: Props) 
         <section
             ref={viewportRef}
             className={styles.timeline}
-            onScroll={(event) => onScrollChange(event.currentTarget.scrollTop)}
+            onScroll={(event) => { const el = event.currentTarget; wasNearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 140; onScrollChange(el.scrollTop); }}
         >
-            {messages.length ? messages.map((message) => <MessageBubble key={message.id} message={message} />) : <EmptyState title="No messages yet" message="Start the first SideQuestHQ learning checkpoint here." />}
+            {messages.length ? messages.map((message) => <MessageBubble key={message.id} message={message} onReaction={onReaction} />) : <EmptyState title="No messages yet" message="Start the first SideQuestHQ learning checkpoint here." />}
         </section>
     );
 }

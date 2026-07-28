@@ -78,6 +78,7 @@ export type ChatAttachmentKind = "image" | "pdf" | "file" | "video" | "audio";
 export interface ChatReaction {
     emoji: string;
     count: number;
+    reactedByMe?: boolean;
 }
 
 export interface ChatAttachment {

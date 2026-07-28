@@ -216,6 +216,24 @@ export function useMessage() {
         setDrafts((current) => ({ ...current, [conversationId]: "" }));
     }, [drafts]);
 
+
+    const toggleCommunityReaction = useCallback((conversationId: string, messageId: string, emoji: string) => {
+        const base = mapCohortToCommunity(conversationId).messages;
+        setCommunityMessages((current) => ({
+            ...current,
+            [conversationId]: (current[conversationId] ?? base).map((message) => {
+                if (message.id !== messageId) return message;
+                const reactions = message.reactions ?? [];
+                const existing = reactions.find((reaction) => reaction.emoji === emoji);
+                if (!existing) return { ...message, reactions: [...reactions, { emoji, count: 1, reactedByMe: true }] };
+                const next = existing.reactedByMe
+                    ? { ...existing, count: Math.max(0, existing.count - 1), reactedByMe: false }
+                    : { ...existing, count: existing.count + 1, reactedByMe: true };
+                return { ...message, reactions: reactions.map((reaction) => reaction.emoji === emoji ? next : reaction).filter((reaction) => reaction.count > 0) };
+            }),
+        }));
+    }, []);
+
     const uploadCommunityAttachment = useCallback((conversationId: string, file: File, kind: ChatAttachmentKind) => {
         const base = mapCohortToCommunity(conversationId).messages;
         const message: CommunityMessage = { id: `${conversationId}-upload-${Date.now()}`, author: me, badge: "You", timestamp: `Today at ${nowLabel()}`, body: kind === "image" ? "Uploaded an image." : `Uploaded ${file.name}.`, attachment: mockAttachment(`${conversationId}-${file.name}`, file.name, kind) };
@@ -286,6 +304,7 @@ export function useMessage() {
             sendCommunityMessage,
             sendDMMessage,
             uploadCommunityAttachment,
+            toggleCommunityReaction,
             uploadDMAttachment,
         },
     };

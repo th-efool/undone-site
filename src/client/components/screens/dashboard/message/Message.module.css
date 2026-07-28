@@ -53,3 +53,4 @@
     outline: 3px solid rgb(var(--color-brand-rgb) / 22%);
     outline-offset: 2px;
 }
+.message{font-size:.94rem}
