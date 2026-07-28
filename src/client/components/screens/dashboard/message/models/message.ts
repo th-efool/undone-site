@@ -73,7 +73,7 @@ export interface MessageMock {
 }
 
 export type MessageView = "landing" | "community" | "dm";
-export type ChatAttachmentKind = "image" | "pdf";
+export type ChatAttachmentKind = "image" | "pdf" | "file" | "video" | "audio";
 
 export interface ChatReaction {
     emoji: string;
@@ -179,6 +179,8 @@ export interface DMMessage {
     tail?: boolean;
     showAvatar?: boolean;
     dateLabel?: string;
+    attachment?: ChatAttachment;
+    replyTo?: string;
 }
 
 export interface DMResource {

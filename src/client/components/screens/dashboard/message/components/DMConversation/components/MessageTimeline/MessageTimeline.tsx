@@ -14,12 +14,22 @@ interface Props {
 
 export function MessageTimeline({ conversation, scrollTop, onScrollChange }: Props) {
     const viewportRef = useRef<HTMLElement>(null);
+    const previousCountRef = useRef(0);
 
     useEffect(() => {
         const viewport = viewportRef.current;
         if (!viewport) return;
         viewport.scrollTop = scrollTop;
     }, [scrollTop]);
+
+    useEffect(() => {
+        const viewport = viewportRef.current;
+        if (!viewport) return;
+        if (previousCountRef.current && conversation.messages.length > previousCountRef.current) {
+            viewport.scrollTo({ top: viewport.scrollHeight, behavior: "smooth" });
+        }
+        previousCountRef.current = conversation.messages.length;
+    }, [conversation.messages.length]);
 
     return (
         <section

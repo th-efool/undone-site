@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { conversationFilters, sidebarTabs } from "../constants";
 import { messagesRepository } from "@/src/client/repositories/messagesRepository";
-import { CommunityMessage, ConversationFilter, ConversationPreview, DMConversationModel, DMMessage, MessageView, SidebarTab } from "../models";
+import { ChatAttachmentKind, CommunityMessage, ConversationFilter, ConversationPreview, DMConversationModel, DMMessage, MessageView, SidebarTab } from "../models";
 import { getMessageCohorts, mapCohortToCommunity, mapCohortToConversation, mapCohortToLiveSession, mapCohortToRecentMessage, mapCohortToUpcomingEvent } from "../utils";
 
 const me = { id: "me", name: "You", avatar: "/images/logos/floating-logo.webp", online: true };
@@ -32,26 +32,82 @@ function readRecord<T>(key: string): Record<string, T> {
     }
 }
 
+function mockAttachment(id: string, fileName: string, kind: ChatAttachmentKind) {
+    return {
+        id,
+        kind,
+        title: fileName,
+        url: kind === "image" ? "/images/landing/screen.webp" : undefined,
+        meta: kind === "image" ? "Mock upload · image" : `Mock upload · ${fileName.split(".").pop()?.toUpperCase() ?? "FILE"}`,
+    };
+}
+
+const dmScripts: Record<string, Partial<DMConversationModel> & { messages: DMMessage[] }> = {
+    "aarav-mehta": { messages: [
+        { id: "aarav-1", type: "incoming", text: "Still pairing on the eval harness tonight?", timestamp: "Mon 7:42 PM", showAvatar: true, tail: true, dateLabel: "Monday" },
+        { id: "aarav-2", type: "outgoing", text: "Yes. I cleaned up the fixtures and added two edge cases.", timestamp: "Mon 7:49 PM", status: "read", tail: true },
+        { id: "aarav-3", type: "incoming", text: "Perfect. I’ll bring the failing trace. It only breaks when the prompt has a table.", timestamp: "Mon 8:03 PM", showAvatar: true, tail: true, reactions: [{ emoji: "👀", count: 1 }] },
+        { id: "aarav-4", type: "outgoing", text: "Drop it here when you can.", timestamp: "Today 10:18 AM", status: "read", dateLabel: "Today", tail: true },
+        { id: "aarav-5", type: "incoming", text: "Here you go — tiny but annoying bug.", timestamp: "10:22 AM", showAvatar: true, tail: true, attachment: mockAttachment("aarav-pdf", "eval_trace_notes.pdf", "pdf") },
+    ] },
+    "vanshika-iyer": { messages: [
+        { id: "v-1", type: "incoming", text: "Your dashboard critique was SO helpful 🙌", timestamp: "Yesterday 4:13 PM", showAvatar: true, tail: true, dateLabel: "Yesterday", reactions: [{ emoji: "🙌", count: 2 }] },
+        { id: "v-2", type: "outgoing", text: "The story was already there. You just needed fewer colors.", timestamp: "4:16 PM", status: "read", tail: true },
+        { id: "v-3", type: "incoming", text: "I tried your annotation idea. Screenshot attached.", timestamp: "4:22 PM", showAvatar: true, tail: true, attachment: mockAttachment("v-shot", "retention_dashboard_v2.png", "image") },
+    ] },
+    "rohan-gupta": { messages: [
+        { id: "r-1", type: "incoming", text: "I made a one-pager for fanout tradeoffs.", timestamp: "Fri 3:04 PM", showAvatar: true, tail: true, dateLabel: "Friday" },
+        { id: "r-2", type: "incoming", text: "Would you sanity-check the capacity math?", timestamp: "3:05 PM", tail: true, attachment: mockAttachment("r-pdf", "chat_system_capacity.pdf", "pdf") },
+        { id: "r-3", type: "outgoing", text: "Reading now. First note: call out hot celebrity accounts separately.", timestamp: "3:18 PM", status: "delivered", tail: true, replyTo: "capacity math" },
+        { id: "r-4", type: "incoming", text: "Good catch. Added a separate write-amplification section.", timestamp: "3:45 PM", showAvatar: true, tail: true },
+    ] },
+    "samiksha-sharma": { messages: [
+        { id: "s-1", type: "incoming", text: "Tomorrow still works for the short film prompt jam?", timestamp: "Today 1:12 PM", showAvatar: true, tail: true, dateLabel: "Today" },
+        { id: "s-2", type: "outgoing", text: "Yep. I can do 11:30. Bring the rain-city concept.", timestamp: "1:15 PM", status: "sent", tail: true },
+    ] },
+    "arjun-nair": { messages: [
+        { id: "a-1", type: "incoming", text: "Fixed the broken link in the JS sandbox.", timestamp: "11:58 AM", showAvatar: true, tail: true, dateLabel: "Today" },
+        { id: "a-2", type: "outgoing", text: "Got it, thanks!", timestamp: "12:05 PM", status: "read", tail: true, reactions: [{ emoji: "✅", count: 1 }] },
+    ] },
+    "ai-filmmaking-team": { messages: [
+        { id: "film-1", type: "incoming", text: "Team drop: three reference frames for tonight.", timestamp: "Yesterday 6:10 PM", showAvatar: true, dateLabel: "Yesterday", tail: true, attachment: mockAttachment("film-img", "neon_alley_reference.jpg", "image") },
+        { id: "film-2", type: "incoming", text: "Also uploading the temp VO.", timestamp: "6:12 PM", tail: true, attachment: mockAttachment("film-audio", "scratch_voiceover.mp3", "audio") },
+        { id: "film-3", type: "outgoing", text: "The second frame has the best mood. Use that palette.", timestamp: "6:40 PM", status: "read", tail: true },
+        { id: "film-4", type: "incoming", text: "Agreed. Rendering a 5 sec motion test now 🔥", timestamp: "7:02 PM", showAvatar: true, tail: true },
+    ] },
+    "yash-patil": { messages: [
+        { id: "y-1", type: "incoming", text: "Booked the study room for Saturday.", timestamp: "Yesterday 9:02 AM", showAvatar: true, tail: true, dateLabel: "Yesterday" },
+        { id: "y-2", type: "outgoing", text: "Nice. Send location?", timestamp: "9:07 AM", status: "read", tail: true },
+        { id: "y-3", type: "incoming", text: "https://maps.example.com/sidequest-room-b", timestamp: "9:08 AM", showAvatar: true, tail: true },
+        { id: "y-4", type: "incoming", text: "See you there", timestamp: "9:09 AM", tail: true },
+    ] },
+    "design-thinkers": { messages: [
+        { id: "dt-1", type: "incoming", text: "Ananya: Uploaded the interview notes from all five users.", timestamp: "Wed 5:14 PM", showAvatar: true, tail: true, dateLabel: "Wednesday", attachment: mockAttachment("dt-file", "user_interview_notes.docx", "file") },
+        { id: "dt-2", type: "outgoing", text: "Skimmed them. Pattern is clear: onboarding asks too much too soon.", timestamp: "5:48 PM", status: "delivered", tail: true },
+        { id: "dt-3", type: "incoming", text: "Maya: I’ll prototype a shorter first-run flow.", timestamp: "6:02 PM", showAvatar: true, tail: true, reactions: [{ emoji: "💡", count: 3 }] },
+    ] },
+};
+
 function makeDMConversation(conversation?: ConversationPreview): DMConversationModel {
-    if (!conversation) return messagesRepository.getDMConversation();
+    const base = messagesRepository.getDMConversation();
+    if (!conversation) return { ...base, ...dmScripts[base.id] };
+    const scripted = dmScripts[conversation.id];
 
     return {
-        ...messagesRepository.getDMConversation(),
+        ...base,
+        ...scripted,
         id: conversation.id,
         user: {
-            ...messagesRepository.getDMConversation().user,
+            ...base.user,
             id: conversation.id,
             name: conversation.name,
             avatar: conversation.avatar,
             role: conversation.sender || "SideQuestHQ learner",
-            company: conversation.kind === "dm" ? "Learning Circle" : messagesRepository.getDMConversation().user.company,
-            bio: `Learning partner for ${conversation.preview.toLowerCase()}`,
+            company: conversation.id.includes("team") || conversation.id.includes("thinkers") ? "Group DM" : "Learning Circle",
+            bio: `Learning partner. Last note: ${conversation.preview.toLowerCase()}`,
         },
-        messages: [
-            { id: `${conversation.id}-d1`, type: "incoming", text: conversation.preview, timestamp: conversation.timestamp, showAvatar: true, tail: true, dateLabel: "Today" },
-            { id: `${conversation.id}-d2`, type: "outgoing", text: "Got it — I’ll follow up after my next session.", timestamp: "5:33 PM", status: "read", tail: true },
-            { id: `${conversation.id}-d3`, type: "incoming", text: "Perfect. I’ll keep the resources ready here.", timestamp: "5:36 PM", showAvatar: true, tail: true },
-        ],
+        messages: scripted?.messages ?? base.messages,
+        resources: base.resources.map((resource, index) => ({ ...resource, count: resource.count + (conversation.id.length % (index + 3)) })),
     };
 }
 
@@ -160,6 +216,12 @@ export function useMessage() {
         setDrafts((current) => ({ ...current, [conversationId]: "" }));
     }, [drafts]);
 
+    const uploadCommunityAttachment = useCallback((conversationId: string, file: File, kind: ChatAttachmentKind) => {
+        const base = mapCohortToCommunity(conversationId).messages;
+        const message: CommunityMessage = { id: `${conversationId}-upload-${Date.now()}`, author: me, badge: "You", timestamp: `Today at ${nowLabel()}`, body: kind === "image" ? "Uploaded an image." : `Uploaded ${file.name}.`, attachment: mockAttachment(`${conversationId}-${file.name}`, file.name, kind) };
+        setCommunityMessages((current) => ({ ...current, [conversationId]: [...(current[conversationId] ?? base), message] }));
+    }, []);
+
     const sendDMMessage = useCallback((conversationId: string) => {
         const draft = drafts[conversationId]?.trim();
         if (!draft) return;
@@ -177,6 +239,12 @@ export function useMessage() {
         setDMMessages((current) => ({ ...current, [conversationId]: [...(current[conversationId] ?? base), message] }));
         setDrafts((current) => ({ ...current, [conversationId]: "" }));
     }, [dmConversations, drafts]);
+
+    const uploadDMAttachment = useCallback((conversationId: string, file: File, kind: ChatAttachmentKind) => {
+        const base = makeDMConversation(dmConversations.find((item) => item.id === conversationId)).messages;
+        const message: DMMessage = { id: `${conversationId}-upload-${Date.now()}`, type: "outgoing", text: kind === "image" ? "" : `Uploaded ${file.name}.`, timestamp: nowLabel(), status: "sent", tail: true, attachment: mockAttachment(`${conversationId}-${file.name}`, file.name, kind) };
+        setDMMessages((current) => ({ ...current, [conversationId]: [...(current[conversationId] ?? base), message] }));
+    }, [dmConversations]);
 
     return {
         view: selectedView,
@@ -217,6 +285,8 @@ export function useMessage() {
             setDraft,
             sendCommunityMessage,
             sendDMMessage,
+            uploadCommunityAttachment,
+            uploadDMAttachment,
         },
     };
 }

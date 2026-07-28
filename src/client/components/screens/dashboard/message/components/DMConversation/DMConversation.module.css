@@ -1,3 +1,3 @@
-.dm{display:flex;flex:1;min-width:0;min-height:100vh;background:linear-gradient(180deg,#fff 0%,var(--color-brand-subtle) 100%)}.main{display:flex;flex:1;min-width:0;max-height:100vh;flex-direction:column;background:#fff}
+.dm{display:flex;flex:1;min-width:0;height:100vh;min-height:0;background:linear-gradient(180deg,#fff 0%,var(--color-brand-subtle) 100%)}.main{display:flex;flex:1;min-width:0;height:100vh;min-height:0;overflow:hidden;flex-direction:column;background:#fff}
 @media(max-width:1180px){.dm{min-width:760px}.dm>aside{display:none}}
-@media(max-width:760px){.dm{min-width:0;min-height:100vh}.main{max-height:none;min-height:100vh}}
+@media(max-width:760px){.dm{min-width:0;height:100vh;min-height:0}.main{max-height:none;height:100vh;min-height:0}}
