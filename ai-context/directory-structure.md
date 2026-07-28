@@ -617,6 +617,17 @@
 │   │   │   │   │   │   ├── Message.tsx
 │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   ├── notes/
+│   │   │   │   │   │   ├── adapters/
+│   │   │   │   │   │   │   └── notes.adapter.ts
+│   │   │   │   │   │   ├── hooks/
+│   │   │   │   │   │   │   └── useNotes.ts
+│   │   │   │   │   │   ├── mock/
+│   │   │   │   │   │   │   └── notes.seed.ts
+│   │   │   │   │   │   ├── models/
+│   │   │   │   │   │   │   └── notes.models.ts
+│   │   │   │   │   │   ├── repositories/
+│   │   │   │   │   │   │   └── notes.repository.ts
+│   │   │   │   │   │   ├── Notes.module.css
 │   │   │   │   │   │   ├── Notes.tsx
 │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   └── play/
@@ -798,4 +809,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-239 directories, 558 files
+244 directories, 564 files
