@@ -564,7 +564,7 @@ export const exploreMock: ExploreModel = {
 
             author: "Vanshika Iyer",
 
-            thumbnail: "/mock/articles/space.webp",
+            thumbnail: "/mock/thumbnails/space.jpeg",
 
             learnerCount: "2.7K learners",
 
