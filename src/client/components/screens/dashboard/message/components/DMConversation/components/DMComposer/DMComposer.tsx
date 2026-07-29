@@ -1,15 +1,1 @@
-import { FormEvent, useRef, useState } from "react";
-import { Image as ImageIcon, Send, Plus, Smile } from "lucide-react";
-import { PillInput } from "@/src/client/components/global/PillInput";
-import styles from "./DMComposer.module.css";
-
-interface Props { value: string; onChange(value: string): void; onSend(): void; onUpload(file: File, kind: "image" | "pdf" | "file" | "video" | "audio"): void; }
-const emojis = ["😀", "😂", "😍", "🔥", "🚀", "👏", "🙌", "✅", "💡", "📌", "🙏", "🎉"];
-export function DMComposer({ value, onChange, onSend, onUpload }: Props) {
-    const [menuOpen, setMenuOpen] = useState(false); const [emojiOpen, setEmojiOpen] = useState(false); const [uploadKind, setUploadKind] = useState<"pdf" | "file" | "video" | "audio">("file");
-    const inputRef = useRef<HTMLInputElement>(null); const fileRef = useRef<HTMLInputElement>(null); const imageRef = useRef<HTMLInputElement>(null);
-    const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); onSend(); };
-    const insertEmoji = (emoji: string) => { const input = inputRef.current; const start = input?.selectionStart ?? value.length; const end = input?.selectionEnd ?? value.length; const next = `${value.slice(0, start)}${emoji}${value.slice(end)}`; onChange(next); setEmojiOpen(false); requestAnimationFrame(() => { input?.focus(); input?.setSelectionRange(start + emoji.length, start + emoji.length); }); };
-    const pickFile = (kind: typeof uploadKind) => { setUploadKind(kind); setMenuOpen(false); requestAnimationFrame(() => fileRef.current?.click()); };
-    return <form className={styles.composer} onSubmit={submit}><div className={styles.toolWrap}><button type="button" className={styles.plus} aria-label="Add attachment" onClick={() => setMenuOpen((open) => !open)}><Plus size={22}/></button>{menuOpen && <div className={styles.menu}><button type="button" onClick={() => pickFile("file")}>Upload File</button><button type="button" onClick={() => imageRef.current?.click()}>Upload Image</button><button type="button" onClick={() => pickFile("video")}>Upload Video</button><button type="button" onClick={() => pickFile("audio")}>Upload Audio</button></div>}</div><input ref={fileRef} hidden type="file" accept={uploadKind === "video" ? "video/*" : uploadKind === "audio" ? "audio/*" : undefined} onChange={(e) => { const file = e.target.files?.[0]; if (file) onUpload(file, uploadKind); e.currentTarget.value = ""; }}/><input ref={imageRef} hidden type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) onUpload(file, "image"); e.currentTarget.value = ""; }}/><PillInput ref={inputRef} className={styles.input} placeholder="Type a message..." value={value} onChange={(event) => onChange(event.target.value)} rightSlot={<><div className={styles.toolWrap}><button type="button" aria-label="Add emoji" onClick={() => setEmojiOpen((open) => !open)}><Smile size={22}/></button>{emojiOpen && <div className={styles.emoji}>{emojis.map((emoji) => <button key={emoji} type="button" onClick={() => insertEmoji(emoji)}>{emoji}</button>)}</div>}</div><button type="button" aria-label="Add image" onClick={() => imageRef.current?.click()}><ImageIcon size={20}/></button><button type="submit" aria-label="Send message"><Send size={21}/></button></>}/></form>;
-}
+export { DMComposer } from "../../../MessageComposer/composers/DMComposer";
