@@ -666,6 +666,13 @@
 │   │   │   │   │   │   │   │   │   └── SidebarHeader.tsx
 │   │   │   │   │   │   │   │   ├── LeftSidebar.module.css
 │   │   │   │   │   │   │   │   └── LeftSidebar.tsx
+│   │   │   │   │   │   │   ├── MessageComposer/
+│   │   │   │   │   │   │   │   ├── composers/
+│   │   │   │   │   │   │   │   │   ├── CommunityComposer.tsx
+│   │   │   │   │   │   │   │   │   ├── DMComposer.module.css
+│   │   │   │   │   │   │   │   │   └── DMComposer.tsx
+│   │   │   │   │   │   │   │   ├── MessageComposer.module.css
+│   │   │   │   │   │   │   │   └── MessageComposer.tsx
 │   │   │   │   │   │   │   ├── RightSidebar/
 │   │   │   │   │   │   │   │   ├── DailyChallenge/
 │   │   │   │   │   │   │   │   │   ├── DailyChallenge.module.css
@@ -722,6 +729,8 @@
 │   │   │   │   │   ├── notes/
 │   │   │   │   │   │   ├── adapters/
 │   │   │   │   │   │   │   └── notes.adapter.ts
+│   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   └── NotesComponents.tsx
 │   │   │   │   │   │   ├── hooks/
 │   │   │   │   │   │   │   └── useNotes.ts
 │   │   │   │   │   │   ├── mock/
@@ -912,4 +921,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-296 directories, 615 files
+299 directories, 621 files
