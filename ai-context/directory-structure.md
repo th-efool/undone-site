@@ -3,7 +3,7 @@
 ./
 ├── .github/
 │   └── workflows/
-│   └── update-directory-structure.yml
+│       └── update-directory-structure.yml
 ├── ai-context/
 │   ├── design-css-tokens.md
 │   ├── directory-structure.md
@@ -69,28 +69,28 @@
 │   │   │   ├── d.webp
 │   │   │   └── e.webp
 │   │   └── thumbnails/
-│   │   ├── 100dcode.jpg
-│   │   ├── civilization.jpeg
-│   │   ├── content-bottle.webp
-│   │   ├── data-science.avif
-│   │   ├── data-storytelling.jpg
-│   │   ├── deep-work-m.png
-│   │   ├── deep-work.webp
-│   │   ├── docker.avif
-│   │   ├── doubling.webp
-│   │   ├── german.webp
-│   │   ├── history-psych.jpg
-│   │   ├── japanese.webp
-│   │   ├── javascript.jpeg
-│   │   ├── machine-learning.avif
-│   │   ├── philosophy.jpg
-│   │   ├── react.webp
-│   │   ├── reader.webp
-│   │   ├── reading.webp
-│   │   ├── reflections.jpeg
-│   │   ├── space.jpeg
-│   │   ├── system-design.jpeg
-│   │   └── ui-fundamentals.webp
+│   │       ├── 100dcode.jpg
+│   │       ├── civilization.jpeg
+│   │       ├── content-bottle.webp
+│   │       ├── data-science.avif
+│   │       ├── data-storytelling.jpg
+│   │       ├── deep-work-m.png
+│   │       ├── deep-work.webp
+│   │       ├── docker.avif
+│   │       ├── doubling.webp
+│   │       ├── german.webp
+│   │       ├── history-psych.jpg
+│   │       ├── japanese.webp
+│   │       ├── javascript.jpeg
+│   │       ├── machine-learning.avif
+│   │       ├── philosophy.jpg
+│   │       ├── react.webp
+│   │       ├── reader.webp
+│   │       ├── reading.webp
+│   │       ├── reflections.jpeg
+│   │       ├── space.jpeg
+│   │       ├── system-design.jpeg
+│   │       └── ui-fundamentals.webp
 │   ├── mockups/
 │   │   └── dashboard-microlearning.png
 │   ├── videos/
@@ -112,7 +112,7 @@
 │   ├── app/
 │   │   ├── (auth)/
 │   │   │   └── auth/
-│   │   │   └── page.tsx
+│   │   │       └── page.tsx
 │   │   ├── (dashboard)/
 │   │   │   ├── cohort/
 │   │   │   │   ├── [cohortId]/
@@ -250,8 +250,8 @@
 │   │   │   │   │   │   │   ├── CohortNavigation.module.css
 │   │   │   │   │   │   │   └── CohortNavigation.tsx
 │   │   │   │   │   │   └── ProgressSidebar/
-│   │   │   │   │   │   ├── ProgressSidebar.module.css
-│   │   │   │   │   │   └── ProgressSidebar.tsx
+│   │   │   │   │   │       ├── ProgressSidebar.module.css
+│   │   │   │   │   │       └── ProgressSidebar.tsx
 │   │   │   │   │   ├── hooks/
 │   │   │   │   │   │   ├── index.ts
 │   │   │   │   │   │   ├── useArchives.ts
@@ -300,7 +300,7 @@
 │   │   │   │   │   │   │   │   ├── SortingControls/
 │   │   │   │   │   │   │   │   │   └── SortingControls.tsx
 │   │   │   │   │   │   │   │   └── TrendingCard/
-│   │   │   │   │   │   │   │   └── TrendingCard.tsx
+│   │   │   │   │   │   │   │       └── TrendingCard.tsx
 │   │   │   │   │   │   │   ├── Archives.module.css
 │   │   │   │   │   │   │   └── Archives.tsx
 │   │   │   │   │   │   ├── events/
@@ -334,7 +334,7 @@
 │   │   │   │   │   │   │   │   ├── SuggestEvent/
 │   │   │   │   │   │   │   │   │   └── SuggestEvent.tsx
 │   │   │   │   │   │   │   │   └── ThisWeek/
-│   │   │   │   │   │   │   │   └── ThisWeek.tsx
+│   │   │   │   │   │   │   │       └── ThisWeek.tsx
 │   │   │   │   │   │   │   ├── Events.module.css
 │   │   │   │   │   │   │   └── Events.tsx
 │   │   │   │   │   │   ├── hallOfFame/
@@ -374,7 +374,7 @@
 │   │   │   │   │   │   │   │   ├── SideCard/
 │   │   │   │   │   │   │   │   │   └── SideCard.tsx
 │   │   │   │   │   │   │   │   └── TimeRangeDropdown/
-│   │   │   │   │   │   │   │   └── TimeRangeDropdown.tsx
+│   │   │   │   │   │   │   │       └── TimeRangeDropdown.tsx
 │   │   │   │   │   │   │   ├── HallOfFame.module.css
 │   │   │   │   │   │   │   └── HallOfFame.tsx
 │   │   │   │   │   │   ├── overview/
@@ -400,52 +400,52 @@
 │   │   │   │   │   │   │   │   ├── OverviewIcon/
 │   │   │   │   │   │   │   │   │   └── OverviewIcon.tsx
 │   │   │   │   │   │   │   │   └── QuestGuideCard/
-│   │   │   │   │   │   │   │   ├── QuestGuideCard.module.css
-│   │   │   │   │   │   │   │   └── QuestGuideCard.tsx
+│   │   │   │   │   │   │   │       ├── QuestGuideCard.module.css
+│   │   │   │   │   │   │   │       └── QuestGuideCard.tsx
 │   │   │   │   │   │   │   ├── Overview.module.css
 │   │   │   │   │   │   │   └── Overview.tsx
 │   │   │   │   │   │   └── questline/
-│   │   │   │   │   │   ├── components/
-│   │   │   │   │   │   │   ├── AssignmentsProjectsFeed/
-│   │   │   │   │   │   │   │   ├── AssignmentsProjectsFeed.module.css
-│   │   │   │   │   │   │   │   └── AssignmentsProjectsFeed.tsx
-│   │   │   │   │   │   │   ├── FeedCard/
-│   │   │   │   │   │   │   │   ├── FeedCard.module.css
-│   │   │   │   │   │   │   │   └── FeedCard.tsx
-│   │   │   │   │   │   │   ├── LessonList/
-│   │   │   │   │   │   │   │   ├── LessonList.module.css
-│   │   │   │   │   │   │   │   └── LessonList.tsx
-│   │   │   │   │   │   │   ├── LessonRow/
-│   │   │   │   │   │   │   │   ├── LessonRow.module.css
-│   │   │   │   │   │   │   │   └── LessonRow.tsx
-│   │   │   │   │   │   │   ├── LessonStatusBadge/
-│   │   │   │   │   │   │   │   ├── LessonStatusBadge.module.css
-│   │   │   │   │   │   │   │   └── LessonStatusBadge.tsx
-│   │   │   │   │   │   │   ├── LessonTypeBadge/
-│   │   │   │   │   │   │   │   ├── LessonTypeBadge.module.css
-│   │   │   │   │   │   │   │   └── LessonTypeBadge.tsx
-│   │   │   │   │   │   │   ├── LockedFutureNotice/
-│   │   │   │   │   │   │   │   ├── LockedFutureNotice.module.css
-│   │   │   │   │   │   │   │   └── LockedFutureNotice.tsx
-│   │   │   │   │   │   │   ├── QuestlineFilters/
-│   │   │   │   │   │   │   │   ├── QuestlineFilters.module.css
-│   │   │   │   │   │   │   │   └── QuestlineFilters.tsx
-│   │   │   │   │   │   │   ├── QuestlineIcon/
-│   │   │   │   │   │   │   │   └── QuestlineIcon.tsx
-│   │   │   │   │   │   │   ├── SeasonCard/
-│   │   │   │   │   │   │   │   ├── SeasonCard.module.css
-│   │   │   │   │   │   │   │   └── SeasonCard.tsx
-│   │   │   │   │   │   │   ├── SeasonSummary/
-│   │   │   │   │   │   │   │   ├── SeasonSummary.module.css
-│   │   │   │   │   │   │   │   └── SeasonSummary.tsx
-│   │   │   │   │   │   │   ├── SeasonTimeline/
-│   │   │   │   │   │   │   │   ├── SeasonTimeline.module.css
-│   │   │   │   │   │   │   │   └── SeasonTimeline.tsx
-│   │   │   │   │   │   │   └── SkipSeasonDropdown/
-│   │   │   │   │   │   │   ├── SkipSeasonDropdown.module.css
-│   │   │   │   │   │   │   └── SkipSeasonDropdown.tsx
-│   │   │   │   │   │   ├── Questline.module.css
-│   │   │   │   │   │   └── Questline.tsx
+│   │   │   │   │   │       ├── components/
+│   │   │   │   │   │       │   ├── AssignmentsProjectsFeed/
+│   │   │   │   │   │       │   │   ├── AssignmentsProjectsFeed.module.css
+│   │   │   │   │   │       │   │   └── AssignmentsProjectsFeed.tsx
+│   │   │   │   │   │       │   ├── FeedCard/
+│   │   │   │   │   │       │   │   ├── FeedCard.module.css
+│   │   │   │   │   │       │   │   └── FeedCard.tsx
+│   │   │   │   │   │       │   ├── LessonList/
+│   │   │   │   │   │       │   │   ├── LessonList.module.css
+│   │   │   │   │   │       │   │   └── LessonList.tsx
+│   │   │   │   │   │       │   ├── LessonRow/
+│   │   │   │   │   │       │   │   ├── LessonRow.module.css
+│   │   │   │   │   │       │   │   └── LessonRow.tsx
+│   │   │   │   │   │       │   ├── LessonStatusBadge/
+│   │   │   │   │   │       │   │   ├── LessonStatusBadge.module.css
+│   │   │   │   │   │       │   │   └── LessonStatusBadge.tsx
+│   │   │   │   │   │       │   ├── LessonTypeBadge/
+│   │   │   │   │   │       │   │   ├── LessonTypeBadge.module.css
+│   │   │   │   │   │       │   │   └── LessonTypeBadge.tsx
+│   │   │   │   │   │       │   ├── LockedFutureNotice/
+│   │   │   │   │   │       │   │   ├── LockedFutureNotice.module.css
+│   │   │   │   │   │       │   │   └── LockedFutureNotice.tsx
+│   │   │   │   │   │       │   ├── QuestlineFilters/
+│   │   │   │   │   │       │   │   ├── QuestlineFilters.module.css
+│   │   │   │   │   │       │   │   └── QuestlineFilters.tsx
+│   │   │   │   │   │       │   ├── QuestlineIcon/
+│   │   │   │   │   │       │   │   └── QuestlineIcon.tsx
+│   │   │   │   │   │       │   ├── SeasonCard/
+│   │   │   │   │   │       │   │   ├── SeasonCard.module.css
+│   │   │   │   │   │       │   │   └── SeasonCard.tsx
+│   │   │   │   │   │       │   ├── SeasonSummary/
+│   │   │   │   │   │       │   │   ├── SeasonSummary.module.css
+│   │   │   │   │   │       │   │   └── SeasonSummary.tsx
+│   │   │   │   │   │       │   ├── SeasonTimeline/
+│   │   │   │   │   │       │   │   ├── SeasonTimeline.module.css
+│   │   │   │   │   │       │   │   └── SeasonTimeline.tsx
+│   │   │   │   │   │       │   └── SkipSeasonDropdown/
+│   │   │   │   │   │       │       ├── SkipSeasonDropdown.module.css
+│   │   │   │   │   │       │       └── SkipSeasonDropdown.tsx
+│   │   │   │   │   │       ├── Questline.module.css
+│   │   │   │   │   │       └── Questline.tsx
 │   │   │   │   │   ├── Cohort.module.css
 │   │   │   │   │   ├── Cohort.tsx
 │   │   │   │   │   └── index.ts
@@ -479,10 +479,10 @@
 │   │   │   │   │   │   │   │   ├── SectionHeader.module.css
 │   │   │   │   │   │   │   │   └── SectionHeader.tsx
 │   │   │   │   │   │   │   └── TrendingSideQuests/
-│   │   │   │   │   │   │   ├── SideQuestCard.module.css
-│   │   │   │   │   │   │   ├── SideQuestCard.tsx
-│   │   │   │   │   │   │   ├── TrendingSideQuests.module.css
-│   │   │   │   │   │   │   └── TrendingSideQuests.tsx
+│   │   │   │   │   │   │       ├── SideQuestCard.module.css
+│   │   │   │   │   │   │       ├── SideQuestCard.tsx
+│   │   │   │   │   │   │       ├── TrendingSideQuests.module.css
+│   │   │   │   │   │   │       └── TrendingSideQuests.tsx
 │   │   │   │   │   │   ├── hooks/
 │   │   │   │   │   │   │   └── useExplore.ts
 │   │   │   │   │   │   ├── mock/
@@ -526,8 +526,8 @@
 │   │   │   │   │   │   │   │   ├── SectionHeader.module.css
 │   │   │   │   │   │   │   │   └── SectionHeader.tsx
 │   │   │   │   │   │   │   └── SummaryCards/
-│   │   │   │   │   │   │   ├── SummaryCards.module.css
-│   │   │   │   │   │   │   └── SummaryCards.tsx
+│   │   │   │   │   │   │       ├── SummaryCards.module.css
+│   │   │   │   │   │   │       └── SummaryCards.tsx
 │   │   │   │   │   │   ├── hooks/
 │   │   │   │   │   │   │   └── useHome.ts
 │   │   │   │   │   │   ├── mock/
@@ -604,8 +604,8 @@
 │   │   │   │   │   │   │   │   │   │   ├── ReplyPreview.module.css
 │   │   │   │   │   │   │   │   │   │   └── ReplyPreview.tsx
 │   │   │   │   │   │   │   │   │   └── UpcomingEvents/
-│   │   │   │   │   │   │   │   │   ├── UpcomingEvents.module.css
-│   │   │   │   │   │   │   │   │   └── UpcomingEvents.tsx
+│   │   │   │   │   │   │   │   │       ├── UpcomingEvents.module.css
+│   │   │   │   │   │   │   │   │       └── UpcomingEvents.tsx
 │   │   │   │   │   │   │   │   ├── CommunityChat.module.css
 │   │   │   │   │   │   │   │   └── CommunityChat.tsx
 │   │   │   │   │   │   │   ├── DMConversation/
@@ -647,8 +647,8 @@
 │   │   │   │   │   │   │   │   │   │   ├── ResourceList.module.css
 │   │   │   │   │   │   │   │   │   │   └── ResourceList.tsx
 │   │   │   │   │   │   │   │   │   └── UserHero/
-│   │   │   │   │   │   │   │   │   ├── UserHero.module.css
-│   │   │   │   │   │   │   │   │   └── UserHero.tsx
+│   │   │   │   │   │   │   │   │       ├── UserHero.module.css
+│   │   │   │   │   │   │   │   │       └── UserHero.tsx
 │   │   │   │   │   │   │   │   ├── DMConversation.module.css
 │   │   │   │   │   │   │   │   └── DMConversation.tsx
 │   │   │   │   │   │   │   ├── LeftSidebar/
@@ -695,15 +695,15 @@
 │   │   │   │   │   │   │   │   ├── SocialLanding.module.css
 │   │   │   │   │   │   │   │   └── SocialLanding.tsx
 │   │   │   │   │   │   │   └── shared/
-│   │   │   │   │   │   │   ├── EmptyState/
-│   │   │   │   │   │   │   │   ├── EmptyState.module.css
-│   │   │   │   │   │   │   │   ├── EmptyState.tsx
-│   │   │   │   │   │   │   │   └── index.ts
-│   │   │   │   │   │   │   ├── Skeleton/
-│   │   │   │   │   │   │   │   ├── Skeleton.module.css
-│   │   │   │   │   │   │   │   ├── Skeleton.tsx
-│   │   │   │   │   │   │   │   └── index.ts
-│   │   │   │   │   │   │   └── index.ts
+│   │   │   │   │   │   │       ├── EmptyState/
+│   │   │   │   │   │   │       │   ├── EmptyState.module.css
+│   │   │   │   │   │   │       │   ├── EmptyState.tsx
+│   │   │   │   │   │   │       │   └── index.ts
+│   │   │   │   │   │   │       ├── Skeleton/
+│   │   │   │   │   │   │       │   ├── Skeleton.module.css
+│   │   │   │   │   │   │       │   ├── Skeleton.tsx
+│   │   │   │   │   │   │       │   └── index.ts
+│   │   │   │   │   │   │       └── index.ts
 │   │   │   │   │   │   ├── constants/
 │   │   │   │   │   │   │   ├── index.ts
 │   │   │   │   │   │   │   └── message.constants.ts
@@ -743,108 +743,108 @@
 │   │   │   │   │   │   ├── Notes.tsx
 │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   └── play/
-│   │   │   │   │   ├── components/
-│   │   │   │   │   │   ├── LearningTimeline/
-│   │   │   │   │   │   │   ├── LearningTimeline.module.css
-│   │   │   │   │   │   │   └── LearningTimeline.tsx
-│   │   │   │   │   │   ├── LessonCard/
-│   │   │   │   │   │   │   ├── LessonCard.module.css
-│   │   │   │   │   │   │   └── LessonCard.tsx
-│   │   │   │   │   │   ├── PlaybackControls/
-│   │   │   │   │   │   │   ├── PlaybackControls.module.css
-│   │   │   │   │   │   │   ├── PlaybackControls.tsx
-│   │   │   │   │   │   │   ├── VolumeControl.module.css
-│   │   │   │   │   │   │   └── VolumeControl.tsx
-│   │   │   │   │   │   ├── PlayerSurface/
-│   │   │   │   │   │   │   ├── PlayerSurface.module.css
-│   │   │   │   │   │   │   └── PlayerSurface.tsx
-│   │   │   │   │   │   ├── PlayerToolbar/
-│   │   │   │   │   │   │   ├── components/
-│   │   │   │   │   │   │   │   ├── BookmarkButton.tsx
-│   │   │   │   │   │   │   │   ├── CaptureButton.tsx
-│   │   │   │   │   │   │   │   ├── PlaybackSpeed.tsx
-│   │   │   │   │   │   │   │   ├── ScribeButton.tsx
-│   │   │   │   │   │   │   │   ├── ToolbarMenu.tsx
-│   │   │   │   │   │   │   │   └── index.ts
-│   │   │   │   │   │   │   ├── PlayerToolbar.module.css
-│   │   │   │   │   │   │   └── PlayerToolbar.tsx
-│   │   │   │   │   │   └── index.ts
-│   │   │   │   │   ├── hooks/
-│   │   │   │   │   │   └── usePlayback.ts
-│   │   │   │   │   ├── types/
-│   │   │   │   │   │   ├── play.mock.ts
-│   │   │   │   │   │   └── play.ts
-│   │   │   │   │   ├── Play.module.css
-│   │   │   │   │   ├── Play.tsx
-│   │   │   │   │   └── index.ts
+│   │   │   │   │       ├── components/
+│   │   │   │   │       │   ├── LearningTimeline/
+│   │   │   │   │       │   │   ├── LearningTimeline.module.css
+│   │   │   │   │       │   │   └── LearningTimeline.tsx
+│   │   │   │   │       │   ├── LessonCard/
+│   │   │   │   │       │   │   ├── LessonCard.module.css
+│   │   │   │   │       │   │   └── LessonCard.tsx
+│   │   │   │   │       │   ├── PlaybackControls/
+│   │   │   │   │       │   │   ├── PlaybackControls.module.css
+│   │   │   │   │       │   │   ├── PlaybackControls.tsx
+│   │   │   │   │       │   │   ├── VolumeControl.module.css
+│   │   │   │   │       │   │   └── VolumeControl.tsx
+│   │   │   │   │       │   ├── PlayerSurface/
+│   │   │   │   │       │   │   ├── PlayerSurface.module.css
+│   │   │   │   │       │   │   └── PlayerSurface.tsx
+│   │   │   │   │       │   ├── PlayerToolbar/
+│   │   │   │   │       │   │   ├── components/
+│   │   │   │   │       │   │   │   ├── BookmarkButton.tsx
+│   │   │   │   │       │   │   │   ├── CaptureButton.tsx
+│   │   │   │   │       │   │   │   ├── PlaybackSpeed.tsx
+│   │   │   │   │       │   │   │   ├── ScribeButton.tsx
+│   │   │   │   │       │   │   │   ├── ToolbarMenu.tsx
+│   │   │   │   │       │   │   │   └── index.ts
+│   │   │   │   │       │   │   ├── PlayerToolbar.module.css
+│   │   │   │   │       │   │   └── PlayerToolbar.tsx
+│   │   │   │   │       │   └── index.ts
+│   │   │   │   │       ├── hooks/
+│   │   │   │   │       │   └── usePlayback.ts
+│   │   │   │   │       ├── types/
+│   │   │   │   │       │   ├── play.mock.ts
+│   │   │   │   │       │   └── play.ts
+│   │   │   │   │       ├── Play.module.css
+│   │   │   │   │       ├── Play.tsx
+│   │   │   │   │       └── index.ts
 │   │   │   │   └── landing/
-│   │   │   │   ├── 01-hero/
-│   │   │   │   │   ├── Hero.module.css
-│   │   │   │   │   ├── Hero.tsx
-│   │   │   │   │   ├── heroContent.module.css
-│   │   │   │   │   ├── heroContent.tsx
-│   │   │   │   │   ├── heroFloatingContentIcons.module.css
-│   │   │   │   │   ├── heroFloatingContentIcons.tsx
-│   │   │   │   │   ├── heroNavbar.module.css
-│   │   │   │   │   ├── heroNavbar.tsx
-│   │   │   │   │   ├── heroScene.tsx
-│   │   │   │   │   ├── heroTicker.module.css
-│   │   │   │   │   ├── heroTicker.tsx
-│   │   │   │   │   └── index.ts
-│   │   │   │   ├── 02-ikigai/
-│   │   │   │   │   ├── CalendarMonth/
-│   │   │   │   │   │   ├── CalendarMonth.module.css
-│   │   │   │   │   │   ├── CalendarMonth.tsx
-│   │   │   │   │   │   ├── calendarData.ts
-│   │   │   │   │   │   ├── calendarMonth.types.ts
-│   │   │   │   │   │   ├── calendarTypes.ts
-│   │   │   │   │   │   └── calendarUtils.ts
-│   │   │   │   │   ├── FeatureSection.module.css
-│   │   │   │   │   ├── FeatureSection.tsx
-│   │   │   │   │   ├── Ikigai.tsx
-│   │   │   │   │   ├── ProgressSection.module.css
-│   │   │   │   │   ├── ProgressSection.tsx
-│   │   │   │   │   ├── ikigaiTimeline.module.css
-│   │   │   │   │   ├── ikigaiTimeline.tsx
-│   │   │   │   │   ├── index.ts
-│   │   │   │   │   ├── learningList.module.css
-│   │   │   │   │   └── learningList.tsx
-│   │   │   │   ├── 03-problem/
-│   │   │   │   │   ├── Problem.tsx
-│   │   │   │   │   └── index.ts
-│   │   │   │   ├── 04-community/
-│   │   │   │   │   ├── Community.tsx
-│   │   │   │   │   └── index.ts
-│   │   │   │   ├── 05-Features/
-│   │   │   │   │   ├── Features.tsx
-│   │   │   │   │   └── index.ts
-│   │   │   │   ├── 06-footer/
-│   │   │   │   │   ├── Footer.tsx
-│   │   │   │   │   └── index.ts
-│   │   │   │   └── .gitkeep
+│   │   │   │       ├── 01-hero/
+│   │   │   │       │   ├── Hero.module.css
+│   │   │   │       │   ├── Hero.tsx
+│   │   │   │       │   ├── heroContent.module.css
+│   │   │   │       │   ├── heroContent.tsx
+│   │   │   │       │   ├── heroFloatingContentIcons.module.css
+│   │   │   │       │   ├── heroFloatingContentIcons.tsx
+│   │   │   │       │   ├── heroNavbar.module.css
+│   │   │   │       │   ├── heroNavbar.tsx
+│   │   │   │       │   ├── heroScene.tsx
+│   │   │   │       │   ├── heroTicker.module.css
+│   │   │   │       │   ├── heroTicker.tsx
+│   │   │   │       │   └── index.ts
+│   │   │   │       ├── 02-ikigai/
+│   │   │   │       │   ├── CalendarMonth/
+│   │   │   │       │   │   ├── CalendarMonth.module.css
+│   │   │   │       │   │   ├── CalendarMonth.tsx
+│   │   │   │       │   │   ├── calendarData.ts
+│   │   │   │       │   │   ├── calendarMonth.types.ts
+│   │   │   │       │   │   ├── calendarTypes.ts
+│   │   │   │       │   │   └── calendarUtils.ts
+│   │   │   │       │   ├── FeatureSection.module.css
+│   │   │   │       │   ├── FeatureSection.tsx
+│   │   │   │       │   ├── Ikigai.tsx
+│   │   │   │       │   ├── ProgressSection.module.css
+│   │   │   │       │   ├── ProgressSection.tsx
+│   │   │   │       │   ├── ikigaiTimeline.module.css
+│   │   │   │       │   ├── ikigaiTimeline.tsx
+│   │   │   │       │   ├── index.ts
+│   │   │   │       │   ├── learningList.module.css
+│   │   │   │       │   └── learningList.tsx
+│   │   │   │       ├── 03-problem/
+│   │   │   │       │   ├── Problem.tsx
+│   │   │   │       │   └── index.ts
+│   │   │   │       ├── 04-community/
+│   │   │   │       │   ├── Community.tsx
+│   │   │   │       │   └── index.ts
+│   │   │   │       ├── 05-Features/
+│   │   │   │       │   ├── Features.tsx
+│   │   │   │       │   └── index.ts
+│   │   │   │       ├── 06-footer/
+│   │   │   │       │   ├── Footer.tsx
+│   │   │   │       │   └── index.ts
+│   │   │   │       └── .gitkeep
 │   │   │   ├── theme/
 │   │   │   │   └── theme.tsx
 │   │   │   └── ui/
-│   │   │   ├── Badge/
-│   │   │   │   ├── Badge.module.css
-│   │   │   │   └── Badge.tsx
-│   │   │   ├── Button/
-│   │   │   │   ├── Button.module.css
-│   │   │   │   └── Button.tsx
-│   │   │   ├── Divider/
-│   │   │   │   ├── Divider.module.css
-│   │   │   │   └── Divider.tsx
-│   │   │   └── Typography/
-│   │   │   ├── Heading.module.css
-│   │   │   ├── Heading.tsx
-│   │   │   ├── Text.module.css
-│   │   │   └── Text.tsx
+│   │   │       ├── Badge/
+│   │   │       │   ├── Badge.module.css
+│   │   │       │   └── Badge.tsx
+│   │   │       ├── Button/
+│   │   │       │   ├── Button.module.css
+│   │   │       │   └── Button.tsx
+│   │   │       ├── Divider/
+│   │   │       │   ├── Divider.module.css
+│   │   │       │   └── Divider.tsx
+│   │   │       └── Typography/
+│   │   │           ├── Heading.module.css
+│   │   │           ├── Heading.tsx
+│   │   │           ├── Text.module.css
+│   │   │           └── Text.tsx
 │   │   ├── hooks/
 │   │   │   ├── useSession.ts
 │   │   │   └── useSessions.ts
 │   │   ├── mock/
 │   │   │   └── cohorts/
-│   │   │   └── cohortCatalog.ts
+│   │   │       └── cohortCatalog.ts
 │   │   ├── navigation/
 │   │   │   └── cohortLinks.ts
 │   │   ├── providers/
@@ -854,10 +854,10 @@
 │   │   ├── redux/
 │   │   │   └── store.ts
 │   │   └── repositories/
-│   │   ├── cohortRepository.ts
-│   │   ├── exploreRepository.ts
-│   │   ├── homeRepository.ts
-│   │   └── messagesRepository.ts
+│   │       ├── cohortRepository.ts
+│   │       ├── exploreRepository.ts
+│   │       ├── homeRepository.ts
+│   │       └── messagesRepository.ts
 │   ├── server/
 │   │   ├── adapters/
 │   │   │   ├── actions/
@@ -870,47 +870,49 @@
 │   │   │   │   ├── middleware/
 │   │   │   │   │   └── logger.ts
 │   │   │   │   └── routes/
-│   │   │   │   └── .gitkeep
+│   │   │   │       └── .gitkeep
 │   │   │   └── websocket/
-│   │   │   └── .gitkeep
+│   │   │       └── .gitkeep
 │   │   ├── domain/
 │   │   │   ├── session/
 │   │   │   │   ├── session.services.ts
 │   │   │   │   └── session.types.ts
 │   │   │   └── user/
-│   │   │   └── user.types.ts
+│   │   │       └── user.types.ts
 │   │   └── infrastructure/
-│   │   ├── ai/
-│   │   │   └── .gitkeep
-│   │   ├── auth/
-│   │   │   ├── getUser.ts
-│   │   │   └── requireUser.ts
-│   │   ├── db/
-│   │   │   ├── mongodb/
-│   │   │   │   ├── client.ts
-│   │   │   │   └── schema.prisma.ts
-│   │   │   └── postgres/
-│   │   │   ├── repositories/
-│   │   │   │   ├── session.repo.ts
-│   │   │   │   └── user.repo.ts
-│   │   │   ├── schema/
-│   │   │   │   └── index.ts
-│   │   │   └── client.ts
-│   │   └── external/
-│   │   └── scratch.txt
+│   │       ├── ai/
+│   │       │   └── .gitkeep
+│   │       ├── auth/
+│   │       │   ├── getUser.ts
+│   │       │   └── requireUser.ts
+│   │       ├── db/
+│   │       │   ├── mongodb/
+│   │       │   │   ├── client.ts
+│   │       │   │   └── schema.prisma.ts
+│   │       │   └── postgres/
+│   │       │       ├── repositories/
+│   │       │       │   ├── session.repo.ts
+│   │       │       │   └── user.repo.ts
+│   │       │       ├── schema/
+│   │       │       │   └── index.ts
+│   │       │       └── client.ts
+│   │       └── external/
+│   │           └── scratch.txt
 │   └── shared/
-│   ├── constants/
-│   │   └── app.constants.ts
-│   └── lib/
-│   ├── errors/
-│   │   └── AppError.ts
-│   ├── utils/
-│   │   ├── calculateScore.ts
-│   │   └── formatDate.ts
-│   └── validators/
-│   ├── session.validator.ts
-│   └── user.validator.ts
+│       ├── constants/
+│       │   └── app.constants.ts
+│       └── lib/
+│           ├── errors/
+│           │   └── AppError.ts
+│           ├── utils/
+│           │   ├── calculateScore.ts
+│           │   └── formatDate.ts
+│           └── validators/
+│               ├── session.validator.ts
+│               └── user.validator.ts
 ├── .gitignore
+├── .prettierignore
+├── .prettierrc
 ├── AGENTS.md
 ├── CLAUDE.md
 ├── README.md
@@ -921,4 +923,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-299 directories, 621 files
+299 directories, 623 files
