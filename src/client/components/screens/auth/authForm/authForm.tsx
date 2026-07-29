@@ -1,94 +1,83 @@
-import styles from "./authForm.module.css";
-import { AuthProviders } from "./authProviders";
-import { AuthDivider } from "./authDivider";
-import { AuthInput } from "./authInput";
-import {AuthButton} from "./authButton";
-import { AuthLegal } from "./authLegal";
-import { AuthStats } from "./authStats";
+import styles from './authForm.module.css';
+import { AuthProviders } from './authProviders';
+import { AuthDivider } from './authDivider';
+import { AuthInput } from './authInput';
+import { AuthButton } from './authButton';
+import { AuthLegal } from './authLegal';
+import { AuthStats } from './authStats';
 
 export function AuthForm() {
-    return (
-        <aside className={styles.form}>
+  return (
+    <aside className={styles.form}>
+      <header className={styles.header}>
+        <p className={styles.login}>
+          Already have an account?
+          <button className={styles.loginButton}>Log in</button>
+        </p>
 
-            <header className={styles.header}>
+        <h1 className={styles.title}>
+          Every great skill
+          <br />
+          starts as a <span className={styles.highlight}>SideQuest.</span>
+        </h1>
 
-                <p className={styles.login}>
-                    Already have an account?
-                    <button className={styles.loginButton}>
-                        Log in
-                    </button>
-                </p>
+        <p className={styles.description}>
+          Turn long playlists, courses, and rabbit holes into progress you can actually stick with.
+        </p>
+      </header>
 
-                <h1 className={styles.title}>
-                    Every great skill
-                    <br />
-                    starts as a{" "}
-                    <span className={styles.highlight}>
-                        SideQuest.
-                    </span>
-                </h1>
+      <section className={styles.oauth}>
+        <AuthProviders />
+      </section>
 
-                <p className={styles.description}>
-                    Turn long playlists, courses, and rabbit holes into
-                    progress you can actually stick with.
-                </p>
+      <section className={styles.divider}>
+        <AuthDivider />
+      </section>
 
-            </header>
+      <section className={styles.inputs}>
+        <AuthInput
+          label="Email"
+          type="email"
+          placeholder="example@example.in"
+        />
 
-            <section className={styles.oauth}>
-                <AuthProviders />
-            </section>
+        <AuthInput
+          label="Password"
+          type="password"
+          placeholder="Enter your password"
+        />
+      </section>
 
-            <section className={styles.divider}>
-                <AuthDivider />
-            </section>
+      <section className={styles.cta}>
+        <AuthButton href="/explore">Create Account</AuthButton>
 
-            <section className={styles.inputs}>
+        <AuthButton
+          href="/explore"
+          variant="secondary"
+        >
+          Continue as Guest
+        </AuthButton>
+      </section>
 
-                <AuthInput
-                    label="Email"
-                    type="email"
-                    placeholder="example@example.in"
-                />
+      <section className={styles.legal}>
+        <AuthLegal />
+      </section>
 
-                <AuthInput
-                    label="Password"
-                    type="password"
-                    placeholder="Enter your password"
-                />
+      <section className={styles.stats}>
+        <AuthStats />
+      </section>
 
-            </section>
-
-            <section className={styles.cta}>
-                <AuthButton href="/explore">
-                    Create Account
-                </AuthButton>
-
-                <AuthButton href="/explore" variant="secondary">
-                    Continue as Guest
-                </AuthButton>
-            </section>
-
-            <section className={styles.legal}>
-                <AuthLegal />
-            </section>
-
-            <section className={styles.stats}>
-                <AuthStats />
-            </section>
-
-            <footer className={styles.footer}>
-                <p className={styles.footerText}>
-                    Already Inside?
-                    <button
-                        type="button"
-                        className={styles.footerLink}
-                    >
-                        Continue where you left off →
-                    </button>
-                </p>
-            </footer>
-
-        </aside>
-    );
+      <footer className={styles.footer}>
+        <p className={styles.footerText}>
+          Already Inside?
+          <button
+            type="button"
+            className={styles.footerLink}
+          >
+            Continue where you left off →
+          </button>
+        </p>
+      </footer>
+    </aside>
+  );
 }

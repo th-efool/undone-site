@@ -1,130 +1,130 @@
 .root {
-    position: relative;
+  position: relative;
 
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
 }
 
 .button {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-    width: 40px;
-    height: 40px;
+  width: 40px;
+  height: 40px;
 
-    color: rgba(255,255,255,.82);
+  color: rgba(255, 255, 255, 0.82);
 
-    border: 0;
-    border-radius: 999px;
+  border: 0;
+  border-radius: 999px;
 
-    background: transparent;
+  background: transparent;
 
-    cursor: pointer;
+  cursor: pointer;
 }
 
 .slider {
-    position: absolute;
+  position: absolute;
 
-    right: calc(100% + 8px);
-    top: 50%;
+  right: calc(100% + 8px);
+  top: 50%;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-    width: 0;
+  width: 0;
 
-    overflow: hidden;
+  overflow: hidden;
 
-    opacity: 0;
+  opacity: 0;
 
-    height: 28px;
+  height: 28px;
 
-    padding: 0 12px;
+  padding: 0 12px;
 
-    border-radius: 999px;
+  border-radius: 999px;
 
-    background: rgba(18,18,20,.88);
+  background: rgba(18, 18, 20, 0.88);
 
-    backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 
-    transform: translateY(-50%);
+  transform: translateY(-50%);
 
-    transition:
-            width .18s ease,
-            opacity .18s ease;
+  transition:
+    width 0.18s ease,
+    opacity 0.18s ease;
 }
 
 .root:hover .slider,
 .slider:hover {
-    width: 120px;
+  width: 120px;
 
-    opacity: 1;
+  opacity: 1;
 }
 
 .slider input {
-    width: 88px;
-    height: 4px;
+  width: 88px;
+  height: 4px;
 
-    margin: 0;
-    padding: 0;
+  margin: 0;
+  padding: 0;
 
-    cursor: pointer;
+  cursor: pointer;
 
-    appearance: none;
-    -webkit-appearance: none;
+  appearance: none;
+  -webkit-appearance: none;
 
-    background: transparent;
+  background: transparent;
 }
 
 /* Track */
 
 .slider input::-webkit-slider-runnable-track {
-    height: 4px;
+  height: 4px;
 
-    border-radius: 999px;
+  border-radius: 999px;
 
-    background: rgba(255,255,255,.16);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 .slider input::-moz-range-track {
-    height: 4px;
+  height: 4px;
 
-    border-radius: 999px;
+  border-radius: 999px;
 
-    background: rgba(255,255,255,.16);
+  background: rgba(255, 255, 255, 0.16);
 
-    border: none;
+  border: none;
 }
 
 /* Thumb */
 
 .slider input::-webkit-slider-thumb {
-    width: 12px;
-    height: 12px;
+  width: 12px;
+  height: 12px;
 
-    margin-top: -4px;
+  margin-top: -4px;
 
-    border: none;
-    border-radius: 50%;
+  border: none;
+  border-radius: 50%;
 
-    background: #7c4dff;
+  background: #7c4dff;
 
-    appearance: none;
-    -webkit-appearance: none;
+  appearance: none;
+  -webkit-appearance: none;
 
-    box-shadow: 0 0 8px rgba(124,77,255,.45);
+  box-shadow: 0 0 8px rgba(124, 77, 255, 0.45);
 }
 
 .slider input::-moz-range-thumb {
-    width: 12px;
-    height: 12px;
+  width: 12px;
+  height: 12px;
 
-    border: none;
-    border-radius: 50%;
+  border: none;
+  border-radius: 50%;
 
-    background: #7c4dff;
+  background: #7c4dff;
 
-    box-shadow: 0 0 8px rgba(124,77,255,.45);
+  box-shadow: 0 0 8px rgba(124, 77, 255, 0.45);
 }

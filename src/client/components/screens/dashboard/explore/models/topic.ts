@@ -1,9 +1,9 @@
 export interface Topic {
-    id: string;
+  id: string;
 
-    name: string;
+  name: string;
 
-    icon: string;
+  icon: string;
 
-    color: string;
+  color: string;
 }

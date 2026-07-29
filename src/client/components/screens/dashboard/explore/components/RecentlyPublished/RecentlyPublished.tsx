@@ -1,58 +1,51 @@
-import { ChevronRight } from "lucide-react";
+import { ChevronRight } from 'lucide-react';
 
-import { HorizontalScroller } from "@/src/client/components/global/HorizontalScroller";
+import { HorizontalScroller } from '@/src/client/components/global/HorizontalScroller';
 
-import type { ArticlePreview } from "../../models";
+import type { ArticlePreview } from '../../models';
 
-import { ArticleCard } from "./ArticleCard";
+import { ArticleCard } from './ArticleCard';
 
-import styles from "./RecentlyPublished.module.css";
+import styles from './RecentlyPublished.module.css';
 
 export interface RecentlyPublishedProps {
-    items: ArticlePreview[];
+  items: ArticlePreview[];
 }
 
-export function RecentlyPublished({
-                                      items,
-                                  }: RecentlyPublishedProps) {
-    return (
-        <section
-            className={styles.section}
-            aria-labelledby="recently-published-heading"
+export function RecentlyPublished({ items }: RecentlyPublishedProps) {
+  return (
+    <section
+      className={styles.section}
+      aria-labelledby="recently-published-heading"
+    >
+      <div className={styles.header}>
+        <h2
+          id="recently-published-heading"
+          className={styles.title}
         >
-            <div className={styles.header}>
+          Recently Published
+        </h2>
 
-                <h2
-                    id="recently-published-heading"
-                    className={styles.title}
-                >
-                    Recently Published
-                </h2>
+        <button
+          type="button"
+          className={styles.arrow}
+          aria-label="View all"
+        >
+          <ChevronRight
+            size={18}
+            strokeWidth={2.5}
+          />
+        </button>
+      </div>
 
-                <button
-                    type="button"
-                    className={styles.arrow}
-                    aria-label="View all"
-                >
-                    <ChevronRight
-                        size={18}
-                        strokeWidth={2.5}
-                    />
-                </button>
-
-            </div>
-
-            <HorizontalScroller>
-
-                {items.map((item) => (
-                    <ArticleCard
-                        key={item.id}
-                        item={item}
-                    />
-                ))}
-
-            </HorizontalScroller>
-
-        </section>
-    );
+      <HorizontalScroller>
+        {items.map((item) => (
+          <ArticleCard
+            key={item.id}
+            item={item}
+          />
+        ))}
+      </HorizontalScroller>
+    </section>
+  );
 }

@@ -1,24 +1,24 @@
 .text {
-    margin: 0;
-    line-height: var(--leading-relaxed);
+  margin: 0;
+  line-height: var(--leading-relaxed);
 }
 
 .body {
-    color: var(--color-text-primary);
-    font-size: var(--text-base);
+  color: var(--color-text-primary);
+  font-size: var(--text-base);
 }
 
 .lead {
-    color: var(--color-text-secondary);
-    font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  font-size: var(--text-lg);
 }
 
 .small {
-    color: var(--color-text-secondary);
-    font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
 }
 
 .muted {
-    color: var(--color-text-muted);
-    font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
 }

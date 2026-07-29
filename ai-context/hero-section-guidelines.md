@@ -73,25 +73,28 @@ When generating another landing section:
 7. Export only the public section component from `index.ts`.
 8. Match the CSS-module pattern: root frame first, component blocks next, interactions, then responsive media queries from large to small.
 
-
 # Component Library
 
 ## Layout
 
 ### Container
+
 **Path:** `src/client/components/global/layout/Container.tsx`
 
 **Purpose:** Width-constrained wrapper.
 
 #### Props
+
 - `size` — Max width preset.
 - `as` — Rendered element/component.
 - Standard `div` HTML props.
 
 #### Variants
+
 None
 
 #### Sizes
+
 - `xs`
 - `sm`
 - `md`
@@ -106,30 +109,36 @@ None
 ---
 
 ### Stack
+
 **Path:** `src/client/components/global/layout/Stack.tsx`
 
 **Purpose:** Vertical flex layout with configurable gap and alignment.
 
 #### Props
+
 - `as` — Rendered element/component.
 - `gap` — Vertical spacing token.
 - `align` — CSS `align-items`.
 - Standard `div` HTML props.
 
 #### Variants
+
 None
 
 #### Sizes
+
 None
 
 ---
 
 ### Cluster
+
 **Path:** `src/client/components/global/layout/Cluster.tsx`
 
 **Purpose:** Horizontal/wrapping flex layout.
 
 #### Props
+
 - `as` — Rendered element/component.
 - `gap` — Spacing token.
 - `justify` — CSS `justify-content` preset.
@@ -138,19 +147,23 @@ None
 - Standard `div` HTML props.
 
 #### Variants
+
 None
 
 #### Sizes
+
 None
 
 ---
 
 ### Section
+
 **Path:** `src/client/components/global/layout/Section.tsx`
 
 **Purpose:** Page section wrapper with spacing and background options.
 
 #### Props
+
 - `as` — Rendered element/component.
 - `spacing` — Vertical padding preset.
 - `background` — Background style preset.
@@ -158,6 +171,7 @@ None
 - Standard `section` HTML props.
 
 #### Variants
+
 - `transparent`
 - `surface`
 - `subtle`
@@ -167,6 +181,7 @@ None
 - `glass`
 
 #### Sizes
+
 - `none`
 - `xs`
 - `sm`
@@ -177,11 +192,13 @@ None
 ---
 
 ### Surface
+
 **Path:** `src/client/components/global/layout/Surface.tsx`
 
 **Purpose:** Card/panel surface wrapper.
 
 #### Props
+
 - `as` — Rendered element/component.
 - `variant` — Visual surface style.
 - `radius` — Border radius preset.
@@ -189,6 +206,7 @@ None
 - Standard `div` HTML props.
 
 #### Variants
+
 - `default`
 - `subtle`
 - `outlined`
@@ -197,16 +215,19 @@ None
 - `brand`
 
 #### Sizes
+
 None
 
 ---
 
 ### SectionHeader
+
 **Path:** `src/client/components/global/layout/SectionHeader.tsx`
 
 **Purpose:** Reusable section heading block with optional eyebrow, description, and actions.
 
 #### Props
+
 - `eyebrow` — Optional badge content.
 - `title` — Required heading content.
 - `description` — Optional lead text.
@@ -216,9 +237,11 @@ None
 - Standard `div` HTML props (excluding native `title`).
 
 #### Variants
+
 None
 
 #### Sizes
+
 None
 
 ---
@@ -226,11 +249,13 @@ None
 # UI Components
 
 ## Button
+
 **Path:** `src/client/components/ui/Button/Button.tsx`
 
 **Purpose:** Reusable button component.
 
 #### Props
+
 - `variant` — Visual style.
 - `size` — Button size.
 - `loading` — Disabled loading state with spinner.
@@ -240,6 +265,7 @@ None
 - Standard `button` HTML props.
 
 #### Variants
+
 - `primary`
 - `secondary`
 - `ghost`
@@ -248,6 +274,7 @@ None
 - `danger`
 
 #### Sizes
+
 - `xs`
 - `sm`
 - `md`
@@ -257,16 +284,19 @@ None
 ---
 
 ## Badge
+
 **Path:** `src/client/components/ui/Badge/Badge.tsx`
 
 **Purpose:** Inline status/category label.
 
 #### Props
+
 - `variant` — Color style.
 - `size` — Badge size.
 - Standard `span` HTML props.
 
 #### Variants
+
 - `brand`
 - `momentum`
 - `success`
@@ -275,6 +305,7 @@ None
 - `neutral`
 
 #### Sizes
+
 - `sm`
 - `md`
 - `lg`
@@ -282,37 +313,45 @@ None
 ---
 
 ## Divider
+
 **Path:** `src/client/components/ui/Divider/Divider.tsx`
 
 **Purpose:** Horizontal or vertical rule.
 
 #### Props
+
 - `vertical` — Render vertical divider.
 - `inset` — Inset horizontal width.
 - Standard `hr` HTML props.
 
 #### Variants
+
 None
 
 #### Sizes
+
 None
 
 ---
 
 ## Heading
+
 **Path:** `src/client/components/ui/Typography/Heading.tsx`
 
 **Purpose:** Typography heading with level-based styles.
 
 #### Props
+
 - `level` — Heading level/style scale.
 - `as` — Rendered element override.
 - Standard HTML element props.
 
 #### Variants
+
 None
 
 #### Sizes
+
 - `1`
 - `2`
 - `3`
@@ -323,22 +362,26 @@ None
 ---
 
 ## Text
+
 **Path:** `src/client/components/ui/Typography/Text.tsx`
 
 **Purpose:** Typography text component.
 
 #### Props
+
 - `variant` — Text style.
 - `as` — Rendered element/component.
 - Standard paragraph HTML props.
 
 #### Variants
+
 - `body`
 - `lead`
 - `small`
 - `muted`
 
 #### Sizes
+
 None
 
 ---
@@ -346,11 +389,13 @@ None
 # Global Components
 
 ## Logo
+
 **Path:** `src/client/components/global/Logo/Logo.tsx`
 
 **Purpose:** Linked SideQuestHQ logo/wordmark.
 
 #### Props
+
 - `href` — Link destination.
 - `compact` — Hide tagline.
 - `iconOnly` — Hide text.
@@ -358,20 +403,24 @@ None
 - `priority` — Declared prop; image currently always receives priority.
 
 #### Variants
+
 - `compact`
 - `icon-only`
 
 #### Sizes
+
 None
 
 ---
 
 ## Navbar
+
 **Path:** `src/client/components/global/Navbar/Navbar.tsx`
 
 **Purpose:** Landing/global header with navigation links and CTA.
 
 #### Props
+
 - `links` — Navigation link array (`{ label, href }`).
 - `sticky` — Sticky header class toggle.
 - `transparent` — Transparent header class toggle.
@@ -380,28 +429,34 @@ None
 - `className` — Header class.
 
 #### Variants
+
 - `sticky`
 - `transparent`
 
 #### Sizes
+
 None
 
 ---
 
 ## Footer
+
 **Path:** `src/client/components/global/Footer/Footer.tsx`
 
 **Purpose:** Global footer with logo, navigation, social links, and legal links.
 
 #### Props
+
 - `description` — Footer description text.
 - `navigation` — Navigation link array (`{ label, href }`).
 - `social` — Social link array (`{ label, href }`).
 
 #### Variants
+
 None
 
 #### Sizes
+
 None
 
 ---
@@ -409,95 +464,119 @@ None
 # Landing Screen Components
 
 ## Hero
+
 **Path:** `src/client/components/screens/landing/01-hero/Hero.tsx`
 
 **Purpose:** Landing hero section shell.
 
 #### Props
+
 None
 
 #### Variants
+
 None
 
 #### Sizes
+
 None
 
 ---
 
 ## Ikigai
+
 **Path:** `src/client/components/screens/landing/02-ikigai/Ikigai.tsx`
 
 **Purpose:** Landing Ikigai section shell.
 
 #### Props
+
 None
 
 #### Variants
+
 None
 
 #### Sizes
+
 None
 
 ---
 
 ## Problem
+
 **Path:** `src/client/components/screens/landing/03-problem/Problem.tsx`
 
 **Purpose:** Landing problem section shell.
 
 #### Props
+
 None
 
 #### Variants
+
 None
 
 #### Sizes
+
 None
 
 ---
 
 ## Community
+
 **Path:** `src/client/components/screens/landing/04-community/Community.tsx`
 
 **Purpose:** Landing community section shell.
 
 #### Props
+
 None
 
 #### Variants
+
 None
 
 #### Sizes
+
 None
 
 ---
 
 ## Features
+
 **Path:** `src/client/components/screens/landing/05-Features/Features.tsx`
 
 **Purpose:** Landing features section shell.
 
 #### Props
+
 None
 
 #### Variants
+
 None
 
 #### Sizes
+
 None
 
 ---
 
 ## Landing Footer
+
 **Path:** `src/client/components/screens/landing/06-footer/Footer.tsx`
 
 **Purpose:** Landing footer section shell.
 
 #### Props
+
 None
 
 #### Variants
+
 None
 
 #### Sizes
+
 None

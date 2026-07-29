@@ -1,28 +1,28 @@
 .item {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-    width: 52px;
-    height: 52px;
+  width: 52px;
+  height: 52px;
 
-    color: var(--color-text-secondary);
+  color: var(--color-text-secondary);
 
-    border-radius: var(--radius-lg);
+  border-radius: var(--radius-lg);
 
-    transition:
-            background-color var(--duration-fast),
-            color var(--duration-fast),
-            transform var(--duration-fast);
+  transition:
+    background-color var(--duration-fast),
+    color var(--duration-fast),
+    transform var(--duration-fast);
 }
 
 .item:hover {
-    color: var(--color-text-primary);
-    background: var(--color-surface);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
 }
 
 .active {
-    color: var(--color-brand);
-    background: var(--color-brand-subtle);
-    border-radius: var(--radius-xl);
+  color: var(--color-brand);
+  background: var(--color-brand-subtle);
+  border-radius: var(--radius-xl);
 }

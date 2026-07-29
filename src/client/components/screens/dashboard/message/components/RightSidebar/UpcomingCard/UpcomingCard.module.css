@@ -1,1 +1,51 @@
-.card{display:grid;grid-template-columns:44px 1fr auto;gap:14px;align-items:center}.icon{display:grid;place-items:center;width:44px;height:44px;border-radius:var(--message-radius-control)}.purple{background:var(--color-brand-soft);color:var(--message-brand)}.orange{background:#fff0df;color:#f97316}.blue{background:#eaf0ff;color:#2563eb}.card strong{color:var(--color-text-primary);font-size:.98rem}.card p{margin:4px 0 7px;color:var(--color-text-secondary);font-weight:600;font-size:.88rem}.card em{color:var(--message-brand);font-style:normal;font-size:.82rem;font-weight:800}.card button{height:38px;padding:0 18px;border:1px solid var(--message-border-strong);border-radius:var(--message-radius-control);background:#fff;color:var(--message-brand);font-weight:800;cursor:pointer}
+.card {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 14px;
+  align-items: center;
+}
+.icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--message-radius-control);
+}
+.purple {
+  background: var(--color-brand-soft);
+  color: var(--message-brand);
+}
+.orange {
+  background: #fff0df;
+  color: #f97316;
+}
+.blue {
+  background: #eaf0ff;
+  color: #2563eb;
+}
+.card strong {
+  color: var(--color-text-primary);
+  font-size: 0.98rem;
+}
+.card p {
+  margin: 4px 0 7px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+.card em {
+  color: var(--message-brand);
+  font-style: normal;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+.card button {
+  height: 38px;
+  padding: 0 18px;
+  border: 1px solid var(--message-border-strong);
+  border-radius: var(--message-radius-control);
+  background: #fff;
+  color: var(--message-brand);
+  font-weight: 800;
+  cursor: pointer;
+}

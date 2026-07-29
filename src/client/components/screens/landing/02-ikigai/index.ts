@@ -1,1 +1,1 @@
-export {Ikigai} from "./Ikigai"
+export { Ikigai } from './Ikigai';

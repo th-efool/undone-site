@@ -1,66 +1,64 @@
 .root {
-    width: 100%;
-    z-index: var(--z-sticky);
+  width: 100%;
+  z-index: var(--z-sticky);
 
-    transition:
-            background var(--duration-base) var(--ease-standard),
-            backdrop-filter var(--duration-base) var(--ease-standard),
-            border-color var(--duration-base) var(--ease-standard);
+  transition:
+    background var(--duration-base) var(--ease-standard),
+    backdrop-filter var(--duration-base) var(--ease-standard),
+    border-color var(--duration-base) var(--ease-standard);
 }
 
 .sticky {
-    position: sticky;
-    top: 0;
+  position: sticky;
+  top: 0;
 }
 
 .transparent {
-    background: transparent;
+  background: transparent;
 }
 
 .solid {
-    background: rgb(var(--color-surface-rgb) / .72);
+  background: rgb(var(--color-surface-rgb) / 0.72);
 
-    backdrop-filter: blur(var(--blur-xl));
+  backdrop-filter: blur(var(--blur-xl));
 
-    -webkit-backdrop-filter: blur(var(--blur-xl));
+  -webkit-backdrop-filter: blur(var(--blur-xl));
 
-    border-bottom: 1px solid var(--glass-border);
+  border-bottom: 1px solid var(--glass-border);
 }
 
 .inner {
-    height: 5rem;
+  height: 5rem;
 
-    display: flex;
+  display: flex;
 
-    align-items: center;
+  align-items: center;
 
-    justify-content: space-between;
+  justify-content: space-between;
 }
 
 .nav {
-    display: flex;
+  display: flex;
 }
 
 .link {
-    color: var(--color-text-secondary);
+  color: var(--color-text-secondary);
 
-    text-decoration: none;
+  text-decoration: none;
 
-    font-size: var(--font-nav-size);
+  font-size: var(--font-nav-size);
 
-    font-weight: var(--font-nav-weight);
+  font-weight: var(--font-nav-weight);
 
-    transition: var(--transition-colors);
+  transition: var(--transition-colors);
 }
 
 .link:hover {
-    color: var(--color-brand);
+  color: var(--color-brand);
 }
 
 @media (max-width: 768px) {
-
-    .nav {
-        display: none;
-    }
-
+  .nav {
+    display: none;
+  }
 }

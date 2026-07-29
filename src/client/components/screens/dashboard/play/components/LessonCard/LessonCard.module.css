@@ -1,90 +1,90 @@
 .card {
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
 
-    min-width: 390px;
-    max-width: 460px;
+  min-width: 390px;
+  max-width: 460px;
 
-    padding: 14px 18px;
+  padding: 14px 18px;
 
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
 
-    background: rgba(12, 12, 14, 0.82);
+  background: rgba(12, 12, 14, 0.82);
 
-    backdrop-filter: blur(22px);
+  backdrop-filter: blur(22px);
 
-    box-shadow:
-            0 12px 36px rgba(0, 0, 0, 0.28),
-            inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .platform {
-    display: flex;
-    align-items: center;
-    gap: 14px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
 
-    width: 100%;
+  width: 100%;
 }
 
 .platformIcon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-    width: 36px;
-    height: 36px;
+  width: 36px;
+  height: 36px;
 
-    flex-shrink: 0;
+  flex-shrink: 0;
 
-    color: #fff;
+  color: #fff;
 
-    border-radius: 10px;
+  border-radius: 10px;
 
-    background: #ff2d20;
+  background: #ff2d20;
 }
 
 .metadata {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 
-    min-width: 0;
+  min-width: 0;
 }
 
 .title {
-    margin: 0;
+  margin: 0;
 
-    overflow: hidden;
+  overflow: hidden;
 
-    color: #fff;
+  color: #fff;
 
-    font-size: 1.25rem;
-    font-weight: 500;
-    line-height: 1.1;
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.1;
 
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .subtitle {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 
-    margin: 0;
+  margin: 0;
 
-    overflow: hidden;
+  overflow: hidden;
 
-    color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 255, 255, 0.72);
 
-    font-size: 0.94rem;
-    font-weight: 400;
+  font-size: 0.94rem;
+  font-weight: 400;
 
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .separator {
-    opacity: 0.45;
+  opacity: 0.45;
 }

@@ -1,35 +1,48 @@
 .searchBar {
-    width: 100%;
-    max-width: 560px;
+  width: 100%;
+  max-width: 560px;
 }
 
 .inputShell {
-    height: 40px;
-    padding: 0 16px;
-    gap: 12px;
-    border-radius: 999px;
+  height: 40px;
+  padding: 0 16px;
+  gap: 12px;
+  border-radius: 999px;
 }
 
 .icon {
-    flex-shrink: 0;
-    color: var(--color-text-secondary);
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
 }
 
 .shortcut {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    min-width: 42px;
-    height: 28px;
-    padding: 0 10px;
-    border: 1px solid var(--color-border);
-    border-radius: 8px;
-    background: var(--color-surface-secondary);
-    color: var(--color-text-secondary);
-    font-size: 13px;
-    font-weight: 600;
-    font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 42px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
 }
 
-.clear{width:30px;height:30px;border:0;border-radius:999px;background:#eef1f8;display:grid;place-items:center;cursor:pointer;color:#4b587c}.clear:hover{background:#e4e7f0}
+.clear {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: #eef1f8;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: #4b587c;
+}
+.clear:hover {
+  background: #e4e7f0;
+}

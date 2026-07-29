@@ -1,11 +1,15 @@
-"use client";
+'use client';
 
-import { SocialLanding } from "./components/SocialLanding/SocialLanding";
-import { useMessage } from "./hooks";
-import styles from "./Message.module.css";
+import { SocialLanding } from './components/SocialLanding/SocialLanding';
+import { useMessage } from './hooks';
+import styles from './Message.module.css';
 
 export function Message() {
-    const message = useMessage();
+  const message = useMessage();
 
-    return <div className={styles.message}><SocialLanding message={message} /></div>;
+  return (
+    <div className={styles.message}>
+      <SocialLanding message={message} />
+    </div>
+  );
 }

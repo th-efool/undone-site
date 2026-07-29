@@ -1,79 +1,79 @@
 .card {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 
-    padding: var(--cohort-panel-padding, 18px);
+  padding: var(--cohort-panel-padding, 18px);
 
-    border: 1px solid var(--color-border);
-    border-radius: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 0;
 
-    background: var(--color-surface);
+  background: var(--color-surface);
 }
 
 .title,
 .name {
-    margin: 0;
+  margin: 0;
 
-    color: var(--color-text-primary);
+  color: var(--color-text-primary);
 
-    font-weight: var(--font-bold);
+  font-weight: var(--font-bold);
 }
 
 .title {
-    font-size: var(--font-card-title-size);
+  font-size: var(--font-card-title-size);
 }
 
 .name {
-    font-size: var(--text-lg);
+  font-size: var(--text-lg);
 }
 
 .profile {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .avatar {
-    border-radius: var(--radius-circle);
+  border-radius: var(--radius-circle);
 
-    object-fit: cover;
+  object-fit: cover;
 }
 
 .role,
 .bio {
-    margin: 0;
+  margin: 0;
 
-    color: var(--color-text-secondary);
+  color: var(--color-text-secondary);
 
-    font-size: var(--text-sm);
-    line-height: var(--leading-relaxed);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
 }
 
 .bio {
-    padding-left: 78px;
+  padding-left: 78px;
 }
 
 .button {
-    align-self: center;
+  align-self: center;
 
-    min-width: 210px;
-    min-height: 36px;
-    padding: 0 var(--space-5);
+  min-width: 210px;
+  min-height: 36px;
+  padding: 0 var(--space-5);
 
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 
-    background: var(--color-surface);
+  background: var(--color-surface);
 
-    color: var(--color-brand);
+  color: var(--color-brand);
 
-    font: inherit;
-    font-size: var(--text-sm);
-    font-weight: var(--font-bold);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
 }
 
 .button:hover {
-    border-color: var(--color-brand);
-    background: var(--color-brand-subtle);
+  border-color: var(--color-brand);
+  background: var(--color-brand-subtle);
 }

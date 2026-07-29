@@ -1,18 +1,18 @@
-import type {AvatarPreview} from "./explore"
+import type { AvatarPreview } from './explore';
 
 export interface SideQuest {
-    id: string;
-    cohortId?: string;
+  id: string;
+  cohortId?: string;
 
-    title: string;
+  title: string;
 
-    subtitle: string;
+  subtitle: string;
 
-    dailyGoal: string;
+  dailyGoal: string;
 
-    thumbnail: string;
+  thumbnail: string;
 
-    featuredParticipants: AvatarPreview[];
+  featuredParticipants: AvatarPreview[];
 
-    participantCount: string;
+  participantCount: string;
 }

@@ -1,5 +1,5 @@
-import { messagesRepository } from "@/src/client/repositories/messagesRepository";
+import { messagesRepository } from '@/src/client/repositories/messagesRepository';
 
 export function useCommunity() {
-    return messagesRepository.getEnrolledCohorts();
+  return messagesRepository.getEnrolledCohorts();
 }

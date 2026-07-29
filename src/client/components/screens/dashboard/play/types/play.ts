@@ -1,36 +1,26 @@
 export interface Lesson {
-    platform: "youtube" | "coursera" | "udemy" | "book";
+  platform: 'youtube' | 'coursera' | 'udemy' | 'book';
 
-    title: string;
+  title: string;
 
-    currentVideo: number;
-    totalVideos: number;
+  currentVideo: number;
+  totalVideos: number;
 
-    currentChunk: number;
-    totalChunks: number;
+  currentChunk: number;
+  totalChunks: number;
 
-    currentTime: string;
-    totalDuration: string;
+  currentTime: string;
+  totalDuration: string;
 }
 
 export interface TimelineMarker {
-    id: string;
+  id: string;
 
-    position: number; // 0-100
+  position: number; // 0-100
 
-    variant:
-        | "checkpoint"
-        | "quiz"
-        | "note"
-        | "chapter"
-        | "bookmark";
+  variant: 'checkpoint' | 'quiz' | 'note' | 'chapter' | 'bookmark';
 
-    active?: boolean;
+  active?: boolean;
 }
 
-export type PlayerTool =
-    | "scribe"
-    | "capture"
-    | "bookmark"
-    | "speed"
-    | "menu";
+export type PlayerTool = 'scribe' | 'capture' | 'bookmark' | 'speed' | 'menu';

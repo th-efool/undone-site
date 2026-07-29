@@ -1,1 +1,1 @@
-export {Explore} from "./Explore"
+export { Explore } from './Explore';

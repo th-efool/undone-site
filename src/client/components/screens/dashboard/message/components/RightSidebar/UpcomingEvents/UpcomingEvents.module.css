@@ -1,1 +1,30 @@
-.panel{padding:28px 26px;border:1px solid var(--message-border);border-radius:var(--message-radius-card);background:#fff;box-shadow:var(--message-shadow-card)}.panel header{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px}.panel h2{margin:0;color:var(--color-text-primary);font-size:1.2rem}.panel header button{border:0;background:transparent;color:var(--message-brand);font-weight:800;cursor:pointer}.panel>div{display:flex;flex-direction:column;gap:30px}
+.panel {
+  padding: 28px 26px;
+  border: 1px solid var(--message-border);
+  border-radius: var(--message-radius-card);
+  background: #fff;
+  box-shadow: var(--message-shadow-card);
+}
+.panel header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+.panel h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 1.2rem;
+}
+.panel header button {
+  border: 0;
+  background: transparent;
+  color: var(--message-brand);
+  font-weight: 800;
+  cursor: pointer;
+}
+.panel > div {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}

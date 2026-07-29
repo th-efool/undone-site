@@ -1,145 +1,142 @@
 .root {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
 
-    border: none;
-    cursor: pointer;
-    user-select: none;
-    white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
 
-    border-radius: var(--radius-button);
+  border-radius: var(--radius-button);
 
-    font-family: var(--font-sans);
-    font-size: var(--font-button-size);
-    font-weight: var(--font-button-weight);
-    letter-spacing: var(--font-button-tracking);
-    line-height: 1;
+  font-family: var(--font-sans);
+  font-size: var(--font-button-size);
+  font-weight: var(--font-button-weight);
+  letter-spacing: var(--font-button-tracking);
+  line-height: 1;
 
-    transition:
-            var(--transition-colors),
-            var(--transition-shadow),
-            var(--transition-transform);
+  transition: var(--transition-colors), var(--transition-shadow), var(--transition-transform);
 }
 
 /* Sizes */
 
 .xs {
-    height: 2rem;
-    padding-inline: var(--space-3);
+  height: 2rem;
+  padding-inline: var(--space-3);
 }
 
 .sm {
-    height: 2.5rem;
-    padding-inline: var(--space-4);
+  height: 2.5rem;
+  padding-inline: var(--space-4);
 }
 
 .md {
-    height: 2.875rem;
-    padding-inline: var(--space-5);
+  height: 2.875rem;
+  padding-inline: var(--space-5);
 }
 
 .lg {
-    height: 3.25rem;
-    padding-inline: var(--space-6);
+  height: 3.25rem;
+  padding-inline: var(--space-6);
 }
 
 .xl {
-    height: 3.75rem;
-    padding-inline: var(--space-8);
+  height: 3.75rem;
+  padding-inline: var(--space-8);
 }
 
 /* Variants */
 
 .primary {
-    background: var(--gradient-brand);
-    color: var(--color-text-inverse);
-    box-shadow: var(--shadow-primary);
+  background: var(--gradient-brand);
+  color: var(--color-text-inverse);
+  box-shadow: var(--shadow-primary);
 }
 
 .primary:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-primary-lg);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-primary-lg);
 }
 
 .secondary {
-    background: var(--color-surface);
-    color: var(--color-text-primary);
-    border: 1px solid var(--color-border);
-    box-shadow: var(--shadow-sm);
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
 }
 
 .secondary:hover {
-    background: var(--color-surface-secondary);
-    border-color: var(--color-border-hover);
+  background: var(--color-surface-secondary);
+  border-color: var(--color-border-hover);
 }
 
 .ghost {
-    background: transparent;
-    color: var(--color-brand);
+  background: transparent;
+  color: var(--color-brand);
 }
 
 .ghost:hover {
-    background: var(--color-brand-soft);
+  background: var(--color-brand-soft);
 }
 
 .outline {
-    background: transparent;
-    color: var(--color-brand);
-    border: 1px solid var(--color-brand);
+  background: transparent;
+  color: var(--color-brand);
+  border: 1px solid var(--color-brand);
 }
 
 .outline:hover {
-    background: var(--color-brand-soft);
+  background: var(--color-brand-soft);
 }
 
 .momentum {
-    background: var(--gradient-momentum);
-    color: var(--color-text-inverse);
-    box-shadow: var(--shadow-momentum);
+  background: var(--gradient-momentum);
+  color: var(--color-text-inverse);
+  box-shadow: var(--shadow-momentum);
 }
 
 .momentum:hover {
-    transform: translateY(-2px);
+  transform: translateY(-2px);
 }
 
 .danger {
-    background: var(--color-error);
-    color: var(--color-text-inverse);
+  background: var(--color-error);
+  color: var(--color-text-inverse);
 }
 
 .danger:hover {
-    filter: brightness(.95);
+  filter: brightness(0.95);
 }
 
 /* Modifiers */
 
 .block {
-    width: 100%;
+  width: 100%;
 }
 
 .icon {
-    width: 2.875rem;
-    height: 2.875rem;
-    padding: 0;
-    border-radius: var(--radius-circle);
+  width: 2.875rem;
+  height: 2.875rem;
+  padding: 0;
+  border-radius: var(--radius-circle);
 }
 
 .loading {
-    cursor: wait;
-    pointer-events: none;
+  cursor: wait;
+  pointer-events: none;
 }
 
 .root:disabled,
 .root[disabled],
-.root[aria-disabled="true"] {
-    opacity: .55;
-    cursor: not-allowed;
-    pointer-events: none;
-    transform: none;
-    box-shadow: none;
+.root[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+  transform: none;
+  box-shadow: none;
 }
 .spinner {
-    flex-shrink: 0;
+  flex-shrink: 0;
 }

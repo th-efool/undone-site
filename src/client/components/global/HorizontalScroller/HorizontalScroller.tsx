@@ -1,130 +1,109 @@
-"use client";
+'use client';
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import {
-    PropsWithChildren,
-    useEffect,
-    useRef,
-    useState,
-} from "react";
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { PropsWithChildren, useEffect, useRef, useState } from 'react';
 
-import styles from "./HorizontalScroller.module.css";
+import styles from './HorizontalScroller.module.css';
 
-export interface HorizontalScrollerProps
-    extends PropsWithChildren {
-    className?: string;
+export interface HorizontalScrollerProps extends PropsWithChildren {
+  className?: string;
 
-    scrollAmount?: number;
+  scrollAmount?: number;
 }
 
 export function HorizontalScroller({
-                                       children,
-                                       className,
-                                       scrollAmount = 320,
-                                   }: HorizontalScrollerProps) {
-    const viewportRef = useRef<HTMLDivElement>(null);
+  children,
+  className,
+  scrollAmount = 320,
+}: HorizontalScrollerProps) {
+  const viewportRef = useRef<HTMLDivElement>(null);
 
-    const [showLeft, setShowLeft] = useState(false);
-    const [showRight, setShowRight] = useState(false);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(false);
 
-    function updateButtons() {
-        const viewport = viewportRef.current;
+  function updateButtons() {
+    const viewport = viewportRef.current;
 
-        if (!viewport) {
-            return;
-        }
-
-        setShowLeft(viewport.scrollLeft > 1);
-
-        setShowRight(
-            viewport.scrollLeft + viewport.clientWidth <
-            viewport.scrollWidth - 1,
-        );
+    if (!viewport) {
+      return;
     }
 
-    function scroll(offset: number) {
-        const viewport = viewportRef.current;
+    setShowLeft(viewport.scrollLeft > 1);
 
-        if (!viewport) {
-            return;
-        }
+    setShowRight(viewport.scrollLeft + viewport.clientWidth < viewport.scrollWidth - 1);
+  }
 
-        viewport.scrollBy({
-            left: offset,
-            behavior: "smooth",
-        });
+  function scroll(offset: number) {
+    const viewport = viewportRef.current;
 
-        requestAnimationFrame(updateButtons);
-
-        setTimeout(updateButtons, 100);
-
-        setTimeout(updateButtons, 250);
+    if (!viewport) {
+      return;
     }
 
-    useEffect(() => {
-        updateButtons();
+    viewport.scrollBy({
+      left: offset,
+      behavior: 'smooth',
+    });
 
-        const viewport = viewportRef.current;
+    requestAnimationFrame(updateButtons);
 
-        if (!viewport) {
-            return;
-        }
+    setTimeout(updateButtons, 100);
 
-        viewport.addEventListener("scroll", updateButtons);
+    setTimeout(updateButtons, 250);
+  }
 
-        window.addEventListener("resize", updateButtons);
+  useEffect(() => {
+    updateButtons();
 
-        return () => {
-            viewport.removeEventListener(
-                "scroll",
-                updateButtons,
-            );
+    const viewport = viewportRef.current;
 
-            window.removeEventListener(
-                "resize",
-                updateButtons,
-            );
-        };
-    }, []);
+    if (!viewport) {
+      return;
+    }
 
-    return (
-        <div className={`${styles.wrapper} ${className ?? ""}`}>
+    viewport.addEventListener('scroll', updateButtons);
 
-            <div className={styles.viewportWrapper}>
+    window.addEventListener('resize', updateButtons);
 
-                {showLeft && (
-                    <button
-                        type="button"
-                        className={`${styles.arrow} ${styles.left}`}
-                        onClick={() => scroll(-scrollAmount)}
-                        aria-label="Scroll left"
-                    >
-                        <ChevronLeft size={20} />
-                    </button>
-                )}
+    return () => {
+      viewport.removeEventListener('scroll', updateButtons);
 
-                <div
-                    ref={viewportRef}
-                    className={styles.viewport}
-                >
-                    <div className={styles.track}>
-                        {children}
-                    </div>
-                </div>
+      window.removeEventListener('resize', updateButtons);
+    };
+  }, []);
 
-                {showRight && (
-                    <button
-                        type="button"
-                        className={`${styles.arrow} ${styles.right}`}
-                        onClick={() => scroll(scrollAmount)}
-                        aria-label="Scroll right"
-                    >
-                        <ChevronRight size={20} />
-                    </button>
-                )}
+  return (
+    <div className={`${styles.wrapper} ${className ?? ''}`}>
+      <div className={styles.viewportWrapper}>
+        {showLeft && (
+          <button
+            type="button"
+            className={`${styles.arrow} ${styles.left}`}
+            onClick={() => scroll(-scrollAmount)}
+            aria-label="Scroll left"
+          >
+            <ChevronLeft size={20} />
+          </button>
+        )}
 
-            </div>
-
+        <div
+          ref={viewportRef}
+          className={styles.viewport}
+        >
+          <div className={styles.track}>{children}</div>
         </div>
-    );
+
+        {showRight && (
+          <button
+            type="button"
+            className={`${styles.arrow} ${styles.right}`}
+            onClick={() => scroll(scrollAmount)}
+            aria-label="Scroll right"
+          >
+            <ChevronRight size={20} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
 }

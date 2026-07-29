@@ -1,46 +1,46 @@
 .sidebar {
-    position: sticky;
-    top: 0;
+  position: sticky;
+  top: 0;
 
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
 
-    width: 64px;
-    height: 100vh;
-    max-height: 100vh;
+  width: 64px;
+  height: 100vh;
+  max-height: 100vh;
 
-    padding: var(--space-3) var(--space-2);
+  padding: var(--space-3) var(--space-2);
 
-    border-right: none;
-    background: transparent;
+  border-right: none;
+  background: transparent;
 }
 
 .logo {
-    justify-self: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .navigation {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: clamp(var(--space-2), 1.25vh, var(--space-3));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(var(--space-2), 1.25vh, var(--space-3));
 
-    width: 100%;
-    min-height: 0;
-    padding-block: clamp(var(--space-3), 2vh, var(--space-6));
+  width: 100%;
+  min-height: 0;
+  padding-block: clamp(var(--space-3), 2vh, var(--space-6));
 }
 
 @media (max-height: 760px) {
-    .sidebar {
-        padding-block: var(--space-2);
-    }
+  .sidebar {
+    padding-block: var(--space-2);
+  }
 
-    .navigation {
-        gap: var(--space-1);
-        padding-block: var(--space-2);
-    }
+  .navigation {
+    gap: var(--space-1);
+    padding-block: var(--space-2);
+  }
 }

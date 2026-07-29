@@ -1,18 +1,18 @@
-import type { ContentProvider } from "@/src/client/components/global/ProviderBadge/types";
+import type { ContentProvider } from '@/src/client/components/global/ProviderBadge/types';
 
 export interface ArticlePreview {
-    id: string;
-    cohortId?: string;
+  id: string;
+  cohortId?: string;
 
-    title: string;
+  title: string;
 
-    author: string;
+  author: string;
 
-    thumbnail: string;
+  thumbnail: string;
 
-    learnerCount: string;
+  learnerCount: string;
 
-    publishedLabel: string;
+  publishedLabel: string;
 
-    bookmarked: boolean;
+  bookmarked: boolean;
 }

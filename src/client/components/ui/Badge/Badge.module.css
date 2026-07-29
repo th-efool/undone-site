@@ -1,59 +1,59 @@
 .badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: var(--space-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
 
-    border-radius: var(--radius-pill);
+  border-radius: var(--radius-pill);
 
-    font-weight: var(--font-semibold);
-    letter-spacing: var(--tracking-wide);
-    text-transform: uppercase;
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
 
-    white-space: nowrap;
+  white-space: nowrap;
 }
 
 .brand {
-    background: var(--color-brand-soft);
-    color: var(--color-brand);
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
 }
 
 .momentum {
-    background: var(--color-accent-soft);
-    color: var(--color-accent);
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
 }
 
 .success {
-    background: var(--color-success-bg);
-    color: var(--color-success);
+  background: var(--color-success-bg);
+  color: var(--color-success);
 }
 
 .warning {
-    background: var(--color-warning-bg);
-    color: var(--color-warning);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
 }
 
 .danger {
-    background: var(--color-error-bg);
-    color: var(--color-error);
+  background: var(--color-error-bg);
+  color: var(--color-error);
 }
 
 .neutral {
-    background: var(--color-surface-secondary);
-    color: var(--color-text-secondary);
+  background: var(--color-surface-secondary);
+  color: var(--color-text-secondary);
 }
 
 .sm {
-    padding: var(--space-1) var(--space-3);
-    font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
 }
 
 .md {
-    padding: var(--space-2) var(--space-4);
-    font-size: var(--text-sm);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
 }
 
 .lg {
-    padding: var(--space-3) var(--space-5);
-    font-size: var(--text-base);
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--text-base);
 }

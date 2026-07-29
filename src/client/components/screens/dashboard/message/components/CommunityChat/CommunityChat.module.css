@@ -1,3 +1,41 @@
-.chat{display:flex;flex:1;min-width:0;height:100vh;min-height:0;background:linear-gradient(180deg,#fff 0%,var(--color-brand-subtle) 100%)}.main{display:flex;flex:1;min-width:0;height:100vh;min-height:0;overflow:hidden;flex-direction:column;border-right:1px solid var(--message-border)}
-@media(max-width:1180px){.chat{min-width:760px}.main{border-right:0}.chat>aside{display:none}}
-@media(max-width:760px){.chat{min-width:0;height:100vh;min-height:0}.main{max-height:none;height:100vh;min-height:0}}
+.chat {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  height: 100vh;
+  min-height: 0;
+  background: linear-gradient(180deg, #fff 0%, var(--color-brand-subtle) 100%);
+}
+.main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  height: 100vh;
+  min-height: 0;
+  overflow: hidden;
+  flex-direction: column;
+  border-right: 1px solid var(--message-border);
+}
+@media (max-width: 1180px) {
+  .chat {
+    min-width: 760px;
+  }
+  .main {
+    border-right: 0;
+  }
+  .chat > aside {
+    display: none;
+  }
+}
+@media (max-width: 760px) {
+  .chat {
+    min-width: 0;
+    height: 100vh;
+    min-height: 0;
+  }
+  .main {
+    max-height: none;
+    height: 100vh;
+    min-height: 0;
+  }
+}

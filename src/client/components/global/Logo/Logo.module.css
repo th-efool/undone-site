@@ -1,59 +1,59 @@
 .root {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
 
-    text-decoration: none;
+  text-decoration: none;
 
-    color: inherit;
+  color: inherit;
 }
 
 .logoPlain {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-    flex-shrink: 0;
+  flex-shrink: 0;
 }
 
 .logoFrame {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-    width: 70px;
-    height: 70px;
+  width: 70px;
+  height: 70px;
 
-    flex-shrink: 0;
+  flex-shrink: 0;
 
-    overflow: hidden;
+  overflow: hidden;
 
-    border: 2px solid rgba(255, 255, 255, 0.92);
-    border-radius: 22px;
+  border: 2px solid rgba(255, 255, 255, 0.92);
+  border-radius: 22px;
 
-    box-shadow:
-            0 0 18px rgba(142, 92, 255, 0.35),
-            0 0 48px rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 0 18px rgba(142, 92, 255, 0.35),
+    0 0 48px rgba(255, 255, 255, 0.18);
 }
 
 .text {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .title {
-    font-size: var(--text-lg);
-    font-weight: var(--font-bold);
-    line-height: 1;
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  line-height: 1;
 
-    color: var(--color-text);
+  color: var(--color-text);
 }
 
 .tagline {
-    margin-top: 2px;
+  margin-top: 2px;
 
-    font-size: var(--font-caption-size);
-    font-weight: var(--font-caption-weight);
+  font-size: var(--font-caption-size);
+  font-weight: var(--font-caption-weight);
 
-    color: var(--color-text-secondary);
+  color: var(--color-text-secondary);
 }

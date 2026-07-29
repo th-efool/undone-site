@@ -1,5 +1,5 @@
-import { useCohort } from "./useCohort";
+import { useCohort } from './useCohort';
 
 export function useQuestline(cohortId: string) {
-    return useCohort(cohortId).questline;
+  return useCohort(cohortId).questline;
 }

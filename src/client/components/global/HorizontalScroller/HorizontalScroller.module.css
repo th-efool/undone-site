@@ -1,86 +1,86 @@
 .wrapper {
-    width: 100%;
+  width: 100%;
 }
 
 .viewportWrapper {
-    position: relative;
+  position: relative;
 }
 
 .viewport {
-    overflow-x: auto;
-    overflow-y: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 
-    scroll-behavior: smooth;
+  scroll-behavior: smooth;
 }
 
 .viewport::-webkit-scrollbar {
-    display: none;
+  display: none;
 }
 
 .track {
-    display: inline-flex;
+  display: inline-flex;
 
-    gap: 16px;
+  gap: 16px;
 
-    width: max-content;
+  width: max-content;
 }
 
 .arrow {
-    position: absolute;
+  position: absolute;
 
-    top: 50%;
-    transform: translateY(-50%);
+  top: 50%;
+  transform: translateY(-50%);
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
-    width: 48px;
-    height: 48px;
+  width: 48px;
+  height: 48px;
 
-    border: 1px solid rgba(255,255,255,.85);
-    border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 999px;
 
-    background: rgba(255,255,255,.92);
-    backdrop-filter: blur(18px);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(18px);
 
-    color: var(--color-text-primary);
+  color: var(--color-text-primary);
 
-    cursor: pointer;
+  cursor: pointer;
 
-    z-index: 20;
+  z-index: 20;
 
-    box-shadow:
-            0 10px 32px rgba(15,23,42,.14),
-            0 2px 8px rgba(15,23,42,.08);
+  box-shadow:
+    0 10px 32px rgba(15, 23, 42, 0.14),
+    0 2px 8px rgba(15, 23, 42, 0.08);
 
-    transition:
-            transform .18s ease,
-            box-shadow .18s ease,
-            background .18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
 }
 
 .arrow:hover {
-    transform: translateY(-50%) scale(1.05);
+  transform: translateY(-50%) scale(1.05);
 
-    background: white;
+  background: white;
 
-    box-shadow:
-            0 16px 36px rgba(15,23,42,.18),
-            0 6px 16px rgba(15,23,42,.12);
+  box-shadow:
+    0 16px 36px rgba(15, 23, 42, 0.18),
+    0 6px 16px rgba(15, 23, 42, 0.12);
 }
 
 .arrow:active {
-    transform: translateY(-50%) scale(.96);
+  transform: translateY(-50%) scale(0.96);
 }
 
 .left {
-    left: -24px;
+  left: -24px;
 }
 
 .right {
-    right: -24px;
+  right: -24px;
 }

@@ -1,47 +1,47 @@
 .heading {
-    margin: 0;
-    color: inherit;
-    font-family: var(--font-display);
+  margin: 0;
+  color: inherit;
+  font-family: var(--font-display);
 }
 
 .level1 {
-    font-size: var(--font-hero-size);
-    font-weight: var(--font-hero-weight);
-    line-height: var(--font-hero-line-height);
-    letter-spacing: var(--font-hero-tracking);
+  font-size: var(--font-hero-size);
+  font-weight: var(--font-hero-weight);
+  line-height: var(--font-hero-line-height);
+  letter-spacing: var(--font-hero-tracking);
 }
 
 .level2 {
-    font-size: var(--font-section-title-size);
-    font-weight: var(--font-section-title-weight);
-    line-height: var(--font-section-title-line-height);
-    letter-spacing: var(--font-section-title-tracking);
+  font-size: var(--font-section-title-size);
+  font-weight: var(--font-section-title-weight);
+  line-height: var(--font-section-title-line-height);
+  letter-spacing: var(--font-section-title-tracking);
 }
 
 .level3 {
-    font-size: var(--text-4xl);
-    font-weight: var(--font-bold);
-    line-height: var(--leading-tight);
-    letter-spacing: var(--tracking-tight);
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
 }
 
 .level4 {
-    font-size: var(--text-3xl);
-    font-weight: var(--font-bold);
-    line-height: var(--leading-tight);
-    letter-spacing: var(--tracking-tight);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
 }
 
 .level5 {
-    font-size: var(--text-2xl);
-    font-weight: var(--font-bold);
-    line-height: var(--leading-tight);
-    letter-spacing: var(--tracking-tight);
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
 }
 
 .level6 {
-    font-size: var(--font-card-title-size);
-    font-weight: var(--font-card-title-weight);
-    line-height: var(--font-card-title-line-height);
-    letter-spacing: var(--tracking-tight);
+  font-size: var(--font-card-title-size);
+  font-weight: var(--font-card-title-weight);
+  line-height: var(--font-card-title-line-height);
+  letter-spacing: var(--tracking-tight);
 }

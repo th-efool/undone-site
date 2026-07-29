@@ -1,6 +1,7 @@
-export type NotesSort = "manual" | "alphabetical" | "recentlyEdited" | "recentlyCreated" | "oldestFirst" | "newestFirst";
-export type NotesFilter = "all" | "favorites" | "recent" | "shared" | "archived";
-export type Permission = "viewer" | "editor" | "owner";
+export type NotesSort =
+  'manual' | 'alphabetical' | 'recentlyEdited' | 'recentlyCreated' | 'oldestFirst' | 'newestFirst';
+export type NotesFilter = 'all' | 'favorites' | 'recent' | 'shared' | 'archived';
+export type Permission = 'viewer' | 'editor' | 'owner';
 
 export type NoteEntity = {
   id: string;
@@ -43,4 +44,7 @@ export type NotesStateEntity = {
   filter: NotesFilter;
 };
 
-export type NotebookListItem = NotebookEntity & { noteCount: number; visibleNotes: NoteEntity[] };
+export type NotebookListItem = NotebookEntity & {
+  noteCount: number;
+  visibleNotes: NoteEntity[];
+};

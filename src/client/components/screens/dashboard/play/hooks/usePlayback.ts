@@ -1,63 +1,45 @@
-"use client";
+'use client';
 
-import { useState } from "react";
+import { useState } from 'react';
 
-import {
-    lesson,
-    timelineMarkers,
-} from "../types/play.mock";
+import { lesson, timelineMarkers } from '../types/play.mock';
 
 export function usePlayback() {
-    const [
-        isPlaying,
-        setIsPlaying,
-    ] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(true);
 
-    const [
-        volume,
-        setVolume,
-    ] = useState(90);
+  const [volume, setVolume] = useState(90);
 
-    const [
-        playbackSpeed,
-        setPlaybackSpeed,
-    ] = useState(1);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
 
-    const [
-        bookmarked,
-        setBookmarked,
-    ] = useState(false);
+  const [bookmarked, setBookmarked] = useState(false);
 
-    const [
-        isFullscreen,
-        setIsFullscreen,
-    ] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
-    return {
-        lesson,
+  return {
+    lesson,
 
-        timelineMarkers,
+    timelineMarkers,
 
-        isPlaying,
+    isPlaying,
 
-        volume,
+    volume,
 
-        playbackSpeed,
+    playbackSpeed,
 
-        bookmarked,
+    bookmarked,
 
-        isFullscreen,
+    isFullscreen,
 
-        setVolume,
+    setVolume,
 
-        setPlaybackSpeed,
+    setPlaybackSpeed,
 
-        setBookmarked,
+    setBookmarked,
 
-        setIsFullscreen,
+    setIsFullscreen,
 
-        togglePlayback() {
-            setIsPlaying((playing) => !playing);
-        },
-    };
+    togglePlayback() {
+      setIsPlaying((playing) => !playing);
+    },
+  };
 }

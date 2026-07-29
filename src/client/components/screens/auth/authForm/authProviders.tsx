@@ -1,54 +1,54 @@
-import Image from "next/image";
-import styles from "./authProviders.module.css";
+import Image from 'next/image';
+import styles from './authProviders.module.css';
 
 type Provider = {
-    id: string;
-    name: string;
-    icon: string;
+  id: string;
+  name: string;
+  icon: string;
 };
 
 const PROVIDERS: Provider[] = [
-    {
-        id: "google",
-        name: "Google",
-        icon: "/icons/google.webp",
-    },
-    {
-        id: "apple",
-        name: "Apple",
-        icon: "/icons/apple.webp",
-    },
-    {
-        id: "github",
-        name: "GitHub",
-        icon: "/icons/github.webp",
-    },
-    {
-        id: "slack",
-        name: "Slack",
-        icon: "/icons/slack.webp",
-    },
+  {
+    id: 'google',
+    name: 'Google',
+    icon: '/icons/google.webp',
+  },
+  {
+    id: 'apple',
+    name: 'Apple',
+    icon: '/icons/apple.webp',
+  },
+  {
+    id: 'github',
+    name: 'GitHub',
+    icon: '/icons/github.webp',
+  },
+  {
+    id: 'slack',
+    name: 'Slack',
+    icon: '/icons/slack.webp',
+  },
 ];
 
 export function AuthProviders() {
-    return (
-        <div className={styles.providers}>
-            {PROVIDERS.map((provider) => (
-                <button
-                    key={provider.id}
-                    type="button"
-                    className={styles.provider}
-                >
-                    <Image
-                        src={provider.icon}
-                        alt=""
-                        width={22}
-                        height={22}
-                    />
+  return (
+    <div className={styles.providers}>
+      {PROVIDERS.map((provider) => (
+        <button
+          key={provider.id}
+          type="button"
+          className={styles.provider}
+        >
+          <Image
+            src={provider.icon}
+            alt=""
+            width={22}
+            height={22}
+          />
 
-                    <span>{provider.name}</span>
-                </button>
-            ))}
-        </div>
-    );
+          <span>{provider.name}</span>
+        </button>
+      ))}
+    </div>
+  );
 }

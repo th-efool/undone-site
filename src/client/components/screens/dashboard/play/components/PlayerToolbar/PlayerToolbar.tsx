@@ -1,75 +1,73 @@
 import {
-    BookmarkButton,
-    CaptureButton,
-    PlaybackSpeed,
-    ScribeButton,
-    ToolbarMenu,
-} from "./components";
+  BookmarkButton,
+  CaptureButton,
+  PlaybackSpeed,
+  ScribeButton,
+  ToolbarMenu,
+} from './components';
 
-import type { PlayerTool } from "../../types/play";
+import type { PlayerTool } from '../../types/play';
 
-import styles from "./PlayerToolbar.module.css";
+import styles from './PlayerToolbar.module.css';
 
 export interface PlayerToolbarProps {
-    activeTool?: PlayerTool;
+  activeTool?: PlayerTool;
 
-    playbackSpeed: number;
+  playbackSpeed: number;
 
-    bookmarked: boolean;
+  bookmarked: boolean;
 
-    onScribe?: () => void;
+  onScribe?: () => void;
 
-    onCapture?: () => void;
+  onCapture?: () => void;
 
-    onBookmark?: () => void;
+  onBookmark?: () => void;
 
-    onSpeed?: () => void;
+  onSpeed?: () => void;
 
-    onMenu?: () => void;
+  onMenu?: () => void;
 }
 
 export function PlayerToolbar({
-                                  activeTool = "scribe",
+  activeTool = 'scribe',
 
-                                  playbackSpeed,
+  playbackSpeed,
 
-                                  bookmarked,
+  bookmarked,
 
-                                  onScribe = () => {},
+  onScribe = () => {},
 
-                                  onCapture = () => {},
+  onCapture = () => {},
 
-                                  onBookmark = () => {},
+  onBookmark = () => {},
 
-                                  onSpeed = () => {},
+  onSpeed = () => {},
 
-                                  onMenu = () => {},
-                              }: PlayerToolbarProps) {
-    return (
-        <aside className={styles.toolbar}>
-            <ScribeButton
-                active={activeTool === "scribe"}
-                onClick={onScribe}
-            />
+  onMenu = () => {},
+}: PlayerToolbarProps) {
+  return (
+    <aside className={styles.toolbar}>
+      <ScribeButton
+        active={activeTool === 'scribe'}
+        onClick={onScribe}
+      />
 
-            <CaptureButton
-                active={activeTool === "capture"}
-                onClick={onCapture}
-            />
+      <CaptureButton
+        active={activeTool === 'capture'}
+        onClick={onCapture}
+      />
 
-            <BookmarkButton
-                active={bookmarked}
-                onClick={onBookmark}
-            />
+      <BookmarkButton
+        active={bookmarked}
+        onClick={onBookmark}
+      />
 
-            <PlaybackSpeed
-                value={playbackSpeed}
-                onClick={onSpeed}
-            />
+      <PlaybackSpeed
+        value={playbackSpeed}
+        onClick={onSpeed}
+      />
 
-            <ToolbarMenu
-                onClick={onMenu}
-            />
-        </aside>
-    );
+      <ToolbarMenu onClick={onMenu} />
+    </aside>
+  );
 }

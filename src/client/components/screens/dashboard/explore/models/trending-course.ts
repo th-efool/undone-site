@@ -1,20 +1,15 @@
-import type {AvatarPreview} from "./explore"
+import type { AvatarPreview } from './explore';
 
-export type ContentProvider =
-    | "youtube"
-    | "vimeo"
-    | "loom";
-
-
+export type ContentProvider = 'youtube' | 'vimeo' | 'loom';
 
 export interface TrendingCourse {
-    id: string;
-    cohortId?: string;
-    title: string;
-    provider: ContentProvider;
-    thumbnail: string;
-    durationLabel: string;
-    featuredLearners: AvatarPreview[];
-    learnerCount: string;
-    rating: number;
+  id: string;
+  cohortId?: string;
+  title: string;
+  provider: ContentProvider;
+  thumbnail: string;
+  durationLabel: string;
+  featuredLearners: AvatarPreview[];
+  learnerCount: string;
+  rating: number;
 }

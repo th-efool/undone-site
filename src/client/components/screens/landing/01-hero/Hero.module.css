@@ -1,320 +1,276 @@
 .hero {
-    position: relative;
-    width: 100%;
-    height: min(100vh, calc(100vw * 9 / 16));
-    overflow: hidden;
+  position: relative;
+  width: 100%;
+  height: min(100vh, calc(100vw * 9 / 16));
+  overflow: hidden;
 }
 .overlay {
-    position: relative;
-    z-index: var(--z-content);
+  position: relative;
+  z-index: var(--z-content);
 
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 
-    min-height: 100vh;
+  min-height: 100vh;
 }
-
 
 /*HeroScene*/
 
 .background {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
 }
 
 .video {
-    position: absolute;
+  position: absolute;
 
-    top: 0;
-    left: 0;
+  top: 0;
+  left: 0;
 
-    width: 100%;
-    height: auto;
+  width: 100%;
+  height: auto;
 
-    display: block;
+  display: block;
 }
 
 .globalVignette {
-    z-index: 1;
+  z-index: 1;
 }
 
-
-
-
 .sunCorner {
-    position: absolute;
+  position: absolute;
 
-    top: -22%;
-    right: -16%;
+  top: -22%;
+  right: -16%;
 
-    width: 58%;
-    height: 54%;
+  width: 58%;
+  height: 54%;
 
-    pointer-events: none;
+  pointer-events: none;
 
-    background:
-            radial-gradient(
-                    ellipse,
+  background: radial-gradient(
+    ellipse,
+    rgba(255, 250, 243, 0.72) 0%,
+    rgba(255, 249, 242, 0.34) 28%,
+    rgba(255, 249, 242, 0.08) 56%,
+    transparent 78%
+  );
 
-                    rgba(255,250,243,.72) 0%,
-                    rgba(255,249,242,.34) 28%,
-                    rgba(255,249,242,.08) 56%,
-                    transparent 78%
-            );
-
-    filter: blur(52px);
+  filter: blur(52px);
 }
 
 /* Warm cream cinematic grade */
 .colorGrade {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 
-    background:
-            linear-gradient(
-                    180deg,
-                    rgba(255,248,236,.16) 0%,
-                    rgba(255,245,234,.08) 35%,
-                    transparent 100%
-            );
+  background: linear-gradient(
+    180deg,
+    rgba(255, 248, 236, 0.16) 0%,
+    rgba(255, 245, 234, 0.08) 35%,
+    transparent 100%
+  );
 
-    mix-blend-mode: screen;
+  mix-blend-mode: screen;
 }
 
 /* Strong sunlight entering from upper-right */
 .windowGlow {
-    position: absolute;
+  position: absolute;
 
-    right: -12%;
-    top: -10%;
+  right: -12%;
+  top: -10%;
 
-    width: 72%;
-    height: 88%;
+  width: 72%;
+  height: 88%;
 
-    pointer-events: none;
+  pointer-events: none;
 
-    background:
-            radial-gradient(
-                    ellipse at 58% 45%,
+  background: radial-gradient(
+    ellipse at 58% 45%,
 
-                    rgba(255,252,248,.96) 0%,
-                    rgba(255,251,246,.86) 30%,
-                    rgba(255,249,243,.62) 55%,
-                    rgba(255,247,241,.34) 76%,
-                    rgba(255,246,239,.12) 90%,
-                    transparent 100%
-            );
+    rgba(255, 252, 248, 0.96) 0%,
+    rgba(255, 251, 246, 0.86) 30%,
+    rgba(255, 249, 243, 0.62) 55%,
+    rgba(255, 247, 241, 0.34) 76%,
+    rgba(255, 246, 239, 0.12) 90%,
+    transparent 100%
+  );
 
-    filter: blur(84px);
+  filter: blur(84px);
 }
 
 /* Typography readability */
 .readingWash {
-    position: absolute;
+  position: absolute;
 
-    left: 32%;
-    top: 28%;
+  left: 32%;
+  top: 28%;
 
-    width: 46%;
-    height: 58%;
+  width: 46%;
+  height: 58%;
 
-    pointer-events: none;
+  pointer-events: none;
 
-    background:
-            radial-gradient(
-                    1200px 850px at 73% 42%,
-                    rgba(255,252,248,.34) 0%,
-                    rgba(255,252,248,.26) 38%,
-                    rgba(255,252,248,.12) 68%,
-                    transparent 100%
-            ),
+  background:
+    radial-gradient(
+      1200px 850px at 73% 42%,
+      rgba(255, 252, 248, 0.34) 0%,
+      rgba(255, 252, 248, 0.26) 38%,
+      rgba(255, 252, 248, 0.12) 68%,
+      transparent 100%
+    ),
+    radial-gradient(
+      900px 700px at 70% 62%,
+      rgba(255, 251, 246, 0.2) 0%,
+      rgba(255, 251, 246, 0.1) 62%,
+      transparent 100%
+    ),
+    radial-gradient(850px 650px at 58% 46%, rgba(255, 250, 244, 0.14) 0%, transparent 85%);
 
-            radial-gradient(
-                    900px 700px at 70% 62%,
-                    rgba(255,251,246,.20) 0%,
-                    rgba(255,251,246,.10) 62%,
-                    transparent 100%
-            ),
-
-            radial-gradient(
-                    850px 650px at 58% 46%,
-                    rgba(255,250,244,.14) 0%,
-                    transparent 85%
-            );
-
-    filter: blur(60px);
+  filter: blur(60px);
 }
 @media (max-width: 767px) {
-    .readingWash {
-        left: -25%;
-        width: 78%;
-        top: 7%;
+  .readingWash {
+    left: -25%;
+    width: 78%;
+    top: 7%;
 
-        /* leave everything else alone */
-    }
+    /* leave everything else alone */
+  }
 }
 
 /* Keeps logo / floating icons readable */
 .leftVignette {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 
-    background:
+  background:
 
         /* Main corner shadow */
-            radial-gradient(
-                    950px 820px
-                    at -18% -18%,
+    radial-gradient(
+      950px 820px at -18% -18%,
 
-                    rgba(16,13,38,.92) 0%,
-                    rgba(18,15,42,.76) 24%,
-                    rgba(22,18,48,.48) 44%,
-                    rgba(22,18,48,.18) 62%,
-                    transparent 76%
-            ),
+      rgba(16, 13, 38, 0.92) 0%,
+      rgba(18, 15, 42, 0.76) 24%,
+      rgba(22, 18, 48, 0.48) 44%,
+      rgba(22, 18, 48, 0.18) 62%,
+      transparent 76%
+    ),
+    /* Long sweeping arc */
+    radial-gradient(
+        1700px 520px at -30% 4%,
 
-                /* Long sweeping arc */
-            radial-gradient(
-                    1700px 520px
-                    at -30% 4%,
-
-                    rgba(22,18,48,.34) 0%,
-                    rgba(22,18,48,.16) 42%,
-                    transparent 72%
-            ),
-
-                /* Vertical falloff */
-            linear-gradient(
-                    to right,
-                    rgba(18,15,42,.18) 0%,
-                    rgba(18,15,42,.08) 12%,
-                    transparent 28%
-            );
+        rgba(22, 18, 48, 0.34) 0%,
+        rgba(22, 18, 48, 0.16) 42%,
+        transparent 72%
+      ),
+    /* Vertical falloff */
+    linear-gradient(
+        to right,
+        rgba(18, 15, 42, 0.18) 0%,
+        rgba(18, 15, 42, 0.08) 12%,
+        transparent 28%
+      );
 }
 
 /* Navbar */
 .topFade {
-    position: absolute;
+  position: absolute;
 
-    top: 0;
-    left: 0;
-    right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
 
-    height: 128px;
+  height: 128px;
 
-    pointer-events: none;
+  pointer-events: none;
 
-    background:
-            linear-gradient(
-                    to bottom,
-                    rgba(255,255,255,.22),
-                    rgba(255,255,255,.08),
-                    transparent
-            );
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.22),
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
 }
 
 /* Bottom social proof */
 .bottomFade {
-    position: absolute;
-    inset: auto 0 0;
-    height: 470px;
+  position: absolute;
+  inset: auto 0 0;
+  height: 470px;
 
-    pointer-events: none;
+  pointer-events: none;
 
-    background:
-
-            radial-gradient(
-                    120% 300px
-                    at -8% 100%,
-                    rgba(14,12,28,.82),
-                    transparent 72%
-            ),
-
-            radial-gradient(
-                    145% 360px
-                    at 50% 100%,
-                    rgba(16,14,30,.70),
-                    transparent 72%
-            ),
-
-            radial-gradient(
-                    110% 290px
-                    at 108% 100%,
-                    rgba(14,12,28,.80),
-                    transparent 72%
-            ),
-
-            linear-gradient(
-                    to top,
-                    rgba(16,14,30,.38) 0%,
-                    rgba(16,14,30,.18) 36%,
-                    transparent 82%
-            );
+  background:
+    radial-gradient(120% 300px at -8% 100%, rgba(14, 12, 28, 0.82), transparent 72%),
+    radial-gradient(145% 360px at 50% 100%, rgba(16, 14, 30, 0.7), transparent 72%),
+    radial-gradient(110% 290px at 108% 100%, rgba(14, 12, 28, 0.8), transparent 72%),
+    linear-gradient(to top, rgba(16, 14, 30, 0.38) 0%, rgba(16, 14, 30, 0.18) 36%, transparent 82%);
 }
 
 /* Very soft edge falloff */
 .globalVignette {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 
-    background:
-            radial-gradient(
-                    ellipse at center,
-                    transparent 52%,
-                    rgba(0,0,0,.08) 74%,
-                    rgba(0,0,0,.18) 100%
-            );
+  background: radial-gradient(
+    ellipse at center,
+    transparent 52%,
+    rgba(0, 0, 0, 0.08) 74%,
+    rgba(0, 0, 0, 0.18) 100%
+  );
 }
 
 @media (max-width: 1439px) {
-    .hero {
-        height: max(720px, min(100vh, calc(100vw * 9 / 16)));
-        min-height: 720px;
-    }
+  .hero {
+    height: max(720px, min(100vh, calc(100vw * 9 / 16)));
+    min-height: 720px;
+  }
 
-    .overlay {
-        min-height: 720px;
-    }
+  .overlay {
+    min-height: 720px;
+  }
 
-    .video {
-        width: auto;
-        min-width: 100%;
-        height: 100%;
-        min-height: 100%;
-        object-fit: cover;
-    }
+  .video {
+    width: auto;
+    min-width: 100%;
+    height: 100%;
+    min-height: 100%;
+    object-fit: cover;
+  }
 }
 
 @media (max-width: 1023px) {
-    .hero {
-        height: max(760px, 100svh);
-        min-height: 760px;
-    }
+  .hero {
+    height: max(760px, 100svh);
+    min-height: 760px;
+  }
 
-    .overlay {
-        min-height: 760px;
-    }
+  .overlay {
+    min-height: 760px;
+  }
 }
 
 @media (max-width: 767px) {
-    .hero {
-        height: max(820px, 100svh);
-        min-height: 820px;
-    }
+  .hero {
+    height: max(820px, 100svh);
+    min-height: 820px;
+  }
 
-    .overlay {
-        min-height: 820px;
-    }
+  .overlay {
+    min-height: 820px;
+  }
 
-    .topFade {
-        height: 112px;
-    }
+  .topFade {
+    height: 112px;
+  }
 
-    .bottomFade {
-        height: 390px;
-    }
+  .bottomFade {
+    height: 390px;
+  }
 }

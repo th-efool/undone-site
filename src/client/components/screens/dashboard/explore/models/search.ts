@@ -1,4 +1,4 @@
 export interface SearchSuggestion {
-    id: string
-    label: string
+  id: string;
+  label: string;
 }

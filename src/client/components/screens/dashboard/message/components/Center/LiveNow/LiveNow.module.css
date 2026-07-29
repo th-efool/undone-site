@@ -1,1 +1,29 @@
-.section{display:flex;flex-direction:column;gap:18px}.section header,.section button{display:flex;align-items:center}.section header{justify-content:space-between}.section h2{margin:0;font-size:1.18rem;color:var(--color-text-primary)}.section button{gap:6px;border:0;background:transparent;color:var(--message-brand);font-weight:800;cursor:pointer}.scroller{margin-left:-2px}
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.section header,
+.section button {
+  display: flex;
+  align-items: center;
+}
+.section header {
+  justify-content: space-between;
+}
+.section h2 {
+  margin: 0;
+  font-size: 1.18rem;
+  color: var(--color-text-primary);
+}
+.section button {
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--message-brand);
+  font-weight: 800;
+  cursor: pointer;
+}
+.scroller {
+  margin-left: -2px;
+}

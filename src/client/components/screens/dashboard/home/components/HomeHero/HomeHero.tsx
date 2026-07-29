@@ -1,38 +1,39 @@
-import { Plus, Sparkles } from "lucide-react";
+import { Plus, Sparkles } from 'lucide-react';
 
-import type { HomeHeroContent } from "../../models";
+import type { HomeHeroContent } from '../../models';
 
-import styles from "./HomeHero.module.css";
+import styles from './HomeHero.module.css';
 
 export interface HomeHeroProps {
-    content: HomeHeroContent;
+  content: HomeHeroContent;
 }
 
 export function HomeHero({ content }: HomeHeroProps) {
-    return (
-        <header className={styles.hero}>
-            <div className={styles.greeting}>
-                <h1 className={styles.title}>
-                    {content.title}
-                    <Sparkles
-                        size={24}
-                        strokeWidth={2.5}
-                        className={styles.sparkle}
-                    />
-                </h1>
+  return (
+    <header className={styles.hero}>
+      <div className={styles.greeting}>
+        <h1 className={styles.title}>
+          {content.title}
+          <Sparkles
+            size={24}
+            strokeWidth={2.5}
+            className={styles.sparkle}
+          />
+        </h1>
 
-                <p className={styles.subtitle}>
-                    {content.subtitle}
-                </p>
-            </div>
+        <p className={styles.subtitle}>{content.subtitle}</p>
+      </div>
 
-            <button
-                type="button"
-                className={styles.newButton}
-            >
-                <Plus size={20} strokeWidth={2.4} />
-                {content.actionLabel}
-            </button>
-        </header>
-    );
+      <button
+        type="button"
+        className={styles.newButton}
+      >
+        <Plus
+          size={20}
+          strokeWidth={2.4}
+        />
+        {content.actionLabel}
+      </button>
+    </header>
+  );
 }

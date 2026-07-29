@@ -1,6 +1,10 @@
-import {Play} from "@/src/client/components/screens/dashboard/play";
+import { Play } from '@/src/client/components/screens/dashboard/play';
 
-export default function play(){
-    return <> <Play/> </>
-
+export default function play() {
+  return (
+    <>
+      {' '}
+      <Play />{' '}
+    </>
+  );
 }

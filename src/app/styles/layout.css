@@ -10,12 +10,10 @@
   width: 100%;
 }
 
-
 .section {
   position: relative;
   padding-block: var(--section-space-lg);
 }
-
 
 .glass {
   background: var(--glass-light);
@@ -24,9 +22,18 @@
   -webkit-backdrop-filter: blur(var(--blur-lg));
 }
 
-.bg-gradient-brand { background: var(--gradient-brand); }
-.bg-gradient-learning { background: var(--gradient-learning); }
-.bg-gradient-momentum { background: var(--gradient-momentum); }
-.shadow-primary { box-shadow: var(--shadow-primary); }
-.shadow-momentum { box-shadow: var(--shadow-momentum); }
-
+.bg-gradient-brand {
+  background: var(--gradient-brand);
+}
+.bg-gradient-learning {
+  background: var(--gradient-learning);
+}
+.bg-gradient-momentum {
+  background: var(--gradient-momentum);
+}
+.shadow-primary {
+  box-shadow: var(--shadow-primary);
+}
+.shadow-momentum {
+  box-shadow: var(--shadow-momentum);
+}

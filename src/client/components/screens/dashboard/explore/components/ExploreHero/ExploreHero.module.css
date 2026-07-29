@@ -1,33 +1,33 @@
 .hero {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 
-    gap: 4px;
+  gap: 4px;
 }
 
 .title {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 
-    margin: 0;
+  margin: 0;
 
-    font-size: 2.1rem;
-    font-weight: 700;
-    line-height: 1.15;
+  font-size: 2.1rem;
+  font-weight: 700;
+  line-height: 1.15;
 
-    color: var(--color-text-primary);
+  color: var(--color-text-primary);
 }
 
 .subtitle {
-    margin: 0;
+  margin: 0;
 
-    font-size: 1.15rem;
-    font-weight: 500;
+  font-size: 1.15rem;
+  font-weight: 500;
 
-    color: var(--color-text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .sparkle {
-    color: var(--color-brand);
+  color: var(--color-brand);
 }

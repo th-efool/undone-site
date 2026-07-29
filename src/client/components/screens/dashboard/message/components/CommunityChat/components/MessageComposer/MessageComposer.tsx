@@ -1,1 +1,1 @@
-export { CommunityComposer as MessageComposer } from "../../../MessageComposer/composers/CommunityComposer";
+export { CommunityComposer as MessageComposer } from '../../../MessageComposer/composers/CommunityComposer';

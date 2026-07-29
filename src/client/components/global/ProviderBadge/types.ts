@@ -1,5 +1,1 @@
-export type ContentProvider =
-    | "youtube"
-    | "vimeo"
-    | "loom"
-    | "github";
+export type ContentProvider = 'youtube' | 'vimeo' | 'loom' | 'github';

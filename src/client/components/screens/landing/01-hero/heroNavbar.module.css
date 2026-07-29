@@ -30,7 +30,9 @@
   border-radius: 22px;
   overflow: hidden;
   border: 2px solid rgba(255, 255, 255, 0.92);
-  box-shadow: 0 0 18px rgba(142, 92, 255, 0.35), 0 0 48px rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 0 18px rgba(142, 92, 255, 0.35),
+    0 0 48px rgba(255, 255, 255, 0.18);
   flex-shrink: 0;
 }
 
@@ -80,7 +82,7 @@
   gap: 12px;
   padding: 14px 24px;
   border-radius: 999px;
-  background: #15172D;
+  background: #15172d;
   color: #fff;
   text-decoration: none;
   font-weight: var(--font-extrabold);

@@ -1,1 +1,1 @@
-export { DMComposer } from "../../../MessageComposer/composers/DMComposer";
+export { DMComposer } from '../../../MessageComposer/composers/DMComposer';

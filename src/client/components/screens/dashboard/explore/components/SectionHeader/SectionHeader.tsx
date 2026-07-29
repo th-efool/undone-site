@@ -1,5 +1,5 @@
-import styles from "./SectionHeader.module.css"
+import styles from './SectionHeader.module.css';
 
-export function SectionHeader(){
-    return <header className={styles.root} />
+export function SectionHeader() {
+  return <header className={styles.root} />;
 }

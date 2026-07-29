@@ -1,1 +1,1 @@
-export * from "./HorizontalScroller";
+export * from './HorizontalScroller';

@@ -1,3 +1,3 @@
 export function getCohortHref(cohortId: string) {
-    return `/cohort/${cohortId}`;
+  return `/cohort/${cohortId}`;
 }

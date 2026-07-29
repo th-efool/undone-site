@@ -1,66 +1,62 @@
 .timeline {
-    width: 100%;
+  width: 100%;
 }
 
 .track {
-    position: relative;
+  position: relative;
 
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 
-    height: 6px;
+  height: 6px;
 
-    border-radius: 999px;
+  border-radius: 999px;
 
-    background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .progress {
-    position: absolute;
-    left: 0;
+  position: absolute;
+  left: 0;
 
-    width: 47%;
-    height: 100%;
+  width: 47%;
+  height: 100%;
 
-    border-radius: inherit;
+  border-radius: inherit;
 
-    background: linear-gradient(
-            90deg,
-            var(--color-brand),
-            rgba(var(--color-brand-rgb), 0.65)
-    );
+  background: linear-gradient(90deg, var(--color-brand), rgba(var(--color-brand-rgb), 0.65));
 }
 
 .marker {
-    position: relative;
-    z-index: 2;
+  position: relative;
+  z-index: 2;
 
-    width: 16px;
-    height: 16px;
+  width: 16px;
+  height: 16px;
 
-    border: 3px solid rgba(20, 20, 22, 1);
-    border-radius: 999px;
+  border: 3px solid rgba(20, 20, 22, 1);
+  border-radius: 999px;
 
-    transition: transform 180ms ease;
+  transition: transform 180ms ease;
 }
 
 .marker:hover {
-    transform: scale(1.15);
+  transform: scale(1.15);
 }
 
 .completed {
-    background: var(--color-brand);
+  background: var(--color-brand);
 }
 
 .active {
-    background: #ffffff;
+  background: #ffffff;
 
-    box-shadow:
-            0 0 0 6px rgba(var(--color-brand-rgb), 0.18),
-            0 0 18px rgba(var(--color-brand-rgb), 0.35);
+  box-shadow:
+    0 0 0 6px rgba(var(--color-brand-rgb), 0.18),
+    0 0 18px rgba(var(--color-brand-rgb), 0.35);
 }
 
 .upcoming {
-    background: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.28);
 }

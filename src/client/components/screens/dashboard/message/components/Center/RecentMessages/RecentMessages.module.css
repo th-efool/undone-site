@@ -1,1 +1,25 @@
-.section{overflow:hidden;border:1px solid var(--message-border);border-radius:var(--message-radius-card);background:#fff;box-shadow:var(--message-shadow-card)}.section header{display:flex;align-items:center;justify-content:space-between;padding:22px 24px 8px}.section h2{margin:0;color:var(--color-text-primary);font-size:1.12rem}.section button{border:0;background:transparent;color:var(--message-brand);font-weight:800;cursor:pointer}
+.section {
+  overflow: hidden;
+  border: 1px solid var(--message-border);
+  border-radius: var(--message-radius-card);
+  background: #fff;
+  box-shadow: var(--message-shadow-card);
+}
+.section header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 24px 8px;
+}
+.section h2 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: 1.12rem;
+}
+.section button {
+  border: 0;
+  background: transparent;
+  color: var(--message-brand);
+  font-weight: 800;
+  cursor: pointer;
+}

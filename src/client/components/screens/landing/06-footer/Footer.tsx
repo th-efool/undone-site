@@ -1,1 +1,1 @@
-export {Footer} from "@/src/client/components/global/Footer/Footer"
+export { Footer } from '@/src/client/components/global/Footer/Footer';

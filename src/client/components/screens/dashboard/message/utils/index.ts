@@ -1,1 +1,1 @@
-export * from "./communityMapping";
+export * from './communityMapping';

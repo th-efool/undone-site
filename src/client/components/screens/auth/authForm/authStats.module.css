@@ -1,35 +1,35 @@
 .stats {
-    display: grid;
+  display: grid;
 
-    grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, 1fr);
 
-    gap: 16px;
+  gap: 16px;
 
-    padding-top: 28px;
+  padding-top: 28px;
 
-    border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border);
 }
 
 .item {
-    text-align: center;
+  text-align: center;
 }
 
 .value {
-    font-size: 1.75rem;
+  font-size: 1.75rem;
 
-    font-weight: var(--font-extrabold);
+  font-weight: var(--font-extrabold);
 
-    line-height: 1;
+  line-height: 1;
 
-    color: var(--gray-950);
+  color: var(--gray-950);
 }
 
 .label {
-    margin-top: 8px;
+  margin-top: 8px;
 
-    font-size: var(--text-sm);
+  font-size: var(--text-sm);
 
-    color: var(--color-text-secondary);
+  color: var(--color-text-secondary);
 
-    line-height: 1.4;
+  line-height: 1.4;
 }

@@ -2,7 +2,6 @@
 
 ---
 
-
 # Component Styling
 
 Component styles live in component-local CSS Modules and consume CSS variables from the design token system. Design tokens remain the single source of truth for color, spacing, typography, radius, motion, and other shared values. Layout primitives share centralized layout token maps where appropriate. Accessibility is part of the component contract, including semantic HTML, ARIA, and keyboard support.
@@ -14,6 +13,7 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 ## Colors
 
 ### Indigo Palette
+
 - `--indigo-50`
 - `--indigo-100`
 - `--indigo-200`
@@ -27,6 +27,7 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 - `--indigo-950`
 
 ### Orange Palette
+
 - `--orange-50`
 - `--orange-100`
 - `--orange-200`
@@ -40,6 +41,7 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 - `--orange-950`
 
 ### Cream Palette
+
 - `--cream-50`
 - `--cream-100`
 - `--cream-200`
@@ -48,6 +50,7 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 - `--cream-500`
 
 ### Gray Palette
+
 - `--gray-50`
 - `--gray-100`
 - `--gray-200`
@@ -61,24 +64,28 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 - `--gray-950`
 
 ### Green Palette
+
 - `--green-50`
 - `--green-100`
 - `--green-500`
 - `--green-700`
 
 ### Red Palette
+
 - `--red-50`
 - `--red-100`
 - `--red-500`
 - `--red-700`
 
 ### Blue Palette
+
 - `--blue-50`
 - `--blue-100`
 - `--blue-500`
 - `--blue-700`
 
 ### Semantic Brand Colors
+
 - `--color-brand`
 - `--color-brand-hover`
 - `--color-brand-soft`
@@ -86,6 +93,7 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 - `--color-brand-rgb`
 
 ### Accent Colors
+
 - `--color-accent`
 - `--color-accent-hover`
 - `--color-accent-soft`
@@ -93,6 +101,7 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 - `--color-accent-rgb`
 
 ### Surface Colors
+
 - `--color-background`
 - `--color-background-elevated`
 - `--color-surface`
@@ -101,6 +110,7 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 - `--color-surface-tertiary`
 
 ### Text Colors
+
 - `--color-text`
 - `--color-text-primary`
 - `--color-text-secondary`
@@ -109,24 +119,30 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 - `--color-text-inverse`
 
 ### Border Colors
+
 - `--color-border`
 - `--color-border-hover`
 - `--color-border-focus`
 
 ### Status Colors
+
 #### Success
+
 - `--color-success`
 - `--color-success-bg`
 
 #### Warning
+
 - `--color-warning`
 - `--color-warning-bg`
 
 #### Error
+
 - `--color-error`
 - `--color-error-bg`
 
 #### Info
+
 - `--color-info`
 - `--color-info-bg`
 
@@ -135,11 +151,13 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 # Typography
 
 ## Font Families
+
 - `--font-sans`
 - `--font-display`
 - `--font-mono`
 
 ## Font Weights
+
 - `--font-thin`
 - `--font-extralight`
 - `--font-light`
@@ -150,6 +168,7 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 - `--font-extrabold`
 
 ## Text Sizes
+
 - `--text-xs`
 - `--text-sm`
 - `--text-base`
@@ -163,12 +182,14 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 - `--text-7xl`
 
 ## Display Sizes
+
 - `--display-sm`
 - `--display-md`
 - `--display-lg`
 - `--display-xl`
 
 ## Line Heights
+
 - `--leading-none`
 - `--leading-tight`
 - `--leading-snug`
@@ -177,6 +198,7 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 - `--leading-loose`
 
 ## Letter Spacing
+
 - `--tracking-tighter`
 - `--tracking-tight`
 - `--tracking-normal`
@@ -186,50 +208,60 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 ## Semantic Typography Tokens
 
 ### Hero
+
 - `--font-hero-size`
 - `--font-hero-weight`
 - `--font-hero-line-height`
 - `--font-hero-tracking`
 
 ### Section Titles
+
 - `--font-section-title-size`
 - `--font-section-title-weight`
 - `--font-section-title-line-height`
 - `--font-section-title-tracking`
 
 ### Card Titles
+
 - `--font-card-title-size`
 - `--font-card-title-weight`
 - `--font-card-title-line-height`
 
 ### Body
+
 - `--font-body-size`
 - `--font-body-weight`
 - `--font-body-line-height`
 
 ### Large Body
+
 - `--font-body-lg-size`
 - `--font-body-lg-line-height`
 
 ### Small Text
+
 - `--font-small-size`
 - `--font-small-line-height`
 
 ### Caption
+
 - `--font-caption-size`
 - `--font-caption-weight`
 - `--font-caption-line-height`
 
 ### Buttons
+
 - `--font-button-size`
 - `--font-button-weight`
 - `--font-button-tracking`
 
 ### Navigation
+
 - `--font-nav-size`
 - `--font-nav-weight`
 
 ### Badges
+
 - `--font-badge-size`
 - `--font-badge-weight`
 - `--font-badge-tracking`
@@ -239,6 +271,7 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 # Spacing
 
 ## Spacing Scale
+
 - `--space-0`
 - `--space-0_5`
 - `--space-1`
@@ -260,6 +293,7 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 - `--space-64`
 
 ## Layout Spacing
+
 - `--page-padding`
 - `--section-space-xs`
 - `--section-space-sm`
@@ -295,6 +329,7 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 - `--radius-circle`
 
 ## Component Radius
+
 - `--radius-button`
 - `--radius-input`
 - `--radius-card`
@@ -315,6 +350,7 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 # Shadows
 
 ## Elevation
+
 - `--shadow-xs`
 - `--shadow-sm`
 - `--shadow-md`
@@ -323,6 +359,7 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 - `--shadow-2xl`
 
 ## Semantic Shadows
+
 - `--shadow-primary`
 - `--shadow-primary-lg`
 - `--shadow-momentum`
@@ -336,18 +373,21 @@ Component styles live in component-local CSS Modules and consume CSS variables f
 # Motion
 
 ## Duration
+
 - `--duration-fast`
 - `--duration-base`
 - `--duration-slow`
 - `--duration-slower`
 
 ## Easing
+
 - `--ease-standard`
 - `--ease-in`
 - `--ease-out`
 - `--ease-bounce`
 
 ## Transition Helpers
+
 - `--transition-colors`
 - `--transition-shadow`
 - `--transition-transform`
@@ -423,9 +463,11 @@ Components expose visual options through props rather than globally available co
 ## Layout Primitives
 
 ### Container
+
 Constrains content width and page padding.
 
 #### Sizes
+
 - `xs`
 - `sm`
 - `md`
@@ -438,25 +480,31 @@ Constrains content width and page padding.
 - `full`
 
 #### Contract
+
 - Uses container width tokens.
 - Supports rendered element overrides through `as`.
 
 ### Stack
+
 Creates vertical rhythm.
 
 #### Props
+
 - `gap`
 - `align`
 - `as`
 
 #### Contract
+
 - Uses shared gap and alignment token maps.
 - Keeps spacing token-driven.
 
 ### Cluster
+
 Creates horizontal or wrapping groups.
 
 #### Props
+
 - `gap`
 - `justify`
 - `align`
@@ -464,13 +512,16 @@ Creates horizontal or wrapping groups.
 - `as`
 
 #### Contract
+
 - Uses shared gap, justify, and alignment token maps.
 - Supports wrapping and non-wrapping layouts.
 
 ### Section
+
 Defines page sections.
 
 #### Variants
+
 - `transparent`
 - `surface`
 - `subtle`
@@ -480,6 +531,7 @@ Defines page sections.
 - `glass`
 
 #### Sizes
+
 - `none`
 - `xs`
 - `sm`
@@ -488,14 +540,17 @@ Defines page sections.
 - `xl`
 
 #### Contract
+
 - Uses section spacing tokens.
 - Uses semantic background and text tokens.
 - Supports hero layout behavior.
 
 ### Surface
+
 Defines card and panel surfaces.
 
 #### Variants
+
 - `default`
 - `subtle`
 - `outlined`
@@ -504,6 +559,7 @@ Defines card and panel surfaces.
 - `brand`
 
 #### Radius
+
 - `none`
 - `sm`
 - `md`
@@ -513,6 +569,7 @@ Defines card and panel surfaces.
 - `full`
 
 #### Padding
+
 - `none`
 - `sm`
 - `md`
@@ -520,13 +577,16 @@ Defines card and panel surfaces.
 - `xl`
 
 #### Contract
+
 - Uses radius and spacing token maps.
 - Uses semantic surface, border, shadow, glass, and brand tokens.
 
 ### SectionHeader
+
 Groups section eyebrow, title, description, and actions.
 
 #### Props
+
 - `eyebrow`
 - `title`
 - `description`
@@ -535,6 +595,7 @@ Groups section eyebrow, title, description, and actions.
 - `maxWidth`
 
 #### Contract
+
 - Composes Badge, Heading, and Text.
 - Supports left, center, and right alignment.
 
@@ -543,6 +604,7 @@ Groups section eyebrow, title, description, and actions.
 ## Button Component
 
 #### Variants
+
 - `primary`
 - `secondary`
 - `outline`
@@ -551,6 +613,7 @@ Groups section eyebrow, title, description, and actions.
 - `danger`
 
 #### Sizes
+
 - `xs`
 - `sm`
 - `md`
@@ -558,11 +621,13 @@ Groups section eyebrow, title, description, and actions.
 - `xl`
 
 #### Modifiers
+
 - `fullWidth`
 - `iconOnly`
 - `loading`
 
 #### State Styling
+
 - hover
 - focus-visible
 - disabled
@@ -570,6 +635,7 @@ Groups section eyebrow, title, description, and actions.
 - aria-busy
 
 #### Contract
+
 - Uses button typography, radius, shadow, color, and motion tokens.
 - Supports rendered element overrides through `as`.
 - Loading and disabled states must remain accessible and non-interactive.
@@ -577,39 +643,46 @@ Groups section eyebrow, title, description, and actions.
 ## Navbar Component
 
 #### Variants
+
 - `sticky`
 - `transparent`
 - `solid`
 
 #### Structure
+
 - header landmark
 - logo link
 - primary navigation
 - CTA action
 
 #### Accessibility
+
 - Uses a labeled primary navigation landmark.
 - Active/current links should expose semantic state when applicable.
 
 ## Logo Component
 
 #### Variants
+
 - `compact`
 - `iconOnly`
 
 #### Structure
+
 - linked brand mark
 - logo image
 - optional brand text
 - optional tagline
 
 #### Accessibility
+
 - Image alt text identifies the brand.
 - Icon-only presentation must remain understandable as a home/brand link.
 
 ## Footer Component
 
 #### Structure
+
 - footer landmark
 - brand summary
 - explore navigation
@@ -617,12 +690,14 @@ Groups section eyebrow, title, description, and actions.
 - legal navigation
 
 #### Accessibility
+
 - Footer link groups use labeled navigation landmarks.
 - Legal and social links remain keyboard reachable.
 
 ## Badge Component
 
 #### Variants
+
 - `brand`
 - `momentum`
 - `success`
@@ -631,27 +706,32 @@ Groups section eyebrow, title, description, and actions.
 - `neutral`
 
 #### Sizes
+
 - `sm`
 - `md`
 - `lg`
 
 #### Contract
+
 - Uses semantic status and brand tokens.
 - Text remains short and non-wrapping.
 
 ## Divider Component
 
 #### Props
+
 - `vertical`
 - `inset`
 
 #### Accessibility
+
 - Decorative dividers are hidden from assistive technologies by default.
 - Meaningful separators must provide appropriate role or label props.
 
 ## Heading Component
 
 #### Levels
+
 - `1`
 - `2`
 - `3`
@@ -660,18 +740,21 @@ Groups section eyebrow, title, description, and actions.
 - `6`
 
 #### Contract
+
 - Uses semantic typography tokens for heading levels.
 - Non-heading render targets must preserve heading semantics with ARIA.
 
 ## Text Component
 
 #### Variants
+
 - `body`
 - `lead`
 - `small`
 - `muted`
 
 #### Contract
+
 - Uses text color, size, and line-height tokens.
 - Supports rendered element overrides through `as`.
 
@@ -682,24 +765,31 @@ Groups section eyebrow, title, description, and actions.
 ## Global Styles
 
 ### `src/app/globals.css`
+
 Imports Tailwind and approved global stylesheets.
 
 ### `src/app/styles/tokens.css`
+
 Defines design tokens and theme mappings.
 
 ### `src/app/styles/reset.css`
+
 Global reset and base element normalization.
 
 ### `src/app/styles/typography.css`
+
 Base typography and text wrapping utilities.
 
 ### `src/app/styles/forms.css`
+
 Global form controls and validation states.
 
 ### `src/app/styles/accessibility.css`
+
 Focus, reduced motion, contrast, forced-colors, and touch-action rules.
 
 ### `src/app/styles/print.css`
+
 Print resets and print visibility utilities.
 
 ---
@@ -707,19 +797,24 @@ Print resets and print visibility utilities.
 # Naming Conventions
 
 ## CSS Variables
+
 - Use **kebab-case** with the `--` prefix.
 
 ## Color Tokens
+
 - Primitive palette colors use `--{color}-{scale}`.
 - Example: `--indigo-50`, `--gray-900`
 
 ## Semantic Colors
+
 - Use the `--color-*` convention.
 
 ## RGB Tokens
+
 - Use the `-rgb` suffix.
 
 ## Typography
+
 - Semantic font tokens use `--font-{role}-{property}`.
 - Text sizes use `--text-*`.
 - Display sizes use `--display-*`.
@@ -727,43 +822,54 @@ Print resets and print visibility utilities.
 - Letter spacing uses `--tracking-*`.
 
 ## Spacing
+
 - Spacing tokens use `--space-*`.
 - Fractional spacing uses underscore notation (e.g. `--space-0_5`).
 
 ## Containers
+
 - `--container-*`
 
 ## Section Spacing
+
 - `--section-space-*`
 
 ## Motion
+
 - Durations use `--duration-*`.
 - Easings use `--ease-*`.
 - Transition shorthands use `--transition-*`.
 
 ## Radius
+
 - Radius tokens use `--radius-*`.
 - Component aliases include:
-    - `--radius-button`
-    - `--radius-card`
-    - `--radius-input`
+  - `--radius-button`
+  - `--radius-card`
+  - `--radius-input`
 
 ## Shadows
+
 - Elevation and semantic aliases use `--shadow-*`.
 
 ## Gradients
+
 - Use `--gradient-*`.
 
 ## Glass
+
 - Use `--glass-*`.
 
 ## Blur
+
 - Use `--blur-*`.
 
 ## Z-Index
+
 - Use `--z-*`.
 
 ## Component Modules
+
 - Use component-local class names.
 - Keep public variation in typed props.
 - Keep shared values in design tokens.

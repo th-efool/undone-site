@@ -1,3 +1,3 @@
-export default function loading(){
-    return <>Loading....</>
+export default function loading() {
+  return <>Loading....</>;
 }

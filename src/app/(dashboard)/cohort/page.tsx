@@ -1,4 +1,3 @@
-export default function cohort(){
-    return <>  </>
+export default function cohort() {
+  return <> </>;
 }
-

@@ -1,21 +1,17 @@
-"use client";
+'use client';
 
-import type { PropsWithChildren } from "react";
+import type { PropsWithChildren } from 'react';
 
-import { Sidebar } from "../Sidebar";
+import { Sidebar } from '../Sidebar';
 
-import styles from "./DashboardShell.module.css";
+import styles from './DashboardShell.module.css';
 
-export function DashboardShell({
-                                   children,
-                               }: PropsWithChildren) {
-    return (
-        <div className={styles.shell}>
-            <Sidebar />
+export function DashboardShell({ children }: PropsWithChildren) {
+  return (
+    <div className={styles.shell}>
+      <Sidebar />
 
-            <main className={styles.content}>
-                {children}
-            </main>
-        </div>
-    );
+      <main className={styles.content}>{children}</main>
+    </div>
+  );
 }

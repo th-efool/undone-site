@@ -1,53 +1,53 @@
 .controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .filters {
-    display: flex;
-    padding: 4px;
+  display: flex;
+  padding: 4px;
 
-    border: 1px solid var(--color-border);
-    border-radius: 9px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
 
-    background: var(--color-surface);
+  background: var(--color-surface);
 }
 
 .filter {
-    min-height: 28px;
-    padding: 0 10px;
+  min-height: 28px;
+  padding: 0 10px;
 
-    border: 0;
-    border-radius: 8px;
+  border: 0;
+  border-radius: 8px;
 
-    background: transparent;
+  background: transparent;
 
-    color: var(--color-text-secondary);
+  color: var(--color-text-secondary);
 
-    font: inherit;
-    font-size: var(--text-sm);
-    font-weight: var(--font-semibold);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
 }
 
 .active {
-    background: var(--color-brand);
+  background: var(--color-brand);
 
-    color: var(--color-text-inverse);
+  color: var(--color-text-inverse);
 }
 
 @media (max-width: 760px) {
-    .controls,
-    .filters {
-        width: 100%;
-    }
+  .controls,
+  .filters {
+    width: 100%;
+  }
 
-    .controls {
-        align-items: stretch;
-        flex-direction: column;
-    }
+  .controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
 
-    .filters {
-        overflow-x: auto;
-    }
+  .filters {
+    overflow-x: auto;
+  }
 }

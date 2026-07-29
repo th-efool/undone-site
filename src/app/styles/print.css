@@ -26,9 +26,9 @@
     text-decoration: underline;
   }
 
-  a[href^="http"]::after {
-    content: " (" attr(href) ")";
-    font-size: .9em;
+  a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.9em;
   }
 
   img,

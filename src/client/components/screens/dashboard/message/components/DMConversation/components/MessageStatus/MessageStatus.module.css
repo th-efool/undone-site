@@ -1,1 +1,7 @@
-.status{margin-left:5px;color:var(--message-brand);font-size:.8rem;font-weight:900;letter-spacing:-.08em}
+.status {
+  margin-left: 5px;
+  color: var(--message-brand);
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: -0.08em;
+}

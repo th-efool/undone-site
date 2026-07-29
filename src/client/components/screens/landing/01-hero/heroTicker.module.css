@@ -53,7 +53,7 @@
 .stars {
   display: flex;
   gap: 5px;
-  color: #F7C948;
+  color: #f7c948;
   font-size: 20px;
   line-height: 1;
 }
