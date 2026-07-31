@@ -43,9 +43,7 @@ function CreateCohortScreen() {
               <SourcesStep sources={model.sources} importWorkspace={model.importWorkspace} />
             )}
 
-            {model.steps[2].status === 'current' && (
-              <CurriculumStep summary={model.curriculum} />
-            )}
+            {model.steps[2].status === 'current' && <CurriculumStep />}
 
             {model.steps[3].status === 'current' && (
               <div className={styles.disabledStep}>

@@ -12,7 +12,10 @@ import {
 } from 'react';
 
 import { importService } from '../services/importService';
+import { curriculumService } from '../services/curriculumService';
+import { bulkOperationsService } from '../services/bulkOperationsService';
 import { createCohortMockDraft, sourceTypeOptions } from '../mock/createCohort.mock';
+import { defaultMockImportedSources } from '../mock/curriculum.mock';
 import {
   createCohortStepLabels,
   createCohortStepOrder,
@@ -29,6 +32,32 @@ import type {
   ImportedSourceModel,
   SourceImportCardModel,
 } from '../models/import';
+import type {
+  CurriculumHistoryState,
+  MultiSelectionState,
+} from '../models/intelligence';
+import {
+  autoBalanceCurriculum,
+  createSeason as createSeasonLocal,
+  deleteLesson as deleteLessonLocal,
+  deleteSeason as deleteSeasonLocal,
+  duplicateLesson as duplicateLessonLocal,
+  duplicateSeason as duplicateSeasonLocal,
+  generateCurriculum as generateCurriculumLocal,
+  mergeSeasons as mergeSeasonsLocal,
+  moveLesson as moveLessonLocal,
+  moveSeason as moveSeasonLocal,
+  rebuildFromPlaylistOrder,
+  regenerateChunksForCurriculum,
+  splitSeason as splitSeasonLocal,
+  updateCurriculumMeta as updateCurriculumMetaLocal,
+  updateLesson as updateLessonLocal,
+  updateSeason as updateSeasonLocal,
+  type CurriculumGenerationError,
+  type CurriculumLesson,
+  type CurriculumSeason,
+  type GeneratedCurriculum,
+} from '@/src/shared/curriculum';
 
 interface WizardImportState {
   status: 'idle' | 'running' | 'completed' | 'failed' | 'canceled';
@@ -44,13 +73,28 @@ interface WizardImportState {
   error: ImportErrorModel | null;
 }
 
+interface WizardCurriculumState {
+  curriculum: GeneratedCurriculum | null;
+  status: 'idle' | 'generating' | 'ready' | 'failed';
+  error: CurriculumGenerationError | null;
+  selectedSeasonId: string | null;
+  selectedLessonId: string | null;
+  searchQuery: string;
+  filterWarningOnly: boolean;
+  multiSelection: MultiSelectionState;
+  saveStatus: 'saved' | 'saving' | 'unsaved';
+  history: CurriculumHistoryState;
+}
+
 interface WizardContextValue {
   state: CreateCohortWizardState;
   validation: {
     details: boolean;
     sources: boolean;
+    curriculum: boolean;
   };
   importState: WizardImportState;
+  curriculumState: WizardCurriculumState;
   actions: {
     setStep: (step: CreateCohortStepId) => void;
     goPrevious: () => void;
@@ -81,75 +125,66 @@ interface WizardContextValue {
       value: CreateCohortSourceDraft[K],
     ) => void;
     moveSource: (sourceId: string, targetId: string) => void;
+
+    // Curriculum actions
+    generateCurriculum: () => Promise<void>;
+    selectSeason: (seasonId: string | null) => void;
+    selectLesson: (lessonId: string | null) => void;
+    toggleSeasonCollapse: (seasonId: string) => void;
+    toggleLessonCollapse: (seasonId: string, lessonId: string) => void;
+    updateCurriculumMeta: (patch: Partial<GeneratedCurriculum>) => void;
+    addSeason: (title?: string) => void;
+    updateSeason: (seasonId: string, patch: Partial<CurriculumSeason>) => void;
+    deleteSeason: (seasonId: string) => void;
+    duplicateSeason: (seasonId: string) => void;
+    splitSeason: (seasonId: string) => void;
+    mergeSeasons: (seasonId: string, targetSeasonId: string) => void;
+    moveSeason: (seasonId: string, targetId: string) => void;
+    updateLesson: (lessonId: string, patch: Partial<CurriculumLesson>) => void;
+    deleteLesson: (lessonId: string) => void;
+    duplicateLesson: (lessonId: string) => void;
+    moveLesson: (lessonId: string, targetSeasonId: string, targetLessonId?: string) => void;
+    autoBalance: () => void;
+    regenerateChunks: () => void;
+    restorePlaylistOrder: () => void;
+    setSearchQuery: (query: string) => void;
+    setFilterWarningOnly: (filter: boolean) => void;
+
+    // Prompt 4 additions
+    toggleSelectLesson: (lessonId: string, isMulti?: boolean) => void;
+    toggleSelectSeason: (seasonId: string, isMulti?: boolean) => void;
+    clearMultiSelection: () => void;
+    selectAllLessons: () => void;
+    undo: () => void;
+    redo: () => void;
+    autoRenameSeasons: () => void;
+    autoRenameLessons: () => void;
+    regenerateChunkTitles: () => void;
+    normalizeDurations: () => void;
+    mergeEmptySeasons: () => void;
+    deleteEmptyLessons: () => void;
+    bulkTag: (tag: string) => void;
+    bulkDifficulty: (difficulty: string) => void;
+    bulkXP: (xp: number) => void;
+    bulkVisibility: (visibility: string) => void;
+    bulkDeleteSelected: () => void;
+    expandAllSeasons: () => void;
+    collapseAllSeasons: () => void;
   };
 }
 
 const WizardContext = createContext<WizardContextValue | null>(null);
 
 const importStages: ImportPipelineStageModel[] = [
-  {
-    id: 'queued',
-    title: 'Queued',
-    description: 'Waiting for the source to enter the import pipeline.',
-    status: 'pending',
-    progress: 0,
-  },
-  {
-    id: 'validating-url',
-    title: 'Validating URL',
-    description: 'Checking that the source can be imported.',
-    status: 'pending',
-    progress: 0,
-  },
-  {
-    id: 'connecting',
-    title: 'Connecting to YouTube',
-    description: 'Resolving the playlist against the YouTube Data API.',
-    status: 'pending',
-    progress: 0,
-  },
-  {
-    id: 'playlist-metadata',
-    title: 'Reading Playlist Metadata',
-    description: 'Fetching playlist title, description, creator, and artwork.',
-    status: 'pending',
-    progress: 0,
-  },
-  {
-    id: 'playlist-videos',
-    title: 'Fetching Playlist Videos',
-    description: 'Paging through every playlist item until the list is complete.',
-    status: 'pending',
-    progress: 0,
-  },
-  {
-    id: 'video-details',
-    title: 'Fetching Video Details',
-    description: 'Downloading video metadata and ISO8601 durations in batches.',
-    status: 'pending',
-    progress: 0,
-  },
-  {
-    id: 'durations',
-    title: 'Calculating Durations',
-    description: 'Converting durations into renderable labels.',
-    status: 'pending',
-    progress: 0,
-  },
-  {
-    id: 'curriculum',
-    title: 'Preparing Curriculum',
-    description: 'Packaging imported lessons for the next step.',
-    status: 'pending',
-    progress: 0,
-  },
-  {
-    id: 'completed',
-    title: 'Completed',
-    description: 'The source is ready for the curriculum step.',
-    status: 'pending',
-    progress: 0,
-  },
+  { id: 'queued', title: 'Queued', description: 'Waiting for import.', status: 'pending', progress: 0 },
+  { id: 'validating-url', title: 'Validating URL', description: 'Checking source.', status: 'pending', progress: 0 },
+  { id: 'connecting', title: 'Connecting', description: 'Connecting to provider API.', status: 'pending', progress: 0 },
+  { id: 'playlist-metadata', title: 'Metadata', description: 'Reading source metadata.', status: 'pending', progress: 0 },
+  { id: 'playlist-videos', title: 'Fetching', description: 'Downloading items.', status: 'pending', progress: 0 },
+  { id: 'video-details', title: 'Details', description: 'Fetching item details.', status: 'pending', progress: 0 },
+  { id: 'durations', title: 'Durations', description: 'Calculating durations.', status: 'pending', progress: 0 },
+  { id: 'curriculum', title: 'Curriculum', description: 'Packaging curriculum.', status: 'pending', progress: 0 },
+  { id: 'completed', title: 'Completed', description: 'Ready for studio.', status: 'pending', progress: 0 },
 ];
 
 function createSourceId() {
@@ -267,8 +302,9 @@ function createImportState(sources: CreateCohortSourceDraft[]): WizardImportStat
 
 function isAbortError(error: unknown) {
   return (
-    error instanceof DOMException && error.name === 'AbortError'
-  ) || (error instanceof Error && error.name === 'AbortError');
+    (error instanceof DOMException && error.name === 'AbortError') ||
+    (error instanceof Error && error.name === 'AbortError')
+  );
 }
 
 export function WizardProvider({ children }: PropsWithChildren) {
@@ -279,9 +315,25 @@ export function WizardProvider({ children }: PropsWithChildren) {
   const [importState, setImportState] = useState<WizardImportState>(() =>
     createImportState(createCohortMockDraft.sources),
   );
+  const [curriculumState, setCurriculumState] = useState<WizardCurriculumState>({
+    curriculum: null,
+    status: 'idle',
+    error: null,
+    selectedSeasonId: null,
+    selectedLessonId: null,
+    searchQuery: '',
+    filterWarningOnly: false,
+    multiSelection: { selectedLessonIds: [], selectedSeasonIds: [] },
+    saveStatus: 'saved',
+    history: { canUndo: false, canRedo: false, historyLength: 0 },
+  });
+
+  const historyStackRef = useRef<GeneratedCurriculum[]>([]);
+  const historyIndexRef = useRef<number>(-1);
 
   const stateRef = useRef(state);
   const importStateRef = useRef(importState);
+  const curriculumStateRef = useRef(curriculumState);
   const currentJobRef = useRef<ImportSourceJob | null>(null);
 
   useEffect(() => {
@@ -292,12 +344,40 @@ export function WizardProvider({ children }: PropsWithChildren) {
     importStateRef.current = importState;
   }, [importState]);
 
+  useEffect(() => {
+    curriculumStateRef.current = curriculumState;
+  }, [curriculumState]);
+
+  // Helper to commit curriculum updates to history stack
+  const updateCurriculumWithHistory = useCallback((nextCurriculum: GeneratedCurriculum) => {
+    const stack = historyStackRef.current;
+    const currentIndex = historyIndexRef.current;
+
+    const newStack = [...stack.slice(0, currentIndex + 1), nextCurriculum];
+    historyStackRef.current = newStack;
+    historyIndexRef.current = newStack.length - 1;
+
+    setCurriculumState((current) => ({
+      ...current,
+      curriculum: nextCurriculum,
+      saveStatus: 'saved',
+      history: {
+        canUndo: historyIndexRef.current > 0,
+        canRedo: historyIndexRef.current < newStack.length - 1,
+        historyLength: newStack.length,
+      },
+    }));
+  }, []);
+
   const validation = useMemo(
     () => ({
       details: validateDetails(state.draft),
       sources: validateSources(state.draft),
+      curriculum: Boolean(
+        curriculumState.curriculum && curriculumState.curriculum.totalLessons > 0,
+      ),
     }),
-    [state.draft],
+    [state.draft, curriculumState.curriculum],
   );
 
   const updateSourceCard = useCallback(
@@ -349,34 +429,96 @@ export function WizardProvider({ children }: PropsWithChildren) {
     [updateSourceCard],
   );
 
-  const setStep = useCallback((step: CreateCohortStepId) => {
-    setState((current) => {
-      const targetIndex = createCohortStepOrder.indexOf(step);
-      if (targetIndex < 0 || targetIndex > 2) {
-        return current;
-      }
+  // Generation action
+  const generateCurriculumAction = useCallback(async () => {
+    setCurriculumState((current) => ({
+      ...current,
+      status: 'generating',
+      error: null,
+    }));
 
-      if (step === 'curriculum' && importStateRef.current.status !== 'completed') {
-        return current;
-      }
+    const sources =
+      importStateRef.current.importedSources.length > 0
+        ? importStateRef.current.importedSources
+        : defaultMockImportedSources;
 
-      if (step === 'sources' && current.currentStep === 'curriculum') {
-        return {
+    try {
+      const generated = await curriculumService.generateCurriculum({
+        title: stateRef.current.draft.title || 'Curriculum',
+        description: stateRef.current.draft.description || 'Auto-generated curriculum',
+        importedSources: sources,
+      });
+
+      historyStackRef.current = [generated];
+      historyIndexRef.current = 0;
+
+      setCurriculumState((current) => ({
+        ...current,
+        curriculum: generated,
+        status: 'ready',
+        error: null,
+        selectedSeasonId: generated.seasons[0]?.id ?? null,
+        selectedLessonId: generated.seasons[0]?.lessons[0]?.id ?? null,
+        history: { canUndo: false, canRedo: false, historyLength: 1 },
+      }));
+    } catch {
+      try {
+        const localGenerated = generateCurriculumLocal({
+          title: stateRef.current.draft.title || 'Curriculum',
+          description: stateRef.current.draft.description || 'Auto-generated curriculum',
+          importedSources: sources,
+        });
+
+        historyStackRef.current = [localGenerated];
+        historyIndexRef.current = 0;
+
+        setCurriculumState((current) => ({
           ...current,
-          currentStep: step,
-        };
-      }
-
-      if (step === 'details') {
-        return {
+          curriculum: localGenerated,
+          status: 'ready',
+          error: null,
+          selectedSeasonId: localGenerated.seasons[0]?.id ?? null,
+          selectedLessonId: localGenerated.seasons[0]?.lessons[0]?.id ?? null,
+          history: { canUndo: false, canRedo: false, historyLength: 1 },
+        }));
+      } catch (fallbackErr) {
+        const message = fallbackErr instanceof Error ? fallbackErr.message : 'Curriculum generation failed';
+        setCurriculumState((current) => ({
           ...current,
-          currentStep: step,
-        };
+          status: 'failed',
+          error: {
+            code: 'generation_failed',
+            title: 'Generation Failed',
+            message,
+            retryable: true,
+          },
+        }));
       }
-
-      return current;
-    });
+    }
   }, []);
+
+  const setStep = useCallback(
+    (step: CreateCohortStepId) => {
+      setState((current) => {
+        const targetIndex = createCohortStepOrder.indexOf(step);
+        if (targetIndex < 0 || targetIndex > 3) {
+          return current;
+        }
+
+        if (step === 'curriculum') {
+          if (!curriculumStateRef.current.curriculum && curriculumStateRef.current.status !== 'generating') {
+            setTimeout(() => {
+              void generateCurriculumAction();
+            }, 0);
+          }
+          return { ...current, currentStep: step };
+        }
+
+        return { ...current, currentStep: step };
+      });
+    },
+    [generateCurriculumAction],
+  );
 
   const goPrevious = useCallback(() => {
     setState((current) => {
@@ -396,22 +538,6 @@ export function WizardProvider({ children }: PropsWithChildren) {
 
       return current;
     });
-  }, []);
-
-  const goNext = useCallback(async () => {
-    const currentStep = stateRef.current.currentStep;
-
-    if (currentStep === 'details') {
-      setState((current) => ({
-        ...current,
-        currentStep: 'sources',
-      }));
-      return;
-    }
-
-    if (currentStep === 'sources') {
-      await startImport();
-    }
   }, []);
 
   const updateDraftField = useCallback(
@@ -853,18 +979,384 @@ export function WizardProvider({ children }: PropsWithChildren) {
         ...current,
         currentStep: 'curriculum',
       }));
+
+      void generateCurriculumAction();
     }
-  }, [appendFeed, setActiveSourceState, validation.sources]);
+  }, [appendFeed, generateCurriculumAction, setActiveSourceState, validation.sources]);
+
+  const goNext = useCallback(async () => {
+    const currentStep = stateRef.current.currentStep;
+
+    if (currentStep === 'details') {
+      setState((current) => ({
+        ...current,
+        currentStep: 'sources',
+      }));
+      return;
+    }
+
+    if (currentStep === 'sources') {
+      await startImport();
+    }
+  }, [startImport]);
 
   const retryImport = useCallback(async () => {
     await startImport();
   }, [startImport]);
+
+  // Selection actions
+  const selectSeason = useCallback((seasonId: string | null) => {
+    setCurriculumState((current) => ({
+      ...current,
+      selectedSeasonId: seasonId,
+      selectedLessonId: null,
+      multiSelection: { selectedLessonIds: [], selectedSeasonIds: seasonId ? [seasonId] : [] },
+    }));
+  }, []);
+
+  const selectLesson = useCallback((lessonId: string | null) => {
+    setCurriculumState((current) => {
+      let ownerSeasonId = current.selectedSeasonId;
+      if (lessonId && current.curriculum) {
+        for (const season of current.curriculum.seasons) {
+          if (season.lessons.some((l) => l.id === lessonId)) {
+            ownerSeasonId = season.id;
+            break;
+          }
+        }
+      }
+      return {
+        ...current,
+        selectedLessonId: lessonId,
+        selectedSeasonId: ownerSeasonId,
+        multiSelection: { selectedLessonIds: lessonId ? [lessonId] : [], selectedSeasonIds: [] },
+      };
+    });
+  }, []);
+
+  const toggleSelectLesson = useCallback((lessonId: string, isMulti?: boolean) => {
+    setCurriculumState((current) => {
+      const selected = current.multiSelection.selectedLessonIds;
+      const exists = selected.includes(lessonId);
+
+      let nextSelected: string[];
+      if (isMulti) {
+        nextSelected = exists ? selected.filter((id) => id !== lessonId) : [...selected, lessonId];
+      } else {
+        nextSelected = exists && selected.length === 1 ? [] : [lessonId];
+      }
+
+      return {
+        ...current,
+        selectedLessonId: nextSelected[0] ?? null,
+        multiSelection: {
+          selectedLessonIds: nextSelected,
+          selectedSeasonIds: [],
+        },
+      };
+    });
+  }, []);
+
+  const toggleSelectSeason = useCallback((seasonId: string, isMulti?: boolean) => {
+    setCurriculumState((current) => {
+      const selected = current.multiSelection.selectedSeasonIds;
+      const exists = selected.includes(seasonId);
+
+      let nextSelected: string[];
+      if (isMulti) {
+        nextSelected = exists ? selected.filter((id) => id !== seasonId) : [...selected, seasonId];
+      } else {
+        nextSelected = exists && selected.length === 1 ? [] : [seasonId];
+      }
+
+      return {
+        ...current,
+        selectedSeasonId: nextSelected[0] ?? null,
+        multiSelection: {
+          selectedLessonIds: [],
+          selectedSeasonIds: nextSelected,
+        },
+      };
+    });
+  }, []);
+
+  const clearMultiSelection = useCallback(() => {
+    setCurriculumState((current) => ({
+      ...current,
+      multiSelection: { selectedLessonIds: [], selectedSeasonIds: [] },
+    }));
+  }, []);
+
+  const selectAllLessons = useCallback(() => {
+    setCurriculumState((current) => {
+      if (!current.curriculum) return current;
+      const allIds = current.curriculum.seasons.flatMap((s) => s.lessons.map((l) => l.id));
+      return {
+        ...current,
+        multiSelection: { selectedLessonIds: allIds, selectedSeasonIds: [] },
+      };
+    });
+  }, []);
+
+  // History Actions (Undo / Redo)
+  const undo = useCallback(() => {
+    const stack = historyStackRef.current;
+    const currentIndex = historyIndexRef.current;
+    if (currentIndex <= 0 || !stack[currentIndex - 1]) return;
+
+    historyIndexRef.current = currentIndex - 1;
+    const previous = stack[currentIndex - 1];
+
+    setCurriculumState((current) => ({
+      ...current,
+      curriculum: previous,
+      saveStatus: 'saved',
+      history: {
+        canUndo: historyIndexRef.current > 0,
+        canRedo: historyIndexRef.current < stack.length - 1,
+        historyLength: stack.length,
+      },
+    }));
+  }, []);
+
+  const redo = useCallback(() => {
+    const stack = historyStackRef.current;
+    const currentIndex = historyIndexRef.current;
+    if (currentIndex >= stack.length - 1 || !stack[currentIndex + 1]) return;
+
+    historyIndexRef.current = currentIndex + 1;
+    const next = stack[currentIndex + 1];
+
+    setCurriculumState((current) => ({
+      ...current,
+      curriculum: next,
+      saveStatus: 'saved',
+      history: {
+        canUndo: historyIndexRef.current > 0,
+        canRedo: historyIndexRef.current < stack.length - 1,
+        historyLength: stack.length,
+      },
+    }));
+  }, []);
+
+  // Editor Actions with History Integration
+  const toggleSeasonCollapse = useCallback((seasonId: string) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const season = curriculumStateRef.current.curriculum.seasons.find((s) => s.id === seasonId);
+    const updated = updateSeasonLocal(curriculumStateRef.current.curriculum, seasonId, {
+      collapsed: !season?.collapsed,
+    });
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const toggleLessonCollapse = useCallback((seasonId: string, lessonId: string) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const season = curriculumStateRef.current.curriculum.seasons.find((s) => s.id === seasonId);
+    const lesson = season?.lessons.find((l) => l.id === lessonId);
+    if (!lesson) return;
+    const updated = updateLessonLocal(curriculumStateRef.current.curriculum, lessonId, {
+      collapsed: !lesson.collapsed,
+    });
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const updateCurriculumMeta = useCallback((patch: Partial<GeneratedCurriculum>) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = updateCurriculumMetaLocal(curriculumStateRef.current.curriculum, patch);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const addSeason = useCallback((title?: string) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = createSeasonLocal(curriculumStateRef.current.curriculum, title);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const updateSeason = useCallback((seasonId: string, patch: Partial<CurriculumSeason>) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = updateSeasonLocal(curriculumStateRef.current.curriculum, seasonId, patch);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const deleteSeason = useCallback((seasonId: string) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = deleteSeasonLocal(curriculumStateRef.current.curriculum, seasonId);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const duplicateSeason = useCallback((seasonId: string) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = duplicateSeasonLocal(curriculumStateRef.current.curriculum, seasonId);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const splitSeason = useCallback((seasonId: string) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = splitSeasonLocal(curriculumStateRef.current.curriculum, seasonId);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const mergeSeasons = useCallback((seasonId: string, targetSeasonId: string) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = mergeSeasonsLocal(curriculumStateRef.current.curriculum, seasonId, targetSeasonId);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const moveSeason = useCallback((seasonId: string, targetId: string) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = moveSeasonLocal(curriculumStateRef.current.curriculum, seasonId, targetId);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const updateLesson = useCallback((lessonId: string, patch: Partial<CurriculumLesson>) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = updateLessonLocal(curriculumStateRef.current.curriculum, lessonId, patch);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const deleteLesson = useCallback((lessonId: string) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = deleteLessonLocal(curriculumStateRef.current.curriculum, lessonId);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const duplicateLesson = useCallback((lessonId: string) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = duplicateLessonLocal(curriculumStateRef.current.curriculum, lessonId);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const moveLesson = useCallback((lessonId: string, targetSeasonId: string, targetLessonId?: string) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = moveLessonLocal(curriculumStateRef.current.curriculum, lessonId, targetSeasonId, targetLessonId);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const autoBalance = useCallback(() => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = autoBalanceCurriculum(curriculumStateRef.current.curriculum);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const regenerateChunksAction = useCallback(() => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = regenerateChunksForCurriculum(curriculumStateRef.current.curriculum);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const restorePlaylistOrderAction = useCallback(() => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = rebuildFromPlaylistOrder(curriculumStateRef.current.curriculum);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  // Bulk Operation dispatchers
+  const autoRenameSeasons = useCallback(() => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = bulkOperationsService.autoRenameSeasons(curriculumStateRef.current.curriculum);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const autoRenameLessons = useCallback(() => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = bulkOperationsService.autoRenameLessons(curriculumStateRef.current.curriculum);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const regenerateChunkTitles = useCallback(() => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = bulkOperationsService.regenerateChunkTitles(curriculumStateRef.current.curriculum);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const normalizeDurations = useCallback(() => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = bulkOperationsService.normalizeDurations(curriculumStateRef.current.curriculum);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const mergeEmptySeasons = useCallback(() => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = bulkOperationsService.mergeEmptySeasons(curriculumStateRef.current.curriculum);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const deleteEmptyLessons = useCallback(() => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const updated = bulkOperationsService.deleteEmptyLessons(curriculumStateRef.current.curriculum);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const bulkTag = useCallback((tag: string) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const selected = curriculumStateRef.current.multiSelection.selectedLessonIds;
+    const updated = bulkOperationsService.bulkTag(curriculumStateRef.current.curriculum, selected, tag);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const bulkDifficulty = useCallback((difficulty: string) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const selected = curriculumStateRef.current.multiSelection.selectedLessonIds;
+    const updated = bulkOperationsService.bulkDifficulty(curriculumStateRef.current.curriculum, selected, difficulty);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const bulkXP = useCallback((xp: number) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const selected = curriculumStateRef.current.multiSelection.selectedLessonIds;
+    const updated = bulkOperationsService.bulkXP(curriculumStateRef.current.curriculum, selected, xp);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const bulkVisibility = useCallback((visibility: string) => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const selected = curriculumStateRef.current.multiSelection.selectedLessonIds;
+    const updated = bulkOperationsService.bulkVisibility(curriculumStateRef.current.curriculum, selected, visibility);
+    updateCurriculumWithHistory(updated);
+  }, [updateCurriculumWithHistory]);
+
+  const bulkDeleteSelected = useCallback(() => {
+    if (!curriculumStateRef.current.curriculum) return;
+    const { selectedLessonIds, selectedSeasonIds } = curriculumStateRef.current.multiSelection;
+    const updated = bulkOperationsService.bulkDelete(
+      curriculumStateRef.current.curriculum,
+      selectedLessonIds,
+      selectedSeasonIds,
+    );
+    clearMultiSelection();
+    updateCurriculumWithHistory(updated);
+  }, [clearMultiSelection, updateCurriculumWithHistory]);
+
+  const expandAllSeasons = useCallback(() => {
+    setCurriculumState((current) => {
+      if (!current.curriculum) return current;
+      const seasons = current.curriculum.seasons.map((s) => ({ ...s, collapsed: false }));
+      return { ...current, curriculum: { ...current.curriculum, seasons } };
+    });
+  }, []);
+
+  const collapseAllSeasons = useCallback(() => {
+    setCurriculumState((current) => {
+      if (!current.curriculum) return current;
+      const seasons = current.curriculum.seasons.map((s) => ({ ...s, collapsed: true }));
+      return { ...current, curriculum: { ...current.curriculum, seasons } };
+    });
+  }, []);
+
+  const setSearchQuery = useCallback((query: string) => {
+    setCurriculumState((current) => ({ ...current, searchQuery: query }));
+  }, []);
+
+  const setFilterWarningOnly = useCallback((filter: boolean) => {
+    setCurriculumState((current) => ({ ...current, filterWarningOnly: filter }));
+  }, []);
 
   const value = useMemo<WizardContextValue>(
     () => ({
       state,
       validation,
       importState,
+      curriculumState,
       actions: {
         setStep,
         goPrevious,
@@ -888,33 +1380,119 @@ export function WizardProvider({ children }: PropsWithChildren) {
         toggleSourceCollapse,
         updateSourceField,
         moveSource,
+        generateCurriculum: generateCurriculumAction,
+        selectSeason,
+        selectLesson,
+        toggleSeasonCollapse,
+        toggleLessonCollapse,
+        updateCurriculumMeta,
+        addSeason,
+        updateSeason,
+        deleteSeason,
+        duplicateSeason,
+        splitSeason,
+        mergeSeasons,
+        moveSeason,
+        updateLesson,
+        deleteLesson,
+        duplicateLesson,
+        moveLesson,
+        autoBalance,
+        regenerateChunks: regenerateChunksAction,
+        restorePlaylistOrder: restorePlaylistOrderAction,
+        setSearchQuery,
+        setFilterWarningOnly,
+
+        // Prompt 4 additions
+        toggleSelectLesson,
+        toggleSelectSeason,
+        clearMultiSelection,
+        selectAllLessons,
+        undo,
+        redo,
+        autoRenameSeasons,
+        autoRenameLessons,
+        regenerateChunkTitles,
+        normalizeDurations,
+        mergeEmptySeasons,
+        deleteEmptyLessons,
+        bulkTag,
+        bulkDifficulty,
+        bulkXP,
+        bulkVisibility,
+        bulkDeleteSelected,
+        expandAllSeasons,
+        collapseAllSeasons,
       },
     }),
     [
-      addLearningOutcome,
-      addRequirement,
-      addSource,
-      addTag,
-      cancelImport,
-      duplicateSource,
-      goNext,
-      goPrevious,
-      importState,
-      moveSource,
-      removeLearningOutcome,
-      removeRequirement,
-      removeSource,
-      removeTag,
-      retryImport,
-      setStep,
       state,
-      startImport,
-      toggleCategory,
-      toggleSourceCollapse,
-      updateDraftField,
-      updateRequirement,
-      updateSourceField,
       validation,
+      importState,
+      curriculumState,
+      setStep,
+      goPrevious,
+      goNext,
+      startImport,
+      cancelImport,
+      retryImport,
+      updateDraftField,
+      toggleCategory,
+      addTag,
+      removeTag,
+      addRequirement,
+      updateRequirement,
+      removeRequirement,
+      addLearningOutcome,
+      updateLearningOutcome,
+      removeLearningOutcome,
+      addSource,
+      removeSource,
+      duplicateSource,
+      toggleSourceCollapse,
+      updateSourceField,
+      moveSource,
+      generateCurriculumAction,
+      selectSeason,
+      selectLesson,
+      toggleSeasonCollapse,
+      toggleLessonCollapse,
+      updateCurriculumMeta,
+      addSeason,
+      updateSeason,
+      deleteSeason,
+      duplicateSeason,
+      splitSeason,
+      mergeSeasons,
+      moveSeason,
+      updateLesson,
+      deleteLesson,
+      duplicateLesson,
+      moveLesson,
+      autoBalance,
+      regenerateChunksAction,
+      restorePlaylistOrderAction,
+      setSearchQuery,
+      setFilterWarningOnly,
+      toggleSelectLesson,
+      toggleSelectSeason,
+      clearMultiSelection,
+      selectAllLessons,
+      undo,
+      redo,
+      autoRenameSeasons,
+      autoRenameLessons,
+      regenerateChunkTitles,
+      normalizeDurations,
+      mergeEmptySeasons,
+      deleteEmptyLessons,
+      bulkTag,
+      bulkDifficulty,
+      bulkXP,
+      bulkVisibility,
+      bulkDeleteSelected,
+      expandAllSeasons,
+      collapseAllSeasons,
     ],
   );
 

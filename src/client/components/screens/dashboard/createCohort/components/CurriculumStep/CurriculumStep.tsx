@@ -1,105 +1,111 @@
 'use client';
 
-import { Badge } from '@/src/client/components/ui/Badge/Badge';
-import { Cluster } from '@/src/client/components/global/layout/Cluster';
-import { Stack } from '@/src/client/components/global/layout/Stack';
-import { Surface } from '@/src/client/components/global/layout/Surface';
-import { Heading } from '@/src/client/components/ui/Typography/Heading';
-import { Text } from '@/src/client/components/ui/Typography/Text';
-
-import type { CurriculumSummaryModel } from '../../models/import';
+import { useState } from 'react';
+import { RefreshCw, AlertCircle } from 'lucide-react';
+import { useWizardContext } from '../../providers/WizardProvider';
+import { CurriculumToolbar } from '../CurriculumToolbar/CurriculumToolbar';
+import { CurriculumStats } from '../CurriculumStats/CurriculumStats';
+import { CurriculumWarnings } from '../CurriculumWarnings/CurriculumWarnings';
+import { CurriculumBoard } from '../CurriculumBoard/CurriculumBoard';
+import { CurriculumInspector } from '../CurriculumInspector/CurriculumInspector';
+import { CurriculumQuality } from '../CurriculumQuality/CurriculumQuality';
+import { CurriculumChecklist } from '../CurriculumChecklist/CurriculumChecklist';
+import { CurriculumBulkBar } from '../CurriculumBulkBar/CurriculumBulkBar';
+import { CurriculumShortcutsModal } from '../CurriculumShortcutsModal/CurriculumShortcutsModal';
+import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
 import styles from './CurriculumStep.module.css';
 
-interface CurriculumStepProps {
-  summary: CurriculumSummaryModel;
-}
+export function CurriculumStep() {
+  const { curriculumState, actions } = useWizardContext();
+  const [showPalette, setShowPalette] = useState(false);
 
-export function CurriculumStep({ summary }: CurriculumStepProps) {
+  // Bind studio keyboard shortcuts
+  useKeyboardShortcuts({
+    onSearchPalette: () => setShowPalette(true),
+    onUndo: actions.undo,
+    onRedo: actions.redo,
+    onDuplicate: () => {
+      if (curriculumState.selectedLessonId) {
+        actions.duplicateLesson(curriculumState.selectedLessonId);
+      } else if (curriculumState.selectedSeasonId) {
+        actions.duplicateSeason(curriculumState.selectedSeasonId);
+      }
+    },
+    onDelete: () => {
+      if (curriculumState.multiSelection.selectedLessonIds.length > 0 || curriculumState.multiSelection.selectedSeasonIds.length > 0) {
+        actions.bulkDeleteSelected();
+      } else if (curriculumState.selectedLessonId) {
+        actions.deleteLesson(curriculumState.selectedLessonId);
+      } else if (curriculumState.selectedSeasonId) {
+        actions.deleteSeason(curriculumState.selectedSeasonId);
+      }
+    },
+    onEscape: () => {
+      setShowPalette(false);
+      actions.clearMultiSelection();
+    },
+    onExpandAll: actions.expandAllSeasons,
+    onCollapseAll: actions.collapseAllSeasons,
+  });
+
+  if (curriculumState.status === 'generating') {
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.spinner} />
+        <div>
+          <h3 className={styles.loadingText}>Building Cohort Curriculum Studio...</h3>
+          <p className={styles.loadingSubtext}>
+            Structuring 10-hour balanced seasons, chunking lessons, and evaluating studio quality score.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (curriculumState.status === 'failed') {
+    return (
+      <div className={styles.errorContainer}>
+        <AlertCircle size={32} color="#f87171" />
+        <div>
+          <h3 className={styles.errorTitle}>
+            {curriculumState.error?.title || 'Curriculum Generation Failed'}
+          </h3>
+          <p className={styles.errorMessage}>
+            {curriculumState.error?.message || 'An unexpected error occurred while generating the curriculum.'}
+          </p>
+        </div>
+        <button type="button" onClick={actions.generateCurriculum} className={styles.retryBtn}>
+          <RefreshCw size={16} />
+          Retry Generation
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.root}>
-      <Stack gap="6">
-        <div className={styles.header}>
-          <div>
-            <Heading level={2} className={styles.title}>
-              {summary.title}
-            </Heading>
-            <Text variant="muted" className={styles.description}>
-              {summary.description}
-            </Text>
-          </div>
-
-          <Badge variant="neutral" size="sm">
-            Temporary step
-          </Badge>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'between', gap: '1rem' }}>
+        <div style={{ flex: 1 }}>
+          <CurriculumToolbar />
         </div>
+        <CurriculumQuality />
+      </div>
 
-        <Surface variant="elevated" padding="lg" className={styles.summary}>
-          <div className={styles.metrics}>
-            <div>
-              <Text variant="small" className={styles.metricLabel}>
-                Imported sources
-              </Text>
-              <Text className={styles.metricValue}>{summary.importedCount}</Text>
-            </div>
-            <div>
-              <Text variant="small" className={styles.metricLabel}>
-                Lessons imported
-              </Text>
-              <Text className={styles.metricValue}>{summary.totalLessons}</Text>
-            </div>
-            <div>
-              <Text variant="small" className={styles.metricLabel}>
-                Estimated hours
-              </Text>
-              <Text className={styles.metricValue}>{summary.totalDuration}</Text>
-            </div>
-            <div>
-              <Text variant="small" className={styles.metricLabel}>
-                Creator
-              </Text>
-              <Text className={styles.metricValue}>{summary.creator}</Text>
-            </div>
-          </div>
+      <CurriculumChecklist />
+      <CurriculumStats />
+      <CurriculumWarnings />
 
-          <div className={styles.playlist}>
-            <Text variant="small" className={styles.metricLabel}>
-              Playlist
-            </Text>
-            <Heading level={3} className={styles.playlistTitle}>
-              {summary.currentPlaylist}
-            </Heading>
-          </div>
-        </Surface>
-
-        <div className={styles.sourceList}>
-          {summary.importedSources.map((source) => (
-            <Surface key={source.id} variant="subtle" padding="md" className={styles.sourceCard}>
-              <Cluster gap="3" justify="between" className={styles.sourceHeader}>
-                <div>
-                  <Badge variant="brand" size="sm">
-                    {source.provider}
-                  </Badge>
-                  <Heading level={3} className={styles.sourceTitle}>
-                    {source.title}
-                  </Heading>
-                  <Text variant="muted" className={styles.sourceMeta}>
-                    {source.creator} · {source.lessonCount} lessons · {source.totalDuration}
-                  </Text>
-                </div>
-
-                <Badge variant="success" size="sm">
-                  Ready
-                </Badge>
-              </Cluster>
-            </Surface>
-          ))}
+      <div className={styles.mainArea}>
+        <div className={styles.boardContainer}>
+          <CurriculumBoard />
         </div>
+        <CurriculumInspector />
+      </div>
 
-        <Text variant="muted" className={styles.helper}>
-          This step is temporary. Prompt 3 will replace it with the curriculum generator.
-        </Text>
-      </Stack>
+      <CurriculumBulkBar />
+
+      {showPalette && <CurriculumShortcutsModal onClose={() => setShowPalette(false)} />}
     </div>
   );
 }

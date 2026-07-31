@@ -79,7 +79,7 @@ function buildStepModels(currentStep: string): WizardStepModel[] {
 
   return createCohortStepOrder.map((stepId, index) => {
     const isCurrent = stepId === currentStep;
-    const disabled = index >= 2;
+    const disabled = index >= 3;
 
     return {
       id: stepId,
@@ -106,7 +106,7 @@ function buildSelectOptions(values: string[], selectedValue: string): CreateCoho
 }
 
 export function useCreateCohortViewModel(): CreateCohortViewModel {
-  const { state, validation, importState } = useWizardContext();
+  const { state, validation, importState, curriculumState } = useWizardContext();
 
   const steps = useMemo(() => buildStepModels(state.currentStep), [state.currentStep]);
 
@@ -128,7 +128,7 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
       continueDisabled:
         (isDetails && !validation.details) ||
         (isSources && importing) ||
-        isCurriculum ||
+        (isCurriculum && !validation.curriculum) ||
         importState.status === 'canceled',
       continueLabel: isSources
         ? failed
@@ -137,7 +137,7 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
             ? 'Importing'
             : 'Continue'
         : isCurriculum
-          ? 'Publish locked'
+          ? 'Continue to Publish'
           : 'Continue',
       helperText: isDetails
         ? validation.details
@@ -149,9 +149,9 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
             : importing
               ? 'The import pipeline is actively fetching content.'
               : 'Continue to begin the live import pipeline.'
-          : 'Imported sources are ready for the curriculum step.',
+          : 'Curriculum structure is ready. Review and adjust before publishing.',
     };
-  }, [importState.status, state.currentStep, validation.details]);
+  }, [importState.status, state.currentStep, validation.details, validation.curriculum]);
 
   const details: CreateCohortDetailsModel = useMemo(
     () => ({
@@ -306,15 +306,15 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
     const primarySource = importedSources[0];
 
     return {
-      title: 'Curriculum Preview',
-      description: 'Imported sources are staged for the next generator step.',
+      title: 'Cohort Curriculum',
+      description: 'Review and customize your cohort structure.',
       importedSources,
       importedCount: importedSources.length,
       totalLessons: totals.totalLessons,
       totalDuration: totals.totalDuration,
-      creator: primarySource?.creator ?? 'Unknown creator',
+      creator: primarySource?.creator ?? 'SideQuest HQ',
       currentPlaylist: primarySource?.title ?? (importState.currentSourceLabel || 'Imported source'),
-      continueLabel: 'Continue',
+      continueLabel: 'Continue to Publish',
     };
   }, [importState.currentSourceLabel, importState.importedSources]);
 

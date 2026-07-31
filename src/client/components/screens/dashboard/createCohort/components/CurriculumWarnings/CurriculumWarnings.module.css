@@ -1,0 +1,94 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 10px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+.badge {
+  padding: 0.15rem 0.5rem;
+  background: rgba(245, 158, 11, 0.2);
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fbbf24;
+}
+
+.warningList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+.warningItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  font-size: 0.8125rem;
+  color: #e2e8f0;
+}
+
+.itemContent {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.severityIcon {
+  flex-shrink: 0;
+}
+
+.severityinfo {
+  color: #38bdf8;
+}
+
+.severitywarning {
+  color: #fbbf24;
+}
+
+.severitydanger {
+  color: #f87171;
+}
+
+.focusBtn {
+  background: transparent;
+  border: none;
+  color: #a5b4fc;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+}
+
+.focusBtn:hover {
+  background: rgba(165, 180, 252, 0.15);
+  color: #ffffff;
+}
