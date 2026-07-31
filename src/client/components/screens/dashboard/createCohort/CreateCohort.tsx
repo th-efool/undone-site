@@ -12,6 +12,7 @@ import { WizardStepper } from './components/WizardStepper/WizardStepper';
 import { WizardFooter } from './components/WizardFooter/WizardFooter';
 import { DetailsStep } from './components/DetailsStep/DetailsStep';
 import { SourcesStep } from './components/SourcesStep/SourcesStep';
+import { CurriculumStep } from './components/CurriculumStep/CurriculumStep';
 
 import styles from './CreateCohort.module.css';
 
@@ -38,13 +39,12 @@ function CreateCohortScreen() {
           <Surface variant="elevated" padding="xl" className={styles.surface}>
             {model.steps[0].status === 'current' && <DetailsStep details={model.details} />}
 
-            {model.steps[1].status === 'current' && <SourcesStep sources={model.sources} />}
+            {model.steps[1].status === 'current' && (
+              <SourcesStep sources={model.sources} importWorkspace={model.importWorkspace} />
+            )}
 
             {model.steps[2].status === 'current' && (
-              <div className={styles.disabledStep}>
-                <Heading level={2}>Curriculum</Heading>
-                <Text variant="muted">This step is staged for a later prompt.</Text>
-              </div>
+              <CurriculumStep summary={model.curriculum} />
             )}
 
             {model.steps[3].status === 'current' && (

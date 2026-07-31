@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw, SquareDashedBottomCode } from 'lucide-react';
 
 import { Button } from '@/src/client/components/ui/Button/Button';
 import { Cluster } from '@/src/client/components/global/layout/Cluster';
@@ -16,7 +16,34 @@ interface WizardFooterProps {
 }
 
 export function WizardFooter({ footer }: WizardFooterProps) {
-  const { actions } = useWizardContext();
+  const { state, importState, actions } = useWizardContext();
+  const isSources = state.currentStep === 'sources';
+  const isCurriculum = state.currentStep === 'curriculum';
+  const isImporting = importState.status === 'running';
+  const isFailed = importState.status === 'failed';
+  const showPrevious = footer.previousVisible && !isImporting;
+
+  let primaryLabel = footer.continueLabel;
+  let primaryIcon = <ChevronRight size={16} />;
+  let primaryVariant: 'primary' | 'secondary' | 'danger' = 'primary';
+  let primaryAction = actions.goNext;
+  let primaryDisabled = footer.continueDisabled;
+
+  if (isSources && isImporting) {
+    primaryLabel = 'Cancel import';
+    primaryIcon = <SquareDashedBottomCode size={16} />;
+    primaryVariant = 'danger';
+    primaryAction = actions.cancelImport;
+    primaryDisabled = false;
+  } else if (isSources && isFailed) {
+    primaryLabel = 'Retry import';
+    primaryIcon = <RotateCcw size={16} />;
+    primaryVariant = 'primary';
+    primaryAction = actions.retryImport;
+    primaryDisabled = false;
+  } else if (isCurriculum) {
+    primaryDisabled = true;
+  }
 
   return (
     <Surface variant="elevated" padding="md" className={styles.root}>
@@ -34,7 +61,7 @@ export function WizardFooter({ footer }: WizardFooterProps) {
         </Stack>
 
         <Cluster gap="3" justify="end" className={styles.actions}>
-          {footer.previousVisible ? (
+          {showPrevious ? (
             <Button
               type="button"
               variant="secondary"
@@ -48,13 +75,13 @@ export function WizardFooter({ footer }: WizardFooterProps) {
 
           <Button
             type="button"
-            variant="primary"
+            variant={primaryVariant}
             size="md"
-            onClick={actions.goNext}
-            disabled={footer.continueDisabled}
+            onClick={primaryAction}
+            disabled={primaryDisabled}
           >
-            Continue
-            <ChevronRight size={16} />
+            {primaryLabel}
+            {primaryIcon}
           </Button>
         </Cluster>
       </div>

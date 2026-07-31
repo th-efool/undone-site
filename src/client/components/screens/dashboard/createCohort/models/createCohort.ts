@@ -1,3 +1,5 @@
+import type { CurriculumSummaryModel, ImportWorkspaceModel } from './import';
+
 export type CreateCohortStepId = 'details' | 'sources' | 'curriculum' | 'publish';
 
 export type CreateCohortDifficulty = 'Beginner' | 'Intermediate' | 'Advanced';
@@ -145,6 +147,8 @@ export interface CreateCohortViewModel {
   footer: WizardFooterModel;
   details: CreateCohortDetailsModel;
   sources: CreateCohortSourcesModel;
+  importWorkspace: ImportWorkspaceModel;
+  curriculum: CurriculumSummaryModel;
 }
 
 export const createCohortStepOrder: CreateCohortStepId[] = [

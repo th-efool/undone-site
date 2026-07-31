@@ -12,12 +12,67 @@ import {
   type WizardFooterModel,
   type WizardStepModel,
 } from '../models/createCohort';
+import type {
+  CurriculumSummaryModel,
+  ImportWorkspaceModel,
+  ImportedSourceModel,
+  SourceImportCardModel,
+} from '../models/import';
 import {
   categoryOptions,
   difficultyOptions,
   sourceTypeOptions,
   visibilityOptions,
 } from '../mock/createCohort.mock';
+
+function parseDurationLabel(label: string) {
+  const normalized = label.trim().toLowerCase();
+  if (!normalized || normalized === '--' || normalized === '0m' || normalized === '0') {
+    return 0;
+  }
+
+  const hoursMatch = normalized.match(/(\d+)\s*h/);
+  const minutesMatch = normalized.match(/(\d+)\s*m/);
+
+  const hours = hoursMatch ? Number(hoursMatch[1]) : 0;
+  const minutes = minutesMatch ? Number(minutesMatch[1]) : 0;
+
+  return hours * 60 + minutes;
+}
+
+function formatMinutes(totalMinutes: number) {
+  if (totalMinutes <= 0) return '0m';
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours > 0) {
+    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+  }
+
+  return `${minutes}m`;
+}
+
+function buildSourceCards(
+  sourceOrder: string[],
+  cards: Record<string, SourceImportCardModel>,
+) {
+  return sourceOrder
+    .map((sourceId) => cards[sourceId])
+    .filter((card): card is SourceImportCardModel => Boolean(card));
+}
+
+function buildImportedTotals(importedSources: ImportedSourceModel[]) {
+  const totalLessons = importedSources.reduce((sum, source) => sum + source.lessonCount, 0);
+  const totalMinutes = importedSources.reduce(
+    (sum, source) => sum + parseDurationLabel(source.totalDuration),
+    0,
+  );
+
+  return {
+    totalLessons,
+    totalDuration: formatMinutes(totalMinutes),
+  };
+}
 
 function buildStepModels(currentStep: string): WizardStepModel[] {
   const currentIndex = createCohortStepOrder.indexOf(currentStep as (typeof createCohortStepOrder)[number]);
@@ -51,30 +106,52 @@ function buildSelectOptions(values: string[], selectedValue: string): CreateCoho
 }
 
 export function useCreateCohortViewModel(): CreateCohortViewModel {
-  const { state, validation, actions } = useWizardContext();
+  const { state, validation, importState } = useWizardContext();
 
   const steps = useMemo(() => buildStepModels(state.currentStep), [state.currentStep]);
 
-  const footer: WizardFooterModel = useMemo(
-    () => ({
-      currentIndex: createCohortStepOrder.indexOf(state.currentStep) + 1,
+  const footer: WizardFooterModel = useMemo(() => {
+    const currentIndex = createCohortStepOrder.indexOf(state.currentStep) + 1;
+    const isDetails = state.currentStep === 'details';
+    const isSources = state.currentStep === 'sources';
+    const isCurriculum = state.currentStep === 'curriculum';
+    const importing = importState.status === 'running';
+    const failed = importState.status === 'failed';
+
+    return {
+      currentIndex,
       totalSteps: createCohortStepOrder.length,
       currentLabel: createCohortStepLabels[state.currentStep],
-      progressLabel: `Step ${createCohortStepOrder.indexOf(state.currentStep) + 1} of ${createCohortStepOrder.length}`,
-      previousVisible: state.currentStep === 'sources',
+      progressLabel: `Step ${currentIndex} of ${createCohortStepOrder.length}`,
+      previousVisible: isSources && !importing ? true : state.currentStep === 'curriculum',
       previousDisabled: false,
       continueDisabled:
-        state.currentStep === 'sources' ? true : !validation.details || state.currentStep !== 'details',
-      continueLabel: 'Continue',
-      helperText:
-        state.currentStep === 'details'
-          ? validation.details
-            ? 'Ready to move into sources.'
-            : 'Complete the required fields to continue.'
-          : 'Curriculum and publish remain staged for a later step.',
-    }),
-    [state.currentStep, validation.details],
-  );
+        (isDetails && !validation.details) ||
+        (isSources && importing) ||
+        isCurriculum ||
+        importState.status === 'canceled',
+      continueLabel: isSources
+        ? failed
+          ? 'Retry import'
+          : importing
+            ? 'Importing'
+            : 'Continue'
+        : isCurriculum
+          ? 'Publish locked'
+          : 'Continue',
+      helperText: isDetails
+        ? validation.details
+          ? 'Ready to move into sources.'
+          : 'Complete the required fields to continue.'
+        : isSources
+          ? failed
+            ? 'Resolve the error or retry the import.'
+            : importing
+              ? 'The import pipeline is actively fetching content.'
+              : 'Continue to begin the live import pipeline.'
+          : 'Imported sources are ready for the curriculum step.',
+    };
+  }, [importState.status, state.currentStep, validation.details]);
 
   const details: CreateCohortDetailsModel = useMemo(
     () => ({
@@ -186,6 +263,61 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
     [state.draft.sources],
   );
 
+  const importWorkspace: ImportWorkspaceModel = useMemo(() => {
+    const sourceCards = buildSourceCards(
+      state.draft.sources.map((source) => source.id),
+      importState.sourceCards,
+    );
+    const totals = buildImportedTotals(importState.importedSources);
+
+    return {
+      status: importState.status,
+      overallProgress: importState.overallProgress,
+      currentOperation: importState.currentOperation,
+      currentSourceLabel: importState.currentSourceLabel,
+      estimatedRemaining: importState.estimatedRemaining,
+      liveStatus: importState.liveStatus,
+      activeSourceId: importState.activeSourceId,
+      sourceCards,
+      feed: importState.feed,
+      importedSources: importState.importedSources,
+      totalLessons: totals.totalLessons,
+      totalDuration: totals.totalDuration,
+      error: importState.error,
+    };
+  }, [
+    importState.activeSourceId,
+    importState.currentOperation,
+    importState.currentSourceLabel,
+    importState.estimatedRemaining,
+    importState.feed,
+    importState.importedSources,
+    importState.liveStatus,
+    importState.error,
+    importState.overallProgress,
+    importState.sourceCards,
+    importState.status,
+    state.draft.sources,
+  ]);
+
+  const curriculum: CurriculumSummaryModel = useMemo(() => {
+    const importedSources = importState.importedSources;
+    const totals = buildImportedTotals(importedSources);
+    const primarySource = importedSources[0];
+
+    return {
+      title: 'Curriculum Preview',
+      description: 'Imported sources are staged for the next generator step.',
+      importedSources,
+      importedCount: importedSources.length,
+      totalLessons: totals.totalLessons,
+      totalDuration: totals.totalDuration,
+      creator: primarySource?.creator ?? 'Unknown creator',
+      currentPlaylist: primarySource?.title ?? (importState.currentSourceLabel || 'Imported source'),
+      continueLabel: 'Continue',
+    };
+  }, [importState.currentSourceLabel, importState.importedSources]);
+
   return {
     header: {
       title: 'Create Cohort',
@@ -195,5 +327,7 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
     footer,
     details,
     sources,
+    importWorkspace,
+    curriculum,
   };
 }

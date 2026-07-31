@@ -1,0 +1,71 @@
+.root {
+  min-width: 0;
+}
+
+.header,
+.metrics {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.header {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.title,
+.playlistTitle,
+.metricValue,
+.sourceTitle {
+  color: var(--color-text-primary);
+}
+
+.description,
+.sourceMeta,
+.helper {
+  max-width: 50rem;
+}
+
+.summary {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.metricLabel {
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0;
+}
+
+.metricValue {
+  font-weight: var(--font-weight-semibold);
+}
+
+.playlist {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.sourceList {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.sourceCard {
+  min-width: 0;
+}
+
+.sourceHeader {
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .header,
+  .metrics {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
