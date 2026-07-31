@@ -5,6 +5,7 @@
 │   └── workflows/
 │       └── update-directory-structure.yml
 ├── ai-context/
+│   ├── create-cohort-import-plan.md
 │   ├── create-cohort-plan.md
 │   ├── design-css-tokens.md
 │   ├── directory-structure.md
@@ -147,6 +148,11 @@
 │   │   │   ├── layout.tsx
 │   │   │   ├── loading.tsx
 │   │   │   └── page.tsx
+│   │   ├── api/
+│   │   │   └── import/
+│   │   │       └── youtube/
+│   │   │           └── playlist/
+│   │   │               └── route.ts
 │   │   ├── styles/
 │   │   │   ├── accessibility.css
 │   │   │   ├── buttons.css
@@ -455,9 +461,15 @@
 │   │   │   │   ├── dashboard/
 │   │   │   │   │   ├── createCohort/
 │   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   ├── CurriculumStep/
+│   │   │   │   │   │   │   │   ├── CurriculumStep.module.css
+│   │   │   │   │   │   │   │   └── CurriculumStep.tsx
 │   │   │   │   │   │   │   ├── DetailsStep/
 │   │   │   │   │   │   │   │   ├── DetailsStep.module.css
 │   │   │   │   │   │   │   │   └── DetailsStep.tsx
+│   │   │   │   │   │   │   ├── ImportWorkspace/
+│   │   │   │   │   │   │   │   ├── ImportWorkspace.module.css
+│   │   │   │   │   │   │   │   └── ImportWorkspace.tsx
 │   │   │   │   │   │   │   ├── SourcesStep/
 │   │   │   │   │   │   │   │   ├── SourceCard.module.css
 │   │   │   │   │   │   │   │   ├── SourceCard.tsx
@@ -474,9 +486,12 @@
 │   │   │   │   │   │   ├── mock/
 │   │   │   │   │   │   │   └── createCohort.mock.ts
 │   │   │   │   │   │   ├── models/
-│   │   │   │   │   │   │   └── createCohort.ts
+│   │   │   │   │   │   │   ├── createCohort.ts
+│   │   │   │   │   │   │   └── import.ts
 │   │   │   │   │   │   ├── providers/
 │   │   │   │   │   │   │   └── WizardProvider.tsx
+│   │   │   │   │   │   ├── services/
+│   │   │   │   │   │   │   └── importService.ts
 │   │   │   │   │   │   ├── CreateCohort.module.css
 │   │   │   │   │   │   ├── CreateCohort.tsx
 │   │   │   │   │   │   └── index.ts
@@ -909,6 +924,11 @@
 │   │   │   │   └── session.types.ts
 │   │   │   └── user/
 │   │   │       └── user.types.ts
+│   │   ├── imports/
+│   │   │   └── youtube/
+│   │   │       ├── youtube-errors.ts
+│   │   │       ├── youtube-import.service.ts
+│   │   │       └── youtube-url.ts
 │   │   └── infrastructure/
 │   │       ├── ai/
 │   │       │   └── .gitkeep
@@ -953,4 +973,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-310 directories, 642 files
+319 directories, 653 files
