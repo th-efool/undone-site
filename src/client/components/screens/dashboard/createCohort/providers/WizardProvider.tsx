@@ -504,22 +504,33 @@ export function WizardProvider({ children }: PropsWithChildren) {
   );
 
   // Generation action
-  const generateCurriculumAction = useCallback(async () => {
+  const generateCurriculumAction = useCallback(async (overrideSources?: ImportedSourceModel[]) => {
     setCurriculumState((current) => ({
       ...current,
       status: 'generating',
       error: null,
     }));
 
+    const cardSources = Object.values(importStateRef.current.sourceCards)
+      .map((card) => card.importedSource)
+      .filter((s): s is ImportedSourceModel => Boolean(s && s.lessons && s.lessons.length > 0));
+
+    const candidateSources =
+      overrideSources && overrideSources.length > 0
+        ? overrideSources
+        : importStateRef.current.importedSources.length > 0
+          ? importStateRef.current.importedSources
+          : cardSources;
+
     const sources =
-      importStateRef.current.importedSources.length > 0
-        ? importStateRef.current.importedSources
+      candidateSources.length > 0
+        ? candidateSources
         : defaultMockImportedSources;
 
     try {
       const generated = await curriculumService.generateCurriculum({
-        title: stateRef.current.draft.title || 'Curriculum',
-        description: stateRef.current.draft.description || 'Auto-generated curriculum',
+        title: stateRef.current.draft.title || sources[0]?.title || 'Curriculum',
+        description: stateRef.current.draft.description || sources[0]?.description || 'Auto-generated curriculum',
         importedSources: sources,
       });
 
@@ -538,8 +549,8 @@ export function WizardProvider({ children }: PropsWithChildren) {
     } catch {
       try {
         const localGenerated = generateCurriculumLocal({
-          title: stateRef.current.draft.title || 'Curriculum',
-          description: stateRef.current.draft.description || 'Auto-generated curriculum',
+          title: stateRef.current.draft.title || sources[0]?.title || 'Curriculum',
+          description: stateRef.current.draft.description || sources[0]?.description || 'Auto-generated curriculum',
           importedSources: sources,
         });
 
@@ -1042,8 +1053,7 @@ export function WizardProvider({ children }: PropsWithChildren) {
       currentJobRef.current = null;
     }
 
-    const latest = importStateRef.current;
-    if (latest.status !== 'failed' && latest.status !== 'canceled') {
+    if (importStateRef.current.status !== 'failed' && importStateRef.current.status !== 'canceled') {
       setImportState((current) => ({
         ...current,
         status: 'completed',
@@ -1051,9 +1061,16 @@ export function WizardProvider({ children }: PropsWithChildren) {
         currentOperation: 'Preparing curriculum',
         liveStatus: 'Import complete',
         estimatedRemaining: '0m',
+        importedSources: [...importedSources],
       }));
 
-      const primary = latest.importedSources[0];
+      importStateRef.current = {
+        ...importStateRef.current,
+        status: 'completed',
+        importedSources: [...importedSources],
+      };
+
+      const primary = importedSources[0] ?? importStateRef.current.importedSources[0];
       if (primary) {
         setState((current) => ({
           ...current,
@@ -1084,7 +1101,7 @@ export function WizardProvider({ children }: PropsWithChildren) {
         }));
       }
 
-      void generateCurriculumAction();
+      void generateCurriculumAction(importedSources);
     }
   }, [appendFeed, generateCurriculumAction, setActiveSourceState, validation.sources]);
 
