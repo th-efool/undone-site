@@ -5,6 +5,7 @@
 │   └── workflows/
 │       └── update-directory-structure.yml
 ├── ai-context/
+│   ├── create-cohort-plan.md
 │   ├── design-css-tokens.md
 │   ├── directory-structure.md
 │   └── hero-section-guidelines.md
@@ -128,6 +129,8 @@
 │   │   │   │   │   │   └── page.tsx
 │   │   │   │   │   ├── layout.tsx
 │   │   │   │   │   └── page.tsx
+│   │   │   │   └── page.tsx
+│   │   │   ├── create-cohort/
 │   │   │   │   └── page.tsx
 │   │   │   ├── explore/
 │   │   │   │   └── page.tsx
@@ -450,6 +453,33 @@
 │   │   │   │   │   ├── Cohort.tsx
 │   │   │   │   │   └── index.ts
 │   │   │   │   ├── dashboard/
+│   │   │   │   │   ├── createCohort/
+│   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   ├── DetailsStep/
+│   │   │   │   │   │   │   │   ├── DetailsStep.module.css
+│   │   │   │   │   │   │   │   └── DetailsStep.tsx
+│   │   │   │   │   │   │   ├── SourcesStep/
+│   │   │   │   │   │   │   │   ├── SourceCard.module.css
+│   │   │   │   │   │   │   │   ├── SourceCard.tsx
+│   │   │   │   │   │   │   │   ├── SourcesStep.module.css
+│   │   │   │   │   │   │   │   └── SourcesStep.tsx
+│   │   │   │   │   │   │   ├── WizardFooter/
+│   │   │   │   │   │   │   │   ├── WizardFooter.module.css
+│   │   │   │   │   │   │   │   └── WizardFooter.tsx
+│   │   │   │   │   │   │   └── WizardStepper/
+│   │   │   │   │   │   │       ├── WizardStepper.module.css
+│   │   │   │   │   │   │       └── WizardStepper.tsx
+│   │   │   │   │   │   ├── hooks/
+│   │   │   │   │   │   │   └── useCreateCohortModels.ts
+│   │   │   │   │   │   ├── mock/
+│   │   │   │   │   │   │   └── createCohort.mock.ts
+│   │   │   │   │   │   ├── models/
+│   │   │   │   │   │   │   └── createCohort.ts
+│   │   │   │   │   │   ├── providers/
+│   │   │   │   │   │   │   └── WizardProvider.tsx
+│   │   │   │   │   │   ├── CreateCohort.module.css
+│   │   │   │   │   │   ├── CreateCohort.tsx
+│   │   │   │   │   │   └── index.ts
 │   │   │   │   │   ├── explore/
 │   │   │   │   │   │   ├── components/
 │   │   │   │   │   │   │   ├── BrowseTopics/
@@ -923,4 +953,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-299 directories, 623 files
+310 directories, 642 files
