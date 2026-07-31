@@ -1,6 +1,7 @@
 .container {
-  max-width: 1400px;
-  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
   animation: fadeIn 0.2s ease-out;
 }
 
@@ -15,23 +16,16 @@
   }
 }
 
-.splitLayout {
-  display: grid;
-  grid-template-columns: minmax(400px, 480px) minmax(0, 1fr);
-  gap: 24px;
-  align-items: start;
-}
-
-.formCol {
+.formSection {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 .header {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .badgeLine {
@@ -40,7 +34,7 @@
   gap: 6px;
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
-  color: #818cf8;
+  color: var(--color-brand);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -61,12 +55,18 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
   padding: 20px;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-sm);
+}
+
+.twoCol {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
 
 .field {
@@ -86,50 +86,63 @@
 
 .required {
   font-size: 0.7rem;
-  color: #f87171;
+  color: var(--color-error);
   font-weight: 600;
 }
 
 .input {
   width: 100%;
   padding: 8px 12px;
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-  background: rgba(15, 23, 42, 0.6);
+  background: var(--color-surface-secondary);
   color: var(--color-text-primary);
   font-size: var(--text-sm);
   outline: none;
-  transition: border-color 0.15s ease;
+  transition: all 0.15s ease;
+}
+
+.input::placeholder {
+  color: var(--color-text-muted);
 }
 
 .input:focus {
   border-color: var(--color-brand);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 3px var(--color-brand-soft);
 }
 
 .inputError {
-  border-color: #f87171;
+  border-color: var(--color-error);
 }
 
 .errorMessage {
   font-size: 0.725rem;
-  color: #f87171;
+  color: var(--color-error);
 }
 
 .textarea {
   width: 100%;
-  min-height: 80px;
+  min-height: 76px;
   padding: 8px 12px;
-  border-radius: 7px;
+  border-radius: var(--radius-md);
   border: 1px solid var(--color-border);
-  background: rgba(15, 23, 42, 0.6);
+  background: var(--color-surface-secondary);
   color: var(--color-text-primary);
   font-size: var(--text-sm);
   outline: none;
   resize: vertical;
+  transition: all 0.15s ease;
+}
+
+.textarea::placeholder {
+  color: var(--color-text-muted);
 }
 
 .textarea:focus {
   border-color: var(--color-brand);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 3px var(--color-brand-soft);
 }
 
 .inlineRow {
@@ -148,9 +161,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 6px 10px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 6px;
+  background: var(--color-surface-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
   font-size: var(--text-xs);
   color: var(--color-text-primary);
 }
@@ -158,14 +171,14 @@
 .removeBtn {
   border: none;
   background: transparent;
-  color: #94a3b8;
+  color: var(--color-text-secondary);
   cursor: pointer;
   padding: 2px;
   border-radius: 4px;
 }
 
 .removeBtn:hover {
-  color: #f87171;
+  color: var(--color-error);
 }
 
 .inlineComposer {
@@ -173,10 +186,9 @@
   gap: 8px;
 }
 
-/* Right Column Preview */
-.previewCol {
-  position: sticky;
-  top: 20px;
+/* Full Width Bottom Preview Section */
+.previewSection {
+  width: 100%;
 }
 
 .previewCard {
@@ -186,7 +198,7 @@
   border-radius: var(--radius-card);
   background: var(--color-surface);
   overflow: hidden;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .previewHeader {
@@ -201,24 +213,22 @@
 .previewTag {
   font-size: var(--text-xs);
   font-weight: var(--font-bold);
-  color: #818cf8;
+  color: var(--color-brand);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .previewHelp {
   font-size: 0.725rem;
-  color: #94a3b8;
+  color: var(--color-text-secondary);
 }
 
 .previewCanvas {
-  max-height: 720px;
-  overflow-y: auto;
   padding: 12px;
 }
 
-@media (max-width: 960px) {
-  .splitLayout {
+@media (max-width: 768px) {
+  .twoCol {
     grid-template-columns: 1fr;
   }
 }

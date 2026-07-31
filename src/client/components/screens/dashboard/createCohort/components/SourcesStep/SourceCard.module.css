@@ -1,7 +1,7 @@
 .card {
   display: grid;
   gap: var(--space-3);
-  padding: var(--space-4);
+  padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-card);
   background: var(--color-surface);
@@ -10,7 +10,7 @@
 }
 
 .card:hover {
-  border-color: rgba(99, 102, 241, 0.4);
+  border-color: var(--color-border-hover);
 }
 
 .dragging {
@@ -28,8 +28,8 @@
 .dragHandle {
   display: inline-grid;
   place-items: center;
-  width: 2.2rem;
-  height: 2.2rem;
+  width: 2rem;
+  height: 2rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface-secondary);
@@ -40,7 +40,7 @@
 .headerContent {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -55,14 +55,16 @@
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
-  background: rgba(15, 23, 42, 0.6);
+  background: var(--color-surface-secondary);
   border: 1px solid var(--color-border);
-  border-radius: 7px;
-  transition: border-color 0.15s ease;
+  border-radius: var(--radius-md);
+  transition: all 0.15s ease;
 }
 
 .urlInputRow:focus-within {
   border-color: var(--color-brand);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 3px var(--color-brand-soft);
 }
 
 .urlIcon {
@@ -78,6 +80,10 @@
   color: var(--color-text-primary);
   font-size: var(--text-sm);
   outline: none;
+}
+
+.urlInput::placeholder {
+  color: var(--color-text-muted);
 }
 
 .actions {
