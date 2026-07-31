@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Plus, Sparkles } from 'lucide-react';
 
 import type { HomeHeroContent } from '../../models';
@@ -24,8 +25,8 @@ export function HomeHero({ content }: HomeHeroProps) {
         <p className={styles.subtitle}>{content.subtitle}</p>
       </div>
 
-      <button
-        type="button"
+      <Link
+        href="/create-cohort"
         className={styles.newButton}
       >
         <Plus
@@ -33,7 +34,7 @@ export function HomeHero({ content }: HomeHeroProps) {
           strokeWidth={2.4}
         />
         {content.actionLabel}
-      </button>
+      </Link>
     </header>
   );
 }

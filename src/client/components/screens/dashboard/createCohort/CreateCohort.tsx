@@ -13,6 +13,7 @@ import { WizardFooter } from './components/WizardFooter/WizardFooter';
 import { DetailsStep } from './components/DetailsStep/DetailsStep';
 import { SourcesStep } from './components/SourcesStep/SourcesStep';
 import { CurriculumStep } from './components/CurriculumStep/CurriculumStep';
+import { LaunchStep } from './components/LaunchStep/LaunchStep';
 
 import styles from './CreateCohort.module.css';
 
@@ -45,12 +46,7 @@ function CreateCohortScreen() {
 
             {model.steps[2].status === 'current' && <CurriculumStep />}
 
-            {model.steps[3].status === 'current' && (
-              <div className={styles.disabledStep}>
-                <Heading level={2}>Publish</Heading>
-                <Text variant="muted">This step is staged for a later prompt.</Text>
-              </div>
-            )}
+            {model.steps[3].status === 'current' && <LaunchStep />}
           </Surface>
 
           <WizardFooter footer={model.footer} />

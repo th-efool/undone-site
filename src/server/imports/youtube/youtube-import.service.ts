@@ -209,7 +209,7 @@ async function fetchPlaylistItems(playlistId: string, signal: AbortSignal, publi
   let totalPages = 1;
 
   while (true) {
-    if (signal.aborted) {
+    if (signal?.aborted) {
       throw new DOMException('Aborted', 'AbortError');
     }
 
@@ -413,7 +413,7 @@ export async function importYouTubePlaylist(
   let processed = 0;
 
   for (let index = 0; index < playlistItems.length; index += 50) {
-    if (signal.aborted) {
+    if (signal?.aborted) {
       throw new DOMException('Aborted', 'AbortError');
     }
 

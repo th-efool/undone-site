@@ -47,6 +47,7 @@
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
+  text-decoration: none;
   box-shadow: 0 14px 30px rgba(79, 70, 229, 0.22);
   transition:
     transform 180ms ease,

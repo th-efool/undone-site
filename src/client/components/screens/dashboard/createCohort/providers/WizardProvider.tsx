@@ -14,6 +14,7 @@ import {
 import { importService } from '../services/importService';
 import { curriculumService } from '../services/curriculumService';
 import { bulkOperationsService } from '../services/bulkOperationsService';
+import { publishService } from '../services/publishService';
 import { createCohortMockDraft, sourceTypeOptions } from '../mock/createCohort.mock';
 import { defaultMockImportedSources } from '../mock/curriculum.mock';
 import {
@@ -36,6 +37,15 @@ import type {
   CurriculumHistoryState,
   MultiSelectionState,
 } from '../models/intelligence';
+import type {
+  CommunityConfigModel,
+  DeviceViewport,
+  JourneySettingsModel,
+  LearnerPreviewTab,
+  OnboardingConfigModel,
+  PublishResultModel,
+  PublishStage,
+} from '../models/launch';
 import {
   autoBalanceCurriculum,
   createSeason as createSeasonLocal,
@@ -86,15 +96,28 @@ interface WizardCurriculumState {
   history: CurriculumHistoryState;
 }
 
+interface WizardLaunchState {
+  onboarding: OnboardingConfigModel;
+  community: CommunityConfigModel;
+  journeySettings: JourneySettingsModel;
+  deviceViewport: DeviceViewport;
+  previewTab: LearnerPreviewTab;
+  publishStage: PublishStage;
+  publishResult: PublishResultModel | null;
+  publishError: string | null;
+}
+
 interface WizardContextValue {
   state: CreateCohortWizardState;
   validation: {
     details: boolean;
     sources: boolean;
     curriculum: boolean;
+    launch: boolean;
   };
   importState: WizardImportState;
   curriculumState: WizardCurriculumState;
+  launchState: WizardLaunchState;
   actions: {
     setStep: (step: CreateCohortStepId) => void;
     goPrevious: () => void;
@@ -170,6 +193,15 @@ interface WizardContextValue {
     bulkDeleteSelected: () => void;
     expandAllSeasons: () => void;
     collapseAllSeasons: () => void;
+
+    // Prompt 5 Launch actions
+    updateOnboarding: (patch: Partial<OnboardingConfigModel>) => void;
+    toggleCommunityFeature: (key: keyof CommunityConfigModel) => void;
+    updateJourneySettings: (patch: Partial<JourneySettingsModel>) => void;
+    setDeviceViewport: (viewport: DeviceViewport) => void;
+    setPreviewTab: (tab: LearnerPreviewTab) => void;
+    publishCohort: () => Promise<void>;
+    resetLaunch: () => void;
   };
 }
 
@@ -327,6 +359,48 @@ export function WizardProvider({ children }: PropsWithChildren) {
     saveStatus: 'saved',
     history: { canUndo: false, canRedo: false, historyLength: 0 },
   });
+  const [launchState, setLaunchState] = useState<WizardLaunchState>({
+    onboarding: {
+      welcomeMessage: 'Welcome to Deep Work Mastery! We are thrilled to have you in this cohort.',
+      journeyIntroduction: 'In this journey, you will design a distraction-resistant workflow and build a repeatable deep work routine.',
+      recommendedDailyGoal: '30 mins/day',
+      suggestedWeeklyCommitment: '3.5 hours/week',
+      completionMotivation: 'Complete all lessons to earn your Deep Work Specialist badge.',
+      communityGuidelines: [
+        'Be respectful and constructive',
+        'Share real progress, not just theory',
+        'Help fellow learners when stuck',
+      ],
+      pinnedResources: ['Focus Playbook PDF', 'Notion Deep Work Template'],
+    },
+    community: {
+      discussionFeed: true,
+      assignments: true,
+      projects: true,
+      publicNotes: true,
+      archives: true,
+      hallOfFame: true,
+      events: true,
+      leaderboards: true,
+      communityChat: true,
+      qAndA: true,
+    },
+    journeySettings: {
+      visibility: 'Public',
+      language: 'English',
+      difficulty: 'Intermediate',
+      targetAudience: 'Ambitious creators & knowledge workers',
+      estimatedWeeklyCommitment: '3-4 hours/week',
+      categories: ['Productivity', 'Focus'],
+      topics: ['Deep Work', 'Systems'],
+      keywords: ['focus', 'deep work', 'productivity', 'habits'],
+    },
+    deviceViewport: 'desktop',
+    previewTab: 'overview',
+    publishStage: 'idle',
+    publishResult: null,
+    publishError: null,
+  });
 
   const historyStackRef = useRef<GeneratedCurriculum[]>([]);
   const historyIndexRef = useRef<number>(-1);
@@ -334,6 +408,7 @@ export function WizardProvider({ children }: PropsWithChildren) {
   const stateRef = useRef(state);
   const importStateRef = useRef(importState);
   const curriculumStateRef = useRef(curriculumState);
+  const launchStateRef = useRef(launchState);
   const currentJobRef = useRef<ImportSourceJob | null>(null);
 
   useEffect(() => {
@@ -347,6 +422,10 @@ export function WizardProvider({ children }: PropsWithChildren) {
   useEffect(() => {
     curriculumStateRef.current = curriculumState;
   }, [curriculumState]);
+
+  useEffect(() => {
+    launchStateRef.current = launchState;
+  }, [launchState]);
 
   // Helper to commit curriculum updates to history stack
   const updateCurriculumWithHistory = useCallback((nextCurriculum: GeneratedCurriculum) => {
@@ -375,6 +454,12 @@ export function WizardProvider({ children }: PropsWithChildren) {
       sources: validateSources(state.draft),
       curriculum: Boolean(
         curriculumState.curriculum && curriculumState.curriculum.totalLessons > 0,
+      ),
+      launch: Boolean(
+        curriculumState.curriculum &&
+          curriculumState.curriculum.totalLessons > 0 &&
+          state.draft.title.trim() &&
+          state.draft.description.trim(),
       ),
     }),
     [state.draft, curriculumState.curriculum],
@@ -514,6 +599,15 @@ export function WizardProvider({ children }: PropsWithChildren) {
           return { ...current, currentStep: step };
         }
 
+        if (step === 'publish') {
+          if (!curriculumStateRef.current.curriculum) {
+            setTimeout(() => {
+              void generateCurriculumAction();
+            }, 0);
+          }
+          return { ...current, currentStep: step };
+        }
+
         return { ...current, currentStep: step };
       });
     },
@@ -523,19 +617,14 @@ export function WizardProvider({ children }: PropsWithChildren) {
   const goPrevious = useCallback(() => {
     setState((current) => {
       if (current.currentStep === 'sources') {
-        return {
-          ...current,
-          currentStep: 'details',
-        };
+        return { ...current, currentStep: 'details' };
       }
-
       if (current.currentStep === 'curriculum') {
-        return {
-          ...current,
-          currentStep: 'sources',
-        };
+        return { ...current, currentStep: 'sources' };
       }
-
+      if (current.currentStep === 'publish') {
+        return { ...current, currentStep: 'curriculum' };
+      }
       return current;
     });
   }, []);
@@ -988,15 +1077,18 @@ export function WizardProvider({ children }: PropsWithChildren) {
     const currentStep = stateRef.current.currentStep;
 
     if (currentStep === 'details') {
-      setState((current) => ({
-        ...current,
-        currentStep: 'sources',
-      }));
+      setState((current) => ({ ...current, currentStep: 'sources' }));
       return;
     }
 
     if (currentStep === 'sources') {
       await startImport();
+      return;
+    }
+
+    if (currentStep === 'curriculum') {
+      setState((current) => ({ ...current, currentStep: 'publish' }));
+      return;
     }
   }, [startImport]);
 
@@ -1351,12 +1443,93 @@ export function WizardProvider({ children }: PropsWithChildren) {
     setCurriculumState((current) => ({ ...current, filterWarningOnly: filter }));
   }, []);
 
+  // Prompt 5 Launch Actions
+  const updateOnboarding = useCallback((patch: Partial<OnboardingConfigModel>) => {
+    setLaunchState((current) => ({
+      ...current,
+      onboarding: { ...current.onboarding, ...patch },
+    }));
+  }, []);
+
+  const toggleCommunityFeature = useCallback((key: keyof CommunityConfigModel) => {
+    setLaunchState((current) => ({
+      ...current,
+      community: {
+        ...current.community,
+        [key]: !current.community[key],
+      },
+    }));
+  }, []);
+
+  const updateJourneySettings = useCallback((patch: Partial<JourneySettingsModel>) => {
+    setLaunchState((current) => ({
+      ...current,
+      journeySettings: { ...current.journeySettings, ...patch },
+    }));
+  }, []);
+
+  const setDeviceViewport = useCallback((viewport: DeviceViewport) => {
+    setLaunchState((current) => ({ ...current, deviceViewport: viewport }));
+  }, []);
+
+  const setPreviewTab = useCallback((tab: LearnerPreviewTab) => {
+    setLaunchState((current) => ({ ...current, previewTab: tab }));
+  }, []);
+
+  const publishCohort = useCallback(async () => {
+    setLaunchState((current) => ({
+      ...current,
+      publishStage: 'preparing-assets',
+      publishError: null,
+    }));
+
+    try {
+      const result = await publishService.publishCohort(
+        {
+          draft: stateRef.current.draft,
+          curriculum: curriculumStateRef.current.curriculum,
+          onboarding: launchStateRef.current.onboarding,
+          community: launchStateRef.current.community,
+          journeySettings: launchStateRef.current.journeySettings,
+          qualityScore: 92,
+        },
+        (stage) => {
+          setLaunchState((curr) => ({ ...curr, publishStage: stage }));
+        },
+      );
+
+      setLaunchState((current) => ({
+        ...current,
+        publishStage: 'live',
+        publishResult: result,
+        publishError: null,
+      }));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Publishing failed';
+      setLaunchState((current) => ({
+        ...current,
+        publishStage: 'idle',
+        publishError: message,
+      }));
+    }
+  }, []);
+
+  const resetLaunch = useCallback(() => {
+    setLaunchState((current) => ({
+      ...current,
+      publishStage: 'idle',
+      publishResult: null,
+      publishError: null,
+    }));
+  }, []);
+
   const value = useMemo<WizardContextValue>(
     () => ({
       state,
       validation,
       importState,
       curriculumState,
+      launchState,
       actions: {
         setStep,
         goPrevious,
@@ -1402,8 +1575,6 @@ export function WizardProvider({ children }: PropsWithChildren) {
         restorePlaylistOrder: restorePlaylistOrderAction,
         setSearchQuery,
         setFilterWarningOnly,
-
-        // Prompt 4 additions
         toggleSelectLesson,
         toggleSelectSeason,
         clearMultiSelection,
@@ -1423,6 +1594,13 @@ export function WizardProvider({ children }: PropsWithChildren) {
         bulkDeleteSelected,
         expandAllSeasons,
         collapseAllSeasons,
+        updateOnboarding,
+        toggleCommunityFeature,
+        updateJourneySettings,
+        setDeviceViewport,
+        setPreviewTab,
+        publishCohort,
+        resetLaunch,
       },
     }),
     [
@@ -1430,6 +1608,7 @@ export function WizardProvider({ children }: PropsWithChildren) {
       validation,
       importState,
       curriculumState,
+      launchState,
       setStep,
       goPrevious,
       goNext,
@@ -1493,6 +1672,13 @@ export function WizardProvider({ children }: PropsWithChildren) {
       bulkDeleteSelected,
       expandAllSeasons,
       collapseAllSeasons,
+      updateOnboarding,
+      toggleCommunityFeature,
+      updateJourneySettings,
+      setDeviceViewport,
+      setPreviewTab,
+      publishCohort,
+      resetLaunch,
     ],
   );
 

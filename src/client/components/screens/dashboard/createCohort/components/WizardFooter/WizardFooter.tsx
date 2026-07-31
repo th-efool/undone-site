@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, RotateCcw, SquareDashedBottomCode } from 'lucide-react';
+import { ChevronLeft, ChevronRight, RotateCcw, SquareDashedBottomCode, Rocket } from 'lucide-react';
 
 import { Button } from '@/src/client/components/ui/Button/Button';
 import { Cluster } from '@/src/client/components/global/layout/Cluster';
@@ -16,9 +16,10 @@ interface WizardFooterProps {
 }
 
 export function WizardFooter({ footer }: WizardFooterProps) {
-  const { state, importState, actions } = useWizardContext();
+  const { state, importState, validation, actions } = useWizardContext();
   const isSources = state.currentStep === 'sources';
   const isCurriculum = state.currentStep === 'curriculum';
+  const isLaunch = state.currentStep === 'publish';
   const isImporting = importState.status === 'running';
   const isFailed = importState.status === 'failed';
   const showPrevious = footer.previousVisible && !isImporting;
@@ -42,7 +43,14 @@ export function WizardFooter({ footer }: WizardFooterProps) {
     primaryAction = actions.retryImport;
     primaryDisabled = false;
   } else if (isCurriculum) {
-    primaryDisabled = true;
+    primaryLabel = 'Continue to Launch';
+    primaryAction = actions.goNext;
+    primaryDisabled = false;
+  } else if (isLaunch) {
+    primaryLabel = 'Publish Cohort';
+    primaryIcon = <Rocket size={16} />;
+    primaryAction = actions.publishCohort;
+    primaryDisabled = !validation.launch;
   }
 
   return (

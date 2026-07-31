@@ -79,20 +79,17 @@ function buildStepModels(currentStep: string): WizardStepModel[] {
 
   return createCohortStepOrder.map((stepId, index) => {
     const isCurrent = stepId === currentStep;
-    const disabled = index >= 3;
 
     return {
       id: stepId,
       label: createCohortStepLabels[stepId],
       index,
-      status: disabled
-        ? 'disabled'
-        : isCurrent
-          ? 'current'
-          : index < currentIndex
-            ? 'complete'
-            : 'upcoming',
-      disabled,
+      status: isCurrent
+        ? 'current'
+        : index < currentIndex
+          ? 'complete'
+          : 'upcoming',
+      disabled: false,
     };
   });
 }
@@ -115,6 +112,7 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
     const isDetails = state.currentStep === 'details';
     const isSources = state.currentStep === 'sources';
     const isCurriculum = state.currentStep === 'curriculum';
+    const isLaunch = state.currentStep === 'publish';
     const importing = importState.status === 'running';
     const failed = importState.status === 'failed';
 
@@ -123,12 +121,13 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
       totalSteps: createCohortStepOrder.length,
       currentLabel: createCohortStepLabels[state.currentStep],
       progressLabel: `Step ${currentIndex} of ${createCohortStepOrder.length}`,
-      previousVisible: isSources && !importing ? true : state.currentStep === 'curriculum',
+      previousVisible: !isDetails && !importing,
       previousDisabled: false,
       continueDisabled:
         (isDetails && !validation.details) ||
         (isSources && importing) ||
         (isCurriculum && !validation.curriculum) ||
+        (isLaunch && !validation.launch) ||
         importState.status === 'canceled',
       continueLabel: isSources
         ? failed
@@ -137,8 +136,10 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
             ? 'Importing'
             : 'Continue'
         : isCurriculum
-          ? 'Continue to Publish'
-          : 'Continue',
+          ? 'Continue to Launch'
+          : isLaunch
+            ? 'Ready to Publish'
+            : 'Continue',
       helperText: isDetails
         ? validation.details
           ? 'Ready to move into sources.'
@@ -149,9 +150,11 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
             : importing
               ? 'The import pipeline is actively fetching content.'
               : 'Continue to begin the live import pipeline.'
-          : 'Curriculum structure is ready. Review and adjust before publishing.',
+          : isCurriculum
+            ? 'Curriculum structure is ready. Review and adjust before launching.'
+            : 'Preview and configure your cohort experience before publishing live.',
     };
-  }, [importState.status, state.currentStep, validation.details, validation.curriculum]);
+  }, [importState.status, state.currentStep, validation.details, validation.curriculum, validation.launch]);
 
   const details: CreateCohortDetailsModel = useMemo(
     () => ({
@@ -314,7 +317,7 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
       totalDuration: totals.totalDuration,
       creator: primarySource?.creator ?? 'SideQuest HQ',
       currentPlaylist: primarySource?.title ?? (importState.currentSourceLabel || 'Imported source'),
-      continueLabel: 'Continue to Publish',
+      continueLabel: 'Continue to Launch',
     };
   }, [importState.currentSourceLabel, importState.importedSources]);
 
