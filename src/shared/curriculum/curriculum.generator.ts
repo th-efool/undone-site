@@ -147,7 +147,10 @@ function convertImportedLesson(
     id: makeId('lesson', lesson.id),
     title: lesson.title,
     description: lesson.description,
-    thumbnail: lesson.thumbnail,
+    thumbnail:
+      lesson.thumbnail ||
+      (lesson.videoId ? `https://i.ytimg.com/vi/${lesson.videoId}/hqdefault.jpg` : '/mock/thumbnails/docker.avif'),
+    videoId: lesson.videoId,
     duration: lesson.duration,
     chunkCount: 0,
     chunks: [],

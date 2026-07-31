@@ -242,18 +242,7 @@ function moveItem<T extends { id: string }>(items: T[], sourceId: string, target
 }
 
 function validateDetails(draft: CreateCohortDraft) {
-  return Boolean(
-    draft.title.trim() &&
-      draft.subtitle.trim() &&
-      draft.description.trim() &&
-      draft.primaryTopic.trim() &&
-      draft.estimatedCompletionTime.trim() &&
-      draft.language.trim() &&
-      draft.categories.length > 0 &&
-      draft.tags.length > 0 &&
-      draft.requirements.length > 0 &&
-      draft.learningOutcomes.length > 0,
-  );
+  return Boolean(draft.title && draft.title.trim().length > 0);
 }
 
 function validateSources(draft: CreateCohortDraft) {

@@ -286,11 +286,20 @@ export function CurriculumBoard() {
                             </span>
 
                             <img
-                              src={lesson.thumbnail || '/mock/thumbnails/docker.avif'}
+                              src={
+                                lesson.thumbnail ||
+                                (lesson.videoId ? `https://i.ytimg.com/vi/${lesson.videoId}/hqdefault.jpg` : undefined) ||
+                                '/mock/thumbnails/docker.avif'
+                              }
                               alt={lesson.title}
                               className={styles.lessonThumbnail}
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/mock/thumbnails/docker.avif';
+                                const target = e.target as HTMLImageElement;
+                                if (lesson.videoId && !target.src.includes(lesson.videoId)) {
+                                  target.src = `https://i.ytimg.com/vi/${lesson.videoId}/hqdefault.jpg`;
+                                } else {
+                                  target.src = '/mock/thumbnails/docker.avif';
+                                }
                               }}
                             />
 

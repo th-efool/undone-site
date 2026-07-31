@@ -27,8 +27,20 @@ export function WizardFooter({ footer }: WizardFooterProps) {
   let primaryLabel = footer.continueLabel;
   let primaryIcon = <ChevronRight size={16} />;
   let primaryVariant: 'primary' | 'secondary' | 'danger' = 'primary';
-  let primaryAction = actions.goNext;
-  let primaryDisabled = footer.continueDisabled;
+  const handleDetailsContinue = () => {
+    if (!state.draft.title || !state.draft.title.trim()) {
+      const input = document.getElementById('cohort-title');
+      if (input) {
+        input.focus();
+        input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+    actions.goNext();
+  };
+
+  let primaryAction = state.currentStep === 'details' ? handleDetailsContinue : actions.goNext;
+  let primaryDisabled = state.currentStep === 'details' ? false : footer.continueDisabled;
 
   if (isSources && isImporting) {
     primaryLabel = 'Cancel import';

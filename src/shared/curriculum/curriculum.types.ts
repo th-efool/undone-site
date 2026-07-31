@@ -63,6 +63,7 @@ export interface CurriculumLesson {
   subtitle?: string;
   description: string;
   thumbnail: string;
+  videoId?: string;
   duration: string;
   chunkCount: number;
   chunks: CurriculumChunk[];
