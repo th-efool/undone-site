@@ -1,0 +1,46 @@
+.root {
+  position: sticky;
+  bottom: var(--space-4);
+  z-index: 2;
+  box-shadow: var(--shadow-floating);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.progress {
+  min-width: 0;
+}
+
+.stepLabel {
+  color: var(--color-text-primary);
+  font-weight: var(--font-semibold);
+}
+
+.stepMeta {
+  color: var(--color-brand);
+  font-weight: var(--font-medium);
+}
+
+.helper {
+  max-width: 42rem;
+}
+
+.actions {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 720px) {
+  .inner {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .actions {
+    justify-content: stretch;
+  }
+}

@@ -1,0 +1,33 @@
+.screen {
+  min-height: 100%;
+  padding-block: var(--space-6) var(--space-10);
+}
+
+.pageStack {
+  min-width: 0;
+}
+
+.header {
+  min-width: 0;
+}
+
+.title {
+  color: var(--color-text-primary);
+}
+
+.description {
+  max-width: 48rem;
+}
+
+.surface {
+  min-width: 0;
+}
+
+.disabledStep {
+  display: grid;
+  gap: var(--space-2);
+  min-height: 16rem;
+  place-content: center;
+  text-align: center;
+}
+
