@@ -149,11 +149,11 @@ export function CurriculumInspector() {
         {activeTab === 'general' && (
           <>
             <img
-              src={selectedLesson.thumbnail || '/images/landing/screen.webp'}
+              src={selectedLesson.thumbnail || '/mock/thumbnails/docker.avif'}
               alt={selectedLesson.title}
               className={styles.imagePreview}
               onError={(e) => {
-                (e.target as HTMLImageElement).src = '/images/landing/screen.webp';
+                (e.target as HTMLImageElement).src = '/mock/thumbnails/docker.avif';
               }}
             />
 

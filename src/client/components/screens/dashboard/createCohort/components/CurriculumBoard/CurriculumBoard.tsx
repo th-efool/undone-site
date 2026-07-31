@@ -286,11 +286,11 @@ export function CurriculumBoard() {
                             </span>
 
                             <img
-                              src={lesson.thumbnail || '/images/landing/screen.webp'}
+                              src={lesson.thumbnail || '/mock/thumbnails/docker.avif'}
                               alt={lesson.title}
                               className={styles.lessonThumbnail}
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/images/landing/screen.webp';
+                                (e.target as HTMLImageElement).src = '/mock/thumbnails/docker.avif';
                               }}
                             />
 

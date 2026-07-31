@@ -1,57 +1,57 @@
 .inspector {
-  width: 340px;
+  width: 360px;
   flex-shrink: 0;
-  background: rgba(18, 20, 29, 0.75);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 1.25rem;
+  background: var(--color-surface, #181b28);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-xl, 16px);
+  padding: 1.4rem;
   display: flex;
   flex-direction: column;
-  gap: 1.1rem;
+  gap: 1.25rem;
   align-self: flex-start;
   position: sticky;
   top: 1rem;
   max-height: calc(100vh - 2rem);
   overflow-y: auto;
+  box-shadow: var(--shadow-sm, 0 4px 16px rgba(0, 0, 0, 0.3));
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
 }
 
 .titleGroup {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 
 .headerTitle {
-  font-size: 0.95rem;
-  font-weight: 700;
-  color: #f8fafc;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-text-primary, #ffffff);
 }
 
 .tabBar {
   display: flex;
-  gap: 0.25rem;
-  padding: 0.2rem;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
+  gap: 0.3rem;
+  padding: 0.25rem;
+  background: var(--color-surface-secondary, rgba(255, 255, 255, 0.05));
+  border-radius: var(--radius-md, 8px);
 }
 
 .tabBtn {
   flex: 1;
-  padding: 0.35rem 0.5rem;
+  padding: 0.4rem 0.6rem;
   background: transparent;
   border: none;
   border-radius: 6px;
-  color: #94a3b8;
-  font-size: 0.75rem;
+  color: var(--color-text-muted, #94a3b8);
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -62,17 +62,17 @@
 }
 
 .tabActive {
-  background: rgba(99, 102, 241, 0.25);
+  background: var(--color-brand, #6366f1);
   color: #ffffff;
-  border: 1px solid rgba(99, 102, 241, 0.4);
+  font-weight: 700;
 }
 
 .closeBtn {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: var(--color-text-muted, #94a3b8);
   cursor: pointer;
-  padding: 0.2rem;
+  padding: 0.25rem;
   border-radius: 4px;
 
   &:hover {
@@ -84,86 +84,89 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .label {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #94a3b8;
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: var(--color-text-muted, #94a3b8);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
 }
 
 .input {
   width: 100%;
-  padding: 0.5rem 0.75rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: #f1f5f9;
+  padding: 0.55rem 0.85rem;
+  background: var(--color-surface-secondary, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-text-primary, #ffffff);
   font-size: 0.875rem;
+  font-weight: 500;
   outline: none;
   transition: all 0.2s ease;
 
   &:focus {
-    border-color: #6366f1;
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
-    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--color-brand, #6366f1);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+    background: var(--color-surface-tertiary, rgba(255, 255, 255, 0.08));
   }
 }
 
 .textarea {
-  min-height: 75px;
+  min-height: 80px;
   resize: vertical;
   line-height: 1.4;
 }
 
 .select {
   width: 100%;
-  padding: 0.5rem 0.75rem;
-  background: rgba(18, 20, 29, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: #f1f5f9;
+  padding: 0.55rem 0.85rem;
+  background: var(--color-surface-secondary, rgba(18, 20, 29, 0.9));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-text-primary, #ffffff);
   font-size: 0.875rem;
+  font-weight: 500;
   outline: none;
 
   &:focus {
-    border-color: #6366f1;
+    border-color: var(--color-brand, #6366f1);
   }
 }
 
 .imagePreview {
   width: 100%;
-  height: 120px;
+  height: 135px;
   object-fit: cover;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: #0f172a;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  background: #000000;
 }
 
 .tagGroup {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .tagPill {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-  color: #e2e8f0;
-  background: rgba(255, 255, 255, 0.06);
-  padding: 0.2rem 0.5rem;
+  gap: 0.3rem;
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #ffffff);
+  background: var(--color-surface-tertiary, rgba(255, 255, 255, 0.08));
+  padding: 0.25rem 0.6rem;
   border-radius: 6px;
 }
 
 .removeTagBtn {
   background: transparent;
   border: none;
-  color: #94a3b8;
+  color: var(--color-text-muted, #94a3b8);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -176,7 +179,7 @@
 .itemList {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .itemRow {
@@ -184,9 +187,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.35rem 0.6rem;
-  background: rgba(255, 255, 255, 0.03);
+  padding: 0.4rem 0.7rem;
+  background: var(--color-surface-secondary, rgba(255, 255, 255, 0.04));
   border-radius: 6px;
-  font-size: 0.8125rem;
-  color: #cbd5e1;
+  font-size: 0.85rem;
+  color: var(--color-text-primary, #ffffff);
 }

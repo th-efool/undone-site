@@ -1064,10 +1064,36 @@ export function WizardProvider({ children }: PropsWithChildren) {
         estimatedRemaining: '0m',
       }));
 
-      setState((current) => ({
-        ...current,
-        currentStep: 'curriculum',
-      }));
+      const primary = latest.importedSources[0];
+      if (primary) {
+        setState((current) => ({
+          ...current,
+          currentStep: 'curriculum',
+          draft: {
+            ...current.draft,
+            title: current.draft.title.trim() || primary.title,
+            coverImage: current.draft.coverImage.trim() || primary.thumbnail || '',
+            subtitle: current.draft.subtitle.trim() || `by ${primary.creator}`,
+            description: current.draft.description.trim() || `Comprehensive cohort journey created from ${primary.title}.`,
+            primaryTopic: current.draft.primaryTopic.trim() || primary.title,
+            categories: current.draft.categories.length > 0 ? current.draft.categories : ['Programming', 'Tutorial'],
+          },
+        }));
+
+        setLaunchState((current) => ({
+          ...current,
+          onboarding: {
+            ...current.onboarding,
+            welcomeMessage: `Welcome to ${primary.title}! We are thrilled to have you in this cohort.`,
+            journeyIntroduction: `In this journey, you will master ${primary.title} step-by-step through structured seasons and practice exercises.`,
+          },
+        }));
+      } else {
+        setState((current) => ({
+          ...current,
+          currentStep: 'curriculum',
+        }));
+      }
 
       void generateCurriculumAction();
     }

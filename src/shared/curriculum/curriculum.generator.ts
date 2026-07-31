@@ -183,7 +183,7 @@ function createSeasonFromLessons(index: number, lessons: CurriculumLesson[]): Cu
       lessons.length > 0
         ? `Lessons ${first.playlistPosition} - ${last.playlistPosition}`
         : 'Empty season placeholder.',
-    thumbnail: first?.thumbnail ?? '/images/landing/screen.webp',
+    thumbnail: first?.thumbnail ?? '/mock/thumbnails/docker.avif',
     estimatedDuration: formatDuration(minutes),
     lessonCount: lessons.length,
     lessons,
@@ -221,7 +221,7 @@ function recalculateSeason(season: CurriculumSeason, index: number) {
     id: season.id || makeId('season', index + 1),
     title: season.title || `Season ${index + 1}`,
     description: season.description || 'Generated season.',
-    thumbnail: lessons[0]?.thumbnail ?? season.thumbnail ?? '/images/landing/screen.webp',
+    thumbnail: lessons[0]?.thumbnail ?? season.thumbnail ?? '/mock/thumbnails/docker.avif',
     estimatedDuration: formatDuration(minutes),
     lessonCount: lessons.length,
     lessons,
@@ -482,7 +482,7 @@ export function createSeason(curriculum: GeneratedCurriculum, title?: string) {
       id: makeId('season', curriculum.seasons.length + 1, Date.now()),
       title: title || `Season ${curriculum.seasons.length + 1}`,
       description: 'New season placeholder.',
-      thumbnail: '/images/landing/screen.webp',
+      thumbnail: '/mock/thumbnails/docker.avif',
       estimatedDuration: '0m',
       lessonCount: 0,
       lessons: [],

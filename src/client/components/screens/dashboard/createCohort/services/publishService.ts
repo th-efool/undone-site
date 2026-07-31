@@ -1,11 +1,12 @@
 import type { PublishResultModel, PublishStage } from '../models/launch';
+import { cohortRepository } from '@/src/client/repositories/cohortRepository';
 
 interface PublishCohortInput {
-  draft: unknown;
-  curriculum: unknown;
-  onboarding: unknown;
-  community: unknown;
-  journeySettings: unknown;
+  draft: any;
+  curriculum: any;
+  onboarding: any;
+  community: any;
+  journeySettings: any;
   qualityScore: number;
 }
 
@@ -15,13 +16,13 @@ class PublishService {
     onStageChange: (stage: PublishStage) => void,
   ): Promise<PublishResultModel> {
     onStageChange('preparing-assets');
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     onStageChange('search-metadata');
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     onStageChange('creating-community');
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     onStageChange('publishing');
 
@@ -39,8 +40,28 @@ class PublishService {
       throw new Error(body?.message || 'Publishing failed');
     }
 
+    // Register into shared cohort repository & localStorage
+    const newCohort = cohortRepository.registerPublishedCohort({
+      cohortId: body.cohortId,
+      title: input.draft?.title || body.cohortTitle || 'Untitled Cohort',
+      description: input.draft?.description || '',
+      coverImage: input.draft?.coverImage || body.coverImage || '',
+      difficulty: input.draft?.difficulty || 'Intermediate',
+      visibility: input.journeySettings?.visibility || 'Public',
+      curriculum: input.curriculum,
+      onboarding: input.onboarding,
+    });
+
+    const result: PublishResultModel = {
+      ...body,
+      cohortId: newCohort.id,
+      cohortUrl: `/cohort/${newCohort.id}`,
+      cohortTitle: newCohort.title,
+      coverImage: newCohort.coverImage,
+    };
+
     onStageChange('live');
-    return body as PublishResultModel;
+    return result;
   }
 }
 

@@ -36,11 +36,11 @@ export function LaunchStep() {
       <div className={styles.summaryStrip}>
         <div className={styles.summaryLeft}>
           <img
-            src={state.draft.coverImage || '/images/landing/screen.webp'}
+            src={state.draft.coverImage || '/mock/thumbnails/docker.avif'}
             alt={state.draft.title}
             className={styles.artwork}
             onError={(e) => {
-              (e.target as HTMLImageElement).src = '/images/landing/screen.webp';
+              (e.target as HTMLImageElement).src = '/mock/thumbnails/docker.avif';
             }}
           />
 

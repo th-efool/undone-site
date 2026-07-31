@@ -1,13 +1,16 @@
 import { cohortNavigationItems } from '@/src/client/components/screens/cohort/mocks/cohortMock';
 import type { Cohort } from '@/src/client/components/screens/cohort/models';
-import { cohortCatalog } from '@/src/client/mock/cohorts/cohortCatalog';
+import { cohortStore } from './cohortStore';
 
 export const cohortRepository = {
   list(): Cohort[] {
-    return cohortCatalog;
+    return cohortStore.getAll();
   },
   getById(id: string): Cohort {
-    return cohortCatalog.find((cohort) => cohort.id === id) ?? cohortCatalog[0];
+    return cohortStore.getById(id) ?? cohortStore.getAll()[0];
+  },
+  registerPublishedCohort(data: any): Cohort {
+    return cohortStore.registerPublishedCohort(data);
   },
   navigationItems: cohortNavigationItems,
 };

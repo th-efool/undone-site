@@ -36,11 +36,11 @@ export function LaunchSuccess() {
 
       <div className={styles.card}>
         <img
-          src={result.coverImage || state.draft.coverImage || '/images/landing/screen.webp'}
+          src={result.coverImage || state.draft.coverImage || '/mock/thumbnails/docker.avif'}
           alt={result.cohortTitle}
           className={styles.artwork}
           onError={(e) => {
-            (e.target as HTMLImageElement).src = '/images/landing/screen.webp';
+            (e.target as HTMLImageElement).src = '/mock/thumbnails/docker.avif';
           }}
         />
 

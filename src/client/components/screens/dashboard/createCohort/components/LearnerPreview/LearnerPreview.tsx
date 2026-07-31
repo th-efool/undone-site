@@ -93,11 +93,11 @@ export function LearnerPreview() {
             {activeTab === 'overview' && (
               <div className={styles.heroPreview}>
                 <img
-                  src={state.draft.coverImage || '/images/landing/screen.webp'}
+                  src={state.draft.coverImage || '/mock/thumbnails/docker.avif'}
                   alt={state.draft.title}
                   className={styles.coverImage}
                   onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/images/landing/screen.webp';
+                    (e.target as HTMLImageElement).src = '/mock/thumbnails/docker.avif';
                   }}
                 />
 
