@@ -59,8 +59,8 @@ export const createCohortMockDraft: CreateCohortDraft = {
     {
       id: 'source-1',
       type: 'YouTube Playlist',
-      title: 'YouTube Playlist Source',
-      url: 'https://youtube.com/playlist?list=PLu0W_9lII9agwh1XjRt242xIpHhPT2llg',
+      title: '',
+      url: '',
       collapsed: false,
     },
   ],

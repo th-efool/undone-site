@@ -1,3 +1,5 @@
+'use client';
+
 import { useCohort } from '../../hooks';
 import { HallOfFamePage } from './components/HallOfFamePage/HallOfFamePage';
 

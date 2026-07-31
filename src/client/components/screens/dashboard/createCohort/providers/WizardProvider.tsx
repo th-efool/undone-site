@@ -350,17 +350,17 @@ export function WizardProvider({ children }: PropsWithChildren) {
   });
   const [launchState, setLaunchState] = useState<WizardLaunchState>({
     onboarding: {
-      welcomeMessage: 'Welcome to Deep Work Mastery! We are thrilled to have you in this cohort.',
-      journeyIntroduction: 'In this journey, you will design a distraction-resistant workflow and build a repeatable deep work routine.',
+      welcomeMessage: '',
+      journeyIntroduction: '',
       recommendedDailyGoal: '30 mins/day',
       suggestedWeeklyCommitment: '3.5 hours/week',
-      completionMotivation: 'Complete all lessons to earn your Deep Work Specialist badge.',
+      completionMotivation: '',
       communityGuidelines: [
         'Be respectful and constructive',
         'Share real progress, not just theory',
         'Help fellow learners when stuck',
       ],
-      pinnedResources: ['Focus Playbook PDF', 'Notion Deep Work Template'],
+      pinnedResources: [],
     },
     community: {
       discussionFeed: true,
@@ -378,11 +378,11 @@ export function WizardProvider({ children }: PropsWithChildren) {
       visibility: 'Public',
       language: 'English',
       difficulty: 'Intermediate',
-      targetAudience: 'Ambitious creators & knowledge workers',
+      targetAudience: '',
       estimatedWeeklyCommitment: '3-4 hours/week',
-      categories: ['Productivity', 'Focus'],
-      topics: ['Deep Work', 'Systems'],
-      keywords: ['focus', 'deep work', 'productivity', 'habits'],
+      categories: [],
+      topics: [],
+      keywords: [],
     },
     deviceViewport: 'desktop',
     previewTab: 'overview',

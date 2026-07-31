@@ -1,3 +1,5 @@
+'use client';
+
 import { useCohort } from '../../hooks';
 import { AssignmentsProjectsFeed } from './components/AssignmentsProjectsFeed/AssignmentsProjectsFeed';
 import { QuestlineFilters } from './components/QuestlineFilters/QuestlineFilters';

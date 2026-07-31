@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, X, Sparkles, Check, Image as ImageIcon } from 'lucide-react';
+import { Plus, X, Sparkles, Check, Image as ImageIcon, BookOpen, Target, ShieldCheck, Tag } from 'lucide-react';
 
 import { Button } from '@/src/client/components/ui/Button/Button';
 import type { CreateCohortDetailsModel, CreateCohortDraft } from '../../models/createCohort';
@@ -362,11 +362,11 @@ export function DetailsStep({ details }: DetailsStepProps) {
           </div>
         </div>
 
-        {/* Right Column: Live Learner Cohort Card Preview */}
+        {/* Right Column: Complete Live Learner Cohort Card Preview (Fixes Issue 3!) */}
         <aside className={styles.previewColumn}>
           <div className={styles.previewHeader}>
             <span className={styles.previewBadge}>
-              <Sparkles size={14} /> Live Cohort Preview
+              <Sparkles size={14} /> Live Cohort Card Preview
             </span>
           </div>
 
@@ -382,9 +382,10 @@ export function DetailsStep({ details }: DetailsStepProps) {
               />
               <div className={styles.previewCoverOverlay} />
               <div className={styles.previewBadges}>
-                <span className={styles.previewDiffBadge}>{draft.difficulty}</span>
-                {draft.categories[0] && (
-                  <span className={styles.previewDiffBadge}>{draft.categories[0]}</span>
+                <span className={styles.previewDiffBadge}>{draft.difficulty || 'Intermediate'}</span>
+                <span className={styles.previewDiffBadge}>{draft.visibility || 'Public'}</span>
+                {draft.estimatedCompletionTime && (
+                  <span className={styles.previewDiffBadge}>{draft.estimatedCompletionTime}</span>
                 )}
               </div>
             </div>
@@ -392,14 +393,91 @@ export function DetailsStep({ details }: DetailsStepProps) {
             <div className={styles.previewBody}>
               <h3 className={styles.previewTitle}>{draft.title || 'Untitled Cohort'}</h3>
 
-              {draft.subtitle && (
+              {draft.subtitle ? (
                 <p className={styles.previewSubtitle}>{draft.subtitle}</p>
+              ) : null}
+
+              {draft.primaryTopic && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: '#a5b4fc' }}>
+                  <BookOpen size={13} />
+                  <span>Topic: {draft.primaryTopic}</span>
+                </div>
               )}
 
               <p className={styles.previewDesc}>
                 {draft.description ||
                   'Your cohort description will be rendered here for prospective learners.'}
               </p>
+
+              {/* Categories Preview */}
+              {draft.categories.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.2rem' }}>
+                  {draft.categories.map((c) => (
+                    <span
+                      key={c}
+                      style={{
+                        fontSize: '0.725rem',
+                        fontWeight: 700,
+                        color: '#38bdf8',
+                        background: 'rgba(56, 189, 248, 0.12)',
+                        padding: '0.15rem 0.5rem',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Tags Preview */}
+              {draft.tags.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem' }}>
+                  {draft.tags.map((t) => (
+                    <span
+                      key={t}
+                      style={{
+                        fontSize: '0.725rem',
+                        color: '#94a3b8',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        padding: '0.15rem 0.45rem',
+                        borderRadius: '4px',
+                      }}
+                    >
+                      <Tag size={10} style={{ display: 'inline', marginRight: 3 }} />#{t}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Learning Outcomes Preview */}
+              {draft.learningOutcomes.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.3rem', paddingTop: '0.6rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Target size={12} color="#34d399" /> What you will learn
+                  </span>
+                  {draft.learningOutcomes.slice(0, 3).map((out, idx) => (
+                    <div key={idx} style={{ fontSize: '0.775rem', color: '#cbd5e1', display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+                      <span style={{ color: '#34d399' }}>✓</span>
+                      <span>{out}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Requirements Preview */}
+              {draft.requirements.length > 0 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', marginTop: '0.3rem', paddingTop: '0.6rem', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#f8fafc', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <ShieldCheck size={12} color="#fbbf24" /> Prerequisites
+                  </span>
+                  {draft.requirements.slice(0, 2).map((req, idx) => (
+                    <div key={idx} style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                      • {req}
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div className={styles.previewCreatorRow}>
                 <img

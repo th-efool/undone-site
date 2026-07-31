@@ -1,3 +1,5 @@
+'use client';
+
 import { useCohort } from '../../hooks';
 import { ArchivesPage } from './components/ArchivesPage/ArchivesPage';
 

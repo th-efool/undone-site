@@ -1,3 +1,5 @@
+'use client';
+
 import { useCohort } from '../../hooks';
 import { EventsPage } from './components/EventsPage/EventsPage';
 

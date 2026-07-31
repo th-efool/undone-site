@@ -1,3 +1,5 @@
+'use client';
+
 import { cohortRepository } from '@/src/client/repositories/cohortRepository';
 import { useCohort } from './hooks';
 import { CohortLayout } from './components/CohortLayout/CohortLayout';

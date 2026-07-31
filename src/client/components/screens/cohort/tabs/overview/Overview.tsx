@@ -1,3 +1,5 @@
+'use client';
+
 import { useCohort } from '../../hooks';
 import { AboutSection } from './components/AboutSection/AboutSection';
 import { ExpeditionProgressCard } from './components/ExpeditionProgressCard/ExpeditionProgressCard';
