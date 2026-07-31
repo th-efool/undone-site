@@ -510,6 +510,9 @@
 │   │   │   │   │   │   │   ├── DetailsStep/
 │   │   │   │   │   │   │   │   ├── DetailsStep.module.css
 │   │   │   │   │   │   │   │   └── DetailsStep.tsx
+│   │   │   │   │   │   │   ├── IdentityStep/
+│   │   │   │   │   │   │   │   ├── IdentityStep.module.css
+│   │   │   │   │   │   │   │   └── IdentityStep.tsx
 │   │   │   │   │   │   │   ├── ImportWorkspace/
 │   │   │   │   │   │   │   │   ├── ImportWorkspace.module.css
 │   │   │   │   │   │   │   │   └── ImportWorkspace.tsx
@@ -539,6 +542,9 @@
 │   │   │   │   │   │   │   │   ├── SourceCard.tsx
 │   │   │   │   │   │   │   │   ├── SourcesStep.module.css
 │   │   │   │   │   │   │   │   └── SourcesStep.tsx
+│   │   │   │   │   │   │   ├── TopicStep/
+│   │   │   │   │   │   │   │   ├── TopicStep.module.css
+│   │   │   │   │   │   │   │   └── TopicStep.tsx
 │   │   │   │   │   │   │   ├── WizardFooter/
 │   │   │   │   │   │   │   │   ├── WizardFooter.module.css
 │   │   │   │   │   │   │   │   └── WizardFooter.tsx
@@ -1052,4 +1058,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-343 directories, 708 files
+345 directories, 712 files
