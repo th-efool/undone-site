@@ -5,11 +5,15 @@
 │   └── workflows/
 │       └── update-directory-structure.yml
 ├── ai-context/
+│   ├── create-cohort-curriculum-plan.md
 │   ├── create-cohort-import-plan.md
+│   ├── create-cohort-intelligence-plan.md
+│   ├── create-cohort-launch-plan.md
 │   ├── create-cohort-plan.md
 │   ├── design-css-tokens.md
 │   ├── directory-structure.md
-│   └── hero-section-guidelines.md
+│   ├── hero-section-guidelines.md
+│   └── youtube data api v3 details
 ├── public/
 │   ├── icons/
 │   │   ├── apple.webp
@@ -149,6 +153,12 @@
 │   │   │   ├── loading.tsx
 │   │   │   └── page.tsx
 │   │   ├── api/
+│   │   │   ├── cohort/
+│   │   │   │   └── publish/
+│   │   │   │       └── route.ts
+│   │   │   ├── curriculum/
+│   │   │   │   └── generate/
+│   │   │   │       └── route.ts
 │   │   │   └── import/
 │   │   │       └── youtube/
 │   │   │           └── playlist/
@@ -461,15 +471,69 @@
 │   │   │   │   ├── dashboard/
 │   │   │   │   │   ├── createCohort/
 │   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   ├── CommunityConfig/
+│   │   │   │   │   │   │   │   ├── CommunityConfig.module.css
+│   │   │   │   │   │   │   │   └── CommunityConfig.tsx
+│   │   │   │   │   │   │   ├── CurriculumBoard/
+│   │   │   │   │   │   │   │   ├── CurriculumBoard.module.css
+│   │   │   │   │   │   │   │   └── CurriculumBoard.tsx
+│   │   │   │   │   │   │   ├── CurriculumBulkBar/
+│   │   │   │   │   │   │   │   ├── CurriculumBulkBar.module.css
+│   │   │   │   │   │   │   │   └── CurriculumBulkBar.tsx
+│   │   │   │   │   │   │   ├── CurriculumChecklist/
+│   │   │   │   │   │   │   │   ├── CurriculumChecklist.module.css
+│   │   │   │   │   │   │   │   └── CurriculumChecklist.tsx
+│   │   │   │   │   │   │   ├── CurriculumContextMenu/
+│   │   │   │   │   │   │   │   ├── CurriculumContextMenu.module.css
+│   │   │   │   │   │   │   │   └── CurriculumContextMenu.tsx
+│   │   │   │   │   │   │   ├── CurriculumInspector/
+│   │   │   │   │   │   │   │   ├── CurriculumInspector.module.css
+│   │   │   │   │   │   │   │   └── CurriculumInspector.tsx
+│   │   │   │   │   │   │   ├── CurriculumQuality/
+│   │   │   │   │   │   │   │   ├── CurriculumQuality.module.css
+│   │   │   │   │   │   │   │   └── CurriculumQuality.tsx
+│   │   │   │   │   │   │   ├── CurriculumShortcutsModal/
+│   │   │   │   │   │   │   │   ├── CurriculumShortcutsModal.module.css
+│   │   │   │   │   │   │   │   └── CurriculumShortcutsModal.tsx
+│   │   │   │   │   │   │   ├── CurriculumStats/
+│   │   │   │   │   │   │   │   ├── CurriculumStats.module.css
+│   │   │   │   │   │   │   │   └── CurriculumStats.tsx
 │   │   │   │   │   │   │   ├── CurriculumStep/
 │   │   │   │   │   │   │   │   ├── CurriculumStep.module.css
 │   │   │   │   │   │   │   │   └── CurriculumStep.tsx
+│   │   │   │   │   │   │   ├── CurriculumToolbar/
+│   │   │   │   │   │   │   │   ├── CurriculumToolbar.module.css
+│   │   │   │   │   │   │   │   └── CurriculumToolbar.tsx
+│   │   │   │   │   │   │   ├── CurriculumWarnings/
+│   │   │   │   │   │   │   │   ├── CurriculumWarnings.module.css
+│   │   │   │   │   │   │   │   └── CurriculumWarnings.tsx
 │   │   │   │   │   │   │   ├── DetailsStep/
 │   │   │   │   │   │   │   │   ├── DetailsStep.module.css
 │   │   │   │   │   │   │   │   └── DetailsStep.tsx
 │   │   │   │   │   │   │   ├── ImportWorkspace/
 │   │   │   │   │   │   │   │   ├── ImportWorkspace.module.css
 │   │   │   │   │   │   │   │   └── ImportWorkspace.tsx
+│   │   │   │   │   │   │   ├── JourneySettingsConfig/
+│   │   │   │   │   │   │   │   ├── JourneySettingsConfig.module.css
+│   │   │   │   │   │   │   │   └── JourneySettingsConfig.tsx
+│   │   │   │   │   │   │   ├── LaunchChecklist/
+│   │   │   │   │   │   │   │   ├── LaunchChecklist.module.css
+│   │   │   │   │   │   │   │   └── LaunchChecklist.tsx
+│   │   │   │   │   │   │   ├── LaunchStep/
+│   │   │   │   │   │   │   │   ├── LaunchStep.module.css
+│   │   │   │   │   │   │   │   └── LaunchStep.tsx
+│   │   │   │   │   │   │   ├── LaunchSuccess/
+│   │   │   │   │   │   │   │   ├── LaunchSuccess.module.css
+│   │   │   │   │   │   │   │   └── LaunchSuccess.tsx
+│   │   │   │   │   │   │   ├── LearnerPreview/
+│   │   │   │   │   │   │   │   ├── LearnerPreview.module.css
+│   │   │   │   │   │   │   │   └── LearnerPreview.tsx
+│   │   │   │   │   │   │   ├── OnboardingConfig/
+│   │   │   │   │   │   │   │   ├── OnboardingConfig.module.css
+│   │   │   │   │   │   │   │   └── OnboardingConfig.tsx
+│   │   │   │   │   │   │   ├── PublishingModal/
+│   │   │   │   │   │   │   │   ├── PublishingModal.module.css
+│   │   │   │   │   │   │   │   └── PublishingModal.tsx
 │   │   │   │   │   │   │   ├── SourcesStep/
 │   │   │   │   │   │   │   │   ├── SourceCard.module.css
 │   │   │   │   │   │   │   │   ├── SourceCard.tsx
@@ -482,16 +546,24 @@
 │   │   │   │   │   │   │       ├── WizardStepper.module.css
 │   │   │   │   │   │   │       └── WizardStepper.tsx
 │   │   │   │   │   │   ├── hooks/
-│   │   │   │   │   │   │   └── useCreateCohortModels.ts
+│   │   │   │   │   │   │   ├── useCreateCohortModels.ts
+│   │   │   │   │   │   │   ├── useCurriculumQuality.ts
+│   │   │   │   │   │   │   └── useKeyboardShortcuts.ts
 │   │   │   │   │   │   ├── mock/
-│   │   │   │   │   │   │   └── createCohort.mock.ts
+│   │   │   │   │   │   │   ├── createCohort.mock.ts
+│   │   │   │   │   │   │   └── curriculum.mock.ts
 │   │   │   │   │   │   ├── models/
 │   │   │   │   │   │   │   ├── createCohort.ts
-│   │   │   │   │   │   │   └── import.ts
+│   │   │   │   │   │   │   ├── import.ts
+│   │   │   │   │   │   │   ├── intelligence.ts
+│   │   │   │   │   │   │   └── launch.ts
 │   │   │   │   │   │   ├── providers/
 │   │   │   │   │   │   │   └── WizardProvider.tsx
 │   │   │   │   │   │   ├── services/
-│   │   │   │   │   │   │   └── importService.ts
+│   │   │   │   │   │   │   ├── bulkOperationsService.ts
+│   │   │   │   │   │   │   ├── curriculumService.ts
+│   │   │   │   │   │   │   ├── importService.ts
+│   │   │   │   │   │   │   └── publishService.ts
 │   │   │   │   │   │   ├── CreateCohort.module.css
 │   │   │   │   │   │   ├── CreateCohort.tsx
 │   │   │   │   │   │   └── index.ts
@@ -918,6 +990,8 @@
 │   │   │   │       └── .gitkeep
 │   │   │   └── websocket/
 │   │   │       └── .gitkeep
+│   │   ├── curriculum/
+│   │   │   └── curriculum-generator.service.ts
 │   │   ├── domain/
 │   │   │   ├── session/
 │   │   │   │   ├── session.services.ts
@@ -951,6 +1025,10 @@
 │   └── shared/
 │       ├── constants/
 │       │   └── app.constants.ts
+│       ├── curriculum/
+│       │   ├── curriculum.generator.ts
+│       │   ├── curriculum.types.ts
+│       │   └── index.ts
 │       └── lib/
 │           ├── errors/
 │           │   └── AppError.ts
@@ -973,4 +1051,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-319 directories, 653 files
+343 directories, 707 files
