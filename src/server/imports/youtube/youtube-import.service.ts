@@ -444,18 +444,31 @@ export async function importYouTubePlaylist(
       if (!videoId) continue;
 
       const video = videosById.get(videoId);
+      const rawTitle = (video?.snippet?.title ?? item.snippet?.title ?? '').trim();
+      const lowerTitle = rawTitle.toLowerCase();
+
+      // Skip private or deleted videos completely
+      if (
+        !rawTitle ||
+        lowerTitle.includes('private video') ||
+        lowerTitle.includes('deleted video') ||
+        lowerTitle.includes('this video is private') ||
+        lowerTitle.includes('this video is deleted') ||
+        rawTitle === '[private video]' ||
+        rawTitle === '[deleted video]'
+      ) {
+        continue;
+      }
+
       const videoDuration = parseIsoDuration(video?.contentDetails?.duration ?? 'PT0S');
       totalSeconds += videoDuration;
       const lesson = {
         id: `${request.sourceId}-${videoId}`,
-        title:
-          video?.snippet?.title ??
-          item.snippet?.title ??
-          `Video ${item.snippet?.position ?? lessons.length + 1}`,
+        title: rawTitle || `Video ${item.snippet?.position ?? lessons.length + 1}`,
         thumbnail: pickThumbnail(video?.snippet?.thumbnails ?? item.snippet?.thumbnails),
         description: video?.snippet?.description ?? item.snippet?.description ?? '',
         duration: toIsoDuration(videoDuration),
-        position: item.snippet?.position ?? lessons.length + 1,
+        position: lessons.length + 1,
         provider: 'YouTube',
         videoId,
         publishedLabel: formatPublishedLabel(video?.snippet?.publishedAt ?? item.snippet?.publishedAt),

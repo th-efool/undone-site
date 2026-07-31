@@ -121,20 +121,6 @@ export const homeMock: HomeModel = {
         label: 'Everyday',
       },
     },
-    {
-      id: 'german-language-a1',
-      rank: 4,
-      title: 'German Language A1',
-      provider: 'Learn German',
-      thumbnail: '/mock/thumbnails/german.webp',
-      minutesToday: 10,
-      dailyGoalMinutes: 12,
-      progressPercent: 24,
-      schedule: {
-        days: ['Sun', 'Mon', 'Wed', 'Fri'],
-        label: 'Mon, Wed, Fri, Sun',
-      },
-    },
   ],
   continueLater: [
     {

@@ -1,6 +1,6 @@
 import type { CurriculumSummaryModel, ImportWorkspaceModel } from './import';
 
-export type CreateCohortStepId = 'details' | 'sources' | 'curriculum' | 'publish';
+export type CreateCohortStepId = 'topic' | 'sources' | 'curriculum' | 'identity' | 'publish';
 
 export type CreateCohortDifficulty = 'Beginner' | 'Intermediate' | 'Advanced';
 export type CreateCohortVisibility = 'Private' | 'Unlisted' | 'Public';
@@ -152,15 +152,17 @@ export interface CreateCohortViewModel {
 }
 
 export const createCohortStepOrder: CreateCohortStepId[] = [
-  'details',
+  'topic',
   'sources',
   'curriculum',
+  'identity',
   'publish',
 ];
 
 export const createCohortStepLabels: Record<CreateCohortStepId, string> = {
-  details: 'Details',
+  topic: 'Topic & Category',
   sources: 'Sources',
   curriculum: 'Curriculum',
-  publish: 'Publish',
+  identity: 'Identity & Branding',
+  publish: 'Launch',
 };

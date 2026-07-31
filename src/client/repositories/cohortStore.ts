@@ -24,6 +24,32 @@ function saveStoredCohorts(cohorts: Cohort[]) {
   }
 }
 
+function parseDurationToSeconds(val: string): number {
+  if (!val) return 180;
+  const hoursMatch = val.match(/(\d+)\s*h/i);
+  const minsMatch = val.match(/(\d+)\s*m/i);
+  const secsMatch = val.match(/(\d+)\s*s/i);
+  let total = 0;
+  if (hoursMatch) total += Number(hoursMatch[1]) * 3600;
+  if (minsMatch) total += Number(minsMatch[1]) * 60;
+  if (secsMatch) total += Number(secsMatch[1]);
+  if (total === 0) {
+    const num = Number(val.match(/\d+/)?.[0]);
+    if (!isNaN(num)) total = num * 60;
+  }
+  return total || 180;
+}
+
+function formatSecs(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
 class CohortStore {
   private userCohorts: Cohort[] = [];
 
@@ -66,15 +92,59 @@ class CohortStore {
     const seasonsList = (data.curriculum?.seasons || []).map((s: any, sIdx: number) => {
       const seasonLessons = (s.lessons || []).map((l: any, lIdx: number) => {
         lessonsList.push(l);
+        const videoId = l.videoId;
+        const videoUrl = videoId ? `https://www.youtube.com/watch?v=${videoId}` : undefined;
+
+        let currentSec = 0;
+        const rawChunks =
+          l.chunks && l.chunks.length > 0
+            ? l.chunks
+            : Array.from({ length: l.chunkCount || 4 }, (_, cIdx) => ({
+                id: `chunk-${sIdx}-${lIdx}-${cIdx + 1}`,
+                title: `Part ${cIdx + 1}`,
+                duration: '3 min',
+                order: cIdx + 1,
+              }));
+
+        const chunksList = rawChunks.map((c: any, cIdx: number) => {
+          const durSecs = parseDurationToSeconds(c.duration || '3 min');
+          const startSecs = currentSec;
+          const endSecs = startSecs + durSecs;
+          currentSec = endSecs;
+
+          const startFormatted = formatSecs(startSecs);
+          const endFormatted = formatSecs(endSecs);
+          const timestampUrl = videoId
+            ? `https://www.youtube.com/watch?v=${videoId}&t=${startSecs}s`
+            : undefined;
+
+          return {
+            id: c.id || `chunk-${sIdx}-${lIdx}-${cIdx + 1}`,
+            title: c.title || `Part ${cIdx + 1}`,
+            duration: c.duration || '3 min',
+            order: cIdx + 1,
+            startSeconds: startSecs,
+            endSeconds: endSecs,
+            timeRangeLabel: `${startFormatted} – ${endFormatted}`,
+            timestampUrl,
+          };
+        });
+
         return {
           id: l.id || `lesson-${sIdx}-${lIdx}`,
           title: l.title,
           type: LessonType.Video,
           duration: l.duration || '12 min',
           status: lIdx === 0 ? LessonStatus.InStream : LessonStatus.Ready,
-          totalChunks: l.chunkCount || 4,
+          totalChunks: chunksList.length,
           completedChunks: 0,
-          thumbnail: l.thumbnail || (l.videoId ? `https://i.ytimg.com/vi/${l.videoId}/hqdefault.jpg` : data.coverImage) || '/mock/thumbnails/docker.avif',
+          thumbnail:
+            l.thumbnail ||
+            (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : data.coverImage) ||
+            'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop',
+          videoId,
+          videoUrl,
+          chunks: chunksList,
         };
       });
 

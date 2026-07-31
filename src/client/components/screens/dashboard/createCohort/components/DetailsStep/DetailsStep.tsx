@@ -134,7 +134,10 @@ export function DetailsStep({ details }: DetailsStepProps) {
                     variant="secondary"
                     size="sm"
                     onClick={() =>
-                      actions.updateDraftField('coverImage', '/mock/thumbnails/docker.avif')
+                      actions.updateDraftField(
+                        'coverImage',
+                        'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop',
+                      )
                     }
                   >
                     <ImageIcon size={14} />
@@ -373,11 +376,15 @@ export function DetailsStep({ details }: DetailsStepProps) {
           <div className={styles.previewCard}>
             <div className={styles.previewCover}>
               <img
-                src={draft.coverImage || '/mock/thumbnails/docker.avif'}
+                src={
+                  draft.coverImage ||
+                  'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop'
+                }
                 alt="Cohort Cover"
                 className={styles.previewCoverImg}
                 onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/mock/thumbnails/docker.avif';
+                  (e.target as HTMLImageElement).src =
+                    'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop';
                 }}
               />
               <div className={styles.previewCoverOverlay} />

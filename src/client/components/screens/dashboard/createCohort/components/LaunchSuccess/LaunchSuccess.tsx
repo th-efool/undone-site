@@ -80,7 +80,7 @@ export function LaunchSuccess() {
           type="button"
           onClick={() => {
             actions.resetLaunch();
-            actions.setStep('details');
+            actions.setStep('topic');
           }}
           className={styles.secondaryBtn}
         >

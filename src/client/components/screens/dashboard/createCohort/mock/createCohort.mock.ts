@@ -36,7 +36,7 @@ export const categoryOptions = [
 ];
 
 export const createCohortMockDraft: CreateCohortDraft = {
-  coverImage: '',
+  coverImage: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop',
   title: '',
   subtitle: '',
   description: '',

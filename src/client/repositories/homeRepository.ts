@@ -33,7 +33,7 @@ export const homeRepository = {
 
     return {
       ...homeMock,
-      activeCohorts: [...userActive, ...homeMock.activeCohorts.map(withCohortData)],
+      activeCohorts: [...userActive, ...homeMock.activeCohorts.map(withCohortData)].slice(0, 3),
       continueLater: homeMock.continueLater.map(withCohortData),
       recentlyCompleted: homeMock.recentlyCompleted
         .map((item) => withCohortData({ ...item, provider: '' }))

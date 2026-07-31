@@ -111,8 +111,10 @@ interface WizardContextValue {
   state: CreateCohortWizardState;
   validation: {
     details: boolean;
+    topic: boolean;
     sources: boolean;
     curriculum: boolean;
+    identity: boolean;
     launch: boolean;
   };
   importState: WizardImportState;
@@ -330,7 +332,7 @@ function isAbortError(error: unknown) {
 
 export function WizardProvider({ children }: PropsWithChildren) {
   const [state, setState] = useState<CreateCohortWizardState>({
-    currentStep: 'details',
+    currentStep: 'topic',
     draft: createCohortMockDraft,
   });
   const [importState, setImportState] = useState<WizardImportState>(() =>
@@ -439,11 +441,13 @@ export function WizardProvider({ children }: PropsWithChildren) {
 
   const validation = useMemo(
     () => ({
-      details: validateDetails(state.draft),
+      details: true,
+      topic: true,
       sources: validateSources(state.draft),
       curriculum: Boolean(
         curriculumState.curriculum && curriculumState.curriculum.totalLessons > 0,
       ),
+      identity: Boolean(state.draft.title && state.draft.title.trim().length > 0),
       launch: Boolean(
         curriculumState.curriculum &&
           curriculumState.curriculum.totalLessons > 0 &&
@@ -586,7 +590,7 @@ export function WizardProvider({ children }: PropsWithChildren) {
     (step: CreateCohortStepId) => {
       setState((current) => {
         const targetIndex = createCohortStepOrder.indexOf(step);
-        if (targetIndex < 0 || targetIndex > 3) {
+        if (targetIndex < 0 || targetIndex > 4) {
           return current;
         }
 
@@ -617,13 +621,16 @@ export function WizardProvider({ children }: PropsWithChildren) {
   const goPrevious = useCallback(() => {
     setState((current) => {
       if (current.currentStep === 'sources') {
-        return { ...current, currentStep: 'details' };
+        return { ...current, currentStep: 'topic' };
       }
       if (current.currentStep === 'curriculum') {
         return { ...current, currentStep: 'sources' };
       }
-      if (current.currentStep === 'publish') {
+      if (current.currentStep === 'identity') {
         return { ...current, currentStep: 'curriculum' };
+      }
+      if (current.currentStep === 'publish') {
+        return { ...current, currentStep: 'identity' };
       }
       return current;
     });
@@ -756,14 +763,14 @@ export function WizardProvider({ children }: PropsWithChildren) {
       draft: {
         ...current.draft,
         sources: [
-          ...current.draft.sources,
           {
             id: createSourceId(),
             type: sourceTypeOptions[0],
-            title: 'New source',
-            url: 'https://',
+            title: '',
+            url: '',
             collapsed: false,
           },
+          ...current.draft.sources,
         ],
       },
     }));
@@ -789,7 +796,7 @@ export function WizardProvider({ children }: PropsWithChildren) {
       const copy = {
         ...source,
         id: createSourceId(),
-        title: `${source.title} copy`,
+        title: source.title ? `${source.title} copy` : '',
         collapsed: false,
       };
 
@@ -829,9 +836,22 @@ export function WizardProvider({ children }: PropsWithChildren) {
         ...current,
         draft: {
           ...current.draft,
-          sources: current.draft.sources.map((source) =>
-            source.id === sourceId ? { ...source, [key]: value } : source,
-          ),
+          sources: current.draft.sources.map((source) => {
+            if (source.id !== sourceId) return source;
+
+            const updated = { ...source, [key]: value };
+
+            if (key === 'url' && typeof value === 'string') {
+              const trimmed = value.trim();
+              if (trimmed.includes('list=PL') || trimmed.includes('/playlist?list=')) {
+                updated.type = 'YouTube Playlist';
+              } else if (trimmed.includes('youtu.be/') || trimmed.includes('watch?v=')) {
+                updated.type = 'YouTube Video';
+              }
+            }
+
+            return updated;
+          }),
         },
       }));
     },
@@ -1108,7 +1128,7 @@ export function WizardProvider({ children }: PropsWithChildren) {
   const goNext = useCallback(async () => {
     const currentStep = stateRef.current.currentStep;
 
-    if (currentStep === 'details') {
+    if (currentStep === 'topic') {
       setState((current) => ({ ...current, currentStep: 'sources' }));
       return;
     }
@@ -1119,6 +1139,11 @@ export function WizardProvider({ children }: PropsWithChildren) {
     }
 
     if (currentStep === 'curriculum') {
+      setState((current) => ({ ...current, currentStep: 'identity' }));
+      return;
+    }
+
+    if (currentStep === 'identity') {
       setState((current) => ({ ...current, currentStep: 'publish' }));
       return;
     }

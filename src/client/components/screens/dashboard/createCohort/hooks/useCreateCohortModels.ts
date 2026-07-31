@@ -89,7 +89,7 @@ function buildStepModels(currentStep: string): WizardStepModel[] {
         : index < currentIndex
           ? 'complete'
           : 'upcoming',
-      disabled: false,
+      disabled: index > currentIndex,
     };
   });
 }
@@ -109,9 +109,10 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
 
   const footer: WizardFooterModel = useMemo(() => {
     const currentIndex = createCohortStepOrder.indexOf(state.currentStep) + 1;
-    const isDetails = state.currentStep === 'details';
+    const isTopic = state.currentStep === 'topic';
     const isSources = state.currentStep === 'sources';
     const isCurriculum = state.currentStep === 'curriculum';
+    const isIdentity = state.currentStep === 'identity';
     const isLaunch = state.currentStep === 'publish';
     const importing = importState.status === 'running';
     const failed = importState.status === 'failed';
@@ -121,40 +122,49 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
       totalSteps: createCohortStepOrder.length,
       currentLabel: createCohortStepLabels[state.currentStep],
       progressLabel: `Step ${currentIndex} of ${createCohortStepOrder.length}`,
-      previousVisible: !isDetails && !importing,
+      previousVisible: !isTopic && !importing,
       previousDisabled: false,
       continueDisabled:
-        (isDetails && !validation.details) ||
-        (isSources && importing) ||
+        (isSources && (importing || !validation.sources)) ||
         (isCurriculum && !validation.curriculum) ||
+        (isIdentity && !validation.identity) ||
         (isLaunch && !validation.launch) ||
         importState.status === 'canceled',
-      continueLabel: isSources
-        ? failed
-          ? 'Retry import'
-          : importing
-            ? 'Importing'
-            : 'Continue'
-        : isCurriculum
-          ? 'Continue to Launch'
-          : isLaunch
-            ? 'Ready to Publish'
-            : 'Continue',
-      helperText: isDetails
-        ? validation.details
-          ? 'Ready to move into sources.'
-          : 'Complete the required fields to continue.'
+      continueLabel: isTopic
+        ? 'Continue to Sources'
+        : isSources
+          ? failed
+            ? 'Retry import'
+            : importing
+              ? 'Importing'
+              : 'Continue to Curriculum'
+          : isCurriculum
+            ? 'Continue to Identity'
+            : isIdentity
+              ? 'Continue to Launch'
+              : 'Ready to Publish',
+      helperText: isTopic
+        ? 'Select your cohort topic and target audience to get started.'
         : isSources
           ? failed
             ? 'Resolve the error or retry the import.'
             : importing
               ? 'The import pipeline is actively fetching content.'
-              : 'Continue to begin the live import pipeline.'
+              : 'Add YouTube playlists or videos to generate your curriculum.'
           : isCurriculum
-            ? 'Curriculum structure is ready. Review and adjust before launching.'
-            : 'Preview and configure your cohort experience before publishing live.',
+            ? 'Curriculum structure generated. Review and adjust seasons or lessons.'
+            : isIdentity
+              ? 'Define your cohort title, subtitle, and cover art with live overview preview.'
+              : 'Preview and configure your cohort experience before publishing live.',
     };
-  }, [importState.status, state.currentStep, validation.details, validation.curriculum, validation.launch]);
+  }, [
+    importState.status,
+    state.currentStep,
+    validation.sources,
+    validation.curriculum,
+    validation.identity,
+    validation.launch,
+  ]);
 
   const details: CreateCohortDetailsModel = useMemo(
     () => ({

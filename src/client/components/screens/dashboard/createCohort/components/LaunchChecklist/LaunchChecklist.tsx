@@ -16,8 +16,8 @@ export function LaunchChecklist() {
       id: 'val-1',
       severity: 'blocking',
       title: 'Cohort Title & Description',
-      message: 'Cohort metadata set in Details step.',
-      targetStep: 'details',
+      message: 'Cohort metadata set in Identity step.',
+      targetStep: 'identity',
       passed: Boolean(state.draft.title.trim() && state.draft.description.trim()),
     },
     {

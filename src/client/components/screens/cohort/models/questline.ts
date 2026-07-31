@@ -27,6 +27,17 @@ export interface QuestlineFilter {
   label: string;
 }
 
+export interface LessonChunk {
+  id: string;
+  title: string;
+  duration: string;
+  order: number;
+  startSeconds: number;
+  endSeconds: number;
+  timeRangeLabel: string;
+  timestampUrl?: string;
+}
+
 export interface Lesson {
   id: string;
   title: string;
@@ -36,6 +47,9 @@ export interface Lesson {
   totalChunks: number;
   completedChunks: number;
   thumbnail: string;
+  videoId?: string;
+  videoUrl?: string;
+  chunks?: LessonChunk[];
 }
 
 export interface Season {

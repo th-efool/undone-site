@@ -39,8 +39,8 @@ export function WizardFooter({ footer }: WizardFooterProps) {
     actions.goNext();
   };
 
-  let primaryAction = state.currentStep === 'details' ? handleDetailsContinue : actions.goNext;
-  let primaryDisabled = state.currentStep === 'details' ? false : footer.continueDisabled;
+  let primaryAction = actions.goNext;
+  let primaryDisabled = footer.continueDisabled;
 
   if (isSources && isImporting) {
     primaryLabel = 'Cancel import';

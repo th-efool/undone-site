@@ -8,7 +8,7 @@ import styles from './CurriculumWarnings.module.css';
 
 export function CurriculumWarnings() {
   const { curriculumState, actions } = useWizardContext();
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const warnings = curriculumState.curriculum?.warnings ?? [];
   if (!warnings.length) return null;

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, Copy, GripVertical, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Copy, GripVertical, Trash2, Link } from 'lucide-react';
 
 import { Badge } from '@/src/client/components/ui/Badge/Badge';
 import { Button } from '@/src/client/components/ui/Button/Button';
@@ -35,16 +35,6 @@ export function SourceCard({
   onDragEnd,
 }: SourceCardProps) {
   const { actions } = useWizardContext();
-  const [expandedUrl, setExpandedUrl] = useState(false);
-
-  const summaryUrl = useMemo(() => {
-    if (source.url.length <= 42) {
-      return source.url;
-    }
-    return `${source.url.slice(0, 42)}...`;
-  }, [source.url]);
-
-  const urlPreview = expandedUrl ? source.url : summaryUrl;
 
   return (
     <article
@@ -71,25 +61,20 @@ export function SourceCard({
         </button>
 
         <div className={styles.headerContent}>
-          <Badge variant="neutral" size="sm">
-            {source.typeLabel}
-          </Badge>
-          <input
-            className={styles.titleInput}
-            value={source.title}
-            placeholder="Optional title"
-            onChange={(event) => actions.updateSourceField(source.id, 'title', event.target.value)}
-            aria-label={`Title for ${source.typeLabel}`}
-          />
-          <div className={styles.summaryLine}>
-            <span className={styles.urlSummary}>{urlPreview}</span>
-            <button
-              type="button"
-              className={styles.summaryToggle}
-              onClick={() => setExpandedUrl((current) => !current)}
-            >
-              {expandedUrl ? 'Collapse URL' : 'Expand URL'}
-            </button>
+          <div className={styles.topRow}>
+            <Badge variant="brand" size="sm">
+              {source.typeLabel}
+            </Badge>
+          </div>
+          <div className={styles.urlInputRow}>
+            <Link size={14} className={styles.urlIcon} />
+            <input
+              className={styles.urlInput}
+              value={source.url}
+              onChange={(event) => actions.updateSourceField(source.id, 'url', event.target.value)}
+              placeholder="Paste YouTube playlist or video URL here (e.g. https://www.youtube.com/playlist?list=...)"
+              inputMode="url"
+            />
           </div>
         </div>
 
@@ -121,16 +106,6 @@ export function SourceCard({
             variant="ghost"
             size="sm"
             iconOnly
-            aria-label={source.collapsed ? 'Expand source' : 'Collapse source'}
-            onClick={() => actions.toggleSourceCollapse(source.id)}
-          >
-            {source.collapsed ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            iconOnly
             aria-label="Duplicate source"
             onClick={() => actions.duplicateSource(source.id)}
           >
@@ -148,41 +123,6 @@ export function SourceCard({
           </Button>
         </div>
       </div>
-
-      {!source.collapsed ? (
-        <div className={styles.body}>
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>Source Type</span>
-            <select
-              value={source.type}
-              onChange={(event) =>
-                actions.updateSourceField(
-                  source.id,
-                  'type',
-                  event.target.value as typeof source.type,
-                )
-              }
-            >
-              {typeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className={styles.field}>
-            <span className={styles.fieldLabel}>Source URL</span>
-            <input
-              value={source.url}
-              onChange={(event) => actions.updateSourceField(source.id, 'url', event.target.value)}
-              placeholder="https://"
-              inputMode="url"
-            />
-            {expandedUrl ? null : <span className={styles.fieldHelper}>URL is editable inline.</span>}
-          </label>
-        </div>
-      ) : null}
     </article>
   );
 }

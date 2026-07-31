@@ -10,9 +10,10 @@ import { WizardProvider } from './providers/WizardProvider';
 import { useCreateCohortViewModel } from './hooks/useCreateCohortModels';
 import { WizardStepper } from './components/WizardStepper/WizardStepper';
 import { WizardFooter } from './components/WizardFooter/WizardFooter';
-import { DetailsStep } from './components/DetailsStep/DetailsStep';
+import { TopicStep } from './components/TopicStep/TopicStep';
 import { SourcesStep } from './components/SourcesStep/SourcesStep';
 import { CurriculumStep } from './components/CurriculumStep/CurriculumStep';
+import { IdentityStep } from './components/IdentityStep/IdentityStep';
 import { LaunchStep } from './components/LaunchStep/LaunchStep';
 
 import styles from './CreateCohort.module.css';
@@ -38,7 +39,7 @@ function CreateCohortScreen() {
           <WizardStepper steps={model.steps} />
 
           <Surface variant="elevated" padding="xl" className={styles.surface}>
-            {model.steps[0].status === 'current' && <DetailsStep details={model.details} />}
+            {model.steps[0].status === 'current' && <TopicStep details={model.details} />}
 
             {model.steps[1].status === 'current' && (
               <SourcesStep sources={model.sources} importWorkspace={model.importWorkspace} />
@@ -46,7 +47,9 @@ function CreateCohortScreen() {
 
             {model.steps[2].status === 'current' && <CurriculumStep />}
 
-            {model.steps[3].status === 'current' && <LaunchStep />}
+            {model.steps[3].status === 'current' && <IdentityStep details={model.details} />}
+
+            {model.steps[4].status === 'current' && <LaunchStep />}
           </Surface>
 
           <WizardFooter footer={model.footer} />
