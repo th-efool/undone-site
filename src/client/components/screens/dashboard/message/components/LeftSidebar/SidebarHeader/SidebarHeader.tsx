@@ -34,7 +34,7 @@ export function SidebarHeader({ onCompose, showUserMenu, onToggleUserMenu }: Pro
       <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
         {/* Compose button — A1 */}
         {onCompose && (
-          <button type="button" aria-label="New message" onClick={onCompose}>
+          <button type="button" className={styles.composeBtn} aria-label="New message" onClick={onCompose}>
             <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
             </svg>
