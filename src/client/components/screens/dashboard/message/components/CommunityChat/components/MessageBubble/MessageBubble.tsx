@@ -1,7 +1,8 @@
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState } from 'react';
-import { SmilePlus } from 'lucide-react';
+import { Copy, Edit2, MessageCircle, SmilePlus, Trash2 } from 'lucide-react';
 import { CommunityMessage } from '../../../../models';
+import { ContextMenu } from '../../../shared';
 import { MessageAttachment } from '../MessageAttachment/MessageAttachment';
 import { ReactionBar } from '../ReactionBar/ReactionBar';
 import { ReplyPreview } from '../ReplyPreview/ReplyPreview';
@@ -12,18 +13,28 @@ const emojis = ['😀', '😂', '😍', '🔥', '🚀', '👏', '🙌', '✅', '
 interface Props {
   message: CommunityMessage;
   onReaction(messageId: string, emoji: string): void;
-  /** Batch C: Reply trigger */
+  /** Batch C/D: Reply trigger */
   onReply?(messageId: string, senderName: string, previewText: string): void;
 }
 export function MessageBubble({ message, onReaction, onReply }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  // Batch C: Tap to reply (desktop + mobile long-press simulation)
+  /** Batch D7: Context menu state */
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+
+  // Batch C/D: Tap to reply (desktop + mobile long-press simulation)
   const handleTap = () => {
     if (!onReply || !message.body) return;
     onReply(message.id, message.author.name, message.body.slice(0, 80));
   };
-  // Batch C: Debounce long-press to avoid accidental triggers
+
+  // Batch D7: Context menu trigger (right-click + long-press)
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY });
+  };
+
+  // Batch C/D: Debounce long-press to avoid accidental triggers
   const tapTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [longPress, setLongPress] = useState(false);
 
@@ -49,6 +60,18 @@ export function MessageBubble({ message, onReaction, onReply }: Props) {
     setPickerOpen(false);
   };
 
+  /** Batch D7: Context menu actions */
+  const handleCopy = () => {
+    if (message.body) navigator.clipboard?.writeText(message.body);
+  };
+
+  useEffect(() => {
+    // Close context menu on outside click or escape
+    const closeMenu = () => setContextMenu(null);
+    document.addEventListener('click', closeMenu);
+    return () => document.removeEventListener('click', closeMenu);
+  }, []);
+
   useEffect(() => {
     return () => clearTimeout(tapTimerRef.current);
   }, []);
@@ -61,6 +84,7 @@ export function MessageBubble({ message, onReaction, onReply }: Props) {
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleTap(); }}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
+      onContextMenu={handleContextMenu}
     >
       <img
         className={styles.avatar}
@@ -106,6 +130,20 @@ export function MessageBubble({ message, onReaction, onReply }: Props) {
         </div>
         {message.replies && <ReplyPreview reply={message.replies} />}
       </div>
+
+      {/* Batch D7: Context menu */}
+      {contextMenu && (
+        <ContextMenu
+          items={[
+            ...(onReply ? [{ label: 'Reply', icon: <MessageCircle size={16} />, onClick: () => onReply?.(message.id, message.author.name, message.body || '') }] : []),
+            ...(message.body ? [{ label: 'Copy', icon: <Copy size={16} />, kbd: '⌘C', onClick: handleCopy }] : []),
+            { label: 'React', icon: <SmilePlus size={16} />, onClick: () => setPickerOpen(true) },
+          ]}
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+        />
+      )}
     </article>
   );
 }

@@ -15,6 +15,9 @@ export function ChannelTabs({ channels, selectedChannel }: Props) {
           className={channel.id === selectedChannel ? styles.active : ''}
         >
           {channel.label}
+          {channel.unreadCount !== undefined && channel.unreadCount > 0 && (
+            <span className={styles.badge}>{channel.unreadCount}</span>
+          )}
         </button>
       ))}
     </nav>

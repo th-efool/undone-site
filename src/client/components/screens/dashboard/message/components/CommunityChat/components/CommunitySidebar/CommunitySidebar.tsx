@@ -1,3 +1,4 @@
+import { Bell, BellOff } from 'lucide-react';
 import { CommunityChatModel } from '../../../../models';
 import { MediaGallery } from '../MediaGallery/MediaGallery';
 import { MembersStrip } from '../MembersStrip/MembersStrip';
@@ -7,9 +8,13 @@ import styles from './CommunitySidebar.module.css';
 import { X } from 'lucide-react';
 interface Props {
   community: CommunityChatModel;
+  mutedChannels?: ReadonlySet<string>;
+  onToggleMute?(channelId: string, muted: boolean): void;
   onClose(): void;
 }
-export function CommunitySidebar({ community, onClose }: Props) {
+
+export function CommunitySidebar({ community, mutedChannels = new Set(), onToggleMute, onClose }: Props) {
+  const channelIsMuted = mutedChannels.has(community.selectedChannel);
   return (
     <aside
       className={styles.sidebar}
@@ -23,6 +28,22 @@ export function CommunitySidebar({ community, onClose }: Props) {
       >
         <X size={18} />
       </button>
+      {/* Batch D4: Mute channel toggle */}
+      <section className={`${styles.card} ${styles.muteCard}`}>
+        <h2>Channel Settings</h2>
+        <p style={{ margin: '0 0 14px', color: '#667098' }}>
+          Muting stops unread badges and notifications for this channel.
+        </p>
+        <button
+          type="button"
+          className={`${styles.muteBtn}${channelIsMuted ? ` ${styles.muted}` : ''}`}
+          onClick={() => onToggleMute?.(community.selectedChannel, !channelIsMuted)}
+          aria-pressed={channelIsMuted}
+        >
+          {channelIsMuted ? <BellOff size={18} /> : <Bell size={18} />}
+          {channelIsMuted ? 'Unmute channel' : 'Mute notifications'}
+        </button>
+      </section>
       <section className={styles.card}>
         <h2>About</h2>
         <p>A space for builders learning &amp; building together.</p>

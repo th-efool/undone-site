@@ -19,7 +19,7 @@ interface Props {
   onSend(): void;
   onReaction(messageId: string, emoji: string): void;
   onUpload(file: File, kind: 'image' | 'pdf' | 'file' | 'video' | 'audio'): void;
-  // Batch C: Reply, typing indicator
+  // Batch C/D: Reply, typing indicator
   replyBanner?: ReplyContext | null;
   onReplyDismiss?(): void;
   onReply?(messageId: string, senderName: string, previewText: string): void;
@@ -48,7 +48,12 @@ export function CommunityChat({
   typingUsernames = [],
 }: Props) {
   const [aboutOpen, setAboutOpen] = useState(false);
+  /** Batch D6: Track dismissed pinned announcement */
+  const [dismissedPinned, setDismissedPinned] = useState(false);
+  /** Batch D4: Track muted channel IDs (local state for mock purposes) */
+  const [mutedChannels, setMutedChannels] = useState<ReadonlySet<string>>(new Set());
   const shellRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!aboutOpen) return;
     const onKey = (event: KeyboardEvent) => {
@@ -66,6 +71,27 @@ export function CommunityChat({
       document.removeEventListener('mousedown', onPointer);
     };
   }, [aboutOpen]);
+
+  const handleDismissPinned = () => setDismissedPinned(true);
+
+  /** Batch D4: Toggle mute for a channel */
+  const handleToggleMute = (channelId: string, muted: boolean) => {
+    if (muted) {
+      setMutedChannels((prev) => new Set([...prev, channelId]));
+    } else {
+      setMutedChannels((prev) => {
+        const next = new Set(prev);
+        next.delete(channelId);
+        return next;
+      });
+    }
+  };
+
+  /** Batch D4: Hide unread badges for muted channels */
+  const effectiveChannels = community.channels.map((ch) =>
+    mutedChannels.has(ch.id) ? { ...ch, unreadCount: undefined } : ch
+  );
+
   return (
     <div
       className={styles.chat}
@@ -78,11 +104,18 @@ export function CommunityChat({
           aboutOpen={aboutOpen}
           onToggleAbout={() => setAboutOpen((open) => !open)}
         />
+        {/* Batch D4: Pass effective channels (muted ones hidden) */}
         <ChannelTabs
-          channels={community.channels}
+          channels={effectiveChannels}
           selectedChannel={community.selectedChannel}
         />
-        <PinnedBanner pinned={community.pinnedAnnouncement} />
+        {/* Batch D6: Hide pinned banner when dismissed */}
+        {!dismissedPinned && (
+          <PinnedBanner
+            pinned={community.pinnedAnnouncement}
+            onDismiss={handleDismissPinned}
+          />
+        )}
         <MessageTimeline
           messages={community.messages}
           scrollTop={scrollTop}
@@ -90,7 +123,7 @@ export function CommunityChat({
           onReaction={onReaction}
           onReply={onReply}
         />
-        {/* Batch C: Reply banner + typing indicator */}
+        {/* Batch C/D: Reply banner + typing indicator */}
         <MessageComposer
           value={draft}
           onChange={onDraftChange}
@@ -106,9 +139,12 @@ export function CommunityChat({
           </div>
         )}
       </main>
+      {/* Batch D4: Pass mute state + toggle to sidebar */}
       {aboutOpen && (
         <CommunitySidebar
           community={community}
+          mutedChannels={mutedChannels}
+          onToggleMute={handleToggleMute}
           onClose={() => setAboutOpen(false)}
         />
       )}

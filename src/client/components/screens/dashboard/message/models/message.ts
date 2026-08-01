@@ -108,12 +108,11 @@ export interface CommunityMessage {
   attachment?: ChatAttachment;
   reactions?: ChatReaction[];
   replies?: ReplyPreviewModel;
+  /** Batch D1: Optional date label for grouping (e.g. "Today", "Yesterday") */
+  dateLabel?: string;
 }
 
-export interface ChannelTab {
-  id: string;
-  label: string;
-}
+export type ChannelTab = { id: string; label: string; unreadCount?: number };
 
 export interface PinnedAnnouncement {
   author: string;

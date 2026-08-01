@@ -39,4 +39,25 @@
   color: var(--message-brand);
 }
 
+/* Batch D6: Dismiss close button */
+.closeBtn {
+  width: 32px;
+  height: 32px;
+  padding: 0 !important;
+  display: grid;
+  place-items: center;
+  border: none;
+  background: transparent;
+  color: #667098;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: all var(--duration-fast) var(--ease-standard);
+  flex-shrink: 0;
+}
+
+.closeBtn:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #111735;
+}
+
 @media (max-width: 768px) { .banner { padding: var(--space-3); font-size: var(--text-sm); } }

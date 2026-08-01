@@ -81,3 +81,39 @@
     display: none;
   }
 }
+
+/* Batch D4: Mute channel toggle card */
+.muteCard {
+  background: var(--color-brand-soft);
+  border-color: var(--message-border-strong);
+}
+.muteBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 1px solid var(--message-border-strong);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  color: var(--color-text-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.muteBtn:hover {
+  border-color: var(--message-brand);
+  color: var(--message-brand);
+}
+
+.muteBtn.muted {
+  background: #fef2f2;
+  border-color: #fecaca;
+  color: #e11d48;
+}
+
+.muteBtn.muted:hover {
+  background: #fff5f7;
+  border-color: #e11d48;
+}
