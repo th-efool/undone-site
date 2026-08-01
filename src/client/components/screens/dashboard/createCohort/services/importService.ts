@@ -1,5 +1,6 @@
 'use client';
 
+import { apiUrl } from '@/src/shared/api/apiUrl';
 import type {
   ImportSourceAdapterContext,
   ImportSourceJob,
@@ -24,7 +25,7 @@ class UniversalSourceAdapter implements ImportAdapter {
     const signal = context.signal;
 
     const promise = (async () => {
-      const response = await fetch('/api/import/youtube/playlist', {
+      const response = await fetch(apiUrl('/api/import/youtube/playlist'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

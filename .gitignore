@@ -23,6 +23,15 @@
 # misc
 .DS_Store
 *.pem
+*.jks
+keystore.properties
+local.properties
+
+# capacitor / android
+/android/app/build/
+/android/.gradle/
+/android/build/
+/out/
 
 # debug
 npm-debug.log*

@@ -1,5 +1,6 @@
 import type { PublishResultModel, PublishStage } from '../models/launch';
 import { cohortRepository } from '@/src/client/repositories/cohortRepository';
+import { apiUrl } from '@/src/shared/api/apiUrl';
 
 interface PublishCohortInput {
   draft: any;
@@ -26,7 +27,7 @@ class PublishService {
 
     onStageChange('publishing');
 
-    const response = await fetch('/api/cohort/publish', {
+    const response = await fetch(apiUrl('/api/cohort/publish'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

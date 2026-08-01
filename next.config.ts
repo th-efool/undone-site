@@ -1,6 +1,14 @@
 import type { NextConfig } from 'next';
 
+const isMobileBuild = process.env.MOBILE_BUILD === 'true';
+
 const nextConfig: NextConfig = {
+  ...(isMobileBuild
+    ? {
+        output: 'export',
+        trailingSlash: true,
+      }
+    : {}),
   images: {
     unoptimized: true,
     remotePatterns: [

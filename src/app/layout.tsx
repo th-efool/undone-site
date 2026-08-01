@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { CapacitorBridge } from '@/src/client/components/global/CapacitorBridge/CapacitorBridge';
 import './globals.css';
 
 const geistSans = Geist({
@@ -92,6 +93,7 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   themeColor: '#FAF7F2',
+  viewportFit: 'cover',
 };
 
 interface RootLayoutProps {
@@ -105,7 +107,10 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
       className={`${geistSans.variable} ${geistMono.variable}`}
       suppressHydrationWarning
     >
-      <body className="min-h-screen bg-background text-text font-sans antialiased">{children}</body>
+      <body className="min-h-screen bg-background text-text font-sans antialiased">
+        <CapacitorBridge />
+        {children}
+      </body>
     </html>
   );
 }

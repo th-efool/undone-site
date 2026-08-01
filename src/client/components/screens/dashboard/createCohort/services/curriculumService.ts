@@ -1,5 +1,6 @@
 'use client';
 
+import { apiUrl } from '@/src/shared/api/apiUrl';
 import type {
   CurriculumGenerationError,
   CurriculumGenerationInput,
@@ -8,7 +9,7 @@ import type {
 
 class CurriculumService {
   async generateCurriculum(input: CurriculumGenerationInput): Promise<GeneratedCurriculum> {
-    const response = await fetch('/api/curriculum/generate', {
+    const response = await fetch(apiUrl('/api/curriculum/generate'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -63,9 +63,18 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
 
----
+## 📱 Android App (Capacitor)
 
-## 📂 Architecture Overview
+See [docs/ANDROID.md](./docs/ANDROID.md) for building and releasing the native Android shell.
+
+Quick start:
+
+```bash
+npm run mobile:build
+npm run mobile:open
+```
+
+---
 
 ```
 src/

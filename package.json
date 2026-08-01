@@ -6,9 +6,17 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "mobile:build": "node scripts/mobile-build.mjs",
+    "mobile:sync": "npx cap sync android",
+    "mobile:open": "npx cap open android",
+    "mobile:run": "npm run mobile:build && npx cap run android",
+    "mobile:release:aab": "node scripts/mobile-release-aab.mjs"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.1",
+    "@capacitor/core": "^8.5.0",
+    "@capacitor/splash-screen": "^8.0.2",
     "@reduxjs/toolkit": "^2.12.0",
     "@tanstack/react-query": "^5.101.4",
     "clsx": "^2.1.1",
@@ -21,6 +29,8 @@
     "simple-icons": "^16.27.1"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/cli": "^8.5.0",
     "@tailwindcss/postcss": "^4",
     "@tanstack/react-query-devtools": "^5.101.4",
     "@types/node": "^20",
