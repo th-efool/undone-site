@@ -19,25 +19,71 @@ export function Play() {
   const scrollCooldownRef = useRef(false);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const touchStartY = useRef<number | null>(null);
+  const [orientationLocked, setOrientationLocked] = useState(false);
 
-  // Orientation lock for mobile
+  // Orientation lock for mobile — enforce landscape in app mode
   useEffect(() => {
+    const isMobile = window.innerWidth <= 768;
+    const isInApp = document.documentElement.getAttribute('data-platform') === 'app';
+    
+    if (!isMobile) return;
+
     const lockOrientation = async () => {
       try {
+        // Try web API first
         await (screen.orientation as any).lock('landscape');
+        setOrientationLocked(true);
       } catch {
-        // Fallback: works in portrait too
+        setOrientationLocked(false);
       }
     };
-    if (window.innerWidth <= 768) {
-      lockOrientation();
-      document.body.style.overflow = 'hidden';
-    }
+    
+    // In app mode, also try Capacitor screen-orientation plugin
+    const lockCapacitorOrientation = async () => {
+      if (isInApp) {
+        try {
+          const ScreenOrientation = await import('@capacitor/screen-orientation');
+          if ((ScreenOrientation as any).ScreenOrientation) {
+            await (ScreenOrientation as any).ScreenOrientation.lock({ orientation: 'landscape' });
+            setOrientationLocked(true);
+          }
+        } catch {
+          // Plugin not installed, continue with web API fallback
+        }
+      }
+    };
+
+    lockOrientation();
+    lockCapacitorOrientation();
+    document.body.style.overflow = 'hidden';
+
+    // Monitor orientation changes and force landscape in app mode
+    const checkAndForceLandscape = () => {
+      if (!isMobile) return;
+      
+      const isPortrait = window.innerHeight > window.innerWidth;
+      if (isInApp && isPortrait && !orientationLocked) {
+        // Show rotation prompt or attempt to force landscape
+        document.documentElement.classList.add('portrait-mode');
+        lockOrientation();
+        lockCapacitorOrientation();
+      } else {
+        document.documentElement.classList.remove('portrait-mode');
+      }
+    };
+
+    checkAndForceLandscape();
+    window.addEventListener('resize', checkAndForceLandscape);
+    window.addEventListener('orientationchange', checkAndForceLandscape);
+
     return () => {
       try { (screen.orientation as any).unlock?.(); } catch {}
       document.body.style.overflow = '';
+      document.documentElement.classList.remove('portrait-mode');
+      window.removeEventListener('resize', checkAndForceLandscape);
+      window.removeEventListener('orientationchange', checkAndForceLandscape);
     };
-  }, []);
+  }, [orientationLocked]);
 
   const handleTouchStart = useCallback((e: TouchEvent<HTMLDivElement>) => {
     touchStartY.current = e.touches[0].clientY;
@@ -189,6 +235,13 @@ export function Play() {
             hasNext={playback.currentIndex < playback.feedItems.length - 1}
             hasPrevious={playback.currentIndex > 0}
           />
+        </div>
+
+        {/* Rotation prompt overlay — shown only in app mode when stuck in portrait */}
+        <div className={styles.rotationPrompt} data-rotation-prompt="true">
+          <div style={{ fontSize: '64px', marginBottom: '16px' }}>📱</div>
+          <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Rotate Your Device</h2>
+          <p style={{ opacity: 0.8, margin: 0, fontSize: '0.95rem' }}>This lesson is best viewed in landscape mode for the full experience.</p>
         </div>
       </PlayerSurface>
     </div>

@@ -1,39 +1,41 @@
 # Responsive Mobile Implementation Tasks
 
 ## Phase 1: Foundation
-- [/] `tokens.css` — Add mobile tokens
-- [/] `globals.css` — Add global mobile rules
-- [/] `typography.css` — Add mobile type scale
-- [/] `forms.css` — Add mobile input rules
-- [/] `accessibility.css` — Add touch rules
-- [/] `useIsMobile.ts` — Create hook
+- [x] `tokens.css` — Add mobile tokens
+- [x] `globals.css` — Add global mobile rules
+- [x] `typography.css` — Add mobile type scale
+- [x] `forms.css` — Add mobile input rules
+- [x] `accessibility.css` — Add touch rules
+- [x] `useIsMobile.ts` — Create hook
 
 ## Phase 2: Navigation & Shell
-- [ ] `SidebarItem.tsx` + `.module.css` — Add labels, mobile styles
-- [ ] `Sidebar.tsx` + `.module.css` — Play page hide, keyboard hide, safe area
-- [ ] `DashboardShell.module.css` — Enhance mobile padding
+- [x] `SidebarItem.tsx` + `.module.css` — Add labels, mobile styles
+- [x] `Sidebar.tsx` + `.module.css` — Play page hide, keyboard hide, safe area
+- [x] `DashboardShell.module.css` — Enhance mobile padding
 
 ## Phase 3: Simple Pages
-- [ ] Auth screen CSS files
-- [ ] Home screen CSS files
-- [ ] Explore screen CSS files
+- [x] Auth screen CSS files
+- [x] Home screen CSS files
+- [x] Explore screen CSS files
 
 ## Phase 4: Medium Complexity
-- [ ] Cohort detail pages
-- [ ] Create Cohort wizard
+- [x] Cohort detail pages
+- [x] Create Cohort wizard (all CSS files now have 768px rules)
 
 ## Phase 5: Complex Pane-Switching
-- [ ] Notes screen (CSS + TSX)
-- [ ] Messages screen (CSS + TSX)
+- [x] Notes screen (CSS + TSX) — Mobile view switching via useIsMobile
+- [x] Messages screen (CSS + TSX) — SocialLanding handles mobile view switching, all CSS files now have 768px rules
 
 ## Phase 6: Play Screen
-- [ ] Play.tsx — orientation lock, touch swipe
-- [ ] Play.module.css + sub-components
+- [x] Play.tsx — orientation lock, touch swipe
+- [x] Play.module.css + sub-components
 
 ## Phase 7: Landing & Shared UI
-- [ ] Landing page CSS files
-- [ ] Shared UI components (Button, SearchBar, PillInput, HorizontalScroller, Logo)
+- [x] Landing page CSS files
+- [x] Shared UI components (Button, SearchBar, PillInput, HorizontalScroller, Logo)
 
 ## Phase 8: Build Verification
-- [ ] `npm run build` passes
-- [ ] No horizontal overflow on any page
+- [x] `npm run build` passes ✓
+- [x] All screen CSS modules have @media (max-width: 768px) rules — verified across ALL directories
+- [x] Fixed CSS Module pure selector errors (bare element selectors scoped under local classes)
+- [x] Fixed CapacitorBridge TypeScript type errors

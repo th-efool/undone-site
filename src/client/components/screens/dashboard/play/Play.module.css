@@ -198,4 +198,46 @@
     max-height: 50vh;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   }
+
+  .rotationPrompt {
+    display: none; /* Hidden by default */
+  }
+}
+
+/* ============================================ */
+/* APP-SPECIFIC PLAY FIXES (only in APK)        */
+/* Force landscape, hide on portrait rotation   */
+/* ============================================ */
+
+[data-platform="app"] body.portrait-mode .play {
+  display: none !important;
+}
+
+.rotation-prompt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.85);
+  color: white;
+  display: none; /* Shown only via JS in app mode */
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  text-align: center;
+  gap: 16px;
+  padding: 24px;
+}
+
+.rotation-prompt-overlay .rotate-icon {
+  font-size: 48px;
+  animation: rotateHint 2s ease-in-out infinite;
+}
+
+@keyframes rotateHint {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-90deg); }
+}
+
+[data-platform="app"] body.portrait-mode .rotation-prompt-overlay {
+  display: flex !important;
 }

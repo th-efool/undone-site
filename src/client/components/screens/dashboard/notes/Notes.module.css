@@ -814,3 +814,88 @@
     cursor: pointer;
   }
 }
+
+/* ============================================ */
+/* APP-SPECIFIC NOTES FIXES (only in APK)       */
+/* Full-width canvas, thumb-friendly controls   */
+/* ============================================ */
+
+[data-platform="app"] .notes {
+  height: calc(100dvh - 56px) !important;
+}
+
+[data-platform="app"] .workspace {
+  padding: 0 !important;
+  overflow-y: auto !important;
+  width: 100% !important;
+}
+
+[data-platform="app"] .canvas {
+  margin: 0 !important;
+  padding: var(--space-4) 8px !important;
+  min-height: calc(100vh - 250px) !important;
+  max-width: none !important;
+}
+
+[data-platform="app"] .canvas [contenteditable] {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: calc(100vh - 300px) !important;
+  font-size: 16px !important;
+}
+
+[data-platform="app"] .toolbar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  background: var(--color-surface) !important;
+  padding: 4px 2px !important;
+  overflow-x: auto !important;
+  white-space: nowrap !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+[data-platform="app"] .toolbar button,
+[data-platform="app"] .toolbar select {
+  height: 36px !important;
+  padding: 0 8px !important;
+  min-width: auto !important;
+  font-size: 14px !important;
+}
+
+[data-platform="app"] .format {
+  position: sticky !important;
+  bottom: 56px !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  background: var(--color-surface) !important;
+  border-top: 1px solid var(--color-border) !important;
+  padding: 4px 2px !important;
+  overflow-x: auto !important;
+  white-space: nowrap !important;
+  z-index: 5 !important;
+}
+
+[data-platform="app"] .panel {
+  width: 100% !important;
+  padding-top: 4px !important;
+  padding-bottom: 64px !important;
+}
+
+[data-platform="app"] .notebookItem,
+[data-platform="app"] .noteListItem {
+  min-height: 52px !important;
+  padding: var(--space-3) var(--space-4) !important;
+}
+
+[data-platform="app"] .topbar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 10 !important;
+  background: var(--color-surface) !important;
+}
+
+[data-platform="app"] .mobileBackBtn {
+  margin-bottom: 4px !important;
+}

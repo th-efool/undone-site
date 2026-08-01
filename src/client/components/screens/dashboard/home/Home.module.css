@@ -51,3 +51,25 @@
     margin-bottom: 0;
   }
 }
+
+/* ============================================ */
+/* APP-SPECIFIC FIXES (only apply inside APK)   */
+/* Isolated via [data-platform="app"] selector  */
+/* ============================================ */
+
+[data-platform="app"] .home {
+  padding: 6px 8px 6px !important;
+  gap: 10px !important;
+}
+
+[data-platform="app"] .searchBar {
+  margin-bottom: 0 !important;
+  width: 100% !important;
+}
+
+[data-platform="app"] .emptyState {
+  padding: var(--space-3) !important;
+  font-size: var(--text-sm) !important;
+}
+
+
