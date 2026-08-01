@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🚀 SideQuestHQ
 
-## Getting Started
+**SideQuestHQ** is a modern, cohort-based microlearning platform that transforms YouTube playlists, courses, and web resources into interactive, bite-sized learning feeds. 
 
-First, run the development server:
+Experience learning like scrolling a feed — chunked lessons, interactive questlines, real-time progress tracking, and distraction-free media playback.
 
+---
+
+## ✨ Features
+
+- 📱 **TikTok-Style Microlearning Feed (`/play`)**
+  - Continuous vertical feed of chunked video lessons (5–10 min chunks).
+  - Native YouTube UI eradication (no overlays, zero distractions).
+  - Intuitive gesture & keyboard controls (scroll wheel, arrow keys, screen tap to play/pause).
+  - Real-time chunk completion tracking and seamless auto-advance.
+
+- 🛠️ **Cohort Creation Wizard**
+  - Build cohorts directly from YouTube playlists, individual videos, or web articles.
+  - Automatic chunking algorithms convert long tutorials into digestible learning quests.
+  - Live Overview page preview while editing identity, cover images, and classifications.
+
+- 🗺️ **Interactive Questlines (`/cohort/[id]/questline`)**
+  - Season-based curriculum mapping.
+  - Granular chunk breakdown with direct timestamp links (e.g., `&t=234s`).
+  - Active cohort tracking synced directly with your daily learning dashboard.
+
+- 📚 **Rich Cohort Catalog & Real Data**
+  - Includes real YouTube curriculum cohorts:
+    - **DSA — Only What's Needed** (Kunal Kushwaha's Java DSA Series)
+    - **Operating Systems** (CodeHelp - by Babbar)
+    - **Networking** (Network Kings & Industry Interviews)
+    - **Celtic Mythology** (Tuatha Dé Danann, The Morrigan, Cú Chulainn)
+    - **Rajvansh: Dynasties Of India** (Mauryas, Cholas, Guptas)
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js](https://nextjs.org/) (App Router)
+- **Language**: TypeScript
+- **Styling**: Vanilla CSS Modules (Glassmorphic dark design system)
+- **Media**: YouTube IFrame API (Custom distraction-free surface)
+- **Icons**: Lucide React
+
+---
+
+## 🚀 Getting Started
+
+### 1. Prerequisites
+Ensure you have **Node.js 18+** installed.
+
+### 2. Installation
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/your-username/sidequesthq-site.git
+cd sidequesthq-site
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 3. Run Development Server
+```bash
+npm run dev
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## 📂 Architecture Overview
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/                  # Next.js App Router pages (/home, /play, /cohort, /create)
+├── client/
+│   ├── components/       # Screens & UI Components (Play, Cohort, CreateCohort, Home)
+│   ├── mock/             # Real cohort definitions & data seeds
+│   └── repositories/     # Local state management & feed algorithm repositories
+└── shared/               # Shared TypeScript types for curriculum & feed engine
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📄 License
+MIT License. Created for modern explorers on SideQuestHQ.

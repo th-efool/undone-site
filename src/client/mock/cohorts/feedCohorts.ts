@@ -430,5 +430,405 @@ export const networkingCohort: Cohort = {
   },
 };
 
-export const feedCohorts: Cohort[] = [dsaCohort, osCohort, networkingCohort];
-export const feedCohortIds = new Set(['dsa-only-whats-needed', 'operating-systems-core', 'networking-fundamentals']);
+// ═══════════════════════════════════════════════════════════════
+// COHORT 4: Celtic Mythology (Real 12-Episode Playlist by See U in History)
+// ═══════════════════════════════════════════════════════════════
+
+const celticLessonsSeason1: Lesson[] = [
+  buildVideoLesson(
+    'celtic-1',
+    'Celtic Mythology: The Invasion of Ireland - Part 1/2 - The Battle of Moytura',
+    'hMP_V2WWl3s',
+    '14 min',
+    840,
+    LessonStatus.Completed,
+    'https://i.ytimg.com/vi/hMP_V2WWl3s/maxresdefault.jpg',
+    300
+  ),
+  buildVideoLesson(
+    'celtic-2',
+    'Celtic Mythology: The Battle for Ireland - Part 2/2 - The Battle of Moytura',
+    'Uvnbikstp-w',
+    '15 min',
+    900,
+    LessonStatus.Completed,
+    'https://i.ytimg.com/vi/Uvnbikstp-w/maxresdefault.jpg',
+    300
+  ),
+  buildVideoLesson(
+    'celtic-3',
+    'Brigid - The Celtic Goddess of Flames - Celtic Mythology and Folklore',
+    'DykKYj4WVjE',
+    '12 min',
+    720,
+    LessonStatus.InStream,
+    'https://i.ytimg.com/vi/DykKYj4WVjE/maxresdefault.jpg',
+    300
+  ),
+  buildVideoLesson(
+    'celtic-4',
+    'Cernunnos: The Celtic God of Forests - Celtic Mythology and Folklore',
+    '3FB6VpcxGg8',
+    '11 min',
+    660,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/3FB6VpcxGg8/maxresdefault.jpg',
+    300
+  ),
+  buildVideoLesson(
+    'celtic-5',
+    'Dagda: The Mighty Celtic God of Abundance - Celtic Mythology and Folklore',
+    'Ru2bTBigJlc',
+    '13 min',
+    780,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/Ru2bTBigJlc/maxresdefault.jpg',
+    300
+  ),
+  buildVideoLesson(
+    'celtic-6',
+    'Lugh - The Irish God of Light - Celtic Mythology',
+    'wCW-iiZp3aw',
+    '14 min',
+    840,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/wCW-iiZp3aw/maxresdefault.jpg',
+    300
+  ),
+];
+
+const celticLessonsSeason2: Lesson[] = [
+  buildVideoLesson(
+    'celtic-7',
+    'Nuada - The Celtic God of the Silver Arm',
+    '8tZlnYgZx0c',
+    '10 min',
+    600,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/8tZlnYgZx0c/maxresdefault.jpg',
+    300
+  ),
+  buildVideoLesson(
+    'celtic-8',
+    'The Return of the King - The Fomorians War - Ep 1 - Irish Mythology',
+    'jc4ENOvvyeU',
+    '16 min',
+    960,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/jc4ENOvvyeU/maxresdefault.jpg',
+    300
+  ),
+  buildVideoLesson(
+    'celtic-9',
+    'The War Approaches - The Fomorians War - Ep 2 - Irish Mythology',
+    'sB292mees4Q',
+    '15 min',
+    900,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/sB292mees4Q/maxresdefault.jpg',
+    300
+  ),
+  buildVideoLesson(
+    'celtic-10',
+    'The Fomorians War - Ep 3 - Irish Mythology',
+    'GGRVondbc5g',
+    '18 min',
+    1080,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/GGRVondbc5g/maxresdefault.jpg',
+    300
+  ),
+  buildVideoLesson(
+    'celtic-11',
+    'Celtic Mythology - The Fomorians War - Complete Saga',
+    'mt0LqTs3b9w',
+    '45 min',
+    2700,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/mt0LqTs3b9w/maxresdefault.jpg',
+    600
+  ),
+  buildVideoLesson(
+    'celtic-12',
+    'Banshees: The Frightening Women of Irish Folklore - Celtic Mythology',
+    '8RAP_1E4rhc',
+    '12 min',
+    720,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/8RAP_1E4rhc/maxresdefault.jpg',
+    300
+  ),
+];
+
+export const celticMythologyCohort: Cohort = {
+  ...deepWorkMastery,
+  id: 'celtic-mythology',
+  title: 'Celtic Mythology',
+  subtitle: 'Explore ancient myths, deities, and epic folklore of the Celtic world.',
+  description: 'A complete 12-video course from See U in History covering the Battle of Moytura, Tuatha Dé Danann gods (Lugh, Dagda, Brigid, Cernunnos), the Fomorians War, and Irish folklore.',
+  coverImage: 'https://i.ytimg.com/vi/hMP_V2WWl3s/maxresdefault.jpg',
+  difficulty: 'Beginner',
+  categories: [
+    { id: 'history', label: 'History' },
+    { id: 'mythology', label: 'Mythology' },
+    { id: 'folklore', label: 'Folklore' },
+  ],
+  creator: {
+    id: 'see-u-in-history',
+    name: 'See U in History / Mythology',
+    avatarUrl: avatars[3],
+    role: 'Mythology Historian',
+    bio: 'Uncovering ancient myths, legends, and folklore from around the globe.',
+    ctaLabel: 'View Quest Guide Profile',
+  },
+  stats: { rating: 4.9, explorerCount: 3100, completionRate: 70 },
+  progress: {
+    journeyProgress: 18,
+    completedQuests: 2,
+    totalQuests: 12,
+    dailyGoal: '15 minutes of myth exploration',
+    joinedDate: 'July 25, 2026',
+  },
+  overview: {
+    ...deepWorkMastery.overview,
+    description: 'Celtic Mythology guides learners through ancient European sagas, legendary warriors, gods, and sacred traditions.',
+    pillars: [
+      { id: 'p1', icon: 'target', title: 'Battle of Moytura & Gods', description: 'Study the supernatural race of Celtic gods and invasion cycles.' },
+      { id: 'p2', icon: 'brain', title: 'Fomorians War Saga', description: 'Analyze the epic conflict between the Tuatha Dé Danann and Fomorians.' },
+      { id: 'p3', icon: 'project', title: 'Irish Folklore & Myths', description: 'Explore Banshees, Cernunnos, Dagda, and sacred Celtic lore.' },
+    ],
+  },
+  questline: {
+    ...deepWorkMastery.questline,
+    title: 'Celtic Mythology Questline',
+    description: 'Explore ancient sagas, deities, and legendary tales across 12 full video quests.',
+    seasons: [
+      {
+        id: 'celtic-season-1',
+        badge: 'Season 1',
+        title: 'Invasions & Deities of Light',
+        status: SeasonStatus.InProgress,
+        progress: 33,
+        estimatedDuration: '~1.5 hrs',
+        questCount: celticLessonsSeason1.length,
+        summaryLabel: 'View Season Summary',
+        lessons: celticLessonsSeason1,
+      },
+      {
+        id: 'celtic-season-2',
+        badge: 'Season 2',
+        title: 'The Fomorians War & Irish Folklore',
+        status: SeasonStatus.Locked,
+        progress: 0,
+        estimatedDuration: '~2 hrs',
+        questCount: celticLessonsSeason2.length,
+        summaryLabel: 'View Season Summary',
+        lessons: celticLessonsSeason2,
+      },
+    ],
+  },
+};
+
+// ═══════════════════════════════════════════════════════════════
+// COHORT 5: Rajvansh: Dynasties Of India (Real 12-Episode Playlist by EPIC TV)
+// ═══════════════════════════════════════════════════════════════
+
+const rajvanshLessonsSeason1: Lesson[] = [
+  buildVideoLesson(
+    'rajvansh-1',
+    'Haryanka Dynasty | Rajvansh: Dynasties Of India | Full Episode | Ancient Indian History',
+    'mHE5iGgQHj0',
+    '42 min',
+    2520,
+    LessonStatus.Completed,
+    'https://i.ytimg.com/vi/mHE5iGgQHj0/maxresdefault.jpg',
+    450
+  ),
+  buildVideoLesson(
+    'rajvansh-2',
+    'Shishunaga Dynasty | Rajvansh: Dynasties Of India | Full Episode | Ancient Indian History',
+    'M5sYFHMnCMs',
+    '40 min',
+    2400,
+    LessonStatus.Completed,
+    'https://i.ytimg.com/vi/M5sYFHMnCMs/maxresdefault.jpg',
+    450
+  ),
+  buildVideoLesson(
+    'rajvansh-3',
+    'Nanda Dynasty | Rajvansh: Dynasties Of India | Full Episode | Ancient Indian History',
+    '0IVpyB3LqhE',
+    '38 min',
+    2280,
+    LessonStatus.InStream,
+    'https://i.ytimg.com/vi/0IVpyB3LqhE/maxresdefault.jpg',
+    450
+  ),
+  buildVideoLesson(
+    'rajvansh-4',
+    'Maurya Dynasty Part 1 | Rajvansh: Dynasties Of India | Full Episode | Ancient Indian History',
+    'wHNFIGAyU5Y',
+    '44 min',
+    2640,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/wHNFIGAyU5Y/maxresdefault.jpg',
+    450
+  ),
+  buildVideoLesson(
+    'rajvansh-5',
+    'Maurya Dynasty Part 2 | Rajvansh: Dynasties Of India | Full Episode | Ancient Indian History',
+    'naOwWncICv8',
+    '46 min',
+    2760,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/naOwWncICv8/maxresdefault.jpg',
+    450
+  ),
+  buildVideoLesson(
+    'rajvansh-6',
+    'Shunga And Kanva Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History',
+    '2pc5wPFdFQg',
+    '41 min',
+    2460,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/2pc5wPFdFQg/maxresdefault.jpg',
+    450
+  ),
+];
+
+const rajvanshLessonsSeason2: Lesson[] = [
+  buildVideoLesson(
+    'rajvansh-7',
+    'Satavahana Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History',
+    'lgfPT9YtunM',
+    '43 min',
+    2580,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/lgfPT9YtunM/maxresdefault.jpg',
+    450
+  ),
+  buildVideoLesson(
+    'rajvansh-8',
+    'Kushan Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History',
+    'p-nbiXJydW8',
+    '45 min',
+    2700,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/p-nbiXJydW8/maxresdefault.jpg',
+    450
+  ),
+  buildVideoLesson(
+    'rajvansh-9',
+    'Gupta Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History',
+    'dt74rNgCtrc',
+    '47 min',
+    2820,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/dt74rNgCtrc/maxresdefault.jpg',
+    450
+  ),
+  buildVideoLesson(
+    'rajvansh-10',
+    'Pushyabhuti Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History',
+    'qPUDFkfJ5LM',
+    '40 min',
+    2400,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/qPUDFkfJ5LM/maxresdefault.jpg',
+    450
+  ),
+  buildVideoLesson(
+    'rajvansh-11',
+    'Chalukya Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History',
+    'Q8YSBHyeesI',
+    '44 min',
+    2640,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/Q8YSBHyeesI/maxresdefault.jpg',
+    450
+  ),
+  buildVideoLesson(
+    'rajvansh-12',
+    'Vakataka Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History',
+    'bcrHLmW2N7s',
+    '39 min',
+    2340,
+    LessonStatus.Ready,
+    'https://i.ytimg.com/vi/bcrHLmW2N7s/maxresdefault.jpg',
+    450
+  ),
+];
+
+export const rajvanshCohort: Cohort = {
+  ...deepWorkMastery,
+  id: 'rajvansh-dynasties-of-india',
+  title: 'Rajvansh: Dynasties Of India',
+  subtitle: 'Discover the epic sagas, rulers, and history of India\'s royal dynasties.',
+  description: 'A 12-episode documentary series from EPIC TV covering ancient & medieval Indian dynasties including Haryanka, Nanda, Maurya, Shunga, Satavahana, Kushan, Gupta, Chalukya, and Vakataka.',
+  coverImage: 'https://i.ytimg.com/vi/mHE5iGgQHj0/maxresdefault.jpg',
+  difficulty: 'Beginner',
+  categories: [
+    { id: 'history', label: 'History' },
+    { id: 'india', label: 'Indian History' },
+    { id: 'dynasties', label: 'Dynasties' },
+  ],
+  creator: {
+    id: 'epic-tv',
+    name: 'EPIC TV',
+    avatarUrl: avatars[4],
+    role: 'Infotainment Network',
+    bio: 'India\'s premier infotainment channel documenting history, mythology, culture, and royal heritage.',
+    ctaLabel: 'View Quest Guide Profile',
+  },
+  stats: { rating: 4.95, explorerCount: 5200, completionRate: 75 },
+  progress: {
+    journeyProgress: 20,
+    completedQuests: 2,
+    totalQuests: 12,
+    dailyGoal: '20 minutes of history study',
+    joinedDate: 'July 28, 2026',
+  },
+  overview: {
+    ...deepWorkMastery.overview,
+    description: 'Rajvansh: Dynasties Of India guides learners through political strategies, naval conquests, architectural marvels, and empire building across 12 full EPIC TV episodes.',
+    pillars: [
+      { id: 'p1', icon: 'target', title: 'Magadha to Mauryan Empire', description: 'Analyze statecraft of Haryanka, Nanda, and Maurya dynasties.' },
+      { id: 'p2', icon: 'brain', title: 'Post-Mauryan & Imperial Guptas', description: 'Explore Shunga, Satavahana, Kushan, and Gupta golden age.' },
+      { id: 'p3', icon: 'project', title: 'Southern & Classical Dynasties', description: 'Evaluate Chalukya, Vakataka, and Pushyabhuti heritage.' },
+    ],
+  },
+  questline: {
+    ...deepWorkMastery.questline,
+    title: 'Rajvansh Questline',
+    description: 'Explore royal dynasties and empires of India across 12 full documentary episodes.',
+    seasons: [
+      {
+        id: 'rajvansh-season-1',
+        badge: 'Season 1',
+        title: 'Rise of Empires & Mauryan Rule',
+        status: SeasonStatus.InProgress,
+        progress: 33,
+        estimatedDuration: '~4 hrs',
+        questCount: rajvanshLessonsSeason1.length,
+        summaryLabel: 'View Season Summary',
+        lessons: rajvanshLessonsSeason1,
+      },
+      {
+        id: 'rajvansh-season-2',
+        badge: 'Season 2',
+        title: 'Imperial Guptas & Regional Kingdoms',
+        status: SeasonStatus.Locked,
+        progress: 0,
+        estimatedDuration: '~4 hrs',
+        questCount: rajvanshLessonsSeason2.length,
+        summaryLabel: 'View Season Summary',
+        lessons: rajvanshLessonsSeason2,
+      },
+    ],
+  },
+};
+
+export const feedCohorts: Cohort[] = [dsaCohort, osCohort, networkingCohort, celticMythologyCohort, rajvanshCohort];
+export const feedCohortIds = new Set(['dsa-only-whats-needed', 'operating-systems-core', 'networking-fundamentals', 'celtic-mythology', 'rajvansh-dynasties-of-india']);
+
+
