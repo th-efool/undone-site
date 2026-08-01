@@ -27,14 +27,6 @@ body {
   touch-action: manipulation;
 }
 
-@media (max-width: 768px) {
-  html,
-  body {
-    overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-}
 
 /* ── App-Exclusive Micro-Springs & Active Feedback ── */
 [data-platform="app"] button:active,

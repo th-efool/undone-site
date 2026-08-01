@@ -155,11 +155,15 @@ export function CapacitorBridge() {
         if (!cancelled) {
           if (isPlay) {
             await ScreenOrientation?.lock({ orientation: 'landscape' }).catch(() => {});
-            await StatusBar?.setStyle({ style: Style?.Dark }).catch(() => {});
+            if (Style) {
+              await StatusBar?.setStyle({ style: Style.Dark }).catch(() => {});
+            }
             await StatusBar?.hide().catch(() => {});
           } else {
             await ScreenOrientation?.lock({ orientation: 'portrait' }).catch(() => {});
-            await StatusBar?.setStyle({ style: Style?.Light }).catch(() => {});
+            if (Style) {
+              await StatusBar?.setStyle({ style: Style.Light }).catch(() => {});
+            }
             await StatusBar?.show().catch(() => {});
           }
         }
