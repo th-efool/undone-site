@@ -10,6 +10,7 @@
 │   │   ├── index.html
 │   │   ├── script.js
 │   │   └── styles.css
+│   ├── Execute.md
 │   ├── design-css-tokens.md
 │   ├── directory-structure.md
 │   ├── hero-section-guidelines.md
@@ -878,6 +879,9 @@
 │   │   │   │   │   │   │   │   │   ├── ReactionBar/
 │   │   │   │   │   │   │   │   │   │   ├── ReactionBar.module.css
 │   │   │   │   │   │   │   │   │   │   └── ReactionBar.tsx
+│   │   │   │   │   │   │   │   │   ├── ReplyBanner/
+│   │   │   │   │   │   │   │   │   │   ├── ReplyBanner.module.css
+│   │   │   │   │   │   │   │   │   │   └── ReplyBanner.tsx
 │   │   │   │   │   │   │   │   │   ├── ReplyPreview/
 │   │   │   │   │   │   │   │   │   │   ├── ReplyPreview.module.css
 │   │   │   │   │   │   │   │   │   │   └── ReplyPreview.tsx
@@ -930,6 +934,9 @@
 │   │   │   │   │   │   │   │   ├── DMConversation.module.css
 │   │   │   │   │   │   │   │   └── DMConversation.tsx
 │   │   │   │   │   │   │   ├── LeftSidebar/
+│   │   │   │   │   │   │   │   ├── ComposeModal/
+│   │   │   │   │   │   │   │   │   ├── ComposeModal.module.css
+│   │   │   │   │   │   │   │   │   └── ComposeModal.tsx
 │   │   │   │   │   │   │   │   ├── ConversationItem/
 │   │   │   │   │   │   │   │   │   ├── ConversationItem.module.css
 │   │   │   │   │   │   │   │   │   └── ConversationItem.tsx
@@ -973,6 +980,9 @@
 │   │   │   │   │   │   │   │   ├── SocialLanding.module.css
 │   │   │   │   │   │   │   │   └── SocialLanding.tsx
 │   │   │   │   │   │   │   └── shared/
+│   │   │   │   │   │   │       ├── ContextMenu/
+│   │   │   │   │   │   │       │   ├── ContextMenu.module.css
+│   │   │   │   │   │   │       │   └── ContextMenu.tsx
 │   │   │   │   │   │   │       ├── EmptyState/
 │   │   │   │   │   │   │       │   ├── EmptyState.module.css
 │   │   │   │   │   │   │       │   ├── EmptyState.tsx
@@ -981,6 +991,9 @@
 │   │   │   │   │   │   │       │   ├── Skeleton.module.css
 │   │   │   │   │   │   │       │   ├── Skeleton.tsx
 │   │   │   │   │   │   │       │   └── index.ts
+│   │   │   │   │   │   │       ├── TypingIndicator/
+│   │   │   │   │   │   │       │   ├── TypingIndicator.module.css
+│   │   │   │   │   │   │       │   └── TypingIndicator.tsx
 │   │   │   │   │   │   │       └── index.ts
 │   │   │   │   │   │   ├── constants/
 │   │   │   │   │   │   │   ├── index.ts
@@ -1220,6 +1233,7 @@
 ├── .prettierrc
 ├── AGENTS.md
 ├── CLAUDE.md
+├── MobieApkFixPlan.md
 ├── README.md
 ├── capacitor.config.ts
 ├── eslint.config.mjs
@@ -1228,8 +1242,9 @@
 ├── next.config.ts
 ├── package-lock.json
 ├── package.json
+├── play-plan-for-portrait.md
 ├── postcss.config.mjs
 ├── sidequesthq-logo.webp
 └── tsconfig.json
 
-413 directories, 818 files
+417 directories, 829 files
