@@ -72,7 +72,14 @@
   font-size: 0.9rem;
 }
 .file svg {
-  color: #ef4444;
+  color: #ef4444; /* default / pdf */
+}
+/* B6: type-specific icon colors */
+.file[data-attachment-type="image"] svg {
+  color: #22c55e;
+}
+.file[data-attachment-type="video"] svg {
+  color: #f97316;
 }
 .meta {
   display: flex;

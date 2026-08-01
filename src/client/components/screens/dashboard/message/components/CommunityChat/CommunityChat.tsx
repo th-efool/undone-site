@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { CommunityChatModel } from '../../models';
+import type { CommunityChatModel, ReplyContext } from '../../models';
+import { TypingIndicator } from '../shared/TypingIndicator/TypingIndicator';
 import { ChannelTabs } from './components/ChannelTabs/ChannelTabs';
 import { CommunityHeader } from './components/CommunityHeader/CommunityHeader';
 import { CommunitySidebar } from './components/CommunitySidebar/CommunitySidebar';
@@ -18,6 +19,16 @@ interface Props {
   onSend(): void;
   onReaction(messageId: string, emoji: string): void;
   onUpload(file: File, kind: 'image' | 'pdf' | 'file' | 'video' | 'audio'): void;
+  // Batch C: Reply, typing indicator
+  replyBanner?: ReplyContext | null;
+  onReplyDismiss?(): void;
+  onReply?(messageId: string, senderName: string, previewText: string): void;
+  isTyping?: boolean;
+  typingUsernames?: string[];
+}
+
+interface MessageBubbleExtraProps {
+  onReply?(messageId: string, senderName: string, previewText: string): void;
 }
 
 export function CommunityChat({
@@ -30,6 +41,11 @@ export function CommunityChat({
   onSend,
   onReaction,
   onUpload,
+  replyBanner,
+  onReplyDismiss,
+  onReply,
+  isTyping = false,
+  typingUsernames = [],
 }: Props) {
   const [aboutOpen, setAboutOpen] = useState(false);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -72,13 +88,23 @@ export function CommunityChat({
           scrollTop={scrollTop}
           onScrollChange={onScrollChange}
           onReaction={onReaction}
+          onReply={onReply}
         />
+        {/* Batch C: Reply banner + typing indicator */}
         <MessageComposer
           value={draft}
           onChange={onDraftChange}
           onSend={onSend}
           onUpload={onUpload}
+          replyBanner={replyBanner}
+          onReplyDismiss={onReplyDismiss}
+          channelName={community.selectedChannel}
         />
+        {isTyping && (
+          <div style={{ padding: '0 16px' }}>
+            <TypingIndicator usernames={typingUsernames} />
+          </div>
+        )}
       </main>
       {aboutOpen && (
         <CommunitySidebar

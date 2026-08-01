@@ -10,9 +10,11 @@ interface Props {
   scrollTop: number;
   onScrollChange(scrollTop: number): void;
   onReaction(messageId: string, emoji: string): void;
+  /** Batch C: Reply trigger */
+  onReply?(messageId: string, senderName: string, previewText: string): void;
 }
 
-export function MessageTimeline({ messages, scrollTop, onScrollChange, onReaction }: Props) {
+export function MessageTimeline({ messages, scrollTop, onScrollChange, onReaction, onReply }: Props) {
   const viewportRef = useRef<HTMLElement>(null);
   const previousCountRef = useRef(0);
   const wasNearBottomRef = useRef(true);
@@ -52,6 +54,7 @@ export function MessageTimeline({ messages, scrollTop, onScrollChange, onReactio
             key={message.id}
             message={message}
             onReaction={onReaction}
+            onReply={onReply}
           />
         ))
       ) : (

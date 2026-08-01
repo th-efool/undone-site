@@ -12,6 +12,7 @@ import {
   DMConversationModel,
   DMMessage,
   MessageView,
+  ReplyContext,
   SidebarTab,
 } from '../models';
 import {
@@ -394,6 +395,13 @@ export function useMessage() {
 
   // Batch A: Track which conversations have been manually marked read
   const [markedAsRead, setMarkedAsRead] = useState<Set<string>>(new Set());
+
+  // Batch C: Reply-to-message flow
+  const [replyContext, setReplyContext] = useState<ReplyContext | null>(null);
+  const clearReply = useCallback(() => setReplyContext(null), []);
+
+  // Batch C: Simulated typing indicator (mock — no backend)
+  const [isTyping, setIsTyping] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, string>>(() =>
     readRecord<string>(storageKeys.drafts),
   );
@@ -549,6 +557,10 @@ export function useMessage() {
       const draft = drafts[conversationId]?.trim();
       if (!draft) return;
 
+      // Batch C: Simulate typing before sending
+      setIsTyping(true);
+      setTimeout(() => setIsTyping(false), 800 + Math.random() * 600);
+
       const base = mapCohortToCommunity(conversationId).messages;
       const message: CommunityMessage = {
         id: `${conversationId}-${Date.now()}`,
@@ -563,8 +575,9 @@ export function useMessage() {
         [conversationId]: [...(current[conversationId] ?? base), message],
       }));
       setDrafts((current) => ({ ...current, [conversationId]: '' }));
+      clearReply();
     },
-    [drafts],
+    [drafts, clearReply],
   );
 
   const toggleCommunityReaction = useCallback(
@@ -624,6 +637,10 @@ export function useMessage() {
       const draft = drafts[conversationId]?.trim();
       if (!draft) return;
 
+      // Batch C: Simulate typing before sending
+      setIsTyping(true);
+      setTimeout(() => setIsTyping(false), 800 + Math.random() * 600);
+
       const base = makeDMConversation(
         dmConversations.find((item) => item.id === conversationId),
       ).messages;
@@ -641,8 +658,9 @@ export function useMessage() {
         [conversationId]: [...(current[conversationId] ?? base), message],
       }));
       setDrafts((current) => ({ ...current, [conversationId]: '' }));
+      clearReply();
     },
-    [dmConversations, drafts],
+    [dmConversations, drafts, clearReply],
   );
 
   const uploadDMAttachment = useCallback(
@@ -721,6 +739,11 @@ export function useMessage() {
     upcomingEvents: messageCohorts.slice(0, 3).map(mapCohortToUpcomingEvent),
     challenge: messagesRepository.getMessageBase().challenge,
     friendsOnline: messagesRepository.getMessageBase().friendsOnline,
+
+    // Batch C: Reply-to-message + typing indicator
+    replyContext,
+    isTyping,
+
     actions: {
       setSelectedSidebarTab,
       setConversationFilter,
@@ -738,7 +761,9 @@ export function useMessage() {
       togglePinConversation,
       muteConversation,
       markAllRead,
-
+      // Batch C: Reply + typing actions
+      setReplyContext,
+      clearReply,
     },
   };
 }

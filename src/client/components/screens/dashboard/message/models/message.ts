@@ -203,3 +203,10 @@ export interface DMConversationModel {
   resources: DMResource[];
   notifications: DMNotificationSettings;
 }
+
+/** Reply-to-message inline banner context (Batch C) */
+export interface ReplyContext {
+  messageId: string;
+  senderName: string;
+  previewText: string;
+}

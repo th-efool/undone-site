@@ -10,9 +10,11 @@ interface Props {
   conversation: DMConversationModel;
   scrollTop: number;
   onScrollChange(scrollTop: number): void;
+  /** Batch C: Reply trigger */
+  onReply?(messageId: string, senderName: string, previewText: string): void;
 }
 
-export function MessageTimeline({ conversation, scrollTop, onScrollChange }: Props) {
+export function MessageTimeline({ conversation, scrollTop, onScrollChange, onReply }: Props) {
   const viewportRef = useRef<HTMLElement>(null);
   const previousCountRef = useRef(0);
 
@@ -44,6 +46,7 @@ export function MessageTimeline({ conversation, scrollTop, onScrollChange }: Pro
             <DMBubble
               message={message}
               user={conversation.user}
+              onReply={onReply}
             />
           </div>
         ))

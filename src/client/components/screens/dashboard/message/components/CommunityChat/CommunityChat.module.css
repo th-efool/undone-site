@@ -48,6 +48,10 @@
 
   .main {
     width: 100%;
+    /* Batch C: Sticky composer above keyboard */
+    position: relative;
+    overflow-y: auto;
+    padding-bottom: env(safe-area-inset-bottom, 12px);
   }
 
   .chat button {

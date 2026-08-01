@@ -77,8 +77,10 @@
   display: none; /* hidden on desktop */
 }
 
-/* ── Mobile layout (≤768px) ──────────────────────────────────────── */
-@media (max-width: 768px) {
+/* ── Mobile portrait layout (≤768px AND portrait orientation) ────── */
+/* In landscape mode on phones, desktop overlays stay visible instead.
+   This prevents duplicate UI when Capacitor locks /play to landscape. */
+@media (max-width: 768px) and (orientation: portrait) {
   .play {
     width: 100vw;
     height: 100dvh;

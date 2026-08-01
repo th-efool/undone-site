@@ -1,4 +1,5 @@
 
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Search } from 'lucide-react';
 import type { ConversationPreview } from '../../../models';
 import styles from './ComposeModal.module.css';
@@ -67,7 +68,7 @@ export function ComposeModal({ dmUsers, onSelect, onClose }: Props) {
           {filtered.length === 0 ? (
             <div>No people found.</div>
           ) : (
-            filtered.map((user) => (
+            filtered.map((user: ConversationPreview) => (
               <button key={user.id} type="button" onClick={() => handleSelect(user.id)}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={user.avatar} alt="" />

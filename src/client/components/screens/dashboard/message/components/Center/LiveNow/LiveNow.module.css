@@ -24,8 +24,54 @@
   font-weight: 800;
   cursor: pointer;
 }
+
+/* B7: scroll wrapper for fade overlay */
+.scrollerWrapper {
+  position: relative;
+}
+.fadeOverlay {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: 0;
+  width: 64px;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--color-surface) 80%);
+  z-index: 5;
+}
+
 .scroller {
   margin-left: -2px;
+}
+
+/* B5: pause / resume control */
+.pauseBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-pill, 999px);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--message-border-strong);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.pauseBtn.paused {
+  background: var(--color-surface-secondary);
+  color: var(--color-text-primary);
+}
+.pauseBtn.paused:hover {
+  background: #e4e7f0;
+}
+
+.pauseBtn.playing {
+  background: var(--message-brand-soft, #ece9ff);
+  color: var(--message-brand);
+}
+.pauseBtn.playing:hover {
+  background: #ddd8fa;
 }
 
 @media (max-width: 768px) { .now { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; } .now::-webkit-scrollbar { display: none; } }

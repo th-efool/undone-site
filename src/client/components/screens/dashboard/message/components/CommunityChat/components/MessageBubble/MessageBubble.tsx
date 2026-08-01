@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { SmilePlus } from 'lucide-react';
 import { CommunityMessage } from '../../../../models';
 import { MessageAttachment } from '../MessageAttachment/MessageAttachment';
@@ -12,15 +12,56 @@ const emojis = ['😀', '😂', '😍', '🔥', '🚀', '👏', '🙌', '✅', '
 interface Props {
   message: CommunityMessage;
   onReaction(messageId: string, emoji: string): void;
+  /** Batch C: Reply trigger */
+  onReply?(messageId: string, senderName: string, previewText: string): void;
 }
-export function MessageBubble({ message, onReaction }: Props) {
+export function MessageBubble({ message, onReaction, onReply }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  // Batch C: Tap to reply (desktop + mobile long-press simulation)
+  const handleTap = () => {
+    if (!onReply || !message.body) return;
+    onReply(message.id, message.author.name, message.body.slice(0, 80));
+  };
+  // Batch C: Debounce long-press to avoid accidental triggers
+  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [longPress, setLongPress] = useState(false);
+
+  const handlePointerDown = () => {
+    tapTimerRef.current = setTimeout(() => {
+      setLongPress(true);
+    }, 500); // 500ms long-press threshold
+  };
+
+  const handlePointerUp = () => {
+    clearTimeout(tapTimerRef.current);
+    if (longPress && onReply && message.body) {
+      onReply(message.id, message.author.name, message.body.slice(0, 80));
+      setLongPress(false);
+      return;
+    }
+    // Regular tap: trigger reply
+    handleTap();
+  };
+
   const react = (emoji: string) => {
     onReaction(message.id, emoji);
     setPickerOpen(false);
   };
+
+  useEffect(() => {
+    return () => clearTimeout(tapTimerRef.current);
+  }, []);
+
   return (
-    <article className={styles.bubble}>
+    <article
+      className={styles.bubble}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleTap(); }}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+    >
       <img
         className={styles.avatar}
         src={message.author.avatar}

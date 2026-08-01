@@ -1,9 +1,10 @@
 'use client';
 
-import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
-import { Image as ImageIcon, Plus, Send, Smile } from 'lucide-react';
+import { FormEvent, ReactNode, useCallback, useEffect, useRef, useState } from 'react';
+import { Check, Image as ImageIcon, Plus, Send, Smile } from 'lucide-react';
 
 import { PillInput } from '@/src/client/components/global/PillInput';
+import type { ReplyContext } from '../../models';
 
 import styles from './MessageComposer.module.css';
 
@@ -21,9 +22,22 @@ export interface MessageComposerProps {
   sendButtonClassName?: string;
   inputClassName?: string;
   children?: ReactNode;
+  /** Inline reply banner displayed above the composer */
+  replyBanner?: ReplyContext | null;
+  onReplyDismiss?(): void;
 }
 
-const emojis = ['😀', '😂', '😍', '🔥', '🚀', '👏', '🙌', '✅', '💡', '📌', '🙏', '🎉'];
+// Batch C: Expanded categorized emoji picker
+const emojis = [
+  // Faces (row 1)
+  ['😀', '😂', '😍', '🥹', '😎'],
+  // Reactions (row 2)
+  ['🔥', '❤️', '👏', '🙌', '💯'],
+  // Objects/Symbols (row 3)
+  ['✅', '💡', '📌', '⭐', '🎯'],
+  // Celebration/Other (row 4)
+  ['🚀', '🎉', '🙏', '✨', '💪'],
+];
 
 export function MessageComposer({
   value,
@@ -35,10 +49,32 @@ export function MessageComposer({
   submitInsideInput = false,
   sendButtonClassName,
   inputClassName,
+  replyBanner,
+  onReplyDismiss,
 }: MessageComposerProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [emojiOpen, setEmojiOpen] = useState(false);
   const [uploadKind, setUploadKind] = useState<HiddenUploadKind>('file');
+
+  // Batch C: Draft saved indicator (debounced)
+  const [draftSaved, setDraftSaved] = useState(false);
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  useEffect(() => {
+    if (!value) {
+      clearTimeout(draftTimerRef.current);
+      return;
+    }
+    // Debounce: show "Draft saved" after 600ms of inactivity
+    clearTimeout(draftTimerRef.current);
+    draftTimerRef.current = setTimeout(() => {
+      setDraftSaved(true);
+      setTimeout(() => setDraftSaved(false), 2000);
+    }, 600);
+    return () => clearTimeout(draftTimerRef.current);
+  }, [value]);
+
+  // Batch C: Send animation state
+  const [sending, setSending] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLInputElement>(null);
@@ -47,11 +83,16 @@ export function MessageComposer({
     if (autoFocusWhenEmpty && !value) inputRef.current?.focus();
   }, [autoFocusWhenEmpty, value]);
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    onSend();
-    requestAnimationFrame(() => inputRef.current?.focus());
-  };
+  const submit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      setSending(true);
+      setTimeout(() => setSending(false), 800);
+      onSend();
+      requestAnimationFrame(() => inputRef.current?.focus());
+    },
+    [onSend],
+  );
 
   const insertEmoji = (emoji: string) => {
     const input = inputRef.current;
@@ -74,22 +115,64 @@ export function MessageComposer({
 
   const uploadAccept =
     uploadKind === 'video' ? 'video/*' : uploadKind === 'audio' ? 'audio/*' : undefined;
+
+  // Batch C: Send button with animation state
+  const sendButtonContent = sending ? (
+    <Check size={21} />
+  ) : (
+    <Send size={21} />
+  );
   const sendButton = (
     <button
       type="submit"
-      className={sendButtonClassName}
+      className={`${sendButtonClassName ?? ''} ${sending ? styles.sending : ''}`}
       aria-label="Send message"
     >
-      <Send size={21} />
+      {sendButtonContent}
     </button>
   );
 
   return (
-    <form
-      className={styles.composer}
-      onSubmit={submit}
-    >
-      <div className={styles.toolWrap}>
+    <>
+      {/* Batch C: Reply banner above composer */}
+      {replyBanner && onReplyDismiss && (
+        <form
+          onSubmit={(e) => e.preventDefault()}
+          className={styles.composerWrapper}
+        >
+          <div className={styles.replyBanner}>
+            <button
+              type="button"
+              aria-label="Dismiss reply"
+              className={styles.replyDismiss}
+              onClick={onReplyDismiss}
+            >
+              <Plus size={16} style={{ transform: 'rotate(90deg)' }} />
+            </button>
+            <div className={styles.replyContent}>
+              <span className={styles.replyLabel}>Replying to @{replyBanner.senderName}</span>
+              <span className={styles.replyPreview}>{replyBanner.previewText}</span>
+            </div>
+            <button
+              type="button"
+              aria-label="Dismiss reply"
+              className={styles.replyClose}
+              onClick={onReplyDismiss}
+            >
+              ×
+            </button>
+          </div>
+        </form>
+      )}
+      <form
+        className={styles.composer}
+        onSubmit={submit}
+      >
+        {/* Batch C: Draft saved indicator */}
+        {draftSaved && (
+          <span className={styles.draftSaved}>Draft saved ✓</span>
+        )}
+        <div className={styles.toolWrap}>
         <button
           type="button"
           className={styles.plus}
@@ -167,7 +250,7 @@ export function MessageComposer({
               </button>
               {emojiOpen && (
                 <div className={styles.emoji}>
-                  {emojis.map((emoji) => (
+                  {emojis.flat().map((emoji) => (
                     <button
                       key={emoji}
                       type="button"
@@ -192,5 +275,6 @@ export function MessageComposer({
       />
       {!submitInsideInput && sendButton}
     </form>
+    </>
   );
 }

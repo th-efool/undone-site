@@ -37,4 +37,15 @@
   }
 }
 
-@media (max-width: 768px) { .dm { width: 100%; height: 100%; } }
+@media (max-width: 768px) {
+  .dm {
+    width: 100%;
+    height: 100%;
+  }
+  .main {
+    /* Batch C: Sticky composer above keyboard */
+    position: relative;
+    overflow-y: auto;
+    padding-bottom: env(safe-area-inset-bottom, 12px);
+  }
+}

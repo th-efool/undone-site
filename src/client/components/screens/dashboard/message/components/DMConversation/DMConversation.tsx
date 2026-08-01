@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { DMConversationModel } from '../../models';
+import type { DMConversationModel, ReplyContext } from '../../models';
+import { TypingIndicator } from '../shared/TypingIndicator/TypingIndicator';
 import { DMComposer } from './components/DMComposer/DMComposer';
 import { DMHeader } from './components/DMHeader/DMHeader';
 import { DMProfileSidebar } from './components/DMProfileSidebar/DMProfileSidebar';
@@ -15,6 +16,12 @@ interface Props {
   onScrollChange(scrollTop: number): void;
   onSend(): void;
   onUpload(file: File, kind: 'image' | 'pdf' | 'file' | 'video' | 'audio'): void;
+  // Batch C: Reply + typing
+  replyBanner?: ReplyContext | null;
+  onReplyDismiss?(): void;
+  onReply?(messageId: string, senderName: string, previewText: string): void;
+  isTyping?: boolean;
+  typingUsernames?: string[];
 }
 
 export function DMConversation({
@@ -26,6 +33,11 @@ export function DMConversation({
   onScrollChange,
   onSend,
   onUpload,
+  replyBanner,
+  onReplyDismiss,
+  onReply,
+  isTyping = false,
+  typingUsernames = [],
 }: Props) {
   const [aboutOpen, setAboutOpen] = useState(false);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -62,13 +74,23 @@ export function DMConversation({
           conversation={conversation}
           scrollTop={scrollTop}
           onScrollChange={onScrollChange}
+          onReply={onReply}
         />
+        {/* Batch C: Reply banner + typing indicator */}
         <DMComposer
           value={draft}
           onChange={onDraftChange}
           onSend={onSend}
           onUpload={onUpload}
+          replyBanner={replyBanner}
+          onReplyDismiss={onReplyDismiss}
+          userName={conversation.user.name}
         />
+        {isTyping && (
+          <div style={{ padding: '0 16px' }}>
+            <TypingIndicator usernames={typingUsernames} />
+          </div>
+        )}
       </main>
       {aboutOpen && (
         <DMProfileSidebar

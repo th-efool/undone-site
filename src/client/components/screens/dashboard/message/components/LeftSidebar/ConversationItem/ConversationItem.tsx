@@ -66,6 +66,7 @@ export function ConversationItem({ conversation, onSelect }: Props) {
       tabIndex={0}
       aria-current={conversation.selected ? 'true' : undefined}
     >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={conversation.avatar} alt="" />
       <div className={styles.body}>
         <div className={styles.top}>

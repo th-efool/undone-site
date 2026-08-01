@@ -118,23 +118,144 @@
 }
 
 .emoji {
-  grid-template-columns: repeat(6, 32px);
+  grid-template-columns: repeat(5, 38px);
   right: 0;
   left: auto;
+  gap: 4px;
 }
 
 .emoji button {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: transparent;
   cursor: pointer;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
+  transition: background var(--duration-fast) var(--ease-standard);
 }
 
 .emoji button:hover {
   background: var(--message-brand-soft);
+}
+
+@media (max-width: 768px) {
+  .emoji {
+    /* Mobile: larger touch targets */
+    grid-template-columns: repeat(5, 48px);
+  }
+
+  .emoji button {
+    width: 48px;
+    height: 48px;
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .composer {
+    padding: 12px 16px 18px;
+  }
+
+  .input {
+    min-width: 0;
+  }
+}
+
+.composerWrapper {
+  position: relative;
+}
+
+/* Batch C: Reply banner inside composer */
+.replyBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--message-brand-soft);
+  border-bottom: 1px solid var(--message-border);
+}
+
+.replyBanner .replyDismiss,
+.replyBanner .replyClose {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #697194;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.replyBanner .replyDismiss:hover,
+.replyBanner .replyClose:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #1f2748;
+}
+
+.replyBanner .replyContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.replyLabel {
+  font-weight: 700;
+  color: var(--message-brand);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.82rem;
+}
+
+.replyPreview {
+  color: #697194;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.75rem;
+}
+
+/* Batch C: Draft saved indicator */
+.draftSaved {
+  position: absolute;
+  left: 48px;
+  bottom: calc(100% + 4px);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #eef9ee;
+  color: #3a7d5c;
+  font-size: 0.72rem;
+  font-weight: 700;
+  z-index: 10;
+  pointer-events: none;
+  animation: fadeInUp var(--duration-fast) var(--ease-standard);
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Batch C: Send animation */
+.sending button[type="submit"] svg {
+  animation: sendCheck var(--duration-fast) var(--ease-standard);
+}
+
+@keyframes sendCheck {
+  from { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  to { transform: scale(1); }
 }
 
 @media (max-width: 760px) {

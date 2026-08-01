@@ -1,0 +1,66 @@
+.replyBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  margin-bottom: -2px;
+  background: var(--message-brand-soft);
+  border-bottom: 1px solid var(--message-border);
+  font-size: 0.85rem;
+}
+
+.replyBanner .arrow {
+  color: var(--message-brand);
+  flex-shrink: 0;
+}
+
+.replyBanner .content {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.replyBanner .label {
+  font-weight: 700;
+  color: var(--message-brand);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.replyBanner .preview {
+  color: #697194;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.8rem;
+}
+
+.replyBanner .dismiss {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #697194;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.replyBanner .dismiss:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #1f2748;
+}
+
+@media (max-width: 768px) {
+  .replyBanner .dismiss {
+    width: var(--touch-target-min, 44px);
+    height: var(--touch-target-min, 44px);
+    min-width: var(--touch-target-min, 44px);
+  }
+}

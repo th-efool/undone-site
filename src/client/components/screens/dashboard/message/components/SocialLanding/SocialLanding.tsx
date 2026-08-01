@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import type { ReplyContext } from '../../models';
 import { Center } from '../Center/Center';
 import { CommunityChat } from '../CommunityChat/CommunityChat';
 import { DMConversation } from '../DMConversation/DMConversation';
 import { LeftSidebar } from '../LeftSidebar/LeftSidebar';
 import { RightSidebar } from '../RightSidebar/RightSidebar';
+import { TypingIndicator } from '../shared/TypingIndicator/TypingIndicator';
 import { useMessage } from '../../hooks';
 import { useIsMobile } from '@/src/client/hooks/useIsMobile';
 import styles from './SocialLanding.module.css';
@@ -15,6 +17,10 @@ interface Props {
 export function SocialLanding({ message }: Props) {
   const isMobile = useIsMobile();
   const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
+
+  // Batch C: Local reply context per view (avoids cross-contamination)
+  const [communityReply, setCommunityReply] = useState<ReplyContext | null>(null);
+  const [dmReply, setDmReply] = useState<ReplyContext | null>(null);
 
   return (
     <div className={`${styles.landing} ${isMobile && mobileView !== 'list' ? styles.panelHidden : ''} ${isMobile && mobileView !== 'chat' ? styles.chatHidden : ''}`}>
@@ -56,6 +62,14 @@ export function SocialLanding({ message }: Props) {
           onUpload={(file, kind) =>
             message.actions.uploadCommunityAttachment(message.communityChat.id, file, kind)
           }
+          // Batch C: Reply + typing
+          replyBanner={communityReply}
+          onReplyDismiss={() => setCommunityReply(null)}
+          onReply={(messageId, senderName, previewText) =>
+            setCommunityReply({ messageId, senderName, previewText })
+          }
+          isTyping={message.isTyping}
+          typingUsernames={['Aarav', 'Vanshika']} /* mock */
         />
       )}
 
@@ -76,6 +90,14 @@ export function SocialLanding({ message }: Props) {
           onUpload={(file, kind) =>
             message.actions.uploadDMAttachment(message.dmConversation.id, file, kind)
           }
+          // Batch C: Reply + typing
+          replyBanner={dmReply}
+          onReplyDismiss={() => setDmReply(null)}
+          onReply={(messageId, senderName, previewText) =>
+            setDmReply({ messageId, senderName, previewText })
+          }
+          isTyping={message.isTyping}
+          typingUsernames={[message.dmConversation.user.name]} /* mock */
         />
       )}
 

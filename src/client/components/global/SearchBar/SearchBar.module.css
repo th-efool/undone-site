@@ -46,13 +46,26 @@
 .clear:hover {
   background: #e4e7f0;
 }
-
 @media (max-width: 768px) {
+  /* B4: enlarge touch target on mobile for clear button */
+  .clear {
+    width: var(--touch-target-min, 44px);
+    height: var(--touch-target-min, 44px);
+    background: #eef1f8;
+  }
+
+  /* B3: allow long queries to scroll horizontally */
   .searchBar {
     max-width: 100%;
   }
   .inputShell {
     height: var(--touch-target-min);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .inputShell::-webkit-scrollbar {
+    display: none;
   }
   .shortcut {
     display: none;

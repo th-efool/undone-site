@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 
 function isCapacitorNative(): boolean {
   return typeof window !== 'undefined' && Boolean((window as Window & { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string } }).Capacitor?.isNativePlatform?.());
@@ -38,12 +38,13 @@ function normalizeDeepLinkPath(url: string): string | null {
 
 export function CapacitorBridge() {
   const router = useRouter();
+  const pathname = usePathname();
   const [isNative, setIsNative] = useState(false);
 
   useEffect(() => {
     const native = isCapacitorNative();
     setIsNative(native);
-    
+
     if (!native) {
       return;
     }
@@ -54,7 +55,6 @@ export function CapacitorBridge() {
     let cancelled = false;
     let removeAppUrlOpen: (() => void) | undefined;
     let removeBackButton: (() => void) | undefined;
-    let orientationSubscription: any;
 
     void (async () => {
       let App: any;
@@ -100,35 +100,44 @@ export function CapacitorBridge() {
       removeBackButton = () => {
         void backButtonHandle.remove();
       };
-      
-      // Try to lock orientation on app launch (landscape preference)
-      try {
-        const ScreenOrientation = await import('@capacitor/screen-orientation');
-        if ((ScreenOrientation as any).ScreenOrientation) {
-          try {
-            orientationSubscription = (ScreenOrientation as any).ScreenOrientation.addListener('screenOrientationChange', () => {
-              // If user rotates to portrait on mobile screens, force back
-              if (window.innerHeight > window.innerWidth) {
-                void (ScreenOrientation as any).ScreenOrientation.lock({ orientation: 'landscape' }).catch(() => {});
-              }
-            });
-          } catch (_e) {
-            // Orientation plugin may not be installed or configured correctly, continue without it
-          }
-        }
-      } catch {
-        // No screen-orientation plugin available
-      }
     })();
 
     return () => {
       cancelled = true;
       removeAppUrlOpen?.();
       removeBackButton?.();
-      orientationSubscription?.remove();
       document.documentElement.removeAttribute('data-platform');
     };
   }, [router]);
+
+  // Route-based orientation locking:
+  // - /play → lock landscape (the ONLY page meant for landscape)
+  // - all other routes → unlock to natural sensor/orientation
+  useEffect(() => {
+    if (!isNative || !pathname) return;
+
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const ScreenOrientation = await import('@capacitor/screen-orientation');
+        if ((ScreenOrientation as any).ScreenOrientation && !cancelled) {
+          // Always unlock first to clear any stale lock
+          await (ScreenOrientation as any).ScreenOrientation.unlock().catch(() => {});
+
+          if (pathname === '/play') {
+            await (ScreenOrientation as any).ScreenOrientation.lock({ orientation: 'landscape' }).catch(() => {});
+          }
+        }
+      } catch {
+        // No screen-orientation plugin available — continue without it
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isNative, pathname]);
 
   return null;
 }

@@ -44,6 +44,7 @@ export function SidebarHeader({ onCompose, showUserMenu, onToggleUserMenu }: Pro
         {/* Avatar + User Menu — A5 */}
         <div className={styles.userWrap} ref={menuRef}>
           <button type="button" className={`${styles.avatarBtn}${showUserMenu ? ' ' + styles.active : ''}`} onClick={onToggleUserMenu} aria-label="User menu">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/mock/avatars/a.webp" alt="" />
             <ChevronDown size={14} style={{ marginLeft: '2px', opacity: 0.5 }} />
           </button>
