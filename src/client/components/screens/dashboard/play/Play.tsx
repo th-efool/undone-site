@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, WheelEvent, TouchEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, WheelEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { Play as PlayIcon, ArrowLeft } from 'lucide-react';
 import {
@@ -18,6 +18,16 @@ export function Play() {
   const router = useRouter();
   const playback = usePlayback();
   const [isIdle, setIsIdle] = useState(false);
+  const [animationClass, setAnimationClass] = useState('');
+  const playContainerRef = useRef<HTMLDivElement | null>(null);
+
+  const handleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      playContainerRef.current?.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
 
   const handleExitPlay = useCallback(() => {
     if (document.fullscreenElement && document.exitFullscreen) {
@@ -30,16 +40,31 @@ export function Play() {
   const touchStartY = useRef<number | null>(null);
   const touchStartX = useRef<number | null>(null);
 
-  const handleTouchStart = useCallback((e: TouchEvent<HTMLDivElement>) => {
-    touchStartY.current = e.touches[0].clientY;
-    touchStartX.current = e.touches[0].clientX;
+  const handlePointerDown = useCallback((e: ReactPointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    touchStartY.current = e.clientY;
+    touchStartX.current = e.clientX;
   }, []);
 
-  const handleTouchEnd = useCallback(
-    (e: TouchEvent<HTMLDivElement>) => {
+  const handleNextChunk = useCallback(() => {
+    if (!playback.hasNext) return;
+    setAnimationClass(styles.animateSlideUp);
+    setTimeout(() => setAnimationClass(''), 350);
+    playback.nextChunk();
+  }, [playback]);
+
+  const handlePreviousChunk = useCallback(() => {
+    if (!playback.hasPrevious) return;
+    setAnimationClass(styles.animateSlideDown);
+    setTimeout(() => setAnimationClass(''), 350);
+    playback.previousChunk();
+  }, [playback]);
+
+  const handlePointerUp = useCallback(
+    (e: ReactPointerEvent<HTMLDivElement>) => {
       if (touchStartY.current === null) return;
-      const deltaY = touchStartY.current - e.changedTouches[0].clientY;
-      const deltaX = touchStartX.current !== null ? touchStartX.current - e.changedTouches[0].clientX : 0;
+      const deltaY = touchStartY.current - e.clientY;
+      const deltaX = touchStartX.current !== null ? touchStartX.current - e.clientX : 0;
       touchStartY.current = null;
       touchStartX.current = null;
 
@@ -50,15 +75,15 @@ export function Play() {
         return;
       }
 
-      // Vertical swipe → next/prev chunk (existing behavior)
+      // Vertical swipe → next/prev chunk
       if (Math.abs(deltaY) < 50) return;
       if (deltaY > 0) {
-        playback.nextChunk();
+        handleNextChunk();
       } else {
-        playback.previousChunk();
+        handlePreviousChunk();
       }
     },
-    [playback],
+    [playback, handleNextChunk, handlePreviousChunk],
   );
 
   // Idle timer for UI fading
@@ -94,16 +119,16 @@ export function Play() {
 
       scrollCooldownRef.current = true;
       if (e.deltaY > 0) {
-        playback.nextChunk();
+        handleNextChunk();
       } else {
-        playback.previousChunk();
+        handlePreviousChunk();
       }
 
       setTimeout(() => {
         scrollCooldownRef.current = false;
       }, 600);
     },
-    [playback],
+    [handleNextChunk, handlePreviousChunk],
   );
 
   // Handle keydown navigation (ArrowUp = prev, ArrowDown = next, Space = toggle play)
@@ -115,10 +140,10 @@ export function Play() {
 
       if (e.key === 'ArrowDown' || e.key === 'PageDown') {
         e.preventDefault();
-        playback.nextChunk();
+        handleNextChunk();
       } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
         e.preventDefault();
-        playback.previousChunk();
+        handlePreviousChunk();
       } else if (e.key === ' ') {
         e.preventDefault();
         playback.togglePlayback();
@@ -208,9 +233,10 @@ export function Play() {
           onSkipBack={() => playback.skipSeconds(-10)}
           onSkipForward={() => playback.skipSeconds(10)}
           onVolumeChange={playback.setVolume}
-          onCompleteChunk={playback.completeActiveChunk}
-          onNextChunk={playback.nextChunk}
-          onPreviousChunk={playback.previousChunk}
+          onFullscreen={handleFullscreen}
+          onCompleteChunk={() => { playback.completeActiveChunk(); handleNextChunk(); }}
+          onNextChunk={handleNextChunk}
+          onPreviousChunk={handlePreviousChunk}
           hasNext={playback.hasNext}
           hasPrevious={playback.hasPrevious}
         />
@@ -294,14 +320,14 @@ export function Play() {
         <div className={styles.navRow}>
           <button
             className={styles.navBtnMobile}
-            onClick={playback.previousChunk}
+            onClick={handlePreviousChunk}
             disabled={!playback.hasPrevious}
           >
             ← Previous
           </button>
           <button
             className={styles.navBtnMobile}
-            onClick={playback.nextChunk}
+            onClick={handleNextChunk}
             disabled={!playback.hasNext}
           >
             Next →
@@ -313,10 +339,12 @@ export function Play() {
 
   return (
     <div
+      ref={playContainerRef}
       className={styles.play}
       onWheel={handleWheel}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
     >
       {/* Dedicated top-right back button to exit play & fullscreen */}
       <button
@@ -330,7 +358,9 @@ export function Play() {
       </button>
 
       {/* PlayerSurface — always rendered for YouTube iframe mounting */}
-      <PlayerSurface containerRef={playback.playerContainerRef}>{desktopOverlays}</PlayerSurface>
+      <div className={`${styles.surfaceContainer} ${animationClass}`}>
+        <PlayerSurface containerRef={playback.playerContainerRef}>{desktopOverlays}</PlayerSurface>
+      </div>
 
       {/* Mobile portrait layout — shown only on ≤768px, overlays video in normal flow */}
       <div className={styles.mobileControlsOverlay}>

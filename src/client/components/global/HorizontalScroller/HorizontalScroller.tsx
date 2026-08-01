@@ -20,6 +20,10 @@ export function HorizontalScroller({
 
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const startX = useRef(0);
+  const scrollLeft = useRef(0);
 
   function updateButtons() {
     const viewport = viewportRef.current;
@@ -72,6 +76,29 @@ export function HorizontalScroller({
     };
   }, []);
 
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    setIsDragging(true);
+    startX.current = e.pageX - (viewportRef.current?.offsetLeft || 0);
+    scrollLeft.current = viewportRef.current?.scrollLeft || 0;
+  };
+
+  const handlePointerLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handlePointerUp = () => {
+    setIsDragging(false);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging || !viewportRef.current) return;
+    e.preventDefault();
+    const x = e.pageX - (viewportRef.current.offsetLeft || 0);
+    const walk = (x - startX.current) * 1.5;
+    viewportRef.current.scrollLeft = scrollLeft.current - walk;
+  };
+
   return (
     <div className={`${styles.wrapper} ${className ?? ''}`}>
       <div className={styles.viewportWrapper}>
@@ -88,7 +115,12 @@ export function HorizontalScroller({
 
         <div
           ref={viewportRef}
-          className={styles.viewport}
+          className={`${styles.viewport} ${isDragging ? styles.dragging : ''}`}
+          onPointerDown={handlePointerDown}
+          onPointerLeave={handlePointerLeave}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          onPointerMove={handlePointerMove}
         >
           <div className={styles.track}>{children}</div>
         </div>

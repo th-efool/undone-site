@@ -10,10 +10,17 @@
   justify-content: space-between;
 
   height: 6px;
+  margin: 16px 0; /* Add padding via margin to increase hitbox area */
 
   border-radius: 999px;
 
   background: rgba(255, 255, 255, 0.12);
+}
+
+.timeline {
+  width: 100%;
+  padding: 16px 0; /* Expand hitbox */
+  margin: -16px 0;
 }
 
 .progress {

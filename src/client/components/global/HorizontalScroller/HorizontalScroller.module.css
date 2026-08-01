@@ -14,6 +14,14 @@
   -ms-overflow-style: none;
 
   scroll-behavior: smooth;
+  touch-action: pan-y pinch-zoom;
+  cursor: grab;
+}
+
+.viewport.dragging {
+  cursor: grabbing;
+  scroll-behavior: auto;
+  user-select: none;
 }
 
 .viewport::-webkit-scrollbar {

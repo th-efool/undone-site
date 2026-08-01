@@ -366,6 +366,38 @@
 }
 
 .topRightBackButton:active {
-  transform: scale(0.94);
-  background: rgba(15, 23, 42, 0.9);
-}
+  transform: scale(0.96);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Video Feed Animations */
+@keyframes slideInUp {
+  0% {
+    transform: translateY(100%);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInDown {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animateSlideUp {
+  animation: slideInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animateSlideDown {
+  animation: slideInDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}. s u r f a c e C o n t a i n e r   {   w i d t h :   1 0 0 % ;   h e i g h t :   1 0 0 % ;   }  
+ 
