@@ -43,6 +43,8 @@
   box-shadow: none;
   outline: 0;
   font-weight: 700;
+  /* F1: Prevent iOS auto-zoom on input focus */
+  font-size: 16px !important;
 }
 
 .input :global(input:focus),
@@ -258,15 +260,33 @@
   to { transform: scale(1); }
 }
 
-@media (max-width: 760px) {
-  .composer {
-    padding: 12px 16px 18px;
+/* F3: Emoji picker → bottom sheet on narrow mobile screens */
+@media (max-width: 480px) {
+  .emoji {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 100;
+    width: 100%;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding: 24px 32px;
+    border-radius: 20px 20px 0 0;
+    background: #fff;
+    box-shadow: 0 -8px 40px rgba(15, 23, 42, 0.2);
+    grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
+    justify-content: center;
   }
 
-  .input {
-    min-width: 0;
+  .emoji button {
+    width: 48px;
+    height: 48px;        /* ≥ 48 px touch target — F3 */
+    font-size: 1.5rem;
+    border-radius: 12px;
   }
 }
+
 /* Kill PillInput focus ring inside the composer */
 .input:focus-within {
   border-color: var(--message-border-strong) !important;

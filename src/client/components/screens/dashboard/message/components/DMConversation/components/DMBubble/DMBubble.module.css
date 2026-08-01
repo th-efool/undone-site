@@ -93,7 +93,14 @@
   font-weight: 800;
 }
 
-/* Batch C: Quick-reaction bar */
+/* Batch E3: Context menu icon alignment */
+.menuIcon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+/* Batch C / E3: Quick-reaction bar */
 .quickReactions {
   display: flex;
   gap: 2px;

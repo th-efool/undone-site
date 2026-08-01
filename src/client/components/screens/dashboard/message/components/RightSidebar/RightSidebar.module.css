@@ -1,3 +1,4 @@
+/* G2: Reduced visual weight — secondary panel */
 .sidebar {
   display: flex;
   flex-direction: column;
@@ -5,13 +6,17 @@
   width: 360px;
   min-width: 320px;
   padding: 104px 24px 24px 0;
-}
-.sidebar {
+
   height: 100vh;
   min-height: 0;
   overflow: auto;
   scrollbar-width: none;
+
+  /* G2: Lighter visual presence — secondary to Center panel */
+  background: rgb(255 255 255 / 65%);
+  border-left: 1px solid var(--message-border, rgb(18 25 54 / 5%));
 }
+
 .sidebar::-webkit-scrollbar {
   display: none;
 }

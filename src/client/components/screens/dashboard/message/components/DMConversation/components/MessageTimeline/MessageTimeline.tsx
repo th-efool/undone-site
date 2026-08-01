@@ -12,9 +12,11 @@ interface Props {
   onScrollChange(scrollTop: number): void;
   /** Batch C: Reply trigger */
   onReply?(messageId: string, senderName: string, previewText: string): void;
+  /** Batch E3: Delete message */
+  onDeleteMessage?(messageId: string): void;
 }
 
-export function MessageTimeline({ conversation, scrollTop, onScrollChange, onReply }: Props) {
+export function MessageTimeline({ conversation, scrollTop, onScrollChange, onReply, onDeleteMessage }: Props) {
   const viewportRef = useRef<HTMLElement>(null);
   const previousCountRef = useRef(0);
 
@@ -47,13 +49,18 @@ export function MessageTimeline({ conversation, scrollTop, onScrollChange, onRep
               message={message}
               user={conversation.user}
               onReply={onReply}
+              onDeleteMessage={onDeleteMessage}
             />
           </div>
         ))
       ) : (
         <EmptyState
-          title="No DMs yet"
-          message="Send a note, resource, or quick checkpoint to begin."
+          title={`Start a conversation with ${conversation.user.name.split(' ')[0]} 👋`}
+          message={
+            conversation.user.role === 'Group DM'
+              ? `Say hello to the team!`
+              : `Send a note, resource, or quick checkpoint to begin.`
+          }
         />
       )}
     </section>

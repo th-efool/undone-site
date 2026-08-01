@@ -22,6 +22,8 @@ interface Props {
   onReply?(messageId: string, senderName: string, previewText: string): void;
   isTyping?: boolean;
   typingUsernames?: string[];
+  // Batch E3: Delete message
+  onDeleteMessage?(messageId: string): void;
 }
 
 export function DMConversation({
@@ -38,6 +40,7 @@ export function DMConversation({
   onReply,
   isTyping = false,
   typingUsernames = [],
+  onDeleteMessage,
 }: Props) {
   const [aboutOpen, setAboutOpen] = useState(false);
   const shellRef = useRef<HTMLDivElement>(null);
@@ -75,6 +78,7 @@ export function DMConversation({
           scrollTop={scrollTop}
           onScrollChange={onScrollChange}
           onReply={onReply}
+          onDeleteMessage={onDeleteMessage}
         />
         {/* Batch C: Reply banner + typing indicator */}
         <DMComposer

@@ -63,9 +63,15 @@
   font-size: 0.94rem;
 }
 
+/* F1: Use dynamic viewport + safe-area on mobile for sticky composer */
 @media (max-width: 768px) {
   .message {
     height: calc(100dvh - var(--bottom-nav-height, 60px));
     overflow: hidden;
+  }
+
+  /* Ensure children use dvh for keyboard-aware layout */
+  .message > * {
+    min-height: 0;
   }
 }

@@ -144,3 +144,34 @@
     padding: var(--space-3, 12px) var(--space-4, 16px);
   }
 }
+
+/* F5: Ensure text truncation on narrow screens (e.g. 360 px devices) */
+@media (max-width: 480px) {
+  .top strong {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    min-width: 0;
+  }
+
+  .item p {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+    margin: 3px 0 4px;
+  }
+
+  .meta {
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  /* Ensure avatar doesn't cause wrapping */
+  .item img {
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+  }
+}

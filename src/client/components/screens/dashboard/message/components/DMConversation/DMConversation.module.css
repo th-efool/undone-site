@@ -25,27 +25,22 @@
   }
 }
 @media (max-width: 760px) {
-  .dm {
-    min-width: 0;
-    height: 100vh;
-    min-height: 0;
-  }
-  .main {
-    max-height: none;
-    height: 100vh;
-    min-height: 0;
-  }
+  .dm { min-width: 0; height: 100vh; min-height: 0; }
+  .main   { max-height: none; height: 100vh; min-height: 0; }
 }
 
+/* F1 + Batch C: Mobile layout — consolidate into single breakpoint */
 @media (max-width: 768px) {
   .dm {
     width: 100%;
     height: 100%;
   }
   .main {
-    /* Batch C: Sticky composer above keyboard */
+    /* Sticky composer above keyboard — F1 */
     position: relative;
     overflow-y: auto;
+    height: 100dvh;            /* dynamic viewport for keyboard awareness */
+    min-height: 0;
     padding-bottom: env(safe-area-inset-bottom, 12px);
   }
 }

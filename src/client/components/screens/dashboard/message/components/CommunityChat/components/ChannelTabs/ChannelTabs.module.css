@@ -53,6 +53,9 @@
     overflow-x: auto;
     flex-wrap: nowrap;
     scrollbar-width: none;
+    /* F4: Right-edge gradient fade to indicate more content */
+    mask-image: linear-gradient(to right, transparent 0%, #000 calc(100% - 48px), #fff);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 calc(100% - 48px), #fff);
   }
   .tabs::-webkit-scrollbar { display: none; }
   .tabs button {

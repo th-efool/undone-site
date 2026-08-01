@@ -79,6 +79,17 @@
     display: none;
   }
 }
+
+/* F2: Ensure back button meets ≥44px touch target on mobile */
+@media (max-width: 768px) {
+  .back, .actions button {
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 12px;
+  }
+}
 .actions {
   position: relative;
 }

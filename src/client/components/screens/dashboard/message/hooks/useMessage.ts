@@ -685,6 +685,14 @@ export function useMessage() {
     [dmConversations],
   );
 
+  // Batch E3: Delete DM message (outgoing only)
+  const deleteDMMessage = useCallback((conversationId: string, messageId: string) => {
+    setDMMessages((current) => ({
+      ...current,
+      [conversationId]: (current[conversationId] ?? []).filter((msg) => msg.id !== messageId),
+    }));
+  }, []);
+
   // Batch A: Pin/Unpin conversation
   const togglePinConversation = useCallback((id: string) => {
     setPinnedConversations((prev) => {
@@ -757,6 +765,8 @@ export function useMessage() {
       uploadCommunityAttachment,
       toggleCommunityReaction,
       uploadDMAttachment,
+      // Batch E3: Delete DM message
+      deleteDMMessage,
       // Batch A: New actions
       togglePinConversation,
       muteConversation,
