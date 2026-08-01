@@ -89,12 +89,15 @@ export function CapacitorBridge() {
       };
 
       const backButtonHandle = await App.addListener('backButton', ({ canGoBack }: { canGoBack: boolean }) => {
+        // Prevent closing app if a modal/scrim is open - just go back
+        const hasOpenModal = document.querySelector('.modal') || document.querySelector('.scrim');
+
         if (window.location.pathname.startsWith('/play')) {
           router.push('/home');
           return;
         }
 
-        if (canGoBack) {
+        if (hasOpenModal || canGoBack) {
           window.history.back();
           return;
         }
@@ -115,9 +118,9 @@ export function CapacitorBridge() {
     };
   }, [router]);
 
-  // Route-based orientation locking & fullscreen mode:
-  // - /play → lock landscape & request fullscreen (status/nav bars hidden)
-  // - all other routes → lock portrait & exit fullscreen
+  // Route-based orientation locking & fullscreen & status bar mode:
+  // - /play → lock landscape & request fullscreen & hide/dark status bar
+  // - all other routes → lock portrait & exit fullscreen & light status bar
   useEffect(() => {
     if (!pathname) return;
 
@@ -140,18 +143,28 @@ export function CapacitorBridge() {
 
     void (async () => {
       try {
-        // @ts-ignore
-        const capOrientation = await import('@capacitor/screen-orientation');
+        const [capOrientation, capStatusBar] = await Promise.all([
+          import('@capacitor/screen-orientation').catch(() => null),
+          import('@capacitor/status-bar').catch(() => null),
+        ]);
+        
         const ScreenOrientation = capOrientation?.ScreenOrientation;
-        if (ScreenOrientation && !cancelled) {
+        const StatusBar = capStatusBar?.StatusBar;
+        const Style = capStatusBar?.Style;
+
+        if (!cancelled) {
           if (isPlay) {
-            await ScreenOrientation.lock({ orientation: 'landscape' }).catch(() => {});
+            await ScreenOrientation?.lock({ orientation: 'landscape' }).catch(() => {});
+            await StatusBar?.setStyle({ style: Style?.Dark }).catch(() => {});
+            await StatusBar?.hide().catch(() => {});
           } else {
-            await ScreenOrientation.lock({ orientation: 'portrait' }).catch(() => {});
+            await ScreenOrientation?.lock({ orientation: 'portrait' }).catch(() => {});
+            await StatusBar?.setStyle({ style: Style?.Light }).catch(() => {});
+            await StatusBar?.show().catch(() => {});
           }
         }
       } catch {
-        // No screen-orientation plugin available — continue without it
+        // Continue if plugins fail
       }
     })();
 

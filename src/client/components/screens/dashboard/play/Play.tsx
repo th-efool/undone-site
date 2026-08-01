@@ -184,6 +184,35 @@ export function Play() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [playback]);
 
+  // Handle KeepAwake for native app
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const capKeepAwake = await import('@capacitor-community/keep-awake');
+        const KeepAwake = capKeepAwake.KeepAwake;
+        if (!cancelled && KeepAwake) {
+          if (playback.isPlaying) {
+            await KeepAwake.keepAwake().catch(() => {});
+          } else {
+            await KeepAwake.allowSleep().catch(() => {});
+          }
+        }
+      } catch {
+        // Ignore if plugin fails or not native
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      // Ensure we always allow sleep on unmount
+      import('@capacitor-community/keep-awake')
+        .then(({ KeepAwake }) => KeepAwake?.allowSleep().catch(() => {}))
+        .catch(() => {});
+    };
+  }, [playback.isPlaying]);
+
   // ── Desktop overlay elements (rendered inside PlayerSurface on desktop) ─
   const desktopOverlays = (
     <>

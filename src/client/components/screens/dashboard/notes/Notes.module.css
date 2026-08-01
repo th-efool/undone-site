@@ -896,6 +896,11 @@
   background: var(--color-surface) !important;
 }
 
+[data-platform="app"] .panel,
+[data-platform="app"] .topbar {
+  padding-top: max(8px, env(safe-area-inset-top, 16px)) !important;
+}
+
 [data-platform="app"] .mobileBackBtn {
   margin-bottom: 4px !important;
 }

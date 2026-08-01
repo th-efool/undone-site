@@ -23,14 +23,40 @@ export function Sidebar() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
+    // Use Web Fallback if Capacitor isn't ready
     const vv = window.visualViewport;
-    if (!vv) return;
-    const handler = () => {
-      const keyboardOpen = vv.height < window.innerHeight * 0.75;
+    const webHandler = () => {
+      const keyboardOpen = vv ? vv.height < window.innerHeight * 0.75 : false;
       sidebarRef.current?.classList.toggle(styles.keyboardHidden, keyboardOpen);
     };
-    vv.addEventListener('resize', handler);
-    return () => vv.removeEventListener('resize', handler);
+
+    if (vv) vv.addEventListener('resize', webHandler);
+
+    // Native Capacitor Keyboard hook
+    void (async () => {
+      try {
+        const capKeyboard = await import('@capacitor/keyboard');
+        const Keyboard = capKeyboard.Keyboard;
+        
+        if (!cancelled && Keyboard) {
+          await Keyboard.addListener('keyboardWillShow', () => {
+            sidebarRef.current?.classList.add(styles.keyboardHidden);
+          });
+          await Keyboard.addListener('keyboardWillHide', () => {
+            sidebarRef.current?.classList.remove(styles.keyboardHidden);
+          });
+        }
+      } catch {
+        // Fallback to webHandler
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (vv) vv.removeEventListener('resize', webHandler);
+    };
   }, []);
 
   return (

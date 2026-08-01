@@ -58,7 +58,7 @@
 /* ============================================ */
 
 [data-platform="app"] .home {
-  padding: 6px 8px 6px !important;
+  padding: max(6px, env(safe-area-inset-top, 6px)) 8px 6px !important;
   gap: 10px !important;
 }
 
