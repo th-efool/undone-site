@@ -8,14 +8,14 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.yourcompany.sidequesthq"
+    namespace = "com.sidequesthq.in"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.yourcompany.sidequesthq"
+        applicationId "com.sidequesthq.in"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode 6
+        versionName "1.5.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.

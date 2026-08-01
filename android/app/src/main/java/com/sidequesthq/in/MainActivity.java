@@ -1,4 +1,4 @@
-package com.yourcompany.sidequesthq;
+package com.sidequesthq.in;
 
 import android.os.Bundle;
 

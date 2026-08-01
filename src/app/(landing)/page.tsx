@@ -1,18 +1,35 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Hero } from '@/src/client/components/screens/landing/01-hero';
 import { Ikigai } from '@/src/client/components/screens/landing/02-ikigai';
-import { Problem } from '@/src/client/components/screens/landing/03-problem';
-import { Community } from '@/src/client/components/screens/landing/04-community';
-import { Features } from '@/src/client/components/screens/landing/05-Features';
 import { Footer } from '@/src/client/components/screens/landing/06-footer';
 
-export default function landing() {
+function isCapacitorNative(): boolean {
+  return typeof window !== 'undefined' && Boolean((window as any).Capacitor?.isNativePlatform?.());
+}
+
+export default function Landing() {
+  const router = useRouter();
+  const [isNative, setIsNative] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    if (isCapacitorNative()) {
+      router.replace('/home');
+    } else {
+      setIsNative(false);
+    }
+  }, [router]);
+
+  if (isNative === null) {
+    return null;
+  }
+
   return (
     <main className="overflow-x-hidden">
       <Hero />
       <Ikigai />
-      {/*<Problem/>
-            <Community/>
-            <Features/> */}
       <Footer />
     </main>
   );

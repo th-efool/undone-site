@@ -3,7 +3,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 const devServerUrl = process.env.CAPACITOR_DEV_SERVER_URL;
 
 const config: CapacitorConfig = {
-  appId: 'com.yourcompany.sidequesthq',
+  appId: 'com.sidequesthq.in',
   appName: 'SideQuestHQ',
   webDir: 'out',
   ...(devServerUrl
