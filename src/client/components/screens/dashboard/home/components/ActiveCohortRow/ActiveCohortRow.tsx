@@ -116,14 +116,17 @@ export function ActiveCohortRow({
       }}
       onDragEnd={() => setIsDraggingOver(false)}
     >
+      {/* Drag handle / reorder indicator */}
       <GripVertical
         className={styles.grip}
         size={18}
         strokeWidth={2.2}
       />
 
+      {/* Rank number – shows ordering + hints at reordering */}
       <span className={styles.rank}>{item.rank}</span>
 
+      {/* Thumbnail */}
       <Link href={getCohortHref(item.cohortId ?? item.id)}>
         <img
           className={styles.thumbnail}
@@ -132,6 +135,7 @@ export function ActiveCohortRow({
         />
       </Link>
 
+      {/* Course info: title, provider, minutes today */}
       <div className={styles.course}>
         <h3 className={styles.title}>
           <Link href={getCohortHref(item.cohortId ?? item.id)}>{item.title}</Link>
@@ -147,6 +151,7 @@ export function ActiveCohortRow({
         <p className={styles.today}>{item.minutesToday} min today</p>
       </div>
 
+      {/* Schedule button – hidden on mobile */}
       <div className={styles.popoverAnchor}>
         <button
           type="button"
@@ -188,6 +193,7 @@ export function ActiveCohortRow({
         )}
       </div>
 
+      {/* Daily Goal – hidden on mobile */}
       <div className={styles.dailyGoal}>
         <span>Daily Goal</span>
         <button
@@ -248,6 +254,7 @@ export function ActiveCohortRow({
         )}
       </div>
 
+      {/* Progress – hidden on mobile */}
       <div className={styles.progressCell}>
         <span>Progress</span>
         <div className={styles.progressRow}>
@@ -261,10 +268,12 @@ export function ActiveCohortRow({
         </div>
       </div>
 
+      {/* Pause button – text+icon on desktop, icon-only on mobile */}
       <div className={styles.popoverAnchor}>
         <button
           type="button"
-          className={styles.pauseButton}
+          className={`${styles.pauseButton} ${styles.pauseIcon}`}
+          aria-label={`Pause ${item.title}`}
           onClick={() => {
             setPauseOpen((open) => !open);
             setScheduleOpen(false);
@@ -273,10 +282,10 @@ export function ActiveCohortRow({
           }}
         >
           <Pause
-            size={14}
+            size={16}
             fill="currentColor"
           />
-          Pause
+          <span className={styles.pauseLabel}>Pause</span>
         </button>
 
         {pauseOpen && (
@@ -335,6 +344,7 @@ export function ActiveCohortRow({
         )}
       </div>
 
+      {/* More button */}
       <div className={styles.popoverAnchor}>
         <button
           type="button"

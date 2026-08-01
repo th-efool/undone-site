@@ -2,8 +2,9 @@
   display: flex;
   align-items: center;
 
-  min-width: 390px;
+  min-width: unset;
   max-width: 460px;
+  width: auto;
 
   padding: 14px 18px;
 
@@ -89,20 +90,29 @@
   opacity: 0.45;
 }
 
-@media (max-width: 768px) {
+/* ── Compact mode for mobile header merge ─────────────────────── */
+.card.compact {
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(12, 12, 14, 0.65);
+}
+
+.card.compact .title {
+  font-size: 1rem;
+}
+
+.card.compact .subtitle {
+  display: none; /* hide progress details in mobile header */
+}
+
+.card.compact .platformIcon {
+  width: 28px;
+  height: 28px;
+}
+
+/* ── Desktop media query (keep original behavior) ─────────────── */
+@media (min-width: 769px) {
   .card {
     min-width: unset;
-    max-width: 100%;
-    padding: 10px 12px;
-  }
-  .platformIcon {
-    width: 28px;
-    height: 28px;
-  }
-  .title {
-    font-size: 1rem;
-  }
-  .subtitle {
-    font-size: 0.8rem;
   }
 }

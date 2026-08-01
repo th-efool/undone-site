@@ -420,14 +420,78 @@
 }
 
 @media (max-width: 768px) {
+  /* Compact single-row mobile layout:
+     Grip | Rank | Thumbnail | Title/Info | Pause(icon) | More */
   .row {
-    grid-template-columns: 1fr;
-    padding: var(--mobile-card-padding);
+    grid-template-columns: 24px 30px 56px minmax(0, 1fr) 40px 40px;
+    gap: 8px;
+    padding: 10px var(--mobile-card-padding);
+    align-items: center;
+    min-height: auto;
   }
 
-  .schedule,
-  .pauseButton,
+  /* Hide desktop-only cells */
+  .dailyGoal,
+  .progressCell,
+  .row > .popoverAnchor:first-of-type, /* schedule */
+  .provider,
+  .today {
+    display: none !important;
+  }
+
+  /* Compact thumbnail for mobile row */
+  .thumbnail {
+    width: 56px;
+    height: 42px;
+    border-radius: 8px;
+  }
+
+  /* Tighter title area – single line max */
+  .course {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .title {
+    font-size: 13px;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Rank – compact circle */
+  .rank {
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+    border-radius: 8px;
+    margin-left: -4px;
+  }
+
+  /* Grip handle – subtle drag hint */
+  .grip {
+    opacity: 0.55;
+  }
+
+  /* Pause button – icon only on mobile */
+  .pauseButton {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+  }
+
+  .pauseLabel {
+    display: none;
+  }
+
+  /* More button stays as-is */
   .moreButton {
-    width: 100%;
+    width: 38px;
+    height: 38px;
   }
 }

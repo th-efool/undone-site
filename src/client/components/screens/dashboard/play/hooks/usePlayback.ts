@@ -399,6 +399,9 @@ export function usePlayback() {
 
   const timelineProgress = Math.min(100, Math.max(0, (currentTimeSeconds / Math.max(1, chunkDurationSeconds)) * 100));
 
+  const hasNext = currentIndex < feedItems.length - 1;
+  const hasPrevious = currentIndex > 0;
+
   const timelineMarkers: TimelineMarker[] = [
     { id: 'm1', position: 25, variant: 'checkpoint' },
     { id: 'm2', position: 60, variant: 'note' },
@@ -430,6 +433,8 @@ export function usePlayback() {
     lesson: lessonModel,
     timelineMarkers,
     timelineProgress,
+    hasNext,
+    hasPrevious,
     isPlaying,
     volume,
     muted,

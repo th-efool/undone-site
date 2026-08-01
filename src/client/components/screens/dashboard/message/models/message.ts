@@ -22,6 +22,7 @@ export interface ConversationPreview {
   hasMention?: boolean;
   pinned?: boolean;
   selected?: boolean;
+  mutedUntil?: number | null; // Batch A
 }
 
 export interface LiveSession {

@@ -1,4 +1,4 @@
-import { MessageCircle, UsersRound } from 'lucide-react';
+import { MessageCircle, UsersRound, X } from 'lucide-react';
 import { ConversationFilter, SidebarTab } from '../../../models';
 import styles from './SidebarFilters.module.css';
 
@@ -7,20 +7,28 @@ interface Props {
   filters: { id: ConversationFilter; label: string }[];
   selectedTab: SidebarTab;
   selectedFilter: ConversationFilter;
+  searchQuery: string;
   onTabChange(tab: SidebarTab): void;
   onFilterChange(filter: ConversationFilter): void;
+  onSearchClear?(): void;
+  onMarkAllRead?(): void;
 }
+
 const counts: Partial<Record<ConversationFilter, number>> = {
   unread: 59,
   mentions: 7,
 };
+
 export function SidebarFilters({
   tabs,
   filters,
   selectedTab,
   selectedFilter,
+  searchQuery,
   onTabChange,
   onFilterChange,
+  onSearchClear,
+  onMarkAllRead,
 }: Props) {
   return (
     <div className={styles.wrap}>
@@ -37,18 +45,34 @@ export function SidebarFilters({
           </button>
         ))}
       </div>
-      <div className={styles.chips}>
-        {filters.map((filter) => (
-          <button
-            key={filter.id}
-            type="button"
-            className={filter.id === selectedFilter ? styles.activeChip : ''}
-            onClick={() => onFilterChange(filter.id)}
-          >
-            {filter.label}
-            {counts[filter.id] && <span>{counts[filter.id]}</span>}
+      <div className={styles.chipsRow}>
+        <div className={styles.chips}>
+          {filters.map((filter) => (
+            <button
+              key={filter.id}
+              type="button"
+              className={filter.id === selectedFilter ? styles.activeChip : ''}
+              onClick={() => onFilterChange(filter.id)}
+            >
+              {filter.label}
+              {counts[filter.id] && <span>{counts[filter.id]}</span>}
+            </button>
+          ))}
+        </div>
+
+        {/* Clear search X — A7 */}
+        {searchQuery && onSearchClear && (
+          <button type="button" className={styles.clearBtn} onClick={onSearchClear} aria-label="Clear search">
+            <X size={14} />
           </button>
-        ))}
+        )}
+
+        {/* Mark all read — A2 */}
+        {onMarkAllRead && (
+          <button type="button" className={styles.markRead} onClick={onMarkAllRead}>
+            Mark all read
+          </button>
+        )}
       </div>
     </div>
   );

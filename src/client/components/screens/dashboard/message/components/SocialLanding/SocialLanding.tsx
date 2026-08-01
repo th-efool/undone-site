@@ -24,12 +24,16 @@ export function SocialLanding({ message }: Props) {
         selectedTab={message.selectedSidebarTab}
         selectedFilter={message.conversationFilter}
         conversations={message.conversations}
+        dmConversations={message.conversations.filter((c) => c.kind === 'dm')}
+        searchQuery={message.searchQuery}
         onTabChange={message.actions.setSelectedSidebarTab}
         onFilterChange={message.actions.setConversationFilter}
         onSelectConversation={(conv) => {
           message.actions.selectConversation(conv);
           if (isMobile) setMobileView('chat');
         }}
+        onSearchClear={() => message.actions.setSearchQuery('')}
+        onMarkAllRead={message.actions.markAllRead}
       />
 
       {message.view === 'community' && (

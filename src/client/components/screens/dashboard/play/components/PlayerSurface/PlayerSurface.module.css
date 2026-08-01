@@ -53,4 +53,10 @@
     border-radius: 0;
     height: 100dvh;
   }
+
+  /* Fix video overflow in portrait — remove cinematic zoom */
+  .videoWrapper {
+    top: 0 !important;
+    height: 100% !important;
+  }
 }

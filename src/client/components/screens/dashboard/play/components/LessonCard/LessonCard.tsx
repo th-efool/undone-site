@@ -6,11 +6,12 @@ import styles from './LessonCard.module.css';
 
 export interface LessonCardProps {
   lesson: Lesson;
+  compact?: boolean;
 }
 
-export function LessonCard({ lesson }: LessonCardProps) {
+export function LessonCard({ lesson, compact = false }: LessonCardProps) {
   return (
-    <div className={styles.card}>
+    <div className={`${styles.card}${compact ? ` ${styles.compact}` : ''}`}>
       <div className={styles.platform}>
         <div className={styles.platformIcon}>
           <Play

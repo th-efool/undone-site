@@ -7,10 +7,26 @@
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-standard);
 }
+
+/* Unread visual hierarchy — A3 */
+.item.unread {
+  background: rgba(206, 195, 255, 0.18); /* --message-brand-soft at low opacity */
+}
+
 .item:hover,
 .selected {
   background: var(--color-brand-subtle);
 }
+
+/* Unread items get slightly different hover — A3 */
+.item.unread:hover {
+  background: rgba(206, 195, 255, 0.32);
+}
+.item.unread.selected {
+  box-shadow: inset 3px 0 0 var(--message-brand);
+  background: linear-gradient(90deg, rgba(206, 195, 255, 0.32), #fff);
+}
+
 .item:first-child {
   border-top-left-radius: 14px;
   border-top-right-radius: 14px;
@@ -37,6 +53,12 @@
   justify-content: space-between;
   gap: 10px;
 }
+
+/* Bold unread names — A3 */
+.unreadName {
+  font-weight: 800 !important;
+}
+
 .top strong {
   font-size: 1rem;
   color: var(--color-text-primary);
@@ -87,6 +109,18 @@
   font-size: 0.72rem;
   font-weight: 800;
 }
+
+/* Muted badge — A6 */
+.mutedBadge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: var(--color-text-secondary);
+  font-style: normal;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
 .meta time {
   margin-left: auto;
 }

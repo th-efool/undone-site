@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, WheelEvent, TouchEvent } from 'react';
-import { X, Sparkles, ListVideo, Play as PlayIcon } from 'lucide-react';
+import { Play as PlayIcon } from 'lucide-react';
 import {
   LessonCard,
   LearningTimeline,
@@ -19,87 +19,38 @@ export function Play() {
   const scrollCooldownRef = useRef(false);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const touchStartY = useRef<number | null>(null);
-  const [orientationLocked, setOrientationLocked] = useState(false);
-
-  // Orientation lock for mobile — enforce landscape in app mode
-  useEffect(() => {
-    const isMobile = window.innerWidth <= 768;
-    const isInApp = document.documentElement.getAttribute('data-platform') === 'app';
-    
-    if (!isMobile) return;
-
-    const lockOrientation = async () => {
-      try {
-        // Try web API first
-        await (screen.orientation as any).lock('landscape');
-        setOrientationLocked(true);
-      } catch {
-        setOrientationLocked(false);
-      }
-    };
-    
-    // In app mode, also try Capacitor screen-orientation plugin
-    const lockCapacitorOrientation = async () => {
-      if (isInApp) {
-        try {
-          const ScreenOrientation = await import('@capacitor/screen-orientation');
-          if ((ScreenOrientation as any).ScreenOrientation) {
-            await (ScreenOrientation as any).ScreenOrientation.lock({ orientation: 'landscape' });
-            setOrientationLocked(true);
-          }
-        } catch {
-          // Plugin not installed, continue with web API fallback
-        }
-      }
-    };
-
-    lockOrientation();
-    lockCapacitorOrientation();
-    document.body.style.overflow = 'hidden';
-
-    // Monitor orientation changes and force landscape in app mode
-    const checkAndForceLandscape = () => {
-      if (!isMobile) return;
-      
-      const isPortrait = window.innerHeight > window.innerWidth;
-      if (isInApp && isPortrait && !orientationLocked) {
-        // Show rotation prompt or attempt to force landscape
-        document.documentElement.classList.add('portrait-mode');
-        lockOrientation();
-        lockCapacitorOrientation();
-      } else {
-        document.documentElement.classList.remove('portrait-mode');
-      }
-    };
-
-    checkAndForceLandscape();
-    window.addEventListener('resize', checkAndForceLandscape);
-    window.addEventListener('orientationchange', checkAndForceLandscape);
-
-    return () => {
-      try { (screen.orientation as any).unlock?.(); } catch {}
-      document.body.style.overflow = '';
-      document.documentElement.classList.remove('portrait-mode');
-      window.removeEventListener('resize', checkAndForceLandscape);
-      window.removeEventListener('orientationchange', checkAndForceLandscape);
-    };
-  }, [orientationLocked]);
+  const touchStartX = useRef<number | null>(null);
 
   const handleTouchStart = useCallback((e: TouchEvent<HTMLDivElement>) => {
     touchStartY.current = e.touches[0].clientY;
+    touchStartX.current = e.touches[0].clientX;
   }, []);
 
-  const handleTouchEnd = useCallback((e: TouchEvent<HTMLDivElement>) => {
-    if (touchStartY.current === null) return;
-    const deltaY = touchStartY.current - e.changedTouches[0].clientY;
-    touchStartY.current = null;
-    if (Math.abs(deltaY) < 50) return;
-    if (deltaY > 0) {
-      playback.nextChunk();
-    } else {
-      playback.previousChunk();
-    }
-  }, [playback]);
+  const handleTouchEnd = useCallback(
+    (e: TouchEvent<HTMLDivElement>) => {
+      if (touchStartY.current === null) return;
+      const deltaY = touchStartY.current - e.changedTouches[0].clientY;
+      const deltaX = touchStartX.current !== null ? touchStartX.current - e.changedTouches[0].clientX : 0;
+      touchStartY.current = null;
+      touchStartX.current = null;
+
+      // Horizontal swipe → skip (portrait mobile)
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+        if (deltaX > 0) playback.skipSeconds(10);
+        else playback.skipSeconds(-10);
+        return;
+      }
+
+      // Vertical swipe → next/prev chunk (existing behavior)
+      if (Math.abs(deltaY) < 50) return;
+      if (deltaY > 0) {
+        playback.nextChunk();
+      } else {
+        playback.previousChunk();
+      }
+    },
+    [playback],
+  );
 
   // Idle timer for UI fading
   const resetIdle = useCallback(() => {
@@ -173,77 +124,198 @@ export function Play() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [playback]);
 
-  return (
-    <div className={styles.play} onWheel={handleWheel} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
-      <PlayerSurface containerRef={playback.playerContainerRef}>
-        {/* Invisible Click Overlay for Play/Pause */}
-        <div 
-          style={{ position: 'absolute', inset: 0, zIndex: 2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-          onClick={playback.togglePlayback}
+  // ── Desktop overlay elements (rendered inside PlayerSurface on desktop) ─
+  const desktopOverlays = (
+    <>
+      {/* Invisible Click Overlay for Play/Pause */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 2,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+        onClick={playback.togglePlayback}
+      >
+        {!playback.isPlaying && (
+          <div
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              background: 'rgba(0,0,0,0.6)',
+              backdropFilter: 'blur(4px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}
+          >
+            <PlayIcon size={36} fill="currentColor" style={{ marginLeft: 6 }} />
+          </div>
+        )}
+      </div>
+
+      {/* Top-left lesson card */}
+      <div className={styles.lessonCardDesktop} style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease' }}>
+        <LessonCard lesson={playback.lesson} />
+      </div>
+
+      {/* Right floating toolbar */}
+      <div className={styles.toolbarDesktop} style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease' }}>
+        <PlayerToolbar
+          playbackSpeed={playback.playbackSpeed}
+          bookmarked={playback.bookmarked}
+          onBookmark={playback.toggleBookmark}
+          onSpeed={handleSpeedCycle}
+        />
+      </div>
+
+      {/* Timeline Scrubber */}
+      <div className={styles.timelineDesktop} style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease' }}>
+        <LearningTimeline
+          progress={playback.timelineProgress}
+          markers={playback.timelineMarkers}
+          onSeek={playback.seekToPercent}
+        />
+      </div>
+
+      {/* Bottom Playback Controls & Navigation */}
+      <div
+        className={styles.controlsDesktop}
+        style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease', pointerEvents: isIdle ? 'none' : 'auto' }}
+      >
+        <PlaybackControls
+          currentTime={playback.lesson.currentTime}
+          totalDuration={playback.lesson.totalDuration}
+          volume={playback.volume}
+          isPlaying={playback.isPlaying}
+          onPlayPause={playback.togglePlayback}
+          onSkipBack={() => playback.skipSeconds(-10)}
+          onSkipForward={() => playback.skipSeconds(10)}
+          onVolumeChange={playback.setVolume}
+          onCompleteChunk={playback.completeActiveChunk}
+          onNextChunk={playback.nextChunk}
+          onPreviousChunk={playback.previousChunk}
+          hasNext={playback.hasNext}
+          hasPrevious={playback.hasPrevious}
+        />
+      </div>
+    </>
+  );
+
+  // ── Mobile portrait controls (shown below video in portrait) ────────
+  const mobileControls = (
+    <>
+      {/* Lesson info header + merged toolbar actions */}
+      <div className={styles.mobileHeader}>
+        <LessonCard lesson={playback.lesson} compact />
+        <div className={styles.toolbarActions}>
+          <button
+            className={`${styles.toolbarBtn} ${playback.bookmarked ? styles.toolbarBtnActive : ''}`}
+            onClick={playback.toggleBookmark}
+            aria-label="Toggle bookmark"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill={playback.bookmarked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          </button>
+          <button className={styles.toolbarBtn} onClick={handleSpeedCycle} aria-label="Toggle speed">
+            <span className={styles.speedLabel}>{playback.playbackSpeed}x</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Timeline Scrubber */}
+      <div className={styles.mobileTimeline}>
+        <LearningTimeline
+          progress={playback.timelineProgress}
+          markers={playback.timelineMarkers}
+          onSeek={playback.seekToPercent}
+        />
+      </div>
+
+      {/* Playback Controls — touch-friendly grid */}
+      <div className={styles.mobileControls}>
+        <div className={styles.controlRowMain}>
+          <button
+            className={`${styles.skipBtn} ${styles.skipBack}`}
+            onClick={() => playback.skipSeconds(-10)}
+            aria-label="Rewind 10s"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+            <span className={styles.skipLabel}>10</span>
+          </button>
+
+          <button
+            className={styles.playBtn}
+            onClick={playback.togglePlayback}
+            aria-label={playback.isPlaying ? 'Pause' : 'Play'}
+          >
+            {playback.isPlaying ? (
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            ) : (
+              <PlayIcon size={36} fill="currentColor" style={{ marginLeft: 2 }} />
+            )}
+          </button>
+
+          <button
+            className={`${styles.skipBtn} ${styles.skipForward}`}
+            onClick={() => playback.skipSeconds(10)}
+            aria-label="Forward 10s"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+            <span className={styles.skipLabel}>10</span>
+          </button>
+        </div>
+
+        <div className={styles.timeDisplay}>{playback.lesson.currentTime} / {playback.lesson.totalDuration}</div>
+
+        <button
+          className={styles.doneBtnFull}
+          onClick={playback.completeActiveChunk}
         >
-          {/* Custom Pause Overlay Icon */}
-          {!playback.isPlaying && (
-            <div style={{
-              width: 80, height: 80, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
-              boxShadow: '0 8px 32px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)',
-              animation: 'pulse 2s infinite ease-in-out'
-            }}>
-              <PlayIcon size={36} fill="currentColor" style={{ marginLeft: 6 }} />
-            </div>
-          )}
-        </div>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Mark Done
+        </button>
 
-        {/* Top-left lesson card */}
-        <div className={styles.lessonCard} style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease' }}>
-          <LessonCard lesson={playback.lesson} />
+        <div className={styles.navRow}>
+          <button
+            className={styles.navBtnMobile}
+            onClick={playback.previousChunk}
+            disabled={!playback.hasPrevious}
+          >
+            ← Previous
+          </button>
+          <button
+            className={styles.navBtnMobile}
+            onClick={playback.nextChunk}
+            disabled={!playback.hasNext}
+          >
+            Next →
+          </button>
         </div>
+      </div>
+    </>
+  );
 
-        {/* Right floating toolbar */}
-        <div className={styles.toolbar} style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease' }}>
-          <PlayerToolbar
-            playbackSpeed={playback.playbackSpeed}
-            bookmarked={playback.bookmarked}
-            onBookmark={playback.toggleBookmark}
-            onSpeed={handleSpeedCycle}
-          />
-        </div>
+  return (
+    <div
+      className={styles.play}
+      onWheel={handleWheel}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* PlayerSurface — always rendered for YouTube iframe mounting */}
+      <PlayerSurface containerRef={playback.playerContainerRef}>{desktopOverlays}</PlayerSurface>
 
-        {/* Timeline Scrubber */}
-        <div className={styles.timeline} style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease' }}>
-          <LearningTimeline
-            progress={playback.timelineProgress}
-            markers={playback.timelineMarkers}
-            onSeek={playback.seekToPercent}
-          />
-        </div>
-
-        {/* Bottom Playback Controls & Navigation */}
-        <div className={styles.controls} style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease', pointerEvents: isIdle ? 'none' : 'auto' }}>
-          <PlaybackControls
-            currentTime={playback.lesson.currentTime}
-            totalDuration={playback.lesson.totalDuration}
-            volume={playback.volume}
-            isPlaying={playback.isPlaying}
-            onPlayPause={playback.togglePlayback}
-            onSkipBack={() => playback.skipSeconds(-10)}
-            onSkipForward={() => playback.skipSeconds(10)}
-            onVolumeChange={playback.setVolume}
-            onCompleteChunk={playback.completeActiveChunk}
-            onNextChunk={playback.nextChunk}
-            onPreviousChunk={playback.previousChunk}
-            hasNext={playback.currentIndex < playback.feedItems.length - 1}
-            hasPrevious={playback.currentIndex > 0}
-          />
-        </div>
-
-        {/* Rotation prompt overlay — shown only in app mode when stuck in portrait */}
-        <div className={styles.rotationPrompt} data-rotation-prompt="true">
-          <div style={{ fontSize: '64px', marginBottom: '16px' }}>📱</div>
-          <h2 style={{ margin: 0, fontSize: '1.5rem' }}>Rotate Your Device</h2>
-          <p style={{ opacity: 0.8, margin: 0, fontSize: '0.95rem' }}>This lesson is best viewed in landscape mode for the full experience.</p>
-        </div>
-      </PlayerSurface>
+      {/* Mobile portrait layout — shown only on ≤768px, overlays video in normal flow */}
+      <div className={styles.mobileControlsOverlay}>
+        {mobileControls}
+      </div>
     </div>
   );
 }

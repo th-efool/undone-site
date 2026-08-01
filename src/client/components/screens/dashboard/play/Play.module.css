@@ -6,7 +6,8 @@
   box-sizing: border-box;
 }
 
-.lessonCard {
+/* ── Desktop overlay elements (inside PlayerSurface) ─────────────── */
+.lessonCardDesktop {
   position: absolute;
   top: 36px;
   left: 36px;
@@ -31,7 +32,7 @@
   width: fit-content;
 }
 
-.toolbar {
+.toolbarDesktop {
   position: absolute;
   top: 50%;
   right: 32px;
@@ -39,7 +40,7 @@
   z-index: 20;
 }
 
-.timeline {
+.timelineDesktop {
   position: absolute;
   right: 36px;
   bottom: 84px;
@@ -47,7 +48,7 @@
   z-index: 15;
 }
 
-.controls {
+.controlsDesktop {
   position: absolute;
   right: 36px;
   bottom: 28px;
@@ -55,83 +56,10 @@
   z-index: 15;
 }
 
-.notesPanel {
+/* Hide these — kept for backward compat with queue/notes */
+.notesPanel, .queueDrawer {
   position: absolute;
-  top: 100px;
-  right: 100px;
-  width: 320px;
-  padding: 16px;
-  background: rgba(15, 23, 42, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  backdrop-filter: blur(16px);
-  z-index: 25;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
-}
-
-.notesHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.notesTextarea {
-  width: 100%;
-  height: 120px;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
-  color: #fff;
-  font-family: inherit;
-  font-size: 0.85rem;
-  resize: none;
-  outline: none;
-}
-
-.notesTextarea:focus {
-  border-color: var(--color-brand);
-}
-
-.queueDrawer {
-  position: absolute;
-  top: 100px;
-  left: 36px;
-  max-height: calc(100vh - 240px);
-  width: 280px;
-  padding: 14px;
-  background: rgba(15, 23, 42, 0.92);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  backdrop-filter: blur(16px);
-  z-index: 25;
-  overflow-y: auto;
-  color: #fff;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
-}
-
-.queueItem {
-  padding: 8px 10px;
-  border-radius: 8px;
-  cursor: pointer;
-  margin-bottom: 6px;
-  transition: background-color 150ms ease;
-  font-size: 0.82rem;
-}
-
-.queueItem:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.activeQueueItem {
-  background: rgba(96, 165, 250, 0.2);
-  border-left: 3px solid #60a5fa;
+  display: none;
 }
 
 .closeBtn {
@@ -144,6 +72,12 @@
   color: #fff;
 }
 
+/* ── Mobile portrait overlay stack (below video) ─────────────────── */
+.mobileControlsOverlay {
+  display: none; /* hidden on desktop */
+}
+
+/* ── Mobile layout (≤768px) ──────────────────────────────────────── */
 @media (max-width: 768px) {
   .play {
     width: 100vw;
@@ -152,92 +86,254 @@
     position: fixed;
     inset: 0;
     z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .lessonCard {
-    top: 12px;
-    left: 12px;
-    max-width: 55%;
+  /* ── PlayerSurface on mobile: hide the video, keep iframe mounted ─ */
+  .play :global(.surface) {
+    position: relative !important;
+    height: auto !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
   }
 
-  .toolbar {
-    top: auto;
-    right: 12px;
-    bottom: 80px;
-    transform: none;
+  /* Hide the YouTube video layer — iframe still mounts, just invisible */
+  .play :global(.videoWrapper) {
+    top: 0 !important;
+    height: auto !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
 
-  .timeline {
-    left: 12px;
-    right: 12px;
-    bottom: 56px;
+  /* Hide the surface overlay gradient */
+  .play :global(.surfaceOverlay) {
+    display: none !important;
   }
 
-  .controls {
-    left: 12px;
-    right: 12px;
-    bottom: 8px;
+  /* Desktop overlays hidden on mobile (they're inside surface) */
+  .lessonCardDesktop,
+  .toolbarDesktop,
+  .timelineDesktop,
+  .controlsDesktop {
+    display: none !important;
   }
 
-  .queueDrawer {
-    top: auto;
-    left: 0;
-    right: 0;
-    bottom: 0;
+  /* Show the mobile controls overlay stack */
+  .mobileControlsOverlay {
+    display: flex !important;
+    flex-direction: column;
     width: 100%;
-    max-height: 50vh;
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    position: relative;
+    z-index: 50;
   }
 
-  .notesPanel {
-    top: auto;
-    right: 0;
-    left: 0;
-    bottom: 0;
+  /* ── Mobile header (lesson info + merged toolbar) ──────────────── */
+  .mobileHeader {
     width: 100%;
-    max-height: 50vh;
-    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    padding: 12px 14px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    background: var(--color-background);
+    box-sizing: border-box;
   }
 
-  .rotationPrompt {
-    display: none; /* Hidden by default */
+  .toolbarActions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
   }
-}
 
-/* ============================================ */
-/* APP-SPECIFIC PLAY FIXES (only in APK)        */
-/* Force landscape, hide on portrait rotation   */
-/* ============================================ */
+  .toolbarBtn {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+    color: rgba(255, 255, 255, 0.7);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 150ms ease, color 150ms ease;
+  }
 
-[data-platform="app"] body.portrait-mode .play {
-  display: none !important;
-}
+  .toolbarBtn:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+  }
 
-.rotation-prompt-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: rgba(0, 0, 0, 0.85);
-  color: white;
-  display: none; /* Shown only via JS in app mode */
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  text-align: center;
-  gap: 16px;
-  padding: 24px;
-}
+  .toolbarBtnActive {
+    color: var(--color-brand, #60a5fa);
+  }
 
-.rotation-prompt-overlay .rotate-icon {
-  font-size: 48px;
-  animation: rotateHint 2s ease-in-out infinite;
-}
+  .speedLabel {
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1;
+  }
 
-@keyframes rotateHint {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(-90deg); }
-}
+  /* ── Mobile timeline ─────────────────────────────────────────── */
+  .mobileTimeline {
+    width: 100%;
+    padding: 4px 16px 8px;
+    background: var(--color-background);
+    box-sizing: border-box;
+  }
 
-[data-platform="app"] body.portrait-mode .rotation-prompt-overlay {
-  display: flex !important;
+  /* ── Mobile controls container ───────────────────────────────── */
+  .mobileControls {
+    width: 100%;
+    padding: 4px 16px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: var(--color-background);
+    box-sizing: border-box;
+  }
+
+  /* Skip + Play row */
+  .controlRowMain {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+  }
+
+  /* Skip buttons (←10s / →10s) */
+  .skipBtn {
+    min-width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    transition: background-color 150ms ease, transform 100ms ease;
+  }
+
+  .skipBtn:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .skipBtn:active {
+    transform: scale(0.93);
+  }
+
+  .skipLabel {
+    font-size: 0.58rem;
+    font-weight: 700;
+    line-height: 1;
+    opacity: 0.7;
+  }
+
+  /* Main play/pause button */
+  .playBtn {
+    min-width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #fff;
+    border: none;
+    color: #050505;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    transition: transform 100ms ease, background-color 150ms ease;
+  }
+
+  .playBtn:hover {
+    background: #f0f0f0;
+  }
+
+  .playBtn:active {
+    transform: scale(0.94);
+  }
+
+  /* Time display */
+  .timeDisplay {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 0.02em;
+    user-select: none;
+  }
+
+  /* Mark Done — full-width primary CTA */
+  .doneBtnFull {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 12px;
+    background: #22c55e;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    transition: background-color 150ms ease, transform 100ms ease;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+  }
+
+  .doneBtnFull:hover {
+    background: #4ade80;
+  }
+
+  .doneBtnFull:active {
+    transform: scale(0.98);
+  }
+
+  /* Nav row (prev/next) */
+  .navRow {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    padding-top: 4px;
+  }
+
+  .navBtnMobile {
+    flex: 1;
+    min-height: 44px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.88rem;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    transition: background-color 150ms ease;
+  }
+
+  .navBtnMobile:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+  }
+
+  .navBtnMobile:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  /* ── Mobile queue drawer / notes panel (if ever shown) ─────────── */
 }

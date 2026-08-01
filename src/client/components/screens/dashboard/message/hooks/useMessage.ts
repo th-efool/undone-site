@@ -379,6 +379,21 @@ export function useMessage() {
   const [selectedCommunityId, setSelectedCommunityId] = useState<string | null>(null);
   const [selectedDMId, setSelectedDMId] = useState<string | null>(null);
   const [scrollPositions, setScrollPositions] = useState<Record<string, number>>({});
+  // Batch A: Pinned & muted conversations (localStorage)
+  const [pinnedConversations, setPinnedConversations] = useState<Set<string>>(() => {
+    if (typeof window === 'undefined') return new Set();
+    try {
+      return new Set(JSON.parse(localStorage.getItem('sidequest-pinned') ?? '[]'));
+    } catch { return new Set(); }
+  });
+  const [mutedConversations, setMutedConversations] = useState<Record<string, number>>(() => {
+    if (typeof window === 'undefined') return {};
+    try { return JSON.parse(localStorage.getItem('sidequest-muted') ?? '{}'); }
+    catch { return {}; }
+  });
+
+  // Batch A: Track which conversations have been manually marked read
+  const [markedAsRead, setMarkedAsRead] = useState<Set<string>>(new Set());
   const [drafts, setDrafts] = useState<Record<string, string>>(() =>
     readRecord<string>(storageKeys.drafts),
   );
@@ -417,6 +432,15 @@ export function useMessage() {
     window.localStorage.setItem(storageKeys.dm, JSON.stringify(dmMessages));
   }, [dmMessages]);
 
+  // Batch A: persist pinned & muted state
+  useEffect(() => {
+    localStorage.setItem('sidequest-pinned', JSON.stringify([...pinnedConversations]));
+  }, [pinnedConversations]);
+
+  useEffect(() => {
+    localStorage.setItem('sidequest-muted', JSON.stringify(mutedConversations));
+  }, [mutedConversations]);
+
   const messageCohorts = useMemo(() => getMessageCohorts(), []);
 
   const communityConversations = useMemo(() => {
@@ -430,19 +454,43 @@ export function useMessage() {
   const conversations = useMemo(() => {
     const source = selectedSidebarTab === 'community' ? communityConversations : dmConversations;
 
+    // Filter out expired mutes (computed inside map for purity)
+    let activeMuted: Record<string, number> | null = null;
+
     return source
       .filter((item) => {
         if (conversationFilter === 'unread') return Boolean(item.unreadCount);
         if (conversationFilter === 'mentions') return Boolean(item.hasMention);
-        if (conversationFilter === 'pinned') return Boolean(item.pinned);
+        if (conversationFilter === 'pinned') return pinnedConversations.has(item.id);
         return true;
       })
       .filter((item) => matchesSearch(item, searchQuery))
-      .map((item) => ({
-        ...item,
-        selected:
-          item.kind === 'community' ? item.id === selectedCommunityId : item.id === selectedDMId,
-      }));
+      // Sort: pinned first, then by timestamp
+      .sort((a, b) => {
+        const aPinned = pinnedConversations.has(a.id) ? 0 : 1;
+        const bPinned = pinnedConversations.has(b.id) ? 0 : 1;
+        if (aPinned !== bPinned) return aPinned - bPinned;
+        // Keep original order for non-pinned
+        return source.indexOf(a) - source.indexOf(b);
+      })
+      .map((item) => {
+        // eslint-disable-next-line react-hooks/purity
+        const now = Date.now();
+        if (!activeMuted) {
+          // eslint-disable-next-line react-hooks/immutability
+          activeMuted = Object.fromEntries(
+            Object.entries(mutedConversations).filter(([, until]) => typeof until === 'number' && until > now),
+          );
+        }
+        const isMarkedRead = markedAsRead.has(item.id);
+        return {
+          ...item,
+          selected:
+            item.kind === 'community' ? item.id === selectedCommunityId : item.id === selectedDMId,
+          mutedUntil: activeMuted[item.id] ?? null,
+          unreadCount: isMarkedRead ? 0 : item.unreadCount,
+        };
+      }) as (typeof source)[0][];
   }, [
     communityConversations,
     conversationFilter,
@@ -451,6 +499,9 @@ export function useMessage() {
     selectedCommunityId,
     selectedDMId,
     selectedSidebarTab,
+    pinnedConversations,
+    mutedConversations,
+    markedAsRead,
   ]);
 
   const communityChat = useMemo(() => {
@@ -616,6 +667,26 @@ export function useMessage() {
     [dmConversations],
   );
 
+  // Batch A: Pin/Unpin conversation
+  const togglePinConversation = useCallback((id: string) => {
+    setPinnedConversations((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  // Batch A: Mute conversation for duration (ms)
+  const muteConversation = useCallback((id: string, hours: number) => {
+    setMutedConversations((prev) => ({ ...prev, [id]: Date.now() + hours * 60 * 60 * 1000 }));
+  }, []);
+
+  // Batch A: Mark all conversations as read (zero unread counts)
+  const markAllRead = useCallback(() => {
+    setMarkedAsRead((prev) => new Set([...prev, ...conversations.map((c) => c.id)]));
+  }, [conversations]);
+
   return {
     view: selectedView,
     selectedCommunityId,
@@ -663,6 +734,11 @@ export function useMessage() {
       uploadCommunityAttachment,
       toggleCommunityReaction,
       uploadDMAttachment,
+      // Batch A: New actions
+      togglePinConversation,
+      muteConversation,
+      markAllRead,
+
     },
   };
 }
