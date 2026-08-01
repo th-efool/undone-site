@@ -1,17 +1,14 @@
 import type { Cohort } from '@/src/client/components/screens/cohort/models';
 import { cohortCatalog } from '@/src/client/mock/cohorts/cohortCatalog';
+import { feedCohorts } from '@/src/client/mock/cohorts/feedCohorts';
 import { LessonStatus, LessonType, SeasonStatus } from '@/src/client/components/screens/cohort/models';
-
-const LOCAL_STORAGE_KEY = 'sidequest_published_cohorts';
+import { isNativeApp } from '@/src/client/utils/isNative';
+import { storageAdapter } from './storageAdapter';
 
 function loadStoredCohorts(): Cohort[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as Cohort[];
-    // SANITIZE: Filter out any cohort IDs that belong to the static catalog
-    // so we don't accidentally treat mock data as user-published cohorts
+    const parsed = storageAdapter.getStoredCohorts();
     const catalogIds = new Set(cohortCatalog.map((c) => c.id));
     return parsed.filter((c) => !catalogIds.has(c.id));
   } catch {
@@ -21,11 +18,7 @@ function loadStoredCohorts(): Cohort[] {
 
 function saveStoredCohorts(cohorts: Cohort[]) {
   if (typeof window === 'undefined') return;
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(cohorts));
-  } catch (err) {
-    console.error('Failed to save cohort to localStorage', err);
-  }
+  storageAdapter.saveStoredCohorts(cohorts);
 }
 
 function parseDurationToSeconds(val: string): number {
@@ -67,7 +60,12 @@ class CohortStore {
     }
     const map = new Map<string, Cohort>();
     this.userCohorts.forEach((c) => map.set(c.id, c));
-    cohortCatalog.forEach((c) => {
+
+    // In native app mode, strictly surface user cohorts + 5 real data-backed cohorts.
+    // Exclude all dummy/fake mock catalog cohorts.
+    const activeCatalog = isNativeApp() ? feedCohorts : cohortCatalog;
+
+    activeCatalog.forEach((c) => {
       if (!map.has(c.id)) map.set(c.id, c);
     });
     return Array.from(map.values());

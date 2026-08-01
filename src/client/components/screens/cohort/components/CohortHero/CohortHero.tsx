@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { Play, Share2, MessageCircle, Star, Users, Bookmark } from 'lucide-react';
 
+import { isNativeApp } from '@/src/client/utils/isNative';
 import type { Cohort } from '../../models';
 
 import styles from './CohortHero.module.css';
@@ -10,6 +11,7 @@ interface CohortHeroProps {
 }
 
 export function CohortHero({ cohort }: CohortHeroProps) {
+  const isApp = isNativeApp();
   const currentQuest =
     cohort.questline.seasons
       .flatMap((season) => season.lessons)
@@ -100,9 +102,11 @@ export function CohortHero({ cohort }: CohortHeroProps) {
         </a>
 
         <div className={styles.actions}>
-          <a href={`/message?community=${cohort.id}`}>
-            <MessageCircle size={18} /> Discuss
-          </a>
+          {!isApp && (
+            <a href={`/message?community=${cohort.id}`}>
+              <MessageCircle size={18} /> Discuss
+            </a>
+          )}
           <button
             type="button"
             aria-label="Bookmark cohort"
