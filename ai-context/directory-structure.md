@@ -350,6 +350,9 @@
 │   │   │   │   ├── Navbar/
 │   │   │   │   │   ├── Navbar.module.css
 │   │   │   │   │   └── Navbar.tsx
+│   │   │   │   ├── NetworkOfflineIndicator/
+│   │   │   │   │   ├── NetworkOfflineIndicator.module.css
+│   │   │   │   │   └── NetworkOfflineIndicator.tsx
 │   │   │   │   ├── ProviderBadge/
 │   │   │   │   │   ├── ProviderBadge.module.css
 │   │   │   │   │   ├── ProviderBadge.tsx
@@ -1135,6 +1138,7 @@
 │   │   │           └── Text.tsx
 │   │   ├── hooks/
 │   │   │   ├── useIsMobile.ts
+│   │   │   ├── usePullToRefresh.ts
 │   │   │   ├── useSession.ts
 │   │   │   └── useSessions.ts
 │   │   ├── mock/
@@ -1158,6 +1162,7 @@
 │   │   │   ├── messagesRepository.ts
 │   │   │   └── storageAdapter.ts
 │   │   └── utils/
+│   │       ├── haptics.ts
 │   │       └── isNative.ts
 │   ├── server/
 │   │   ├── adapters/
@@ -1250,4 +1255,4 @@
 ├── sidequesthq-logo.webp
 └── tsconfig.json
 
-418 directories, 831 files
+419 directories, 835 files
