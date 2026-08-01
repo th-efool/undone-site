@@ -5,6 +5,11 @@
 │   └── workflows/
 │       └── update-directory-structure.yml
 ├── ai-context/
+│   ├── fun-project/
+│   │   ├── LICENSE
+│   │   ├── index.html
+│   │   ├── script.js
+│   │   └── styles.css
 │   ├── create-cohort-curriculum-plan.md
 │   ├── create-cohort-import-plan.md
 │   ├── create-cohort-intelligence-plan.md
@@ -12,6 +17,7 @@
 │   ├── create-cohort-plan.md
 │   ├── design-css-tokens.md
 │   ├── directory-structure.md
+│   ├── feed-system-plan.md
 │   ├── hero-section-guidelines.md
 │   └── youtube data api v3 details
 ├── public/
@@ -114,6 +120,14 @@
 │   ├── file.svg
 │   ├── globe.svg
 │   └── window.svg
+├── scratch/
+│   ├── build-real-feed-cohorts.mjs
+│   ├── gen-feed-log.txt
+│   ├── generate-feed-cohorts.mjs
+│   ├── import-feed-cohorts.mjs
+│   ├── test-feed-system.mjs
+│   ├── test-operating-systems-import.mjs
+│   └── test-real-feed.mjs
 ├── src/
 │   ├── app/
 │   │   ├── (auth)/
@@ -967,7 +981,8 @@
 │   │   │   └── useSessions.ts
 │   │   ├── mock/
 │   │   │   └── cohorts/
-│   │   │       └── cohortCatalog.ts
+│   │   │       ├── cohortCatalog.ts
+│   │   │       └── feedCohorts.ts
 │   │   ├── navigation/
 │   │   │   └── cohortLinks.ts
 │   │   ├── providers/
@@ -980,6 +995,7 @@
 │   │       ├── cohortRepository.ts
 │   │       ├── cohortStore.ts
 │   │       ├── exploreRepository.ts
+│   │       ├── feedRepository.ts
 │   │       ├── homeRepository.ts
 │   │       └── messagesRepository.ts
 │   ├── server/
@@ -1036,6 +1052,11 @@
 │       │   ├── curriculum.generator.ts
 │       │   ├── curriculum.types.ts
 │       │   └── index.ts
+│       ├── feed/
+│       │   ├── feedEngine.ts
+│       │   ├── feedEngine.types.ts
+│       │   ├── feedScoring.ts
+│       │   └── index.ts
 │       └── lib/
 │           ├── errors/
 │           │   └── AppError.ts
@@ -1058,4 +1079,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-345 directories, 712 files
+348 directories, 730 files
