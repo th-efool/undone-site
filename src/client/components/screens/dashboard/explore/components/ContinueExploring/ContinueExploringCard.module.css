@@ -112,3 +112,10 @@
 
   transition: width 300ms ease;
 }
+
+@media (max-width: 768px) {
+  .card {
+    flex: 0 0 260px;
+    padding: var(--mobile-card-padding);
+  }
+}

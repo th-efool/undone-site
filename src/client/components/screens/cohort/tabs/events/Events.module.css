@@ -346,3 +346,26 @@
     border-top-color: var(--cohort-border-soft, var(--color-border));
   }
 }
+
+@media (max-width: 768px) {
+  .page {
+    padding: var(--mobile-page-padding, 16px);
+    gap: var(--mobile-section-gap, 16px);
+  }
+  .main, .sideCard {
+    padding: var(--mobile-card-padding, 16px);
+  }
+  .eventCard {
+    grid-template-columns: 1fr;
+  }
+  .date {
+    height: auto;
+    padding: 8px;
+    flex-direction: row;
+    gap: 8px;
+  }
+  .actions {
+    grid-template-columns: 1fr;
+    padding: 12px 0 0;
+  }
+}

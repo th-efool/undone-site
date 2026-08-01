@@ -26,3 +26,41 @@
   background: var(--color-brand-subtle);
   border-radius: var(--radius-xl);
 }
+
+.label {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .item {
+    flex-direction: column;
+    width: auto;
+    height: auto;
+    min-width: var(--touch-target-min);
+    min-height: var(--touch-target-min);
+    padding: var(--space-1) var(--space-2);
+    gap: 2px;
+  }
+
+  .item svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: inherit;
+  }
+
+  .active {
+    background: var(--color-brand-soft);
+  }
+
+  .item:active {
+    transform: scale(0.92);
+    transition: transform 100ms ease;
+  }
+}

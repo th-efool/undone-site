@@ -75,3 +75,13 @@
     border: 1px solid var(--cohort-border-soft, var(--color-border));
   }
 }
+
+@media (max-width: 768px) {
+  .questline {
+    padding: var(--mobile-page-padding, 16px);
+    gap: var(--mobile-section-gap, 16px);
+  }
+  .mainCard {
+    padding: var(--mobile-card-padding, 16px);
+  }
+}

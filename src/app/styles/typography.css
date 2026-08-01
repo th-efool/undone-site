@@ -102,3 +102,25 @@ samp {
 .text-pretty {
   text-wrap: pretty;
 }
+
+/* ── Mobile Typography Scale ── */
+@media (max-width: 768px) {
+  h1 {
+    font-size: clamp(var(--text-3xl), 7vw, var(--text-5xl));
+  }
+  h2 {
+    font-size: clamp(var(--text-2xl), 5vw, var(--text-4xl));
+  }
+  h3 {
+    font-size: clamp(var(--text-xl), 4vw, var(--text-2xl));
+  }
+  h4 {
+    font-size: var(--text-xl);
+  }
+  h5 {
+    font-size: var(--text-lg);
+  }
+  h6 {
+    font-size: var(--text-base);
+  }
+}

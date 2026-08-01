@@ -85,3 +85,17 @@
     justify-self: start;
   }
 }
+
+@media (max-width: 768px) {
+  .layout {
+    padding: var(--mobile-page-padding, 16px);
+  }
+  .pillButton {
+    width: 100%;
+    min-height: var(--touch-target-min, 44px);
+  }
+  .content {
+    border-radius: var(--cohort-radius, 24px);
+    margin-top: 0;
+  }
+}

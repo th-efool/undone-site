@@ -245,3 +245,22 @@
     grid-template-columns: 1fr 44px 44px;
   }
 }
+
+@media (max-width: 768px) {
+  .hero {
+    padding: var(--mobile-card-padding, 16px);
+  }
+  .title {
+    font-size: clamp(2rem, 10vw, 3rem);
+  }
+  .progressPanel {
+    padding: var(--mobile-card-padding, 16px);
+  }
+  .actions {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+  .actions a, .actions button {
+    min-height: var(--touch-target-min, 44px);
+  }
+}

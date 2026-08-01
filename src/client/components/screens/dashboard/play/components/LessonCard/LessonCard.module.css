@@ -88,3 +88,21 @@
 .separator {
   opacity: 0.45;
 }
+
+@media (max-width: 768px) {
+  .card {
+    min-width: unset;
+    max-width: 100%;
+    padding: 10px 12px;
+  }
+  .platformIcon {
+    width: 28px;
+    height: 28px;
+  }
+  .title {
+    font-size: 1rem;
+  }
+  .subtitle {
+    font-size: 0.8rem;
+  }
+}

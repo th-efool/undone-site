@@ -29,6 +29,7 @@ export function SidebarItem({ href, label, icon: Icon }: SidebarItemProps) {
         size={22}
         strokeWidth={2}
       />
+      <span className={styles.label}>{label}</span>
     </Link>
   );
 }

@@ -364,3 +364,29 @@
     border-bottom: 1px solid var(--cohort-border-soft, var(--color-border));
   }
 }
+
+@media (max-width: 768px) {
+  .page {
+    padding: var(--mobile-page-padding, 16px);
+    gap: var(--mobile-section-gap, 16px);
+  }
+  .main, .sideCard, .share {
+    padding: var(--mobile-card-padding, 16px);
+  }
+  .card {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .thumb {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16/9;
+  }
+  .actions, .votes, .icon, .comments {
+    grid-row: auto;
+    grid-column: auto;
+  }
+  .votes, .icon, .comments {
+    width: auto;
+  }
+}

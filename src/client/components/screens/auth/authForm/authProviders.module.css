@@ -62,3 +62,17 @@
 .provider:active {
   transform: scale(0.98);
 }
+
+@media (max-width: 768px) {
+  .providers {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .provider {
+    min-height: var(--touch-target-min);
+    width: 100%;
+  }
+}
+

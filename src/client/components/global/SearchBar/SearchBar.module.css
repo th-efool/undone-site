@@ -46,3 +46,15 @@
 .clear:hover {
   background: #e4e7f0;
 }
+
+@media (max-width: 768px) {
+  .searchBar {
+    max-width: 100%;
+  }
+  .inputShell {
+    height: var(--touch-target-min);
+  }
+  .shortcut {
+    display: none;
+  }
+}

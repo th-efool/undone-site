@@ -91,3 +91,12 @@
     transform: none;
   }
 }
+
+@media (max-width: 768px) {
+  .button {
+    min-height: var(--touch-target-min);
+    width: 100%;
+    font-size: var(--text-base);
+  }
+}
+

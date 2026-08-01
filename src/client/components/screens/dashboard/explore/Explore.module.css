@@ -75,3 +75,15 @@
 .searchBar {
   margin-bottom: 2px;
 }
+
+@media (max-width: 768px) {
+  .explore {
+    padding: 12px var(--mobile-page-padding) 24px;
+    gap: var(--mobile-section-gap);
+  }
+
+  .searchBar {
+    width: 100%;
+    margin-bottom: 0;
+  }
+}

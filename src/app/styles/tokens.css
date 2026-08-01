@@ -306,6 +306,17 @@
   --z-toast: 700;
   --z-tooltip: 800;
   --z-max: 9999;
+
+  /* ── Mobile / Bottom Nav ── */
+  --bottom-nav-height: 60px;
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --touch-target-min: 44px;
+
+  /* ── Mobile Spacing ── */
+  --mobile-page-padding: var(--space-4);
+  --mobile-section-gap: var(--space-4);
+  --mobile-card-padding: var(--space-3);
 }
 
 @theme inline {

@@ -70,3 +70,17 @@
     margin-top: 0;
   }
 }
+
+@media (max-width: 768px) {
+  .hero {
+    padding: var(--mobile-page-padding);
+  }
+
+  .title {
+    font-size: clamp(1.4rem, 5vw, 2rem);
+  }
+
+  .subtitle {
+    font-size: 1rem;
+  }
+}

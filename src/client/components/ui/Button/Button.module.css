@@ -140,3 +140,9 @@
 .spinner {
   flex-shrink: 0;
 }
+
+@media (max-width: 768px) {
+  .root {
+    min-height: var(--touch-target-min);
+  }
+}

@@ -136,3 +136,18 @@
 
   white-space: nowrap;
 }
+
+@media (max-width: 768px) {
+  .card {
+    flex: none;
+    width: 100%;
+    padding: var(--mobile-card-padding);
+  }
+  .thumbnail {
+    width: 64px;
+    height: 64px;
+  }
+  .title {
+    font-size: 0.95rem;
+  }
+}

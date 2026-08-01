@@ -36,3 +36,12 @@
 
   cursor: pointer;
 }
+
+@media (max-width: 768px) {
+  .section {
+    gap: var(--mobile-section-gap);
+  }
+  .title {
+    font-size: 1.5rem;
+  }
+}

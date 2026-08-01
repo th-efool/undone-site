@@ -12,3 +12,14 @@
     gap: 24px;
   }
 }
+
+@media (max-width: 768px) {
+  .center {
+    width: 100%;
+    min-width: 100%;
+  }
+  
+  .center button {
+    min-height: var(--touch-target-min, 44px);
+  }
+}

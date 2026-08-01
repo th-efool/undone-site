@@ -162,3 +162,19 @@
 
   white-space: nowrap;
 }
+
+@media (max-width: 768px) {
+  .card {
+    flex: 0 0 280px;
+    height: 200px;
+  }
+  .content {
+    padding: var(--mobile-card-padding);
+  }
+  .title {
+    font-size: 1.5rem;
+  }
+  .subtitle {
+    font-size: 14px;
+  }
+}

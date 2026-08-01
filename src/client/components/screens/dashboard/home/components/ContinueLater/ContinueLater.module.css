@@ -3,3 +3,9 @@
   flex-direction: column;
   gap: 12px;
 }
+
+@media (max-width: 768px) {
+  .section {
+    gap: var(--mobile-section-gap);
+  }
+}

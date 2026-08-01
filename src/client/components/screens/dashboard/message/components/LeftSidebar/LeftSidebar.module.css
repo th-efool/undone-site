@@ -22,3 +22,14 @@
     padding: 22px 16px;
   }
 }
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .sidebar button {
+    min-height: var(--touch-target-min, 44px);
+  }
+}

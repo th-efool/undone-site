@@ -39,3 +39,18 @@
     min-height: 0;
   }
 }
+
+@media (max-width: 768px) {
+  .chat {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .main {
+    width: 100%;
+  }
+
+  .chat button {
+    min-height: var(--touch-target-min, 44px);
+  }
+}

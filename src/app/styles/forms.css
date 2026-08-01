@@ -231,3 +231,26 @@ input[type='radio']:focus-visible {
     0 0 0 3px rgb(var(--color-surface-rgb) / 0.95),
     0 0 0 6px rgb(var(--color-brand-rgb) / 0.38);
 }
+
+/* ── Mobile Form Adjustments ── */
+@media (max-width: 768px) {
+  input,
+  select {
+    height: var(--touch-target-min);
+    font-size: 16px;
+  }
+
+  textarea {
+    min-height: 6rem;
+    font-size: 16px;
+  }
+
+  fieldset {
+    gap: var(--space-3);
+  }
+
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+}

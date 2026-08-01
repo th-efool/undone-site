@@ -67,3 +67,15 @@ summary {
     box-shadow: none;
   }
 }
+
+/* ── Mobile Touch Refinements ── */
+@media (max-width: 768px) {
+  nav,
+  button,
+  [role='button'],
+  a {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+}

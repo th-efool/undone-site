@@ -33,3 +33,11 @@
 
   line-height: 1.4;
 }
+
+@media (max-width: 768px) {
+  .stats {
+    grid-template-columns: 1fr;
+    gap: var(--space-2);
+  }
+}
+

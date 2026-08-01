@@ -11,3 +11,9 @@
   background: var(--color-surface);
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
 }
+
+@media (max-width: 768px) {
+  .section {
+    gap: var(--mobile-section-gap);
+  }
+}

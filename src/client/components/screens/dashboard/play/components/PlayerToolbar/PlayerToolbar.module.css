@@ -61,3 +61,19 @@
   font-weight: 600;
   letter-spacing: -0.02em;
 }
+
+@media (max-width: 768px) {
+  .toolbar {
+    flex-direction: row;
+    border-radius: 16px;
+  }
+  .button {
+    width: 66px;
+    height: 52px;
+    border-bottom: none;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  .button:last-child {
+    border-right: none;
+  }
+}

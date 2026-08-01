@@ -38,3 +38,19 @@
     min-width: 100%;
   }
 }
+
+@media (max-width: 768px) {
+  .landing {
+    display: flex;
+    flex-direction: column;
+    height: calc(100dvh - var(--bottom-nav-height));
+  }
+  
+  .panelHidden > :first-child {
+    display: none !important;
+  }
+  
+  .chatHidden > :not(:first-child) {
+    display: none !important;
+  }
+}

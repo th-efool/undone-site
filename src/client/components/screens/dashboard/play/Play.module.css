@@ -143,3 +143,59 @@
 .closeBtn:hover {
   color: #fff;
 }
+
+@media (max-width: 768px) {
+  .play {
+    width: 100vw;
+    height: 100dvh;
+    padding: 0;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+  }
+
+  .lessonCard {
+    top: 12px;
+    left: 12px;
+    max-width: 55%;
+  }
+
+  .toolbar {
+    top: auto;
+    right: 12px;
+    bottom: 80px;
+    transform: none;
+  }
+
+  .timeline {
+    left: 12px;
+    right: 12px;
+    bottom: 56px;
+  }
+
+  .controls {
+    left: 12px;
+    right: 12px;
+    bottom: 8px;
+  }
+
+  .queueDrawer {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 50vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+
+  .notesPanel {
+    top: auto;
+    right: 0;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 50vh;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  }
+}

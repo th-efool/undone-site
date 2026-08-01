@@ -66,3 +66,22 @@
   border-color: var(--color-brand);
   background: rgba(79, 70, 229, 0.04);
 }
+
+@media (max-width: 768px) {
+  .card {
+    flex-direction: column;
+    align-items: stretch;
+    flex-basis: auto;
+    padding: var(--mobile-card-padding);
+  }
+
+  .thumbnail {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16/9;
+  }
+
+  .button {
+    width: 100%;
+  }
+}

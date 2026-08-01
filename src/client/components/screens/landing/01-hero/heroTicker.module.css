@@ -90,3 +90,11 @@
     white-space: normal;
   }
 }
+
+@media (max-width: 768px) {
+  .ticker {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+

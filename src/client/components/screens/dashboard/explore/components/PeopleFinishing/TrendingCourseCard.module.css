@@ -258,3 +258,13 @@
 
   border-color: rgba(255, 255, 255, 0.9);
 }
+
+@media (max-width: 768px) {
+  .card {
+    flex: 0 0 260px;
+    height: 200px;
+  }
+  .title {
+    font-size: 1.4rem;
+  }
+}

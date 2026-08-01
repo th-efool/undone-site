@@ -49,3 +49,9 @@
   font-weight: var(--font-semibold);
   text-align: right;
 }
+
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+}

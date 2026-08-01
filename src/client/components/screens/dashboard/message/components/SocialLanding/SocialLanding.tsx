@@ -1,9 +1,11 @@
+import { useState } from 'react';
 import { Center } from '../Center/Center';
 import { CommunityChat } from '../CommunityChat/CommunityChat';
 import { DMConversation } from '../DMConversation/DMConversation';
 import { LeftSidebar } from '../LeftSidebar/LeftSidebar';
 import { RightSidebar } from '../RightSidebar/RightSidebar';
 import { useMessage } from '../../hooks';
+import { useIsMobile } from '@/src/client/hooks/useIsMobile';
 import styles from './SocialLanding.module.css';
 
 interface Props {
@@ -11,8 +13,11 @@ interface Props {
 }
 
 export function SocialLanding({ message }: Props) {
+  const isMobile = useIsMobile();
+  const [mobileView, setMobileView] = useState<'list' | 'chat'>('list');
+
   return (
-    <div className={styles.landing}>
+    <div className={`${styles.landing} ${isMobile && mobileView !== 'list' ? styles.panelHidden : ''} ${isMobile && mobileView !== 'chat' ? styles.chatHidden : ''}`}>
       <LeftSidebar
         tabs={message.sidebarTabs}
         filters={message.conversationFilters}
@@ -21,7 +26,10 @@ export function SocialLanding({ message }: Props) {
         conversations={message.conversations}
         onTabChange={message.actions.setSelectedSidebarTab}
         onFilterChange={message.actions.setConversationFilter}
-        onSelectConversation={message.actions.selectConversation}
+        onSelectConversation={(conv) => {
+          message.actions.selectConversation(conv);
+          if (isMobile) setMobileView('chat');
+        }}
       />
 
       {message.view === 'community' && (
@@ -29,7 +37,10 @@ export function SocialLanding({ message }: Props) {
           community={message.communityChat}
           draft={message.communityDraft}
           scrollTop={message.communityScrollTop}
-          onBack={message.actions.backToLanding}
+          onBack={() => {
+            message.actions.backToLanding();
+            if (isMobile) setMobileView('list');
+          }}
           onDraftChange={(value) => message.actions.setDraft(message.communityChat.id, value)}
           onScrollChange={(scrollTop) =>
             message.actions.setConversationScroll(message.communityChat.id, scrollTop)
@@ -49,7 +60,10 @@ export function SocialLanding({ message }: Props) {
           conversation={message.dmConversation}
           draft={message.dmDraft}
           scrollTop={message.dmScrollTop}
-          onBack={message.actions.backToLanding}
+          onBack={() => {
+            message.actions.backToLanding();
+            if (isMobile) setMobileView('list');
+          }}
           onDraftChange={(value) => message.actions.setDraft(message.dmConversation.id, value)}
           onScrollChange={(scrollTop) =>
             message.actions.setConversationScroll(message.dmConversation.id, scrollTop)

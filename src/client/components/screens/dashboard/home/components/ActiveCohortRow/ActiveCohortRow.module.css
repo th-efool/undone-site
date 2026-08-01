@@ -418,3 +418,16 @@
   font-size: 13px;
   font-weight: 700;
 }
+
+@media (max-width: 768px) {
+  .row {
+    grid-template-columns: 1fr;
+    padding: var(--mobile-card-padding);
+  }
+
+  .schedule,
+  .pauseButton,
+  .moreButton {
+    width: 100%;
+  }
+}

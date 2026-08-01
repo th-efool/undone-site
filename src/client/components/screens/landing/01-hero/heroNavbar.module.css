@@ -185,3 +185,10 @@
     text-overflow: ellipsis;
   }
 }
+
+@media (max-width: 768px) {
+  .header {
+    padding: var(--mobile-page-padding, 16px);
+  }
+}
+

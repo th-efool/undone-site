@@ -108,3 +108,14 @@
 
   font-weight: 600;
 }
+
+@media (max-width: 768px) {
+  .card {
+    padding: 16px;
+    gap: 12px;
+  }
+  .number {
+    font-size: 0.85rem;
+  }
+}
+

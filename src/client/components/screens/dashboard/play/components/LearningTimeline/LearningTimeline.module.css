@@ -70,3 +70,17 @@
   z-index: 5;
   pointer-events: none;
 }
+
+@media (max-width: 768px) {
+  .track {
+    height: 12px;
+  }
+  .marker {
+    width: 20px;
+    height: 20px;
+  }
+  .thumb {
+    width: 20px;
+    height: 20px;
+  }
+}

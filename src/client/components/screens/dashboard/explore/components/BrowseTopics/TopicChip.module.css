@@ -45,3 +45,10 @@
   font-size: 15px;
   font-weight: 600;
 }
+
+@media (max-width: 768px) {
+  .chip {
+    flex-shrink: 0;
+    min-height: var(--touch-target-min);
+  }
+}

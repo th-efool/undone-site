@@ -268,3 +268,25 @@
     justify-content: center;
   }
 }
+
+@media (max-width: 768px) {
+  .content {
+    align-items: center;
+    text-align: center;
+  }
+  .title, .description {
+    text-align: center;
+  }
+  .actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .demoButton, .ctaButton {
+    width: 100%;
+    justify-content: center;
+  }
+  .note {
+    margin-left: 0;
+  }
+}
+

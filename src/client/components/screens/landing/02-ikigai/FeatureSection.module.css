@@ -250,3 +250,14 @@
     align-self: center;
   }
 }
+
+@media (max-width: 768px) {
+  .featureSection {
+    display: flex;
+    flex-direction: column;
+  }
+  .videoPanel {
+    order: -1;
+  }
+}
+

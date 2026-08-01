@@ -142,3 +142,32 @@
 .footerLink:hover {
   text-decoration: underline;
 }
+
+@media (max-width: 768px) {
+  .form {
+    padding: 20px 16px;
+    border-radius: 0;
+    min-height: 100dvh;
+  }
+
+  .title {
+    font-size: clamp(1.8rem, 6vw, 2.5rem);
+  }
+
+  .description {
+    font-size: var(--text-base);
+  }
+
+  .login {
+    font-size: var(--text-sm);
+  }
+
+  .oauth {
+    margin-top: 16px;
+  }
+
+  .footer {
+    padding-top: 16px;
+  }
+}
+

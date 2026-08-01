@@ -128,3 +128,22 @@
 
   box-shadow: 0 0 8px rgba(124, 77, 255, 0.45);
 }
+
+@media (max-width: 768px) {
+  .button {
+    width: 44px;
+    height: 44px;
+  }
+  .slider {
+    height: 44px;
+  }
+  .slider input::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+    margin-top: -10px;
+  }
+  .slider input::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+  }
+}

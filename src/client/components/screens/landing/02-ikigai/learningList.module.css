@@ -105,3 +105,13 @@
 .dot {
   color: var(--color-border);
 }
+
+@media (max-width: 768px) {
+  .card {
+    padding: var(--mobile-card-padding, 12px);
+  }
+  .title {
+    font-size: clamp(1.5rem, 6vw, 2rem);
+  }
+}
+

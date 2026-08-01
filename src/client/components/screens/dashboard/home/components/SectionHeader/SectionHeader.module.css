@@ -36,3 +36,17 @@
 .action:hover {
   color: var(--color-brand-hover);
 }
+
+@media (max-width: 768px) {
+  .header {
+    gap: 10px;
+  }
+
+  .title {
+    font-size: 1.15rem;
+  }
+
+  .subtitle {
+    font-size: 14px;
+  }
+}

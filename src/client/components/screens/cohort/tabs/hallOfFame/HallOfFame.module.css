@@ -395,3 +395,13 @@
   min-width: 0;
   align-self: start;
 }
+
+@media (max-width: 768px) {
+  .page {
+    padding: var(--mobile-page-padding, 16px);
+    gap: var(--mobile-section-gap, 16px);
+  }
+  .mainCard, .legends, .sideCard {
+    padding: var(--mobile-card-padding, 16px);
+  }
+}

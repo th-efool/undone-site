@@ -1,7 +1,6 @@
 'use client';
 
-import {
-  Archive,
+import { ArrowLeft, Archive,
   Bold,
   CheckSquare,
   Code,
@@ -26,6 +25,7 @@ import {
   Underline,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useIsMobile } from '@/src/client/hooks/useIsMobile';
 import { useNotes } from './hooks/useNotes';
 import type { NotesFilter, NotesSort } from './models/notes.models';
 import {
@@ -57,6 +57,8 @@ const filters: [NotesFilter, string][] = [
 
 export function Notes() {
   const notes = useNotes();
+  const isMobile = useIsMobile();
+  const [mobileView, setMobileView] = useState<'panel' | 'workspace'>('panel');
   const [menu, setMenu] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [presenting, setPresenting] = useState(false);
@@ -107,6 +109,13 @@ export function Notes() {
     if (editorRef.current && selected && editorRef.current.innerHTML !== selected.body)
       editorRef.current.innerHTML = selected.body;
   }, [selected]);
+  
+  useEffect(() => {
+    if (isMobile && notes.data?.selectedNote) {
+      setMobileView('workspace');
+    }
+  }, [isMobile, notes.data?.selectedNote]);
+
   const coming = () => alert('Coming Soon');
   if (!notes.state || !notes.data) return <main className={styles.loading}>Loading notes…</main>;
 
@@ -145,7 +154,7 @@ export function Notes() {
         setCanvasSwitcherOpen(false);
       }}
     >
-      <aside className={styles.panel}>
+      <aside className={`${styles.panel} ${isMobile && mobileView !== 'panel' ? styles.panelHidden : ''}`}>
         <header className={styles.header}>
           <h1>
             Notes <Sparkles size={22} />
@@ -254,8 +263,16 @@ export function Notes() {
           </button>
         </nav>
       </aside>
-      <section className={styles.workspace}>
+      <section className={`${styles.workspace} ${isMobile && mobileView !== 'workspace' ? styles.workspaceHidden : ''}`}>
         <header className={styles.topbar}>
+          {isMobile && (
+            <button
+              className={styles.mobileBackBtn}
+              onClick={() => setMobileView('panel')}
+            >
+              <ArrowLeft size={16} /> Back
+            </button>
+          )}
           <div className={styles.crumb}>
             <strong>{notes.data.selectedNotebook?.title ?? 'Notebook'}</strong>
             <span>›</span>

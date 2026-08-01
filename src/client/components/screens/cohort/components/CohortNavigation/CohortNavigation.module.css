@@ -73,3 +73,16 @@
     margin-top: -28px;
   }
 }
+
+@media (max-width: 768px) {
+  .navigation {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .navigation::-webkit-scrollbar {
+    display: none;
+  }
+  .link {
+    min-height: var(--touch-target-min, 44px);
+  }
+}

@@ -74,3 +74,10 @@
   border-color: var(--color-brand);
   background: var(--color-brand-subtle);
 }
+
+@media (max-width: 768px) {
+  .button {
+    width: 100%;
+    min-height: var(--touch-target-min, 44px);
+  }
+}

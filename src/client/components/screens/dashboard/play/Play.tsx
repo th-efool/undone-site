@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, WheelEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, WheelEvent, TouchEvent } from 'react';
 import { X, Sparkles, ListVideo, Play as PlayIcon } from 'lucide-react';
 import {
   LessonCard,
@@ -18,6 +18,42 @@ export function Play() {
   const [isIdle, setIsIdle] = useState(false);
   const scrollCooldownRef = useRef(false);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const touchStartY = useRef<number | null>(null);
+
+  // Orientation lock for mobile
+  useEffect(() => {
+    const lockOrientation = async () => {
+      try {
+        await (screen.orientation as any).lock('landscape');
+      } catch {
+        // Fallback: works in portrait too
+      }
+    };
+    if (window.innerWidth <= 768) {
+      lockOrientation();
+      document.body.style.overflow = 'hidden';
+    }
+    return () => {
+      try { (screen.orientation as any).unlock?.(); } catch {}
+      document.body.style.overflow = '';
+    };
+  }, []);
+
+  const handleTouchStart = useCallback((e: TouchEvent<HTMLDivElement>) => {
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: TouchEvent<HTMLDivElement>) => {
+    if (touchStartY.current === null) return;
+    const deltaY = touchStartY.current - e.changedTouches[0].clientY;
+    touchStartY.current = null;
+    if (Math.abs(deltaY) < 50) return;
+    if (deltaY > 0) {
+      playback.nextChunk();
+    } else {
+      playback.previousChunk();
+    }
+  }, [playback]);
 
   // Idle timer for UI fading
   const resetIdle = useCallback(() => {
@@ -92,7 +128,7 @@ export function Play() {
   }, [playback]);
 
   return (
-    <div className={styles.play} onWheel={handleWheel}>
+    <div className={styles.play} onWheel={handleWheel} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
       <PlayerSurface containerRef={playback.playerContainerRef}>
         {/* Invisible Click Overlay for Play/Pause */}
         <div 
