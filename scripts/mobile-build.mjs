@@ -22,6 +22,11 @@ function run(command, args, env = {}) {
 }
 
 function hideApiRoutes() {
+  const nextCacheDir = path.join(rootDir, '.next');
+  if (fs.existsSync(nextCacheDir)) {
+    fs.rmSync(nextCacheDir, { recursive: true, force: true });
+  }
+
   if (!fs.existsSync(apiDir)) {
     return;
   }
@@ -56,7 +61,7 @@ try {
     NEXT_PUBLIC_MOBILE_BUILD: 'true',
     NEXT_PUBLIC_API_ORIGIN: apiOrigin,
   });
-  run('npx', ['cap', 'sync', 'android']);
+  run('npx', ['@capacitor/cli', 'sync', 'android']);
 } finally {
   restoreApiRoutes();
 }

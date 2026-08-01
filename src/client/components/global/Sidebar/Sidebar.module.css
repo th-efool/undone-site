@@ -59,9 +59,9 @@
     justify-content: space-around;
 
     width: 100%;
-    height: calc(60px + env(safe-area-inset-bottom, 0px));
-    max-height: calc(60px + env(safe-area-inset-bottom, 0px));
-    padding: 0 var(--space-2);
+    height: calc(38px + env(safe-area-inset-bottom, 0px));
+    max-height: calc(38px + env(safe-area-inset-bottom, 0px));
+    padding: 2px var(--space-2);
     padding-bottom: env(safe-area-inset-bottom, 0px);
 
     background: rgba(255, 255, 255, 0.95);

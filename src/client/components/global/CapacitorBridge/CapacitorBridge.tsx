@@ -89,6 +89,11 @@ export function CapacitorBridge() {
       };
 
       const backButtonHandle = await App.addListener('backButton', ({ canGoBack }: { canGoBack: boolean }) => {
+        if (window.location.pathname.startsWith('/play')) {
+          router.push('/home');
+          return;
+        }
+
         if (canGoBack) {
           window.history.back();
           return;
@@ -110,23 +115,39 @@ export function CapacitorBridge() {
     };
   }, [router]);
 
-  // Route-based orientation locking:
-  // - /play → lock landscape (the ONLY page meant for landscape)
-  // - all other routes → unlock to natural sensor/orientation
+  // Route-based orientation locking & fullscreen mode:
+  // - /play → lock landscape & request fullscreen (status/nav bars hidden)
+  // - all other routes → lock portrait & exit fullscreen
   useEffect(() => {
-    if (!isNative || !pathname) return;
+    if (!pathname) return;
+
+    const isPlay = pathname === '/play' || pathname.startsWith('/play');
+
+    // Handle Fullscreen for /play
+    if (isPlay) {
+      if (document.documentElement.requestFullscreen && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    } else {
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    }
+
+    if (!isNative) return;
 
     let cancelled = false;
 
     void (async () => {
       try {
-        const ScreenOrientation = await import('@capacitor/screen-orientation');
-        if ((ScreenOrientation as any).ScreenOrientation && !cancelled) {
-          // Always unlock first to clear any stale lock
-          await (ScreenOrientation as any).ScreenOrientation.unlock().catch(() => {});
-
-          if (pathname === '/play') {
-            await (ScreenOrientation as any).ScreenOrientation.lock({ orientation: 'landscape' }).catch(() => {});
+        // @ts-ignore
+        const capOrientation = await import('@capacitor/screen-orientation');
+        const ScreenOrientation = capOrientation?.ScreenOrientation;
+        if (ScreenOrientation && !cancelled) {
+          if (isPlay) {
+            await ScreenOrientation.lock({ orientation: 'landscape' }).catch(() => {});
+          } else {
+            await ScreenOrientation.lock({ orientation: 'portrait' }).catch(() => {});
           }
         }
       } catch {
