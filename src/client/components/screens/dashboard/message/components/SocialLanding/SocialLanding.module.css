@@ -39,44 +39,7 @@
   }
 }
 
-/* G1: Desktop split-view — chat drawer overlay */
-.splitActive {
-  position: relative;
-}
 
-.drawerBackdrop {
-  position: absolute;
-  inset: 0;
-  background: rgb(15 23 42 / 18%);
-  z-index: 5;
-  animation: fadeIn var(--duration-normal, 200ms) ease-out;
-}
-
-.chatDrawer {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: min(680px, 55vw);
-  z-index: 10;
-  animation: slideInRight var(--duration-normal, 200ms) ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
 
 @media (max-width: 768px) {
   .landing {
