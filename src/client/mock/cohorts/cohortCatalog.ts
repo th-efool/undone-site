@@ -536,4 +536,11 @@ const extra = ids.map((id, i) =>
   }),
 );
 
-export const cohortCatalog: Cohort[] = [deepWorkMastery, ...seeds.map(build), ...extra];
+import { feedCohorts } from './feedCohorts';
+
+const rawCatalog: Cohort[] = [deepWorkMastery, ...seeds.map(build), ...extra, ...feedCohorts];
+const catalogMap = new Map<string, Cohort>();
+rawCatalog.forEach((c) => {
+  if (!catalogMap.has(c.id)) catalogMap.set(c.id, c);
+});
+export const cohortCatalog: Cohort[] = Array.from(catalogMap.values());

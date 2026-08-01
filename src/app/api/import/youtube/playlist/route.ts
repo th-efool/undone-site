@@ -1,15 +1,20 @@
 import { NextRequest } from 'next/server';
 
-import { importYouTubePlaylist } from '@/src/server/imports/youtube/youtube-import.service';
+import {
+  importYouTubePlaylist,
+  importYouTubeVideo,
+  importWebArticle,
+} from '@/src/server/imports/youtube/youtube-import.service';
 import { createYoutubeImportError } from '@/src/server/imports/youtube/youtube-errors';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-interface PlaylistImportRequest {
+interface SourceImportRequest {
   sourceId?: string;
   title?: string;
   url?: string;
+  sourceType?: string;
 }
 
 function serialize(value: unknown) {
@@ -17,11 +22,14 @@ function serialize(value: unknown) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = (await request.json().catch(() => null)) as PlaylistImportRequest | null;
+  const body = (await request.json().catch(() => null)) as SourceImportRequest | null;
 
   if (!body?.url || !body?.sourceId) {
     return Response.json(createYoutubeImportError('invalid_url'), { status: 400 });
   }
+
+  const url = body.url.trim();
+  const sourceType = body.sourceType;
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -29,15 +37,47 @@ export async function POST(request: NextRequest) {
       const publish = (event: unknown) => controller.enqueue(encoder.encode(serialize(event)));
 
       try {
-        const source = await importYouTubePlaylist(
-          {
-            sourceId: body.sourceId ?? '',
-            title: body.title ?? 'Imported playlist',
-            url: body.url ?? '',
-          },
-          publish,
-          request.signal,
-        );
+        let source;
+        const isPlaylist =
+          sourceType === 'YouTube Playlist' ||
+          url.includes('list=PL') ||
+          url.includes('/playlist?list=');
+        const isSingleVideo =
+          sourceType === 'YouTube Video' ||
+          url.includes('youtu.be/') ||
+          (url.includes('watch?v=') && !url.includes('list=PL'));
+
+        if (isPlaylist) {
+          source = await importYouTubePlaylist(
+            {
+              sourceId: body.sourceId ?? '',
+              title: body.title ?? 'Imported playlist',
+              url,
+            },
+            publish,
+            request.signal,
+          );
+        } else if (isSingleVideo) {
+          source = await importYouTubeVideo(
+            {
+              sourceId: body.sourceId ?? '',
+              title: body.title ?? 'Imported video',
+              url,
+            },
+            publish,
+            request.signal,
+          );
+        } else {
+          source = await importWebArticle(
+            {
+              sourceId: body.sourceId ?? '',
+              title: body.title ?? 'Web reference',
+              url,
+            },
+            publish,
+            request.signal,
+          );
+        }
 
         publish({
           type: 'complete',
@@ -59,7 +99,7 @@ export async function POST(request: NextRequest) {
           error: {
             code: mapped.code ?? 'request_failed',
             title: mapped.title ?? 'Import failed',
-            message: mapped.message ?? 'The playlist could not be imported.',
+            message: mapped.message ?? 'The source could not be imported.',
             retryable: mapped.retryable ?? true,
           },
         });

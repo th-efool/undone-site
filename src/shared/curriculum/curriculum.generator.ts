@@ -400,11 +400,7 @@ function buildSeasonsFromLessons(lessons: CurriculumLesson[]) {
     }
   });
 
-  while (seasons.length < seasonCount) {
-    seasons.push(createSeasonFromLessons(seasons.length, []));
-  }
-
-  return seasons;
+  return seasons.filter((s) => s.lessonCount > 0);
 }
 
 export function generateCurriculum(input: CurriculumGenerationInput) {

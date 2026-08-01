@@ -1,5 +1,7 @@
 'use client';
 
+import { useCallback, useEffect, useRef, useState, WheelEvent } from 'react';
+import { X, Sparkles, ListVideo, Play as PlayIcon } from 'lucide-react';
 import {
   LessonCard,
   LearningTimeline,
@@ -9,42 +11,147 @@ import {
 } from './components';
 
 import { usePlayback } from './hooks/usePlayback';
-
 import styles from './Play.module.css';
 
 export function Play() {
   const playback = usePlayback();
+  const [isIdle, setIsIdle] = useState(false);
+  const scrollCooldownRef = useRef(false);
+  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Idle timer for UI fading
+  const resetIdle = useCallback(() => {
+    setIsIdle(false);
+    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    idleTimerRef.current = setTimeout(() => setIsIdle(true), 4000);
+  }, []);
+
+  useEffect(() => {
+    resetIdle();
+    const evts = ['mousemove', 'mousedown', 'touchstart', 'keydown', 'wheel'];
+    evts.forEach((e) => window.addEventListener(e, resetIdle));
+    return () => {
+      evts.forEach((e) => window.removeEventListener(e, resetIdle));
+      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    };
+  }, [resetIdle]);
+
+  // Cycle speed helper: 1x -> 1.25x -> 1.5x -> 2x -> 1x
+  const handleSpeedCycle = useCallback(() => {
+    const speeds = [1, 1.25, 1.5, 2];
+    const currIdx = speeds.indexOf(playback.playbackSpeed);
+    const nextSpeed = speeds[(currIdx + 1) % speeds.length];
+    playback.setPlaybackSpeed(nextSpeed);
+  }, [playback]);
+
+  // Handle wheel / mouse scroll for vertical feed card transitions
+  const handleWheel = useCallback(
+    (e: WheelEvent<HTMLDivElement>) => {
+      if (scrollCooldownRef.current) return;
+      if (Math.abs(e.deltaY) < 30) return;
+
+      scrollCooldownRef.current = true;
+      if (e.deltaY > 0) {
+        playback.nextChunk();
+      } else {
+        playback.previousChunk();
+      }
+
+      setTimeout(() => {
+        scrollCooldownRef.current = false;
+      }, 600);
+    },
+    [playback],
+  );
+
+  // Handle keydown navigation (ArrowUp = prev, ArrowDown = next, Space = toggle play)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['textarea', 'input'].includes((e.target as HTMLElement)?.tagName?.toLowerCase())) {
+        return;
+      }
+
+      if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+        e.preventDefault();
+        playback.nextChunk();
+      } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault();
+        playback.previousChunk();
+      } else if (e.key === ' ') {
+        e.preventDefault();
+        playback.togglePlayback();
+      } else if (e.key === 'm' || e.key === 'M') {
+        playback.toggleMute();
+      } else if (e.key === 'b' || e.key === 'B') {
+        playback.toggleBookmark();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [playback]);
 
   return (
-    <div className={styles.play}>
-      <PlayerSurface>
-        <div className={styles.lessonCard}>
+    <div className={styles.play} onWheel={handleWheel}>
+      <PlayerSurface containerRef={playback.playerContainerRef}>
+        {/* Invisible Click Overlay for Play/Pause */}
+        <div 
+          style={{ position: 'absolute', inset: 0, zIndex: 2, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={playback.togglePlayback}
+        >
+          {/* Custom Pause Overlay Icon */}
+          {!playback.isPlaying && (
+            <div style={{
+              width: 80, height: 80, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+              boxShadow: '0 8px 32px rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)',
+              animation: 'pulse 2s infinite ease-in-out'
+            }}>
+              <PlayIcon size={36} fill="currentColor" style={{ marginLeft: 6 }} />
+            </div>
+          )}
+        </div>
+
+        {/* Top-left lesson card */}
+        <div className={styles.lessonCard} style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease' }}>
           <LessonCard lesson={playback.lesson} />
         </div>
 
-        <div className={styles.toolbar}>
+        {/* Right floating toolbar */}
+        <div className={styles.toolbar} style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease' }}>
           <PlayerToolbar
             playbackSpeed={playback.playbackSpeed}
             bookmarked={playback.bookmarked}
-            onBookmark={() => playback.setBookmarked(!playback.bookmarked)}
+            onBookmark={playback.toggleBookmark}
+            onSpeed={handleSpeedCycle}
           />
         </div>
 
-        <div className={styles.timeline}>
+        {/* Timeline Scrubber */}
+        <div className={styles.timeline} style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease' }}>
           <LearningTimeline
-            progress={38}
+            progress={playback.timelineProgress}
             markers={playback.timelineMarkers}
+            onSeek={playback.seekToPercent}
           />
         </div>
 
-        <div className={styles.controls}>
+        {/* Bottom Playback Controls & Navigation */}
+        <div className={styles.controls} style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease', pointerEvents: isIdle ? 'none' : 'auto' }}>
           <PlaybackControls
             currentTime={playback.lesson.currentTime}
             totalDuration={playback.lesson.totalDuration}
             volume={playback.volume}
             isPlaying={playback.isPlaying}
             onPlayPause={playback.togglePlayback}
+            onSkipBack={() => playback.skipSeconds(-10)}
+            onSkipForward={() => playback.skipSeconds(10)}
             onVolumeChange={playback.setVolume}
+            onCompleteChunk={playback.completeActiveChunk}
+            onNextChunk={playback.nextChunk}
+            onPreviousChunk={playback.previousChunk}
+            hasNext={playback.currentIndex < playback.feedItems.length - 1}
+            hasPrevious={playback.currentIndex > 0}
           />
         </div>
       </PlayerSurface>

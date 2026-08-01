@@ -25,3 +25,21 @@ export function extractPlaylistId(input: string): string {
   throw createYoutubeImportError('invalid_url');
 }
 
+export function extractVideoId(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+
+  try {
+    const parsed = new URL(trimmed);
+    const vParam = parsed.searchParams.get('v');
+    if (vParam) return vParam;
+    if (parsed.hostname.includes('youtu.be')) {
+      const pathname = parsed.pathname.slice(1);
+      if (pathname) return pathname.split('?')[0];
+    }
+  } catch {
+    const match = trimmed.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+  }
+  return null;
+}

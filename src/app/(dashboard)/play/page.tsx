@@ -1,10 +1,10 @@
+import { Suspense } from 'react';
 import { Play } from '@/src/client/components/screens/dashboard/play';
 
-export default function play() {
+export default function PlayPage() {
   return (
-    <>
-      {' '}
-      <Play />{' '}
-    </>
+    <Suspense fallback={<div style={{ padding: 24, color: '#fff' }}>Loading microlearning player...</div>}>
+      <Play />
+    </Suspense>
   );
 }

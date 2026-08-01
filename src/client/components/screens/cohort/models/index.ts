@@ -17,6 +17,7 @@ export type {
   AssignmentFeedParticipant,
   CohortQuestline,
   Lesson,
+  LessonChunk,
   LockedFutureNotice,
   QuestlineFilter,
   Season,

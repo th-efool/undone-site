@@ -6,7 +6,7 @@ import type {
   ImportStreamEvent,
   ImportedSourceModel,
 } from '../models/import';
-import type { CreateCohortSourceDraft, CreateCohortSourceType } from '../models/createCohort';
+import type { CreateCohortSourceDraft } from '../models/createCohort';
 
 type AdapterResult = ImportSourceJob;
 
@@ -15,77 +15,9 @@ interface ImportAdapter {
   importSource(context: ImportSourceAdapterContext): AdapterResult;
 }
 
-function timestamp() {
-  return new Date().toLocaleTimeString([], {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
-}
-
-function createPendingProviderResult(source: CreateCohortSourceDraft): ImportedSourceModel {
-  return {
-    id: source.id,
-    title: source.title || source.type,
-    description: source.url,
-    thumbnail: '/images/landing/screen.webp',
-    provider: source.type,
-    creator: 'Pending provider',
-    lessonCount: 0,
-    totalDuration: '0m',
-    estimatedSeasonCount: 0,
-    status: 'pending-provider',
-    lessons: [],
-  };
-}
-
-class PendingAdapter implements ImportAdapter {
-  canHandle(source: CreateCohortSourceDraft) {
-    return source.type !== 'YouTube Playlist';
-  }
-
-  importSource(context: ImportSourceAdapterContext): AdapterResult {
-    const result = createPendingProviderResult(context.source);
-
-    const promise = new Promise<ImportedSourceModel>((resolve, reject) => {
-      if (context.signal.aborted) {
-        reject(new DOMException('Aborted', 'AbortError'));
-        return;
-      }
-
-      context.onEvent({
-        type: 'feed',
-        feed: {
-          title: 'Adapter pending',
-          detail: `${context.source.type} will be enabled in a future prompt.`,
-          tone: 'warning',
-        },
-      });
-
-      context.onEvent({
-        type: 'snapshot',
-        snapshot: {
-          source: result,
-          overallProgress: 100,
-          currentOperation: 'Provider-ready placeholder completed',
-          currentSourceLabel: context.source.title || context.source.type,
-          estimatedRemaining: '0m',
-          liveStatus: 'Pending provider',
-        },
-      });
-
-      resolve(result);
-    });
-
-    return {
-      promise,
-      cancel: () => undefined,
-    };
-  }
-}
-
-class YoutubePlaylistAdapter implements ImportAdapter {
-  canHandle(source: CreateCohortSourceDraft) {
-    return source.type === 'YouTube Playlist';
+class UniversalSourceAdapter implements ImportAdapter {
+  canHandle(_source: CreateCohortSourceDraft) {
+    return true;
   }
 
   importSource(context: ImportSourceAdapterContext): AdapterResult {
@@ -160,7 +92,7 @@ class YoutubePlaylistAdapter implements ImportAdapter {
   }
 }
 
-const adapters: ImportAdapter[] = [new YoutubePlaylistAdapter(), new PendingAdapter()];
+const adapters: ImportAdapter[] = [new UniversalSourceAdapter()];
 
 class CohortImportService {
   private adapters = adapters;

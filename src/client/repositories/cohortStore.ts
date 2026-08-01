@@ -9,7 +9,11 @@ function loadStoredCohorts(): Cohort[] {
   try {
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (!raw) return [];
-    return JSON.parse(raw) as Cohort[];
+    const parsed = JSON.parse(raw) as Cohort[];
+    // SANITIZE: Filter out any cohort IDs that belong to the static catalog
+    // so we don't accidentally treat mock data as user-published cohorts
+    const catalogIds = new Set(cohortCatalog.map((c) => c.id));
+    return parsed.filter((c) => !catalogIds.has(c.id));
   } catch {
     return [];
   }
@@ -61,16 +65,23 @@ class CohortStore {
     if (typeof window !== 'undefined' && this.userCohorts.length === 0) {
       this.userCohorts = loadStoredCohorts();
     }
-    return [...this.userCohorts, ...cohortCatalog];
+    const map = new Map<string, Cohort>();
+    this.userCohorts.forEach((c) => map.set(c.id, c));
+    cohortCatalog.forEach((c) => {
+      if (!map.has(c.id)) map.set(c.id, c);
+    });
+    return Array.from(map.values());
+  }
+
+  public getUserCohorts(): Cohort[] {
+    if (typeof window !== 'undefined' && this.userCohorts.length === 0) {
+      this.userCohorts = loadStoredCohorts();
+    }
+    return [...this.userCohorts];
   }
 
   public getById(id: string): Cohort | undefined {
-    // Always reload from localStorage to ensure fresh data on client
-    if (typeof window !== 'undefined') {
-      this.userCohorts = loadStoredCohorts();
-    }
-    const all = [...this.userCohorts, ...cohortCatalog];
-    return all.find((c) => c.id === id);
+    return this.getAll().find((c) => c.id === id);
   }
 
   public registerPublishedCohort(data: {

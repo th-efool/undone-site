@@ -1,5 +1,5 @@
 import { createYoutubeImportError, mapYoutubeApiError, type YoutubeImportError } from './youtube-errors';
-import { extractPlaylistId } from './youtube-url';
+import { extractPlaylistId, extractVideoId } from './youtube-url';
 
 interface PlaylistImportRequest {
   sourceId: string;
@@ -600,6 +600,214 @@ export async function importYouTubePlaylist(
     feed: {
       title: 'Finished playlist',
       detail: `${importedSource.lessonCount} lessons imported successfully.`,
+      tone: 'success',
+    },
+  });
+
+  return importedSource;
+}
+
+export async function importYouTubeVideo(
+  request: PlaylistImportRequest,
+  publish: (event: ImportPublishEvent) => void,
+  signal: AbortSignal,
+): Promise<ServerImportedSourceModel> {
+  const videoId = extractVideoId(request.url);
+  if (!videoId) {
+    return importWebArticle(request, publish, signal);
+  }
+
+  publish({
+    type: 'stage',
+    stage: {
+      id: 'validating-url',
+      title: 'Validating Video URL',
+      description: 'Checking YouTube video ID.',
+      status: 'completed',
+      progress: 100,
+    },
+  });
+
+  let title = request.title || 'YouTube Video';
+  let description = 'Single video tutorial';
+  let creator = 'YouTube Creator';
+  let thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
+  let durationSeconds = 720;
+
+  try {
+    const videoDetails = await fetchVideoDetails([videoId], signal);
+    const videoItem = videoDetails.items?.[0];
+    if (videoItem) {
+      title = videoItem.snippet?.title || title;
+      description = videoItem.snippet?.description || description;
+      creator = videoItem.snippet?.channelTitle || creator;
+      thumbnail = pickThumbnail(videoItem.snippet?.thumbnails);
+      durationSeconds = parseIsoDuration(videoItem.contentDetails?.duration || 'PT12M') || 720;
+    }
+  } catch {
+    try {
+      const oembedRes = await fetch(
+        `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
+        { signal },
+      );
+      if (oembedRes.ok) {
+        const oembedData = (await oembedRes.json()) as any;
+        if (oembedData.title) title = oembedData.title;
+        if (oembedData.author_name) creator = oembedData.author_name;
+        if (oembedData.thumbnail_url) thumbnail = oembedData.thumbnail_url;
+      }
+    } catch {
+      // Ignore fallback error
+    }
+  }
+
+  const lesson: ServerImportedLessonModel = {
+    id: `${request.sourceId}-${videoId}`,
+    title,
+    thumbnail,
+    description,
+    duration: toIsoDuration(durationSeconds),
+    position: 1,
+    provider: 'YouTube',
+    videoId,
+    publishedLabel: 'Published on YouTube',
+  };
+
+  const importedSource: ServerImportedSourceModel = {
+    id: request.sourceId,
+    title,
+    description,
+    thumbnail,
+    provider: 'YouTube Video',
+    creator,
+    lessonCount: 1,
+    totalDuration: formatDuration(durationSeconds),
+    estimatedSeasonCount: 1,
+    status: 'completed',
+    lessons: [lesson],
+  };
+
+  publish({
+    type: 'stage',
+    stage: {
+      id: 'completed',
+      title: 'Completed',
+      description: 'The source is ready for the curriculum step.',
+      status: 'completed',
+      progress: 100,
+    },
+  });
+
+  publish({
+    type: 'feed',
+    feed: {
+      title: 'Imported YouTube Video',
+      detail: title,
+      tone: 'success',
+    },
+  });
+
+  return importedSource;
+}
+
+function cleanTitleFromUrl(urlStr: string): { title: string; domain: string } {
+  try {
+    const parsed = new URL(urlStr);
+    const domain = parsed.hostname.replace(/^www\./, '');
+    const domainName = domain.split('.')[0];
+    const domainCaps = domainName.charAt(0).toUpperCase() + domainName.slice(1);
+
+    const pathSegments = parsed.pathname.split('/').filter(Boolean);
+    if (pathSegments.length > 0) {
+      const lastSeg = pathSegments[pathSegments.length - 1];
+      const secondLastSeg = pathSegments.length > 1 ? pathSegments[pathSegments.length - 2] : '';
+      const slug = lastSeg.replace(/[-_]+/g, ' ');
+      const topicContext = secondLastSeg && secondLastSeg !== 'document' ? secondLastSeg.replace(/[-_]+/g, ' ') : '';
+      const formatted = slug
+        .split(' ')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
+
+      if (topicContext) {
+        const topicCaps = topicContext.charAt(0).toUpperCase() + topicContext.slice(1);
+        return {
+          title: `${formatted} (${topicCaps} - ${domainCaps})`,
+          domain: domainCaps,
+        };
+      }
+      return {
+        title: `${formatted} (${domainCaps})`,
+        domain: domainCaps,
+      };
+    }
+    return { title: `${domainCaps} Article & Reference`, domain: domainCaps };
+  } catch {
+    return { title: 'Web Article & Reference Notes', domain: 'Web Reference' };
+  }
+}
+
+export async function importWebArticle(
+  request: PlaylistImportRequest,
+  publish: (event: ImportPublishEvent) => void,
+  _signal: AbortSignal,
+): Promise<ServerImportedSourceModel> {
+  const { title: derivedTitle, domain } = cleanTitleFromUrl(request.url);
+  const title = request.title && request.title !== 'New source' && request.title.trim() ? request.title : derivedTitle;
+  const thumbnail = 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=1200&auto=format&fit=crop';
+
+  publish({
+    type: 'stage',
+    stage: {
+      id: 'validating-url',
+      title: 'Validating Web Source',
+      description: 'Checking article and documentation link.',
+      status: 'completed',
+      progress: 100,
+    },
+  });
+
+  const lesson: ServerImportedLessonModel = {
+    id: `${request.sourceId}-web-ref`,
+    title,
+    thumbnail,
+    description: `Web reference document & study material from ${domain}: ${request.url}`,
+    duration: '15m',
+    position: 1,
+    provider: 'Reading',
+    videoId: '',
+    publishedLabel: `Web Reference (${domain})`,
+  };
+
+  const importedSource: ServerImportedSourceModel = {
+    id: request.sourceId,
+    title,
+    description: `Reading notes and reference material from ${request.url}`,
+    thumbnail,
+    provider: 'Website',
+    creator: domain,
+    lessonCount: 1,
+    totalDuration: '15m',
+    estimatedSeasonCount: 1,
+    status: 'completed',
+    lessons: [lesson],
+  };
+
+  publish({
+    type: 'stage',
+    stage: {
+      id: 'completed',
+      title: 'Completed',
+      description: 'The source is ready for the curriculum step.',
+      status: 'completed',
+      progress: 100,
+    },
+  });
+
+  publish({
+    type: 'feed',
+    feed: {
+      title: `Imported ${domain} Material`,
+      detail: title,
       tone: 'success',
     },
   });

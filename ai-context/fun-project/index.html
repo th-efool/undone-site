@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>SideQuestHQ Lesson Player</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app">
+    <section class="panel">
+      <p class="eyebrow">Configuration</p>
+      <h1>SideQuestHQ Lesson Player</h1>
+      <p class="intro">Convert long YouTube source footage into a locked lesson experience.</p>
+
+      <form id="lessonForm" class="config">
+        <label>
+          YouTube URL
+          <input id="youtubeUrl" type="url" value="https://www.youtube.com/watch?v=dQw4w9WgXcQ" required>
+        </label>
+
+        <div class="time-grid">
+          <label>
+            Start Time (HH:MM:SS)
+            <input id="startTime" type="text" value="00:00:10" pattern="^\d{1,2}:\d{2}:\d{2}$" required>
+          </label>
+          <label>
+            End Time (HH:MM:SS)
+            <input id="endTime" type="text" value="00:00:30" pattern="^\d{1,2}:\d{2}:\d{2}$" required>
+          </label>
+        </div>
+
+        <button type="submit">Load Lesson</button>
+        <p id="message" class="message" role="status"></p>
+      </form>
+    </section>
+
+    <section class="lesson-player" aria-label="Locked lesson player">
+      <div class="player-card">
+        <header class="player-header">
+          <div>
+            <p class="eyebrow">SideQuestHQ Lesson</p>
+            <h2 id="lessonTitle">Lesson not loaded</h2>
+            <p class="player-meta">Source: <span id="actualTimestamp">0:00:00</span></p>
+          </div>
+          <span class="lock" title="You can only navigate within today's lesson segment.">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M7 11V8a5 5 0 0 1 10 0v3" />
+              <rect width="14" height="10" x="5" y="11" rx="2" />
+            </svg>
+            Lesson Mode
+          </span>
+        </header>
+
+        <div id="playerShell" class="player-shell is-idle" aria-label="Video surface">
+          <div id="player"></div>
+
+          <div id="playerOverlay" class="player-overlay">
+            <button id="centerPlayPause" class="control-button center-play-control" type="button" disabled aria-label="Play lesson" data-state="paused">
+              <svg class="play-icon" aria-hidden="true" viewBox="0 0 24 24">
+                <path d="m8 5 11 7-11 7Z" />
+              </svg>
+              <svg class="pause-icon" aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M8 5v14" />
+                <path d="M16 5v14" />
+              </svg>
+            </button>
+
+            <div class="player-bottom">
+              <div class="player-timeline">
+                <div
+                  id="timeline"
+                  class="timeline-control is-disabled"
+                  role="slider"
+                  tabindex="-1"
+                  aria-label="Lesson timeline"
+                  aria-disabled="true"
+                  aria-valuemin="0"
+                  aria-valuemax="0"
+                  aria-valuenow="0"
+                  aria-valuetext="0:00 of 0:00"
+                >
+                  <div class="timeline-track">
+                    <div class="timeline-fill"></div>
+                    <div class="timeline-thumb"></div>
+                  </div>
+                </div>
+                <div class="timeline-times">
+                  <strong><span id="currentLessonTime">0:00</span> / <span id="totalLessonTime">0:00</span></strong>
+                  <span id="remainingTime">0:00 remaining</span>
+                  <span id="timelineEnd">0:00</span>
+                </div>
+              </div>
+
+              <div class="player-controls" aria-label="Lesson controls">
+                <button id="back10" class="control-button" type="button" disabled aria-label="Rewind 10 seconds">
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M9 6 4 11l5 5" />
+                    <path d="M5 11h8a6 6 0 1 1-5.2 9" />
+                    <text x="12" y="15">10</text>
+                  </svg>
+                </button>
+                <button id="playPause" class="control-button play-control" type="button" disabled aria-label="Play lesson" data-state="paused">
+                  <svg class="play-icon" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="m8 5 11 7-11 7Z" />
+                  </svg>
+                  <svg class="pause-icon" aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="M8 5v14" />
+                    <path d="M16 5v14" />
+                  </svg>
+                </button>
+                <button id="forward10" class="control-button" type="button" disabled aria-label="Forward 10 seconds">
+                  <svg aria-hidden="true" viewBox="0 0 24 24">
+                    <path d="m15 6 5 5-5 5" />
+                    <path d="M19 11h-8a6 6 0 1 0 5.2 9" />
+                    <text x="7" y="15">10</text>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

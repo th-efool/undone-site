@@ -5,14 +5,15 @@ export const lesson: Lesson = {
 
   title: 'Machine Learning in 2 Weeks',
 
-  currentVideo: 7,
-  totalVideos: 14,
-
-  currentChunk: 9,
-  totalChunks: 32,
-
-  currentTime: '15:42',
-  totalDuration: '22:01',
+  seasonOrder: 1,
+  currentVideo: 1,
+  totalVideos: 10,
+  currentChunk: 3,
+  totalChunks: 4,
+  startTime: '00:00',
+  endTime: '05:00',
+  currentTime: '00:02',
+  totalDuration: '05:00',
 };
 
 export const timelineMarkers: TimelineMarker[] = [

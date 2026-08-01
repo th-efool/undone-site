@@ -19,13 +19,10 @@
 .progress {
   position: absolute;
   left: 0;
-
-  width: 47%;
   height: 100%;
-
   border-radius: inherit;
-
-  background: linear-gradient(90deg, var(--color-brand), rgba(var(--color-brand-rgb), 0.65));
+  background: #ffffff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
 }
 
 .marker {
@@ -59,4 +56,17 @@
 
 .upcoming {
   background: rgba(255, 255, 255, 0.28);
+}
+
+.thumb {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.5);
+  z-index: 5;
+  pointer-events: none;
 }

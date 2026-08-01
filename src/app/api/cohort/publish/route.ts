@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const cohortId = `cohort-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+    const cohortId = body.cohortId || `cohort-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
     const cohortTitle = body.draft.title || 'Untitled Cohort';
 
     return Response.json({
