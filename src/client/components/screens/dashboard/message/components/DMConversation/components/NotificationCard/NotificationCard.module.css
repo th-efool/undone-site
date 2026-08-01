@@ -19,3 +19,5 @@
   color: #667098;
   font-weight: 700;
 }
+
+@media (max-width: 768px) { .card { padding: var(--space-3); font-size: var(--text-sm); } }

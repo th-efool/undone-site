@@ -283,3 +283,31 @@
   padding: 0.2rem 0.6rem;
   border-radius: 12px;
 }
+
+@media (max-width: 768px) {
+  .board {
+    gap: var(--space-3, 12px);
+  }
+  .seasonCard {
+    border-radius: var(--radius-lg, 12px);
+  }
+  .lessonMain {
+    flex-direction: column;
+  }
+  .lessonThumbnail {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16/9;
+  }
+  .seasonHeaderRight {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .seasonActionBtn {
+    min-height: 36px;
+    padding: 0.35rem 0.6rem;
+  }
+  .dragHandle {
+    display: none;
+  }
+}

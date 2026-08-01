@@ -77,3 +77,19 @@
   align-self: center;
   min-width: 220px;
 }
+
+@media (max-width: 768px) {
+  .card {
+    padding: var(--space-3, 12px);
+  }
+  .header {
+    flex-direction: column;
+    gap: var(--space-2, 8px);
+  }
+  .viewAllButton {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+  }
+}
+

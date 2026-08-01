@@ -118,3 +118,6 @@
     color: #ffffff;
   }
 }
+@media (max-width: 768px) {
+  .success { padding: var(--mobile-page-padding, 16px); }
+}

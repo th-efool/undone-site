@@ -38,3 +38,5 @@
   border-color: var(--message-brand);
   color: var(--message-brand);
 }
+
+@media (max-width: 768px) { .banner { padding: var(--space-3); font-size: var(--text-sm); } }

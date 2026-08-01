@@ -58,3 +58,10 @@
   min-height: 70px;
   resize: vertical;
 }
+
+@media (max-width: 768px) {
+  .fieldGrid {
+    grid-template-columns: 1fr;
+    gap: var(--space-3, 12px);
+  }
+}

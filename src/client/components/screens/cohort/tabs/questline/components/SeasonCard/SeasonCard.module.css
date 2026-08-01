@@ -124,3 +124,10 @@
   align-items: center;
   gap: 8px;
 }
+
+@media (max-width: 768px) {
+  .card {
+    padding: var(--space-3, 12px);
+  }
+}
+

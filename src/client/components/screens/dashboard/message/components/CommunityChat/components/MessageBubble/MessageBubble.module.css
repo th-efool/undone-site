@@ -97,3 +97,5 @@
 .emojiPicker button:hover {
   background: #f6f4ff;
 }
+
+@media (max-width: 768px) { .bubble { max-width: 85%; padding: var(--space-3); font-size: var(--text-sm); } }

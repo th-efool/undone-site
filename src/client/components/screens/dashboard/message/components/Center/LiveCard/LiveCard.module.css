@@ -87,3 +87,5 @@
   background: linear-gradient(135deg, #623cff, #4421df);
   color: #fff;
 }
+
+@media (max-width: 768px) { .card { max-width: 100%; padding: var(--space-3); } }

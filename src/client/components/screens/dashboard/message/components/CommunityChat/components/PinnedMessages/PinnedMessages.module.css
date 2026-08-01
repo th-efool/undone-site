@@ -32,3 +32,5 @@
   font-size: 0.78rem;
   font-weight: 700;
 }
+
+@media (max-width: 768px) { .messages { padding: var(--space-2); } }

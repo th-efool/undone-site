@@ -48,3 +48,13 @@
   background: rgba(255, 255, 255, 0.08);
   margin: 0.2rem 0;
 }
+
+@media (max-width: 768px) {
+  .contextMenu {
+    width: 200px;
+  }
+  .menuItem {
+    min-height: 44px;
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+  }
+}

@@ -31,3 +31,10 @@
   text-align: center;
 }
 
+
+@media (max-width: 768px) {
+  .screen {
+    padding-block: var(--space-4, 16px) var(--space-6, 24px);
+    padding-inline: var(--space-4, 16px);
+  }
+}

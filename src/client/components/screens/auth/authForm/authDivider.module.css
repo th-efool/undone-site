@@ -29,3 +29,5 @@
 
   color: var(--color-text-secondary);
 }
+
+@media (max-width: 768px) { .divider { margin: var(--space-4) 0; font-size: var(--text-sm); } }

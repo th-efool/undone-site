@@ -122,3 +122,5 @@
 .emoji button:hover {
   background: var(--message-brand-soft);
 }
+
+@media (max-width: 768px) { .composer { padding: 10px 12px; gap: 8px; flex-wrap: wrap; } .plus, .mic { width: 44px; height: 44px; min-width: 44px; min-height: 44px; } .input { height: 46px; font-size: 16px; flex: 1 1 100%; order: -1; } .input input { font-size: 16px; } }

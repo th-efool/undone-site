@@ -11,3 +11,6 @@
   width: 32px;
   height: 32px;
 }
+@media (max-width: 768px) {
+  .dm-composer { padding: 10px 12px; }
+}

@@ -162,3 +162,5 @@
     transform: none;
   }
 }
+
+@media (max-width: 768px) { .grid { display: none; } }

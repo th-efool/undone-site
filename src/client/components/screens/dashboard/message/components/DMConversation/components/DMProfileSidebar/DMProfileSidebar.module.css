@@ -43,3 +43,7 @@
   cursor: pointer;
   z-index: 2;
 }
+
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+}

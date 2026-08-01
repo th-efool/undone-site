@@ -95,3 +95,5 @@
   color: #fff;
   font-size: 0.78rem;
 }
+
+@media (max-width: 768px) { .item { min-height: 44px; padding: var(--space-3); } }

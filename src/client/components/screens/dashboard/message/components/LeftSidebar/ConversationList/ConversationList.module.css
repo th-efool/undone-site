@@ -20,3 +20,10 @@
 .list::-webkit-scrollbar {
   display: none;
 }
+
+@media (max-width: 768px) {
+  .list {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+  }
+}

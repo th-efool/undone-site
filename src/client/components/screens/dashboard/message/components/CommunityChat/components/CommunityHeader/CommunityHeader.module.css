@@ -112,3 +112,6 @@
   background: var(--message-brand-soft);
   color: var(--message-brand);
 }
+@media (max-width: 768px) {
+  .header { padding: var(--space-3); }
+}

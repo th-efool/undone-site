@@ -29,3 +29,13 @@
   border-color: rgba(80, 50, 245, 0.25);
   color: var(--color-brand);
 }
+
+@media (max-width: 768px) {
+  .header {
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+  }
+  .header button {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

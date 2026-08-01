@@ -10,6 +10,12 @@
 .incoming {
   justify-content: flex-start;
 }
+
+@media (max-width: 768px) {
+  .wrap { max-width: 80%; }
+  .avatar img { width: 44px; height: 44px; }
+}
+
 .avatar {
   width: 34px;
   min-width: 34px;

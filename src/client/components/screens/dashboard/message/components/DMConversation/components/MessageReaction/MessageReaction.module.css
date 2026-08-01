@@ -25,3 +25,6 @@
 .reactions span {
   margin-left: 4px;
 }
+@media (max-width: 768px) {
+  .reactions { gap: var(--space-1); }
+}

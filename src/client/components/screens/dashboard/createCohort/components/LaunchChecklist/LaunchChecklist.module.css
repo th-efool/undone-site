@@ -85,3 +85,13 @@
   align-items: center;
   gap: 0.6rem;
 }
+
+@media (max-width: 768px) {
+  .list {
+    padding: var(--space-3, 12px);
+  }
+  .item {
+    min-height: 40px;
+    flex-wrap: wrap;
+  }
+}

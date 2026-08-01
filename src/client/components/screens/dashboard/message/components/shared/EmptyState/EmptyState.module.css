@@ -34,3 +34,5 @@
   font-weight: var(--font-medium);
   line-height: var(--leading-normal);
 }
+
+@media (max-width: 768px) { .empty { padding: var(--space-6) var(--space-4); text-align: center; } }

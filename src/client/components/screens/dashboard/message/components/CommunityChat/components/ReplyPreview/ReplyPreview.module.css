@@ -21,3 +21,5 @@
 .reply strong {
   color: var(--color-text-primary);
 }
+
+@media (max-width: 768px) { .preview { padding: var(--space-2); font-size: var(--text-sm); } }

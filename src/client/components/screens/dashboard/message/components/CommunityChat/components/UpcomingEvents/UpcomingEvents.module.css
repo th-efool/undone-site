@@ -44,3 +44,5 @@
   font-weight: 800;
   cursor: pointer;
 }
+
+@media (max-width: 768px) { .events { padding: var(--space-2); } }

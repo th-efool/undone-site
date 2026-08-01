@@ -28,3 +28,5 @@
   flex-direction: column;
   gap: 30px;
 }
+
+@media (max-width: 768px) { .events { padding: var(--space-2); } }

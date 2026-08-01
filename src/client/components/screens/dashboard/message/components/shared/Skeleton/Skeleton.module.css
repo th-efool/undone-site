@@ -71,3 +71,5 @@
     background-position: -220% 0;
   }
 }
+
+@media (max-width: 768px) { .skeleton { height: auto; min-height: 44px; } }

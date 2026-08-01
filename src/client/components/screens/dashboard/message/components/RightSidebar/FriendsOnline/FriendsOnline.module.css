@@ -23,3 +23,5 @@
   font-weight: 800;
   cursor: pointer;
 }
+
+@media (max-width: 768px) { .friends { padding: var(--space-2); } }

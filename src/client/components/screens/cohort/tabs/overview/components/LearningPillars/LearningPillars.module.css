@@ -49,3 +49,10 @@
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 768px) {
+  .card {
+    padding: var(--space-3, 12px);
+  }
+}
+

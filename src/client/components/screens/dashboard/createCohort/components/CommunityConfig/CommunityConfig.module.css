@@ -92,3 +92,6 @@ input:checked + .slider {
 input:checked + .slider:before {
   transform: translateX(16px);
 }
+@media (max-width: 768px) {
+  .config { padding: var(--mobile-page-padding, 16px); }
+}

@@ -41,11 +41,20 @@ export function CapacitorBridge() {
     let removeBackButton: (() => void) | undefined;
 
     void (async () => {
-      const { App } = await import('@capacitor/app');
-
-      if (cancelled) {
+      let App: any;
+      try {
+        const pkgName = '@capacitor/app';
+        const capApp = await import(pkgName);
+        App = capApp.App;
+      } catch {
         return;
       }
+
+      if (cancelled || !App) {
+        return;
+      }
+
+
 
       const launch = await App.getLaunchUrl();
       const launchPath = launch?.url ? normalizeDeepLinkPath(launch.url) : null;
@@ -54,7 +63,7 @@ export function CapacitorBridge() {
         router.replace(launchPath);
       }
 
-      const appUrlOpenHandle = await App.addListener('appUrlOpen', ({ url }) => {
+      const appUrlOpenHandle = await App.addListener('appUrlOpen', ({ url }: { url: string }) => {
         const path = normalizeDeepLinkPath(url);
         if (path) {
           router.push(path);
@@ -65,7 +74,7 @@ export function CapacitorBridge() {
         void appUrlOpenHandle.remove();
       };
 
-      const backButtonHandle = await App.addListener('backButton', ({ canGoBack }) => {
+      const backButtonHandle = await App.addListener('backButton', ({ canGoBack }: { canGoBack: boolean }) => {
         if (canGoBack) {
           window.history.back();
           return;

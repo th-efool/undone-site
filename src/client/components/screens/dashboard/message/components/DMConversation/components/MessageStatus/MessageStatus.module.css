@@ -5,3 +5,5 @@
   font-weight: 900;
   letter-spacing: -0.08em;
 }
+
+@media (max-width: 768px) { .status { margin-top: 4px; font-size: var(--text-xs); } }

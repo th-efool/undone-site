@@ -102,3 +102,6 @@
   font-weight: 600;
   background: rgba(52, 211, 153, 0.08);
 }
+@media (max-width: 768px) {
+  .modal { padding: var(--mobile-page-padding, 16px); }
+}

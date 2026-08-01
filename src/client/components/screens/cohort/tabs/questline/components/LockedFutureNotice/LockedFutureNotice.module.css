@@ -35,3 +35,5 @@
   font-size: var(--text-xs);
   line-height: var(--leading-relaxed);
 }
+
+@media (max-width: 768px) { .notice { padding: var(--space-3); font-size: var(--text-sm); margin: var(--space-2); } }

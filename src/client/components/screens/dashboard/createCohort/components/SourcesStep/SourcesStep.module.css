@@ -42,4 +42,6 @@
     flex-direction: column;
   }
 }
-
+@media (max-width: 768px) {
+  .step { padding: var(--mobile-page-padding, 16px); }
+}

@@ -33,3 +33,5 @@
   background: var(--message-brand-soft);
   color: var(--message-brand);
 }
+
+@media (max-width: 768px) { .group { gap: var(--space-1); padding: var(--space-2); } }

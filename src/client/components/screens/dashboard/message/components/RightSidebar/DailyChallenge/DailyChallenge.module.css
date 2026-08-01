@@ -67,3 +67,5 @@
   font-weight: 700;
   font-size: 0.88rem;
 }
+
+@media (max-width: 768px) { .challenge { padding: var(--space-3); font-size: var(--text-sm); } }

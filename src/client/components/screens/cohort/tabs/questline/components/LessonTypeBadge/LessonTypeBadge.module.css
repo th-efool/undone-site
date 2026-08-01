@@ -15,3 +15,5 @@
 .exercise {
   color: var(--color-brand);
 }
+
+@media (max-width: 768px) { .badge { padding: var(--space-1) var(--space-2); font-size: var(--text-xs); } }

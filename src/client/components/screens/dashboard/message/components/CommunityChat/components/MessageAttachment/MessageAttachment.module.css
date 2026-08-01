@@ -91,3 +91,5 @@
   background: var(--message-brand);
   color: #fff;
 }
+
+@media (max-width: 768px) { .attachment { max-width: 100%; } }

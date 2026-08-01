@@ -116,3 +116,11 @@
 .emoji button:hover {
   background: var(--message-brand-soft);
 }
+
+@media (max-width: 768px) {
+  .composer { padding: 10px 12px; gap: 8px; }
+  .plus { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+  .input { height: 46px; font-size: 16px; }
+  .input input { font-size: 16px; }
+  button, [role="button"] { min-height: 44px; }
+}

@@ -159,3 +159,11 @@
   color: #e2e8f0;
   font-size: 0.875rem;
 }
+
+@media (max-width: 768px) {
+  .previewContainer, .previewCanvas {
+    width: 100%;
+    height: auto;
+    border-radius: var(--radius-lg, 12px);
+  }
+}

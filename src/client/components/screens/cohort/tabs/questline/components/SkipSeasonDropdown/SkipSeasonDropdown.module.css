@@ -40,3 +40,15 @@
 
   color: var(--color-text-secondary);
 }
+
+@media (max-width: 768px) {
+  .wrapper {
+    width: 100%;
+  }
+  .select {
+    width: 100%;
+    min-height: 44px;
+    font-size: 16px;
+  }
+}
+

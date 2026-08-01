@@ -14,3 +14,13 @@
   width: 100%;
   min-width: 0;
 }
+
+@media (max-width: 768px) {
+  .cohort {
+    --cohort-page-gutter: 12px;
+    --cohort-panel-gap: 12px;
+    --cohort-section-gap: 12px;
+    --cohort-panel-padding: 12px;
+  }
+}
+

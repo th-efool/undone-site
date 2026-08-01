@@ -44,3 +44,21 @@
     justify-content: stretch;
   }
 }
+
+@media (max-width: 768px) {
+  .root {
+    position: sticky;
+    bottom: 0;
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+    background: var(--color-surface, #fff);
+    border-top: 1px solid var(--color-border, rgba(0,0,0,0.08));
+  }
+  .inner {
+    flex-direction: column;
+    gap: var(--space-2, 8px);
+  }
+  .actions button {
+    min-height: var(--touch-target-min, 44px);
+    flex: 1;
+  }
+}

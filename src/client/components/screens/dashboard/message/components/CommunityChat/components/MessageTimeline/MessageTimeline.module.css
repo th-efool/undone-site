@@ -10,3 +10,5 @@
 .timeline::-webkit-scrollbar {
   display: none;
 }
+
+@media (max-width: 768px) { .timeline { padding: var(--space-2); overflow-y: auto; -webkit-overflow-scrolling: touch; } }

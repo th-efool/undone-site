@@ -18,3 +18,5 @@
   font-weight: 600;
   line-height: 1.5;
 }
+
+@media (max-width: 768px) { .card { padding: var(--space-3); font-size: var(--text-sm); } }

@@ -10,3 +10,5 @@
   padding: 0 14px;
   background: #fff;
 }
+
+@media (max-width: 768px) { .divider { margin: var(--space-2) 0; font-size: var(--text-xs); } }

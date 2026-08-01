@@ -150,3 +150,5 @@
     transform: none;
   }
 }
+
+@media (max-width: 768px) { .featured { padding: var(--space-3); } }

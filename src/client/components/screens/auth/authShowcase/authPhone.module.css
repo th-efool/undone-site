@@ -41,3 +41,5 @@
     transform: translateX(-50%) rotate(12deg);
   }
 }
+
+@media (max-width: 768px) { .phone { display: none; } }

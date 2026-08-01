@@ -103,3 +103,10 @@
   justify-content: space-between;
   gap: 10px;
 }
+
+@media (max-width: 768px) {
+  .item {
+    min-height: 44px;
+    padding: var(--space-3, 12px) var(--space-4, 16px);
+  }
+}

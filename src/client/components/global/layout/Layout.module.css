@@ -91,3 +91,10 @@
   text-align: right;
   align-items: flex-end;
 }
+
+@media (max-width: 768px) {
+  .container {
+    padding-inline: var(--mobile-page-padding, 16px);
+  }
+}
+

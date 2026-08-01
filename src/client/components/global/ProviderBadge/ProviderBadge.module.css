@@ -24,3 +24,10 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
+@media (max-width: 768px) {
+  .label {
+    font-size: 12px;
+  }
+}
+

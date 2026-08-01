@@ -28,3 +28,6 @@
   border-color: #c7b9ff !important;
   color: var(--color-brand) !important;
 }
+@media (max-width: 768px) {
+  .bar { gap: var(--space-1); flex-wrap: wrap; }
+}

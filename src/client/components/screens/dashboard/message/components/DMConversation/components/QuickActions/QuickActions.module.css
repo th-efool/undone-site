@@ -27,3 +27,6 @@
   color: #1f2748;
   font-size: 0.86rem;
 }
+@media (max-width: 768px) {
+  .actions { flex-wrap: wrap; gap: var(--space-2); }
+}

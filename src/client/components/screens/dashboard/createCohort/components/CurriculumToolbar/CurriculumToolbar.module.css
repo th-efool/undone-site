@@ -133,3 +133,18 @@
     background: rgba(99, 102, 241, 0.3);
   }
 }
+
+@media (max-width: 768px) {
+  .toolbar {
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-wrap: nowrap;
+    padding: var(--space-2, 8px) var(--space-3, 12px);
+  }
+  .toolbar::-webkit-scrollbar { display: none; }
+  .actionBtn, .primaryBtn, .cmdKBtn {
+    min-height: 36px;
+    flex-shrink: 0;
+  }
+}
+

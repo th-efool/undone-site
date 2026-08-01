@@ -32,3 +32,14 @@
   color: var(--message-brand);
   font-size: 0.82rem;
 }
+
+@media (max-width: 768px) {
+  .strip {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .strip::-webkit-scrollbar { display: none; }
+  .strip img, .strip b {
+    flex-shrink: 0;
+  }
+}

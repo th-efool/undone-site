@@ -77,3 +77,13 @@
 .itemFailed {
   color: var(--color-text-muted, #94a3b8);
 }
+
+@media (max-width: 768px) {
+  .checklistCard {
+    width: 100%;
+    padding: var(--space-3, 12px);
+  }
+  .item {
+    min-height: 36px;
+  }
+}

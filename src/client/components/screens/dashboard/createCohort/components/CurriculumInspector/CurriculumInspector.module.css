@@ -193,3 +193,21 @@
   font-size: 0.85rem;
   color: var(--color-text-primary, #ffffff);
 }
+
+@media (max-width: 768px) {
+  .inspector {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    max-height: 60vh;
+    border-radius: var(--radius-xl, 24px) var(--radius-xl, 24px) 0 0;
+    z-index: 500;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tabBtn {
+    min-height: 36px;
+  }
+}
