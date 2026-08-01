@@ -12,6 +12,7 @@ import {
 } from './components';
 
 import { usePlayback } from './hooks/usePlayback';
+import { triggerHaptic } from '@/src/client/utils/haptics';
 import styles from './Play.module.css';
 
 export function Play() {
@@ -19,7 +20,9 @@ export function Play() {
   const playback = usePlayback();
   const [isIdle, setIsIdle] = useState(false);
   const [animationClass, setAnimationClass] = useState('');
+  const [doubleTapBadge, setDoubleTapBadge] = useState<'left' | 'right' | null>(null);
   const playContainerRef = useRef<HTMLDivElement | null>(null);
+  const lastTapRef = useRef<{ time: number; x: number }>({ time: 0, x: 0 });
 
   const handleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -48,6 +51,7 @@ export function Play() {
 
   const handleNextChunk = useCallback(() => {
     if (!playback.hasNext) return;
+    triggerHaptic('medium');
     setAnimationClass(styles.animateSlideUp);
     setTimeout(() => setAnimationClass(''), 350);
     playback.nextChunk();
@@ -55,6 +59,7 @@ export function Play() {
 
   const handlePreviousChunk = useCallback(() => {
     if (!playback.hasPrevious) return;
+    triggerHaptic('medium');
     setAnimationClass(styles.animateSlideDown);
     setTimeout(() => setAnimationClass(''), 350);
     playback.previousChunk();
@@ -76,7 +81,28 @@ export function Play() {
       }
 
       // Vertical swipe → next/prev chunk
-      if (Math.abs(deltaY) < 50) return;
+      if (Math.abs(deltaY) < 50) {
+        // Double-tap detection for left/right halves
+        const now = Date.now();
+        const tapX = e.clientX;
+        const width = window.innerWidth;
+
+        if (now - lastTapRef.current.time < 300 && Math.abs(tapX - lastTapRef.current.x) < 80) {
+          if (tapX < width * 0.4) {
+            playback.skipSeconds(-10);
+            triggerHaptic('light');
+            setDoubleTapBadge('left');
+            setTimeout(() => setDoubleTapBadge(null), 450);
+          } else if (tapX > width * 0.6) {
+            playback.skipSeconds(10);
+            triggerHaptic('light');
+            setDoubleTapBadge('right');
+            setTimeout(() => setDoubleTapBadge(null), 450);
+          }
+        }
+        lastTapRef.current = { time: now, x: tapX };
+        return;
+      }
       if (deltaY > 0) {
         handleNextChunk();
       } else {
@@ -234,7 +260,7 @@ export function Play() {
           onSkipForward={() => playback.skipSeconds(10)}
           onVolumeChange={playback.setVolume}
           onFullscreen={handleFullscreen}
-          onCompleteChunk={() => { playback.completeActiveChunk(); handleNextChunk(); }}
+          onCompleteChunk={() => { triggerHaptic('success'); playback.completeActiveChunk(); handleNextChunk(); }}
           onNextChunk={handleNextChunk}
           onPreviousChunk={handlePreviousChunk}
           hasNext={playback.hasNext}
@@ -311,7 +337,7 @@ export function Play() {
 
         <button
           className={styles.doneBtnFull}
-          onClick={playback.completeActiveChunk}
+          onClick={() => { triggerHaptic('success'); playback.completeActiveChunk(); handleNextChunk(); }}
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
           Mark Done
@@ -352,10 +378,27 @@ export function Play() {
         className={styles.topRightBackButton}
         onClick={handleExitPlay}
         aria-label="Back to Home"
+        style={{
+          opacity: isIdle ? 0 : 1,
+          pointerEvents: isIdle ? 'none' : 'auto',
+          transition: 'opacity 0.6s ease',
+        }}
       >
         <ArrowLeft size={18} />
         <span>Back</span>
       </button>
+
+      {/* Floating double-tap rewind/fast-forward badges */}
+      {doubleTapBadge === 'left' && (
+        <div className={styles.doubleTapBadgeLeft}>
+          <span>⏪ 10s</span>
+        </div>
+      )}
+      {doubleTapBadge === 'right' && (
+        <div className={styles.doubleTapBadgeRight}>
+          <span>10s ⏩</span>
+        </div>
+      )}
 
       {/* PlayerSurface — always rendered for YouTube iframe mounting */}
       <div className={`${styles.surfaceContainer} ${animationClass}`}>

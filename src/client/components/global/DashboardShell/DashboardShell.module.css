@@ -33,3 +33,18 @@
     -webkit-overflow-scrolling: touch;
   }
 }
+
+[data-platform="app"] .content {
+  animation: appPageEnter 220ms ease-out forwards;
+}
+
+@keyframes appPageEnter {
+  0% {
+    opacity: 0.88;
+    transform: scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

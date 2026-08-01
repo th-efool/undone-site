@@ -36,4 +36,13 @@ body {
   }
 }
 
+/* ── App-Exclusive Micro-Springs & Active Feedback ── */
+[data-platform="app"] button:active,
+[data-platform="app"] a:active,
+[data-platform="app"] [class*="Card"]:active,
+[data-platform="app"] [class*="Row"]:active {
+  transform: scale(0.975);
+  transition: transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 @import './styles/print.css';

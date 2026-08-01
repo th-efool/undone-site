@@ -388,6 +388,201 @@
     opacity: 0.5;
   }
   100% {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: var(--color-background);
+    box-sizing: border-box;
+  }
+
+  /* Skip + Play row */
+  .controlRowMain {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    width: 100%;
+  }
+
+  /* Skip buttons (←10s / →10s) */
+  .skipBtn {
+    min-width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.08);
+    border: none;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    transition: background-color 150ms ease, transform 100ms ease;
+  }
+
+  .skipBtn:hover {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  .skipBtn:active {
+    transform: scale(0.93);
+  }
+
+  .skipLabel {
+    font-size: 0.58rem;
+    font-weight: 700;
+    line-height: 1;
+    opacity: 0.7;
+  }
+
+  /* Main play/pause button */
+  .playBtn {
+    min-width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: #fff;
+    border: none;
+    color: #050505;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    transition: transform 100ms ease, background-color 150ms ease;
+  }
+
+  .playBtn:hover {
+    background: #f0f0f0;
+  }
+
+  .playBtn:active {
+    transform: scale(0.94);
+  }
+
+  /* Time display */
+  .timeDisplay {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 0.02em;
+    user-select: none;
+  }
+
+  /* Mark Done — full-width primary CTA */
+  .doneBtnFull {
+    width: 100%;
+    min-height: 48px;
+    border-radius: 12px;
+    background: #22c55e;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 24px;
+    transition: background-color 150ms ease, transform 100ms ease;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+  }
+
+  .doneBtnFull:hover {
+    background: #4ade80;
+  }
+
+  .doneBtnFull:active {
+    transform: scale(0.98);
+  }
+
+  /* Nav row (prev/next) */
+  .navRow {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    padding-top: 4px;
+  }
+
+  .navBtnMobile {
+    flex: 1;
+    min-height: 44px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.75);
+    font-size: 0.88rem;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    transition: background-color 150ms ease;
+  }
+
+  .navBtnMobile:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+  }
+
+  .navBtnMobile:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  /* ── Mobile queue drawer / notes panel (if ever shown) ─────────── */
+}
+
+/* Floating top-right back button for landscape/fullscreen exit */
+.topRightBackButton {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top, 12px));
+  right: max(16px, env(safe-area-inset-right, 16px));
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: transform 150ms ease, background-color 150ms ease;
+}
+
+.topRightBackButton:active {
+  transform: scale(0.96);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Video Feed Animations */
+@keyframes slideInUp {
+  0% {
+    transform: translateY(100%);
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInDown {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0.5;
+  }
+  100% {
     transform: translateY(0);
     opacity: 1;
   }
@@ -399,5 +594,58 @@
 
 .animateSlideDown {
   animation: slideInDown 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}. s u r f a c e C o n t a i n e r   {   w i d t h :   1 0 0 % ;   h e i g h t :   1 0 0 % ;   }  
- 
+}
+
+.surfaceContainer {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Double-tap ripple badges */
+.doubleTapBadgeLeft,
+.doubleTapBadgeRight {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 24px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  pointer-events: none;
+  animation: doubleTapRipple 450ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.doubleTapBadgeLeft {
+  left: 15%;
+}
+
+.doubleTapBadgeRight {
+  right: 15%;
+}
+
+@keyframes doubleTapRipple {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.6);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) scale(1.3);
+  }
+}
