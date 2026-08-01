@@ -10,16 +10,152 @@
 │   │   ├── index.html
 │   │   ├── script.js
 │   │   └── styles.css
-│   ├── create-cohort-curriculum-plan.md
-│   ├── create-cohort-import-plan.md
-│   ├── create-cohort-intelligence-plan.md
-│   ├── create-cohort-launch-plan.md
-│   ├── create-cohort-plan.md
 │   ├── design-css-tokens.md
 │   ├── directory-structure.md
-│   ├── feed-system-plan.md
 │   ├── hero-section-guidelines.md
-│   └── youtube data api v3 details
+│   ├── responsive-mobile-plan.md
+│   └── task.md
+├── android/
+│   ├── app/
+│   │   ├── src/
+│   │   │   ├── androidTest/
+│   │   │   │   └── java/
+│   │   │   │       └── com/
+│   │   │   │           └── getcapacitor/
+│   │   │   │               └── myapp/
+│   │   │   │                   └── ExampleInstrumentedTest.java
+│   │   │   ├── main/
+│   │   │   │   ├── java/
+│   │   │   │   │   └── com/
+│   │   │   │   │       └── sidequesthq/
+│   │   │   │   │           └── in/
+│   │   │   │   │               └── MainActivity.java
+│   │   │   │   ├── res/
+│   │   │   │   │   ├── drawable/
+│   │   │   │   │   │   ├── ic_launcher_background.xml
+│   │   │   │   │   │   ├── ic_launcher_foreground.xml
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-land-hdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-land-ldpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-land-mdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-land-night-hdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-land-night-ldpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-land-night-mdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-land-night-xhdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-land-night-xxhdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-land-night-xxxhdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-land-xhdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-land-xxhdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-land-xxxhdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-night/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-port-hdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-port-ldpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-port-mdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-port-night-hdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-port-night-ldpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-port-night-mdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-port-night-xhdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-port-night-xxhdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-port-night-xxxhdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-port-xhdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-port-xxhdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-port-xxxhdpi/
+│   │   │   │   │   │   └── splash.png
+│   │   │   │   │   ├── drawable-v24/
+│   │   │   │   │   │   └── ic_launcher_foreground.xml
+│   │   │   │   │   ├── layout/
+│   │   │   │   │   │   └── activity_main.xml
+│   │   │   │   │   ├── mipmap-anydpi-v26/
+│   │   │   │   │   │   ├── ic_launcher.xml
+│   │   │   │   │   │   └── ic_launcher_round.xml
+│   │   │   │   │   ├── mipmap-hdpi/
+│   │   │   │   │   │   ├── ic_launcher.png
+│   │   │   │   │   │   ├── ic_launcher_background.png
+│   │   │   │   │   │   ├── ic_launcher_foreground.png
+│   │   │   │   │   │   └── ic_launcher_round.png
+│   │   │   │   │   ├── mipmap-ldpi/
+│   │   │   │   │   │   ├── ic_launcher.png
+│   │   │   │   │   │   ├── ic_launcher_background.png
+│   │   │   │   │   │   ├── ic_launcher_foreground.png
+│   │   │   │   │   │   └── ic_launcher_round.png
+│   │   │   │   │   ├── mipmap-mdpi/
+│   │   │   │   │   │   ├── ic_launcher.png
+│   │   │   │   │   │   ├── ic_launcher_background.png
+│   │   │   │   │   │   ├── ic_launcher_foreground.png
+│   │   │   │   │   │   └── ic_launcher_round.png
+│   │   │   │   │   ├── mipmap-xhdpi/
+│   │   │   │   │   │   ├── ic_launcher.png
+│   │   │   │   │   │   ├── ic_launcher_background.png
+│   │   │   │   │   │   ├── ic_launcher_foreground.png
+│   │   │   │   │   │   └── ic_launcher_round.png
+│   │   │   │   │   ├── mipmap-xxhdpi/
+│   │   │   │   │   │   ├── ic_launcher.png
+│   │   │   │   │   │   ├── ic_launcher_background.png
+│   │   │   │   │   │   ├── ic_launcher_foreground.png
+│   │   │   │   │   │   └── ic_launcher_round.png
+│   │   │   │   │   ├── mipmap-xxxhdpi/
+│   │   │   │   │   │   ├── ic_launcher.png
+│   │   │   │   │   │   ├── ic_launcher_background.png
+│   │   │   │   │   │   ├── ic_launcher_foreground.png
+│   │   │   │   │   │   └── ic_launcher_round.png
+│   │   │   │   │   ├── values/
+│   │   │   │   │   │   ├── colors.xml
+│   │   │   │   │   │   ├── ic_launcher_background.xml
+│   │   │   │   │   │   ├── strings.xml
+│   │   │   │   │   │   └── styles.xml
+│   │   │   │   │   └── xml/
+│   │   │   │   │       └── file_paths.xml
+│   │   │   │   └── AndroidManifest.xml
+│   │   │   └── test/
+│   │   │       └── java/
+│   │   │           └── com/
+│   │   │               └── getcapacitor/
+│   │   │                   └── myapp/
+│   │   │                       └── ExampleUnitTest.java
+│   │   ├── .gitignore
+│   │   ├── build.gradle
+│   │   ├── capacitor.build.gradle
+│   │   └── proguard-rules.pro
+│   ├── gradle/
+│   │   └── wrapper/
+│   │       ├── gradle-wrapper.jar
+│   │       └── gradle-wrapper.properties
+│   ├── .gitignore
+│   ├── build.gradle
+│   ├── capacitor.settings.gradle
+│   ├── gradle.properties
+│   ├── gradlew
+│   ├── gradlew.bat
+│   ├── settings.gradle
+│   └── variables.gradle
+├── assets/
+│   └── logo.png
+├── docs/
+│   └── ANDROID.md
 ├── public/
 │   ├── icons/
 │   │   ├── apple.webp
@@ -128,6 +264,9 @@
 │   ├── test-feed-system.mjs
 │   ├── test-operating-systems-import.mjs
 │   └── test-real-feed.mjs
+├── scripts/
+│   ├── mobile-build.mjs
+│   └── mobile-release-aab.mjs
 ├── src/
 │   ├── app/
 │   │   ├── (auth)/
@@ -192,6 +331,8 @@
 │   ├── client/
 │   │   ├── components/
 │   │   │   ├── global/
+│   │   │   │   ├── CapacitorBridge/
+│   │   │   │   │   └── CapacitorBridge.tsx
 │   │   │   │   ├── DashboardShell/
 │   │   │   │   │   ├── DashboardShell.module.css
 │   │   │   │   │   └── DashboardShell.tsx
@@ -977,6 +1118,7 @@
 │   │   │           ├── Text.module.css
 │   │   │           └── Text.tsx
 │   │   ├── hooks/
+│   │   │   ├── useIsMobile.ts
 │   │   │   ├── useSession.ts
 │   │   │   └── useSessions.ts
 │   │   ├── mock/
@@ -991,13 +1133,16 @@
 │   │   │   └── query-client.ts
 │   │   ├── redux/
 │   │   │   └── store.ts
-│   │   └── repositories/
-│   │       ├── cohortRepository.ts
-│   │       ├── cohortStore.ts
-│   │       ├── exploreRepository.ts
-│   │       ├── feedRepository.ts
-│   │       ├── homeRepository.ts
-│   │       └── messagesRepository.ts
+│   │   ├── repositories/
+│   │   │   ├── cohortRepository.ts
+│   │   │   ├── cohortStore.ts
+│   │   │   ├── exploreRepository.ts
+│   │   │   ├── feedRepository.ts
+│   │   │   ├── homeRepository.ts
+│   │   │   ├── messagesRepository.ts
+│   │   │   └── storageAdapter.ts
+│   │   └── utils/
+│   │       └── isNative.ts
 │   ├── server/
 │   │   ├── adapters/
 │   │   │   ├── actions/
@@ -1046,6 +1191,8 @@
 │   │       └── external/
 │   │           └── scratch.txt
 │   └── shared/
+│       ├── api/
+│       │   └── apiUrl.ts
 │       ├── constants/
 │       │   └── app.constants.ts
 │       ├── curriculum/
@@ -1057,26 +1204,32 @@
 │       │   ├── feedEngine.types.ts
 │       │   ├── feedScoring.ts
 │       │   └── index.ts
-│       └── lib/
-│           ├── errors/
-│           │   └── AppError.ts
-│           ├── utils/
-│           │   ├── calculateScore.ts
-│           │   └── formatDate.ts
-│           └── validators/
-│               ├── session.validator.ts
-│               └── user.validator.ts
+│       ├── lib/
+│       │   ├── errors/
+│       │   │   └── AppError.ts
+│       │   ├── utils/
+│       │   │   ├── calculateScore.ts
+│       │   │   └── formatDate.ts
+│       │   └── validators/
+│       │       ├── session.validator.ts
+│       │       └── user.validator.ts
+│       └── mobile/
+│           └── cohortStaticParams.ts
 ├── .gitignore
 ├── .prettierignore
 ├── .prettierrc
 ├── AGENTS.md
 ├── CLAUDE.md
 ├── README.md
+├── capacitor.config.ts
 ├── eslint.config.mjs
+├── floating-logo.png
+├── floating-logo.webp
 ├── next.config.ts
 ├── package-lock.json
 ├── package.json
 ├── postcss.config.mjs
+├── sidequesthq-logo.webp
 └── tsconfig.json
 
-348 directories, 730 files
+413 directories, 818 files
