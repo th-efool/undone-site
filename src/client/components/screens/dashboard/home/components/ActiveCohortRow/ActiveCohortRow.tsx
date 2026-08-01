@@ -98,11 +98,6 @@ export function ActiveCohortRow({
     <article
       ref={rowRef}
       className={`${styles.row} ${isDraggingOver ? styles.dragOver : ''}`}
-      draggable
-      onDragStart={(event) => {
-        event.dataTransfer.effectAllowed = 'move';
-        event.dataTransfer.setData('text/plain', item.id);
-      }}
       onDragOver={(event) => {
         event.preventDefault();
         event.dataTransfer.dropEffect = 'move';
@@ -152,7 +147,7 @@ export function ActiveCohortRow({
       </div>
 
       {/* Schedule button – hidden on mobile */}
-      <div className={styles.popoverAnchor}>
+      <div className={`${styles.popoverAnchor} ${styles.scheduleAnchor}`}>
         <button
           type="button"
           className={styles.schedule}

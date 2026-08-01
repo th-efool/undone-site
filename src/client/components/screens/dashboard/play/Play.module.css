@@ -339,3 +339,33 @@
 
   /* ── Mobile queue drawer / notes panel (if ever shown) ─────────── */
 }
+
+/* Floating top-right back button for landscape/fullscreen exit */
+.topRightBackButton {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top, 12px));
+  right: max(16px, env(safe-area-inset-right, 16px));
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 0.82rem;
+  font-weight: 600;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: transform 150ms ease, background-color 150ms ease;
+}
+
+.topRightBackButton:active {
+  transform: scale(0.94);
+  background: rgba(15, 23, 42, 0.9);
+}

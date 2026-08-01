@@ -478,7 +478,7 @@
   /* Hide desktop-only cells */
   .dailyGoal,
   .progressCell,
-  .row > .popoverAnchor:first-of-type, /* schedule */
+  .scheduleAnchor,
   .provider,
   .today {
     display: none !important;

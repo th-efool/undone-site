@@ -23,13 +23,16 @@
 
 html,
 body {
-  overscroll-behavior: none;
+  overscroll-behavior-y: none;
+  touch-action: manipulation;
 }
 
 @media (max-width: 768px) {
   html,
   body {
     overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
 }
 

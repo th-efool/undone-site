@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState, WheelEvent, TouchEvent } from 'react';
-import { Play as PlayIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Play as PlayIcon, ArrowLeft } from 'lucide-react';
 import {
   LessonCard,
   LearningTimeline,
@@ -14,8 +15,16 @@ import { usePlayback } from './hooks/usePlayback';
 import styles from './Play.module.css';
 
 export function Play() {
+  const router = useRouter();
   const playback = usePlayback();
   const [isIdle, setIsIdle] = useState(false);
+
+  const handleExitPlay = useCallback(() => {
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(() => {});
+    }
+    router.push('/home');
+  }, [router]);
   const scrollCooldownRef = useRef(false);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
   const touchStartY = useRef<number | null>(null);
@@ -309,6 +318,17 @@ export function Play() {
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
+      {/* Dedicated top-right back button to exit play & fullscreen */}
+      <button
+        type="button"
+        className={styles.topRightBackButton}
+        onClick={handleExitPlay}
+        aria-label="Back to Home"
+      >
+        <ArrowLeft size={18} />
+        <span>Back</span>
+      </button>
+
       {/* PlayerSurface — always rendered for YouTube iframe mounting */}
       <PlayerSurface containerRef={playback.playerContainerRef}>{desktopOverlays}</PlayerSurface>
 

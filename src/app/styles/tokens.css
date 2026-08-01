@@ -308,7 +308,7 @@
   --z-max: 9999;
 
   /* ── Mobile / Bottom Nav ── */
-  --bottom-nav-height: 60px;
+  --bottom-nav-height: 38px;
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-top: env(safe-area-inset-top, 0px);
   --touch-target-min: 44px;
