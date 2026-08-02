@@ -3,6 +3,7 @@
 import { Search, X } from 'lucide-react';
 
 import { PillInput } from '../PillInput';
+import { useCommandContext } from '../CommandPalette';
 import styles from './SearchBar.module.css';
 
 export interface SearchBarProps {
@@ -24,6 +25,8 @@ export function SearchBar({
   className,
   onClear,
 }: SearchBarProps) {
+  const { openCommand } = useCommandContext();
+
   return (
     <form
       className={`${styles.searchBar} ${className ?? ''}`}
@@ -58,7 +61,20 @@ export function SearchBar({
               <X size={15} />
             </button>
           ) : (
-            <kbd className={styles.shortcut}>⌘ K</kbd>
+            <kbd
+              className={styles.shortcut}
+              role="button"
+              tabIndex={0}
+              onClick={() => openCommand()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  openCommand();
+                }
+              }}
+            >
+              ⌘ K
+            </kbd>
           )
         }
         onChange={(event) => onChange?.(event.target.value)}
