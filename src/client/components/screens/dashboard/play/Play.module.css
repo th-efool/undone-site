@@ -370,6 +370,22 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
+.exitFsBtn {
+  right: max(108px, env(safe-area-inset-right, 16px)) !important;
+  z-index: calc(var(--z-overlay) + 100);
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+.exitFsBtn:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+.exitFsLabel {
+  display: inline;
+  white-space: nowrap;
+}
+
 /* Video Feed Animations */
 @keyframes slideInUp {
   0% {
@@ -563,6 +579,22 @@
 .topRightBackButton:active {
   transform: scale(0.96);
   background: rgba(255, 255, 255, 0.2);
+}
+
+.exitFsBtn {
+  right: max(108px, env(safe-area-inset-right, 16px)) !important;
+  z-index: calc(var(--z-overlay) + 100);
+  background: rgba(255, 255, 255, 0.15) !important;
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+
+.exitFsBtn:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+.exitFsLabel {
+  display: inline;
+  white-space: nowrap;
 }
 
 /* Video Feed Animations */

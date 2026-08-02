@@ -83,18 +83,53 @@
   line-height: 1.05;
 }
 
+.progressWrapper {
+  position: relative;
+}
+
 .progress {
   overflow: hidden;
   height: 6px;
   margin-top: 4px;
   border-radius: 999px;
   background: var(--color-background);
+  position: relative;
 }
 
 .progressFill {
   height: 100%;
   border-radius: inherit;
   background: var(--color-brand);
+  transition: width 350ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.milestoneTrack {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.milestoneDot {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  transform: translate(-50%, -50%);
+  background: var(--color-background);
+  border: 1.5px solid var(--color-border-hover);
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.milestoneReached {
+  background: var(--color-brand);
+  border-color: var(--color-brand);
+  width: 9px;
+  height: 9px;
+  transform: translate(-50%, -50%) scale(1.15);
 }
 
 .trend {

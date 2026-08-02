@@ -6,6 +6,23 @@ export interface SummaryCardsProps {
   items: GoalSummary[];
 }
 
+const MILESTONES = [25, 50, 75];
+
+function MilestoneMarkers({ percent }: { percent: number }) {
+  return (
+    <div className={styles.milestoneTrack}>
+      {MILESTONES.map((m) => (
+        <div
+          key={m}
+          className={`${styles.milestoneDot} ${percent >= m ? styles.milestoneReached : ''}`}
+          style={{ left: `${m}%` }}
+          aria-label={`${m}% milestone${percent >= m ? ' reached' : ''}`}
+        />
+      ))}
+    </div>
+  );
+}
+
 export function SummaryCards({ items }: SummaryCardsProps) {
   return (
     <section
@@ -24,11 +41,14 @@ export function SummaryCards({ items }: SummaryCardsProps) {
             <strong className={styles.value}>{item.value}</strong>
 
             {item.progress && (
-              <div className={styles.progress}>
-                <div
-                  className={styles.progressFill}
-                  style={{ width: `${item.progress.percent}%` }}
-                />
+              <div className={styles.progressWrapper}>
+                <div className={styles.progress}>
+                  <MilestoneMarkers percent={item.progress.percent} />
+                  <div
+                    className={styles.progressFill}
+                    style={{ width: `${item.progress.percent}%` }}
+                  />
+                </div>
               </div>
             )}
 

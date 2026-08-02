@@ -30,6 +30,24 @@
   color: var(--color-text-secondary);
   font-weight: 600;
 }
+.unsavedDot {
+  font-size: var(--text-xs);
+  color: #ef4444;
+  margin-left: 6px;
+  animation: dotPulse 1s ease-in-out infinite;
+}
+
+.savedDot {
+  font-size: var(--text-xs);
+  color: #22c55e;
+  margin-left: 6px;
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
 .toolbar {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -743,7 +761,25 @@
     display: none;
   }
 
-  .toolbar {
+  .unsavedDot {
+  font-size: var(--text-xs);
+  color: #ef4444;
+  margin-left: 6px;
+  animation: dotPulse 1s ease-in-out infinite;
+}
+
+.savedDot {
+  font-size: var(--text-xs);
+  color: #22c55e;
+  margin-left: 6px;
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.toolbar {
     grid-template-columns: repeat(2, 1fr);
   }
 
@@ -844,7 +880,25 @@
   font-size: 16px !important;
 }
 
-[data-platform="app"] .toolbar {
+[data-platform="app"] .unsavedDot {
+  font-size: var(--text-xs);
+  color: #ef4444;
+  margin-left: 6px;
+  animation: dotPulse 1s ease-in-out infinite;
+}
+
+.savedDot {
+  font-size: var(--text-xs);
+  color: #22c55e;
+  margin-left: 6px;
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.toolbar {
   position: sticky !important;
   top: 0 !important;
   z-index: 10 !important;

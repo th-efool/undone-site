@@ -1,0 +1,49 @@
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: clamp(48px, 12vh, 96px) var(--space-6);
+}
+
+.icon {
+  color: var(--color-text-muted);
+  opacity: 0.5;
+  margin-bottom: var(--space-4);
+}
+
+.title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  margin: 0 0 var(--space-2) 0;
+}
+
+.description {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  max-width: 360px;
+  margin: 0 0 var(--space-5) 0;
+  line-height: var(--leading-relaxed);
+}
+
+.ctaButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-pill);
+  background: var(--color-brand-subtle);
+  color: var(--color-brand);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  text-decoration: none;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+
+.ctaButton:hover {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-hover);
+  transform: translateY(-1px);
+}
