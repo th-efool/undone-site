@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SearchBar } from '@/src/client/components/global/SearchBar';
+import { HomeSkeleton } from '@/src/client/components/global/Skeleton';
+import { EmptyState } from '@/src/client/components/global/EmptyState';
 
 import { ActiveCohorts } from './components/ActiveCohorts/ActiveCohorts';
 import { ContinueLater } from './components/ContinueLater/ContinueLater';
@@ -44,6 +46,10 @@ export function Home() {
   );
   const hasResults = activeCohorts.length + continueLater.length + recentlyCompleted.length > 0;
 
+  if (home.loading) {
+    return <HomeSkeleton />;
+  }
+
   return (
     <main className={styles.home}>
       <SearchBar
@@ -58,7 +64,13 @@ export function Home() {
       <SummaryCards items={home.summaries} />
 
       {debouncedQuery && !hasResults && (
-        <div className={styles.emptyState}>No home results found for “{query}”.</div>
+        <EmptyState
+          query={query}
+          title={`No results for "${query}"`}
+          description="Try searching with different keywords or browse all your cohorts."
+          ctaLabel="Browse all cohorts"
+          ctaHref="/explore"
+        />
       )}
 
       <ActiveCohorts

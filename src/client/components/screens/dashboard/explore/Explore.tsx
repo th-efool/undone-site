@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { SearchBar } from '@/src/client/components/global/SearchBar';
+import { ExploreSkeleton } from '@/src/client/components/global/Skeleton';
+import { EmptyState } from '@/src/client/components/global/EmptyState';
 
 import { ExploreHero } from './components/ExploreHero/ExploreHero';
 import { BrowseTopics } from './components/BrowseTopics/BrowseTopics';
@@ -57,6 +59,10 @@ export function Explore() {
     peopleFinishing.length + topics.length + trendingSideQuests.length + recentlyPublished.length >
     0;
 
+  if (explore.loading) {
+    return <ExploreSkeleton />;
+  }
+
   return (
     <main className={styles.explore}>
       <SearchBar
@@ -68,12 +74,14 @@ export function Explore() {
       <ExploreHero />
 
       {debouncedQuery && !hasResults && (
-        <div className={styles.emptyState}>No explore results found for “{query}”.</div>
+        <EmptyState
+          query={query}
+          title={`No results for "${query}"`}
+          description="Try a different search term or browse our most popular SideQuests."
+          ctaLabel="Browse all SideQuests"
+          ctaHref="/explore"
+        />
       )}
-
-      {/*<ContinueExploring
-                items={explore.continueExploring}
-            />*/}
 
       <PeopleFinishing items={peopleFinishing} />
       <BrowseTopics items={topics} />

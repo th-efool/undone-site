@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { homeRepository } from '@/src/client/repositories/homeRepository';
 import type { Weekday } from '../models';
@@ -13,7 +13,13 @@ import {
 } from '../utils';
 
 export function useHome() {
+  const [loading, setLoading] = useState(true);
   const home = useMemo(() => homeRepository.getHome(), []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setLoading(false), 400);
+    return () => clearTimeout(timer);
+  }, []);
   const initialCohorts = useMemo(
     () => getActiveCohorts(home.activeCohorts, home.continueLater),
     [home],
@@ -64,8 +70,8 @@ export function useHome() {
   }
 
   return {
+    loading,
     ...home,
-    summaries,
     activeCohorts,
     continueLater,
     actions: {
