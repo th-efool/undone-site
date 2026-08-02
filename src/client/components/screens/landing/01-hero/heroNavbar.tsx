@@ -3,10 +3,8 @@ import Link from 'next/link';
 import styles from './heroNavbar.module.css';
 
 const navigationItems = [
-  { label: 'Product', href: '#product' },
-  { label: 'Cohorts', href: '#cohorts' },
-  { label: 'Our Philosophy', href: '#philosophy' },
-  { label: 'Pricing', href: '#pricing' },
+  { label: 'Product', href: '/auth' },
+  { label: 'Cohorts', href: '/auth' },
 ];
 
 export function HeroNavbar() {
@@ -14,7 +12,7 @@ export function HeroNavbar() {
     <header className={styles.header}>
       <div className={styles.inner}>
         <Link
-          href="/"
+          href="/auth"
           className={styles.brand}
         >
           <div className={styles.logoFrame}>

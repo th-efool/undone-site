@@ -5,7 +5,7 @@ export function HeroContent() {
   return (
     <section className={styles.content}>
       <div className={styles.eyebrow}>
-        BOOKMARKS. WATCH LATER. HALF-FINISHED COURSES. DROPPED HOBBIES.
+        Bookmarks · Watch later · Half-finished courses · Dropped hobbies
       </div>
 
       <h1 className={styles.title}>
@@ -18,11 +18,6 @@ export function HeroContent() {
       </p>
 
       <div className={styles.actions}>
-        <button className={styles.demoButton}>
-          <span className={styles.demoIcon}>▶</span>
-          See How It Works
-        </button>
-
         <Link
           href="/auth"
           className={styles.ctaButton}
