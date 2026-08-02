@@ -1,6 +1,5 @@
 export type { ArticlePreview } from './articlePreview';
-export type { ContinueExploringItem } from './continue-exploring';
-export type { AvatarPreview, ExploreModel, IconBadge } from './explore';
+export type { AvatarPreview, ExploreModel } from './explore';
 export type { SearchSuggestion } from './search';
 export type { SideQuest } from './sidequest';
 export type { Topic } from './topic';

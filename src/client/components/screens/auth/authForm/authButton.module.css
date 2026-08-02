@@ -55,7 +55,8 @@
 }
 
 .button:active:not(:disabled) {
-  transform: translateY(0) scale(0.99);
+  transform: translateY(1px) scale(0.98);
+  transition-duration: 60ms;
 }
 
 .button:disabled {
