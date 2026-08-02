@@ -1,0 +1,43 @@
+/* Unified Card Component — Task 2.7 #89 */
+.card {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  background: white;
+  transition: box-shadow var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard);
+}
+
+/* Variant: default — subtle shadow */
+.card--default {
+  border: 1px solid var(--color-border-soft, rgba(0, 0, 0, 0.06));
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+/* Variant: elevated — larger shadow for prominence */
+.card--elevated {
+  border: none;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+/* Variant: flat — no shadow, minimal border */
+.card--flat {
+  border: 1px solid var(--color-border-soft, rgba(0, 0, 0, 0.06));
+  box-shadow: none;
+}
+
+/* Rounded corners toggle */
+.card--rounded {
+  border-radius: var(--radius-lg);
+}
+
+.card__header {
+  padding: var(--space-4) var(--space-4) 0;
+}
+
+.card__body {
+  flex: 1;
+}
+
+.card__footer {
+  padding: 0 var(--space-4) var(--space-4);
+}
