@@ -330,9 +330,18 @@
 │   │   │   ├── global/
 │   │   │   │   ├── CapacitorBridge/
 │   │   │   │   │   └── CapacitorBridge.tsx
+│   │   │   │   ├── CommandPalette/
+│   │   │   │   │   ├── CommandPalette.module.css
+│   │   │   │   │   ├── CommandPalette.tsx
+│   │   │   │   │   ├── CommandTrigger.tsx
+│   │   │   │   │   └── index.ts
 │   │   │   │   ├── DashboardShell/
 │   │   │   │   │   ├── DashboardShell.module.css
 │   │   │   │   │   └── DashboardShell.tsx
+│   │   │   │   ├── EmptyState/
+│   │   │   │   │   ├── EmptyState.module.css
+│   │   │   │   │   ├── EmptyState.tsx
+│   │   │   │   │   └── index.ts
 │   │   │   │   ├── Footer/
 │   │   │   │   │   ├── Footer.module.css
 │   │   │   │   │   └── Footer.tsx
@@ -365,6 +374,17 @@
 │   │   │   │   │   ├── SidebarItem.tsx
 │   │   │   │   │   ├── index.ts
 │   │   │   │   │   └── sidebar.data.ts
+│   │   │   │   ├── Skeleton/
+│   │   │   │   │   ├── PageSkeleton.module.css
+│   │   │   │   │   ├── PageSkeleton.tsx
+│   │   │   │   │   ├── Skeleton.module.css
+│   │   │   │   │   ├── Skeleton.tsx
+│   │   │   │   │   └── index.ts
+│   │   │   │   ├── Toast/
+│   │   │   │   │   ├── Toast.module.css
+│   │   │   │   │   ├── Toast.tsx
+│   │   │   │   │   ├── ToastProvider.tsx
+│   │   │   │   │   └── index.ts
 │   │   │   │   ├── layout/
 │   │   │   │   │   ├── Cluster.tsx
 │   │   │   │   │   ├── Container.tsx
@@ -735,11 +755,6 @@
 │   │   │   │   │   │   │   │   ├── BrowseTopics.tsx
 │   │   │   │   │   │   │   │   ├── TopicChip.module.css
 │   │   │   │   │   │   │   │   └── TopicChip.tsx
-│   │   │   │   │   │   │   ├── ContinueExploring/
-│   │   │   │   │   │   │   │   ├── ContinueExploring.module.css
-│   │   │   │   │   │   │   │   ├── ContinueExploring.tsx
-│   │   │   │   │   │   │   │   ├── ContinueExploringCard.module.css
-│   │   │   │   │   │   │   │   └── ContinueExploringCard.tsx
 │   │   │   │   │   │   │   ├── ExploreHero/
 │   │   │   │   │   │   │   │   ├── ExploreHero.module.css
 │   │   │   │   │   │   │   │   └── ExploreHero.tsx
@@ -767,7 +782,6 @@
 │   │   │   │   │   │   │   └── explore.mock.ts
 │   │   │   │   │   │   ├── models/
 │   │   │   │   │   │   │   ├── articlePreview.ts
-│   │   │   │   │   │   │   ├── continue-exploring.ts
 │   │   │   │   │   │   │   ├── explore.ts
 │   │   │   │   │   │   │   ├── index.ts
 │   │   │   │   │   │   │   ├── search.ts
@@ -1081,8 +1095,6 @@
 │   │   │   │       │   ├── heroNavbar.module.css
 │   │   │   │       │   ├── heroNavbar.tsx
 │   │   │   │       │   ├── heroScene.tsx
-│   │   │   │       │   ├── heroTicker.module.css
-│   │   │   │       │   ├── heroTicker.tsx
 │   │   │   │       │   └── index.ts
 │   │   │   │       ├── 02-ikigai/
 │   │   │   │       │   ├── CalendarMonth/
@@ -1102,12 +1114,6 @@
 │   │   │   │       │   ├── index.ts
 │   │   │   │       │   ├── learningList.module.css
 │   │   │   │       │   └── learningList.tsx
-│   │   │   │       ├── 03-problem/
-│   │   │   │       │   ├── Problem.tsx
-│   │   │   │       │   └── index.ts
-│   │   │   │       ├── 04-community/
-│   │   │   │       │   ├── Community.tsx
-│   │   │   │       │   └── index.ts
 │   │   │   │       ├── 05-Features/
 │   │   │   │       │   ├── Features.tsx
 │   │   │   │       │   └── index.ts
@@ -1136,7 +1142,8 @@
 │   │   │   ├── useIsMobile.ts
 │   │   │   ├── usePullToRefresh.ts
 │   │   │   ├── useSession.ts
-│   │   │   └── useSessions.ts
+│   │   │   ├── useSessions.ts
+│   │   │   └── useToast.ts
 │   │   ├── mock/
 │   │   │   └── cohorts/
 │   │   │       ├── cohortCatalog.ts
@@ -1250,4 +1257,4 @@
 ├── sidequesthq-logo.webp
 └── tsconfig.json
 
-419 directories, 830 files
+420 directories, 836 files
