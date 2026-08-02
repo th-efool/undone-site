@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, WheelEvent, PointerEvent as ReactPointerEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/src/client/hooks/useToast';
 import { Play as PlayIcon, ArrowLeft } from 'lucide-react';
 import {
   LessonCard,
@@ -17,10 +18,12 @@ import styles from './Play.module.css';
 
 export function Play() {
   const router = useRouter();
+  const toast = useToast();
   const playback = usePlayback();
   const [isIdle, setIsIdle] = useState(false);
   const [animationClass, setAnimationClass] = useState('');
   const [doubleTapBadge, setDoubleTapBadge] = useState<'left' | 'right' | null>(null);
+  const [inFullscreen, setInFullscreen] = useState(false);
   const playContainerRef = useRef<HTMLDivElement | null>(null);
   const lastTapRef = useRef<{ time: number; x: number }>({ time: 0, x: 0 });
 
@@ -31,6 +34,23 @@ export function Play() {
       document.exitFullscreen().catch(() => {});
     }
   }, []);
+
+  // Track fullscreen changes for exit button visibility
+  useEffect(() => {
+    const onFsChange = () => setInFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', onFsChange);
+    return () => document.removeEventListener('fullscreenchange', onFsChange);
+  }, []);
+
+  // Show hint once when entering fullscreen for first time
+  useEffect(() => {
+    if (inFullscreen) {
+      const timer = setTimeout(() => {
+        setIsIdle(false); // briefly show UI to reveal exit button
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [inFullscreen]);
 
   const handleExitPlay = useCallback(() => {
     if (document.fullscreenElement && document.exitFullscreen) {
@@ -55,7 +75,8 @@ export function Play() {
     setAnimationClass(styles.animateSlideUp);
     setTimeout(() => setAnimationClass(''), 350);
     playback.nextChunk();
-  }, [playback]);
+    toast.success('Lesson completed! Keep going.');
+  }, [playback, toast]);
 
   const handlePreviousChunk = useCallback(() => {
     if (!playback.hasPrevious) return;
@@ -401,6 +422,23 @@ export function Play() {
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
     >
+      {/* Exit fullscreen button — always visible when in fullscreen mode */}
+      {inFullscreen && (
+        <button
+          type="button"
+          className={`${styles.topRightBackButton} ${styles.exitFsBtn}`}
+          onClick={() => document.exitFullscreen?.()}
+          aria-label="Exit Fullscreen"
+          style={{
+            top: '16px',
+            right: `${isIdle ? 72 : 140}px`,
+          }}
+        >
+          <span>⛶</span>
+          <span className={styles.exitFsLabel}>Exit Fullscreen</span>
+        </button>
+      )}
+
       {/* Dedicated top-right back button to exit play & fullscreen */}
       <button
         type="button"

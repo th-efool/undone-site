@@ -25,6 +25,7 @@ import { ArrowLeft, Archive,
   Underline,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useToast } from '@/src/client/hooks/useToast';
 import { useIsMobile } from '@/src/client/hooks/useIsMobile';
 import { useNotes } from './hooks/useNotes';
 import type { NotesFilter, NotesSort } from './models/notes.models';
@@ -65,8 +66,11 @@ export function Notes() {
   const [canvasSwitcherOpen, setCanvasSwitcherOpen] = useState(false);
   const [editingNotebookId, setEditingNotebookId] = useState<string | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteDirty, setNoteDirty] = useState(false);
   const editorRef = useRef<HTMLDivElement>(null);
   const selected = notes.data?.selectedNote;
+  // Initialize with empty string; synced in useEffect when selected changes
+  const lastBodyRef = useRef('');
 
   const cmd = useCallback((command: string, value?: string) => {
     document.execCommand(command, false, value);
@@ -106,8 +110,11 @@ export function Notes() {
     return () => window.removeEventListener('keydown', onKey);
   }, [addLink, selected]);
   useEffect(() => {
-    if (editorRef.current && selected && editorRef.current.innerHTML !== selected.body)
+    if (editorRef.current && selected && editorRef.current.innerHTML !== selected.body) {
+      lastBodyRef.current = selected.body;
+      setNoteDirty(false);
       editorRef.current.innerHTML = selected.body;
+    }
   }, [selected]);
   
   useEffect(() => {
@@ -116,7 +123,10 @@ export function Notes() {
     }
   }, [isMobile, notes.data?.selectedNote]);
 
-  const coming = () => alert('Coming Soon');
+  const toast = useToast();
+  const coming = () => {
+    toast.info('This feature is coming soon');
+  };
   if (!notes.state || !notes.data) return <main className={styles.loading}>Loading notes…</main>;
 
   if (presenting)
@@ -157,7 +167,13 @@ export function Notes() {
       <aside className={`${styles.panel} ${isMobile && mobileView !== 'panel' ? styles.panelHidden : ''}`}>
         <header className={styles.header}>
           <h1>
-            Notes <Sparkles size={22} />
+            Notes{' '}<Sparkles size={22} />{selected && (
+              noteDirty ? (
+                <span className={styles.unsavedDot} title="Unsaved changes">● unsaved</span>
+              ) : selected.updatedAt ? (
+                <span className={styles.savedDot} title={"Last saved"} >✓ saved</span>
+              ) : null
+            )}
           </h1>
           <p>Your thinking, connected.</p>
         </header>
@@ -407,11 +423,13 @@ export function Notes() {
                 className={styles.editor}
                 contentEditable
                 suppressContentEditableWarning
-                onInput={(e) =>
-                  notes.actions.patchNote(selected.id, {
-                    body: e.currentTarget.innerHTML,
-                  })
-                }
+                onInput={(e) => {
+                    const newBody = e.currentTarget.innerHTML;
+                    setNoteDirty(newBody !== lastBodyRef.current);
+                    notes.actions.patchNote(selected.id, {
+                      body: newBody,
+                    });
+                  }}
               />
             </>
           ) : (

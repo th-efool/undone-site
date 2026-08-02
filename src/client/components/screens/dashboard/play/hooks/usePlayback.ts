@@ -154,7 +154,7 @@ export function usePlayback() {
             autoplay: 1,
             start: startSecs,
             end: endSecs,
-            controls: 1,
+            controls: 0,
             rel: 0,
             modestbranding: 1,
             fs: 0,

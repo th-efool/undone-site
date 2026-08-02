@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { getCohortHref } from '@/src/client/navigation/cohortLinks';
 import { Clock3, GripVertical, MoreHorizontal, Pause, Sparkles } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useToast } from '@/src/client/hooks/useToast';
 
 import type { ActiveCohort, PauseOption, Weekday } from '../../models';
 
@@ -26,6 +27,7 @@ export function ActiveCohortRow({
   onUpdateDailyGoal,
   onUpdateSchedule,
 }: ActiveCohortRowProps) {
+  const toast = useToast();
   const rowRef = useRef<HTMLElement>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
@@ -73,12 +75,14 @@ export function ActiveCohortRow({
         : [...days, day];
       const safeDays = nextDays.length > 0 ? nextDays : [day];
       onUpdateSchedule(item.id, safeDays);
+      toast.success(`Schedule updated: ${safeDays.join(', ')}`);
       return safeDays;
     });
   }
 
   function saveGoal() {
     onUpdateDailyGoal(item.id, goalMinutes);
+    toast.success(`Daily goal updated to ${goalMinutes} min`);
     setGoalOpen(false);
   }
 
@@ -91,6 +95,7 @@ export function ActiveCohortRow({
     const pauseOption = pauseOptions.find((option) => option.id === selectedPauseOption);
     const days = pauseOption?.days ?? customPauseDays;
     onPause(item.id, days, pauseOption?.label);
+    toast.success('Cohort paused' + (pauseOption?.label ? ` until ${pauseOption.label}` : ''));
     setPauseOpen(false);
   }
 
