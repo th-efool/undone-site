@@ -21,7 +21,7 @@ export interface LogoProps {
 }
 
 export function Logo({
-  href = '/',
+  href = '/auth',
   compact = false,
   iconOnly = false,
   variant = 'framed',
