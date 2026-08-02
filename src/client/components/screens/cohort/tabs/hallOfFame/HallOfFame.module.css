@@ -41,9 +41,19 @@
   align-items: center;
   gap: 9px;
   margin: 0;
-  color: var(--color-text-primary);
+  color: #b45309; /* Task 2.10 #67: Gold/amber for Hall of Fame distinction */
   font-size: var(--text-lg);
   font-weight: var(--font-bold);
+}
+
+/* Gold accent border top for the page to distinguish from other tabs */
+.page::before {
+  content: '';
+  display: block;
+  height: 3px;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  margin-bottom: var(--space-3);
 }
 .header p,
 .legends p,
