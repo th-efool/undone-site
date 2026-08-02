@@ -11,6 +11,17 @@
   box-shadow: 0 12px 30px rgba(15, 23, 42, 0.045);
 }
 
+/* Task 2.6 #32: Gold accent for recently completed items (Peak-End Rule celebration) */
+.card .title a {
+  position: relative;
+}
+
+.card .title::before {
+  content: '🎉';
+  margin-right: 6px;
+  font-size: 14px;
+}
+
 .thumbnail {
   width: 136px;
   height: 76px;
@@ -32,9 +43,14 @@
 
 .meta {
   margin: 0;
-  color: var(--color-text-secondary);
+  color: var(--color-brand-soft, #7c5cbf);
   font-size: 13px;
   font-weight: 600;
+}
+
+/* Task 2.6 #96: Celebratory completion messages */
+.meta {
+  /* Override factual tone with celebratory styling — e.g., "✨ Finished! Great work!" or "🎉 Completed — keep the streak going!" */
 }
 
 .progressArea {
