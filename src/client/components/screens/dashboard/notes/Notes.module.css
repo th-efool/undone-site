@@ -457,6 +457,53 @@
   padding: 10px 14px;
   font-weight: 800;
 }
+
+/* Task 2.9 #56: Presentation mode fade-in bottom bar */
+.presentBottomBar {
+  position: fixed;
+  bottom: -60px; /* Hidden below viewport by default */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 12px 24px;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  color: #fff;
+  font-size: var(--text-sm);
+  transition: bottom 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 300ms ease;
+  opacity: 0;
+}
+
+.presentBottomBar.visible {
+  bottom: 0; /* Slide up into view */
+  opacity: 1;
+}
+
+.exitBtn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.exitBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.slideCounter {
+  font-weight: var(--font-bold);
+  color: #fbbf24; /* Gold for slide counter */
+}
 @media (max-width: 1100px) {
   .notes {
     grid-template-columns: 290px 1fr;

@@ -63,6 +63,9 @@ export function Notes() {
   const [menu, setMenu] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [presenting, setPresenting] = useState(false);
+  // Task 2.9 #56: Presentation mode bottom bar — fade in on mouse movement
+  const [bottomBarVisible, setBottomBarVisible] = useState(true);
+  const bottomBarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [canvasSwitcherOpen, setCanvasSwitcherOpen] = useState(false);
   const [editingNotebookId, setEditingNotebookId] = useState<string | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -129,20 +132,47 @@ export function Notes() {
   };
   if (!notes.state || !notes.data) return <main className={styles.loading}>Loading notes…</main>;
 
-  if (presenting)
+  // Task 2.9 #56: Presentation mode with fade-in bottom bar
+  if (presenting) {
+    useEffect(() => {
+      let hideTimer: ReturnType<typeof setTimeout> | null = null;
+      function handleMouseMove() {
+        setBottomBarVisible(true);
+        if (hideTimer) clearTimeout(hideTimer);
+        hideTimer = setTimeout(() => setBottomBarVisible(false), 2000);
+      }
+      document.addEventListener('mousemove', handleMouseMove);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        if (hideTimer) clearTimeout(hideTimer);
+      };
+    }, []);
+
+    const noteIndex = notes.data?.notes.findIndex((n) => n.id === selected?.id) ?? 0;
+    const totalNotes = notes.data?.notes.length ?? 1;
+
     return (
-      <main
-        className={styles.present}
-        tabIndex={0}
-      >
-        <button onClick={() => setPresenting(false)}>Exit presentation</button>
+      <main className={styles.present}>
         <article
           dangerouslySetInnerHTML={{
             __html: selected?.body ?? '<h1>No note selected</h1>',
           }}
         />
+        {/* Task 2.9 #56: Fade-in bottom bar on mouse movement */}
+        <div className={`${styles.presentBottomBar} ${bottomBarVisible ? styles.visible : ''}`}>
+          <button
+            onClick={() => setPresenting(false)}
+            className={styles.exitBtn}
+          >
+            Exit Presentation
+          </button>
+          <span className={styles.slideCounter}>
+            {noteIndex + 1} / {totalNotes}
+          </span>
+        </div>
       </main>
     );
+  }
 
   const counts = {
     favorites:
