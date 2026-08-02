@@ -10,6 +10,8 @@
 │   │   ├── index.html
 │   │   ├── script.js
 │   │   └── styles.css
+│   ├── UX_IMPROVEMENT_AUDIT.md
+│   ├── UX_PHASED_IMPLEMENTATION_PLAN.md
 │   ├── design-css-tokens.md
 │   └── directory-structure.md
 ├── android/
@@ -330,6 +332,10 @@
 │   │   │   ├── global/
 │   │   │   │   ├── CapacitorBridge/
 │   │   │   │   │   └── CapacitorBridge.tsx
+│   │   │   │   ├── Card/
+│   │   │   │   │   ├── Card.module.css
+│   │   │   │   │   ├── Card.tsx
+│   │   │   │   │   └── index.ts
 │   │   │   │   ├── CommandPalette/
 │   │   │   │   │   ├── CommandPalette.module.css
 │   │   │   │   │   ├── CommandPalette.tsx
@@ -1257,4 +1263,4 @@
 ├── sidequesthq-logo.webp
 └── tsconfig.json
 
-420 directories, 836 files
+421 directories, 841 files
