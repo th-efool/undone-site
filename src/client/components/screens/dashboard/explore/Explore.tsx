@@ -30,29 +30,39 @@ export function Explore() {
       !debouncedQuery || values.some((value) => value.toLowerCase().includes(debouncedQuery)),
     [debouncedQuery],
   );
+  // Task 2.8 #45: Limit People Finishing to max 6 cards
   const peopleFinishing = useMemo(
     () =>
-      explore.peopleFinishing.filter((item) =>
-        matches([item.title, item.provider, item.learnerCount]),
-      ),
+      explore.peopleFinishing
+        .filter((item) =>
+          matches([item.title, item.provider, item.learnerCount]),
+        )
+        .slice(0, 6),
     [explore.peopleFinishing, matches],
   );
+  // Task 2.8 #45: Limit Browse Topics to max 9 chips
   const topics = useMemo(
-    () => explore.topics.filter((item) => matches([item.name])),
+    () => explore.topics.filter((item) => matches([item.name])).slice(0, 9),
     [explore.topics, matches],
   );
+  // Task 2.8 #45: Limit Trending SideQuests to max 8 cards
   const trendingSideQuests = useMemo(
     () =>
-      explore.trendingSideQuests.filter((item) =>
-        matches([item.title, item.subtitle, item.dailyGoal]),
-      ),
+      explore.trendingSideQuests
+        .filter((item) =>
+          matches([item.title, item.subtitle, item.dailyGoal]),
+        )
+        .slice(0, 8),
     [explore.trendingSideQuests, matches],
   );
+  // Task 2.8 #45: Limit Recently Published to max 5 articles
   const recentlyPublished = useMemo(
     () =>
-      explore.recentlyPublished.filter((item) =>
-        matches([item.title, item.author, item.learnerCount]),
-      ),
+      explore.recentlyPublished
+        .filter((item) =>
+          matches([item.title, item.author, item.learnerCount]),
+        )
+        .slice(0, 5),
     [explore.recentlyPublished, matches],
   );
   const hasResults =
@@ -83,8 +93,12 @@ export function Explore() {
         />
       )}
 
+      {/* Task 2.8 #45: Pass original count for overflow indicators */}
+      <BrowseTopics
+        items={topics}
+        hasMore={explore.topics.length > 9}
+      />
       <PeopleFinishing items={peopleFinishing} />
-      <BrowseTopics items={topics} />
       <TrendingSideQuests items={trendingSideQuests} />
       <RecentlyPublished items={recentlyPublished} />
     </main>

@@ -1,4 +1,5 @@
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, MoreHorizontal } from 'lucide-react';
+import Link from 'next/link';
 
 import { HorizontalScroller } from '@/src/client/components/global/HorizontalScroller';
 
@@ -10,9 +11,10 @@ import styles from './BrowseTopics.module.css';
 
 export interface BrowseTopicsProps {
   items: Topic[];
+  hasMore?: boolean;
 }
 
-export function BrowseTopics({ items }: BrowseTopicsProps) {
+export function BrowseTopics({ items, hasMore = false }: BrowseTopicsProps) {
   return (
     <section
       className={styles.section}
@@ -45,6 +47,11 @@ export function BrowseTopics({ items }: BrowseTopicsProps) {
             item={item}
           />
         ))}
+        {hasMore && (
+          <Link href="/explore" className={styles.moreChip}>
+            More topics <ChevronRight size={14} strokeWidth={2.5} />
+          </Link>
+        )}
       </HorizontalScroller>
     </section>
   );
