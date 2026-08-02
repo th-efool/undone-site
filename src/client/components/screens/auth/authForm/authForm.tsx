@@ -10,10 +10,23 @@ export function AuthForm() {
   return (
     <aside className={styles.form}>
       <header className={styles.header}>
-        <p className={styles.login}>
-          Already have an account?
-          <button className={styles.loginButton}>Log in</button>
-        </p>
+        {/* Task 2.3 #17: Tab switcher — Sign Up / Log In */}
+        <div className={styles.tabSwitcher}>
+          <button
+            type="button"
+            className={`${styles.tabButton} ${styles.active}`}
+            aria-pressed="true"
+          >
+            Sign Up
+          </button>
+          <button
+            type="button"
+            className={styles.tabButton}
+            aria-pressed="false"
+          >
+            Log In
+          </button>
+        </div>
 
         <h1 className={styles.title}>
           Every great skill
@@ -38,13 +51,13 @@ export function AuthForm() {
         <AuthInput
           label="Email"
           type="email"
-          placeholder="example@example.in"
+          placeholder="you@email.com"
         />
 
         <AuthInput
           label="Password"
           type="password"
-          placeholder="Enter your password"
+          placeholder=""
         />
       </section>
 

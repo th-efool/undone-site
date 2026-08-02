@@ -47,6 +47,41 @@
   color: var(--color-brand);
 }
 
+/* Task 2.3 #17: Tab switcher — Sign Up / Log In */
+.tabSwitcher {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--color-surface, var(--cream-50));
+  border-radius: var(--radius-xl);
+}
+
+.tabButton {
+  flex: 1;
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast),
+    color var(--duration-fast);
+}
+
+.tabButton.active {
+  background: white;
+  color: var(--color-text-primary);
+  font-weight: var(--font-bold);
+  box-shadow: 0 2px 8px rgb(15 23 42 / 6%);
+}
+
+.tabButton:hover:not(.active) {
+  color: var(--color-text-primary);
+}
+
 .title {
   font-size: clamp(2.5rem, 3vw, 3.8rem);
 
@@ -83,6 +118,22 @@
 
 .cta {
   margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Task 2.3 #19: Von Restorff Effect — strong visual contrast between primary & secondary actions */
+.cta button:first-child {
+  background: var(--color-brand);
+  color: white;
+  font-weight: var(--font-bold);
+  border: none;
+  box-shadow: 0 4px 16px rgb(91 57 246 / 30%);
+}
+
+.cta button:first-child:hover {
+  filter: brightness(1.1);
 }
 
 .legal {
