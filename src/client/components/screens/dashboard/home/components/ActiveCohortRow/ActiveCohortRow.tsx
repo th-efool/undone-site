@@ -102,6 +102,11 @@ export function ActiveCohortRow({
   return (
     <article
       ref={rowRef}
+      draggable={true}
+      onDragStart={(event) => {
+        event.dataTransfer.setData('text/plain', item.id);
+        event.dataTransfer.effectAllowed = 'move';
+      }}
       className={`${styles.row} ${isDraggingOver ? styles.dragOver : ''}`}
       onDragOver={(event) => {
         event.preventDefault();

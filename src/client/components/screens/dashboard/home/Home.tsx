@@ -58,49 +58,9 @@ export function Home() {
         placeholder={home.searchPlaceholder}
       />
 
-      <HomeHero content={home.hero} />
+      <HomeHero content={home.hero} summaries={home.summaries} />
 
-      <header className={styles.learningJourneysHeader}>
-        <div className={styles.learningJourneysTitle}>
-          <h2>My Cohorts ✨</h2>
-          <p>Your learning journeys, all in one place.</p>
-        </div>
 
-        <div className={styles.learningJourneysStats}>
-          <button className={styles.newCohortBtn}>
-            + New Cohort
-          </button>
-
-          {home.summaries.find(s => s.id === 'current-streak') && (
-            <button className={styles.statBadge} title="Current Streak">
-              <span className={styles.statIconOrange}>
-                {home.summaries.find(s => s.id === 'current-streak')?.icon}
-              </span>
-              <span>{home.summaries.find(s => s.id === 'current-streak')?.value.split(' ')[0]}</span>
-            </button>
-          )}
-
-          {home.summaries.find(s => s.id === 'today-goal') && (
-            <button className={styles.statBadge} title="Today's Goal">
-              <div className={styles.clockProgress}>
-                <svg viewBox="0 0 36 36" className={styles.circularChart}>
-                  <path className={styles.circleBg}
-                    d="M18 2.0845
-                      a 15.9155 15.9155 0 0 1 0 31.831
-                      a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                  <path className={styles.circle}
-                    strokeDasharray={`${home.summaries.find(s => s.id === 'today-goal')?.progress?.percent || 0}, 100`}
-                    d="M18 2.0845
-                      a 15.9155 15.9155 0 0 1 0 31.831
-                      a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                </svg>
-              </div>
-            </button>
-          )}
-        </div>
-      </header>
 
       {debouncedQuery && !hasResults && (
         <EmptyState

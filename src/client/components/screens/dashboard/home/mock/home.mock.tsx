@@ -4,12 +4,12 @@ import type { HomeModel } from '../models';
 
 export const homeMock: HomeModel = {
   hero: {
-    title: 'My Cohorts',
+    title: 'Stochastic Feed Policy',
     subtitle: 'Your learning journeys, all in one place.',
     actionLabel: 'New Cohort',
   },
   sections: {
-    activeCohorts: { title: 'Active Cohorts' },
+    activeCohorts: { title: 'Cohort Priority' },
     continueLater: {
       title: 'Continue Later',
       subtitle: "We'll bring these back when the time is right.",
