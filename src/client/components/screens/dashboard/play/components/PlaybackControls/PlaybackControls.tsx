@@ -86,34 +86,6 @@ export function PlaybackControls({
       </div>
 
       <div className={styles.center}>
-        <button
-          className={styles.doneBtn}
-          onClick={onCompleteChunk}
-          title="Mark chunk completed and advance"
-        >
-          <CheckCircle2 size={15} />
-          Mark Done
-        </button>
-
-        <button
-          className={styles.navBtn}
-          onClick={onPreviousChunk}
-          disabled={!hasPrevious}
-          title="Previous chunk in feed"
-        >
-          <ChevronUp size={14} />
-          Prev
-        </button>
-
-        <button
-          className={styles.navBtn}
-          onClick={onNextChunk}
-          disabled={!hasNext}
-          title="Next chunk in feed"
-        >
-          <ChevronDown size={14} />
-          Next
-        </button>
       </div>
 
       <div className={styles.right}>

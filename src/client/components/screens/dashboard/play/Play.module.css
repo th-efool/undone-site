@@ -88,29 +88,14 @@
     position: fixed;
     inset: 0;
     z-index: 1000;
-    display: flex;
-    flex-direction: column;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
   }
 
-  /* ── PlayerSurface on mobile: hide the video, keep iframe mounted ─ */
+  /* ── PlayerSurface on mobile ─ */
   .play :global(.surface) {
-    position: relative !important;
-    height: auto !important;
     border-radius: 0 !important;
-    overflow: visible !important;
   }
 
-  /* Hide the YouTube video layer — iframe still mounts, just invisible */
-  .play :global(.videoWrapper) {
-    top: 0 !important;
-    height: auto !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-  }
-
-  /* Hide the surface overlay gradient */
+  /* Hide the dark surface overlay gradient to preserve video quality */
   .play :global(.surfaceOverlay) {
     display: none !important;
   }
@@ -127,20 +112,29 @@
   .mobileControlsOverlay {
     display: flex !important;
     flex-direction: column;
+    justify-content: space-between;
     width: 100%;
-    position: relative;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
     z-index: 50;
+    pointer-events: none;
+  }
+
+  .mobileControlsOverlay > * {
+    pointer-events: auto;
   }
 
   /* ── Mobile header (lesson info + merged toolbar) ──────────────── */
   .mobileHeader {
     width: 100%;
-    padding: 12px 14px 8px;
+    padding: max(16px, env(safe-area-inset-top, 16px)) 16px 24px;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     gap: 8px;
-    background: var(--color-background);
+    background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
     box-sizing: border-box;
   }
 
@@ -183,24 +177,28 @@
   /* ── Mobile timeline ─────────────────────────────────────────── */
   .mobileTimeline {
     width: 100%;
-    padding: 4px 16px 8px;
-    background: var(--color-background);
+    padding: 4px 16px 12px;
     box-sizing: border-box;
+    margin-top: auto;
+  }
+
+  /* ── Bottom Controls Container ───────────────────────────────── */
+  .mobileBottomControls {
+    background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0) 100%);
+    padding-bottom: max(24px, env(safe-area-inset-bottom, 24px));
+    display: flex;
+    flex-direction: column;
   }
 
   /* ── Mobile controls container ───────────────────────────────── */
-  /* Task 2.13 #39: Law of Uniform Connectedness — group all playback controls together */
   .mobileControls {
     width: 100%;
-    padding: 8px 16px 24px;
+    padding: 8px 16px 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
-    background: rgba(255, 255, 255, 0.06);
-    border-radius: var(--radius-xl);
+    gap: 16px;
     box-sizing: border-box;
-    margin: 0 -4px; /* Offset padding so controls span full width */
   }
 
   /* Skip + Play row */

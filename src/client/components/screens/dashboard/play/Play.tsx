@@ -283,6 +283,7 @@ export function Play() {
           bookmarked={playback.bookmarked}
           onBookmark={playback.toggleBookmark}
           onSpeed={handleSpeedCycle}
+          onComplete={() => { triggerHaptic('success'); playback.completeActiveChunk(); handleNextChunk(); }}
         />
       </div>
 
@@ -341,73 +342,50 @@ export function Play() {
       </div>
 
       {/* Timeline Scrubber */}
-      <div className={styles.mobileTimeline}>
-        <LearningTimeline
-          progress={playback.timelineProgress}
-          markers={playback.timelineMarkers}
-          onSeek={playback.seekToPercent}
-        />
-      </div>
-
-      {/* Playback Controls — touch-friendly grid */}
-      <div className={styles.mobileControls}>
-        <div className={styles.controlRowMain}>
-          <button
-            className={`${styles.skipBtn} ${styles.skipBack}`}
-            onClick={() => playback.skipSeconds(-10)}
-            aria-label="Rewind 10s"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
-            <span className={styles.skipLabel}>10</span>
-          </button>
-
-          <button
-            className={styles.playBtn}
-            onClick={playback.togglePlayback}
-            aria-label={playback.isPlaying ? 'Pause' : 'Play'}
-          >
-            {playback.isPlaying ? (
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-            ) : (
-              <PlayIcon size={36} fill="currentColor" style={{ marginLeft: 2 }} />
-            )}
-          </button>
-
-          <button
-            className={`${styles.skipBtn} ${styles.skipForward}`}
-            onClick={() => playback.skipSeconds(10)}
-            aria-label="Forward 10s"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
-            <span className={styles.skipLabel}>10</span>
-          </button>
+      <div className={styles.mobileBottomControls}>
+        <div className={styles.mobileTimeline}>
+          <LearningTimeline
+            progress={playback.timelineProgress}
+            markers={playback.timelineMarkers}
+            onSeek={playback.seekToPercent}
+          />
         </div>
 
-        <div className={styles.timeDisplay}>{playback.lesson.currentTime} / {playback.lesson.totalDuration}</div>
+        {/* Playback Controls — touch-friendly grid */}
+        <div className={styles.mobileControls}>
+          <div className={styles.controlRowMain}>
+            <button
+              className={`${styles.skipBtn} ${styles.skipBack}`}
+              onClick={() => playback.skipSeconds(-10)}
+              aria-label="Rewind 10s"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="19 20 9 12 19 4 19 20"/><line x1="5" y1="19" x2="5" y2="5"/></svg>
+              <span className={styles.skipLabel}>10</span>
+            </button>
 
-        <button
-          className={styles.doneBtnFull}
-          onClick={() => { triggerHaptic('success'); playback.completeActiveChunk(); handleNextChunk(); }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          Mark Done
-        </button>
+            <button
+              className={styles.playBtn}
+              onClick={playback.togglePlayback}
+              aria-label={playback.isPlaying ? 'Pause' : 'Play'}
+            >
+              {playback.isPlaying ? (
+                <svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+              ) : (
+                <PlayIcon size={36} fill="currentColor" style={{ marginLeft: 2 }} />
+              )}
+            </button>
 
-        <div className={styles.navRow}>
-          <button
-            className={styles.navBtnMobile}
-            onClick={handlePreviousChunk}
-            disabled={!playback.hasPrevious}
-          >
-            ← Previous
-          </button>
-          <button
-            className={styles.navBtnMobile}
-            onClick={handleNextChunk}
-            disabled={!playback.hasNext}
-          >
-            Next →
-          </button>
+            <button
+              className={`${styles.skipBtn} ${styles.skipForward}`}
+              onClick={() => playback.skipSeconds(10)}
+              aria-label="Forward 10s"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>
+              <span className={styles.skipLabel}>10</span>
+            </button>
+          </div>
+
+          <div className={styles.timeDisplay}>{playback.lesson.currentTime} / {playback.lesson.totalDuration}</div>
         </div>
       </div>
     </>
