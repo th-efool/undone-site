@@ -66,8 +66,16 @@
 }
 @media (max-width: 760px) {
   .header {
-    padding: 20px 16px 14px;
+    padding: max(12px, env(safe-area-inset-top)) 16px 8px;
     gap: 12px;
+  }
+  .info h1 {
+    font-size: 1.1rem;
+    margin: 0 0 2px;
+  }
+  .avatar {
+    width: 40px;
+    height: 40px;
   }
   .actions {
     gap: 6px;
@@ -75,19 +83,19 @@
   .actions button:nth-child(n + 3) {
     display: none;
   }
-  .meta span:last-child {
+  .members, .meta span:nth-last-child(2), .meta span:last-child {
     display: none;
   }
 }
 
-/* F2: Ensure back button meets ≥44px touch target on mobile */
+/* F2: Ensure back button meets touch target on mobile */
 @media (max-width: 768px) {
   .back, .actions button {
-    width: 44px !important;
-    height: 44px !important;
-    min-width: 44px;
-    min-height: 44px;
-    border-radius: 12px;
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px;
+    min-height: 38px;
+    border-radius: 10px;
   }
 }
 .actions {
@@ -122,7 +130,4 @@
 .popover button:hover {
   background: var(--message-brand-soft);
   color: var(--message-brand);
-}
-@media (max-width: 768px) {
-  .header { padding: var(--space-3); }
 }

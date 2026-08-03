@@ -40,11 +40,7 @@
   }
   .main {
     width: 100%;
-    /* Sticky composer above keyboard — F1 */
     position: relative;
-    overflow-y: auto;
-    height: 100dvh;            /* dynamic viewport for keyboard awareness */
-    min-height: 0;
     padding-bottom: env(safe-area-inset-bottom, 12px);
   }
   .chat button {
