@@ -50,6 +50,7 @@
 .page::before {
   content: '';
   display: block;
+  grid-column: 1 / -1;
   height: 3px;
   background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
