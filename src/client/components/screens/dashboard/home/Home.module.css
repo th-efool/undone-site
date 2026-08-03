@@ -11,6 +11,108 @@
   margin-bottom: -64px;
 }
 
+.learningJourneysHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.learningJourneysTitle h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.learningJourneysTitle p {
+  margin: 4px 0 0;
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+}
+
+.learningJourneysStats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.newCohortBtn {
+  background: var(--color-brand);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: transform 150ms ease, background 150ms ease;
+}
+.newCohortBtn:hover {
+  background: var(--color-brand-hover, #4f46e5);
+  transform: translateY(-1px);
+}
+
+.statBadge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: transform 150ms ease, border-color 150ms ease;
+  height: 42px;
+}
+.statBadge:hover {
+  border-color: var(--color-brand);
+  transform: translateY(-1px);
+}
+
+.statIconOrange {
+  color: #f97316;
+  display: flex;
+  align-items: center;
+}
+
+.statIconOrange svg {
+  width: 22px;
+  height: 22px;
+}
+
+.clockProgress {
+  width: 24px;
+  height: 24px;
+}
+
+.circularChart {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  max-height: 250px;
+}
+
+.circleBg {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 3.8;
+}
+
+.circle {
+  fill: none;
+  stroke: var(--color-brand);
+  stroke-width: 3.8;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.3s ease;
+}
+
 @media (max-width: 980px) {
   .home {
     padding: 18px 22px 36px;
