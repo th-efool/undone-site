@@ -820,12 +820,9 @@
 │   │   │   │   │   │   │   ├── RecentlyCompleted/
 │   │   │   │   │   │   │   │   ├── RecentlyCompleted.module.css
 │   │   │   │   │   │   │   │   └── RecentlyCompleted.tsx
-│   │   │   │   │   │   │   ├── SectionHeader/
-│   │   │   │   │   │   │   │   ├── SectionHeader.module.css
-│   │   │   │   │   │   │   │   └── SectionHeader.tsx
-│   │   │   │   │   │   │   └── SummaryCards/
-│   │   │   │   │   │   │       ├── SummaryCards.module.css
-│   │   │   │   │   │   │       └── SummaryCards.tsx
+│   │   │   │   │   │   │   └── SectionHeader/
+│   │   │   │   │   │   │       ├── SectionHeader.module.css
+│   │   │   │   │   │   │       └── SectionHeader.tsx
 │   │   │   │   │   │   ├── hooks/
 │   │   │   │   │   │   │   └── useHome.ts
 │   │   │   │   │   │   ├── mock/
@@ -1263,4 +1260,4 @@
 ├── sidequesthq-logo.webp
 └── tsconfig.json
 
-421 directories, 841 files
+420 directories, 839 files
