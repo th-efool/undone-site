@@ -21,9 +21,6 @@
     width: 320px;
     min-width: 280px;
   }
-  .landing > :last-child {
-    display: none;
-  }
 }
 @media (max-width: 760px) {
   .landing {

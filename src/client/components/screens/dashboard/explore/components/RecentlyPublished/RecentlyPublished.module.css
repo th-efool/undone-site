@@ -47,9 +47,4 @@
   .title {
     font-size: 1.15rem;
   }
-  /* Force stack inside the HorizontalScroller track on mobile */
-  .section > div:last-of-type > div > div > div {
-    flex-direction: column;
-    gap: 12px;
-  }
 }
