@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, X, Sparkles, Check, Image as ImageIcon, BookOpen, Target, ShieldCheck, Tag } from 'lucide-react';
+import { Plus, X, Check, Image as ImageIcon, BookOpen, Target, ShieldCheck, Tag } from 'lucide-react';
 
 import { Button } from '@/src/client/components/ui/Button/Button';
 import type { CreateCohortDetailsModel, CreateCohortDraft } from '../../models/createCohort';
@@ -369,7 +369,7 @@ export function DetailsStep({ details }: DetailsStepProps) {
         <aside className={styles.previewColumn}>
           <div className={styles.previewHeader}>
             <span className={styles.previewBadge}>
-              <Sparkles size={14} /> Live Cohort Card Preview
+               Live Cohort Card Preview
             </span>
           </div>
 

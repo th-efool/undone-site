@@ -5,7 +5,6 @@ import {
   Brain,
   Compass,
   MessageCircle,
-  Sparkles,
   Layers3,
   FileText,
   ShieldCheck,
@@ -36,7 +35,7 @@ const currentYear = new Date().getFullYear();
 
 const productLinks = [
   {
-    icon: <Sparkles size={16} />,
+    icon: ,
     label: 'AI Feed',
     href: '#',
   },

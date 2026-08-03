@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { Link2, Sparkles, Target, TrendingUp } from 'lucide-react';
+import { Link2, Target, TrendingUp } from 'lucide-react';
 import styles from './FeatureSection.module.css';
 
 export function FeatureSection() {
@@ -28,10 +28,7 @@ export function FeatureSection() {
 
         <ul className={styles.featureList}>
           <li className={styles.featureItem}>
-            <Sparkles
-              className={styles.featureIcon}
-              strokeWidth={2.25}
-            />
+            
             <span>Automatically picks the right next piece</span>
           </li>
           <li className={styles.featureItem}>

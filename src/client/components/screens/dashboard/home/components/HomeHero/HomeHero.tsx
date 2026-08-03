@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Plus, Sparkles } from 'lucide-react';
+import { Plus } from 'lucide-react';
 
 import type { HomeHeroContent } from '../../models';
 
@@ -19,11 +19,7 @@ export function HomeHero({ content, summaries = [] }: HomeHeroProps) {
       <div className={styles.greeting}>
         <h1 className={styles.title}>
           {content.title}
-          <Sparkles
-            size={24}
-            strokeWidth={2.5}
-            className={styles.sparkle}
-          />
+          
         </h1>
 
         <p className={styles.subtitle}>{content.subtitle}</p>

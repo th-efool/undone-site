@@ -19,7 +19,6 @@ import { ArrowLeft, Archive,
   Search,
   Share2,
   SortAsc,
-  Sparkles,
   Star,
   Type,
   Underline,
@@ -197,7 +196,7 @@ export function Notes() {
       <aside className={`${styles.panel} ${isMobile && mobileView !== 'panel' ? styles.panelHidden : ''}`}>
         <header className={styles.header}>
           <h1>
-            Notes{' '}<Sparkles size={22} />{selected && (
+            Notes{' '}{selected && (
               noteDirty ? (
                 <span className={styles.unsavedDot} title="Unsaved changes">● unsaved</span>
               ) : selected.updatedAt ? (

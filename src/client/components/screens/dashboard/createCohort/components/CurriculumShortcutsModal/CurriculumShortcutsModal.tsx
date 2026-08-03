@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Scale, RefreshCw, RotateCcw, Plus, Trash2, Undo, Redo, Layers, Sparkles } from 'lucide-react';
+import { Search, Scale, RefreshCw, RotateCcw, Plus, Trash2, Undo, Redo, Layers } from 'lucide-react';
 import { useWizardContext } from '../../providers/WizardProvider';
 
 import styles from './CurriculumShortcutsModal.module.css';
@@ -16,8 +16,8 @@ export function CurriculumShortcutsModal({ onClose }: CurriculumShortcutsModalPr
 
   const studioActions = [
     { label: 'Auto Balance Seasons (10h targets)', icon: Scale, action: actions.autoBalance, shortcut: 'Auto' },
-    { label: 'Auto Rename Seasons', icon: Sparkles, action: actions.autoRenameSeasons, shortcut: 'Bulk' },
-    { label: 'Auto Rename Lessons', icon: Sparkles, action: actions.autoRenameLessons, shortcut: 'Bulk' },
+    { label: 'Auto Rename Seasons', icon: action: actions.autoRenameSeasons, shortcut: 'Bulk' },
+    { label: 'Auto Rename Lessons', icon: action: actions.autoRenameLessons, shortcut: 'Bulk' },
     { label: 'Regenerate 5-min Learning Chunks', icon: RefreshCw, action: actions.regenerateChunks, shortcut: 'Chunk' },
     { label: 'Regenerate Chunk Titles', icon: RefreshCw, action: actions.regenerateChunkTitles, shortcut: 'Chunk' },
     { label: 'Normalize All Durations to 15m min', icon: Scale, action: actions.normalizeDurations, shortcut: 'Fix' },

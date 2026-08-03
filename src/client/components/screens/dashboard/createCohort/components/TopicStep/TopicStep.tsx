@@ -1,6 +1,6 @@
 'use client';
 
-import { Sparkles, Check, BookOpen, Clock, Layers } from 'lucide-react';
+import { Check, BookOpen, Clock, Layers } from 'lucide-react';
 import type { CreateCohortDetailsModel } from '../../models/createCohort';
 import { useWizardContext } from '../../providers/WizardProvider';
 
@@ -18,7 +18,7 @@ export function TopicStep({ details }: TopicStepProps) {
     <div className={styles.container}>
       <div className={styles.heroHeader}>
         <div className={styles.badgeLine}>
-          <Sparkles size={14} color="#818cf8" />
+          
           <span>Step 1: Intent & Category</span>
         </div>
         <h2 className={styles.heroTitle}>What subject will this cohort master?</h2>

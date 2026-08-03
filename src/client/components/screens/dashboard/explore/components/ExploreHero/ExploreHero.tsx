@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Plus, Sparkles } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import styles from './ExploreHero.module.css';
@@ -26,11 +26,7 @@ export function ExploreHero() {
       <div className={styles.greeting}>
         <h1 className={styles.title}>
           {greeting}
-          <Sparkles
-            size={20}
-            strokeWidth={2.5}
-            className={styles.sparkle}
-          />
+          
         </h1>
 
         <p className={styles.subtitle}>What are you curious about today?</p>

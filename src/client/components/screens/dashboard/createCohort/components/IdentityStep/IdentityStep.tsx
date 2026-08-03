@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, X, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { Plus, X, Image as ImageIcon } from 'lucide-react';
 
 import { Button } from '@/src/client/components/ui/Button/Button';
 import type { CreateCohortDetailsModel } from '../../models/createCohort';
@@ -51,7 +51,7 @@ export function IdentityStep({ details }: IdentityStepProps) {
       <div className={styles.formSection}>
         <div className={styles.header}>
           <div className={styles.badgeLine}>
-            <Sparkles size={14} color="var(--color-brand)" />
+            
             <span>Step 4: Branding & Identity</span>
           </div>
           <h2 className={styles.title}>Define your cohort branding</h2>
