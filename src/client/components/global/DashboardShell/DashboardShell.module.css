@@ -17,6 +17,20 @@
   padding-left: 12px;
 }
 
+.playShell {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #000000 !important;
+}
+
+.playContent {
+  padding-left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
 @media (max-width: 768px) {
   .shell {
     flex-direction: column;

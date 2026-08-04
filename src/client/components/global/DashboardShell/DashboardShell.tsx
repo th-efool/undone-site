@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import type { PropsWithChildren } from 'react';
+import { usePathname } from 'next/navigation';
 
 import { Sidebar } from '../Sidebar';
 import { NetworkOfflineIndicator } from '../NetworkOfflineIndicator/NetworkOfflineIndicator';
@@ -10,6 +11,8 @@ import { CommandPalette, CommandTriggerProvider, useCommandContext } from '../Co
 import styles from './DashboardShell.module.css';
 
 function DashboardInner({ children }: PropsWithChildren) {
+  const pathname = usePathname();
+  const isPlayPage = pathname === '/play';
   const { open, onOpenChange } = useCommandContext();
 
   // ⌘K / Ctrl+K global shortcut
@@ -27,10 +30,10 @@ function DashboardInner({ children }: PropsWithChildren) {
 
   return (
     <>
-      <div className={styles.shell}>
+      <div className={`${styles.shell} ${isPlayPage ? styles.playShell : ''}`}>
         <NetworkOfflineIndicator />
         <Sidebar />
-        <main className={styles.content}>{children}</main>
+        <main className={`${styles.content} ${isPlayPage ? styles.playContent : ''}`}>{children}</main>
       </div>
       <CommandPalette open={open} onOpenChange={onOpenChange} />
     </>

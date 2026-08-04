@@ -95,3 +95,58 @@
     transition: transform var(--duration-fast) var(--ease-standard);
   }
 }
+
+/* Special /play page floating overlay pill navbar */
+.playSidebar {
+  position: fixed !important;
+  left: 20px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  z-index: 200 !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: 54px !important;
+  height: auto !important;
+  max-height: 320px !important;
+  padding: 12px 6px !important;
+
+  background: #000000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-radius: 999px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+  gap: 10px !important;
+
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.playSidebar .logo {
+  display: none !important;
+}
+
+.playSidebar nav {
+  display: flex !important;
+  flex-direction: column !important;
+  padding-block: 0 !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+.playSidebar :global(.active) {
+  color: #818cf8 !important;
+  background: rgba(79, 70, 229, 0.22) !important;
+  border-radius: 999px !important;
+}
+
+/* Hide floating pill when in Immersive Focus Mode */
+:global([data-feed-scoped="true"]) .playSidebar {
+  opacity: 0 !important;
+  pointer-events: none !important;
+  transform: translateY(-50%) translateX(-24px) !important;
+}
+

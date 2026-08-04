@@ -60,7 +60,7 @@ export function Sidebar() {
   }, []);
 
   return (
-    <aside ref={sidebarRef} className={clsx(styles.sidebar, isPlayPage && styles.hiddenOnMobile)}>
+    <aside ref={sidebarRef} className={clsx(styles.sidebar, isPlayPage && styles.playSidebar, isPlayPage && styles.hiddenOnMobile)}>
       <Logo
         href="/home"
         iconOnly
