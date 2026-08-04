@@ -145,7 +145,7 @@ export function ActiveCohortRow({
         <h3 className={styles.title}>
           <Link href={getCohortHref(item.cohortId ?? item.id)}>{item.title}</Link>
           {item.featured && (
-            
+            <span className={styles.featuredBadge}>Featured</span>
           )}
         </h3>
         <p className={styles.provider}>{item.provider}</p>

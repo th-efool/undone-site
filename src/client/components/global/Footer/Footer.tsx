@@ -35,7 +35,7 @@ const currentYear = new Date().getFullYear();
 
 const productLinks = [
   {
-    icon: ,
+    icon: <BookOpen size={16} />,
     label: 'AI Feed',
     href: '#',
   },
