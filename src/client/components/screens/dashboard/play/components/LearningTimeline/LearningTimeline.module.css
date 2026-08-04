@@ -1,26 +1,17 @@
 .timeline {
   width: 100%;
+  padding: 6px 0; /* Expand hitbox for touch/click */
+  margin: -6px 0;
 }
 
 .track {
   position: relative;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
-
-  height: 6px;
-  margin: 16px 0; /* Add padding via margin to increase hitbox area */
-
+  height: 3px;
   border-radius: 999px;
-
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.timeline {
-  width: 100%;
-  padding: 16px 0; /* Expand hitbox */
-  margin: -16px 0;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .progress {
@@ -28,66 +19,60 @@
   left: 0;
   height: 100%;
   border-radius: inherit;
-  background: #ffffff;
-  box-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+  background: #4f46e5;
+  box-shadow: none;
 }
 
 .marker {
   position: relative;
   z-index: 2;
-
-  width: 16px;
-  height: 16px;
-
-  border: 3px solid rgba(20, 20, 22, 1);
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(0, 0, 0, 1);
   border-radius: 999px;
-
   transition: transform 180ms ease;
 }
 
 .marker:hover {
-  transform: scale(1.15);
+  transform: scale(1.2);
 }
 
 .completed {
-  background: var(--color-brand);
+  background: #4f46e5;
 }
 
 .active {
-  background: #ffffff;
-
-  box-shadow:
-    0 0 0 6px rgba(var(--color-brand-rgb), 0.18),
-    0 0 18px rgba(var(--color-brand-rgb), 0.35);
+  background: #4f46e5;
+  box-shadow: none;
 }
 
 .upcoming {
-  background: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .thumb {
   position: absolute;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background: #ffffff;
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0, 0, 0, 0.5);
+  background: #4f46e5;
+  box-shadow: none;
   z-index: 5;
   pointer-events: none;
 }
 
 @media (max-width: 768px) {
   .track {
-    height: 12px;
+    height: 4px;
   }
   .marker {
-    width: 20px;
-    height: 20px;
+    width: 12px;
+    height: 12px;
   }
   .thumb {
-    width: 20px;
-    height: 20px;
+    width: 12px;
+    height: 12px;
   }
 }
