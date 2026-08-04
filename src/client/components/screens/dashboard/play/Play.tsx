@@ -58,11 +58,11 @@ export function Play() {
     router.push('/home');
   }, [router]);
 
-  // Idle timer for UI fading
+  // Idle timer for UI fading (2 seconds)
   const resetIdle = useCallback(() => {
     setIsIdle(false);
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    idleTimerRef.current = setTimeout(() => setIsIdle(true), 4000);
+    idleTimerRef.current = setTimeout(() => setIsIdle(true), 2000);
   }, []);
 
   useEffect(() => {

@@ -160,41 +160,22 @@ export function usePlayback() {
         mountDiv.id = 'yt-player-mount';
         container.appendChild(mountDiv);
 
-        const disableYtCaptions = (target: any) => {
-          if (!target) return;
-          try {
-            target.unloadModule("captions");
-            target.unloadModule("cc");
-          } catch {}
-          try {
-            if (typeof target.setOption === 'function') {
-              target.setOption("captions", "track", {});
-              target.setOption("cc", "track", {});
-              target.setOption("captions", "fontSize", -3);
-            }
-          } catch {}
-        };
-
         playerRef.current = new window.YT.Player('yt-player-mount', {
           videoId,
           playerVars: {
             autoplay: 1,
             start: startSecs,
             end: endSecs,
-            controls: 0,
+            controls: 1,
             rel: 0,
             modestbranding: 1,
-            fs: 0,
-            disablekb: 1,
+            fs: 1,
             iv_load_policy: 3,
-            cc_load_policy: 0,
-            cc_lang_pref: 'off',
             playsinline: 1,
           },
           events: {
             onReady: (evt: any) => {
               setIsPlayerReady(true);
-              disableYtCaptions(evt.target);
               evt.target.setVolume(volume);
               evt.target.setPlaybackRate(playbackSpeed);
               evt.target.seekTo(startSecs, true);
@@ -203,7 +184,6 @@ export function usePlayback() {
             },
             onStateChange: (evt: any) => {
               if (evt.data === window.YT.PlayerState.PLAYING) {
-                disableYtCaptions(evt.target);
                 setIsPlaying(true);
               } else if (evt.data === window.YT.PlayerState.PAUSED || evt.data === window.YT.PlayerState.ENDED) {
                 setIsPlaying(false);
@@ -221,14 +201,6 @@ export function usePlayback() {
           startSeconds: startSecs,
           endSeconds: endSecs,
         });
-        
-        try {
-          playerRef.current.unloadModule("captions");
-          playerRef.current.unloadModule("cc");
-          if (typeof playerRef.current.setOption === 'function') {
-            playerRef.current.setOption("captions", "track", {});
-          }
-        } catch {}
 
         playerRef.current.setPlaybackRate(playbackSpeed);
         playerRef.current.playVideo();
