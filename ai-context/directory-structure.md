@@ -1054,6 +1054,9 @@
 │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   └── play/
 │   │   │   │   │       ├── components/
+│   │   │   │   │       │   ├── CinematicStage/
+│   │   │   │   │       │   │   ├── CinematicStage.module.css
+│   │   │   │   │       │   │   └── CinematicStage.tsx
 │   │   │   │   │       │   ├── LearningTimeline/
 │   │   │   │   │       │   │   ├── LearningTimeline.module.css
 │   │   │   │   │       │   │   └── LearningTimeline.tsx
@@ -1080,6 +1083,7 @@
 │   │   │   │   │       │   │   └── PlayerToolbar.tsx
 │   │   │   │   │       │   └── index.ts
 │   │   │   │   │       ├── hooks/
+│   │   │   │   │       │   ├── use1DGesture.ts
 │   │   │   │   │       │   └── usePlayback.ts
 │   │   │   │   │       ├── types/
 │   │   │   │   │       │   ├── play.mock.ts
@@ -1260,4 +1264,4 @@
 ├── sidequesthq-logo.webp
 └── tsconfig.json
 
-420 directories, 839 files
+421 directories, 842 files
