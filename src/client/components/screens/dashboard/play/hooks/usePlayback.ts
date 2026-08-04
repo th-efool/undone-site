@@ -14,9 +14,9 @@ declare global {
 }
 
 function parseDurationToSeconds(val: string): number {
-  if (!val) return 180;
+  if (!val || typeof val !== 'string') return 180;
   const isoMatch = /PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/i.exec(val.toUpperCase());
-  if (isoMatch) {
+  if (isoMatch && (isoMatch[1] || isoMatch[2] || isoMatch[3])) {
     return (Number(isoMatch[1] ?? 0) * 3600) + (Number(isoMatch[2] ?? 0) * 60) + Number(isoMatch[3] ?? 0);
   }
   const hmsMatch = val.match(/(\d+):(\d{1,2})(?::(\d{1,2}))?/);
@@ -26,11 +26,15 @@ function parseDurationToSeconds(val: string): number {
   }
   const minMatch = val.match(/(\d+)\s*m/i);
   if (minMatch) return Number(minMatch[1]) * 60;
-  return 180;
+  const parsed = Number(val);
+  return isNaN(parsed) || parsed < 0 ? 180 : parsed;
 }
 
 function formatSecs(seconds: number): string {
-  const safe = Math.max(0, Math.floor(seconds));
+  if (typeof seconds !== 'number' || isNaN(seconds) || !isFinite(seconds) || seconds < 0) {
+    return '00:00';
+  }
+  const safe = Math.floor(seconds);
   const h = Math.floor(safe / 3600);
   const m = Math.floor((safe % 3600) / 60);
   const s = safe % 60;
@@ -140,13 +144,36 @@ export function usePlayback() {
 
     const startSecs = activeItem.chunk.startSeconds || 0;
     const endSecs = activeItem.chunk.endSeconds || startSecs + 180;
+    const container = playerContainerRef.current;
+    const hasMount = container.querySelector('#yt-player-mount');
 
-    if (!playerRef.current) {
+    if (!playerRef.current || !hasMount) {
+      if (playerRef.current && typeof playerRef.current.destroy === 'function') {
+        try { playerRef.current.destroy(); } catch {}
+        playerRef.current = null;
+      }
+      setIsPlayerReady(false);
+
       try {
+        container.innerHTML = '';
         const mountDiv = document.createElement('div');
         mountDiv.id = 'yt-player-mount';
-        playerContainerRef.current.innerHTML = '';
-        playerContainerRef.current.appendChild(mountDiv);
+        container.appendChild(mountDiv);
+
+        const disableYtCaptions = (target: any) => {
+          if (!target) return;
+          try {
+            target.unloadModule("captions");
+            target.unloadModule("cc");
+          } catch {}
+          try {
+            if (typeof target.setOption === 'function') {
+              target.setOption("captions", "track", {});
+              target.setOption("cc", "track", {});
+              target.setOption("captions", "fontSize", -3);
+            }
+          } catch {}
+        };
 
         playerRef.current = new window.YT.Player('yt-player-mount', {
           videoId,
@@ -161,15 +188,13 @@ export function usePlayback() {
             disablekb: 1,
             iv_load_policy: 3,
             cc_load_policy: 0,
+            cc_lang_pref: 'off',
             playsinline: 1,
           },
           events: {
             onReady: (evt: any) => {
               setIsPlayerReady(true);
-              try {
-                evt.target.unloadModule("captions");
-                evt.target.unloadModule("cc");
-              } catch {}
+              disableYtCaptions(evt.target);
               evt.target.setVolume(volume);
               evt.target.setPlaybackRate(playbackSpeed);
               evt.target.seekTo(startSecs, true);
@@ -178,6 +203,7 @@ export function usePlayback() {
             },
             onStateChange: (evt: any) => {
               if (evt.data === window.YT.PlayerState.PLAYING) {
+                disableYtCaptions(evt.target);
                 setIsPlaying(true);
               } else if (evt.data === window.YT.PlayerState.PAUSED || evt.data === window.YT.PlayerState.ENDED) {
                 setIsPlaying(false);
@@ -188,13 +214,22 @@ export function usePlayback() {
       } catch (err) {
         console.error('Failed to mount YouTube player', err);
       }
-    } else if (isPlayerReady && playerRef.current.loadVideoById) {
+    } else if (isPlayerReady && playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
       try {
         playerRef.current.loadVideoById({
           videoId,
           startSeconds: startSecs,
           endSeconds: endSecs,
         });
+        
+        try {
+          playerRef.current.unloadModule("captions");
+          playerRef.current.unloadModule("cc");
+          if (typeof playerRef.current.setOption === 'function') {
+            playerRef.current.setOption("captions", "track", {});
+          }
+        } catch {}
+
         playerRef.current.setPlaybackRate(playbackSpeed);
         playerRef.current.playVideo();
         setIsPlaying(true);
@@ -202,7 +237,7 @@ export function usePlayback() {
         console.error('Failed to load video in existing player', err);
       }
     }
-  }, [ytApiReady, activeItem?.chunk?.chunkId, isPlayerReady]);
+  }, [ytApiReady, activeItem?.chunk?.chunkId, currentIndex]);
 
   // Real-time polling timer for playback progress
   useEffect(() => {
