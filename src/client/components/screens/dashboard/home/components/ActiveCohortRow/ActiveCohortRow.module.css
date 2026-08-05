@@ -200,22 +200,31 @@
 
 .realSelect {
   appearance: none;
-  background: transparent;
-  border: none;
-  padding: 0 16px 0 0;
-  font-size: 0.85rem;
-  font-weight: 500;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 4px 24px 4px 10px;
+  font-size: 0.8rem;
+  font-weight: 600;
   color: #374151;
   cursor: pointer;
   outline: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right center;
-  background-size: 12px;
+  background-position: right 6px center;
+  background-size: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.15s ease;
 }
 
 .realSelect:hover {
+  border-color: #d1d5db;
   color: #111827;
+}
+
+.realSelect:focus {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 .pauseButton {

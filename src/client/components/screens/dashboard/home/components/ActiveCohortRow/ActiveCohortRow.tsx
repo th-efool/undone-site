@@ -35,6 +35,7 @@ export function ActiveCohortRow({
   onPause,
 }: ActiveCohortRowProps) {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const [isDraggable, setIsDraggable] = useState(false);
 
   function toggleDay(day: Weekday) {
     const currentDays = item.schedule.days;
@@ -51,7 +52,7 @@ export function ActiveCohortRow({
 
   return (
     <article
-      draggable={true}
+      draggable={isDraggable}
       onDragStart={(event) => {
         event.dataTransfer.setData('text/plain', item.id);
         event.dataTransfer.effectAllowed = 'move';
@@ -84,7 +85,11 @@ export function ActiveCohortRow({
       }}
     >
       {/* 1. Drag handle & Rank */}
-      <div className={styles.handleGroup}>
+      <div 
+        className={styles.handleGroup}
+        onMouseEnter={() => setIsDraggable(true)}
+        onMouseLeave={() => setIsDraggable(false)}
+      >
         <GripVertical className={styles.grip} size={16} strokeWidth={2.2} />
         <span className={styles.rank}>{item.rank}</span>
       </div>
