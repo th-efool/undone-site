@@ -18,6 +18,30 @@ const FREQUENCIES = ['Very Rarely', 'Rarely', 'Sometimes', 'Often', 'Very Often'
 
 const weekdays: Weekday[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+export function ChartNetwork({ size = 15, className }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <circle cx="12" cy="5" r="2.5" />
+      <circle cx="5" cy="18" r="2.5" />
+      <circle cx="19" cy="18" r="2.5" />
+      <circle cx="12" cy="13" r="2" />
+      <line x1="12" y1="7.5" x2="12" y2="11" />
+      <line x1="10.3" y1="14.3" x2="6.7" y2="16.7" />
+      <line x1="13.7" y1="14.3" x2="17.3" y2="16.7" />
+    </svg>
+  );
+}
+
 export function InspectorPanel({
   cohort,
   onUpdateSchedule,
@@ -50,6 +74,9 @@ export function InspectorPanel({
     order: false
   });
 
+  const [isEditingCustomGoal, setIsEditingCustomGoal] = useState(false);
+  const [customGoalVal, setCustomGoalVal] = useState(String(cohort.dailyGoalMinutes));
+
   useEffect(() => {
     // Contracted screens -> default closed
     if (window.innerWidth <= 1200) {
@@ -60,6 +87,9 @@ export function InspectorPanel({
   function toggle(sec: string) {
     setCollapsed(prev => ({ ...prev, [sec]: !prev[sec] }));
   }
+
+  const standardGoals = [10, 15, 20, 30, 45, 60];
+  const isStandardGoal = standardGoals.includes(cohort.dailyGoalMinutes);
 
   return (
     <aside className={styles.inspector} aria-label={`Inspector for ${cohort.title}`}>
@@ -140,18 +170,55 @@ export function InspectorPanel({
         <div className={styles.goalRow}>
           <Clock size={16} strokeWidth={2.5} className={styles.icon} />
           <h3>Daily Goal <span className={styles.subtitle}>(Overall)</span></h3>
-          <select
-            className={styles.goalSelect}
-            value={cohort.dailyGoalMinutes}
-            onChange={(e) => onUpdateDailyGoal(cohort.id, Number(e.target.value))}
-          >
-            <option value={10}>10 min</option>
-            <option value={15}>15 min</option>
-            <option value={20}>20 min</option>
-            <option value={30}>30 min</option>
-            <option value={45}>45 min</option>
-            <option value={60}>60 min</option>
-          </select>
+
+          {isEditingCustomGoal ? (
+            <div className={styles.customGoalGroup}>
+              <input
+                type="number"
+                min="1"
+                max="300"
+                autoFocus
+                className={styles.customGoalInput}
+                value={customGoalVal}
+                onChange={(e) => setCustomGoalVal(e.target.value)}
+                onBlur={() => {
+                  const num = parseInt(customGoalVal, 10);
+                  if (num > 0) onUpdateDailyGoal(cohort.id, num);
+                  setIsEditingCustomGoal(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const num = parseInt(customGoalVal, 10);
+                    if (num > 0) onUpdateDailyGoal(cohort.id, num);
+                    setIsEditingCustomGoal(false);
+                  }
+                }}
+              />
+              <span className={styles.unitText}>min</span>
+            </div>
+          ) : (
+            <select
+              className={styles.goalSelect}
+              value={isStandardGoal ? cohort.dailyGoalMinutes : 'custom'}
+              onChange={(e) => {
+                if (e.target.value === 'custom') {
+                  setCustomGoalVal(String(cohort.dailyGoalMinutes));
+                  setIsEditingCustomGoal(true);
+                } else {
+                  onUpdateDailyGoal(cohort.id, Number(e.target.value));
+                }
+              }}
+            >
+              <option value={10}>10 min</option>
+              <option value={15}>15 min</option>
+              <option value={20}>20 min</option>
+              <option value={30}>30 min</option>
+              <option value={45}>45 min</option>
+              <option value={60}>60 min</option>
+              {!isStandardGoal && <option value={cohort.dailyGoalMinutes}>{cohort.dailyGoalMinutes} min</option>}
+              <option value="custom">Custom...</option>
+            </select>
+          )}
         </div>
       </section>
 
@@ -195,7 +262,7 @@ export function InspectorPanel({
                 onChange={() => onUpdateOrderStyle?.(cohort.id, 'Semantic Randomize')}
                 className={styles.srOnly}
               />
-              <div className={styles.orderCardIcon}><Sparkles size={15} /></div>
+              <div className={styles.orderCardIcon}><ChartNetwork size={15} /></div>
               <div className={styles.orderCardContent}>
                 <h4>Semantic Randomize</h4>
                 <p>We group similar ideas, then shuffle.</p>

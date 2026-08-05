@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getCohortHref } from '@/src/client/navigation/cohortLinks';
-import { GripVertical, PauseCircle } from 'lucide-react';
+import { GripVertical, PauseCircle, ListOrdered, Shuffle } from 'lucide-react';
 import { useState } from 'react';
 
 import type { ActiveCohort, Weekday } from '../../models';
@@ -23,6 +23,30 @@ export interface ActiveCohortRowProps {
 
 const FREQUENCIES = ['Very Rarely', 'Rarely', 'Sometimes', 'Often', 'Very Often'];
 
+export function ChartNetwork({ size = 14, className }: { size?: number; className?: string }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <circle cx="12" cy="5" r="2.5" />
+      <circle cx="5" cy="18" r="2.5" />
+      <circle cx="19" cy="18" r="2.5" />
+      <circle cx="12" cy="13" r="2" />
+      <line x1="12" y1="7.5" x2="12" y2="11" />
+      <line x1="10.3" y1="14.3" x2="6.7" y2="16.7" />
+      <line x1="13.7" y1="14.3" x2="17.3" y2="16.7" />
+    </svg>
+  );
+}
+
 export function ActiveCohortRow({
   item,
   isSelected,
@@ -36,6 +60,8 @@ export function ActiveCohortRow({
 }: ActiveCohortRowProps) {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [isDraggable, setIsDraggable] = useState(false);
+  const [isEditingCustomGoal, setIsEditingCustomGoal] = useState(false);
+  const [customGoalVal, setCustomGoalVal] = useState(String(item.dailyGoalMinutes));
 
   function toggleDay(day: Weekday) {
     const currentDays = item.schedule.days;
@@ -49,6 +75,11 @@ export function ActiveCohortRow({
 
   const freqIndex = FREQUENCIES.indexOf(item.frequency || 'Often');
   const safeFreqIndex = freqIndex === -1 ? 3 : freqIndex;
+
+  const standardGoals = [10, 15, 20, 30, 45, 60];
+  const isStandardGoal = standardGoals.includes(item.dailyGoalMinutes);
+
+  const orderStyle = item.orderStyle || 'Sequential';
 
   return (
     <article
@@ -109,7 +140,7 @@ export function ActiveCohortRow({
         </div>
       </div>
 
-      {/* 3. Pause */}
+      {/* 3. Pause — First Control Field */}
       <div className={styles.pauseCell}>
         <button
           type="button"
@@ -120,36 +151,57 @@ export function ActiveCohortRow({
             onPause?.(item.id, 7, 'Paused from row');
           }}
         >
-          <PauseCircle size={22} strokeWidth={2} />
+          <PauseCircle size={16} strokeWidth={2} />
         </button>
       </div>
 
-      {/* 4. Shows up (Frequency) */}
-      <div className={styles.cell}>
-        <span className={styles.cellLabel}>Shows up</span>
-        <div className={styles.frequency}>
-          <span className={styles.frequencyText}>{item.frequency || 'Often'}</span>
-          <div className={styles.frequencySlider}>
-            <input 
-              type="range" 
-              min="0" 
-              max="4" 
-              step="1"
-              value={safeFreqIndex} 
-              onClick={(e) => e.stopPropagation()}
-              onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                onUpdateFrequency?.(item.id, FREQUENCIES[val]);
-                onSelect();
-              }}
-              className={styles.rangeSlider}
-              aria-label="Frequency"
-            />
-          </div>
+      {/* 4. Shows up (Frequency) with Segmented Pills & Vertical Divider */}
+      <div className={styles.showsUpCell}>
+        <span className={styles.cellLabel}>SHOWS UP</span>
+        <div className={styles.frequencySegmented}>
+          {['Rarely', 'Sometimes', 'Often'].map((option) => {
+            const currentFreq = item.frequency || 'Often';
+            const isCurrent = currentFreq.includes(option);
+            return (
+              <button
+                key={option}
+                type="button"
+                className={`${styles.freqPill} ${isCurrent ? styles.freqPillActive : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onUpdateFrequency?.(item.id, option);
+                  onSelect();
+                }}
+              >
+                {option}
+              </button>
+            );
+          })}
+        </div>
+        <div className={styles.frequencySlider}>
+          <input 
+            type="range" 
+            min="0" 
+            max="2" 
+            step="1"
+            value={
+              (item.frequency || 'Often').includes('Rarely') ? 0 :
+              (item.frequency || 'Often').includes('Sometimes') ? 1 : 2
+            } 
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              const opts = ['Rarely', 'Sometimes', 'Often'];
+              const val = parseInt(e.target.value, 10);
+              onUpdateFrequency?.(item.id, opts[val]);
+              onSelect();
+            }}
+            className={styles.rangeSlider}
+            aria-label="Frequency"
+          />
         </div>
       </div>
 
-      {/* 4. Days */}
+      {/* 5. Days */}
       <div className={styles.cell}>
         <span className={styles.cellLabel}>Days</span>
         <div className={styles.daysGroup}>
@@ -172,35 +224,87 @@ export function ActiveCohortRow({
         </div>
       </div>
 
-      {/* 5. Daily Goal */}
+      {/* 6. Daily Goal */}
       <div className={styles.cell}>
         <span className={styles.cellLabel}>Daily goal</span>
-        <div className={styles.selectWrapper} onClick={(e) => e.stopPropagation()}>
-          <select
-            className={styles.realSelect}
-            value={item.dailyGoalMinutes}
-            onChange={(e) => {
-              onUpdateDailyGoal?.(item.id, Number(e.target.value));
-              onSelect();
-            }}
-          >
-            <option value={10}>10 min</option>
-            <option value={15}>15 min</option>
-            <option value={20}>20 min</option>
-            <option value={30}>30 min</option>
-            <option value={45}>45 min</option>
-            <option value={60}>60 min</option>
-          </select>
+        <div className={styles.goalPillWrapper} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.clockPieIcon}>
+            <svg viewBox="0 0 36 36" className={styles.circularChart}>
+              <path
+                className={styles.circleBg}
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              />
+              <path
+                className={styles.circleFill}
+                strokeDasharray={`${Math.min(100, Math.round((item.dailyGoalMinutes / 60) * 100))}, 100`}
+                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+              />
+            </svg>
+          </div>
+
+          {isEditingCustomGoal ? (
+            <div className={styles.customGoalGroup}>
+              <input
+                type="number"
+                min="1"
+                max="300"
+                autoFocus
+                className={styles.customGoalInputRow}
+                value={customGoalVal}
+                onChange={(e) => setCustomGoalVal(e.target.value)}
+                onBlur={() => {
+                  const num = parseInt(customGoalVal, 10);
+                  if (num > 0) onUpdateDailyGoal?.(item.id, num);
+                  setIsEditingCustomGoal(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const num = parseInt(customGoalVal, 10);
+                    if (num > 0) onUpdateDailyGoal?.(item.id, num);
+                    setIsEditingCustomGoal(false);
+                  }
+                }}
+              />
+            </div>
+          ) : (
+            <select
+              className={styles.realSelectWithClock}
+              value={isStandardGoal ? item.dailyGoalMinutes : 'custom'}
+              onChange={(e) => {
+                if (e.target.value === 'custom') {
+                  setCustomGoalVal(String(item.dailyGoalMinutes));
+                  setIsEditingCustomGoal(true);
+                } else {
+                  onUpdateDailyGoal?.(item.id, Number(e.target.value));
+                  onSelect();
+                }
+              }}
+            >
+              <option value={10}>10 min</option>
+              <option value={15}>15 min</option>
+              <option value={20}>20 min</option>
+              <option value={30}>30 min</option>
+              <option value={45}>45 min</option>
+              <option value={60}>60 min</option>
+              {!isStandardGoal && <option value={item.dailyGoalMinutes}>{item.dailyGoalMinutes} min</option>}
+              <option value="custom">Custom...</option>
+            </select>
+          )}
         </div>
       </div>
 
-      {/* 6. Order Style */}
+      {/* 7. Order Style — Last Field */}
       <div className={styles.cell}>
         <span className={styles.cellLabel}>Order style</span>
-        <div className={styles.selectWrapper} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.orderIconWrapper} title={`Order Style: ${orderStyle}`} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.orderLeftIcon}>
+            {orderStyle === 'Sequential' && <ListOrdered size={17} className={styles.orderIcon} />}
+            {orderStyle === 'Semantic Randomize' && <ChartNetwork size={17} className={styles.orderIcon} />}
+            {orderStyle === 'Randomize' && <Shuffle size={17} className={styles.orderIcon} />}
+          </div>
           <select
-            className={styles.realSelect}
-            value={item.orderStyle || 'Sequential'}
+            className={styles.realSelectIconOnly}
+            value={orderStyle}
             onChange={(e) => {
               onUpdateOrderStyle?.(item.id, e.target.value);
               onSelect();
@@ -212,7 +316,6 @@ export function ActiveCohortRow({
           </select>
         </div>
       </div>
-
 
     </article>
   );

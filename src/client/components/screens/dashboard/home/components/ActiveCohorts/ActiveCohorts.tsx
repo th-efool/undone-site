@@ -1,7 +1,7 @@
 import { useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import type { ActiveCohort, HomeSectionContent, PauseOption, Weekday } from '../../models';
 import { ActiveCohortRow } from '../ActiveCohortRow/ActiveCohortRow';
-import { SectionHeader } from '../SectionHeader/SectionHeader';
 import { InspectorPanel } from './InspectorPanel';
 
 import styles from './ActiveCohorts.module.css';
@@ -45,12 +45,22 @@ export function ActiveCohorts({
         {/* Left: Master List */}
         <div className={`${styles.list} ${selectedCohort ? styles.listWithInspector : ''}`}>
           <div className={styles.listHeader}>
-            <div className={styles.headerTitleRow}>
-              <SectionHeader
-                title={heading.title}
-                subtitle={heading.subtitle}
-              />
-              <span className={styles.dragHint}>Drag to change what appears more often</span>
+            <div className={styles.headerBar}>
+              {/* Left Browser Tab Trapezium for Feed Policy */}
+              <div className={styles.tabTrapezium}>
+                <h2 className={styles.tabTitle}>{heading.title}</h2>
+              </div>
+
+              {/* Right Dark Indigo Bar for See All & Drag Hint */}
+              <div className={styles.indigoBar}>
+                <button type="button" className={styles.seeAllBtn}>
+                  See all
+                  <ChevronRight size={15} strokeWidth={2.5} />
+                </button>
+                <span className={styles.dragHintText}>
+                  Drag to change what appears more often
+                </span>
+              </div>
             </div>
           </div>
 
