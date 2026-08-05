@@ -152,10 +152,20 @@
 │   ├── settings.gradle
 │   └── variables.gradle
 ├── assets/
+│   ├── fonts/
+│   │   ├── Caveat-Bold.ttf
+│   │   ├── Manrope-Bold.ttf
+│   │   ├── Manrope-Medium.ttf
+│   │   └── Manrope-SemiBold.ttf
 │   └── logo.png
 ├── docs/
 │   └── ANDROID.md
 ├── public/
+│   ├── fonts/
+│   │   ├── Caveat-Bold.ttf
+│   │   ├── Manrope-Bold.ttf
+│   │   ├── Manrope-Medium.ttf
+│   │   └── Manrope-SemiBold.ttf
 │   ├── icons/
 │   │   ├── apple.webp
 │   │   ├── github.webp
@@ -168,6 +178,9 @@
 │   │   │   ├── faceless.webp
 │   │   │   ├── maker.webp
 │   │   │   └── phone.webp
+│   │   ├── home/
+│   │   │   ├── crow.webp
+│   │   │   └── home-hero.webp
 │   │   ├── icons/
 │   │   │   ├── 128/
 │   │   │   │   ├── Ai.webp
@@ -804,7 +817,9 @@
 │   │   │   │   │   │   │   │   └── ActiveCohortRow.tsx
 │   │   │   │   │   │   │   ├── ActiveCohorts/
 │   │   │   │   │   │   │   │   ├── ActiveCohorts.module.css
-│   │   │   │   │   │   │   │   └── ActiveCohorts.tsx
+│   │   │   │   │   │   │   │   ├── ActiveCohorts.tsx
+│   │   │   │   │   │   │   │   ├── InspectorPanel.module.css
+│   │   │   │   │   │   │   │   └── InspectorPanel.tsx
 │   │   │   │   │   │   │   ├── CompletedCourseCard/
 │   │   │   │   │   │   │   │   ├── CompletedCourseCard.module.css
 │   │   │   │   │   │   │   │   └── CompletedCourseCard.tsx
@@ -817,6 +832,9 @@
 │   │   │   │   │   │   │   ├── HomeHero/
 │   │   │   │   │   │   │   │   ├── HomeHero.module.css
 │   │   │   │   │   │   │   │   └── HomeHero.tsx
+│   │   │   │   │   │   │   ├── HomeSummaryBar/
+│   │   │   │   │   │   │   │   ├── HomeSummaryBar.module.css
+│   │   │   │   │   │   │   │   └── HomeSummaryBar.tsx
 │   │   │   │   │   │   │   ├── RecentlyCompleted/
 │   │   │   │   │   │   │   │   ├── RecentlyCompleted.module.css
 │   │   │   │   │   │   │   │   └── RecentlyCompleted.tsx
@@ -1264,4 +1282,4 @@
 ├── sidequesthq-logo.webp
 └── tsconfig.json
 
-421 directories, 842 files
+425 directories, 856 files
