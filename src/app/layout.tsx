@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Caveat, Dancing_Script, Geist, Geist_Mono, Manrope } from 'next/font/google';
+import { Caveat, Dancing_Script, Geist, Geist_Mono, Manrope, Lora } from 'next/font/google';
 import { CapacitorBridge } from '@/src/client/components/global/CapacitorBridge/CapacitorBridge';
 import './globals.css';
 
@@ -29,6 +29,12 @@ const dancingScript = Dancing_Script({
   variable: '--font-dancing-script-next',
   subsets: ['latin'],
   weight: ['700'],
+});
+
+const lora = Lora({
+  variable: '--font-lora',
+  subsets: ['latin'],
+  style: ['italic'],
 });
 
 
@@ -123,7 +129,7 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} ${caveat.variable} ${dancingScript.variable}`}
+      className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} ${caveat.variable} ${dancingScript.variable} ${lora.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background text-text font-sans antialiased">
