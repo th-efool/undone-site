@@ -112,13 +112,14 @@
 
 .communityGrid {
   position: relative;
-  width: 100%;
+  width: 82%;
 }
 
 /* ---------- BOTTOM ---------- */
 
 .highlights {
   margin-top: auto;
+  margin-bottom: 16px;
 
   z-index: 2;
 }
