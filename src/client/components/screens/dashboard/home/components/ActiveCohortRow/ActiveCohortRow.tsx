@@ -109,7 +109,22 @@ export function ActiveCohortRow({
         </div>
       </div>
 
-      {/* 3. Shows up (Frequency) */}
+      {/* 3. Pause */}
+      <div className={styles.pauseCell}>
+        <button
+          type="button"
+          className={styles.pauseButton}
+          title="Pause cohort"
+          onClick={(e) => {
+            e.stopPropagation();
+            onPause?.(item.id, 7, 'Paused from row');
+          }}
+        >
+          <PauseCircle size={22} strokeWidth={2} />
+        </button>
+      </div>
+
+      {/* 4. Shows up (Frequency) */}
       <div className={styles.cell}>
         <span className={styles.cellLabel}>Shows up</span>
         <div className={styles.frequency}>
@@ -198,18 +213,7 @@ export function ActiveCohortRow({
         </div>
       </div>
 
-      {/* 7. Pause */}
-      <button
-        type="button"
-        className={styles.pauseButton}
-        title="Pause cohort"
-        onClick={(e) => {
-          e.stopPropagation();
-          onPause?.(item.id, 7, 'Paused from row');
-        }}
-      >
-        <PauseCircle size={18} strokeWidth={2} />
-      </button>
+
     </article>
   );
 }
