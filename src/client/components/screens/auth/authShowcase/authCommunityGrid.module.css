@@ -17,7 +17,7 @@
 }
 
 .row:nth-child(2) {
-  width: 75%;
+  width: 82%;
 }
 
 .row:nth-child(2) .card {
@@ -25,7 +25,7 @@
 }
 
 .row:nth-child(3) {
-  width: calc(50% - clamp(0.375rem, 0.38vw, 0.4375rem));
+  width: 58%;
 }
 
 .card {

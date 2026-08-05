@@ -1,5 +1,5 @@
 .showcase {
-  --community-scale: 0.95;
+  --community-scale: 1.12;
   --auth-radius-card: clamp(1rem, 0.95vw, 1.125rem);
   --auth-radius-feature: clamp(1.125rem, 1.05vw, 1.25rem);
   --auth-radius-shell: clamp(1.5rem, 1.7vw, 2rem);
@@ -18,12 +18,12 @@
 
   height: 100%;
 
-  padding: clamp(1.25rem, 1.5vw, 1.75rem);
+  padding: clamp(1.5rem, 1.45vw, 1.75rem);
 
   background: white;
 
   border-radius: var(--auth-radius-shell);
-  overflow: hidden;
+  overflow: visible;
 }
 
 /* ---------- HEADER ---------- */
@@ -33,7 +33,7 @@
   align-items: flex-end;
   justify-content: space-between;
 
-  margin-bottom: 8px;
+  margin-bottom: clamp(0.625rem, 0.65vw, 0.75rem);
 
   z-index: 2;
 }
@@ -41,7 +41,7 @@
 .heading {
   max-width: none;
 
-  font-size: clamp(2rem, 2.5vw, 3rem);
+  font-size: clamp(2.15rem, 2.7vw, 3.35rem);
 
   line-height: 1.02;
 
@@ -60,7 +60,7 @@
   margin-top: 2px;
   margin-bottom: 0;
 
-  font-size: 0.95rem;
+  font-size: 1rem;
 
   line-height: 1.35;
 
@@ -69,20 +69,18 @@
 
 /* ---------- COMMUNITY ---------- */
 
+.communityStage {
+  position: relative;
+  flex: 1;
+
+  z-index: 20;
+}
+
 .communitySection {
   position: relative;
   flex: 1;
-  display: flex;
-  align-items: center;
 
   z-index: 2;
-  margin: 8px 0;
-}
-
-.communityStage {
-  position: relative;
-  width: 100%;
-  z-index: 20;
 }
 
 .communityHeader {
@@ -118,21 +116,19 @@
 .communityGrid {
   position: relative;
 
-  transform: scale(var(--community-scale), 0.92);
+  transform: scale(var(--community-scale), 1.04);
 
   transform-origin: top left;
 
-  width: 88%;
+  width: 96%;
 }
 
 /* ---------- BOTTOM ---------- */
 
 .highlights {
-  position: relative;
   margin-top: auto;
 
-  z-index: 30;
-  background: white;
+  z-index: 2;
 }
 
 @media (max-width: 768px) { .showcase { display: none; } }
