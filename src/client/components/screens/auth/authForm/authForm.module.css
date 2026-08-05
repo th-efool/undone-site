@@ -91,11 +91,16 @@
 }
 
 .highlight {
+  font-family: var(--font-caveat-next), var(--font-dancing-script-next), cursive;
+  font-weight: 900;
+  font-size: 1.35em;
+  -webkit-text-stroke: 0.6px #6d28d9;
   color: transparent;
   background: linear-gradient(135deg, #4f46e5 0%, #8b5cf6 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  padding-right: 0.1em;
 }
 
 .description {
