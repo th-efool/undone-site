@@ -1,11 +1,11 @@
 .hero {
   position: relative;
   width: 100%;
-  border-radius: 20px;
+  border-radius: 0;
   overflow: hidden;
   height: 200px;
   background: #fcf5ee;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .heroBg {

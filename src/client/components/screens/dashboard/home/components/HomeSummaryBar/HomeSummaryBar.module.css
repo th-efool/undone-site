@@ -5,12 +5,8 @@
   gap: 20px;
   width: 100%;
   background: #fbfbfe;
-  border: 1px solid #ece9f6;
-  border-radius: 16px;
-  padding: 4px 20px;
-  box-shadow: 0 2px 12px rgba(91, 70, 232, 0.03);
-  margin-top: 4px;
-  margin-bottom: 8px;
+  border-top: 1px solid #e2e8f0;
+  padding: 8px 20px;
   font-family: var(--font-manrope);
   overflow: visible;
 }

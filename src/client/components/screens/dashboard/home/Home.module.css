@@ -1,8 +1,13 @@
 .home {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 16px 42px 24px;
+  gap: 0;
+  padding: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  margin: 16px 42px 24px;
 }
 
 .searchBar {
