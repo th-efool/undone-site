@@ -115,12 +115,7 @@
 
 .communityGrid {
   position: relative;
-
-  transform: scale(var(--community-scale), 1.04);
-
-  transform-origin: top left;
-
-  width: 96%;
+  width: 100%;
 }
 
 /* ---------- BOTTOM ---------- */
