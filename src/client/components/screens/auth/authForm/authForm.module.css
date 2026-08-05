@@ -4,7 +4,7 @@
 
   height: 100%;
 
-  padding: 32px;
+  padding: 20px 24px;
 
   background: white;
 
@@ -15,7 +15,7 @@
   display: flex;
   flex-direction: column;
 
-  gap: 24px;
+  gap: 16px;
   z-index: 10;
 }
 
@@ -52,7 +52,7 @@
   display: flex;
   gap: 4px;
   padding: 4px;
-  background: var(--color-surface, var(--cream-50));
+  background: #f3f4f6;
   border-radius: var(--radius-xl);
 }
 
@@ -72,18 +72,19 @@
 }
 
 .tabButton.active {
-  background: white;
-  color: var(--color-text-primary);
+  background: #4f46e5;
+  color: white;
   font-weight: var(--font-bold);
-  box-shadow: 0 2px 8px rgb(15 23 42 / 6%);
+  box-shadow: 0 2px 8px rgb(79 70 229 / 30%);
 }
 
 .tabButton:hover:not(.active) {
   color: var(--color-text-primary);
+  background: #e5e7eb;
 }
 
 .title {
-  font-size: clamp(2.5rem, 3vw, 3.8rem);
+  font-size: clamp(2rem, 3vw, 2.5rem);
 
   font-weight: var(--font-extrabold);
 
@@ -105,19 +106,19 @@
 }
 
 .oauth {
-  margin-top: 24px;
+  margin-top: 16px;
 }
 
 .divider {
-  margin-top: 15px;
+  margin-top: 12px;
 }
 
 .inputs {
-  margin-top: 15px;
+  margin-top: 12px;
 }
 
 .cta {
-  margin-top: 20px;
+  margin-top: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -137,15 +138,7 @@
 }
 
 .legal {
-  margin-top: 9px;
-}
-
-.stats {
-  margin-top: 10px;
-}
-
-.footer {
-  margin-top: 2px;
+  margin-top: 6px;
 }
 
 .footer {
@@ -153,7 +146,8 @@
 
   justify-content: center;
 
-  padding-top: 24px;
+  padding-top: 16px;
+  margin-top: 8px;
 
   border-top: 1px solid var(--color-border);
 }
