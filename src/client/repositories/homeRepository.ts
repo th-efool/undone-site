@@ -3,6 +3,7 @@ import type { ActiveCohort, HomeModel } from '@/src/client/components/screens/da
 import { cohortRepository } from './cohortRepository';
 import { cohortStore } from './cohortStore';
 import { feedCohortIds } from '@/src/client/mock/cohorts/feedCohorts';
+import { homeStorageAdapter } from './homeStorageAdapter';
 
 function withCohortData<
   T extends { id: string; title: string; thumbnail: string; provider?: string },
@@ -46,19 +47,49 @@ export const homeRepository = {
       });
     });
 
-    // 2. We no longer inject homeMock.activeCohorts because it polls the feed
-    // with trash mocks if not strictly controlled. Active cohorts ONLY come from
-    // the user's progress or the explicit feed cohorts.
-
-    const activeList = Array.from(activeCohortsMap.values()).map((item, idx) => ({
+    let activeList = Array.from(activeCohortsMap.values()).map((item, idx) => ({
       ...item,
       rank: idx + 1,
     }));
 
+    let continueLaterList = homeMock.continueLater.map(withCohortData);
+
+    // 2. Hydrate from local storage choices if available
+    const stored = homeStorageAdapter.getStoredChoices();
+    if (stored) {
+      if (Array.isArray(stored.activeCohorts) && stored.activeCohorts.length > 0) {
+        const storedMap = new Map(stored.activeCohorts.map((c) => [c.id, c]));
+        
+        const reorderedActive: ActiveCohort[] = [];
+        stored.activeCohorts.forEach((storedCohort) => {
+          const base = activeCohortsMap.get(storedCohort.id);
+          if (base) {
+            reorderedActive.push({
+              ...base,
+              ...storedCohort,
+            });
+          }
+        });
+
+        activeCandidates.forEach((c) => {
+          if (!storedMap.has(c.id)) {
+            const base = activeCohortsMap.get(c.id);
+            if (base) reorderedActive.push(base);
+          }
+        });
+
+        activeList = reorderedActive.map((item, idx) => ({ ...item, rank: idx + 1 }));
+      }
+
+      if (Array.isArray(stored.continueLater)) {
+        continueLaterList = stored.continueLater.map(withCohortData);
+      }
+    }
+
     return {
       ...homeMock,
       activeCohorts: activeList.slice(0, 10),
-      continueLater: homeMock.continueLater.map(withCohortData),
+      continueLater: continueLaterList,
       recentlyCompleted: homeMock.recentlyCompleted
         .map((item) => withCohortData({ ...item, provider: '' }))
         .map((item) => ({

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import { homeRepository } from '@/src/client/repositories/homeRepository';
+import { homeStorageAdapter } from '@/src/client/repositories/homeStorageAdapter';
 import type { Weekday } from '../models';
 import {
   addDays,
@@ -22,12 +23,25 @@ export function useHome() {
     const timer = setTimeout(() => setLoading(false), 400);
     return () => clearTimeout(timer);
   }, []);
+
+  // Background pluggable backend sync
+  useEffect(() => {
+    homeStorageAdapter.syncWithBackend().catch(() => {});
+  }, []);
+
   const initialCohorts = useMemo(
     () => getActiveCohorts(home.activeCohorts, home.continueLater),
     [home],
   );
   const [activeCohorts, setActiveCohorts] = useState(initialCohorts.activeCohorts);
   const [continueLater, setContinueLater] = useState(initialCohorts.continueLater);
+
+  // Automatically persist user choice mutations to local storage
+  useEffect(() => {
+    if (activeCohorts.length > 0 || continueLater.length > 0) {
+      homeStorageAdapter.saveChoices(activeCohorts, continueLater);
+    }
+  }, [activeCohorts, continueLater]);
 
   const summaries = useMemo(
     () =>
