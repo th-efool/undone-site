@@ -199,7 +199,7 @@ export function InspectorPanel({
           ) : (
             <select
               className={styles.goalSelect}
-              value={isStandardGoal ? cohort.dailyGoalMinutes : 'custom'}
+              value={cohort.dailyGoalMinutes}
               onChange={(e) => {
                 if (e.target.value === 'custom') {
                   setCustomGoalVal(String(cohort.dailyGoalMinutes));

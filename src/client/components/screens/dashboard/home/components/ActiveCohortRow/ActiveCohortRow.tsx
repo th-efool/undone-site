@@ -269,7 +269,7 @@ export function ActiveCohortRow({
           ) : (
             <select
               className={styles.realSelectWithClock}
-              value={isStandardGoal ? item.dailyGoalMinutes : 'custom'}
+              value={item.dailyGoalMinutes}
               onChange={(e) => {
                 if (e.target.value === 'custom') {
                   setCustomGoalVal(String(item.dailyGoalMinutes));
