@@ -48,11 +48,12 @@
 .inspectorContent {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
   overflow-y: auto;
   overflow-x: hidden;
   margin-top: 4px;
   padding-right: 2px;
+  flex: 1;
 }
 .inspectorContent::-webkit-scrollbar {
   width: 3px;
@@ -70,9 +71,9 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--color-surface-secondary);
+  gap: 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .section:last-child {
@@ -379,7 +380,7 @@
 /* ── Pause button ────────────────────────── */
 
 .pauseBtn {
-  margin-top: 4px;
+  margin-top: auto;
   width: 100%;
   display: flex;
   align-items: center;
