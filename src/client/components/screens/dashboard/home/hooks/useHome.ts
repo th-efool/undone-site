@@ -10,6 +10,7 @@ import {
   resumeCohort,
   updateDailyGoal,
   updateSchedule,
+  updateOrderStyle,
 } from '../utils';
 
 export function useHome() {
@@ -51,6 +52,10 @@ export function useHome() {
     setActiveCohorts((items) => updateDailyGoal(items, cohortId, minutes));
   }
 
+  function saveOrderStyle(cohortId: string, style: 'Sequential' | 'Semantic Randomize' | 'Randomize') {
+    setActiveCohorts((items) => updateOrderStyle(items, cohortId, style));
+  }
+
   function pauseActiveCohort(cohortId: string, days: number, pausedReason?: string) {
     const pausedUntil = addDays(new Date(), days);
 
@@ -80,6 +85,7 @@ export function useHome() {
       resumePausedCohort,
       saveDailyGoal,
       saveSchedule,
+      saveOrderStyle,
     },
   };
 }

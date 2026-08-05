@@ -82,6 +82,7 @@ export function Home() {
         onUpdateDailyGoal={home.actions.saveDailyGoal}
         onUpdateSchedule={home.actions.saveSchedule}
         onPause={home.actions.pauseActiveCohort}
+        onUpdateOrderStyle={home.actions.saveOrderStyle}
       />
 
       <HomeSummaryBar

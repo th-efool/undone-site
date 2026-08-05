@@ -10,5 +10,6 @@ export {
   resumeCohort,
   updateDailyGoal,
   updateSchedule,
+  updateOrderStyle,
 } from './cohortManagement';
 export { scrollByAmount } from './scroll';

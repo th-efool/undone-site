@@ -39,6 +39,8 @@ export interface ActiveCohort {
   progressPercent: number;
   schedule: LearningSchedule;
   featured?: boolean;
+  frequency?: 'Very Often' | 'Often' | 'Sometimes' | 'Rarely' | 'Very Rarely';
+  orderStyle?: 'Sequential' | 'Semantic Randomize' | 'Randomize';
 }
 
 export interface PausedCohort extends Omit<ActiveCohort, 'rank'> {

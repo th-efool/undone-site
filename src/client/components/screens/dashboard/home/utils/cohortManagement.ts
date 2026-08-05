@@ -65,6 +65,16 @@ export function updateDailyGoal(
   );
 }
 
+export function updateOrderStyle(
+  items: ActiveCohort[],
+  cohortId: string,
+  orderStyle: 'Sequential' | 'Semantic Randomize' | 'Randomize',
+): ActiveCohort[] {
+  return items.map((item) =>
+    item.id === cohortId ? { ...item, orderStyle } : item,
+  );
+}
+
 export function pauseCohort(
   activeItems: ActiveCohort[],
   pausedItems: PausedCohort[],

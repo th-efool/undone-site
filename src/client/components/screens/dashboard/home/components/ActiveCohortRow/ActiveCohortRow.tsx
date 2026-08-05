@@ -1,113 +1,38 @@
 import Link from 'next/link';
 import { getCohortHref } from '@/src/client/navigation/cohortLinks';
-import { Clock3, GripVertical, MoreHorizontal, Pause } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { useToast } from '@/src/client/hooks/useToast';
+import { GripVertical, MoreHorizontal } from 'lucide-react';
+import { useState } from 'react';
 
-import type { ActiveCohort, PauseOption, Weekday } from '../../models';
+import type { ActiveCohort, Weekday } from '../../models';
 
 import styles from './ActiveCohortRow.module.css';
 
-const weekdays: Weekday[] = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const ALL_WEEKDAYS: Weekday[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export interface ActiveCohortRowProps {
   item: ActiveCohort;
-  pauseOptions: PauseOption[];
+  isSelected: boolean;
+  onSelect: () => void;
   onReorder(draggedId: string, targetId: string): void;
-  onUpdateDailyGoal(cohortId: string, minutes: number): void;
-  onUpdateSchedule(cohortId: string, days: Weekday[]): void;
-  onPause(cohortId: string, days: number, pausedReason?: string): void;
 }
 
 export function ActiveCohortRow({
   item,
-  pauseOptions,
-  onPause,
+  isSelected,
+  onSelect,
   onReorder,
-  onUpdateDailyGoal,
-  onUpdateSchedule,
 }: ActiveCohortRowProps) {
-  const toast = useToast();
-  const rowRef = useRef<HTMLElement>(null);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
-  const [scheduleOpen, setScheduleOpen] = useState(false);
-  const [goalOpen, setGoalOpen] = useState(false);
-  const [pauseOpen, setPauseOpen] = useState(false);
-  const [moreOpen, setMoreOpen] = useState(false);
-  const [selectedDays, setSelectedDays] = useState<Weekday[]>(item.schedule.days);
-  const [goalMinutes, setGoalMinutes] = useState(item.dailyGoalMinutes);
-  const [selectedPauseOption, setSelectedPauseOption] = useState(pauseOptions[0]?.id ?? 'tomorrow');
-  const [customPauseDays, setCustomPauseDays] = useState(10);
-
-  function closeEditors() {
-    setScheduleOpen(false);
-    setGoalOpen(false);
-    setPauseOpen(false);
-    setMoreOpen(false);
-  }
-
-  useEffect(() => {
-    function handlePointerDown(event: MouseEvent) {
-      if (!rowRef.current?.contains(event.target as Node)) {
-        closeEditors();
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        closeEditors();
-      }
-    }
-
-    document.addEventListener('mousedown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
-
-  function toggleScheduleDay(day: Weekday) {
-    setSelectedDays((days) => {
-      const nextDays = days.includes(day)
-        ? days.filter((itemDay) => itemDay !== day)
-        : [...days, day];
-      const safeDays = nextDays.length > 0 ? nextDays : [day];
-      onUpdateSchedule(item.id, safeDays);
-      toast.success(`Schedule updated: ${safeDays.join(', ')}`);
-      return safeDays;
-    });
-  }
-
-  function saveGoal() {
-    onUpdateDailyGoal(item.id, goalMinutes);
-    toast.success(`Daily goal updated to ${goalMinutes} min`);
-    setGoalOpen(false);
-  }
-
-  function cancelGoal() {
-    setGoalMinutes(item.dailyGoalMinutes);
-    setGoalOpen(false);
-  }
-
-  function confirmPause() {
-    const pauseOption = pauseOptions.find((option) => option.id === selectedPauseOption);
-    const days = pauseOption?.days ?? customPauseDays;
-    onPause(item.id, days, pauseOption?.label);
-    toast.success('Cohort paused' + (pauseOption?.label ? ` until ${pauseOption.label}` : ''));
-    setPauseOpen(false);
-  }
 
   return (
     <article
-      ref={rowRef}
       draggable={true}
       onDragStart={(event) => {
         event.dataTransfer.setData('text/plain', item.id);
         event.dataTransfer.effectAllowed = 'move';
       }}
-      className={`${styles.row} ${isDraggingOver ? styles.dragOver : ''}`}
+      className={`${styles.row} ${isSelected ? styles.selected : ''} ${isDraggingOver ? styles.dragOver : ''}`}
+      onClick={onSelect}
       onDragOver={(event) => {
         event.preventDefault();
         event.dataTransfer.dropEffect = 'move';
@@ -117,300 +42,110 @@ export function ActiveCohortRow({
       onDrop={(event) => {
         event.preventDefault();
         setIsDraggingOver(false);
-        onReorder(event.dataTransfer.getData('text/plain'), item.id);
+        const draggedId = event.dataTransfer.getData('text/plain');
+        if (draggedId && draggedId !== item.id) {
+          onReorder(draggedId, item.id);
+        }
       }}
       onDragEnd={() => setIsDraggingOver(false)}
+      role="button"
+      tabIndex={0}
+      aria-pressed={isSelected}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
     >
-      {/* Drag handle / reorder indicator */}
-      <GripVertical
-        className={styles.grip}
-        size={18}
-        strokeWidth={2.2}
-      />
-
-      {/* Rank number – shows ordering + hints at reordering */}
-      <span className={styles.rank}>{item.rank}</span>
-
-      {/* Thumbnail */}
-      <Link href={getCohortHref(item.cohortId ?? item.id)}>
-        <img
-          className={styles.thumbnail}
-          src={item.thumbnail}
-          alt=""
-        />
-      </Link>
-
-      {/* Course info: title, provider, minutes today */}
-      <div className={styles.course}>
-        <h3 className={styles.title}>
-          <Link href={getCohortHref(item.cohortId ?? item.id)}>{item.title}</Link>
-          {item.featured && (
-            <span className={styles.featuredBadge}>Featured</span>
-          )}
-        </h3>
-        <p className={styles.provider}>{item.provider}</p>
-        <p className={styles.today}>{item.minutesToday} min today</p>
+      {/* 1. Drag handle & Rank */}
+      <div className={styles.handleGroup}>
+        <GripVertical className={styles.grip} size={16} strokeWidth={2.2} />
+        <span className={styles.rank}>{item.rank}</span>
       </div>
 
-      {/* Schedule button – hidden on mobile */}
-      <div className={`${styles.popoverAnchor} ${styles.scheduleAnchor}`}>
-        <button
-          type="button"
-          className={styles.schedule}
-          onClick={() => {
-            setScheduleOpen((open) => !open);
-            setGoalOpen(false);
-            setPauseOpen(false);
-            setMoreOpen(false);
-          }}
-        >
-          <Clock3
-            size={14}
-            strokeWidth={2.2}
-          />
-          {item.schedule.label}
-        </button>
-
-        {scheduleOpen && (
-          <div
-            className={styles.popover}
-            role="dialog"
-            aria-label={`Edit schedule for ${item.title}`}
-          >
-            <div className={styles.dayGrid}>
-              {weekdays.map((day) => (
-                <button
-                  key={day}
-                  type="button"
-                  className={`${styles.dayButton} ${selectedDays.includes(day) ? styles.dayButtonActive : ''}`}
-                  aria-pressed={selectedDays.includes(day)}
-                  onClick={() => toggleScheduleDay(day)}
-                >
-                  {day}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Daily Goal – hidden on mobile */}
-      <div className={styles.dailyGoal}>
-        <span>Daily Goal</span>
-        <button
-          type="button"
-          className={styles.goalButton}
-          onClick={() => {
-            setGoalOpen((open) => !open);
-            setScheduleOpen(false);
-            setPauseOpen(false);
-            setMoreOpen(false);
-          }}
-        >
-          {item.dailyGoalMinutes} <small>min</small>
-        </button>
-
-        {goalOpen && (
-          <div
-            className={styles.goalPopover}
-            role="dialog"
-            aria-label={`Change daily goal for ${item.title}`}
-          >
-            <label className={styles.goalLabel}>
-              <span>{goalMinutes} min</span>
-              <input
-                style={{ touchAction: 'none' }}
-                type="range"
-                min="5"
-                max="180"
-                step="5"
-                value={goalMinutes}
-                onChange={(event) => setGoalMinutes(Number(event.target.value))}
-              />
-            </label>
-            <input
-              className={styles.goalInput}
-              type="number"
-              min="5"
-              max="180"
-              value={goalMinutes}
-              onChange={(event) => setGoalMinutes(Number(event.target.value))}
-            />
-            <div className={styles.editorActions}>
-              <button
-                type="button"
-                className={styles.cancelButton}
-                onClick={cancelGoal}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={styles.saveButton}
-                onClick={saveGoal}
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Progress – hidden on mobile */}
-      <div className={styles.progressCell}>
-        <span>Progress</span>
-        <div className={styles.progressRow}>
-          <div className={styles.progress}>
-            <div
-              className={styles.progressFill}
-              style={{ width: `${item.progressPercent}%` }}
-            />
-          </div>
-          <strong>{item.progressPercent}%</strong>
+      {/* 2. Thumbnail & Course Info */}
+      <div className={styles.courseGroup}>
+        <Link href={getCohortHref(item.cohortId ?? item.id)} onClick={(e) => e.stopPropagation()}>
+          <img className={styles.thumbnail} src={item.thumbnail} alt="" />
+        </Link>
+        <div className={styles.course}>
+          <h3 className={styles.title}>
+            <Link href={getCohortHref(item.cohortId ?? item.id)} onClick={(e) => e.stopPropagation()}>
+              {item.title}
+            </Link>
+          </h3>
+          <p className={styles.provider}>{item.provider}</p>
         </div>
       </div>
 
-      {/* Pause button – text+icon on desktop, icon-only on mobile */}
-      <div className={styles.popoverAnchor}>
-        <button
-          type="button"
-          className={`${styles.pauseButton} ${styles.pauseIcon}`}
-          aria-label={`Pause ${item.title}`}
-          onClick={() => {
-            setPauseOpen((open) => !open);
-            setScheduleOpen(false);
-            setGoalOpen(false);
-            setMoreOpen(false);
-          }}
-        >
-          <Pause
-            size={16}
-            fill="currentColor"
-          />
-          <span className={styles.pauseLabel}>Pause</span>
-        </button>
-
-        {pauseOpen && (
-          <div
-            className={styles.pauseModal}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Pause Cohort"
-          >
-            <h3>Pause Cohort</h3>
-            <p>When should this cohort return?</p>
-            <div className={styles.pauseOptions}>
-              {pauseOptions.map((option) => (
-                <label
-                  key={option.id}
-                  className={styles.pauseOption}
-                >
-                  <input
-                    type="radio"
-                    name={`pause-${item.id}`}
-                    value={option.id}
-                    checked={selectedPauseOption === option.id}
-                    onChange={() => setSelectedPauseOption(option.id)}
-                  />
-                  {option.label}
-                </label>
-              ))}
-            </div>
-            {selectedPauseOption === 'custom' && (
-              <input
-                className={styles.goalInput}
-                type="number"
-                min="1"
-                max="365"
-                value={customPauseDays}
-                onChange={(event) => setCustomPauseDays(Number(event.target.value))}
+      {/* 3. Shows up (Frequency) */}
+      <div className={styles.cell}>
+        <span className={styles.cellLabel}>Shows up</span>
+        <div className={styles.frequency}>
+          <span className={styles.frequencyText}>{item.frequency || 'Often'}</span>
+          <div className={styles.frequencySlider}>
+            <div className={styles.frequencyTrack}>
+              <div 
+                className={styles.frequencyFill} 
+                style={{ 
+                  width: item.frequency === 'Very Often' ? '90%' : 
+                         item.frequency === 'Often' ? '70%' : 
+                         item.frequency === 'Sometimes' ? '50%' : 
+                         item.frequency === 'Rarely' ? '30%' : '10%' 
+                }} 
               />
-            )}
-            <div className={styles.editorActions}>
-              <button
-                type="button"
-                className={styles.cancelButton}
-                onClick={() => setPauseOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className={styles.saveButton}
-                onClick={confirmPause}
-              >
-                Pause Cohort
-              </button>
+              <div 
+                className={styles.frequencyThumb}
+                style={{ 
+                  left: item.frequency === 'Very Often' ? '90%' : 
+                         item.frequency === 'Often' ? '70%' : 
+                         item.frequency === 'Sometimes' ? '50%' : 
+                         item.frequency === 'Rarely' ? '30%' : '10%' 
+                }}
+              />
             </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* More button */}
-      <div className={styles.popoverAnchor}>
-        <button
-          type="button"
-          className={styles.moreButton}
-          aria-label={`More actions for ${item.title}`}
-          aria-expanded={moreOpen}
-          onClick={() => {
-            setMoreOpen((open) => !open);
-            setScheduleOpen(false);
-            setGoalOpen(false);
-            setPauseOpen(false);
-          }}
-        >
-          <MoreHorizontal
-            size={20}
-            strokeWidth={2.7}
-          />
-        </button>
-
-        {moreOpen && (
-          <div
-            className={styles.moreMenu}
-            role="menu"
-            aria-label={`More actions for ${item.title}`}
-          >
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setScheduleOpen(true);
-                setGoalOpen(false);
-                setPauseOpen(false);
-                setMoreOpen(false);
-              }}
-            >
-              Edit schedule
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setGoalOpen(true);
-                setScheduleOpen(false);
-                setPauseOpen(false);
-                setMoreOpen(false);
-              }}
-            >
-              Edit daily goal
-            </button>
-            <button
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setPauseOpen(true);
-                setScheduleOpen(false);
-                setGoalOpen(false);
-                setMoreOpen(false);
-              }}
-            >
-              Pause cohort
-            </button>
-          </div>
-        )}
+      {/* 4. Days */}
+      <div className={styles.cell}>
+        <span className={styles.cellLabel}>Days</span>
+        <div className={styles.daysGroup}>
+          {ALL_WEEKDAYS.map(day => {
+            const isActive = item.schedule.days.includes(day);
+            return (
+              <span key={day} className={`${styles.dayPill} ${isActive ? styles.dayActive : ''}`}>
+                {day.charAt(0)}
+              </span>
+            );
+          })}
+        </div>
       </div>
+
+      {/* 5. Daily Goal */}
+      <div className={styles.cell}>
+        <span className={styles.cellLabel}>Daily goal</span>
+        <div className={styles.fauxSelect}>
+          {item.dailyGoalMinutes} min
+          <span className={styles.chevron}>▾</span>
+        </div>
+      </div>
+
+      {/* 6. Order Style */}
+      <div className={styles.cell}>
+        <span className={styles.cellLabel}>Order style</span>
+        <div className={styles.fauxSelect}>
+          {item.orderStyle || 'Sequential'}
+          <span className={styles.chevron}>▾</span>
+        </div>
+      </div>
+
+      {/* 7. More Menu */}
+      <button type="button" className={styles.moreButton} onClick={(e) => e.stopPropagation()}>
+        <MoreHorizontal size={20} strokeWidth={2.7} />
+      </button>
     </article>
   );
 }
