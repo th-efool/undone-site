@@ -1,38 +1,25 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import ProtectedVideo from '@/src/client/components/global/ProtectedVideo/ProtectedVideo';
 import styles from './Hero.module.css';
 
 export function HeroScene() {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    video.playbackRate = 0.4;
-  }, []);
-
   return (
     <div
       className={styles.background}
       aria-hidden="true"
     >
-      <video
-        ref={videoRef}
+      <ProtectedVideo
+        src="/videos/hero.webm"
         className={styles.video}
+        playbackRate={0.4}
+        poster="/images/hero-poster.webp"
         autoPlay
         muted
         loop
         playsInline
         preload="auto"
-        poster="/images/hero-poster.webp"
-      >
-        <source
-          src="/videos/hero.webm"
-          type="video/webm"
-        />
-      </video>
+      />
 
       {/* Global image treatment */}
       <div className={styles.colorGrade} />

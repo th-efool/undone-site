@@ -1,3 +1,6 @@
+'use client';
+
+import ProtectedVideo from '@/src/client/components/global/ProtectedVideo/ProtectedVideo';
 import styles from './authCommunityGrid.module.css';
 import { STUDY_ROOMS } from './authData';
 
@@ -19,13 +22,9 @@ function renderCard(room: (typeof STUDY_ROOMS)[number]) {
       key={room.id}
       className={styles.card}
     >
-      <video
-        className={styles.video}
+      <ProtectedVideo
         src={room.video}
-        autoPlay
-        muted
-        loop
-        playsInline
+        className={styles.video}
       />
 
       <div className={styles.overlay} />
@@ -49,3 +48,5 @@ function renderCard(room: (typeof STUDY_ROOMS)[number]) {
     </article>
   );
 }
+
+
