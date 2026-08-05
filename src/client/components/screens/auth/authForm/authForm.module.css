@@ -88,13 +88,14 @@
 }
 
 .title {
-  font-size: clamp(1.4rem, 1.8vw, 1.75rem);
+  font-size: clamp(1.9rem, 2.3vw, 2.5rem);
 
   font-weight: var(--font-extrabold);
 
-  line-height: 1.1;
+  line-height: 1.08;
 
   color: var(--gray-950);
+  letter-spacing: -0.02em;
 }
 
 .highlight {
@@ -104,9 +105,9 @@
 .description {
   color: var(--color-text-secondary);
 
-  font-size: 13px;
+  font-size: 0.9rem;
   z-index: 30;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 .oauth {

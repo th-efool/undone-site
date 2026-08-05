@@ -1,8 +1,6 @@
 import styles from './authShowcase.module.css';
 import AuthCommunityGrid from './authCommunityGrid';
-import AuthFeaturedContent from './authFeaturedContent';
 import { AuthPhone } from './authPhone';
-import { ArrowRight } from 'lucide-react';
 import AuthHighlights from './authHighlights';
 
 export default function AuthShowcase() {
@@ -28,10 +26,6 @@ export default function AuthShowcase() {
 
           <AuthPhone />
         </div>
-      </section>
-
-      <section className={styles.featuredSection}>
-        <AuthFeaturedContent />
       </section>
 
       <section className={styles.highlights}>

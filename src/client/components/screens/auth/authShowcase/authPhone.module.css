@@ -1,15 +1,15 @@
 .phone {
   position: absolute;
 
-  right: -15%;
+  right: -6%;
 
-  top: 9%;
+  top: 2%;
 
-  width: clamp(200px, 24vw, 360px);
+  width: clamp(260px, 30vw, 430px);
 
   aspect-ratio: 560 / 1120;
 
-  transform: translateX(-50%) rotate(12deg);
+  transform: rotate(8deg);
 
   z-index: 20;
 
