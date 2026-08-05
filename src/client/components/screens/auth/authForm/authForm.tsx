@@ -8,6 +8,21 @@ import { AuthInput } from './authInput';
 import { AuthButton } from './authButton';
 import { AuthLegal } from './authLegal';
 
+const AGE_OPTIONS = [
+  { value: 'under-18', label: 'Under 18' },
+  { value: '18-24', label: '18 – 24' },
+  { value: '25-34', label: '25 – 34' },
+  { value: '35-44', label: '35 – 44' },
+  { value: '45+', label: '45+' },
+];
+
+const GENDER_OPTIONS = [
+  { value: 'female', label: 'Female' },
+  { value: 'male', label: 'Male' },
+  { value: 'non-binary', label: 'Non-binary' },
+  { value: 'prefer-not-to-say', label: 'Prefer not to say' },
+];
+
 export function AuthForm() {
   const [activeTab, setActiveTab] = useState<'signup' | 'login'>('signup');
   const isSignUp = activeTab === 'signup';
@@ -51,7 +66,7 @@ export function AuthForm() {
 
         <p className={styles.description}>
           {isSignUp
-            ? "Turn long playlists, courses, and rabbit holes into progress you can actually stick with."
+            ? "Turn playlists and courses into real progress."
             : "Continue where you left off and make progress today."}
         </p>
       </header>
@@ -82,20 +97,22 @@ export function AuthForm() {
         <AuthInput
           label="Password"
           type="password"
-          placeholder=""
+          placeholder="Password"
         />
 
         {isSignUp && (
           <div className={styles.rowInputs}>
             <AuthInput
               label="Age Range"
-              type="text"
-              placeholder="18 - 24"
+              type="select"
+              placeholder="Select Age"
+              options={AGE_OPTIONS}
             />
             <AuthInput
               label="Gender"
-              type="text"
-              placeholder="Optional"
+              type="select"
+              placeholder="Select Gender"
+              options={GENDER_OPTIONS}
             />
           </div>
         )}
