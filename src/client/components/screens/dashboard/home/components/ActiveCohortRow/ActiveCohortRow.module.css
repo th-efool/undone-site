@@ -75,8 +75,8 @@
 }
 
 .thumbnail {
-  width: 90px;
-  height: 60px;
+  width: 112px;
+  height: 75px;
   border-radius: 6px;
   object-fit: cover;
   border: 1px solid rgba(0,0,0,0.05);
