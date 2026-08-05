@@ -29,19 +29,21 @@ export function ActiveCohorts({
   onUpdateOrderStyle,
   onUpdateFrequency,
 }: ActiveCohortsProps) {
-  // Default to first item if available
-  const [selectedId, setSelectedId] = useState<string>(items[0]?.id || '');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(true);
   
-  const selectedCohort = items.find(item => item.id === selectedId) || items[0];
+  const selectedCohort = isOpen 
+    ? (items.find(item => item.id === selectedId) || items[0]) 
+    : null;
 
   return (
     <section
       className={styles.section}
       aria-labelledby="active-cohorts-heading"
     >
-      <div className={styles.layout}>
+      <div className={styles.layout} style={{ gridTemplateColumns: selectedCohort ? '1fr 340px' : '1fr' }}>
         {/* Left: Master List */}
-        <div className={styles.list}>
+        <div className={`${styles.list} ${selectedCohort ? styles.listWithInspector : ''}`}>
           <div className={styles.listHeader}>
             <div className={styles.headerTitleRow}>
               <SectionHeader
@@ -58,7 +60,10 @@ export function ActiveCohorts({
               key={item.id}
               item={item}
               isSelected={item.id === (selectedCohort?.id || '')}
-              onSelect={() => setSelectedId(item.id)}
+              onSelect={() => {
+                setSelectedId(item.id);
+                setIsOpen(true);
+              }}
               onReorder={onReorder}
               onUpdateSchedule={onUpdateSchedule}
               onUpdateDailyGoal={onUpdateDailyGoal}
@@ -79,6 +84,8 @@ export function ActiveCohorts({
               onUpdateDailyGoal={onUpdateDailyGoal}
               onUpdateOrderStyle={onUpdateOrderStyle}
               onUpdateFrequency={onUpdateFrequency}
+              onClose={() => setIsOpen(false)}
+              onPause={onPause}
             />
           </div>
         )}

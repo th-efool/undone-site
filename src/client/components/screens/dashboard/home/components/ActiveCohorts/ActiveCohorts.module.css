@@ -11,7 +11,6 @@
 
 .layout {
   display: grid;
-  grid-template-columns: 1fr 340px;
   overflow: hidden;
   align-items: stretch;
 }
@@ -19,8 +18,11 @@
 .list {
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #f3f4f6;
   background: #faf9ff; /* slightly indigoish */
+}
+
+.listWithInspector {
+  border-right: 1px solid #f3f4f6;
 }
 
 .listHeader {
@@ -44,17 +46,16 @@
 
 .inspectorWrapper {
   position: relative;
-  background: #fafafa; /* slightly off-white to differentiate from the list if desired, or white */
-  /* If they want it completely attached and unified, white is good. 
-     Wait, I'll keep it white to match the list and rely on the border-right divider. */
-  background: white;
+  background: var(--color-brand-subtle);
+  padding: 8px;
+  display: flex;
 }
 
 @media (max-width: 1024px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
   }
-  .list {
+  .listWithInspector {
     border-right: none;
     border-bottom: 1px solid #f3f4f6;
   }
