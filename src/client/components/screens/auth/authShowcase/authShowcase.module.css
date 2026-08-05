@@ -60,6 +60,7 @@
 .communityStage {
   position: relative;
   z-index: 20;
+  max-width: calc(180vh - 20rem);
 }
 
 .communitySection {
