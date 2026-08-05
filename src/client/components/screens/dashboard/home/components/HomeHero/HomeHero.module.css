@@ -1,14 +1,25 @@
 .hero {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 28px;
+  gap: 20px;
 }
 
 .greeting {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.searchWrapper {
+  flex: 1;
+  max-width: 440px;
+  min-width: 220px;
+}
+
+.searchBar {
+  width: 100%;
 }
 
 .title {
@@ -17,9 +28,9 @@
   gap: 10px;
   margin: 0;
   color: var(--color-text-primary);
-  font-size: 2.1rem;
+  font-size: 1.8rem;
   font-weight: 800;
-  line-height: 1.05;
+  line-height: 1.1;
 }
 
 .sparkle {
@@ -29,7 +40,7 @@
 .subtitle {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 1.15rem;
+  font-size: 0.95rem;
   font-weight: 500;
 }
 
@@ -37,35 +48,37 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  height: 44px;
-  padding: 0 20px;
+  gap: 8px;
+  height: 42px;
+  padding: 0 18px;
   border: none;
   border-radius: 8px;
   background: var(--color-brand);
   color: white;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
-  box-shadow: 0 14px 30px rgba(79, 70, 229, 0.22);
+  box-shadow: 0 10px 24px rgba(79, 70, 229, 0.2);
   transition:
     transform 180ms ease,
     background 180ms ease,
     box-shadow 180ms ease;
+  white-space: nowrap;
 }
 
 .newButton:hover {
   transform: translateY(-1px);
   background: var(--color-brand-hover);
-  box-shadow: 0 18px 34px rgba(79, 70, 229, 0.28);
+  box-shadow: 0 14px 28px rgba(79, 70, 229, 0.26);
 }
 
 .heroStats {
   display: flex;
   align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 10px;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
 }
 
 .statBadge {
@@ -77,11 +90,12 @@
   border-radius: 8px;
   padding: 6px 12px;
   font-weight: 800;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   color: var(--color-text-primary);
   cursor: pointer;
   transition: transform 150ms ease, border-color 150ms ease;
-  height: 44px;
+  height: 42px;
+  white-space: nowrap;
 }
 .statBadge:hover {
   border-color: var(--color-brand);
@@ -94,13 +108,13 @@
   align-items: center;
 }
 .statIconOrange svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
 }
 
 .clockProgress {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
 .circularChart {
   display: block;
@@ -125,26 +139,30 @@
   margin-left: 4px;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 1100px) {
   .hero {
-    flex-direction: column;
+    flex-wrap: wrap;
   }
-
-  .newButton {
-    margin-top: 0;
+  .searchWrapper {
+    order: 3;
+    max-width: 100%;
+    width: 100%;
+    flex-basis: 100%;
   }
 }
 
 @media (max-width: 768px) {
   .hero {
     padding: var(--mobile-page-padding);
+    gap: 14px;
   }
 
   .title {
-    font-size: clamp(1.4rem, 5vw, 2rem);
+    font-size: clamp(1.3rem, 5vw, 1.7rem);
   }
 
   .subtitle {
-    font-size: 1rem;
+    font-size: 0.9rem;
   }
 }
+

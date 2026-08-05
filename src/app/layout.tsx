@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+import { Caveat, Dancing_Script, Geist, Geist_Mono, Manrope } from 'next/font/google';
 import { CapacitorBridge } from '@/src/client/components/global/CapacitorBridge/CapacitorBridge';
 import './globals.css';
 
@@ -12,6 +12,25 @@ const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
 });
+
+const manrope = Manrope({
+  variable: '--font-manrope-next',
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+});
+
+const caveat = Caveat({
+  variable: '--font-caveat-next',
+  subsets: ['latin'],
+  weight: ['700'],
+});
+
+const dancingScript = Dancing_Script({
+  variable: '--font-dancing-script-next',
+  subsets: ['latin'],
+  weight: ['700'],
+});
+
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://sidequesthq.com'),
@@ -68,7 +87,7 @@ export const metadata: Metadata = {
     title: 'SideQuestHQ',
     description: 'The easiest way to stay consistent with everything you want to learn.',
     images: ['/og-image.png'],
-    creator: '@SideQuestHQ', // Replace or remove if you don't have an X account
+    creator: '@SideQuestHQ',
   },
 
   icons: {
@@ -104,7 +123,7 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable}`}
+      className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} ${caveat.variable} ${dancingScript.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background text-text font-sans antialiased">
@@ -114,3 +133,5 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
     </html>
   );
 }
+
+

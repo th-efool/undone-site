@@ -1,13 +1,13 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { SearchBar } from '@/src/client/components/global/SearchBar';
 import { HomeSkeleton } from '@/src/client/components/global/Skeleton';
 import { EmptyState } from '@/src/client/components/global/EmptyState';
 
 import { ActiveCohorts } from './components/ActiveCohorts/ActiveCohorts';
 import { ContinueLater } from './components/ContinueLater/ContinueLater';
 import { HomeHero } from './components/HomeHero/HomeHero';
+import { HomeSummaryBar } from './components/HomeSummaryBar/HomeSummaryBar';
 import { RecentlyCompleted } from './components/RecentlyCompleted/RecentlyCompleted';
 import { useHome } from './hooks/useHome';
 
@@ -17,6 +17,8 @@ export function Home() {
   const home = useHome();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
+  const [isPausedOpen, setIsPausedOpen] = useState(false);
+  const [isCompletedOpen, setIsCompletedOpen] = useState(false);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedQuery(query.trim().toLowerCase()), 180);
@@ -49,18 +51,18 @@ export function Home() {
     return <HomeSkeleton />;
   }
 
+  const showPausedList = isPausedOpen || Boolean(debouncedQuery);
+  const showCompletedList = isCompletedOpen || Boolean(debouncedQuery);
+
   return (
     <main className={styles.home}>
-      <SearchBar
-        className={styles.searchBar}
-        value={query}
-        onChange={setQuery}
-        placeholder={home.searchPlaceholder}
+      <HomeHero
+        content={home.hero}
+        summaries={home.summaries}
+        searchValue={query}
+        onSearchChange={setQuery}
+        searchPlaceholder={home.searchPlaceholder}
       />
-
-      <HomeHero content={home.hero} summaries={home.summaries} />
-
-
 
       {debouncedQuery && !hasResults && (
         <EmptyState
@@ -82,16 +84,30 @@ export function Home() {
         onPause={home.actions.pauseActiveCohort}
       />
 
-      <ContinueLater
-        heading={home.sections.continueLater}
-        items={continueLater}
-        onResume={home.actions.resumePausedCohort}
+      <HomeSummaryBar
+        pausedItems={home.continueLater}
+        completedItems={home.recentlyCompleted}
+        isPausedOpen={showPausedList}
+        isCompletedOpen={showCompletedList}
+        onTogglePaused={() => setIsPausedOpen((prev) => !prev)}
+        onToggleCompleted={() => setIsCompletedOpen((prev) => !prev)}
       />
 
-      <RecentlyCompleted
-        heading={home.sections.recentlyCompleted}
-        items={recentlyCompleted}
-      />
+      {showPausedList && (
+        <ContinueLater
+          heading={home.sections.continueLater}
+          items={continueLater}
+          onResume={home.actions.resumePausedCohort}
+        />
+      )}
+
+      {showCompletedList && (
+        <RecentlyCompleted
+          heading={home.sections.recentlyCompleted}
+          items={recentlyCompleted}
+        />
+      )}
     </main>
   );
 }
+

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
+import { SearchBar } from '@/src/client/components/global/SearchBar';
 
 import type { HomeHeroContent } from '../../models';
 
@@ -8,9 +9,18 @@ import styles from './HomeHero.module.css';
 export interface HomeHeroProps {
   content: HomeHeroContent;
   summaries?: any[];
+  searchValue?: string;
+  searchPlaceholder?: string;
+  onSearchChange?: (value: string) => void;
 }
 
-export function HomeHero({ content, summaries = [] }: HomeHeroProps) {
+export function HomeHero({
+  content,
+  summaries = [],
+  searchValue = '',
+  searchPlaceholder,
+  onSearchChange,
+}: HomeHeroProps) {
   const streak = summaries.find(s => s.id === 'current-streak');
   const todayGoal = summaries.find(s => s.id === 'today-goal');
 
@@ -19,10 +29,17 @@ export function HomeHero({ content, summaries = [] }: HomeHeroProps) {
       <div className={styles.greeting}>
         <h1 className={styles.title}>
           {content.title}
-          
         </h1>
-
         <p className={styles.subtitle}>{content.subtitle}</p>
+      </div>
+
+      <div className={styles.searchWrapper}>
+        <SearchBar
+          className={styles.searchBar}
+          value={searchValue}
+          onChange={onSearchChange}
+          placeholder={searchPlaceholder}
+        />
       </div>
 
       <div className={styles.heroStats}>
@@ -64,3 +81,4 @@ export function HomeHero({ content, summaries = [] }: HomeHeroProps) {
     </header>
   );
 }
+
