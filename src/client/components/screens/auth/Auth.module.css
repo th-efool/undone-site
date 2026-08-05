@@ -2,11 +2,11 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 520px;
 
-  gap: 0px;
+  gap: 16px;
 
   min-height: 100vh;
 
-  padding: 0px;
+  padding: 16px;
 
   background: var(--color-background);
 
