@@ -1,18 +1,12 @@
 .form {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
 
   height: 100%;
-  max-height: calc(100vh - 32px);
   box-sizing: border-box;
 
-  padding: 16px 20px;
-
-  background: white;
-
-  border-radius: 24px;
-  overflow: hidden;
+  padding: 24px 32px;
 }
 
 .header {
@@ -58,6 +52,7 @@
   padding: 3px;
   background: #f3f4f6;
   border-radius: var(--radius-xl);
+  margin-bottom: 12px;
 }
 
 .tabButton {
@@ -88,18 +83,19 @@
 }
 
 .title {
-  font-size: clamp(1.9rem, 2.3vw, 2.5rem);
-
-  font-weight: var(--font-extrabold);
-
-  line-height: 1.08;
-
+  font-size: clamp(2rem, 2.5vw, 2.8rem);
+  font-weight: 900;
+  line-height: 1.05;
   color: var(--gray-950);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 
 .highlight {
-  color: var(--color-brand);
+  color: transparent;
+  background: linear-gradient(135deg, #4f46e5 0%, #8b5cf6 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .description {

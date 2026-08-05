@@ -1,17 +1,11 @@
 .auth {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 520px;
-
-  gap: 16px;
-
+  width: 100vw;
   height: 100vh;
-  max-height: 100vh;
-  box-sizing: border-box;
-
-  padding: 16px;
-
-  background: var(--color-background);
-
+  margin: 0;
+  padding: 0;
+  background: white;
   overflow: hidden;
 }
 
@@ -44,4 +38,4 @@
   }
 }
 
-@media (max-width: 768px) { .root { min-height: 100vh; } }
+@media (max-width: 768px) { .auth { min-height: 100vh; } }
