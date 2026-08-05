@@ -9,7 +9,7 @@ export const homeMock: HomeModel = {
     actionLabel: 'New Cohort',
   },
   sections: {
-    activeCohorts: { title: 'Cohort Priority' },
+    activeCohorts: { title: 'Feed Policy' },
     continueLater: {
       title: 'Continue Later',
       subtitle: "We'll bring these back when the time is right.",

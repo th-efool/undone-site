@@ -1,4 +1,4 @@
-import { CalendarDays, Clock, Shuffle, Sparkles, Wand2 } from 'lucide-react';
+import { CalendarDays, Clock, Shuffle, Sparkles, Wand2, Activity } from 'lucide-react';
 import type { ActiveCohort, Weekday } from '../../models';
 
 import styles from './InspectorPanel.module.css';
@@ -8,7 +8,10 @@ export interface InspectorPanelProps {
   onUpdateSchedule(cohortId: string, days: Weekday[]): void;
   onUpdateDailyGoal(cohortId: string, minutes: number): void;
   onUpdateOrderStyle?(cohortId: string, style: string): void;
+  onUpdateFrequency?(cohortId: string, frequency: string): void;
 }
+
+const FREQUENCIES = ['Very Rarely', 'Rarely', 'Sometimes', 'Often', 'Very Often'];
 
 const weekdays: Weekday[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
@@ -17,6 +20,7 @@ export function InspectorPanel({
   onUpdateSchedule,
   onUpdateDailyGoal,
   onUpdateOrderStyle,
+  onUpdateFrequency,
 }: InspectorPanelProps) {
   function toggleDay(day: Weekday) {
     const currentDays = cohort.schedule.days;
@@ -27,17 +31,54 @@ export function InspectorPanel({
     onUpdateSchedule(cohort.id, safeDays);
   }
 
+  function handleFrequencyChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const val = parseInt(e.target.value, 10);
+    onUpdateFrequency?.(cohort.id, FREQUENCIES[val]);
+  }
+  const freqIndex = FREQUENCIES.indexOf(cohort.frequency || 'Often');
+  const safeFreqIndex = freqIndex === -1 ? 3 : freqIndex;
+
   return (
     <aside className={styles.inspector} aria-label={`Inspector for ${cohort.title}`}>
-      {/* Schedule Section */}
-      <section className={styles.section}>
-        <header className={styles.sectionHeader}>
-          <CalendarDays size={18} strokeWidth={2.5} className={styles.icon} />
-          <div>
-            <h3>Schedule</h3>
-            <p>On which days should these cohorts be considered?</p>
+      <div key={cohort.id} className={styles.inspectorContent}>
+        
+        {/* Frequency Section */}
+        <section className={styles.section}>
+          <header className={styles.sectionHeader}>
+            <Activity size={18} strokeWidth={2.5} className={styles.icon} />
+            <div>
+              <h3>Shows up <span className={styles.subtitle}>(Frequency)</span></h3>
+              <p className={styles.desc}>How often should this appear in your feed?</p>
+            </div>
+          </header>
+          <div className={styles.sliderWrapper}>
+            <div className={styles.sliderLabels}>
+              <span>Less</span>
+              <span className={styles.sliderValue}>{cohort.frequency || 'Often'}</span>
+              <span>More</span>
+            </div>
+            <input 
+              type="range" 
+              min="0" 
+              max="4" 
+              step="1"
+              value={safeFreqIndex} 
+              onChange={handleFrequencyChange}
+              className={styles.rangeSlider}
+              aria-label="Frequency"
+            />
           </div>
-        </header>
+        </section>
+
+        {/* Schedule Section */}
+      <section className={styles.section}>
+          <header className={styles.sectionHeader}>
+            <CalendarDays size={18} strokeWidth={2.5} className={styles.icon} />
+            <div>
+              <h3>Schedule</h3>
+              <p className={styles.desc}>Which days should this be prioritized?</p>
+            </div>
+          </header>
         <div className={styles.dayGrid}>
           {weekdays.map((day) => {
             const isActive = cohort.schedule.days.includes(day);
@@ -54,19 +95,18 @@ export function InspectorPanel({
             );
           })}
         </div>
-        <p className={styles.tip}>Tip: You can also set days for each cohort individually.</p>
       </section>
 
       {/* Daily Goal Section */}
       <section className={styles.section}>
-        <header className={styles.sectionHeader}>
-          <Clock size={18} strokeWidth={2.5} className={styles.icon} />
-          <div>
-            <h3>Daily Goal <span className={styles.subtitle}>(Overall)</span></h3>
-            <p>How much time do you want to spend learning?</p>
-          </div>
-        </header>
-        <div className={styles.goalWrapper}>
+        <div className={styles.headerWithAction}>
+          <header className={styles.sectionHeader}>
+            <Clock size={18} strokeWidth={2.5} className={styles.icon} />
+            <div>
+              <h3>Daily Goal <span className={styles.subtitle}>(Overall)</span></h3>
+              <p className={styles.desc}>How much time do you want to spend learning?</p>
+            </div>
+          </header>
           <select
             className={styles.goalSelect}
             value={cohort.dailyGoalMinutes}
@@ -80,7 +120,6 @@ export function InspectorPanel({
             <option value={60}>60 min</option>
           </select>
         </div>
-        <p className={styles.tip}>We'll try to fill your day with the right mix.</p>
       </section>
 
       {/* Order Preference Section */}
@@ -89,14 +128,14 @@ export function InspectorPanel({
           <Shuffle size={18} strokeWidth={2.5} className={styles.icon} />
           <div>
             <h3>Order Preference <span className={styles.subtitle}>(Default)</span></h3>
-            <p>How should items be ordered within each cohort?</p>
+            <p className={styles.desc}>How should items be ordered within each cohort?</p>
           </div>
         </header>
         <div className={styles.orderOptions}>
           <label className={`${styles.orderCard} ${cohort.orderStyle === 'Sequential' ? styles.orderCardActive : ''}`}>
             <input 
               type="radio" 
-              name="orderStyle" 
+              name={`order-${cohort.id}`} 
               value="Sequential"
               checked={cohort.orderStyle === 'Sequential'}
               onChange={() => onUpdateOrderStyle?.(cohort.id, 'Sequential')}
@@ -113,7 +152,7 @@ export function InspectorPanel({
           <label className={`${styles.orderCard} ${cohort.orderStyle === 'Semantic Randomize' ? styles.orderCardActive : ''}`}>
             <input 
               type="radio" 
-              name="orderStyle" 
+              name={`order-${cohort.id}`} 
               value="Semantic Randomize"
               checked={cohort.orderStyle === 'Semantic Randomize'}
               onChange={() => onUpdateOrderStyle?.(cohort.id, 'Semantic Randomize')}
@@ -122,7 +161,7 @@ export function InspectorPanel({
             <div className={styles.orderCardIcon}><Sparkles size={16} /></div>
             <div className={styles.orderCardContent}>
               <h4>Semantic Randomize</h4>
-              <p>We group similar ideas, then shuffle within groups.</p>
+              <p>We group similar ideas, then shuffle.</p>
             </div>
             <div className={styles.radioRing} />
           </label>
@@ -130,7 +169,7 @@ export function InspectorPanel({
           <label className={`${styles.orderCard} ${cohort.orderStyle === 'Randomize' ? styles.orderCardActive : ''}`}>
             <input 
               type="radio" 
-              name="orderStyle" 
+              name={`order-${cohort.id}`} 
               value="Randomize"
               checked={cohort.orderStyle === 'Randomize'}
               onChange={() => onUpdateOrderStyle?.(cohort.id, 'Randomize')}
@@ -146,16 +185,6 @@ export function InspectorPanel({
         </div>
       </section>
 
-      {/* Helper Card */}
-      <div className={styles.helperCard}>
-        <div className={styles.helperIcon}>
-          <Sparkles size={20} className={styles.iconBrand} />
-        </div>
-        <div className={styles.helperContent}>
-          <h4>These settings shape your feed.</h4>
-          <p>You can update them anytime.</p>
-        </div>
-        <div className={styles.helperArrow}>›</div>
       </div>
     </aside>
   );

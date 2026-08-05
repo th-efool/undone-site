@@ -1,47 +1,65 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.headerRow {
-  display: flex;
-  align-items: flex-end;
-  gap: 16px;
 }
 
 .dragHint {
   font-size: 0.8rem;
   color: #9ca3af;
-  margin-bottom: 2px;
+  margin-top: 4px;
 }
 
 .layout {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 32px;
-  align-items: flex-start;
+  grid-template-columns: 1fr 340px;
+  background: white;
+  border-radius: 20px;
+  border: 1px solid #f3f4f6;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+  overflow: hidden;
+  align-items: stretch;
 }
 
 .list {
   display: flex;
   flex-direction: column;
-  background: white;
-  border-radius: 20px;
-  border: 1px solid #f3f4f6;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+  border-right: 1px solid #f3f4f6;
+  background: #faf9ff; /* slightly indigoish */
+}
+
+.listHeader {
+  padding: 14px 16px 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.headerTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.itemsWrapper {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .inspectorWrapper {
-  position: sticky;
-  top: 32px;
+  position: relative;
+  background: #fafafa; /* slightly off-white to differentiate from the list if desired, or white */
+  /* If they want it completely attached and unified, white is good. 
+     Wait, I'll keep it white to match the list and rely on the border-right divider. */
+  background: white;
 }
 
 @media (max-width: 1024px) {
   .layout {
     grid-template-columns: 1fr;
   }
-  .inspectorWrapper {
-    position: static;
+  .list {
+    border-right: none;
+    border-bottom: 1px solid #f3f4f6;
   }
 }

@@ -75,6 +75,16 @@ export function updateOrderStyle(
   );
 }
 
+export function updateFrequency(
+  items: ActiveCohort[],
+  cohortId: string,
+  frequency: 'Very Often' | 'Often' | 'Sometimes' | 'Rarely' | 'Very Rarely',
+): ActiveCohort[] {
+  return items.map((item) =>
+    item.id === cohortId ? { ...item, frequency } : item,
+  );
+}
+
 export function pauseCohort(
   activeItems: ActiveCohort[],
   pausedItems: PausedCohort[],

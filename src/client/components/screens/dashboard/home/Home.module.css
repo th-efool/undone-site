@@ -1,8 +1,8 @@
 .home {
   display: flex;
   flex-direction: column;
-  gap: 22px;
-  padding: 16px 42px 18px;
+  gap: 8px;
+  padding: 16px 42px 24px;
 }
 
 .searchBar {
@@ -132,11 +132,6 @@
   color: var(--color-text-secondary);
   font-weight: 750;
   background: #fff;
-}
-.home {
-  gap: 20px;
-  padding-top: 18px;
-  padding-bottom: 28px;
 }
 .searchBar {
   margin-bottom: 2px;

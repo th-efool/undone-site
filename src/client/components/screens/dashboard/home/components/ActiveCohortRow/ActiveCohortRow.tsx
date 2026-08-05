@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { getCohortHref } from '@/src/client/navigation/cohortLinks';
-import { GripVertical, MoreHorizontal } from 'lucide-react';
+import { GripVertical, PauseCircle } from 'lucide-react';
 import { useState } from 'react';
 
 import type { ActiveCohort, Weekday } from '../../models';
@@ -14,15 +14,40 @@ export interface ActiveCohortRowProps {
   isSelected: boolean;
   onSelect: () => void;
   onReorder(draggedId: string, targetId: string): void;
+  onUpdateSchedule?(cohortId: string, days: Weekday[]): void;
+  onUpdateDailyGoal?(cohortId: string, minutes: number): void;
+  onUpdateOrderStyle?(cohortId: string, style: string): void;
+  onUpdateFrequency?(cohortId: string, frequency: string): void;
+  onPause?(cohortId: string, days: number, pausedReason?: string): void;
 }
+
+const FREQUENCIES = ['Very Rarely', 'Rarely', 'Sometimes', 'Often', 'Very Often'];
 
 export function ActiveCohortRow({
   item,
   isSelected,
   onSelect,
   onReorder,
+  onUpdateSchedule,
+  onUpdateDailyGoal,
+  onUpdateOrderStyle,
+  onUpdateFrequency,
+  onPause,
 }: ActiveCohortRowProps) {
   const [isDraggingOver, setIsDraggingOver] = useState(false);
+
+  function toggleDay(day: Weekday) {
+    const currentDays = item.schedule.days;
+    const nextDays = currentDays.includes(day)
+      ? currentDays.filter((d) => d !== day)
+      : [...currentDays, day];
+    const safeDays = nextDays.length > 0 ? nextDays : [day];
+    onUpdateSchedule?.(item.id, safeDays);
+    onSelect(); // ensure selection when interacting
+  }
+
+  const freqIndex = FREQUENCIES.indexOf(item.frequency || 'Often');
+  const safeFreqIndex = freqIndex === -1 ? 3 : freqIndex;
 
   return (
     <article
@@ -85,26 +110,21 @@ export function ActiveCohortRow({
         <div className={styles.frequency}>
           <span className={styles.frequencyText}>{item.frequency || 'Often'}</span>
           <div className={styles.frequencySlider}>
-            <div className={styles.frequencyTrack}>
-              <div 
-                className={styles.frequencyFill} 
-                style={{ 
-                  width: item.frequency === 'Very Often' ? '90%' : 
-                         item.frequency === 'Often' ? '70%' : 
-                         item.frequency === 'Sometimes' ? '50%' : 
-                         item.frequency === 'Rarely' ? '30%' : '10%' 
-                }} 
-              />
-              <div 
-                className={styles.frequencyThumb}
-                style={{ 
-                  left: item.frequency === 'Very Often' ? '90%' : 
-                         item.frequency === 'Often' ? '70%' : 
-                         item.frequency === 'Sometimes' ? '50%' : 
-                         item.frequency === 'Rarely' ? '30%' : '10%' 
-                }}
-              />
-            </div>
+            <input 
+              type="range" 
+              min="0" 
+              max="4" 
+              step="1"
+              value={safeFreqIndex} 
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                onUpdateFrequency?.(item.id, FREQUENCIES[val]);
+                onSelect();
+              }}
+              className={styles.rangeSlider}
+              aria-label="Frequency"
+            />
           </div>
         </div>
       </div>
@@ -116,9 +136,17 @@ export function ActiveCohortRow({
           {ALL_WEEKDAYS.map(day => {
             const isActive = item.schedule.days.includes(day);
             return (
-              <span key={day} className={`${styles.dayPill} ${isActive ? styles.dayActive : ''}`}>
+              <button 
+                key={day} 
+                type="button"
+                className={`${styles.dayPill} ${isActive ? styles.dayActive : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleDay(day);
+                }}
+              >
                 {day.charAt(0)}
-              </span>
+              </button>
             );
           })}
         </div>
@@ -127,24 +155,55 @@ export function ActiveCohortRow({
       {/* 5. Daily Goal */}
       <div className={styles.cell}>
         <span className={styles.cellLabel}>Daily goal</span>
-        <div className={styles.fauxSelect}>
-          {item.dailyGoalMinutes} min
-          <span className={styles.chevron}>▾</span>
+        <div className={styles.selectWrapper} onClick={(e) => e.stopPropagation()}>
+          <select
+            className={styles.realSelect}
+            value={item.dailyGoalMinutes}
+            onChange={(e) => {
+              onUpdateDailyGoal?.(item.id, Number(e.target.value));
+              onSelect();
+            }}
+          >
+            <option value={10}>10 min</option>
+            <option value={15}>15 min</option>
+            <option value={20}>20 min</option>
+            <option value={30}>30 min</option>
+            <option value={45}>45 min</option>
+            <option value={60}>60 min</option>
+          </select>
         </div>
       </div>
 
       {/* 6. Order Style */}
       <div className={styles.cell}>
         <span className={styles.cellLabel}>Order style</span>
-        <div className={styles.fauxSelect}>
-          {item.orderStyle || 'Sequential'}
-          <span className={styles.chevron}>▾</span>
+        <div className={styles.selectWrapper} onClick={(e) => e.stopPropagation()}>
+          <select
+            className={styles.realSelect}
+            value={item.orderStyle || 'Sequential'}
+            onChange={(e) => {
+              onUpdateOrderStyle?.(item.id, e.target.value);
+              onSelect();
+            }}
+          >
+            <option value="Sequential">Sequential</option>
+            <option value="Semantic Randomize">Semantic Rndm</option>
+            <option value="Randomize">Randomize</option>
+          </select>
         </div>
       </div>
 
-      {/* 7. More Menu */}
-      <button type="button" className={styles.moreButton} onClick={(e) => e.stopPropagation()}>
-        <MoreHorizontal size={20} strokeWidth={2.7} />
+      {/* 7. Pause */}
+      <button
+        type="button"
+        className={styles.pauseButton}
+        title="Pause cohort"
+        onClick={(e) => {
+          e.stopPropagation();
+          onPause?.(item.id, 7, 'Paused from row');
+        }}
+      >
+        <PauseCircle size={18} strokeWidth={2} />
       </button>
     </article>
   );

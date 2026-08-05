@@ -15,6 +15,7 @@ export interface ActiveCohortsProps {
   onUpdateSchedule(cohortId: string, days: Weekday[]): void;
   onPause(cohortId: string, days: number, pausedReason?: string): void;
   onUpdateOrderStyle?(cohortId: string, style: string): void;
+  onUpdateFrequency?(cohortId: string, frequency: string): void;
 }
 
 export function ActiveCohorts({
@@ -26,6 +27,7 @@ export function ActiveCohorts({
   onUpdateDailyGoal,
   onUpdateSchedule,
   onUpdateOrderStyle,
+  onUpdateFrequency,
 }: ActiveCohortsProps) {
   // Default to first item if available
   const [selectedId, setSelectedId] = useState<string>(items[0]?.id || '');
@@ -37,26 +39,35 @@ export function ActiveCohorts({
       className={styles.section}
       aria-labelledby="active-cohorts-heading"
     >
-      <div className={styles.headerRow}>
-        <SectionHeader
-          title={heading.title}
-          subtitle={heading.subtitle}
-        />
-        <span className={styles.dragHint}>Drag to change what appears more often</span>
-      </div>
-
       <div className={styles.layout}>
         {/* Left: Master List */}
         <div className={styles.list}>
-          {items.map((item) => (
+          <div className={styles.listHeader}>
+            <div className={styles.headerTitleRow}>
+              <SectionHeader
+                title={heading.title}
+                subtitle={heading.subtitle}
+              />
+              <span className={styles.dragHint}>Drag to change what appears more often</span>
+            </div>
+          </div>
+
+          <div className={styles.itemsWrapper}>
+            {items.map((item) => (
             <ActiveCohortRow
               key={item.id}
               item={item}
               isSelected={item.id === (selectedCohort?.id || '')}
               onSelect={() => setSelectedId(item.id)}
               onReorder={onReorder}
+              onUpdateSchedule={onUpdateSchedule}
+              onUpdateDailyGoal={onUpdateDailyGoal}
+              onUpdateOrderStyle={onUpdateOrderStyle}
+              onUpdateFrequency={onUpdateFrequency}
+              onPause={onPause}
             />
           ))}
+          </div>
         </div>
 
         {/* Right: Inspector Panel */}
@@ -67,6 +78,7 @@ export function ActiveCohorts({
               onUpdateSchedule={onUpdateSchedule}
               onUpdateDailyGoal={onUpdateDailyGoal}
               onUpdateOrderStyle={onUpdateOrderStyle}
+              onUpdateFrequency={onUpdateFrequency}
             />
           </div>
         )}

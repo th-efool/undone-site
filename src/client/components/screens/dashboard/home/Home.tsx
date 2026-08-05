@@ -83,6 +83,7 @@ export function Home() {
         onUpdateSchedule={home.actions.saveSchedule}
         onPause={home.actions.pauseActiveCohort}
         onUpdateOrderStyle={home.actions.saveOrderStyle}
+        onUpdateFrequency={home.actions.saveFrequency}
       />
 
       <HomeSummaryBar

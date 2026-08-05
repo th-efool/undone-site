@@ -11,6 +11,7 @@ import {
   updateDailyGoal,
   updateSchedule,
   updateOrderStyle,
+  updateFrequency,
 } from '../utils';
 
 export function useHome() {
@@ -56,6 +57,10 @@ export function useHome() {
     setActiveCohorts((items) => updateOrderStyle(items, cohortId, style));
   }
 
+  function saveFrequency(cohortId: string, frequency: 'Very Often' | 'Often' | 'Sometimes' | 'Rarely' | 'Very Rarely') {
+    setActiveCohorts((items) => updateFrequency(items, cohortId, frequency));
+  }
+
   function pauseActiveCohort(cohortId: string, days: number, pausedReason?: string) {
     const pausedUntil = addDays(new Date(), days);
 
@@ -86,6 +91,7 @@ export function useHome() {
       saveDailyGoal,
       saveSchedule,
       saveOrderStyle,
+      saveFrequency,
     },
   };
 }
