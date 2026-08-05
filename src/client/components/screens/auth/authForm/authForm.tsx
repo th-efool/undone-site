@@ -65,6 +65,14 @@ export function AuthForm() {
       </section>
 
       <section className={styles.inputs}>
+        {isSignUp && (
+          <AuthInput
+            label="Full Name"
+            type="text"
+            placeholder="Alex Rivers"
+          />
+        )}
+
         <AuthInput
           label="Email"
           type="email"
@@ -76,6 +84,21 @@ export function AuthForm() {
           type="password"
           placeholder=""
         />
+
+        {isSignUp && (
+          <div className={styles.rowInputs}>
+            <AuthInput
+              label="Age Range"
+              type="text"
+              placeholder="18 - 24"
+            />
+            <AuthInput
+              label="Gender"
+              type="text"
+              placeholder="Optional"
+            />
+          </div>
+        )}
       </section>
 
       <section className={styles.cta}>
