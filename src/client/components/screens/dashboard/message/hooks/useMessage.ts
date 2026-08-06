@@ -181,7 +181,7 @@ const dmScripts: Record<string, Partial<DMConversationModel> & { messages: DMMes
         timestamp: '3:18 PM',
         status: 'delivered',
         tail: true,
-        replyTo: { authorName: 'Ritika Nair', authorAvatar: '/images/logos/floating-logo.webp', previewText: 'capacity math' },
+        replyTo: { authorName: 'Ritika Nair', authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80', previewText: 'capacity math' },
       },
       {
         id: 'r-4',
@@ -570,8 +570,9 @@ export function useMessage() {
         body: draft,
         ...(replyCtx ? {
           replyTo: {
+            messageId: replyCtx.messageId,
             authorName: replyCtx.senderName,
-            authorAvatar: '/images/logos/floating-logo.webp',
+            authorAvatar: replyCtx.senderAvatar || '/images/logos/floating-logo.webp',
             previewText: replyCtx.previewText,
           }
         } : {}),
@@ -660,8 +661,9 @@ export function useMessage() {
         tail: true,
         ...(replyCtx ? {
           replyTo: {
+            messageId: replyCtx.messageId,
             authorName: replyCtx.senderName,
-            authorAvatar: '/images/logos/floating-logo.webp',
+            authorAvatar: replyCtx.senderAvatar || '/images/logos/floating-logo.webp',
             previewText: replyCtx.previewText,
           }
         } : {}),

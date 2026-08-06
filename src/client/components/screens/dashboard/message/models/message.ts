@@ -111,7 +111,7 @@ export interface CommunityMessage {
   /** Batch D1: Optional date label for grouping (e.g. "Today", "Yesterday") */
   dateLabel?: string;
   /** Reply-to context: the message this is a reply to */
-  replyTo?: { authorName: string; authorAvatar: string; previewText: string };
+  replyTo?: { messageId?: string; authorName: string; authorAvatar: string; previewText: string };
 }
 
 export type ChannelTab = { id: string; label: string; unreadCount?: number };
@@ -184,7 +184,7 @@ export interface DMMessage {
   dateLabel?: string;
   attachment?: ChatAttachment;
   /** Reply-to context: the message this is a reply to */
-  replyTo?: { authorName: string; authorAvatar: string; previewText: string };
+  replyTo?: { messageId?: string; authorName: string; authorAvatar: string; previewText: string };
 }
 
 export interface DMResource {
@@ -210,5 +210,6 @@ export interface DMConversationModel {
 export interface ReplyContext {
   messageId: string;
   senderName: string;
+  senderAvatar: string;
   previewText: string;
 }

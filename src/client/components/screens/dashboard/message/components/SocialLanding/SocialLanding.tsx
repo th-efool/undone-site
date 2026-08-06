@@ -69,8 +69,8 @@ export function SocialLanding({ message }: Props) {
           }
           replyBanner={communityReply}
           onReplyDismiss={() => setCommunityReply(null)}
-          onReply={(messageId, senderName, previewText) =>
-            setCommunityReply({ messageId, senderName, previewText })
+          onReply={(messageId, senderName, previewText, senderAvatar) =>
+            setCommunityReply({ messageId, senderName, senderAvatar: senderAvatar || '/images/logos/floating-logo.webp', previewText })
           }
           isTyping={message.isTyping}
           typingUsernames={['Aarav', 'Vanshika']} /* mock */
@@ -99,8 +99,8 @@ export function SocialLanding({ message }: Props) {
           }
           replyBanner={dmReply}
           onReplyDismiss={() => setDmReply(null)}
-          onReply={(messageId, senderName, previewText) =>
-            setDmReply({ messageId, senderName, previewText })
+          onReply={(messageId, senderName, previewText, senderAvatar) =>
+            setDmReply({ messageId, senderName, senderAvatar: senderAvatar || '/images/logos/floating-logo.webp', previewText })
           }
           onDeleteMessage={(messageId) => message.actions.deleteDMMessage(message.dmConversation.id, messageId)}
           isTyping={message.isTyping}

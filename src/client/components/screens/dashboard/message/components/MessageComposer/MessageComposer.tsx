@@ -83,6 +83,12 @@ export function MessageComposer({
     if (autoFocusWhenEmpty && !value) inputRef.current?.focus();
   }, [autoFocusWhenEmpty, value]);
 
+  useEffect(() => {
+    if (replyBanner) {
+      inputRef.current?.focus();
+    }
+  }, [replyBanner]);
+
   const submit = useCallback(
     (event: FormEvent<HTMLFormElement>) => {
       event.preventDefault();
