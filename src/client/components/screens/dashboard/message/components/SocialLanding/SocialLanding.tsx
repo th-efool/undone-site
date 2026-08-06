@@ -40,6 +40,8 @@ export function SocialLanding({ message }: Props) {
         }}
         onSearchClear={() => message.actions.setSearchQuery('')}
         onMarkAllRead={message.actions.markAllRead}
+        onGoHome={message.actions.backToLanding}
+        isHome={message.view === 'landing'}
       />
 
       {message.view === 'community' && (
@@ -110,7 +112,6 @@ export function SocialLanding({ message }: Props) {
           />
           <RightSidebar
             upcomingEvents={message.upcomingEvents}
-            challenge={message.challenge}
             friendsOnline={message.friendsOnline}
           />
         </>

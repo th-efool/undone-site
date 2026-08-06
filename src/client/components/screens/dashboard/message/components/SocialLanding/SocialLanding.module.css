@@ -1,7 +1,7 @@
 .landing {
   display: flex;
   height: 100vh;
-  background: linear-gradient(180deg, #fff 0%, var(--color-brand-subtle) 100%);
+  background: #fff;
   color: var(--color-text-primary);
 }
 @media (max-width: 1180px) {

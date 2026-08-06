@@ -16,6 +16,10 @@
   scroll-behavior: smooth;
   touch-action: pan-y pinch-zoom;
   cursor: grab;
+  padding: 8px 4px;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
 }
 
 .viewport.dragging {
@@ -34,6 +38,11 @@
   gap: 16px;
 
   width: max-content;
+  min-width: 100%;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .arrow {
