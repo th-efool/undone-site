@@ -110,26 +110,23 @@
   height: 40px;
 }
 
-.tooltip {
-  position: absolute;
-  left: calc(100% + 16px);
-  top: 50%;
-  transform: translateY(-50%) scale(0.95);
+.fixedTooltip {
+  position: fixed;
+  transform: translateY(-50%);
   padding: 6px 12px;
   background: #111827;
-  color: #fff;
+  color: #ffffff;
   font-size: 0.85rem;
   font-weight: 700;
   border-radius: 8px;
   white-space: nowrap;
-  opacity: 0;
   pointer-events: none;
-  z-index: 100;
-  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
-  transform-origin: left center;
+  z-index: 99999;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  animation: tooltipFade 0.12s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.tooltip::before {
+.fixedTooltip::before {
   content: '';
   position: absolute;
   right: 100%;
@@ -140,7 +137,13 @@
   border-color: transparent #111827 transparent transparent;
 }
 
-.item:hover .tooltip {
-  opacity: 1;
-  transform: translateY(-50%) scale(1);
+@keyframes tooltipFade {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
+  }
 }

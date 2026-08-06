@@ -21,6 +21,23 @@ export function ConversationItem({ conversation, onSelect }: Props) {
   const itemRef = useRef<HTMLDivElement>(null);
   const touchTimer = useRef<ReturnType<typeof setTimeout>>(undefined as never);
 
+  // Tooltip state for fixed viewport positioning (prevents overflow clipping)
+  const [tooltipPos, setTooltipPos] = useState<{ top: number; left: number } | null>(null);
+
+  const handleMouseEnter = () => {
+    if (itemRef.current) {
+      const rect = itemRef.current.getBoundingClientRect();
+      setTooltipPos({
+        top: rect.top + rect.height / 2,
+        left: rect.right + 12,
+      });
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setTooltipPos(null);
+  };
+
   const items: ContextMenuItem[] = [
     {
       label: conversation.pinned ? 'Unpin' : 'Pin',
@@ -60,6 +77,8 @@ export function ConversationItem({ conversation, onSelect }: Props) {
       onClick={select}
       onKeyDown={onKeyDown}
       onContextMenu={handleContextMenu}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       role="button"
@@ -78,8 +97,18 @@ export function ConversationItem({ conversation, onSelect }: Props) {
         ) : null}
       </div>
       
-      {/* Hover tooltip for name */}
-      <div className={styles.tooltip}>{conversation.name}</div>
+      {/* Fixed hover tooltip for name — breaks out of all parent overflow containers */}
+      {tooltipPos && (
+        <div
+          className={styles.fixedTooltip}
+          style={{
+            top: `${tooltipPos.top}px`,
+            left: `${tooltipPos.left}px`,
+          }}
+        >
+          {conversation.name}
+        </div>
+      )}
 
       {menu && (
         <ContextMenu
