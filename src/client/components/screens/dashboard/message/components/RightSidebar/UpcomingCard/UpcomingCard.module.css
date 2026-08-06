@@ -1,19 +1,20 @@
 .card {
-  display: grid;
-  grid-template-columns: 44px 1fr auto;
-  gap: 14px;
+  display: flex;
   align-items: center;
+  gap: 12px;
+  padding: 4px 0;
 }
 .icon {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--message-radius-control);
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
 }
 .purple {
-  background: var(--color-brand-soft);
-  color: var(--message-brand);
+  background: var(--color-brand-soft, #ece9ff);
+  color: var(--message-brand, #623cff);
 }
 .orange {
   background: #fff0df;
@@ -23,31 +24,24 @@
   background: #eaf0ff;
   color: #2563eb;
 }
-.card strong {
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.title {
   color: var(--color-text-primary);
-  font-size: 0.98rem;
-}
-.card p {
-  margin: 4px 0 7px;
-  color: var(--color-text-secondary);
-  font-weight: 600;
   font-size: 0.88rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.card em {
-  color: var(--message-brand);
-  font-style: normal;
-  font-size: 0.82rem;
-  font-weight: 800;
-}
-.card button {
-  height: 38px;
-  padding: 0 18px;
-  border: 1px solid var(--message-border-strong);
-  border-radius: var(--message-radius-control);
-  background: #fff;
-  color: var(--message-brand);
-  font-weight: 800;
-  cursor: pointer;
+.time {
+  color: var(--color-text-tertiary, #64748b);
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
-@media (max-width: 768px) { .card { padding: var(--space-3); font-size: var(--text-sm); } }
+@media (max-width: 768px) { .card { padding: var(--space-2); font-size: var(--text-sm); } }

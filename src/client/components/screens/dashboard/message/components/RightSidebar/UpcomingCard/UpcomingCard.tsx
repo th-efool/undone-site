@@ -8,14 +8,12 @@ export function UpcomingCard({ event }: Props) {
   return (
     <article className={styles.card}>
       <span className={`${styles.icon} ${styles[event.tone]}`}>
-        <CalendarDays size={20} />
+        <CalendarDays size={16} />
       </span>
-      <div>
-        <strong>{event.title}</strong>
-        <p>{event.subtitle}</p>
-        <em>{event.startsIn}</em>
+      <div className={styles.details}>
+        <strong className={styles.title}>{event.title}</strong>
+        <span className={styles.time}>{event.startsIn}</span>
       </div>
-      <button type="button">Join</button>
     </article>
   );
 }
