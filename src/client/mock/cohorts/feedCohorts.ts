@@ -13,13 +13,9 @@ import {
 import type { Cohort, Lesson, Season, LessonChunk } from '@/src/client/components/screens/cohort/models';
 import { cohortMock as deepWorkMastery } from '@/src/client/components/screens/cohort/mocks/cohortMock';
 
-const avatars = [
-  '/mock/avatars/a.webp',
-  '/mock/avatars/b.webp',
-  '/mock/avatars/c.webp',
-  '/mock/avatars/d.webp',
-  '/mock/avatars/e.webp',
-];
+import { ALL_MOCK_AVATARS, getAvatar } from '@/src/client/mock/avatars';
+
+const avatars = ALL_MOCK_AVATARS;
 
 function formatSecs(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -182,7 +178,7 @@ export const dsaCohort: Cohort = {
   creator: {
     id: 'kunal-kushwaha',
     name: 'Kunal Kushwaha',
-    avatarUrl: avatars[0],
+    avatarUrl: getAvatar('kunal-kushwaha'),
     role: 'DSA Educator',
     bio: 'Teaching DSA and interview prep through hands-on Java programming.',
     ctaLabel: 'View Quest Guide Profile',
@@ -283,7 +279,7 @@ export const osCohort: Cohort = {
   creator: {
     id: 'codehelp-babbar',
     name: 'CodeHelp - by Babbar',
-    avatarUrl: avatars[1],
+    avatarUrl: getAvatar('codehelp-babbar'),
     role: 'CS Faculty',
     bio: 'Making complex CS concepts easy for placement preparation.',
     ctaLabel: 'View Quest Guide Profile',
@@ -388,7 +384,7 @@ export const networkingCohort: Cohort = {
   creator: {
     id: 'network-kings',
     name: 'Network Kings',
-    avatarUrl: avatars[2],
+    avatarUrl: getAvatar('network-kings'),
     role: 'Networking Educators',
     bio: 'Helping engineers master networking concepts and ace interviews.',
     ctaLabel: 'View Quest Guide Profile',
@@ -576,7 +572,7 @@ export const celticMythologyCohort: Cohort = {
   creator: {
     id: 'see-u-in-history',
     name: 'See U in History / Mythology',
-    avatarUrl: avatars[3],
+    avatarUrl: getAvatar('see-u-in-history'),
     role: 'Mythology Historian',
     bio: 'Uncovering ancient myths, legends, and folklore from around the globe.',
     ctaLabel: 'View Quest Guide Profile',
@@ -775,7 +771,7 @@ export const rajvanshCohort: Cohort = {
   creator: {
     id: 'epic-tv',
     name: 'EPIC TV',
-    avatarUrl: avatars[4],
+    avatarUrl: getAvatar('epic-tv'),
     role: 'Infotainment Network',
     bio: 'India\'s premier infotainment channel documenting history, mythology, culture, and royal heritage.',
     ctaLabel: 'View Quest Guide Profile',

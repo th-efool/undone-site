@@ -34,13 +34,9 @@ type Seed = {
   legends: string[];
 };
 
-const avatars = [
-  '/mock/avatars/a.webp',
-  '/mock/avatars/b.webp',
-  '/mock/avatars/c.webp',
-  '/mock/avatars/d.webp',
-  '/mock/avatars/e.webp',
-];
+import { ALL_MOCK_AVATARS, getAvatar, getAvatarSlice } from '@/src/client/mock/avatars';
+
+const avatars = ALL_MOCK_AVATARS;
 
 function cat(label: string) {
   return { id: label.toLowerCase().replaceAll(' ', '-'), label };
@@ -118,7 +114,7 @@ function build(seed: Seed): Cohort {
           `${Math.max(1, Math.round(progress.journeyProgress / 18))}`,
         ),
       ],
-      activeExplorers: avatars,
+      activeExplorers: getAvatarSlice(5, seed.id.length * 3),
       activeExplorerOverflow: `+${Math.round(seed.stats.explorerCount / 45)}`,
     },
     questline: {
@@ -178,9 +174,10 @@ function build(seed: Seed): Cohort {
         duration: '~25 min',
         thumbnail: seed.coverImage,
         icon: index === 2 ? 'project' : 'assignment',
-        participants: avatars
-          .slice(0, 3)
-          .map((avatarUrl, i) => ({ id: `${seed.id}-p-${i}`, avatarUrl })),
+        participants: getAvatarSlice(3, index * 3 + seed.id.length).map((avatarUrl, i) => ({
+          id: `${seed.id}-p-${i}`,
+          avatarUrl,
+        })),
         submittedCount: `+${90 + index * 47} submitted`,
         shareLabel: 'Share Work',
         doneLabel: 'Mark as Done',
@@ -199,9 +196,10 @@ function build(seed: Seed): Cohort {
         },
         title,
         description: `Join peers for ${title.toLowerCase()}.`,
-        avatars: avatars
-          .slice(0, 3)
-          .map((avatarUrl, i) => ({ id: `${seed.id}-a-${i}`, avatarUrl })),
+        avatars: getAvatarSlice(3, index * 2 + seed.id.length + 4).map((avatarUrl, i) => ({
+          id: `${seed.id}-a-${i}`,
+          avatarUrl,
+        })),
         attendeeCount: `+${120 + index * 54} attending`,
         time: ['7:00 PM – 8:00 PM', '8:00 PM – 9:00 PM', '6:30 PM – 8:00 PM'][index % 3],
         timezone: 'IST',

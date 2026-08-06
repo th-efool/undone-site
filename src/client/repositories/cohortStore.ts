@@ -4,6 +4,7 @@ import { feedCohorts } from '@/src/client/mock/cohorts/feedCohorts';
 import { LessonStatus, LessonType, SeasonStatus } from '@/src/client/components/screens/cohort/models';
 import { isNativeApp } from '@/src/client/utils/isNative';
 import { storageAdapter } from './storageAdapter';
+import { getAvatar, getAvatarSlice } from '@/src/client/mock/avatars';
 
 function loadStoredCohorts(): Cohort[] {
   if (typeof window === 'undefined') return [];
@@ -184,7 +185,7 @@ class CohortStore {
       creator: {
         id: 'creator-user',
         name: 'Shaqun',
-        avatarUrl: '/mock/avatars/a.webp',
+        avatarUrl: getAvatar('shaqun'),
         role: 'Quest Guide',
         bio: 'Building interactive learning cohorts on SideQuestHQ.',
         ctaLabel: 'View Quest Guide Profile',
@@ -228,7 +229,7 @@ class CohortStore {
           { id: 'ep-1', icon: 'target', label: 'Current Streak', value: '0 days' },
           { id: 'ep-2', icon: 'target', label: 'Total Time Invested', value: '0h 0m' },
         ],
-        activeExplorers: ['/mock/avatars/a.webp'],
+        activeExplorers: getAvatarSlice(3, 2),
         activeExplorerOverflow: '',
       },
       questline: {
