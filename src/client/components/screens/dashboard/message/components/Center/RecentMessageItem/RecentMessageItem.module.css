@@ -38,6 +38,12 @@
   gap: 14px;
   margin-bottom: 7px;
 }
+.top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
 .top strong {
   color: var(--color-text-primary);
 }

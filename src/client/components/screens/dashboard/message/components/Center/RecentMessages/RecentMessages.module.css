@@ -1,9 +1,8 @@
 .section {
-  overflow: hidden;
-  border: 1px solid var(--message-border);
-  border-radius: var(--message-radius-card);
-  background: #fff;
-  box-shadow: var(--message-shadow-card);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 .section header {
   display: flex;

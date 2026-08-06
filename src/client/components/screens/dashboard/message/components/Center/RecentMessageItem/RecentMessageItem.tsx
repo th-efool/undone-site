@@ -29,7 +29,6 @@ export function RecentMessageItem({ message }: Props) {
         <div className={styles.top}>
           <strong>{message.sender.name}</strong>
           <span>{message.community}</span>
-          {message.live && <em>LIVE</em>}
         </div>
         {message.attachment ? (() => {
           const type = getAttachmentIcon(message.attachment);
