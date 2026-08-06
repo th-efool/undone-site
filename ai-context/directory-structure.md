@@ -217,6 +217,14 @@
 │   │   │   ├── floating-logo.png
 │   │   │   ├── floating-logo.webp
 │   │   │   └── sidequesthq-logo.webp
+│   │   ├── studyrooms/
+│   │   │   ├── campside.webp
+│   │   │   ├── canal.webp
+│   │   │   ├── fireplace.webp
+│   │   │   ├── library.webp
+│   │   │   ├── ruins.webp
+│   │   │   ├── seaside.webp
+│   │   │   └── shrine.webp
 │   │   ├── footer-bg.jpeg
 │   │   ├── footer-mascot.png
 │   │   ├── hero-poster.webp
@@ -227,7 +235,16 @@
 │   │   │   ├── b.webp
 │   │   │   ├── c.webp
 │   │   │   ├── d.webp
-│   │   │   └── e.webp
+│   │   │   ├── e.webp
+│   │   │   ├── f.webp
+│   │   │   ├── g.webp
+│   │   │   ├── h.webp
+│   │   │   ├── i.webp
+│   │   │   ├── j.webp
+│   │   │   ├── k.webp
+│   │   │   ├── l.webp
+│   │   │   ├── m.webp
+│   │   │   └── n.webp
 │   │   └── thumbnails/
 │   │       ├── 100dcode.jpg
 │   │       ├── civilization.jpeg
@@ -312,6 +329,8 @@
 │   │   │   │   └── page.tsx
 │   │   │   ├── play/
 │   │   │   │   └── page.tsx
+│   │   │   ├── studyroom/
+│   │   │   │   └── page.tsx
 │   │   │   └── layout.tsx
 │   │   ├── (landing)/
 │   │   │   ├── layout.tsx
@@ -377,6 +396,8 @@
 │   │   │   │   ├── NetworkOfflineIndicator/
 │   │   │   │   │   ├── NetworkOfflineIndicator.module.css
 │   │   │   │   │   └── NetworkOfflineIndicator.tsx
+│   │   │   │   ├── ProtectedVideo/
+│   │   │   │   │   └── ProtectedVideo.tsx
 │   │   │   │   ├── ProviderBadge/
 │   │   │   │   │   ├── ProviderBadge.module.css
 │   │   │   │   │   ├── ProviderBadge.tsx
@@ -889,6 +910,9 @@
 │   │   │   │   │   │   │   │   │   ├── DateDivider/
 │   │   │   │   │   │   │   │   │   │   ├── DateDivider.module.css
 │   │   │   │   │   │   │   │   │   │   └── DateDivider.tsx
+│   │   │   │   │   │   │   │   │   ├── InReplyTo/
+│   │   │   │   │   │   │   │   │   │   ├── InReplyTo.module.css
+│   │   │   │   │   │   │   │   │   │   └── InReplyTo.tsx
 │   │   │   │   │   │   │   │   │   ├── MediaGallery/
 │   │   │   │   │   │   │   │   │   │   ├── MediaGallery.module.css
 │   │   │   │   │   │   │   │   │   │   └── MediaGallery.tsx
@@ -1170,9 +1194,10 @@
 │   │   │   ├── useSessions.ts
 │   │   │   └── useToast.ts
 │   │   ├── mock/
-│   │   │   └── cohorts/
-│   │   │       ├── cohortCatalog.ts
-│   │   │       └── feedCohorts.ts
+│   │   │   ├── cohorts/
+│   │   │   │   ├── cohortCatalog.ts
+│   │   │   │   └── feedCohorts.ts
+│   │   │   └── avatars.ts
 │   │   ├── navigation/
 │   │   │   └── cohortLinks.ts
 │   │   ├── providers/
@@ -1283,4 +1308,4 @@
 ├── sidequesthq-logo.webp
 └── tsconfig.json
 
-425 directories, 857 files
+429 directories, 878 files
