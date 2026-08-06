@@ -1,15 +1,15 @@
 .sidebar {
   display: flex;
   flex-direction: column;
-  gap: 28px;
-  width: 360px;
-  min-width: 330px;
+  width: 160px;
+  min-width: 160px;
   height: 100vh;
   min-height: 0;
-  overflow: hidden;
-  padding: 30px 18px 22px;
-  border-right: 1px solid var(--message-border);
-  background: linear-gradient(180deg, #fff 0%, var(--color-brand-subtle) 100%);
+  overflow: visible;
+  padding: 16px 0;
+  background: #f8fafc;
+  align-items: center;
+  position: relative;
 }
 @media (max-width: 760px) {
   .sidebar {

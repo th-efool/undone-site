@@ -1,9 +1,16 @@
-import { useEffect, useRef } from 'react';
-import { Bell, Settings, UserCircle, ChevronDown } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Bell, Settings, UserCircle, UsersRound, MessageCircle, House, CheckCheck, SlidersHorizontal, ArrowUpDown, SquarePen } from 'lucide-react';
+import type { SidebarTab } from '../../../models';
 import styles from './SidebarHeader.module.css';
 
 interface Props {
+  tabs: { id: SidebarTab; label: string }[];
+  selectedTab: SidebarTab;
+  onTabChange(tab: SidebarTab): void;
+  onGoHome?(): void;
+  isHome?: boolean;
   onCompose?(): void;
+  onMarkAllRead?(): void;
   showUserMenu: boolean;
   onToggleUserMenu(): void;
 }
@@ -14,8 +21,10 @@ const menuItems = [
   { label: 'Notifications', icon: <Bell size={18} />, action: () => {} },
 ];
 
-export function SidebarHeader({ onCompose, showUserMenu, onToggleUserMenu }: Props) {
+export function SidebarHeader({ tabs, selectedTab, onTabChange, onGoHome, isHome, onCompose, onMarkAllRead, showUserMenu, onToggleUserMenu }: Props) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const [filterActive, setFilterActive] = useState(false);
+  const [sortActive, setSortActive] = useState(false);
 
   useEffect(() => {
     if (!showUserMenu) return;
@@ -30,25 +39,94 @@ export function SidebarHeader({ onCompose, showUserMenu, onToggleUserMenu }: Pro
 
   return (
     <header className={styles.header}>
-      <h1>Social</h1>
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-        {/* Compose button — A1 */}
-        {onCompose && (
-          <button type="button" className={styles.composeBtn} aria-label="New message" onClick={onCompose}>
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-            </svg>
+      <div className={styles.strip}>
+
+        {/* Home */}
+        {onGoHome && (
+          <button
+            type="button"
+            className={`${styles.homeBtn} ${isHome ? styles.activeTab : ''}`}
+            onClick={onGoHome}
+            aria-label="Home"
+            title="Home"
+          >
+            <House size={20} />
           </button>
         )}
 
-        {/* Avatar + User Menu — A5 */}
+        <div className={styles.divider} />
+
+        {/* Community / DMs — same row */}
+        <div className={styles.tabRow}>
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              className={`${styles.tabBtn} ${tab.id === selectedTab ? styles.activeTab : ''}`}
+              onClick={() => onTabChange(tab.id)}
+              aria-label={tab.label}
+              title={tab.label}
+            >
+              {tab.id === 'community' ? <UsersRound size={18} /> : <MessageCircle size={18} />}
+            </button>
+          ))}
+        </div>
+
+        <div className={styles.divider} />
+
+        {/* Actions Row: Draft Message | Mark All Read | Filter | Sort */}
+        <div className={styles.actionsRow}>
+          {onCompose && (
+            <button
+              type="button"
+              className={styles.actionBtn}
+              aria-label="Draft message"
+              title="Draft message"
+              onClick={onCompose}
+            >
+              <SquarePen size={16} />
+            </button>
+          )}
+
+          {onMarkAllRead && (
+            <button
+              type="button"
+              className={styles.actionBtn}
+              aria-label="Mark all as read"
+              title="Mark all as read"
+              onClick={onMarkAllRead}
+            >
+              <CheckCheck size={16} />
+            </button>
+          )}
+
+          <button
+            type="button"
+            className={`${styles.actionBtn} ${filterActive ? styles.actionActive : ''}`}
+            aria-label="Filter"
+            title="Filter"
+            onClick={() => setFilterActive(p => !p)}
+          >
+            <SlidersHorizontal size={16} />
+          </button>
+
+          <button
+            type="button"
+            className={`${styles.actionBtn} ${sortActive ? styles.actionActive : ''}`}
+            aria-label="Sort"
+            title="Sort"
+            onClick={() => setSortActive(p => !p)}
+          >
+            <ArrowUpDown size={16} />
+          </button>
+        </div>
+
+        {/* Avatar */}
         <div className={styles.userWrap} ref={menuRef}>
           <button type="button" className={`${styles.avatarBtn}${showUserMenu ? ' ' + styles.active : ''}`} onClick={onToggleUserMenu} aria-label="User menu">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/mock/avatars/a.webp" alt="" />
-            <ChevronDown size={14} style={{ marginLeft: '2px', opacity: 0.5 }} />
           </button>
-
           {showUserMenu && (
             <div className={styles.dropdown}>
               {menuItems.map((item) => (
@@ -60,6 +138,7 @@ export function SidebarHeader({ onCompose, showUserMenu, onToggleUserMenu }: Pro
             </div>
           )}
         </div>
+
       </div>
     </header>
   );

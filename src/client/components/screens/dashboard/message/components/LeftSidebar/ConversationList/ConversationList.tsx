@@ -22,18 +22,8 @@ export function ConversationList({ conversations, onSelectConversation, onMarkAl
     );
   }
 
-  // Count unread for the "Mark all read" button — A2
-  const totalUnread = conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
-
   return (
     <div className={styles.list}>
-      {/* Mark all read action — A2 */}
-      {totalUnread > 0 && onMarkAllRead && (
-        <button type="button" className={styles.markAllRead} onClick={onMarkAllRead}>
-          <CheckCircle2 size={14} />
-          Mark all read ({totalUnread})
-        </button>
-      )}
 
       {conversations.map((conversation) => (
         <ConversationItem

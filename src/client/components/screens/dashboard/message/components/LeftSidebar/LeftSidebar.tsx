@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react';
 import { ConversationFilter, ConversationPreview, SidebarTab } from '../../models';
 import { ComposeModal } from './ComposeModal/ComposeModal';
 import { ConversationList } from './ConversationList/ConversationList';
-import { SidebarFilters } from './SidebarFilters/SidebarFilters';
 import { SidebarHeader } from './SidebarHeader/SidebarHeader';
 import styles from './LeftSidebar.module.css';
 
@@ -19,6 +18,8 @@ interface Props {
   onSelectConversation(conversation: ConversationPreview): void;
   onSearchClear?(): void;
   onMarkAllRead?(): void;
+  onGoHome?(): void;
+  isHome?: boolean;
 }
 
 export function LeftSidebar({
@@ -34,6 +35,8 @@ export function LeftSidebar({
   onSelectConversation,
   onSearchClear,
   onMarkAllRead,
+  onGoHome,
+  isHome,
 }: Props) {
   // Batch A: Compose modal + user menu state
   const [showCompose, setShowCompose] = useState(false);
@@ -43,24 +46,16 @@ export function LeftSidebar({
 
   return (
     <aside className={styles.sidebar}>
-      {/* A5: Avatar dropdown + compose trigger */}
       <SidebarHeader
+        tabs={tabs}
+        selectedTab={selectedTab}
+        onTabChange={onTabChange}
         onCompose={() => setShowCompose(true)}
+        onMarkAllRead={onMarkAllRead}
+        onGoHome={onGoHome}
+        isHome={isHome}
         showUserMenu={showUserMenu}
         onToggleUserMenu={toggleUserMenu}
-      />
-
-      {/* A2+A7: Mark all read + clear search */}
-      <SidebarFilters
-        tabs={tabs}
-        filters={filters}
-        selectedTab={selectedTab}
-        selectedFilter={selectedFilter}
-        searchQuery={searchQuery}
-        onTabChange={onTabChange}
-        onFilterChange={onFilterChange}
-        onSearchClear={onSearchClear}
-        onMarkAllRead={onMarkAllRead}
       />
 
       <ConversationList

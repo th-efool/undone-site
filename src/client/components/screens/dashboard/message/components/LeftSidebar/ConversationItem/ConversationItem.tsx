@@ -56,7 +56,7 @@ export function ConversationItem({ conversation, onSelect }: Props) {
   return (
     <article
       ref={itemRef}
-      className={`${styles.item}${conversation.unreadCount ? ' ' + styles.unread : ''}${conversation.selected ? ' ' + styles.selected : ''}`}
+      className={`${styles.item} ${conversation.kind === 'community' ? styles.communityItem : styles.dmItem}${conversation.unreadCount ? ' ' + styles.unread : ''}${conversation.selected ? ' ' + styles.selected : ''}`}
       onClick={select}
       onKeyDown={onKeyDown}
       onContextMenu={handleContextMenu}
@@ -66,29 +66,20 @@ export function ConversationItem({ conversation, onSelect }: Props) {
       tabIndex={0}
       aria-current={conversation.selected ? 'true' : undefined}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={conversation.avatar} alt="" />
-      <div className={styles.body}>
-        <div className={styles.top}>
-          {/* Unread names get bold — A3 */}
-          <strong className={conversation.unreadCount ? styles.unreadName : ''}>{conversation.name}</strong>
-          {conversation.unreadCount && (
-            <span className={styles.badge}>{conversation.unreadCount}</span>
-          )}
-        </div>
-        <p>
-          <span>{conversation.sender ? `${conversation.sender}: ` : ''}</span>
-          {conversation.preview}
-        </p>
-        <div className={styles.meta}>
-          <span className={styles.online} />
-          <span>{conversation.onlineCount ? `${conversation.onlineCount} online` : 'Online'}</span>
-          {conversation.statusLabel && <em>{conversation.statusLabel}</em>}
-          {/* Muted indicator — A6 */}
-          {conversation.mutedUntil && <span className={styles.mutedBadge}>🤫 muted</span>}
-          <time>{conversation.timestamp}</time>
-        </div>
+      <div className={styles.iconWrapper}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={conversation.avatar}
+          alt={conversation.name}
+          className={conversation.kind === 'community' ? styles.communityImg : styles.dmImg}
+        />
+        {conversation.unreadCount ? (
+          <span className={styles.badge}>{conversation.unreadCount}</span>
+        ) : null}
       </div>
+      
+      {/* Hover tooltip for name */}
+      <div className={styles.tooltip}>{conversation.name}</div>
 
       {menu && (
         <ContextMenu

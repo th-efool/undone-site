@@ -1,21 +1,14 @@
 .list {
-  overflow: auto;
-  border: 1px solid var(--message-border);
-  border-radius: var(--message-radius-card);
-  background: #fff;
-  box-shadow: var(--message-shadow-card);
-}
-.list {
-  min-height: 220px;
+  flex: 1;
+  min-height: 0;
+  scrollbar-width: none;
+  overflow-x: visible;
+  overflow-y: auto;
+  padding: 4px 0 4px 0;
 }
 .list > div {
   border: 0;
   box-shadow: none;
-}
-.list {
-  flex: 1;
-  min-height: 0;
-  scrollbar-width: none;
 }
 .list::-webkit-scrollbar {
   display: none;
