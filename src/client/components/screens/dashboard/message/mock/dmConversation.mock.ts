@@ -1,12 +1,7 @@
 import { DMConversationModel } from '../models';
+import { ALL_MOCK_AVATARS, getAvatar } from '@/src/client/mock/avatars';
 
-const avatars = [
-  '/mock/avatars/a.webp',
-  '/mock/avatars/b.webp',
-  '/mock/avatars/c.webp',
-  '/mock/avatars/d.webp',
-  '/mock/avatars/e.webp',
-];
+const avatars = ALL_MOCK_AVATARS;
 
 export const dmConversationMock: DMConversationModel = {
   id: 'aarav-mehta',

@@ -1,12 +1,7 @@
 import { MessageMock } from '../models';
+import { ALL_MOCK_AVATARS, getAvatar } from '@/src/client/mock/avatars';
 
-const avatars = [
-  '/mock/avatars/a.webp',
-  '/mock/avatars/b.webp',
-  '/mock/avatars/c.webp',
-  '/mock/avatars/d.webp',
-  '/mock/avatars/e.webp',
-];
+const avatars = ALL_MOCK_AVATARS;
 const covers = [
   '/images/landing/before-sleep.webp',
   '/images/landing/screen.webp',

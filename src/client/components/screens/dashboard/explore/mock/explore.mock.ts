@@ -1,4 +1,5 @@
 import type { ExploreModel } from '../models';
+import { getAvatar } from '@/src/client/mock/avatars';
 
 export const exploreMock: ExploreModel = {
   searchSuggestions: [],
@@ -15,21 +16,9 @@ export const exploreMock: ExploreModel = {
       durationLabel: '10h 12m',
 
       featuredLearners: [
-        {
-          id: '24',
-          image: '/mock/avatars/a.webp',
-          alt: '24',
-        },
-        {
-          id: '25',
-          image: '/mock/avatars/c.webp',
-          alt: '25',
-        },
-        {
-          id: '26',
-          image: '/mock/avatars/e.webp',
-          alt: '26',
-        },
+        { id: '24', image: getAvatar('docker-1'), alt: '24' },
+        { id: '25', image: getAvatar('docker-2'), alt: '25' },
+        { id: '26', image: getAvatar('docker-3'), alt: '26' },
       ],
 
       learnerCount: '11.6k learners',
@@ -49,21 +38,9 @@ export const exploreMock: ExploreModel = {
       durationLabel: '7h 32m',
 
       featuredLearners: [
-        {
-          id: '27',
-          image: '/mock/avatars/b.webp',
-          alt: '27',
-        },
-        {
-          id: '28',
-          image: '/mock/avatars/d.webp',
-          alt: '28',
-        },
-        {
-          id: '29',
-          image: '/mock/avatars/f.webp',
-          alt: '29',
-        },
+        { id: '27', image: getAvatar('py-1'), alt: '27' },
+        { id: '28', image: getAvatar('py-2'), alt: '28' },
+        { id: '29', image: getAvatar('py-3'), alt: '29' },
       ],
 
       learnerCount: '8.9k learners',
@@ -82,21 +59,9 @@ export const exploreMock: ExploreModel = {
       durationLabel: '8h 24m',
 
       featuredLearners: [
-        {
-          id: '1',
-          image: '/mock/avatars/d.webp',
-          alt: 'av1',
-        },
-        {
-          id: '2',
-          image: '/mock/avatars/e.webp',
-          alt: 'av2',
-        },
-        {
-          id: '3',
-          image: '/mock/avatars/a.webp',
-          alt: 'av3',
-        },
+        { id: '30', image: getAvatar('sd-1'), alt: '30' },
+        { id: '31', image: getAvatar('sd-2'), alt: '31' },
+        { id: '32', image: getAvatar('sd-3'), alt: '32' },
       ],
 
       learnerCount: '18.2k learners',
@@ -116,21 +81,9 @@ export const exploreMock: ExploreModel = {
       durationLabel: '6h 45m',
 
       featuredLearners: [
-        {
-          id: '7',
-          image: '/mock/avatars/e.webp',
-          alt: 'av7',
-        },
-        {
-          id: '8',
-          image: '/mock/avatars/a.webp',
-          alt: 'av8',
-        },
-        {
-          id: '9',
-          image: '/mock/avatars/b.webp',
-          alt: 'av9',
-        },
+        { id: '33', image: getAvatar('ml-1'), alt: '33' },
+        { id: '34', image: getAvatar('ml-2'), alt: '34' },
+        { id: '35', image: getAvatar('ml-3'), alt: '35' },
       ],
 
       learnerCount: '5.4k learners',
@@ -152,17 +105,17 @@ export const exploreMock: ExploreModel = {
       featuredLearners: [
         {
           id: '10',
-          image: '/mock/avatars/c.webp',
+          image: getAvatar('ds-1'),
           alt: 'av10',
         },
         {
           id: '11',
-          image: '/mock/avatars/d.webp',
+          image: getAvatar('ds-2'),
           alt: 'av11',
         },
         {
           id: '12',
-          image: '/mock/avatars/e.webp',
+          image: getAvatar('ds-3'),
           alt: 'av12',
         },
       ],
@@ -184,21 +137,9 @@ export const exploreMock: ExploreModel = {
       durationLabel: '12h 08m',
 
       featuredLearners: [
-        {
-          id: '4',
-          image: '/mock/avatars/b.webp',
-          alt: 'av4',
-        },
-        {
-          id: '5',
-          image: '/mock/avatars/c.webp',
-          alt: 'av5',
-        },
-        {
-          id: '6',
-          image: '/mock/avatars/d.webp',
-          alt: 'av6',
-        },
+        { id: '39', image: getAvatar('ai-1'), alt: '39' },
+        { id: '40', image: getAvatar('ai-2'), alt: '40' },
+        { id: '41', image: getAvatar('ai-3'), alt: '41' },
       ],
 
       learnerCount: '9.7k learners',
@@ -287,21 +228,9 @@ export const exploreMock: ExploreModel = {
       thumbnail: '/mock/thumbnails/deep-work.webp',
 
       featuredParticipants: [
-        {
-          id: '13',
-          image: '/mock/avatars/a.webp',
-          alt: '13',
-        },
-        {
-          id: '14',
-          image: '/mock/avatars/b.webp',
-          alt: '14',
-        },
-        {
-          id: '15',
-          image: '/mock/avatars/c.webp',
-          alt: '15',
-        },
+        { id: '13', image: getAvatar('dw-1'), alt: '13' },
+        { id: '14', image: getAvatar('dw-2'), alt: '14' },
+        { id: '15', image: getAvatar('dw-3'), alt: '15' },
       ],
 
       participantCount: '874 participants',
@@ -319,21 +248,9 @@ export const exploreMock: ExploreModel = {
       thumbnail: '/mock/thumbnails/reader.webp',
 
       featuredParticipants: [
-        {
-          id: '16',
-          image: '/mock/avatars/d.webp',
-          alt: '16',
-        },
-        {
-          id: '17',
-          image: '/mock/avatars/e.webp',
-          alt: '17',
-        },
-        {
-          id: '18',
-          image: '/mock/avatars/f.webp',
-          alt: '18',
-        },
+        { id: '16', image: getAvatar('read-1'), alt: '16' },
+        { id: '17', image: getAvatar('read-2'), alt: '17' },
+        { id: '18', image: getAvatar('read-3'), alt: '18' },
       ],
 
       participantCount: '1,243 participants',
@@ -351,21 +268,9 @@ export const exploreMock: ExploreModel = {
       thumbnail: '/mock/thumbnails/doubling.webp',
 
       featuredParticipants: [
-        {
-          id: '19',
-          image: '/mock/avatars/a.webp',
-          alt: '19',
-        },
-        {
-          id: '20',
-          image: '/mock/avatars/b.webp',
-          alt: '20',
-        },
-        {
-          id: '21',
-          image: '/mock/avatars/c.webp',
-          alt: '21',
-        },
+        { id: '19', image: getAvatar('bd-1'), alt: '19' },
+        { id: '20', image: getAvatar('bd-2'), alt: '20' },
+        { id: '21', image: getAvatar('bd-3'), alt: '21' },
       ],
 
       participantCount: '482 participants',
@@ -383,21 +288,9 @@ export const exploreMock: ExploreModel = {
       thumbnail: '/mock/thumbnails/content-bottle.webp',
 
       featuredParticipants: [
-        {
-          id: '21',
-          image: '/mock/avatars/d.webp',
-          alt: '21',
-        },
-        {
-          id: '22',
-          image: '/mock/avatars/e.webp',
-          alt: '22',
-        },
-        {
-          id: '23',
-          image: '/mock/avatars/f.webp',
-          alt: '23',
-        },
+        { id: '21', image: getAvatar('cb-1'), alt: '21' },
+        { id: '22', image: getAvatar('cb-2'), alt: '22' },
+        { id: '23', image: getAvatar('cb-3'), alt: '23' },
       ],
 
       participantCount: '1,102 participants',
@@ -414,21 +307,9 @@ export const exploreMock: ExploreModel = {
       thumbnail: '/mock/thumbnails/100dcode.jpg',
 
       featuredParticipants: [
-        {
-          id: '30',
-          image: '/mock/avatars/a.webp',
-          alt: '30',
-        },
-        {
-          id: '31',
-          image: '/mock/avatars/d.webp',
-          alt: '31',
-        },
-        {
-          id: '32',
-          image: '/mock/avatars/e.webp',
-          alt: '32',
-        },
+        { id: '30', image: getAvatar('100d-1'), alt: '30' },
+        { id: '31', image: getAvatar('100d-2'), alt: '31' },
+        { id: '32', image: getAvatar('100d-3'), alt: '32' },
       ],
 
       participantCount: '2,016 participants',
@@ -446,21 +327,9 @@ export const exploreMock: ExploreModel = {
       thumbnail: '/mock/thumbnails/reflections.jpeg',
 
       featuredParticipants: [
-        {
-          id: '33',
-          image: '/mock/avatars/b.webp',
-          alt: '33',
-        },
-        {
-          id: '34',
-          image: '/mock/avatars/c.webp',
-          alt: '34',
-        },
-        {
-          id: '35',
-          image: '/mock/avatars/f.webp',
-          alt: '35',
-        },
+        { id: '33', image: getAvatar('jrn-1'), alt: '33' },
+        { id: '34', image: getAvatar('jrn-2'), alt: '34' },
+        { id: '35', image: getAvatar('jrn-3'), alt: '35' },
       ],
 
       participantCount: '691 participants',

@@ -2,6 +2,7 @@ import { exploreMock } from '@/src/client/components/screens/dashboard/explore/m
 import type { ExploreModel, TrendingCourse } from '@/src/client/components/screens/dashboard/explore/models';
 import { isNativeApp } from '@/src/client/utils/isNative';
 import { cohortRepository } from './cohortRepository';
+import { getAvatarSlice } from '@/src/client/mock/avatars';
 
 const realPeopleFinishing: TrendingCourse[] = [
   {
@@ -12,11 +13,7 @@ const realPeopleFinishing: TrendingCourse[] = [
     durationLabel: '8h 45m',
     learnerCount: '8.4k learners',
     rating: 4.9,
-    featuredLearners: [
-      { id: '1', image: '/mock/avatars/a.webp', alt: 'Learner' },
-      { id: '2', image: '/mock/avatars/b.webp', alt: 'Learner' },
-      { id: '3', image: '/mock/avatars/c.webp', alt: 'Learner' },
-    ],
+    featuredLearners: getAvatarSlice(3, 0).map((image, i) => ({ id: `dsa-${i}`, image, alt: 'Learner' })),
   },
   {
     id: 'operating-systems-core',
@@ -26,11 +23,7 @@ const realPeopleFinishing: TrendingCourse[] = [
     durationLabel: '16h 23m',
     learnerCount: '5.6k learners',
     rating: 4.7,
-    featuredLearners: [
-      { id: '4', image: '/mock/avatars/b.webp', alt: 'Learner' },
-      { id: '5', image: '/mock/avatars/d.webp', alt: 'Learner' },
-      { id: '6', image: '/mock/avatars/e.webp', alt: 'Learner' },
-    ],
+    featuredLearners: getAvatarSlice(3, 3).map((image, i) => ({ id: `os-${i}`, image, alt: 'Learner' })),
   },
   {
     id: 'rajvansh-dynasties-of-india',
@@ -40,11 +33,7 @@ const realPeopleFinishing: TrendingCourse[] = [
     durationLabel: '8h 30m',
     learnerCount: '5.2k learners',
     rating: 4.95,
-    featuredLearners: [
-      { id: '7', image: '/mock/avatars/c.webp', alt: 'Learner' },
-      { id: '8', image: '/mock/avatars/e.webp', alt: 'Learner' },
-      { id: '9', image: '/mock/avatars/a.webp', alt: 'Learner' },
-    ],
+    featuredLearners: getAvatarSlice(3, 6).map((image, i) => ({ id: `raj-${i}`, image, alt: 'Learner' })),
   },
   {
     id: 'networking-fundamentals',
@@ -54,11 +43,7 @@ const realPeopleFinishing: TrendingCourse[] = [
     durationLabel: '14h 15m',
     learnerCount: '4.2k learners',
     rating: 4.8,
-    featuredLearners: [
-      { id: '10', image: '/mock/avatars/d.webp', alt: 'Learner' },
-      { id: '11', image: '/mock/avatars/a.webp', alt: 'Learner' },
-      { id: '12', image: '/mock/avatars/b.webp', alt: 'Learner' },
-    ],
+    featuredLearners: getAvatarSlice(3, 9).map((image, i) => ({ id: `net-${i}`, image, alt: 'Learner' })),
   },
   {
     id: 'celtic-mythology',
@@ -68,11 +53,7 @@ const realPeopleFinishing: TrendingCourse[] = [
     durationLabel: '3h 30m',
     learnerCount: '3.1k learners',
     rating: 4.9,
-    featuredLearners: [
-      { id: '13', image: '/mock/avatars/e.webp', alt: 'Learner' },
-      { id: '14', image: '/mock/avatars/c.webp', alt: 'Learner' },
-      { id: '15', image: '/mock/avatars/d.webp', alt: 'Learner' },
-    ],
+    featuredLearners: getAvatarSlice(3, 11).map((image, i) => ({ id: `celtic-${i}`, image, alt: 'Learner' })),
   },
 ];
 

@@ -1,34 +1,29 @@
 import { CommunityChatModel } from '../models';
+import { ALL_MOCK_AVATARS, getAvatar } from '@/src/client/mock/avatars';
 
-const avatars = [
-  '/mock/avatars/a.webp',
-  '/mock/avatars/b.webp',
-  '/mock/avatars/c.webp',
-  '/mock/avatars/d.webp',
-  '/mock/avatars/e.webp',
-];
+const avatars = ALL_MOCK_AVATARS;
 const chart = '/images/landing/hand.webp';
 
 const people = {
-  shaqun: { id: 'shaqun', name: 'Shaqun', avatar: avatars[0], online: true },
+  shaqun: { id: 'shaqun', name: 'Shaqun', avatar: getAvatar('shaqun'), online: true },
   vanshika: {
     id: 'vanshika',
     name: 'Vanshika Iyer',
-    avatar: avatars[1],
+    avatar: getAvatar('vanshika'),
     online: true,
   },
-  rohan: { id: 'rohan', name: 'Rohan Gupta', avatar: avatars[2], online: true },
-  arjun: { id: 'arjun', name: 'Arjun Nair', avatar: avatars[3], online: true },
+  rohan: { id: 'rohan', name: 'Rohan Gupta', avatar: getAvatar('rohan'), online: true },
+  arjun: { id: 'arjun', name: 'Arjun Nair', avatar: getAvatar('arjun'), online: true },
   samiksha: {
     id: 'samiksha',
     name: 'Samiksha Sharma',
-    avatar: avatars[4],
+    avatar: getAvatar('samiksha'),
     online: true,
   },
   ananya: {
     id: 'ananya',
     name: 'Ananya Singh',
-    avatar: avatars[1],
+    avatar: getAvatar('ananya'),
     online: true,
   },
 };

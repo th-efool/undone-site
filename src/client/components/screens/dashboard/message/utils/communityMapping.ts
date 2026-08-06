@@ -11,14 +11,10 @@ import { communityChatMock } from '../mock/communityChat.mock';
 
 type Cohort = ReturnType<typeof messagesRepository.getEnrolledCohorts>[number];
 
+import { ALL_MOCK_AVATARS, getAvatar } from '@/src/client/mock/avatars';
+
 const onlineCounts = [98, 64, 41, 22, 37, 18, 29, 33];
-const avatars = [
-  '/mock/avatars/a.webp',
-  '/mock/avatars/b.webp',
-  '/mock/avatars/c.webp',
-  '/mock/avatars/d.webp',
-  '/mock/avatars/e.webp',
-];
+const avatars = ALL_MOCK_AVATARS;
 const people = ['Maya Chen', 'Jordan Lee', 'Priya Shah', 'Noah Kim', 'Ava Patel'];
 const eventTones: UpcomingEvent['tone'][] = ['purple', 'orange', 'blue'];
 
