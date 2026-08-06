@@ -11,20 +11,21 @@
   justify-content: center;
   gap: 10px;
   height: 82px;
-  border: 1px solid var(--message-border-strong);
+  border: 1px solid var(--message-border-strong, rgba(255, 255, 255, 0.16));
   border-radius: var(--message-radius-control);
-  background: #fff;
-  color: var(--message-brand);
+  background: var(--message-bg-elevated, #141620);
+  color: var(--message-brand, #818cf8);
   font-weight: 800;
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-standard);
 }
 .actions button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.6);
+  border-color: var(--message-brand, #6366f1);
 }
 .actions span {
-  color: #1f2748;
+  color: var(--message-text-primary, #f8fafc);
   font-size: 0.86rem;
 }
 @media (max-width: 768px) {

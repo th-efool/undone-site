@@ -5,18 +5,18 @@
   gap: 12px;
   margin: 0 20px;
   padding: 18px;
-  border: 1px solid var(--message-border);
+  border: 1px solid var(--message-border, rgba(255, 255, 255, 0.08));
   border-radius: var(--message-radius-card);
-  background: #fff;
-  color: #566081;
-  box-shadow: var(--message-shadow-card);
+  background: var(--message-bg-elevated, #141620);
+  color: var(--message-text-secondary, #cbd5e1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 .card strong {
-  color: var(--color-text-primary);
+  color: var(--message-text-primary, #f8fafc);
   font-size: 0.98rem;
 }
 .card span {
-  color: #667098;
+  color: var(--message-text-muted, #94a3b8);
   font-weight: 700;
 }
 

@@ -13,13 +13,13 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--message-border);
+  background: var(--message-border, rgba(255, 255, 255, 0.12));
 }
 
 .divider span {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #667098;
+  color: var(--message-text-muted, #94a3b8);
   white-space: nowrap;
   text-transform: uppercase;
   letter-spacing: 0.03em;

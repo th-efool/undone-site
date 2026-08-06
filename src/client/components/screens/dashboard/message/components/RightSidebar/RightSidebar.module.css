@@ -11,7 +11,8 @@
   overflow: auto;
   scrollbar-width: none;
 
-  background: #f8fafc;
+  background: var(--message-bg-secondary, #0a0b0e);
+  border-left: 1px solid var(--message-border, rgba(255, 255, 255, 0.08));
 }
 
 .sidebar::-webkit-scrollbar {

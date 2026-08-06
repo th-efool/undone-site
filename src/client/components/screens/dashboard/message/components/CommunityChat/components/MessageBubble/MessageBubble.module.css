@@ -1,15 +1,16 @@
 .bubble {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 0 32px 20px;
+  padding: 4px 32px 14px;
   cursor: pointer;
   border-radius: 8px;
   transition: background var(--duration-fast) var(--ease-standard);
 }
 
 .bubble:hover {
-  background: rgba(243, 241, 255, 0.4);
+  background: transparent;
 }
 
 .avatar {
@@ -17,7 +18,7 @@
   height: 44px;
   border-radius: 999px;
   object-fit: cover;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.09);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
 }
 .content {
   min-width: 0;
@@ -30,28 +31,28 @@
   margin-bottom: 6px;
 }
 .meta strong {
-  color: var(--color-text-primary);
+  color: var(--message-text-primary, #f8fafc);
   font-size: 1rem;
 }
 .meta span {
   padding: 3px 8px;
   border-radius: 999px;
-  background: var(--color-brand-soft);
-  color: var(--message-brand);
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
   font-size: 0.72rem;
   font-weight: 900;
 }
 .meta time {
-  color: #667098;
+  color: var(--message-text-muted, #94a3b8);
   font-size: 0.86rem;
   font-weight: 600;
 }
 .content p {
   margin: 0;
-  color: var(--color-text-primary);
+  color: var(--message-text-secondary, #e2e8f0);
   font-size: 1rem;
-  font-weight: 600;
-  line-height: 1.45;
+  font-weight: 500;
+  line-height: 1.5;
 }
 .reactionLine {
   display: flex;
@@ -59,51 +60,130 @@
   gap: 8px;
   flex-wrap: wrap;
 }
+/* ── Top-right floating action bar (Discord-style) ── */
 .reactWrap {
   position: relative;
 }
-.addReaction {
-  opacity: 0;
-  border: 1px solid var(--color-border);
-  background: #fff;
-  border-radius: 999px;
-  padding: 5px 9px;
-  display: flex;
+
+.actionBar {
+  /* Positioned at top-right corner, only shows on hover */
+  position: absolute;
+  top: -14px;
+  right: 8px;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
-  font-size: 12px;
-  font-weight: 800;
-  color: #59627c;
-  cursor: pointer;
+  gap: 2px;
+  background: #1a1d28;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  padding: 3px 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  transform: translateY(4px);
+  z-index: 20;
 }
-.bubble:hover .addReaction,
-.addReaction:focus-visible {
+
+.bubble:hover .actionBar {
   opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
 }
+
+.actionBtn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--message-text-secondary, #cbd5e1);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.12s ease, transform 0.12s ease, color 0.12s ease;
+}
+
+.actionBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--message-text-primary, #f8fafc);
+  transform: scale(1.15);
+}
+
+.actionDivider {
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
 .emojiPicker {
   position: absolute;
   left: 0;
-  bottom: calc(100% + 6px);
-  z-index: 10;
-  display: grid;
-  grid-template-columns: repeat(6, 30px);
-  gap: 4px;
-  padding: 8px;
-  background: #fff;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  box-shadow: 0 16px 30px #10183220;
+  bottom: calc(100% + 8px);
+  z-index: 50;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  padding: 10px;
+  background: #141620;
+  border: 1px solid var(--message-border-strong, rgba(255, 255, 255, 0.16));
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
 }
-.emojiPicker button {
-  width: 30px;
-  height: 30px;
+
+.pickerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--message-text-secondary, #cbd5e1);
+}
+
+.pickerHeader button {
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.pickerHeader button:hover {
+  color: #fff;
+}
+
+.pickerGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  overflow-y: auto;
+  max-height: 200px;
+  padding-right: 4px;
+}
+
+.pickerBtn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
   border: 0;
   border-radius: 8px;
-  background: #fff;
+  background: transparent;
+  font-size: 1.15rem;
   cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
 }
-.emojiPicker button:hover {
-  background: #f6f4ff;
+
+.pickerBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: scale(1.15);
 }
 
 @media (max-width: 768px) { .bubble { max-width: 85%; padding: var(--space-3); font-size: var(--text-sm); } }

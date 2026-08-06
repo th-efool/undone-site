@@ -10,9 +10,9 @@
   min-width: 200px;
   padding: 6px;
   border-radius: var(--message-radius-card);
-  background: #fff;
-  box-shadow: 0 12px 32px rgba(31, 35, 68, 0.14), 0 2px 6px rgba(31, 35, 68, 0.08);
-  border: 1px solid var(--message-border-strong);
+  background: #141620;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--message-border-strong, rgba(255, 255, 255, 0.16));
   animation: fadeIn 0.15s ease-out;
 }
 
@@ -29,7 +29,7 @@
   padding: 10px 12px;
   border: 0;
   background: transparent;
-  color: var(--color-text-primary);
+  color: var(--message-text-primary, #f8fafc);
   font-size: 0.875rem;
   font-weight: 600;
   text-align: left;
@@ -39,22 +39,22 @@
 }
 
 .item:hover {
-  background: var(--color-brand-subtle);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .item.danger {
-  color: #e11d48;
+  color: #f87171;
 }
 
 .item.danger:hover {
-  background: #fef2f2;
+  background: rgba(239, 68, 68, 0.2);
 }
 
 .divider {
   height: 1px;
   margin: 4px 0;
   border: 0;
-  background: var(--message-border);
+  background: var(--message-border, rgba(255, 255, 255, 0.08));
 }
 
 .icon {
@@ -67,8 +67,8 @@
   margin-left: auto;
   padding: 1px 6px;
   border-radius: 4px;
-  background: #f1f5f9;
-  color: var(--color-text-secondary);
+  background: #1e2230;
+  color: var(--message-text-secondary, #cbd5e1);
   font-size: 0.7rem;
   font-family: inherit;
 }

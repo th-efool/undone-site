@@ -1,47 +1,53 @@
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState } from 'react';
-import { Copy, Edit2, MessageCircle, SmilePlus, Trash2 } from 'lucide-react';
+import { Copy, MessageCircle, MoreHorizontal, SmilePlus } from 'lucide-react';
 import { CommunityMessage } from '../../../../models';
 import { ContextMenu } from '../../../shared';
+import { InReplyTo } from '../InReplyTo/InReplyTo';
 import { MessageAttachment } from '../MessageAttachment/MessageAttachment';
 import { ReactionBar } from '../ReactionBar/ReactionBar';
 import { ReplyPreview } from '../ReplyPreview/ReplyPreview';
 import styles from './MessageBubble.module.css';
 
-const emojis = ['😀', '😂', '😍', '🔥', '🚀', '👏', '🙌', '✅', '💡', '📌', '🙏', '🎉'];
+const quickEmojis = ['❤️', '👍', '🔥'];
+const fullEmojiRepository = [
+  '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '🥹', '😊',
+  '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙',
+  '😋', '😛', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳',
+  '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '😣', '😖', '😫',
+  '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳',
+  '😱', '😨', '😰', '😥', '😓', '🤗', '🫡', '🤔', '🤭', '🫢',
+  '❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💖',
+  '💗', '💓', '💞', '💕', '🔥', '✨', '⭐', '🌟', '💥', '💯',
+  '👍', '👎', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✌️', '🤞',
+  '🤟', '🤘', '🤙', '🖐️', '✋', '👌', '🎯', '🚀', '🎉', '💡',
+];
 
 interface Props {
   message: CommunityMessage;
   onReaction(messageId: string, emoji: string): void;
-  /** Batch C/D: Reply trigger */
   onReply?(messageId: string, senderName: string, previewText: string): void;
 }
+
 export function MessageBubble({ message, onReaction, onReply }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
-
-  /** Batch D7: Context menu state */
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
+  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const [longPress, setLongPress] = useState(false);
 
-  // Batch C/D: Tap to reply (desktop + mobile long-press simulation)
   const handleTap = () => {
     if (!onReply || !message.body) return;
     onReply(message.id, message.author.name, message.body.slice(0, 80));
   };
 
-  // Batch D7: Context menu trigger (right-click + long-press)
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
+    setPickerOpen(false);
     setContextMenu({ x: e.clientX, y: e.clientY });
   };
 
-  // Batch C/D: Debounce long-press to avoid accidental triggers
-  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const [longPress, setLongPress] = useState(false);
-
   const handlePointerDown = () => {
-    tapTimerRef.current = setTimeout(() => {
-      setLongPress(true);
-    }, 500); // 500ms long-press threshold
+    tapTimerRef.current = setTimeout(() => setLongPress(true), 500);
   };
 
   const handlePointerUp = () => {
@@ -51,7 +57,6 @@ export function MessageBubble({ message, onReaction, onReply }: Props) {
       setLongPress(false);
       return;
     }
-    // Regular tap: trigger reply
     handleTap();
   };
 
@@ -60,21 +65,17 @@ export function MessageBubble({ message, onReaction, onReply }: Props) {
     setPickerOpen(false);
   };
 
-  /** Batch D7: Context menu actions */
   const handleCopy = () => {
     if (message.body) navigator.clipboard?.writeText(message.body);
   };
 
   useEffect(() => {
-    // Close context menu on outside click or escape
-    const closeMenu = () => setContextMenu(null);
-    document.addEventListener('click', closeMenu);
-    return () => document.removeEventListener('click', closeMenu);
+    const closeAll = () => { setContextMenu(null); setPickerOpen(false); };
+    document.addEventListener('click', closeAll);
+    return () => document.removeEventListener('click', closeAll);
   }, []);
 
-  useEffect(() => {
-    return () => clearTimeout(tapTimerRef.current);
-  }, []);
+  useEffect(() => () => clearTimeout(tapTimerRef.current), []);
 
   return (
     <article
@@ -86,52 +87,107 @@ export function MessageBubble({ message, onReaction, onReply }: Props) {
       onPointerUp={handlePointerUp}
       onContextMenu={handleContextMenu}
     >
-      <img
-        className={styles.avatar}
-        src={message.author.avatar}
-        alt=""
-      />
+      <img className={styles.avatar} src={message.author.avatar} alt="" />
+
       <div className={styles.content}>
         <div className={styles.meta}>
           <strong>{message.author.name}</strong>
           {message.badge && <span>{message.badge}</span>}
           <time>{message.timestamp}</time>
         </div>
-        {message.body && <p>{message.body}</p>}
+        {message.body && (
+          <>
+            {message.replyTo && (
+              <InReplyTo
+                authorName={message.replyTo.authorName}
+                authorAvatar={message.replyTo.authorAvatar}
+                previewText={message.replyTo.previewText}
+              />
+            )}
+            <p>{message.body}</p>
+          </>
+        )}
         {message.attachment && <MessageAttachment attachment={message.attachment} />}
-        <div className={styles.reactionLine}>
-          <ReactionBar
-            reactions={message.reactions}
-            onReaction={react}
-          />
-          <div className={styles.reactWrap}>
-            <button
-              type="button"
-              className={styles.addReaction}
-              aria-label="Add reaction"
-              onClick={() => setPickerOpen((open) => !open)}
-            >
-              <SmilePlus size={15} /> Add Reaction
-            </button>
-            {pickerOpen && (
-              <div className={styles.emojiPicker}>
-                {emojis.map((emoji) => (
+        {message.reactions && (
+          <ReactionBar reactions={message.reactions} onReaction={react} />
+        )}
+        {message.replies && <ReplyPreview reply={message.replies} />}
+      </div>
+
+      {/* ── Discord-style floating action bar – top-right corner of message ── */}
+      <div className={styles.actionBar} onClick={(e) => e.stopPropagation()}>
+        {quickEmojis.map((emoji) => (
+          <button
+            key={emoji}
+            type="button"
+            className={styles.actionBtn}
+            aria-label={`React with ${emoji}`}
+            onClick={() => react(emoji)}
+          >
+            {emoji}
+          </button>
+        ))}
+
+        <span className={styles.actionDivider} />
+
+        {/* Emoji picker */}
+        <div className={styles.reactWrap}>
+          <button
+            type="button"
+            className={styles.actionBtn}
+            aria-label="More emojis"
+            onClick={(e) => { e.stopPropagation(); setPickerOpen((o) => !o); }}
+          >
+            <SmilePlus size={15} />
+          </button>
+
+          {pickerOpen && (
+            <div className={styles.emojiPicker}>
+              <div className={styles.pickerHeader}>
+                <span>Select Reaction</span>
+                <button type="button" onClick={() => setPickerOpen(false)}>×</button>
+              </div>
+              <div className={styles.pickerGrid}>
+                {fullEmojiRepository.map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
+                    className={styles.pickerBtn}
                     onClick={() => react(emoji)}
                   >
                     {emoji}
                   </button>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
-        {message.replies && <ReplyPreview reply={message.replies} />}
+
+        <span className={styles.actionDivider} />
+
+        {/* Reply */}
+        {onReply && (
+          <button
+            type="button"
+            className={styles.actionBtn}
+            aria-label="Reply"
+            onClick={() => onReply(message.id, message.author.name, message.body || '')}
+          >
+            <MessageCircle size={15} />
+          </button>
+        )}
+
+        {/* More */}
+        <button
+          type="button"
+          className={styles.actionBtn}
+          aria-label="More actions"
+          onClick={(e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY }); }}
+        >
+          <MoreHorizontal size={15} />
+        </button>
       </div>
 
-      {/* Batch D7: Context menu */}
       {contextMenu && (
         <ContextMenu
           items={[

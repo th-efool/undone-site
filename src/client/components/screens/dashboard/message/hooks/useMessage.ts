@@ -181,7 +181,7 @@ const dmScripts: Record<string, Partial<DMConversationModel> & { messages: DMMes
         timestamp: '3:18 PM',
         status: 'delivered',
         tail: true,
-        replyTo: 'capacity math',
+        replyTo: { authorName: 'Ritika Nair', authorAvatar: '/images/logos/floating-logo.webp', previewText: 'capacity math' },
       },
       {
         id: 'r-4',
@@ -553,7 +553,7 @@ export function useMessage() {
   }, []);
 
   const sendCommunityMessage = useCallback(
-    (conversationId: string) => {
+    (conversationId: string, replyCtx?: ReplyContext | null) => {
       const draft = drafts[conversationId]?.trim();
       if (!draft) return;
 
@@ -568,6 +568,13 @@ export function useMessage() {
         badge: 'You',
         timestamp: `Today at ${nowLabel()}`,
         body: draft,
+        ...(replyCtx ? {
+          replyTo: {
+            authorName: replyCtx.senderName,
+            authorAvatar: '/images/logos/floating-logo.webp',
+            previewText: replyCtx.previewText,
+          }
+        } : {}),
       };
 
       setCommunityMessages((current) => ({
@@ -633,7 +640,7 @@ export function useMessage() {
   );
 
   const sendDMMessage = useCallback(
-    (conversationId: string) => {
+    (conversationId: string, replyCtx?: ReplyContext | null) => {
       const draft = drafts[conversationId]?.trim();
       if (!draft) return;
 
@@ -651,6 +658,13 @@ export function useMessage() {
         timestamp: nowLabel(),
         status: 'sent',
         tail: true,
+        ...(replyCtx ? {
+          replyTo: {
+            authorName: replyCtx.senderName,
+            authorAvatar: '/images/logos/floating-logo.webp',
+            previewText: replyCtx.previewText,
+          }
+        } : {}),
       };
 
       setDMMessages((current) => ({

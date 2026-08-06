@@ -70,12 +70,12 @@
   height: 20px;
   padding: 0 5px;
   border-radius: 999px;
-  background: var(--message-brand, #623cff);
+  background: var(--message-brand, #6366f1);
   color: #fff;
   font-weight: 800;
   font-size: 0.72rem;
   line-height: 1;
-  box-shadow: 0 0 0 2.5px #f8fafc;
+  box-shadow: 0 0 0 2.5px var(--message-bg-secondary, #0a0b0e);
   z-index: 10;
   pointer-events: none;
   box-sizing: border-box;
@@ -89,7 +89,7 @@
   transform: translateY(-50%);
   width: 8px;
   height: 8px;
-  background: var(--color-text-primary);
+  background: var(--message-text-primary, #f8fafc);
   border-radius: 4px;
   opacity: 0;
   transition: all 0.2s ease;

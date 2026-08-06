@@ -3,7 +3,7 @@
   flex: 1;
   min-width: 0;
   flex-direction: column;
-  background: #fff;
+  background: var(--message-bg, #050505);
 }
 @media (max-width: 760px) {
   .center {

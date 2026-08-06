@@ -4,7 +4,7 @@
   min-width: 0;
   height: 100vh;
   min-height: 0;
-  background: linear-gradient(180deg, #fff 0%, var(--color-brand-subtle) 100%);
+  background: var(--message-bg, #050505);
 }
 .main {
   display: flex;
@@ -14,7 +14,7 @@
   min-height: 0;
   overflow: hidden;
   flex-direction: column;
-  background: #fff;
+  background: var(--message-bg, #050505);
 }
 @media (max-width: 1180px) {
   .dm {

@@ -1,9 +1,9 @@
 .panel {
   padding: 28px 26px;
-  border: 1px solid var(--message-border);
+  border: 1px solid var(--message-border, rgba(255, 255, 255, 0.08));
   border-radius: var(--message-radius-card);
-  background: #fff;
-  box-shadow: var(--message-shadow-card);
+  background: var(--message-bg-elevated, #141620);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 .panel header {
   display: flex;
@@ -17,37 +17,37 @@
   width: 34px;
   height: 34px;
   border-radius: var(--message-radius-control);
-  background: #fff4df;
-  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
 }
 .panel h2 {
   margin: 0;
   flex: 1;
-  color: var(--color-text-primary);
+  color: var(--message-text-primary, #f8fafc);
   font-size: 1.15rem;
 }
 .chev {
-  color: #273052;
+  color: var(--message-text-secondary, #cbd5e1);
 }
 .panel b {
   display: inline-block;
   margin-bottom: 22px;
   padding: 7px 12px;
   border-radius: 999px;
-  background: var(--color-brand-soft);
-  color: var(--message-brand);
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
   font-size: 0.88rem;
 }
 .panel h3 {
   margin: 0 0 10px;
-  color: var(--color-text-primary);
+  color: var(--message-text-primary, #f8fafc);
   font-size: 1.22rem;
 }
 .panel p {
   margin: 0 0 24px;
-  color: var(--color-text-secondary);
+  color: var(--message-text-secondary, #cbd5e1);
   line-height: 1.45;
-  font-weight: 600;
+  font-weight: 500;
 }
 .participants {
   display: flex;
@@ -57,13 +57,13 @@
   width: 28px;
   height: 28px;
   margin-right: -7px;
-  border: 2px solid #fff;
+  border: 2px solid #141620;
   border-radius: 999px;
   object-fit: cover;
 }
 .participants span {
   margin-left: 14px;
-  color: #667098;
+  color: var(--message-text-muted, #94a3b8);
   font-weight: 700;
   font-size: 0.88rem;
 }

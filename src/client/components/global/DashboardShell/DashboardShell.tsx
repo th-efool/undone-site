@@ -13,6 +13,7 @@ import styles from './DashboardShell.module.css';
 function DashboardInner({ children }: PropsWithChildren) {
   const pathname = usePathname();
   const isPlayPage = pathname === '/play';
+  const isMessagePage = pathname === '/message' || pathname?.startsWith('/message/');
   const { open, onOpenChange } = useCommandContext();
 
   // ⌘K / Ctrl+K global shortcut
@@ -30,10 +31,20 @@ function DashboardInner({ children }: PropsWithChildren) {
 
   return (
     <>
-      <div className={`${styles.shell} ${isPlayPage ? styles.playShell : ''}`}>
+      <div
+        className={`${styles.shell} ${isPlayPage ? styles.playShell : ''} ${
+          isMessagePage ? styles.messageShell : ''
+        }`}
+      >
         <NetworkOfflineIndicator />
         <Sidebar />
-        <main className={`${styles.content} ${isPlayPage ? styles.playContent : ''}`}>{children}</main>
+        <main
+          className={`${styles.content} ${isPlayPage ? styles.playContent : ''} ${
+            isMessagePage ? styles.messageContent : ''
+          }`}
+        >
+          {children}
+        </main>
       </div>
       <CommandPalette open={open} onOpenChange={onOpenChange} />
     </>

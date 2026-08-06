@@ -31,6 +31,14 @@
   height: 100% !important;
 }
 
+.messageShell {
+  background: #050505 !important;
+}
+
+.messageContent {
+  padding-left: 0 !important;
+}
+
 @media (max-width: 768px) {
   .shell {
     flex-direction: column;

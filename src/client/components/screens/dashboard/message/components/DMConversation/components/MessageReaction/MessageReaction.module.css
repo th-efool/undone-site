@@ -9,18 +9,22 @@
 .reactions button {
   height: 26px;
   padding: 0 10px;
-  border: 1px solid var(--message-border-strong);
+  border: 1px solid var(--message-border, rgba(255, 255, 255, 0.12));
   border-radius: 999px;
-  background: #fff;
-  color: #19213c;
-  font-weight: 800;
+  background: #1a1d28;
+  color: var(--message-text-secondary, #cbd5e1);
+  font-weight: 700;
+  font-size: 0.82rem;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
   transition: all var(--duration-fast) var(--ease-standard);
 }
 .reactions button:hover {
   transform: translateY(-1px);
-  background: #f7f5ff;
-  border-color: var(--message-brand);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: var(--message-text-primary, #f8fafc);
 }
 .reactions span {
   margin-left: 4px;

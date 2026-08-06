@@ -26,16 +26,19 @@
   flex: 1;
   height: 48px;
   padding: 0 16px;
-  border: 1px solid var(--message-border-strong);
+  border: 1px solid var(--message-border-strong, rgba(255, 255, 255, 0.16));
   border-radius: 999px;
-  background: #fff;
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.04);
+  background: var(--message-bg-elevated, #141620);
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.4);
 }
 .input input {
-  font-weight: 700;
+  font-weight: 600;
+  color: var(--message-text-primary, #f8fafc);
+  background: transparent;
+  border: 0;
 }
 .input input::placeholder {
-  color: #a0a6bd;
+  color: var(--message-text-muted, #64748b);
 }
 .input button {
   display: grid;
@@ -45,12 +48,12 @@
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: #697194;
+  color: var(--message-text-secondary, #cbd5e1);
   cursor: pointer;
 }
 .input button:hover {
-  background: var(--message-brand-soft);
-  color: var(--message-brand);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--message-brand, #818cf8);
 }
 @media (max-width: 760px) {
   .composer {
@@ -74,10 +77,10 @@
   display: grid;
   gap: 6px;
   padding: 10px;
-  border: 1px solid var(--message-border-strong);
+  border: 1px solid var(--message-border-strong, rgba(255, 255, 255, 0.16));
   border-radius: 14px;
-  background: #fff;
-  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.14);
+  background: #141620;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.7);
 }
 .menu {
   width: 180px;
@@ -90,14 +93,14 @@
   border: 0;
   border-radius: 10px;
   background: transparent;
-  color: #1f2748;
+  color: var(--message-text-primary, #f8fafc);
   font-weight: 800;
   text-align: left;
   cursor: pointer;
 }
 .menu button:hover {
-  background: var(--message-brand-soft);
-  color: var(--message-brand);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--message-brand, #818cf8);
 }
 .emoji {
   grid-template-columns: repeat(6, 32px);
@@ -114,7 +117,7 @@
   font-size: 1.1rem;
 }
 .emoji button:hover {
-  background: var(--message-brand-soft);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 @media (max-width: 768px) {

@@ -57,7 +57,10 @@ export function SocialLanding({ message }: Props) {
           onScrollChange={(scrollTop) =>
             message.actions.setConversationScroll(message.communityChat.id, scrollTop)
           }
-          onSend={() => message.actions.sendCommunityMessage(message.communityChat.id)}
+          onSend={() => {
+            message.actions.sendCommunityMessage(message.communityChat.id, communityReply);
+            setCommunityReply(null);
+          }}
           onReaction={(messageId, emoji) =>
             message.actions.toggleCommunityReaction(message.communityChat.id, messageId, emoji)
           }
@@ -87,7 +90,10 @@ export function SocialLanding({ message }: Props) {
           onScrollChange={(scrollTop) =>
             message.actions.setConversationScroll(message.dmConversation.id, scrollTop)
           }
-          onSend={() => message.actions.sendDMMessage(message.dmConversation.id)}
+          onSend={() => {
+            message.actions.sendDMMessage(message.dmConversation.id, dmReply);
+            setDmReply(null);
+          }}
           onUpload={(file, kind) =>
             message.actions.uploadDMAttachment(message.dmConversation.id, file, kind)
           }

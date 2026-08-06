@@ -1,8 +1,8 @@
 .landing {
   display: flex;
   height: 100vh;
-  background: #fff;
-  color: var(--color-text-primary);
+  background: var(--message-bg, #050505);
+  color: var(--message-text-primary, #f8fafc);
 }
 @media (max-width: 1180px) {
   .landing {

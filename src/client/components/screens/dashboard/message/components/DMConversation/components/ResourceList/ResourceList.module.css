@@ -3,10 +3,10 @@
   flex-direction: column;
   margin: 0 20px 16px;
   padding: 12px 0;
-  border: 1px solid var(--message-border);
+  border: 1px solid var(--message-border, rgba(255, 255, 255, 0.08));
   border-radius: var(--message-radius-card);
-  background: #fff;
-  box-shadow: var(--message-shadow-card);
+  background: var(--message-bg-elevated, #141620);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 .card button {
   display: grid;
@@ -17,17 +17,17 @@
   padding: 0 18px;
   border: 0;
   background: transparent;
-  color: #566081;
+  color: var(--message-text-secondary, #cbd5e1);
   text-align: left;
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-standard);
 }
 .card button:hover {
-  background: var(--color-brand-subtle);
-  color: var(--message-brand);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--message-brand, #818cf8);
 }
 .card span {
-  color: var(--color-text-primary);
+  color: var(--message-text-primary, #f8fafc);
   font-size: 0.98rem;
   font-weight: 700;
 }
@@ -38,8 +38,8 @@
   height: 24px;
   padding: 0 8px;
   border-radius: 999px;
-  background: #f0eef9;
-  color: #667098;
+  background: #1e2230;
+  color: var(--message-text-muted, #94a3b8);
   font-size: 0.78rem;
 }
 

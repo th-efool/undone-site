@@ -14,7 +14,7 @@
   display: flex;
   justify-content: space-between;
   margin-top: 7px;
-  color: #687094;
+  color: var(--message-text-muted, #94a3b8);
   font-size: 0.78rem;
   font-weight: 700;
 }
@@ -49,10 +49,10 @@
   width: min(360px, 100%);
   margin-top: 12px;
   padding: 16px;
-  border: 1px solid var(--message-border-strong);
+  border: 1px solid var(--message-border-strong, rgba(255, 255, 255, 0.16));
   border-radius: var(--message-radius-card);
-  background: #fff;
-  box-shadow: 0 12px 26px rgba(15, 23, 42, 0.05);
+  background: #141620;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.4);
 }
 .file > span {
   display: grid;
@@ -60,18 +60,18 @@
   width: 44px;
   height: 44px;
   border-radius: var(--message-radius-control);
-  background: var(--message-brand);
+  background: var(--message-brand, #6366f1);
   color: #fff;
 }
 .file div {
   flex: 1;
 }
 .file strong {
-  color: var(--color-text-primary);
+  color: var(--message-text-primary, #f8fafc);
 }
 .file p {
   margin: 5px 0 0;
-  color: #667098;
+  color: var(--message-text-muted, #94a3b8);
   font-weight: 700;
   font-size: 0.86rem;
 }
@@ -82,13 +82,13 @@
   height: 38px;
   border: 0;
   border-radius: 999px;
-  background: #f7f6ff;
-  color: #111735;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--message-text-primary, #f8fafc);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-standard);
 }
 .file button:hover {
-  background: var(--message-brand);
+  background: var(--message-brand, #6366f1);
   color: #fff;
 }
 

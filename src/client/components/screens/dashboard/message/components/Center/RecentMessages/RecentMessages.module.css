@@ -12,13 +12,13 @@
 }
 .section h2 {
   margin: 0;
-  color: var(--color-text-primary);
+  color: var(--message-text-primary, #f8fafc);
   font-size: 1.12rem;
 }
 .section button {
   border: 0;
   background: transparent;
-  color: var(--message-brand);
+  color: var(--message-brand, #818cf8);
   font-weight: 800;
   cursor: pointer;
 }

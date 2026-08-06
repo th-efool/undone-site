@@ -110,6 +110,8 @@ export interface CommunityMessage {
   replies?: ReplyPreviewModel;
   /** Batch D1: Optional date label for grouping (e.g. "Today", "Yesterday") */
   dateLabel?: string;
+  /** Reply-to context: the message this is a reply to */
+  replyTo?: { authorName: string; authorAvatar: string; previewText: string };
 }
 
 export type ChannelTab = { id: string; label: string; unreadCount?: number };
@@ -181,7 +183,8 @@ export interface DMMessage {
   showAvatar?: boolean;
   dateLabel?: string;
   attachment?: ChatAttachment;
-  replyTo?: string;
+  /** Reply-to context: the message this is a reply to */
+  replyTo?: { authorName: string; authorAvatar: string; previewText: string };
 }
 
 export interface DMResource {

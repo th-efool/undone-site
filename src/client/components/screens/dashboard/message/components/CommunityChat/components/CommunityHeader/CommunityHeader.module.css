@@ -17,7 +17,7 @@
 }
 .info h1 {
   margin: 0 0 7px;
-  color: var(--color-text-primary);
+  color: var(--message-text-primary, #f8fafc);
   font-size: 1.42rem;
   font-weight: 800;
   letter-spacing: -0.03em;
@@ -26,7 +26,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--color-text-secondary);
+  color: var(--message-text-muted, #94a3b8);
   font-size: 0.86rem;
   font-weight: 600;
 }
@@ -38,7 +38,7 @@
   width: 22px;
   height: 22px;
   margin-right: -7px;
-  border: 2px solid #fff;
+  border: 2px solid var(--message-bg, #050505);
   border-radius: 999px;
   object-fit: cover;
 }
@@ -54,15 +54,15 @@
   height: 34px;
   border: 0;
   border-radius: 10px;
-  background: transparent;
-  color: #3f476c;
+  background: var(--message-bg-elevated, #141620);
+  color: var(--message-text-secondary, #cbd5e1);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-standard);
 }
 .back:hover,
 .actions button:hover {
-  background: var(--message-brand-soft);
-  color: var(--message-brand);
+  background: var(--message-brand, #6366f1);
+  color: #fff;
 }
 @media (max-width: 760px) {
   .header {
@@ -108,10 +108,10 @@
   right: 44px;
   width: 260px;
   padding: 10px;
-  border: 1px solid var(--message-border-strong);
+  border: 1px solid var(--message-border-strong, rgba(255, 255, 255, 0.16));
   border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.16);
+  background: #141620;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
 }
 .popover button {
   display: flex;
@@ -123,11 +123,11 @@
   border: 0;
   border-radius: 10px;
   background: transparent;
-  color: #222943;
+  color: var(--message-text-primary, #f8fafc);
   font-weight: 800;
   cursor: pointer;
 }
 .popover button:hover {
-  background: var(--message-brand-soft);
-  color: var(--message-brand);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--message-brand, #818cf8);
 }

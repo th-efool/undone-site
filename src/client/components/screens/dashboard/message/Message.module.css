@@ -1,18 +1,24 @@
 .message {
-  --message-bg: #fff;
-  --message-border: rgb(18 25 54 / 8%);
-  --message-border-strong: rgb(18 25 54 / 12%);
-  --message-brand: var(--color-brand);
-  --message-brand-soft: #f3f1ff;
+  --message-bg: #050505;
+  --message-bg-secondary: #0b0c10;
+  --message-bg-elevated: #12141c;
+  --message-border: rgba(255, 255, 255, 0.08);
+  --message-border-strong: rgba(255, 255, 255, 0.16);
+  --message-brand: #6366f1;
+  --message-brand-hover: #4f46e5;
+  --message-brand-soft: rgba(99, 102, 241, 0.18);
+  --message-text-primary: #f8fafc;
+  --message-text-secondary: #cbd5e1;
+  --message-text-muted: #94a3b8;
   --message-radius-card: var(--radius-2xl);
   --message-radius-control: var(--radius-lg);
-  --message-shadow-card: none;
-  --message-shadow-hover: none;
+  --message-shadow-card: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --message-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.7);
 
   height: 100vh;
   overflow: hidden;
   background: var(--message-bg);
-  color: var(--color-text-primary);
+  color: var(--message-text-primary);
 }
 
 .message :global(*) {

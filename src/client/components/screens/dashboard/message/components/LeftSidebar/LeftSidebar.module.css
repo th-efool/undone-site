@@ -7,7 +7,8 @@
   min-height: 0;
   overflow: visible;
   padding: 16px 0;
-  background: #f8fafc;
+  background: var(--message-bg-secondary, #0a0b0e);
+  border-right: 1px solid var(--message-border, rgba(255, 255, 255, 0.08));
   align-items: center;
   position: relative;
 }

@@ -13,6 +13,7 @@ import styles from './Sidebar.module.css';
 export function Sidebar() {
   const pathname = usePathname();
   const isPlayPage = pathname === '/play';
+  const isMessagePage = pathname === '/message' || pathname?.startsWith('/message/');
   const sidebarRef = useRef<HTMLElement>(null);
 
   const items = useMemo(() => {
@@ -60,7 +61,15 @@ export function Sidebar() {
   }, []);
 
   return (
-    <aside ref={sidebarRef} className={clsx(styles.sidebar, isPlayPage && styles.playSidebar, isPlayPage && styles.hiddenOnMobile)}>
+    <aside
+      ref={sidebarRef}
+      className={clsx(
+        styles.sidebar,
+        isPlayPage && styles.playSidebar,
+        isPlayPage && styles.hiddenOnMobile,
+        isMessagePage && styles.messageSidebar
+      )}
+    >
       <Logo
         href="/home"
         iconOnly

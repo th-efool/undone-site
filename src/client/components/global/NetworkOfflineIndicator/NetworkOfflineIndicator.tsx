@@ -47,6 +47,8 @@ export function NetworkOfflineIndicator() {
     };
   }, []);
 
+  if (!isOffline) return null;
+
   return (
     <div className={clsx(styles.indicator, isOffline && styles.visible)}>
       <div className={styles.toast}>

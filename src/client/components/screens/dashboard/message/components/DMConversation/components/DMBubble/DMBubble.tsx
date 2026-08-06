@@ -3,6 +3,7 @@ import { Copy, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { DMMessage, DMUser } from '../../../../models';
 import { ContextMenu } from '../../../shared/ContextMenu/ContextMenu';
+import { InReplyTo } from '../../../CommunityChat/components/InReplyTo/InReplyTo';
 import { MessageReaction } from '../MessageReaction/MessageReaction';
 import { MessageStatus } from '../MessageStatus/MessageStatus';
 import { MessageAttachment } from '../../../CommunityChat/components/MessageAttachment/MessageAttachment';
@@ -34,11 +35,10 @@ export function DMBubble({ message, user, onReply, onDeleteMessage }: Props) {
 
   const handlePointerUp = () => {
     clearTimeout(tapTimerRef.current);
-    if (longPress) return; // handled by context menu on long-press
-    // Regular tap: trigger reply
-    const previewText = message.replyTo ?? message.text;
-    if (onReply && previewText) {
-      onReply(message.id, user.name, previewText.slice(0, 80));
+    if (longPress) return;
+    // Regular tap: trigger reply with message text as preview
+    if (onReply && message.text) {
+      onReply(message.id, user.name, message.text.slice(0, 80));
     }
   };
 
@@ -52,8 +52,7 @@ export function DMBubble({ message, user, onReply, onDeleteMessage }: Props) {
         icon: <span className={styles.menuIcon}>↩</span>,
         kbd: 'R',
         onClick: () => {
-          const previewText = message.replyTo ?? message.text;
-          if (previewText) onReply(message.id, user.name, previewText.slice(0, 80));
+          if (message.text) onReply(message.id, user.name, message.text.slice(0, 80));
           setMenuPos(null);
         },
       });
@@ -137,8 +136,15 @@ export function DMBubble({ message, user, onReply, onDeleteMessage }: Props) {
           </span>
         )}
         <div className={styles.wrap}>
+          {!outgoing && <span className={styles.senderName}>{user.name}</span>}
           <div className={`${styles.bubble} ${message.tail ? styles.tail : ''}`}>
-            {message.replyTo && <em className={styles.reply}>Replying to {message.replyTo}</em>}
+            {message.replyTo && (
+              <InReplyTo
+                authorName={message.replyTo.authorName}
+                authorAvatar={message.replyTo.authorAvatar}
+                previewText={message.replyTo.previewText}
+              />
+            )}
             {message.text && message.text.split('\n').map((line) => <span key={line}>{line}</span>)}
             {message.attachment && <MessageAttachment attachment={message.attachment} />}
           </div>

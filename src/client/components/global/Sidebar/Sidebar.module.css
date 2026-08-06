@@ -150,3 +150,34 @@
   transform: translateY(-50%) translateX(-24px) !important;
 }
 
+/* Dedicated OLED dark sidebar styling for /message route */
+.messageSidebar {
+  background: #050505 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.messageSidebar :global(button),
+.messageSidebar :global(a) {
+  color: #94a3b8 !important;
+}
+
+.messageSidebar :global(button:hover),
+.messageSidebar :global(a:hover) {
+  color: #f8fafc !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.messageSidebar :global(.active) {
+  color: #818cf8 !important;
+  background: rgba(99, 102, 241, 0.2) !important;
+}
+
+@media (max-width: 768px) {
+  .messageSidebar {
+    background: #050505 !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
+    border-right: none !important;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.7) !important;
+  }
+}
+

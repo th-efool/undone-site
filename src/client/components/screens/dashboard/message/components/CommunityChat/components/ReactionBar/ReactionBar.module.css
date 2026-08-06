@@ -1,32 +1,37 @@
 .reactions {
   display: flex;
-  gap: 10px;
-  margin-top: 12px;
+  gap: 8px;
+  margin-top: 10px;
 }
 .reactions button {
-  height: 28px;
-  padding: 0 12px;
-  border: 1px solid var(--message-border-strong);
+  height: 26px;
+  padding: 0 10px;
+  border: 1px solid var(--message-border, rgba(255, 255, 255, 0.12));
   border-radius: 999px;
-  background: #fff;
-  color: #1f2748;
-  font-weight: 800;
+  background: #1a1d28;
+  color: var(--message-text-secondary, #cbd5e1);
+  font-weight: 700;
+  font-size: 0.82rem;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   transition: all var(--duration-fast) var(--ease-standard);
 }
 .reactions button:hover {
   transform: translateY(-1px);
-  border-color: var(--message-brand);
-  background: #f7f5ff;
+  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--message-text-primary, #f8fafc);
 }
 .reactions span {
-  margin-left: 6px;
-  font-size: 0.82rem;
+  margin-left: 4px;
+  font-size: 0.8rem;
 }
 .selected {
-  background: #ede7ff !important;
-  border-color: #c7b9ff !important;
-  color: var(--color-brand) !important;
+  background: rgba(99, 102, 241, 0.25) !important;
+  border-color: #818cf8 !important;
+  color: #a5b4fc !important;
 }
 @media (max-width: 768px) {
   .bar { gap: var(--space-1); flex-wrap: wrap; }
