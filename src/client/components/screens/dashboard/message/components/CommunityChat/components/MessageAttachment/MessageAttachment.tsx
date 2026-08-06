@@ -12,17 +12,17 @@ export function MessageAttachment({ attachment, compact }: Props) {
     return (
       <article className={styles.file}>
         <span>
-          <FileText size={28} />
+          <FileText size={20} />
         </span>
-        <div>
-          <strong>{attachment.title}</strong>
+        <div className={styles.fileContent}>
+          <strong title={attachment.title}>{attachment.title}</strong>
           <p>{attachment.meta}</p>
         </div>
         <button
           type="button"
           aria-label="Download"
         >
-          <Download size={18} />
+          <Download size={16} />
         </button>
       </article>
     );

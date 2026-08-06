@@ -1,8 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
-import { Copy, Trash2 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { Copy, Reply, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { DMMessage, DMUser } from '../../../../models';
 import { ContextMenu } from '../../../shared/ContextMenu/ContextMenu';
+import { AvatarConnector } from '../../../CommunityChat/components/AvatarConnector/AvatarConnector';
 import { InReplyTo } from '../../../CommunityChat/components/InReplyTo/InReplyTo';
 import { MessageReaction } from '../MessageReaction/MessageReaction';
 import { MessageStatus } from '../MessageStatus/MessageStatus';
@@ -12,47 +13,31 @@ import styles from './DMBubble.module.css';
 interface Props {
   message: DMMessage;
   user: DMUser;
+  isAdjacentReply?: boolean;
+  hasAdjacentReplyBelow?: boolean;
   /** Batch C / E1: Reply trigger */
-  onReply?(messageId: string, senderName: string, previewText: string): void;
+  onReply?(messageId: string, senderName: string, previewText: string, senderAvatar?: string): void;
   /** Batch E3: Delete message (outgoing only) */
   onDeleteMessage?(messageId: string): void;
 }
 
-export function DMBubble({ message, user, onReply, onDeleteMessage }: Props) {
-  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+export function DMBubble({ message, user, isAdjacentReply = false, hasAdjacentReplyBelow = false, onReply, onDeleteMessage }: Props) {
   const [showReactions, setShowReactions] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [longPress, setLongPress] = useState(false);
-
-  // Batch E3: Context menu state
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const [cardHovered, setCardHovered] = useState(false);
 
-  const handlePointerDown = () => {
-    tapTimerRef.current = setTimeout(() => {
-      setLongPress(true);
-    }, 500);
-  };
-
-  const handlePointerUp = () => {
-    clearTimeout(tapTimerRef.current);
-    if (longPress) return;
-    // Regular tap: trigger reply with message text as preview
-    if (onReply && message.text) {
-      onReply(message.id, user.name, message.text.slice(0, 80));
-    }
-  };
-
-  // Batch E3: Context menu items
+  // Context menu items
   const buildMenuItems = () => {
     const items: Parameters<typeof ContextMenu>[0]['items'] = [];
 
     if (onReply) {
       items.push({
         label: 'Reply',
-        icon: <span className={styles.menuIcon}>↩</span>,
+        icon: <span className={styles.menuIcon}><Reply size={14} /></span>,
         kbd: 'R',
         onClick: () => {
-          if (message.text) onReply(message.id, user.name, message.text.slice(0, 80));
+          if (message.text) onReply(message.id, user.name, message.text.slice(0, 80), user.avatar);
           setMenuPos(null);
         },
       });
@@ -94,57 +79,61 @@ export function DMBubble({ message, user, onReply, onDeleteMessage }: Props) {
     return items;
   };
 
-  // Batch E3: Right-click → context menu (desktop)
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     setShowReactions(false);
     setMenuPos({ x: e.clientX, y: e.clientY });
   };
 
-  useEffect(() => {
-    return () => clearTimeout(tapTimerRef.current);
-  }, []);
-
   const outgoing = message.type === 'outgoing';
 
-  // Batch C / E3: Show reactions bar on hover (desktop) or long-press (mobile)
   useEffect(() => {
-    setShowReactions(hovered || longPress);
-  }, [hovered, longPress]);
+    setShowReactions(hovered);
+  }, [hovered]);
 
   return (
     <>
       <article
-        className={`${styles.row} ${outgoing ? styles.outgoing : styles.incoming}`}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handlePointerUp(); }}
-        onPointerDown={handlePointerDown}
-        onPointerUp={handlePointerUp}
+        id={`msg-${message.id}`}
+        className={`${styles.row} ${outgoing ? styles.outgoing : styles.incoming} ${isAdjacentReply ? styles.adjacentReply : ''}`}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onContextMenu={handleContextMenu}
       >
         {!outgoing && (
           <span className={styles.avatar}>
+            {isAdjacentReply && <AvatarConnector type="top" isDM />}
+            {message.replyTo && !isAdjacentReply && (
+              <>
+                <img
+                  className={`${styles.desaturatedAvatar} ${cardHovered ? styles.desaturatedAvatarHover : ''}`}
+                  src={message.replyTo.authorAvatar}
+                  alt=""
+                />
+                <div className={`${styles.threadLine} ${cardHovered ? styles.threadLineHover : ''}`} />
+              </>
+            )}
             {message.showAvatar && (
               <img
                 src={user.avatar}
                 alt=""
               />
             )}
+            {hasAdjacentReplyBelow && <AvatarConnector type="bottom" isDM />}
           </span>
         )}
         <div className={styles.wrap}>
+          {message.replyTo && !isAdjacentReply && (
+            <InReplyTo
+              messageId={message.replyTo.messageId}
+              authorName={message.replyTo.authorName}
+              authorAvatar={message.replyTo.authorAvatar}
+              previewText={message.replyTo.previewText}
+              onHoverChange={setCardHovered}
+            />
+          )}
           {!outgoing && <span className={styles.senderName}>{user.name}</span>}
           <div className={`${styles.bubble} ${message.tail ? styles.tail : ''}`}>
-            {message.replyTo && (
-              <InReplyTo
-                authorName={message.replyTo.authorName}
-                authorAvatar={message.replyTo.authorAvatar}
-                previewText={message.replyTo.previewText}
-              />
-            )}
             {message.text && message.text.split('\n').map((line) => <span key={line}>{line}</span>)}
             {message.attachment && <MessageAttachment attachment={message.attachment} />}
           </div>
@@ -156,7 +145,6 @@ export function DMBubble({ message, user, onReply, onDeleteMessage }: Props) {
             reactions={message.reactions}
             outgoing={outgoing}
           />
-          {/* Batch C: Quick-reaction bar on hover/long-press */}
           {showReactions && !menuPos && (
             <div className={styles.quickReactions}>
               {['❤️', '🔥', '👍', '😂', '🎉'].map((emoji) => (
@@ -174,7 +162,6 @@ export function DMBubble({ message, user, onReply, onDeleteMessage }: Props) {
         </div>
       </article>
 
-      {/* Batch E3: Context menu overlay */}
       {menuPos && (
         <ContextMenu
           items={buildMenuItems()}

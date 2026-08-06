@@ -1,8 +1,9 @@
 /* eslint-disable @next/next/no-img-element */
-import { useEffect, useRef, useState } from 'react';
-import { Copy, MessageCircle, MoreHorizontal, SmilePlus } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Copy, MoreHorizontal, Reply, SmilePlus } from 'lucide-react';
 import { CommunityMessage } from '../../../../models';
 import { ContextMenu } from '../../../shared';
+import { AvatarConnector } from '../AvatarConnector/AvatarConnector';
 import { InReplyTo } from '../InReplyTo/InReplyTo';
 import { MessageAttachment } from '../MessageAttachment/MessageAttachment';
 import { ReactionBar } from '../ReactionBar/ReactionBar';
@@ -25,39 +26,21 @@ const fullEmojiRepository = [
 
 interface Props {
   message: CommunityMessage;
+  isAdjacentReply?: boolean;
+  hasAdjacentReplyBelow?: boolean;
   onReaction(messageId: string, emoji: string): void;
-  onReply?(messageId: string, senderName: string, previewText: string): void;
+  onReply?(messageId: string, senderName: string, previewText: string, senderAvatar?: string): void;
 }
 
-export function MessageBubble({ message, onReaction, onReply }: Props) {
+export function MessageBubble({ message, isAdjacentReply = false, hasAdjacentReplyBelow = false, onReaction, onReply }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
-  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const [longPress, setLongPress] = useState(false);
-
-  const handleTap = () => {
-    if (!onReply || !message.body) return;
-    onReply(message.id, message.author.name, message.body.slice(0, 80));
-  };
+  const [cardHovered, setCardHovered] = useState(false);
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     setPickerOpen(false);
     setContextMenu({ x: e.clientX, y: e.clientY });
-  };
-
-  const handlePointerDown = () => {
-    tapTimerRef.current = setTimeout(() => setLongPress(true), 500);
-  };
-
-  const handlePointerUp = () => {
-    clearTimeout(tapTimerRef.current);
-    if (longPress && onReply && message.body) {
-      onReply(message.id, message.author.name, message.body.slice(0, 80));
-      setLongPress(false);
-      return;
-    }
-    handleTap();
   };
 
   const react = (emoji: string) => {
@@ -75,42 +58,55 @@ export function MessageBubble({ message, onReaction, onReply }: Props) {
     return () => document.removeEventListener('click', closeAll);
   }, []);
 
-  useEffect(() => () => clearTimeout(tapTimerRef.current), []);
-
   return (
     <article
-      className={styles.bubble}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleTap(); }}
-      onPointerDown={handlePointerDown}
-      onPointerUp={handlePointerUp}
+      id={`msg-${message.id}`}
+      className={`${styles.bubble} ${isAdjacentReply ? styles.adjacentReply : ''}`}
       onContextMenu={handleContextMenu}
     >
-      <img className={styles.avatar} src={message.author.avatar} alt="" />
+      {/* Avatar column with relative positioning for connector lines */}
+      <div className={styles.avatarColumn}>
+        {isAdjacentReply && <AvatarConnector type="top" />}
+        {message.replyTo && !isAdjacentReply && (
+          <>
+            <img
+              className={`${styles.desaturatedAvatar} ${cardHovered ? styles.desaturatedAvatarHover : ''}`}
+              src={message.replyTo.authorAvatar}
+              alt=""
+            />
+            <div className={`${styles.threadLine} ${cardHovered ? styles.threadLineHover : ''}`} />
+          </>
+        )}
+        <img className={styles.avatar} src={message.author.avatar} alt="" />
+        {hasAdjacentReplyBelow && <AvatarConnector type="bottom" />}
+      </div>
 
       <div className={styles.content}>
+        {/* Non-adjacent reply inline reference row (aligned with top 20px faded avatar) */}
+        {message.replyTo && !isAdjacentReply && (
+          <InReplyTo
+            messageId={message.replyTo.messageId}
+            authorName={message.replyTo.authorName}
+            authorAvatar={message.replyTo.authorAvatar}
+            previewText={message.replyTo.previewText}
+            onHoverChange={setCardHovered}
+          />
+        )}
+
         <div className={styles.meta}>
           <strong>{message.author.name}</strong>
           {message.badge && <span>{message.badge}</span>}
           <time>{message.timestamp}</time>
         </div>
-        {message.body && (
-          <>
-            {message.replyTo && (
-              <InReplyTo
-                authorName={message.replyTo.authorName}
-                authorAvatar={message.replyTo.authorAvatar}
-                previewText={message.replyTo.previewText}
-              />
-            )}
-            <p>{message.body}</p>
-          </>
-        )}
+
+        {message.body && <p>{message.body}</p>}
+
         {message.attachment && <MessageAttachment attachment={message.attachment} />}
+
         {message.reactions && (
           <ReactionBar reactions={message.reactions} onReaction={react} />
         )}
+
         {message.replies && <ReplyPreview reply={message.replies} />}
       </div>
 
@@ -165,15 +161,15 @@ export function MessageBubble({ message, onReaction, onReply }: Props) {
 
         <span className={styles.actionDivider} />
 
-        {/* Reply */}
+        {/* Reply Action Button with curved arrow icon */}
         {onReply && (
           <button
             type="button"
             className={styles.actionBtn}
             aria-label="Reply"
-            onClick={() => onReply(message.id, message.author.name, message.body || '')}
+            onClick={() => onReply(message.id, message.author.name, message.body || '', message.author.avatar)}
           >
-            <MessageCircle size={15} />
+            <Reply size={15} />
           </button>
         )}
 
@@ -191,7 +187,7 @@ export function MessageBubble({ message, onReaction, onReply }: Props) {
       {contextMenu && (
         <ContextMenu
           items={[
-            ...(onReply ? [{ label: 'Reply', icon: <MessageCircle size={16} />, onClick: () => onReply?.(message.id, message.author.name, message.body || '') }] : []),
+            ...(onReply ? [{ label: 'Reply', icon: <Reply size={16} />, onClick: () => onReply?.(message.id, message.author.name, message.body || '', message.author.avatar) }] : []),
             ...(message.body ? [{ label: 'Copy', icon: <Copy size={16} />, kbd: '⌘C', onClick: handleCopy }] : []),
             { label: 'React', icon: <SmilePlus size={16} />, onClick: () => setPickerOpen(true) },
           ]}

@@ -11,7 +11,7 @@ interface Props {
   scrollTop: number;
   onScrollChange(scrollTop: number): void;
   /** Batch C: Reply trigger */
-  onReply?(messageId: string, senderName: string, previewText: string): void;
+  onReply?(messageId: string, senderName: string, previewText: string, senderAvatar?: string): void;
   /** Batch E3: Delete message */
   onDeleteMessage?(messageId: string): void;
 }
@@ -42,17 +42,35 @@ export function MessageTimeline({ conversation, scrollTop, onScrollChange, onRep
       onScroll={(event) => onScrollChange(event.currentTarget.scrollTop)}
     >
       {conversation.messages.length ? (
-        conversation.messages.map((message) => (
-          <div key={message.id}>
-            {message.dateLabel && <DateDivider label={message.dateLabel} />}
-            <DMBubble
-              message={message}
-              user={conversation.user}
-              onReply={onReply}
-              onDeleteMessage={onDeleteMessage}
-            />
-          </div>
-        ))
+        conversation.messages.map((message, index) => {
+          const previousMessage = index > 0 ? conversation.messages[index - 1] : undefined;
+          const nextMessage = index < conversation.messages.length - 1 ? conversation.messages[index + 1] : undefined;
+
+          const isAdjacentReply = Boolean(
+            message.replyTo?.messageId &&
+            previousMessage &&
+            message.replyTo.messageId === previousMessage.id
+          );
+
+          const hasAdjacentReplyBelow = Boolean(
+            nextMessage?.replyTo?.messageId &&
+            nextMessage.replyTo.messageId === message.id
+          );
+
+          return (
+            <div key={message.id}>
+              {message.dateLabel && <DateDivider label={message.dateLabel} />}
+              <DMBubble
+                message={message}
+                user={conversation.user}
+                isAdjacentReply={isAdjacentReply}
+                hasAdjacentReplyBelow={hasAdjacentReplyBelow}
+                onReply={onReply}
+                onDeleteMessage={onDeleteMessage}
+              />
+            </div>
+          );
+        })
       ) : (
         <EmptyState
           title={`Start a conversation with ${conversation.user.name.split(' ')[0]} 👋`}

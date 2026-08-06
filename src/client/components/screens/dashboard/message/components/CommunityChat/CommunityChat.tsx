@@ -22,13 +22,13 @@ interface Props {
   // Batch C/D: Reply, typing indicator
   replyBanner?: ReplyContext | null;
   onReplyDismiss?(): void;
-  onReply?(messageId: string, senderName: string, previewText: string): void;
+  onReply?(messageId: string, senderName: string, previewText: string, senderAvatar?: string): void;
   isTyping?: boolean;
   typingUsernames?: string[];
 }
 
 interface MessageBubbleExtraProps {
-  onReply?(messageId: string, senderName: string, previewText: string): void;
+  onReply?(messageId: string, senderName: string, previewText: string, senderAvatar?: string): void;
 }
 
 export function CommunityChat({

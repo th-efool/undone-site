@@ -12,7 +12,7 @@ interface Props {
   onScrollChange(scrollTop: number): void;
   onReaction(messageId: string, emoji: string): void;
   /** Batch C/D: Reply trigger */
-  onReply?(messageId: string, senderName: string, previewText: string): void;
+  onReply?(messageId: string, senderName: string, previewText: string, senderAvatar?: string): void;
 }
 
 /** Extract a date label from the timestamp string for fallback grouping. */
@@ -76,14 +76,32 @@ export function MessageTimeline({ messages, scrollTop, onScrollChange, onReactio
           {groupedMessages.map((group, gi) => (
             gi > 0 && <DateDivider key={`div-${gi}`} dateLabel={group.dateLabel} />
           ))}
-          {messages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              onReaction={onReaction}
-              onReply={onReply}
-            />
-          ))}
+          {messages.map((message, index) => {
+            const previousMessage = index > 0 ? messages[index - 1] : undefined;
+            const nextMessage = index < messages.length - 1 ? messages[index + 1] : undefined;
+
+            const isAdjacentReply = Boolean(
+              message.replyTo?.messageId &&
+              previousMessage &&
+              message.replyTo.messageId === previousMessage.id
+            );
+
+            const hasAdjacentReplyBelow = Boolean(
+              nextMessage?.replyTo?.messageId &&
+              nextMessage.replyTo.messageId === message.id
+            );
+
+            return (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                isAdjacentReply={isAdjacentReply}
+                hasAdjacentReplyBelow={hasAdjacentReplyBelow}
+                onReaction={onReaction}
+                onReply={onReply}
+              />
+            );
+          })}
         </>
       ) : (
         /* Batch D2: Empty state for community with no messages */

@@ -1,4 +1,5 @@
 .row {
+  position: relative;
   display: flex;
   align-items: flex-end;
   gap: 10px;
@@ -17,8 +18,39 @@
 }
 
 .avatar {
+  position: relative;
   width: 34px;
   min-width: 34px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: stretch;
+}
+.desaturatedAvatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  object-fit: cover;
+  filter: grayscale(100%);
+  opacity: 0.5;
+  margin-top: 2px;
+  transition: opacity 0.15s ease, filter 0.15s ease;
+}
+.desaturatedAvatarHover {
+  opacity: 0.85;
+  filter: grayscale(30%);
+}
+.threadLine {
+  width: 2px;
+  flex: 1;
+  min-height: 8px;
+  margin: 2px 0;
+  background: rgba(99, 102, 241, 0.35);
+  border-radius: 99px;
+  transition: background 0.15s ease;
+}
+.threadLineHover {
+  background: rgba(99, 102, 241, 0.75);
 }
 .avatar img {
   width: 34px;

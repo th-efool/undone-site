@@ -19,7 +19,7 @@ interface Props {
   // Batch C: Reply + typing
   replyBanner?: ReplyContext | null;
   onReplyDismiss?(): void;
-  onReply?(messageId: string, senderName: string, previewText: string): void;
+  onReply?(messageId: string, senderName: string, previewText: string, senderAvatar?: string): void;
   isTyping?: boolean;
   typingUsernames?: string[];
   // Batch E3: Delete message
