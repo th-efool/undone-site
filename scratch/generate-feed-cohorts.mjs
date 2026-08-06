@@ -134,6 +134,15 @@ const avatars = [
   '/mock/avatars/c.webp',
   '/mock/avatars/d.webp',
   '/mock/avatars/e.webp',
+  '/mock/avatars/f.webp',
+  '/mock/avatars/g.webp',
+  '/mock/avatars/h.webp',
+  '/mock/avatars/i.webp',
+  '/mock/avatars/j.webp',
+  '/mock/avatars/k.webp',
+  '/mock/avatars/l.webp',
+  '/mock/avatars/m.webp',
+  '/mock/avatars/n.webp',
 ];
 
 function parseDurationToSeconds(val: string): number {

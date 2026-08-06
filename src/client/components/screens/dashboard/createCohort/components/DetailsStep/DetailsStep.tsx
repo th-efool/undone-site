@@ -6,6 +6,7 @@ import { Plus, X, Check, Image as ImageIcon, BookOpen, Target, ShieldCheck, Tag 
 import { Button } from '@/src/client/components/ui/Button/Button';
 import type { CreateCohortDetailsModel, CreateCohortDraft } from '../../models/createCohort';
 import { useWizardContext } from '../../providers/WizardProvider';
+import { getAvatar } from '@/src/client/mock/avatars';
 
 import styles from './DetailsStep.module.css';
 
@@ -488,7 +489,7 @@ export function DetailsStep({ details }: DetailsStepProps) {
 
               <div className={styles.previewCreatorRow}>
                 <img
-                  src="/mock/avatars/a.webp"
+                  src={getAvatar('shaqun')}
                   alt="Creator Avatar"
                   className={styles.previewAvatar}
                 />

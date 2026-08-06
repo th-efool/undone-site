@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bell, Settings, UserCircle, UsersRound, MessageCircle, House, CheckCheck, SlidersHorizontal, ArrowUpDown, SquarePen } from 'lucide-react';
 import type { SidebarTab } from '../../../models';
+import { getAvatar } from '@/src/client/mock/avatars';
 import styles from './SidebarHeader.module.css';
 
 interface Props {
@@ -125,7 +126,7 @@ export function SidebarHeader({ tabs, selectedTab, onTabChange, onGoHome, isHome
         <div className={styles.userWrap} ref={menuRef}>
           <button type="button" className={`${styles.avatarBtn}${showUserMenu ? ' ' + styles.active : ''}`} onClick={onToggleUserMenu} aria-label="User menu">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/mock/avatars/a.webp" alt="" />
+            <img src={getAvatar('shaqun')} alt="" />
           </button>
           {showUserMenu && (
             <div className={styles.dropdown}>
