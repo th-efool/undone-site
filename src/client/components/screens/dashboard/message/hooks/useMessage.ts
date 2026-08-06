@@ -729,21 +729,35 @@ export function useMessage() {
     dmScrollTop: scrollPositions[selectedDMId ?? ''] ?? 0,
     communityDraft: drafts[selectedCommunityId ?? ''] ?? '',
     dmDraft: drafts[selectedDMId ?? ''] ?? '',
-    liveSessions: messageCohorts.slice(0, 4).map(mapCohortToLiveSession),
-    recentMessages: messageCohorts.map(mapCohortToRecentMessage).filter((item) =>
-      matchesSearch(
-        {
-          id: item.id,
-          kind: 'community',
-          name: item.community,
-          avatar: item.sender.avatar,
-          sender: item.sender.name,
-          preview: item.message || item.attachment || '',
-          timestamp: item.timestamp,
+    liveSessions: messagesRepository.getMessageBase().liveSessions,
+    recentMessages: dmConversations
+      .map((dm) => ({
+        id: `recent-${dm.id}`,
+        sender: {
+          id: dm.id,
+          name: dm.name,
+          avatar: dm.avatar,
+          online: true,
         },
-        searchQuery,
+        community: '',
+        message: dm.preview,
+        timestamp: dm.timestamp,
+        unreadCount: dm.unreadCount,
+      }))
+      .filter((item) =>
+        matchesSearch(
+          {
+            id: item.id,
+            kind: 'dm',
+            name: item.sender.name,
+            avatar: item.sender.avatar,
+            sender: item.sender.name,
+            preview: item.message,
+            timestamp: item.timestamp,
+          },
+          searchQuery,
+        ),
       ),
-    ),
     upcomingEvents: messageCohorts.slice(0, 3).map(mapCohortToUpcomingEvent),
     challenge: messagesRepository.getMessageBase().challenge,
     friendsOnline: messagesRepository.getMessageBase().friendsOnline,

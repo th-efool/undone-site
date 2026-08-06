@@ -30,6 +30,86 @@ type CommunityConversationTemplate = {
 };
 
 const communityConversationTemplates: Record<string, CommunityConversationTemplate> = {
+  'dsa-only-whats-needed': {
+    messages: [
+      'Welcome to DSA — Only What’s Needed! Tonight we are tackling Binary Search edge cases & LeetCode #33.',
+      'The two-pointer technique for container with most water finally clicked after Kunal’s diagram.',
+      'Can someone check my C++ custom comparator logic for sorting pairs?',
+      'Uploaded my handwritten Big-O time complexity summary table for all sorting algorithms.',
+      'Progress check: completed 8 medium array problems on LeetCode today!',
+    ],
+    pinnedMessages: [
+      'LeetCode study roadmap & topic-wise problem list.',
+      'Time & Space complexity reference sheet.',
+      'Kunal’s Java + DSA complete code repository.',
+    ],
+    reactions: ['🚀', '🧠', '💡'],
+    media: ['/images/landing/screen.webp', '/mock/thumbnails/system-design.jpeg'],
+  },
+  'operating-systems-core': {
+    messages: [
+      'Operating Systems session starts soon! Bring your questions on process synchronization & semaphores.',
+      'The memory virtualization and demand paging diagram made page faults so intuitive.',
+      'Why does multithreading improve I/O-bound tasks more than CPU-bound tasks in Python GIL?',
+      'Shared my Linux system call trace notes for fork(), execve(), and waitpid().',
+      'Win: built a basic round-robin CPU scheduler simulator in C!',
+    ],
+    pinnedMessages: [
+      'Operating Systems placement interview questions PDF.',
+      'CPU Scheduling algorithms comparison cheatsheet.',
+      'Deadlock prevention, avoidance (Banker’s algorithm) & detection guide.',
+    ],
+    reactions: ['⚙️', '💻', '🔥'],
+    media: ['/images/landing/before-sleep.webp', '/images/auth/phone.webp'],
+  },
+  'networking-fundamentals': {
+    messages: [
+      'Network Kings packet analysis lab is open! Today we are inspecting TCP 3-way handshake in Wireshark.',
+      'CIDR subnetting math is so much easier once you think in binary host bits.',
+      'Can someone explain HTTP/2 multiplexing vs HTTP/3 QUIC UDP connections for the interview?',
+      'Added a diagram for DNS recursive vs iterative query resolution in #resources.',
+      'Win: passed the Cisco network engineering fundamentals practice test!',
+    ],
+    pinnedMessages: [
+      'Top 100 Network Engineer interview questions & answers.',
+      'OSI 7-Layer vs TCP/IP 4-Layer reference guide.',
+      'Wireshark packet capture guide for TCP, UDP, and TLS.',
+    ],
+    reactions: ['🌐', '📡', '✅'],
+    media: ['/images/auth/claude.webp', '/images/landing/screen.webp'],
+  },
+  'celtic-mythology': {
+    messages: [
+      'Welcome to Celtic Mythology! Today we explore the epic Battle of Moytura and Tuatha Dé Danann gods.',
+      'The legend of Lugh of the Long Arm and the silver arm of Nuada is so rich in symbolism.',
+      'Recommended reading: W.B. Yeats’s Celtic Twilight and Lady Gregory’s Irish Myths.',
+      'Shared a detailed chart of Irish pantheon deities: Dagda, Morrígan, Brigid, and Cernunnos.',
+      'Win: watched all 12 episodes of the See U in History playlist series!',
+    ],
+    pinnedMessages: [
+      'Tuatha Dé Danann & Fomorians Mythology Genealogy Tree.',
+      'Complete 12-Episode Celtic Mythology video guide & primary source links.',
+      'Irish Folklore & Legend discussion prompts.',
+    ],
+    reactions: ['🗡️', '📜', '✨'],
+    media: ['/images/auth/faceless.webp', '/images/landing/hand.webp'],
+  },
+  'rajvansh-dynasties-of-india': {
+    messages: [
+      'EPIC TV Rajvansh series recap: Today we explore the Haryanka, Nanda, and Maurya empires.',
+      'Chanakya’s Arthashastra policies on foreign diplomacy and intelligence networks are timeless.',
+      'The naval trade routes of the Chola Dynasty across the Indian Ocean were truly ahead of their era.',
+      'Uploaded archaeological map scans of Ashoka’s rock edicts and Allahabad pillar inscriptions.',
+      'Win: completed the 12-episode quiz on ancient Indian royal dynasties!',
+    ],
+    pinnedMessages: [
+      'Rajvansh Timeline: Ancient to Medieval Indian Dynasties (544 BCE – 1200 CE).',
+      'EPIC TV 12-Episode Companion Guide & Historical Map Collection.',
+      'Primary Sources & Inscription Reference index.',
+    ],
+    reactions: ['👑', '🏛️', '🚩'],
+    media: ['/images/auth/maker.webp', '/images/landing/before-sleep.webp'],
+  },
   'deep-work-mastery': {
     messages: [
       'Starting my second 90-minute focus block now. Phone is in another room and Freedom is locked in.',
@@ -233,22 +313,33 @@ export function mapCohortToLiveSession(cohort: Cohort, index: number): LiveSessi
   };
 }
 
+const sampleCommunityMessages = [
+  'Anyone solved problem #4 on Dynamic Programming? Getting TLE on testcase 18.',
+  'Just uploaded the handwritten notes on Linux page replacement algorithms & thrashing.',
+  'The TCP 3-way handshake vs TLS 1.3 packet capture walkthrough is now live in #resources.',
+  'Fascinating discussion on the Tuatha Dé Danann today! Recommend checking out the Táin translation.',
+  'High-res maps for the Chola Dynasty naval expedition route have been pinned in the channel.',
+  'Pushed the code sandbox demo for custom EventTarget + AbortSignal handling.',
+  'Kanji practice checkpoint: aim to master the first 50 N5 radicals before Wednesday!',
+  'Comparing Harappan urban sanitation design with Mesopotamian brick architecture.',
+];
+
 export function mapCohortToRecentMessage(cohort: Cohort, index: number): RecentMessage {
   const senderIndex = index % people.length;
+  const messageText = sampleCommunityMessages[index % sampleCommunityMessages.length];
 
   return {
     id: `recent-${cohort.id}`,
     sender: {
-      id: `${cohort.id}-mentor`,
+      id: `${cohort.id}-sender-${index}`,
       name: index === 0 ? cohort.provider : people[senderIndex],
       avatar: avatars[senderIndex],
       online: index < 3,
     },
     community: cohort.title,
-    message: `New checkpoint posted for ${cohort.title}. Next session follows ${cohort.schedule.label}.`,
-    timestamp: index === 0 ? '2m' : `${(index + 1) * 8}m`,
+    message: messageText,
+    timestamp: index === 0 ? '2m' : `${(index + 1) * 7}m`,
     unreadCount: index < 3 ? 4 - index : undefined,
-    live: index === 0,
   };
 }
 
