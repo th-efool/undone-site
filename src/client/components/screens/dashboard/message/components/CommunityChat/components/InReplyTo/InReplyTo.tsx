@@ -10,8 +10,8 @@ interface Props {
 }
 
 /**
- * Renders an inline reference header row for Discord-style non-adjacent message replies.
- * Displays original author handle + single-line truncated preview text.
+ * Renders a compact bubble container preview for non-adjacent message replies.
+ * Displays author handle + preview text inside a subtle rounded container box.
  * Clickable to jump to original message.
  */
 export function InReplyTo({
@@ -33,7 +33,7 @@ export function InReplyTo({
 
   return (
     <div
-      className={styles.referenceRow}
+      className={styles.replyBubble}
       onClick={handleClick}
       onMouseEnter={() => onHoverChange?.(true)}
       onMouseLeave={() => onHoverChange?.(false)}
