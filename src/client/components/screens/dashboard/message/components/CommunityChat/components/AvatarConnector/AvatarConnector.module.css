@@ -1,0 +1,34 @@
+/* Vertical connection line segment bridging adjacent profile pictures */
+
+.line {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 2px;
+  background: rgba(99, 102, 241, 0.55);
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* Bottom segment (on message N-1): extends from bottom of avatar (48px) down to bottom edge of row */
+.bottomSegment {
+  top: 48px;
+  bottom: -8px;
+}
+
+/* Top segment (on message N): extends from top edge of row down to top of avatar (4px) */
+.topSegment {
+  top: -8px;
+  height: 12px;
+}
+
+/* DM variations (avatar height 34px) */
+.bottomSegment.dm {
+  top: 38px;
+  bottom: -8px;
+}
+
+.topSegment.dm {
+  top: -8px;
+  height: 12px;
+}
