@@ -47,7 +47,9 @@ export function ProgressSection() {
             src="/images/icons/youtube-white.webp"
             alt=""
             className={styles.progressIcon}
-           width={400} height={300} style={{ width: "100%", height: "100%", objectFit: "cover" }}/>
+            width={36}
+            height={36}
+          />
           <span className={styles.progressCheck}>✓</span>
           <div className={styles.progressInfo}>
             <strong className={styles.progressHours}>26h</strong>
@@ -60,7 +62,9 @@ export function ProgressSection() {
             src="/images/icons/coursera-white.webp"
             alt=""
             className={styles.progressIcon}
-           width={400} height={300} style={{ width: "100%", height: "100%", objectFit: "cover" }}/>
+            width={36}
+            height={36}
+          />
           <span className={styles.progressCheck}>✓</span>
           <div className={styles.progressInfo}>
             <strong className={styles.progressHours}>28h</strong>
@@ -73,7 +77,9 @@ export function ProgressSection() {
             src="/images/icons/youtube-white.webp"
             alt=""
             className={styles.progressIcon}
-           width={400} height={300} style={{ width: "100%", height: "100%", objectFit: "cover" }}/>
+            width={36}
+            height={36}
+          />
           <span className={styles.progressCheck}>✓</span>
           <div className={styles.progressInfo}>
             <strong className={styles.progressHours}>22h</strong>
