@@ -129,6 +129,10 @@ export const ArcCarousel = React.forwardRef<
         applyArc();
         lastScrollLeft = currentScroll;
         lastWidth = currentWidth;
+        
+        window.dispatchEvent(
+          new CustomEvent('arc-scroll', { detail: { scrollLeft: currentScroll } })
+        );
       }
       
       rafId.current = requestAnimationFrame(renderLoop);
