@@ -25,7 +25,7 @@ export const canvasAdapter = {
       if (parsed && typeof parsed === 'object') {
         return {
           elements: Array.isArray(parsed.elements) ? parsed.elements : [],
-          appState: parsed.appState || { viewBackgroundColor: '#ffffff', theme: 'light' },
+          appState: parsed.appState || { viewBackgroundColor: '#000000', theme: 'dark', gridSize: 20 },
           files: parsed.files || {},
         };
       }
@@ -40,8 +40,9 @@ export const canvasAdapter = {
     return {
       elements: [],
       appState: {
-        viewBackgroundColor: '#ffffff',
-        theme: 'light',
+        viewBackgroundColor: '#000000',
+        theme: 'dark',
+        gridSize: 20,
       },
       files: {},
     };
@@ -96,7 +97,7 @@ export const canvasAdapter = {
 
     return {
       elements: [textElement],
-      appState: { viewBackgroundColor: '#ffffff', theme: 'light' },
+      appState: { viewBackgroundColor: '#000000', theme: 'dark', gridSize: 20 },
       files: {},
     };
   },

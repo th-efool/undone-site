@@ -10,8 +10,9 @@ export const seedCanvasData: CanvasDocument = {
     source: 'sidequesthq',
     elements: [],
     appState: {
-      viewBackgroundColor: '#ffffff',
-      theme: 'light',
+      viewBackgroundColor: '#000000',
+      theme: 'dark',
+      gridSize: 20,
     },
     files: {},
   }),

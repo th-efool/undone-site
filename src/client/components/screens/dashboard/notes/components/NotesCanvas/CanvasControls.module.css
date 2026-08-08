@@ -1,0 +1,69 @@
+.controlsContainer {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background-color: var(--color-surface-elevated, #18181b);
+  border: 1px solid var(--color-border, #27272a);
+  border-radius: 12px;
+  padding: 8px 12px;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+}
+
+.colorPicker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.colorSwatch {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.colorSwatch:hover {
+  transform: scale(1.1);
+}
+
+.colorSwatch.active {
+  border-color: var(--color-primary, #6366f1);
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background-color: var(--color-border, #27272a);
+}
+
+.gridToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted, #a1a1aa);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.gridToggle:hover {
+  background-color: var(--color-surface-hover, #27272a);
+  color: var(--color-text, #f1f5f9);
+}
+
+.gridToggle.active {
+  background-color: var(--color-surface-active, #3f3f46);
+  color: var(--color-primary, #818cf8);
+}

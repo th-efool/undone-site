@@ -12,6 +12,7 @@ export type CanvasSceneData = {
   appState: {
     viewBackgroundColor: string;
     theme: 'light' | 'dark';
+    gridSize?: number | null;
   };
   files: Record<string, unknown>;
 };
