@@ -108,9 +108,9 @@ export function Explore() {
         />
       )}
 
-      <PeopleFinishing items={peopleFinishing} />
+      <PeopleFinishing items={trendingSideQuests} />
       <BrowseTopics items={topics} />
-      <TrendingSideQuests items={trendingSideQuests} />
+      <TrendingSideQuests items={peopleFinishing} />
       <RecentlyPublished items={recentlyPublished} />
     </main>
   );

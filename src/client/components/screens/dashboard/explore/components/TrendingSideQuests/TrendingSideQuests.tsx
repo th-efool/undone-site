@@ -5,14 +5,14 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { InfiniteScroller, type InfiniteScrollerHandle } from '@/src/client/components/global/InfiniteScroller';
 
-import type { SideQuest } from '../../models';
+import type { TrendingCourse } from '../../models';
 
-import { SideQuestCard } from './SideQuestCard';
+import { TrendingCourseCard } from '../PeopleFinishing/TrendingCourseCard';
 
 import styles from './TrendingSideQuests.module.css';
 
 export interface TrendingSideQuestsProps {
-  items: SideQuest[];
+  items: TrendingCourse[];
 }
 
 export function TrendingSideQuests({ items }: TrendingSideQuestsProps) {
@@ -21,14 +21,14 @@ export function TrendingSideQuests({ items }: TrendingSideQuestsProps) {
   return (
     <section
       className={styles.section}
-      aria-labelledby="trending-sidequests-heading"
+      aria-labelledby="popular-now-heading"
     >
       <div className={styles.header}>
         <h2
-          id="trending-sidequests-heading"
+          id="popular-now-heading"
           className={styles.title}
         >
-          Trending Side Quests
+          Popular Now
         </h2>
 
         <div className={styles.headerControls}>
@@ -60,7 +60,7 @@ export function TrendingSideQuests({ items }: TrendingSideQuestsProps) {
         scrollAmount={360}
       >
         {items.map((item) => (
-          <SideQuestCard
+          <TrendingCourseCard
             key={item.id}
             item={item}
           />
@@ -69,3 +69,4 @@ export function TrendingSideQuests({ items }: TrendingSideQuestsProps) {
     </section>
   );
 }
+
