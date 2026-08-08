@@ -17,6 +17,8 @@ export interface InfiniteScrollerProps extends PropsWithChildren {
   loop?: boolean;
   panable?: boolean;
   showArrows?: boolean;
+  autoScroll?: boolean;
+  autoScrollSpeed?: number;
 }
 
 export interface InfiniteScrollerHandle {
@@ -36,6 +38,8 @@ export const InfiniteScroller = React.forwardRef<
     loop = false,
     panable = true,
     showArrows = true,
+    autoScroll = false,
+    autoScrollSpeed = 1,
   }: InfiniteScrollerProps,
   ref,
 ) {
@@ -50,11 +54,14 @@ export const InfiniteScroller = React.forwardRef<
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const startX = useRef(0);
   const scrollLeftRef = useRef(0);
   const isLoopingRef = useRef(false);
   const velocityWalkFactor = 1.2;
+  const autoScrollFrameRef = useRef<number>(0);
+  const scrollPosRef = useRef<number | null>(null);
 
   function updateButtons() {
     const viewport = viewportRef.current;
@@ -88,12 +95,18 @@ export const InfiniteScroller = React.forwardRef<
     if (viewport.scrollLeft >= singleSetWidth * 2 - 10) {
       isLoopingRef.current = true;
       viewport.scrollLeft = viewport.scrollLeft - singleSetWidth;
+      if (scrollPosRef.current !== null) {
+        scrollPosRef.current -= singleSetWidth;
+      }
       requestAnimationFrame(() => {
         isLoopingRef.current = false;
       });
     } else if (viewport.scrollLeft <= 10) {
       isLoopingRef.current = true;
       viewport.scrollLeft = viewport.scrollLeft + singleSetWidth;
+      if (scrollPosRef.current !== null) {
+        scrollPosRef.current += singleSetWidth;
+      }
       requestAnimationFrame(() => {
         isLoopingRef.current = false;
       });
@@ -124,6 +137,9 @@ export const InfiniteScroller = React.forwardRef<
         const originalBehavior = viewport.style.scrollBehavior;
         viewport.style.scrollBehavior = 'auto';
         viewport.scrollLeft = singleSetWidth;
+        if (scrollPosRef.current !== null) {
+          scrollPosRef.current = singleSetWidth;
+        }
         requestAnimationFrame(() => {
           viewport.style.scrollBehavior = originalBehavior;
         });
@@ -142,6 +158,35 @@ export const InfiniteScroller = React.forwardRef<
       window.removeEventListener('resize', updateButtons);
     };
   }, [loop, showArrows]);
+
+  useEffect(() => {
+    if (!autoScroll || isHovered || isDragging) {
+      if (autoScrollFrameRef.current) cancelAnimationFrame(autoScrollFrameRef.current);
+      scrollPosRef.current = null;
+      return;
+    }
+    
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    scrollPosRef.current = viewport.scrollLeft;
+
+    const step = () => {
+      if (scrollPosRef.current === null) {
+        scrollPosRef.current = viewport.scrollLeft;
+      }
+      scrollPosRef.current += autoScrollSpeed;
+      viewport.scrollLeft = scrollPosRef.current;
+      autoScrollFrameRef.current = requestAnimationFrame(step);
+    };
+
+    autoScrollFrameRef.current = requestAnimationFrame(step);
+
+    return () => {
+      if (autoScrollFrameRef.current) cancelAnimationFrame(autoScrollFrameRef.current);
+      scrollPosRef.current = null;
+    };
+  }, [autoScroll, autoScrollSpeed, isHovered, isDragging]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!panable) return;
@@ -173,7 +218,11 @@ export const InfiniteScroller = React.forwardRef<
   };
 
   return (
-    <div className={`${styles.wrapper} ${className ?? ''}`}>
+    <div 
+      className={`${styles.wrapper} ${className ?? ''}`}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
       <div className={styles.viewportWrapper}>
         {showArrows && showLeft && (
           <button
