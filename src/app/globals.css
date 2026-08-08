@@ -70,4 +70,17 @@ textarea,
   user-select: none;
 }
 
+
+/* ── Global Hidden Scrollbars (preserves scrolling capability) ── */
+::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+* {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}
+
 @import './styles/print.css';
