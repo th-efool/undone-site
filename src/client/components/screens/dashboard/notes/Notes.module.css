@@ -280,11 +280,43 @@
 }
 .canvas {
   position: absolute;
-  inset: 185px 210px 96px 150px;
-  background: #fff;
-  box-shadow: 0 30px 80px #1e1b4b0a;
-  padding: 38px 52px;
-  overflow: auto;
+  inset: 64px 0 0 0;
+  background: transparent;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.titleInputTop {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font-size: 16px;
+  font-weight: 700;
+  color: #101832;
+  min-width: 200px;
+}
+
+.titleInputTop::placeholder {
+  color: #a0aec0;
+}
+
+.legacyViewer {
+  padding: 40px;
+  max-width: 800px;
+  margin: 0 auto;
+  font-size: 16px;
+  line-height: 1.6;
+  width: 100%;
+}
+
+.loadingScene {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-gray-500);
+  font-weight: 500;
 }
 .titleInput {
   border: 0;
@@ -509,7 +541,7 @@
     grid-template-columns: 290px 1fr;
   }
   .canvas {
-    inset: 180px 24px 96px;
+    inset: 64px 0 0 0;
   }
   .canvasSearch {
     width: calc(100% - 48px);
@@ -598,21 +630,52 @@
 }
 .canvasSwitcher {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.canvasSwitchControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 2px 4px 2px 10px;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.canvasSwitchControl:hover,
+.canvasSwitchControl:focus-within {
+  background: #fff;
+  border-color: #c7d2fe;
+  box-shadow: 0 2px 8px #1e1b4b0a;
+}
+.canvasSwitchTitle {
+  font-size: 15px;
+  font-weight: 700;
+  color: #101832;
+  padding: 4px 0;
 }
 .canvasSwitchButton {
   border: 0;
   background: transparent;
   display: flex;
   align-items: center;
-  gap: 6px;
-  font: inherit;
-  color: inherit;
-  padding: 6px 8px;
-  border-radius: 8px;
+  justify-content: center;
+  color: #64748b;
+  padding: 4px;
+  border-radius: 6px;
   cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
 .canvasSwitchButton:hover {
-  background: #f3f0ff;
+  background: #ede7ff;
+  color: var(--color-brand);
+}
+.emptyCanvasItem {
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  font-style: italic;
 }
 .canvasMenu {
   position: absolute;
@@ -766,8 +829,8 @@
   width: 46px;
 }
 .canvas {
-  inset: 162px 190px 82px 120px;
-  padding: 30px 42px;
+  inset: 56px 0 0 0;
+  padding: 0;
 }
 .titleInput {
   font-size: 30px;

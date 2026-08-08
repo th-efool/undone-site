@@ -2,10 +2,21 @@ import { BookOpen, ChevronDown, Star } from 'lucide-react';
 import { MouseEvent, ReactNode, useState } from 'react';
 
 import { useNotes } from '../hooks/useNotes';
-import type { NoteEntity, NotebookListItem, Permission } from '../models/notes.models';
+import type { NoteDocument, NotebookListItem, Permission } from '../models/notes.models';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
 import styles from '../Notes.module.css';
+
+export interface CanvasSwitcherProps {
+  open: boolean;
+  onToggle: (event: MouseEvent) => void;
+  onClose: () => void;
+  notes: NoteDocument[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  title?: string;
+  onTitleChange?: (title: string) => void;
+}
 
 export function CanvasSwitcher({
   open,
@@ -14,69 +25,90 @@ export function CanvasSwitcher({
   notes,
   selectedId,
   onSelect,
-}: {
-  open: boolean;
-  onToggle: (event: MouseEvent) => void;
-  onClose: () => void;
-  notes: NoteEntity[];
-  selectedId: string | null;
-  onSelect: (id: string) => void;
-}) {
+  title,
+  onTitleChange,
+}: CanvasSwitcherProps) {
   const selectedIndex = Math.max(
     0,
     notes.findIndex((note) => note.id === selectedId),
   );
   const [focusIndex, setFocusIndex] = useState(selectedIndex);
+  const selectedNote = notes.find((note) => note.id === selectedId);
 
   return (
     <div className={styles.canvasSwitcher}>
-      <button
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        className={styles.canvasSwitchButton}
-        onClick={onToggle}
-        onKeyDown={(event) => {
-          if (event.key === 'ArrowDown') {
-            event.preventDefault();
-            setFocusIndex((index) => Math.min(notes.length - 1, index + 1));
-          }
-          if (event.key === 'ArrowUp') {
-            event.preventDefault();
-            setFocusIndex((index) => Math.max(0, index - 1));
-          }
-          if (event.key === 'Enter' && open && notes[focusIndex]) {
-            event.preventDefault();
-            onSelect(notes[focusIndex].id);
-          }
-          if (event.key === 'Escape') {
-            event.preventDefault();
-            onClose();
-          }
-        }}
-      >
-        <strong>{notes.find((note) => note.id === selectedId)?.title ?? 'Canvas'}</strong>
-        <ChevronDown size={16} />
-      </button>
+      <div className={styles.canvasSwitchControl}>
+        {selectedId && onTitleChange ? (
+          <input
+            type="text"
+            className={styles.titleInputTop}
+            value={title ?? selectedNote?.title ?? ''}
+            onChange={(e) => onTitleChange(e.target.value)}
+            placeholder="Note title"
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span className={styles.canvasSwitchTitle}>
+            {selectedNote?.title ?? 'Select note'}
+          </span>
+        )}
+        <button
+          type="button"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-label="Switch note"
+          className={styles.canvasSwitchButton}
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggle(event);
+          }}
+          onKeyDown={(event) => {
+            if (event.key === 'ArrowDown') {
+              event.preventDefault();
+              setFocusIndex((index) => Math.min(notes.length - 1, index + 1));
+            }
+            if (event.key === 'ArrowUp') {
+              event.preventDefault();
+              setFocusIndex((index) => Math.max(0, index - 1));
+            }
+            if (event.key === 'Enter' && open && notes[focusIndex]) {
+              event.preventDefault();
+              onSelect(notes[focusIndex].id);
+            }
+            if (event.key === 'Escape') {
+              event.preventDefault();
+              onClose();
+            }
+          }}
+        >
+          <ChevronDown size={16} />
+        </button>
+      </div>
       {open && (
         <div
           className={styles.canvasMenu}
           role="listbox"
           onClick={(event) => event.stopPropagation()}
         >
-          {notes.map((note, index) => (
-            <button
-              key={note.id}
-              type="button"
-              role="option"
-              aria-selected={note.id === selectedId}
-              className={`${note.id === selectedId ? styles.selectedCanvas : ''} ${index === focusIndex ? styles.focusedCanvas : ''}`}
-              onMouseEnter={() => setFocusIndex(index)}
-              onClick={() => onSelect(note.id)}
-            >
-              {note.title}
-            </button>
-          ))}
+          {notes.length === 0 ? (
+            <div className={styles.emptyCanvasItem}>No notes in notebook</div>
+          ) : (
+            notes.map((note, index) => (
+              <button
+                key={note.id}
+                type="button"
+                role="option"
+                aria-selected={note.id === selectedId}
+                className={`${note.id === selectedId ? styles.selectedCanvas : ''} ${
+                  index === focusIndex ? styles.focusedCanvas : ''
+                }`}
+                onMouseEnter={() => setFocusIndex(index)}
+                onClick={() => onSelect(note.id)}
+              >
+                {note.title || 'Untitled Note'}
+              </button>
+            ))
+          )}
         </div>
       )}
     </div>
@@ -405,9 +437,9 @@ export function ShareModal({
   onClose,
   onSave,
 }: {
-  note: NoteEntity;
+  note: NoteDocument;
   onClose: () => void;
-  onSave: (patch: Partial<NoteEntity>) => void;
+  onSave: (patch: Partial<NoteDocument>) => void;
 }) {
   const [email, setEmail] = useState('');
 
