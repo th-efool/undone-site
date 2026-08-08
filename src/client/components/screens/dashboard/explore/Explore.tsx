@@ -13,9 +13,15 @@ import { TrendingSideQuests } from './components/TrendingSideQuests/TrendingSide
 
 import { useExplore } from './hooks/useExplore';
 
+import { usePathname } from 'next/navigation';
+import clsx from 'clsx';
+import { getRouteTheme } from '@/src/client/config/routeThemeConfig';
+
 import styles from './Explore.module.css';
 
 export function Explore() {
+  const pathname = usePathname();
+  const isDark = getRouteTheme(pathname) === 'dark';
   const explore = useExplore();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -40,9 +46,8 @@ export function Explore() {
         .slice(0, 6),
     [explore.peopleFinishing, matches],
   );
-  // Task 2.8 #45: Limit Browse Topics to max 9 chips
   const topics = useMemo(
-    () => explore.topics.filter((item) => matches([item.name])).slice(0, 9),
+    () => explore.topics.filter((item) => matches([item.name])),
     [explore.topics, matches],
   );
   // Task 2.8 #45: Limit Trending SideQuests to max 8 cards
@@ -74,7 +79,7 @@ export function Explore() {
   }
 
   return (
-    <main className={styles.explore}>
+    <main className={clsx(styles.explore, isDark && styles.darkTheme)}>
       <SearchBar
         className={styles.searchBar}
         value={query}
@@ -93,12 +98,8 @@ export function Explore() {
         />
       )}
 
-      {/* Task 2.8 #45: Pass original count for overflow indicators */}
-      <BrowseTopics
-        items={topics}
-        hasMore={explore.topics.length > 9}
-      />
       <PeopleFinishing items={peopleFinishing} />
+      <BrowseTopics items={topics} />
       <TrendingSideQuests items={trendingSideQuests} />
       <RecentlyPublished items={recentlyPublished} />
     </main>

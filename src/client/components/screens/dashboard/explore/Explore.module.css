@@ -2,9 +2,29 @@
   display: flex;
   flex-direction: column;
 
-  gap: 22px;
+  gap: 24px;
 
   padding: 16px 42px 56px;
+}
+
+.darkTheme {
+  /* Sleek OLED Dark Theme Overrides */
+  --color-background: #000000;
+  --color-background-elevated: #09090b;
+  --color-surface: #121212;
+  --color-surface-secondary: #18181b;
+  --color-surface-tertiary: #27272a;
+
+  --color-text: #ffffff;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
+
+  --color-border: #27272a;
+
+  background-color: #000000;
+  color: #ffffff;
+  min-height: 100vh;
 }
 
 .searchBar {
@@ -101,4 +121,29 @@
 [data-platform="app"] .searchBar {
   margin-bottom: 0 !important;
   width: 100% !important;
+}
+
+/* Enable text selection & custom themed selection color for /explore */
+.explore,
+.explore * {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.explore button,
+.explore a,
+.explore img,
+.explore svg {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.explore ::selection {
+  background: rgba(99, 102, 241, 0.45);
+  color: #ffffff;
+}
+
+.explore ::-moz-selection {
+  background: rgba(99, 102, 241, 0.45);
+  color: #ffffff;
 }
