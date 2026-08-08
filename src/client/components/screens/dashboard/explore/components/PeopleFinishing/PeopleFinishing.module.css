@@ -2,6 +2,9 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  overflow: visible;
+  position: relative;
+  z-index: 2;
 }
 
 .header {

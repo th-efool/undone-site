@@ -3,7 +3,8 @@
 import { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-import { InfiniteScroller, type InfiniteScrollerHandle } from '@/src/client/components/global/InfiniteScroller';
+import { ArcCarousel } from './ArcCarousel';
+import type { InfiniteScrollerHandle } from '@/src/client/components/global/InfiniteScroller';
 
 import type { TrendingCourse } from '../../models';
 
@@ -52,7 +53,7 @@ export function PeopleFinishing({ items }: PeopleFinishingProps) {
         </div>
       </div>
 
-      <InfiniteScroller
+      <ArcCarousel
         ref={scrollerRef}
         loop={true}
         panable={true}
@@ -65,7 +66,7 @@ export function PeopleFinishing({ items }: PeopleFinishingProps) {
             item={item}
           />
         ))}
-      </InfiniteScroller>
+      </ArcCarousel>
     </section>
   );
 }
