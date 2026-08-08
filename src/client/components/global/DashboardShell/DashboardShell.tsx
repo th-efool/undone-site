@@ -9,6 +9,7 @@ import { getRouteTheme } from '@/src/client/config/routeThemeConfig';
 import { Sidebar } from '../Sidebar';
 import { NetworkOfflineIndicator } from '../NetworkOfflineIndicator/NetworkOfflineIndicator';
 import { CommandPalette, CommandTriggerProvider, useCommandContext } from '../CommandPalette';
+import { RoutePreserver } from './RoutePreserver';
 
 import styles from './DashboardShell.module.css';
 
@@ -48,7 +49,7 @@ function DashboardInner({ children }: PropsWithChildren) {
             isPlayPage && styles.playContent
           )}
         >
-          {children}
+          <RoutePreserver>{children}</RoutePreserver>
         </main>
       </div>
       <CommandPalette open={open} onOpenChange={onOpenChange} />
