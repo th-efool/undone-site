@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Bell, Settings, UserCircle, UsersRound, MessageCircle, House, CheckCheck, SlidersHorizontal, ArrowUpDown, SquarePen } from 'lucide-react';
 import type { SidebarTab } from '../../../models';
 import { getAvatar } from '@/src/client/mock/avatars';
+import { Tooltip } from '@/src/client/components/ui';
 import styles from './SidebarHeader.module.css';
 
 interface Props {
@@ -45,15 +46,17 @@ export function SidebarHeader({ tabs, selectedTab, onTabChange, onGoHome, isHome
 
         {/* Home */}
         {onGoHome && (
-          <button
-            type="button"
-            className={`${styles.homeBtn} ${isHome ? styles.activeTab : ''}`}
-            onClick={onGoHome}
-            aria-label="Home"
-            title="Home"
-          >
-            <House size={20} />
-          </button>
+          <Tooltip content="Social Home" placement="top">
+            <button
+              type="button"
+              className={`${styles.homeBtn} ${isHome ? styles.activeTab : ''}`}
+              onClick={onGoHome}
+              aria-label="Social Home"
+              title="Social Home"
+            >
+              <House size={20} />
+            </button>
+          </Tooltip>
         )}
 
         <div className={styles.divider} />
@@ -91,15 +94,17 @@ export function SidebarHeader({ tabs, selectedTab, onTabChange, onGoHome, isHome
           )}
 
           {onMarkAllRead && (
-            <button
-              type="button"
-              className={styles.actionBtn}
-              aria-label="Mark all as read"
-              title="Mark all as read"
-              onClick={onMarkAllRead}
-            >
-              <CheckCheck size={16} />
-            </button>
+            <Tooltip content="Mark all as read" placement="top">
+              <button
+                type="button"
+                className={styles.actionBtn}
+                aria-label="Mark all as read"
+                title="Mark all as read"
+                onClick={onMarkAllRead}
+              >
+                <CheckCheck size={16} />
+              </button>
+            </Tooltip>
           )}
 
           <button

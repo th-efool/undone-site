@@ -3,13 +3,16 @@ import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Bell, Check, MoreHorizontal, Phone, Video } from 'lucide-react';
 import { DMUser } from '../../../../models';
+import { Tooltip } from '@/src/client/components/ui';
 import styles from './DMHeader.module.css';
+
 interface Props {
   user: DMUser;
   aboutOpen: boolean;
   onBack(): void;
   onToggleAbout(): void;
 }
+
 const settings = [
   'All Messages',
   'Mentions Only',
@@ -17,10 +20,12 @@ const settings = [
   'Mute Today',
   'Mute Until I Turn It Back On',
 ];
+
 export function DMHeader({ user, aboutOpen, onBack, onToggleAbout }: Props) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [selected, setSelected] = useState(settings[0]);
   const ref = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!notificationsOpen) return;
     const close = (event: MouseEvent) => {
@@ -29,16 +34,19 @@ export function DMHeader({ user, aboutOpen, onBack, onToggleAbout }: Props) {
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
   }, [notificationsOpen]);
+
   return (
     <header className={styles.header}>
-      <button
-        type="button"
-        className={styles.back}
-        onClick={onBack}
-        aria-label="Back"
-      >
-        <ArrowLeft size={22} />
-      </button>
+      <Tooltip content="Back to messages" placement="right">
+        <button
+          type="button"
+          className={styles.back}
+          onClick={onBack}
+          aria-label="Back to messages"
+        >
+          <ArrowLeft size={22} />
+        </button>
+      </Tooltip>
       <span className={styles.avatar}>
         <Image width={40} height={40} src={user.avatar} alt={user.name} className={styles.avatar} />
         <i />

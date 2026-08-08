@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Bell, Check, MoreHorizontal, Phone, UsersRound, Video } from 'lucide-react';
 import { CommunityChatModel } from '../../../../models';
+import { Tooltip } from '@/src/client/components/ui';
 import styles from './CommunityHeader.module.css';
 
 interface Props {
@@ -36,14 +37,16 @@ export function CommunityHeader({ community, aboutOpen, onBack, onToggleAbout }:
 
   return (
     <header className={styles.header}>
-      <button
-        type="button"
-        className={styles.back}
-        onClick={onBack}
-        aria-label="Back to social landing"
-      >
-        <ArrowLeft size={20} />
-      </button>
+      <Tooltip content="Back to messages" placement="right">
+        <button
+          type="button"
+          className={styles.back}
+          onClick={onBack}
+          aria-label="Back to messages"
+        >
+          <ArrowLeft size={20} />
+        </button>
+      </Tooltip>
       <Image width={44} height={44} className={styles.avatar} src={community.avatar} alt="" />
       <div className={styles.info}>
         <h1>{community.name}</h1>

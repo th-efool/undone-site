@@ -4,6 +4,7 @@ import { FormEvent, ReactNode, useCallback, useEffect, useRef, useState } from '
 import { Check, Image as ImageIcon, Plus, Send, Smile } from 'lucide-react';
 
 import { PillInput } from '@/src/client/components/global/PillInput';
+import { Tooltip } from '@/src/client/components/ui';
 import type { ReplyContext } from '../../models';
 
 import styles from './MessageComposer.module.css';
@@ -129,13 +130,15 @@ export function MessageComposer({
     <Send size={21} />
   );
   const sendButton = (
-    <button
-      type="submit"
-      className={`${sendButtonClassName ?? ''} ${sending ? styles.sending : ''}`}
-      aria-label="Send message"
-    >
-      {sendButtonContent}
-    </button>
+    <Tooltip content="Send message" placement="top">
+      <button
+        type="submit"
+        className={`${sendButtonClassName ?? ''} ${sending ? styles.sending : ''}`}
+        aria-label="Send message"
+      >
+        {sendButtonContent}
+      </button>
+    </Tooltip>
   );
 
   return (
@@ -179,14 +182,16 @@ export function MessageComposer({
           <span className={styles.draftSaved}>Draft saved ✓</span>
         )}
         <div className={styles.toolWrap}>
-        <button
-          type="button"
-          className={styles.plus}
-          aria-label="Add attachment"
-          onClick={() => setMenuOpen((open) => !open)}
-        >
-          <Plus size={22} />
-        </button>
+        <Tooltip content="Attach file or image" placement="top">
+          <button
+            type="button"
+            className={styles.plus}
+            aria-label="Attach file"
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            <Plus size={22} />
+          </button>
+        </Tooltip>
         {menuOpen && (
           <div className={styles.menu}>
             <button
@@ -247,13 +252,15 @@ export function MessageComposer({
         rightSlot={
           <>
             <div className={styles.toolWrap}>
-              <button
-                type="button"
-                aria-label="Add emoji"
-                onClick={() => setEmojiOpen((open) => !open)}
-              >
-                <Smile size={submitInsideInput ? 22 : 21} />
-              </button>
+              <Tooltip content="Add emoji" placement="top">
+                <button
+                  type="button"
+                  aria-label="Add emoji"
+                  onClick={() => setEmojiOpen((open) => !open)}
+                >
+                  <Smile size={submitInsideInput ? 22 : 21} />
+                </button>
+              </Tooltip>
               {emojiOpen && (
                 <div className={styles.emoji}>
                   {emojis.flat().map((emoji) => (
@@ -268,13 +275,15 @@ export function MessageComposer({
                 </div>
               )}
             </div>
-            <button
-              type="button"
-              aria-label="Add image"
-              onClick={() => imageRef.current?.click()}
-            >
-              <ImageIcon size={20} />
-            </button>
+            <Tooltip content="Attach file or image" placement="top">
+              <button
+                type="button"
+                aria-label="Add image"
+                onClick={() => imageRef.current?.click()}
+              >
+                <ImageIcon size={20} />
+              </button>
+            </Tooltip>
             {submitInsideInput && sendButton}
           </>
         }
