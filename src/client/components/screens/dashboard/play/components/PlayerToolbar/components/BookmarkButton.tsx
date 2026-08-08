@@ -1,5 +1,6 @@
 import { Bookmark } from 'lucide-react';
 import clsx from 'clsx';
+import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
 import styles from '../PlayerToolbar.module.css';
 
@@ -10,12 +11,15 @@ export interface BookmarkButtonProps {
 
 export function BookmarkButton({ active = false, onClick }: BookmarkButtonProps) {
   return (
-    <button
-      className={clsx(styles.button, active && styles.active)}
-      onClick={onClick}
-      aria-label="Bookmark"
-    >
-      <Bookmark size={22} />
-    </button>
+    <Tooltip content="Bookmark lesson" placement="left">
+      <button
+        className={clsx(styles.button, active && styles.active)}
+        onClick={onClick}
+        aria-label="Bookmark lesson"
+      >
+        <Bookmark size={22} />
+      </button>
+    </Tooltip>
   );
 }
+

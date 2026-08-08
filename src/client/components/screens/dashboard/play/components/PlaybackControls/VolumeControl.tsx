@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Volume2 } from 'lucide-react';
+import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
 import styles from './VolumeControl.module.css';
 
@@ -18,14 +19,18 @@ export function VolumeControl({ volume = 95, onChange }: VolumeControlProps) {
     onChange?.(value);
   }
 
+  const tooltipText = currentVolume === 0 ? 'Unmute' : 'Mute';
+
   return (
     <div className={styles.root}>
-      <button
-        className={styles.button}
-        aria-label="Volume"
-      >
-        <Volume2 size={18} />
-      </button>
+      <Tooltip content={tooltipText} placement="top">
+        <button
+          className={styles.button}
+          aria-label={tooltipText}
+        >
+          <Volume2 size={18} />
+        </button>
+      </Tooltip>
 
       <div className={styles.slider}>
         <input
@@ -39,3 +44,4 @@ export function VolumeControl({ volume = 95, onChange }: VolumeControlProps) {
     </div>
   );
 }
+

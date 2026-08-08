@@ -9,6 +9,7 @@ import {
   ChevronUp,
   ChevronDown,
 } from 'lucide-react';
+import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
 import { VolumeControl } from './VolumeControl';
 import styles from './PlaybackControls.module.css';
@@ -49,36 +50,39 @@ export function PlaybackControls({
   return (
     <div className={styles.controls}>
       <div className={styles.left}>
-        <button
-          className={styles.button}
-          onClick={onPlayPause}
-          aria-label={isPlaying ? 'Pause' : 'Play'}
-          title={isPlaying ? 'Pause' : 'Play'}
-        >
-          {isPlaying ? (
-            <Pause size={18} fill="currentColor" />
-          ) : (
-            <Play size={18} fill="currentColor" />
-          )}
-        </button>
+        <Tooltip content={isPlaying ? 'Pause (Space)' : 'Play (Space)'} placement="top">
+          <button
+            className={styles.button}
+            onClick={onPlayPause}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+          >
+            {isPlaying ? (
+              <Pause size={18} fill="currentColor" />
+            ) : (
+              <Play size={18} fill="currentColor" />
+            )}
+          </button>
+        </Tooltip>
 
-        <button
-          className={styles.button}
-          onClick={onSkipBack}
-          aria-label="Rewind 10 seconds"
-          title="Rewind 10s"
-        >
-          <RotateCcw size={16} />
-        </button>
+        <Tooltip content="Rewind 10 seconds" placement="top">
+          <button
+            className={styles.button}
+            onClick={onSkipBack}
+            aria-label="Rewind 10 seconds"
+          >
+            <RotateCcw size={16} />
+          </button>
+        </Tooltip>
 
-        <button
-          className={styles.button}
-          onClick={onSkipForward}
-          aria-label="Forward 10 seconds"
-          title="Forward 10s"
-        >
-          <RotateCw size={16} />
-        </button>
+        <Tooltip content="Forward 10 seconds" placement="top">
+          <button
+            className={styles.button}
+            onClick={onSkipForward}
+            aria-label="Forward 10 seconds"
+          >
+            <RotateCw size={16} />
+          </button>
+        </Tooltip>
 
         <span className={styles.time}>
           {currentTime} / {totalDuration}
@@ -94,15 +98,17 @@ export function PlaybackControls({
           onChange={onVolumeChange}
         />
 
-        <button
-          className={styles.button}
-          onClick={onFullscreen}
-          aria-label="Fullscreen"
-          title="Toggle Fullscreen"
-        >
-          <Maximize2 size={18} />
-        </button>
+        <Tooltip content="Fullscreen" placement="top">
+          <button
+            className={styles.button}
+            onClick={onFullscreen}
+            aria-label="Fullscreen"
+          >
+            <Maximize2 size={18} />
+          </button>
+        </Tooltip>
       </div>
     </div>
   );
 }
+

@@ -1,4 +1,5 @@
 import { CheckCircle2 } from 'lucide-react';
+import { Tooltip } from '@/src/client/components/ui/Tooltip';
 import {
   BookmarkButton,
   PlaybackSpeed,
@@ -23,9 +24,11 @@ export function PlayerToolbar({
 }: PlayerToolbarProps) {
   return (
     <aside className={styles.toolbar}>
-      <button className={styles.button} onClick={onComplete} title="Mark Done">
-        <CheckCircle2 size={18} />
-      </button>
+      <Tooltip content="Mark lesson completed" placement="left">
+        <button className={styles.button} onClick={onComplete} aria-label="Mark lesson completed">
+          <CheckCircle2 size={18} />
+        </button>
+      </Tooltip>
 
       <BookmarkButton
         active={bookmarked}
@@ -39,3 +42,4 @@ export function PlayerToolbar({
     </aside>
   );
 }
+
