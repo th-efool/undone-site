@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 
 import { homeRepository } from '@/src/client/repositories/homeRepository';
 import { homeStorageAdapter } from '@/src/client/repositories/homeStorageAdapter';
@@ -16,13 +17,12 @@ import {
 } from '../utils';
 
 export function useHome() {
-  const [loading, setLoading] = useState(true);
-  const home = useMemo(() => homeRepository.getHome(), []);
+  const { data: homeData, isLoading } = useQuery({
+    queryKey: ['home'],
+    queryFn: async () => homeRepository.getHome(),
+  });
 
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 400);
-    return () => clearTimeout(timer);
-  }, []);
+  const home = homeData ?? homeRepository.getHome();
 
   // Background pluggable backend sync
   useEffect(() => {
@@ -94,7 +94,7 @@ export function useHome() {
   }
 
   return {
-    loading,
+    loading: isLoading,
     ...home,
     activeCohorts,
     continueLater,
