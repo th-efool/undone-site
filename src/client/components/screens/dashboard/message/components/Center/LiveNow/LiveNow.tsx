@@ -1,6 +1,6 @@
 'use client';
 
-import { HorizontalScroller } from '@/src/client/components/global/HorizontalScroller';
+import { InfiniteScroller } from '@/src/client/components/global/InfiniteScroller';
 import { LiveSession } from '../../../models';
 import { EmptyState } from '../../shared/EmptyState/EmptyState';
 import { LiveCard } from '../LiveCard/LiveCard';
@@ -25,10 +25,11 @@ export function LiveNow({ items }: Props) {
   return (
     <section className={styles.section}>
       <div className={styles.scrollerWrapper}>
-        <HorizontalScroller
+        <InfiniteScroller
           className={styles.scroller}
           scrollAmount={460}
           loop={true}
+          panable={true}
           showArrows={false}
         >
           {items.map((item) => (
@@ -37,7 +38,7 @@ export function LiveNow({ items }: Props) {
               session={item}
             />
           ))}
-        </HorizontalScroller>
+        </InfiniteScroller>
       </div>
     </section>
   );
