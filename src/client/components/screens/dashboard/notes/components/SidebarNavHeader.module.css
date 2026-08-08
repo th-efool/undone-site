@@ -4,8 +4,8 @@
   justify-content: space-between;
   padding: 6px 8px;
   margin-bottom: 12px;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: #050507;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
@@ -25,19 +25,19 @@
   border: 0;
   border-radius: 7px;
   background: transparent;
-  color: #64748b;
+  color: #94a3b8;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .tabBtn:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: #27272a;
+  color: #f1f5f9;
 }
 
 .tabBtn.activeTab {
-  background: #ede7ff;
-  color: #6366f1;
+  background: #2e1065;
+  color: #818cf8;
 }
 
 .headerActions {
@@ -55,18 +55,18 @@
   border: 1px solid transparent;
   border-radius: 7px;
   background: transparent;
-  color: #64748b;
+  color: #94a3b8;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .actionBtn:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  color: #0f172a;
+  background: #050507;
+  border-color: #3f3f46;
+  color: #f1f5f9;
 }
 
 .actionBtn.activeAction {
-  background: #f1f5f9;
-  color: #475569;
+  background: #27272a;
+  color: #a1a1aa;
 }

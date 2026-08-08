@@ -6,8 +6,8 @@
   height: 100vh;
   display: grid;
   grid-template-columns: 290px 1fr;
-  background: #ffffff;
-  color: var(--color-text, #0f172a);
+  background: #050507;
+  color: var(--color-text, #f1f5f9);
   overflow: hidden;
   transition: grid-template-columns 0.2s ease-in-out;
 }
@@ -20,9 +20,9 @@
 /* SIDEBAR PANEL                                */
 /* ============================================ */
 .panel {
-  border-right: 1px solid var(--color-border, #e2e8f0);
+  border-right: 1px solid rgba(255, 255, 255, 0.07);
   padding: 14px 14px 20px 14px;
-  background: #f8fafc;
+  background: #050507;
   overflow-y: auto;
 }
 
@@ -58,24 +58,24 @@
 .bottomTools button,
 .zoom button {
   height: 35px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #27272a;
   border-radius: 8px;
-  background: #ffffff;
+  background: #050507;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   display: grid;
   place-items: center;
   font-size: 13px;
   font-weight: 600;
-  color: #334155;
+  color: #cbd5e1;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .toolbar button:hover,
 .toolbar select:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #0f172a;
+  background: #27272a;
+  border-color: #3f3f46;
+  color: #f1f5f9;
 }
 
 .toolbar svg,
@@ -87,20 +87,20 @@
 .search,
 .canvasSearch {
   height: 35px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #27272a;
   border-radius: 8px;
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 0 10px;
-  background: #ffffff;
+  background: #050507;
   margin: 0 0 14px 0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .search:focus-within {
-  border-color: #6366f1;
+  border-color: #818cf8;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
 }
 
@@ -117,7 +117,7 @@
   font-size: 13px;
   font-weight: 500;
   background: transparent;
-  color: #0f172a;
+  color: #f1f5f9;
 }
 
 .search input:focus,
@@ -139,9 +139,9 @@
 .canvasSearch span {
   font-size: 11px;
   font-weight: 600;
-  color: #64748b;
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
+  color: #94a3b8;
+  background: #27272a;
+  border: 1px solid #27272a;
   border-radius: 4px;
   padding: 1px 5px;
   line-height: 1;
@@ -155,19 +155,20 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #64748b;
+  color: #94a3b8;
   margin: 0 0 8px 4px;
   letter-spacing: 0.05em;
 }
 
 .current,
 .bookList {
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  background: #ffffff;
-  padding: 6px;
-  position: relative;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .bookRow {
@@ -184,7 +185,7 @@
 
 .bookRow:hover,
 .noteRow:hover {
-  background: #f1f5f9;
+  background: #27272a;
 }
 
 .bookRow > span {
@@ -200,12 +201,12 @@
 .bookRow b {
   font-size: 13px;
   font-weight: 600;
-  color: #0f172a;
+  color: #f1f5f9;
 }
 
 .bookRow small {
   grid-column: 2;
-  color: #64748b;
+  color: #94a3b8;
   font-weight: 500;
   font-size: 11px;
 }
@@ -223,14 +224,14 @@
   display: flex;
   gap: 10px;
   align-items: center;
-  border: 0;
-  background: transparent;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: rgba(99, 102, 241, 0.12);
   padding: 7px 10px 7px 24px;
-  border-radius: 6px;
+  border-radius: 8px;
   text-align: left;
   font-size: 13px;
-  font-weight: 500;
-  color: #334155;
+  font-weight: 600;
+  color: #a5b4fc;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -245,14 +246,14 @@
 }
 
 .activeNote {
-  background: #eef2ff;
-  color: #4338ca;
+  background: #1e1b4b;
+  color: #818cf8;
   font-weight: 600;
 }
 
 .activeNote span {
-  background: #6366f1;
-  border-color: #6366f1;
+  background: #818cf8;
+  border-color: #818cf8;
 }
 
 .noteRow svg,
@@ -275,7 +276,7 @@
   gap: 10px;
   font-size: 13px;
   font-weight: 500;
-  color: #475569;
+  color: #a1a1aa;
   padding: 8px 10px;
   border-radius: 8px;
   cursor: pointer;
@@ -283,18 +284,18 @@
 }
 
 .nav button:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: #27272a;
+  color: #f1f5f9;
 }
 
 .nav span {
   margin-left: auto;
-  background: #e2e8f0;
+  background: #27272a;
   border-radius: 999px;
   padding: 2px 7px;
   font-size: 11px;
   font-weight: 600;
-  color: #475569;
+  color: #a1a1aa;
 }
 
 /* ============================================ */
@@ -303,7 +304,7 @@
 .workspace {
   position: relative;
   overflow: hidden;
-  background: radial-gradient(#e2e8f0 1px, transparent 1px);
+  background: radial-gradient(#27272a 1px, transparent 1px);
   background-size: 22px 22px;
 }
 
@@ -313,10 +314,10 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(12px) saturate(180%);
-  -webkit-backdrop-filter: blur(12px) saturate(180%);
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  background: rgba(5, 5, 7, 0.92);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
   position: relative;
   z-index: 10;
 }
@@ -327,7 +328,7 @@
   gap: 8px;
   font-size: 13px;
   font-weight: 500;
-  color: #475569;
+  color: #a1a1aa;
   min-width: 0;
   flex: 1;
   margin-right: 12px;
@@ -335,13 +336,13 @@
 
 .crumb strong {
   font-weight: 600;
-  color: #0f172a;
+  color: #f1f5f9;
   white-space: nowrap;
   font-size: 13.5px;
 }
 
 .crumbSeparator {
-  color: #cbd5e1;
+  color: #3f3f46;
   font-size: 13px;
   font-weight: 400;
   user-select: none;
@@ -362,28 +363,28 @@
   display: inline-flex;
   gap: 6px;
   align-items: center;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #27272a;
   border-radius: 8px;
-  background: #ffffff;
+  background: #050507;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   font-size: 13px;
   font-weight: 500;
-  color: #334155;
+  color: #cbd5e1;
   transition: all 0.15s ease;
   cursor: pointer;
 }
 
 .actions button:hover,
 .topbarBtn:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  color: #0f172a;
+  background: #050507;
+  border-color: #3f3f46;
+  color: #f1f5f9;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
 .actions button:active,
 .topbarBtn:active {
-  background: #f1f5f9;
+  background: #27272a;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
@@ -406,8 +407,8 @@
   top: 96px;
   left: 200px;
   display: flex;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: #050507;
+  border: 1px solid #27272a;
   border-radius: 10px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
   z-index: 20;
@@ -443,7 +444,7 @@
   border: 1px solid transparent;
   font-size: 13.5px;
   font-weight: 600;
-  color: #0f172a;
+  color: #f1f5f9;
   background: transparent;
   transition: all 0.15s ease;
   outline: none;
@@ -459,13 +460,13 @@
 }
 
 .titleInputTop:hover {
-  background: #f1f5f9;
-  border-color: #e2e8f0;
+  background: #27272a;
+  border-color: #27272a;
 }
 
 .titleInputTop:focus {
-  background: #ffffff;
-  border-color: #6366f1;
+  background: #050507;
+  border-color: #818cf8;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
 
@@ -511,7 +512,7 @@
 .editor code,
 .editor pre {
   font-family: var(--font-mono);
-  background: #f4f4f5;
+  background: #27272a;
   border-radius: 6px;
   padding: 2px 5px;
 }
@@ -524,8 +525,8 @@
   display: flex;
   gap: 6px;
   padding: 6px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: #050507;
+  border: 1px solid #27272a;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
@@ -536,7 +537,7 @@
 }
 
 .bottomTools button:first-child {
-  background: #efe9ff;
+  background: #2e1065;
   color: var(--color-brand);
 }
 
@@ -547,8 +548,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: #050507;
+  border: 1px solid #27272a;
   border-radius: 10px;
   padding: 4px 10px;
   font-weight: 700;
@@ -565,8 +566,8 @@
   right: 8px;
   top: 40px;
   z-index: 30;
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
+  background: #050507;
+  border: 1px solid #27272a;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
   border-radius: 10px;
   min-width: 170px;
@@ -579,20 +580,20 @@
   height: auto;
   padding: 8px 10px;
   border: 0;
-  background: #ffffff;
+  background: #050507;
   text-align: left;
   border-radius: 6px;
   display: block;
   font-size: 13px;
   font-weight: 500;
-  color: #334155;
+  color: #cbd5e1;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
 
 .menu button:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: #27272a;
+  color: #f1f5f9;
 }
 
 .empty {
@@ -628,7 +629,7 @@
 
 .modal {
   width: 420px;
-  background: #fff;
+  background: #050507;
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
@@ -648,7 +649,7 @@
 .shareLine input,
 .shareLine select {
   height: 35px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #27272a;
   border-radius: 8px;
   padding: 0 10px;
   font-size: 13px;
@@ -659,7 +660,7 @@
   left: 50%;
   bottom: 22px;
   transform: translateX(-50%);
-  background: #0f172a;
+  background: #050507;
   color: #fff;
   border-radius: 999px;
   padding: 8px 12px 8px 16px;
@@ -673,15 +674,15 @@
 
 .selectControl {
   height: 35px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #27272a;
   border-radius: 8px;
-  background: #fff;
+  background: #050507;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
   gap: 4px;
   padding: 0 6px;
-  color: #334155;
+  color: #cbd5e1;
   position: relative;
   overflow: hidden;
   cursor: pointer;
@@ -710,15 +711,15 @@
 
 .topSelect {
   height: 35px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #27272a;
   border-radius: 8px;
-  background: #fff;
+  background: #050507;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
   gap: 4px;
   padding: 0 8px;
-  color: #334155;
+  color: #cbd5e1;
   position: relative;
   overflow: hidden;
   cursor: pointer;
@@ -726,9 +727,9 @@
 }
 
 .topSelect:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  color: #0f172a;
+  background: #050507;
+  border-color: #3f3f46;
+  color: #f1f5f9;
 }
 
 .topSelect select {
@@ -745,7 +746,7 @@
 }
 
 .topSelect svg {
-  color: var(--color-brand, #6366f1);
+  color: var(--color-brand, #818cf8);
   flex: 0 0 auto;
   pointer-events: none;
 }
@@ -755,8 +756,8 @@
   flex-direction: column;
   gap: 10px;
   padding: 10px 12px;
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
+  background: #050507;
+  border-bottom: 1px solid #27272a;
   user-select: none;
 }
 
@@ -771,10 +772,10 @@
   display: flex;
   align-items: center;
   gap: 3px;
-  background: #f1f5f9;
+  background: #27272a;
   padding: 3px;
   border-radius: 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #27272a;
 }
 
 .miniTabBtn {
@@ -786,19 +787,19 @@
   border-radius: 6px;
   border: 0;
   background: transparent;
-  color: #64748b;
+  color: #94a3b8;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .miniTabBtn:hover {
-  color: #0f172a;
+  color: #f1f5f9;
   background: rgba(0, 0, 0, 0.04);
 }
 
 .miniTabBtnActive {
-  color: #6366f1 !important;
-  background: #ffffff !important;
+  color: #818cf8 !important;
+  background: #09090b !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
@@ -808,19 +809,19 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #27272a;
   border-radius: 8px;
-  background: #ffffff;
-  color: #64748b;
+  background: #050507;
+  color: #94a3b8;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   transition: all 0.15s ease;
 }
 
 .headerActionBtn:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  color: #0f172a;
+  background: #050507;
+  border-color: #3f3f46;
+  color: #f1f5f9;
 }
 
 .headerActionsRow {
@@ -833,22 +834,22 @@
 .headerActionsRow button {
   height: 32px;
   width: 100%;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #27272a;
   border-radius: 8px;
-  background: #ffffff;
+  background: #050507;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #475569;
+  color: #a1a1aa;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .headerActionsRow button:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  color: #0f172a;
+  background: #050507;
+  border-color: #3f3f46;
+  color: #f1f5f9;
 }
 
 /* ============================================ */
@@ -864,10 +865,10 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(248, 250, 252, 0.8);
+  background: rgba(17, 17, 22, 0.8);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 1px solid #e2e8f0;
+  border: 1px solid #27272a;
   border-radius: 10px;
   padding: 2px 6px 2px 10px;
   height: 34px;
@@ -877,8 +878,8 @@
 
 .canvasSwitchControl:hover,
 .canvasSwitchControl:focus-within {
-  background: #ffffff;
-  border-color: #cbd5e1;
+  background: #050507;
+  border-color: #3f3f46;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
@@ -888,7 +889,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #64748b;
+  color: #94a3b8;
   width: 24px;
   height: 24px;
   border-radius: 6px;
@@ -898,8 +899,8 @@
 }
 
 .canvasSwitchButton:hover {
-  background: #ede7ff;
-  color: var(--color-brand, #6366f1);
+  background: #2e1065;
+  color: var(--color-brand, #818cf8);
 }
 
 .canvasMenu {
@@ -909,10 +910,10 @@
   z-index: 40;
   min-width: 240px;
   max-width: 320px;
-  background: rgba(255, 255, 255, 0.88);
+  background: rgba(9, 9, 11, 0.88);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(226, 232, 240, 0.8);
+  border: 1px solid rgba(39, 39, 42, 0.8);
   border-radius: 10px;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
   padding: 6px;
@@ -946,7 +947,7 @@
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
-  color: #334155;
+  color: #cbd5e1;
   cursor: pointer;
   transition: all 0.15s ease;
   line-height: 1.4;
@@ -954,13 +955,13 @@
 
 .canvasMenu button:hover,
 .focusedCanvas {
-  background: rgba(241, 245, 249, 0.9) !important;
-  color: #0f172a !important;
+  background: rgba(39, 39, 42, 0.9) !important;
+  color: #f1f5f9 !important;
 }
 
 .selectedCanvas {
-  background: rgba(238, 242, 255, 0.85) !important;
-  color: #4f46e5 !important;
+  background: rgba(30, 27, 75, 0.85) !important;
+  color: #818cf8 !important;
   font-weight: 600;
 }
 
@@ -989,23 +990,23 @@
 .moreBtn {
   height: 35px;
   width: 35px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #27272a;
   border-radius: 8px;
-  background: #ffffff;
+  background: #050507;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: #475569;
+  color: #a1a1aa;
   cursor: pointer;
   transition: all 0.15s ease;
   padding: 0;
 }
 
 .moreBtn:hover {
-  background: #f8fafc;
-  border-color: #cbd5e1;
-  color: #0f172a;
+  background: #050507;
+  border-color: #3f3f46;
+  color: #f1f5f9;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
 }
 
@@ -1013,13 +1014,13 @@
   width: 100%;
   min-width: 0;
   height: 26px;
-  border: 1px solid #6366f1;
+  border: 1px solid #818cf8;
   border-radius: 6px;
   padding: 0 6px;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
-  background: #fff;
+  background: #050507;
   color: inherit;
   outline: none;
 }
@@ -1119,3 +1120,42 @@
 }
 
 /* canvasSwitchControl, canvasSwitchButton, & titleInputTop are defined above */
+
+/* Tooltip Shortcut */
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #18181b;
+  border: 1px solid #3f3f46;
+  border-radius: 4px;
+  padding: 0 4px;
+  min-width: 20px;
+  height: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #f4f4f5;
+  margin-left: 6px;
+  line-height: 1;
+}
+
+/* Dark Theme Brand Adjustments */
+.presentBtn, .bottomTools button:first-child {
+  color: #818cf8 !important;
+}
+
+/* Hide Scrollbars */
+.panel::-webkit-scrollbar,
+.notes::-webkit-scrollbar,
+.bookList::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.panel,
+.notes,
+.bookList {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
