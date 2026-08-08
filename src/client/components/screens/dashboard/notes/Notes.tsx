@@ -121,6 +121,46 @@ export function Notes() {
     }
   }, [sidebarTab]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input, textarea, or contenteditable
+      if (
+        e.target instanceof HTMLInputElement || 
+        e.target instanceof HTMLTextAreaElement || 
+        e.target instanceof HTMLSelectElement ||
+        (e.target as HTMLElement).isContentEditable
+      ) {
+        return;
+      }
+      
+      if (e.key === 'n' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        notes.actions.createNote();
+      } else if (e.key === 'N' && e.shiftKey && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        notes.actions.createNotebook();
+      } else if (e.key === '[' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setIsPanelOpen(prev => !prev);
+      } else if (e.key === 'E' && e.shiftKey && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setSidebarTab('explorer');
+      } else if (e.key === 's' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setSidebarTab('search');
+      } else if (e.key === 'B' && e.shiftKey && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setSidebarTab('bookmarks');
+      } else if (e.key === 'o' && !e.metaKey && !e.ctrlKey && selected) {
+        e.preventDefault();
+        setShareOpen(true);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [notes.actions, selected]);
+
   const displayedNotebooks = useMemo(() => {
     if (!notes.data?.notebooks) return [];
     if (sidebarTab === 'bookmarks') {
@@ -284,11 +324,13 @@ export function Notes() {
             {selected && <NotesSaveStatus state={canvasState} />}
           </div>
           <div className={styles.actions}>
-            <button className={styles.topbarBtn} onClick={() => setShareOpen(true)}>
-              <Share size={15} />
-              <span>Share</span>
-            </button>
-            <Tooltip content="More options">
+            <Tooltip content={<>Share <kbd className={styles.kbd}>O</kbd></>} placement="bottom">
+              <button className={styles.topbarBtn} onClick={() => setShareOpen(true)}>
+                <Share size={15} />
+                <span>Share</span>
+              </button>
+            </Tooltip>
+            <Tooltip content="More options" placement="bottom">
               <button
                 className={styles.moreBtn}
                 aria-label="More options"

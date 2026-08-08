@@ -182,7 +182,7 @@ export function SidebarNavHeader({
       {/* Row 1: Mini-Tabs */}
       <div className={styles.navHeaderRow}>
         <div className={styles.miniTabsGroup} role="tablist" aria-label="Sidebar Navigation">
-          <Tooltip content="Explorer" placement="top">
+          <Tooltip content={<>Explorer <kbd className={styles.kbd}>⇧E</kbd></>} placement="top">
             <button
               type="button"
               role="tab"
@@ -195,7 +195,7 @@ export function SidebarNavHeader({
             </button>
           </Tooltip>
 
-          <Tooltip content="Search" placement="top">
+          <Tooltip content={<>Search <kbd className={styles.kbd}>S</kbd></>} placement="top">
             <button
               type="button"
               role="tab"
@@ -208,7 +208,7 @@ export function SidebarNavHeader({
             </button>
           </Tooltip>
 
-          <Tooltip content="Bookmarks" placement="top">
+          <Tooltip content={<>Bookmarks <kbd className={styles.kbd}>⇧B</kbd></>} placement="top">
             <button
               type="button"
               role="tab"
@@ -222,7 +222,7 @@ export function SidebarNavHeader({
           </Tooltip>
         </div>
 
-        <Tooltip content="Collapse sidebar" placement="top">
+        <Tooltip content={<>Collapse sidebar <kbd className={styles.kbd}>[</kbd></>} placement="top">
           <button
             type="button"
             aria-label="Collapse sidebar"
@@ -236,7 +236,7 @@ export function SidebarNavHeader({
 
       {/* Row 2: Actions */}
       <div className={styles.headerActionsRow}>
-        <Tooltip content="New note" placement="top">
+        <Tooltip content={<>New note <kbd className={styles.kbd}>N</kbd></>} placement="top">
           <button
             type="button"
             aria-label="New note"
@@ -246,7 +246,7 @@ export function SidebarNavHeader({
           </button>
         </Tooltip>
 
-        <Tooltip content="New notebook" placement="top">
+        <Tooltip content={<>New notebook <kbd className={styles.kbd}>⇧N</kbd></>} placement="top">
           <button
             type="button"
             aria-label="New notebook"
@@ -391,7 +391,7 @@ function BookRow({
       className={`${styles.bookRow} ${selected ? styles.activeBook : ''}`}
       onClick={onClick}
     >
-      <span style={{ background: book.color }}>
+      <span style={{ color: book.color, backgroundColor: 'rgba(255, 255, 255, 0.06)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
         <BookOpen size={14} />
       </span>
       <b
