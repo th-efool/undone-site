@@ -8,6 +8,7 @@ import { ExploreSkeleton } from '@/src/client/components/global/Skeleton';
 import { EmptyState } from '@/src/client/components/global/EmptyState';
 
 import { ExploreHero } from './components/ExploreHero/ExploreHero';
+import { CloudBed } from './components/CloudBed/CloudBed';
 import { BrowseTopics } from './components/BrowseTopics/BrowseTopics';
 import { PeopleFinishing } from './components/PeopleFinishing/PeopleFinishing';
 import { RecentlyPublished } from './components/RecentlyPublished/RecentlyPublished';
@@ -97,6 +98,7 @@ export function Explore() {
       </div>
 
       <ExploreHero />
+      <CloudBed />
 
       {debouncedQuery && !hasResults && (
         <EmptyState

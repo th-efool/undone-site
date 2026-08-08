@@ -1,0 +1,29 @@
+.cloudBedContainer {
+  position: relative;
+  width: 100%;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cloudNode {
+  position: absolute;
+  pointer-events: none;
+  will-change: transform;
+  transform-origin: center center;
+  transition: transform 60ms linear;
+}
+
+.cloudImage {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 16px 36px rgba(168, 85, 247, 0.35));
+}
+
+@media (max-width: 768px) {
+  .cloudNode {
+    opacity: 0.55 !important;
+  }
+}

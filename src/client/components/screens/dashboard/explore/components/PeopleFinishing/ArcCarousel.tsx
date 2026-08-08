@@ -59,7 +59,9 @@ export const ArcCarousel = React.forwardRef<
     viewport.style.overscrollBehaviorY = 'auto';
     viewport.style.touchAction = 'pan-x pan-y';
     viewport.style.paddingTop = `${VIEWPORT_EXTRA_HEIGHT}px`;
-    viewport.style.paddingBottom = '0px';
+    viewport.style.paddingBottom = '24px';
+    viewport.style.paddingLeft = '48px';
+    viewport.style.paddingRight = '48px';
     viewport.scrollTop = 0;
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -147,6 +149,8 @@ export const ArcCarousel = React.forwardRef<
       viewport.style.overflowY = '';
       viewport.style.paddingTop = '';
       viewport.style.paddingBottom = '';
+      viewport.style.paddingLeft = '';
+      viewport.style.paddingRight = '';
       viewport.style.marginBottom = '';
       if (viewport.firstElementChild) {
         (viewport.firstElementChild as HTMLElement).style.position = '';
