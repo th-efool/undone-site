@@ -6,6 +6,16 @@ import styles from './ExploreHero.module.css';
 export function ExploreHero() {
   return (
     <header className={styles.hero}>
+      <div className={styles.leftCloudsWrapper}>
+        <Image
+          src="/images/explore/clouds.webp"
+          alt=""
+          width={1000}
+          height={400}
+          className={styles.leftCloudsImage}
+          priority
+        />
+      </div>
       <h1 className={styles.headline}>
         <span className={styles.line}>SINK DOWN THE RABBIT HOLE.</span>
         <span className={styles.line}>SEE HOW FAR</span>
