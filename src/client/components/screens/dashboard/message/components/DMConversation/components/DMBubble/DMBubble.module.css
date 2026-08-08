@@ -179,3 +179,29 @@
   background: rgba(255, 255, 255, 0.08);
   color: #f2f3f5;
 }
+
+.actionDivider {
+  width: 1px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 2px;
+}
+
+.replyActionBtn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #b5bac1;
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+}
+
+.replyActionBtn:hover {
+  background: rgba(99, 102, 241, 0.25) !important;
+  color: #818cf8 !important;
+}

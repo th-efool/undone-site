@@ -28,6 +28,8 @@ export function DMBubble({ message, user, isAdjacentReply = false, hasAdjacentRe
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const [cardHovered, setCardHovered] = useState(false);
 
+  const outgoing = message.type === 'outgoing';
+
   // Context menu items
   const buildMenuItems = () => {
     const items: Parameters<typeof ContextMenu>[0]['items'] = [];
@@ -38,7 +40,9 @@ export function DMBubble({ message, user, isAdjacentReply = false, hasAdjacentRe
         icon: <span className={styles.menuIcon}><Reply size={14} /></span>,
         kbd: 'R',
         onClick: () => {
-          if (message.text) onReply(message.id, user.name, message.text.slice(0, 80), user.avatar);
+          const authorName = outgoing ? 'You' : user.name;
+          const authorAvatar = outgoing ? '/images/logos/floating-logo.svg' : user.avatar;
+          onReply(message.id, authorName, (message.text || 'Attachment').slice(0, 80), authorAvatar);
           setMenuPos(null);
         },
       });
@@ -65,7 +69,7 @@ export function DMBubble({ message, user, isAdjacentReply = false, hasAdjacentRe
       },
     });
 
-    if (onDeleteMessage && message.type === 'outgoing') {
+    if (onDeleteMessage && outgoing) {
       items.push({
         label: 'Delete',
         danger: true,
@@ -85,8 +89,6 @@ export function DMBubble({ message, user, isAdjacentReply = false, hasAdjacentRe
     setShowReactions(false);
     setMenuPos({ x: e.clientX, y: e.clientY });
   };
-
-  const outgoing = message.type === 'outgoing';
 
   useEffect(() => {
     setShowReactions(hovered);
@@ -158,6 +160,25 @@ export function DMBubble({ message, user, isAdjacentReply = false, hasAdjacentRe
                   {emoji}
                 </button>
               ))}
+              {onReply && (
+                <>
+                  <span className={styles.actionDivider} />
+                  <button
+                    type="button"
+                    className={styles.replyActionBtn}
+                    aria-label="Reply to message"
+                    title="Reply"
+                    onClick={() => {
+                      setShowReactions(false);
+                      const authorName = outgoing ? 'You' : user.name;
+                      const authorAvatar = outgoing ? '/images/logos/floating-logo.svg' : user.avatar;
+                      onReply(message.id, authorName, (message.text || 'Attachment').slice(0, 80), authorAvatar);
+                    }}
+                  >
+                    <Reply size={15} />
+                  </button>
+                </>
+              )}
             </div>
           )}
         </div>
