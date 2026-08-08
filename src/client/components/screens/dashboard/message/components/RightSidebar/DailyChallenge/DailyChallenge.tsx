@@ -1,3 +1,4 @@
+import Image from 'next/image';
 /* eslint-disable @next/next/no-img-element */
 import { ChevronRight, Trophy } from 'lucide-react';
 import { ChallengeCard } from '../../../models';
@@ -23,11 +24,11 @@ export function DailyChallenge({ challenge }: Props) {
       <p>{challenge.description}</p>
       <div className={styles.participants}>
         {challenge.participants.map((person) => (
-          <img
+          <Image fill
             key={person.id}
             src={person.avatar}
             alt=""
-          />
+           />
         ))}
         <span>{challenge.participantCount} participating</span>
       </div>

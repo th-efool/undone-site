@@ -1,3 +1,4 @@
+import Image from 'next/image';
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useState } from 'react';
 import { Copy, MoreHorizontal, Reply, SmilePlus } from 'lucide-react';
@@ -69,15 +70,15 @@ export function MessageBubble({ message, isAdjacentReply = false, hasAdjacentRep
         {isAdjacentReply && <AvatarConnector type="top" />}
         {message.replyTo && !isAdjacentReply && (
           <>
-            <img
+            <Image fill
               className={`${styles.desaturatedAvatar} ${cardHovered ? styles.desaturatedAvatarHover : ''}`}
               src={message.replyTo.authorAvatar}
               alt=""
-            />
+             />
             <div className={`${styles.threadLine} ${cardHovered ? styles.threadLineHover : ''}`} />
           </>
         )}
-        <img className={styles.avatar} src={message.author.avatar} alt="" />
+        <Image fill className={styles.avatar} src={message.author.avatar} alt=""  />
         {hasAdjacentReplyBelow && <AvatarConnector type="bottom" />}
       </div>
 

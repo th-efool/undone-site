@@ -47,11 +47,11 @@ export function HomeSummaryBar({
             <div className={styles.avatarStack}>
               {pausedAvatars.map((item, idx) => (
                 <div key={item.id || idx} className={styles.avatarWrapper} style={{ zIndex: 10 - idx }}>
-                  <img
+                  <Image
                     src={item.thumbnail || '/mock/thumbnails/javascript.jpeg'}
                     alt={item.title}
                     className={styles.avatarImg}
-                  />
+                   width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
                 </div>
               ))}
               {pausedRemaining > 0 && (
@@ -87,11 +87,11 @@ export function HomeSummaryBar({
             <div className={styles.avatarStack}>
               {completedAvatars.map((item, idx) => (
                 <div key={item.id || idx} className={styles.avatarWrapper} style={{ zIndex: 10 - idx }}>
-                  <img
+                  <Image
                     src={item.thumbnail || '/images/landing/coffee-break.webp'}
                     alt={item.title}
                     className={styles.avatarImg}
-                  />
+                   width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
                 </div>
               ))}
               {completedRemaining > 0 && (
@@ -123,11 +123,11 @@ export function HomeSummaryBar({
         </div>
 
         <div className={styles.crowWrapper}>
-          <img
+          <Image
             src="/images/home/crow.webp"
             alt="Crow illustration"
             className={styles.crowImage}
-          />
+           width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
         </div>
       </div>
     </section>

@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { Bell, Settings, UserCircle, UsersRound, MessageCircle, House, CheckCheck, SlidersHorizontal, ArrowUpDown, SquarePen } from 'lucide-react';
 import type { SidebarTab } from '../../../models';
@@ -126,7 +127,7 @@ export function SidebarHeader({ tabs, selectedTab, onTabChange, onGoHome, isHome
         <div className={styles.userWrap} ref={menuRef}>
           <button type="button" className={`${styles.avatarBtn}${showUserMenu ? ' ' + styles.active : ''}`} onClick={onToggleUserMenu} aria-label="User menu">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={getAvatar('shaqun')} alt="" />
+            <Image fill src={getAvatar('shaqun')} alt=""  />
           </button>
           {showUserMenu && (
             <div className={styles.dropdown}>

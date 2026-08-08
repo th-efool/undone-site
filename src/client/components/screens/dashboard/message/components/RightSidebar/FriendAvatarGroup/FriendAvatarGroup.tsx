@@ -1,3 +1,4 @@
+import Image from 'next/image';
 /* eslint-disable @next/next/no-img-element */
 import { PersonPreview } from '../../../models';
 import styles from './FriendAvatarGroup.module.css';
@@ -10,10 +11,10 @@ export function FriendAvatarGroup({ friends, overflow }: Props) {
     <div className={styles.group}>
       {friends.slice(0, 5).map((friend) => (
         <span key={friend.id}>
-          <img
+          <Image fill
             src={friend.avatar}
             alt={friend.name}
-          />
+           />
           {friend.online && <i />}
         </span>
       ))}

@@ -1,4 +1,5 @@
-'use client';
+"use client";
+import Image from 'next/image';
 
 import { useState, type DragEvent, type MouseEvent } from 'react';
 import {
@@ -285,7 +286,7 @@ export function CurriculumBoard() {
                               <GripVertical size={16} />
                             </span>
 
-                            <img
+                            <Image fill
                               src={
                                 lesson.thumbnail ||
                                 (lesson.videoId ? `https://i.ytimg.com/vi/${lesson.videoId}/hqdefault.jpg` : undefined) ||

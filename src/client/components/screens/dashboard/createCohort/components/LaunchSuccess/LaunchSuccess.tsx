@@ -1,4 +1,5 @@
-'use client';
+"use client";
+import Image from 'next/image';
 
 import { useState } from 'react';
 import { Rocket, Check, Copy, ExternalLink, RefreshCw, ArrowLeft } from 'lucide-react';
@@ -35,7 +36,7 @@ export function LaunchSuccess() {
       </div>
 
       <div className={styles.card}>
-        <img
+        <Image fill
           src={result.coverImage || state.draft.coverImage || '/mock/thumbnails/docker.avif'}
           alt={result.cohortTitle}
           className={styles.artwork}

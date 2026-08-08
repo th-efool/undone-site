@@ -1,3 +1,4 @@
+import Image from 'next/image';
 /* eslint-disable @next/next/no-img-element */
 import { ArrowDown } from 'lucide-react';
 import { ReplyPreviewModel } from '../../../../models';
@@ -11,11 +12,11 @@ export function ReplyPreview({ reply }: Props) {
       <ArrowDown size={15} />
       <div>
         {reply.avatars.map((avatar) => (
-          <img
+          <Image fill
             key={avatar.id}
             src={avatar.avatar}
             alt=""
-          />
+           />
         ))}
       </div>
       <strong>{reply.count} replies</strong>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/src/client/hooks/useToast';
+import Image from 'next/image';
 import { Play as PlayIcon, ArrowLeft, Layers } from 'lucide-react';
 import {
   LessonCard,
@@ -296,9 +297,10 @@ export function Play() {
       return (
         <div className={styles.inactiveSceneCard}>
           {poster ? (
-            <img
+            <Image
               src={poster}
               alt={title}
+              fill
               className={styles.scenePoster}
             />
           ) : (

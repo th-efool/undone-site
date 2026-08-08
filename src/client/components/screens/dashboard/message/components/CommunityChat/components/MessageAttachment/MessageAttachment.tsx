@@ -1,3 +1,4 @@
+import Image from 'next/image';
 /* eslint-disable @next/next/no-img-element */
 import { Download, FileText, Play } from 'lucide-react';
 import { ChatAttachment } from '../../../../models';
@@ -28,10 +29,7 @@ export function MessageAttachment({ attachment, compact }: Props) {
     );
   return (
     <figure className={`${styles.image} ${compact ? styles.compact : ''}`}>
-      <img
-        src={attachment.url}
-        alt={attachment.title}
-      />
+      <Image fill src={attachment.url || ''} alt={attachment.title || ''} />
       {attachment.duration && (
         <em>
           <Play

@@ -1,4 +1,5 @@
-'use client';
+"use client";
+import Image from 'next/image';
 
 import { useState } from 'react';
 import { X, Sliders, Layers, BookOpen, Plus, Compass, ListChecks } from 'lucide-react';
@@ -148,7 +149,7 @@ export function CurriculumInspector() {
 
         {activeTab === 'general' && (
           <>
-            <img
+            <Image fill
               src={selectedLesson.thumbnail || '/mock/thumbnails/docker.avif'}
               alt={selectedLesson.title}
               className={styles.imagePreview}

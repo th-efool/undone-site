@@ -1,3 +1,4 @@
+import Image from 'next/image';
 /* eslint-disable @next/next/no-img-element */
 import { DMUser } from '../../../../models';
 import styles from './UserHero.module.css';
@@ -8,10 +9,10 @@ export function UserHero({ user }: Props) {
   return (
     <section className={styles.hero}>
       <span>
-        <img
+        <Image fill
           src={user.avatar}
           alt=""
-        />
+         />
         <i />
       </span>
       <h2>{user.name}</h2>

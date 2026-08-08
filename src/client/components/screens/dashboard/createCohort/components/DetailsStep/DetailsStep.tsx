@@ -1,3 +1,4 @@
+import Image from 'next/image';
 'use client';
 
 import { useState } from 'react';
@@ -376,7 +377,7 @@ export function DetailsStep({ details }: DetailsStepProps) {
 
           <div className={styles.previewCard}>
             <div className={styles.previewCover}>
-              <img
+              <Image fill
                 src={
                   draft.coverImage ||
                   'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop'
@@ -488,11 +489,11 @@ export function DetailsStep({ details }: DetailsStepProps) {
               )}
 
               <div className={styles.previewCreatorRow}>
-                <img
+                <Image fill
                   src={getAvatar('shaqun')}
                   alt="Creator Avatar"
                   className={styles.previewAvatar}
-                />
+                 />
                 <div className={styles.previewCreatorInfo}>
                   <span className={styles.previewCreatorName}>Shaqun</span>
                   <span className={styles.previewCreatorRole}>Cohort Quest Guide</span>

@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import styles from './authFeaturedContent.module.css';
 import { FEATURED_CONTENT } from './authData';
 
@@ -10,11 +11,11 @@ export default function AuthFeaturedContent() {
           className={styles.card}
         >
           <div className={styles.thumbnail}>
-            <img
+            <Image
               src={card.image}
               alt=""
               className={styles.image}
-            />
+             width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
           </div>
 
           <div className={styles.content}>

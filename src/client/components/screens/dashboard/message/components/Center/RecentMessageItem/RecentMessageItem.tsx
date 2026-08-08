@@ -1,3 +1,4 @@
+import Image from 'next/image';
 /* eslint-disable @next/next/no-img-element */
 import { FileImage, FileText, Video } from 'lucide-react';
 import { RecentMessage } from '../../../models';
@@ -19,10 +20,10 @@ export function RecentMessageItem({ message }: Props) {
   return (
     <article className={styles.row}>
       <span className={styles.avatar}>
-        <img
+        <Image fill
           src={message.sender.avatar}
           alt=""
-        />
+         />
         {message.sender.online && <i />}
       </span>
       <div className={styles.body}>

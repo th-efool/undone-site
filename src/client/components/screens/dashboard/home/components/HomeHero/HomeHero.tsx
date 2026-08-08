@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { SearchBar } from '@/src/client/components/global/SearchBar';
@@ -26,7 +27,7 @@ export function HomeHero({
 
   return (
     <header className={styles.hero}>
-      <img src="/images/home/home-hero.webp" alt="Hero background" className={styles.heroBg} />
+      <Image src="/images/home/home-hero.webp" alt="Hero background" className={styles.heroBg}  width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
       
       <div className={styles.heroContent}>
         <div className={styles.greeting}>

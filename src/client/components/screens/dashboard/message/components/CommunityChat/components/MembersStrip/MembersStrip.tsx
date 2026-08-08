@@ -1,3 +1,4 @@
+import Image from 'next/image';
 /* eslint-disable @next/next/no-img-element */
 import { PersonPreview } from '../../../../models';
 import styles from './MembersStrip.module.css';
@@ -10,10 +11,10 @@ export function MembersStrip({ members, count }: Props) {
     <div className={styles.strip}>
       {members.slice(0, 5).map((member) => (
         <span key={member.id}>
-          <img
+          <Image fill
             src={member.avatar}
             alt={member.name}
-          />
+           />
           {member.online && <i />}
         </span>
       ))}

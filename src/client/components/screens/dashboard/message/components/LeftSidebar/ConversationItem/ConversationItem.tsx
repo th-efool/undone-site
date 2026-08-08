@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { KeyboardEvent, useCallback, useRef, useState } from 'react';
 import type { ConversationPreview } from '../../../models';
 import { ContextMenu, type ContextMenuItem } from '../../shared';
@@ -87,11 +88,11 @@ export function ConversationItem({ conversation, onSelect }: Props) {
     >
       <div className={styles.iconWrapper}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image fill
           src={conversation.avatar}
           alt={conversation.name}
           className={conversation.kind === 'community' ? styles.communityImg : styles.dmImg}
-        />
+         />
         {conversation.unreadCount ? (
           <span className={styles.badge}>{conversation.unreadCount}</span>
         ) : null}

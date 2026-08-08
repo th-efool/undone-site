@@ -1,3 +1,4 @@
+import Image from 'next/image';
 /* eslint-disable @next/next/no-img-element */
 import { PinnedMessage } from '../../../../models';
 import styles from './PinnedMessages.module.css';
@@ -9,10 +10,10 @@ export function PinnedMessages({ items }: Props) {
     <div className={styles.list}>
       {items.map((item) => (
         <article key={item.id}>
-          <img
+          <Image fill
             src={item.author.avatar}
             alt=""
-          />
+           />
           <div>
             <strong>{item.author.name}</strong>
             <p>{item.preview}</p>

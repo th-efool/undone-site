@@ -1,3 +1,4 @@
+import Image from 'next/image';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, Search } from 'lucide-react';
@@ -71,7 +72,7 @@ export function ComposeModal({ dmUsers, onSelect, onClose }: Props) {
             filtered.map((user: ConversationPreview) => (
               <button key={user.id} type="button" onClick={() => handleSelect(user.id)}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={user.avatar} alt="" />
+                <Image fill src={user.avatar} alt=""  />
                 <div>
                   <span>{user.name}</span>
                   <span> {user.kind === 'dm' ? 'Direct Message' : 'Community DM'}</span>

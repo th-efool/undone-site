@@ -1,3 +1,4 @@
+import Image from 'next/image';
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Bell, Check, MoreHorizontal, Phone, Video } from 'lucide-react';
@@ -39,10 +40,10 @@ export function DMHeader({ user, aboutOpen, onBack, onToggleAbout }: Props) {
         <ArrowLeft size={22} />
       </button>
       <span className={styles.avatar}>
-        <img
+        <Image fill
           src={user.avatar}
           alt=""
-        />
+         />
         <i />
       </span>
       <div className={styles.info}>

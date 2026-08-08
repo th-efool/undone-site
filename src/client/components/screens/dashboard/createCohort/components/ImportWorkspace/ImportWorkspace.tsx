@@ -1,7 +1,6 @@
 'use client';
-
+import Image from 'next/image';
 import { AlertCircle, CircleCheckBig, CircleDashed, CircleDot, LoaderCircle, RotateCcw, SquareDashedBottomCode } from 'lucide-react';
-
 import { Badge } from '@/src/client/components/ui/Badge/Badge';
 import { Button } from '@/src/client/components/ui/Button/Button';
 import { Cluster } from '@/src/client/components/global/layout/Cluster';
@@ -72,7 +71,7 @@ function ImportedLessonRow({ source }: { source: ImportedSourceModel }) {
     <div className={styles.lessonGrid}>
       {source.lessons.slice(0, 12).map((lesson) => (
         <div key={lesson.id} className={styles.lessonRow}>
-          <img className={styles.lessonThumbnail} src={lesson.thumbnail} alt="" />
+          <Image fill className={styles.lessonThumbnail} src={lesson.thumbnail} alt=""  />
           <div className={styles.lessonText}>
             <Text className={styles.lessonTitle}>{lesson.title}</Text>
             <Text variant="small" className={styles.lessonMeta}>
@@ -89,7 +88,7 @@ function SourcePreview({ source }: { source: ImportedSourceModel }) {
   return (
     <Surface variant="subtle" padding="md" className={styles.preview}>
       <div className={styles.previewHero}>
-        <img className={styles.previewImage} src={source.thumbnail} alt="" />
+        <Image fill className={styles.previewImage} src={source.thumbnail} alt=""  />
         <div className={styles.previewCopy}>
           <Badge variant="neutral" size="sm">
             {source.provider}

@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { CalendarMonth } from './CalendarMonth/CalendarMonth';
 import { julyDays, juneDays, mayDays } from './CalendarMonth/calendarData';
 import { LearningList } from './learningList';
@@ -42,11 +43,11 @@ export function ProgressSection() {
         </header>
 
         <div className={`${styles.progressRow} ${styles.youtube}`}>
-          <img
+          <Image
             src="/images/icons/youtube-white.webp"
             alt=""
             className={styles.progressIcon}
-          />
+           width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
           <span className={styles.progressCheck}>✓</span>
           <div className={styles.progressInfo}>
             <strong className={styles.progressHours}>26h</strong>
@@ -55,11 +56,11 @@ export function ProgressSection() {
         </div>
 
         <div className={`${styles.progressRow} ${styles.coursera}`}>
-          <img
+          <Image
             src="/images/icons/coursera-white.webp"
             alt=""
             className={styles.progressIcon}
-          />
+           width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
           <span className={styles.progressCheck}>✓</span>
           <div className={styles.progressInfo}>
             <strong className={styles.progressHours}>28h</strong>
@@ -68,11 +69,11 @@ export function ProgressSection() {
         </div>
 
         <div className={`${styles.progressRow} ${styles.history}`}>
-          <img
+          <Image
             src="/images/icons/youtube-white.webp"
             alt=""
             className={styles.progressIcon}
-          />
+           width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
           <span className={styles.progressCheck}>✓</span>
           <div className={styles.progressInfo}>
             <strong className={styles.progressHours}>22h</strong>

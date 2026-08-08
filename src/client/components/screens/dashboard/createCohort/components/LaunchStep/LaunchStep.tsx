@@ -1,4 +1,5 @@
-'use client';
+"use client";
+import Image from 'next/image';
 
 import { Rocket, Clock, Layers, BookOpen, AlertCircle } from 'lucide-react';
 import { Badge } from '@/src/client/components/ui/Badge/Badge';
@@ -35,7 +36,7 @@ export function LaunchStep() {
       {/* Top Launch Summary Banner */}
       <div className={styles.summaryStrip}>
         <div className={styles.summaryLeft}>
-          <img
+          <Image fill
             src={state.draft.coverImage || '/mock/thumbnails/docker.avif'}
             alt={state.draft.title}
             className={styles.artwork}

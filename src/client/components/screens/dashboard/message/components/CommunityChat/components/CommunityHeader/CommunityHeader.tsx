@@ -1,3 +1,4 @@
+import Image from 'next/image';
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Bell, Check, MoreHorizontal, Phone, UsersRound, Video } from 'lucide-react';
@@ -39,21 +40,21 @@ export function CommunityHeader({ community, aboutOpen, onBack, onToggleAbout }:
       >
         <ArrowLeft size={22} />
       </button>
-      <img
+      <Image fill
         className={styles.avatar}
         src={community.avatar}
         alt=""
-      />
+       />
       <div className={styles.info}>
         <h1>{community.name}</h1>
         <div className={styles.meta}>
           <div className={styles.members}>
             {community.members.slice(0, 5).map((member) => (
-              <img
+              <Image fill
                 key={member.id}
                 src={member.avatar}
                 alt=""
-              />
+               />
             ))}
           </div>
           <span>{community.onlineCount} online</span>

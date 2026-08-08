@@ -1,3 +1,4 @@
+import Image from 'next/image';
 /* eslint-disable @next/next/no-img-element */
 import { Copy, Reply, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -105,19 +106,19 @@ export function DMBubble({ message, user, isAdjacentReply = false, hasAdjacentRe
             {isAdjacentReply && <AvatarConnector type="top" isDM />}
             {message.replyTo && !isAdjacentReply && (
               <>
-                <img
+                <Image fill
                   className={`${styles.desaturatedAvatar} ${cardHovered ? styles.desaturatedAvatarHover : ''}`}
                   src={message.replyTo.authorAvatar}
                   alt=""
-                />
+                 />
                 <div className={`${styles.threadLine} ${cardHovered ? styles.threadLineHover : ''}`} />
               </>
             )}
             {message.showAvatar && (
-              <img
+              <Image fill
                 src={user.avatar}
                 alt=""
-              />
+               />
             )}
             {hasAdjacentReplyBelow && <AvatarConnector type="bottom" isDM />}
           </span>
