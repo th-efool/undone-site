@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { getCohortHref } from '@/src/client/navigation/cohortLinks';
 import styles from './SideQuestCard.module.css';
@@ -40,11 +41,11 @@ export function SideQuestCard({ item }: SideQuestCardProps) {
       href={getCohortHref(item.cohortId ?? item.id)}
       className={styles.card}
     >
-      <img
+      <Image
         src={item.thumbnail}
         alt=""
         className={styles.thumbnail}
-      />
+       width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
 
       <div className={styles.overlay} />
 
@@ -66,12 +67,12 @@ export function SideQuestCard({ item }: SideQuestCardProps) {
         <div className={styles.footer}>
           <div className={styles.avatars}>
             {item.featuredParticipants.map((participant) => (
-              <img
+              <Image
                 key={participant.id}
                 src={participant.image}
                 alt=""
                 className={styles.avatar}
-              />
+               width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
             ))}
           </div>
 

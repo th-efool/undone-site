@@ -1,6 +1,9 @@
-import { ChevronRight } from 'lucide-react';
+'use client';
 
-import { HorizontalScroller } from '@/src/client/components/global/HorizontalScroller';
+import { useRef } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+import { InfiniteScroller, type InfiniteScrollerHandle } from '@/src/client/components/global/InfiniteScroller';
 
 import type { SideQuest } from '../../models';
 
@@ -13,6 +16,8 @@ export interface TrendingSideQuestsProps {
 }
 
 export function TrendingSideQuests({ items }: TrendingSideQuestsProps) {
+  const scrollerRef = useRef<InfiniteScrollerHandle>(null);
+
   return (
     <section
       className={styles.section}
@@ -26,32 +31,41 @@ export function TrendingSideQuests({ items }: TrendingSideQuestsProps) {
           Trending Side Quests
         </h2>
 
-        <button
-          type="button"
-          className={styles.seeAll}
-        >
-          See all
-        </button>
+        <div className={styles.headerControls}>
+          <button
+            type="button"
+            className={styles.navBtn}
+            onClick={() => scrollerRef.current?.scrollLeft()}
+            aria-label="Scroll left"
+          >
+            <ChevronLeft size={16} strokeWidth={2.2} />
+          </button>
 
-        <button
-          type="button"
-          className={styles.arrow}
-        >
-          <ChevronRight
-            size={18}
-            strokeWidth={2.5}
-          />
-        </button>
+          <button
+            type="button"
+            className={styles.navBtn}
+            onClick={() => scrollerRef.current?.scrollRight()}
+            aria-label="Scroll right"
+          >
+            <ChevronRight size={16} strokeWidth={2.2} />
+          </button>
+        </div>
       </div>
 
-      <HorizontalScroller>
+      <InfiniteScroller
+        ref={scrollerRef}
+        loop={true}
+        panable={true}
+        showArrows={false}
+        scrollAmount={360}
+      >
         {items.map((item) => (
           <SideQuestCard
             key={item.id}
             item={item}
           />
         ))}
-      </HorizontalScroller>
+      </InfiniteScroller>
     </section>
   );
 }

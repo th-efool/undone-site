@@ -1,6 +1,6 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { getCohortHref } from '@/src/client/navigation/cohortLinks';
-import { Flame, Star } from 'lucide-react';
 
 import type { TrendingCourse } from '../../models';
 
@@ -16,61 +16,39 @@ export function TrendingCourseCard({ item }: TrendingCourseCardProps) {
     <Link
       href={getCohortHref(item.cohortId ?? item.id)}
       className={styles.card}
+      draggable={false}
     >
-      <img
+      <Image
         src={item.thumbnail}
         alt=""
+        draggable={false}
         className={styles.thumbnail}
-      />
-
-      <div className={styles.overlay} />
-
-      <div className={styles.topBadges}>
-        <div className={styles.trendingBadge}>
-          <Flame
-            size={12}
-            fill="currentColor"
-          />
-          Trending
-        </div>
-
-        <div className={styles.durationBadge}>{item.durationLabel}</div>
-      </div>
+       width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
 
       <div className={styles.bottom}>
         <h3 className={styles.title}>{item.title}</h3>
 
-        <ProviderBadge
-          provider={item.provider}
-          label="Imported from"
-        />
-
         <div className={styles.footer}>
-          <div className={styles.social}>
+          <ProviderBadge
+            provider={item.provider}
+            label="Imported from"
+          />
+
+          <div className={styles.statsRight}>
             <div className={styles.avatars}>
               {item.featuredLearners.map((learner) => (
-                <img
+                <Image
                   key={learner.id}
                   src={learner.image}
                   alt=""
+                  draggable={false}
                   className={styles.avatar}
-                />
+                 width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
               ))}
             </div>
 
             <span className={styles.learners}>{item.learnerCount}</span>
-
-            <span className={styles.rating}>
-              <Star
-                size={12}
-                fill="currentColor"
-              />
-
-              {item.rating}
-            </span>
           </div>
-
-          <span className={styles.join}>Join</span>
         </div>
       </div>
     </Link>

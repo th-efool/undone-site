@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { Plus } from 'lucide-react';
 import { SearchBar } from '@/src/client/components/global/SearchBar';
 import { ExploreSkeleton } from '@/src/client/components/global/Skeleton';
 import { EmptyState } from '@/src/client/components/global/EmptyState';
@@ -80,11 +82,17 @@ export function Explore() {
 
   return (
     <main className={clsx(styles.explore, isDark && styles.darkTheme)}>
-      <SearchBar
-        className={styles.searchBar}
-        value={query}
-        onChange={setQuery}
-      />
+      <div className={styles.topControlBar}>
+        <SearchBar
+          className={styles.searchBar}
+          value={query}
+          onChange={setQuery}
+        />
+        <Link href="/create-cohort" className={styles.newCohortBtn}>
+          <Plus size={18} strokeWidth={2.4} />
+          <span>New Cohort</span>
+        </Link>
+      </div>
 
       <ExploreHero />
 

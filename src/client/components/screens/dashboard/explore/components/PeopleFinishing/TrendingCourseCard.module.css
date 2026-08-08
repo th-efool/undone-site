@@ -3,12 +3,12 @@
 
   overflow: hidden;
 
-  flex: 0 0 360px;
+  flex: 0 0 450px;
 
-  height: 220px;
+  height: 275px;
 
   border: none;
-  border-radius: 20px;
+  border-radius: 22px;
 
   cursor: pointer;
 
@@ -21,6 +21,10 @@
   transition:
     transform 180ms ease,
     box-shadow 180ms ease;
+
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-user-drag: none;
 }
 
 .card:hover {
@@ -40,6 +44,10 @@
 
   object-fit: cover;
 
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+
   transition:
     transform 280ms ease,
     filter 280ms ease;
@@ -50,85 +58,41 @@
 
   filter: brightness(0.94);
 }
-.overlay {
-  position: absolute;
-  inset: 0;
-
-  background: linear-gradient(
-    to top,
-    rgba(0, 0, 0, 0.94) 0%,
-    rgba(0, 0, 0, 0.72) 32%,
-    rgba(0, 0, 0, 0.25) 60%,
-    rgba(0, 0, 0, 0) 100%
-  );
-
-  transition: opacity 220ms ease;
-}
-
-.card:hover .overlay {
-  opacity: 0.94;
-}
-.topBadges {
-  position: absolute;
-
-  top: 14px;
-  left: 14px;
-  right: 14px;
-
-  display: flex;
-  justify-content: space-between;
-}
-
-.trendingBadge,
-.durationBadge {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-
-  padding: 5px 11px;
-
-  border-radius: 999px;
-
-  background: rgba(18, 18, 18, 0.72);
-
-  backdrop-filter: blur(14px);
-
-  color: white;
-
-  font-size: 12px;
-  font-weight: 600;
-}
 
 .bottom {
   position: absolute;
 
-  left: 16px;
-  right: 16px;
-  bottom: 14px;
+  left: 20px;
+  right: 20px;
+  bottom: 18px;
 
   display: flex;
   flex-direction: column;
 
-  gap: 4px;
+  gap: 6px;
 
   color: white;
+
+  pointer-events: none;
 }
 
 .title {
   margin: 0;
 
-  font-size: 1.62rem; /* was 1.7rem */
+  font-size: 1.8rem;
   font-weight: 800;
-  line-height: 1;
+  line-height: 1.1;
 
   color: white;
 
   letter-spacing: -0.02em;
 
   text-shadow:
-    0 2px 0 rgba(0, 0, 0, 0.95),
-    0 0 4px rgba(0, 0, 0, 0.95),
-    0 0 10px rgba(0, 0, 0, 0.8);
+    -1px -1px 0 rgba(0, 0, 0, 0.95),
+    1px -1px 0 rgba(0, 0, 0, 0.95),
+    -1px 1px 0 rgba(0, 0, 0, 0.95),
+    1px 1px 0 rgba(0, 0, 0, 0.95),
+    0 2px 6px rgba(0, 0, 0, 0.95);
 }
 
 .provider {
@@ -136,29 +100,43 @@
   align-items: center;
 
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
 
-  opacity: 0.92;
+  color: white;
+
+  text-shadow:
+    -1px -1px 0 rgba(0, 0, 0, 0.95),
+    1px -1px 0 rgba(0, 0, 0, 0.95),
+    -1px 1px 0 rgba(0, 0, 0, 0.95),
+    1px 1px 0 rgba(0, 0, 0, 0.95),
+    0 2px 4px rgba(0, 0, 0, 0.95);
 }
 
 .footer {
-  display: grid;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 
-  grid-template-columns: 1fr auto;
-  align-items: end;
+  margin-top: 4px;
+  width: 100%;
 
-  column-gap: 16px;
+  color: white;
 
-  margin-top: 2px;
+  text-shadow:
+    -1px -1px 0 rgba(0, 0, 0, 0.95),
+    1px -1px 0 rgba(0, 0, 0, 0.95),
+    -1px 1px 0 rgba(0, 0, 0, 0.95),
+    1px 1px 0 rgba(0, 0, 0, 0.95),
+    0 2px 4px rgba(0, 0, 0, 0.95);
 }
 
-.social {
+.statsRight {
   display: flex;
   align-items: center;
 
-  gap: 8px;
+  gap: 12px;
 
-  min-height: 38px;
+  margin-left: auto;
 }
 
 .avatars {
@@ -166,8 +144,8 @@
 }
 
 .avatar {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
 
   border: 2px solid white;
   border-radius: 50%;
@@ -175,10 +153,19 @@
   margin-right: -7px;
 
   object-fit: cover;
+
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease;
+
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
 }
 
-.learners,
-.rating {
+.learners {
   display: flex;
   align-items: center;
 
@@ -187,70 +174,18 @@
   flex-shrink: 0;
 
   font-size: 13px;
-  font-weight: 600;
-
-  white-space: nowrap;
-}
-.join {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  height: 33px;
-  min-width: 72px;
-
-  padding: 0 18px;
-
-  border: none;
-  border-radius: 14px;
-
-  background: rgba(255, 255, 255, 0.96);
-
-  color: var(--color-brand);
-
-  font-size: 15px;
   font-weight: 700;
 
-  cursor: pointer;
+  color: white;
 
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
 
-  transition:
-    transform 180ms ease,
-    background 180ms ease,
-    box-shadow 180ms ease;
-}
-
-.join:hover {
-  transform: translateY(-1px);
-
-  background: white;
-
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.3);
-}
-
-.join:active {
-  transform: scale(0.97);
-}
-
-.trendingBadge,
-.durationBadge {
-  transition:
-    transform 180ms ease,
-    background 180ms ease;
-}
-
-.card:hover .trendingBadge,
-.card:hover .durationBadge {
-  transform: translateY(-1px);
-
-  background: rgba(28, 28, 28, 0.82);
-}
-
-.avatar {
-  transition:
-    transform 180ms ease,
-    border-color 180ms ease;
+  text-shadow:
+    -1px -1px 0 rgba(0, 0, 0, 0.95),
+    1px -1px 0 rgba(0, 0, 0, 0.95),
+    -1px 1px 0 rgba(0, 0, 0, 0.95),
+    1px 1px 0 rgba(0, 0, 0, 0.95),
+    0 2px 4px rgba(0, 0, 0, 0.95);
 }
 
 .card:hover .avatar {
@@ -261,10 +196,10 @@
 
 @media (max-width: 768px) {
   .card {
-    flex: 0 0 260px;
-    height: 200px;
+    flex: 0 0 300px;
+    height: 210px;
   }
   .title {
-    font-size: 1.4rem;
+    font-size: 1.35rem;
   }
 }

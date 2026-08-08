@@ -1,6 +1,9 @@
-import { ChevronRight } from 'lucide-react';
+'use client';
 
-import { HorizontalScroller } from '@/src/client/components/global/HorizontalScroller';
+import { useRef } from 'react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+
+import { InfiniteScroller, type InfiniteScrollerHandle } from '@/src/client/components/global/InfiniteScroller';
 
 import type { TrendingCourse } from '../../models';
 
@@ -13,39 +16,56 @@ export interface PeopleFinishingProps {
 }
 
 export function PeopleFinishing({ items }: PeopleFinishingProps) {
+  const scrollerRef = useRef<InfiniteScrollerHandle>(null);
+
   return (
     <section
       className={styles.section}
-      aria-labelledby="people-finishing-heading"
+      aria-labelledby="popular-now-heading"
     >
       <div className={styles.header}>
         <h2
-          id="people-finishing-heading"
+          id="popular-now-heading"
           className={styles.title}
         >
-          People Are Finishing These
+          Popular now
         </h2>
 
-        <button
-          type="button"
-          className={styles.arrow}
-          aria-label="View all"
-        >
-          <ChevronRight
-            size={18}
-            strokeWidth={2.5}
-          />
-        </button>
+        <div className={styles.headerControls}>
+          <button
+            type="button"
+            className={styles.navBtn}
+            onClick={() => scrollerRef.current?.scrollLeft()}
+            aria-label="Scroll left"
+          >
+            <ChevronLeft size={16} strokeWidth={2.2} />
+          </button>
+
+          <button
+            type="button"
+            className={styles.navBtn}
+            onClick={() => scrollerRef.current?.scrollRight()}
+            aria-label="Scroll right"
+          >
+            <ChevronRight size={16} strokeWidth={2.2} />
+          </button>
+        </div>
       </div>
 
-      <HorizontalScroller>
+      <InfiniteScroller
+        ref={scrollerRef}
+        loop={true}
+        panable={true}
+        showArrows={false}
+        scrollAmount={450}
+      >
         {items.map((item) => (
           <TrendingCourseCard
             key={item.id}
             item={item}
           />
         ))}
-      </HorizontalScroller>
+      </InfiniteScroller>
     </section>
   );
 }

@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { getCohortHref } from '@/src/client/navigation/cohortLinks';
 import { Bookmark, Users } from 'lucide-react';
@@ -17,11 +18,11 @@ export function ArticleCard({ item }: ArticleCardProps) {
         href={getCohortHref(item.cohortId ?? item.id)}
         className={styles.content}
       >
-        <img
+        <Image
           src={item.thumbnail}
           alt=""
           className={styles.thumbnail}
-        />
+         width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
 
         <div>
           <div className={styles.top}>
