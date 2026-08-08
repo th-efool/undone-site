@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { ArticlePreview } from '../../models';
 
 import { ArticleCard, ArticleCardSkeleton } from './ArticleCard';
+import { InfiniteScroller, type InfiniteScrollerHandle } from '@/src/client/components/global/InfiniteScroller';
 
 import styles from './RecentlyPublished.module.css';
 
@@ -22,22 +23,16 @@ export function RecentlyPublished({
   hasMore = false,
   isLoadingMore = false,
 }: RecentlyPublishedProps) {
-  const viewportRef = useRef<HTMLDivElement>(null);
+  const scrollerRef = useRef<InfiniteScrollerHandle>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  const scroll = (offset: number) => {
-    if (!viewportRef.current) return;
-    viewportRef.current.scrollBy({
-      left: offset,
-      behavior: 'smooth',
-    });
-  };
-
   useEffect(() => {
-    if (!onLoadMore || !hasMore || !sentinelRef.current || !viewportRef.current) return;
+    if (!onLoadMore || !hasMore || !sentinelRef.current || !scrollerRef.current) return;
 
     const sentinel = sentinelRef.current;
-    const viewport = viewportRef.current;
+    const viewport = scrollerRef.current.getViewport();
+
+    if (!viewport) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -82,7 +77,7 @@ export function RecentlyPublished({
           <button
             type="button"
             className={styles.navBtn}
-            onClick={() => scroll(-380)}
+            onClick={() => scrollerRef.current?.scrollLeft()}
             aria-label="Scroll left"
           >
             <ChevronLeft size={16} strokeWidth={2.2} />
@@ -91,7 +86,7 @@ export function RecentlyPublished({
           <button
             type="button"
             className={styles.navBtn}
-            onClick={() => scroll(380)}
+            onClick={() => scrollerRef.current?.scrollRight()}
             aria-label="Scroll right"
           >
             <ChevronRight size={16} strokeWidth={2.2} />
@@ -99,8 +94,14 @@ export function RecentlyPublished({
         </div>
       </div>
 
-      <div ref={viewportRef} className={styles.railViewport}>
-        <div className={styles.railTrack}>
+      <div className={styles.scrollerWrapper}>
+        <InfiniteScroller
+          ref={scrollerRef}
+          loop={false}
+          panable={true}
+          showArrows={false}
+          scrollAmount={430}
+        >
           {items.map((item) => (
             <ArticleCard
               key={item.id}
@@ -112,7 +113,7 @@ export function RecentlyPublished({
 
           {/* Invisible sentinel for automated infinite horizontal discovery */}
           <div ref={sentinelRef} className={styles.sentinel} aria-hidden="true" />
-        </div>
+        </InfiniteScroller>
       </div>
     </section>
   );

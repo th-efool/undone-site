@@ -17,14 +17,16 @@ export function ArticleCard({ item }: ArticleCardProps) {
       <Link
         href={getCohortHref(item.cohortId ?? item.id)}
         className={styles.cardLink}
+        draggable={false}
       >
         <div className={styles.imageContainer}>
           <Image
             src={item.thumbnail}
-            alt={item.title}
+            alt=""
             className={styles.thumbnail}
             width={360}
             height={480}
+            draggable={false}
           />
           <button
             type="button"
@@ -37,7 +39,7 @@ export function ArticleCard({ item }: ArticleCardProps) {
           >
             <Bookmark
               size={15}
-              strokeWidth={2.2}
+              strokeWidth={2.5}
               fill={item.bookmarked ? 'currentColor' : 'none'}
             />
           </button>
@@ -52,12 +54,10 @@ export function ArticleCard({ item }: ArticleCardProps) {
 
           <div className={styles.meta}>
             <span className={styles.metaItem}>
-              <Users size={12} className={styles.metaIcon} />
+              <Users size={13} className={styles.metaIcon} />
               {item.learnerCount}
             </span>
-
             <span className={styles.dot}>•</span>
-
             <span className={styles.metaItem}>{item.publishedLabel}</span>
           </div>
         </div>

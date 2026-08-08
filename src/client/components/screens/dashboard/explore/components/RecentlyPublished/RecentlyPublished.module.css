@@ -66,26 +66,9 @@
   outline-offset: 2px;
 }
 
-.railViewport {
+.scrollerWrapper {
   width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  scroll-behavior: smooth;
-  touch-action: pan-x pan-y;
-  padding: 4px 0 12px 0;
-}
-
-.railViewport::-webkit-scrollbar {
-  display: none;
-}
-
-.railTrack {
-  display: flex;
-  align-items: stretch;
-  gap: var(--space-4);
-  width: max-content;
+  margin-top: 4px;
 }
 
 .sentinel {
@@ -104,8 +87,5 @@
   }
   .headerControls {
     display: none;
-  }
-  .railTrack {
-    gap: var(--space-3);
   }
 }
