@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { Caveat, Dancing_Script, Geist, Geist_Mono, Manrope, Lora } from 'next/font/google';
 import { CapacitorBridge } from '@/src/client/components/global/CapacitorBridge/CapacitorBridge';
+import { ReactQueryProvider } from '@/src/client/providers/ReactQueryProvider';
 import './globals.css';
 
 const geistSans = Geist({
@@ -132,7 +133,7 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
     >
       <body className="min-h-screen bg-background text-text font-sans antialiased">
         <CapacitorBridge />
-        {children}
+        <ReactQueryProvider>{children}</ReactQueryProvider>
       </body>
     </html>
   );
