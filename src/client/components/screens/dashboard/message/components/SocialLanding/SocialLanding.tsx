@@ -73,7 +73,7 @@ export function SocialLanding({ message }: Props) {
             setCommunityReply({ messageId, senderName, senderAvatar: senderAvatar || '/images/logos/floating-logo.svg', previewText })
           }
           isTyping={message.isTyping}
-          typingUsernames={['Aarav', 'Vanshika']} /* mock */
+          typingUsernames={message.isTyping ? ['Aarav'] : []}
         />
       )}
 
@@ -104,7 +104,7 @@ export function SocialLanding({ message }: Props) {
           }
           onDeleteMessage={(messageId) => message.actions.deleteDMMessage(message.dmConversation.id, messageId)}
           isTyping={message.isTyping}
-          typingUsernames={[message.dmConversation.user.name]} /* mock */
+          typingUsernames={message.isTyping ? [message.dmConversation.user.name] : []}
         />
       )}
 

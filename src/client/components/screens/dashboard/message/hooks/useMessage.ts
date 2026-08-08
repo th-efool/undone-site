@@ -557,10 +557,6 @@ export function useMessage() {
       const draft = drafts[conversationId]?.trim();
       if (!draft) return;
 
-      // Batch C: Simulate typing before sending
-      setIsTyping(true);
-      setTimeout(() => setIsTyping(false), 800 + Math.random() * 600);
-
       const base = mapCohortToCommunity(conversationId).messages;
       const message: CommunityMessage = {
         id: `${conversationId}-${Date.now()}`,
@@ -644,10 +640,6 @@ export function useMessage() {
     (conversationId: string, replyCtx?: ReplyContext | null) => {
       const draft = drafts[conversationId]?.trim();
       if (!draft) return;
-
-      // Batch C: Simulate typing before sending
-      setIsTyping(true);
-      setTimeout(() => setIsTyping(false), 800 + Math.random() * 600);
 
       const base = makeDMConversation(
         dmConversations.find((item) => item.id === conversationId),
