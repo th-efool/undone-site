@@ -3,9 +3,7 @@
 import dynamic from 'next/dynamic';
 import type { CanvasSceneData, CanvasState } from '../../models/canvas.models';
 import styles from './NotesCanvas.module.css';
-import { useMemo, useCallback, useState, useEffect } from 'react';
-import { canvasAdapter } from '../../adapters/canvas.adapter';
-import { CanvasControls } from './CanvasControls';
+import { useMemo, useCallback } from 'react';
 
 import '@/src/app/styles/excalidraw.css';
 
@@ -33,10 +31,6 @@ export function NotesCanvas({
   onSceneChange,
   isReadOnly = false,
 }: NotesCanvasProps) {
-  const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
-  const [currentBackgroundColor, setCurrentBackgroundColor] = useState<string>('#000000');
-  const [isGridEnabled, setIsGridEnabled] = useState<boolean>(true);
-
   // Convert internal CanvasSceneData into Excalidraw's initialData prop format
   const initialData = useMemo(() => {
     if (!initialScene) {
@@ -49,13 +43,22 @@ export function NotesCanvas({
         },
       };
     }
+
+    const appState = initialScene.appState || {};
+    // Normalize light mode default saved colors to OLED pitch black #000000
+    const rawBg = appState.viewBackgroundColor;
+    const viewBackgroundColor = (!rawBg || rawBg === '#ffffff' || rawBg === '#ffffff') ? '#000000' : rawBg;
+
     return {
       elements: initialScene.elements as any,
       appState: {
-        viewBackgroundColor: '#000000',
-        gridSize: 20,
+        viewBackgroundColor,
+        gridSize: appState.gridSize ?? 20,
         theme: 'dark',
-        ...(initialScene.appState as any),
+        ...appState,
+        viewBackgroundColor,
+        gridSize: appState.gridSize ?? 20,
+        theme: 'dark',
       },
       files: initialScene.files as any,
     };
@@ -63,44 +66,29 @@ export function NotesCanvas({
 
   const handleChange = useCallback((elements: any, appState: any, files: any) => {
     const bgColor = appState.viewBackgroundColor || '#000000';
-    const grid = appState.gridSize !== null;
     
-    setCurrentBackgroundColor(prev => prev !== bgColor ? bgColor : prev);
-    setIsGridEnabled(prev => prev !== grid ? grid : prev);
-
     onSceneChange({
       elements,
-      // Only preserve essential app state to minimize serialized data
+      // Preserve essential app state including background color, grid size, and theme
       appState: {
         viewBackgroundColor: bgColor,
-        gridSize: appState.gridSize,
+        gridSize: appState.gridSize ?? 20,
         theme: 'dark',
       },
       files,
     });
   }, [onSceneChange]);
 
-  const handleBackgroundChange = useCallback((color: string) => {
-    if (!excalidrawAPI) return;
-    excalidrawAPI.updateScene({ appState: { viewBackgroundColor: color } });
-  }, [excalidrawAPI]);
-
-  const handleGridToggle = useCallback(() => {
-    if (!excalidrawAPI) return;
-    excalidrawAPI.updateScene({ appState: { gridSize: isGridEnabled ? null : 20 } });
-  }, [excalidrawAPI, isGridEnabled]);
-
   return (
     <div className={styles.container}>
       <Excalidraw
-        excalidrawAPI={setExcalidrawAPI}
         initialData={initialData}
         onChange={handleChange}
         viewModeEnabled={isReadOnly}
-        theme="dark" // Switched to dark theme for Notes dashboard
+        theme="dark"
         UIOptions={{
           canvasActions: {
-            changeViewBackgroundColor: false,
+            changeViewBackgroundColor: true,
             clearCanvas: true,
             loadScene: false,
             saveToActiveFile: false,
@@ -109,14 +97,6 @@ export function NotesCanvas({
           },
         }}
       />
-      {!isReadOnly && (
-        <CanvasControls
-          currentBackgroundColor={currentBackgroundColor}
-          isGridEnabled={isGridEnabled}
-          onBackgroundChange={handleBackgroundChange}
-          onGridToggle={handleGridToggle}
-        />
-      )}
     </div>
   );
 }

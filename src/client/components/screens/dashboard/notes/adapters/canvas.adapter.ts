@@ -23,9 +23,17 @@ export const canvasAdapter = {
       const parsed = JSON.parse(s);
       // Basic validation
       if (parsed && typeof parsed === 'object') {
+        const appState = parsed.appState || {};
+        const rawBg = appState.viewBackgroundColor;
+        const viewBackgroundColor = (!rawBg || rawBg === '#ffffff') ? '#000000' : rawBg;
         return {
           elements: Array.isArray(parsed.elements) ? parsed.elements : [],
-          appState: parsed.appState || { viewBackgroundColor: '#000000', theme: 'dark', gridSize: 20 },
+          appState: {
+            ...appState,
+            viewBackgroundColor,
+            gridSize: appState.gridSize ?? 20,
+            theme: 'dark',
+          },
           files: parsed.files || {},
         };
       }

@@ -6,7 +6,7 @@
   overflow: hidden;
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-sm);
-  background: var(--color-white);
+  background: #000000;
   /* Ensure canvas takes up the remaining space dynamically */
   display: flex;
   flex-direction: column;
