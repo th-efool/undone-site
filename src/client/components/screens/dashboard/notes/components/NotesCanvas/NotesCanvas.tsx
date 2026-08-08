@@ -65,8 +65,8 @@ export function NotesCanvas({
     const bgColor = appState.viewBackgroundColor || '#000000';
     const grid = appState.gridSize !== null;
     
-    if (currentBackgroundColor !== bgColor) setCurrentBackgroundColor(bgColor);
-    if (isGridEnabled !== grid) setIsGridEnabled(grid);
+    setCurrentBackgroundColor(prev => prev !== bgColor ? bgColor : prev);
+    setIsGridEnabled(prev => prev !== grid ? grid : prev);
 
     onSceneChange({
       elements,
@@ -78,7 +78,7 @@ export function NotesCanvas({
       },
       files,
     });
-  }, [onSceneChange, currentBackgroundColor, isGridEnabled]);
+  }, [onSceneChange]);
 
   const handleBackgroundChange = useCallback((color: string) => {
     if (!excalidrawAPI) return;
@@ -93,7 +93,7 @@ export function NotesCanvas({
   return (
     <div className={styles.container}>
       <Excalidraw
-        excalidrawAPI={(api: any) => setExcalidrawAPI(api)}
+        excalidrawAPI={setExcalidrawAPI}
         initialData={initialData}
         onChange={handleChange}
         viewModeEnabled={isReadOnly}
