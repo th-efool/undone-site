@@ -64,17 +64,15 @@ export function Explore() {
     [explore.trendingSideQuests, matches],
   );
   // Task 2.8 #45: Limit Recently Published to max 5 articles
-  const recentlyPublished = useMemo(
+  const freshDiscoveries = useMemo(
     () =>
-      explore.recentlyPublished
-        .filter((item) =>
-          matches([item.title, item.author, item.learnerCount]),
-        )
-        .slice(0, 5),
-    [explore.recentlyPublished, matches],
+      explore.freshDiscoveries.filter((item) =>
+        matches([item.title, item.author, item.learnerCount]),
+      ),
+    [explore.freshDiscoveries, matches],
   );
   const hasResults =
-    peopleFinishing.length + topics.length + trendingSideQuests.length + recentlyPublished.length >
+    peopleFinishing.length + topics.length + trendingSideQuests.length + freshDiscoveries.length >
     0;
 
   if (explore.loading) {
@@ -113,7 +111,12 @@ export function Explore() {
       <PeopleFinishing items={trendingSideQuests} />
       <BrowseTopics items={topics} />
       <TrendingSideQuests items={peopleFinishing} />
-      <RecentlyPublished items={recentlyPublished} />
+      <RecentlyPublished
+        items={freshDiscoveries}
+        onLoadMore={explore.loadMoreFreshDiscoveries}
+        hasMore={explore.hasMoreFreshDiscoveries}
+        isLoadingMore={explore.isLoadingMoreFreshDiscoveries}
+      />
     </main>
   );
 }

@@ -362,65 +362,110 @@ export const exploreMock: ExploreModel = {
   recentlyPublished: [
     {
       id: 'productivity-systems',
-
       title: 'Productivity Systems That Actually Work',
-
       author: 'Agrim Singh',
-
       thumbnail: '/mock/articles/productivity.webp',
-
       learnerCount: '5.2K learners',
-
       publishedLabel: '6h ago',
-
       bookmarked: false,
     },
-
     {
       id: 'habit-formation',
-
       title: 'Neuroscience of Habit Formation',
-
       author: 'Shaqun',
-
       thumbnail: '/mock/articles/habits.webp',
-
       learnerCount: '4.1K learners',
-
       publishedLabel: '1d ago',
-
       bookmarked: false,
     },
-
     {
       id: 'deep-work',
-
       title: 'Deep Work in a Distracted World',
-
       author: 'Rohan Gupta',
-
       thumbnail: '/mock/thumbnails/deep-work.webp',
-
       learnerCount: '3.8K learners',
-
       publishedLabel: '2d ago',
-
       bookmarked: false,
     },
-
     {
       id: 'space',
-
       title: 'Space Exploration Explained Simply',
-
       author: 'Vanshika Iyer',
-
       thumbnail: '/mock/thumbnails/space.jpeg',
-
       learnerCount: '2.7K learners',
-
       publishedLabel: '2d ago',
-
+      bookmarked: false,
+    },
+    {
+      id: 'system-design-mastery',
+      title: 'System Design: Architecting at Scale',
+      author: 'Alex Xu',
+      thumbnail: '/mock/thumbnails/system-design.jpeg',
+      learnerCount: '14.6K learners',
+      publishedLabel: '3d ago',
+      bookmarked: true,
+    },
+    {
+      id: 'ai-agents-foundations',
+      title: 'Building Autonomous AI Agents',
+      author: 'Andrej Karpathy',
+      thumbnail: '/mock/thumbnails/machine-learning.avif',
+      learnerCount: '18.2K learners',
+      publishedLabel: '4d ago',
+      bookmarked: false,
+    },
+    {
+      id: 'clean-code-habits',
+      title: 'Clean Code: Refactoring in Practice',
+      author: 'Robert C. Martin',
+      thumbnail: '/mock/thumbnails/100dcode.jpg',
+      learnerCount: '9.4K learners',
+      publishedLabel: '5d ago',
+      bookmarked: false,
+    },
+    {
+      id: 'ui-design-systems',
+      title: 'Design Systems & Micro-Interactions',
+      author: 'Michal Malewicz',
+      thumbnail: '/mock/thumbnails/ui-fundamentals.webp',
+      learnerCount: '7.8K learners',
+      publishedLabel: '6d ago',
+      bookmarked: true,
+    },
+    {
+      id: 'mental-models-decision',
+      title: 'Mental Models for Clear Thinking',
+      author: 'Shane Parrish',
+      thumbnail: '/mock/thumbnails/reflections.jpeg',
+      learnerCount: '11.3K learners',
+      publishedLabel: '1w ago',
+      bookmarked: false,
+    },
+    {
+      id: 'modern-react-architecture',
+      title: 'Modern React 19 & Server Actions',
+      author: 'Dan Abramov',
+      thumbnail: '/mock/thumbnails/react.webp',
+      learnerCount: '21.5K learners',
+      publishedLabel: '1w ago',
+      bookmarked: false,
+    },
+    {
+      id: 'python-data-pipelines',
+      title: 'High-Performance Python Pipelines',
+      author: 'Wes McKinney',
+      thumbnail: '/mock/thumbnails/data-science.avif',
+      learnerCount: '8.9K learners',
+      publishedLabel: '2w ago',
+      bookmarked: false,
+    },
+    {
+      id: 'kubernetes-cloud-native',
+      title: 'Kubernetes in Production Environments',
+      author: 'Kelsey Hightower',
+      thumbnail: '/mock/thumbnails/docker.avif',
+      learnerCount: '12.1K learners',
+      publishedLabel: '2w ago',
       bookmarked: false,
     },
   ],
