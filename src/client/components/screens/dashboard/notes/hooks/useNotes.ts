@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { filterNotes, toNotebookItems } from '../adapters/notes.adapter';
 import type {
-  NoteEntity,
+  NoteDocument,
   NotesFilter,
   NotesSort,
   NotesStateEntity,
@@ -20,7 +20,7 @@ export function useNotes() {
   const [noteQuery, setNoteQuery] = useState('');
   const [toast, setToast] = useState('');
   const [lastDeleted, setLastDeleted] = useState<{
-    notes: NoteEntity[];
+    notes: NoteDocument[];
     notebooks: NotesStateEntity['notebooks'];
   } | null>(null);
   useEffect(() => {
@@ -151,7 +151,6 @@ export function useNotes() {
         id: id('note'),
         notebookId,
         title: 'Untitled Note',
-        body: '<h1>Untitled Note</h1><p>Start writing...</p>',
         tags: [],
         favorite: false,
         shared: false,
@@ -162,6 +161,12 @@ export function useNotes() {
         publicLink: false,
         permission: 'editor' as Permission,
         sharedWith: [],
+        contentType: 'canvas' as const,
+        ownerId: null,
+        linkedConceptIds: [],
+        linkedResourceIds: [],
+        learningPathId: null,
+        revision: null,
       };
       return {
         ...s,
@@ -170,7 +175,7 @@ export function useNotes() {
         selectedNoteId: note.id,
       };
     });
-  const patchNote = (noteId: string, patch: Partial<NoteEntity>) =>
+  const patchNote = (noteId: string, patch: Partial<NoteDocument>) =>
     update((s) => ({
       ...s,
       notes: s.notes.map((n) => (n.id === noteId ? { ...n, ...patch, updatedAt: stamp() } : n)),
