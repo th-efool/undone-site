@@ -106,7 +106,7 @@ export function DMBubble({ message, user, isAdjacentReply = false, hasAdjacentRe
             {isAdjacentReply && <AvatarConnector type="top" isDM />}
             {message.replyTo && !isAdjacentReply && (
               <>
-                <Image fill
+                <Image width={400} height={300}
                   className={`${styles.desaturatedAvatar} ${cardHovered ? styles.desaturatedAvatarHover : ''}`}
                   src={message.replyTo.authorAvatar}
                   alt=""
@@ -115,7 +115,7 @@ export function DMBubble({ message, user, isAdjacentReply = false, hasAdjacentRe
               </>
             )}
             {message.showAvatar && (
-              <Image fill
+              <Image width={400} height={300}
                 src={user.avatar}
                 alt=""
                />

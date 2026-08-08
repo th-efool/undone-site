@@ -23,7 +23,7 @@ export function TrendingCourseCard({ item }: TrendingCourseCardProps) {
         alt=""
         draggable={false}
         className={styles.thumbnail}
-       width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
+       width={400} height={300}/>
 
       <div className={styles.bottom}>
         <h3 className={styles.title}>{item.title}</h3>
@@ -43,7 +43,7 @@ export function TrendingCourseCard({ item }: TrendingCourseCardProps) {
                   alt=""
                   draggable={false}
                   className={styles.avatar}
-                 width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
+                 width={400} height={300}/>
               ))}
             </div>
 

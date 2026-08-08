@@ -70,7 +70,7 @@ export function MessageBubble({ message, isAdjacentReply = false, hasAdjacentRep
         {isAdjacentReply && <AvatarConnector type="top" />}
         {message.replyTo && !isAdjacentReply && (
           <>
-            <Image fill
+            <Image width={400} height={300}
               className={`${styles.desaturatedAvatar} ${cardHovered ? styles.desaturatedAvatarHover : ''}`}
               src={message.replyTo.authorAvatar}
               alt=""
@@ -78,7 +78,7 @@ export function MessageBubble({ message, isAdjacentReply = false, hasAdjacentRep
             <div className={`${styles.threadLine} ${cardHovered ? styles.threadLineHover : ''}`} />
           </>
         )}
-        <Image fill className={styles.avatar} src={message.author.avatar} alt=""  />
+        <Image width={400} height={300} className={styles.avatar} src={message.author.avatar} alt=""  />
         {hasAdjacentReplyBelow && <AvatarConnector type="bottom" />}
       </div>
 

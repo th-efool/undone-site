@@ -29,7 +29,7 @@ export function MessageAttachment({ attachment, compact }: Props) {
     );
   return (
     <figure className={`${styles.image} ${compact ? styles.compact : ''}`}>
-      <Image fill src={attachment.url || ''} alt={attachment.title || ''} />
+      <Image width={400} height={300} src={attachment.url || ''} alt={attachment.title || ''} />
       {attachment.duration && (
         <em>
           <Play

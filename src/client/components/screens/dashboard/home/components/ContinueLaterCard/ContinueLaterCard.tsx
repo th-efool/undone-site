@@ -18,7 +18,7 @@ export function ContinueLaterCard({ item, onResume }: ContinueLaterCardProps) {
           className={styles.thumbnail}
           src={item.thumbnail}
           alt=""
-         width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
+         width={400} height={300}/>
       </Link>
 
       <div className={styles.content}>

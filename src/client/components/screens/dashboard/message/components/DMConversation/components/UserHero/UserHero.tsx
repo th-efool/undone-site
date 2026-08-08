@@ -9,10 +9,7 @@ export function UserHero({ user }: Props) {
   return (
     <section className={styles.hero}>
       <span>
-        <Image fill
-          src={user.avatar}
-          alt=""
-         />
+        <Image width={80} height={80} src={user.avatar} alt={user.name} className={styles.avatar} />
         <i />
       </span>
       <h2>{user.name}</h2>

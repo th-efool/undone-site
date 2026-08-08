@@ -20,7 +20,7 @@ export function RecentMessageItem({ message }: Props) {
   return (
     <article className={styles.row}>
       <span className={styles.avatar}>
-        <Image fill
+        <Image width={400} height={300}
           src={message.sender.avatar}
           alt=""
          />

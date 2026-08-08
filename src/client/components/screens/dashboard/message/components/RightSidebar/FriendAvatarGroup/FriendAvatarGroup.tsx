@@ -11,10 +11,7 @@ export function FriendAvatarGroup({ friends, overflow }: Props) {
     <div className={styles.group}>
       {friends.slice(0, 5).map((friend) => (
         <span key={friend.id}>
-          <Image fill
-            src={friend.avatar}
-            alt={friend.name}
-           />
+          <Image width={32} height={32} src={friend.avatar} alt={friend.name} />
           {friend.online && <i />}
         </span>
       ))}

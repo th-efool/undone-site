@@ -286,7 +286,7 @@ export function CurriculumBoard() {
                               <GripVertical size={16} />
                             </span>
 
-                            <Image fill
+                            <Image width={400} height={300}
                               src={
                                 lesson.thumbnail ||
                                 (lesson.videoId ? `https://i.ytimg.com/vi/${lesson.videoId}/hqdefault.jpg` : undefined) ||

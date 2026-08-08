@@ -51,7 +51,7 @@ export function HomeSummaryBar({
                     src={item.thumbnail || '/mock/thumbnails/javascript.jpeg'}
                     alt={item.title}
                     className={styles.avatarImg}
-                   width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
+                   width={400} height={300}/>
                 </div>
               ))}
               {pausedRemaining > 0 && (
@@ -91,7 +91,7 @@ export function HomeSummaryBar({
                     src={item.thumbnail || '/images/landing/coffee-break.webp'}
                     alt={item.title}
                     className={styles.avatarImg}
-                   width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
+                   width={400} height={300}/>
                 </div>
               ))}
               {completedRemaining > 0 && (
@@ -127,7 +127,7 @@ export function HomeSummaryBar({
             src="/images/home/crow.webp"
             alt="Crow illustration"
             className={styles.crowImage}
-           width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
+           width={400} height={300}/>
         </div>
       </div>
     </section>

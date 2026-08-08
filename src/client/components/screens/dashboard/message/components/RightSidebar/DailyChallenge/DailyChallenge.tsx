@@ -24,11 +24,7 @@ export function DailyChallenge({ challenge }: Props) {
       <p>{challenge.description}</p>
       <div className={styles.participants}>
         {challenge.participants.map((person) => (
-          <Image fill
-            key={person.id}
-            src={person.avatar}
-            alt=""
-           />
+          <Image key={person.id} width={28} height={28} src={person.avatar} alt="" />
         ))}
         <span>{challenge.participantCount} participating</span>
       </div>

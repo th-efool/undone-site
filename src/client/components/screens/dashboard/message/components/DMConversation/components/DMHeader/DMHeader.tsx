@@ -40,10 +40,7 @@ export function DMHeader({ user, aboutOpen, onBack, onToggleAbout }: Props) {
         <ArrowLeft size={22} />
       </button>
       <span className={styles.avatar}>
-        <Image fill
-          src={user.avatar}
-          alt=""
-         />
+        <Image width={40} height={40} src={user.avatar} alt={user.name} className={styles.avatar} />
         <i />
       </span>
       <div className={styles.info}>

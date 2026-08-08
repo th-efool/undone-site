@@ -88,11 +88,7 @@ export function ConversationItem({ conversation, onSelect }: Props) {
     >
       <div className={styles.iconWrapper}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <Image fill
-          src={conversation.avatar}
-          alt={conversation.name}
-          className={conversation.kind === 'community' ? styles.communityImg : styles.dmImg}
-         />
+        <Image width={48} height={48} src={conversation.avatar} alt={conversation.name} className={conversation.kind === 'community' ? styles.communityImg : styles.dmImg} />
         {conversation.unreadCount ? (
           <span className={styles.badge}>{conversation.unreadCount}</span>
         ) : null}

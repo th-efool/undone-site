@@ -149,7 +149,7 @@ export function CurriculumInspector() {
 
         {activeTab === 'general' && (
           <>
-            <Image fill
+            <Image width={400} height={300}
               src={selectedLesson.thumbnail || '/mock/thumbnails/docker.avif'}
               alt={selectedLesson.title}
               className={styles.imagePreview}

@@ -8,7 +8,7 @@ interface Props {
 export function LiveCard({ session }: Props) {
   return (
     <article className={styles.card} onDragStart={(e) => e.preventDefault()}>
-      <Image fill
+      <Image width={400} height={300}
         className={styles.bg}
         src={session.thumbnail}
         alt=""
@@ -22,7 +22,7 @@ export function LiveCard({ session }: Props) {
         <div className={styles.avatars}>
           {session.avatars.slice(0, 3).map((person) => (
             <span key={person.id}>
-              <Image fill
+              <Image width={400} height={300}
                 src={person.avatar}
                 alt=""
                 draggable={false}

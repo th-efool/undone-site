@@ -27,7 +27,7 @@ export function HomeHero({
 
   return (
     <header className={styles.hero}>
-      <Image src="/images/home/home-hero.webp" alt="Hero background" className={styles.heroBg}  width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
+      <Image src="/images/home/home-hero.webp" alt="Hero background" className={styles.heroBg}  width={400} height={300}/>
       
       <div className={styles.heroContent}>
         <div className={styles.greeting}>

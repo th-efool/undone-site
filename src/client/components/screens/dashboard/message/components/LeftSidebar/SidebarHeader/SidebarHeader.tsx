@@ -127,7 +127,7 @@ export function SidebarHeader({ tabs, selectedTab, onTabChange, onGoHome, isHome
         <div className={styles.userWrap} ref={menuRef}>
           <button type="button" className={`${styles.avatarBtn}${showUserMenu ? ' ' + styles.active : ''}`} onClick={onToggleUserMenu} aria-label="User menu">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <Image fill src={getAvatar('shaqun')} alt=""  />
+            <Image width={36} height={36} src={getAvatar('shaqun')} alt="" />
           </button>
           {showUserMenu && (
             <div className={styles.dropdown}>

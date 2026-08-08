@@ -10,7 +10,7 @@ export function PinnedMessages({ items }: Props) {
     <div className={styles.list}>
       {items.map((item) => (
         <article key={item.id}>
-          <Image fill
+          <Image width={400} height={300}
             src={item.author.avatar}
             alt=""
            />

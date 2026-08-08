@@ -36,7 +36,7 @@ export function LaunchStep() {
       {/* Top Launch Summary Banner */}
       <div className={styles.summaryStrip}>
         <div className={styles.summaryLeft}>
-          <Image fill
+          <Image width={400} height={300}
             src={state.draft.coverImage || '/mock/thumbnails/docker.avif'}
             alt={state.draft.title}
             className={styles.artwork}

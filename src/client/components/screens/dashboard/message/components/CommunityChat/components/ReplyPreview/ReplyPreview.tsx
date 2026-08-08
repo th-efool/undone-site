@@ -12,7 +12,7 @@ export function ReplyPreview({ reply }: Props) {
       <ArrowDown size={15} />
       <div>
         {reply.avatars.map((avatar) => (
-          <Image fill
+          <Image width={400} height={300}
             key={avatar.id}
             src={avatar.avatar}
             alt=""

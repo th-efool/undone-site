@@ -40,21 +40,13 @@ export function CommunityHeader({ community, aboutOpen, onBack, onToggleAbout }:
       >
         <ArrowLeft size={22} />
       </button>
-      <Image fill
-        className={styles.avatar}
-        src={community.avatar}
-        alt=""
-       />
+      <Image width={56} height={56} className={styles.avatar} src={community.avatar} alt="" />
       <div className={styles.info}>
         <h1>{community.name}</h1>
         <div className={styles.meta}>
           <div className={styles.members}>
             {community.members.slice(0, 5).map((member) => (
-              <Image fill
-                key={member.id}
-                src={member.avatar}
-                alt=""
-               />
+              <Image key={member.id} width={22} height={22} src={member.avatar} alt="" />
             ))}
           </div>
           <span>{community.onlineCount} online</span>

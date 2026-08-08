@@ -71,7 +71,7 @@ function ImportedLessonRow({ source }: { source: ImportedSourceModel }) {
     <div className={styles.lessonGrid}>
       {source.lessons.slice(0, 12).map((lesson) => (
         <div key={lesson.id} className={styles.lessonRow}>
-          <Image fill className={styles.lessonThumbnail} src={lesson.thumbnail} alt=""  />
+          <Image width={400} height={300} className={styles.lessonThumbnail} src={lesson.thumbnail} alt=""  />
           <div className={styles.lessonText}>
             <Text className={styles.lessonTitle}>{lesson.title}</Text>
             <Text variant="small" className={styles.lessonMeta}>
@@ -88,7 +88,7 @@ function SourcePreview({ source }: { source: ImportedSourceModel }) {
   return (
     <Surface variant="subtle" padding="md" className={styles.preview}>
       <div className={styles.previewHero}>
-        <Image fill className={styles.previewImage} src={source.thumbnail} alt=""  />
+        <Image width={400} height={300} className={styles.previewImage} src={source.thumbnail} alt=""  />
         <div className={styles.previewCopy}>
           <Badge variant="neutral" size="sm">
             {source.provider}

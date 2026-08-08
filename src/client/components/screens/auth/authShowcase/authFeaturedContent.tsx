@@ -15,7 +15,7 @@ export default function AuthFeaturedContent() {
               src={card.image}
               alt=""
               className={styles.image}
-             width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
+             width={400} height={300} style={{ width: "100%", height: "100%", objectFit: "cover" }}/>
           </div>
 
           <div className={styles.content}>

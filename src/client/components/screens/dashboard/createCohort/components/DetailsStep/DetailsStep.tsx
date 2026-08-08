@@ -377,7 +377,7 @@ export function DetailsStep({ details }: DetailsStepProps) {
 
           <div className={styles.previewCard}>
             <div className={styles.previewCover}>
-              <Image fill
+              <Image width={400} height={300}
                 src={
                   draft.coverImage ||
                   'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop'
@@ -489,7 +489,7 @@ export function DetailsStep({ details }: DetailsStepProps) {
               )}
 
               <div className={styles.previewCreatorRow}>
-                <Image fill
+                <Image width={400} height={300}
                   src={getAvatar('shaqun')}
                   alt="Creator Avatar"
                   className={styles.previewAvatar}

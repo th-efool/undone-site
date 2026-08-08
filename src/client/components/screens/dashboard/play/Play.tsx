@@ -297,12 +297,12 @@ export function Play() {
       return (
         <div className={styles.inactiveSceneCard}>
           {poster ? (
-            <Image
+            <div style={{ position: "relative", width: "100%", height: "100%" }}><Image
               src={poster}
               alt={title}
               fill
               className={styles.scenePoster}
-            />
+            /></div>
           ) : (
             <div className={styles.scenePosterFallback}>
               <Layers size={48} opacity={0.4} />

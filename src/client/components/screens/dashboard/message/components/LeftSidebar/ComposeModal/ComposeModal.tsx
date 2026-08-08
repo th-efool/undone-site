@@ -72,7 +72,7 @@ export function ComposeModal({ dmUsers, onSelect, onClose }: Props) {
             filtered.map((user: ConversationPreview) => (
               <button key={user.id} type="button" onClick={() => handleSelect(user.id)}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <Image fill src={user.avatar} alt=""  />
+                <Image width={400} height={300} src={user.avatar} alt=""  />
                 <div>
                   <span>{user.name}</span>
                   <span> {user.kind === 'dm' ? 'Direct Message' : 'Community DM'}</span>

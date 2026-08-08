@@ -36,7 +36,7 @@ export function LaunchSuccess() {
       </div>
 
       <div className={styles.card}>
-        <Image fill
+        <Image width={400} height={300}
           src={result.coverImage || state.draft.coverImage || '/mock/thumbnails/docker.avif'}
           alt={result.cohortTitle}
           className={styles.artwork}

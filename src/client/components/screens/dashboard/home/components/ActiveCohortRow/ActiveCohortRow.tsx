@@ -129,7 +129,7 @@ export function ActiveCohortRow({
       {/* 2. Thumbnail & Course Info */}
       <div className={styles.courseGroup}>
         <Link href={getCohortHref(item.cohortId ?? item.id)} onClick={(e) => e.stopPropagation()}>
-          <Image className={styles.thumbnail} src={item.thumbnail} alt=""  width={400} height={300} style={{ width: "100%", height: "auto", objectFit: "cover" }}/>
+          <Image className={styles.thumbnail} src={item.thumbnail} alt=""  width={400} height={300}/>
         </Link>
         <div className={styles.course}>
           <h3 className={styles.title}>

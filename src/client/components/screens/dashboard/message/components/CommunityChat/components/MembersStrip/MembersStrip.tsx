@@ -11,7 +11,7 @@ export function MembersStrip({ members, count }: Props) {
     <div className={styles.strip}>
       {members.slice(0, 5).map((member) => (
         <span key={member.id}>
-          <Image fill
+          <Image width={400} height={300}
             src={member.avatar}
             alt={member.name}
            />
