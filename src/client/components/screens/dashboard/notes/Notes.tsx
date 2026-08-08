@@ -28,6 +28,7 @@ import { useToast } from '@/src/client/hooks/useToast';
 import { useIsMobile } from '@/src/client/hooks/useIsMobile';
 import { useNotes } from './hooks/useNotes';
 import type { NotesFilter, NotesSort } from './models/notes.models';
+import { Tooltip } from '@/src/client/components/ui/Tooltip';
 import {
   CanvasSwitcher,
   Empty,
@@ -38,6 +39,16 @@ import {
   ShareModal,
 } from './components/NotesComponents';
 import styles from './Notes.module.css';
+
+const bottomToolConfigs = [
+  { icon: MousePointer2, label: 'Select' },
+  { icon: Type, label: 'Text box' },
+  { icon: Copy, label: 'Duplicate' },
+  { icon: Link, label: 'Link card' },
+  { icon: CheckSquare, label: 'Task card' },
+  { icon: Search, label: 'Find' },
+  { icon: MoreHorizontal, label: 'More tools' },
+];
 
 const sorts: [NotesSort, string][] = [
   ['manual', 'Manual order'],
@@ -365,21 +376,26 @@ export function Notes() {
               <Share2 size={16} />
               Share
             </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setMenu('more');
-              }}
-            >
-              <MoreHorizontal size={18} />
-            </button>
-            <button
-              className={styles.presentBtn}
-              onClick={() => setPresenting(true)}
-            >
-              <Presentation size={16} />
-              Present
-            </button>
+            <Tooltip content="More options">
+              <button
+                aria-label="More options"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMenu('more');
+                }}
+              >
+                <MoreHorizontal size={18} />
+              </button>
+            </Tooltip>
+            <Tooltip content="Present note" placement="bottom">
+              <button
+                className={styles.presentBtn}
+                onClick={() => setPresenting(true)}
+              >
+                <Presentation size={16} />
+                Present
+              </button>
+            </Tooltip>
             {menu === 'more' && (
               <Menu>
                 <button onClick={() => selected && notes.actions.duplicateNote(selected.id)}>
@@ -410,30 +426,46 @@ export function Notes() {
             <option value="H1">H1</option>
             <option value="P">Text</option>
           </select>
-          <button onClick={() => cmd('bold')}>
-            <Bold />
-          </button>
-          <button onClick={() => cmd('italic')}>
-            <Italic />
-          </button>
-          <button onClick={() => cmd('underline')}>
-            <Underline />
-          </button>
-          <button onClick={() => cmd('formatBlock', 'PRE')}>
-            <Code />
-          </button>
-          <button onClick={() => cmd('insertUnorderedList')}>
-            <List />
-          </button>
-          <button onClick={() => cmd('insertOrderedList')}>
-            <ListOrdered />
-          </button>
-          <button onClick={() => cmd('insertHTML', '<label><input type="checkbox"/> Task</label>')}>
-            <CheckSquare />
-          </button>
-          <button onClick={addLink}>
-            <Link />
-          </button>
+          <Tooltip content="Bold (⌘B)">
+            <button aria-label="Bold" onClick={() => cmd('bold')}>
+              <Bold />
+            </button>
+          </Tooltip>
+          <Tooltip content="Italic (⌘I)">
+            <button aria-label="Italic" onClick={() => cmd('italic')}>
+              <Italic />
+            </button>
+          </Tooltip>
+          <Tooltip content="Underline">
+            <button aria-label="Underline" onClick={() => cmd('underline')}>
+              <Underline />
+            </button>
+          </Tooltip>
+          <Tooltip content="Code block">
+            <button aria-label="Code block" onClick={() => cmd('formatBlock', 'PRE')}>
+              <Code />
+            </button>
+          </Tooltip>
+          <Tooltip content="Bullet list (⌘Shift 8)">
+            <button aria-label="Bullet list" onClick={() => cmd('insertUnorderedList')}>
+              <List />
+            </button>
+          </Tooltip>
+          <Tooltip content="Numbered list (⌘Shift 7)">
+            <button aria-label="Numbered list" onClick={() => cmd('insertOrderedList')}>
+              <ListOrdered />
+            </button>
+          </Tooltip>
+          <Tooltip content="Checklist">
+            <button aria-label="Checklist" onClick={() => cmd('insertHTML', '<label><input type="checkbox"/> Task</label>')}>
+              <CheckSquare />
+            </button>
+          </Tooltip>
+          <Tooltip content="Insert link (⌘K)">
+            <button aria-label="Insert link" onClick={addLink}>
+              <Link />
+            </button>
+          </Tooltip>
         </div>
         <article className={styles.canvas}>
           {selected ? (
@@ -472,13 +504,15 @@ export function Notes() {
           )}
         </article>
         <div className={styles.bottomTools}>
-          {[MousePointer2, Type, Copy, Link, CheckSquare, Search, MoreHorizontal].map((I, i) => (
-            <button
-              key={i}
-              onClick={coming}
-            >
-              <I size={20} />
-            </button>
+          {bottomToolConfigs.map(({ icon: I, label }, i) => (
+            <Tooltip key={i} content={label}>
+              <button
+                aria-label={label}
+                onClick={coming}
+              >
+                <I size={20} />
+              </button>
+            </Tooltip>
           ))}
         </div>
         <div className={styles.zoom}>

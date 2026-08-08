@@ -3,6 +3,7 @@ import { MouseEvent, ReactNode, useState } from 'react';
 
 import { useNotes } from '../hooks/useNotes';
 import type { NoteEntity, NotebookListItem, Permission } from '../models/notes.models';
+import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
 import styles from '../Notes.module.css';
 
@@ -118,12 +119,14 @@ export function IconButton({
   onClick: () => void;
 }) {
   return (
-    <button
-      title={label}
-      onClick={onClick}
-    >
-      {children}
-    </button>
+    <Tooltip content={label} placement="top">
+      <button
+        aria-label={label}
+        onClick={onClick}
+      >
+        {children}
+      </button>
+    </Tooltip>
   );
 }
 
