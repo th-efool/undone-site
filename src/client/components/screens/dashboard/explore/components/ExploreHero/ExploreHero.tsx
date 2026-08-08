@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import styles from './ExploreHero.module.css';
 
 export function ExploreHero() {
@@ -10,7 +11,18 @@ export function ExploreHero() {
         <span className={styles.line}>SEE HOW FAR</span>
         <span className={styles.line}>YOUR CURIOSITY TAKES YOU.</span>
       </h1>
+      <div className={styles.imageWrapper}>
+        <Image
+          src="/images/explore/explore-hero.webp"
+          alt="Explore Hero"
+          width={540}
+          height={360}
+          className={styles.heroImage}
+          priority
+        />
+      </div>
     </header>
   );
 }
+
 
