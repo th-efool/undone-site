@@ -2,6 +2,13 @@
   padding: var(--space-6);
 }
 
+.darkSkeletonContainer {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  min-height: 100vh;
+  padding: var(--space-6);
+}
+
 .greetingBar {
   margin-bottom: var(--space-8);
 }
@@ -14,7 +21,8 @@
 }
 
 .summaryCard {
-  background: var(--color-surface);
+  background: #121212;
+  border: 1px solid #27272a;
   border-radius: var(--radius-xl);
   padding: var(--space-5) var(--space-4);
 }
@@ -44,7 +52,8 @@
 }
 
 .lessonCard {
-  background: var(--color-surface);
+  background: #121212;
+  border: 1px solid #27272a;
   border-radius: var(--radius-xl);
   padding: var(--space-5) var(--space-4);
   margin-top: var(--space-6);

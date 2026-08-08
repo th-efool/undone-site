@@ -1,3 +1,7 @@
+'use client';
+
+import { usePathname } from 'next/navigation';
+import { getRouteTheme } from '@/src/client/config/routeThemeConfig';
 import { Skeleton } from './Skeleton';
 import styles from './PageSkeleton.module.css';
 
@@ -5,8 +9,12 @@ import styles from './PageSkeleton.module.css';
  * Home page skeleton — greeting bar, 4 summary cards, cohort rows.
  */
 export function HomeSkeleton() {
+  const pathname = usePathname();
+  const isDark = getRouteTheme(pathname) === 'dark';
+  const containerClass = isDark ? styles.darkSkeletonContainer : styles.skeletonContainer;
+
   return (
-    <div className={styles.skeletonContainer}>
+    <div className={containerClass}>
       {/* Greeting bar */}
       <div className={styles.greetingBar}>
         <Skeleton className="h-8 w-56 rounded-lg" />
@@ -43,8 +51,12 @@ export function HomeSkeleton() {
  * Explore page skeleton — hero bar, section headers + card grids.
  */
 export function ExploreSkeleton() {
+  const pathname = usePathname();
+  const isDark = getRouteTheme(pathname) === 'dark' || true;
+  const containerClass = isDark ? styles.darkSkeletonContainer : styles.skeletonContainer;
+
   return (
-    <div className={styles.skeletonContainer}>
+    <div className={containerClass}>
       {/* Search bar */}
       <Skeleton className="h-10 w-full rounded-xl mb-4" />
 
@@ -84,8 +96,12 @@ export function ExploreSkeleton() {
  * Play page skeleton — video placeholder, timeline scrubber, controls.
  */
 export function PlaySkeleton() {
+  const pathname = usePathname();
+  const isDark = getRouteTheme(pathname) === 'dark';
+  const containerClass = isDark ? styles.darkSkeletonContainer : styles.skeletonContainer;
+
   return (
-    <div className={styles.skeletonContainer}>
+    <div className={containerClass}>
       {/* Video player area */}
       <div className={styles.videoPlaceholder}>
         <Skeleton className="h-full w-full rounded-xl" />
