@@ -45,6 +45,8 @@
   height: 100%;
   object-fit: contain;
   object-position: top right;
+  transform: scale(0.87);
+  transform-origin: top right;
   filter: drop-shadow(0 12px 40px rgba(168, 85, 247, 0.35));
 }
 
