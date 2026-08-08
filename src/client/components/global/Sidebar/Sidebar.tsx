@@ -4,6 +4,7 @@ import { useMemo, useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 import { isNativeApp } from '@/src/client/utils/isNative';
+import { getRouteTheme } from '@/src/client/config/routeThemeConfig';
 import { Logo } from '../Logo';
 import { SIDEBAR_ITEMS } from './sidebar.data';
 import { SidebarItem } from './SidebarItem';
@@ -13,7 +14,7 @@ import styles from './Sidebar.module.css';
 export function Sidebar() {
   const pathname = usePathname();
   const isPlayPage = pathname === '/play';
-  const isMessagePage = pathname === '/message' || pathname?.startsWith('/message/');
+  const isDarkTheme = getRouteTheme(pathname) === 'dark';
   const sidebarRef = useRef<HTMLElement>(null);
 
   const items = useMemo(() => {
@@ -67,7 +68,7 @@ export function Sidebar() {
         styles.sidebar,
         isPlayPage && styles.playSidebar,
         isPlayPage && styles.hiddenOnMobile,
-        isMessagePage && styles.messageSidebar
+        isDarkTheme && styles.darkSidebar
       )}
     >
       <Logo
