@@ -1005,3 +1005,28 @@
 [data-platform="app"] .mobileBackBtn {
   margin-bottom: 4px !important;
 }
+
+/* Enable text selection & custom notebook highlighter tint for /notes */
+.notes,
+.notes * {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.notes button,
+.notes a,
+.notes img,
+.notes svg {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.notes ::selection {
+  background: rgba(99, 102, 241, 0.22);
+  color: #0f172a;
+}
+
+.notes ::-moz-selection {
+  background: rgba(99, 102, 241, 0.22);
+  color: #0f172a;
+}

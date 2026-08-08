@@ -4,6 +4,8 @@ import { useEffect } from 'react';
 import type { PropsWithChildren } from 'react';
 import { usePathname } from 'next/navigation';
 
+import clsx from 'clsx';
+import { getRouteTheme } from '@/src/client/config/routeThemeConfig';
 import { Sidebar } from '../Sidebar';
 import { NetworkOfflineIndicator } from '../NetworkOfflineIndicator/NetworkOfflineIndicator';
 import { CommandPalette, CommandTriggerProvider, useCommandContext } from '../CommandPalette';
@@ -13,7 +15,7 @@ import styles from './DashboardShell.module.css';
 function DashboardInner({ children }: PropsWithChildren) {
   const pathname = usePathname();
   const isPlayPage = pathname === '/play';
-  const isMessagePage = pathname === '/message' || pathname?.startsWith('/message/');
+  const isDark = getRouteTheme(pathname) === 'dark';
   const { open, onOpenChange } = useCommandContext();
 
   // ⌘K / Ctrl+K global shortcut
@@ -32,16 +34,19 @@ function DashboardInner({ children }: PropsWithChildren) {
   return (
     <>
       <div
-        className={`${styles.shell} ${isPlayPage ? styles.playShell : ''} ${
-          isMessagePage ? styles.messageShell : ''
-        }`}
+        className={clsx(
+          styles.shell,
+          isPlayPage && styles.playShell,
+          isDark && styles.darkShell
+        )}
       >
         <NetworkOfflineIndicator />
         <Sidebar />
         <main
-          className={`${styles.content} ${isPlayPage ? styles.playContent : ''} ${
-            isMessagePage ? styles.messageContent : ''
-          }`}
+          className={clsx(
+            styles.content,
+            isPlayPage && styles.playContent
+          )}
         >
           {children}
         </main>

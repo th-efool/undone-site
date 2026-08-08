@@ -14,7 +14,7 @@
 
 .content {
   flex: 1;
-  padding-left: 12px;
+  padding-left: 0;
 }
 
 .playShell {
@@ -31,12 +31,8 @@
   height: 100% !important;
 }
 
-.messageShell {
-  background: #050505 !important;
-}
-
-.messageContent {
-  padding-left: 0 !important;
+.darkShell {
+  background: #000000 !important;
 }
 
 @media (max-width: 768px) {
