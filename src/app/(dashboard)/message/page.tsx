@@ -1,9 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Message } from '@/src/client/components/screens/dashboard/message';
+import dynamic from 'next/dynamic';
 import { isNativeApp } from '@/src/client/utils/isNative';
+
+const Message = dynamic(
+  () => import('@/src/client/components/screens/dashboard/message').then((mod) => mod.Message)
+);
 
 export default function MessagePage() {
   const router = useRouter();
@@ -18,9 +22,25 @@ export default function MessagePage() {
     return null;
   }
 
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name: 'Messages | SideQuestHQ',
+    description: 'Connect and chat with your cohort members on SideQuestHQ. Stay updated with your study groups.',
+  };
+
   return (
-    <>
-      <Message />
-    </>
+    <main style={{ display: 'contents' }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <h1 className="sr-only">Messages</h1>
+      <section style={{ display: 'contents' }}>
+        <Suspense fallback={<div>Loading...</div>}>
+          <Message />
+        </Suspense>
+      </section>
+    </main>
   );
 }
