@@ -2,6 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Plus } from 'lucide-react';
 import { SearchBar } from '@/src/client/components/global/SearchBar';
+import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
 import type { HomeHeroContent } from '../../models';
 
@@ -48,37 +49,44 @@ export function HomeHero({
         </div>
 
         <div className={styles.heroStats}>
-          <Link href="/create-cohort" className={styles.newButton}>
-            <Plus size={18} strokeWidth={2.4} />
-            New Cohort
-          </Link>
+          <Tooltip content="Create a new learning cohort" placement="bottom">
+            <Link href="/create-cohort" className={styles.newButton} aria-label="Create a new learning cohort">
+              <Plus size={18} strokeWidth={2.4} />
+              New Cohort
+            </Link>
+          </Tooltip>
 
           {streak && (
-            <div className={styles.statBadge} title="Current Streak">
-              <div className={styles.statBadgeTop}>
-                <span className={styles.statIconOrange}>{streak.icon}</span>
-                <span className={styles.statValue}>{streak.value.split(' ')[0]}</span>
+            <Tooltip content="Current streak: Consecutive days active" placement="top">
+              <div className={styles.statBadge}>
+                <div className={styles.statBadgeTop}>
+                  <span className={styles.statIconOrange}>{streak.icon}</span>
+                  <span className={styles.statValue}>{streak.value.split(' ')[0]}</span>
+                </div>
+                <span className={styles.statLabel}>Streak</span>
               </div>
-              <span className={styles.statLabel}>Streak</span>
-            </div>
+            </Tooltip>
           )}
 
           {todayGoal && (
-            <div className={styles.statBadge} title="Today's Goal">
-              <div className={styles.statBadgeTop}>
-                <div className={styles.clockProgress}>
-                  <svg viewBox="0 0 36 36" className={styles.circularChart}>
-                    <path className={styles.circleBg} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path className={styles.circle} strokeDasharray={`${todayGoal.progress?.percent || 0}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                  </svg>
+            <Tooltip content="Today's Goal: Daily target progress" placement="top">
+              <div className={styles.statBadge}>
+                <div className={styles.statBadgeTop}>
+                  <div className={styles.clockProgress}>
+                    <svg viewBox="0 0 36 36" className={styles.circularChart}>
+                      <path className={styles.circleBg} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      <path className={styles.circle} strokeDasharray={`${todayGoal.progress?.percent || 0}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    </svg>
+                  </div>
+                  <span className={styles.statValue}>{todayGoal.value}</span>
                 </div>
-                <span className={styles.statValue}>{todayGoal.value}</span>
+                <span className={styles.statLabel}>Today's Goal</span>
               </div>
-              <span className={styles.statLabel}>Today's Goal</span>
-            </div>
+            </Tooltip>
           )}
         </div>
       </div>
     </header>
   );
 }
+

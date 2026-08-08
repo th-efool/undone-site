@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getCohortHref } from '@/src/client/navigation/cohortLinks';
 import { GripVertical, PauseCircle, ListOrdered, Shuffle } from 'lucide-react';
 import { useState } from 'react';
+import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
 import type { ActiveCohort, Weekday } from '../../models';
 
@@ -117,14 +118,18 @@ export function ActiveCohortRow({
       }}
     >
       {/* 1. Drag handle & Rank */}
-      <div 
-        className={styles.handleGroup}
-        onMouseEnter={() => setIsDraggable(true)}
-        onMouseLeave={() => setIsDraggable(false)}
-      >
-        <GripVertical className={styles.grip} size={16} strokeWidth={2.2} />
-        <span className={styles.rank}>{item.rank}</span>
-      </div>
+      <Tooltip content="Drag to reorder cohorts" placement="top">
+        <div 
+          className={styles.handleGroup}
+          onMouseEnter={() => setIsDraggable(true)}
+          onMouseLeave={() => setIsDraggable(false)}
+          aria-label="Drag to reorder cohorts"
+          tabIndex={0}
+        >
+          <GripVertical className={styles.grip} size={16} strokeWidth={2.2} />
+          <span className={styles.rank}>{item.rank}</span>
+        </div>
+      </Tooltip>
 
       {/* 2. Thumbnail & Course Info */}
       <div className={styles.courseGroup}>
@@ -143,17 +148,19 @@ export function ActiveCohortRow({
 
       {/* 3. Pause — First Control Field */}
       <div className={styles.pauseCell}>
-        <button
-          type="button"
-          className={styles.pauseButton}
-          title="Pause cohort"
-          onClick={(e) => {
-            e.stopPropagation();
-            onPause?.(item.id, 7, 'Paused from row');
-          }}
-        >
-          <PauseCircle size={16} strokeWidth={2} />
-        </button>
+        <Tooltip content="Pause cohort" placement="top">
+          <button
+            type="button"
+            className={styles.pauseButton}
+            aria-label="Pause cohort"
+            onClick={(e) => {
+              e.stopPropagation();
+              onPause?.(item.id, 7, 'Paused from row');
+            }}
+          >
+            <PauseCircle size={16} strokeWidth={2} />
+          </button>
+        </Tooltip>
       </div>
 
       {/* 4. Shows up (Frequency) with Segmented Pills & Vertical Divider */}
@@ -297,25 +304,27 @@ export function ActiveCohortRow({
       {/* 7. Order Style — Last Field */}
       <div className={styles.cell}>
         <span className={styles.cellLabel}>Order style</span>
-        <div className={styles.orderIconWrapper} title={`Order Style: ${orderStyle}`} onClick={(e) => e.stopPropagation()}>
-          <div className={styles.orderLeftIcon}>
-            {orderStyle === 'Sequential' && <ListOrdered size={17} className={styles.orderIcon} />}
-            {orderStyle === 'Semantic Randomize' && <ChartNetwork size={17} className={styles.orderIcon} />}
-            {orderStyle === 'Randomize' && <Shuffle size={17} className={styles.orderIcon} />}
+        <Tooltip content={`Order style: ${orderStyle}`} placement="top">
+          <div className={styles.orderIconWrapper} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.orderLeftIcon}>
+              {orderStyle === 'Sequential' && <ListOrdered size={17} className={styles.orderIcon} />}
+              {orderStyle === 'Semantic Randomize' && <ChartNetwork size={17} className={styles.orderIcon} />}
+              {orderStyle === 'Randomize' && <Shuffle size={17} className={styles.orderIcon} />}
+            </div>
+            <select
+              className={styles.realSelectIconOnly}
+              value={orderStyle}
+              onChange={(e) => {
+                onUpdateOrderStyle?.(item.id, e.target.value);
+                onSelect();
+              }}
+            >
+              <option value="Sequential">Sequential</option>
+              <option value="Semantic Randomize">Semantic Rndm</option>
+              <option value="Randomize">Randomize</option>
+            </select>
           </div>
-          <select
-            className={styles.realSelectIconOnly}
-            value={orderStyle}
-            onChange={(e) => {
-              onUpdateOrderStyle?.(item.id, e.target.value);
-              onSelect();
-            }}
-          >
-            <option value="Sequential">Sequential</option>
-            <option value="Semantic Randomize">Semantic Rndm</option>
-            <option value="Randomize">Randomize</option>
-          </select>
-        </div>
+        </Tooltip>
       </div>
 
     </article>

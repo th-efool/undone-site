@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { triggerHaptic } from '@/src/client/utils/haptics';
+import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
 import styles from './SidebarItem.module.css';
 
@@ -34,17 +35,20 @@ export function SidebarItem({ href, label, icon: Icon }: SidebarItemProps) {
   };
 
   return (
-    <Link
-      href={href}
-      aria-label={label}
-      onClick={handleClick}
-      className={`${styles.item} ${isActive ? styles.active : ''}`}
-    >
-      <Icon
-        size={22}
-        strokeWidth={2}
-      />
-      <span className={styles.label}>{label}</span>
-    </Link>
+    <Tooltip content={label} placement="right">
+      <Link
+        href={href}
+        aria-label={label}
+        onClick={handleClick}
+        className={`${styles.item} ${isActive ? styles.active : ''}`}
+      >
+        <Icon
+          size={22}
+          strokeWidth={2}
+        />
+        <span className={styles.label}>{label}</span>
+      </Link>
+    </Tooltip>
   );
 }
+

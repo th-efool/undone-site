@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import { ArrowRight, Clock, Pause, Sparkles } from 'lucide-react';
+import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
 import type { CompletedCourse, PausedCohort } from '../../models';
 
@@ -60,15 +61,16 @@ export function HomeSummaryBar({
             </div>
           </div>
 
-          <button
-            type="button"
-            className={`${styles.arrowButton} ${isPausedOpen ? styles.arrowActive : ''}`}
-            onClick={onTogglePaused}
-            aria-label="Toggle paused cohorts"
-            title="Toggle paused cohorts"
-          >
-            <ArrowRight size={16} />
-          </button>
+          <Tooltip content="Toggle list visibility" placement="top">
+            <button
+              type="button"
+              className={`${styles.arrowButton} ${isPausedOpen ? styles.arrowActive : ''}`}
+              onClick={onTogglePaused}
+              aria-label="Toggle paused cohorts"
+            >
+              <ArrowRight size={16} />
+            </button>
+          </Tooltip>
         </div>
 
         {/* Divider */}
@@ -100,15 +102,16 @@ export function HomeSummaryBar({
             </div>
           </div>
 
-          <button
-            type="button"
-            className={`${styles.arrowButton} ${isCompletedOpen ? styles.arrowActive : ''}`}
-            onClick={onToggleCompleted}
-            aria-label="Toggle recently finished cohorts"
-            title="Toggle recently finished cohorts"
-          >
-            <ArrowRight size={16} />
-          </button>
+          <Tooltip content="Toggle list visibility" placement="top">
+            <button
+              type="button"
+              className={`${styles.arrowButton} ${isCompletedOpen ? styles.arrowActive : ''}`}
+              onClick={onToggleCompleted}
+              aria-label="Toggle recently finished cohorts"
+            >
+              <ArrowRight size={16} />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
@@ -133,3 +136,4 @@ export function HomeSummaryBar({
     </section>
   );
 }
+
