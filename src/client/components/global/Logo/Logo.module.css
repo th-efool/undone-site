@@ -46,7 +46,7 @@
   font-weight: var(--font-bold);
   line-height: 1;
 
-  color: var(--color-text);
+  color: var(--logo-title-color, var(--color-text));
 }
 
 .tagline {
@@ -55,7 +55,7 @@
   font-size: var(--font-caption-size);
   font-weight: var(--font-caption-weight);
 
-  color: var(--color-text-secondary);
+  color: var(--logo-tagline-color, var(--color-text-secondary));
 }
 
 @media (max-width: 768px) {

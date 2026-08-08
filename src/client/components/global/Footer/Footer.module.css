@@ -1,7 +1,7 @@
 .footer {
   position: relative;
   overflow: hidden;
-  min-height: 900px;
+  min-height: 680px;
 
   background-image: url('/images/footer-bg.jpeg');
   background-size: cover;
@@ -38,8 +38,8 @@
 
 .hero {
   width: 100%;
-  padding-top: 10rem;
-  padding-bottom: 5rem;
+  padding-top: 4rem;
+  padding-bottom: 1rem;
 }
 
 .heroContent {
@@ -111,8 +111,6 @@
 }
 
 .description {
-  transform: translateY(60px);
-
   max-width: 640px;
 
   color: #ffffff;
@@ -195,7 +193,7 @@
 }
 
 .divider {
-  margin: 3rem 0;
+  margin: 1.5rem 0;
 
   border-color: rgba(255, 255, 255, 0.08);
 }
@@ -207,6 +205,9 @@
   gap: 4rem;
 
   padding-bottom: 3rem;
+
+  --logo-title-color: #ffffff;
+  --logo-tagline-color: rgba(255, 255, 255, 0.6);
 }
 
 .heading {

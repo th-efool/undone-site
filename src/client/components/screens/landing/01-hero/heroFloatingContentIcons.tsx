@@ -200,7 +200,7 @@ export function HeroFloatingContentIcons() {
       {Object.entries(icons).map(([id, icon]) => (
         <div
           key={id}
-          className={styles.icon}
+          className={`${styles.icon} ${id === 'logo' ? styles.logo : ''}`}
           style={{
             left: `${icon.x}%`,
             top: `${icon.y}%`,
