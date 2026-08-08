@@ -27,7 +27,7 @@ import {
 const me = {
   id: 'me',
   name: 'You',
-  avatar: '/images/logos/floating-logo.webp',
+  avatar: '/images/logos/floating-logo.svg',
   online: true,
 };
 const storageKeys = {
@@ -572,7 +572,7 @@ export function useMessage() {
           replyTo: {
             messageId: replyCtx.messageId,
             authorName: replyCtx.senderName,
-            authorAvatar: replyCtx.senderAvatar || '/images/logos/floating-logo.webp',
+            authorAvatar: replyCtx.senderAvatar || '/images/logos/floating-logo.svg',
             previewText: replyCtx.previewText,
           }
         } : {}),
@@ -663,7 +663,7 @@ export function useMessage() {
           replyTo: {
             messageId: replyCtx.messageId,
             authorName: replyCtx.senderName,
-            authorAvatar: replyCtx.senderAvatar || '/images/logos/floating-logo.webp',
+            authorAvatar: replyCtx.senderAvatar || '/images/logos/floating-logo.svg',
             previewText: replyCtx.previewText,
           }
         } : {}),

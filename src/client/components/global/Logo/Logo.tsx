@@ -33,7 +33,7 @@ export function Logo({
 
   const image = (
     <Image
-      src="/images/logos/sidequesthq-logo.webp"
+      src="/images/logos/sidequesthq-logo.svg"
       alt="SideQuestHQ logo"
       width={imageSize}
       height={imageSize}
