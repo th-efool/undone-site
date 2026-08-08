@@ -66,11 +66,8 @@ export function RecentlyPublished({
             id="fresh-discoveries-heading"
             className={styles.title}
           >
-            Fresh Discoveries
+            A FRESH BATCH TO EXPLORE
           </h2>
-          <p className={styles.subtitle}>
-            New quests, courses, and rabbit holes worth exploring.
-          </p>
         </div>
 
         <div className={styles.headerControls}>
@@ -100,7 +97,7 @@ export function RecentlyPublished({
           loop={false}
           panable={true}
           showArrows={false}
-          scrollAmount={430}
+          scrollAmount={340}
         >
           {items.map((item) => (
             <ArticleCard

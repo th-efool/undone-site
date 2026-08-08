@@ -50,15 +50,17 @@ export function ArticleCard({ item }: ArticleCardProps) {
             {item.title}
           </h3>
 
-          <p className={styles.author}>By {item.author}</p>
+          <div className={styles.footer}>
+            <p className={styles.author}>By {item.author}</p>
 
-          <div className={styles.meta}>
-            <span className={styles.metaItem}>
-              <Users size={13} className={styles.metaIcon} />
-              {item.learnerCount}
-            </span>
-            <span className={styles.dot}>•</span>
-            <span className={styles.metaItem}>{item.publishedLabel}</span>
+            <div className={styles.meta}>
+              <span className={styles.metaItem}>
+                <Users size={12} className={styles.metaIcon} />
+                {item.learnerCount}
+              </span>
+              <span className={styles.dot}>•</span>
+              <span className={styles.metaItem}>{item.publishedLabel}</span>
+            </div>
           </div>
         </div>
       </Link>
@@ -74,8 +76,10 @@ export function ArticleCardSkeleton({ count = 3 }: { count?: number }) {
           <div className={styles.skeletonImage} />
           <div className={styles.skeletonBody}>
             <div className={styles.skeletonTitle} />
-            <div className={styles.skeletonAuthor} />
-            <div className={styles.skeletonMeta} />
+            <div className={styles.skeletonFooter}>
+              <div className={styles.skeletonAuthor} />
+              <div className={styles.skeletonMeta} />
+            </div>
           </div>
         </div>
       ))}
