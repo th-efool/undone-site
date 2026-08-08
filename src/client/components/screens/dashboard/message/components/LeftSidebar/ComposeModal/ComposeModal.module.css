@@ -79,9 +79,11 @@
   transition: border-color var(--duration-fast) var(--ease-standard);
 }
 
-.search-input:focus {
-  border-color: var(--message-brand, #6366f1);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+.search-input:focus,
+.search-input:focus-visible {
+  border-color: var(--message-brand, #6366f1) !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25) !important;
+  outline: none !important;
 }
 
 .user-list {
