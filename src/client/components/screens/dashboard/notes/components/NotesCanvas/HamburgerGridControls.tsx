@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Grid3X3 } from 'lucide-react';
 import styles from './HamburgerGridControls.module.css';
 
 export interface GridSettingsConfig {
@@ -14,88 +15,132 @@ interface HamburgerGridControlsProps {
   onChange: (newConfig: GridSettingsConfig) => void;
 }
 
+const COLOR_PRESETS = [
+  { hex: '#334155', label: 'Slate' },
+  { hex: '#475569', label: 'Muted' },
+  { hex: '#6366f1', label: 'Indigo' },
+  { hex: '#ffffff', label: 'White' },
+];
+
 export function HamburgerGridControls({ config, onChange }: HamburgerGridControlsProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
   const update = (partial: Partial<GridSettingsConfig>) => {
     onChange({ ...config, ...partial });
   };
 
   return (
-    <div className={styles.gridSection}>
-      <div className={styles.sectionTitle}>Grid Settings</div>
+    <div style={{ position: 'relative', width: '100%' }}>
+      {/* Sleek Submenu Trigger inside Hamburger Menu */}
+      <button
+        className={styles.menuItemTrigger}
+        onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+      >
+        <span className={styles.triggerLabel}>
+          <Grid3X3 size={15} style={{ opacity: 0.8 }} />
+          Grid Settings
+        </span>
+        <span className={styles.arrow}>{isOpen ? '◀' : '▶'}</span>
+      </button>
 
-      <div className={styles.row}>
-        <span>Show Grid</span>
-        <input
-          type="checkbox"
-          checked={config.enabled}
-          onChange={(e) => update({ enabled: e.target.checked })}
-          style={{ cursor: 'pointer', width: 16, height: 16 }}
-        />
-      </div>
+      {/* Sleek Submenu Flyout */}
+      {isOpen && (
+        <div className={styles.submenuFlyout}>
+          <div className={styles.flyoutHeader}>
+            <span>Grid Options</span>
+            <button className={styles.closeBtn} onClick={() => setIsOpen(false)}>
+              ✕
+            </button>
+          </div>
 
-      {config.enabled && (
-        <>
-          <div className={styles.row}>
-            <span>Pattern</span>
-            <div className={styles.buttonGroup}>
+          {/* Grid Toggle */}
+          <div className={styles.group}>
+            <div className={styles.groupLabel}>Grid Display</div>
+            <div className={styles.pillRow}>
               <button
-                className={`${styles.optionBtn} ${config.style === 'dots' ? styles.active : ''}`}
-                onClick={() => update({ style: 'dots' })}
+                className={`${styles.pill} ${!config.enabled ? styles.active : ''}`}
+                onClick={() => update({ enabled: false })}
               >
-                Dots
+                OFF
               </button>
               <button
-                className={`${styles.optionBtn} ${config.style === 'lines' ? styles.active : ''}`}
-                onClick={() => update({ style: 'lines' })}
+                className={`${styles.pill} ${config.enabled ? styles.active : ''}`}
+                onClick={() => update({ enabled: true })}
               >
-                Lines
-              </button>
-              <button
-                className={`${styles.optionBtn} ${config.style === 'mesh' ? styles.active : ''}`}
-                onClick={() => update({ style: 'mesh' })}
-              >
-                Mesh
+                ON
               </button>
             </div>
           </div>
 
-          <div className={styles.row}>
-            <span>Size ({config.size}px)</span>
-            <input
-              type="range"
-              min={10}
-              max={60}
-              step={5}
-              value={config.size}
-              onChange={(e) => update({ size: Number(e.target.value) })}
-              className={styles.slider}
-            />
-          </div>
+          {config.enabled && (
+            <>
+              {/* Pattern Style */}
+              <div className={styles.group}>
+                <div className={styles.groupLabel}>Pattern</div>
+                <div className={styles.pillRow}>
+                  <button
+                    className={`${styles.pill} ${config.style === 'dots' ? styles.active : ''}`}
+                    onClick={() => update({ style: 'dots' })}
+                  >
+                    • Dots
+                  </button>
+                  <button
+                    className={`${styles.pill} ${config.style === 'lines' ? styles.active : ''}`}
+                    onClick={() => update({ style: 'lines' })}
+                  >
+                    ─ Lines
+                  </button>
+                  <button
+                    className={`${styles.pill} ${config.style === 'mesh' ? styles.active : ''}`}
+                    onClick={() => update({ style: 'mesh' })}
+                  >
+                    ▦ Mesh
+                  </button>
+                </div>
+              </div>
 
-          <div className={styles.row}>
-            <span>Color & Opacity</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input
-                type="color"
-                value={config.color}
-                onChange={(e) => update({ color: e.target.value })}
-                className={styles.colorPickerInput}
-                title="Choose grid color"
-              />
-              <input
-                type="range"
-                min={0.05}
-                max={1}
-                step={0.05}
-                value={config.opacity}
-                onChange={(e) => update({ opacity: Number(e.target.value) })}
-                className={styles.slider}
-                style={{ width: 60 }}
-                title="Grid opacity"
-              />
-            </div>
-          </div>
-        </>
+              {/* Grid Spacing */}
+              <div className={styles.group}>
+                <div className={styles.groupLabel}>Spacing</div>
+                <div className={styles.pillRow}>
+                  {[10, 20, 30, 40].map((sz) => (
+                    <button
+                      key={sz}
+                      className={`${styles.pill} ${config.size === sz ? styles.active : ''}`}
+                      onClick={() => update({ size: sz })}
+                    >
+                      {sz}px
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Accent Color */}
+              <div className={styles.group}>
+                <div className={styles.groupLabel}>Color Tint</div>
+                <div className={styles.colorRow}>
+                  {COLOR_PRESETS.map((preset) => (
+                    <button
+                      key={preset.hex}
+                      className={`${styles.colorSwatch} ${config.color === preset.hex ? styles.active : ''}`}
+                      style={{ backgroundColor: preset.hex }}
+                      onClick={() => update({ color: preset.hex })}
+                      title={preset.label}
+                    />
+                  ))}
+                  <input
+                    type="color"
+                    value={config.color}
+                    onChange={(e) => update({ color: e.target.value })}
+                    className={styles.nativePicker}
+                    title="Custom Color"
+                  />
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       )}
     </div>
   );

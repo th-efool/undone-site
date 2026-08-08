@@ -1,85 +1,177 @@
-.gridSection {
-  padding: 12px;
-  margin-top: 8px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  font-family: inherit;
-  color: #e2e8f0;
-}
-
-.sectionTitle {
-  font-size: 12px;
-  font-weight: 600;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.row {
+.menuItemTrigger {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  padding: 10px 12px;
+  margin: 4px 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #e2e8f0;
   font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  transition: background 0.15s ease;
 }
 
-.buttonGroup {
+.menuItemTrigger:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.triggerLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.arrow {
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* Submenu Flyout Container */
+.submenuFlyout {
+  position: absolute;
+  left: 100%;
+  top: 40px;
+  margin-left: 8px;
+  width: 220px;
+  background: #16161d;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  backdrop-filter: blur(16px);
+  animation: flyoutFadeIn 0.15s ease-out;
+}
+
+@keyframes flyoutFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.flyoutHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0 4px;
+}
+
+.closeBtn:hover {
+  color: #f8fafc;
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.groupLabel {
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.pillRow {
   display: flex;
   gap: 4px;
-  background: #1e293b;
-  padding: 2px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: #0f172a;
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-.optionBtn {
+.pill {
   flex: 1;
-  padding: 4px 8px;
+  padding: 5px 0;
   font-size: 11px;
+  font-weight: 500;
+  text-align: center;
   border: none;
   background: transparent;
   color: #94a3b8;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
-.optionBtn:hover {
-  color: #f8fafc;
+.pill:hover {
+  color: #f1f5f9;
 }
 
-.optionBtn.active {
+.pill.active {
   background: #334155;
   color: #ffffff;
   font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-.slider {
-  flex: 1;
-  max-width: 120px;
-  height: 4px;
-  accent-color: #6366f1;
+.colorRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.colorSwatch {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid transparent;
   cursor: pointer;
+  transition: transform 0.15s ease;
 }
 
-.colorPickerInput {
-  width: 24px;
-  height: 24px;
+.colorSwatch:hover {
+  transform: scale(1.15);
+}
+
+.colorSwatch.active {
+  border-color: #818cf8;
+}
+
+.nativePicker {
+  width: 20px;
+  height: 20px;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: none;
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
   overflow: hidden;
 }
 
-.colorPickerInput::-webkit-color-swatch-wrapper {
+.nativePicker::-webkit-color-swatch-wrapper {
   padding: 0;
 }
 
-.colorPickerInput::-webkit-color-swatch {
-  border: none;
+.nativePicker::-webkit-color-swatch {
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
 }

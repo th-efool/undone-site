@@ -53,7 +53,6 @@ export function NotesCanvas({
         appState: {
           viewBackgroundColor: '#000000',
           gridSize: 20,
-          theme: 'dark',
         },
       };
     }
@@ -67,17 +66,15 @@ export function NotesCanvas({
       appState: {
         viewBackgroundColor,
         gridSize: appState.gridSize ?? 20,
-        theme: 'dark',
         ...appState,
         viewBackgroundColor,
         gridSize: appState.gridSize ?? 20,
-        theme: 'dark',
       },
       files: initialScene.files as any,
     };
   }, [initialScene]);
 
-  // Apply grid config to Excalidraw API and container CSS
+  // Apply grid config to Excalidraw API
   const handleGridConfigChange = useCallback((newConfig: GridSettingsConfig) => {
     setGridConfig(newConfig);
 
@@ -90,7 +87,7 @@ export function NotesCanvas({
     }
   }, [excalidrawAPI]);
 
-  // DOM observer to inject color picker button into Hex Code input & detect Hamburger menu
+  // DOM observer to inject native color picker button into Hex Code popup & detect Hamburger menu
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -148,7 +145,6 @@ export function NotesCanvas({
       appState: {
         viewBackgroundColor: bgColor,
         gridSize: appState.gridSize ?? 20,
-        theme: 'dark',
       },
       files,
     });
@@ -156,12 +152,14 @@ export function NotesCanvas({
 
   return (
     <div ref={containerRef} className={styles.container}>
+      {/* We pass theme="light" so Excalidraw DOES NOT invert background colors! 
+          Our excalidraw.css keeps the UI 100% dark mode. */}
       <Excalidraw
         excalidrawAPI={setExcalidrawAPI}
         initialData={initialData}
         onChange={handleChange}
         viewModeEnabled={isReadOnly}
-        theme="dark"
+        theme="light"
         UIOptions={{
           canvasActions: {
             changeViewBackgroundColor: true,
@@ -174,7 +172,7 @@ export function NotesCanvas({
         }}
       />
 
-      {/* Render Grid Controls inside Excalidraw's Hamburger Menu via Portal */}
+      {/* Render Submenu Trigger & Flyout inside Excalidraw's Hamburger Menu via Portal */}
       {dropdownMenuNode && createPortal(
         <HamburgerGridControls config={gridConfig} onChange={handleGridConfigChange} />,
         dropdownMenuNode

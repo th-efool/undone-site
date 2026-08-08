@@ -4,6 +4,7 @@
 /* ====================================================== */
 /* SIDEQUESTHQ UNIFIED DARK THEME OVERRIDES FOR EXCALIDRAW */
 /* ====================================================== */
+.excalidraw,
 .excalidraw.theme--dark {
   --color-primary: #818cf8 !important;
   --color-primary-darkest: #6366f1 !important;
