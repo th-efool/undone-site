@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Hero } from '@/src/client/components/screens/landing/01-hero';
-import { Ikigai } from '@/src/client/components/screens/landing/02-ikigai';
-import { Footer } from '@/src/client/components/screens/landing/06-footer';
+import dynamic from 'next/dynamic';
+
+const Ikigai = dynamic(() => import('@/src/client/components/screens/landing/02-ikigai').then((mod) => mod.Ikigai));
+const Footer = dynamic(() => import('@/src/client/components/screens/landing/06-footer').then((mod) => mod.Footer));
 
 function isCapacitorNative(): boolean {
   return typeof window !== 'undefined' && Boolean((window as any).Capacitor?.isNativePlatform?.());
