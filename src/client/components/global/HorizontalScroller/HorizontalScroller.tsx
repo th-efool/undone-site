@@ -12,14 +12,30 @@ export interface HorizontalScrollerProps extends PropsWithChildren {
   showArrows?: boolean;
 }
 
-export function HorizontalScroller({
-  children,
-  className,
-  scrollAmount = 320,
-  loop = false,
-  showArrows = true,
-}: HorizontalScrollerProps) {
+export interface HorizontalScrollerHandle {
+  scrollLeft: () => void;
+  scrollRight: () => void;
+}
+
+export const HorizontalScroller = React.forwardRef<
+  HorizontalScrollerHandle,
+  HorizontalScrollerProps
+>(function HorizontalScroller(
+  {
+    children,
+    className,
+    scrollAmount = 320,
+    loop = false,
+    showArrows = true,
+  }: HorizontalScrollerProps,
+  ref,
+) {
   const viewportRef = useRef<HTMLDivElement>(null);
+
+  React.useImperativeHandle(ref, () => ({
+    scrollLeft: () => scroll(-scrollAmount),
+    scrollRight: () => scroll(scrollAmount),
+  }));
 
   const [showLeft, setShowLeft] = useState(false);
   const [showRight, setShowRight] = useState(false);
@@ -184,4 +200,4 @@ export function HorizontalScroller({
       </div>
     </div>
   );
-}
+});
