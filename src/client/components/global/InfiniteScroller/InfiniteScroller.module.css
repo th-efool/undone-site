@@ -9,13 +9,14 @@
 .viewport {
   overflow-x: auto;
   overflow-y: hidden;
+  overscroll-behavior-y: none;
 
   scrollbar-width: none;
   -ms-overflow-style: none;
   -webkit-overflow-scrolling: touch;
 
   scroll-behavior: smooth;
-  touch-action: pan-y pinch-zoom;
+  touch-action: pan-x;
   cursor: grab;
   padding: 8px 4px;
   user-select: none;

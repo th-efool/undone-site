@@ -22,6 +22,7 @@ export interface InfiniteScrollerProps extends PropsWithChildren {
 export interface InfiniteScrollerHandle {
   scrollLeft: () => void;
   scrollRight: () => void;
+  getViewport: () => HTMLDivElement | null;
 }
 
 export const InfiniteScroller = React.forwardRef<
@@ -43,6 +44,7 @@ export const InfiniteScroller = React.forwardRef<
   useImperativeHandle(ref, () => ({
     scrollLeft: () => scroll(-scrollAmount),
     scrollRight: () => scroll(scrollAmount),
+    getViewport: () => viewportRef.current,
   }));
 
   const [showLeft, setShowLeft] = useState(false);
