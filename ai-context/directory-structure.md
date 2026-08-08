@@ -10,6 +10,10 @@
 │   │   ├── index.html
 │   │   ├── script.js
 │   │   └── styles.css
+│   ├── LOGO-no-book-compass.svg
+│   ├── LOGO-recolored-floating.svg
+│   ├── LOGO-recolored.svg
+│   ├── LOGO-recolored1.svg
 │   ├── UX_IMPROVEMENT_AUDIT.md
 │   ├── UX_PHASED_IMPLEMENTATION_PLAN.md
 │   ├── design-css-tokens.md
@@ -159,6 +163,12 @@
 │   │   └── Manrope-SemiBold.ttf
 │   └── logo.png
 ├── docs/
+│   ├── tooltips/
+│   │   ├── TOOLTIPS_EXPLORE.md
+│   │   ├── TOOLTIPS_HOME.md
+│   │   ├── TOOLTIPS_MESSAGES.md
+│   │   ├── TOOLTIPS_NOTES.md
+│   │   └── TOOLTIPS_PLAY.md
 │   └── ANDROID.md
 ├── public/
 │   ├── fonts/
@@ -178,6 +188,12 @@
 │   │   │   ├── faceless.webp
 │   │   │   ├── maker.webp
 │   │   │   └── phone.webp
+│   │   ├── explore/
+│   │   │   ├── cloud1.webp
+│   │   │   ├── cloud2.webp
+│   │   │   ├── cloud3.webp
+│   │   │   ├── clouds.webp
+│   │   │   └── explore-hero.webp
 │   │   ├── home/
 │   │   │   ├── crow.webp
 │   │   │   └── home-hero.webp
@@ -214,9 +230,9 @@
 │   │   │   ├── screen.webp
 │   │   │   └── waiting.webp
 │   │   ├── logos/
-│   │   │   ├── floating-logo.png
-│   │   │   ├── floating-logo.webp
-│   │   │   └── sidequesthq-logo.webp
+│   │   │   ├── floating-logo.svg
+│   │   │   ├── sidequesthq-logo-no-book-compass.svg
+│   │   │   └── sidequesthq-logo.svg
 │   │   ├── studyrooms/
 │   │   │   ├── campside.webp
 │   │   │   ├── canal.webp
@@ -324,6 +340,7 @@
 │   │   │   ├── home/
 │   │   │   │   └── page.tsx
 │   │   │   ├── message/
+│   │   │   │   ├── layout.tsx
 │   │   │   │   └── page.tsx
 │   │   │   ├── notes/
 │   │   │   │   └── page.tsx
@@ -356,7 +373,6 @@
 │   │   │   ├── reset.css
 │   │   │   ├── tokens.css
 │   │   │   └── typography.css
-│   │   ├── favicon.ico
 │   │   ├── globals.css
 │   │   └── layout.tsx
 │   ├── client/
@@ -375,7 +391,8 @@
 │   │   │   │   │   └── index.ts
 │   │   │   │   ├── DashboardShell/
 │   │   │   │   │   ├── DashboardShell.module.css
-│   │   │   │   │   └── DashboardShell.tsx
+│   │   │   │   │   ├── DashboardShell.tsx
+│   │   │   │   │   └── RoutePreserver.tsx
 │   │   │   │   ├── EmptyState/
 │   │   │   │   │   ├── EmptyState.module.css
 │   │   │   │   │   ├── EmptyState.tsx
@@ -386,6 +403,10 @@
 │   │   │   │   ├── HorizontalScroller/
 │   │   │   │   │   ├── HorizontalScroller.module.css
 │   │   │   │   │   ├── HorizontalScroller.tsx
+│   │   │   │   │   └── index.ts
+│   │   │   │   ├── InfiniteScroller/
+│   │   │   │   │   ├── InfiniteScroller.module.css
+│   │   │   │   │   ├── InfiniteScroller.tsx
 │   │   │   │   │   └── index.ts
 │   │   │   │   ├── Logo/
 │   │   │   │   │   ├── Logo.module.css
@@ -795,10 +816,15 @@
 │   │   │   │   │   │   │   │   ├── BrowseTopics.tsx
 │   │   │   │   │   │   │   │   ├── TopicChip.module.css
 │   │   │   │   │   │   │   │   └── TopicChip.tsx
+│   │   │   │   │   │   │   ├── CloudBed/
+│   │   │   │   │   │   │   │   ├── CloudBed.module.css
+│   │   │   │   │   │   │   │   └── CloudBed.tsx
 │   │   │   │   │   │   │   ├── ExploreHero/
 │   │   │   │   │   │   │   │   ├── ExploreHero.module.css
 │   │   │   │   │   │   │   │   └── ExploreHero.tsx
 │   │   │   │   │   │   │   ├── PeopleFinishing/
+│   │   │   │   │   │   │   │   ├── ArcCarousel.module.css
+│   │   │   │   │   │   │   │   ├── ArcCarousel.tsx
 │   │   │   │   │   │   │   │   ├── PeopleFinishing.module.css
 │   │   │   │   │   │   │   │   ├── PeopleFinishing.tsx
 │   │   │   │   │   │   │   │   ├── TrendingCourseCard.module.css
@@ -811,6 +837,11 @@
 │   │   │   │   │   │   │   ├── SectionHeader/
 │   │   │   │   │   │   │   │   ├── SectionHeader.module.css
 │   │   │   │   │   │   │   │   └── SectionHeader.tsx
+│   │   │   │   │   │   │   ├── StudyRooms/
+│   │   │   │   │   │   │   │   ├── StudyRoomCard.module.css
+│   │   │   │   │   │   │   │   ├── StudyRoomCard.tsx
+│   │   │   │   │   │   │   │   ├── StudyRooms.module.css
+│   │   │   │   │   │   │   │   └── StudyRooms.tsx
 │   │   │   │   │   │   │   └── TrendingSideQuests/
 │   │   │   │   │   │   │       ├── SideQuestCard.module.css
 │   │   │   │   │   │   │       ├── SideQuestCard.tsx
@@ -898,6 +929,9 @@
 │   │   │   │   │   │   │   │   └── Center.tsx
 │   │   │   │   │   │   │   ├── CommunityChat/
 │   │   │   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   │   │   ├── AvatarConnector/
+│   │   │   │   │   │   │   │   │   │   ├── AvatarConnector.module.css
+│   │   │   │   │   │   │   │   │   │   └── AvatarConnector.tsx
 │   │   │   │   │   │   │   │   │   ├── ChannelTabs/
 │   │   │   │   │   │   │   │   │   │   ├── ChannelTabs.module.css
 │   │   │   │   │   │   │   │   │   │   └── ChannelTabs.tsx
@@ -1182,11 +1216,18 @@
 │   │   │       ├── Divider/
 │   │   │       │   ├── Divider.module.css
 │   │   │       │   └── Divider.tsx
-│   │   │       └── Typography/
-│   │   │           ├── Heading.module.css
-│   │   │           ├── Heading.tsx
-│   │   │           ├── Text.module.css
-│   │   │           └── Text.tsx
+│   │   │       ├── Tooltip/
+│   │   │       │   ├── Tooltip.module.css
+│   │   │       │   ├── Tooltip.tsx
+│   │   │       │   └── index.ts
+│   │   │       ├── Typography/
+│   │   │       │   ├── Heading.module.css
+│   │   │       │   ├── Heading.tsx
+│   │   │       │   ├── Text.module.css
+│   │   │       │   └── Text.tsx
+│   │   │       └── index.ts
+│   │   ├── config/
+│   │   │   └── routeThemeConfig.ts
 │   │   ├── hooks/
 │   │   │   ├── useIsMobile.ts
 │   │   │   ├── usePullToRefresh.ts
@@ -1201,7 +1242,8 @@
 │   │   ├── navigation/
 │   │   │   └── cohortLinks.ts
 │   │   ├── providers/
-│   │   │   └── .gitkeep
+│   │   │   ├── .gitkeep
+│   │   │   └── ReactQueryProvider.tsx
 │   │   ├── react-query/
 │   │   │   └── query-client.ts
 │   │   ├── redux/
@@ -1299,13 +1341,10 @@
 ├── build-aab.bat
 ├── capacitor.config.ts
 ├── eslint.config.mjs
-├── floating-logo.png
-├── floating-logo.webp
 ├── next.config.ts
 ├── package-lock.json
 ├── package.json
 ├── postcss.config.mjs
-├── sidequesthq-logo.webp
 └── tsconfig.json
 
-429 directories, 878 files
+437 directories, 909 files
