@@ -1,29 +1,18 @@
 'use client';
 
-import { ArrowLeft, Archive,
-  Bold,
-  CheckSquare,
-  Code,
-  Copy,
+import {
+  ArrowLeft,
+  Archive,
   Filter,
   Folder,
-  Italic,
-  Link,
-  List,
-  ListOrdered,
-  Lock,
   MoreHorizontal,
-  MousePointer2,
   Plus,
-  Presentation,
   Search,
-  Share2,
+  Share,
   SortAsc,
   Star,
-  Type,
-  Underline,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useToast } from '@/src/client/hooks/useToast';
 import { useIsMobile } from '@/src/client/hooks/useIsMobile';
 import { useNotes } from './hooks/useNotes';
@@ -38,17 +27,13 @@ import {
   Section,
   ShareModal,
 } from './components/NotesComponents';
+import { NotesCanvas } from './components/NotesCanvas/NotesCanvas';
+import { NotesSaveStatus } from './components/NotesSaveStatus/NotesSaveStatus';
+import { useCanvasScene } from './hooks/useCanvasScene';
+import { useCanvasPersistence } from './hooks/useCanvasPersistence';
+import { canvasAdapter, CANVAS_SCHEMA_VERSION } from './adapters/canvas.adapter';
+import { canvasRepository } from './repositories/canvas.repository';
 import styles from './Notes.module.css';
-
-const bottomToolConfigs = [
-  { icon: MousePointer2, label: 'Select' },
-  { icon: Type, label: 'Text box' },
-  { icon: Copy, label: 'Duplicate' },
-  { icon: Link, label: 'Link card' },
-  { icon: CheckSquare, label: 'Task card' },
-  { icon: Search, label: 'Find' },
-  { icon: MoreHorizontal, label: 'More tools' },
-];
 
 const sorts: [NotesSort, string][] = [
   ['manual', 'Manual order'],
@@ -72,64 +57,39 @@ export function Notes() {
   const [mobileView, setMobileView] = useState<'panel' | 'workspace'>('panel');
   const [menu, setMenu] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
-  const [presenting, setPresenting] = useState(false);
-  // Task 2.9 #56: Presentation mode bottom bar — fade in on mouse movement
-  const [bottomBarVisible, setBottomBarVisible] = useState(true);
-  const bottomBarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [canvasSwitcherOpen, setCanvasSwitcherOpen] = useState(false);
   const [editingNotebookId, setEditingNotebookId] = useState<string | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
-  const [noteDirty, setNoteDirty] = useState(false);
-  const editorRef = useRef<HTMLDivElement>(null);
-  const selected = notes.data?.selectedNote;
-  // Initialize with empty string; synced in useEffect when selected changes
-  const lastBodyRef = useRef('');
 
-  const cmd = useCallback((command: string, value?: string) => {
-    document.execCommand(command, false, value);
-    editorRef.current?.focus();
-  }, []);
-  const addLink = useCallback(() => {
-    const url = prompt('Paste a link');
-    if (url) cmd('createLink', url);
-  }, [cmd]);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setPresenting(false);
-      if ((e.ctrlKey || e.metaKey) && selected) {
-        if (e.key.toLowerCase() === 'b') {
-          e.preventDefault();
-          document.execCommand('bold');
-        }
-        if (e.key.toLowerCase() === 'i') {
-          e.preventDefault();
-          document.execCommand('italic');
-        }
-        if (e.key.toLowerCase() === 'k') {
-          e.preventDefault();
-          addLink();
-        }
-        if (e.shiftKey && e.key === '7') {
-          e.preventDefault();
-          document.execCommand('insertOrderedList');
-        }
-        if (e.shiftKey && e.key === '8') {
-          e.preventDefault();
-          document.execCommand('insertUnorderedList');
-        }
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [addLink, selected]);
-  useEffect(() => {
-    if (editorRef.current && selected && editorRef.current.innerHTML !== selected.body) {
-      lastBodyRef.current = selected.body;
-      setNoteDirty(false);
-      editorRef.current.innerHTML = selected.body;
+  const selected = notes.data?.selectedNote ?? null;
+
+  const {
+    initialScene,
+    setInitialScene,
+    loading: canvasLoading,
+    canvasState,
+    setCanvasState,
+    handleSceneChange,
+    sceneRef,
+    isDirtyRef,
+    saveTrigger,
+  } = useCanvasScene(selected?.id ?? null);
+
+  useCanvasPersistence(
+    selected?.id ?? null,
+    sceneRef,
+    isDirtyRef,
+    setCanvasState,
+    saveTrigger,
+    () => {
+      if (selected) notes.actions.patchNote(selected.id, {});
     }
-  }, [selected]);
-  
+  );
+
+  useEffect(() => {
+    // Reset any state bound to the old note when note changes
+  }, [selected?.id]);
+
   useEffect(() => {
     if (isMobile && notes.data?.selectedNote) {
       setMobileView('workspace');
@@ -137,52 +97,8 @@ export function Notes() {
   }, [isMobile, notes.data?.selectedNote]);
 
   const toast = useToast();
-  const coming = () => {
-    toast.info('This feature is coming soon');
-  };
+
   if (!notes.state || !notes.data) return <main className={styles.loading}>Loading notes…</main>;
-
-  // Task 2.9 #56: Presentation mode with fade-in bottom bar
-  if (presenting) {
-    useEffect(() => {
-      let hideTimer: ReturnType<typeof setTimeout> | null = null;
-      function handleMouseMove() {
-        setBottomBarVisible(true);
-        if (hideTimer) clearTimeout(hideTimer);
-        hideTimer = setTimeout(() => setBottomBarVisible(false), 2000);
-      }
-      document.addEventListener('mousemove', handleMouseMove);
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        if (hideTimer) clearTimeout(hideTimer);
-      };
-    }, []);
-
-    const noteIndex = notes.data?.notes.findIndex((n) => n.id === selected?.id) ?? 0;
-    const totalNotes = notes.data?.notes.length ?? 1;
-
-    return (
-      <main className={styles.present}>
-        <article
-          dangerouslySetInnerHTML={{
-            __html: selected?.body ?? '<h1>No note selected</h1>',
-          }}
-        />
-        {/* Task 2.9 #56: Fade-in bottom bar on mouse movement */}
-        <div className={`${styles.presentBottomBar} ${bottomBarVisible ? styles.visible : ''}`}>
-          <button
-            onClick={() => setPresenting(false)}
-            className={styles.exitBtn}
-          >
-            Exit Presentation
-          </button>
-          <span className={styles.slideCounter}>
-            {noteIndex + 1} / {totalNotes}
-          </span>
-        </div>
-      </main>
-    );
-  }
 
   const counts = {
     favorites:
@@ -205,29 +121,11 @@ export function Notes() {
       }}
     >
       <aside className={`${styles.panel} ${isMobile && mobileView !== 'panel' ? styles.panelHidden : ''}`}>
-        <header className={styles.header}>
-          <h1>
-            Notes{' '}{selected && (
-              noteDirty ? (
-                <span className={styles.unsavedDot} title="Unsaved changes">● unsaved</span>
-              ) : selected.updatedAt ? (
-                <span className={styles.savedDot} title={"Last saved"} >✓ saved</span>
-              ) : null
-            )}
-          </h1>
-          <p>Your thinking, connected.</p>
-        </header>
         <div className={styles.toolbar}>
-          <IconButton
-            label="New notebook"
-            onClick={notes.actions.createNotebook}
-          >
+          <IconButton label="New notebook" onClick={notes.actions.createNotebook}>
             <Plus />
           </IconButton>
-          <IconButton
-            label="New note"
-            onClick={() => notes.actions.createNote()}
-          >
+          <IconButton label="New note" onClick={() => notes.actions.createNote()}>
             <Folder />
           </IconButton>
           <label className={styles.selectControl}>
@@ -238,12 +136,7 @@ export function Notes() {
               onChange={(e) => notes.actions.setNotebookSort(e.target.value as NotesSort)}
             >
               {sorts.map(([v, l]) => (
-                <option
-                  key={v}
-                  value={v}
-                >
-                  {l}
-                </option>
+                <option key={v} value={v}>{l}</option>
               ))}
             </select>
           </label>
@@ -255,12 +148,7 @@ export function Notes() {
               onChange={(e) => notes.actions.setFilter(e.target.value as NotesFilter)}
             >
               {filters.map(([v, l]) => (
-                <option
-                  key={v}
-                  value={v}
-                >
-                  {l}
-                </option>
+                <option key={v} value={v}>{l}</option>
               ))}
             </select>
           </label>
@@ -303,14 +191,11 @@ export function Notes() {
         </Section>
         <nav className={styles.nav}>
           <button onClick={() => notes.actions.setFilter('favorites')}>
-            <Star
-              size={16}
-              fill="#fbbf24"
-            />
+            <Star size={16} fill="#fbbf24" />
             Favorites<span>{counts.favorites}</span>
           </button>
           <button onClick={() => notes.actions.setFilter('shared')}>
-            <Share2 size={16} />
+            <Share size={16} />
             Shared with me<span>{counts.shared}</span>
           </button>
           <button onClick={() => notes.actions.setFilter('archived')}>
@@ -352,28 +237,18 @@ export function Notes() {
                 notes.actions.selectNote(id);
                 setCanvasSwitcherOpen(false);
               }}
+              title={selected?.title}
+              onTitleChange={(newTitle) => {
+                if (selected) {
+                  notes.actions.patchNote(selected.id, { title: newTitle });
+                }
+              }}
             />
+            {selected && <NotesSaveStatus state={canvasState} />}
           </div>
           <div className={styles.actions}>
-            <label className={styles.topSelect}>
-              <SortAsc size={16} />
-              <select
-                aria-label="Sort canvases"
-                value={notes.state.noteSort}
-                onChange={(e) => notes.actions.setNoteSort(e.target.value as NotesSort)}
-              >
-                {sorts.map(([v, l]) => (
-                  <option
-                    key={v}
-                    value={v}
-                  >
-                    {l}
-                  </option>
-                ))}
-              </select>
-            </label>
             <button onClick={() => setShareOpen(true)}>
-              <Share2 size={16} />
+              <Share size={16} />
               Share
             </button>
             <Tooltip content="More options">
@@ -385,15 +260,6 @@ export function Notes() {
                 }}
               >
                 <MoreHorizontal size={18} />
-              </button>
-            </Tooltip>
-            <Tooltip content="Present note" placement="bottom">
-              <button
-                className={styles.presentBtn}
-                onClick={() => setPresenting(true)}
-              >
-                <Presentation size={16} />
-                Present
               </button>
             </Tooltip>
             {menu === 'more' && (
@@ -411,116 +277,25 @@ export function Notes() {
             )}
           </div>
         </header>
-        <label className={styles.canvasSearch}>
-          <Search size={18} />
-          <input
-            value={notes.noteQuery}
-            onChange={(e) => notes.setNoteQuery(e.target.value)}
-            placeholder={`Search in ${notes.data.selectedNotebook?.title ?? 'notebook'} canvas...`}
-          />
-          <span>⌘ F</span>
-        </label>
-        <div className={styles.format}>
-          <select onChange={(e) => cmd('formatBlock', e.target.value)}>
-            <option value="H2">H2</option>
-            <option value="H1">H1</option>
-            <option value="P">Text</option>
-          </select>
-          <Tooltip content="Bold (⌘B)">
-            <button aria-label="Bold" onClick={() => cmd('bold')}>
-              <Bold />
-            </button>
-          </Tooltip>
-          <Tooltip content="Italic (⌘I)">
-            <button aria-label="Italic" onClick={() => cmd('italic')}>
-              <Italic />
-            </button>
-          </Tooltip>
-          <Tooltip content="Underline">
-            <button aria-label="Underline" onClick={() => cmd('underline')}>
-              <Underline />
-            </button>
-          </Tooltip>
-          <Tooltip content="Code block">
-            <button aria-label="Code block" onClick={() => cmd('formatBlock', 'PRE')}>
-              <Code />
-            </button>
-          </Tooltip>
-          <Tooltip content="Bullet list (⌘Shift 8)">
-            <button aria-label="Bullet list" onClick={() => cmd('insertUnorderedList')}>
-              <List />
-            </button>
-          </Tooltip>
-          <Tooltip content="Numbered list (⌘Shift 7)">
-            <button aria-label="Numbered list" onClick={() => cmd('insertOrderedList')}>
-              <ListOrdered />
-            </button>
-          </Tooltip>
-          <Tooltip content="Checklist">
-            <button aria-label="Checklist" onClick={() => cmd('insertHTML', '<label><input type="checkbox"/> Task</label>')}>
-              <CheckSquare />
-            </button>
-          </Tooltip>
-          <Tooltip content="Insert link (⌘K)">
-            <button aria-label="Insert link" onClick={addLink}>
-              <Link />
-            </button>
-          </Tooltip>
-        </div>
+        
         <article className={styles.canvas}>
-          {selected ? (
-            <>
-              <input
-                className={styles.titleInput}
-                value={selected.title}
-                onChange={(e) =>
-                  notes.actions.patchNote(selected.id, {
-                    title: e.target.value,
-                  })
-                }
-              />
-              <div
-                ref={editorRef}
-                className={styles.editor}
-                contentEditable
-                suppressContentEditableWarning
-                onInput={(e) => {
-                    const newBody = e.currentTarget.innerHTML;
-                    setNoteDirty(newBody !== lastBodyRef.current);
-                    notes.actions.patchNote(selected.id, {
-                      body: newBody,
-                    });
-                  }}
-              />
-            </>
-          ) : (
+          {!selected ? (
             <Empty
-              label={
-                notes.data.selectedNotebook ? 'No notes in this notebook' : 'No notebook selected'
-              }
+              label={notes.data.selectedNotebook ? 'No notes in this notebook' : 'No notebook selected'}
               action="New note"
               onClick={() => notes.actions.createNote()}
             />
+          ) : canvasLoading ? (
+            <div className={styles.loadingScene}>Loading canvas...</div>
+          ) : (
+            <NotesCanvas
+              key={selected.id}
+              noteId={selected.id}
+              initialScene={initialScene}
+              onSceneChange={handleSceneChange}
+            />
           )}
         </article>
-        <div className={styles.bottomTools}>
-          {bottomToolConfigs.map(({ icon: I, label }, i) => (
-            <Tooltip key={i} content={label}>
-              <button
-                aria-label={label}
-                onClick={coming}
-              >
-                <I size={20} />
-              </button>
-            </Tooltip>
-          ))}
-        </div>
-        <div className={styles.zoom}>
-          <button onClick={coming}>−</button>
-          <span>100%</span>
-          <button onClick={coming}>+</button>
-          <Lock size={16} />
-        </div>
       </section>
       {shareOpen && selected && (
         <ShareModal
@@ -528,7 +303,7 @@ export function Notes() {
           onClose={() => setShareOpen(false)}
           onSave={(patch) => notes.actions.patchNote(selected.id, patch)}
         />
-      )}{' '}
+      )}
       {notes.toast && (
         <div className={styles.toast}>
           {notes.toast}
