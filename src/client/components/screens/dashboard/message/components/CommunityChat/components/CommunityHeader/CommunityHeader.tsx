@@ -44,30 +44,22 @@ export function CommunityHeader({ community, aboutOpen, onBack, onToggleAbout }:
       >
         <ArrowLeft size={20} />
       </button>
-      <Image width={48} height={48} className={styles.avatar} src={community.avatar} alt="" />
+      <Image width={44} height={44} className={styles.avatar} src={community.avatar} alt="" />
       <div className={styles.info}>
-        <div className={styles.titleRow}>
-          <h1>{community.name}</h1>
-          <div className={styles.onlineBadge}>
-            <span className={styles.onlineDot} />
-            <span>{community.onlineCount} online</span>
-          </div>
-        </div>
-        <div className={styles.meta}>
-          <p className={styles.description}>{community.description}</p>
-          {community.members.length > 0 && (
-            <div className={styles.members}>
-              {community.members.slice(0, 4).map((member) => (
-                <Image key={member.id} width={20} height={20} src={member.avatar} alt={member.name} />
-              ))}
-            </div>
-          )}
-        </div>
+        <h1>{community.name}</h1>
+        {community.description && <p className={styles.description}>{community.description}</p>}
       </div>
       <div
         className={styles.actions}
         ref={ref}
       >
+        {community.members.length > 0 && (
+          <div className={styles.members} title={`${community.onlineCount} members`}>
+            {community.members.slice(0, 4).map((member) => (
+              <Image key={member.id} width={24} height={24} src={member.avatar} alt={member.name} />
+            ))}
+          </div>
+        )}
         <button
           type="button"
           aria-label="Start video"

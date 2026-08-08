@@ -1,11 +1,11 @@
-import { Bell, BellOff } from 'lucide-react';
+import { Bell, BellOff, X } from 'lucide-react';
 import { CommunityChatModel } from '../../../../models';
 import { MediaGallery } from '../MediaGallery/MediaGallery';
 import { MembersStrip } from '../MembersStrip/MembersStrip';
 import { PinnedMessages } from '../PinnedMessages/PinnedMessages';
 import { UpcomingEvents } from '../UpcomingEvents/UpcomingEvents';
 import styles from './CommunitySidebar.module.css';
-import { X } from 'lucide-react';
+
 interface Props {
   community: CommunityChatModel;
   mutedChannels?: ReadonlySet<string>;
@@ -28,10 +28,11 @@ export function CommunitySidebar({ community, mutedChannels = new Set(), onToggl
       >
         <X size={18} />
       </button>
-      {/* Batch D4: Mute channel toggle */}
+
+      {/* Channel Settings / Mute Toggle */}
       <section className={`${styles.card} ${styles.muteCard}`}>
         <h2>Channel Settings</h2>
-        <p style={{ margin: '0 0 14px', color: '#667098' }}>
+        <p className={styles.muteDescription}>
           Muting stops unread badges and notifications for this channel.
         </p>
         <button
@@ -40,10 +41,11 @@ export function CommunitySidebar({ community, mutedChannels = new Set(), onToggl
           onClick={() => onToggleMute?.(community.selectedChannel, !channelIsMuted)}
           aria-pressed={channelIsMuted}
         >
-          {channelIsMuted ? <BellOff size={18} /> : <Bell size={18} />}
+          {channelIsMuted ? <BellOff size={16} /> : <Bell size={16} />}
           {channelIsMuted ? 'Unmute channel' : 'Mute notifications'}
         </button>
       </section>
+
       <section className={styles.card}>
         <h2>About</h2>
         <p>A space for builders learning &amp; building together.</p>
@@ -51,10 +53,11 @@ export function CommunitySidebar({ community, mutedChannels = new Set(), onToggl
           Created by {community.createdBy} • {community.createdAt}
         </footer>
       </section>
+
       <section className={styles.card}>
         <header>
-          <h2>Members online</h2>
-          <span>{community.onlineCount}</span>
+          <h2>Members</h2>
+          <span>{community.members.length}</span>
           <button type="button">See all</button>
         </header>
         <MembersStrip
@@ -62,6 +65,7 @@ export function CommunitySidebar({ community, mutedChannels = new Set(), onToggl
           count={community.onlineCount}
         />
       </section>
+
       <section className={styles.card}>
         <header>
           <h2>Pinned Messages</h2>
@@ -70,6 +74,7 @@ export function CommunitySidebar({ community, mutedChannels = new Set(), onToggl
         </header>
         <PinnedMessages items={community.pinnedMessages} />
       </section>
+
       <section className={styles.card}>
         <header>
           <h2>Media</h2>
@@ -78,6 +83,7 @@ export function CommunitySidebar({ community, mutedChannels = new Set(), onToggl
         </header>
         <MediaGallery items={community.media} />
       </section>
+
       <section className={styles.card}>
         <header>
           <h2>Upcoming Events</h2>
