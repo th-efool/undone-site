@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Loader } from 'lucide-react';
 import { SearchBar } from '@/src/client/components/global/SearchBar';
 import { ExploreSkeleton } from '@/src/client/components/global/Skeleton';
 import { EmptyState } from '@/src/client/components/global/EmptyState';
@@ -42,7 +42,7 @@ export function Explore() {
   const peopleFinishing = useMemo(
     () =>
       explore.peopleFinishing
-        .filter((item) =>
+         .filter((item) =>
           matches([item.title, item.provider, item.learnerCount]),
         )
         .slice(0, 6),
@@ -88,9 +88,11 @@ export function Explore() {
           value={query}
           onChange={setQuery}
         />
-        <Link href="/create-cohort" className={styles.newCohortBtn}>
-          <Plus size={18} strokeWidth={2.4} />
-          <span>New Cohort</span>
+        <Link href="/create-cohort" className={styles.buildCohortBtn}>
+          <span className={styles.btnLabel}>BUILD A COHORT</span>
+          <span className={styles.iconCircle}>
+            <Loader size={18} strokeWidth={2.5} />
+          </span>
         </Link>
       </div>
 
