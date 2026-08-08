@@ -24,101 +24,176 @@ const CLOUD_VARIATIONS = [
 ];
 
 const CLOUD_CONFIGS: CloudItem[] = [
+  // Top Row
   {
     id: 'cloud-1',
     src: CLOUD_VARIATIONS[0],
-    top: '-60px',
-    left: '-6%',
-    width: '380px',
-    scale: 1.15,
-    rotation: -4,
-    opacity: 0.85,
+    top: '30px',
+    left: '-8%',
+    width: '420px',
+    scale: 1.27,
+    rotation: 0,
+    opacity: 1,
     speed: -0.14,
     zIndex: 1,
   },
   {
     id: 'cloud-2',
     src: CLOUD_VARIATIONS[1],
-    top: '-30px',
-    left: '18%',
-    width: '320px',
-    scale: 0.95,
-    rotation: 6,
-    opacity: 0.75,
+    top: '60px',
+    left: '15%',
+    width: '360px',
+    scale: 1.05,
+    rotation: 0,
+    opacity: 1,
     speed: 0.22,
     zIndex: 2,
   },
   {
     id: 'cloud-3',
     src: CLOUD_VARIATIONS[2],
-    top: '-80px',
-    left: '42%',
-    width: '420px',
-    scale: 1.3,
-    rotation: -2,
-    opacity: 0.9,
+    top: '20px',
+    left: '38%',
+    width: '460px',
+    scale: 1.43,
+    rotation: 0,
+    opacity: 1,
     speed: -0.18,
     zIndex: 1,
   },
   {
     id: 'cloud-4',
     src: CLOUD_VARIATIONS[0],
-    top: '-40px',
-    left: '68%',
-    width: '360px',
-    scale: 1.1,
-    rotation: 5,
-    opacity: 0.8,
+    top: '50px',
+    left: '62%',
+    width: '400px',
+    scale: 1.21,
+    rotation: 0,
+    opacity: 1,
     speed: 0.16,
     zIndex: 2,
   },
   {
     id: 'cloud-5',
     src: CLOUD_VARIATIONS[1],
-    top: '20px',
-    left: '-2%',
+    top: '25px',
+    left: '85%',
     width: '440px',
     scale: 1.25,
-    rotation: 3,
-    opacity: 0.88,
-    speed: 0.28,
-    zIndex: 3,
+    rotation: 0,
+    opacity: 1,
+    speed: -0.2,
+    zIndex: 1,
   },
   {
     id: 'cloud-6',
     src: CLOUD_VARIATIONS[2],
     top: '40px',
-    left: '30%',
-    width: '350px',
-    scale: 1.05,
-    rotation: -5,
-    opacity: 0.82,
-    speed: -0.24,
-    zIndex: 3,
+    left: '100%',
+    width: '420px',
+    scale: 1.2,
+    rotation: 0,
+    opacity: 1,
+    speed: 0.15,
+    zIndex: 2,
   },
+  // Middle Row
   {
     id: 'cloud-7',
     src: CLOUD_VARIATIONS[0],
-    top: '10px',
-    left: '60%',
-    width: '400px',
-    scale: 1.2,
-    rotation: 2,
-    opacity: 0.92,
-    speed: 0.2,
-    zIndex: 4,
+    top: '110px',
+    left: '-3%',
+    width: '480px',
+    scale: 1.38,
+    rotation: 0,
+    opacity: 1,
+    speed: 0.25,
+    zIndex: 3,
   },
   {
     id: 'cloud-8',
     src: CLOUD_VARIATIONS[1],
-    top: '-90px',
-    left: '84%',
-    width: '340px',
-    scale: 1.0,
-    rotation: -3,
-    opacity: 0.7,
-    speed: -0.12,
-    zIndex: 1,
+    top: '90px',
+    left: '22%',
+    width: '440px',
+    scale: 1.21,
+    rotation: 0,
+    opacity: 1,
+    speed: -0.2,
+    zIndex: 2,
+  },
+  {
+    id: 'cloud-9',
+    src: CLOUD_VARIATIONS[2],
+    top: '120px',
+    left: '48%',
+    width: '400px',
+    scale: 1.32,
+    rotation: 0,
+    opacity: 1,
+    speed: 0.18,
+    zIndex: 3,
+  },
+  {
+    id: 'cloud-10',
+    src: CLOUD_VARIATIONS[0],
+    top: '95px',
+    left: '72%',
+    width: '460px',
+    scale: 1.16,
+    rotation: 0,
+    opacity: 1,
+    speed: -0.22,
+    zIndex: 2,
+  },
+  {
+    id: 'cloud-11',
+    src: CLOUD_VARIATIONS[1],
+    top: '105px',
+    left: '94%',
+    width: '450px',
+    scale: 1.28,
+    rotation: 0,
+    opacity: 1,
+    speed: 0.19,
+    zIndex: 3,
+  },
+  // Bottom Row
+  {
+    id: 'cloud-12',
+    src: CLOUD_VARIATIONS[2],
+    top: '150px',
+    left: '10%',
+    width: '420px',
+    scale: 1.16,
+    rotation: 0,
+    opacity: 1,
+    speed: -0.24,
+    zIndex: 4,
+  },
+  {
+    id: 'cloud-13',
+    src: CLOUD_VARIATIONS[0],
+    top: '170px',
+    left: '35%',
+    width: '440px',
+    scale: 1.27,
+    rotation: 0,
+    opacity: 1,
+    speed: 0.2,
+    zIndex: 4,
+  },
+  {
+    id: 'cloud-14',
+    src: CLOUD_VARIATIONS[1],
+    top: '160px',
+    left: '65%',
+    width: '420px',
+    scale: 1.32,
+    rotation: 0,
+    opacity: 1,
+    speed: -0.16,
+    zIndex: 4,
   },
 ];
 
@@ -129,28 +204,48 @@ export function CloudBed() {
     const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
     if (mediaQuery.matches) return;
 
-    let rafId = 0;
-    let lastScrollY = -1;
+    let ticking = false;
+    let scrollY = window.scrollY || window.pageYOffset;
+    let arcScrollLeft = 0;
 
     const updateParallax = () => {
-      const scrollY = window.scrollY || window.pageYOffset;
-      if (scrollY !== lastScrollY) {
-        lastScrollY = scrollY;
-        CLOUD_CONFIGS.forEach((cloud, index) => {
-          const node = cloudRefs.current[index];
-          if (node) {
-            const translateX = scrollY * cloud.speed;
-            node.style.transform = `translate3d(${translateX}px, 0, 0) scale(${cloud.scale}) rotate(${cloud.rotation}deg)`;
-          }
-        });
-      }
-      rafId = requestAnimationFrame(updateParallax);
+      const combinedScroll = scrollY + (arcScrollLeft * 0.3);
+      CLOUD_CONFIGS.forEach((cloud, index) => {
+        const node = cloudRefs.current[index];
+        if (node) {
+          const translateX = combinedScroll * cloud.speed;
+          node.style.transform = `translate3d(${translateX}px, 0, 0) scale(${cloud.scale})`;
+        }
+      });
+      ticking = false;
     };
 
-    rafId = requestAnimationFrame(updateParallax);
+    const requestUpdate = () => {
+      if (!ticking) {
+        requestAnimationFrame(updateParallax);
+        ticking = true;
+      }
+    };
+
+    const handleScroll = () => {
+      scrollY = window.scrollY || window.pageYOffset;
+      requestUpdate();
+    };
+
+    const handleArcScroll = (e: Event) => {
+      arcScrollLeft = (e as CustomEvent).detail.scrollLeft;
+      requestUpdate();
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('arc-scroll', handleArcScroll);
+
+    // Initial positioning
+    requestUpdate();
 
     return () => {
-      cancelAnimationFrame(rafId);
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('arc-scroll', handleArcScroll);
     };
   }, []);
 
@@ -178,6 +273,7 @@ export function CloudBed() {
             width={600}
             height={360}
             className={styles.cloudImage}
+            style={{ animationDelay: `${-(index * 2.3)}s` }}
             priority={index < 4}
           />
         </div>
