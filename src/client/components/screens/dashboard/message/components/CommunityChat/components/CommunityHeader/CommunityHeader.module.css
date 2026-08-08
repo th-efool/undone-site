@@ -2,132 +2,176 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 28px 32px 18px;
+  padding: 16px 28px;
+  border-bottom: 1px solid var(--message-border, rgba(255, 255, 255, 0.08));
+  background: var(--message-bg, transparent);
 }
+
 .avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--message-radius-control);
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
   object-fit: cover;
-  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.16);
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
+
 .info {
   min-width: 0;
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .info h1 {
-  margin: 0 0 7px;
+  margin: 0;
   color: var(--message-text-primary, #f8fafc);
-  font-size: 1.42rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
+
+.onlineBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: #4ade80;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.onlineDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+}
+
 .meta {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: var(--message-text-muted, #94a3b8);
-  font-size: 0.86rem;
-  font-weight: 600;
+  gap: 12px;
 }
+
+.description {
+  margin: 0;
+  color: var(--message-text-secondary, #cbd5e1);
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 500px;
+}
+
 .members {
   display: flex;
-  margin-right: 4px;
+  align-items: center;
+  margin-left: auto;
 }
+
 .members img {
-  width: 22px;
-  height: 22px;
-  margin-right: -7px;
-  border: 2px solid var(--message-bg, #050505);
+  width: 20px;
+  height: 20px;
+  margin-right: -6px;
+  border: 2px solid var(--message-bg-elevated, #141620);
   border-radius: 999px;
   object-fit: cover;
 }
+
 .actions {
   display: flex;
-  gap: 14px;
+  gap: 8px;
+  align-items: center;
+  position: relative;
+  flex-shrink: 0;
 }
+
 .back,
 .actions button {
   display: grid;
   place-items: center;
   width: 34px;
   height: 34px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--message-bg-elevated, #141620);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
   color: var(--message-text-secondary, #cbd5e1);
   cursor: pointer;
   transition: all var(--duration-fast) var(--ease-standard);
 }
+
 .back:hover,
 .actions button:hover {
-  background: var(--message-brand, #6366f1);
+  background: rgba(255, 255, 255, 0.08);
   color: #fff;
-}
-@media (max-width: 760px) {
-  .header {
-    padding: max(12px, env(safe-area-inset-top)) 16px 8px;
-    gap: 12px;
-  }
-  .info h1 {
-    font-size: 1.1rem;
-    margin: 0 0 2px;
-  }
-  .avatar {
-    width: 40px;
-    height: 40px;
-  }
-  .actions {
-    gap: 6px;
-  }
-  .actions button:nth-child(n + 3) {
-    display: none;
-  }
-  .members, .meta span:nth-last-child(2), .meta span:last-child {
-    display: none;
-  }
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
-/* F2: Ensure back button meets touch target on mobile */
-@media (max-width: 768px) {
-  .back, .actions button {
-    width: 38px !important;
-    height: 38px !important;
-    min-width: 38px;
-    min-height: 38px;
-    border-radius: 10px;
-  }
-}
-.actions {
-  position: relative;
-}
 .popover {
   position: absolute;
   z-index: 30;
-  top: 46px;
-  right: 44px;
-  width: 260px;
-  padding: 10px;
-  border: 1px solid var(--message-border-strong, rgba(255, 255, 255, 0.16));
-  border-radius: 16px;
+  top: 44px;
+  right: 0;
+  width: 240px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
   background: #141620;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
 }
+
 .popover button {
   display: flex;
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  height: 38px;
+  height: 36px;
   padding: 0 10px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 6px;
   background: transparent;
   color: var(--message-text-primary, #f8fafc);
-  font-weight: 800;
+  font-size: 0.85rem;
+  font-weight: 600;
   cursor: pointer;
 }
+
 .popover button:hover {
   background: rgba(255, 255, 255, 0.08);
-  color: var(--message-brand, #818cf8);
+  color: #818cf8;
+}
+
+@media (max-width: 768px) {
+  .header {
+    padding: 12px 16px;
+    gap: 10px;
+  }
+  .info h1 {
+    font-size: 1.05rem;
+  }
+  .description {
+    max-width: 200px;
+  }
+  .members {
+    display: none;
+  }
+  .actions button:nth-child(n + 3) {
+    display: none;
+  }
 }

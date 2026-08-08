@@ -11,6 +11,7 @@ interface Props {
   onBack(): void;
   onToggleAbout(): void;
 }
+
 const settings = [
   'All Messages',
   'Mentions Only',
@@ -18,10 +19,12 @@ const settings = [
   'Mute Today',
   'Mute Until I Turn It Back On',
 ];
+
 export function CommunityHeader({ community, aboutOpen, onBack, onToggleAbout }: Props) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [selected, setSelected] = useState(settings[0]);
   const ref = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!notificationsOpen) return;
     const close = (event: MouseEvent) => {
@@ -30,6 +33,7 @@ export function CommunityHeader({ community, aboutOpen, onBack, onToggleAbout }:
     document.addEventListener('mousedown', close);
     return () => document.removeEventListener('mousedown', close);
   }, [notificationsOpen]);
+
   return (
     <header className={styles.header}>
       <button
@@ -38,20 +42,26 @@ export function CommunityHeader({ community, aboutOpen, onBack, onToggleAbout }:
         onClick={onBack}
         aria-label="Back to social landing"
       >
-        <ArrowLeft size={22} />
+        <ArrowLeft size={20} />
       </button>
-      <Image width={56} height={56} className={styles.avatar} src={community.avatar} alt="" />
+      <Image width={48} height={48} className={styles.avatar} src={community.avatar} alt="" />
       <div className={styles.info}>
-        <h1>{community.name}</h1>
-        <div className={styles.meta}>
-          <div className={styles.members}>
-            {community.members.slice(0, 5).map((member) => (
-              <Image key={member.id} width={22} height={22} src={member.avatar} alt="" />
-            ))}
+        <div className={styles.titleRow}>
+          <h1>{community.name}</h1>
+          <div className={styles.onlineBadge}>
+            <span className={styles.onlineDot} />
+            <span>{community.onlineCount} online</span>
           </div>
-          <span>{community.onlineCount} online</span>
-          <span>•</span>
-          <span>{community.description}</span>
+        </div>
+        <div className={styles.meta}>
+          <p className={styles.description}>{community.description}</p>
+          {community.members.length > 0 && (
+            <div className={styles.members}>
+              {community.members.slice(0, 4).map((member) => (
+                <Image key={member.id} width={20} height={20} src={member.avatar} alt={member.name} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
       <div
@@ -62,26 +72,26 @@ export function CommunityHeader({ community, aboutOpen, onBack, onToggleAbout }:
           type="button"
           aria-label="Start video"
         >
-          <Video size={20} />
+          <Video size={18} />
         </button>
         <button
           type="button"
           aria-label="Start call"
         >
-          <Phone size={20} />
+          <Phone size={18} />
         </button>
         <button
           type="button"
           aria-label="Notification settings"
           onClick={() => setNotificationsOpen((open) => !open)}
         >
-          <Bell size={20} />
+          <Bell size={18} />
         </button>
         <button
           type="button"
           aria-label="Members"
         >
-          <UsersRound size={20} />
+          <UsersRound size={18} />
         </button>
         <button
           type="button"
@@ -90,7 +100,7 @@ export function CommunityHeader({ community, aboutOpen, onBack, onToggleAbout }:
           aria-pressed={aboutOpen}
           onClick={onToggleAbout}
         >
-          <MoreHorizontal size={20} />
+          <MoreHorizontal size={18} />
         </button>
         {notificationsOpen && (
           <div className={styles.popover}>

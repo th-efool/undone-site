@@ -1,64 +1,69 @@
 .banner {
   display: flex;
   align-items: center;
-  gap: 18px;
-  margin: 18px 32px 16px;
-  padding: 16px 18px;
-  border-radius: var(--message-radius-card);
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  color: var(--message-brand, #818cf8);
-}
-.banner div {
-  flex: 1;
-}
-.banner span {
-  display: block;
-  margin-bottom: 4px;
-  color: #818cf8;
-  font-size: 0.9rem;
-  font-weight: 700;
-}
-.banner p {
-  margin: 0;
-  color: var(--message-text-primary, #f8fafc);
-  font-weight: 700;
-}
-.banner button {
-  height: 40px;
-  padding: 0 20px;
-  border: 1px solid var(--message-border-strong, rgba(255, 255, 255, 0.16));
-  border-radius: var(--message-radius-control);
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 32px 10px;
+  padding: 8px 14px;
+  border-radius: 4px;
   background: #141620;
-  color: var(--message-text-primary, #f8fafc);
-  font-weight: 800;
-  cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-standard);
-}
-.banner button:hover {
-  border-color: var(--message-brand, #6366f1);
-  color: var(--message-brand, #818cf8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 3px solid #6366f1;
 }
 
-/* Batch D6: Dismiss close button */
-.closeBtn {
-  width: 32px;
-  height: 32px;
-  padding: 0 !important;
-  display: grid;
-  place-items: center;
-  border: none;
-  background: transparent;
-  color: var(--message-text-muted, #94a3b8);
-  cursor: pointer;
-  border-radius: 50%;
-  transition: all var(--duration-fast) var(--ease-standard);
+.content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.pinIcon {
+  color: #94a3b8;
   flex-shrink: 0;
 }
 
+.author {
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.title {
+  color: #f1f5f9;
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.closeBtn {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
 .closeBtn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.08);
   color: #f8fafc;
 }
 
-@media (max-width: 768px) { .banner { padding: var(--space-3); font-size: var(--text-sm); } }
+@media (max-width: 768px) {
+  .banner {
+    margin: 0 16px 8px;
+    padding: 6px 10px;
+  }
+}

@@ -1,23 +1,22 @@
-import { X } from 'lucide-react';
+import { Pin, X } from 'lucide-react';
 import { PinnedAnnouncement } from '../../../../models';
 import styles from './PinnedBanner.module.css';
 
 interface Props {
   pinned: PinnedAnnouncement;
-  /** Batch D6: Dismiss the banner */
+  /** Dismiss the banner */
   onDismiss?(): void;
 }
+
 export function PinnedBanner({ pinned, onDismiss }: Props) {
   if (!pinned) return null;
   return (
-    <section className={styles.banner}>
-      <div>
-        <span>Pinned by {pinned.author}</span>
-        <p>{pinned.title}</p>
+    <div className={styles.banner} role="region" aria-label="Pinned message">
+      <div className={styles.content}>
+        <Pin size={14} className={styles.pinIcon} />
+        <span className={styles.author}>Pinned by {pinned.author}:</span>
+        <span className={styles.title}>{pinned.title}</span>
       </div>
-      <button type="button" onClick={() => pinned.actionLabel === 'Dismiss' && onDismiss?.()}>
-        {pinned.actionLabel}
-      </button>
       {onDismiss && (
         <button
           type="button"
@@ -25,9 +24,9 @@ export function PinnedBanner({ pinned, onDismiss }: Props) {
           aria-label="Dismiss pinned announcement"
           onClick={onDismiss}
         >
-          <X size={16} />
+          <X size={14} />
         </button>
       )}
-    </section>
+    </div>
   );
 }

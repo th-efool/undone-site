@@ -1,79 +1,97 @@
 .sidebar {
   width: 320px;
   min-width: 300px;
-  padding: 26px 20px 24px 0;
+  padding: 20px 20px 24px 0;
   overflow: auto;
+  position: relative;
 }
+
 .card {
-  padding: 18px 20px;
-  border: 1px solid var(--message-border, rgba(255, 255, 255, 0.08));
-  border-radius: var(--message-radius-card);
-  background: var(--message-bg-elevated, #141620);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: #141620;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
+
 .card + .card {
-  margin-top: 14px;
+  margin-top: 12px;
 }
+
 .card header {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 17px;
+  margin-bottom: 12px;
 }
+
 .card h2 {
   margin: 0;
   color: var(--message-text-primary, #f8fafc);
-  font-size: 0.98rem;
-  font-weight: 800;
+  font-size: 0.92rem;
+  font-weight: 700;
 }
+
 .card header h2 {
   flex: 0 0 auto;
 }
+
 .card header span {
-  color: var(--message-text-muted, #94a3b8);
-  font-size: 0.86rem;
-  font-weight: 800;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
+
 .card header button {
   margin-left: auto;
   border: 0;
   background: transparent;
-  color: var(--message-brand, #818cf8);
-  font-size: 0.82rem;
-  font-weight: 800;
+  color: #818cf8;
+  font-size: 0.8rem;
+  font-weight: 600;
   cursor: pointer;
 }
+
+.card header button:hover {
+  color: #a5b4fc;
+}
+
 .card > p {
-  margin: 0 0 18px;
-  color: var(--message-text-secondary, #cbd5e1);
-  font-size: 0.92rem;
-  font-weight: 700;
+  margin: 0 0 12px;
+  color: #cbd5e1;
+  font-size: 0.88rem;
+  font-weight: 400;
   line-height: 1.45;
 }
+
 .card footer {
-  padding-top: 14px;
-  border-top: 1px solid var(--message-border, rgba(255, 255, 255, 0.08));
-  color: var(--message-text-muted, #94a3b8);
-  font-size: 0.82rem;
-  font-weight: 700;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 500;
 }
-.sidebar {
-  position: relative;
-}
+
 .close {
   position: sticky;
   top: 0;
   float: right;
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border: 0;
-  border-radius: 999px;
-  background: var(--message-brand-soft, rgba(99, 102, 241, 0.2));
-  color: var(--message-brand, #818cf8);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #cbd5e1;
   cursor: pointer;
   z-index: 2;
+  transition: all 0.15s ease;
+}
+
+.close:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
 }
 
 @media (max-width: 768px) {
@@ -82,38 +100,39 @@
   }
 }
 
-/* Batch D4: Mute channel toggle card */
 .muteCard {
-  background: rgba(99, 102, 241, 0.1);
-  border-color: var(--message-border-strong, rgba(255, 255, 255, 0.16));
+  background: #141620;
+  border-color: rgba(255, 255, 255, 0.08);
 }
+
 .muteBtn {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  border: 1px solid var(--message-border-strong, rgba(255, 255, 255, 0.16));
-  border-radius: var(--radius-lg);
-  background: #1e2230;
-  color: var(--message-text-primary, #f8fafc);
-  font-size: 0.85rem;
-  font-weight: 700;
+  padding: 8px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.03);
+  color: #cbd5e1;
+  font-size: 0.82rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all var(--duration-fast) var(--ease-standard);
+  transition: all 0.15s ease;
 }
 
 .muteBtn:hover {
-  border-color: var(--message-brand, #6366f1);
-  color: var(--message-brand, #818cf8);
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
 }
 
 .muteBtn.muted {
-  background: rgba(239, 68, 68, 0.15);
+  background: rgba(239, 68, 68, 0.12);
   border-color: rgba(239, 68, 68, 0.3);
   color: #f87171;
 }
 
 .muteBtn.muted:hover {
-  background: rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.2);
   border-color: #ef4444;
 }
