@@ -24,6 +24,7 @@
     "@capacitor/status-bar": "^8.0.3",
     "@excalidraw/excalidraw": "^0.18.1",
     "@radix-ui/react-dialog": "^1.1.23",
+    "@radix-ui/react-tooltip": "^1.2.16",
     "@reduxjs/toolkit": "^2.12.0",
     "@tanstack/react-query": "^5.101.4",
     "clsx": "^2.1.1",

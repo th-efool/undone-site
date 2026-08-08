@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React from 'react';
+import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import clsx from 'clsx';
 import styles from './Tooltip.module.css';
 
@@ -23,56 +24,26 @@ export function Tooltip({
   disabled = false,
   className,
 }: TooltipProps) {
-  const [isVisible, setIsVisible] = useState(false);
-  const [isRendered, setIsRendered] = useState(false);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-
-  const showTooltip = useCallback(() => {
-    if (disabled || !content) return;
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => {
-      setIsRendered(true);
-      // Small tick to ensure CSS transition triggers cleanly
-      requestAnimationFrame(() => {
-        setIsVisible(true);
-      });
-    }, delay);
-  }, [disabled, content, delay]);
-
-  const hideTooltip = useCallback(() => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setIsVisible(false);
-    timerRef.current = setTimeout(() => {
-      setIsRendered(false);
-    }, 120); // match transition duration
-  }, []);
-
   if (disabled || !content) {
     return children;
   }
 
   return (
-    <div
-      className={clsx(styles.wrapper, className)}
-      onMouseEnter={showTooltip}
-      onMouseLeave={hideTooltip}
-      onFocus={showTooltip}
-      onBlur={hideTooltip}
-    >
-      {children}
-      {isRendered && (
-        <div
-          role="tooltip"
-          aria-hidden={!isVisible}
-          className={clsx(
-            styles.tooltip,
-            styles[placement],
-            isVisible && styles.visible
-          )}
-        >
-          {content}
-        </div>
-      )}
-    </div>
+    <TooltipPrimitive.Provider delayDuration={delay}>
+      <TooltipPrimitive.Root>
+        <TooltipPrimitive.Trigger asChild>
+          {children}
+        </TooltipPrimitive.Trigger>
+        <TooltipPrimitive.Portal>
+          <TooltipPrimitive.Content
+            side={placement}
+            sideOffset={4}
+            className={clsx(styles.tooltip, className)}
+          >
+            {content}
+          </TooltipPrimitive.Content>
+        </TooltipPrimitive.Portal>
+      </TooltipPrimitive.Root>
+    </TooltipPrimitive.Provider>
   );
 }
