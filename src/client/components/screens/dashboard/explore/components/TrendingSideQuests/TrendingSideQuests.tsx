@@ -28,7 +28,7 @@ export function TrendingSideQuests({ items }: TrendingSideQuestsProps) {
           id="popular-now-heading"
           className={styles.title}
         >
-          Popular Now
+          TALK OF THE TOWN
         </h2>
 
         <div className={styles.headerControls}>

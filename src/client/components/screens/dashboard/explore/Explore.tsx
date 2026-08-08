@@ -13,6 +13,8 @@ import { BrowseTopics } from './components/BrowseTopics/BrowseTopics';
 import { PeopleFinishing } from './components/PeopleFinishing/PeopleFinishing';
 import { RecentlyPublished } from './components/RecentlyPublished/RecentlyPublished';
 import { TrendingSideQuests } from './components/TrendingSideQuests/TrendingSideQuests';
+import { StudyRooms } from './components/StudyRooms/StudyRooms';
+import { messageMock } from '@/src/client/components/screens/dashboard/message/mock/message.mock';
 
 import { useExplore } from './hooks/useExplore';
 
@@ -111,6 +113,9 @@ export function Explore() {
       <PeopleFinishing items={trendingSideQuests} />
       <BrowseTopics items={topics} />
       <TrendingSideQuests items={peopleFinishing} />
+      
+      {!debouncedQuery && <StudyRooms items={messageMock.liveSessions} />}
+      
       <RecentlyPublished
         items={freshDiscoveries}
         onLoadMore={explore.loadMoreFreshDiscoveries}
