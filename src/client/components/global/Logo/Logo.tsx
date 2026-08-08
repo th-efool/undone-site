@@ -32,13 +32,16 @@ export function Logo({
   const imageSize = size ?? (variant === 'framed' ? 78 : 44);
 
   const image = (
-    <Image
-      src="/images/logos/sidequesthq-logo.svg"
-      alt="SideQuestHQ logo"
-      width={imageSize}
-      height={imageSize}
-      priority={priority}
-    />
+    <picture>
+      <source srcSet="/images/logos/sidequesthq-logo.svg" media="(min-width: 2560px)" />
+      <img
+        src="/images/logos/sidequesthq-logo-no-book-compass.svg"
+        alt="SideQuestHQ logo"
+        width={imageSize}
+        height={imageSize}
+        style={{ display: 'block', objectFit: 'contain' }}
+      />
+    </picture>
   );
 
   return (

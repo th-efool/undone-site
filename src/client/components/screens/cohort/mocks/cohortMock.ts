@@ -180,10 +180,10 @@ export const cohortMock: Cohort = {
     activeExplorers: [
       '/images/logos/floating-logo.svg',
       '/images/logos/floating-logo.svg',
-      '/images/logos/sidequesthq-logo.svg',
+      '/images/logos/sidequesthq-logo-no-book-compass.svg',
       '/images/logos/floating-logo.svg',
       '/images/logos/floating-logo.svg',
-      '/images/logos/sidequesthq-logo.svg',
+      '/images/logos/sidequesthq-logo-no-book-compass.svg',
     ],
     activeExplorerOverflow: '+256',
   },
@@ -321,7 +321,7 @@ export const cohortMock: Cohort = {
         participants: [
           { id: 'one', avatarUrl: '/images/logos/floating-logo.svg' },
           { id: 'two', avatarUrl: '/images/logos/floating-logo.svg' },
-          { id: 'three', avatarUrl: '/images/logos/sidequesthq-logo.svg' },
+          { id: 'three', avatarUrl: '/images/logos/sidequesthq-logo-no-book-compass.svg' },
         ],
         submittedCount: '+238 submitted',
         shareLabel: 'Share Work',
@@ -338,7 +338,7 @@ export const cohortMock: Cohort = {
         participants: [
           { id: 'four', avatarUrl: '/images/logos/floating-logo.svg' },
           { id: 'five', avatarUrl: '/images/logos/floating-logo.svg' },
-          { id: 'six', avatarUrl: '/images/logos/sidequesthq-logo.svg' },
+          { id: 'six', avatarUrl: '/images/logos/sidequesthq-logo-no-book-compass.svg' },
         ],
         submittedCount: '+142 submitted',
         shareLabel: 'Share Work',
@@ -355,7 +355,7 @@ export const cohortMock: Cohort = {
         participants: [
           { id: 'seven', avatarUrl: '/images/logos/floating-logo.svg' },
           { id: 'eight', avatarUrl: '/images/logos/floating-logo.svg' },
-          { id: 'nine', avatarUrl: '/images/logos/sidequesthq-logo.svg' },
+          { id: 'nine', avatarUrl: '/images/logos/sidequesthq-logo-no-book-compass.svg' },
         ],
         submittedCount: '+89 submitted',
         shareLabel: 'Share Work',
