@@ -11,8 +11,9 @@ import {
   Share,
   SortAsc,
   Star,
+  PanelLeftClose,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useToast } from '@/src/client/hooks/useToast';
 import { useIsMobile } from '@/src/client/hooks/useIsMobile';
 import { useNotes } from './hooks/useNotes';
@@ -26,6 +27,7 @@ import {
   Notebook,
   Section,
   ShareModal,
+  SidebarNavHeader,
 } from './components/NotesComponents';
 import { NotesCanvas } from './components/NotesCanvas/NotesCanvas';
 import { NotesSaveStatus } from './components/NotesSaveStatus/NotesSaveStatus';
@@ -60,6 +62,20 @@ export function Notes() {
   const [canvasSwitcherOpen, setCanvasSwitcherOpen] = useState(false);
   const [editingNotebookId, setEditingNotebookId] = useState<string | null>(null);
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [sidebarTab, setSidebarTab] = useState<'explorer' | 'search' | 'bookmarks'>('explorer');
+  const [allCollapsed, setAllCollapsed] = useState(false);
+  const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const toggleExpandCollapseAll = () => {
+    const nextCollapsed = !allCollapsed;
+    setAllCollapsed(nextCollapsed);
+    if (notes.state?.notebooks) {
+      notes.state.notebooks.forEach((book) => {
+        notes.actions.patchNotebook(book.id, { collapsed: nextCollapsed });
+      });
+    }
+  };
 
   const selected = notes.data?.selectedNote ?? null;
 
@@ -96,6 +112,28 @@ export function Notes() {
     }
   }, [isMobile, notes.data?.selectedNote]);
 
+  useEffect(() => {
+    if (sidebarTab === 'search') {
+      const timer = setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [sidebarTab]);
+
+  const displayedNotebooks = useMemo(() => {
+    if (!notes.data?.notebooks) return [];
+    if (sidebarTab === 'bookmarks') {
+      return notes.data.notebooks
+        .filter((book) => book.favorite || book.visibleNotes.some((n) => n.favorite))
+        .map((book) => ({
+          ...book,
+          visibleNotes: book.visibleNotes.filter((n) => n.favorite),
+        }));
+    }
+    return notes.data.notebooks;
+  }, [notes.data?.notebooks, sidebarTab]);
+
   const toast = useToast();
 
   if (!notes.state || !notes.data) return <main className={styles.loading}>Loading notes…</main>;
@@ -114,58 +152,40 @@ export function Notes() {
 
   return (
     <main
-      className={styles.notes}
+      className={`${styles.notes} ${!isPanelOpen ? styles.notesPanelClosed : ''}`}
       onClick={() => {
         setMenu(null);
         setCanvasSwitcherOpen(false);
       }}
     >
       <aside className={`${styles.panel} ${isMobile && mobileView !== 'panel' ? styles.panelHidden : ''}`}>
-        <div className={styles.toolbar}>
-          <IconButton label="New notebook" onClick={notes.actions.createNotebook}>
-            <Plus />
-          </IconButton>
-          <IconButton label="New note" onClick={() => notes.actions.createNote()}>
-            <Folder />
-          </IconButton>
-          <label className={styles.selectControl}>
-            <SortAsc size={16} />
-            <select
-              aria-label="Sort notebooks"
-              value={notes.state.notebookSort}
-              onChange={(e) => notes.actions.setNotebookSort(e.target.value as NotesSort)}
-            >
-              {sorts.map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
-          </label>
-          <label className={styles.selectControl}>
-            <Filter size={16} />
-            <select
-              aria-label="Filter notes"
-              value={notes.state.filter}
-              onChange={(e) => notes.actions.setFilter(e.target.value as NotesFilter)}
-            >
-              {filters.map(([v, l]) => (
-                <option key={v} value={v}>{l}</option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <label className={styles.search}>
+        <SidebarNavHeader
+          activeTab={sidebarTab}
+          onTabChange={setSidebarTab}
+          allCollapsed={allCollapsed}
+          onToggleExpandCollapseAll={toggleExpandCollapseAll}
+          onCreateNotebook={notes.actions.createNotebook}
+          onCreateNote={() => notes.actions.createNote()}
+          onToggleSidebar={() => setIsPanelOpen(!isPanelOpen)}
+        />
+        <label
+          className={`${styles.search} ${
+            sidebarTab !== 'search' && !notes.notebookQuery ? styles.searchHidden : ''
+          }`}
+        >
           <Search size={18} />
           <input
+            ref={searchInputRef}
             value={notes.notebookQuery}
             onChange={(e) => notes.setNotebookQuery(e.target.value)}
             placeholder="Search notebooks..."
           />
           <span>⌘K</span>
         </label>
-        <Section title="Notebooks">
+        <Section title={sidebarTab === 'bookmarks' ? 'Bookmarks' : 'Notebooks'}>
           <div className={styles.bookList}>
-            {notes.data.notebooks.length ? (
-              notes.data.notebooks.map((book) => (
+            {displayedNotebooks.length ? (
+              displayedNotebooks.map((book) => (
                 <Notebook
                   key={book.id}
                   book={book}
@@ -182,9 +202,15 @@ export function Notes() {
               ))
             ) : (
               <Empty
-                label="No matching notes"
-                action="Clear filter"
-                onClick={() => notes.actions.setFilter('all')}
+                label={sidebarTab === 'bookmarks' ? 'No bookmarks found' : 'No matching notes'}
+                action={sidebarTab === 'bookmarks' ? 'View Explorer' : 'Clear filter'}
+                onClick={() => {
+                  if (sidebarTab === 'bookmarks') {
+                    setSidebarTab('explorer');
+                  } else {
+                    notes.actions.setFilter('all');
+                  }
+                }}
               />
             )}
           </div>
@@ -214,9 +240,20 @@ export function Notes() {
               <ArrowLeft size={16} /> Back
             </button>
           )}
+          {!isMobile && !isPanelOpen && (
+            <button
+              className={styles.mobileBackBtn}
+              onClick={() => setIsPanelOpen(true)}
+              aria-label="Open sidebar"
+              title="Open sidebar"
+              style={{ padding: '6px', marginRight: '4px' }}
+            >
+              <PanelLeftClose size={16} style={{ transform: 'scaleX(-1)' }} />
+            </button>
+          )}
           <div className={styles.crumb}>
             <strong>{notes.data.selectedNotebook?.title ?? 'Notebook'}</strong>
-            <span>›</span>
+            <span className={styles.crumbSeparator}>/</span>
             <CanvasSwitcher
               open={canvasSwitcherOpen}
               onToggle={(event) => {
@@ -247,19 +284,20 @@ export function Notes() {
             {selected && <NotesSaveStatus state={canvasState} />}
           </div>
           <div className={styles.actions}>
-            <button onClick={() => setShareOpen(true)}>
-              <Share size={16} />
-              Share
+            <button className={styles.topbarBtn} onClick={() => setShareOpen(true)}>
+              <Share size={15} />
+              <span>Share</span>
             </button>
             <Tooltip content="More options">
               <button
+                className={styles.moreBtn}
                 aria-label="More options"
                 onClick={(e) => {
                   e.stopPropagation();
                   setMenu('more');
                 }}
               >
-                <MoreHorizontal size={18} />
+                <MoreHorizontal size={17} />
               </button>
             </Tooltip>
             {menu === 'more' && (
