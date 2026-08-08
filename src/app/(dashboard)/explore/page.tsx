@@ -29,15 +29,13 @@ export default function explore() {
   };
 
   return (
-    <main>
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <section>
-        <h1 className="sr-only">Explore SideQuestHQ</h1>
-        <Explore />
-      </section>
-    </main>
+      <h1 className="sr-only">Explore SideQuestHQ</h1>
+      <Explore />
+    </>
   );
 }

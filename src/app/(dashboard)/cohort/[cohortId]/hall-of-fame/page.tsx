@@ -37,15 +37,9 @@ export default async function HallOfFamePage({
   };
 
   return (
-    <main>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <section>
-        <h1 className="sr-only">Cohort Hall of Fame</h1>
-        <HallOfFame cohortId={cohortId} />
-      </section>
-    </main>
+    <>
+      
+      <HallOfFame cohortId={cohortId} />
+    </>
   );
 }

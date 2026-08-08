@@ -33,15 +33,9 @@ export default async function ArchivesPage({ params }: { params: Promise<{ cohor
   };
 
   return (
-    <main>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <section>
-        <h1 className="sr-only">Cohort Archives</h1>
-        <Archives cohortId={cohortId} />
-      </section>
-    </main>
+    <>
+      
+      <Archives cohortId={cohortId} />
+    </>
   );
 }

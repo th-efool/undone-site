@@ -30,17 +30,15 @@ export default function CreateCohortPage() {
   };
 
   return (
-    <main style={{ display: 'contents' }}>
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <h1 className="sr-only">Create a Cohort</h1>
-      <section style={{ display: 'contents' }}>
-        <Suspense fallback={<div>Loading...</div>}>
-          <CreateCohort />
-        </Suspense>
-      </section>
-    </main>
+      <Suspense fallback={<div>Loading...</div>}>
+        <CreateCohort />
+      </Suspense>
+    </>
   );
 }

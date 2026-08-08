@@ -31,17 +31,14 @@ export default function PlayPage() {
   };
 
   return (
-    <main style={{ display: 'contents' }}>
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <h1 className="sr-only">Play</h1>
-      <section style={{ display: 'contents' }}>
-        <Suspense fallback={<PlaySkeleton />}>
-          <Play />
-        </Suspense>
-      </section>
-    </main>
+      <Suspense fallback={<PlaySkeleton />}>
+        <Play />
+      </Suspense>
+    </>
   );
 }

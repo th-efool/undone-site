@@ -30,17 +30,14 @@ export default function MessagePage() {
   };
 
   return (
-    <main style={{ display: 'contents' }}>
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <h1 className="sr-only">Messages</h1>
-      <section style={{ display: 'contents' }}>
-        <Suspense fallback={<div>Loading...</div>}>
-          <Message />
-        </Suspense>
-      </section>
-    </main>
+      <Suspense fallback={<div>Loading...</div>}>
+        <Message />
+      </Suspense>
+    </>
   );
 }

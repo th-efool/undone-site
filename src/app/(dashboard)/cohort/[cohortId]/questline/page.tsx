@@ -33,15 +33,9 @@ export default async function QuestlinePage({ params }: { params: Promise<{ coho
   };
 
   return (
-    <main>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <section>
-        <h1 className="sr-only">Cohort Questline</h1>
-        <Questline cohortId={cohortId} />
-      </section>
-    </main>
+    <>
+      
+      <Questline cohortId={cohortId} />
+    </>
   );
 }

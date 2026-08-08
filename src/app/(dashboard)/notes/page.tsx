@@ -30,17 +30,14 @@ export default function NotesPage() {
   };
 
   return (
-    <main style={{ display: 'contents' }}>
+    <>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <h1 className="sr-only">Notes</h1>
-      <section style={{ display: 'contents' }}>
-        <Suspense fallback={<div>Loading...</div>}>
-          <Notes />
-        </Suspense>
-      </section>
-    </main>
+      <Suspense fallback={<div>Loading...</div>}>
+        <Notes />
+      </Suspense>
+    </>
   );
 }

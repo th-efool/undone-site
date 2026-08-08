@@ -33,15 +33,9 @@ export default async function EventsPage({ params }: { params: Promise<{ cohortI
   };
 
   return (
-    <main>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <section>
-        <h1 className="sr-only">Cohort Events</h1>
-        <Events cohortId={cohortId} />
-      </section>
-    </main>
+    <>
+      
+      <Events cohortId={cohortId} />
+    </>
   );
 }

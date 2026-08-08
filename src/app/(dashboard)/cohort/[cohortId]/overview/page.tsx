@@ -33,15 +33,9 @@ export default async function OverviewPage({ params }: { params: Promise<{ cohor
   };
 
   return (
-    <main>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <section>
-        <h1 className="sr-only">Cohort Overview</h1>
-        <Overview cohortId={cohortId} />
-      </section>
-    </main>
+    <>
+      
+      <Overview cohortId={cohortId} />
+    </>
   );
 }

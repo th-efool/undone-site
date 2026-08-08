@@ -31,11 +31,9 @@ export default function StudyRoomPage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <h1>Study Rooms</h1>
-      <section>
-        <p style={{ color: 'rgba(255,255,255,0.7)', marginTop: '1rem' }}>
-          This space is reserved for Study Rooms. We will replace this mock with real functionality later!
-        </p>
-      </section>
+      <p style={{ color: 'rgba(255,255,255,0.7)', marginTop: '1rem' }}>
+        This space is reserved for Study Rooms. We will replace this mock with real functionality later!
+      </p>
     </main>
   );
 }
