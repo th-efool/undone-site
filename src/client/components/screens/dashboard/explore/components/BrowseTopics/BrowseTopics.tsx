@@ -1,20 +1,14 @@
-import { ChevronRight, MoreHorizontal } from 'lucide-react';
-import Link from 'next/link';
-
-import { HorizontalScroller } from '@/src/client/components/global/HorizontalScroller';
+import { TopicChip } from './TopicChip';
 
 import type { Topic } from '../../models';
-
-import { TopicChip } from './TopicChip';
 
 import styles from './BrowseTopics.module.css';
 
 export interface BrowseTopicsProps {
   items: Topic[];
-  hasMore?: boolean;
 }
 
-export function BrowseTopics({ items, hasMore = false }: BrowseTopicsProps) {
+export function BrowseTopics({ items }: BrowseTopicsProps) {
   return (
     <section
       className={styles.section}
@@ -25,34 +19,20 @@ export function BrowseTopics({ items, hasMore = false }: BrowseTopicsProps) {
           id="browse-topics-heading"
           className={styles.title}
         >
-          Browse Topics
+          A dose of inspiration,
+          <br />
+          whenever you need it.
         </h2>
-
-        <button
-          type="button"
-          className={styles.arrow}
-          aria-label="Browse Topics"
-        >
-          <ChevronRight
-            size={18}
-            strokeWidth={2.5}
-          />
-        </button>
       </div>
 
-      <HorizontalScroller>
+      <div className={styles.topicsGrid}>
         {items.map((item) => (
           <TopicChip
             key={item.id}
             item={item}
           />
         ))}
-        {hasMore && (
-          <Link href="/explore" className={styles.moreChip}>
-            More topics <ChevronRight size={14} strokeWidth={2.5} />
-          </Link>
-        )}
-      </HorizontalScroller>
+      </div>
     </section>
   );
 }

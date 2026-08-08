@@ -26,6 +26,15 @@
   background: rgba(79, 70, 229, 0.03);
 }
 
+.trending {
+  border-color: #EAB308;
+}
+
+.trending:hover {
+  border-color: #F59E0B;
+  background: rgba(234, 179, 8, 0.06);
+}
+
 .icon {
   display: flex;
   align-items: center;
