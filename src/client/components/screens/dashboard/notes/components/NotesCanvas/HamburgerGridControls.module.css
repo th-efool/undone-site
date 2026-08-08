@@ -1,0 +1,85 @@
+.gridSection {
+  padding: 12px;
+  margin-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: inherit;
+  color: #e2e8f0;
+}
+
+.sectionTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.buttonGroup {
+  display: flex;
+  gap: 4px;
+  background: #1e293b;
+  padding: 2px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.optionBtn {
+  flex: 1;
+  padding: 4px 8px;
+  font-size: 11px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.optionBtn:hover {
+  color: #f8fafc;
+}
+
+.optionBtn.active {
+  background: #334155;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.slider {
+  flex: 1;
+  max-width: 120px;
+  height: 4px;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+.colorPickerInput {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.colorPickerInput::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.colorPickerInput::-webkit-color-swatch {
+  border: none;
+  border-radius: 50%;
+}
