@@ -4,6 +4,7 @@ import { Search, X } from 'lucide-react';
 
 import { PillInput } from '../PillInput';
 import { useCommandContext } from '../CommandPalette';
+import { Tooltip } from '@/src/client/components/ui/Tooltip';
 import styles from './SearchBar.module.css';
 
 export interface SearchBarProps {
@@ -49,17 +50,19 @@ export function SearchBar({
         }
         rightSlot={
           value ? (
-            <button
-              type="button"
-              className={styles.clear}
-              aria-label="Clear search"
-              onClick={() => {
-                onChange?.('');
-                onClear?.();
-              }}
-            >
-              <X size={15} />
-            </button>
+            <Tooltip content="Clear search" placement="top">
+              <button
+                type="button"
+                className={styles.clear}
+                aria-label="Clear search"
+                onClick={() => {
+                  onChange?.('');
+                  onClear?.();
+                }}
+              >
+                <X size={15} />
+              </button>
+            </Tooltip>
           ) : (
             <kbd
               className={styles.shortcut}

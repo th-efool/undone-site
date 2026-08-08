@@ -17,6 +17,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import clsx from 'clsx';
+import { Tooltip } from '@/src/client/components/ui/Tooltip';
 import styles from './TopicChip.module.css';
 
 import type { Topic } from '../../models';
@@ -47,20 +48,23 @@ export function TopicChip({ item }: TopicChipProps) {
   const IconComponent = iconMap[item.icon] || HelpCircle;
 
   return (
-    <button
-      type="button"
-      className={clsx(styles.chip, item.id === 'trending' && styles.trending)}
-    >
-      <div
-        className={styles.icon}
-        style={{
-          color: item.color,
-        }}
+    <Tooltip content="View topic details" placement="top">
+      <button
+        type="button"
+        className={clsx(styles.chip, item.id === 'trending' && styles.trending)}
+        aria-label={`View topic details for ${item.name}`}
       >
-        <IconComponent size={18} />
-      </div>
+        <div
+          className={styles.icon}
+          style={{
+            color: item.color,
+          }}
+        >
+          <IconComponent size={18} />
+        </div>
 
-      <span className={styles.label}>{item.name}</span>
-    </button>
+        <span className={styles.label}>{item.name}</span>
+      </button>
+    </Tooltip>
   );
 }

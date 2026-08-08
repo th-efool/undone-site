@@ -6,6 +6,7 @@ import { Loader } from 'lucide-react';
 import { SearchBar } from '@/src/client/components/global/SearchBar';
 import { ExploreSkeleton } from '@/src/client/components/global/Skeleton';
 import { EmptyState } from '@/src/client/components/global/EmptyState';
+import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
 import { ExploreHero } from './components/ExploreHero/ExploreHero';
 import { CloudBed } from './components/CloudBed/CloudBed';
@@ -89,12 +90,14 @@ export function Explore() {
           value={query}
           onChange={setQuery}
         />
-        <Link href="/create-cohort" className={styles.buildCohortBtn}>
-          <span className={styles.btnLabel}>BUILD A COHORT</span>
-          <span className={styles.iconCircle}>
-            <Loader size={18} strokeWidth={2.5} />
-          </span>
-        </Link>
+        <Tooltip content="Build custom cohort" placement="bottom">
+          <Link href="/create-cohort" className={styles.buildCohortBtn}>
+            <span className={styles.btnLabel}>BUILD A COHORT</span>
+            <span className={styles.iconCircle}>
+              <Loader size={18} strokeWidth={2.5} />
+            </span>
+          </Link>
+        </Tooltip>
       </div>
 
       <ExploreHero />

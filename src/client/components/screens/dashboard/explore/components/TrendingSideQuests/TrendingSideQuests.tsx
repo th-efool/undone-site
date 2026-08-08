@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import { InfiniteScroller, type InfiniteScrollerHandle } from '@/src/client/components/global/InfiniteScroller';
+import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
 import type { TrendingCourse } from '../../models';
 
@@ -32,23 +33,27 @@ export function TrendingSideQuests({ items }: TrendingSideQuestsProps) {
         </h2>
 
         <div className={styles.headerControls}>
-          <button
-            type="button"
-            className={styles.navBtn}
-            onClick={() => scrollerRef.current?.scrollLeft()}
-            aria-label="Scroll left"
-          >
-            <ChevronLeft size={16} strokeWidth={2.2} />
-          </button>
+          <Tooltip content="Scroll left" placement="top">
+            <button
+              type="button"
+              className={styles.navBtn}
+              onClick={() => scrollerRef.current?.scrollLeft()}
+              aria-label="Scroll left"
+            >
+              <ChevronLeft size={16} strokeWidth={2.2} />
+            </button>
+          </Tooltip>
 
-          <button
-            type="button"
-            className={styles.navBtn}
-            onClick={() => scrollerRef.current?.scrollRight()}
-            aria-label="Scroll right"
-          >
-            <ChevronRight size={16} strokeWidth={2.2} />
-          </button>
+          <Tooltip content="Scroll right" placement="top">
+            <button
+              type="button"
+              className={styles.navBtn}
+              onClick={() => scrollerRef.current?.scrollRight()}
+              aria-label="Scroll right"
+            >
+              <ChevronRight size={16} strokeWidth={2.2} />
+            </button>
+          </Tooltip>
         </div>
       </div>
 
