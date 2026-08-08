@@ -20,20 +20,27 @@ export function MessageTimeline({ conversation, scrollTop, onScrollChange, onRep
   const viewportRef = useRef<HTMLElement>(null);
   const previousCountRef = useRef(0);
 
+  // Sync scroll position when conversation changes or on initial mount
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
     viewport.scrollTop = scrollTop;
-  }, [scrollTop]);
+  }, [conversation.id]);
 
+  // Auto-scroll to bottom when new messages arrive or sent
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
     if (previousCountRef.current && conversation.messages.length > previousCountRef.current) {
-      viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+      requestAnimationFrame(() => {
+        viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+      });
+    } else if (!previousCountRef.current && conversation.messages.length) {
+      // Initial render of conversation messages
+      viewport.scrollTop = viewport.scrollHeight;
     }
     previousCountRef.current = conversation.messages.length;
-  }, [conversation.messages.length]);
+  }, [conversation.messages.length, conversation.id]);
 
   return (
     <section

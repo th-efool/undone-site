@@ -28,21 +28,28 @@ export function MessageTimeline({ messages, scrollTop, onScrollChange, onReactio
   const previousCountRef = useRef(0);
   const wasNearBottomRef = useRef(true);
 
+  // Sync scroll position when conversation/community changes or on initial mount
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
     viewport.scrollTop = scrollTop;
-  }, [scrollTop]);
+  }, [messages]);
 
+  // Auto-scroll to bottom when new messages arrive or sent
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
+    const isLatestMessageFromMe = messages[messages.length - 1]?.author?.id === 'me';
     if (
       previousCountRef.current &&
       messages.length > previousCountRef.current &&
-      wasNearBottomRef.current
+      (wasNearBottomRef.current || isLatestMessageFromMe)
     ) {
-      viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+      requestAnimationFrame(() => {
+        viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+      });
+    } else if (!previousCountRef.current && messages.length) {
+      viewport.scrollTop = viewport.scrollHeight;
     }
     previousCountRef.current = messages.length;
   }, [messages.length]);
