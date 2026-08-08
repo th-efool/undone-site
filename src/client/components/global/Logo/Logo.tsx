@@ -33,9 +33,9 @@ export function Logo({
 
   const image = (
     <picture>
-      <source srcSet="/images/logos/sidequesthq-logo.svg" media="(min-width: 2560px)" />
+      <source srcSet="/logos/sidequesthq-logo.svg" media="(min-width: 2560px)" />
       <img
-        src="/images/logos/sidequesthq-logo-no-book-compass.svg"
+        src="/logos/sidequesthq-logo-no-book-compass.svg"
         alt="SideQuestHQ logo"
         width={imageSize}
         height={imageSize}

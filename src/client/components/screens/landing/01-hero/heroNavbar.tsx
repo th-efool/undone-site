@@ -17,7 +17,7 @@ export function HeroNavbar() {
         >
           <div className={styles.logoFrame}>
             <picture>
-              <source srcSet="/images/logos/sidequesthq-logo.svg" media="(min-width: 2560px)" />
+              <source srcSet="/logos/sidequesthq-logo.svg" media="(min-width: 2560px)" />
               <Image
                 src="/images/logos/sidequesthq-logo-no-book-compass.svg"
                 alt="SideQuestHQ"
