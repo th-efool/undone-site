@@ -53,17 +53,16 @@
 
 .leftCloudsWrapper {
   position: absolute;
-  top: -60px;
-  left: -120px;
-  width: clamp(750px, 85vw, 1500px);
-  bottom: -380px;
+  top: -40px;
+  left: 12px;
+  right: clamp(320px, 40vw, 560px);
+  bottom: -260px;
   z-index: 0;
   pointer-events: none;
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
   overflow: visible;
-  opacity: 0.85;
 }
 
 .leftCloudsImage {
@@ -71,9 +70,9 @@
   height: 100%;
   object-fit: contain;
   object-position: top left;
-  transform: scale(1.8);
+  transform: scale(0.85);
   transform-origin: top left;
-  filter: drop-shadow(0 12px 40px rgba(168, 85, 247, 0.3));
+  filter: drop-shadow(0 12px 40px rgba(168, 85, 247, 0.35));
 }
 
 @media (max-width: 992px) {
@@ -83,8 +82,8 @@
     opacity: 0.5;
   }
   .leftCloudsWrapper {
-    width: clamp(240px, 45vw, 420px);
-    bottom: -160px;
+    right: clamp(200px, 45vw, 400px);
+    bottom: -180px;
     opacity: 0.5;
   }
 }
@@ -98,9 +97,10 @@
     opacity: 0.35;
   }
   .leftCloudsWrapper {
-    left: -20px;
+    left: 0;
+    right: 0;
     top: -10px;
-    bottom: -100px;
+    bottom: -120px;
     opacity: 0.35;
   }
 }
