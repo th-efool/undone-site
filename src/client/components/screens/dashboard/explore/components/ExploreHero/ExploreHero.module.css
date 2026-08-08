@@ -53,10 +53,10 @@
 
 .leftCloudsWrapper {
   position: absolute;
-  top: -20px;
-  left: -40px;
-  width: clamp(340px, 45vw, 680px);
-  bottom: -240px;
+  top: -60px;
+  left: -120px;
+  width: clamp(750px, 85vw, 1500px);
+  bottom: -380px;
   z-index: 0;
   pointer-events: none;
   display: flex;
@@ -71,9 +71,9 @@
   height: 100%;
   object-fit: contain;
   object-position: top left;
-  transform: scale(0.9);
+  transform: scale(1.8);
   transform-origin: top left;
-  filter: drop-shadow(0 12px 40px rgba(168, 85, 247, 0.25));
+  filter: drop-shadow(0 12px 40px rgba(168, 85, 247, 0.3));
 }
 
 @media (max-width: 992px) {
