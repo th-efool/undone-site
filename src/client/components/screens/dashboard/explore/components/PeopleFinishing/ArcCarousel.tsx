@@ -103,7 +103,7 @@ export const ArcCarousel = React.forwardRef<
         // Formula: -depth * (1 - norm^2)
         const ty = -currentDepth * (1 - norm * norm);
         const rz = currentTilt * norm;
-        const sc = 1 - SCALE_REDUCE * Math.abs(norm);
+        const sc = (1 - SCALE_REDUCE * Math.abs(norm)) * 1.25;
 
         card.style.transform = `translateY(${ty}px) rotate(${rz}deg) scale(${sc})`;
         card.style.willChange = 'transform';

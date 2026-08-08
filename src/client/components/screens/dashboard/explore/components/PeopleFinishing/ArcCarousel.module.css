@@ -13,4 +13,17 @@
   perspective: 1200px;
 }
 
+.arcWrapper h1,
+.arcWrapper h2,
+.arcWrapper h3,
+.arcWrapper h4,
+.arcWrapper p,
+.arcWrapper span,
+.arcWrapper button,
+.arcWrapper a {
+  -webkit-text-stroke: 1px #000000;
+  paint-order: stroke fill;
+}
+
+
 
