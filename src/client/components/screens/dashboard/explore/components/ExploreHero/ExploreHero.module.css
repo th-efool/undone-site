@@ -4,6 +4,7 @@
   align-items: flex-start;
   justify-content: space-between;
   overflow: visible;
+  z-index: 1;
 }
 
 .headline {
@@ -19,6 +20,7 @@
   line-height: 1.02;
   font-size: clamp(2.1rem, 4.5vw, 3.5rem);
   color: #ffffff;
+  flex-shrink: 0;
 }
 
 .line {
@@ -27,28 +29,39 @@
 
 .imageWrapper {
   position: absolute;
-  top: -30px;
+  top: -40px;
   right: 0;
-  z-index: 1;
-  width: 480px;
-  max-width: 45vw;
+  left: clamp(320px, 40vw, 560px);
+  bottom: -260px;
+  z-index: 0;
   pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
 }
 
 .heroImage {
   width: 100%;
-  height: auto;
+  height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 10px 30px rgba(168, 85, 247, 0.25));
+  object-position: top right;
+  filter: drop-shadow(0 12px 40px rgba(168, 85, 247, 0.35));
+}
+
+@media (max-width: 992px) {
+  .imageWrapper {
+    left: clamp(200px, 45vw, 400px);
+    bottom: -180px;
+    opacity: 0.5;
+  }
 }
 
 @media (max-width: 768px) {
   .imageWrapper {
-    width: 280px;
+    left: 0;
+    right: 0;
     top: -10px;
-    right: -10px;
-    opacity: 0.6;
+    bottom: -120px;
+    opacity: 0.35;
   }
 }
-
-

@@ -15,8 +15,8 @@ export function ExploreHero() {
         <Image
           src="/images/explore/explore-hero.webp"
           alt="Explore Hero"
-          width={540}
-          height={360}
+          width={1200}
+          height={800}
           className={styles.heroImage}
           priority
         />
