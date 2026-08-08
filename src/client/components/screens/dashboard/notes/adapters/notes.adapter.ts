@@ -1,5 +1,5 @@
 import type {
-  NoteEntity,
+  NoteDocument,
   NotebookEntity,
   NotebookListItem,
   NotesFilter,
@@ -34,10 +34,10 @@ export function sortItems<
 
 const isRecent = (item: { updatedAt: string }) =>
   Date.now() - new Date(item.updatedAt).getTime() < 14 * 86400000;
-const notebookFor = (state: NotesStateEntity, note: NoteEntity) =>
+const notebookFor = (state: NotesStateEntity, note: NoteDocument) =>
   state.notebooks.find((book) => book.id === note.notebookId);
 
-export function matchesFilter(state: NotesStateEntity, item: NoteEntity | NotebookEntity): boolean {
+export function matchesFilter(state: NotesStateEntity, item: NoteDocument | NotebookEntity): boolean {
   if (state.filter === 'archived') return item.archived;
   if (item.archived) return false;
   if (state.filter === 'all') return true;
@@ -53,7 +53,7 @@ export function filterNotes(state: NotesStateEntity, query: string) {
   return sortItems(state.notes, state.noteSort).filter((note) => {
     const matchesQuery =
       !q ||
-      `${note.title} ${note.tags.join(' ')} ${note.body.replace(/<[^>]*>/g, ' ')}`
+      `${note.title} ${note.tags.join(' ')}`
         .toLowerCase()
         .includes(q);
     return matchesFilter(state, note) && matchesQuery;

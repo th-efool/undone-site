@@ -3,21 +3,26 @@ export type NotesSort =
 export type NotesFilter = 'all' | 'favorites' | 'recent' | 'shared' | 'archived';
 export type Permission = 'viewer' | 'editor' | 'owner';
 
-export type NoteEntity = {
+export type NoteDocument = {
   id: string;
   notebookId: string;
   title: string;
-  body: string;
+  ownerId: string | null;
+  permission: Permission;
+  sharedWith: string[];
+  publicLink: boolean;
   tags: string[];
   favorite: boolean;
   shared: boolean;
   archived: boolean;
+  order: number;
   createdAt: string;
   updatedAt: string;
-  order: number;
-  publicLink: boolean;
-  permission: Permission;
-  sharedWith: string[];
+  contentType: 'canvas';
+  linkedConceptIds: string[];
+  linkedResourceIds: string[];
+  learningPathId: string | null;
+  revision: number | null;
 };
 
 export type NotebookEntity = {
@@ -36,7 +41,7 @@ export type NotebookEntity = {
 
 export type NotesStateEntity = {
   notebooks: NotebookEntity[];
-  notes: NoteEntity[];
+  notes: NoteDocument[];
   selectedNotebookId: string | null;
   selectedNoteId: string | null;
   notebookSort: NotesSort;
@@ -46,5 +51,5 @@ export type NotesStateEntity = {
 
 export type NotebookListItem = NotebookEntity & {
   noteCount: number;
-  visibleNotes: NoteEntity[];
+  visibleNotes: NoteDocument[];
 };

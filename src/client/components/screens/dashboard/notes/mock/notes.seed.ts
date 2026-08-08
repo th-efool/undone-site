@@ -1,4 +1,4 @@
-import type { NoteEntity, NotebookEntity, NotesStateEntity } from '../models/notes.models';
+import type { NoteDocument, NotebookEntity, NotesStateEntity } from '../models/notes.models';
 
 const now = new Date('2026-07-01T12:00:00.000Z');
 const daysAgo = (days: number) => new Date(now.getTime() - days * 86400000).toISOString();
@@ -46,7 +46,7 @@ export const seedNotebooks: NotebookEntity[] = notebookNames.map(
   }),
 );
 
-export const seedNotes: NoteEntity[] = Object.entries(titles).flatMap(
+export const seedNotes: NoteDocument[] = Object.entries(titles).flatMap(
   ([notebookId, list], nbIndex) =>
     list.map((title, order) => ({
       id: `${notebookId}-note-${order}`,
@@ -62,7 +62,12 @@ export const seedNotes: NoteEntity[] = Object.entries(titles).flatMap(
       sharedWith: nbIndex === 1 ? ['maya@sidequesthq.com'] : [],
       createdAt: daysAgo(30 - nbIndex - order),
       updatedAt: daysAgo(order + nbIndex),
-      body: `<h1>${title}</h1><p>${title} connects to the broader ${seedNotebooks.find((n) => n.id === notebookId)?.title} map. Capture durable concepts, open questions, and examples here.</p><h2>Key ideas</h2><ul><li>Define the mental model in one sentence.</li><li>Collect examples that make the idea transferable.</li><li>Link follow-up questions before context is lost.</li></ul><p><strong>Next step:</strong> turn this into a small SideQuest exercise.</p>`,
+      contentType: 'canvas',
+      ownerId: null,
+      linkedConceptIds: [],
+      linkedResourceIds: [],
+      learningPathId: null,
+      revision: null,
     })),
 );
 
