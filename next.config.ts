@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
         trailingSlash: true,
       }
     : {}),
+  transpilePackages: ['es-toolkit', 'mermaid', '@excalidraw/mermaid-to-excalidraw', '@excalidraw/excalidraw'],
   images: {
     unoptimized: true,
     remotePatterns: [
