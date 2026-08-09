@@ -1,0 +1,28 @@
+.inputBase {
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  font-family: inherit;
+  color: inherit;
+  padding: 0;
+  margin: 0;
+  resize: none;
+  display: block;
+}
+
+.inputBase:focus {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+.displayBase {
+  cursor: text;
+  display: block;
+}
+
+.empty {
+  opacity: 0.5;
+  font-style: italic;
+}
