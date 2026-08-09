@@ -256,8 +256,7 @@
 }
 
 /* ── 14. Editor sidebar dark theme ──────────────────────────── */
-.sqhq-kanban-wrapper .wx-editor-kanban,
-.sqhq-kanban-wrapper [class*="editor"] {
+.sqhq-kanban-wrapper .wx-editor-kanban {
   background: #111111 !important;
   border-left: 1px solid rgba(255, 255, 255, 0.07) !important;
   font-family: inherit !important;
@@ -481,7 +480,7 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   Card Editor — premium floating popover
+   Card Editor — premium floating popover (Redesigned)
    ═══════════════════════════════════════════════════════════════ */
 .sqhq-editor-backdrop {
   position: fixed;
@@ -493,13 +492,12 @@
 
 .sqhq-editor {
   z-index: 301;
-  background: rgba(20, 20, 20, 0.85);
-  backdrop-filter: blur(24px) saturate(150%);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  width: 340px;
+  background: #000000;
+  border: 1px solid #111111;
+  border-radius: 12px;
+  width: 360px;
   max-width: 90vw;
-  padding: 20px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -507,140 +505,123 @@
   font-family: inherit;
 }
 
-.sqhq-editor__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.sqhq-editor__badge {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.sqhq-editor__close {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.05);
-  color: rgba(255, 255, 255, 0.5);
-  cursor: pointer;
-  padding: 0;
-  line-height: 1;
-  border-radius: 8px;
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: inherit;
-}
-.sqhq-editor__close:hover {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255,255,255,0.1);
-  transform: scale(1.05);
-}
-
-.sqhq-editor__title {
-  width: 100%;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 1.4;
-  padding: 8px;
-  margin: 0 -8px;
-  resize: none;
-  outline: none;
-  font-family: inherit;
-  letter-spacing: -0.01em;
-  transition: all 0.2s;
-}
-.sqhq-editor__title:hover {
-  background: rgba(255,255,255,0.03);
-}
-.sqhq-editor__title:focus {
-  background: rgba(255,255,255,0.05);
-  border-color: rgba(255,255,255,0.08);
-}
-.sqhq-editor__title::placeholder { color: rgba(255,255,255,0.2); }
-
-.sqhq-editor__desc {
-  width: 100%;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  color: rgba(255, 255, 255, 0.65);
-  font-size: 14px;
-  line-height: 1.5;
-  padding: 8px;
-  margin: 0 -8px;
-  resize: none;
-  outline: none;
-  font-family: inherit;
-  transition: all 0.2s;
-}
-.sqhq-editor__desc:hover {
-  background: rgba(255,255,255,0.03);
-}
-.sqhq-editor__desc:focus {
-  background: rgba(255,255,255,0.05);
-  border-color: rgba(255,255,255,0.08);
-  color: rgba(255,255,255,0.85);
-}
-.sqhq-editor__desc::placeholder { color: rgba(255,255,255,0.18); }
-
-.sqhq-editor__meta {
-  display: flex;
-  gap: 12px;
-  background: rgba(0,0,0,0.2);
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.04);
-}
-
 .sqhq-editor__field {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  flex: 1;
 }
 
-.sqhq-editor__field-label {
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.35);
+.sqhq-editor__label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #a1a1aa; /* Light gray text for labels */
+  margin: 0;
 }
 
 .sqhq-editor__input {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: #080808;
+  border: 1px solid #1a1a1a;
   border-radius: 8px;
   color: #ffffff;
   font-size: 13px;
-  padding: 6px 10px;
+  padding: 4px 8px;
   outline: none;
   width: 100%;
+  height: auto;
   font-family: inherit;
   transition: all 0.2s;
+  box-sizing: border-box;
 }
-.sqhq-editor__input:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-.sqhq-editor__input:focus { 
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(99, 102, 241, 0.5); 
-}
-.sqhq-editor__input::placeholder { color: rgba(255,255,255,0.2); }
 
-.sqhq-editor__input--date {
-  color-scheme: dark;
+.sqhq-editor__input:focus {
+  border-color: #333333;
+}
+
+.sqhq-editor__input::placeholder {
+  color: #444444;
+}
+
+.sqhq-editor__textarea {
+  background: #080808;
+  border: 1px solid #1a1a1a;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 13px;
+  padding: 4px 8px;
+  outline: none;
+  width: 100%;
+  min-height: 0;
+  height: auto;
+  font-family: inherit;
+  transition: all 0.2s;
+  resize: vertical;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.sqhq-editor__textarea:focus {
+  border-color: #333333;
+}
+
+.sqhq-editor__textarea::placeholder {
+  color: #444444;
+}
+
+.sqhq-editor__meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.sqhq-editor__select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.sqhq-editor__select-icon-left {
+  position: absolute;
+  left: 8px;
+  color: #a1a1aa;
+  pointer-events: none;
+}
+
+.sqhq-editor__select-icon-right {
+  position: absolute;
+  right: 8px;
+  color: #a1a1aa;
+  pointer-events: none;
+}
+
+.sqhq-editor__select {
+  background: #080808;
+  border: 1px solid #1a1a1a;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 13px;
+  padding: 4px 28px;
+  outline: none;
+  width: 100%;
+  height: auto;
+  font-family: inherit;
+  transition: all 0.2s;
+  appearance: none;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.sqhq-editor__select:focus {
+  border-color: #333333;
+}
+
+.sqhq-editor__select--date::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 
 .sqhq-editor__priority-row {
@@ -648,64 +629,76 @@
   gap: 8px;
 }
 
-.sqhq-editor__priority-chip {
+.sqhq-editor__priority-pill {
   flex: 1;
-  padding: 8px 0;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 6px 10px;
+  background: #080808;
+  border: 1px solid #1a1a1a;
   border-radius: 8px;
-  color: rgba(255, 255, 255, 0.4);
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
+  color: #a1a1aa;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
-.sqhq-editor__priority-chip:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.8);
+
+.sqhq-editor__priority-pill:hover {
+  background: #111111;
+  color: #ffffff;
 }
-.sqhq-editor__priority-chip--active {
-  /* Dynamic styles injected via style prop for tinted background */
+
+.sqhq-editor__priority-pill--active {
+  background: #3b3548; /* Matching the purple background of the reference image */
+  border-color: #4a3e59;
+  color: #ffffff;
+}
+
+.sqhq-editor__priority-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .sqhq-editor__actions {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   margin-top: 4px;
 }
 
 .sqhq-editor__btn {
   flex: 1;
-  padding: 10px 16px;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   font-family: inherit;
 }
 
 .sqhq-editor__btn--ghost {
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.06);
-  color: rgba(255,255,255,0.6);
+  background: transparent;
+  border: 1px solid #1a1a1a;
+  color: #a1a1aa;
 }
+
 .sqhq-editor__btn--ghost:hover {
-  background: rgba(255,255,255,0.08);
-  border-color: rgba(255,255,255,0.1);
-  color: rgba(255,255,255,0.9);
+  background: #111111;
+  color: #ffffff;
 }
 
 .sqhq-editor__btn--primary {
-  background: linear-gradient(135deg, #6366f1, #a855f7);
-  border: none;
+  background: #3b3548;
+  border: 1px solid #4a3e59;
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
+
 .sqhq-editor__btn--primary:hover {
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
-  transform: translateY(-1px);
+  background: #4a3e59;
 }
-
-

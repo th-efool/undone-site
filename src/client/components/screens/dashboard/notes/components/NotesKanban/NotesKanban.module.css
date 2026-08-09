@@ -39,7 +39,7 @@
 }
 
 /* WillowDark child — fill width, auto height */
-.kanbanContainer > div {
+.kanbanContainer > div:not(:global(.sqhq-editor)) {
   width: 100%;
   height: auto;
 }
