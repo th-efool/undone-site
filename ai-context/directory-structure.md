@@ -301,6 +301,7 @@
 │   │   │   ├── 8.webm
 │   │   │   └── 9.webm
 │   │   └── hero.webm
+│   ├── favicon.ico
 │   ├── file.svg
 │   ├── globe.svg
 │   └── window.svg
@@ -377,6 +378,7 @@
 │   │   │   ├── reset.css
 │   │   │   ├── tokens.css
 │   │   │   └── typography.css
+│   │   ├── favicon.ico
 │   │   ├── globals.css
 │   │   └── layout.tsx
 │   ├── client/
@@ -1128,6 +1130,12 @@
 │   │   │   │   │   │   │   │   ├── HamburgerGridControls.tsx
 │   │   │   │   │   │   │   │   ├── NotesCanvas.module.css
 │   │   │   │   │   │   │   │   └── NotesCanvas.tsx
+│   │   │   │   │   │   │   ├── NotesKanban/
+│   │   │   │   │   │   │   │   ├── CardEditor.tsx
+│   │   │   │   │   │   │   │   ├── KanbanCard.tsx
+│   │   │   │   │   │   │   │   ├── NotesKanban.module.css
+│   │   │   │   │   │   │   │   ├── NotesKanban.tsx
+│   │   │   │   │   │   │   │   └── kanban-dark.css
 │   │   │   │   │   │   │   ├── NotesSaveStatus/
 │   │   │   │   │   │   │   │   ├── NotesSaveStatus.module.css
 │   │   │   │   │   │   │   │   └── NotesSaveStatus.tsx
@@ -1396,4 +1404,4 @@
 ├── task.md
 └── tsconfig.json
 
-443 directories, 952 files
+444 directories, 959 files
