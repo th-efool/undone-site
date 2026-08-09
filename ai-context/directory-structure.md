@@ -1124,8 +1124,7 @@
 │   │   │   │   │   │   │   └── notes.adapter.ts
 │   │   │   │   │   │   ├── components/
 │   │   │   │   │   │   │   ├── NotesCanvas/
-│   │   │   │   │   │   │   │   ├── CanvasControls.module.css
-│   │   │   │   │   │   │   │   ├── CanvasControls.tsx
+│   │   │   │   │   │   │   │   ├── ExcalidrawWrapper.tsx
 │   │   │   │   │   │   │   │   ├── HamburgerGridControls.module.css
 │   │   │   │   │   │   │   │   ├── HamburgerGridControls.tsx
 │   │   │   │   │   │   │   │   ├── NotesCanvas.module.css
@@ -1143,19 +1142,12 @@
 │   │   │   │   │   │   │   │   ├── RightColumn.module.css
 │   │   │   │   │   │   │   │   ├── SpaceHeader.tsx
 │   │   │   │   │   │   │   │   ├── TasksSection.tsx
-│   │   │   │   │   │   │   │   ├── TopBar.tsx
 │   │   │   │   │   │   │   │   └── WorkspaceSection.tsx
-│   │   │   │   │   │   │   ├── CalendarPanel.module.css
-│   │   │   │   │   │   │   ├── CalendarPanel.tsx
 │   │   │   │   │   │   │   ├── NotesComponents.tsx
 │   │   │   │   │   │   │   ├── NotesSidebar.module.css
 │   │   │   │   │   │   │   ├── NotesSidebar.tsx
 │   │   │   │   │   │   │   ├── NotesWorkspace.tsx
-│   │   │   │   │   │   │   ├── SidebarNavHeader.module.css
-│   │   │   │   │   │   │   ├── SidebarNavHeader.tsx
-│   │   │   │   │   │   │   ├── SpaceHeader.tsx
-│   │   │   │   │   │   │   ├── TasksPanel.tsx
-│   │   │   │   │   │   │   └── WorkspaceTree.tsx
+│   │   │   │   │   │   │   └── SidebarNavHeader.tsx
 │   │   │   │   │   │   ├── hooks/
 │   │   │   │   │   │   │   ├── useCanvasPersistence.ts
 │   │   │   │   │   │   │   ├── useCanvasScene.ts
@@ -1400,6 +1392,7 @@
 ├── build-aab.bat
 ├── capacitor.config.ts
 ├── eslint.config.mjs
+├── excalidraw.d.ts
 ├── next.config.ts
 ├── package-lock.json
 ├── package.json
@@ -1408,4 +1401,4 @@
 ├── task.md
 └── tsconfig.json
 
-445 directories, 962 files
+445 directories, 955 files
