@@ -169,7 +169,10 @@
 │   │   ├── TOOLTIPS_MESSAGES.md
 │   │   ├── TOOLTIPS_NOTES.md
 │   │   └── TOOLTIPS_PLAY.md
-│   └── ANDROID.md
+│   ├── ANDROID.md
+│   └── canvas-ui-change-plan.md
+├── notes/
+│   └── excalidraw-integration-plan.md
 ├── public/
 │   ├── fonts/
 │   │   ├── Caveat-Bold.ttf
@@ -229,10 +232,6 @@
 │   │   │   ├── phone.webp
 │   │   │   ├── screen.webp
 │   │   │   └── waiting.webp
-│   │   ├── logos/
-│   │   │   ├── floating-logo.svg
-│   │   │   ├── sidequesthq-logo-no-book-compass.svg
-│   │   │   └── sidequesthq-logo.svg
 │   │   ├── studyrooms/
 │   │   │   ├── campside.webp
 │   │   │   ├── canal.webp
@@ -245,6 +244,10 @@
 │   │   ├── footer-mascot.png
 │   │   ├── hero-poster.webp
 │   │   └── onlyMascot.png
+│   ├── logos/
+│   │   ├── floating-logo.svg
+│   │   ├── sidequesthq-logo-no-book-compass.svg
+│   │   └── sidequesthq-logo.svg
 │   ├── mock/
 │   │   ├── avatars/
 │   │   │   ├── a.webp
@@ -367,6 +370,7 @@
 │   │   ├── styles/
 │   │   │   ├── accessibility.css
 │   │   │   ├── buttons.css
+│   │   │   ├── excalidraw.css
 │   │   │   ├── forms.css
 │   │   │   ├── layout.css
 │   │   │   ├── print.css
@@ -1114,16 +1118,38 @@
 │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   ├── notes/
 │   │   │   │   │   │   ├── adapters/
+│   │   │   │   │   │   │   ├── canvas.adapter.ts
 │   │   │   │   │   │   │   └── notes.adapter.ts
 │   │   │   │   │   │   ├── components/
-│   │   │   │   │   │   │   └── NotesComponents.tsx
+│   │   │   │   │   │   │   ├── NotesCanvas/
+│   │   │   │   │   │   │   │   ├── CanvasControls.module.css
+│   │   │   │   │   │   │   │   ├── CanvasControls.tsx
+│   │   │   │   │   │   │   │   ├── HamburgerGridControls.module.css
+│   │   │   │   │   │   │   │   ├── HamburgerGridControls.tsx
+│   │   │   │   │   │   │   │   ├── NotesCanvas.module.css
+│   │   │   │   │   │   │   │   └── NotesCanvas.tsx
+│   │   │   │   │   │   │   ├── NotesSaveStatus/
+│   │   │   │   │   │   │   │   ├── NotesSaveStatus.module.css
+│   │   │   │   │   │   │   │   └── NotesSaveStatus.tsx
+│   │   │   │   │   │   │   ├── NotesComponents.tsx
+│   │   │   │   │   │   │   ├── NotesSidebar.tsx
+│   │   │   │   │   │   │   ├── NotesWorkspace.tsx
+│   │   │   │   │   │   │   ├── SidebarNavHeader.module.css
+│   │   │   │   │   │   │   └── SidebarNavHeader.tsx
 │   │   │   │   │   │   ├── hooks/
-│   │   │   │   │   │   │   └── useNotes.ts
+│   │   │   │   │   │   │   ├── useCanvasPersistence.ts
+│   │   │   │   │   │   │   ├── useCanvasScene.ts
+│   │   │   │   │   │   │   ├── useNotes.ts
+│   │   │   │   │   │   │   ├── useNotesKeyboardShortcuts.ts
+│   │   │   │   │   │   │   └── useNotesNavigation.ts
 │   │   │   │   │   │   ├── mock/
+│   │   │   │   │   │   │   ├── canvas.seed.ts
 │   │   │   │   │   │   │   └── notes.seed.ts
 │   │   │   │   │   │   ├── models/
+│   │   │   │   │   │   │   ├── canvas.models.ts
 │   │   │   │   │   │   │   └── notes.models.ts
 │   │   │   │   │   │   ├── repositories/
+│   │   │   │   │   │   │   ├── canvas.repository.ts
 │   │   │   │   │   │   │   └── notes.repository.ts
 │   │   │   │   │   │   ├── Notes.module.css
 │   │   │   │   │   │   ├── Notes.tsx
@@ -1216,6 +1242,10 @@
 │   │   │       ├── Divider/
 │   │   │       │   ├── Divider.module.css
 │   │   │       │   └── Divider.tsx
+│   │   │       ├── Slider/
+│   │   │       │   ├── Slider.css
+│   │   │       │   ├── Slider.tsx
+│   │   │       │   └── SliderProgressEngine.tsx
 │   │   │       ├── Tooltip/
 │   │   │       │   ├── Tooltip.module.css
 │   │   │       │   ├── Tooltip.tsx
@@ -1337,6 +1367,7 @@
 ├── .prettierrc
 ├── AGENTS.md
 ├── CLAUDE.md
+├── GEMINI.md
 ├── README.md
 ├── build-aab.bat
 ├── capacitor.config.ts
@@ -1347,4 +1378,4 @@
 ├── postcss.config.mjs
 └── tsconfig.json
 
-437 directories, 909 files
+441 directories, 936 files
