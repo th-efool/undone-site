@@ -80,7 +80,12 @@ export function NotesKanban({ noteId }: { noteId: string }) {
   }, []);
 
   const handleSaveCard = (updated: any) => {
-    setCards(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c));
+    if (updated.isNew) {
+      const { isNew, ...cardToSave } = updated;
+      setCards(prev => [...prev, cardToSave]);
+    } else {
+      setCards(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c));
+    }
     setEditorCard(null);
   };
 
@@ -106,8 +111,7 @@ export function NotesKanban({ noteId }: { noteId: string }) {
   /* ── Add card to column ── */
   const addCard = (colId: string) => {
     const id = ++nextCardId;
-    const card = { id, column: colId, label: 'New card', description: '', type: '', priority: 'low', updatedAt: new Date().toISOString() };
-    setCards(prev => [...prev, card]);
+    const card = { id, column: colId, label: '', description: '', type: 'Task', priority: 'medium', updatedAt: new Date().toISOString(), isNew: true };
     setEditorCard(card);
     setEditorAnchor(null); // center-screen fallback
   };
@@ -151,6 +155,9 @@ export function NotesKanban({ noteId }: { noteId: string }) {
               <KanbanCard
                 {...props}
                 onMenuClick={(e: React.MouseEvent) => handleCardMenu(props.card, e)}
+                onUpdateCard={(id: string | number, updates: any) => {
+                  setCards(prev => prev.map(c => c.id === id ? { ...c, ...updates, updatedAt: new Date().toISOString() } : c));
+                }}
               />
             )}
             card={{
@@ -173,11 +180,11 @@ export function NotesKanban({ noteId }: { noteId: string }) {
         </div>
       </WillowDark>
 
-      {/* Custom floating card editor */}
       {editorCard && (
         <CardEditor
           card={editorCard}
           anchor={editorAnchor}
+          mode={editorCard.isNew ? 'create' : 'edit'}
           onSave={handleSaveCard}
           onClose={() => setEditorCard(null)}
         />
