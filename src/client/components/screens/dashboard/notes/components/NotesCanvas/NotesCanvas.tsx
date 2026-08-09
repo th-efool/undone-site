@@ -232,6 +232,87 @@ export function NotesCanvas({
     return () => observer.disconnect();
   }, [dropdownMenuNode, excalidrawAPI]);
 
+  // Handle right-click drag panning
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !excalidrawAPI) return;
+
+    let isDragging = false;
+    let startX = 0;
+    let startY = 0;
+    let initialScrollX = 0;
+    let initialScrollY = 0;
+    let hasMoved = false;
+
+    const handlePointerDown = (e: PointerEvent) => {
+      if (e.button === 2) {
+        isDragging = true;
+        hasMoved = false;
+        startX = e.clientX;
+        startY = e.clientY;
+        const appState = excalidrawAPI.getAppState();
+        initialScrollX = appState.scrollX || 0;
+        initialScrollY = appState.scrollY || 0;
+      }
+    };
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!isDragging) return;
+
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+
+      if (Math.hypot(dx, dy) > 2) {
+        hasMoved = true;
+      }
+
+      if (hasMoved) {
+        const appState = excalidrawAPI.getAppState();
+        const zoom = appState.zoom?.value || 1;
+
+        const newScrollX = initialScrollX + dx / zoom;
+        const newScrollY = initialScrollY + dy / zoom;
+
+        excalidrawAPI.updateScene({
+          appState: {
+            scrollX: newScrollX,
+            scrollY: newScrollY,
+          },
+        });
+
+        if (gridOverlayRef.current) {
+          paintCustomGrid({ ...appState, scrollX: newScrollX, scrollY: newScrollY }, gridConfigRef.current);
+        }
+      }
+    };
+
+    const handlePointerUp = (e: PointerEvent) => {
+      if (e.button === 2) {
+        isDragging = false;
+      }
+    };
+
+    const handleContextMenu = (e: MouseEvent) => {
+      if (hasMoved) {
+        e.preventDefault();
+        e.stopPropagation();
+        hasMoved = false;
+      }
+    };
+
+    container.addEventListener('pointerdown', handlePointerDown, { capture: true });
+    window.addEventListener('pointermove', handlePointerMove, { capture: true });
+    window.addEventListener('pointerup', handlePointerUp, { capture: true });
+    container.addEventListener('contextmenu', handleContextMenu, { capture: true });
+
+    return () => {
+      container.removeEventListener('pointerdown', handlePointerDown, { capture: true });
+      window.removeEventListener('pointermove', handlePointerMove, { capture: true });
+      window.removeEventListener('pointerup', handlePointerUp, { capture: true });
+      container.removeEventListener('contextmenu', handleContextMenu, { capture: true });
+    };
+  }, [excalidrawAPI]);
+
   // Fired when the user draws on the canvas or changes state inside Excalidraw
   const handleChange = useCallback((elements: any, appState: any, files: any) => {
 

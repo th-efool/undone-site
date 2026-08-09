@@ -7,7 +7,6 @@ import { useNotesNavigation } from './hooks/useNotesNavigation';
 import { useNotesKeyboardShortcuts } from './hooks/useNotesKeyboardShortcuts';
 import { ShareModal } from './components/NotesComponents';
 import { NotesSidebar } from './components/NotesSidebar';
-import { NotesOverview } from './components/NotesOverview';
 import { NotesWorkspace } from './components/NotesWorkspace';
 import { useCanvasScene } from './hooks/useCanvasScene';
 import { useCanvasPersistence } from './hooks/useCanvasPersistence';
