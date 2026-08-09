@@ -187,6 +187,16 @@
   gap: 8px;
 }
 
+.renameInput {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-family: inherit;
+  font-size: inherit;
+  width: 100%;
+}
+
 .textButton {
   display: flex;
   align-items: center;
@@ -423,13 +433,23 @@
 
 .renameInput {
   flex: 1;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--brand-color, #818cf8);
-  color: var(--text-primary, #f8fafc);
-  border-radius: 4px;
-  padding: 2px 6px;
-  font-size: 0.85rem;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: #fff;
+  padding: 0;
+  margin: 0;
   outline: none;
+  box-shadow: none;
+  font-family: inherit;
+  border-radius: 0;
+}
+
+.renameInput:focus {
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  border: none;
 }
 
 .emptyState {
@@ -460,5 +480,72 @@
 
 .taskActions:hover {
   color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+/* Context Menu */
+.moreIcon {
+  opacity: 0;
+  color: var(--text-muted, #94a3b8);
+  margin-left: auto;
+  transition: opacity 0.15s ease, color 0.15s ease;
+  display: flex;
+  align-items: center;
+}
+
+.treeItem:hover .moreIcon {
+  opacity: 1;
+}
+
+.moreIcon:hover {
+  color: var(--text-primary, #f8fafc);
+}
+
+.popoverContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.popoverMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 120px;
+  z-index: 50;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.popoverItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #cbd5e1);
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.popoverItem:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary, #f8fafc);
+}
+
+.popoverItem.danger {
+  color: #ef4444;
+}
+
+.popoverItem.danger:hover {
   background: rgba(239, 68, 68, 0.1);
 }

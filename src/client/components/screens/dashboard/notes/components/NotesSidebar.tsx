@@ -28,8 +28,14 @@ export function NotesSidebar({
   setIsWorkspaceExpanded: (v: boolean) => void;
 }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [workspaceSearch, setWorkspaceSearch] = useState('');
+  const [isSearchingWorkspace, setIsSearchingWorkspace] = useState(false);
+  const [foldersByNotebook, setFoldersByNotebook] = useState<Record<string, { id: string, title: string, isOpen: boolean }[]>>({});
+  const [noteFolderMap, setNoteFolderMap] = useState<Record<string, string>>({});
+  const [activePopoverId, setActivePopoverId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const notebooks = notes.data?.notebooks || [];
   const filteredNotebooks = notebooks.filter(nb => 
@@ -202,7 +208,7 @@ export function NotesSidebar({
                 </div>
                 {editingId === nb.id ? (
                   <input
-                    autoFocus
+                    ref={inputRef}
                     value={editingTitle}
                     onChange={(e) => setEditingTitle(e.target.value)}
                     onBlur={() => {
@@ -218,7 +224,7 @@ export function NotesSidebar({
                         setEditingId(null);
                       }
                     }}
-                    style={{ background: 'transparent', border: 'none', color: 'inherit', outline: 'none', width: '100%', fontSize: 'inherit', fontWeight: 'inherit', padding: 0 }}
+                    style={{ background: 'transparent', border: 'none', color: '#fff', outline: 'none', width: '100%', fontSize: 'inherit', fontWeight: 'inherit', padding: 0 }}
                   />
                 ) : (
                   <span className={styles.channelName}>{nb.title}</span>
@@ -239,9 +245,20 @@ export function NotesSidebar({
                       size={16} 
                       onClick={(e) => {
                         e.stopPropagation();
-                        alert('Popover Actions:\n- Rename\n- Delete\n- Copy\n- Cut');
+                        setActivePopoverId(activePopoverId === nb.id ? null : nb.id);
                       }}
                     />
+                    {activePopoverId === nb.id && (
+                      <div 
+                        className={styles.popoverMenu}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button className={styles.popoverItem} onClick={(e) => { e.stopPropagation(); setEditingId(nb.id); setEditingTitle(nb.title); setActivePopoverId(null); }}>Rename</button>
+                        <button className={styles.popoverItem} onClick={(e) => { e.stopPropagation(); notes.actions.deleteNotebook(nb.id); setActivePopoverId(null); }}>Delete</button>
+                        <button className={styles.popoverItem} onClick={(e) => { e.stopPropagation(); alert('Copied'); setActivePopoverId(null); }}>Copy</button>
+                        <button className={styles.popoverItem} onClick={(e) => { e.stopPropagation(); alert('Cut'); setActivePopoverId(null); }}>Cut</button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -305,8 +322,24 @@ export function NotesSidebar({
             </div>
           </div>
           <TopBar />
-          <SpaceHeader notebook={notes.data?.notebooks?.find(n => n.id === selectedNotebookId)} notes={notes} />
-          <WorkspaceSection notes={notes} />
+          <SpaceHeader 
+            notebook={notes.data?.notebooks?.find(n => n.id === selectedNotebookId)} 
+            notes={notes}
+            isSearchingWorkspace={isSearchingWorkspace}
+            setIsSearchingWorkspace={setIsSearchingWorkspace}
+            foldersByNotebook={foldersByNotebook}
+            setFoldersByNotebook={setFoldersByNotebook}
+          />
+          <WorkspaceSection 
+            notes={notes}
+            workspaceSearch={workspaceSearch}
+            setWorkspaceSearch={setWorkspaceSearch}
+            isSearchingWorkspace={isSearchingWorkspace}
+            foldersByNotebook={foldersByNotebook}
+            setFoldersByNotebook={setFoldersByNotebook}
+            noteFolderMap={noteFolderMap}
+            setNoteFolderMap={setNoteFolderMap}
+          />
 
           <div className={rightColStyles.tabSwitcher}>
             <button 

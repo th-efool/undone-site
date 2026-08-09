@@ -193,6 +193,26 @@
   user-select: none;
 }
 
+.renameInput {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: #fff;
+  outline: none;
+  box-shadow: none;
+  font-family: inherit;
+  padding: 0;
+  margin: 0;
+}
+
+.renameInput:focus {
+  outline: none;
+  box-shadow: none;
+  background: transparent;
+  border: none;
+}
+
 .pinIcon {
   opacity: 0;
   width: 16px;
@@ -322,4 +342,39 @@
 .iconsOnly .bottomIcon {
   margin-right: 0;
   flex-shrink: 0;
+}
+
+/* Popover Menu */
+.popoverMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  background-color: #1a1b1e;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+  min-width: 140px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.popoverItem {
+  background: none;
+  border: none;
+  color: #a1a1aa;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 13px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.popoverItem:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  color: #f1f5f9;
 }

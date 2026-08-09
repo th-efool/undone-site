@@ -7,9 +7,29 @@ interface SpaceHeaderProps {
     id: string;
   };
   notes?: any;
+  isSearchingWorkspace?: boolean;
+  setIsSearchingWorkspace?: (val: boolean) => void;
+  foldersByNotebook?: Record<string, { id: string, title: string, isOpen: boolean }[]>;
+  setFoldersByNotebook?: React.Dispatch<React.SetStateAction<Record<string, { id: string, title: string, isOpen: boolean }[]>>>;
 }
 
-export function SpaceHeader({ notebook, notes }: SpaceHeaderProps) {
+export function SpaceHeader({ notebook, notes, isSearchingWorkspace, setIsSearchingWorkspace, foldersByNotebook, setFoldersByNotebook }: SpaceHeaderProps) {
+  const handleAddFolder = () => {
+    if (!notebook?.id || !setFoldersByNotebook) return;
+    setFoldersByNotebook(prev => {
+      const currentFolders = prev[notebook.id] || [];
+      const newFolder = {
+        id: `folder-${Date.now()}`,
+        title: 'New Folder',
+        isOpen: true
+      };
+      return {
+        ...prev,
+        [notebook.id]: [...currentFolders, newFolder]
+      };
+    });
+  };
+
   const title = notebook?.title || 'Any Possibilities';
   const initial = title.charAt(0).toUpperCase();
   
@@ -37,10 +57,10 @@ export function SpaceHeader({ notebook, notes }: SpaceHeaderProps) {
             <button className={styles.iconButton} aria-label="New note" onClick={() => notebook?.id && notes?.actions?.createNote(notebook.id)}>
               <SquarePen size={16} />
             </button>
-            <button className={styles.iconButton} aria-label="New folder" onClick={() => alert('Folder creation not supported in this view.')}>
+            <button className={styles.iconButton} aria-label="New folder" onClick={handleAddFolder}>
               <FolderPlus size={16} />
             </button>
-            <button className={styles.iconButton} aria-label="Search" onClick={() => alert('Global Search triggered.')}>
+            <button className={styles.iconButton} aria-label="Search" onClick={() => setIsSearchingWorkspace?.(!isSearchingWorkspace)}>
               <Search size={16} />
             </button>
             <button className={styles.iconButton} aria-label="Open externally" onClick={() => alert('Share settings opened.')}>
