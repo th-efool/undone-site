@@ -1131,11 +1131,23 @@
 │   │   │   │   │   │   │   ├── NotesSaveStatus/
 │   │   │   │   │   │   │   │   ├── NotesSaveStatus.module.css
 │   │   │   │   │   │   │   │   └── NotesSaveStatus.tsx
+│   │   │   │   │   │   │   ├── RightColumn/
+│   │   │   │   │   │   │   │   ├── RightColumn.module.css
+│   │   │   │   │   │   │   │   ├── SpaceHeader.tsx
+│   │   │   │   │   │   │   │   ├── TasksSection.tsx
+│   │   │   │   │   │   │   │   ├── TopBar.tsx
+│   │   │   │   │   │   │   │   └── WorkspaceSection.tsx
+│   │   │   │   │   │   │   ├── CalendarPanel.module.css
+│   │   │   │   │   │   │   ├── CalendarPanel.tsx
 │   │   │   │   │   │   │   ├── NotesComponents.tsx
+│   │   │   │   │   │   │   ├── NotesSidebar.module.css
 │   │   │   │   │   │   │   ├── NotesSidebar.tsx
 │   │   │   │   │   │   │   ├── NotesWorkspace.tsx
 │   │   │   │   │   │   │   ├── SidebarNavHeader.module.css
-│   │   │   │   │   │   │   └── SidebarNavHeader.tsx
+│   │   │   │   │   │   │   ├── SidebarNavHeader.tsx
+│   │   │   │   │   │   │   ├── SpaceHeader.tsx
+│   │   │   │   │   │   │   ├── TasksPanel.tsx
+│   │   │   │   │   │   │   └── WorkspaceTree.tsx
 │   │   │   │   │   │   ├── hooks/
 │   │   │   │   │   │   │   ├── useCanvasPersistence.ts
 │   │   │   │   │   │   │   ├── useCanvasScene.ts
@@ -1239,6 +1251,10 @@
 │   │   │       ├── Button/
 │   │   │       │   ├── Button.module.css
 │   │   │       │   └── Button.tsx
+│   │   │       ├── Calendar/
+│   │   │       │   ├── Calendar.module.css
+│   │   │       │   ├── Calendar.tsx
+│   │   │       │   └── index.ts
 │   │   │       ├── Divider/
 │   │   │       │   ├── Divider.module.css
 │   │   │       │   └── Divider.tsx
@@ -1375,7 +1391,9 @@
 ├── next.config.ts
 ├── package-lock.json
 ├── package.json
+├── phasewise.md
 ├── postcss.config.mjs
+├── task.md
 └── tsconfig.json
 
-441 directories, 936 files
+443 directories, 952 files
