@@ -68,6 +68,7 @@ export function Notes() {
       }}
     >
       <NotesSidebar 
+        notes={notes}
         isNavigationExpanded={navigation.isNavigationExpanded}
         setIsNavigationExpanded={navigation.setIsNavigationExpanded}
         isWorkspaceExpanded={navigation.isWorkspaceExpanded}

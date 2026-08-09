@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Plus, LayoutGrid, Menu, Pin, Star, Share, Trash2, PanelLeft, PanelLeftOpen } from 'lucide-react';
+import { Search, Plus, LayoutGrid, Menu, Pin, Star, Share, Trash2, PanelLeft, PanelLeftOpen, CheckSquare, Calendar as CalendarIcon } from 'lucide-react';
 import { TopBar } from './RightColumn/TopBar';
 import { SpaceHeader } from './RightColumn/SpaceHeader';
 import { TasksSection } from './RightColumn/TasksSection';
 import { WorkspaceSection } from './RightColumn/WorkspaceSection';
 import { Calendar } from '@/src/client/components/ui/Calendar';
+import { SearchBar } from '@/src/client/components/global/SearchBar';
 import styles from './NotesSidebar.module.css';
 import rightColStyles from './RightColumn/RightColumn.module.css';
 
@@ -38,6 +39,7 @@ export function NotesSidebar({
   
   const [navWidth, setNavWidth] = useState(290);
   const [workspaceWidth, setWorkspaceWidth] = useState(310);
+  const [activeTab, setActiveTab] = useState<'tasks' | 'calendar'>('tasks');
   const [isDraggingNav, setIsDraggingNav] = useState(false);
   const [isDraggingWorkspace, setIsDraggingWorkspace] = useState(false);
   
@@ -145,14 +147,7 @@ export function NotesSidebar({
 
           {/* 2. Search */}
           <div className={styles.searchContainer}>
-            <div className={styles.searchInputWrapper}>
-              <Search className={styles.searchIcon} />
-              <input 
-                type="text" 
-                placeholder="Filter channels..." 
-                className={styles.searchInput}
-              />
-            </div>
+            <SearchBar placeholder="Filter channels..." />
           </div>
 
           {/* 3 & 4. Channel List */}
@@ -230,19 +225,40 @@ export function NotesSidebar({
           </div>
           <TopBar />
           <SpaceHeader />
-          <TasksSection />
           <WorkspaceSection />
-          <div className={rightColStyles.sectionContainer}>
-            <Calendar 
-              events={[
-                { day: 5, tone: 'purple' },
-                { day: 8, tone: 'orange' },
-                { day: 12, tone: 'blue' },
-                { day: 18, tone: 'green' },
-                { day: 24, tone: 'red' },
-              ]}
-            />
+
+          <div className={rightColStyles.tabSwitcher}>
+            <button 
+              className={`${rightColStyles.tabButton} ${activeTab === 'tasks' ? rightColStyles.activeTabButton : ''}`}
+              onClick={() => setActiveTab('tasks')}
+              aria-label="Tasks"
+            >
+              <CheckSquare size={16} />
+            </button>
+            <button 
+              className={`${rightColStyles.tabButton} ${activeTab === 'calendar' ? rightColStyles.activeTabButton : ''}`}
+              onClick={() => setActiveTab('calendar')}
+              aria-label="Calendar"
+            >
+              <CalendarIcon size={16} />
+            </button>
           </div>
+
+          {activeTab === 'tasks' ? (
+            <TasksSection />
+          ) : (
+            <div className={rightColStyles.sectionContainer}>
+              <Calendar 
+                events={[
+                  { day: 5, tone: 'purple' },
+                  { day: 8, tone: 'orange' },
+                  { day: 12, tone: 'blue' },
+                  { day: 18, tone: 'green' },
+                  { day: 24, tone: 'red' },
+                ]}
+              />
+            </div>
+          )}
         </div>
         {isWorkspaceExpanded && (
           <div 
