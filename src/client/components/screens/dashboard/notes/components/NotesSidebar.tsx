@@ -6,6 +6,7 @@ import { TasksSection } from './RightColumn/TasksSection';
 import type { Task } from './RightColumn/TasksSection';
 import { WorkspaceSection } from './RightColumn/WorkspaceSection';
 import { Calendar } from '@/src/client/components/ui/Calendar';
+import type { CalendarEvent } from '@/src/client/components/ui/Calendar';
 import { SearchBar } from '@/src/client/components/global/SearchBar';
 import styles from './NotesSidebar.module.css';
 import rightColStyles from './RightColumn/RightColumn.module.css';
@@ -67,7 +68,7 @@ export function NotesSidebar({
     }
   };
 
-  const calendarEvents = React.useMemo(() => {
+  const calendarEvents: CalendarEvent[] = React.useMemo(() => {
     return currentTasks.map(t => {
       const match = t.date.match(/\d+/);
       return {

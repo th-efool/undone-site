@@ -2,8 +2,6 @@ import { ChevronRight, FileText, LayoutGrid, ChevronDown, Plus, MoreHorizontal }
 import { useState, useRef, useEffect } from 'react';
 import { SearchBar } from '@/src/client/components/global/SearchBar';
 import styles from './RightColumn.module.css';
-import { useNotes } from '../../hooks/useNotes';
-
 import type { useNotes } from '../../hooks/useNotes';
 
 type NotesContextType = ReturnType<typeof useNotes>;
@@ -83,7 +81,7 @@ export function WorkspaceSection(props: WorkspaceSectionProps) {
             value={editingTitle}
             onChange={(e) => setEditingTitle(e.target.value)}
             onBlur={() => handleSaveRename(note.id)}
-            onKeyDown={(e) => handleKeyDown(note.id)}
+            onKeyDown={(e) => handleKeyDown(e, note.id)}
             className={`${styles.nodeLabel} ${styles.renameInput}`}
             onClick={(e) => e.stopPropagation()}
           />
