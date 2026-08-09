@@ -43,10 +43,7 @@
   width: 64px;
   height: 64px;
   border-radius: 16px;
-  background: linear-gradient(135deg, #6366f1, #a855f7);
-  padding: 2px;
   flex-shrink: 0;
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.2);
 }
 
 .spaceIcon {
@@ -291,11 +288,8 @@
 
 .taskDate {
   font-size: 0.75rem;
-  font-weight: 600;
-  color: #fb923c;
-  background: rgba(251, 146, 60, 0.1);
-  padding: 2px 8px;
-  border-radius: 99px;
+  font-weight: 500;
+  color: #94a3b8;
 }
 
 /* Workspace Tree */
