@@ -48,7 +48,7 @@ export function NotesKanban({ noteId }: { noteId: string }) {
   const [editorAnchor, setEditorAnchor] = useState<{ x: number; y: number } | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  /* ── Intercept double-click for rename, and click for add ── */
+  /* ── Intercept double-click for rename ── */
   useEffect(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
@@ -66,24 +66,9 @@ export function NotesKanban({ noteId }: { noteId: string }) {
       setEditingColVal(col.label);
     };
 
-    const clickHandler = (e: MouseEvent) => {
-      const addBtn = (e.target as Element).closest('.wx-add');
-      const colEl  = (e.target as Element).closest('[data-col-id]') as HTMLElement | null;
-      if (addBtn && colEl) {
-        const colId = colEl.dataset.colId;
-        if (colId) {
-          e.preventDefault();
-          e.stopPropagation();
-          addCard(colId);
-        }
-      }
-    };
-
     wrapper.addEventListener('dblclick', dblClickHandler);
-    wrapper.addEventListener('click', clickHandler, true);
     return () => {
       wrapper.removeEventListener('dblclick', dblClickHandler);
-      wrapper.removeEventListener('click', clickHandler, true);
     };
   }, [columns]);
 
@@ -126,12 +111,12 @@ export function NotesKanban({ noteId }: { noteId: string }) {
   };
 
   /* ── Add card to column ── */
-  const addCard = (colId: string) => {
+  const addCard = useCallback((colId: string) => {
     const id = ++nextCardId;
     const card = { id, column: colId, label: '', description: '', type: 'Task', priority: 'medium', updatedAt: new Date().toISOString(), isNew: true };
     setEditorCard(card);
     setEditorAnchor(null); // center-screen fallback
-  };
+  }, []);
 
   const columnCss = (_cards: any[], column: any): string =>
     colCssMap[column.id as string] ?? 'sqhq-col-custom';
@@ -161,8 +146,8 @@ export function NotesKanban({ noteId }: { noteId: string }) {
 
       <WillowDark>
         <div className="sqhq-board-row">
-          {/* Inject data-col-id on each column for our dblclick handler */}
-          <ColIdInjector columns={columns} />
+          {/* Inject data-col-id on each column for our dblclick handler and custom add button */}
+          <ColIdInjector columns={columns} onAddCard={addCard} />
 
           <Kanban
             cards={cards}
@@ -212,14 +197,30 @@ export function NotesKanban({ noteId }: { noteId: string }) {
 
 /**
  * Injects `data-col-id` attributes onto SVAR column DOM nodes
- * so our dblclick handler can identify which column was clicked.
+ * and a custom Add button to bypass SVAR native card addition.
  */
-function ColIdInjector({ columns }: { columns: Column[] }) {
+function ColIdInjector({ columns, onAddCard }: { columns: Column[], onAddCard: (colId: string) => void }) {
   useEffect(() => {
     const colEls = document.querySelectorAll<HTMLElement>('.sqhq-kanban-wrapper .wx-column');
     colEls.forEach((el, idx) => {
       const col = columns[idx];
-      if (col) el.dataset.colId = col.id;
+      if (col) {
+        el.dataset.colId = col.id;
+        
+        const header = el.querySelector('.wx-column-header');
+        if (header && !header.querySelector('.sqhq-custom-add-btn')) {
+          const addBtn = document.createElement('button');
+          addBtn.className = 'sqhq-custom-add-btn';
+          addBtn.innerHTML = '+';
+          addBtn.title = 'Add Card';
+          addBtn.onclick = (e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onAddCard(col.id);
+          };
+          header.appendChild(addBtn);
+        }
+      }
     });
   });
   return null;

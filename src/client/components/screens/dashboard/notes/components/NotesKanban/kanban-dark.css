@@ -93,17 +93,39 @@
 }
 
 /* ── 5. Add (+) and toggle (collapse) buttons ────────────────── */
-.sqhq-kanban-wrapper .wx-add,
+.sqhq-kanban-wrapper .wx-add {
+  display: none !important; /* Hijacked and replaced with our custom button */
+}
+
 .sqhq-kanban-wrapper .wx-toggle {
   color: rgba(255, 255, 255, 0.3) !important;
   opacity: 1 !important;
   transition: color 0.15s ease, background 0.15s ease !important;
 }
 
-.sqhq-kanban-wrapper .wx-add:hover,
 .sqhq-kanban-wrapper .wx-toggle:hover {
   color: rgba(255, 255, 255, 0.8) !important;
   background: rgba(255, 255, 255, 0.07) !important;
+}
+
+/* Custom Add Button */
+.sqhq-custom-add-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: color 0.15s ease, background 0.15s ease;
+  margin-left: auto;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.sqhq-custom-add-btn:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.07);
 }
 
 /* ── 6. Cards ────────────────────────────────────────────────── */
@@ -139,6 +161,8 @@
 .sqhq-kcard {
   width: 100%;
   font-family: inherit;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .sqhq-kcard__cover {
