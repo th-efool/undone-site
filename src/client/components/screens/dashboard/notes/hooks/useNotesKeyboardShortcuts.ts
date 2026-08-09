@@ -7,13 +7,13 @@ type NotesContextType = ReturnType<typeof useNotes>;
 export function useNotesKeyboardShortcuts({
   notes,
   selected,
-  setIsPanelOpen,
+  setIsNavigationExpanded,
   setSidebarTab,
   setShareOpen,
 }: {
   notes: NotesContextType;
   selected: NoteDocument | null;
-  setIsPanelOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsNavigationExpanded: React.Dispatch<React.SetStateAction<boolean>>;
   setSidebarTab: React.Dispatch<React.SetStateAction<'explorer' | 'search' | 'bookmarks'>>;
   setShareOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
@@ -37,7 +37,7 @@ export function useNotesKeyboardShortcuts({
         notes.actions.createNotebook();
       } else if (e.key === '[' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
-        setIsPanelOpen(prev => !prev);
+        setIsNavigationExpanded(prev => !prev);
       } else if (e.key === 'E' && e.shiftKey && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         setSidebarTab('explorer');
@@ -55,5 +55,5 @@ export function useNotesKeyboardShortcuts({
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [notes.actions, selected, setIsPanelOpen, setSidebarTab, setShareOpen]);
+  }, [notes.actions, selected, setIsNavigationExpanded, setSidebarTab, setShareOpen]);
 }

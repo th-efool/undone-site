@@ -27,7 +27,7 @@ export function Notes() {
   useNotesKeyboardShortcuts({
     notes,
     selected,
-    setIsPanelOpen: navigation.setIsPanelOpen,
+    setIsNavigationExpanded: navigation.setIsNavigationExpanded,
     setSidebarTab: navigation.setSidebarTab,
     setShareOpen,
   });
@@ -62,13 +62,18 @@ export function Notes() {
 
   return (
     <main
-      className={`${styles.notes} ${!navigation.isPanelOpen ? styles.notesPanelClosed : ''}`}
+      className={styles.notes}
       onClick={() => {
         setMenu(null);
         setCanvasSwitcherOpen(false);
       }}
     >
-      <NotesSidebar />
+      <NotesSidebar 
+        isNavigationExpanded={navigation.isNavigationExpanded}
+        setIsNavigationExpanded={navigation.setIsNavigationExpanded}
+        isWorkspaceExpanded={navigation.isWorkspaceExpanded}
+        setIsWorkspaceExpanded={navigation.setIsWorkspaceExpanded}
+      />
       
       <NotesWorkspace
         notes={notes}

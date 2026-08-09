@@ -5,11 +5,11 @@
 .notes {
   height: 100vh;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: max-content minmax(0, 1fr);
   background: #050507;
   color: var(--color-text, #f1f5f9);
   overflow: hidden;
-  transition: grid-template-columns 0.2s ease-in-out;
+  transition: grid-template-columns 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ============================================ */

@@ -14,7 +14,8 @@ export function useNotesNavigation(
   const [mobileView, setMobileView] = useState<'panel' | 'workspace'>('panel');
   const [sidebarTab, setSidebarTab] = useState<'explorer' | 'search' | 'bookmarks'>('explorer');
   const [allCollapsed, setAllCollapsed] = useState(false);
-  const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [isNavigationExpanded, setIsNavigationExpanded] = useState(true);
+  const [isWorkspaceExpanded, setIsWorkspaceExpanded] = useState(true);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -76,8 +77,10 @@ export function useNotesNavigation(
     sidebarTab,
     setSidebarTab,
     allCollapsed,
-    isPanelOpen,
-    setIsPanelOpen,
+    isNavigationExpanded,
+    setIsNavigationExpanded,
+    isWorkspaceExpanded,
+    setIsWorkspaceExpanded,
     searchInputRef,
     toggleExpandCollapseAll,
     displayedNotebooks,
