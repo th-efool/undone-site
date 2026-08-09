@@ -3,6 +3,7 @@
 }
 
 .notes {
+  position: relative;
   height: 100vh;
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
@@ -670,7 +671,7 @@
 }
 
 .toast {
-  position: fixed;
+  position: absolute;
   left: 50%;
   bottom: 22px;
   transform: translateX(-50%);
@@ -681,7 +682,7 @@
   display: flex;
   gap: 10px;
   align-items: center;
-  z-index: 60;
+  z-index: 20;
   font-size: 13px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }

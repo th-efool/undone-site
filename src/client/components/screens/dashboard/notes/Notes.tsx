@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useIsMobile } from '@/src/client/hooks/useIsMobile';
 import { useNotes } from './hooks/useNotes';
 import { useNotesNavigation } from './hooks/useNotesNavigation';
@@ -42,20 +42,18 @@ export function Notes() {
     saveTrigger,
   } = useCanvasScene(selected?.id ?? null);
 
+  const handleSaveNote = useCallback(() => {
+    if (selected) notes.actions.patchNote(selected.id, {});
+  }, [selected?.id, notes.actions]);
+
   useCanvasPersistence(
     selected?.id ?? null,
     sceneRef,
     isDirtyRef,
     setCanvasState,
     saveTrigger,
-    () => {
-      if (selected) notes.actions.patchNote(selected.id, {});
-    }
+    handleSaveNote
   );
-
-  useEffect(() => {
-    // Reset any state bound to the old note when note changes
-  }, [selected?.id]);
 
   if (!notes.state || !notes.data) return <main className={styles.loading}>Loading notes…</main>;
 

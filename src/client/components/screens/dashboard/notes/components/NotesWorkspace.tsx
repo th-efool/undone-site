@@ -9,6 +9,7 @@ import sidebarStyles from './NotesSidebar.module.css';
 import type { useNotes } from '../hooks/useNotes';
 import type { useNotesNavigation } from '../hooks/useNotesNavigation';
 import type { NoteDocument } from '../models/notes.models';
+import type { CanvasSceneData, CanvasState } from '../models/canvas.models';
 
 type NotesContextType = ReturnType<typeof useNotes>;
 type NavigationType = ReturnType<typeof useNotesNavigation>;
@@ -25,9 +26,9 @@ interface NotesWorkspaceProps {
   canvasSwitcherOpen: boolean;
   setCanvasSwitcherOpen: React.Dispatch<React.SetStateAction<boolean>>;
   canvasLoading: boolean;
-  canvasState: any;
-  initialScene: any;
-  handleSceneChange: any;
+  canvasState: CanvasState;
+  initialScene: CanvasSceneData | null;
+  handleSceneChange: (scene: CanvasSceneData) => void;
 }
 
 export function NotesWorkspace({

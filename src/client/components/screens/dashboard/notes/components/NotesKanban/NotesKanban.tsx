@@ -48,12 +48,12 @@ export function NotesKanban({ noteId }: { noteId: string }) {
   const [editorAnchor, setEditorAnchor] = useState<{ x: number; y: number } | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  /* ── Column rename: intercept double-click on SVAR column titles ── */
+  /* ── Intercept double-click for rename, and click for add ── */
   useEffect(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
 
-    const handler = (e: MouseEvent) => {
+    const dblClickHandler = (e: MouseEvent) => {
       const titleEl = (e.target as Element).closest('.wx-title');
       const colEl   = (e.target as Element).closest('[data-col-id]') as HTMLElement | null;
       if (!titleEl || !colEl) return;
@@ -66,8 +66,25 @@ export function NotesKanban({ noteId }: { noteId: string }) {
       setEditingColVal(col.label);
     };
 
-    wrapper.addEventListener('dblclick', handler);
-    return () => wrapper.removeEventListener('dblclick', handler);
+    const clickHandler = (e: MouseEvent) => {
+      const addBtn = (e.target as Element).closest('.wx-add');
+      const colEl  = (e.target as Element).closest('[data-col-id]') as HTMLElement | null;
+      if (addBtn && colEl) {
+        const colId = colEl.dataset.colId;
+        if (colId) {
+          e.preventDefault();
+          e.stopPropagation();
+          addCard(colId);
+        }
+      }
+    };
+
+    wrapper.addEventListener('dblclick', dblClickHandler);
+    wrapper.addEventListener('click', clickHandler, true);
+    return () => {
+      wrapper.removeEventListener('dblclick', dblClickHandler);
+      wrapper.removeEventListener('click', clickHandler, true);
+    };
   }, [columns]);
 
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Plus, LayoutGrid, Menu, Pin, Star, Share, Trash2, PanelLeft, PanelLeftOpen, CheckSquare, Calendar as CalendarIcon, MoreHorizontal } from 'lucide-react';
-import { TopBar } from './RightColumn/TopBar';
+
 import { SpaceHeader } from './RightColumn/SpaceHeader';
 import { TasksSection } from './RightColumn/TasksSection';
 import type { Task } from './RightColumn/TasksSection';
@@ -45,7 +45,13 @@ export function NotesSidebar({
   const selectedNotebookId = notes.data?.selectedNotebook?.id;
   
   const [navWidth, setNavWidth] = useState(290);
+  const navWidthRef = useRef(navWidth);
+  useEffect(() => { navWidthRef.current = navWidth; }, [navWidth]);
+
   const [workspaceWidth, setWorkspaceWidth] = useState(310);
+  
+  const isNavigationExpandedRef = useRef(isNavigationExpanded);
+  useEffect(() => { isNavigationExpandedRef.current = isNavigationExpanded; }, [isNavigationExpanded]);
   const [activeTab, setActiveTab] = useState<'tasks' | 'calendar'>('tasks');
 
   const [tasksByNotebook, setTasksByNotebook] = useState<Record<string, Task[]>>({});
@@ -55,8 +61,8 @@ export function NotesSidebar({
     if (!tasksByNotebook[selectedNotebookId]) {
       const title = notes.data?.notebooks?.find(n => n.id === selectedNotebookId)?.title || 'General';
       return [
-        { id: Date.now() + 1, title: `Review ${title}`, date: 'Jun 5', status: 'pending' },
-        { id: Date.now() + 2, title: `Update ${title} docs`, date: 'Jun 8', status: 'completed' },
+        { id: 1, title: `Review ${title}`, date: 'Jun 5', status: 'pending' },
+        { id: 2, title: `Update ${title} docs`, date: 'Jun 8', status: 'completed' },
       ] as Task[];
     }
     return tasksByNotebook[selectedNotebookId];
@@ -113,7 +119,7 @@ export function NotesSidebar({
     if (!isDraggingWorkspace) return;
     const handleMouseMove = (e: MouseEvent) => {
       workspaceDragFlag.current = true;
-      const navOffset = isNavigationExpanded ? navWidth : 0;
+      const navOffset = isNavigationExpandedRef.current ? navWidthRef.current : 0;
       const newWidth = e.clientX - navOffset;
       
       if (newWidth < 250) {
@@ -132,7 +138,7 @@ export function NotesSidebar({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDraggingWorkspace, isNavigationExpanded, navWidth, setIsWorkspaceExpanded]);
+  }, [isDraggingWorkspace, setIsWorkspaceExpanded]);
 
   const navInlineStyle = isNavigationExpanded 
     ? { width: `${navWidth}px`, transition: isDraggingNav ? 'none' : undefined }
@@ -236,7 +242,7 @@ export function NotesSidebar({
                     onClick={(e) => {
                       e.stopPropagation();
                       if ('favorite' in nb) {
-                        notes.actions.patchNotebook(nb.id, { favorite: !(nb as any).favorite });
+                        notes.actions.patchNotebook(nb.id, { favorite: !nb.favorite });
                       }
                       console.log('Star toggled for', nb.title);
                     }}
@@ -322,7 +328,7 @@ export function NotesSidebar({
               </button>
             </div>
           </div>
-          <TopBar />
+
           <SpaceHeader 
             notebook={notes.data?.notebooks?.find(n => n.id === selectedNotebookId)} 
             notes={notes}
