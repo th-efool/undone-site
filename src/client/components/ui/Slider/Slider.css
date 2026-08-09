@@ -1,0 +1,155 @@
+/* Slider Component Container */
+.agy-slider-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  position: relative;
+  /* Minimal vertical footprint */
+  margin: 0;
+  padding: 0;
+}
+
+/* 
+ * The actual input[type="range"] 
+ * We keep the input height just enough for the thumb. 
+ * Thumb is 16px, plus 10px halo = 36px. We'll use 20px height for the input to keep it compact,
+ * and let the halo overflow visually.
+ */
+.agy-slider,
+.excalidraw .range-input {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 20px;
+  background: transparent !important;
+  outline: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  cursor: pointer;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.agy-slider:focus,
+.excalidraw .range-input:focus,
+.agy-slider:focus-visible,
+.excalidraw .range-input:focus-visible,
+.agy-slider:active,
+.excalidraw .range-input:active {
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+/* Thin Track - Webkit */
+.agy-slider::-webkit-slider-runnable-track,
+.excalidraw .range-input::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 4px;
+  background-image: linear-gradient(to right, var(--color-slider-track-fill, #7c3aed) var(--slider-progress, 0%), var(--color-slider-track-unfill, #ddd6fe) var(--slider-progress, 0%));
+  border-radius: 2px;
+  border: none;
+}
+
+/* Thin Track - Moz */
+.agy-slider::-moz-range-track,
+.excalidraw .range-input::-moz-range-track {
+  width: 100%;
+  height: 4px;
+  background-image: linear-gradient(to right, var(--color-slider-track-fill, #7c3aed) var(--slider-progress, 0%), var(--color-slider-track-unfill, #ddd6fe) var(--slider-progress, 0%));
+  border-radius: 2px;
+  border: none;
+}
+
+/* Thumb */
+.agy-slider::-webkit-slider-thumb,
+.excalidraw .range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-slider-thumb, #ffffff);
+  cursor: pointer;
+  transition: box-shadow 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  border: 2px solid var(--color-slider-thumb-border, #7c3aed);
+  margin-top: -6px; /* (4px track - 16px thumb) / 2 */
+}
+
+.agy-slider::-moz-range-thumb,
+.excalidraw .range-input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-slider-thumb, #ffffff);
+  cursor: pointer;
+  transition: box-shadow 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  border: 2px solid var(--color-slider-thumb-border, #7c3aed);
+}
+
+/* Halo states for thumb (Hover, Focus, Active) */
+.agy-slider:hover::-webkit-slider-thumb,
+.excalidraw .range-input:hover::-webkit-slider-thumb,
+.agy-slider:focus-visible::-webkit-slider-thumb,
+.excalidraw .range-input:focus-visible::-webkit-slider-thumb,
+.agy-slider:active::-webkit-slider-thumb,
+.excalidraw .range-input:active::-webkit-slider-thumb {
+  box-shadow: 0 0 0 8px rgba(124, 58, 237, 0.2);
+}
+
+.agy-slider:hover::-moz-range-thumb,
+.excalidraw .range-input:hover::-moz-range-thumb,
+.agy-slider:focus-visible::-moz-range-thumb,
+.excalidraw .range-input:focus-visible::-moz-range-thumb,
+.agy-slider:active::-moz-range-thumb,
+.excalidraw .range-input:active::-moz-range-thumb {
+  box-shadow: 0 0 0 8px rgba(124, 58, 237, 0.2);
+}
+
+/* Disabled state */
+.agy-slider:disabled,
+.excalidraw .range-input:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.agy-slider:disabled::-webkit-slider-runnable-track,
+.excalidraw .range-input:disabled::-webkit-slider-runnable-track {
+  background-image: linear-gradient(to right, var(--color-slider-track-fill-disabled, #a1a1aa) var(--slider-progress, 0%), var(--color-slider-track-unfill-disabled, #e4e4e7) var(--slider-progress, 0%));
+}
+
+.agy-slider:disabled::-moz-range-track,
+.excalidraw .range-input:disabled::-moz-range-track {
+  background-image: linear-gradient(to right, var(--color-slider-track-fill-disabled, #a1a1aa) var(--slider-progress, 0%), var(--color-slider-track-unfill-disabled, #e4e4e7) var(--slider-progress, 0%));
+}
+
+.agy-slider:disabled::-webkit-slider-thumb,
+.excalidraw .range-input:disabled::-webkit-slider-thumb {
+  background: var(--color-slider-thumb-disabled, #ffffff);
+  border-color: var(--color-slider-track-fill-disabled, #a1a1aa);
+  box-shadow: none;
+}
+
+.agy-slider:disabled::-moz-range-thumb,
+.excalidraw .range-input:disabled::-moz-range-thumb {
+  background: var(--color-slider-thumb-disabled, #ffffff);
+  border-color: var(--color-slider-track-fill-disabled, #a1a1aa);
+  box-shadow: none;
+}
+
+/* Min/Max Labels */
+.agy-slider-labels {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 11px;
+  line-height: 1;
+  color: var(--color-gray-50, #6b7280);
+  font-weight: 500;
+  /* Extremely tight gap to the track */
+  margin-top: -2px; 
+  padding: 0 4px; /* Slight inset so labels align roughly with thumb center at ends */
+  pointer-events: none;
+}

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Volume2 } from 'lucide-react';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
+import { Slider } from '@/src/client/components/ui/Slider/Slider';
 
 import styles from './VolumeControl.module.css';
 
@@ -33,8 +34,7 @@ export function VolumeControl({ volume = 95, onChange }: VolumeControlProps) {
       </Tooltip>
 
       <div className={styles.slider}>
-        <input
-          type="range"
+        <Slider
           min={0}
           max={100}
           value={currentVolume}

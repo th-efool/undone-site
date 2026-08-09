@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CalendarDays, Clock, Shuffle, Sparkles, ListOrdered, Signal, X, ChevronDown, PauseCircle } from 'lucide-react';
+import { Slider } from '@/src/client/components/ui/Slider/Slider';
 import type { ActiveCohort, Weekday } from '../../models';
 
 import styles from './InspectorPanel.module.css';
@@ -119,11 +120,10 @@ export function InspectorPanel({
                 <span className={styles.sliderValue}>{cohort.frequency || 'Often'}</span>
                 <span>More</span>
               </div>
-              <input 
-                type="range" 
-                min="0" 
-                max="4" 
-                step="1"
+              <Slider 
+                min={0} 
+                max={4} 
+                step={1}
                 value={safeFreqIndex} 
                 onChange={handleFrequencyChange}
                 className={styles.rangeSlider}

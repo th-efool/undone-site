@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getCohortHref } from '@/src/client/navigation/cohortLinks';
 import { GripVertical, PauseCircle, ListOrdered, Shuffle } from 'lucide-react';
 import { useState } from 'react';
+import { Slider } from '@/src/client/components/ui/Slider/Slider';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
 import type { ActiveCohort, Weekday } from '../../models';
@@ -187,11 +188,10 @@ export function ActiveCohortRow({
           })}
         </div>
         <div className={styles.frequencySlider}>
-          <input 
-            type="range" 
-            min="0" 
-            max="2" 
-            step="1"
+          <Slider 
+            min={0} 
+            max={2} 
+            step={1}
             value={
               (item.frequency || 'Often').includes('Rarely') ? 0 :
               (item.frequency || 'Often').includes('Sometimes') ? 1 : 2
