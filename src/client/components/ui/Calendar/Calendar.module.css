@@ -1,7 +1,7 @@
 .calendarContainer {
   display: flex;
   flex-direction: column;
-  background: var(--surface-elevation-2, #11131a);
+  background: var(--surface-elevation-2, #080808);
   border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
   border-radius: 16px;
   padding: 16px;

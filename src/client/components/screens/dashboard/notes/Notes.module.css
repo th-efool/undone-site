@@ -6,7 +6,7 @@
   height: 100vh;
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
-  background: #050507;
+  background: #000000;
   color: var(--color-text, #f1f5f9);
   overflow: hidden;
   transition: grid-template-columns 0.2s cubic-bezier(0.4, 0, 0.2, 1);
@@ -36,7 +36,7 @@
 .panel {
   border-right: 1px solid rgba(255, 255, 255, 0.07);
   padding: 14px 14px 20px 14px;
-  background: #050507;
+  background: #000000;
   overflow-y: auto;
 }
 
@@ -74,7 +74,7 @@
   height: 35px;
   border: 1px solid #27272a;
   border-radius: 8px;
-  background: #050507;
+  background: #000000;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   display: grid;
   place-items: center;
@@ -107,7 +107,7 @@
   align-items: center;
   gap: 8px;
   padding: 0 10px;
-  background: #050507;
+  background: #000000;
   margin: 0 0 14px 0;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
@@ -379,7 +379,7 @@
   align-items: center;
   border: 1px solid #27272a;
   border-radius: 8px;
-  background: #050507;
+  background: #000000;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   font-size: 13px;
   font-weight: 500;
@@ -390,7 +390,7 @@
 
 .actions button:hover,
 .topbarBtn:hover {
-  background: #050507;
+  background: #000000;
   border-color: #3f3f46;
   color: #f1f5f9;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
@@ -421,7 +421,7 @@
   top: 96px;
   left: 200px;
   display: flex;
-  background: #050507;
+  background: #000000;
   border: 1px solid #27272a;
   border-radius: 10px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
@@ -479,7 +479,7 @@
 }
 
 .titleInputTop:focus {
-  background: #050507;
+  background: #000000;
   border-color: #818cf8;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
 }
@@ -539,7 +539,7 @@
   display: flex;
   gap: 6px;
   padding: 6px;
-  background: #050507;
+  background: #000000;
   border: 1px solid #27272a;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
@@ -562,7 +562,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #050507;
+  background: #000000;
   border: 1px solid #27272a;
   border-radius: 10px;
   padding: 4px 10px;
@@ -580,7 +580,7 @@
   right: 8px;
   top: 40px;
   z-index: 30;
-  background: #050507;
+  background: #000000;
   border: 1px solid #27272a;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
   border-radius: 10px;
@@ -594,7 +594,7 @@
   height: auto;
   padding: 8px 10px;
   border: 0;
-  background: #050507;
+  background: #000000;
   text-align: left;
   border-radius: 6px;
   display: block;
@@ -643,7 +643,7 @@
 
 .modal {
   width: 420px;
-  background: #050507;
+  background: #000000;
   border-radius: 16px;
   padding: 20px;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
@@ -674,7 +674,7 @@
   left: 50%;
   bottom: 22px;
   transform: translateX(-50%);
-  background: #050507;
+  background: #000000;
   color: #fff;
   border-radius: 999px;
   padding: 8px 12px 8px 16px;
@@ -690,7 +690,7 @@
   height: 35px;
   border: 1px solid #27272a;
   border-radius: 8px;
-  background: #050507;
+  background: #000000;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
@@ -727,7 +727,7 @@
   height: 35px;
   border: 1px solid #27272a;
   border-radius: 8px;
-  background: #050507;
+  background: #000000;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
@@ -741,7 +741,7 @@
 }
 
 .topSelect:hover {
-  background: #050507;
+  background: #000000;
   border-color: #3f3f46;
   color: #f1f5f9;
 }
@@ -770,7 +770,7 @@
   flex-direction: column;
   gap: 10px;
   padding: 10px 12px;
-  background: #050507;
+  background: #000000;
   border-bottom: 1px solid #27272a;
   user-select: none;
 }
@@ -825,7 +825,7 @@
   height: 32px;
   border: 1px solid #27272a;
   border-radius: 8px;
-  background: #050507;
+  background: #000000;
   color: #94a3b8;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
@@ -833,7 +833,7 @@
 }
 
 .headerActionBtn:hover {
-  background: #050507;
+  background: #000000;
   border-color: #3f3f46;
   color: #f1f5f9;
 }
@@ -850,7 +850,7 @@
   width: 100%;
   border: 1px solid #27272a;
   border-radius: 8px;
-  background: #050507;
+  background: #000000;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   display: inline-flex;
   align-items: center;
@@ -861,7 +861,7 @@
 }
 
 .headerActionsRow button:hover {
-  background: #050507;
+  background: #000000;
   border-color: #3f3f46;
   color: #f1f5f9;
 }
@@ -892,7 +892,7 @@
 
 .canvasSwitchControl:hover,
 .canvasSwitchControl:focus-within {
-  background: #050507;
+  background: #000000;
   border-color: #3f3f46;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
@@ -1006,7 +1006,7 @@
   width: 35px;
   border: 1px solid #27272a;
   border-radius: 8px;
-  background: #050507;
+  background: #000000;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   display: inline-flex;
   align-items: center;
@@ -1018,7 +1018,7 @@
 }
 
 .moreBtn:hover {
-  background: #050507;
+  background: #000000;
   border-color: #3f3f46;
   color: #f1f5f9;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
@@ -1034,7 +1034,7 @@
   font: inherit;
   font-size: 13px;
   font-weight: 600;
-  background: #050507;
+  background: #000000;
   color: inherit;
   outline: none;
 }
