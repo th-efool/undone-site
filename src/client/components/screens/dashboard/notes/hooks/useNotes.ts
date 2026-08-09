@@ -144,13 +144,13 @@ export function useNotes() {
         selectedNoteId: s.notes.find((n) => n.notebookId === notebooks[0]?.id)?.id ?? null,
       };
     });
-  const createNote = (notebookId = state?.selectedNotebookId) =>
+  const createNote = (notebookId = state?.selectedNotebookId, options?: { title?: string, contentType?: 'canvas' | 'kanban' }) =>
     update((s) => {
       if (!notebookId) return s;
       const note = {
         id: id('note'),
         notebookId,
-        title: 'Untitled Note',
+        title: options?.title || 'Untitled Note',
         tags: [],
         favorite: false,
         shared: false,
@@ -161,7 +161,7 @@ export function useNotes() {
         publicLink: false,
         permission: 'editor' as Permission,
         sharedWith: [],
-        contentType: 'canvas' as const,
+        contentType: (options?.contentType || 'canvas') as 'canvas' | 'kanban',
         ownerId: null,
         linkedConceptIds: [],
         linkedResourceIds: [],
