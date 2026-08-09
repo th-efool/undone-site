@@ -1,15 +1,9 @@
-import { ArrowLeft, MoreHorizontal, PanelLeftClose, Share } from 'lucide-react';
+import { ArrowLeft, MoreHorizontal, PanelLeftOpen, Menu as MenuIcon, Share } from 'lucide-react';
 import { CanvasSwitcher, Menu } from './NotesComponents';
 import { NotesCanvas } from './NotesCanvas/NotesCanvas';
 import { NotesSaveStatus } from './NotesSaveStatus/NotesSaveStatus';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
-import { TopBar } from './RightColumn/TopBar';
-import { SpaceHeader } from './RightColumn/SpaceHeader';
-import { TasksSection } from './RightColumn/TasksSection';
-import { WorkspaceSection } from './RightColumn/WorkspaceSection';
-import { Calendar } from '@/src/client/components/ui/Calendar';
 import styles from '../Notes.module.css';
-import rightColStyles from './RightColumn/RightColumn.module.css';
 import type { useNotes } from '../hooks/useNotes';
 import type { useNotesNavigation } from '../hooks/useNotesNavigation';
 import type { NoteDocument } from '../models/notes.models';
@@ -49,7 +43,7 @@ export function NotesWorkspace({
   initialScene,
   handleSceneChange,
 }: NotesWorkspaceProps) {
-  const { mobileView, setMobileView, isPanelOpen, setIsPanelOpen } = navigation;
+  const { mobileView, setMobileView, isNavigationExpanded, setIsNavigationExpanded, isWorkspaceExpanded, setIsWorkspaceExpanded } = navigation;
 
   return (
     <section className={`${styles.workspace} ${isMobile && mobileView !== 'workspace' ? styles.workspaceHidden : ''}`}>
@@ -62,16 +56,27 @@ export function NotesWorkspace({
             <ArrowLeft size={16} /> Back
           </button>
         )}
-        {!isMobile && !isPanelOpen && (
-          <button
-            className={styles.mobileBackBtn}
-            onClick={() => setIsPanelOpen(true)}
-            aria-label="Open sidebar"
-            title="Open sidebar"
-            style={{ padding: '6px', marginRight: '4px' }}
-          >
-            <PanelLeftClose size={16} style={{ transform: 'scaleX(-1)' }} />
-          </button>
+        {!isMobile && !isNavigationExpanded && !isWorkspaceExpanded && (
+          <div style={{ display: 'flex', gap: '8px', marginRight: '8px' }}>
+            <button
+              className={styles.mobileBackBtn}
+              onClick={() => setIsNavigationExpanded(true)}
+              aria-label="Open navigation panel"
+              title="Open navigation"
+              style={{ padding: '6px' }}
+            >
+              <PanelLeftOpen size={16} />
+            </button>
+            <button
+              className={styles.mobileBackBtn}
+              onClick={() => setIsWorkspaceExpanded(true)}
+              aria-label="Open workspace panel"
+              title="Open workspace"
+              style={{ padding: '6px' }}
+            >
+              <MenuIcon size={16} />
+            </button>
+          </div>
         )}
         <div className={styles.crumb}>
           <strong>{notes.data?.selectedNotebook?.title ?? 'Notebook'}</strong>
@@ -142,22 +147,8 @@ export function NotesWorkspace({
       
       {!selected ? (
         <article className={styles.overview}>
-          <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', paddingBottom: '80px' }}>
-            <TopBar />
-            <SpaceHeader />
-            <TasksSection />
-            <WorkspaceSection />
-            <div className={rightColStyles.sectionContainer}>
-              <Calendar 
-                events={[
-                  { day: 5, tone: 'purple' },
-                  { day: 8, tone: 'orange' },
-                  { day: 12, tone: 'blue' },
-                  { day: 18, tone: 'green' },
-                  { day: 24, tone: 'red' },
-                ]}
-              />
-            </div>
+          <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', paddingBottom: '80px', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#a1a1aa' }}>
+            Select a note to view canvas
           </div>
         </article>
       ) : (
