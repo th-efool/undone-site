@@ -1262,6 +1262,9 @@
 │   │   │       │   ├── FormEditor.module.css
 │   │   │       │   ├── FormEditor.tsx
 │   │   │       │   └── index.ts
+│   │   │       ├── InlineEditor/
+│   │   │       │   ├── InlineEditor.module.css
+│   │   │       │   └── InlineEditor.tsx
 │   │   │       ├── Slider/
 │   │   │       │   ├── Slider.css
 │   │   │       │   ├── Slider.tsx
@@ -1401,4 +1404,4 @@
 ├── task.md
 └── tsconfig.json
 
-445 directories, 955 files
+446 directories, 957 files
