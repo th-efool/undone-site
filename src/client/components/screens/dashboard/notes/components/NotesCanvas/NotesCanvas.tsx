@@ -267,6 +267,9 @@ export function NotesCanvas({
       }
 
       if (hasMoved) {
+        document.body.style.cursor = 'grabbing';
+        container.style.cursor = 'grabbing';
+
         const appState = excalidrawAPI.getAppState();
         const zoom = appState.zoom?.value || 1;
 
@@ -288,6 +291,10 @@ export function NotesCanvas({
 
     const handlePointerUp = (e: PointerEvent) => {
       if (e.button === 2) {
+        if (isDragging && hasMoved) {
+          document.body.style.cursor = '';
+          container.style.cursor = '';
+        }
         isDragging = false;
       }
     };
