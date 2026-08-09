@@ -1,0 +1,194 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: #050507;
+  color: #a1a1aa;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  width: 290px;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.topBar {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 16px;
+}
+
+.topBarActions {
+  display: flex;
+  gap: 12px;
+  color: #b5bac1;
+}
+
+.iconButton {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 4px;
+}
+
+.iconButton:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: #f1f5f9;
+}
+
+.searchContainer {
+  padding: 0 16px 12px 16px;
+}
+
+.searchInputWrapper {
+  display: flex;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 6px 10px;
+  transition: all 0.2s ease;
+}
+
+.searchInputWrapper:focus-within {
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+.searchIcon {
+  color: #949ba4;
+  width: 14px;
+  height: 14px;
+  margin-right: 8px;
+}
+
+.searchInput {
+  background: transparent;
+  border: none;
+  color: #dbdee1;
+  font-size: 13px;
+  width: 100%;
+  outline: none;
+}
+
+.searchInput::placeholder {
+  color: #949ba4;
+}
+
+.channelList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Custom scrollbar for channel list */
+.channelList::-webkit-scrollbar {
+  width: 8px;
+}
+
+.channelList::-webkit-scrollbar-thumb {
+  background-color: #1a1b1e;
+  border-radius: 4px;
+}
+
+.channelItem {
+  display: flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: #a1a1aa;
+}
+
+.channelItem:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: #f1f5f9;
+}
+
+.channelItem.selected {
+  background-color: rgba(99, 102, 241, 0.1);
+  color: #818cf8;
+}
+
+.avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.channelName {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pinIcon {
+  opacity: 0;
+  width: 16px;
+  height: 16px;
+  color: #b5bac1;
+}
+
+.channelItem:hover .pinIcon, 
+.channelItem.selected .pinIcon {
+  opacity: 1;
+}
+
+.bottomSection {
+  padding: 12px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: transparent;
+}
+
+.bottomItem {
+  display: flex;
+  align-items: center;
+  color: #a1a1aa;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.bottomItem:hover {
+  background-color: rgba(255, 255, 255, 0.04);
+  color: #f1f5f9;
+}
+
+.bottomIcon {
+  margin-right: 10px;
+  width: 16px;
+  height: 16px;
+}
+
+.bottomCount {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  background-color: #2b2d31;
+  padding: 2px 6px;
+  border-radius: 12px;
+}

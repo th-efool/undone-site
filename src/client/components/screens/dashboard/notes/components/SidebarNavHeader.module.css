@@ -2,12 +2,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 6px 8px;
+  padding: 8px 10px;
   margin-bottom: 12px;
-  background: #050507;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  background: rgba(15, 15, 20, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .navTabs {
@@ -22,21 +24,22 @@
   justify-content: center;
   width: 32px;
   height: 32px;
-  border: 0;
-  border-radius: 7px;
+  border: 1px solid transparent;
+  border-radius: 8px;
   background: transparent;
   color: #94a3b8;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
 }
 
 .tabBtn:hover {
-  background: #27272a;
+  background: rgba(255, 255, 255, 0.05);
   color: #f1f5f9;
 }
 
 .tabBtn.activeTab {
-  background: #2e1065;
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.2);
   color: #818cf8;
 }
 
@@ -53,20 +56,20 @@
   width: 30px;
   height: 30px;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: 8px;
   background: transparent;
   color: #94a3b8;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
 }
 
 .actionBtn:hover {
-  background: #050507;
-  border-color: #3f3f46;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
   color: #f1f5f9;
 }
 
 .actionBtn.activeAction {
-  background: #27272a;
-  color: #a1a1aa;
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
 }
