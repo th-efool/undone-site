@@ -7,6 +7,7 @@ import { useNotesNavigation } from './hooks/useNotesNavigation';
 import { useNotesKeyboardShortcuts } from './hooks/useNotesKeyboardShortcuts';
 import { ShareModal } from './components/NotesComponents';
 import { NotesSidebar } from './components/NotesSidebar';
+import { NotesOverview } from './components/NotesOverview';
 import { NotesWorkspace } from './components/NotesWorkspace';
 import { useCanvasScene } from './hooks/useCanvasScene';
 import { useCanvasPersistence } from './hooks/useCanvasPersistence';
@@ -20,8 +21,6 @@ export function Notes() {
   const [menu, setMenu] = useState<string | null>(null);
   const [shareOpen, setShareOpen] = useState(false);
   const [canvasSwitcherOpen, setCanvasSwitcherOpen] = useState(false);
-  const [editingNotebookId, setEditingNotebookId] = useState<string | null>(null);
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
 
   const selected = notes.data?.selectedNote ?? null;
 
@@ -69,18 +68,7 @@ export function Notes() {
         setCanvasSwitcherOpen(false);
       }}
     >
-      <NotesSidebar
-        notes={notes}
-        navigation={navigation}
-        isMobile={isMobile}
-        selectedNoteId={selected?.id ?? null}
-        menu={menu}
-        setMenu={setMenu}
-        editingNotebookId={editingNotebookId}
-        setEditingNotebookId={setEditingNotebookId}
-        editingNoteId={editingNoteId}
-        setEditingNoteId={setEditingNoteId}
-      />
+      <NotesSidebar />
       
       <NotesWorkspace
         notes={notes}

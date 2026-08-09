@@ -5,11 +5,25 @@
 .notes {
   height: 100vh;
   display: grid;
-  grid-template-columns: 290px 1fr;
+  grid-template-columns: 280px 1fr;
   background: #050507;
   color: var(--color-text, #f1f5f9);
   overflow: hidden;
   transition: grid-template-columns 0.2s ease-in-out;
+}
+
+/* ============================================ */
+/* NEW RIGHT COLUMN DASHBOARD LAYOUT            */
+/* ============================================ */
+.overview {
+  position: absolute;
+  inset: 52px 0 0 0;
+  padding: 32px 40px;
+  background: transparent;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .notesPanelClosed {
@@ -1159,3 +1173,317 @@
   -ms-overflow-style: none !important;
   scrollbar-width: none !important;
 }
+
+/* ============================================ */
+/* WORKSPACE TREE                               */
+/* ============================================ */
+.workspaceTreeContainer {
+  background: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.workspaceTreeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid #27272a;
+  background: #111116;
+}
+
+.workspaceTreeTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.workspaceTreeActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.treeActionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.treeActionBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f1f5f9;
+}
+
+.workspaceTreeBody {
+  padding: 6px 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.treeNode {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.treeNode:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.treeNodeIcon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 8px;
+}
+
+.treeChevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  width: 16px;
+}
+
+.folderIcon {
+  color: #93c5fd;
+}
+
+.fileSpacer {
+  display: flex;
+  align-items: center;
+  margin-left: 22px;
+}
+
+.fileIcon {
+  color: #94a3b8;
+}
+
+.treeNodeLabel {
+  font-size: 13px;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Space Header Styles */
+.spaceHeaderContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 24px;
+  background-color: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.spaceHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.spaceHeaderIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+}
+
+.spaceHeaderImgPlaceholder {
+  width: 100%;
+  height: 100%;
+  background-color: transparent;
+}
+
+.spaceHeaderTitle {
+  font-size: 24px;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.spaceHeaderTitle span {
+  font-size: 14px;
+  color: #a1a1aa;
+}
+
+.spaceHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.iconButton {
+  background: transparent;
+  border: none;
+  color: #a1a1aa;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.iconButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+/* TasksPanel Styles */
+.tasksPanelContainer {
+  background: rgba(15, 15, 20, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.3);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.tasksPanelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tasksPanelHeaderLeft {
+  display: flex;
+  align-items: center;
+}
+
+.tasksPanelHeaderTitle {
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tasksPanelHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tasksPanelNewTask {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #a1a1aa;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.tasksPanelNewTask:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.tasksPanelList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.taskRow {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  gap: 12px;
+}
+
+.taskCheckbox {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #3f3f46;
+  border-radius: 4px;
+  background-color: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.taskCheckbox:checked {
+  background-color: #4f46e5;
+  border-color: #4f46e5;
+}
+
+.taskCheckbox:checked::after {
+  content: "✓";
+  position: absolute;
+  color: white;
+  font-size: 12px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.taskName {
+  color: #e4e4e7;
+  flex: 1;
+  font-size: 14px;
+}
+
+.taskDate {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.taskDate_normal {
+  color: #a1a1aa;
+  background-color: transparent;
+}
+
+.taskDate_accent {
+  color: #f97316;
+  background-color: rgba(249, 115, 22, 0.1);
+}
+
+.taskDate_active {
+  color: #4f46e5;
+  border: 1px solid #4f46e5;
+  background-color: transparent;
+}
+

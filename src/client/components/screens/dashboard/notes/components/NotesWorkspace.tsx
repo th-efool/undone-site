@@ -1,10 +1,15 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { ArrowLeft, MoreHorizontal, PanelLeftClose, Share } from 'lucide-react';
-import { CanvasSwitcher, Empty, Menu } from './NotesComponents';
+import { CanvasSwitcher, Menu } from './NotesComponents';
 import { NotesCanvas } from './NotesCanvas/NotesCanvas';
 import { NotesSaveStatus } from './NotesSaveStatus/NotesSaveStatus';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
+import { TopBar } from './RightColumn/TopBar';
+import { SpaceHeader } from './RightColumn/SpaceHeader';
+import { TasksSection } from './RightColumn/TasksSection';
+import { WorkspaceSection } from './RightColumn/WorkspaceSection';
+import { Calendar } from '@/src/client/components/ui/Calendar';
 import styles from '../Notes.module.css';
+import rightColStyles from './RightColumn/RightColumn.module.css';
 import type { useNotes } from '../hooks/useNotes';
 import type { useNotesNavigation } from '../hooks/useNotesNavigation';
 import type { NoteDocument } from '../models/notes.models';
@@ -135,24 +140,40 @@ export function NotesWorkspace({
         </div>
       </header>
       
-      <article className={styles.canvas}>
-        {!selected ? (
-          <Empty
-            label={notes.data?.selectedNotebook ? 'No notes in this notebook' : 'No notebook selected'}
-            action="New note"
-            onClick={() => notes.actions.createNote()}
-          />
-        ) : canvasLoading ? (
-          <div className={styles.loadingScene}>Loading canvas...</div>
-        ) : (
-          <NotesCanvas
-            key={selected.id}
-            noteId={selected.id}
-            initialScene={initialScene}
-            onSceneChange={handleSceneChange}
-          />
-        )}
-      </article>
+      {!selected ? (
+        <article className={styles.overview}>
+          <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', paddingBottom: '80px' }}>
+            <TopBar />
+            <SpaceHeader />
+            <TasksSection />
+            <WorkspaceSection />
+            <div className={rightColStyles.sectionContainer}>
+              <Calendar 
+                events={[
+                  { day: 5, tone: 'purple' },
+                  { day: 8, tone: 'orange' },
+                  { day: 12, tone: 'blue' },
+                  { day: 18, tone: 'green' },
+                  { day: 24, tone: 'red' },
+                ]}
+              />
+            </div>
+          </div>
+        </article>
+      ) : (
+        <article className={styles.canvas}>
+          {canvasLoading ? (
+            <div className={styles.loadingScene}>Loading canvas...</div>
+          ) : (
+            <NotesCanvas
+              key={selected.id}
+              noteId={selected.id}
+              initialScene={initialScene}
+              onSceneChange={handleSceneChange}
+            />
+          )}
+        </article>
+      )}
     </section>
   );
 }
