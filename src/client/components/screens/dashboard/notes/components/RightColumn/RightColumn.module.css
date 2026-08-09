@@ -271,6 +271,7 @@
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--text-primary, #f8fafc);
+  user-select: none;
 }
 
 .completedText {
@@ -335,10 +336,11 @@
   color: var(--brand-color, #818cf8);
 }
 
-.treeName {
+.nodeLabel {
   font-size: 0.85rem;
   font-weight: 500;
   flex: 1;
+  user-select: none;
 }
 
 .treeActions {
@@ -392,4 +394,71 @@
   background: rgba(255, 255, 255, 0.1);
   color: var(--text-primary, #f8fafc);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Additions for WorkspaceSection */
+.addNoteButton {
+  background: transparent;
+  border: none;
+  color: var(--text-muted, #94a3b8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  margin-left: auto;
+  transition: all 0.2s ease;
+}
+
+.addNoteButton:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #f8fafc);
+}
+
+.selected {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #f8fafc);
+}
+
+.renameInput {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--brand-color, #818cf8);
+  color: var(--text-primary, #f8fafc);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.emptyState {
+  padding: 12px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-muted, #94a3b8);
+  font-style: italic;
+}
+
+/* Task Actions (CRUD) */
+.taskActions {
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+  color: var(--text-muted, #94a3b8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  margin-left: 4px;
+}
+
+.taskItem:hover .taskActions {
+  opacity: 1;
+}
+
+.taskActions:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
 }
