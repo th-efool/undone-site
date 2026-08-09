@@ -1,4 +1,4 @@
-import { ChevronDown, Search, ExternalLink, MoreHorizontal, SquarePen, FolderPlus } from 'lucide-react';
+import { ChevronDown, Search, Layout, SquarePen, FolderPlus } from 'lucide-react';
 import styles from './RightColumn.module.css';
 
 interface SpaceHeaderProps {
@@ -57,18 +57,16 @@ export function SpaceHeader({ notebook, notes, isSearchingWorkspace, setIsSearch
             <button className={styles.iconButton} aria-label="New note" onClick={() => notebook?.id && notes?.actions?.createNote(notebook.id)}>
               <SquarePen size={16} />
             </button>
+            <button className={styles.iconButton} aria-label="New Kanban Board" onClick={() => notebook?.id && notes?.actions?.createNote(notebook.id, { title: 'New Board', contentType: 'kanban' })}>
+              <Layout size={16} />
+            </button>
             <button className={styles.iconButton} aria-label="New folder" onClick={handleAddFolder}>
               <FolderPlus size={16} />
             </button>
             <button className={styles.iconButton} aria-label="Search" onClick={() => setIsSearchingWorkspace?.(!isSearchingWorkspace)}>
               <Search size={16} />
             </button>
-            <button className={styles.iconButton} aria-label="Open externally" onClick={() => alert('Share settings opened.')}>
-              <ExternalLink size={16} />
-            </button>
-            <button className={styles.iconButton} aria-label="More options" onClick={() => alert('More Options opened.')}>
-              <MoreHorizontal size={16} />
-            </button>
+
           </div>
         </div>
       </div>

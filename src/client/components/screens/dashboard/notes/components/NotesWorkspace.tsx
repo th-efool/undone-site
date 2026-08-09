@@ -1,6 +1,7 @@
 import { ArrowLeft, MoreHorizontal, PanelLeftOpen, Menu as MenuIcon, Share } from 'lucide-react';
 import { CanvasSwitcher, Menu } from './NotesComponents';
 import { NotesCanvas } from './NotesCanvas/NotesCanvas';
+import { NotesKanban } from './NotesKanban/NotesKanban';
 import { NotesSaveStatus } from './NotesSaveStatus/NotesSaveStatus';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
 import styles from '../Notes.module.css';
@@ -155,6 +156,10 @@ export function NotesWorkspace({
           <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', paddingBottom: '80px', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#a1a1aa' }}>
             Select a note to view canvas
           </div>
+        </article>
+      ) : selected.contentType === 'kanban' ? (
+        <article className={styles.canvas}>
+          <NotesKanban key={selected.id} noteId={selected.id} />
         </article>
       ) : (
         <article className={styles.canvas}>
