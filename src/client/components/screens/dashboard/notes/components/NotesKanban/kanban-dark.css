@@ -490,215 +490,39 @@
   backdrop-filter: blur(2px);
 }
 
-.sqhq-editor {
-  z-index: 301;
-  background: #000000;
-  border: 1px solid #111111;
-  border-radius: 12px;
-  width: 360px;
-  max-width: 90vw;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  box-shadow: 0 4px 24px -4px rgba(0,0,0,0.5), 0 16px 40px -8px rgba(0,0,0,0.7);
-  font-family: inherit;
-}
-
-.sqhq-editor__field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.sqhq-editor__label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #a1a1aa; /* Light gray text for labels */
-  margin: 0;
-}
-
-.sqhq-editor__input {
-  background: #080808;
-  border: 1px solid #1a1a1a;
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 13px;
-  padding: 4px 8px;
-  outline: none;
-  width: 100%;
-  height: auto;
-  font-family: inherit;
-  transition: all 0.2s;
-  box-sizing: border-box;
-}
-
-.sqhq-editor__input:focus {
-  border-color: #333333;
-}
-
-.sqhq-editor__input::placeholder {
-  color: #444444;
-}
-
-.sqhq-editor__textarea {
-  background: #080808;
-  border: 1px solid #1a1a1a;
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 13px;
-  padding: 4px 8px;
-  outline: none;
-  width: 100%;
-  min-height: 0;
-  height: auto;
-  font-family: inherit;
-  transition: all 0.2s;
-  resize: vertical;
-  line-height: 1.5;
-  box-sizing: border-box;
-}
-
-.sqhq-editor__textarea:focus {
-  border-color: #333333;
-}
-
-.sqhq-editor__textarea::placeholder {
-  color: #444444;
-}
-
-.sqhq-editor__meta {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.sqhq-editor__select-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.sqhq-editor__select-icon-left {
-  position: absolute;
-  left: 8px;
-  color: #a1a1aa;
-  pointer-events: none;
-}
-
-.sqhq-editor__select-icon-right {
-  position: absolute;
-  right: 8px;
-  color: #a1a1aa;
-  pointer-events: none;
-}
-
-.sqhq-editor__select {
-  background: #080808;
-  border: 1px solid #1a1a1a;
-  border-radius: 8px;
-  color: #ffffff;
-  font-size: 13px;
-  padding: 4px 28px;
-  outline: none;
-  width: 100%;
-  height: auto;
-  font-family: inherit;
-  transition: all 0.2s;
-  appearance: none;
-  cursor: pointer;
-  box-sizing: border-box;
-}
-
-.sqhq-editor__select:focus {
-  border-color: #333333;
-}
-
-.sqhq-editor__select--date::-webkit-calendar-picker-indicator {
-  opacity: 0;
-  cursor: pointer;
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  left: 0;
-  top: 0;
-}
-
-.sqhq-editor__priority-row {
-  display: flex;
-  gap: 8px;
-}
-
-.sqhq-editor__priority-pill {
-  flex: 1;
-  padding: 6px 10px;
-  background: #080808;
-  border: 1px solid #1a1a1a;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 500;
-  color: #a1a1aa;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: inherit;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-}
-
-.sqhq-editor__priority-pill:hover {
-  background: #111111;
-  color: #ffffff;
-}
-
-.sqhq-editor__priority-pill--active {
-  background: #3b3548; /* Matching the purple background of the reference image */
-  border-color: #4a3e59;
-  color: #ffffff;
-}
-
-.sqhq-editor__priority-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.sqhq-editor__actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.sqhq-editor__btn {
-  flex: 1;
-  padding: 8px 14px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  font-family: inherit;
-}
-
-.sqhq-editor__btn--ghost {
+/* ═══════════════════════════════════════════════════════════════
+   Card Inline Editing
+   ═══════════════════════════════════════════════════════════════ */
+.sqhq-kcard__title-input,
+.sqhq-kcard__desc-input {
   background: transparent;
-  border: 1px solid #1a1a1a;
-  color: #a1a1aa;
-}
-
-.sqhq-editor__btn--ghost:hover {
-  background: #111111;
+  border: none;
+  outline: none;
+  width: 100%;
+  font-family: inherit;
   color: #ffffff;
+  padding: 0;
+  margin: 0;
+  resize: none;
 }
 
-.sqhq-editor__btn--primary {
-  background: #3b3548;
-  border: 1px solid #4a3e59;
-  color: #ffffff;
+.sqhq-kcard__title-input {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  margin-bottom: 6px;
 }
 
-.sqhq-editor__btn--primary:hover {
-  background: #4a3e59;
+.sqhq-kcard__desc-input {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.sqhq-kcard__title-input:focus,
+.sqhq-kcard__desc-input:focus {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
 }
