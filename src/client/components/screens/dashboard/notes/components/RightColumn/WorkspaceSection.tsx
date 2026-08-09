@@ -1,93 +1,49 @@
-import { Folder, FileText, ChevronRight, ChevronDown } from 'lucide-react';
-import { useState } from 'react';
+import { FileText, ChevronRight, ChevronDown, Plus } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
 import styles from './RightColumn.module.css';
+import { useNotes } from '../../hooks/useNotes';
 
-interface Node {
-  id: string;
-  name: string;
-  type: 'folder' | 'file';
-  children?: Node[];
-}
+import type { useNotes } from '../../hooks/useNotes';
 
-const workspaceData: Node[] = [
-  {
-    id: '1',
-    name: 'Projects',
-    type: 'folder',
-    children: [
-      { id: '1-1', name: 'Anytype Redesign', type: 'file' },
-      { id: '1-2', name: 'Marketing Plan', type: 'file' },
-    ],
-  },
-  {
-    id: '2',
-    name: 'Research',
-    type: 'folder',
-    children: [
-      { id: '2-1', name: 'Machine Learning', type: 'file' },
-      { id: '2-2', name: 'Design Inspirations', type: 'file' },
-    ],
-  },
-  {
-    id: '3',
-    name: 'Personal',
-    type: 'folder',
-    children: [],
-  },
-  {
-    id: '4',
-    name: 'Archive',
-    type: 'folder',
-    children: [],
-  },
-  {
-    id: '5',
-    name: 'Getting Started',
-    type: 'file',
-  }
-];
+type NotesContextType = ReturnType<typeof useNotes>;
 
-export function WorkspaceSection() {
+export function WorkspaceSection({ notes: { data, state, actions } }: { notes: NotesContextType }) {
   const [isSectionExpanded, setIsSectionExpanded] = useState(true);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({
-    '1': true,
-    '2': true
-  });
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const toggleExpand = (id: string) => {
-    setExpanded(prev => ({ ...prev, [id]: !prev[id] }));
+  // 1. Fetch notes associated with the currently selected notebook
+  const notes = data?.notes.filter(n => n.notebookId === state?.selectedNotebookId) || [];
+
+  // 4. Double-Click to Rename handler
+  const handleDoubleClick = (note: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingNoteId(note.id);
+    setEditingTitle(note.title);
   };
 
-  const renderTree = (nodes: Node[], level = 0) => {
-    return nodes.map(node => (
-      <div key={node.id} className={styles.treeItemWrapper}>
-        <div 
-          className={styles.treeItem}
-          style={{ paddingLeft: `${level * 16 + 8}px` }}
-          onClick={() => node.type === 'folder' && toggleExpand(node.id)}
-        >
-          {node.type === 'folder' && (
-            <span className={styles.chevron}>
-              {expanded[node.id] ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-            </span>
-          )}
-          {node.type === 'file' && <span className={styles.chevronSpacer} />}
-          
-          <span className={styles.treeIcon}>
-            {node.type === 'folder' ? <Folder size={14} /> : <FileText size={14} />}
-          </span>
-          
-          <span className={styles.treeName}>{node.name}</span>
-        </div>
-        
-        {node.type === 'folder' && expanded[node.id] && node.children && (
-          <div className={styles.treeChildren}>
-            {renderTree(node.children, level + 1)}
-          </div>
-        )}
-      </div>
-    ));
+  const handleSaveRename = (noteId: string) => {
+    if (editingTitle.trim()) {
+      actions.patchNote(noteId, { title: editingTitle.trim() });
+    }
+    setEditingNoteId(null);
   };
+
+  const handleKeyDown = (e: React.KeyboardEvent, noteId: string) => {
+    if (e.key === 'Enter') {
+      handleSaveRename(noteId);
+    } else if (e.key === 'Escape') {
+      setEditingNoteId(null);
+    }
+  };
+
+  useEffect(() => {
+    if (editingNoteId && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editingNoteId]);
 
   return (
     <div className={styles.sectionContainer}>
@@ -96,12 +52,58 @@ export function WorkspaceSection() {
           {isSectionExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
         </span>
         <span className={styles.sectionTitle}>Workspace</span>
+        {/* 3. '+' button in SpaceHeader/WorkspaceSection */}
+        <button 
+          className={styles.addNoteButton} 
+          onClick={(e) => {
+            e.stopPropagation();
+            if (state?.selectedNotebookId) {
+              actions.createNote(state.selectedNotebookId);
+            }
+          }}
+          title="New Note"
+        >
+          <Plus size={14} />
+        </button>
       </header>
       
       {isSectionExpanded && (
         <div className={styles.sectionListContainer}>
           <div className={styles.workspaceTree}>
-            {renderTree(workspaceData)}
+            {/* 2. Dynamically rendered list of notes (flat list) */}
+            {notes.map(note => (
+              <div key={note.id} className={styles.treeItemWrapper}>
+                <div 
+                  className={`${styles.treeItem} ${state?.selectedNoteId === note.id ? styles.selected : ''}`}
+                  style={{ paddingLeft: '8px' }}
+                  onClick={() => actions.selectNote(note.id)} // 5. Note selection
+                  onDoubleClick={(e) => handleDoubleClick(note, e)}
+                >
+                  <span className={styles.chevronSpacer} />
+                  
+                  <span className={styles.treeIcon}>
+                    <FileText size={14} />
+                  </span>
+                  
+                  {editingNoteId === note.id ? (
+                    <input
+                      ref={inputRef}
+                      value={editingTitle}
+                      onChange={(e) => setEditingTitle(e.target.value)}
+                      onBlur={() => handleSaveRename(note.id)}
+                      onKeyDown={(e) => handleKeyDown(e, note.id)}
+                      className={styles.renameInput}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  ) : (
+                    <span className={styles.treeName}>{note.title}</span>
+                  )}
+                </div>
+              </div>
+            ))}
+            {notes.length === 0 && (
+              <div className={styles.emptyState}>No notes in this notebook</div>
+            )}
           </div>
         </div>
       )}

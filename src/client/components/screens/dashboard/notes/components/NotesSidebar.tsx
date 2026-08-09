@@ -1,45 +1,76 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Plus, LayoutGrid, Menu, Pin, Star, Share, Trash2, PanelLeft, PanelLeftOpen, CheckSquare, Calendar as CalendarIcon } from 'lucide-react';
+import { Search, Plus, LayoutGrid, Menu, Pin, Star, Share, Trash2, PanelLeft, PanelLeftOpen, CheckSquare, Calendar as CalendarIcon, MoreHorizontal } from 'lucide-react';
 import { TopBar } from './RightColumn/TopBar';
 import { SpaceHeader } from './RightColumn/SpaceHeader';
 import { TasksSection } from './RightColumn/TasksSection';
+import type { Task } from './RightColumn/TasksSection';
 import { WorkspaceSection } from './RightColumn/WorkspaceSection';
 import { Calendar } from '@/src/client/components/ui/Calendar';
 import { SearchBar } from '@/src/client/components/global/SearchBar';
 import styles from './NotesSidebar.module.css';
 import rightColStyles from './RightColumn/RightColumn.module.css';
 
-const CHANNELS = [
-  'Machine Learning',
-  'Anytype Community',
-  'System Design',
-  'Expat Community',
-  'Zuri',
-  'Deja',
-  'Mochi',
-  'Andy',
-  'Any Documentation',
-  'azk',
-  'AnyCreator',
-  'Anytype Demo',
-];
+import type { useNotes } from '../hooks/useNotes';
+
+type NotesContextType = ReturnType<typeof useNotes>;
 
 export function NotesSidebar({
+  notes,
   isNavigationExpanded,
   setIsNavigationExpanded,
   isWorkspaceExpanded,
   setIsWorkspaceExpanded,
 }: {
+  notes: NotesContextType;
   isNavigationExpanded: boolean;
   setIsNavigationExpanded: (v: boolean) => void;
   isWorkspaceExpanded: boolean;
   setIsWorkspaceExpanded: (v: boolean) => void;
 }) {
-  const [selectedChannel, setSelectedChannel] = useState('Machine Learning');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingTitle, setEditingTitle] = useState('');
+
+  const notebooks = notes.data?.notebooks || [];
+  const filteredNotebooks = notebooks.filter(nb => 
+    nb.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const selectedNotebookId = notes.data?.selectedNotebook?.id;
   
   const [navWidth, setNavWidth] = useState(290);
   const [workspaceWidth, setWorkspaceWidth] = useState(310);
   const [activeTab, setActiveTab] = useState<'tasks' | 'calendar'>('tasks');
+
+  const [tasksByNotebook, setTasksByNotebook] = useState<Record<string, Task[]>>({});
+
+  const currentTasks = React.useMemo(() => {
+    if (!selectedNotebookId) return [];
+    if (!tasksByNotebook[selectedNotebookId]) {
+      const title = notes.data?.notebooks?.find(n => n.id === selectedNotebookId)?.title || 'General';
+      return [
+        { id: Date.now() + 1, title: `Review ${title}`, date: 'Jun 5', status: 'pending' },
+        { id: Date.now() + 2, title: `Update ${title} docs`, date: 'Jun 8', status: 'completed' },
+      ] as Task[];
+    }
+    return tasksByNotebook[selectedNotebookId];
+  }, [selectedNotebookId, tasksByNotebook, notes.data?.notebooks]);
+
+  const setCurrentTasks = (newTasks: Task[]) => {
+    if (selectedNotebookId) {
+      setTasksByNotebook(prev => ({ ...prev, [selectedNotebookId]: newTasks }));
+    }
+  };
+
+  const calendarEvents = React.useMemo(() => {
+    return currentTasks.map(t => {
+      const match = t.date.match(/\d+/);
+      return {
+        day: match ? parseInt(match[0], 10) : 1,
+        tone: t.status === 'completed' ? 'green' : 'orange'
+      };
+    });
+  }, [currentTasks]);
+
   const [isDraggingNav, setIsDraggingNav] = useState(false);
   const [isDraggingWorkspace, setIsDraggingWorkspace] = useState(false);
   
@@ -124,7 +155,7 @@ export function NotesSidebar({
             <div className={styles.topBarActions}>
               {!isNavIconsOnly && (
                 <>
-                  <button className={styles.iconButton}>
+                  <button className={styles.iconButton} onClick={() => notes.actions.createNotebook()}>
                     <Plus size={18} />
                   </button>
                   <button className={styles.iconButton}>
@@ -147,22 +178,72 @@ export function NotesSidebar({
 
           {/* 2. Search */}
           <div className={styles.searchContainer}>
-            <SearchBar placeholder="Filter channels..." />
+            <SearchBar 
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Filter notebooks..." 
+            />
           </div>
 
           {/* 3 & 4. Channel List */}
           <div className={styles.channelList}>
-            {CHANNELS.map((channel, idx) => (
+            {filteredNotebooks.map((nb, idx) => (
               <div 
-                key={channel} 
-                className={`${styles.channelItem} ${selectedChannel === channel ? styles.selected : ''}`}
-                onClick={() => setSelectedChannel(channel)}
+                key={nb.id} 
+                className={`${styles.channelItem} ${selectedNotebookId === nb.id ? styles.selected : ''}`}
+                onClick={() => notes.actions.selectNotebook(nb.id)}
+                onDoubleClick={() => {
+                  setEditingId(nb.id);
+                  setEditingTitle(nb.title);
+                }}
               >
                 <div className={styles.avatar} style={{ backgroundColor: `hsl(${idx * 30}, 60%, 50%)` }}>
-                  {channel.charAt(0)}
+                  {nb.title.charAt(0).toUpperCase()}
                 </div>
-                <span className={styles.channelName}>{channel}</span>
-                <Pin className={styles.pinIcon} />
+                {editingId === nb.id ? (
+                  <input
+                    autoFocus
+                    value={editingTitle}
+                    onChange={(e) => setEditingTitle(e.target.value)}
+                    onBlur={() => {
+                      notes.actions.patchNotebook(nb.id, { title: editingTitle });
+                      setEditingId(null);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        notes.actions.patchNotebook(nb.id, { title: editingTitle });
+                        setEditingId(null);
+                      }
+                      if (e.key === 'Escape') {
+                        setEditingId(null);
+                      }
+                    }}
+                    style={{ background: 'transparent', border: 'none', color: 'inherit', outline: 'none', width: '100%', fontSize: 'inherit', fontWeight: 'inherit', padding: 0 }}
+                  />
+                ) : (
+                  <span className={styles.channelName}>{nb.title}</span>
+                )}
+                <div className={styles.pinIcon} style={{ display: 'flex', gap: '4px' }}>
+                  <Star 
+                    size={16}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if ('favorite' in nb) {
+                        notes.actions.patchNotebook(nb.id, { favorite: !(nb as any).favorite });
+                      }
+                      console.log('Star toggled for', nb.title);
+                    }}
+                  />
+                  <div style={{ position: 'relative' }} className="popover-container">
+                    <MoreHorizontal 
+                      size={16} 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        alert('Popover Actions:\n- Rename\n- Delete\n- Copy\n- Cut');
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -224,8 +305,8 @@ export function NotesSidebar({
             </div>
           </div>
           <TopBar />
-          <SpaceHeader />
-          <WorkspaceSection />
+          <SpaceHeader notebook={notes.data?.notebooks?.find(n => n.id === selectedNotebookId)} notes={notes} />
+          <WorkspaceSection notes={notes} />
 
           <div className={rightColStyles.tabSwitcher}>
             <button 
@@ -245,17 +326,11 @@ export function NotesSidebar({
           </div>
 
           {activeTab === 'tasks' ? (
-            <TasksSection />
+            <TasksSection tasks={currentTasks} setTasks={setCurrentTasks} />
           ) : (
             <div className={rightColStyles.sectionContainer}>
               <Calendar 
-                events={[
-                  { day: 5, tone: 'purple' },
-                  { day: 8, tone: 'orange' },
-                  { day: 12, tone: 'blue' },
-                  { day: 18, tone: 'green' },
-                  { day: 24, tone: 'red' },
-                ]}
+                events={calendarEvents}
               />
             </div>
           )}
