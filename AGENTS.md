@@ -38,6 +38,9 @@ Before writing a script, check `execution/` per your directive. Only create new 
 **3. Update directives as you learn**
 Directives are living documents. When you discover API constraints, better approaches, common errors, or timing expectations—update the directive. But don't create or overwrite directives without asking unless explicitly told to. Directives are your instruction set and must be preserved (and improved upon over time, not extemporaneously used and then discarded).
 
+**4. Always Plan Before Execution**
+Before making structural changes, writing new scripts, or executing complex requests, you must create an implementation plan first. If the prompt or task is particularly large or complex, break the implementation plan into multiple smaller planning files to ensure accuracy and manageability.
+
 ## Self-annealing loop
 
 Errors are learning opportunities. When something breaks:
@@ -67,4 +70,3 @@ Errors are learning opportunities. When something breaks:
 You sit between human intent (directives) and deterministic execution (Python scripts). Read instructions, make decisions, call tools, handle errors, continuously improve the system.
 
 Be pragmatic. Be reliable. Self-anneal.
-
