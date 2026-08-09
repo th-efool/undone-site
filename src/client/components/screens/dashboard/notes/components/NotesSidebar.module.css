@@ -1,12 +1,59 @@
 .sidebar {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100vh;
   background-color: #050507;
   color: #a1a1aa;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-  width: 290px;
+  width: max-content;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.navigationColumn {
+  display: flex;
+  flex-direction: column;
+  width: 290px;
+  height: 100%;
+  overflow: hidden;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.navigationColumn.collapsed {
+  width: 0px;
+  border-right: none;
+  pointer-events: none;
+}
+
+.navigationInner {
+  width: 290px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.workspaceColumn {
+  display: flex;
+  flex-direction: column;
+  width: 310px;
+  height: 100%;
+  background-color: #050507;
+  overflow: hidden;
+  transition: width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.workspaceColumn.collapsed {
+  width: 0px;
+  pointer-events: none;
+}
+
+.workspaceInner {
+  width: 310px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding-bottom: 20px;
 }
 
 .topBar {
@@ -18,6 +65,7 @@
 
 .topBarActions {
   display: flex;
+  width: 100%;
   gap: 12px;
   color: #b5bac1;
 }

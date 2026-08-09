@@ -33,10 +33,10 @@
 .spaceHeader {
   display: flex;
   align-items: flex-start;
-  gap: 20px;
-  padding-bottom: 24px;
+  gap: 16px;
+  padding-bottom: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  margin-bottom: 24px;
+  margin-bottom: 12px;
 }
 
 .spaceIconContainer {
@@ -116,12 +116,12 @@
 .sectionContainer {
   background: rgba(17, 19, 26, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 16px;
-  padding: 16px;
+  border-radius: 12px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .sectionHeader {
