@@ -1,4 +1,4 @@
-import { Folder, FileText, ChevronRight, ChevronDown, Plus, MoreHorizontal } from 'lucide-react';
+import { Folder, FileText, ChevronRight, ChevronDown, SquarePen, FolderPlus } from 'lucide-react';
 import { useState } from 'react';
 import styles from './RightColumn.module.css';
 
@@ -77,10 +77,6 @@ export function WorkspaceSection() {
           </span>
           
           <span className={styles.treeName}>{node.name}</span>
-          
-          <div className={styles.treeActions}>
-            <MoreHorizontal size={14} />
-          </div>
         </div>
         
         {node.type === 'folder' && expanded[node.id] && node.children && (
@@ -100,11 +96,11 @@ export function WorkspaceSection() {
           <span>Workspace</span>
         </div>
         <div className={styles.sectionControls}>
-          <button className={styles.textButton}>
-            <Plus size={14} /> New
+          <button className={styles.iconButtonSmall} title="New note">
+            <SquarePen size={14} />
           </button>
-          <button className={styles.iconButtonSmall}>
-            <MoreHorizontal size={14} />
+          <button className={styles.iconButtonSmall} title="New folder">
+            <FolderPlus size={14} />
           </button>
         </div>
       </header>

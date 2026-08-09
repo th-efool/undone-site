@@ -18,11 +18,8 @@ export function TasksSection() {
           <span>Tasks</span>
         </div>
         <div className={styles.sectionControls}>
-          <button className={styles.textButton}>
-            <Plus size={14} /> New task
-          </button>
-          <button className={styles.iconButtonSmall}>
-            <MoreHorizontal size={14} />
+          <button className={styles.iconButtonSmall} title="New task">
+            <Plus size={14} />
           </button>
         </div>
       </header>

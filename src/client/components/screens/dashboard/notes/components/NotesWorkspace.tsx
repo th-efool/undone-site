@@ -4,6 +4,7 @@ import { NotesCanvas } from './NotesCanvas/NotesCanvas';
 import { NotesSaveStatus } from './NotesSaveStatus/NotesSaveStatus';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
 import styles from '../Notes.module.css';
+import sidebarStyles from './NotesSidebar.module.css';
 import type { useNotes } from '../hooks/useNotes';
 import type { useNotesNavigation } from '../hooks/useNotesNavigation';
 import type { NoteDocument } from '../models/notes.models';
@@ -56,26 +57,30 @@ export function NotesWorkspace({
             <ArrowLeft size={16} /> Back
           </button>
         )}
-        {!isMobile && !isNavigationExpanded && !isWorkspaceExpanded && (
-          <div style={{ display: 'flex', gap: '8px', marginRight: '8px' }}>
-            <button
-              className={styles.mobileBackBtn}
-              onClick={() => setIsNavigationExpanded(true)}
-              aria-label="Open navigation panel"
-              title="Open navigation"
-              style={{ padding: '6px' }}
-            >
-              <PanelLeftOpen size={16} />
-            </button>
-            <button
-              className={styles.mobileBackBtn}
-              onClick={() => setIsWorkspaceExpanded(true)}
-              aria-label="Open workspace panel"
-              title="Open workspace"
-              style={{ padding: '6px' }}
-            >
-              <MenuIcon size={16} />
-            </button>
+        {!isMobile && (!isNavigationExpanded || !isWorkspaceExpanded) && (
+          <div style={{ display: 'flex', gap: '8px', marginRight: '8px', alignItems: 'center' }}>
+            {!isNavigationExpanded && !isWorkspaceExpanded && (
+              <button
+                className={sidebarStyles.iconButton}
+                onClick={() => setIsNavigationExpanded(true)}
+                aria-label="Open navigation panel"
+                title="Open navigation"
+                style={{ padding: '6px', color: '#f1f5f9' }}
+              >
+                <PanelLeftOpen size={18} />
+              </button>
+            )}
+            {!isWorkspaceExpanded && (
+              <button
+                className={sidebarStyles.iconButton}
+                onClick={() => setIsWorkspaceExpanded(true)}
+                aria-label="Open workspace panel"
+                title="Open workspace"
+                style={{ padding: '6px', color: '#f1f5f9' }}
+              >
+                <MenuIcon size={18} />
+              </button>
+            )}
           </div>
         )}
         <div className={styles.crumb}>
