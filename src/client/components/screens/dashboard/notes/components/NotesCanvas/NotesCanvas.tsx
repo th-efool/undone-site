@@ -4,20 +4,15 @@ import dynamic from 'next/dynamic';
 import type { CanvasSceneData, CanvasState } from '../../models/canvas.models';
 import styles from './NotesCanvas.module.css';
 import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
-import { HamburgerGridControls, GridSettingsConfig } from './HamburgerGridControls';
+import { GridSettingsConfig } from './HamburgerGridControls';
 
 import '@/src/app/styles/excalidraw.css';
 
-// Dynamically import Excalidraw so it only loads on the client
-// @ts-ignore - Excalidraw types can be missing in some setups
-const ExcalidrawComponent = dynamic(
-  // @ts-ignore
-  () => import('@excalidraw/excalidraw').then((mod) => mod.Excalidraw),
+// Dynamically import our wrapper so it only loads on the client
+const ExcalidrawWrapper = dynamic(
+  () => import('./ExcalidrawWrapper'),
   { ssr: false }
 );
-
-const Excalidraw = ExcalidrawComponent as any;
 
 interface NotesCanvasProps {
   noteId: string;
@@ -97,7 +92,6 @@ export function NotesCanvas({
   isReadOnly = false,
 }: NotesCanvasProps) {
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
-  const [dropdownMenuNode, setDropdownMenuNode] = useState<HTMLElement | null>(null);
 
   const [gridConfig, setGridConfig] = useState<GridSettingsConfig>({
     enabled: true,
@@ -215,22 +209,7 @@ export function NotesCanvas({
     }
   }, [excalidrawAPI]);
 
-  // DOM observer to detect Hamburger menu and inject Portal
-  useEffect(() => {
-    if (!containerRef.current) return;
 
-    const observer = new MutationObserver(() => {
-      const menu = containerRef.current?.querySelector('.dropdown-menu-container') as HTMLElement;
-      if (menu && menu !== dropdownMenuNode) {
-        setDropdownMenuNode(menu);
-      } else if (!menu && dropdownMenuNode) {
-        setDropdownMenuNode(null);
-      }
-    });
-
-    observer.observe(containerRef.current, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, [dropdownMenuNode, excalidrawAPI]);
 
   // Handle right-click drag panning
   useEffect(() => {
@@ -353,7 +332,7 @@ export function NotesCanvas({
       />
       {/* We pass theme="light" so Excalidraw DOES NOT invert background colors! 
           Our excalidraw.css keeps the UI 100% dark mode. */}
-      <Excalidraw
+      <ExcalidrawWrapper
         excalidrawAPI={setExcalidrawAPI}
         initialData={initialData}
         onChange={handleChange}
@@ -369,17 +348,13 @@ export function NotesCanvas({
             saveAsImage: true,
           },
         }}
+        hamburgerProps={{
+          config: gridConfig,
+          onChange: handleGridConfigChange,
+          viewBackgroundColor: currentBg,
+          onBgChange: handleBgChange,
+        }}
       />
-      {/* Render Submenu Trigger & Flyout inside Excalidraw's Hamburger Menu via Portal */}
-      {dropdownMenuNode && createPortal(
-        <HamburgerGridControls 
-          config={gridConfig} 
-          onChange={handleGridConfigChange} 
-          viewBackgroundColor={currentBg}
-          onBgChange={handleBgChange}
-        />,
-        dropdownMenuNode
-      )}
     </div>
   );
 }
