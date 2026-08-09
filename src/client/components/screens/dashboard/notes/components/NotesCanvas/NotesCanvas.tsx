@@ -27,6 +27,69 @@ interface NotesCanvasProps {
   canvasStatus?: CanvasState;
 }
 
+// Minimal color inversion to counteract Excalidraw's global CSS invert(93%) filter.
+// Minimal color inversion to counteract Excalidraw's global CSS invert(93%) filter.
+function invertHex(hex: string) {
+  if (!hex || !hex.startsWith('#')) return hex;
+  let normalized = hex.toLowerCase();
+  
+  if (normalized.length === 4) {
+    normalized = '#' + normalized.split('').slice(1).map(c => c + c).join('');
+  }
+  if (normalized.length !== 7) return hex;
+
+  // We exclusively use HSL lightness inversion.
+  // This guarantees that the hue is perfectly preserved when passed through Excalidraw's
+  // `invert(0.93) hue-rotate(180deg)` CSS filter. The lightness will be clamped naturally
+  // by the 0.93 factor, which is the intended design for Excalidraw Dark Mode.
+  let r = parseInt(normalized.slice(1, 3), 16) / 255;
+  let g = parseInt(normalized.slice(3, 5), 16) / 255;
+  let b = parseInt(normalized.slice(5, 7), 16) / 255;
+  
+  if (isNaN(r) || isNaN(g) || isNaN(b)) return hex;
+
+  let max = Math.max(r, g, b), min = Math.min(r, g, b);
+  let h = 0, s = 0, l = (max + min) / 2;
+
+  if (max !== min) {
+    let d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+      case g: h = (b - r) / d + 2; break;
+      case b: h = (r - g) / d + 4; break;
+    }
+    h /= 6;
+  }
+
+  l = 1 - l; // Invert lightness
+
+  let r2, g2, b2;
+  if (s === 0) {
+    r2 = g2 = b2 = l;
+  } else {
+    const hue2rgb = (p: number, q: number, t: number) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r2 = hue2rgb(p, q, h + 1/3);
+    g2 = hue2rgb(p, q, h);
+    b2 = hue2rgb(p, q, h - 1/3);
+  }
+
+  const toHex = (x: number) => {
+    const hexStr = Math.round(x * 255).toString(16);
+    return hexStr.length === 1 ? '0' + hexStr : hexStr;
+  };
+  return `#${toHex(r2)}${toHex(g2)}${toHex(b2)}`;
+}
+
 export function NotesCanvas({
   noteId,
   initialScene,
@@ -38,11 +101,25 @@ export function NotesCanvas({
 
   const [gridConfig, setGridConfig] = useState<GridSettingsConfig>({
     enabled: true,
-    style: 'dots',
+    layout: 'grid',
+    lineStyle: 'dotted',
     size: 20,
     color: '#334155',
     opacity: 0.5,
   });
+
+  const gridConfigRef = useRef(gridConfig);
+  useEffect(() => { gridConfigRef.current = gridConfig; }, [gridConfig]);
+
+  const gridOverlayRef = useRef<HTMLDivElement>(null);
+
+  // Extract the real DB background color on mount
+  const initialRealBg = useMemo(() => {
+    const raw = initialScene?.appState?.viewBackgroundColor;
+    return (!raw || raw === '#ffffff') ? '#000000' : raw;
+  }, [initialScene]);
+
+  const [currentBg, setCurrentBg] = useState<string>(initialRealBg);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -51,85 +128,103 @@ export function NotesCanvas({
       return {
         elements: [],
         appState: {
-          viewBackgroundColor: '#000000',
-          gridSize: 20,
+          viewBackgroundColor: "transparent",
+          gridSize: gridConfigRef.current.layout === 'grid' ? gridConfigRef.current.size : null,
+          gridModeEnabled: gridConfigRef.current.layout === 'grid',
         },
       };
     }
 
-    const appState = initialScene.appState || {};
-    const rawBg = appState.viewBackgroundColor;
-    const viewBackgroundColor = (!rawBg || rawBg === '#ffffff') ? '#000000' : rawBg;
-
+    const { collaborators, ...restAppState } = (initialScene.appState as any) || {};
     return {
       elements: initialScene.elements as any,
       appState: {
-        viewBackgroundColor,
-        gridSize: appState.gridSize ?? 20,
-        ...appState,
-        viewBackgroundColor,
-        gridSize: appState.gridSize ?? 20,
+        ...restAppState,
+        viewBackgroundColor: "transparent",
+        gridSize: gridConfigRef.current.layout === 'grid' ? gridConfigRef.current.size : null,
+        gridModeEnabled: gridConfigRef.current.layout === 'grid',
       },
       files: initialScene.files as any,
     };
-  }, [initialScene]);
+  }, [initialScene, initialRealBg]);
 
   // Apply grid config to Excalidraw API
   const handleGridConfigChange = useCallback((newConfig: GridSettingsConfig) => {
     setGridConfig(newConfig);
+    gridConfigRef.current = newConfig;
 
     if (excalidrawAPI) {
       excalidrawAPI.updateScene({
         appState: {
-          gridSize: newConfig.enabled ? newConfig.size : null,
+          gridModeEnabled: newConfig.layout === 'grid',
+          gridSize: newConfig.layout === 'grid' ? newConfig.size : null,
         },
+      });
+      // Trigger a handleChange to immediately paint the new grid
+      const currentApp = excalidrawAPI.getAppState();
+      if (gridOverlayRef.current) {
+        paintCustomGrid(currentApp, newConfig);
+      }
+    }
+  }, [excalidrawAPI]);
+
+  // Helper to paint the grid directly to the DOM for max performance
+  const paintCustomGrid = (appState: any, config: GridSettingsConfig) => {
+    if (!gridOverlayRef.current) return;
+    
+    const zoom = appState.zoom?.value || 1;
+    const scrollX = appState.scrollX || 0;
+    const scrollY = appState.scrollY || 0;
+
+    if (config.layout === 'blank' || config.layout === 'grid' || !config.enabled) {
+      gridOverlayRef.current.style.backgroundImage = 'none';
+      return;
+    }
+
+    gridOverlayRef.current.style.backgroundPosition = `${scrollX * zoom}px ${scrollY * zoom}px`;
+    
+    const scaledSize = config.size * zoom;
+    const color = 'rgba(255, 255, 255, 0.08)'; // Subtle grid for dark mode
+    const dashArray = config.lineStyle === 'dashed' ? '4,4' : config.lineStyle === 'dotted' ? '1,4' : 'none';
+    const strokeLinecap = config.lineStyle === 'dotted' ? 'round' : 'square';
+    
+    let paths = '';
+    let svgWidth = scaledSize;
+    let svgHeight = scaledSize;
+
+    if (config.layout === 'horizontal') {
+      paths = `<path d="M 0 ${scaledSize} L ${scaledSize} ${scaledSize}" fill="none" stroke="${color}" stroke-width="${config.strokeWidth || 1}" stroke-dasharray="${dashArray}" stroke-linecap="${strokeLinecap}"/>`;
+    } else if (config.layout === 'vertical') {
+      paths = `<path d="M ${scaledSize} 0 L ${scaledSize} ${scaledSize}" fill="none" stroke="${color}" stroke-width="${config.strokeWidth || 1}" stroke-dasharray="${dashArray}" stroke-linecap="${strokeLinecap}"/>`;
+    }
+
+    const encodedSVG = encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="${svgWidth}" height="${svgHeight}">${paths}</svg>`);
+    gridOverlayRef.current.style.backgroundImage = `url("data:image/svg+xml;utf8,${encodedSVG}")`;
+    gridOverlayRef.current.style.backgroundSize = `${svgWidth}px ${svgHeight}px`;
+  };
+
+  // Handle custom background change from our injected UI
+  const handleBgChange = useCallback((color: string) => {
+    setCurrentBg(color);
+    if (excalidrawAPI) {
+      excalidrawAPI.updateScene({
+        appState: {
+          viewBackgroundColor: "transparent"
+        }
       });
     }
   }, [excalidrawAPI]);
 
-  // DOM observer to inject native color picker button into Hex Code popup & detect Hamburger menu
+  // DOM observer to detect Hamburger menu and inject Portal
   useEffect(() => {
     if (!containerRef.current) return;
 
     const observer = new MutationObserver(() => {
-      // 1. Detect Hamburger Menu container for Portal injection
       const menu = containerRef.current?.querySelector('.dropdown-menu-container') as HTMLElement;
       if (menu && menu !== dropdownMenuNode) {
         setDropdownMenuNode(menu);
       } else if (!menu && dropdownMenuNode) {
         setDropdownMenuNode(null);
-      }
-
-      // 2. Inject visual color picker into Hex Code input box if open
-      const hexContainer = containerRef.current?.querySelector('.color-picker__input-label, .color-input-container');
-      if (hexContainer && !hexContainer.querySelector('.custom-native-color-picker')) {
-        const hexInput = hexContainer.querySelector('input.color-picker-input') as HTMLInputElement;
-        if (hexInput) {
-          const picker = document.createElement('input');
-          picker.type = 'color';
-          picker.className = 'custom-native-color-picker';
-          const val = hexInput.value.startsWith('#') ? hexInput.value : `#${hexInput.value}`;
-          picker.value = val.length === 7 ? val : '#000000';
-          picker.style.width = '24px';
-          picker.style.height = '24px';
-          picker.style.border = 'none';
-          picker.style.borderRadius = '4px';
-          picker.style.background = 'transparent';
-          picker.style.cursor = 'pointer';
-          picker.style.marginLeft = '4px';
-
-          picker.oninput = (e: any) => {
-            const chosen = e.target.value;
-            hexInput.value = chosen;
-            hexInput.dispatchEvent(new Event('input', { bubbles: true }));
-            hexInput.dispatchEvent(new Event('change', { bubbles: true }));
-            if (excalidrawAPI) {
-              excalidrawAPI.updateScene({ appState: { viewBackgroundColor: chosen } });
-            }
-          };
-
-          hexContainer.appendChild(picker);
-        }
       }
     });
 
@@ -137,21 +232,37 @@ export function NotesCanvas({
     return () => observer.disconnect();
   }, [dropdownMenuNode, excalidrawAPI]);
 
+  // Fired when the user draws on the canvas or changes state inside Excalidraw
   const handleChange = useCallback((elements: any, appState: any, files: any) => {
-    const bgColor = appState.viewBackgroundColor || '#000000';
+
+    // High performance DOM mutation for grid sync (bypassing React render)
+    paintCustomGrid(appState, gridConfigRef.current);
+    
+    const { collaborators, ...restAppState } = appState;
     
     onSceneChange({
       elements,
       appState: {
-        viewBackgroundColor: bgColor,
-        gridSize: appState.gridSize ?? 20,
+        ...restAppState,
+        viewBackgroundColor: currentBg,
       },
       files,
     });
-  }, [onSceneChange]);
+  }, [onSceneChange, currentBg]);
 
   return (
-    <div ref={containerRef} className={styles.container}>
+    <div ref={containerRef} className={styles.container} style={{ backgroundColor: currentBg }}>
+      <div 
+        ref={gridOverlayRef}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          pointerEvents: 'none',
+        }}
+      />
       {/* We pass theme="light" so Excalidraw DOES NOT invert background colors! 
           Our excalidraw.css keeps the UI 100% dark mode. */}
       <Excalidraw
@@ -162,7 +273,7 @@ export function NotesCanvas({
         theme="light"
         UIOptions={{
           canvasActions: {
-            changeViewBackgroundColor: true,
+            changeViewBackgroundColor: false,
             clearCanvas: true,
             loadScene: false,
             saveToActiveFile: false,
@@ -171,10 +282,14 @@ export function NotesCanvas({
           },
         }}
       />
-
       {/* Render Submenu Trigger & Flyout inside Excalidraw's Hamburger Menu via Portal */}
       {dropdownMenuNode && createPortal(
-        <HamburgerGridControls config={gridConfig} onChange={handleGridConfigChange} />,
+        <HamburgerGridControls 
+          config={gridConfig} 
+          onChange={handleGridConfigChange} 
+          viewBackgroundColor={currentBg}
+          onBgChange={handleBgChange}
+        />,
         dropdownMenuNode
       )}
     </div>

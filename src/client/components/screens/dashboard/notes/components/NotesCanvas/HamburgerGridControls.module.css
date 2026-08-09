@@ -1,136 +1,83 @@
-.menuItemTrigger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 12px;
-  margin: 4px 0;
-  border-radius: 8px;
-  background: transparent;
-  color: #e2e8f0;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  border: none;
-  width: 100%;
-  transition: background 0.15s ease;
-}
-
-.menuItemTrigger:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.triggerLabel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.arrow {
-  color: #64748b;
-  font-size: 12px;
-}
-
-/* Submenu Flyout Container */
-.submenuFlyout {
-  position: absolute;
-  left: 100%;
-  top: 40px;
-  margin-left: 8px;
-  width: 220px;
-  background: #16161d;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  padding: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
-  z-index: 1000;
+.inlineGridSection {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  backdrop-filter: blur(16px);
-  animation: flyoutFadeIn 0.15s ease-out;
+  padding: 8px 12px;
 }
 
-@keyframes flyoutFadeIn {
-  from {
-    opacity: 0;
-    transform: translateX(-6px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-.flyoutHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-size: 11px;
-  font-weight: 700;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.6px;
-  padding-bottom: 6px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.closeBtn {
-  background: transparent;
-  border: none;
-  color: #64748b;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 0 4px;
-}
-
-.closeBtn:hover {
-  color: #f8fafc;
-}
 
 .group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
-.groupLabel {
+.excalidrawLabel {
   font-size: 11px;
-  color: #64748b;
+  color: #a1a1aa; /* Matches Excalidraw label color */
   font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  margin-bottom: 2px;
 }
 
-.pillRow {
+.excalidrawLabelRow {
   display: flex;
-  gap: 4px;
-  background: #0f172a;
-  padding: 3px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-}
-
-.pill {
-  flex: 1;
-  padding: 5px 0;
+  align-items: center;
+  justify-content: space-between;
   font-size: 11px;
+  color: #a1a1aa;
   font-weight: 500;
-  text-align: center;
-  border: none;
-  background: transparent;
-  color: #94a3b8;
+}
+
+/* Button Row for Icons */
+.buttonRow {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.iconBtn {
+  flex: 1;
+  height: 32px;
   border-radius: 6px;
+  background: #232329;
+  border: 1px solid transparent;
+  color: #8b8b9a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.pill:hover {
-  color: #f1f5f9;
+.iconBtn:hover {
+  background: #2d2d35;
+  color: #e2e8f0;
 }
 
-.pill.active {
-  background: #334155;
+.iconBtn.active {
+  background: #3c3a50;
   color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 1px rgba(92, 89, 112, 0.3);
+}
+
+/* Slider */
+.sliderValue {
+  font-size: 11px;
+  color: #e2e8f0;
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+
+
+/* Canvas Background Section */
+.canvasBgSection { 
+  display: flex; 
+  flex-direction: column; 
+  gap: 6px; 
+  padding: 6px 12px; 
 }
 
 .colorRow {
@@ -140,31 +87,47 @@
 }
 
 .colorSwatch {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px; /* Squircle matching Excalidraw */
   border: 2px solid transparent;
   cursor: pointer;
   transition: transform 0.15s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4) inset;
 }
 
 .colorSwatch:hover {
-  transform: scale(1.15);
+  transform: scale(1.1);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .colorSwatch.active {
-  border-color: #818cf8;
+  border-color: #5c5970;
+}
+
+.customPickerWrapper {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 1px dashed rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.customPickerWrapper:hover {
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
 .nativePicker {
-  width: 20px;
-  height: 20px;
+  width: 30px;
+  height: 30px;
   padding: 0;
   border: none;
-  border-radius: 50%;
   background: transparent;
   cursor: pointer;
-  overflow: hidden;
 }
 
 .nativePicker::-webkit-color-swatch-wrapper {
@@ -172,6 +135,11 @@
 }
 
 .nativePicker::-webkit-color-swatch {
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
+  border: none;
+}
+
+.divider {
+  height: 1px;
+  background-color: var(--color-gray-80, rgba(255, 255, 255, 0.08));
+  margin: 8px 12px;
 }
