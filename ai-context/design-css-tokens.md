@@ -758,7 +758,27 @@ Groups section eyebrow, title, description, and actions.
 - Uses text color, size, and line-height tokens.
 - Supports rendered element overrides through `as`.
 
+## FormEditor Component
+
+#### Contract
+
+- A global, configurable floating form editor for tasks, notes, etc.
+- Schema-driven field generation supporting single fields and side-by-side grouped fields (via arrays).
+- Supported field types: `text`, `textarea`, `select`, `date`, `priority`.
+- Provides its own CSS Module (`FormEditor.module.css`) disconnected from global form heights to ensure precise vertical compactness.
+- Auto-expands textareas as the user types without scrollbars.
+- Accepts an `isSaveDisabled` prop to lock the submit button during validation failures (disables pointer events, lowers opacity).
+
+## KanbanCard Component
+
+#### Contract
+
+- Renders tasks and notes dynamically on the Kanban board.
+- Supports Double-Tap inline editing for both Title and Description via transparent, borderless input fields.
+- Offloads metadata editing (Type, Priority, Due Date) to a stripped-down `FormEditor` modal.
+
 ---
+
 
 # CSS File Reference
 
