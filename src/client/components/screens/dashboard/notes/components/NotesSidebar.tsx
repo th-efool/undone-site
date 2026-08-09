@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Plus, LayoutGrid, Menu, Pin, Star, Share, Trash2, PanelLeft, PanelLeftOpen } from 'lucide-react';
 import { TopBar } from './RightColumn/TopBar';
 import { SpaceHeader } from './RightColumn/SpaceHeader';
@@ -36,20 +36,101 @@ export function NotesSidebar({
 }) {
   const [selectedChannel, setSelectedChannel] = useState('Machine Learning');
   
+  const [navWidth, setNavWidth] = useState(290);
+  const [workspaceWidth, setWorkspaceWidth] = useState(310);
+  const [isDraggingNav, setIsDraggingNav] = useState(false);
+  const [isDraggingWorkspace, setIsDraggingWorkspace] = useState(false);
+  
+  const navDragFlag = useRef(false);
+  const workspaceDragFlag = useRef(false);
+
+  useEffect(() => {
+    if (!isDraggingNav) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      navDragFlag.current = true;
+      let newWidth = e.clientX; 
+      if (newWidth < 150 && newWidth > 40) {
+        newWidth = 64;
+      } else if (newWidth <= 40) {
+        setIsNavigationExpanded(false);
+        setIsDraggingNav(false);
+        setNavWidth(290);
+        return;
+      }
+      setNavWidth(newWidth);
+    };
+    const handleMouseUp = () => setIsDraggingNav(false);
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingNav, setIsNavigationExpanded]);
+
+  useEffect(() => {
+    if (!isDraggingWorkspace) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      workspaceDragFlag.current = true;
+      const navOffset = isNavigationExpanded ? navWidth : 0;
+      const newWidth = e.clientX - navOffset;
+      
+      if (newWidth < 250) {
+        setIsWorkspaceExpanded(false);
+        setIsDraggingWorkspace(false);
+        setWorkspaceWidth(310);
+        return;
+      }
+      setWorkspaceWidth(newWidth);
+    };
+    const handleMouseUp = () => setIsDraggingWorkspace(false);
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingWorkspace, isNavigationExpanded, navWidth, setIsWorkspaceExpanded]);
+
+  const navInlineStyle = isNavigationExpanded 
+    ? { width: `${navWidth}px`, transition: isDraggingNav ? 'none' : undefined }
+    : undefined;
+
+  const workspaceInlineStyle = isWorkspaceExpanded
+    ? { width: `${workspaceWidth}px`, transition: isDraggingWorkspace ? 'none' : undefined }
+    : undefined;
+
+  const isNavIconsOnly = isNavigationExpanded && navWidth === 64;
+  
   return (
     <aside className={styles.sidebar}>
-      <div className={`${styles.navigationColumn} ${!isNavigationExpanded ? styles.collapsed : ''}`}>
-        <div className={styles.navigationInner}>
+      {!isNavigationExpanded && (
+        <div 
+          className={styles.reopenHandle}
+          onClick={() => setIsNavigationExpanded(true)}
+        />
+      )}
+      <div 
+        className={`${styles.navigationColumn} ${!isNavigationExpanded ? styles.collapsed : ''} ${isNavIconsOnly ? styles.iconsOnly : ''}`}
+        style={navInlineStyle}
+      >
+        <div className={styles.navigationInner} style={isNavigationExpanded ? { width: `${navWidth}px` } : undefined}>
           {/* 1. Top Section */}
           <div className={styles.topBar}>
             <div className={styles.topBarActions}>
-              <button className={styles.iconButton}>
-                <Plus size={18} />
-              </button>
-              <button className={styles.iconButton}>
-                <LayoutGrid size={18} />
-              </button>
-              <div style={{ flex: 1 }} />
+              {!isNavIconsOnly && (
+                <>
+                  <button className={styles.iconButton}>
+                    <Plus size={18} />
+                  </button>
+                  <button className={styles.iconButton}>
+                    <LayoutGrid size={18} />
+                  </button>
+                  <div style={{ flex: 1 }} />
+                </>
+              )}
               <button 
                 className={styles.iconButton} 
                 onClick={() => setIsNavigationExpanded(false)}
@@ -59,16 +140,6 @@ export function NotesSidebar({
               >
                 <PanelLeft size={18} />
               </button>
-              {!isWorkspaceExpanded && (
-                <button 
-                  className={styles.iconButton} 
-                  onClick={() => setIsWorkspaceExpanded(true)}
-                  aria-label="Open workspace panel"
-                  title="Open workspace"
-                >
-                  <Menu size={18} />
-                </button>
-              )}
             </div>
           </div>
 
@@ -119,10 +190,20 @@ export function NotesSidebar({
             </div>
           </div>
         </div>
+        {isNavigationExpanded && (
+          <div 
+            className={styles.resizeHandle} 
+            onMouseDown={(e) => { e.preventDefault(); setIsDraggingNav(true); navDragFlag.current = false; }} 
+            onClick={() => { if (!navDragFlag.current) setIsNavigationExpanded(false); }}
+          />
+        )}
       </div>
       
-      <div className={`${styles.workspaceColumn} ${!isWorkspaceExpanded ? styles.collapsed : ''}`}>
-        <div className={styles.workspaceInner}>
+      <div 
+        className={`${styles.workspaceColumn} ${!isWorkspaceExpanded ? styles.collapsed : ''}`}
+        style={workspaceInlineStyle}
+      >
+        <div className={styles.workspaceInner} style={isWorkspaceExpanded ? { width: `${workspaceWidth}px` } : undefined}>
           <div className={styles.topBar}>
             <div className={styles.topBarActions}>
               {!isNavigationExpanded && (
@@ -163,6 +244,13 @@ export function NotesSidebar({
             />
           </div>
         </div>
+        {isWorkspaceExpanded && (
+          <div 
+            className={styles.resizeHandle} 
+            onMouseDown={(e) => { e.preventDefault(); setIsDraggingWorkspace(true); workspaceDragFlag.current = false; }} 
+            onClick={() => { if (!workspaceDragFlag.current) setIsWorkspaceExpanded(false); }}
+          />
+        )}
       </div>
     </aside>
   );
