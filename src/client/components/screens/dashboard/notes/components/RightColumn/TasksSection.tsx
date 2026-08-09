@@ -1,4 +1,5 @@
-import { CheckSquare, Plus, MoreHorizontal, Circle, CheckCircle2 } from 'lucide-react';
+import { CheckSquare, Circle, CheckCircle2, ChevronDown, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
 import styles from './RightColumn.module.css';
 
 const tasks = [
@@ -10,37 +11,38 @@ const tasks = [
 ];
 
 export function TasksSection() {
+  const [isSectionExpanded, setIsSectionExpanded] = useState(true);
+
   return (
     <div className={styles.sectionContainer}>
-      <header className={styles.sectionHeader}>
-        <div className={styles.sectionTitle}>
-          <CheckSquare size={16} className={styles.sectionIcon} />
-          <span>Tasks</span>
-        </div>
-        <div className={styles.sectionControls}>
-          <button className={styles.iconButtonSmall} title="New task">
-            <Plus size={14} />
-          </button>
-        </div>
+      <header className={styles.sectionHeader} onClick={() => setIsSectionExpanded(!isSectionExpanded)}>
+        <span className={styles.sectionChevron}>
+          {isSectionExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        </span>
+        <span className={styles.sectionTitle}>Tasks</span>
       </header>
       
-      <div className={styles.tasksList}>
-        {tasks.map(task => (
-          <div key={task.id} className={styles.taskItem}>
-            <div className={styles.taskStatus}>
-              {task.status === 'completed' ? (
-                <CheckCircle2 size={16} className={styles.completedIcon} />
-              ) : (
-                <Circle size={16} className={styles.pendingIcon} />
-              )}
-            </div>
-            <span className={`${styles.taskTitle} ${task.status === 'completed' ? styles.completedText : ''}`}>
-              {task.title}
-            </span>
-            <span className={styles.taskDate}>{task.date}</span>
+      {isSectionExpanded && (
+        <div className={styles.sectionListContainer}>
+          <div className={styles.tasksList}>
+            {tasks.map(task => (
+              <div key={task.id} className={styles.taskItem}>
+                <div className={styles.taskStatus}>
+                  {task.status === 'completed' ? (
+                    <CheckCircle2 size={16} className={styles.completedIcon} />
+                  ) : (
+                    <Circle size={16} className={styles.pendingIcon} />
+                  )}
+                </div>
+                <span className={`${styles.taskTitle} ${task.status === 'completed' ? styles.completedText : ''}`}>
+                  {task.title}
+                </span>
+                <span className={styles.taskDate}>{task.date}</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

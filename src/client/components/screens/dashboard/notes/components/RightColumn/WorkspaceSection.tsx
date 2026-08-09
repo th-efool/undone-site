@@ -1,4 +1,4 @@
-import { Folder, FileText, ChevronRight, ChevronDown, SquarePen, FolderPlus } from 'lucide-react';
+import { Folder, FileText, ChevronRight, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import styles from './RightColumn.module.css';
 
@@ -48,6 +48,7 @@ const workspaceData: Node[] = [
 ];
 
 export function WorkspaceSection() {
+  const [isSectionExpanded, setIsSectionExpanded] = useState(true);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({
     '1': true,
     '2': true
@@ -90,24 +91,20 @@ export function WorkspaceSection() {
 
   return (
     <div className={styles.sectionContainer}>
-      <header className={styles.sectionHeader}>
-        <div className={styles.sectionTitle}>
-          <Folder size={16} className={styles.sectionIcon} />
-          <span>Workspace</span>
-        </div>
-        <div className={styles.sectionControls}>
-          <button className={styles.iconButtonSmall} title="New note">
-            <SquarePen size={14} />
-          </button>
-          <button className={styles.iconButtonSmall} title="New folder">
-            <FolderPlus size={14} />
-          </button>
-        </div>
+      <header className={styles.sectionHeader} onClick={() => setIsSectionExpanded(!isSectionExpanded)}>
+        <span className={styles.sectionChevron}>
+          {isSectionExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        </span>
+        <span className={styles.sectionTitle}>Workspace</span>
       </header>
       
-      <div className={styles.workspaceTree}>
-        {renderTree(workspaceData)}
-      </div>
+      {isSectionExpanded && (
+        <div className={styles.sectionListContainer}>
+          <div className={styles.workspaceTree}>
+            {renderTree(workspaceData)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
