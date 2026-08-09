@@ -1,11 +1,12 @@
 'use client';
 import React, { useEffect, useRef, useState } from 'react';
-import { X } from 'lucide-react';
+import { ListTodo, Calendar, ChevronDown } from 'lucide-react';
 
 const PRIORITY_OPTIONS = [
   { value: 'low',    label: 'Low',    color: '#4ade80' },
   { value: 'medium', label: 'Medium', color: '#fbbf24' },
-  { value: 'high',   label: 'High',   color: '#f87171' },
+  { value: 'high',   label: 'High',   color: '#f97316' },
+  { value: 'urgent', label: 'Urgent', color: '#ef4444' },
 ];
 
 interface CardEditorProps {
@@ -18,8 +19,8 @@ interface CardEditorProps {
 export function CardEditor({ card, anchor, onSave, onClose }: CardEditorProps) {
   const [label, setLabel]       = useState(card.label ?? '');
   const [desc, setDesc]         = useState(card.description ?? '');
-  const [type, setType]         = useState(card.type ?? '');
-  const [priority, setPriority] = useState(card.priority ?? 'low');
+  const [type, setType]         = useState(card.type ?? 'Audit');
+  const [priority, setPriority] = useState(card.priority ?? 'high'); // Defaulting to high to match image if empty
   const [deadline, setDeadline] = useState(card.deadline ?? '');
   const ref = useRef<HTMLDivElement>(null);
 
@@ -43,10 +44,8 @@ export function CardEditor({ card, anchor, onSave, onClose }: CardEditorProps) {
 
   /* Position: use anchor if provided, else center */
   const style: React.CSSProperties = anchor
-    ? { position: 'fixed', left: Math.min(anchor.x, window.innerWidth - 320), top: Math.max(anchor.y, 60) }
+    ? { position: 'fixed', left: Math.min(anchor.x, window.innerWidth - 380), top: Math.max(anchor.y, 60) }
     : { position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' };
-
-  const priorityColor = PRIORITY_OPTIONS.find(p => p.value === priority)?.color ?? '#64748b';
 
   return (
     <div
@@ -55,89 +54,107 @@ export function CardEditor({ card, anchor, onSave, onClose }: CardEditorProps) {
       style={style}
       onClick={e => e.stopPropagation()}
     >
-      {/* Header */}
-        <div className="sqhq-editor__header">
-          <span className="sqhq-editor__badge" style={{ color: priorityColor }}>
-            ● {priority.charAt(0).toUpperCase() + priority.slice(1)}
-          </span>
-          <button className="sqhq-editor__close" onClick={onClose} aria-label="Close">
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* Title — inline editable */}
-        <textarea
-          className="sqhq-editor__title"
+      {/* Title */}
+      <div className="sqhq-editor__field">
+        <label className="sqhq-editor__label">Title</label>
+        <input
+          className="sqhq-editor__input sqhq-editor__input--title"
+          spellCheck={false}
           value={label}
-          rows={2}
-          placeholder="Card title…"
+          placeholder="Design System Audit"
           onChange={e => setLabel(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save(); } }}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
           autoFocus
         />
+      </div>
 
-        {/* Description */}
+      {/* Description */}
+      <div className="sqhq-editor__field">
+        <label className="sqhq-editor__label">Description</label>
         <textarea
-          className="sqhq-editor__desc"
+          className="sqhq-editor__textarea"
+          spellCheck={false}
           value={desc}
-          rows={3}
-          placeholder="Add a description…"
+          rows={1}
+          placeholder="Audit and document all existing components, patterns, and tokens across the product."
+          onInput={e => {
+            const target = e.target as HTMLTextAreaElement;
+            target.style.height = 'auto';
+            target.style.height = `${target.scrollHeight}px`;
+          }}
           onChange={e => setDesc(e.target.value)}
         />
+      </div>
 
-        {/* Metadata row */}
-        <div className="sqhq-editor__meta">
-          {/* Type */}
-          <label className="sqhq-editor__field">
-            <span className="sqhq-editor__field-label">Type</span>
-            <input
-              className="sqhq-editor__input"
+      {/* Metadata row */}
+      <div className="sqhq-editor__meta">
+        {/* Type */}
+        <div className="sqhq-editor__field">
+          <label className="sqhq-editor__label">Type</label>
+          <div className="sqhq-editor__select-wrapper">
+            <ListTodo size={14} className="sqhq-editor__select-icon-left" />
+            <select
+              className="sqhq-editor__select"
               value={type}
-              placeholder="e.g. Feature"
               onChange={e => setType(e.target.value)}
-            />
-          </label>
+            >
+              <option value="Audit">Audit</option>
+              <option value="Task">Task</option>
+              <option value="Research">Research</option>
+              <option value="Bug">Bug</option>
+            </select>
+            <ChevronDown size={14} className="sqhq-editor__select-icon-right pointer-events-none" />
+          </div>
+        </div>
 
-          {/* Deadline */}
-          <label className="sqhq-editor__field">
-            <span className="sqhq-editor__field-label">Due</span>
+        {/* Deadline */}
+        <div className="sqhq-editor__field">
+          <label className="sqhq-editor__label">Due</label>
+          <div className="sqhq-editor__select-wrapper">
+            <Calendar size={14} className="sqhq-editor__select-icon-left" />
             <input
-              className="sqhq-editor__input sqhq-editor__input--date"
               type="date"
+              className="sqhq-editor__select sqhq-editor__select--date"
               value={deadline}
               onChange={e => setDeadline(e.target.value)}
             />
-          </label>
+            <ChevronDown size={14} className="sqhq-editor__select-icon-right pointer-events-none" />
+          </div>
         </div>
+      </div>
 
-        {/* Priority selector */}
+      {/* Priority selector */}
+      <div className="sqhq-editor__field">
+        <label className="sqhq-editor__label">Priority</label>
         <div className="sqhq-editor__priority-row">
           {PRIORITY_OPTIONS.map(p => {
             const isActive = priority === p.value;
-            // Provide a soft tinted background instead of harsh border
-            const tintedBg = p.color + '15'; // 15% opacity hex
             return (
               <button
                 key={p.value}
-                className={`sqhq-editor__priority-chip ${isActive ? 'sqhq-editor__priority-chip--active' : ''}`}
-                style={isActive ? { backgroundColor: tintedBg, borderColor: p.color, color: p.color } : {}}
+                className={`sqhq-editor__priority-pill ${isActive ? 'sqhq-editor__priority-pill--active' : ''}`}
                 onClick={() => setPriority(p.value)}
               >
+                <span 
+                  className="sqhq-editor__priority-dot"
+                  style={{ backgroundColor: p.color }}
+                />
                 {p.label}
               </button>
             );
           })}
         </div>
-
-        {/* Actions */}
-        <div className="sqhq-editor__actions">
-          <button className="sqhq-editor__btn sqhq-editor__btn--ghost" onClick={onClose}>
-            Cancel
-          </button>
-          <button className="sqhq-editor__btn sqhq-editor__btn--primary" onClick={save}>
-            Save
-          </button>
-        </div>
       </div>
+      
+      {/* Actions */}
+      <div className="sqhq-editor__actions">
+        <button className="sqhq-editor__btn sqhq-editor__btn--ghost" onClick={onClose}>
+          Cancel
+        </button>
+        <button className="sqhq-editor__btn sqhq-editor__btn--primary" onClick={save}>
+          Save
+        </button>
+      </div>
+    </div>
   );
 }
