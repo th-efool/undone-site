@@ -54,184 +54,7 @@ export function useNotes() {
     [state, notebookQuery, noteQuery],
   );
 
-  const selectNotebook = (notebookId: string) =>
-    update((s) => ({
-      ...s,
-      selectedNotebookId: notebookId,
-      selectedNoteId:
-        s.selectedNoteId &&
-        s.notes.some((n) => n.id === s.selectedNoteId && n.notebookId === notebookId && !n.archived)
-          ? s.selectedNoteId
-          : (s.notes.find((n) => n.notebookId === notebookId && !n.archived)?.id ?? null),
-    }));
-  const createNotebook = () =>
-    update((s) => {
-      const book = {
-        id: id('nb'),
-        title: 'Untitled Notebook',
-        description: 'New thinking space',
-        color: '#4f46e5',
-        favorite: false,
-        shared: false,
-        archived: false,
-        collapsed: false,
-        createdAt: stamp(),
-        updatedAt: stamp(),
-        order: s.notebooks.length,
-      };
-      return {
-        ...s,
-        notebooks: [...s.notebooks, book],
-        selectedNotebookId: book.id,
-        selectedNoteId: null,
-      };
-    });
-  const patchNotebook = (
-    notebookId: string,
-    patch: Partial<NotesStateEntity['notebooks'][number]>,
-  ) =>
-    update((s) => ({
-      ...s,
-      notebooks: s.notebooks.map((n) =>
-        n.id === notebookId ? { ...n, ...patch, updatedAt: stamp() } : n,
-      ),
-    }));
-  const duplicateNotebook = (notebookId: string) =>
-    update((s) => {
-      const b = s.notebooks.find((n) => n.id === notebookId);
-      if (!b) return s;
-      const newId = id('nb');
-      const notes = s.notes
-        .filter((n) => n.notebookId === notebookId)
-        .map((n, i) => ({
-          ...n,
-          id: id('note'),
-          notebookId: newId,
-          title: `${n.title} copy`,
-          order: i,
-          createdAt: stamp(),
-          updatedAt: stamp(),
-        }));
-      return {
-        ...s,
-        notebooks: [
-          ...s.notebooks,
-          {
-            ...b,
-            id: newId,
-            title: `${b.title} copy`,
-            order: s.notebooks.length,
-            createdAt: stamp(),
-            updatedAt: stamp(),
-          },
-        ],
-        notes: [...s.notes, ...notes],
-      };
-    });
-  const deleteNotebook = (notebookId: string) =>
-    update((s) => {
-      if (!confirm('Delete this notebook and its notes?')) return s;
-      const deletedBooks = s.notebooks.filter((n) => n.id === notebookId);
-      const deletedNotes = s.notes.filter((n) => n.notebookId === notebookId);
-      setLastDeleted({ notebooks: deletedBooks, notes: deletedNotes });
-      setToast('Notebook deleted. Undo available.');
-      const notebooks = s.notebooks.filter((n) => n.id !== notebookId);
-      return {
-        ...s,
-        notebooks,
-        notes: s.notes.filter((n) => n.notebookId !== notebookId),
-        selectedNotebookId: notebooks[0]?.id ?? null,
-        selectedNoteId: s.notes.find((n) => n.notebookId === notebooks[0]?.id)?.id ?? null,
-      };
-    });
-  const createNote = (notebookId = state?.selectedNotebookId, options?: { title?: string, contentType?: 'canvas' | 'kanban' }) =>
-    update((s) => {
-      if (!notebookId) return s;
-      const note = {
-        id: id('note'),
-        notebookId,
-        title: options?.title || 'Untitled Note',
-        tags: [],
-        favorite: false,
-        shared: false,
-        archived: false,
-        createdAt: stamp(),
-        updatedAt: stamp(),
-        order: s.notes.filter((n) => n.notebookId === notebookId).length,
-        publicLink: false,
-        permission: 'editor' as Permission,
-        sharedWith: [],
-        contentType: (options?.contentType || 'canvas') as 'canvas' | 'kanban',
-        ownerId: null,
-        linkedConceptIds: [],
-        linkedResourceIds: [],
-        learningPathId: null,
-        revision: null,
-      };
-      return {
-        ...s,
-        notes: [...s.notes, note],
-        selectedNotebookId: notebookId,
-        selectedNoteId: note.id,
-      };
-    });
-  const patchNote = (noteId: string, patch: Partial<NoteDocument>) =>
-    update((s) => ({
-      ...s,
-      notes: s.notes.map((n) => (n.id === noteId ? { ...n, ...patch, updatedAt: stamp() } : n)),
-    }));
-  const duplicateNote = (noteId: string) =>
-    update((s) => {
-      const n = s.notes.find((x) => x.id === noteId);
-      return n
-        ? {
-            ...s,
-            notes: [
-              ...s.notes,
-              {
-                ...n,
-                id: id('note'),
-                title: `${n.title} copy`,
-                order: s.notes.length,
-                createdAt: stamp(),
-                updatedAt: stamp(),
-              },
-            ],
-          }
-        : s;
-    });
-  const deleteNote = (noteId: string) =>
-    update((s) => {
-      if (!confirm('Delete this note?')) return s;
-      const deleted = s.notes.filter((n) => n.id === noteId);
-      setLastDeleted({ notebooks: [], notes: deleted });
-      setToast('Note deleted. Undo available.');
-      const notes = s.notes.filter((n) => n.id !== noteId);
-      return {
-        ...s,
-        notes,
-        selectedNoteId: notes.find((n) => n.notebookId === s.selectedNotebookId)?.id ?? null,
-      };
-    });
-  const moveNotebook = (from: string, to: string) =>
-    update((s) => reorder(s, 'notebooks', from, to));
-  const moveNote = (noteId: string, notebookId: string) =>
-    update((s) => ({
-      ...s,
-      notes: s.notes.map((n) =>
-        n.id === noteId
-          ? {
-              ...n,
-              notebookId,
-              order: s.notes.filter((x) => x.notebookId === notebookId).length,
-              updatedAt: stamp(),
-            }
-          : n,
-      ),
-      selectedNotebookId: notebookId,
-      selectedNoteId: noteId,
-    }));
-  const undo = () =>
+  const undo = useCallback(() =>
     update((s) =>
       lastDeleted
         ? (setToast('Restored.'),
@@ -242,60 +65,243 @@ export function useNotes() {
             notes: [...s.notes, ...lastDeleted.notes],
           })
         : s,
-    );
+    ),
+    [update, lastDeleted]
+  );
 
-  const archiveNotebook = (notebookId: string) =>
-    update((s) => {
-      const book = s.notebooks.find((n) => n.id === notebookId);
-      if (!book) return s;
-      if (
-        !book.archived &&
-        !confirm(`Archive notebook "${book.title}" and hide it from normal lists?`)
-      )
-        return s;
-      const archived = !book.archived;
-      const notebooks = s.notebooks.map((n) =>
-        n.id === notebookId ? { ...n, archived, updatedAt: stamp() } : n,
-      );
-      const notes = s.notes.map((n) =>
-        n.notebookId === notebookId ? { ...n, archived, updatedAt: stamp() } : n,
-      );
-      const nextNotebookId =
-        archived && s.selectedNotebookId === notebookId
-          ? (notebooks.find((n) => !n.archived)?.id ?? notebookId)
-          : s.selectedNotebookId;
-      const nextNoteId =
-        archived && s.selectedNotebookId === notebookId
-          ? (notes.find((n) => n.notebookId === nextNotebookId && !n.archived)?.id ?? null)
-          : s.selectedNoteId;
-      setToast(archived ? 'Notebook archived.' : 'Notebook restored.');
-      return {
+  const actions = useMemo(() => ({
+    selectNotebook: (notebookId: string) =>
+      update((s) => ({
         ...s,
-        notebooks,
-        notes,
-        selectedNotebookId: nextNotebookId,
-        selectedNoteId: nextNoteId,
-      };
-    });
-  const archiveNote = (noteId: string) =>
-    update((s) => {
-      const note = s.notes.find((n) => n.id === noteId);
-      if (!note) return s;
-      if (!note.archived && !confirm(`Archive note "${note.title}"?`)) return s;
-      const archived = !note.archived;
-      const notes = s.notes.map((n) =>
-        n.id === noteId ? { ...n, archived, updatedAt: stamp() } : n,
-      );
-      setToast(archived ? 'Note archived.' : 'Note restored.');
-      return {
-        ...s,
-        notes,
+        selectedNotebookId: notebookId,
         selectedNoteId:
-          archived && s.selectedNoteId === noteId
-            ? (notes.find((n) => n.notebookId === s.selectedNotebookId && !n.archived)?.id ?? null)
-            : s.selectedNoteId,
-      };
-    });
+          s.selectedNoteId &&
+          s.notes.some((n) => n.id === s.selectedNoteId && n.notebookId === notebookId && !n.archived)
+            ? s.selectedNoteId
+            : (s.notes.find((n) => n.notebookId === notebookId && !n.archived)?.id ?? null),
+      })),
+    createNotebook: () =>
+      update((s) => {
+        const book = {
+          id: id('nb'),
+          title: 'Untitled Notebook',
+          description: 'New thinking space',
+          color: '#4f46e5',
+          favorite: false,
+          shared: false,
+          archived: false,
+          collapsed: false,
+          createdAt: stamp(),
+          updatedAt: stamp(),
+          order: s.notebooks.length,
+        };
+        return {
+          ...s,
+          notebooks: [...s.notebooks, book],
+          selectedNotebookId: book.id,
+          selectedNoteId: null,
+        };
+      }),
+    patchNotebook: (notebookId: string, patch: Partial<NotesStateEntity['notebooks'][number]>) =>
+      update((s) => ({
+        ...s,
+        notebooks: s.notebooks.map((n) =>
+          n.id === notebookId ? { ...n, ...patch, updatedAt: stamp() } : n,
+        ),
+      })),
+    duplicateNotebook: (notebookId: string) =>
+      update((s) => {
+        const b = s.notebooks.find((n) => n.id === notebookId);
+        if (!b) return s;
+        const newId = id('nb');
+        const notes = s.notes
+          .filter((n) => n.notebookId === notebookId)
+          .map((n, i) => ({
+            ...n,
+            id: id('note'),
+            notebookId: newId,
+            title: `${n.title} copy`,
+            order: i,
+            createdAt: stamp(),
+            updatedAt: stamp(),
+          }));
+        return {
+          ...s,
+          notebooks: [
+            ...s.notebooks,
+            {
+              ...b,
+              id: newId,
+              title: `${b.title} copy`,
+              order: s.notebooks.length,
+              createdAt: stamp(),
+              updatedAt: stamp(),
+            },
+          ],
+          notes: [...s.notes, ...notes],
+        };
+      }),
+    deleteNotebook: (notebookId: string) =>
+      update((s) => {
+        if (!confirm('Delete this notebook and its notes?')) return s;
+        const deletedBooks = s.notebooks.filter((n) => n.id === notebookId);
+        const deletedNotes = s.notes.filter((n) => n.notebookId === notebookId);
+        setLastDeleted({ notebooks: deletedBooks, notes: deletedNotes });
+        setToast('Notebook deleted. Undo available.');
+        const notebooks = s.notebooks.filter((n) => n.id !== notebookId);
+        return {
+          ...s,
+          notebooks,
+          notes: s.notes.filter((n) => n.notebookId !== notebookId),
+          selectedNotebookId: notebooks[0]?.id ?? null,
+          selectedNoteId: s.notes.find((n) => n.notebookId === notebooks[0]?.id)?.id ?? null,
+        };
+      }),
+    createNote: (notebookId?: string | null, options?: { title?: string, contentType?: 'canvas' | 'kanban' }) =>
+      update((s) => {
+        const targetNbId = notebookId || s.selectedNotebookId;
+        if (!targetNbId) return s;
+        const note = {
+          id: id('note'),
+          notebookId: targetNbId,
+          title: options?.title || 'Untitled Note',
+          tags: [],
+          favorite: false,
+          shared: false,
+          archived: false,
+          createdAt: stamp(),
+          updatedAt: stamp(),
+          order: s.notes.filter((n) => n.notebookId === targetNbId).length,
+          publicLink: false,
+          permission: 'editor' as Permission,
+          sharedWith: [],
+          contentType: (options?.contentType || 'canvas') as 'canvas' | 'kanban',
+          ownerId: null,
+          linkedConceptIds: [],
+          linkedResourceIds: [],
+          learningPathId: null,
+          revision: null,
+        };
+        return {
+          ...s,
+          notes: [...s.notes, note],
+          selectedNotebookId: targetNbId,
+          selectedNoteId: note.id,
+        };
+      }),
+    patchNote: (noteId: string, patch: Partial<NoteDocument>) =>
+      update((s) => ({
+        ...s,
+        notes: s.notes.map((n) => (n.id === noteId ? { ...n, ...patch, updatedAt: stamp() } : n)),
+      })),
+    duplicateNote: (noteId: string) =>
+      update((s) => {
+        const n = s.notes.find((x) => x.id === noteId);
+        return n
+          ? {
+              ...s,
+              notes: [
+                ...s.notes,
+                {
+                  ...n,
+                  id: id('note'),
+                  title: `${n.title} copy`,
+                  order: s.notes.length,
+                  createdAt: stamp(),
+                  updatedAt: stamp(),
+                },
+              ],
+            }
+          : s;
+      }),
+    deleteNote: (noteId: string) =>
+      update((s) => {
+        if (!confirm('Delete this note?')) return s;
+        const deleted = s.notes.filter((n) => n.id === noteId);
+        setLastDeleted({ notebooks: [], notes: deleted });
+        setToast('Note deleted. Undo available.');
+        const notes = s.notes.filter((n) => n.id !== noteId);
+        return {
+          ...s,
+          notes,
+          selectedNoteId: notes.find((n) => n.notebookId === s.selectedNotebookId)?.id ?? null,
+        };
+      }),
+    moveNotebook: (from: string, to: string) =>
+      update((s) => reorder(s, 'notebooks', from, to)),
+    moveNote: (noteId: string, notebookId: string) =>
+      update((s) => ({
+        ...s,
+        notes: s.notes.map((n) =>
+          n.id === noteId
+            ? {
+                ...n,
+                notebookId,
+                order: s.notes.filter((x) => x.notebookId === notebookId).length,
+                updatedAt: stamp(),
+              }
+            : n,
+        ),
+        selectedNotebookId: notebookId,
+        selectedNoteId: noteId,
+      })),
+    archiveNotebook: (notebookId: string) =>
+      update((s) => {
+        const book = s.notebooks.find((n) => n.id === notebookId);
+        if (!book) return s;
+        if (
+          !book.archived &&
+          !confirm(`Archive notebook "${book.title}" and hide it from normal lists?`)
+        )
+          return s;
+        const archived = !book.archived;
+        const notebooks = s.notebooks.map((n) =>
+          n.id === notebookId ? { ...n, archived, updatedAt: stamp() } : n,
+        );
+        const notes = s.notes.map((n) =>
+          n.notebookId === notebookId ? { ...n, archived, updatedAt: stamp() } : n,
+        );
+        const nextNotebookId =
+          archived && s.selectedNotebookId === notebookId
+            ? (notebooks.find((n) => !n.archived)?.id ?? notebookId)
+            : s.selectedNotebookId;
+        const nextNoteId =
+          archived && s.selectedNotebookId === notebookId
+            ? (notes.find((n) => n.notebookId === nextNotebookId && !n.archived)?.id ?? null)
+            : s.selectedNoteId;
+        setToast(archived ? 'Notebook archived.' : 'Notebook restored.');
+        return {
+          ...s,
+          notebooks,
+          notes,
+          selectedNotebookId: nextNotebookId,
+          selectedNoteId: nextNoteId,
+        };
+      }),
+    archiveNote: (noteId: string) =>
+      update((s) => {
+        const note = s.notes.find((n) => n.id === noteId);
+        if (!note) return s;
+        if (!note.archived && !confirm(`Archive note "${note.title}"?`)) return s;
+        const archived = !note.archived;
+        const notes = s.notes.map((n) =>
+          n.id === noteId ? { ...n, archived, updatedAt: stamp() } : n,
+        );
+        setToast(archived ? 'Note archived.' : 'Note restored.');
+        return {
+          ...s,
+          notes,
+          selectedNoteId:
+            archived && s.selectedNoteId === noteId
+              ? (notes.find((n) => n.notebookId === s.selectedNotebookId && !n.archived)?.id ?? null)
+              : s.selectedNoteId,
+        };
+      }),
+    selectNote: (id: string) => update((s) => ({ ...s, selectedNoteId: id })),
+    setNotebookSort: (sort: NotesSort) => update((s) => ({ ...s, notebookSort: sort })),
+    setNoteSort: (sort: NotesSort) => update((s) => ({ ...s, noteSort: sort })),
+    setFilter: (filter: NotesFilter) => update((s) => ({ ...s, filter })),
+  }), [update]);
 
   return {
     state,
@@ -306,25 +312,7 @@ export function useNotes() {
     setNoteQuery,
     toast,
     undo,
-    actions: {
-      selectNotebook,
-      selectNote: (id: string) => update((s) => ({ ...s, selectedNoteId: id })),
-      createNotebook,
-      patchNotebook,
-      duplicateNotebook,
-      deleteNotebook,
-      createNote,
-      patchNote,
-      duplicateNote,
-      deleteNote,
-      moveNotebook,
-      moveNote,
-      archiveNotebook,
-      archiveNote,
-      setNotebookSort: (sort: NotesSort) => update((s) => ({ ...s, notebookSort: sort })),
-      setNoteSort: (sort: NotesSort) => update((s) => ({ ...s, noteSort: sort })),
-      setFilter: (filter: NotesFilter) => update((s) => ({ ...s, filter })),
-    },
+    actions,
   };
 }
 function reorder(s: NotesStateEntity, key: 'notebooks', fromId: string, toId: string) {

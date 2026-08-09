@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import type { useNotes } from './useNotes';
 import type { NoteDocument } from '../models/notes.models';
 
@@ -17,6 +17,11 @@ export function useNotesKeyboardShortcuts({
   setSidebarTab: React.Dispatch<React.SetStateAction<'explorer' | 'search' | 'bookmarks'>>;
   setShareOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
+  const latestRef = useRef({ notes, selected, setIsNavigationExpanded, setSidebarTab, setShareOpen });
+  useEffect(() => {
+    latestRef.current = { notes, selected, setIsNavigationExpanded, setSidebarTab, setShareOpen };
+  });
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Don't trigger if user is typing in an input, textarea, or contenteditable
@@ -29,31 +34,33 @@ export function useNotesKeyboardShortcuts({
         return;
       }
       
+      const current = latestRef.current;
+      
       if (e.key === 'n' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
-        notes.actions.createNote();
+        current.notes.actions.createNote();
       } else if (e.key === 'N' && e.shiftKey && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
-        notes.actions.createNotebook();
+        current.notes.actions.createNotebook();
       } else if (e.key === '[' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
-        setIsNavigationExpanded(prev => !prev);
+        current.setIsNavigationExpanded(prev => !prev);
       } else if (e.key === 'E' && e.shiftKey && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
-        setSidebarTab('explorer');
+        current.setSidebarTab('explorer');
       } else if (e.key === 's' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
-        setSidebarTab('search');
+        current.setSidebarTab('search');
       } else if (e.key === 'B' && e.shiftKey && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
-        setSidebarTab('bookmarks');
-      } else if (e.key === 'o' && !e.metaKey && !e.ctrlKey && selected) {
+        current.setSidebarTab('bookmarks');
+      } else if (e.key === 'o' && !e.metaKey && !e.ctrlKey && current.selected) {
         e.preventDefault();
-        setShareOpen(true);
+        current.setShareOpen(true);
       }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [notes.actions, selected, setIsNavigationExpanded, setSidebarTab, setShareOpen]);
+  }, []);
 }

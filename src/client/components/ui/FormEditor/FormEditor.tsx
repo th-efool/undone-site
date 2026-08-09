@@ -93,10 +93,11 @@ export function FormEditor({
             value={field.value}
             rows={1}
             placeholder={field.placeholder}
-            onInput={e => {
-              const target = e.target as HTMLTextAreaElement;
-              target.style.height = 'auto';
-              target.style.height = `${target.scrollHeight}px`;
+            ref={el => {
+              if (el) {
+                el.style.height = 'auto';
+                el.style.height = `${el.scrollHeight}px`;
+              }
             }}
             onChange={e => field.onChange(e.target.value)}
             autoFocus={field.autoFocus}

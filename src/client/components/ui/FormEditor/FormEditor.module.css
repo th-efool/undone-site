@@ -1,15 +1,15 @@
 .editor {
   z-index: 301;
   background: #000000;
-  border: 1px solid #111111;
+  border: 1px solid #080808;
   border-radius: 12px;
   width: 360px !important;
   min-width: 360px;
   max-width: 360px;
-  padding: 16px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   box-shadow: 0 4px 24px -4px rgba(0,0,0,0.5), 0 16px 40px -8px rgba(0,0,0,0.7);
   font-family: inherit;
 }
@@ -17,7 +17,7 @@
 .field {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .label {
@@ -28,12 +28,12 @@
 }
 
 .input {
-  background: #080808;
-  border: 1px solid #1a1a1a;
-  border-radius: 8px;
+  background: #000000;
+  border: 1px solid #080808;
+  border-radius: 6px;
   color: #ffffff;
   font-size: 13px;
-  padding: 4px 8px;
+  padding: 6px 8px;
   outline: none;
   width: 100%;
   height: auto;
@@ -51,20 +51,21 @@
 }
 
 .textarea {
-  background: #080808;
-  border: 1px solid #1a1a1a;
-  border-radius: 8px;
+  background: #000000;
+  border: 1px solid #080808;
+  border-radius: 6px;
   color: #ffffff;
   font-size: 13px;
-  padding: 4px 8px;
+  padding: 6px 8px;
   outline: none;
   width: 100%;
-  min-height: 0;
+  min-height: 20px;
   height: auto;
   font-family: inherit;
   transition: all 0.2s;
-  resize: vertical;
-  line-height: 1.5;
+  resize: none;
+  overflow: hidden;
+  line-height: 1.4;
   box-sizing: border-box;
 }
 
@@ -103,12 +104,12 @@
 }
 
 .select {
-  background: #080808;
-  border: 1px solid #1a1a1a;
-  border-radius: 8px;
+  background: #000000;
+  border: 1px solid #080808;
+  border-radius: 6px;
   color: #ffffff;
   font-size: 13px;
-  padding: 4px 28px;
+  padding: 6px 28px;
   outline: none;
   width: 100%;
   height: auto;
@@ -141,9 +142,9 @@
 .priorityPill {
   flex: 1;
   padding: 6px 10px;
-  background: #080808;
-  border: 1px solid #1a1a1a;
-  border-radius: 8px;
+  background: #000000;
+  border: 1px solid #080808;
+  border-radius: 6px;
   font-size: 12px;
   font-weight: 500;
   color: #a1a1aa;
@@ -157,13 +158,14 @@
 }
 
 .priorityPill:hover {
-  background: #111111;
+  background: #080808;
+  border-color: #1a1a1a;
   color: #ffffff;
 }
 
 .priorityPillActive {
-  background: #3b3548;
-  border-color: #4a3e59;
+  background: #111111;
+  border-color: #333333;
   color: #ffffff;
 }
 
@@ -203,13 +205,13 @@
 }
 
 .btnPrimary {
-  background: #3b3548;
-  border: 1px solid #4a3e59;
+  background: #111111;
+  border: 1px solid #333333;
   color: #ffffff;
 }
 
 .btnPrimary:hover:not(:disabled) {
-  background: #4a3e59;
+  background: #1a1a1a;
 }
 
 .btnPrimary:disabled {
