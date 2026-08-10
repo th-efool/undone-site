@@ -4,7 +4,7 @@
   min-width: 340px;
   overflow: auto;
   border-left: 1px solid var(--message-border, rgba(255, 255, 255, 0.08));
-  background: var(--message-bg-secondary, #0b0c10);
+  background: var(--message-bg-secondary, #000000);
 }
 .close {
   position: absolute;

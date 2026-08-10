@@ -4,9 +4,9 @@
 }
 
 .darkTheme {
-  --message-bg: #050505;
-  --message-bg-secondary: #0b0c10;
-  --message-bg-elevated: #12141c;
+  --message-bg: #000000;
+  --message-bg-secondary: #000000;
+  --message-bg-elevated: #09090b;
   --message-border: rgba(255, 255, 255, 0.08);
   --message-border-strong: rgba(255, 255, 255, 0.16);
   --message-brand: #6366f1;

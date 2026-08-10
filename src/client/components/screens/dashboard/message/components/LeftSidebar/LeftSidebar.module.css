@@ -7,7 +7,7 @@
   min-height: 0;
   overflow: visible;
   padding: 16px 0;
-  background: var(--message-bg-secondary, #0a0b0e);
+  background: var(--message-bg-secondary, #000000);
   border-right: 1px solid var(--message-border, rgba(255, 255, 255, 0.08));
   align-items: center;
   position: relative;

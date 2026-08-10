@@ -4,7 +4,7 @@
   gap: 14px;
   padding: 26px 32px 24px;
   border-bottom: 1px solid var(--message-border, rgba(255, 255, 255, 0.08));
-  background: var(--message-bg-secondary, #0b0c10);
+  background: var(--message-bg-secondary, #000000);
 }
 .back,
 .actions button {
@@ -39,7 +39,7 @@
   bottom: 3px;
   width: 12px;
   height: 12px;
-  border: 2px solid var(--message-bg-secondary, #0b0c10);
+  border: 2px solid var(--message-bg-secondary, #000000);
   border-radius: 999px;
   background: #22c55e;
 }
