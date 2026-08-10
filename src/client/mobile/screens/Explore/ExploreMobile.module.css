@@ -4,7 +4,7 @@
   width: 100%;
   max-width: 100vw;
   box-sizing: border-box;
-  background: #f9f4f0; /* match hero cream background */
+  background: #f9f1e8; /* match hero cream background */
   color: #1a202c;
   min-height: 100vh;
   /* Make sure there's no overall padding so components can bleed to edge if needed */

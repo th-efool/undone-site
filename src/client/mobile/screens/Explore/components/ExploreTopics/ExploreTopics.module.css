@@ -3,7 +3,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px; /* Further reduced gap */
-  background: #f9f4f0; /* match cream background */
+  background: #f9f1e8; /* match cream background */
 }
 
 .header {

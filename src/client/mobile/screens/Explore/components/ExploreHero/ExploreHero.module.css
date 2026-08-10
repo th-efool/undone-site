@@ -1,38 +1,34 @@
 .hero {
   position: relative;
   width: 100%;
-  padding-top: 48px; /* space from top */
-  padding-bottom: 32px; /* space before search */
   display: flex;
-  align-items: center;
-  overflow: visible; /* do not clip the image */
-  background: #f9f4f0; /* match cream background */
+  background: #f9f1e8; /* match cream background */
 }
 
-.background {
-  /* Artwork escapes the normal flow and pushes into top right */
-  position: absolute;
-  top: -10px; /* Shifted down to prevent clipping at the very top of the screen */
-  right: 0px; /* Hugs the right edge */
-  width: 253px; /* Decreased by 7% */
-  height: 268px; /* Decreased by 7% */
-  z-index: 1;
+.bannerContainer {
+  width: 100%;
+  line-height: 0;
 }
 
-.image {
-  object-fit: contain; /* or cover, depending on aspect ratio, but contain with shift works if the image has its own fade */
-  object-position: top right;
+.bannerImage {
+  width: 100%;
+  height: auto;
+  display: block;
 }
 
 .content {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   z-index: 2;
   padding-left: 20px;
-  padding-top: 48px; /* Pushed significantly further down */
+  padding-top: 48px; /* Push text down appropriately */
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 85%; /* Expanded to allow text to fit on one line */
+  max-width: 85%;
 }
 
 .headline {

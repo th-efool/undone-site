@@ -4,12 +4,13 @@ import Image from 'next/image';
 export function ExploreHero() {
   return (
     <section className={styles.hero}>
-      <div className={styles.background}>
+      <div className={styles.bannerContainer}>
         <Image
-          src="/mobile/explore/explore-hero-mobile.webp"
-          alt="Hero Background"
-          fill
-          className={styles.image}
+          src="/mobile/explore/explore-hero-banner-mobile.webp"
+          alt="Explore Banner"
+          width={1000}
+          height={1000}
+          className={styles.bannerImage}
           priority
         />
       </div>
