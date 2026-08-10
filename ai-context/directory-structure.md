@@ -1139,6 +1139,7 @@
 │   │   │   │   │   │   │   │   ├── NotesSaveStatus.module.css
 │   │   │   │   │   │   │   │   └── NotesSaveStatus.tsx
 │   │   │   │   │   │   │   ├── RightColumn/
+│   │   │   │   │   │   │   │   ├── RecentlyClosedSection.tsx
 │   │   │   │   │   │   │   │   ├── RightColumn.module.css
 │   │   │   │   │   │   │   │   ├── SpaceHeader.tsx
 │   │   │   │   │   │   │   │   ├── TasksSection.tsx
@@ -1153,7 +1154,8 @@
 │   │   │   │   │   │   │   ├── useCanvasScene.ts
 │   │   │   │   │   │   │   ├── useNotes.ts
 │   │   │   │   │   │   │   ├── useNotesKeyboardShortcuts.ts
-│   │   │   │   │   │   │   └── useNotesNavigation.ts
+│   │   │   │   │   │   │   ├── useNotesNavigation.ts
+│   │   │   │   │   │   │   └── useRecentlyClosedNotes.ts
 │   │   │   │   │   │   ├── mock/
 │   │   │   │   │   │   │   ├── canvas.seed.ts
 │   │   │   │   │   │   │   └── notes.seed.ts
@@ -1404,4 +1406,4 @@
 ├── task.md
 └── tsconfig.json
 
-446 directories, 957 files
+446 directories, 959 files
