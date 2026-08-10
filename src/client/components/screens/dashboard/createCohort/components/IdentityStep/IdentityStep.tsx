@@ -4,6 +4,10 @@ import { useState } from 'react';
 import { Plus, X, Image as ImageIcon } from 'lucide-react';
 
 import { Button } from '@/src/client/components/ui/Button/Button';
+import { Badge } from '@/src/client/components/ui/Badge/Badge';
+import { Stack } from '@/src/client/components/global/layout/Stack';
+import { Cluster } from '@/src/client/components/global/layout/Cluster';
+import { Surface } from '@/src/client/components/global/layout/Surface';
 import type { CreateCohortDetailsModel } from '../../models/createCohort';
 import { useWizardContext } from '../../providers/WizardProvider';
 import { LearnerPreview } from '../LearnerPreview/LearnerPreview';
@@ -46,22 +50,21 @@ export function IdentityStep({ details }: IdentityStepProps) {
   };
 
   return (
-    <div className={styles.container}>
+    <Stack className={styles.container}>
       {/* Top Section: Compact Form Inputs */}
-      <div className={styles.formSection}>
-        <div className={styles.header}>
-          <div className={styles.badgeLine}>
-            
-            <span>Step 4: Branding & Identity</span>
-          </div>
+      <Stack className={styles.formSection}>
+        <Stack className={styles.header}>
+          <Badge variant="brand" size="sm">
+            Step 4: Branding & Identity
+          </Badge>
           <h2 className={styles.title}>Define your cohort branding</h2>
           <p className={styles.sub}>
             Configure your cohort title, cover image, overview summary, and prerequisites.
           </p>
-        </div>
+        </Stack>
 
-        <div className={styles.card}>
-          <div className={styles.twoCol}>
+        <Surface className={styles.card}>
+          <Cluster className={styles.twoCol}>
             <div className={styles.field}>
               <label htmlFor="identity-title" className={styles.label}>
                 Cohort Title <span className={styles.required}>* Required</span>
@@ -90,13 +93,13 @@ export function IdentityStep({ details }: IdentityStepProps) {
                 onChange={(e) => actions.updateDraftField('subtitle', e.target.value)}
               />
             </div>
-          </div>
+          </Cluster>
 
           <div className={styles.field}>
             <label htmlFor="identity-cover" className={styles.label}>
               Cover Image URL
             </label>
-            <div className={styles.inlineRow}>
+            <Cluster className={styles.inlineRow}>
               <input
                 id="identity-cover"
                 value={draft.coverImage}
@@ -118,7 +121,7 @@ export function IdentityStep({ details }: IdentityStepProps) {
                 <ImageIcon size={14} />
                 Preset
               </Button>
-            </div>
+            </Cluster>
           </div>
 
           <div className={styles.field}>
@@ -134,13 +137,13 @@ export function IdentityStep({ details }: IdentityStepProps) {
             />
           </div>
 
-          <div className={styles.twoCol}>
+          <Cluster className={styles.twoCol}>
             {/* Requirements List */}
             <div className={styles.field}>
               <label className={styles.label}>Prerequisites & Requirements</label>
-              <div className={styles.listContainer}>
+              <Stack className={styles.listContainer}>
                 {draft.requirements.map((req, idx) => (
-                  <div key={idx} className={styles.listItem}>
+                  <Cluster key={idx} className={styles.listItem}>
                     <span>{req}</span>
                     <button
                       type="button"
@@ -149,9 +152,9 @@ export function IdentityStep({ details }: IdentityStepProps) {
                     >
                       <X size={13} />
                     </button>
-                  </div>
+                  </Cluster>
                 ))}
-                <div className={styles.inlineComposer}>
+                <Cluster className={styles.inlineComposer}>
                   <input
                     value={reqInput}
                     placeholder="Add requirement..."
@@ -162,16 +165,16 @@ export function IdentityStep({ details }: IdentityStepProps) {
                   <Button type="button" variant="secondary" size="sm" onClick={addRequirement}>
                     <Plus size={14} />
                   </Button>
-                </div>
-              </div>
+                </Cluster>
+              </Stack>
             </div>
 
             {/* Learning Outcomes List */}
             <div className={styles.field}>
               <label className={styles.label}>Learning Outcomes</label>
-              <div className={styles.listContainer}>
+              <Stack className={styles.listContainer}>
                 {draft.learningOutcomes.map((outcome, idx) => (
-                  <div key={idx} className={styles.listItem}>
+                  <Cluster key={idx} className={styles.listItem}>
                     <span>{outcome}</span>
                     <button
                       type="button"
@@ -180,9 +183,9 @@ export function IdentityStep({ details }: IdentityStepProps) {
                     >
                       <X size={13} />
                     </button>
-                  </div>
+                  </Cluster>
                 ))}
-                <div className={styles.inlineComposer}>
+                <Cluster className={styles.inlineComposer}>
                   <input
                     value={outcomeInput}
                     placeholder="Add learning outcome..."
@@ -193,16 +196,16 @@ export function IdentityStep({ details }: IdentityStepProps) {
                   <Button type="button" variant="secondary" size="sm" onClick={addOutcome}>
                     <Plus size={14} />
                   </Button>
-                </div>
-              </div>
+                </Cluster>
+              </Stack>
             </div>
-          </div>
-        </div>
-      </div>
+          </Cluster>
+        </Surface>
+      </Stack>
 
       {/* Bottom Section: Full-Width Live Overview Page Preview */}
       <div className={styles.previewSection}>
-        <div className={styles.previewCard}>
+        <Surface className={styles.previewCard}>
           <div className={styles.previewHeader}>
             <span className={styles.previewTag}>Live Overview Page Preview</span>
             <span className={styles.previewHelp}>Full-width preview updates in real-time as you edit above</span>
@@ -210,8 +213,8 @@ export function IdentityStep({ details }: IdentityStepProps) {
           <div className={styles.previewCanvas}>
             <LearnerPreview />
           </div>
-        </div>
+        </Surface>
       </div>
-    </div>
+    </Stack>
   );
 }

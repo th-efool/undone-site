@@ -11,6 +11,11 @@ import { JourneySettingsConfig } from '../JourneySettingsConfig/JourneySettingsC
 import { LaunchChecklist } from '../LaunchChecklist/LaunchChecklist';
 import { PublishingModal } from '../PublishingModal/PublishingModal';
 import { LaunchSuccess } from '../LaunchSuccess/LaunchSuccess';
+import { Stack } from '@/src/client/components/global/layout/Stack';
+import { Cluster } from '@/src/client/components/global/layout/Cluster';
+import { Surface } from '@/src/client/components/global/layout/Surface';
+import { Button } from '@/src/client/components/ui/Button/Button';
+import { Text } from '@/src/client/components/ui/Typography/Text';
 
 import styles from './LaunchStep.module.css';
 
@@ -25,14 +30,16 @@ export function LaunchStep() {
 
   if (!curriculum) {
     return (
-      <div style={{ padding: '3rem', textAlign: 'center', color: '#94a3b8' }}>
-        No curriculum generated yet. Please generate curriculum in Step 3 before launching.
-      </div>
+      <Surface padding="xl" style={{ textAlign: 'center' }}>
+        <Text variant="muted">
+          No curriculum generated yet. Please generate curriculum in Step 3 before launching.
+        </Text>
+      </Surface>
     );
   }
 
   return (
-    <div className={styles.root}>
+    <Stack gap="6" className={styles.root}>
       {/* Top Launch Summary Banner */}
       <div className={styles.summaryStrip}>
         <div className={styles.summaryLeft}>
@@ -66,32 +73,31 @@ export function LaunchStep() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <Cluster gap="3">
           <Badge variant="success" size="md">
             {launchState.journeySettings.visibility}
           </Badge>
 
-          <button
+          <Button
             type="button"
             onClick={actions.publishCohort}
             disabled={!validation.launch || launchState.publishStage !== 'idle'}
-            className={styles.launchBtn}
+            variant="momentum"
           >
             <Rocket size={18} />
             Publish Cohort
-          </button>
-        </div>
+          </Button>
+        </Cluster>
       </div>
 
       {launchState.publishError && (
-        <div
+        <Surface
           style={{
-            padding: '0.85rem 1rem',
-            background: 'rgba(239, 68, 68, 0.1)',
-            border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: '10px',
-            color: '#f87171',
-            fontSize: '0.875rem',
+            background: 'var(--color-error-bg)',
+            border: '1px solid var(--color-error)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--color-error)',
+            fontSize: 'var(--font-small-size)',
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
@@ -99,7 +105,7 @@ export function LaunchStep() {
         >
           <AlertCircle size={16} />
           {launchState.publishError}
-        </div>
+        </Surface>
       )}
 
       {/* Centerpiece: Real Learner Preview */}
@@ -119,6 +125,6 @@ export function LaunchStep() {
 
       {/* Publishing Progress Overlay Modal */}
       <PublishingModal />
-    </div>
+    </Stack>
   );
 }

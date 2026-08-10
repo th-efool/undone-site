@@ -1,7 +1,7 @@
 .root {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: var(--space-6);
   width: 100%;
 }
 
@@ -11,68 +11,49 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1.25rem;
-  background: rgba(18, 20, 29, 0.7);
+  padding: var(--space-5);
+  background: var(--glass-dark);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.summaryStrip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .summaryLeft {
   display: flex;
   align-items: center;
-  gap: 1.25rem;
+  gap: var(--space-5);
 }
 
 .artwork {
   width: 90px;
   height: 56px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .summaryTitle {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: #f8fafc;
+  font-size: var(--font-card-title-size);
+  font-weight: var(--font-card-title-weight);
+  color: var(--color-text-primary);
 }
 
 .summaryMeta {
-  font-size: 0.8125rem;
-  color: #94a3b8;
+  font-size: var(--font-small-size);
+  color: var(--color-text-muted);
   display: flex;
   gap: 0.5rem;
   align-items: center;
   margin-top: 0.2rem;
 }
 
-.launchBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.65rem 1.5rem;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  border: 1px solid rgba(99, 102, 241, 0.4);
-  border-radius: 10px;
-  color: #ffffff;
-  font-size: 0.95rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
-  transition: all 0.2s ease;
-
-  &:hover:not(:disabled) {
-    background: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
 @media (max-width: 768px) {
   .step { padding: var(--mobile-page-padding, 16px); }
 }

@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { RefreshCw, AlertCircle } from 'lucide-react';
+import { Stack } from '@/src/client/components/global/layout/Stack';
+import { Cluster } from '@/src/client/components/global/layout/Cluster';
 import { useWizardContext } from '../../providers/WizardProvider';
 import { CurriculumToolbar } from '../CurriculumToolbar/CurriculumToolbar';
 import { CurriculumStats } from '../CurriculumStats/CurriculumStats';
@@ -66,7 +68,7 @@ export function CurriculumStep() {
   if (curriculumState.status === 'failed') {
     return (
       <div className={styles.errorContainer}>
-        <AlertCircle size={32} color="#f87171" />
+        <AlertCircle size={32} color="var(--color-error)" />
         <div>
           <h3 className={styles.errorTitle}>
             {curriculumState.error?.title || 'Curriculum Generation Failed'}
@@ -84,13 +86,13 @@ export function CurriculumStep() {
   }
 
   return (
-    <div className={styles.root}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'between', gap: '1rem' }}>
+    <Stack gap="5" className={styles.root}>
+      <Cluster align="center" justify="between" gap="4">
         <div style={{ flex: 1 }}>
           <CurriculumToolbar />
         </div>
         <CurriculumQuality />
-      </div>
+      </Cluster>
 
       <CurriculumChecklist />
       <CurriculumStats />
@@ -106,6 +108,6 @@ export function CurriculumStep() {
       <CurriculumBulkBar />
 
       {showPalette && <CurriculumShortcutsModal onClose={() => setShowPalette(false)} />}
-    </div>
+    </Stack>
   );
 }
