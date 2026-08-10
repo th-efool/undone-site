@@ -1,7 +1,7 @@
 'use client';
 
 import clsx from 'clsx';
-import { Check } from 'lucide-react';
+import { PenTool, Link2, BookOpen, Brush, Rocket } from 'lucide-react';
 
 import type { WizardStepModel } from '../../models/createCohort';
 import { useWizardContext } from '../../providers/WizardProvider';
@@ -12,31 +12,40 @@ interface WizardStepperProps {
   steps: WizardStepModel[];
 }
 
+const stepIcons = [PenTool, Link2, BookOpen, Brush, Rocket];
+
 export function WizardStepper({ steps }: WizardStepperProps) {
   const { actions } = useWizardContext();
 
   return (
     <nav aria-label="Wizard progress" className={styles.root}>
       <ol className={styles.list}>
-        {steps.map((step) => (
-          <li
-            key={step.id}
-            className={clsx(styles.item, styles[step.status], step.disabled && styles.disabled)}
-            aria-current={step.status === 'current' ? 'step' : undefined}
-            aria-disabled={step.disabled || undefined}
-            onClick={() => {
-              if (!step.disabled) {
-                actions.setStep(step.id);
-              }
-            }}
-            style={{ cursor: step.disabled ? 'not-allowed' : 'pointer' }}
-          >
-            <span className={styles.marker} aria-hidden="true">
-              {step.status === 'complete' ? <Check size={14} /> : step.index + 1}
-            </span>
-            <span className={styles.label}>{step.label}</span>
-          </li>
-        ))}
+        {steps.map((step, idx) => {
+          const Icon = stepIcons[idx] || PenTool;
+          const isCurrent = step.status === 'current';
+          const isComplete = step.status === 'complete';
+
+          return (
+            <li
+              key={step.id}
+              className={clsx(styles.item, styles[step.status], step.disabled && styles.disabled)}
+              aria-current={isCurrent ? 'step' : undefined}
+              aria-disabled={step.disabled || undefined}
+              onClick={() => {
+                if (!step.disabled) {
+                  actions.setStep(step.id);
+                }
+              }}
+              title={step.label}
+              style={{ cursor: step.disabled ? 'not-allowed' : 'pointer' }}
+            >
+              <span className={styles.marker} aria-hidden="true">
+                <Icon size={16} strokeWidth={isCurrent ? 2.5 : 2} />
+              </span>
+              {idx < steps.length - 1 && <span className={styles.connector} />}
+            </li>
+          );
+        })}
       </ol>
     </nav>
   );

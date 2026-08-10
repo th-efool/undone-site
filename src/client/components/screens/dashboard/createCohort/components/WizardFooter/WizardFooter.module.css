@@ -1,62 +1,14 @@
 .root {
-  position: sticky;
-  bottom: var(--space-4);
-  z-index: 2;
-  box-shadow: var(--shadow-floating);
-}
-
-.inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-
-.progress {
-  min-width: 0;
-}
-
-.stepLabel {
-  color: var(--color-text-primary);
-  font-weight: var(--font-semibold);
-}
-
-.stepMeta {
-  color: var(--color-brand);
-  font-weight: var(--font-medium);
-}
-
-.helper {
-  max-width: 42rem;
+  margin-top: var(--space-8);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-6);
 }
 
 .actions {
   flex: 0 0 auto;
 }
 
-@media (max-width: 720px) {
-  .inner {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .actions {
-    justify-content: stretch;
-  }
-}
-
 @media (max-width: 768px) {
-  .root {
-    position: sticky;
-    bottom: 0;
-    padding: var(--space-3, 12px) var(--space-4, 16px);
-    background: var(--color-surface, #fff);
-    border-top: 1px solid var(--color-border, rgba(0,0,0,0.08));
-  }
-  .inner {
-    flex-direction: column;
-    gap: var(--space-2, 8px);
-  }
   .actions button {
     min-height: var(--touch-target-min, 44px);
     flex: 1;

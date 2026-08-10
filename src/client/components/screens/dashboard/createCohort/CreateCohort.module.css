@@ -1,6 +1,8 @@
 .screen {
-  min-height: 100%;
-  padding-block: var(--space-6) var(--space-10);
+  min-height: 100vh;
+  padding-block: var(--space-8) var(--space-12);
+  background: #000000;
+  color: var(--color-text-primary);
 }
 
 .pageStack {
@@ -9,6 +11,12 @@
 
 .header {
   min-width: 0;
+  margin-bottom: var(--space-10);
+}
+
+.headerCluster {
+  width: 100%;
+  gap: var(--space-8);
 }
 
 .title {
@@ -19,8 +27,9 @@
   max-width: 48rem;
 }
 
-.surface {
+.stepContainer {
   min-width: 0;
+  width: 100%;
 }
 
 .disabledStep {

@@ -2,6 +2,7 @@
 
 import { Container } from '@/src/client/components/global/layout/Container';
 import { Stack } from '@/src/client/components/global/layout/Stack';
+import { Cluster } from '@/src/client/components/global/layout/Cluster';
 import { Surface } from '@/src/client/components/global/layout/Surface';
 import { Heading } from '@/src/client/components/ui/Typography/Heading';
 import { Text } from '@/src/client/components/ui/Typography/Text';
@@ -26,19 +27,20 @@ function CreateCohortScreen() {
       <Container size="wide">
         <Stack gap="8" className={styles.pageStack}>
           <section className={styles.header}>
-            <Stack gap="3">
-              <Heading level={1} className={styles.title}>
-                {model.header.title}
-              </Heading>
-              <Text variant="lead" className={styles.description}>
-                {model.header.description}
-              </Text>
-            </Stack>
+            <Cluster justify="between" align="start" className={styles.headerCluster}>
+              <Stack gap="3">
+                <Heading level={1} className={styles.title}>
+                  {model.header.title}
+                </Heading>
+                <Text variant="lead" className={styles.description}>
+                  {model.header.description}
+                </Text>
+              </Stack>
+              <WizardStepper steps={model.steps} />
+            </Cluster>
           </section>
 
-          <WizardStepper steps={model.steps} />
-
-          <Surface variant="elevated" padding="xl" className={styles.surface}>
+          <div className={styles.stepContainer}>
             {model.steps[0].status === 'current' && <TopicStep details={model.details} />}
 
             {model.steps[1].status === 'current' && (
@@ -50,7 +52,7 @@ function CreateCohortScreen() {
             {model.steps[3].status === 'current' && <IdentityStep details={model.details} />}
 
             {model.steps[4].status === 'current' && <LaunchStep />}
-          </Surface>
+          </div>
 
           <WizardFooter footer={model.footer} />
         </Stack>
