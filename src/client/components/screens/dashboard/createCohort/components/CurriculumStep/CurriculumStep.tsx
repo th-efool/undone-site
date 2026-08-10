@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { RefreshCw, AlertCircle } from 'lucide-react';
-import { Stack } from '@/src/client/components/global/layout/Stack';
-import { Cluster } from '@/src/client/components/global/layout/Cluster';
+
 import { useWizardContext } from '../../providers/WizardProvider';
 import { CurriculumToolbar } from '../CurriculumToolbar/CurriculumToolbar';
 import { CurriculumStats } from '../CurriculumStats/CurriculumStats';
@@ -86,13 +85,13 @@ export function CurriculumStep() {
   }
 
   return (
-    <Stack gap="5" className={styles.root}>
-      <Cluster align="center" justify="between" gap="4">
+    <div className={styles.root}>
+      <div className={styles.header}>
         <div style={{ flex: 1 }}>
           <CurriculumToolbar />
         </div>
         <CurriculumQuality />
-      </Cluster>
+      </div>
 
       <CurriculumChecklist />
       <CurriculumStats />
@@ -108,6 +107,6 @@ export function CurriculumStep() {
       <CurriculumBulkBar />
 
       {showPalette && <CurriculumShortcutsModal onClose={() => setShowPalette(false)} />}
-    </Stack>
+    </div>
   );
 }

@@ -86,7 +86,7 @@ function ImportedLessonRow({ source }: { source: ImportedSourceModel }) {
 
 function SourcePreview({ source }: { source: ImportedSourceModel }) {
   return (
-    <Surface variant="subtle" padding="md" className={styles.preview}>
+    <div className={styles.preview}>
       <div className={styles.previewHero}>
         <Image width={400} height={300} className={styles.previewImage} src={source.thumbnail} alt=""  />
         <div className={styles.previewCopy}>
@@ -103,7 +103,7 @@ function SourcePreview({ source }: { source: ImportedSourceModel }) {
       </div>
 
       <ImportedLessonRow source={source} />
-    </Surface>
+    </div>
   );
 }
 
@@ -135,7 +135,7 @@ function StageRail({ stages }: { stages: ImportPipelineStageModel[] }) {
 
 function SourceImportCard({ card }: { card: SourceImportCardModel }) {
   return (
-    <Surface variant="subtle" padding="md" className={styles.sourceCard}>
+    <div className={styles.sourceCard}>
       <div className={styles.sourceHeader}>
         <div>
           <Badge variant={badgeVariant(card.status)} size="sm">
@@ -194,13 +194,13 @@ function SourceImportCard({ card }: { card: SourceImportCardModel }) {
           </div>
         </div>
       ) : null}
-    </Surface>
+    </div>
   );
 }
 
 function LiveFeed({ items }: { items: ImportWorkspaceModel['feed'] }) {
   return (
-    <Surface variant="subtle" padding="md" className={styles.feedPanel}>
+    <div className={styles.feedPanel}>
       <div className={styles.panelHeader}>
         <Heading level={3} className={styles.panelTitle}>
           Live Feed
@@ -234,7 +234,7 @@ function LiveFeed({ items }: { items: ImportWorkspaceModel['feed'] }) {
           </div>
         )}
       </div>
-    </Surface>
+    </div>
   );
 }
 
@@ -271,7 +271,7 @@ export function ImportWorkspace({ workspace, onCancel, onRetry }: ImportWorkspac
           </Cluster>
         </div>
 
-        <Surface variant="elevated" padding="lg" className={styles.summary}>
+        <div className={styles.summary}>
           <div className={styles.summaryTop}>
             <div className={styles.summaryCopy}>
               <Text variant="small" className={styles.summaryLabel}>
@@ -322,11 +322,11 @@ export function ImportWorkspace({ workspace, onCancel, onRetry }: ImportWorkspac
               </div>
             </div>
           ) : null}
-        </Surface>
+        </div>
 
         <div className={styles.grid}>
           <div className={styles.leftColumn}>
-            <Surface variant="subtle" padding="md" className={styles.pipelinePanel}>
+            <div className={styles.pipelinePanel}>
               <div className={styles.panelHeader}>
                 <Heading level={3} className={styles.panelTitle}>
                   Pipeline Stages
@@ -336,7 +336,7 @@ export function ImportWorkspace({ workspace, onCancel, onRetry }: ImportWorkspac
                 </Badge>
               </div>
               <StageRail stages={activeCard?.stages ?? []} />
-            </Surface>
+            </div>
 
             <div className={styles.cards}>
               {workspace.sourceCards.map((card) => (
@@ -349,9 +349,9 @@ export function ImportWorkspace({ workspace, onCancel, onRetry }: ImportWorkspac
             {previewSource ? (
               <SourcePreview source={previewSource} />
             ) : (
-              <Surface variant="subtle" padding="md" className={styles.previewEmpty}>
+              <div className={styles.previewEmpty}>
                 <Text variant="muted">Imported lessons will appear here as metadata arrives.</Text>
-              </Surface>
+              </div>
             )}
 
             <LiveFeed items={workspace.feed} />

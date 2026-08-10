@@ -7,7 +7,6 @@ import { Badge } from '@/src/client/components/ui/Badge/Badge';
 import { Button } from '@/src/client/components/ui/Button/Button';
 import { Cluster } from '@/src/client/components/global/layout/Cluster';
 import { Stack } from '@/src/client/components/global/layout/Stack';
-import { Surface } from '@/src/client/components/global/layout/Surface';
 import { Heading } from '@/src/client/components/ui/Typography/Heading';
 import { Text } from '@/src/client/components/ui/Typography/Text';
 
@@ -65,7 +64,18 @@ export function SourcesStep({ sources, importWorkspace }: SourcesStepProps) {
           </div>
 
           {sources.sources.length === 0 ? (
-            <Surface variant="subtle" className={styles.emptyState}>
+            <div 
+              className={`${styles.emptyState} ${draggingSourceId === 'dropzone' ? styles.dragActive : ''}`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDraggingSourceId('dropzone');
+              }}
+              onDragLeave={() => setDraggingSourceId(null)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDraggingSourceId(null);
+              }}
+            >
               <Stack gap="4" align="center">
                 <FileSearch size={32} style={{ color: 'var(--color-text-muted)' }} />
                 <Text variant="muted">{sources.emptyLabel}</Text>
@@ -73,7 +83,7 @@ export function SourcesStep({ sources, importWorkspace }: SourcesStepProps) {
                   Add first source
                 </Button>
               </Stack>
-            </Surface>
+            </div>
           ) : (
             <Stack gap="4">
               {orderedSources.map(({ source, previousId, nextId }) => (

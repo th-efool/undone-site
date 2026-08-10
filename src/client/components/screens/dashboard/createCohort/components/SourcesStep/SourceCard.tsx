@@ -5,7 +5,6 @@ import { ChevronDown, ChevronUp, Copy, GripVertical, Trash2, Link } from 'lucide
 
 import { Badge } from '@/src/client/components/ui/Badge/Badge';
 import { Button } from '@/src/client/components/ui/Button/Button';
-import { Surface } from '@/src/client/components/global/layout/Surface';
 
 import type { CreateCohortSourceModel } from '../../models/createCohort';
 import { useWizardContext } from '../../providers/WizardProvider';
@@ -38,8 +37,7 @@ export function SourceCard({
   const { actions } = useWizardContext();
 
   return (
-    <Surface
-      variant="default"
+    <div
       className={`${styles.card} ${dragging ? styles.dragging : ''}`}
       draggable
       onDragStart={() => onDragStart(source.id)}
@@ -125,6 +123,6 @@ export function SourceCard({
           </Button>
         </div>
       </div>
-    </Surface>
+    </div>
   );
 }

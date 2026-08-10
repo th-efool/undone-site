@@ -13,7 +13,6 @@ import { PublishingModal } from '../PublishingModal/PublishingModal';
 import { LaunchSuccess } from '../LaunchSuccess/LaunchSuccess';
 import { Stack } from '@/src/client/components/global/layout/Stack';
 import { Cluster } from '@/src/client/components/global/layout/Cluster';
-import { Surface } from '@/src/client/components/global/layout/Surface';
 import { Button } from '@/src/client/components/ui/Button/Button';
 import { Text } from '@/src/client/components/ui/Typography/Text';
 
@@ -30,20 +29,25 @@ export function LaunchStep() {
 
   if (!curriculum) {
     return (
-      <Surface padding="xl" style={{ textAlign: 'center' }}>
+      <div className={styles.emptyState}>
         <Text variant="muted">
           No curriculum generated yet. Please generate curriculum in Step 3 before launching.
         </Text>
-      </Surface>
+      </div>
     );
   }
 
   return (
-    <Stack gap="6" className={styles.root}>
-      {/* Top Launch Summary Banner */}
-      <div className={styles.summaryStrip}>
-        <div className={styles.summaryLeft}>
-          <Image width={400} height={300}
+    <div className={styles.specSheet}>
+      <div className={styles.specRow}>
+        <span className={styles.specLabel}>Cohort Title</span>
+        <span className={styles.specValue}>{state.draft.title || 'Untitled Cohort'}</span>
+      </div>
+      
+      <div className={styles.specRow}>
+        <span className={styles.specLabel}>Artwork</span>
+        <span className={styles.specValue}>
+          <Image width={90} height={56}
             src={state.draft.coverImage || '/mock/thumbnails/docker.avif'}
             alt={state.draft.title}
             className={styles.artwork}
@@ -51,33 +55,72 @@ export function LaunchStep() {
               (e.target as HTMLImageElement).src = '/mock/thumbnails/docker.avif';
             }}
           />
+        </span>
+      </div>
+      
+      <div className={styles.specRow}>
+        <span className={styles.specLabel}>Curriculum</span>
+        <span className={styles.specValue}>
+          <Clock size={12} style={{ display: 'inline', marginRight: 4 }} />
+          {curriculum.totalHours} &bull; <Layers size={12} style={{ display: 'inline', margin: '0 4px' }} />
+          {curriculum.totalSeasons} seasons &bull; <BookOpen size={12} style={{ display: 'inline', margin: '0 4px' }} />
+          {curriculum.totalLessons} lessons
+        </span>
+      </div>
+      
+      <div className={styles.specRow}>
+        <span className={styles.specLabel}>Visibility</span>
+        <span className={styles.specValue}>{launchState.journeySettings.visibility}</span>
+      </div>
 
-          <div>
-            <span className={styles.summaryTitle}>{state.draft.title || 'Untitled Cohort'}</span>
-            <div className={styles.summaryMeta}>
-              <span>
-                <Clock size={12} style={{ display: 'inline', marginRight: 3 }} />
-                {curriculum.totalHours}
-              </span>
-              <span>•</span>
-              <span>
-                <Layers size={12} style={{ display: 'inline', marginRight: 3 }} />
-                {curriculum.totalSeasons} seasons
-              </span>
-              <span>•</span>
-              <span>
-                <BookOpen size={12} style={{ display: 'inline', marginRight: 3 }} />
-                {curriculum.totalLessons} lessons
-              </span>
-            </div>
+      <div className={styles.specRow}>
+        <span className={styles.specLabel}>Learner Preview</span>
+        <div className={styles.specValue}>
+          <LearnerPreview />
+        </div>
+      </div>
+
+      <div className={styles.specRow}>
+        <span className={styles.specLabel}>Launch Checklist</span>
+        <div className={styles.specValue}>
+          <LaunchChecklist />
+        </div>
+      </div>
+
+      <div className={styles.specRow}>
+        <span className={styles.specLabel}>Onboarding</span>
+        <div className={styles.specValue}>
+          <OnboardingConfig />
+        </div>
+      </div>
+
+      <div className={styles.specRow}>
+        <span className={styles.specLabel}>Community</span>
+        <div className={styles.specValue}>
+          <CommunityConfig />
+        </div>
+      </div>
+
+      <div className={styles.specRow}>
+        <span className={styles.specLabel}>Journey Settings</span>
+        <div className={styles.specValue}>
+          <JourneySettingsConfig />
+        </div>
+      </div>
+
+      {launchState.publishError && (
+        <div className={styles.specRow}>
+          <span className={styles.specLabel}>Status</span>
+          <div className={`${styles.specValue} ${styles.errorValue}`}>
+            <AlertCircle size={16} style={{ display: 'inline', marginRight: 4 }} />
+            {launchState.publishError}
           </div>
         </div>
+      )}
 
-        <Cluster gap="3">
-          <Badge variant="success" size="md">
-            {launchState.journeySettings.visibility}
-          </Badge>
-
+      <div className={styles.specRow} style={{ borderBottom: 'none' }}>
+        <span className={styles.specLabel}>Action</span>
+        <div className={styles.specValue}>
           <Button
             type="button"
             onClick={actions.publishCohort}
@@ -87,44 +130,10 @@ export function LaunchStep() {
             <Rocket size={18} />
             Publish Cohort
           </Button>
-        </Cluster>
+        </div>
       </div>
 
-      {launchState.publishError && (
-        <Surface
-          style={{
-            background: 'var(--color-error-bg)',
-            border: '1px solid var(--color-error)',
-            borderRadius: 'var(--radius-md)',
-            color: 'var(--color-error)',
-            fontSize: 'var(--font-small-size)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-          }}
-        >
-          <AlertCircle size={16} />
-          {launchState.publishError}
-        </Surface>
-      )}
-
-      {/* Centerpiece: Real Learner Preview */}
-      <LearnerPreview />
-
-      {/* Validation Checklist */}
-      <LaunchChecklist />
-
-      {/* Onboarding & First-Time Learner Experience */}
-      <OnboardingConfig />
-
-      {/* Community Feature Toggles */}
-      <CommunityConfig />
-
-      {/* Discovery & Visibility Settings */}
-      <JourneySettingsConfig />
-
-      {/* Publishing Progress Overlay Modal */}
       <PublishingModal />
-    </Stack>
+    </div>
   );
 }

@@ -7,10 +7,7 @@ import { useWizardContext } from '../../providers/WizardProvider';
 import { Container } from '@/src/client/components/global/layout/Container';
 import { Stack } from '@/src/client/components/global/layout/Stack';
 import { Cluster } from '@/src/client/components/global/layout/Cluster';
-import { Section } from '@/src/client/components/global/layout/Section';
-import { Surface } from '@/src/client/components/global/layout/Surface';
-import { SectionHeader } from '@/src/client/components/global/layout/SectionHeader';
-import { Badge } from '@/src/client/components/ui/Badge/Badge';
+
 
 import styles from './TopicStep.module.css';
 
@@ -24,14 +21,10 @@ export function TopicStep({ details }: TopicStepProps) {
 
   return (
     <Container size="md" className={styles.container}>
-      <Section>
-        <SectionHeader
-          title="What subject will this cohort master?"
-          description="Select your core topic and target audience. You will import your content sources next!"
-          eyebrow={<Badge variant="brand" size="sm">Step 1: Intent & Category</Badge>}
-        />
+      <Stack gap="5">
+        <h2 className={styles.sharpHeading}>What subject will this cohort master?</h2>
 
-        <Stack gap="5" className={styles.card}>
+        <Stack gap="5">
           {/* Field 1: Primary Topic */}
           <Stack gap="2" className={styles.fieldGroup}>
             <label htmlFor="topic-input" className={styles.label}>
@@ -49,7 +42,7 @@ export function TopicStep({ details }: TopicStepProps) {
           {/* Field 2: Category Chips */}
           <Stack gap="2" className={styles.fieldGroup}>
             <label className={styles.label}>Category</label>
-            <Cluster gap="2" className={styles.categoryGrid}>
+            <Cluster gap="0" className={styles.categoryGrid}>
               {details.categoryOptions.map((cat) => {
                 const selected = draft.categories.includes(cat.label);
                 return (
@@ -71,7 +64,7 @@ export function TopicStep({ details }: TopicStepProps) {
           <Cluster gap="4" className={styles.twoCol}>
             <Stack gap="2" className={styles.fieldGroup}>
               <label className={styles.label}>Difficulty Level</label>
-              <Cluster gap="2" className={styles.difficultyGrid}>
+              <Cluster gap="0" className={styles.difficultyGrid}>
                 {['Beginner', 'Intermediate', 'Advanced'].map((diff) => {
                   const selected = draft.difficulty === diff;
                   return (
@@ -102,7 +95,7 @@ export function TopicStep({ details }: TopicStepProps) {
             </Stack>
           </Cluster>
         </Stack>
-      </Section>
+      </Stack>
     </Container>
   );
 }

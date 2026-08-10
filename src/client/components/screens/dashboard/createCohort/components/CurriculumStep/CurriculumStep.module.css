@@ -1,14 +1,18 @@
 .root {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
   width: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .mainArea {
   display: flex;
-  gap: var(--space-5);
-  align-items: flex-start;
+  align-items: stretch;
   width: 100%;
 }
 

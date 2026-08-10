@@ -59,17 +59,17 @@
 .progressTrack {
   width: 100%;
   overflow: hidden;
-  background: var(--color-border-subtle);
+  background: #27272a;
 }
 
 .progressTrackLarge {
-  height: 0.5rem;
-  border-radius: 999px;
+  height: 1px;
+  border-radius: 0;
 }
 
 .progressTrack {
-  height: 0.375rem;
-  border-radius: 999px;
+  height: 1px;
+  border-radius: 0;
 }
 
 .progressFillLarge,
@@ -77,8 +77,7 @@
 .stageFill {
   display: block;
   height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--color-brand-500), var(--color-brand-400));
+  background: #ffffff;
 }
 
 .topError,
@@ -132,7 +131,15 @@
 .rightColumn,
 .cards {
   display: grid;
-  gap: var(--space-4);
+  gap: 0;
+}
+
+.pipelinePanel,
+.feedPanel,
+.sourceCard,
+.preview {
+  padding-block: var(--space-6);
+  border-bottom: 1px solid #27272a;
 }
 
 .stageRail {
@@ -169,10 +176,10 @@
 }
 
 .stageTrack {
-  height: 0.3125rem;
-  border-radius: 999px;
+  height: 1px;
+  border-radius: 0;
   overflow: hidden;
-  background: var(--color-border-subtle);
+  background: #27272a;
 }
 
 .sourceCard {
@@ -246,12 +253,13 @@
 
 .feedList {
   display: grid;
-  gap: var(--space-3);
+  gap: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .feedItem {
-  padding-block: var(--space-2);
-  border-top: 1px solid var(--color-border-subtle);
+  padding-block: var(--space-1);
+  border-bottom: 1px solid #27272a;
 }
 
 .feedTone {

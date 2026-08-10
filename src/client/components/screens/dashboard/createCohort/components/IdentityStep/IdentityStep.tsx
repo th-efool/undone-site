@@ -1,13 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, X, Image as ImageIcon, Zap, BookOpen, Target, Compass, Sparkles, Star } from 'lucide-react';
+
+const COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#64748b'];
+const ICONS = [Zap, BookOpen, Target, Compass, Sparkles, Star];
 
 import { Button } from '@/src/client/components/ui/Button/Button';
 import { Badge } from '@/src/client/components/ui/Badge/Badge';
 import { Stack } from '@/src/client/components/global/layout/Stack';
 import { Cluster } from '@/src/client/components/global/layout/Cluster';
-import { Surface } from '@/src/client/components/global/layout/Surface';
 import type { CreateCohortDetailsModel } from '../../models/createCohort';
 import { useWizardContext } from '../../providers/WizardProvider';
 import { LearnerPreview } from '../LearnerPreview/LearnerPreview';
@@ -25,6 +27,8 @@ export function IdentityStep({ details }: IdentityStepProps) {
   const [tagInput, setTagInput] = useState('');
   const [reqInput, setReqInput] = useState('');
   const [outcomeInput, setOutcomeInput] = useState('');
+  const [selectedColor, setSelectedColor] = useState(COLORS[0]);
+  const [selectedIconIndex, setSelectedIconIndex] = useState(0);
 
   const isTitleMissing = !draft.title || draft.title.trim() === '';
 
@@ -63,7 +67,7 @@ export function IdentityStep({ details }: IdentityStepProps) {
           </p>
         </Stack>
 
-        <Surface className={styles.card}>
+        <div className={styles.card}>
           <Cluster className={styles.twoCol}>
             <div className={styles.field}>
               <label htmlFor="identity-title" className={styles.label}>
@@ -92,6 +96,41 @@ export function IdentityStep({ details }: IdentityStepProps) {
                 className={styles.input}
                 onChange={(e) => actions.updateDraftField('subtitle', e.target.value)}
               />
+            </div>
+          </Cluster>
+
+          <Cluster className={styles.twoCol}>
+            <div className={styles.field}>
+              <label className={styles.label}>Brand Color</label>
+              <div className={styles.colorGrid}>
+                {COLORS.map(color => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={styles.colorBtn}
+                    data-selected={selectedColor === color}
+                    style={{ backgroundColor: color }}
+                    onClick={() => setSelectedColor(color)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>Brand Icon</label>
+              <div className={styles.iconGrid}>
+                {ICONS.map((Icon, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    className={styles.iconBtn}
+                    data-selected={selectedIconIndex === idx}
+                    onClick={() => setSelectedIconIndex(idx)}
+                  >
+                    <Icon size={20} />
+                  </button>
+                ))}
+              </div>
             </div>
           </Cluster>
 
@@ -200,12 +239,12 @@ export function IdentityStep({ details }: IdentityStepProps) {
               </Stack>
             </div>
           </Cluster>
-        </Surface>
+        </div>
       </Stack>
 
       {/* Bottom Section: Full-Width Live Overview Page Preview */}
       <div className={styles.previewSection}>
-        <Surface className={styles.previewCard}>
+        <div className={styles.previewCard}>
           <div className={styles.previewHeader}>
             <span className={styles.previewTag}>Live Overview Page Preview</span>
             <span className={styles.previewHelp}>Full-width preview updates in real-time as you edit above</span>
@@ -213,7 +252,7 @@ export function IdentityStep({ details }: IdentityStepProps) {
           <div className={styles.previewCanvas}>
             <LearnerPreview />
           </div>
-        </Surface>
+        </div>
       </div>
     </Stack>
   );
