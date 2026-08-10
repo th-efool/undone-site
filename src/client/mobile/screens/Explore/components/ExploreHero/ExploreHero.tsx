@@ -5,13 +5,10 @@ export function ExploreHero() {
   return (
     <section className={styles.hero}>
       <div className={styles.bannerContainer}>
-        <Image
+        <img
           src="/mobile/explore/explore-hero-banner-mobile.webp"
           alt="Explore Banner"
-          width={1000}
-          height={1000}
           className={styles.bannerImage}
-          priority
         />
       </div>
       

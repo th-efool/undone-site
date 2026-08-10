@@ -1,7 +1,7 @@
 .container {
   width: 100%;
   padding: 0 20px;
-  margin-top: 12px; /* Shifted down slightly */
+  margin-top: -20px; /* Pull up to sit exactly halfway on the image and halfway out */
   position: relative;
   z-index: 3;
 }
