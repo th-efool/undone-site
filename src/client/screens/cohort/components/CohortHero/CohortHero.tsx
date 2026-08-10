@@ -102,11 +102,9 @@ export function CohortHero({ cohort }: CohortHeroProps) {
         </a>
 
         <div className={styles.actions}>
-          {!isApp && (
-            <a href={`/message?community=${cohort.id}`}>
-              <MessageCircle size={18} /> Discuss
-            </a>
-          )}
+          <a href={`/message?community=${cohort.id}`}>
+            <MessageCircle size={18} /> Discuss
+          </a>
           <button
             type="button"
             aria-label="Bookmark cohort"

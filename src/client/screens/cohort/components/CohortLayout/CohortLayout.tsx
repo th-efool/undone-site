@@ -70,15 +70,13 @@ export function CohortLayout({ cohort, navigationItems, children }: CohortLayout
 
         <SearchBar className={styles.searchBar} />
 
-        {!isApp && (
-          <Link
-            href={`/message?community=${cohort.id}`}
-            className={styles.pillButton}
-          >
-            <MessageCircle size={17} strokeWidth={2.5} />
-            <span>Community</span>
-          </Link>
-        )}
+        <Link
+          href={`/message?community=${cohort.id}`}
+          className={styles.pillButton}
+        >
+          <MessageCircle size={17} strokeWidth={2.5} />
+          <span>Community</span>
+        </Link>
       </div>
 
       <CohortHero cohort={cohort} />
