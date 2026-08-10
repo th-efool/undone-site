@@ -4,9 +4,9 @@ import {
   LessonStatus,
   LessonType,
   SeasonStatus,
-} from '@/src/client/components/screens/cohort/models';
-import type { Cohort } from '@/src/client/components/screens/cohort/models';
-import { cohortMock as deepWorkMastery } from '@/src/client/components/screens/cohort/mocks/cohortMock';
+} from '@/src/client/screens/cohort/models';
+import type { Cohort } from '@/src/client/screens/cohort/models';
+import { cohortMock as deepWorkMastery } from '@/src/client/screens/cohort/mocks/cohortMock';
 
 type Seed = {
   id: string;

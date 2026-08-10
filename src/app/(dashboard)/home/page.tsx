@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import dynamic from 'next/dynamic';
 
-const Home = dynamic(() => import('@/src/client/components/screens/dashboard/home').then((mod) => mod.Home));
+const Home = dynamic(() => import('@/src/client/screens/dashboard/home').then((mod) => mod.Home));
 
 export const metadata: Metadata = {
   title: 'Dashboard | SideQuestHQ',

@@ -1,5 +1,5 @@
-import { homeMock } from '@/src/client/components/screens/dashboard/home/mock/home.mock';
-import type { ActiveCohort, HomeModel } from '@/src/client/components/screens/dashboard/home/models';
+import { homeMock } from '@/src/client/screens/dashboard/home/mock/home.mock';
+import type { ActiveCohort, HomeModel } from '@/src/client/screens/dashboard/home/models';
 import { cohortRepository } from './cohortRepository';
 import { cohortStore } from './cohortStore';
 import { feedCohortIds } from '@/src/client/mock/cohorts/feedCohorts';

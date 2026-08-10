@@ -1,5 +1,5 @@
-import { exploreMock } from '@/src/client/components/screens/dashboard/explore/mock/explore.mock';
-import type { ExploreModel, TrendingCourse } from '@/src/client/components/screens/dashboard/explore/models';
+import { exploreMock } from '@/src/client/screens/dashboard/explore/mock/explore.mock';
+import type { ExploreModel, TrendingCourse } from '@/src/client/screens/dashboard/explore/models';
 import { isNativeApp } from '@/src/client/utils/isNative';
 import { cohortRepository } from './cohortRepository';
 import { getAvatarSlice } from '@/src/client/mock/avatars';

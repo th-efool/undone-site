@@ -1,2 +1,0 @@
-export { CreateCohort } from './CreateCohort';
-

@@ -1,4 +1,4 @@
-import { Cohort } from '@/src/client/components/screens/cohort';
+import { Cohort } from '@/src/client/screens/cohort';
 import { getCohortStaticParams } from '@/src/shared/mobile/cohortStaticParams';
 
 export function generateStaticParams() {

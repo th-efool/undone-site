@@ -9,7 +9,7 @@ import type {
   CohortLearnerState,
   FeedEngineOutput,
 } from '@/src/shared/feed/feedEngine.types';
-import { LessonStatus, LessonType, SeasonStatus } from '@/src/client/components/screens/cohort/models';
+import { LessonStatus, LessonType, SeasonStatus } from '@/src/client/screens/cohort/models';
 
 const FEED_PROGRESS_KEY = 'sidequest_feed_progress';
 const COHORT_STATES_KEY = 'sidequest_cohort_states';

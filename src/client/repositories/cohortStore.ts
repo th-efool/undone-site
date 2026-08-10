@@ -1,7 +1,7 @@
-import type { Cohort } from '@/src/client/components/screens/cohort/models';
+import type { Cohort } from '@/src/client/screens/cohort/models';
 import { cohortCatalog } from '@/src/client/mock/cohorts/cohortCatalog';
 import { feedCohorts } from '@/src/client/mock/cohorts/feedCohorts';
-import { LessonStatus, LessonType, SeasonStatus } from '@/src/client/components/screens/cohort/models';
+import { LessonStatus, LessonType, SeasonStatus } from '@/src/client/screens/cohort/models';
 import { isNativeApp } from '@/src/client/utils/isNative';
 import { storageAdapter } from './storageAdapter';
 import { getAvatar, getAvatarSlice } from '@/src/client/mock/avatars';

@@ -1,4 +1,4 @@
-import type { Cohort } from '@/src/client/components/screens/cohort/models';
+import type { Cohort } from '@/src/client/screens/cohort/models';
 
 const STORAGE_KEY = 'sidequest_published_cohorts';
 

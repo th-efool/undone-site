@@ -1,4 +1,4 @@
-import type { ActiveCohort, PausedCohort } from '@/src/client/components/screens/dashboard/home/models';
+import type { ActiveCohort, PausedCohort } from '@/src/client/screens/dashboard/home/models';
 
 const STORAGE_KEY = 'sidequest_home_choices';
 

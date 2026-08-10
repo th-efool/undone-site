@@ -3,7 +3,7 @@ import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 
 const Notes = dynamic(
-  () => import('@/src/client/components/screens/dashboard/notes').then((mod) => mod.Notes)
+  () => import('@/src/client/screens/dashboard/notes').then((mod) => mod.Notes)
 );
 
 export const metadata: Metadata = {

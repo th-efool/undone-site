@@ -9,9 +9,9 @@ import {
   LessonStatus,
   LessonType,
   SeasonStatus,
-} from '@/src/client/components/screens/cohort/models';
-import type { Cohort, Lesson, Season, LessonChunk } from '@/src/client/components/screens/cohort/models';
-import { cohortMock as deepWorkMastery } from '@/src/client/components/screens/cohort/mocks/cohortMock';
+} from '@/src/client/screens/cohort/models';
+import type { Cohort, Lesson, Season, LessonChunk } from '@/src/client/screens/cohort/models';
+import { cohortMock as deepWorkMastery } from '@/src/client/screens/cohort/mocks/cohortMock';
 
 import { ALL_MOCK_AVATARS, getAvatar } from '@/src/client/mock/avatars';
 

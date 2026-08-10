@@ -1,5 +1,5 @@
-import { dmConversationMock } from '@/src/client/components/screens/dashboard/message/mock/dmConversation.mock';
-import { messageMock } from '@/src/client/components/screens/dashboard/message/mock/message.mock';
+import { dmConversationMock } from '@/src/client/screens/dashboard/message/mock/dmConversation.mock';
+import { messageMock } from '@/src/client/screens/dashboard/message/mock/message.mock';
 import { homeRepository } from './homeRepository';
 
 export const messagesRepository = {

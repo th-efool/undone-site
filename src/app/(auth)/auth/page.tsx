@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import dynamic from 'next/dynamic';
 
-const Auth = dynamic(() => import('@/src/client/components/screens/auth/').then((mod) => mod.Auth));
+const Auth = dynamic(() => import('@/src/client/screens/auth/').then((mod) => mod.Auth));
 
 export const metadata: Metadata = {
   title: 'Sign In | SideQuestHQ',

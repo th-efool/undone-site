@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
 
-const HallOfFame = dynamic(() => import('@/src/client/components/screens/cohort').then((mod) => mod.HallOfFame));
+const HallOfFame = dynamic(() => import('@/src/client/screens/cohort').then((mod) => mod.HallOfFame));
 
 export async function generateMetadata({ params }: { params: Promise<{ cohortId: string }> }): Promise<Metadata> {
   const { cohortId } = await params;

@@ -1,5 +1,5 @@
-import { cohortNavigationItems } from '@/src/client/components/screens/cohort/mocks/cohortMock';
-import type { Cohort } from '@/src/client/components/screens/cohort/models';
+import { cohortNavigationItems } from '@/src/client/screens/cohort/mocks/cohortMock';
+import type { Cohort } from '@/src/client/screens/cohort/models';
 import { cohortStore } from './cohortStore';
 
 /**

@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 import React, { Suspense } from 'react';
 
 const CreateCohort = dynamic(
-  () => import('@/src/client/components/screens/dashboard/createCohort').then((mod) => mod.CreateCohort)
+  () => import('@/src/client/screens/dashboard/createCohort').then((mod) => mod.CreateCohort)
 );
 
 export const metadata: Metadata = {

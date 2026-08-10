@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import { PlaySkeleton } from '@/src/client/components/global/Skeleton';
 
 const Play = dynamic(
-  () => import('@/src/client/components/screens/dashboard/play').then((mod) => mod.Play)
+  () => import('@/src/client/screens/dashboard/play').then((mod) => mod.Play)
 );
 
 export const metadata: Metadata = {

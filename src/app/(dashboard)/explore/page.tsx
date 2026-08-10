@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import dynamic from 'next/dynamic';
 
-const Explore = dynamic(() => import('@/src/client/components/screens/dashboard/explore').then((mod) => mod.Explore));
+const Explore = dynamic(() => import('@/src/client/screens/dashboard/explore').then((mod) => mod.Explore));
 
 export const metadata: Metadata = {
   title: 'Explore | SideQuestHQ',
