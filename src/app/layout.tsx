@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Caveat, Dancing_Script, Geist, Geist_Mono, Manrope, Lora } from 'next/font/google';
+import { Caveat, Dancing_Script, Geist, Geist_Mono, Manrope, Lora, Playfair_Display } from 'next/font/google';
 import { CapacitorBridge } from '@/src/client/components/global/CapacitorBridge/CapacitorBridge';
 import { ReactQueryProvider } from '@/src/client/providers/ReactQueryProvider';
 import { SliderProgressEngine } from '@/src/client/components/ui/Slider/SliderProgressEngine';
@@ -37,6 +37,11 @@ const lora = Lora({
   variable: '--font-lora',
   subsets: ['latin'],
   style: ['italic'],
+});
+
+const playfairDisplay = Playfair_Display({
+  variable: '--font-playfair-display',
+  subsets: ['latin'],
 });
 
 
@@ -129,7 +134,7 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} ${caveat.variable} ${dancingScript.variable} ${lora.variable}`}
+      className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} ${caveat.variable} ${dancingScript.variable} ${lora.variable} ${playfairDisplay.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background text-text font-sans antialiased">

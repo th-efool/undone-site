@@ -1,0 +1,263 @@
+.outerContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  background: transparent; /* Changed from #fcfcf9 to transparent to fix edge artifacts */
+  position: relative;
+  z-index: 10;
+  margin-top: 8px; /* Halved top margin */
+}
+
+.pullTabContainer {
+  display: flex;
+  justify-content: center;
+  padding: 4px 0; /* Reduced to pull the card visually closer */
+  background: transparent; /* Changed from #fcfcf9 to transparent to fix edge artifacts */
+}
+
+.pullTab {
+  width: 48px;
+  height: 4px;
+  border-radius: 4px;
+  background: #cbd5e1;
+}
+
+.cardContainer {
+  position: relative;
+  width: 100%;
+  min-height: 400px; /* Reduced from 460px as requested */
+  border-radius: 24px; /* Squircle for all corners, slightly less round than 28 */
+  overflow: hidden;
+  background-color: #0a0c25; /* Updated per user request */
+  display: flex;
+  flex-direction: column;
+}
+
+.background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.image {
+  object-fit: cover;
+  object-position: right center; /* keep bottle visible on right */
+}
+
+/* 
+  Gradient is primarily on the left to allow text readability.
+  The right side (where the bottle is) must remain fully transparent.
+  Bottom has a slight gradient for the action bar.
+*/
+.gradientOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to right, rgba(12, 13, 38, 1) 0%, rgba(12, 13, 38, 0.95) 45%, rgba(12, 13, 38, 0) 75%),
+              linear-gradient(to top, rgba(12, 13, 38, 1) 0%, rgba(12, 13, 38, 0.9) 20%, rgba(12, 13, 38, 0) 45%);
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 24px 16px 24px; /* Pulled bottom padding from 24px to 16px to drop the action bar lower */
+  flex: 1;
+  height: 100%;
+}
+
+.topBadge {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  padding: 0px 8px 0px 13px; /* Added 5px to the left padding */
+  border-radius: 16px;
+  margin-bottom: auto; /* Pushes everything else down */
+  margin-top: -10px; /* Pulls from 24px padding to 14px from top edge */
+  margin-left: -10px; /* Pulls from 24px padding to 14px from left edge */
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  background-color: #312e81; /* Dark indigo/purple */
+  border-radius: 50%;
+}
+
+.badgeText {
+  font-family: var(--font-serif, serif);
+  font-size: 16px; /* Increased size */
+  font-weight: 800; /* Increased by 100 */
+  color: #312e81; /* match dot color */
+  line-height: 1; /* Match height exactly */
+  padding: 4px 0; /* Add slight padding on the text to give pill volume without wasting space */
+  text-shadow: 0 1px 2px rgba(49, 46, 129, 0.15);
+}
+
+.mainInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* Crushed gap between title and description */
+  margin-bottom: 12px; /* Crushed space before tags */
+  max-width: 75%; /* keep text on the gradient */
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-serif, serif); /* Target is Serif */
+  font-size: 34px; /* Decreased by 1px */
+  font-weight: 500; /* Decreased by 100 */
+  color: #ffffff;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  transform: scaleY(1.09); /* Stretch vertically */
+  transform-origin: left bottom; /* Grow upwards to avoid pushing into description */
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.4); /* text-shadow/blurish */
+}
+
+.description {
+  margin: 0;
+  font-family: var(--font-sans, sans-serif);
+  font-size: 16px;
+  color: #e2e8f0; /* off-white/light grey */
+  line-height: 1.3;
+}
+
+.participants {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.avatars {
+  display: flex;
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #94a3b8;
+  border: 2px solid #1a1525;
+  margin-left: -10px;
+}
+.avatar:first-child {
+  margin-left: 0;
+}
+
+.participantCount {
+  font-family: var(--font-sans, sans-serif);
+  font-size: 14px;
+  color: #f8fafc;
+  font-weight: 500;
+}
+
+.tagsRow {
+  display: flex;
+  flex-wrap: nowrap; /* prevent wrapping */
+  gap: 6px; /* reduce gap */
+  margin-bottom: 12px; /* Crushed space before metadata */
+  overflow: hidden; /* just in case */
+}
+
+.tag {
+  background: rgba(30, 27, 46, 0.8); /* Dark translucent */
+  padding: 6px 12px; 
+  border-radius: 20px;
+  font-family: var(--font-sans, sans-serif);
+  font-size: 11px; 
+  color: #ffffff;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.metadata {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px; /* Pulled extremely close to the divider */
+  color: #cbd5e1;
+}
+
+.metaIcon {
+  flex-shrink: 0;
+}
+
+.metaText {
+  font-family: var(--font-sans, sans-serif);
+  font-size: 13px;
+}
+
+.underline {
+  text-decoration: underline;
+}
+
+.actionBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 8px; /* Extra tight against the divider */
+}
+
+.actionLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.avatarsSmall {
+  display: flex;
+}
+
+.avatarSmall {
+  width: 28px;
+  height: 40px;
+  border-radius: 12px;
+  background-color: #64748b;
+  border: 2px solid #0c0d26;
+  margin-left: -8px;
+  object-fit: cover;
+}
+.avatarSmall:first-child {
+  margin-left: 0;
+}
+
+.actionCount {
+  font-family: var(--font-sans, sans-serif);
+  font-size: 14px;
+  font-weight: 500;
+  color: #f1f5f9;
+}
+
+.actionRight {
+  display: flex;
+  gap: 12px;
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 2px 10px; /* Reduced to ~4px vertical diff */
+  border-radius: 20px;
+  font-family: var(--font-sans, sans-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: #ffffff;
+  cursor: pointer;
+}

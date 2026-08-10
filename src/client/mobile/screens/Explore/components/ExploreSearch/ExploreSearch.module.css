@@ -1,0 +1,38 @@
+.container {
+  width: 100%;
+  padding: 0 20px;
+  margin-top: 12px; /* Shifted down slightly */
+  position: relative;
+  z-index: 3;
+  background: #fcfcf9; /* match cream background */
+}
+
+.searchWrapper {
+  display: flex;
+  align-items: center;
+  background-color: #ffffff;
+  border-radius: 100px; /* pill shape */
+  padding: 6px 14px; /* Reduced height and padding */
+  width: 81.5%; /* Increased width by 5% */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  gap: 6px; /* Decreased distance between search icon and text */
+}
+
+.icon {
+  color: #4a5568; /* dark grey */
+  flex-shrink: 0;
+}
+
+.input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans, sans-serif);
+  font-size: 14px; /* slightly smaller font for thinner bar */
+  color: #1a202c;
+  outline: none;
+}
+
+.input::placeholder {
+  color: #4a5568; /* Much darker grey */
+}

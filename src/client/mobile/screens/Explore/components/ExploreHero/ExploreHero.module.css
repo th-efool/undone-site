@@ -1,0 +1,78 @@
+.hero {
+  position: relative;
+  width: 100%;
+  padding-top: 48px; /* space from top */
+  padding-bottom: 32px; /* space before search */
+  display: flex;
+  align-items: center;
+  overflow: visible; /* do not clip the image */
+  background: #f9f4f0; /* match cream background */
+}
+
+.background {
+  /* Artwork escapes the normal flow and pushes into top right */
+  position: absolute;
+  top: -10px; /* Shifted down to prevent clipping at the very top of the screen */
+  right: 0px; /* Hugs the right edge */
+  width: 253px; /* Decreased by 7% */
+  height: 268px; /* Decreased by 7% */
+  z-index: 1;
+}
+
+.image {
+  object-fit: contain; /* or cover, depending on aspect ratio, but contain with shift works if the image has its own fade */
+  object-position: top right;
+}
+
+.content {
+  position: relative;
+  z-index: 2;
+  padding-left: 20px;
+  padding-top: 48px; /* Pushed significantly further down */
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 85%; /* Expanded to allow text to fit on one line */
+}
+
+.headline {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-playfair-display, serif);
+  font-size: 27px;
+  line-height: 0.95;
+  font-weight: 680;
+  letter-spacing: -0.02em;
+  transform: scaleY(1.06);
+  transform-origin: left bottom;
+  text-shadow: 0 4px 12px rgba(26, 32, 44, 0.15), 0 2px 4px rgba(26, 32, 44, 0.08);
+}
+
+.line1 {
+  color: #1a202c; /* Dark Navy */
+}
+
+.line2 {
+  color: #6b46c1; /* Vibrant Purple */
+}
+
+.subheadline {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-sans, sans-serif);
+  font-size: 15px; /* Increased by 2px */
+  line-height: 1.4;
+  font-weight: 800; /* Increased weight per request */
+  letter-spacing: 0.02em;
+  text-shadow: 0 4px 12px rgba(26, 32, 44, 0.1), 0 2px 4px rgba(26, 32, 44, 0.05);
+}
+
+.subline1 {
+  color: #1a202c; /* Dark Navy */
+}
+
+.subline2 {
+  color: #6b46c1; /* Vibrant Purple */
+}

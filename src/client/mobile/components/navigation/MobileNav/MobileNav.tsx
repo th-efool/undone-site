@@ -23,6 +23,20 @@ export function MobileNav() {
       navRef.current?.classList.toggle(styles.keyboardHidden, keyboardOpen);
     };
 
+    // Watch for global advertMode variable
+    // @ts-ignore
+    if (typeof window.advertMode === 'undefined') window.advertMode = true;
+    const advertInterval = setInterval(() => {
+      // @ts-ignore
+      if (window.advertMode) {
+        navRef.current?.classList.add(styles.keyboardHidden);
+      } else {
+        // Only remove if keyboard isn't open
+        const keyboardOpen = vv ? vv.height < window.innerHeight * 0.75 : false;
+        if (!keyboardOpen) navRef.current?.classList.remove(styles.keyboardHidden);
+      }
+    }, 500);
+
     if (vv) vv.addEventListener('resize', webHandler);
 
     void (async () => {
@@ -45,6 +59,7 @@ export function MobileNav() {
 
     return () => {
       cancelled = true;
+      clearInterval(advertInterval);
       if (vv) vv.removeEventListener('resize', webHandler);
     };
   }, []);

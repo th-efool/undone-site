@@ -1,0 +1,96 @@
+.container {
+  padding: 16px 0 12px 20px; /* Halved bottom padding */
+  display: flex;
+  flex-direction: column;
+  gap: 8px; /* Further reduced gap */
+  background: #f9f4f0; /* match cream background */
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-right: 20px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-serif, serif);
+  font-size: 18px;
+  font-weight: 600; /* Increased by 100 */
+  color: #1a202c; /* dark navy */
+}
+
+.viewAll {
+  background: transparent;
+  border: none;
+  font-family: var(--font-sans, sans-serif);
+  font-size: 13px;
+  font-weight: 500;
+  color: #f97316; /* using orange based on the screenshot, actually screenshot view all is orange */
+  padding: 0;
+  cursor: pointer;
+}
+
+.carouselContainer {
+  width: 100%;
+}
+
+.carousel {
+  display: flex;
+  gap: 6px; /* Reduced to fit all on screen */
+  overflow-x: auto;
+  padding-bottom: 0px; /* Absolute zero bottom padding */
+  padding-right: 20px; /* space at the end of scroll */
+  /* Hide scrollbar */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 60px; /* Increased by 10% from 54px */
+  height: 80px; /* Decreased by 10% */
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
+  flex-shrink: 0;
+}
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.topicName {
+  font-family: var(--font-sans, sans-serif);
+  font-size: 10px; /* Smaller text to fit narrow cards */
+  font-weight: 600;
+  color: #1a202c;
+  text-align: center;
+  line-height: 1.2;
+  white-space: pre-line;
+}
+
+.indicatorContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-right: 20px;
+  padding-bottom: 0px; /* Removed bottom padding */
+}
+
+.indicator {
+  width: 32px;
+  height: 4px;
+  background-color: #cbd5e1;
+  border-radius: 4px;
+}
