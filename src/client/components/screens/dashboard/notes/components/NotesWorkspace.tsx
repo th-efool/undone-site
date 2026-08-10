@@ -160,7 +160,7 @@ export function NotesWorkspace({
         </article>
       ) : selected.contentType === 'kanban' ? (
         <article className={styles.canvas}>
-          <NotesKanban key={selected.id} noteId={selected.id} />
+          <NotesKanban key={selected.id} noteId={selected.id} notes={notes} />
         </article>
       ) : (
         <article className={styles.canvas}>

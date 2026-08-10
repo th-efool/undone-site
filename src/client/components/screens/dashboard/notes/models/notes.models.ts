@@ -23,6 +23,8 @@ export type NoteDocument = {
   linkedResourceIds: string[];
   learningPathId: string | null;
   revision: number | null;
+  kanbanCards?: any[];
+  kanbanColumns?: { id: string; label: string }[];
 };
 
 export type NotebookEntity = {

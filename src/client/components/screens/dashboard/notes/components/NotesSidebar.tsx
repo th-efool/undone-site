@@ -5,6 +5,7 @@ import { SpaceHeader } from './RightColumn/SpaceHeader';
 import { TasksSection } from './RightColumn/TasksSection';
 import type { Task } from './RightColumn/TasksSection';
 import { WorkspaceSection } from './RightColumn/WorkspaceSection';
+import { RecentlyClosedSection } from './RightColumn/RecentlyClosedSection';
 import { Calendar } from '@/src/client/components/ui/Calendar';
 import type { CalendarEvent } from '@/src/client/components/ui/Calendar';
 import { SearchBar } from '@/src/client/components/global/SearchBar';
@@ -12,6 +13,7 @@ import styles from './NotesSidebar.module.css';
 import rightColStyles from './RightColumn/RightColumn.module.css';
 
 import type { useNotes } from '../hooks/useNotes';
+import { useRecentlyClosedNotes } from '../hooks/useRecentlyClosedNotes';
 
 type NotesContextType = ReturnType<typeof useNotes>;
 
@@ -28,6 +30,10 @@ export function NotesSidebar({
   isWorkspaceExpanded: boolean;
   setIsWorkspaceExpanded: (v: boolean) => void;
 }) {
+  const selectedNoteId = notes.data?.selectedNote?.id ?? null;
+  const selectedNoteTitle = notes.data?.selectedNote?.title;
+  const { closedNotes, removeClosedNote } = useRecentlyClosedNotes(selectedNoteId, selectedNoteTitle);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [workspaceSearch, setWorkspaceSearch] = useState('');
   const [isSearchingWorkspace, setIsSearchingWorkspace] = useState(false);
@@ -58,15 +64,53 @@ export function NotesSidebar({
 
   const currentTasks = React.useMemo(() => {
     if (!selectedNotebookId) return [];
-    if (!tasksByNotebook[selectedNotebookId]) {
-      const title = notes.data?.notebooks?.find(n => n.id === selectedNotebookId)?.title || 'General';
-      return [
-        { id: 1, title: `Review ${title}`, date: 'Jun 5', status: 'pending' },
-        { id: 2, title: `Update ${title} docs`, date: 'Jun 8', status: 'completed' },
-      ] as Task[];
-    }
-    return tasksByNotebook[selectedNotebookId];
-  }, [selectedNotebookId, tasksByNotebook, notes.data?.notebooks]);
+    
+    // Aggregate from notes in this notebook
+    const notebookNotes = notes.state?.notes?.filter(n => n.notebookId === selectedNotebookId && !n.archived && n.contentType === 'kanban') || [];
+    
+    const now = new Date();
+    // Calculate start and end of the current week (assuming Sunday start)
+    const currentDay = now.getDay();
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - currentDay);
+    weekStart.setHours(0, 0, 0, 0);
+    
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+
+    const aggregated: Task[] = [];
+    notebookNotes.forEach(note => {
+      if (note.kanbanCards) {
+        note.kanbanCards.forEach(card => {
+          const dateStr = card.dueDate || card.deadline;
+          if (dateStr) {
+            const date = new Date(dateStr);
+            if (!isNaN(date.getTime())) {
+              // Check if date is within current week
+              if (date >= weekStart && date <= weekEnd) {
+                // Format date nicely like "Jun 5"
+                const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                
+                // Status could be derived from column (e.g. done -> completed)
+                const isCompleted = card.column === 'done' || card.column?.toLowerCase().includes('done');
+                
+                aggregated.push({
+                  id: card.id,
+                  title: card.label || 'Untitled Card',
+                  date: formattedDate,
+                  status: isCompleted ? 'completed' : 'pending',
+                  noteId: note.id,
+                });
+              }
+            }
+          }
+        });
+      }
+    });
+
+    return aggregated.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [selectedNotebookId, notes.state?.notes]);
 
   const setCurrentTasks = (newTasks: Task[]) => {
     if (selectedNotebookId) {
@@ -337,6 +381,11 @@ export function NotesSidebar({
             foldersByNotebook={foldersByNotebook}
             setFoldersByNotebook={setFoldersByNotebook}
           />
+          <RecentlyClosedSection 
+            notes={notes} 
+            closedNotes={closedNotes} 
+            onRemove={removeClosedNote} 
+          />
           <WorkspaceSection 
             notes={notes}
             workspaceSearch={workspaceSearch}
@@ -366,7 +415,15 @@ export function NotesSidebar({
           </div>
 
           {activeTab === 'tasks' ? (
-            <TasksSection tasks={currentTasks} setTasks={setCurrentTasks} />
+            <TasksSection 
+              tasks={currentTasks} 
+              setTasks={setCurrentTasks} 
+              onTaskClick={(task) => {
+                if (task.noteId) {
+                  notes.actions.selectNote(task.noteId);
+                }
+              }}
+            />
           ) : (
             <div className={rightColStyles.sectionContainer}>
               <Calendar 

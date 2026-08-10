@@ -7,14 +7,16 @@ export interface Task {
   title: string;
   date: string;
   status: 'completed' | 'pending';
+  noteId?: string;
 }
 
 interface TasksSectionProps {
   tasks: Task[];
   setTasks: (tasks: Task[]) => void;
+  onTaskClick?: (task: Task) => void;
 }
 
-export function TasksSection({ tasks, setTasks }: TasksSectionProps) {
+export function TasksSection({ tasks, setTasks, onTaskClick }: TasksSectionProps) {
   const [isSectionExpanded, setIsSectionExpanded] = useState(true);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -62,10 +64,18 @@ export function TasksSection({ tasks, setTasks }: TasksSectionProps) {
         <div className={styles.sectionListContainer}>
           <div className={styles.tasksList}>
             {tasks.map(task => (
-              <div key={task.id} className={styles.taskItem}>
+              <div 
+                key={task.id} 
+                className={styles.taskItem}
+                onClick={() => onTaskClick?.(task)}
+                style={{ cursor: onTaskClick ? 'pointer' : 'default' }}
+              >
                 <div 
                   className={styles.taskStatus} 
-                  onClick={() => toggleTaskStatus(task.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleTaskStatus(task.id);
+                  }}
                   style={{ cursor: 'pointer' }}
                 >
                   {task.status === 'completed' ? (
