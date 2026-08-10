@@ -30,10 +30,12 @@ export function MobileNav() {
       // @ts-ignore
       if (window.advertMode) {
         navRef.current?.classList.add(styles.keyboardHidden);
+        document.body.classList.add('advert-mode-active');
       } else {
         // Only remove if keyboard isn't open
         const keyboardOpen = vv ? vv.height < window.innerHeight * 0.75 : false;
         if (!keyboardOpen) navRef.current?.classList.remove(styles.keyboardHidden);
+        document.body.classList.remove('advert-mode-active');
       }
     }, 500);
 

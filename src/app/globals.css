@@ -85,3 +85,10 @@ textarea,
 }
 
 @import './styles/print.css';
+
+/* ── Advert Mode ── */
+body.advert-mode-active nextjs-portal,
+body.advert-mode-active #__next-build-watcher,
+body.advert-mode-active [data-nextjs-toast] {
+  display: none !important;
+}
