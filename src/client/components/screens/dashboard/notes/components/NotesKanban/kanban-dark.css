@@ -161,8 +161,11 @@
 .sqhq-kcard {
   width: 100%;
   font-family: inherit;
-  user-select: none;
-  -webkit-user-select: none;
+}
+
+body.sqhq-is-dragging * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
 }
 
 .sqhq-kcard__cover {
@@ -465,33 +468,56 @@
    ═══════════════════════════════════════════════════════════════ */
 .sqhq-kcard__toprow {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 4px;
-  min-height: 20px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.sqhq-kcard__priority-group,
+.sqhq-kcard__actions-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .sqhq-kcard__priority-dot {
+  display: inline-block;
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  flex-shrink: 0;
+}
+
+.sqhq-kcard__priority-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: capitalize;
+  opacity: 0.9;
+}
+
+.sqhq-kcard__due-date {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .sqhq-kcard__menu {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.3);
   font-size: 14px;
-  letter-spacing: 1px;
   cursor: pointer;
-  padding: 0 2px;
+  padding: 0 4px;
   line-height: 1;
-  border-radius: 4px;
   transition: color 0.12s ease, background 0.12s ease;
   font-family: inherit;
   opacity: 0;
   transition: opacity 0.15s ease;
+}
+
+.sqhq-kcard__menu:hover {
+  color: #fff;
 }
 
 .sqhq-kcard:hover .sqhq-kcard__menu {

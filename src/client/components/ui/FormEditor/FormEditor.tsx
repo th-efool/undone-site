@@ -105,7 +105,19 @@ export function FormEditor({
         )}
         {(field.type === 'select' || field.type === 'date') && (
           <div className={styles.selectWrapper}>
-            {IconLeft && <IconLeft size={14} className={styles.selectIconLeft} />}
+            {IconLeft && (
+              <IconLeft 
+                size={14} 
+                className={styles.selectIconLeft} 
+                style={field.type === 'date' ? { pointerEvents: 'auto', cursor: 'pointer' } : {}}
+                onClick={(e: React.MouseEvent) => {
+                  if (field.type === 'date') {
+                    const input = (e.currentTarget as HTMLElement).parentElement?.querySelector('input[type="date"]') as HTMLInputElement;
+                    input?.showPicker();
+                  }
+                }}
+              />
+            )}
             {field.type === 'select' ? (
               <select
                 className={styles.select}
@@ -126,7 +138,19 @@ export function FormEditor({
                 onChange={e => field.onChange(e.target.value)}
               />
             )}
-            {IconRight && <IconRight size={14} className={styles.selectIconRight} />}
+            {IconRight && (
+              <IconRight 
+                size={14} 
+                className={styles.selectIconRight} 
+                style={field.type === 'date' ? { pointerEvents: 'auto', cursor: 'pointer' } : {}}
+                onClick={(e: React.MouseEvent) => {
+                  if (field.type === 'date') {
+                    const input = (e.currentTarget as HTMLElement).parentElement?.querySelector('input[type="date"]') as HTMLInputElement;
+                    input?.showPicker();
+                  }
+                }}
+              />
+            )}
           </div>
         )}
         {field.type === 'priority' && (

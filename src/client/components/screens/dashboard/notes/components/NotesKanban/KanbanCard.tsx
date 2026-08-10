@@ -44,6 +44,16 @@ export function KanbanCard({ card, onMenuClick, onUpdateCard }: KanbanCardProps)
   const typeLabel = card.type || null;
   const priorityColor = card.priority ? PRIORITY_COLORS[card.priority] ?? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.25)';
 
+  const priorityLabel = card.priority ? card.priority.charAt(0).toUpperCase() + card.priority.slice(1) : '';
+
+  const formatDueDate = (dateStr?: string) => {
+    if (!dateStr) return null;
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return null;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+  const dueDateStr = formatDueDate(card.dueDate || card.deadline);
+
   return (
     <div className="sqhq-kcard">
       {card.cover && (
@@ -52,19 +62,29 @@ export function KanbanCard({ card, onMenuClick, onUpdateCard }: KanbanCardProps)
         </div>
       )}
       <div className="sqhq-kcard__body">
-        {/* Top row: priority dot + 3-dot menu */}
+        {/* Top row: priority dot + text, due date, 3-dot menu */}
         <div className="sqhq-kcard__toprow">
-          {card.priority && (
-            <span className="sqhq-kcard__priority-dot" style={{ background: priorityColor }} title={card.priority} />
-          )}
-          <button
-            className="sqhq-kcard__menu"
-            onClick={onMenuClick}
-            aria-label="Card options"
-            title="Edit card"
-          >
-            ···
-          </button>
+          <div className="sqhq-kcard__priority-group">
+            {card.priority && (
+              <>
+                <span className="sqhq-kcard__priority-dot" style={{ background: priorityColor }} />
+                <span className="sqhq-kcard__priority-label" style={{ color: priorityColor }}>{priorityLabel}</span>
+              </>
+            )}
+          </div>
+          <div className="sqhq-kcard__actions-group">
+            {dueDateStr && (
+              <span className="sqhq-kcard__due-date" title={dueDateStr}>{dueDateStr}</span>
+            )}
+            <button
+              className="sqhq-kcard__menu"
+              onClick={onMenuClick}
+              aria-label="Card options"
+              title="Edit card"
+            >
+              ···
+            </button>
+          </div>
         </div>
 
         <InlineEditor

@@ -124,14 +124,9 @@
   border-color: #333333;
 }
 
-.select--date::-webkit-calendar-picker-indicator {
+.selectDate::-webkit-calendar-picker-indicator {
+  display: none;
   opacity: 0;
-  cursor: pointer;
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  left: 0;
-  top: 0;
 }
 
 .priorityRow {
