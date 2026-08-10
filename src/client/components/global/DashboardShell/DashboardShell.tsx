@@ -35,6 +35,7 @@ function DashboardInner({ children }: PropsWithChildren) {
   return (
     <>
       <div
+        data-theme={isDark ? "dark" : "light"}
         className={clsx(
           styles.shell,
           isPlayPage && styles.playShell,

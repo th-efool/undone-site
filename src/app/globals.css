@@ -1,6 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Caveat:wght@700&family=Kalam:wght@700&family=Manrope:wght@500;600;700&display=swap');
 @import 'tailwindcss';
 
+/* Design System Tokens */
 @import './styles/tokens.css';
 @import './styles/reset.css';
 @import './styles/typography.css';

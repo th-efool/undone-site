@@ -17,6 +17,7 @@ export const ROUTE_THEME_CONFIG: Record<string, ThemeMode> = {
   '/explore': 'dark',
   '/message': 'dark',
   '/notes': 'dark',
+  '/create-cohort': 'dark',
 };
 
 export function getRouteTheme(pathname: string | null): ThemeMode {

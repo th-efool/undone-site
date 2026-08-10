@@ -376,3 +376,20 @@
   --color-text: var(--color-text);
   --font-sans: var(--font-sans);
 }
+
+[data-theme="dark"] {
+  --color-background: #000000;
+  --color-surface: #000000;
+  --color-surface-secondary: #09090b;
+  --color-surface-tertiary: #18181b;
+  --color-text: #ffffff;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
+  --color-text-inverse: #000000;
+  --color-border: #27272a;
+  --color-border-hover: #3f3f46;
+  --glass-light: rgba(0, 0, 0, 0.72);
+  --glass-medium: rgba(0, 0, 0, 0.82);
+}
+
