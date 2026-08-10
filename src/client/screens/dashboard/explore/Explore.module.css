@@ -1,0 +1,173 @@
+.explore {
+  display: flex;
+  flex-direction: column;
+
+  gap: 24px;
+
+  padding: 20px 28px 56px 28px;
+}
+
+.darkTheme {
+  /* Sleek OLED Dark Theme Overrides */
+  --color-background: #000000;
+  --color-background-elevated: #09090b;
+  --color-surface: #121212;
+  --color-surface-secondary: #18181b;
+  --color-surface-tertiary: #27272a;
+
+  --color-text: #ffffff;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #71717a;
+
+  --color-border: #27272a;
+
+  background-color: #000000;
+  color: #ffffff;
+  min-height: 100vh;
+}
+
+.topControlBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.buildCohortBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 44px;
+  padding: 0 6px 0 16px;
+  border-radius: var(--radius-lg);
+  background-color: var(--color-surface);
+  color: #ffffff;
+  font-family: var(--font-sans);
+  font-size: var(--font-button-size);
+  font-weight: var(--font-semibold);
+  letter-spacing: var(--font-button-tracking);
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1px solid var(--color-border);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.buildCohortBtn:hover {
+  background-color: var(--color-surface-secondary);
+  border-color: var(--color-border-hover);
+  color: #ffffff;
+}
+
+.buildCohortBtn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
+.iconCircle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-circle);
+  background-color: var(--color-surface-secondary);
+  color: #ffffff;
+  flex-shrink: 0;
+  transition: all var(--duration-fast) var(--ease-out);
+}
+
+.buildCohortBtn:hover .iconCircle {
+  background-color: var(--color-surface-tertiary);
+  color: #ffffff;
+}
+
+.btnLabel {
+  margin-top: 1px;
+}
+
+.searchBar {
+  width: 500px;
+  max-width: 100%;
+}
+
+.searchBar :focus-within {
+  border-color: #ffffff !important;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1) !important;
+}
+
+.emptyState {
+  border: 1px dashed var(--color-border);
+  border-radius: 18px;
+  padding: 22px;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-weight: 750;
+  background: #fff;
+}
+
+@media (max-width: 768px) {
+  .explore {
+    padding: 12px var(--mobile-page-padding) 24px;
+    gap: var(--mobile-section-gap);
+  }
+
+  .topControlBar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .searchBar {
+    width: 100%;
+    margin-bottom: 0;
+  }
+
+  .buildCohortBtn {
+    width: 100%;
+  }
+}
+
+/* ============================================ */
+/* APP-SPECIFIC FIXES (only apply inside APK)   */
+/* Isolated via [data-platform="app"] selector  */
+/* ============================================ */
+
+[data-platform="app"] .explore {
+  padding: max(6px, env(safe-area-inset-top, 6px)) 8px 6px !important;
+  gap: 10px !important;
+}
+
+[data-platform="app"] .searchBar {
+  margin-bottom: 0 !important;
+  width: 100% !important;
+}
+
+/* Enable text selection & custom themed selection color for /explore */
+.explore,
+.explore * {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.explore button,
+.explore a,
+.explore img,
+.explore svg {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.explore ::selection {
+  background: rgba(99, 102, 241, 0.45);
+  color: #ffffff;
+}
+
+.explore ::-moz-selection {
+  background: rgba(99, 102, 241, 0.45);
+  color: #ffffff;
+}

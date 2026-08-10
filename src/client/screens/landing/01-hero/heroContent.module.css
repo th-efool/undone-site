@@ -1,0 +1,244 @@
+.content {
+  position: absolute;
+  top: 26%;
+  right: 6%;
+  width: 760px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  z-index: 20;
+}
+
+.eyebrow {
+  width: 760px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: rgba(26, 27, 40, 0.55);
+  margin-bottom: 22px;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.title {
+  margin: 0;
+  width: 700px;
+  font-family: 'DM Serif Display', serif;
+  font-size: 84px;
+  font-weight: var(--font-semibold);
+  line-height: 0.92;
+  letter-spacing: var(--tracking-tight);
+  color: #0d1026;
+  text-align: left;
+  text-wrap: balance;
+}
+
+.titleAccent {
+  color: #5b39f6;
+}
+
+.description {
+  margin-top: 28px;
+  margin-bottom: 0;
+  margin-left: 95px;
+  width: 520px;
+  font-size: var(--text-lg);
+  line-height: 1.6;
+  font-weight: var(--font-medium);
+  color: rgba(26, 27, 40, 0.82);
+  text-align: center;
+}
+
+.actions {
+  display: flex;
+  gap: 18px;
+  margin-top: 18px;
+  margin-left: 75px;
+}
+
+.ctaButton {
+  height: 60px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.22s ease;
+  font-size: 18px;
+}
+
+.ctaButton {
+  padding: 0 34px;
+  border: none;
+  background: linear-gradient(90deg, #5b39f6 0%, #6c2bff 100%);
+  color: #fff;
+  font-weight: var(--font-extrabold);
+  transform: translateY(0) scale(1);
+  box-shadow: 0 18px 40px rgba(91, 57, 246, 0.35);
+}
+
+.ctaButton:hover {
+  background: linear-gradient(90deg, #6b4dff 0%, #7c39ff 100%);
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 24px 54px rgba(91, 57, 246, 0.48);
+}
+
+.ctaIcon {
+  transition: transform 0.22s ease;
+  transform: translateX(0);
+}
+
+.ctaButton:hover .ctaIcon {
+  transform: translateX(4px);
+}
+
+.note {
+  margin-top: 18px;
+  margin-left: 180px;
+  color: #5b39f6;
+  font-family: 'Caveat', cursive;
+  font-size: 18px;
+  font-weight: 640;
+  line-height: 1.05;
+  transform: rotate(-3deg);
+  opacity: 0.95;
+}
+
+@media (max-width: 1439px) {
+  .content {
+    top: clamp(180px, 24vh, 28%);
+    right: clamp(24px, 5vw, 72px);
+    width: min(760px, calc(100vw - 48px));
+    max-width: 58vw;
+  }
+
+  .eyebrow {
+    width: 100%;
+    font-size: clamp(12px, 1.05vw, 15px);
+    margin-bottom: clamp(14px, 1.55vw, 22px);
+    white-space: normal;
+  }
+
+  .title {
+    width: min(700px, 100%);
+    font-size: clamp(52px, 5.85vw, 84px);
+  }
+
+  .description {
+    width: min(520px, 72%);
+    margin-top: clamp(18px, 1.95vw, 28px);
+    margin-left: min(95px, 12.5%);
+    font-size: clamp(17px, 1.46vw, 21px);
+  }
+
+  .actions {
+    gap: clamp(12px, 1.25vw, 18px);
+    margin-left: min(75px, 9.9%);
+  }
+
+  .ctaButton {
+    height: clamp(52px, 4.17vw, 60px);
+    font-size: clamp(15px, 1.25vw, 18px);
+    padding: 0 clamp(24px, 2.36vw, 34px);
+  }
+
+  .note {
+    margin-left: min(180px, 23.7%);
+  }
+}
+
+@media (max-width: 1023px) {
+  .content {
+    top: clamp(150px, 22vh, 220px);
+    right: 24px;
+    width: min(640px, calc(100vw - 48px));
+    max-width: none;
+  }
+
+  .title {
+    font-size: clamp(44px, 7.2vw, 64px);
+  }
+
+  .description {
+    width: min(520px, 82%);
+    margin-left: min(64px, 10%);
+  }
+
+  .actions {
+    flex-wrap: wrap;
+    margin-left: min(52px, 8%);
+  }
+}
+
+@media (max-width: 767px) {
+  .content {
+    top: clamp(132px, 18vh, 172px);
+    left: 20px;
+    right: 20px;
+    width: auto;
+  }
+
+  .eyebrow {
+    font-size: clamp(10px, 2.8vw, 12px);
+  }
+
+  .title {
+    font-size: clamp(42px, 12.5vw, 58px);
+  }
+
+  .description {
+    width: min(100%, 520px);
+    margin-top: 18px;
+    margin-left: 0;
+    font-size: clamp(16px, 4.2vw, 19px);
+    text-align: left;
+  }
+
+  .actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .ctaButton {
+    height: 52px;
+    padding: 0 20px;
+    font-size: 15px;
+  }
+
+  .note {
+    margin-left: clamp(36px, 20vw, 96px);
+  }
+}
+
+@media (max-width: 479px) {
+  .actions {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ctaButton {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    align-items: center;
+    text-align: center;
+  }
+  .title, .description {
+    text-align: center;
+  }
+  .actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  .ctaButton {
+    width: 100%;
+    justify-content: center;
+  }
+  .note {
+    margin-left: 0;
+  }
+}

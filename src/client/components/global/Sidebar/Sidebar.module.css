@@ -45,56 +45,6 @@
   }
 }
 
-@media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    top: auto;
-
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-around;
-
-    width: 100%;
-    height: calc(56px + env(safe-area-inset-bottom, 0px));
-    max-height: calc(56px + env(safe-area-inset-bottom, 0px));
-    padding: 2px var(--space-2);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-top: 1px solid var(--color-border);
-    border-right: none;
-    box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.04);
-    z-index: 1000;
-  }
-
-  .logo {
-    display: none;
-  }
-
-  .navigation {
-    flex-direction: row;
-    justify-content: space-around;
-    width: 100%;
-    height: 100%;
-    padding-block: 0;
-    gap: 0;
-  }
-
-  .hiddenOnMobile {
-    display: none !important;
-  }
-
-  .keyboardHidden {
-    transform: translateY(100%);
-    transition: transform var(--duration-fast) var(--ease-standard);
-  }
-}
 
 /* Special /play page floating overlay pill navbar */
 .playSidebar {
@@ -172,12 +122,4 @@
   background: rgba(99, 102, 241, 0.2) !important;
 }
 
-@media (max-width: 768px) {
-  .darkSidebar {
-    background: #000000 !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.08) !important;
-    border-right: none !important;
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.7) !important;
-  }
-}
 

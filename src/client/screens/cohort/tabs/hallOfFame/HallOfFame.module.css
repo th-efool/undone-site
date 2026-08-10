@@ -1,0 +1,418 @@
+.page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--cohort-sidebar-width, 340px);
+  gap: var(--cohort-panel-gap, 18px);
+  align-items: start;
+
+  padding: var(--cohort-panel-padding, 18px);
+  background: linear-gradient(180deg, rgb(255 255 255 / 72%), rgb(248 250 252 / 72%));
+}
+
+.mainCard,
+.legends,
+.sideCard {
+  border: 1px solid var(--color-border);
+  border-radius: 0;
+  background: var(--color-surface);
+  box-shadow: none;
+}
+
+.mainCard {
+  padding: var(--cohort-panel-padding, 18px);
+  border-right: var(--cohort-divider, 1px solid var(--color-border));
+}
+.topBar,
+.legendsHead,
+.highlightRow,
+.achievementRow,
+.legendRow {
+  display: flex;
+  align-items: center;
+}
+.topBar,
+.legendsHead {
+  justify-content: space-between;
+  gap: 12px;
+}
+.header h2,
+.legends h3,
+.sideCard h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  color: #b45309; /* Task 2.10 #67: Gold/amber for Hall of Fame distinction */
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+}
+
+/* Gold accent border top for the page to distinguish from other tabs */
+.page::before {
+  content: '';
+  display: block;
+  grid-column: 1 / -1;
+  height: 3px;
+  background: linear-gradient(90deg, #f59e0b, #fbbf24, #f59e0b);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  margin-bottom: var(--space-3);
+}
+.header p,
+.legends p,
+.sideCard p {
+  margin: 6px 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+}
+.timeRange,
+.filters button,
+.fullButton,
+.profileButton,
+.allButton,
+.legendsHead button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+}
+.filters {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 12px;
+}
+.filters button {
+  color: var(--color-text-secondary);
+}
+.filters .activeFilter {
+  border-color: var(--color-brand-soft);
+  background: var(--color-brand-subtle);
+  color: var(--color-brand);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.leaderCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 218px;
+  padding: 12px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: linear-gradient(180deg, var(--accent-bg), #fff 78%);
+  text-align: center;
+}
+.leaderCard h3 {
+  margin: 0;
+  color: var(--accent);
+  font-size: var(--text-lg);
+}
+.leaderCard p {
+  margin: 3px 0 10px;
+  color: var(--accent);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+}
+.avatar {
+  margin-top: 6px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  object-fit: cover;
+}
+.leaderCard strong {
+  margin-top: 7px;
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+}
+.leaderCard b {
+  margin-top: 6px;
+  color: var(--color-text-primary);
+  font-size: var(--text-lg);
+}
+.medal {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  color: var(--accent);
+}
+.medal span {
+  position: absolute;
+  color: #fff;
+  font-size: 11px;
+  font-weight: var(--font-bold);
+}
+.metric {
+  margin-top: 6px;
+  color: var(--color-success);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+}
+.achievement {
+  margin-top: auto;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+}
+.amber {
+  --accent: #d97706;
+  --accent-bg: #fff7ed;
+}
+.slate {
+  --accent: #64748b;
+  --accent-bg: #f8fafc;
+}
+.green {
+  --accent: #15803d;
+  --accent-bg: #f0fdf4;
+}
+.violet {
+  --accent: var(--color-brand);
+  --accent-bg: var(--color-brand-subtle);
+}
+.orange {
+  --accent: #ea580c;
+  --accent-bg: #fff7ed;
+}
+.blue {
+  --accent: #2563eb;
+  --accent-bg: #eff6ff;
+}
+.fullButton,
+.profileButton,
+.allButton,
+.legendsHead button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--color-brand);
+}
+.fullButton {
+  min-width: 220px;
+  margin: 12px auto 0;
+}
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cohort-panel-gap, 18px);
+  align-self: start;
+}
+.sideCard {
+  padding: var(--cohort-panel-padding, 18px);
+  border-radius: 0;
+}
+
+.sideCard + .sideCard {
+  border-top: 0;
+}
+.highlights,
+.achievements {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.highlightRow {
+  gap: 11px;
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+}
+.highlightRow span {
+  width: 18px;
+  color: var(--color-brand);
+}
+.highlightRow strong {
+  width: 30px;
+}
+.highlightRow p {
+  flex: 1;
+  margin: 0;
+  color: var(--color-text-primary);
+  font-weight: var(--font-semibold);
+}
+.highlightRow b {
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+}
+.profileButton,
+.allButton {
+  margin: 12px auto 0;
+  min-width: 170px;
+}
+.achievementRow {
+  gap: 13px;
+}
+.achievementRow > span {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--color-brand-subtle);
+}
+.achievementRow div {
+  flex: 1;
+}
+.achievementRow strong {
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+}
+.achievementRow p {
+  margin: 3px 0 0;
+}
+.achievementRow em {
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-style: normal;
+}
+.legends {
+  padding: var(--cohort-panel-padding, 18px);
+  background: linear-gradient(135deg, var(--color-brand-subtle), #fff);
+}
+.legends h3 {
+  font-size: var(--text-lg);
+}
+.legendsHead button {
+  border: 0;
+  background: transparent;
+}
+.legendRows {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 18px;
+}
+.legendRow {
+  gap: 12px;
+}
+.legendRow > span {
+  color: var(--color-text-primary);
+  font-weight: var(--font-bold);
+}
+.legendRow img {
+  border-radius: 50%;
+  object-fit: cover;
+}
+.legendRow div {
+  flex: 1;
+}
+.legendRow strong,
+.legendRow b {
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+}
+.legendRow p {
+  margin: 2px 0 0;
+}
+.legendRow b {
+  white-space: nowrap;
+}
+@media (max-width: 1200px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+  .mainCard {
+    border-right: 0;
+    border-bottom: var(--cohort-divider, 1px solid var(--color-border));
+  }
+  .legends {
+    grid-column: auto;
+  }
+}
+@media (max-width: 900px) {
+  .filters,
+  .grid,
+  .legendRows {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .topBar,
+  .legendsHead {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+@media (max-width: 560px) {
+  .filters,
+  .grid,
+  .legendRows {
+    grid-template-columns: 1fr;
+  }
+}
+
+.page {
+  gap: var(--cohort-panel-gap, 18px);
+  padding: var(--cohort-panel-padding, 18px);
+  background: linear-gradient(180deg, rgb(255 255 255 / 72%), rgb(248 250 252 / 72%));
+}
+.mainCard,
+.legends,
+.sideCard {
+  border: 1px solid var(--cohort-border-soft, var(--color-border));
+  border-radius: var(--cohort-radius, 24px);
+  background: rgb(255 255 255 / 82%);
+  box-shadow: var(--cohort-shadow-soft, none);
+  overflow: hidden;
+}
+.mainCard {
+  border-right: 1px solid var(--cohort-border-soft, var(--color-border));
+}
+.leaderCard {
+  border-color: var(--cohort-border-soft, var(--color-border));
+  border-radius: 20px;
+  box-shadow: 0 14px 34px rgb(15 23 42 / 5%);
+}
+.timeRange,
+.filters button,
+.fullButton,
+.profileButton,
+.allButton,
+.legendsHead button {
+  border-color: var(--cohort-border-soft, var(--color-border));
+  border-radius: var(--radius-pill);
+}
+.sidebar {
+  gap: var(--cohort-panel-gap, 18px);
+}
+.sideCard + .sideCard {
+  border-top: 1px solid var(--cohort-border-soft, var(--color-border));
+}
+.legends {
+  background: linear-gradient(135deg, var(--color-brand-subtle), rgb(255 255 255 / 88%));
+}
+@media (max-width: 1200px) {
+  .mainCard {
+    border-right: 1px solid var(--cohort-border-soft, var(--color-border));
+    border-bottom: 1px solid var(--cohort-border-soft, var(--color-border));
+  }
+}
+.mainColumn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cohort-panel-gap, 18px);
+  min-width: 0;
+  align-self: start;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: var(--mobile-page-padding, 16px);
+    gap: var(--mobile-section-gap, 16px);
+  }
+  .mainCard, .legends, .sideCard {
+    padding: var(--mobile-card-padding, 16px);
+  }
+}

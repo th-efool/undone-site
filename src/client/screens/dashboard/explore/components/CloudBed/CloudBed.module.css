@@ -1,0 +1,37 @@
+.cloudBedContainer {
+  position: relative;
+  width: 100%;
+  height: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 0;
+  clip-path: inset(-1000px 0 -1000px 0);
+}
+
+.cloudNode {
+  position: absolute;
+  pointer-events: none;
+  will-change: transform;
+  transform-origin: center center;
+}
+
+@keyframes cloudOscillate {
+  0% {
+    transform: translate3d(-15px, 0, 0);
+  }
+  50% {
+    transform: translate3d(15px, 0, 0);
+  }
+  100% {
+    transform: translate3d(-15px, 0, 0);
+  }
+}
+
+.cloudImage {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 4px 10px rgba(168, 85, 247, 0.18));
+  animation: cloudOscillate 9s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  transform: translateZ(0);
+}

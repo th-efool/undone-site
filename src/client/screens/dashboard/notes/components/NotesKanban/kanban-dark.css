@@ -1,0 +1,578 @@
+/* ═══════════════════════════════════════════════════════════════
+   SideQuestHQ — Kanban Dark Theme Overrides
+   Targets SVAR's global wx-* classes via .sqhq-kanban-wrapper
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 1. Board shell ──────────────────────────────────────────── */
+.sqhq-kanban-wrapper .wx-kanban,
+.sqhq-kanban-wrapper .wx-board {
+  background: #000000 !important;
+  font-family: inherit !important;
+}
+
+/* ── 2. Column containers ────────────────────────────────────── */
+.sqhq-kanban-wrapper .wx-column {
+  background: #000000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border-radius: 10px !important;
+  font-family: inherit !important;
+  overflow: hidden !important;
+}
+
+/* Over-limit variant */
+.sqhq-kanban-wrapper .wx-over-limit .wx-column-header,
+.sqhq-kanban-wrapper .wx-over-limit > .wx-body {
+  background: rgba(239, 68, 68, 0.06) !important;
+}
+
+/* ── 3. Column header ────────────────────────────────────────── */
+.sqhq-kanban-wrapper .wx-column-header {
+  background: #000000 !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+  padding: 10px 12px !important;
+  font-family: inherit !important;
+}
+
+.sqhq-kanban-wrapper .wx-column.wx-collapsed {
+  background: #000000 !important;
+}
+
+/* Column title text */
+.sqhq-kanban-wrapper .wx-column-header .wx-title {
+  color: #ffffff !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+  font-family: inherit !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Card count badge */
+.sqhq-kanban-wrapper .wx-column-header .wx-count {
+  color: rgba(255, 255, 255, 0.4) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  padding: 1px 6px !important;
+  border-radius: 8px !important;
+  font-family: inherit !important;
+}
+
+
+/* ── 4. Status dot per-column via columnCss classes ─────────── */
+
+/* Inject a colored dot before the column title using the column's css class */
+.sqhq-kanban-wrapper .sqhq-col-todo .wx-column-header .wx-title::before,
+.sqhq-kanban-wrapper .sqhq-col-inprogress .wx-column-header .wx-title::before,
+.sqhq-kanban-wrapper .sqhq-col-review .wx-column-header .wx-title::before,
+.sqhq-kanban-wrapper .sqhq-col-done .wx-column-header .wx-title::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 7px;
+  flex-shrink: 0;
+  vertical-align: middle;
+  position: relative;
+  top: -1px;
+}
+
+.sqhq-kanban-wrapper .sqhq-col-todo .wx-column-header .wx-title::before {
+  background-color: #94a3b8; /* slate — backlog / to-do */
+}
+.sqhq-kanban-wrapper .sqhq-col-inprogress .wx-column-header .wx-title::before {
+  background-color: #3b82f6; /* blue — in progress */
+}
+.sqhq-kanban-wrapper .sqhq-col-review .wx-column-header .wx-title::before {
+  background-color: #f59e0b; /* amber — under review */
+}
+.sqhq-kanban-wrapper .sqhq-col-done .wx-column-header .wx-title::before {
+  background-color: #22c55e; /* green — done */
+}
+
+/* ── 5. Add (+) and toggle (collapse) buttons ────────────────── */
+.sqhq-kanban-wrapper .wx-add {
+  display: none !important; /* Hijacked and replaced with our custom button */
+}
+
+.sqhq-kanban-wrapper .wx-toggle {
+  color: rgba(255, 255, 255, 0.3) !important;
+  opacity: 1 !important;
+  transition: color 0.15s ease, background 0.15s ease !important;
+}
+
+.sqhq-kanban-wrapper .wx-toggle:hover {
+  color: rgba(255, 255, 255, 0.8) !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+
+/* Custom Add Button */
+.sqhq-custom-add-btn {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  border-radius: 4px;
+  transition: color 0.15s ease, background 0.15s ease;
+  margin-left: auto;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.sqhq-custom-add-btn:hover {
+  color: rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* ── 6. Cards ────────────────────────────────────────────────── */
+.sqhq-kanban-wrapper .wx-card {
+  background: #080808 !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  padding: 0 !important;            /* our custom card owns padding */
+  cursor: pointer !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.sqhq-kanban-wrapper .wx-card:hover {
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* ── 7. Column cards area ────────────────────────────────────── */
+.sqhq-kanban-wrapper .wx-column-cards {
+  padding: 8px !important;
+  gap: 6px !important;
+}
+
+/* ── 8. Drop placeholder ─────────────────────────────────────── */
+.sqhq-kanban-wrapper .wx-drop-placeholder {
+  border: 1px dashed rgba(255, 255, 255, 0.15) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-radius: 8px !important;
+}
+
+/* ── 9. Custom card component styles ─────────────────────────── */
+.sqhq-kcard {
+  width: 100%;
+  font-family: inherit;
+}
+
+body.sqhq-is-dragging * {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.sqhq-kcard__cover {
+  width: 100%;
+  height: 140px;
+  overflow: hidden;
+  border-radius: 8px 8px 0 0;
+  background: #111111;
+}
+
+.sqhq-kcard__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sqhq-kcard__body {
+  padding: 10px 12px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sqhq-kcard__title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 500;
+  color: #ffffff;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+
+.sqhq-kcard__desc {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.38);
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sqhq-kcard__footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  justify-content: space-between;
+}
+
+.sqhq-kcard__type {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 500;
+}
+
+.sqhq-kcard__type-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+}
+
+.sqhq-kcard__time {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.28);
+  white-space: nowrap;
+}
+
+/* ── 10. 3-dot menu icon ─────────────────────────────────────── */
+.sqhq-kanban-wrapper .wx-card [class*="menu"],
+.sqhq-kanban-wrapper .wx-card .wx-icon {
+  color: rgba(255, 255, 255, 0.25) !important;
+}
+
+.sqhq-kanban-wrapper .wx-card [class*="menu"]:hover,
+.sqhq-kanban-wrapper .wx-card .wx-icon:hover {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* ── 11. Collapsed column ────────────────────────────────────── */
+.sqhq-kanban-wrapper .wx-collapsed {
+  background: #000000 !important;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* ── 12. Scrollbar ───────────────────────────────────────────── */
+.sqhq-kanban-wrapper ::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.sqhq-kanban-wrapper ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sqhq-kanban-wrapper ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+
+.sqhq-kanban-wrapper ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── 13. Ensure all SVAR text inherits font ──────────────────── */
+.sqhq-kanban-wrapper * {
+  font-family: inherit;
+}
+
+/* ── 14. Editor sidebar dark theme ──────────────────────────── */
+.sqhq-kanban-wrapper .wx-editor-kanban {
+  background: #111111 !important;
+  border-left: 1px solid rgba(255, 255, 255, 0.07) !important;
+  font-family: inherit !important;
+}
+
+/* Editor input fields */
+.sqhq-kanban-wrapper .wx-editor-kanban input,
+.sqhq-kanban-wrapper .wx-editor-kanban textarea,
+.sqhq-kanban-wrapper .wx-editor-kanban select {
+  background: #080808 !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  border-radius: 6px !important;
+}
+
+.sqhq-kanban-wrapper .wx-editor-kanban input:focus,
+.sqhq-kanban-wrapper .wx-editor-kanban textarea:focus {
+  border-color: rgba(99, 102, 241, 0.5) !important;
+  outline: none !important;
+}
+
+/* Editor labels */
+.sqhq-kanban-wrapper .wx-editor-kanban label,
+.sqhq-kanban-wrapper .wx-editor-kanban [class*="label"] {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+}
+
+/* Delete button stays red */
+.sqhq-kanban-wrapper .wx-editor-kanban [class*="danger"],
+.sqhq-kanban-wrapper .wx-editor-kanban button[class*="delete"] {
+  background: rgba(239, 68, 68, 0.15) !important;
+  color: #f87171 !important;
+  border: 1px solid rgba(239, 68, 68, 0.25) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Board height — content-sized, not full viewport
+   ═══════════════════════════════════════════════════════════════ */
+.sqhq-kanban-wrapper .wx-kanban,
+.sqhq-kanban-wrapper .wx-board,
+.sqhq-kanban-wrapper .wx-columns {
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.sqhq-kanban-wrapper .wx-column-cards {
+  height: auto !important;
+  min-height: 48px !important;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Board row: SVAR kanban + Add column button side-by-side
+   ═══════════════════════════════════════════════════════════════ */
+.wx-willow-dark-theme {
+  background: transparent !important;
+}
+
+.sqhq-board-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+}
+
+/* Make SVAR's kanban fill available space but auto-height */
+.sqhq-board-row > :first-child {
+  flex: 1;
+  min-width: 0;
+  height: auto !important;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   Add Column button
+   ═══════════════════════════════════════════════════════════════ */
+.sqhq-add-col-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 14px;
+  height: 38px;
+  max-height: 38px;
+  margin-top: 0;
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  font-family: inherit;
+  flex-shrink: 0;
+  min-width: 140px;
+}
+
+.sqhq-add-col-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.sqhq-add-col-icon {
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 300;
+}
+
+.sqhq-add-col-label {
+  font-size: 13px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Column rename dialog
+   ═══════════════════════════════════════════════════════════════ */
+.sqhq-col-rename-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sqhq-col-rename-dialog {
+  background: #111111;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  width: 300px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255,255,255,0.06);
+  font-family: inherit;
+}
+
+.sqhq-col-rename-label {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.sqhq-col-rename-input-dialog {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 14px;
+  padding: 8px 10px;
+  outline: none;
+  width: 100%;
+  font-family: inherit;
+  transition: border-color 0.12s;
+}
+
+.sqhq-col-rename-input-dialog:focus {
+  border-color: rgba(99, 102, 241, 0.5);
+}
+
+.sqhq-col-rename-hint {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+  text-align: right;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════
+   Card: priority dot + 3-dot menu button
+   ═══════════════════════════════════════════════════════════════ */
+.sqhq-kcard__toprow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.sqhq-kcard__priority-group,
+.sqhq-kcard__actions-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sqhq-kcard__priority-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.sqhq-kcard__priority-label {
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: capitalize;
+  opacity: 0.9;
+}
+
+.sqhq-kcard__due-date {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.sqhq-kcard__menu {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.12s ease, background 0.12s ease;
+  font-family: inherit;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.sqhq-kcard__menu:hover {
+  color: #fff;
+}
+
+.sqhq-kcard:hover .sqhq-kcard__menu {
+  opacity: 1;
+}
+
+.sqhq-kcard__menu:hover {
+  color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Card Editor — premium floating popover (Redesigned)
+   ═══════════════════════════════════════════════════════════════ */
+.sqhq-editor-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(2px);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   Card Inline Editing
+   ═══════════════════════════════════════════════════════════════ */
+.sqhq-kcard__title-input,
+.sqhq-kcard__desc-input {
+  background: transparent;
+  border: none;
+  outline: none;
+  width: 100%;
+  font-family: inherit;
+  color: #ffffff;
+  padding: 0;
+  margin: 0;
+  resize: none;
+}
+
+.sqhq-kcard__title-input {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+.sqhq-kcard__desc-input {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.sqhq-kcard__title-input:focus,
+.sqhq-kcard__desc-input:focus {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}

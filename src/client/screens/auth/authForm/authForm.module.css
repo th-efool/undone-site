@@ -1,0 +1,233 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  height: 100%;
+  box-sizing: border-box;
+
+  padding: 24px 32px;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+  z-index: 10;
+}
+
+.login {
+  display: flex;
+
+  justify-content: flex-end;
+
+  align-items: center;
+
+  gap: 8px;
+
+  font-size: var(--text-sm);
+
+  color: var(--color-text-secondary);
+}
+
+.loginButton {
+  background: none;
+
+  border: none;
+
+  cursor: pointer;
+
+  font: inherit;
+
+  font-weight: var(--font-semibold);
+
+  color: var(--color-brand);
+}
+
+/* Task 2.3 #17: Tab switcher — Sign Up / Log In */
+.tabSwitcher {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  background: #f3f4f6;
+  border-radius: var(--radius-xl);
+  margin-bottom: 12px;
+}
+
+.tabButton {
+  flex: 1;
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: transparent;
+  font-size: 13px;
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast),
+    color var(--duration-fast);
+}
+
+.tabButton.active {
+  background: #4f46e5;
+  color: white;
+  font-weight: var(--font-bold);
+  box-shadow: 0 2px 8px rgb(79 70 229 / 30%);
+}
+
+.tabButton:hover:not(.active) {
+  color: var(--color-text-primary);
+  background: #e5e7eb;
+}
+
+.title {
+  font-size: clamp(2rem, 2.5vw, 2.8rem);
+  font-weight: 900;
+  line-height: 1.05;
+  color: var(--gray-950);
+  letter-spacing: -0.03em;
+}
+
+.highlight {
+  font-family: var(--font-caveat-next), var(--font-dancing-script-next), cursive;
+  font-weight: 900;
+  font-size: 1.35em;
+  -webkit-text-stroke: 0.6px #6d28d9;
+  color: transparent;
+  background: linear-gradient(135deg, #4f46e5 0%, #8b5cf6 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  padding-right: 0.1em;
+}
+
+.description {
+  color: var(--color-text-secondary);
+
+  font-size: 0.9rem;
+  z-index: 30;
+  line-height: 1.45;
+}
+
+.oauth {
+  margin-top: 6px;
+}
+
+.divider {
+  margin-top: 6px;
+}
+
+.inputs {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rowInputs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.cta {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Task 2.3 #19: Von Restorff Effect — strong visual contrast between primary & secondary actions */
+.cta button:first-child {
+  background: var(--color-brand);
+  color: white;
+  font-weight: var(--font-bold);
+  border: none;
+  box-shadow: 0 4px 16px rgb(91 57 246 / 30%);
+}
+
+.cta button:first-child:hover {
+  filter: brightness(1.1);
+}
+
+.legal {
+  margin-top: 4px;
+}
+
+.footer {
+  display: flex;
+
+  justify-content: center;
+
+  padding-top: 8px;
+  margin-top: 4px;
+
+  border-top: 1px solid var(--color-border);
+}
+
+.footerText {
+  display: flex;
+
+  align-items: center;
+
+  gap: 8px;
+
+  margin: 0;
+
+  font-size: var(--text-sm);
+
+  color: var(--color-text-secondary);
+}
+
+.footerLink {
+  padding: 0;
+
+  border: none;
+
+  background: transparent;
+
+  color: var(--color-brand);
+
+  font: inherit;
+
+  font-weight: var(--font-semibold);
+
+  cursor: pointer;
+
+  transition: color 0.2s;
+}
+
+.footerLink:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .form {
+    padding: 20px 16px;
+    border-radius: 0;
+    min-height: 100dvh;
+  }
+
+  .title {
+    font-size: clamp(1.8rem, 6vw, 2.5rem);
+  }
+
+  .description {
+    font-size: var(--text-base);
+  }
+
+  .login {
+    font-size: var(--text-sm);
+  }
+
+  .oauth {
+    margin-top: 16px;
+  }
+
+  .footer {
+    padding-top: 16px;
+  }
+}
+

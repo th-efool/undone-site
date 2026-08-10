@@ -1,0 +1,36 @@
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 160px;
+  min-width: 160px;
+  height: 100vh;
+  min-height: 0;
+  overflow: visible;
+  padding: 16px 0;
+  background: var(--message-bg-secondary, #000000);
+  border-right: 1px solid var(--message-border, rgba(255, 255, 255, 0.08));
+  align-items: center;
+  position: relative;
+}
+@media (max-width: 760px) {
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    min-height: 100vh;
+    min-height: 0;
+    overflow: hidden;
+    padding: 22px 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    min-width: 100%;
+  }
+
+  .sidebar button {
+    min-height: var(--touch-target-min, 44px);
+  }
+}

@@ -1,0 +1,82 @@
+.screen {
+  min-height: 100vh;
+  padding-block: var(--space-8) var(--space-12);
+  background: #000000;
+  color: var(--color-text-primary);
+}
+
+.pageStack {
+  min-width: 0;
+}
+
+.header {
+  min-width: 0;
+  margin-bottom: var(--space-8);
+  display: grid;
+  gap: var(--space-4);
+}
+
+.headerTop {
+  display: flex;
+  align-items: center;
+}
+
+.appTitle {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.headerToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.headerInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.stepTitle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.headerDivider {
+  width: 1px;
+  height: 12px;
+  background: var(--color-border);
+}
+
+.stepDescription {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+.stepContainer {
+  min-width: 0;
+  width: 100%;
+}
+
+.disabledStep {
+  display: grid;
+  gap: var(--space-2);
+  min-height: 16rem;
+  place-content: center;
+  text-align: center;
+}
+
+
+@media (max-width: 768px) {
+  .screen {
+    padding-block: var(--space-4, 16px) var(--space-6, 24px);
+    padding-inline: var(--space-4, 16px);
+  }
+}

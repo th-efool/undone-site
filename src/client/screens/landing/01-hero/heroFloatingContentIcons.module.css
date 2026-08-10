@@ -1,0 +1,143 @@
+.container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+  width: var(--floating-scene-width, 1288px);
+  height: 724.5px;
+  pointer-events: none;
+}
+
+.icon {
+  position: absolute;
+  width: 58px;
+  height: 58px;
+
+  border-radius: 22px;
+
+  background: rgba(255, 255, 255, 0.96);
+
+  padding: 14px;
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-shadow:
+    0 0 18px rgba(206, 160, 255, 0.75),
+    0 0 42px rgba(169, 105, 255, 0.45),
+    0 10px 26px rgba(25, 20, 60, 0.35);
+
+  animation: float 5.5s ease-in-out infinite;
+
+  overflow: hidden;
+}
+
+.ribbon {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.icon:nth-child(2) {
+  animation-delay: 0.6s;
+}
+
+.icon:nth-child(3) {
+  animation-delay: 1.2s;
+}
+
+.icon:nth-child(4) {
+  animation-delay: 0.9s;
+}
+
+.icon:nth-child(5) {
+  animation-delay: 1.8s;
+}
+
+.icon:nth-child(6) {
+  animation-delay: 0.3s;
+}
+
+.icon img {
+  object-fit: contain;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.ribbon path {
+  animation: ribbonPulse 2.8s ease-in-out infinite;
+}
+
+.ribbon path:nth-child(odd) {
+  animation-delay: 0.5s;
+}
+
+.logo {
+  width: 72px;
+  height: 72px;
+
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+
+  box-shadow: none;
+
+  filter: drop-shadow(0 0 18px rgba(124, 92, 255, 0.45))
+    drop-shadow(0 0 36px rgba(124, 92, 255, 0.28));
+}
+
+/* Desktop */
+@media (max-width: 1600px) {
+  .container {
+    --floating-scene-width: 1180px;
+  }
+}
+
+/* Laptop */
+@media (max-width: 1300px) {
+  .container {
+    --floating-scene-width: 1080px;
+  }
+
+  .icon:nth-of-type(3),
+  .ribbon path:nth-of-type(4),
+  .ribbon path:nth-of-type(5),
+  .ribbon path:nth-of-type(6) {
+    display: none;
+  }
+}
+
+/* Tablet */
+@media (max-width: 1200px) {
+  .container {
+    display: none;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .container {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    display: none;
+  }
+}
+

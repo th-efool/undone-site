@@ -1,0 +1,49 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  margin: 36px auto 16px;
+  position: relative;
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.topicsGrid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  max-width: 980px;
+  margin: 0 auto;
+  pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+  .section {
+    gap: var(--mobile-section-gap);
+    margin: 20px auto 12px;
+  }
+  .title {
+    font-size: 1.65rem;
+  }
+}

@@ -1,0 +1,124 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mainArea {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+
+.boardContainer {
+  flex: 1;
+  min-width: 0;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16) var(--space-8);
+  background: transparent;
+  border: 1px solid #27272a;
+  color: #f1f5f9;
+  gap: var(--space-4);
+  text-align: center;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid rgba(99, 102, 241, 0.2);
+  border-top-color: var(--color-brand);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loadingText {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+}
+
+.loadingSubtext {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-12) var(--space-8);
+  background: transparent;
+  border: 1px solid #27272a;
+  color: #f1f5f9;
+  gap: var(--space-4);
+  text-align: center;
+}
+
+.errorTitle {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--color-error);
+}
+
+.errorMessage {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.retryBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-5);
+  background: var(--color-brand);
+  border: none;
+  border-radius: var(--radius-button);
+  color: var(--color-text-inverse);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+
+  &:hover {
+    background: var(--color-brand-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .mainArea {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .root {
+    flex-direction: column;
+  }
+  .retryBtn {
+    min-height: 36px;
+  }
+}

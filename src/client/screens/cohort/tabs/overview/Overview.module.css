@@ -1,0 +1,96 @@
+.overview {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(260px, 0.8fr) minmax(260px, 0.8fr);
+  align-items: stretch;
+  gap: 0;
+}
+
+.mainCard,
+.rightColumn {
+  min-width: 0;
+}
+
+.mainCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--cohort-section-gap, 14px);
+  padding: var(--cohort-panel-padding, 18px);
+  border-right: var(--cohort-divider, 1px solid var(--color-border));
+  background: var(--color-surface);
+}
+
+.rightColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border-left: var(--cohort-divider, 1px solid var(--color-border));
+}
+
+@media (max-width: 1200px) {
+  .overview {
+    grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.9fr);
+  }
+  .mainCard {
+    grid-row: span 2;
+  }
+}
+@media (max-width: 900px) {
+  .overview {
+    grid-template-columns: 1fr;
+  }
+  .mainCard {
+    grid-row: auto;
+    border-right: 0;
+    border-bottom: var(--cohort-divider, 1px solid var(--color-border));
+  }
+  .rightColumn {
+    border-left: 0;
+    border-top: var(--cohort-divider, 1px solid var(--color-border));
+  }
+}
+
+.overview {
+  gap: var(--cohort-panel-gap, 18px);
+  padding: var(--cohort-panel-padding, 18px);
+  background: linear-gradient(180deg, rgb(255 255 255 / 72%), rgb(248 250 252 / 72%));
+}
+.mainCard,
+.rightColumn {
+  border: 1px solid var(--cohort-border-soft, var(--color-border));
+  border-radius: var(--cohort-radius, 24px);
+  background: rgb(255 255 255 / 78%);
+  box-shadow: var(--cohort-shadow-soft, none);
+  overflow: hidden;
+}
+.mainCard {
+  border-right: 1px solid var(--cohort-border-soft, var(--color-border));
+}
+.rightColumn {
+  gap: var(--cohort-panel-gap, 18px);
+  border-left: 1px solid var(--cohort-border-soft, var(--color-border));
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+.rightColumn > * {
+  border: 1px solid var(--cohort-border-soft, var(--color-border)) !important;
+  border-radius: var(--cohort-radius, 24px) !important;
+  background: rgb(255 255 255 / 82%) !important;
+  box-shadow: var(--cohort-shadow-soft, none) !important;
+}
+@media (max-width: 900px) {
+  .mainCard,
+  .rightColumn {
+    border: 1px solid var(--cohort-border-soft, var(--color-border));
+  }
+}
+
+@media (max-width: 768px) {
+  .overview {
+    padding: var(--mobile-page-padding, 16px);
+    gap: var(--mobile-section-gap, 16px);
+  }
+  .mainCard, .rightColumn > * {
+    padding: var(--mobile-card-padding, 16px);
+  }
+}

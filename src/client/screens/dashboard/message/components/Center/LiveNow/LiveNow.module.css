@@ -1,0 +1,13 @@
+.section {
+  display: flex;
+  flex-direction: column;
+}
+
+.scrollerWrapper {
+  position: relative;
+  width: 100%;
+}
+
+.scroller {
+  width: 100%;
+}

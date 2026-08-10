@@ -1,0 +1,313 @@
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 1.25rem);
+  width: 100%;
+}
+
+.seasonCard {
+  background: var(--color-surface, #181b28);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-xl, 16px);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm, 0 2px 10px rgba(0, 0, 0, 0.25));
+  transition: all 0.2s ease;
+}
+
+.seasonCardSelected {
+  border-color: var(--color-brand, #6366f1);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3), 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.seasonCardDragging {
+  opacity: 0.4;
+  border-style: dashed;
+}
+
+.seasonHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.1rem 1.4rem;
+  background: var(--color-surface-secondary, rgba(255, 255, 255, 0.03));
+  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+}
+
+.seasonHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  accent-color: var(--color-brand, #6366f1);
+  cursor: pointer;
+}
+
+.dragHandle {
+  color: var(--color-text-muted, #94a3b8);
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  padding: 0.25rem;
+  border-radius: 4px;
+
+  &:hover {
+    color: var(--color-text-primary, #ffffff);
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+.collapseBtn {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary, #cbd5e1);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    color: #ffffff;
+  }
+}
+
+.seasonTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.seasonTitleInput {
+  background: transparent;
+  border: 1px transparent;
+  color: var(--color-text-primary, #ffffff);
+  font-size: 1.15rem;
+  font-weight: 800;
+  border-radius: 6px;
+  padding: 0.25rem 0.5rem;
+  outline: none;
+
+  &:focus {
+    background: var(--color-surface-tertiary, rgba(255, 255, 255, 0.08));
+    border-color: var(--color-brand, #6366f1);
+  }
+}
+
+.badgeGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.seasonHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.seasonActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  background: var(--color-surface-secondary, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-md, 8px);
+  color: var(--color-text-primary, #ffffff);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+
+  &:hover {
+    background: var(--color-surface-tertiary, rgba(255, 255, 255, 0.12));
+    color: #ffffff;
+  }
+}
+
+.deleteActionBtn {
+  color: #f87171;
+
+  &:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+  }
+}
+
+.lessonList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.25rem 1.4rem;
+  min-height: 50px;
+}
+
+.emptySeasonNotice {
+  padding: 1.75rem;
+  text-align: center;
+  color: var(--color-text-muted, #94a3b8);
+  font-size: 0.9rem;
+  border: 2px dashed var(--color-border, rgba(255, 255, 255, 0.1));
+  border-radius: 12px;
+}
+
+.lessonCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--color-surface-secondary, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-lg, 12px);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.lessonCard:hover {
+  background: var(--color-surface-tertiary, rgba(255, 255, 255, 0.07));
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.lessonCardSelected {
+  border-color: var(--color-brand, #6366f1);
+  background: rgba(99, 102, 241, 0.15);
+  box-shadow: 0 0 0 1px var(--color-brand, #6366f1);
+}
+
+.lessonCardDragging {
+  opacity: 0.3;
+}
+
+.lessonMain {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.lessonThumbnail {
+  width: 128px;
+  height: 72px;
+  border-radius: var(--radius-md, 8px);
+  object-fit: cover;
+  flex-shrink: 0;
+  background: #000000;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.15));
+}
+
+.lessonContent {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.lessonTitleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.lessonTitle {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-text-primary, #ffffff);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lessonDescription {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary, #cbd5e1);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.lessonMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  margin-top: 0.3rem;
+}
+
+.metaTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-primary, #ffffff);
+  background: var(--color-surface-tertiary, rgba(255, 255, 255, 0.08));
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+}
+
+.xpBadge {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 0.2rem 0.55rem;
+  border-radius: 6px;
+}
+
+.chunkList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+}
+
+.chunkPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: #a5b4fc;
+  background: rgba(99, 102, 241, 0.15);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+}
+
+@media (max-width: 768px) {
+  .board {
+    gap: var(--space-3, 12px);
+  }
+  .seasonCard {
+    border-radius: var(--radius-lg, 12px);
+  }
+  .lessonMain {
+    flex-direction: column;
+  }
+  .lessonThumbnail {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16/9;
+  }
+  .seasonHeaderRight {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .seasonActionBtn {
+    min-height: 36px;
+    padding: 0.35rem 0.6rem;
+  }
+  .dragHandle {
+    display: none;
+  }
+}

@@ -1,0 +1,284 @@
+.hero {
+  position: relative;
+  width: 100%;
+  height: min(100vh, calc(100vw * 9 / 16));
+  overflow: hidden;
+}
+.overlay {
+  position: relative;
+  z-index: var(--z-content);
+
+  display: flex;
+  flex-direction: column;
+
+  min-height: 100vh;
+}
+
+/*HeroScene*/
+
+.background {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.video {
+  position: absolute;
+
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: auto;
+
+  display: block;
+}
+
+.globalVignette {
+  z-index: 1;
+}
+
+.sunCorner {
+  position: absolute;
+
+  top: -22%;
+  right: -16%;
+
+  width: 58%;
+  height: 54%;
+
+  pointer-events: none;
+
+  background: radial-gradient(
+    ellipse,
+    rgba(255, 250, 243, 0.72) 0%,
+    rgba(255, 249, 242, 0.34) 28%,
+    rgba(255, 249, 242, 0.08) 56%,
+    transparent 78%
+  );
+
+  filter: blur(52px);
+}
+
+/* Warm cream cinematic grade */
+.colorGrade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  background: linear-gradient(
+    180deg,
+    rgba(255, 248, 236, 0.16) 0%,
+    rgba(255, 245, 234, 0.08) 35%,
+    transparent 100%
+  );
+
+  mix-blend-mode: screen;
+}
+
+/* Strong sunlight entering from upper-right */
+.windowGlow {
+  position: absolute;
+
+  right: -12%;
+  top: -10%;
+
+  width: 72%;
+  height: 88%;
+
+  pointer-events: none;
+
+  background: radial-gradient(
+    ellipse at 58% 45%,
+
+    rgba(255, 252, 248, 0.96) 0%,
+    rgba(255, 251, 246, 0.86) 30%,
+    rgba(255, 249, 243, 0.62) 55%,
+    rgba(255, 247, 241, 0.34) 76%,
+    rgba(255, 246, 239, 0.12) 90%,
+    transparent 100%
+  );
+
+  filter: blur(84px);
+}
+
+/* Typography readability */
+.readingWash {
+  position: absolute;
+
+  left: 32%;
+  top: 28%;
+
+  width: 46%;
+  height: 58%;
+
+  pointer-events: none;
+
+  background:
+    radial-gradient(
+      1200px 850px at 73% 42%,
+      rgba(255, 252, 248, 0.34) 0%,
+      rgba(255, 252, 248, 0.26) 38%,
+      rgba(255, 252, 248, 0.12) 68%,
+      transparent 100%
+    ),
+    radial-gradient(
+      900px 700px at 70% 62%,
+      rgba(255, 251, 246, 0.2) 0%,
+      rgba(255, 251, 246, 0.1) 62%,
+      transparent 100%
+    ),
+    radial-gradient(850px 650px at 58% 46%, rgba(255, 250, 244, 0.14) 0%, transparent 85%);
+
+  filter: blur(60px);
+}
+@media (max-width: 767px) {
+  .readingWash {
+    left: -25%;
+    width: 78%;
+    top: 7%;
+
+    /* leave everything else alone */
+  }
+}
+
+/* Keeps logo / floating icons readable */
+.leftVignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  background:
+
+        /* Main corner shadow */
+    radial-gradient(
+      950px 820px at -18% -18%,
+
+      rgba(16, 13, 38, 0.92) 0%,
+      rgba(18, 15, 42, 0.76) 24%,
+      rgba(22, 18, 48, 0.48) 44%,
+      rgba(22, 18, 48, 0.18) 62%,
+      transparent 76%
+    ),
+    /* Long sweeping arc */
+    radial-gradient(
+        1700px 520px at -30% 4%,
+
+        rgba(22, 18, 48, 0.34) 0%,
+        rgba(22, 18, 48, 0.16) 42%,
+        transparent 72%
+      ),
+    /* Vertical falloff */
+    linear-gradient(
+        to right,
+        rgba(18, 15, 42, 0.18) 0%,
+        rgba(18, 15, 42, 0.08) 12%,
+        transparent 28%
+      );
+}
+
+/* Navbar */
+.topFade {
+  position: absolute;
+
+  top: 0;
+  left: 0;
+  right: 0;
+
+  height: 128px;
+
+  pointer-events: none;
+
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.22),
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+}
+
+/* Bottom social proof */
+.bottomFade {
+  position: absolute;
+  inset: auto 0 0;
+  height: 470px;
+
+  pointer-events: none;
+
+  background:
+    radial-gradient(120% 300px at -8% 100%, rgba(14, 12, 28, 0.82), transparent 72%),
+    radial-gradient(145% 360px at 50% 100%, rgba(16, 14, 30, 0.7), transparent 72%),
+    radial-gradient(110% 290px at 108% 100%, rgba(14, 12, 28, 0.8), transparent 72%),
+    linear-gradient(to top, rgba(16, 14, 30, 0.38) 0%, rgba(16, 14, 30, 0.18) 36%, transparent 82%);
+}
+
+/* Very soft edge falloff */
+.globalVignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+
+  background: radial-gradient(
+    ellipse at center,
+    transparent 52%,
+    rgba(0, 0, 0, 0.08) 74%,
+    rgba(0, 0, 0, 0.18) 100%
+  );
+}
+
+@media (max-width: 1439px) {
+  .hero {
+    height: max(720px, min(100vh, calc(100vw * 9 / 16)));
+    min-height: 720px;
+  }
+
+  .overlay {
+    min-height: 720px;
+  }
+
+  .video {
+    width: auto;
+    min-width: 100%;
+    height: 100%;
+    min-height: 100%;
+    object-fit: cover;
+  }
+}
+
+@media (max-width: 1023px) {
+  .hero {
+    height: max(760px, 100svh);
+    min-height: 760px;
+  }
+
+  .overlay {
+    min-height: 760px;
+  }
+}
+
+@media (max-width: 767px) {
+  .hero {
+    height: max(820px, 100svh);
+    min-height: 820px;
+  }
+
+  .overlay {
+    min-height: 820px;
+  }
+
+  .topFade {
+    height: 112px;
+  }
+
+  .bottomFade {
+    height: 390px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    height: auto;
+    min-height: 100svh;
+  }
+}
+

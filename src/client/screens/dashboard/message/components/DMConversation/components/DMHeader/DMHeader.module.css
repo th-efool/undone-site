@@ -1,0 +1,125 @@
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 26px 32px 24px;
+  border-bottom: 1px solid var(--message-border, rgba(255, 255, 255, 0.08));
+  background: var(--message-bg-secondary, #000000);
+}
+.back,
+.actions button {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--message-bg-elevated, #141620);
+  color: var(--message-text-secondary, #cbd5e1);
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+.back:hover,
+.actions button:hover {
+  background: var(--message-brand, #6366f1);
+  color: #fff;
+}
+.avatar {
+  position: relative;
+}
+.avatar img {
+  width: 52px;
+  height: 52px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+.avatar i {
+  position: absolute;
+  right: 1px;
+  bottom: 3px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--message-bg-secondary, #000000);
+  border-radius: 999px;
+  background: #22c55e;
+}
+.info {
+  flex: 1;
+}
+.info h1 {
+  margin: 0;
+  color: var(--message-text-primary, #f8fafc);
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+.info p {
+  margin: 4px 0 0;
+  color: #22c55e;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+.actions {
+  display: flex;
+  gap: 16px;
+}
+.actions button {
+  color: var(--message-brand, #818cf8);
+}
+@media (max-width: 760px) {
+  .header {
+    padding: max(12px, env(safe-area-inset-top)) 16px 8px;
+    gap: 10px;
+  }
+  .info h1 {
+    font-size: 1.1rem;
+  }
+  .info p {
+    font-size: 0.8rem;
+    margin: 2px 0 0;
+  }
+  .actions {
+    gap: 6px;
+  }
+  .actions button:nth-child(n + 3) {
+    display: none;
+  }
+}
+.actions {
+  position: relative;
+}
+.popover {
+  position: absolute;
+  z-index: 30;
+  top: 46px;
+  right: 44px;
+  width: 260px;
+  padding: 10px;
+  border: 1px solid var(--message-border-strong, rgba(255, 255, 255, 0.16));
+  border-radius: 16px;
+  background: #141620;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+}
+.popover button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 38px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--message-text-primary, #f8fafc);
+  font-weight: 800;
+  cursor: pointer;
+}
+.popover button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--message-brand, #818cf8);
+}
+
+@media (max-width: 768px) {
+  .header { padding: max(12px, env(safe-area-inset-top)) 16px 8px; gap: 10px; }
+  .back, .actions button { width: 38px; height: 38px; min-width: 38px; min-height: 38px; border-radius: 10px; }
+  .avatar img { width: 40px; height: 40px; }
+}

@@ -1,27 +1,13 @@
 'use client';
 
-import React, { Suspense, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
-import { isNativeApp } from '@/src/client/utils/isNative';
 
 const Message = dynamic(
-  () => import('@/src/client/components/screens/dashboard/message').then((mod) => mod.Message)
+  () => import('@/src/client/screens/dashboard/message').then((mod) => mod.Message)
 );
 
 export default function MessagePage() {
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isNativeApp()) {
-      router.replace('/home');
-    }
-  }, [router]);
-
-  if (isNativeApp()) {
-    return null;
-  }
-
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',

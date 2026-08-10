@@ -100,10 +100,10 @@ export const metadata: Metadata = {
 
   icons: {
     icon: [
-      { url: '/images/logos/floating-logo.svg', type: 'image/svg+xml' },
+      { url: '/logos/floating-logo.svg', type: 'image/svg+xml' },
     ],
-    apple: '/images/logos/floating-logo.svg',
-    shortcut: '/images/logos/floating-logo.svg',
+    apple: '/logos/floating-logo.svg',
+    shortcut: '/logos/floating-logo.svg',
   },
 
   manifest: '/site.webmanifest',

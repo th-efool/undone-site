@@ -1,0 +1,132 @@
+.message {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.darkTheme {
+  --message-bg: #000000;
+  --message-bg-secondary: #000000;
+  --message-bg-elevated: #09090b;
+  --message-border: rgba(255, 255, 255, 0.08);
+  --message-border-strong: rgba(255, 255, 255, 0.16);
+  --message-brand: #6366f1;
+  --message-brand-hover: #4f46e5;
+  --message-brand-soft: rgba(99, 102, 241, 0.18);
+  --message-text-primary: #f8fafc;
+  --message-text-secondary: #cbd5e1;
+  --message-text-muted: #94a3b8;
+  --message-radius-card: var(--radius-2xl);
+  --message-radius-control: var(--radius-lg);
+  --message-shadow-card: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --message-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.7);
+
+  background: var(--message-bg);
+  color: var(--message-text-primary);
+}
+
+.lightTheme {
+  --message-bg: #ffffff;
+  --message-bg-secondary: #f4f4f5;
+  --message-bg-elevated: #fafafa;
+  --message-border: rgba(0, 0, 0, 0.08);
+  --message-border-strong: rgba(0, 0, 0, 0.16);
+  --message-brand: #4f46e5;
+  --message-brand-hover: #4338ca;
+  --message-brand-soft: rgba(79, 70, 229, 0.12);
+  --message-text-primary: #09090b;
+  --message-text-secondary: #52525b;
+  --message-text-muted: #71717a;
+  --message-radius-card: var(--radius-2xl);
+  --message-radius-control: var(--radius-lg);
+  --message-shadow-card: 0 8px 32px rgba(0, 0, 0, 0.06);
+  --message-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.1);
+
+  background: var(--message-bg);
+  color: var(--message-text-primary);
+}
+
+.message :global(*) {
+  scrollbar-width: none;
+}
+
+.message :global(*::-webkit-scrollbar) {
+  width: 0;
+  height: 0;
+}
+
+.message :global(*::-webkit-scrollbar-thumb) {
+  border-radius: var(--radius-pill);
+  background: rgb(var(--color-brand-rgb) / 22%);
+}
+
+.message :global(button),
+.message :global(input) {
+  font: inherit;
+}
+
+.message :global(button) {
+  min-height: 34px;
+  transition:
+    transform var(--duration-fast) var(--ease-standard),
+    background var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard),
+    box-shadow var(--duration-fast) var(--ease-standard),
+    opacity var(--duration-fast) var(--ease-standard);
+}
+
+.message :global(button:hover) {
+  box-shadow: 0 10px 24px rgb(15 23 42 / 6%);
+}
+
+.message :global(button:active) {
+  transform: translateY(0) scale(0.98);
+}
+
+.message :global(button:focus-visible),
+.message :global(input:focus-visible),
+.message :global(article[role='button']:focus-visible) {
+  outline: 3px solid rgb(var(--color-brand-rgb) / 22%);
+  outline-offset: 2px;
+}
+.message {
+  font-size: 0.94rem;
+}
+
+/* F1: Use dynamic viewport + safe-area on mobile for sticky composer */
+@media (max-width: 768px) {
+  .message {
+    height: calc(100dvh - var(--bottom-nav-height, 60px));
+    overflow: hidden;
+  }
+
+  /* Ensure children use dvh for keyboard-aware layout */
+  .message > * {
+    min-height: 0;
+  }
+}
+
+/* Enable text selection & custom chat indigo selection color for /message */
+.message,
+.message * {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.message button,
+.message a,
+.message img,
+.message svg {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.message ::selection {
+  background: rgba(99, 102, 241, 0.4);
+  color: #ffffff;
+}
+
+.message ::-moz-selection {
+  background: rgba(99, 102, 241, 0.4);
+  color: #ffffff;
+}

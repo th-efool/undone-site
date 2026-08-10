@@ -1,0 +1,41 @@
+.auth {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 520px;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: white;
+  overflow: hidden;
+}
+
+.showcase {
+  position: relative;
+  min-width: 0;
+
+  overflow: visible;
+}
+
+.panel {
+  position: relative;
+
+  display: flex;
+
+  align-items: stretch;
+}
+
+@media (max-width: 1100px) {
+  .auth {
+    grid-template-columns: 1fr;
+  }
+
+  .showcase {
+    display: none;
+  }
+
+  .panel {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) { .auth { min-height: 100vh; } }

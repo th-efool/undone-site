@@ -1,0 +1,76 @@
+.mobileNotes {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: var(--color-surface, #ffffff);
+  color: var(--color-text-primary, #0f172a);
+  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  box-sizing: border-box;
+}
+
+.mobileHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.actionBtn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--color-accent, #4f46e5);
+  color: #ffffff;
+  border: none;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.notesList {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.noteItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-border, #f1f5f9);
+  cursor: pointer;
+}
+
+.noteItemActive {
+  background: rgba(79, 70, 229, 0.05);
+}
+
+.noteTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-primary, #0f172a);
+}
+
+.notePreview {
+  font-size: 13px;
+  color: var(--color-text-muted, #64748b);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: var(--color-text-muted, #64748b);
+}

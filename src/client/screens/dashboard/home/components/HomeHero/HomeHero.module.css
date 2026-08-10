@@ -1,0 +1,227 @@
+.hero {
+  position: relative;
+  width: 100%;
+  border-radius: 0;
+  overflow: hidden;
+  height: 200px;
+  background: #fcf5ee;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.heroBg {
+  position: absolute;
+  top: 0;
+  right: 220px;
+  height: 100%;
+  width: auto;
+  z-index: 0;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
+  mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
+}
+
+.heroContent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 24px 32px;
+}
+
+.greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.title {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  line-height: 1.05;
+}
+
+.titleMain {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  color: #1e1b4b;
+  font-size: 2.2rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  display: inline-block;
+  transform: scale(1.1, 1.35);
+  transform-origin: top left;
+  margin-bottom: 2px;
+}
+
+.titleItalic {
+  font-family: var(--font-accent-script), 'Dancing Script', 'Caveat', 'Kalam', cursive;
+  font-style: italic;
+  color: #4f46e5;
+  font-size: 2.65rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  word-spacing: 0.15em;
+  display: inline-block;
+  transform: scale(1.55, 1.8);
+  transform-origin: top left;
+  margin-bottom: 32px;
+}
+
+.subtitle {
+  margin: 0;
+  color: #64748b;
+  font-family: var(--font-manrope);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.searchWrapper {
+  flex: 1;
+  max-width: 440px;
+  min-width: 220px;
+  margin: -6px 20px 0;
+}
+
+.searchBar {
+  width: 100%;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* Stat badges and new button */
+.heroStats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  margin-top: -6px;
+}
+
+.newButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 12px;
+  background: #5b46e8;
+  color: white;
+  font-family: var(--font-manrope);
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 6px 16px rgba(91, 70, 232, 0.25);
+  transition: transform 180ms ease, background 180ms ease;
+  white-space: nowrap;
+}
+
+.newButton:hover {
+  transform: translateY(-1px);
+  background: #4a36d2;
+}
+
+.statBadge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 1px solid #f1f5f9;
+  border-radius: 12px;
+  padding: 6px 14px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  transition: transform 150ms ease, box-shadow 150ms ease;
+  height: 48px;
+  min-width: 72px;
+}
+
+.statBadge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.statBadgeTop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statIconOrange {
+  color: #f97316;
+  display: flex;
+  align-items: center;
+}
+.statIconOrange svg {
+  width: 16px;
+  height: 16px;
+}
+
+.statValue {
+  font-family: var(--font-manrope);
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #1e293b;
+}
+
+.statLabel {
+  font-family: var(--font-manrope);
+  font-size: 0.65rem;
+  color: #94a3b8;
+  font-weight: 700;
+  text-transform: capitalize;
+  margin-top: 1px;
+}
+
+.clockProgress {
+  width: 16px;
+  height: 16px;
+}
+.circularChart {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  max-height: 100%;
+}
+.circleBg {
+  fill: none;
+  stroke: #e2e8f0;
+  stroke-width: 3.8;
+}
+.circle {
+  fill: none;
+  stroke: #5b46e8;
+  stroke-width: 3.8;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.3s ease;
+}
+
+@media (max-width: 1100px) {
+  .heroContent {
+    flex-wrap: wrap;
+  }
+  .searchWrapper {
+    order: 3;
+    max-width: 100%;
+    margin: 10px 0 0 0;
+  }
+}
+@media (max-width: 768px) {
+  .hero {
+    padding: 16px;
+  }
+  .titleMain {
+    font-size: 1.8rem;
+  }
+  .titleItalic {
+    font-size: 2rem;
+  }
+}

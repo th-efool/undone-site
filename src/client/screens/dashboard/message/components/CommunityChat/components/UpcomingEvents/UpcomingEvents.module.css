@@ -1,0 +1,72 @@
+.events {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.events article {
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.events article > span {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+}
+
+.events strong {
+  display: block;
+  color: #f8fafc;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.events p {
+  margin: 2px 0 3px;
+  color: #cbd5e1;
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.events em {
+  color: #94a3b8;
+  font-style: normal;
+  font-size: 0.74rem;
+  font-weight: 500;
+}
+
+.events button {
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #cbd5e1;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.events button:hover {
+  background: rgba(99, 102, 241, 0.2);
+  border-color: #6366f1;
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .events {
+    padding: var(--space-2);
+  }
+}

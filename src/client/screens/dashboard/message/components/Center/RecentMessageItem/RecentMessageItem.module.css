@@ -1,0 +1,113 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--message-border, rgba(255, 255, 255, 0.08));
+}
+.row:last-child {
+  border-bottom: 0;
+}
+.avatar {
+  position: relative;
+  flex: 0 0 auto;
+}
+.avatar img {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+.avatar i {
+  position: absolute;
+  right: 0;
+  bottom: 2px;
+  width: 11px;
+  height: 11px;
+  border: 2px solid var(--message-bg, #050505);
+  border-radius: 999px;
+  background: #22c55e;
+}
+.body {
+  min-width: 0;
+  flex: 1;
+}
+.to.row p {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 7px;
+}
+.top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.top strong {
+  color: var(--message-text-primary, #f8fafc);
+}
+.top span {
+  color: var(--message-brand, #818cf8);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.top em {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.2);
+  color: #a5b4fc;
+  font-style: normal;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+.row p {
+  margin: 0;
+  color: var(--message-text-secondary, #cbd5e1);
+  font-weight: 500;
+}
+.file {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--message-border-strong, rgba(255, 255, 255, 0.16));
+  border-radius: 10px;
+  background: #141620;
+  color: var(--message-text-primary, #f8fafc);
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.file svg {
+  color: #ef4444; /* default / pdf */
+}
+/* B6: type-specific icon colors */
+.file[data-attachment-type="image"] svg {
+  color: #22c55e;
+}
+.file[data-attachment-type="video"] svg {
+  color: #f97316;
+}
+.meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 34px;
+  color: var(--message-text-muted, #94a3b8);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.meta b {
+  display: grid;
+  place-items: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--message-brand, #6366f1);
+  color: #fff;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 768px) { .item { min-height: 44px; padding: var(--space-3); } }

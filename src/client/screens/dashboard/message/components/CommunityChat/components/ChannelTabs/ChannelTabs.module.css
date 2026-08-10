@@ -1,0 +1,65 @@
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 34px;
+  padding: 0 32px;
+  border-bottom: 1px solid var(--message-border);
+}
+.tabs button {
+  position: relative;
+  height: 52px;
+  border: 0;
+  background: transparent;
+  color: #60698d;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all var(--duration-fast) var(--ease-standard);
+}
+.tabs button:hover,
+.tabs .active {
+  color: var(--message-brand);
+}
+.active::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--message-brand);
+}
+
+/* Batch D3: Unread count badge on channel tabs */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: var(--message-brand);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+@media (max-width: 768px) {
+  .tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+    /* F4: Right-edge gradient fade to indicate more content */
+    mask-image: linear-gradient(to right, transparent 0%, #000 calc(100% - 48px), #fff);
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 calc(100% - 48px), #fff);
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tabs button {
+    flex-shrink: 0;
+    min-height: 40px;
+  }
+}

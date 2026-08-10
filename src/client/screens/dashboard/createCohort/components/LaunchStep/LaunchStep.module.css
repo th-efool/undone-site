@@ -1,0 +1,58 @@
+.specSheet {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.specRow {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  align-items: flex-start;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid #27272a;
+}
+
+.specLabel {
+  color: #a1a1aa;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-top: 0.25rem;
+}
+
+.specValue {
+  color: #ffffff;
+  font-size: 1rem;
+}
+
+.artwork {
+  width: 90px;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: block;
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 0;
+  color: #a1a1aa;
+  border-bottom: 1px solid #27272a;
+  text-align: center;
+}
+
+.errorValue {
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+}
+
+@media (max-width: 768px) {
+  .specRow {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}

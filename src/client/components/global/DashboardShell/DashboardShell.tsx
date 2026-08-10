@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation';
 
 import clsx from 'clsx';
 import { getRouteTheme } from '@/src/client/config/routeThemeConfig';
+import { useExperience } from '@/src/client/hooks/useExperience';
+import { MobileNav } from '@/src/client/mobile/components/navigation/MobileNav/MobileNav';
 import { Sidebar } from '../Sidebar';
 import { NetworkOfflineIndicator } from '../NetworkOfflineIndicator/NetworkOfflineIndicator';
 import { CommandPalette, CommandTriggerProvider, useCommandContext } from '../CommandPalette';
@@ -15,6 +17,7 @@ import styles from './DashboardShell.module.css';
 
 function DashboardInner({ children }: PropsWithChildren) {
   const pathname = usePathname();
+  const experience = useExperience();
   const isPlayPage = pathname === '/play';
   const isDark = getRouteTheme(pathname) === 'dark';
   const { open, onOpenChange } = useCommandContext();
@@ -43,7 +46,7 @@ function DashboardInner({ children }: PropsWithChildren) {
         )}
       >
         <NetworkOfflineIndicator />
-        <Sidebar />
+        {experience === 'mobile' ? <MobileNav /> : <Sidebar />}
         <main
           className={clsx(
             styles.content,
@@ -65,3 +68,4 @@ export function DashboardShell({ children }: PropsWithChildren) {
     </CommandTriggerProvider>
   );
 }
+

@@ -1,0 +1,330 @@
+.panel {
+  padding: 0 0 24px 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.headerLeft {
+  display: flex;
+  flex-direction: column;
+}
+
+.header h2 {
+  margin: 0;
+  color: var(--message-text-primary, #f8fafc);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.monthLabel {
+  color: var(--message-text-muted, #94a3b8);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.providerSelector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #1e2230;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 4px 8px;
+  color: var(--message-text-secondary, #cbd5e1);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.providerSelector:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--message-text-primary, #f8fafc);
+}
+
+.providerIcon {
+  color: var(--message-brand, #818cf8);
+}
+
+.providerChevron {
+  opacity: 0.6;
+}
+
+.calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.weekHeader {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--message-text-muted, #94a3b8);
+  padding-bottom: 4px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.emptyCell {
+  height: 34px;
+}
+
+.dayCell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--message-text-primary, #f8fafc);
+  cursor: default;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.dayCell:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.today {
+  background: rgba(99, 102, 241, 0.2);
+  color: var(--message-brand, #818cf8);
+  font-weight: 800;
+}
+
+.hasEvent {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.eventDot {
+  position: absolute;
+  bottom: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+}
+
+.purple {
+  background: var(--message-brand, #6366f1);
+}
+.orange {
+  background: #f97316;
+}
+.blue {
+  background: #2563eb;
+}
+
+/* Floating Tooltip */
+.tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  width: 200px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #141620;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.6);
+  z-index: 50;
+  pointer-events: none;
+  animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #141620 transparent transparent transparent;
+}
+
+.tooltipContent {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.toneBar {
+  width: 3px;
+  height: 100%;
+  min-height: 38px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.eventTitle {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.25;
+}
+
+.eventSub {
+  margin: 2px 0 4px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.eventTime {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #a78bfa;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(-8px);
+  }
+}
+
+.upNext {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--message-border, rgba(255, 255, 255, 0.12));
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.upNextLabel {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--message-text-muted, #94a3b8);
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding-top: 4px;
+  flex: 1;
+  overflow-y: hidden;
+}
+
+.timelineItem {
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+  position: relative;
+  min-height: 56px;
+  flex-shrink: 0;
+}
+
+.timeBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-start;
+  width: 72px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.heroTime {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--message-text-primary, #f8fafc);
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.heroDate {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--message-text-muted, #94a3b8);
+  margin-top: 2px;
+}
+
+.timelineDivider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 12px;
+  flex-shrink: 0;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  margin-top: 5px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 3px var(--message-bg-secondary, #0a0b0e); /* to separate dot from line */
+  z-index: 1;
+}
+
+.line {
+  width: 2px;
+  background: var(--message-border, rgba(255, 255, 255, 0.08));
+  flex-grow: 1;
+  margin-top: 4px;
+  margin-bottom: -4px; /* overlap with next dot */
+}
+
+.purpleBg { background: var(--message-brand, #6366f1); }
+.orangeBg { background: #f97316; }
+.blueBg { background: #2563eb; }
+
+.eventContent {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  padding-top: 2px;
+  padding-bottom: 24px;
+}
+
+.secondaryTitle {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--message-text-primary, #f8fafc);
+  margin-bottom: 2px;
+}
+
+.secondarySub {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--message-text-secondary, #cbd5e1);
+}
+
+@media (max-width: 768px) { .panel { padding: var(--space-2); } }

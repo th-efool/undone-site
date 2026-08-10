@@ -1,0 +1,1 @@
+export { Ikigai } from './Ikigai';
