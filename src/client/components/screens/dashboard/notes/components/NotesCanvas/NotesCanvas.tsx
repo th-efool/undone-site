@@ -125,6 +125,7 @@ export function NotesCanvas({
           viewBackgroundColor: "transparent",
           gridSize: gridConfigRef.current.layout === 'grid' ? gridConfigRef.current.size : null,
           gridModeEnabled: gridConfigRef.current.layout === 'grid',
+          currentItemTextAlign: "left",
         },
       };
     }
@@ -137,6 +138,7 @@ export function NotesCanvas({
         viewBackgroundColor: "transparent",
         gridSize: gridConfigRef.current.layout === 'grid' ? gridConfigRef.current.size : null,
         gridModeEnabled: gridConfigRef.current.layout === 'grid',
+        currentItemTextAlign: "left",
       },
       files: initialScene.files as any,
     };
@@ -338,7 +340,7 @@ export function NotesCanvas({
         onChange={handleChange}
         viewModeEnabled={isReadOnly}
         theme="light"
-        UIOptions={{
+        UIOptions={useMemo(() => ({
           canvasActions: {
             changeViewBackgroundColor: false,
             clearCanvas: true,
@@ -347,13 +349,13 @@ export function NotesCanvas({
             toggleTheme: false,
             saveAsImage: true,
           },
-        }}
-        hamburgerProps={{
+        }), [])}
+        hamburgerProps={useMemo(() => ({
           config: gridConfig,
           onChange: handleGridConfigChange,
           viewBackgroundColor: currentBg,
           onBgChange: handleBgChange,
-        }}
+        }), [gridConfig, handleGridConfigChange, currentBg, handleBgChange])}
       />
     </div>
   );

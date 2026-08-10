@@ -17,3 +17,17 @@
   width: 100% !important;
   height: 100% !important;
 }
+
+/* Hide the purple selection bounding box when typing in a text editor */
+.container :global(.excalidraw:has(.excalidraw-wysiwyg)) {
+  --color-selection: transparent !important;
+}
+
+/* Also ensure the textarea itself doesn't have an outline/border */
+.container :global(.excalidraw-wysiwyg),
+.container :global(.excalidraw-textEditorContainer) {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}

@@ -1,9 +1,10 @@
 'use client';
 
+import React from 'react';
 import { Excalidraw, MainMenu } from '@excalidraw/excalidraw';
 import { HamburgerGridControls } from './HamburgerGridControls';
 
-export default function ExcalidrawWrapper({
+const ExcalidrawWrapper = React.memo(function ExcalidrawWrapper({
   excalidrawAPI,
   initialData,
   onChange,
@@ -21,12 +22,16 @@ export default function ExcalidrawWrapper({
       theme={theme}
       UIOptions={UIOptions}
     >
-      <MainMenu>
-        <MainMenu.DefaultItems.SaveAsImage />
-        <MainMenu.DefaultItems.ClearCanvas />
-        <MainMenu.Separator />
-        <HamburgerGridControls {...hamburgerProps} />
-      </MainMenu>
+      {React.useMemo(() => (
+        <MainMenu>
+          <MainMenu.DefaultItems.SaveAsImage />
+          <MainMenu.DefaultItems.ClearCanvas />
+          <MainMenu.Separator />
+          <HamburgerGridControls {...hamburgerProps} />
+        </MainMenu>
+      ), [hamburgerProps])}
     </Excalidraw>
   );
-}
+});
+
+export default ExcalidrawWrapper;
