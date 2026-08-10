@@ -21,31 +21,30 @@
 .marker {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  border: 1px solid var(--color-border);
-  color: var(--color-text-secondary);
+  border: none;
+  color: #52525b;
   background: transparent;
   transition: all 0.2s ease;
 }
 
 .connector {
-  width: 24px;
+  width: 32px;
   height: 1px;
-  background: var(--color-border);
+  background: #27272a;
 }
 
 .current .marker {
-  border-color: var(--color-brand);
-  color: var(--color-brand);
-  background: rgba(99, 102, 241, 0.1);
-  box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.05);
+  color: #000000;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px #000000, 0 0 0 4px #ffffff;
 }
 
 .complete .marker {
-  border-color: var(--color-text-primary);
-  color: var(--color-text-primary);
+  color: #ffffff;
+  background: transparent;
 }
 
 .disabled {

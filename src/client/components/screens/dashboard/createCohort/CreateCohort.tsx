@@ -27,17 +27,18 @@ function CreateCohortScreen() {
       <Container size="wide">
         <Stack gap="8" className={styles.pageStack}>
           <section className={styles.header}>
-            <Cluster justify="between" align="start" className={styles.headerCluster}>
-              <Stack gap="3">
-                <Heading level={1} className={styles.title}>
-                  {model.header.title}
-                </Heading>
-                <Text variant="lead" className={styles.description}>
-                  {model.header.description}
-                </Text>
-              </Stack>
+            <div className={styles.headerTop}>
+              <Text className={styles.appTitle}>Create Cohort</Text>
+            </div>
+            
+            <div className={styles.headerToolbar}>
+              <div className={styles.headerInfo}>
+                <Text className={styles.stepTitle}>{model.header.title}</Text>
+                <span className={styles.headerDivider} />
+                <Text className={styles.stepDescription}>{model.header.description}</Text>
+              </div>
               <WizardStepper steps={model.steps} />
-            </Cluster>
+            </div>
           </section>
 
           <div className={styles.stepContainer}>
