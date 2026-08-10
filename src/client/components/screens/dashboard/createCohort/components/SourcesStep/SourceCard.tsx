@@ -5,6 +5,7 @@ import { ChevronDown, ChevronUp, Copy, GripVertical, Trash2, Link } from 'lucide
 
 import { Badge } from '@/src/client/components/ui/Badge/Badge';
 import { Button } from '@/src/client/components/ui/Button/Button';
+import { Surface } from '@/src/client/components/global/layout/Surface';
 
 import type { CreateCohortSourceModel } from '../../models/createCohort';
 import { useWizardContext } from '../../providers/WizardProvider';
@@ -37,7 +38,8 @@ export function SourceCard({
   const { actions } = useWizardContext();
 
   return (
-    <article
+    <Surface
+      variant="default"
       className={`${styles.card} ${dragging ? styles.dragging : ''}`}
       draggable
       onDragStart={() => onDragStart(source.id)}
@@ -57,7 +59,7 @@ export function SourceCard({
           className={styles.dragHandle}
           aria-label={source.dragLabel}
         >
-          <GripVertical size={14} />
+          <GripVertical size={16} />
         </button>
 
         <div className={styles.headerContent}>
@@ -67,7 +69,7 @@ export function SourceCard({
             </Badge>
           </div>
           <div className={styles.urlInputRow}>
-            <Link size={14} className={styles.urlIcon} />
+            <Link size={16} className={styles.urlIcon} />
             <input
               className={styles.urlInput}
               value={source.url}
@@ -88,7 +90,7 @@ export function SourceCard({
             disabled={!previousId}
             onClick={() => previousId && actions.moveSource(source.id, previousId)}
           >
-            <ChevronUp size={14} />
+            <ChevronUp size={16} />
           </Button>
           <Button
             type="button"
@@ -99,7 +101,7 @@ export function SourceCard({
             disabled={!nextId}
             onClick={() => nextId && actions.moveSource(source.id, nextId)}
           >
-            <ChevronDown size={14} />
+            <ChevronDown size={16} />
           </Button>
           <Button
             type="button"
@@ -109,7 +111,7 @@ export function SourceCard({
             aria-label="Duplicate source"
             onClick={() => actions.duplicateSource(source.id)}
           >
-            <Copy size={14} />
+            <Copy size={16} />
           </Button>
           <Button
             type="button"
@@ -119,10 +121,10 @@ export function SourceCard({
             aria-label="Delete source"
             onClick={() => actions.removeSource(source.id)}
           >
-            <Trash2 size={14} />
+            <Trash2 size={16} />
           </Button>
         </div>
       </div>
-    </article>
+    </Surface>
   );
 }

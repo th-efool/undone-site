@@ -1,11 +1,13 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { FileSearch } from 'lucide-react';
 
 import { Badge } from '@/src/client/components/ui/Badge/Badge';
 import { Button } from '@/src/client/components/ui/Button/Button';
 import { Cluster } from '@/src/client/components/global/layout/Cluster';
 import { Stack } from '@/src/client/components/global/layout/Stack';
+import { Surface } from '@/src/client/components/global/layout/Surface';
 import { Heading } from '@/src/client/components/ui/Typography/Heading';
 import { Text } from '@/src/client/components/ui/Typography/Text';
 
@@ -47,12 +49,12 @@ export function SourcesStep({ sources, importWorkspace }: SourcesStepProps) {
       ) : (
         <Stack gap="5">
           <div className={styles.header}>
-            <div className={styles.headerText}>
+            <Stack gap="2">
               <Heading level={2} className={styles.title}>
                 {sources.title}
               </Heading>
               <Text variant="muted">{sources.description}</Text>
-            </div>
+            </Stack>
 
             <Cluster gap="3" justify="end" className={styles.actions}>
               <Badge variant="neutral">{sources.countLabel}</Badge>
@@ -63,11 +65,17 @@ export function SourcesStep({ sources, importWorkspace }: SourcesStepProps) {
           </div>
 
           {sources.sources.length === 0 ? (
-            <div className={styles.emptyState}>
-              <Text>{sources.emptyLabel}</Text>
-            </div>
+            <Surface variant="subtle" className={styles.emptyState}>
+              <Stack gap="4" align="center">
+                <FileSearch size={32} style={{ color: 'var(--color-text-muted)' }} />
+                <Text variant="muted">{sources.emptyLabel}</Text>
+                <Button type="button" variant="primary" onClick={actions.addSource}>
+                  Add first source
+                </Button>
+              </Stack>
+            </Surface>
           ) : (
-            <div className={styles.list}>
+            <Stack gap="4">
               {orderedSources.map(({ source, previousId, nextId }) => (
                 <SourceCard
                   key={source.id}
@@ -91,7 +99,7 @@ export function SourcesStep({ sources, importWorkspace }: SourcesStepProps) {
                   onDragEnd={() => setDraggingSourceId(null)}
                 />
               ))}
-            </div>
+            </Stack>
           )}
         </Stack>
       )}
