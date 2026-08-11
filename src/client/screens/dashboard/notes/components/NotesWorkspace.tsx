@@ -54,7 +54,7 @@ export function NotesWorkspace({
         {isMobile && (
           <button
             className={styles.mobileBackBtn}
-            onClick={() => setMobileView('panel')}
+            onClick={() => setMobileView('notebooks')}
           >
             <ArrowLeft size={16} /> Back
           </button>

@@ -92,7 +92,7 @@ export function WorkspaceScreen({ notes, onBack, onSelectNote }: WorkspaceScreen
       const match = t.date.match(/\d+/);
       return {
         day: match ? parseInt(match[0], 10) : 1,
-        tone: t.status === 'completed' ? 'green' : 'orange' as const
+        tone: (t.status === 'completed' ? 'green' : 'orange') as 'green' | 'orange'
       };
     });
   }, [currentTasks]);

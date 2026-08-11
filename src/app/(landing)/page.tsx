@@ -1,38 +1,43 @@
-'use client';
+import type { Metadata } from 'next';
+import { LandingClient } from './page.client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Hero } from '@/src/client/screens/landing/01-hero';
-import dynamic from 'next/dynamic';
-
-const Ikigai = dynamic(() => import('@/src/client/screens/landing/02-ikigai').then((mod) => mod.Ikigai));
-const Footer = dynamic(() => import('@/src/client/screens/landing/06-footer').then((mod) => mod.Footer));
-
-function isCapacitorNative(): boolean {
-  return typeof window !== 'undefined' && Boolean((window as any).Capacitor?.isNativePlatform?.());
-}
+export const metadata: Metadata = {
+  title: 'SideQuestHQ - The Easiest Way to Stay Consistent',
+  description: 'Master any skill with microlearning and AI. SideQuestHQ helps you learn consistently, everyday.',
+  alternates: {
+    canonical: 'https://sidequesthq.com',
+  },
+  openGraph: {
+    title: 'SideQuestHQ - The Easiest Way to Stay Consistent',
+    description: 'Master any skill with microlearning and AI. SideQuestHQ helps you learn consistently, everyday.',
+    url: 'https://sidequesthq.com',
+    type: 'website',
+  },
+};
 
 export default function Landing() {
-  const router = useRouter();
-  const [isNative, setIsNative] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    if (isCapacitorNative()) {
-      router.replace('/home');
-    } else {
-      setIsNative(false);
-    }
-  }, [router]);
-
-  if (isNative === null) {
-    return null;
-  }
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'SideQuestHQ',
+    applicationCategory: 'EducationalApplication',
+    operatingSystem: 'Any',
+    url: 'https://sidequesthq.com',
+    description: 'Master any skill with microlearning and AI. SideQuestHQ helps you learn consistently, everyday.',
+    offers: {
+      '@type': 'Offer',
+      price: '0.00',
+      priceCurrency: 'USD',
+    },
+  };
 
   return (
-    <main className="overflow-x-hidden">
-      <Hero />
-      <Ikigai />
-      <Footer />
-    </main>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <LandingClient />
+    </>
   );
 }
