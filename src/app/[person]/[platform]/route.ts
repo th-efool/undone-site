@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const ALLOWED_PEOPLE = new Set(['sia', 'yash', 'vanshika', 'shagun', 'agrim', 'ava1', 'ava2', 'ava3', 'ava4', 'official']);
+const ALLOWED_PEOPLE = new Set(['sia', 'yash', 'vanshika', 'shagun', 'agrim', 'ava1', 'ava2', 'ava3', 'ava4', 'official', 'simran']);
 
 const PLATFORM_MAP: Record<string, string> = {
   wa: 'whatsapp',
