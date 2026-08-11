@@ -163,57 +163,7 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
   }, [columns]);
 
 
-  /* ── Fix text selection during drag ── */
-  useEffect(() => {
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-
-    let isPointerDown = false;
-    let isDragging = false;
-    let startX = 0;
-    let startY = 0;
-
-    const onPointerDown = (e: PointerEvent) => {
-      const target = e.target as HTMLElement;
-      if (['INPUT', 'TEXTAREA', 'BUTTON'].includes(target.tagName) || target.isContentEditable || target.closest('button') || target.closest('input')) {
-        return;
-      }
-      isPointerDown = true;
-      startX = e.clientX;
-      startY = e.clientY;
-    };
-
-    const onPointerMove = (e: PointerEvent) => {
-      if (!isPointerDown) return;
-      if (!isDragging) {
-        if (Math.abs(e.clientX - startX) > 4 || Math.abs(e.clientY - startY) > 4) {
-          isDragging = true;
-          document.body.classList.add('sqhq-is-dragging');
-        }
-      }
-    };
-
-    const onPointerUpOrCancel = () => {
-      isPointerDown = false;
-      if (isDragging) {
-        isDragging = false;
-        document.body.classList.remove('sqhq-is-dragging');
-      }
-    };
-
-    wrapper.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUpOrCancel);
-    window.addEventListener('pointercancel', onPointerUpOrCancel);
-
-    return () => {
-      wrapper.removeEventListener('pointerdown', onPointerDown);
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUpOrCancel);
-      window.removeEventListener('pointercancel', onPointerUpOrCancel);
-      document.body.classList.remove('sqhq-is-dragging');
-    };
-  }, []);
+  /* ── Native dragging (SVAR handles touch natively, removing custom pointer intercept to fix mobile) ── */
 
 
   /* ── Card menu open: open editor near card ── */
@@ -282,7 +232,10 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
               }}
               onBlur={commitColRename}
             />
-            <div className="sqhq-col-rename-hint">Press Enter to save · Esc to cancel</div>
+            <div className="sqhq-col-rename-actions">
+              <button className="sqhq-col-rename-btn" onClick={() => setEditingColId(null)}>Cancel</button>
+              <button className="sqhq-col-rename-btn primary" onClick={commitColRename}>Save</button>
+            </div>
           </div>
         </div>
       )}
@@ -318,7 +271,15 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
 
           {/* ＋ Add column button — wrapped to prevent flex stretching */}
           <div>
-            <button className="sqhq-add-col-btn" onClick={addColumn}>
+            <button
+              className="sqhq-add-col-btn"
+              onClick={addColumn}
+              onTouchEnd={(e) => {
+                // Ensure immediate execution on mobile
+                e.preventDefault();
+                addColumn();
+              }}
+            >
               <span className="sqhq-add-col-icon">+</span>
               <span className="sqhq-add-col-label">Add column</span>
             </button>
@@ -357,11 +318,17 @@ function ColIdInjector({ columns, onAddCard }: { columns: Column[], onAddCard: (
           addBtn.className = 'sqhq-custom-add-btn';
           addBtn.innerHTML = '+';
           addBtn.title = 'Add Card';
-          addBtn.onclick = (e) => {
+          
+          const handleAdd = (e: Event) => {
             e.stopPropagation();
             e.preventDefault();
             onAddCard(col.id);
           };
+
+          // Attach both click and touchend for robust mobile/desktop support
+          addBtn.addEventListener('click', handleAdd);
+          addBtn.addEventListener('touchend', handleAdd);
+
           header.appendChild(addBtn);
         }
       }

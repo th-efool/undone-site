@@ -41,10 +41,10 @@
   --wx-icon-border-radius:     6px;
 }
 
-/* WillowDark child — fill width, auto height */
+/* WillowDark child — fill width, full height */
 .kanbanContainer > div:not(:global(.sqhq-editor)) {
   width: 100%;
-  height: auto;
+  height: 100%;
 }
 
 /* Board row: kanban + add-column button side by side */
@@ -61,7 +61,7 @@
 /* Allow SVAR's kanban to shrink/grow with content */
 .boardRow :global(.wx-kanban),
 .boardRow :global(.wx-board) {
-  height: auto !important;
+  height: 100% !important;
   min-height: 0 !important;
   flex: 1;
 }
@@ -78,14 +78,14 @@
 /* ── Mobile overrides ── */
 @media (max-width: 768px) {
   .kanbanContainer {
-    padding: 12px 12px 84px; /* extra bottom pad for floating toolbar */
-    touch-action: pan-x;     /* horizontal swipe only at container level */
+    padding: 12px 12px calc(84px + env(safe-area-inset-bottom, 0px)); /* extra bottom pad for floating toolbar */
+    touch-action: auto;      /* rely on SVAR for drag and natural scrolling */
   }
 
   /* Each column: fixed swipeable width */
   .kanbanContainer :global(.wx-column) {
-    min-width: 76vw !important;
-    max-width: 88vw !important;
+    min-width: 85vw !important;
+    max-width: 85vw !important;
     flex-shrink: 0;
   }
 
@@ -101,3 +101,14 @@
     font-size: 20px;
   }
 }
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .kanbanContainer {
+    padding: 8px 12px 24px;
+  }
+  .kanbanContainer :global(.wx-column) {
+    min-width: 280px !important;
+    max-width: 350px !important;
+  }
+}
+

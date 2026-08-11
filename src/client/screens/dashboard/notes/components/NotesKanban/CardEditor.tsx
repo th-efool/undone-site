@@ -33,8 +33,7 @@ export function CardEditor({ card, anchor, onSave, onClose, mode = 'create' }: C
   const [deadline, setDeadline] = useState(card.deadline ?? '');
 
   // On mobile, anchor=null tells FormEditor to render as a bottom sheet
-  // instead of a fixed popup anchored to mouse coords (which would be off-screen).
-  const isMobile = typeof window !== 'undefined' && 'ontouchstart' in window;
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
   const resolvedAnchor = isMobile ? null : anchor;
 
   const save = () => onSave({ ...card, label, description: desc, type, priority, deadline });

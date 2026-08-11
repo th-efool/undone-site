@@ -10,6 +10,24 @@
   font-family: inherit !important;
 }
 
+.sqhq-board-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 10px;
+  width: max-content;
+  min-width: 100%;
+  height: 100%;
+}
+
+/* Make SVAR's kanban fill available space but auto-height */
+.sqhq-kanban-wrapper .wx-kanban,
+.sqhq-kanban-wrapper .wx-board,
+.sqhq-kanban-wrapper .wx-columns {
+  height: 100% !important;
+  min-height: 0 !important;
+}
+
 /* ── 2. Column containers ────────────────────────────────────── */
 .sqhq-kanban-wrapper .wx-column {
   background: #000000 !important;
@@ -17,6 +35,9 @@
   border-radius: 10px !important;
   font-family: inherit !important;
   overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
 }
 
 /* Over-limit variant */
@@ -31,6 +52,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
   padding: 10px 12px !important;
   font-family: inherit !important;
+  flex-shrink: 0 !important;
 }
 
 .sqhq-kanban-wrapper .wx-column.wx-collapsed {
@@ -101,6 +123,12 @@
   color: rgba(255, 255, 255, 0.3) !important;
   opacity: 1 !important;
   transition: color 0.15s ease, background 0.15s ease !important;
+}
+
+@media (max-width: 768px) {
+  .sqhq-kanban-wrapper .wx-toggle {
+    display: none !important;
+  }
 }
 
 .sqhq-kanban-wrapper .wx-toggle:hover {
@@ -352,7 +380,8 @@ body.sqhq-is-dragging * {
   flex-direction: row;
   align-items: flex-start;
   gap: 10px;
-  width: 100%;
+  width: max-content;
+  min-width: 100%;
 }
 
 /* Make SVAR's kanban fill available space but auto-height */
@@ -457,9 +486,39 @@ body.sqhq-is-dragging * {
 }
 
 .sqhq-col-rename-hint {
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.3);
-  text-align: right;
+  display: none;
+}
+
+.sqhq-col-rename-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.sqhq-col-rename-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.sqhq-col-rename-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sqhq-col-rename-btn.primary {
+  background: #6366f1;
+  border-color: #6366f1;
+}
+
+.sqhq-col-rename-btn.primary:hover {
+  background: #4f46e5;
 }
 
 
@@ -514,6 +573,14 @@ body.sqhq-is-dragging * {
   font-family: inherit;
   opacity: 0;
   transition: opacity 0.15s ease;
+}
+
+@media (max-width: 768px) {
+  .sqhq-kcard__menu {
+    opacity: 1 !important;
+    padding: 8px !important;
+    margin: -4px !important;
+  }
 }
 
 .sqhq-kcard__menu:hover {
