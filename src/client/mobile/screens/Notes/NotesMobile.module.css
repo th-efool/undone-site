@@ -1,76 +1,515 @@
+/* ============================================================ */
+/* ROOT                                                         */
+/* ============================================================ */
 .mobileNotes {
+  position: relative;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100dvh;
   width: 100vw;
-  background: var(--color-surface, #ffffff);
-  color: var(--color-text-primary, #0f172a);
-  padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px));
-  box-sizing: border-box;
-}
-
-.mobileHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--color-border, #e2e8f0);
-}
-
-.title {
-  font-size: 18px;
-  font-weight: 700;
-  margin: 0;
-}
-
-.actionBtn {
-  padding: 6px 12px;
-  border-radius: 8px;
-  background: var(--color-accent, #4f46e5);
-  color: #ffffff;
-  border: none;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.notesList {
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.noteItem {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--color-border, #f1f5f9);
-  cursor: pointer;
-}
-
-.noteItemActive {
-  background: rgba(79, 70, 229, 0.05);
-}
-
-.noteTitle {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-text-primary, #0f172a);
-}
-
-.notePreview {
-  font-size: 13px;
-  color: var(--color-text-muted, #64748b);
+  background: #09090b;
+  color: #f4f4f5;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-sizing: border-box;
 }
 
 .loading {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100vh;
-  color: var(--color-text-muted, #64748b);
+  height: 100dvh;
+  color: #71717a;
+  font-size: 15px;
+}
+
+/* ============================================================ */
+/* STEP CONTAINER + SLIDE ANIMATIONS                           */
+/* ============================================================ */
+.stepContainer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+
+@keyframes slideInFromRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
+
+@keyframes slideInFromLeft {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(0); }
+}
+
+.slideInFromRight {
+  animation: slideInFromRight 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.slideInFromLeft {
+  animation: slideInFromLeft 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* ============================================================ */
+/* SCREEN SHELL (shared by all 3 screens)                       */
+/* ============================================================ */
+.screen {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: #09090b;
+}
+
+/* ============================================================ */
+/* TOP BAR — Notebooks & Workspace screens                      */
+/* ============================================================ */
+.screenHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  padding-top: max(12px, env(safe-area-inset-top, 12px));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  min-height: 56px;
+  flex-shrink: 0;
+}
+
+.screenTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: #f4f4f5;
+  margin: 0;
+  flex: 1;
+}
+
+.headerAction {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  color: #f4f4f5;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.headerAction:active {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: #818cf8;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 0;
+  flex-shrink: 0;
+}
+
+/* ============================================================ */
+/* CANVAS SCREEN TOP BAR                                        */
+/* ============================================================ */
+.canvasHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  padding-top: max(12px, env(safe-area-inset-top, 12px));
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  min-height: 52px;
+  flex-shrink: 0;
+  background: #09090b;
+}
+
+.canvasTitleWrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  overflow: hidden;
+  cursor: text;
+}
+
+.canvasTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f4f4f5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.canvasTitleInput {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #f4f4f5;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 0;
+  min-width: 0;
+}
+
+.moreBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: none;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+}
+
+.moreBtn:active {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ============================================================ */
+/* CANVAS / KANBAN AREA                                         */
+/* ============================================================ */
+.canvasArea {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  /* Enable touch/pointer events so Excalidraw + Kanban work on mobile */
+  pointer-events: auto;
+  touch-action: auto;
+}
+
+.canvasLoading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #71717a;
+  font-size: 14px;
+}
+
+/* ============================================================ */
+/* SEARCH                                                       */
+/* ============================================================ */
+.searchRow {
+  padding: 10px 16px 8px;
+  flex-shrink: 0;
+}
+
+.searchWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.searchIcon {
+  color: #71717a;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #f4f4f5;
+  font-size: 14px;
+  width: 100%;
+}
+
+.searchInput::placeholder {
+  color: #52525b;
+}
+
+/* ============================================================ */
+/* SCROLLABLE LIST                                              */
+/* ============================================================ */
+.listScroll {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 24px;
+}
+
+/* ============================================================ */
+/* NOTEBOOK ITEM (Screen 1)                                     */
+/* ============================================================ */
+.notebookItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.12s;
+}
+
+.notebookItem:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.notebookAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 700;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.notebookInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.notebookTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f4f4f5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notebookMeta {
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+  color: #71717a;
+}
+
+.chevron {
+  color: #3f3f46;
+  flex-shrink: 0;
+}
+
+/* ============================================================ */
+/* NOTE ITEM (Screen 2)                                         */
+/* ============================================================ */
+.noteItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.12s;
+}
+
+.noteItem:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.noteTypeIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.noteItemInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.noteItemTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #f4f4f5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.noteItemMeta {
+  font-size: 12px;
+  color: #71717a;
+}
+
+/* ============================================================ */
+/* EMPTY STATE                                                  */
+/* ============================================================ */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 60px 32px;
+  text-align: center;
+}
+
+.emptyIcon {
+  color: #3f3f46;
+  margin-bottom: 8px;
+}
+
+.emptyTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: #71717a;
+  margin: 0;
+}
+
+.emptySubtitle {
+  font-size: 13px;
+  color: #52525b;
+  margin: 0;
+}
+
+/* ============================================================ */
+/* BOTTOM SHEET                                                 */
+/* ============================================================ */
+.sheetOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 40;
+  backdrop-filter: blur(2px);
+}
+
+.bottomSheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #18181b;
+  border-radius: 20px 20px 0 0;
+  padding: 12px 16px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom, 24px));
+  z-index: 50;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  animation: sheetUp 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.sheetHandle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0 auto 16px;
+}
+
+.sheetTitle {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #71717a;
+  margin: 0 0 12px;
+}
+
+.sheetOption {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #f4f4f5;
+}
+
+.sheetOption:last-child {
+  border-bottom: none;
+}
+
+.sheetOption:active {
+  opacity: 0.7;
+}
+
+.sheetOptionTitle {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+  color: #f4f4f5;
+}
+
+.sheetOptionSub {
+  display: block;
+  font-size: 12px;
+  color: #71717a;
+  margin-top: 2px;
+}
+
+.sheetOptionDanger .sheetOptionTitle {
+  color: #ef4444;
+}
+
+/* ============================================================ */
+/* TOAST                                                        */
+/* ============================================================ */
+.mobileToast {
+  position: fixed;
+  bottom: max(88px, calc(56px + env(safe-area-inset-bottom, 0px)));
+  left: 50%;
+  transform: translateX(-50%);
+  background: #27272a;
+  color: #f4f4f5;
+  padding: 10px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 60;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.toastUndo {
+  background: none;
+  border: none;
+  color: #818cf8;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
 }
