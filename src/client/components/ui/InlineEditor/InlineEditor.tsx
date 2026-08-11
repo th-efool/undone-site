@@ -106,12 +106,24 @@ export function InlineEditor({
     );
   }
 
+  const lastTapTime = useRef(0);
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!doubleClickToEdit) return;
+    const now = Date.now();
+    if (now - lastTapTime.current < 300) {
+      e.preventDefault();
+      setIsEditing(true);
+    }
+    lastTapTime.current = now;
+  };
+
   // Display Mode
   return (
     <span
       className={`${styles.displayBase} ${className} ${!value ? styles.empty : ''}`}
       onDoubleClick={handleDoubleClick}
       onMouseDown={handleMouseDown}
+      onTouchEnd={handleTouchEnd}
       title={doubleClickToEdit ? "Double-click to edit" : undefined}
     >
       {value || placeholder}

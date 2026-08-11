@@ -10,10 +10,6 @@
   /* Ensure canvas takes up the remaining space dynamically */
   display: flex;
   flex-direction: column;
-  /* CRITICAL: tell Android browser this element owns ALL gestures */
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
 }
 
 /* Mobile: full-bleed, no decorative chrome */
@@ -28,9 +24,6 @@
 .container :global(.excalidraw-container) {
   width: 100% !important;
   height: 100% !important;
-  touch-action: none !important;
-  user-select: none !important;
-  -webkit-user-select: none !important;
 }
 
 /* Enlarge resize handles for finger tapping on mobile */
@@ -55,4 +48,3 @@
   box-shadow: none !important;
   background: transparent !important;
 }
-
