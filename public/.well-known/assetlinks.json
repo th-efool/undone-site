@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.sidequesthq.in",
+      "sha256_cert_fingerprints": [
+        "E1:5A:E6:4A:F7:1E:27:C7:D0:D7:64:53:25:FC:5C:80:3F:10:40:EA:1C:3E:AB:87:0E:38:B0:90:C4:47:34:C9"
+      ]
+    }
+  }
+]
