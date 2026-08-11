@@ -11,6 +11,17 @@ const PLATFORM_MAP: Record<string, string> = {
   twitter: 'twitter',
   threads: 'threads',
   insta: 'instagram',
+  linkedin: 'linkedin',
+  substack: 'substack',
+  medium: 'medium',
+  facebook: 'facebook',
+  youtube: 'youtube',
+  tiktok: 'tiktok',
+  bluesky: 'bluesky',
+  mastodon: 'mastodon',
+  devto: 'devto',
+  hashnode: 'hashnode',
+  producthunt: 'producthunt',
 };
 
 const BASE_URL = 'https://play.google.com/store/apps/details';
