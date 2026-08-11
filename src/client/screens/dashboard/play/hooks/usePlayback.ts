@@ -166,12 +166,15 @@ export function usePlayback() {
             autoplay: 1,
             start: startSecs,
             end: endSecs,
-            controls: 1,
+            controls: 0,
             rel: 0,
             modestbranding: 1,
-            fs: 1,
+            fs: 0,
             iv_load_policy: 3,
             playsinline: 1,
+            disablekb: 1,
+            cc_load_policy: 0,
+            showinfo: 0,
           },
           events: {
             onReady: (evt: any) => {
