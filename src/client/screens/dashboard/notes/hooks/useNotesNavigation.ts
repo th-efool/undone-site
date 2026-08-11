@@ -11,7 +11,7 @@ export function useNotesNavigation(
   notes: NotesContextType,
   isMobile: boolean
 ) {
-  const [mobileView, setMobileView] = useState<'panel' | 'workspace'>('panel');
+  const [mobileView, setMobileView] = useState<'notebooks' | 'workspace' | 'canvas'>('notebooks');
   const [sidebarTab, setSidebarTab] = useState<'explorer' | 'search' | 'bookmarks'>('explorer');
   const [allCollapsed, setAllCollapsed] = useState(false);
   const [isNavigationExpanded, setIsNavigationExpanded] = useState(true);
@@ -20,7 +20,7 @@ export function useNotesNavigation(
 
   useEffect(() => {
     if (isMobile && notes.data?.selectedNote) {
-      setMobileView('workspace');
+      setMobileView('canvas');
     }
   }, [isMobile, notes.data?.selectedNote]);
 
