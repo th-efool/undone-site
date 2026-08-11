@@ -383,6 +383,9 @@
 │   │   │   ├── loading.tsx
 │   │   │   ├── page.client.tsx
 │   │   │   └── page.tsx
+│   │   ├── [person]/
+│   │   │   └── [platform]/
+│   │   │       └── route.ts
 │   │   ├── api/
 │   │   │   ├── cohort/
 │   │   │   │   └── publish/
@@ -1498,4 +1501,4 @@
 ├── task.md
 └── tsconfig.json
 
-476 directories, 1021 files
+478 directories, 1022 files
