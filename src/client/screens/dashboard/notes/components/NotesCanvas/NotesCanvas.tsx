@@ -20,6 +20,10 @@ interface NotesCanvasProps {
   onSceneChange: (scene: CanvasSceneData) => void;
   isReadOnly?: boolean;
   canvasStatus?: CanvasState;
+  /** Mobile: skip desktop panning, enable zen mode, expose API for toolbar */
+  isMobile?: boolean;
+  /** Called once when Excalidraw API is ready — used by MobileCanvasToolbar */
+  onApiReady?: (api: any) => void;
 }
 
 // Minimal color inversion to counteract Excalidraw's global CSS invert(93%) filter.
@@ -90,8 +94,16 @@ export function NotesCanvas({
   initialScene,
   onSceneChange,
   isReadOnly = false,
+  isMobile = false,
+  onApiReady,
 }: NotesCanvasProps) {
   const [excalidrawAPI, setExcalidrawAPI] = useState<any>(null);
+
+  // Expose API to parent (MobileCanvasToolbar) once ready
+  const handleApiReady = useCallback((api: any) => {
+    setExcalidrawAPI(api);
+    onApiReady?.(api);
+  }, [onApiReady]);
 
   const [gridConfig, setGridConfig] = useState<GridSettingsConfig>({
     enabled: true,
@@ -213,10 +225,13 @@ export function NotesCanvas({
 
 
 
-  // Handle right-click drag panning
+  // Handle right-click drag panning (desktop-only — mobile uses two-finger pan natively)
   useEffect(() => {
     const container = containerRef.current;
     if (!container || !excalidrawAPI) return;
+    // Skip on mobile: right-click doesn't exist, and this listener can
+    // interfere with Excalidraw's own pointer capture for drawing.
+    if (isMobile) return;
 
     let isDragging = false;
     let startX = 0;
@@ -299,7 +314,21 @@ export function NotesCanvas({
       window.removeEventListener('pointerup', handlePointerUp, { capture: true });
       container.removeEventListener('contextmenu', handleContextMenu, { capture: true });
     };
-  }, [excalidrawAPI]);
+  }, [excalidrawAPI, isMobile]);
+
+  // Mobile: after API ready + elements loaded, scroll to content so drawings are visible
+  useEffect(() => {
+    if (!isMobile || !excalidrawAPI) return;
+    const timer = setTimeout(() => {
+      try {
+        const elements = excalidrawAPI.getSceneElements();
+        if (elements && elements.length > 0) {
+          excalidrawAPI.scrollToContent(elements, { animate: false, fitToContent: true });
+        }
+      } catch {}
+    }, 200);
+    return () => clearTimeout(timer);
+  }, [isMobile, excalidrawAPI]);
 
   // Fired when the user draws on the canvas or changes state inside Excalidraw
   const handleChange = useCallback((elements: any, appState: any, files: any) => {
@@ -335,7 +364,7 @@ export function NotesCanvas({
       {/* We pass theme="light" so Excalidraw DOES NOT invert background colors! 
           Our excalidraw.css keeps the UI 100% dark mode. */}
       <ExcalidrawWrapper
-        excalidrawAPI={setExcalidrawAPI}
+        excalidrawAPI={handleApiReady}
         initialData={initialData}
         onChange={handleChange}
         viewModeEnabled={isReadOnly}
@@ -356,6 +385,7 @@ export function NotesCanvas({
           viewBackgroundColor: currentBg,
           onBgChange: handleBgChange,
         }), [gridConfig, handleGridConfigChange, currentBg, handleBgChange])}
+        isMobile={isMobile}
       />
     </div>
   );

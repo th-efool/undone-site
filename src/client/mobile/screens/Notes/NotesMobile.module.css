@@ -187,9 +187,11 @@
   flex: 1;
   overflow: hidden;
   position: relative;
-  /* Enable touch/pointer events so Excalidraw + Kanban work on mobile */
+  /* CRITICAL: pass all touch events to Excalidraw/Kanban — do NOT block */
   pointer-events: auto;
-  touch-action: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .canvasLoading {
@@ -199,6 +201,30 @@
   height: 100%;
   color: #71717a;
   font-size: 14px;
+}
+
+/* First-draw hint overlay */
+.canvasHint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(24, 24, 27, 0.85);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 12px 20px;
+  font-size: 14px;
+  color: #a1a1aa;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 50;
+  animation: hintFade 0.4s ease both;
+}
+
+@keyframes hintFade {
+  from { opacity: 0; transform: translate(-50%, -44%); }
+  to   { opacity: 1; transform: translate(-50%, -50%); }
 }
 
 /* ============================================================ */

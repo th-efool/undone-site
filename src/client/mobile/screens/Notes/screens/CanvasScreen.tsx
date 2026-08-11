@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, MoreHorizontal } from 'lucide-react';
 import type { UseNotesResult } from '@/src/client/screens/dashboard/notes/hooks/useNotes';
 import { useCanvasScene } from '@/src/client/screens/dashboard/notes/hooks/useCanvasScene';
@@ -8,6 +8,7 @@ import { useCanvasPersistence } from '@/src/client/screens/dashboard/notes/hooks
 import { NotesCanvas } from '@/src/client/screens/dashboard/notes/components/NotesCanvas/NotesCanvas';
 import { NotesKanban } from '@/src/client/screens/dashboard/notes/components/NotesKanban/NotesKanban';
 import { NotesSaveStatus } from '@/src/client/screens/dashboard/notes/components/NotesSaveStatus/NotesSaveStatus';
+import { MobileCanvasToolbar } from '../components/MobileCanvasToolbar';
 import type { NoteDocument } from '@/src/client/screens/dashboard/notes/models/notes.models';
 import styles from '../NotesMobile.module.css';
 
@@ -21,6 +22,9 @@ export function CanvasScreen({ notes, selected, onBack }: CanvasScreenProps) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleValue, setTitleValue] = useState(selected.title);
+  const [canvasApi, setCanvasApi] = useState<any>(null);
+  const [hasDrawn, setHasDrawn] = useState(false);
+  const canvasAreaRef = useRef<HTMLDivElement>(null);
 
   const {
     initialScene,
@@ -45,6 +49,37 @@ export function CanvasScreen({ notes, selected, onBack }: CanvasScreenProps) {
     saveTrigger,
     handleSaveNote,
   );
+
+  // Visual viewport resize — shrink canvas when soft keyboard appears (e.g. text tool)
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv || !canvasAreaRef.current) return;
+
+    const handler = () => {
+      if (canvasAreaRef.current) {
+        // vv.height is the visible area excluding keyboard
+        canvasAreaRef.current.style.height = `${vv.height - 52}px`; // 52 = header height
+      }
+    };
+
+    vv.addEventListener('resize', handler);
+    return () => vv.removeEventListener('resize', handler);
+  }, []);
+
+  // Detect first stroke so we can hide the empty state hint
+  const handleSceneChangeWithHint = useCallback((scene: any) => {
+    if (!hasDrawn && scene.elements && scene.elements.some((el: any) => !el.isDeleted)) {
+      setHasDrawn(true);
+    }
+    handleSceneChange(scene);
+  }, [handleSceneChange, hasDrawn]);
+
+  // Initialise hasDrawn from saved scene
+  useEffect(() => {
+    if (initialScene?.elements && initialScene.elements.some((el: any) => !el.isDeleted)) {
+      setHasDrawn(true);
+    }
+  }, [initialScene]);
 
   const handleTitleBlur = () => {
     setEditingTitle(false);
@@ -105,18 +140,30 @@ export function CanvasScreen({ notes, selected, onBack }: CanvasScreenProps) {
       </header>
 
       {/* Canvas / Kanban area */}
-      <div className={styles.canvasArea}>
+      <div className={styles.canvasArea} ref={canvasAreaRef}>
         {selected.contentType === 'kanban' ? (
           <NotesKanban key={selected.id} noteId={selected.id} notes={notes} />
         ) : canvasLoading ? (
           <div className={styles.canvasLoading}>Loading canvas…</div>
         ) : (
-          <NotesCanvas
-            key={selected.id}
-            noteId={selected.id}
-            initialScene={initialScene}
-            onSceneChange={handleSceneChange}
-          />
+          <>
+            <NotesCanvas
+              key={selected.id}
+              noteId={selected.id}
+              initialScene={initialScene}
+              onSceneChange={handleSceneChangeWithHint}
+              isMobile
+              onApiReady={setCanvasApi}
+            />
+            {/* First-draw hint — fades out after first stroke */}
+            {!hasDrawn && (
+              <div className={styles.canvasHint}>
+                ✏️  Pick a tool below to start drawing
+              </div>
+            )}
+            {/* Native Android floating toolbar — only shown for canvas notes */}
+            <MobileCanvasToolbar api={canvasApi} />
+          </>
         )}
       </div>
 

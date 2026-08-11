@@ -12,7 +12,27 @@ const ExcalidrawWrapper = React.memo(function ExcalidrawWrapper({
   theme,
   UIOptions,
   hamburgerProps,
+  isMobile,
 }: any) {
+  // On mobile: zen mode hides the built-in toolbar entirely.
+  // We render our own MobileCanvasToolbar instead (see CanvasScreen).
+  const mobileUIOptions = isMobile
+    ? {
+        canvasActions: {
+          changeViewBackgroundColor: false,
+          clearCanvas: false,
+          loadScene: false,
+          saveToActiveFile: false,
+          toggleTheme: false,
+          saveAsImage: false,
+          export: false,
+        },
+        tools: {
+          image: false,
+        },
+      }
+    : UIOptions;
+
   return (
     <Excalidraw
       excalidrawAPI={excalidrawAPI}
@@ -20,16 +40,22 @@ const ExcalidrawWrapper = React.memo(function ExcalidrawWrapper({
       onChange={onChange}
       viewModeEnabled={viewModeEnabled}
       theme={theme}
-      UIOptions={UIOptions}
+      UIOptions={mobileUIOptions}
+      zenModeEnabled={isMobile}
     >
-      {React.useMemo(() => (
-        <MainMenu>
-          <MainMenu.DefaultItems.SaveAsImage />
-          <MainMenu.DefaultItems.ClearCanvas />
-          <MainMenu.Separator />
-          <HamburgerGridControls {...hamburgerProps} />
-        </MainMenu>
-      ), [hamburgerProps])}
+      {/* Only render desktop hamburger menu when not on mobile */}
+      {!isMobile &&
+        React.useMemo(
+          () => (
+            <MainMenu>
+              <MainMenu.DefaultItems.SaveAsImage />
+              <MainMenu.DefaultItems.ClearCanvas />
+              <MainMenu.Separator />
+              <HamburgerGridControls {...hamburgerProps} />
+            </MainMenu>
+          ),
+          [hamburgerProps],
+        )}
     </Excalidraw>
   );
 });

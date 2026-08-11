@@ -1,0 +1,211 @@
+/* ============================================================ */
+/* FLOATING TOOLBAR PILL                                        */
+/* ============================================================ */
+.toolbar {
+  position: absolute;
+  bottom: max(16px, env(safe-area-inset-bottom, 16px));
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: rgba(18, 18, 22, 0.92);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 6px 8px;
+  z-index: 100;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.6),
+    0 1px 0 rgba(255, 255, 255, 0.06) inset;
+  /* Prevent toolbar from receiving touch-action: none from parent */
+  touch-action: auto;
+  /* Scroll horizontally if too wide for very small screens */
+  max-width: calc(100vw - 24px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.toolGroup {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* ============================================================ */
+/* TOOL BUTTONS                                                 */
+/* ============================================================ */
+.toolBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s, color 0.12s, transform 0.1s;
+  /* Tap highlight */
+  -webkit-tap-highlight-color: transparent;
+}
+
+.toolBtn:active {
+  transform: scale(0.9);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.toolBtnActive {
+  background: rgba(129, 140, 248, 0.18);
+  color: #818cf8;
+  box-shadow: 0 0 0 1px rgba(129, 140, 248, 0.35);
+}
+
+/* ============================================================ */
+/* BOTTOM SHEET — More options                                  */
+/* ============================================================ */
+.sheetOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 110;
+  backdrop-filter: blur(3px);
+  touch-action: auto;
+}
+
+.sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #18181b;
+  border-radius: 24px 24px 0 0;
+  padding: 12px 20px;
+  padding-bottom: max(28px, env(safe-area-inset-bottom, 28px));
+  z-index: 120;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  animation: sheetUp 0.24s cubic-bezier(0.4, 0, 0.2, 1) both;
+  touch-action: auto;
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.sheetHandle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0 auto 16px;
+}
+
+.sheetRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.sheetClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+}
+
+.sheetLabel {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #52525b;
+  margin: 0 0 10px;
+}
+
+/* ============================================================ */
+/* STROKE WIDTH SELECTOR                                        */
+/* ============================================================ */
+.strokeRow {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.strokeBtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  color: #a1a1aa;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.strokeBtnActive {
+  background: rgba(129, 140, 248, 0.12);
+  border-color: rgba(129, 140, 248, 0.4);
+  color: #818cf8;
+}
+
+.strokePreview {
+  width: 32px;
+  border-radius: 4px;
+}
+
+/* ============================================================ */
+/* COLOR SWATCH ROW                                             */
+/* ============================================================ */
+.colorRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.colorSwatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.colorSwatch:active {
+  transform: scale(0.88);
+}
+
+.colorSwatchActive {
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.3);
+}
