@@ -161,26 +161,27 @@
 │   │   ├── Manrope-Bold.ttf
 │   │   ├── Manrope-Medium.ttf
 │   │   └── Manrope-SemiBold.ttf
-│   └── playstore-listing/
-│       ├── cards n background/
-│       │   ├── Card1.png
-│       │   ├── Card2.png
-│       │   ├── Card3.png
-│       │   ├── Card4.png
-│       │   ├── Card5.png
-│       │   ├── Card6.png
-│       │   ├── Feed.png
-│       │   ├── Home - Copy.png
-│       │   ├── Home.png
-│       │   ├── Message.png
-│       │   ├── Notes.jpeg
-│       │   └── explore.jpeg
-│       └── designs/
-│           ├── v1-designs (1).png
-│           ├── v1-designs (2).png
-│           ├── v1-designs (3).png
-│           ├── v1-designs (4).png
-│           └── v1-designs (5).png
+│   ├── playstore-listing/
+│   │   ├── cards n background/
+│   │   │   ├── Card1.png
+│   │   │   ├── Card2.png
+│   │   │   ├── Card3.png
+│   │   │   ├── Card4.png
+│   │   │   ├── Card5.png
+│   │   │   ├── Card6.png
+│   │   │   ├── Feed.png
+│   │   │   ├── Home - Copy.png
+│   │   │   ├── Home.png
+│   │   │   ├── Message.png
+│   │   │   ├── Notes.jpeg
+│   │   │   └── explore.jpeg
+│   │   └── designs/
+│   │       ├── v1-designs (1).png
+│   │       ├── v1-designs (2).png
+│   │       ├── v1-designs (3).png
+│   │       ├── v1-designs (4).png
+│   │       └── v1-designs (5).png
+│   └── ChatGPT Image Aug 11, 2026, 12_24_28 PM.png
 ├── docs/
 │   ├── tooltips/
 │   │   ├── TOOLTIPS_EXPLORE.md
@@ -1501,4 +1502,4 @@
 ├── task.md
 └── tsconfig.json
 
-478 directories, 1022 files
+478 directories, 1023 files
