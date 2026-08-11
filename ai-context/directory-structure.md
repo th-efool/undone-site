@@ -193,6 +193,8 @@
 ├── notes/
 │   └── excalidraw-integration-plan.md
 ├── public/
+│   ├── .well-known/
+│   │   └── assetlinks.json
 │   ├── fonts/
 │   │   ├── Caveat-Bold.ttf
 │   │   ├── Manrope-Bold.ttf
@@ -1496,4 +1498,4 @@
 ├── task.md
 └── tsconfig.json
 
-475 directories, 1020 files
+476 directories, 1021 files
