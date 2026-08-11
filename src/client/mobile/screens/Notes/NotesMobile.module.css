@@ -59,6 +59,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   overflow: hidden;
   background: #09090b;
 }
@@ -187,11 +188,6 @@
   flex: 1;
   overflow: hidden;
   position: relative;
-  /* CRITICAL: pass all touch events to Excalidraw/Kanban — do NOT block */
-  pointer-events: auto;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
 }
 
 .canvasLoading {
@@ -203,29 +199,6 @@
   font-size: 14px;
 }
 
-/* First-draw hint overlay */
-.canvasHint {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(24, 24, 27, 0.85);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  padding: 12px 20px;
-  font-size: 14px;
-  color: #a1a1aa;
-  pointer-events: none;
-  white-space: nowrap;
-  z-index: 50;
-  animation: hintFade 0.4s ease both;
-}
-
-@keyframes hintFade {
-  from { opacity: 0; transform: translate(-50%, -44%); }
-  to   { opacity: 1; transform: translate(-50%, -50%); }
-}
 
 /* ============================================================ */
 /* SEARCH                                                       */
@@ -268,6 +241,7 @@
 /* ============================================================ */
 .listScroll {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding-bottom: 24px;
@@ -538,4 +512,294 @@
   font-weight: 600;
   cursor: pointer;
   padding: 0;
+}
+
+/* ============================================================ */
+/* LANDSCAPE MODE OPTIMIZATIONS                                 */
+/* ============================================================ */
+@media (orientation: landscape) and (max-height: 560px) {
+  /* Compact top headers to maximize vertical canvas real estate */
+  .screenHeader,
+  .canvasHeader {
+    min-height: 40px;
+    padding: 4px 16px;
+    padding-left: max(16px, env(safe-area-inset-left, 16px));
+    padding-right: max(16px, env(safe-area-inset-right, 16px));
+  }
+
+  .screenTitle,
+  .canvasTitle,
+  .canvasTitleInput {
+    font-size: 14px;
+  }
+
+  .headerAction,
+  .moreBtn {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+
+  .searchRow {
+    padding: 6px 16px 4px;
+    padding-left: max(16px, env(safe-area-inset-left, 16px));
+    padding-right: max(16px, env(safe-area-inset-right, 16px));
+  }
+
+  .searchWrap {
+    padding: 6px 10px;
+  }
+
+  /* Grid layout for Notebooks and Notes lists in landscape */
+  .listScroll {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    align-content: start;
+    gap: 8px;
+    padding: 8px 16px 20px;
+    padding-left: max(16px, env(safe-area-inset-left, 16px));
+    padding-right: max(16px, env(safe-area-inset-right, 16px));
+  }
+
+  .notebookItem,
+  .noteItem {
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  .canvasArea {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  .mobileToast {
+    bottom: max(16px, env(safe-area-inset-bottom, 16px));
+  }
+}
+
+/* ============================================================ */
+/* WORKSPACE SCREEN - ANDROID NATIVE COMPONENTS                 */
+/* ============================================================ */
+
+/* Space Header (Hero) */
+.spaceHeader {
+  padding: 24px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.03), transparent);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.spaceHeaderIcon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+.spaceHeaderTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f4f4f5;
+  margin: 0;
+  text-align: center;
+}
+
+.spaceHeaderActions {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.spaceActionBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  color: #a1a1aa;
+  cursor: pointer;
+  padding: 0;
+}
+
+.spaceActionIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f4f4f5;
+}
+
+.spaceActionBtn:active .spaceActionIcon {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.spaceActionLabel {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* Accordion Section */
+.accordionSection {
+  margin: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.accordionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  width: 100%;
+  color: #f4f4f5;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.accordionHeader:active {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.accordionContent {
+  padding: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Segmented Control (Tabs) */
+.segmentControl {
+  display: flex;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  padding: 3px;
+  margin: 12px 16px;
+}
+
+.segmentBtn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #a1a1aa;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.segmentBtn.active {
+  background: #3f3f46;
+  color: #f4f4f5;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Native Mobile Task Item */
+.nativeTaskItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+.nativeTaskItem:last-child {
+  border-bottom: none;
+}
+
+.taskCheckbox {
+  color: #a1a1aa;
+}
+.taskCheckbox.completed {
+  color: #10b981; /* Green */
+}
+
+.taskContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.taskTitle {
+  font-size: 15px;
+  color: #f4f4f5;
+}
+.taskTitle.completed {
+  text-decoration: line-through;
+  color: #71717a;
+}
+
+.taskDate {
+  font-size: 12px;
+  color: #71717a;
+  margin-top: 2px;
+}
+
+/* Horizontal Pills for Recently Closed */
+.recentlyClosedList {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.recentlyClosedList::-webkit-scrollbar {
+  display: none;
+}
+
+.recentPill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 6px 12px;
+  color: #f4f4f5;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.recentPillClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a1a1aa;
+  margin-left: 4px;
+}
+
+/* Folder Item */
+.folderItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.01);
+}
+.folderContent {
+  background: rgba(0, 0, 0, 0.2);
+  padding-left: 12px;
 }
