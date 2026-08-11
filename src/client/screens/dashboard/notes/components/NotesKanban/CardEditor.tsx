@@ -29,8 +29,13 @@ export function CardEditor({ card, anchor, onSave, onClose, mode = 'create' }: C
   const [label, setLabel]       = useState(card.label ?? '');
   const [desc, setDesc]         = useState(card.description ?? '');
   const [type, setType]         = useState(card.type ?? 'Audit');
-  const [priority, setPriority] = useState(card.priority ?? 'high'); // Defaulting to high to match image if empty
+  const [priority, setPriority] = useState(card.priority ?? 'high');
   const [deadline, setDeadline] = useState(card.deadline ?? '');
+
+  // On mobile, anchor=null tells FormEditor to render as a bottom sheet
+  // instead of a fixed popup anchored to mouse coords (which would be off-screen).
+  const isMobile = typeof window !== 'undefined' && 'ontouchstart' in window;
+  const resolvedAnchor = isMobile ? null : anchor;
 
   const save = () => onSave({ ...card, label, description: desc, type, priority, deadline });
 
@@ -86,7 +91,7 @@ export function CardEditor({ card, anchor, onSave, onClose, mode = 'create' }: C
   return (
     <FormEditor
       fields={fields}
-      anchor={anchor}
+      anchor={resolvedAnchor}
       onSave={save}
       onClose={onClose}
       isSaveDisabled={mode === 'create' && !label.trim()}

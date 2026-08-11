@@ -118,29 +118,50 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
     };
   }, [api, noteId, notes?.actions]);
 
-  /* ── Intercept double-click for rename ── */
+  /* ── Intercept double-click (desktop) + double-tap (mobile) for rename ── */
   useEffect(() => {
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
 
-    const dblClickHandler = (e: MouseEvent) => {
-      const titleEl = (e.target as Element).closest('.wx-title');
-      const colEl   = (e.target as Element).closest('[data-col-id]') as HTMLElement | null;
+    const triggerRename = (target: Element) => {
+      const titleEl = target.closest('.wx-title');
+      const colEl   = target.closest('[data-col-id]') as HTMLElement | null;
       if (!titleEl || !colEl) return;
       const colId = colEl.dataset.colId;
       if (!colId) return;
       const col = columns.find(c => c.id === colId);
       if (!col) return;
-      e.preventDefault();
       setEditingColId(colId);
       setEditingColVal(col.label);
     };
 
+    const dblClickHandler = (e: MouseEvent) => {
+      e.preventDefault();
+      triggerRename(e.target as Element);
+    };
+
+    // Mobile: detect two taps within 300ms on the same column title
+    let lastTapTarget: Element | null = null;
+    let lastTapTime = 0;
+    const touchEndHandler = (e: TouchEvent) => {
+      const now = Date.now();
+      const target = e.target as Element;
+      if (now - lastTapTime < 300 && lastTapTarget === target.closest('.wx-title')) {
+        e.preventDefault();
+        triggerRename(target);
+      }
+      lastTapTarget = target.closest('.wx-title');
+      lastTapTime = now;
+    };
+
     wrapper.addEventListener('dblclick', dblClickHandler);
+    wrapper.addEventListener('touchend', touchEndHandler, { passive: false });
     return () => {
       wrapper.removeEventListener('dblclick', dblClickHandler);
+      wrapper.removeEventListener('touchend', touchEndHandler);
     };
   }, [columns]);
+
 
   /* ── Fix text selection during drag ── */
   useEffect(() => {

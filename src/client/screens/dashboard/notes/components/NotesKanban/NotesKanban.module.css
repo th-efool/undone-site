@@ -4,7 +4,10 @@
   flex: 1;
   background: #000000;
   width: 100%;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   display: flex;
   flex-direction: column;
   padding: 16px 20px 24px;
@@ -71,3 +74,30 @@
 .kanbanContainer ::-webkit-scrollbar-track  { background: transparent; }
 .kanbanContainer ::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.08); border-radius: 2px; }
 .kanbanContainer ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+/* ── Mobile overrides ── */
+@media (max-width: 768px) {
+  .kanbanContainer {
+    padding: 12px 12px 84px; /* extra bottom pad for floating toolbar */
+    touch-action: pan-x;     /* horizontal swipe only at container level */
+  }
+
+  /* Each column: fixed swipeable width */
+  .kanbanContainer :global(.wx-column) {
+    min-width: 76vw !important;
+    max-width: 88vw !important;
+    flex-shrink: 0;
+  }
+
+  /* Cards: full-width inside column */
+  .kanbanContainer :global(.wx-card) {
+    min-height: 60px !important;
+  }
+
+  /* Enlarge add-card button for thumb tapping */
+  .kanbanContainer :global(.sqhq-custom-add-btn) {
+    min-width: 40px;
+    min-height: 40px;
+    font-size: 20px;
+  }
+}
