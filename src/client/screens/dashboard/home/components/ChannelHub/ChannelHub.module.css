@@ -320,11 +320,8 @@
   padding: 0 4px;
   height: 20px;
   text-align: center;
-  outline: none;
-}
-
-.sliderFloatInput:focus {
-  border-color: #9ca3af;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .floatSlider {
