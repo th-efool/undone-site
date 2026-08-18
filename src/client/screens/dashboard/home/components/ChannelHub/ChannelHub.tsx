@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Compass, Hammer, Headphones, Search, Rabbit, Coffee, Info, Tv } from 'lucide-react';
+import { Compass, Hammer, Headphones, Search, Rabbit, Coffee, Info, Tv, Clock, Zap, Map, Footprints, BookOpen, Layers, Focus, Brain, Target, Briefcase, MonitorOff, Car, Star, Lightbulb, PlayCircle, Activity } from 'lucide-react';
 import styles from './ChannelHub.module.css';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
@@ -11,13 +11,14 @@ type ChannelId = 'spark' | 'explore' | 'build' | 'listen' | 'deep_dive' | 'quick
 
 interface Option { id: string; label: string }
 interface Control { id: string; label: string; options: Option[]; defaultId: string }
+interface BestFor { text: string; Icon: React.ElementType }
 interface Channel {
   id: ChannelId;
   name: string;
   Icon: React.ElementType;
   tagline: string;
   about: string;
-  bestFor: string[];
+  bestFor: BestFor[];
   controls: Control[];
 }
 
@@ -28,7 +29,7 @@ const CHANNELS: Channel[] = [
     Icon: Coffee,
     tagline: 'Fresh ideas to ignite your curiosity.',
     about: 'Perfect for moments when you want something interesting to think about without committing to a particular topic or direction.',
-    bestFor: ['Idle moments', 'New interests', 'Inspiration'],
+    bestFor: [{ text: 'Idle moments', Icon: Clock }, { text: 'New interests', Icon: Lightbulb }, { text: 'Inspiration', Icon: Zap }],
     controls: [
       { id: 'novelty', label: 'Novelty', defaultId: 'unexpected', options: [{ id: 'familiar', label: 'Familiar' }, { id: 'unexpected', label: 'Unexpected' }, { id: 'strange', label: 'Strange' }] },
       { id: 'connection', label: 'Connection', defaultId: 'connections', options: [{ id: 'one_idea', label: 'One idea' }, { id: 'connections', label: 'Connections' }] },
@@ -41,7 +42,7 @@ const CHANNELS: Channel[] = [
     Icon: Compass,
     tagline: 'Discover new topics and perspectives.',
     about: 'Perfect for when you want to follow your curiosity, make unexpected connections, or see where an idea takes you.',
-    bestFor: ['Curious moods', 'Cross-domain', 'Open time'],
+    bestFor: [{ text: 'Curious moods', Icon: Brain }, { text: 'Cross-domain', Icon: Layers }, { text: 'Open time', Icon: Map }],
     controls: [
       { id: 'distance', label: 'Distance', defaultId: 'unexpected', options: [{ id: 'nearby', label: 'Nearby' }, { id: 'unexpected', label: 'Unexpected' }, { id: 'far_out', label: 'Far out' }] },
       { id: 'connections', label: 'Connections', defaultId: 'related', options: [{ id: 'related', label: 'Related' }, { id: 'cross_pollinate', label: 'Cross-pollinate' }] },
@@ -54,7 +55,7 @@ const CHANNELS: Channel[] = [
     Icon: Hammer,
     tagline: 'Hands-on learning. Projects & practice.',
     about: 'Perfect for when you want to turn what you know into something you can actually make, solve, or do.',
-    bestFor: ['Skill building', 'Projects', 'Practice'],
+    bestFor: [{ text: 'Skill building', Icon: Target }, { text: 'Projects', Icon: Briefcase }, { text: 'Practice', Icon: Activity }],
     controls: [
       { id: 'guidance', label: 'Guidance', defaultId: 'guided', options: [{ id: 'guided', label: 'Guided' }, { id: 'independent', label: 'Independent' }] },
       { id: 'practice', label: 'Practice', defaultId: 'practice', options: [{ id: 'examples', label: 'Examples' }, { id: 'practice', label: 'Practice' }, { id: 'projects', label: 'Projects' }] },
@@ -67,7 +68,7 @@ const CHANNELS: Channel[] = [
     Icon: Headphones,
     tagline: 'Learn on the go with audio sessions.',
     about: 'Perfect for walks, commutes, or whenever you want to keep learning without needing to stay in front of a screen.',
-    bestFor: ['Commutes', 'Walks', 'Screen-free'],
+    bestFor: [{ text: 'Commutes', Icon: Car }, { text: 'Walks', Icon: Footprints }, { text: 'Screen-free', Icon: MonitorOff }],
     controls: [
       { id: 'format', label: 'Format', defaultId: 'narrated', options: [{ id: 'narrated', label: 'Narrated' }, { id: 'conversational', label: 'Conversational' }] },
       { id: 'length', label: 'Length', defaultId: 'short', options: [{ id: 'short', label: 'Short' }, { id: 'longer', label: 'Longer' }] },
@@ -80,7 +81,7 @@ const CHANNELS: Channel[] = [
     Icon: Search,
     tagline: 'In-depth lessons for deep understanding.',
     about: 'Perfect for when you want to slow down, follow an idea further, and really understand how it works.',
-    bestFor: ['Focused time', 'Complex topics', 'Deep work'],
+    bestFor: [{ text: 'Focused time', Icon: Focus }, { text: 'Complex topics', Icon: BookOpen }, { text: 'Deep work', Icon: Brain }],
     controls: [
       { id: 'focus', label: 'Focus', defaultId: 'understand', options: [{ id: 'understand', label: 'Understand' }, { id: 'go_deeper', label: 'Go deeper' }, { id: 'work_through', label: 'Work through' }] },
       { id: 'progression', label: 'Progression', defaultId: 'follow_thread', options: [{ id: 'follow_thread', label: 'Follow thread' }, { id: 'flexible', label: 'Flexible' }] },
@@ -93,7 +94,7 @@ const CHANNELS: Channel[] = [
     Icon: Rabbit,
     tagline: 'Small pieces for small windows of time.',
     about: 'Quick delivers crisp, focused bites of learning you can finish in just a few minutes. Perfect for breaks, commutes, or whenever you need a quick win.',
-    bestFor: ['Busy days', 'Short breaks', 'On the go'],
+    bestFor: [{ text: 'Busy days', Icon: Briefcase }, { text: 'Short breaks', Icon: Clock }, { text: 'On the go', Icon: PlayCircle }],
     controls: [
       { id: 'length', label: 'Length', defaultId: '2_5_min', options: [{ id: '2_5_min', label: '2–5 min' }, { id: '5_10_min', label: '5–10 min' }] },
       { id: 'continuity', label: 'Continuity', defaultId: 'standalone', options: [{ id: 'standalone', label: 'Standalone' }, { id: 'short_sequence', label: 'Short sequence' }] },
@@ -253,28 +254,44 @@ export function ChannelHub() {
               <div className={styles.detailSection}>
                 <span className={styles.detailSectionLabel}>Best for</span>
                 <div className={styles.pills}>
-                  {channel.bestFor.map(tag => (
-                    <span key={tag} className={styles.bestForPill}>{tag}</span>
+                  {channel.bestFor.map(item => (
+                    <span key={item.text} className={styles.bestForPill}>
+                      <item.Icon size={14} strokeWidth={2.5} />
+                      {item.text}
+                    </span>
                   ))}
                 </div>
               </div>
 
-              {/* Controls */}
+              {/* Controls (Sliders) */}
               {channel.controls.map(ctrl => {
                 const selected = getPref(channel.id, ctrl.id, ctrl.defaultId);
+                const selectedIndex = Math.max(0, ctrl.options.findIndex(o => o.id === selected));
+                
                 return (
                   <div key={ctrl.id} className={styles.detailSection}>
                     <span className={styles.detailSectionLabel}>{ctrl.label}</span>
-                    <div className={styles.pills}>
-                      {ctrl.options.map(opt => (
-                        <button
-                          key={opt.id}
-                          className={`${styles.pill} ${selected === opt.id ? styles.pillActive : styles.pillIdle}`}
-                          onClick={() => setPref(channel.id, ctrl.id, opt.id)}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
+                    <div className={styles.sliderContainer}>
+                      <input 
+                        type="range" 
+                        min={0} 
+                        max={ctrl.options.length - 1} 
+                        step={1} 
+                        value={selectedIndex}
+                        onChange={(e) => setPref(channel.id, ctrl.id, ctrl.options[Number(e.target.value)].id)}
+                        className={styles.slider}
+                      />
+                      <div className={styles.sliderLabels}>
+                        {ctrl.options.map((opt, i) => (
+                          <span 
+                            key={opt.id} 
+                            className={`${styles.sliderLabel} ${selected === opt.id ? styles.sliderLabelActive : ''}`}
+                            onClick={() => setPref(channel.id, ctrl.id, opt.id)}
+                          >
+                            {opt.label}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 );
