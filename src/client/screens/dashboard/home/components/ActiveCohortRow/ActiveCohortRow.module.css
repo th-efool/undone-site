@@ -138,51 +138,28 @@
   border-right: 1px solid #e5e7eb; /* Right vertical divider */
 }
 
-.frequencySegmented {
+.frequencySliderWrapper {
+  width: 100%;
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 4px;
+}
+
+.sliderLabels {
+  display: flex;
   justify-content: space-between;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 2px;
-  gap: 2px;
-  width: 100%;
-}
-
-.freqPill {
-  flex: 1;
-  border: none;
-  background: transparent;
-  color: #6b7280;
-  font-size: 0.72rem;
-  font-weight: 500;
-  padding: 4px 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  text-align: center;
-  white-space: nowrap;
-  transition: all 0.15s ease;
-}
-
-.freqPill:hover {
-  color: #111827;
-}
-
-.freqPillActive {
-  background: #4f46e5;
-  color: white;
+  align-items: center;
+  font-size: 0.62rem;
+  color: #9ca3af;
   font-weight: 600;
-  box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.freqPillActive:hover {
-  color: white;
-}
-
-.frequencySlider {
-  width: 100%;
-  padding: 1px 4px 0 4px;
+.sliderValue {
+  color: #4f46e5;
+  font-weight: 700;
 }
 
 .rangeSlider {
@@ -190,7 +167,7 @@
   width: 100%;
   height: 3px;
   background: #e5e7eb;
-  border-radius: 2px;
+  border-radius: 999px;
   outline: none;
   margin: 0;
   cursor: pointer;
@@ -199,12 +176,24 @@
 .rangeSlider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 9px;
-  height: 9px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: #4f46e5;
   cursor: pointer;
-  box-shadow: 0 0 0 2px white;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  margin-top: -5.5px;
+}
+
+.rangeSlider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #4f46e5;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
 }
 
 .daysGroup {
@@ -420,10 +409,10 @@
   .showsUpCell {
     width: 130px;
   }
-  .freqPill:not(.freqPillActive) {
+  .sliderLabels {
     display: none;
   }
-  .frequencySegmented {
+  .frequencySliderWrapper {
     justify-content: center;
   }
 }

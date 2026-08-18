@@ -164,43 +164,24 @@ export function ActiveCohortRow({
         </Tooltip>
       </div>
 
-      {/* 4. Shows up (Frequency) with Segmented Pills & Vertical Divider */}
+      {/* 4. Shows up (Frequency) with vertical divider */}
       <div className={styles.showsUpCell}>
         <span className={styles.cellLabel}>SHOWS UP</span>
-        <div className={styles.frequencySegmented}>
-          {['Rarely', 'Sometimes', 'Often'].map((option) => {
-            const currentFreq = item.frequency || 'Often';
-            const isCurrent = currentFreq.includes(option);
-            return (
-              <button
-                key={option}
-                type="button"
-                className={`${styles.freqPill} ${isCurrent ? styles.freqPillActive : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onUpdateFrequency?.(item.id, option);
-                  onSelect();
-                }}
-              >
-                {option}
-              </button>
-            );
-          })}
-        </div>
-        <div className={styles.frequencySlider}>
+        <div className={styles.frequencySliderWrapper}>
+          <div className={styles.sliderLabels}>
+            <span>Less</span>
+            <span className={styles.sliderValue}>{item.frequency || 'Often'}</span>
+            <span>More</span>
+          </div>
           <Slider 
             min={0} 
-            max={2} 
+            max={4} 
             step={1}
-            value={
-              (item.frequency || 'Often').includes('Rarely') ? 0 :
-              (item.frequency || 'Often').includes('Sometimes') ? 1 : 2
-            } 
+            value={Math.max(0, FREQUENCIES.indexOf((item.frequency || 'Often') as typeof FREQUENCIES[number]))} 
             onClick={(e) => e.stopPropagation()}
             onChange={(e) => {
-              const opts = ['Rarely', 'Sometimes', 'Often'];
               const val = parseInt(e.target.value, 10);
-              onUpdateFrequency?.(item.id, opts[val]);
+              onUpdateFrequency?.(item.id, FREQUENCIES[val]);
               onSelect();
             }}
             className={styles.rangeSlider}
