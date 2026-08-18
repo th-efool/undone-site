@@ -22,7 +22,7 @@
 }
 
 .listWithInspector {
-  border-right: 1px solid #f3f4f6;
+  border-right: 1px solid #e5e7eb;
 }
 
 .listHeader {
@@ -112,8 +112,8 @@
 
 .inspectorWrapper {
   position: relative;
-  background: var(--color-brand-subtle);
-  padding: 8px;
+  background: #faf9ff;
+  border-left: 1px solid #e5e7eb;
   display: flex;
 }
 
@@ -123,6 +123,10 @@
   }
   .listWithInspector {
     border-right: none;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .inspectorWrapper {
+    border-left: none;
+    border-top: 1px solid #e5e7eb;
   }
 }

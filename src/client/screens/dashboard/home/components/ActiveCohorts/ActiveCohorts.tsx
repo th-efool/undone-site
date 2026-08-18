@@ -41,7 +41,7 @@ export function ActiveCohorts({
       className={styles.section}
       aria-labelledby="active-cohorts-heading"
     >
-      <div className={styles.layout} style={{ gridTemplateColumns: selectedCohort ? '1fr 340px' : '1fr' }}>
+      <div className={styles.layout} style={{ gridTemplateColumns: selectedCohort ? '1fr 300px' : '1fr' }}>
         {/* Left: Master List */}
         <div className={`${styles.list} ${selectedCohort ? styles.listWithInspector : ''}`}>
           <div className={styles.listHeader}>

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { CalendarDays, Clock, Shuffle, Sparkles, ListOrdered, Signal, X, ChevronDown, PauseCircle } from 'lucide-react';
+import { useState } from 'react';
+import { CalendarDays, Clock, Shuffle, ListOrdered, Signal, X, PauseCircle } from 'lucide-react';
 import { Slider } from '@/src/client/components/ui/Slider/Slider';
 import type { ActiveCohort, Weekday } from '../../models';
 
@@ -14,10 +14,6 @@ export interface InspectorPanelProps {
   onClose?(): void;
   onPause?(cohortId: string, days: number): void;
 }
-
-const FREQUENCIES = ['Very Rarely', 'Rarely', 'Sometimes', 'Often', 'Very Often'];
-
-const weekdays: Weekday[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export function ChartNetwork({ size = 15, className }: { size?: number; className?: string }) {
   return (
@@ -43,6 +39,10 @@ export function ChartNetwork({ size = 15, className }: { size?: number; classNam
   );
 }
 
+const FREQUENCIES = ['Very Rarely', 'Rarely', 'Sometimes', 'Often', 'Very Often'] as const;
+const WEEKDAYS: Weekday[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const STANDARD_GOALS = [10, 15, 20, 30, 45, 60];
+
 export function InspectorPanel({
   cohort,
   onUpdateSchedule,
@@ -52,124 +52,85 @@ export function InspectorPanel({
   onClose,
   onPause,
 }: InspectorPanelProps) {
-  function toggleDay(day: Weekday) {
-    const currentDays = cohort.schedule.days;
-    const nextDays = currentDays.includes(day)
-      ? currentDays.filter((d) => d !== day)
-      : [...currentDays, day];
-    const safeDays = nextDays.length > 0 ? nextDays : [day];
-    onUpdateSchedule(cohort.id, safeDays);
-  }
-
-  function handleFrequencyChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const val = parseInt(e.target.value, 10);
-    onUpdateFrequency?.(cohort.id, FREQUENCIES[val]);
-  }
-  const freqIndex = FREQUENCIES.indexOf(cohort.frequency || 'Often');
-  const safeFreqIndex = freqIndex === -1 ? 3 : freqIndex;
-
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
-    frequency: false,
-    schedule: false,
-    goal: false,
-    order: false
-  });
-
   const [isEditingCustomGoal, setIsEditingCustomGoal] = useState(false);
   const [customGoalVal, setCustomGoalVal] = useState(String(cohort.dailyGoalMinutes));
 
-  useEffect(() => {
-    // Contracted screens -> default closed
-    if (window.innerWidth <= 1200) {
-      setCollapsed({ frequency: true, schedule: true, goal: true, order: true });
-    }
-  }, []);
-
-  function toggle(sec: string) {
-    setCollapsed(prev => ({ ...prev, [sec]: !prev[sec] }));
+  function toggleDay(day: Weekday) {
+    const current = cohort.schedule.days;
+    const next = current.includes(day)
+      ? current.filter((d) => d !== day)
+      : [...current, day];
+    onUpdateSchedule(cohort.id, next.length > 0 ? next : [day]);
   }
 
-  const standardGoals = [10, 15, 20, 30, 45, 60];
-  const isStandardGoal = standardGoals.includes(cohort.dailyGoalMinutes);
+  const isStandardGoal = STANDARD_GOALS.includes(cohort.dailyGoalMinutes);
 
   return (
     <aside className={styles.inspector} aria-label={`Inspector for ${cohort.title}`}>
       {onClose && (
         <button className={styles.closeBtn} onClick={onClose} aria-label="Close">
-          <X size={16} />
+          <X size={15} />
         </button>
       )}
+
       <div key={cohort.id} className={styles.inspectorContent}>
-        
-        {/* Frequency Section */}
+
+        {/* ── Frequency ── */}
         <section className={styles.section}>
-          <header className={styles.sectionHeader} onClick={() => toggle('frequency')} role="button">
-            <div className={styles.headerTitleRow}>
-              <Signal size={16} strokeWidth={2.5} className={styles.icon} />
-              <div>
-                <h3>Shows up <span className={styles.subtitle}>(Frequency)</span></h3>
-                <p className={styles.desc}>How often should this appear in your feed?</p>
-              </div>
+          <div className={styles.sectionHeader}>
+            <Signal size={14} className={styles.icon} />
+            <span className={styles.sectionLabel}>Shows up</span>
+          </div>
+          <div className={styles.sliderWrapper}>
+            <div className={styles.sliderLabels}>
+              <span>Less</span>
+              <span className={styles.sliderValue}>{cohort.frequency || 'Often'}</span>
+              <span>More</span>
             </div>
-            <ChevronDown size={14} className={`${styles.chevron} ${collapsed.frequency ? styles.chevronClosed : ''}`} />
-          </header>
-          {!collapsed.frequency && (
-            <div className={styles.sliderWrapper}>
-              <div className={styles.sliderLabels}>
-                <span>Less</span>
-                <span className={styles.sliderValue}>{cohort.frequency || 'Often'}</span>
-                <span>More</span>
-              </div>
-              <Slider 
-                min={0} 
-                max={4} 
-                step={1}
-                value={safeFreqIndex} 
-                onChange={handleFrequencyChange}
-                className={styles.rangeSlider}
-                aria-label="Frequency"
-              />
-            </div>
-          )}
+            <Slider
+              min={0}
+              max={4}
+              step={1}
+              value={Math.max(0, FREQUENCIES.indexOf((cohort.frequency || 'Often') as typeof FREQUENCIES[number]))}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onUpdateFrequency?.(cohort.id, FREQUENCIES[parseInt(e.target.value, 10)])
+              }
+              className={styles.rangeSlider}
+              aria-label="Frequency"
+            />
+          </div>
         </section>
 
-        {/* Schedule Section */}
+        {/* ── Schedule ── */}
         <section className={styles.section}>
-          <header className={styles.sectionHeader} onClick={() => toggle('schedule')} role="button">
-            <div className={styles.headerTitleRow}>
-              <CalendarDays size={16} strokeWidth={2.5} className={styles.icon} />
-              <div>
-                <h3>Schedule</h3>
-                <p className={styles.desc}>Which days should this be prioritized?</p>
-              </div>
-            </div>
-            <ChevronDown size={14} className={`${styles.chevron} ${collapsed.schedule ? styles.chevronClosed : ''}`} />
-          </header>
-          {!collapsed.schedule && (
-            <div className={styles.dayGrid}>
-              {weekdays.map((day) => {
-                const isActive = cohort.schedule.days.includes(day);
-                return (
-                  <button
-                    key={day}
-                    type="button"
-                    className={`${styles.dayButton} ${isActive ? styles.dayButtonActive : ''}`}
-                    aria-pressed={isActive}
-                    onClick={() => toggleDay(day)}
-                  >
-                    {day}
-                  </button>
-                );
-              })}
-            </div>
-          )}
+          <div className={styles.sectionHeader}>
+            <CalendarDays size={14} className={styles.icon} />
+            <span className={styles.sectionLabel}>Schedule</span>
+          </div>
+          <div className={styles.dayGrid}>
+            {WEEKDAYS.map((day) => {
+              const active = cohort.schedule.days.includes(day);
+              return (
+                <button
+                  key={day}
+                  type="button"
+                  className={`${styles.dayBtn} ${active ? styles.pillActive : styles.pillIdle}`}
+                  aria-pressed={active}
+                  onClick={() => toggleDay(day)}
+                >
+                  {day}
+                </button>
+              );
+            })}
+          </div>
         </section>
 
-      {/* Daily Goal Section — always visible, single row */}
-      <section className={styles.section}>
-        <div className={styles.goalRow}>
-          <Clock size={16} strokeWidth={2.5} className={styles.icon} />
-          <h3>Daily Goal <span className={styles.subtitle}>(Overall)</span></h3>
+        {/* ── Daily Goal ── */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <Clock size={14} className={styles.icon} />
+            <span className={styles.sectionLabel}>Daily Goal</span>
+          </div>
 
           {isEditingCustomGoal ? (
             <div className={styles.customGoalGroup}>
@@ -192,109 +153,83 @@ export function InspectorPanel({
                     if (num > 0) onUpdateDailyGoal(cohort.id, num);
                     setIsEditingCustomGoal(false);
                   }
+                  if (e.key === 'Escape') setIsEditingCustomGoal(false);
                 }}
               />
               <span className={styles.unitText}>min</span>
             </div>
           ) : (
-            <select
-              className={styles.goalSelect}
-              value={cohort.dailyGoalMinutes}
-              onChange={(e) => {
-                if (e.target.value === 'custom') {
+            <div className={styles.pills}>
+              {STANDARD_GOALS.map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  className={`${styles.pill} ${cohort.dailyGoalMinutes === g ? styles.pillActive : styles.pillIdle}`}
+                  onClick={() => onUpdateDailyGoal(cohort.id, g)}
+                >
+                  {g} min
+                </button>
+              ))}
+              {!isStandardGoal && (
+                <button
+                  type="button"
+                  className={`${styles.pill} ${styles.pillActive}`}
+                  onClick={() => {
+                    setCustomGoalVal(String(cohort.dailyGoalMinutes));
+                    setIsEditingCustomGoal(true);
+                  }}
+                >
+                  {cohort.dailyGoalMinutes} min
+                </button>
+              )}
+              <button
+                type="button"
+                className={`${styles.pill} ${styles.pillIdle}`}
+                onClick={() => {
                   setCustomGoalVal(String(cohort.dailyGoalMinutes));
                   setIsEditingCustomGoal(true);
-                } else {
-                  onUpdateDailyGoal(cohort.id, Number(e.target.value));
-                }
-              }}
-            >
-              <option value={10}>10 min</option>
-              <option value={15}>15 min</option>
-              <option value={20}>20 min</option>
-              <option value={30}>30 min</option>
-              <option value={45}>45 min</option>
-              <option value={60}>60 min</option>
-              {!isStandardGoal && <option value={cohort.dailyGoalMinutes}>{cohort.dailyGoalMinutes} min</option>}
-              <option value="custom">Custom...</option>
-            </select>
-          )}
-        </div>
-      </section>
-
-      {/* Order Preference Section */}
-      <section className={styles.section}>
-        <header className={styles.sectionHeader} onClick={() => toggle('order')} role="button">
-          <div className={styles.headerTitleRow}>
-            <ListOrdered size={16} strokeWidth={2.5} className={styles.icon} />
-            <div>
-              <h3>Order Preference <span className={styles.subtitle}>(Default)</span></h3>
-              <p className={styles.desc}>How should items be ordered within each cohort?</p>
+                }}
+              >
+                Custom…
+              </button>
             </div>
-          </div>
-          <ChevronDown size={14} className={`${styles.chevron} ${collapsed.order ? styles.chevronClosed : ''}`} />
-        </header>
-        {!collapsed.order && (
-          <div className={styles.orderOptions}>
-            <label className={`${styles.orderCard} ${cohort.orderStyle === 'Sequential' ? styles.orderCardActive : ''}`}>
-              <input 
-                type="radio" 
-                name={`order-${cohort.id}`} 
-                value="Sequential"
-                checked={cohort.orderStyle === 'Sequential'}
-                onChange={() => onUpdateOrderStyle?.(cohort.id, 'Sequential')}
-                className={styles.srOnly}
-              />
-              <div className={styles.orderCardIcon}><ListOrdered size={15} /></div>
-              <div className={styles.orderCardContent}>
-                <h4>Sequential</h4>
-                <p>Learn in the original order.</p>
-              </div>
-              <div className={styles.radioRing} />
-            </label>
+          )}
+        </section>
 
-            <label className={`${styles.orderCard} ${cohort.orderStyle === 'Semantic Randomize' ? styles.orderCardActive : ''}`}>
-              <input 
-                type="radio" 
-                name={`order-${cohort.id}`} 
-                value="Semantic Randomize"
-                checked={cohort.orderStyle === 'Semantic Randomize'}
-                onChange={() => onUpdateOrderStyle?.(cohort.id, 'Semantic Randomize')}
-                className={styles.srOnly}
-              />
-              <div className={styles.orderCardIcon}><ChartNetwork size={15} /></div>
-              <div className={styles.orderCardContent}>
-                <h4>Semantic Randomize</h4>
-                <p>We group similar ideas, then shuffle.</p>
-              </div>
-              <div className={styles.radioRing} />
-            </label>
-
-            <label className={`${styles.orderCard} ${cohort.orderStyle === 'Randomize' ? styles.orderCardActive : ''}`}>
-              <input 
-                type="radio" 
-                name={`order-${cohort.id}`} 
-                value="Randomize"
-                checked={cohort.orderStyle === 'Randomize'}
-                onChange={() => onUpdateOrderStyle?.(cohort.id, 'Randomize')}
-                className={styles.srOnly}
-              />
-              <div className={styles.orderCardIcon}><Shuffle size={15} /></div>
-              <div className={styles.orderCardContent}>
-                <h4>Randomize</h4>
-                <p>Fully random order.</p>
-              </div>
-              <div className={styles.radioRing} />
-            </label>
+        {/* ── Order Preference ── */}
+        <section className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <ListOrdered size={14} className={styles.icon} />
+            <span className={styles.sectionLabel}>Order</span>
           </div>
-        )}
-      </section>
+          <div className={styles.pills}>
+            {[
+              { value: 'Sequential', Icon: ListOrdered, label: 'Sequential' },
+              { value: 'Semantic Randomize', Icon: ChartNetwork, label: 'Semantic Shuffle' },
+              { value: 'Randomize', Icon: Shuffle, label: 'Random' },
+            ].map(({ value, Icon, label }) => (
+              <button
+                key={value}
+                type="button"
+                className={`${styles.pill} ${cohort.orderStyle === value ? styles.pillActive : styles.pillIdle}`}
+                onClick={() => onUpdateOrderStyle?.(cohort.id, value)}
+              >
+                <Icon size={12} />
+                {label}
+              </button>
+            ))}
+          </div>
+        </section>
 
       </div>
 
       {onPause && (
-        <button className={styles.pauseBtn} onClick={() => onPause(cohort.id, 7)} aria-label="Pause cohort">
-          <PauseCircle size={15} />
+        <button
+          className={styles.pauseBtn}
+          onClick={() => onPause(cohort.id, 7)}
+          aria-label="Pause cohort"
+        >
+          <PauseCircle size={14} />
           <span>Pause</span>
         </button>
       )}
