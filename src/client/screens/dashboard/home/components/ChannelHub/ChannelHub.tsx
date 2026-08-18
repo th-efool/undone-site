@@ -31,9 +31,9 @@ const CHANNELS: Channel[] = [
     about: 'Perfect for moments when you want something interesting to think about without committing to a particular topic or direction.',
     bestFor: [{ text: 'Idle moments', Icon: Clock }, { text: 'New interests', Icon: Lightbulb }, { text: 'Inspiration', Icon: Zap }],
     controls: [
-      { id: 'novelty', label: 'Novelty', defaultId: 'unexpected', options: [{ id: 'familiar', label: 'Familiar' }, { id: 'unexpected', label: 'Unexpected' }, { id: 'strange', label: 'Strange' }] },
-      { id: 'connection', label: 'Connection', defaultId: 'connections', options: [{ id: 'one_idea', label: 'One idea' }, { id: 'connections', label: 'Connections' }] },
-      { id: 'form', label: 'Form', defaultId: 'ideas', options: [{ id: 'ideas', label: 'Ideas' }, { id: 'stories', label: 'Stories' }, { id: 'surprises', label: 'Surprises' }] },
+      { id: 'novelty', label: 'Novelty', defaultId: 'familiar', options: [{ id: 'familiar', label: 'Familiar' }, { id: 'esoteric', label: 'Esoteric' }] },
+      { id: 'connectivity', label: 'Connectivity', defaultId: 'singular', options: [{ id: 'singular', label: 'Singular' }, { id: 'cross_domain', label: 'Cross-Domain' }] },
+      { id: 'abstraction', label: 'Abstraction', defaultId: 'concrete', options: [{ id: 'concrete', label: 'Concrete Fact' }, { id: 'philosophical', label: 'Philosophical Mystery' }] },
     ],
   },
   {
@@ -44,9 +44,9 @@ const CHANNELS: Channel[] = [
     about: 'Perfect for when you want to follow your curiosity, make unexpected connections, or see where an idea takes you.',
     bestFor: [{ text: 'Curious moods', Icon: Brain }, { text: 'Cross-domain', Icon: Layers }, { text: 'Open time', Icon: Map }],
     controls: [
-      { id: 'distance', label: 'Distance', defaultId: 'unexpected', options: [{ id: 'nearby', label: 'Nearby' }, { id: 'unexpected', label: 'Unexpected' }, { id: 'far_out', label: 'Far out' }] },
-      { id: 'connections', label: 'Connections', defaultId: 'related', options: [{ id: 'related', label: 'Related' }, { id: 'cross_pollinate', label: 'Cross-pollinate' }] },
-      { id: 'depth', label: 'Depth', defaultId: 'wander', options: [{ id: 'glance', label: 'Glance' }, { id: 'wander', label: 'Wander' }] },
+      { id: 'novelty', label: 'Novelty', defaultId: 'adjacent', options: [{ id: 'adjacent', label: 'Adjacent' }, { id: 'uncharted', label: 'Uncharted' }] },
+      { id: 'scope', label: 'Scope', defaultId: 'deep', options: [{ id: 'deep', label: 'Deep' }, { id: 'wide', label: 'Wide' }] },
+      { id: 'serendipity', label: 'Serendipity', defaultId: 'curated', options: [{ id: 'curated', label: 'Curated' }, { id: 'random', label: 'Random' }] },
     ],
   },
   {
@@ -57,9 +57,9 @@ const CHANNELS: Channel[] = [
     about: 'Perfect for when you want to turn what you know into something you can actually make, solve, or do.',
     bestFor: [{ text: 'Skill building', Icon: Target }, { text: 'Projects', Icon: Briefcase }, { text: 'Practice', Icon: Activity }],
     controls: [
-      { id: 'guidance', label: 'Guidance', defaultId: 'guided', options: [{ id: 'guided', label: 'Guided' }, { id: 'independent', label: 'Independent' }] },
-      { id: 'practice', label: 'Practice', defaultId: 'practice', options: [{ id: 'examples', label: 'Examples' }, { id: 'practice', label: 'Practice' }, { id: 'projects', label: 'Projects' }] },
-      { id: 'progression', label: 'Progression', defaultId: 'one_skill', options: [{ id: 'one_skill', label: 'One skill at a time' }, { id: 'combine', label: 'Combine skills' }] },
+      { id: 'guidance', label: 'Guidance', defaultId: 'step_by_step', options: [{ id: 'step_by_step', label: 'Step-by-Step Tutorial' }, { id: 'independent', label: 'Independent Build' }] },
+      { id: 'scope', label: 'Scope', defaultId: 'micro', options: [{ id: 'micro', label: 'Micro-Feature' }, { id: 'full_app', label: 'Full-Scale App' }] },
+      { id: 'constraint', label: 'Constraint', defaultId: 'blueprint', options: [{ id: 'blueprint', label: 'Strict Blueprint' }, { id: 'sandbox', label: 'Open Sandbox' }] },
     ],
   },
   {
@@ -70,9 +70,9 @@ const CHANNELS: Channel[] = [
     about: 'Perfect for walks, commutes, or whenever you want to keep learning without needing to stay in front of a screen.',
     bestFor: [{ text: 'Commutes', Icon: Car }, { text: 'Walks', Icon: Footprints }, { text: 'Screen-free', Icon: MonitorOff }],
     controls: [
-      { id: 'format', label: 'Format', defaultId: 'narrated', options: [{ id: 'narrated', label: 'Narrated' }, { id: 'conversational', label: 'Conversational' }] },
-      { id: 'length', label: 'Length', defaultId: 'short', options: [{ id: 'short', label: 'Short' }, { id: 'longer', label: 'Longer' }] },
-      { id: 'visual', label: 'Visual dependency', defaultId: 'audio_first', options: [{ id: 'audio_first', label: 'Audio-first' }, { id: 'some_visual', label: 'Some visual context' }] },
+      { id: 'format', label: 'Format', defaultId: 'story', options: [{ id: 'story', label: 'Story' }, { id: 'interview', label: 'Interview' }] },
+      { id: 'density', label: 'Density', defaultId: 'casual', options: [{ id: 'casual', label: 'Casual Overview' }, { id: 'technical', label: 'Technical Deep Dive' }] },
+      { id: 'length', label: 'Length', defaultId: '5_min', options: [{ id: '5_min', label: '5 min' }, { id: '60_min', label: '60 min' }] },
     ],
   },
   {
@@ -83,9 +83,9 @@ const CHANNELS: Channel[] = [
     about: 'Perfect for when you want to slow down, follow an idea further, and really understand how it works.',
     bestFor: [{ text: 'Focused time', Icon: Focus }, { text: 'Complex topics', Icon: BookOpen }, { text: 'Deep work', Icon: Brain }],
     controls: [
-      { id: 'focus', label: 'Focus', defaultId: 'understand', options: [{ id: 'understand', label: 'Understand' }, { id: 'go_deeper', label: 'Go deeper' }, { id: 'work_through', label: 'Work through' }] },
-      { id: 'progression', label: 'Progression', defaultId: 'follow_thread', options: [{ id: 'follow_thread', label: 'Follow thread' }, { id: 'flexible', label: 'Flexible' }] },
-      { id: 'challenge', label: 'Challenge', defaultId: 'build_up', options: [{ id: 'build_up', label: 'Build up' }, { id: 'push_further', label: 'Push further' }] },
+      { id: 'depth', label: 'Depth', defaultId: 'high_level', options: [{ id: 'high_level', label: 'High-level' }, { id: 'first_principles', label: 'First Principles' }] },
+      { id: 'rigor', label: 'Rigor', defaultId: 'intuitive', options: [{ id: 'intuitive', label: 'Intuitive' }, { id: 'formal', label: 'Formal' }] },
+      { id: 'scaffolding', label: 'Scaffolding', defaultId: 'guided', options: [{ id: 'guided', label: 'Guided' }, { id: 'independent', label: 'Independent' }] },
     ],
   },
   {
@@ -96,8 +96,8 @@ const CHANNELS: Channel[] = [
     about: 'Quick delivers crisp, focused bites of learning you can finish in just a few minutes. Perfect for breaks, commutes, or whenever you need a quick win.',
     bestFor: [{ text: 'Busy days', Icon: Briefcase }, { text: 'Short breaks', Icon: Clock }, { text: 'On the go', Icon: PlayCircle }],
     controls: [
-      { id: 'length', label: 'Length', defaultId: '2_5_min', options: [{ id: '2_5_min', label: '2–5 min' }, { id: '5_10_min', label: '5–10 min' }] },
-      { id: 'continuity', label: 'Continuity', defaultId: 'standalone', options: [{ id: 'standalone', label: 'Standalone' }, { id: 'short_sequence', label: 'Short sequence' }] },
+      { id: 'length', label: 'Length', defaultId: '1_min', options: [{ id: '1_min', label: '1 min' }, { id: '5_min', label: '5 min' }] },
+      { id: 'continuity', label: 'Continuity', defaultId: 'standalone', options: [{ id: 'standalone', label: 'Standalone' }, { id: 'sequence', label: 'Sequence' }] },
       { id: 'density', label: 'Density', defaultId: 'light', options: [{ id: 'light', label: 'Light' }, { id: 'dense', label: 'Dense' }] },
     ],
   },
