@@ -190,7 +190,7 @@ export function ChannelHub() {
                   onClick={() => setSelectedId(ch.id)}
                   aria-label={ch.name}
                 >
-                  <Icon size={24} strokeWidth={isActive ? 2.5 : 1.8} />
+                  <Icon size={32} strokeWidth={isActive ? 2.5 : 1.8} />
                   <span>{ch.name}</span>
                 </button>
               );
