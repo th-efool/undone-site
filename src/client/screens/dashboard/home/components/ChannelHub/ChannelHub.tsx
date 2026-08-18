@@ -7,16 +7,41 @@ import styles from './ChannelHub.module.css';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
 
-type ChannelId = 'explore' | 'build' | 'listen' | 'deep_dive' | 'quick' | 'spark';
+type ChannelId = 'spark' | 'explore' | 'build' | 'listen' | 'deep_dive' | 'quick';
 
 interface Option { id: string; label: string }
 interface Control { id: string; label: string; options: Option[]; defaultId: string }
-interface Channel { id: ChannelId; name: string; Icon: React.ElementType; description: string; controls: Control[] }
+interface Channel {
+  id: ChannelId;
+  name: string;
+  Icon: React.ElementType;
+  tagline: string;
+  about: string;
+  bestFor: string[];
+  controls: Control[];
+}
 
 const CHANNELS: Channel[] = [
   {
-    id: 'explore', name: 'Explore', Icon: Compass,
-    description: 'Find interesting paths beyond what you already know.',
+    id: 'spark',
+    name: 'Spark',
+    Icon: Coffee,
+    tagline: 'Fresh ideas to ignite your curiosity.',
+    about: 'Perfect for moments when you want something interesting to think about without committing to a particular topic or direction.',
+    bestFor: ['Idle moments', 'New interests', 'Inspiration'],
+    controls: [
+      { id: 'novelty', label: 'Novelty', defaultId: 'unexpected', options: [{ id: 'familiar', label: 'Familiar' }, { id: 'unexpected', label: 'Unexpected' }, { id: 'strange', label: 'Strange' }] },
+      { id: 'connection', label: 'Connection', defaultId: 'connections', options: [{ id: 'one_idea', label: 'One idea' }, { id: 'connections', label: 'Connections' }] },
+      { id: 'form', label: 'Form', defaultId: 'ideas', options: [{ id: 'ideas', label: 'Ideas' }, { id: 'stories', label: 'Stories' }, { id: 'surprises', label: 'Surprises' }] },
+    ],
+  },
+  {
+    id: 'explore',
+    name: 'Explore',
+    Icon: Compass,
+    tagline: 'Discover new topics and perspectives.',
+    about: 'Perfect for when you want to follow your curiosity, make unexpected connections, or see where an idea takes you.',
+    bestFor: ['Curious moods', 'Cross-domain', 'Open time'],
     controls: [
       { id: 'distance', label: 'Distance', defaultId: 'unexpected', options: [{ id: 'nearby', label: 'Nearby' }, { id: 'unexpected', label: 'Unexpected' }, { id: 'far_out', label: 'Far out' }] },
       { id: 'connections', label: 'Connections', defaultId: 'related', options: [{ id: 'related', label: 'Related' }, { id: 'cross_pollinate', label: 'Cross-pollinate' }] },
@@ -24,8 +49,12 @@ const CHANNELS: Channel[] = [
     ],
   },
   {
-    id: 'build', name: 'Build', Icon: Hammer,
-    description: 'Turn ideas into something you can actually do.',
+    id: 'build',
+    name: 'Build',
+    Icon: Hammer,
+    tagline: 'Hands-on learning. Projects & practice.',
+    about: 'Perfect for when you want to turn what you know into something you can actually make, solve, or do.',
+    bestFor: ['Skill building', 'Projects', 'Practice'],
     controls: [
       { id: 'guidance', label: 'Guidance', defaultId: 'guided', options: [{ id: 'guided', label: 'Guided' }, { id: 'independent', label: 'Independent' }] },
       { id: 'practice', label: 'Practice', defaultId: 'practice', options: [{ id: 'examples', label: 'Examples' }, { id: 'practice', label: 'Practice' }, { id: 'projects', label: 'Projects' }] },
@@ -33,8 +62,12 @@ const CHANNELS: Channel[] = [
     ],
   },
   {
-    id: 'listen', name: 'Listen', Icon: Headphones,
-    description: "Keep learning when the screen doesn't need your attention.",
+    id: 'listen',
+    name: 'Listen',
+    Icon: Headphones,
+    tagline: 'Learn on the go with audio sessions.',
+    about: 'Perfect for walks, commutes, or whenever you want to keep learning without needing to stay in front of a screen.',
+    bestFor: ['Commutes', 'Walks', 'Screen-free'],
     controls: [
       { id: 'format', label: 'Format', defaultId: 'narrated', options: [{ id: 'narrated', label: 'Narrated' }, { id: 'conversational', label: 'Conversational' }] },
       { id: 'length', label: 'Length', defaultId: 'short', options: [{ id: 'short', label: 'Short' }, { id: 'longer', label: 'Longer' }] },
@@ -42,8 +75,12 @@ const CHANNELS: Channel[] = [
     ],
   },
   {
-    id: 'deep_dive', name: 'Deep Dive', Icon: Search,
-    description: 'Follow concepts further, build understanding, and stay with difficult ideas.',
+    id: 'deep_dive',
+    name: 'Deep Dive',
+    Icon: Search,
+    tagline: 'In-depth lessons for deep understanding.',
+    about: 'Perfect for when you want to slow down, follow an idea further, and really understand how it works.',
+    bestFor: ['Focused time', 'Complex topics', 'Deep work'],
     controls: [
       { id: 'focus', label: 'Focus', defaultId: 'understand', options: [{ id: 'understand', label: 'Understand' }, { id: 'go_deeper', label: 'Go deeper' }, { id: 'work_through', label: 'Work through' }] },
       { id: 'progression', label: 'Progression', defaultId: 'follow_thread', options: [{ id: 'follow_thread', label: 'Follow thread' }, { id: 'flexible', label: 'Flexible' }] },
@@ -51,21 +88,16 @@ const CHANNELS: Channel[] = [
     ],
   },
   {
-    id: 'quick', name: 'Quick', Icon: Rabbit,
-    description: 'Small pieces for small windows of time.',
+    id: 'quick',
+    name: 'Quick',
+    Icon: Rabbit,
+    tagline: 'Small pieces for small windows of time.',
+    about: 'Quick delivers crisp, focused bites of learning you can finish in just a few minutes. Perfect for breaks, commutes, or whenever you need a quick win.',
+    bestFor: ['Busy days', 'Short breaks', 'On the go'],
     controls: [
       { id: 'length', label: 'Length', defaultId: '2_5_min', options: [{ id: '2_5_min', label: '2–5 min' }, { id: '5_10_min', label: '5–10 min' }] },
       { id: 'continuity', label: 'Continuity', defaultId: 'standalone', options: [{ id: 'standalone', label: 'Standalone' }, { id: 'short_sequence', label: 'Short sequence' }] },
       { id: 'density', label: 'Density', defaultId: 'light', options: [{ id: 'light', label: 'Light' }, { id: 'dense', label: 'Dense' }] },
-    ],
-  },
-  {
-    id: 'spark', name: 'Spark', Icon: Coffee,
-    description: 'Ideas worth stopping for.',
-    controls: [
-      { id: 'novelty', label: 'Novelty', defaultId: 'unexpected', options: [{ id: 'familiar', label: 'Familiar' }, { id: 'unexpected', label: 'Unexpected' }, { id: 'strange', label: 'Strange' }] },
-      { id: 'connection', label: 'Connection', defaultId: 'connections', options: [{ id: 'one_idea', label: 'One idea' }, { id: 'connections', label: 'Connections' }] },
-      { id: 'form', label: 'Form', defaultId: 'ideas', options: [{ id: 'ideas', label: 'Ideas' }, { id: 'stories', label: 'Stories' }, { id: 'surprises', label: 'Surprises' }] },
     ],
   },
 ];
@@ -73,14 +105,10 @@ const CHANNELS: Channel[] = [
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function ChannelHub() {
-  const [selectedId, setSelectedId] = useState<ChannelId>('deep_dive');
+  const [selectedId, setSelectedId] = useState<ChannelId>('quick');
   const [prefs, setPrefs] = useState<Record<string, string>>({});
 
   const channel = CHANNELS.find(c => c.id === selectedId)!;
-  const selectedIdx = CHANNELS.findIndex(c => c.id === selectedId);
-
-  // Wheel rotates so selected segment is at top
-  const wheelRotation = -selectedIdx * 60;
 
   function getPref(channelId: ChannelId, controlId: string, defaultId: string) {
     return prefs[`${channelId}_${controlId}`] ?? defaultId;
@@ -92,7 +120,7 @@ export function ChannelHub() {
 
   return (
     <section className={styles.section} aria-label="Your Channels">
-      {/* Header bar — same visual language as Feed Policy */}
+      {/* Header bar */}
       <div className={styles.headerBar}>
         <div className={styles.tabTrapezium}>
           <h2 className={styles.tabTitle}>Your Channels</h2>
@@ -105,9 +133,19 @@ export function ChannelHub() {
         </div>
       </div>
 
-      {/* Two-column body */}
+      {/* 4-column body */}
       <div className={styles.body}>
-        {/* LEFT: Wheel */}
+
+        {/* COL 1: Intro text */}
+        <div className={styles.introCol}>
+          <p className={styles.introHeadline}>Tune in to the channels that match your moment.</p>
+          <p className={styles.introBody}>
+            Each channel is a learning experience with its own rhythm and focus.
+            Pick a channel to personalize your feed.
+          </p>
+        </div>
+
+        {/* COL 2: Wheel */}
         <div className={styles.wheelCol}>
           <div className={styles.wheelOuter}>
             {/* SVG pie segments */}
@@ -138,7 +176,7 @@ export function ChannelHub() {
             {/* Icon labels around the wheel */}
             {CHANNELS.map((ch, i) => {
               const angle = ((i + 0.5) / 6) * 2 * Math.PI - Math.PI / 2;
-              const r = 0.63; // radius as fraction of half wheel size
+              const r = 0.63;
               const isActive = ch.id === selectedId;
               const Icon = ch.Icon;
               return (
@@ -152,7 +190,7 @@ export function ChannelHub() {
                   onClick={() => setSelectedId(ch.id)}
                   aria-label={ch.name}
                 >
-                  <Icon size={26} strokeWidth={isActive ? 2.5 : 1.8} />
+                  <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
                   <span>{ch.name}</span>
                 </button>
               );
@@ -177,7 +215,7 @@ export function ChannelHub() {
 
             {/* Center keyhole */}
             <div className={styles.center}>
-              <svg width="32" height="40" viewBox="0 0 32 40" fill="none" aria-hidden>
+              <svg width="28" height="35" viewBox="0 0 32 40" fill="none" aria-hidden>
                 <circle cx="16" cy="13" r="9" stroke="rgba(255,255,255,0.75)" strokeWidth="1.5" />
                 <path d="M10 13 Q10 32 16 32 Q22 32 22 13" stroke="rgba(255,255,255,0.75)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
               </svg>
@@ -185,47 +223,100 @@ export function ChannelHub() {
           </div>
         </div>
 
-        {/* RIGHT: Config panel */}
-        <div className={styles.configCol}>
+        {/* COL 3: Channel list */}
+        <div className={styles.channelListCol}>
+          {CHANNELS.map(ch => {
+            const isActive = ch.id === selectedId;
+            const Icon = ch.Icon;
+            return (
+              <button
+                key={ch.id}
+                className={`${styles.channelRow} ${isActive ? styles.channelRowActive : ''}`}
+                onClick={() => setSelectedId(ch.id)}
+                aria-pressed={isActive}
+              >
+                <div className={`${styles.channelRowIcon} ${isActive ? styles.channelRowIconActive : ''}`}>
+                  <Icon size={15} strokeWidth={isActive ? 2.5 : 2} />
+                </div>
+                <div className={styles.channelRowText}>
+                  <span className={styles.channelRowName}>{ch.name.toUpperCase()}</span>
+                  <span className={styles.channelRowTagline}>{ch.tagline}</span>
+                </div>
+                {isActive && (
+                  <div className={styles.channelRowCheck}>
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                      <circle cx="7" cy="7" r="7" fill="#4f46e5" />
+                      <path d="M4 7l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* COL 4: Detail panel */}
+        <div className={styles.detailCol}>
           <AnimatePresence mode="wait">
             <motion.div
               key={selectedId}
+              className={styles.detailPanel}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.08, ease: 'easeOut' }}
-              className={styles.configPanel}
             >
-              <div className={styles.configHeader}>
-                <channel.Icon size={22} strokeWidth={2} className={styles.configIcon} />
-                <h3 className={styles.configName}>{channel.name}</h3>
+              {/* Header */}
+              <div className={styles.detailHeader}>
+                <div className={styles.detailIconWrap}>
+                  <channel.Icon size={18} strokeWidth={2.2} />
+                </div>
+                <div>
+                  <h3 className={styles.detailName}>{channel.name}</h3>
+                  <p className={styles.detailTagline}>{channel.tagline}</p>
+                </div>
               </div>
-              <p className={styles.configDesc}>{channel.description}</p>
 
-              <div className={styles.controls}>
-                {channel.controls.map(ctrl => {
-                  const selected = getPref(channel.id, ctrl.id, ctrl.defaultId);
-                  return (
-                    <div key={ctrl.id} className={styles.control}>
-                      <span className={styles.controlLabel}>{ctrl.label}</span>
-                      <div className={styles.pills}>
-                        {ctrl.options.map(opt => (
-                          <button
-                            key={opt.id}
-                            className={`${styles.pill} ${selected === opt.id ? styles.pillActive : styles.pillIdle}`}
-                            onClick={() => setPref(channel.id, ctrl.id, opt.id)}
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
+              {/* About */}
+              <div className={styles.detailSection}>
+                <span className={styles.detailSectionLabel}>About this channel</span>
+                <p className={styles.detailAbout}>{channel.about}</p>
               </div>
+
+              {/* Best for */}
+              <div className={styles.detailSection}>
+                <span className={styles.detailSectionLabel}>Best for</span>
+                <div className={styles.pills}>
+                  {channel.bestFor.map(tag => (
+                    <span key={tag} className={styles.bestForPill}>{tag}</span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Controls */}
+              {channel.controls.map(ctrl => {
+                const selected = getPref(channel.id, ctrl.id, ctrl.defaultId);
+                return (
+                  <div key={ctrl.id} className={styles.detailSection}>
+                    <span className={styles.detailSectionLabel}>{ctrl.label}</span>
+                    <div className={styles.pills}>
+                      {ctrl.options.map(opt => (
+                        <button
+                          key={opt.id}
+                          className={`${styles.pill} ${selected === opt.id ? styles.pillActive : styles.pillIdle}`}
+                          onClick={() => setPref(channel.id, ctrl.id, opt.id)}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </motion.div>
           </AnimatePresence>
         </div>
+
       </div>
     </section>
   );
