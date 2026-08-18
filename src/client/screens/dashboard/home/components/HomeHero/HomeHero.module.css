@@ -181,6 +181,23 @@
   margin-top: 1px;
 }
 
+.statDivider {
+  width: 1px;
+  height: 28px;
+  background: #e2e8f0;
+  flex-shrink: 0;
+}
+
+.paceBtn {
+  cursor: pointer;
+  background: white;
+  border: 1px solid #f1f5f9;
+  font-family: inherit;
+}
+.paceBtn:hover {
+  border-color: #a5b4fc;
+}
+
 .clockProgress {
   width: 16px;
   height: 16px;

@@ -14,6 +14,10 @@ export interface HomeHeroProps {
   searchValue?: string;
   searchPlaceholder?: string;
   onSearchChange?: (value: string) => void;
+  weeklyMinutes?: number;
+  activeDays?: number;
+  pace?: number;
+  onPaceClick?: () => void;
 }
 
 export function HomeHero({
@@ -22,9 +26,19 @@ export function HomeHero({
   searchValue = '',
   searchPlaceholder,
   onSearchChange,
+  weeklyMinutes = 0,
+  activeDays = 0,
+  pace = 20,
+  onPaceClick,
 }: HomeHeroProps) {
   const streak = summaries.find(s => s.id === 'current-streak');
   const todayGoal = summaries.find(s => s.id === 'today-goal');
+
+  const fmtTime = (m: number) => {
+    const h = Math.floor(m / 60);
+    const min = m % 60;
+    return h > 0 ? `${h}h ${min}m` : `${m}m`;
+  };
 
   return (
     <header className={styles.hero}>
@@ -84,6 +98,43 @@ export function HomeHero({
               </div>
             </Tooltip>
           )}
+
+          {/* Separator */}
+          <div className={styles.statDivider} />
+
+          {/* This Week */}
+          {weeklyMinutes > 0 && (
+            <Tooltip content="This week's total learning time" placement="top">
+              <div className={styles.statBadge}>
+                <div className={styles.statBadgeTop}>
+                  <span className={styles.statValue}>{fmtTime(weeklyMinutes)}</span>
+                </div>
+                <span className={styles.statLabel}>This Week</span>
+              </div>
+            </Tooltip>
+          )}
+
+          {/* Active days */}
+          {activeDays > 0 && (
+            <Tooltip content="Days active this week" placement="top">
+              <div className={styles.statBadge}>
+                <div className={styles.statBadgeTop}>
+                  <span className={styles.statValue}>{activeDays}d</span>
+                </div>
+                <span className={styles.statLabel}>Active</span>
+              </div>
+            </Tooltip>
+          )}
+
+          {/* Pace */}
+          <Tooltip content="Your daily learning pace — click to change" placement="top">
+            <button className={`${styles.statBadge} ${styles.paceBtn}`} onClick={onPaceClick}>
+              <div className={styles.statBadgeTop}>
+                <span className={styles.statValue}>{pace} min</span>
+              </div>
+              <span className={styles.statLabel}>Pace / day</span>
+            </button>
+          </Tooltip>
         </div>
       </div>
     </header>
