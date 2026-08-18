@@ -159,6 +159,10 @@
   gap: 6px;
 }
 
+.sliderWrapper :global(.agy-slider-labels) {
+  display: none !important;
+}
+
 .sliderLabels {
   display: flex;
   justify-content: space-between;
