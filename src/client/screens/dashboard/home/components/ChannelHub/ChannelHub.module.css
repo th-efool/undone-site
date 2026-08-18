@@ -287,10 +287,11 @@
 }
 
 .sliderRowTitle {
+  font-family: var(--font-manrope);
   font-size: 0.75rem;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 700;
+  letter-spacing: 0.06em;
+  font-weight: 800;
   color: #9ca3af;
   text-align: right;
 }
@@ -311,22 +312,23 @@
 
 .sliderTooltip {
   position: absolute;
-  top: -18px;
-  transform: translateX(-50%);
+  top: -22px;
+  transform: translateX(-50%) translateY(4px) scale(0.95);
   background: var(--color-brand);
   color: white;
   font-size: 0.65rem;
-  font-weight: 700;
+  font-weight: 800;
   padding: 2px 6px;
   border-radius: 4px;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.2s;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
 }
 
 .sliderInputWrapper:hover .sliderTooltip {
   opacity: 1;
+  transform: translateX(-50%) translateY(0) scale(1);
 }
 
 /* Arrow for tooltip */
@@ -346,12 +348,20 @@
 }
 
 .sliderLabel {
-  font-size: 0.7rem;
+  font-family: var(--font-manrope);
+  font-size: 0.75rem;
+  font-weight: 700;
   color: #6b7280;
+  opacity: 0.7;
   cursor: pointer;
-  transition: color 0.2s, font-weight 0.2s;
-  line-height: 1.1;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  line-height: 1.2;
   text-align: center;
+}
+
+.sliderLabel:hover {
+  opacity: 0.9;
+  color: #111827;
 }
 
 .sliderLabel:first-child {
@@ -364,7 +374,7 @@
 
 .sliderLabelActive {
   color: var(--color-brand);
-  font-weight: 700;
+  opacity: 1;
 }
 
 .pill {
