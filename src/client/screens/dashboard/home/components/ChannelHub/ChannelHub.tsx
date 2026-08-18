@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Compass, Hammer, Headphones, Search, Rabbit, Coffee, Info, Tv, Clock, Zap, Map, Footprints, BookOpen, Layers, Focus, Brain, Target, Briefcase, MonitorOff, Car, Star, Lightbulb, PlayCircle, Activity } from 'lucide-react';
 import styles from './ChannelHub.module.css';
@@ -116,6 +116,11 @@ function FloatSliderControl({
 }) {
   const selectedIndex = Math.max(0, ctrl.options.findIndex(o => o.id === selectedId));
   const [floatVal, setFloatVal] = useState(selectedIndex);
+  const [inputValue, setInputValue] = useState(floatVal.toFixed(2));
+
+  useEffect(() => {
+    setInputValue(floatVal.toFixed(2));
+  }, [floatVal]);
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
@@ -126,9 +131,33 @@ function FloatSliderControl({
     }
   };
 
+  const handleInputBlur = () => {
+    let val = parseFloat(inputValue);
+    if (isNaN(val)) val = floatVal;
+    val = Math.max(0, Math.min(ctrl.options.length - 1, val));
+    setFloatVal(val);
+    setInputValue(val.toFixed(2));
+    const closestIndex = Math.round(val);
+    if (closestIndex !== selectedIndex && ctrl.options[closestIndex]) {
+      onChange(ctrl.options[closestIndex].id);
+    }
+  };
+
   return (
     <div className={styles.sliderRow}>
-      <span className={styles.sliderRowTitle}>{ctrl.label}</span>
+      <div className={styles.sliderRowTitleGroup}>
+        <span className={styles.sliderRowTitle}>{ctrl.label}</span>
+        <input 
+          type="text"
+          className={styles.sliderFloatInput}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onBlur={handleInputBlur}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') e.currentTarget.blur();
+          }}
+        />
+      </div>
       <div className={styles.sliderRowTrack}>
         <span 
           className={`${styles.sliderLabel} ${Math.round(floatVal) === 0 ? styles.sliderLabelActive : ''}`}
@@ -141,12 +170,6 @@ function FloatSliderControl({
         </span>
         
         <div className={styles.sliderInputWrapper}>
-          <div 
-            className={styles.sliderTooltip} 
-            style={{ left: `calc(8px + (100% - 16px) * ${floatVal})` }}
-          >
-            {floatVal.toFixed(2)}
-          </div>
           <Slider 
             min={0} 
             max={ctrl.options.length - 1} 

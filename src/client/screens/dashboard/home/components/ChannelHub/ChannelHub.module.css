@@ -310,37 +310,32 @@
   align-items: center;
 }
 
-.sliderTooltip {
-  position: absolute;
-  top: -22px;
-  transform: translateX(-50%) translateY(4px) scale(0.95);
-  background: var(--color-brand);
-  color: white;
-  font-size: 0.65rem;
-  font-weight: 800;
-  padding: 2px 6px;
+.sliderRowTitleGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.sliderFloatInput {
+  width: 44px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
   border-radius: 4px;
-  pointer-events: none;
-  opacity: 0;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+  font-size: 0.65rem;
+  font-family: var(--font-manrope);
+  color: #4b5563;
+  padding: 2px 4px;
+  text-align: center;
+  font-weight: 600;
+  outline: none;
+  transition: all 0.2s;
 }
 
-.sliderInputWrapper:hover .sliderTooltip {
-  opacity: 1;
-  transform: translateX(-50%) translateY(0) scale(1);
-}
-
-/* Arrow for tooltip */
-.sliderTooltip::after {
-  content: '';
-  position: absolute;
-  bottom: -3px;
-  left: 50%;
-  transform: translateX(-50%);
-  border-left: 3px solid transparent;
-  border-right: 3px solid transparent;
-  border-top: 3px solid var(--color-brand);
+.sliderFloatInput:focus {
+  border-color: var(--color-brand);
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
 }
 
 .floatSlider {
