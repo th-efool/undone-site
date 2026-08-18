@@ -61,30 +61,31 @@
 }
 .learnBtn:hover { color: #fff; }
 
-/* ─── 3-column body ─────────────────────────────────────────────────────── */
+/* ─── 4-column body: seamless left area ─────────────────────────────────── */
 .body {
   display: grid;
-  grid-template-columns: minmax(430px, 1fr) 200px 320px;
-  background: #faf9ff;
+  grid-template-columns: minmax(230px, auto) 1fr 280px 320px;
+  background: #ffffff;
   border-bottom: 1px solid #e5e7eb;
-  min-height: 380px;
+  min-height: 400px;
 }
 
-/* ─── LEFT ZONE: intro + wheel as one seamless area ────────────────────── */
-.leftZone {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  border-right: 1px solid #e5e7eb;
-}
-
-/* ─── Intro text ─────────────────────────────────────────────────────────── */
+/* ─── COL 1: Intro text ─────────────────────────────────────────────────── */
 .introCol {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 32px 16px 32px 24px;
-  flex: 0 0 170px;
+  padding: 40px 24px 40px 32px;
+}
+
+.introEyebrow {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  margin-bottom: 12px;
+  display: block;
 }
 
 .introHeadline {
@@ -98,25 +99,46 @@
 }
 
 .introBody {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: #6b7280;
   line-height: 1.6;
   margin: 0;
 }
 
-/* ─── Wheel ─────────────────────────────────────────────────────────────── */
+.customizeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #374151;
+  margin-top: 24px;
+  cursor: pointer;
+  align-self: flex-start;
+  transition: background 0.15s, border-color 0.15s;
+}
+.customizeBtn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+/* ─── COL 2: Wheel ──────────────────────────────────────────────────────── */
 .wheelCol {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 20px 16px;
-  flex: 1;
+  padding: 24px;
 }
 
 .wheelOuter {
   position: relative;
-  width: 260px;
-  height: 260px;
+  width: 100%;
+  max-width: 320px;
+  aspect-ratio: 1;
   flex-shrink: 0;
 }
 
@@ -182,10 +204,8 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 16px 0;
-  border-left: 1px solid #e5e7eb;
-  border-right: 1px solid #e5e7eb;
-  overflow: hidden;
+  padding: 24px 0;
+  /* NO borders — left zone + list is one seamless white area */
 }
 
 .channelRow {
@@ -386,11 +406,7 @@
 /* ─── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 1200px) {
   .body {
-    grid-template-columns: 1fr 190px 300px;
-  }
-  .wheelOuter {
-    width: 230px;
-    height: 230px;
+    grid-template-columns: 200px 1fr 220px 300px;
   }
 }
 
@@ -399,24 +415,27 @@
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto auto;
   }
-  .leftZone {
+  .introCol {
     grid-column: 1 / -1;
     grid-row: 1;
-    border-right: none;
+    padding-bottom: 0;
+  }
+  .wheelCol {
+    grid-column: 1 / -1;
+    grid-row: 2;
     border-bottom: 1px solid #e5e7eb;
   }
   .channelListCol {
     grid-column: 1;
-    grid-row: 2;
+    grid-row: 3;
     border-right: 1px solid #e5e7eb;
-    border-left: none;
   }
   .detailCol {
     grid-column: 2;
-    grid-row: 2;
+    grid-row: 3;
+    border-left: none;
   }
   .wheelOuter {
-    width: 220px;
-    height: 220px;
+    max-width: 280px;
   }
 }

@@ -133,23 +133,30 @@ export function ChannelHub() {
         </div>
       </div>
 
-      {/* 3-column body: [intro+wheel] | [channel list] | [detail] */}
+      {/* 4-column body: intro | wheel | channel list | detail */}
       <div className={styles.body}>
 
-        {/* LEFT ZONE: intro text + wheel side by side, no divider between them */}
-        <div className={styles.leftZone}>
+        {/* COL 1: Intro text */}
+        <div className={styles.introCol}>
+          <span className={styles.introEyebrow}>Your Channels</span>
+          <p className={styles.introHeadline}>Tune in to the channels that match your moment.</p>
+          <p className={styles.introBody}>
+            Each channel is a learning experience with its own rhythm and focus.
+            Pick a channel to personalize your feed.
+          </p>
+          <button className={styles.customizeBtn}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line>
+              <line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line>
+              <line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line>
+            </svg>
+            Customize My Guide
+          </button>
+        </div>
 
-          {/* Intro text */}
-          <div className={styles.introCol}>
-            <p className={styles.introHeadline}>Tune in to the channels that match your moment.</p>
-            <p className={styles.introBody}>
-              Each channel is a learning experience with its own rhythm and focus.
-              Pick a channel to personalize your feed.
-            </p>
-          </div>
-
-          {/* Wheel */}
-          <div className={styles.wheelCol}>
+        {/* COL 2: Wheel */}
+        <div className={styles.wheelCol}>
           <div className={styles.wheelOuter}>
             {/* SVG pie segments */}
             <svg className={styles.wheelSvg} viewBox="-1 -1 2 2" aria-hidden>
@@ -224,10 +231,9 @@ export function ChannelHub() {
               </svg>
             </div>
           </div>
-          </div>
         </div>
 
-        {/* COL 2: Channel list */}
+        {/* COL 3: Channel list */}
         <div className={styles.channelListCol}>
           {CHANNELS.map(ch => {
             const isActive = ch.id === selectedId;
