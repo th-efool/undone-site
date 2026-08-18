@@ -64,7 +64,7 @@
 /* ─── Two-column body ─────────────────────────────────────────────────────── */
 .body {
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: 1fr 420px;
   background: #faf9ff;
   border-bottom: 1px solid #e5e7eb;
 }

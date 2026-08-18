@@ -152,7 +152,7 @@ export function ChannelHub() {
                   onClick={() => setSelectedId(ch.id)}
                   aria-label={ch.name}
                 >
-                  <Icon size={20} strokeWidth={isActive ? 2.5 : 1.8} />
+                  <Icon size={26} strokeWidth={isActive ? 2.5 : 1.8} />
                   <span>{ch.name}</span>
                 </button>
               );
@@ -190,10 +190,10 @@ export function ChannelHub() {
           <AnimatePresence mode="wait">
             <motion.div
               key={selectedId}
-              initial={{ opacity: 0, x: 16 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -16 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: 'easeOut' }}
               className={styles.configPanel}
             >
               <div className={styles.configHeader}>
