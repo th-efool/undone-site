@@ -66,8 +66,8 @@
   display: grid;
   grid-template-columns: minmax(240px, 0.8fr) auto minmax(420px, 1.2fr);
   background: #ffffff;
-  padding: 16px 40px 48px;
-  min-height: 500px;
+  padding: 16px 40px 24px;
+  min-height: 380px;
   gap: 40px;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -188,10 +188,10 @@
 }
 
 .detailPanel {
-  padding: 24px 24px;
+  padding: 16px 24px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   height: 100%;
   overflow-y: auto;
 }
@@ -200,7 +200,7 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding-bottom: 14px;
+  padding-bottom: 10px;
   border-bottom: 1px solid #e5e7eb;
 }
 
@@ -281,48 +281,91 @@
 .controlsGrid {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  margin-top: 12px;
+  gap: 12px;
+  margin-top: 8px;
 }
 
-.detailSectionSmall {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.sliderRow {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  align-items: center;
+  gap: 12px;
 }
 
-.sliderContainer {
-  margin-top: 2px;
+.sliderRowTitle {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: #9ca3af;
+  text-align: right;
+}
+
+.sliderRowTrack {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.sliderInputWrapper {
+  position: relative;
+  height: 24px;
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  align-items: center;
+}
+
+.sliderTooltip {
+  position: absolute;
+  top: -18px;
+  transform: translateX(-50%);
+  background: var(--color-brand);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.sliderInputWrapper:hover .sliderTooltip {
+  opacity: 1;
+}
+
+/* Arrow for tooltip */
+.sliderTooltip::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 3px solid var(--color-brand);
 }
 
 .floatSlider {
-  margin: 6px 0;
-}
-
-.sliderLabels {
-  display: flex;
-  justify-content: space-between;
+  width: 100%;
 }
 
 .sliderLabel {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: #6b7280;
   cursor: pointer;
   transition: color 0.2s, font-weight 0.2s;
-  flex: 1;
+  line-height: 1.1;
   text-align: center;
-  position: relative;
 }
 
 .sliderLabel:first-child {
-  text-align: left;
+  text-align: right;
 }
 
 .sliderLabel:last-child {
-  text-align: right;
+  text-align: left;
 }
 
 .sliderLabelActive {

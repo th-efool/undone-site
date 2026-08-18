@@ -116,10 +116,6 @@ function FloatSliderControl({
 }) {
   const selectedIndex = Math.max(0, ctrl.options.findIndex(o => o.id === selectedId));
   const [floatVal, setFloatVal] = useState(selectedIndex);
-
-  // Keep local state in sync with external changes, unless the user is actively dragging.
-  // Actually, simplest is to just always use local floatVal, and only update parent on change.
-  // We'll update the parent whenever the closest integer changes.
   
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
@@ -131,31 +127,45 @@ function FloatSliderControl({
   };
 
   return (
-    <div className={styles.sliderContainer}>
-      <Slider 
-        min={0} 
-        max={ctrl.options.length - 1} 
-        step={0.01} 
-        value={floatVal}
-        onChange={handleChange}
-        className={styles.floatSlider}
-      />
-      <div className={styles.sliderLabels}>
-        {ctrl.options.map((opt, i) => {
-          const isActive = Math.round(floatVal) === i;
-          return (
-            <span 
-              key={opt.id} 
-              className={`${styles.sliderLabel} ${isActive ? styles.sliderLabelActive : ''}`}
-              onClick={() => {
-                setFloatVal(i);
-                onChange(opt.id);
-              }}
-            >
-              {opt.label}
-            </span>
-          );
-        })}
+    <div className={styles.sliderRow}>
+      <span className={styles.sliderRowTitle}>{ctrl.label}</span>
+      <div className={styles.sliderRowTrack}>
+        <span 
+          className={`${styles.sliderLabel} ${Math.round(floatVal) === 0 ? styles.sliderLabelActive : ''}`}
+          onClick={() => {
+            setFloatVal(0);
+            onChange(ctrl.options[0].id);
+          }}
+        >
+          {ctrl.options[0].label}
+        </span>
+        
+        <div className={styles.sliderInputWrapper}>
+          <div 
+            className={styles.sliderTooltip} 
+            style={{ left: `calc(8px + (100% - 16px) * ${floatVal})` }}
+          >
+            {floatVal.toFixed(2)}
+          </div>
+          <Slider 
+            min={0} 
+            max={ctrl.options.length - 1} 
+            step={0.01} 
+            value={floatVal}
+            onChange={handleChange}
+            className={styles.floatSlider}
+          />
+        </div>
+
+        <span 
+          className={`${styles.sliderLabel} ${Math.round(floatVal) === 1 ? styles.sliderLabelActive : ''}`}
+          onClick={() => {
+            setFloatVal(1);
+            if(ctrl.options[1]) onChange(ctrl.options[1].id);
+          }}
+        >
+          {ctrl.options[1]?.label}
+        </span>
       </div>
     </div>
   );
@@ -325,14 +335,12 @@ export function ChannelHub() {
                   const selected = getPref(channel.id, ctrl.id, ctrl.defaultId);
                   
                   return (
-                    <div key={ctrl.id} className={styles.detailSectionSmall}>
-                      <span className={styles.detailSectionLabel}>{ctrl.label}</span>
-                      <FloatSliderControl 
-                        ctrl={ctrl} 
-                        selectedId={selected} 
-                        onChange={(id) => setPref(channel.id, ctrl.id, id)} 
-                      />
-                    </div>
+                    <FloatSliderControl 
+                      key={ctrl.id}
+                      ctrl={ctrl} 
+                      selectedId={selected} 
+                      onChange={(id) => setPref(channel.id, ctrl.id, id)} 
+                    />
                   );
                 })}
               </div>
