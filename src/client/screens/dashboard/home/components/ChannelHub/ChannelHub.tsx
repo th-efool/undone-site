@@ -182,7 +182,7 @@ export function ChannelHub() {
               return (
                 <button
                   key={ch.id}
-                  className={`${styles.segmentLabel} ${isActive ? styles.segmentLabelActive : ''}`}
+                  className={`${styles.wheelLabelBtn} ${isActive ? styles.wheelLabelBtnActive : ''}`}
                   style={{
                     left: `${50 + r * 50 * Math.cos(angle)}%`,
                     top: `${50 + r * 50 * Math.sin(angle)}%`,
@@ -220,37 +220,6 @@ export function ChannelHub() {
           </div>
         </div>
 
-        {/* COL 3: Channel list */}
-        <div className={styles.channelListCol}>
-          {CHANNELS.map(ch => {
-            const isActive = ch.id === selectedId;
-            const Icon = ch.Icon;
-            return (
-              <button
-                key={ch.id}
-                className={`${styles.channelRow} ${isActive ? styles.channelRowActive : ''}`}
-                onClick={() => setSelectedId(ch.id)}
-                aria-pressed={isActive}
-              >
-                <div className={`${styles.channelRowIcon} ${isActive ? styles.channelRowIconActive : ''}`}>
-                  <Icon size={15} strokeWidth={isActive ? 2.5 : 2} />
-                </div>
-                <div className={styles.channelRowText}>
-                  <span className={styles.channelRowName}>{ch.name.toUpperCase()}</span>
-                  <span className={styles.channelRowTagline}>{ch.tagline}</span>
-                </div>
-                {isActive && (
-                  <div className={styles.channelRowCheck}>
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                      <circle cx="7" cy="7" r="7" fill="#4f46e5" />
-                      <path d="M4 7l2 2 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
 
         {/* COL 4: Detail panel */}
         <div className={styles.detailCol}>
