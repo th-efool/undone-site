@@ -301,9 +301,7 @@ export function ChannelHub() {
             >
               {/* Header */}
               <div className={styles.detailHeader}>
-                <div className={styles.detailIconWrap}>
-                  <channel.Icon size={18} strokeWidth={2.2} />
-                </div>
+                <channel.Icon size={40} strokeWidth={1.5} className={styles.detailBigIcon} />
                 <div>
                   <h3 className={styles.detailName}>{channel.name}</h3>
                   <p className={styles.detailTagline}>{channel.tagline}</p>

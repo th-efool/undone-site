@@ -204,16 +204,10 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
-.detailIconWrap {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: #eef2ff;
-  color: #4f46e5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.detailBigIcon {
+  color: var(--color-brand);
   flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .detailName {
