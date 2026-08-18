@@ -39,6 +39,16 @@ textarea,
   -ms-user-select: text;
 }
 
+::selection {
+  background: rgba(79, 70, 229, 0.2); /* Soft brand indigo highlight */
+  color: inherit;
+}
+
+::-moz-selection {
+  background: rgba(79, 70, 229, 0.2);
+  color: inherit;
+}
+
 
 /* ── App-Exclusive Micro-Springs & Active Feedback ── */
 [data-platform="app"] button:active,
