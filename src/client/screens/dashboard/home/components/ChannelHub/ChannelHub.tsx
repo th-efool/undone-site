@@ -291,7 +291,6 @@ export function ChannelHub() {
                   aria-label={ch.name}
                 >
                   <Icon size={32} strokeWidth={isActive ? 2.5 : 1.8} />
-                  <span>{ch.name}</span>
                 </button>
               );
             })}
