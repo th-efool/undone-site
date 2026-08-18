@@ -312,28 +312,19 @@
 
 .sliderFloatInput {
   width: 40px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
   font-size: 0.7rem;
-  font-family: var(--font-manrope);
-  color: #4b5563;
-  padding: 2px 4px;
+  color: #111827;
+  padding: 0 4px;
+  height: 20px;
   text-align: center;
-  font-weight: 700;
   outline: none;
-  transition: all 0.2s;
-}
-
-.sliderFloatInput:hover {
-  background: #f3f4f6;
-  border-color: #e5e7eb;
 }
 
 .sliderFloatInput:focus {
-  border-color: var(--color-brand);
-  background: #ffffff;
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+  border-color: #9ca3af;
 }
 
 .floatSlider {
