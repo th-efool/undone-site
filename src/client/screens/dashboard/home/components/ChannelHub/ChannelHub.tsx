@@ -133,25 +133,23 @@ export function ChannelHub() {
         </div>
       </div>
 
-      {/* 4-column body */}
+      {/* 3-column body: [intro+wheel] | [channel list] | [detail] */}
       <div className={styles.body}>
 
-        {/* COL 1: Intro text */}
-        <div className={styles.introCol}>
-          <span className={styles.introEyebrow}>Your Channels</span>
-          <p className={styles.introHeadline}>Tune in to the channels that match your moment.</p>
-          <p className={styles.introBody}>
-            Each channel is a learning experience with its own rhythm and focus.
-            Pick a channel to personalize your feed.
-          </p>
-          <button className={styles.customizeBtn}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-            Customize My Guide
-          </button>
-        </div>
+        {/* LEFT ZONE: intro text + wheel side by side, no divider between them */}
+        <div className={styles.leftZone}>
 
-        {/* COL 2: Wheel */}
-        <div className={styles.wheelCol}>
+          {/* Intro text */}
+          <div className={styles.introCol}>
+            <p className={styles.introHeadline}>Tune in to the channels that match your moment.</p>
+            <p className={styles.introBody}>
+              Each channel is a learning experience with its own rhythm and focus.
+              Pick a channel to personalize your feed.
+            </p>
+          </div>
+
+          {/* Wheel */}
+          <div className={styles.wheelCol}>
           <div className={styles.wheelOuter}>
             {/* SVG pie segments */}
             <svg className={styles.wheelSvg} viewBox="-1 -1 2 2" aria-hidden>
@@ -226,9 +224,10 @@ export function ChannelHub() {
               </svg>
             </div>
           </div>
+          </div>
         </div>
 
-        {/* COL 3: Channel list */}
+        {/* COL 2: Channel list */}
         <div className={styles.channelListCol}>
           {CHANNELS.map(ch => {
             const isActive = ch.id === selectedId;

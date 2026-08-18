@@ -61,32 +61,30 @@
 }
 .learnBtn:hover { color: #fff; }
 
-/* ─── 4-column body ─────────────────────────────────────────────────────── */
+/* ─── 3-column body ─────────────────────────────────────────────────────── */
 .body {
   display: grid;
-  grid-template-columns: 190px minmax(260px, 1fr) 230px 340px;
+  grid-template-columns: minmax(430px, 1fr) 200px 320px;
   background: #faf9ff;
   border-bottom: 1px solid #e5e7eb;
   min-height: 380px;
 }
 
-/* ─── COL 1: Intro text ─────────────────────────────────────────────────── */
+/* ─── LEFT ZONE: intro + wheel as one seamless area ────────────────────── */
+.leftZone {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  border-right: 1px solid #e5e7eb;
+}
+
+/* ─── Intro text ─────────────────────────────────────────────────────────── */
 .introCol {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 36px 24px 36px 28px;
-  /* NO border-right — intro and wheel are one seamless zone */
-}
-
-.introEyebrow {
-  font-size: 0.62rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #4f46e5;
-  margin-bottom: 10px;
-  display: block;
+  padding: 32px 16px 32px 24px;
+  flex: 0 0 170px;
 }
 
 .introHeadline {
@@ -95,7 +93,7 @@
   font-weight: 800;
   color: #111827;
   line-height: 1.35;
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   letter-spacing: -0.02em;
 }
 
@@ -103,42 +101,22 @@
   font-size: 0.8rem;
   color: #6b7280;
   line-height: 1.6;
-  margin: 0 0 20px;
+  margin: 0;
 }
 
-.customizeBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 7px 14px;
-  background: transparent;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: #374151;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-  align-self: flex-start;
-}
-.customizeBtn:hover {
-  border-color: #a5b4fc;
-  color: #4f46e5;
-}
-
-/* ─── COL 2: Wheel ──────────────────────────────────────────────────────── */
+/* ─── Wheel ─────────────────────────────────────────────────────────────── */
 .wheelCol {
   display: flex;
   justify-content: center;
   align-items: center;
-  padding: 28px;
-  border-right: 1px solid #e5e7eb;
+  padding: 20px 16px;
+  flex: 1;
 }
 
 .wheelOuter {
   position: relative;
-  width: 300px;
-  height: 300px;
+  width: 260px;
+  height: 260px;
   flex-shrink: 0;
 }
 
@@ -408,7 +386,11 @@
 /* ─── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 1200px) {
   .body {
-    grid-template-columns: 160px minmax(220px, 1fr) 200px 300px;
+    grid-template-columns: 1fr 190px 300px;
+  }
+  .wheelOuter {
+    width: 230px;
+    height: 230px;
   }
 }
 
@@ -417,14 +399,8 @@
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto auto;
   }
-  .introCol {
-    grid-column: 1;
-    grid-row: 1;
-    border-right: 1px solid #e5e7eb;
-    border-bottom: 1px solid #e5e7eb;
-  }
-  .wheelCol {
-    grid-column: 2;
+  .leftZone {
+    grid-column: 1 / -1;
     grid-row: 1;
     border-right: none;
     border-bottom: 1px solid #e5e7eb;
@@ -433,13 +409,14 @@
     grid-column: 1;
     grid-row: 2;
     border-right: 1px solid #e5e7eb;
+    border-left: none;
   }
   .detailCol {
     grid-column: 2;
     grid-row: 2;
   }
   .wheelOuter {
-    width: 240px;
-    height: 240px;
+    width: 220px;
+    height: 220px;
   }
 }
