@@ -131,10 +131,22 @@ function FloatSliderControl({
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value;
+    setInputValue(rawValue);
+
+    const parsed = parseFloat(rawValue);
+    if (!isNaN(parsed) && parsed >= 0 && parsed <= ctrl.options.length - 1) {
+      setFloatVal(parsed);
+    }
+  };
+
   const handleInputBlur = () => {
     let val = parseFloat(inputValue);
-    if (isNaN(val)) val = floatVal;
-    val = Math.max(0, Math.min(ctrl.options.length - 1, val));
+    if (isNaN(val) || val < 0 || val > ctrl.options.length - 1) {
+      setInputValue(floatVal.toFixed(2));
+      return;
+    }
     setFloatVal(val);
     setInputValue(val.toFixed(2));
     const closestIndex = Math.round(val);
@@ -145,19 +157,7 @@ function FloatSliderControl({
 
   return (
     <div className={styles.sliderRow}>
-      <div className={styles.sliderRowTitleGroup}>
-        <span className={styles.sliderRowTitle}>{ctrl.label}</span>
-        <input 
-          type="text"
-          className={styles.sliderFloatInput}
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onBlur={handleInputBlur}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') e.currentTarget.blur();
-          }}
-        />
-      </div>
+      <span className={styles.sliderRowTitle}>{ctrl.label}</span>
       <div className={styles.sliderRowTrack}>
         <span 
           className={`${styles.sliderLabel} ${Math.round(floatVal) === 0 ? styles.sliderLabelActive : ''}`}
@@ -190,6 +190,16 @@ function FloatSliderControl({
           {ctrl.options[1]?.label}
         </span>
       </div>
+      <input 
+        type="text"
+        className={styles.sliderFloatInput}
+        value={inputValue}
+        onChange={handleInputChange}
+        onBlur={handleInputBlur}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+        }}
+      />
     </div>
   );
 }
