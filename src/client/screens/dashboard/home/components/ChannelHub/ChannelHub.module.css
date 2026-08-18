@@ -294,6 +294,7 @@
   font-weight: 800;
   color: #9ca3af;
   text-align: right;
+  user-select: none;
 }
 
 .sliderRowTrack {
@@ -301,6 +302,7 @@
   grid-template-columns: 1fr 2fr 1fr;
   align-items: center;
   gap: 10px;
+  user-select: none;
 }
 
 .sliderInputWrapper {

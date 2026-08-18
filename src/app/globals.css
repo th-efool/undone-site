@@ -28,10 +28,6 @@ html,
 body {
   overscroll-behavior-y: none;
   touch-action: manipulation;
-  user-select: none;
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
 }
 
 input,

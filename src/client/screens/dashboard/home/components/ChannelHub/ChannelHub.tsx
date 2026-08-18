@@ -268,7 +268,9 @@ export function ChannelHub() {
                     tabIndex={0}
                     aria-label={ch.name}
                     onKeyDown={e => e.key === 'Enter' && setSelectedId(ch.id)}
-                  />
+                  >
+                    <title>{ch.name}</title>
+                  </path>
                 );
               })}
             </svg>
@@ -289,6 +291,7 @@ export function ChannelHub() {
                   }}
                   onClick={() => setSelectedId(ch.id)}
                   aria-label={ch.name}
+                  title={ch.name}
                 >
                   <Icon size={32} strokeWidth={isActive ? 2.5 : 1.8} />
                 </button>
