@@ -66,7 +66,7 @@
   display: grid;
   grid-template-columns: minmax(240px, 0.8fr) auto minmax(420px, 1.2fr);
   background: #ffffff;
-  padding: 32px 40px 48px;
+  padding: 16px 40px 48px;
   min-height: 500px;
   gap: 40px;
   border-bottom: 1px solid #e5e7eb;
@@ -82,7 +82,7 @@
 
 .introHeadline {
   font-family: var(--font-manrope);
-  font-size: 1.7rem;
+  font-size: 1.4rem;
   font-weight: 800;
   color: #111827;
   line-height: 1.25;
@@ -91,7 +91,7 @@
 }
 
 .introBody {
-  font-size: 1.05rem;
+  font-size: 0.9rem;
   color: #6b7280;
   line-height: 1.6;
   margin: 0;
@@ -218,7 +218,7 @@
 
 .detailName {
   font-family: var(--font-manrope);
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: #111827;
   margin: 0 0 3px;
@@ -227,7 +227,7 @@
 }
 
 .detailTagline {
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   color: #6b7280;
   margin: 0;
   line-height: 1.4;
@@ -241,7 +241,7 @@
 }
 
 .detailSectionLabel {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: #4f46e5;
   text-transform: uppercase;
@@ -249,7 +249,7 @@
 }
 
 .detailAbout {
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   color: #374151;
   line-height: 1.6;
   margin: 0;
@@ -265,7 +265,7 @@
 .bestForPill {
   padding: 5px 12px;
   border-radius: 9999px;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
   background: #f5f3ff;
   color: #4c1d95;
@@ -276,7 +276,7 @@
 .pill {
   padding: 5px 12px;
   border-radius: 9999px;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
