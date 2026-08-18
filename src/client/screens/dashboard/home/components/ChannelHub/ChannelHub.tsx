@@ -133,21 +133,20 @@ export function ChannelHub() {
         </div>
       </div>
 
-      {/* 2-card layout: Left Card (intro+wheel+list) | Right Card (detail) */}
+      {/* 4-column flush layout (desktop app style) */}
       <div className={styles.body}>
 
-        <div className={styles.mainCard}>
-          {/* COL 1: Intro text */}
-          <div className={styles.introCol}>
-            <p className={styles.introHeadline}>Tune in to the channels that match your moment.</p>
-            <p className={styles.introBody}>
-              Each channel is a learning experience with its own rhythm and focus.
-              Pick a channel to personalize your feed.
-            </p>
-          </div>
+        {/* COL 1: Intro text */}
+        <div className={styles.introCol}>
+          <p className={styles.introHeadline}>Tune in to the channels that match your moment.</p>
+          <p className={styles.introBody}>
+            Each channel is a learning experience with its own rhythm and focus.
+            Pick a channel to personalize your feed.
+          </p>
+        </div>
 
-          {/* COL 2: Wheel */}
-          <div className={styles.wheelCol}>
+        {/* COL 2: Wheel */}
+        <div className={styles.wheelCol}>
           <div className={styles.wheelOuter}>
             {/* SVG pie segments */}
             <svg className={styles.wheelSvg} viewBox="-1 -1 2 2" aria-hidden>
@@ -191,7 +190,7 @@ export function ChannelHub() {
                   onClick={() => setSelectedId(ch.id)}
                   aria-label={ch.name}
                 >
-                  <Icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
+                  <Icon size={24} strokeWidth={isActive ? 2.5 : 1.8} />
                   <span>{ch.name}</span>
                 </button>
               );
@@ -216,7 +215,7 @@ export function ChannelHub() {
 
             {/* Center icon */}
             <div className={styles.center}>
-              <Tv size={26} color="white" strokeWidth={1.5} />
+              <Tv size={36} color="white" strokeWidth={1.5} />
             </div>
           </div>
         </div>
@@ -252,10 +251,9 @@ export function ChannelHub() {
             );
           })}
         </div>
-        </div> {/* End of mainCard */}
 
-        {/* Right Card: Detail panel */}
-        <div className={styles.detailCard}>
+        {/* COL 4: Detail panel */}
+        <div className={styles.detailCol}>
           <AnimatePresence mode="wait">
             <motion.div
               key={selectedId}
