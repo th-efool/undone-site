@@ -1,0 +1,256 @@
+/* ─── Section shell — same visual language as Feed Policy / ActiveCohorts ─── */
+.section {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header bar identical to ActiveCohorts */
+.headerBar {
+  display: flex;
+  align-items: stretch;
+  height: 42px;
+  overflow: hidden;
+  border-radius: 12px 12px 0 0;
+}
+
+.tabTrapezium {
+  background: white;
+  padding: 0 32px 0 16px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  z-index: 2;
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 100%, 0 100%);
+  border-top-left-radius: 12px;
+}
+
+.tabTitle {
+  font-family: var(--font-manrope);
+  font-size: 1rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.indigoBar {
+  flex: 1;
+  background: #3730a3;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 18px 0 14px;
+  margin-left: -8px;
+  position: relative;
+  z-index: 1;
+  border-top-right-radius: 12px;
+}
+
+.learnBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.learnBtn:hover { color: #fff; }
+
+/* ─── Two-column body ─────────────────────────────────────────────────────── */
+.body {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  background: #faf9ff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* ─── LEFT: Wheel ─────────────────────────────────────────────────────────── */
+.wheelCol {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 40px;
+  border-right: 1px solid #e5e7eb;
+}
+
+.wheelOuter {
+  position: relative;
+  width: 400px;
+  height: 400px;
+  flex-shrink: 0;
+}
+
+.wheelSvg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.segment {
+  fill: #ede9fe;
+  cursor: pointer;
+  transition: fill 0.18s ease;
+}
+.segment:hover { fill: #ddd6fe; }
+.segmentActive { fill: #4f46e5; }
+.segmentActive:hover { fill: #4338ca; }
+
+/* Icon + label buttons floating over the wheel */
+.segmentLabel {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #4c1d95;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 4px;
+  line-height: 1;
+  transition: color 0.15s;
+  z-index: 5;
+}
+.segmentLabel:hover { color: #3730a3; }
+.segmentLabelActive { color: #ffffff; }
+.segmentLabelActive:hover { color: rgba(255,255,255,0.9); }
+
+/* Center keyhole disc */
+.center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 90px;
+  height: 90px;
+  margin: -45px 0 0 -45px;
+  background: #1e1b4b;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
+/* ─── RIGHT: Config panel ─────────────────────────────────────────────────── */
+.configCol {
+  padding: 32px 28px;
+  overflow: hidden;
+}
+
+.configPanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.configHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.configIcon {
+  color: #4f46e5;
+  flex-shrink: 0;
+}
+
+.configName {
+  font-family: var(--font-manrope);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.configDesc {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.control {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.controlLabel {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  line-height: 1;
+}
+
+.pillIdle {
+  background: white;
+  border-color: #e5e7eb;
+  color: #374151;
+}
+.pillIdle:hover {
+  border-color: #a5b4fc;
+  color: #4f46e5;
+}
+
+.pillActive {
+  background: #eef2ff;
+  color: #4f46e5;
+  border-color: #c7d2fe;
+  font-weight: 700;
+}
+.pillActive:hover {
+  background: #e0e7ff;
+}
+
+/* ─── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .body {
+    grid-template-columns: 1fr;
+  }
+  .wheelCol {
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 32px 24px;
+  }
+  .wheelOuter {
+    width: 300px;
+    height: 300px;
+  }
+}

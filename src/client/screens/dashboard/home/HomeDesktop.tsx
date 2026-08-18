@@ -6,6 +6,7 @@ import { EmptyState } from '@/src/client/components/global/EmptyState';
 
 import { ActiveCohorts } from './components/ActiveCohorts/ActiveCohorts';
 import { ContinueLater } from './components/ContinueLater/ContinueLater';
+import { ChannelHub } from './components/ChannelHub/ChannelHub';
 import { HomeHero } from './components/HomeHero/HomeHero';
 import { HomeSummaryBar } from './components/HomeSummaryBar/HomeSummaryBar';
 import { RecentlyCompleted } from './components/RecentlyCompleted/RecentlyCompleted';
@@ -22,6 +23,7 @@ export function HomeDesktop({ model: home }: HomeDesktopProps) {
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isPausedOpen, setIsPausedOpen] = useState(false);
   const [isCompletedOpen, setIsCompletedOpen] = useState(false);
+  const [pace, setPace] = useState(20);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setDebouncedQuery(query.trim().toLowerCase()), 180);
@@ -65,7 +67,17 @@ export function HomeDesktop({ model: home }: HomeDesktopProps) {
         searchValue={query}
         onSearchChange={setQuery}
         searchPlaceholder={home.searchPlaceholder}
+        weeklyMinutes={84}
+        activeDays={4}
+        pace={pace}
+        onPaceClick={() => {
+          const opts = [10, 20, 30, 45, 60];
+          const next = opts[(opts.indexOf(pace) + 1) % opts.length];
+          setPace(next);
+        }}
       />
+
+      <ChannelHub />
 
       {debouncedQuery && !hasResults && (
         <EmptyState
