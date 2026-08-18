@@ -72,7 +72,7 @@ const CHANNELS: Channel[] = [
     controls: [
       { id: 'format', label: 'Format', defaultId: 'story', options: [{ id: 'story', label: 'Story' }, { id: 'interview', label: 'Interview' }] },
       { id: 'density', label: 'Density', defaultId: 'casual', options: [{ id: 'casual', label: 'Casual Overview' }, { id: 'technical', label: 'Technical Deep Dive' }] },
-      { id: 'length', label: 'Length', defaultId: '5_min', options: [{ id: '5_min', label: '5 min' }, { id: '60_min', label: '60 min' }] },
+      { id: 'length', label: 'Length', defaultId: 'short', options: [{ id: 'short', label: 'Short' }, { id: 'extended', label: 'Extended' }] },
     ],
   },
   {
@@ -96,7 +96,7 @@ const CHANNELS: Channel[] = [
     about: 'Quick delivers crisp, focused bites of learning you can finish in just a few minutes. Perfect for breaks, commutes, or whenever you need a quick win.',
     bestFor: [{ text: 'Busy days', Icon: Briefcase }, { text: 'Short breaks', Icon: Clock }, { text: 'On the go', Icon: PlayCircle }],
     controls: [
-      { id: 'length', label: 'Length', defaultId: '1_min', options: [{ id: '1_min', label: '1 min' }, { id: '5_min', label: '5 min' }] },
+      { id: 'length', label: 'Length', defaultId: 'micro', options: [{ id: 'micro', label: 'Micro' }, { id: 'brief', label: 'Brief' }] },
       { id: 'continuity', label: 'Continuity', defaultId: 'standalone', options: [{ id: 'standalone', label: 'Standalone' }, { id: 'sequence', label: 'Sequence' }] },
       { id: 'density', label: 'Density', defaultId: 'light', options: [{ id: 'light', label: 'Light' }, { id: 'dense', label: 'Dense' }] },
     ],
