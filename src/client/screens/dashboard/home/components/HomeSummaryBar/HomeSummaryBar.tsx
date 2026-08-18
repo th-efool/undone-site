@@ -1,6 +1,5 @@
 import Image from 'next/image';
 import { ArrowRight, Clock, Pause, Sparkles } from 'lucide-react';
-import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
 import type { CompletedCourse, PausedCohort } from '../../models';
 
@@ -36,7 +35,14 @@ export function HomeSummaryBar({
     <section className={styles.cardContainer}>
       <div className={styles.summaryGroup}>
         {/* Paused Section */}
-        <div className={styles.summarySection}>
+        <div 
+          className={styles.summarySection}
+          onClick={onTogglePaused}
+          style={{ cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onTogglePaused?.(); }}
+        >
           <div className={styles.badgeGroup}>
             <div className={styles.iconCircle}>
               <Pause size={16} className={styles.iconPurple} fill="currentColor" />
@@ -61,23 +67,28 @@ export function HomeSummaryBar({
             </div>
           </div>
 
-          <Tooltip content="Toggle list visibility" placement="top">
-            <button
-              type="button"
-              className={`${styles.arrowButton} ${isPausedOpen ? styles.arrowActive : ''}`}
-              onClick={onTogglePaused}
-              aria-label="Toggle paused cohorts"
-            >
-              <ArrowRight size={16} />
-            </button>
-          </Tooltip>
+          <button
+            type="button"
+            className={`${styles.arrowButton} ${isPausedOpen ? styles.arrowActive : ''}`}
+            aria-label="Toggle paused cohorts"
+            tabIndex={-1}
+          >
+            <ArrowRight size={16} />
+          </button>
         </div>
 
         {/* Divider */}
         <div className={styles.divider} />
 
         {/* Recently Finished Section */}
-        <div className={styles.summarySection}>
+        <div 
+          className={styles.summarySection}
+          onClick={onToggleCompleted}
+          style={{ cursor: 'pointer' }}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onToggleCompleted?.(); }}
+        >
           <div className={styles.badgeGroup}>
             <div className={styles.iconCircle}>
               <Clock size={16} className={styles.iconPurple} />
@@ -102,16 +113,14 @@ export function HomeSummaryBar({
             </div>
           </div>
 
-          <Tooltip content="Toggle list visibility" placement="top">
-            <button
-              type="button"
-              className={`${styles.arrowButton} ${isCompletedOpen ? styles.arrowActive : ''}`}
-              onClick={onToggleCompleted}
-              aria-label="Toggle recently finished cohorts"
-            >
-              <ArrowRight size={16} />
-            </button>
-          </Tooltip>
+          <button
+            type="button"
+            className={`${styles.arrowButton} ${isCompletedOpen ? styles.arrowActive : ''}`}
+            aria-label="Toggle recently finished cohorts"
+            tabIndex={-1}
+          >
+            <ArrowRight size={16} />
+          </button>
         </div>
       </div>
 

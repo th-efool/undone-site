@@ -118,8 +118,7 @@ export function ActiveCohortRow({
         }
       }}
     >
-      {/* 1. Drag handle & Rank */}
-      <Tooltip content="Drag to reorder cohorts" placement="top">
+      <div className={styles.leftSection}>
         <div 
           className={styles.handleGroup}
           onMouseEnter={() => setIsDraggable(true)}
@@ -130,184 +129,27 @@ export function ActiveCohortRow({
           <GripVertical className={styles.grip} size={16} strokeWidth={2.2} />
           <span className={styles.rank}>{item.rank}</span>
         </div>
-      </Tooltip>
 
-      {/* 2. Thumbnail & Course Info */}
-      <div className={styles.courseGroup}>
-        <Link href={getCohortHref(item.cohortId ?? item.id)} onClick={(e) => e.stopPropagation()}>
-          <Image className={styles.thumbnail} src={item.thumbnail} alt=""  width={400} height={300}/>
-        </Link>
-        <div className={styles.course}>
-          <h3 className={styles.title}>
-            <Link href={getCohortHref(item.cohortId ?? item.id)} onClick={(e) => e.stopPropagation()}>
-              {item.title}
-            </Link>
-          </h3>
-          <p className={styles.provider}>{item.provider}</p>
-        </div>
-      </div>
-
-      {/* 3. Pause — First Control Field */}
-      <div className={styles.pauseCell}>
-        <Tooltip content="Pause cohort" placement="top">
-          <button
-            type="button"
-            className={styles.pauseButton}
-            aria-label="Pause cohort"
-            onClick={(e) => {
-              e.stopPropagation();
-              onPause?.(item.id, 7, 'Paused from row');
-            }}
-          >
-            <PauseCircle size={16} strokeWidth={2} />
-          </button>
-        </Tooltip>
-      </div>
-
-      {/* 4. Shows up (Frequency) with vertical divider */}
-      <div className={styles.showsUpCell}>
-        <span className={styles.cellLabel}>SHOWS UP</span>
-        <div className={styles.frequencySliderWrapper}>
-          <div className={styles.sliderLabels}>
-            <span>Less</span>
-            <span className={styles.sliderValue}>{item.frequency || 'Often'}</span>
-            <span>More</span>
+        <div className={styles.courseGroup}>
+          <Link href={getCohortHref(item.cohortId ?? item.id)} onClick={(e) => e.stopPropagation()}>
+            <Image className={styles.thumbnail} src={item.thumbnail} alt="" width={40} height={30} />
+          </Link>
+          <div className={styles.course}>
+            <h3 className={styles.title}>
+              <Link href={getCohortHref(item.cohortId ?? item.id)} onClick={(e) => e.stopPropagation()}>
+                {item.title}
+              </Link>
+            </h3>
+            <p className={styles.provider}>{item.provider}</p>
           </div>
-          <Slider 
-            min={0} 
-            max={4} 
-            step={1}
-            value={Math.max(0, FREQUENCIES.indexOf((item.frequency || 'Often') as typeof FREQUENCIES[number]))} 
-            onClick={(e) => e.stopPropagation()}
-            onChange={(e) => {
-              const val = parseInt(e.target.value, 10);
-              onUpdateFrequency?.(item.id, FREQUENCIES[val]);
-              onSelect();
-            }}
-            className={styles.rangeSlider}
-            aria-label="Frequency"
-          />
         </div>
       </div>
 
-      {/* 5. Days */}
-      <div className={styles.cell}>
-        <span className={styles.cellLabel}>Days</span>
-        <div className={styles.daysGroup}>
-          {ALL_WEEKDAYS.map(day => {
-            const isActive = item.schedule.days.includes(day);
-            return (
-              <button 
-                key={day} 
-                type="button"
-                className={`${styles.dayPill} ${isActive ? styles.dayActive : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleDay(day);
-                }}
-              >
-                {day.charAt(0)}
-              </button>
-            );
-          })}
-        </div>
+      <div className={styles.rightSection}>
+        <span className={styles.statusText}>
+          {item.dailyGoalMinutes}m/day • {item.frequency || 'Often'} • {item.schedule.days.map(d => d.charAt(0)).join(' ')}
+        </span>
       </div>
-
-      {/* 6. Daily Goal */}
-      <div className={styles.cell}>
-        <span className={styles.cellLabel}>Daily goal</span>
-        <div className={styles.goalPillWrapper} onClick={(e) => e.stopPropagation()}>
-          <div className={styles.clockPieIcon}>
-            <svg viewBox="0 0 36 36" className={styles.circularChart}>
-              <path
-                className={styles.circleBg}
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              />
-              <path
-                className={styles.circleFill}
-                strokeDasharray={`${Math.min(100, Math.round((item.dailyGoalMinutes / 60) * 100))}, 100`}
-                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-              />
-            </svg>
-          </div>
-
-          {isEditingCustomGoal ? (
-            <div className={styles.customGoalGroup}>
-              <input
-                type="number"
-                min="1"
-                max="300"
-                autoFocus
-                className={styles.customGoalInputRow}
-                value={customGoalVal}
-                onChange={(e) => setCustomGoalVal(e.target.value)}
-                onBlur={() => {
-                  const num = parseInt(customGoalVal, 10);
-                  if (num > 0) onUpdateDailyGoal?.(item.id, num);
-                  setIsEditingCustomGoal(false);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    const num = parseInt(customGoalVal, 10);
-                    if (num > 0) onUpdateDailyGoal?.(item.id, num);
-                    setIsEditingCustomGoal(false);
-                  }
-                }}
-              />
-            </div>
-          ) : (
-            <select
-              className={styles.realSelectWithClock}
-              value={item.dailyGoalMinutes}
-              onChange={(e) => {
-                if (e.target.value === 'custom') {
-                  setCustomGoalVal(String(item.dailyGoalMinutes));
-                  setIsEditingCustomGoal(true);
-                } else {
-                  onUpdateDailyGoal?.(item.id, Number(e.target.value));
-                  onSelect();
-                }
-              }}
-            >
-              <option value={10}>10 min</option>
-              <option value={15}>15 min</option>
-              <option value={20}>20 min</option>
-              <option value={30}>30 min</option>
-              <option value={45}>45 min</option>
-              <option value={60}>60 min</option>
-              {!isStandardGoal && <option value={item.dailyGoalMinutes}>{item.dailyGoalMinutes} min</option>}
-              <option value="custom">Custom...</option>
-            </select>
-          )}
-        </div>
-      </div>
-
-      {/* 7. Order Style — Last Field */}
-      <div className={styles.cell}>
-        <span className={styles.cellLabel}>Order style</span>
-        <Tooltip content={`Order style: ${orderStyle}`} placement="top">
-          <div className={styles.orderIconWrapper} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.orderLeftIcon}>
-              {orderStyle === 'Sequential' && <ListOrdered size={17} className={styles.orderIcon} />}
-              {orderStyle === 'Semantic Randomize' && <ChartNetwork size={17} className={styles.orderIcon} />}
-              {orderStyle === 'Randomize' && <Shuffle size={17} className={styles.orderIcon} />}
-            </div>
-            <select
-              className={styles.realSelectIconOnly}
-              value={orderStyle}
-              onChange={(e) => {
-                onUpdateOrderStyle?.(item.id, e.target.value);
-                onSelect();
-              }}
-            >
-              <option value="Sequential">Sequential</option>
-              <option value="Semantic Randomize">Semantic Rndm</option>
-              <option value="Randomize">Randomize</option>
-            </select>
-          </div>
-        </Tooltip>
-      </div>
-
     </article>
   );
 }
