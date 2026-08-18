@@ -61,13 +61,26 @@
 }
 .learnBtn:hover { color: #fff; }
 
-/* ─── 4-column body: seamless left area ─────────────────────────────────── */
+/* ─── 2-Card Body Layout ────────────────────────────────────────────────── */
 .body {
-  display: grid;
-  grid-template-columns: minmax(230px, auto) 1fr 280px 320px;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  background: #fbfbfe;
+  padding: 32px 24px 40px;
   min-height: 400px;
+}
+
+.mainCard {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 210px 1fr 260px;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.03);
+  border: 1px solid #f3f4f6;
+  padding: 16px;
+  min-width: 0;
 }
 
 /* ─── COL 1: Intro text ─────────────────────────────────────────────────── */
@@ -75,55 +88,24 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 40px 24px 40px 32px;
-}
-
-.introEyebrow {
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #6b7280;
-  margin-bottom: 12px;
-  display: block;
+  padding: 32px 16px 32px 32px;
 }
 
 .introHeadline {
   font-family: var(--font-manrope);
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: #111827;
   line-height: 1.35;
-  margin: 0 0 12px;
+  margin: 0 0 16px;
   letter-spacing: -0.02em;
 }
 
 .introBody {
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   color: #6b7280;
   line-height: 1.6;
   margin: 0;
-}
-
-.customizeBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: transparent;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: #374151;
-  margin-top: 24px;
-  cursor: pointer;
-  align-self: flex-start;
-  transition: background 0.15s, border-color 0.15s;
-}
-.customizeBtn:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
 }
 
 /* ─── COL 2: Wheel ──────────────────────────────────────────────────────── */
@@ -136,9 +118,8 @@
 
 .wheelOuter {
   position: relative;
-  width: 100%;
-  max-width: 320px;
-  aspect-ratio: 1;
+  width: 240px;
+  height: 240px;
   flex-shrink: 0;
 }
 
@@ -150,12 +131,18 @@
 }
 
 .segment {
-  fill: #ede9fe;
+  fill: #f5f3ff;
+  transition: fill 0.2s, transform 0.2s;
   cursor: pointer;
-  transition: fill 0.18s ease;
+  transform-origin: 0 0;
 }
-.segment:hover { fill: #ddd6fe; }
-.segmentActive { fill: #4f46e5; }
+.segment:hover {
+  fill: #ede9fe;
+}
+.segmentActive {
+  fill: #4f46e5;
+  transform: scale(1.02);
+}
 .segmentActive:hover { fill: #4338ca; }
 
 /* Icon + label buttons floating over the wheel */
@@ -188,15 +175,16 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 72px;
-  height: 72px;
-  margin: -36px 0 0 -36px;
+  transform: translate(-50%, -50%);
+  width: 70px;
+  height: 70px;
   background: #1e1b4b;
   border-radius: 50%;
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  pointer-events: none;
 }
 
 /* ─── COL 3: Channel list ───────────────────────────────────────────────── */
@@ -205,7 +193,6 @@
   flex-direction: column;
   justify-content: center;
   padding: 24px 0;
-  /* NO borders — left zone + list is one seamless white area */
 }
 
 .channelRow {
@@ -281,8 +268,15 @@
   align-items: center;
 }
 
-/* ─── COL 4: Detail panel ──────────────────────────────────────────────── */
-.detailCol {
+/* ─── Right Card: Detail panel ──────────────────────────────────────────── */
+.detailCard {
+  flex: 0 0 280px;
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.03);
+  border: 1px solid #f3f4f6;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -404,14 +398,11 @@
 }
 
 /* ─── Responsive ─────────────────────────────────────────────────────────── */
-@media (max-width: 1200px) {
+@media (max-width: 1024px) {
   .body {
-    grid-template-columns: 200px 1fr 220px 300px;
+    flex-direction: column;
   }
-}
-
-@media (max-width: 960px) {
-  .body {
+  .mainCard {
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto auto;
   }
@@ -421,21 +412,28 @@
     padding-bottom: 0;
   }
   .wheelCol {
-    grid-column: 1 / -1;
+    grid-column: 1;
     grid-row: 2;
-    border-bottom: 1px solid #e5e7eb;
   }
   .channelListCol {
-    grid-column: 1;
-    grid-row: 3;
-    border-right: 1px solid #e5e7eb;
-  }
-  .detailCol {
     grid-column: 2;
-    grid-row: 3;
-    border-left: none;
+    grid-row: 2;
+  }
+  .detailCard {
+    width: 100%;
+    flex: auto;
   }
   .wheelOuter {
     max-width: 280px;
   }
+}
+
+@media (max-width: 768px) {
+  .mainCard {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+  .introCol { grid-row: 1; grid-column: 1; }
+  .wheelCol { grid-row: 2; grid-column: 1; }
+  .channelListCol { grid-row: 3; grid-column: 1; }
 }

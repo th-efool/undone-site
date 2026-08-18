@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Compass, Hammer, Headphones, Search, Rabbit, Coffee, Info } from 'lucide-react';
+import { Compass, Hammer, Headphones, Search, Rabbit, Coffee, Info, Tv } from 'lucide-react';
 import styles from './ChannelHub.module.css';
 
 // ─── Data ────────────────────────────────────────────────────────────────────
@@ -133,30 +133,21 @@ export function ChannelHub() {
         </div>
       </div>
 
-      {/* 4-column body: intro | wheel | channel list | detail */}
+      {/* 2-card layout: Left Card (intro+wheel+list) | Right Card (detail) */}
       <div className={styles.body}>
 
-        {/* COL 1: Intro text */}
-        <div className={styles.introCol}>
-          <span className={styles.introEyebrow}>Your Channels</span>
-          <p className={styles.introHeadline}>Tune in to the channels that match your moment.</p>
-          <p className={styles.introBody}>
-            Each channel is a learning experience with its own rhythm and focus.
-            Pick a channel to personalize your feed.
-          </p>
-          <button className={styles.customizeBtn}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>
-              <line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line>
-              <line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line>
-              <line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line>
-            </svg>
-            Customize My Guide
-          </button>
-        </div>
+        <div className={styles.mainCard}>
+          {/* COL 1: Intro text */}
+          <div className={styles.introCol}>
+            <p className={styles.introHeadline}>Tune in to the channels that match your moment.</p>
+            <p className={styles.introBody}>
+              Each channel is a learning experience with its own rhythm and focus.
+              Pick a channel to personalize your feed.
+            </p>
+          </div>
 
-        {/* COL 2: Wheel */}
-        <div className={styles.wheelCol}>
+          {/* COL 2: Wheel */}
+          <div className={styles.wheelCol}>
           <div className={styles.wheelOuter}>
             {/* SVG pie segments */}
             <svg className={styles.wheelSvg} viewBox="-1 -1 2 2" aria-hidden>
@@ -223,12 +214,9 @@ export function ChannelHub() {
               })}
             </svg>
 
-            {/* Center keyhole */}
+            {/* Center icon */}
             <div className={styles.center}>
-              <svg width="28" height="35" viewBox="0 0 32 40" fill="none" aria-hidden>
-                <circle cx="16" cy="13" r="9" stroke="rgba(255,255,255,0.75)" strokeWidth="1.5" />
-                <path d="M10 13 Q10 32 16 32 Q22 32 22 13" stroke="rgba(255,255,255,0.75)" strokeWidth="1.5" fill="none" strokeLinecap="round" />
-              </svg>
+              <Tv size={26} color="white" strokeWidth={1.5} />
             </div>
           </div>
         </div>
@@ -264,9 +252,10 @@ export function ChannelHub() {
             );
           })}
         </div>
+        </div> {/* End of mainCard */}
 
-        {/* COL 4: Detail panel */}
-        <div className={styles.detailCol}>
+        {/* Right Card: Detail panel */}
+        <div className={styles.detailCard}>
           <AnimatePresence mode="wait">
             <motion.div
               key={selectedId}
