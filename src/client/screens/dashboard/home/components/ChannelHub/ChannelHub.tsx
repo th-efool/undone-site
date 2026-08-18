@@ -138,11 +138,16 @@ export function ChannelHub() {
 
         {/* COL 1: Intro text */}
         <div className={styles.introCol}>
+          <span className={styles.introEyebrow}>Your Channels</span>
           <p className={styles.introHeadline}>Tune in to the channels that match your moment.</p>
           <p className={styles.introBody}>
             Each channel is a learning experience with its own rhythm and focus.
             Pick a channel to personalize your feed.
           </p>
+          <button className={styles.customizeBtn}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            Customize My Guide
+          </button>
         </div>
 
         {/* COL 2: Wheel */}

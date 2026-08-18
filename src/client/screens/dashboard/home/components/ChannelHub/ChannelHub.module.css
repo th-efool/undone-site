@@ -76,7 +76,17 @@
   flex-direction: column;
   justify-content: center;
   padding: 36px 24px 36px 28px;
-  border-right: 1px solid #e5e7eb;
+  /* NO border-right — intro and wheel are one seamless zone */
+}
+
+.introEyebrow {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #4f46e5;
+  margin-bottom: 10px;
+  display: block;
 }
 
 .introHeadline {
@@ -93,7 +103,27 @@
   font-size: 0.8rem;
   color: #6b7280;
   line-height: 1.6;
-  margin: 0;
+  margin: 0 0 20px;
+}
+
+.customizeBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 14px;
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+  align-self: flex-start;
+}
+.customizeBtn:hover {
+  border-color: #a5b4fc;
+  color: #4f46e5;
 }
 
 /* ─── COL 2: Wheel ──────────────────────────────────────────────────────── */
@@ -175,6 +205,7 @@
   flex-direction: column;
   justify-content: center;
   padding: 16px 0;
+  border-left: 1px solid #e5e7eb;
   border-right: 1px solid #e5e7eb;
   overflow: hidden;
 }
