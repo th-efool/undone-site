@@ -204,9 +204,37 @@ function FloatSliderControl({
   );
 }
 
+const INTRO_COPY = [
+  {
+    headline: "Learning that adapts to your life.",
+    body: "Don't wait for the perfect hour. Pick a channel that fits your current energy, and we'll surface the exact piece of content you need right now."
+  },
+  {
+    headline: "Tune in to the channel that matches your moment.",
+    body: "Whether you have 10 minutes, you're commuting, or you're just exhausted—select a channel and customize your feed to keep your progress moving."
+  },
+  {
+    headline: "Turn empty moments into finished courses.",
+    body: "Stop procrastinating. Our feed algorithm breaks your materials down and serves you the perfect segment for whatever situation you're in."
+  },
+  {
+    headline: "Flip the channel. Change your pace.",
+    body: "Just like TV, pick a channel that suits your mood. Tweak the algorithm to pull exactly what you need from your learning queue, right when you need it."
+  },
+  {
+    headline: "The smartest way to chip away at your goals.",
+    body: "We break your learning into meaningful segments. Just tell us your context, and we'll seamlessly fit your courses into the cracks of your day."
+  }
+];
+
 export function ChannelHub() {
   const [selectedId, setSelectedId] = useState<ChannelId>('quick');
   const [prefs, setPrefs] = useState<Record<string, string>>({});
+  const [introIndex, setIntroIndex] = useState(0);
+
+  useEffect(() => {
+    setIntroIndex(Math.floor(Math.random() * INTRO_COPY.length));
+  }, []);
 
   const channel = CHANNELS.find(c => c.id === selectedId)!;
 
@@ -238,10 +266,9 @@ export function ChannelHub() {
 
         {/* COL 1: Intro text */}
         <div className={styles.introCol}>
-          <p className={styles.introHeadline}>Tune in to the channels that match your moment.</p>
+          <p className={styles.introHeadline}>{INTRO_COPY[introIndex].headline}</p>
           <p className={styles.introBody}>
-            Each channel is a learning experience with its own rhythm and focus.
-            Pick a channel to personalize your feed.
+            {INTRO_COPY[introIndex].body}
           </p>
         </div>
 
