@@ -10,6 +10,11 @@
 │   │   ├── index.html
 │   │   ├── script.js
 │   │   └── styles.css
+│   ├── me temp/
+│   │   ├── phase_2_auth.md
+│   │   ├── phase_3_courses_cohorts.md
+│   │   ├── phase_4_5_mongodb_workspace.md
+│   │   └── phase_6_migration_pattern.md
 │   ├── LOGO-no-book-compass.svg
 │   ├── LOGO-recolored-floating.svg
 │   ├── LOGO-recolored.svg
@@ -1038,6 +1043,9 @@
 │   │   │   │   │   │   │   ├── ActiveCohorts.tsx
 │   │   │   │   │   │   │   ├── InspectorPanel.module.css
 │   │   │   │   │   │   │   └── InspectorPanel.tsx
+│   │   │   │   │   │   ├── ChannelHub/
+│   │   │   │   │   │   │   ├── ChannelHub.module.css
+│   │   │   │   │   │   │   └── ChannelHub.tsx
 │   │   │   │   │   │   ├── CompletedCourseCard/
 │   │   │   │   │   │   │   ├── CompletedCourseCard.module.css
 │   │   │   │   │   │   │   └── CompletedCourseCard.tsx
@@ -1502,4 +1510,4 @@
 ├── task.md
 └── tsconfig.json
 
-478 directories, 1023 files
+480 directories, 1029 files
