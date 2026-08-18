@@ -103,7 +103,63 @@ const CHANNELS: Channel[] = [
   },
 ];
 
-// ─── Component ───────────────────────────────────────────────────────────────
+import { Slider } from '@/src/client/components/ui/Slider/Slider';
+
+function FloatSliderControl({ 
+  ctrl, 
+  selectedId, 
+  onChange 
+}: { 
+  ctrl: Control; 
+  selectedId: string; 
+  onChange: (id: string) => void 
+}) {
+  const selectedIndex = Math.max(0, ctrl.options.findIndex(o => o.id === selectedId));
+  const [floatVal, setFloatVal] = useState(selectedIndex);
+
+  // Keep local state in sync with external changes, unless the user is actively dragging.
+  // Actually, simplest is to just always use local floatVal, and only update parent on change.
+  // We'll update the parent whenever the closest integer changes.
+  
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value);
+    setFloatVal(val);
+    const closestIndex = Math.round(val);
+    if (closestIndex !== selectedIndex && ctrl.options[closestIndex]) {
+      onChange(ctrl.options[closestIndex].id);
+    }
+  };
+
+  return (
+    <div className={styles.sliderContainer}>
+      <Slider 
+        min={0} 
+        max={ctrl.options.length - 1} 
+        step={0.01} 
+        value={floatVal}
+        onChange={handleChange}
+        className={styles.floatSlider}
+      />
+      <div className={styles.sliderLabels}>
+        {ctrl.options.map((opt, i) => {
+          const isActive = Math.round(floatVal) === i;
+          return (
+            <span 
+              key={opt.id} 
+              className={`${styles.sliderLabel} ${isActive ? styles.sliderLabelActive : ''}`}
+              onClick={() => {
+                setFloatVal(i);
+                onChange(opt.id);
+              }}
+            >
+              {opt.label}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export function ChannelHub() {
   const [selectedId, setSelectedId] = useState<ChannelId>('quick');
@@ -264,38 +320,22 @@ export function ChannelHub() {
               </div>
 
               {/* Controls (Sliders) */}
-              {channel.controls.map(ctrl => {
-                const selected = getPref(channel.id, ctrl.id, ctrl.defaultId);
-                const selectedIndex = Math.max(0, ctrl.options.findIndex(o => o.id === selected));
-                
-                return (
-                  <div key={ctrl.id} className={styles.detailSection}>
-                    <span className={styles.detailSectionLabel}>{ctrl.label}</span>
-                    <div className={styles.sliderContainer}>
-                      <input 
-                        type="range" 
-                        min={0} 
-                        max={ctrl.options.length - 1} 
-                        step={1} 
-                        value={selectedIndex}
-                        onChange={(e) => setPref(channel.id, ctrl.id, ctrl.options[Number(e.target.value)].id)}
-                        className={styles.slider}
+              <div className={styles.controlsGrid}>
+                {channel.controls.map(ctrl => {
+                  const selected = getPref(channel.id, ctrl.id, ctrl.defaultId);
+                  
+                  return (
+                    <div key={ctrl.id} className={styles.detailSectionSmall}>
+                      <span className={styles.detailSectionLabel}>{ctrl.label}</span>
+                      <FloatSliderControl 
+                        ctrl={ctrl} 
+                        selectedId={selected} 
+                        onChange={(id) => setPref(channel.id, ctrl.id, id)} 
                       />
-                      <div className={styles.sliderLabels}>
-                        {ctrl.options.map((opt, i) => (
-                          <span 
-                            key={opt.id} 
-                            className={`${styles.sliderLabel} ${selected === opt.id ? styles.sliderLabelActive : ''}`}
-                            onClick={() => setPref(channel.id, ctrl.id, opt.id)}
-                          >
-                            {opt.label}
-                          </span>
-                        ))}
-                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </motion.div>
           </AnimatePresence>
         </div>
