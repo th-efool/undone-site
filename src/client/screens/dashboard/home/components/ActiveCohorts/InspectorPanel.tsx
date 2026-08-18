@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { CalendarDays, Clock, Shuffle, ListOrdered, Signal, X, PauseCircle } from 'lucide-react';
 import { Slider } from '@/src/client/components/ui/Slider/Slider';
+import { motion, AnimatePresence } from 'framer-motion';
 import type { ActiveCohort, Weekday } from '../../models';
 
 import styles from './InspectorPanel.module.css';
@@ -73,7 +74,15 @@ export function InspectorPanel({
         </button>
       )}
 
-      <div key={cohort.id} className={styles.inspectorContent}>
+      <AnimatePresence mode="wait">
+        <motion.div 
+          key={cohort.id} 
+          className={styles.inspectorContent}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.12, ease: 'easeOut' }}
+        >
 
         {/* ── Frequency ── */}
         <section className={styles.section}>
@@ -221,8 +230,8 @@ export function InspectorPanel({
           </div>
         </section>
 
-      </div>
-
+        </motion.div>
+      </AnimatePresence>
       {onPause && (
         <button
           className={styles.pauseBtn}
