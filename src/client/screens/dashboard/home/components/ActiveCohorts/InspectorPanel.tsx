@@ -90,23 +90,32 @@ export function InspectorPanel({
             <Signal size={14} className={styles.icon} />
             <span className={styles.sectionLabel}>Shows up</span>
           </div>
-          <div className={styles.sliderWrapper}>
-            <div className={styles.sliderLabels}>
-              <span>Less</span>
-              <span className={styles.sliderValue}>{cohort.frequency || 'Often'}</span>
-              <span>More</span>
+          <div className={styles.frequencySliderRow}>
+            <span 
+              className={`${styles.sliderEdgeLabel} ${cohort.frequency === 'Rarely' ? styles.sliderEdgeActive : ''}`}
+              onClick={() => onUpdateFrequency?.(cohort.id, 'Rarely')}
+            >
+              Less
+            </span>
+            <div className={styles.sliderInputWrapper}>
+              <Slider
+                min={0}
+                max={4}
+                step={1}
+                value={Math.max(0, FREQUENCIES.indexOf((cohort.frequency || 'Often') as typeof FREQUENCIES[number]))}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                  onUpdateFrequency?.(cohort.id, FREQUENCIES[parseInt(e.target.value, 10)])
+                }
+                className={styles.rangeSlider}
+                aria-label="Frequency"
+              />
             </div>
-            <Slider
-              min={0}
-              max={4}
-              step={1}
-              value={Math.max(0, FREQUENCIES.indexOf((cohort.frequency || 'Often') as typeof FREQUENCIES[number]))}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                onUpdateFrequency?.(cohort.id, FREQUENCIES[parseInt(e.target.value, 10)])
-              }
-              className={styles.rangeSlider}
-              aria-label="Frequency"
-            />
+            <span 
+              className={`${styles.sliderEdgeLabel} ${cohort.frequency === 'Always' ? styles.sliderEdgeActive : ''}`}
+              onClick={() => onUpdateFrequency?.(cohort.id, 'Always')}
+            >
+              More
+            </span>
           </div>
         </section>
 

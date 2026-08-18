@@ -148,24 +148,36 @@
   padding-top: 4px;
 }
 
-.frequencySliderWrapper :global(.agy-slider-labels) {
+.frequencySliderRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.frequencySliderRow :global(.agy-slider-labels) {
   display: none !important;
 }
 
-.sliderLabels {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.62rem;
+.sliderEdgeLabel {
+  font-size: 0.65rem;
+  font-weight: 700;
   color: #9ca3af;
-  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.sliderValue {
+.sliderEdgeActive {
   color: #4f46e5;
-  font-weight: 700;
+}
+
+.sliderInputWrapper {
+  position: relative;
+  width: 100%;
 }
 
 .rangeSlider {

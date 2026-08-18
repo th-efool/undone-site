@@ -167,26 +167,45 @@ export function ActiveCohortRow({
       {/* 4. Shows up (Frequency) with vertical divider */}
       <div className={styles.showsUpCell}>
         <span className={styles.cellLabel}>SHOWS UP</span>
-        <div className={styles.frequencySliderWrapper}>
-          <div className={styles.sliderLabels}>
-            <span>Less</span>
-            <span className={styles.sliderValue}>{item.frequency || 'Often'}</span>
-            <span>More</span>
-          </div>
-          <Slider 
-            min={0} 
-            max={4} 
-            step={1}
-            value={Math.max(0, FREQUENCIES.indexOf((item.frequency || 'Often') as typeof FREQUENCIES[number]))} 
-            onClick={(e) => e.stopPropagation()}
-            onChange={(e) => {
-              const val = parseInt(e.target.value, 10);
-              onUpdateFrequency?.(item.id, FREQUENCIES[val]);
+        <div className={styles.frequencySliderRow}>
+          <span 
+            className={`${styles.sliderEdgeLabel} ${item.frequency === 'Rarely' ? styles.sliderEdgeActive : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onUpdateFrequency?.(item.id, 'Rarely');
               onSelect();
             }}
-            className={styles.rangeSlider}
-            aria-label="Frequency"
-          />
+          >
+            Less
+          </span>
+          
+          <div className={styles.sliderInputWrapper}>
+            <Slider 
+              min={0} 
+              max={4} 
+              step={1}
+              value={Math.max(0, FREQUENCIES.indexOf((item.frequency || 'Often') as typeof FREQUENCIES[number]))} 
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => {
+                const val = parseInt(e.target.value, 10);
+                onUpdateFrequency?.(item.id, FREQUENCIES[val]);
+                onSelect();
+              }}
+              className={styles.rangeSlider}
+              aria-label="Frequency"
+            />
+          </div>
+
+          <span 
+            className={`${styles.sliderEdgeLabel} ${item.frequency === 'Always' ? styles.sliderEdgeActive : ''}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              onUpdateFrequency?.(item.id, 'Always');
+              onSelect();
+            }}
+          >
+            More
+          </span>
         </div>
       </div>
 
