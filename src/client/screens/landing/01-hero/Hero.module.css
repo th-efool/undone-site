@@ -132,7 +132,7 @@
 
   filter: blur(60px);
 }
-@media (max-width: 767px) {
+@media (max-width: 768px) {
   .readingWash {
     left: -25%;
     width: 78%;
@@ -256,7 +256,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 768px) {
   .hero {
     height: max(820px, 100svh);
     min-height: 820px;
@@ -272,13 +272,6 @@
 
   .bottomFade {
     height: 390px;
-  }
-}
-
-@media (max-width: 768px) {
-  .hero {
-    height: auto;
-    min-height: 100svh;
   }
 }
 

@@ -13,12 +13,13 @@ const navigationItems = [
 export function HeroNavbar() {
   const { data: session } = useSession();
   const destination = session ? '/home' : '/auth';
+  const logoDestination = session ? '/home' : '/';
 
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
         <Link
-          href="/auth"
+          href={logoDestination}
           className={styles.brand}
         >
           <div className={styles.logoFrame}>
