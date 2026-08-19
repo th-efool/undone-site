@@ -24,22 +24,14 @@ export const sourceTypeOptions: CreateCohortSourceType[] = [
 ];
 
 export const categoryOptions = [
-  'Software Engineering',
-  'Web & Mobile Dev',
+  'Business & Finance',
   'AI & Machine Learning',
-  'Data & Analytics',
-  'UI/UX & Product Design',
-  '3D & Game Development',
-  'Business & Startups',
-  'Product Management',
-  'Marketing & Growth',
-  'Finance & Crypto',
-  'Productivity & Mindset',
-  'Communication & Public Speaking',
-  'Languages & Writing',
-  'Science & Mathematics',
-  'Health & Fitness',
-  'Music & Audio Production',
+  'Programming & Tech',
+  'Design & Creative',
+  'Marketing & Sales',
+  'Productivity & Growth',
+  'Science & Academics',
+  'Health & Lifestyle',
 ];
 
 export const durationPresetOptions = [
@@ -71,26 +63,5 @@ export const createCohortMockDraft: CreateCohortDraft = {
     'Master key concepts through practical exercises.',
     'Build real projects and prove your skills.',
   ],
-  sources: [
-    {
-      id: 'source-1',
-      type: 'YouTube Playlist',
-      title: 'Full Stack Web Development Course',
-      url: 'https://www.youtube.com/playlist?list=PL4cUxeGkcC9gC88BEo9czbfg72KH7-O60',
-      collapsed: false,
-      thumbnailUrl: 'https://img.youtube.com/vi/u6gSSpfsoOQ/hqdefault.jpg',
-      domain: 'youtube.com',
-      metaTitle: 'Full Stack Web Dev Playlist',
-    },
-    {
-      id: 'source-2',
-      type: 'YouTube Video',
-      title: 'Next.js 14 App Router Crash Course',
-      url: 'https://www.youtube.com/watch?v=wm5gMKCOB4U',
-      collapsed: false,
-      thumbnailUrl: 'https://img.youtube.com/vi/wm5gMKCOB4U/hqdefault.jpg',
-      domain: 'youtube.com',
-      metaTitle: 'Next.js 14 Crash Course',
-    },
-  ],
+  sources: [],
 };
