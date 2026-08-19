@@ -12,7 +12,6 @@ import {
   Merge,
   Clock,
   BookOpen,
-  Award,
   Layers,
 } from 'lucide-react';
 import { Badge } from '@/src/client/components/ui/Badge/Badge';
@@ -21,6 +20,9 @@ import { CurriculumContextMenu } from '../CurriculumContextMenu/CurriculumContex
 import type { CurriculumLesson, CurriculumSeason } from '@/src/shared/curriculum';
 
 import styles from './CurriculumBoard.module.css';
+
+// Chunk timeline colors — 2 alternating palette entries based on position
+const CHUNK_COLORS = ['#4f46e5', '#818cf8'];
 
 interface ContextMenuState {
   x: number;
@@ -68,7 +70,6 @@ export function CurriculumBoard() {
     })
     .filter(Boolean) as CurriculumSeason[];
 
-  // Season Drag handlers
   const handleSeasonDragStart = (e: DragEvent, seasonId: string) => {
     e.stopPropagation();
     setDraggedSeasonId(seasonId);
@@ -88,7 +89,6 @@ export function CurriculumBoard() {
     setDraggedSeasonId(null);
   };
 
-  // Lesson Drag handlers
   const handleLessonDragStart = (e: DragEvent, lessonId: string) => {
     e.stopPropagation();
     setDraggedLessonId(lessonId);
@@ -105,7 +105,6 @@ export function CurriculumBoard() {
     setDraggedLessonId(null);
   };
 
-  // Context menu handler
   const handleContextMenu = (e: MouseEvent, type: 'season' | 'lesson', targetId: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -137,103 +136,95 @@ export function CurriculumBoard() {
                 actions.toggleSelectSeason(season.id, e.shiftKey || e.metaKey || e.ctrlKey);
               }}
             >
-              {/* Season Header */}
-              <div className={styles.seasonHeader}>
-                <div className={styles.seasonHeaderLeft}>
+              {/* Season Header Bar — same trapezium + indigoBar as /home */}
+              <div className={styles.seasonHeaderBar}>
+                {/* Left tab trapezium */}
+                <div className={styles.tabTrapezium}>
+                  <span className={styles.dragHandle} title="Drag to reorder">
+                    <GripVertical size={14} />
+                  </span>
+
                   <input
                     type="checkbox"
                     checked={selectedSeasonIds.includes(season.id)}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      actions.toggleSelectSeason(season.id, true);
-                    }}
+                    onChange={(e) => { e.stopPropagation(); actions.toggleSelectSeason(season.id, true); }}
                     onClick={(e) => e.stopPropagation()}
                     className={styles.checkbox}
                   />
 
-                  <span className={styles.dragHandle} title="Drag to reorder season">
-                    <GripVertical size={16} />
-                  </span>
-
                   <button
                     type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      actions.toggleSeasonCollapse(season.id);
-                    }}
+                    onClick={(e) => { e.stopPropagation(); actions.toggleSeasonCollapse(season.id); }}
                     className={styles.collapseBtn}
                   >
-                    {season.collapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
+                    {season.collapsed ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
                   </button>
 
-                  <div className={styles.seasonTitleGroup}>
-                    <input
-                      type="text"
-                      value={season.title}
-                      onChange={(e) => actions.updateSeason(season.id, { title: e.target.value })}
-                      onClick={(e) => e.stopPropagation()}
-                      className={styles.seasonTitleInput}
-                    />
+                  <input
+                    type="text"
+                    value={season.title}
+                    onChange={(e) => actions.updateSeason(season.id, { title: e.target.value })}
+                    onClick={(e) => e.stopPropagation()}
+                    className={styles.seasonTitleInput}
+                  />
 
-                    <div className={styles.badgeGroup}>
-                      <Badge variant="neutral" size="sm">
-                        <BookOpen size={12} style={{ marginRight: 4 }} />
-                        {season.lessonCount} lessons
-                      </Badge>
-                      <Badge variant="brand" size="sm">
-                        <Clock size={12} style={{ marginRight: 4 }} />
-                        {season.estimatedDuration}
-                      </Badge>
-                    </div>
+                  <div className={styles.badgeGroup}>
+                    <Badge variant="neutral" size="sm">
+                      <BookOpen size={11} style={{ marginRight: 3 }} />
+                      {season.lessonCount}
+                    </Badge>
+                    <Badge variant="brand" size="sm">
+                      <Clock size={11} style={{ marginRight: 3 }} />
+                      {season.estimatedDuration}
+                    </Badge>
                   </div>
                 </div>
 
-                <div className={styles.seasonHeaderRight} onClick={(e) => e.stopPropagation()}>
+                {/* Right dark indigo bar */}
+                <div className={styles.indigoBar} onClick={(e) => e.stopPropagation()}>
                   {season.lessons.length > 1 && (
                     <button
                       type="button"
-                      onClick={() => actions.splitSeason(season.id)}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); actions.splitSeason(season.id); }}
                       className={styles.seasonActionBtn}
                       title="Split season"
                     >
-                      <Split size={13} />
-                      Split
+                      <Split size={12} /> Split
                     </button>
                   )}
 
                   {nextSeason && (
                     <button
                       type="button"
-                      onClick={() => actions.mergeSeasons(season.id, nextSeason.id)}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); actions.mergeSeasons(season.id, nextSeason.id); }}
                       className={styles.seasonActionBtn}
                       title={`Merge with ${nextSeason.title}`}
                     >
-                      <Merge size={13} />
-                      Merge
+                      <Merge size={12} /> Merge
                     </button>
                   )}
 
                   <button
                     type="button"
-                    onClick={() => actions.duplicateSeason(season.id)}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); actions.duplicateSeason(season.id); }}
                     className={styles.seasonActionBtn}
                     title="Duplicate season"
                   >
-                    <Copy size={13} />
+                    <Copy size={12} />
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => actions.deleteSeason(season.id)}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); actions.deleteSeason(season.id); }}
                     className={`${styles.seasonActionBtn} ${styles.deleteActionBtn}`}
                     title="Delete season"
                   >
-                    <Trash2 size={13} />
+                    <Trash2 size={12} />
                   </button>
                 </div>
               </div>
 
-              {/* Lesson List */}
+              {/* Lesson list — flat rows matching /home ActiveCohortRow */}
               {!season.collapsed && (
                 <div
                   className={styles.lessonList}
@@ -242,7 +233,7 @@ export function CurriculumBoard() {
                 >
                   {season.lessons.length === 0 ? (
                     <div className={styles.emptySeasonNotice}>
-                      Empty season. Drag lessons here or add a new lesson.
+                      Empty season — drag lessons here.
                     </div>
                   ) : (
                     season.lessons.map((lesson) => {
@@ -266,98 +257,115 @@ export function CurriculumBoard() {
                             isSelectedLesson ? styles.lessonCardSelected : ''
                           } ${draggedLessonId === lesson.id ? styles.lessonCardDragging : ''}`}
                         >
-                          <div className={styles.lessonMain}>
+                          {/* Col 1: drag handle + checkbox */}
+                          <div className={styles.handleGroup}>
+                            <span className={styles.dragHandle} onClick={(e) => e.stopPropagation()} title="Drag lesson">
+                              <GripVertical size={14} />
+                            </span>
                             <input
                               type="checkbox"
                               checked={selectedLessonIds.includes(lesson.id)}
-                              onChange={(e) => {
-                                e.stopPropagation();
-                                actions.toggleSelectLesson(lesson.id, true);
-                              }}
+                              onChange={(e) => { e.stopPropagation(); actions.toggleSelectLesson(lesson.id, true); }}
                               onClick={(e) => e.stopPropagation()}
                               className={styles.checkbox}
                             />
+                          </div>
 
-                            <span
-                              className={styles.dragHandle}
-                              title="Drag lesson to reorder or move to another season"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <GripVertical size={16} />
-                            </span>
-
-                            <Image width={400} height={300}
-                              src={
-                                lesson.thumbnail ||
-                                (lesson.videoId ? `https://i.ytimg.com/vi/${lesson.videoId}/hqdefault.jpg` : undefined) ||
-                                '/mock/thumbnails/docker.avif'
+                          {/* Col 2: thumbnail */}
+                          <Image
+                            width={112}
+                            height={72}
+                            src={
+                              lesson.thumbnail ||
+                              (lesson.videoId ? `https://i.ytimg.com/vi/${lesson.videoId}/hqdefault.jpg` : undefined) ||
+                              '/mock/thumbnails/docker.avif'
+                            }
+                            alt={lesson.title}
+                            className={styles.lessonThumbnail}
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              if (lesson.videoId && !target.src.includes(lesson.videoId)) {
+                                target.src = `https://i.ytimg.com/vi/${lesson.videoId}/hqdefault.jpg`;
+                              } else {
+                                target.src = '/mock/thumbnails/docker.avif';
                               }
-                              alt={lesson.title}
-                              className={styles.lessonThumbnail}
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                if (lesson.videoId && !target.src.includes(lesson.videoId)) {
-                                  target.src = `https://i.ytimg.com/vi/${lesson.videoId}/hqdefault.jpg`;
-                                } else {
-                                  target.src = '/mock/thumbnails/docker.avif';
-                                }
-                              }}
-                            />
+                            }}
+                          />
 
-                            <div className={styles.lessonContent}>
-                              <div className={styles.lessonTitleRow}>
-                                <h4 className={styles.lessonTitle}>{lesson.title}</h4>
-
-                                <div onClick={(e) => e.stopPropagation()}>
-                                  <button
-                                    type="button"
-                                    onClick={() => actions.duplicateLesson(lesson.id)}
-                                    className={styles.seasonActionBtn}
-                                    title="Duplicate lesson"
-                                  >
-                                    <Copy size={12} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => actions.deleteLesson(lesson.id)}
-                                    className={`${styles.seasonActionBtn} ${styles.deleteActionBtn}`}
-                                    title="Delete lesson"
-                                  >
-                                    <Trash2 size={12} />
-                                  </button>
-                                </div>
-                              </div>
-
-                              <p className={styles.lessonDescription}>{lesson.description}</p>
-
-                              <div className={styles.lessonMetaRow}>
-                                <span className={styles.metaTag}>
-                                  <Clock size={11} /> {lesson.duration}
-                                </span>
-                                <span className={styles.metaTag}>
-                                  <Layers size={11} /> {lesson.chunkCount} chunks
-                                </span>
-                                <span className={styles.metaTag}>{lesson.difficulty}</span>
-                                <span className={styles.xpBadge}>
-                                  <Award size={11} /> {lesson.xp} XP
-                                </span>
-                                {lesson.tags.slice(0, 3).map((tag, idx) => (
-                                  <span key={idx} className={styles.metaTag}>
-                                    #{tag}
-                                  </span>
-                                ))}
-                              </div>
+                          {/* Col 3: title + meta */}
+                          <div className={styles.lessonContent}>
+                            <h4 className={styles.lessonTitle}>{lesson.title}</h4>
+                            <div className={styles.lessonMeta}>
+                              <span className={styles.metaChip}>
+                                <Clock size={10} /> {lesson.duration}
+                              </span>
+                              <span className={styles.chunksChip}>
+                                <Layers size={10} /> {lesson.chunkCount}
+                              </span>
+                              <span className={styles.metaChip}>{lesson.difficulty}</span>
                             </div>
                           </div>
 
-                          {/* Chunk List Preview */}
-                          {lesson.chunks && lesson.chunks.length > 0 && (
-                            <div className={styles.chunkList}>
-                              {lesson.chunks.map((chunk) => (
-                                <span key={chunk.id} className={styles.chunkPill}>
-                                  {chunk.title} ({chunk.duration})
-                                </span>
-                              ))}
+                          {/* Col 4: actions */}
+                          <div className={styles.lessonActions} onClick={(e) => e.stopPropagation()}>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); actions.updateLesson(lesson.id, { collapsed: !lesson.collapsed }); }}
+                              className={styles.lessonActionBtn}
+                              title="Toggle details"
+                            >
+                              {lesson.collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); actions.duplicateLesson(lesson.id); }}
+                              className={styles.lessonActionBtn}
+                              title="Duplicate"
+                            >
+                              <Copy size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); actions.deleteLesson(lesson.id); }}
+                              className={styles.lessonDeleteBtn}
+                              title="Delete"
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
+
+                          {/* Expanded accordion row — spans full width */}
+                          {!lesson.collapsed && (
+                            <div className={styles.lessonExpanded}>
+                              {lesson.description && (
+                                <p className={styles.lessonDescription}>{lesson.description}</p>
+                              )}
+
+                              {/* Chunk timeline bar — proportional slices, 2-color alternating */}
+                              {lesson.chunks && lesson.chunks.length > 0 && (
+                                <div className={styles.chunkTimelineBar}>
+                                  {lesson.chunks.map((chunk, idx) => {
+                                    const color = CHUNK_COLORS[idx % CHUNK_COLORS.length];
+                                    const minutesMatch = chunk.duration.match(/(\d+)m/);
+                                    const hoursMatch = chunk.duration.match(/(\d+)h/);
+                                    const mins =
+                                      (minutesMatch ? parseInt(minutesMatch[1]) : 0) +
+                                      (hoursMatch ? parseInt(hoursMatch[1]) * 60 : 0);
+                                    const flexBasis = Math.max(1, mins);
+
+                                    return (
+                                      <div
+                                        key={chunk.id}
+                                        className={styles.chunkSlice}
+                                        style={{ flexGrow: flexBasis, backgroundColor: color }}
+                                        title={chunk.duration}
+                                      >
+                                        <span className={styles.chunkSliceText}>{chunk.duration}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

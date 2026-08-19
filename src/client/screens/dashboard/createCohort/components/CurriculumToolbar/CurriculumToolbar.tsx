@@ -59,7 +59,7 @@ export function CurriculumToolbar() {
 
           <button
             type="button"
-            onClick={actions.autoBalance}
+            onClick={() => actions.autoBalance()}
             className={styles.actionBtn}
             title="Auto-balance lessons into 10h seasons"
           >
@@ -69,7 +69,7 @@ export function CurriculumToolbar() {
 
           <button
             type="button"
-            onClick={actions.regenerateChunks}
+            onClick={() => actions.regenerateChunks()}
             className={styles.actionBtn}
             title="Regenerate 5-min learning chunks"
           >
@@ -79,7 +79,7 @@ export function CurriculumToolbar() {
 
           <button
             type="button"
-            onClick={actions.restorePlaylistOrder}
+            onClick={() => actions.restorePlaylistOrder()}
             className={styles.actionBtn}
             title="Restore original playlist order"
           >

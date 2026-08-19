@@ -1,311 +1,410 @@
+/* ─── Board ──────────────────────────────────────────────────────────────── */
+
 .board {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5, 1.25rem);
   width: 100%;
 }
 
-.seasonCard {
-  background: var(--color-surface, #181b28);
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
-  border-radius: var(--radius-xl, 16px);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm, 0 2px 10px rgba(0, 0, 0, 0.25));
-  transition: all 0.2s ease;
-}
+/* ─── Season block ───────────────────────────────────────────────────────── */
 
-.seasonCardSelected {
-  border-color: var(--color-brand, #6366f1);
-  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3), 0 8px 24px rgba(0, 0, 0, 0.4);
+.seasonCard {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.25rem;
 }
 
 .seasonCardDragging {
-  opacity: 0.4;
-  border-style: dashed;
+  opacity: 0.35;
 }
 
-.seasonHeader {
+/* ─── Season header bar — matches /home ActiveCohorts headerBar ──────────── */
+
+.seasonHeaderBar {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1.1rem 1.4rem;
-  background: var(--color-surface-secondary, rgba(255, 255, 255, 0.03));
-  border-bottom: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
+  align-items: stretch;
+  height: 42px;
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+  position: relative;
 }
 
-.seasonHeaderLeft {
+/* Left trapezium tab — exact copy of /home .tabTrapezium */
+.tabTrapezium {
+  background: #ffffff;
+  padding: 0 32px 0 10px;
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 8px;
+  position: relative;
+  z-index: 2;
+  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 100%, 0 100%);
+  border-top-left-radius: 12px;
 }
+
+/* Selected season gets brand underline */
+.seasonCardSelected .tabTrapezium {
+  border-bottom: 2px solid #4f46e5;
+}
+
+/* Right indigo bar — exact copy of /home .indigoBar */
+.indigoBar {
+  flex: 1;
+  background: #3730a3;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 0 14px 0 10px;
+  margin-left: -8px;
+  position: relative;
+  z-index: 1;
+  border-top-right-radius: 12px;
+}
+
+/* ─── Season header elements ─────────────────────────────────────────────── */
 
 .checkbox {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  accent-color: var(--color-brand, #6366f1);
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  accent-color: #4f46e5;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .dragHandle {
-  color: var(--color-text-muted, #94a3b8);
+  color: #94a3b8;
   cursor: grab;
   display: flex;
   align-items: center;
-  padding: 0.25rem;
+  padding: 2px;
   border-radius: 4px;
+  flex-shrink: 0;
+}
 
-  &:hover {
-    color: var(--color-text-primary, #ffffff);
-    background: rgba(255, 255, 255, 0.08);
-  }
+.dragHandle:hover {
+  color: #64748b;
 }
 
 .collapseBtn {
   background: transparent;
   border: none;
-  color: var(--color-text-secondary, #cbd5e1);
+  color: #64748b;
   cursor: pointer;
   display: flex;
   align-items: center;
-
-  &:hover {
-    color: #ffffff;
-  }
+  padding: 2px;
+  flex-shrink: 0;
 }
 
-.seasonTitleGroup {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
+.collapseBtn:hover {
+  color: #0f172a;
 }
 
 .seasonTitleInput {
   background: transparent;
-  border: 1px transparent;
-  color: var(--color-text-primary, #ffffff);
-  font-size: 1.15rem;
+  border: 1px solid transparent;
+  font-family: var(--font-manrope);
+  color: #111827;
+  font-size: 0.95rem;
   font-weight: 800;
+  letter-spacing: -0.01em;
   border-radius: 6px;
-  padding: 0.25rem 0.5rem;
+  padding: 0.1rem 0.35rem;
   outline: none;
+  min-width: 0;
+  flex: 1;
+}
 
-  &:focus {
-    background: var(--color-surface-tertiary, rgba(255, 255, 255, 0.08));
-    border-color: var(--color-brand, #6366f1);
-  }
+.seasonTitleInput:focus {
+  background: #f1f5f9;
+  border-color: #c7d2fe;
 }
 
 .badgeGroup {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
-.seasonHeaderRight {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
+/* Indigo bar action buttons — transparent ghost on dark bg */
 .seasonActionBtn {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.7rem;
-  background: var(--color-surface-secondary, rgba(255, 255, 255, 0.05));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
-  border-radius: var(--radius-md, 8px);
-  color: var(--color-text-primary, #ffffff);
-  font-size: 0.8rem;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 0.72rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  font-family: var(--font-manrope);
+  transition: background 0.12s;
+}
 
-  &:hover {
-    background: var(--color-surface-tertiary, rgba(255, 255, 255, 0.12));
-    color: #ffffff;
-  }
+.seasonActionBtn:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .deleteActionBtn {
-  color: #f87171;
-
-  &:hover {
-    background: rgba(239, 68, 68, 0.2);
-    border-color: rgba(239, 68, 68, 0.4);
-    color: #fca5a5;
-  }
+  color: rgba(255, 255, 255, 0.6);
+  border-color: rgba(255, 255, 255, 0.12);
 }
+
+.deleteActionBtn:hover {
+  background: rgba(239, 68, 68, 0.3);
+  color: #ffffff;
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* ─── Lesson list — flat like /home itemsWrapper ─────────────────────────── */
 
 .lessonList {
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  padding: 1.25rem 1.4rem;
-  min-height: 50px;
+  background: #faf9ff;
 }
 
 .emptySeasonNotice {
-  padding: 1.75rem;
+  padding: 1.5rem;
   text-align: center;
-  color: var(--color-text-muted, #94a3b8);
-  font-size: 0.9rem;
-  border: 2px dashed var(--color-border, rgba(255, 255, 255, 0.1));
-  border-radius: 12px;
+  color: #9ca3af;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border-bottom: 1px solid #f3f4f6;
 }
 
+/* ─── Lesson row — matches /home ActiveCohortRow .row exactly ────────────── */
+
 .lessonCard {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-  padding: 1.1rem 1.25rem;
-  background: var(--color-surface-secondary, rgba(255, 255, 255, 0.03));
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
-  border-radius: var(--radius-lg, 12px);
-  transition: all 0.2s ease;
+  display: grid;
+  grid-template-columns: auto auto 112px 1fr auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px 6px 10px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background 0.15s;
   cursor: pointer;
 }
 
+.lessonCard:last-child {
+  border-bottom-color: transparent;
+}
+
 .lessonCard:hover {
-  background: var(--color-surface-tertiary, rgba(255, 255, 255, 0.07));
-  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.6);
 }
 
 .lessonCardSelected {
-  border-color: var(--color-brand, #6366f1);
-  background: rgba(99, 102, 241, 0.15);
-  box-shadow: 0 0 0 1px var(--color-brand, #6366f1);
+  background: #ffffff;
+  border-color: #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transform: translateY(-1px);
+  z-index: 5;
+  position: relative;
+}
+
+.lessonCardSelected + .lessonCard {
+  border-top-color: transparent;
 }
 
 .lessonCardDragging {
   opacity: 0.3;
 }
 
-.lessonMain {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-}
+/* ─── Lesson row cells ───────────────────────────────────────────────────── */
 
 .lessonThumbnail {
-  width: 128px;
+  width: 112px;
   height: 72px;
-  border-radius: var(--radius-md, 8px);
+  border-radius: 6px;
   object-fit: cover;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  display: block;
   flex-shrink: 0;
-  background: #000000;
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.15));
 }
 
 .lessonContent {
-  flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-}
-
-.lessonTitleRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+  gap: 3px;
+  min-width: 0;
 }
 
 .lessonTitle {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--color-text-primary, #ffffff);
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #111827;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-family: var(--font-manrope);
+}
+
+.lessonMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Muted meta tags — only 3 per row max, uppercase tiny labels */
+.metaChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #9ca3af;
+}
+
+/* Brand-colored chip for chunks count */
+.chunksChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #4f46e5;
+  background: #f5f3ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* ─── Lesson action cell ─────────────────────────────────────────────────── */
+
+.lessonActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Lesson actions use same ghost-on-white style */
+.lessonActionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.lessonActionBtn:hover {
+  border-color: #c7d2fe;
+  color: #4f46e5;
+  background: #f5f3ff;
+}
+
+.lessonDeleteBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+
+.lessonDeleteBtn:hover {
+  border-color: #fca5a5;
+  color: #ef4444;
+  background: #fef2f2;
+}
+
+/* ─── Expanded accordion ─────────────────────────────────────────────────── */
+
+.lessonExpanded {
+  grid-column: 1 / -1;
+  padding: 0 12px 10px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .lessonDescription {
-  font-size: 0.875rem;
-  color: var(--color-text-secondary, #cbd5e1);
-  line-height: 1.4;
+  font-size: 0.82rem;
+  color: #6b7280;
+  line-height: 1.45;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  margin: 0;
 }
 
-.lessonMetaRow {
+/* ─── Chunk timeline ─────────────────────────────────────────────────────── */
+
+.chunkTimelineBar {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  height: 18px;
+  border-radius: 5px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.chunkSlice {
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  flex-wrap: wrap;
-  margin-top: 0.3rem;
+  justify-content: center;
+  min-width: 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.35);
+  transition: filter 0.15s;
 }
 
-.metaTag {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--color-text-primary, #ffffff);
-  background: var(--color-surface-tertiary, rgba(255, 255, 255, 0.08));
-  padding: 0.2rem 0.55rem;
-  border-radius: 6px;
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.1));
+.chunkSlice:last-child {
+  border-right: none;
 }
 
-.xpBadge {
-  font-size: 0.8rem;
+.chunkSlice:hover {
+  filter: brightness(1.12);
+}
+
+.chunkSliceText {
+  font-size: 0.6rem;
   font-weight: 800;
-  color: #fbbf24;
-  background: rgba(245, 158, 11, 0.18);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  padding: 0.2rem 0.55rem;
-  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  white-space: nowrap;
 }
 
-.chunkList {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--color-border, rgba(255, 255, 255, 0.08));
-}
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
 
-.chunkPill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.775rem;
-  font-weight: 600;
-  color: #a5b4fc;
-  background: rgba(99, 102, 241, 0.15);
-  border: 1px solid rgba(99, 102, 241, 0.3);
-  padding: 0.2rem 0.6rem;
-  border-radius: 12px;
+@media (max-width: 1024px) {
+  .lessonCard {
+    grid-template-columns: auto 112px 1fr auto;
+  }
 }
 
 @media (max-width: 768px) {
-  .board {
-    gap: var(--space-3, 12px);
-  }
-  .seasonCard {
-    border-radius: var(--radius-lg, 12px);
-  }
-  .lessonMain {
-    flex-direction: column;
+  .lessonCard {
+    grid-template-columns: auto 1fr auto;
   }
   .lessonThumbnail {
-    width: 100%;
-    height: auto;
-    aspect-ratio: 16/9;
-  }
-  .seasonHeaderRight {
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-  .seasonActionBtn {
-    min-height: 36px;
-    padding: 0.35rem 0.6rem;
+    display: none;
   }
   .dragHandle {
     display: none;

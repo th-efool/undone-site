@@ -161,11 +161,11 @@ function convertImportedLesson(
     sourceTitle,
     publishedLabel: lesson.publishedLabel,
     difficulty: 'Intermediate',
-    tags: sourceIndex === 0 ? ['Imported'] : ['Imported', sourceTitle],
+    tags: sourceIndex === 0 ? [] : [sourceTitle],
     xp: Math.max(50, minutes * 12),
     resources: [],
     assignments: [],
-    collapsed: false,
+    collapsed: true,
   };
 
   generatedLesson.chunks = buildChunks(generatedLesson);
@@ -174,23 +174,24 @@ function convertImportedLesson(
   return generatedLesson;
 }
 
-function createSeasonFromLessons(index: number, lessons: CurriculumLesson[]): CurriculumSeason {
+function createSeasonFromLessons(index: number, lessons: CurriculumLesson[], existingSeason?: CurriculumSeason): CurriculumSeason {
   const first = lessons[0];
   const last = lessons[lessons.length - 1];
   const minutes = lessons.reduce((sum, lesson) => sum + parseDurationToMinutes(lesson.duration), 0);
 
   return {
-    id: makeId('season', index + 1),
-    title: `Season ${index + 1}`,
-    description:
+    id: existingSeason?.id || makeId('season', index + 1),
+    title: existingSeason?.title || `Season ${index + 1}`,
+    description: existingSeason?.description || (
       lessons.length > 0
         ? `Lessons ${first.playlistPosition} - ${last.playlistPosition}`
-        : 'Empty season placeholder.',
-    thumbnail: first?.thumbnail ?? '/mock/thumbnails/docker.avif',
+        : 'Empty season placeholder.'
+    ),
+    thumbnail: existingSeason?.thumbnail || first?.thumbnail || '/mock/thumbnails/docker.avif',
     estimatedDuration: formatDuration(minutes),
     lessonCount: lessons.length,
     lessons,
-    collapsed: false,
+    collapsed: existingSeason?.collapsed ?? false,
   };
 }
 
@@ -355,13 +356,18 @@ function finalizeCurriculum(curriculum: GeneratedCurriculum) {
   return finalized;
 }
 
-function buildSeasonsFromLessons(lessons: CurriculumLesson[]) {
+function buildSeasonsFromLessons(
+  lessons: CurriculumLesson[],
+  targetSeasonCount?: number,
+  existingSeasons: CurriculumSeason[] = []
+) {
   if (!lessons.length) {
-    return [createSeasonFromLessons(0, [])];
+    return [createSeasonFromLessons(0, [], existingSeasons[0])];
   }
 
   const totalMinutes = lessons.reduce((sum, lesson) => sum + parseDurationToMinutes(lesson.duration), 0);
-  const seasonCount = Math.max(1, Math.ceil(totalMinutes / TARGET_SEASON_MINUTES));
+  const autoSeasonCount = Math.max(1, Math.ceil(totalMinutes / TARGET_SEASON_MINUTES));
+  const seasonCount = targetSeasonCount && targetSeasonCount > 0 ? targetSeasonCount : autoSeasonCount;
   const targetSeasonMinutes = totalMinutes / seasonCount;
   const seasons: CurriculumSeason[] = [];
   let currentLessons: CurriculumLesson[] = [];
@@ -382,7 +388,7 @@ function buildSeasonsFromLessons(lessons: CurriculumLesson[]) {
       currentMinutes + lessonMinutes > nextThreshold &&
       seasons.length < seasonCount - 1
     ) {
-      seasons.push(createSeasonFromLessons(seasons.length, currentLessons));
+      seasons.push(createSeasonFromLessons(seasons.length, currentLessons, existingSeasons[seasons.length]));
       currentLessons = [];
       currentMinutes = 0;
       thresholdIndex += 1;
@@ -396,11 +402,11 @@ function buildSeasonsFromLessons(lessons: CurriculumLesson[]) {
 
     const isLastLesson = lessonIndex === lessons.length - 1;
     if (isLastLesson) {
-      seasons.push(createSeasonFromLessons(seasons.length, currentLessons));
+      seasons.push(createSeasonFromLessons(seasons.length, currentLessons, existingSeasons[seasons.length]));
     }
   });
 
-  return seasons.filter((s) => s.lessonCount > 0);
+  return seasons;
 }
 
 export function generateCurriculum(input: CurriculumGenerationInput) {
@@ -449,7 +455,16 @@ export function rebalanceSeasons(curriculum: GeneratedCurriculum) {
     ...lesson,
     collapsed: lesson.collapsed,
   }));
-  const seasons = buildSeasonsFromLessons(lessons);
+  
+  // Re-build seasons using existing metadata
+  const seasons = buildSeasonsFromLessons(lessons, curriculum.seasons.length, curriculum.seasons);
+
+  // Pad missing empty seasons if curriculum originally had them trailing
+  if (seasons.length < curriculum.seasons.length) {
+    for (let i = seasons.length; i < curriculum.seasons.length; i++) {
+      seasons.push(createSeasonFromLessons(i, [], curriculum.seasons[i]));
+    }
+  }
 
   return finalizeCurriculum({
     ...curriculum,
@@ -466,7 +481,13 @@ export function restorePlaylistOrder(curriculum: GeneratedCurriculum) {
       collapsed: lesson.collapsed,
     }));
 
-  const seasons = buildSeasonsFromLessons(lessons);
+  const seasons = buildSeasonsFromLessons(lessons, curriculum.seasons.length, curriculum.seasons);
+
+  if (seasons.length < curriculum.seasons.length) {
+    for (let i = seasons.length; i < curriculum.seasons.length; i++) {
+      seasons.push(createSeasonFromLessons(i, [], curriculum.seasons[i]));
+    }
+  }
 
   return finalizeCurriculum({
     ...curriculum,
@@ -485,7 +506,7 @@ export function createSeason(curriculum: GeneratedCurriculum, title?: string) {
       estimatedDuration: '0m',
       lessonCount: 0,
       lessons: [],
-      collapsed: false,
+      collapsed: true,
     },
   ];
 
