@@ -9,7 +9,7 @@ const source = {
 };
 const icons = {
   logo: {
-    src: '/images/logos/floating-logo.svg',
+    src: '/logos/floating-logo.svg',
     x: 53,
     y: 79.5,
     rotate: 0,

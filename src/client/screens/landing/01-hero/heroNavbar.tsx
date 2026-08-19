@@ -1,6 +1,9 @@
+'use client';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import styles from './heroNavbar.module.css';
+import { useSession } from 'next-auth/react';
 
 const navigationItems = [
   { label: 'Product', href: '/auth' },
@@ -8,6 +11,9 @@ const navigationItems = [
 ];
 
 export function HeroNavbar() {
+  const { data: session } = useSession();
+  const destination = session ? '/home' : '/auth';
+
   return (
     <header className={styles.header}>
       <div className={styles.inner}>
@@ -19,7 +25,7 @@ export function HeroNavbar() {
             <picture>
               <source srcSet="/logos/sidequesthq-logo.svg" media="(min-width: 2560px)" />
               <Image
-                src="/images/logos/sidequesthq-logo-no-book-compass.svg"
+                src="/logos/sidequesthq-logo-no-book-compass.svg"
                 alt="SideQuestHQ"
                 width={78}
                 height={78}
@@ -52,10 +58,10 @@ export function HeroNavbar() {
           </Link>
 
           <Link
-            href="/auth"
+            href={destination}
             className={styles.signupLink}
           >
-            Start Your Next SideQuest
+            Join
             <span>→</span>
           </Link>
         </div>

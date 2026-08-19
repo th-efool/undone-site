@@ -11,16 +11,16 @@ type Provider = {
 };
 
 const PROVIDERS: Provider[] = [
-  // {
-  //   id: 'google',
-  //   name: 'Google',
-  //   icon: '/icons/google.webp',
-  // },
-  // {
-  //   id: 'apple',
-  //   name: 'Apple',
-  //   icon: '/icons/apple.webp',
-  // },
+  {
+    id: 'google',
+    name: 'Google',
+    icon: '/icons/google.webp',
+  },
+  {
+    id: 'apple',
+    name: 'Apple',
+    icon: '/icons/apple.webp',
+  },
   {
     id: 'github',
     name: 'GitHub',
@@ -41,7 +41,9 @@ export function AuthProviders() {
           key={provider.id}
           type="button"
           className={styles.provider}
-          onClick={() => signIn(provider.id, { callbackUrl: '/' })}
+          onClick={() => signIn(provider.id, { callbackUrl: '/home' })}
+          disabled={provider.id === 'google' || provider.id === 'apple'}
+          style={provider.id === 'google' || provider.id === 'apple' ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
         >
           <Image
             src={provider.icon}

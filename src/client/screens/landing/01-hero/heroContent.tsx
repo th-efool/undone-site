@@ -1,7 +1,13 @@
+'use client';
+
 import styles from './heroContent.module.css';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 export function HeroContent() {
+  const { data: session } = useSession();
+  const destination = session ? '/home' : '/auth';
+
   return (
     <section className={styles.content}>
       <div className={styles.eyebrow}>
@@ -19,7 +25,7 @@ export function HeroContent() {
 
       <div className={styles.actions}>
         <Link
-          href="/auth"
+          href={destination}
           className={styles.ctaButton}
         >
           <span>Start Your Next SideQuest</span>
