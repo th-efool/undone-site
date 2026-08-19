@@ -4,14 +4,10 @@ import { useState } from 'react';
 import {
   Search,
   Scale,
-  RefreshCw,
-  RotateCcw,
   Plus,
   Undo,
   Redo,
-  CheckCircle,
   Command,
-  Sliders,
 } from 'lucide-react';
 import { useWizardContext } from '../../providers/WizardProvider';
 import { CurriculumShortcutsModal } from '../CurriculumShortcutsModal/CurriculumShortcutsModal';
@@ -64,27 +60,6 @@ export function CurriculumToolbar() {
             title="Auto-balance lessons into 10h seasons"
           >
             <Scale size={14} />
-            Auto Balance
-          </button>
-
-          <button
-            type="button"
-            onClick={() => actions.regenerateChunks()}
-            className={styles.actionBtn}
-            title="Regenerate 5-min learning chunks"
-          >
-            <RefreshCw size={14} />
-            Regenerate Chunks
-          </button>
-
-          <button
-            type="button"
-            onClick={() => actions.restorePlaylistOrder()}
-            className={styles.actionBtn}
-            title="Restore original playlist order"
-          >
-            <RotateCcw size={14} />
-            Restore Order
           </button>
         </div>
 
@@ -98,10 +73,6 @@ export function CurriculumToolbar() {
             <Command size={12} style={{ display: 'inline', marginRight: 4 }} />
             Cmd+K
           </button>
-
-          <span className={styles.saveBadge}>
-            <CheckCircle size={12} /> Saved
-          </span>
 
           <button
             type="button"
