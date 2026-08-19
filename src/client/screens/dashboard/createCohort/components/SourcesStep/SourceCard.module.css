@@ -7,7 +7,6 @@
   border-radius: var(--radius-lg, 12px);
   overflow: hidden;
   transition: transform var(--duration-fast, 150ms) var(--ease-standard),
-              box-shadow var(--duration-fast, 150ms) var(--ease-standard),
               border-color var(--duration-fast, 150ms) var(--ease-standard);
   cursor: grab;
 }
@@ -15,7 +14,6 @@
 .card:hover {
   transform: translateY(-2px);
   border-color: var(--color-border-hover, #52525b);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
 .card:active {

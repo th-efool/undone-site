@@ -55,7 +55,7 @@
   color: #fff;
   font-size: 1rem;
   outline: none;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition: border-color 150ms ease;
 }
 
 .textInput::placeholder {
@@ -64,7 +64,6 @@
 
 .textInput:focus {
   border-color: #ffffff;
-  box-shadow: 0 0 0 1px #fff;
 }
 
 /* Duration selector styles */
@@ -84,7 +83,7 @@
   font-size: 0.9375rem;
   outline: none;
   cursor: pointer;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition: border-color 150ms ease;
 }
 
 .selectInput option {
@@ -94,7 +93,6 @@
 
 .selectInput:focus {
   border-color: #ffffff;
-  box-shadow: 0 0 0 1px #fff;
 }
 
 .customDurationGroup {
@@ -114,12 +112,11 @@
   font-size: 0.9375rem;
   outline: none;
   text-align: center;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition: border-color 150ms ease;
 }
 
 .numberInput:focus {
   border-color: #ffffff;
-  box-shadow: 0 0 0 1px #fff;
 }
 
 .numberInput::-webkit-outer-spin-button,
@@ -142,7 +139,7 @@
   font-size: 0.9375rem;
   outline: none;
   cursor: pointer;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
+  transition: border-color 150ms ease;
 }
 
 .unitSelect option {
@@ -152,7 +149,6 @@
 
 .unitSelect:focus {
   border-color: #ffffff;
-  box-shadow: 0 0 0 1px #fff;
 }
 
 /* Category Grid & Chips */

@@ -39,7 +39,6 @@
   height: 6px;
   border-radius: 50%;
   background: #38bdf8;
-  box-shadow: 0 0 8px 2px rgba(56, 189, 248, 0.5);
   flex-shrink: 0;
 }
 
@@ -111,7 +110,6 @@
   display: block;
   height: 100%;
   background: #38bdf8;
-  box-shadow: 0 0 4px rgba(56, 189, 248, 0.4);
   transition: width 0.2s ease;
 }
 
@@ -223,7 +221,6 @@
 .stageDot_completed {
   border-color: #38bdf8;
   background: #38bdf8;
-  box-shadow: 0 0 6px rgba(56, 189, 248, 0.4);
 }
 
 .stageDot_running {
@@ -488,8 +485,8 @@
 
 /* Helper Animations */
 @keyframes pulseGlow {
-  from { box-shadow: 0 0 2px rgba(56, 189, 248, 0.2); }
-  to { box-shadow: 0 0 8px rgba(56, 189, 248, 0.6); }
+  from { opacity: 0.6; transform: scale(1); }
+  to { opacity: 1; transform: scale(1.2); }
 }
 
 /* Scrollbars */

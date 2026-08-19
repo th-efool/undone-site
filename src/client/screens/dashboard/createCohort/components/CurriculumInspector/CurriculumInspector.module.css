@@ -63,6 +63,22 @@
   padding-bottom: 20px;
   border-bottom: 1px solid #111111;
 }
+.sectionInline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #111111;
+  gap: 12px;
+}
+.sectionInline:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+.sectionInline .sectionHeader {
+  flex-shrink: 0;
+}
 .section:last-child {
   padding-bottom: 0;
   border-bottom: none;
@@ -201,7 +217,6 @@
   background: #4f46e5;
   cursor: pointer;
   border: 2px solid white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
   margin-top: -5.5px;
 }
 .rangeSlider::-moz-range-thumb {
@@ -211,7 +226,6 @@
   background: #4f46e5;
   cursor: pointer;
   border: 2px solid white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
 }
 
 /* ─── Simple input & textarea (for inspector fields) ─────────────────────── */
@@ -227,12 +241,12 @@
 
 .input {
   width: 100%;
-  padding: 0.45rem 0.7rem;
+  padding: 0.35rem 0.6rem;
   background: #111111;
   border: 1px solid #333333;
   border-radius: 6px;
   color: #ffffff;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 500;
   font-family: var(--font-manrope);
   outline: none;
@@ -240,6 +254,53 @@
 }
 .input:focus {
   border-color: #4f46e5;
+}
+
+/* ─── Custom Dropdown ─────────────────────────────────────────────────────── */
+.dropdownContainer {
+  position: relative;
+  width: 100%;
+}
+.dropdownTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.35rem 0.6rem;
+  background: #111111;
+  border: 1px solid #333333;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #111111;
+  border: 1px solid #333333;
+  border-radius: 6px;
+  overflow: hidden;
+  z-index: 100;
+}
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-size: 0.78rem;
+  text-align: left;
+  cursor: pointer;
+}
+.dropdownItem:hover {
+  background: #333333;
 }
 
 .textarea {
@@ -260,16 +321,20 @@
 
 .tabBtn {
   flex: 1;
-  padding: 0.35rem 0.5rem;
+  min-width: 0;
+  padding: 0.35rem;
   background: transparent;
   border: none;
   border-radius: 6px;
   color: #888888;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.78rem;
+  font-weight: 500;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
   font-family: var(--font-manrope);
-  transition: all 0.12s;
 }
 .tabBtn:hover { color: #ffffff; }
 
@@ -277,7 +342,12 @@
   background: #333333;
   color: #ffffff;
   font-weight: 700;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.tabText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ─── Image preview ───────────────────────────────────────────────────────── */
@@ -352,8 +422,8 @@
 
 .customGoalInput {
   width: 64px;
-  padding: 5px 10px;
-  font-size: 0.82rem;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.78rem;
   font-weight: 600;
   border: 1px solid #333333;
   border-radius: 6px;
@@ -423,7 +493,6 @@
     max-height: 60vh;
     border-radius: 20px 20px 0 0;
     z-index: 500;
-    border: none;
-    box-shadow: 0 -4px 16px rgba(0,0,0,0.1);
+    border-top: 1px solid #111111;
   }
 }

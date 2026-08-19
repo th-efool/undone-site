@@ -1,14 +1,40 @@
 "use client";
 import Image from 'next/image';
 
-import { useState } from 'react';
-import { X, Layers, BookOpen, Plus, Compass } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { 
+  X, Layers, BookOpen, Compass,
+  SignalLow, SignalMedium, SignalHigh, ChevronDown,
+  Monitor, Smartphone, Headphones,
+  Feather, Brain, Weight,
+  Target, Route
+} from 'lucide-react';
 import { useWizardContext } from '../../providers/WizardProvider';
-import { difficultyOptions } from '../../mock/createCohort.mock';
 
 import styles from './CurriculumInspector.module.css';
 
-const DIFF_OPTIONS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'] as const;
+const DIFF_OPTIONS = [
+  { value: 'Beginner', label: 'Beginner', icon: SignalLow },
+  { value: 'Intermediate', label: 'Intermediate', icon: SignalMedium },
+  { value: 'Advanced', label: 'Advanced', icon: SignalHigh },
+] as const;
+
+const VISUAL_OPTIONS = [
+  { value: 'REQUIRES SCREEN', icon: Monitor },
+  { value: 'GLANCEABLE', icon: Smartphone },
+  { value: 'AUDIO ONLY', icon: Headphones }
+] as const;
+
+const COGNITIVE_OPTIONS = [
+  { value: 'LIGHT & BREEZY', icon: Feather },
+  { value: 'STANDARD', icon: Brain },
+  { value: 'HEAVY / DENSE', icon: Weight }
+] as const;
+
+const PATHWAY_OPTIONS = [
+  { value: 'CORE CURRICULUM', icon: Target },
+  { value: 'BONUS / TANGENT', icon: Route }
+] as const;
 
 export function CurriculumInspector() {
   const { curriculumState, actions } = useWizardContext();
@@ -16,6 +42,18 @@ export function CurriculumInspector() {
 
   const [activeTab, setActiveTab] = useState<'general' | 'prerequisites'>('general');
   const [targetSeasonHours, setTargetSeasonHours] = useState(10);
+  const [diffOpen, setDiffOpen] = useState(false);
+  const diffRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (diffRef.current && !diffRef.current.contains(event.target as Node)) {
+        setDiffOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   if (!curriculum) return null;
 
@@ -191,26 +229,47 @@ export function CurriculumInspector() {
                 />
               </section>
 
-              <section className={styles.section}>
+              <section className={styles.sectionInline}>
                 <div className={styles.sectionHeader}>
                   <BookOpen size={14} className={styles.icon} />
                   <span className={styles.sectionLabel}>Difficulty</span>
                 </div>
-                <div className={styles.pills}>
-                  {DIFF_OPTIONS.map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      className={`${styles.pill} ${selectedLesson.difficulty === opt ? styles.pillActive : styles.pillIdle}`}
-                      onClick={() => actions.updateLesson(selectedLesson.id, { difficulty: opt })}
-                    >
-                      {opt}
-                    </button>
-                  ))}
+                <div className={styles.dropdownContainer} ref={diffRef}>
+                  <button
+                    type="button"
+                    className={styles.dropdownTrigger}
+                    onClick={() => setDiffOpen(!diffOpen)}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {(() => {
+                        const activeOpt = DIFF_OPTIONS.find(o => o.value === selectedLesson.difficulty) || DIFF_OPTIONS[1];
+                        const IconComponent = activeOpt.icon;
+                        return <><IconComponent size={14} /> {activeOpt.label}</>;
+                      })()}
+                    </div>
+                    <ChevronDown size={14} />
+                  </button>
+                  {diffOpen && (
+                    <div className={styles.dropdownMenu}>
+                      {DIFF_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          className={styles.dropdownItem}
+                          onClick={() => {
+                            actions.updateLesson(selectedLesson.id, { difficulty: opt.value });
+                            setDiffOpen(false);
+                          }}
+                        >
+                          <opt.icon size={14} /> {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </section>
 
-              <section className={styles.section}>
+              <section className={styles.sectionInline}>
                 <div className={styles.sectionHeader}>
                   <BookOpen size={14} className={styles.icon} />
                   <span className={styles.sectionLabel}>XP Reward</span>
@@ -224,6 +283,66 @@ export function CurriculumInspector() {
                     className={styles.customGoalInput}
                   />
                   <span className={styles.unitText}>XP</span>
+                </div>
+              </section>
+
+              <section className={styles.sectionInline}>
+                <div className={styles.sectionHeader}>
+                  <BookOpen size={14} className={styles.icon} />
+                  <span className={styles.sectionLabel}>Vis. Focus</span>
+                </div>
+                <div className={styles.tabBar} style={{ width: '100%', maxWidth: '200px' }}>
+                  {VISUAL_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      title={opt.value}
+                      className={`${styles.tabBtn} ${selectedLesson.visualDependence === opt.value || (!selectedLesson.visualDependence && opt.value === 'GLANCEABLE') ? styles.tabActive : ''}`}
+                      onClick={() => actions.updateLesson(selectedLesson.id, { visualDependence: opt.value })}
+                    >
+                      <opt.icon size={14} />
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className={styles.sectionInline}>
+                <div className={styles.sectionHeader}>
+                  <BookOpen size={14} className={styles.icon} />
+                  <span className={styles.sectionLabel}>Cog. Load</span>
+                </div>
+                <div className={styles.tabBar} style={{ width: '100%', maxWidth: '200px' }}>
+                  {COGNITIVE_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      title={opt.value}
+                      className={`${styles.tabBtn} ${selectedLesson.cognitiveLoad === opt.value || (!selectedLesson.cognitiveLoad && opt.value === 'STANDARD') ? styles.tabActive : ''}`}
+                      onClick={() => actions.updateLesson(selectedLesson.id, { cognitiveLoad: opt.value })}
+                    >
+                      <opt.icon size={14} />
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className={styles.sectionInline}>
+                <div className={styles.sectionHeader}>
+                  <BookOpen size={14} className={styles.icon} />
+                  <span className={styles.sectionLabel}>Pathway</span>
+                </div>
+                <div className={styles.tabBar} style={{ width: '100%', maxWidth: '200px' }}>
+                  {PATHWAY_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      title={opt.value}
+                      className={`${styles.tabBtn} ${selectedLesson.pathway === opt.value || (!selectedLesson.pathway && opt.value === 'CORE CURRICULUM') ? styles.tabActive : ''}`}
+                      onClick={() => actions.updateLesson(selectedLesson.id, { pathway: opt.value })}
+                    >
+                      <opt.icon size={14} />
+                    </button>
+                  ))}
                 </div>
               </section>
             </>

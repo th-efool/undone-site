@@ -68,7 +68,8 @@ export function IdentityStep({ details }: IdentityStepProps) {
         </Stack>
 
         <div className={styles.card}>
-          <Cluster className={styles.twoCol}>
+          <div className={styles.sectionGroup}>
+            <h3 className={styles.sectionTitle}>Basic Details</h3>
             <div className={styles.field}>
               <label htmlFor="identity-title" className={styles.label}>
                 <span>Cohort Title <span className={styles.required}>* Required</span></span>
@@ -78,7 +79,7 @@ export function IdentityStep({ details }: IdentityStepProps) {
                 id="identity-title"
                 value={draft.title}
                 placeholder="e.g. Advanced Python Masterclass"
-                className={`${styles.input} ${isTitleMissing ? styles.inputError : ''}`}
+                className={`${styles.input} ${styles.titleInput} ${isTitleMissing ? styles.inputError : ''}`}
                 onChange={(e) => actions.updateDraftField('title', e.target.value)}
               />
               {isTitleMissing && (
@@ -99,149 +100,167 @@ export function IdentityStep({ details }: IdentityStepProps) {
                 onChange={(e) => actions.updateDraftField('subtitle', e.target.value)}
               />
             </div>
-          </Cluster>
+          </div>
 
-          <Cluster className={styles.twoCol}>
+          <div className={styles.sectionGroup}>
+            <h3 className={styles.sectionTitle}>Visual Identity</h3>
             <div className={styles.field}>
-              <label className={styles.label}>Brand Color</label>
-              <div className={styles.colorGrid}>
-                {COLORS.map(color => (
-                  <button
-                    key={color}
-                    type="button"
-                    className={styles.colorBtn}
-                    data-selected={selectedColor === color}
-                    style={{ backgroundColor: color }}
-                    onClick={() => setSelectedColor(color)}
+              <label htmlFor="identity-cover" className={styles.label}>
+                Cover Image URL
+              </label>
+              <Cluster className={styles.inlineRow} align="start">
+                {draft.coverImage ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={draft.coverImage} alt="Cover Preview" className={styles.coverPreview} />
+                ) : (
+                  <div className={styles.coverPlaceholder}>
+                    <ImageIcon size={24} />
+                  </div>
+                )}
+                <Stack style={{ flex: 1 }} gap="2">
+                  <input
+                    id="identity-cover"
+                    value={draft.coverImage}
+                    placeholder="https://images.unsplash.com/..."
+                    className={styles.input}
+                    onChange={(e) => actions.updateDraftField('coverImage', e.target.value)}
                   />
-                ))}
-              </div>
+                  <div>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={() =>
+                        actions.updateDraftField(
+                          'coverImage',
+                          'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop',
+                        )
+                      }
+                    >
+                      <ImageIcon size={14} />
+                      Use Default Preset
+                    </Button>
+                  </div>
+                </Stack>
+              </Cluster>
             </div>
 
-            <div className={styles.field}>
-              <label className={styles.label}>Brand Icon</label>
-              <div className={styles.iconGrid}>
-                {ICONS.map((Icon, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    className={styles.iconBtn}
-                    data-selected={selectedIconIndex === idx}
-                    onClick={() => setSelectedIconIndex(idx)}
-                  >
-                    <Icon size={20} />
-                  </button>
-                ))}
+            <Cluster className={styles.twoCol}>
+              <div className={styles.field}>
+                <label className={styles.label}>Brand Color</label>
+                <div className={styles.colorGrid}>
+                  {COLORS.map(color => (
+                    <button
+                      key={color}
+                      type="button"
+                      className={styles.colorBtn}
+                      data-selected={selectedColor === color}
+                      style={{ backgroundColor: color }}
+                      onClick={() => setSelectedColor(color)}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
-          </Cluster>
 
-          <div className={styles.field}>
-            <label htmlFor="identity-cover" className={styles.label}>
-              Cover Image URL
-            </label>
-            <Cluster className={styles.inlineRow}>
-              <input
-                id="identity-cover"
-                value={draft.coverImage}
-                placeholder="https://images.unsplash.com/..."
-                className={styles.input}
-                onChange={(e) => actions.updateDraftField('coverImage', e.target.value)}
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() =>
-                  actions.updateDraftField(
-                    'coverImage',
-                    'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop',
-                  )
-                }
-              >
-                <ImageIcon size={14} />
-                Preset
-              </Button>
+              <div className={styles.field}>
+                <label className={styles.label}>Brand Icon</label>
+                <div className={styles.iconGrid}>
+                  {ICONS.map((Icon, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      className={styles.iconBtn}
+                      data-selected={selectedIconIndex === idx}
+                      onClick={() => setSelectedIconIndex(idx)}
+                    >
+                      <Icon size={20} />
+                    </button>
+                  ))}
+                </div>
+              </div>
             </Cluster>
           </div>
 
-          <div className={styles.field}>
-            <label htmlFor="identity-description" className={styles.label}>
-              <span>Cohort Overview & Description</span>
-              <span className={styles.charCounter}>{draft.description ? draft.description.length : 0}/2000</span>
-            </label>
-            <textarea
-              id="identity-description"
-              value={draft.description}
-              placeholder="Explain what learners will achieve and what makes this cohort unique."
-              className={styles.textarea}
-              onChange={(e) => actions.updateDraftField('description', e.target.value)}
-            />
+          <div className={styles.sectionGroup}>
+            <h3 className={styles.sectionTitle}>About & Curriculum</h3>
+            <div className={styles.field}>
+              <label htmlFor="identity-description" className={styles.label}>
+                <span>Cohort Overview & Description</span>
+                <span className={styles.charCounter}>{draft.description ? draft.description.length : 0}/2000</span>
+              </label>
+              <textarea
+                id="identity-description"
+                value={draft.description}
+                placeholder="Explain what learners will achieve and what makes this cohort unique."
+                className={styles.textarea}
+                onChange={(e) => actions.updateDraftField('description', e.target.value)}
+              />
+            </div>
+
+            <Cluster className={styles.twoCol}>
+              {/* Requirements List */}
+              <div className={styles.field}>
+                <label className={styles.label}>Prerequisites & Requirements</label>
+                <Stack className={styles.listContainer}>
+                  {draft.requirements.map((req, idx) => (
+                    <Cluster key={idx} className={styles.listItem}>
+                      <span>{req}</span>
+                      <button
+                        type="button"
+                        className={styles.removeBtn}
+                        onClick={() => actions.removeRequirement(idx)}
+                      >
+                        <X size={13} />
+                      </button>
+                    </Cluster>
+                  ))}
+                  <Cluster className={styles.inlineComposer}>
+                    <input
+                      value={reqInput}
+                      placeholder="Add requirement..."
+                      className={styles.input}
+                      onChange={(e) => setReqInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addRequirement())}
+                    />
+                    <Button type="button" variant="secondary" size="sm" onClick={addRequirement}>
+                      <Plus size={14} />
+                    </Button>
+                  </Cluster>
+                </Stack>
+              </div>
+
+              {/* Learning Outcomes List */}
+              <div className={styles.field}>
+                <label className={styles.label}>Learning Outcomes</label>
+                <Stack className={styles.listContainer}>
+                  {draft.learningOutcomes.map((outcome, idx) => (
+                    <Cluster key={idx} className={styles.listItem}>
+                      <span>{outcome}</span>
+                      <button
+                        type="button"
+                        className={styles.removeBtn}
+                        onClick={() => actions.removeLearningOutcome(idx)}
+                      >
+                        <X size={13} />
+                      </button>
+                    </Cluster>
+                  ))}
+                  <Cluster className={styles.inlineComposer}>
+                    <input
+                      value={outcomeInput}
+                      placeholder="Add learning outcome..."
+                      className={styles.input}
+                      onChange={(e) => setOutcomeInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addOutcome())}
+                    />
+                    <Button type="button" variant="secondary" size="sm" onClick={addOutcome}>
+                      <Plus size={14} />
+                    </Button>
+                  </Cluster>
+                </Stack>
+              </div>
+            </Cluster>
           </div>
-
-          <Cluster className={styles.twoCol}>
-            {/* Requirements List */}
-            <div className={styles.field}>
-              <label className={styles.label}>Prerequisites & Requirements</label>
-              <Stack className={styles.listContainer}>
-                {draft.requirements.map((req, idx) => (
-                  <Cluster key={idx} className={styles.listItem}>
-                    <span>{req}</span>
-                    <button
-                      type="button"
-                      className={styles.removeBtn}
-                      onClick={() => actions.removeRequirement(idx)}
-                    >
-                      <X size={13} />
-                    </button>
-                  </Cluster>
-                ))}
-                <Cluster className={styles.inlineComposer}>
-                  <input
-                    value={reqInput}
-                    placeholder="Add requirement..."
-                    className={styles.input}
-                    onChange={(e) => setReqInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addRequirement())}
-                  />
-                  <Button type="button" variant="secondary" size="sm" onClick={addRequirement}>
-                    <Plus size={14} />
-                  </Button>
-                </Cluster>
-              </Stack>
-            </div>
-
-            {/* Learning Outcomes List */}
-            <div className={styles.field}>
-              <label className={styles.label}>Learning Outcomes</label>
-              <Stack className={styles.listContainer}>
-                {draft.learningOutcomes.map((outcome, idx) => (
-                  <Cluster key={idx} className={styles.listItem}>
-                    <span>{outcome}</span>
-                    <button
-                      type="button"
-                      className={styles.removeBtn}
-                      onClick={() => actions.removeLearningOutcome(idx)}
-                    >
-                      <X size={13} />
-                    </button>
-                  </Cluster>
-                ))}
-                <Cluster className={styles.inlineComposer}>
-                  <input
-                    value={outcomeInput}
-                    placeholder="Add learning outcome..."
-                    className={styles.input}
-                    onChange={(e) => setOutcomeInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addOutcome())}
-                  />
-                  <Button type="button" variant="secondary" size="sm" onClick={addOutcome}>
-                    <Plus size={14} />
-                  </Button>
-                </Cluster>
-              </Stack>
-            </div>
-          </Cluster>
         </div>
       </Stack>
 

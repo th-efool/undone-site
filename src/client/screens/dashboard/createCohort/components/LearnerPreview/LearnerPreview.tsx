@@ -59,9 +59,6 @@ export function LearnerPreview() {
   const tabs: { id: LearnerPreviewTab; label: string; icon: typeof BookOpen }[] = [
     { id: 'overview', label: 'Overview', icon: Compass },
     { id: 'questline', label: 'Questline', icon: BookOpen },
-    { id: 'events', label: 'Events', icon: Calendar },
-    { id: 'archives', label: 'Archives', icon: Archive },
-    { id: 'hall-of-fame', label: 'Hall of Fame', icon: Trophy },
   ];
 
   return (

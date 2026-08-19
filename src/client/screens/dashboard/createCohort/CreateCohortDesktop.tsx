@@ -22,7 +22,7 @@ interface CreateCohortDesktopProps {
 export function CreateCohortDesktop({ model }: CreateCohortDesktopProps) {
   return (
     <main className={styles.screen}>
-      <Container size="wide">
+      <Container size="full" style={{ paddingInline: '2rem' }}>
         <Stack gap="8" className={styles.pageStack}>
           <section className={styles.header}>
             <div className={styles.headerTop}>

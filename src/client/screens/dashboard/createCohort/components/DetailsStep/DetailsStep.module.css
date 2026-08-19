@@ -26,7 +26,6 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  box-shadow: var(--shadow-sm, 0 4px 16px rgba(0, 0, 0, 0.2));
 }
 
 .sectionHeader {
@@ -108,14 +107,12 @@
 
   &:focus {
     border-color: var(--color-brand, #6366f1);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
     background: var(--color-surface-tertiary, rgba(255, 255, 255, 0.08));
   }
 }
 
 .inputError {
   border-color: #f87171 !important;
-  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.25) !important;
 }
 
 .errorMessage {
@@ -161,7 +158,6 @@
   background: rgba(99, 102, 241, 0.18) !important;
   border-color: var(--color-brand, #6366f1) !important;
   color: #ffffff !important;
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
 }
 
 .chipGrid {
@@ -297,7 +293,6 @@
   border: 1px solid var(--color-border, rgba(255, 255, 255, 0.14));
   border-radius: var(--radius-xl, 18px);
   overflow: hidden;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
   display: flex;
   flex-direction: column;
 }
@@ -414,7 +409,6 @@
   font-weight: 800;
   text-align: center;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
   transition: all 0.2s ease;
 
   &:hover {
