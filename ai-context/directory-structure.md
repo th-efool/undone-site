@@ -287,10 +287,9 @@
 │   ├── ANDROID.md
 │   ├── ARCHITECTURE.md
 │   ├── canvas-ui-change-plan.md
+│   ├── content-metadata-architecture.md
 │   ├── prisma-schema-cohort.md
 │   └── study-rooms-schema.md
-├── notes/
-│   └── excalidraw-integration-plan.md
 ├── prisma/
 │   └── schema.prisma
 ├── public/
@@ -302,11 +301,25 @@
 │   │   ├── Manrope-Medium.ttf
 │   │   └── Manrope-SemiBold.ttf
 │   ├── icons/
-│   │   ├── apple.webp
-│   │   ├── github.webp
-│   │   ├── google.webp
-│   │   ├── screenshotquill.png
-│   │   └── slack.webp
+│   │   ├── 128/
+│   │   │   ├── Ai.webp
+│   │   │   ├── Article.webp
+│   │   │   ├── Book.webp
+│   │   │   ├── Bookmark.webp
+│   │   │   ├── Calender.webp
+│   │   │   ├── Headphone.webp
+│   │   │   ├── Youtube.webp
+│   │   │   └── floating-logo.webp
+│   │   ├── 512/
+│   │   │   ├── Ai.webp
+│   │   │   ├── Article.webp
+│   │   │   ├── Book.webp
+│   │   │   ├── Bookmark.webp
+│   │   │   ├── Calender.webp
+│   │   │   ├── Headphone.webp
+│   │   │   └── Youtube.webp
+│   │   ├── icon-style-ref.png
+│   │   └── screenshotquill.png
 │   ├── images/
 │   │   ├── auth/
 │   │   │   ├── claude.webp
@@ -322,29 +335,6 @@
 │   │   ├── home/
 │   │   │   ├── crow.webp
 │   │   │   └── home-hero.webp
-│   │   ├── icons/
-│   │   │   ├── 128/
-│   │   │   │   ├── Ai.webp
-│   │   │   │   ├── Article.webp
-│   │   │   │   ├── Book.webp
-│   │   │   │   ├── Bookmark.webp
-│   │   │   │   ├── Calender.webp
-│   │   │   │   ├── Headphone.webp
-│   │   │   │   ├── Youtube.webp
-│   │   │   │   └── floating-logo.webp
-│   │   │   ├── 512/
-│   │   │   │   ├── Ai.webp
-│   │   │   │   ├── Article.webp
-│   │   │   │   ├── Book.webp
-│   │   │   │   ├── Bookmark.webp
-│   │   │   │   ├── Calender.webp
-│   │   │   │   ├── Headphone.webp
-│   │   │   │   └── Youtube.webp
-│   │   │   ├── coursera-white.webp
-│   │   │   ├── coursera.webp
-│   │   │   ├── icon-style-ref.png
-│   │   │   ├── youtube-white.webp
-│   │   │   └── youtube.webp
 │   │   ├── landing/
 │   │   │   ├── before-sleep.webp
 │   │   │   ├── cab-ride.webp
@@ -354,6 +344,12 @@
 │   │   │   ├── phone.webp
 │   │   │   ├── screen.webp
 │   │   │   └── waiting.webp
+│   │   ├── mobile/
+│   │   │   └── explore/
+│   │   │       ├── bottle-content-mobile.webp
+│   │   │       └── explore-hero-banner-mobile.webp
+│   │   ├── mockups/
+│   │   │   └── dashboard-microlearning.png
 │   │   ├── studyrooms/
 │   │   │   ├── campside.webp
 │   │   │   ├── canal.webp
@@ -367,13 +363,17 @@
 │   │   ├── hero-poster.webp
 │   │   └── onlyMascot.png
 │   ├── logos/
+│   │   ├── apple.webp
+│   │   ├── coursera-white.webp
+│   │   ├── coursera.webp
 │   │   ├── floating-logo.svg
+│   │   ├── github.webp
+│   │   ├── google.webp
 │   │   ├── sidequesthq-logo-no-book-compass.svg
-│   │   └── sidequesthq-logo.svg
-│   ├── mobile/
-│   │   └── explore/
-│   │       ├── bottle-content-mobile.webp
-│   │       └── explore-hero-banner-mobile.webp
+│   │   ├── sidequesthq-logo.svg
+│   │   ├── slack.webp
+│   │   ├── youtube-white.webp
+│   │   └── youtube.webp
 │   ├── mock/
 │   │   ├── avatars/
 │   │   │   ├── a.webp
@@ -413,8 +413,6 @@
 │   │       ├── space.jpeg
 │   │       ├── system-design.jpeg
 │   │       └── ui-fundamentals.webp
-│   ├── mockups/
-│   │   └── dashboard-microlearning.png
 │   ├── videos/
 │   │   ├── auth/
 │   │   │   ├── 1.webm
@@ -431,15 +429,6 @@
 │   ├── file.svg
 │   ├── globe.svg
 │   └── window.svg
-├── scratch/
-│   ├── build-real-feed-cohorts.mjs
-│   ├── gen-feed-log.txt
-│   ├── generate-feed-cohorts.mjs
-│   ├── import-feed-cohorts.mjs
-│   ├── test-feed-system.mjs
-│   ├── test-operating-systems-import.mjs
-│   ├── test-prisma.mjs
-│   └── test-real-feed.mjs
 ├── scripts/
 │   ├── mobile-build.mjs
 │   └── mobile-release-aab.mjs
@@ -500,6 +489,8 @@
 │   │   │   │       └── route.ts
 │   │   │   └── import/
 │   │   │       └── youtube/
+│   │   │           ├── metadata/
+│   │   │           │   └── route.ts
 │   │   │           └── playlist/
 │   │   │               └── route.ts
 │   │   ├── features/
@@ -1615,4 +1606,4 @@
 ├── task.md
 └── tsconfig.json
 
-502 directories, 1112 files
+500 directories, 1105 files
