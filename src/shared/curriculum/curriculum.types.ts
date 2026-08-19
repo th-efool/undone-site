@@ -83,6 +83,9 @@ export interface CurriculumLesson {
   visibility?: 'Public' | 'Unlisted' | 'Private' | string;
   learningObjectives?: string[];
   completionMessage?: string;
+  visualDependence?: 'REQUIRES SCREEN' | 'GLANCEABLE' | 'AUDIO ONLY';
+  cognitiveLoad?: 'LIGHT & BREEZY' | 'STANDARD' | 'HEAVY / DENSE';
+  pathway?: 'CORE CURRICULUM' | 'BONUS / TANGENT';
   collapsed: boolean;
 }
 
