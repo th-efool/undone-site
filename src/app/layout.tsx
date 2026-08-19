@@ -3,6 +3,7 @@ import { Caveat, Dancing_Script, Geist, Geist_Mono, Manrope, Lora, Playfair_Disp
 import { CapacitorBridge } from '@/src/client/components/global/CapacitorBridge/CapacitorBridge';
 import { ReactQueryProvider } from '@/src/client/providers/ReactQueryProvider';
 import { SliderProgressEngine } from '@/src/client/components/ui/Slider/SliderProgressEngine';
+import { SessionProvider } from 'next-auth/react';
 import './globals.css';
 
 const geistSans = Geist({
@@ -138,9 +139,11 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background text-text font-sans antialiased">
-        <SliderProgressEngine />
-        <CapacitorBridge />
-        <ReactQueryProvider>{children}</ReactQueryProvider>
+        <SessionProvider>
+          <SliderProgressEngine />
+          <CapacitorBridge />
+          <ReactQueryProvider>{children}</ReactQueryProvider>
+        </SessionProvider>
       </body>
     </html>
   );

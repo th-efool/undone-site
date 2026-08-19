@@ -1,4 +1,7 @@
+'use client';
+
 import Image from 'next/image';
+import { signIn } from 'next-auth/react';
 import styles from './authProviders.module.css';
 
 type Provider = {
@@ -8,16 +11,16 @@ type Provider = {
 };
 
 const PROVIDERS: Provider[] = [
-  {
-    id: 'google',
-    name: 'Google',
-    icon: '/icons/google.webp',
-  },
-  {
-    id: 'apple',
-    name: 'Apple',
-    icon: '/icons/apple.webp',
-  },
+  // {
+  //   id: 'google',
+  //   name: 'Google',
+  //   icon: '/icons/google.webp',
+  // },
+  // {
+  //   id: 'apple',
+  //   name: 'Apple',
+  //   icon: '/icons/apple.webp',
+  // },
   {
     id: 'github',
     name: 'GitHub',
@@ -38,6 +41,7 @@ export function AuthProviders() {
           key={provider.id}
           type="button"
           className={styles.provider}
+          onClick={() => signIn(provider.id, { callbackUrl: '/' })}
         >
           <Image
             src={provider.icon}
