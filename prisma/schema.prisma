@@ -3,61 +3,81 @@
 generator client {
   provider = "prisma-client-js"
   output   = "../generated/prisma"
-
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-// ─────────────────────────────────────────────────────────────────
-//  USER — The single source of truth for a person's identity
-//  Keep this lean. Per-user preferences go in MongoDB.
-// ─────────────────────────────────────────────────────────────────
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  username      String    @unique
-  displayName   String
-  avatarUrl     String?
+  id            String         @id @default(cuid())
+  name          String?
+  email         String?        @unique
+  emailVerified DateTime?
+  image         String?
+  username      String?        @unique
   bio           String?
-  role          UserRole  @default(EXPLORER)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-
-  // Relations (you'll add these in later phases)
+  role          UserRole       @default(EXPLORER)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  accounts      Account[]
   sessions      Session[]
   publicProfile PublicProfile?
+
+  cohorts           Cohort[]
+  cohortMemberships CohortMember[]
 
   @@map("users")
 }
 
-model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("sessions")
 }
 
-// ─────────────────────────────────────────────────────────────────
-//  PUBLIC PROFILE — What others see about a user
-// ─────────────────────────────────────────────────────────────────
-model PublicProfile {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  slug        String   @unique   // e.g. "agrim00001"  → sidequesthq.in/agrim00001
-  headline    String?
-  links       Json     @default("[]")  // [{label, url}]
-  isPublic    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model PublicProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  slug      String   @unique
+  headline  String?
+  links     Json     @default("[]")
+  isPublic  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("public_profiles")
 }
@@ -66,4 +86,140 @@ enum UserRole {
   EXPLORER
   CREATOR
   ADMIN
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  COURSE — A structured learning resource (from YouTube, Coursera etc.)
+// ─────────────────────────────────────────────────────────────────
+model Course {
+  id          String     @id @default(cuid())
+  title       String
+  description String?    @db.Text
+  coverImage  String?
+  sourceUrl   String? // Original YouTube/Coursera URL
+  sourceType  SourceType @default(CUSTOM)
+  difficulty  Difficulty @default(BEGINNER)
+  tags        String[] // Array of tag strings
+  isPublished Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  lessons Lesson[]
+  cohorts CohortCourse[]
+
+  @@map("courses")
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  LESSON — A single video/article/task within a Course
+// ─────────────────────────────────────────────────────────────────
+model Lesson {
+  id          String     @id @default(cuid())
+  courseId    String
+  title       String
+  description String?    @db.Text
+  videoUrl    String?
+  duration    Int? // Duration in seconds
+  order       Int // Position in course
+  lessonType  LessonType @default(VIDEO)
+  isPublished Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@map("lessons")
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  COHORT — A group learning journey built around courses
+// ─────────────────────────────────────────────────────────────────
+model Cohort {
+  id           String     @id @default(cuid())
+  creatorId    String
+  title        String
+  subtitle     String?
+  description  String?    @db.Text
+  coverImage   String?
+  difficulty   Difficulty @default(BEGINNER)
+  visibility   Visibility @default(PUBLIC)
+  qualityScore Int        @default(0)
+  isPublished  Boolean    @default(false)
+  publishedAt  DateTime?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  creator User           @relation(fields: [creatorId], references: [id])
+  courses CohortCourse[]
+  members CohortMember[]
+
+  @@map("cohorts")
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  COHORT ↔ COURSE — Many-to-many join table
+// ─────────────────────────────────────────────────────────────────
+model CohortCourse {
+  cohortId String
+  courseId String
+  order    Int    @default(0) // What order this course appears in cohort
+
+  cohort Cohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@id([cohortId, courseId])
+  @@map("cohort_courses")
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  COHORT MEMBER — Who has joined a cohort
+// ─────────────────────────────────────────────────────────────────
+model CohortMember {
+  cohortId String
+  userId   String
+  role     MemberRole @default(EXPLORER)
+  joinedAt DateTime   @default(now())
+
+  cohort Cohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([cohortId, userId])
+  @@map("cohort_members")
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  ENUMS
+// ─────────────────────────────────────────────────────────────────
+enum SourceType {
+  YOUTUBE
+  COURSERA
+  ARTICLE
+  PODCAST
+  CUSTOM
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+  INVITE_ONLY
+}
+
+enum LessonType {
+  VIDEO
+  ARTICLE
+  QUIZ
+  ASSIGNMENT
+  LIVE
+}
+
+enum MemberRole {
+  EXPLORER
+  MODERATOR
+  CREATOR
 }

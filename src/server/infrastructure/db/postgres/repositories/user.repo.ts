@@ -22,15 +22,15 @@ export const userRepo = {
     /** Create a new user */
     async create(data: {
         email: string;
-        username: string;
-        displayName: string;
-        avatarUrl?: string;
+        username?: string;
+        name?: string;
+        image?: string;
     }): Promise<User> {
         return prisma.user.create({ data });
     },
 
     /** Update a user's profile */
-    async update(id: string, data: Partial<Pick<User, 'displayName' | 'avatarUrl' | 'bio'>>): Promise<User> {
+    async update(id: string, data: Partial<Pick<User, 'name' | 'image' | 'bio'>>): Promise<User> {
         return prisma.user.update({ where: { id }, data });
     },
 };
