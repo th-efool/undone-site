@@ -14,19 +14,38 @@ export function CurriculumChecklist() {
 
   if (!curriculumState.curriculum) return null;
 
+  const percentage = checklist.totalCount > 0 ? (checklist.passedCount / checklist.totalCount) * 100 : 0;
+  const radius = 14;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
   return (
-    <div className={styles.checklistCard}>
-      <div className={styles.header} onClick={() => setExpanded(!expanded)}>
-        <div className={styles.titleGroup}>
-          <Rocket size={16} color="#6366f1" />
-          Publishing Readiness Checklist
-          <span className={checklist.isReady ? styles.statusBadgeReady : styles.statusBadgePending}>
-            {checklist.isReady ? <CheckCircle2 size={13} /> : <AlertCircle size={13} />}
-            {checklist.statusLabel} ({checklist.passedCount}/{checklist.totalCount})
+    <div className={styles.checklistCard} data-expanded={expanded}>
+      <div 
+        className={styles.header} 
+        onClick={() => setExpanded(!expanded)}
+        title="Publishing Readiness Checklist"
+      >
+        <div className={styles.progressWrapper}>
+          <svg width="36" height="36" viewBox="0 0 36 36" className={styles.circularProgress}>
+            <circle cx="18" cy="18" r="14" className={styles.progressBg} />
+            <circle 
+              cx="18" 
+              cy="18" 
+              r="14" 
+              className={checklist.isReady ? styles.progressFillReady : styles.progressFillPending}
+              style={{ strokeDasharray: circumference, strokeDashoffset }}
+              transform="rotate(-90 18 18)"
+            />
+          </svg>
+          <span className={styles.progressText}>
+            {checklist.passedCount}/{checklist.totalCount}
           </span>
         </div>
 
-        {expanded ? <ChevronUp size={16} color="#94a3b8" /> : <ChevronDown size={16} color="#94a3b8" />}
+        <div className={styles.iconContainer}>
+          {expanded ? <ChevronUp size={16} /> : <Rocket size={16} className={styles.rocketIcon} />}
+        </div>
       </div>
 
       {expanded && (

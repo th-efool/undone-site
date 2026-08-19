@@ -16,39 +16,75 @@
   cursor: pointer;
 }
 
-.titleGroup {
+.progressWrapper {
+  position: relative;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
-  font-size: 0.95rem;
+  justify-content: center;
+}
+
+.circularProgress {
+  transform: rotate(-90deg);
+  width: 100%;
+  height: 100%;
+}
+
+.progressBg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 3;
+}
+
+.progressFillReady {
+  fill: none;
+  stroke: #34d399;
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease-in-out;
+}
+
+.progressFillPending {
+  fill: none;
+  stroke: #fbbf24;
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease-in-out;
+}
+
+.progressText {
+  position: absolute;
+  font-size: 0.65rem;
   font-weight: 800;
   color: var(--color-text-primary, #ffffff);
 }
 
-.statusBadgeReady {
-  display: inline-flex;
+.iconContainer {
+  display: flex;
   align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.65rem;
-  background: rgba(52, 211, 153, 0.16);
-  border: 1px solid rgba(52, 211, 153, 0.35);
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: #34d399;
+  justify-content: center;
+  color: #94a3b8;
+  transition: color 0.2s;
 }
 
-.statusBadgePending {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.25rem 0.65rem;
-  background: rgba(245, 158, 11, 0.16);
-  border: 1px solid rgba(245, 158, 11, 0.35);
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: #fbbf24;
+.checklistCard[data-expanded="false"] {
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  padding: 0;
+}
+
+.checklistCard[data-expanded="true"] {
+  background: var(--color-surface, #181b28);
+  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-lg, 12px);
+  padding: 1rem 1.3rem;
+  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.2));
+}
+
+.checklistCard[data-expanded="true"] .header {
+  margin-bottom: 0.5rem;
 }
 
 .grid {

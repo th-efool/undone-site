@@ -14,15 +14,17 @@ export function CurriculumWarnings() {
   if (!warnings.length) return null;
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header} onClick={() => setExpanded(!expanded)}>
-        <div className={styles.title}>
-          <AlertTriangle size={16} />
-          Validation & Optimization Hints
+    <div className={`${styles.container} ${expanded ? styles.expanded : styles.collapsed}`}>
+      <button 
+        className={styles.headerBtn} 
+        onClick={() => setExpanded(!expanded)}
+        title="Validation & Optimization Hints"
+      >
+        <div className={styles.iconWrapper}>
+          <AlertTriangle size={20} className={styles.alertIcon} />
           <span className={styles.badge}>{warnings.length}</span>
         </div>
-        {expanded ? <ChevronUp size={16} color="#fbbf24" /> : <ChevronDown size={16} color="#fbbf24" />}
-      </div>
+      </button>
 
       {expanded && (
         <div className={styles.warningList}>
