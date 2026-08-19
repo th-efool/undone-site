@@ -879,15 +879,17 @@ export function WizardProvider({ children }: PropsWithChildren) {
       effectiveUrl = urlVal.sanitizedUrl;
     }
     const parsed = parseSourceUrlInput(effectiveUrl);
+    const newSourceId = createSourceId();
+
     setState((current) => ({
       ...current,
       draft: {
         ...current.draft,
         sources: [
           {
-            id: createSourceId(),
+            id: newSourceId,
             type: parsed.type,
-            title: parsed.title,
+            title: parsed.title || 'Loading metadata...',
             url: parsed.url,
             collapsed: false,
             thumbnailUrl: parsed.thumbnailUrl,
@@ -897,6 +899,27 @@ export function WizardProvider({ children }: PropsWithChildren) {
         ],
       },
     }));
+
+    if (parsed.type === 'YouTube Playlist' || parsed.type === 'YouTube Video') {
+      fetch(`/api/import/youtube/metadata?url=${encodeURIComponent(parsed.url)}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.title || data.thumbnailUrl) {
+            setState(current => ({
+              ...current,
+              draft: {
+                ...current.draft,
+                sources: current.draft.sources.map(s => 
+                  s.id === newSourceId 
+                    ? { ...s, title: data.title || s.title, thumbnailUrl: data.thumbnailUrl || s.thumbnailUrl }
+                    : s
+                )
+              }
+            }));
+          }
+        })
+        .catch(console.error);
+    }
   }, []);
 
   const removeSource = useCallback((sourceId: string) => {
