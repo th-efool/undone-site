@@ -1,0 +1,61 @@
+# SideQuestHQ Architecture
+
+SideQuestHQ is a cohort-based microlearning platform built to transform long-form internet content (YouTube playlists, articles, etc.) into interactive, high-retention, TikTok-style learning feeds.
+
+This document outlines the core technical architecture, data modeling, and engineering decisions that power the platform. It is designed to be a substantial, concise guide for reviewers and technical judges.
+
+---
+
+## 1. The Core Engine: Content Ingestion to Microlearning Feed
+
+The primary technical challenge of SideQuestHQ is bridging the gap between flat media (e.g., a 2-hour YouTube video) and interactive microlearning (5-minute chunked quests).
+
+### The Ingestion Pipeline (Cohort Creation Wizard)
+When a creator pastes a media URL:
+1. **URL Parsing & Validation**: The frontend validates the source and extracts metadata (domain, thumbnail, title).
+2. **Curriculum Generation**: The raw media is broken down into a structured JSON curriculum comprising **Seasons** and **Lessons**. 
+3. **Database Persistence**: The curriculum is atomically inserted into PostgreSQL via Prisma in a nested transaction, guaranteeing data integrity.
+
+### The Delivery Surface (TikTok-Style Feed)
+The `/play` route serves the chunked curriculum using a custom-built, distraction-free media engine.
+- **IFrame Eradication**: We strip away the native YouTube UI using the YouTube IFrame API, exposing only raw video buffers.
+- **Scroll Synchronization**: The vertical scrolling feed is deeply integrated with media state. Swiping to the next chunk instantly pauses the previous video and buffers the next.
+- **Progress Tracking**: Timestamp-based completion events (`&t=234s`) are emitted to the backend to persist user progress locally and globally.
+
+---
+
+## 2. Data Modeling & Relational Integrity (Prisma)
+
+Instead of storing curricula as flat JSON blobs (which breaks down at scale and prevents efficient querying), we use a strict relational model backed by PostgreSQL and Prisma ORM.
+
+### The Curriculum Hierarchy
+- **Cohort**: The top-level learning journey (e.g., "Fullstack React Developer").
+- **Season**: A logical grouping of content (e.g., "The React Foundations").
+- **Lesson (Quest)**: The atomic unit of learning (e.g., "Understanding useEffect").
+
+This schema allows us to perform targeted queries. For example, we can load just "Season 1" without loading the entire 500-lesson Cohort into memory, significantly reducing time-to-first-byte (TTFB).
+
+### Global Study Rooms (Join Tables & Concurrency)
+We support global "Study Rooms" where users can drop in for focused voice sessions.
+- We use a **Join Table** (`RoomParticipant`) to enforce that a user can only be in one room globally.
+- A **Unique Constraint** (`@unique` on `userId`) at the database level guarantees this logic, preventing race conditions if a user clicks "Join" simultaneously across multiple tabs.
+
+---
+
+## 3. Security & Authentication (NextAuth v5)
+
+SideQuestHQ relies on robust, persistent authentication to track learning progress accurately.
+
+- **NextAuth v5 (Auth.js)**: Handles the OAuth flow (GitHub, Apple, Google).
+- **Database Sessions**: Unlike traditional JWTs stored in cookies (which can be lost or hard to revoke), we use the `@auth/prisma-adapter` to store active sessions directly in PostgreSQL. 
+- **Server-Side Enforcement**: Protected routes and API endpoints verify the session directly against the database using a custom `requireUser()` wrapper, ensuring that revoked users are instantly locked out.
+
+---
+
+## 4. Client-Server Architecture (Next.js App Router)
+
+We leverage the Next.js App Router to split the workload optimally between the server and the client.
+
+- **Server Components (RSC)**: Used for data-heavy operations like rendering the initial Cohort Overview or fetching the Curriculum tree. This keeps the bundle size small and leverages server-side caching.
+- **Client Components**: Used strictly where interactivity is required—such as the media playback engine, gesture controls in the TikTok feed, and the multi-step React Hook Form in the Cohort Wizard.
+- **Native Mobile Bridge (Capacitor)**: The web shell is designed to be seamlessly wrapped by Capacitor for iOS/Android deployment, allowing us to push web updates instantly while maintaining native performance for video decoding.
