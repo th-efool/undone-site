@@ -118,14 +118,20 @@
   font-weight: 700;
   cursor: pointer;
   text-decoration: none;
-  box-shadow: 0 6px 16px rgba(91, 70, 232, 0.25);
-  transition: transform 180ms ease, background 180ms ease;
+  box-shadow: 0 2px 8px rgba(91, 70, 232, 0.15);
+  transition: all 0.15s ease-out;
   white-space: nowrap;
 }
 
 .newButton:hover {
-  transform: translateY(-1px);
-  background: #4a36d2;
+  color: white;
+  background: #4f3ce3;
+  box-shadow: 0 4px 12px rgba(91, 70, 232, 0.25);
+}
+
+.newButton:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 4px rgba(91, 70, 232, 0.1);
 }
 
 .statBadge {
