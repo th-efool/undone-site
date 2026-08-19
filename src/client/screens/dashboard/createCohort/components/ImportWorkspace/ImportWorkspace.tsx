@@ -75,7 +75,6 @@ function badgeVariant(status: SourceImportCardModel['status']) {
 const CANONICAL_STAGE_NAMES = ['Queued', 'Validating', 'Metadata', 'Processing', 'Ready'];
 
 function PipelineMatrix({ stages }: { stages: ImportPipelineStageModel[] }) {
-  // If provided stages match or exist, use them; otherwise ensure horizontal pill rail shows stages
   const displayStages = stages.length > 0
     ? stages
     : CANONICAL_STAGE_NAMES.map((name, i) => ({
@@ -86,31 +85,22 @@ function PipelineMatrix({ stages }: { stages: ImportPipelineStageModel[] }) {
         progress: i === 0 ? 100 : i === 1 ? 50 : 0,
       }));
 
-  const activeCount = displayStages.filter((s) => s.status === 'completed').length;
-
   return (
     <div className={styles.matrixPane}>
       <div className={styles.paneHeader}>
         <div className={styles.paneTitleGroup}>
-          <Layers size={13} className={styles.paneIcon} />
           <span className={styles.paneTitle}>PIPELINE MATRIX</span>
         </div>
-        <Badge variant="neutral" size="sm">
-          {activeCount}/{displayStages.length} COMPLETE
-        </Badge>
       </div>
 
       <div className={styles.pipelineRail} aria-label="Pipeline matrix stages">
-        {displayStages.map((stage) => (
-          <div
-            key={stage.id}
-            className={`${styles.stagePill} ${styles[`stagePill_${stage.status}`]}`}
-          >
-            <div className={styles.stagePillHeader}>
-              <div className={styles.stageIcon}>{stageIcon(stage.status)}</div>
-              <span className={styles.stagePillTitle}>{stage.title}</span>
-            </div>
-            <span className={styles.stagePillBadge}>{stage.status}</span>
+        {displayStages.map((stage, index) => (
+          <div key={stage.id} className={styles.stageTextWrapper}>
+            <div className={`${styles.stageDot} ${styles[`stageDot_${stage.status}`]}`} />
+            <span className={`${styles.stagePillTitle} ${styles[`stagePillTitle_${stage.status}`]}`}>
+              {stage.title}
+            </span>
+            {index < displayStages.length - 1 && <div className={styles.stageConnector} />}
           </div>
         ))}
       </div>
@@ -123,12 +113,8 @@ function SourceJobs({ cards }: { cards: SourceImportCardModel[] }) {
     <div className={styles.jobsPane}>
       <div className={styles.paneHeader}>
         <div className={styles.paneTitleGroup}>
-          <Cpu size={13} className={styles.paneIcon} />
           <span className={styles.paneTitle}>SOURCE JOBS</span>
         </div>
-        <Badge variant="neutral" size="sm">
-          {cards.length} {cards.length === 1 ? 'JOB' : 'JOBS'}
-        </Badge>
       </div>
 
       <div className={styles.sourceGrid}>
@@ -136,16 +122,14 @@ function SourceJobs({ cards }: { cards: SourceImportCardModel[] }) {
           <div key={card.sourceId} className={styles.sourceCard}>
             <div className={styles.sourceCardTop}>
               <div className={styles.sourceMeta}>
-                <Badge variant={badgeVariant(card.status)} size="sm">
-                  {card.sourceType}
-                </Badge>
+                <span className={styles.sourceTypeLabel}>{card.sourceType}</span>
                 <span className={styles.sourceTitle} title={card.title}>
                   {card.title}
                 </span>
               </div>
-              <Badge variant="neutral" size="sm">
+              <span className={`${styles.sourceStatusLabel} ${styles[`sourceStatusLabel_${card.status}`]}`}>
                 {cardStatusLabel(card.status)}
-              </Badge>
+              </span>
             </div>
 
             <div className={styles.progressTrack} role="progressbar" aria-valuenow={card.progress}>
@@ -162,7 +146,6 @@ function SourceJobs({ cards }: { cards: SourceImportCardModel[] }) {
 
             {card.error ? (
               <div className={styles.sourceError}>
-                <AlertCircle size={12} />
                 <span className={styles.errorMessage}>{card.error.message}</span>
               </div>
             ) : null}
@@ -178,13 +161,8 @@ function TelemetryTerminal({ items }: { items: ImportFeedItemModel[] }) {
     <div className={styles.terminalPanel}>
       <div className={styles.terminalHeader}>
         <div className={styles.terminalTitleGroup}>
-          <Terminal size={13} className={styles.terminalIcon} />
           <span className={styles.terminalTitle}>TELEMETRY TERMINAL</span>
-          <span className={styles.neonDot} />
         </div>
-        <Badge variant="neutral" size="sm">
-          {items.length} LOGS
-        </Badge>
       </div>
 
       <div className={styles.terminalFeed} aria-live="polite">
@@ -192,7 +170,6 @@ function TelemetryTerminal({ items }: { items: ImportFeedItemModel[] }) {
           items.map((item) => (
             <div key={item.id} className={styles.terminalLine}>
               <span className={styles.terminalTimestamp}>[{item.timestamp}]</span>
-              <span className={`${styles.feedToneDot} ${styles[`tone_${item.tone}`]}`}>●</span>
               <span className={styles.terminalMessage}>
                 {item.title}{item.detail ? ` - ${item.detail}` : ''}
               </span>
@@ -216,12 +193,8 @@ function LiveAssetGrid({ sources }: { sources: ImportedSourceModel[] }) {
     <div className={styles.assetPane}>
       <div className={styles.paneHeader}>
         <div className={styles.paneTitleGroup}>
-          <Film size={13} className={styles.paneIcon} />
           <span className={styles.paneTitle}>LIVE ASSET STREAM</span>
         </div>
-        <Badge variant="neutral" size="sm">
-          {allLessons.length} ITEMS
-        </Badge>
       </div>
 
       <div className={styles.assetGrid}>
@@ -229,8 +202,8 @@ function LiveAssetGrid({ sources }: { sources: ImportedSourceModel[] }) {
           allLessons.slice(0, 16).map((lesson) => (
             <div key={lesson.id} className={styles.assetCard}>
               <Image
-                width={64}
-                height={40}
+                width={240}
+                height={135}
                 className={styles.assetThumbnail}
                 src={lesson.thumbnail}
                 alt=""
@@ -241,7 +214,6 @@ function LiveAssetGrid({ sources }: { sources: ImportedSourceModel[] }) {
                 </span>
                 <div className={styles.assetMeta}>
                   <span className={styles.assetPos}>#{lesson.position}</span>
-                  <span className={styles.assetDot}>·</span>
                   <span className={styles.assetDuration}>{lesson.duration}</span>
                 </div>
               </div>
@@ -298,12 +270,10 @@ export function ImportWorkspace({ workspace, onCancel, onRetry }: ImportWorkspac
         <div className={styles.topBarRight}>
           {workspace.status === 'failed' ? (
             <Button type="button" variant="primary" size="sm" onClick={onRetry}>
-              <RotateCcw size={14} />
               Retry
             </Button>
           ) : null}
           <Button type="button" variant="secondary" size="sm" onClick={onCancel}>
-            <SquareDashedBottomCode size={14} />
             Cancel
           </Button>
         </div>
@@ -311,7 +281,6 @@ export function ImportWorkspace({ workspace, onCancel, onRetry }: ImportWorkspac
 
       {workspace.error ? (
         <div className={styles.topError}>
-          <AlertCircle size={14} />
           <span>
             <strong>{workspace.error.title}:</strong> {workspace.error.message}
           </span>

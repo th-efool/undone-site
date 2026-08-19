@@ -16,6 +16,9 @@ export interface SearchBarProps {
   onClear?(): void;
 
   className?: string;
+  leftIcon?: React.ReactNode;
+  rightAction?: React.ReactNode;
+  hideShortcut?: boolean;
 }
 
 export function SearchBar({
@@ -25,6 +28,9 @@ export function SearchBar({
   onSubmit,
   className,
   onClear,
+  leftIcon,
+  rightAction,
+  hideShortcut,
 }: SearchBarProps) {
   const { openCommand } = useCommandContext();
 
@@ -42,14 +48,18 @@ export function SearchBar({
         value={value}
         placeholder={placeholder}
         leftSlot={
-          <Search
-            size={18}
-            strokeWidth={2.2}
-            className={styles.icon}
-          />
+          leftIcon || (
+            <Search
+              size={18}
+              strokeWidth={2.2}
+              className={styles.icon}
+            />
+          )
         }
         rightSlot={
-          value ? (
+          rightAction ? (
+            rightAction
+          ) : value ? (
             <Tooltip content="Clear search" placement="top">
               <button
                 type="button"
@@ -63,7 +73,7 @@ export function SearchBar({
                 <X size={15} />
               </button>
             </Tooltip>
-          ) : (
+          ) : !hideShortcut ? (
             <kbd
               className={styles.shortcut}
               role="button"
@@ -78,7 +88,7 @@ export function SearchBar({
             >
               ⌘ K
             </kbd>
-          )
+          ) : null
         }
         onChange={(event) => onChange?.(event.target.value)}
         onKeyDown={(event) => {

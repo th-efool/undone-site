@@ -17,38 +17,33 @@
   flex: 0 0 auto;
 }
 
+.addSourceContainer {
+  max-width: 480px;
+  width: 100%;
+}
+
 .addSourceBar {
+  --pill-bg: rgba(255, 255, 255, 0.03);
+  --pill-border: var(--color-border, #27272a);
+  --pill-border-focus: var(--color-border-hover, #52525b);
+}
+
+.enterButton {
   display: flex;
   align-items: center;
-  gap: var(--space-3, 12px);
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--color-border, #27272a);
-  border-radius: var(--radius-lg, 12px);
-  padding: 6px 6px 6px 16px;
-  transition: border-color var(--duration-fast, 150ms) var(--ease-standard);
-}
-
-.addSourceBar:focus-within {
-  border-color: var(--color-border-hover, #52525b);
-  box-shadow: 0 0 0 1px var(--color-border-hover, #52525b);
-}
-
-.urlInput {
-  flex: 1;
-  min-width: 0;
-  background: transparent;
-  border: none;
-  outline: none;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.1);
   color: var(--color-text-primary, #ffffff);
-  font-size: var(--text-sm, 14px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: all 150ms ease;
 }
 
-.urlInput::placeholder {
-  color: var(--color-text-muted, #71717a);
-}
-
-.addButton {
-  flex-shrink: 0;
+.enterButton:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .masonryGrid {

@@ -1,7 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { FileSearch } from 'lucide-react';
+import { FileSearch, Link, CornerDownLeft } from 'lucide-react';
+
+import { SearchBar } from '@/src/client/components/global/SearchBar';
 
 import { Badge } from '@/src/client/components/ui/Badge/Badge';
 import { Button } from '@/src/client/components/ui/Button/Button';
@@ -68,28 +70,23 @@ export function SourcesStep({ sources, importWorkspace }: SourcesStepProps) {
             </Cluster>
           </div>
 
-          <div className={styles.addSourceBar}>
-            <input
-              type="url"
-              className={styles.urlInput}
-              placeholder="Paste link here (YouTube video/playlist, GitHub, Website, PDF...)"
+          <div className={styles.addSourceContainer}>
+            <SearchBar
               value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  handleAddSource();
-                }
-              }}
+              onChange={setUrlInput}
+              onSubmit={handleAddSource}
+              placeholder="Paste link here (YouTube video/playlist, GitHub, Website, PDF...)"
+              className={styles.addSourceBar}
+              leftIcon={<Link size={18} style={{ color: 'var(--color-text-muted)' }} />}
+              hideShortcut={true}
+              rightAction={
+                urlInput ? (
+                  <button type="button" className={styles.enterButton} onClick={handleAddSource}>
+                    <CornerDownLeft size={14} />
+                  </button>
+                ) : null
+              }
             />
-            <Button
-              type="button"
-              variant="primary"
-              className={styles.addButton}
-              onClick={handleAddSource}
-            >
-              Add Source
-            </Button>
           </div>
 
           {sources.sources.length === 0 ? (
