@@ -4,21 +4,17 @@ import Image from 'next/image';
 import { useState } from 'react';
 import { X, Layers, BookOpen, Plus, Compass } from 'lucide-react';
 import { useWizardContext } from '../../providers/WizardProvider';
-import { difficultyOptions, visibilityOptions } from '../../mock/createCohort.mock';
+import { difficultyOptions } from '../../mock/createCohort.mock';
 
 import styles from './CurriculumInspector.module.css';
 
 const DIFF_OPTIONS = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED'] as const;
-const VIS_OPTIONS = ['Public', 'Private', 'Unlisted'] as const;
 
 export function CurriculumInspector() {
   const { curriculumState, actions } = useWizardContext();
   const curriculum = curriculumState.curriculum;
 
-  const [activeTab, setActiveTab] = useState<'general' | 'objectives' | 'resources'>('general');
-  const [newTag, setNewTag] = useState('');
-  const [newObj, setNewObj] = useState('');
-  const [newPrereq, setNewPrereq] = useState('');
+  const [activeTab, setActiveTab] = useState<'general' | 'prerequisites'>('general');
   const [targetSeasonHours, setTargetSeasonHours] = useState(10);
 
   if (!curriculum) return null;
@@ -34,6 +30,8 @@ export function CurriculumInspector() {
       if (found) { selectedLesson = found; break; }
     }
   }
+
+  const allLessons = curriculum.seasons.flatMap((s) => s.lessons);
 
   // ── Journey root inspector ────────────────────────────────────────────────
   if (!selectedSeason && !selectedLesson) {
@@ -154,7 +152,7 @@ export function CurriculumInspector() {
         </button>
 
         <div className={styles.tabBar}>
-          {(['general', 'objectives', 'resources'] as const).map((tab) => (
+          {(['general', 'prerequisites'] as const).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -215,25 +213,6 @@ export function CurriculumInspector() {
               <section className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <BookOpen size={14} className={styles.icon} />
-                  <span className={styles.sectionLabel}>Visibility</span>
-                </div>
-                <div className={styles.pills}>
-                  {VIS_OPTIONS.map((opt) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      className={`${styles.pill} ${(selectedLesson.visibility || 'Public') === opt ? styles.pillActive : styles.pillIdle}`}
-                      onClick={() => actions.updateLesson(selectedLesson.id, { visibility: opt })}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </section>
-
-              <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <BookOpen size={14} className={styles.icon} />
                   <span className={styles.sectionLabel}>XP Reward</span>
                 </div>
                 <div className={styles.customGoalGroup}>
@@ -247,88 +226,21 @@ export function CurriculumInspector() {
                   <span className={styles.unitText}>XP</span>
                 </div>
               </section>
-
-              <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <BookOpen size={14} className={styles.icon} />
-                  <span className={styles.sectionLabel}>Description</span>
-                </div>
-                <textarea
-                  value={selectedLesson.description}
-                  onChange={(e) => actions.updateLesson(selectedLesson.id, { description: e.target.value })}
-                  className={`${styles.input} ${styles.textarea}`}
-                />
-              </section>
             </>
           )}
 
-          {activeTab === 'objectives' && (
-            <>
-              <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <BookOpen size={14} className={styles.icon} />
-                  <span className={styles.sectionLabel}>Learning Objectives</span>
-                </div>
-                <div className={styles.itemList}>
-                  {(selectedLesson.learningObjectives || []).map((obj, idx) => (
+          {activeTab === 'prerequisites' && (
+            <section className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <BookOpen size={14} className={styles.icon} />
+                <span className={styles.sectionLabel}>Prerequisites</span>
+              </div>
+              <div className={styles.itemList}>
+                {(selectedLesson.prerequisites || []).map((reqId, idx) => {
+                  const reqLesson = allLessons.find((l) => l.id === reqId);
+                  return (
                     <div key={idx} className={styles.itemRow}>
-                      <span>{obj}</span>
-                      <button
-                        type="button"
-                        className={styles.removeTagBtn}
-                        onClick={() =>
-                          actions.updateLesson(selectedLesson.id, {
-                            learningObjectives: (selectedLesson.learningObjectives || []).filter((_, i) => i !== idx),
-                          })
-                        }
-                      >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <div className={styles.addRowGroup}>
-                  <input
-                    type="text"
-                    placeholder="Add objective..."
-                    value={newObj}
-                    onChange={(e) => setNewObj(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newObj.trim()) {
-                        actions.updateLesson(selectedLesson.id, {
-                          learningObjectives: [...(selectedLesson.learningObjectives || []), newObj.trim()],
-                        });
-                        setNewObj('');
-                      }
-                    }}
-                    className={styles.input}
-                  />
-                  <button
-                    type="button"
-                    className={styles.addBtn}
-                    onClick={() => {
-                      if (newObj.trim()) {
-                        actions.updateLesson(selectedLesson.id, {
-                          learningObjectives: [...(selectedLesson.learningObjectives || []), newObj.trim()],
-                        });
-                        setNewObj('');
-                      }
-                    }}
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
-              </section>
-
-              <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <BookOpen size={14} className={styles.icon} />
-                  <span className={styles.sectionLabel}>Prerequisites</span>
-                </div>
-                <div className={styles.itemList}>
-                  {(selectedLesson.prerequisites || []).map((req, idx) => (
-                    <div key={idx} className={styles.itemRow}>
-                      <span>{req}</span>
+                      <span>{reqLesson ? reqLesson.title : reqId}</span>
                       <button
                         type="button"
                         className={styles.removeTagBtn}
@@ -341,110 +253,33 @@ export function CurriculumInspector() {
                         <X size={12} />
                       </button>
                     </div>
-                  ))}
-                </div>
-                <div className={styles.addRowGroup}>
-                  <input
-                    type="text"
-                    placeholder="Add prerequisite..."
-                    value={newPrereq}
-                    onChange={(e) => setNewPrereq(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newPrereq.trim()) {
-                        actions.updateLesson(selectedLesson.id, {
-                          prerequisites: [...(selectedLesson.prerequisites || []), newPrereq.trim()],
-                        });
-                        setNewPrereq('');
-                      }
-                    }}
-                    className={styles.input}
-                  />
-                  <button
-                    type="button"
-                    className={styles.addBtn}
-                    onClick={() => {
-                      if (newPrereq.trim()) {
-                        actions.updateLesson(selectedLesson.id, {
-                          prerequisites: [...(selectedLesson.prerequisites || []), newPrereq.trim()],
-                        });
-                        setNewPrereq('');
-                      }
-                    }}
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
-              </section>
-            </>
-          )}
-
-          {activeTab === 'resources' && (
-            <>
-              <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <BookOpen size={14} className={styles.icon} />
-                  <span className={styles.sectionLabel}>Tags</span>
-                </div>
-                <div className={styles.tagGroup}>
-                  {selectedLesson.tags.map((tag, index) => (
-                    <span key={index} className={styles.tagPill}>
-                      #{tag}
-                      <button
-                        type="button"
-                        className={styles.removeTagBtn}
-                        onClick={() =>
-                          actions.updateLesson(selectedLesson.id, {
-                            tags: selectedLesson.tags.filter((_, i) => i !== index),
-                          })
-                        }
-                      >
-                        <X size={11} />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                <div className={styles.addRowGroup}>
-                  <input
-                    type="text"
-                    placeholder="Add tag..."
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && newTag.trim()) {
-                        actions.updateLesson(selectedLesson.id, { tags: [...selectedLesson.tags, newTag.trim()] });
-                        setNewTag('');
-                      }
-                    }}
-                    className={styles.input}
-                  />
-                  <button
-                    type="button"
-                    className={styles.addBtn}
-                    onClick={() => {
-                      if (newTag.trim()) {
-                        actions.updateLesson(selectedLesson.id, { tags: [...selectedLesson.tags, newTag.trim()] });
-                        setNewTag('');
-                      }
-                    }}
-                  >
-                    <Plus size={14} />
-                  </button>
-                </div>
-              </section>
-
-              <section className={styles.section}>
-                <div className={styles.sectionHeader}>
-                  <BookOpen size={14} className={styles.icon} />
-                  <span className={styles.sectionLabel}>Creator Notes</span>
-                </div>
-                <textarea
-                  placeholder="Private notes..."
-                  value={selectedLesson.notes || ''}
-                  onChange={(e) => actions.updateLesson(selectedLesson.id, { notes: e.target.value })}
-                  className={`${styles.input} ${styles.textarea}`}
-                />
-              </section>
-            </>
+                  );
+                })}
+              </div>
+              <div className={styles.addRowGroup}>
+                <select
+                  className={styles.input}
+                  value=""
+                  onChange={(e) => {
+                    const reqId = e.target.value;
+                    if (reqId && !(selectedLesson.prerequisites || []).includes(reqId)) {
+                      actions.updateLesson(selectedLesson.id, {
+                        prerequisites: [...(selectedLesson.prerequisites || []), reqId],
+                      });
+                    }
+                  }}
+                >
+                  <option value="" disabled>Add prerequisite...</option>
+                  {allLessons
+                    .filter((l) => l.id !== selectedLesson.id && !(selectedLesson.prerequisites || []).includes(l.id))
+                    .map((l) => (
+                      <option key={l.id} value={l.id}>
+                        {l.title}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </section>
           )}
 
         </div>

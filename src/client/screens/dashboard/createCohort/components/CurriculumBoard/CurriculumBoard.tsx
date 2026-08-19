@@ -144,14 +144,6 @@ export function CurriculumBoard() {
                     <GripVertical size={14} />
                   </span>
 
-                  <input
-                    type="checkbox"
-                    checked={selectedSeasonIds.includes(season.id)}
-                    onChange={(e) => { e.stopPropagation(); actions.toggleSelectSeason(season.id, true); }}
-                    onClick={(e) => e.stopPropagation()}
-                    className={styles.checkbox}
-                  />
-
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); actions.toggleSeasonCollapse(season.id); }}
@@ -262,13 +254,6 @@ export function CurriculumBoard() {
                             <span className={styles.dragHandle} onClick={(e) => e.stopPropagation()} title="Drag lesson">
                               <GripVertical size={14} />
                             </span>
-                            <input
-                              type="checkbox"
-                              checked={selectedLessonIds.includes(lesson.id)}
-                              onChange={(e) => { e.stopPropagation(); actions.toggleSelectLesson(lesson.id, true); }}
-                              onClick={(e) => e.stopPropagation()}
-                              className={styles.checkbox}
-                            />
                           </div>
 
                           {/* Col 2: thumbnail */}
@@ -292,7 +277,7 @@ export function CurriculumBoard() {
                             }}
                           />
 
-                          {/* Col 3: title + meta */}
+                          {/* Col 3: title + meta + timeline */}
                           <div className={styles.lessonContent}>
                             <h4 className={styles.lessonTitle}>{lesson.title}</h4>
                             <div className={styles.lessonMeta}>
@@ -304,6 +289,32 @@ export function CurriculumBoard() {
                               </span>
                               <span className={styles.metaChip}>{lesson.difficulty}</span>
                             </div>
+                            
+                            {/* Chunk timeline bar — always visible */}
+                            {lesson.chunks && lesson.chunks.length > 0 && (
+                              <div className={styles.chunkTimelineBar}>
+                                {lesson.chunks.map((chunk, idx) => {
+                                  const color = CHUNK_COLORS[idx % CHUNK_COLORS.length];
+                                  const minutesMatch = chunk.duration.match(/(\d+)m/);
+                                  const hoursMatch = chunk.duration.match(/(\d+)h/);
+                                  const mins =
+                                    (minutesMatch ? parseInt(minutesMatch[1]) : 0) +
+                                    (hoursMatch ? parseInt(hoursMatch[1]) * 60 : 0);
+                                  const flexBasis = Math.max(1, mins);
+
+                                  return (
+                                    <div
+                                      key={chunk.id}
+                                      className={styles.chunkSlice}
+                                      style={{ flexGrow: flexBasis, backgroundColor: color }}
+                                      title={chunk.duration}
+                                    >
+                                      <span className={styles.chunkSliceText}>{chunk.duration}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
                           </div>
 
                           {/* Col 4: actions */}
@@ -339,32 +350,6 @@ export function CurriculumBoard() {
                             <div className={styles.lessonExpanded}>
                               {lesson.description && (
                                 <p className={styles.lessonDescription}>{lesson.description}</p>
-                              )}
-
-                              {/* Chunk timeline bar — proportional slices, 2-color alternating */}
-                              {lesson.chunks && lesson.chunks.length > 0 && (
-                                <div className={styles.chunkTimelineBar}>
-                                  {lesson.chunks.map((chunk, idx) => {
-                                    const color = CHUNK_COLORS[idx % CHUNK_COLORS.length];
-                                    const minutesMatch = chunk.duration.match(/(\d+)m/);
-                                    const hoursMatch = chunk.duration.match(/(\d+)h/);
-                                    const mins =
-                                      (minutesMatch ? parseInt(minutesMatch[1]) : 0) +
-                                      (hoursMatch ? parseInt(hoursMatch[1]) * 60 : 0);
-                                    const flexBasis = Math.max(1, mins);
-
-                                    return (
-                                      <div
-                                        key={chunk.id}
-                                        className={styles.chunkSlice}
-                                        style={{ flexGrow: flexBasis, backgroundColor: color }}
-                                        title={chunk.duration}
-                                      >
-                                        <span className={styles.chunkSliceText}>{chunk.duration}</span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
                               )}
                             </div>
                           )}

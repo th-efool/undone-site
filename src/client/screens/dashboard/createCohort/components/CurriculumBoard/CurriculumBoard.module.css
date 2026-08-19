@@ -29,9 +29,9 @@
   position: relative;
 }
 
-/* Left trapezium tab — exact copy of /home .tabTrapezium */
+/* Left trapezium tab */
 .tabTrapezium {
-  background: #ffffff;
+  background: #111111;
   padding: 0 32px 0 10px;
   display: flex;
   align-items: center;
@@ -47,10 +47,10 @@
   border-bottom: 2px solid #4f46e5;
 }
 
-/* Right indigo bar — exact copy of /home .indigoBar */
+/* Right indigo bar */
 .indigoBar {
   flex: 1;
-  background: #3730a3;
+  background: #312e81;
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -64,14 +64,6 @@
 
 /* ─── Season header elements ─────────────────────────────────────────────── */
 
-.checkbox {
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  accent-color: #4f46e5;
-  cursor: pointer;
-  flex-shrink: 0;
-}
 
 .dragHandle {
   color: #94a3b8;
@@ -106,7 +98,7 @@
   background: transparent;
   border: 1px solid transparent;
   font-family: var(--font-manrope);
-  color: #111827;
+  color: #f8fafc;
   font-size: 0.95rem;
   font-weight: 800;
   letter-spacing: -0.01em;
@@ -118,8 +110,8 @@
 }
 
 .seasonTitleInput:focus {
-  background: #f1f5f9;
-  border-color: #c7d2fe;
+  background: #000000;
+  border-color: #4f46e5;
 }
 
 .badgeGroup {
@@ -166,29 +158,29 @@
 .lessonList {
   display: flex;
   flex-direction: column;
-  background: #faf9ff;
+  background: #000000;
 }
 
 .emptySeasonNotice {
   padding: 1.5rem;
   text-align: center;
-  color: #9ca3af;
+  color: #64748b;
   font-size: 0.82rem;
   font-weight: 500;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* ─── Lesson row — matches /home ActiveCohortRow .row exactly ────────────── */
 
 .lessonCard {
   display: grid;
-  grid-template-columns: auto auto 112px 1fr auto auto;
+  grid-template-columns: auto 112px 1fr auto;
   align-items: center;
   gap: 12px;
   padding: 6px 12px 6px 10px;
   background: transparent;
   border: 1px solid transparent;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   transition: background 0.15s;
   cursor: pointer;
 }
@@ -198,14 +190,14 @@
 }
 
 .lessonCard:hover {
-  background: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .lessonCardSelected {
-  background: #ffffff;
-  border-color: #e5e7eb;
+  background: #111111;
+  border-color: #333333;
   border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   transform: translateY(-1px);
   z-index: 5;
   position: relative;
@@ -242,7 +234,7 @@
   margin: 0;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #111827;
+  color: #f8fafc;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -300,17 +292,17 @@
   width: 28px;
   height: 28px;
   background: transparent;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #333333;
   border-radius: 6px;
-  color: #9ca3af;
+  color: #888888;
   cursor: pointer;
   transition: all 0.12s;
 }
 
 .lessonActionBtn:hover {
-  border-color: #c7d2fe;
-  color: #4f46e5;
-  background: #f5f3ff;
+  border-color: #4f46e5;
+  color: #818cf8;
+  background: rgba(79, 70, 229, 0.1);
 }
 
 .lessonDeleteBtn {
@@ -320,17 +312,17 @@
   width: 28px;
   height: 28px;
   background: transparent;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #333333;
   border-radius: 6px;
-  color: #9ca3af;
+  color: #888888;
   cursor: pointer;
   transition: all 0.12s;
 }
 
 .lessonDeleteBtn:hover {
-  border-color: #fca5a5;
-  color: #ef4444;
-  background: #fef2f2;
+  border-color: #ef4444;
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.1);
 }
 
 /* ─── Expanded accordion ─────────────────────────────────────────────────── */
@@ -343,16 +335,7 @@
   gap: 8px;
 }
 
-.lessonDescription {
-  font-size: 0.82rem;
-  color: #6b7280;
-  line-height: 1.45;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  margin: 0;
-}
+
 
 /* ─── Chunk timeline ─────────────────────────────────────────────────────── */
 
@@ -363,7 +346,8 @@
   height: 18px;
   border-radius: 5px;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 6px;
 }
 
 .chunkSlice {
