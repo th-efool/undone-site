@@ -1,0 +1,69 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  USER — The single source of truth for a person's identity
+//  Keep this lean. Per-user preferences go in MongoDB.
+// ─────────────────────────────────────────────────────────────────
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  username      String    @unique
+  displayName   String
+  avatarUrl     String?
+  bio           String?
+  role          UserRole  @default(EXPLORER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations (you'll add these in later phases)
+  sessions      Session[]
+  publicProfile PublicProfile?
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  PUBLIC PROFILE — What others see about a user
+// ─────────────────────────────────────────────────────────────────
+model PublicProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  slug        String   @unique   // e.g. "agrim00001"  → sidequesthq.in/agrim00001
+  headline    String?
+  links       Json     @default("[]")  // [{label, url}]
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("public_profiles")
+}
+
+enum UserRole {
+  EXPLORER
+  CREATOR
+  ADMIN
+}
