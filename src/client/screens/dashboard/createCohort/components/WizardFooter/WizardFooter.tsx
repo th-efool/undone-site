@@ -5,6 +5,7 @@ import { Cluster } from '@/src/client/components/global/layout/Cluster';
 
 import type { WizardFooterModel } from '../../models/createCohort';
 import { useWizardContext } from '../../providers/WizardProvider';
+import { CurriculumQuality } from '../CurriculumQuality/CurriculumQuality';
 
 import styles from './WizardFooter.module.css';
 
@@ -65,6 +66,8 @@ export function WizardFooter({ footer }: WizardFooterProps) {
             Previous
           </Button>
         ) : null}
+
+        {isCurriculum && <CurriculumQuality />}
 
         <Button
           type="button"

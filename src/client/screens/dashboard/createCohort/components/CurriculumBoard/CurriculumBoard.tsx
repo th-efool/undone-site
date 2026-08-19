@@ -198,15 +198,6 @@ export function CurriculumBoard() {
 
                   <button
                     type="button"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); actions.duplicateSeason(season.id); }}
-                    className={styles.seasonActionBtn}
-                    title="Duplicate season"
-                  >
-                    <Copy size={12} />
-                  </button>
-
-                  <button
-                    type="button"
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); actions.deleteSeason(season.id); }}
                     className={`${styles.seasonActionBtn} ${styles.deleteActionBtn}`}
                     title="Delete season"

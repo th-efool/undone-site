@@ -43,18 +43,19 @@ export function CurriculumContextMenu({ x, y, type, targetId, onClose }: Curricu
         Inspect & Edit
       </button>
 
-      <button
-        type="button"
-        className={styles.menuItem}
-        onClick={() => {
-          if (type === 'lesson') actions.duplicateLesson(targetId);
-          else actions.duplicateSeason(targetId);
-          onClose();
-        }}
-      >
-        <Copy size={14} />
-        Duplicate {type}
-      </button>
+      {type === 'lesson' && (
+        <button
+          type="button"
+          className={styles.menuItem}
+          onClick={() => {
+            actions.duplicateLesson(targetId);
+            onClose();
+          }}
+        >
+          <Copy size={14} />
+          Duplicate lesson
+        </button>
+      )}
 
       {type === 'season' && (
         <button

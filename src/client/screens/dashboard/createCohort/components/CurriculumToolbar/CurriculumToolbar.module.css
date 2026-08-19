@@ -4,11 +4,10 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4, 1rem);
-  padding: var(--space-4, 1rem) var(--space-5, 1.25rem);
-  background: var(--color-surface, #181b28);
-  border: 1px solid var(--color-border, rgba(255, 255, 255, 0.12));
-  border-radius: var(--radius-lg, 12px);
-  box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.2));
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .leftGroup {

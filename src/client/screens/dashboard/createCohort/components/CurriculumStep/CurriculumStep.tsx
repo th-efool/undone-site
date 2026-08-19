@@ -5,11 +5,9 @@ import { RefreshCw, AlertCircle } from 'lucide-react';
 
 import { useWizardContext } from '../../providers/WizardProvider';
 import { CurriculumToolbar } from '../CurriculumToolbar/CurriculumToolbar';
-import { CurriculumStats } from '../CurriculumStats/CurriculumStats';
 import { CurriculumWarnings } from '../CurriculumWarnings/CurriculumWarnings';
 import { CurriculumBoard } from '../CurriculumBoard/CurriculumBoard';
 import { CurriculumInspector } from '../CurriculumInspector/CurriculumInspector';
-import { CurriculumQuality } from '../CurriculumQuality/CurriculumQuality';
 import { CurriculumChecklist } from '../CurriculumChecklist/CurriculumChecklist';
 import { CurriculumBulkBar } from '../CurriculumBulkBar/CurriculumBulkBar';
 import { CurriculumShortcutsModal } from '../CurriculumShortcutsModal/CurriculumShortcutsModal';
@@ -29,8 +27,6 @@ export function CurriculumStep() {
     onDuplicate: () => {
       if (curriculumState.selectedLessonId) {
         actions.duplicateLesson(curriculumState.selectedLessonId);
-      } else if (curriculumState.selectedSeasonId) {
-        actions.duplicateSeason(curriculumState.selectedSeasonId);
       }
     },
     onDelete: () => {
@@ -90,11 +86,9 @@ export function CurriculumStep() {
         <div style={{ flex: 1 }}>
           <CurriculumToolbar />
         </div>
-        <CurriculumQuality />
       </div>
 
       <CurriculumChecklist />
-      <CurriculumStats />
       <CurriculumWarnings />
 
       <div className={styles.mainArea}>

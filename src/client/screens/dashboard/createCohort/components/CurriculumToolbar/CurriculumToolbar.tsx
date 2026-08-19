@@ -10,6 +10,7 @@ import {
   Command,
 } from 'lucide-react';
 import { useWizardContext } from '../../providers/WizardProvider';
+import { CurriculumStats } from '../CurriculumStats/CurriculumStats';
 import { CurriculumShortcutsModal } from '../CurriculumShortcutsModal/CurriculumShortcutsModal';
 
 import styles from './CurriculumToolbar.module.css';
@@ -32,6 +33,8 @@ export function CurriculumToolbar() {
               className={styles.searchInput}
             />
           </div>
+
+          <CurriculumStats />
 
           <button
             type="button"
@@ -77,10 +80,10 @@ export function CurriculumToolbar() {
           <button
             type="button"
             onClick={() => actions.addSeason()}
-            className={styles.primaryBtn}
+            className={styles.primaryBtnIconOnly}
+            title="Add Season"
           >
             <Plus size={15} />
-            Add Season
           </button>
         </div>
       </div>
