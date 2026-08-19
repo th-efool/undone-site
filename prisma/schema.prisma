@@ -26,6 +26,8 @@ model User {
 
   cohorts           Cohort[]
   cohortMemberships CohortMember[]
+  messages          Message[]
+  studyRooms        RoomParticipant[]
 
   @@map("users")
 }
@@ -89,50 +91,7 @@ enum UserRole {
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  COURSE — A structured learning resource (from YouTube, Coursera etc.)
-// ─────────────────────────────────────────────────────────────────
-model Course {
-  id          String     @id @default(cuid())
-  title       String
-  description String?    @db.Text
-  coverImage  String?
-  sourceUrl   String? // Original YouTube/Coursera URL
-  sourceType  SourceType @default(CUSTOM)
-  difficulty  Difficulty @default(BEGINNER)
-  tags        String[] // Array of tag strings
-  isPublished Boolean    @default(false)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  lessons Lesson[]
-  cohorts CohortCourse[]
-
-  @@map("courses")
-}
-
-// ─────────────────────────────────────────────────────────────────
-//  LESSON — A single video/article/task within a Course
-// ─────────────────────────────────────────────────────────────────
-model Lesson {
-  id          String     @id @default(cuid())
-  courseId    String
-  title       String
-  description String?    @db.Text
-  videoUrl    String?
-  duration    Int? // Duration in seconds
-  order       Int // Position in course
-  lessonType  LessonType @default(VIDEO)
-  isPublished Boolean    @default(false)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@map("lessons")
-}
-
-// ─────────────────────────────────────────────────────────────────
-//  COHORT — A group learning journey built around courses
+//  COHORT — The core learning journey (contains Seasons and Lessons)
 // ─────────────────────────────────────────────────────────────────
 model Cohort {
   id           String     @id @default(cuid())
@@ -150,25 +109,125 @@ model Cohort {
   updatedAt    DateTime   @updatedAt
 
   creator User           @relation(fields: [creatorId], references: [id])
-  courses CohortCourse[]
   members CohortMember[]
+  seasons Season[]
+  community Community?
 
   @@map("cohorts")
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  COHORT ↔ COURSE — Many-to-many join table
+//  SEASON — A grouping of lessons within a Cohort (the Questline)
 // ─────────────────────────────────────────────────────────────────
-model CohortCourse {
-  cohortId String
-  courseId String
-  order    Int    @default(0) // What order this course appears in cohort
+model Season {
+  id          String   @id @default(cuid())
+  title       String
+  order       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  cohort Cohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  cohortId    String
+  cohort      Cohort   @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
 
-  @@id([cohortId, courseId])
-  @@map("cohort_courses")
+  @@map("seasons")
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  LESSON — A single video/article/task within a Season
+// ─────────────────────────────────────────────────────────────────
+model Lesson {
+  id          String     @id @default(cuid())
+  seasonId    String
+  title       String
+  description String?    @db.Text
+  videoUrl    String?
+  duration    Int?       // Duration in seconds
+  order       Int        // Position in season
+  lessonType  LessonType @default(VIDEO)
+  isPublished Boolean    @default(false)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  season      Season     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+
+  @@map("lessons")
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  COMMUNITY — 1:1 Social Hub for a Cohort
+// ─────────────────────────────────────────────────────────────────
+model Community {
+  id            String    @id @default(cuid())
+  chatEnabled   Boolean   @default(true)
+  eventsEnabled Boolean   @default(true)
+  
+  cohortId      String    @unique
+  cohort        Cohort    @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  channels      Channel[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@map("communities")
+}
+
+model Channel {
+  id          String    @id @default(cuid())
+  name        String    
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  messages    Message[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("channels")
+}
+
+model Message {
+  id          String    @id @default(cuid())
+  content     String    @db.Text
+  channelId   String
+  channel     Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  
+  authorId    String
+  author      User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("messages")
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  STUDY ROOM — Global Standalone Voice Spaces
+// ─────────────────────────────────────────────────────────────────
+model StudyRoom {
+  id          String   @id @default(cuid())
+  title       String   
+  thumbnail   String   
+  status      String   
+  onlineCount Int      @default(0) 
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  participants RoomParticipant[]
+
+  @@map("study_rooms")
+}
+
+model RoomParticipant {
+  id          String   @id @default(cuid())
+  userId      String   @unique 
+  studyRoomId String
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room        StudyRoom @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+  joinedAt    DateTime  @default(now())
+
+  @@index([studyRoomId])
+  @@map("room_participants")
 }
 
 // ─────────────────────────────────────────────────────────────────
