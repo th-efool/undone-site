@@ -1,0 +1,690 @@
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem;
+  color: #f3f4f6;
+  font-family: inherit;
+}
+
+/* Header */
+.header {
+  margin-bottom: 2.5rem;
+}
+
+.headerTitle h1 {
+  font-size: 2.25rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  background: linear-gradient(to right, #ffffff, #9ca3af);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-top: 0.5rem;
+}
+
+.headerTitle p {
+  margin-top: 0.5rem;
+  color: #9ca3af;
+  font-size: 1.05rem;
+  max-width: 600px;
+  line-height: 1.5;
+}
+
+.liveIndicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #3b82f6;
+  letter-spacing: 0.05em;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.livePulse {
+  width: 6px;
+  height: 6px;
+  background-color: #3b82f6;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  animation: pulseBlue 2s infinite;
+}
+
+@keyframes pulseBlue {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(59, 130, 246, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+/* Grid Layout */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (min-width: 1024px) {
+  .grid {
+    grid-template-columns: 1.8fr 1fr;
+  }
+}
+
+/* Section Header */
+.sectionHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .sectionHeader {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.sectionHeader h2 {
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.activeRoomBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 0.35rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.leaveBtnMini {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.leaveBtnMini:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* Rooms Grid & Cards */
+.roomsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .roomsGrid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+.roomCard {
+  position: relative;
+  border-radius: 20px;
+  padding: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 260px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s, border-color 0.3s;
+}
+
+.roomCard:hover {
+  transform: translateY(-4px);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Room Gradients */
+.gradientFireplace {
+  background: linear-gradient(135deg, #180f0c 0%, #2f1710 100%);
+  box-shadow: inset 0 0 20px rgba(249, 115, 22, 0.05);
+}
+.gradientFireplace:hover {
+  box-shadow: inset 0 0 30px rgba(249, 115, 22, 0.08), 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.gradientLibrary {
+  background: linear-gradient(135deg, #091211 0%, #102623 100%);
+  box-shadow: inset 0 0 20px rgba(16, 185, 129, 0.05);
+}
+.gradientLibrary:hover {
+  box-shadow: inset 0 0 30px rgba(16, 185, 129, 0.08), 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+.gradientDevDen {
+  background: linear-gradient(135deg, #0c111e 0%, #161f36 100%);
+  box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.05);
+}
+.gradientDevDen:hover {
+  box-shadow: inset 0 0 30px rgba(59, 130, 246, 0.08), 0 8px 30px rgba(0, 0, 0, 0.3);
+}
+
+/* Active Glow Card State */
+.activeRoomCard {
+  border-color: rgba(16, 185, 129, 0.5) !important;
+}
+
+.roomGlow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.15), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.roomHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 1;
+}
+
+.roomIconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.roomIcon {
+  color: #9ca3af;
+}
+
+.gradientFireplace .roomIcon { color: #f97316; }
+.gradientLibrary .roomIcon { color: #10b981; }
+.gradientDevDen .roomIcon { color: #3b82f6; }
+
+.currentBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.15);
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  letter-spacing: 0.025em;
+}
+
+.pulseGreen {
+  width: 5px;
+  height: 5px;
+  background-color: #10b981;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  animation: pulseGreenAnim 2s infinite;
+}
+
+@keyframes pulseGreenAnim {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 5px rgba(16, 185, 129, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+}
+
+.roomMeta {
+  margin-top: 1.5rem;
+  z-index: 1;
+}
+
+.roomMeta h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.roomStatus {
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+/* Participants Stack */
+.participantsSection {
+  margin-top: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 1rem;
+  z-index: 1;
+}
+
+.participantsLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #9ca3af;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.avatarStack {
+  display: flex;
+  align-items: center;
+  flex-direction: row-reverse;
+}
+
+.avatarWrapper {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #11131c;
+  overflow: hidden;
+  margin-left: -8px;
+  transition: transform 0.2s;
+  cursor: pointer;
+}
+
+.avatarWrapper:hover {
+  transform: translateY(-3px) scale(1.1);
+  z-index: 10;
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.emptyRoomsMsg {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+}
+
+/* Card Buttons */
+.cardActions {
+  margin-top: 1.25rem;
+  z-index: 1;
+}
+
+.actionBtn {
+  width: 100%;
+  padding: 0.65rem;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.joinBtn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.joinBtn:hover:not(:disabled) {
+  background: white;
+  color: #111;
+}
+
+.leaveBtn {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.leaveBtn:hover {
+  background: #ef4444;
+  color: white;
+}
+
+/* Right Side: Focus Timer Card */
+.asideSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.timerCard {
+  background: rgba(17, 19, 28, 0.65);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.timerCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.timerHeaderIcon {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #9ca3af;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.soundToggle {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: 8px;
+  transition: all 0.2s;
+  display: inline-flex;
+}
+
+.soundToggle:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+/* Presets Grid */
+.presetsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.presetBtn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 0.55rem;
+  color: #9ca3af;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.presetBtn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: white;
+}
+
+.activePreset {
+  background: rgba(59, 130, 246, 0.15) !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+  color: #60a5fa !important;
+}
+
+/* Circular Timer Design */
+.timerVisualContainer {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  margin: 0 auto 2rem auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.timerSvg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.timerSvgTrack {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.03);
+  stroke-width: 6;
+}
+
+.timerSvgProgress {
+  fill: none;
+  stroke: url(#timerGradient);
+  /* Fallback color */
+  stroke: #3b82f6; 
+  stroke-width: 6;
+  stroke-linecap: round;
+}
+
+/* Adding gradient to timer path dynamically using inline SVG pattern */
+.timerTextContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.timerPresetName {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #9ca3af;
+  letter-spacing: 0.1em;
+}
+
+.timerNumber {
+  font-size: 2.75rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  margin: 0.25rem 0;
+}
+
+.timerTotalTime {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Timer Controls */
+.timerControls {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 0.75rem;
+}
+
+.controlBtn {
+  padding: 0.75rem;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.startBtn {
+  background: white;
+  border: none;
+  color: #111;
+}
+
+.startBtn:hover {
+  background: #e5e7eb;
+}
+
+.pauseBtn {
+  background: rgba(249, 115, 22, 0.2);
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  color: #f97316;
+}
+
+.pauseBtn:hover {
+  background: #f97316;
+  color: white;
+}
+
+.resetBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #9ca3af;
+}
+
+.resetBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+/* Feed Card */
+.feedCard {
+  background: rgba(17, 19, 28, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 20px;
+  padding: 1.5rem;
+}
+
+.feedTitle {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+}
+
+.feedScroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 120px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.feedItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  line-height: 1.4;
+}
+
+.feedDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #4b5563;
+  margin-top: 0.35rem;
+  flex-shrink: 0;
+}
+
+.feedDotActive {
+  background-color: #10b981;
+}
+
+/* Floating Toasts */
+.toastContainer {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  z-index: 9999;
+  max-width: 320px;
+}
+
+.toast {
+  background: rgba(17, 19, 28, 0.9);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  padding: 0.85rem 1.25rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.toastSuccess {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(6, 78, 59, 0.95);
+  color: #a7f3d0;
+}
+
+.toastAlert {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(127, 29, 29, 0.95);
+  color: #fecaca;
+}
+
+/* Skeletons */
+.skeletonGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+.skeletonCard {
+  border-radius: 20px;
+  min-height: 260px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.02) 75%);
+  background-size: 200% 100%;
+  animation: loadingShimmer 1.5s infinite;
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+@keyframes loadingShimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
