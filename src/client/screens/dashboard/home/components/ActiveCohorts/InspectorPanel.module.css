@@ -228,15 +228,21 @@
   padding: 5px 10px;
   font-size: 0.82rem;
   font-weight: 600;
-  border: 1px solid #c7d2fe;
+  border: 1px solid #e5e7eb;
   border-radius: 6px;
   outline: none;
   font-family: var(--font-manrope);
   color: #111827;
   background: white;
+  -moz-appearance: textfield;
 }
 .customGoalInput:focus {
-  border-color: #4f46e5;
+  border-color: #9ca3af;
+}
+.customGoalInput::-webkit-outer-spin-button,
+.customGoalInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .unitText {

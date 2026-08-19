@@ -379,14 +379,26 @@
 }
 
 .customGoalInputRow {
-  width: 56px;
-  padding: 3px 6px;
+  width: 68px;
+  padding: 3px 6px 3px 28px;
   font-size: 0.8rem;
   font-weight: 600;
-  border: 1px solid #4f46e5;
+  border: 1px solid #e5e7eb;
   border-radius: 6px;
   outline: none;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  background: white;
+  color: #374151;
+  -moz-appearance: textfield;
+}
+
+.customGoalInputRow:focus {
+  border-color: #9ca3af;
+}
+
+.customGoalInputRow::-webkit-outer-spin-button,
+.customGoalInputRow::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .pauseButton {
