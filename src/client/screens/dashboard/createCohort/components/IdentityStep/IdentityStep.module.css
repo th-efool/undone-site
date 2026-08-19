@@ -89,6 +89,13 @@
   font-weight: var(--font-semibold);
 }
 
+.charCounter {
+  font-size: var(--font-caption-size);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-normal);
+  font-variant-numeric: tabular-nums;
+}
+
 .input {
   width: 100%;
   padding: 8px 12px;

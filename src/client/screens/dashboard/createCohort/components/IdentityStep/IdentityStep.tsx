@@ -71,7 +71,8 @@ export function IdentityStep({ details }: IdentityStepProps) {
           <Cluster className={styles.twoCol}>
             <div className={styles.field}>
               <label htmlFor="identity-title" className={styles.label}>
-                Cohort Title <span className={styles.required}>* Required</span>
+                <span>Cohort Title <span className={styles.required}>* Required</span></span>
+                <span className={styles.charCounter}>{draft.title ? draft.title.length : 0}/100</span>
               </label>
               <input
                 id="identity-title"
@@ -87,7 +88,8 @@ export function IdentityStep({ details }: IdentityStepProps) {
 
             <div className={styles.field}>
               <label htmlFor="identity-subtitle" className={styles.label}>
-                Subtitle / Tagline
+                <span>Subtitle / Tagline</span>
+                <span className={styles.charCounter}>{draft.subtitle ? draft.subtitle.length : 0}/200</span>
               </label>
               <input
                 id="identity-subtitle"
@@ -165,7 +167,8 @@ export function IdentityStep({ details }: IdentityStepProps) {
 
           <div className={styles.field}>
             <label htmlFor="identity-description" className={styles.label}>
-              Cohort Overview & Description
+              <span>Cohort Overview & Description</span>
+              <span className={styles.charCounter}>{draft.description ? draft.description.length : 0}/2000</span>
             </label>
             <textarea
               id="identity-description"

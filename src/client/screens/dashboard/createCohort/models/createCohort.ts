@@ -4,6 +4,13 @@ export type CreateCohortStepId = 'topic' | 'sources' | 'curriculum' | 'identity'
 
 export type CreateCohortDifficulty = 'Beginner' | 'Intermediate' | 'Advanced';
 export type CreateCohortVisibility = 'Private' | 'Unlisted' | 'Public';
+export type CreateCohortDurationPreset =
+  | '1 Week'
+  | '2 Weeks'
+  | '3-4 Weeks'
+  | '1-2 Months'
+  | '3-6 Months'
+  | 'Self-Paced / Custom';
 
 export type CreateCohortSourceType =
   | 'YouTube Playlist'
@@ -20,6 +27,9 @@ export interface CreateCohortSourceDraft {
   title: string;
   url: string;
   collapsed: boolean;
+  thumbnailUrl?: string;
+  domain?: string;
+  metaTitle?: string;
 }
 
 export interface CreateCohortDraft {
@@ -106,6 +116,7 @@ export interface CreateCohortDetailsModel {
   subtitleField: CreateCohortScalarFieldModel;
   descriptionField: CreateCohortScalarFieldModel;
   estimatedCompletionTimeField: CreateCohortScalarFieldModel;
+  durationPresetOptions: CreateCohortSelectOption[];
   languageField: CreateCohortScalarFieldModel;
   primaryTopicField: CreateCohortScalarFieldModel;
   difficultyOptions: CreateCohortSelectOption[];
@@ -126,6 +137,9 @@ export interface CreateCohortSourceModel {
   url: string;
   collapsed: boolean;
   dragLabel: string;
+  thumbnailUrl?: string;
+  domain?: string;
+  metaTitle?: string;
 }
 
 export interface CreateCohortSourcesModel {

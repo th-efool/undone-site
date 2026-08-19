@@ -15,6 +15,11 @@ import { importService } from '../services/importService';
 import { curriculumService } from '../services/curriculumService';
 import { bulkOperationsService } from '../services/bulkOperationsService';
 import { publishService } from '../services/publishService';
+import {
+  sanitizeInputString,
+  validateUrlSecurity,
+  validateCohortDraftSecurity,
+} from '../utils/securityValidation';
 import { createCohortMockDraft, sourceTypeOptions } from '../mock/createCohort.mock';
 import { defaultMockImportedSources } from '../mock/curriculum.mock';
 import {
@@ -22,6 +27,7 @@ import {
   createCohortStepOrder,
   type CreateCohortDraft,
   type CreateCohortSourceDraft,
+  type CreateCohortSourceType,
   type CreateCohortStepId,
   type CreateCohortWizardState,
 } from '../models/createCohort';
@@ -140,7 +146,7 @@ interface WizardContextValue {
     addLearningOutcome: (value: string) => void;
     updateLearningOutcome: (index: number, value: string) => void;
     removeLearningOutcome: (index: number) => void;
-    addSource: () => void;
+    addSource: (urlInput?: string) => void;
     removeSource: (sourceId: string) => void;
     duplicateSource: (sourceId: string) => void;
     toggleSourceCollapse: (sourceId: string) => void;
@@ -247,6 +253,17 @@ function validateDetails(draft: CreateCohortDraft) {
   return Boolean(draft.title && draft.title.trim().length > 0);
 }
 
+function validateTopic(draft: CreateCohortDraft) {
+  return Boolean(
+    draft.primaryTopic &&
+    draft.primaryTopic.trim().length > 0 &&
+    draft.categories &&
+    draft.categories.length > 0 &&
+    draft.estimatedCompletionTime &&
+    draft.estimatedCompletionTime.trim().length > 0
+  );
+}
+
 function validateSources(draft: CreateCohortDraft) {
   return draft.sources.length > 0 && draft.sources.every((source) => source.type && source.url.trim());
 }
@@ -328,6 +345,81 @@ function isAbortError(error: unknown) {
     (error instanceof DOMException && error.name === 'AbortError') ||
     (error instanceof Error && error.name === 'AbortError')
   );
+}
+
+function extractDomain(urlStr: string): string {
+  try {
+    const parsed = new URL(
+      urlStr.startsWith('http://') || urlStr.startsWith('https://')
+        ? urlStr
+        : `https://${urlStr}`,
+    );
+    return parsed.hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+}
+
+function parseSourceUrlInput(urlInput?: string): {
+  type: CreateCohortSourceType;
+  url: string;
+  title: string;
+  domain: string;
+  thumbnailUrl?: string;
+  collapsed: boolean;
+} {
+  const rawUrl = typeof urlInput === 'string' ? urlInput.trim() : '';
+  if (!rawUrl) {
+    return {
+      type: sourceTypeOptions[0] ?? 'YouTube Playlist',
+      url: '',
+      title: '',
+      domain: '',
+      thumbnailUrl: undefined,
+      collapsed: false,
+    };
+  }
+
+  const domain = extractDomain(rawUrl);
+  let type: CreateCohortSourceType = 'Website';
+  let thumbnailUrl: string | undefined = undefined;
+
+  const videoIdMatch = rawUrl.match(
+    /(?:v=|\/embed\/|\/v\/|youtu\.be\/|\/shorts\/)([a-zA-Z0-9_-]{11})/,
+  );
+  const videoId = videoIdMatch ? videoIdMatch[1] : null;
+
+  if (rawUrl.includes('list=')) {
+    type = 'YouTube Playlist';
+    thumbnailUrl = videoId
+      ? `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+      : 'https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?q=80&w=400&auto=format&fit=crop';
+  } else if (rawUrl.includes('v=') || rawUrl.includes('youtu.be/') || videoId) {
+    type = 'YouTube Video';
+    if (videoId) {
+      thumbnailUrl = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+    }
+  } else if (rawUrl.toLowerCase().includes('github.com') || domain === 'github.com') {
+    type = 'GitHub Repository';
+  } else if (rawUrl.toLowerCase().endsWith('.pdf') || rawUrl.toLowerCase().includes('.pdf?')) {
+    type = 'PDF';
+  } else if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
+    type = 'Custom Link';
+  } else {
+    type = 'Website';
+  }
+
+  const effectiveDomain = type === 'GitHub Repository' ? 'github.com' : domain;
+  const title = effectiveDomain || rawUrl;
+
+  return {
+    type,
+    url: rawUrl,
+    title,
+    domain: effectiveDomain,
+    thumbnailUrl,
+    collapsed: false,
+  };
 }
 
 export function WizardProvider({ children }: PropsWithChildren) {
@@ -442,7 +534,7 @@ export function WizardProvider({ children }: PropsWithChildren) {
   const validation = useMemo(
     () => ({
       details: true,
-      topic: true,
+      topic: validateTopic(state.draft),
       sources: validateSources(state.draft),
       curriculum: Boolean(
         curriculumState.curriculum && curriculumState.curriculum.totalLessons > 0,
@@ -638,11 +730,26 @@ export function WizardProvider({ children }: PropsWithChildren) {
 
   const updateDraftField = useCallback(
     <K extends keyof CreateCohortDraft>(key: K, value: CreateCohortDraft[K]) => {
+      let sanitizedValue: any = value;
+      if (typeof value === 'string') {
+        if (key === 'title') {
+          sanitizedValue = sanitizeInputString(value, 100);
+        } else if (key === 'subtitle') {
+          sanitizedValue = sanitizeInputString(value, 200);
+        } else if (key === 'description') {
+          sanitizedValue = sanitizeInputString(value, 2000);
+        } else if (key === 'primaryTopic') {
+          sanitizedValue = sanitizeInputString(value, 100);
+        } else {
+          sanitizedValue = sanitizeInputString(value);
+        }
+      }
+
       setState((current) => ({
         ...current,
         draft: {
           ...current.draft,
-          [key]: value,
+          [key]: sanitizedValue,
         },
       }));
     },
@@ -666,11 +773,14 @@ export function WizardProvider({ children }: PropsWithChildren) {
   }, []);
 
   const addTag = useCallback((tag: string) => {
+    const sanitized = sanitizeInputString(tag, 30);
+    if (!sanitized) return;
+
     setState((current) => ({
       ...current,
       draft: {
         ...current.draft,
-        tags: insertUnique(current.draft.tags, tag),
+        tags: insertUnique(current.draft.tags, sanitized),
       },
     }));
   }, []);
@@ -686,7 +796,7 @@ export function WizardProvider({ children }: PropsWithChildren) {
   }, []);
 
   const addRequirement = useCallback((value: string) => {
-    const next = value.trim();
+    const next = sanitizeInputString(value, 200);
     if (!next) return;
 
     setState((current) => ({
@@ -699,12 +809,13 @@ export function WizardProvider({ children }: PropsWithChildren) {
   }, []);
 
   const updateRequirement = useCallback((index: number, value: string) => {
+    const sanitized = sanitizeInputString(value, 200);
     setState((current) => ({
       ...current,
       draft: {
         ...current.draft,
         requirements: current.draft.requirements.map((item, currentIndex) =>
-          currentIndex === index ? value : item,
+          currentIndex === index ? sanitized : item,
         ),
       },
     }));
@@ -721,7 +832,7 @@ export function WizardProvider({ children }: PropsWithChildren) {
   }, []);
 
   const addLearningOutcome = useCallback((value: string) => {
-    const next = value.trim();
+    const next = sanitizeInputString(value, 200);
     if (!next) return;
 
     setState((current) => ({
@@ -734,12 +845,13 @@ export function WizardProvider({ children }: PropsWithChildren) {
   }, []);
 
   const updateLearningOutcome = useCallback((index: number, value: string) => {
+    const sanitized = sanitizeInputString(value, 200);
     setState((current) => ({
       ...current,
       draft: {
         ...current.draft,
         learningOutcomes: current.draft.learningOutcomes.map((item, currentIndex) =>
-          currentIndex === index ? value : item,
+          currentIndex === index ? sanitized : item,
         ),
       },
     }));
@@ -757,7 +869,16 @@ export function WizardProvider({ children }: PropsWithChildren) {
     }));
   }, []);
 
-  const addSource = useCallback(() => {
+  const addSource = useCallback((urlInput?: string) => {
+    let effectiveUrl = urlInput;
+    if (urlInput && urlInput.trim()) {
+      const urlVal = validateUrlSecurity(urlInput);
+      if (!urlVal.valid) {
+        return;
+      }
+      effectiveUrl = urlVal.sanitizedUrl;
+    }
+    const parsed = parseSourceUrlInput(effectiveUrl);
     setState((current) => ({
       ...current,
       draft: {
@@ -765,10 +886,12 @@ export function WizardProvider({ children }: PropsWithChildren) {
         sources: [
           {
             id: createSourceId(),
-            type: sourceTypeOptions[0],
-            title: '',
-            url: '',
+            type: parsed.type,
+            title: parsed.title,
+            url: parsed.url,
             collapsed: false,
+            thumbnailUrl: parsed.thumbnailUrl,
+            domain: parsed.domain,
           },
           ...current.draft.sources,
         ],
@@ -842,12 +965,11 @@ export function WizardProvider({ children }: PropsWithChildren) {
             const updated = { ...source, [key]: value };
 
             if (key === 'url' && typeof value === 'string') {
-              const trimmed = value.trim();
-              if (trimmed.includes('list=PL') || trimmed.includes('/playlist?list=')) {
-                updated.type = 'YouTube Playlist';
-              } else if (trimmed.includes('youtu.be/') || trimmed.includes('watch?v=')) {
-                updated.type = 'YouTube Video';
-              }
+              const parsed = parseSourceUrlInput(value);
+              updated.type = parsed.type;
+              if (parsed.domain) updated.domain = parsed.domain;
+              if (parsed.thumbnailUrl) updated.thumbnailUrl = parsed.thumbnailUrl;
+              if (!source.title && parsed.title) updated.title = parsed.title;
             }
 
             return updated;
@@ -1534,6 +1656,16 @@ export function WizardProvider({ children }: PropsWithChildren) {
   }, []);
 
   const publishCohort = useCallback(async () => {
+    const draftValidation = validateCohortDraftSecurity(stateRef.current.draft);
+    if (!draftValidation.valid) {
+      setLaunchState((current) => ({
+        ...current,
+        publishStage: 'idle',
+        publishError: draftValidation.errors.join('; '),
+      }));
+      return;
+    }
+
     setLaunchState((current) => ({
       ...current,
       publishStage: 'preparing-assets',
@@ -1543,8 +1675,8 @@ export function WizardProvider({ children }: PropsWithChildren) {
     try {
       const result = await publishService.publishCohort(
         {
-          draft: stateRef.current.draft,
-          curriculum: curriculumStateRef.current.curriculum,
+          draft: draftValidation.sanitizedDraft,
+          curriculum: curriculumStateRef.current.curriculum!,
           onboarding: launchStateRef.current.onboarding,
           community: launchStateRef.current.community,
           journeySettings: launchStateRef.current.journeySettings,

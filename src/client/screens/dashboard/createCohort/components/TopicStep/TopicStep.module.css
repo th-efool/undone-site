@@ -28,10 +28,22 @@
   gap: 8px;
 }
 
+.labelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .label {
   font-size: 0.875rem;
   font-weight: 600;
   color: #fff;
+}
+
+.charCount {
+  font-size: 0.75rem;
+  color: #71717a;
+  font-weight: 500;
 }
 
 .textInput {
@@ -43,7 +55,7 @@
   color: #fff;
   font-size: 1rem;
   outline: none;
-  transition: border-color 0ms;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
 .textInput::placeholder {
@@ -55,10 +67,99 @@
   box-shadow: 0 0 0 1px #fff;
 }
 
+/* Duration selector styles */
+.durationWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.selectInput {
+  width: 100%;
+  padding: 12px;
+  border-radius: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #18181b;
+  color: #fff;
+  font-size: 0.9375rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.selectInput option {
+  background: #18181b;
+  color: #fff;
+}
+
+.selectInput:focus {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 1px #fff;
+}
+
+.customDurationGroup {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.numberInput {
+  width: 90px;
+  padding: 10px 12px;
+  border-radius: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 0.9375rem;
+  outline: none;
+  text-align: center;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.numberInput:focus {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 1px #fff;
+}
+
+.numberInput::-webkit-outer-spin-button,
+.numberInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.numberInput[type='number'] {
+  -moz-appearance: textfield;
+}
+
+.unitSelect {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #18181b;
+  color: #fff;
+  font-size: 0.9375rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.unitSelect option {
+  background: #18181b;
+  color: #fff;
+}
+
+.unitSelect:focus {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 1px #fff;
+}
+
+/* Category Grid & Chips */
 .categoryGrid {
   display: flex;
   flex-wrap: wrap;
-  gap: 0;
+  gap: 8px;
 }
 
 .catChip {
@@ -66,24 +167,47 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border-radius: 0;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 4px;
   border: 1px solid #27272a;
-  background: transparent;
+  background: rgba(255, 255, 255, 0.02);
   color: #a1a1aa;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0ms;
-  margin: -1px 0 0 -1px;
+  transition: all 150ms ease;
+  user-select: none;
+}
+
+.catChip:hover {
+  border-color: #52525b;
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.catChip:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+  border-color: #ffffff;
+}
+
+.catChip:active {
+  transform: scale(0.97);
 }
 
 .catSelected {
   background: #ffffff;
   color: #000000;
   border-color: #ffffff;
+  font-weight: 600;
   z-index: 1;
+}
+
+.catSelected:hover {
+  background: #e4e4e7;
+  color: #000000;
+  border-color: #e4e4e7;
 }
 
 .twoCol {
@@ -109,8 +233,19 @@
   font-weight: 600;
   cursor: pointer;
   text-align: center;
-  transition: all 0ms;
+  transition: all 150ms ease;
   margin: -1px 0 0 -1px;
+}
+
+.diffCard:hover {
+  border-color: #52525b;
+  color: #ffffff;
+}
+
+.diffCard:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+  z-index: 2;
 }
 
 .diffSelected {
@@ -121,7 +256,11 @@
 }
 
 @media (max-width: 640px) {
+  .twoCol {
+    grid-template-columns: 1fr;
+  }
 }
 @media (max-width: 768px) {
   .step { padding: var(--mobile-page-padding, 16px); }
 }
+

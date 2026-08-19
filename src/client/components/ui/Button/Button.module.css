@@ -52,24 +52,26 @@
 .primary {
   background: var(--gradient-brand);
   color: var(--color-text-inverse);
-  box-shadow: var(--shadow-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .primary:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-primary-lg);
+  transform: translateY(-1px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  filter: brightness(1.03);
 }
 
 .secondary {
   background: var(--color-surface);
   color: var(--color-text-primary);
   border: 1px solid var(--color-border);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .secondary:hover {
   background: var(--color-surface-secondary);
   border-color: var(--color-border-hover);
+  transform: translateY(-1px);
 }
 
 .ghost {
@@ -79,6 +81,7 @@
 
 .ghost:hover {
   background: var(--color-brand-soft);
+  transform: translateY(-1px);
 }
 
 .outline {
@@ -89,16 +92,20 @@
 
 .outline:hover {
   background: var(--color-brand-soft);
+  transform: translateY(-1px);
 }
 
 .momentum {
   background: var(--gradient-momentum);
   color: var(--color-text-inverse);
-  box-shadow: var(--shadow-momentum);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .momentum:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  filter: brightness(1.03);
 }
 
 .danger {
@@ -108,6 +115,7 @@
 
 .danger:hover {
   filter: brightness(0.95);
+  transform: translateY(-1px);
 }
 
 /* Modifiers */

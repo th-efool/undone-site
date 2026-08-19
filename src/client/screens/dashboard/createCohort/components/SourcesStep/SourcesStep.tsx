@@ -26,7 +26,15 @@ interface SourcesStepProps {
 export function SourcesStep({ sources, importWorkspace }: SourcesStepProps) {
   const { actions } = useWizardContext();
   const [draggingSourceId, setDraggingSourceId] = useState<string | null>(null);
+  const [urlInput, setUrlInput] = useState('');
   const isImportActive = importWorkspace.status === 'running' || importWorkspace.status === 'failed';
+
+  const handleAddSource = () => {
+    if (urlInput.trim()) {
+      actions.addSource(urlInput.trim());
+      setUrlInput('');
+    }
+  };
 
   const orderedSources = useMemo(
     () => sources.sources.map((source, index) => ({
@@ -57,10 +65,31 @@ export function SourcesStep({ sources, importWorkspace }: SourcesStepProps) {
 
             <Cluster gap="3" justify="end" className={styles.actions}>
               <Badge variant="neutral">{sources.countLabel}</Badge>
-              <Button type="button" variant="primary" size="md" onClick={actions.addSource}>
-                Add source
-              </Button>
             </Cluster>
+          </div>
+
+          <div className={styles.addSourceBar}>
+            <input
+              type="url"
+              className={styles.urlInput}
+              placeholder="Paste link here (YouTube video/playlist, GitHub, Website, PDF...)"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleAddSource();
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="primary"
+              className={styles.addButton}
+              onClick={handleAddSource}
+            >
+              Add Source
+            </Button>
           </div>
 
           {sources.sources.length === 0 ? (
@@ -79,13 +108,10 @@ export function SourcesStep({ sources, importWorkspace }: SourcesStepProps) {
               <Stack gap="4" align="center">
                 <FileSearch size={32} style={{ color: 'var(--color-text-muted)' }} />
                 <Text variant="muted">{sources.emptyLabel}</Text>
-                <Button type="button" variant="primary" onClick={actions.addSource}>
-                  Add first source
-                </Button>
               </Stack>
             </div>
           ) : (
-            <Stack gap="4">
+            <div className={styles.masonryGrid}>
               {orderedSources.map(({ source, previousId, nextId }) => (
                 <SourceCard
                   key={source.id}
@@ -109,7 +135,7 @@ export function SourcesStep({ sources, importWorkspace }: SourcesStepProps) {
                   onDragEnd={() => setDraggingSourceId(null)}
                 />
               ))}
-            </Stack>
+            </div>
           )}
         </Stack>
       )}

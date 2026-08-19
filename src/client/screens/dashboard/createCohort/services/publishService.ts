@@ -2,12 +2,16 @@ import type { PublishResultModel, PublishStage } from '../models/launch';
 import { cohortRepository } from '@/src/client/repositories/cohortRepository';
 import { apiUrl } from '@/src/shared/api/apiUrl';
 
+import type { CreateCohortDraft } from '../models/createCohort';
+import type { GeneratedCurriculum } from '@/src/shared/curriculum/curriculum.types';
+import type { OnboardingConfigModel, CommunityConfigModel, JourneySettingsModel } from '../models/launch';
+
 interface PublishCohortInput {
-  draft: any;
-  curriculum: any;
-  onboarding: any;
-  community: any;
-  journeySettings: any;
+  draft: CreateCohortDraft;
+  curriculum: GeneratedCurriculum;
+  onboarding: OnboardingConfigModel;
+  community: CommunityConfigModel;
+  journeySettings: JourneySettingsModel;
   qualityScore: number;
 }
 

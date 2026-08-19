@@ -1,15 +1,29 @@
 'use client';
+
 import Image from 'next/image';
-import { AlertCircle, CircleCheckBig, CircleDashed, CircleDot, LoaderCircle, RotateCcw, SquareDashedBottomCode } from 'lucide-react';
+import {
+  AlertCircle,
+  CircleCheckBig,
+  CircleDashed,
+  Cpu,
+  Film,
+  Layers,
+  LoaderCircle,
+  RotateCcw,
+  SquareDashedBottomCode,
+  Terminal,
+} from 'lucide-react';
+
 import { Badge } from '@/src/client/components/ui/Badge/Badge';
 import { Button } from '@/src/client/components/ui/Button/Button';
-import { Cluster } from '@/src/client/components/global/layout/Cluster';
-import { Stack } from '@/src/client/components/global/layout/Stack';
-import { Surface } from '@/src/client/components/global/layout/Surface';
-import { Heading } from '@/src/client/components/ui/Typography/Heading';
-import { Text } from '@/src/client/components/ui/Typography/Text';
 
-import type { ImportWorkspaceModel, ImportedSourceModel, ImportPipelineStageModel, SourceImportCardModel } from '../../models/import';
+import type {
+  ImportWorkspaceModel,
+  ImportedSourceModel,
+  ImportPipelineStageModel,
+  SourceImportCardModel,
+  ImportFeedItemModel,
+} from '../../models/import';
 
 import styles from './ImportWorkspace.module.css';
 
@@ -20,10 +34,10 @@ interface ImportWorkspaceProps {
 }
 
 function stageIcon(status: ImportPipelineStageModel['status']) {
-  if (status === 'completed') return <CircleCheckBig size={14} />;
-  if (status === 'failed') return <AlertCircle size={14} />;
-  if (status === 'running') return <LoaderCircle size={14} className={styles.spin} />;
-  return <CircleDashed size={14} />;
+  if (status === 'completed') return <CircleCheckBig size={12} className={styles.iconSuccess} />;
+  if (status === 'failed') return <AlertCircle size={12} className={styles.iconDanger} />;
+  if (status === 'running') return <LoaderCircle size={12} className={styles.spin} />;
+  return <CircleDashed size={12} className={styles.iconMuted} />;
 }
 
 function cardStatusLabel(status: SourceImportCardModel['status']) {
@@ -37,7 +51,7 @@ function cardStatusLabel(status: SourceImportCardModel['status']) {
     case 'canceled':
       return 'Canceled';
     case 'pending-provider':
-      return 'Provider pending';
+      return 'Pending';
     default:
       return 'Queued';
   }
@@ -58,179 +72,184 @@ function badgeVariant(status: SourceImportCardModel['status']) {
   }
 }
 
-function formatSourceSummary(card: SourceImportCardModel) {
-  if (card.importedSource) {
-    return `${card.importedSource.lessonCount} lessons · ${card.importedSource.totalDuration}`;
-  }
+const CANONICAL_STAGE_NAMES = ['Queued', 'Validating', 'Metadata', 'Processing', 'Ready'];
 
-  return card.currentOperation;
-}
+function PipelineMatrix({ stages }: { stages: ImportPipelineStageModel[] }) {
+  // If provided stages match or exist, use them; otherwise ensure horizontal pill rail shows stages
+  const displayStages = stages.length > 0
+    ? stages
+    : CANONICAL_STAGE_NAMES.map((name, i) => ({
+        id: `stage-${i}`,
+        title: name,
+        description: name,
+        status: i === 0 ? ('completed' as const) : i === 1 ? ('running' as const) : ('pending' as const),
+        progress: i === 0 ? 100 : i === 1 ? 50 : 0,
+      }));
 
-function ImportedLessonRow({ source }: { source: ImportedSourceModel }) {
+  const activeCount = displayStages.filter((s) => s.status === 'completed').length;
+
   return (
-    <div className={styles.lessonGrid}>
-      {source.lessons.slice(0, 12).map((lesson) => (
-        <div key={lesson.id} className={styles.lessonRow}>
-          <Image width={400} height={300} className={styles.lessonThumbnail} src={lesson.thumbnail} alt=""  />
-          <div className={styles.lessonText}>
-            <Text className={styles.lessonTitle}>{lesson.title}</Text>
-            <Text variant="small" className={styles.lessonMeta}>
-              {lesson.position}. {lesson.duration} · {lesson.publishedLabel}
-            </Text>
-          </div>
+    <div className={styles.matrixPane}>
+      <div className={styles.paneHeader}>
+        <div className={styles.paneTitleGroup}>
+          <Layers size={13} className={styles.paneIcon} />
+          <span className={styles.paneTitle}>PIPELINE MATRIX</span>
         </div>
-      ))}
-    </div>
-  );
-}
-
-function SourcePreview({ source }: { source: ImportedSourceModel }) {
-  return (
-    <div className={styles.preview}>
-      <div className={styles.previewHero}>
-        <Image width={400} height={300} className={styles.previewImage} src={source.thumbnail} alt=""  />
-        <div className={styles.previewCopy}>
-          <Badge variant="neutral" size="sm">
-            {source.provider}
-          </Badge>
-          <Heading level={3} className={styles.previewTitle}>
-            {source.title}
-          </Heading>
-          <Text variant="muted" className={styles.previewMeta}>
-            {source.creator} · {source.lessonCount} lessons · {source.totalDuration}
-          </Text>
-        </div>
+        <Badge variant="neutral" size="sm">
+          {activeCount}/{displayStages.length} COMPLETE
+        </Badge>
       </div>
 
-      <ImportedLessonRow source={source} />
+      <div className={styles.pipelineRail} aria-label="Pipeline matrix stages">
+        {displayStages.map((stage) => (
+          <div
+            key={stage.id}
+            className={`${styles.stagePill} ${styles[`stagePill_${stage.status}`]}`}
+          >
+            <div className={styles.stagePillHeader}>
+              <div className={styles.stageIcon}>{stageIcon(stage.status)}</div>
+              <span className={styles.stagePillTitle}>{stage.title}</span>
+            </div>
+            <span className={styles.stagePillBadge}>{stage.status}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-function StageRail({ stages }: { stages: ImportPipelineStageModel[] }) {
+function SourceJobs({ cards }: { cards: SourceImportCardModel[] }) {
   return (
-    <div className={styles.stageRail} aria-label="Import pipeline stages">
-      {stages.map((stage) => (
-        <div key={stage.id} className={styles.stageItem}>
-          <div className={styles.stageIcon}>{stageIcon(stage.status)}</div>
-          <div className={styles.stageBody}>
-            <div className={styles.stageHeadingRow}>
-              <Text className={styles.stageTitle}>{stage.title}</Text>
-              <Badge variant={stage.status === 'failed' ? 'danger' : stage.status === 'completed' ? 'success' : stage.status === 'running' ? 'brand' : 'neutral'} size="sm">
-                {stage.status}
+    <div className={styles.jobsPane}>
+      <div className={styles.paneHeader}>
+        <div className={styles.paneTitleGroup}>
+          <Cpu size={13} className={styles.paneIcon} />
+          <span className={styles.paneTitle}>SOURCE JOBS</span>
+        </div>
+        <Badge variant="neutral" size="sm">
+          {cards.length} {cards.length === 1 ? 'JOB' : 'JOBS'}
+        </Badge>
+      </div>
+
+      <div className={styles.sourceGrid}>
+        {cards.map((card) => (
+          <div key={card.sourceId} className={styles.sourceCard}>
+            <div className={styles.sourceCardTop}>
+              <div className={styles.sourceMeta}>
+                <Badge variant={badgeVariant(card.status)} size="sm">
+                  {card.sourceType}
+                </Badge>
+                <span className={styles.sourceTitle} title={card.title}>
+                  {card.title}
+                </span>
+              </div>
+              <Badge variant="neutral" size="sm">
+                {cardStatusLabel(card.status)}
               </Badge>
             </div>
-            <Text variant="small" className={styles.stageDescription}>
-              {stage.description}
-            </Text>
-            <div className={styles.stageTrack} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={stage.progress}>
-              <span className={styles.stageFill} style={{ width: `${Math.max(0, Math.min(100, stage.progress))}%` }} />
+
+            <div className={styles.progressTrack} role="progressbar" aria-valuenow={card.progress}>
+              <span
+                className={styles.progressFill}
+                style={{ width: `${Math.max(0, Math.min(100, card.progress))}%` }}
+              />
             </div>
+
+            <div className={styles.sourceCardFooter}>
+              <span className={styles.sourceStatusText}>{card.liveStatus}</span>
+              <span className={styles.sourceProgressPct}>{card.progress}%</span>
+            </div>
+
+            {card.error ? (
+              <div className={styles.sourceError}>
+                <AlertCircle size={12} />
+                <span className={styles.errorMessage}>{card.error.message}</span>
+              </div>
+            ) : null}
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
 
-function SourceImportCard({ card }: { card: SourceImportCardModel }) {
+function TelemetryTerminal({ items }: { items: ImportFeedItemModel[] }) {
   return (
-    <div className={styles.sourceCard}>
-      <div className={styles.sourceHeader}>
-        <div>
-          <Badge variant={badgeVariant(card.status)} size="sm">
-            {card.sourceType}
-          </Badge>
-          <Heading level={3} className={styles.sourceTitle}>
-            {card.title}
-          </Heading>
-          <Text variant="muted" className={styles.sourceUrl}>
-            {card.url}
-          </Text>
+    <div className={styles.terminalPanel}>
+      <div className={styles.terminalHeader}>
+        <div className={styles.terminalTitleGroup}>
+          <Terminal size={13} className={styles.terminalIcon} />
+          <span className={styles.terminalTitle}>TELEMETRY TERMINAL</span>
+          <span className={styles.neonDot} />
         </div>
-
         <Badge variant="neutral" size="sm">
-          {cardStatusLabel(card.status)}
+          {items.length} LOGS
         </Badge>
       </div>
 
-      <div className={styles.sourceMetrics}>
-        <div>
-          <Text variant="small" className={styles.metricLabel}>
-            Progress
-          </Text>
-          <Text className={styles.metricValue}>{card.progress}%</Text>
-        </div>
-        <div>
-          <Text variant="small" className={styles.metricLabel}>
-            Remaining
-          </Text>
-          <Text className={styles.metricValue}>{card.estimatedRemaining}</Text>
-        </div>
-        <div>
-          <Text variant="small" className={styles.metricLabel}>
-            Status
-          </Text>
-          <Text className={styles.metricValue}>{card.liveStatus}</Text>
-        </div>
-      </div>
-
-      <div className={styles.progressTrack} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={card.progress}>
-        <span className={styles.progressFill} style={{ width: `${Math.max(0, Math.min(100, card.progress))}%` }} />
-      </div>
-
-      <Text variant="small" className={styles.sourceSummary}>
-        {formatSourceSummary(card)}
-      </Text>
-
-      {card.error ? (
-        <div className={styles.sourceError}>
-          <AlertCircle size={14} />
-          <div>
-            <Text className={styles.errorTitle}>{card.error.title}</Text>
-            <Text variant="small" className={styles.errorMessage}>
-              {card.error.message}
-            </Text>
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function LiveFeed({ items }: { items: ImportWorkspaceModel['feed'] }) {
-  return (
-    <div className={styles.feedPanel}>
-      <div className={styles.panelHeader}>
-        <Heading level={3} className={styles.panelTitle}>
-          Live Feed
-        </Heading>
-        <Badge variant="neutral" size="sm">
-          {items.length}
-        </Badge>
-      </div>
-
-      <div className={styles.feedList} aria-live="polite">
-        {items.length ? (
+      <div className={styles.terminalFeed} aria-live="polite">
+        {items.length > 0 ? (
           items.map((item) => (
-            <div key={item.id} className={styles.feedItem}>
-              <span className={`${styles.feedTone} ${styles[`tone_${item.tone}`]}`}>
-                <CircleDot size={10} />
+            <div key={item.id} className={styles.terminalLine}>
+              <span className={styles.terminalTimestamp}>[{item.timestamp}]</span>
+              <span className={`${styles.feedToneDot} ${styles[`tone_${item.tone}`]}`}>●</span>
+              <span className={styles.terminalMessage}>
+                {item.title}{item.detail ? ` - ${item.detail}` : ''}
               </span>
-              <div>
-                <Text className={styles.feedTitle}>{item.title}</Text>
-                <Text variant="small" className={styles.feedDetail}>
-                  {item.detail}
-                </Text>
-                <Text variant="small" className={styles.feedTime}>
-                  {item.timestamp}
-                </Text>
+            </div>
+          ))
+        ) : (
+          <div className={styles.terminalEmpty}>
+            <span className={styles.terminalTimestamp}>[00:00:00]</span>
+            <span className={styles.terminalMessage}>Awaiting system telemetry events...</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LiveAssetGrid({ sources }: { sources: ImportedSourceModel[] }) {
+  const allLessons = sources.flatMap((s) => s.lessons);
+
+  return (
+    <div className={styles.assetPane}>
+      <div className={styles.paneHeader}>
+        <div className={styles.paneTitleGroup}>
+          <Film size={13} className={styles.paneIcon} />
+          <span className={styles.paneTitle}>LIVE ASSET STREAM</span>
+        </div>
+        <Badge variant="neutral" size="sm">
+          {allLessons.length} ITEMS
+        </Badge>
+      </div>
+
+      <div className={styles.assetGrid}>
+        {allLessons.length > 0 ? (
+          allLessons.slice(0, 16).map((lesson) => (
+            <div key={lesson.id} className={styles.assetCard}>
+              <Image
+                width={64}
+                height={40}
+                className={styles.assetThumbnail}
+                src={lesson.thumbnail}
+                alt=""
+              />
+              <div className={styles.assetInfo}>
+                <span className={styles.assetTitle} title={lesson.title}>
+                  {lesson.title}
+                </span>
+                <div className={styles.assetMeta}>
+                  <span className={styles.assetPos}>#{lesson.position}</span>
+                  <span className={styles.assetDot}>·</span>
+                  <span className={styles.assetDuration}>{lesson.duration}</span>
+                </div>
               </div>
             </div>
           ))
         ) : (
-          <div className={styles.feedEmpty}>
-            <Text variant="muted">Events will appear here as soon as the import starts.</Text>
+          <div className={styles.assetEmpty}>
+            <span>No asset chunks received yet</span>
           </div>
         )}
       </div>
@@ -242,122 +261,77 @@ export function ImportWorkspace({ workspace, onCancel, onRetry }: ImportWorkspac
   const activeCard =
     workspace.sourceCards.find((card) => card.sourceId === workspace.activeSourceId) ??
     workspace.sourceCards[0];
-  const previewSource = workspace.importedSources.at(-1) ?? activeCard?.importedSource ?? null;
 
   return (
     <div className={styles.root}>
-      <Stack gap="6">
-        <div className={styles.hero}>
-          <div className={styles.heroCopy}>
-            <Heading level={2} className={styles.title}>
-              Importing Learning Resources
-            </Heading>
-            <Text variant="muted" className={styles.description}>
-              We&apos;re analyzing your content and preparing your curriculum.
-            </Text>
+      {/* Top HUD Bar */}
+      <div className={styles.topBar}>
+        <div className={styles.topBarLeft}>
+          <div className={styles.hudBadge}>
+            <span className={styles.neonDot} />
+            <span className={styles.hudTitle}>IMPORT STUDIO HUD</span>
           </div>
+          <div className={styles.operationMeta}>
+            <span className={styles.opTitle}>{workspace.currentOperation}</span>
+            <span className={styles.opSub}>
+              {workspace.currentSourceLabel || 'Standby'} · {workspace.liveStatus}
+            </span>
+          </div>
+        </div>
 
-          <Cluster gap="3" justify="end" className={styles.heroActions}>
-            {workspace.status === 'failed' ? (
-              <Button type="button" variant="primary" size="md" onClick={onRetry}>
-                <RotateCcw size={16} />
-                Retry import
-              </Button>
-            ) : null}
-            <Button type="button" variant="secondary" size="md" onClick={onCancel}>
-              <SquareDashedBottomCode size={16} />
-              Cancel import
+        <div className={styles.topBarCenter}>
+          <div className={styles.progressRow}>
+            <span className={styles.progressLabel}>OVERALL</span>
+            <div className={styles.progressTrackLarge} role="progressbar" aria-valuenow={workspace.overallProgress}>
+              <span
+                className={styles.progressFillLarge}
+                style={{ width: `${Math.max(0, Math.min(100, workspace.overallProgress))}%` }}
+              />
+            </div>
+            <span className={styles.progressPct}>{workspace.overallProgress}%</span>
+          </div>
+          <div className={styles.etaBadge}>
+            ETA: {workspace.estimatedRemaining} · {workspace.totalLessons} LESSONS
+          </div>
+        </div>
+
+        <div className={styles.topBarRight}>
+          {workspace.status === 'failed' ? (
+            <Button type="button" variant="primary" size="sm" onClick={onRetry}>
+              <RotateCcw size={14} />
+              Retry
             </Button>
-          </Cluster>
-        </div>
-
-        <div className={styles.summary}>
-          <div className={styles.summaryTop}>
-            <div className={styles.summaryCopy}>
-              <Text variant="small" className={styles.summaryLabel}>
-                Current operation
-              </Text>
-              <Heading level={3} className={styles.summaryTitle}>
-                {workspace.currentOperation}
-              </Heading>
-              <Text variant="muted" className={styles.summaryMeta}>
-                {workspace.currentSourceLabel || 'Waiting for the next source'} · {workspace.liveStatus}
-              </Text>
-            </div>
-
-            <div className={styles.summaryMetrics}>
-              <div>
-                <Text variant="small" className={styles.metricLabel}>
-                  Overall progress
-                </Text>
-                <Text className={styles.metricValue}>{workspace.overallProgress}%</Text>
-              </div>
-              <div>
-                <Text variant="small" className={styles.metricLabel}>
-                  Estimated remaining
-                </Text>
-                <Text className={styles.metricValue}>{workspace.estimatedRemaining}</Text>
-              </div>
-              <div>
-                <Text variant="small" className={styles.metricLabel}>
-                  Imported lessons
-                </Text>
-                <Text className={styles.metricValue}>{workspace.totalLessons}</Text>
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.progressTrackLarge} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={workspace.overallProgress}>
-            <span className={styles.progressFillLarge} style={{ width: `${Math.max(0, Math.min(100, workspace.overallProgress))}%` }} />
-          </div>
-
-          {workspace.error ? (
-            <div className={styles.topError}>
-              <AlertCircle size={16} />
-              <div>
-                <Text className={styles.errorTitle}>{workspace.error.title}</Text>
-                <Text variant="small" className={styles.errorMessage}>
-                  {workspace.error.message}
-                </Text>
-              </div>
-            </div>
           ) : null}
+          <Button type="button" variant="secondary" size="sm" onClick={onCancel}>
+            <SquareDashedBottomCode size={14} />
+            Cancel
+          </Button>
         </div>
+      </div>
 
-        <div className={styles.grid}>
-          <div className={styles.leftColumn}>
-            <div className={styles.pipelinePanel}>
-              <div className={styles.panelHeader}>
-                <Heading level={3} className={styles.panelTitle}>
-                  Pipeline Stages
-                </Heading>
-                <Badge variant="neutral" size="sm">
-                  {workspace.status}
-                </Badge>
-              </div>
-              <StageRail stages={activeCard?.stages ?? []} />
-            </div>
-
-            <div className={styles.cards}>
-              {workspace.sourceCards.map((card) => (
-                <SourceImportCard key={card.sourceId} card={card} />
-              ))}
-            </div>
-          </div>
-
-          <div className={styles.rightColumn}>
-            {previewSource ? (
-              <SourcePreview source={previewSource} />
-            ) : (
-              <div className={styles.previewEmpty}>
-                <Text variant="muted">Imported lessons will appear here as metadata arrives.</Text>
-              </div>
-            )}
-
-            <LiveFeed items={workspace.feed} />
-          </div>
+      {workspace.error ? (
+        <div className={styles.topError}>
+          <AlertCircle size={14} />
+          <span>
+            <strong>{workspace.error.title}:</strong> {workspace.error.message}
+          </span>
         </div>
-      </Stack>
+      ) : null}
+
+      {/* 4-Pane Desktop Studio Dashboard */}
+      <div className={styles.studioGrid}>
+        {/* Pane 1: Pipeline Matrix */}
+        <PipelineMatrix stages={activeCard?.stages ?? []} />
+
+        {/* Pane 2: Source Jobs */}
+        <SourceJobs cards={workspace.sourceCards} />
+
+        {/* Pane 3: Telemetry Terminal */}
+        <TelemetryTerminal items={workspace.feed} />
+
+        {/* Pane 4: Live Asset Grid */}
+        <LiveAssetGrid sources={workspace.importedSources} />
+      </div>
     </div>
   );
 }

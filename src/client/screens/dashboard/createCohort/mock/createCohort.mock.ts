@@ -24,15 +24,31 @@ export const sourceTypeOptions: CreateCohortSourceType[] = [
 ];
 
 export const categoryOptions = [
-  'Programming',
-  'Productivity',
-  'Focus',
-  'Systems',
-  'Research',
-  'Creative Work',
-  'Career Growth',
-  'Writing',
-  'AI Tools',
+  'Software Engineering',
+  'Web & Mobile Dev',
+  'AI & Machine Learning',
+  'Data & Analytics',
+  'UI/UX & Product Design',
+  '3D & Game Development',
+  'Business & Startups',
+  'Product Management',
+  'Marketing & Growth',
+  'Finance & Crypto',
+  'Productivity & Mindset',
+  'Communication & Public Speaking',
+  'Languages & Writing',
+  'Science & Mathematics',
+  'Health & Fitness',
+  'Music & Audio Production',
+];
+
+export const durationPresetOptions = [
+  '1 Week',
+  '2 Weeks',
+  '3-4 Weeks',
+  '1-2 Months',
+  '3-6 Months',
+  'Self-Paced / Custom',
 ];
 
 export const createCohortMockDraft: CreateCohortDraft = {
@@ -43,7 +59,7 @@ export const createCohortMockDraft: CreateCohortDraft = {
   difficulty: 'Beginner',
   categories: [],
   visibility: 'Public',
-  estimatedCompletionTime: '2-4 weeks',
+  estimatedCompletionTime: '3-4 Weeks',
   language: 'English',
   primaryTopic: '',
   tags: [],
@@ -59,9 +75,22 @@ export const createCohortMockDraft: CreateCohortDraft = {
     {
       id: 'source-1',
       type: 'YouTube Playlist',
-      title: '',
-      url: '',
+      title: 'Full Stack Web Development Course',
+      url: 'https://www.youtube.com/playlist?list=PL4cUxeGkcC9gC88BEo9czbfg72KH7-O60',
       collapsed: false,
+      thumbnailUrl: 'https://img.youtube.com/vi/u6gSSpfsoOQ/hqdefault.jpg',
+      domain: 'youtube.com',
+      metaTitle: 'Full Stack Web Dev Playlist',
+    },
+    {
+      id: 'source-2',
+      type: 'YouTube Video',
+      title: 'Next.js 14 App Router Crash Course',
+      url: 'https://www.youtube.com/watch?v=wm5gMKCOB4U',
+      collapsed: false,
+      thumbnailUrl: 'https://img.youtube.com/vi/wm5gMKCOB4U/hqdefault.jpg',
+      domain: 'youtube.com',
+      metaTitle: 'Next.js 14 Crash Course',
     },
   ],
 };

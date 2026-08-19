@@ -21,6 +21,7 @@ import type {
 import {
   categoryOptions,
   difficultyOptions,
+  durationPresetOptions,
   sourceTypeOptions,
   visibilityOptions,
 } from '../mock/createCohort.mock';
@@ -125,6 +126,7 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
       previousVisible: !isTopic && !importing,
       previousDisabled: false,
       continueDisabled:
+        (isTopic && !validation.topic) ||
         (isSources && (importing || !validation.sources)) ||
         (isCurriculum && !validation.curriculum) ||
         (isIdentity && !validation.identity) ||
@@ -160,6 +162,7 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
   }, [
     importState.status,
     state.currentStep,
+    validation.topic,
     validation.sources,
     validation.curriculum,
     validation.identity,
@@ -214,6 +217,7 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
       },
       difficultyOptions: buildSelectOptions(difficultyOptions, state.draft.difficulty),
       visibilityOptions: buildSelectOptions(visibilityOptions, state.draft.visibility),
+      durationPresetOptions: buildSelectOptions(durationPresetOptions, state.draft.estimatedCompletionTime),
       categoryOptions: categoryOptions.map((category) => ({
         id: category.toLowerCase().replace(/\s+/g, '-'),
         label: category,
@@ -271,6 +275,9 @@ export function useCreateCohortViewModel(): CreateCohortViewModel {
         url: source.url,
         collapsed: source.collapsed,
         dragLabel: `Drag source ${index + 1}`,
+        thumbnailUrl: source.thumbnailUrl,
+        domain: source.domain,
+        metaTitle: source.metaTitle,
       })),
     }),
     [state.draft.sources],

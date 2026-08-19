@@ -1,7 +1,7 @@
 "use client";
 import Image from 'next/image';
 
-import { Rocket, Clock, Layers, BookOpen, AlertCircle } from 'lucide-react';
+import { Clock, Layers, BookOpen, AlertCircle } from 'lucide-react';
 import { Badge } from '@/src/client/components/ui/Badge/Badge';
 import { useWizardContext } from '../../providers/WizardProvider';
 import { LearnerPreview } from '../LearnerPreview/LearnerPreview';
@@ -13,7 +13,6 @@ import { PublishingModal } from '../PublishingModal/PublishingModal';
 import { LaunchSuccess } from '../LaunchSuccess/LaunchSuccess';
 import { Stack } from '@/src/client/components/global/layout/Stack';
 import { Cluster } from '@/src/client/components/global/layout/Cluster';
-import { Button } from '@/src/client/components/ui/Button/Button';
 import { Text } from '@/src/client/components/ui/Typography/Text';
 
 import styles from './LaunchStep.module.css';
@@ -117,21 +116,6 @@ export function LaunchStep() {
           </div>
         </div>
       )}
-
-      <div className={styles.specRow} style={{ borderBottom: 'none' }}>
-        <span className={styles.specLabel}>Action</span>
-        <div className={styles.specValue}>
-          <Button
-            type="button"
-            onClick={actions.publishCohort}
-            disabled={!validation.launch || launchState.publishStage !== 'idle'}
-            variant="momentum"
-          >
-            <Rocket size={18} />
-            Publish Cohort
-          </Button>
-        </div>
-      </div>
 
       <PublishingModal />
     </div>

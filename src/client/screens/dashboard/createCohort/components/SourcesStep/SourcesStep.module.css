@@ -17,6 +17,46 @@
   flex: 0 0 auto;
 }
 
+.addSourceBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border, #27272a);
+  border-radius: var(--radius-lg, 12px);
+  padding: 6px 6px 6px 16px;
+  transition: border-color var(--duration-fast, 150ms) var(--ease-standard);
+}
+
+.addSourceBar:focus-within {
+  border-color: var(--color-border-hover, #52525b);
+  box-shadow: 0 0 0 1px var(--color-border-hover, #52525b);
+}
+
+.urlInput {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--color-text-primary, #ffffff);
+  font-size: var(--text-sm, 14px);
+}
+
+.urlInput::placeholder {
+  color: var(--color-text-muted, #71717a);
+}
+
+.addButton {
+  flex-shrink: 0;
+}
+
+.masonryGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
 .emptyState {
   display: grid;
   place-items: center;
@@ -24,7 +64,7 @@
   text-align: center;
   background: transparent;
   border: 1px dashed #3f3f46;
-  border-radius: 0;
+  border-radius: var(--radius-lg, 12px);
   color: #a1a1aa;
   width: 100%;
 }
@@ -32,4 +72,5 @@
 .emptyState.dragActive {
   border-color: #ffffff;
 }
+
 

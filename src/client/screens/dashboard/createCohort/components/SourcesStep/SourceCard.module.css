@@ -1,100 +1,116 @@
 .card {
-  display: grid;
-  gap: var(--space-3);
-  padding: 0;
-  transition: all var(--duration-fast) var(--ease-standard);
-  background: transparent;
-  border-bottom: 1px solid #27272a;
-  border-radius: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface-secondary, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--color-border, #27272a);
+  border-radius: var(--radius-lg, 12px);
+  overflow: hidden;
+  transition: transform var(--duration-fast, 150ms) var(--ease-standard),
+              box-shadow var(--duration-fast, 150ms) var(--ease-standard),
+              border-color var(--duration-fast, 150ms) var(--ease-standard);
+  cursor: grab;
 }
 
 .card:hover {
-  background: #111111;
+  transform: translateY(-2px);
+  border-color: var(--color-border-hover, #52525b);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-.dragging {
-  border-color: #ffffff;
-  background: #111111;
-}
-
-.header {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: var(--space-3);
-  align-items: center;
-}
-
-.dragHandle {
-  display: inline-grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-secondary);
-  color: var(--color-text-secondary);
-  cursor: grab;
-  transition: all var(--duration-fast) var(--ease-standard);
-}
-
-.dragHandle:hover {
-  color: var(--color-text-primary);
-  border-color: var(--color-border-hover);
-}
-
-.dragHandle:active {
+.card:active {
   cursor: grabbing;
 }
 
-.headerContent {
+.dragging {
+  opacity: 0.5;
+  border-color: var(--color-brand, #3b82f6);
+}
+
+.mediaContainer {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #18181b;
+  overflow: hidden;
+}
+
+.thumbnailImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.fallbackBanner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #18181b 0%, #27272a 100%);
+  color: var(--color-text-muted, #a1a1aa);
+}
+
+.fallbackIcon {
+  opacity: 0.6;
+}
+
+.badgeOverlay {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 1;
+}
+
+.deleteBtn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-text-secondary, #a1a1aa);
+  cursor: pointer;
+  transition: all var(--duration-fast, 150ms) var(--ease-standard);
+}
+
+.deleteBtn:hover {
+  background: rgba(239, 68, 68, 0.9);
+  color: #ffffff;
+  border-color: rgba(239, 68, 68, 1);
+  transform: scale(1.05);
+}
+
+.content {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  min-width: 0;
+  gap: 4px;
+  padding: 12px 14px;
 }
 
-.topRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
+.title {
+  margin: 0;
+  font-size: var(--text-sm, 14px);
+  font-weight: 600;
+  color: var(--color-text-primary, #ffffff);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.urlInputRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-1) var(--space-2);
-  background: rgba(255, 255, 255, 0.05);
-  border: none;
-  box-shadow: 0 0 0 1px transparent;
-  border-radius: 0;
-  transition: all var(--duration-fast) var(--ease-standard);
-}
-
-.urlInputRow:focus-within {
-  box-shadow: 0 0 0 1px #ffffff;
-}
-
-.urlIcon {
-  color: var(--color-text-secondary);
-  flex-shrink: 0;
-}
-
-.urlInput {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: transparent;
-  color: var(--color-text-primary);
-  font-size: var(--text-sm);
-  outline: none;
-}
-
-.urlInput::placeholder {
-  color: var(--color-text-muted);
-}
-
-.actions {
-  display: flex;
-  gap: var(--space-1);
+.domainSubtitle {
+  margin: 0;
+  font-size: var(--text-xs, 12px);
+  color: var(--color-text-muted, #71717a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
