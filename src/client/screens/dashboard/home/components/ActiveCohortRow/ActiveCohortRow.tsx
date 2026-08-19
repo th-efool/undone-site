@@ -169,10 +169,10 @@ export function ActiveCohortRow({
         <span className={styles.cellLabel}>SHOWS UP</span>
         <div className={styles.frequencySliderRow}>
           <span 
-            className={`${styles.sliderEdgeLabel} ${item.frequency === 'Rarely' ? styles.sliderEdgeActive : ''}`}
+            className={`${styles.sliderEdgeLabel} ${item.frequency === 'Very Rarely' ? styles.sliderEdgeActive : ''}`}
             onClick={(e) => {
               e.stopPropagation();
-              onUpdateFrequency?.(item.id, 'Rarely');
+              onUpdateFrequency?.(item.id, 'Very Rarely');
               onSelect();
             }}
           >
@@ -197,10 +197,10 @@ export function ActiveCohortRow({
           </div>
 
           <span 
-            className={`${styles.sliderEdgeLabel} ${item.frequency === 'Always' ? styles.sliderEdgeActive : ''}`}
+            className={`${styles.sliderEdgeLabel} ${item.frequency === 'Very Often' ? styles.sliderEdgeActive : ''}`}
             onClick={(e) => {
               e.stopPropagation();
-              onUpdateFrequency?.(item.id, 'Always');
+              onUpdateFrequency?.(item.id, 'Very Often');
               onSelect();
             }}
           >

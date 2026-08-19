@@ -92,8 +92,8 @@ export function InspectorPanel({
           </div>
           <div className={styles.frequencySliderRow}>
             <span 
-              className={`${styles.sliderEdgeLabel} ${cohort.frequency === 'Rarely' ? styles.sliderEdgeActive : ''}`}
-              onClick={() => onUpdateFrequency?.(cohort.id, 'Rarely')}
+              className={`${styles.sliderEdgeLabel} ${cohort.frequency === 'Very Rarely' ? styles.sliderEdgeActive : ''}`}
+              onClick={() => onUpdateFrequency?.(cohort.id, 'Very Rarely')}
             >
               Less
             </span>
@@ -111,8 +111,8 @@ export function InspectorPanel({
               />
             </div>
             <span 
-              className={`${styles.sliderEdgeLabel} ${cohort.frequency === 'Always' ? styles.sliderEdgeActive : ''}`}
-              onClick={() => onUpdateFrequency?.(cohort.id, 'Always')}
+              className={`${styles.sliderEdgeLabel} ${cohort.frequency === 'Very Often' ? styles.sliderEdgeActive : ''}`}
+              onClick={() => onUpdateFrequency?.(cohort.id, 'Very Often')}
             >
               More
             </span>
