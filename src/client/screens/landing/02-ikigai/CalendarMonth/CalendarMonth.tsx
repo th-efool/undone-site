@@ -61,7 +61,7 @@ export function CalendarMonth({
       <div className={styles.footer}>
         <div className={styles.total}>
           <Image
-            src="/images/icons/youtube.webp"
+            src="/logos/youtube.webp"
             alt=""
             width={18}
             height={18}
@@ -72,7 +72,7 @@ export function CalendarMonth({
 
         <div className={styles.total}>
           <Image
-            src="/images/icons/coursera.webp"
+            src="/logos/coursera.webp"
             alt=""
             width={18}
             height={18}
@@ -83,7 +83,7 @@ export function CalendarMonth({
 
         <div className={styles.total}>
           <Image
-            src="/images/icons/youtube.webp"
+            src="/logos/youtube.webp"
             alt=""
             width={18}
             height={18}

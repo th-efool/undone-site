@@ -6,7 +6,7 @@ export function ExploreHero() {
     <section className={styles.hero}>
       <div className={styles.bannerContainer}>
         <img
-          src="/mobile/explore/explore-hero-banner-mobile.webp"
+          src="/images/mobile/explore/explore-hero-banner-mobile.webp"
           alt="Explore Banner"
           className={styles.bannerImage}
         />

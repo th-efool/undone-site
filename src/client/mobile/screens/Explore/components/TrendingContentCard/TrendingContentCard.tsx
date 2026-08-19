@@ -13,7 +13,7 @@ export function TrendingContentCard() {
         {/* Background Layer */}
         <div className={styles.background}>
           <Image
-            src="/mobile/explore/bottle-content-mobile.webp"
+            src="/images/mobile/explore/bottle-content-mobile.webp"
             alt="Bottle content artwork"
             fill
             className={styles.image}

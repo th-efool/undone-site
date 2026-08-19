@@ -49,7 +49,7 @@ export function IkigaiTimeline() {
         <div className={styles.definition}>
           <div className={styles.definitionIcon}>
             <Image
-              src="/images/icons/128/Book.webp"
+              src="/icons/128/Book.webp"
               alt=""
               width={26}
               height={26}

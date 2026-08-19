@@ -44,7 +44,7 @@ export function ProgressSection() {
 
         <div className={`${styles.progressRow} ${styles.youtube}`}>
           <Image
-            src="/images/icons/youtube-white.webp"
+            src="/logos/youtube-white.webp"
             alt=""
             className={styles.progressIcon}
             width={36}
@@ -59,7 +59,7 @@ export function ProgressSection() {
 
         <div className={`${styles.progressRow} ${styles.coursera}`}>
           <Image
-            src="/images/icons/coursera-white.webp"
+            src="/logos/coursera-white.webp"
             alt=""
             className={styles.progressIcon}
             width={36}
@@ -74,7 +74,7 @@ export function ProgressSection() {
 
         <div className={`${styles.progressRow} ${styles.history}`}>
           <Image
-            src="/images/icons/youtube-white.webp"
+            src="/logos/youtube-white.webp"
             alt=""
             className={styles.progressIcon}
             width={36}

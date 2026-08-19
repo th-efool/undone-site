@@ -14,22 +14,22 @@ const PROVIDERS: Provider[] = [
   {
     id: 'google',
     name: 'Google',
-    icon: '/icons/google.webp',
+    icon: '/logos/google.webp',
   },
   {
     id: 'apple',
     name: 'Apple',
-    icon: '/icons/apple.webp',
+    icon: '/logos/apple.webp',
   },
   {
     id: 'github',
     name: 'GitHub',
-    icon: '/icons/github.webp',
+    icon: '/logos/github.webp',
   },
   {
     id: 'slack',
     name: 'Slack',
-    icon: '/icons/slack.webp',
+    icon: '/logos/slack.webp',
   },
 ];
 

@@ -54,8 +54,8 @@ export function LearningList() {
               <Image
                 src={
                   item.platform === 'youtube'
-                    ? '/images/icons/youtube.webp'
-                    : '/images/icons/coursera.webp'
+                    ? '/logos/youtube.webp'
+                    : '/logos/coursera.webp'
                 }
                 alt=""
                 width={24}
