@@ -285,7 +285,10 @@
 │   │   ├── TOOLTIPS_NOTES.md
 │   │   └── TOOLTIPS_PLAY.md
 │   ├── ANDROID.md
-│   └── canvas-ui-change-plan.md
+│   ├── ARCHITECTURE.md
+│   ├── canvas-ui-change-plan.md
+│   ├── prisma-schema-cohort.md
+│   └── study-rooms-schema.md
 ├── notes/
 │   └── excalidraw-integration-plan.md
 ├── prisma/
@@ -1071,6 +1074,8 @@
 │   │   │   │   │   │   ├── curriculumService.ts
 │   │   │   │   │   │   ├── importService.ts
 │   │   │   │   │   │   └── publishService.ts
+│   │   │   │   │   ├── utils/
+│   │   │   │   │   │   └── securityValidation.ts
 │   │   │   │   │   ├── CreateCohort.module.css
 │   │   │   │   │   ├── CreateCohort.tsx
 │   │   │   │   │   ├── CreateCohortDesktop.tsx
@@ -1554,7 +1559,10 @@
 │   │       │   │   └── schema.prisma.ts
 │   │       │   └── postgres/
 │   │       │       ├── repositories/
+│   │       │       │   ├── cohort.repo.ts
+│   │       │       │   ├── community.repo.ts
 │   │       │       │   ├── session.repo.ts
+│   │       │       │   ├── studyRoom.repo.ts
 │   │       │       │   └── user.repo.ts
 │   │       │       ├── schema/
 │   │       │       │   └── index.ts
@@ -1607,4 +1615,4 @@
 ├── task.md
 └── tsconfig.json
 
-501 directories, 1105 files
+502 directories, 1112 files
