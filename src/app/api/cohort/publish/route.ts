@@ -1,26 +1,88 @@
 import { NextRequest } from 'next/server';
+import { z } from 'zod';
 import { cohortRepo } from '@/src/server/infrastructure/db/postgres/repositories/cohort.repo';
 import { userRepo } from '@/src/server/infrastructure/db/postgres/repositories/user.repo';
+import { Difficulty, Visibility, LessonType, SourceType } from '@/generated/prisma/client';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const sourceTypeMap: Record<string, SourceType> = {
+  'YouTube Playlist': 'YOUTUBE_PLAYLIST',
+  'YouTube Video': 'YOUTUBE_VIDEO',
+  'Website': 'WEBSITE',
+  'PDF': 'PDF',
+  'Markdown': 'MARKDOWN',
+  'GitHub Repository': 'GITHUB_REPO',
+  'Custom Link': 'CUSTOM_LINK',
+};
+
+const publishSchema = z.object({
+  draft: z.object({
+    title: z.string().min(1),
+    subtitle: z.string().optional(),
+    description: z.string().optional(),
+    coverImage: z.string().optional(),
+    difficulty: z.enum(['Beginner', 'Intermediate', 'Advanced']).optional(),
+    visibility: z.enum(['Private', 'Unlisted', 'Public']).optional(),
+    categories: z.array(z.string()).default([]),
+    estimatedCompletionTime: z.string().optional(),
+    language: z.string().optional(),
+    primaryTopic: z.string().optional(),
+    tags: z.array(z.string()).default([]),
+    requirements: z.array(z.string()).default([]),
+    learningOutcomes: z.array(z.string()).default([]),
+    sources: z.array(z.object({
+      type: z.string(),
+      title: z.string(),
+      url: z.string(),
+      thumbnailUrl: z.string().optional(),
+      domain: z.string().optional(),
+      metaTitle: z.string().optional(),
+    })).default([]),
+  }),
+  curriculum: z.object({
+    totalHours: z.string().optional(),
+    totalLessons: z.number().optional(),
+    totalSeasons: z.number().optional(),
+    seasons: z.array(z.object({
+      title: z.string(),
+      lessons: z.array(z.object({
+        title: z.string(),
+        description: z.string().optional(),
+        duration: z.union([z.string(), z.number()]).optional(),
+      })),
+    })),
+  }),
+  qualityScore: z.number().optional(),
+});
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json().catch(() => null);
+    const jsonBody = await request.json().catch(() => null);
 
-    if (!body || !body.draft || !body.curriculum) {
+    if (!jsonBody) {
+      return Response.json(
+        { code: 'invalid_payload', title: 'Invalid Cohort Payload', message: 'Payload is missing.' },
+        { status: 400 },
+      );
+    }
+
+    const parseResult = publishSchema.safeParse(jsonBody);
+    if (!parseResult.success) {
       return Response.json(
         {
           code: 'invalid_payload',
           title: 'Invalid Cohort Payload',
-          message: 'Draft details and generated curriculum are required to publish.',
+          message: parseResult.error.issues.map((e: z.ZodIssue) => `${e.path.join('.')}: ${e.message}`).join(', '),
         },
         { status: 400 },
       );
     }
 
-    // 1. Get or create a default user to act as the creator (since we are bypassing true auth for this test)
+    const { draft, curriculum, qualityScore } = parseResult.data;
+
+    // 1. Get or create a default user to act as the creator
     let creator = await userRepo.findByEmail('test@sidequesthq.com');
     if (!creator) {
       creator = await userRepo.create({
@@ -30,27 +92,46 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 2. Map the payload curriculum to our relational schema format
-    const seasons = body.curriculum.seasons.map((s: any, sIdx: number) => ({
+    // 2. Map curriculum to seasons and lessons
+    const seasons = curriculum.seasons.map((s, sIdx) => ({
       title: s.title,
       order: sIdx + 1,
-      lessons: s.lessons.map((l: any, lIdx: number) => ({
+      lessons: s.lessons.map((l, lIdx) => ({
         title: l.title,
         description: l.description,
-        duration: l.duration ? parseInt(l.duration) : 120, // dummy parse
+        duration: typeof l.duration === 'string' ? parseInt(l.duration) : (l.duration || 120),
         order: lIdx + 1,
-        lessonType: 'VIDEO', 
+        lessonType: 'VIDEO' as LessonType,
       })),
     }));
 
-    // 3. Create the cohort in Postgres with its nested Seasons, Lessons, and 1:1 Community
+    // 3. Map sources
+    const sources = draft.sources.map(source => ({
+      type: sourceTypeMap[source.type] || 'CUSTOM_LINK',
+      title: source.title,
+      url: source.url,
+      thumbnailUrl: source.thumbnailUrl,
+      domain: source.domain,
+      metaTitle: source.metaTitle,
+    }));
+
+    // 4. Create the cohort in Postgres
     const dbCohort = await cohortRepo.createCohortWithCommunity({
       creatorId: creator.id,
-      title: body.draft.title || 'Untitled Cohort',
-      description: body.draft.description,
-      coverImage: body.draft.coverImage,
-      difficulty: 'INTERMEDIATE', // mapped from body.draft.difficulty
-      visibility: 'PUBLIC',
+      title: draft.title || 'Untitled Cohort',
+      subtitle: draft.subtitle,
+      description: draft.description,
+      coverImage: draft.coverImage,
+      difficulty: draft.difficulty ? (draft.difficulty.toUpperCase() as Difficulty) : 'INTERMEDIATE',
+      visibility: draft.visibility === 'Private' ? 'PRIVATE' : draft.visibility === 'Unlisted' ? 'INVITE_ONLY' : 'PUBLIC',
+      categories: draft.categories,
+      estimatedCompletionTime: draft.estimatedCompletionTime,
+      language: draft.language,
+      primaryTopic: draft.primaryTopic,
+      tags: draft.tags,
+      requirements: draft.requirements,
+      learningOutcomes: draft.learningOutcomes,
+      sources,
       seasons,
     });
 
@@ -61,10 +142,10 @@ export async function POST(request: NextRequest) {
       publishedAt: dbCohort.publishedAt?.toISOString(),
       version: '1.0.0',
       visibility: dbCohort.visibility,
-      totalHours: body.curriculum.totalHours || '0m',
-      totalLessons: body.curriculum.totalLessons || 0,
-      totalSeasons: body.curriculum.totalSeasons || 0,
-      qualityScore: body.qualityScore || 90,
+      totalHours: curriculum.totalHours || '0m',
+      totalLessons: curriculum.totalLessons || 0,
+      totalSeasons: curriculum.totalSeasons || 0,
+      qualityScore: qualityScore || 90,
       coverImage: dbCohort.coverImage || '/images/landing/screen.webp',
     });
   } catch (error) {

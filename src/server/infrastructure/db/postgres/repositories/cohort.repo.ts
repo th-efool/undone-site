@@ -1,5 +1,5 @@
 import { prisma } from '../client';
-import { Difficulty, Visibility, LessonType } from '@/generated/prisma/client';
+import { Difficulty, Visibility, LessonType, SourceType } from '@/generated/prisma/client';
 
 export interface CreateCohortParams {
   creatorId: string;
@@ -9,6 +9,21 @@ export interface CreateCohortParams {
   coverImage?: string;
   difficulty?: Difficulty;
   visibility?: Visibility;
+  categories: string[];
+  estimatedCompletionTime?: string;
+  language?: string;
+  primaryTopic?: string;
+  tags: string[];
+  requirements: string[];
+  learningOutcomes: string[];
+  sources: {
+    type: SourceType;
+    title: string;
+    url: string;
+    thumbnailUrl?: string;
+    domain?: string;
+    metaTitle?: string;
+  }[];
   seasons: {
     title: string;
     order: number;
@@ -33,8 +48,26 @@ export const cohortRepo = {
         coverImage: data.coverImage,
         difficulty: data.difficulty ?? 'BEGINNER',
         visibility: data.visibility ?? 'PUBLIC',
+        categories: data.categories,
+        estimatedCompletionTime: data.estimatedCompletionTime,
+        language: data.language,
+        primaryTopic: data.primaryTopic,
+        tags: data.tags,
+        requirements: data.requirements,
+        learningOutcomes: data.learningOutcomes,
         isPublished: true,
         publishedAt: new Date(),
+        
+        sources: {
+          create: data.sources.map(source => ({
+            type: source.type,
+            title: source.title,
+            url: source.url,
+            thumbnailUrl: source.thumbnailUrl,
+            domain: source.domain,
+            metaTitle: source.metaTitle,
+          })),
+        },
         
         // Nested create for seasons and lessons
         seasons: {
