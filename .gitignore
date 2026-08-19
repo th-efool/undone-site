@@ -60,3 +60,12 @@ ai-context/phasewise.md
 phasewise.md
 
 /src/generated/prisma
+
+# local IDE and tools
+/.claude/
+/.windsurf/
+/.neon
+
+# scratch and generated
+/generated/
+/scratch/
