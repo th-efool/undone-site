@@ -25,6 +25,9 @@ export async function generateMetadata({ params }: { params: Promise<{ cohortId:
   };
 }
 
+import { mapDbCohortToUiCohort } from '@/src/server/infrastructure/db/postgres/mappers/cohortMapper';
+import { notFound } from 'next/navigation';
+
 export default async function HallOfFamePage({
   params,
 }: {
@@ -32,6 +35,23 @@ export default async function HallOfFamePage({
 }) {
   const { cohortId } = await params;
   
+  const dbCohort = await prisma.cohort.findUnique({
+    where: { id: cohortId },
+    include: {
+      creator: true,
+      seasons: {
+        include: {
+          lessons: true,
+        }
+      }
+    }
+  });
+
+  if (!dbCohort) {
+    notFound();
+  }
+
+  const uiCohort = mapDbCohortToUiCohort(dbCohort);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -46,7 +66,7 @@ export default async function HallOfFamePage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <HallOfFame cohortId={cohortId} />
+      <HallOfFame cohortId={cohortId} cohort={uiCohort} />
     </>
   );
 }

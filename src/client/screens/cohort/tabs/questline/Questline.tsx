@@ -1,18 +1,18 @@
 'use client';
 
-import { useCohort } from '../../hooks';
 import { AssignmentsProjectsFeed } from './components/AssignmentsProjectsFeed/AssignmentsProjectsFeed';
 import { QuestlineFilters } from './components/QuestlineFilters/QuestlineFilters';
 import { SeasonTimeline } from './components/SeasonTimeline/SeasonTimeline';
 
 import styles from './Questline.module.css';
+import type { Cohort } from '../../models';
 
 interface QuestlineProps {
   cohortId: string;
+  cohort: Cohort;
 }
 
-export function Questline({ cohortId }: QuestlineProps) {
-  const cohort = useCohort(cohortId);
+export function Questline({ cohortId, cohort }: QuestlineProps) {
   const { questline } = cohort;
 
   return (

@@ -1,13 +1,14 @@
 'use client';
 
-import { useCohort } from '../../hooks';
 import { ArchivesPage } from './components/ArchivesPage/ArchivesPage';
+import type { Cohort } from '../../models';
 
 interface ArchivesProps {
   cohortId: string;
+  cohort: Cohort;
 }
 
-export function Archives({ cohortId }: ArchivesProps) {
-  const { archives } = useCohort(cohortId);
+export function Archives({ cohortId, cohort }: ArchivesProps) {
+  const archives = cohort?.archives || [];
   return <ArchivesPage archives={archives} />;
 }

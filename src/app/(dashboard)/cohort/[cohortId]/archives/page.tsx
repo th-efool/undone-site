@@ -3,7 +3,8 @@ import React from 'react';
 import dynamic from 'next/dynamic';
 import { auth } from '@/src/server/infrastructure/auth/auth.config';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
-import { redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
+import { mapDbCohortToUiCohort } from '@/src/server/infrastructure/db/postgres/mappers/cohortMapper';
 
 const Archives = dynamic(() => import('@/src/client/screens/cohort').then((mod) => mod.Archives));
 
@@ -28,6 +29,23 @@ export async function generateMetadata({ params }: { params: Promise<{ cohortId:
 export default async function ArchivesPage({ params }: { params: Promise<{ cohortId: string }> }) {
   const { cohortId } = await params;
   
+  const dbCohort = await prisma.cohort.findUnique({
+    where: { id: cohortId },
+    include: {
+      creator: true,
+      seasons: {
+        include: {
+          lessons: true,
+        }
+      }
+    }
+  });
+
+  if (!dbCohort) {
+    notFound();
+  }
+
+  const uiCohort = mapDbCohortToUiCohort(dbCohort);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -42,7 +60,7 @@ export default async function ArchivesPage({ params }: { params: Promise<{ cohor
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Archives cohortId={cohortId} />
+      <Archives cohortId={cohortId} cohort={uiCohort} />
     </>
   );
 }

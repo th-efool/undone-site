@@ -114,11 +114,11 @@ export function LearnerPreview() {
         <div className={`${styles.viewportContainer} ${styles[`viewport${viewport}`]}`}>
           <div className={styles.previewCanvas}>
             {activeTab === 'overview' && <Overview cohortId={previewCohortId} cohort={cohortRepository.getById(previewCohortId)!} />}
-            {activeTab === 'questline' && <Questline cohortId={previewCohortId} />}
-            {activeTab === 'events' && <Events cohortId={previewCohortId} />}
-            {activeTab === 'archives' && <Archives cohortId={previewCohortId} />}
+            {activeTab === 'questline' && <Questline cohortId={previewCohortId} cohort={cohortRepository.getById(previewCohortId)!} />}
+            {activeTab === 'events' && <Events cohortId={previewCohortId} cohort={cohortRepository.getById(previewCohortId)!} />}
+            {activeTab === 'archives' && <Archives cohortId={previewCohortId} cohort={cohortRepository.getById(previewCohortId)!} />}
             {(activeTab === 'hall-of-fame' || activeTab === 'assignments' || activeTab === 'player') && (
-              <HallOfFame cohortId={previewCohortId} />
+              <HallOfFame cohortId={previewCohortId} cohort={cohortRepository.getById(previewCohortId)!} />
             )}
           </div>
         </div>
