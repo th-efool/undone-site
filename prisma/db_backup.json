@@ -1,0 +1,1026 @@
+{
+  "user": [
+    {
+      "id": "cmszwbgi80003i0l81z8u6q2b",
+      "name": "Test Creator",
+      "email": "test@sidequesthq.com",
+      "emailVerified": null,
+      "image": null,
+      "username": "testcreator",
+      "bio": null,
+      "role": "EXPLORER",
+      "createdAt": "2026-08-19T09:35:14.000Z",
+      "updatedAt": "2026-08-19T09:35:14.000Z"
+    },
+    {
+      "id": "cmt0rt5630000bwl8o2gwtrpw",
+      "name": "Guest Explorer",
+      "email": "guest@sidequesthq.com",
+      "emailVerified": null,
+      "image": null,
+      "username": "guest",
+      "bio": null,
+      "role": "EXPLORER",
+      "createdAt": "2026-08-20T00:16:47.211Z",
+      "updatedAt": "2026-08-20T00:16:47.211Z"
+    }
+  ],
+  "account": [],
+  "session": [],
+  "verificationToken": [],
+  "publicProfile": [],
+  "cohort": [
+    {
+      "id": "cmt0ra4ia000074l8slv5h4bo",
+      "creatorId": "cmszwbgi80003i0l81z8u6q2b",
+      "title": "Ranking Every Crust of Domino's Pizza",
+      "subtitle": "by Aayush Sapra Daily",
+      "description": "Comprehensive cohort journey created from Ranking Every Crust of Domino's Pizza.",
+      "coverImage": "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop",
+      "difficulty": "BEGINNER",
+      "visibility": "PUBLIC",
+      "qualityScore": 0,
+      "isPublished": true,
+      "publishedAt": "2026-08-20T00:01:59.568Z",
+      "categories": [
+        "AI & Machine Learning"
+      ],
+      "estimatedCompletionTime": "3-4 Weeks",
+      "language": "English",
+      "primaryTopic": "3",
+      "tags": [],
+      "requirements": [
+        "A computer with internet access.",
+        "Dedication to complete daily practice sessions."
+      ],
+      "learningOutcomes": [
+        "Master key concepts through practical exercises.",
+        "Build real projects and prove your skills."
+      ],
+      "createdAt": "2026-08-20T00:01:59.890Z",
+      "updatedAt": "2026-08-20T00:01:59.890Z"
+    },
+    {
+      "id": "cmt0rt5o10001bwl8dkdshwwi",
+      "creatorId": "cmt0rt5630000bwl8o2gwtrpw",
+      "title": "DSA — Only What's Needed",
+      "subtitle": "Master data structures & algorithms for interviews without the fluff.",
+      "description": "A focused DSA curriculum from Kunal Kushwaha's playlists covering arrays, linked lists, trees, graphs, DP, and common interview patterns.",
+      "coverImage": "https://i.ytimg.com/vi/rZ41y93P2Qo/maxresdefault.jpg",
+      "difficulty": "INTERMEDIATE",
+      "visibility": "PUBLIC",
+      "qualityScore": 0,
+      "isPublished": true,
+      "publishedAt": "2026-08-20T00:16:47.522Z",
+      "categories": [
+        "Programming",
+        "DSA",
+        "Interviews"
+      ],
+      "estimatedCompletionTime": "",
+      "language": "English",
+      "primaryTopic": "Programming",
+      "tags": [
+        "Programming",
+        "DSA",
+        "Interviews"
+      ],
+      "requirements": [],
+      "learningOutcomes": [
+        "Master Array, Search, and Sorting algorithms",
+        "Master Linked Lists, Stacks, Queues, and Trees",
+        "Analyze Big-O Time & Space Complexity confidently"
+      ],
+      "createdAt": "2026-08-20T00:16:47.857Z",
+      "updatedAt": "2026-08-20T00:16:47.857Z"
+    },
+    {
+      "id": "cmt0rt8x1000gbwl8npg71afz",
+      "creatorId": "cmt0rt5630000bwl8o2gwtrpw",
+      "title": "Operating Systems",
+      "subtitle": "Understand how your computer actually works under the hood.",
+      "description": "Two comprehensive OS video courses covering processes, threads, memory management, file systems, scheduling, deadlocks, and real interview questions.",
+      "coverImage": "https://i.ytimg.com/vi/3obEP8eLsCw/maxresdefault.jpg",
+      "difficulty": "INTERMEDIATE",
+      "visibility": "PUBLIC",
+      "qualityScore": 0,
+      "isPublished": true,
+      "publishedAt": "2026-08-20T00:16:51.775Z",
+      "categories": [
+        "Computer Science",
+        "Operating Systems",
+        "Interviews"
+      ],
+      "estimatedCompletionTime": "",
+      "language": "English",
+      "primaryTopic": "Computer Science",
+      "tags": [
+        "Computer Science",
+        "Operating Systems",
+        "Interviews"
+      ],
+      "requirements": [],
+      "learningOutcomes": [
+        "The philosophy behind deep work",
+        "Advanced focus strategies",
+        "How to eliminate shallow work",
+        "Systems for distraction-free execution",
+        "Build a deep work routine that sticks",
+        "Sustaining a deep work lifestyle"
+      ],
+      "createdAt": "2026-08-20T00:16:52.069Z",
+      "updatedAt": "2026-08-20T00:16:52.069Z"
+    },
+    {
+      "id": "cmt0rtbmo000nbwl81qbugecc",
+      "creatorId": "cmt0rt5630000bwl8o2gwtrpw",
+      "title": "Networking",
+      "subtitle": "Learn networking from packets to protocols to interview prep.",
+      "description": "A complete networking curriculum covering OSI model, TCP/IP, DNS, HTTP, load balancing, CDNs, and common networking interview questions.",
+      "coverImage": "https://i.ytimg.com/vi/nGvpClgugEI/maxresdefault.jpg",
+      "difficulty": "INTERMEDIATE",
+      "visibility": "PUBLIC",
+      "qualityScore": 0,
+      "isPublished": true,
+      "publishedAt": "2026-08-20T00:16:55.285Z",
+      "categories": [
+        "Computer Science",
+        "Networking",
+        "Interviews"
+      ],
+      "estimatedCompletionTime": "",
+      "language": "English",
+      "primaryTopic": "Computer Science",
+      "tags": [
+        "Computer Science",
+        "Networking",
+        "Interviews"
+      ],
+      "requirements": [],
+      "learningOutcomes": [
+        "The philosophy behind deep work",
+        "Advanced focus strategies",
+        "How to eliminate shallow work",
+        "Systems for distraction-free execution",
+        "Build a deep work routine that sticks",
+        "Sustaining a deep work lifestyle"
+      ],
+      "createdAt": "2026-08-20T00:16:55.585Z",
+      "updatedAt": "2026-08-20T00:16:55.585Z"
+    },
+    {
+      "id": "cmt0rteiw000wbwl8ts7noag4",
+      "creatorId": "cmt0rt5630000bwl8o2gwtrpw",
+      "title": "Celtic Mythology",
+      "subtitle": "Explore ancient myths, deities, and epic folklore of the Celtic world.",
+      "description": "A complete 12-video course from See U in History covering the Battle of Moytura, Tuatha Dé Danann gods (Lugh, Dagda, Brigid, Cernunnos), the Fomorians War, and Irish folklore.",
+      "coverImage": "https://i.ytimg.com/vi/hMP_V2WWl3s/maxresdefault.jpg",
+      "difficulty": "BEGINNER",
+      "visibility": "PUBLIC",
+      "qualityScore": 0,
+      "isPublished": true,
+      "publishedAt": "2026-08-20T00:16:59.039Z",
+      "categories": [
+        "History",
+        "Mythology",
+        "Folklore"
+      ],
+      "estimatedCompletionTime": "",
+      "language": "English",
+      "primaryTopic": "History",
+      "tags": [
+        "History",
+        "Mythology",
+        "Folklore"
+      ],
+      "requirements": [],
+      "learningOutcomes": [
+        "The philosophy behind deep work",
+        "Advanced focus strategies",
+        "How to eliminate shallow work",
+        "Systems for distraction-free execution",
+        "Build a deep work routine that sticks",
+        "Sustaining a deep work lifestyle"
+      ],
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z"
+    },
+    {
+      "id": "cmt0rthwq001ebwl8pjbdrjut",
+      "creatorId": "cmt0rt5630000bwl8o2gwtrpw",
+      "title": "Rajvansh: Dynasties Of India",
+      "subtitle": "Discover the epic sagas, rulers, and history of India's royal dynasties.",
+      "description": "A 12-episode documentary series from EPIC TV covering ancient & medieval Indian dynasties including Haryanka, Nanda, Maurya, Shunga, Satavahana, Kushan, Gupta, Chalukya, and Vakataka.",
+      "coverImage": "https://i.ytimg.com/vi/mHE5iGgQHj0/maxresdefault.jpg",
+      "difficulty": "BEGINNER",
+      "visibility": "PUBLIC",
+      "qualityScore": 0,
+      "isPublished": true,
+      "publishedAt": "2026-08-20T00:17:03.422Z",
+      "categories": [
+        "History",
+        "Indian History",
+        "Dynasties"
+      ],
+      "estimatedCompletionTime": "",
+      "language": "English",
+      "primaryTopic": "History",
+      "tags": [
+        "History",
+        "Indian History",
+        "Dynasties"
+      ],
+      "requirements": [],
+      "learningOutcomes": [
+        "The philosophy behind deep work",
+        "Advanced focus strategies",
+        "How to eliminate shallow work",
+        "Systems for distraction-free execution",
+        "Build a deep work routine that sticks",
+        "Sustaining a deep work lifestyle"
+      ],
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z"
+    }
+  ],
+  "cohortSource": [
+    {
+      "id": "cmt0ra4qp000174l8w6f3ler9",
+      "cohortId": "cmt0ra4ia000074l8slv5h4bo",
+      "type": "YOUTUBE_VIDEO",
+      "title": "Ranking Every Crust of Domino's Pizza",
+      "url": "https://www.youtube.com/watch?v=f3wyuobxYHk",
+      "thumbnailUrl": "https://i.ytimg.com/vi/f3wyuobxYHk/maxresdefault.jpg",
+      "domain": "youtube.com",
+      "metaTitle": null
+    }
+  ],
+  "season": [
+    {
+      "id": "cmt0ra4yu000274l87kobyemy",
+      "title": "Season 1",
+      "order": 1,
+      "createdAt": "2026-08-20T00:01:59.890Z",
+      "updatedAt": "2026-08-20T00:01:59.890Z",
+      "cohortId": "cmt0ra4ia000074l8slv5h4bo"
+    },
+    {
+      "id": "cmt0rt5we0002bwl8uka0kd5z",
+      "title": "Foundations & Array Searching",
+      "order": 1,
+      "createdAt": "2026-08-20T00:16:47.857Z",
+      "updatedAt": "2026-08-20T00:16:47.857Z",
+      "cohortId": "cmt0rt5o10001bwl8dkdshwwi"
+    },
+    {
+      "id": "cmt0rt6cy0007bwl89kmlqjc0",
+      "title": "Algorithms & Advanced Data Structures",
+      "order": 2,
+      "createdAt": "2026-08-20T00:16:47.857Z",
+      "updatedAt": "2026-08-20T00:16:47.857Z",
+      "cohortId": "cmt0rt5o10001bwl8dkdshwwi"
+    },
+    {
+      "id": "cmt0rt955000hbwl8o1jaze6e",
+      "title": "OS Full Course & Placement Interview Questions",
+      "order": 1,
+      "createdAt": "2026-08-20T00:16:52.069Z",
+      "updatedAt": "2026-08-20T00:16:52.069Z",
+      "cohortId": "cmt0rt8x1000gbwl8npg71afz"
+    },
+    {
+      "id": "cmt0rtbza000obwl8f3xh7qzg",
+      "title": "Networking Protocols & Interview Questions",
+      "order": 1,
+      "createdAt": "2026-08-20T00:16:55.585Z",
+      "updatedAt": "2026-08-20T00:16:55.585Z",
+      "cohortId": "cmt0rtbmo000nbwl81qbugecc"
+    },
+    {
+      "id": "cmt0rter5000xbwl888f7y2v7",
+      "title": "Invasions & Deities of Light",
+      "order": 1,
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z",
+      "cohortId": "cmt0rteiw000wbwl8ts7noag4"
+    },
+    {
+      "id": "cmt0rtf7k0014bwl8ocx73fu7",
+      "title": "The Fomorians War & Irish Folklore",
+      "order": 2,
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z",
+      "cohortId": "cmt0rteiw000wbwl8ts7noag4"
+    },
+    {
+      "id": "cmt0rti53001fbwl8wzrjnh85",
+      "title": "Rise of Empires & Mauryan Rule",
+      "order": 1,
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z",
+      "cohortId": "cmt0rthwq001ebwl8pjbdrjut"
+    },
+    {
+      "id": "cmt0rtil8001mbwl8mr1iv09v",
+      "title": "Imperial Guptas & Regional Kingdoms",
+      "order": 2,
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z",
+      "cohortId": "cmt0rthwq001ebwl8pjbdrjut"
+    }
+  ],
+  "lesson": [
+    {
+      "id": "cmt0ra56y000374l8mzz3b116",
+      "seasonId": "cmt0ra4yu000274l87kobyemy",
+      "title": "Ranking Every Crust of Domino's Pizza",
+      "description": "Single video tutorial",
+      "videoUrl": null,
+      "duration": 16,
+      "order": 1,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:01:59.890Z",
+      "updatedAt": "2026-08-20T00:01:59.890Z"
+    },
+    {
+      "id": "cmt0rt64o0003bwl8yhr6bmyd",
+      "seasonId": "cmt0rt5we0002bwl8uka0kd5z",
+      "title": "Best Data Structures & Algorithms (DSA) Course - Clear Any FAANG Interview!",
+      "description": "Best Data Structures & Algorithms (DSA) Course - Clear Any FAANG Interview!",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 1,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:47.857Z",
+      "updatedAt": "2026-08-20T00:16:47.857Z"
+    },
+    {
+      "id": "cmt0rt64o0004bwl8867gpq88",
+      "seasonId": "cmt0rt5we0002bwl8uka0kd5z",
+      "title": "Java vs C++ for Data Structures & Algorithms",
+      "description": "Java vs C++ for Data Structures & Algorithms",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 2,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:47.857Z",
+      "updatedAt": "2026-08-20T00:16:47.857Z"
+    },
+    {
+      "id": "cmt0rt64o0005bwl8mg8zm1uy",
+      "seasonId": "cmt0rt5we0002bwl8uka0kd5z",
+      "title": "How I Cleared My Google Interviews - Use LeetCode Effectively!",
+      "description": "How I Cleared My Google Interviews - Use LeetCode Effectively!",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 3,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:47.857Z",
+      "updatedAt": "2026-08-20T00:16:47.857Z"
+    },
+    {
+      "id": "cmt0rt64o0006bwl8r6z5fj7i",
+      "seasonId": "cmt0rt5we0002bwl8uka0kd5z",
+      "title": "Introduction to Arrays and ArrayList in Java - Memory Management & Operations",
+      "description": "Introduction to Arrays and ArrayList in Java - Memory Management & Operations",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 4,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:47.857Z",
+      "updatedAt": "2026-08-20T00:16:47.857Z"
+    },
+    {
+      "id": "cmt0rt6lc0008bwl8xwha504k",
+      "seasonId": "cmt0rt6cy0007bwl89kmlqjc0",
+      "title": "Linear Search Algorithm - Theory + Code + Questions",
+      "description": "Linear Search Algorithm - Theory + Code + Questions",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 1,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:47.857Z",
+      "updatedAt": "2026-08-20T00:16:47.857Z"
+    },
+    {
+      "id": "cmt0rt6lc0009bwl8bk2t2lmb",
+      "seasonId": "cmt0rt6cy0007bwl89kmlqjc0",
+      "title": "Binary Search Algorithm - Theory + Code",
+      "description": "Binary Search Algorithm - Theory + Code",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 2,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:47.857Z",
+      "updatedAt": "2026-08-20T00:16:47.857Z"
+    },
+    {
+      "id": "cmt0rt6lc000abwl83k22cc36",
+      "seasonId": "cmt0rt6cy0007bwl89kmlqjc0",
+      "title": "Time and Space Complexity COMPLETE Tutorial - What is Big O?",
+      "description": "Time and Space Complexity COMPLETE Tutorial - What is Big O?",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 3,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:47.857Z",
+      "updatedAt": "2026-08-20T00:16:47.857Z"
+    },
+    {
+      "id": "cmt0rt6lc000bbwl8lh7xgws0",
+      "seasonId": "cmt0rt6cy0007bwl89kmlqjc0",
+      "title": "Bitwise Operators + Number Systems - Maths for DSA",
+      "description": "Bitwise Operators + Number Systems - Maths for DSA",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 4,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:47.857Z",
+      "updatedAt": "2026-08-20T00:16:47.857Z"
+    },
+    {
+      "id": "cmt0rt6lc000cbwl8i6f68o4h",
+      "seasonId": "cmt0rt6cy0007bwl89kmlqjc0",
+      "title": "Linked List Interview Questions - Google, Facebook, Amazon, Microsoft",
+      "description": "Linked List Interview Questions - Google, Facebook, Amazon, Microsoft",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 5,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:47.857Z",
+      "updatedAt": "2026-08-20T00:16:47.857Z"
+    },
+    {
+      "id": "cmt0rt9d8000ibwl8ow412ux2",
+      "seasonId": "cmt0rt955000hbwl8o1jaze6e",
+      "title": "Complete Operating Systems in 1 Shot (With Notes) || For Placement Interviews",
+      "description": "Complete Operating Systems in 1 Shot (With Notes) || For Placement Interviews",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 1,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:52.069Z",
+      "updatedAt": "2026-08-20T00:16:52.069Z"
+    },
+    {
+      "id": "cmt0rt9d8000jbwl8j4brcx05",
+      "seasonId": "cmt0rt955000hbwl8o1jaze6e",
+      "title": "Complete Interview Questions OS in One Shot | Placement Revision | Operating System",
+      "description": "Complete Interview Questions OS in One Shot | Placement Revision | Operating System",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 2,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:52.069Z",
+      "updatedAt": "2026-08-20T00:16:52.069Z"
+    },
+    {
+      "id": "cmt0rtc7v000pbwl81docqkpd",
+      "seasonId": "cmt0rtbza000obwl8f3xh7qzg",
+      "title": "Top Network Engineer Interview Questions and Answers for 2025 | Atul Sharma",
+      "description": "Top Network Engineer Interview Questions and Answers for 2025 | Atul Sharma",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 1,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:55.585Z",
+      "updatedAt": "2026-08-20T00:16:55.585Z"
+    },
+    {
+      "id": "cmt0rtc7v000qbwl8lhylui05",
+      "seasonId": "cmt0rtbza000obwl8f3xh7qzg",
+      "title": "Top 20 Networking Interview Questions And Answers 2026 | Simplilearn",
+      "description": "Top 20 Networking Interview Questions And Answers 2026 | Simplilearn",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 2,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:55.585Z",
+      "updatedAt": "2026-08-20T00:16:55.585Z"
+    },
+    {
+      "id": "cmt0rtc7v000rbwl8le2fwz1y",
+      "seasonId": "cmt0rtbza000obwl8f3xh7qzg",
+      "title": "Day-1 | Top 100 Most Asked Network Engineer Interview Questions and Answers",
+      "description": "Day-1 | Top 100 Most Asked Network Engineer Interview Questions and Answers",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 3,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:55.585Z",
+      "updatedAt": "2026-08-20T00:16:55.585Z"
+    },
+    {
+      "id": "cmt0rtc7v000sbwl8xsp5hlmw",
+      "seasonId": "cmt0rtbza000obwl8f3xh7qzg",
+      "title": "Day-2 | Top 100 Most Asked Network Engineer Interview Questions and Answers",
+      "description": "Day-2 | Top 100 Most Asked Network Engineer Interview Questions and Answers",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 4,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:55.585Z",
+      "updatedAt": "2026-08-20T00:16:55.585Z"
+    },
+    {
+      "id": "cmt0rtez7000ybwl8w57jbodj",
+      "seasonId": "cmt0rter5000xbwl888f7y2v7",
+      "title": "Celtic Mythology: The Invasion of Ireland - Part 1/2 - The Battle of Moytura",
+      "description": "Celtic Mythology: The Invasion of Ireland - Part 1/2 - The Battle of Moytura",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 1,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z"
+    },
+    {
+      "id": "cmt0rtez8000zbwl8dojjodl6",
+      "seasonId": "cmt0rter5000xbwl888f7y2v7",
+      "title": "Celtic Mythology: The Battle for Ireland - Part 2/2 - The Battle of Moytura",
+      "description": "Celtic Mythology: The Battle for Ireland - Part 2/2 - The Battle of Moytura",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 2,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z"
+    },
+    {
+      "id": "cmt0rtez80010bwl8sk6x0gds",
+      "seasonId": "cmt0rter5000xbwl888f7y2v7",
+      "title": "Brigid - The Celtic Goddess of Flames - Celtic Mythology and Folklore",
+      "description": "Brigid - The Celtic Goddess of Flames - Celtic Mythology and Folklore",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 3,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z"
+    },
+    {
+      "id": "cmt0rtez80011bwl8cm07jc6c",
+      "seasonId": "cmt0rter5000xbwl888f7y2v7",
+      "title": "Cernunnos: The Celtic God of Forests - Celtic Mythology and Folklore",
+      "description": "Cernunnos: The Celtic God of Forests - Celtic Mythology and Folklore",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 4,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z"
+    },
+    {
+      "id": "cmt0rtez80012bwl8b540cflk",
+      "seasonId": "cmt0rter5000xbwl888f7y2v7",
+      "title": "Dagda: The Mighty Celtic God of Abundance - Celtic Mythology and Folklore",
+      "description": "Dagda: The Mighty Celtic God of Abundance - Celtic Mythology and Folklore",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 5,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z"
+    },
+    {
+      "id": "cmt0rtez80013bwl8ogbijq1h",
+      "seasonId": "cmt0rter5000xbwl888f7y2v7",
+      "title": "Lugh - The Irish God of Light - Celtic Mythology",
+      "description": "Lugh - The Irish God of Light - Celtic Mythology",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 6,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z"
+    },
+    {
+      "id": "cmt0rtffv0015bwl851l30vei",
+      "seasonId": "cmt0rtf7k0014bwl8ocx73fu7",
+      "title": "Nuada - The Celtic God of the Silver Arm",
+      "description": "Nuada - The Celtic God of the Silver Arm",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 1,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z"
+    },
+    {
+      "id": "cmt0rtffv0016bwl835e53f3a",
+      "seasonId": "cmt0rtf7k0014bwl8ocx73fu7",
+      "title": "The Return of the King - The Fomorians War - Ep 1 - Irish Mythology",
+      "description": "The Return of the King - The Fomorians War - Ep 1 - Irish Mythology",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 2,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z"
+    },
+    {
+      "id": "cmt0rtffv0017bwl8xl63nhn0",
+      "seasonId": "cmt0rtf7k0014bwl8ocx73fu7",
+      "title": "The War Approaches - The Fomorians War - Ep 2 - Irish Mythology",
+      "description": "The War Approaches - The Fomorians War - Ep 2 - Irish Mythology",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 3,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z"
+    },
+    {
+      "id": "cmt0rtffv0018bwl82hn5l1ut",
+      "seasonId": "cmt0rtf7k0014bwl8ocx73fu7",
+      "title": "The Fomorians War - Ep 3 - Irish Mythology",
+      "description": "The Fomorians War - Ep 3 - Irish Mythology",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 4,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z"
+    },
+    {
+      "id": "cmt0rtffv0019bwl8u8nnenqz",
+      "seasonId": "cmt0rtf7k0014bwl8ocx73fu7",
+      "title": "Celtic Mythology - The Fomorians War - Complete Saga",
+      "description": "Celtic Mythology - The Fomorians War - Complete Saga",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 5,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z"
+    },
+    {
+      "id": "cmt0rtffv001abwl8kj8yy8bt",
+      "seasonId": "cmt0rtf7k0014bwl8ocx73fu7",
+      "title": "Banshees: The Frightening Women of Irish Folklore - Celtic Mythology",
+      "description": "Banshees: The Frightening Women of Irish Folklore - Celtic Mythology",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 6,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z"
+    },
+    {
+      "id": "cmt0rtid6001gbwl88xr7gtmv",
+      "seasonId": "cmt0rti53001fbwl8wzrjnh85",
+      "title": "Haryanka Dynasty | Rajvansh: Dynasties Of India | Full Episode | Ancient Indian History",
+      "description": "Haryanka Dynasty | Rajvansh: Dynasties Of India | Full Episode | Ancient Indian History",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 1,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z"
+    },
+    {
+      "id": "cmt0rtid6001hbwl8jkt5kq1l",
+      "seasonId": "cmt0rti53001fbwl8wzrjnh85",
+      "title": "Shishunaga Dynasty | Rajvansh: Dynasties Of India | Full Episode | Ancient Indian History",
+      "description": "Shishunaga Dynasty | Rajvansh: Dynasties Of India | Full Episode | Ancient Indian History",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 2,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z"
+    },
+    {
+      "id": "cmt0rtid6001ibwl8wm63ihyw",
+      "seasonId": "cmt0rti53001fbwl8wzrjnh85",
+      "title": "Nanda Dynasty | Rajvansh: Dynasties Of India | Full Episode | Ancient Indian History",
+      "description": "Nanda Dynasty | Rajvansh: Dynasties Of India | Full Episode | Ancient Indian History",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 3,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z"
+    },
+    {
+      "id": "cmt0rtid6001jbwl8ljnvcurs",
+      "seasonId": "cmt0rti53001fbwl8wzrjnh85",
+      "title": "Maurya Dynasty Part 1 | Rajvansh: Dynasties Of India | Full Episode | Ancient Indian History",
+      "description": "Maurya Dynasty Part 1 | Rajvansh: Dynasties Of India | Full Episode | Ancient Indian History",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 4,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z"
+    },
+    {
+      "id": "cmt0rtid6001kbwl86zp3chym",
+      "seasonId": "cmt0rti53001fbwl8wzrjnh85",
+      "title": "Maurya Dynasty Part 2 | Rajvansh: Dynasties Of India | Full Episode | Ancient Indian History",
+      "description": "Maurya Dynasty Part 2 | Rajvansh: Dynasties Of India | Full Episode | Ancient Indian History",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 5,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z"
+    },
+    {
+      "id": "cmt0rtid6001lbwl8w9p7kh7d",
+      "seasonId": "cmt0rti53001fbwl8wzrjnh85",
+      "title": "Shunga And Kanva Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History",
+      "description": "Shunga And Kanva Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 6,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z"
+    },
+    {
+      "id": "cmt0rtitb001nbwl8ocose7xz",
+      "seasonId": "cmt0rtil8001mbwl8mr1iv09v",
+      "title": "Satavahana Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History",
+      "description": "Satavahana Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 1,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z"
+    },
+    {
+      "id": "cmt0rtitb001obwl83ky2z6mu",
+      "seasonId": "cmt0rtil8001mbwl8mr1iv09v",
+      "title": "Kushan Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History",
+      "description": "Kushan Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 2,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z"
+    },
+    {
+      "id": "cmt0rtitb001pbwl8jxvqe82s",
+      "seasonId": "cmt0rtil8001mbwl8mr1iv09v",
+      "title": "Gupta Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History",
+      "description": "Gupta Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 3,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z"
+    },
+    {
+      "id": "cmt0rtitb001qbwl8xix6hdr8",
+      "seasonId": "cmt0rtil8001mbwl8mr1iv09v",
+      "title": "Pushyabhuti Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History",
+      "description": "Pushyabhuti Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 4,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z"
+    },
+    {
+      "id": "cmt0rtitb001rbwl8okxvsuu5",
+      "seasonId": "cmt0rtil8001mbwl8mr1iv09v",
+      "title": "Chalukya Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History",
+      "description": "Chalukya Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 5,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z"
+    },
+    {
+      "id": "cmt0rtitb001sbwl8kb3cydkt",
+      "seasonId": "cmt0rtil8001mbwl8mr1iv09v",
+      "title": "Vakataka Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History",
+      "description": "Vakataka Dynasty | Rajvansh: Dynasties Of India | Full Episode | Indian History",
+      "videoUrl": null,
+      "duration": 120,
+      "order": 6,
+      "lessonType": "VIDEO",
+      "isPublished": false,
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z"
+    }
+  ],
+  "community": [
+    {
+      "id": "cmt0ra5f1000474l8k56g01r2",
+      "chatEnabled": true,
+      "eventsEnabled": true,
+      "cohortId": "cmt0ra4ia000074l8slv5h4bo",
+      "createdAt": "2026-08-20T00:01:59.890Z",
+      "updatedAt": "2026-08-20T00:01:59.890Z"
+    },
+    {
+      "id": "cmt0rt6ti000dbwl8ddt09e3t",
+      "chatEnabled": true,
+      "eventsEnabled": true,
+      "cohortId": "cmt0rt5o10001bwl8dkdshwwi",
+      "createdAt": "2026-08-20T00:16:47.857Z",
+      "updatedAt": "2026-08-20T00:16:47.857Z"
+    },
+    {
+      "id": "cmt0rt9lb000kbwl8fxpbv243",
+      "chatEnabled": true,
+      "eventsEnabled": true,
+      "cohortId": "cmt0rt8x1000gbwl8npg71afz",
+      "createdAt": "2026-08-20T00:16:52.069Z",
+      "updatedAt": "2026-08-20T00:16:52.069Z"
+    },
+    {
+      "id": "cmt0rtcg9000tbwl8m9oiktvy",
+      "chatEnabled": true,
+      "eventsEnabled": true,
+      "cohortId": "cmt0rtbmo000nbwl81qbugecc",
+      "createdAt": "2026-08-20T00:16:55.585Z",
+      "updatedAt": "2026-08-20T00:16:55.585Z"
+    },
+    {
+      "id": "cmt0rtfo1001bbwl8a161vi1e",
+      "chatEnabled": true,
+      "eventsEnabled": true,
+      "cohortId": "cmt0rteiw000wbwl8ts7noag4",
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z"
+    },
+    {
+      "id": "cmt0rtj1d001tbwl8ait73yfe",
+      "chatEnabled": true,
+      "eventsEnabled": true,
+      "cohortId": "cmt0rthwq001ebwl8pjbdrjut",
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z"
+    }
+  ],
+  "channel": [
+    {
+      "id": "cmt0ra5n6000574l8sp83hdes",
+      "name": "general",
+      "communityId": "cmt0ra5f1000474l8k56g01r2",
+      "createdAt": "2026-08-20T00:01:59.890Z",
+      "updatedAt": "2026-08-20T00:01:59.890Z"
+    },
+    {
+      "id": "cmt0ra5n6000674l82vxv9qzf",
+      "name": "resources",
+      "communityId": "cmt0ra5f1000474l8k56g01r2",
+      "createdAt": "2026-08-20T00:01:59.890Z",
+      "updatedAt": "2026-08-20T00:01:59.890Z"
+    },
+    {
+      "id": "cmt0rt71s000ebwl89ilwqg21",
+      "name": "general",
+      "communityId": "cmt0rt6ti000dbwl8ddt09e3t",
+      "createdAt": "2026-08-20T00:16:47.857Z",
+      "updatedAt": "2026-08-20T00:16:47.857Z"
+    },
+    {
+      "id": "cmt0rt71s000fbwl8dtft4usb",
+      "name": "resources",
+      "communityId": "cmt0rt6ti000dbwl8ddt09e3t",
+      "createdAt": "2026-08-20T00:16:47.857Z",
+      "updatedAt": "2026-08-20T00:16:47.857Z"
+    },
+    {
+      "id": "cmt0rt9te000lbwl8rlm1mkms",
+      "name": "general",
+      "communityId": "cmt0rt9lb000kbwl8fxpbv243",
+      "createdAt": "2026-08-20T00:16:52.069Z",
+      "updatedAt": "2026-08-20T00:16:52.069Z"
+    },
+    {
+      "id": "cmt0rt9te000mbwl83xfcnhmy",
+      "name": "resources",
+      "communityId": "cmt0rt9lb000kbwl8fxpbv243",
+      "createdAt": "2026-08-20T00:16:52.069Z",
+      "updatedAt": "2026-08-20T00:16:52.069Z"
+    },
+    {
+      "id": "cmt0rtcpa000ubwl8fa9vjg7a",
+      "name": "general",
+      "communityId": "cmt0rtcg9000tbwl8m9oiktvy",
+      "createdAt": "2026-08-20T00:16:55.585Z",
+      "updatedAt": "2026-08-20T00:16:55.585Z"
+    },
+    {
+      "id": "cmt0rtcpa000vbwl8q4hfr8ex",
+      "name": "resources",
+      "communityId": "cmt0rtcg9000tbwl8m9oiktvy",
+      "createdAt": "2026-08-20T00:16:55.585Z",
+      "updatedAt": "2026-08-20T00:16:55.585Z"
+    },
+    {
+      "id": "cmt0rtfw9001cbwl8v6rjn8ee",
+      "name": "general",
+      "communityId": "cmt0rtfo1001bbwl8a161vi1e",
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z"
+    },
+    {
+      "id": "cmt0rtfw9001dbwl8ilkhg432",
+      "name": "resources",
+      "communityId": "cmt0rtfo1001bbwl8a161vi1e",
+      "createdAt": "2026-08-20T00:16:59.336Z",
+      "updatedAt": "2026-08-20T00:16:59.336Z"
+    },
+    {
+      "id": "cmt0rtj9g001ubwl8ubfk1blb",
+      "name": "general",
+      "communityId": "cmt0rtj1d001tbwl8ait73yfe",
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z"
+    },
+    {
+      "id": "cmt0rtj9g001vbwl8991wg22o",
+      "name": "resources",
+      "communityId": "cmt0rtj1d001tbwl8ait73yfe",
+      "createdAt": "2026-08-20T00:17:03.722Z",
+      "updatedAt": "2026-08-20T00:17:03.722Z"
+    }
+  ],
+  "message": [],
+  "studyRoom": [],
+  "roomParticipant": [],
+  "cohortMember": [
+    {
+      "cohortId": "cmt0rt5o10001bwl8dkdshwwi",
+      "userId": "cmt0rt5630000bwl8o2gwtrpw",
+      "role": "EXPLORER",
+      "joinedAt": "2026-08-20T00:16:51.480Z"
+    },
+    {
+      "cohortId": "cmt0rt8x1000gbwl8npg71afz",
+      "userId": "cmt0rt5630000bwl8o2gwtrpw",
+      "role": "EXPLORER",
+      "joinedAt": "2026-08-20T00:16:54.991Z"
+    },
+    {
+      "cohortId": "cmt0rtbmo000nbwl81qbugecc",
+      "userId": "cmt0rt5630000bwl8o2gwtrpw",
+      "role": "EXPLORER",
+      "joinedAt": "2026-08-20T00:16:58.746Z"
+    },
+    {
+      "cohortId": "cmt0rteiw000wbwl8ts7noag4",
+      "userId": "cmt0rt5630000bwl8o2gwtrpw",
+      "role": "EXPLORER",
+      "joinedAt": "2026-08-20T00:17:02.879Z"
+    },
+    {
+      "cohortId": "cmt0rthwq001ebwl8pjbdrjut",
+      "userId": "cmt0rt5630000bwl8o2gwtrpw",
+      "role": "EXPLORER",
+      "joinedAt": "2026-08-20T00:17:07.228Z"
+    }
+  ],
+  "lessonProgress": []
+}
