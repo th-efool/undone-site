@@ -72,6 +72,8 @@
   letter-spacing: 0.5px;
   transition: all 0.2s ease;
   white-space: nowrap;
+  min-width: 115px;
+  justify-content: space-between;
 }
 
 .statusDropdownWrapper:focus-within {
@@ -98,6 +100,7 @@
   cursor: pointer;
   outline: none;
   white-space: nowrap;
+  width: 100%;
 }
 
 .statusSelect option {
