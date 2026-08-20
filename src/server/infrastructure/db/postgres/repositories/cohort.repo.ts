@@ -35,9 +35,18 @@ export interface CreateCohortParams {
       lessonType?: LessonType;
     }[];
   }[];
+  isPublished?: boolean;
+  forcePublishWithWeights?: boolean;
 }
 
 export const cohortRepo = {
+  async updatePublishStatus(cohortId: string, isPublished: boolean) {
+    return prisma.cohort.update({
+      where: { id: cohortId },
+      data: { isPublished, publishedAt: isPublished ? new Date() : null },
+    });
+  },
+
   async createCohortWithCommunity(data: CreateCohortParams) {
     return prisma.cohort.create({
       data: {
@@ -55,8 +64,8 @@ export const cohortRepo = {
         tags: data.tags,
         requirements: data.requirements,
         learningOutcomes: data.learningOutcomes,
-        isPublished: true,
-        publishedAt: new Date(),
+        isPublished: data.isPublished ?? false,
+        publishedAt: data.isPublished ? new Date() : null,
         
         sources: {
           create: data.sources.map(source => ({

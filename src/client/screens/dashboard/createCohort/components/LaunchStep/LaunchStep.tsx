@@ -10,6 +10,7 @@ import { CommunityConfig } from '../CommunityConfig/CommunityConfig';
 import { JourneySettingsConfig } from '../JourneySettingsConfig/JourneySettingsConfig';
 import { LaunchChecklist } from '../LaunchChecklist/LaunchChecklist';
 import { PublishingModal } from '../PublishingModal/PublishingModal';
+import { VideoWeightsModal } from '../VideoWeightsModal/VideoWeightsModal';
 import { LaunchSuccess } from '../LaunchSuccess/LaunchSuccess';
 import { Stack } from '@/src/client/components/global/layout/Stack';
 import { Cluster } from '@/src/client/components/global/layout/Cluster';
@@ -118,6 +119,7 @@ export function LaunchStep() {
       )}
 
       <PublishingModal />
+      <VideoWeightsModal />
     </div>
   );
 }

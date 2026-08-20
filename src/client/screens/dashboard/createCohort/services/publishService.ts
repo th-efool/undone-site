@@ -13,6 +13,7 @@ interface PublishCohortInput {
   community: CommunityConfigModel;
   journeySettings: JourneySettingsModel;
   qualityScore: number;
+  forcePublishWithWeights?: boolean;
 }
 
 class PublishService {
@@ -42,6 +43,11 @@ class PublishService {
     const body = await response.json().catch(() => null);
 
     if (!response.ok) {
+      if (body?.code === 'WEIGHTS_REQUIRED' || body?.message === 'WEIGHTS_REQUIRED') {
+        const error = new Error('WEIGHTS_REQUIRED');
+        (error as any).code = 'WEIGHTS_REQUIRED';
+        throw error;
+      }
       throw new Error(body?.message || 'Publishing failed');
     }
 

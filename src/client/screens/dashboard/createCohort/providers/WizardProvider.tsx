@@ -111,6 +111,7 @@ interface WizardLaunchState {
   publishStage: PublishStage;
   publishResult: PublishResultModel | null;
   publishError: string | null;
+  isWeightsModalOpen: boolean;
 }
 
 interface WizardContextValue {
@@ -208,8 +209,9 @@ interface WizardContextValue {
     updateJourneySettings: (patch: Partial<JourneySettingsModel>) => void;
     setDeviceViewport: (viewport: DeviceViewport) => void;
     setPreviewTab: (tab: LearnerPreviewTab) => void;
-    publishCohort: () => Promise<void>;
+    publishCohort: (forcePublishWithWeights?: boolean) => Promise<void>;
     resetLaunch: () => void;
+    closeWeightsModal: () => void;
   };
 }
 
@@ -483,6 +485,7 @@ export function WizardProvider({ children }: PropsWithChildren) {
     publishStage: 'idle',
     publishResult: null,
     publishError: null,
+    isWeightsModalOpen: false,
   });
 
   const historyStackRef = useRef<GeneratedCurriculum[]>([]);
@@ -1678,7 +1681,7 @@ export function WizardProvider({ children }: PropsWithChildren) {
     setLaunchState((current) => ({ ...current, previewTab: tab }));
   }, []);
 
-  const publishCohort = useCallback(async () => {
+  const publishCohort = useCallback(async (forcePublishWithWeights?: boolean) => {
     const draftValidation = validateCohortDraftSecurity(stateRef.current.draft);
     if (!draftValidation.valid) {
       setLaunchState((current) => ({
@@ -1693,6 +1696,7 @@ export function WizardProvider({ children }: PropsWithChildren) {
       ...current,
       publishStage: 'preparing-assets',
       publishError: null,
+      isWeightsModalOpen: false,
     }));
 
     try {
@@ -1704,6 +1708,7 @@ export function WizardProvider({ children }: PropsWithChildren) {
           community: launchStateRef.current.community,
           journeySettings: launchStateRef.current.journeySettings,
           qualityScore: 92,
+          forcePublishWithWeights,
         },
         (stage) => {
           setLaunchState((curr) => ({ ...curr, publishStage: stage }));
@@ -1717,6 +1722,16 @@ export function WizardProvider({ children }: PropsWithChildren) {
         publishError: null,
       }));
     } catch (err) {
+      if ((err as any).code === 'WEIGHTS_REQUIRED' || (err instanceof Error && err.message === 'WEIGHTS_REQUIRED')) {
+        setLaunchState((current) => ({
+          ...current,
+          publishStage: 'idle',
+          publishError: null,
+          isWeightsModalOpen: true,
+        }));
+        return;
+      }
+
       const message = err instanceof Error ? err.message : 'Publishing failed';
       setLaunchState((current) => ({
         ...current,
@@ -1732,6 +1747,13 @@ export function WizardProvider({ children }: PropsWithChildren) {
       publishStage: 'idle',
       publishResult: null,
       publishError: null,
+    }));
+  }, []);
+
+  const closeWeightsModal = useCallback(() => {
+    setLaunchState((current) => ({
+      ...current,
+      isWeightsModalOpen: false,
     }));
   }, []);
 
@@ -1813,6 +1835,7 @@ export function WizardProvider({ children }: PropsWithChildren) {
         setPreviewTab,
         publishCohort,
         resetLaunch,
+        closeWeightsModal,
       },
     }),
     [

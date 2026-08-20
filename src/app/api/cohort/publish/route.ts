@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
-import { cohortRepo } from '@/src/server/infrastructure/db/postgres/repositories/cohort.repo';
+import { CohortService } from '@/src/server/domain/cohort/cohort.service';
 import { userRepo } from '@/src/server/infrastructure/db/postgres/repositories/user.repo';
 import { Difficulty, Visibility, LessonType, SourceType } from '@/generated/prisma/client';
 
@@ -55,6 +55,7 @@ const publishSchema = z.object({
     })),
   }),
   qualityScore: z.number().optional(),
+  forcePublishWithWeights: z.boolean().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -80,7 +81,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { draft, curriculum, qualityScore } = parseResult.data;
+    const { draft, curriculum, qualityScore, forcePublishWithWeights } = parseResult.data;
+
+    if (!forcePublishWithWeights) {
+      return Response.json(
+        {
+          code: 'WEIGHTS_REQUIRED',
+          title: 'Weights Required',
+          message: 'WEIGHTS_REQUIRED',
+        },
+        { status: 400 },
+      );
+    }
+
 
     // 1. Get or create a default user to act as the creator
     let creator = await userRepo.findByEmail('test@sidequesthq.com');
@@ -115,8 +128,8 @@ export async function POST(request: NextRequest) {
       metaTitle: source.metaTitle,
     }));
 
-    // 4. Create the cohort in Postgres
-    const dbCohort = await cohortRepo.createCohortWithCommunity({
+    // 4. Publish the cohort using Domain Service
+    const dbCohort = await CohortService.publishCohort({
       creatorId: creator.id,
       title: draft.title || 'Untitled Cohort',
       subtitle: draft.subtitle,

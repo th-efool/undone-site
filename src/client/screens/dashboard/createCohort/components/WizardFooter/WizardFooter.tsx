@@ -73,7 +73,7 @@ export function WizardFooter({ footer }: WizardFooterProps) {
           type="button"
           variant={primaryVariant}
           size="md"
-          onClick={primaryAction}
+          onClick={() => primaryAction()}
           disabled={primaryDisabled}
         >
           {primaryLabel}
