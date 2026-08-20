@@ -1,22 +1,7 @@
-import { homeMock } from '@/src/client/screens/dashboard/home/mock/home.mock';
-import type { ActiveCohort, HomeModel } from '@/src/client/screens/dashboard/home/models';
+import type { ActiveCohort, PausedCohort, CompletedCourse, HomeModel } from '@/src/client/screens/dashboard/home/models';
 import { cohortRepository } from './cohortRepository';
 import { cohortStore } from './cohortStore';
-import { feedCohortIds } from '@/src/client/mock/cohorts/feedCohorts';
 import { homeStorageAdapter } from './homeStorageAdapter';
-
-function withCohortData<
-  T extends { id: string; title: string; thumbnail: string; provider?: string },
->(item: T): T {
-  const cohort = cohortRepository.getById(item.id);
-  return {
-    ...item,
-    cohortId: cohort.id,
-    title: cohort.title || item.title,
-    thumbnail: cohort.coverImage || item.thumbnail,
-    provider: cohort.creator?.name || item.provider || 'SideQuestHQ',
-  };
-}
 
 export const homeRepository = {
   getHome(): HomeModel {
@@ -25,7 +10,7 @@ export const homeRepository = {
     // Filter all cohorts down to active feed cohorts + user-published cohorts
     const allCohorts = cohortRepository.list();
     const activeCandidates = allCohorts.filter(
-      (c) => feedCohortIds.has(c.id) || userPublishedIds.has(c.id),
+      (c) => userPublishedIds.has(c.id),
     );
 
     const activeCohortsMap = new Map<string, ActiveCohort>();
@@ -38,7 +23,7 @@ export const homeRepository = {
         rank: index + 1,
         title: c.title,
         provider: c.creator?.name || 'Educator',
-        thumbnail: c.coverImage,
+        thumbnail: c.coverImage || '',
         minutesToday: 12,
         dailyGoalMinutes: 20,
         progressPercent: c.progress?.journeyProgress || 10,
@@ -52,7 +37,7 @@ export const homeRepository = {
       rank: idx + 1,
     }));
 
-    let continueLaterList = homeMock.continueLater.map(withCohortData);
+    let continueLaterList: PausedCohort[] = [];
 
     // 2. Hydrate from local storage choices if available
     const stored = homeStorageAdapter.getStoredChoices();
@@ -82,24 +67,55 @@ export const homeRepository = {
       }
 
       if (Array.isArray(stored.continueLater)) {
-        continueLaterList = stored.continueLater.map(withCohortData);
+        continueLaterList = stored.continueLater as PausedCohort[];
       }
     }
 
     return {
-      ...homeMock,
+      hero: {
+        title: 'Welcome back!',
+        subtitle: 'Ready to continue your quests?',
+        actionLabel: 'Explore Quests',
+      },
+      sections: {
+        activeCohorts: { title: 'Active Cohorts' },
+        continueLater: { title: 'Continue Later' },
+        recentlyCompleted: { title: 'Recently Completed' },
+      },
+      searchPlaceholder: 'Search cohorts...',
+      pauseOptions: [],
+      summaries: [
+        {
+          id: 'active-cohorts',
+          title: 'Active Cohorts',
+          value: String(activeList.length),
+          helperText: '+1 this week',
+          helperTone: 'brand',
+          icon: 'TrendingUp',
+          iconTone: 'brand',
+        },
+        {
+          id: 'study-hours',
+          title: 'Hours Learning',
+          value: '0',
+          helperText: '+0 hours this week',
+          helperTone: 'brand',
+          icon: 'Clock',
+          iconTone: 'brand',
+        },
+        {
+          id: 'knowledge-points',
+          title: 'Knowledge Points',
+          value: '0',
+          helperText: '+0 this week',
+          helperTone: 'brand',
+          icon: 'Star',
+          iconTone: 'brand',
+        },
+      ],
       activeCohorts: activeList.slice(0, 10),
       continueLater: continueLaterList,
-      recentlyCompleted: homeMock.recentlyCompleted
-        .map((item) => withCohortData({ ...item, provider: '' }))
-        .map((item) => ({
-          id: item.id,
-          cohortId: item.cohortId,
-          title: item.title,
-          thumbnail: item.thumbnail,
-          completedLabel: item.completedLabel,
-          progressPercent: item.progressPercent,
-        })),
+      recentlyCompleted: [],
     };
   },
 };

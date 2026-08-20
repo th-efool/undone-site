@@ -1,22 +1,24 @@
-import { cohortNavigationItems } from '@/src/client/screens/cohort/mocks/cohortMock';
 import type { Cohort } from '@/src/client/screens/cohort/models';
 import { cohortStore } from './cohortStore';
 
-/**
- * Creates a minimal placeholder cohort for SSR when the real cohort
- * can't be found (e.g. user-published cohort not in localStorage on server).
- * Client hydration will replace this with real data.
- */
+const cohortNavigationItems = [
+  { id: 'overview', label: 'Overview', href: 'overview', icon: 'info' as const },
+  { id: 'questline', label: 'Questline', href: 'questline', icon: 'map' as const },
+  { id: 'events', label: 'Events', href: 'events', icon: 'calendar' as const },
+  { id: 'archives', label: 'Archives', href: 'archives', icon: 'archive' as const },
+  { id: 'hall-of-fame', label: 'Hall of Fame', href: 'hall-of-fame', icon: 'award' as const },
+];
+
 function createPlaceholder(id: string): Cohort {
-  const template = cohortStore.getAll()[0];
   return {
-    ...template,
     id,
     title: 'Loading...',
     subtitle: '',
     description: '',
-    coverImage: '/mock/thumbnails/docker.avif',
+    coverImage: '',
+    difficulty: 'Intermediate',
     categories: [],
+    creator: { id: '', name: '', avatarUrl: '', role: '', bio: '', ctaLabel: '' },
     stats: { rating: 0, explorerCount: 0, completionRate: 0 },
     progress: {
       journeyProgress: 0,
@@ -26,7 +28,6 @@ function createPlaceholder(id: string): Cohort {
       joinedDate: '',
     },
     overview: {
-      ...template.overview,
       description: '',
       pillars: [],
       learningObjectives: [],
@@ -37,32 +38,45 @@ function createPlaceholder(id: string): Cohort {
       activeExplorerOverflow: '',
     },
     questline: {
-      ...template.questline,
       title: 'Loading...',
       description: '',
+      filters: [],
+      skipSeasonLabel: '',
       seasons: [],
+      feedTitle: '',
+      feedDescription: '',
+      feedSeasonLabel: '',
+      feedViewAllLabel: '',
       assignmentFeed: [],
+      lockedFutureNotice: { icon: 'target', title: '', description: '' },
     },
     events: {
-      ...template.events,
       title: 'Loading...',
       description: '',
+      filters: [],
       upcomingEvents: [],
       weeklySchedule: [],
+      calendarSync: [],
+      suggestEvent: { title: '', description: '', buttonLabel: '', illustration: '' },
     },
     archives: {
-      ...template.archives,
       title: 'Loading...',
       description: '',
+      categories: [],
+      sortControls: [],
       items: [],
       contributors: [],
       trending: [],
+      shareKnowledge: { title: '', description: '', buttonLabel: '', illustration: '' },
     },
     hallOfFame: {
-      ...template.hallOfFame,
       title: 'Loading...',
       subtitle: '',
+      filters: [],
+      timeRanges: [],
+      categories: [],
       legends: [],
+      userHighlights: [],
       recentAchievements: [],
     },
   };

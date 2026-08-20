@@ -1,6 +1,4 @@
 import type { Cohort } from '@/src/client/screens/cohort/models';
-import { cohortCatalog } from '@/src/client/mock/cohorts/cohortCatalog';
-import { feedCohorts } from '@/src/client/mock/cohorts/feedCohorts';
 import { LessonStatus, LessonType, SeasonStatus } from '@/src/client/screens/cohort/models';
 import { isNativeApp } from '@/src/client/utils/isNative';
 import { storageAdapter } from './storageAdapter';
@@ -10,8 +8,7 @@ function loadStoredCohorts(): Cohort[] {
   if (typeof window === 'undefined') return [];
   try {
     const parsed = storageAdapter.getStoredCohorts();
-    const catalogIds = new Set(cohortCatalog.map((c) => c.id));
-    return parsed.filter((c) => !catalogIds.has(c.id));
+    return parsed;
   } catch {
     return [];
   }
@@ -59,17 +56,7 @@ class CohortStore {
     if (typeof window !== 'undefined' && this.userCohorts.length === 0) {
       this.userCohorts = loadStoredCohorts();
     }
-    const map = new Map<string, Cohort>();
-    this.userCohorts.forEach((c) => map.set(c.id, c));
-
-    // In native app mode, strictly surface user cohorts + 5 real data-backed cohorts.
-    // Exclude all dummy/fake mock catalog cohorts.
-    const activeCatalog = isNativeApp() ? feedCohorts : cohortCatalog;
-
-    activeCatalog.forEach((c) => {
-      if (!map.has(c.id)) map.set(c.id, c);
-    });
-    return Array.from(map.values());
+    return [...this.userCohorts];
   }
 
   public getUserCohorts(): Cohort[] {
@@ -96,7 +83,6 @@ class CohortStore {
     // CRITICAL: Must use data.cohortId directly so /cohort/[cohortId] matches!
     const targetId = data.cohortId || `cohort-${Date.now().toString(36)}`;
 
-    const template = cohortCatalog[0];
 
     const lessonsList: any[] = [];
     const seasonsList = (data.curriculum?.seasons || []).map((s: any, sIdx: number) => {
@@ -174,7 +160,6 @@ class CohortStore {
     const coverArt = data.coverImage || '/mock/thumbnails/docker.avif';
 
     const newCohort: Cohort = {
-      ...template,
       id: targetId,
       title: data.title,
       subtitle: data.onboarding?.welcomeMessage || `Interactive learning journey on SideQuestHQ`,
@@ -233,23 +218,33 @@ class CohortStore {
         activeExplorerOverflow: '',
       },
       questline: {
-        ...template.questline,
         title: `${data.title} Questline`,
         description: data.description || `Complete hands-on quests for ${data.title}.`,
-        filters: template.questline.filters,
-        seasons: seasonsList.length > 0 ? seasonsList : template.questline.seasons,
+        filters: [{ id: 'all', label: 'All Quests' }],
+        skipSeasonLabel: 'Skip Season',
+        seasons: seasonsList.length > 0 ? seasonsList : [],
         feedTitle: `${data.title} Assignments`,
         feedDescription: `Ship artifacts that prove your ${data.title} skills.`,
+        feedSeasonLabel: 'View Season',
+        feedViewAllLabel: 'View All Assignments',
         assignmentFeed: [],
+        lockedFutureNotice: {
+          icon: 'target',
+          title: 'More Quests Coming Soon',
+          description: 'Stay tuned for more quests in this cohort.',
+        }
       },
-      // Events, Archives, and Hall of Fame are EMPTY by default for new cohorts
       events: {
         title: 'Upcoming Sessions',
         description: `No events scheduled yet. Check back soon!`,
-        filters: template.events.filters,
+        filters: [{ id: 'all', label: 'All Events' }],
         upcomingEvents: [],
         weeklySchedule: [],
-        calendarSync: template.events.calendarSync,
+        calendarSync: [
+          { id: 'google', label: 'Google Calendar', icon: 'google' },
+          { id: 'apple', label: 'Apple Calendar', icon: 'apple' },
+          { id: 'outlook', label: 'Outlook', icon: 'outlook' },
+        ],
         suggestEvent: {
           title: 'Suggest an Event',
           description: `Have an idea for a ${data.title} session?`,
@@ -260,8 +255,8 @@ class CohortStore {
       archives: {
         title: 'Community Archives',
         description: `No archives yet. Be the first to share knowledge!`,
-        categories: template.archives.categories,
-        sortControls: template.archives.sortControls,
+        categories: [{ id: 'all', label: 'All Resources' }],
+        sortControls: [{ id: 'recent', label: 'Most Recent' }],
         items: [],
         contributors: [],
         trending: [],
@@ -275,15 +270,11 @@ class CohortStore {
       hallOfFame: {
         title: 'Hall of Fame',
         subtitle: `No legends yet. Be the first to earn your place!`,
-        filters: template.hallOfFame.filters,
-        timeRanges: template.hallOfFame.timeRanges,
-        categories: template.hallOfFame.categories.map((c) => ({
-          ...c,
-          winner: undefined as any,
-          primaryMetric: '—',
-        })),
+        filters: [{ id: 'all', label: 'All Time' }],
+        timeRanges: [{ id: 'all', label: 'All Time' }],
+        categories: [],
         legends: [],
-        userHighlights: template.hallOfFame.userHighlights,
+        userHighlights: [],
         recentAchievements: [],
       },
     };

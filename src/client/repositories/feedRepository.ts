@@ -2,7 +2,6 @@ import { cohortRepository } from './cohortRepository';
 import { cohortStore } from './cohortStore';
 import { generateFeed } from '@/src/shared/feed/feedEngine';
 import { isEligibleForAutoCompletion } from '@/src/shared/feed/feedScoring';
-import { feedCohortIds } from '@/src/client/mock/cohorts/feedCohorts';
 import type {
   FeedChunkInput,
   ChunkProgress,
@@ -69,10 +68,8 @@ export const feedRepository = {
 
     const userPublishedIds = new Set(cohortStore.getUserCohorts().map((c) => c.id));
 
-    // ONLY serve chunks from the 3 real active cohorts + user-published cohorts! NO TRASH MOCKS!
-    const activeCohorts = cohorts.filter(
-      (c) => feedCohortIds.has(c.id) || userPublishedIds.has(c.id),
-    );
+    // For now just use userPublished cohorts since mock data is deleted
+    const activeCohorts = cohorts.filter((c) => userPublishedIds.has(c.id));
 
     activeCohorts.forEach((cohort) => {
       const seasons = cohort.questline?.seasons || [];
