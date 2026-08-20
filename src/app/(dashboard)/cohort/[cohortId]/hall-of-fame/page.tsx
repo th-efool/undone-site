@@ -1,6 +1,9 @@
 import { Metadata } from 'next';
-import React, { Suspense } from 'react';
+import React from 'react';
 import dynamic from 'next/dynamic';
+import { auth } from '@/src/server/infrastructure/auth/auth.config';
+import { prisma } from '@/src/server/infrastructure/db/postgres/client';
+import { redirect } from 'next/navigation';
 
 const HallOfFame = dynamic(() => import('@/src/client/screens/cohort').then((mod) => mod.HallOfFame));
 
@@ -28,6 +31,19 @@ export default async function HallOfFamePage({
   params: Promise<{ cohortId: string }>;
 }) {
   const { cohortId } = await params;
+  
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect('/auth');
+  }
+
+  const isEnrolled = await prisma.cohortMember.findUnique({
+    where: { cohortId_userId: { cohortId, userId: session.user.id } },
+  });
+
+  if (!isEnrolled) {
+    redirect(`/cohort/${cohortId}/overview`);
+  }
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -38,7 +54,10 @@ export default async function HallOfFamePage({
 
   return (
     <>
-      
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <HallOfFame cohortId={cohortId} />
     </>
   );
