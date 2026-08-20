@@ -291,6 +291,7 @@
 │   ├── prisma-schema-cohort.md
 │   └── study-rooms-schema.md
 ├── prisma/
+│   ├── db_backup.json
 │   ├── schema.prisma
 │   └── seed.ts
 ├── public/
@@ -431,6 +432,7 @@
 │   ├── globe.svg
 │   └── window.svg
 ├── scripts/
+│   ├── db-backup.mjs
 │   ├── mobile-build.mjs
 │   └── mobile-release-aab.mjs
 ├── src/
@@ -1614,4 +1616,4 @@
 ├── task.md
 └── tsconfig.json
 
-502 directories, 1111 files
+502 directories, 1113 files
