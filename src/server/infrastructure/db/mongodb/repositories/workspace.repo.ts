@@ -106,4 +106,29 @@ export class WorkspaceRepository {
       { $set: updateObj }
     );
   }
+
+  static async getNotesState(userId: string) {
+    await connectToMongoDB();
+    const workspace = await UserWorkspace.findOne({ userId }).lean();
+    if (!workspace) return null;
+    return {
+      notebooks: workspace.notebooks || [],
+      notes: workspace.notes || [],
+      tasks: workspace.tasks || [],
+      selectedNotebookId: null,
+      selectedNoteId: null,
+      notebookSort: 'manual',
+      noteSort: 'manual',
+      filter: 'all'
+    };
+  }
+
+  static async saveNotesState(userId: string, state: any) {
+    await connectToMongoDB();
+    await UserWorkspace.updateOne(
+      { userId },
+      { $set: { notebooks: state.notebooks || [], notes: state.notes || [], tasks: state.tasks || [] } },
+      { upsert: true }
+    );
+  }
 }
