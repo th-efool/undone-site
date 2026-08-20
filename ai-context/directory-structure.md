@@ -1061,6 +1061,9 @@
 │   │   │   │   │   │   ├── TopicStep/
 │   │   │   │   │   │   │   ├── TopicStep.module.css
 │   │   │   │   │   │   │   └── TopicStep.tsx
+│   │   │   │   │   │   ├── VideoWeightsModal/
+│   │   │   │   │   │   │   ├── VideoWeightsModal.module.css
+│   │   │   │   │   │   │   └── VideoWeightsModal.tsx
 │   │   │   │   │   │   ├── WizardFooter/
 │   │   │   │   │   │   │   ├── WizardFooter.module.css
 │   │   │   │   │   │   │   └── WizardFooter.tsx
@@ -1547,7 +1550,14 @@
 │   │   │   │       └── .gitkeep
 │   │   │   └── websocket/
 │   │   │       └── .gitkeep
+│   │   ├── database/
+│   │   │   └── mongo/
+│   │   │       └── models/
+│   │   │           └── CohortTranscript.ts
 │   │   ├── domain/
+│   │   │   ├── cohort/
+│   │   │   │   ├── cohort.service.ts
+│   │   │   │   └── transcript-coherence.service.ts
 │   │   │   ├── session/
 │   │   │   │   ├── session.services.ts
 │   │   │   │   └── session.types.ts
@@ -1637,4 +1647,4 @@
 ├── task.md
 └── tsconfig.json
 
-515 directories, 1121 files
+520 directories, 1126 files
