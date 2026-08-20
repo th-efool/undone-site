@@ -501,8 +501,11 @@
 │   │   │   │       │   └── route.ts
 │   │   │   │       └── playlist/
 │   │   │   │           └── route.ts
-│   │   │   └── studyroom/
-│   │   │       └── route.ts
+│   │   │   ├── studyroom/
+│   │   │   │   └── route.ts
+│   │   │   └── workspace/
+│   │   │       └── canvas/
+│   │   │           └── route.ts
 │   │   ├── features/
 │   │   │   ├── ai-study-planner/
 │   │   │   │   └── page.tsx
@@ -1556,6 +1559,10 @@
 │   │       │   │   └── repositories/
 │   │       │   │       └── explore.repo.ts
 │   │       │   ├── mongodb/
+│   │       │   │   ├── models/
+│   │       │   │   │   └── UserWorkspace.ts
+│   │       │   │   ├── repositories/
+│   │       │   │   │   └── workspace.repo.ts
 │   │       │   │   ├── client.ts
 │   │       │   │   └── schema.prisma.ts
 │   │       │   └── postgres/
@@ -1619,4 +1626,4 @@
 ├── task.md
 └── tsconfig.json
 
-504 directories, 1114 files
+508 directories, 1117 files
