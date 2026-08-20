@@ -15,10 +15,12 @@ import styles from './CohortLayout.module.css';
 interface CohortLayoutProps {
   cohort: Cohort;
   navigationItems: NavigationItem[];
+  isEnrolled?: boolean;
+  isLoggedIn?: boolean;
   children: React.ReactNode;
 }
 
-export function CohortLayout({ cohort, navigationItems, children }: CohortLayoutProps) {
+export function CohortLayout({ cohort, navigationItems, isEnrolled = true, isLoggedIn = true, children }: CohortLayoutProps) {
   const isApp = isNativeApp();
   const pathname = usePathname();
 
@@ -79,7 +81,7 @@ export function CohortLayout({ cohort, navigationItems, children }: CohortLayout
         </Link>
       </div>
 
-      <CohortHero cohort={cohort} />
+      <CohortHero cohort={cohort} isEnrolled={isEnrolled} isLoggedIn={isLoggedIn} />
       <CohortNavigation items={navigationItems} />
       <section className={styles.content}>{children}</section>
     </main>

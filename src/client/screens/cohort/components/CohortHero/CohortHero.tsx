@@ -4,31 +4,37 @@ import { Play, Share2, MessageCircle, Star, Users, Bookmark } from 'lucide-react
 import { isNativeApp } from '@/src/client/utils/isNative';
 import type { Cohort } from '../../models';
 
+import { JoinCohortButton } from '../JoinCohortButton';
+
 import styles from './CohortHero.module.css';
 
 interface CohortHeroProps {
   cohort: Cohort;
+  isEnrolled?: boolean;
+  isLoggedIn?: boolean;
 }
 
-export function CohortHero({ cohort }: CohortHeroProps) {
+export function CohortHero({ cohort, isEnrolled = true, isLoggedIn = true }: CohortHeroProps) {
   const isApp = isNativeApp();
   const currentQuest =
     cohort.questline.seasons
       .flatMap((season) => season.lessons)
       .find((lesson) => lesson.status === 'inStream') ?? cohort.questline.seasons[0]?.lessons[0];
+  
+  const coverImage = cohort.coverImage || '/mock/thumbnails/docker.avif';
 
   return (
     <section
       className={styles.hero}
       style={{
-        backgroundImage: `linear-gradient(90deg, rgb(8 20 16 / 94%) 0%, rgb(20 69 42 / 90%) 52%, rgb(62 158 89 / 82%) 100%), url(${cohort.coverImage})`,
+        backgroundImage: `linear-gradient(90deg, rgb(8 20 16 / 94%) 0%, rgb(20 69 42 / 90%) 52%, rgb(62 158 89 / 82%) 100%), url(${coverImage})`,
       }}
     >
       <div className={styles.artCard}>
         <div className={styles.artTitle}>{cohort.title.split(' ').slice(0, 2).join(' ')}</div>
         <div className={styles.wave} />
         <Image
-          src={cohort.coverImage}
+          src={coverImage}
           alt=""
           width={210}
           height={150}
@@ -76,30 +82,44 @@ export function CohortHero({ cohort }: CohortHeroProps) {
           </span>
         </div>
 
-        <strong className={styles.percent}>{cohort.progress.journeyProgress}%</strong>
-        <p className={styles.current}>Continue: {currentQuest?.title ?? cohort.title}</p>
+        {isEnrolled ? (
+          <>
+            <strong className={styles.percent}>{cohort.progress.journeyProgress}%</strong>
+            <p className={styles.current}>Continue: {currentQuest?.title ?? cohort.title}</p>
 
-        <div>
-          <div className={styles.goalLabel}>Daily goal</div>
-          <strong className={styles.goal}>{cohort.progress.dailyGoal}</strong>
-          <div className={styles.track}>
-            <div
-              className={styles.bar}
-              style={{ width: `${cohort.progress.journeyProgress}%` }}
-            />
+            <div>
+              <div className={styles.goalLabel}>Daily goal</div>
+              <strong className={styles.goal}>{cohort.progress.dailyGoal}</strong>
+              <div className={styles.track}>
+                <div
+                  className={styles.bar}
+                  style={{ width: `${cohort.progress.journeyProgress}%` }}
+                />
+              </div>
+            </div>
+
+            <a
+              className={styles.resumeButton}
+              href={`/play?cohort=${cohort.id}${currentQuest ? `&lesson=${currentQuest.id}` : ''}`}
+            >
+              <Play
+                size={16}
+                fill="currentColor"
+              />
+              Resume lesson
+            </a>
+          </>
+        ) : (
+          <div className={styles.joinContainer}>
+            <div>
+              <strong className={`${styles.goalLabel} ${styles.joinLabel}`}>Join this cohort</strong>
+              <p className={styles.joinDescription}>
+                Track your progress, join the community, and start learning.
+              </p>
+            </div>
+            <JoinCohortButton cohortId={cohort.id} isLoggedIn={isLoggedIn} />
           </div>
-        </div>
-
-        <a
-          className={styles.resumeButton}
-          href={`/play?cohort=${cohort.id}${currentQuest ? `&lesson=${currentQuest.id}` : ''}`}
-        >
-          <Play
-            size={16}
-            fill="currentColor"
-          />
-          Resume lesson
-        </a>
+        )}
 
         <div className={styles.actions}>
           <a href={`/message?community=${cohort.id}`}>

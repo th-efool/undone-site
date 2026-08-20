@@ -95,6 +95,7 @@
   line-height: 0.9;
   letter-spacing: -0.07em;
   text-shadow: 0 18px 32px rgb(0 0 0 / 23%);
+  overflow-wrap: break-word;
 }
 .description {
   max-width: 760px;
@@ -263,4 +264,22 @@
   .actions a, .actions button {
     min-height: var(--touch-target-min, 44px);
   }
+}
+
+.joinContainer {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.joinLabel {
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.joinDescription {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
 }
