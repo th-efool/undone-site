@@ -291,7 +291,8 @@
 │   ├── prisma-schema-cohort.md
 │   └── study-rooms-schema.md
 ├── prisma/
-│   └── schema.prisma
+│   ├── schema.prisma
+│   └── seed.ts
 ├── public/
 │   ├── .well-known/
 │   │   └── assetlinks.json
@@ -482,17 +483,22 @@
 │   │   │   │   └── [...nextauth]/
 │   │   │   │       └── route.ts
 │   │   │   ├── cohort/
+│   │   │   │   ├── [id]/
+│   │   │   │   │   └── join/
+│   │   │   │   │       └── route.ts
 │   │   │   │   └── publish/
 │   │   │   │       └── route.ts
 │   │   │   ├── curriculum/
 │   │   │   │   └── generate/
 │   │   │   │       └── route.ts
-│   │   │   └── import/
-│   │   │       └── youtube/
-│   │   │           ├── metadata/
-│   │   │           │   └── route.ts
-│   │   │           └── playlist/
-│   │   │               └── route.ts
+│   │   │   ├── import/
+│   │   │   │   └── youtube/
+│   │   │   │       ├── metadata/
+│   │   │   │       │   └── route.ts
+│   │   │   │       └── playlist/
+│   │   │   │           └── route.ts
+│   │   │   └── studyroom/
+│   │   │       └── route.ts
 │   │   ├── features/
 │   │   │   ├── ai-study-planner/
 │   │   │   │   └── page.tsx
@@ -696,9 +702,6 @@
 │   │   │           ├── PlayMobile.module.css
 │   │   │           └── PlayMobile.tsx
 │   │   ├── mock/
-│   │   │   ├── cohorts/
-│   │   │   │   ├── cohortCatalog.ts
-│   │   │   │   └── feedCohorts.ts
 │   │   │   └── avatars.ts
 │   │   ├── navigation/
 │   │   │   └── cohortLinks.ts
@@ -762,17 +765,17 @@
 │   │   │   │   │   ├── CohortNavigation/
 │   │   │   │   │   │   ├── CohortNavigation.module.css
 │   │   │   │   │   │   └── CohortNavigation.tsx
-│   │   │   │   │   └── ProgressSidebar/
-│   │   │   │   │       ├── ProgressSidebar.module.css
-│   │   │   │   │       └── ProgressSidebar.tsx
+│   │   │   │   │   ├── ProgressSidebar/
+│   │   │   │   │   │   ├── ProgressSidebar.module.css
+│   │   │   │   │   │   └── ProgressSidebar.tsx
+│   │   │   │   │   ├── JoinCohortButton.module.css
+│   │   │   │   │   └── JoinCohortButton.tsx
 │   │   │   │   ├── hooks/
 │   │   │   │   │   ├── index.ts
 │   │   │   │   │   ├── useArchives.ts
 │   │   │   │   │   ├── useCohort.ts
 │   │   │   │   │   ├── useEvents.ts
 │   │   │   │   │   └── useQuestline.ts
-│   │   │   │   ├── mocks/
-│   │   │   │   │   └── cohortMock.ts
 │   │   │   │   ├── models/
 │   │   │   │   │   ├── archives.ts
 │   │   │   │   │   ├── cohort.ts
@@ -1161,8 +1164,6 @@
 │   │   │   │   │   │       └── SectionHeader.tsx
 │   │   │   │   │   ├── hooks/
 │   │   │   │   │   │   └── useHome.ts
-│   │   │   │   │   ├── mock/
-│   │   │   │   │   │   └── home.mock.tsx
 │   │   │   │   │   ├── models/
 │   │   │   │   │   │   ├── home.ts
 │   │   │   │   │   │   └── index.ts
@@ -1431,45 +1432,49 @@
 │   │   │   │   │   ├── Notes.tsx
 │   │   │   │   │   ├── NotesDesktop.tsx
 │   │   │   │   │   └── index.ts
-│   │   │   │   └── play/
-│   │   │   │       ├── components/
-│   │   │   │       │   ├── CinematicStage/
-│   │   │   │       │   │   ├── CinematicStage.module.css
-│   │   │   │       │   │   └── CinematicStage.tsx
-│   │   │   │       │   ├── LearningTimeline/
-│   │   │   │       │   │   ├── LearningTimeline.module.css
-│   │   │   │       │   │   └── LearningTimeline.tsx
-│   │   │   │       │   ├── LessonCard/
-│   │   │   │       │   │   ├── LessonCard.module.css
-│   │   │   │       │   │   └── LessonCard.tsx
-│   │   │   │       │   ├── PlaybackControls/
-│   │   │   │       │   │   ├── PlaybackControls.module.css
-│   │   │   │       │   │   ├── PlaybackControls.tsx
-│   │   │   │       │   │   ├── VolumeControl.module.css
-│   │   │   │       │   │   └── VolumeControl.tsx
-│   │   │   │       │   ├── PlayerSurface/
-│   │   │   │       │   │   ├── PlayerSurface.module.css
-│   │   │   │       │   │   └── PlayerSurface.tsx
-│   │   │   │       │   ├── PlayerToolbar/
-│   │   │   │       │   │   ├── components/
-│   │   │   │       │   │   │   ├── BookmarkButton.tsx
-│   │   │   │       │   │   │   ├── CaptureButton.tsx
-│   │   │   │       │   │   │   ├── PlaybackSpeed.tsx
-│   │   │   │       │   │   │   ├── ScribeButton.tsx
-│   │   │   │       │   │   │   ├── ToolbarMenu.tsx
-│   │   │   │       │   │   │   └── index.ts
-│   │   │   │       │   │   ├── PlayerToolbar.module.css
-│   │   │   │       │   │   └── PlayerToolbar.tsx
-│   │   │   │       │   └── index.ts
-│   │   │   │       ├── hooks/
-│   │   │   │       │   ├── use1DGesture.ts
-│   │   │   │       │   └── usePlayback.ts
-│   │   │   │       ├── types/
-│   │   │   │       │   ├── play.mock.ts
-│   │   │   │       │   └── play.ts
-│   │   │   │       ├── Play.module.css
-│   │   │   │       ├── Play.tsx
-│   │   │   │       ├── PlayDesktop.tsx
+│   │   │   │   ├── play/
+│   │   │   │   │   ├── components/
+│   │   │   │   │   │   ├── CinematicStage/
+│   │   │   │   │   │   │   ├── CinematicStage.module.css
+│   │   │   │   │   │   │   └── CinematicStage.tsx
+│   │   │   │   │   │   ├── LearningTimeline/
+│   │   │   │   │   │   │   ├── LearningTimeline.module.css
+│   │   │   │   │   │   │   └── LearningTimeline.tsx
+│   │   │   │   │   │   ├── LessonCard/
+│   │   │   │   │   │   │   ├── LessonCard.module.css
+│   │   │   │   │   │   │   └── LessonCard.tsx
+│   │   │   │   │   │   ├── PlaybackControls/
+│   │   │   │   │   │   │   ├── PlaybackControls.module.css
+│   │   │   │   │   │   │   ├── PlaybackControls.tsx
+│   │   │   │   │   │   │   ├── VolumeControl.module.css
+│   │   │   │   │   │   │   └── VolumeControl.tsx
+│   │   │   │   │   │   ├── PlayerSurface/
+│   │   │   │   │   │   │   ├── PlayerSurface.module.css
+│   │   │   │   │   │   │   └── PlayerSurface.tsx
+│   │   │   │   │   │   ├── PlayerToolbar/
+│   │   │   │   │   │   │   ├── components/
+│   │   │   │   │   │   │   │   ├── BookmarkButton.tsx
+│   │   │   │   │   │   │   │   ├── CaptureButton.tsx
+│   │   │   │   │   │   │   │   ├── PlaybackSpeed.tsx
+│   │   │   │   │   │   │   │   ├── ScribeButton.tsx
+│   │   │   │   │   │   │   │   ├── ToolbarMenu.tsx
+│   │   │   │   │   │   │   │   └── index.ts
+│   │   │   │   │   │   │   ├── PlayerToolbar.module.css
+│   │   │   │   │   │   │   └── PlayerToolbar.tsx
+│   │   │   │   │   │   └── index.ts
+│   │   │   │   │   ├── hooks/
+│   │   │   │   │   │   ├── use1DGesture.ts
+│   │   │   │   │   │   └── usePlayback.ts
+│   │   │   │   │   ├── types/
+│   │   │   │   │   │   ├── play.mock.ts
+│   │   │   │   │   │   └── play.ts
+│   │   │   │   │   ├── Play.module.css
+│   │   │   │   │   ├── Play.tsx
+│   │   │   │   │   ├── PlayDesktop.tsx
+│   │   │   │   │   └── index.ts
+│   │   │   │   └── studyroom/
+│   │   │   │       ├── StudyRoomScreen.module.css
+│   │   │   │       ├── StudyRoomScreen.tsx
 │   │   │   │       └── index.ts
 │   │   │   └── landing/
 │   │   │       ├── 01-hero/
@@ -1549,6 +1554,8 @@
 │   │       │   │   ├── client.ts
 │   │       │   │   └── schema.prisma.ts
 │   │       │   └── postgres/
+│   │       │       ├── mappers/
+│   │       │       │   └── cohortMapper.ts
 │   │       │       ├── repositories/
 │   │       │       │   ├── cohort.repo.ts
 │   │       │       │   ├── community.repo.ts
@@ -1560,31 +1567,32 @@
 │   │       │       └── client.ts
 │   │       └── external/
 │   │           └── scratch.txt
-│   └── shared/
-│       ├── api/
-│       │   └── apiUrl.ts
-│       ├── constants/
-│       │   └── app.constants.ts
-│       ├── curriculum/
-│       │   ├── curriculum.generator.ts
-│       │   ├── curriculum.types.ts
-│       │   └── index.ts
-│       ├── feed/
-│       │   ├── feedEngine.ts
-│       │   ├── feedEngine.types.ts
-│       │   ├── feedScoring.ts
-│       │   └── index.ts
-│       ├── lib/
-│       │   ├── errors/
-│       │   │   └── AppError.ts
-│       │   ├── utils/
-│       │   │   ├── calculateScore.ts
-│       │   │   └── formatDate.ts
-│       │   └── validators/
-│       │       ├── session.validator.ts
-│       │       └── user.validator.ts
-│       └── mobile/
-│           └── cohortStaticParams.ts
+│   ├── shared/
+│   │   ├── api/
+│   │   │   └── apiUrl.ts
+│   │   ├── constants/
+│   │   │   └── app.constants.ts
+│   │   ├── curriculum/
+│   │   │   ├── curriculum.generator.ts
+│   │   │   ├── curriculum.types.ts
+│   │   │   └── index.ts
+│   │   ├── feed/
+│   │   │   ├── feedEngine.ts
+│   │   │   ├── feedEngine.types.ts
+│   │   │   ├── feedScoring.ts
+│   │   │   └── index.ts
+│   │   ├── lib/
+│   │   │   ├── errors/
+│   │   │   │   └── AppError.ts
+│   │   │   ├── utils/
+│   │   │   │   ├── calculateScore.ts
+│   │   │   │   └── formatDate.ts
+│   │   │   └── validators/
+│   │   │       ├── session.validator.ts
+│   │   │       └── user.validator.ts
+│   │   └── mobile/
+│   │       └── cohortStaticParams.ts
+│   └── middleware.ts
 ├── .gitignore
 ├── .prettierignore
 ├── .prettierrc
@@ -1606,4 +1614,4 @@
 ├── task.md
 └── tsconfig.json
 
-500 directories, 1105 files
+502 directories, 1111 files
