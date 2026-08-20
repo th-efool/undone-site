@@ -299,7 +299,7 @@
 
 .sliderRowTrack {
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 10px;
   user-select: none;
@@ -310,6 +310,7 @@
   height: 24px;
   display: flex;
   align-items: center;
+  width: 100%;
 }
 
 .sliderFloatInput {
@@ -340,6 +341,7 @@
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   line-height: 1.2;
   text-align: center;
+  white-space: nowrap;
 }
 
 .sliderLabel:hover {
@@ -394,7 +396,7 @@
 /* ─── Responsive ─────────────────────────────────────────────────────────── */
 @media (max-width: 1400px) {
   .body {
-    grid-template-columns: minmax(240px, 1fr) auto 320px 300px;
+    grid-template-columns: minmax(240px, 1fr) auto minmax(320px, 1fr);
     padding: 40px 24px;
   }
   .wheelOuter {
@@ -419,17 +421,36 @@
     grid-row: 2;
     padding: 0;
   }
-  .channelListCol {
+  .detailCol {
     grid-column: 2;
     grid-row: 2;
-    margin: 0;
+    border-left: none;
+    padding-left: 0;
+  }
+}
+
+@media (max-width: 800px) {
+  .body {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    padding: 24px 16px;
+  }
+  .introCol {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .wheelCol {
+    grid-column: 1;
+    grid-row: 2;
   }
   .detailCol {
-    grid-column: 1 / -1;
+    grid-column: 1;
     grid-row: 3;
-    border-left: none;
+    padding-top: 24px;
     border-top: 1px solid #f3f4f6;
-    padding-left: 0;
-    padding-top: 32px;
+  }
+  .wheelOuter {
+    width: 280px;
+    height: 280px;
   }
 }
