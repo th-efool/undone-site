@@ -32,6 +32,7 @@ export type NotebookEntity = {
   title: string;
   description: string;
   color: string;
+  icon?: string;
   favorite: boolean;
   shared: boolean;
   archived: boolean;

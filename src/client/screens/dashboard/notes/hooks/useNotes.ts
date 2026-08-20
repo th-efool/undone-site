@@ -87,6 +87,7 @@ export function useNotes() {
           title: 'Untitled Notebook',
           description: 'New thinking space',
           color: '#4f46e5',
+          icon: '📝',
           favorite: false,
           shared: false,
           archived: false,

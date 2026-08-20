@@ -13,6 +13,7 @@ export interface INotebook {
   title: string;
   description?: string;
   color?: string;
+  icon?: string;
   favorite: boolean;
   shared: boolean;
   archived: boolean;
@@ -87,6 +88,7 @@ const NotebookSchema = new Schema<INotebook>({
   title: { type: String, required: true },
   description: { type: String },
   color: { type: String },
+  icon: { type: String },
   favorite: { type: Boolean, default: false },
   shared: { type: Boolean, default: false },
   archived: { type: Boolean, default: false },
