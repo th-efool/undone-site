@@ -67,5 +67,8 @@
   },
   "overrides": {
     "es-toolkit": "1.49.0"
+  },
+  "prisma": {
+    "seed": "npx tsx prisma/seed.ts"
   }
 }

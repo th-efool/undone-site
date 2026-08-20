@@ -28,6 +28,7 @@ model User {
   cohortMemberships CohortMember[]
   messages          Message[]
   studyRooms        RoomParticipant[]
+  lessonProgress    LessonProgress[]
 
   @@map("users")
 }
@@ -178,6 +179,7 @@ model Lesson {
   updatedAt   DateTime   @updatedAt
 
   season      Season     @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  progress    LessonProgress[]
 
   @@map("lessons")
 }
@@ -311,4 +313,22 @@ enum MemberRole {
   EXPLORER
   MODERATOR
   CREATOR
+}
+
+enum LessonStatus {
+  IN_PROGRESS
+  COMPLETED
+}
+
+model LessonProgress {
+  userId    String
+  lessonId  String
+  status    LessonStatus @default(IN_PROGRESS)
+  updatedAt DateTime     @updatedAt
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@id([userId, lessonId])
+  @@map("lesson_progress")
 }
