@@ -2,30 +2,34 @@ import type { ExploreModel } from '../models';
 
 export const exploreMock: ExploreModel = {
   searchSuggestions: [
-    { id: '1', title: 'JavaScript Fundamentals', type: 'recent' },
-    { id: '2', title: 'React Hooks Deep Dive', type: 'trending' },
-    { id: '3', title: 'Advanced CSS Layouts', type: 'popular' },
+    { id: '1', label: 'JavaScript Fundamentals' },
+    { id: '2', label: 'React Hooks Deep Dive' },
+    { id: '3', label: 'Advanced CSS Layouts' },
   ],
   peopleFinishing: [],
   topics: [
-    { id: '1', name: 'Web Development', icon: 'code', count: 124 },
-    { id: '2', name: 'Data Science', icon: 'database', count: 89 },
-    { id: '3', name: 'Design Systems', icon: 'pen-tool', count: 56 },
+    { id: '1', name: 'Web Development', icon: 'code', color: 'blue' },
+    { id: '2', name: 'Data Science', icon: 'database', color: 'green' },
+    { id: '3', name: 'Design Systems', icon: 'pen-tool', color: 'purple' },
   ],
   trendingSideQuests: [
     {
       id: '1',
       title: 'Build a Next.js Dashboard',
-      description: 'Create a full-stack dashboard with Next.js, Prisma, and PostgreSQL.',
-      difficulty: 'Intermediate',
-      reward: '500 XP',
+      subtitle: 'Create a full-stack dashboard with Next.js, Prisma, and PostgreSQL.',
+      dailyGoal: '1h',
+      thumbnail: '/mock/thumbnails/docker.avif',
+      featuredParticipants: [],
+      participantCount: '1.2k',
     },
     {
       id: '2',
-      title: 'Master CSS Grid',
-      description: 'Learn advanced CSS Grid techniques by building complex layouts.',
-      difficulty: 'Beginner',
-      reward: '300 XP',
+      title: 'Master Framer Motion',
+      subtitle: 'Learn advanced animation techniques for React applications.',
+      dailyGoal: '45m',
+      thumbnail: '/mock/thumbnails/docker.avif',
+      featuredParticipants: [],
+      participantCount: '850',
     },
   ],
   recentlyPublished: [

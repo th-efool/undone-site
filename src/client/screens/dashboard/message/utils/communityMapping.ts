@@ -267,7 +267,7 @@ export function getMessageCohorts(): Cohort[] {
 }
 
 export function mapCohortToConversation(cohort: Cohort, index: number): ConversationPreview {
-  const paused = 'pausedUntil' in cohort;
+  const paused = cohort && 'pausedUntil' in cohort;
   const onlineCount = onlineCounts[index % onlineCounts.length];
 
   return {
@@ -352,8 +352,12 @@ export function mapCohortToUpcomingEvent(cohort: Cohort, index: number): Upcomin
 export function mapCohortToCommunity(cohortId: string | null): CommunityChatModel {
   const cohorts = getMessageCohorts();
   const cohort = cohorts.find((item) => item.id === cohortId) ?? cohorts[0];
-  const index = cohorts.findIndex((item) => item.id === cohort.id);
-  const paused = 'pausedUntil' in cohort;
+  const index = cohort ? cohorts.findIndex((item) => item.id === cohort.id) : -1;
+  const paused = cohort && 'pausedUntil' in cohort;
+
+  if (!cohort) {
+    return communityChatMock;
+  }
 
   const template = getCommunityConversationTemplate(cohort, paused);
 

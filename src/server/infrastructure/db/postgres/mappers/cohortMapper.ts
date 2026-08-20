@@ -69,7 +69,7 @@ export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
       feedSeasonLabel: '',
       feedViewAllLabel: '',
       assignmentFeed: [],
-      lockedFutureNotice: { icon: '', title: '', description: '' },
+      lockedFutureNotice: { icon: 'book', title: '', description: '' },
     },
     events: {
       title: '',
