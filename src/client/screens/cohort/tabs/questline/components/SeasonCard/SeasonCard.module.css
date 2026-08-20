@@ -86,6 +86,7 @@
 .statusSelect {
   appearance: none;
   background: var(--color-surface);
+  background-image: none !important;
   border: 1px solid var(--color-border);
   border-radius: 6px;
   color: var(--color-text-secondary);
@@ -113,8 +114,8 @@
 .statusSelect:focus,
 .statusSelect:focus-visible {
   outline: none !important;
-  border-color: var(--color-brand);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15) !important;
+  border-color: var(--color-brand) !important;
+  box-shadow: none !important;
   color: var(--color-text-primary);
 }
 
