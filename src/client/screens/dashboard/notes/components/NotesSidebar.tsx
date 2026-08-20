@@ -47,7 +47,11 @@ export function NotesSidebar({
   const [activePopoverId, setActivePopoverId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [editingIcon, setEditingIcon] = useState('');
+  const [editingColor, setEditingColor] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const COLORS = ['#4f46e5', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'];
 
   const notebooks = notes.data?.notebooks || [];
   const filteredNotebooks = notebooks.filter(nb => 
@@ -253,71 +257,107 @@ export function NotesSidebar({
             {filteredNotebooks.map((nb, idx) => (
               <div 
                 key={nb.id} 
-                className={`${styles.channelItem} ${selectedNotebookId === nb.id ? styles.selected : ''}`}
+                className={`${styles.channelItem} ${selectedNotebookId === nb.id ? styles.selected : ''} ${editingId === nb.id ? styles.editingItem : ''}`}
                 onClick={() => notes.actions.selectNotebook(nb.id)}
                 onDoubleClick={() => {
                   setEditingId(nb.id);
                   setEditingTitle(nb.title);
+                  setEditingIcon(nb.icon || '');
+                  setEditingColor(nb.color || null);
                 }}
               >
-                <div className={styles.avatar} style={{ backgroundColor: `hsl(${idx * 30}, 60%, 50%)` }}>
-                  {nb.title.charAt(0).toUpperCase()}
-                </div>
                 {editingId === nb.id ? (
-                  <input
-                    ref={inputRef}
-                    value={editingTitle}
-                    onChange={(e) => setEditingTitle(e.target.value)}
-                    onBlur={() => {
-                      notes.actions.patchNotebook(nb.id, { title: editingTitle });
-                      setEditingId(null);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        notes.actions.patchNotebook(nb.id, { title: editingTitle });
+                  <div className={styles.inlineEditor} onClick={e => e.stopPropagation()}>
+                    <div className={styles.editorRow}>
+                      <input 
+                        className={styles.iconInput}
+                        value={editingIcon}
+                        onChange={e => setEditingIcon(e.target.value)}
+                        placeholder="😀"
+                        maxLength={2}
+                      />
+                      <input
+                        className={styles.titleInput}
+                        ref={inputRef}
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            notes.actions.patchNotebook(nb.id, { title: editingTitle, icon: editingIcon, color: editingColor || undefined });
+                            setEditingId(null);
+                          }
+                          if (e.key === 'Escape') {
+                            setEditingId(null);
+                          }
+                        }}
+                        placeholder="Notebook title..."
+                      />
+                    </div>
+                    <div className={styles.colorPickerRow}>
+                      {COLORS.map(c => (
+                        <div 
+                          key={c} 
+                          className={`${styles.colorCircle} ${editingColor === c ? styles.selectedColor : ''}`}
+                          style={{ backgroundColor: c }}
+                          onClick={() => setEditingColor(c)}
+                        />
+                      ))}
+                    </div>
+                    <div className={styles.editorActions}>
+                      <button className={styles.editorCancel} onClick={() => setEditingId(null)}>Cancel</button>
+                      <button className={styles.editorSave} onClick={() => {
+                        notes.actions.patchNotebook(nb.id, { title: editingTitle, icon: editingIcon, color: editingColor || undefined });
                         setEditingId(null);
-                      }
-                      if (e.key === 'Escape') {
-                        setEditingId(null);
-                      }
-                    }}
-                    style={{ background: 'transparent', border: 'none', color: '#fff', outline: 'none', width: '100%', fontSize: 'inherit', fontWeight: 'inherit', padding: 0 }}
-                  />
-                ) : (
-                  <span className={styles.channelName}>{nb.title}</span>
-                )}
-                <div className={styles.pinIcon} style={{ display: 'flex', gap: '4px' }}>
-                  <Star 
-                    size={16}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if ('favorite' in nb) {
-                        notes.actions.patchNotebook(nb.id, { favorite: !nb.favorite });
-                      }
-                      console.log('Star toggled for', nb.title);
-                    }}
-                  />
-                  <div style={{ position: 'relative' }} className="popover-container">
-                    <MoreHorizontal 
-                      size={16} 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setActivePopoverId(activePopoverId === nb.id ? null : nb.id);
-                      }}
-                    />
-                    {activePopoverId === nb.id && (
-                      <div 
-                        className={styles.popoverMenu}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button className={styles.popoverItem} onClick={(e) => { e.stopPropagation(); setEditingId(nb.id); setEditingTitle(nb.title); setActivePopoverId(null); }}>Rename</button>
-                        <button className={styles.popoverItem} onClick={(e) => { e.stopPropagation(); notes.actions.deleteNotebook(nb.id); setActivePopoverId(null); }}>Delete</button>
-                        <button className={styles.popoverItem} onClick={(e) => { e.stopPropagation(); alert('Copied'); setActivePopoverId(null); }}>Copy</button>
-                        <button className={styles.popoverItem} onClick={(e) => { e.stopPropagation(); alert('Cut'); setActivePopoverId(null); }}>Cut</button>
-                      </div>
-                    )}
+                      }}>Save</button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    <div className={styles.avatar} style={{ backgroundColor: nb.color || `hsl(${idx * 30}, 60%, 50%)` }}>
+                      {nb.icon || nb.title.charAt(0).toUpperCase()}
+                    </div>
+                    <span className={styles.channelName}>{nb.title}</span>
+                    <div className={styles.pinIcon} style={{ display: 'flex', gap: '4px' }}>
+                      <Star 
+                        size={16}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if ('favorite' in nb) {
+                            notes.actions.patchNotebook(nb.id, { favorite: !nb.favorite });
+                          }
+                          console.log('Star toggled for', nb.title);
+                        }}
+                      />
+                      <div style={{ position: 'relative' }} className="popover-container">
+                        <MoreHorizontal 
+                          size={16} 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActivePopoverId(activePopoverId === nb.id ? null : nb.id);
+                          }}
+                        />
+                        {activePopoverId === nb.id && (
+                          <div 
+                            className={styles.popoverMenu}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button className={styles.popoverItem} onClick={(e) => { 
+                              e.stopPropagation(); 
+                              setEditingId(nb.id); 
+                              setEditingTitle(nb.title); 
+                              setEditingIcon(nb.icon || '');
+                              setEditingColor(nb.color || null);
+                              setActivePopoverId(null); 
+                            }}>Edit Notebook</button>
+                            <button className={styles.popoverItem} onClick={(e) => { e.stopPropagation(); notes.actions.deleteNotebook(nb.id); setActivePopoverId(null); }}>Delete</button>
+                            <button className={styles.popoverItem} onClick={(e) => { e.stopPropagation(); alert('Copied'); setActivePopoverId(null); }}>Copy</button>
+                            <button className={styles.popoverItem} onClick={(e) => { e.stopPropagation(); alert('Cut'); setActivePopoverId(null); }}>Cut</button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>

@@ -193,24 +193,103 @@
   user-select: none;
 }
 
-.renameInput {
-  flex: 1;
-  min-width: 0;
-  background: transparent;
-  border: none;
-  color: #fff;
-  outline: none;
-  box-shadow: none;
-  font-family: inherit;
+.editingItem {
+  flex-direction: column;
+  align-items: stretch;
   padding: 0;
-  margin: 0;
+  background-color: transparent !important;
 }
 
-.renameInput:focus {
+.inlineEditor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: #1a1b1e;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 4px 0;
+  width: 100%;
+}
+
+.editorRow {
+  display: flex;
+  gap: 8px;
+}
+
+.iconInput {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: #000;
+  color: #fff;
+  text-align: center;
+  font-size: 14px;
   outline: none;
-  box-shadow: none;
-  background: transparent;
+}
+
+.titleInput {
+  flex: 1;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: #000;
+  color: #fff;
+  padding: 0 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.colorPickerRow {
+  display: flex;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.colorCircle {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.colorCircle.selectedColor {
+  border-color: #fff;
+}
+
+.editorActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.editorCancel, .editorSave {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
   border: none;
+}
+
+.editorCancel {
+  background: transparent;
+  color: #a1a1aa;
+}
+
+.editorCancel:hover {
+  color: #fff;
+}
+
+.editorSave {
+  background-color: #4f46e5;
+  color: #fff;
+}
+
+.editorSave:hover {
+  background-color: #4338ca;
 }
 
 .pinIcon {
