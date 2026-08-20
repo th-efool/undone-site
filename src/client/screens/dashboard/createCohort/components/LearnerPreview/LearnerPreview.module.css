@@ -12,7 +12,7 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 0.85rem 1.1rem;
-  background: rgba(18, 20, 29, 0.7);
+  background: #000000;
   backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
@@ -105,10 +105,14 @@
 }
 
 .previewCanvas {
-  background: #0b0f19;
+  background: #000000;
   border-radius: 12px;
   padding: 1.5rem;
   min-height: 400px;
+  --color-background: #000000;
+  --color-surface: #000000;
+  --color-surface-secondary: #000000;
+  --color-surface-tertiary: #000000;
 }
 
 .heroPreview {

@@ -113,7 +113,7 @@ export function LearnerPreview() {
       <div className={styles.deviceWrapper}>
         <div className={`${styles.viewportContainer} ${styles[`viewport${viewport}`]}`}>
           <div className={styles.previewCanvas}>
-            {activeTab === 'overview' && <Overview cohortId={previewCohortId} />}
+            {activeTab === 'overview' && <Overview cohortId={previewCohortId} cohort={cohortRepository.getById(previewCohortId)!} />}
             {activeTab === 'questline' && <Questline cohortId={previewCohortId} />}
             {activeTab === 'events' && <Events cohortId={previewCohortId} />}
             {activeTab === 'archives' && <Archives cohortId={previewCohortId} />}
