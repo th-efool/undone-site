@@ -43,7 +43,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   session: {
-    strategy: 'database',  // Sessions stored in Postgres, not JWT cookies
+    strategy: 'jwt',  // Required for Credentials provider
   },
   callbacks: {
     async jwt({ token, user }) {
