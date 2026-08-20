@@ -59,7 +59,7 @@ export function TopicStep({ details }: TopicStepProps) {
 
   const handleCustomNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const cleanDigits = e.target.value.replace(/\D/g, '');
-    const num = cleanDigits ? Math.max(1, parseInt(cleanDigits, 10)) : 1;
+    const num = cleanDigits ? Math.min(999, Math.max(1, parseInt(cleanDigits, 10))) : 1;
     actions.updateDraftField('estimatedCompletionTime', `${num} ${customUnit}`);
   };
 

@@ -65,7 +65,7 @@ function parseDurationToMinutes(value: string) {
     return Math.max(0, Math.round(hours * 60 + minutes + seconds / 60));
   }
 
-  return 0;
+  return 10;
 }
 
 function formatDuration(minutes: number) {

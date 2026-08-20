@@ -624,7 +624,9 @@ export function WizardProvider({ children }: PropsWithChildren) {
     const sources =
       candidateSources.length > 0
         ? candidateSources
-        : defaultMockImportedSources;
+        : (() => {
+            throw new Error('No curriculum sources available');
+          })();
 
     try {
       const generated = await curriculumService.generateCurriculum({

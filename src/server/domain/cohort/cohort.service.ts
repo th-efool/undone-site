@@ -2,6 +2,7 @@ import { cohortRepo, CreateCohortParams } from '@/src/server/infrastructure/db/p
 import { CohortTranscript } from '@/src/server/database/mongo/models/CohortTranscript';
 import { transcriptCoherenceService } from './transcript-coherence.service';
 import { connectToMongoDB } from '@/src/server/infrastructure/db/mongodb/client';
+import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 
 export class CohortService {
   /**
@@ -65,29 +66,28 @@ export class CohortService {
 
     // 3. Save transcript chunks to MongoDB
     await connectToMongoDB(); // Ensure connection is active if needed
-    const transcriptDoc = await CohortTranscript.create({
-      cohortId: cohort.id,
-      chunks,
-      vectorEmbedding: [],
-      isVectorizable: allVectorizable,
-      isPublished: false, // Initially false to handle abandoned states
-    });
+    let transcriptDoc;
+    try {
+      transcriptDoc = await CohortTranscript.create({
+        cohortId: cohort.id,
+        chunks,
+        vectorEmbedding: [],
+        isVectorizable: allVectorizable,
+        isPublished: false, // Initially false to handle abandoned states
+      });
 
-    // 4. Set isPublished = true upon successful save
-    const publishedCohort = await cohortRepo.updatePublishStatus(cohort.id, true);
-    
-    // Also update Mongo document to published
-    transcriptDoc.isPublished = true;
-    await transcriptDoc.save();
+      // 4. Set isPublished = true upon successful save
+      const publishedCohort = await cohortRepo.updatePublishStatus(cohort.id, true);
+      
+      // Also update Mongo document to published
+      transcriptDoc.isPublished = true;
+      await transcriptDoc.save();
 
-    // 5. Trigger Async Background Job for Vector Embeddings (Commented out)
-    // TODO: Trigger background job (e.g., via Inngest or BullMQ) to vectorise the chunks
-    // await inngest.send({
-    //   name: 'cohort.vectorize',
-    //   data: { cohortId: cohort.id, transcriptId: transcriptDoc._id },
-    // });
-
-    return publishedCohort;
+      return publishedCohort;
+    } catch (error) {
+      await prisma.cohort.delete({ where: { id: cohort.id } });
+      throw error;
+    }
   }
 }
 
