@@ -297,7 +297,13 @@ export function useNotes() {
               : s.selectedNoteId,
         };
       }),
-    selectNote: (id: string) => update((s) => ({ ...s, selectedNoteId: id })),
+    selectNote: (id: string) => update((s) => {
+      const note = s.notes.find(n => n.id === id);
+      if (note && note.notebookId !== s.selectedNotebookId) {
+        return { ...s, selectedNoteId: id, selectedNotebookId: note.notebookId };
+      }
+      return { ...s, selectedNoteId: id };
+    }),
     setNotebookSort: (sort: NotesSort) => update((s) => ({ ...s, notebookSort: sort })),
     setNoteSort: (sort: NotesSort) => update((s) => ({ ...s, noteSort: sort })),
     setFilter: (filter: NotesFilter) => update((s) => ({ ...s, filter })),
