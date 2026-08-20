@@ -61,23 +61,31 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 8px;
+  padding: 4px 10px;
   border: 1px solid var(--color-border);
-  border-radius: 999px;
+  border-radius: 6px;
   background: var(--color-surface);
   color: var(--color-text-secondary);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  transition: all 0.2s ease;
+  transition: all 0.15s ease;
   white-space: nowrap;
   min-width: 115px;
   justify-content: space-between;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.statusDropdownWrapper:hover {
+  border-color: var(--color-border-hover);
+  color: var(--color-text-primary);
 }
 
 .statusDropdownWrapper:focus-within {
   border-color: var(--color-brand);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  color: var(--color-text-primary);
 }
 
 .statusIcon, .selectChevron {
@@ -103,6 +111,12 @@
   width: 100%;
 }
 
+.statusSelect:focus,
+.statusSelect:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
 .statusSelect option {
   color: var(--color-text-primary);
   background: var(--color-surface);
@@ -110,29 +124,21 @@
   font-weight: 500;
 }
 
-/* Status variants */
-.inProgress {
-  border-color: rgba(250, 204, 21, 0.2);
-  background: rgba(250, 204, 21, 0.1);
-  color: #facc15;
+/* Status variants (colored indicator icon only) */
+.statusDropdownWrapper.inProgress .statusIcon {
+  color: #fbbf24;
 }
 
-.completed {
-  border-color: rgba(34, 197, 94, 0.2);
-  background: rgba(34, 197, 94, 0.1);
-  color: #4ade80;
+.statusDropdownWrapper.completed .statusIcon {
+  color: var(--color-success);
 }
 
-.paused {
-  border-color: rgba(161, 161, 170, 0.2);
-  background: rgba(161, 161, 170, 0.1);
-  color: #a1a1aa;
+.statusDropdownWrapper.paused .statusIcon {
+  color: var(--color-text-muted);
 }
 
-.locked {
-  border-color: rgba(239, 68, 68, 0.2);
-  background: rgba(239, 68, 68, 0.1);
-  color: #f87171;
+.statusDropdownWrapper.locked .statusIcon {
+  color: var(--color-error);
 }
 
 .title {
