@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { signIn } from 'next-auth/react';
 import styles from './authForm.module.css';
 import { AuthProviders } from './authProviders';
 import { AuthDivider } from './authDivider';
@@ -122,8 +123,13 @@ export function AuthForm() {
         <AuthButton href="/explore">{isSignUp ? "Create Account" : "Log In"}</AuthButton>
 
         <AuthButton
-          href="/explore"
           variant="secondary"
+          onClick={() => {
+            signIn('credentials', {
+              email: 'guest@sidequesthq.com',
+              callbackUrl: '/home'
+            });
+          }}
         >
           Continue as Guest
         </AuthButton>

@@ -7,6 +7,7 @@ type AuthButtonProps = {
   disabled?: boolean;
   href?: string;
   variant?: 'primary' | 'secondary';
+  onClick?: () => void;
 };
 
 export function AuthButton({
@@ -15,6 +16,7 @@ export function AuthButton({
   disabled = false,
   href,
   variant = 'primary',
+  onClick,
 }: AuthButtonProps) {
   const className = `${styles.button} ${variant === 'secondary' ? styles.secondary : ''}`;
 
@@ -31,9 +33,10 @@ export function AuthButton({
 
   return (
     <button
-      type="submit"
+      type={onClick ? "button" : "submit"}
       disabled={disabled || loading}
       className={className}
+      onClick={onClick}
     >
       {loading ? <span className={styles.loader} /> : children}
     </button>
