@@ -16,13 +16,21 @@ import {
   updateFrequency,
 } from '../utils';
 
-export function useHome() {
+export function useHome(props?: { 
+  activeCohorts?: import('../models').ActiveCohort[];
+  continueLater?: import('../models').PausedCohort[];
+  recentlyCompleted?: import('../models').CompletedCourse[];
+}) {
   const { data: homeData, isLoading } = useQuery({
     queryKey: ['home'],
     queryFn: async () => homeRepository.getHome(),
   });
 
   const home = homeData ?? homeRepository.getHome();
+  
+  if (props?.activeCohorts) home.activeCohorts = props.activeCohorts;
+  if (props?.continueLater) home.continueLater = props.continueLater;
+  if (props?.recentlyCompleted) home.recentlyCompleted = props.recentlyCompleted;
 
   // Background pluggable backend sync
   useEffect(() => {
@@ -31,10 +39,16 @@ export function useHome() {
 
   const initialCohorts = useMemo(
     () => getActiveCohorts(home.activeCohorts, home.continueLater),
-    [home],
+    [home.activeCohorts, home.continueLater],
   );
   const [activeCohorts, setActiveCohorts] = useState(initialCohorts.activeCohorts);
   const [continueLater, setContinueLater] = useState(initialCohorts.continueLater);
+
+  // Sync state if server props change
+  useEffect(() => {
+    if (props?.activeCohorts) setActiveCohorts(props.activeCohorts);
+    if (props?.continueLater) setContinueLater(props.continueLater);
+  }, [props?.activeCohorts, props?.continueLater]);
 
   // Automatically persist user choice mutations to local storage
   useEffect(() => {
