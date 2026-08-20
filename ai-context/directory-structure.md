@@ -491,6 +491,14 @@
 │   │   │   │   │       └── route.ts
 │   │   │   │   └── publish/
 │   │   │   │       └── route.ts
+│   │   │   ├── community/
+│   │   │   │   ├── [cohortId]/
+│   │   │   │   │   └── channels/
+│   │   │   │   │       └── route.ts
+│   │   │   │   └── channels/
+│   │   │   │       └── [channelId]/
+│   │   │   │           └── messages/
+│   │   │   │               └── route.ts
 │   │   │   ├── curriculum/
 │   │   │   │   └── generate/
 │   │   │   │       └── route.ts
@@ -1629,4 +1637,4 @@
 ├── task.md
 └── tsconfig.json
 
-509 directories, 1119 files
+515 directories, 1121 files
