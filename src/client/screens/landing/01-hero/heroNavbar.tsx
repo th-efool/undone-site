@@ -23,16 +23,13 @@ export function HeroNavbar() {
           className={styles.brand}
         >
           <div className={styles.logoFrame}>
-            <picture>
-              <source srcSet="/logos/sidequesthq-logo.svg" media="(min-width: 2560px)" />
-              <Image
-                src="/logos/sidequesthq-logo-no-book-compass.svg"
-                alt="SideQuestHQ"
-                width={78}
-                height={78}
-                style={{ display: 'block', objectFit: 'contain' }}
-              />
-            </picture>
+            <Image
+              src="/logos/sidequesthq-logo.svg"
+              alt="SideQuestHQ"
+              width={32}
+              height={32}
+              style={{ display: 'block', objectFit: 'contain' }}
+            />
           </div>
 
           <span className={styles.brandName}>SideQuestHQ</span>

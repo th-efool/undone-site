@@ -389,6 +389,8 @@
   --color-text-inverse: #000000;
   --color-border: #27272a;
   --color-border-hover: #3f3f46;
+  --color-brand-subtle: rgba(79, 70, 229, 0.1);
+  --color-brand-soft: rgba(79, 70, 229, 0.2);
   --glass-light: rgba(0, 0, 0, 0.72);
   --glass-medium: rgba(0, 0, 0, 0.82);
 }
