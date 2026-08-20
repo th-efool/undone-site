@@ -434,7 +434,8 @@
 ├── scripts/
 │   ├── db-backup.mjs
 │   ├── mobile-build.mjs
-│   └── mobile-release-aab.mjs
+│   ├── mobile-release-aab.mjs
+│   └── seedNotesData.ts
 ├── src/
 │   ├── app/
 │   │   ├── (auth)/
@@ -504,7 +505,9 @@
 │   │   │   ├── studyroom/
 │   │   │   │   └── route.ts
 │   │   │   └── workspace/
-│   │   │       └── canvas/
+│   │   │       ├── canvas/
+│   │   │       │   └── route.ts
+│   │   │       └── notes/
 │   │   │           └── route.ts
 │   │   ├── features/
 │   │   │   ├── ai-study-planner/
@@ -1626,4 +1629,4 @@
 ├── task.md
 └── tsconfig.json
 
-508 directories, 1117 files
+509 directories, 1119 files
