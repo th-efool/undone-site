@@ -4,11 +4,12 @@ export interface RecentlyClosedNote {
   id: string;
   title: string;
   closedAt: number;
+  notebookId: string | null;
 }
 
-export function useRecentlyClosedNotes(currentNoteId: string | null, currentNoteTitle?: string, maxItems: number = 3) {
+export function useRecentlyClosedNotes(currentNoteId: string | null, currentNoteTitle?: string, currentNotebookId?: string | null, maxItems: number = 3) {
   const [closedNotes, setClosedNotes] = useState<RecentlyClosedNote[]>([]);
-  const prevNoteRef = useRef<{ id: string; title: string } | null>(null);
+  const prevNoteRef = useRef<{ id: string; title: string, notebookId: string | null } | null>(null);
   const isInitialMount = useRef(true);
 
   // Load from local storage on mount
@@ -45,7 +46,7 @@ export function useRecentlyClosedNotes(currentNoteId: string | null, currentNote
         });
       }
       // Update ref to current note
-      prevNoteRef.current = { id: currentNoteId, title: currentNoteTitle || 'Untitled Note' };
+      prevNoteRef.current = { id: currentNoteId, title: currentNoteTitle || 'Untitled Note', notebookId: currentNotebookId || null };
     } else {
       // Navigated to "no note selected"
       if (prevNoteRef.current) {
@@ -58,7 +59,7 @@ export function useRecentlyClosedNotes(currentNoteId: string | null, currentNote
       }
       prevNoteRef.current = null;
     }
-  }, [currentNoteId, maxItems]); 
+  }, [currentNoteId, currentNotebookId, maxItems]); 
   
   // Update the title in the ref when it changes, so we capture the latest title before closing
   useEffect(() => {
