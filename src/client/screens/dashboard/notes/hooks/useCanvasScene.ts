@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import debounce from 'lodash.debounce';
 import { canvasAdapter, CANVAS_SCHEMA_VERSION } from '../adapters/canvas.adapter';
 import { canvasRepository } from '../repositories/canvas.repository';
 import type { CanvasSceneData, CanvasState } from '../models/canvas.models';
@@ -19,6 +20,28 @@ export function useCanvasScene(noteId: string | null) {
 
   // Used to notify useCanvasPersistence without re-rendering the whole tree
   const [saveTrigger, setSaveTrigger] = useState(0);
+
+  const saveToDb = useCallback(
+    debounce(async (id: string, scene: CanvasSceneData) => {
+      try {
+        await fetch('/api/workspace/canvas', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id,
+            elements: scene.elements,
+            appState: scene.appState,
+            files: scene.files,
+          }),
+        });
+      } catch (error) {
+        console.error('Failed to save to db:', error);
+      }
+    }, 1000),
+    []
+  );
 
   useEffect(() => {
     if (!noteId) {
@@ -67,7 +90,11 @@ export function useCanvasScene(noteId: string | null) {
     
     // Trigger persistence debounce
     setSaveTrigger(triggerRef.current);
-  }, []);
+
+    if (noteId) {
+      saveToDb(noteId, scene);
+    }
+  }, [noteId, saveToDb]);
 
   return {
     initialScene,
