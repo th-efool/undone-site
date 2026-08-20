@@ -1,6 +1,7 @@
 import { cohortRepo, CreateCohortParams } from '@/src/server/infrastructure/db/postgres/repositories/cohort.repo';
 import { CohortTranscript } from '@/src/server/database/mongo/models/CohortTranscript';
 import { transcriptCoherenceService } from './transcript-coherence.service';
+import { connectToMongoDB } from '@/src/server/infrastructure/db/mongodb/client';
 
 export class CohortService {
   /**
@@ -63,7 +64,7 @@ export class CohortService {
     }
 
     // 3. Save transcript chunks to MongoDB
-    // await connectToMongo(); // Ensure connection is active if needed
+    await connectToMongoDB(); // Ensure connection is active if needed
     const transcriptDoc = await CohortTranscript.create({
       cohortId: cohort.id,
       chunks,
