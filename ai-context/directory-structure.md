@@ -493,6 +493,8 @@
 │   │   │   ├── curriculum/
 │   │   │   │   └── generate/
 │   │   │   │       └── route.ts
+│   │   │   ├── explore/
+│   │   │   │   └── route.ts
 │   │   │   ├── import/
 │   │   │   │   └── youtube/
 │   │   │   │       ├── metadata/
@@ -1116,8 +1118,6 @@
 │   │   │   │   │   │       └── TrendingSideQuests.tsx
 │   │   │   │   │   ├── hooks/
 │   │   │   │   │   │   └── useExplore.ts
-│   │   │   │   │   ├── mock/
-│   │   │   │   │   │   └── explore.mock.ts
 │   │   │   │   │   ├── models/
 │   │   │   │   │   │   ├── articlePreview.ts
 │   │   │   │   │   │   ├── explore.ts
@@ -1552,6 +1552,9 @@
 │   │       │   ├── getUser.ts
 │   │       │   └── requireUser.ts
 │   │       ├── db/
+│   │       │   ├── mock/
+│   │       │   │   └── repositories/
+│   │       │   │       └── explore.repo.ts
 │   │       │   ├── mongodb/
 │   │       │   │   ├── client.ts
 │   │       │   │   └── schema.prisma.ts
@@ -1616,4 +1619,4 @@
 ├── task.md
 └── tsconfig.json
 
-502 directories, 1113 files
+504 directories, 1114 files
