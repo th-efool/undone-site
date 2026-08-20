@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { exploreRepository } from '@/src/client/repositories/exploreRepository';
 import type { ArticlePreview } from '../models';
+import type { ExploreModel } from '../models';
 
 export function useExplore() {
   const { data, isLoading } = useQuery({
@@ -9,7 +10,15 @@ export function useExplore() {
     queryFn: async () => exploreRepository.getExplore(),
   });
 
-  const explore = data ?? exploreRepository.getExplore();
+  const emptyExplore: ExploreModel = {
+    searchSuggestions: [],
+    peopleFinishing: [],
+    topics: [],
+    trendingSideQuests: [],
+    recentlyPublished: [],
+  };
+
+  const explore = data ?? emptyExplore;
 
   const [page, setPage] = useState(0);
   const [appendedItems, setAppendedItems] = useState<ArticlePreview[]>([]);
@@ -61,6 +70,3 @@ export function useExplore() {
 }
 
 export type UseExploreResult = ReturnType<typeof useExplore>;
-
-
-
