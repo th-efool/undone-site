@@ -38,20 +38,7 @@ async function main() {
 
   console.log(`Found guest user with ID: ${user.id}`);
 
-  // Create or update workspace
-  const workspace = await UserWorkspace.findOneAndUpdate(
-    { userId: user.id },
-    {
-      $set: {
-        aiMemory: {
-          notesState: seedNotesState,
-        },
-      },
-    },
-    { upsert: true, new: true }
-  );
-
-  let state = workspace.aiMemory?.notesState || seedNotesState;
+  let state = seedNotesState;
   
   if (state && state.notes && state.notes.length > 0) {
       // Find the specific note to patch or just use the first one
@@ -60,9 +47,17 @@ async function main() {
       targetNote.kanbanCards = INITIAL_CARDS;
   }
 
+  // Update root level notebooks, notes, tasks
   await UserWorkspace.updateOne(
       { userId: user.id },
-      { $set: { 'aiMemory.notesState': state } }
+      { 
+        $set: { 
+          notebooks: state.notebooks || [],
+          notes: state.notes || [],
+          tasks: [] // We can map INITIAL_CARDS to tasks here if we want, but letting them live in kanbanCards is fine for now
+        } 
+      },
+      { upsert: true }
   );
 
   console.log('Data seeded successfully!');
