@@ -9,8 +9,23 @@ export async function GET() {
 
     const state = await WorkspaceRepository.getNotesState(user.id);
     if (!state) {
+      const now = new Date().toISOString();
       return NextResponse.json({
-        notebooks: [],
+        notebooks: [
+          {
+            id: 'nb-diary',
+            title: 'SideQuestHQ diary',
+            description: '',
+            color: '#4f46e5',
+            favorite: false,
+            shared: false,
+            archived: false,
+            collapsed: false,
+            createdAt: now,
+            updatedAt: now,
+            order: 0,
+          },
+        ],
         notes: [],
         tasks: [],
         selectedNotebookId: null,

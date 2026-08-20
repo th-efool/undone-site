@@ -1,17 +1,26 @@
-import { seedNotesState } from '../mock/notes.seed';
 import type { NotesStateEntity } from '../models/notes.models';
+
+const EMPTY_NOTES_STATE: NotesStateEntity = {
+  notebooks: [],
+  notes: [],
+  selectedNotebookId: null,
+  selectedNoteId: null,
+  notebookSort: 'manual',
+  noteSort: 'manual',
+  filter: 'all',
+};
 
 export class NotesRepository {
   async load(): Promise<NotesStateEntity> {
-    if (typeof window === 'undefined') return structuredClone(seedNotesState);
+    if (typeof window === 'undefined') return structuredClone(EMPTY_NOTES_STATE);
     
     try {
       const response = await fetch('/api/workspace/notes');
       if (!response.ok) throw new Error('Failed to fetch notes');
       return await response.json();
     } catch (e) {
-      console.error('Failed to load notes from API, falling back to seed', e);
-      return structuredClone(seedNotesState);
+      console.error('Failed to load notes from API', e);
+      return structuredClone(EMPTY_NOTES_STATE);
     }
   }
 
