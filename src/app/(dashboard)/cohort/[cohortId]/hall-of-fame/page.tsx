@@ -32,18 +32,6 @@ export default async function HallOfFamePage({
 }) {
   const { cohortId } = await params;
   
-  const session = await auth();
-  if (!session?.user?.id) {
-    redirect('/auth');
-  }
-
-  const isEnrolled = await prisma.cohortMember.findUnique({
-    where: { cohortId_userId: { cohortId, userId: session.user.id } },
-  });
-
-  if (!isEnrolled) {
-    redirect(`/cohort/${cohortId}/overview`);
-  }
 
   const jsonLd = {
     "@context": "https://schema.org",
