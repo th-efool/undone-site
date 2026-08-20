@@ -412,6 +412,45 @@ export function useMessage() {
     readRecord<DMMessage[]>(storageKeys.dm),
   );
 
+  const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedCommunityId) {
+      fetch(`/api/community/${selectedCommunityId}/channels`)
+        .then((res) => res.json())
+        .then((channels) => {
+          if (channels && channels.length > 0) {
+            const mainChannel = channels[0];
+            setActiveChannelId(mainChannel.id);
+            
+            if (mainChannel.messages) {
+              const mappedMessages: CommunityMessage[] = mainChannel.messages.map((msg: any) => ({
+                id: msg.id,
+                author: {
+                  id: msg.author?.id || 'unknown',
+                  name: msg.author?.name || 'Unknown',
+                  avatar: msg.author?.image || '/logos/floating-logo.svg',
+                  online: true,
+                },
+                badge: msg.author?.role === 'ADMIN' ? 'Admin' : 'Explorer',
+                timestamp: new Intl.DateTimeFormat('en', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                }).format(new Date(msg.createdAt)),
+                body: msg.content,
+              }));
+
+              setCommunityMessages((current) => ({
+                ...current,
+                [selectedCommunityId]: mappedMessages,
+              }));
+            }
+          }
+        })
+        .catch((err) => console.error('Failed to fetch community channels:', err));
+    }
+  }, [selectedCommunityId]);
+
   useEffect(() => {
     const syncCommunityFromUrl = () => {
       const communityId = new URLSearchParams(window.location.search).get('community');
@@ -580,8 +619,18 @@ export function useMessage() {
       }));
       setDrafts((current) => ({ ...current, [conversationId]: '' }));
       clearReply();
+
+      if (activeChannelId) {
+        fetch(`/api/community/channels/${activeChannelId}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ content: draft }),
+        }).catch((err) => console.error('Failed to send community message:', err));
+      }
     },
-    [drafts, clearReply],
+    [drafts, clearReply, activeChannelId],
   );
 
   const toggleCommunityReaction = useCallback(

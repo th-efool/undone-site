@@ -5,7 +5,15 @@ export const communityRepo = {
     return prisma.community.findUnique({
       where: { cohortId },
       include: {
-        channels: true,
+        channels: {
+          include: {
+            messages: {
+              include: {
+                author: true,
+              },
+            },
+          },
+        },
       },
     });
   },
