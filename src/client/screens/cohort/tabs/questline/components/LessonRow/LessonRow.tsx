@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { ExternalLink, Play, Layers, Clock, ChevronDown, ChevronUp, Lock } from 'lucide-react';
 
 import { LessonStatus, type Lesson } from '../../../../models';
-import { LessonStatusBadge } from '../LessonStatusBadge/LessonStatusBadge';
+
 import { LessonTypeBadge } from '../LessonTypeBadge/LessonTypeBadge';
 import { QuestlineIcon } from '../QuestlineIcon/QuestlineIcon';
 
@@ -64,15 +64,7 @@ export function LessonRow({ lesson, index, onToggleStatus }: LessonRowProps) {
           </div>
         </div>
 
-        <button
-          className={styles.statusButton}
-          type="button"
-          disabled={isLocked}
-          aria-label={`Change status for ${lesson.title}`}
-          onClick={() => onToggleStatus(lesson.id)}
-        >
-          <LessonStatusBadge status={lesson.status} />
-        </button>
+
 
         <button
           className={`${styles.expandButton} ${isExpanded ? styles.expandActive : ''}`}

@@ -47,8 +47,8 @@ export function FeedCard({ item }: FeedCardProps) {
                   key={participant.id}
                   src={participant.avatarUrl}
                   alt=""
-                  width={22}
-                  height={22}
+                  width={28}
+                  height={28}
                   className={styles.avatar}
                 />
               ))}

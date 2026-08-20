@@ -4,6 +4,7 @@ export enum SeasonStatus {
   Completed = 'completed',
   InProgress = 'inProgress',
   Locked = 'locked',
+  Paused = 'paused',
 }
 
 export enum LessonStatus {

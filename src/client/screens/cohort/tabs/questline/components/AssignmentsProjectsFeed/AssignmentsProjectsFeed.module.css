@@ -21,7 +21,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0;
+  gap: 16px;
 }
 
 .title,
@@ -65,6 +65,7 @@
   font: inherit;
   font-size: var(--text-sm);
   font-weight: var(--font-bold);
+  flex-shrink: 0;
 }
 
 .feedList {
