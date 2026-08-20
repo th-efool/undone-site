@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { WorkspaceRepository } from '@/src/server/infrastructure/db/mongodb/repositories/workspace.repo';
 import { getUser } from '@/src/server/infrastructure/auth/getUser';
-import { seedNotesState } from '@/src/client/screens/dashboard/notes/mock/notes.seed';
 
 export async function GET() {
   try {
@@ -10,7 +9,16 @@ export async function GET() {
 
     const state = await WorkspaceRepository.getNotesState(user.id);
     if (!state) {
-      return NextResponse.json(seedNotesState);
+      return NextResponse.json({
+        notebooks: [],
+        notes: [],
+        tasks: [],
+        selectedNotebookId: null,
+        selectedNoteId: null,
+        notebookSort: 'manual',
+        noteSort: 'manual',
+        filter: 'all'
+      });
     }
     return NextResponse.json(state);
   } catch (error) {
