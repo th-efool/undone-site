@@ -1,4 +1,4 @@
-import type { ExploreModel, TrendingCourse } from '@/src/client/screens/dashboard/explore/models';
+ï»¿import type { ExploreModel, TrendingCourse } from '@/src/client/screens/dashboard/explore/models';
 import { isNativeApp } from '@/src/client/utils/isNative';
 import { cohortRepository } from './cohortRepository';
 import { getAvatarSlice } from '@/src/client/mock/avatars';
@@ -6,7 +6,7 @@ import { getAvatarSlice } from '@/src/client/mock/avatars';
 const realPeopleFinishing: TrendingCourse[] = [
   {
     id: 'dsa-only-whats-needed',
-    title: "DSA — Only What's Needed",
+    title: "DSA ï¿½ Only What's Needed",
     provider: 'youtube',
     thumbnail: 'https://i.ytimg.com/vi/rZ41y93P2Qo/maxresdefault.jpg',
     durationLabel: '8h 45m',
