@@ -47,6 +47,7 @@ export function NotesWorkspace({
   handleSceneChange,
 }: NotesWorkspaceProps) {
   const { mobileView, setMobileView, isNavigationExpanded, setIsNavigationExpanded, isWorkspaceExpanded, setIsWorkspaceExpanded } = navigation;
+  const hasSelectedNotebook = !!notes.data?.selectedNotebook?.id;
 
   return (
     <section className={`${styles.workspace} ${isMobile && mobileView !== 'workspace' ? styles.workspaceHidden : ''}`}>
@@ -59,9 +60,9 @@ export function NotesWorkspace({
             <ArrowLeft size={16} /> Back
           </button>
         )}
-        {!isMobile && (!isNavigationExpanded || !isWorkspaceExpanded) && (
+        {!isMobile && (!isNavigationExpanded || (!isWorkspaceExpanded && hasSelectedNotebook)) && (
           <div style={{ display: 'flex', gap: '8px', marginRight: '8px', alignItems: 'center' }}>
-            {!isNavigationExpanded && !isWorkspaceExpanded && (
+            {!isNavigationExpanded && (!isWorkspaceExpanded || !hasSelectedNotebook) && (
               <button
                 className={sidebarStyles.iconButton}
                 onClick={() => setIsNavigationExpanded(true)}
@@ -72,7 +73,7 @@ export function NotesWorkspace({
                 <PanelLeftOpen size={18} />
               </button>
             )}
-            {!isWorkspaceExpanded && (
+            {!isWorkspaceExpanded && hasSelectedNotebook && (
               <button
                 className={sidebarStyles.iconButton}
                 onClick={() => setIsWorkspaceExpanded(true)}
@@ -152,7 +153,13 @@ export function NotesWorkspace({
         </div>
       </header>
       
-      {!selected ? (
+      {!hasSelectedNotebook ? (
+        <article className={styles.overview}>
+          <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', paddingBottom: '80px', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#a1a1aa' }}>
+            Select a notebook to get started
+          </div>
+        </article>
+      ) : !selected ? (
         <article className={styles.overview}>
           <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', paddingBottom: '80px', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#a1a1aa' }}>
             Select a note to view canvas

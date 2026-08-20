@@ -49,6 +49,7 @@ export function NotesSidebar({
     nb.title.toLowerCase().includes(searchQuery.toLowerCase())
   );
   const selectedNotebookId = notes.data?.selectedNotebook?.id;
+  const shouldCollapseWorkspace = !isWorkspaceExpanded || !selectedNotebookId;
   
   const [navWidth, setNavWidth] = useState(290);
   const navWidthRef = useRef(navWidth);
@@ -344,8 +345,8 @@ export function NotesSidebar({
       </div>
       
       <div 
-        className={`${styles.workspaceColumn} ${!isWorkspaceExpanded ? styles.collapsed : ''}`}
-        style={workspaceInlineStyle}
+        className={`${styles.workspaceColumn} ${shouldCollapseWorkspace ? styles.collapsed : ''}`}
+        style={shouldCollapseWorkspace ? { width: '0px', borderRight: 'none', pointerEvents: 'none' } : workspaceInlineStyle}
       >
         <div className={styles.workspaceInner} style={isWorkspaceExpanded ? { width: `${workspaceWidth}px` } : undefined}>
           <div className={styles.topBar}>
@@ -432,7 +433,7 @@ export function NotesSidebar({
             </div>
           )}
         </div>
-        {isWorkspaceExpanded && (
+        {isWorkspaceExpanded && selectedNotebookId && (
           <div 
             className={styles.resizeHandle} 
             onMouseDown={(e) => { e.preventDefault(); setIsDraggingWorkspace(true); workspaceDragFlag.current = false; }} 
