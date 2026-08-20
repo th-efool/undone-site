@@ -74,8 +74,8 @@ export const seedNotes: NoteDocument[] = Object.entries(titles).flatMap(
 export const seedNotesState: NotesStateEntity = {
   notebooks: seedNotebooks,
   notes: seedNotes,
-  selectedNotebookId: 'nb-ml',
-  selectedNoteId: 'nb-ml-note-0',
+  selectedNotebookId: null,
+  selectedNoteId: null,
   notebookSort: 'manual',
   noteSort: 'manual',
   filter: 'all',
