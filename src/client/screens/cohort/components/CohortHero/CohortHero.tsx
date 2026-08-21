@@ -60,7 +60,7 @@ export function CohortHero({ cohort, isEnrolled = true, isLoggedIn = true }: Coh
 
         <div className={styles.leaderRow}>
           <Image
-            src={cohort.creator.avatarUrl}
+            src={cohort.creator.avatarUrl || '/mock/avatars/a.webp'}
             alt=""
             width={42}
             height={42}

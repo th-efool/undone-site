@@ -15,7 +15,7 @@ export function QuestGuideCard({ creator }: QuestGuideCardProps) {
 
       <div className={styles.profile}>
         <Image
-          src={creator.avatarUrl}
+          src={creator.avatarUrl || '/mock/avatars/a.webp'}
           alt=""
           width={64}
           height={64}
