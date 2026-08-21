@@ -290,6 +290,8 @@
 │   ├── content-metadata-architecture.md
 │   ├── prisma-schema-cohort.md
 │   └── study-rooms-schema.md
+├── execution/
+│   └── test_publish_and_verify.ts
 ├── prisma/
 │   ├── db_backup.json
 │   ├── schema.prisma
@@ -1648,4 +1650,4 @@
 ├── task.md
 └── tsconfig.json
 
-520 directories, 1127 files
+521 directories, 1128 files
