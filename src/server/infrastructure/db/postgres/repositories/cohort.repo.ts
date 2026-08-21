@@ -109,10 +109,21 @@ export const cohortRepo = {
             },
           },
         },
+
+        // Nested create for creator membership
+        members: {
+          create: [
+            {
+              userId: data.creatorId,
+              role: 'CREATOR',
+            },
+          ],
+        },
       },
       include: {
         community: true,
         seasons: true,
+        members: true,
       }
     });
   },

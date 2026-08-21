@@ -31,7 +31,7 @@ export default async function home() {
     redirect('/auth');
   }
 
-  const enrolledCohorts = await prisma.cohortMember.findMany({
+  const enrolledMembers = await prisma.cohortMember.findMany({
     where: { userId },
     include: { 
       cohort: { 
@@ -53,18 +53,52 @@ export default async function home() {
     },
   });
 
-  if (enrolledCohorts.length === 0) {
-    return (
-      <div className="flex h-full items-center justify-center p-8 text-slate-300">
-        You haven't joined any cohorts yet.
-      </div>
-    );
+  const enrolledCohortIds = enrolledMembers.map((em) => em.cohortId);
+
+  const createdCohorts = await prisma.cohort.findMany({
+    where: {
+      creatorId: userId,
+      id: {
+        notIn: enrolledCohortIds,
+      },
+    },
+    include: {
+      creator: true,
+      seasons: {
+        include: {
+          lessons: {
+            include: {
+              progress: {
+                where: { userId }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const allUserCohorts = [
+    ...enrolledMembers.map((em) => ({
+      userId: em.userId,
+      cohortId: em.cohortId,
+      cohort: em.cohort,
+    })),
+    ...createdCohorts.map((c) => ({
+      userId,
+      cohortId: c.id,
+      cohort: c,
+    })),
+  ];
+
+  if (allUserCohorts.length === 0) {
+    return <Home activeCohorts={[]} recentlyCompleted={[]} continueLater={[]} />;
   }
 
   const activeCohorts: any[] = [];
   const recentlyCompleted: any[] = [];
 
-  enrolledCohorts.forEach((ec, index) => {
+  allUserCohorts.forEach((ec) => {
     let totalLessons = 0;
     let completedLessons = 0;
 
@@ -84,7 +118,7 @@ export default async function home() {
       cohortId: ec.cohortId,
       title: ec.cohort.title,
       provider: ec.cohort.creator?.name || 'Unknown',
-      thumbnail: ec.cohort.coverImage || '',
+      thumbnail: ec.cohort.coverImage || '/images/landing/screen.webp',
       progressPercent,
     };
 
