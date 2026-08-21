@@ -22,7 +22,7 @@ interface Channel {
   controls: Control[];
 }
 
-const CHANNELS: Channel[] = [
+export const CHANNELS: Channel[] = [
   {
     id: 'spark',
     name: 'Spark',
@@ -234,7 +234,28 @@ export function ChannelHub() {
 
   useEffect(() => {
     setIntroIndex(Math.floor(Math.random() * INTRO_COPY.length));
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('sidequest_active_channel') as ChannelId;
+        if (saved && CHANNELS.some(c => c.id === saved)) {
+          setSelectedId(saved);
+        }
+        const savedPrefs = localStorage.getItem('sidequest_channel_prefs');
+        if (savedPrefs) {
+          setPrefs(JSON.parse(savedPrefs));
+        }
+      } catch {}
+    }
   }, []);
+
+  const handleChannelSelect = (id: ChannelId) => {
+    setSelectedId(id);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('sidequest_active_channel', id);
+      } catch {}
+    }
+  };
 
   const channel = CHANNELS.find(c => c.id === selectedId)!;
 
@@ -243,7 +264,22 @@ export function ChannelHub() {
   }
 
   function setPref(channelId: ChannelId, controlId: string, optionId: string) {
-    setPrefs(p => ({ ...p, [`${channelId}_${controlId}`]: optionId }));
+    setPrefs(p => {
+      const updated = { ...p, [`${channelId}_${controlId}`]: optionId };
+      if (typeof window !== 'undefined') {
+        const persist = () => {
+          try {
+            localStorage.setItem('sidequest_channel_prefs', JSON.stringify(updated));
+          } catch {}
+        };
+        if ('requestIdleCallback' in window) {
+          requestIdleCallback(persist);
+        } else {
+          setTimeout(persist, 0);
+        }
+      }
+      return updated;
+    });
   }
 
   return (
@@ -290,11 +326,11 @@ export function ChannelHub() {
                     key={ch.id}
                     d={`M 0 0 L ${x1} ${y1} A 0.95 0.95 0 0 1 ${x2} ${y2} Z`}
                     className={`${styles.segment} ${isActive ? styles.segmentActive : ''}`}
-                    onClick={() => setSelectedId(ch.id)}
+                    onClick={() => handleChannelSelect(ch.id)}
                     role="button"
                     tabIndex={0}
                     aria-label={ch.name}
-                    onKeyDown={e => e.key === 'Enter' && setSelectedId(ch.id)}
+                    onKeyDown={e => e.key === 'Enter' && handleChannelSelect(ch.id)}
                   >
                     <title>{ch.name}</title>
                   </path>
@@ -316,7 +352,7 @@ export function ChannelHub() {
                     left: `${50 + r * 50 * Math.cos(angle)}%`,
                     top: `${50 + r * 50 * Math.sin(angle)}%`,
                   }}
-                  onClick={() => setSelectedId(ch.id)}
+                  onClick={() => handleChannelSelect(ch.id)}
                   aria-label={ch.name}
                   title={ch.name}
                 >

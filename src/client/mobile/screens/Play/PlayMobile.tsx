@@ -2,6 +2,7 @@
 
 import { Play as PlayIcon, Pause, SkipBack, SkipForward } from 'lucide-react';
 import type { UsePlaybackResult } from '@/src/client/screens/dashboard/play/hooks/usePlayback';
+import { ChannelSelector } from '@/src/client/screens/dashboard/play/components/ChannelSelector';
 import styles from './PlayMobile.module.css';
 
 interface PlayMobileProps {
@@ -15,6 +16,11 @@ export function PlayMobile({ playback }: PlayMobileProps) {
         <div className={styles.controlsOverlay}>
           <header className={styles.header}>
             <span className={styles.lessonTitle}>{playback.lesson.title || 'Lesson Playback'}</span>
+            <ChannelSelector 
+              activeChannel={playback.activeChannel} 
+              onChannelSelect={playback.setActiveChannel} 
+              isInline
+            />
           </header>
 
           <div className={styles.centerControls}>

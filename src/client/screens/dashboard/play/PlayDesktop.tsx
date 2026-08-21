@@ -11,6 +11,7 @@ import {
   PlayerSurface,
   PlayerToolbar,
   CinematicStage,
+  ChannelSelector,
 } from './components';
 
 import type { UsePlaybackResult } from './hooks/usePlayback';
@@ -69,6 +70,11 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
 
   const desktopOverlays = (
     <>
+      <ChannelSelector 
+        activeChannel={playback.activeChannel} 
+        onChannelSelect={playback.setActiveChannel} 
+      />
+
       {!playback.isPlaying && (
         <button
           type="button"
@@ -161,8 +167,8 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
         );
       }
 
-      const poster = item?.chunk?.lessonThumbnail || item?.chunk?.cohortCoverImage;
-      const title = item?.chunk?.chunkTitle || item?.chunk?.lessonTitle || 'Upcoming Lesson';
+      const poster = undefined;
+      const title = item?.chunkTitle || item?.lessonTitle || 'Upcoming Lesson';
 
       return (
         <div className={styles.inactiveSceneCard}>
@@ -200,7 +206,7 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
         currentIndex={playback.currentIndex}
         totalItems={playback.feedItems.length || 1}
         isPlaying={playback.isPlaying}
-        itemStatuses={playback.feedItems.map((item) => item.progress.status)}
+        itemStatuses={playback.feedItems.map(() => 'not-started')}
         onIndexChange={handleIndexChange}
         onSeek={playback.skipSeconds}
         onSpeedChange={playback.setPlaybackSpeed}

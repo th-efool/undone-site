@@ -25,6 +25,10 @@ export function LessonRow({ lesson, index, onToggleStatus }: LessonRowProps) {
     lesson.videoUrl ||
     (lesson.videoId ? `https://www.youtube.com/watch?v=${lesson.videoId}` : undefined);
 
+  const linkUrl = lesson.sourceUrl || videoUrl;
+  const isVideo = !!videoUrl;
+  const linkTooltip = isVideo ? "Watch video on YouTube" : "Open source link";
+
   const chunks = lesson.chunks ?? [];
 
   return (
@@ -40,13 +44,13 @@ export function LessonRow({ lesson, index, onToggleStatus }: LessonRowProps) {
 
         <div className={styles.content}>
           <h3 className={styles.title}>
-            {videoUrl ? (
+            {linkUrl ? (
               <a
-                href={videoUrl}
+                href={linkUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.titleLink}
-                title="Watch video on YouTube"
+                title={linkTooltip}
               >
                 <span>{index + 1}. {lesson.title}</span>
                 <ExternalLink size={13} className={styles.titleExtIcon} />
@@ -91,14 +95,14 @@ export function LessonRow({ lesson, index, onToggleStatus }: LessonRowProps) {
               <span>Lesson Chunks & Timestamps</span>
               <span className={styles.chunksBadge}>{chunks.length} parts</span>
             </div>
-            {videoUrl && (
+            {linkUrl && (
               <a
-                href={videoUrl}
+                href={linkUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.fullVideoLink}
               >
-                <Play size={12} /> Watch Full Video
+                {isVideo ? <Play size={12} /> : <ExternalLink size={12} />} {isVideo ? "Watch Full Video" : "Open Source"}
               </a>
             )}
           </div>
@@ -110,7 +114,7 @@ export function LessonRow({ lesson, index, onToggleStatus }: LessonRowProps) {
                   chunk.timestampUrl ||
                   (lesson.videoId
                     ? `https://www.youtube.com/watch?v=${lesson.videoId}&t=${chunk.startSeconds || 0}s`
-                    : videoUrl);
+                    : linkUrl);
 
                 return (
                   <div key={chunk.id} className={styles.chunkRow}>
@@ -132,11 +136,11 @@ export function LessonRow({ lesson, index, onToggleStatus }: LessonRowProps) {
                           target="_blank"
                           rel="noopener noreferrer"
                           className={styles.chunkJumpBtn}
-                          title="Jump to timestamp on YouTube"
+                          title={isVideo ? "Jump to timestamp on YouTube" : "Open link"}
                         >
-                          <Play size={11} fill="currentColor" />
+                          {isVideo ? <Play size={11} fill="currentColor" /> : <ExternalLink size={11} />}
                           <span>
-                            Jump to {chunk.timeRangeLabel?.split('–')[0]?.trim() || 'timestamp'}
+                            {isVideo ? `Jump to ${chunk.timeRangeLabel?.split('–')[0]?.trim() || 'timestamp'}` : 'Open part'}
                           </span>
                           <ExternalLink size={11} />
                         </a>

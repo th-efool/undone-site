@@ -50,6 +50,7 @@ export interface Lesson {
   thumbnail: string;
   videoId?: string;
   videoUrl?: string;
+  sourceUrl?: string;
   chunks?: LessonChunk[];
 }
 

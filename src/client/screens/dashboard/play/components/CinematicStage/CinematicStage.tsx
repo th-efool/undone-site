@@ -74,39 +74,54 @@ export function CinematicStage({
     onSpeedChange(1.0);
   }, [onSpeedChange]);
 
-  // When swiping next:
-  // - If isScopedIn was TRUE: scope out, change index, scope back in!
-  // - If isScopedIn was FALSE: STAY in Scope Out mode!
-  const handleNext = useCallback(() => {
-    if (currentIndex < totalItems - 1) {
-      if (isScopedIn) {
-        setIsScopedIn(false);
-        setTimeout(() => {
-          onIndexChange(currentIndex + 1);
-          setTimeout(() => setIsScopedIn(true), 200);
-        }, 150);
-      } else {
-        onIndexChange(currentIndex + 1);
-      }
-    }
-  }, [currentIndex, totalItems, isScopedIn, onIndexChange]);
+  const [visualIndex, setVisualIndex] = useState(currentIndex);
+  const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const visualChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // When swiping prev:
-  // - If isScopedIn was TRUE: scope out, change index, scope back in!
-  // - If isScopedIn was FALSE: STAY in Scope Out mode!
-  const handlePrev = useCallback(() => {
-    if (currentIndex > 0) {
+  useEffect(() => {
+    setVisualIndex(currentIndex);
+  }, [currentIndex]);
+
+  const handleNext = useCallback(() => {
+    if (visualIndex < totalItems - 1) {
+      const nextIdx = visualIndex + 1;
+      setVisualIndex(nextIdx);
       if (isScopedIn) {
         setIsScopedIn(false);
-        setTimeout(() => {
-          onIndexChange(currentIndex - 1);
-          setTimeout(() => setIsScopedIn(true), 200);
-        }, 150);
-      } else {
-        onIndexChange(currentIndex - 1);
+        setTimeout(() => setIsScopedIn(true), 350);
       }
     }
-  }, [currentIndex, isScopedIn, onIndexChange]);
+  }, [visualIndex, totalItems, isScopedIn]);
+
+  const handlePrev = useCallback(() => {
+    if (visualIndex > 0) {
+      const prevIdx = visualIndex - 1;
+      setVisualIndex(prevIdx);
+      if (isScopedIn) {
+        setIsScopedIn(false);
+        setTimeout(() => setIsScopedIn(true), 350);
+      }
+    }
+  }, [visualIndex, isScopedIn]);
+
+  useEffect(() => {
+    if (visualIndex !== currentIndex) {
+      if ('onscrollend' in window) {
+        // If the browser supports scrollend natively, we can use it.
+        // Wait, if we use a native scroll container, the event fires there.
+        // If we simulate it without native scrolling, we can't fire the native event easily.
+      }
+      
+      // Fallback or main logic if no native scrolling:
+      if (visualChangeTimeoutRef.current) clearTimeout(visualChangeTimeoutRef.current);
+      visualChangeTimeoutRef.current = setTimeout(() => {
+        onIndexChange(visualIndex);
+      }, 400); // Wait for gesture/animation to finish
+    }
+    return () => {
+      if (visualChangeTimeoutRef.current) clearTimeout(visualChangeTimeoutRef.current);
+    };
+  }, [visualIndex, currentIndex, onIndexChange]);
 
   const preFullscreenScopedRef = useRef<boolean>(false);
 
@@ -143,6 +158,44 @@ export function CinematicStage({
     setIsScopedIn((prev) => !prev);
   }, []);
 
+  // Native Scroll implementation for CinematicStage
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const width = target.clientWidth;
+    const scrollX = target.scrollLeft;
+    
+    const newVisual = Math.round(scrollX / width);
+    if (newVisual !== visualIndex && newVisual >= 0 && newVisual < totalItems) {
+      setVisualIndex(newVisual);
+      // Scope animation trigger
+      if (isScopedIn) {
+        setIsScopedIn(false);
+        setTimeout(() => setIsScopedIn(true), 350);
+      }
+    }
+
+    // Fallback for browsers that don't support onScrollEnd
+    if (!('onscrollend' in window)) {
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      scrollTimeoutRef.current = setTimeout(() => {
+        if (newVisual !== currentIndex) {
+          onIndexChange(newVisual);
+        }
+      }, 150);
+    }
+  }, [visualIndex, currentIndex, isScopedIn, totalItems, onIndexChange]);
+
+  const handleScrollEnd = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    const width = target.clientWidth;
+    const scrollX = target.scrollLeft;
+    const newVisual = Math.round(scrollX / width);
+    
+    if (newVisual !== currentIndex && newVisual >= 0 && newVisual < totalItems) {
+      onIndexChange(newVisual);
+    }
+  }, [currentIndex, totalItems, onIndexChange]);
+
   const { isDragging, dragDeltaX, isLongPressing, gestureProps } = use1DGesture({
     onNext: handleNext,
     onPrev: handlePrev,
@@ -157,14 +210,14 @@ export function CinematicStage({
 
   // 3-Node Virtual Window [i-1, i, i+1]
   const visibleIndices: number[] = [];
-  if (currentIndex > 0) visibleIndices.push(currentIndex - 1);
-  visibleIndices.push(currentIndex);
-  if (currentIndex < totalItems - 1) visibleIndices.push(currentIndex + 1);
+  if (visualIndex > 0) visibleIndices.push(visualIndex - 1);
+  visibleIndices.push(visualIndex);
+  if (visualIndex < totalItems - 1) visibleIndices.push(visualIndex + 1);
 
-  // Calculate max 12 visible progress dots centered around currentIndex
+  // Calculate max 12 visible progress dots centered around visualIndex
   const maxDots = 12;
   const halfWindow = Math.floor(maxDots / 2);
-  let startDot = Math.max(0, currentIndex - halfWindow);
+  let startDot = Math.max(0, visualIndex - halfWindow);
   let endDot = Math.min(totalItems, startDot + maxDots);
   if (endDot - startDot < maxDots && startDot > 0) {
     startDot = Math.max(0, endDot - maxDots);
@@ -183,67 +236,84 @@ export function CinematicStage({
       ref={containerRef}
       className={`${styles.stage} ${isDragging ? styles.dragging : ''}`}
       {...gestureProps}
+      style={{ overflowX: 'auto', scrollSnapType: 'x mandatory', scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      onScroll={handleScroll}
+      onScrollEnd={handleScrollEnd}
     >
-      {/* Minimal Feed Progress Dots */}
-      <div
-        className={`${styles.dotsContainer} ${isScopedIn ? styles.dotsContainerScoped : ''}`}
-        aria-label="Feed Progress Indicators"
-      >
-        {visibleDotIndices.map((k) => {
-          const isActive = k === currentIndex;
-          const status = itemStatuses?.[k] || (k < currentIndex ? 'completed' : 'not-started');
-
-          let dotClass = styles.dot;
-          if (isActive) {
-            dotClass = `${styles.dot} ${styles.dotActive}`;
-          } else if (status === 'completed' || k < currentIndex) {
-            dotClass = `${styles.dot} ${styles.dotCompleted}`;
-          } else if (status === 'skipped') {
-            dotClass = `${styles.dot} ${styles.dotSkipped}`;
-          }
-
-          return (
-            <button
-              key={k}
-              type="button"
-              className={dotClass}
-              onClick={(e) => {
-                e.stopPropagation();
-                onIndexChange(k);
-              }}
-              title={`Jump to video ${k + 1}`}
-            />
-          );
-        })}
+      {/* Spacer for native scrolling */}
+      <div style={{ display: 'flex', width: `${totalItems * 100}%`, height: '1px', pointerEvents: 'none' }}>
+        {Array.from({ length: totalItems }).map((_, i) => (
+          <div key={i} style={{ flex: '0 0 100%', scrollSnapAlign: 'center' }} />
+        ))}
       </div>
 
-      {/* 2.0x Long Press Speed Badge */}
-      {isLongPressing && (
-        <div className={styles.speedBadge}>
-          <Zap size={14} fill="currentColor" />
-          2.0X SPEED
-        </div>
-      )}
+      {/* Sticky container for the 3D scene */}
+      <div style={{ position: 'sticky', left: 0, top: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+        {/* Minimal Feed Progress Dots */}
+        <div
+          className={`${styles.dotsContainer} ${isScopedIn ? styles.dotsContainerScoped : ''}`}
+          aria-label="Feed Progress Indicators"
+          style={{ pointerEvents: 'auto' }}
+        >
+          {visibleDotIndices.map((k) => {
+            const isActive = k === visualIndex;
+            const status = itemStatuses?.[k] || (k < visualIndex ? 'completed' : 'not-started');
 
-      {/* Double Tap Seek Badges */}
-      {doubleTapBadge === 'left' && (
-        <div className={`${styles.badgeOverlay} ${styles.badgeLeft}`}>
-          <Rewind size={18} fill="currentColor" />
-          -10s
-        </div>
-      )}
+            let dotClass = styles.dot;
+            if (isActive) {
+              dotClass = `${styles.dot} ${styles.dotActive}`;
+            } else if (status === 'completed' || k < visualIndex) {
+              dotClass = `${styles.dot} ${styles.dotCompleted}`;
+            } else if (status === 'skipped') {
+              dotClass = `${styles.dot} ${styles.dotSkipped}`;
+            }
 
-      {doubleTapBadge === 'right' && (
-        <div className={`${styles.badgeOverlay} ${styles.badgeRight}`}>
-          <FastForward size={18} fill="currentColor" />
-          +10s
+            return (
+              <button
+                key={k}
+                type="button"
+                className={dotClass}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onIndexChange(k);
+                  setVisualIndex(k);
+                  if (containerRef.current) {
+                    containerRef.current.scrollTo({ left: k * containerRef.current.clientWidth, behavior: 'smooth' });
+                  }
+                }}
+                title={`Jump to video ${k + 1}`}
+              />
+            );
+          })}
         </div>
-      )}
 
-      {/* 3D Track Container */}
-      <div className={styles.track}>
-        {visibleIndices.map((idx) => {
-          const offset = idx - currentIndex; // -1, 0, or +1
+        {/* 2.0x Long Press Speed Badge */}
+        {isLongPressing && (
+          <div className={styles.speedBadge}>
+            <Zap size={14} fill="currentColor" />
+            2.0X SPEED
+          </div>
+        )}
+
+        {/* Double Tap Seek Badges */}
+        {doubleTapBadge === 'left' && (
+          <div className={`${styles.badgeOverlay} ${styles.badgeLeft}`}>
+            <Rewind size={18} fill="currentColor" />
+            -10s
+          </div>
+        )}
+
+        {doubleTapBadge === 'right' && (
+          <div className={`${styles.badgeOverlay} ${styles.badgeRight}`}>
+            <FastForward size={18} fill="currentColor" />
+            +10s
+          </div>
+        )}
+
+        {/* 3D Track Container */}
+        <div className={styles.track} style={{ pointerEvents: 'auto' }}>
+          {visibleIndices.map((idx) => {
+            const offset = idx - visualIndex; // -1, 0, or +1
           const isActive = offset === 0;
 
           let translateX = 0;
@@ -310,6 +380,7 @@ export function CinematicStage({
             </div>
           );
         })}
+        </div>
       </div>
     </div>
   );
