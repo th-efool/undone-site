@@ -15,8 +15,12 @@ export const corsair = createCorsair({
     kek: process.env.CORSAIR_KEK!,
     database: pool,
     hub: {
-        projectApiKey: process.env.CORSAIR_DEV_API_KEY!,
-        signingSecret: process.env.CORSAIR_DEV_SIGNING_SECRET!,
+        projectApiKey: (process.env.NODE_ENV === 'production' 
+            ? process.env.CORSAIR_PROD_API_KEY 
+            : process.env.CORSAIR_DEV_API_KEY)!,
+        signingSecret: (process.env.NODE_ENV === 'production' 
+            ? process.env.CORSAIR_PROD_SIGNING_SECRET 
+            : process.env.CORSAIR_DEV_SIGNING_SECRET)!,
     },
     plugins: [
         github(),
