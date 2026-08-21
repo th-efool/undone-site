@@ -27,8 +27,9 @@ If you are a reviewer or technical judge, please review our crisp, concise, and 
   - Native YouTube UI eradication (no overlays, zero distractions) via the IFrame API.
   - Intuitive gesture & keyboard controls (scroll wheel, arrow keys, screen tap to play/pause).
 
-- 🛠️ **Cohort Creation Wizard**
-  - Build cohorts directly from YouTube playlists, individual videos, or web articles.
+- 🛠️ **Multi-Source Cohort Creation Wizard**
+  - Ingest directly from YouTube playlists, individual videos, GitHub repositories, and Notion workspaces via Corsair.
+  - Real-time NDJSON streaming progress indicators during extraction and vectorization.
   - Automatic chunking algorithms convert long tutorials into digestible learning quests.
   - Live Overview page preview while editing identity, cover images, and classifications.
 

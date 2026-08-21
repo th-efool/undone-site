@@ -10,11 +10,12 @@ This document outlines the core technical architecture, data modeling, and engin
 
 The primary technical challenge of SideQuestHQ is bridging the gap between flat media (e.g., a 2-hour YouTube video) and interactive microlearning (5-minute chunked quests).
 
-### The Ingestion Pipeline (Cohort Creation Wizard)
-When a creator pastes a media URL:
-1. **URL Parsing & Validation**: The frontend validates the source and extracts metadata (domain, thumbnail, title).
-2. **Curriculum Generation**: The raw media is broken down into a structured JSON curriculum comprising **Seasons** and **Lessons**. 
-3. **Database Persistence**: The curriculum is atomically inserted into PostgreSQL via Prisma in a nested transaction, guaranteeing data integrity.
+### The Ingestion Pipeline (Cohort Creation Wizard & Multi-Source Importers)
+When a creator imports content:
+1. **Multi-Source Ingestion**: The system ingests content across YouTube Playlists/Videos, GitHub Repositories, and Notion Workspaces (orchestrated via Corsair integration plugins).
+2. **Streaming Progress & Metadata Extraction**: Server-Sent Events (NDJSON streams) provide real-time stage telemetry (`extracting`, `parsing`, `vectorizing`, `completed`) while extracting hierarchical file trees, word counts, and metadata.
+3. **Curriculum Generation**: Raw media and documents are transformed into structured JSON curricula comprising **Seasons**, **Lessons**, and **Semantic Chunks**.
+4. **Dual-Database Persistence**: The curriculum is atomically persisted into PostgreSQL (relational structure) and MongoDB Atlas (12D pedagogical vectors and transcript search indices).
 
 ### The Delivery Surface (TikTok-Style Feed)
 The `/play` route serves the chunked curriculum using a custom-built, distraction-free media engine.
