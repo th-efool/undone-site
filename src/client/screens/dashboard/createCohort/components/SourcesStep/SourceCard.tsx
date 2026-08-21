@@ -70,7 +70,7 @@ export function SourceCard({
 
   return (
     <div
-      className={`${styles.card} ${dragging ? styles.dragging : ''}`}
+      className={`${styles.card} ${dragging ? styles.dragging : ''} ${isDropdownOpen ? styles.dropdownOpen : ''}`}
       draggable
       onDragStart={() => onDragStart?.(source.id)}
       onDragOver={(event) => {

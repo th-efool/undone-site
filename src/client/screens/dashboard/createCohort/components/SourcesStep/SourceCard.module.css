@@ -5,7 +5,7 @@
   background: var(--color-surface-secondary, rgba(255, 255, 255, 0.03));
   border: 1px solid var(--color-border, #27272a);
   border-radius: var(--radius-lg, 12px);
-  overflow: hidden;
+  overflow: visible;
   transition: transform var(--duration-fast, 150ms) var(--ease-standard),
               border-color var(--duration-fast, 150ms) var(--ease-standard);
   cursor: grab;
@@ -20,6 +20,11 @@
   cursor: grabbing;
 }
 
+.card.dropdownOpen,
+.card:focus-within {
+  z-index: 20;
+}
+
 .dragging {
   opacity: 0.5;
   border-color: var(--color-brand, #3b82f6);
@@ -30,7 +35,8 @@
   width: 100%;
   aspect-ratio: 16 / 9;
   background: #18181b;
-  overflow: hidden;
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
 }
 
 .thumbnailImage {
@@ -38,6 +44,8 @@
   height: 100%;
   object-fit: cover;
   display: block;
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
 }
 
 .fallbackBanner {
@@ -48,6 +56,8 @@
   justify-content: center;
   background: linear-gradient(135deg, #18181b 0%, #27272a 100%);
   color: var(--color-text-muted, #a1a1aa);
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
 }
 
 .fallbackIcon {
@@ -111,4 +121,72 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.settingsDropdown {
+  position: absolute;
+  top: 8px;
+  right: 48px;
+  z-index: 2;
+}
+
+.settingsBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--color-text-secondary, #a1a1aa);
+  cursor: pointer;
+  transition: all var(--duration-fast, 150ms) var(--ease-standard);
+}
+
+.settingsBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 160px;
+  background: var(--color-surface-elevated, #18181b);
+  border: 1px solid var(--color-border, #27272a);
+  border-radius: var(--radius-md, 8px);
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 10;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: var(--text-sm, 14px);
+  color: var(--color-text-secondary, #a1a1aa);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--duration-fast, 150ms) var(--ease-standard);
+}
+
+.dropdownItem:hover {
+  background: var(--color-surface-hover, rgba(255, 255, 255, 0.05));
+  color: var(--color-text-primary, #ffffff);
+}
+
+.dropdownItem.active {
+  background: var(--color-brand-subtle, rgba(59, 130, 246, 0.1));
+  color: var(--color-brand, #3b82f6);
 }
