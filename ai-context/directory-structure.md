@@ -1556,6 +1556,7 @@
 │   │   │           └── CohortTranscript.ts
 │   │   ├── domain/
 │   │   │   ├── cohort/
+│   │   │   │   ├── chunking.service.ts
 │   │   │   │   ├── cohort.service.ts
 │   │   │   │   └── transcript-coherence.service.ts
 │   │   │   ├── session/
@@ -1647,4 +1648,4 @@
 ├── task.md
 └── tsconfig.json
 
-520 directories, 1126 files
+520 directories, 1127 files
