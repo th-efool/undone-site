@@ -1,13 +1,11 @@
 import { Cohort } from '@/src/client/screens/cohort';
-import { getCohortStaticParams } from '@/src/shared/mobile/cohortStaticParams';
+
 import { auth } from '@/src/server/infrastructure/auth/auth.config';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { mapDbCohortToUiCohort } from '@/src/server/infrastructure/db/postgres/mappers/cohortMapper';
 import { notFound } from 'next/navigation';
 
-export function generateStaticParams() {
-  return getCohortStaticParams();
-}
+export const dynamic = 'force-dynamic';
 
 export default async function CohortRouteLayout({
   children,
