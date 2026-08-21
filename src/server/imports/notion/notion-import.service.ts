@@ -8,6 +8,7 @@ export interface ImportRequest {
 }
 
 function toIsoDuration(seconds: number) {
+  if (!seconds || isNaN(seconds)) return '0:00';
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
@@ -20,7 +21,7 @@ function toIsoDuration(seconds: number) {
 }
 
 function formatDuration(seconds: number) {
-  if (seconds <= 0) return '0m';
+  if (!seconds || isNaN(seconds) || seconds <= 0) return '0m';
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.round((seconds % 3600) / 60);
   if (hours > 0) {
@@ -46,11 +47,15 @@ export async function importNotionPage(
   });
 
   const extraction = await (corsair as any).extract(request.url, { plugin: 'notion' });
+  if (!extraction) {
+    throw new Error('Failed to extract Notion workspace data.');
+  }
+
   const items = extraction.items || [];
   
   let totalSeconds = 0;
   
-  const lessons: ServerImportedLessonModel[] = items.map((item: any, index: number) => {
+  const lessons: ServerImportedLessonModel[] = items.filter(Boolean).map((item: any, index: number) => {
     const wordCount = item.wordCount || (item.content ? item.content.split(/\s+/).length : 0);
     const durationSeconds = Math.max(60, Math.round((wordCount / 150) * 60));
     totalSeconds += durationSeconds;
@@ -65,6 +70,7 @@ export async function importNotionPage(
       provider: 'Notion',
       videoId: '',
       publishedLabel: 'Notion Page',
+      sourceUrl: item.url || request.url,
     };
   });
 
