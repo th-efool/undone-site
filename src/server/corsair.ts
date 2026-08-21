@@ -12,15 +12,15 @@ if (!process.env.CORSAIR_KEK || !process.env.CORSAIR_DEV_API_KEY || !process.env
 }
 
 export const corsair = createCorsair({
-    kek: process.env.CORSAIR_KEK!,
+    kek: process.env.CORSAIR_KEK || "0000000000000000000000000000000000000000000000000000000000000000",
     database: pool,
     hub: {
         projectApiKey: (process.env.NODE_ENV === 'production' 
             ? process.env.CORSAIR_PROD_API_KEY 
-            : process.env.CORSAIR_DEV_API_KEY) || "",
+            : process.env.CORSAIR_DEV_API_KEY) || "dummy_api_key_for_build",
         signingSecret: (process.env.NODE_ENV === 'production' 
             ? process.env.CORSAIR_PROD_SIGNING_SECRET 
-            : process.env.CORSAIR_DEV_SIGNING_SECRET) || "",
+            : process.env.CORSAIR_DEV_SIGNING_SECRET) || "dummy_signing_secret_for_build",
     },
     plugins: [
         github(),
