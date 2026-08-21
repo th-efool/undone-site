@@ -86,19 +86,7 @@
   animation-delay: 0.5s;
 }
 
-.logo {
-  width: 72px;
-  height: 72px;
 
-  background: transparent;
-  padding: 0;
-  border-radius: 0;
-
-  box-shadow: none;
-
-  filter: drop-shadow(0 0 18px rgba(124, 92, 255, 0.45))
-    drop-shadow(0 0 36px rgba(124, 92, 255, 0.28));
-}
 
 /* Desktop */
 @media (max-width: 1600px) {

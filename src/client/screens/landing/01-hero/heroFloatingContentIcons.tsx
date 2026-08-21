@@ -8,12 +8,6 @@ const source = {
   y: 83,
 };
 const icons = {
-  logo: {
-    src: '/logos/floating-logo.svg',
-    x: 53,
-    y: 79.5,
-    rotate: 0,
-  },
   youtube: {
     src: '/icons/128/Youtube.webp',
     x: 9,
@@ -200,7 +194,7 @@ export function HeroFloatingContentIcons() {
       {Object.entries(icons).map(([id, icon]) => (
         <div
           key={id}
-          className={`${styles.icon} ${id === 'logo' ? styles.logo : ''}`}
+          className={styles.icon}
           style={{
             left: `${icon.x}%`,
             top: `${icon.y}%`,
