@@ -16,6 +16,7 @@ If you are a reviewer or technical judge, please review our crisp, concise, and 
 - 🚀 **[Atomic Publishing & SEO Routing](./docs/ARCHITECTURE.md#5-atomic-dual-database-publishing--seo-routing)**: How we ensure absolute transactional safety across both PostgreSQL and MongoDB during cohort generation, paired with dynamically-generated Open Graph meta tags for pristine, unauthenticated public sharing.
 - 🧑‍🏫 **Creator & Learner Ecosystem**: A unified architecture seamlessly blending NextAuth session tracking with cohort auto-enrollment, allowing users to fluidly switch between learning and publishing via a single, consolidated dashboard.
 - 🛡️ **[End-to-End Data Integrity & UI Mapping](./docs/ARCHITECTURE.md#6-end-to-end-data-integrity--ui-mapping)**: Insight into our defensive API schema and mapping layer (`cohortMapper.ts`) that guarantees pixel-perfect curriculum persistence—from AI generation wizard through strict Postgres JSON schemas, straight to the UI—eliminating frontend layout shifts.
+- 🧭 **[Pedagogical Vector Space & Adaptive Feed](./docs/feed-architecture.md)**: Mathematical models, 12D vector embeddings, progression frontier gating, and anti-fatigue interleaving powering the personalized `/play` microlearning stream.
 
 ---
 

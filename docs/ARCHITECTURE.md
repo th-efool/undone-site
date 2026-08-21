@@ -82,3 +82,14 @@ To maintain strict boundaries between raw database models (PostgreSQL/Prisma) an
 
 - **Uncompromised Curriculum Persistence**: When the AI wizard generates detailed learning trajectories (including hyper-specific lesson durations, semantic chunks, and custom thumbnails), our backend guarantees 1:1 persistence. Custom Zod schemas sanitize the payload, dedicated `parseDurationToSeconds` transformers handle string-to-integer duration safety, and Prisma persists the exact arrays into Postgres JSON columns.
 - **Graceful Algorithmic Fallbacks**: The mapper acts as a defensive perimeter. If optional relational data (like missing semantic chunks from an older cohort, or missing creator avatars) is not present in the database, the mapper guarantees the UI receives robust fallback scaffolding—such as dynamically recalculating standard 5-minute micro-chunks—rather than rendering broken layouts or causing null reference crashes.
+
+---
+
+## 7. Pedagogical Vector Space & Adaptive Feed Engine
+
+The media playback and discovery engine (`/play`) serves micro-learning units through a 12-dimensional continuous cognitive vector space.
+
+- **12D Pedagogical Embeddings**: Chunks are scored along cognitive and structural axes (Novelty, Scope, Depth, Rigor, Density, Pacing, Guidance, Abstraction, Continuity, etc.).
+- **Hybrid 70/30 Context Matching**: Evaluates candidate chunks using a composite of macro-lesson intent (70%) and atomic micro-chunk relevance (30%) against target channel vectors and user preferences.
+- **Progression Gating & Anti-Fatigue Interleaving**: Linear curricula enforce strict frontier-chunk sequencing ($k^* = \min \{ i \mid \text{status}(c_i) \neq \text{completed} \}$), while an anti-fatigue scheduler dynamically prevents cohort clustering and caps cognitive overload.
+- **Detailed Specification**: See [docs/feed-architecture.md](./feed-architecture.md) for full mathematical definitions, target vector equations, and telemetry auto-completion thresholds.
