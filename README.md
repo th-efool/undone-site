@@ -13,6 +13,7 @@ If you are a reviewer or technical judge, please review our crisp, concise, and 
 - 🏛️ **[Core Architecture & Engine](./docs/ARCHITECTURE.md)**: Deep dive into the TikTok-style media feed, Client/Server state boundaries, and NextAuth v5 database session flow.
 - 🗄️ **[Relational Curriculum Schema](./docs/prisma-schema-cohort.md)**: Why we use strict relational models (`Cohort` -> `Season` -> `Lesson`) over flat JSON, ensuring data integrity at scale.
 - 🎧 **[Global Study Rooms & Concurrency](./docs/study-rooms-schema.md)**: How we use PostgreSQL unique constraints and join tables to guarantee isolated real-time states for global voice rooms.
+- 🚀 **[Atomic Publishing & SEO Routing](./docs/ARCHITECTURE.md#5-atomic-dual-database-publishing--seo-routing)**: How we ensure absolute transactional safety across both PostgreSQL and MongoDB during cohort generation, paired with dynamically-generated Open Graph meta tags for pristine, unauthenticated public sharing.
 
 ---
 

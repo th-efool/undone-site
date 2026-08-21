@@ -59,3 +59,17 @@ We leverage the Next.js App Router to split the workload optimally between the s
 - **Server Components (RSC)**: Used for data-heavy operations like rendering the initial Cohort Overview or fetching the Curriculum tree. This keeps the bundle size small and leverages server-side caching.
 - **Client Components**: Used strictly where interactivity is required—such as the media playback engine, gesture controls in the TikTok feed, and the multi-step React Hook Form in the Cohort Wizard.
 - **Native Mobile Bridge (Capacitor)**: The web shell is designed to be seamlessly wrapped by Capacitor for iOS/Android deployment, allowing us to push web updates instantly while maintaining native performance for video decoding.
+
+---
+
+## 5. Atomic Dual-Database Publishing & SEO Routing
+
+To support advanced AI capabilities alongside robust relational data, we utilize a dual-database architecture:
+- **PostgreSQL**: Manages the strict relational hierarchy (Cohorts, Seasons, Lessons) and access control.
+- **MongoDB**: Stores massive, unstructured vector embeddings and video transcripts used for AI semantic search and Q&A.
+
+### The Publishing Guarantee
+Publishing a cohort writes to both databases. To prevent orphan states (where a cohort exists in Postgres but lacks AI capabilities in Mongo), the publishing pipeline employs an **atomic rollback**. If the MongoDB transcript save fails or times out (e.g., due to a Vercel cold boot), the Postgres transaction is aggressively rolled back and the cohort is deleted, guaranteeing that only fully operational cohorts ever reach production.
+
+### SEO-Driven Dynamic Routing
+Public visibility is a cornerstone of the platform. We bypass Next.js middleware for public routes (`/cohort/[id]/overview`, `/questline`, etc.) to gracefully degrade for unauthenticated users instead of forcing a redirect. The Next.js `generateMetadata` dynamically queries Postgres to build accurate, SEO-ranked Open Graph (OG) tags for every cohort, ensuring deep linking and social sharing are flawless from day one.
