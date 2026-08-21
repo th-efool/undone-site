@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Code2, FileText, Globe, Trash2, Video } from 'lucide-react';
+import { useMemo, useState, useRef, useEffect } from 'react';
+import { Code2, FileText, Globe, Trash2, Video, Settings2 } from 'lucide-react';
 
 import { Badge } from '@/src/client/components/ui/Badge/Badge';
 import type { CreateCohortSourceModel } from '../../models/createCohort';
@@ -30,6 +30,23 @@ export function SourceCard({
   onDragEnd,
 }: SourceCardProps) {
   const { actions } = useWizardContext();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
 
   const domain = useMemo(() => {
     if (!source.url) return '';
@@ -90,6 +107,38 @@ export function SourceCard({
         >
           <Trash2 size={16} />
         </button>
+
+        <div className={styles.settingsDropdown} ref={dropdownRef}>
+          <button
+            type="button"
+            className={styles.settingsBtn}
+            aria-label="Chunking settings"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsDropdownOpen((prev) => !prev);
+            }}
+          >
+            <Settings2 size={16} />
+          </button>
+          {isDropdownOpen && (
+            <div className={styles.dropdownMenu}>
+              {(['semantic', 'disabled', 'fixed_interval'] as const).map((method) => (
+                <button
+                  key={method}
+                  type="button"
+                  className={`${styles.dropdownItem} ${source.chunkingMethod === method ? styles.active : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    actions.updateSourceField(source.id, 'chunkingMethod', method);
+                    setIsDropdownOpen(false);
+                  }}
+                >
+                  {method === 'semantic' ? 'Semantic Chunking' : method === 'disabled' ? 'Disabled' : 'Fixed Interval'}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className={styles.content}>

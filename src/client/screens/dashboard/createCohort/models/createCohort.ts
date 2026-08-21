@@ -30,6 +30,7 @@ export interface CreateCohortSourceDraft {
   thumbnailUrl?: string;
   domain?: string;
   metaTitle?: string;
+  chunkingMethod?: 'semantic' | 'disabled' | 'fixed_interval';
 }
 
 export interface CreateCohortDraft {
@@ -140,6 +141,7 @@ export interface CreateCohortSourceModel {
   thumbnailUrl?: string;
   domain?: string;
   metaTitle?: string;
+  chunkingMethod?: 'semantic' | 'disabled' | 'fixed_interval';
 }
 
 export interface CreateCohortSourcesModel {

@@ -3,13 +3,14 @@ import { CohortTranscript } from '@/src/server/database/mongo/models/CohortTrans
 import { transcriptCoherenceService } from './transcript-coherence.service';
 import { connectToMongoDB } from '@/src/server/infrastructure/db/mongodb/client';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
+import { chunkingService } from './chunking.service';
 
 export class CohortService {
   /**
    * Publishes a cohort, splitting transcripts, saving to MongoDB, 
    * and handling vectorization jobs.
    */
-  static async publishCohort(payload: CreateCohortParams, options?: { transcripts?: string[] }) {
+  static async publishCohort(payload: CreateCohortParams, options?: { transcripts?: string[], chunkingMethod?: 'semantic' | 'disabled' | 'fixed' }) {
     // 1. Create cohort in Postgres (initially isPublished = false)
     const cohort = await cohortRepo.createCohortWithCommunity({
       ...payload,
@@ -55,8 +56,17 @@ export class CohortService {
         allVectorizable = false;
       }
 
-      // Very rudimentary chunking: split by roughly 1000 characters for demo purposes
-      const parts = text.match(/.{1,1000}/g) || [];
+      let intervals;
+      const method = options?.chunkingMethod || 'disabled';
+      if (method === 'semantic') {
+        intervals = chunkingService.semanticChunking(duration);
+      } else if (method === 'fixed') {
+        intervals = chunkingService.fixedIntervalChunking(duration);
+      } else {
+        intervals = chunkingService.disabledChunking(duration);
+      }
+
+      const parts = chunkingService.applyChunkOverlap(intervals, duration, text);
       chunks.push(...parts);
     }
 

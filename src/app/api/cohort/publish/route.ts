@@ -146,6 +146,7 @@ export async function POST(request: NextRequest) {
       learningOutcomes: draft.learningOutcomes,
       sources,
       seasons,
+      forcePublishWithWeights,
     });
 
     return Response.json({

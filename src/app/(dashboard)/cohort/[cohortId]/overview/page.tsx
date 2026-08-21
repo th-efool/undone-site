@@ -9,18 +9,30 @@ const Overview = dynamic(() => import('@/src/client/screens/cohort').then((mod) 
 
 export async function generateMetadata({ params }: { params: Promise<{ cohortId: string }> }): Promise<Metadata> {
   const { cohortId } = await params;
+  
+  const dbCohort = await prisma.cohort.findUnique({
+    where: { id: cohortId },
+    select: { title: true, description: true, coverImage: true },
+  });
+
+  const title = dbCohort?.title ? `${dbCohort.title} | SideQuestHQ` : `Cohort ${cohortId} | SideQuestHQ`;
+  const description = dbCohort?.description || `Explore this learning cohort on SideQuestHQ.`;
+  const image = dbCohort?.coverImage || undefined;
+
   return {
-    title: `Overview - Cohort ${cohortId} | SideQuestHQ`,
-    description: `Get an overview of cohort ${cohortId} on SideQuestHQ.`,
+    title,
+    description,
     openGraph: {
-      title: `Overview - Cohort ${cohortId} | SideQuestHQ`,
-      description: `Get an overview of cohort ${cohortId} on SideQuestHQ.`,
+      title,
+      description,
       type: 'website',
+      images: image ? [{ url: image }] : undefined,
     },
     twitter: {
       card: 'summary_large_image',
-      title: `Overview - Cohort ${cohortId} | SideQuestHQ`,
-      description: `Get an overview of cohort ${cohortId} on SideQuestHQ.`,
+      title,
+      description,
+      images: image ? [image] : undefined,
     },
   };
 }
