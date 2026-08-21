@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 
 export async function generateMetadata({ params }: { params: Promise<{ cohortId: string }> }): Promise<Metadata> {
   const { cohortId } = await params;

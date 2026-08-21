@@ -57,10 +57,10 @@ export class CohortService {
       }
 
       let intervals;
-      const method = options?.chunkingMethod || 'disabled';
+      const method = payload.sources?.[i]?.chunkingMethod || options?.chunkingMethod || 'disabled';
       if (method === 'semantic') {
         intervals = chunkingService.semanticChunking(duration);
-      } else if (method === 'fixed') {
+      } else if (method === 'fixed' || method === 'fixed_interval') {
         intervals = chunkingService.fixedIntervalChunking(duration);
       } else {
         intervals = chunkingService.disabledChunking(duration);

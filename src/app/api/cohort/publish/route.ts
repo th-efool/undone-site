@@ -39,6 +39,7 @@ const publishSchema = z.object({
       thumbnailUrl: z.string().optional(),
       domain: z.string().optional(),
       metaTitle: z.string().optional(),
+      chunkingMethod: z.string().optional(),
     })).default([]),
   }),
   curriculum: z.object({
@@ -126,6 +127,7 @@ export async function POST(request: NextRequest) {
       thumbnailUrl: source.thumbnailUrl,
       domain: source.domain,
       metaTitle: source.metaTitle,
+      chunkingMethod: source.chunkingMethod,
     }));
 
     // 4. Publish the cohort using Domain Service

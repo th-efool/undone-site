@@ -23,6 +23,7 @@ export interface CreateCohortParams {
     thumbnailUrl?: string;
     domain?: string;
     metaTitle?: string;
+    chunkingMethod?: string;
   }[];
   seasons: {
     title: string;
