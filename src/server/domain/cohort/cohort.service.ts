@@ -74,24 +74,30 @@ export class CohortService {
       throw new Error('WEIGHTS_REQUIRED');
     }
 
-    // 3. Save transcript chunks to MongoDB
-    await connectToMongoDB(); // Ensure connection is active if needed
-    let transcriptDoc;
+    // 3. Save transcript chunks and execute vectorization workflow in MongoDB
+    await connectToMongoDB();
     try {
-      transcriptDoc = await CohortTranscript.create({
+      const fullTranscript = transcripts.join('\n\n');
+      const structuredChunks = chunks.map((chunkText, idx) => ({
+        chunkIndex: idx,
+        chunkId: `chk_${cohort.id}_${idx}`,
+        text: chunkText,
+        title: `Part ${idx + 1}`,
+      }));
+
+      // Execute durable vectorization workflow
+      const { runCohortVectorizationWorkflow } = await import(
+        '@/src/server/infrastructure/workflows/cohortVectorizationWorkflow'
+      );
+
+      await runCohortVectorizationWorkflow({
         cohortId: cohort.id,
-        chunks,
-        vectorEmbedding: [],
-        isVectorizable: allVectorizable,
-        isPublished: false, // Initially false to handle abandoned states
+        fullTranscript,
+        chunks: structuredChunks,
       });
 
-      // 4. Set isPublished = true upon successful save
+      // 4. Set isPublished = true in Postgres upon successful save & vectorization
       const publishedCohort = await cohortRepo.updatePublishStatus(cohort.id, true);
-      
-      // Also update Mongo document to published
-      transcriptDoc.isPublished = true;
-      await transcriptDoc.save();
 
       return publishedCohort;
     } catch (error) {

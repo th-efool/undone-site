@@ -28,6 +28,11 @@ export interface FeedChunkInput {
   cohortTitle: string;
   cohortCoverImage: string;
   cohortProvider: string;       // creator name
+
+  isStrictlyLinear?: boolean;   // if true, sequential gating is strictly enforced
+  isKeyConcept?: boolean;       // core foundational concept flag
+  chunkVector?: number[];       // 12D micro vector
+  fullLessonVector?: number[];  // 12D macro vector
 }
 
 export type ChunkStatus = 'not-started' | 'in-progress' | 'completed' | 'skipped';
@@ -60,19 +65,30 @@ export interface FeedEngineInput {
   currentTime: Date;
   dailyGoalMinutes: number;
   completedTodayMinutes: number;
-  feedSize: number;              // default 20
+  feedSize?: number;              // default 20
+  activeChannel?: string;         // 'spark' | 'explore' | 'build' | 'listen' | 'deep_dive' | 'quick'
+  channelSliderValues?: Record<string, number>;
+  targetQueryVector?: number[];   // 12D target vector
+  cohortVectorMap?: Record<string, { fullVector: number[]; isStrictlyLinear: boolean }>;
+  chunkVectorMap?: Record<string, number[]>;
   requestedCohortId?: string;
   requestedLessonId?: string;
   requestedChunkId?: string;
 }
 
 export interface FeedItem {
-  id: string;                    // unique feed-item ID
-  chunk: FeedChunkInput;
-  progress: ChunkProgress;
-  score: number;                 // algorithm score (higher = shown first)
-  reason: string;                // e.g., "Continue DSA", "New Lesson", "Up Next"
-  position: number;              // 1-indexed position in feed
+  chunkId: string;
+  chunkTitle: string;
+  chunkOrder: number;
+  chunkDuration: string;
+  startSeconds: number;
+  endSeconds: number;
+  lessonId: string;
+  cohortId: string;
+  lessonTitle: string;
+  cohortTitle: string;
+  matchScore: number;
+  lessonVideoId?: string; // mocked in UI currently
 }
 
 export interface FeedEngineOutput {
