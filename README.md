@@ -15,6 +15,7 @@ If you are a reviewer or technical judge, please review our crisp, concise, and 
 - 🎧 **[Global Study Rooms & Concurrency](./docs/study-rooms-schema.md)**: How we use PostgreSQL unique constraints and join tables to guarantee isolated real-time states for global voice rooms.
 - 🚀 **[Atomic Publishing & SEO Routing](./docs/ARCHITECTURE.md#5-atomic-dual-database-publishing--seo-routing)**: How we ensure absolute transactional safety across both PostgreSQL and MongoDB during cohort generation, paired with dynamically-generated Open Graph meta tags for pristine, unauthenticated public sharing.
 - 👥 **Creator & Learner Ecosystem**: A unified architecture seamlessly blending NextAuth session tracking with cohort auto-enrollment, allowing users to fluidly switch between learning and publishing via a single, consolidated dashboard.
+- 🗺️ **[Deterministic UI State Mapping](./docs/ARCHITECTURE.md#6-deterministic-ui-state-mapping)**: Insight into our defensive `cohortMapper.ts` architecture that dynamically generates lesson micro-chunks and provisions robust data fallbacks to eliminate frontend layout shifts.
 
 ---
 

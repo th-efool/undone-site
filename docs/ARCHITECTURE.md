@@ -73,3 +73,12 @@ Publishing a cohort writes to both databases. To prevent orphan states (where a 
 
 ### SEO-Driven Dynamic Routing
 Public visibility is a cornerstone of the platform. We bypass Next.js middleware for public routes (`/cohort/[id]/overview`, `/questline`, etc.) to gracefully degrade for unauthenticated users instead of forcing a redirect. The Next.js `generateMetadata` dynamically queries Postgres to build accurate, SEO-ranked Open Graph (OG) tags for every cohort, ensuring deep linking and social sharing are flawless from day one.
+
+---
+
+## 6. Deterministic UI State Mapping
+
+To maintain strict boundaries between raw database models (PostgreSQL/Prisma) and complex frontend React states, we employ a deterministic mapping layer (`cohortMapper.ts`).
+
+- **Algorithmic Chunking**: Raw lessons are dynamically segmented into standardized micro-chunks (e.g., 5-minute segments) directly within the mapper, ensuring the frontend feed receives pre-calculated, digestible blocks.
+- **Graceful Fallbacks**: The mapper acts as a defensive perimeter. If optional relational data (such as expedition stats, category labels, or creator avatars) is missing, the mapper guarantees the UI receives robust fallback scaffolding rather than rendering broken layouts or causing null reference crashes.
