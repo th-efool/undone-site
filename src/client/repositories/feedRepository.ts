@@ -155,10 +155,21 @@ export const feedRepository = {
     requestedLessonId?: string;
     requestedChunkId?: string;
     feedSize?: number;
+    activeChannel?: string;
+    channelSliderValues?: Record<string, number>;
   }): FeedEngineOutput {
     const allChunks = this.getAllChunks();
     const chunkProgress = loadFeedProgress();
     const cohortStates = loadCohortStates();
+
+    let activeChannel = options?.activeChannel;
+    if (!activeChannel && typeof window !== 'undefined') {
+      try {
+        activeChannel = localStorage.getItem('sidequest_active_channel') || 'quick';
+      } catch {
+        activeChannel = 'quick';
+      }
+    }
 
     return generateFeed({
       allChunks,
@@ -168,6 +179,8 @@ export const feedRepository = {
       dailyGoalMinutes: 60,
       completedTodayMinutes: 41,
       feedSize: options?.feedSize || 25,
+      activeChannel: activeChannel || 'quick',
+      channelSliderValues: options?.channelSliderValues,
       requestedCohortId: options?.requestedCohortId,
       requestedLessonId: options?.requestedLessonId,
       requestedChunkId: options?.requestedChunkId,
@@ -198,14 +211,14 @@ export const feedRepository = {
     if (options?.forceCompleted) {
       status = 'completed';
     } else if (options?.isPrematureScroll) {
-      if (isEligibleForAutoCompletion(watchedSeconds, totalSeconds, 18)) {
+      if (isEligibleForAutoCompletion(watchedSeconds, totalSeconds, 15)) {
         status = 'completed';
-      } else if (watchedSeconds > 5 && status !== 'completed') {
+      } else if (watchedSeconds > 3 && status !== 'completed') {
         status = 'in-progress';
       }
-    } else if (watchedSeconds >= totalSeconds - 5 && totalSeconds > 0) {
+    } else if (isEligibleForAutoCompletion(watchedSeconds, totalSeconds, 15)) {
       status = 'completed';
-    } else if (watchedSeconds > 5 && status !== 'completed') {
+    } else if (watchedSeconds > 3 && status !== 'completed') {
       status = 'in-progress';
     }
 
@@ -223,6 +236,23 @@ export const feedRepository = {
 
     progressMap[chunkId] = updatedProgress;
     saveFeedProgress(progressMap);
+
+    // Asynchronously dispatch remote progress heartbeat to server API (non-blocking)
+    if (typeof window !== 'undefined') {
+      fetch('/api/progress/chunk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chunkId,
+          lessonId,
+          cohortId,
+          watchedSeconds,
+          totalSeconds,
+        }),
+      }).catch(() => {
+        // Silently tolerate offline or network retry
+      });
+    }
 
     // Sync with cohortStore to update Questline and Home progress!
     this.syncProgressToCohortStore(cohortId, lessonId, chunkId, status);
