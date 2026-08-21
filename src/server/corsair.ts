@@ -21,6 +21,9 @@ export const corsair = createCorsair({
         signingSecret: (process.env.NODE_ENV === 'production' 
             ? process.env.CORSAIR_PROD_SIGNING_SECRET 
             : process.env.CORSAIR_DEV_SIGNING_SECRET)!,
+        deliveryUrl: process.env.NODE_ENV === 'production' 
+            ? 'https://sidequesthq.in/api/corsair' 
+            : undefined,
     },
     plugins: [
         github(),
