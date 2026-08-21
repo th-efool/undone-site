@@ -24,11 +24,12 @@ export function HeroNavbar() {
         >
           <div className={styles.logoFrame}>
             <Image
-              src="/logos/sidequesthq-logo.svg"
+              src="/logos/sidequesthq-logo-no-book-compass.svg"
               alt="SideQuestHQ"
-              width={32}
-              height={32}
-              style={{ display: 'block', objectFit: 'contain' }}
+              width={78}
+              height={78}
+              priority
+              className={styles.logoImage}
             />
           </div>
 

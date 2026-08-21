@@ -25,6 +25,10 @@
 }
 
 .logoFrame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 70px;
   height: 70px;
   border-radius: 22px;
@@ -33,6 +37,14 @@
   box-shadow:
     0 0 18px rgba(142, 92, 255, 0.35),
     0 0 48px rgba(255, 255, 255, 0.18);
+  flex-shrink: 0;
+}
+
+.logoImage {
+  width: 110%;
+  height: 110%;
+  object-fit: cover;
+  display: block;
   flex-shrink: 0;
 }
 
