@@ -12,10 +12,10 @@ If you are a reviewer or technical judge, please review our crisp, concise, and 
 
 - 🏛️ **[Core Architecture & Engine](./docs/ARCHITECTURE.md)**: Deep dive into the TikTok-style media feed, Client/Server state boundaries, and NextAuth v5 database session flow.
 - 🗄️ **[Relational Curriculum Schema](./docs/prisma-schema-cohort.md)**: Why we use strict relational models (`Cohort` -> `Season` -> `Lesson`) over flat JSON, ensuring data integrity at scale.
-- 🎧 **[Global Study Rooms & Concurrency](./docs/study-rooms-schema.md)**: How we use PostgreSQL unique constraints and join tables to guarantee isolated real-time states for global voice rooms.
+- 🌍 **[Global Study Rooms & Concurrency](./docs/study-rooms-schema.md)**: How we use PostgreSQL unique constraints and join tables to guarantee isolated real-time states for global voice rooms.
 - 🚀 **[Atomic Publishing & SEO Routing](./docs/ARCHITECTURE.md#5-atomic-dual-database-publishing--seo-routing)**: How we ensure absolute transactional safety across both PostgreSQL and MongoDB during cohort generation, paired with dynamically-generated Open Graph meta tags for pristine, unauthenticated public sharing.
-- 👥 **Creator & Learner Ecosystem**: A unified architecture seamlessly blending NextAuth session tracking with cohort auto-enrollment, allowing users to fluidly switch between learning and publishing via a single, consolidated dashboard.
-- 🗺️ **[Deterministic UI State Mapping](./docs/ARCHITECTURE.md#6-deterministic-ui-state-mapping)**: Insight into our defensive `cohortMapper.ts` architecture that dynamically generates lesson micro-chunks and provisions robust data fallbacks to eliminate frontend layout shifts.
+- 🧑‍🏫 **Creator & Learner Ecosystem**: A unified architecture seamlessly blending NextAuth session tracking with cohort auto-enrollment, allowing users to fluidly switch between learning and publishing via a single, consolidated dashboard.
+- 🛡️ **[End-to-End Data Integrity & UI Mapping](./docs/ARCHITECTURE.md#6-end-to-end-data-integrity--ui-mapping)**: Insight into our defensive API schema and mapping layer (`cohortMapper.ts`) that guarantees pixel-perfect curriculum persistence—from AI generation wizard through strict Postgres JSON schemas, straight to the UI—eliminating frontend layout shifts.
 
 ---
 

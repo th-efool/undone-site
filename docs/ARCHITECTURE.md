@@ -76,9 +76,9 @@ Public visibility is a cornerstone of the platform. We bypass Next.js middleware
 
 ---
 
-## 6. Deterministic UI State Mapping
+## 6. End-to-End Data Integrity & UI Mapping
 
-To maintain strict boundaries between raw database models (PostgreSQL/Prisma) and complex frontend React states, we employ a deterministic mapping layer (`cohortMapper.ts`).
+To maintain strict boundaries between raw database models (PostgreSQL/Prisma) and complex frontend React states, we employ a defensive API validation and deterministic mapping layer (`cohortMapper.ts`).
 
-- **Algorithmic Chunking**: Raw lessons are dynamically segmented into standardized micro-chunks (e.g., 5-minute segments) directly within the mapper, ensuring the frontend feed receives pre-calculated, digestible blocks.
-- **Graceful Fallbacks**: The mapper acts as a defensive perimeter. If optional relational data (such as expedition stats, category labels, or creator avatars) is missing, the mapper guarantees the UI receives robust fallback scaffolding rather than rendering broken layouts or causing null reference crashes.
+- **Uncompromised Curriculum Persistence**: When the AI wizard generates detailed learning trajectories (including hyper-specific lesson durations, semantic chunks, and custom thumbnails), our backend guarantees 1:1 persistence. Custom Zod schemas sanitize the payload, dedicated `parseDurationToSeconds` transformers handle string-to-integer duration safety, and Prisma persists the exact arrays into Postgres JSON columns.
+- **Graceful Algorithmic Fallbacks**: The mapper acts as a defensive perimeter. If optional relational data (like missing semantic chunks from an older cohort, or missing creator avatars) is not present in the database, the mapper guarantees the UI receives robust fallback scaffolding—such as dynamically recalculating standard 5-minute micro-chunks—rather than rendering broken layouts or causing null reference crashes.
