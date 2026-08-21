@@ -288,6 +288,7 @@
 │   ├── ARCHITECTURE.md
 │   ├── canvas-ui-change-plan.md
 │   ├── content-metadata-architecture.md
+│   ├── feed-architecture.md
 │   ├── prisma-schema-cohort.md
 │   └── study-rooms-schema.md
 ├── execution/
@@ -501,17 +502,32 @@
 │   │   │   │       └── [channelId]/
 │   │   │   │           └── messages/
 │   │   │   │               └── route.ts
+│   │   │   ├── corsair/
+│   │   │   │   └── [[...path]]/
+│   │   │   │       └── route.ts
 │   │   │   ├── curriculum/
 │   │   │   │   └── generate/
 │   │   │   │       └── route.ts
 │   │   │   ├── explore/
 │   │   │   │   └── route.ts
+│   │   │   ├── feed/
+│   │   │   │   ├── __tests__/
+│   │   │   │   │   ├── route.pagination.test.ts
+│   │   │   │   │   └── route.test.ts
+│   │   │   │   └── route.ts
 │   │   │   ├── import/
+│   │   │   │   ├── github/
+│   │   │   │   │   └── route.ts
+│   │   │   │   ├── notion/
+│   │   │   │   │   └── route.ts
 │   │   │   │   └── youtube/
 │   │   │   │       ├── metadata/
 │   │   │   │       │   └── route.ts
 │   │   │   │       └── playlist/
 │   │   │   │           └── route.ts
+│   │   │   ├── progress/
+│   │   │   │   └── chunk/
+│   │   │   │       └── route.ts
 │   │   │   ├── studyroom/
 │   │   │   │   └── route.ts
 │   │   │   └── workspace/
@@ -1482,8 +1498,11 @@
 │   │   │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   │   │   ├── PlayerToolbar.module.css
 │   │   │   │   │   │   │   └── PlayerToolbar.tsx
+│   │   │   │   │   │   ├── ChannelSelector.tsx
 │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   ├── hooks/
+│   │   │   │   │   │   ├── __tests__/
+│   │   │   │   │   │   │   └── usePlayback.test.ts
 │   │   │   │   │   │   ├── use1DGesture.ts
 │   │   │   │   │   │   └── usePlayback.ts
 │   │   │   │   │   ├── types/
@@ -1555,64 +1574,85 @@
 │   │   ├── database/
 │   │   │   └── mongo/
 │   │   │       └── models/
-│   │   │           └── CohortTranscript.ts
+│   │   │           ├── Chunk.ts
+│   │   │           ├── CohortTranscript.ts
+│   │   │           └── UserChunkProgress.ts
 │   │   ├── domain/
 │   │   │   ├── cohort/
 │   │   │   │   ├── chunking.service.ts
 │   │   │   │   ├── cohort.service.ts
-│   │   │   │   └── transcript-coherence.service.ts
+│   │   │   │   ├── transcript-coherence.service.ts
+│   │   │   │   └── vectorScoring.service.ts
+│   │   │   ├── progress/
+│   │   │   │   ├── __tests__/
+│   │   │   │   │   ├── chunkProgress.service.test.ts
+│   │   │   │   │   └── chunkProgress.test.ts
+│   │   │   │   └── chunkProgress.service.ts
 │   │   │   ├── session/
 │   │   │   │   ├── session.services.ts
 │   │   │   │   └── session.types.ts
 │   │   │   └── user/
 │   │   │       └── user.types.ts
 │   │   ├── imports/
+│   │   │   ├── github/
+│   │   │   │   └── github-import.service.ts
+│   │   │   ├── notion/
+│   │   │   │   └── notion-import.service.ts
 │   │   │   └── youtube/
 │   │   │       ├── youtube-errors.ts
 │   │   │       ├── youtube-import.service.ts
 │   │   │       └── youtube-url.ts
-│   │   └── infrastructure/
-│   │       ├── ai/
-│   │       │   └── .gitkeep
-│   │       ├── auth/
-│   │       │   ├── auth.config.ts
-│   │       │   ├── getUser.ts
-│   │       │   └── requireUser.ts
-│   │       ├── db/
-│   │       │   ├── mock/
-│   │       │   │   └── repositories/
-│   │       │   │       └── explore.repo.ts
-│   │       │   ├── mongodb/
-│   │       │   │   ├── models/
-│   │       │   │   │   └── UserWorkspace.ts
-│   │       │   │   ├── repositories/
-│   │       │   │   │   └── workspace.repo.ts
-│   │       │   │   ├── client.ts
-│   │       │   │   └── schema.prisma.ts
-│   │       │   └── postgres/
-│   │       │       ├── mappers/
-│   │       │       │   └── cohortMapper.ts
-│   │       │       ├── repositories/
-│   │       │       │   ├── cohort.repo.ts
-│   │       │       │   ├── community.repo.ts
-│   │       │       │   ├── session.repo.ts
-│   │       │       │   ├── studyRoom.repo.ts
-│   │       │       │   └── user.repo.ts
-│   │       │       ├── schema/
-│   │       │       │   └── index.ts
-│   │       │       └── client.ts
-│   │       └── external/
-│   │           └── scratch.txt
+│   │   ├── infrastructure/
+│   │   │   ├── ai/
+│   │   │   │   └── .gitkeep
+│   │   │   ├── auth/
+│   │   │   │   ├── auth.config.ts
+│   │   │   │   ├── getUser.ts
+│   │   │   │   └── requireUser.ts
+│   │   │   ├── db/
+│   │   │   │   ├── mock/
+│   │   │   │   │   └── repositories/
+│   │   │   │   │       └── explore.repo.ts
+│   │   │   │   ├── mongodb/
+│   │   │   │   │   ├── models/
+│   │   │   │   │   │   └── UserWorkspace.ts
+│   │   │   │   │   ├── repositories/
+│   │   │   │   │   │   └── workspace.repo.ts
+│   │   │   │   │   ├── client.ts
+│   │   │   │   │   └── schema.prisma.ts
+│   │   │   │   └── postgres/
+│   │   │   │       ├── mappers/
+│   │   │   │       │   └── cohortMapper.ts
+│   │   │   │       ├── repositories/
+│   │   │   │       │   ├── cohort.repo.ts
+│   │   │   │       │   ├── community.repo.ts
+│   │   │   │       │   ├── session.repo.ts
+│   │   │   │       │   ├── studyRoom.repo.ts
+│   │   │   │       │   └── user.repo.ts
+│   │   │   │       ├── schema/
+│   │   │   │       │   └── index.ts
+│   │   │   │       └── client.ts
+│   │   │   ├── external/
+│   │   │   │   └── scratch.txt
+│   │   │   └── workflows/
+│   │   │       └── cohortVectorizationWorkflow.ts
+│   │   └── corsair.ts
 │   ├── shared/
 │   │   ├── api/
 │   │   │   └── apiUrl.ts
 │   │   ├── constants/
 │   │   │   └── app.constants.ts
 │   │   ├── curriculum/
+│   │   │   ├── __tests__/
+│   │   │   │   └── pedagogicalVector.test.ts
 │   │   │   ├── curriculum.generator.ts
 │   │   │   ├── curriculum.types.ts
-│   │   │   └── index.ts
+│   │   │   ├── index.ts
+│   │   │   ├── pedagogicalVector.engine.ts
+│   │   │   └── pedagogicalVector.types.ts
 │   │   ├── feed/
+│   │   │   ├── __tests__/
+│   │   │   │   └── feedEngine.test.ts
 │   │   │   ├── feedEngine.ts
 │   │   │   ├── feedEngine.types.ts
 │   │   │   ├── feedScoring.ts
@@ -1648,6 +1688,7 @@
 ├── prisma.config.ts
 ├── skills-lock.json
 ├── task.md
-└── tsconfig.json
+├── tsconfig.json
+└── vitest.config.mts
 
-521 directories, 1128 files
+537 directories, 1153 files
