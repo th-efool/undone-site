@@ -1672,6 +1672,7 @@
 │   │       └── cohortStaticParams.ts
 │   └── middleware.ts
 ├── .gitignore
+├── .npmrc
 ├── .prettierignore
 ├── .prettierrc
 ├── AGENTS.md
@@ -1693,4 +1694,4 @@
 ├── tsconfig.json
 └── vitest.config.mts
 
-537 directories, 1155 files
+537 directories, 1156 files
