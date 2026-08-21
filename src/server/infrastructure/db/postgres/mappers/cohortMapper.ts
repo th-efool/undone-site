@@ -93,36 +93,51 @@ export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
         questCount: s.lessons?.length || 0,
         summaryLabel: `${s.lessons?.length || 0} Lessons`,
         lessons: (s.lessons || []).map((l: any, lIdx: number) => {
-          const durationSecs = l.duration || 0;
-          const chunkInterval = 300; // 5 mins
-          const chunks = [];
-          if (durationSecs > 0) {
-            for (let i = 0; i < durationSecs; i += chunkInterval) {
-              const start = i;
-              const end = Math.min(i + chunkInterval, durationSecs);
-              const partDurationSecs = end - start;
-              chunks.push({
-                id: `chunk-${l.id}-${i}`,
-                title: `Part ${chunks.length + 1}`,
-                duration: `${Math.ceil(partDurationSecs / 60)}m`,
-                order: chunks.length + 1,
-                startSeconds: start,
-                endSeconds: end,
-                timeRangeLabel: `${formatTime(start)} - ${formatTime(end)}`,
-              });
+          let chunks = Array.isArray(l.chunks) && l.chunks.length > 0 ? l.chunks : [];
+          
+          if (chunks.length === 0) {
+            const durationSecs = l.duration || 0;
+            const chunkInterval = 300; // 5 mins
+            if (durationSecs > 0) {
+              for (let i = 0; i < durationSecs; i += chunkInterval) {
+                const start = i;
+                const end = Math.min(i + chunkInterval, durationSecs);
+                const partDurationSecs = end - start;
+                chunks.push({
+                  id: `chunk-${l.id}-${i}`,
+                  title: `Part ${chunks.length + 1}`,
+                  duration: `${Math.ceil(partDurationSecs / 60)}m`,
+                  order: chunks.length + 1,
+                  startSeconds: start,
+                  endSeconds: end,
+                  timeRangeLabel: `${formatTime(start)} - ${formatTime(end)}`,
+                  isCompleted: false,
+                  completionDate: null,
+                });
+              }
             }
+          } else {
+             // Map DB chunks to UI chunks
+             chunks = chunks.map((c: any) => ({
+                ...c,
+                startSeconds: c.startSeconds || 0,
+                endSeconds: c.endSeconds || 0,
+                timeRangeLabel: c.timeRangeLabel || '',
+                isCompleted: false,
+                completionDate: null,
+             }));
           }
 
           return {
             id: l.id,
             title: l.title || `Lesson ${lIdx + 1}`,
             type: LessonType.Video,
-            duration: `${Math.ceil(durationSecs / 60)}m`,
+            duration: l.duration ? `${Math.ceil(l.duration / 60)}m` : '0m',
             status: sIdx === 0 && lIdx === 0 ? LessonStatus.InStream : LessonStatus.Ready,
             totalChunks: chunks.length || 1,
             completedChunks: 0,
             thumbnail: l.thumbnailUrl || '/mock/thumbnails/docker.avif',
-            videoId: l.videoUrl || '',
+            videoId: l.videoId || l.videoUrl || '',
             videoUrl: l.videoUrl || '',
             chunks,
           };

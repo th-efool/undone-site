@@ -53,12 +53,38 @@ const publishSchema = z.object({
         title: z.string(),
         description: z.string().optional(),
         duration: z.union([z.string(), z.number()]).optional(),
+        thumbnail: z.string().optional(),
+        videoId: z.string().optional(),
+        videoUrl: z.string().optional(),
+        chunks: z.array(z.any()).optional(),
       })),
     })),
   }),
   qualityScore: z.number().optional(),
   forcePublishWithWeights: z.boolean().optional(),
 });
+
+function parseDurationToSeconds(duration: string | number | undefined): number {
+  if (typeof duration === 'number') return duration;
+  if (!duration) return 120;
+  const d = String(duration).toLowerCase().trim();
+  if (d.includes(':')) {
+    const parts = d.split(':');
+    if (parts.length === 2) return parseInt(parts[0] || '0') * 60 + parseInt(parts[1] || '0');
+    if (parts.length === 3) return parseInt(parts[0] || '0') * 3600 + parseInt(parts[1] || '0') * 60 + parseInt(parts[2] || '0');
+  }
+  let total = 0;
+  const hMatch = d.match(/(\d+)\s*(h|hr|hour)/);
+  const mMatch = d.match(/(\d+)\s*(m|min|minute)/);
+  const sMatch = d.match(/(\d+)\s*(s|sec|second)/);
+  if (hMatch) total += parseInt(hMatch[1]) * 3600;
+  if (mMatch) total += parseInt(mMatch[1]) * 60;
+  if (sMatch) total += parseInt(sMatch[1]);
+  if (total > 0) return total;
+  const rawNum = parseInt(d);
+  if (!isNaN(rawNum)) return rawNum * 60;
+  return 120;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -125,9 +151,13 @@ export async function POST(request: NextRequest) {
       lessons: s.lessons.map((l, lIdx) => ({
         title: l.title,
         description: l.description,
-        duration: typeof l.duration === 'string' ? parseInt(l.duration) : (l.duration || 120),
+        duration: parseDurationToSeconds(l.duration),
         order: lIdx + 1,
         lessonType: 'VIDEO' as LessonType,
+        thumbnailUrl: l.thumbnail,
+        videoId: l.videoId,
+        videoUrl: l.videoUrl,
+        chunks: l.chunks || [],
       })),
     }));
 

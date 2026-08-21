@@ -34,6 +34,10 @@ export interface CreateCohortParams {
       duration?: number;
       order: number;
       lessonType?: LessonType;
+      thumbnailUrl?: string;
+      videoId?: string;
+      videoUrl?: string;
+      chunks?: any;
     }[];
   }[];
   isPublished?: boolean;
@@ -76,6 +80,7 @@ export const cohortRepo = {
             thumbnailUrl: source.thumbnailUrl,
             domain: source.domain,
             metaTitle: source.metaTitle,
+            chunkingMethod: source.chunkingMethod,
           })),
         },
         
@@ -91,6 +96,10 @@ export const cohortRepo = {
                 duration: lesson.duration,
                 order: lesson.order,
                 lessonType: lesson.lessonType ?? 'VIDEO',
+                thumbnailUrl: lesson.thumbnailUrl,
+                videoId: lesson.videoId,
+                videoUrl: lesson.videoUrl,
+                chunks: lesson.chunks || [],
               })),
             },
           })),

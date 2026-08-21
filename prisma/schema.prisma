@@ -139,6 +139,7 @@ model CohortSource {
   thumbnailUrl String?
   domain       String?
   metaTitle    String?
+  chunkingMethod String?
   
   cohort       Cohort     @relation(fields: [cohortId], references: [id], onDelete: Cascade)
 
@@ -171,10 +172,13 @@ model Lesson {
   title       String
   description String?    @db.Text
   videoUrl    String?
+  videoId     String?
+  thumbnailUrl String?
   duration    Int?       // Duration in seconds
   order       Int        // Position in season
   lessonType  LessonType @default(VIDEO)
   isPublished Boolean    @default(false)
+  chunks      Json?      // Stores CurriculumChunk array
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
