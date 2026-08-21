@@ -1,6 +1,12 @@
 import type { Cohort as DbCohort, Season, Lesson } from '@/generated/prisma';
 import { SeasonStatus, LessonStatus, LessonType, type Cohort as UiCohort } from '@/src/client/screens/cohort/models';
 
+function formatTime(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
   const totalQuests = (dbCohort.seasons || []).reduce((acc: number, s: any) => acc + (s.lessons?.length || 0), 0);
   const categories = (dbCohort.categories || []).map((cat: string, idx: number) => ({
@@ -76,7 +82,7 @@ export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
       title: `${dbCohort.title || 'Cohort'} Questline`,
       description: dbCohort.subtitle || 'Explore all seasons and quests in this cohort.',
       filters: [],
-      skipSeasonLabel: '',
+      skipSeasonLabel: 'Skip Season',
       seasons: (dbCohort.seasons || []).map((s: any, sIdx: number) => ({
         id: s.id,
         title: s.title || `Season ${sIdx + 1}`,
@@ -86,52 +92,74 @@ export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
         estimatedDuration: '',
         questCount: s.lessons?.length || 0,
         summaryLabel: `${s.lessons?.length || 0} Lessons`,
-        lessons: (s.lessons || []).map((l: any, lIdx: number) => ({
-          id: l.id,
-          title: l.title || `Lesson ${lIdx + 1}`,
-          type: LessonType.Video,
-          duration: `${l.duration || 0}m`,
-          status: sIdx === 0 && lIdx === 0 ? LessonStatus.InStream : LessonStatus.Ready,
-          totalChunks: 1,
-          completedChunks: 0,
-          thumbnail: l.thumbnailUrl || '/mock/thumbnails/docker.avif',
-          videoId: l.videoUrl || '',
-          videoUrl: l.videoUrl || '',
-          chunks: [],
-        })),
+        lessons: (s.lessons || []).map((l: any, lIdx: number) => {
+          const durationSecs = l.duration || 0;
+          const chunkInterval = 300; // 5 mins
+          const chunks = [];
+          if (durationSecs > 0) {
+            for (let i = 0; i < durationSecs; i += chunkInterval) {
+              const start = i;
+              const end = Math.min(i + chunkInterval, durationSecs);
+              const partDurationSecs = end - start;
+              chunks.push({
+                id: `chunk-${l.id}-${i}`,
+                title: `Part ${chunks.length + 1}`,
+                duration: `${Math.ceil(partDurationSecs / 60)}m`,
+                order: chunks.length + 1,
+                startSeconds: start,
+                endSeconds: end,
+                timeRangeLabel: `${formatTime(start)} - ${formatTime(end)}`,
+              });
+            }
+          }
+
+          return {
+            id: l.id,
+            title: l.title || `Lesson ${lIdx + 1}`,
+            type: LessonType.Video,
+            duration: `${Math.ceil(durationSecs / 60)}m`,
+            status: sIdx === 0 && lIdx === 0 ? LessonStatus.InStream : LessonStatus.Ready,
+            totalChunks: chunks.length || 1,
+            completedChunks: 0,
+            thumbnail: l.thumbnailUrl || '/mock/thumbnails/docker.avif',
+            videoId: l.videoUrl || '',
+            videoUrl: l.videoUrl || '',
+            chunks,
+          };
+        }),
       })),
-      feedTitle: '',
-      feedDescription: '',
-      feedSeasonLabel: '',
-      feedViewAllLabel: '',
+      feedTitle: 'Cohort Assignments',
+      feedDescription: 'Complete these assignments to gain XP and unlock the next seasons.',
+      feedSeasonLabel: 'Current Season',
+      feedViewAllLabel: 'View All Assignments',
       assignmentFeed: [],
-      lockedFutureNotice: { icon: 'book', title: '', description: '' },
+      lockedFutureNotice: { icon: 'book', title: 'More Quests Ahead', description: 'Complete the current season to unlock.' },
     },
     events: {
-      title: '',
-      description: '',
-      filters: [],
+      title: 'Cohort Events',
+      description: 'Join live sessions, AMAs, and study groups.',
+      filters: [{ id: 'all', label: 'All Events', active: true }],
       upcomingEvents: [],
       weeklySchedule: [],
       calendarSync: [],
-      suggestEvent: { title: '', description: '', buttonLabel: '', illustration: '' },
+      suggestEvent: { title: 'Host an Event', description: 'Want to host a study group?', buttonLabel: 'Suggest Event', illustration: '' },
     },
     archives: {
-      title: '',
-      description: '',
-      categories: [],
-      sortControls: [],
+      title: 'Knowledge Archives',
+      description: 'Explore shared resources, notes, and community knowledge.',
+      categories: [{ id: 'all', label: 'All Resources', icon: 'folder', active: true, count: 0 }],
+      sortControls: [{ id: 'recent', label: 'Recently Added', active: true }],
       items: [],
       contributors: [],
       trending: [],
-      shareKnowledge: { title: '', description: '', buttonLabel: '', illustration: '' },
+      shareKnowledge: { title: 'Share Knowledge', description: 'Got a helpful resource?', buttonLabel: 'Contribute', illustration: '' },
     },
     hallOfFame: {
-      title: '',
-      subtitle: '',
-      filters: [],
-      timeRanges: [],
-      categories: [],
+      title: 'Hall of Fame',
+      subtitle: 'Celebrating the top explorers in this cohort.',
+      filters: [{ id: 'all', label: 'All Categories', active: true }],
+      timeRanges: [{ id: 'all-time', label: 'All Time', active: true }],
+      categories: [{ id: 'cat-1', title: 'Top Contributors', description: 'Most helpful members', type: 'xp', entries: [] }],
       legends: [],
       userHighlights: [],
       recentAchievements: [],
