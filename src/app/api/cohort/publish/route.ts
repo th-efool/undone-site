@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { z } from 'zod';
+import { auth } from '@/src/server/infrastructure/auth/auth.config';
 import { CohortService } from '@/src/server/domain/cohort/cohort.service';
 import { userRepo } from '@/src/server/infrastructure/db/postgres/repositories/user.repo';
 import { Difficulty, Visibility, LessonType, SourceType } from '@/generated/prisma/client';
@@ -96,14 +97,25 @@ export async function POST(request: NextRequest) {
     }
 
 
-    // 1. Get or create a default user to act as the creator
-    let creator = await userRepo.findByEmail('test@sidequesthq.com');
+    // 1. Get creator from session, or default to test user
+    const session = await auth();
+    let creator = null;
+
+    if (session?.user?.id) {
+      creator = await userRepo.findById(session.user.id);
+    } else if (session?.user?.email) {
+      creator = await userRepo.findByEmail(session.user.email);
+    }
+
     if (!creator) {
-      creator = await userRepo.create({
-        email: 'test@sidequesthq.com',
-        name: 'Test Creator',
-        username: 'testcreator',
-      });
+      creator = await userRepo.findByEmail('test@sidequesthq.com');
+      if (!creator) {
+        creator = await userRepo.create({
+          email: 'test@sidequesthq.com',
+          name: 'Test Creator',
+          username: 'testcreator',
+        });
+      }
     }
 
     // 2. Map curriculum to seasons and lessons
