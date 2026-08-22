@@ -1638,7 +1638,8 @@
 │   │   │   │   └── scratch.txt
 │   │   │   └── workflows/
 │   │   │       └── cohortVectorizationWorkflow.ts
-│   │   └── corsair.ts
+│   │   ├── corsair.ts
+│   │   └── worker.ts
 │   ├── shared/
 │   │   ├── api/
 │   │   │   └── apiUrl.ts
@@ -1689,9 +1690,11 @@
 ├── phasewise.md
 ├── postcss.config.mjs
 ├── prisma.config.ts
+├── render.yaml
 ├── skills-lock.json
 ├── task.md
 ├── tsconfig.json
+├── tsconfig.worker.json
 └── vitest.config.mts
 
-537 directories, 1156 files
+537 directories, 1159 files
