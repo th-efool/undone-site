@@ -1138,6 +1138,32 @@ export function WizardProvider({ children }: PropsWithChildren) {
 
           if (event.type === 'error') {
             const error = event.error;
+
+            // Handle Corsair OAuth Trigger
+            if (error.message?.startsWith('AUTH_REQUIRED|')) {
+              const url = error.message.split('|')[1];
+              if (url) {
+                window.open(url, '_blank');
+              }
+              
+              setActiveSourceState(source.id, (card) => ({
+                ...card,
+                status: 'failed',
+                error: { ...error, message: 'Please authenticate with Notion in the new window, then try again.', title: 'Authentication Required' },
+                currentOperation: 'Authentication Required',
+                liveStatus: 'Please complete Notion OAuth in the new window.',
+              }));
+              setImportState((current) => ({
+                ...current,
+                status: 'failed',
+                error: { ...error, message: 'Please authenticate with Notion in the new window, then try again.', title: 'Authentication Required' },
+                currentOperation: 'Authentication Required',
+                liveStatus: 'Please complete Notion OAuth in the new window.',
+                estimatedRemaining: '--',
+              }));
+              return;
+            }
+
             setActiveSourceState(source.id, (card) => ({
               ...card,
               status: 'failed',
