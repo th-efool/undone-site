@@ -17,6 +17,7 @@ export interface FeedChunkInput {
   lessonThumbnail: string;
   lessonVideoId?: string;
   lessonVideoUrl?: string;
+  totalChunksInLesson?: number;
   lessonOrder: number;
   lessonType: string;           // 'video' | 'reading' | 'assignment'
 
