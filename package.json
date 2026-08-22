@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
+    "build:worker": "tsc --project tsconfig.worker.json",
+    "worker": "node dist-worker/server/worker.js",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
