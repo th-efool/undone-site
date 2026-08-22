@@ -1581,6 +1581,8 @@
 │   │   │           └── UserChunkProgress.ts
 │   │   ├── domain/
 │   │   │   ├── cohort/
+│   │   │   │   ├── __tests__/
+│   │   │   │   │   └── cohort.service.test.ts
 │   │   │   │   ├── chunking.service.ts
 │   │   │   │   ├── cohort.service.ts
 │   │   │   │   ├── transcript-coherence.service.ts
@@ -1637,7 +1639,9 @@
 │   │   │   ├── external/
 │   │   │   │   └── scratch.txt
 │   │   │   └── workflows/
-│   │   │       └── cohortVectorizationWorkflow.ts
+│   │   │       ├── cohortCleanupTask.ts
+│   │   │       ├── cohortVectorizationWorkflow.ts
+│   │   │       └── index.ts
 │   │   ├── corsair.ts
 │   │   └── worker.ts
 │   ├── shared/
@@ -1682,6 +1686,12 @@
 ├── README.md
 ├── build-aab.bat
 ├── capacitor.config.ts
+├── docs-blueprint.md
+├── docs-sdk.md
+├── docs-tutorial.md
+├── docs-workers.md
+├── docs-workflows-defining.md
+├── docs-workflows.md
 ├── eslint.config.mjs
 ├── excalidraw.d.ts
 ├── next.config.ts
@@ -1697,4 +1707,4 @@
 ├── tsconfig.worker.json
 └── vitest.config.mts
 
-537 directories, 1159 files
+538 directories, 1168 files
