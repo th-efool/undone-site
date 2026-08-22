@@ -67,7 +67,13 @@ describe('CohortService', () => {
     vi.mocked(chunkingService.disabledChunking).mockReturnValue([]);
     vi.mocked(chunkingService.applyChunkOverlap).mockReturnValue(['chunk1', 'chunk2']);
     vi.mocked(cohortRepo.updatePublishStatus).mockResolvedValue({ id: 'test-cohort-id', isPublished: true } as any);
-    vi.mocked(workflow.runCohortVectorizationWorkflow).mockResolvedValue(undefined);
+    vi.mocked(workflow.runCohortVectorizationWorkflow).mockResolvedValue({
+      cohortId: 'test-cohort-id',
+      fullVector: [],
+      isStrictlyLinear: false,
+      chunksProcessed: 2,
+      status: 'COMPLETED',
+    });
 
     const payload = {
       creatorId: 'user1',
