@@ -173,6 +173,7 @@ model Lesson {
   description  String?    @db.Text
   videoUrl     String?
   videoId      String?
+  sourceUrl    String?
   thumbnailUrl String?
   duration     Int? // Duration in seconds
   order        Int // Position in season

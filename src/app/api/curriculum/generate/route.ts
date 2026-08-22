@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = (await request.json().catch(() => null)) as CurriculumGenerationInput | null;
 
-    if (!body || !Array.isArray(body.importedSources)) {
+    if (!body || typeof body !== 'object' || !Array.isArray(body.importedSources)) {
       return Response.json(
         {
           code: 'invalid_input',
@@ -21,11 +21,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const title = typeof body.title === 'string' && body.title.trim() ? body.title.trim() : 'Curriculum';
+    const description = typeof body.description === 'string' && body.description.trim() ? body.description.trim() : 'Generated curriculum from imported sources.';
+
     const result = generateCurriculum({
-      title: body.title || 'Curriculum',
-      description: body.description || 'Generated curriculum from imported sources.',
+      title,
+      description,
       importedSources: body.importedSources,
     });
+
+    if (!result) {
+      return Response.json(
+        {
+          code: 'generation_failed',
+          title: 'Curriculum Generation Failed',
+          message: 'Failed to produce curriculum output.',
+          retryable: true,
+        },
+        { status: 500 },
+      );
+    }
 
     return Response.json(result);
   } catch (error) {

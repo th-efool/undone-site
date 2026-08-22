@@ -24,17 +24,33 @@ function serialize(value: unknown) {
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as SourceImportRequest | null;
 
-  if (!body?.url || !body?.sourceId) {
+  if (
+    !body ||
+    typeof body.url !== 'string' ||
+    typeof body.sourceId !== 'string'
+  ) {
     return Response.json(createYoutubeImportError('invalid_url'), { status: 400 });
   }
 
   const url = body.url.trim();
-  const sourceType = body.sourceType;
+  const sourceId = body.sourceId.trim();
+  const title = typeof body.title === 'string' && body.title.trim() ? body.title.trim() : undefined;
+  const sourceType = typeof body.sourceType === 'string' ? body.sourceType.trim() : undefined;
+
+  if (!url || !sourceId) {
+    return Response.json(createYoutubeImportError('invalid_url'), { status: 400 });
+  }
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const encoder = new TextEncoder();
-      const publish = (event: unknown) => controller.enqueue(encoder.encode(serialize(event)));
+      const publish = (event: unknown) => {
+        try {
+          controller.enqueue(encoder.encode(serialize(event)));
+        } catch {
+          // Stream controller may be closed or cancelled
+        }
+      };
 
       try {
         let source;
@@ -50,8 +66,8 @@ export async function POST(request: NextRequest) {
         if (isPlaylist) {
           source = await importYouTubePlaylist(
             {
-              sourceId: body.sourceId ?? '',
-              title: body.title ?? 'Imported playlist',
+              sourceId,
+              title: title ?? 'Imported playlist',
               url,
             },
             publish,
@@ -60,8 +76,8 @@ export async function POST(request: NextRequest) {
         } else if (isSingleVideo) {
           source = await importYouTubeVideo(
             {
-              sourceId: body.sourceId ?? '',
-              title: body.title ?? 'Imported video',
+              sourceId,
+              title: title ?? 'Imported video',
               url,
             },
             publish,
@@ -70,8 +86,8 @@ export async function POST(request: NextRequest) {
         } else {
           source = await importWebArticle(
             {
-              sourceId: body.sourceId ?? '',
-              title: body.title ?? 'Web reference',
+              sourceId,
+              title: title ?? 'Web reference',
               url,
             },
             publish,
@@ -85,25 +101,36 @@ export async function POST(request: NextRequest) {
             source,
             overallProgress: 100,
             currentOperation: 'Completed',
-            currentSourceLabel: source.title,
+            currentSourceLabel: source?.title ?? title ?? 'Imported source',
             estimatedRemaining: '0m',
             liveStatus: 'Import complete',
           },
         });
 
-        controller.close();
+        try {
+          controller.close();
+        } catch {
+          // Controller might already be closed
+        }
       } catch (error) {
-        const mapped = error as { code?: string; title?: string; message?: string; retryable?: boolean };
+        const mapped =
+          error && typeof error === 'object'
+            ? (error as { code?: string; title?: string; message?: string; retryable?: boolean })
+            : {};
         publish({
           type: 'error',
           error: {
             code: mapped.code ?? 'request_failed',
             title: mapped.title ?? 'Import failed',
-            message: mapped.message ?? 'The source could not be imported.',
+            message: mapped.message ?? (error instanceof Error ? error.message : 'The source could not be imported.'),
             retryable: mapped.retryable ?? true,
           },
         });
-        controller.close();
+        try {
+          controller.close();
+        } catch {
+          // Controller might already be closed
+        }
       }
     },
     cancel() {

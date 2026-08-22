@@ -17,22 +17,31 @@ function serialize(value: unknown) {
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as SourceImportRequest | null;
 
-  if (!body?.url || !body?.sourceId) {
+  const url = typeof body?.url === 'string' ? body.url.trim() : '';
+  const sourceId = typeof body?.sourceId === 'string' ? body.sourceId.trim() : '';
+
+  if (!url || !sourceId) {
     return Response.json({ code: 'invalid_url', message: 'Invalid URL or Source ID' }, { status: 400 });
   }
 
-  const url = body.url.trim();
+  const title = typeof body?.title === 'string' && body.title.trim() ? body.title.trim() : 'Imported GitHub Repo';
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const encoder = new TextEncoder();
-      const publish = (event: unknown) => controller.enqueue(encoder.encode(serialize(event)));
+      const publish = (event: unknown) => {
+        try {
+          controller.enqueue(encoder.encode(serialize(event)));
+        } catch {
+          // Stream may be closed or cancelled
+        }
+      };
 
       try {
         const source = await importGitHubRepo(
           {
-            sourceId: body.sourceId ?? '',
-            title: body.title ?? 'Imported GitHub Repo',
+            sourceId,
+            title,
             url,
           },
           publish,
@@ -45,13 +54,17 @@ export async function POST(request: NextRequest) {
             source,
             overallProgress: 100,
             currentOperation: 'Completed',
-            currentSourceLabel: source.title,
+            currentSourceLabel: source?.title ?? title,
             estimatedRemaining: '0m',
             liveStatus: 'Import complete',
           },
         });
 
-        controller.close();
+        try {
+          controller.close();
+        } catch {
+          // Stream may already be closed
+        }
       } catch (error: any) {
         publish({
           type: 'error',
@@ -62,7 +75,11 @@ export async function POST(request: NextRequest) {
             retryable: true,
           },
         });
-        controller.close();
+        try {
+          controller.close();
+        } catch {
+          // Stream may already be closed
+        }
       }
     },
     cancel() {

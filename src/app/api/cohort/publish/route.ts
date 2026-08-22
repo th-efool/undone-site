@@ -14,7 +14,9 @@ const sourceTypeMap: Record<string, SourceType> = {
   'Website': 'WEBSITE',
   'PDF': 'PDF',
   'Markdown': 'MARKDOWN',
-  'GitHub Repository': 'GITHUB_REPO',
+  'GitHub Repository': 'GITHUB',
+  'Notion Page': 'NOTION',
+  'Notion Workspace': 'NOTION',
   'Custom Link': 'CUSTOM_LINK',
 };
 
@@ -56,6 +58,7 @@ const publishSchema = z.object({
         thumbnail: z.string().optional(),
         videoId: z.string().optional(),
         videoUrl: z.string().optional(),
+        sourceUrl: z.string().optional(),
         chunks: z.array(z.any()).optional(),
       })),
     })),
@@ -65,24 +68,36 @@ const publishSchema = z.object({
 });
 
 function parseDurationToSeconds(duration: string | number | undefined): number {
-  if (typeof duration === 'number') return duration;
-  if (!duration) return 120;
+  if (typeof duration === 'number') return isNaN(duration) ? 120 : Math.max(0, duration);
+  if (duration === null || duration === undefined) return 120;
   const d = String(duration).toLowerCase().trim();
+  if (!d) return 120;
   if (d.includes(':')) {
     const parts = d.split(':');
-    if (parts.length === 2) return parseInt(parts[0] || '0') * 60 + parseInt(parts[1] || '0');
-    if (parts.length === 3) return parseInt(parts[0] || '0') * 3600 + parseInt(parts[1] || '0') * 60 + parseInt(parts[2] || '0');
+    if (parts.length === 2) {
+      const mins = parseInt(parts[0] || '0', 10);
+      const secs = parseInt(parts[1] || '0', 10);
+      const total = (isNaN(mins) ? 0 : mins) * 60 + (isNaN(secs) ? 0 : secs);
+      if (!isNaN(total) && total > 0) return total;
+    }
+    if (parts.length === 3) {
+      const hrs = parseInt(parts[0] || '0', 10);
+      const mins = parseInt(parts[1] || '0', 10);
+      const secs = parseInt(parts[2] || '0', 10);
+      const total = (isNaN(hrs) ? 0 : hrs) * 3600 + (isNaN(mins) ? 0 : mins) * 60 + (isNaN(secs) ? 0 : secs);
+      if (!isNaN(total) && total > 0) return total;
+    }
   }
   let total = 0;
-  const hMatch = d.match(/(\d+)\s*(h|hr|hour)/);
-  const mMatch = d.match(/(\d+)\s*(m|min|minute)/);
-  const sMatch = d.match(/(\d+)\s*(s|sec|second)/);
-  if (hMatch) total += parseInt(hMatch[1]) * 3600;
-  if (mMatch) total += parseInt(mMatch[1]) * 60;
-  if (sMatch) total += parseInt(sMatch[1]);
-  if (total > 0) return total;
-  const rawNum = parseInt(d);
-  if (!isNaN(rawNum)) return rawNum * 60;
+  const hMatch = d.match(/(\d+)\s*(?:h|hr|hour)/);
+  const mMatch = d.match(/(\d+)\s*(?:m|min|minute)/);
+  const sMatch = d.match(/(\d+)\s*(?:s|sec|second)/);
+  if (hMatch && hMatch[1]) total += parseInt(hMatch[1], 10) * 3600;
+  if (mMatch && mMatch[1]) total += parseInt(mMatch[1], 10) * 60;
+  if (sMatch && sMatch[1]) total += parseInt(sMatch[1], 10);
+  if (total > 0 && !isNaN(total)) return total;
+  const rawNum = parseInt(d, 10);
+  if (!isNaN(rawNum) && rawNum > 0) return rawNum * 60;
   return 120;
 }
 
@@ -144,66 +159,89 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (!creator?.id) {
+      return Response.json(
+        {
+          code: 'creator_not_found',
+          title: 'Creator Not Found',
+          message: 'Unable to resolve creator user account.',
+        },
+        { status: 500 },
+      );
+    }
+
     // 2. Map curriculum to seasons and lessons
-    const seasons = curriculum.seasons.map((s, sIdx) => ({
+    const seasons = (curriculum?.seasons ?? []).map((s, sIdx) => ({
       title: s.title,
       order: sIdx + 1,
-      lessons: s.lessons.map((l, lIdx) => ({
+      lessons: (s.lessons ?? []).map((l, lIdx) => ({
         title: l.title,
         description: l.description,
         duration: parseDurationToSeconds(l.duration),
         order: lIdx + 1,
-        lessonType: 'VIDEO' as LessonType,
+        lessonType: (l.sourceUrl || !l.videoId) ? 'ARTICLE' as LessonType : 'VIDEO' as LessonType,
         thumbnailUrl: l.thumbnail,
         videoId: l.videoId,
         videoUrl: l.videoUrl,
+        sourceUrl: l.sourceUrl,
         chunks: l.chunks || [],
       })),
     }));
 
     // 3. Map sources
-    const sources = draft.sources.map(source => ({
-      type: sourceTypeMap[source.type] || 'CUSTOM_LINK',
-      title: source.title,
-      url: source.url,
-      thumbnailUrl: source.thumbnailUrl,
-      domain: source.domain,
-      metaTitle: source.metaTitle,
-      chunkingMethod: source.chunkingMethod,
+    const sources = (draft?.sources ?? []).map(source => ({
+      type: (source?.type && sourceTypeMap[source.type]) || 'CUSTOM_LINK',
+      title: source?.title || 'Untitled Source',
+      url: source?.url || '',
+      thumbnailUrl: source?.thumbnailUrl,
+      domain: source?.domain,
+      metaTitle: source?.metaTitle,
+      chunkingMethod: source?.chunkingMethod,
     }));
 
     // 4. Publish the cohort using Domain Service
     const dbCohort = await CohortService.publishCohort({
       creatorId: creator.id,
-      title: draft.title || 'Untitled Cohort',
+      title: (typeof draft.title === 'string' && draft.title.trim()) || 'Untitled Cohort',
       subtitle: draft.subtitle,
       description: draft.description,
       coverImage: draft.coverImage,
       difficulty: draft.difficulty ? (draft.difficulty.toUpperCase() as Difficulty) : 'INTERMEDIATE',
       visibility: draft.visibility === 'Private' ? 'PRIVATE' : draft.visibility === 'Unlisted' ? 'INVITE_ONLY' : 'PUBLIC',
-      categories: draft.categories,
+      categories: draft.categories || [],
       estimatedCompletionTime: draft.estimatedCompletionTime,
       language: draft.language,
       primaryTopic: draft.primaryTopic,
-      tags: draft.tags,
-      requirements: draft.requirements,
-      learningOutcomes: draft.learningOutcomes,
+      tags: draft.tags || [],
+      requirements: draft.requirements || [],
+      learningOutcomes: draft.learningOutcomes || [],
       sources,
       seasons,
       forcePublishWithWeights,
     });
 
+    if (!dbCohort || !dbCohort.id) {
+      return Response.json(
+        {
+          code: 'publish_error',
+          title: 'Publish Failed',
+          message: 'Failed to create cohort record.',
+        },
+        { status: 500 },
+      );
+    }
+
     return Response.json({
       cohortId: dbCohort.id,
-      cohortTitle: dbCohort.title,
+      cohortTitle: dbCohort.title || draft.title || 'Untitled Cohort',
       cohortUrl: `/cohort/${dbCohort.id}`,
-      publishedAt: dbCohort.publishedAt?.toISOString(),
+      publishedAt: dbCohort.publishedAt ? new Date(dbCohort.publishedAt).toISOString() : new Date().toISOString(),
       version: '1.0.0',
-      visibility: dbCohort.visibility,
+      visibility: dbCohort.visibility || 'PUBLIC',
       totalHours: curriculum.totalHours || '0m',
-      totalLessons: curriculum.totalLessons || 0,
-      totalSeasons: curriculum.totalSeasons || 0,
-      qualityScore: qualityScore || 90,
+      totalLessons: curriculum.totalLessons ?? 0,
+      totalSeasons: curriculum.totalSeasons ?? 0,
+      qualityScore: typeof qualityScore === 'number' && !isNaN(qualityScore) ? qualityScore : 90,
       coverImage: dbCohort.coverImage || '/images/landing/screen.webp',
     });
   } catch (error) {

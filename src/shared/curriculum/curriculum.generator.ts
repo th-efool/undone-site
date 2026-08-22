@@ -125,6 +125,17 @@ function buildChunkDurations(totalMinutes: number, lessonId: string) {
 
 function buildChunks(lesson: CurriculumLesson) {
   const totalMinutes = parseDurationToMinutes(lesson.duration);
+
+  // Do not split text sources (Notion, PDF, etc) into arbitrary 5-minute video chunks.
+  if (['Notion', 'Website', 'PDF', 'Markdown'].includes(lesson.provider)) {
+    return [{
+      id: makeId('chunk', lesson.id, 1),
+      title: 'Full Document',
+      duration: formatDuration(totalMinutes),
+      order: 1,
+    }] satisfies CurriculumChunk[];
+  }
+
   const chunkDurations = buildChunkDurations(totalMinutes, lesson.id);
 
   return chunkDurations.map((duration, index) => ({
@@ -159,6 +170,7 @@ function convertImportedLesson(
     playlistPosition: lesson.position,
     sourceId,
     sourceTitle,
+    sourceUrl: lesson.sourceUrl,
     publishedLabel: lesson.publishedLabel,
     difficulty: 'Intermediate',
     tags: sourceIndex === 0 ? [] : [sourceTitle],

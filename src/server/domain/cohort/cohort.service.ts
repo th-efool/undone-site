@@ -57,7 +57,10 @@ export class CohortService {
       }
 
       let intervals;
-      const method = payload.sources?.[i]?.chunkingMethod || options?.chunkingMethod || 'disabled';
+      
+      // Default to semantic chunking for articles if chunkingMethod isn't explicitly defined for this index
+      const isArticle = lessons[i]?.lessonType === 'ARTICLE';
+      const method = payload.sources?.[i]?.chunkingMethod || options?.chunkingMethod || (isArticle ? 'semantic' : 'disabled');
       if (method === 'semantic') {
         intervals = chunkingService.semanticChunking(duration);
       } else if (method === 'fixed' || method === 'fixed_interval') {

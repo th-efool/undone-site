@@ -37,6 +37,7 @@ export interface CreateCohortParams {
       thumbnailUrl?: string;
       videoId?: string;
       videoUrl?: string;
+      sourceUrl?: string;
       chunks?: any;
     }[];
   }[];
@@ -99,6 +100,7 @@ export const cohortRepo = {
                 thumbnailUrl: lesson.thumbnailUrl,
                 videoId: lesson.videoId,
                 videoUrl: lesson.videoUrl,
+                sourceUrl: lesson.sourceUrl,
                 chunks: lesson.chunks || [],
               })),
             },

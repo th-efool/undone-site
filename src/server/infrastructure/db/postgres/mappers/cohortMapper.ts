@@ -128,17 +128,20 @@ export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
              }));
           }
 
+          const isArticle = (l as any).lessonType === 'ARTICLE';
+
           return {
             id: l.id,
             title: l.title || `Lesson ${lIdx + 1}`,
-            type: LessonType.Video,
+            type: isArticle ? LessonType.Reading : LessonType.Video,
             duration: l.duration ? `${Math.ceil(l.duration / 60)}m` : '0m',
             status: sIdx === 0 && lIdx === 0 ? LessonStatus.InStream : LessonStatus.Ready,
             totalChunks: chunks.length || 1,
             completedChunks: 0,
             thumbnail: l.thumbnailUrl || '/mock/thumbnails/docker.avif',
-            videoId: l.videoId || l.videoUrl || '',
-            videoUrl: l.videoUrl || '',
+            videoId: isArticle ? undefined : (l.videoId || l.videoUrl || ''),
+            videoUrl: isArticle ? undefined : (l.videoUrl || ''),
+            sourceUrl: (l as any).sourceUrl || (isArticle ? l.videoUrl : undefined),
             chunks,
           };
         }),

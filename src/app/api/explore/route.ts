@@ -5,7 +5,12 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const data = exploreRepo.getExplore();
-  return NextResponse.json(data);
+  try {
+    const data = exploreRepo?.getExplore?.() ?? {};
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('[API Explore Error]:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
 }
 

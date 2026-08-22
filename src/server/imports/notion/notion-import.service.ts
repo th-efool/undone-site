@@ -8,7 +8,7 @@ export interface ImportRequest {
 }
 
 function toIsoDuration(seconds: number) {
-  if (!seconds || isNaN(seconds)) return '0:00';
+  if (!seconds || isNaN(seconds) || seconds <= 0) return '0:00';
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = Math.floor(seconds % 60);
@@ -35,7 +35,7 @@ export async function importNotionPage(
   publish: (event: ImportPublishEvent) => void,
   signal: AbortSignal,
 ): Promise<ServerImportedSourceModel> {
-  publish({
+  publish?.({
     type: 'stage',
     stage: {
       id: 'extracting',
@@ -46,35 +46,38 @@ export async function importNotionPage(
     },
   });
 
-  const extraction = await (corsair as any).extract(request.url, { plugin: 'notion' });
+  const extraction = await (corsair as any).extract(request?.url || '', { plugin: 'notion' });
   if (!extraction) {
     throw new Error('Failed to extract Notion workspace data.');
   }
 
-  const items = extraction.items || [];
+  const items = Array.isArray(extraction?.items) ? extraction.items : [];
   
   let totalSeconds = 0;
   
   const lessons: ServerImportedLessonModel[] = items.filter(Boolean).map((item: any, index: number) => {
-    const wordCount = item.wordCount || (item.content ? item.content.split(/\s+/).length : 0);
+    const content = typeof item?.content === 'string' ? item.content.trim() : '';
+    const wordCount = typeof item?.wordCount === 'number' && !isNaN(item.wordCount)
+      ? item.wordCount
+      : (content ? content.split(/\s+/).filter(Boolean).length : 0);
     const durationSeconds = Math.max(60, Math.round((wordCount / 150) * 60));
     totalSeconds += durationSeconds;
     
     return {
-      id: `${request.sourceId}-notion-${index}`,
-      title: item.title || item.name || `Page ${index + 1}`,
+      id: `${request?.sourceId || 'source'}-notion-${index}`,
+      title: item?.title?.trim() || item?.name?.trim() || `Page ${index + 1}`,
       thumbnail: 'https://images.unsplash.com/photo-1542435503-956c469947f6?q=80&w=1200&auto=format&fit=crop',
-      description: item.description || '',
+      description: item?.description?.trim() || '',
       duration: toIsoDuration(durationSeconds),
       position: index + 1,
       provider: 'Notion',
       videoId: '',
       publishedLabel: 'Notion Page',
-      sourceUrl: item.url || request.url,
+      sourceUrl: item?.url?.trim() || request?.url?.trim() || '',
     };
   });
 
-  publish({
+  publish?.({
     type: 'stage',
     stage: {
       id: 'completed',
@@ -86,12 +89,12 @@ export async function importNotionPage(
   });
 
   return {
-    id: request.sourceId,
-    title: extraction.title || request.title,
-    description: extraction.description || '',
+    id: request?.sourceId || '',
+    title: extraction?.title?.trim() || request?.title?.trim() || 'Notion Workspace',
+    description: extraction?.description?.trim() || '',
     thumbnail: 'https://images.unsplash.com/photo-1542435503-956c469947f6?q=80&w=1200&auto=format&fit=crop',
     provider: 'Notion Workspace',
-    creator: extraction.author || 'Notion User',
+    creator: extraction?.author?.trim() || 'Notion User',
     lessonCount: lessons.length,
     totalDuration: formatDuration(totalSeconds),
     estimatedSeasonCount: Math.max(1, Math.ceil(lessons.length / 8)),

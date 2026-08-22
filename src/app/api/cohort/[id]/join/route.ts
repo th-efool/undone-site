@@ -14,12 +14,17 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = await Promise.resolve(params); // Next 15 compatibility
+    const resolvedParams = await Promise.resolve(params); // Next 15 compatibility
+    const id = resolvedParams?.id;
+
+    if (!id || typeof id !== 'string' || !id.trim()) {
+      return NextResponse.json({ error: 'Cohort ID is required' }, { status: 400 });
+    }
 
     await prisma.cohortMember.create({
       data: {
         userId,
-        cohortId: id,
+        cohortId: id.trim(),
       },
     });
 

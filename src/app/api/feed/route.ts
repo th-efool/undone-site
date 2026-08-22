@@ -12,15 +12,21 @@ const DEMO_USER_ID = 'demo_user_123';
 export async function GET(req: NextRequest) {
   try {
     const searchParams = req.nextUrl.searchParams;
-    const channelId = (searchParams.get('channel') || 'default') as ChannelId;
-    const pageIndex = parseInt(searchParams.get('pageIndex') || '0', 10);
+    const rawChannel = searchParams.get('channel');
+    const validChannels: ChannelId[] = ['default', 'spark', 'explore', 'build', 'listen', 'deep_dive', 'quick'];
+    const channelId: ChannelId = (rawChannel && validChannels.includes(rawChannel.trim() as ChannelId))
+      ? (rawChannel.trim() as ChannelId)
+      : 'default';
+    const rawPageIndex = searchParams.get('pageIndex');
+    const parsedPageIndex = parseInt(rawPageIndex || '0', 10);
+    const pageIndex = isNaN(parsedPageIndex) || parsedPageIndex < 0 ? 0 : parsedPageIndex;
     const prefsRaw = searchParams.get('prefs');
     const tzOffsetStr = searchParams.get('timezoneOffset');
     const limit = 6; // 6 chunks per page
 
     let currentTime = new Date();
     if (tzOffsetStr) {
-      const offsetMinutes = parseInt(tzOffsetStr, 10);
+      const offsetMinutes = parseInt(tzOffsetStr.trim(), 10);
       if (!isNaN(offsetMinutes)) {
         currentTime = new Date(Date.now() - offsetMinutes * 60 * 1000);
       }
@@ -29,30 +35,37 @@ export async function GET(req: NextRequest) {
     await connectToMongoDB();
 
     let rawStringPrefs: Record<string, string> | undefined = undefined;
-    if (prefsRaw) {
+    if (prefsRaw && typeof prefsRaw === 'string') {
       try {
-        rawStringPrefs = JSON.parse(decodeURIComponent(prefsRaw));
+        const parsed = JSON.parse(decodeURIComponent(prefsRaw));
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          rawStringPrefs = parsed as Record<string, string>;
+        }
       } catch (e) {
         console.warn('Failed to parse channel prefs:', e);
       }
     }
 
     // 1. Fetch all user progress, sorted newest first
-    const allUserProgress = await UserChunkProgress.find({ userId: DEMO_USER_ID }).sort({ updatedAt: -1 });
-    const completedChunkIds = allUserProgress
-      .filter(p => p.status === 'COMPLETED')
-      .map(p => p.chunkId);
+    const allUserProgress = (await UserChunkProgress.find({ userId: DEMO_USER_ID }).sort({ updatedAt: -1 })) || [];
+    const userProgressList = Array.isArray(allUserProgress) ? allUserProgress : [];
+    const completedChunkIds = userProgressList
+      .filter(p => p && p.status === 'COMPLETED' && p.chunkId)
+      .map(p => String(p.chunkId));
 
     const chunkProgressRecord: Record<string, { chunkId: string; lessonId: string; cohortId: string; status: 'completed' | 'in-progress' | 'not-started'; watchedSeconds: number; totalSeconds: number; }> = {};
-    allUserProgress.forEach(p => {
-      chunkProgressRecord[p.chunkId] = {
-        chunkId: p.chunkId,
-        lessonId: p.lessonId,
-        cohortId: p.cohortId,
-        status: p.status === 'COMPLETED' ? 'completed' : p.status === 'IN_PROGRESS' ? 'in-progress' : 'not-started',
-        watchedSeconds: p.watchedSeconds || 0,
-        totalSeconds: p.totalSeconds || 180
-      };
+    userProgressList.forEach(p => {
+      if (p && p.chunkId) {
+        const cId = String(p.chunkId);
+        chunkProgressRecord[cId] = {
+          chunkId: cId,
+          lessonId: p.lessonId ? String(p.lessonId) : '',
+          cohortId: p.cohortId ? String(p.cohortId) : '',
+          status: p.status === 'COMPLETED' ? 'completed' : p.status === 'IN_PROGRESS' ? 'in-progress' : 'not-started',
+          watchedSeconds: typeof p.watchedSeconds === 'number' && !isNaN(p.watchedSeconds) ? p.watchedSeconds : 0,
+          totalSeconds: typeof p.totalSeconds === 'number' && !isNaN(p.totalSeconds) && p.totalSeconds > 0 ? p.totalSeconds : 180,
+        };
+      }
     });
 
     // 2. Compute Target Vector
@@ -64,18 +77,18 @@ export async function GET(req: NextRequest) {
     });
 
     const targetVectorArray = [
-      targetVectorMap.cognitive_load,
-      targetVectorMap.practicality_actionability,
-      targetVectorMap.visual_dependence,
-      targetVectorMap.scaffolding_guidance,
-      targetVectorMap.linearity_dependency,
-      targetVectorMap.novelty_divergence,
-      targetVectorMap.abstraction_depth,
-      targetVectorMap.pacing_density,
-      targetVectorMap.rigor_formality,
-      targetVectorMap.interactivity_agency,
-      targetVectorMap.breadth_scope,
-      targetVectorMap.emotional_energy,
+      targetVectorMap?.cognitive_load ?? 0.5,
+      targetVectorMap?.practicality_actionability ?? 0.5,
+      targetVectorMap?.visual_dependence ?? 0.5,
+      targetVectorMap?.scaffolding_guidance ?? 0.5,
+      targetVectorMap?.linearity_dependency ?? 0.5,
+      targetVectorMap?.novelty_divergence ?? 0.5,
+      targetVectorMap?.abstraction_depth ?? 0.5,
+      targetVectorMap?.pacing_density ?? 0.5,
+      targetVectorMap?.rigor_formality ?? 0.5,
+      targetVectorMap?.interactivity_agency ?? 0.5,
+      targetVectorMap?.breadth_scope ?? 0.5,
+      targetVectorMap?.emotional_energy ?? 0.5,
     ];
 
     // 3. Execute Vector Search with Metadata Filtering
@@ -118,35 +131,44 @@ export async function GET(req: NextRequest) {
       }
     ];
 
-    const chunks = await Chunk.aggregate(pipeline);
+    const chunks = (await Chunk.aggregate(pipeline)) || [];
 
     // If no Atlas Vector Search is set up (e.g., local dev without Atlas), 
     // we would need a fallback here. But for now, we assume Atlas.
     
     // Map candidates for feedEngine
-    const feedEngineChunks = chunks.map(chunk => ({
-      chunkId: chunk.chunkId,
-      chunkTitle: chunk.title,
-      chunkOrder: chunk.chunkIndex + 1,
-      chunkDuration: chunk.duration ? `${Math.round(chunk.duration / 60)} min` : '3 min',
-      startSeconds: chunk.startSeconds,
-      endSeconds: chunk.endSeconds,
-      lessonId: chunk.lessonId,
-      cohortId: chunk.cohortId,
-      lessonTitle: `Lesson ${chunk.lessonId}`,
-      cohortTitle: `Cohort ${chunk.cohortId}`,
-      lessonThumbnail: '',
-      lessonOrder: 1,
-      lessonType: 'video',
-      seasonId: 's1',
-      seasonTitle: 'Season 1',
-      seasonOrder: 1,
-      cohortCoverImage: '',
-      cohortProvider: 'Unknown',
-      isStrictlyLinear: chunk.isStrictlyLinear,
-      isKeyConcept: chunk.isKeyConcept,
-      chunkVector: chunk.vector
-    }));
+    const feedEngineChunks = (Array.isArray(chunks) ? chunks : []).map((chunk, idx) => {
+      const durationNum = typeof chunk?.duration === 'number' && !isNaN(chunk.duration) && chunk.duration > 0 ? chunk.duration : 180;
+      const durationStr = `${Math.round(durationNum / 60)} min`;
+      const chunkId = chunk?.chunkId ? String(chunk.chunkId) : `chunk_${idx}`;
+      const lessonId = chunk?.lessonId ? String(chunk.lessonId) : `lesson_${idx}`;
+      const cohortId = chunk?.cohortId ? String(chunk.cohortId) : `cohort_${idx}`;
+      const chunkOrder = typeof chunk?.chunkIndex === 'number' && !isNaN(chunk.chunkIndex) ? chunk.chunkIndex + 1 : idx + 1;
+
+      return {
+        chunkId,
+        chunkTitle: chunk?.title || `Chunk ${chunkOrder}`,
+        chunkOrder,
+        chunkDuration: durationStr,
+        startSeconds: typeof chunk?.startSeconds === 'number' && !isNaN(chunk.startSeconds) ? chunk.startSeconds : 0,
+        endSeconds: typeof chunk?.endSeconds === 'number' && !isNaN(chunk.endSeconds) ? chunk.endSeconds : durationNum,
+        lessonId,
+        cohortId,
+        lessonTitle: `Lesson ${lessonId}`,
+        cohortTitle: `Cohort ${cohortId}`,
+        lessonThumbnail: '',
+        lessonOrder: 1,
+        lessonType: 'video' as const,
+        seasonId: 's1',
+        seasonTitle: 'Season 1',
+        seasonOrder: 1,
+        cohortCoverImage: '',
+        cohortProvider: 'Unknown',
+        isStrictlyLinear: Boolean(chunk?.isStrictlyLinear),
+        isKeyConcept: Boolean(chunk?.isKeyConcept),
+        chunkVector: Array.isArray(chunk?.vector) ? chunk.vector : undefined,
+      };
+    });
 
     // 4. Generate feed
     const feedOutput = generateFeed({
@@ -162,7 +184,8 @@ export async function GET(req: NextRequest) {
     });
 
     // 5. Paginate based on original limit
-    const paginatedItems = feedOutput.items.slice(pageIndex * limit, (pageIndex + 1) * limit);
+    const items = Array.isArray(feedOutput?.items) ? feedOutput.items : [];
+    const paginatedItems = items.slice(pageIndex * limit, (pageIndex + 1) * limit);
 
     return NextResponse.json({ items: paginatedItems });
 

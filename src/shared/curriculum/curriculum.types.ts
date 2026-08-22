@@ -7,6 +7,7 @@ export interface ImportedLessonInput {
   position: number;
   provider: string;
   videoId: string;
+  sourceUrl?: string;
   publishedLabel: string;
 }
 
@@ -72,6 +73,7 @@ export interface CurriculumLesson {
   playlistPosition: number;
   sourceId: string;
   sourceTitle: string;
+  sourceUrl?: string;
   publishedLabel: string;
   difficulty: string;
   tags: string[];

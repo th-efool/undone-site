@@ -106,7 +106,8 @@ function toIsoDuration(seconds: number) {
   return `${minutes}:${String(secs).padStart(2, '0')}`;
 }
 
-function parseIsoDuration(duration: string) {
+function parseIsoDuration(duration?: string) {
+  if (!duration || typeof duration !== 'string') return 0;
   const match = /P(?:([0-9]+)Y)?(?:([0-9]+)M)?(?:([0-9]+)W)?(?:([0-9]+)D)?T(?:([0-9]+)H)?(?:([0-9]+)M)?(?:([0-9]+)S)?/.exec(
     duration,
   );
@@ -135,20 +136,26 @@ function formatDuration(seconds: number) {
 
 function formatPublishedLabel(publishedAt?: string) {
   if (!publishedAt) return 'Published date unavailable';
-  return new Intl.DateTimeFormat('en', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  }).format(new Date(publishedAt));
+  try {
+    const date = new Date(publishedAt);
+    if (isNaN(date.getTime())) return 'Published date unavailable';
+    return new Intl.DateTimeFormat('en', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }).format(date);
+  } catch {
+    return 'Published date unavailable';
+  }
 }
 
-function pickThumbnail(thumbnails?: Record<string, { url: string }>) {
+function pickThumbnail(thumbnails?: Record<string, { url?: string } | undefined>) {
   return (
-    thumbnails?.maxres?.url ??
-    thumbnails?.standard?.url ??
-    thumbnails?.high?.url ??
-    thumbnails?.medium?.url ??
-    thumbnails?.default?.url ??
+    thumbnails?.maxres?.url ||
+    thumbnails?.standard?.url ||
+    thumbnails?.high?.url ||
+    thumbnails?.medium?.url ||
+    thumbnails?.default?.url ||
     '/images/landing/screen.webp'
   );
 }
@@ -277,7 +284,7 @@ export async function importYouTubePlaylist(
   publish: (event: ImportPublishEvent) => void,
   signal: AbortSignal,
 ): Promise<ServerImportedSourceModel> {
-  const playlistId = extractPlaylistId(request.url);
+  const playlistId = extractPlaylistId(request?.url);
 
   publish({
     type: 'stage',
@@ -322,7 +329,7 @@ export async function importYouTubePlaylist(
   });
 
   const playlist = await fetchPlaylistMetadata(playlistId, signal);
-  const totalItems = playlist.contentDetails?.itemCount ?? 0;
+  const totalItems = playlist?.contentDetails?.itemCount ?? 0;
 
   publish({
     type: 'stage',
@@ -339,21 +346,21 @@ export async function importYouTubePlaylist(
     type: 'feed',
     feed: {
       title: 'Found playlist',
-      detail: `${playlist.snippet?.title ?? request.title} - ${totalItems} videos`,
+      detail: `${playlist?.snippet?.title ?? request?.title ?? 'Playlist'} - ${totalItems} videos`,
       tone: 'brand',
     },
   });
 
-  const playlistTitle = playlist.snippet?.title ?? request.title;
-  const playlistDescription = playlist.snippet?.description ?? '';
-  const playlistCreator = playlist.snippet?.channelTitle ?? 'Unknown creator';
-  const playlistThumbnail = pickThumbnail(playlist.snippet?.thumbnails);
+  const playlistTitle = playlist?.snippet?.title ?? request?.title ?? 'YouTube Playlist';
+  const playlistDescription = playlist?.snippet?.description ?? '';
+  const playlistCreator = playlist?.snippet?.channelTitle ?? 'Unknown creator';
+  const playlistThumbnail = pickThumbnail(playlist?.snippet?.thumbnails);
 
   publish({
     type: 'snapshot',
     snapshot: {
       source: {
-        id: request.sourceId,
+        id: request?.sourceId ?? 'source',
         title: playlistTitle,
         description: playlistDescription,
         thumbnail: playlistThumbnail,
@@ -444,7 +451,7 @@ export async function importYouTubePlaylist(
       if (!videoId) continue;
 
       const video = videosById.get(videoId);
-      const rawTitle = (video?.snippet?.title ?? item.snippet?.title ?? '').trim();
+      const rawTitle = (video?.snippet?.title || item.snippet?.title || '')?.trim() || '';
       const lowerTitle = rawTitle.toLowerCase();
 
       // Skip private or deleted videos completely
@@ -612,7 +619,7 @@ export async function importYouTubeVideo(
   publish: (event: ImportPublishEvent) => void,
   signal: AbortSignal,
 ): Promise<ServerImportedSourceModel> {
-  const videoId = extractVideoId(request.url);
+  const videoId = extractVideoId(request?.url || '');
   if (!videoId) {
     return importWebArticle(request, publish, signal);
   }
@@ -628,7 +635,8 @@ export async function importYouTubeVideo(
     },
   });
 
-  let title = request.title || 'YouTube Video';
+  const rawReqTitle = request?.title?.trim() || '';
+  let title = rawReqTitle && rawReqTitle !== 'New source' ? rawReqTitle : 'YouTube Video';
   let description = 'Single video tutorial';
   let creator = 'YouTube Creator';
   let thumbnail = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
@@ -636,12 +644,12 @@ export async function importYouTubeVideo(
 
   try {
     const videoDetails = await fetchVideoDetails([videoId], signal);
-    const videoItem = videoDetails.items?.[0];
+    const videoItem = videoDetails?.items?.[0];
     if (videoItem) {
-      title = videoItem.snippet?.title || title;
+      title = videoItem.snippet?.title?.trim() || title;
       description = videoItem.snippet?.description || description;
       creator = videoItem.snippet?.channelTitle || creator;
-      thumbnail = pickThumbnail(videoItem.snippet?.thumbnails);
+      thumbnail = pickThumbnail(videoItem.snippet?.thumbnails) || thumbnail;
       durationSeconds = parseIsoDuration(videoItem.contentDetails?.duration || 'PT12M') || 720;
     }
   } catch {
@@ -651,10 +659,10 @@ export async function importYouTubeVideo(
         { signal },
       );
       if (oembedRes.ok) {
-        const oembedData = (await oembedRes.json()) as any;
-        if (oembedData.title) title = oembedData.title;
-        if (oembedData.author_name) creator = oembedData.author_name;
-        if (oembedData.thumbnail_url) thumbnail = oembedData.thumbnail_url;
+        const oembedData = (await oembedRes.json().catch(() => ({}))) as any;
+        if (oembedData?.title) title = (oembedData.title as string)?.trim() || title;
+        if (oembedData?.author_name) creator = oembedData.author_name;
+        if (oembedData?.thumbnail_url) thumbnail = oembedData.thumbnail_url;
       }
     } catch {
       // Ignore fallback error
@@ -662,7 +670,7 @@ export async function importYouTubeVideo(
   }
 
   const lesson: ServerImportedLessonModel = {
-    id: `${request.sourceId}-${videoId}`,
+    id: `${request?.sourceId ?? 'source'}-${videoId}`,
     title,
     thumbnail,
     description,
@@ -674,7 +682,7 @@ export async function importYouTubeVideo(
   };
 
   const importedSource: ServerImportedSourceModel = {
-    id: request.sourceId,
+    id: request?.sourceId ?? 'source',
     title,
     description,
     thumbnail,
@@ -710,33 +718,38 @@ export async function importYouTubeVideo(
   return importedSource;
 }
 
-function cleanTitleFromUrl(urlStr: string): { title: string; domain: string } {
+function cleanTitleFromUrl(urlStr?: string): { title: string; domain: string } {
   try {
-    const parsed = new URL(urlStr);
-    const domain = parsed.hostname.replace(/^www\./, '');
-    const domainName = domain.split('.')[0];
+    const trimmed = urlStr?.trim() || '';
+    if (!trimmed) {
+      return { title: 'Web Article & Reference Notes', domain: 'Web Reference' };
+    }
+    const parsed = new URL(trimmed);
+    const domain = (parsed.hostname || '').replace(/^www\./, '');
+    const domainName = domain.split('.')[0] || 'Web';
     const domainCaps = domainName.charAt(0).toUpperCase() + domainName.slice(1);
 
-    const pathSegments = parsed.pathname.split('/').filter(Boolean);
+    const pathSegments = (parsed.pathname || '').split('/').filter(Boolean);
     if (pathSegments.length > 0) {
-      const lastSeg = pathSegments[pathSegments.length - 1];
-      const secondLastSeg = pathSegments.length > 1 ? pathSegments[pathSegments.length - 2] : '';
+      const lastSeg = pathSegments[pathSegments.length - 1] || '';
+      const secondLastSeg = pathSegments.length > 1 ? pathSegments[pathSegments.length - 2] || '' : '';
       const slug = lastSeg.replace(/[-_]+/g, ' ');
       const topicContext = secondLastSeg && secondLastSeg !== 'document' ? secondLastSeg.replace(/[-_]+/g, ' ') : '';
       const formatted = slug
         .split(' ')
+        .filter(Boolean)
         .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
         .join(' ');
 
       if (topicContext) {
         const topicCaps = topicContext.charAt(0).toUpperCase() + topicContext.slice(1);
         return {
-          title: `${formatted} (${topicCaps} - ${domainCaps})`,
+          title: `${formatted || domainCaps} (${topicCaps} - ${domainCaps})`,
           domain: domainCaps,
         };
       }
       return {
-        title: `${formatted} (${domainCaps})`,
+        title: `${formatted || domainCaps} (${domainCaps})`,
         domain: domainCaps,
       };
     }
@@ -751,8 +764,9 @@ export async function importWebArticle(
   publish: (event: ImportPublishEvent) => void,
   _signal: AbortSignal,
 ): Promise<ServerImportedSourceModel> {
-  const { title: derivedTitle, domain } = cleanTitleFromUrl(request.url);
-  const title = request.title && request.title !== 'New source' && request.title.trim() ? request.title : derivedTitle;
+  const { title: derivedTitle, domain } = cleanTitleFromUrl(request?.url || '');
+  const rawTitle = request?.title?.trim() || '';
+  const title = rawTitle && rawTitle !== 'New source' ? rawTitle : derivedTitle;
   const thumbnail = 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=1200&auto=format&fit=crop';
 
   publish({

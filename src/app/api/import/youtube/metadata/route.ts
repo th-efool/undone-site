@@ -7,11 +7,13 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  const url = request.nextUrl.searchParams.get('url');
+  const rawUrl = request.nextUrl.searchParams.get('url');
   
-  if (!url) {
+  if (!rawUrl || !rawUrl.trim()) {
     return Response.json({ error: 'Missing url' }, { status: 400 });
   }
+
+  const url = rawUrl.trim();
 
   const apiKey = process.env.YOUTUBE_API_KEY;
   if (!apiKey) {
@@ -22,37 +24,44 @@ export async function GET(request: NextRequest) {
     const isPlaylist = url.includes('list=PL') || url.includes('/playlist?list=') || url.includes('list=');
     
     if (isPlaylist) {
-      const playlistId = extractPlaylistId(url);
+      let playlistId: string | null = null;
+      try {
+        playlistId = extractPlaylistId(url);
+      } catch {
+        return Response.json({ error: 'Invalid playlist URL' }, { status: 400 });
+      }
       if (!playlistId) return Response.json({ error: 'Invalid playlist URL' }, { status: 400 });
 
       const res = await fetch(`${YT_BASE}/playlists?part=snippet&id=${playlistId}&key=${apiKey}`);
-      const data = await res.json();
-      
-      const snippet = data.items?.[0]?.snippet;
-      if (snippet) {
-        return Response.json({
-          title: snippet.title,
-          thumbnailUrl: snippet.thumbnails?.maxres?.url ?? snippet.thumbnails?.high?.url ?? snippet.thumbnails?.medium?.url ?? snippet.thumbnails?.default?.url,
-        });
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        const snippet = data?.items?.[0]?.snippet;
+        if (snippet) {
+          return Response.json({
+            title: snippet.title ?? url,
+            thumbnailUrl: snippet.thumbnails?.maxres?.url ?? snippet.thumbnails?.high?.url ?? snippet.thumbnails?.medium?.url ?? snippet.thumbnails?.default?.url,
+          });
+        }
       }
     } else {
       const videoId = extractVideoId(url);
       if (!videoId) return Response.json({ error: 'Invalid video URL' }, { status: 400 });
 
       const res = await fetch(`${YT_BASE}/videos?part=snippet&id=${videoId}&key=${apiKey}`);
-      const data = await res.json();
-      
-      const snippet = data.items?.[0]?.snippet;
-      if (snippet) {
-        return Response.json({
-          title: snippet.title,
-          thumbnailUrl: snippet.thumbnails?.maxres?.url ?? snippet.thumbnails?.high?.url ?? snippet.thumbnails?.medium?.url ?? snippet.thumbnails?.default?.url,
-        });
+      if (res.ok) {
+        const data = await res.json().catch(() => null);
+        const snippet = data?.items?.[0]?.snippet;
+        if (snippet) {
+          return Response.json({
+            title: snippet.title ?? url,
+            thumbnailUrl: snippet.thumbnails?.maxres?.url ?? snippet.thumbnails?.high?.url ?? snippet.thumbnails?.medium?.url ?? snippet.thumbnails?.default?.url,
+          });
+        }
       }
     }
 
     return Response.json({ title: url, thumbnailUrl: undefined });
-  } catch (err) {
+  } catch {
     return Response.json({ error: 'Failed to fetch metadata' }, { status: 500 });
   }
 }

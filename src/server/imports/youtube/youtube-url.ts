@@ -1,7 +1,7 @@
 import { createYoutubeImportError, type YoutubeImportError } from './youtube-errors';
 
-export function extractPlaylistId(input: string): string {
-  const trimmed = input.trim();
+export function extractPlaylistId(input?: string | null): string {
+  const trimmed = input?.trim() || '';
   if (!trimmed) {
     throw createYoutubeImportError('invalid_url');
   }
@@ -25,16 +25,16 @@ export function extractPlaylistId(input: string): string {
   throw createYoutubeImportError('invalid_url');
 }
 
-export function extractVideoId(input: string): string | null {
-  const trimmed = input.trim();
+export function extractVideoId(input?: string | null): string | null {
+  const trimmed = input?.trim() || '';
   if (!trimmed) return null;
 
   try {
     const parsed = new URL(trimmed);
     const vParam = parsed.searchParams.get('v');
     if (vParam) return vParam;
-    if (parsed.hostname.includes('youtu.be')) {
-      const pathname = parsed.pathname.slice(1);
+    if (parsed.hostname?.includes('youtu.be')) {
+      const pathname = parsed.pathname?.slice(1);
       if (pathname) return pathname.split('?')[0];
     }
   } catch {
