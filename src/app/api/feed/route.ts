@@ -131,10 +131,53 @@ export async function GET(req: NextRequest) {
       }
     ];
 
-    const chunks = (await Chunk.aggregate(pipeline)) || [];
+    let chunks: any[] = [];
+    try {
+      chunks = (await Chunk.aggregate(pipeline)) || [];
+    } catch (err) {
+      console.warn("Vector search failed, falling back to basic query", err);
+    }
 
-    // If no Atlas Vector Search is set up (e.g., local dev without Atlas), 
-    // we would need a fallback here. But for now, we assume Atlas.
+    // Fallback: if no Atlas Vector Search is set up or returned 0, load random or sequential chunks
+    if (!chunks || chunks.length === 0) {
+      console.log("Vector search returned 0 chunks, falling back to basic query");
+      
+      let enrolledCohortIds: string[] = [];
+      try {
+        const { prisma } = await import('@/src/server/infrastructure/db/postgres/client');
+        const memberships = await prisma.cohortMember.findMany({
+          where: { userId: DEMO_USER_ID },
+          select: { cohortId: true }
+        });
+        enrolledCohortIds = memberships.map(m => m.cohortId);
+      } catch (err) {
+        console.warn("Failed to fetch enrolled cohorts", err);
+      }
+
+      const matchQuery: any = { chunkId: { $nin: completedChunkIds.slice(0, 200) } };
+      if (enrolledCohortIds.length > 0) {
+        matchQuery.cohortId = { $in: enrolledCohortIds };
+      }
+
+      try {
+        chunks = await Chunk.aggregate([
+          { $match: matchQuery },
+          { $sample: { size: searchLimit } }
+        ]);
+      } catch (err) {
+        console.warn("$sample failed, using basic find", err);
+        chunks = await Chunk.find(matchQuery).limit(searchLimit);
+      }
+      
+      // If still empty (e.g. no chunks in enrolled cohorts), grab literally anything
+      if (!chunks || chunks.length === 0) {
+        chunks = await Chunk.find({ chunkId: { $nin: completedChunkIds.slice(0, 200) } }).limit(searchLimit);
+      }
+      
+      if (!chunks || chunks.length === 0) {
+        chunks = await Chunk.find().limit(searchLimit);
+      }
+    }
     
     // Map candidates for feedEngine
     const feedEngineChunks = (Array.isArray(chunks) ? chunks : []).map((chunk, idx) => {
