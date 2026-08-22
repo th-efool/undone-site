@@ -1590,6 +1590,7 @@
 │   │   ├── domain/
 │   │   │   ├── cohort/
 │   │   │   │   ├── __tests__/
+│   │   │   │   │   ├── chunking.service.test.ts
 │   │   │   │   │   └── cohort.service.test.ts
 │   │   │   │   ├── chunking.service.ts
 │   │   │   │   ├── cohort.service.ts
@@ -1709,4 +1710,4 @@
 ├── tsconfig.worker.json
 └── vitest.config.mts
 
-539 directories, 1169 files
+539 directories, 1170 files
