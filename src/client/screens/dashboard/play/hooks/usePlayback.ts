@@ -239,21 +239,29 @@ export function usePlayback() {
     const videoId = activeItem.lessonVideoId || 'oHg5SJYRHA0';
     const startSecs = activeItem.startSeconds || 0;
     const endSecs = activeItem.endSeconds || startSecs + 180;
-    const container = playerContainerRef.current;
+    const hasMount = container.querySelector('#yt-player-mount');
 
-    // If player already exists and is ready, just swap the video — no teardown needed
-    if (playerRef.current && isPlayerReadyRef.current) {
+    // If player already exists in this container and is ready, just swap the video in-place
+    if (playerRef.current && hasMount && isPlayerReadyRef.current) {
       try {
         playerRef.current.loadVideoById({ videoId, startSeconds: startSecs, endSeconds: endSecs });
         playerRef.current.setPlaybackRate(playbackSpeed);
         playerRef.current.playVideo();
         setIsPlaying(true);
-      } catch {}
-      return;
+        return;
+      } catch (err) {
+        console.warn('loadVideoById failed, recreating player in container', err);
+      }
     }
 
-    // First mount (or player was destroyed): build iframe with enablejsapi=1 + origin
-    // so the IFrame API postMessage bridge works correctly
+    // Destroy any old player attached to a previous/unmounted slide container
+    if (playerRef.current) {
+      try {
+        playerRef.current.destroy();
+      } catch {}
+      playerRef.current = null;
+    }
+
     isPlayerReadyRef.current = false;
     setIsPlayerReady(false);
 
