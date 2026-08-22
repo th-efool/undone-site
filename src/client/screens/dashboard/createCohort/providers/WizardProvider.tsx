@@ -403,6 +403,8 @@ function parseSourceUrlInput(urlInput?: string): {
     }
   } else if (rawUrl.toLowerCase().includes('github.com') || domain === 'github.com') {
     type = 'GitHub Repository';
+  } else if (rawUrl.toLowerCase().includes('notion.so') || rawUrl.toLowerCase().includes('notion.site') || rawUrl.toLowerCase().includes('app.notion.com')) {
+    type = 'Notion Workspace';
   } else if (rawUrl.toLowerCase().endsWith('.pdf') || rawUrl.toLowerCase().includes('.pdf?')) {
     type = 'PDF';
   } else if (!rawUrl.startsWith('http://') && !rawUrl.startsWith('https://')) {
@@ -411,7 +413,7 @@ function parseSourceUrlInput(urlInput?: string): {
     type = 'Website';
   }
 
-  const effectiveDomain = type === 'GitHub Repository' ? 'github.com' : domain;
+  const effectiveDomain = type === 'GitHub Repository' ? 'github.com' : type === 'Notion Workspace' ? 'notion.so' : domain;
   const title = effectiveDomain || rawUrl;
 
   return {

@@ -25,7 +25,14 @@ class UniversalSourceAdapter implements ImportAdapter {
     const signal = context.signal;
 
     const promise = (async () => {
-      const response = await fetch(apiUrl('/api/import/youtube/playlist'), {
+      let endpoint = '/api/import/youtube/playlist';
+      if (context.source.type === 'Notion Workspace') {
+        endpoint = '/api/import/notion';
+      } else if (context.source.type === 'GitHub Repository') {
+        endpoint = '/api/import/github';
+      }
+
+      const response = await fetch(apiUrl(endpoint), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
