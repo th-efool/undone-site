@@ -278,6 +278,13 @@
 │   │       └── v1-designs (5).png
 │   └── ChatGPT Image Aug 11, 2026, 12_24_28 PM.png
 ├── docs/
+│   ├── reference/
+│   │   ├── docs-blueprint.md
+│   │   ├── docs-sdk.md
+│   │   ├── docs-tutorial.md
+│   │   ├── docs-workers.md
+│   │   ├── docs-workflows-defining.md
+│   │   └── docs-workflows.md
 │   ├── tooltips/
 │   │   ├── TOOLTIPS_EXPLORE.md
 │   │   ├── TOOLTIPS_HOME.md
@@ -1686,12 +1693,6 @@
 ├── README.md
 ├── build-aab.bat
 ├── capacitor.config.ts
-├── docs-blueprint.md
-├── docs-sdk.md
-├── docs-tutorial.md
-├── docs-workers.md
-├── docs-workflows-defining.md
-├── docs-workflows.md
 ├── eslint.config.mjs
 ├── excalidraw.d.ts
 ├── next.config.ts
@@ -1707,4 +1708,4 @@
 ├── tsconfig.worker.json
 └── vitest.config.mts
 
-538 directories, 1168 files
+539 directories, 1168 files
