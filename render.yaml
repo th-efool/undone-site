@@ -1,4 +1,4 @@
-﻿# render.yaml
+# render.yaml
 # Place this at the root of your repo. Render reads it on deploy.
 # This defines your two services: the main Next.js web app + the background vectorization worker.
 
@@ -27,8 +27,8 @@ services:
     type: worker
     env: node
     plan: starter          # Sponsor track: use free/starter as provided
-    buildCommand: npm install && npx tsc --project tsconfig.worker.json
-    startCommand: node dist-worker/server/worker.js
+    buildCommand: npm install && npm run build:worker
+    startCommand: npm run start:worker
     envVars:
       - key: NODE_ENV
         value: production

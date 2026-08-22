@@ -19,6 +19,8 @@ export type CreateCohortSourceType =
   | 'PDF'
   | 'Markdown'
   | 'GitHub Repository'
+  | 'Notion Workspace'
+  | 'Notion Page'
   | 'Custom Link';
 
 export interface CreateCohortSourceDraft {

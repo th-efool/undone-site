@@ -1,10 +1,10 @@
-﻿{
+{
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "outDir": "./dist-worker",
     "rootDir": "./src",
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "esnext",
+    "moduleResolution": "bundler",
     "esModuleInterop": true,
     "skipLibCheck": true,
     "paths": {
