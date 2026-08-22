@@ -61,6 +61,14 @@ export async function GET(req: NextRequest) {
     let feedEngineChunks: any[] = [];
     lessons.forEach((lesson: any) => {
       const lessonChunks = (lesson.chunks as any[]) || [];
+      if (lessonChunks.length === 0) return;
+
+      // Skip non-video lessons (no videoId) for video channels
+      const lessonVideoId = lesson.videoId || null;
+      if (!lessonVideoId) return; // no point queuing a chunk with no YT video
+
+      const totalChunksInLesson = lessonChunks.length;
+
       lessonChunks.forEach((c, idx) => {
         let durationStr = c.duration || '3m';
         let durSecs = 180;
@@ -71,12 +79,10 @@ export async function GET(req: NextRequest) {
            const match = durationStr.match(/(\d+)\s*s/);
            if (match && match[1]) durSecs = parseInt(match[1], 10);
         }
-        
-        const lessonVideoId = lesson.videoId || 'oHg5SJYRHA0';
 
         feedEngineChunks.push({
           chunkId: String(c.id),
-          chunkTitle: c.title || `Chunk ${c.order || idx + 1}`,
+          chunkTitle: c.title || `Part ${c.order || idx + 1}`,
           chunkOrder: c.order || idx + 1,
           chunkDuration: durationStr,
           startSeconds: c.startSeconds || 0, 
@@ -87,6 +93,7 @@ export async function GET(req: NextRequest) {
           cohortTitle: String(lesson.season.cohort.title),
           lessonThumbnail: lesson.thumbnailUrl || '',
           lessonVideoId: lessonVideoId,
+          totalChunksInLesson,
           lessonOrder: lesson.order,
           lessonType: 'video', 
           seasonId: String(lesson.seasonId),
@@ -94,14 +101,23 @@ export async function GET(req: NextRequest) {
           seasonOrder: lesson.season.order,
           cohortCoverImage: lesson.season.cohort.coverImage || '',
           cohortProvider: 'Unknown',
-          isStrictlyLinear: true,
+          isStrictlyLinear: false,
           isKeyConcept: false,
           chunkVector: undefined
         });
       });
     });
     
-    feedEngineChunks = feedEngineChunks.sort(() => 0.5 - Math.random());
+    // Per-channel deterministic shuffle: each channel sees a different ordering
+    // Use channel name as seed offset so switching channels gives different content
+    const channelSeeds: Record<string, number> = {
+      default: 0, spark: 7, explore: 13, build: 19, listen: 31, deep_dive: 41, quick: 53
+    };
+    const seed = channelSeeds[channelId] ?? 0;
+    feedEngineChunks = feedEngineChunks
+      .map((c, i) => ({ c, sort: Math.sin(i * 9301 + seed * 49297 + 233720935) }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(x => x.c);
 
     const feedOutput = generateFeed({
       allChunks: feedEngineChunks,

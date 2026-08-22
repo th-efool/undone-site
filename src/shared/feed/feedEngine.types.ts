@@ -87,8 +87,10 @@ export interface FeedItem {
   cohortId: string;
   lessonTitle: string;
   cohortTitle: string;
+  lessonThumbnail?: string;
+  lessonVideoId?: string;
+  totalChunksInLesson?: number;   // total chunks in this lesson, for "Chunk X / Y" display
   matchScore: number;
-  lessonVideoId?: string; // mocked in UI currently
 }
 
 export interface FeedEngineOutput {

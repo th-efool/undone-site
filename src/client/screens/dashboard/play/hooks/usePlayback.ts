@@ -468,7 +468,7 @@ export function usePlayback() {
     currentVideo: 1,
     totalVideos: 10,
     currentChunk: activeItem?.chunkOrder || 1,
-    totalChunks: 4,
+    totalChunks: activeItem?.totalChunksInLesson || activeItem?.chunkOrder || 1,
     startTime: formatSecs(activeItem?.startSeconds || 0),
     endTime: formatSecs(activeItem?.endSeconds || parseDurationToSeconds(activeItem?.chunkDuration || '180')),
     currentTime: formatSecs(currentTimeSeconds),

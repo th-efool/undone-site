@@ -167,6 +167,8 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
       lessonTitle: chunk.lessonTitle,
       cohortTitle: chunk.cohortTitle,
       lessonVideoId: chunk.lessonVideoId,
+      lessonThumbnail: chunk.lessonThumbnail,
+      totalChunksInLesson: chunk.totalChunksInLesson,
       matchScore: Math.round(compositeScore * 100) / 100,
     });
   }
