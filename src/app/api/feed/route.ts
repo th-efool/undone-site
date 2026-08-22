@@ -180,7 +180,7 @@ export async function GET(req: NextRequest) {
     }
     
     // Map candidates for feedEngine
-    const feedEngineChunks = (Array.isArray(chunks) ? chunks : []).map((chunk, idx) => {
+    let feedEngineChunks = (Array.isArray(chunks) ? chunks : []).map((chunk, idx) => {
       const durationNum = typeof chunk?.duration === 'number' && !isNaN(chunk.duration) && chunk.duration > 0 ? chunk.duration : 180;
       const durationStr = `${Math.round(durationNum / 60)} min`;
       const chunkId = chunk?.chunkId ? String(chunk.chunkId) : `chunk_${idx}`;
@@ -212,6 +212,83 @@ export async function GET(req: NextRequest) {
         chunkVector: Array.isArray(chunk?.vector) ? chunk.vector : undefined,
       };
     });
+
+    // ULTIMATE FALLBACK: If MongoDB is completely empty (vectorization hasn't run),
+    // grab raw chunks directly from Postgres Lessons!
+    if (feedEngineChunks.length === 0) {
+      console.log("MongoDB Chunk collection empty. Falling back to Postgres Lessons...");
+      try {
+        const { prisma } = await import('@/src/server/infrastructure/db/postgres/client');
+        let pgQuery: any = { chunks: { not: null } };
+        
+        // If we found their enrolled cohorts earlier, prioritize them
+        let userCohorts: string[] = [];
+        try {
+          const memberships = await prisma.cohortMember.findMany({
+            where: { userId: DEMO_USER_ID },
+            select: { cohortId: true }
+          });
+          userCohorts = memberships.map((m: any) => m.cohortId);
+        } catch(e) {}
+        
+        if (userCohorts.length > 0) {
+           pgQuery = {
+             chunks: { not: null },
+             season: { cohortId: { in: userCohorts } }
+           };
+        }
+
+        let lessons = await prisma.lesson.findMany({
+          where: pgQuery,
+          include: { season: { include: { cohort: true } } },
+          take: 20
+        });
+
+        // If enrolled cohorts have no lessons, fallback to ANY lessons
+        if (lessons.length === 0 && userCohorts.length > 0) {
+           lessons = await prisma.lesson.findMany({
+             where: { chunks: { not: null } },
+             include: { season: { include: { cohort: true } } },
+             take: 20
+           });
+        }
+
+        lessons.forEach((lesson: any) => {
+          const lessonChunks = (lesson.chunks as any[]) || [];
+          lessonChunks.forEach((c, idx) => {
+            if (completedChunkIds.includes(c.id)) return;
+            feedEngineChunks.push({
+              chunkId: String(c.id),
+              chunkTitle: c.title || `Chunk ${c.order || idx + 1}`,
+              chunkOrder: c.order || idx + 1,
+              chunkDuration: c.duration || "180s",
+              startSeconds: 0, 
+              endSeconds: 180, 
+              lessonId: String(lesson.id),
+              cohortId: String(lesson.season.cohortId),
+              lessonTitle: String(lesson.title),
+              cohortTitle: String(lesson.season.cohort.title),
+              lessonThumbnail: lesson.thumbnailUrl || '',
+              lessonOrder: lesson.order,
+              lessonType: 'video', 
+              seasonId: String(lesson.seasonId),
+              seasonTitle: String(lesson.season.title),
+              seasonOrder: lesson.season.order,
+              cohortCoverImage: lesson.season.cohort.coverImage || '',
+              cohortProvider: 'Unknown',
+              isStrictlyLinear: true,
+              isKeyConcept: false,
+              chunkVector: undefined
+            });
+          });
+        });
+        
+        // Take a random subset of chunks to mimic sample
+        feedEngineChunks = feedEngineChunks.sort(() => 0.5 - Math.random()).slice(0, searchLimit);
+      } catch(err) {
+        console.error("ULTIMATE FALLBACK FAILED:", err);
+      }
+    }
 
     // 4. Generate feed
     const feedOutput = generateFeed({
