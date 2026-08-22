@@ -166,6 +166,7 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
       cohortId: chunk.cohortId,
       lessonTitle: chunk.lessonTitle,
       cohortTitle: chunk.cohortTitle,
+      lessonVideoId: chunk.lessonVideoId,
       matchScore: Math.round(compositeScore * 100) / 100,
     });
   }

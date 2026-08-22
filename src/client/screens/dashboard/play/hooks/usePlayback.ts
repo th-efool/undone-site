@@ -234,7 +234,7 @@ export function usePlayback() {
   // Handle YouTube player creation & video switching
   useEffect(() => {
     if (!ytApiReady || !playerContainerRef.current || !activeItem) return;
-    const videoId = 'oHg5SJYRHA0'; // Mocking video ID for now since we didn't pass it back from API fully
+    const videoId = activeItem.lessonVideoId || 'oHg5SJYRHA0'; 
     
     const startSecs = activeItem.startSeconds || 0;
     const endSecs = activeItem.endSeconds || startSecs + 180;
@@ -473,7 +473,7 @@ export function usePlayback() {
     endTime: formatSecs(activeItem?.endSeconds || parseDurationToSeconds(activeItem?.chunkDuration || '180')),
     currentTime: formatSecs(currentTimeSeconds),
     totalDuration: formatSecs(chunkDurationSeconds),
-    videoId: 'oHg5SJYRHA0',
+    videoId: activeItem?.lessonVideoId || 'oHg5SJYRHA0',
   };
 
   return {
