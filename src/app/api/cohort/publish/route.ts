@@ -7,6 +7,7 @@ import { Difficulty, Visibility, LessonType, SourceType } from '@/generated/pris
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const maxDuration = 300;
 
 const sourceTypeMap: Record<string, SourceType> = {
   'YouTube Playlist': 'YOUTUBE_PLAYLIST',

@@ -92,32 +92,32 @@ export class CohortService {
       // On Render (production): WORKER_URL is set, so we fire-and-forget to the background worker
       // and return immediately. The worker runs the Gemini calls + MongoDB upserts async.
       // Locally (dev): WORKER_URL is not set, so we run inline (slower, but no separate process needed).
-      const workerUrl = process.env.WORKER_URL;
-      const workerSecret = process.env.WORKER_SECRET;
+      // const workerUrl = process.env.WORKER_URL;
+      // const workerSecret = process.env.WORKER_SECRET;
 
-      if (workerUrl) {
-        fetch(workerUrl + '/run', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(workerSecret ? { 'Authorization': 'Bearer ' + workerSecret } : {}),
-          },
-          body: JSON.stringify({
-            cohortId: cohort.id,
-            fullTranscript,
-            chunks: structuredChunks,
-          }),
-        }).catch((err) => console.error('[CohortService] Worker trigger failed:', err));
-      } else {
-        const { runCohortVectorizationWorkflow } = await import(
-          '@/src/server/infrastructure/workflows/cohortVectorizationWorkflow'
-        );
-        await runCohortVectorizationWorkflow({
-          cohortId: cohort.id,
-          fullTranscript,
-          chunks: structuredChunks,
-        });
-      }
+      // if (workerUrl) {
+      //   fetch(workerUrl + '/run', {
+      //     method: 'POST',
+      //     headers: {
+      //       'Content-Type': 'application/json',
+      //       ...(workerSecret ? { 'Authorization': 'Bearer ' + workerSecret } : {}),
+      //     },
+      //     body: JSON.stringify({
+      //       cohortId: cohort.id,
+      //       fullTranscript,
+      //       chunks: structuredChunks,
+      //     }),
+      //   }).catch((err) => console.error('[CohortService] Worker trigger failed:', err));
+      // }
+      
+      const { runCohortVectorizationWorkflow } = await import(
+        '@/src/server/infrastructure/workflows/cohortVectorizationWorkflow'
+      );
+      await runCohortVectorizationWorkflow({
+        cohortId: cohort.id,
+        fullTranscript,
+        chunks: structuredChunks,
+      });
 
 
       // 4. Set isPublished = true in Postgres upon successful save & vectorization
