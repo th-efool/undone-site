@@ -23,7 +23,13 @@ export class CohortService {
       : ['This is a mocked transcript for chunking. It contains placeholder text.'];
 
     // Basic sentence/character chunking strategy
-    const chunks: string[] = [];
+    const chunks: Array<{
+      text: string;
+      title?: string;
+      startSeconds?: number;
+      endSeconds?: number;
+      duration?: number;
+    }> = [];
     let allVectorizable = true;
 
     // Get flat list of durations from payload seasons
@@ -56,21 +62,55 @@ export class CohortService {
         allVectorizable = false;
       }
 
-      let intervals;
-      
       // Default to semantic chunking for articles if chunkingMethod isn't explicitly defined for this index
       const isArticle = lessons[i]?.lessonType === 'ARTICLE';
       const method = payload.sources?.[i]?.chunkingMethod || options?.chunkingMethod || (isArticle ? 'semantic' : 'disabled');
+      
       if (method === 'semantic') {
-        intervals = chunkingService.semanticChunking(duration);
-      } else if (method === 'fixed' || method === 'fixed_interval') {
-        intervals = chunkingService.fixedIntervalChunking(duration);
+        try {
+          const semanticResults = await chunkingService.semanticChunkTranscript(text, duration, {
+            title: lessons[i]?.title,
+          });
+          if (semanticResults && semanticResults.length > 0) {
+            chunks.push(...semanticResults.map((r, rIdx) => ({
+              text: r.text,
+              title: r.title || `Part ${rIdx + 1}`,
+              startSeconds: r.start,
+              endSeconds: r.end,
+              duration: r.end - r.start,
+            })));
+          } else {
+            throw new Error('Empty semantic chunking result');
+          }
+        } catch (err) {
+          console.warn('[CohortService] Semantic chunking failed, defaulting to fixed interval chunking:', err);
+          const intervals = chunkingService.fixedIntervalChunking(duration);
+          const parts = chunkingService.applyChunkOverlap(intervals, duration, text);
+          chunks.push(...parts.map((partText, pIdx) => ({
+            text: partText,
+            title: `${lessons[i]?.title || 'Lesson'} (Part ${pIdx + 1})`,
+            startSeconds: intervals[pIdx]?.start ?? 0,
+            endSeconds: intervals[pIdx]?.end ?? duration,
+            duration: (intervals[pIdx]?.end ?? duration) - (intervals[pIdx]?.start ?? 0),
+          })));
+        }
       } else {
-        intervals = chunkingService.disabledChunking(duration);
-      }
+        let intervals;
+        if (method === 'fixed' || method === 'fixed_interval') {
+          intervals = chunkingService.fixedIntervalChunking(duration);
+        } else {
+          intervals = chunkingService.disabledChunking(duration);
+        }
 
-      const parts = chunkingService.applyChunkOverlap(intervals, duration, text);
-      chunks.push(...parts);
+        const parts = chunkingService.applyChunkOverlap(intervals, duration, text);
+        chunks.push(...parts.map((partText, pIdx) => ({
+          text: partText,
+          title: `${lessons[i]?.title || 'Lesson'} (Part ${pIdx + 1})`,
+          startSeconds: intervals[pIdx]?.start ?? 0,
+          endSeconds: intervals[pIdx]?.end ?? duration,
+          duration: (intervals[pIdx]?.end ?? duration) - (intervals[pIdx]?.start ?? 0),
+        })));
+      }
     }
 
     if (!allVectorizable && !payload.forcePublishWithWeights) {
@@ -81,11 +121,14 @@ export class CohortService {
     await connectToMongoDB();
     try {
       const fullTranscript = transcripts.join('\n\n');
-      const structuredChunks = chunks.map((chunkText, idx) => ({
+      const structuredChunks = chunks.map((chunkItem, idx) => ({
         chunkIndex: idx,
         chunkId: `chk_${cohort.id}_${idx}`,
-        text: chunkText,
-        title: `Part ${idx + 1}`,
+        text: chunkItem.text,
+        title: chunkItem.title || `Part ${idx + 1}`,
+        startSeconds: chunkItem.startSeconds,
+        endSeconds: chunkItem.endSeconds,
+        duration: chunkItem.duration,
       }));
 
       // Fire the vectorization workflow.

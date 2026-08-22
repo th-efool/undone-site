@@ -47,7 +47,7 @@ export class VectorScoringService {
 
     try {
       const model = client.getGenerativeModel({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-3.6-flash',
         generationConfig: {
           responseMimeType: 'application/json',
           temperature: 0.1,
