@@ -234,44 +234,50 @@ export function usePlayback() {
   // Handle YouTube player creation & video switching
   useEffect(() => {
     if (!ytApiReady || !playerContainerRef.current || !activeItem) return;
-    const videoId = activeItem.lessonVideoId || 'oHg5SJYRHA0'; 
-    
+    const videoId = activeItem.lessonVideoId || 'oHg5SJYRHA0';
     const startSecs = activeItem.startSeconds || 0;
     const endSecs = activeItem.endSeconds || startSecs + 180;
     const container = playerContainerRef.current;
-    const hasMount = container.querySelector('#yt-player-mount');
 
-    if (!playerRef.current || !hasMount) {
-      if (playerRef.current && typeof playerRef.current.destroy === 'function') {
-        try { playerRef.current.destroy(); } catch {}
-        playerRef.current = null;
-      }
+    // Helper: create a proper iframe with enablejsapi=1 and origin so YT IFrame API can communicate
+    function createYTIframe(vid: string) {
+      container.innerHTML = '';
+      const origin = window.location.origin.startsWith('http') ? window.location.origin : '';
+      const params = new URLSearchParams({
+        enablejsapi: '1',
+        autoplay: '1',
+        controls: '0',
+        rel: '0',
+        modestbranding: '1',
+        fs: '0',
+        iv_load_policy: '3',
+        playsinline: '1',
+        disablekb: '1',
+        cc_load_policy: '0',
+        start: String(startSecs),
+        end: String(endSecs),
+      });
+      if (origin) params.set('origin', origin);
+
+      const iframe = document.createElement('iframe');
+      iframe.id = 'yt-player-mount';
+      iframe.src = `https://www.youtube.com/embed/${vid}?${params.toString()}`;
+      iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+      iframe.allowFullscreen = true;
+      iframe.referrerPolicy = 'strict-origin-when-cross-origin';
+      iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:0;';
+      container.appendChild(iframe);
+      return iframe;
+    }
+
+    if (!playerRef.current) {
+      // First mount: destroy any stale player
       setIsPlayerReady(false);
-
       try {
-        container.innerHTML = '';
-        const mountDiv = document.createElement('div');
-        mountDiv.id = 'yt-player-mount';
-        container.appendChild(mountDiv);
+        const iframe = createYTIframe(videoId);
 
-        playerRef.current = new window.YT.Player('yt-player-mount', {
-          videoId,
-          width: container.clientWidth || 800,
-          height: container.clientHeight || 600,
-          playerVars: {
-            autoplay: 1,
-            start: startSecs,
-            end: endSecs,
-            controls: 0,
-            rel: 0,
-            modestbranding: 1,
-            fs: 0,
-            iv_load_policy: 3,
-            playsinline: 1,
-            disablekb: 1,
-            cc_load_policy: 0,
-            showinfo: 0,
-          },
+        // Pass the DOM element directly — not a string ID — so YT.Player wraps our iframe
+        playerRef.current = new window.YT.Player(iframe, {
           events: {
             onReady: (evt: any) => {
               setIsPlayerReady(true);
@@ -290,27 +296,23 @@ export function usePlayback() {
       } catch (err) {
         console.error('Failed to mount YouTube player', err);
       }
-    } else if (isPlayerReady && playerRef.current && typeof playerRef.current.loadVideoById === 'function') {
+    } else if (isPlayerReady && typeof playerRef.current.loadVideoById === 'function') {
+      // Subsequent chunk: swap video without destroying the player
       try {
-        playerRef.current.loadVideoById({
-          videoId,
-          startSeconds: startSecs,
-          endSeconds: endSecs,
-        });
+        playerRef.current.loadVideoById({ videoId, startSeconds: startSecs, endSeconds: endSecs });
         playerRef.current.setPlaybackRate(playbackSpeed);
         playerRef.current.playVideo();
         setIsPlaying(true);
       } catch (err) {}
     }
-    
-    // 5. Memory Leak on Component Unmount - Cleanup YouTube Player
+
     return () => {
       if (playerRef.current && typeof playerRef.current.destroy === 'function') {
         try { playerRef.current.destroy(); } catch {}
         playerRef.current = null;
       }
     };
-  }, [ytApiReady, activeItem?.chunkId, currentIndex, isPlayerReady]); // 7. Stale isPlayerReady State
+  }, [ytApiReady, activeItem?.chunkId, currentIndex, isPlayerReady]);
 
   // Real-time polling timer for playback progress
   useEffect(() => {
