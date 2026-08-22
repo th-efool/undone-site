@@ -232,6 +232,8 @@ export function usePlayback() {
   }, [activeItem]);
 
   // Handle YouTube player creation & video switching
+  const isPlayerReadyRef = useRef(false);
+
   useEffect(() => {
     if (!ytApiReady || !playerContainerRef.current || !activeItem) return;
     const videoId = activeItem.lessonVideoId || 'oHg5SJYRHA0';
@@ -239,8 +241,23 @@ export function usePlayback() {
     const endSecs = activeItem.endSeconds || startSecs + 180;
     const container = playerContainerRef.current;
 
-    // Helper: create a proper iframe with enablejsapi=1 and origin so YT IFrame API can communicate
-    function createYTIframe(vid: string) {
+    // If player already exists and is ready, just swap the video — no teardown needed
+    if (playerRef.current && isPlayerReadyRef.current) {
+      try {
+        playerRef.current.loadVideoById({ videoId, startSeconds: startSecs, endSeconds: endSecs });
+        playerRef.current.setPlaybackRate(playbackSpeed);
+        playerRef.current.playVideo();
+        setIsPlaying(true);
+      } catch {}
+      return;
+    }
+
+    // First mount (or player was destroyed): build iframe with enablejsapi=1 + origin
+    // so the IFrame API postMessage bridge works correctly
+    isPlayerReadyRef.current = false;
+    setIsPlayerReady(false);
+
+    try {
       container.innerHTML = '';
       const origin = window.location.origin.startsWith('http') ? window.location.origin : '';
       const params = new URLSearchParams({
@@ -261,58 +278,45 @@ export function usePlayback() {
 
       const iframe = document.createElement('iframe');
       iframe.id = 'yt-player-mount';
-      iframe.src = `https://www.youtube.com/embed/${vid}?${params.toString()}`;
+      iframe.src = `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
       iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
       iframe.allowFullscreen = true;
       iframe.referrerPolicy = 'strict-origin-when-cross-origin';
       iframe.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;border:0;';
       container.appendChild(iframe);
-      return iframe;
-    }
 
-    if (!playerRef.current) {
-      // First mount: destroy any stale player
-      setIsPlayerReady(false);
-      try {
-        const iframe = createYTIframe(videoId);
-
-        // Pass the DOM element directly — not a string ID — so YT.Player wraps our iframe
-        playerRef.current = new window.YT.Player(iframe, {
-          events: {
-            onReady: (evt: any) => {
-              setIsPlayerReady(true);
-              evt.target.setVolume(volume);
-              evt.target.setPlaybackRate(playbackSpeed);
-              evt.target.seekTo(startSecs, true);
-              evt.target.playVideo();
-              setIsPlaying(true);
-            },
-            onStateChange: (evt: any) => {
-              if (evt.data === window.YT.PlayerState.PLAYING) setIsPlaying(true);
-              else if (evt.data === window.YT.PlayerState.PAUSED || evt.data === window.YT.PlayerState.ENDED) setIsPlaying(false);
-            },
+      playerRef.current = new window.YT.Player(iframe, {
+        events: {
+          onReady: (evt: any) => {
+            isPlayerReadyRef.current = true;
+            setIsPlayerReady(true);
+            evt.target.setVolume(volume);
+            evt.target.setPlaybackRate(playbackSpeed);
+            evt.target.seekTo(startSecs, true);
+            evt.target.playVideo();
+            setIsPlaying(true);
           },
-        });
-      } catch (err) {
-        console.error('Failed to mount YouTube player', err);
-      }
-    } else if (isPlayerReady && typeof playerRef.current.loadVideoById === 'function') {
-      // Subsequent chunk: swap video without destroying the player
-      try {
-        playerRef.current.loadVideoById({ videoId, startSeconds: startSecs, endSeconds: endSecs });
-        playerRef.current.setPlaybackRate(playbackSpeed);
-        playerRef.current.playVideo();
-        setIsPlaying(true);
-      } catch (err) {}
+          onStateChange: (evt: any) => {
+            if (evt.data === window.YT.PlayerState.PLAYING) setIsPlaying(true);
+            else if (evt.data === window.YT.PlayerState.PAUSED || evt.data === window.YT.PlayerState.ENDED) setIsPlaying(false);
+          },
+        },
+      });
+    } catch (err) {
+      console.error('Failed to mount YouTube player', err);
     }
+  }, [ytApiReady, activeItem?.chunkId, currentIndex]);
 
+  // Destroy player only on component unmount, not on every dep change
+  useEffect(() => {
     return () => {
+      isPlayerReadyRef.current = false;
       if (playerRef.current && typeof playerRef.current.destroy === 'function') {
         try { playerRef.current.destroy(); } catch {}
         playerRef.current = null;
       }
     };
-  }, [ytApiReady, activeItem?.chunkId, currentIndex, isPlayerReady]);
+  }, []);
 
   // Real-time polling timer for playback progress
   useEffect(() => {
