@@ -100,6 +100,7 @@ export const feedRepository = {
                 lessonThumbnail: lesson.thumbnail || cohort.coverImage,
                 lessonVideoId: videoId,
                 lessonVideoUrl: videoUrl,
+                totalChunksInLesson: lesson.chunks?.length || 1,
                 lessonOrder: lessonIdx + 1,
                 lessonType: lesson.type || 'video',
 
@@ -130,6 +131,7 @@ export const feedRepository = {
               lessonThumbnail: lesson.thumbnail || cohort.coverImage,
               lessonVideoId: videoId,
               lessonVideoUrl: videoUrl,
+              totalChunksInLesson: 1,
               lessonOrder: lessonIdx + 1,
               lessonType: lesson.type || 'video',
 
