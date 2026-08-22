@@ -5,12 +5,18 @@ import { Chunk } from '@/src/server/database/mongo/models/Chunk';
 import { computeTargetVector } from '@/src/shared/curriculum/pedagogicalVector.engine';
 import { ChannelId } from '@/src/shared/curriculum/pedagogicalVector.types';
 import { generateFeed } from '@/src/shared/feed/feedEngine';
+import { prisma } from '@/src/server/infrastructure/db/postgres/client';
+
+import { auth } from '@/src/server/infrastructure/auth/auth.config';
 
 // Example dummy user for now until auth is fully wired
 const DEMO_USER_ID = 'demo_user_123';
 
 export async function GET(req: NextRequest) {
   try {
+    const session = await auth();
+    const userId = session?.user?.id || DEMO_USER_ID;
+
     const searchParams = req.nextUrl.searchParams;
     const rawChannel = searchParams.get('channel');
     const validChannels: ChannelId[] = ['default', 'spark', 'explore', 'build', 'listen', 'deep_dive', 'quick'];
@@ -47,10 +53,10 @@ export async function GET(req: NextRequest) {
     }
 
     // 1. Fetch all user progress, sorted newest first
-    const allUserProgress = (await UserChunkProgress.find({ userId: DEMO_USER_ID }).sort({ updatedAt: -1 })) || [];
+    const allUserProgress = (await UserChunkProgress.find({ userId: userId }).sort({ updatedAt: -1 })) || [];
     const userProgressList = Array.isArray(allUserProgress) ? allUserProgress : [];
     const completedChunkIds = userProgressList
-      .filter(p => p && p.status === 'COMPLETED' && p.chunkId)
+      .filter(p => p && (p.status === 'COMPLETED' || p.status === 'completed') && p.chunkId)
       .map(p => String(p.chunkId));
 
     const chunkProgressRecord: Record<string, { chunkId: string; lessonId: string; cohortId: string; status: 'completed' | 'in-progress' | 'not-started'; watchedSeconds: number; totalSeconds: number; }> = {};
@@ -146,7 +152,7 @@ export async function GET(req: NextRequest) {
       try {
         const { prisma } = await import('@/src/server/infrastructure/db/postgres/client');
         const memberships = await prisma.cohortMember.findMany({
-          where: { userId: DEMO_USER_ID },
+          where: { userId: userId },
           select: { cohortId: true }
         });
         enrolledCohortIds = memberships.map(m => m.cohortId);
@@ -218,14 +224,13 @@ export async function GET(req: NextRequest) {
     if (feedEngineChunks.length === 0) {
       console.log("MongoDB Chunk collection empty. Falling back to Postgres Lessons...");
       try {
-        const { prisma } = await import('@/src/server/infrastructure/db/postgres/client');
         let pgQuery: any = { chunks: { not: null } };
         
         // If we found their enrolled cohorts earlier, prioritize them
         let userCohorts: string[] = [];
         try {
           const memberships = await prisma.cohortMember.findMany({
-            where: { userId: DEMO_USER_ID },
+            where: { userId: userId },
             select: { cohortId: true }
           });
           userCohorts = memberships.map((m: any) => m.cohortId);
