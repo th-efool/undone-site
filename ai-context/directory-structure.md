@@ -443,6 +443,7 @@
 │   └── window.svg
 ├── scripts/
 │   ├── db-backup.mjs
+│   ├── inspect_db.ts
 │   ├── mobile-build.mjs
 │   ├── mobile-release-aab.mjs
 │   ├── seedNotesData.ts
@@ -1708,4 +1709,4 @@
 ├── tsconfig.worker.json
 └── vitest.config.mts
 
-539 directories, 1168 files
+539 directories, 1169 files
