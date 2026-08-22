@@ -47,7 +47,7 @@ export async function importNotionPage(
   });
 
   const tenantId = request.sourceId;
-  const t = corsair.withTenant ? (corsair as any).withTenant(tenantId) : corsair;
+  const t = (corsair as any).withTenant ? (corsair as any).withTenant(tenantId) : (corsair as any);
 
   let pageInfo;
   try {
@@ -138,7 +138,7 @@ export async function importNotionPage(
     description: extraction?.description?.trim() || '',
     thumbnail: 'https://images.unsplash.com/photo-1542435503-956c469947f6?q=80&w=1200&auto=format&fit=crop',
     provider: 'Notion Workspace',
-    creator: extraction?.author?.trim() || 'Notion User',
+    creator: (extraction as any)?.author?.trim() || 'Notion User',
     lessonCount: lessons.length,
     totalDuration: formatDuration(totalSeconds),
     estimatedSeasonCount: Math.max(1, Math.ceil(lessons.length / 8)),

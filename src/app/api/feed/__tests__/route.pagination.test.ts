@@ -2,6 +2,52 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import { GET } from '../route';
 import { Chunk } from '@/src/server/database/mongo/models/Chunk';
+import { generateFeed } from '@/src/shared/feed/feedEngine';
+
+vi.mock('@/src/server/infrastructure/auth/auth.config', () => ({
+  auth: vi.fn().mockResolvedValue({ user: { id: 'test_user_id' } }),
+}));
+
+vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({
+  prisma: {
+    cohortMember: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    lesson: {
+      findMany: vi.fn().mockResolvedValue([
+        {
+          id: 'lesson1',
+          title: 'Lesson 1',
+          order: 1,
+          thumbnailUrl: '',
+          videoId: 'oHg5SJYRHA0',
+          seasonId: 'season1',
+          season: {
+            id: 'season1',
+            title: 'Season 1',
+            order: 1,
+            cohortId: 'cohort1',
+            cohort: {
+              id: 'cohort1',
+              title: 'Cohort 1',
+              coverImage: '',
+            }
+          },
+          chunks: [
+            {
+              id: 'chunk1',
+              title: 'Chunk 1',
+              order: 1,
+              duration: '3m',
+              startSeconds: 0,
+              endSeconds: 180,
+            }
+          ]
+        }
+      ]),
+    },
+  },
+}));
 
 vi.mock('@/src/server/infrastructure/db/mongodb/client', () => ({
   connectToMongoDB: vi.fn(),
@@ -42,31 +88,28 @@ vi.mock('@/src/shared/feed/feedEngine', () => ({
   generateFeed: vi.fn().mockReturnValue({ items: [] }),
 }));
 
-describe('GET /api/feed pagination scaling limit', () => {
+describe('GET /api/feed pagination slicing', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should scale the $vectorSearch limit beyond 50 for pageIndex = 2', async () => {
-    vi.mocked(Chunk.aggregate as any).mockResolvedValue([]);
+  it('should paginate items according to pageIndex and limit', async () => {
+    const mockItems = Array.from({ length: 15 }, (_, i) => ({
+      chunkId: `chunk_${i}`,
+      chunkTitle: `Chunk ${i}`,
+    }));
 
-    const req = new NextRequest('http://localhost/api/feed?pageIndex=2');
-    await GET(req);
+    vi.mocked(generateFeed).mockReturnValue({
+      items: mockItems as any,
+    } as any);
 
-    expect(Chunk.aggregate).toHaveBeenCalled();
-    const aggregateArgs = vi.mocked(Chunk.aggregate as any).mock.calls[0][0];
+    const req = new NextRequest('http://localhost/api/feed?pageIndex=1&limit=5');
+    const response = await GET(req);
+    const json = await response.json();
 
-    // Pipeline should be an array
-    expect(Array.isArray(aggregateArgs)).toBe(true);
-
-    // Find the $vectorSearch stage
-    const vectorSearchStage = aggregateArgs.find((stage: any) => stage.$vectorSearch);
-    expect(vectorSearchStage).toBeDefined();
-
-    // For pageIndex 2, limit = 6, searchLimit = Math.max(50, (2 + 1) * 6 + 40) = 58
-    expect(vectorSearchStage.$vectorSearch.limit).toBe(58);
-    
-    // searchNumCandidates = Math.max(150, 58 + 100) = 158
-    expect(vectorSearchStage.$vectorSearch.numCandidates).toBe(158);
+    expect(response.status).toBe(200);
+    expect(json.items).toHaveLength(5);
+    expect(json.items[0].chunkId).toBe('chunk_5');
+    expect(json.items[4].chunkId).toBe('chunk_9');
   });
 });

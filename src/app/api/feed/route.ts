@@ -18,11 +18,19 @@ export async function GET(req: NextRequest) {
 
     const pageIndex = parseInt(searchParams.get('pageIndex') || '0', 10);
     const limit = parseInt(searchParams.get('limit') || '5', 10);
-    const currentTime = new Date();
+    
+    const tzOffsetStr = searchParams.get('timezoneOffset');
+    let currentTime = new Date();
+    if (tzOffsetStr) {
+      const offsetMins = parseInt(tzOffsetStr, 10);
+      if (!isNaN(offsetMins)) {
+        currentTime = new Date(Date.now() - offsetMins * 60 * 1000);
+      }
+    }
     
     // FAST PATH: Bypass Gemini and MongoDB completely to ensure lightning fast UI.
     
-    let pgQuery: any = { chunks: { not: null } };
+    let pgQuery: any = { chunks: { not: null as any } };
     let userCohorts: string[] = [];
     try {
       const memberships = await prisma.cohortMember.findMany({
@@ -33,7 +41,7 @@ export async function GET(req: NextRequest) {
     } catch(e) {}
     
     if (userCohorts.length > 0) {
-       pgQuery = { chunks: { not: null }, season: { cohortId: { in: userCohorts } } };
+       pgQuery = { chunks: { not: null as any }, season: { cohortId: { in: userCohorts } } };
     }
 
     let lessons = await prisma.lesson.findMany({
@@ -44,7 +52,7 @@ export async function GET(req: NextRequest) {
 
     if (lessons.length === 0) {
        lessons = await prisma.lesson.findMany({
-         where: { chunks: { not: null } },
+         where: { chunks: { not: null as any } },
          include: { season: { include: { cohort: true } } },
          take: 20
        });
@@ -54,11 +62,14 @@ export async function GET(req: NextRequest) {
     lessons.forEach((lesson: any) => {
       const lessonChunks = (lesson.chunks as any[]) || [];
       lessonChunks.forEach((c, idx) => {
-        let durationStr = c.duration || '180in';
+        let durationStr = c.duration || '3m';
         let durSecs = 180;
         if (durationStr.includes('m')) {
-           const match = durationStr.match(/(\d)�m/);
-           if (match) durSecs = parseInt(match[1]) * 60;
+           const match = durationStr.match(/(\d+)\s*m/);
+           if (match && match[1]) durSecs = parseInt(match[1], 10) * 60;
+        } else if (durationStr.includes('s')) {
+           const match = durationStr.match(/(\d+)\s*s/);
+           if (match && match[1]) durSecs = parseInt(match[1], 10);
         }
         
         const lessonVideoId = lesson.videoId || 'oHg5SJYRHA0';
