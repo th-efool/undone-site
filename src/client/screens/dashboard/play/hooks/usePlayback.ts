@@ -256,6 +256,8 @@ export function usePlayback() {
 
         playerRef.current = new window.YT.Player('yt-player-mount', {
           videoId,
+          width: container.clientWidth || 800,
+          height: container.clientHeight || 600,
           playerVars: {
             autoplay: 1,
             start: startSecs,
