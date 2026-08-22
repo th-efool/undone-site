@@ -14,9 +14,11 @@ const sourceTypeMap: Record<string, SourceType> = {
   'Website': 'WEBSITE',
   'PDF': 'PDF',
   'Markdown': 'MARKDOWN',
-  'GitHub Repository': 'GITHUB',
+  'GitHub Repository': 'GITHUB_REPO',
+  'GitHub': 'GITHUB_REPO',
   'Notion Page': 'NOTION',
   'Notion Workspace': 'NOTION',
+  'Notion': 'NOTION',
   'Custom Link': 'CUSTOM_LINK',
 };
 
