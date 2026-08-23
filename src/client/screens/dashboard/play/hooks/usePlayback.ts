@@ -236,6 +236,7 @@ export function usePlayback() {
 
   useEffect(() => {
     if (!ytApiReady || !playerContainerRef.current || !activeItem) return;
+    const container = playerContainerRef.current;
     const videoId = activeItem.lessonVideoId || 'oHg5SJYRHA0';
     const startSecs = activeItem.startSeconds || 0;
     const endSecs = activeItem.endSeconds || startSecs + 180;
