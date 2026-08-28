@@ -621,6 +621,8 @@
 │   │   │   │   │   ├── SearchBar.tsx
 │   │   │   │   │   └── index.ts
 │   │   │   │   ├── Sidebar/
+│   │   │   │   │   ├── ProfilePill.module.css
+│   │   │   │   │   ├── ProfilePill.tsx
 │   │   │   │   │   ├── Sidebar.module.css
 │   │   │   │   │   ├── Sidebar.tsx
 │   │   │   │   │   ├── SidebarItem.module.css
@@ -1710,4 +1712,4 @@
 ├── tsconfig.worker.json
 └── vitest.config.mts
 
-539 directories, 1170 files
+539 directories, 1172 files
