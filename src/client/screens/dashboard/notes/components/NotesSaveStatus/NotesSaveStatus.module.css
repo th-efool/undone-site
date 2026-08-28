@@ -9,7 +9,25 @@
 }
 
 .saving {
-  color: var(--color-gray-500);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-amber-500, #f59e0b);
+}
+
+.dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--color-amber-500, #f59e0b);
+  animation: pulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.75); }
 }
 
 .saved {
@@ -39,3 +57,4 @@
   width: 14px;
   height: 14px;
 }
+

@@ -1,0 +1,130 @@
+.container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: auto;
+  padding-bottom: var(--space-2);
+}
+
+.pill {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid var(--color-surface);
+  background: var(--color-surface);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  transition: all var(--duration-fast);
+}
+
+.pill:hover {
+  transform: scale(1.05);
+  border-color: var(--color-text-secondary);
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarFallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-brand);
+  color: #fff;
+  font-weight: var(--font-bold);
+  font-size: var(--text-sm);
+}
+
+.dropdown {
+  position: absolute;
+  bottom: 0;
+  left: calc(100% + var(--space-2));
+  min-width: 200px;
+  background: var(--color-surface-elevated, #ffffff);
+  border: 1px solid var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--space-1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+  animation: slideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Dark mode handling since dark sidebar forces specific colors */
+:global(.darkSidebar) .dropdown {
+  background: #111;
+  border-color: #333;
+}
+:global(.darkSidebar) .divider {
+  background: #333;
+}
+:global(.darkSidebar) .name {
+  color: #fff;
+}
+:global(.darkSidebar) .email {
+  color: #94a3b8;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.userInfo {
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.name {
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  text-align: left;
+}
+
+.email {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.divider {
+  height: 1px;
+  background: var(--color-surface);
+  margin: var(--space-1) 0;
+}
+
+.logoutButton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+  transition: all var(--duration-fast);
+}
+
+.logoutButton:hover {
+  background: rgba(239, 68, 68, 0.1);
+  color: rgb(239, 68, 68);
+}

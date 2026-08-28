@@ -1,16 +1,3 @@
-'use client';
-
-import dynamic from 'next/dynamic';
-import type { CanvasSceneData, CanvasState } from '../../models/canvas.models';
-import styles from './NotesCanvas.module.css';
-import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
-import { GridSettingsConfig } from './HamburgerGridControls';
-
-import '@/src/app/styles/excalidraw.css';
-
-// Dynamically import our wrapper so it only loads on the client
-const ExcalidrawWrapper = dynamic(
-  () => import('./ExcalidrawWrapper'),
   { ssr: false }
 );
 

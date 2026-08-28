@@ -6,6 +6,7 @@ import { getRouteTheme } from '@/src/client/config/routeThemeConfig';
 import { Logo } from '../Logo';
 import { SIDEBAR_ITEMS } from './sidebar.data';
 import { SidebarItem } from './SidebarItem';
+import { ProfilePill } from './ProfilePill';
 
 import styles from './Sidebar.module.css';
 
@@ -37,6 +38,7 @@ export function Sidebar() {
           />
         ))}
       </nav>
+      <ProfilePill />
     </aside>
   );
 }

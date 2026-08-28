@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+﻿import { useEffect, useRef } from 'react';
 import { canvasRepository } from '../repositories/canvas.repository';
 import { canvasAdapter, CANVAS_SCHEMA_VERSION } from '../adapters/canvas.adapter';
 import type { CanvasState, CanvasSceneData } from '../models/canvas.models';
@@ -14,7 +14,7 @@ export function useCanvasPersistence(
   const saveTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    // Before unloading, warn if there's an error and it's dirty
+    // Before unloading, warn if there are unsaved changes
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirtyRef.current) {
         e.preventDefault();
@@ -34,33 +34,43 @@ export function useCanvasPersistence(
 
     saveTimeout.current = setTimeout(async () => {
       if (!sceneRef.current || !noteId) return;
-      
-      try {
-        const serialized = canvasAdapter.serialize(sceneRef.current);
-        const now = new Date().toISOString();
-        
-        await canvasRepository.save({
-          noteId,
-          scene: serialized,
-          schemaVersion: CANVAS_SCHEMA_VERSION,
-          savedAt: now,
-        });
 
+      const serialized = canvasAdapter.serialize(sceneRef.current);
+      const now = new Date().toISOString();
+
+      const result = await canvasRepository.save({
+        noteId,
+        scene: serialized,
+        schemaVersion: CANVAS_SCHEMA_VERSION,
+        savedAt: now,
+      });
+
+      if (result.ok) {
         isDirtyRef.current = false;
-        setCanvasState((s) => ({
-          ...s,
-          isDirty: false,
-          status: 'saved',
-          lastSavedAt: now,
-          errorMessage: null,
-        }));
-        
+        if (result.trimmed) {
+          // Partial save — elements saved, some images were stripped
+          setCanvasState((s) => ({
+            ...s,
+            isDirty: false,
+            status: 'saved',
+            lastSavedAt: now,
+            errorMessage: result.reason, // surfaced in the UI as a warning
+          }));
+        } else {
+          setCanvasState((s) => ({
+            ...s,
+            isDirty: false,
+            status: 'saved',
+            lastSavedAt: now,
+            errorMessage: null,
+          }));
+        }
         if (onSaveComplete) onSaveComplete();
-      } catch (err) {
+      } else {
         setCanvasState((s) => ({
           ...s,
           status: 'error',
-          errorMessage: err instanceof Error ? err.message : 'Save failed',
+          errorMessage: result.error,
         }));
       }
     }, 1500);
@@ -68,8 +78,12 @@ export function useCanvasPersistence(
     return () => {
       if (saveTimeout.current) {
         clearTimeout(saveTimeout.current);
-        // Synchronous fire-and-forget save before unmount
+
         if (isDirtyRef.current && sceneRef.current && noteId) {
+          // Emergency backup first (sync, never throws) — belt-and-suspenders
+          canvasRepository.saveImmediate(noteId, sceneRef.current, CANVAS_SCHEMA_VERSION);
+
+          // Then attempt a proper primary save (with partial-save fallback built in)
           const serialized = canvasAdapter.serialize(sceneRef.current);
           canvasRepository.save({
             noteId,
@@ -80,5 +94,5 @@ export function useCanvasPersistence(
         }
       }
     };
-  }, [noteId, saveTrigger]); // re-run debounce every time saveTrigger changes
+  }, [noteId, saveTrigger]);
 }

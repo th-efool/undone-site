@@ -17,6 +17,8 @@ export function useCanvasScene(noteId: string | null) {
   const sceneRef = useRef<CanvasSceneData | null>(null);
   const isDirtyRef = useRef(false);
   const triggerRef = useRef(0);
+  // Track the noteId that sceneRef currently belongs to, for cleanup saves
+  const activeNoteIdRef = useRef<string | null>(null);
 
   // Used to notify useCanvasPersistence without re-rendering the whole tree
   const [saveTrigger, setSaveTrigger] = useState(0);
@@ -50,6 +52,16 @@ export function useCanvasScene(noteId: string | null) {
       return;
     }
 
+    // ─── Emergency flush before loading a new note ───────────────────────────
+    // If we're switching away from a dirty note, write its scene to localStorage
+    // immediately (synchronous) before we reset state for the incoming note.
+    const previousNoteId = activeNoteIdRef.current;
+    if (previousNoteId && previousNoteId !== noteId && isDirtyRef.current && sceneRef.current) {
+      canvasRepository.saveImmediate(previousNoteId, sceneRef.current, CANVAS_SCHEMA_VERSION);
+    }
+
+    activeNoteIdRef.current = noteId;
+
     let isMounted = true;
     setLoading(true);
     setCanvasState(s => ({ ...s, status: 'loading' }));
@@ -81,7 +93,14 @@ export function useCanvasScene(noteId: string | null) {
   const handleSceneChange = useCallback((scene: CanvasSceneData) => {
     sceneRef.current = scene;
     triggerRef.current += 1;
-    
+
+    // ─── SAFETY NET: write to localStorage immediately, every change ──────────
+    // This is the emergency backup. Even if the debounced save below never fires
+    // (e.g. user switches notes within 1s), this snapshot is always retrievable.
+    if (noteId) {
+      canvasRepository.saveImmediate(noteId, scene, CANVAS_SCHEMA_VERSION);
+    }
+
     // We update the state once so UI can reflect "saving..." or "unsaved changes"
     if (!isDirtyRef.current) {
       isDirtyRef.current = true;
