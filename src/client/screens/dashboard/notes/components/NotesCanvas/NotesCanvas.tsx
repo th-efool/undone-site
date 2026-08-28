@@ -1,3 +1,17 @@
+﻿'use client';
+
+import dynamic from 'next/dynamic';
+import type { CanvasSceneData, CanvasState } from '../../models/canvas.models';
+import styles from './NotesCanvas.module.css';
+import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
+import { GridSettingsConfig } from './HamburgerGridControls';
+import { MAX_IMAGE_FILE_BYTES } from '../../repositories/canvas.repository';
+
+import '@/src/app/styles/excalidraw.css';
+
+// Dynamically import our wrapper so it only loads on the client
+const ExcalidrawWrapper = dynamic(
+  () => import('./ExcalidrawWrapper'),
   { ssr: false }
 );
 
@@ -41,6 +55,9 @@ export function NotesCanvas({
 
   const containerRef = useRef<HTMLDivElement>(null);
   const lastMousePos = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+
+  // Track which file IDs Excalidraw already knows about to detect new uploads
+  const knownFileIdsRef = useRef<Set<string>>(new Set());
 
   const initialData = useMemo(() => {
     if (!initialScene) {
@@ -214,7 +231,27 @@ export function NotesCanvas({
       }
     };
 
+    /**
+     * Validate a file before inserting it into the canvas.
+     * Returns true if ok, shows an alert and returns false if too big.
+     */
+    const validateFileSize = (file: File): boolean => {
+      if (file.size > MAX_IMAGE_FILE_BYTES) {
+        const maxMB = (MAX_IMAGE_FILE_BYTES / 1024 / 1024).toFixed(0);
+        const fileMB = (file.size / 1024 / 1024).toFixed(1);
+        alert(
+          `"${file.name}" is ${fileMB} MB — images must be under ${maxMB} MB each.\n\n` +
+          `Tip: compress it first (TinyPNG, Squoosh, etc.) and re-upload.`
+        );
+        return false;
+      }
+      return true;
+    };
+
     const handleGifUpload = (file: File, clientX: number, clientY: number) => {
+      // ── Validate size at upload time ─────────────────────────────────────────
+      if (!validateFileSize(file)) return;
+
       const reader = new FileReader();
       reader.onload = (event) => {
         const dataUrl = event.target?.result as string;
@@ -311,6 +348,53 @@ export function NotesCanvas({
   const handleChange = useCallback((elements: any, appState: any, files: any) => {
     paintCustomGrid(appState, gridConfigRef.current);
     
+    // ── Detect newly uploaded images via Excalidraw native handler ─────────────
+    // Excalidraw adds images to the `files` map on upload. We diff against our
+    // known set to find new ones and immediately validate their size.
+    if (files && excalidrawAPI) {
+      const fileEntries = Object.entries(files) as [string, any][];
+      const oversizedIds: string[] = [];
+
+      for (const [fileId, fileData] of fileEntries) {
+        if (knownFileIdsRef.current.has(fileId)) continue; // already seen
+        knownFileIdsRef.current.add(fileId);
+
+        // dataURL length (base64) is ~4/3 of the raw byte size
+        const approxBytes = fileData?.dataURL
+          ? Math.round((fileData.dataURL.length * 3) / 4)
+          : 0;
+
+        if (approxBytes > MAX_IMAGE_FILE_BYTES) {
+          oversizedIds.push(fileId);
+        }
+      }
+
+      if (oversizedIds.length > 0) {
+        const maxMB = (MAX_IMAGE_FILE_BYTES / 1024 / 1024).toFixed(0);
+
+        // Remove the elements that reference the oversized files
+        const cleanedElements = (elements as any[]).filter(
+          (el) => !(el.fileId && oversizedIds.includes(el.fileId))
+        );
+
+        // Update scene without the bad elements
+        excalidrawAPI.updateScene({ elements: cleanedElements });
+
+        // Alert the user immediately
+        alert(
+          `${oversizedIds.length > 1 ? `${oversizedIds.length} images were` : 'An image was'} rejected because ` +
+          `${oversizedIds.length > 1 ? 'they exceed' : 'it exceeds'} the ${maxMB} MB limit per image.\n\n` +
+          `Tip: compress images at squoosh.app or tinypng.com before uploading.`
+        );
+
+        // Remove them from known set so we don't re-process
+        oversizedIds.forEach(id => knownFileIdsRef.current.delete(id));
+
+        // Don't propagate the change with oversized files
+        return;
+      }
+    }
+
     const { collaborators, ...restAppState } = appState;
     
     onSceneChange({
@@ -321,7 +405,7 @@ export function NotesCanvas({
       },
       files,
     });
-  }, [onSceneChange, currentBg]);
+  }, [onSceneChange, currentBg, excalidrawAPI]);
 
   return (
     <div ref={containerRef} className={styles.container} style={{ backgroundColor: currentBg }}>
