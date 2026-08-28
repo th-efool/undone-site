@@ -53,6 +53,7 @@ export function NotesCanvas({
   const [currentBg, setCurrentBg] = useState<string>(initialRealBg);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const lastMousePos = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
 
   const initialData = useMemo(() => {
     if (!initialScene) {
@@ -148,6 +149,11 @@ export function NotesCanvas({
 
   // Right-click drag panning for desktop mouse users
   useEffect(() => {
+    const trackMouse = (e: MouseEvent) => {
+      lastMousePos.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener('mousemove', trackMouse);
+
     const container = containerRef.current;
     if (!container || !excalidrawAPI) return;
 
@@ -235,8 +241,8 @@ export function NotesCanvas({
         if (container) rect = container.getBoundingClientRect();
         
         // Excalidraw coordinate math
-        const x = (clientX - rect.left) / zoom - (appState.scrollX || 0);
-        const y = (clientY - rect.top) / zoom - (appState.scrollY || 0);
+        const x = (clientX - rect.left) / zoom - (appState.scrollX || 0) - (400 / 2);
+        const y = (clientY - rect.top) / zoom - (appState.scrollY || 0) - (300 / 2);
         
         const id = Math.random().toString(36).substring(2, 9);
         const newElement = {
@@ -277,7 +283,7 @@ export function NotesCanvas({
           e.preventDefault();
           e.stopPropagation();
           const file = item.getAsFile();
-          if (file) handleGifUpload(file, window.innerWidth / 2, window.innerHeight / 2);
+          if (file) handleGifUpload(file, lastMousePos.current.x, lastMousePos.current.y);
           return;
         }
       }
@@ -304,6 +310,7 @@ export function NotesCanvas({
     container.addEventListener('drop', handleDrop as any, { capture: true });
 
     return () => {
+      window.removeEventListener('mousemove', trackMouse);
       container.removeEventListener('pointerdown', handlePointerDown, { capture: true });
       window.removeEventListener('pointermove', handlePointerMove, { capture: true });
       window.removeEventListener('pointerup', handlePointerUp, { capture: true });
