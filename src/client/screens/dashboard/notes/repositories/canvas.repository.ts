@@ -21,8 +21,8 @@ export class CanvasRepository {
     if (typeof window === 'undefined') return;
     try {
       const data = JSON.stringify(doc);
-      if (data.length > 4.5 * 1024 * 1024) {
-        throw new Error('StorageExceededError: Serialized scene exceeds 4.5MB limit.');
+      if (data.length > 2 * 1024 * 1024) {
+        throw new Error('StorageExceededError: Serialized scene exceeds 2MB limit.');
       }
       window.localStorage.setItem(this.getKey(doc.noteId), data);
     } catch (e) {

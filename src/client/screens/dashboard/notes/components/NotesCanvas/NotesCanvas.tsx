@@ -221,95 +221,16 @@ export function NotesCanvas({
       }
     };
 
-    const handleGifUpload = (file: File, clientX: number, clientY: number) => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const dataUrl = event.target?.result as string;
-        if (!dataUrl) return;
-        
-        const appState = excalidrawAPI.getAppState();
-        const zoom = appState.zoom?.value || 1;
-        
-        const container = containerRef.current;
-        let rect = { left: 0, top: 0 };
-        if (container) rect = container.getBoundingClientRect();
-        
-        // Excalidraw coordinate math
-        const x = (clientX - rect.left) / zoom - (appState.scrollX || 0);
-        const y = (clientY - rect.top) / zoom - (appState.scrollY || 0);
-        
-        const id = Math.random().toString(36).substring(2, 9);
-        const newElement = {
-          type: 'embeddable',
-          id: id,
-          x: x,
-          y: y,
-          width: 400,
-          height: 300,
-          link: dataUrl,
-          version: 1,
-          versionNonce: Math.floor(Math.random() * 1000000),
-          isDeleted: false,
-          groupIds: [],
-          boundElements: null,
-          updated: Date.now(),
-          backgroundColor: "transparent",
-          strokeColor: "transparent",
-          fillStyle: "hachure",
-          strokeWidth: 1,
-          strokeStyle: "solid",
-          roughness: 1,
-          opacity: 100,
-        };
-        
-        excalidrawAPI.updateScene({
-          elements: [...excalidrawAPI.getSceneElements(), newElement]
-        });
-      };
-      reader.readAsDataURL(file);
-    };
-
-    const handlePaste = (e: ClipboardEvent) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (const item of Array.from(items)) {
-        if (item.type === 'image/gif') {
-          e.preventDefault();
-          e.stopPropagation();
-          const file = item.getAsFile();
-          if (file) handleGifUpload(file, window.innerWidth / 2, window.innerHeight / 2);
-          return;
-        }
-      }
-    };
-
-    const handleDrop = (e: DragEvent) => {
-      const files = e.dataTransfer?.files;
-      if (!files) return;
-      for (const file of Array.from(files)) {
-        if (file.type === 'image/gif') {
-          e.preventDefault();
-          e.stopPropagation();
-          handleGifUpload(file, e.clientX, e.clientY);
-          return;
-        }
-      }
-    };
-
     container.addEventListener('pointerdown', handlePointerDown, { capture: true });
     window.addEventListener('pointermove', handlePointerMove, { capture: true });
     window.addEventListener('pointerup', handlePointerUp, { capture: true });
     container.addEventListener('contextmenu', handleContextMenu, { capture: true });
-    container.addEventListener('paste', handlePaste as any, { capture: true });
-    container.addEventListener('drop', handleDrop as any, { capture: true });
 
     return () => {
       container.removeEventListener('pointerdown', handlePointerDown, { capture: true });
       window.removeEventListener('pointermove', handlePointerMove, { capture: true });
       window.removeEventListener('pointerup', handlePointerUp, { capture: true });
       container.removeEventListener('contextmenu', handleContextMenu, { capture: true });
-      container.removeEventListener('paste', handlePaste as any, { capture: true });
-      container.removeEventListener('drop', handleDrop as any, { capture: true });
     };
   }, [excalidrawAPI]);
 
