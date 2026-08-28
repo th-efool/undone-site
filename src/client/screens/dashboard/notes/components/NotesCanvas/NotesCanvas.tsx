@@ -268,7 +268,7 @@ export function NotesCanvas({
         initialData={initialData}
         onChange={handleChange}
         viewModeEnabled={isReadOnly}
-        theme="light"
+        theme="dark"
         UIOptions={useMemo(() => ({
           canvasActions: {
             changeViewBackgroundColor: false,
