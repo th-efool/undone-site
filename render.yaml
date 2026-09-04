@@ -1,12 +1,15 @@
 # render.yaml
 # Place this at the root of your repo. Render reads it on deploy.
-# This defines your two services: the main Next.js web app + the background vectorization worker.
+
+databases:
+  - name: sidequesthq-postgres
+    plan: starter # $7/mo
 
 services:
   - name: sidequesthq-web
     type: web
     env: node
-    plan: free
+    plan: starter # Upgrade to starter ($7/mo) to avoid sleep/cold-starts for chat
     buildCommand: npm run build
     startCommand: npm start
     envVars:
@@ -14,19 +17,21 @@ services:
         value: production
       - key: GEMINI_API_KEY
         sync: false
-      - key: MONGODB_URI
-        sync: false
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: sidequesthq-postgres
+          property: connectionString
       - key: NEXTAUTH_SECRET
         sync: false
       - key: NEXTAUTH_URL
+        sync: false
+      - key: CENTRIFUGO_API_KEY
         sync: false
 
   - name: sidequesthq-worker
     type: worker
     env: node
-    plan: starter          # Sponsor track: use free/starter as provided
+    plan: starter
     buildCommand: npm install && npm run build:worker
     startCommand: npm run start:worker
     envVars:
@@ -34,9 +39,23 @@ services:
         value: production
       - key: GEMINI_API_KEY
         sync: false
-      - key: MONGODB_URI
-        sync: false
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: sidequesthq-postgres
+          property: connectionString
       - key: WORKER_SECRET
         sync: false
+
+  - name: sidequesthq-centrifugo
+    type: web
+    env: docker
+    plan: starter # $7/mo
+    # We use the official Docker image for Centrifugo
+    image: centrifugal/centrifugo:v5
+    envVars:
+      - key: CENTRIFUGO_TOKEN_HMAC_SECRET_KEY
+        sync: false # Set this in Render dashboard (should match what the Next.js app uses to mint JWTs)
+      - key: CENTRIFUGO_API_KEY
+        sync: false # Set this in Render dashboard (Next.js app needs this to publish messages via API)
+      - key: CENTRIFUGO_ALLOWED_ORIGINS
+        value: "*" # Or your production domains for CORS

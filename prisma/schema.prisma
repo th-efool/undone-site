@@ -24,11 +24,14 @@ model User {
   sessions      Session[]
   publicProfile PublicProfile?
 
-  cohorts           Cohort[]
-  cohortMemberships CohortMember[]
-  messages          Message[]
-  studyRooms        RoomParticipant[]
-  lessonProgress    LessonProgress[]
+  cohorts             Cohort[]
+  cohortMemberships   CohortMember[]
+  messages            Message[]
+  studyRooms          RoomParticipant[]
+  lessonProgress      LessonProgress[]
+  conversationMembers ConversationMember[]
+  pendingMessages     PendingMessage[]
+  deviceTokens        DeviceToken[]
 
   @@map("users")
 }
@@ -197,9 +200,10 @@ model Community {
   chatEnabled   Boolean @default(true)
   eventsEnabled Boolean @default(true)
 
-  cohortId String    @unique
-  cohort   Cohort    @relation(fields: [cohortId], references: [id], onDelete: Cascade)
-  channels Channel[]
+  cohortId      String         @unique
+  cohort        Cohort         @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  channels      Channel[]
+  conversations Conversation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -337,4 +341,82 @@ model LessonProgress {
 
   @@id([userId, lessonId])
   @@map("lesson_progress")
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  CHAT ROUTING MODELS
+// ─────────────────────────────────────────────────────────────────
+enum ConversationType {
+  DIRECT
+  GROUP_DM
+  CHANNEL
+}
+
+enum MessageDeliveryStatus {
+  SENDING
+  SENT
+  DELIVERED
+  READ
+}
+
+model Conversation {
+  id          String           @id @default(cuid())
+  type        ConversationType
+  title       String?
+  communityId String?
+  community   Community?       @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  members         ConversationMember[]
+  pendingMessages PendingMessage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("conversations")
+}
+
+model ConversationMember {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role           String?
+  lastReadAt     DateTime?
+  isPinned       Boolean      @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([conversationId, userId])
+  @@map("conversation_members")
+}
+
+model PendingMessage {
+  id             String                @id @default(cuid())
+  conversationId String
+  conversation   Conversation          @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content        String                @db.Text
+  clientId       String                @unique
+  status         MessageDeliveryStatus
+  attachments    Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("pending_messages")
+}
+
+model DeviceToken {
+  id       String @id @default(cuid())
+  userId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token    String @unique
+  platform String
+
+  createdAt DateTime @default(now())
+
+  @@map("device_tokens")
 }

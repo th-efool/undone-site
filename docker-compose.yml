@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  centrifugo:
+    image: centrifugo/centrifugo:v5
+    container_name: centrifugo
+    ports:
+      - "8000:8000"
+    environment:
+      - CENTRIFUGO_TOKEN_HMAC_SECRET_KEY=supersecret
+      - CENTRIFUGO_API_KEY=apikey
+    command: centrifugo

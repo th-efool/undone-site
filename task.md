@@ -1,13 +1,21 @@
 # Task Updates
 
-NotesCanvas.tsx:128-150 — Update initialData gridConfig size and gridMode.
-NotesCanvas.tsx:151-168 — Sync gridConfigRef.current before updateScene, send grid config.
-NotesCanvas.tsx:178-216 — Delete 5x5 grid generation, only paint horizontal/vertical.
-NotesCanvas.tsx:221-231 — Pass transparent viewBackgroundColor in updateScene.
-NotesCanvas.tsx:250-275 — Update handleChange to not read from inverted Excalidraw color.
-NotesCanvas.tsx:277-278 — Set container div backgroundColor to currentBg.
-NotesCanvas.tsx:299-311 — Remove zIndex from grid overlay.
-HamburgerGridControls.module.css:79-90 — Add padding: 0 to fix slider thumb clipping.
-SliderProgressEngine.tsx — Create engine to intercept global range slider interactions.
-layout.tsx — Import and initialize the SliderProgressEngine globally.
-Slider.css — Rewrite track styling to use linear-gradient for filled/unfilled colors and add halo states.
+## Wave 1 (Foundation)
+- [x] Database & Schema (Server-Side) - Prisma schema updated with Conversation, ConversationMember, PendingMessage, DeviceToken. Run `prisma generate`.
+- [x] Real-Time Transport - Added Centrifugo to `render.yaml`.
+- [x] Client-Side Database - Created WatermelonDB schemas and models for Conversation, ConversationMember, Message, Attachment. Setup LokiJS/SQLite adapters in `index.ts`.
+
+## Wave 2 (Backend APIs)
+- [ ] Implement `src/app/api/chat/centrifugo-token/route.ts`
+- [ ] Implement `src/app/api/chat/send/route.ts`
+- [ ] Implement `src/app/api/chat/ack/route.ts`
+- [ ] Implement `src/app/api/chat/sync/route.ts`
+
+## Wave 3 (Frontend Refactor)
+- [ ] Strip localStorage from `useMessage.ts` and use `@nozbe/watermelondb/react` hooks
+- [ ] Add `exportHistory.ts` utility
+
+## Wave 4 (Mobile/Capacitor)
+- [ ] Request push notification permissions in `CapacitorBridge.tsx`
+- [ ] Send token to backend
+- [ ] Deep link into Message screen

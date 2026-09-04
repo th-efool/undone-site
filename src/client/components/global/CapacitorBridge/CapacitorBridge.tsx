@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { apiUrl } from '@/src/shared/api/apiUrl';
 
 function isCapacitorNative(): boolean {
   return typeof window !== 'undefined' && Boolean((window as Window & { Capacitor?: { isNativePlatform?: () => boolean; getPlatform?: () => string } }).Capacitor?.isNativePlatform?.());
@@ -55,13 +56,20 @@ export function CapacitorBridge() {
     let cancelled = false;
     let removeAppUrlOpen: (() => void) | undefined;
     let removeBackButton: (() => void) | undefined;
+    let removePushRegistration: (() => void) | undefined;
+    let removePushAction: (() => void) | undefined;
 
     void (async () => {
       let App: any;
+      let PushNotifications: any;
       try {
         const pkgName = '@capacitor/app';
         const capApp = await import(pkgName);
         App = capApp.App;
+
+        const pushPkgName = '@capacitor/push-notifications';
+        const pushMod = await import(pushPkgName);
+        PushNotifications = pushMod.PushNotifications;
       } catch {
         return;
       }
@@ -108,12 +116,51 @@ export function CapacitorBridge() {
       removeBackButton = () => {
         void backButtonHandle.remove();
       };
+
+      if (PushNotifications) {
+        try {
+          const permStatus = await PushNotifications.requestPermissions();
+          if (permStatus.receive === 'granted') {
+            await PushNotifications.register();
+          }
+
+          const regHandle = await PushNotifications.addListener('registration', async (token: { value: string }) => {
+            try {
+              await fetch(apiUrl('/api/user/device-token'), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ token: token.value }),
+              });
+            } catch (err) {
+              console.error('Error saving device token', err);
+            }
+          });
+          removePushRegistration = () => { void regHandle.remove(); };
+
+          const actionHandle = await PushNotifications.addListener(
+            'pushNotificationActionPerformed',
+            (notification: any) => {
+              const data = notification.notification.data;
+              if (data?.channelId) {
+                router.push(`/message?channelId=${data.channelId}`);
+              } else if (data?.conversationId) {
+                router.push(`/message?conversationId=${data.conversationId}`);
+              }
+            }
+          );
+          removePushAction = () => { void actionHandle.remove(); };
+        } catch (err) {
+          console.error('Error initializing PushNotifications', err);
+        }
+      }
     })();
 
     return () => {
       cancelled = true;
       removeAppUrlOpen?.();
       removeBackButton?.();
+      removePushRegistration?.();
+      removePushAction?.();
       document.documentElement.removeAttribute('data-platform');
     };
   }, [router]);
