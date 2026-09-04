@@ -540,6 +540,11 @@
 │   │   │   │       └── route.ts
 │   │   │   ├── studyroom/
 │   │   │   │   └── route.ts
+│   │   │   ├── user/
+│   │   │   │   ├── channel-config/
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── cohort-config/
+│   │   │   │       └── route.ts
 │   │   │   └── workspace/
 │   │   │       ├── canvas/
 │   │   │       │   └── route.ts
@@ -1588,7 +1593,9 @@
 │   │   │       └── models/
 │   │   │           ├── Chunk.ts
 │   │   │           ├── CohortTranscript.ts
-│   │   │           └── UserChunkProgress.ts
+│   │   │           ├── UserChannelConfig.ts
+│   │   │           ├── UserChunkProgress.ts
+│   │   │           └── UserCohortConfig.ts
 │   │   ├── domain/
 │   │   │   ├── cohort/
 │   │   │   │   ├── __tests__/
@@ -1713,4 +1720,4 @@
 ├── tsconfig.worker.json
 └── vitest.config.mts
 
-539 directories, 1173 files
+542 directories, 1177 files
