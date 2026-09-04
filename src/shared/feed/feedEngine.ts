@@ -170,35 +170,48 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
       lessonThumbnail: chunk.lessonThumbnail,
       totalChunksInLesson: chunk.totalChunksInLesson,
       matchScore: Math.round(compositeScore * 100) / 100,
+      lessonOrder: chunk.lessonOrder,
+      seasonOrder: chunk.seasonOrder,
+      totalLessonsInSeason: (chunk as any).totalLessonsInSeason,
     });
   }
 
   // 4. Sort by score descending
   scoredItems.sort((a, b) => b.matchScore - a.matchScore);
 
-  // 5. Anti-Fatigue Interleaving: prevent > 2 consecutive chunks from the same cohort
+  // 5. Anti-Fatigue Interleaving:
+  //    - Never show >1 consecutive chunk from the same LESSON (mix lessons every step)
+  //    - Never show >2 consecutive chunks from the same COHORT
   const interleaved: FeedItem[] = [];
   const pool = [...scoredItems];
+  let lastLessonId: string | null = null;
   let lastCohortId: string | null = null;
   let sameCohortCount = 0;
 
   while (pool.length > 0) {
     let nextIndex = 0;
 
-    if (lastCohortId && sameCohortCount >= 2) {
-      const diffIndex = pool.findIndex((item) => item.cohortId !== lastCohortId);
-      if (diffIndex !== -1) {
-        nextIndex = diffIndex;
-      }
+    // Prefer a different lesson first, then fall back to different cohort constraint
+    const diffLessonIndex = pool.findIndex((item) => item.lessonId !== lastLessonId);
+    const diffCohortIndex = pool.findIndex((item) => item.cohortId !== lastCohortId);
+
+    if (lastLessonId !== null && diffLessonIndex !== -1) {
+      // Always switch lesson after each chunk — this is the core mixing behaviour
+      nextIndex = diffLessonIndex;
+    } else if (lastCohortId && sameCohortCount >= 2 && diffCohortIndex !== -1) {
+      nextIndex = diffCohortIndex;
     }
+    // else: pool exhausted of alternatives, take whatever is left at index 0
 
     const [selected] = pool.splice(nextIndex, 1);
+
     if (selected.cohortId === lastCohortId) {
       sameCohortCount++;
     } else {
       lastCohortId = selected.cohortId;
       sameCohortCount = 1;
     }
+    lastLessonId = selected.lessonId;
 
     interleaved.push(selected);
 

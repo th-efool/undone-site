@@ -481,13 +481,16 @@ export function usePlayback() {
     subtitle: activeItem ? `${activeItem.chunkTitle} • ${activeItem.cohortTitle}` : '',
     cohortTitle: activeItem?.cohortTitle || '',
     cohortId: activeItem?.cohortId || '',
-    seasonOrder: 1,
-    currentVideo: 1,
-    totalVideos: 10,
+    // Real season/lesson position from feed data (Bug #2 fix)
+    seasonOrder: activeItem?.seasonOrder ?? 1,
+    currentVideo: activeItem?.lessonOrder ?? 1,
+    totalVideos: activeItem?.totalLessonsInSeason ?? activeItem?.lessonOrder ?? 1,
     currentChunk: activeItem?.chunkOrder || 1,
     totalChunks: activeItem?.totalChunksInLesson || activeItem?.chunkOrder || 1,
-    startTime: formatSecs(activeItem?.startSeconds || 0),
-    endTime: formatSecs(activeItem?.endSeconds || parseDurationToSeconds(activeItem?.chunkDuration || '180')),
+    // Chunk-relative times: player always seeks to startSeconds, so from the user's POV
+    // playback begins at 00:00 and runs for the chunk duration (Bug #2 fix)
+    startTime: '00:00',
+    endTime: formatSecs(chunkDurationSeconds),
     currentTime: formatSecs(currentTimeSeconds),
     totalDuration: formatSecs(chunkDurationSeconds),
     videoId: activeItem?.lessonVideoId || 'oHg5SJYRHA0',

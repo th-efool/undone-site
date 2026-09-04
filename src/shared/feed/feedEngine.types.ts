@@ -92,6 +92,10 @@ export interface FeedItem {
   lessonVideoId?: string;
   totalChunksInLesson?: number;   // total chunks in this lesson, for "Chunk X / Y" display
   matchScore: number;
+  // Lesson/season position metadata for UI display (S{seasonOrder} V{lessonOrder}/{totalLessonsInSeason})
+  lessonOrder?: number;
+  seasonOrder?: number;
+  totalLessonsInSeason?: number;
 }
 
 export interface FeedEngineOutput {

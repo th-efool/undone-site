@@ -69,7 +69,14 @@ export async function GET(req: NextRequest) {
 
       const totalChunksInLesson = lessonChunks.length;
 
-      lessonChunks.forEach((c, idx) => {
+      // Sort ascending by order so accumulation is correct
+      const sortedChunks = [...lessonChunks].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+      // Bug #1 fix: accumulate startSeconds per-lesson.
+      // If a chunk has explicit startSeconds in DB, use it. Otherwise derive from running offset.
+      let runningOffset = 0;
+
+      sortedChunks.forEach((c, idx) => {
         let durationStr = c.duration || '3m';
         let durSecs = 180;
         if (durationStr.includes('m')) {
@@ -80,13 +87,20 @@ export async function GET(req: NextRequest) {
            if (match && match[1]) durSecs = parseInt(match[1], 10);
         }
 
+        // Use stored values if non-null; otherwise accumulate from running offset
+        const startSecs = c.startSeconds != null ? c.startSeconds : runningOffset;
+        const endSecs   = c.endSeconds   != null ? c.endSeconds   : startSecs + durSecs;
+
+        // Advance the running offset for the next chunk
+        runningOffset = endSecs;
+
         feedEngineChunks.push({
           chunkId: String(c.id),
           chunkTitle: c.title || `Part ${c.order || idx + 1}`,
           chunkOrder: c.order || idx + 1,
           chunkDuration: durationStr,
-          startSeconds: c.startSeconds || 0, 
-          endSeconds: c.endSeconds || durSecs, 
+          startSeconds: startSecs,
+          endSeconds: endSecs,
           lessonId: String(lesson.id),
           cohortId: String(lesson.season.cohortId),
           lessonTitle: String(lesson.title),
@@ -94,11 +108,13 @@ export async function GET(req: NextRequest) {
           lessonThumbnail: lesson.thumbnailUrl || '',
           lessonVideoId: lessonVideoId,
           totalChunksInLesson,
-          lessonOrder: lesson.order,
-          lessonType: 'video', 
+          // Bug #2 fix: real season/lesson order from DB
+          lessonOrder: lesson.order ?? 1,
+          seasonOrder: lesson.season.order ?? 1,
+          totalLessonsInSeason: undefined, // not easily available per-lesson without extra query
+          lessonType: 'video',
           seasonId: String(lesson.seasonId),
           seasonTitle: String(lesson.season.title),
-          seasonOrder: lesson.season.order,
           cohortCoverImage: lesson.season.cohort.coverImage || '',
           cohortProvider: 'Unknown',
           isStrictlyLinear: false,
@@ -108,16 +124,36 @@ export async function GET(req: NextRequest) {
       });
     });
     
-    // Per-channel deterministic shuffle: each channel sees a different ordering
-    // Use channel name as seed offset so switching channels gives different content
+    // Bug #3 fix: Round-robin interleave across lessons so the feed engine
+    // receives a diverse candidate pool — one chunk per lesson in rotation.
+    // Group chunks by lessonId, preserving per-lesson chunk order (sorted above).
+    const chunksByLesson = new Map<string, any[]>();
+    for (const chunk of feedEngineChunks) {
+      const list = chunksByLesson.get(chunk.lessonId) ?? [];
+      list.push(chunk);
+      chunksByLesson.set(chunk.lessonId, list);
+    }
+    // Rotate through different lessons (and different cohorts) for variety.
+    // Optionally shuffle the lesson order using channel seed so different channels
+    // still get different lesson orderings.
     const channelSeeds: Record<string, number> = {
       default: 0, spark: 7, explore: 13, build: 19, listen: 31, deep_dive: 41, quick: 53
     };
     const seed = channelSeeds[channelId] ?? 0;
-    feedEngineChunks = feedEngineChunks
-      .map((c, i) => ({ c, sort: Math.sin(i * 9301 + seed * 49297 + 233720935) }))
+    const lessonBuckets = [...chunksByLesson.values()]
+      .map((bucket, i) => ({ bucket, sort: Math.sin(i * 9301 + seed * 49297 + 233720935) }))
       .sort((a, b) => a.sort - b.sort)
-      .map(x => x.c);
+      .map(x => x.bucket);
+
+    feedEngineChunks = [];
+    let maxLen = Math.max(...lessonBuckets.map(b => b.length), 0);
+    for (let round = 0; round < maxLen; round++) {
+      for (const bucket of lessonBuckets) {
+        if (round < bucket.length) {
+          feedEngineChunks.push(bucket[round]);
+        }
+      }
+    }
 
     const feedOutput = generateFeed({
       allChunks: feedEngineChunks,
