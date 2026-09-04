@@ -1,5 +1,6 @@
 'use client';
 
+import { homeStorageAdapter } from '@/src/client/repositories/homeStorageAdapter';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { HomeSkeleton } from '@/src/client/components/global/Skeleton';
 import { EmptyState } from '@/src/client/components/global/EmptyState';
@@ -21,7 +22,7 @@ interface HomeDesktopProps {
 export function HomeDesktop({ model: home }: HomeDesktopProps) {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [isPausedOpen, setIsPausedOpen] = useState(false);
+  const [isPausedOpen, setIsPausedOpen] = useState(() => homeStorageAdapter.getStoredPausedOpen());
   const [isCompletedOpen, setIsCompletedOpen] = useState(false);
   const [pace, setPace] = useState(20);
 
@@ -106,7 +107,11 @@ export function HomeDesktop({ model: home }: HomeDesktopProps) {
         completedItems={home.recentlyCompleted}
         isPausedOpen={showPausedList}
         isCompletedOpen={showCompletedList}
-        onTogglePaused={() => setIsPausedOpen((prev) => !prev)}
+        onTogglePaused={() => setIsPausedOpen((prev) => {
+          const next = !prev;
+          homeStorageAdapter.savePausedOpen(next);
+          return next;
+        })}
         onToggleCompleted={() => setIsCompletedOpen((prev) => !prev)}
       />
 

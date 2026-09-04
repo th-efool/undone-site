@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Compass, Hammer, Headphones, Search, Rabbit, Coffee, Info, Tv, Clock, Zap, Map, Footprints, BookOpen, Layers, Focus, Brain, Target, Briefcase, MonitorOff, Car, Star, Lightbulb, PlayCircle, Activity } from 'lucide-react';
 import styles from './ChannelHub.module.css';
@@ -228,24 +228,37 @@ const INTRO_COPY = [
 ];
 
 export function ChannelHub() {
-  const [selectedId, setSelectedId] = useState<ChannelId>('quick');
-  const [prefs, setPrefs] = useState<Record<string, string>>({});
+  const [selectedId, setSelectedId] = useState<ChannelId>(() => {
+    if (typeof window === 'undefined') return 'quick';
+    try {
+      const saved = localStorage.getItem('sidequest_active_channel') as ChannelId;
+      return saved && CHANNELS.some(c => c.id === saved) ? saved : 'quick';
+    } catch { return 'quick'; }
+  });
+  const [prefs, setPrefs] = useState<Record<string, string>>(() => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const savedPrefs = localStorage.getItem('sidequest_channel_prefs');
+      return savedPrefs ? JSON.parse(savedPrefs) : {};
+    } catch { return {}; }
+  });
   const [introIndex, setIntroIndex] = useState(0);
+
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function debouncedSyncChannel(channelId: string, updatedPrefs: Record<string, string>) {
+    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+    syncTimerRef.current = setTimeout(() => {
+      fetch('/api/user/channel-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activeChannel: channelId, prefs: updatedPrefs }),
+      }).catch(() => {});
+    }, 1500);
+  }
 
   useEffect(() => {
     setIntroIndex(Math.floor(Math.random() * INTRO_COPY.length));
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = localStorage.getItem('sidequest_active_channel') as ChannelId;
-        if (saved && CHANNELS.some(c => c.id === saved)) {
-          setSelectedId(saved);
-        }
-        const savedPrefs = localStorage.getItem('sidequest_channel_prefs');
-        if (savedPrefs) {
-          setPrefs(JSON.parse(savedPrefs));
-        }
-      } catch {}
-    }
   }, []);
 
   const handleChannelSelect = (id: ChannelId) => {
@@ -255,6 +268,7 @@ export function ChannelHub() {
         localStorage.setItem('sidequest_active_channel', id);
       } catch {}
     }
+    debouncedSyncChannel(id, prefs);
   };
 
   const channel = CHANNELS.find(c => c.id === selectedId)!;
@@ -266,6 +280,7 @@ export function ChannelHub() {
   function setPref(channelId: ChannelId, controlId: string, optionId: string) {
     setPrefs(p => {
       const updated = { ...p, [`${channelId}_${controlId}`]: optionId };
+      debouncedSyncChannel(channelId, updated);
       if (typeof window !== 'undefined') {
         const persist = () => {
           try {

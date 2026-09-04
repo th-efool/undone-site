@@ -73,4 +73,18 @@ export const homeStorageAdapter = {
 
     return this.getStoredChoices();
   },
+  savePausedOpen(isOpen: boolean): void {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem('sidequest_paused_open', isOpen ? '1' : '0');
+    } catch {}
+  },
+
+  getStoredPausedOpen(): boolean {
+    if (typeof window === 'undefined') return false;
+    try {
+      return localStorage.getItem('sidequest_paused_open') === '1';
+    } catch { return false; }
+  },
+
 };
