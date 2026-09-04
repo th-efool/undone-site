@@ -293,6 +293,8 @@
 │   │   └── TOOLTIPS_PLAY.md
 │   ├── ANDROID.md
 │   ├── ARCHITECTURE.md
+│   ├── FEASIBILITY_AND_COMPETITORS.md
+│   ├── FLOW_OF_SOLUTION.md
 │   ├── canvas-ui-change-plan.md
 │   ├── content-metadata-architecture.md
 │   ├── feed-architecture.md
@@ -498,6 +500,15 @@
 │   │   │   ├── auth/
 │   │   │   │   └── [...nextauth]/
 │   │   │   │       └── route.ts
+│   │   │   ├── chat/
+│   │   │   │   ├── ack/
+│   │   │   │   │   └── route.ts
+│   │   │   │   ├── centrifugo-token/
+│   │   │   │   │   └── route.ts
+│   │   │   │   ├── send/
+│   │   │   │   │   └── route.ts
+│   │   │   │   └── sync/
+│   │   │   │       └── route.ts
 │   │   │   ├── cohort/
 │   │   │   │   ├── [id]/
 │   │   │   │   │   └── join/
@@ -540,6 +551,9 @@
 │   │   │   │       └── route.ts
 │   │   │   ├── studyroom/
 │   │   │   │   └── route.ts
+│   │   │   ├── upload/
+│   │   │   │   └── presigned/
+│   │   │   │       └── route.ts
 │   │   │   ├── user/
 │   │   │   │   ├── channel-config/
 │   │   │   │   │   └── route.ts
@@ -698,7 +712,16 @@
 │   │   │       └── index.ts
 │   │   ├── config/
 │   │   │   └── routeThemeConfig.ts
+│   │   ├── db/
+│   │   │   ├── models/
+│   │   │   │   ├── Attachment.ts
+│   │   │   │   ├── Conversation.ts
+│   │   │   │   ├── ConversationMember.ts
+│   │   │   │   └── Message.ts
+│   │   │   ├── index.ts
+│   │   │   └── schema.ts
 │   │   ├── hooks/
+│   │   │   ├── useCentrifugo.ts
 │   │   │   ├── useExperience.ts
 │   │   │   ├── useIsMobile.ts
 │   │   │   ├── usePullToRefresh.ts
@@ -1430,6 +1453,7 @@
 │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   ├── utils/
 │   │   │   │   │   │   ├── communityMapping.ts
+│   │   │   │   │   │   ├── exportHistory.ts
 │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   ├── Message.module.css
 │   │   │   │   │   ├── Message.tsx
@@ -1704,6 +1728,7 @@
 ├── README.md
 ├── build-aab.bat
 ├── capacitor.config.ts
+├── docker-compose.yml
 ├── eslint.config.mjs
 ├── excalidraw.d.ts
 ├── next.config.ts
@@ -1720,4 +1745,4 @@
 ├── tsconfig.worker.json
 └── vitest.config.mts
 
-542 directories, 1177 files
+551 directories, 1193 files
