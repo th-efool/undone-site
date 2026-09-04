@@ -81,6 +81,7 @@
     "prisma": "^7.9.1",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vercel": "^59.11.7",
     "vitest": "^4.1.11"
   },
   "overrides": {
