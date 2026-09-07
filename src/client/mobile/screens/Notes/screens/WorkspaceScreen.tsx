@@ -102,7 +102,7 @@ export function WorkspaceScreen({ notes, onBack, onSelectNote }: WorkspaceScreen
     onSelectNote(noteId);
   };
 
-  const handleCreateNote = (contentType: 'canvas' | 'kanban', title?: string) => {
+  const handleCreateNote = (contentType: 'canvas' | 'kanban' | 'markdown', title?: string) => {
     setSheetOpen(false);
     notes.actions.createNote(selectedNotebook?.id, { contentType, title });
   };
@@ -177,6 +177,10 @@ export function WorkspaceScreen({ notes, onBack, onSelectNote }: WorkspaceScreen
              <button className={styles.spaceActionBtn} onClick={() => handleCreateNote('kanban', 'New Board')}>
                 <div className={styles.spaceActionIcon}><Layout size={20} /></div>
                 <span className={styles.spaceActionLabel}>Kanban</span>
+             </button>
+             <button className={styles.spaceActionBtn} onClick={() => handleCreateNote('markdown', 'New Block Note')}>
+                <div className={styles.spaceActionIcon}><FileText size={20} /></div>
+                <span className={styles.spaceActionLabel}>Block</span>
              </button>
           </div>
         </div>
@@ -368,6 +372,16 @@ export function WorkspaceScreen({ notes, onBack, onSelectNote }: WorkspaceScreen
               <div>
                 <span className={styles.sheetOptionTitle}>Kanban board</span>
                 <span className={styles.sheetOptionSub}>Task columns with cards</span>
+              </div>
+            </button>
+            <button
+              className={styles.sheetOption}
+              onClick={() => handleCreateNote('markdown')}
+            >
+              <FileText size={20} color="#10b981" />
+              <div>
+                <span className={styles.sheetOptionTitle}>Block note</span>
+                <span className={styles.sheetOptionSub}>Markdown block editor</span>
               </div>
             </button>
           </div>

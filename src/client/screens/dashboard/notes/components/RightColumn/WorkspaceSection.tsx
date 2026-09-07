@@ -150,7 +150,7 @@ export function WorkspaceSection(props: WorkspaceSectionProps) {
           onClick={(e) => {
             e.stopPropagation();
             if (state?.selectedNotebookId) {
-              actions.createNote(state.selectedNotebookId);
+              actions.createNote(state.selectedNotebookId, { contentType: 'markdown' });
             }
           }}
           title="New Note"

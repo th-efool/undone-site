@@ -165,8 +165,16 @@ export function NotesWorkspace({
         </article>
       ) : !selected ? (
         <article className={styles.overview}>
-          <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', paddingBottom: '80px', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#a1a1aa' }}>
-            Select a note to view canvas
+          <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', paddingBottom: '80px', display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#a1a1aa' }}>
+            <div>Select a note to view canvas</div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button style={{ padding: '8px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }} onClick={() => notes.data?.selectedNotebook && notes.actions.createNote(notes.data.selectedNotebook.id)}>
+                New Note (Canvas)
+              </button>
+              <button style={{ padding: '8px 16px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }} onClick={() => notes.data?.selectedNotebook && notes.actions.createNote(notes.data.selectedNotebook.id, { contentType: 'markdown' })}>
+                New Block Note
+              </button>
+            </div>
           </div>
         </article>
       ) : selected.contentType === 'kanban' ? (
