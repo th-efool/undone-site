@@ -15,11 +15,7 @@ const colCssMap: Record<string, string> = {
   done:        'sqhq-col-done',
 };
 
-const now = new Date();
-const daysAgo = (n: number) => new Date(now.getTime() - n * 86400000).toISOString();
-
 let nextColId = 100;
-let nextCardId = 10;
 
 const INITIAL_COLUMNS = [
   { id: 'todo',       label: 'To Do'       },
@@ -28,14 +24,7 @@ const INITIAL_COLUMNS = [
   { id: 'done',       label: 'Done'        },
 ];
 
-const INITIAL_CARDS: any[] = [
-  { id: 1, column: 'todo',       label: 'Research competitors',    description: 'Analyze top 5 competitors and document key differentiators.', type: 'Research', priority: 'medium', updatedAt: daysAgo(2) },
-  { id: 2, column: 'todo',       label: 'Write documentation',     description: 'Draft onboarding guide and API reference for the platform.',   type: 'Docs',     priority: 'low',    updatedAt: daysAgo(3) },
-  { id: 3, column: 'inprogress', label: 'Implement Kanban board',  description: 'Integrate SVAR React Kanban with dark theme into Notes.',       type: 'Feature',  priority: 'high',   updatedAt: daysAgo(1) },
-  { id: 4, column: 'inprogress', label: 'Design system tokens',    description: 'Define color, spacing, and typography tokens.',                type: 'UI',       priority: 'medium', updatedAt: daysAgo(2) },
-  { id: 5, column: 'review',     label: 'Auth flow revamp',        description: 'Improve sign-in and sign-up UX based on user feedback.',        type: 'Auth',     priority: 'high',   updatedAt: daysAgo(4) },
-  { id: 6, column: 'done',       label: 'Setup project structure', description: 'Scaffold Next.js app with TypeScript, ESLint, and Prettier.',   type: 'DevOps',   priority: 'low',    updatedAt: daysAgo(6) },
-];
+const INITIAL_CARDS: any[] = [];
 
 interface Column { id: string; label: string }
 
@@ -43,7 +32,7 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
   const note = notes?.state?.notes?.find((n: any) => n.id === noteId);
 
   const [columns, _setColumns] = useState<Column[]>(note?.kanbanColumns || INITIAL_COLUMNS);
-  const [cards, _setCards]     = useState<any[]>(note?.kanbanCards || INITIAL_CARDS);
+  const [cards, _setCards]     = useState<any[]>(note?.kanbanCards ?? INITIAL_CARDS);
 
   const setColumns = (updater: any) => {
     _setColumns(prev => {
@@ -127,6 +116,10 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
       const titleEl = target.closest('.wx-title');
       const colEl   = target.closest('[data-col-id]') as HTMLElement | null;
       if (!titleEl || !colEl) return;
+      
+      // Don't trigger if they clicked an input or button inside the title
+      if (target.tagName.toLowerCase() === 'input' || target.tagName.toLowerCase() === 'button' || target.closest('button')) return;
+
       const colId = colEl.dataset.colId;
       if (!colId) return;
       const col = columns.find(c => c.id === colId);
@@ -136,8 +129,10 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
     };
 
     const dblClickHandler = (e: MouseEvent) => {
+      const target = e.target as Element;
+      if (target.tagName.toLowerCase() === 'input') return;
       e.preventDefault();
-      triggerRename(e.target as Element);
+      triggerRename(target);
     };
 
     // Mobile: detect two taps within 300ms on the same column title
@@ -146,6 +141,8 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
     const touchEndHandler = (e: TouchEvent) => {
       const now = Date.now();
       const target = e.target as Element;
+      if (target.tagName.toLowerCase() === 'input') return;
+
       if (now - lastTapTime < 300 && lastTapTarget === target.closest('.wx-title')) {
         e.preventDefault();
         triggerRename(target);
@@ -161,7 +158,6 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
       wrapper.removeEventListener('touchend', touchEndHandler);
     };
   }, [columns]);
-
 
   /* ── Native dragging (SVAR handles touch natively, removing custom pointer intercept to fix mobile) ── */
 
@@ -186,7 +182,7 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
 
   /* ── Add column ── */
   const addColumn = () => {
-    const id = `col_${++nextColId}`;
+    const id = `col_${++nextColId}_${Date.now()}`;
     setColumns((prev: any[]) => [...prev, { id, label: 'New Column' }]);
     // Start renaming immediately
     setEditingColId(id);
@@ -203,9 +199,14 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
     setEditingColId(null);
   };
 
+  const deleteColumn = useCallback((colId: string) => {
+    setColumns((prev: any[]) => prev.filter(c => c.id !== colId));
+    setCards((prev: any[]) => prev.filter(c => c.column !== colId));
+  }, []);
+
   /* ── Add card to column ── */
   const addCard = useCallback((colId: string) => {
-    const id = ++nextCardId;
+    const id = Date.now();
     const card = { id, column: colId, label: '', description: '', type: 'Task', priority: 'medium', updatedAt: new Date().toISOString(), isNew: true };
     setEditorCard(card);
     setEditorAnchor(null); // center-screen fallback
@@ -216,34 +217,20 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
 
   return (
     <div className={`${styles.kanbanContainer} sqhq-kanban-wrapper`} ref={wrapperRef}>
-      {/* Column rename dialog — centered modal */}
-      {editingColId && (
-        <div className="sqhq-col-rename-backdrop" onClick={commitColRename}>
-          <div className="sqhq-col-rename-dialog" onClick={e => e.stopPropagation()}>
-            <label className="sqhq-col-rename-label">Rename column</label>
-            <input
-              className="sqhq-col-rename-input-dialog"
-              autoFocus
-              value={editingColVal}
-              onChange={e => setEditingColVal(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') commitColRename();
-                if (e.key === 'Escape') setEditingColId(null);
-              }}
-              onBlur={commitColRename}
-            />
-            <div className="sqhq-col-rename-actions">
-              <button className="sqhq-col-rename-btn" onClick={() => setEditingColId(null)}>Cancel</button>
-              <button className="sqhq-col-rename-btn primary" onClick={commitColRename}>Save</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       <WillowDark>
         <div className="sqhq-board-row">
           {/* Inject data-col-id on each column for our dblclick handler and custom add button */}
-          <ColIdInjector columns={columns} onAddCard={addCard} />
+          <ColIdInjector 
+            columns={columns} 
+            onAddCard={addCard} 
+            onDeleteCol={deleteColumn}
+            editingColId={editingColId}
+            editingColVal={editingColVal}
+            setEditingColVal={setEditingColVal}
+            commitColRename={commitColRename}
+            cancelColRename={() => setEditingColId(null)}
+          />
 
           <Kanban
             init={setApi}
@@ -300,39 +287,104 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
   );
 }
 
-/**
- * Injects `data-col-id` attributes onto SVAR column DOM nodes
- * and a custom Add button to bypass SVAR native card addition.
- */
-function ColIdInjector({ columns, onAddCard }: { columns: Column[], onAddCard: (colId: string) => void }) {
+import { createPortal } from 'react-dom';
+
+function ColIdInjector({ 
+  columns, 
+  onAddCard, 
+  onDeleteCol,
+  editingColId,
+  editingColVal,
+  setEditingColVal,
+  commitColRename,
+  cancelColRename
+}: { 
+  columns: Column[], 
+  onAddCard: (colId: string) => void,
+  onDeleteCol: (colId: string) => void,
+  editingColId: string | null,
+  editingColVal: string,
+  setEditingColVal: (val: string) => void,
+  commitColRename: () => void,
+  cancelColRename: () => void
+}) {
+  const [headers, setHeaders] = useState<{ id: string, el: HTMLElement, titleEl: HTMLElement }[]>([]);
+
   useEffect(() => {
-    const colEls = document.querySelectorAll<HTMLElement>('.sqhq-kanban-wrapper .wx-column');
-    colEls.forEach((el, idx) => {
-      const col = columns[idx];
-      if (col) {
-        el.dataset.colId = col.id;
-        
-        const header = el.querySelector('.wx-column-header');
-        if (header && !header.querySelector('.sqhq-custom-add-btn')) {
-          const addBtn = document.createElement('button');
-          addBtn.className = 'sqhq-custom-add-btn';
-          addBtn.innerHTML = '+';
-          addBtn.title = 'Add Card';
-          
-          const handleAdd = (e: Event) => {
-            e.stopPropagation();
-            e.preventDefault();
-            onAddCard(col.id);
-          };
-
-          // Attach both click and touchend for robust mobile/desktop support
-          addBtn.addEventListener('click', handleAdd);
-          addBtn.addEventListener('touchend', handleAdd);
-
-          header.appendChild(addBtn);
+    // Wait a tick for SVAR to render columns
+    const timer = setTimeout(() => {
+      const colEls = document.querySelectorAll<HTMLElement>('.sqhq-kanban-wrapper .wx-column');
+      const newHeaders: typeof headers = [];
+      
+      colEls.forEach((el, idx) => {
+        const col = columns[idx];
+        if (col) {
+          el.dataset.colId = col.id;
+          const header = el.querySelector('.wx-column-header') as HTMLElement;
+          const titleEl = el.querySelector('.wx-title') as HTMLElement;
+          if (header && titleEl) {
+            newHeaders.push({ id: col.id, el: header, titleEl });
+            
+            // Clean up old native title if editing
+            if (editingColId === col.id) {
+              titleEl.style.display = 'none';
+            } else {
+              titleEl.style.display = '';
+            }
+          }
         }
-      }
-    });
+      });
+      setHeaders(newHeaders);
+    }, 50);
+    return () => clearTimeout(timer);
   });
-  return null;
+
+  return (
+    <>
+      {headers.map(({ id, el, titleEl }) => {
+        const isEditing = editingColId === id;
+        return createPortal(
+          <div className="sqhq-custom-header-actions" style={{ display: 'flex', alignItems: 'center', position: 'absolute', right: '8px', top: '12px' }}>
+            <button
+              className="sqhq-custom-add-btn"
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onAddCard(id); }}
+              onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); onAddCard(id); }}
+              title="Add Card"
+            >
+              +
+            </button>
+            <button
+              className="sqhq-custom-del-btn"
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDeleteCol(id); }}
+              onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); onDeleteCol(id); }}
+              title="Delete Column"
+            >
+              ×
+            </button>
+          </div>,
+          el
+        );
+      })}
+      {headers.map(({ id, titleEl }) => {
+        if (editingColId === id) {
+          return createPortal(
+            <input
+              autoFocus
+              className="sqhq-col-rename-input"
+              value={editingColVal}
+              onChange={(e) => setEditingColVal(e.target.value)}
+              onBlur={commitColRename}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') commitColRename();
+                if (e.key === 'Escape') cancelColRename();
+              }}
+              style={{ width: '100%', padding: '2px 4px', background: 'transparent', color: 'inherit', border: '1px solid #4a4a5a', borderRadius: '4px', outline: 'none' }}
+            />,
+            titleEl.parentElement! // Inject next to titleEl
+          );
+        }
+        return null;
+      })}
+    </>
+  );
 }

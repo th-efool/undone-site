@@ -183,6 +183,13 @@ export function useNotes() {
           permission: 'editor' as Permission,
           sharedWith: [],
           contentType: (options?.contentType || 'markdown') as 'canvas' | 'kanban' | 'markdown',
+          kanbanCards: [],
+          kanbanColumns: [
+            { id: 'todo',       label: 'To Do'       },
+            { id: 'inprogress', label: 'In Progress' },
+            { id: 'review',     label: 'Review'      },
+            { id: 'done',       label: 'Done'        },
+          ],
           ownerId: null,
           linkedConceptIds: [],
           linkedResourceIds: [],

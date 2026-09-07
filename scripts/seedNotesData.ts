@@ -10,17 +10,7 @@ const INITIAL_COLUMNS = [
   { id: 'done',       label: 'Done'        },
 ];
 
-const now = new Date();
-const daysAgo = (n: number) => new Date(now.getTime() - n * 86400000).toISOString();
-
-const INITIAL_CARDS: any[] = [
-  { id: 1, column: 'todo',       label: 'Research competitors',    description: 'Analyze top 5 competitors and document key differentiators.', type: 'Research', priority: 'medium', updatedAt: daysAgo(2) },
-  { id: 2, column: 'todo',       label: 'Write documentation',     description: 'Draft onboarding guide and API reference for the platform.',   type: 'Docs',     priority: 'low',    updatedAt: daysAgo(3) },
-  { id: 3, column: 'inprogress', label: 'Implement Kanban board',  description: 'Integrate SVAR React Kanban with dark theme into Notes.',       type: 'Feature',  priority: 'high',   updatedAt: daysAgo(1) },
-  { id: 4, column: 'inprogress', label: 'Design system tokens',    description: 'Define color, spacing, and typography tokens.',                type: 'UI',       priority: 'medium', updatedAt: daysAgo(2) },
-  { id: 5, column: 'review',     label: 'Auth flow revamp',        description: 'Improve sign-in and sign-up UX based on user feedback.',        type: 'Auth',     priority: 'high',   updatedAt: daysAgo(4) },
-  { id: 6, column: 'done',       label: 'Setup project structure', description: 'Scaffold Next.js app with TypeScript, ESLint, and Prettier.',   type: 'DevOps',   priority: 'low',    updatedAt: daysAgo(6) },
-];
+const INITIAL_CARDS: any[] = [];
 
 async function main() {
   console.log('Connecting to databases...');
