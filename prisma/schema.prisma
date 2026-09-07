@@ -32,6 +32,7 @@ model User {
   conversationMembers ConversationMember[]
   pendingMessages     PendingMessage[]
   deviceTokens        DeviceToken[]
+  notebooks           Notebook[]
 
   @@map("users")
 }
@@ -420,3 +421,79 @@ model DeviceToken {
 
   @@map("device_tokens")
 }
+
+// -----------------------------------------------------------------
+//  WORKSPACE (NOTES & CANVAS)
+// -----------------------------------------------------------------
+model Notebook {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  color       String?
+  icon        String?
+  favorite    Boolean  @default(false)
+  shared      Boolean  @default(false)
+  archived    Boolean  @default(false)
+  collapsed   Boolean  @default(false)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  notes       Note[]
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notebooks")
+}
+
+model Note {
+  id               String   @id @default(cuid())
+  notebookId       String
+  title            String   @default("Untitled Note")
+  tags             String[]
+  favorite         Boolean  @default(false)
+  shared           Boolean  @default(false)
+  archived         Boolean  @default(false)
+  publicLink       Boolean  @default(false)
+  permission       String   @default("editor")
+  contentType      String   @default("markdown") // canvas, kanban, markdown
+  order            Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  
+  notebook         Notebook @relation(fields: [notebookId], references: [id], onDelete: Cascade)
+  document         NoteDocument?
+  tasks            Task[]
+
+  @@index([notebookId])
+  @@map("notes")
+}
+
+model NoteDocument {
+  id        String   @id @default(cuid())
+  noteId    String   @unique
+  document  Bytes    // The Yjs CRDT binary state
+  updatedAt DateTime @updatedAt
+  
+  note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@map("note_documents")
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  noteId      String
+  title       String?
+  label       String?
+  description String?  @db.Text
+  dueDate     DateTime?
+  status      String?
+  priority    String?
+  
+  note        Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@index([noteId])
+  @@map("tasks")
+}
+

@@ -18,7 +18,7 @@ export type NoteDocument = {
   order: number;
   createdAt: string;
   updatedAt: string;
-  contentType: 'canvas' | 'kanban';
+  contentType: 'canvas' | 'kanban' | 'markdown';
   linkedConceptIds: string[];
   linkedResourceIds: string[];
   learningPathId: string | null;
