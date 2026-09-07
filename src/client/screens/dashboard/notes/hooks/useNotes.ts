@@ -27,7 +27,13 @@ export function useNotes() {
     notesRepository.load().then(setState);
   }, []);
   useEffect(() => {
-    if (state) void notesRepository.save(state);
+    if (state) {
+      const payload = {
+        ...state,
+        notes: state.notes.map(({ body, content, ...note }: any) => note),
+      };
+      void notesRepository.save(payload);
+    }
   }, [state]);
   useEffect(() => {
     if (toast) {
@@ -158,7 +164,7 @@ export function useNotes() {
           selectedNoteId: s.notes.find((n) => n.notebookId === notebooks[0]?.id)?.id ?? null,
         };
       }),
-    createNote: (notebookId?: string | null, options?: { title?: string, contentType?: 'canvas' | 'kanban' }) =>
+    createNote: (notebookId?: string | null, options?: { title?: string, contentType?: 'canvas' | 'kanban' | 'markdown' }) =>
       update((s) => {
         const targetNbId = notebookId || s.selectedNotebookId;
         if (!targetNbId) return s;
@@ -176,7 +182,7 @@ export function useNotes() {
           publicLink: false,
           permission: 'editor' as Permission,
           sharedWith: [],
-          contentType: (options?.contentType || 'canvas') as 'canvas' | 'kanban',
+          contentType: (options?.contentType || 'markdown') as 'canvas' | 'kanban' | 'markdown',
           ownerId: null,
           linkedConceptIds: [],
           linkedResourceIds: [],

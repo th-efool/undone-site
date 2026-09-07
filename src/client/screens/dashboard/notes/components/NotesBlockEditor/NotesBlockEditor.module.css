@@ -1,0 +1,13 @@
+.editorContainer {
+  height: 100%;
+  width: 100%;
+  padding: 2rem;
+  overflow-y: auto;
+}
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  color: #a1a1aa;
+}

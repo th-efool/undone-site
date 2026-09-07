@@ -3,6 +3,7 @@ import { CanvasSwitcher, Menu } from './NotesComponents';
 import { NotesCanvas } from './NotesCanvas/NotesCanvas';
 import { NotesKanban } from './NotesKanban/NotesKanban';
 import { NotesSaveStatus } from './NotesSaveStatus/NotesSaveStatus';
+import { NotesBlockEditor } from './NotesBlockEditor/NotesBlockEditor';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
 import styles from '../Notes.module.css';
 import sidebarStyles from './NotesSidebar.module.css';
@@ -31,6 +32,8 @@ interface NotesWorkspaceProps {
   handleSceneChange: (scene: CanvasSceneData) => void;
 }
 
+import { useState } from 'react';
+
 export function NotesWorkspace({
   notes,
   navigation,
@@ -48,6 +51,7 @@ export function NotesWorkspace({
 }: NotesWorkspaceProps) {
   const { mobileView, setMobileView, isNavigationExpanded, setIsNavigationExpanded, isWorkspaceExpanded, setIsWorkspaceExpanded } = navigation;
   const hasSelectedNotebook = !!notes.data?.selectedNotebook?.id;
+  const [providerStatus, setProviderStatus] = useState<'connected' | 'connecting' | 'disconnected' | 'syncing' | null>(null);
 
   return (
     <section className={`${styles.workspace} ${isMobile && mobileView !== 'workspace' ? styles.workspaceHidden : ''}`}>
@@ -116,7 +120,7 @@ export function NotesWorkspace({
               }
             }}
           />
-          {selected && <NotesSaveStatus state={canvasState} />}
+          {selected && <NotesSaveStatus state={canvasState} providerStatus={selected.contentType === 'markdown' ? providerStatus : undefined} />}
         </div>
         <div className={styles.actions}>
           <Tooltip content={<>Share <kbd className={styles.kbd}>O</kbd></>} placement="bottom">
@@ -168,6 +172,10 @@ export function NotesWorkspace({
       ) : selected.contentType === 'kanban' ? (
         <article className={styles.canvas}>
           <NotesKanban key={selected.id} noteId={selected.id} notes={notes} />
+        </article>
+      ) : selected.contentType === 'markdown' ? (
+        <article className={styles.canvas}>
+          <NotesBlockEditor key={selected.id} noteId={selected.id} onStatusChange={setProviderStatus} />
         </article>
       ) : (
         <article className={styles.canvas}>
