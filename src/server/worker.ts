@@ -1,6 +1,8 @@
-﻿import http from 'http';
+import http from 'http';
+import { WebSocketServer } from 'ws';
 import { connectToMongoDB } from './infrastructure/db/mongodb/client';
 import { runCohortVectorizationWorkflow, WorkflowInput } from './infrastructure/workflows/cohortVectorizationWorkflow';
+import { hocuspocus } from './infrastructure/sync/hocuspocus';
 
 const PORT = Number(process.env.PORT) || 4001;
 const WORKER_SECRET = process.env.WORKER_SECRET || '';
@@ -40,6 +42,34 @@ async function main() {
   await connectToMongoDB();
   console.log('[Worker] MongoDB connected');
   const server = http.createServer(handleRequest);
+  
+  const wss = new WebSocketServer({ noServer: true });
+  server.on('upgrade', (req, socket, head) => {
+    if (!req.url?.startsWith('/')) {
+      socket.destroy();
+      return;
+    }
+    
+    socket.on('error', (err) => console.error('[Worker] Socket error:', err));
+    
+    wss.handleUpgrade(req, socket, head, (ws: any) => {
+      ws.on('error', (err: any) => console.error('[Worker] WS error:', err));
+      const client: any = hocuspocus.handleConnection(ws, req as any);
+      ws.on('message', (message: any) => client?.handleMessage?.(message));
+      ws.on('close', () => client?.handleClose?.());
+    });
+  });
+
+  const shutdown = async () => {
+    console.log('[Worker] Shutting down, flushing stores...');
+    if ((hocuspocus as any).destroy) {
+      await (hocuspocus as any).destroy();
+    }
+    process.exit(0);
+  };
+  process.on('SIGTERM', shutdown);
+  process.on('SIGINT', shutdown);
+
   server.listen(PORT, '0.0.0.0', () => {
     console.log('[Worker] Listening on port ' + PORT);
   });
