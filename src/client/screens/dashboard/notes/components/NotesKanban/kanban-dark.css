@@ -116,7 +116,7 @@
 
 /* ── 5. Add (+) and toggle (collapse) buttons ────────────────── */
 .sqhq-kanban-wrapper .wx-add {
-  display: none !important; /* Hijacked and replaced with our custom button */
+  /* display: none !important; */
 }
 
 .sqhq-kanban-wrapper .wx-toggle {

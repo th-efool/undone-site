@@ -204,13 +204,6 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
     setCards((prev: any[]) => prev.filter(c => c.column !== colId));
   }, []);
 
-  /* ── Add card to column ── */
-  const addCard = useCallback((colId: string) => {
-    const id = Date.now();
-    const card = { id, column: colId, label: '', description: '', type: 'Task', priority: 'medium', updatedAt: new Date().toISOString(), isNew: true };
-    setEditorCard(card);
-    setEditorAnchor(null); // center-screen fallback
-  }, []);
 
   const columnCss = (_cards: any[], column: any): string =>
     colCssMap[column.id as string] ?? 'sqhq-col-custom';
@@ -223,7 +216,6 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
           {/* Inject data-col-id on each column for our dblclick handler and custom add button */}
           <ColIdInjector 
             columns={columns} 
-            onAddCard={addCard} 
             onDeleteCol={deleteColumn}
             editingColId={editingColId}
             editingColVal={editingColVal}
@@ -240,6 +232,7 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
             cardContent={(props: any) => (
               <KanbanCard
                 {...props}
+                card={{ ...props.card, label: props.card.label || props.card.text }}
                 onMenuClick={(e: React.MouseEvent) => handleCardMenu(props.card, e)}
                 onUpdateCard={(id: string | number, updates: any) => {
                   setCards((prev: any[]) => prev.map(c => c.id === id ? { ...c, ...updates, updatedAt: new Date().toISOString() } : c));
@@ -291,7 +284,6 @@ import { createPortal } from 'react-dom';
 
 function ColIdInjector({ 
   columns, 
-  onAddCard, 
   onDeleteCol,
   editingColId,
   editingColVal,
@@ -300,7 +292,6 @@ function ColIdInjector({
   cancelColRename
 }: { 
   columns: Column[], 
-  onAddCard: (colId: string) => void,
   onDeleteCol: (colId: string) => void,
   editingColId: string | null,
   editingColVal: string,
@@ -334,10 +325,25 @@ function ColIdInjector({
           }
         }
       });
-      setHeaders(newHeaders);
+
+      let changed = false;
+      if (newHeaders.length !== headers.length) {
+        changed = true;
+      } else {
+        for (let i = 0; i < newHeaders.length; i++) {
+          if (newHeaders[i].id !== headers[i].id || newHeaders[i].el !== headers[i].el || newHeaders[i].titleEl !== headers[i].titleEl) {
+            changed = true;
+            break;
+          }
+        }
+      }
+      
+      if (changed) {
+        setHeaders(newHeaders);
+      }
     }, 50);
     return () => clearTimeout(timer);
-  });
+  }, [columns, editingColId, headers]);
 
   return (
     <>
@@ -345,14 +351,6 @@ function ColIdInjector({
         const isEditing = editingColId === id;
         return createPortal(
           <div className="sqhq-custom-header-actions" style={{ display: 'flex', alignItems: 'center', position: 'absolute', right: '8px', top: '12px' }}>
-            <button
-              className="sqhq-custom-add-btn"
-              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onAddCard(id); }}
-              onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); onAddCard(id); }}
-              title="Add Card"
-            >
-              +
-            </button>
             <button
               className="sqhq-custom-del-btn"
               onClick={(e) => { e.stopPropagation(); e.preventDefault(); onDeleteCol(id); }}
