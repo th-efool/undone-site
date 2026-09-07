@@ -41,7 +41,9 @@ export function NotesBlockEditor({ noteId, onStatusChange }: NotesBlockEditorPro
 
   return (
     <div className={styles.editorContainer}>
-      <InnerEditor provider={provider} />
+      <div className={styles.editorInner}>
+        <InnerEditor provider={provider} />
+      </div>
     </div>
   );
 }

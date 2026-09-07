@@ -1,4 +1,4 @@
-import { ChevronRight, FileText, LayoutGrid, ChevronDown, Plus, MoreHorizontal } from 'lucide-react';
+import { ChevronRight, FileText, LayoutGrid, ChevronDown, Plus, MoreHorizontal, SquarePen, Layout } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { SearchBar } from '@/src/client/components/global/SearchBar';
 import styles from './RightColumn.module.css';
@@ -74,7 +74,9 @@ export function WorkspaceSection(props: WorkspaceSectionProps) {
         onDoubleClick={(e) => handleDoubleClick(note, e)}
       >
         <span className={styles.chevronSpacer} />
-        <span className={styles.treeIcon}><FileText size={14} /></span>
+        <span className={styles.treeIcon}>
+          {note.contentType === 'canvas' ? <SquarePen size={14} /> : note.contentType === 'kanban' ? <Layout size={14} /> : <FileText size={14} />}
+        </span>
         {editingNoteId === note.id ? (
           <input
             ref={inputRef}

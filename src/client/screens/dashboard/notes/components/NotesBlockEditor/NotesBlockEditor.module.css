@@ -1,13 +1,27 @@
 .editorContainer {
   height: 100%;
   width: 100%;
-  padding: 2rem;
   overflow-y: auto;
+  background: #000000; /* covers the dotted canvas background */
+  display: flex;
+  justify-content: center;
 }
+
+.editorInner {
+  width: 100%;
+  max-width: 800px;
+  padding: 4rem 2rem 10rem;
+}
+
 .loading {
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100%;
   color: #a1a1aa;
+  background: #000000;
+}
+
+:global(.mantine-BlockNote-editor) {
+  background-color: transparent !important;
 }
