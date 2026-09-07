@@ -277,6 +277,11 @@
 │   │       ├── v1-designs (4).png
 │   │       └── v1-designs (5).png
 │   └── ChatGPT Image Aug 11, 2026, 12_24_28 PM.png
+├── dev-docs/
+│   └── notes/
+│       ├── notes-backend-map.md
+│       ├── notes-issues.md
+│       └── refactor-blueprint.md
 ├── docs/
 │   ├── reference/
 │   │   ├── docs-blueprint.md
@@ -1464,6 +1469,9 @@
 │   │   │   │   │   │   ├── canvas.adapter.ts
 │   │   │   │   │   │   └── notes.adapter.ts
 │   │   │   │   │   ├── components/
+│   │   │   │   │   │   ├── NotesBlockEditor/
+│   │   │   │   │   │   │   ├── NotesBlockEditor.module.css
+│   │   │   │   │   │   │   └── NotesBlockEditor.tsx
 │   │   │   │   │   │   ├── NotesCanvas/
 │   │   │   │   │   │   │   ├── ExcalidrawWrapper.tsx
 │   │   │   │   │   │   │   ├── HamburgerGridControls.module.css
@@ -1493,6 +1501,7 @@
 │   │   │   │   │   ├── hooks/
 │   │   │   │   │   │   ├── useCanvasPersistence.ts
 │   │   │   │   │   │   ├── useCanvasScene.ts
+│   │   │   │   │   │   ├── useHocuspocusProvider.ts
 │   │   │   │   │   │   ├── useNotes.ts
 │   │   │   │   │   │   ├── useNotesKeyboardShortcuts.ts
 │   │   │   │   │   │   ├── useNotesNavigation.ts
@@ -1680,6 +1689,8 @@
 │   │   │   │       └── client.ts
 │   │   │   ├── external/
 │   │   │   │   └── scratch.txt
+│   │   │   ├── sync/
+│   │   │   │   └── hocuspocus.ts
 │   │   │   └── workflows/
 │   │   │       ├── cohortCleanupTask.ts
 │   │   │       ├── cohortVectorizationWorkflow.ts
@@ -1737,7 +1748,7 @@
 ├── phasewise.md
 ├── postcss.config.mjs
 ├── prisma.config.ts
-├── render.yaml
+├── render.yaml.disabled
 ├── skills-lock.json
 ├── task.md
 ├── test_iframe.html
@@ -1745,4 +1756,4 @@
 ├── tsconfig.worker.json
 └── vitest.config.mts
 
-551 directories, 1193 files
+555 directories, 1200 files
