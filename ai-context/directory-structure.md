@@ -277,11 +277,6 @@
 │   │       ├── v1-designs (4).png
 │   │       └── v1-designs (5).png
 │   └── ChatGPT Image Aug 11, 2026, 12_24_28 PM.png
-├── dev-docs/
-│   └── notes/
-│       ├── notes-backend-map.md
-│       ├── notes-issues.md
-│       └── refactor-blueprint.md
 ├── docs/
 │   ├── reference/
 │   │   ├── docs-blueprint.md
@@ -505,15 +500,6 @@
 │   │   │   ├── auth/
 │   │   │   │   └── [...nextauth]/
 │   │   │   │       └── route.ts
-│   │   │   ├── chat/
-│   │   │   │   ├── ack/
-│   │   │   │   │   └── route.ts
-│   │   │   │   ├── centrifugo-token/
-│   │   │   │   │   └── route.ts
-│   │   │   │   ├── send/
-│   │   │   │   │   └── route.ts
-│   │   │   │   └── sync/
-│   │   │   │       └── route.ts
 │   │   │   ├── cohort/
 │   │   │   │   ├── [id]/
 │   │   │   │   │   └── join/
@@ -541,6 +527,9 @@
 │   │   │   │   │   ├── route.pagination.test.ts
 │   │   │   │   │   └── route.test.ts
 │   │   │   │   └── route.ts
+│   │   │   ├── hackathon/
+│   │   │   │   └── simulate-reward/
+│   │   │   │       └── route.ts
 │   │   │   ├── import/
 │   │   │   │   ├── github/
 │   │   │   │   │   └── route.ts
@@ -556,9 +545,6 @@
 │   │   │   │       └── route.ts
 │   │   │   ├── studyroom/
 │   │   │   │   └── route.ts
-│   │   │   ├── upload/
-│   │   │   │   └── presigned/
-│   │   │   │       └── route.ts
 │   │   │   ├── user/
 │   │   │   │   ├── channel-config/
 │   │   │   │   │   └── route.ts
@@ -574,6 +560,10 @@
 │   │   │   │   └── page.tsx
 │   │   │   └── microlearning/
 │   │   │       └── page.tsx
+│   │   ├── hackathon/
+│   │   │   ├── HackathonClient.tsx
+│   │   │   ├── hackathon.css
+│   │   │   └── page.tsx
 │   │   ├── policy/
 │   │   │   └── page.tsx
 │   │   ├── styles/
@@ -590,7 +580,8 @@
 │   │   │   └── page.tsx
 │   │   ├── favicon.ico
 │   │   ├── globals.css
-│   │   └── layout.tsx
+│   │   ├── layout.tsx
+│   │   └── page.tsx
 │   ├── client/
 │   │   ├── components/
 │   │   │   ├── global/
@@ -717,16 +708,7 @@
 │   │   │       └── index.ts
 │   │   ├── config/
 │   │   │   └── routeThemeConfig.ts
-│   │   ├── db/
-│   │   │   ├── models/
-│   │   │   │   ├── Attachment.ts
-│   │   │   │   ├── Conversation.ts
-│   │   │   │   ├── ConversationMember.ts
-│   │   │   │   └── Message.ts
-│   │   │   ├── index.ts
-│   │   │   └── schema.ts
 │   │   ├── hooks/
-│   │   │   ├── useCentrifugo.ts
 │   │   │   ├── useExperience.ts
 │   │   │   ├── useIsMobile.ts
 │   │   │   ├── usePullToRefresh.ts
@@ -791,8 +773,6 @@
 │   │   │   └── ReactQueryProvider.tsx
 │   │   ├── react-query/
 │   │   │   └── query-client.ts
-│   │   ├── redux/
-│   │   │   └── store.ts
 │   │   ├── repositories/
 │   │   │   ├── cohortRepository.ts
 │   │   │   ├── cohortStore.ts
@@ -1458,7 +1438,6 @@
 │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   ├── utils/
 │   │   │   │   │   │   ├── communityMapping.ts
-│   │   │   │   │   │   ├── exportHistory.ts
 │   │   │   │   │   │   └── index.ts
 │   │   │   │   │   ├── Message.module.css
 │   │   │   │   │   ├── Message.tsx
@@ -1469,9 +1448,6 @@
 │   │   │   │   │   │   ├── canvas.adapter.ts
 │   │   │   │   │   │   └── notes.adapter.ts
 │   │   │   │   │   ├── components/
-│   │   │   │   │   │   ├── NotesBlockEditor/
-│   │   │   │   │   │   │   ├── NotesBlockEditor.module.css
-│   │   │   │   │   │   │   └── NotesBlockEditor.tsx
 │   │   │   │   │   │   ├── NotesCanvas/
 │   │   │   │   │   │   │   ├── ExcalidrawWrapper.tsx
 │   │   │   │   │   │   │   ├── HamburgerGridControls.module.css
@@ -1501,7 +1477,6 @@
 │   │   │   │   │   ├── hooks/
 │   │   │   │   │   │   ├── useCanvasPersistence.ts
 │   │   │   │   │   │   ├── useCanvasScene.ts
-│   │   │   │   │   │   ├── useHocuspocusProvider.ts
 │   │   │   │   │   │   ├── useNotes.ts
 │   │   │   │   │   │   ├── useNotesKeyboardShortcuts.ts
 │   │   │   │   │   │   ├── useNotesNavigation.ts
@@ -1606,6 +1581,17 @@
 │   │   └── utils/
 │   │       ├── haptics.ts
 │   │       └── isNative.ts
+│   ├── components/
+│   │   └── hackathon/
+│   │       ├── tabs/
+│   │       │   ├── PitchDeckTab.tsx
+│   │       │   ├── SDKTab.tsx
+│   │       │   ├── SimulatorTab.tsx
+│   │       │   └── SubmissionTab.tsx
+│   │       └── TabsNav.tsx
+│   ├── lib/
+│   │   └── hackathon/
+│   │       └── data.ts
 │   ├── server/
 │   │   ├── adapters/
 │   │   │   ├── actions/
@@ -1689,8 +1675,6 @@
 │   │   │   │       └── client.ts
 │   │   │   ├── external/
 │   │   │   │   └── scratch.txt
-│   │   │   ├── sync/
-│   │   │   │   └── hocuspocus.ts
 │   │   │   └── workflows/
 │   │   │       ├── cohortCleanupTask.ts
 │   │   │       ├── cohortVectorizationWorkflow.ts
@@ -1739,21 +1723,23 @@
 ├── README.md
 ├── build-aab.bat
 ├── capacitor.config.ts
+├── css-layout.md
 ├── docker-compose.yml
 ├── eslint.config.mjs
 ├── excalidraw.d.ts
 ├── next.config.ts
-├── package-lock.json
 ├── package.json
 ├── phasewise.md
 ├── postcss.config.mjs
 ├── prisma.config.ts
+├── render.yaml
 ├── render.yaml.disabled
 ├── skills-lock.json
 ├── task.md
 ├── test_iframe.html
 ├── tsconfig.json
 ├── tsconfig.worker.json
+├── vercel.json
 └── vitest.config.mts
 
-555 directories, 1200 files
+549 directories, 1192 files
