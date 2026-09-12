@@ -1739,7 +1739,6 @@
 ├── test_iframe.html
 ├── tsconfig.json
 ├── tsconfig.worker.json
-├── vercel.json
 └── vitest.config.mts
 
-549 directories, 1192 files
+549 directories, 1191 files
