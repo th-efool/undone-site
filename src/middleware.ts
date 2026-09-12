@@ -1,4 +1,4 @@
-import { auth } from '@/src/server/infrastructure/auth/auth.config';
+import { auth } from '@/src/server/infrastructure/auth/auth.edge';
 
 export default auth((req) => {
   if (!req.auth) {
