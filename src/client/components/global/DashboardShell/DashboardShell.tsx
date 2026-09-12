@@ -47,14 +47,15 @@ function DashboardInner({ children }: PropsWithChildren) {
       >
         <NetworkOfflineIndicator />
         {experience === 'mobile' ? <MobileNav /> : <Sidebar />}
-        <main
+        <div
+          id="main-content"
           className={clsx(
             styles.content,
             isPlayPage && styles.playContent
           )}
         >
           <RoutePreserver>{children}</RoutePreserver>
-        </main>
+        </div>
       </div>
       <CommandPalette open={open} onOpenChange={onOpenChange} />
     </>

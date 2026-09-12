@@ -3,7 +3,6 @@
   width: 100%;
   border-radius: 0;
   overflow: hidden;
-  height: 200px;
   background: #fcf5ee;
   border-bottom: 1px solid #e2e8f0;
 }
@@ -15,8 +14,6 @@
   height: 100%;
   width: auto;
   z-index: 0;
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
-  mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
 }
 
 .heroContent {
@@ -54,13 +51,11 @@
   font-weight: 500;
   letter-spacing: -0.02em;
   display: inline-block;
-  transform: scale(1.1, 1.35);
-  transform-origin: top left;
   margin-bottom: 2px;
 }
 
 .titleItalic {
-  font-family: var(--font-accent-script), 'Dancing Script', 'Caveat', 'Kalam', cursive;
+  
   font-style: italic;
   color: #4f46e5;
   font-size: 2.65rem;
@@ -68,8 +63,6 @@
   letter-spacing: -0.01em;
   word-spacing: 0.15em;
   display: inline-block;
-  transform: scale(1.55, 1.8);
-  transform-origin: top left;
   margin-bottom: 32px;
 }
 

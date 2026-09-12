@@ -57,20 +57,14 @@ export function TrendingSideQuests({ items }: TrendingSideQuestsProps) {
         </div>
       </div>
 
-      <InfiniteScroller
-        ref={scrollerRef}
-        loop={true}
-        panable={true}
-        showArrows={false}
-        scrollAmount={360}
-      >
+      <div className={styles.grid}>
         {items.map((item) => (
           <TrendingCourseCard
             key={item.id}
             item={item}
           />
         ))}
-      </InfiniteScroller>
+      </div>
     </section>
   );
 }

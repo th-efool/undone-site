@@ -36,7 +36,7 @@ export class ChunkingService {
     if (client && text.length > 80) {
       try {
         const model = client.getGenerativeModel({
-          model: 'gemini-3.6-flash',
+          model: 'gemini-1.5-flash',
           generationConfig: {
             responseMimeType: 'application/json',
             temperature: 0.2,

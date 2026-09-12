@@ -140,6 +140,12 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
     >
       <body className="min-h-screen bg-background text-text font-sans antialiased">
         <SessionProvider>
+          <a
+            href="#main-content"
+            className="absolute left-[-9999px] top-4 z-50 rounded-md bg-background p-4 text-text focus:left-4 focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            Skip to main content
+          </a>
           <SliderProgressEngine />
           <CapacitorBridge />
           <ReactQueryProvider>{children}</ReactQueryProvider>

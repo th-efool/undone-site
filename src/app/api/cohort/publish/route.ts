@@ -152,24 +152,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (!creator) {
-      creator = await userRepo.findByEmail('test@sidequesthq.com');
-      if (!creator) {
-        creator = await userRepo.create({
-          email: 'test@sidequesthq.com',
-          name: 'Test Creator',
-          username: 'testcreator',
-        });
-      }
-    }
-
-    if (!creator?.id) {
       return Response.json(
         {
-          code: 'creator_not_found',
-          title: 'Creator Not Found',
-          message: 'Unable to resolve creator user account.',
+          code: 'unauthorized',
+          title: 'Unauthorized',
+          message: 'You must be logged in to publish a cohort.',
         },
-        { status: 500 },
+        { status: 401 },
       );
     }
 

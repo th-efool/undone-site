@@ -124,7 +124,7 @@
 
 .carousel {
   grid-area: carousel;
-  margin-top: -8px;
+  margin-top: 0px;
   margin-bottom: -10px;
 
   display: flex;
@@ -219,7 +219,7 @@
 }
 
 .arrow:hover {
-  transform: scale(1.05);
+  
   box-shadow: var(--shadow-md);
 }
 
@@ -283,7 +283,7 @@
 
   .videoPanel {
     padding-left: 0;
-    transform: scale(0.9);
+    
   }
 
   .videoImage,

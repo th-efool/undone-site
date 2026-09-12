@@ -1,20 +1,10 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { auth } from '@/src/server/infrastructure/auth/auth.config';
 
-export function middleware(request: NextRequest) {
-  // Check for NextAuth session cookies
-  const hasSessionToken = 
-    request.cookies.has('next-auth.session-token') || 
-    request.cookies.has('__Secure-next-auth.session-token') ||
-    request.cookies.has('authjs.session-token') ||
-    request.cookies.has('__Secure-authjs.session-token');
-
-  if (!hasSessionToken) {
-    return NextResponse.redirect(new URL('/auth', request.url));
+export default auth((req) => {
+  if (!req.auth) {
+    return Response.redirect(new URL('/auth', req.nextUrl));
   }
-  
-  return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [

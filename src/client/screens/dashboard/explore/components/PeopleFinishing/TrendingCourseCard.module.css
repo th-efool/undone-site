@@ -2,9 +2,6 @@
   position: relative;
 
   overflow: hidden;
-
-  flex: 0 0 450px;
-
   height: 275px;
 
   border: none;
@@ -87,12 +84,6 @@
 
   letter-spacing: -0.02em;
 
-  text-shadow:
-    -1px -1px 0 rgba(0, 0, 0, 0.95),
-    1px -1px 0 rgba(0, 0, 0, 0.95),
-    -1px 1px 0 rgba(0, 0, 0, 0.95),
-    1px 1px 0 rgba(0, 0, 0, 0.95),
-    0 2px 6px rgba(0, 0, 0, 0.95);
 }
 
 .provider {
@@ -104,12 +95,6 @@
 
   color: white;
 
-  text-shadow:
-    -1px -1px 0 rgba(0, 0, 0, 0.95),
-    1px -1px 0 rgba(0, 0, 0, 0.95),
-    -1px 1px 0 rgba(0, 0, 0, 0.95),
-    1px 1px 0 rgba(0, 0, 0, 0.95),
-    0 2px 4px rgba(0, 0, 0, 0.95);
 }
 
 .footer {
@@ -122,12 +107,6 @@
 
   color: white;
 
-  text-shadow:
-    -1px -1px 0 rgba(0, 0, 0, 0.95),
-    1px -1px 0 rgba(0, 0, 0, 0.95),
-    -1px 1px 0 rgba(0, 0, 0, 0.95),
-    1px 1px 0 rgba(0, 0, 0, 0.95),
-    0 2px 4px rgba(0, 0, 0, 0.95);
 }
 
 .statsRight {
@@ -180,12 +159,6 @@
 
   white-space: nowrap;
 
-  text-shadow:
-    -1px -1px 0 rgba(0, 0, 0, 0.95),
-    1px -1px 0 rgba(0, 0, 0, 0.95),
-    -1px 1px 0 rgba(0, 0, 0, 0.95),
-    1px 1px 0 rgba(0, 0, 0, 0.95),
-    0 2px 4px rgba(0, 0, 0, 0.95);
 }
 
 .card:hover .avatar {
@@ -196,7 +169,6 @@
 
 @media (max-width: 768px) {
   .card {
-    flex: 0 0 300px;
     height: 210px;
   }
   .title {

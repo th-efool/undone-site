@@ -9,7 +9,6 @@ import { EmptyState } from '@/src/client/components/global/EmptyState';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
 import { ExploreHero } from './components/ExploreHero/ExploreHero';
-import { CloudBed } from './components/CloudBed/CloudBed';
 import { BrowseTopics } from './components/BrowseTopics/BrowseTopics';
 import { PeopleFinishing } from './components/PeopleFinishing/PeopleFinishing';
 import { RecentlyPublished } from './components/RecentlyPublished/RecentlyPublished';
@@ -100,7 +99,6 @@ export function ExploreDesktop({ model: explore }: ExploreDesktopProps) {
       </div>
 
       <ExploreHero />
-      <CloudBed />
 
       {debouncedQuery && !hasResults && (
         <EmptyState

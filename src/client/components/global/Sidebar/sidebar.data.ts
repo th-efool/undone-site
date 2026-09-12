@@ -1,4 +1,4 @@
-import { Compass, House, Play } from 'lucide-react';
+import { Compass, House, MessageCircle, NotebookPen, Play } from 'lucide-react';
 
 export const SIDEBAR_ITEMS = [
   {
@@ -12,8 +12,18 @@ export const SIDEBAR_ITEMS = [
     icon: House,
   },
   {
+    href: '/message',
+    label: 'Messages',
+    icon: MessageCircle,
+  },
+  {
     href: '/explore',
     label: 'Explore',
     icon: Compass,
+  },
+  {
+    href: '/notes',
+    label: 'Notes',
+    icon: NotebookPen,
   },
 ] as const;

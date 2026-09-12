@@ -1,4 +1,4 @@
-import { ChevronRight, ChevronDown, FileText, X, SquarePen, Layout } from 'lucide-react';
+import { ChevronRight, ChevronDown, FileText, X } from 'lucide-react';
 import { useState } from 'react';
 import styles from './RightColumn.module.css';
 import type { useNotes } from '../../hooks/useNotes';
@@ -47,9 +47,7 @@ export function RecentlyClosedSection({ notes, closedNotes, onRemove }: Recently
                   >
                     <X size={12} />
                   </span>
-                  <span className={styles.treeIcon}>
-                    {note.contentType === 'canvas' ? <SquarePen size={14} /> : note.contentType === 'kanban' ? <Layout size={14} /> : <FileText size={14} />}
-                  </span>
+                  <span className={styles.treeIcon}><FileText size={14} /></span>
                   <span className={styles.nodeLabel}>{note.title}</span>
                 </div>
               </div>

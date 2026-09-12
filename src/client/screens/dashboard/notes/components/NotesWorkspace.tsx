@@ -3,7 +3,6 @@ import { CanvasSwitcher, Menu } from './NotesComponents';
 import { NotesCanvas } from './NotesCanvas/NotesCanvas';
 import { NotesKanban } from './NotesKanban/NotesKanban';
 import { NotesSaveStatus } from './NotesSaveStatus/NotesSaveStatus';
-import { NotesBlockEditor } from './NotesBlockEditor/NotesBlockEditor';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
 import styles from '../Notes.module.css';
 import sidebarStyles from './NotesSidebar.module.css';
@@ -32,8 +31,6 @@ interface NotesWorkspaceProps {
   handleSceneChange: (scene: CanvasSceneData) => void;
 }
 
-import { useState } from 'react';
-
 export function NotesWorkspace({
   notes,
   navigation,
@@ -51,7 +48,6 @@ export function NotesWorkspace({
 }: NotesWorkspaceProps) {
   const { mobileView, setMobileView, isNavigationExpanded, setIsNavigationExpanded, isWorkspaceExpanded, setIsWorkspaceExpanded } = navigation;
   const hasSelectedNotebook = !!notes.data?.selectedNotebook?.id;
-  const [providerStatus, setProviderStatus] = useState<'connected' | 'connecting' | 'disconnected' | 'syncing' | null>(null);
 
   return (
     <section className={`${styles.workspace} ${isMobile && mobileView !== 'workspace' ? styles.workspaceHidden : ''}`}>
@@ -120,7 +116,7 @@ export function NotesWorkspace({
               }
             }}
           />
-          {selected && <NotesSaveStatus state={canvasState} providerStatus={selected.contentType === 'markdown' ? providerStatus : undefined} />}
+          {selected && <NotesSaveStatus state={canvasState} />}
         </div>
         <div className={styles.actions}>
           <Tooltip content={<>Share <kbd className={styles.kbd}>O</kbd></>} placement="bottom">
@@ -165,25 +161,13 @@ export function NotesWorkspace({
         </article>
       ) : !selected ? (
         <article className={styles.overview}>
-          <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', paddingBottom: '80px', display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#a1a1aa' }}>
-            <div>Select a note to view canvas</div>
-            <div style={{ display: 'flex', gap: '12px' }}>
-              <button style={{ padding: '8px 16px', background: '#3b82f6', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }} onClick={() => notes.data?.selectedNotebook && notes.actions.createNote(notes.data.selectedNotebook.id)}>
-                New Note (Canvas)
-              </button>
-              <button style={{ padding: '8px 16px', background: '#10b981', color: '#fff', border: 'none', borderRadius: '6px', cursor: 'pointer' }} onClick={() => notes.data?.selectedNotebook && notes.actions.createNote(notes.data.selectedNotebook.id, { contentType: 'markdown' })}>
-                New Block Note
-              </button>
-            </div>
+          <div style={{ maxWidth: '800px', margin: '0 auto', width: '100%', paddingBottom: '80px', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#a1a1aa' }}>
+            Select a note to view canvas
           </div>
         </article>
       ) : selected.contentType === 'kanban' ? (
         <article className={styles.canvas}>
           <NotesKanban key={selected.id} noteId={selected.id} notes={notes} />
-        </article>
-      ) : selected.contentType === 'markdown' ? (
-        <article className={styles.canvas}>
-          <NotesBlockEditor key={selected.id} noteId={selected.id} onStatusChange={setProviderStatus} />
         </article>
       ) : (
         <article className={styles.canvas}>

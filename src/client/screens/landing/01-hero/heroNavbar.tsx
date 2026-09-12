@@ -6,6 +6,7 @@ import styles from './heroNavbar.module.css';
 import { useSession } from 'next-auth/react';
 
 const navigationItems = [
+  { label: '🏆 Hackathon MVP', href: '/hackathon' },
   { label: 'Product', href: '/auth' },
   { label: 'Cohorts', href: '/auth' },
 ];

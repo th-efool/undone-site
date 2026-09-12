@@ -27,13 +27,11 @@ export function useNotes() {
     notesRepository.load().then(setState);
   }, []);
   useEffect(() => {
-    if (state) {
-      const payload = {
-        ...state,
-        notes: state.notes.map(({ body, content, ...note }: any) => note),
-      };
-      void notesRepository.save(payload);
-    }
+    if (!state) return;
+    const t = setTimeout(() => {
+      void notesRepository.save(state);
+    }, 1000);
+    return () => clearTimeout(t);
   }, [state]);
   useEffect(() => {
     if (toast) {
@@ -164,7 +162,7 @@ export function useNotes() {
           selectedNoteId: s.notes.find((n) => n.notebookId === notebooks[0]?.id)?.id ?? null,
         };
       }),
-    createNote: (notebookId?: string | null, options?: { title?: string, contentType?: 'canvas' | 'kanban' | 'markdown' }) =>
+    createNote: (notebookId?: string | null, options?: { title?: string, contentType?: 'canvas' | 'kanban' }) =>
       update((s) => {
         const targetNbId = notebookId || s.selectedNotebookId;
         if (!targetNbId) return s;
@@ -182,14 +180,7 @@ export function useNotes() {
           publicLink: false,
           permission: 'editor' as Permission,
           sharedWith: [],
-          contentType: (options?.contentType || 'markdown') as 'canvas' | 'kanban' | 'markdown',
-          kanbanCards: [],
-          kanbanColumns: [
-            { id: 'todo',       label: 'To Do'       },
-            { id: 'inprogress', label: 'In Progress' },
-            { id: 'review',     label: 'Review'      },
-            { id: 'done',       label: 'Done'        },
-          ],
+          contentType: (options?.contentType || 'canvas') as 'canvas' | 'kanban',
           ownerId: null,
           linkedConceptIds: [],
           linkedResourceIds: [],

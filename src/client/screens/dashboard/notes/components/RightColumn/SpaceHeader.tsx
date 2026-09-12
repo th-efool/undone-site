@@ -1,4 +1,4 @@
-import { ChevronDown, Search, Layout, SquarePen, FolderPlus, FileText } from 'lucide-react';
+import { ChevronDown, Search, Layout, SquarePen, FolderPlus } from 'lucide-react';
 import styles from './RightColumn.module.css';
 
 interface SpaceHeaderProps {
@@ -59,9 +59,6 @@ export function SpaceHeader({ notebook, notes, isSearchingWorkspace, setIsSearch
             </button>
             <button className={styles.iconButton} aria-label="New Kanban Board" onClick={() => notebook?.id && notes?.actions?.createNote(notebook.id, { title: 'New Board', contentType: 'kanban' })}>
               <Layout size={16} />
-            </button>
-            <button className={styles.iconButton} aria-label="New Block Note" onClick={() => notebook?.id && notes?.actions?.createNote(notebook.id, { title: 'New Note', contentType: 'markdown' })}>
-              <FileText size={16} />
             </button>
             <button className={styles.iconButton} aria-label="New folder" onClick={handleAddFolder}>
               <FolderPlus size={16} />

@@ -16,18 +16,9 @@
 
 .footer::before {
   content: '';
-
   position: absolute;
   inset: 0;
-
-  background: linear-gradient(
-    to top,
-    rgba(6, 6, 12, 0.9) 0%,
-    rgba(8, 8, 18, 0.55) 30%,
-    rgba(8, 8, 18, 0.18) 55%,
-    transparent 82%
-  );
-
+  background: rgba(6, 6, 12, 0.8);
   z-index: 0;
 }
 
@@ -76,27 +67,14 @@
 }
 
 .title {
-  /* margin-left: 30px; */
-
   margin-top: 1.6rem;
-
   margin-bottom: 2.5rem;
-
   color: #faf8ff;
-
   font-size: clamp(0.25rem, 4vw, 3.1rem);
-
   line-height: 0.96;
-
   display: block;
-
   max-width: 19ch;
-
   letter-spacing: -0em;
-
-  /* max-width: 10ch; */
-
-  text-shadow: 0 8px 30px rgba(114, 39, 39, 0.35);
 }
 
 .heroDivider {

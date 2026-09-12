@@ -5,12 +5,11 @@ export interface RecentlyClosedNote {
   title: string;
   closedAt: number;
   notebookId: string | null;
-  contentType?: 'canvas' | 'kanban' | 'markdown';
 }
 
-export function useRecentlyClosedNotes(currentNoteId: string | null, currentNoteTitle?: string, currentNotebookId?: string | null, currentNoteContentType?: 'canvas' | 'kanban' | 'markdown', maxItems: number = 3) {
+export function useRecentlyClosedNotes(currentNoteId: string | null, currentNoteTitle?: string, currentNotebookId?: string | null, maxItems: number = 3) {
   const [closedNotes, setClosedNotes] = useState<RecentlyClosedNote[]>([]);
-  const prevNoteRef = useRef<{ id: string; title: string, notebookId: string | null, contentType?: 'canvas' | 'kanban' | 'markdown' } | null>(null);
+  const prevNoteRef = useRef<{ id: string; title: string, notebookId: string | null } | null>(null);
   const isInitialMount = useRef(true);
 
   // Load from local storage on mount
@@ -47,7 +46,7 @@ export function useRecentlyClosedNotes(currentNoteId: string | null, currentNote
         });
       }
       // Update ref to current note
-      prevNoteRef.current = { id: currentNoteId, title: currentNoteTitle || 'Untitled Note', notebookId: currentNotebookId || null, contentType: currentNoteContentType };
+      prevNoteRef.current = { id: currentNoteId, title: currentNoteTitle || 'Untitled Note', notebookId: currentNotebookId || null };
     } else {
       // Navigated to "no note selected"
       if (prevNoteRef.current) {

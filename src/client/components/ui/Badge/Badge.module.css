@@ -15,27 +15,27 @@
 
 .brand {
   background: var(--color-brand-soft);
-  color: var(--color-brand);
+  color: var(--indigo-700);
 }
 
 .momentum {
   background: var(--color-accent-soft);
-  color: var(--color-accent);
+  color: var(--orange-700);
 }
 
 .success {
   background: var(--color-success-bg);
-  color: var(--color-success);
+  color: var(--green-700);
 }
 
 .warning {
   background: var(--color-warning-bg);
-  color: var(--color-warning);
+  color: var(--orange-700);
 }
 
 .danger {
   background: var(--color-error-bg);
-  color: var(--color-error);
+  color: var(--red-700);
 }
 
 .neutral {

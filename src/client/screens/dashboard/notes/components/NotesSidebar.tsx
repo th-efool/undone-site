@@ -33,9 +33,8 @@ export function NotesSidebar({
   const selectedNoteId = notes.data?.selectedNote?.id ?? null;
   const selectedNoteTitle = notes.data?.selectedNote?.title;
   const selectedNotebookId = notes.state?.selectedNotebookId || null;
-  const selectedNoteContentType = notes.data?.selectedNote?.contentType;
   
-  const { closedNotes: allClosedNotes, removeClosedNote } = useRecentlyClosedNotes(selectedNoteId, selectedNoteTitle, selectedNotebookId, selectedNoteContentType);
+  const { closedNotes: allClosedNotes, removeClosedNote } = useRecentlyClosedNotes(selectedNoteId, selectedNoteTitle, selectedNotebookId);
   
   // Only show recently closed notes that belong to the current notebook
   const closedNotes = allClosedNotes.filter(note => note.notebookId === selectedNotebookId);

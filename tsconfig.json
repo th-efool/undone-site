@@ -12,7 +12,6 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true,
-    "experimentalDecorators": true,
     "jsx": "react-jsx",
     "incremental": true,
     "plugins": [

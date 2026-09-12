@@ -62,15 +62,13 @@
   width: 54px !important;
   height: auto !important;
   max-height: 320px !important;
-  padding: 12px 6px !important;
+  padding: 16px 8px !important;
 
   background: #000000 !important;
-  border: 1px solid rgba(255, 255, 255, 0.12) !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border-radius: 999px !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.05) !important;
-  gap: 10px !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 32px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  gap: 16px !important;
 
   transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
@@ -83,7 +81,7 @@
   display: flex !important;
   flex-direction: column !important;
   padding-block: 0 !important;
-  gap: 8px !important;
+  gap: 16px !important;
   width: 100% !important;
 }
 

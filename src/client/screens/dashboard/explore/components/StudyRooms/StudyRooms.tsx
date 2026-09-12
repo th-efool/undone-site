@@ -14,22 +14,13 @@ export function StudyRooms({ items }: StudyRoomsProps) {
       <h2 id="study-rooms-heading" className={styles.title}>
         Study, chat, and get work done<br />with learners from around the world.
       </h2>
-      <div className={styles.scrollerWrapper}>
-        <InfiniteScroller
-          scrollAmount={740}
-          loop={true}
-          panable={true}
-          showArrows={false}
-          autoScroll={true}
-          autoScrollSpeed={0.4}
-        >
-          {items.map((item) => (
-            <StudyRoomCard
-              key={item.id}
-              session={item}
-            />
-          ))}
-        </InfiniteScroller>
+      <div className={styles.grid}>
+        {items.map((item) => (
+          <StudyRoomCard
+            key={item.id}
+            session={item}
+          />
+        ))}
       </div>
     </section>
   );

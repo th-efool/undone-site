@@ -9,7 +9,8 @@
 }
 
 .sidebar {
-  flex: 0 0 88px;
+  width: 88px;
+  flex-shrink: 0;
 }
 
 .content {

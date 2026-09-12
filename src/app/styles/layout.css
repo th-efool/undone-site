@@ -23,13 +23,13 @@
 }
 
 .bg-gradient-brand {
-  background: var(--gradient-brand);
+  background: var(--color-brand);
 }
 .bg-gradient-learning {
-  background: var(--gradient-learning);
+  background: var(--color-brand);
 }
 .bg-gradient-momentum {
-  background: var(--gradient-momentum);
+  background: var(--color-brand-hover);
 }
 .shadow-primary {
   box-shadow: var(--shadow-primary);

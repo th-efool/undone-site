@@ -71,9 +71,7 @@
 
   inset: 0;
 
-  background:
-    linear-gradient(to bottom, rgba(0, 0, 0, 0.46), rgba(0, 0, 0, 0.14) 22%, rgba(0, 0, 0, 0) 46%),
-    linear-gradient(to top, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.18) 30%, rgba(0, 0, 0, 0) 58%);
+  background: rgba(0, 0, 0, 0.4);
 }
 
 .topRow {

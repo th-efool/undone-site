@@ -134,8 +134,8 @@
   --color-info: var(--blue-500);
   /* Typography Tokens */
   --font-manrope: 'Manrope', system-ui, -apple-system, sans-serif;
-  --font-caveat: 'Caveat', cursive;
-  --font-dancing-script: 'Dancing Script', 'Caveat', 'Kalam', cursive;
+  
+  
 
   --font-sans: var(--font-manrope);
   --font-display: var(--font-manrope);
@@ -154,7 +154,7 @@
   --font-caption: var(--font-manrope);
   --font-caption-weight: 500;
 
-  --font-accent-script: 'Dancing Script', 'Caveat', 'Kalam', cursive;
+  
   --font-accent-script-weight: 700;
 
 
@@ -167,8 +167,8 @@
   --font-bold: 700;
   --font-extrabold: 800;
 
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
+  --text-xs: 0.875rem;
+  --text-sm: 1rem;
 
   --text-base: 1rem;
   --text-lg: 1.125rem;
@@ -312,10 +312,10 @@
   --shadow-modal: var(--shadow-2xl);
 
   /* Gradients */
-  --gradient-brand: linear-gradient(135deg, var(--color-brand), var(--color-brand-hover));
-  --gradient-brand-soft: linear-gradient(180deg, var(--color-brand-subtle), var(--indigo-200));
-  --gradient-learning: linear-gradient(135deg, var(--color-brand), #6366f1, #8b5cf6);
-  --gradient-momentum: linear-gradient(135deg, var(--color-accent), #fb923c);
+  --gradient-brand: var(--color-brand);
+  --gradient-brand-soft: var(--color-brand-subtle);
+  --gradient-learning: var(--color-brand);
+  --gradient-momentum: var(--color-brand-hover);
   --gradient-card: linear-gradient(
     180deg,
     rgb(var(--color-surface-rgb) / 0.96),

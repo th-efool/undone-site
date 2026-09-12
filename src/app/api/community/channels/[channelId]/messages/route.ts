@@ -20,9 +20,7 @@ export async function POST(
     let authorId = user?.id;
 
     if (!authorId) {
-      // Fallback to the guest user ID if getUser() is mock/null
-      const guestUser = await prisma.user.findUnique({ where: { email: 'guest@sidequesthq.com' } });
-      authorId = guestUser?.id || 'guest-user-id';
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const message = await communityRepo.addMessage(channelId, authorId, content);

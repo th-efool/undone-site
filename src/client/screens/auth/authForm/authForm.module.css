@@ -91,16 +91,8 @@
 }
 
 .highlight {
-  font-family: var(--font-caveat-next), var(--font-dancing-script-next), cursive;
   font-weight: 900;
-  font-size: 1.35em;
-  -webkit-text-stroke: 0.6px #6d28d9;
-  color: transparent;
-  background: linear-gradient(135deg, #4f46e5 0%, #8b5cf6 100%);
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  padding-right: 0.1em;
+  color: var(--color-brand, #4f46e5);
 }
 
 .description {
@@ -120,23 +112,23 @@
 }
 
 .inputs {
-  margin-top: 6px;
+  margin-top: 24px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 16px;
 }
 
 .rowInputs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: 16px;
 }
 
 .cta {
-  margin-top: 8px;
+  margin-top: 24px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 16px;
 }
 
 /* Task 2.3 #19: Von Restorff Effect — strong visual contrast between primary & secondary actions */
