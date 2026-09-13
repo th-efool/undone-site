@@ -564,6 +564,8 @@
 │   │   │   ├── HackathonClient.tsx
 │   │   │   ├── hackathon.css
 │   │   │   └── page.tsx
+│   │   ├── landing/
+│   │   │   └── page.tsx
 │   │   ├── policy/
 │   │   │   └── page.tsx
 │   │   ├── styles/
@@ -1648,6 +1650,7 @@
 │   │   │   │   └── .gitkeep
 │   │   │   ├── auth/
 │   │   │   │   ├── auth.config.ts
+│   │   │   │   ├── auth.edge.ts
 │   │   │   │   ├── getUser.ts
 │   │   │   │   └── requireUser.ts
 │   │   │   ├── db/
@@ -1741,4 +1744,4 @@
 ├── tsconfig.worker.json
 └── vitest.config.mts
 
-549 directories, 1191 files
+550 directories, 1193 files
