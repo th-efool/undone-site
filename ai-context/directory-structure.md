@@ -525,11 +525,7 @@
 │   │   │   ├── feed/
 │   │   │   │   ├── __tests__/
 │   │   │   │   │   ├── route.pagination.test.ts
-│   │   │   │   │   └── route.test.ts
-│   │   │   │   └── route.ts
-│   │   │   ├── hackathon/
-│   │   │   │   └── simulate-reward/
-│   │   │   │       └── route.ts
+│   │   │   │   │   └── route.ts
 │   │   │   ├── import/
 │   │   │   │   ├── github/
 │   │   │   │   │   └── route.ts
@@ -560,12 +556,6 @@
 │   │   │   │   └── page.tsx
 │   │   │   └── microlearning/
 │   │   │       └── page.tsx
-│   │   ├── hackathon/
-│   │   │   ├── HackathonClient.tsx
-│   │   │   ├── hackathon.css
-│   │   │   └── page.tsx
-│   │   ├── landing/
-│   │   │   └── page.tsx
 │   │   ├── policy/
 │   │   │   └── page.tsx
 │   │   ├── styles/
@@ -1583,17 +1573,6 @@
 │   │   └── utils/
 │   │       ├── haptics.ts
 │   │       └── isNative.ts
-│   ├── components/
-│   │   └── hackathon/
-│   │       ├── tabs/
-│   │       │   ├── PitchDeckTab.tsx
-│   │       │   ├── SDKTab.tsx
-│   │       │   ├── SimulatorTab.tsx
-│   │       │   └── SubmissionTab.tsx
-│   │       └── TabsNav.tsx
-│   ├── lib/
-│   │   └── hackathon/
-│   │       └── data.ts
 │   ├── server/
 │   │   ├── adapters/
 │   │   │   ├── actions/
