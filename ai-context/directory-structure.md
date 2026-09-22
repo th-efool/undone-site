@@ -302,6 +302,11 @@
 │   └── study-rooms-schema.md
 ├── execution/
 │   └── test_publish_and_verify.ts
+├── future-plan/
+│   ├── 01.png
+│   ├── 02a.png
+│   ├── 02b.png
+│   └── 03.png
 ├── prisma/
 │   ├── db_backup.json
 │   ├── schema.prisma
@@ -1723,4 +1728,4 @@
 ├── tsconfig.worker.json
 └── vitest.config.mts
 
-541 directories, 1181 files
+542 directories, 1185 files
