@@ -6,7 +6,11 @@ import { InfiniteScroller } from '@/src/client/components/global/InfiniteScrolle
 import { getAvatar } from '@/src/client/mock/avatars';
 import styles from '../Hero.module.css';
 
-const FEATURED_COHORTS: CohortCardItem[] = [
+export interface FeaturedCohortWithCategories extends CohortCardItem {
+  categories: string[];
+}
+
+const FEATURED_COHORTS: FeaturedCohortWithCategories[] = [
   {
     id: 'deep-work',
     title: 'Deep Work Month',
@@ -14,6 +18,7 @@ const FEATURED_COHORTS: CohortCardItem[] = [
     dailyGoal: '20 min/day',
     thumbnail: '/mock/thumbnails/deep-work.webp',
     participantCount: '874 participants',
+    categories: ['SideQuests', 'Trending', 'Technology', 'Science'],
     featuredParticipants: [
       { id: 'dw-1', image: getAvatar('dw-1'), alt: 'dw-1' },
       { id: 'dw-2', image: getAvatar('dw-2'), alt: 'dw-2' },
@@ -28,6 +33,7 @@ const FEATURED_COHORTS: CohortCardItem[] = [
     dailyGoal: '15 min/day',
     thumbnail: '/mock/thumbnails/reader.webp',
     participantCount: '1,243 participants',
+    categories: ['SideQuests', 'Trending', 'Arts & Humanities', 'Science'],
     featuredParticipants: [
       { id: 'read-1', image: getAvatar('read-1'), alt: 'read-1' },
       { id: 'read-2', image: getAvatar('read-2'), alt: 'read-2' },
@@ -41,6 +47,7 @@ const FEATURED_COHORTS: CohortCardItem[] = [
     subtitle: 'Focus better\ntogether.',
     thumbnail: '/mock/thumbnails/doubling.webp',
     participantCount: '482 participants',
+    categories: ['SideQuests', 'Arts & Humanities', 'Trending'],
     featuredParticipants: [
       { id: 'bd-1', image: getAvatar('bd-1'), alt: 'bd-1' },
       { id: 'bd-2', image: getAvatar('bd-2'), alt: 'bd-2' },
@@ -54,6 +61,7 @@ const FEATURED_COHORTS: CohortCardItem[] = [
     subtitle: 'Consumption detox. Curate\nwhat you actually want.',
     thumbnail: '/mock/thumbnails/content-bottle.webp',
     participantCount: '1,102 participants',
+    categories: ['SideQuests', 'Technology'],
     featuredParticipants: [
       { id: 'cb-1', image: getAvatar('cb-1'), alt: 'cb-1' },
       { id: 'cb-2', image: getAvatar('cb-2'), alt: 'cb-2' },
@@ -68,6 +76,7 @@ const FEATURED_COHORTS: CohortCardItem[] = [
     dailyGoal: '30 min/day',
     thumbnail: '/mock/thumbnails/100dcode.jpg',
     participantCount: '2,016 participants',
+    categories: ['SideQuests', 'Trending', 'Technology', 'Science'],
     featuredParticipants: [
       { id: '100d-1', image: getAvatar('100d-1'), alt: '100d-1' },
       { id: '100d-2', image: getAvatar('100d-2'), alt: '100d-2' },
@@ -82,6 +91,7 @@ const FEATURED_COHORTS: CohortCardItem[] = [
     dailyGoal: '10 min/day',
     thumbnail: '/mock/thumbnails/reflections.jpeg',
     participantCount: '691 participants',
+    categories: ['SideQuests', 'Arts & Humanities'],
     featuredParticipants: [
       { id: 'jrn-1', image: getAvatar('jrn-1'), alt: 'jrn-1' },
       { id: 'jrn-2', image: getAvatar('jrn-2'), alt: 'jrn-2' },
@@ -91,10 +101,25 @@ const FEATURED_COHORTS: CohortCardItem[] = [
   },
 ];
 
-export function FeaturedCohortsStrip() {
+export interface FeaturedCohortsStripProps {
+  selectedCategory?: string;
+}
+
+export function FeaturedCohortsStrip({ selectedCategory = 'SideQuests' }: FeaturedCohortsStripProps) {
+  const filteredCohorts = React.useMemo(() => {
+    if (!selectedCategory || selectedCategory === 'SideQuests') {
+      return FEATURED_COHORTS;
+    }
+    const matching = FEATURED_COHORTS.filter((cohort) =>
+      cohort.categories.includes(selectedCategory),
+    );
+    return matching.length > 0 ? matching : FEATURED_COHORTS;
+  }, [selectedCategory]);
+
   return (
     <div className={styles.cohortsStripContainer} aria-label="Featured Cohorts">
       <InfiniteScroller
+        key={selectedCategory}
         loop={true}
         panable={true}
         showArrows={false}
@@ -103,7 +128,7 @@ export function FeaturedCohortsStrip() {
         scrollAmount={280}
         className={styles.cohortsInfiniteScroller}
       >
-        {FEATURED_COHORTS.map((cohort, index) => (
+        {filteredCohorts.map((cohort, index) => (
           <CohortCard
             key={cohort.id}
             item={cohort}

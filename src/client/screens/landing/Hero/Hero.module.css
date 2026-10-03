@@ -492,6 +492,72 @@
 }
 
 /* ==========================================================================
+   Category Pills (Between Text Bar & Scrolling Cards)
+   ========================================================================== */
+.categoryPillsContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+  margin-bottom: 2px;
+  position: relative;
+  z-index: 35;
+  user-select: none;
+}
+
+.categoryPill {
+  font-family: var(--font-manrope-next), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  border: 1px solid #DFD8CD;
+  background-color: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #4B556D;
+  cursor: pointer;
+  transition: all 0.16s ease;
+  white-space: nowrap;
+}
+
+.categoryPill:hover {
+  background-color: #FFFFFF;
+  color: #0E1738;
+  border-color: #1F299D;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(14, 23, 56, 0.08);
+}
+
+.categoryPillActive {
+  background-color: #0E1738;
+  color: #FFFFFF;
+  font-weight: 600;
+  border-color: #0E1738;
+  box-shadow: 0 4px 14px rgba(14, 23, 56, 0.18);
+}
+
+.categoryPillActive:hover {
+  background-color: #162046;
+  border-color: #162046;
+  color: #FFFFFF;
+}
+
+@media (max-width: 640px) {
+  .categoryPillsContainer {
+    gap: 7px;
+    margin-top: 12px;
+  }
+  .categoryPill {
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+}
+
+/* ==========================================================================
    Featured Cohorts Auto Horizontally Scrolling Strip (via InfiniteScroller)
    ========================================================================== */
 .cohortsStripContainer {
@@ -1421,4 +1487,33 @@
 .heroWrapper[data-theme="dark"] .blueBannerRibbon {
   background-color: #1E2378;
   border-color: #373BB8;
+}
+
+:global([data-theme="dark"]) .heroWrapper .categoryPill,
+.heroWrapper[data-theme="dark"] .categoryPill {
+  background-color: rgba(22, 25, 34, 0.85);
+  border-color: #2B3042;
+  color: #A4ADC7;
+}
+
+:global([data-theme="dark"]) .heroWrapper .categoryPill:hover,
+.heroWrapper[data-theme="dark"] .categoryPill:hover {
+  background-color: #1A1F30;
+  border-color: #4361EE;
+  color: #FFFFFF;
+}
+
+:global([data-theme="dark"]) .heroWrapper .categoryPillActive,
+.heroWrapper[data-theme="dark"] .categoryPillActive {
+  background-color: #FFFFFF;
+  border-color: #FFFFFF;
+  color: #0E1738;
+  box-shadow: 0 4px 16px rgba(255, 255, 255, 0.2);
+}
+
+:global([data-theme="dark"]) .heroWrapper .categoryPillActive:hover,
+.heroWrapper[data-theme="dark"] .categoryPillActive:hover {
+  background-color: #F0F2FA;
+  border-color: #F0F2FA;
+  color: #0E1738;
 }

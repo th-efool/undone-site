@@ -13,9 +13,17 @@ import {
 import { TextBar } from '@/src/client/components/ui';
 import { FeaturedCohortsStrip } from './FeaturedCohortsStrip';
 import styles from '../Hero.module.css';
+const CATEGORIES = [
+  'SideQuests',
+  'Trending',
+  'Technology',
+  'Science',
+  'Arts & Humanities',
+] as const;
 
 export function CentralInterface() {
   const [query, setQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('SideQuests');
 
   const handleSubmit = (valOrEvent?: string | React.FormEvent) => {
     if (typeof valOrEvent === 'object' && valOrEvent && 'preventDefault' in valOrEvent) {
@@ -112,8 +120,27 @@ export function CentralInterface() {
         }
       />
 
+      {/* Category Pills Strip */}
+      <div className={styles.categoryPillsContainer} role="tablist" aria-label="Explore Categories">
+        {CATEGORIES.map((category) => {
+          const isSelected = selectedCategory === category;
+          return (
+            <button
+              key={category}
+              type="button"
+              role="tab"
+              aria-selected={isSelected}
+              className={`${styles.categoryPill} ${isSelected ? styles.categoryPillActive : ''}`}
+              onClick={() => setSelectedCategory(category)}
+            >
+              {category}
+            </button>
+          );
+        })}
+      </div>
+
       {/* Auto Horizontally Scrolling Featured Cohorts Strip */}
-      <FeaturedCohortsStrip />
+      <FeaturedCohortsStrip selectedCategory={selectedCategory} />
     </div>
   );
 }
