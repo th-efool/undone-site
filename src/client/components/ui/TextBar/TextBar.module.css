@@ -1,0 +1,190 @@
+/* ── TextBar Global UI Element ── */
+
+.shell {
+  display: flex;
+  align-items: center;
+  position: relative;
+  box-sizing: border-box;
+  background-color: var(--textbar-bg, #FFFFFF);
+  border: 1px solid var(--textbar-border, #DFD8CD);
+  color: var(--textbar-color, #0E1738);
+  transition: 
+    border-color 150ms ease,
+    box-shadow 150ms ease,
+    background-color 150ms ease;
+  width: 100%;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Focus States (Handled on Container ONLY) ── */
+.shell:focus-within {
+  border-color: var(--textbar-focus-border, #1F299D);
+  box-shadow: var(
+    --textbar-focus-shadow,
+    0 4px 18px -2px rgba(31, 41, 157, 0.12),
+    0 1px 6px -1px rgba(14, 23, 56, 0.05)
+  );
+}
+
+/* ── Variants ── */
+.pill {
+  border-radius: 9999px;
+  padding: 0 12px;
+}
+
+.card {
+  border-radius: 16px;
+  padding: 0 8px 0 12px;
+  box-shadow: 
+    0 4px 18px -2px rgba(14, 23, 56, 0.08),
+    0 1px 6px -1px rgba(14, 23, 56, 0.04);
+}
+
+.default {
+  border-radius: 12px;
+  padding: 0 12px;
+}
+
+.ghost {
+  border-color: transparent;
+  background-color: transparent;
+  box-shadow: none;
+  padding: 0 8px;
+}
+
+.ghost:focus-within {
+  border-color: var(--textbar-focus-border, #1F299D);
+  background-color: #FFFFFF;
+}
+
+.underline {
+  border-radius: 0;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  border-bottom: 2px solid var(--textbar-border, #DFD8CD);
+  background: transparent;
+  padding: 0 4px;
+}
+
+.underline:focus-within {
+  border-bottom-color: var(--textbar-focus-border, #1F299D);
+  box-shadow: none;
+}
+
+/* ── Sizes ── */
+.sm {
+  height: 36px;
+  font-size: 11.5px;
+}
+
+.md {
+  height: 46px;
+  font-size: 12.5px;
+}
+
+.lg {
+  height: 54px;
+  font-size: 14px;
+}
+
+/* ── Core Inner Input Reset (Zero rogue highlight guaranteed) ── */
+.input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 0 8px;
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  line-height: normal;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.input:focus,
+.input:focus-visible,
+.input:hover,
+.input:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+.input::placeholder {
+  color: var(--textbar-placeholder, #8A92A3);
+  opacity: 1;
+}
+
+/* Clean text selection inside input */
+.input::selection {
+  background: rgba(31, 41, 157, 0.18);
+  color: inherit;
+}
+
+.input::-moz-selection {
+  background: rgba(31, 41, 157, 0.18);
+  color: inherit;
+}
+
+/* ── Slots ── */
+.slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.leftSlot {
+  margin-right: 2px;
+}
+
+.rightSlot {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Clear Button ── */
+.clearBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  color: #71717A;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 120ms ease, color 120ms ease;
+  margin-right: 4px;
+}
+
+.clearBtn:hover {
+  background: rgba(0, 0, 0, 0.12);
+  color: #18181B;
+}
+
+.clearBtn:focus,
+.clearBtn:focus-visible {
+  outline: none;
+}

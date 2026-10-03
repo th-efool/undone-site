@@ -4,3 +4,4 @@ export * from './Divider/Divider';
 export * from './Typography/Heading';
 export * from './Typography/Text';
 export * from './Tooltip';
+export * from './TextBar';

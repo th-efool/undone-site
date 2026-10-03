@@ -41,12 +41,42 @@ select:hover {
   border-color: var(--color-border-hover);
 }
 
-input:focus,
-textarea:focus,
+input:not([data-bare-input]):not([data-textbar-input]):focus,
+textarea:not([data-bare-input]):not([data-textbar-input]):focus,
 select:focus {
   border-color: var(--color-border-focus);
   box-shadow: 0 0 0 4px rgb(var(--color-brand-rgb) / 0.12);
   outline: none;
+}
+
+/* ── Bare & Composite Inputs (TextBar, Capsules, Inline) ── */
+input[data-bare-input],
+textarea[data-bare-input],
+input[data-textbar-input],
+textarea[data-textbar-input] {
+  width: auto;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+input[data-bare-input]:focus,
+input[data-bare-input]:focus-visible,
+textarea[data-bare-input]:focus,
+textarea[data-bare-input]:focus-visible,
+input[data-textbar-input]:focus,
+input[data-textbar-input]:focus-visible,
+textarea[data-textbar-input]:focus,
+textarea[data-textbar-input]:focus-visible {
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
 }
 
 input:disabled,

@@ -1,12 +1,12 @@
 /* Accessibility */
 ::selection {
-  background: var(--color-brand);
-  color: var(--color-text-inverse);
+  background: rgba(31, 41, 157, 0.2);
+  color: inherit;
 }
 
 ::-moz-selection {
-  background: var(--color-brand);
-  color: var(--color-text-inverse);
+  background: rgba(31, 41, 157, 0.2);
+  color: inherit;
 }
 
 :target {
@@ -17,7 +17,7 @@
   outline: none;
 }
 
-:focus-visible {
+:focus-visible:not([data-bare-input]):not([data-textbar-input]) {
   outline: none;
   box-shadow:
     0 0 0 3px rgb(var(--color-surface-rgb) / 0.9),

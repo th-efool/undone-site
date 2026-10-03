@@ -15,6 +15,7 @@ import {
   LayoutTemplate,
   ChevronDown,
 } from 'lucide-react';
+import { TextBar } from '@/src/client/components/ui';
 import styles from '../ReconstructedHero.module.css';
 
 export function CentralInterface() {
@@ -55,37 +56,39 @@ export function CentralInterface() {
         Turn a curiosity, skill, or question into a learning journey.
       </p>
 
-      {/* Input Surface Card */}
-      <form onSubmit={handleSubmit} className={styles.inputCard}>
-        <button
-          type="button"
-          className={styles.plusButton}
-          aria-label="Add attachment or context"
-        >
-          <Plus size={18} strokeWidth={2.2} />
-        </button>
-
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="I want to learn about..."
-          className={styles.textInput}
-          aria-label="What do you want to learn about?"
-        />
-
-        <div className={styles.inputControls}>
-          <button type="button" className={styles.planButton}>
-            <Lightbulb size={16} strokeWidth={2} />
-            <span>Plan</span>
+      {/* Input Surface Card (Global TextBar) */}
+      <TextBar
+        variant="card"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onSubmit={handleSubmit}
+        placeholder="I want to learn about..."
+        className={styles.inputCard}
+        inputClassName={styles.textInput}
+        aria-label="What do you want to learn about?"
+        leftSlot={
+          <button
+            type="button"
+            className={styles.plusButton}
+            aria-label="Add attachment or context"
+          >
+            <Plus size={18} strokeWidth={2.2} />
           </button>
+        }
+        rightSlot={
+          <div className={styles.inputControls}>
+            <button type="button" className={styles.planButton}>
+              <Lightbulb size={16} strokeWidth={2} />
+              <span>Plan</span>
+            </button>
 
-          <button type="submit" className={styles.beginJourneyBtn}>
-            <span>Begin journey</span>
-            <ArrowRight size={15} strokeWidth={2.2} />
-          </button>
-        </div>
-      </form>
+            <button type="submit" className={styles.beginJourneyBtn}>
+              <span>Begin journey</span>
+              <ArrowRight size={15} strokeWidth={2.2} />
+            </button>
+          </div>
+        }
+      />
 
       {/* 4 Action Tiles */}
       <div className={styles.actionTilesGrid}>

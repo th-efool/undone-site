@@ -309,10 +309,18 @@
   font-family: var(--font-manrope-next), sans-serif;
   font-size: 11.5px;
   color: #0E1738;
-  background: transparent;
-  border: none;
-  outline: none;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
   padding: 0 10px;
+}
+
+.textInput:focus,
+.textInput:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
 }
 
 .textInput::placeholder {
