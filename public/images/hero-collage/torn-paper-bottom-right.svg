@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 480" fill="none">
+  <defs>
+    <filter id="torn-shadow-br" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="-4" dy="6" stdDeviation="14" flood-color="#141E38" flood-opacity="0.16" />
+      <feDropShadow dx="-1" dy="2" stdDeviation="4" flood-color="#141E38" flood-opacity="0.09" />
+    </filter>
+    <linearGradient id="paper-grad-br" x1="450" y1="480" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E5D8C2" />
+      <stop offset="45%" stop-color="#F2E6D4" />
+      <stop offset="85%" stop-color="#FAF4E8" />
+      <stop offset="100%" stop-color="#FCF9F2" />
+    </linearGradient>
+  </defs>
+  <!-- Ragged deckled corner paper sheet for bottom right -->
+  <path d="M 450 480
+           L 450 80
+           C 425 90, 405 75, 380 92
+           C 355 108, 335 94, 310 115
+           C 285 135, 265 120, 240 142
+           C 215 165, 195 150, 170 178
+           C 145 204, 125 190, 100 220
+           C 78 248, 92 275, 68 305
+           C 45 335, 58 365, 35 398
+           C 15 428, 28 458, 0 480
+           Z"
+        fill="url(#paper-grad-br)"
+        filter="url(#torn-shadow-br)" />
+  <!-- Deckle edge white fiber line -->
+  <path d="M 450 80
+           C 425 90, 405 75, 380 92
+           C 355 108, 335 94, 310 115
+           C 285 135, 265 120, 240 142
+           C 215 165, 195 150, 170 178
+           C 145 204, 125 190, 100 220
+           C 78 248, 92 275, 68 305
+           C 45 335, 58 365, 35 398
+           C 15 428, 28 458, 0 480"
+        stroke="#FFFDF9"
+        stroke-width="2"
+        stroke-linecap="round"
+        opacity="0.85" />
+</svg>

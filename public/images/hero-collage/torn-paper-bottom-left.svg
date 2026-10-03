@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 460" fill="none">
+  <defs>
+    <filter id="torn-shadow-bl" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="4" dy="6" stdDeviation="14" flood-color="#141E38" flood-opacity="0.16" />
+      <feDropShadow dx="1" dy="2" stdDeviation="4" flood-color="#141E38" flood-opacity="0.09" />
+    </filter>
+    <linearGradient id="paper-grad-bl" x1="0" y1="460" x2="420" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E5D9C5" />
+      <stop offset="45%" stop-color="#F2E8D8" />
+      <stop offset="85%" stop-color="#FAF4E8" />
+      <stop offset="100%" stop-color="#FCF9F1" />
+    </linearGradient>
+  </defs>
+  <!-- Ragged deckled corner paper sheet -->
+  <path d="M 0 460
+           L 0 120
+           C 18 110, 35 125, 52 108
+           C 68 92, 85 106, 104 88
+           C 122 72, 142 85, 162 68
+           C 184 50, 204 64, 226 48
+           C 250 30, 272 44, 298 25
+           C 324 8, 348 22, 375 5
+           C 390 -3, 405 6, 420 0
+           C 415 25, 418 52, 408 78
+           C 398 105, 412 132, 400 160
+           C 388 188, 396 215, 382 244
+           C 368 272, 380 302, 362 330
+           C 344 360, 354 390, 332 418
+           C 312 445, 320 455, 290 460
+           Z"
+        fill="url(#paper-grad-bl)"
+        filter="url(#torn-shadow-bl)" />
+  <!-- Deckle white edge highlight -->
+  <path d="M 0 120
+           C 18 110, 35 125, 52 108
+           C 68 92, 85 106, 104 88
+           C 122 72, 142 85, 162 68
+           C 184 50, 204 64, 226 48
+           C 250 30, 272 44, 298 25
+           C 324 8, 348 22, 375 5
+           C 390 -3, 405 6, 420 0
+           C 415 25, 418 52, 408 78
+           C 398 105, 412 132, 400 160
+           C 388 188, 396 215, 382 244
+           C 368 272, 380 302, 362 330
+           C 344 360, 354 390, 332 418
+           C 312 445, 320 455, 290 460"
+        stroke="#FFFDF9"
+        stroke-width="2"
+        stroke-linecap="round"
+        opacity="0.85" />
+</svg>

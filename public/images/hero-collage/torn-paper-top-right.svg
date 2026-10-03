@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 340" fill="none">
+  <defs>
+    <filter id="torn-shadow-tr" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="-3" dy="6" stdDeviation="14" flood-color="#141E38" flood-opacity="0.16" />
+      <feDropShadow dx="-1" dy="2" stdDeviation="4" flood-color="#141E38" flood-opacity="0.09" />
+    </filter>
+    <linearGradient id="paper-grad-tr" x1="450" y1="0" x2="0" y2="340" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FCF9F2" />
+      <stop offset="50%" stop-color="#F6EFE2" />
+      <stop offset="100%" stop-color="#EBE0CE" />
+    </linearGradient>
+  </defs>
+  <!-- Sweeping ragged deckle edge framing galaxy -->
+  <path d="M 450 0
+           L 450 340
+           C 415 330, 385 342, 355 325
+           C 328 310, 298 322, 270 306
+           C 240 288, 215 304, 185 285
+           C 158 268, 134 282, 108 260
+           C 84 240, 68 255, 45 230
+           C 25 208, 38 184, 18 158
+           C 2 134, 15 108, 2 82
+           C -8 58, 8 32, 0 0
+           Z"
+        fill="url(#paper-grad-tr)"
+        filter="url(#torn-shadow-tr)" />
+  <!-- White fibrous deckle edge -->
+  <path d="M 450 340
+           C 415 330, 385 342, 355 325
+           C 328 310, 298 322, 270 306
+           C 240 288, 215 304, 185 285
+           C 158 268, 134 282, 108 260
+           C 84 240, 68 255, 45 230
+           C 25 208, 38 184, 18 158
+           C 2 134, 15 108, 2 82
+           C -8 58, 8 32, 0 0"
+        stroke="#FFFDF9"
+        stroke-width="2"
+        stroke-linecap="round"
+        opacity="0.85" />
+</svg>

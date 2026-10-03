@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 480" fill="none">
+  <defs>
+    <filter id="torn-shadow-tl" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="3" dy="6" stdDeviation="12" flood-color="#141E38" flood-opacity="0.14" />
+      <feDropShadow dx="1" dy="2" stdDeviation="4" flood-color="#141E38" flood-opacity="0.08" />
+    </filter>
+    <linearGradient id="paper-grad-tl" x1="0" y1="0" x2="380" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FCF9F2" />
+      <stop offset="60%" stop-color="#F6EFE2" />
+      <stop offset="100%" stop-color="#EDE2D0" />
+    </linearGradient>
+  </defs>
+  <!-- Realistic torn paper deckle edge -->
+  <path d="M 0 0
+           L 320 0
+           C 328 15, 318 28, 324 45
+           C 331 62, 315 78, 322 96
+           C 330 115, 318 132, 326 150
+           C 334 168, 320 186, 316 205
+           C 312 225, 328 244, 322 265
+           C 316 285, 302 302, 306 322
+           C 311 342, 296 360, 292 380
+           C 288 402, 304 420, 298 440
+           C 292 460, 276 475, 260 480
+           L 0 480 Z"
+        fill="url(#paper-grad-tl)"
+        filter="url(#torn-shadow-tl)" />
+  <!-- Secondary deckled fiber highlights -->
+  <path d="M 320 0
+           C 328 15, 318 28, 324 45
+           C 331 62, 315 78, 322 96
+           C 330 115, 318 132, 326 150
+           C 334 168, 320 186, 316 205
+           C 312 225, 328 244, 322 265
+           C 316 285, 302 302, 306 322
+           C 311 342, 296 360, 292 380
+           C 288 402, 304 420, 298 440
+           C 292 460, 276 475, 260 480"
+        stroke="#FFFDF9"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        opacity="0.8" />
+</svg>
