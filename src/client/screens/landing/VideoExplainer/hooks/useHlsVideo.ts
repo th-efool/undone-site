@@ -17,11 +17,14 @@ export interface UseHlsVideoReturn {
   setIsLoading: (loading: boolean) => void;
   isMuted: boolean;
   setIsMuted: (muted: boolean) => void;
+  isEnded: boolean;
+  setIsEnded: (ended: boolean) => void;
   toggleMute: () => void;
   unmute: () => void;
   hlsSupported: boolean;
   togglePlay: () => void;
   handleEnded: () => void;
+  handleReplay: () => void;
 }
 
 export function useHlsVideo({
@@ -32,6 +35,7 @@ export function useHlsVideo({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoadingState] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
+  const [isEnded, setIsEnded] = useState(false);
   const [hlsSupported, setHlsSupported] = useState(true);
   const loadingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -52,6 +56,23 @@ export function useHlsVideo({
       }
     }
   }, []);
+
+  // Listen to timeupdate to detect when playback reaches the end
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const onTimeUpdate = () => {
+      if (video.duration > 0 && video.currentTime >= video.duration - 0.25) {
+        setIsEnded(true);
+        setIsPlaying(false);
+        setIsLoading(false);
+      }
+    };
+
+    video.addEventListener('timeupdate', onTimeUpdate);
+    return () => video.removeEventListener('timeupdate', onTimeUpdate);
+  }, [videoRef, setIsLoading]);
 
   // Setup HLS.js or native Safari HLS and default playback rate
   useEffect(() => {
@@ -131,31 +152,50 @@ export function useHlsVideo({
     setIsMuted(false);
   }, [videoRef]);
 
+  const handleReplay = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    video.currentTime = 0;
+    setIsEnded(false);
+    setIsLoading(false);
+    setIsPlaying(true);
+    if (video.muted) {
+      unmute();
+    }
+    video.play().catch(() => {
+      video.muted = true;
+      setIsMuted(true);
+      video.play().catch(() => setIsPlaying(false));
+    });
+  }, [videoRef, unmute, setIsLoading]);
+
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
 
+    if (isEnded) {
+      handleReplay();
+      return;
+    }
+
     if (video.paused) {
       // Unmute on explicit user play interaction if currently muted
       if (video.muted) {
-        video.muted = false;
-        video.volume = 1.0;
-        setIsMuted(false);
+        unmute();
       }
       video.play().catch(() => setIsPlaying(false));
     } else {
       video.pause();
     }
-  }, [videoRef]);
+  }, [videoRef, isEnded, handleReplay, unmute]);
 
-  // Seamless replay when video finishes
+  // Video finish callback
   const handleEnded = useCallback(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    video.currentTime = 0;
-    video.play().catch(() => {});
-  }, [videoRef]);
+    setIsEnded(true);
+    setIsPlaying(false);
+    setIsLoading(false);
+  }, [setIsLoading]);
 
   return {
     isPlaying,
@@ -164,10 +204,13 @@ export function useHlsVideo({
     setIsLoading,
     isMuted,
     setIsMuted,
+    isEnded,
+    setIsEnded,
     toggleMute,
     unmute,
     hlsSupported,
     togglePlay,
     handleEnded,
+    handleReplay,
   };
 }

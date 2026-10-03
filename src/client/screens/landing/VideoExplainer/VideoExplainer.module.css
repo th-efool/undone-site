@@ -50,6 +50,7 @@
 
 .overlayVisible {
   opacity: 1;
+  pointer-events: auto;
 }
 
 .overlayHidden {

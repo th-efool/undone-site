@@ -2,15 +2,17 @@
 
 import React from 'react';
 import { motion, MotionValue } from 'framer-motion';
-import { Play, Loader2, X, Volume2, VolumeX } from 'lucide-react';
+import { Play, Loader2, X, Volume2, VolumeX, RotateCcw } from 'lucide-react';
 import styles from '../VideoExplainer.module.css';
 
 export interface VideoControlsProps {
   isPlaying: boolean;
   isLoading: boolean;
   isMuted: boolean;
+  isEnded: boolean;
   togglePlay: () => void;
   toggleMute: () => void;
+  onReplay: () => void;
   onExit: () => void;
   closeOpacity: MotionValue<number>;
 }
@@ -19,18 +21,38 @@ export function VideoControls({
   isPlaying,
   isLoading,
   isMuted,
+  isEnded,
   togglePlay,
   toggleMute,
+  onReplay,
   onExit,
   closeOpacity,
 }: VideoControlsProps) {
-  const showPlayButton = !isPlaying && !isLoading;
-  const showCenterLoader = !isPlaying && isLoading;
+  const showReplayButton = isEnded;
+  const showPlayButton = !isPlaying && !isLoading && !isEnded;
+  const showCenterLoader = !isPlaying && isLoading && !isEnded;
   const showCornerLoader = isPlaying && isLoading;
 
   return (
     <>
-      {/* Big Play Button Overlay (Visible only when paused and not loading) */}
+      {/* Big Replay Button Overlay (Visible when video ended or reached end) */}
+      <div
+        className={`${styles.overlayCenter} ${
+          showReplayButton ? styles.overlayVisible : styles.overlayHidden
+        }`}
+      >
+        <button
+          type="button"
+          onClick={onReplay}
+          className={styles.playButton}
+          aria-label="Replay video"
+          title="Replay video"
+        >
+          <RotateCcw className={styles.playIcon} strokeWidth={2.4} />
+        </button>
+      </div>
+
+      {/* Big Play Button Overlay (Visible only when paused and not loading and not ended) */}
       <div
         className={`${styles.overlayCenter} ${
           showPlayButton ? styles.overlayVisible : styles.overlayHidden

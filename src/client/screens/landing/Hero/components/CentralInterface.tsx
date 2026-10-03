@@ -66,7 +66,7 @@ export function CentralInterface() {
         variant="prompt"
         multiline
         minRows={1}
-        maxRows={8}
+        maxRows={{ base: 4, sm: 5, md: 6, lg: 8 }}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onSubmit={handleSubmit}
@@ -82,28 +82,28 @@ export function CentralInterface() {
                 className={styles.promptPlusPill}
                 aria-label="Add attachment"
               >
-                <Plus size={18} strokeWidth={2.2} />
+                <Plus size={16} strokeWidth={2.2} />
               </button>
 
               <button type="button" className={styles.promptPill}>
-                <FileText size={15} strokeWidth={1.8} />
+                <FileText size={14} strokeWidth={1.8} />
                 <span>Add sources</span>
               </button>
 
               <button type="button" className={styles.promptPill}>
-                <Paperclip size={15} strokeWidth={1.8} />
+                <Paperclip size={14} strokeWidth={1.8} />
                 <span>Upload</span>
               </button>
 
               <button type="button" className={styles.promptPill}>
-                <Sparkles size={15} strokeWidth={1.8} />
+                <Sparkles size={14} strokeWidth={1.8} />
                 <span>Use a template</span>
               </button>
             </div>
 
             <div className={styles.promptRightActions}>
               <button type="button" className={styles.promptPlanBtn}>
-                <Lightbulb size={16} strokeWidth={1.8} />
+                <Lightbulb size={15} strokeWidth={1.8} />
                 <span>Plan</span>
               </button>
 
@@ -111,7 +111,7 @@ export function CentralInterface() {
 
               <button type="submit" className={styles.promptBeginBtn}>
                 <span>Begin journey</span>
-                <ArrowRight size={15} strokeWidth={2.2} />
+                <ArrowRight size={14} strokeWidth={2.2} />
               </button>
             </div>
           </div>

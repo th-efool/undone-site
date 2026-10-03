@@ -30,10 +30,13 @@ export function VideoExplainer({
     setIsLoading,
     isMuted,
     setIsMuted,
+    isEnded,
+    setIsEnded,
     toggleMute,
     unmute,
     hlsSupported,
     handleEnded,
+    handleReplay,
   } = useHlsVideo({
     videoRef,
     hlsSrc,
@@ -44,6 +47,12 @@ export function VideoExplainer({
   const handleTogglePlay = () => {
     const video = videoRef.current;
     if (!video) return;
+
+    if (isEnded) {
+      userPausedManually.current = false;
+      handleReplay();
+      return;
+    }
 
     if (video.paused) {
       userPausedManually.current = false;
@@ -66,6 +75,14 @@ export function VideoExplainer({
     videoRef,
     togglePlay: handleTogglePlay,
     toggleMute,
+    onSeekPastEnd: () => {
+      setIsEnded(true);
+      setIsPlaying(false);
+      setIsLoading(false);
+    },
+    onSeekBackward: () => {
+      setIsEnded(false);
+    },
   });
 
   const { scrollYProgress } = useScroll({
@@ -147,8 +164,10 @@ export function VideoExplainer({
             isPlaying={isPlaying}
             isLoading={isLoading}
             isMuted={isMuted}
+            isEnded={isEnded}
             togglePlay={handleTogglePlay}
             toggleMute={toggleMute}
+            onReplay={handleReplay}
             onExit={handleExit}
             closeOpacity={closeOpacity}
           />

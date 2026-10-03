@@ -21,6 +21,15 @@ import styles from './TextBar.module.css';
 export type TextBarVariant = 'pill' | 'card' | 'default' | 'ghost' | 'underline' | 'prompt';
 export type TextBarSize = 'sm' | 'md' | 'lg';
 
+export type ResponsiveMaxRows =
+  | number
+  | {
+      base?: number; // < 640px (default: 4)
+      sm?: number;   // 640px - 767px (default: 5)
+      md?: number;   // 768px - 1023px (default: 6)
+      lg?: number;   // >= 1024px (default: 8)
+    };
+
 export interface TextBarProps
   extends Omit<
     InputHTMLAttributes<HTMLInputElement> & TextareaHTMLAttributes<HTMLTextAreaElement>,
@@ -34,8 +43,8 @@ export interface TextBarProps
   multiline?: boolean;
   /** Minimum rows to display initially (default: 1) */
   minRows?: number;
-  /** Maximum rows before vertical scrolling activates (default: 8) */
-  maxRows?: number;
+  /** Maximum rows before vertical scrolling activates (responsive by screen width) */
+  maxRows?: ResponsiveMaxRows;
   /** Element placed at the start of the bar (e.g., icons, buttons) */
   leftSlot?: ReactNode;
   /** Element placed at the end of the bar (e.g., submit button, keyboard hint) */
@@ -78,7 +87,7 @@ export const TextBar = forwardRef<HTMLInputElement | HTMLTextAreaElement, TextBa
       size = 'md',
       multiline = false,
       minRows = 1,
-      maxRows = 8,
+      maxRows,
       leftSlot,
       rightSlot,
       actions,
@@ -122,15 +131,37 @@ export const TextBar = forwardRef<HTMLInputElement | HTMLTextAreaElement, TextBa
     const isControlled = value !== undefined;
     const currentValue = isControlled ? String(value ?? '') : internalValue;
 
-    // Auto-resize logic for multiline textarea (extends vertically up to maxRows)
+    // Resolve maxRows dynamically based on viewport width
+    const getEffectiveMaxRows = useCallback(() => {
+      if (typeof window === 'undefined') return typeof maxRows === 'number' ? maxRows : 8;
+      const width = window.innerWidth;
+      if (typeof maxRows === 'object' && maxRows !== null) {
+        if (width >= 1024 && maxRows.lg !== undefined) return maxRows.lg;
+        if (width >= 768 && maxRows.md !== undefined) return maxRows.md;
+        if (width >= 640 && maxRows.sm !== undefined) return maxRows.sm;
+        if (maxRows.base !== undefined) return maxRows.base;
+      }
+      if (typeof maxRows === 'number') {
+        if (width < 640) return Math.min(maxRows, 4);
+        if (width < 1024) return Math.min(maxRows, 6);
+        return maxRows;
+      }
+      // Default responsive curve: mobile 4, tablet 6, desktop 8
+      if (width < 640) return 4;
+      if (width < 1024) return 6;
+      return 8;
+    }, [maxRows]);
+
+    // Auto-resize logic for multiline textarea (extends vertically up to effectiveMaxRows)
     const adjustHeight = useCallback(() => {
       const el = internalTextareaRef.current;
       if (!el || !multiline) return;
 
       el.style.height = 'auto';
       const computed = window.getComputedStyle(el);
-      const parsedLineHeight = parseFloat(computed.lineHeight) || 28;
-      const maxHeight = parsedLineHeight * maxRows;
+      const parsedLineHeight = parseFloat(computed.lineHeight) || 24;
+      const effectiveMax = getEffectiveMaxRows();
+      const maxHeight = parsedLineHeight * effectiveMax;
       const minHeight = parsedLineHeight * minRows;
       const scrollH = el.scrollHeight;
 
@@ -141,13 +172,20 @@ export const TextBar = forwardRef<HTMLInputElement | HTMLTextAreaElement, TextBa
         el.style.height = `${Math.max(scrollH, minHeight)}px`;
         el.style.overflowY = 'hidden';
       }
-    }, [multiline, minRows, maxRows]);
+    }, [multiline, minRows, getEffectiveMaxRows]);
 
     useEffect(() => {
       if (multiline) {
         adjustHeight();
       }
     }, [multiline, currentValue, adjustHeight]);
+
+    useEffect(() => {
+      if (!multiline) return;
+      const handleResize = () => adjustHeight();
+      window.addEventListener('resize', handleResize);
+      return () => window.removeEventListener('resize', handleResize);
+    }, [multiline, adjustHeight]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       if (!isControlled) {

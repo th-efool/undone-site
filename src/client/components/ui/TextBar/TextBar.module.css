@@ -53,37 +53,35 @@
 .prompt {
   flex-direction: column;
   align-items: stretch;
-  border-radius: 28px;
+  border-radius: 20px;
   background-color: #FFFFFF;
-  border: 1.5px solid #828df5;
+  border: 1px solid #dcdfe8;
   box-shadow: 
-    0 4px 20px -2px rgba(99, 102, 241, 0.08),
-    0 2px 6px -1px rgba(0, 0, 0, 0.03);
-  padding: 18px 22px 16px 22px;
-  gap: 16px;
+    0 4px 20px -2px rgba(99, 102, 241, 0.05),
+    0 1px 4px -1px rgba(0, 0, 0, 0.04);
+  padding: 14px 18px 12px 18px;
+  gap: 10px;
 }
 
 .prompt:focus-within {
-  border-color: #6366f1;
+  border-color: #dcdfe8 !important;
   box-shadow: 
-    0 0 0 3px rgba(99, 102, 241, 0.15),
-    0 8px 24px -4px rgba(99, 102, 241, 0.12);
+    0 6px 24px -2px rgba(0, 0, 0, 0.07),
+    0 1px 4px -1px rgba(0, 0, 0, 0.04);
 }
 
 :global([data-theme="dark"]) .prompt,
 .prompt[data-theme="dark"] {
   background-color: #10121a;
-  border-color: rgba(130, 141, 245, 0.45);
+  border-color: rgba(255, 255, 255, 0.14) !important;
   color: #FFFFFF;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
 }
 
 :global([data-theme="dark"]) .prompt:focus-within,
 .prompt[data-theme="dark"]:focus-within {
-  border-color: #818cf8;
-  box-shadow: 
-    0 0 0 3px rgba(129, 140, 248, 0.2),
-    0 8px 28px -4px rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.85);
 }
 
 .default {
@@ -287,8 +285,8 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  gap: 12px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 /* ── Clear Button ── */

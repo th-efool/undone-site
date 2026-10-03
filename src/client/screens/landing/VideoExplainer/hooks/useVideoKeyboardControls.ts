@@ -6,6 +6,8 @@ export interface UseVideoKeyboardControlsOptions {
   videoRef: RefObject<HTMLVideoElement | null>;
   togglePlay: () => void;
   toggleMute?: () => void;
+  onSeekPastEnd?: () => void;
+  onSeekBackward?: () => void;
   seekStepSeconds?: number;
 }
 
@@ -13,6 +15,8 @@ export function useVideoKeyboardControls({
   videoRef,
   togglePlay,
   toggleMute,
+  onSeekPastEnd,
+  onSeekBackward,
   seekStepSeconds = 5,
 }: UseVideoKeyboardControlsOptions): void {
   useEffect(() => {
@@ -35,10 +39,11 @@ export function useVideoKeyboardControls({
         e.preventDefault();
         const duration = video.duration || 0;
         if (duration > 0) {
-          // If seeking would reach or exceed the end of video, loop seamlessly back to start
-          if (video.currentTime + seekStepSeconds >= duration - 0.4) {
-            video.currentTime = 0;
-            video.play().catch(() => {});
+          // If seeking would reach or exceed the end of video, show replay button in center
+          if (video.currentTime + seekStepSeconds >= duration - 0.3) {
+            video.currentTime = duration;
+            video.pause();
+            onSeekPastEnd?.();
           } else {
             video.currentTime += seekStepSeconds;
           }
@@ -46,6 +51,7 @@ export function useVideoKeyboardControls({
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
         video.currentTime = Math.max(video.currentTime - seekStepSeconds, 0);
+        onSeekBackward?.();
       } else if (e.key === ' ') {
         e.preventDefault();
         togglePlay();
