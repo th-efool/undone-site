@@ -1,78 +1,79 @@
+/* ==========================================================================
+   Full-Screen Editorial Collage Hero Styles (Real Assets & Live HTML Paper)
+   ========================================================================== */
+
 .heroWrapper {
   width: 100vw;
-  height: 100vh;
-  min-height: 522px;
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
   background-color: #F6F0E7;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  position: relative;
-  margin: 0;
-  padding: 0;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
 }
 
-.heroCanvas {
-  position: relative;
-  width: 1024px;
-  height: 522px;
-  background-color: #F6F0E7;
+/* Authentic Paper Texture Grain Overlay */
+.paperTextureOverlay {
+  position: absolute;
+  inset: 0;
+  background-image: url('/images/hero-collage/real-paper-texture.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.16;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Subtle dot fiber texture */
+.dotGridOverlay {
+  position: absolute;
+  inset: 0;
   background-image: 
-    radial-gradient(rgba(14, 23, 56, 0.03) 1px, transparent 1px),
-    radial-gradient(rgba(180, 160, 140, 0.05) 1px, transparent 1px);
+    radial-gradient(rgba(14, 23, 56, 0.035) 1px, transparent 1px),
+    radial-gradient(rgba(180, 160, 140, 0.06) 1px, transparent 1px);
   background-size: 24px 24px, 12px 12px;
-  overflow: hidden;
-  user-select: none;
-  flex-shrink: 0;
-  transform: scale(min(calc(100vw / 1024), calc(100vh / 522)));
-  transform-origin: center center;
+  pointer-events: none;
+  z-index: 2;
 }
 
-/* Tape strip simulation */
+/* Semi-translucent Frosted Masking Tape */
 .tapeStrip {
   position: absolute;
-  background: rgba(246, 240, 226, 0.78);
-  backdrop-filter: blur(1.5px);
-  border: 0.5px solid rgba(220, 210, 190, 0.45);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  background: rgba(246, 240, 226, 0.82);
+  backdrop-filter: blur(2px);
+  border: 0.5px solid rgba(220, 210, 190, 0.55);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.09);
   clip-path: polygon(
     2% 0%, 98% 1.5%, 100% 98%, 98% 100%,
     2% 98%, 0% 50%
   );
-  z-index: 50;
+  z-index: 45;
   pointer-events: none;
 }
 
-/* Central functional layer */
-.centralContainer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  z-index: 60;
-  pointer-events: auto;
-}
-
-/* Header */
+/* ==========================================================================
+   Top Header Navigation
+   ========================================================================== */
 .header {
   width: 100%;
-  max-width: 610px;
-  height: 38px;
-  margin-top: 14px;
+  max-width: 960px;
+  margin: 16px auto 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 4px;
+  padding: 0 24px;
+  position: relative;
+  z-index: 50;
+  box-sizing: border-box;
 }
 
 .brandGroup {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   text-decoration: none;
 }
 
@@ -83,7 +84,7 @@
 
 .brandName {
   font-family: var(--font-playfair-display), serif;
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 700;
   color: #0E1738;
   line-height: 1;
@@ -92,7 +93,7 @@
 
 .brandTagline {
   font-family: var(--font-caveat-next), cursive;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 700;
   color: #4B556D;
   line-height: 1;
@@ -102,12 +103,12 @@
 .navLinks {
   display: flex;
   align-items: center;
-  gap: 22px;
+  gap: 26px;
 }
 
 .navLink {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 500;
   color: #3B4356;
   text-decoration: none;
@@ -121,12 +122,12 @@
 .headerActions {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
 }
 
 .signInLink {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 500;
   color: #3B4356;
   text-decoration: none;
@@ -139,15 +140,15 @@
 
 .getStartedBtn {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
   color: #FFFFFF;
   background-color: #1F299D;
-  padding: 6px 14px;
+  padding: 7px 16px;
   border-radius: 9999px;
   border: none;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(31, 41, 157, 0.25);
+  box-shadow: 0 2px 8px rgba(31, 41, 157, 0.28);
   transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
@@ -156,31 +157,51 @@
   transform: translateY(-0.5px);
 }
 
-/* Hero Content */
-.heroContent {
+/* ==========================================================================
+   Central Functional Interface Layer
+   ========================================================================== */
+.mainHeroSection {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 10;
+  padding: 10px 0 24px 0;
+  box-sizing: border-box;
+}
+
+.centralInterface {
+  position: relative;
+  z-index: 30;
+  max-width: 540px;
+  width: 100%;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin-top: 26px;
+  padding: 0 16px;
+  box-sizing: border-box;
 }
 
 .eyebrow {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 8.5px;
+  font-size: 9px;
   font-weight: 700;
   color: #8E867A;
   letter-spacing: 0.28em;
   text-transform: uppercase;
-  margin-bottom: 7px;
+  margin-bottom: 8px;
 }
 
 .headline {
   font-family: var(--font-playfair-display), serif;
-  font-size: 40px;
+  font-size: 46px;
   font-weight: 600;
   color: #0E1738;
-  line-height: 1.05;
+  line-height: 1.08;
   letter-spacing: -0.02em;
   margin: 0;
   position: relative;
@@ -198,33 +219,35 @@
 .underlineFlourish {
   position: absolute;
   left: 0;
-  bottom: -9px;
+  bottom: -8px;
   width: 100%;
   pointer-events: none;
 }
 
 .subtitle {
   font-family: var(--font-lora), serif;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: #363E52;
-  margin-top: 11px;
-  margin-bottom: 17px;
+  margin-top: 14px;
+  margin-bottom: 22px;
   letter-spacing: -0.005em;
 }
 
 /* Input Card */
 .inputCard {
-  width: 426px;
-  height: 58px;
+  width: 100%;
+  max-width: 436px;
+  height: 60px;
   background-color: #FFFFFF;
   border: 1px solid #DFD8CD;
-  border-radius: 16px;
+  border-radius: 18px;
   display: flex;
   align-items: center;
-  padding: 0 8px 0 12px;
+  padding: 0 8px 0 14px;
   box-shadow: 
-    0 4px 20px -2px rgba(14, 23, 56, 0.07),
-    0 2px 6px -1px rgba(14, 23, 56, 0.04);
+    0 4px 22px -2px rgba(14, 23, 56, 0.08),
+    0 2px 8px -1px rgba(14, 23, 56, 0.04);
+  box-sizing: border-box;
 }
 
 .plusButton {
@@ -250,7 +273,7 @@
 .textInput {
   flex: 1;
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 12px;
+  font-size: 12.5px;
   color: #0E1738;
   background: transparent;
   border: none;
@@ -272,7 +295,7 @@
 .planButton {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   font-family: var(--font-manrope-next), sans-serif;
   font-size: 11px;
   font-weight: 600;
@@ -294,15 +317,15 @@
   align-items: center;
   gap: 5px;
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
   color: #FFFFFF;
   background-color: #1F299D;
-  padding: 7px 14px;
+  padding: 8px 16px;
   border-radius: 9999px;
   border: none;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(31, 41, 157, 0.25);
+  box-shadow: 0 2px 8px rgba(31, 41, 157, 0.28);
   transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
@@ -311,7 +334,7 @@
   transform: translateY(-0.5px);
 }
 
-/* Action Tiles */
+/* Action 4 Tiles */
 .actionTilesGrid {
   display: flex;
   gap: 22px;
@@ -334,27 +357,27 @@
 }
 
 .tileIconSquare {
-  width: 42px;
-  height: 42px;
-  border-radius: 11px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   background-color: #1F299D;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #FFFFFF;
-  box-shadow: 0 3px 8px rgba(31, 41, 157, 0.28);
+  box-shadow: 0 3px 10px rgba(31, 41, 157, 0.28);
 }
 
 .tileLabels {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin-top: 5px;
+  margin-top: 6px;
 }
 
 .tileAction {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
   color: #0E1635;
   line-height: 1.15;
@@ -362,7 +385,7 @@
 
 .tileTarget {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 9.5px;
+  font-size: 10px;
   font-weight: 400;
   color: #596378;
   line-height: 1.15;
@@ -372,7 +395,7 @@
 .dividerWrapper {
   position: relative;
   width: 340px;
-  margin-top: 15px;
+  margin-top: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -391,7 +414,7 @@
   background-color: #F6F0E7;
   padding: 0 10px;
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 9.5px;
+  font-size: 10px;
   color: #667085;
   font-weight: 400;
 }
@@ -400,7 +423,7 @@
 .pillsRow {
   display: flex;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .pillButton {
@@ -410,9 +433,9 @@
   background-color: #FFFFFF;
   border: 1px solid #D8D2C6;
   border-radius: 9999px;
-  padding: 5px 12px;
+  padding: 6px 14px;
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 500;
   color: #1D2752;
   cursor: pointer;
@@ -430,9 +453,9 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  margin-top: 14px;
+  margin-top: 16px;
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 500;
   color: #4B556D;
   text-decoration: none;
@@ -444,35 +467,448 @@
   color: #0E1738;
 }
 
-/* Collage Containers */
+/* ==========================================================================
+   Left Collage Complex (Cohesive Vertical Scrapbook Cluster)
+   ========================================================================== */
 .collageLeft {
   position: absolute;
-  top: 0;
+  top: 15px;
   left: 0;
-  bottom: 0;
-  width: 250px;
+  width: 360px;
+  height: 560px;
   pointer-events: none;
   z-index: 20;
 }
 
+/* L1 Window Photo Card */
+.windowPhotoCard {
+  position: absolute;
+  top: 0;
+  left: -15px;
+  width: 260px;
+  height: 320px;
+  transform: rotate(1deg);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(15, 20, 35, 0.18);
+  background-color: #2D2D2D;
+  z-index: 10;
+}
+
+.windowPhotoImage {
+  object-fit: cover;
+  object-position: center 25%;
+  filter: grayscale(100%) contrast(1.18) brightness(0.92);
+}
+
+.windowPhotoAnnotation {
+  position: absolute;
+  bottom: 24px;
+  left: 20px;
+  right: 20px;
+  font-family: var(--font-caveat-next), cursive;
+  font-size: 15px;
+  font-weight: 700;
+  color: #FFFFFF;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+  line-height: 1.25;
+  pointer-events: none;
+}
+
+/* L2 Kraft List Scrap (Live HTML) */
+.kraftListScrap {
+  position: absolute;
+  top: 220px;
+  left: 80px;
+  width: 132px;
+  background: #CDB99C;
+  background-image: linear-gradient(135deg, #D4C3A7 0%, #C7B293 100%);
+  padding: 13px 12px;
+  box-shadow: 0 5px 16px rgba(25, 20, 15, 0.18);
+  transform: rotate(-2deg);
+  z-index: 25;
+  clip-path: polygon(
+    0% 0%, 100% 2%, 98% 96%, 85% 98%, 70% 95%,
+    55% 100%, 35% 96%, 15% 98%, 0% 94%
+  );
+}
+
+.kraftListText {
+  font-family: var(--font-caveat-next), cursive;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #2D2316;
+  letter-spacing: 0.08em;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* L7 Torn Cobalt Blue Paper (Live HTML) */
+.blueTornScrap {
+  position: absolute;
+  top: 250px;
+  left: 155px;
+  width: 80px;
+  height: 110px;
+  background: #182B8A;
+  transform: rotate(-6deg);
+  z-index: 18;
+  box-shadow: 0 5px 14px rgba(15, 25, 80, 0.25);
+  clip-path: polygon(
+    4% 2%, 96% 0%, 100% 88%, 88% 98%, 65% 92%,
+    45% 100%, 20% 94%, 0% 90%
+  );
+}
+
+/* L4 Mountain Photo */
+.mountainsCard {
+  position: absolute;
+  top: 290px;
+  left: -15px;
+  width: 180px;
+  height: 210px;
+  transform: rotate(-3deg);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(10, 15, 30, 0.22);
+  z-index: 15;
+  background-color: #333;
+}
+
+.mountainsImage {
+  object-fit: cover;
+  filter: grayscale(85%) contrast(1.18);
+}
+
+/* L6 Lunar Crater Sphere */
+.moonSphere {
+  position: absolute;
+  top: 365px;
+  left: 125px;
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(10, 15, 30, 0.26);
+  z-index: 35;
+  background-color: #111;
+}
+
+.moonImage {
+  object-fit: cover;
+  filter: grayscale(100%) contrast(1.25);
+}
+
+/* L5 Curiosity Note (Live HTML) */
+.curiosityNoteScrap {
+  position: absolute;
+  top: 440px;
+  left: 30px;
+  width: 112px;
+  background: #EFE8DA;
+  padding: 8px 10px;
+  transform: rotate(2.5deg);
+  box-shadow: 0 4px 12px rgba(25, 20, 15, 0.16);
+  z-index: 30;
+  clip-path: polygon(
+    0% 2%, 98% 0%, 100% 95%, 85% 98%, 60% 94%,
+    40% 100%, 0% 96%
+  );
+}
+
+.curiosityNoteText {
+  font-family: var(--font-caveat-next), cursive;
+  font-size: 12px;
+  font-weight: 700;
+  color: #2D251C;
+  line-height: 1.25;
+  margin: 0;
+}
+
+/* Star doodle beside moon */
+.leftStarDoodle {
+  position: absolute;
+  top: 350px;
+  left: 225px;
+  z-index: 45;
+  pointer-events: none;
+}
+
+/* Subtle pencil flourish arc */
+.leftFlourishArc {
+  position: absolute;
+  top: 250px;
+  left: 165px;
+  width: 90px;
+  height: 150px;
+  z-index: 42;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   Right Collage Complex (Cohesive Vertical Scrapbook Cluster)
+   ========================================================================== */
 .collageRight {
   position: absolute;
   top: 0;
   right: 0;
-  bottom: 0;
-  width: 270px;
+  width: 380px;
+  height: 580px;
   pointer-events: none;
   z-index: 20;
 }
 
-/* Individual collage element containers */
-.scrapItem {
+/* R1 Galaxy Photo Card */
+.galaxyCard {
   position: absolute;
-  display: block;
+  top: 0;
+  right: 0;
+  width: 275px;
+  height: 175px;
+  overflow: hidden;
+  box-shadow: 0 6px 22px rgba(10, 15, 30, 0.25);
+  z-index: 10;
+  background-color: #060914;
 }
 
-.scrapItem img {
-  display: block;
-  width: 100%;
-  height: auto;
+.galaxyImage {
+  object-fit: cover;
+  filter: contrast(1.15) brightness(0.95);
+}
+
+/* R2 "A more curious tomorrow" Note (Live HTML) */
+.curiousTomorrowScrap {
+  position: absolute;
+  top: 55px;
+  right: 145px;
+  width: 155px;
+  background: #F4EEE2;
+  background-image: linear-gradient(135deg, #F8F3EA 0%, #EFE5D4 100%);
+  padding: 18px 14px 14px 14px;
+  transform: rotate(-3.5deg);
+  box-shadow: 0 6px 18px rgba(25, 20, 15, 0.16);
+  z-index: 25;
+  clip-path: polygon(
+    2% 0%, 98% 2%, 100% 94%, 88% 98%, 70% 95%,
+    50% 100%, 25% 96%, 0% 95%
+  );
+  box-sizing: border-box;
+}
+
+.curiousTomorrowText {
+  font-family: var(--font-playfair-display), serif;
+  font-style: italic;
+  font-size: 15.5px;
+  color: #2B2319;
+  line-height: 1.3;
+  margin: 0 0 10px 0;
+}
+
+/* R3 Disciplines Strip (Live HTML) */
+.disciplinesStrip {
+  position: absolute;
+  top: 135px;
+  right: 28px;
+  width: 106px;
+  background: #FAF5EC;
+  padding: 11px 9px;
+  box-shadow: 0 4px 14px rgba(25, 20, 15, 0.15);
+  z-index: 20;
+  clip-path: polygon(
+    0% 0%, 100% 2%, 97% 98%, 0% 96%
+  );
+}
+
+.disciplinesText {
+  font-family: var(--font-manrope-next), sans-serif;
+  font-size: 9px;
+  font-weight: 700;
+  color: #635A4C;
+  letter-spacing: 0.12em;
+  line-height: 1.45;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+/* R6 Coffee Mug on Books Photo */
+.mugBooksCard {
+  position: absolute;
+  top: 195px;
+  right: 0;
+  width: 220px;
+  height: 230px;
+  transform: rotate(1deg);
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(15, 20, 35, 0.18);
+  z-index: 22;
+  background-color: #2D2820;
+}
+
+.mugBooksImage {
+  object-fit: cover;
+  filter: contrast(1.08) brightness(0.98);
+}
+
+/* R5 Vintage Cartographic Map */
+.mapCard {
+  position: absolute;
+  top: 315px;
+  right: 215px;
+  width: 105px;
+  height: 135px;
+  transform: rotate(5deg);
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0 5px 16px rgba(25, 20, 15, 0.15);
+  z-index: 24;
+  background-color: #D6C2A0;
+}
+
+.mapImage {
+  object-fit: cover;
+  filter: sepia(35%) contrast(1.1);
+}
+
+/* R7 Cathedral Dome Photo */
+.cathedralCard {
+  position: absolute;
+  top: 355px;
+  right: 75px;
+  width: 155px;
+  height: 185px;
+  transform: rotate(-1deg);
+  border-radius: 3px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(15, 20, 35, 0.18);
+  z-index: 26;
+  background-color: #3D3934;
+}
+
+.cathedralImage {
+  object-fit: cover;
+  object-position: 25% 10%;
+  filter: sepia(18%) contrast(1.15) brightness(0.95);
+}
+
+/* R8 Collect/Repeat Scrap (Live HTML) */
+.collectRepeatScrap {
+  position: absolute;
+  top: 430px;
+  right: 0;
+  width: 115px;
+  background: #F2EBDE;
+  padding: 10px 12px;
+  transform: rotate(1.5deg);
+  box-shadow: 0 4px 14px rgba(25, 20, 15, 0.16);
+  z-index: 32;
+  clip-path: polygon(
+    4% 0%, 100% 2%, 96% 96%, 0% 100%
+  );
+}
+
+.collectRepeatText {
+  font-family: var(--font-caveat-next), cursive;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #3A3125;
+  line-height: 1.35;
+  margin: 0;
+}
+
+/* R9 Blue Banner Ribbon (Live HTML) */
+.blueBannerRibbon {
+  position: absolute;
+  top: 445px;
+  right: 225px;
+  width: 140px;
+  background: #1C2D9C;
+  padding: 8px 12px;
+  transform: rotate(-8deg);
+  box-shadow: 0 5px 16px rgba(15, 25, 80, 0.28);
+  z-index: 30;
+  clip-path: polygon(
+    0% 4%, 96% 0%, 100% 92%, 10% 100%
+  );
+}
+
+.blueBannerText {
+  font-family: var(--font-caveat-next), cursive;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.25;
+  margin: 0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Right subtle pencil flourish arc */
+.rightFlourishArc {
+  position: absolute;
+  top: 265px;
+  right: 180px;
+  width: 110px;
+  height: 170px;
+  z-index: 38;
+  pointer-events: none;
+}
+
+/* ==========================================================================
+   Responsive Viewport Scaling
+   ========================================================================== */
+@media (min-width: 1400px) {
+  .collageLeft {
+    transform: scale(1.12);
+    transform-origin: top left;
+  }
+  .collageRight {
+    transform: scale(1.12);
+    transform-origin: top right;
+  }
+}
+
+@media (min-width: 1800px) {
+  .collageLeft {
+    transform: scale(1.25);
+    transform-origin: top left;
+  }
+  .collageRight {
+    transform: scale(1.25);
+    transform-origin: top right;
+  }
+}
+
+@media (max-width: 1280px) {
+  .collageLeft {
+    transform: scale(0.86);
+    transform-origin: top left;
+  }
+  .collageRight {
+    transform: scale(0.86);
+    transform-origin: top right;
+  }
+}
+
+@media (max-width: 1080px) {
+  .collageLeft {
+    transform: scale(0.72);
+    transform-origin: top left;
+  }
+  .collageRight {
+    transform: scale(0.72);
+    transform-origin: top right;
+  }
+}
+
+@media (max-width: 820px) {
+  .collageLeft {
+    opacity: 0.25;
+    transform: scale(0.6);
+    transform-origin: top left;
+  }
+  .collageRight {
+    opacity: 0.25;
+    transform: scale(0.6);
+    transform-origin: top right;
+  }
 }

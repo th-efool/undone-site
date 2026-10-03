@@ -7,195 +7,156 @@ import styles from '../ReconstructedHero.module.css';
 export function CollageRight() {
   return (
     <div className={styles.collageRight} aria-hidden="true">
-      {/* R1: Cosmic Galaxy Photo */}
-      <div
-        className={styles.scrapItem}
-        style={{
-          width: 214,
-          right: 0,
-          top: 0,
-          zIndex: 10,
-          filter: 'drop-shadow(0 4px 14px rgba(10, 15, 30, 0.15))',
-        }}
-      >
+      {/* R1: Cosmic Galaxy Photo (Real Space Imagery) */}
+      <div className={styles.galaxyCard}>
         <Image
-          src="/images/hero-collage/r1-galaxy.png"
+          src="/images/hero-collage/real-galaxy.jpg"
           alt=""
-          width={214}
-          height={140}
+          fill
+          className={styles.galaxyImage}
+          sizes="240px"
           priority
         />
       </div>
 
-      {/* R2: "A more curious tomorrow" Note */}
-      <div
-        className={styles.scrapItem}
-        style={{
-          width: 136,
-          right: 136,
-          top: 58,
-          transform: 'rotate(-3.5deg)',
-          zIndex: 25,
-          filter: 'drop-shadow(0 4px 14px rgba(25, 20, 15, 0.14))',
-        }}
-      >
-        <Image
-          src="/images/hero-collage/r2-curious-tomorrow.png"
-          alt=""
-          width={140}
-          height={180}
-        />
-        {/* Top-right tape */}
+      {/* R2: "A more curious tomorrow" Note (Live HTML & Live Typography) */}
+      <div className={styles.curiousTomorrowScrap}>
+        <p className={styles.curiousTomorrowText}>
+          A
+          <br />
+          more
+          <br />
+          curious
+          <br />
+          tomorrow.
+        </p>
+        {/* Handcrafted 8-point celestial star doodle */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 4 }}>
+          <Image
+            src="/images/hero-collage/star-doodle.svg"
+            alt=""
+            width={16}
+            height={16}
+          />
+        </div>
+        {/* Top-left tape pinning the scrap */}
         <div
           className={styles.tapeStrip}
           style={{
-            width: 42,
+            width: 44,
             height: 16,
-            top: 2,
-            right: 16,
-            transform: 'rotate(24deg)',
+            top: -4,
+            left: 16,
+            transform: 'rotate(-18deg)',
           }}
         />
       </div>
 
-      {/* R3: Disciplines Strip */}
-      <div
-        className={styles.scrapItem}
-        style={{
-          width: 96,
-          right: 28,
-          top: 135,
-          zIndex: 20,
-          filter: 'drop-shadow(0 3px 10px rgba(25, 20, 15, 0.12))',
-        }}
-      >
+      {/* R3: Disciplines Strip (Live HTML) */}
+      <div className={styles.disciplinesStrip}>
+        <pre className={styles.disciplinesText}>
+          ART{'\n'}
+          SCIENCE{'\n'}
+          TECHNOLOGY{'\n'}
+          HUMANITIES{'\n'}
+          CREATIVITY{'\n'}
+          AND BEYOND
+        </pre>
+      </div>
+
+      {/* R6: Coffee Mug on Vintage Books Photo */}
+      <div className={styles.mugBooksCard}>
         <Image
-          src="/images/hero-collage/r3-disciplines.png"
+          src="/images/hero-collage/real-mug-books.jpg"
           alt=""
-          width={100}
-          height={100}
+          fill
+          className={styles.mugBooksImage}
+          sizes="200px"
         />
       </div>
 
-      {/* R6: Coffee Mug on Books ("Good Ideas") */}
-      <div
-        className={styles.scrapItem}
-        style={{
-          width: 188,
-          right: 0,
-          top: 205,
-          transform: 'rotate(1deg)',
-          zIndex: 22,
-          filter: 'drop-shadow(0 4px 16px rgba(15, 20, 35, 0.15))',
-        }}
-      >
+      {/* R5: Antique Cartographic Map Photo */}
+      <div className={styles.mapCard}>
         <Image
-          src="/images/hero-collage/r6-mug-books.png"
+          src="/images/hero-collage/real-map.jpg"
           alt=""
-          width={189}
-          height={195}
+          fill
+          className={styles.mapImage}
+          sizes="100px"
         />
       </div>
 
-      {/* R5: Vintage Cartographic Map */}
+      {/* R4: Folded Royal Blue Origami Crane (Vector Craft) */}
       <div
-        className={styles.scrapItem}
         style={{
-          width: 92,
-          right: 196,
-          top: 320,
-          transform: 'rotate(5deg)',
-          zIndex: 20,
-          filter: 'drop-shadow(0 3px 10px rgba(25, 20, 15, 0.12))',
-        }}
-      >
-        <Image
-          src="/images/hero-collage/r5-map-scrap.png"
-          alt=""
-          width={95}
-          height={120}
-        />
-      </div>
-
-      {/* R4: Folded Royal Blue Origami Crane */}
-      <div
-        className={styles.scrapItem}
-        style={{
-          width: 72,
-          right: 170,
-          top: 242,
+          position: 'absolute',
+          top: 240,
+          right: 172,
+          width: 76,
+          height: 90,
           transform: 'rotate(2deg)',
           zIndex: 45,
-          filter: 'drop-shadow(0 4px 8px rgba(10, 20, 70, 0.28))',
         }}
       >
         <Image
-          src="/images/hero-collage/r4-origami-crane.png"
+          src="/images/hero-collage/real-origami-crane.svg"
           alt=""
-          width={75}
+          width={76}
           height={90}
         />
       </div>
 
-      {/* R7: Classical Cathedral Dome */}
-      <div
-        className={styles.scrapItem}
-        style={{
-          width: 136,
-          right: 78,
-          bottom: 0,
-          transform: 'rotate(-1deg)',
-          zIndex: 24,
-          filter: 'drop-shadow(0 4px 16px rgba(15, 20, 35, 0.13))',
-        }}
-      >
+      {/* R7: Classical Cathedral Dome Photo */}
+      <div className={styles.cathedralCard}>
         <Image
-          src="/images/hero-collage/r7-cathedral.png"
+          src="/images/hero-collage/real-cathedral.jpg"
           alt=""
-          width={140}
-          height={155}
+          fill
+          className={styles.cathedralImage}
+          sizes="145px"
         />
       </div>
 
-      {/* R8: Collect / Learn / Repeat Scrap */}
-      <div
-        className={styles.scrapItem}
-        style={{
-          width: 106,
-          right: 0,
-          bottom: 35,
-          transform: 'rotate(1.5deg)',
-          zIndex: 30,
-          filter: 'drop-shadow(0 3px 10px rgba(25, 20, 15, 0.14))',
-        }}
-      >
-        <Image
-          src="/images/hero-collage/r8-collect-repeat.png"
-          alt=""
-          width={109}
-          height={125}
-        />
+      {/* R8: Collect / Learn / Repeat Scrap (Live HTML) */}
+      <div className={styles.collectRepeatScrap}>
+        <p className={styles.collectRepeatText}>
+          Collect
+          <br />
+          Learn
+          <br />
+          Create
+          <br />
+          Repeat
+        </p>
       </div>
 
-      {/* R9: "Different Paths Same Sky" Blue Banner Ribbon */}
-      <div
-        className={styles.scrapItem}
-        style={{
-          width: 122,
-          right: 224,
-          bottom: 8,
-          transform: 'rotate(-8deg)',
-          zIndex: 28,
-          filter: 'drop-shadow(0 3px 8px rgba(15, 25, 80, 0.24))',
-        }}
-      >
-        <Image
-          src="/images/hero-collage/r9-blue-banner.png"
-          alt=""
-          width={125}
-          height={110}
-        />
+      {/* R9: "Different Paths Same Sky" Cobalt Banner (Live HTML) */}
+      <div className={styles.blueBannerRibbon}>
+        <p className={styles.blueBannerText}>
+          Different
+          <br />
+          Paths
+          <br />
+          Same Sky
+        </p>
       </div>
+
+      {/* Subtle organic pencil flourish arc looping below origami crane */}
+      <svg
+        className={styles.rightFlourishArc}
+        viewBox="0 0 120 180"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path
+          d="M 80 15 C 20 60 40 120 15 165"
+          stroke="#1F299D"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+          strokeDasharray="2 3"
+          opacity="0.45"
+        />
+      </svg>
     </div>
   );
 }

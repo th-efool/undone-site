@@ -6,24 +6,27 @@ import { HeaderNav } from './components/HeaderNav';
 import { CentralInterface } from './components/CentralInterface';
 import { CollageLeft } from './components/CollageLeft';
 import { CollageRight } from './components/CollageRight';
-import { Flourishes } from './components/Flourishes';
 
 export function ReconstructedHero() {
   return (
     <div className={styles.heroWrapper}>
-      <div className={styles.heroCanvas}>
-        {/* Left physical scrapbooking collage */}
+      {/* Real Paper Texture Background Grain */}
+      <div className={styles.paperTextureOverlay} aria-hidden="true" />
+      <div className={styles.dotGridOverlay} aria-hidden="true" />
+
+      {/* Top Navigation */}
+      <HeaderNav />
+
+      {/* Main Full-Screen Hero Section */}
+      <div className={styles.mainHeroSection}>
+        {/* Left Physical Scrapbooking Collage (Real Photos + Live HTML Crafts) */}
         <CollageLeft />
 
-        {/* Right physical scrapbooking collage */}
+        {/* Right Physical Scrapbooking Collage (Real Photos + Live HTML Crafts) */}
         <CollageRight />
 
-        {/* Celestial star doodles & accents */}
-        <Flourishes />
-
-        {/* Central interactive and navigational layer */}
-        <div className={styles.centralContainer}>
-          <HeaderNav />
+        {/* Central Functional & Interactive Interface */}
+        <div className={styles.centralInterface}>
           <CentralInterface />
         </div>
       </div>
