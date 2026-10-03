@@ -1,10 +1,12 @@
 /* ==========================================================================
    Full-Screen Editorial Collage Hero Styles (Real Assets & Live HTML Paper)
+   Accurately calibrated to reference.jpg (1024x522 native ratio)
    ========================================================================== */
 
 .heroWrapper {
   width: 100vw;
-  min-height: 100vh;
+  height: 100vh;
+  min-height: 520px;
   position: relative;
   overflow: hidden;
   background-color: #F6F0E7;
@@ -54,17 +56,23 @@
   pointer-events: none;
 }
 
+/* Torn Paper Image Element */
+.tornPaperImage {
+  object-fit: contain;
+  pointer-events: none;
+}
+
 /* ==========================================================================
    Top Header Navigation
    ========================================================================== */
 .header {
   width: 100%;
-  max-width: 960px;
-  margin: 16px auto 0 auto;
+  max-width: 920px;
+  margin: 10px auto 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 20px;
   position: relative;
   z-index: 50;
   box-sizing: border-box;
@@ -73,13 +81,13 @@
 .brandGroup {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   text-decoration: none;
 }
 
 .brandLogo {
-  width: 36px;
-  height: 36px;
+  width: 30px;
+  height: 30px;
   object-fit: contain;
   flex-shrink: 0;
   display: block;
@@ -91,9 +99,8 @@
 }
 
 .brandName {
-  /* Clean uniform bold sans-serif without excessive chunkiness */
   font-family: var(--font-geist-sans), var(--font-manrope-next), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 21px;
+  font-size: 17px;
   font-weight: 700;
   color: #0E1738;
   line-height: 1.05;
@@ -102,24 +109,23 @@
 }
 
 .brandTagline {
-  /* Bigger, legible handwritten cursive tagline */
   font-family: var(--font-caveat-next), cursive;
-  font-size: 15.5px;
+  font-size: 13px;
   font-weight: 700;
   color: #4B556D;
   line-height: 1.1;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .navLinks {
   display: flex;
   align-items: center;
-  gap: 26px;
+  gap: 22px;
 }
 
 .navLink {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: #3B4356;
   text-decoration: none;
@@ -133,12 +139,12 @@
 .headerActions {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .signInLink {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: #3B4356;
   text-decoration: none;
@@ -151,15 +157,15 @@
 
 .getStartedBtn {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 600;
   color: #FFFFFF;
   background-color: #1F299D;
-  padding: 7px 16px;
+  padding: 5px 14px;
   border-radius: 9999px;
   border: none;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(31, 41, 157, 0.28);
+  box-shadow: 0 2px 6px rgba(31, 41, 157, 0.28);
   transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
@@ -179,37 +185,45 @@
   justify-content: center;
   position: relative;
   z-index: 10;
-  padding: 10px 0 24px 0;
+  padding: 4px 0 10px 0;
   box-sizing: border-box;
 }
 
 .centralInterface {
   position: relative;
   z-index: 30;
-  max-width: 660px;
+  max-width: 520px;
   width: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 0 16px;
+  padding: 0 12px;
   box-sizing: border-box;
+}
+
+.heroContent {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
 }
 
 .eyebrow {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 700;
   color: #8E867A;
-  letter-spacing: 0.28em;
+  letter-spacing: 0.26em;
   text-transform: uppercase;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
 
 .headline {
   font-family: var(--font-playfair-display), serif;
-  font-size: 46px;
+  font-size: 34px;
   font-weight: 600;
   color: #0E1738;
   line-height: 1.08;
@@ -230,34 +244,34 @@
 .underlineFlourish {
   position: absolute;
   left: 0;
-  bottom: -8px;
+  bottom: -6px;
   width: 100%;
   pointer-events: none;
 }
 
 .subtitle {
   font-family: var(--font-lora), serif;
-  font-size: 13.5px;
+  font-size: 11.5px;
   color: #363E52;
-  margin-top: 14px;
-  margin-bottom: 22px;
+  margin-top: 6px;
+  margin-bottom: 12px;
   letter-spacing: -0.005em;
 }
 
 /* Input Card */
 .inputCard {
   width: 100%;
-  max-width: 580px;
-  height: 64px;
+  max-width: 440px;
+  height: 46px;
   background-color: #FFFFFF;
   border: 1px solid #DFD8CD;
-  border-radius: 20px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
-  padding: 0 10px 0 16px;
+  padding: 0 8px 0 12px;
   box-shadow: 
-    0 6px 26px -2px rgba(14, 23, 56, 0.09),
-    0 2px 10px -1px rgba(14, 23, 56, 0.04);
+    0 4px 18px -2px rgba(14, 23, 56, 0.08),
+    0 1px 6px -1px rgba(14, 23, 56, 0.04);
   box-sizing: border-box;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -265,13 +279,13 @@
 .inputCard:focus-within {
   border-color: #1F299D;
   box-shadow: 
-    0 8px 30px -2px rgba(31, 41, 157, 0.14),
-    0 2px 10px -1px rgba(14, 23, 56, 0.06);
+    0 6px 22px -2px rgba(31, 41, 157, 0.12),
+    0 2px 8px -1px rgba(14, 23, 56, 0.05);
 }
 
 .plusButton {
-  width: 32px;
-  height: 32px;
+  width: 25px;
+  height: 25px;
   border-radius: 50%;
   border: 1px solid #DFD8CD;
   background-color: #FFFFFF;
@@ -292,12 +306,12 @@
 .textInput {
   flex: 1;
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 14px;
+  font-size: 11.5px;
   color: #0E1738;
   background: transparent;
   border: none;
   outline: none;
-  padding: 0 16px;
+  padding: 0 10px;
 }
 
 .textInput::placeholder {
@@ -307,23 +321,23 @@
 .inputControls {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
 .planButton {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 11px;
+  font-size: 9.5px;
   font-weight: 600;
   color: #2B3650;
   background: transparent;
   border: none;
   cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 6px;
+  padding: 3px 5px;
+  border-radius: 5px;
   transition: color 0.15s ease;
 }
 
@@ -334,17 +348,17 @@
 .beginJourneyBtn {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 11.5px;
+  font-size: 10px;
   font-weight: 600;
   color: #FFFFFF;
   background-color: #1F299D;
-  padding: 8px 16px;
+  padding: 6px 12px;
   border-radius: 9999px;
   border: none;
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(31, 41, 157, 0.28);
+  box-shadow: 0 2px 6px rgba(31, 41, 157, 0.28);
   transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
@@ -353,15 +367,15 @@
   transform: translateY(-0.5px);
 }
 
-/* Action 4 Tiles - Equally spaced and center-aligned */
+/* Action 4 Tiles */
 .actionTilesGrid {
   width: 100%;
-  max-width: 580px;
+  max-width: 440px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   justify-items: center;
   align-items: start;
-  margin-top: 24px;
+  margin-top: 12px;
 }
 
 .actionTile {
@@ -374,7 +388,7 @@
   cursor: pointer;
   background: transparent;
   border: none;
-  padding: 0 4px;
+  padding: 0 2px;
   transition: transform 0.15s ease;
   box-sizing: border-box;
 }
@@ -384,15 +398,15 @@
 }
 
 .tileIconSquare {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
   background-color: #1F299D;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #FFFFFF;
-  box-shadow: 0 4px 12px rgba(31, 41, 157, 0.28);
+  box-shadow: 0 3px 9px rgba(31, 41, 157, 0.25);
   margin: 0 auto;
   flex-shrink: 0;
 }
@@ -403,36 +417,36 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin-top: 8px;
+  margin-top: 5px;
 }
 
 .tileAction {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: #0E1635;
-  line-height: 1.25;
+  line-height: 1.2;
   text-align: center;
   display: block;
 }
 
 .tileTarget {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 10.5px;
+  font-size: 8.5px;
   font-weight: 500;
   color: #596378;
-  line-height: 1.25;
+  line-height: 1.2;
   text-align: center;
   display: block;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 /* Divider */
 .dividerWrapper {
   position: relative;
   width: 100%;
-  max-width: 420px;
-  margin-top: 22px;
+  max-width: 320px;
+  margin-top: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -449,9 +463,9 @@
 .dividerBadge {
   position: relative;
   background-color: #F6F0E7;
-  padding: 0 10px;
+  padding: 0 8px;
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 10px;
+  font-size: 8.5px;
   color: #667085;
   font-weight: 400;
 }
@@ -459,20 +473,20 @@
 /* Source Pill Buttons */
 .pillsRow {
   display: flex;
-  gap: 10px;
-  margin-top: 12px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .pillButton {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   background-color: #FFFFFF;
   border: 1px solid #D8D2C6;
   border-radius: 9999px;
-  padding: 6px 14px;
+  padding: 4px 10px;
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 10.5px;
+  font-size: 9px;
   font-weight: 500;
   color: #1D2752;
   cursor: pointer;
@@ -489,10 +503,10 @@
 .footerAffordance {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 16px;
+  gap: 3px;
+  margin-top: 8px;
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 500;
   color: #4B556D;
   text-decoration: none;
@@ -505,43 +519,65 @@
 }
 
 /* ==========================================================================
-   Left Collage Complex (Cohesive Vertical Scrapbook Cluster)
+   Left Collage Complex (Native 1024x522 Coordinates Matching Reference)
    ========================================================================== */
 .collageLeft {
   position: absolute;
-  top: 15px;
+  top: 0;
+  bottom: 0;
   left: 0;
-  width: 360px;
-  height: 560px;
+  width: 320px;
   pointer-events: none;
   z-index: 20;
+}
+
+/* TORN PAPER BASE: Top-Left Torn Sheet */
+.topLeftTornSheet {
+  position: absolute;
+  top: -15px;
+  left: -15px;
+  width: 280px;
+  height: 360px;
+  z-index: 5;
+  opacity: 0.95;
+}
+
+/* TORN PAPER BASE: Bottom-Left Corner Torn Sheet */
+.bottomLeftTornSheet {
+  position: absolute;
+  top: 240px;
+  left: -15px;
+  width: 330px;
+  height: 290px;
+  z-index: 5;
+  opacity: 0.95;
 }
 
 /* L0: Top-Left Torn Blue Paper Scrap with Tape */
 .topLeftBlueScrap {
   position: absolute;
-  top: -18px;
-  left: 65px;
-  width: 34px;
-  height: 48px;
+  top: -8px;
+  left: 52px;
+  width: 28px;
+  height: 38px;
   background: #1B2C8C;
   transform: rotate(-8deg);
-  z-index: 12;
-  box-shadow: 0 4px 10px rgba(15, 25, 75, 0.25);
+  z-index: 14;
+  box-shadow: 0 3px 8px rgba(15, 25, 75, 0.25);
   clip-path: polygon(2% 0%, 98% 4%, 94% 96%, 0% 100%);
 }
 
 /* L1 Window Photo Card */
 .windowPhotoCard {
   position: absolute;
-  top: 10px;
+  top: 20px;
   left: -15px;
-  width: 265px;
-  height: 325px;
+  width: 210px;
+  height: 260px;
   transform: rotate(1deg);
-  border-radius: 4px;
+  border-radius: 3px;
   overflow: hidden;
-  box-shadow: 0 8px 26px rgba(15, 20, 35, 0.2);
+  box-shadow: 0 8px 24px rgba(15, 20, 35, 0.22);
   background-color: #2D2D2D;
   z-index: 10;
 }
@@ -555,12 +591,12 @@
 .windowPhotoAnnotation {
   position: absolute;
   top: 48%;
-  left: 16px;
+  left: 14px;
   font-family: var(--font-caveat-next), cursive;
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 700;
   color: #FFFFFF;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
   line-height: 1.25;
   pointer-events: none;
   z-index: 15;
@@ -569,13 +605,13 @@
 /* L2 Kraft List Scrap (Live HTML) */
 .kraftListScrap {
   position: absolute;
-  top: 215px;
-  left: 78px;
-  width: 130px;
+  top: 180px;
+  left: 62px;
+  width: 105px;
   background: #CDB99C;
   background-image: linear-gradient(135deg, #D4C3A7 0%, #C7B293 100%);
-  padding: 14px 12px;
-  box-shadow: 0 6px 18px rgba(25, 20, 15, 0.18);
+  padding: 10px 9px;
+  box-shadow: 0 5px 14px rgba(25, 20, 15, 0.18);
   transform: rotate(-2deg);
   z-index: 25;
   clip-path: polygon(
@@ -586,11 +622,11 @@
 
 .kraftListText {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 9.5px;
+  font-size: 7.5px;
   font-weight: 700;
   color: #2D2316;
-  letter-spacing: 0.18em;
-  line-height: 1.55;
+  letter-spacing: 0.16em;
+  line-height: 1.5;
   margin: 0;
   text-transform: uppercase;
 }
@@ -598,14 +634,14 @@
 /* L7 Torn Cobalt Blue Paper (Live HTML) */
 .blueTornScrap {
   position: absolute;
-  top: 245px;
-  left: 155px;
-  width: 85px;
-  height: 115px;
+  top: 205px;
+  left: 125px;
+  width: 70px;
+  height: 95px;
   background: #182B8A;
   transform: rotate(-6deg);
   z-index: 18;
-  box-shadow: 0 5px 14px rgba(15, 25, 80, 0.25);
+  box-shadow: 0 4px 10px rgba(15, 25, 80, 0.25);
   clip-path: polygon(
     4% 2%, 96% 0%, 100% 88%, 88% 98%, 65% 92%,
     45% 100%, 20% 94%, 0% 90%
@@ -615,42 +651,28 @@
 /* L3 Dried Botanical Herbarium Specimen */
 .botanicalSpecimen {
   position: absolute;
-  top: 260px;
-  left: 6px;
-  width: 84px;
-  height: 120px;
-  transform: rotate(6deg);
-  z-index: 40;
+  top: 210px;
+  left: 20px;
+  width: 78px;
+  height: 110px;
+  transform: rotate(4deg);
+  z-index: 35;
   pointer-events: none;
+  filter: drop-shadow(0 2px 5px rgba(25, 20, 15, 0.22));
 }
 
-/* L4-Wash: Torn Paper Wash Underlay in Corner */
-.mountainsCornerWash {
-  position: absolute;
-  top: 380px;
-  left: -25px;
-  width: 140px;
-  height: 140px;
-  background: #DDD2C0;
-  opacity: 0.7;
-  transform: rotate(-10deg);
-  z-index: 12;
-  clip-path: polygon(0% 20%, 60% 0%, 100% 70%, 70% 100%, 0% 90%);
-  filter: blur(1px);
-}
-
-/* L4 Mountain Photo Card with White Border */
+/* L4 Alpine Mountain Photo Card with Crisp White Border */
 .mountainsCard {
   position: absolute;
-  top: 290px;
+  top: 275px;
   left: -15px;
-  width: 185px;
-  height: 210px;
-  transform: rotate(-3.5deg);
+  width: 165px;
+  height: 185px;
+  transform: rotate(-4deg);
   background-color: #FAF6EF;
-  padding: 5px 5px 12px 5px;
-  border-radius: 3px;
-  box-shadow: 0 10px 28px rgba(10, 15, 30, 0.22);
+  padding: 4px 4px 11px 4px;
+  border-radius: 2px;
+  box-shadow: 0 10px 24px rgba(10, 15, 30, 0.24);
   z-index: 15;
   box-sizing: border-box;
 }
@@ -671,15 +693,16 @@
 /* L6 Lunar Crater Sphere */
 .moonSphere {
   position: absolute;
-  top: 360px;
-  left: 122px;
-  width: 90px;
-  height: 90px;
+  top: 335px;
+  left: 95px;
+  width: 78px;
+  height: 78px;
   border-radius: 50%;
   overflow: hidden;
-  box-shadow: 0 6px 20px rgba(10, 15, 30, 0.28);
+  box-shadow: 0 6px 18px rgba(10, 15, 30, 0.32);
   z-index: 35;
   background-color: #0F1116;
+  border: 2px solid rgba(15, 20, 35, 0.85);
 }
 
 .moonImage {
@@ -690,13 +713,13 @@
 /* L5 Curiosity Note (Live HTML) */
 .curiosityNoteScrap {
   position: absolute;
-  top: 435px;
-  left: 28px;
-  width: 114px;
+  top: 400px;
+  left: 20px;
+  width: 95px;
   background: #EFE8DA;
-  padding: 8px 10px;
+  padding: 7px 9px;
   transform: rotate(2.5deg);
-  box-shadow: 0 4px 12px rgba(25, 20, 15, 0.16);
+  box-shadow: 0 3px 10px rgba(25, 20, 15, 0.18);
   z-index: 30;
   clip-path: polygon(
     0% 2%, 98% 0%, 100% 95%, 85% 98%, 60% 94%,
@@ -706,7 +729,7 @@
 
 .curiosityNoteText {
   font-family: var(--font-caveat-next), cursive;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
   color: #2D251C;
   line-height: 1.25;
@@ -716,8 +739,8 @@
 /* Star doodle beside moon */
 .leftStarDoodle {
   position: absolute;
-  top: 345px;
-  left: 220px;
+  top: 325px;
+  left: 180px;
   z-index: 45;
   pointer-events: none;
 }
@@ -725,40 +748,67 @@
 /* Subtle pencil flourish arc */
 .leftFlourishArc {
   position: absolute;
-  top: 120px;
-  left: 160px;
-  width: 90px;
-  height: 280px;
+  top: 140px;
+  left: 125px;
+  width: 85px;
+  height: 260px;
   z-index: 42;
   pointer-events: none;
 }
 
 /* ==========================================================================
-   Right Collage Complex (Cohesive Vertical Scrapbook Cluster)
+   Right Collage Complex (Native 1024x522 Coordinates Matching Reference)
    ========================================================================== */
 .collageRight {
   position: absolute;
   top: 0;
+  bottom: 0;
   right: 0;
-  width: 380px;
-  height: 580px;
+  width: 340px;
   pointer-events: none;
   z-index: 20;
 }
 
-/* R1 Galaxy Photo Card */
+/* TORN PAPER BASE: Top-Right Torn Sheet Frame */
+.topRightTornSheet {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 320px;
+  height: 240px;
+  z-index: 5;
+  opacity: 0.95;
+}
+
+/* TORN PAPER BASE: Bottom-Right Corner Torn Sheet */
+.bottomRightTornSheet {
+  position: absolute;
+  top: 250px;
+  right: -15px;
+  width: 330px;
+  height: 300px;
+  z-index: 5;
+  opacity: 0.95;
+}
+
+/* R1 Galaxy Photo Card - Organic deckled bottom/left torn edge */
 .galaxyCard {
   position: absolute;
   top: 0;
   right: 0;
-  width: 285px;
-  height: 175px;
+  width: 255px;
+  height: 155px;
   overflow: hidden;
-  box-shadow: 0 6px 22px rgba(10, 15, 30, 0.25);
+  box-shadow: 0 6px 22px rgba(10, 15, 30, 0.28);
   z-index: 10;
-  background-color: #FAF6EF;
-  padding: 0 0 4px 4px;
+  background-color: transparent;
+  padding: 0;
   box-sizing: border-box;
+  clip-path: polygon(
+    0% 0%, 100% 0%, 100% 100%, 88% 97%, 75% 100%,
+    60% 96%, 45% 98%, 30% 95%, 18% 98%, 8% 94%,
+    0% 88%
+  );
 }
 
 .galaxyInner {
@@ -776,14 +826,14 @@
 /* R2 "A more curious tomorrow" Note (Live HTML) */
 .curiousTomorrowScrap {
   position: absolute;
-  top: 52px;
-  right: 140px;
-  width: 155px;
+  top: 45px;
+  right: 125px;
+  width: 125px;
   background: #F4EEE2;
   background-image: linear-gradient(135deg, #F8F3EA 0%, #EFE5D4 100%);
-  padding: 18px 14px 12px 14px;
+  padding: 12px 12px 10px 12px;
   transform: rotate(-3.5deg);
-  box-shadow: 0 6px 18px rgba(25, 20, 15, 0.16);
+  box-shadow: 0 5px 15px rgba(25, 20, 15, 0.18);
   z-index: 25;
   clip-path: polygon(
     2% 0%, 98% 2%, 100% 94%, 88% 98%, 70% 95%,
@@ -795,69 +845,78 @@
 .curiousTomorrowText {
   font-family: var(--font-playfair-display), serif;
   font-style: italic;
-  font-size: 15.5px;
+  font-size: 12px;
   color: #2B2319;
   line-height: 1.25;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
 }
 
 .tomorrowStarDoodle {
   display: flex;
   justify-content: center;
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 /* R3 Disciplines Strip (Live HTML) */
 .disciplinesStrip {
   position: absolute;
-  top: 130px;
+  top: 110px;
   right: 18px;
-  width: 124px;
+  width: 95px;
+  min-height: 98px;
   background: #FAF5EC;
-  padding: 12px 10px;
-  box-shadow: 0 4px 14px rgba(25, 20, 15, 0.15);
+  padding: 10px 9px 12px 9px;
+  box-shadow: 0 3px 12px rgba(25, 20, 15, 0.16);
   z-index: 18;
   clip-path: polygon(
     0% 0%, 100% 2%, 97% 98%, 0% 96%
   );
+  box-sizing: border-box;
 }
 
 .disciplinesText {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 8px;
+  font-size: 6.5px;
   font-weight: 700;
   color: #635A4C;
   letter-spacing: 0.15em;
-  line-height: 1.55;
+  line-height: 1.5;
   margin: 0;
   text-transform: uppercase;
   white-space: pre;
 }
 
+.disciplinesRule {
+  width: 20px;
+  height: 1px;
+  background-color: #9C8E7C;
+  margin: 6px auto 0 auto;
+}
+
 /* R4 Origami Crane */
 .origamiCrane {
   position: absolute;
-  top: 225px;
-  right: 175px;
-  width: 88px;
-  height: 104px;
+  top: 185px;
+  right: 145px;
+  width: 70px;
+  height: 82px;
   transform: rotate(2deg);
   z-index: 45;
-  filter: drop-shadow(0 6px 14px rgba(15, 25, 75, 0.28));
+  filter: drop-shadow(0 4px 12px rgba(15, 25, 75, 0.32));
 }
 
-/* R6 Coffee Mug on Books Photo */
+/* R6 Coffee Mug on Books Photo - Bleeds to right edge */
 .mugBooksCard {
   position: absolute;
-  top: 185px;
+  top: 170px;
   right: 0;
-  width: 235px;
-  height: 235px;
+  width: 195px;
+  height: 195px;
   transform: rotate(1deg);
-  border-radius: 4px;
+  border-radius: 2px;
   overflow: hidden;
-  box-shadow: 0 8px 26px rgba(15, 20, 35, 0.18);
-  z-index: 22;
+  box-shadow: 0 8px 24px rgba(15, 20, 35, 0.2);
+  z-index: 14;
   background-color: #2D2820;
 }
 
@@ -870,16 +929,16 @@
 /* R5 Vintage Cartographic Map */
 .mapCard {
   position: absolute;
-  top: 310px;
-  right: 210px;
-  width: 110px;
-  height: 140px;
+  top: 265px;
+  right: 170px;
+  width: 95px;
+  height: 120px;
   transform: rotate(5deg);
   background-color: #F8F3EA;
   padding: 3px;
   border-radius: 2px;
-  box-shadow: 0 5px 16px rgba(25, 20, 15, 0.15);
-  z-index: 24;
+  box-shadow: 0 5px 14px rgba(25, 20, 15, 0.16);
+  z-index: 20;
   box-sizing: border-box;
 }
 
@@ -898,16 +957,16 @@
 /* R7 Cathedral Dome Photo */
 .cathedralCard {
   position: absolute;
-  top: 350px;
-  right: 70px;
-  width: 165px;
-  height: 190px;
+  top: 325px;
+  right: 50px;
+  width: 155px;
+  height: 180px;
   transform: rotate(-1deg);
   background-color: #F8F3EA;
   padding: 4px;
-  border-radius: 3px;
-  box-shadow: 0 8px 24px rgba(15, 20, 35, 0.18);
-  z-index: 26;
+  border-radius: 2px;
+  box-shadow: 0 8px 22px rgba(15, 20, 35, 0.2);
+  z-index: 22;
   box-sizing: border-box;
 }
 
@@ -927,13 +986,13 @@
 /* R8 Collect/Repeat Scrap (Live HTML) */
 .collectRepeatScrap {
   position: absolute;
-  top: 420px;
+  top: 385px;
   right: 0;
-  width: 115px;
+  width: 95px;
   background: #F2EBDE;
   padding: 10px 12px;
   transform: rotate(1.5deg);
-  box-shadow: 0 4px 14px rgba(25, 20, 15, 0.16);
+  box-shadow: 0 4px 12px rgba(25, 20, 15, 0.18);
   z-index: 32;
   clip-path: polygon(
     4% 0%, 100% 2%, 96% 96%, 0% 100%
@@ -941,34 +1000,35 @@
 }
 
 .collectRepeatText {
-  font-family: var(--font-caveat-next), cursive;
-  font-size: 13.5px;
-  font-weight: 700;
+  font-family: var(--font-playfair-display), var(--font-lora), serif;
+  font-style: italic;
+  font-size: 11px;
   color: #3A3125;
   line-height: 1.35;
   margin: 0;
 }
 
 .collectRepeatRule {
-  width: 32px;
+  width: 24px;
   height: 1px;
   background-color: #8C7E6C;
-  margin-top: 6px;
+  margin-top: 5px;
 }
 
 /* R9 Blue Banner Ribbon (Live HTML) */
 .blueBannerRibbon {
   position: absolute;
-  top: 435px;
-  right: 200px;
-  width: 190px;
+  top: 365px;
+  right: 155px;
+  width: 160px;
   background: #1C2D9C;
-  padding: 12px 16px;
-  transform: rotate(-8deg);
-  box-shadow: 0 6px 18px rgba(15, 25, 80, 0.3);
+  padding: 10px 14px;
+  transform: rotate(-8.5deg);
+  box-shadow: 0 6px 18px rgba(15, 25, 80, 0.32);
   z-index: 30;
   clip-path: polygon(
-    0% 4%, 96% 0%, 100% 92%, 6% 100%
+    0% 12%, 3% 6%, 8% 12%, 92% 0%, 97% 6%, 100% 86%,
+    96% 94%, 90% 90%, 8% 100%, 3% 94%, 0% 85%
   );
 }
 
@@ -980,7 +1040,7 @@
 
 .blueBannerText {
   font-family: var(--font-caveat-next), cursive;
-  font-size: 13.5px;
+  font-size: 11px;
   font-weight: 700;
   color: #FFFFFF;
   line-height: 1.25;
@@ -989,10 +1049,10 @@
 }
 
 .blueBannerSparkle {
-  font-size: 16px;
+  font-size: 14px;
   color: #FFFFFF;
-  opacity: 0.9;
-  margin-left: 8px;
+  opacity: 0.95;
+  margin-left: 6px;
   margin-bottom: 2px;
 }
 
@@ -1000,56 +1060,42 @@
 .rightFlourishArc {
   position: absolute;
   top: 160px;
-  right: 160px;
-  width: 120px;
-  height: 260px;
+  right: 125px;
+  width: 100px;
+  height: 220px;
   z-index: 38;
   pointer-events: none;
 }
 
 /* ==========================================================================
-   Responsive Viewport Scaling
+   Responsive Viewport Scaling across Large Screens
    ========================================================================== */
-@media (min-width: 1400px) {
+@media (min-width: 1300px) {
+  .heroContent {
+    transform: scale(1.22);
+    transform-origin: center center;
+  }
   .collageLeft {
-    transform: scale(1.04);
+    transform: scale(1.28);
     transform-origin: top left;
   }
   .collageRight {
-    transform: scale(1.04);
+    transform: scale(1.28);
     transform-origin: top right;
   }
 }
 
-@media (min-width: 1800px) {
+@media (min-width: 1600px) {
+  .heroContent {
+    transform: scale(1.4);
+    transform-origin: center center;
+  }
   .collageLeft {
-    transform: scale(1.25);
+    transform: scale(1.48);
     transform-origin: top left;
   }
   .collageRight {
-    transform: scale(1.25);
-    transform-origin: top right;
-  }
-}
-
-@media (max-width: 1280px) {
-  .collageLeft {
-    transform: scale(0.86);
-    transform-origin: top left;
-  }
-  .collageRight {
-    transform: scale(0.86);
-    transform-origin: top right;
-  }
-}
-
-@media (max-width: 1080px) {
-  .collageLeft {
-    transform: scale(0.72);
-    transform-origin: top left;
-  }
-  .collageRight {
-    transform: scale(0.72);
+    transform: scale(1.48);
     transform-origin: top right;
   }
 }
@@ -1057,12 +1103,12 @@
 @media (max-width: 820px) {
   .collageLeft {
     opacity: 0.25;
-    transform: scale(0.6);
+    transform: scale(0.65);
     transform-origin: top left;
   }
   .collageRight {
     opacity: 0.25;
-    transform: scale(0.6);
+    transform: scale(0.65);
     transform-origin: top right;
   }
 }

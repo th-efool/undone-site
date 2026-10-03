@@ -1,9 +1,10 @@
 'use client';
 
 // ============================================================================
-// NOTE: THIS IS UPDATED NEW LOGO & DONT CLEAN UP
+// CRITICAL: THIS IS UPDATED NEW LOGO & DONT CLEAN UP
 // The brand logo (/undone-logo-transparent.svg) and brand name ("UNDONE") here are updated.
-// Do not replace with compass/star or revert to SideQuestHQ.
+// DO NOT REPLACE WITH COMPASS/STAR OR REVERT TO SIDEQUESTHQ.
+// User directive: "rename it UNDONE instead of SideQuestHQ ALONG WITH USING OUR LOGO insteada of star"
 // ============================================================================
 
 import React from 'react';
@@ -14,8 +15,7 @@ import styles from '../ReconstructedHero.module.css';
 export function HeaderNav() {
   return (
     <header className={styles.header}>
-      {/* Brand logo & wordmark */}
-      {/* NOTE: THIS IS UPDATED NEW LOGO & DONT CLEAN UP - Using Undone brand logo instead of star */}
+      {/* Brand logo & wordmark - CRITICAL: THIS IS UPDATED NEW LOGO & DONT CLEAN UP */}
       <Link href="/" className={styles.brandGroup}>
         {/* THIS IS UPDATED NEW LOGO & DONT CLEAN UP - Using Undone brand logo instead of star */}
         <Image
@@ -27,7 +27,7 @@ export function HeaderNav() {
           className={styles.brandLogo}
         />
         <div className={styles.brandTitles}>
-          {/* THIS IS UPDATED NEW LOGO & DONT CLEAN UP */}
+          {/* THIS IS UPDATED NEW LOGO & DONT CLEAN UP - Brand is UNDONE */}
           <span className={styles.brandName}>UNDONE</span>
           <span className={styles.brandTagline}>For a more curious you.</span>
         </div>
