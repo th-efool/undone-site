@@ -7,17 +7,31 @@ import styles from '../ReconstructedHero.module.css';
 export function CollageLeft() {
   return (
     <div className={styles.collageLeft} aria-hidden="true">
-      {/* L1: Window Black & White Photo with Live Typography & Dual Tape */}
+      {/* L0: Top-Left Torn Blue Paper Scrap with Tape (Header Level Accent) */}
+      <div className={styles.topLeftBlueScrap}>
+        <div
+          className={styles.tapeStrip}
+          style={{
+            width: 36,
+            height: 15,
+            top: 26,
+            left: -4,
+            transform: 'rotate(18deg)',
+          }}
+        />
+      </div>
+
+      {/* L1: Window Black & White Photo with White Script & Dual Tape */}
       <div className={styles.windowPhotoCard}>
         <Image
           src="/images/hero-collage/real-window-person.jpg"
           alt=""
           fill
           className={styles.windowPhotoImage}
-          sizes="260px"
+          sizes="280px"
           priority
         />
-        {/* Live text annotation overlay */}
+        {/* White handwritten cursive annotation placed on the left side */}
         <p className={styles.windowPhotoAnnotation}>
           Same questions.
           <br />
@@ -28,30 +42,30 @@ export function CollageLeft() {
         <div
           className={styles.tapeStrip}
           style={{
-            width: 46,
+            width: 48,
             height: 18,
-            top: 14,
-            left: 50,
-            transform: 'rotate(-38deg)',
+            top: 10,
+            left: 38,
+            transform: 'rotate(-36deg)',
           }}
         />
         {/* Top-edge horizontal masking tape */}
         <div
           className={styles.tapeStrip}
           style={{
-            width: 50,
+            width: 52,
             height: 17,
             top: 4,
-            left: 140,
+            left: 145,
             transform: 'rotate(-2deg)',
           }}
         />
       </div>
 
-      {/* L7: Live HTML Torn Cobalt Blue Scrap */}
+      {/* L7: Live HTML Torn Cobalt Blue Scrap behind kraft note */}
       <div className={styles.blueTornScrap} />
 
-      {/* L2: Live HTML Kraft Paper List Scrap */}
+      {/* L2: Live HTML Kraft Paper List Scrap with Architectural Typography */}
       <div className={styles.kraftListScrap}>
         <pre className={styles.kraftListText}>
           IDEAS{'\n'}
@@ -63,49 +77,44 @@ export function CollageLeft() {
         </pre>
       </div>
 
-      {/* L3: Pressed Dried Herbarium Botanical Specimen (Vector Craft) */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 270,
-          left: 10,
-          width: 74,
-          height: 105,
-          transform: 'rotate(8deg)',
-          zIndex: 40,
-        }}
-      >
+      {/* L3: Pressed Dried Herbarium Meadow Flower Specimen (Vector Craft) */}
+      <div className={styles.botanicalSpecimen}>
         <Image
           src="/images/hero-collage/real-botanical.svg"
           alt=""
-          width={74}
-          height={105}
+          width={84}
+          height={120}
         />
       </div>
 
-      {/* L4: Mountain Peaks Photo (Real Alpine Ridge) */}
+      {/* L4-Wash: Torn Paper Wash Underlay in Corner */}
+      <div className={styles.mountainsCornerWash} />
+
+      {/* L4: Alpine Mountain Peaks Photo Card with White Border */}
       <div className={styles.mountainsCard}>
-        <Image
-          src="/images/hero-collage/real-mountains.jpg"
-          alt=""
-          fill
-          className={styles.mountainsImage}
-          sizes="160px"
-        />
+        <div className={styles.mountainsInner}>
+          <Image
+            src="/images/hero-collage/real-mountains.jpg"
+            alt=""
+            fill
+            className={styles.mountainsImage}
+            sizes="190px"
+          />
+        </div>
       </div>
 
-      {/* L6: Real Lunar Crater Sphere */}
+      {/* L6: Deep Monochrome Lunar Crater Sphere */}
       <div className={styles.moonSphere}>
         <Image
           src="/images/hero-collage/real-moon.jpg"
           alt=""
           fill
           className={styles.moonImage}
-          sizes="80px"
+          sizes="90px"
         />
       </div>
 
-      {/* L5: Live HTML Curiosity Lives Scrap */}
+      {/* L5: Live HTML Curiosity Lives Torn Scrap */}
       <div className={styles.curiosityNoteScrap}>
         <p className={styles.curiosityNoteText}>
           Curiosity
@@ -116,7 +125,7 @@ export function CollageLeft() {
         </p>
       </div>
 
-      {/* 8-point blue celestial star doodle beside the moon */}
+      {/* 8-point royal blue celestial star doodle beside the moon circle */}
       <div className={styles.leftStarDoodle}>
         <Image
           src="/images/hero-collage/star-doodle.svg"
@@ -126,15 +135,15 @@ export function CollageLeft() {
         />
       </div>
 
-      {/* Subtle organic pencil flourish arc linking kraft paper to star */}
+      {/* Subtle organic pencil flourish arc linking window photo to star doodle */}
       <svg
         className={styles.leftFlourishArc}
-        viewBox="0 0 100 160"
+        viewBox="0 0 120 300"
         fill="none"
         aria-hidden="true"
       >
         <path
-          d="M 20 10 C 65 60 45 110 75 150"
+          d="M 25 15 C 85 90 70 200 45 285"
           stroke="#1F299D"
           strokeWidth="1.2"
           strokeLinecap="round"

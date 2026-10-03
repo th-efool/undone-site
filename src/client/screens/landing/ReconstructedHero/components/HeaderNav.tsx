@@ -21,9 +21,10 @@ export function HeaderNav() {
         <Image
           src="/undone-logo-transparent.svg"
           alt="UNDONE"
-          width={24}
-          height={24}
+          width={42}
+          height={42}
           priority
+          className={styles.brandLogo}
         />
         <div className={styles.brandTitles}>
           {/* THIS IS UPDATED NEW LOGO & DONT CLEAN UP */}

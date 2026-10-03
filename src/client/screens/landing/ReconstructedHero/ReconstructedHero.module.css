@@ -73,8 +73,16 @@
 .brandGroup {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   text-decoration: none;
+}
+
+.brandLogo {
+  width: 42px;
+  height: 42px;
+  object-fit: contain;
+  flex-shrink: 0;
+  display: block;
 }
 
 .brandTitles {
@@ -83,21 +91,23 @@
 }
 
 .brandName {
-  font-family: var(--font-playfair-display), serif;
-  font-size: 18px;
-  font-weight: 700;
+  /* Uniform bold sans-serif with consistent stroke weight throughout */
+  font-family: var(--font-geist-sans), var(--font-manrope-next), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 26px;
+  font-weight: 900;
   color: #0E1738;
   line-height: 1;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
 }
 
 .brandTagline {
   font-family: var(--font-caveat-next), cursive;
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 700;
   color: #4B556D;
   line-height: 1;
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 .navLinks {
@@ -480,17 +490,31 @@
   z-index: 20;
 }
 
+/* L0: Top-Left Torn Blue Paper Scrap with Tape */
+.topLeftBlueScrap {
+  position: absolute;
+  top: -18px;
+  left: 65px;
+  width: 34px;
+  height: 48px;
+  background: #1B2C8C;
+  transform: rotate(-8deg);
+  z-index: 12;
+  box-shadow: 0 4px 10px rgba(15, 25, 75, 0.25);
+  clip-path: polygon(2% 0%, 98% 4%, 94% 96%, 0% 100%);
+}
+
 /* L1 Window Photo Card */
 .windowPhotoCard {
   position: absolute;
-  top: 0;
+  top: 10px;
   left: -15px;
-  width: 260px;
-  height: 320px;
+  width: 265px;
+  height: 325px;
   transform: rotate(1deg);
   border-radius: 4px;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(15, 20, 35, 0.18);
+  box-shadow: 0 8px 26px rgba(15, 20, 35, 0.2);
   background-color: #2D2D2D;
   z-index: 10;
 }
@@ -503,9 +527,8 @@
 
 .windowPhotoAnnotation {
   position: absolute;
-  bottom: 24px;
-  left: 20px;
-  right: 20px;
+  top: 48%;
+  left: 16px;
   font-family: var(--font-caveat-next), cursive;
   font-size: 15px;
   font-weight: 700;
@@ -513,18 +536,19 @@
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85);
   line-height: 1.25;
   pointer-events: none;
+  z-index: 15;
 }
 
 /* L2 Kraft List Scrap (Live HTML) */
 .kraftListScrap {
   position: absolute;
-  top: 220px;
-  left: 80px;
-  width: 132px;
+  top: 215px;
+  left: 78px;
+  width: 130px;
   background: #CDB99C;
   background-image: linear-gradient(135deg, #D4C3A7 0%, #C7B293 100%);
-  padding: 13px 12px;
-  box-shadow: 0 5px 16px rgba(25, 20, 15, 0.18);
+  padding: 14px 12px;
+  box-shadow: 0 6px 18px rgba(25, 20, 15, 0.18);
   transform: rotate(-2deg);
   z-index: 25;
   clip-path: polygon(
@@ -534,22 +558,23 @@
 }
 
 .kraftListText {
-  font-family: var(--font-caveat-next), cursive;
-  font-size: 11.5px;
+  font-family: var(--font-manrope-next), sans-serif;
+  font-size: 9.5px;
   font-weight: 700;
   color: #2D2316;
-  letter-spacing: 0.08em;
-  line-height: 1.4;
+  letter-spacing: 0.18em;
+  line-height: 1.55;
   margin: 0;
+  text-transform: uppercase;
 }
 
 /* L7 Torn Cobalt Blue Paper (Live HTML) */
 .blueTornScrap {
   position: absolute;
-  top: 250px;
+  top: 245px;
   left: 155px;
-  width: 80px;
-  height: 110px;
+  width: 85px;
+  height: 115px;
   background: #182B8A;
   transform: rotate(-6deg);
   z-index: 18;
@@ -560,19 +585,55 @@
   );
 }
 
-/* L4 Mountain Photo */
+/* L3 Dried Botanical Herbarium Specimen */
+.botanicalSpecimen {
+  position: absolute;
+  top: 260px;
+  left: 6px;
+  width: 84px;
+  height: 120px;
+  transform: rotate(6deg);
+  z-index: 40;
+  pointer-events: none;
+}
+
+/* L4-Wash: Torn Paper Wash Underlay in Corner */
+.mountainsCornerWash {
+  position: absolute;
+  top: 380px;
+  left: -25px;
+  width: 140px;
+  height: 140px;
+  background: #DDD2C0;
+  opacity: 0.7;
+  transform: rotate(-10deg);
+  z-index: 12;
+  clip-path: polygon(0% 20%, 60% 0%, 100% 70%, 70% 100%, 0% 90%);
+  filter: blur(1px);
+}
+
+/* L4 Mountain Photo Card with White Border */
 .mountainsCard {
   position: absolute;
   top: 290px;
   left: -15px;
-  width: 180px;
+  width: 185px;
   height: 210px;
-  transform: rotate(-3deg);
+  transform: rotate(-3.5deg);
+  background-color: #FAF6EF;
+  padding: 5px 5px 12px 5px;
   border-radius: 3px;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(10, 15, 30, 0.22);
+  box-shadow: 0 10px 28px rgba(10, 15, 30, 0.22);
   z-index: 15;
-  background-color: #333;
+  box-sizing: border-box;
+}
+
+.mountainsInner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: 2px;
 }
 
 .mountainsImage {
@@ -583,15 +644,15 @@
 /* L6 Lunar Crater Sphere */
 .moonSphere {
   position: absolute;
-  top: 365px;
-  left: 125px;
-  width: 88px;
-  height: 88px;
+  top: 360px;
+  left: 122px;
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
   overflow: hidden;
-  box-shadow: 0 6px 18px rgba(10, 15, 30, 0.26);
+  box-shadow: 0 6px 20px rgba(10, 15, 30, 0.28);
   z-index: 35;
-  background-color: #111;
+  background-color: #0F1116;
 }
 
 .moonImage {
@@ -602,9 +663,9 @@
 /* L5 Curiosity Note (Live HTML) */
 .curiosityNoteScrap {
   position: absolute;
-  top: 440px;
-  left: 30px;
-  width: 112px;
+  top: 435px;
+  left: 28px;
+  width: 114px;
   background: #EFE8DA;
   padding: 8px 10px;
   transform: rotate(2.5deg);
@@ -628,8 +689,8 @@
 /* Star doodle beside moon */
 .leftStarDoodle {
   position: absolute;
-  top: 350px;
-  left: 225px;
+  top: 345px;
+  left: 220px;
   z-index: 45;
   pointer-events: none;
 }
@@ -637,10 +698,10 @@
 /* Subtle pencil flourish arc */
 .leftFlourishArc {
   position: absolute;
-  top: 250px;
-  left: 165px;
+  top: 120px;
+  left: 160px;
   width: 90px;
-  height: 150px;
+  height: 280px;
   z-index: 42;
   pointer-events: none;
 }
@@ -663,12 +724,21 @@
   position: absolute;
   top: 0;
   right: 0;
-  width: 275px;
+  width: 285px;
   height: 175px;
   overflow: hidden;
   box-shadow: 0 6px 22px rgba(10, 15, 30, 0.25);
   z-index: 10;
-  background-color: #060914;
+  background-color: #FAF6EF;
+  padding: 0 0 4px 4px;
+  box-sizing: border-box;
+}
+
+.galaxyInner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
 }
 
 .galaxyImage {
@@ -679,12 +749,12 @@
 /* R2 "A more curious tomorrow" Note (Live HTML) */
 .curiousTomorrowScrap {
   position: absolute;
-  top: 55px;
-  right: 145px;
+  top: 52px;
+  right: 140px;
   width: 155px;
   background: #F4EEE2;
   background-image: linear-gradient(135deg, #F8F3EA 0%, #EFE5D4 100%);
-  padding: 18px 14px 14px 14px;
+  padding: 18px 14px 12px 14px;
   transform: rotate(-3.5deg);
   box-shadow: 0 6px 18px rgba(25, 20, 15, 0.16);
   z-index: 25;
@@ -700,15 +770,21 @@
   font-style: italic;
   font-size: 15.5px;
   color: #2B2319;
-  line-height: 1.3;
-  margin: 0 0 10px 0;
+  line-height: 1.25;
+  margin: 0 0 8px 0;
+}
+
+.tomorrowStarDoodle {
+  display: flex;
+  justify-content: center;
+  margin-top: 4px;
 }
 
 /* R3 Disciplines Strip (Live HTML) */
 .disciplinesStrip {
   position: absolute;
-  top: 135px;
-  right: 28px;
+  top: 130px;
+  right: 26px;
   width: 106px;
   background: #FAF5EC;
   padding: 11px 9px;
@@ -721,68 +797,97 @@
 
 .disciplinesText {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 700;
   color: #635A4C;
-  letter-spacing: 0.12em;
-  line-height: 1.45;
+  letter-spacing: 0.16em;
+  line-height: 1.5;
   margin: 0;
   text-transform: uppercase;
+}
+
+/* R4 Origami Crane */
+.origamiCrane {
+  position: absolute;
+  top: 225px;
+  right: 175px;
+  width: 88px;
+  height: 104px;
+  transform: rotate(2deg);
+  z-index: 45;
+  filter: drop-shadow(0 6px 14px rgba(15, 25, 75, 0.28));
 }
 
 /* R6 Coffee Mug on Books Photo */
 .mugBooksCard {
   position: absolute;
-  top: 195px;
+  top: 185px;
   right: 0;
-  width: 220px;
-  height: 230px;
+  width: 235px;
+  height: 235px;
   transform: rotate(1deg);
   border-radius: 4px;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(15, 20, 35, 0.18);
+  box-shadow: 0 8px 26px rgba(15, 20, 35, 0.18);
   z-index: 22;
   background-color: #2D2820;
 }
 
 .mugBooksImage {
   object-fit: cover;
-  filter: contrast(1.08) brightness(0.98);
+  object-position: center center;
+  filter: contrast(1.05) brightness(0.98);
 }
 
 /* R5 Vintage Cartographic Map */
 .mapCard {
   position: absolute;
-  top: 315px;
-  right: 215px;
-  width: 105px;
-  height: 135px;
+  top: 310px;
+  right: 210px;
+  width: 110px;
+  height: 140px;
   transform: rotate(5deg);
+  background-color: #F8F3EA;
+  padding: 3px;
   border-radius: 2px;
-  overflow: hidden;
   box-shadow: 0 5px 16px rgba(25, 20, 15, 0.15);
   z-index: 24;
-  background-color: #D6C2A0;
+  box-sizing: border-box;
+}
+
+.mapInner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
 }
 
 .mapImage {
   object-fit: cover;
-  filter: sepia(35%) contrast(1.1);
+  filter: sepia(30%) contrast(1.1);
 }
 
 /* R7 Cathedral Dome Photo */
 .cathedralCard {
   position: absolute;
-  top: 355px;
-  right: 75px;
-  width: 155px;
-  height: 185px;
+  top: 350px;
+  right: 70px;
+  width: 165px;
+  height: 190px;
   transform: rotate(-1deg);
+  background-color: #F8F3EA;
+  padding: 4px;
   border-radius: 3px;
-  overflow: hidden;
   box-shadow: 0 8px 24px rgba(15, 20, 35, 0.18);
   z-index: 26;
-  background-color: #3D3934;
+  box-sizing: border-box;
+}
+
+.cathedralInner {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
 }
 
 .cathedralImage {
@@ -794,7 +899,7 @@
 /* R8 Collect/Repeat Scrap (Live HTML) */
 .collectRepeatScrap {
   position: absolute;
-  top: 430px;
+  top: 420px;
   right: 0;
   width: 115px;
   background: #F2EBDE;
@@ -816,25 +921,38 @@
   margin: 0;
 }
 
+.collectRepeatRule {
+  width: 32px;
+  height: 1px;
+  background-color: #8C7E6C;
+  margin-top: 6px;
+}
+
 /* R9 Blue Banner Ribbon (Live HTML) */
 .blueBannerRibbon {
   position: absolute;
-  top: 445px;
-  right: 225px;
-  width: 140px;
+  top: 435px;
+  right: 200px;
+  width: 190px;
   background: #1C2D9C;
-  padding: 8px 12px;
+  padding: 12px 16px;
   transform: rotate(-8deg);
-  box-shadow: 0 5px 16px rgba(15, 25, 80, 0.28);
+  box-shadow: 0 6px 18px rgba(15, 25, 80, 0.3);
   z-index: 30;
   clip-path: polygon(
-    0% 4%, 96% 0%, 100% 92%, 10% 100%
+    0% 4%, 96% 0%, 100% 92%, 6% 100%
   );
+}
+
+.blueBannerInner {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
 }
 
 .blueBannerText {
   font-family: var(--font-caveat-next), cursive;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 700;
   color: #FFFFFF;
   line-height: 1.25;
@@ -842,13 +960,21 @@
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
+.blueBannerSparkle {
+  font-size: 16px;
+  color: #FFFFFF;
+  opacity: 0.9;
+  margin-left: 8px;
+  margin-bottom: 2px;
+}
+
 /* Right subtle pencil flourish arc */
 .rightFlourishArc {
   position: absolute;
-  top: 265px;
-  right: 180px;
-  width: 110px;
-  height: 170px;
+  top: 160px;
+  right: 160px;
+  width: 120px;
+  height: 260px;
   z-index: 38;
   pointer-events: none;
 }
