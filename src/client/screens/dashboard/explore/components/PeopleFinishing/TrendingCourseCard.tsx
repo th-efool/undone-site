@@ -1,5 +1,6 @@
 import Image from 'next/image';
 import Link from 'next/link';
+import { Flame, Star } from 'lucide-react';
 import { getCohortHref } from '@/src/client/navigation/cohortLinks';
 
 import type { TrendingCourse } from '../../models';
@@ -23,7 +24,22 @@ export function TrendingCourseCard({ item }: TrendingCourseCardProps) {
         alt=""
         draggable={false}
         className={styles.thumbnail}
-       width={400} height={300}/>
+        width={400}
+        height={300}
+      />
+
+      <div className={styles.overlay} />
+
+      <div className={styles.topBadges}>
+        <div className={styles.trendingBadge}>
+          <Flame size={12} fill="currentColor" />
+          Trending
+        </div>
+
+        {item.durationLabel && (
+          <div className={styles.durationBadge}>{item.durationLabel}</div>
+        )}
+      </div>
 
       <div className={styles.bottom}>
         <h3 className={styles.title}>{item.title}</h3>
@@ -43,11 +59,20 @@ export function TrendingCourseCard({ item }: TrendingCourseCardProps) {
                   alt=""
                   draggable={false}
                   className={styles.avatar}
-                 width={400} height={300}/>
+                  width={28}
+                  height={28}
+                />
               ))}
             </div>
 
             <span className={styles.learners}>{item.learnerCount}</span>
+
+            {item.rating && (
+              <span className={styles.rating}>
+                <Star size={12} fill="currentColor" />
+                {item.rating}
+              </span>
+            )}
           </div>
         </div>
       </div>

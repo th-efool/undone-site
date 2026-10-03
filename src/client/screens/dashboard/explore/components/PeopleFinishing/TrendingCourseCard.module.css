@@ -2,6 +2,9 @@
   position: relative;
 
   overflow: hidden;
+
+  flex: 0 0 450px;
+
   height: 275px;
 
   border: none;
@@ -56,6 +59,59 @@
   filter: brightness(0.94);
 }
 
+.overlay {
+  position: absolute;
+  inset: 0;
+
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.94) 0%,
+    rgba(0, 0, 0, 0.68) 36%,
+    rgba(0, 0, 0, 0.20) 65%,
+    rgba(0, 0, 0, 0.05) 100%
+  );
+
+  transition: opacity 220ms ease;
+  pointer-events: none;
+}
+
+.card:hover .overlay {
+  opacity: 0.96;
+}
+
+.topBadges {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.trendingBadge,
+.durationBadge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(18, 18, 18, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.trendingBadge svg {
+  color: #ff643d;
+}
+
 .bottom {
   position: absolute;
 
@@ -84,6 +140,12 @@
 
   letter-spacing: -0.02em;
 
+  text-shadow:
+    -1px -1px 0 rgba(0, 0, 0, 0.95),
+    1px -1px 0 rgba(0, 0, 0, 0.95),
+    -1px 1px 0 rgba(0, 0, 0, 0.95),
+    1px 1px 0 rgba(0, 0, 0, 0.95),
+    0 2px 6px rgba(0, 0, 0, 0.95);
 }
 
 .provider {
@@ -95,6 +157,12 @@
 
   color: white;
 
+  text-shadow:
+    -1px -1px 0 rgba(0, 0, 0, 0.95),
+    1px -1px 0 rgba(0, 0, 0, 0.95),
+    -1px 1px 0 rgba(0, 0, 0, 0.95),
+    1px 1px 0 rgba(0, 0, 0, 0.95),
+    0 2px 4px rgba(0, 0, 0, 0.95);
 }
 
 .footer {
@@ -107,6 +175,12 @@
 
   color: white;
 
+  text-shadow:
+    -1px -1px 0 rgba(0, 0, 0, 0.95),
+    1px -1px 0 rgba(0, 0, 0, 0.95),
+    -1px 1px 0 rgba(0, 0, 0, 0.95),
+    1px 1px 0 rgba(0, 0, 0, 0.95),
+    0 2px 4px rgba(0, 0, 0, 0.95);
 }
 
 .statsRight {
@@ -159,6 +233,33 @@
 
   white-space: nowrap;
 
+  text-shadow:
+    -1px -1px 0 rgba(0, 0, 0, 0.95),
+    1px -1px 0 rgba(0, 0, 0, 0.95),
+    -1px 1px 0 rgba(0, 0, 0, 0.95),
+    1px 1px 0 rgba(0, 0, 0, 0.95),
+    0 2px 4px rgba(0, 0, 0, 0.95);
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+  white-space: nowrap;
+  text-shadow:
+    -1px -1px 0 rgba(0, 0, 0, 0.95),
+    1px -1px 0 rgba(0, 0, 0, 0.95),
+    -1px 1px 0 rgba(0, 0, 0, 0.95),
+    1px 1px 0 rgba(0, 0, 0, 0.95),
+    0 2px 4px rgba(0, 0, 0, 0.95);
+}
+
+.rating svg {
+  color: #fbbf24;
 }
 
 .card:hover .avatar {
@@ -169,6 +270,7 @@
 
 @media (max-width: 768px) {
   .card {
+    flex: 0 0 300px;
     height: 210px;
   }
   .title {

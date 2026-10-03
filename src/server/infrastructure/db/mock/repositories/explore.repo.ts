@@ -82,7 +82,7 @@ const exploreMock: ExploreModel = {
       id: 'ai-agents',
       title: 'Building AI Agents',
       provider: 'vimeo',
-      thumbnail: '/mock/thumbnails/ai-agents.webp',
+      thumbnail: '/mock/thumbnails/system-design.jpeg',
       durationLabel: '9h 30m',
       featuredLearners: [
         { id: '39', image: getAvatar('ai-1'), alt: '39' },

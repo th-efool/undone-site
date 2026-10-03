@@ -1,8 +1,9 @@
 .card {
   position: relative;
+  flex: 0 0 368px;
   height: 480px;
   overflow: hidden;
-  border-radius: calc(var(--message-radius-card) * 1.6);
+  border-radius: var(--radius-2xl, 26px);
   background: #05060d;
   box-shadow: 0 28px 60px rgba(15, 23, 42, 0.16);
   cursor: pointer;
@@ -49,32 +50,44 @@
   color: #fff;
   font-size: 1.28rem;
   font-weight: 800;
+  text-shadow: 
+    -2px -2px 0 rgba(0,0,0,0.8),
+    2px -2px 0 rgba(0,0,0,0.8),
+    -2px 2px 0 rgba(0,0,0,0.8),
+    2px 2px 0 rgba(0,0,0,0.8);
 }
 .subtext {
   margin: 0;
   color: rgba(255, 255, 255, 0.9);
   font-size: 0.85rem;
   font-weight: 600;
+  text-shadow: 
+    -1px -1px 0 rgba(0,0,0,0.8),
+    1px -1px 0 rgba(0,0,0,0.8),
+    -1px 1px 0 rgba(0,0,0,0.8),
+    1px 1px 0 rgba(0,0,0,0.8);
 }
 .avatars {
   display: flex;
 }
-.avatars span {
+.avatarWrapper {
   position: relative;
   margin-right: -7px;
 }
-.avatars img {
+.avatar {
   width: 27px;
   height: 27px;
   border: 2px solid #fff;
   border-radius: 999px;
   object-fit: cover;
+  display: block;
 }
 
 @media (max-width: 768px) { 
   .card { 
     max-width: 100%; 
     padding: var(--space-3); 
+    flex: 0 0 340px;
     height: 440px;
   } 
 }

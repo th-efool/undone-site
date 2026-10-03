@@ -15,14 +15,19 @@ export interface PeopleFinishingProps {
 export function PeopleFinishing({ items }: PeopleFinishingProps) {
   return (
     <section className={styles.section}>
-      <div className={styles.grid}>
+      <ArcCarousel
+        loop={true}
+        panable={true}
+        showArrows={false}
+        scrollAmount={450}
+      >
         {items.map((item) => (
           <SideQuestCard
             key={item.id}
             item={item}
           />
         ))}
-      </div>
+      </ArcCarousel>
     </section>
   );
 }
