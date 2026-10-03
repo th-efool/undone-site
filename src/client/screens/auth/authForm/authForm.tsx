@@ -56,11 +56,63 @@ export function AuthForm() {
             <>
               Every great skill
               <br />
-              begins with <span className={styles.highlight}>curiosity.</span>
+              begins with{' '}
+              <span className={styles.highlightWrapper}>
+                <span className={styles.highlight}>curiosity.</span>
+                <svg
+                  className={styles.underlineFlourish}
+                  viewBox="0 0 160 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M3 10.5C28 13.2 58 14.5 88 11.5C118 8.5 142 5.5 157 7.2"
+                    stroke="currentColor"
+                    strokeWidth="2.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M14 13.2C44 15 76 14.8 106 12.2C128 10.2 146 7.8 155 9.2"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity="0.75"
+                  />
+                </svg>
+              </span>
             </>
           ) : (
             <>
-              Welcome back to <span className={styles.highlight}>Undone.</span>
+              Welcome back to{' '}
+              <span className={styles.highlightWrapper}>
+                <span className={styles.highlight}>Undone.</span>
+                <svg
+                  className={styles.underlineFlourish}
+                  viewBox="0 0 160 16"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M3 10.5C28 13.2 58 14.5 88 11.5C118 8.5 142 5.5 157 7.2"
+                    stroke="currentColor"
+                    strokeWidth="2.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M14 13.2C44 15 76 14.8 106 12.2C128 10.2 146 7.8 155 9.2"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity="0.75"
+                  />
+                </svg>
+              </span>
             </>
           )}
         </h1>

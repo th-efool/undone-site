@@ -111,13 +111,50 @@
   color: #FFFFFF;
 }
 
+.highlightWrapper {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+}
+
 .highlight {
-  font-weight: 800;
+  font-family: var(--font-caveat-next), var(--font-dancing-script-next), cursive;
+  font-weight: 700;
+  font-size: 1.25em;
+  line-height: 0.95;
   color: #1F299D;
+  background: linear-gradient(135deg, #0E1738 0%, #1F299D 55%, #3544D8 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+  padding-right: 0.08em;
+  padding-left: 0.04em;
+  vertical-align: baseline;
 }
 
 [data-theme="dark"] .highlight {
   color: #818CF8;
+  background: linear-gradient(135deg, #FFFFFF 0%, #A5B4FC 55%, #818CF8 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.underlineFlourish {
+  position: absolute;
+  left: -2px;
+  bottom: -6px;
+  width: calc(100% + 4px);
+  height: 13px;
+  color: #1F299D;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(31, 41, 157, 0.15));
+}
+
+[data-theme="dark"] .underlineFlourish {
+  color: #818CF8;
+  filter: drop-shadow(0 1px 3px rgba(129, 140, 248, 0.3));
 }
 
 .description {
