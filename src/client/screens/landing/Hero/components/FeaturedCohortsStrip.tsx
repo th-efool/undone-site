@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { CohortCard, type CohortCardItem } from '@/src/client/components/global/CohortCard';
+import { InfiniteScroller } from '@/src/client/components/global/InfiniteScroller';
 import { getAvatar } from '@/src/client/mock/avatars';
 import styles from '../Hero.module.css';
 
@@ -91,21 +92,26 @@ const FEATURED_COHORTS: CohortCardItem[] = [
 ];
 
 export function FeaturedCohortsStrip() {
-  // Duplicate for seamless infinite marquee loop
-  const marqueeItems = [...FEATURED_COHORTS, ...FEATURED_COHORTS];
-
   return (
     <div className={styles.cohortsStripContainer} aria-label="Featured Cohorts">
-      <div className={styles.cohortsMarqueeTrack}>
-        {marqueeItems.map((cohort, index) => (
+      <InfiniteScroller
+        loop={true}
+        panable={true}
+        showArrows={false}
+        autoScroll={true}
+        autoScrollSpeed={0.35}
+        scrollAmount={280}
+        className={styles.cohortsInfiniteScroller}
+      >
+        {FEATURED_COHORTS.map((cohort, index) => (
           <CohortCard
-            key={`${cohort.id}-${index}`}
+            key={cohort.id}
             item={cohort}
             size="compact"
             priority={index < 4}
           />
         ))}
-      </div>
+      </InfiniteScroller>
     </div>
   );
 }

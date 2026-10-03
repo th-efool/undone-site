@@ -492,41 +492,23 @@
 }
 
 /* ==========================================================================
-   Featured Cohorts Auto Horizontally Scrolling Marquee Strip
+   Featured Cohorts Auto Horizontally Scrolling Strip (via InfiniteScroller)
    ========================================================================== */
 .cohortsStripContainer {
-  width: min(100vw - 32px, 1260px);
-  margin-left: calc((100% - min(100vw - 32px, 1260px)) / 2);
+  width: min(100vw - 12px, 1440px);
+  margin-left: calc((100% - min(100vw - 12px, 1440px)) / 2 + 65px);
   margin-top: 16px;
   overflow: hidden;
   position: relative;
   z-index: 10;
-  mask-image: linear-gradient(to right, transparent 0%, black 2.5%, black 97.5%, transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 2.5%, black 97.5%, transparent 100%);
-  padding: 6px 0;
+  mask-image: linear-gradient(to right, transparent 0%, black 25px, black calc(100% - 15px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 25px, black calc(100% - 15px), transparent 100%);
+  padding: 4px 0;
   box-sizing: border-box;
 }
 
-@keyframes marqueeScroll {
-  0% {
-    transform: translateX(0);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
-}
-
-.cohortsMarqueeTrack {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  width: max-content;
-  animation: marqueeScroll 62s linear infinite;
-  will-change: transform;
-}
-
-.cohortsMarqueeTrack:hover {
-  animation-play-state: paused;
+.cohortsInfiniteScroller {
+  width: 100%;
 }
 
 
