@@ -82,28 +82,28 @@ export function CentralInterface() {
                 className={styles.promptPlusPill}
                 aria-label="Add attachment"
               >
-                <Plus size={16} strokeWidth={2.2} />
+                <Plus size={18} strokeWidth={2.2} />
               </button>
 
               <button type="button" className={styles.promptPill}>
-                <FileText size={14} strokeWidth={1.8} />
+                <FileText size={17} strokeWidth={1.8} />
                 <span>Add sources</span>
               </button>
 
               <button type="button" className={styles.promptPill}>
-                <Paperclip size={14} strokeWidth={1.8} />
+                <Paperclip size={17} strokeWidth={1.8} />
                 <span>Upload</span>
               </button>
 
               <button type="button" className={styles.promptPill}>
-                <Sparkles size={14} strokeWidth={1.8} />
+                <Sparkles size={17} strokeWidth={1.8} />
                 <span>Use a template</span>
               </button>
             </div>
 
             <div className={styles.promptRightActions}>
               <button type="button" className={styles.promptPlanBtn}>
-                <Lightbulb size={15} strokeWidth={1.8} />
+                <Lightbulb size={18} strokeWidth={1.8} />
                 <span>Plan</span>
               </button>
 
@@ -111,7 +111,7 @@ export function CentralInterface() {
 
               <button type="submit" className={styles.promptBeginBtn}>
                 <span>Begin journey</span>
-                <ArrowRight size={14} strokeWidth={2.2} />
+                <ArrowRight size={17} strokeWidth={2.2} />
               </button>
             </div>
           </div>

@@ -214,7 +214,7 @@
 .centralInterface {
   position: relative;
   z-index: 30;
-  max-width: 1040px;
+  max-width: 885px;
   width: 100%;
   margin: 0 auto;
   display: flex;
@@ -283,10 +283,10 @@
   max-width: 720px;
 }
 
-/* Input Card (Prompt Card Matching Reference - Wide & 1.1x) */
+/* Input Card (Prompt Card Matching Reference - Decreased 15% Width) */
 .inputCard {
   width: 100%;
-  max-width: 860px;
+  max-width: 730px;
   background-color: #FFFFFF;
   border: 1px solid #dcdfe8;
   border-radius: 22px;
@@ -300,19 +300,19 @@
 
 @media (min-width: 1024px) {
   .inputCard {
-    max-width: 920px;
+    max-width: 780px;
   }
 }
 
 @media (min-width: 1300px) {
   .inputCard {
-    max-width: 980px;
+    max-width: 835px;
   }
 }
 
 @media (min-width: 1600px) {
   .inputCard {
-    max-width: 1020px;
+    max-width: 870px;
   }
 }
 
@@ -335,12 +335,6 @@
   box-shadow: none !important;
 }
 
-@media (min-width: 768px) {
-  .textInput {
-    font-size: 17px;
-  }
-}
-
 .textInput::placeholder {
   color: #8c93a8;
   opacity: 1;
@@ -354,22 +348,29 @@
   width: 100%;
   gap: 10px;
   flex-wrap: nowrap;
-  margin-top: 8px;
+  margin-top: 10px;
 }
 
 .promptPillGroup {
   display: flex;
   align-items: center;
   gap: 7px;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.promptPillGroup::-webkit-scrollbar {
+  display: none;
 }
 
 .promptPlusPill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background-color: #f1f3fd;
   color: #2e384d;
@@ -387,14 +388,14 @@
 .promptPill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 12px;
+  gap: 7px;
+  height: 36px;
+  padding: 0 13px;
   border-radius: 9999px;
   background-color: #f1f3fd;
   color: #2e384d;
   border: none;
-  font-size: 12.5px;
+  font-size: 16px; /* Exact same size as 'I want to learn about...' text */
   font-weight: 500;
   cursor: pointer;
   transition: background-color 150ms ease, transform 100ms ease;
@@ -424,13 +425,13 @@
 .promptPlanBtn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  height: 32px;
-  padding: 0 5px;
+  gap: 6px;
+  height: 36px;
+  padding: 0 6px;
   background: transparent;
   border: none;
   color: #2e384d;
-  font-size: 13.5px;
+  font-size: 16px; /* Exact same size as 'I want to learn about...' text */
   font-weight: 500;
   cursor: pointer;
   transition: color 150ms ease;
@@ -444,7 +445,7 @@
 
 .promptDivider {
   width: 1px;
-  height: 18px;
+  height: 20px;
   background-color: #e2e8f0;
   flex-shrink: 0;
 }
@@ -452,13 +453,13 @@
 .promptBeginBtn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 36px;
-  padding: 0 18px;
+  gap: 7px;
+  height: 38px;
+  padding: 0 20px;
   border-radius: 9999px;
   background-color: #1b268a;
   color: #FFFFFF;
-  font-size: 13.5px;
+  font-size: 16px; /* Exact same size as 'I want to learn about...' text */
   font-weight: 600;
   letter-spacing: 0.01em;
   border: none;
