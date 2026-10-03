@@ -165,10 +165,10 @@ export function CollageLeft() {
         <path
           d="M 40 20 C 120 110 110 260 55 365"
           stroke="#1F299D"
-          strokeWidth="1.2"
+          strokeWidth="1.4"
           strokeLinecap="round"
-          strokeDasharray="2 3"
-          opacity="0.45"
+          strokeDasharray="3 4"
+          opacity="0.65"
         />
       </svg>
     </div>

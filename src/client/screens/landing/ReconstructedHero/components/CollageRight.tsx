@@ -186,10 +186,10 @@ export function CollageRight() {
         <path
           d="M 130 20 C 40 80 60 190 30 295"
           stroke="#1F299D"
-          strokeWidth="1.2"
+          strokeWidth="1.4"
           strokeLinecap="round"
-          strokeDasharray="2 3"
-          opacity="0.45"
+          strokeDasharray="3 4"
+          opacity="0.65"
         />
       </svg>
     </div>
