@@ -9,36 +9,26 @@
   min-height: 520px;
   position: relative;
   overflow: hidden;
-  background-color: #F6F0E7;
+  background-color: #FFFFFF;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   box-sizing: border-box;
+  transition: background-color 0.25s ease;
 }
 
-/* Authentic Paper Texture Grain Overlay */
+/* Authentic Paper Texture Grain Overlay (Subtle in light, hidden in pure black dark) */
 .paperTextureOverlay {
   position: absolute;
   inset: 0;
   background-image: url('/images/hero-collage/real-paper-texture.jpg');
   background-size: cover;
   background-position: center;
-  opacity: 0.16;
+  opacity: 0.08;
   mix-blend-mode: multiply;
   pointer-events: none;
   z-index: 1;
-}
-
-/* Subtle dot fiber texture */
-.dotGridOverlay {
-  position: absolute;
-  inset: 0;
-  background-image: 
-    radial-gradient(rgba(14, 23, 56, 0.035) 1px, transparent 1px),
-    radial-gradient(rgba(180, 160, 140, 0.06) 1px, transparent 1px);
-  background-size: 24px 24px, 12px 12px;
-  pointer-events: none;
-  z-index: 2;
+  transition: opacity 0.25s ease;
 }
 
 /* Semi-translucent Frosted Masking Tape */
@@ -154,6 +144,37 @@
 
 .signInLink:hover {
   color: #0E1738;
+}
+
+.themeToggleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid #DFD8CD;
+  background-color: #FFFFFF;
+  color: #3B4356;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.themeToggleBtn:hover {
+  border-color: #1F299D;
+  color: #1F299D;
+  background-color: #F8F9FE;
+  transform: translateY(-0.5px);
+}
+
+.themeIconSun {
+  color: #F59E0B;
+}
+
+.themeIconMoon {
+  color: #1F299D;
 }
 
 .getStartedBtn {
@@ -470,7 +491,7 @@
 
 .dividerBadge {
   position: relative;
-  background-color: #F6F0E7;
+  background-color: #FFFFFF;
   padding: 0 8px;
   font-family: var(--font-manrope-next), sans-serif;
   font-size: 8.5px;
@@ -1192,4 +1213,243 @@
     transform: scale(0.65);
     transform-origin: top right;
   }
+}
+
+/* ==========================================================================
+   DARK MODE OVERRIDES (Pure Black #000000 + High Contrast Typography & Controls)
+   ========================================================================== */
+
+:global([data-theme="dark"]) .heroWrapper,
+.heroWrapper[data-theme="dark"] {
+  background-color: #000000;
+}
+
+:global([data-theme="dark"]) .heroWrapper .paperTextureOverlay,
+.heroWrapper[data-theme="dark"] .paperTextureOverlay {
+  opacity: 0;
+}
+
+/* ── Top Navbar (Dark Mode) ── */
+:global([data-theme="dark"]) .heroWrapper .brandName,
+.heroWrapper[data-theme="dark"] .brandName {
+  color: #FFFFFF;
+}
+
+:global([data-theme="dark"]) .heroWrapper .brandTagline,
+.heroWrapper[data-theme="dark"] .brandTagline {
+  color: #D4D4D8;
+}
+
+:global([data-theme="dark"]) .heroWrapper .navLink,
+.heroWrapper[data-theme="dark"] .navLink {
+  color: #D4D4D8;
+}
+
+:global([data-theme="dark"]) .heroWrapper .navLink:hover,
+.heroWrapper[data-theme="dark"] .navLink:hover {
+  color: #FFFFFF;
+}
+
+:global([data-theme="dark"]) .heroWrapper .signInLink,
+.heroWrapper[data-theme="dark"] .signInLink {
+  color: #D4D4D8;
+}
+
+:global([data-theme="dark"]) .heroWrapper .signInLink:hover,
+.heroWrapper[data-theme="dark"] .signInLink:hover {
+  color: #FFFFFF;
+}
+
+:global([data-theme="dark"]) .heroWrapper .themeToggleBtn,
+.heroWrapper[data-theme="dark"] .themeToggleBtn {
+  background-color: #18181B;
+  border-color: #3F3F46;
+  color: #F4F4F5;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+:global([data-theme="dark"]) .heroWrapper .themeToggleBtn:hover,
+.heroWrapper[data-theme="dark"] .themeToggleBtn:hover {
+  border-color: #818CF8;
+  background-color: #27272A;
+  color: #FFFFFF;
+}
+
+:global([data-theme="dark"]) .heroWrapper .getStartedBtn,
+.heroWrapper[data-theme="dark"] .getStartedBtn {
+  background-color: #4F46E5;
+  box-shadow: 0 2px 10px rgba(79, 70, 229, 0.45);
+}
+
+:global([data-theme="dark"]) .heroWrapper .getStartedBtn:hover,
+.heroWrapper[data-theme="dark"] .getStartedBtn:hover {
+  background-color: #6366F1;
+}
+
+/* ── Central Interface Typography (Dark Mode) ── */
+:global([data-theme="dark"]) .heroWrapper .eyebrow,
+.heroWrapper[data-theme="dark"] .eyebrow {
+  color: #A1A1AA;
+}
+
+:global([data-theme="dark"]) .heroWrapper .headline,
+.heroWrapper[data-theme="dark"] .headline {
+  color: #FFFFFF;
+}
+
+:global([data-theme="dark"]) .heroWrapper .headlineItalic,
+.heroWrapper[data-theme="dark"] .headlineItalic {
+  color: #818CF8;
+}
+
+:global([data-theme="dark"]) .heroWrapper .underlineFlourish,
+.heroWrapper[data-theme="dark"] .underlineFlourish {
+  filter: brightness(1.8) drop-shadow(0 0 4px rgba(129, 140, 248, 0.5));
+}
+
+:global([data-theme="dark"]) .heroWrapper .subtitle,
+.heroWrapper[data-theme="dark"] .subtitle {
+  color: #D4D4D8;
+}
+
+/* ── Input Bar / TextBar (Dark Mode) ── */
+:global([data-theme="dark"]) .heroWrapper .inputCard,
+.heroWrapper[data-theme="dark"] .inputCard {
+  background-color: #121216;
+  border-color: #2E2E38;
+  box-shadow: 
+    0 4px 22px -2px rgba(0, 0, 0, 0.7),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+:global([data-theme="dark"]) .heroWrapper .inputCard:focus-within,
+.heroWrapper[data-theme="dark"] .inputCard:focus-within {
+  border-color: #6366F1;
+  box-shadow: 
+    0 0 0 3px rgba(99, 102, 241, 0.25),
+    0 6px 24px -2px rgba(0, 0, 0, 0.85);
+}
+
+:global([data-theme="dark"]) .heroWrapper .plusButton,
+.heroWrapper[data-theme="dark"] .plusButton {
+  background-color: #1C1C24;
+  border-color: #383846;
+  color: #E4E4E7;
+}
+
+:global([data-theme="dark"]) .heroWrapper .plusButton:hover,
+.heroWrapper[data-theme="dark"] .plusButton:hover {
+  background-color: #272734;
+  border-color: #6366F1;
+  color: #FFFFFF;
+}
+
+:global([data-theme="dark"]) .heroWrapper .textInput,
+.heroWrapper[data-theme="dark"] .textInput {
+  color: #FFFFFF;
+}
+
+:global([data-theme="dark"]) .heroWrapper .textInput::placeholder,
+.heroWrapper[data-theme="dark"] .textInput::placeholder {
+  color: #71717A;
+}
+
+:global([data-theme="dark"]) .heroWrapper .planButton,
+.heroWrapper[data-theme="dark"] .planButton {
+  color: #D4D4D8;
+}
+
+:global([data-theme="dark"]) .heroWrapper .planButton:hover,
+.heroWrapper[data-theme="dark"] .planButton:hover {
+  color: #818CF8;
+}
+
+:global([data-theme="dark"]) .heroWrapper .beginJourneyBtn,
+.heroWrapper[data-theme="dark"] .beginJourneyBtn {
+  background-color: #4F46E5;
+  color: #FFFFFF;
+  box-shadow: 0 2px 10px rgba(79, 70, 229, 0.45);
+}
+
+:global([data-theme="dark"]) .heroWrapper .beginJourneyBtn:hover,
+.heroWrapper[data-theme="dark"] .beginJourneyBtn:hover {
+  background-color: #6366F1;
+}
+
+/* ── 4 Action Tiles (Dark Mode) ── */
+:global([data-theme="dark"]) .heroWrapper .tileIconSquare,
+.heroWrapper[data-theme="dark"] .tileIconSquare {
+  background-color: #4338CA;
+  color: #FFFFFF;
+  box-shadow: 0 2px 8px rgba(67, 56, 202, 0.45);
+}
+
+:global([data-theme="dark"]) .heroWrapper .tileAction,
+.heroWrapper[data-theme="dark"] .tileAction {
+  color: #FFFFFF;
+}
+
+:global([data-theme="dark"]) .heroWrapper .tileTarget,
+.heroWrapper[data-theme="dark"] .tileTarget {
+  color: #A1A1AA;
+}
+
+/* ── Divider (Dark Mode) ── */
+:global([data-theme="dark"]) .heroWrapper .dividerLine,
+.heroWrapper[data-theme="dark"] .dividerLine {
+  background-color: #27272A;
+}
+
+:global([data-theme="dark"]) .heroWrapper .dividerBadge,
+.heroWrapper[data-theme="dark"] .dividerBadge {
+  background-color: #000000;
+  color: #A1A1AA;
+}
+
+/* ── Source Pills (Dark Mode) ── */
+:global([data-theme="dark"]) .heroWrapper .pillButton,
+.heroWrapper[data-theme="dark"] .pillButton {
+  background-color: #121216;
+  border-color: #2E2E38;
+  color: #E4E4E7;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+:global([data-theme="dark"]) .heroWrapper .pillButton:hover,
+.heroWrapper[data-theme="dark"] .pillButton:hover {
+  border-color: #6366F1;
+  background-color: #1C1C24;
+  color: #FFFFFF;
+}
+
+/* ── Footer Affordance (Dark Mode) ── */
+:global([data-theme="dark"]) .heroWrapper .footerAffordance,
+.heroWrapper[data-theme="dark"] .footerAffordance {
+  color: #A1A1AA;
+}
+
+:global([data-theme="dark"]) .heroWrapper .footerAffordance:hover,
+.heroWrapper[data-theme="dark"] .footerAffordance:hover {
+  color: #FFFFFF;
+}
+
+/* ── Collage Elements & Flourishes (Dark Mode) ── */
+:global([data-theme="dark"]) .heroWrapper .blueRibbonLine1,
+:global([data-theme="dark"]) .heroWrapper .blueRibbonLine2,
+:global([data-theme="dark"]) .heroWrapper .blueRibbonLine3,
+.heroWrapper[data-theme="dark"] .blueRibbonLine1,
+.heroWrapper[data-theme="dark"] .blueRibbonLine2,
+.heroWrapper[data-theme="dark"] .blueRibbonLine3 {
+  filter: brightness(1.7) drop-shadow(0 0 4px rgba(99, 102, 241, 0.4));
+}
+
+:global([data-theme="dark"]) .heroWrapper .starFlourish,
+.heroWrapper[data-theme="dark"] .starFlourish {
+  color: #818CF8;
+}
+
+:global([data-theme="dark"]) .heroWrapper .blueBannerRibbon,
+.heroWrapper[data-theme="dark"] .blueBannerRibbon {
+  background-color: #1E2378;
+  border-color: #373BB8;
 }

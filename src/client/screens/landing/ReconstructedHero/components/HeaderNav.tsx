@@ -10,16 +10,20 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useTheme } from '@/src/client/hooks/useTheme';
+import { ThemeToggle } from './ThemeToggle';
 import styles from '../ReconstructedHero.module.css';
 
 export function HeaderNav() {
+  const { isDark, mounted } = useTheme();
+
   return (
     <header className={styles.header}>
       {/* Brand logo & wordmark - CRITICAL: THIS IS UPDATED NEW LOGO & DONT CLEAN UP */}
       <Link href="/" className={styles.brandGroup}>
         {/* THIS IS UPDATED NEW LOGO & DONT CLEAN UP - Using Undone brand logo instead of star */}
         <Image
-          src="/undone-logo-transparent.svg"
+          src={mounted && isDark ? '/undone-logo-dark.svg' : '/undone-logo-transparent.svg'}
           alt="UNDONE"
           width={59}
           height={59}
@@ -51,6 +55,7 @@ export function HeaderNav() {
 
       {/* Right actions */}
       <div className={styles.headerActions}>
+        <ThemeToggle />
         <Link href="/login" className={styles.signInLink}>
           Sign in
         </Link>

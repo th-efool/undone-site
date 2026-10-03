@@ -21,10 +21,13 @@ import styles from '../ReconstructedHero.module.css';
 export function CentralInterface() {
   const [query, setQuery] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      window.location.href = `/quest/new?q=${encodeURIComponent(query)}`;
+  const handleSubmit = (valOrEvent?: string | React.FormEvent) => {
+    if (typeof valOrEvent === 'object' && valOrEvent && 'preventDefault' in valOrEvent) {
+      valOrEvent.preventDefault();
+    }
+    const textToSearch = typeof valOrEvent === 'string' ? valOrEvent : query;
+    if (textToSearch.trim()) {
+      window.location.href = `/quest/new?q=${encodeURIComponent(textToSearch.trim())}`;
     }
   };
 

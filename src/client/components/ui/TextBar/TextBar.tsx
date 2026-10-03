@@ -34,7 +34,7 @@ export interface TextBarProps extends Omit<InputHTMLAttributes<HTMLInputElement>
   /** Callback fired when the clear button is clicked */
   onClear?: () => void;
   /** Submission handler fired on Enter or form submit */
-  onSubmit?: (value: string, e?: FormEvent) => void;
+  onSubmit?: ((value: string, e?: FormEvent) => void) | ((e: FormEvent) => void);
   /** Whether the outer wrapper is a `<form>` element (defaults to true if onSubmit is provided) */
   asForm?: boolean;
   /** Custom class for the outer shell/container */
@@ -116,7 +116,7 @@ export const TextBar = forwardRef<HTMLInputElement, TextBarProps>(function TextB
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (onSubmit) {
-      onSubmit(currentValue, e);
+      (onSubmit as (val: string, ev?: FormEvent) => void)(currentValue, e);
     }
   };
 

@@ -107,8 +107,8 @@
   --color-accent-subtle: var(--orange-50);
   --color-accent-rgb: 245 158 11;
 
-  --color-background: var(--cream-100);
-  --color-background-elevated: var(--cream-50);
+  --color-background: #ffffff;
+  --color-background-elevated: #ffffff;
   --color-surface: #fff;
   --color-surface-rgb: 255 255 255;
   --color-surface-secondary: var(--gray-50);
