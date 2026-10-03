@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 80" fill="none">
+  <!-- Bottom-left long diagonal blue ribbon stroke matching reference red circle 2 -->
+  <path d="M 10 65
+           C 75 42, 170 20, 270 12"
+        stroke="#1E2B88"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        opacity="0.8" />
+</svg>

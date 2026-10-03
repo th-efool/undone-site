@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 360" fill="none">
+  <defs>
+    <filter id="parchment-shadow-pwr" x="-15%" y="-15%" width="135%" height="135%">
+      <feDropShadow dx="-2" dy="5" stdDeviation="8" flood-color="#141E38" flood-opacity="0.14" />
+      <feDropShadow dx="-1" dy="2" stdDeviation="3" flood-color="#141E38" flood-opacity="0.08" />
+    </filter>
+    <linearGradient id="parchment-grad-pwr" x1="260" y1="0" x2="0" y2="360" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FCF9F2" />
+      <stop offset="50%" stop-color="#F3E7D3" />
+      <stop offset="100%" stop-color="#E5D6BD" />
+    </linearGradient>
+  </defs>
+  <!-- Ragged deckled curved parchment sheet on right -->
+  <path d="M 260 15
+           C 230 10, 195 24, 165 12
+           C 130 0, 100 20, 75 42
+           C 50 68, 62 100, 48 132
+           C 35 165, 45 198, 55 230
+           C 68 265, 95 292, 125 315
+           C 160 338, 205 330, 240 348
+           C 250 352, 255 350, 260 355
+           Z"
+        fill="url(#parchment-grad-pwr)"
+        filter="url(#parchment-shadow-pwr)" />
+  <!-- White fibrous deckle highlight -->
+  <path d="M 260 15
+           C 230 10, 195 24, 165 12
+           C 130 0, 100 20, 75 42
+           C 50 68, 62 100, 48 132
+           C 35 165, 45 198, 55 230
+           C 68 265, 95 292, 125 315
+           C 160 338, 205 330, 240 348"
+        stroke="#FFFDF9"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        opacity="0.85" />
+</svg>

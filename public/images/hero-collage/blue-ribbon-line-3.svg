@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 240" fill="none">
+  <!-- Right-side sweeping blue ribbon line stroke past origami crane matching reference red circle 3 -->
+  <path d="M 85 10
+           C 20 60, 15 140, 65 230"
+        stroke="#1E2B88"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        opacity="0.8" />
+</svg>

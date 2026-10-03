@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 220" fill="none">
+  <defs>
+    <filter id="parchment-shadow-pdl" x="-10%" y="-15%" width="125%" height="135%">
+      <feDropShadow dx="3" dy="6" stdDeviation="10" flood-color="#141E38" flood-opacity="0.14" />
+      <feDropShadow dx="1" dy="2" stdDeviation="3" flood-color="#141E38" flood-opacity="0.08" />
+    </filter>
+    <linearGradient id="parchment-grad-pdl" x1="0" y1="220" x2="460" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E2D4BC" />
+      <stop offset="35%" stop-color="#EFE3D0" />
+      <stop offset="70%" stop-color="#F7EDE0" />
+      <stop offset="100%" stop-color="#FAF4EA" />
+    </linearGradient>
+  </defs>
+  <!-- Long diagonal torn parchment runner -->
+  <path d="M 0 160
+           C 25 140, 50 155, 80 135
+           C 110 115, 140 128, 175 105
+           C 210 82, 245 96, 280 72
+           C 320 48, 360 62, 400 35
+           C 430 15, 445 22, 460 10
+           C 455 35, 458 60, 440 85
+           C 410 115, 375 102, 340 128
+           C 300 155, 260 142, 220 168
+           C 180 192, 140 178, 100 202
+           C 65 218, 30 205, 0 220
+           Z"
+        fill="url(#parchment-grad-pdl)"
+        filter="url(#parchment-shadow-pdl)" />
+  <!-- Deckle highlight lines -->
+  <path d="M 0 160
+           C 25 140, 50 155, 80 135
+           C 110 115, 140 128, 175 105
+           C 210 82, 245 96, 280 72
+           C 320 48, 360 62, 400 35
+           C 430 15, 445 22, 460 10"
+        stroke="#FFFDF9"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        opacity="0.8" />
+</svg>

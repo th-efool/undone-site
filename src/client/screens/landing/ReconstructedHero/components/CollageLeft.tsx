@@ -18,6 +18,50 @@ export function CollageLeft() {
         />
       </div>
 
+      {/* TORN PAPER WING (Red Circle 1): Upper-Left Curved Parchment Scrap */}
+      <div className={styles.parchmentWingLeft}>
+        <Image
+          src="/images/hero-collage/parchment-wing-left.svg"
+          alt=""
+          fill
+          className={styles.tornPaperImage}
+          priority
+        />
+      </div>
+
+      {/* BLUE RIBBON LINE 1 (Red Circle 1): Upper-Left Smooth Blue Arc */}
+      <div className={styles.blueRibbonLine1}>
+        <Image
+          src="/images/hero-collage/blue-ribbon-line-1.svg"
+          alt=""
+          fill
+          className={styles.tornPaperImage}
+          priority
+        />
+      </div>
+
+      {/* TORN PAPER DIAGONAL (Red Circle 2): Lower-Left Diagonal Parchment Runner */}
+      <div className={styles.parchmentDiagonalLeft}>
+        <Image
+          src="/images/hero-collage/parchment-diagonal-left.svg"
+          alt=""
+          fill
+          className={styles.tornPaperImage}
+          priority
+        />
+      </div>
+
+      {/* BLUE RIBBON LINE 2 (Red Circle 2): Bottom-Left Long Diagonal Blue Ribbon Line */}
+      <div className={styles.blueRibbonLine2}>
+        <Image
+          src="/images/hero-collage/blue-ribbon-line-2.svg"
+          alt=""
+          fill
+          className={styles.tornPaperImage}
+          priority
+        />
+      </div>
+
       {/* TORN PAPER BASE: Bottom-Left Corner Torn Paper Continent */}
       <div className={styles.bottomLeftTornSheet}>
         <Image
@@ -154,23 +198,6 @@ export function CollageLeft() {
           height={24}
         />
       </div>
-
-      {/* Organic pencil flourish arc linking window photo area down to star doodle */}
-      <svg
-        className={styles.leftFlourishArc}
-        viewBox="0 0 160 380"
-        fill="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M 40 20 C 120 110 110 260 55 365"
-          stroke="#1F299D"
-          strokeWidth="1.4"
-          strokeLinecap="round"
-          strokeDasharray="3 4"
-          opacity="0.65"
-        />
-      </svg>
     </div>
   );
 }

@@ -18,6 +18,28 @@ export function CollageRight() {
         />
       </div>
 
+      {/* TORN PAPER WING (Red Circle 3): Mid-Right Curved Parchment Sheet */}
+      <div className={styles.parchmentWingRight}>
+        <Image
+          src="/images/hero-collage/parchment-wing-right.svg"
+          alt=""
+          fill
+          className={styles.tornPaperImage}
+          priority
+        />
+      </div>
+
+      {/* BLUE RIBBON LINE 3 (Red Circle 3): Right-Side Sweeping Blue Ribbon Line */}
+      <div className={styles.blueRibbonLine3}>
+        <Image
+          src="/images/hero-collage/blue-ribbon-line-3.svg"
+          alt=""
+          fill
+          className={styles.tornPaperImage}
+          priority
+        />
+      </div>
+
       {/* TORN PAPER BASE: Bottom-Right Corner Torn Paper Continent */}
       <div className={styles.bottomRightTornSheet}>
         <Image
@@ -175,23 +197,6 @@ export function CollageRight() {
         </p>
         <div className={styles.collectRepeatRule} />
       </div>
-
-      {/* Subtle organic pencil flourish arc looping around origami crane */}
-      <svg
-        className={styles.rightFlourishArc}
-        viewBox="0 0 160 320"
-        fill="none"
-        aria-hidden="true"
-      >
-        <path
-          d="M 130 20 C 40 80 60 190 30 295"
-          stroke="#1F299D"
-          strokeWidth="1.4"
-          strokeLinecap="round"
-          strokeDasharray="3 4"
-          opacity="0.65"
-        />
-      </svg>
     </div>
   );
 }

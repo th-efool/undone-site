@@ -542,6 +542,55 @@
   opacity: 0.95;
 }
 
+/* TORN PAPER WING (Red Circle 1): Upper-Left Curved Parchment Scrap */
+.parchmentWingLeft {
+  position: absolute;
+  top: 55px;
+  left: 145px;
+  width: 110px;
+  height: 180px;
+  transform: rotate(3deg);
+  z-index: 6;
+  opacity: 0.95;
+}
+
+/* BLUE RIBBON LINE 1 (Red Circle 1): Upper-Left Smooth Blue Arc */
+.blueRibbonLine1 {
+  position: absolute;
+  top: 70px;
+  left: 165px;
+  width: 58px;
+  height: 148px;
+  z-index: 22;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(14, 23, 56, 0.25));
+}
+
+/* TORN PAPER DIAGONAL (Red Circle 2): Lower-Left Diagonal Parchment Runner */
+.parchmentDiagonalLeft {
+  position: absolute;
+  top: 340px;
+  left: 75px;
+  width: 290px;
+  height: 145px;
+  transform: rotate(-16deg);
+  z-index: 6;
+  opacity: 0.95;
+}
+
+/* BLUE RIBBON LINE 2 (Red Circle 2): Bottom-Left Long Diagonal Blue Ribbon Line */
+.blueRibbonLine2 {
+  position: absolute;
+  top: 385px;
+  left: 105px;
+  width: 250px;
+  height: 70px;
+  transform: rotate(-16deg);
+  z-index: 22;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(14, 23, 56, 0.25));
+}
+
 /* TORN PAPER BASE: Bottom-Left Corner Torn Sheet */
 .bottomLeftTornSheet {
   position: absolute;
@@ -778,6 +827,30 @@
   height: 240px;
   z-index: 5;
   opacity: 0.95;
+}
+
+/* TORN PAPER WING (Red Circle 3): Mid-Right Curved Parchment Sheet */
+.parchmentWingRight {
+  position: absolute;
+  top: 55px;
+  right: 85px;
+  width: 175px;
+  height: 255px;
+  transform: rotate(4deg);
+  z-index: 6;
+  opacity: 0.95;
+}
+
+/* BLUE RIBBON LINE 3 (Red Circle 3): Right-Side Sweeping Blue Ribbon Line */
+.blueRibbonLine3 {
+  position: absolute;
+  top: 85px;
+  right: 115px;
+  width: 100px;
+  height: 210px;
+  z-index: 22;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(14, 23, 56, 0.25));
 }
 
 /* TORN PAPER BASE: Bottom-Right Corner Torn Sheet */
