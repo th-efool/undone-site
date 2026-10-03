@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { LandingClient } from '@/src/app/(landing)/page.client';
+import { LandingClient } from '@/src/app/_archived_pages/landing/page.client';
 
 export const metadata: Metadata = {
   title: 'Microlearning App - Learn Anything in 5 Minutes a Day | SideQuestHQ',
