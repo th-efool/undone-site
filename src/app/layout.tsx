@@ -50,16 +50,16 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://sidequesthq.com'),
 
   title: {
-    default: 'SideQuestHQ',
-    template: '%s | SideQuestHQ',
+    default: 'Undone',
+    template: '%s | Undone',
   },
 
   description: 'The easiest way to stay consistent with everything you want to learn.',
 
-  applicationName: 'SideQuestHQ',
+  applicationName: 'Undone',
 
   keywords: [
-    'SideQuestHQ',
+    'Undone',
     'learning',
     'microlearning',
     'AI',
@@ -72,44 +72,45 @@ export const metadata: Metadata = {
 
   authors: [
     {
-      name: 'SideQuestHQ',
+      name: 'Undone',
     },
   ],
 
-  creator: 'SideQuestHQ',
-  publisher: 'SideQuestHQ',
+  creator: 'Undone',
+  publisher: 'Undone',
 
   openGraph: {
     type: 'website',
     locale: 'en_US',
     url: 'https://sidequesthq.com',
-    siteName: 'SideQuestHQ',
-    title: 'SideQuestHQ',
+    siteName: 'Undone',
+    title: 'Undone',
     description: 'The easiest way to stay consistent with everything you want to learn.',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'SideQuestHQ',
+        alt: 'Undone',
       },
     ],
   },
 
   twitter: {
     card: 'summary_large_image',
-    title: 'SideQuestHQ',
+    title: 'Undone',
     description: 'The easiest way to stay consistent with everything you want to learn.',
     images: ['/og-image.png'],
-    creator: '@SideQuestHQ',
+    creator: '@Undone',
   },
 
   icons: {
     icon: [
-      { url: '/logos/floating-logo.svg', type: 'image/svg+xml' },
+      { url: '/undone-logo.svg', type: 'image/svg+xml' },
+      { url: '/undone-logo.ico' },
     ],
-    apple: '/logos/floating-logo.svg',
-    shortcut: '/logos/floating-logo.svg',
+    apple: '/undone-logo.svg',
+    shortcut: '/undone-logo.ico',
   },
 
   manifest: '/site.webmanifest',

@@ -126,7 +126,7 @@ const resourceLinks = [
 ];
 
 export function Footer({
-  description = 'Every unfinished course, saved playlist, rabbit hole and late-night idea deserves another chance. SideQuestHQ remembers where curiosity paused, so you can continue where inspiration left off.',
+  description = 'Every unfinished course, saved playlist, rabbit hole and late-night idea deserves another chance. Undone remembers where curiosity paused, so you can continue where inspiration left off.',
 }: FooterProps) {
   return (
     <footer className={styles.footer}>
@@ -251,7 +251,7 @@ export function Footer({
 
         <div className={styles.bottomBar}>
           <small className={styles.copy}>
-            © {currentYear} SideQuestHQ. Curiosity with a finish line.
+            © {currentYear} Undone. Curiosity with a finish line.
           </small>
 
           <Cluster gap="5">

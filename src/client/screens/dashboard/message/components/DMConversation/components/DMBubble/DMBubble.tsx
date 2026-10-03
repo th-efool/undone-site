@@ -41,7 +41,7 @@ export function DMBubble({ message, user, isAdjacentReply = false, hasAdjacentRe
         kbd: 'R',
         onClick: () => {
           const authorName = outgoing ? 'You' : user.name;
-          const authorAvatar = outgoing ? '/logos/floating-logo.svg' : user.avatar;
+          const authorAvatar = outgoing ? '/undone-logo.svg' : user.avatar;
           onReply(message.id, authorName, (message.text || 'Attachment').slice(0, 80), authorAvatar);
           setMenuPos(null);
         },
@@ -171,7 +171,7 @@ export function DMBubble({ message, user, isAdjacentReply = false, hasAdjacentRe
                     onClick={() => {
                       setShowReactions(false);
                       const authorName = outgoing ? 'You' : user.name;
-                      const authorAvatar = outgoing ? '/logos/floating-logo.svg' : user.avatar;
+                      const authorAvatar = outgoing ? '/undone-logo.svg' : user.avatar;
                       onReply(message.id, authorName, (message.text || 'Attachment').slice(0, 80), authorAvatar);
                     }}
                   >

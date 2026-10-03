@@ -51,7 +51,7 @@
   height: 100%;
   background: #1e1b4b;
   border-radius: 14px;
-  background-image: url('/images/logos/sidequesthq-logo.png'); /* Mock logo, can be replaced */
+  background-image: url('/undone-logo.svg'); /* Undone logo */
   background-size: cover;
   background-position: center;
 }

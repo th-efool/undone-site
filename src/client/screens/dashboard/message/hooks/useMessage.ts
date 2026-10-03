@@ -27,7 +27,7 @@ import {
 const me = {
   id: 'me',
   name: 'You',
-  avatar: '/logos/floating-logo.svg',
+  avatar: '/undone-logo.svg',
   online: true,
 };
 const storageKeys = {
@@ -429,7 +429,7 @@ export function useMessage() {
                 author: {
                   id: msg.author?.id || 'unknown',
                   name: msg.author?.name || 'Unknown',
-                  avatar: msg.author?.image || '/logos/floating-logo.svg',
+                  avatar: msg.author?.image || '/undone-logo.svg',
                   online: true,
                 },
                 badge: msg.author?.role === 'ADMIN' ? 'Admin' : 'Explorer',
@@ -607,7 +607,7 @@ export function useMessage() {
           replyTo: {
             messageId: replyCtx.messageId,
             authorName: replyCtx.senderName,
-            authorAvatar: replyCtx.senderAvatar || '/logos/floating-logo.svg',
+            authorAvatar: replyCtx.senderAvatar || '/undone-logo.svg',
             previewText: replyCtx.previewText,
           }
         } : {}),
@@ -704,7 +704,7 @@ export function useMessage() {
           replyTo: {
             messageId: replyCtx.messageId,
             authorName: replyCtx.senderName,
-            authorAvatar: replyCtx.senderAvatar || '/logos/floating-logo.svg',
+            authorAvatar: replyCtx.senderAvatar || '/undone-logo.svg',
             previewText: replyCtx.previewText,
           }
         } : {}),

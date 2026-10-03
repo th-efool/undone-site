@@ -32,16 +32,13 @@ export function Logo({
   const imageSize = size ?? (variant === 'framed' ? 78 : 44);
 
   const image = (
-    <picture>
-      <source srcSet="/logos/sidequesthq-logo.svg" media="(min-width: 2560px)" />
-      <img
-        src="/logos/sidequesthq-logo-no-book-compass.svg"
-        alt="SideQuestHQ logo"
-        width={imageSize}
-        height={imageSize}
-        style={{ display: 'block', objectFit: 'contain' }}
-      />
-    </picture>
+    <img
+      src="/undone-logo.svg"
+      alt="Undone logo"
+      width={imageSize}
+      height={imageSize}
+      style={{ display: 'block', objectFit: 'contain' }}
+    />
   );
 
   return (
@@ -68,7 +65,7 @@ export function Logo({
 
       {!iconOnly && (
         <div className={styles.text}>
-          <span className={styles.title}>SideQuestHQ</span>
+          <span className={styles.title}>Undone</span>
 
           {!compact && <span className={styles.tagline}>Learn Better.</span>}
         </div>

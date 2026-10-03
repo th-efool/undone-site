@@ -24,8 +24,8 @@ export function HeroNavbar() {
         >
           <div className={styles.logoFrame}>
             <Image
-              src="/logos/sidequesthq-logo-no-book-compass.svg"
-              alt="SideQuestHQ"
+              src="/undone-logo.svg"
+              alt="Undone"
               width={78}
               height={78}
               priority
@@ -33,7 +33,7 @@ export function HeroNavbar() {
             />
           </div>
 
-          <span className={styles.brandName}>SideQuestHQ</span>
+          <span className={styles.brandName}>Undone</span>
         </Link>
 
         <nav className={styles.nav}>

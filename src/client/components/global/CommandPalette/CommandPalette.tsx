@@ -42,7 +42,7 @@ const quickActions: CommandResult[] = [
   },
   {
     id: 'go-explore',
-    title: 'Explore SideQuests',
+    title: 'Explore Undone',
     subtitle: 'Browse new learning paths',
     icon: <Compass size={16} />,
     category: 'action',
@@ -90,7 +90,7 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
         filtered.push({
           id: `cohort-${c.id}`,
           title: c.title,
-          subtitle: c.creator?.name || 'SideQuestHQ',
+          subtitle: c.creator?.name || 'Undone',
           icon: <BookOpen size={16} />,
           category: 'cohort',
           action: () => (window.location.href = `/cohort/${c.id}`),

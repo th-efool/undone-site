@@ -6,7 +6,7 @@ const devServerUrl = process.env.CAPACITOR_DEV_SERVER_URL;
 
 const config: CapacitorConfig = {
   appId: 'com.sidequesthq.in',
-  appName: 'SideQuestHQ',
+  appName: 'Undone',
   webDir: 'out',
   ...(devServerUrl
     ? {
