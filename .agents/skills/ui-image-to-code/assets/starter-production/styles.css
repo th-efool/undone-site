@@ -1,0 +1,46 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  color: #142033;
+  background: #eef2f7;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; min-height: 100vh; }
+button, input, textarea, select { font: inherit; }
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  background: #eef2f7;
+}
+
+.sidebar {
+  padding: 24px 16px;
+  border-right: 1px solid #dce3ed;
+  background: #f8fafc;
+}
+
+.brand { display: flex; align-items: center; gap: 10px; color: inherit; font-weight: 750; text-decoration: none; }
+.brand-mark { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 12px; color: white; background: #315fe8; }
+.nav { display: grid; gap: 8px; margin-top: 36px; }
+.nav-item { padding: 11px 12px; border: 0; border-radius: 10px; color: #506078; background: transparent; text-align: left; cursor: pointer; }
+.nav-item:hover, .nav-item:focus-visible { background: #edf2fb; outline: none; }
+.nav-item.is-active { color: #173374; background: #dfe8fb; font-weight: 700; }
+
+.workspace { min-width: 0; padding: clamp(24px, 4vw, 56px); }
+.workspace-header { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.eyebrow { margin: 0 0 8px; color: #66758c; font-size: 12px; font-weight: 750; letter-spacing: .12em; }
+h1 { margin: 0; font-size: clamp(28px, 4vw, 46px); letter-spacing: -.035em; }
+.primary-action { min-height: 42px; padding: 0 18px; border: 0; border-radius: 11px; color: white; background: #315fe8; cursor: pointer; }
+.content-panel { min-height: 360px; margin-top: 32px; padding: clamp(24px, 4vw, 48px); border: 1px solid #dce3ed; border-radius: 20px; background: white; box-shadow: 0 16px 48px rgb(35 55 90 / 8%); }
+.content-panel p { max-width: 680px; margin: 0; color: #66758c; font-size: 17px; line-height: 1.75; }
+
+@media (max-width: 720px) {
+  .app-shell { grid-template-columns: 1fr; }
+  .sidebar { border-right: 0; border-bottom: 1px solid #dce3ed; }
+  .nav { grid-template-columns: repeat(3, 1fr); margin-top: 20px; }
+  .nav-item { text-align: center; }
+  .workspace-header { align-items: flex-start; flex-direction: column; }
+}

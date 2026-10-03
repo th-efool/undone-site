@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "image-to-code": {
+      "source": "Leonxlnx/taste-skill",
+      "sourceType": "github",
+      "skillPath": "skills/image-to-code-skill/SKILL.md",
+      "computedHash": "3d2ac14d956fdafc5500d2108b90895e134d847f9f199e7f1d18bf1f814cf7c8"
+    },
     "prisma-cli": {
       "source": "prisma/skills",
       "sourceType": "github",
@@ -54,6 +60,12 @@
       "sourceType": "github",
       "skillPath": "prisma-upgrade-v7/SKILL.md",
       "computedHash": "dcc6c71adca6b22f37c5bda5ac7fd63c3bb59495596a22e06a29c7c85371558f"
+    },
+    "ui-image-to-code": {
+      "source": "zwq-top/ui-image-to-code-studio",
+      "sourceType": "github",
+      "skillPath": "skill/SKILL.md",
+      "computedHash": "aa8bb85bced78b6dc606d9ab257129e93cfcf8f2a805b4c90d23b4e1472fe69b"
     }
   }
 }

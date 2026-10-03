@@ -1,0 +1,6 @@
+interface:
+  display_name: "Screenshot & Website to Code"
+  short_description: "Turn screenshots and websites into editable UI code"
+  default_prompt: "Use $ui-image-to-code to convert this authorized screenshot or website into browser-validated frontend code with editable Studio layers."
+policy:
+  allow_implicit_invocation: true

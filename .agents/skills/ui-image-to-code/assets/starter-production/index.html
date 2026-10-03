@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UI Studio Starter</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="ui-studio-overrides.css" />
+  </head>
+  <body>
+    <main class="app-shell" data-ui-id="starter.app-shell">
+      <aside class="sidebar" data-ui-id="starter.sidebar">
+        <a class="brand" href="#overview" data-ui-id="starter.brand">
+          <span class="brand-mark" aria-hidden="true">UI</span>
+          <span>UI Studio</span>
+        </a>
+        <nav class="nav" aria-label="示例导航" data-ui-id="starter.navigation">
+          <button class="nav-item is-active" data-view="overview" data-ui-id="starter.nav.overview">概览</button>
+          <button class="nav-item" data-view="components" data-ui-id="starter.nav.components">组件</button>
+          <button class="nav-item" data-view="delivery" data-ui-id="starter.nav.delivery">交付</button>
+        </nav>
+      </aside>
+      <section class="workspace" data-ui-id="starter.workspace">
+        <header class="workspace-header" data-ui-id="starter.header">
+          <div>
+            <p class="eyebrow">DEPENDENCY-FREE STARTER</p>
+            <h1 id="view-title">可编辑生产页面</h1>
+          </div>
+          <button class="primary-action" id="primary-action" data-ui-id="starter.primary-action">开始设计</button>
+        </header>
+        <section class="content-panel" data-ui-id="starter.content-panel">
+          <p id="view-copy">这是脚手架提供的最小宿主页。请用识别和人工复核结果替换示例内容。</p>
+        </section>
+      </section>
+    </main>
+    <script src="ui-studio-structure.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
