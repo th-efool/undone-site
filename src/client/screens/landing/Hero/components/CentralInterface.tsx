@@ -6,16 +6,9 @@ import {
   Plus,
   Lightbulb,
   ArrowRight,
-  Compass,
-  GraduationCap,
-  Search,
-  Hammer,
-  Database,
   FileText,
   Paperclip,
   Sparkles,
-  LayoutTemplate,
-  ChevronDown,
 } from 'lucide-react';
 import { TextBar } from '@/src/client/components/ui';
 import styles from '../Hero.module.css';
@@ -117,82 +110,6 @@ export function CentralInterface() {
           </div>
         }
       />
-
-      {/* 4 Action Tiles (1.5x Bigger) */}
-      <div className={styles.actionTilesGrid}>
-        <button type="button" className={styles.actionTile}>
-          <div className={styles.tileIconSquare}>
-            <Compass size={30} strokeWidth={1.8} />
-          </div>
-          <div className={styles.tileLabels}>
-            <span className={styles.tileAction}>Explore</span>
-            <span className={styles.tileTarget}>a topic</span>
-          </div>
-        </button>
-
-        <button type="button" className={styles.actionTile}>
-          <div className={styles.tileIconSquare}>
-            <GraduationCap size={30} strokeWidth={1.8} />
-          </div>
-          <div className={styles.tileLabels}>
-            <span className={styles.tileAction}>Learn</span>
-            <span className={styles.tileTarget}>a skill</span>
-          </div>
-        </button>
-
-        <button type="button" className={styles.actionTile}>
-          <div className={styles.tileIconSquare}>
-            <Search size={28} strokeWidth={2} />
-          </div>
-          <div className={styles.tileLabels}>
-            <span className={styles.tileAction}>Research</span>
-            <span className={styles.tileTarget}>a question</span>
-          </div>
-        </button>
-
-        <button type="button" className={styles.actionTile}>
-          <div className={styles.tileIconSquare}>
-            <Hammer size={28} strokeWidth={1.8} />
-          </div>
-          <div className={styles.tileLabels}>
-            <span className={styles.tileAction}>Build</span>
-            <span className={styles.tileTarget}>something</span>
-          </div>
-        </button>
-      </div>
-
-      {/* Divider with 100% True Transparent Center (1.5x Bigger) */}
-      <div className={styles.dividerWrapper}>
-        <span className={styles.dividerLine} />
-        <span className={styles.dividerBadge}>
-          or start with something you have
-        </span>
-        <span className={styles.dividerLine} />
-      </div>
-
-      {/* Source Pill Buttons (1.5x Bigger) */}
-      <div className={styles.pillsRow}>
-        <button type="button" className={styles.pillButton}>
-          <Database size={20} strokeWidth={1.8} />
-          <span>Add sources</span>
-        </button>
-
-        <button type="button" className={styles.pillButton}>
-          <FileText size={20} strokeWidth={1.8} />
-          <span>Upload a file</span>
-        </button>
-
-        <button type="button" className={styles.pillButton}>
-          <LayoutTemplate size={20} strokeWidth={1.8} />
-          <span>Use a template</span>
-        </button>
-      </div>
-
-      {/* Footer affordance (1.5x Bigger) */}
-      <a href="#how-it-works" className={styles.footerAffordance}>
-        <span>See how it works</span>
-        <ChevronDown size={18} strokeWidth={2} />
-      </a>
     </div>
   );
 }

@@ -223,6 +223,7 @@
   text-align: center;
   padding: 0 16px;
   box-sizing: border-box;
+  transform: translateY(clamp(16px, 5.5vh, 65px));
 }
 
 .heroContent {
@@ -481,154 +482,7 @@
   transform: translateY(0);
 }
 
-/* Action 4 Tiles (1.5x Bigger) */
-.actionTilesGrid {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 28px;
-  margin-top: 22px;
-  width: 100%;
-}
 
-.actionTile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  text-align: center;
-  cursor: pointer;
-  background: transparent;
-  border: none;
-  padding: 0;
-  transition: transform 0.15s ease;
-  min-width: 96px;
-}
-
-.actionTile:hover {
-  transform: translateY(-2px);
-}
-
-.tileIconSquare {
-  width: 62px;
-  height: 62px;
-  border-radius: 18px;
-  background-color: #1F299D;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #FFFFFF;
-  box-shadow: none;
-  margin: 0 auto;
-  flex-shrink: 0;
-}
-
-.tileLabels {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  margin-top: 8px;
-}
-
-.tileAction {
-  font-family: var(--font-manrope-next), sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  color: #0E1635;
-  line-height: 1.25;
-  text-align: center;
-  display: block;
-}
-
-.tileTarget {
-  font-family: var(--font-manrope-next), sans-serif;
-  font-size: 13px;
-  font-weight: 500;
-  color: #596378;
-  line-height: 1.25;
-  text-align: center;
-  display: block;
-  margin-top: 2px;
-}
-
-/* Divider with True Transparent Badge (1.5x Bigger) */
-.dividerWrapper {
-  width: 100%;
-  max-width: 480px;
-  margin-top: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-}
-
-.dividerLine {
-  flex: 1;
-  height: 1px;
-  background-color: #DDD6C9;
-  transition: background-color 0.2s ease;
-}
-
-.dividerBadge {
-  background: transparent !important;
-  background-color: transparent !important;
-  padding: 0;
-  font-family: var(--font-manrope-next), sans-serif;
-  font-size: 13px;
-  color: #667085;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-/* Source Pill Buttons (1.5x Bigger) */
-.pillsRow {
-  display: flex;
-  gap: 12px;
-  margin-top: 14px;
-}
-
-.pillButton {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: #FFFFFF;
-  border: 1px solid #D8D2C6;
-  border-radius: 9999px;
-  padding: 7px 16px;
-  font-family: var(--font-manrope-next), sans-serif;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: #1D2752;
-  cursor: pointer;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition: border-color 0.15s ease, background-color 0.15s ease;
-}
-
-.pillButton:hover {
-  border-color: #1F299D;
-  background-color: #FBFBFE;
-}
-
-/* Footer Affordance (1.5x Bigger) */
-.footerAffordance {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 14px;
-  font-family: var(--font-manrope-next), sans-serif;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: #4B556D;
-  text-decoration: none;
-  cursor: pointer;
-  transition: color 0.15s ease;
-}
-
-.footerAffordance:hover {
-  color: #0E1738;
-}
 
 /* ==========================================================================
    Left Collage Complex (Native 1024x522 Coordinates Matching Reference)
@@ -1477,63 +1331,7 @@
   background-color: #6366F1;
 }
 
-/* ── 4 Action Tiles (Dark Mode) ── */
-:global([data-theme="dark"]) .heroWrapper .tileIconSquare,
-.heroWrapper[data-theme="dark"] .tileIconSquare {
-  background-color: #4338CA;
-  color: #FFFFFF;
-  box-shadow: 0 2px 8px rgba(67, 56, 202, 0.45);
-}
 
-:global([data-theme="dark"]) .heroWrapper .tileAction,
-.heroWrapper[data-theme="dark"] .tileAction {
-  color: #FFFFFF;
-}
-
-:global([data-theme="dark"]) .heroWrapper .tileTarget,
-.heroWrapper[data-theme="dark"] .tileTarget {
-  color: #A1A1AA;
-}
-
-/* ── Divider (Dark Mode) ── */
-:global([data-theme="dark"]) .heroWrapper .dividerLine,
-.heroWrapper[data-theme="dark"] .dividerLine {
-  background-color: #27272A;
-}
-
-:global([data-theme="dark"]) .heroWrapper .dividerBadge,
-.heroWrapper[data-theme="dark"] .dividerBadge {
-  background: transparent !important;
-  background-color: transparent !important;
-  color: #A1A1AA;
-}
-
-/* ── Source Pills (Dark Mode) ── */
-:global([data-theme="dark"]) .heroWrapper .pillButton,
-.heroWrapper[data-theme="dark"] .pillButton {
-  background-color: #121216;
-  border-color: #2E2E38;
-  color: #E4E4E7;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-}
-
-:global([data-theme="dark"]) .heroWrapper .pillButton:hover,
-.heroWrapper[data-theme="dark"] .pillButton:hover {
-  border-color: #6366F1;
-  background-color: #1C1C24;
-  color: #FFFFFF;
-}
-
-/* ── Footer Affordance (Dark Mode) ── */
-:global([data-theme="dark"]) .heroWrapper .footerAffordance,
-.heroWrapper[data-theme="dark"] .footerAffordance {
-  color: #A1A1AA;
-}
-
-:global([data-theme="dark"]) .heroWrapper .footerAffordance:hover,
-.heroWrapper[data-theme="dark"] .footerAffordance:hover {
-  color: #FFFFFF;
-}
 
 /* ── Collage Elements & Flourishes (Dark Mode) ── */
 :global([data-theme="dark"]) .heroWrapper .blueRibbonLine1,
