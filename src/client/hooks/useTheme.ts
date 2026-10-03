@@ -19,11 +19,9 @@ export function useTheme() {
         setThemeState(stored);
         document.documentElement.setAttribute('data-theme', stored);
       } else {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        // Default to light as primary visual reference, or respect system
-        const initialTheme: Theme = prefersDark ? 'dark' : 'light';
-        setThemeState(initialTheme);
-        document.documentElement.setAttribute('data-theme', initialTheme);
+        // Default to light mode
+        setThemeState('light');
+        document.documentElement.setAttribute('data-theme', 'light');
       }
     } catch {
       // Ignore if localStorage unavailable
