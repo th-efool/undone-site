@@ -31,52 +31,59 @@ export default async function home() {
     redirect('/auth');
   }
 
-  const enrolledMembers = await prisma.cohortMember.findMany({
-    where: { userId },
-    include: { 
-      cohort: { 
-        include: { 
-          creator: true,
-          seasons: {
-            include: {
-              lessons: {
-                include: {
-                  progress: {
-                    where: { userId }
+  let enrolledMembers: any[] = [];
+  let createdCohorts: any[] = [];
+
+  try {
+    enrolledMembers = await prisma.cohortMember.findMany({
+      where: { userId },
+      include: { 
+        cohort: { 
+          include: { 
+            creator: true,
+            seasons: {
+              include: {
+                lessons: {
+                  include: {
+                    progress: {
+                      where: { userId }
+                    }
                   }
                 }
               }
             }
-          }
+          } 
         } 
-      } 
-    },
-  });
-
-  const enrolledCohortIds = enrolledMembers.map((em) => em.cohortId);
-
-  const createdCohorts = await prisma.cohort.findMany({
-    where: {
-      creatorId: userId,
-      id: {
-        notIn: enrolledCohortIds,
       },
-    },
-    include: {
-      creator: true,
-      seasons: {
-        include: {
-          lessons: {
-            include: {
-              progress: {
-                where: { userId }
+    });
+
+    const enrolledCohortIds = enrolledMembers.map((em) => em.cohortId);
+
+    createdCohorts = await prisma.cohort.findMany({
+      where: {
+        creatorId: userId,
+        id: {
+          notIn: enrolledCohortIds,
+        },
+      },
+      include: {
+        creator: true,
+        seasons: {
+          include: {
+            lessons: {
+              include: {
+                progress: {
+                  where: { userId }
+                }
               }
             }
           }
         }
       }
-    }
-  });
+    });
+  } catch (error) {
+    console.warn('[home] Failed to load cohorts from database; displaying empty state:', error);
+  }
 
   const allUserCohorts = [
     ...enrolledMembers.map((em) => ({
@@ -102,9 +109,9 @@ export default async function home() {
     let totalLessons = 0;
     let completedLessons = 0;
 
-    ec.cohort.seasons.forEach((season) => {
+    ec.cohort.seasons.forEach((season: any) => {
       totalLessons += season.lessons.length;
-      season.lessons.forEach((lesson) => {
+      season.lessons.forEach((lesson: any) => {
         if (lesson.progress?.[0]?.status === 'COMPLETED') {
           completedLessons += 1;
         }

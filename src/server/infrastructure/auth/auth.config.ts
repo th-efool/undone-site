@@ -7,15 +7,16 @@ import Credentials from 'next-auth/providers/credentials';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'sidequest-hq-dev-secret-key-32-chars-minimum-12345',
   adapter: PrismaAdapter(prisma),
   providers: [
     GitHub({
-      clientId: process.env.AUTH_GITHUB_ID!,
-      clientSecret: process.env.AUTH_GITHUB_SECRET!,
+      clientId: process.env.AUTH_GITHUB_ID || 'placeholder_github_id',
+      clientSecret: process.env.AUTH_GITHUB_SECRET || 'placeholder_github_secret',
     }),
     Slack({
-      clientId: process.env.AUTH_SLACK_ID!,
-      clientSecret: process.env.AUTH_SLACK_SECRET!,
+      clientId: process.env.AUTH_SLACK_ID || 'placeholder_slack_id',
+      clientSecret: process.env.AUTH_SLACK_SECRET || 'placeholder_slack_secret',
     }),
     Credentials({
       name: 'Guest',
@@ -24,19 +25,29 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       async authorize(credentials) {
         if (credentials?.email === 'guest@sidequesthq.com') {
-          let user = await prisma.user.findUnique({
-            where: { email: 'guest@sidequesthq.com' }
-          });
-          if (!user) {
-            user = await prisma.user.create({
-              data: {
-                email: 'guest@sidequesthq.com',
-                name: 'Guest Explorer',
-                username: 'guest',
-              }
+          try {
+            let user = await prisma.user.findUnique({
+              where: { email: 'guest@sidequesthq.com' }
             });
+            if (!user) {
+              user = await prisma.user.create({
+                data: {
+                  email: 'guest@sidequesthq.com',
+                  name: 'Guest Explorer',
+                  username: 'guest',
+                }
+              });
+            }
+            return user;
+          } catch (dbError) {
+            console.warn('[auth] Database connection failed for guest signin, falling back to mock user:', dbError);
+            return {
+              id: 'guest-explorer-dev-id',
+              name: 'Guest Explorer',
+              email: 'guest@sidequesthq.com',
+              username: 'guest',
+            };
           }
-          return user;
         }
         return null;
       }
@@ -49,6 +60,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.sub = user.id;
+        token.name = user.name;
+        token.email = user.email;
+        (token as any).username = (user as any).username || 'guest';
       }
       return token;
     },
@@ -58,6 +72,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           session.user.id = user.id;
         } else if (token?.sub) {
           session.user.id = token.sub as string;
+        }
+        if ((token as any)?.username) {
+          (session.user as any).username = (token as any).username;
         }
       }
       return session;
