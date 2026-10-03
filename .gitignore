@@ -49,14 +49,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 Keystore information.md
-ai-context/task.md
-ai-context/task.md
-ai-context/task.md
-ai-context/PLANY.md
-ai-context/PLANX.md
-ai-context/PLAN3.md
-ai-context/PLAN2.md
-ai-context/phasewise.md
+plans/task.md
+plans/PLANY.md
+plans/PLANX.md
+plans/PLAN3.md
+plans/PLAN2.md
+plans/phasewise.md
 phasewise.md
 
 /src/generated/prisma

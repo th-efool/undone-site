@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "node scripts/update-directory-structure.mjs && prisma generate && next build",
+    "update:structure": "node scripts/update-directory-structure.mjs",
     "build:worker": "tsc --project tsconfig.worker.json",
     "build:workflow": "tsc --project tsconfig.worker.json",
     "worker": "node dist-worker/server/worker.js",
