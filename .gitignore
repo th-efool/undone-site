@@ -67,3 +67,4 @@ phasewise.md
 # scratch and generated
 /generated/
 /scratch/
+.tmp/
