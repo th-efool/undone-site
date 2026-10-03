@@ -1,10 +1,17 @@
 import type { Metadata } from 'next';
+import { ReconstructedHero } from '@/src/client/screens/landing/ReconstructedHero/ReconstructedHero';
 
 export const metadata: Metadata = {
-  title: 'Undone',
-  description: 'The easiest way to stay consistent with everything you want to learn.',
+  title: {
+    absolute: 'Undone',
+  },
+  description: 'Turn a curiosity, skill, or question into a learning journey.',
 };
 
 export default function LandingPage() {
-  return <main></main>;
+  return (
+    <main>
+      <ReconstructedHero />
+    </main>
+  );
 }
