@@ -21,8 +21,8 @@ export function HeaderNav() {
         <Image
           src="/undone-logo-transparent.svg"
           alt="UNDONE"
-          width={36}
-          height={36}
+          width={59}
+          height={59}
           priority
           className={styles.brandLogo}
         />

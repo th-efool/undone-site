@@ -91,7 +91,7 @@ export function CentralInterface() {
       <div className={styles.actionTilesGrid}>
         <button type="button" className={styles.actionTile}>
           <div className={styles.tileIconSquare}>
-            <Compass size={26} strokeWidth={1.8} />
+            <Compass size={22} strokeWidth={1.8} />
           </div>
           <div className={styles.tileLabels}>
             <span className={styles.tileAction}>Explore</span>
@@ -101,7 +101,7 @@ export function CentralInterface() {
 
         <button type="button" className={styles.actionTile}>
           <div className={styles.tileIconSquare}>
-            <GraduationCap size={26} strokeWidth={1.8} />
+            <GraduationCap size={22} strokeWidth={1.8} />
           </div>
           <div className={styles.tileLabels}>
             <span className={styles.tileAction}>Learn</span>
@@ -111,7 +111,7 @@ export function CentralInterface() {
 
         <button type="button" className={styles.actionTile}>
           <div className={styles.tileIconSquare}>
-            <Search size={25} strokeWidth={2} />
+            <Search size={21} strokeWidth={2} />
           </div>
           <div className={styles.tileLabels}>
             <span className={styles.tileAction}>Research</span>
@@ -121,7 +121,7 @@ export function CentralInterface() {
 
         <button type="button" className={styles.actionTile}>
           <div className={styles.tileIconSquare}>
-            <Hammer size={25} strokeWidth={1.8} />
+            <Hammer size={21} strokeWidth={1.8} />
           </div>
           <div className={styles.tileLabels}>
             <span className={styles.tileAction}>Build</span>
