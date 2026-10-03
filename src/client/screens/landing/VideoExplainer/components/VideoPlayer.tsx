@@ -11,6 +11,7 @@ export interface VideoPlayerProps {
   onCanPlay: () => void;
   onPlaying: () => void;
   onPause: () => void;
+  onEnded: () => void;
   togglePlay: () => void;
 }
 
@@ -22,6 +23,7 @@ export function VideoPlayer({
   onCanPlay,
   onPlaying,
   onPause,
+  onEnded,
   togglePlay,
 }: VideoPlayerProps) {
   return (
@@ -33,8 +35,11 @@ export function VideoPlayer({
       playsInline
       onWaiting={onWaiting}
       onCanPlay={onCanPlay}
+      onLoadedData={onCanPlay}
+      onSeeked={onCanPlay}
       onPlaying={onPlaying}
       onPause={onPause}
+      onEnded={onEnded}
       onClick={togglePlay}
     />
   );

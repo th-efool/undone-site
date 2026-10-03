@@ -43,7 +43,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(0, 0, 0, 0.4);
+  background-color: rgba(0, 0, 0, 0.45);
   transition: opacity 300ms ease;
   pointer-events: none;
 }
@@ -112,6 +112,32 @@
   filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
 }
 
+.cornerLoader {
+  position: absolute;
+  top: 1.5rem;
+  left: 1.5rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 9999px;
+  z-index: 40;
+  pointer-events: none;
+  transition: opacity 250ms ease;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.cornerLoaderIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #ffffff;
+  animation: spin 1s linear infinite;
+}
+
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -119,6 +145,84 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.soundButton {
+  position: absolute;
+  top: 1.5rem;
+  right: 5rem;
+  width: 3rem;
+  height: 3rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  z-index: 50;
+  pointer-events: auto;
+  transition: background-color 200ms ease, transform 150ms ease;
+  color: #ffffff;
+}
+
+@media (min-width: 768px) {
+  .soundButton {
+    top: 2.5rem;
+    right: 6.25rem;
+  }
+}
+
+.soundButton:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+  transform: scale(1.05);
+}
+
+.soundButton:active {
+  transform: scale(0.95);
+}
+
+.soundIcon {
+  width: 1.35rem;
+  height: 1.35rem;
+  color: #ffffff;
+}
+
+.soundPill {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: 9999px;
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+  z-index: 45;
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  transition: background-color 200ms ease, transform 150ms ease;
+  pointer-events: auto;
+}
+
+.soundPill:hover {
+  background-color: rgba(255, 255, 255, 0.25);
+  transform: translateX(-50%) scale(1.04);
+}
+
+.soundPill:active {
+  transform: translateX(-50%) scale(0.97);
 }
 
 .exitButton {

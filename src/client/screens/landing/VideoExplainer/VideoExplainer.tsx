@@ -28,7 +28,12 @@ export function VideoExplainer({
     setIsPlaying,
     isLoading,
     setIsLoading,
+    isMuted,
+    setIsMuted,
+    toggleMute,
+    unmute,
     hlsSupported,
+    handleEnded,
   } = useHlsVideo({
     videoRef,
     hlsSrc,
@@ -42,8 +47,13 @@ export function VideoExplainer({
 
     if (video.paused) {
       userPausedManually.current = false;
+      // On user interaction, unmute audio so they can hear it
+      if (video.muted) {
+        unmute();
+      }
       video.play().catch(() => {
         video.muted = true;
+        setIsMuted(true);
         video.play().catch(() => setIsPlaying(false));
       });
     } else {
@@ -55,6 +65,7 @@ export function VideoExplainer({
   useVideoKeyboardControls({
     videoRef,
     togglePlay: handleTogglePlay,
+    toggleMute,
   });
 
   const { scrollYProgress } = useScroll({
@@ -75,6 +86,7 @@ export function VideoExplainer({
         video.play().catch(() => {
           // If unmuted autoplay blocked by browser policy, fallback to muted autoplay
           video.muted = true;
+          setIsMuted(true);
           video.play().catch(() => setIsPlaying(false));
         });
       }
@@ -127,13 +139,16 @@ export function VideoExplainer({
               setIsLoading(false);
             }}
             onPause={() => setIsPlaying(false)}
+            onEnded={handleEnded}
             togglePlay={handleTogglePlay}
           />
 
           <VideoControls
             isPlaying={isPlaying}
             isLoading={isLoading}
+            isMuted={isMuted}
             togglePlay={handleTogglePlay}
+            toggleMute={toggleMute}
             onExit={handleExit}
             closeOpacity={closeOpacity}
           />
