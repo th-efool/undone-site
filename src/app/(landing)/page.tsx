@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Hero, Section2 } from '@/src/client/screens/landing';
+import { Hero, VideoExplainer, Ikigai } from '@/src/client/screens/landing';
 
 export const metadata: Metadata = {
   title: {
@@ -12,7 +12,8 @@ export default function LandingPage() {
   return (
     <main>
       <Hero />
-      <Section2 />
+      <VideoExplainer />
+      <Ikigai />
     </main>
   );
 }

@@ -1,2 +1,3 @@
 export * from './Hero';
-export * from './Section2';
+export * from './VideoExplainer';
+export * from './Ikigai';
