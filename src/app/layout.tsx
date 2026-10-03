@@ -107,10 +107,14 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/undone-logo.svg', type: 'image/svg+xml' },
-      { url: '/undone-logo.ico' },
+      { url: '/undone-logo-light.png', media: '(prefers-color-scheme: light)', type: 'image/png' },
+      { url: '/undone-logo-dark.png', media: '(prefers-color-scheme: dark)', type: 'image/png' },
+      { url: '/favicon.ico' },
     ],
-    apple: '/undone-logo.svg',
-    shortcut: '/undone-logo.ico',
+    apple: [
+      { url: '/undone-logo.png' },
+    ],
+    shortcut: '/favicon.ico',
   },
 
   manifest: '/site.webmanifest',

@@ -4,17 +4,17 @@ import dynamic from 'next/dynamic';
 const Auth = dynamic(() => import('@/src/client/screens/auth/').then((mod) => mod.Auth));
 
 export const metadata: Metadata = {
-  title: 'Sign In | Undone',
+  title: 'Sign In',
   description: 'Sign in or create an account to start tracking and completing your learning journey.',
   openGraph: {
-    title: 'Sign In | Undone',
+    title: 'Sign In',
     description: 'Sign in or create an account to start tracking and completing your learning journey.',
     url: 'https://sidequesthq.com/auth',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Sign In | Undone',
+    title: 'Sign In',
     description: 'Sign in or create an account to start tracking and completing your learning journey.',
   }
 };
