@@ -214,14 +214,14 @@
 .centralInterface {
   position: relative;
   z-index: 30;
-  max-width: 520px;
+  max-width: 1040px;
   width: 100%;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 0 12px;
+  padding: 0 16px;
   box-sizing: border-box;
 }
 
@@ -237,21 +237,21 @@
 
 .eyebrow {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: clamp(10.5px, 1.1vw, 12px);
+  font-size: clamp(13px, 1.4vw, 16px);
   font-weight: 700;
   color: #8E867A;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .headline {
   font-family: var(--font-playfair-display), serif;
-  font-size: clamp(38px, 4.4vw, 56px);
+  font-size: clamp(52px, 5.8vw, 76px);
   font-weight: 600;
   color: #0E1738;
-  line-height: 1.08;
-  letter-spacing: -0.025em;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
   margin: 0;
   position: relative;
 }
@@ -268,29 +268,29 @@
 .underlineFlourish {
   position: absolute;
   left: 0;
-  bottom: -6px;
+  bottom: -8px;
   width: 100%;
   pointer-events: none;
 }
 
 .subtitle {
   font-family: var(--font-lora), serif;
-  font-size: clamp(14px, 1.4vw, 16.5px);
+  font-size: clamp(18px, 1.9vw, 23px);
   color: #363E52;
-  margin-top: 10px;
-  margin-bottom: 18px;
+  margin-top: 14px;
+  margin-bottom: 24px;
   letter-spacing: -0.005em;
-  max-width: 580px;
+  max-width: 720px;
 }
 
-/* Input Card (Prompt Card Matching Reference) */
+/* Input Card (Prompt Card Matching Reference - Wide & 1.1x) */
 .inputCard {
   width: 100%;
-  max-width: 780px;
+  max-width: 860px;
   background-color: #FFFFFF;
   border: 1px solid #dcdfe8;
-  border-radius: 20px;
-  padding: 12px 16px 10px 16px;
+  border-radius: 22px;
+  padding: 14px 20px 12px 20px;
   box-shadow: 
     0 4px 20px -2px rgba(99, 102, 241, 0.05),
     0 1px 4px -1px rgba(0, 0, 0, 0.04);
@@ -300,13 +300,19 @@
 
 @media (min-width: 1024px) {
   .inputCard {
-    max-width: 820px;
+    max-width: 920px;
   }
 }
 
-@media (min-width: 1400px) {
+@media (min-width: 1300px) {
   .inputCard {
-    max-width: 860px;
+    max-width: 980px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .inputCard {
+    max-width: 1020px;
   }
 }
 
@@ -319,7 +325,7 @@
 
 .textInput {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 15px;
+  font-size: 16px;
   line-height: 1.5;
   color: #1e293b;
   caret-color: #1b268a;
@@ -331,7 +337,7 @@
 
 @media (min-width: 768px) {
   .textInput {
-    font-size: 16px;
+    font-size: 17px;
   }
 }
 
@@ -346,15 +352,15 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: nowrap;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .promptPillGroup {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 7px;
   flex-shrink: 0;
 }
 
@@ -362,8 +368,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background-color: #f1f3fd;
   color: #2e384d;
@@ -381,14 +387,14 @@
 .promptPill {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  height: 28px;
-  padding: 0 10px;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
   border-radius: 9999px;
   background-color: #f1f3fd;
   color: #2e384d;
   border: none;
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 500;
   cursor: pointer;
   transition: background-color 150ms ease, transform 100ms ease;
@@ -410,7 +416,7 @@
 .promptRightActions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin-left: auto;
   flex-shrink: 0;
 }
@@ -418,13 +424,13 @@
 .promptPlanBtn {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  height: 28px;
-  padding: 0 4px;
+  gap: 5px;
+  height: 32px;
+  padding: 0 5px;
   background: transparent;
   border: none;
   color: #2e384d;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
   transition: color 150ms ease;
@@ -438,7 +444,7 @@
 
 .promptDivider {
   width: 1px;
-  height: 15px;
+  height: 18px;
   background-color: #e2e8f0;
   flex-shrink: 0;
 }
@@ -446,13 +452,13 @@
 .promptBeginBtn {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  height: 32px;
-  padding: 0 14px;
+  gap: 6px;
+  height: 36px;
+  padding: 0 18px;
   border-radius: 9999px;
   background-color: #1b268a;
   color: #FFFFFF;
-  font-size: 12.5px;
+  font-size: 13.5px;
   font-weight: 600;
   letter-spacing: 0.01em;
   border: none;
@@ -474,13 +480,13 @@
   transform: translateY(0);
 }
 
-/* Action 4 Tiles - tight flex row, no shadow, padded icon boxes */
+/* Action 4 Tiles (1.5x Bigger) */
 .actionTilesGrid {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  gap: 18px;
-  margin-top: 12px;
+  gap: 28px;
+  margin-top: 22px;
   width: 100%;
 }
 
@@ -495,7 +501,7 @@
   border: none;
   padding: 0;
   transition: transform 0.15s ease;
-  min-width: 72px;
+  min-width: 96px;
 }
 
 .actionTile:hover {
@@ -503,15 +509,14 @@
 }
 
 .tileIconSquare {
-  width: 44px;
-  height: 44px;
-  border-radius: 13px;
+  width: 62px;
+  height: 62px;
+  border-radius: 18px;
   background-color: #1F299D;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #FFFFFF;
-  /* No box-shadow — clean flat look */
   box-shadow: none;
   margin: 0 auto;
   flex-shrink: 0;
@@ -523,39 +528,39 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 .tileAction {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 10px;
+  font-size: 15px;
   font-weight: 700;
   color: #0E1635;
-  line-height: 1.2;
+  line-height: 1.25;
   text-align: center;
   display: block;
 }
 
 .tileTarget {
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 8.5px;
+  font-size: 13px;
   font-weight: 500;
   color: #596378;
-  line-height: 1.2;
+  line-height: 1.25;
   text-align: center;
   display: block;
-  margin-top: 1px;
+  margin-top: 2px;
 }
 
-/* Divider with True Transparent Badge */
+/* Divider with True Transparent Badge (1.5x Bigger) */
 .dividerWrapper {
   width: 100%;
-  max-width: 330px;
-  margin-top: 10px;
+  max-width: 480px;
+  margin-top: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 14px;
 }
 
 .dividerLine {
@@ -570,29 +575,29 @@
   background-color: transparent !important;
   padding: 0;
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 8.5px;
+  font-size: 13px;
   color: #667085;
-  font-weight: 400;
+  font-weight: 500;
   white-space: nowrap;
 }
 
-/* Source Pill Buttons */
+/* Source Pill Buttons (1.5x Bigger) */
 .pillsRow {
   display: flex;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 12px;
+  margin-top: 14px;
 }
 
 .pillButton {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 8px;
   background-color: #FFFFFF;
   border: 1px solid #D8D2C6;
   border-radius: 9999px;
-  padding: 4px 10px;
+  padding: 7px 16px;
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 9px;
+  font-size: 13.5px;
   font-weight: 500;
   color: #1D2752;
   cursor: pointer;
@@ -605,14 +610,14 @@
   background-color: #FBFBFE;
 }
 
-/* Footer Affordance */
+/* Footer Affordance (1.5x Bigger) */
 .footerAffordance {
   display: flex;
   align-items: center;
-  gap: 3px;
-  margin-top: 8px;
+  gap: 5px;
+  margin-top: 14px;
   font-family: var(--font-manrope-next), sans-serif;
-  font-size: 9px;
+  font-size: 13.5px;
   font-weight: 500;
   color: #4B556D;
   text-decoration: none;

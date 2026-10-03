@@ -48,8 +48,8 @@ export function CentralInterface() {
           <Image
             src="/images/hero-collage/underline-flourish.svg"
             alt=""
-            width={180}
-            height={17}
+            width={260}
+            height={24}
             className={styles.underlineFlourish}
             priority
           />
@@ -118,11 +118,11 @@ export function CentralInterface() {
         }
       />
 
-      {/* 4 Action Tiles */}
+      {/* 4 Action Tiles (1.5x Bigger) */}
       <div className={styles.actionTilesGrid}>
         <button type="button" className={styles.actionTile}>
           <div className={styles.tileIconSquare}>
-            <Compass size={22} strokeWidth={1.8} />
+            <Compass size={30} strokeWidth={1.8} />
           </div>
           <div className={styles.tileLabels}>
             <span className={styles.tileAction}>Explore</span>
@@ -132,7 +132,7 @@ export function CentralInterface() {
 
         <button type="button" className={styles.actionTile}>
           <div className={styles.tileIconSquare}>
-            <GraduationCap size={22} strokeWidth={1.8} />
+            <GraduationCap size={30} strokeWidth={1.8} />
           </div>
           <div className={styles.tileLabels}>
             <span className={styles.tileAction}>Learn</span>
@@ -142,7 +142,7 @@ export function CentralInterface() {
 
         <button type="button" className={styles.actionTile}>
           <div className={styles.tileIconSquare}>
-            <Search size={21} strokeWidth={2} />
+            <Search size={28} strokeWidth={2} />
           </div>
           <div className={styles.tileLabels}>
             <span className={styles.tileAction}>Research</span>
@@ -152,7 +152,7 @@ export function CentralInterface() {
 
         <button type="button" className={styles.actionTile}>
           <div className={styles.tileIconSquare}>
-            <Hammer size={21} strokeWidth={1.8} />
+            <Hammer size={28} strokeWidth={1.8} />
           </div>
           <div className={styles.tileLabels}>
             <span className={styles.tileAction}>Build</span>
@@ -161,7 +161,7 @@ export function CentralInterface() {
         </button>
       </div>
 
-      {/* Divider with 100% True Transparent Center */}
+      {/* Divider with 100% True Transparent Center (1.5x Bigger) */}
       <div className={styles.dividerWrapper}>
         <span className={styles.dividerLine} />
         <span className={styles.dividerBadge}>
@@ -170,28 +170,28 @@ export function CentralInterface() {
         <span className={styles.dividerLine} />
       </div>
 
-      {/* Source Pill Buttons */}
+      {/* Source Pill Buttons (1.5x Bigger) */}
       <div className={styles.pillsRow}>
         <button type="button" className={styles.pillButton}>
-          <Database size={16} strokeWidth={1.8} />
+          <Database size={20} strokeWidth={1.8} />
           <span>Add sources</span>
         </button>
 
         <button type="button" className={styles.pillButton}>
-          <FileText size={16} strokeWidth={1.8} />
+          <FileText size={20} strokeWidth={1.8} />
           <span>Upload a file</span>
         </button>
 
         <button type="button" className={styles.pillButton}>
-          <LayoutTemplate size={16} strokeWidth={1.8} />
+          <LayoutTemplate size={20} strokeWidth={1.8} />
           <span>Use a template</span>
         </button>
       </div>
 
-      {/* Footer affordance */}
+      {/* Footer affordance (1.5x Bigger) */}
       <a href="#how-it-works" className={styles.footerAffordance}>
         <span>See how it works</span>
-        <ChevronDown size={16} strokeWidth={2} />
+        <ChevronDown size={18} strokeWidth={2} />
       </a>
     </div>
   );
