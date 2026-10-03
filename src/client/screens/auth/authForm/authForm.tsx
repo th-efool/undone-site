@@ -56,11 +56,11 @@ export function AuthForm() {
             <>
               Every great skill
               <br />
-              starts as a <span className={styles.highlight}>SideQuest.</span>
+              begins with <span className={styles.highlight}>curiosity.</span>
             </>
           ) : (
             <>
-              Welcome back to your <span className={styles.highlight}>SideQuest.</span>
+              Welcome back to <span className={styles.highlight}>Undone.</span>
             </>
           )}
         </h1>
@@ -126,7 +126,7 @@ export function AuthForm() {
           variant="secondary"
           onClick={() => {
             signIn('credentials', {
-              email: 'guest@sidequesthq.com',
+              email: 'guest@undone.com',
               callbackUrl: '/home'
             });
           }}

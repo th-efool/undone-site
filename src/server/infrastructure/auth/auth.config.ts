@@ -24,15 +24,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "text" }
       },
       async authorize(credentials) {
-        if (credentials?.email === 'guest@sidequesthq.com') {
+        if (credentials?.email === 'guest@sidequesthq.com' || credentials?.email === 'guest@undone.com') {
+          const guestEmail = credentials.email as string;
           try {
             let user = await prisma.user.findUnique({
-              where: { email: 'guest@sidequesthq.com' }
+              where: { email: guestEmail }
             });
             if (!user) {
               user = await prisma.user.create({
                 data: {
-                  email: 'guest@sidequesthq.com',
+                  email: guestEmail,
                   name: 'Guest Explorer',
                   username: 'guest',
                 }
@@ -44,7 +45,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             return {
               id: 'guest-explorer-dev-id',
               name: 'Guest Explorer',
-              email: 'guest@sidequesthq.com',
+              email: guestEmail,
               username: 'guest',
             };
           }
