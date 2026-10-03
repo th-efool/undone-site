@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- Multi-faceted 3D folded Royal Blue Origami Crane matching reference -->
+  <g filter="drop-shadow(0 4px 10px rgba(10, 20, 80, 0.28))">
+    <!-- Left Wing (Back plane) -->
+    <polygon points="60,65 15,25 45,75" fill="#182382" />
+    <polygon points="45,75 15,25 55,62" fill="#202DA8" />
+
+    <!-- Right Wing (Front plane - illuminated) -->
+    <polygon points="60,65 105,20 72,72" fill="#2C3CC8" />
+    <polygon points="60,65 105,20 66,58" fill="#3D4EE2" />
+
+    <!-- Central Body Ridge -->
+    <polygon points="60,65 66,58 72,72 60,82" fill="#1D2A9E" />
+    <polygon points="60,65 55,62 45,75 60,82" fill="#162078" />
+
+    <!-- Tail Plane -->
+    <polygon points="60,82 82,105 68,78" fill="#141C6E" />
+    <polygon points="60,82 82,105 58,80" fill="#19237E" />
+
+    <!-- Neck and Head Fold -->
+    <polygon points="60,65 32,38 42,68" fill="#2432B0" />
+    <polygon points="32,38 22,32 28,42" fill="#1A2488" />
+    <polygon points="22,32 18,34 24,40" fill="#141D72" />
+
+    <!-- Subtle Crease Accents -->
+    <line x1="60" y1="65" x2="105" y2="20" stroke="#4F60EE" stroke-width="0.75" opacity="0.6" />
+    <line x1="60" y1="65" x2="15" y2="25" stroke="#3545D0" stroke-width="0.75" opacity="0.6" />
+    <line x1="60" y1="65" x2="60" y2="82" stroke="#121860" stroke-width="0.75" opacity="0.5" />
+  </g>
+</svg>
