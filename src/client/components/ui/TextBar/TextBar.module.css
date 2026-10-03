@@ -25,7 +25,7 @@
   pointer-events: none;
 }
 
-/* ── Focus States (Handled on Container ONLY) ── */
+/* ── Focus States (Handled on Container ONLY - Zero Rogue Highlight) ── */
 .shell:focus-within {
   border-color: var(--textbar-focus-border, #1F299D);
   box-shadow: var(
@@ -47,6 +47,43 @@
   box-shadow: 
     0 4px 18px -2px rgba(14, 23, 56, 0.08),
     0 1px 6px -1px rgba(14, 23, 56, 0.04);
+}
+
+/* New Prompt Card Variant Matching Image Reference */
+.prompt {
+  flex-direction: column;
+  align-items: stretch;
+  border-radius: 28px;
+  background-color: #FFFFFF;
+  border: 1.5px solid #828df5;
+  box-shadow: 
+    0 4px 20px -2px rgba(99, 102, 241, 0.08),
+    0 2px 6px -1px rgba(0, 0, 0, 0.03);
+  padding: 18px 22px 16px 22px;
+  gap: 16px;
+}
+
+.prompt:focus-within {
+  border-color: #6366f1;
+  box-shadow: 
+    0 0 0 3px rgba(99, 102, 241, 0.15),
+    0 8px 24px -4px rgba(99, 102, 241, 0.12);
+}
+
+:global([data-theme="dark"]) .prompt,
+.prompt[data-theme="dark"] {
+  background-color: #10121a;
+  border-color: rgba(130, 141, 245, 0.45);
+  color: #FFFFFF;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6);
+}
+
+:global([data-theme="dark"]) .prompt:focus-within,
+.prompt[data-theme="dark"]:focus-within {
+  border-color: #818cf8;
+  box-shadow: 
+    0 0 0 3px rgba(129, 140, 248, 0.2),
+    0 8px 28px -4px rgba(0, 0, 0, 0.8);
 }
 
 .default {
@@ -83,18 +120,26 @@
 
 /* ── Sizes ── */
 .sm {
-  height: 36px;
+  min-height: 36px;
   font-size: 11.5px;
 }
 
 .md {
-  height: 46px;
+  min-height: 46px;
   font-size: 12.5px;
 }
 
 .lg {
-  height: 54px;
+  min-height: 54px;
   font-size: 14px;
+}
+
+/* ── Input Area Wrapper (For Multiline or Stacked Layouts) ── */
+.inputArea {
+  display: flex;
+  align-items: flex-start;
+  width: 100%;
+  position: relative;
 }
 
 /* ── Core Inner Input Reset (Zero rogue highlight guaranteed) ── */
@@ -132,14 +177,88 @@
   opacity: 1;
 }
 
+/* ── Multiline Textarea (Auto-Extending up to 7-8 lines) ── */
+.textarea {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  padding: 0;
+  margin: 0;
+  font-family: inherit;
+  font-size: 1.15rem;
+  line-height: 1.55;
+  color: var(--textbar-color, #1e293b);
+  caret-color: #4f46e5;
+  resize: none;
+  overflow-y: hidden;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
+}
+
+@media (min-width: 768px) {
+  .textarea {
+    font-size: 1.2rem;
+  }
+}
+
+:global([data-theme="dark"]) .textarea {
+  color: #f8fafc;
+  caret-color: #818cf8;
+}
+
+.textarea:focus,
+.textarea:focus-visible,
+.textarea:hover,
+.textarea:active {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+.textarea::placeholder {
+  color: var(--textbar-placeholder, #8c93a8);
+  opacity: 1;
+}
+
+:global([data-theme="dark"]) .textarea::placeholder {
+  color: #94a3b8;
+}
+
+.textarea::-webkit-scrollbar {
+  width: 6px;
+}
+
+.textarea::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.textarea::-webkit-scrollbar-thumb {
+  background-color: rgba(99, 102, 241, 0.4);
+  border-radius: 9999px;
+}
+
+:global([data-theme="dark"]) .textarea::-webkit-scrollbar-thumb {
+  background-color: rgba(129, 140, 248, 0.4);
+}
+
 /* Clean text selection inside input */
-.input::selection {
-  background: rgba(31, 41, 157, 0.18);
+.input::selection,
+.textarea::selection {
+  background: rgba(99, 102, 241, 0.2);
   color: inherit;
 }
 
-.input::-moz-selection {
-  background: rgba(31, 41, 157, 0.18);
+.input::-moz-selection,
+.textarea::-moz-selection {
+  background: rgba(99, 102, 241, 0.2);
   color: inherit;
 }
 
@@ -152,7 +271,7 @@
 }
 
 .leftSlot {
-  margin-right: 2px;
+  margin-right: 8px;
 }
 
 .rightSlot {
@@ -160,6 +279,16 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+
+/* ── Bottom Bar Row (For Prompt Card Toolbar) ── */
+.bottomBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 /* ── Clear Button ── */

@@ -12,6 +12,8 @@ import {
   Hammer,
   Database,
   FileText,
+  Paperclip,
+  Sparkles,
   LayoutTemplate,
   ChevronDown,
 } from 'lucide-react';
@@ -59,9 +61,12 @@ export function CentralInterface() {
         Turn a curiosity, skill, or question into a learning journey.
       </p>
 
-      {/* Input Surface Card (Global TextBar) */}
+      {/* Remade Central TextBar matching reference */}
       <TextBar
-        variant="card"
+        variant="prompt"
+        multiline
+        minRows={1}
+        maxRows={8}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onSubmit={handleSubmit}
@@ -69,26 +74,46 @@ export function CentralInterface() {
         className={styles.inputCard}
         inputClassName={styles.textInput}
         aria-label="What do you want to learn about?"
-        leftSlot={
-          <button
-            type="button"
-            className={styles.plusButton}
-            aria-label="Add attachment or context"
-          >
-            <Plus size={18} strokeWidth={2.2} />
-          </button>
-        }
-        rightSlot={
-          <div className={styles.inputControls}>
-            <button type="button" className={styles.planButton}>
-              <Lightbulb size={16} strokeWidth={2} />
-              <span>Plan</span>
-            </button>
+        bottomBar={
+          <div className={styles.promptToolbar}>
+            <div className={styles.promptPillGroup}>
+              <button
+                type="button"
+                className={styles.promptPlusPill}
+                aria-label="Add attachment"
+              >
+                <Plus size={18} strokeWidth={2.2} />
+              </button>
 
-            <button type="submit" className={styles.beginJourneyBtn}>
-              <span>Begin journey</span>
-              <ArrowRight size={15} strokeWidth={2.2} />
-            </button>
+              <button type="button" className={styles.promptPill}>
+                <FileText size={15} strokeWidth={1.8} />
+                <span>Add sources</span>
+              </button>
+
+              <button type="button" className={styles.promptPill}>
+                <Paperclip size={15} strokeWidth={1.8} />
+                <span>Upload</span>
+              </button>
+
+              <button type="button" className={styles.promptPill}>
+                <Sparkles size={15} strokeWidth={1.8} />
+                <span>Use a template</span>
+              </button>
+            </div>
+
+            <div className={styles.promptRightActions}>
+              <button type="button" className={styles.promptPlanBtn}>
+                <Lightbulb size={16} strokeWidth={1.8} />
+                <span>Plan</span>
+              </button>
+
+              <span className={styles.promptDivider} aria-hidden="true" />
+
+              <button type="submit" className={styles.promptBeginBtn}>
+                <span>Begin journey</span>
+                <ArrowRight size={15} strokeWidth={2.2} />
+              </button>
+            </div>
           </div>
         }
       />
