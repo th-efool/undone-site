@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="92 19 1020 1020">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="72 -1 1060 1060">
   <style>
     :root {
       color-scheme: light dark;
@@ -13,6 +13,6 @@
     }
   </style>
   <path class="undone-arc" d="M483 925 A405 405 0 1 1 948 748"
-        fill="none" stroke="#09090b" stroke-width="170" stroke-linecap="round"/>
-  <circle cx="860" cy="856" r="125" fill="#ffb000"/>
+        fill="none" stroke="#09090b" stroke-width="220" stroke-linecap="round"/>
+  <circle cx="860" cy="856" r="140" fill="#ffb000"/>
 </svg>
