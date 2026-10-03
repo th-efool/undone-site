@@ -12,9 +12,9 @@ export function CollageLeft() {
         className={styles.scrapItem}
         style={{
           width: 236,
-          left: -22,
+          left: -18,
           top: 0,
-          transform: 'rotate(2.5deg)',
+          transform: 'rotate(1deg)',
           zIndex: 10,
           filter: 'drop-shadow(0 4px 14px rgba(15, 20, 35, 0.12))',
         }}
@@ -30,11 +30,22 @@ export function CollageLeft() {
         <div
           className={styles.tapeStrip}
           style={{
-            width: 46,
+            width: 44,
             height: 18,
             top: 14,
             left: 54,
             transform: 'rotate(-38deg)',
+          }}
+        />
+        {/* Top-edge horizontal masking tape */}
+        <div
+          className={styles.tapeStrip}
+          style={{
+            width: 48,
+            height: 17,
+            top: 4,
+            left: 142,
+            transform: 'rotate(-2deg)',
           }}
         />
       </div>
@@ -64,8 +75,8 @@ export function CollageLeft() {
         className={styles.scrapItem}
         style={{
           width: 122,
-          left: 75,
-          top: 228,
+          left: 78,
+          top: 234,
           transform: 'rotate(-1.5deg)',
           zIndex: 25,
           filter: 'drop-shadow(0 3px 12px rgba(25, 20, 15, 0.14))',
@@ -84,8 +95,8 @@ export function CollageLeft() {
         className={styles.scrapItem}
         style={{
           width: 72,
-          left: 10,
-          top: 265,
+          left: 12,
+          top: 270,
           transform: 'rotate(8deg)',
           zIndex: 40,
           filter: 'drop-shadow(0 2px 6px rgba(0, 0, 0, 0.18))',
@@ -104,9 +115,9 @@ export function CollageLeft() {
         className={styles.scrapItem}
         style={{
           width: 146,
-          left: -15,
+          left: -18,
           bottom: 0,
-          transform: 'rotate(-4deg)',
+          transform: 'rotate(-3deg)',
           zIndex: 15,
           filter: 'drop-shadow(0 4px 18px rgba(10, 15, 30, 0.16))',
         }}
@@ -147,8 +158,8 @@ export function CollageLeft() {
         style={{
           width: 102,
           left: 32,
-          bottom: 8,
-          transform: 'rotate(3deg)',
+          bottom: 12,
+          transform: 'rotate(2.5deg)',
           zIndex: 30,
           filter: 'drop-shadow(0 3px 10px rgba(25, 20, 15, 0.12))',
         }}

@@ -1,8 +1,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
-  <circle cx="12" cy="12" r="10" stroke="#0E1738" stroke-width="1.8"/>
-  <circle cx="12" cy="12" r="2" fill="#0E1738"/>
-  <polygon points="12,4 14.2,10.5 12,12 9.8,10.5" fill="#1F299D"/>
-  <polygon points="12,20 14.2,13.5 12,12 9.8,13.5" fill="#0E1738" opacity="0.6"/>
-  <polygon points="20,12 13.5,14.2 12,12 13.5,9.8" fill="#0E1738" opacity="0.6"/>
-  <polygon points="4,12 10.5,14.2 12,12 10.5,9.8" fill="#0E1738" opacity="0.6"/>
+  <!-- 8-point compass star matching reference -->
+  <circle cx="12" cy="12" r="9" stroke="#1F299D" stroke-width="1.2" opacity="0.4" />
+  <circle cx="12" cy="12" r="2.2" fill="#1F299D" />
+  <!-- Primary 4 points -->
+  <polygon points="12,2 13.6,10.2 12,12 10.4,10.2" fill="#1F299D" />
+  <polygon points="12,22 13.6,13.8 12,12 10.4,13.8" fill="#1F299D" />
+  <polygon points="2,12 10.2,10.4 12,12 10.2,13.6" fill="#1F299D" />
+  <polygon points="22,12 13.8,10.4 12,12 13.8,13.6" fill="#1F299D" />
+  <!-- Diagonal 4 points -->
+  <polygon points="5,5 10.8,10 12,12 10,10.8" fill="#1F299D" opacity="0.75" />
+  <polygon points="19,5 13.2,10 12,12 14,10.8" fill="#1F299D" opacity="0.75" />
+  <polygon points="5,19 10.8,14 12,12 10,13.2" fill="#1F299D" opacity="0.75" />
+  <polygon points="19,19 13.2,14 12,12 14,13.2" fill="#1F299D" opacity="0.75" />
 </svg>

@@ -32,9 +32,9 @@ export function CollageRight() {
         className={styles.scrapItem}
         style={{
           width: 136,
-          right: 138,
-          top: 55,
-          transform: 'rotate(-4.5deg)',
+          right: 136,
+          top: 58,
+          transform: 'rotate(-3.5deg)',
           zIndex: 25,
           filter: 'drop-shadow(0 4px 14px rgba(25, 20, 15, 0.14))',
         }}
@@ -84,7 +84,7 @@ export function CollageRight() {
           width: 188,
           right: 0,
           top: 205,
-          transform: 'rotate(1.5deg)',
+          transform: 'rotate(1deg)',
           zIndex: 22,
           filter: 'drop-shadow(0 4px 16px rgba(15, 20, 35, 0.15))',
         }}
@@ -102,8 +102,8 @@ export function CollageRight() {
         className={styles.scrapItem}
         style={{
           width: 92,
-          right: 195,
-          top: 315,
+          right: 196,
+          top: 320,
           transform: 'rotate(5deg)',
           zIndex: 20,
           filter: 'drop-shadow(0 3px 10px rgba(25, 20, 15, 0.12))',
@@ -122,8 +122,8 @@ export function CollageRight() {
         className={styles.scrapItem}
         style={{
           width: 72,
-          right: 172,
-          top: 238,
+          right: 170,
+          top: 242,
           transform: 'rotate(2deg)',
           zIndex: 45,
           filter: 'drop-shadow(0 4px 8px rgba(10, 20, 70, 0.28))',
@@ -144,7 +144,7 @@ export function CollageRight() {
           width: 136,
           right: 78,
           bottom: 0,
-          transform: 'rotate(-1.5deg)',
+          transform: 'rotate(-1deg)',
           zIndex: 24,
           filter: 'drop-shadow(0 4px 16px rgba(15, 20, 35, 0.13))',
         }}
@@ -164,7 +164,7 @@ export function CollageRight() {
           width: 106,
           right: 0,
           bottom: 35,
-          transform: 'rotate(2deg)',
+          transform: 'rotate(1.5deg)',
           zIndex: 30,
           filter: 'drop-shadow(0 3px 10px rgba(25, 20, 15, 0.14))',
         }}

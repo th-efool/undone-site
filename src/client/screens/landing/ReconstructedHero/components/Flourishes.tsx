@@ -13,75 +13,54 @@ export function Flourishes() {
         right: 0,
         bottom: 0,
         pointerEvents: 'none',
-        zIndex: 50,
+        zIndex: 48,
       }}
       aria-hidden="true"
     >
-      {/* Star doodle 1: Upper left */}
-      <div
+      {/* SVG Arc Linework connecting collage elements matching reference */}
+      <svg
         style={{
           position: 'absolute',
-          top: 68,
-          left: 310,
-          opacity: 0.85,
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
         }}
+        viewBox="0 0 1024 522"
+        fill="none"
       >
-        <Image
-          src="/images/hero-collage/star-doodle.svg"
-          alt=""
-          width={12}
-          height={12}
+        {/* Left subtle blue curved arc */}
+        <path
+          d="M 210 152 C 232 215 208 265 206 320"
+          stroke="#1F299D"
+          strokeWidth="1.1"
+          strokeLinecap="round"
+          opacity="0.5"
         />
-      </div>
 
-      {/* Star doodle 2: Upper right */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 78,
-          right: 298,
-          opacity: 0.85,
-        }}
-      >
-        <Image
-          src="/images/hero-collage/star-doodle.svg"
-          alt=""
-          width={11}
-          height={11}
+        {/* Right subtle blue curved arc looping under origami crane */}
+        <path
+          d="M 768 185 C 742 235 765 285 742 345"
+          stroke="#1F299D"
+          strokeWidth="1.1"
+          strokeLinecap="round"
+          opacity="0.5"
         />
-      </div>
+      </svg>
 
-      {/* Star doodle 3: Mid lower left */}
+      {/* 8-point blue star doodle beside the moon circle */}
       <div
         style={{
           position: 'absolute',
-          bottom: 130,
-          left: 288,
-          opacity: 0.75,
+          bottom: 114,
+          left: 202,
         }}
       >
         <Image
           src="/images/hero-collage/star-doodle.svg"
           alt=""
-          width={9}
-          height={9}
-        />
-      </div>
-
-      {/* Star doodle 4: Mid lower right */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 110,
-          right: 290,
-          opacity: 0.75,
-        }}
-      >
-        <Image
-          src="/images/hero-collage/star-doodle.svg"
-          alt=""
-          width={10}
-          height={10}
+          width={20}
+          height={20}
         />
       </div>
     </div>

@@ -7,11 +7,11 @@ import {
   Lightbulb,
   ArrowRight,
   Compass,
-  BookOpen,
+  GraduationCap,
   Search,
-  Wrench,
-  FolderPlus,
-  Upload,
+  Hammer,
+  Database,
+  FileText,
   LayoutTemplate,
   ChevronDown,
 } from 'lucide-react';
@@ -101,7 +101,7 @@ export function CentralInterface() {
 
         <button type="button" className={styles.actionTile}>
           <div className={styles.tileIconSquare}>
-            <BookOpen size={21} strokeWidth={1.8} />
+            <GraduationCap size={21} strokeWidth={1.8} />
           </div>
           <div className={styles.tileLabels}>
             <span className={styles.tileAction}>Learn</span>
@@ -121,7 +121,7 @@ export function CentralInterface() {
 
         <button type="button" className={styles.actionTile}>
           <div className={styles.tileIconSquare}>
-            <Wrench size={20} strokeWidth={1.8} />
+            <Hammer size={20} strokeWidth={1.8} />
           </div>
           <div className={styles.tileLabels}>
             <span className={styles.tileAction}>Build</span>
@@ -141,12 +141,12 @@ export function CentralInterface() {
       {/* Source Pill Buttons */}
       <div className={styles.pillsRow}>
         <button type="button" className={styles.pillButton}>
-          <FolderPlus size={13} strokeWidth={1.8} />
+          <Database size={13} strokeWidth={1.8} />
           <span>Add sources</span>
         </button>
 
         <button type="button" className={styles.pillButton}>
-          <Upload size={13} strokeWidth={1.8} />
+          <FileText size={13} strokeWidth={1.8} />
           <span>Upload a file</span>
         </button>
 
