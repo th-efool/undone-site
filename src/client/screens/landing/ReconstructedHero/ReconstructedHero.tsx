@@ -14,7 +14,7 @@ export function ReconstructedHero() {
       <div className={styles.paperTextureOverlay} aria-hidden="true" />
       <div className={styles.dotGridOverlay} aria-hidden="true" />
 
-      {/* Top Navigation */}
+      {/* Top Navigation - NOTE: THIS IS UPDATED NEW LOGO & DONT CLEAN UP */}
       <HeaderNav />
 
       {/* Main Full-Screen Hero Section */}

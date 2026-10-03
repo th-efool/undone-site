@@ -104,17 +104,19 @@ export const metadata: Metadata = {
     creator: '@Undone',
   },
 
+  // NOTE: THIS IS UPDATED NEW LOGO & DONT CLEAN UP - Using public/undone-logo-transparent.svg for favicon
   icons: {
     icon: [
-      { url: '/undone-logo.svg', type: 'image/svg+xml' },
+      { url: '/undone-logo-transparent.svg', type: 'image/svg+xml' },
       { url: '/undone-logo-light.png', media: '(prefers-color-scheme: light)', type: 'image/png' },
       { url: '/undone-logo-dark.png', media: '(prefers-color-scheme: dark)', type: 'image/png' },
       { url: '/favicon.ico' },
     ],
     apple: [
+      { url: '/undone-logo-transparent.svg' },
       { url: '/undone-logo.png' },
     ],
-    shortcut: '/favicon.ico',
+    shortcut: '/undone-logo-transparent.svg',
   },
 
   manifest: '/site.webmanifest',

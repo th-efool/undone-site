@@ -1,5 +1,11 @@
 'use client';
 
+// ============================================================================
+// NOTE: THIS IS UPDATED NEW LOGO & DONT CLEAN UP
+// The brand logo (/undone-logo-transparent.svg) and brand name ("UNDONE") here are updated.
+// Do not replace with compass/star or revert to SideQuestHQ.
+// ============================================================================
+
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -9,16 +15,19 @@ export function HeaderNav() {
   return (
     <header className={styles.header}>
       {/* Brand logo & wordmark */}
+      {/* NOTE: THIS IS UPDATED NEW LOGO & DONT CLEAN UP - Using Undone brand logo instead of star */}
       <Link href="/" className={styles.brandGroup}>
+        {/* THIS IS UPDATED NEW LOGO & DONT CLEAN UP - Using Undone brand logo instead of star */}
         <Image
-          src="/images/hero-collage/compass-mark.svg"
-          alt="Compass Logo"
-          width={20}
-          height={20}
+          src="/undone-logo-transparent.svg"
+          alt="UNDONE"
+          width={24}
+          height={24}
           priority
         />
         <div className={styles.brandTitles}>
-          <span className={styles.brandName}>SideQuestHQ</span>
+          {/* THIS IS UPDATED NEW LOGO & DONT CLEAN UP */}
+          <span className={styles.brandName}>UNDONE</span>
           <span className={styles.brandTagline}>For a more curious you.</span>
         </div>
       </Link>
