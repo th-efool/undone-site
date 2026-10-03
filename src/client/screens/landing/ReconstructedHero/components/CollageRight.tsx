@@ -7,6 +7,28 @@ import styles from '../ReconstructedHero.module.css';
 export function CollageRight() {
   return (
     <div className={styles.collageRight} aria-hidden="true">
+      {/* TORN PAPER BASE: Top-Right Torn Paper Frame */}
+      <div className={styles.topRightTornSheet}>
+        <Image
+          src="/images/hero-collage/torn-paper-top-right.svg"
+          alt=""
+          fill
+          className={styles.tornPaperImage}
+          priority
+        />
+      </div>
+
+      {/* TORN PAPER BASE: Bottom-Right Corner Torn Paper Continent */}
+      <div className={styles.bottomRightTornSheet}>
+        <Image
+          src="/images/hero-collage/torn-paper-bottom-right.svg"
+          alt=""
+          fill
+          className={styles.tornPaperImage}
+          priority
+        />
+      </div>
+
       {/* R1: Cosmic Galaxy Photo Card (Real Space Imagery) */}
       <div className={styles.galaxyCard}>
         <div className={styles.galaxyInner}>
@@ -15,7 +37,7 @@ export function CollageRight() {
             alt=""
             fill
             className={styles.galaxyImage}
-            sizes="300px"
+            sizes="360px"
             priority
           />
         </div>
@@ -37,15 +59,15 @@ export function CollageRight() {
           <Image
             src="/images/hero-collage/star-doodle.svg"
             alt=""
-            width={16}
-            height={16}
+            width={18}
+            height={18}
           />
         </div>
         {/* Top-left tape pinning the scrap */}
         <div
           className={styles.tapeStrip}
           style={{
-            width: 44,
+            width: 48,
             height: 16,
             top: -4,
             left: 14,
@@ -56,6 +78,16 @@ export function CollageRight() {
 
       {/* R3: Disciplines Strip with Clean Tracked Sans (Live HTML) */}
       <div className={styles.disciplinesStrip}>
+        <div
+          className={styles.tapeStrip}
+          style={{
+            width: 32,
+            height: 12,
+            top: -6,
+            left: 45,
+            transform: 'rotate(2deg)',
+          }}
+        />
         <pre className={styles.disciplinesText}>
           ART{'\n'}
           SCIENCE{'\n'}
@@ -64,6 +96,7 @@ export function CollageRight() {
           CREATIVITY{'\n'}
           AND BEYOND
         </pre>
+        <div className={styles.disciplinesRule} />
       </div>
 
       {/* R4: Folded Royal Blue Origami Crane (Vector Craft with Ambient Drop Shadow) */}
@@ -71,8 +104,9 @@ export function CollageRight() {
         <Image
           src="/images/hero-collage/real-origami-crane.svg"
           alt=""
-          width={88}
-          height={104}
+          width={92}
+          height={110}
+          style={{ width: 'auto', height: 'auto' }}
         />
       </div>
 
@@ -83,7 +117,7 @@ export function CollageRight() {
           alt=""
           fill
           className={styles.mugBooksImage}
-          sizes="240px"
+          sizes="280px"
         />
       </div>
 
@@ -95,12 +129,12 @@ export function CollageRight() {
             alt=""
             fill
             className={styles.mapImage}
-            sizes="120px"
+            sizes="140px"
           />
         </div>
       </div>
 
-      {/* R7: St. Peter's Basilica Dome Architectural Print with White Border */}
+      {/* R7: St. Peter's Basilica Dome Architectural Print with Crisp White Border */}
       <div className={styles.cathedralCard}>
         <div className={styles.cathedralInner}>
           <Image
@@ -108,7 +142,7 @@ export function CollageRight() {
             alt=""
             fill
             className={styles.cathedralImage}
-            sizes="170px"
+            sizes="220px"
           />
         </div>
       </div>
@@ -145,12 +179,12 @@ export function CollageRight() {
       {/* Subtle organic pencil flourish arc looping around origami crane */}
       <svg
         className={styles.rightFlourishArc}
-        viewBox="0 0 140 260"
+        viewBox="0 0 160 320"
         fill="none"
         aria-hidden="true"
       >
         <path
-          d="M 110 15 C 30 70 50 160 20 245"
+          d="M 130 20 C 40 80 60 190 30 295"
           stroke="#1F299D"
           strokeWidth="1.2"
           strokeLinecap="round"

@@ -7,14 +7,36 @@ import styles from '../ReconstructedHero.module.css';
 export function CollageLeft() {
   return (
     <div className={styles.collageLeft} aria-hidden="true">
-      {/* L0: Top-Left Torn Blue Paper Scrap with Tape (Header Level Accent) */}
+      {/* TORN PAPER BASE: Top-Left Torn Paper Continent */}
+      <div className={styles.topLeftTornSheet}>
+        <Image
+          src="/images/hero-collage/torn-paper-top-left.svg"
+          alt=""
+          fill
+          className={styles.tornPaperImage}
+          priority
+        />
+      </div>
+
+      {/* TORN PAPER BASE: Bottom-Left Corner Torn Paper Continent */}
+      <div className={styles.bottomLeftTornSheet}>
+        <Image
+          src="/images/hero-collage/torn-paper-bottom-left.svg"
+          alt=""
+          fill
+          className={styles.tornPaperImage}
+          priority
+        />
+      </div>
+
+      {/* L0: Top-Left Torn Blue Paper Scrap with Tape */}
       <div className={styles.topLeftBlueScrap}>
         <div
           className={styles.tapeStrip}
           style={{
             width: 36,
             height: 15,
-            top: 26,
+            top: 24,
             left: -4,
             transform: 'rotate(18deg)',
           }}
@@ -28,7 +50,7 @@ export function CollageLeft() {
           alt=""
           fill
           className={styles.windowPhotoImage}
-          sizes="280px"
+          sizes="320px"
           priority
         />
         {/* White handwritten cursive annotation placed on the left side */}
@@ -42,10 +64,10 @@ export function CollageLeft() {
         <div
           className={styles.tapeStrip}
           style={{
-            width: 48,
+            width: 52,
             height: 18,
             top: 10,
-            left: 38,
+            left: 36,
             transform: 'rotate(-36deg)',
           }}
         />
@@ -53,7 +75,7 @@ export function CollageLeft() {
         <div
           className={styles.tapeStrip}
           style={{
-            width: 52,
+            width: 56,
             height: 17,
             top: 4,
             left: 145,
@@ -82,15 +104,13 @@ export function CollageLeft() {
         <Image
           src="/images/hero-collage/real-botanical.svg"
           alt=""
-          width={84}
-          height={120}
+          width={90}
+          height={130}
+          style={{ width: 'auto', height: 'auto' }}
         />
       </div>
 
-      {/* L4-Wash: Torn Paper Wash Underlay in Corner */}
-      <div className={styles.mountainsCornerWash} />
-
-      {/* L4: Alpine Mountain Peaks Photo Card with White Border */}
+      {/* L4: Alpine Mountain Peaks Photo Card with Crisp White Print Border */}
       <div className={styles.mountainsCard}>
         <div className={styles.mountainsInner}>
           <Image
@@ -98,19 +118,19 @@ export function CollageLeft() {
             alt=""
             fill
             className={styles.mountainsImage}
-            sizes="190px"
+            sizes="240px"
           />
         </div>
       </div>
 
-      {/* L6: Deep Monochrome Lunar Crater Sphere */}
+      {/* L6: Deep Monochrome Lunar Crater Sphere with Dark Ring */}
       <div className={styles.moonSphere}>
         <Image
           src="/images/hero-collage/real-moon.jpg"
           alt=""
           fill
           className={styles.moonImage}
-          sizes="90px"
+          sizes="110px"
         />
       </div>
 
@@ -130,20 +150,20 @@ export function CollageLeft() {
         <Image
           src="/images/hero-collage/star-doodle.svg"
           alt=""
-          width={22}
-          height={22}
+          width={24}
+          height={24}
         />
       </div>
 
-      {/* Subtle organic pencil flourish arc linking window photo to star doodle */}
+      {/* Organic pencil flourish arc linking window photo area down to star doodle */}
       <svg
         className={styles.leftFlourishArc}
-        viewBox="0 0 120 300"
+        viewBox="0 0 160 380"
         fill="none"
         aria-hidden="true"
       >
         <path
-          d="M 25 15 C 85 90 70 200 45 285"
+          d="M 40 20 C 120 110 110 260 55 365"
           stroke="#1F299D"
           strokeWidth="1.2"
           strokeLinecap="round"
