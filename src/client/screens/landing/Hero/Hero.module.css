@@ -217,17 +217,16 @@
 
 .centralInterface {
   position: relative;
-  z-index: 30;
   max-width: 885px;
   width: 100%;
   margin: 0 auto;
+  margin-top: clamp(-38px, -4vh, -15px);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   padding: 0 16px;
   box-sizing: border-box;
-  transform: translateY(clamp(-35px, -3.8vh, -15px));
 }
 
 .heroContent {
@@ -237,10 +236,11 @@
   align-items: center;
   text-align: center;
   position: relative;
-  z-index: 35;
 }
 
 .eyebrow {
+  position: relative;
+  z-index: 35;
   font-family: var(--font-manrope-next), sans-serif;
   font-size: clamp(13px, 1.4vw, 16px);
   font-weight: 700;
@@ -251,6 +251,8 @@
 }
 
 .headline {
+  position: relative;
+  z-index: 35;
   font-family: var(--font-playfair-display), serif;
   font-size: clamp(50px, 5.5vw, 72px);
   font-weight: 600;
@@ -258,7 +260,6 @@
   line-height: 1.04;
   letter-spacing: -0.03em;
   margin: 0;
-  position: relative;
 }
 
 .headlineItalic {
@@ -279,6 +280,8 @@
 }
 
 .subtitle {
+  position: relative;
+  z-index: 35;
   font-family: var(--font-lora), serif;
   font-size: clamp(16px, 1.7vw, 21px);
   color: #363E52;
@@ -290,6 +293,8 @@
 
 /* Input Card (Prompt Card Matching Reference - Decreased 15% Width) */
 .inputCard {
+  position: relative;
+  z-index: 35;
   width: 100%;
   max-width: 730px;
   background-color: #FFFFFF;
@@ -495,6 +500,7 @@
   margin-top: 16px;
   overflow: hidden;
   position: relative;
+  z-index: 10;
   mask-image: linear-gradient(to right, transparent 0%, black 2.5%, black 97.5%, transparent 100%);
   -webkit-mask-image: linear-gradient(to right, transparent 0%, black 2.5%, black 97.5%, transparent 100%);
   padding: 6px 0;
@@ -535,7 +541,7 @@
   left: 0;
   width: 320px;
   pointer-events: none;
-  z-index: 20;
+  z-index: 25;
 }
 
 /* TORN PAPER BASE: Top-Left Torn Sheet */
@@ -822,7 +828,7 @@
   right: 0;
   width: 340px;
   pointer-events: none;
-  z-index: 20;
+  z-index: 25;
 }
 
 /* TORN PAPER BASE: Top-Right Torn Sheet Frame */
