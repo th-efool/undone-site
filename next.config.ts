@@ -1,8 +1,12 @@
 import type { NextConfig } from 'next';
+import path from 'path';
 
 const isMobileBuild = process.env.MOBILE_BUILD === 'true';
 
 const nextConfig: NextConfig = {
+  turbopack: {
+    root: path.resolve('.'),
+  },
   ...(isMobileBuild
     ? {
         output: 'export',
