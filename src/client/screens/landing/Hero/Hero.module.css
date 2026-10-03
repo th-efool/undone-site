@@ -178,6 +178,9 @@
 }
 
 .getStartedBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   font-family: var(--font-manrope-next), sans-serif;
   font-size: 15px;
   font-weight: 600;
@@ -187,6 +190,7 @@
   border-radius: 9999px;
   border: none;
   cursor: pointer;
+  text-decoration: none;
   box-shadow: 0 2px 8px rgba(31, 41, 157, 0.28);
   transition: background-color 0.15s ease, transform 0.1s ease;
 }
@@ -223,7 +227,7 @@
   text-align: center;
   padding: 0 16px;
   box-sizing: border-box;
-  transform: translateY(clamp(16px, 5.5vh, 65px));
+  transform: translateY(clamp(-35px, -3.8vh, -15px));
 }
 
 .heroContent {
@@ -243,15 +247,15 @@
   color: #8E867A;
   letter-spacing: 0.24em;
   text-transform: uppercase;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .headline {
   font-family: var(--font-playfair-display), serif;
-  font-size: clamp(52px, 5.8vw, 76px);
+  font-size: clamp(50px, 5.5vw, 72px);
   font-weight: 600;
   color: #0E1738;
-  line-height: 1.05;
+  line-height: 1.04;
   letter-spacing: -0.03em;
   margin: 0;
   position: relative;
@@ -276,10 +280,10 @@
 
 .subtitle {
   font-family: var(--font-lora), serif;
-  font-size: clamp(18px, 1.9vw, 23px);
+  font-size: clamp(16px, 1.7vw, 21px);
   color: #363E52;
-  margin-top: 14px;
-  margin-bottom: 24px;
+  margin-top: 8px;
+  margin-bottom: 12px;
   letter-spacing: -0.005em;
   max-width: 720px;
 }
@@ -480,6 +484,43 @@
 
 .promptBeginBtn:active {
   transform: translateY(0);
+}
+
+/* ==========================================================================
+   Featured Cohorts Auto Horizontally Scrolling Marquee Strip
+   ========================================================================== */
+.cohortsStripContainer {
+  width: min(100vw - 32px, 1260px);
+  margin-left: calc((100% - min(100vw - 32px, 1260px)) / 2);
+  margin-top: 16px;
+  overflow: hidden;
+  position: relative;
+  mask-image: linear-gradient(to right, transparent 0%, black 2.5%, black 97.5%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 2.5%, black 97.5%, transparent 100%);
+  padding: 6px 0;
+  box-sizing: border-box;
+}
+
+@keyframes marqueeScroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.cohortsMarqueeTrack {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: max-content;
+  animation: marqueeScroll 62s linear infinite;
+  will-change: transform;
+}
+
+.cohortsMarqueeTrack:hover {
+  animation-play-state: paused;
 }
 
 
@@ -1329,6 +1370,46 @@
 :global([data-theme="dark"]) .heroWrapper .beginJourneyBtn:hover,
 .heroWrapper[data-theme="dark"] .beginJourneyBtn:hover {
   background-color: #6366F1;
+}
+
+/* ── Featured Cohorts Strip (Dark Mode) ── */
+:global([data-theme="dark"]) .heroWrapper .cohortCard,
+.heroWrapper[data-theme="dark"] .cohortCard {
+  background-color: #10121a;
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+}
+
+:global([data-theme="dark"]) .heroWrapper .cohortCard:hover,
+.heroWrapper[data-theme="dark"] .cohortCard:hover {
+  border-color: #818CF8;
+  background-color: #141724;
+}
+
+:global([data-theme="dark"]) .heroWrapper .cohortTitle,
+.heroWrapper[data-theme="dark"] .cohortTitle {
+  color: #FFFFFF;
+}
+
+:global([data-theme="dark"]) .heroWrapper .cohortTag,
+.heroWrapper[data-theme="dark"] .cohortTag {
+  color: #818CF8;
+  background-color: rgba(99, 102, 241, 0.15);
+}
+
+:global([data-theme="dark"]) .heroWrapper .cohortDesc,
+.heroWrapper[data-theme="dark"] .cohortDesc {
+  color: #A1A1AA;
+}
+
+:global([data-theme="dark"]) .heroWrapper .cohortParticipants,
+.heroWrapper[data-theme="dark"] .cohortParticipants {
+  color: #71717A;
+}
+
+:global([data-theme="dark"]) .heroWrapper .cohortJoinAffordance,
+.heroWrapper[data-theme="dark"] .cohortJoinAffordance {
+  color: #818CF8;
 }
 
 

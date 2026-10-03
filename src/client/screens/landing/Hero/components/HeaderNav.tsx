@@ -56,12 +56,12 @@ export function HeaderNav() {
       {/* Right actions */}
       <div className={styles.headerActions}>
         <ThemeToggle />
-        <Link href="/login" className={styles.signInLink}>
+        <Link href="/auth" className={styles.signInLink}>
           Sign in
         </Link>
-        <button type="button" className={styles.getStartedBtn}>
+        <Link href="/auth" className={styles.getStartedBtn}>
           Get Started
-        </button>
+        </Link>
       </div>
     </header>
   );

@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: {
     absolute: 'Undone',
   },
-  description: 'Turn a curiosity, skill, or question into a learning journey.',
+  description: 'A little curiosity goes a long way.',
 };
 
 export default function LandingPage() {

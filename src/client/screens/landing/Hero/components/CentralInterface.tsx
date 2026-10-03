@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { TextBar } from '@/src/client/components/ui';
+import { FeaturedCohortsStrip } from './FeaturedCohortsStrip';
 import styles from '../Hero.module.css';
 
 export function CentralInterface() {
@@ -51,7 +52,7 @@ export function CentralInterface() {
 
       {/* Subtitle */}
       <p className={styles.subtitle}>
-        Turn a curiosity, skill, or question into a learning journey.
+        A little curiosity goes a long way.
       </p>
 
       {/* Remade Central TextBar matching reference */}
@@ -110,6 +111,9 @@ export function CentralInterface() {
           </div>
         }
       />
+
+      {/* Auto Horizontally Scrolling Featured Cohorts Strip */}
+      <FeaturedCohortsStrip />
     </div>
   );
 }
