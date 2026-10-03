@@ -1,27 +1,42 @@
 .auth {
+  --color-brand: #1F299D;
+  --color-brand-hover: #182280;
+  --color-brand-soft: #F1F3FD;
+  --color-brand-subtle: #F1F3FD;
+  --auth-navy: #0E1738;
+  --auth-cobalt: #1F299D;
+  --auth-cobalt-hover: #182280;
+  --auth-text-subtle: #596378;
+  --auth-border-subtle: 1px solid #DFD8CD;
+
   display: grid;
   grid-template-columns: minmax(0, 1fr) 520px;
   width: 100vw;
   height: 100vh;
   margin: 0;
   padding: 0;
-  background: white;
+  background: #FFFFFF;
   overflow: hidden;
+}
+
+[data-theme="dark"] .auth {
+  background: #000000;
+  color: #FFFFFF;
 }
 
 .showcase {
   position: relative;
   min-width: 0;
-
-  overflow: visible;
+  overflow: hidden;
 }
 
 .panel {
   position: relative;
-
   display: flex;
-
   align-items: stretch;
+  overflow-y: auto;
+  max-height: 100vh;
+  scrollbar-width: thin;
 }
 
 @media (max-width: 1100px) {
@@ -38,7 +53,16 @@
   }
 }
 
-@media (max-width: 768px) { .auth { min-height: 100vh; } }
+@media (max-width: 768px) {
+  .auth {
+    min-height: 100vh;
+    height: auto;
+    overflow-y: auto;
+  }
+  .panel {
+    max-height: none;
+  }
+}
 
 .loading {
   display: flex;
@@ -46,15 +70,19 @@
   justify-content: center;
   width: 100vw;
   height: 100vh;
-  background: var(--color-bg, #FAF7F2);
+  background: #FAF7F2;
+}
+
+[data-theme="dark"] .loading {
+  background: #000000;
 }
 
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(123, 77, 255, 0.15);
+  border: 3px solid rgba(31, 41, 157, 0.15);
   border-radius: 50%;
-  border-top-color: #7b4dff;
+  border-top-color: #1F299D;
   animation: spin 1s ease-in-out infinite;
 }
 

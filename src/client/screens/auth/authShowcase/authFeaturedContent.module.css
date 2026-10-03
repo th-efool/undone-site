@@ -82,7 +82,7 @@
 
   border-radius: 999px;
 
-  background: rgba(99, 102, 241, 0.15);
+  background: rgba(31, 41, 157, 0.15);
 }
 
 .progressFill {
@@ -94,8 +94,8 @@
 
   background: linear-gradient(
     90deg,
-    var(--color-brand),
-    color-mix(in srgb, var(--color-brand) 82%, white)
+    #1F299D,
+    color-mix(in srgb, #1F299D 82%, white)
   );
 }
 

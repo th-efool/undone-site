@@ -1,32 +1,39 @@
 .legal {
   margin: 0;
-
   text-align: center;
+  font-family: var(--font-manrope-next), sans-serif;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #596378;
+}
 
-  font-size: var(--text-sm);
-  line-height: 1.6;
-
-  color: var(--color-text-secondary);
+[data-theme="dark"] .legal {
+  color: #8E98B0;
 }
 
 .link {
-  color: var(--color-brand);
-
-  font-weight: var(--font-medium);
-
+  color: #1F299D;
+  font-weight: 600;
   text-decoration: none;
-
-  transition: color 0.2s;
+  transition: color 0.2s ease;
 }
 
 .link:hover {
+  color: #182280;
   text-decoration: underline;
+}
+
+[data-theme="dark"] .link {
+  color: #818CF8;
+}
+
+[data-theme="dark"] .link:hover {
+  color: #A5B4FC;
 }
 
 @media (max-width: 768px) {
   .link {
     display: inline-block;
-    padding: 10px 0;
+    padding: 4px 0;
   }
 }
-

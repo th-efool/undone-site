@@ -2,146 +2,187 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-
   height: 100%;
   box-sizing: border-box;
+  padding: 24px 36px;
+  background: #FFFFFF;
+}
 
-  padding: 24px 32px;
+[data-theme="dark"] .form {
+  background: #000000;
 }
 
 .header {
   display: flex;
   flex-direction: column;
-
   gap: 8px;
   z-index: 10;
 }
 
 .login {
   display: flex;
-
   justify-content: flex-end;
-
   align-items: center;
-
   gap: 8px;
-
   font-size: var(--text-sm);
-
-  color: var(--color-text-secondary);
+  color: #596378;
 }
 
 .loginButton {
   background: none;
-
   border: none;
-
   cursor: pointer;
-
   font: inherit;
-
-  font-weight: var(--font-semibold);
-
-  color: var(--color-brand);
+  font-weight: 600;
+  color: #1F299D;
+  transition: color 0.2s ease;
 }
 
-/* Task 2.3 #17: Tab switcher — Sign Up / Log In */
+.loginButton:hover {
+  color: #182280;
+}
+
+/* Tab switcher — Sign Up / Log In */
 .tabSwitcher {
   display: flex;
   gap: 4px;
   padding: 3px;
-  background: #f3f4f6;
-  border-radius: var(--radius-xl);
-  margin-bottom: 12px;
+  background: #F1F3FD;
+  border: 1px solid #DFD8CD;
+  border-radius: var(--radius-xl, 12px);
+  margin-bottom: 14px;
+}
+
+[data-theme="dark"] .tabSwitcher {
+  background: #141722;
+  border-color: #262B3D;
 }
 
 .tabButton {
   flex: 1;
-  padding: 6px 12px;
+  padding: 8px 14px;
   border: none;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-lg, 9px);
   background: transparent;
-  font-size: 13px;
-  font-weight: var(--font-medium);
-  color: var(--color-text-secondary);
+  font-family: var(--font-manrope-next), sans-serif;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #596378;
   cursor: pointer;
-  transition:
-    background-color var(--duration-fast),
-    color var(--duration-fast);
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+[data-theme="dark"] .tabButton {
+  color: #8E98B0;
 }
 
 .tabButton.active {
-  background: #4f46e5;
-  color: white;
-  font-weight: var(--font-bold);
-  box-shadow: 0 2px 8px rgb(79 70 229 / 30%);
+  background: #1F299D;
+  color: #FFFFFF;
+  font-weight: 700;
+  box-shadow: 0 2px 10px rgba(31, 41, 157, 0.28);
+}
+
+[data-theme="dark"] .tabButton.active {
+  background: #3B49DF;
+  box-shadow: 0 2px 12px rgba(59, 73, 223, 0.35);
 }
 
 .tabButton:hover:not(.active) {
-  color: var(--color-text-primary);
-  background: #e5e7eb;
+  color: #0E1738;
+  background: rgba(31, 41, 157, 0.06);
+}
+
+[data-theme="dark"] .tabButton:hover:not(.active) {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .title {
-  font-size: clamp(2rem, 2.5vw, 2.8rem);
-  font-weight: 900;
-  line-height: 1.05;
-  color: var(--gray-950);
-  letter-spacing: -0.03em;
+  font-family: var(--font-geist-sans), var(--font-manrope-next), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: clamp(2rem, 2.4vw, 2.65rem);
+  font-weight: 800;
+  line-height: 1.08;
+  color: #0E1738;
+  letter-spacing: -0.025em;
+}
+
+[data-theme="dark"] .title {
+  color: #FFFFFF;
 }
 
 .highlight {
-  font-weight: 900;
-  color: var(--color-brand, #4f46e5);
+  font-weight: 800;
+  color: #1F299D;
+}
+
+[data-theme="dark"] .highlight {
+  color: #818CF8;
 }
 
 .description {
-  color: var(--color-text-secondary);
-
-  font-size: 0.9rem;
+  color: #596378;
+  font-family: var(--font-manrope-next), sans-serif;
+  font-size: 0.92rem;
   z-index: 30;
   line-height: 1.45;
+  margin-top: 2px;
+}
+
+[data-theme="dark"] .description {
+  color: #9CA3AF;
 }
 
 .oauth {
-  margin-top: 6px;
+  margin-top: 10px;
 }
 
 .divider {
-  margin-top: 6px;
+  margin-top: 10px;
 }
 
 .inputs {
-  margin-top: 24px;
+  margin-top: 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .rowInputs {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 14px;
 }
 
 .cta {
-  margin-top: 24px;
+  margin-top: 20px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
-/* Task 2.3 #19: Von Restorff Effect — strong visual contrast between primary & secondary actions */
 .cta button:first-child {
-  background: var(--color-brand);
-  color: white;
-  font-weight: var(--font-bold);
+  background: #1F299D;
+  color: #FFFFFF;
+  font-family: var(--font-manrope-next), sans-serif;
+  font-weight: 700;
   border: none;
-  box-shadow: 0 4px 16px rgb(91 57 246 / 30%);
+  box-shadow: 0 4px 16px rgba(31, 41, 157, 0.28);
+  transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 .cta button:first-child:hover {
-  filter: brightness(1.1);
+  background: #182280;
+  box-shadow: 0 6px 20px rgba(31, 41, 157, 0.38);
+}
+
+[data-theme="dark"] .cta button:first-child {
+  background: #3B49DF;
+  box-shadow: 0 4px 16px rgba(59, 73, 223, 0.35);
+}
+
+[data-theme="dark"] .cta button:first-child:hover {
+  background: #4E5CE8;
 }
 
 .legal {
@@ -150,60 +191,63 @@
 
 .footer {
   display: flex;
-
   justify-content: center;
+  padding-top: 10px;
+  margin-top: 6px;
+  border-top: 1px solid #DFD8CD;
+}
 
-  padding-top: 8px;
-  margin-top: 4px;
-
-  border-top: 1px solid var(--color-border);
+[data-theme="dark"] .footer {
+  border-top-color: #262B3D;
 }
 
 .footerText {
   display: flex;
-
   align-items: center;
-
   gap: 8px;
-
   margin: 0;
-
+  font-family: var(--font-manrope-next), sans-serif;
   font-size: var(--text-sm);
+  color: #596378;
+}
 
-  color: var(--color-text-secondary);
+[data-theme="dark"] .footerText {
+  color: #8E98B0;
 }
 
 .footerLink {
   padding: 0;
-
   border: none;
-
   background: transparent;
-
-  color: var(--color-brand);
-
+  color: #1F299D;
   font: inherit;
-
-  font-weight: var(--font-semibold);
-
+  font-weight: 600;
   cursor: pointer;
-
-  transition: color 0.2s;
+  transition: color 0.2s ease;
 }
 
 .footerLink:hover {
+  color: #182280;
   text-decoration: underline;
+}
+
+[data-theme="dark"] .footerLink {
+  color: #818CF8;
+}
+
+[data-theme="dark"] .footerLink:hover {
+  color: #A5B4FC;
 }
 
 @media (max-width: 768px) {
   .form {
-    padding: 20px 16px;
+    padding: 24px 18px;
     border-radius: 0;
     min-height: 100dvh;
   }
 
   .title {
-    font-size: clamp(1.8rem, 6vw, 2.5rem);
+    font-size: clamp(1.8rem, 6vw, 2.4rem);
   }
 
   .description {
@@ -222,4 +266,3 @@
     padding-top: 16px;
   }
 }
-

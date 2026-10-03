@@ -1,23 +1,14 @@
 .phone {
   position: absolute;
-
-  right: -15%;
-
-  top: -8vh;
-
-  width: clamp(200px, 24vw, 360px);
-
+  right: 8px;
+  bottom: -20px;
+  width: clamp(165px, 14.5vw, 215px);
   aspect-ratio: 560 / 1120;
-
-  transform: translateX(-50%) rotate(12deg);
-
-  z-index: 20;
-
+  transform: rotate(7deg);
+  z-index: 10;
   pointer-events: none;
-
-  filter: drop-shadow(var(--auth-shadow-lg));
-
-  animation: phoneFloat 7s var(--auth-ease-premium) infinite;
+  filter: drop-shadow(0 18px 32px rgba(14, 23, 56, 0.22));
+  animation: phoneFloat 7s cubic-bezier(0.22, 1, 0.36, 1) infinite;
 }
 
 .image {
@@ -27,19 +18,23 @@
 @keyframes phoneFloat {
   0%,
   100% {
-    transform: translateX(-50%) translateY(0) rotate(12deg);
+    transform: translateY(0) rotate(7deg);
   }
 
   50% {
-    transform: translateX(-50%) translateY(-1.5%) rotate(12deg);
+    transform: translateY(-8px) rotate(7deg);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .phone {
     animation: none;
-    transform: translateX(-50%) rotate(12deg);
+    transform: rotate(7deg);
   }
 }
 
-@media (max-width: 768px) { .phone { display: none; } }
+@media (max-width: 1100px) {
+  .phone {
+    display: none;
+  }
+}

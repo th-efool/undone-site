@@ -6,29 +6,44 @@
   height: 52px;
   padding: 0 16px;
   gap: 12px;
-  background: #f9fafb;
-  border: 1.5px solid #e5e7eb;
+  background: #FAFAFA;
+  border: 1.5px solid #DFD8CD;
   border-radius: 12px;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.2s ease;
+}
+
+[data-theme="dark"] .field {
+  background: #141722;
+  border-color: #262B3D;
 }
 
 .fieldFocused {
-  background: #ffffff;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 3.5px rgba(79, 70, 229, 0.12);
+  background: #FFFFFF;
+  border-color: #1F299D;
+  box-shadow: 0 0 0 3px rgba(31, 41, 157, 0.12);
+}
+
+[data-theme="dark"] .fieldFocused {
+  background: #181C2A;
+  border-color: #3B49DF;
+  box-shadow: 0 0 0 3px rgba(59, 73, 223, 0.25);
 }
 
 .iconWrapper {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #6b7280;
+  color: #8E867A;
   flex-shrink: 0;
   transition: color 0.2s ease;
 }
 
 .fieldFocused .iconWrapper {
-  color: #4f46e5;
+  color: #1F299D;
+}
+
+[data-theme="dark"] .fieldFocused .iconWrapper {
+  color: #818CF8;
 }
 
 .contentWrapper {
@@ -40,17 +55,26 @@
 }
 
 .label {
-  font-size: 12px;
+  font-family: var(--font-manrope-next), sans-serif;
+  font-size: 11px;
   font-weight: 700;
-  color: #9ca3af;
+  color: #8E867A;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   line-height: 1;
   margin-bottom: 2px;
 }
 
 .fieldFocused .label {
-  color: #4f46e5;
+  color: #1F299D;
+}
+
+[data-theme="dark"] .label {
+  color: #8E98B0;
+}
+
+[data-theme="dark"] .fieldFocused .label {
+  color: #818CF8;
 }
 
 .input {
@@ -59,16 +83,24 @@
   padding: 0;
   border: none;
   background: transparent;
-  font: inherit;
-  font-size: 16px;
+  font-family: var(--font-manrope-next), sans-serif;
+  font-size: 15px;
   font-weight: 500;
-  color: #111827;
+  color: #0E1738;
   line-height: 1.2;
 }
 
+[data-theme="dark"] .input {
+  color: #FFFFFF;
+}
+
 .input::placeholder {
-  color: #9ca3af;
+  color: #A0A7B5;
   font-weight: 400;
+}
+
+[data-theme="dark"] .input::placeholder {
+  color: #6B7280;
 }
 
 .input:focus {
@@ -88,7 +120,11 @@
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
-  color: #9ca3af;
+  color: #8E867A;
+}
+
+[data-theme="dark"] .selectIcon {
+  color: #8E98B0;
 }
 
 .toggle {
@@ -98,12 +134,16 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  color: #9ca3af;
+  color: #8E867A;
   padding: 4px;
   flex-shrink: 0;
+  transition: color 0.2s ease;
 }
 
 .toggle:hover {
-  color: #374151;
+  color: #0E1738;
 }
 
+[data-theme="dark"] .toggle:hover {
+  color: #FFFFFF;
+}
