@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, useMotionValueEvent } from 'framer-motion';
 import { useHlsVideo } from './hooks/useHlsVideo';
 import { useVideoKeyboardControls } from './hooks/useVideoKeyboardControls';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -21,6 +21,7 @@ export function VideoExplainer({
 }: VideoExplainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const userPausedManually = useRef(false);
 
   const {
     isPlaying,
@@ -28,7 +29,6 @@ export function VideoExplainer({
     isLoading,
     setIsLoading,
     hlsSupported,
-    togglePlay,
   } = useHlsVideo({
     videoRef,
     hlsSrc,
@@ -36,14 +36,56 @@ export function VideoExplainer({
     defaultPlaybackRate: 1.2,
   });
 
+  const handleTogglePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (video.paused) {
+      userPausedManually.current = false;
+      video.play().catch(() => {
+        video.muted = true;
+        video.play().catch(() => setIsPlaying(false));
+      });
+    } else {
+      userPausedManually.current = true;
+      video.pause();
+    }
+  };
+
   useVideoKeyboardControls({
     videoRef,
-    togglePlay,
+    togglePlay: handleTogglePlay,
   });
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start start', 'end end'],
+  });
+
+  // Autoplay when video zooms in beyond threshold (0.15) and auto-pause when zooming out (< 0.15 or > 0.82)
+  useMotionValueEvent(scrollYProgress, 'change', (progress) => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Zoom-in threshold: between 0.15 and 0.82 the video is zoomed in towards full screen
+    const isZoomedIn = progress >= 0.15 && progress <= 0.82;
+
+    if (isZoomedIn) {
+      if (video.paused && !userPausedManually.current) {
+        video.play().catch(() => {
+          // If unmuted autoplay blocked by browser policy, fallback to muted autoplay
+          video.muted = true;
+          video.play().catch(() => setIsPlaying(false));
+        });
+      }
+    } else {
+      // Zoomed out (scrolled back up to Hero or down to Ikigai): auto pause
+      if (!video.paused) {
+        video.pause();
+      }
+      // Reset manual pause preference once user leaves the section
+      userPausedManually.current = false;
+    }
   });
 
   const clipPath = useTransform(
@@ -85,13 +127,13 @@ export function VideoExplainer({
               setIsLoading(false);
             }}
             onPause={() => setIsPlaying(false)}
-            togglePlay={togglePlay}
+            togglePlay={handleTogglePlay}
           />
 
           <VideoControls
             isPlaying={isPlaying}
             isLoading={isLoading}
-            togglePlay={togglePlay}
+            togglePlay={handleTogglePlay}
             onExit={handleExit}
             closeOpacity={closeOpacity}
           />
