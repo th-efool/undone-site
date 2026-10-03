@@ -3,7 +3,7 @@
 import React from 'react';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '@/src/client/hooks/useTheme';
-import styles from '../ReconstructedHero.module.css';
+import styles from '../Hero.module.css';
 
 export function ThemeToggle() {
   const { isDark, toggleTheme, mounted } = useTheme();

@@ -16,7 +16,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { TextBar } from '@/src/client/components/ui';
-import styles from '../ReconstructedHero.module.css';
+import styles from '../Hero.module.css';
 
 export function CentralInterface() {
   const [query, setQuery] = useState('');
@@ -136,12 +136,13 @@ export function CentralInterface() {
         </button>
       </div>
 
-      {/* Divider */}
+      {/* Divider with 100% True Transparent Center */}
       <div className={styles.dividerWrapper}>
-        <div className={styles.dividerLine} />
+        <span className={styles.dividerLine} />
         <span className={styles.dividerBadge}>
           or start with something you have
         </span>
+        <span className={styles.dividerLine} />
       </div>
 
       {/* Source Pill Buttons */}

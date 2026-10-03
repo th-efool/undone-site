@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import styles from '../ReconstructedHero.module.css';
+import styles from '../Hero.module.css';
 
 export function CollageRight() {
   return (

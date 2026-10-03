@@ -2,13 +2,13 @@
 
 import React from 'react';
 import { useTheme } from '@/src/client/hooks/useTheme';
-import styles from './ReconstructedHero.module.css';
+import styles from './Hero.module.css';
 import { HeaderNav } from './components/HeaderNav';
 import { CentralInterface } from './components/CentralInterface';
 import { CollageLeft } from './components/CollageLeft';
 import { CollageRight } from './components/CollageRight';
 
-export function ReconstructedHero() {
+export function Hero() {
   const { theme } = useTheme();
 
   return (

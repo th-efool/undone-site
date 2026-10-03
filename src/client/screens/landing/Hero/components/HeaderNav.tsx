@@ -12,7 +12,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useTheme } from '@/src/client/hooks/useTheme';
 import { ThemeToggle } from './ThemeToggle';
-import styles from '../ReconstructedHero.module.css';
+import styles from '../Hero.module.css';
 
 export function HeaderNav() {
   const { isDark, mounted } = useTheme();

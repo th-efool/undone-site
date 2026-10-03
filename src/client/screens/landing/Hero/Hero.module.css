@@ -470,33 +470,33 @@
   margin-top: 1px;
 }
 
-/* Divider */
+/* Divider with True Transparent Badge */
 .dividerWrapper {
-  position: relative;
   width: 100%;
-  max-width: 320px;
+  max-width: 330px;
   margin-top: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 10px;
 }
 
 .dividerLine {
-  position: absolute;
-  left: 0;
-  right: 0;
+  flex: 1;
   height: 1px;
   background-color: #DDD6C9;
+  transition: background-color 0.2s ease;
 }
 
 .dividerBadge {
-  position: relative;
-  background-color: #FFFFFF;
-  padding: 0 8px;
+  background: transparent !important;
+  background-color: transparent !important;
+  padding: 0;
   font-family: var(--font-manrope-next), sans-serif;
   font-size: 8.5px;
   color: #667085;
   font-weight: 400;
+  white-space: nowrap;
 }
 
 /* Source Pill Buttons */
@@ -1402,7 +1402,8 @@
 
 :global([data-theme="dark"]) .heroWrapper .dividerBadge,
 .heroWrapper[data-theme="dark"] .dividerBadge {
-  background-color: #000000;
+  background: transparent !important;
+  background-color: transparent !important;
   color: #A1A1AA;
 }
 

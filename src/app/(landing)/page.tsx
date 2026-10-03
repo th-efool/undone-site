@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { ReconstructedHero } from '@/src/client/screens/landing/ReconstructedHero/ReconstructedHero';
+import { Hero, Section2 } from '@/src/client/screens/landing';
 
 export const metadata: Metadata = {
   title: {
@@ -11,7 +11,8 @@ export const metadata: Metadata = {
 export default function LandingPage() {
   return (
     <main>
-      <ReconstructedHero />
+      <Hero />
+      <Section2 />
     </main>
   );
 }
