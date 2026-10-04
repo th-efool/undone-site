@@ -14,7 +14,7 @@ export function CollageRight() {
           alt=""
           fill
           className={styles.tornPaperImage} data-editable-id="tornPaperImage"
-          priority
+          sizes="400px"
         />
       </div>
 
@@ -25,7 +25,7 @@ export function CollageRight() {
           alt=""
           fill
           className={styles.tornPaperImage} data-editable-id="tornPaperImage"
-          priority
+          sizes="280px"
         />
       </div>
 
@@ -36,7 +36,7 @@ export function CollageRight() {
           alt=""
           fill
           className={styles.tornPaperImage} data-editable-id="tornPaperImage"
-          priority
+          sizes="320px"
         />
       </div>
 
@@ -47,7 +47,7 @@ export function CollageRight() {
           alt=""
           fill
           className={styles.tornPaperImage} data-editable-id="tornPaperImage"
-          priority
+          sizes="400px"
         />
       </div>
 
@@ -58,7 +58,7 @@ export function CollageRight() {
           alt=""
           fill
           className={styles.tornPaperImage} data-editable-id="tornPaperImage"
-          priority
+          sizes="300px"
         />
       </div>
 

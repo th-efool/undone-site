@@ -44,7 +44,7 @@ export function Hero() {
             alt=""
             fill
             className={styles.tornPaperImage}
-            priority
+            sizes="300px"
           />
         </div>
 
@@ -57,7 +57,7 @@ export function Hero() {
             alt=""
             fill
             className={styles.tornPaperImage}
-            priority
+            sizes="300px"
           />
         </div>
 

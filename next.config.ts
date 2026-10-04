@@ -15,7 +15,8 @@ const nextConfig: NextConfig = {
     : {}),
   transpilePackages: ['es-toolkit', 'mermaid', '@excalidraw/mermaid-to-excalidraw', '@excalidraw/excalidraw'],
   images: {
-    unoptimized: true,
+    unoptimized: isMobileBuild,
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'https',

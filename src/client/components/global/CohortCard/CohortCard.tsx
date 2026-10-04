@@ -89,6 +89,7 @@ export function CohortCard({
         sizes="(max-width: 768px) 280px, 360px"
         className={styles.thumbnail}
         priority={priority}
+        loading={priority ? undefined : 'lazy'}
       />
 
       <div className={styles.overlay} />

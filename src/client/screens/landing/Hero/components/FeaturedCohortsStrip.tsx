@@ -128,12 +128,12 @@ export function FeaturedCohortsStrip({ selectedCategory = 'SideQuests' }: Featur
         scrollAmount={280}
         className={styles.cohortsInfiniteScroller}
       >
-        {filteredCohorts.map((cohort, index) => (
+        {filteredCohorts.map((cohort) => (
           <CohortCard
             key={cohort.id}
             item={cohort}
             size="compact"
-            priority={index < 4}
+            priority={false}
           />
         ))}
       </InfiniteScroller>
