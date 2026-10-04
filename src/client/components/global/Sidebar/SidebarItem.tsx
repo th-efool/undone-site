@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { triggerHaptic } from '@/src/client/utils/haptics';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
+import clsx from 'clsx';
 import styles from './SidebarItem.module.css';
 
 type SidebarItemProps = {
@@ -15,15 +16,21 @@ type SidebarItemProps = {
     size?: number;
     strokeWidth?: number;
   }>;
+  disabled?: boolean;
 };
 
-export function SidebarItem({ href, label, icon: Icon }: SidebarItemProps) {
+export function SidebarItem({ href, label, icon: Icon, disabled = false }: SidebarItemProps) {
   const pathname = usePathname();
   const lastClickRef = useRef<number>(0);
 
   const isActive = pathname === href;
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (disabled) {
+      e.preventDefault();
+      return;
+    }
+
     triggerHaptic('light');
 
     const now = Date.now();
@@ -35,12 +42,18 @@ export function SidebarItem({ href, label, icon: Icon }: SidebarItemProps) {
   };
 
   return (
-    <Tooltip content={label} placement="right">
+    <Tooltip content={disabled ? `${label} (Disabled)` : label} placement="right">
       <Link
-        href={href}
+        href={disabled ? '#' : href}
         aria-label={label}
+        aria-disabled={disabled}
         onClick={handleClick}
-        className={`${styles.item} ${isActive ? styles.active : ''}`}
+        tabIndex={disabled ? -1 : undefined}
+        className={clsx(
+          styles.item,
+          isActive && styles.active,
+          disabled && styles.disabled
+        )}
       >
         <Icon
           size={22}

@@ -31,7 +31,7 @@ export function Sidebar() {
         size={44}
       />
       <nav className={styles.navigation}>
-        {SIDEBAR_ITEMS.map((item) => (
+        {SIDEBAR_ITEMS.filter((item) => !item.hidden && !item.disabled).map((item) => (
           <SidebarItem
             key={item.href}
             {...item}

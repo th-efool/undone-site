@@ -172,7 +172,7 @@ export function AuthForm() {
       </section>
 
       <section className={styles.cta}>
-        <AuthButton href="/explore">{isSignUp ? "Create Account" : "Log In"}</AuthButton>
+        <AuthButton href="/home">{isSignUp ? "Create Account" : "Log In"}</AuthButton>
 
         <AuthButton
           variant="secondary"

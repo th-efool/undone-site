@@ -27,6 +27,12 @@
   border-radius: var(--radius-xl);
 }
 
+.disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .label {
   display: none;
 }

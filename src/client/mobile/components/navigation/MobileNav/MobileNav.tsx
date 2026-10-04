@@ -24,10 +24,10 @@ export function MobileNav() {
     };
 
     // Watch for global advertMode variable
-    // @ts-ignore
+    // @ts-expect-error Window.advertMode is an injected global property
     if (typeof window.advertMode === 'undefined') window.advertMode = true;
     const advertInterval = setInterval(() => {
-      // @ts-ignore
+      // @ts-expect-error Window.advertMode is an injected global property
       if (window.advertMode) {
         navRef.current?.classList.add(styles.keyboardHidden);
         document.body.classList.add('advert-mode-active');
@@ -73,7 +73,7 @@ export function MobileNav() {
       aria-label="Mobile Navigation"
     >
       <div className={styles.navigation}>
-        {SIDEBAR_ITEMS.map((item) => {
+        {SIDEBAR_ITEMS.filter((item) => !item.hidden && !item.disabled).map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || (item.href !== '/home' && pathname.startsWith(item.href));
 
