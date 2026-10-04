@@ -19,7 +19,8 @@
     "mobile:sync": "npx cap sync android",
     "mobile:open": "npx cap open android",
     "mobile:run": "npm run mobile:build && npx cap run android",
-    "mobile:release:aab": "node scripts/mobile-release-aab.mjs"
+    "mobile:release:aab": "node scripts/mobile-release-aab.mjs",
+    "rewrite": "npx react-rewrite-cli 3000"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
@@ -81,6 +82,7 @@
     "jsdom": "^29.1.1",
     "prettier": "3.9.6",
     "prisma": "^7.9.1",
+    "react-rewrite-cli": "^0.1.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vercel": "^59.11.7",
