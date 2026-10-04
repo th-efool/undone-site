@@ -40,6 +40,12 @@ ASSET_SPECS = [
     },
     # Hero Collage Images
     {
+        'path': 'public/images/hero-collage/real-map.webp',
+        'max_width': 300,
+        'format': 'WEBP',
+        'quality': 78,
+    },
+    {
         'path': 'public/images/hero-collage/real-map.jpg',
         'max_width': 400,
         'format': 'JPEG',

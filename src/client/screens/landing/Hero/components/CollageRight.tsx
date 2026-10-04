@@ -160,7 +160,7 @@ export function CollageRight() {
       <div className={styles.mapCard} data-editable-id="mapCard">
         <div className={styles.mapInner} data-editable-id="mapInner">
           <Image
-            src="/images/hero-collage/real-map.jpg"
+            src="/images/hero-collage/real-map.webp"
             alt=""
             fill
             className={styles.mapImage} data-editable-id="mapImage"
