@@ -36,23 +36,23 @@ const currentYear = new Date().getFullYear();
 const productLinks = [
   {
     icon: <BookOpen size={16} />,
-    label: 'AI Feed',
-    href: '#',
+    label: 'AI Microlearning',
+    href: '/features/microlearning',
   },
   {
     icon: <Layers3 size={16} />,
     label: 'Cohorts',
-    href: '#',
+    href: '/cohort',
   },
   {
     icon: <Brain size={16} />,
-    label: 'Smart Queue',
-    href: '#',
+    label: 'AI Study Planner',
+    href: '/features/ai-study-planner',
   },
   {
     icon: <Compass size={16} />,
-    label: 'Challenges',
-    href: '#',
+    label: 'Virtual Study Rooms',
+    href: '/studyroom',
   },
 ];
 
@@ -60,68 +60,68 @@ const learnLinks = [
   {
     icon: <Map size={16} />,
     label: 'Roadmaps',
-    href: '#',
+    href: '/explore',
   },
   {
     icon: <FolderOpen size={16} />,
-    label: 'Collections',
-    href: '#',
+    label: 'Curricula',
+    href: '/explore',
   },
   {
     icon: <Star size={16} />,
-    label: 'Weekly Picks',
-    href: '#',
+    label: 'Trending Cohorts',
+    href: '#community',
   },
   {
     icon: <Search size={16} />,
-    label: 'Discover',
-    href: '#',
+    label: 'Discover Topics',
+    href: '#explore',
   },
 ];
 
 const companyLinks = [
   {
     icon: <Compass size={16} />,
-    label: 'About',
-    href: '#',
+    label: 'How It Works',
+    href: '#how-it-works',
   },
   {
     icon: <FileText size={16} />,
-    label: 'Blog',
-    href: '#',
+    label: 'Features',
+    href: '#features',
   },
   {
     icon: <ShieldCheck size={16} />,
-    label: 'Privacy',
-    href: '#',
+    label: 'Privacy Policy',
+    href: '/policy',
   },
   {
     icon: <MessageCircle size={16} />,
-    label: 'Contact',
-    href: '#',
+    label: 'Terms of Service',
+    href: '/terms',
   },
 ];
 
 const resourceLinks = [
   {
     icon: <FileText size={16} />,
-    label: 'Documentation',
-    href: '#',
+    label: 'Study Planner Guide',
+    href: '/features/ai-study-planner',
   },
   {
     icon: <Compass size={16} />,
     label: 'Community',
-    href: '#',
+    href: '#community',
   },
   {
     icon: <ShieldCheck size={16} />,
-    label: 'Terms',
-    href: '#',
+    label: 'FAQ',
+    href: '#faq',
   },
   {
     icon: <Brain size={16} />,
-    label: 'Status',
-    href: '#',
+    label: 'Begin Journey',
+    href: '/auth',
   },
 ];
 
@@ -256,31 +256,35 @@ export function Footer({
 
           <Cluster gap="5">
             <Link
-              href="#"
+              href="https://github.com/th-efool/sidequesthq-site"
               className={styles.social}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               GitHub
             </Link>
 
             <Link
-              href="#"
+              href="https://x.com/undone"
               className={styles.social}
-            >
-              LinkedIn
-            </Link>
-
-            <Link
-              href="#"
-              className={styles.social}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               X
             </Link>
 
             <Link
-              href="#"
+              href="/policy"
               className={styles.social}
             >
-              Discord
+              Privacy
+            </Link>
+
+            <Link
+              href="/terms"
+              className={styles.social}
+            >
+              Terms
             </Link>
           </Cluster>
         </div>

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Sign In | Undone',
     description: 'Sign in or create an account to start tracking and completing your learning journey.',
-    url: 'https://undone.com/auth',
+    url: '/auth',
     type: 'website',
   },
   twitter: {

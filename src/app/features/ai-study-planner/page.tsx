@@ -2,16 +2,37 @@ import type { Metadata } from 'next';
 import { LandingClient } from '@/src/app/_archived_pages/landing/page.client';
 
 export const metadata: Metadata = {
-  title: 'AI Study Planner & Tracker | SideQuestHQ',
-  description: 'Let AI build your perfect study plan. SideQuestHQ uses artificial intelligence to schedule, track, and adapt your learning journey for maximum consistency.',
+  title: 'AI Study Planner & Tracker | Undone',
+  description: 'Let AI build your personalized study quest. Undone uses artificial intelligence to schedule, track, and adapt your microlearning journey for maximum consistency.',
+  keywords: [
+    'AI study planner',
+    'smart study tracker',
+    'personalized learning path',
+    'microlearning schedule',
+    'Undone',
+  ],
   alternates: {
     canonical: 'https://sidequesthq.com/features/ai-study-planner',
   },
   openGraph: {
-    title: 'AI Study Planner & Tracker | SideQuestHQ',
-    description: 'Let AI build your perfect study plan. SideQuestHQ uses artificial intelligence to schedule, track, and adapt your learning journey for maximum consistency.',
+    title: 'AI Study Planner & Tracker | Undone',
+    description: 'Let AI build your personalized study quest. Undone uses artificial intelligence to schedule, track, and adapt your microlearning journey for maximum consistency.',
     url: 'https://sidequesthq.com/features/ai-study-planner',
     type: 'website',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'AI Study Planner & Tracker | Undone',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'AI Study Planner & Tracker | Undone',
+    description: 'Let AI build your personalized study quest. Undone uses artificial intelligence to schedule, track, and adapt your microlearning journey.',
+    images: ['/twitter-image.png'],
   },
 };
 
@@ -19,8 +40,8 @@ export default function AiStudyPlannerFeature() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'AI Study Planner & Tracker - SideQuestHQ',
-    description: 'Let AI build your perfect study plan. SideQuestHQ uses artificial intelligence to schedule, track, and adapt your learning journey for maximum consistency.',
+    name: 'AI Study Planner & Tracker — Undone',
+    description: 'Let AI build your personalized study quest. Undone uses artificial intelligence to schedule, track, and adapt your microlearning journey for maximum consistency.',
     url: 'https://sidequesthq.com/features/ai-study-planner',
   };
 
