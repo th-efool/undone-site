@@ -1,0 +1,242 @@
+.container {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999;
+  background-color: #FAF7F2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+  animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Subtle parchment grain overlay */
+.textureOverlay {
+  position: absolute;
+  inset: 0;
+  background-image: url('/images/hero-collage/real-paper-texture.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.08;
+  mix-blend-mode: multiply;
+  pointer-events: none;
+}
+
+/* Atmospheric center aura */
+.aura {
+  position: absolute;
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(31, 41, 157, 0.07) 0%, rgba(250, 247, 242, 0) 70%);
+  pointer-events: none;
+  animation: pulseAura 2.5s ease-in-out infinite alternate;
+}
+
+@keyframes pulseAura {
+  0% {
+    transform: scale(0.92);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.12);
+    opacity: 1;
+  }
+}
+
+.contentWrapper {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+/* Aesthetic Dual-Ring Orbit Spinner */
+.spinnerWrapper {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinnerTrack {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(14, 23, 56, 0.09);
+}
+
+.spinnerOuter {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: #1F299D;
+  border-right-color: rgba(31, 41, 157, 0.45);
+  animation: spinSmooth 0.85s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.spinnerInner {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  border-bottom-color: #0E1738;
+  border-left-color: rgba(14, 23, 56, 0.35);
+  animation: spinReverse 1.3s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+}
+
+.spinnerCenterDot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: #1F299D;
+  box-shadow: 0 0 8px rgba(31, 41, 157, 0.6);
+  animation: breatheDot 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes spinSmooth {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spinReverse {
+  0% {
+    transform: rotate(360deg);
+  }
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes breatheDot {
+  0% {
+    transform: scale(0.75);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 1;
+  }
+}
+
+/* Brand Typography */
+.brandInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.brandTitle {
+  font-family: var(--font-playfair-display), serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-indent: 0.3em;
+  color: #0E1738;
+  text-transform: uppercase;
+}
+
+.brandTagline {
+  font-family: var(--font-caveat-next), cursive;
+  font-size: 14px;
+  color: #8E867A;
+  letter-spacing: 0.02em;
+}
+
+/* Dark mode aesthetic styling */
+:global([data-theme="dark"]) .container {
+  background-color: #090C12;
+}
+
+:global([data-theme="dark"]) .textureOverlay {
+  opacity: 0.03;
+  mix-blend-mode: screen;
+}
+
+:global([data-theme="dark"]) .aura {
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, rgba(9, 12, 18, 0) 70%);
+}
+
+:global([data-theme="dark"]) .spinnerTrack {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+:global([data-theme="dark"]) .spinnerOuter {
+  border-top-color: #818CF8;
+  border-right-color: rgba(129, 140, 248, 0.5);
+}
+
+:global([data-theme="dark"]) .spinnerInner {
+  border-bottom-color: #C7D2FE;
+  border-left-color: rgba(199, 210, 254, 0.4);
+}
+
+:global([data-theme="dark"]) .spinnerCenterDot {
+  background-color: #818CF8;
+  box-shadow: 0 0 10px rgba(129, 140, 248, 0.8);
+}
+
+:global([data-theme="dark"]) .brandTitle {
+  color: #F8FAFC;
+}
+
+:global([data-theme="dark"]) .brandTagline {
+  color: #94A3B8;
+}
+
+@media (prefers-color-scheme: dark) {
+  :global(:root:not([data-theme="light"])) .container {
+    background-color: #090C12;
+  }
+  :global(:root:not([data-theme="light"])) .textureOverlay {
+    opacity: 0.03;
+    mix-blend-mode: screen;
+  }
+  :global(:root:not([data-theme="light"])) .aura {
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, rgba(9, 12, 18, 0) 70%);
+  }
+  :global(:root:not([data-theme="light"])) .spinnerTrack {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  :global(:root:not([data-theme="light"])) .spinnerOuter {
+    border-top-color: #818CF8;
+    border-right-color: rgba(129, 140, 248, 0.5);
+  }
+  :global(:root:not([data-theme="light"])) .spinnerInner {
+    border-bottom-color: #C7D2FE;
+    border-left-color: rgba(199, 210, 254, 0.4);
+  }
+  :global(:root:not([data-theme="light"])) .spinnerCenterDot {
+    background-color: #818CF8;
+    box-shadow: 0 0 10px rgba(129, 140, 248, 0.8);
+  }
+  :global(:root:not([data-theme="light"])) .brandTitle {
+    color: #F8FAFC;
+  }
+  :global(:root:not([data-theme="light"])) .brandTagline {
+    color: #94A3B8;
+  }
+}

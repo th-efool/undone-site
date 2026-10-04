@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef, RefObject } from 'react';
-import Hls from 'hls.js';
+import type Hls from 'hls.js';
 
 export interface UseHlsVideoOptions {
   videoRef: RefObject<HTMLVideoElement | null>;
@@ -83,50 +83,71 @@ export function useHlsVideo({
     video.defaultPlaybackRate = defaultPlaybackRate;
     setIsMuted(video.muted);
 
-    let hls: Hls | null = null;
+    let hlsInstance: Hls | null = null;
+    let isCancelled = false;
 
-    if (Hls.isSupported()) {
-      hls = new Hls({
-        autoStartLoad: true,
-        startPosition: -1,
-        capLevelToPlayerSize: true,
-        // Aggressive pre-buffering to eliminate mid-playback loading pauses
-        maxBufferLength: 30, // Buffer 30 seconds ahead
-        maxMaxBufferLength: 60, // Allow up to 60s buffer
-        maxBufferSize: 60 * 1000 * 1000,
-        enableWorker: true,
-        lowLatencyMode: false,
-      });
+    const initHls = async () => {
+      try {
+        const HlsModule = (await import('hls.js')).default;
+        if (isCancelled || !videoRef.current) return;
+        const currentVideo = videoRef.current;
 
-      hls.loadSource(hlsSrc);
-      hls.attachMedia(video);
+        if (HlsModule.isSupported()) {
+          const hls = new HlsModule({
+            autoStartLoad: true,
+            startPosition: -1,
+            capLevelToPlayerSize: true,
+            // Aggressive pre-buffering to eliminate mid-playback loading pauses
+            maxBufferLength: 30, // Buffer 30 seconds ahead
+            maxMaxBufferLength: 60, // Allow up to 60s buffer
+            maxBufferSize: 60 * 1000 * 1000,
+            enableWorker: true,
+            lowLatencyMode: false,
+          });
+          hlsInstance = hls;
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        setHlsSupported(true);
-      });
+          hls.loadSource(hlsSrc);
+          hls.attachMedia(currentVideo);
 
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (data.fatal) {
-          console.error('HLS fatal error:', data);
-          setHlsSupported(false);
-          setIsLoading(false);
+          hls.on(HlsModule.Events.MANIFEST_PARSED, () => {
+            if (!isCancelled) setHlsSupported(true);
+          });
+
+          hls.on(HlsModule.Events.ERROR, (_event, data) => {
+            if (data.fatal) {
+              console.error('HLS fatal error:', data);
+              if (!isCancelled) {
+                setHlsSupported(false);
+                setIsLoading(false);
+              }
+            }
+          });
+        } else if (currentVideo.canPlayType('application/vnd.apple.mpegurl')) {
+          // Native Apple HLS (Safari / iOS)
+          currentVideo.src = hlsSrc;
+          if (!isCancelled) setHlsSupported(true);
+        } else {
+          // Fallback for browsers without HLS
+          if (!isCancelled) setHlsSupported(false);
         }
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      // Native Apple HLS (Safari / iOS)
-      video.src = hlsSrc;
-      setHlsSupported(true);
-    } else {
-      // Fallback for browsers without HLS
-      setHlsSupported(false);
-    }
+      } catch (err) {
+        console.error('Failed to load Hls:', err);
+        if (!isCancelled && videoRef.current?.canPlayType('application/vnd.apple.mpegurl')) {
+          videoRef.current.src = hlsSrc;
+          setHlsSupported(true);
+        }
+      }
+    };
+
+    initHls();
 
     return () => {
+      isCancelled = true;
       if (loadingTimerRef.current) {
         clearTimeout(loadingTimerRef.current);
       }
-      if (hls) {
-        hls.destroy();
+      if (hlsInstance) {
+        hlsInstance.destroy();
       }
     };
   }, [videoRef, hlsSrc, defaultPlaybackRate, setIsLoading]);
