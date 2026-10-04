@@ -195,8 +195,11 @@
   transition: background-color 0.15s ease, transform 0.1s ease;
 }
 
-.getStartedBtn:hover {
+.getStartedBtn:hover,
+.getStartedBtn:focus,
+.getStartedBtn:active {
   background-color: #182280;
+  color: #FFFFFF !important;
   transform: translateY(-0.5px);
 }
 
@@ -207,11 +210,11 @@
   flex: 1;
   width: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   position: relative;
   z-index: 10;
-  padding: 4px 0 10px 0;
+  padding: 0 0 clamp(36px, 5.5vh, 56px) 0;
   box-sizing: border-box;
 }
 
@@ -220,19 +223,22 @@
   max-width: 885px;
   width: 100%;
   margin: 0 auto;
-  margin-top: clamp(-38px, -4vh, -15px);
+  margin-top: 0;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   align-items: center;
   text-align: center;
   padding: 0 16px;
   box-sizing: border-box;
+  z-index: 30;
 }
 
 .heroContent {
   width: 100%;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   align-items: center;
   text-align: center;
   position: relative;
@@ -563,13 +569,14 @@
 .cohortsStripContainer {
   width: min(100vw - 12px, 1440px);
   margin-left: calc((100% - min(100vw - 12px, 1440px)) / 2 + 65px);
-  margin-top: 16px;
+  margin-top: 8px;
+  margin-bottom: 0;
   overflow: hidden;
   position: relative;
   z-index: 10;
   mask-image: linear-gradient(to right, transparent 0%, black 25px, black calc(100% - 15px), transparent 100%);
   -webkit-mask-image: linear-gradient(to right, transparent 0%, black 25px, black calc(100% - 15px), transparent 100%);
-  padding: 4px 0;
+  padding: 2px 0 0 0;
   box-sizing: border-box;
 }
 
@@ -1302,12 +1309,18 @@
 :global([data-theme="dark"]) .heroWrapper .getStartedBtn,
 .heroWrapper[data-theme="dark"] .getStartedBtn {
   background-color: #4F46E5;
+  color: #FFFFFF !important;
   box-shadow: 0 2px 10px rgba(79, 70, 229, 0.45);
 }
 
 :global([data-theme="dark"]) .heroWrapper .getStartedBtn:hover,
-.heroWrapper[data-theme="dark"] .getStartedBtn:hover {
+:global([data-theme="dark"]) .heroWrapper .getStartedBtn:focus,
+:global([data-theme="dark"]) .heroWrapper .getStartedBtn:active,
+.heroWrapper[data-theme="dark"] .getStartedBtn:hover,
+.heroWrapper[data-theme="dark"] .getStartedBtn:focus,
+.heroWrapper[data-theme="dark"] .getStartedBtn:active {
   background-color: #6366F1;
+  color: #FFFFFF !important;
 }
 
 /* ── Central Interface Typography (Dark Mode) ── */

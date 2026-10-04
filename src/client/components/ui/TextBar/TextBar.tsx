@@ -59,6 +59,8 @@ export interface TextBarProps
   onClear?: () => void;
   /** Submission handler fired on Enter or form submit */
   onSubmit?: ((value: string, e?: FormEvent) => void) | ((e: FormEvent) => void);
+  /** Whether pressing plain Enter submits in multiline mode (default: true). If false, Enter inserts a newline and Cmd/Ctrl+Enter submits */
+  submitOnEnter?: boolean;
   /** Whether the outer wrapper is a `<form>` element (defaults to true if onSubmit is provided) */
   asForm?: boolean;
   /** Custom class for the outer shell/container */
@@ -95,6 +97,7 @@ export const TextBar = forwardRef<HTMLInputElement | HTMLTextAreaElement, TextBa
       clearable = false,
       onClear,
       onSubmit,
+      submitOnEnter = true,
       asForm,
       className,
       inputClassName,
@@ -203,10 +206,20 @@ export const TextBar = forwardRef<HTMLInputElement | HTMLTextAreaElement, TextBa
     };
 
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      if (multiline && e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        if (onSubmit) {
-          (onSubmit as (val: string, ev?: FormEvent) => void)(currentValue, e as any);
+      if (multiline) {
+        const isPlainEnter = e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.metaKey;
+        const isModifierSubmit = (e.ctrlKey || e.metaKey) && e.key === 'Enter';
+
+        if (submitOnEnter && isPlainEnter) {
+          e.preventDefault();
+          if (onSubmit) {
+            (onSubmit as (val: string, ev?: FormEvent) => void)(currentValue, e as any);
+          }
+        } else if (isModifierSubmit) {
+          e.preventDefault();
+          if (onSubmit) {
+            (onSubmit as (val: string, ev?: FormEvent) => void)(currentValue, e as any);
+          }
         }
       }
       onKeyDown?.(e as any);

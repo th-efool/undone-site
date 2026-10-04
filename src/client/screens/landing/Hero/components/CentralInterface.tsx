@@ -69,6 +69,7 @@ export function CentralInterface() {
         multiline
         minRows={1}
         maxRows={{ base: 4, sm: 5, md: 6, lg: 8 }}
+        submitOnEnter={false}
         value={query}
         onChange={(e) => setQuery(e.target.value)}
         onSubmit={handleSubmit}
