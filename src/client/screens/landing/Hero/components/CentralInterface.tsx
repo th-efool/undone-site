@@ -36,7 +36,7 @@ export function CentralInterface() {
   };
 
   return (
-    <div className={styles.heroContent}>
+    <div id="explore" className={styles.heroContent}>
       {/* Eyebrow */}
       <span className={styles.eyebrow}>A MORE CURIOUS YOU</span>
 

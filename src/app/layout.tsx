@@ -46,33 +46,37 @@ const playfairDisplay = Playfair_Display({
 });
 
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sidequesthq.in';
+
 export const metadata: Metadata = {
-  metadataBase: new URL('https://sidequesthq.com'),
+  metadataBase: new URL(siteUrl),
 
   title: {
-    default: 'Undone',
+    default: 'Undone — For a more curious you',
     template: '%s | Undone',
   },
 
-  description: 'The easiest way to stay consistent with everything you want to learn.',
+  description: 'Turn existing curiosity into lasting understanding. Seamlessly learn from YouTube, articles, and podcasts in the spare moments of everyday life — without managing courses or schedules.',
 
   applicationName: 'Undone',
 
   keywords: [
     'Undone',
-    'learning',
+    'curiosity',
+    'structured curiosity',
+    'self-directed learning',
     'microlearning',
-    'AI',
-    'education',
-    'knowledge management',
     'learning paths',
-    'study',
-    'skill development',
+    'study cohorts',
+    'YouTube learning',
+    'knowledge management',
+    'education',
   ],
 
   authors: [
     {
       name: 'Undone',
+      url: siteUrl,
     },
   ],
 
@@ -82,55 +86,73 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://sidequesthq.com',
+    url: siteUrl,
     siteName: 'Undone',
-    title: 'Undone',
-    description: 'The easiest way to stay consistent with everything you want to learn.',
+    title: 'Undone — For a more curious you',
+    description: 'Turn existing curiosity into lasting understanding. Seamlessly learn from YouTube, articles, and podcasts in the spare moments of everyday life — without managing courses or schedules.',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Undone',
+        alt: 'Undone — Turn curiosity into lasting understanding',
+        type: 'image/png',
       },
     ],
   },
 
   twitter: {
     card: 'summary_large_image',
-    title: 'Undone',
-    description: 'The easiest way to stay consistent with everything you want to learn.',
-    images: ['/og-image.png'],
+    title: 'Undone — For a more curious you',
+    description: 'Turn existing curiosity into lasting understanding. Seamlessly learn from YouTube, articles, and podcasts in the spare moments of everyday life.',
+    images: ['/twitter-image.png'],
     creator: '@Undone',
   },
 
-  // NOTE: THIS IS UPDATED NEW LOGO & DONT CLEAN UP - Using public/undone-logo-transparent.svg for favicon
   icons: {
     icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon-32x32.png', type: 'image/png', sizes: '32x32' },
+      { url: '/favicon-16x16.png', type: 'image/png', sizes: '16x16' },
       { url: '/undone-logo-transparent.svg', type: 'image/svg+xml' },
       { url: '/undone-logo-light.png', media: '(prefers-color-scheme: light)', type: 'image/png' },
       { url: '/undone-logo-dark.png', media: '(prefers-color-scheme: dark)', type: 'image/png' },
-      { url: '/favicon.ico' },
     ],
     apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
       { url: '/undone-logo-transparent.svg' },
-      { url: '/undone-logo.png' },
     ],
-    shortcut: '/undone-logo-transparent.svg',
+    shortcut: '/favicon.ico',
   },
 
   manifest: '/site.webmanifest',
 
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Undone',
+  },
+
   robots: {
     index: true,
     follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 };
 
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  themeColor: '#FAF7F2',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#FAF7F2' },
+    { media: '(prefers-color-scheme: dark)', color: '#090C12' },
+  ],
   viewportFit: 'cover',
 };
 
