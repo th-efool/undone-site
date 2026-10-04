@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "node scripts/dev.mjs",
+    "dev:bare": "next dev",
     "build": "node scripts/update-directory-structure.mjs && prisma generate && next build",
     "update:structure": "node scripts/update-directory-structure.mjs",
     "build:worker": "tsc --project tsconfig.worker.json",
