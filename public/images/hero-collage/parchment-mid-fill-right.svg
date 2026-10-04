@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 180" fill="none">
+  <defs>
+    <filter id="parchment-mid-r-shadow" x="-10%" y="-15%" width="125%" height="135%">
+      <feDropShadow dx="-2" dy="4" stdDeviation="8" flood-color="#141E38" flood-opacity="0.08" />
+      <feDropShadow dx="-1" dy="2" stdDeviation="3" flood-color="#141E38" flood-opacity="0.04" />
+    </filter>
+    <linearGradient id="parchment-mid-r-grad" x1="260" y1="180" x2="0" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E5D9C5" />
+      <stop offset="45%" stop-color="#F2E8D8" />
+      <stop offset="85%" stop-color="#FAF4E8" />
+      <stop offset="100%" stop-color="#FCF9F1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Organic deckled scrap bridging mid-right collage downward -->
+  <path d="M 260 20
+           C 230 12, 195 28, 160 15
+           C 125 4, 90 22, 55 10
+           C 25 3, 10 18, 0 35
+           C 12 65, 5 95, 20 125
+           C 38 152, 65 170, 95 162
+           C 135 152, 175 172, 215 160
+           C 240 152, 252 165, 260 175
+           Z"
+        fill="url(#parchment-mid-r-grad)"
+        filter="url(#parchment-mid-r-shadow)" />
+
+  <!-- Deckle highlight along inner/upper border -->
+  <path d="M 260 20
+           C 230 12, 195 28, 160 15
+           C 125 4, 90 22, 55 10
+           C 25 3, 10 18, 0 35
+           C 12 65, 5 95, 20 125
+           C 38 152, 65 170, 95 162"
+        stroke="#FFFDF9"
+        stroke-width="1.6"
+        stroke-linecap="round"
+        opacity="0.80" />
+</svg>

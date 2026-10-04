@@ -51,6 +51,19 @@ export function CollageRight() {
         />
       </div>
 
+      {/* MID FILL PARCHMENT (Right): Bridges mid collage downward */}
+      <div className={styles.midFillParchmentRight}>
+        <Image
+          src="/images/hero-collage/parchment-mid-fill-right.svg"
+          alt=""
+          fill
+          className={styles.tornPaperImage}
+          priority
+        />
+      </div>
+
+
+
       {/* R1: Cosmic Galaxy Photo Card (Real Space Imagery) */}
       <div className={styles.galaxyCard}>
         <div className={styles.galaxyInner}>

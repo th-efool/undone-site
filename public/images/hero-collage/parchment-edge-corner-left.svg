@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 220" fill="none">
+  <defs>
+    <filter id="parchment-edge-corner-l-shadow" x="-10%" y="-15%" width="125%" height="135%">
+      <feDropShadow dx="2" dy="4" stdDeviation="8" flood-color="#141E38" flood-opacity="0.10" />
+      <feDropShadow dx="1" dy="2" stdDeviation="3" flood-color="#141E38" flood-opacity="0.05" />
+    </filter>
+    <linearGradient id="parchment-edge-corner-l-grad" x1="0" y1="220" x2="340" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E5D9C5" />
+      <stop offset="45%" stop-color="#F2E8D8" />
+      <stop offset="85%" stop-color="#FAF4E8" />
+      <stop offset="100%" stop-color="#FCF9F1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Parabolic deckled parchment sheet hugging bottom and left edge -->
+  <path d="M 0 220
+           L 0 45
+           C 22 40, 48 55, 72 42
+           C 105 24, 138 52, 175 68
+           C 218 88, 255 125, 292 165
+           C 314 188, 328 206, 340 220
+           Z"
+        fill="url(#parchment-edge-corner-l-grad)"
+        filter="url(#parchment-edge-corner-l-shadow)" />
+
+  <!-- Deckle torn edge white fibrous highlight along upper curved rim -->
+  <path d="M 0 45
+           C 22 40, 48 55, 72 42
+           C 105 24, 138 52, 175 68
+           C 218 88, 255 125, 292 165
+           C 314 188, 328 206, 340 220"
+        stroke="#FFFDF9"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        opacity="0.85" />
+</svg>

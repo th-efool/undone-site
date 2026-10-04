@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Image from 'next/image';
 import { useTheme } from '@/src/client/hooks/useTheme';
 import styles from './Hero.module.css';
 import { HeaderNav } from './components/HeaderNav';
@@ -26,6 +27,27 @@ export function Hero() {
 
         {/* Right Physical Scrapbooking Collage (Real Photos + Live HTML Crafts) */}
         <CollageRight />
+
+        {/* Bottom Edge Parchment Sheets: Hug the bottom edge & left/right edges */}
+        <div className={styles.bottomEdgeParchmentLeft} aria-hidden="true">
+          <Image
+            src="/images/hero-collage/parchment-edge-corner-left.svg"
+            alt=""
+            fill
+            className={styles.tornPaperImage}
+            priority
+          />
+        </div>
+
+        <div className={styles.bottomEdgeParchmentRight} aria-hidden="true">
+          <Image
+            src="/images/hero-collage/parchment-edge-corner-right.svg"
+            alt=""
+            fill
+            className={styles.tornPaperImage}
+            priority
+          />
+        </div>
 
         {/* Central Functional & Interactive Interface */}
         <div className={styles.centralInterface}>

@@ -73,6 +73,8 @@ export function CollageLeft() {
         />
       </div>
 
+
+
       {/* L0: Top-Left Torn Blue Paper Scrap with Tape */}
       <div className={styles.topLeftBlueScrap}>
         <div
