@@ -1,4 +1,4 @@
-const DEFAULT_API_ORIGIN = 'https://sidequesthq.com';
+const DEFAULT_API_ORIGIN = 'https://undone.in';
 
 /**
  * Resolves API paths for web (same-origin) and Capacitor static builds (remote origin).

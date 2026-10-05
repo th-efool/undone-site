@@ -19,12 +19,12 @@ function normalizeDeepLinkPath(url: string): string | null {
   try {
     const parsed = new URL(url);
 
-    if (parsed.protocol === 'sidequesthq:') {
+    if (parsed.protocol === 'sidequesthq:' || parsed.protocol === 'undone:') {
       const path = parsed.pathname || parsed.host;
       return path.startsWith('/') ? path : `/${path}`;
     }
 
-    const allowedHosts = new Set(['sidequesthq.com', 'www.sidequesthq.com']);
+    const allowedHosts = new Set(['undone.in', 'www.undone.in', 'sidequesthq.com', 'www.sidequesthq.com']);
 
     if (allowedHosts.has(parsed.hostname)) {
       return `${parsed.pathname}${parsed.search}${parsed.hash}` || '/';

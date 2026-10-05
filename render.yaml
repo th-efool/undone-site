@@ -3,7 +3,7 @@
 # This defines your two services: the main Next.js web app + the background vectorization worker.
 
 services:
-  - name: sidequesthq-web
+  - name: undone-web
     type: web
     env: node
     plan: free
@@ -23,7 +23,7 @@ services:
       - key: NEXTAUTH_URL
         sync: false
 
-  - name: sidequesthq-worker
+  - name: undone-worker
     type: worker
     env: node
     plan: starter          # Sponsor track: use free/starter as provided

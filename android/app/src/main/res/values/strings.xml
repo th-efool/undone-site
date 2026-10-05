@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">SideQuestHQ</string>
-    <string name="title_activity_main">SideQuestHQ</string>
+    <string name="app_name">Undone</string>
+    <string name="title_activity_main">Undone</string>
     <string name="package_name">com.sidequesthq.in</string>
     <string name="custom_url_scheme">com.sidequesthq.in</string>
 </resources>

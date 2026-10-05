@@ -52,7 +52,7 @@ function restoreApiRoutes() {
   console.log('Restored API routes.');
 }
 
-const apiOrigin = process.env.NEXT_PUBLIC_API_ORIGIN ?? 'https://sidequesthq.com';
+const apiOrigin = process.env.NEXT_PUBLIC_API_ORIGIN ?? 'https://undone.in';
 
 try {
   hideApiRoutes();

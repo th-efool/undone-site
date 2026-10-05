@@ -1,6 +1,6 @@
 @echo off
 echo ===================================================
-echo   Building Signed Release AAB for SideQuestHQ
+echo   Building Signed Release AAB for Undone
 echo ===================================================
 
 set JAVA_HOME=C:\Program Files\Android\openjdk\jdk-21.0.8
