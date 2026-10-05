@@ -166,7 +166,7 @@ export function Footer({
                 href="#"
                 className={styles.secondaryButton}
               >
-                Explore SideQuestHQ
+                Explore Undone
               </Link> */}
             </Cluster>
           </div>
@@ -256,7 +256,7 @@ export function Footer({
 
           <Cluster gap="5">
             <Link
-              href="https://github.com/th-efool/sidequesthq-site"
+              href="https://github.com/th-efool/undone-site"
               className={styles.social}
               target="_blank"
               rel="noopener noreferrer"

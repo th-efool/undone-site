@@ -111,7 +111,7 @@ export const feedRepository = {
                 cohortId: cohort.id,
                 cohortTitle: cohort.title,
                 cohortCoverImage: cohort.coverImage,
-                cohortProvider: cohort.creator?.name || 'SideQuestHQ',
+                cohortProvider: cohort.creator?.name || 'Undone',
               });
             });
           } else {
@@ -142,7 +142,7 @@ export const feedRepository = {
               cohortId: cohort.id,
               cohortTitle: cohort.title,
               cohortCoverImage: cohort.coverImage,
-              cohortProvider: cohort.creator?.name || 'SideQuestHQ',
+              cohortProvider: cohort.creator?.name || 'Undone',
             });
           }
         });

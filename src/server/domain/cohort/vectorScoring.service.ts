@@ -55,7 +55,7 @@ export class VectorScoringService {
       });
 
       const prompt = `
-You are an expert pedagogical psychometrician and curriculum engineer for SideQuestHQ.
+You are an expert pedagogical psychometrician and curriculum engineer for Undone.
 Analyze the following educational video transcript segment and output an accurate 12-Dimensional Pedagogical Vector and linearity classification.
 
 METADATA:

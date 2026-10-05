@@ -44,7 +44,7 @@ export class ChunkingService {
         });
 
         const prompt = `
-You are an expert curriculum structuring AI for SideQuestHQ.
+You are an expert curriculum structuring AI for Undone.
 Analyze the following educational content/transcript and partition it into logical, atomic, self-contained semantic learning chunks.
 Target duration per chunk is between 60 to 240 seconds (or 100 to 350 words).
 

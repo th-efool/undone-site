@@ -14,7 +14,7 @@ export async function GET() {
         notebooks: [
           {
             id: 'nb-diary',
-            title: 'SideQuestHQ diary',
+            title: 'Undone diary',
             description: '',
             color: '#4f46e5',
             favorite: false,

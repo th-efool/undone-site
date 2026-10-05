@@ -50,7 +50,7 @@ export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
     categories,
     creator: {
       id: dbCohort.creator?.id || 'creator-unknown',
-      name: dbCohort.creator?.name || 'SideQuest Guide',
+      name: dbCohort.creator?.name || 'Undone Guide',
       avatarUrl: dbCohort.creator?.image || '/mock/avatars/a.webp',
       role: dbCohort.creator?.role || 'Creator',
       bio: dbCohort.creator?.bio || 'Cohort Creator & Community Guide',

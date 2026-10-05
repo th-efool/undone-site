@@ -1,5 +1,5 @@
 /**
- * SideQuestHQ - 12-Dimensional Pedagogical Vector System
+ * Undone - 12-Dimensional Pedagogical Vector System
  * File: src/shared/curriculum/pedagogicalVector.types.ts
  */
 

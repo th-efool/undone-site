@@ -48,7 +48,7 @@ export function TrendingContentCard() {
           <div className={styles.metadata}>
             <Bookmark className={styles.metaIcon} size={16} />
             <span className={styles.metaText}>
-              <span className={styles.underline}>saved from</span> SideQuestHQ &bull; 4 hours ago
+              <span className={styles.underline}>saved from</span> Undone &bull; 4 hours ago
             </span>
           </div>
 

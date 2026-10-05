@@ -31,7 +31,7 @@ export function LaunchSuccess() {
       <div>
         <h2 className={styles.title}>Your Cohort is Live! 🎉</h2>
         <p className={styles.subtitle}>
-          Congratulations! <strong>{result.cohortTitle}</strong> has been successfully published to the SideQuestHQ network and is ready for learners.
+          Congratulations! <strong>{result.cohortTitle}</strong> has been successfully published to the Undone network and is ready for learners.
         </p>
       </div>
 

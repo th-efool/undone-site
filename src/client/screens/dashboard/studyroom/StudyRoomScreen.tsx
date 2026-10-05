@@ -496,7 +496,7 @@ export default function StudyRoomScreen() {
             <div className={styles.feedScroll}>
               <div className={styles.feedItem}>
                 <span className={styles.feedDot}></span>
-                <p>Welcome to SideQuest Study Rooms! Join a room to co-work.</p>
+                <p>Welcome to Undone Study Rooms! Join a room to co-work.</p>
               </div>
               {currentActiveRoom && (
                 <div className={styles.feedItem}>

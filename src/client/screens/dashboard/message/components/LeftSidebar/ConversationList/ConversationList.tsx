@@ -16,7 +16,7 @@ export function ConversationList({ conversations, onSelectConversation, onMarkAl
       <div className={styles.list}>
         <EmptyState
           title="No conversations found"
-          message="Try another filter or search across SideQuestHQ communities and DMs."
+          message="Try another filter or search across Undone communities and DMs."
         />
       </div>
     );

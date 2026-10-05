@@ -8,7 +8,7 @@ export function FeatureSection() {
       <div className={styles.videoPanel}>
         <Image
           src="/images/landing/screen.webp"
-          alt="SideQuestHQ AI learning interface"
+          alt="Undone AI learning interface"
           width={1280}
           height={720}
           priority
@@ -65,7 +65,7 @@ export function FeatureSection() {
         <div className={styles.phoneIllustration}>
           <Image
             src="/images/landing/phone.webp"
-            alt="SideQuestHQ adaptive feed"
+            alt="Undone adaptive feed"
             width={170}
             height={320}
             draggable={false}

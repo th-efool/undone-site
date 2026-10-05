@@ -357,7 +357,7 @@ function makeDMConversation(conversation?: ConversationPreview): DMConversationM
       id: conversation.id,
       name: conversation.name,
       avatar: conversation.avatar,
-      role: conversation.sender || 'SideQuestHQ learner',
+      role: conversation.sender || 'Undone learner',
       company:
         conversation.id.includes('team') || conversation.id.includes('thinkers')
           ? 'Group DM'

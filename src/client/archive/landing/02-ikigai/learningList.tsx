@@ -41,7 +41,7 @@ export function LearningList() {
       <p className={styles.description}>
         Your Interstitial Time adds up when
         <br />
-        SideQuestHQ keeps you consistent.
+        Undone keeps you consistent.
       </p>
 
       <div className={styles.list}>

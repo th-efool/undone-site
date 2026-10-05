@@ -162,7 +162,7 @@ class CohortStore {
     const newCohort: Cohort = {
       id: targetId,
       title: data.title,
-      subtitle: data.onboarding?.welcomeMessage || `Interactive learning journey on SideQuestHQ`,
+      subtitle: data.onboarding?.welcomeMessage || `Interactive learning journey on Undone`,
       description: data.description || `Master ${data.title} through hands-on quests and practice.`,
       coverImage: coverArt,
       difficulty: data.difficulty || 'Intermediate',
@@ -172,7 +172,7 @@ class CohortStore {
         name: 'Shaqun',
         avatarUrl: getAvatar('shaqun'),
         role: 'Quest Guide',
-        bio: 'Building interactive learning cohorts on SideQuestHQ.',
+        bio: 'Building interactive learning cohorts on Undone.',
         ctaLabel: 'View Quest Guide Profile',
       },
       stats: {

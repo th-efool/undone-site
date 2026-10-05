@@ -114,7 +114,7 @@ export function MessageTimeline({ messages, scrollTop, onScrollChange, onReactio
         /* Batch D2: Empty state for community with no messages */
         <EmptyState
           title="No messages yet"
-          message="Start the first SideQuestHQ learning checkpoint here."
+          message="Start the first Undone learning checkpoint here."
         />
       )}
     </section>

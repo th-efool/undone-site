@@ -1,5 +1,5 @@
 /**
- * SideQuestHQ - Pedagogical Vector Constants & Math Engine
+ * Undone - Pedagogical Vector Constants & Math Engine
  * File: src/shared/curriculum/pedagogicalVector.engine.ts
  */
 
