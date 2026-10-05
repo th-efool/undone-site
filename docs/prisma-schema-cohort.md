@@ -2,7 +2,7 @@
 
 Welcome to the backend! On the frontend, you're used to managing component state and props. On the backend, our "state" lives in a database, and we define its shape using **Prisma**—a modern toolkit that translates our TypeScript-like definitions into database tables.
 
-In SideQuestHQ, the primary learning journey is called a **Cohort**. Unlike traditional platforms that have generic "courses," a Cohort is a dedicated, structured adventure. 
+In Undone, the primary learning journey is called a **Cohort**. Unlike traditional platforms that have generic "courses," a Cohort is a dedicated, structured adventure. 
 Think of a Cohort like a TV series. A series has **Seasons**, and each Season has **Episodes** (which we call **Lessons** or Quests). 
 
 Here is how we model this nested relationship in our database.

@@ -1,4 +1,4 @@
-# SideQuestHQ Android (Capacitor)
+# Undone Android (Capacitor)
 
 This repo ships the existing Next.js web app inside a Capacitor Android shell. The UI is not rewritten: mobile builds statically export the App Router pages into `out/`, then Capacitor bundles those assets into the native project.
 

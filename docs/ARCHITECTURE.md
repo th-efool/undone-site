@@ -1,6 +1,6 @@
-# SideQuestHQ Architecture
+# Undone Architecture
 
-SideQuestHQ is a cohort-based microlearning platform built to transform long-form internet content (YouTube playlists, articles, etc.) into interactive, high-retention, TikTok-style learning feeds.
+Undone is a cohort-based microlearning platform built to transform long-form internet content (YouTube playlists, articles, etc.) into interactive, high-retention, bite-sized learning feeds.
 
 This document outlines the core technical architecture, data modeling, and engineering decisions that power the platform. It is designed to be a substantial, concise guide for reviewers and technical judges.
 
@@ -8,7 +8,7 @@ This document outlines the core technical architecture, data modeling, and engin
 
 ## 1. The Core Engine: Content Ingestion to Microlearning Feed
 
-The primary technical challenge of SideQuestHQ is bridging the gap between flat media (e.g., a 2-hour YouTube video) and interactive microlearning (5-minute chunked quests).
+The primary technical challenge of Undone is bridging the gap between flat media (e.g., a 2-hour YouTube video) and interactive microlearning (5-minute chunked quests).
 
 ### The Ingestion Pipeline (Cohort Creation Wizard & Multi-Source Importers)
 When a creator imports content:
@@ -45,7 +45,7 @@ We support global "Study Rooms" where users can drop in for focused voice sessio
 
 ## 3. Security & Authentication (NextAuth v5)
 
-SideQuestHQ relies on robust, persistent authentication to track learning progress accurately.
+Undone relies on robust, persistent authentication to track learning progress accurately.
 
 - **NextAuth v5 (Auth.js)**: Handles the OAuth flow (GitHub, Apple, Google).
 - **Database Sessions**: Unlike traditional JWTs stored in cookies (which can be lost or hard to revoke), we use the `@auth/prisma-adapter` to store active sessions directly in PostgreSQL. 
