@@ -13,7 +13,7 @@ const Ikigai = dynamic(
   () => import('@/src/client/screens/landing/Ikigai').then((mod) => mod.Ikigai)
 );
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sidequesthq.com';
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://undone.in';
 
 export const metadata: Metadata = {
   title: 'Undone — Turn Any Rabbit Hole & Video into Bite-Sized Learning Quests',
@@ -34,7 +34,6 @@ export const metadata: Metadata = {
     'learning streaks',
     'interstitial learning',
     'self-directed learning',
-    'SideQuestHQ',
   ],
   alternates: {
     canonical: siteUrl,
@@ -112,7 +111,7 @@ export default function LandingPage() {
         },
         sameAs: [
           'https://x.com/undone',
-          'https://github.com/th-efool/sidequesthq-site',
+          'https://github.com/th-efool/undone-site',
         ],
       },
       {

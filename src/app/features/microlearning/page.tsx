@@ -12,12 +12,12 @@ export const metadata: Metadata = {
     'Undone',
   ],
   alternates: {
-    canonical: 'https://sidequesthq.com/features/microlearning',
+    canonical: 'https://undone.in/features/microlearning',
   },
   openGraph: {
     title: 'Microlearning App — Learn Anything in 5 Minutes a Day | Undone',
     description: 'Master any topic in 5 minutes a day with Undone. Convert long courses, videos, and articles into bite-sized daily lessons and build permanent knowledge.',
-    url: 'https://sidequesthq.com/features/microlearning',
+    url: 'https://undone.in/features/microlearning',
     type: 'website',
     images: [
       {
@@ -42,7 +42,7 @@ export default function MicrolearningFeature() {
     '@type': 'WebPage',
     name: 'Microlearning App — Undone',
     description: 'Master any topic in 5 minutes a day with Undone. Convert long courses, videos, and articles into bite-sized daily lessons.',
-    url: 'https://sidequesthq.com/features/microlearning',
+    url: 'https://undone.in/features/microlearning',
   };
 
   return (

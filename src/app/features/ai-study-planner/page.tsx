@@ -12,12 +12,12 @@ export const metadata: Metadata = {
     'Undone',
   ],
   alternates: {
-    canonical: 'https://sidequesthq.com/features/ai-study-planner',
+    canonical: 'https://undone.in/features/ai-study-planner',
   },
   openGraph: {
     title: 'AI Study Planner & Tracker | Undone',
     description: 'Let AI build your personalized study quest. Undone uses artificial intelligence to schedule, track, and adapt your microlearning journey for maximum consistency.',
-    url: 'https://sidequesthq.com/features/ai-study-planner',
+    url: 'https://undone.in/features/ai-study-planner',
     type: 'website',
     images: [
       {
@@ -42,7 +42,7 @@ export default function AiStudyPlannerFeature() {
     '@type': 'WebPage',
     name: 'AI Study Planner & Tracker — Undone',
     description: 'Let AI build your personalized study quest. Undone uses artificial intelligence to schedule, track, and adapt your microlearning journey for maximum consistency.',
-    url: 'https://sidequesthq.com/features/ai-study-planner',
+    url: 'https://undone.in/features/ai-study-planner',
   };
 
   return (

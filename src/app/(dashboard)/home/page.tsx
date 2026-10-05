@@ -8,18 +8,18 @@ const Home = dynamic(() => import('@/src/client/screens/dashboard/home').then((m
 import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
-  title: 'Dashboard | SideQuestHQ',
-  description: 'View your progress, active quests, and stats on your SideQuestHQ dashboard.',
+  title: 'Dashboard | Undone',
+  description: 'View your progress, active quests, and stats on your Undone dashboard.',
   openGraph: {
-    title: 'Dashboard | SideQuestHQ',
-    description: 'View your progress, active quests, and stats on your SideQuestHQ dashboard.',
-    url: 'https://sidequesthq.com/home',
+    title: 'Dashboard | Undone',
+    description: 'View your progress, active quests, and stats on your Undone dashboard.',
+    url: 'https://undone.in/home',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Dashboard | SideQuestHQ',
-    description: 'View your progress, active quests, and stats on your SideQuestHQ dashboard.',
+    title: 'Dashboard | Undone',
+    description: 'View your progress, active quests, and stats on your Undone dashboard.',
   }
 };
 

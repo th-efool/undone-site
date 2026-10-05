@@ -15,8 +15,8 @@ export async function generateMetadata({ params }: { params: Promise<{ cohortId:
     select: { title: true, description: true, coverImage: true },
   });
 
-  const title = dbCohort?.title ? `${dbCohort.title} | SideQuestHQ` : `Cohort ${cohortId} | SideQuestHQ`;
-  const description = dbCohort?.description || `Explore this learning cohort on SideQuestHQ.`;
+  const title = dbCohort?.title ? `${dbCohort.title} | Undone` : `Cohort ${cohortId} | Undone`;
+  const description = dbCohort?.description || `Explore this learning cohort on Undone.`;
   const image = dbCohort?.coverImage || undefined;
 
   return {
@@ -83,7 +83,7 @@ export default async function OverviewPage({ params }: { params: Promise<{ cohor
     "@context": "https://schema.org",
     "@type": "WebPage",
     "name": `Overview - Cohort ${cohortId}`,
-    "description": `Get an overview of cohort ${cohortId} on SideQuestHQ.`
+    "description": `Get an overview of cohort ${cohortId} on Undone.`
   };
 
   return (

@@ -11,8 +11,8 @@ export default function MessagePage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'Messages | SideQuestHQ',
-    description: 'Connect and chat with your cohort members on SideQuestHQ. Stay updated with your study groups.',
+    name: 'Messages | Undone',
+    description: 'Connect and chat with your cohort members on Undone. Stay updated with your study groups.',
   };
 
   return (

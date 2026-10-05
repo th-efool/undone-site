@@ -2,9 +2,9 @@ import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Terms of Service',
-  description: 'Terms of Service for SideQuestHQ',
+  description: 'Terms of Service for Undone',
   alternates: {
-    canonical: 'https://sidequesthq.com/terms',
+    canonical: 'https://undone.in/terms',
   },
 };
 
@@ -18,14 +18,14 @@ export default function TermsPage() {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">1. Agreement to Terms</h2>
           <p className="leading-relaxed">
-            By accessing or using SideQuestHQ, you agree to be bound by these Terms. If you disagree with any part of the terms, then you may not access the Service.
+            By accessing or using Undone, you agree to be bound by these Terms. If you disagree with any part of the terms, then you may not access the Service.
           </p>
         </section>
 
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">2. Description of Service</h2>
           <p className="leading-relaxed">
-            SideQuestHQ is an application designed to help users stay consistent with their learning goals. We provide tools for microlearning, tracking progress, and AI-assisted study planning.
+            Undone is an application designed to help users stay consistent with their learning goals. We provide tools for microlearning, tracking progress, and AI-assisted study planning.
           </p>
         </section>
 
@@ -39,7 +39,7 @@ export default function TermsPage() {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">4. Intellectual Property</h2>
           <p className="leading-relaxed">
-            The Service and its original content, features, and functionality are and will remain the exclusive property of SideQuestHQ and its licensors.
+            The Service and its original content, features, and functionality are and will remain the exclusive property of Undone and its licensors.
           </p>
         </section>
 

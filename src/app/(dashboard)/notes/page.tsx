@@ -7,17 +7,17 @@ const Notes = dynamic(
 );
 
 export const metadata: Metadata = {
-  title: 'Notes | SideQuestHQ',
-  description: 'Manage and review your study notes on SideQuestHQ. Keep your thoughts organized and accessible.',
+  title: 'Notes | Undone',
+  description: 'Manage and review your study notes on Undone. Keep your thoughts organized and accessible.',
   openGraph: {
-    title: 'Notes | SideQuestHQ',
-    description: 'Manage and review your study notes on SideQuestHQ. Keep your thoughts organized and accessible.',
+    title: 'Notes | Undone',
+    description: 'Manage and review your study notes on Undone. Keep your thoughts organized and accessible.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Notes | SideQuestHQ',
-    description: 'Manage and review your study notes on SideQuestHQ. Keep your thoughts organized and accessible.',
+    title: 'Notes | Undone',
+    description: 'Manage and review your study notes on Undone. Keep your thoughts organized and accessible.',
   },
 };
 
@@ -25,8 +25,8 @@ export default function NotesPage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'Notes | SideQuestHQ',
-    description: 'Manage and review your study notes on SideQuestHQ. Keep your thoughts organized and accessible.',
+    name: 'Notes | Undone',
+    description: 'Manage and review your study notes on Undone. Keep your thoughts organized and accessible.',
   };
 
   return (

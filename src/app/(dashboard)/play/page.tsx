@@ -8,17 +8,17 @@ const Play = dynamic(
 );
 
 export const metadata: Metadata = {
-  title: 'Play | SideQuestHQ',
-  description: 'Engage in interactive learning and play games to boost your knowledge on SideQuestHQ.',
+  title: 'Play | Undone',
+  description: 'Engage in interactive learning and play games to boost your knowledge on Undone.',
   openGraph: {
-    title: 'Play | SideQuestHQ',
-    description: 'Engage in interactive learning and play games to boost your knowledge on SideQuestHQ.',
+    title: 'Play | Undone',
+    description: 'Engage in interactive learning and play games to boost your knowledge on Undone.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Play | SideQuestHQ',
-    description: 'Engage in interactive learning and play games to boost your knowledge on SideQuestHQ.',
+    title: 'Play | Undone',
+    description: 'Engage in interactive learning and play games to boost your knowledge on Undone.',
   },
 };
 
@@ -26,8 +26,8 @@ export default function PlayPage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'Play | SideQuestHQ',
-    description: 'Engage in interactive learning and play games to boost your knowledge on SideQuestHQ.',
+    name: 'Play | Undone',
+    description: 'Engage in interactive learning and play games to boost your knowledge on Undone.',
   };
 
   return (

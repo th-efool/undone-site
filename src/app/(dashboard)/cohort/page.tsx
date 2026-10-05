@@ -1,17 +1,17 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Cohorts | SideQuestHQ',
-  description: 'View and manage your SideQuestHQ cohorts.',
+  title: 'Cohorts | Undone',
+  description: 'View and manage your Undone cohorts.',
   openGraph: {
-    title: 'Cohorts | SideQuestHQ',
-    description: 'View and manage your SideQuestHQ cohorts.',
+    title: 'Cohorts | Undone',
+    description: 'View and manage your Undone cohorts.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Cohorts | SideQuestHQ',
-    description: 'View and manage your SideQuestHQ cohorts.',
+    title: 'Cohorts | Undone',
+    description: 'View and manage your Undone cohorts.',
   },
 };
 
@@ -19,8 +19,8 @@ export default function cohort() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    "name": "Cohorts | SideQuestHQ",
-    "description": "View and manage your SideQuestHQ cohorts."
+    "name": "Cohorts | Undone",
+    "description": "View and manage your Undone cohorts."
   };
 
   return (

@@ -2,9 +2,9 @@ import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
-  description: 'Privacy Policy for SideQuestHQ',
+  description: 'Privacy Policy for Undone',
   alternates: {
-    canonical: 'https://sidequesthq.com/policy',
+    canonical: 'https://undone.in/policy',
   },
 };
 
@@ -18,7 +18,7 @@ export default function PolicyPage() {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">1. Introduction</h2>
           <p className="leading-relaxed">
-            Welcome to SideQuestHQ. We respect your privacy and are committed to protecting your personal data. 
+            Welcome to Undone. We respect your privacy and are committed to protecting your personal data. 
             This privacy policy will inform you as to how we look after your personal data when you visit our website 
             or use our app, and tell you about your privacy rights and how the law protects you.
           </p>
@@ -59,7 +59,7 @@ export default function PolicyPage() {
         <section className="space-y-4">
           <h2 className="text-2xl font-semibold">5. Contact Us</h2>
           <p className="leading-relaxed">
-            If you have any questions about this privacy policy or our privacy practices, please contact us at support@sidequesthq.com.
+            If you have any questions about this privacy policy or our privacy practices, please contact us at support@undone.in.
           </p>
         </section>
       </div>

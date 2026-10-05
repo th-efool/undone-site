@@ -46,7 +46,7 @@ const playfairDisplay = Playfair_Display({
 });
 
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sidequesthq.in';
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://undone.in';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),

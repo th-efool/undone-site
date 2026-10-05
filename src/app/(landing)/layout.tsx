@@ -1,6 +1,6 @@
 import { Metadata } from 'next';
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://sidequesthq.in';
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://undone.in';
 
 export const metadata: Metadata = {
   title: 'Undone — For a more curious you',
@@ -60,7 +60,7 @@ export default function LandingLayout({ children }: { children: React.ReactNode 
         },
         sameAs: [
           'https://x.com/undone',
-          'https://github.com/th-efool/sidequesthq-site',
+          'https://github.com/th-efool/undone-site',
         ],
       },
       {

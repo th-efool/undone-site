@@ -2,8 +2,8 @@ import StudyRoomScreen from '@/src/client/screens/dashboard/studyroom/StudyRoomS
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Study Rooms | SideQuestHQ',
-  description: 'Join virtual study rooms on SideQuestHQ to collaborate and learn with peers in real-time.',
+  title: 'Study Rooms | Undone',
+  description: 'Join virtual study rooms on Undone to collaborate and learn with peers in real-time.',
 };
 
 export default function StudyRoomPage() {
