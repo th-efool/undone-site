@@ -1,85 +1,279 @@
-# 🚀 SideQuestHQ
+# Undone
 
-**SideQuestHQ** is a modern, cohort-based microlearning platform that transforms long-form content (YouTube playlists, courses, and web resources) into interactive, bite-sized learning feeds. 
+Undone is a modern microlearning and structured curiosity platform that transforms long-form internet resources (YouTube playlists, video lectures, articles, and code repositories) into adaptive, bite-sized learning feeds.
 
-Experience learning like scrolling a feed — chunked lessons, interactive questlines, real-time progress tracking, and distraction-free media playback.
-
----
-
-## 📖 Substantial Documentation
-
-If you are a reviewer or technical judge, please review our crisp, concise, and substantial architecture documentation located in the `docs/` folder. These files outline the depth of the engineering decisions powering SideQuestHQ:
-
-- 🏛️ **[Core Architecture & Engine](./docs/ARCHITECTURE.md)**: Deep dive into the TikTok-style media feed, Client/Server state boundaries, and NextAuth v5 database session flow.
-- 🗄️ **[Relational Curriculum Schema](./docs/prisma-schema-cohort.md)**: Why we use strict relational models (`Cohort` -> `Season` -> `Lesson`) over flat JSON, ensuring data integrity at scale.
-- 🌍 **[Global Study Rooms & Concurrency](./docs/study-rooms-schema.md)**: How we use PostgreSQL unique constraints and join tables to guarantee isolated real-time states for global voice rooms.
-- 🚀 **[Atomic Publishing & SEO Routing](./docs/ARCHITECTURE.md#5-atomic-dual-database-publishing--seo-routing)**: How we ensure absolute transactional safety across both PostgreSQL and MongoDB during cohort generation, paired with dynamically-generated Open Graph meta tags for pristine, unauthenticated public sharing.
-- 🧑‍🏫 **Creator & Learner Ecosystem**: A unified architecture seamlessly blending NextAuth session tracking with cohort auto-enrollment, allowing users to fluidly switch between learning and publishing via a single, consolidated dashboard.
-- 🛡️ **[End-to-End Data Integrity & UI Mapping](./docs/ARCHITECTURE.md#6-end-to-end-data-integrity--ui-mapping)**: Insight into our defensive API schema and mapping layer (`cohortMapper.ts`) that guarantees pixel-perfect curriculum persistence—from AI generation wizard through strict Postgres JSON schemas, straight to the UI—eliminating frontend layout shifts.
-- 🧭 **[Pedagogical Vector Space & Adaptive Feed](./docs/feed-architecture.md)**: Mathematical models, 12D vector embeddings, progression frontier gating, and anti-fatigue interleaving powering the personalized `/play` microlearning stream.
+Instead of forcing learners to manage courses, plan calendars, or reconstruct where they left off, Undone absorbs the coordination overhead of self-directed education. Material is decomposed into modular units, scored across a continuous 12-dimensional cognitive vector space, and served through a distraction-free, adaptive stream.
 
 ---
 
-## ✨ Key Features
+## Architecture and Technical Documentation
 
-- 📱 **TikTok-Style Microlearning Feed (`/play`)**
-  - Continuous vertical feed of chunked video lessons (5–10 min chunks).
-  - Native YouTube UI eradication (no overlays, zero distractions) via the IFrame API.
-  - Intuitive gesture & keyboard controls (scroll wheel, arrow keys, screen tap to play/pause).
+For in-depth architectural breakdowns, database schemas, and mathematical formulations, consult the documentation in `docs/`:
 
-- 🛠️ **Multi-Source Cohort Creation Wizard**
-  - Ingest directly from YouTube playlists, individual videos, GitHub repositories, and Notion workspaces via Corsair.
-  - Real-time NDJSON streaming progress indicators during extraction and vectorization.
-  - Automatic chunking algorithms convert long tutorials into digestible learning quests.
-  - Live Overview page preview while editing identity, cover images, and classifications.
-
-- 🗺️ **Interactive Questlines (`/cohort/[id]/questline`)**
-  - Season-based curriculum mapping with granular chunk breakdowns.
-  - Active cohort tracking synced directly with your daily learning dashboard.
+- [Product Philosophy and Specification](./docs/PRODUCT_DESCRIPTION.md): Product rationale, problem definition, learner archetypes, and structured curiosity principles.
+- [Core Architecture and System Design](./docs/ARCHITECTURE.md): Client-server boundaries, App Router layout, NextAuth v5 session flow, and atomic dual-database publishing.
+- [Pedagogical Vector Engine and Feed Architecture](./docs/feed-architecture.md): Mathematical definitions, 12D cognitive vectors, progression frontier gating, and anti-fatigue scheduling.
+- [Relational Curriculum Schema](./docs/prisma-schema-cohort.md): Prisma PostgreSQL models for Cohorts, Seasons, Lessons, and Chunks.
+- [Global Study Rooms and Concurrency](./docs/study-rooms-schema.md): Database constraints, join tables, and single-presence concurrency guarantees.
+- [Android Shell and Capacitor Integration](./docs/ANDROID.md): Native mobile wrapper, deep linking, static export pipeline, and Google Play release workflow.
 
 ---
 
-## 🛠️ Tech Stack (3-Tier Architecture)
+## Core Capabilities
 
-- **Framework**: [Next.js 15](https://nextjs.org/) (App Router, Server Components)
-- **Database Engine**: PostgreSQL managed via **Prisma ORM**
-- **Authentication**: **NextAuth v5** with persistent database sessions (`@auth/prisma-adapter`)
-- **Language**: TypeScript
-- **Styling**: Vanilla CSS Modules (Glassmorphic dark design system)
-- **Mobile Native Shell**: **Capacitor** (Bridging the web app to native Android/iOS)
+### 1. Multi-Source Ingestion Engine
+Ingest learning materials directly from YouTube playlists, standalone videos, GitHub repositories, and Notion workspaces.
+- Streaming telemetry: Real-time NDJSON / Server-Sent Events stream progress states (`extracting`, `parsing`, `vectorizing`, `completed`).
+- Semantic chunking: AI-driven linguistic and topical segmentation partitions long-form video transcripts into 60-to-240 second self-contained micro-lessons.
+- Relational mapping: Ingested trees are mapped into structured seasons and lessons, preserving narrative sequence and author context.
+
+### 2. Adaptive Microlearning Stream (`/play`)
+A media playback engine designed for high-retention, interstitial learning.
+- Interface eradication: Strips standard video player clutter and distraction surfaces via programmatic IFrame management.
+- Continuous gesture navigation: Synchronized scroll, arrow keys, and touch gestures automatically pause previous chunks and buffer upcoming modules.
+- Context retention: Micro-timestamps preserve exact progress so learners resume instantly across devices.
+
+### 3. Pedagogical Vector Space and Recommendation
+Candidate learning chunks are evaluated across a 12-dimensional continuous vector space:
+- Cognitive dimensions: Novelty, Scope, Depth, Rigor, Density, Abstraction.
+- Structural dimensions: Pacing, Guidance, Constraint, Continuity, Connectivity, Format.
+- Frontier-chunk gating: Curricula enforce prerequisite sequencing ensuring foundational concepts precede advanced applications.
+- Anti-fatigue interleaving: Dynamic pacing avoids cognitive exhaustion by balancing dense theoretical chunks with applied modules.
+
+### 4. Cohorts and Collaborative Learning
+Shared learning tracks organized around topics, tools, or goals.
+- Questlines (`/cohort/[id]/questline`): Granular curriculum mapping with visual completion tracking.
+- Accountability: Cohort-level milestones and progress visibility without competitive stress.
+- Dual publishing safety: Publishing transactions write across PostgreSQL and MongoDB with automatic rollback if secondary indexing fails.
+
+### 5. Virtual Study Rooms (`/studyroom`)
+Persistent drop-in focus spaces for co-studying and silent productivity.
+- Source of truth: PostgreSQL enforces global presence through unique database constraints on participant IDs, preventing duplicate active sessions.
+- Room telemetry: Real-time participant counters and live status indicators.
+
+### 6. Personal Workspace and Canvas (`/notes`)
+An integrated knowledge capture environment:
+- Rich notebook hierarchy: Categorized notebooks and searchable note blocks.
+- Visual canvas: Integrated Excalidraw whiteboarding engine with dark mode styling.
+- Kanban task board: Integrated progress tracking for active projects and learning targets.
 
 ---
 
-## 🚀 Getting Started
+## Technical Stack
 
-### 1. Prerequisites
-Ensure you have **Node.js 18+** and a running **PostgreSQL** instance.
+### Frontend & Application Layer
+- Framework: Next.js 15 (App Router, React Server Components)
+- UI Library: React 19
+- Styling: Vanilla CSS Modules, CSS Variables, Tailwind CSS
+- State Management: Redux Toolkit, TanStack Query (React Query)
+- Motion & Interactions: Framer Motion
+- Visual Workspace: Excalidraw, SVAR Kanban
+- Mobile Shell: Capacitor 8 (Android runtime)
 
-### 2. Installation
+### Backend & Data Infrastructure
+- Relational Database: PostgreSQL managed with Prisma ORM 7
+- Vector & Document Store: MongoDB Atlas (transcripts, embeddings, chunk metadata)
+- Authentication: NextAuth v5 (Auth.js) with Prisma adapter and database sessions
+- AI & Vectorization: Google Gemini API via `@google/generative-ai`
+- Multi-Source Connectors: Corsair integration toolkit (GitHub, Notion)
+- Asynchronous Processing: Standalone worker process (`src/server/worker.ts`)
+
+---
+
+## System Architecture
+
+```
+                    +------------------------------------+
+                    |        Client Layer (Web / Mobile) |
+                    |  Next.js 15 App Router / Capacitor |
+                    +-----------------+------------------+
+                                      |
+                      HTTP / SSE / Dynamic RSC
+                                      |
+                                      v
++------------------------------------------------------------------------+
+|                          Next.js Server (Node.js)                      |
+|                                                                        |
+|  +--------------------+  +--------------------+  +-------------------+ |
+|  | Auth Layer         |  | Ingestion Wizard   |  | Feed & Play Engine| |
+|  | NextAuth v5        |  | Corsair Importers  |  | 12D Vector Math   | |
+|  +---------+----------+  +---------+----------+  +---------+---------+ |
++------------|-----------------------|-----------------------|-----------+
+             |                       |                       |
+             v                       v                       v
++------------------------+  +--------------------------------------------+
+|  PostgreSQL (Prisma)   |  |              MongoDB Atlas                 |
+|  - Users & Sessions    |  |  - 12D Pedagogical Vectors                 |
+|  - Cohorts & Seasons   |  |  - Video Transcripts & Subtitles           |
+|  - Lessons & Progress  |  |  - Search Indices                          |
+|  - Room Participants   |  +--------------------------------------------+
++------------------------+
+```
+
+---
+
+## Directory Structure
+
+```
+.
+|-- android/                  # Native Capacitor Android studio project
+|-- docs/                     # Technical specifications and architecture guides
+|   |-- ANDROID.md            # Mobile build and release documentation
+|   |-- ARCHITECTURE.md       # Core engine and database boundaries
+|   |-- feed-architecture.md  # 12D vector recommendation formulas
+|   |-- prisma-schema-cohort.md
+|   |-- PRODUCT_DESCRIPTION.md
+|   `-- study-rooms-schema.md
+|-- prisma/                   # Prisma schema and database seeds
+|   |-- schema.prisma
+|   `-- seed.ts
+|-- public/                   # Static assets, logos, and manifest
+|-- scripts/                  # Build, dev, and mobile automation scripts
+`-- src/
+    |-- app/                  # Next.js App Router (pages and API routes)
+    |   |-- (dashboard)/      # Authenticated routes (home, play, cohort, etc.)
+    |   |-- (landing)/        # Public landing experience
+    |   `-- api/              # Ingestion, feed, workspace, and auth endpoints
+    |-- client/               # React client components, hooks, and repositories
+    |   |-- components/       # Design system and layout primitives
+    |   |-- mobile/           # Mobile-specific views
+    |   |-- repositories/     # Client-side data fetching and caching
+    |   `-- screens/          # Feature screen implementations
+    |-- server/               # Backend business logic and database access
+    |   |-- domain/           # Chunking, vector scoring, and curriculum services
+    |   |-- infrastructure/   # Prisma clients, Mongo connection, auth config
+    |   `-- worker.ts         # Asynchronous vectorization background worker
+    `-- shared/               # Shared domain constants, types, and math engines
+        |-- api/              # URL builders and API contracts
+        `-- curriculum/       # 12D pedagogical vector definitions and formulas
+```
+
+---
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18.x or later
+- npm or pnpm
+- PostgreSQL 14+ instance
+- MongoDB 6+ instance (required for vector embeddings and transcripts)
+- Google Gemini API key (for chunking and pedagogical scoring)
+
+### 1. Clone Repository
 ```bash
-git clone https://github.com/th-efool/sidequesthq-site.git
-cd sidequesthq-site
+git clone https://github.com/th-efool/undone-site.git
+cd undone-site
+```
+
+### 2. Install Dependencies
+```bash
 npm install
 ```
 
-### 3. Run Development Server
+### 3. Configure Environment Variables
+Create a `.env.local` file in the project root:
+
+```env
+# Next.js & Server
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+NODE_ENV=development
+
+# Authentication (NextAuth v5)
+AUTH_SECRET=your-random-32-char-secret-key-here
+NEXTAUTH_SECRET=your-random-32-char-secret-key-here
+AUTH_URL=http://localhost:3000
+NEXTAUTH_URL=http://localhost:3000
+
+# Databases
+DATABASE_URL="postgresql://user:password@localhost:5432/undone?schema=public"
+MONGODB_URI="mongodb://localhost:27017/undone"
+
+# AI & Processing
+GEMINI_API_KEY=your-gemini-api-key
+
+# OAuth Providers (Optional for local guest dev)
+AUTH_GITHUB_ID=
+AUTH_GITHUB_SECRET=
+```
+
+### 4. Database Setup
+Generate the Prisma client, push migrations, and seed initial development data:
+
+```bash
+# Generate Prisma Client
+npx prisma generate
+
+# Apply schema to database
+npx prisma db push
+
+# Optional: Seed initial cohorts, users, and rooms
+npm run prisma:seed
+```
+
+### 5. Start Development Server
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
+Visit [http://localhost:3000](http://localhost:3000) in your browser.
 
-## 📱 Android App (Capacitor)
+---
 
-See [docs/ANDROID.md](./docs/ANDROID.md) for building and releasing the native Android shell.
+## Background Worker
 
-Quick start:
+To run content ingestion and vector processing asynchronously outside the web process:
+
 ```bash
-npm run mobile:build
-npm run mobile:open
+# Build worker bundle
+npm run build:worker
+
+# Run worker process
+npm run start:worker
 ```
 
 ---
 
-## 📄 License
-MIT License. Created for modern explorers on SideQuestHQ.
+## Native Mobile App (Android / Capacitor)
+
+The Android application wraps the statically exported Next.js client within a high-performance native Capacitor shell.
+
+### 1. Build and Sync Mobile Assets
+```bash
+npm run mobile:build
+npm run mobile:sync
+```
+
+### 2. Open in Android Studio
+```bash
+npm run mobile:open
+```
+
+### 3. Generate Signed Release AAB
+Ensure release keystore credentials are configured in your environment or `keystore.properties`:
+
+```bash
+npm run mobile:release:aab
+```
+
+Outputs the signed production bundle to:
+`android/app/build/outputs/bundle/release/app-release.aab`
+
+For additional details on mobile configuration and deep link routing, review [docs/ANDROID.md](./docs/ANDROID.md).
+
+---
+
+## Quality Assurance & Verification
+
+```bash
+# Run ESLint validation
+npm run lint
+
+# Build full production web bundle
+npm run build
+```
+
+---
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](./LICENSE) for details.
