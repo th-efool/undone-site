@@ -1,0 +1,290 @@
+/* ==========================================================================
+   Suggestion Prompt Cards Row (Undone Homepage Hero)
+   Vibrant, editorial interactive cards matching reference design
+   Extended wider than composer, with distinct pastel icon badges & arrow buttons
+   ========================================================================== */
+
+.promptRow {
+  position: relative;
+  z-index: 35;
+  width: 100%;
+  max-width: 1060px;
+  margin: 18px auto 26px auto;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+@media (min-width: 1400px) {
+  .promptRow {
+    max-width: 1080px;
+    gap: 14px;
+  }
+}
+
+/* Tablet: clean 2x2 layout */
+@media (max-width: 1023px) and (min-width: 641px) {
+  .promptRow {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 700px;
+    gap: 12px;
+    margin-top: 14px;
+    margin-bottom: 22px;
+  }
+}
+
+/* Mobile: clean 2x2 layout without page overflow */
+@media (max-width: 640px) {
+  .promptRow {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-top: 12px;
+    margin-bottom: 18px;
+    padding: 0;
+  }
+}
+
+/* Individual Card */
+.promptCard {
+  appearance: none;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 10px 13px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 72px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow:
+    0 2px 8px -2px rgba(15, 23, 42, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.02);
+  transition:
+    transform 0.16s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background-color 0.16s ease;
+  user-select: none;
+  box-sizing: border-box;
+  outline: none;
+  position: relative;
+}
+
+.promptCard:hover {
+  transform: translateY(-2px);
+  border-color: #c7d2fe;
+  background-color: #fafbfe;
+  box-shadow:
+    0 8px 22px -2px rgba(31, 41, 157, 0.09),
+    0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.promptCard:active {
+  transform: translateY(0);
+}
+
+.promptCard:focus-visible {
+  border-color: #1f299d;
+  box-shadow:
+    0 0 0 2px rgba(31, 41, 157, 0.25),
+    0 4px 12px rgba(14, 23, 56, 0.06);
+}
+
+/* Left Icon Container (soft distinct pastel circular background) */
+.iconContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition:
+    transform 0.16s ease,
+    filter 0.16s ease;
+}
+
+.promptCard:hover .iconContainer {
+  transform: scale(1.06);
+}
+
+/* Pastel Badge Themes */
+.iconRose {
+  background-color: #fde8ef;
+  color: #e11d48;
+}
+
+.iconPurple {
+  background-color: #f3eefc;
+  color: #7c3aed;
+}
+
+.iconBlue {
+  background-color: #eaf0fd;
+  color: #2563eb;
+}
+
+.iconCyan {
+  background-color: #e0f2fe;
+  color: #0284c7;
+}
+
+/* Middle Text Content */
+.textWrapper {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.promptText {
+  font-family:
+    var(--font-manrope-next),
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  font-size: 12.5px;
+  font-weight: 550;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: #1e293b;
+  margin: 0;
+  word-break: normal;
+  transition: color 0.16s ease;
+}
+
+@media (min-width: 1300px) {
+  .promptText {
+    font-size: 13px;
+    line-height: 1.36;
+  }
+}
+
+.promptCard:hover .promptText {
+  color: #0f172a;
+}
+
+/* Right Action Arrow Container (Circular pill button matching reference) */
+.actionAffordance {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  color: #1f299d;
+  background-color: #edf2fe;
+  flex-shrink: 0;
+  margin-left: auto;
+  transition:
+    color 0.16s ease,
+    background-color 0.16s ease,
+    transform 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.promptCard:hover .actionAffordance {
+  color: #161e82;
+  background-color: #e0e7ff;
+  transform: translateX(2px);
+}
+
+/* Mobile adjustments (<= 640px) */
+@media (max-width: 640px) {
+  .promptCard {
+    padding: 7px 9px;
+    gap: 7px;
+    min-height: 60px;
+    border-radius: 14px;
+  }
+
+  .iconContainer {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+  }
+
+  .promptText {
+    font-size: 11px;
+    line-height: 1.28;
+  }
+
+  .actionAffordance {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+  }
+}
+
+/* ==========================================================================
+   Dark Mode Support
+   ========================================================================== */
+
+:global([data-theme='dark']) .promptCard,
+.promptRow[data-theme='dark'] .promptCard {
+  background-color: #10121a;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 4px 16px -2px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+:global([data-theme='dark']) .promptCard:hover,
+.promptRow[data-theme='dark'] .promptCard:hover {
+  background-color: #161a26;
+  border-color: rgba(129, 140, 248, 0.45);
+  box-shadow:
+    0 6px 20px -2px rgba(0, 0, 0, 0.8),
+    0 0 12px rgba(99, 102, 241, 0.15);
+}
+
+:global([data-theme='dark']) .iconRose,
+.promptRow[data-theme='dark'] .iconRose {
+  background-color: rgba(225, 29, 72, 0.2);
+  color: #fb7185;
+}
+
+:global([data-theme='dark']) .iconPurple,
+.promptRow[data-theme='dark'] .iconPurple {
+  background-color: rgba(124, 58, 237, 0.2);
+  color: #c084fc;
+}
+
+:global([data-theme='dark']) .iconBlue,
+.promptRow[data-theme='dark'] .iconBlue {
+  background-color: rgba(37, 99, 235, 0.2);
+  color: #60a5fa;
+}
+
+:global([data-theme='dark']) .iconCyan,
+.promptRow[data-theme='dark'] .iconCyan {
+  background-color: rgba(2, 132, 199, 0.2);
+  color: #38bdf8;
+}
+
+:global([data-theme='dark']) .promptText,
+.promptRow[data-theme='dark'] .promptText {
+  color: #f1f5f9;
+}
+
+:global([data-theme='dark']) .promptCard:hover .promptText,
+.promptRow[data-theme='dark'] .promptCard:hover .promptText {
+  color: #ffffff;
+}
+
+:global([data-theme='dark']) .actionAffordance,
+.promptRow[data-theme='dark'] .actionAffordance {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #a5b4fc;
+}
+
+:global([data-theme='dark']) .promptCard:hover .actionAffordance,
+.promptRow[data-theme='dark'] .promptCard:hover .actionAffordance {
+  background-color: rgba(99, 102, 241, 0.25);
+  color: #c7d2fe;
+}

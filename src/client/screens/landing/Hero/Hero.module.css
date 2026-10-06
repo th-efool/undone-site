@@ -220,13 +220,13 @@
   justify-content: center;
   position: relative;
   z-index: 10;
-  padding: 0 0 clamp(36px, 5.5vh, 56px) 0;
+  padding: 0 0 clamp(20px, 3.2vh, 36px) 0;
   box-sizing: border-box;
 }
 
 .centralInterface {
   position: relative;
-  max-width: 885px;
+  max-width: 1080px;
   width: 100%;
   margin: 0 auto;
   margin-top: 0;
@@ -518,7 +518,7 @@
   justify-content: center;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 14px;
+  margin-top: 0;
   margin-bottom: 2px;
   position: relative;
   z-index: 35;

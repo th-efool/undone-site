@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 import {
   Plus,
@@ -11,6 +11,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { TextBar } from '@/src/client/components/ui';
+import { SuggestionPromptRow } from './SuggestionPromptRow';
 import { FeaturedCohortsStrip } from './FeaturedCohortsStrip';
 import styles from '../Hero.module.css';
 const CATEGORIES = [
@@ -24,6 +25,18 @@ const CATEGORIES = [
 export function CentralInterface() {
   const [query, setQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('SideQuests');
+  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+
+  const handleSelectPrompt = (promptText: string) => {
+    setQuery(promptText);
+    if (inputRef.current) {
+      inputRef.current.focus();
+      if ('setSelectionRange' in inputRef.current) {
+        const len = promptText.length;
+        inputRef.current.setSelectionRange(len, len);
+      }
+    }
+  };
 
   const handleSubmit = (valOrEvent?: string | React.FormEvent) => {
     if (typeof valOrEvent === 'object' && valOrEvent && 'preventDefault' in valOrEvent) {
@@ -65,6 +78,7 @@ export function CentralInterface() {
 
       {/* Remade Central TextBar matching reference */}
       <TextBar
+        ref={inputRef}
         variant="prompt"
         multiline
         minRows={1}
@@ -120,6 +134,9 @@ export function CentralInterface() {
           </div>
         }
       />
+
+      {/* Suggestion Prompt Cards Row (Unfinished pursuits) */}
+      <SuggestionPromptRow onSelectPrompt={handleSelectPrompt} />
 
       {/* Category Pills Strip */}
       <div className={styles.categoryPillsContainer} role="tablist" aria-label="Explore Categories">
