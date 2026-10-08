@@ -12,7 +12,7 @@ export function StartingPoint({ selected, onSelect, onBack }: { selected: Starti
     <div className={styles.cards}>
       {choices.map(choice => <button key={choice.value} type="button" aria-pressed={selected === choice.value} onClick={() => onSelect(choice.value)}>{choice.label}</button>)}
     </div>
-    {selected && <p role="status">Starting point saved for this tab. Material acquisition will be added in the next implementation phase.</p>}
+    {selected && <p role="status">Starting point saved to your account. Material acquisition will be added in the next implementation phase.</p>}
     <button type="button" onClick={onBack}>Back to recommendations</button>
   </section>;
 }

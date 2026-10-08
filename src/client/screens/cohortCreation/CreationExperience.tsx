@@ -11,13 +11,13 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
   const creation = useCreation(draftId, initialQuery, resume);
   const { snapshot } = creation;
   const router = useRouter();
-  const createOwn = () => {
-    if (creation.createOwn()) router.push(`/quest/draft/${draftId}`);
+  const createOwn = async () => {
+    if (await creation.createOwn()) router.push(`/quest/draft/${draftId}`);
   };
   return <main id="main-content" className={styles.page}>
     <header className={styles.header}><Link href="/">Undone</Link><span>Cohort creation</span></header>
-    <p className={styles.notice}>Foundation preview. Drafts are saved only in this browser tab, for up to 24 hours.</p>
-    {!creation.saved && <p role="alert">This browser cannot save your session. Keep this page open; refresh may lose your work.</p>}
+    <p className={styles.notice}>{creation.saved ? 'Your draft is saved to your account.' : 'Waiting for server confirmation.'} Material acquisition is not available yet.</p>
+    {creation.message && <p role="alert">{creation.message}</p>}
     {!creation.hydrated ? <p role="status">Opening workspace…</p> : <div className={styles.workspace}>
       <aside className={styles.intent} aria-label="Learning intent">
         <h1>What do you want to learn?</h1>
@@ -39,11 +39,10 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
             <textarea id="learning-query" name="query" defaultValue={snapshot.query || initialQuery} minLength={3} maxLength={2000} required rows={3} />
             <button type="submit" disabled={snapshot.status === 'running'}>Find cohorts</button>
           </form>
-          {snapshot.status === 'running' && <div role="status"><p>Understanding your intent and finding public cohorts…</p><button type="button" onClick={creation.cancel}>Cancel</button></div>}
+          {snapshot.status === 'running' && <div role="status"><p>Understanding your intent and finding public cohorts…</p><button type="button" onClick={creation.cancel}>Cancel</button><button type="button" onClick={() => void creation.runQuery(snapshot.query)}>Retry interrupted request</button></div>}
           {snapshot.error && <div role="alert"><p>{snapshot.error.message}</p>{snapshot.error.retryable && <button type="button" onClick={() => void creation.runQuery(snapshot.query)}>Retry</button>}</div>}
           {snapshot.status === 'canceled' && <div role="status"><p>Generation stopped. Your query is still here.</p><button type="button" onClick={() => void creation.runQuery(snapshot.query)}>Retry</button></div>}
           {snapshot.result && <RecommendationResults result={snapshot.result} onCreateOwn={createOwn} />}
-          {resume && snapshot.status === 'idle' && <p>This tab&apos;s draft is unavailable or expired. <Link href="/quest/new">Start a new query</Link>.</p>}
         </>}
       </div>
     </div>}
