@@ -2,6 +2,9 @@
   "name": "undone",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:bare": "next dev",
@@ -24,6 +27,7 @@
     "domshift": "npx @agrimsinghx/domshift 3000"
   },
   "dependencies": {
+    "@ai-sdk/google": "4.0.92",
     "@auth/prisma-adapter": "^2.11.3",
     "@capacitor-community/keep-awake": "^8.0.1",
     "@capacitor/app": "^8.1.1",
@@ -46,6 +50,7 @@
     "@svar-ui/react-kanban": "^2.6.0",
     "@tanstack/react-query": "^5.101.4",
     "@types/lodash.debounce": "^4.0.9",
+    "ai": "7.0.133",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "corsair": "^0.1.119",
@@ -65,8 +70,10 @@
     "react-dom": "19.2.4",
     "react-icons": "^5.7.0",
     "react-redux": "^9.3.0",
+    "server-only": "0.0.1",
     "simple-icons": "^16.27.1",
-    "tsx": "^4.23.12"
+    "tsx": "^4.23.12",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@capacitor/android": "^8.5.0",

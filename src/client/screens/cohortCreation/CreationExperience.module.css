@@ -1,0 +1,19 @@
+.page { min-height: 100vh; padding: 32px; background: #faf7f2; color: #20202a; font-family: var(--font-manrope-next), sans-serif; }
+.header { display: flex; justify-content: space-between; gap: 24px; max-width: 1200px; margin: 0 auto 24px; }
+.header a { font-weight: 800; }
+.notice { max-width: 1200px; margin: 0 auto 24px; color: #5a5863; }
+.workspace { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(0, 3fr); gap: 32px; max-width: 1200px; margin: auto; }
+.intent { border-right: 1px solid #ded8ce; padding-right: 24px; }
+.intent h1 { font-family: var(--font-playfair-display), serif; font-size: 28px; }
+.form { display: grid; gap: 12px; margin-bottom: 24px; }
+.page textarea { width: 100%; padding: 14px; border: 1px solid #b5afc3; border-radius: 12px; background: #fff; color: inherit; font: inherit; }
+.page button, .card a { padding: 10px 16px; border: 1px solid #5a50bf; border-radius: 10px; background: #fff; color: #383073; font: inherit; cursor: pointer; }
+.page button:disabled { opacity: .6; cursor: wait; }
+.page button[aria-pressed='true'] { background: #e8e3ff; }
+.page button:focus-visible, .page a:focus-visible, .page textarea:focus-visible { outline: 3px solid #8276de; outline-offset: 3px; }
+.cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px; }
+.card { padding: 20px; background: #fffdf9; border: 1px solid #ded8ce; border-radius: 16px; overflow-wrap: anywhere; }
+.card h3 { font-size: 20px; }
+.card p { margin: 12px 0; }
+.card a { display: inline-block; }
+@media (max-width: 760px) { .page { padding: 20px; } .workspace { grid-template-columns: 1fr; } .intent { border-right: 0; border-bottom: 1px solid #ded8ce; padding: 0 0 20px; } .cards { grid-template-columns: 1fr; } }
