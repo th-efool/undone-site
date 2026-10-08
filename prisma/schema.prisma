@@ -29,6 +29,7 @@ model User {
   messages          Message[]
   studyRooms        RoomParticipant[]
   lessonProgress    LessonProgress[]
+  creationDrafts    CreationDraft[]
 
   @@map("users")
 }
@@ -91,6 +92,20 @@ enum UserRole {
   EXPLORER
   CREATOR
   ADMIN
+}
+
+model CreationDraft {
+  id            String   @id @default(uuid())
+  ownerId       String
+  revision      Int      @default(0)
+  schemaVersion Int      @default(1)
+  snapshot      Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  owner         User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, updatedAt])
+  @@map("creation_drafts")
 }
 
 // ─────────────────────────────────────────────────────────────────
