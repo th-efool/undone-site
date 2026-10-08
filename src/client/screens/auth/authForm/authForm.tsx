@@ -24,7 +24,7 @@ const GENDER_OPTIONS = [
   { value: 'prefer-not-to-say', label: 'Prefer not to say' },
 ];
 
-export function AuthForm() {
+export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
   const [activeTab, setActiveTab] = useState<'signup' | 'login'>('signup');
   const isSignUp = activeTab === 'signup';
 
@@ -125,7 +125,7 @@ export function AuthForm() {
       </header>
 
       <section className={styles.oauth}>
-        <AuthProviders />
+        <AuthProviders returnTo={returnTo} />
       </section>
 
       <section className={styles.divider}>
@@ -172,14 +172,14 @@ export function AuthForm() {
       </section>
 
       <section className={styles.cta}>
-        <AuthButton href="/home">{isSignUp ? "Create Account" : "Log In"}</AuthButton>
+        <AuthButton href={returnTo}>{isSignUp ? "Create Account" : "Log In"}</AuthButton>
 
         <AuthButton
           variant="secondary"
           onClick={() => {
             signIn('credentials', {
               email: 'guest@undone.com',
-              callbackUrl: '/home'
+              callbackUrl: returnTo
             });
           }}
         >

@@ -6,16 +6,18 @@ import { useRouter } from 'next/navigation';
 import styles from './Auth.module.css';
 import AuthShowcase from './authShowcase/authShowcase';
 import { AuthForm } from './authForm/authForm';
+import { safeReturnTo } from '@/src/shared/auth/returnTo';
 
-export function Auth() {
+export function Auth({ returnTo = '/home', allowAuthenticatedRedirect = true }: { returnTo?: string; allowAuthenticatedRedirect?: boolean }) {
+  const destination = safeReturnTo(returnTo);
   const { status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      router.replace('/home');
+    if (status === 'authenticated' && allowAuthenticatedRedirect) {
+      router.replace(destination);
     }
-  }, [status, router]);
+  }, [status, router, destination, allowAuthenticatedRedirect]);
 
   if (status === 'loading') {
     return (
@@ -25,7 +27,7 @@ export function Auth() {
     );
   }
 
-  if (status === 'authenticated') {
+  if (status === 'authenticated' && allowAuthenticatedRedirect) {
     return null;
   }
 
@@ -35,7 +37,8 @@ export function Auth() {
         <AuthShowcase />
       </div>
       <aside className={styles.panel}>
-        <AuthForm />
+        {status === 'authenticated' && !allowAuthenticatedRedirect && <p>Sign in with a database-backed account to save your draft.</p>}
+        <AuthForm returnTo={destination} />
       </aside>
     </section>
   );

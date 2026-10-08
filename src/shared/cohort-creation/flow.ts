@@ -10,6 +10,7 @@ export const creationCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('create_own') }),
   z.strictObject({ type: z.literal('choose_starting_point'), startingPoint: startingPointSchema }),
   z.strictObject({ type: z.literal('back_to_recommendations') }),
+  z.strictObject({ type: z.literal('cancel_recommendations') }),
 ]);
 export type CreationCommand = z.infer<typeof creationCommandSchema>;
 export const creationEventSchema = z.discriminatedUnion('type', [
@@ -21,7 +22,7 @@ export type CreationEvent = z.infer<typeof creationEventSchema>;
 
 export function initialSnapshot(draftId: string): CreationSnapshot {
   return creationSnapshotSchema.parse({
-    schemaVersion: 1, draftId, storage: 'tab_session', revision: 0, inputRevision: 0,
+    schemaVersion: 1, draftId, storage: 'postgres', revision: 0, inputRevision: 0,
     stage: 'recommendations', query: '', status: 'idle', activeRequestId: null,
     result: null, startingPoint: null, error: null,
   });
@@ -38,6 +39,9 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
   const command = creationCommandSchema.parse(input);
   const changed = { ...state, revision: state.revision + 1, error: null };
   switch (command.type) {
+    case 'cancel_recommendations':
+      if (!state.activeRequestId) return state;
+      return applyEvent(state, { type: 'operation_cancelled', requestId: state.activeRequestId });
     case 'request_recommendations':
       return creationSnapshotSchema.parse({
         ...changed, query: command.query, inputRevision: state.inputRevision + 1,

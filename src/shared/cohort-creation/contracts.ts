@@ -90,11 +90,11 @@ export const creationErrorSchema = z.strictObject({
 export type CreationError = z.infer<typeof creationErrorSchema>;
 export const errorResponseSchema = z.strictObject({ error: creationErrorSchema });
 
-// Session-only foundation: this is not an authenticated, server-owned draft.
+// Early-stage snapshot shared by the client and owned PostgreSQL draft.
 export const creationSnapshotSchema = z.strictObject({
   schemaVersion: z.literal(1),
   draftId: z.uuid(),
-  storage: z.literal('tab_session'),
+  storage: z.literal('postgres'),
   revision,
   inputRevision: revision,
   stage: z.enum(['recommendations', 'starting_point']),

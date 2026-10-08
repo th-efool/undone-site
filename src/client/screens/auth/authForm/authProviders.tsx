@@ -33,7 +33,7 @@ const PROVIDERS: Provider[] = [
   },
 ];
 
-export function AuthProviders() {
+export function AuthProviders({ returnTo = '/home' }: { returnTo?: string }) {
   return (
     <div className={styles.providers}>
       {PROVIDERS.map((provider) => (
@@ -41,7 +41,7 @@ export function AuthProviders() {
           key={provider.id}
           type="button"
           className={styles.provider}
-          onClick={() => signIn(provider.id, { callbackUrl: '/home' })}
+          onClick={() => signIn(provider.id, { callbackUrl: returnTo })}
           disabled={provider.id === 'google' || provider.id === 'apple'}
           style={provider.id === 'google' || provider.id === 'apple' ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}
         >
