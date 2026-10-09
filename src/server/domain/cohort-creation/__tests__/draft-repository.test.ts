@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { initialSnapshot, applyCommand } from '@/src/shared/cohort-creation/flow';
 import { draftId, result } from '@/src/shared/cohort-creation/__tests__/fixtures';
 
-const mocks = vi.hoisted(() => ({ findFirst: vi.fn(), updateMany: vi.fn(), createMany: vi.fn(), findUnique: vi.fn(), getUser: vi.fn() }));
+const mocks = vi.hoisted(() => ({ findFirst: vi.fn(), queryRaw: vi.fn(), writeEvent: vi.fn(), createMany: vi.fn(), findUnique: vi.fn(), getUser: vi.fn() }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({ prisma: {
-  creationDraft: { findFirst: mocks.findFirst, updateMany: mocks.updateMany, createMany: mocks.createMany },
+  $transaction: (work: (tx: unknown) => unknown) => work({ $queryRaw: mocks.queryRaw }),
+  creationDraft: { findFirst: mocks.findFirst, createMany: mocks.createMany },
   user: { findUnique: mocks.findUnique },
 } }));
+vi.mock('@/src/server/infrastructure/db/postgres/repositories/creationEvent.repo', () => ({ writeDraftEvent: mocks.writeEvent }));
 vi.mock('@/src/server/infrastructure/auth/getUser', () => ({ getUser: mocks.getUser }));
 import { creationDraftRepo } from '@/src/server/infrastructure/db/postgres/repositories/creationDraft.repo';
 import { getCreationOwner } from '@/src/server/infrastructure/auth/getCreationOwner';
@@ -23,10 +25,13 @@ describe('PostgreSQL ownership and revision boundaries', () => {
   });
   it('uses an atomic owner/revision predicate and reports zero updated rows as a conflict', async () => {
     const next = applyCommand(initialSnapshot(draftId), { type: 'request_recommendations', requestId: result.requestId, query: result.intent.rawQuery });
-    mocks.updateMany.mockResolvedValueOnce({ count: 1 }).mockResolvedValueOnce({ count: 0 });
+    mocks.queryRaw.mockResolvedValueOnce([{ revision: 0 }]).mockResolvedValueOnce([{ revision: 1 }]);
     expect(await creationDraftRepo.swap('alice', draftId, 0, next)).toBe(true);
     expect(await creationDraftRepo.swap('alice', draftId, 0, next)).toBe(false);
-    expect(mocks.updateMany).toHaveBeenCalledWith({ where: { id: draftId, ownerId: 'alice', revision: 0 }, data: { snapshot: next, revision: { increment: 1 } } });
+    expect(mocks.writeEvent).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'alice', next, 'snapshot');
+    const [sql, id, owner] = mocks.queryRaw.mock.calls[0];
+    expect(sql.join('')).toContain('FOR UPDATE');
+    expect([id, owner]).toEqual([draftId, 'alice']);
     await expect(creationDraftRepo.swap('alice', draftId, 1, next)).rejects.toThrow('Invalid revision transition');
   });
   it('requires both an authenticated session and an authoritative database user', async () => {

@@ -2,6 +2,7 @@ import 'server-only';
 import { prisma } from '../client';
 import { creationSnapshotSchema, type CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 import { initialSnapshot } from '@/src/shared/cohort-creation/flow';
+import { writeDraftEvent } from './creationEvent.repo';
 
 export interface DraftRepository {
   create(ownerId: string, id: string): Promise<CreationSnapshot | null>;
@@ -24,10 +25,12 @@ export const creationDraftRepo: DraftRepository = {
   async swap(ownerId, id, baseRevision, next) {
     const snapshot = creationSnapshotSchema.parse(next);
     if (snapshot.draftId !== id || snapshot.revision !== baseRevision + 1) throw new Error('Invalid revision transition');
-    const result = await prisma.creationDraft.updateMany({
-      where: { id, ownerId, revision: baseRevision },
-      data: { snapshot, revision: { increment: 1 } },
+    return prisma.$transaction(async tx => {
+      const rows = await tx.$queryRaw<{ revision: number }[]>`SELECT "revision" FROM "creation_drafts"
+        WHERE "id"=${id} AND "ownerId"=${ownerId} FOR UPDATE`;
+      if (rows[0]?.revision !== baseRevision) return false;
+      await writeDraftEvent(tx, ownerId, snapshot, 'snapshot');
+      return true;
     });
-    return result.count === 1;
   },
 };

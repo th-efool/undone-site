@@ -100,12 +100,90 @@ model CreationDraft {
   revision      Int      @default(0)
   schemaVersion Int      @default(1)
   snapshot      Json
+  eventSequence Int      @default(0)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   owner         User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  jobs          CreationJob[]
+  events        CreationEvent[]
+  storageObjects CreationStorageObject[]
 
   @@index([ownerId, updatedAt])
   @@map("creation_drafts")
+}
+
+model CreationJob {
+  id String @id @default(uuid())
+  draftId String
+  ownerId String
+  kind String
+  requestId String
+  inputRevision Int
+  inputFingerprint String
+  input Json
+  status String @default("queued")
+  attempt Int @default(0)
+  checkpoint Json?
+  nextRunAt DateTime @default(now())
+  leaseOwner String?
+  leaseToken String?
+  leaseUntil DateTime?
+  heartbeatAt DateTime?
+  deadlineAt DateTime?
+  cancelRequestedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  draft CreationDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  @@unique([draftId, kind, inputFingerprint])
+  @@index([status, nextRunAt, leaseUntil])
+  @@map("creation_jobs")
+}
+
+model CreationEvent {
+  id String @id @default(uuid())
+  draftId String
+  sequence Int
+  envelope Json
+  createdAt DateTime @default(now())
+  draft CreationDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  @@unique([draftId, sequence])
+  @@index([createdAt])
+  @@map("creation_events")
+}
+
+model CreationBudget {
+  key String @id
+  used Int @default(0)
+  expiresAt DateTime
+  @@map("creation_budgets")
+}
+
+model CreationStorageObject {
+  id String @id @default(uuid())
+  draftId String
+  ownerId String
+  blobId String @unique
+  kind String
+  status String @default("uploading")
+  mediaType String
+  filename String?
+  byteLength Int @default(0)
+  reservedBytes Int
+  checksum String?
+  artifactType String?
+  schemaVersion Int?
+  inputFingerprint String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  completedAt DateTime?
+  referencedAt DateTime?
+  readLeaseUntil DateTime?
+  publishedAt DateTime?
+  deletingToken String?
+  draft CreationDraft @relation(fields: [draftId], references: [id], onDelete: Restrict)
+  @@index([draftId, status])
+  @@index([status, createdAt])
+  @@map("creation_storage_objects")
 }
 
 // ─────────────────────────────────────────────────────────────────
