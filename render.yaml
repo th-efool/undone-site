@@ -10,6 +10,8 @@ services:
     buildCommand: npm run build
     startCommand: npm start
     envVars:
+      - key: NODE_VERSION
+        value: 24.13.0
       - key: NODE_ENV
         value: production
       - key: GEMINI_API_KEY
@@ -40,3 +42,24 @@ services:
         sync: false
       - key: WORKER_SECRET
         sync: false
+
+  # Independent PostgreSQL polling worker; the existing vector worker is unchanged.
+  - name: sidequest-creation-worker
+    type: worker
+    env: node
+    plan: starter
+    buildCommand: npm ci --include=dev && npx prisma generate
+    startCommand: npm run creation:worker
+    envVars:
+      - key: NODE_VERSION
+        value: 24.13.0
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: COHORT_AI_MODEL
+        value: gemini-3.5-flash-lite

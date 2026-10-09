@@ -25,11 +25,16 @@ function sanitizedAiError(error: unknown, signal: AbortSignal): CreationFailure 
 }
 
 export class VercelCohortAi implements CohortAi {
-  constructor(private readonly model: LanguageModel) {}
+  constructor(private readonly model: LanguageModel, private readonly execution?: {
+    maxRetries: number; beforeCall: () => Promise<void | (() => Promise<void>)>;
+  }) {}
 
   private async structured<T extends z.ZodType>(schema: T, instructions: string, input: unknown, signal: AbortSignal): Promise<z.output<T>> {
     // One schema repair at most; both attempts share the caller's total abort budget.
     for (let attempt = 0; attempt < 2; attempt++) {
+      // Durable lease/budget failures must reach the worker without AI error remapping.
+      if (signal.aborted) throw sanitizedAiError(signal.reason, signal);
+      const release = await this.execution?.beforeCall();
       try {
         signal.throwIfAborted();
         const prompt = JSON.stringify({ input, ...(attempt ? { correction: 'Previous output failed schema validation. Return only the requested structured fields.' } : {}) });
@@ -41,7 +46,7 @@ export class VercelCohortAi implements CohortAi {
           model: this.model, instructions,
           prompt,
           output: Output.object({ schema }), maxOutputTokens: 2000,
-          maxRetries: 2, timeout: { totalMs: 15_000 }, abortSignal: signal,
+          maxRetries: this.execution?.maxRetries ?? 2, timeout: { totalMs: 15_000 }, abortSignal: signal,
           telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },
         });
         signal.throwIfAborted();
@@ -50,6 +55,9 @@ export class VercelCohortAi implements CohortAi {
         const invalid = NoObjectGeneratedError.isInstance(error) || NoOutputGeneratedError.isInstance(error) || error instanceof z.ZodError;
         if (attempt === 0 && invalid && !signal.aborted) continue;
         throw sanitizedAiError(error, signal);
+      } finally {
+        // An uncertain release remains conservatively occupied until its durable lease expires.
+        if (release) await release().catch(() => undefined);
       }
     }
     throw creationFailure('AI_INVALID_OUTPUT', 'The generated response could not be validated.');

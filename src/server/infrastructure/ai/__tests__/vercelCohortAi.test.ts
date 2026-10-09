@@ -6,6 +6,21 @@ import { createCohortModel } from '../modelRegistry';
 import { candidate, intent, intentProposal, modelOutput } from '@/src/shared/cohort-creation/__tests__/fixtures';
 
 describe('Vercel SDK creation adapter', () => {
+  it('releases each durable model slot after success and schema repair', async () => {
+    const release = vi.fn(async () => {});
+    const beforeCall = vi.fn(async () => release);
+    const model = new MockLanguageModelV4({ doGenerate: [modelOutput({ topic: 'bad' }), modelOutput(intentProposal)] });
+    await new VercelCohortAi(model, { maxRetries: 0, beforeCall }).interpret(intent.rawQuery, new AbortController().signal);
+    expect(beforeCall).toHaveBeenCalledTimes(2);
+    expect(release).toHaveBeenCalledTimes(2);
+  });
+  it('preserves durable reservation failures without starting or remapping provider work', async () => {
+    const model = new MockLanguageModelV4({ doGenerate: modelOutput(intentProposal) });
+    const failure = new Error('lease lost');
+    const ai = new VercelCohortAi(model, { maxRetries: 0, beforeCall: async () => { throw failure; } });
+    await expect(ai.interpret(intent.rawQuery, new AbortController().signal)).rejects.toBe(failure);
+    expect(model.doGenerateCalls).toHaveLength(0);
+  });
   it('uses real SDK structured validation and does not infer unknown user fields', async () => {
     const model = new MockLanguageModelV4({ doGenerate: modelOutput(intentProposal) });
     expect(await new VercelCohortAi(model).interpret(intent.rawQuery, new AbortController().signal)).toEqual(intentProposal);
