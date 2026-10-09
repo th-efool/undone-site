@@ -4,6 +4,9 @@ import { CreationStorageError, type CreationObjectRef } from '@/src/server/infra
 
 export const TEXT_PARSER_VERSION = 'utf8-markdown-offsets-v1';
 const hash = (value: string | Uint8Array) => createHash('sha256').update(value).digest('hex');
+export const textExtractionVersion = (sourceChecksum: string) => hash(`${TEXT_PARSER_VERSION}:${sourceChecksum}`);
+export const textAcquisitionFingerprint = (materialId: string, inputRevision: number, sourceRef: CreationObjectRef) =>
+  hash(JSON.stringify({ materialId, inputRevision, assetId: sourceRef.id, checksum: sourceRef.checksum, parser: TEXT_PARSER_VERSION }));
 
 /** No normalization: anchors are UTF-16 offsets into the exact decoded source text. */
 export function extractRetainedText(bytes: Uint8Array, sourceRef: CreationObjectRef,
@@ -21,7 +24,7 @@ export function extractRetainedText(bytes: Uint8Array, sourceRef: CreationObject
   if (!text.trim() || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(text)) {
     throw new CreationStorageError('INVALID_INPUT', 'The source is empty or contains binary control characters.');
   }
-  const version = hash(`${TEXT_PARSER_VERSION}:${sourceRef.checksum}`);
+  const version = textExtractionVersion(sourceRef.checksum);
   const segments: TextExtractionArtifact['segments'] = [];
   function emit(start: number, end: number, kind: 'text' | 'heading' | 'code') {
     while (start < end) {

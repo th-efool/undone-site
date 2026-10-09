@@ -1,10 +1,9 @@
 import 'server-only';
-import { createHash } from 'node:crypto';
 import { materialSourceSchema, type MaterialSource } from '@/src/shared/cohort-creation/contracts';
 import { MATERIAL_LIMITS, materialManifestSchema, textExtractionArtifactSchema } from '@/src/shared/cohort-creation/materials';
 import { CreationStorageError, type StorageScope } from '@/src/server/infrastructure/storage/creation.contracts';
 import type { MaterialBlobStore, CreationArtifactRepository } from '@/src/server/infrastructure/storage/creation.store';
-import { extractRetainedText, TEXT_PARSER_VERSION } from './text';
+import { extractRetainedText, TEXT_PARSER_VERSION, textAcquisitionFingerprint } from './text';
 
 /** Acquisition proposes retained artifacts; only the fenced job commit may accept/pin them. */
 export class TextAcquisitionService {
@@ -38,8 +37,7 @@ export class TextAcquisitionService {
       pieces.push(piece);
     }
     const extraction = extractRetainedText(Buffer.concat(pieces), opened.ref, source.id, unitId, signal);
-    const fingerprint = createHash('sha256').update(JSON.stringify({ materialId: source.id,
-      inputRevision, assetId: opened.ref.id, checksum: opened.ref.checksum, parser: TEXT_PARSER_VERSION })).digest('hex');
+    const fingerprint = textAcquisitionFingerprint(source.id, inputRevision, opened.ref);
     const artifact = await this.artifacts.putJSON(scope, extraction, { artifactType: 'text-extraction',
       schemaVersion: 1, inputFingerprint: fingerprint, schema: textExtractionArtifactSchema, signal });
     signal?.throwIfAborted();
