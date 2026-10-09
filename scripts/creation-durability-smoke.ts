@@ -2,7 +2,7 @@
  * No public migrations, model calls, Mongo access, or existing application records.
  */
 import assert, { AssertionError } from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -13,7 +13,9 @@ import { applyCommand, initialSnapshot } from '../src/shared/cohort-creation/flo
 import { CreationFailure } from '../src/server/domain/cohort-creation/errors';
 import { createCreationRetentionRepository } from '../src/server/infrastructure/db/postgres/repositories/creationRetention.repo';
 import { createCreationStorageMetadata } from '../src/server/infrastructure/storage/creation.metadata';
-import type { RecommendationResult } from '../src/shared/cohort-creation/contracts';
+import { creationSnapshotSchema, type RecommendationResult } from '../src/shared/cohort-creation/contracts';
+import { TextAcquisitionService } from '../src/server/domain/cohort-creation/materials/text-acquisition.service';
+import { executeCreationJob } from '../src/server/domain/cohort-creation/durable-job.runner';
 
 let stage = 'connection';
 async function main() {
@@ -58,6 +60,7 @@ async function main() {
     assert.equal(jobs.length, 2, 'global job capacity');
     assert.equal(new Set(jobs.map(job => job.id)).size, 2, 'distinct queue claims');
     const job = jobs[0];
+    assert.ok(job.kind === 'recommendations');
     // Remote connection latency is not part of the production deadline assertion.
     // Give this test fixture time to inspect slot contention without calling a model.
     job.deadlineAt = new Date(Date.now() + 300_000);
@@ -105,6 +108,57 @@ async function main() {
     assert.equal((resumed.snapshot as { status: string }).status, 'succeeded');
     assert.ok(resumed.eventSequence >= 4, 'durable events retained');
     assert.equal(await repo.finish(recovered, { type: 'recommendations_received', result }), false, 'duplicate completion');
+    stage = 'durable text acquisition and artifact fencing';
+    await db.creationJob.updateMany({ where: { status: { in: ['queued', 'running'] } }, data: { status: 'canceled', leaseToken: null, leaseUntil: null } });
+    const accepted = creationSnapshotSchema.parse(resumed.snapshot);
+    const starting = applyCommand(applyCommand(accepted, { type: 'create_own' }), { type: 'choose_starting_point', startingPoint: 'have_material' });
+    // Source bytes are mocked here; only persistence/worker fencing is live verified.
+    await db.creationDraft.update({ where: { id: job.draftId }, data: { snapshot: starting, revision: starting.revision } });
+    const bytes = Buffer.from('# Rendering\nActual retained SQL fixture content.');
+    const sourceRef = { id: randomUUID(), kind: 'upload' as const, byteLength: bytes.length,
+      checksum: createHash('sha256').update(bytes).digest('hex') };
+    await db.creationStorageObject.create({ data: { ...sourceRef, blobId: randomUUID(), ownerId: owner,
+      draftId: job.draftId, status: 'ready', mediaType: 'text/markdown', reservedBytes: bytes.length } });
+    const sourceCommand = { type: 'acquire_text' as const, requestId: randomUUID(), materialId: randomUUID(), assetId: sourceRef.id };
+    await assert.rejects(repo.enqueue(owner, starting, applyCommand(starting, { ...sourceCommand, assetId: randomUUID() })),
+      error => error instanceof CreationFailure && error.detail.code === 'INVALID_REQUEST');
+    const queuedText = applyCommand(starting, sourceCommand);
+    assert.ok(await repo.enqueue(owner, starting, queuedText));
+    assert.ok((await db.creationStorageObject.findUniqueOrThrow({ where: { id: sourceRef.id } })).referencedAt);
+    const textJob = await repo.claim('text-worker');
+    assert.ok(textJob?.kind === 'acquire_text');
+    textJob.deadlineAt = new Date(Date.now() + 300_000);
+    await db.creationJob.update({ where: { id: textJob.id }, data: { deadlineAt: textJob.deadlineAt, leaseUntil: new Date(Date.now() + 300_000) } });
+    const acquisition = new TextAcquisitionService({ readStream: async () => ({ ref: sourceRef, mediaType: 'text/markdown',
+      stream: (async function* () { yield bytes; })() }) }, { putJSON: async (scope, value, options) => {
+      const body = Buffer.from(JSON.stringify(value));
+      const ref = { id: randomUUID(), kind: 'artifact' as const, byteLength: body.length, checksum: createHash('sha256').update(body).digest('hex') };
+      await db.creationStorageObject.create({ data: { ...ref, ...scope, blobId: randomUUID(), status: 'ready',
+        mediaType: 'application/json', reservedBytes: body.length, artifactType: options.artifactType,
+        schemaVersion: options.schemaVersion, inputFingerprint: options.inputFingerprint } });
+      return ref;
+    } });
+    const manifest = await acquisition.acquire({ ownerId: owner, draftId: job.draftId }, textJob.input.source, textJob.inputRevision);
+    await assert.rejects(repo.checkpoint(textJob, { ...manifest, inputFingerprint: 'f'.repeat(64) }));
+    await db.creationStorageObject.update({ where: { id: manifest.extractionArtifact.id }, data: { ownerId: 'other-fixture-owner' } });
+    await assert.rejects(repo.checkpoint(textJob, manifest), /Checkpoint storage reference unavailable/);
+    assert.equal((await db.creationStorageObject.findUniqueOrThrow({ where: { id: manifest.extractionArtifact.id } })).referencedAt, null);
+    await db.creationStorageObject.update({ where: { id: manifest.extractionArtifact.id }, data: { ownerId: owner } });
+    assert.equal(await repo.checkpoint(textJob, manifest), true);
+    await db.creationJob.update({ where: { id: textJob.id }, data: { leaseUntil: new Date(0) } });
+    const restoredText = await repo.claim('text-restart');
+    assert.ok(restoredText?.kind === 'acquire_text' && restoredText.checkpoint);
+    assert.equal(await repo.checkpoint(textJob, manifest), false, 'stale material checkpoint');
+    await executeCreationJob(repo, restoredText, () => { throw new Error('No AI expected'); }, new AbortController().signal,
+      () => ({ acquire: async () => { throw new Error('Checkpoint must avoid reacquisition'); } }));
+    const readyText = creationSnapshotSchema.parse((await db.creationDraft.findUniqueOrThrow({ where: { id: job.draftId } })).snapshot);
+    assert.equal(readyText.materials[0].status, 'ready');
+    assert.equal(readyText.extractions[0].artifactRef, manifest.extractionArtifact.id);
+    assert.ok((await db.creationStorageObject.findUniqueOrThrow({ where: { id: manifest.extractionArtifact.id } })).referencedAt);
+    const replacedIntent = applyCommand(readyText, { type: 'request_recommendations', requestId: randomUUID(), query: 'Learn shaders instead' });
+    assert.ok(await repo.enqueue(owner, readyText, replacedIntent));
+    assert.equal((await db.creationStorageObject.findUniqueOrThrow({ where: { id: sourceRef.id } })).referencedAt, null);
+    assert.ok(await repo.cancel(owner, replacedIntent, applyCommand(replacedIntent, { type: 'cancel_recommendations' })));
     stage = 'retention protection and tombstones';
     const retention = createCreationRetentionRepository(db);
     const old = new Date(Date.now() - 61 * 86400_000);
@@ -160,7 +214,7 @@ async function main() {
     try { if (created) await admin.query(`DROP SCHEMA "${schema}" CASCADE`); }
     finally { await admin.end(); }
   }
-  console.log('SQL smoke passed: ownership, CAS, queue/model limits, fencing, restart, reload, retention protection and pruning; isolated schema removed.');
+  console.log('SQL smoke passed: ownership, CAS, recommendation/text jobs, artifact pinning, restart, reload, retention; isolated schema removed.');
 }
 
 main().catch(error => {
