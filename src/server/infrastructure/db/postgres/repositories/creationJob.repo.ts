@@ -11,7 +11,7 @@ import { jobSummary, writeDraftEvent } from './creationEvent.repo';
 
 async function lockedDraft(tx: Prisma.TransactionClient, owner: string, id: string) {
   const rows = await tx.$queryRaw<{ snapshot: unknown }[]>`
-    SELECT "snapshot" FROM "creation_drafts" WHERE "id"=${id} AND "ownerId"=${owner} FOR UPDATE`;
+    SELECT "snapshot" FROM "creation_drafts" WHERE "id"=${id} AND "ownerId"=${owner} AND "expiredAt" IS NULL FOR UPDATE`;
   return rows[0] ? creationSnapshotSchema.parse(rows[0].snapshot) : null;
 }
 async function fenced(tx: Prisma.TransactionClient, job: ClaimedCreationJob) {
@@ -75,7 +75,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const candidates = await tx.$queryRaw<{ id: string; draftId: string; ownerId: string }[]>`
         SELECT j."id",j."draftId",j."ownerId" FROM "creation_jobs" j
         JOIN "creation_drafts" d ON d."id"=j."draftId"
-        WHERE j."kind"='recommendations' AND j."cancelRequestedAt" IS NULL AND
+        WHERE d."expiredAt" IS NULL AND j."kind"='recommendations' AND j."cancelRequestedAt" IS NULL AND
         ((j."status"='queued' AND j."nextRunAt"<=CURRENT_TIMESTAMP) OR
          (j."status"='running' AND j."leaseUntil"<=CURRENT_TIMESTAMP))
         ORDER BY j."nextRunAt",j."createdAt" LIMIT 1 FOR UPDATE OF d SKIP LOCKED`;

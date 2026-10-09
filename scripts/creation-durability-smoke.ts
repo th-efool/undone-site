@@ -11,6 +11,8 @@ import { createCreationJobRepository } from '../src/server/infrastructure/db/pos
 import { prisma as defaultPrisma } from '../src/server/infrastructure/db/postgres/client';
 import { applyCommand, initialSnapshot } from '../src/shared/cohort-creation/flow';
 import { CreationFailure } from '../src/server/domain/cohort-creation/errors';
+import { createCreationRetentionRepository } from '../src/server/infrastructure/db/postgres/repositories/creationRetention.repo';
+import { createCreationStorageMetadata } from '../src/server/infrastructure/storage/creation.metadata';
 import type { RecommendationResult } from '../src/shared/cohort-creation/contracts';
 
 let stage = 'connection';
@@ -31,7 +33,7 @@ async function main() {
     created = true;
     stage = 'isolated schema setup (requires direct/session database connection)';
     await pool.query('CREATE TABLE "users" ("id" TEXT PRIMARY KEY)');
-    for (const file of ['creation-draft.sql', 'creation-durability.sql']) {
+    for (const file of ['creation-draft.sql', 'creation-durability.sql', 'creation-retention.sql']) {
       await pool.query(await readFile(new URL(`../prisma/${file}`, import.meta.url), 'utf8'));
     }
     stage = 'enqueue and revision checks';
@@ -103,12 +105,62 @@ async function main() {
     assert.equal((resumed.snapshot as { status: string }).status, 'succeeded');
     assert.ok(resumed.eventSequence >= 4, 'durable events retained');
     assert.equal(await repo.finish(recovered, { type: 'recommendations_received', result }), false, 'duplicate completion');
+    stage = 'retention protection and tombstones';
+    const retention = createCreationRetentionRepository(db);
+    const old = new Date(Date.now() - 61 * 86400_000);
+    const scopes: Record<string, string> = {};
+    for (const name of ['orphan', 'published', 'reading', 'uploading', 'busy']) {
+      const id = randomUUID();
+      scopes[name] = id;
+      await db.creationDraft.create({ data: { id, ownerId: owner, snapshot: initialSnapshot(id), updatedAt: old } });
+      if (name === 'busy') {
+        await db.creationJob.create({ data: { draftId: id, ownerId: owner, kind: 'recommendations',
+          requestId: randomUUID(), inputRevision: 1, inputFingerprint: randomUUID(), input: {} } });
+      } else {
+        await db.creationStorageObject.create({ data: { id: randomUUID(), blobId: randomUUID(), draftId: id,
+          ownerId: owner, kind: 'artifact', status: name === 'uploading' ? 'uploading' : 'ready',
+          mediaType: 'application/json', reservedBytes: 1, referencedAt: old,
+          createdAt: name === 'uploading' ? new Date() : old,
+          publishedAt: name === 'published' ? old : null,
+          readLeaseUntil: name === 'reading' ? new Date(Date.now() + 300_000) : null } });
+      }
+    }
+    assert.equal(await retention.expireInactive(new Date(), 50), 1, 'only unprotected inactive draft expires');
+    const expired = await db.creationDraft.findUniqueOrThrow({ where: { id: scopes.orphan } });
+    assert.ok(expired.expiredAt);
+    assert.equal(await repo.enqueue(owner, initialSnapshot(scopes.orphan), applyCommand(initialSnapshot(scopes.orphan), {
+      type: 'request_recommendations', query: 'Learn rendering', requestId: randomUUID(),
+    })), null, 'expired drafts cannot enqueue');
+    assert.equal((await db.creationStorageObject.findFirstOrThrow({ where: { draftId: scopes.orphan } })).referencedAt, null);
+    assert.equal(await retention.finalizeExpired(50), 0, 'SQL waits for blob metadata cleanup');
+    const metadata = createCreationStorageMetadata(db);
+    const stored = await db.creationStorageObject.findFirstOrThrow({ where: { draftId: scopes.orphan } });
+    const expiredScope = { ownerId: owner, draftId: scopes.orphan };
+    assert.equal(await metadata.find(expiredScope, stored.id), null, 'expired bytes are unreadable');
+    await assert.rejects(metadata.pin(expiredScope, stored.id, true), { code: 'NOT_FOUND' });
+    await assert.rejects(metadata.protectRead(expiredScope, stored.id, new Date(Date.now() + 90_000)), { code: 'NOT_FOUND' });
+    await assert.rejects(metadata.complete(expiredScope, stored.id, 1, 'checksum'), { code: 'NOT_FOUND' });
+    const deletion = randomUUID();
+    assert.ok(await metadata.claimDeletion(expiredScope, stored.id, deletion, new Date(Date.now() - 7 * 86400_000)));
+    assert.equal(await metadata.finishDeletion(expiredScope, stored.id, randomUUID()), false, 'stale deletion token');
+    assert.equal(await retention.finalizeExpired(50), 0, 'blob failure remains recoverable');
+    // Simulate successful byte deletion before acknowledging metadata deletion.
+    assert.equal(await metadata.finishDeletion(expiredScope, stored.id, deletion), true);
+    assert.equal(await retention.finalizeExpired(50), 1);
+    assert.equal(await db.creationDraft.findUnique({ where: { id: scopes.orphan } }), null);
+    await db.creationEvent.updateMany({ data: { createdAt: old } });
+    await db.creationBudget.create({ data: { key: 'expired-test-counter', used: 1, expiresAt: old } });
+    const pruned = await retention.prune(new Date(), 1000);
+    assert.ok(pruned.events > 0);
+    assert.ok(pruned.budgets > 0);
+    assert.equal(await db.creationBudget.count({ where: { key: { startsWith: 'active-model-slot:' } } }), 2,
+      'model slot fencing survives retention');
   } finally {
     await Promise.allSettled([db.$disconnect(), pool.end(), defaultPrisma.$disconnect()]);
     try { if (created) await admin.query(`DROP SCHEMA "${schema}" CASCADE`); }
     finally { await admin.end(); }
   }
-  console.log('SQL smoke passed: deduplication, ownership, CAS, queue/model limits, fenced releases, restart, checkpoints, reload; isolated schema removed.');
+  console.log('SQL smoke passed: ownership, CAS, queue/model limits, fencing, restart, reload, retention protection and pruning; isolated schema removed.');
 }
 
 main().catch(error => {

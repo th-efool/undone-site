@@ -1,21 +1,27 @@
 import 'server-only';
 import { Prisma } from '@/generated/prisma/client';
-import { prisma } from '../db/postgres/client';
+import { prisma as defaultPrisma } from '../db/postgres/client';
 import {
   CREATION_STORAGE_LIMITS as limits, CreationStorageError,
   type CreationStorageMetadata, type CreationStorageRecord, type StorageScope,
 } from './creation.contracts';
 
-async function lockDraft(tx: Prisma.TransactionClient, scope: StorageScope) {
+export function createCreationStorageMetadata(prisma = defaultPrisma): CreationStorageMetadata {
+async function lockDraft(tx: Prisma.TransactionClient, scope: StorageScope, cleanup = false) {
   const rows = await tx.$queryRaw<{ id: string }[]>(Prisma.sql`
-    SELECT id FROM creation_drafts WHERE id = ${scope.draftId} AND "ownerId" = ${scope.ownerId} FOR UPDATE`);
+    SELECT id FROM creation_drafts WHERE id = ${scope.draftId} AND "ownerId" = ${scope.ownerId}
+      ${cleanup ? Prisma.empty : Prisma.sql`AND "expiredAt" IS NULL`} FOR UPDATE`);
   if (!rows.length) throw new CreationStorageError('NOT_FOUND', 'The draft was not found.');
+  if (!cleanup) await tx.$executeRaw`UPDATE "creation_drafts" SET "updatedAt"=CURRENT_TIMESTAMP WHERE "id"=${scope.draftId}`;
+}
+async function withActiveDraft<T>(scope: StorageScope, action: (tx: Prisma.TransactionClient) => Promise<T>) {
+  return prisma.$transaction(async tx => { await lockDraft(tx, scope); return action(tx); });
 }
 const busy = (draftId: string) => Prisma.sql`
   EXISTS (SELECT 1 FROM creation_jobs j WHERE j."draftId" = ${draftId} AND j.status IN ('queued', 'running'))`;
 
 /** Raw SQL keeps byte reservation, pinning and reclamation atomic across worker processes. */
-export const creationStorageMetadata: CreationStorageMetadata = {
+return {
   async reserve(input, draftLimit) {
     await prisma.$transaction(async tx => {
       await lockDraft(tx, input);
@@ -33,32 +39,33 @@ export const creationStorageMetadata: CreationStorageMetadata = {
     });
   },
   async complete(scope, id, bytes, checksum) {
-    return (await prisma.$executeRaw(Prisma.sql`
+    return withActiveDraft(scope, async tx => (await tx.$executeRaw(Prisma.sql`
       UPDATE creation_storage_objects SET status = 'ready', "byteLength" = ${bytes}, checksum = ${checksum},
         "completedAt" = NOW(), "updatedAt" = NOW()
       WHERE id = ${id} AND "ownerId" = ${scope.ownerId} AND "draftId" = ${scope.draftId}
-        AND status = 'uploading' AND "reservedBytes" >= ${bytes}`)) === 1;
+        AND status = 'uploading' AND "reservedBytes" >= ${bytes}`)) === 1);
   },
   async find(scope, id) {
     const rows = await prisma.$queryRaw<CreationStorageRecord[]>(Prisma.sql`
       SELECT o.* FROM creation_storage_objects o JOIN creation_drafts d ON d.id = o."draftId"
-      WHERE o.id = ${id} AND o."ownerId" = ${scope.ownerId} AND o."draftId" = ${scope.draftId} AND d."ownerId" = ${scope.ownerId}`);
+      WHERE o.id = ${id} AND o."ownerId" = ${scope.ownerId} AND o."draftId" = ${scope.draftId}
+        AND d."ownerId" = ${scope.ownerId} AND d."expiredAt" IS NULL`);
     return rows[0] ?? null;
   },
   async pin(scope, id, published) {
-    return (await prisma.$executeRaw(Prisma.sql`
+    return withActiveDraft(scope, async tx => (await tx.$executeRaw(Prisma.sql`
       UPDATE creation_storage_objects SET "referencedAt" = NOW(),
         "publishedAt" = CASE WHEN ${published} THEN COALESCE("publishedAt", NOW()) ELSE "publishedAt" END, "updatedAt" = NOW()
-      WHERE id = ${id} AND "ownerId" = ${scope.ownerId} AND "draftId" = ${scope.draftId} AND status = 'ready'`)) === 1;
+      WHERE id = ${id} AND "ownerId" = ${scope.ownerId} AND "draftId" = ${scope.draftId} AND status = 'ready'`)) === 1);
   },
   async protectRead(scope, id, until) {
-    return (await prisma.$executeRaw(Prisma.sql`
+    return withActiveDraft(scope, async tx => (await tx.$executeRaw(Prisma.sql`
       UPDATE creation_storage_objects SET "readLeaseUntil" = GREATEST("readLeaseUntil", ${until})
-      WHERE id = ${id} AND "ownerId" = ${scope.ownerId} AND "draftId" = ${scope.draftId} AND status = 'ready'`)) === 1;
+      WHERE id = ${id} AND "ownerId" = ${scope.ownerId} AND "draftId" = ${scope.draftId} AND status = 'ready'`)) === 1);
   },
   async claimDeletion(scope, id, token, before) {
     return prisma.$transaction(async tx => {
-      await lockDraft(tx, scope);
+      await lockDraft(tx, scope, true);
       const rows = await tx.$queryRaw<CreationStorageRecord[]>(Prisma.sql`
         UPDATE creation_storage_objects SET status = 'deleting', "deletingToken" = ${token}, "updatedAt" = NOW()
         WHERE id = ${id} AND "ownerId" = ${scope.ownerId} AND "draftId" = ${scope.draftId}
@@ -96,3 +103,5 @@ export const creationStorageMetadata: CreationStorageMetadata = {
       ORDER BY d."updatedAt", d.id LIMIT ${limit}`);
   },
 };
+}
+export const creationStorageMetadata = createCreationStorageMetadata();

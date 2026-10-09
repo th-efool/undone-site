@@ -21,7 +21,7 @@ describe('PostgreSQL ownership and revision boundaries', () => {
     mocks.findFirst.mockResolvedValue({ snapshot, revision: 0, schemaVersion: 1 });
     expect(await creationDraftRepo.create('alice', draftId)).toEqual(snapshot);
     expect(mocks.createMany).toHaveBeenCalledWith({ data: [{ id: draftId, ownerId: 'alice', snapshot }], skipDuplicates: true });
-    expect(mocks.findFirst).toHaveBeenCalledWith({ where: { id: draftId, ownerId: 'alice' } });
+    expect(mocks.findFirst).toHaveBeenCalledWith({ where: { id: draftId, ownerId: 'alice', expiredAt: null } });
   });
   it('uses an atomic owner/revision predicate and reports zero updated rows as a conflict', async () => {
     const next = applyCommand(initialSnapshot(draftId), { type: 'request_recommendations', requestId: result.requestId, query: result.intent.rawQuery });

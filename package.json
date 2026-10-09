@@ -19,6 +19,7 @@
     "creation:worker": "node --conditions=react-server --import tsx --env-file-if-exists=.env src/server/creation-worker.ts",
     "creation:worker:check": "node --conditions=react-server --import tsx --env-file-if-exists=.env src/server/creation-worker.ts --check",
     "creation:sql:smoke": "node --conditions=react-server --import tsx --env-file-if-exists=.env scripts/creation-durability-smoke.ts",
+    "creation:storage:smoke": "node --conditions=react-server --import tsx --env-file-if-exists=.env scripts/creation-storage-smoke.ts",
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",

@@ -16,9 +16,9 @@ async function main() {
   }
   if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is required for the creation worker.');
   if (process.argv.includes('--reconcile')) {
-    const { reconcilePrivateCreationStorage } = await import('./infrastructure/storage/creation.runtime');
+    const { maintainPrivateCreationStorage } = await import('./infrastructure/storage/creation.runtime');
     const mongoose = (await import('mongoose')).default;
-    try { console.log(JSON.stringify(await reconcilePrivateCreationStorage())); }
+    try { console.log(JSON.stringify(await maintainPrivateCreationStorage())); }
     finally { await Promise.all([prisma.$disconnect(), mongoose.disconnect()]); }
     return;
   }
@@ -26,14 +26,28 @@ async function main() {
   const stop = () => shutdown.abort(new Error('Worker shutting down'));
   process.once('SIGTERM', stop);
   process.once('SIGINT', stop);
+  let maintenance: Promise<void> | null = null;
+  const sweep = () => {
+    if (maintenance || shutdown.signal.aborted) return;
+    maintenance = import('./infrastructure/storage/creation.runtime')
+      .then(runtime => runtime.maintainPrivateCreationStorage())
+      .then(() => undefined)
+      .catch(() => { console.error('[creation-worker] Retention sweep failed; the next sweep will retry.'); })
+      .finally(() => { maintenance = null; });
+  };
+  const retentionTimer = setInterval(sweep, 10 * 60_000);
+  retentionTimer.unref();
+  sweep();
   try {
     await runCreationWorker(creationJobRepo, `creation-${randomUUID()}`, job => new RecommendationService(
       new VercelCohortAi(createCohortModel(), { maxRetries: 0, beforeCall: () => creationJobRepo.reserveModelCall(job) }),
       creationRecommendationRepo), shutdown.signal,
       () => console.error('[creation-worker] Durable operation failed; its lease/checkpoint permits recovery.'));
   } finally {
+    clearInterval(retentionTimer);
+    await maintenance;
     process.removeListener('SIGTERM', stop); process.removeListener('SIGINT', stop);
-    await prisma.$disconnect();
+    await Promise.all([prisma.$disconnect(), (await import('mongoose')).default.disconnect()]);
   }
 }
 void main().catch(error => { console.error('[creation-worker]', error instanceof Error ? error.message : 'Startup failed'); process.exitCode = 1; });

@@ -16,7 +16,7 @@ export const creationDraftRepo: DraftRepository = {
     return this.load(ownerId, id);
   },
   async load(ownerId, id) {
-    const row = await prisma.creationDraft.findFirst({ where: { id, ownerId } });
+    const row = await prisma.creationDraft.findFirst({ where: { id, ownerId, expiredAt: null } });
     if (!row) return null;
     const state = creationSnapshotSchema.parse(row.snapshot);
     if (state.draftId !== id || state.revision !== row.revision || state.schemaVersion !== row.schemaVersion) throw new Error('Invalid stored draft');
@@ -27,7 +27,7 @@ export const creationDraftRepo: DraftRepository = {
     if (snapshot.draftId !== id || snapshot.revision !== baseRevision + 1) throw new Error('Invalid revision transition');
     return prisma.$transaction(async tx => {
       const rows = await tx.$queryRaw<{ revision: number }[]>`SELECT "revision" FROM "creation_drafts"
-        WHERE "id"=${id} AND "ownerId"=${ownerId} FOR UPDATE`;
+        WHERE "id"=${id} AND "ownerId"=${ownerId} AND "expiredAt" IS NULL FOR UPDATE`;
       if (rows[0]?.revision !== baseRevision) return false;
       await writeDraftEvent(tx, ownerId, snapshot, 'snapshot');
       return true;

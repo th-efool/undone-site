@@ -16,7 +16,7 @@ export async function writeDraftEvent(tx: Prisma.TransactionClient, ownerId: str
   kind: CreationEventEnvelope['kind'], job: CreationJob | null = null) {
   const valid = creationSnapshotSchema.parse(snapshot);
   if (Buffer.byteLength(JSON.stringify(valid)) > 256_000) throw new Error('Snapshot exceeds event budget');
-  const draft = await tx.creationDraft.update({ where: { id: valid.draftId, ownerId },
+  const draft = await tx.creationDraft.update({ where: { id: valid.draftId, ownerId, expiredAt: null },
     data: { snapshot: valid, revision: valid.revision, eventSequence: { increment: 1 } } });
   const envelope = creationEventEnvelopeSchema.parse({ schemaVersion: 1, draftId: valid.draftId,
     jobId: job?.id ?? null, inputRevision: valid.inputRevision, sequence: draft.eventSequence,
@@ -29,7 +29,7 @@ export const creationEventRepo: CreationEventRepository = {
   async read(ownerId, draftId, after) {
     // Repeatable read prevents a cursor newer than the snapshot/event batch.
     return prisma.$transaction(async tx => {
-      const draft = await tx.creationDraft.findFirst({ where: { id: draftId, ownerId } });
+      const draft = await tx.creationDraft.findFirst({ where: { id: draftId, ownerId, expiredAt: null } });
       if (!draft) return null;
       const snapshot = creationSnapshotSchema.parse(draft.snapshot);
       const rows = await tx.creationEvent.findMany({ where: { draftId, sequence: { gt: after },
