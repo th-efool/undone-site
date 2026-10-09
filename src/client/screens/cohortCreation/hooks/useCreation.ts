@@ -99,7 +99,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
       await edit({ type: latest.stage === 'starting_point' ? 'cancel_material_acquisition' : 'cancel_recommendations' });
     } catch (error) { failure(error); }
   };
-  const uploadText = async (bytes: Blob, filename: string) => {
+  const uploadText = async (bytes: Blob, filename: string, materialId?: string) => {
     if (editPending.current) return false;
     if (!bytes.size || bytes.size > MATERIAL_LIMITS.extractedTextBytes) {
       failure(new DraftApiError('Provide text up to 1 MiB. Select a smaller source; nothing was truncated.', 413)); return false;
@@ -108,11 +108,11 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     const operation = new AbortController(); uploadController.current = operation;
     editPending.current = true; setUploading(true); setMaterialPending(true);
     try {
-      const ref = await materialApi.upload(draftId, bytes, base.revision, filename, operation.signal);
+      const ref = await materialApi.upload(draftId, bytes, base.revision, filename, operation.signal, materialId);
       operation.signal.throwIfAborted();
       uploadController.current = null; setUploading(false);
       // Always use the captured revision: never attach an earlier upload to a newer intent.
-      return await send({ type: 'acquire_text', materialId: crypto.randomUUID(), assetId: ref.id,
+      return await send({ type: 'acquire_text', materialId: materialId ?? crypto.randomUUID(), assetId: ref.id,
         requestId: crypto.randomUUID() }, undefined, base.revision);
     } catch (error) {
       if (operation.signal.aborted) display(current.current, true, 'Upload canceled. Select material to retry.');
@@ -124,6 +124,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     }
   };
   return { ...view, uploading, materialPending, uploadText, cancelUpload: () => uploadController.current?.abort(),
+    removeMaterial: (materialId: string) => edit({ type: 'remove_material', materialId }),
     retryMaterial: (materialId: string, assetId: string) => edit({ type: 'acquire_text', materialId, assetId, requestId: crypto.randomUUID() }),
     runQuery, cancel, createOwn: () => edit({ type: 'create_own' }),
     chooseStartingPoint: (startingPoint: StartingPoint) => edit({ type: 'choose_starting_point', startingPoint }),

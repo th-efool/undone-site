@@ -7,10 +7,42 @@ import { TextMaterial } from '../components/TextMaterial';
 afterEach(cleanup);
 function mount() {
   const props = { snapshot: initialSnapshot(draftId), uploading: false, pending: false,
-    onUpload: vi.fn().mockResolvedValue(true), onCancelUpload: vi.fn(), onCancel: vi.fn(), onRetry: vi.fn() };
+    onUpload: vi.fn().mockResolvedValue(true), onCancelUpload: vi.fn(), onCancel: vi.fn(), onRetry: vi.fn(), onRemove: vi.fn().mockResolvedValue(true) };
   render(<TextMaterial {...props} />); return props;
 }
 describe('one text material step', () => {
+  it('does not silently add a new source when a replacement target disappears', () => {
+    const base = initialSnapshot(draftId);
+    const source = { id: draftId, kind: 'markdown' as const, input: { kind: 'upload' as const, assetId: draftId }, status: 'failed' as const, selectedUnitIds: [] };
+    const props = { uploading: false, pending: false, onUpload: vi.fn(), onCancelUpload: vi.fn(), onCancel: vi.fn(), onRetry: vi.fn(), onRemove: vi.fn() };
+    const view = render(<TextMaterial {...props} snapshot={{ ...base, materials: [source] }} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Replace source 1' }));
+    view.rerender(<TextMaterial {...props} snapshot={base} />);
+    expect(screen.getByRole('alert').textContent).toContain('no longer selected');
+    expect((screen.getByRole('button', { name: 'Save and acquire material' }) as HTMLButtonElement).disabled).toBe(true);
+    expect(props.onUpload).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel replacement' }));
+    expect((screen.getByRole('button', { name: 'Save and acquire material' }) as HTMLButtonElement).disabled).toBe(false);
+  });
+  it('allows replacing a source at the selection limit and can cancel the replacement', async () => {
+    const base = initialSnapshot(draftId);
+    const materials = Array.from({ length: 20 }, (_, index) => ({ id: `source-${index}`, kind: 'markdown' as const,
+      input: { kind: 'upload' as const, assetId: draftId }, status: 'failed' as const, selectedUnitIds: [] }));
+    const upload = vi.fn().mockResolvedValue(false);
+    render(<TextMaterial snapshot={{ ...base, materials }} uploading={false} pending={false} onUpload={upload}
+      onCancelUpload={vi.fn()} onCancel={vi.fn()} onRetry={vi.fn()} onRemove={vi.fn()} />);
+    const submit = screen.getByRole('button', { name: 'Save and acquire material' }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Replace source 1' }));
+    expect(submit.disabled).toBe(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Paste text' }));
+    fireEvent.change(screen.getByLabelText('Learning text'), { target: { value: 'smaller source' } });
+    fireEvent.click(submit);
+    await waitFor(() => expect(upload).toHaveBeenCalledOnce());
+    expect(upload.mock.calls[0][2]).toBe('source-0');
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel replacement' }));
+    expect(submit.disabled).toBe(true);
+  });
   it('submits pasted content through the same byte upload action', async () => {
     const props = mount(); fireEvent.click(screen.getByRole('button', { name: 'Paste text' }));
     fireEvent.change(screen.getByLabelText('Learning text'), { target: { value: 'Real source notes' } });

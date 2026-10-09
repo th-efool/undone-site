@@ -47,6 +47,44 @@ describe('owned creation workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save and acquire material' }));
   }
   const asset = { id: '44444444-4444-4444-8444-444444444444', kind: 'upload', byteLength: 19, checksum: 'a'.repeat(64) };
+  function failedMaterial() {
+    materialDraft();
+    saved = applyCommand(saved, { type: 'acquire_text', materialId: asset.id,
+      assetId: '66666666-6666-4666-8666-666666666666', requestId: result.requestId });
+    saved = applyEvent(saved, { type: 'operation_failed', requestId: result.requestId,
+      error: { code: 'INVALID_REQUEST', message: 'Select a smaller source.', retryable: false } });
+  }
+  it('removes a rejected source and resumes without retrying its acquisition', async () => {
+    failedMaterial(); render(<CreationExperience draftId={draftId} resume />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove source 1' }));
+    await waitFor(() => expect(saved.materials).toEqual([]));
+    expect(api.command.mock.calls[0][2]).toEqual({ type: 'remove_material', materialId: asset.id });
+    cleanup(); render(<CreationExperience draftId={draftId} resume />);
+    await screen.findByRole('button', { name: 'Paste text' });
+    expect(screen.queryByRole('button', { name: 'Remove source 1' })).toBeNull();
+    expect(api.command).toHaveBeenCalledOnce(); expect(upload).not.toHaveBeenCalled();
+  });
+  it('keeps the current source on failed replacement and reuses its ID on acknowledgment', async () => {
+    failedMaterial(); const previous = structuredClone(saved.materials); const revision = saved.revision;
+    upload.mockRejectedValueOnce(new DraftApiError('Storage unavailable.', 503)).mockResolvedValueOnce(asset);
+    render(<CreationExperience draftId={draftId} resume />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Replace source 1' })); await paste();
+    await screen.findByText('Storage unavailable.'); expect(saved.materials).toEqual(previous);
+    expect(api.command).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Save and acquire material' }));
+    await screen.findByRole('button', { name: 'Cancel acquisition' });
+    expect(upload.mock.calls[1][5]).toBe(asset.id);
+    expect(api.command.mock.calls[0][1]).toBe(revision);
+    expect(api.command.mock.calls[0][2]).toMatchObject({ type: 'acquire_text', materialId: asset.id, assetId: asset.id });
+    expect(saved.materials).toHaveLength(1);
+  });
+  it('preserves the canonical source when removal loses a revision race', async () => {
+    failedMaterial(); render(<CreationExperience draftId={draftId} resume />);
+    const remove = await screen.findByRole('button', { name: 'Remove source 1' });
+    saved = applyCommand(saved, { type: 'choose_starting_point', startingPoint: 'have_material' });
+    fireEvent.click(remove); await screen.findByRole('alert');
+    expect(saved.materials).toHaveLength(1); expect(api.command).toHaveBeenCalledOnce();
+  });
   it('queues acknowledged uploads and resumes acquisition without reuploading', async () => {
     materialDraft(); const revision = saved.revision; upload.mockResolvedValue(asset);
     render(<CreationExperience draftId={draftId} resume />); await paste();

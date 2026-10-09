@@ -5,10 +5,11 @@ import { creationSignInUrl } from '@/src/shared/auth/returnTo';
 import { DraftApiError } from './draftApi';
 
 export const materialApi = {
-  async upload(draftId: string, bytes: Blob, revision: number, filename: string, signal?: AbortSignal) {
+  async upload(draftId: string, bytes: Blob, revision: number, filename: string, signal?: AbortSignal, materialId?: string) {
     const response = await fetch(apiUrl(`/api/cohort-creation/drafts/${draftId}/uploads`), {
       method: 'POST', credentials: 'include', cache: 'no-store', signal, body: bytes,
-      headers: { 'Content-Type': bytes.type, 'X-Creation-Revision': String(revision), 'X-Creation-Filename': encodeURIComponent(filename) },
+      headers: { 'Content-Type': bytes.type, 'X-Creation-Revision': String(revision), 'X-Creation-Filename': encodeURIComponent(filename),
+        ...(materialId ? { 'X-Creation-Material': materialId } : {}) },
     });
     if (response.status === 401) {
       window.location.assign(creationSignInUrl(window.location.pathname + window.location.search));

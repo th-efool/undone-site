@@ -34,7 +34,8 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
           <StartingPoint selected={snapshot.startingPoint} onSelect={creation.chooseStartingPoint} onBack={creation.back}
             disabled={creation.materialPending || snapshot.status === 'running'} />
           {snapshot.startingPoint === 'have_material' ? <TextMaterial snapshot={snapshot} uploading={creation.uploading} pending={creation.materialPending}
-            onUpload={creation.uploadText} onCancelUpload={creation.cancelUpload} onCancel={creation.cancel} onRetry={creation.retryMaterial} /> :
+            onUpload={creation.uploadText} onCancelUpload={creation.cancelUpload} onCancel={creation.cancel} onRetry={creation.retryMaterial}
+            onRemove={creation.removeMaterial} /> :
             snapshot.startingPoint && <p>Material discovery for this starting point is not available yet.</p>}
         </> : <>
           <form key={snapshot.query} onSubmit={event => {
