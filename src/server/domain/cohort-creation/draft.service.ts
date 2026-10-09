@@ -29,14 +29,16 @@ export class DraftService {
     const command = creationCommandSchema.parse(input);
     if (command.type === 'request_recommendations' && previous.query === command.query &&
       (previous.activeRequestId === command.requestId || previous.result?.requestId === command.requestId)) return previous;
+    if (command.type === 'acquire_text' && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
+      source.id === command.materialId && source.input.kind === 'upload' && source.input.assetId === command.assetId)) return previous;
     if (previous.revision !== baseRevision) throw new DraftConflict(previous);
     const next = applyCommand(previous, command);
-    if (command.type === 'request_recommendations') {
+    if (command.type === 'request_recommendations' || command.type === 'acquire_text') {
       const queued = await this.jobs.enqueue(owner, previous, next);
       if (!queued) throw new DraftConflict(await this.load(owner, id));
       return queued;
     }
-    if (command.type === 'cancel_recommendations' && next !== previous) {
+    if ((command.type === 'cancel_recommendations' || command.type === 'cancel_material_acquisition') && next !== previous) {
       if (!await this.jobs.cancel(owner, previous, next)) throw new DraftConflict(await this.load(owner, id));
       return next;
     }

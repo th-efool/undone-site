@@ -90,36 +90,6 @@ export const creationErrorSchema = z.strictObject({
 export type CreationError = z.infer<typeof creationErrorSchema>;
 export const errorResponseSchema = z.strictObject({ error: creationErrorSchema });
 
-// Early-stage snapshot shared by the client and owned PostgreSQL draft.
-export const creationSnapshotSchema = z.strictObject({
-  schemaVersion: z.literal(1),
-  draftId: z.uuid(),
-  storage: z.literal('postgres'),
-  revision,
-  inputRevision: revision,
-  stage: z.enum(['recommendations', 'starting_point']),
-  query: z.string().max(2000),
-  status: z.enum(['idle', 'running', 'succeeded', 'failed', 'canceled']),
-  activeRequestId: z.uuid().nullable(),
-  result: recommendationResultSchema.nullable(),
-  startingPoint: startingPointSchema.nullable(),
-  error: creationErrorSchema.nullable(),
-}).superRefine((state, ctx) => {
-  if ((state.status === 'running') !== (state.activeRequestId !== null)) {
-    ctx.addIssue({ code: 'custom', message: 'Invalid active operation' });
-  }
-  if (state.result && (state.result.inputRevision !== state.inputRevision || state.result.intent.rawQuery !== state.query)) {
-    ctx.addIssue({ code: 'custom', message: 'Stale snapshot result' });
-  }
-  if (state.stage === 'starting_point' && !state.result) {
-    ctx.addIssue({ code: 'custom', message: 'Starting point requires accepted intent' });
-  }
-  if (state.status === 'succeeded' && !state.result) {
-    ctx.addIssue({ code: 'custom', message: 'Success requires accepted output' });
-  }
-});
-export type CreationSnapshot = z.infer<typeof creationSnapshotSchema>;
-
 // Foundation contracts for future artifacts; no ingestion/processing is executed in 3A.
 export const materialSourceSchema = z.strictObject({
   id: key,
@@ -166,3 +136,34 @@ export type MaterialSource = z.infer<typeof materialSourceSchema>;
 export type ExtractedContent = z.infer<typeof extractedContentSchema>;
 export type Concept = z.infer<typeof conceptSchema>;
 export type CreationChunk = z.infer<typeof chunkSchema>;
+
+// Defaults safely decode existing schema-1 drafts/events without rewriting stored JSON.
+export const creationSnapshotSchema = z.strictObject({
+  schemaVersion: z.literal(1), draftId: z.uuid(), storage: z.literal('postgres'), revision, inputRevision: revision,
+  stage: z.enum(['recommendations', 'starting_point']), query: z.string().max(2000),
+  status: z.enum(['idle', 'running', 'succeeded', 'failed', 'canceled']), activeRequestId: z.uuid().nullable(),
+  result: recommendationResultSchema.nullable(), startingPoint: startingPointSchema.nullable(), error: creationErrorSchema.nullable(),
+  materials: z.array(materialSourceSchema).max(20).default([]),
+  extractions: z.array(extractedContentSchema).max(20).default([]),
+  lastMaterialRequestId: z.uuid().nullable().default(null),
+}).superRefine((state, ctx) => {
+  if ((state.status === 'running') !== (state.activeRequestId !== null)) ctx.addIssue({ code: 'custom', message: 'Invalid active operation' });
+  if (state.status === 'running' && ((state.stage === 'recommendations' && state.result !== null) ||
+    (state.stage === 'starting_point' && (state.materials.filter(source => source.status === 'acquiring').length !== 1 || state.lastMaterialRequestId !== state.activeRequestId)))) {
+    ctx.addIssue({ code: 'custom', message: 'Invalid operation selection' });
+  }
+  // Material-only edits advance inputRevision without invalidating the accepted learning intent.
+  if (state.result && (state.result.inputRevision > state.inputRevision || state.result.intent.rawQuery !== state.query)) {
+    ctx.addIssue({ code: 'custom', message: 'Stale snapshot result' });
+  }
+  if ((state.stage === 'starting_point' || state.status === 'succeeded') && !state.result) {
+    ctx.addIssue({ code: 'custom', message: 'Accepted intent is required' });
+  }
+  const ids = state.materials.map(source => source.id);
+  if (new Set(ids).size !== ids.length || new Set(state.extractions.map(extraction => extraction.materialId)).size !== state.extractions.length ||
+    state.materials.reduce((sum, source) => sum + source.selectedUnitIds.length, 0) > 100 ||
+    state.extractions.some(extraction => !state.materials.some(source => source.id === extraction.materialId && source.status === 'ready'))) {
+    ctx.addIssue({ code: 'custom', message: 'Invalid material selection or extraction' });
+  }
+});
+export type CreationSnapshot = z.infer<typeof creationSnapshotSchema>;

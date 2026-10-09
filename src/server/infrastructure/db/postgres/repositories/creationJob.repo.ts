@@ -8,6 +8,9 @@ import { LeaseLost, type ClaimedCreationJob, type CreationJobRepository } from '
 import { hourlyBudget, reserveBudget } from './creationBudget.repo';
 import { creationFailure } from '@/src/server/domain/cohort-creation/errors';
 import { jobSummary, writeDraftEvent } from './creationEvent.repo';
+import { textAcquisitionRequestSchema } from '@/src/shared/cohort-creation/jobs';
+import { materialManifestSchema } from '@/src/shared/cohort-creation/materials';
+import { jobCompletion } from '@/src/server/domain/cohort-creation/job-completion';
 
 async function lockedDraft(tx: Prisma.TransactionClient, owner: string, id: string) {
   const rows = await tx.$queryRaw<{ snapshot: unknown }[]>`
@@ -22,10 +25,23 @@ async function fenced(tx: Prisma.TransactionClient, job: ClaimedCreationJob) {
   if (!rows.length) throw new LeaseLost();
 }
 function claimed(row: CreationJob): ClaimedCreationJob {
-  return { ...jobSummary(row), draftId: row.draftId, ownerId: row.ownerId,
-    inputFingerprint: row.inputFingerprint, input: recommendationRequestSchema.parse(row.input),
-    leaseToken: row.leaseToken!, deadlineAt: row.deadlineAt!,
+  const base = { ...jobSummary(row), draftId: row.draftId, ownerId: row.ownerId,
+    inputFingerprint: row.inputFingerprint, leaseToken: row.leaseToken!, deadlineAt: row.deadlineAt! };
+  if (row.kind === 'acquire_text') return { ...base, kind: 'acquire_text', input: textAcquisitionRequestSchema.parse(row.input),
+    checkpoint: row.checkpoint ? materialManifestSchema.parse(row.checkpoint) : null };
+  return { ...base, kind: 'recommendations', input: recommendationRequestSchema.parse(row.input),
     checkpoint: row.checkpoint ? recommendationResultSchema.parse(row.checkpoint) : null };
+}
+async function pinMaterial(tx: Prisma.TransactionClient, job: ClaimedCreationJob, manifest: unknown) {
+  const valid = materialManifestSchema.parse(manifest);
+  const refs = [valid.retainedSource, valid.extractionArtifact];
+  for (const ref of refs) {
+    const updated = await tx.creationStorageObject.updateMany({ where: { id: ref.id, ownerId: job.ownerId, draftId: job.draftId,
+      status: 'ready', kind: ref.kind, byteLength: ref.byteLength, checksum: ref.checksum,
+      ...(ref.kind === 'artifact' ? { artifactType: 'text-extraction', schemaVersion: 1, inputFingerprint: valid.inputFingerprint } : {}) },
+      data: { referencedAt: new Date() } });
+    if (updated.count !== 1) throw new Error('Checkpoint storage reference unavailable');
+  }
 }
 export function createCreationJobRepository(prisma = defaultPrisma): CreationJobRepository {
  return {
@@ -33,19 +49,36 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
     return prisma.$transaction(async tx => {
       const current = await lockedDraft(tx, owner, previous.draftId);
       if (!current) return null;
-      const input = recommendationRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, query: next.query });
-      const fingerprint = createHash('sha256').update(JSON.stringify({ kind: 'recommendations', schema: 1, input })).digest('hex');
+      const kind = next.stage === 'recommendations' ? 'recommendations' : 'acquire_text';
+      const input = kind === 'recommendations'
+        ? recommendationRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, query: next.query })
+        : textAcquisitionRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision,
+          source: next.materials.find(source => source.status === 'acquiring') });
+      const fingerprint = createHash('sha256').update(JSON.stringify({ kind, schema: 1, input })).digest('hex');
       const existing = await tx.creationJob.findUnique({ where: { draftId_kind_inputFingerprint: {
-        draftId: next.draftId, kind: 'recommendations', inputFingerprint: fingerprint } } });
+        draftId: next.draftId, kind, inputFingerprint: fingerprint } } });
       // A lost HTTP response can replay exactly the same operation safely.
       if (existing && current.inputRevision === input.inputRevision) return current;
       if (current.revision !== previous.revision) return null;
+      if ('source' in input) {
+        if (input.source.input.kind !== 'upload') throw creationFailure('INVALID_REQUEST', 'Select an owned text upload.');
+        const pinned = await tx.creationStorageObject.updateMany({ where: { id: input.source.input.assetId, ownerId: owner,
+          draftId: next.draftId, kind: 'upload', status: 'ready', mediaType: { in: ['text/plain','text/markdown','text/x-markdown'] } },
+          data: { referencedAt: new Date() } });
+        if (pinned.count !== 1) throw creationFailure('INVALID_REQUEST', 'The text upload is unavailable.');
+      }
+      const retained = new Set([...next.materials.flatMap(source => source.input.kind === 'upload' ? [source.input.assetId] : []),
+        ...next.extractions.map(extraction => extraction.artifactRef)]);
+      const detached = [...current.materials.flatMap(source => source.input.kind === 'upload' ? [source.input.assetId] : []),
+        ...current.extractions.map(extraction => extraction.artifactRef)].filter(id => !retained.has(id));
+      if (detached.length) await tx.creationStorageObject.updateMany({ where: { id: { in: detached }, ownerId: owner,
+        draftId: next.draftId, publishedAt: null }, data: { referencedAt: null } });
       const budget = hourlyBudget(`jobs:${owner}`);
       await reserveBudget(tx, budget.key, 20, budget.expiresAt);
       await tx.creationJob.updateMany({ where: { draftId: next.draftId, status: { in: ['queued', 'running'] } },
         data: { status: 'canceled', cancelRequestedAt: new Date(), leaseToken: null, leaseUntil: null } });
       const job = await tx.creationJob.create({ data: { draftId: next.draftId, ownerId: owner,
-        kind: 'recommendations', requestId: input.requestId, inputRevision: input.inputRevision,
+        kind, requestId: input.requestId, inputRevision: input.inputRevision,
         inputFingerprint: fingerprint, input } });
       await writeDraftEvent(tx, owner, next, 'job_queued', job);
       return next;
@@ -75,7 +108,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const candidates = await tx.$queryRaw<{ id: string; draftId: string; ownerId: string }[]>`
         SELECT j."id",j."draftId",j."ownerId" FROM "creation_jobs" j
         JOIN "creation_drafts" d ON d."id"=j."draftId"
-        WHERE d."expiredAt" IS NULL AND j."kind"='recommendations' AND j."cancelRequestedAt" IS NULL AND
+        WHERE d."expiredAt" IS NULL AND j."kind" IN ('recommendations','acquire_text') AND j."cancelRequestedAt" IS NULL AND
         ((j."status"='queued' AND j."nextRunAt"<=CURRENT_TIMESTAMP) OR
          (j."status"='running' AND j."leaseUntil"<=CURRENT_TIMESTAMP))
         ORDER BY j."nextRunAt",j."createdAt" LIMIT 1 FOR UPDATE OF d SKIP LOCKED`;
@@ -91,7 +124,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const rows = await tx.$queryRaw<CreationJob[]>`UPDATE "creation_jobs" SET "status"='running',
         "attempt"="attempt"+1,"leaseOwner"=${worker},"leaseToken"=${token},
         "leaseUntil"=CURRENT_TIMESTAMP + interval '90 seconds',"heartbeatAt"=CURRENT_TIMESTAMP,
-        "deadlineAt"=COALESCE("deadlineAt",CURRENT_TIMESTAMP + interval '30 seconds'),"updatedAt"=CURRENT_TIMESTAMP
+        "deadlineAt"=COALESCE("deadlineAt",CURRENT_TIMESTAMP + CASE WHEN "kind"='acquire_text' THEN interval '60 seconds' ELSE interval '30 seconds' END),"updatedAt"=CURRENT_TIMESTAMP
         WHERE "id"=${job.id} RETURNING *`;
       await writeDraftEvent(tx, row.ownerId, { ...current, revision: current.revision + 1 }, 'job_started', rows[0]);
       return claimed(rows[0]);
@@ -105,6 +138,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
     return count === 1;
   },
   async reserveModelCall(job) {
+    if (job.kind !== 'recommendations') throw new Error('Text acquisition does not reserve model calls');
     // Separate from job leases: cancellation does not immediately free a still-running SDK call.
     const until = new Date(Date.now() + 30_000);
     const slot = await prisma.$transaction(async tx => {
@@ -140,11 +174,17 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
         const current = await lockedDraft(tx, job.ownerId, job.draftId);
         if (!current || current.activeRequestId !== job.requestId || current.inputRevision !== job.inputRevision) return false;
         await fenced(tx, job);
+        if (event.type === 'recommendations_received') jobCompletion(job, event.result);
+        if (event.type === 'material_received') {
+          jobCompletion(job, event.manifest);
+          await pinMaterial(tx, job, event.manifest);
+        }
         const next = applyEvent(current, event);
         if (next === current) return false;
-        const status = event.type === 'recommendations_received' ? 'succeeded' : event.type === 'operation_cancelled' ? 'canceled' : 'failed';
+        const status = event.type === 'recommendations_received' || event.type === 'material_received' ? 'succeeded' : event.type === 'operation_cancelled' ? 'canceled' : 'failed';
         const completed = await tx.creationJob.update({ where: { id: job.id }, data: { status,
           ...(event.type === 'recommendations_received' ? { checkpoint: event.result } : {}),
+          ...(event.type === 'material_received' ? { checkpoint: event.manifest } : {}),
           leaseToken: null, leaseUntil: null, leaseOwner: null } });
         await writeDraftEvent(tx, job.ownerId, next, status === 'succeeded' ? 'job_completed' : status === 'failed' ? 'job_failed' : 'job_canceled', completed);
         return true;
@@ -152,13 +192,14 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
     } catch (error) { if (error instanceof LeaseLost) return false; throw error; }
   },
   async checkpoint(job, result) {
-    const valid = recommendationResultSchema.parse(result);
-    if (valid.requestId !== job.requestId || valid.inputRevision !== job.inputRevision || valid.intent.rawQuery !== job.input.query) throw new Error('Invalid checkpoint input');
+    const completion = jobCompletion(job, result);
+    const valid = completion.type === 'material_received' ? completion.manifest : recommendationResultSchema.parse(result);
     try {
       return await prisma.$transaction(async tx => {
         const current = await lockedDraft(tx, job.ownerId, job.draftId);
         if (!current || current.activeRequestId !== job.requestId || current.inputRevision !== job.inputRevision) return false;
         await fenced(tx, job);
+        if (completion.type === 'material_received') await pinMaterial(tx, job, completion.manifest);
         const updated = await tx.creationJob.update({ where: { id: job.id }, data: { checkpoint: valid } });
         await writeDraftEvent(tx, job.ownerId, { ...current, revision: current.revision + 1 }, 'snapshot', updated);
         return true;

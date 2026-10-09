@@ -91,7 +91,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
         display(latest, true, 'The active request changed. Review the current draft before canceling.');
         return;
       }
-      await edit({ type: 'cancel_recommendations' });
+      await edit({ type: latest.stage === 'starting_point' ? 'cancel_material_acquisition' : 'cancel_recommendations' });
     } catch (error) { failure(error); }
   };
   return { ...view, runQuery, cancel, createOwn: () => edit({ type: 'create_own' }),

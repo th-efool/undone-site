@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { creationCommandSchema } from '@/src/shared/cohort-creation/flow';
 import { DraftConflict, DraftNotFound, type DraftService } from './draft.service';
 import { JobBudgetExceeded } from './durable-job';
+import { CreationFailure } from './errors';
 
 const idSchema = z.uuid();
 const createSchema = z.strictObject({ draftId: idSchema });
@@ -25,6 +26,7 @@ export function draftHandlers(service: DraftService, getOwner: () => Promise<str
     } catch (error) {
       if (error instanceof DraftNotFound) return Response.json({ message: 'Draft not found.' }, { status: 404 });
       if (error instanceof JobBudgetExceeded) return Response.json({ message: error.message }, { status: 429, headers: { 'Retry-After': '60' } });
+      if (error instanceof CreationFailure) return Response.json({ message: error.detail.message }, { status: error.detail.code === 'INVALID_REQUEST' ? 400 : 503 });
       if (error instanceof DraftConflict) return Response.json({ message: error.message, current: error.current }, { status: 409 });
       if (error instanceof z.ZodError || error instanceof SyntaxError || (error instanceof Error && ['Intent is not ready', 'Starting point is not available', 'Operation is still running'].includes(error.message))) return Response.json({ message: 'Invalid draft command.' }, { status: 400 });
       return Response.json({ message: 'Draft storage is unavailable. Try again.' }, { status: 503 });

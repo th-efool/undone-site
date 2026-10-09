@@ -1,11 +1,15 @@
 import { CreationFailure } from './errors';
-import { JobBudgetExceeded, LeaseLost, type ClaimedCreationJob, type CreationJobRepository } from './durable-job';
+import { JobBudgetExceeded, LeaseLost, type ClaimedCreationJob, type ClaimedRecommendationJob, type ClaimedTextJob, type CreationJobRepository } from './durable-job';
 import type { RecommendationService } from './recommendation.service';
 
-type RecommenderFactory = (job: ClaimedCreationJob) => Pick<RecommendationService, 'recommend'>;
+import type { TextAcquisitionService } from './materials/text-acquisition.service';
+import { CreationStorageError } from '@/src/server/infrastructure/storage/creation.contracts';
+import { jobCompletion } from './job-completion';
+type RecommenderFactory = (job: ClaimedRecommendationJob) => Pick<RecommendationService, 'recommend'>;
+type AcquirerFactory = (job: ClaimedTextJob) => Pick<TextAcquisitionService, 'acquire'>;
 /** One task invocation; browser connections are deliberately not an input. */
 export async function executeCreationJob(repo: CreationJobRepository, job: ClaimedCreationJob,
-  recommender: RecommenderFactory, shutdown: AbortSignal) {
+  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory) {
   const lease = new AbortController();
   const remaining = Math.max(1, job.deadlineAt.getTime() - Date.now());
   const timeout = AbortSignal.timeout(remaining);
@@ -22,28 +26,38 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
   try {
     // A complete checkpoint survives a crash between its commit and finalization.
     if (job.checkpoint) {
-      await repo.finish(job, { type: 'recommendations_received', result: job.checkpoint });
+      await repo.finish(job, jobCompletion(job, job.checkpoint));
       return;
     }
     if (job.deadlineAt.getTime() <= Date.now()) throw new DOMException('Job deadline elapsed', 'TimeoutError');
     signal.throwIfAborted();
-    const result = await recommender(job).recommend(job.input, signal);
+    const result = job.kind === 'recommendations' ? await recommender(job).recommend(job.input, signal)
+      : await (() => {
+        if (!acquirer) throw new Error('Text acquisition service unavailable');
+        return acquirer(job).acquire({ ownerId: job.ownerId, draftId: job.draftId }, job.input.source, job.inputRevision, signal);
+      })();
     signal.throwIfAborted();
+    const completion = jobCompletion(job, result);
     modelFinished = true;
     if (!await repo.checkpoint(job, result)) return;
-    await repo.finish(job, { type: 'recommendations_received', result });
+    await repo.finish(job, completion);
   } catch (error) {
     if (shutdown.aborted) { await repo.release(job); return; }
     if (lease.signal.aborted || error instanceof LeaseLost) return;
     // Storage failures after generation retain the checkpoint/lease for restart recovery.
     if (modelFinished) throw error;
-    const detail = error instanceof JobBudgetExceeded
+    const detail = error instanceof CreationStorageError
+      ? { code: error.code === 'UNAVAILABLE' ? 'DATA_UNAVAILABLE' as const : 'INVALID_REQUEST' as const,
+        message: error.message, retryable: error.code === 'UNAVAILABLE' }
+      : error instanceof JobBudgetExceeded
       ? { code: 'RATE_LIMITED' as const, message: 'The generation budget is exhausted. Try again later.', retryable: true }
       : timeout.aborted || (error instanceof Error && error.name === 'TimeoutError')
-        ? { code: 'AI_TIMEOUT' as const, message: 'Recommendations took too long. Try again.', retryable: true }
+        ? { code: job.kind === 'recommendations' ? 'AI_TIMEOUT' as const : 'DATA_UNAVAILABLE' as const,
+          message: job.kind === 'recommendations' ? 'Recommendations took too long. Try again.' : 'Material acquisition took too long. Retry the selected source.', retryable: true }
         : error instanceof CreationFailure ? error.detail
-          : { code: 'AI_UNAVAILABLE' as const, message: 'Recommendations could not be generated. Try again.', retryable: true };
-    const transient = error instanceof CreationFailure && detail.retryable &&
+          : { code: job.kind === 'recommendations' ? 'AI_UNAVAILABLE' as const : 'DATA_UNAVAILABLE' as const,
+            message: job.kind === 'recommendations' ? 'Recommendations could not be generated. Try again.' : 'Material acquisition is unavailable. Retry the selected source.', retryable: true };
+    const transient = (error instanceof CreationFailure || error instanceof CreationStorageError) && detail.retryable &&
       ['AI_UNAVAILABLE', 'RATE_LIMITED', 'DATA_UNAVAILABLE'].includes(detail.code);
     if (transient && !timeout.aborted && await repo.retry(job, 1000 * 2 ** job.attempt)) return;
     await repo.finish(job, { type: 'operation_failed', requestId: job.requestId, error: detail });
@@ -51,14 +65,14 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
 }
 
 export async function runCreationWorker(repo: CreationJobRepository, workerId: string,
-  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void) {
+  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory) {
   const tasks = new Set<Promise<void>>();
   while (!signal.aborted) {
     try {
       if (tasks.size < 2) {
         const job = await repo.claim(workerId);
         if (job) {
-          const task = executeCreationJob(repo, job, recommender, signal).catch(reportError);
+          const task = executeCreationJob(repo, job, recommender, signal, acquirer).catch(reportError);
           tasks.add(task);
           void task.finally(() => tasks.delete(task));
           continue;

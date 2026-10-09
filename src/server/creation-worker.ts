@@ -7,6 +7,7 @@ import { createCohortModel } from './infrastructure/ai/modelRegistry';
 import { VercelCohortAi } from './infrastructure/ai/vercelCohortAi';
 import { RecommendationService } from './domain/cohort-creation/recommendation.service';
 import { runCreationWorker } from './domain/cohort-creation/durable-job.runner';
+import { TextAcquisitionService } from './domain/cohort-creation/materials/text-acquisition.service';
 
 async function main() {
   if (process.argv.includes('--check')) {
@@ -42,7 +43,11 @@ async function main() {
     await runCreationWorker(creationJobRepo, `creation-${randomUUID()}`, job => new RecommendationService(
       new VercelCohortAi(createCohortModel(), { maxRetries: 0, beforeCall: () => creationJobRepo.reserveModelCall(job) }),
       creationRecommendationRepo), shutdown.signal,
-      () => console.error('[creation-worker] Durable operation failed; its lease/checkpoint permits recovery.'));
+      () => console.error('[creation-worker] Durable operation failed; its lease/checkpoint permits recovery.'),
+      () => ({ acquire: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        return new TextAcquisitionService(storage.materialBlobStore, storage.creationArtifactRepository).acquire(...args);
+      } }));
   } finally {
     clearInterval(retentionTimer);
     await maintenance;
