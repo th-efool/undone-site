@@ -11,6 +11,7 @@ import { jobSummary, writeDraftEvent } from './creationEvent.repo';
 import { textAcquisitionRequestSchema } from '@/src/shared/cohort-creation/jobs';
 import { materialManifestSchema } from '@/src/shared/cohort-creation/materials';
 import { jobCompletion } from '@/src/server/domain/cohort-creation/job-completion';
+import { releaseDetachedMaterialRefs } from './creationMaterialRefs';
 
 async function lockedDraft(tx: Prisma.TransactionClient, owner: string, id: string) {
   const rows = await tx.$queryRaw<{ snapshot: unknown }[]>`
@@ -67,12 +68,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
           data: { referencedAt: new Date() } });
         if (pinned.count !== 1) throw creationFailure('INVALID_REQUEST', 'The text upload is unavailable.');
       }
-      const retained = new Set([...next.materials.flatMap(source => source.input.kind === 'upload' ? [source.input.assetId] : []),
-        ...next.extractions.map(extraction => extraction.artifactRef)]);
-      const detached = [...current.materials.flatMap(source => source.input.kind === 'upload' ? [source.input.assetId] : []),
-        ...current.extractions.map(extraction => extraction.artifactRef)].filter(id => !retained.has(id));
-      if (detached.length) await tx.creationStorageObject.updateMany({ where: { id: { in: detached }, ownerId: owner,
-        draftId: next.draftId, publishedAt: null }, data: { referencedAt: null } });
+      await releaseDetachedMaterialRefs(tx, owner, current, next);
       const budget = hourlyBudget(`jobs:${owner}`);
       await reserveBudget(tx, budget.key, 20, budget.expiresAt);
       await tx.creationJob.updateMany({ where: { draftId: next.draftId, status: { in: ['queued', 'running'] } },

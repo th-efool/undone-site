@@ -19,7 +19,11 @@ export function textUploadHandler(drafts: Pick<DraftService, 'load'>, blobs: Pic
       if (snapshot.stage !== 'starting_point' || snapshot.startingPoint !== 'have_material' || snapshot.status === 'running') {
         return Response.json({ message: 'Choose material input before uploading.' }, { status: 409 });
       }
-      if (snapshot.materials.length >= MATERIAL_LIMITS.sources) return Response.json({ message: 'Twenty source limit reached.' }, { status: 413 });
+      const replacementId = request.headers.get('X-Creation-Material');
+      if (replacementId && (!z.uuid().safeParse(replacementId).success || !snapshot.materials.some(source => source.id === replacementId))) {
+        return Response.json({ message: 'Select an existing source to replace.' }, { status: 400 });
+      }
+      if (!replacementId && snapshot.materials.length >= MATERIAL_LIMITS.sources) return Response.json({ message: 'Twenty source limit reached.' }, { status: 413 });
       const mediaType = request.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase();
       if (!mediaType || !['text/plain', 'text/markdown', 'text/x-markdown'].includes(mediaType)) {
         return Response.json({ message: 'Upload UTF-8 text or Markdown.' }, { status: 415 });

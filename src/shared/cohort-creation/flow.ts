@@ -14,6 +14,7 @@ export const creationCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('cancel_recommendations') }),
   z.strictObject({ type: z.literal('acquire_text'), materialId: z.uuid(), assetId: z.uuid(), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('cancel_material_acquisition') }),
+  z.strictObject({ type: z.literal('remove_material'), materialId: z.uuid() }),
 ]);
 export type CreationCommand = z.infer<typeof creationCommandSchema>;
 export const creationEventSchema = z.discriminatedUnion('type', [
@@ -72,6 +73,14 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
         status: 'running', activeRequestId: command.requestId, lastMaterialRequestId: command.requestId,
         materials: [...state.materials.filter(source => source.id !== material.id), material],
         extractions: state.extractions.filter(extraction => extraction.materialId !== material.id) });
+    }
+    case 'remove_material': {
+      if (state.stage !== 'starting_point' || state.startingPoint !== 'have_material' || state.status === 'running' ||
+        !state.materials.some(source => source.id === command.materialId)) throw new Error('Starting point is not available');
+      return creationSnapshotSchema.parse({ ...changed, inputRevision: state.inputRevision + 1,
+        status: 'succeeded', lastMaterialRequestId: null,
+        materials: state.materials.filter(source => source.id !== command.materialId),
+        extractions: state.extractions.filter(extraction => extraction.materialId !== command.materialId) });
     }
     case 'back_to_recommendations':
       if (!canEnterStage(state, 'recommendations')) throw new Error('Operation is still running');

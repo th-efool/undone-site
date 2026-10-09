@@ -36,6 +36,42 @@ function fixture() {
   return { accepted, own, command, running, manifest, job, repo };
 }
 describe('durable material state', () => {
+  it('removes only selected provenance, preserves intent and rejects late results', () => {
+    const f = fixture(); const ready = applyEvent(f.running, jobCompletion(f.job, f.manifest));
+    const other = { ...ready.materials[0], id: randomUUID() };
+    const otherExtraction = { ...ready.extractions[0], materialId: other.id, artifactRef: randomUUID() };
+    const state = creationSnapshotSchema.parse({ ...ready, materials: [...ready.materials, other], extractions: [...ready.extractions, otherExtraction] });
+    const removed = applyCommand(state, { type: 'remove_material', materialId: f.command.materialId });
+    expect(removed.materials).toEqual([other]); expect(removed.extractions).toEqual([otherExtraction]);
+    expect(removed.result).toEqual(state.result); expect(removed.inputRevision).toBe(state.inputRevision + 1);
+    expect(removed.revision).toBe(state.revision + 1); expect(removed.lastMaterialRequestId).toBeNull();
+    expect(applyEvent(removed, jobCompletion(f.job, f.manifest))).toBe(removed);
+    expect(() => applyCommand(f.running, { type: 'remove_material', materialId: f.command.materialId })).toThrow();
+    expect(() => applyCommand(removed, { type: 'remove_material', materialId: f.command.materialId })).toThrow();
+  });
+  it('replaces one source without discarding other sources or their extractions', () => {
+    const f = fixture(); const ready = applyEvent(f.running, jobCompletion(f.job, f.manifest));
+    const other = { ...ready.materials[0], id: randomUUID() };
+    const otherExtraction = { ...ready.extractions[0], materialId: other.id, artifactRef: randomUUID() };
+    const state = { ...ready, materials: [...ready.materials, other], extractions: [...ready.extractions, otherExtraction] };
+    const replaced = applyCommand(state, { ...f.command, assetId: randomUUID(), requestId: randomUUID() });
+    expect(replaced.materials).toHaveLength(2); expect(replaced.materials).toContainEqual(other);
+    expect(replaced.extractions).toEqual([otherExtraction]); expect(replaced.result).toEqual(state.result);
+  });
+  it('authorizes removal, rejects stale mutations and resumes accepted removal', async () => {
+    const f = fixture(); let stored = applyEvent(f.running, jobCompletion(f.job, f.manifest));
+    const repository = { create: vi.fn(async () => stored), load: vi.fn(async (owner: string) => owner === 'owner' ? stored : null),
+      swap: vi.fn(async (_owner, _id, revision, next) => { if (revision !== stored.revision) return false; stored = next; return true; }) };
+    const service = new DraftService(repository, f.repo);
+    const command = { type: 'remove_material' as const, materialId: f.command.materialId };
+    await expect(service.command('other', draftId, stored.revision, command)).rejects.toBeInstanceOf(DraftNotFound);
+    await expect(service.command('owner', draftId, stored.revision - 1, command)).rejects.toBeInstanceOf(DraftConflict);
+    const revision = stored.revision;
+    await service.command('owner', draftId, revision, command);
+    expect((await new DraftService(repository, f.repo).load('owner', draftId)).materials).toEqual([]);
+    expect(f.repo.enqueue).not.toHaveBeenCalled();
+    await expect(service.command('owner', draftId, revision, command)).rejects.toBeInstanceOf(DraftConflict);
+  });
   it('resumes through the draft command service and replays lost responses without duplicate work', async () => {
     const f = fixture(); let stored = f.own;
     const enqueue = vi.fn(async (_owner, _previous, next) => { stored = next; return next; });

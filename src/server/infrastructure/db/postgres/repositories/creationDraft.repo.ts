@@ -3,6 +3,7 @@ import { prisma } from '../client';
 import { creationSnapshotSchema, type CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 import { initialSnapshot } from '@/src/shared/cohort-creation/flow';
 import { writeDraftEvent } from './creationEvent.repo';
+import { releaseDetachedMaterialRefs } from './creationMaterialRefs';
 
 export interface DraftRepository {
   create(ownerId: string, id: string): Promise<CreationSnapshot | null>;
@@ -26,9 +27,12 @@ export const creationDraftRepo: DraftRepository = {
     const snapshot = creationSnapshotSchema.parse(next);
     if (snapshot.draftId !== id || snapshot.revision !== baseRevision + 1) throw new Error('Invalid revision transition');
     return prisma.$transaction(async tx => {
-      const rows = await tx.$queryRaw<{ revision: number }[]>`SELECT "revision" FROM "creation_drafts"
+      const rows = await tx.$queryRaw<{ revision: number; snapshot: unknown }[]>`SELECT "revision", "snapshot" FROM "creation_drafts"
         WHERE "id"=${id} AND "ownerId"=${ownerId} AND "expiredAt" IS NULL FOR UPDATE`;
       if (rows[0]?.revision !== baseRevision) return false;
+      const previous = creationSnapshotSchema.parse(rows[0].snapshot);
+      if (previous.draftId !== id || previous.revision !== baseRevision) throw new Error('Invalid stored draft');
+      await releaseDetachedMaterialRefs(tx, ownerId, previous, snapshot);
       await writeDraftEvent(tx, ownerId, snapshot, 'snapshot');
       return true;
     });
