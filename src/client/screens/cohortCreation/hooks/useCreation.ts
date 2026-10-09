@@ -4,6 +4,7 @@ import { useCallback, useEffect, useReducer, useRef } from 'react';
 import { type CreationSnapshot, type StartingPoint, querySchema } from '@/src/shared/cohort-creation/contracts';
 import { applyCommand, initialSnapshot, type CreationCommand } from '@/src/shared/cohort-creation/flow';
 import { draftApi, DraftApiError } from '../services/draftApi';
+import { observeDraftEvents } from '../services/draftEvents';
 
 type ViewState = { snapshot: CreationSnapshot; hydrated: boolean; saved: boolean; message: string | null };
 export function useCreation(draftId: string, initialQuery: string, resume: boolean) {
@@ -14,11 +15,12 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
   const controller = useRef<AbortController | null>(null);
   const editPending = useRef(false);
   const display = useCallback((snapshot: CreationSnapshot, saved = true, message: string | null = null) => {
+    if (snapshot.draftId !== current.current.draftId || snapshot.revision < current.current.revision) return;
     current.current = snapshot;
     render({ snapshot, hydrated: true, saved, message });
   }, []);
   const failure = useCallback((error: unknown) => {
-    const restored = error instanceof DraftApiError && error.current?.draftId === draftId ? error.current : current.current;
+    const restored = error instanceof DraftApiError && error.current?.draftId === draftId && error.current.revision >= current.current.revision ? error.current : current.current;
     display(restored, false, error instanceof DraftApiError ? error.message : 'Draft storage is unavailable. Retry or reload this page.');
   }, [display, draftId]);
   const send = useCallback(async (command: CreationCommand, signal?: AbortSignal) => {
@@ -57,14 +59,40 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     }, 0);
     return () => { disposed = true; window.clearTimeout(timer); controller.current?.abort(); };
   }, [draftId, initialQuery, resume, display, failure, runQuery]);
+  // This connection only observes persisted work. Disconnecting cannot cancel a job.
+  useEffect(() => {
+    if (!view.hydrated || view.snapshot.status !== 'running') return;
+    const observer = new AbortController();
+    void observeDraftEvents({
+      draftId, signal: observer.signal,
+      onEvent: event => { if (!observer.signal.aborted) display(event.snapshot); },
+      reload: async () => {
+        const snapshot = await draftApi.load(draftId, observer.signal);
+        if (!observer.signal.aborted && snapshot.revision >= current.current.revision) display(snapshot);
+      },
+      onConnectionChange: state => {
+        if (!observer.signal.aborted && state === 'reconnecting') render({ snapshot: current.current, hydrated: true, saved: true, message: 'Connection interrupted. Your work continues on the server; reconnecting…' });
+      },
+    }).catch(() => { /* Aborted observers never mutate durable job state. */ });
+    return () => { observer.abort(); };
+  }, [draftId, view.hydrated, view.snapshot.status, display]);
   const edit = async (command: CreationCommand) => {
     if (editPending.current) return false;
     editPending.current = true;
     try { return await send(command); } finally { editPending.current = false; }
   };
   const cancel = async () => {
+    const expectedRequestId = current.current.activeRequestId;
     controller.current?.abort();
-    try { display(await draftApi.load(draftId)); await edit({ type: 'cancel_recommendations' }); } catch (error) { failure(error); }
+    try {
+      const latest = await draftApi.load(draftId);
+      display(latest);
+      if (latest.activeRequestId !== expectedRequestId) {
+        display(latest, true, 'The active request changed. Review the current draft before canceling.');
+        return;
+      }
+      await edit({ type: 'cancel_recommendations' });
+    } catch (error) { failure(error); }
   };
   return { ...view, runQuery, cancel, createOwn: () => edit({ type: 'create_own' }),
     chooseStartingPoint: (startingPoint: StartingPoint) => edit({ type: 'choose_starting_point', startingPoint }),

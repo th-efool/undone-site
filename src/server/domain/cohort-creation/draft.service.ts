@@ -1,15 +1,14 @@
 import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
-import { applyCommand, applyEvent, creationCommandSchema, type CreationCommand } from '@/src/shared/cohort-creation/flow';
+import { applyCommand, creationCommandSchema, type CreationCommand } from '@/src/shared/cohort-creation/flow';
 import type { DraftRepository } from '@/src/server/infrastructure/db/postgres/repositories/creationDraft.repo';
-import type { RecommendationService } from './recommendation.service';
-import { CreationFailure } from './errors';
+import type { CreationJobRepository } from './durable-job';
 
 export class DraftConflict extends Error {
   constructor(readonly current: CreationSnapshot) { super('Draft changed. Reload before retrying your edit.'); }
 }
 export class DraftNotFound extends Error {}
 export class DraftService {
-  constructor(private readonly repo: DraftRepository, private readonly recommendations: () => Pick<RecommendationService, 'recommend'>) {}
+  constructor(private readonly repo: DraftRepository, private readonly jobs: Pick<CreationJobRepository, 'enqueue' | 'cancel'>) {}
   async load(owner: string, id: string) {
     const state = await this.repo.load(owner, id);
     if (!state) throw new DraftNotFound();
@@ -25,24 +24,22 @@ export class DraftService {
     if (!await this.repo.swap(owner, previous.draftId, previous.revision, next)) throw new DraftConflict(await this.load(owner, previous.draftId));
     return next;
   }
-  async command(owner: string, id: string, baseRevision: number, input: CreationCommand, signal: AbortSignal) {
+  async command(owner: string, id: string, baseRevision: number, input: CreationCommand) {
     const previous = await this.load(owner, id);
-    if (previous.revision !== baseRevision) throw new DraftConflict(previous);
     const command = creationCommandSchema.parse(input);
-    const next = await this.commit(owner, previous, applyCommand(previous, command));
-    if (command.type !== 'request_recommendations') return next;
-    let completed: CreationSnapshot;
-    try {
-      const result = await this.recommendations().recommend({ requestId: command.requestId, query: next.query, inputRevision: next.inputRevision }, signal);
-      signal.throwIfAborted();
-      completed = applyEvent(next, { type: 'recommendations_received', result });
-    } catch (error) {
-      completed = applyEvent(next, signal.aborted
-        ? { type: 'operation_cancelled', requestId: command.requestId }
-        : { type: 'operation_failed', requestId: command.requestId, error: error instanceof CreationFailure ? error.detail : {
-          code: 'AI_UNAVAILABLE', message: 'Recommendations could not be loaded. Try again.', retryable: true,
-        } });
+    if (command.type === 'request_recommendations' && previous.query === command.query &&
+      (previous.activeRequestId === command.requestId || previous.result?.requestId === command.requestId)) return previous;
+    if (previous.revision !== baseRevision) throw new DraftConflict(previous);
+    const next = applyCommand(previous, command);
+    if (command.type === 'request_recommendations') {
+      const queued = await this.jobs.enqueue(owner, previous, next);
+      if (!queued) throw new DraftConflict(await this.load(owner, id));
+      return queued;
     }
-    return this.commit(owner, next, completed);
+    if (command.type === 'cancel_recommendations' && next !== previous) {
+      if (!await this.jobs.cancel(owner, previous, next)) throw new DraftConflict(await this.load(owner, id));
+      return next;
+    }
+    return this.commit(owner, previous, next);
   }
 }

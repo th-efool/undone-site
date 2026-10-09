@@ -21,6 +21,6 @@ async function request(path: string, init?: RequestInit): Promise<CreationSnapsh
 }
 export const draftApi = {
   create: (draftId: string) => request('/api/cohort-creation/drafts', { method: 'POST', body: JSON.stringify({ draftId }) }),
-  load: (draftId: string) => request(`/api/cohort-creation/drafts/${draftId}`),
+  load: (draftId: string, signal?: AbortSignal) => request(`/api/cohort-creation/drafts/${draftId}`, { signal }),
   command: (draftId: string, baseRevision: number, command: CreationCommand, signal?: AbortSignal) => request(`/api/cohort-creation/drafts/${draftId}`, { method: 'PATCH', body: JSON.stringify({ baseRevision, command }), signal }),
 };

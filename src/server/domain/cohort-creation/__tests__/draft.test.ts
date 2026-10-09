@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { DraftConflict, DraftService } from '../draft.service';
+import { DraftService } from '../draft.service';
+import type { CreationJobRepository } from '../durable-job';
 import { draftHandlers } from '../draft.http';
 import { initialSnapshot, applyCommand, applyEvent } from '@/src/shared/cohort-creation/flow';
 import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
@@ -17,8 +18,12 @@ function fixture() {
       rows.set(id, { owner, state: structuredClone(next) }); return true;
     },
   };
-  const service = new DraftService(repo, () => ({ recommend: async input => ({ ...result, requestId: input.requestId }) }));
-  return { service, repo };
+  const jobs: Pick<CreationJobRepository, 'enqueue' | 'cancel'> = {
+    enqueue: vi.fn(async (owner, previous, next) => await repo.swap(owner, previous.draftId, previous.revision, next) ? next : null),
+    cancel: vi.fn((owner, previous, next) => repo.swap(owner, previous.draftId, previous.revision, next)),
+  };
+  const service = new DraftService(repo, jobs);
+  return { service, repo, jobs };
 }
 const request = (method: string, body?: unknown) => new Request('http://localhost/api/drafts', { method, ...(body ? { body: JSON.stringify(body) } : {}) });
 describe('owned durable drafts', () => {
@@ -44,11 +49,14 @@ describe('owned durable drafts', () => {
     expect((await handler(request('POST', { draftId, ownerId: 'bob' }))).status).toBe(400);
   });
   it('persists server recommendation results and resumes a starting point with a fresh service', async () => {
-    const { service, repo } = fixture(); await service.create('alice', draftId);
-    const generated = await service.command('alice', draftId, 0, { type: 'request_recommendations', requestId: result.requestId, query: result.intent.rawQuery }, new AbortController().signal);
-    const own = await service.command('alice', draftId, generated.revision, { type: 'create_own' }, new AbortController().signal);
-    await service.command('alice', draftId, own.revision, { type: 'choose_starting_point', startingPoint: 'have_goal' }, new AbortController().signal);
-    const resumed = await new DraftService(repo, vi.fn()).load('alice', draftId);
+    const { service, repo, jobs } = fixture(); await service.create('alice', draftId);
+    const queued = await service.command('alice', draftId, 0, { type: 'request_recommendations', requestId: result.requestId, query: result.intent.rawQuery });
+    expect(queued.status).toBe('running');
+    const generated = applyEvent(queued, { type: 'recommendations_received', result });
+    await repo.swap('alice', draftId, queued.revision, generated);
+    const own = await service.command('alice', draftId, generated.revision, { type: 'create_own' });
+    await service.command('alice', draftId, own.revision, { type: 'choose_starting_point', startingPoint: 'have_goal' });
+    const resumed = await new DraftService(repo, jobs).load('alice', draftId);
     expect(resumed).toMatchObject({ storage: 'postgres', stage: 'starting_point', startingPoint: 'have_goal', revision: 4 });
   });
   it('returns 409 canonical state and rejects competing updates at the same revision', async () => {
@@ -62,15 +70,15 @@ describe('owned durable drafts', () => {
     expect(await repo.swap('alice', draftId, 1, canceled)).toBe(true);
     expect(await repo.swap('alice', draftId, 1, canceled)).toBe(false);
   });
-  it('fences a late model completion after another request cancels the draft', async () => {
-    const { repo } = fixture();
-    let finish!: (value: typeof result) => void;
-    const service = new DraftService(repo, () => ({ recommend: () => new Promise(resolve => { finish = resolve; }) }));
+  it('deduplicates a lost enqueue response and persists explicit cancellation', async () => {
+    const { service, jobs } = fixture();
     await service.create('alice', draftId);
-    const operation = service.command('alice', draftId, 0, { type: 'request_recommendations', requestId: result.requestId, query: result.intent.rawQuery }, new AbortController().signal);
-    await vi.waitFor(() => expect(finish).toBeDefined());
-    await service.command('alice', draftId, 1, { type: 'cancel_recommendations' }, new AbortController().signal);
-    finish(result); await expect(operation).rejects.toBeInstanceOf(DraftConflict);
+    const command = { type: 'request_recommendations' as const, requestId: result.requestId, query: result.intent.rawQuery };
+    const queued = await service.command('alice', draftId, 0, command);
+    expect(await service.command('alice', draftId, 0, command)).toEqual(queued);
+    expect(jobs.enqueue).toHaveBeenCalledTimes(1);
+    await service.command('alice', draftId, 1, { type: 'cancel_recommendations' });
+    expect(jobs.cancel).toHaveBeenCalledOnce();
     expect((await service.load('alice', draftId)).status).toBe('canceled');
   });
   it('keeps auth destinations internal and preserves query/draft continuity', () => {

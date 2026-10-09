@@ -1,6 +1,7 @@
 import { recommendationRequestSchema } from '@/src/shared/cohort-creation/contracts';
 import type { RecommendationService } from './recommendation.service';
 import { CreationFailure, creationFailure } from './errors';
+import { JobBudgetExceeded } from './durable-job';
 
 const MAX_BODY_BYTES = 16_384;
 export class RecommendationBudget {
@@ -42,6 +43,7 @@ async function readInput(request: Request): Promise<unknown> {
 export function createRecommendationHandler(
   getService: () => Pick<RecommendationService, 'recommend'>,
   budget: RecommendationBudget,
+  reserveDurableRequest?: () => Promise<void>,
 ) {
   return async (request: Request): Promise<Response> => {
     let input;
@@ -56,12 +58,14 @@ export function createRecommendationHandler(
     if (!release) return Response.json({ error: { code: 'RATE_LIMITED', message: 'Recommendations are busy. Try again shortly.', retryable: true } }, { status: 429, headers: { 'Retry-After': '600' } });
     const signal = AbortSignal.any([request.signal, AbortSignal.timeout(30_000)]);
     try {
+      await reserveDurableRequest?.();
       const result = await getService().recommend(input, signal);
       signal.throwIfAborted();
       return Response.json(result, { headers: { 'Cache-Control': 'no-store' } });
     } catch (error) {
       const failure = signal.aborted
         ? creationFailure(signal.reason?.name === 'TimeoutError' ? 'AI_TIMEOUT' : 'CANCELLED', 'The recommendation request stopped. You can retry.')
+        : error instanceof JobBudgetExceeded ? creationFailure('RATE_LIMITED', 'Recommendation capacity is exhausted. Try again later.')
         : error instanceof CreationFailure ? error : creationFailure('AI_UNAVAILABLE', 'Recommendations are temporarily unavailable. Try again.');
       const status = failure.detail.code === 'CANCELLED' ? 499 : failure.detail.code === 'AI_TIMEOUT' ? 504 : failure.detail.code === 'RATE_LIMITED' ? 429 : 503;
       return Response.json({ error: failure.detail }, { status, headers: { 'Cache-Control': 'no-store' } });

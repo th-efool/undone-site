@@ -39,7 +39,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
             <textarea id="learning-query" name="query" defaultValue={snapshot.query || initialQuery} minLength={3} maxLength={2000} required rows={3} />
             <button type="submit" disabled={snapshot.status === 'running'}>Find cohorts</button>
           </form>
-          {snapshot.status === 'running' && <div role="status"><p>Understanding your intent and finding public cohorts…</p><button type="button" onClick={creation.cancel}>Cancel</button><button type="button" onClick={() => void creation.runQuery(snapshot.query)}>Retry interrupted request</button></div>}
+          {snapshot.status === 'running' && <div role="status"><p>Understanding your intent and finding public cohorts…</p><p>You can return later; this request is saved.</p><button type="button" onClick={creation.cancel}>Cancel</button></div>}
           {snapshot.error && <div role="alert"><p>{snapshot.error.message}</p>{snapshot.error.retryable && <button type="button" onClick={() => void creation.runQuery(snapshot.query)}>Retry</button>}</div>}
           {snapshot.status === 'canceled' && <div role="status"><p>Generation stopped. Your query is still here.</p><button type="button" onClick={() => void creation.runQuery(snapshot.query)}>Retry</button></div>}
           {snapshot.result && <RecommendationResults result={snapshot.result} onCreateOwn={createOwn} />}
