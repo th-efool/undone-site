@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useCreation } from './hooks/useCreation';
 import { RecommendationResults } from './components/RecommendationResults';
 import { StartingPoint } from './components/StartingPoint';
+import { TextMaterial } from './components/TextMaterial';
 import styles from './CreationExperience.module.css';
 
 export function CreationExperience({ draftId, initialQuery = '', resume = false }: { draftId: string; initialQuery?: string; resume?: boolean }) {
@@ -16,7 +17,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
   };
   return <main id="main-content" className={styles.page}>
     <header className={styles.header}><Link href="/">Undone</Link><span>Cohort creation</span></header>
-    <p className={styles.notice}>{creation.saved ? 'Your draft is saved to your account.' : 'Waiting for server confirmation.'} Material acquisition is not available yet.</p>
+    <p className={styles.notice}>{creation.saved ? 'Your draft is saved to your account.' : 'Waiting for server confirmation.'}</p>
     {creation.message && <p role="alert">{creation.message}</p>}
     {!creation.hydrated ? <p role="status">Opening workspace…</p> : <div className={styles.workspace}>
       <aside className={styles.intent} aria-label="Learning intent">
@@ -29,7 +30,13 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
         </> : <p>Your query will become a structured learning intent. You remain in control of what happens next.</p>}
       </aside>
       <div>
-        {snapshot.stage === 'starting_point' ? <StartingPoint selected={snapshot.startingPoint} onSelect={creation.chooseStartingPoint} onBack={creation.back} /> : <>
+        {snapshot.stage === 'starting_point' ? <>
+          <StartingPoint selected={snapshot.startingPoint} onSelect={creation.chooseStartingPoint} onBack={creation.back}
+            disabled={creation.materialPending || snapshot.status === 'running'} />
+          {snapshot.startingPoint === 'have_material' ? <TextMaterial snapshot={snapshot} uploading={creation.uploading} pending={creation.materialPending}
+            onUpload={creation.uploadText} onCancelUpload={creation.cancelUpload} onCancel={creation.cancel} onRetry={creation.retryMaterial} /> :
+            snapshot.startingPoint && <p>Material discovery for this starting point is not available yet.</p>}
+        </> : <>
           <form key={snapshot.query} onSubmit={event => {
             event.preventDefault();
             const value = new FormData(event.currentTarget).get('query');

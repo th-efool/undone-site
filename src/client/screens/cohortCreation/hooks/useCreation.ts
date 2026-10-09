@@ -1,10 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useReducer, useRef } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { type CreationSnapshot, type StartingPoint, querySchema } from '@/src/shared/cohort-creation/contracts';
 import { applyCommand, initialSnapshot, type CreationCommand } from '@/src/shared/cohort-creation/flow';
 import { draftApi, DraftApiError } from '../services/draftApi';
 import { observeDraftEvents } from '../services/draftEvents';
+import { materialApi } from '../services/materialApi';
+import { MATERIAL_LIMITS } from '@/src/shared/cohort-creation/materials';
 
 type ViewState = { snapshot: CreationSnapshot; hydrated: boolean; saved: boolean; message: string | null };
 export function useCreation(draftId: string, initialQuery: string, resume: boolean) {
@@ -14,6 +16,9 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
   const current = useRef(view.snapshot);
   const controller = useRef<AbortController | null>(null);
   const editPending = useRef(false);
+  const uploadController = useRef<AbortController | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [materialPending, setMaterialPending] = useState(false);
   const display = useCallback((snapshot: CreationSnapshot, saved = true, message: string | null = null) => {
     if (snapshot.draftId !== current.current.draftId || snapshot.revision < current.current.revision) return;
     current.current = snapshot;
@@ -23,10 +28,10 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     const restored = error instanceof DraftApiError && error.current?.draftId === draftId && error.current.revision >= current.current.revision ? error.current : current.current;
     display(restored, false, error instanceof DraftApiError ? error.message : 'Draft storage is unavailable. Retry or reload this page.');
   }, [display, draftId]);
-  const send = useCallback(async (command: CreationCommand, signal?: AbortSignal) => {
+  const send = useCallback(async (command: CreationCommand, signal?: AbortSignal, baseRevision?: number) => {
     const base = current.current;
     try {
-      const saved = await draftApi.command(draftId, base.revision, command, signal);
+      const saved = await draftApi.command(draftId, baseRevision ?? base.revision, command, signal);
       if (saved.revision >= current.current.revision) display(saved);
       return true;
     } catch (error) {
@@ -57,7 +62,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
         }
       } catch (error) { if (!disposed) failure(error); }
     }, 0);
-    return () => { disposed = true; window.clearTimeout(timer); controller.current?.abort(); };
+    return () => { disposed = true; window.clearTimeout(timer); controller.current?.abort(); uploadController.current?.abort(); };
   }, [draftId, initialQuery, resume, display, failure, runQuery]);
   // This connection only observes persisted work. Disconnecting cannot cancel a job.
   useEffect(() => {
@@ -94,7 +99,33 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
       await edit({ type: latest.stage === 'starting_point' ? 'cancel_material_acquisition' : 'cancel_recommendations' });
     } catch (error) { failure(error); }
   };
-  return { ...view, runQuery, cancel, createOwn: () => edit({ type: 'create_own' }),
+  const uploadText = async (bytes: Blob, filename: string) => {
+    if (editPending.current) return false;
+    if (!bytes.size || bytes.size > MATERIAL_LIMITS.extractedTextBytes) {
+      failure(new DraftApiError('Provide text up to 1 MiB. Select a smaller source; nothing was truncated.', 413)); return false;
+    }
+    const base = current.current;
+    const operation = new AbortController(); uploadController.current = operation;
+    editPending.current = true; setUploading(true); setMaterialPending(true);
+    try {
+      const ref = await materialApi.upload(draftId, bytes, base.revision, filename, operation.signal);
+      operation.signal.throwIfAborted();
+      uploadController.current = null; setUploading(false);
+      // Always use the captured revision: never attach an earlier upload to a newer intent.
+      return await send({ type: 'acquire_text', materialId: crypto.randomUUID(), assetId: ref.id,
+        requestId: crypto.randomUUID() }, undefined, base.revision);
+    } catch (error) {
+      if (operation.signal.aborted) display(current.current, true, 'Upload canceled. Select material to retry.');
+      else failure(error);
+      return false;
+    } finally {
+      if (uploadController.current === operation) uploadController.current = null;
+      editPending.current = false; setUploading(false); setMaterialPending(false);
+    }
+  };
+  return { ...view, uploading, materialPending, uploadText, cancelUpload: () => uploadController.current?.abort(),
+    retryMaterial: (materialId: string, assetId: string) => edit({ type: 'acquire_text', materialId, assetId, requestId: crypto.randomUUID() }),
+    runQuery, cancel, createOwn: () => edit({ type: 'create_own' }),
     chooseStartingPoint: (startingPoint: StartingPoint) => edit({ type: 'choose_starting_point', startingPoint }),
     back: () => edit({ type: 'back_to_recommendations' }) };
 }

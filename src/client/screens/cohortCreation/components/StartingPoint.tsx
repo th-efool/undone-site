@@ -6,13 +6,13 @@ const choices: { value: StartingPointValue; label: string }[] = [
   { value: 'find_material', label: 'Find material for me' },
   { value: 'have_goal', label: 'I just have a goal' },
 ];
-export function StartingPoint({ selected, onSelect, onBack }: { selected: StartingPointValue | null; onSelect: (choice: StartingPointValue) => void; onBack: () => void }) {
+export function StartingPoint({ selected, onSelect, onBack, disabled = false }: { selected: StartingPointValue | null; onSelect: (choice: StartingPointValue) => void; onBack: () => void; disabled?: boolean }) {
   return <section aria-label="Starting point">
     <h2>What are you starting with?</h2>
     <div className={styles.cards}>
-      {choices.map(choice => <button key={choice.value} type="button" aria-pressed={selected === choice.value} onClick={() => onSelect(choice.value)}>{choice.label}</button>)}
+      {choices.map(choice => <button key={choice.value} type="button" disabled={disabled} aria-pressed={selected === choice.value} onClick={() => onSelect(choice.value)}>{choice.label}</button>)}
     </div>
-    {selected && <p role="status">Starting point saved to your account. Material acquisition will be added in the next implementation phase.</p>}
-    <button type="button" onClick={onBack}>Back to recommendations</button>
+    {selected && <p role="status">Starting point saved to your account.</p>}
+    <button type="button" disabled={disabled} onClick={onBack}>Back to recommendations</button>
   </section>;
 }
