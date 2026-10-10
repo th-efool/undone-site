@@ -21,7 +21,9 @@ import { retainedWebCheckpointSchema, webMaterialManifestSchema } from '../src/s
 import { WEB_PARSER_VERSION, webExtractionVersion, webExtractionFingerprint, webReceiptFingerprint } from '../src/server/domain/cohort-creation/materials/web-identity';
 import { PDF_PARSER_VERSION, pdfExtractionVersion, pdfAcquisitionFingerprint } from '../src/server/domain/cohort-creation/materials/pdf-identity';
 import { materialManifestSchema } from '../src/shared/cohort-creation/materials';
-import { retainedYoutubeMetadataSchema, YOUTUBE_METADATA_VERSION } from '../src/shared/cohort-creation/youtube';
+import { retainedYoutubeMetadataSchema, YOUTUBE_METADATA_VERSION, youtubeObservationCheckpointSchema, youtubeMaterialManifestSchema } from '../src/shared/cohort-creation/youtube';
+import { youtubeMaterialVersion, YOUTUBE_BUNDLE_VERSION } from '../src/server/domain/cohort-creation/materials/youtube-identity';
+import { JobBudgetExceeded } from '../src/server/domain/cohort-creation/durable-job';
 import { youtubeMetadataFingerprint } from '../src/server/domain/cohort-creation/materials/youtube-artifacts';
 
 let stage = 'connection';
@@ -287,7 +289,63 @@ async function main() {
     assert.equal(ytReady.materials[0].status, 'needs_input'); assert.equal(ytReady.extractions.length, 0);
     assert.equal(ytReady.youtubeSources[0].units[0].title, 'Real fixture lighting lesson');
     assert.equal(ytReady.materialRefs[0].ids[0], ytArtifact.id);
-    assert.equal(await drafts.swap(owner, ytDraftId, ytReady.revision, applyCommand(ytReady, { type: 'remove_material', materialId: ytCommand.materialId })), true);
+    stage = 'durable selected-video observations, budgets and recovery';
+    const ytSelected = applyCommand(ytReady, { type: 'select_youtube_units', materialId: ytCommand.materialId, unitIds: ['dQw4w9WgXcQ'] });
+    assert.equal(await drafts.swap(owner, ytDraftId, ytReady.revision, ytSelected), true);
+    const observeCommand = { type: 'observe_youtube' as const, materialId: ytCommand.materialId, requestId: randomUUID() };
+    const observeNext = applyCommand(ytSelected, observeCommand);
+    assert.ok(await repo.enqueue(owner, ytSelected, observeNext)); assert.ok(await repo.enqueue(owner, ytSelected, observeNext));
+    assert.equal(await db.creationJob.count({ where: { draftId: ytDraftId, kind: 'observe_youtube' } }), 1);
+    const observeJob = await repo.claim('video-observer'); assert.ok(observeJob?.kind === 'observe_youtube');
+    assert.ok(observeJob.deadlineAt.getTime() > Date.now() + 5 * 3600_000);
+    assert.equal(observeJob.input.metadata.sourceRevision, ytJob.inputRevision, 'selection does not rewrite source revision');
+    await db.creationJob.update({ where: { id: observeJob.id }, data: { leaseUntil: new Date(Date.now() + 300_000) } });
+    await assert.rejects(repo.reserveModelCall(observeJob, 'AAAAAAAAAAA'), /selected video/);
+    const releaseVideo = await repo.reserveModelCall(observeJob, 'dQw4w9WgXcQ'); assert.equal(typeof releaseVideo, 'function');
+    const activeVideoSlot = await db.creationBudget.findFirstOrThrow({ where: { key: { startsWith: 'active-model-slot:' }, expiresAt: { gt: new Date() } } });
+    assert.ok(activeVideoSlot.expiresAt.getTime() > Date.now() + 60_000, 'video slot outlives the 90-second model deadline');
+    if (releaseVideo) await releaseVideo();
+    const releaseRepair = await repo.reserveModelCall(observeJob, 'dQw4w9WgXcQ'); if (releaseRepair) await releaseRepair();
+    await assert.rejects(repo.reserveModelCall(observeJob, 'dQw4w9WgXcQ'), JobBudgetExceeded);
+    const unitArtifact = { id: randomUUID(), kind: 'artifact' as const, byteLength: 1200, checksum: 'b'.repeat(64) };
+    const unitVersion = 'c'.repeat(64);
+    const observationCheckpoint = youtubeObservationCheckpointSchema.parse({ phase: 'youtube_observations', materialId: ytCommand.materialId,
+      inputRevision: observeJob.inputRevision, sourceRevision: ytJob.inputRevision, metadataArtifact: ytArtifact, metadataFingerprint: ytRetained.inputFingerprint,
+      units: [{ unitId: 'dQw4w9WgXcQ', artifact: unitArtifact, version: unitVersion, segmentCount: 1, textBytes: 50 }] });
+    await db.creationStorageObject.create({ data: { ...unitArtifact, blobId: randomUUID(), ownerId: owner, draftId: ytDraftId,
+      status: 'ready', mediaType: 'application/json', reservedBytes: unitArtifact.byteLength, artifactType: 'wrong-type', schemaVersion: 1, inputFingerprint: unitVersion } });
+    await assert.rejects(repo.checkpoint(observeJob, observationCheckpoint), /Checkpoint storage reference unavailable/);
+    await db.creationStorageObject.update({ where: { id: unitArtifact.id }, data: { artifactType: 'youtube-observation' } });
+    assert.equal(await repo.checkpoint(observeJob, observationCheckpoint), true);
+    const partial = await drafts.load(owner, ytDraftId); assert.ok(partial);
+    assert.equal(partial.youtubeSources[0].observations.length, 1); assert.equal(partial.materialRefs[0].ids.length, 2);
+    assert.equal(partial.extractions.length, 0, 'partial observations are never ready content');
+    await assert.rejects(repo.checkpoint(observeJob, { ...observationCheckpoint, units: [] }), /saved selection and retained work/);
+    await db.creationJob.update({ where: { id: observeJob.id }, data: { leaseUntil: new Date(0) } });
+    const observeResumed = await repo.claim('video-observer-restart'); assert.ok(observeResumed?.kind === 'observe_youtube' && observeResumed.checkpoint);
+    await db.creationJob.update({ where: { id: observeResumed.id }, data: { leaseUntil: new Date(Date.now() + 300_000) } });
+    assert.equal(await repo.checkpoint(observeJob, observationCheckpoint), false, 'stale observer is fenced');
+    const bundleVersion = youtubeMaterialVersion(observationCheckpoint);
+    const bundle = { id: randomUUID(), kind: 'artifact' as const, byteLength: 900, checksum: 'd'.repeat(64) };
+    const observedManifest = youtubeMaterialManifestSchema.parse({ schemaVersion: 1, inputRevision: observeResumed.inputRevision,
+      source: { ...observeResumed.input.source, status: 'ready' }, retainedSource: ytArtifact, youtube: observationCheckpoint,
+      extraction: { materialId: ytCommand.materialId, version: bundleVersion, checksum: ytArtifact.checksum, artifactRef: bundle.id,
+        extractionKind: 'video_observation', selectionScope: 'video_observation', complete: false, segmentCount: 1 },
+      extractionArtifact: bundle, parserVersion: YOUTUBE_BUNDLE_VERSION, inputFingerprint: bundleVersion, acquiredAt: new Date().toISOString() });
+    await db.creationStorageObject.create({ data: { ...bundle, blobId: randomUUID(), ownerId: owner, draftId: ytDraftId,
+      status: 'ready', mediaType: 'application/json', reservedBytes: bundle.byteLength, artifactType: 'youtube-material', schemaVersion: 1, inputFingerprint: bundleVersion } });
+    assert.equal(await repo.checkpoint(observeResumed, observedManifest), true);
+    await db.creationJob.update({ where: { id: observeResumed.id }, data: { leaseUntil: new Date(0), deadlineAt: new Date(0) } });
+    const finishedObservation = await repo.claim('video-finalizer'); assert.ok(finishedObservation?.kind === 'observe_youtube');
+    await executeCreationJob(repo, finishedObservation, () => { throw new Error('No recommendation call'); }, new AbortController().signal,
+      undefined, undefined, undefined, undefined, () => ({ acquire: async () => { throw new Error('Complete bundle must not repay model work'); } }));
+    const observedReady = await drafts.load(owner, ytDraftId); assert.ok(observedReady);
+    assert.equal(observedReady.materials[0].status, 'ready'); assert.equal(observedReady.extractions[0].complete, false);
+    assert.equal(observedReady.materialRefs[0].ids.length, 3);
+    const clearedVideos = applyCommand(observedReady, { type: 'select_youtube_units', materialId: ytCommand.materialId, unitIds: [] });
+    assert.equal(await drafts.swap(owner, ytDraftId, observedReady.revision, clearedVideos), true);
+    assert.equal(await db.creationStorageObject.count({ where: { draftId: ytDraftId, referencedAt: { not: null } } }), 1, 'only metadata remains pinned after deselection');
+    assert.equal(await drafts.swap(owner, ytDraftId, clearedVideos.revision, applyCommand(clearedVideos, { type: 'remove_material', materialId: ytCommand.materialId })), true);
     assert.equal((await db.creationStorageObject.findUniqueOrThrow({ where: { id: ytArtifact.id } })).referencedAt, null);
     stage = 'retention protection and tombstones';
     const retention = createCreationRetentionRepository(db);
@@ -344,7 +402,7 @@ async function main() {
     try { if (created) await admin.query(`DROP SCHEMA "${schema}" CASCADE`); }
     finally { await admin.end(); }
   }
-  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web/PDF/YouTube inspection, retained receipt fencing, restart, pin release, reload, retention; isolated schema removed.');
+  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web/PDF/YouTube inspection and observations, per-video budgets, checkpoint fencing, restart, pin release, reload, retention; isolated schema removed.');
 }
 
 main().catch(error => {
