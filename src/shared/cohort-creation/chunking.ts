@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { chunkSchema, fieldValueSchema } from './contracts';
+import { understandingReceiptSchema } from './processing';
+import { retainedObjectRefSchema } from './storage';
 
 export const CHUNK_LIMITS = { perUnit: 200, perDraft: 2500, segmentsPerChunk: 100 } as const;
 /** Boundary candidates are existing ordered extraction segments, never generated text. */
@@ -21,3 +23,10 @@ export const groundedChunkSchema = chunkSchema.extend({
   coverage: z.strictObject({ scope: z.string().min(1), exhaustive: z.boolean(), limitations: z.array(z.string()) }),
 });
 export type GroundedChunk = z.infer<typeof groundedChunkSchema>;
+export const chunkingReceiptSchema = z.strictObject({ schemaVersion: z.literal(1), requestId: z.uuid(),
+  inputFingerprint: z.string().regex(/^[a-f0-9]{64}$/), partitionId: z.string().regex(/^[a-f0-9]{64}$/),
+  source: understandingReceiptSchema.shape.source,
+  understanding: z.strictObject({ inputFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+    artifact: retainedObjectRefSchema.extend({ kind: z.literal('artifact') }) }),
+  model: understandingReceiptSchema.shape.model, proposal: chunkBoundaryProposalSchema,
+});
