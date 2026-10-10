@@ -23,6 +23,10 @@ import { notionAcquisitionRequestSchema } from '@/src/shared/cohort-creation/job
 import { notionMaterialManifestSchema, retainedNotionCheckpointSchema, type RetainedNotionCheckpoint } from '@/src/shared/cohort-creation/notion';
 import type { ClaimedNotionJob } from '@/src/server/domain/cohort-creation/durable-job';
 import { validateNotionRetention } from '@/src/server/domain/cohort-creation/job-completion';
+import { discoveryRequestSchema } from '@/src/server/domain/cohort-creation/discovery.service';
+import { discoveryCheckpointSchema, discoveryResultSchema } from '@/src/shared/cohort-creation/discovery';
+import { validateDiscoveryCheckpoint } from '@/src/server/domain/cohort-creation/job-completion';
+import { pinDiscovery, preserveDiscovery } from './creationDiscovery.repo';
 
 async function lockedDraft(tx: Prisma.TransactionClient, owner: string, id: string) {
   const rows = await tx.$queryRaw<{ snapshot: unknown }[]>`
@@ -47,6 +51,8 @@ function claimed(row: CreationJob): ClaimedCreationJob {
     checkpoint: row.checkpoint ? retainedYoutubeMetadataSchema.parse(row.checkpoint) : null };
   if (row.kind === 'observe_youtube') return { ...base, kind: 'observe_youtube', input: youtubeObservationRequestSchema.parse(row.input),
     checkpoint: row.checkpoint ? youtubeObservationCheckpointSchema.or(youtubeMaterialManifestSchema).parse(row.checkpoint) : null };
+  if (row.kind === 'discover_material') return { ...base, kind: 'discover_material', input: discoveryRequestSchema.parse(row.input),
+    checkpoint: row.checkpoint ? discoveryCheckpointSchema.or(discoveryResultSchema).parse(row.checkpoint) : null };
   if (row.kind === 'acquire_notion') return { ...base, kind: 'acquire_notion', input: notionAcquisitionRequestSchema.parse(row.input),
     checkpoint: row.checkpoint ? retainedNotionCheckpointSchema.or(notionMaterialManifestSchema).parse(row.checkpoint) : null };
   if (row.kind === 'acquire_github') return { ...base, kind: 'acquire_github', input: githubAcquisitionRequestSchema.parse(row.input),
@@ -168,9 +174,10 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       if (!current) return null;
       const source = next.materials.find(source => source.status === 'acquiring');
       const metadata = next.youtubeSources.find(preview => preview.materialId === source?.id);
-      const kind = next.stage === 'recommendations' ? 'recommendations' : source?.kind === 'notion' ? 'acquire_notion' : source?.kind === 'github' ? 'acquire_github' : source?.kind === 'web' ? 'acquire_web' : source?.kind === 'pdf' ? 'acquire_pdf' : ['youtube_video', 'youtube_playlist'].includes(source?.kind ?? '') ? metadata && source?.selectedUnitIds.length ? 'observe_youtube' : 'inspect_youtube' : 'acquire_text';
+      const kind = next.stage === 'recommendations' ? 'recommendations' : next.discovery?.requestId === next.activeRequestId ? 'discover_material' : source?.kind === 'notion' ? 'acquire_notion' : source?.kind === 'github' ? 'acquire_github' : source?.kind === 'web' ? 'acquire_web' : source?.kind === 'pdf' ? 'acquire_pdf' : ['youtube_video', 'youtube_playlist'].includes(source?.kind ?? '') ? metadata && source?.selectedUnitIds.length ? 'observe_youtube' : 'inspect_youtube' : 'acquire_text';
       const input = kind === 'recommendations'
         ? recommendationRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, query: next.query })
+        : kind === 'discover_material' ? discoveryRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, intent: next.result?.intent })
         : kind === 'acquire_github' || kind === 'acquire_notion' ? (kind === 'acquire_github' ? githubAcquisitionRequestSchema : notionAcquisitionRequestSchema).parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, source,
           maxUnits: 100 - next.materials.filter(item => item.id !== source?.id).reduce((sum, item) => sum + item.selectedUnitIds.length, 0) })
         : kind === 'observe_youtube' ? youtubeObservationRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, source, metadata })
@@ -232,7 +239,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const candidates = await tx.$queryRaw<{ id: string; draftId: string; ownerId: string }[]>`
         SELECT j."id",j."draftId",j."ownerId" FROM "creation_jobs" j
         JOIN "creation_drafts" d ON d."id"=j."draftId"
-        WHERE d."expiredAt" IS NULL AND j."kind" IN ('recommendations','acquire_text','acquire_web','acquire_pdf','inspect_youtube','observe_youtube','acquire_github','acquire_notion') AND j."cancelRequestedAt" IS NULL AND
+        WHERE d."expiredAt" IS NULL AND j."kind" IN ('recommendations','acquire_text','acquire_web','acquire_pdf','inspect_youtube','observe_youtube','acquire_github','acquire_notion','discover_material') AND j."cancelRequestedAt" IS NULL AND
         ((j."status"='queued' AND j."nextRunAt"<=CURRENT_TIMESTAMP) OR
          (j."status"='running' AND j."leaseUntil"<=CURRENT_TIMESTAMP))
         ORDER BY j."nextRunAt",j."createdAt" LIMIT 1 FOR UPDATE OF d SKIP LOCKED`;
@@ -248,7 +255,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const rows = await tx.$queryRaw<CreationJob[]>`UPDATE "creation_jobs" SET "status"='running',
         "attempt"="attempt"+1,"leaseOwner"=${worker},"leaseToken"=${token},
         "leaseUntil"=CURRENT_TIMESTAMP + interval '90 seconds',"heartbeatAt"=CURRENT_TIMESTAMP,
-        "deadlineAt"=COALESCE("deadlineAt",CURRENT_TIMESTAMP + CASE WHEN "kind"='observe_youtube' THEN interval '6 hours' WHEN "kind" IN ('acquire_github','acquire_notion') THEN interval '6 minutes' WHEN "kind" IN ('acquire_web','acquire_pdf','inspect_youtube') THEN interval '120 seconds' WHEN "kind"='acquire_text' THEN interval '60 seconds' ELSE interval '30 seconds' END),"updatedAt"=CURRENT_TIMESTAMP
+        "deadlineAt"=COALESCE("deadlineAt",CURRENT_TIMESTAMP + CASE WHEN "kind"='discover_material' THEN interval '15 minutes' WHEN "kind"='observe_youtube' THEN interval '6 hours' WHEN "kind" IN ('acquire_github','acquire_notion') THEN interval '6 minutes' WHEN "kind" IN ('acquire_web','acquire_pdf','inspect_youtube') THEN interval '120 seconds' WHEN "kind"='acquire_text' THEN interval '60 seconds' ELSE interval '30 seconds' END),"updatedAt"=CURRENT_TIMESTAMP
         WHERE "id"=${job.id} RETURNING *`;
       await writeDraftEvent(tx, row.ownerId, { ...current, revision: current.revision + 1 }, 'job_started', rows[0]);
       return claimed(rows[0]);
@@ -262,9 +269,9 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
     return count === 1;
   },
   async reserveModelCall(job, unitId) {
-    if (job.kind !== 'recommendations' && (job.kind !== 'observe_youtube' || !unitId || !job.input.source.selectedUnitIds.includes(unitId))) throw new Error('Model calls require a recommendation or selected video job');
+    if (job.kind !== 'discover_material' && job.kind !== 'recommendations' && (job.kind !== 'observe_youtube' || !unitId || !job.input.source.selectedUnitIds.includes(unitId))) throw new Error('Model calls require a recommendation or selected video job');
     // Separate from job leases: cancellation does not immediately free a still-running SDK call.
-    const until = new Date(Date.now() + (job.kind === 'observe_youtube' ? 120_000 : 30_000));
+    const until = new Date(Date.now() + (job.kind === 'observe_youtube' ? 120_000 : job.kind === 'discover_material' ? 90_000 : 30_000));
     const slot = await prisma.$transaction(async tx => {
       const current = await lockedDraft(tx, job.ownerId, job.draftId);
       if (!current || current.activeRequestId !== job.requestId || current.inputRevision !== job.inputRevision) throw new LeaseLost();
@@ -283,7 +290,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const budget = hourlyBudget(`model:${job.ownerId}`);
       await reserveBudget(tx, budget.key, 40, budget.expiresAt);
       await reserveBudget(tx, job.kind === 'observe_youtube' ? `model-job:${job.id}:unit:${unitId}` : `model-job:${job.id}`,
-        job.kind === 'observe_youtube' ? 2 : 4, new Date(Date.now() + 60 * 86400_000));
+        job.kind === 'observe_youtube' ? 2 : job.kind === 'discover_material' ? 3 : 4, new Date(Date.now() + 60 * 86400_000));
       return acquired;
     });
     return async () => {
@@ -300,6 +307,10 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
         if (!current || current.activeRequestId !== job.requestId || current.inputRevision !== job.inputRevision) return false;
         await fenced(tx, job);
         if (event.type === 'recommendations_received') jobCompletion(job, event.result);
+        if (event.type === 'discovery_received') {
+          if (job.kind !== 'discover_material') throw new Error('Invalid discovery job');
+          jobCompletion(job, event.result); preserveDiscovery(current, event.result.checkpoint); await pinDiscovery(tx, job, event.result.checkpoint);
+        }
         if (event.type === 'material_received') {
           jobCompletion(job, event.manifest);
           if ('youtube' in event.manifest) preserveYoutubeWork(current, event.manifest.youtube);
@@ -310,11 +321,12 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
         if (event.type === 'youtube_metadata_received') { jobCompletion(job, event.result); await pinYoutubeMetadata(tx, job, event.result); }
         const next = applyEvent(current, event);
         if (next === current) return false;
-        const status = event.type === 'recommendations_received' || event.type === 'material_received' || event.type === 'youtube_metadata_received' ? 'succeeded' : event.type === 'operation_cancelled' ? 'canceled' : 'failed';
+        const status = event.type === 'discovery_received' || event.type === 'recommendations_received' || event.type === 'material_received' || event.type === 'youtube_metadata_received' ? 'succeeded' : event.type === 'operation_cancelled' ? 'canceled' : 'failed';
         const completed = await tx.creationJob.update({ where: { id: job.id }, data: { status,
           ...(event.type === 'recommendations_received' ? { checkpoint: event.result } : {}),
           ...(event.type === 'material_received' ? { checkpoint: event.manifest } : {}),
           ...(event.type === 'youtube_metadata_received' ? { checkpoint: event.result } : {}),
+          ...(event.type === 'discovery_received' ? { checkpoint: event.result } : {}),
           leaseToken: null, leaseUntil: null, leaseOwner: null } });
         await writeDraftEvent(tx, job.ownerId, next, status === 'succeeded' ? 'job_completed' : status === 'failed' ? 'job_failed' : 'job_canceled', completed);
         return true;
@@ -322,6 +334,24 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
     } catch (error) { if (error instanceof LeaseLost) return false; throw error; }
   },
   async checkpoint(job, result) {
+    if (job.kind === 'discover_material') {
+      const partial = 'phase' in result;
+      const valid = partial ? validateDiscoveryCheckpoint(job, result) : discoveryResultSchema.parse(result);
+      const checkpoint = 'phase' in valid ? valid : valid.checkpoint;
+      validateDiscoveryCheckpoint(job, checkpoint);
+      try {
+        return await prisma.$transaction(async tx => {
+          const current = await lockedDraft(tx, job.ownerId, job.draftId);
+          if (!current || current.activeRequestId !== job.requestId || current.inputRevision !== job.inputRevision) return false;
+          await fenced(tx, job); preserveDiscovery(current, checkpoint, partial); await pinDiscovery(tx, job, checkpoint);
+          const next = creationSnapshotSchema.parse({ ...current, revision: current.revision + 1,
+            discovery: { requestId: job.requestId, inputRevision: job.inputRevision, checkpoint, result: null } });
+          await releaseDetachedMaterialRefs(tx, job.ownerId, current, next);
+          const updated = await tx.creationJob.update({ where: { id: job.id }, data: { checkpoint: valid } });
+          await writeDraftEvent(tx, job.ownerId, next, 'snapshot', updated); return true;
+        });
+      } catch (error) { if (error instanceof LeaseLost) return false; throw error; }
+    }
     if (job.kind === 'acquire_notion' && 'phase' in result) {
       const valid = validateNotionRetention(job, result);
       try {

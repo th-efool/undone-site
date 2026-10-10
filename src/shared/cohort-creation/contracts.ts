@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { discoveryCheckpointSchema, discoveryResultSchema } from './discovery';
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 export const querySchema = text(2000).min(3);
@@ -166,11 +167,19 @@ export const creationSnapshotSchema = z.strictObject({
   lastMaterialRequestId: z.uuid().nullable().default(null),
   materialRefs: z.array(z.strictObject({ materialId: key, ids: z.array(z.uuid()).min(1).max(102) })).max(20).default([]),
   youtubeSources: z.array(youtubeSourceStateSchema).max(20).default([]),
+  discovery: z.strictObject({ requestId: z.uuid(), inputRevision: revision,
+    checkpoint: discoveryCheckpointSchema.nullable(), result: discoveryResultSchema.nullable() }).nullable().default(null),
 }).superRefine((state, ctx) => {
   if ((state.status === 'running') !== (state.activeRequestId !== null)) ctx.addIssue({ code: 'custom', message: 'Invalid active operation' });
   if (state.status === 'running' && ((state.stage === 'recommendations' && state.result !== null) ||
-    (state.stage === 'starting_point' && (state.materials.filter(source => source.status === 'acquiring').length !== 1 || state.lastMaterialRequestId !== state.activeRequestId)))) {
+    (state.stage === 'starting_point' && !(state.discovery?.requestId === state.activeRequestId && state.discovery.result === null) &&
+      (state.materials.filter(source => source.status === 'acquiring').length !== 1 || state.lastMaterialRequestId !== state.activeRequestId)))) {
     ctx.addIssue({ code: 'custom', message: 'Invalid operation selection' });
+  }
+  if (state.discovery && (state.discovery.inputRevision > state.inputRevision ||
+    state.discovery.checkpoint && (state.discovery.checkpoint.requestId !== state.discovery.requestId || state.discovery.checkpoint.inputRevision !== state.discovery.inputRevision) ||
+    state.discovery.result && (state.discovery.result.checkpoint.requestId !== state.discovery.requestId || state.discovery.result.checkpoint.inputRevision !== state.discovery.inputRevision))) {
+    ctx.addIssue({ code: 'custom', message: 'Invalid discovery revision or request' });
   }
   // Material-only edits advance inputRevision without invalidating the accepted learning intent.
   if (state.result && (state.result.inputRevision > state.inputRevision || state.result.intent.rawQuery !== state.query)) {

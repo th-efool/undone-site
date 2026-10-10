@@ -19,6 +19,10 @@ import { GithubMaterialReader } from './domain/cohort-creation/materials/github'
 import { GithubPublicApi } from './domain/cohort-creation/materials/github-public-api';
 import { GithubAcquisitionService } from './domain/cohort-creation/materials/github-acquisition.service';
 import { NotionAcquisitionService } from './domain/cohort-creation/materials/notion-acquisition.service';
+import { DiscoveryService } from './domain/cohort-creation/discovery.service';
+import { DiscoverySourceObserver } from './domain/cohort-creation/discovery-observer';
+import { VercelResourceDiscovery } from './infrastructure/ai/vercelResourceDiscovery';
+import type { ResourceDiscovery } from './domain/cohort-creation/discovery.contracts';
 
 async function main() {
   if (process.argv.includes('--check')) {
@@ -104,6 +108,12 @@ async function main() {
         const storage = await import('./infrastructure/storage/creation.runtime');
         // Retained recovery needs no live connection and must never refetch a mutable page.
         return new NotionAcquisitionService({ read: async () => { throw new Error('Retained recovery cannot read Notion'); } }, storage.creationArtifactRepository).extract(...args);
+      } }),
+      job => ({ run: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        const adapter = () => new VercelResourceDiscovery(createCohortModel(), { beforeCall: () => creationJobRepo.reserveModelCall(job) });
+        const ai: ResourceDiscovery = { search: (...input) => adapter().search(...input), select: (...input) => adapter().select(...input) };
+        return new DiscoveryService(ai, new DiscoverySourceObserver(new YoutubeMetadataReader(), new GithubPublicApi()), storage.creationArtifactRepository).run(...args);
       } }));
   } finally {
     clearInterval(retentionTimer);

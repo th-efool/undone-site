@@ -18,6 +18,15 @@ import type { ClaimedNotionJob } from './durable-job';
 import { notionMaterialManifestSchema, retainedNotionCheckpointSchema, NOTION_PARSER_VERSION } from '@/src/shared/cohort-creation/notion';
 import { notionReceiptFingerprint, notionExtractionVersion, notionUnitId } from './materials/notion-extraction';
 import { notionPageIdentity } from './materials/notion';
+import type { ClaimedDiscoveryJob } from './durable-job';
+import { discoveryCheckpointSchema, discoveryResultSchema } from '@/src/shared/cohort-creation/discovery';
+import { discoveryFingerprint } from './discovery.service';
+
+export function validateDiscoveryCheckpoint(job: ClaimedDiscoveryJob, value: unknown) {
+  const checkpoint = discoveryCheckpointSchema.parse(value);
+  if (checkpoint.requestId !== job.requestId || checkpoint.inputRevision !== job.inputRevision || checkpoint.inputFingerprint !== discoveryFingerprint(job.input)) throw new Error('Invalid discovery checkpoint input');
+  return checkpoint;
+}
 
 export function validateNotionRetention(job: ClaimedNotionJob, value: unknown) {
   const retained = retainedNotionCheckpointSchema.parse(value);
@@ -50,6 +59,10 @@ export function validateWebRetention(job: ClaimedWebJob, value: unknown): Retain
 }
 
 export function jobCompletion(job: ClaimedCreationJob, value: CreationCheckpoint): CreationEvent {
+  if (job.kind === 'discover_material') {
+    const result = discoveryResultSchema.parse(value); validateDiscoveryCheckpoint(job, result.checkpoint);
+    return { type: 'discovery_received', requestId: job.requestId, result };
+  }
   if (job.kind === 'acquire_notion') {
     const manifest = notionMaterialManifestSchema.parse(value); const retained = validateNotionRetention(job, manifest.notion);
     const version = notionExtractionVersion(retained.artifact.checksum);

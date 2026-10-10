@@ -7,6 +7,8 @@ import type { RetainedYoutubeMetadata, YoutubeObservationCheckpoint, YoutubeMate
 import type { RetainedWebCheckpoint, WebMaterialManifest } from '@/src/shared/cohort-creation/web';
 import type { MaterialManifest } from '@/src/shared/cohort-creation/materials';
 import type { NotionAcquisitionRequest } from '@/src/shared/cohort-creation/jobs';
+import type { DiscoveryRequest } from './discovery.service';
+import type { DiscoveryCheckpoint, DiscoveryResult } from '@/src/shared/cohort-creation/discovery';
 import type { RetainedNotionCheckpoint, NotionMaterialManifest } from '@/src/shared/cohort-creation/notion';
 
 export class JobBudgetExceeded extends Error {}
@@ -23,8 +25,9 @@ export type ClaimedYoutubeInspectionJob = JobBase & { kind: 'inspect_youtube'; i
 export type ClaimedYoutubeObservationJob = JobBase & { kind: 'observe_youtube'; input: YoutubeObservationRequest; checkpoint: YoutubeObservationCheckpoint | YoutubeMaterialManifest | null };
 export type ClaimedGithubJob = JobBase & { kind: 'acquire_github'; input: GithubAcquisitionRequest; checkpoint: RetainedGithubCheckpoint | GithubMaterialManifest | null };
 export type ClaimedNotionJob = JobBase & { kind: 'acquire_notion'; input: NotionAcquisitionRequest; checkpoint: RetainedNotionCheckpoint | NotionMaterialManifest | null };
-export type ClaimedCreationJob = ClaimedRecommendationJob | ClaimedTextJob | ClaimedWebJob | ClaimedPdfJob | ClaimedYoutubeInspectionJob | ClaimedYoutubeObservationJob | ClaimedGithubJob | ClaimedNotionJob;
-export type CreationCheckpoint = RecommendationResult | MaterialManifest | RetainedWebCheckpoint | WebMaterialManifest | RetainedYoutubeMetadata | YoutubeObservationCheckpoint | YoutubeMaterialManifest | RetainedGithubCheckpoint | GithubMaterialManifest | RetainedNotionCheckpoint | NotionMaterialManifest;
+export type ClaimedDiscoveryJob = JobBase & { kind: 'discover_material'; input: DiscoveryRequest; checkpoint: DiscoveryCheckpoint | DiscoveryResult | null };
+export type ClaimedCreationJob = ClaimedRecommendationJob | ClaimedTextJob | ClaimedWebJob | ClaimedPdfJob | ClaimedYoutubeInspectionJob | ClaimedYoutubeObservationJob | ClaimedGithubJob | ClaimedNotionJob | ClaimedDiscoveryJob;
+export type CreationCheckpoint = RecommendationResult | MaterialManifest | RetainedWebCheckpoint | WebMaterialManifest | RetainedYoutubeMetadata | YoutubeObservationCheckpoint | YoutubeMaterialManifest | RetainedGithubCheckpoint | GithubMaterialManifest | RetainedNotionCheckpoint | NotionMaterialManifest | DiscoveryCheckpoint | DiscoveryResult;
 export interface CreationJobRepository {
   enqueue(owner: string, previous: CreationSnapshot, next: CreationSnapshot): Promise<CreationSnapshot | null>;
   cancel(owner: string, previous: CreationSnapshot, next: CreationSnapshot): Promise<boolean>;

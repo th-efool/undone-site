@@ -9,10 +9,12 @@ import { webMaterialManifestSchema } from './web';
 import { retainedYoutubeMetadataSchema, youtubeMaterialManifestSchema } from './youtube';
 import { githubSelectionSchema, githubMaterialManifestSchema, githubRepositoryScope } from './github';
 import { notionMaterialManifestSchema } from './notion';
+import { discoveryResultSchema } from './discovery';
 
 export const creationCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('request_recommendations'), query: querySchema, requestId: z.uuid() }),
   z.strictObject({ type: z.literal('create_own') }),
+  z.strictObject({ type: z.literal('discover_material'), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('choose_starting_point'), startingPoint: startingPointSchema }),
   z.strictObject({ type: z.literal('back_to_recommendations') }),
   z.strictObject({ type: z.literal('cancel_recommendations') }),
@@ -35,6 +37,7 @@ export const creationEventSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('operation_cancelled'), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('material_received'), requestId: z.uuid(), manifest: z.union([notionMaterialManifestSchema, githubMaterialManifestSchema, youtubeMaterialManifestSchema, webMaterialManifestSchema, materialManifestSchema]) }),
   z.strictObject({ type: z.literal('youtube_metadata_received'), requestId: z.uuid(), result: retainedYoutubeMetadataSchema }),
+  z.strictObject({ type: z.literal('discovery_received'), requestId: z.uuid(), result: discoveryResultSchema }),
 ]);
 export type CreationEvent = z.infer<typeof creationEventSchema>;
 
@@ -70,14 +73,19 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
         ...changed, query: command.query, inputRevision: state.inputRevision + 1,
         stage: 'recommendations', status: 'running', activeRequestId: command.requestId,
         result: null, startingPoint: null,
-        materials: [], extractions: [], materialRefs: [], youtubeSources: [], lastMaterialRequestId: null,
+        materials: [], extractions: [], materialRefs: [], youtubeSources: [], lastMaterialRequestId: null, discovery: null,
       });
     case 'create_own':
       if (!canEnterStage(state, 'starting_point')) throw new Error('Intent is not ready');
       return creationSnapshotSchema.parse({ ...changed, stage: 'starting_point' });
+    case 'discover_material':
+      if (state.stage !== 'starting_point' || !['find_material', 'have_goal'].includes(state.startingPoint ?? '') || state.status === 'running' || !state.result) throw new Error('Starting point is not available');
+      return creationSnapshotSchema.parse({ ...changed, inputRevision: state.inputRevision + 1, status: 'running', activeRequestId: command.requestId,
+        discovery: { requestId: command.requestId, inputRevision: state.inputRevision + 1, checkpoint: null, result: null } });
     case 'choose_starting_point':
       if (state.stage !== 'starting_point' || state.status === 'running' || !state.result) throw new Error('Starting point is not available');
-      return creationSnapshotSchema.parse({ ...changed, startingPoint: command.startingPoint, status: 'succeeded' });
+      return creationSnapshotSchema.parse({ ...changed, startingPoint: command.startingPoint, status: 'succeeded',
+        discovery: state.startingPoint === command.startingPoint ? state.discovery : null });
     case 'acquire_text':
     case 'acquire_pdf':
     case 'inspect_youtube':
@@ -149,6 +157,8 @@ export function applyEvent(state: CreationSnapshot, input: CreationEvent): Creat
     state.stage !== 'recommendations' ||
     event.result.inputRevision !== state.inputRevision || event.result.intent.rawQuery !== state.query
   )) return state;
+  if (event.type === 'discovery_received' && (state.stage !== 'starting_point' || state.discovery?.requestId !== requestId ||
+    event.result.checkpoint.inputRevision !== state.inputRevision || event.result.checkpoint.requestId !== requestId)) return state;
   if (event.type === 'material_received' && (state.stage !== 'starting_point' ||
     event.manifest.inputRevision !== state.inputRevision || !state.materials.some(source =>
       source.id === event.manifest.source.id && source.status === 'acquiring' && source.kind === event.manifest.source.kind &&
@@ -159,6 +169,9 @@ export function applyEvent(state: CreationSnapshot, input: CreationEvent): Creat
       source.kind === event.result.receipt.metadata.kind && source.input.kind === 'url' && source.input.url === event.result.receipt.metadata.sourceUrl))) return state;
   const changed = { ...state, revision: state.revision + 1, activeRequestId: null };
   switch (event.type) {
+    case 'discovery_received':
+      return creationSnapshotSchema.parse({ ...changed, status: 'succeeded', error: null,
+        discovery: { requestId, inputRevision: state.inputRevision, checkpoint: event.result.checkpoint, result: event.result } });
     case 'youtube_metadata_received': {
       const { receipt, artifact, inputFingerprint } = event.result;
       return creationSnapshotSchema.parse({ ...changed, status: 'succeeded', error: null,

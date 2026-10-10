@@ -38,6 +38,7 @@ export class DraftService {
     if (command.type === 'acquire_notion') command.url = notionPageIdentity(command.url).url;
     if (command.type === 'request_recommendations' && previous.query === command.query &&
       (previous.activeRequestId === command.requestId || previous.result?.requestId === command.requestId)) return previous;
+    if (command.type === 'discover_material' && previous.discovery?.requestId === command.requestId) return previous;
     if ((command.type === 'acquire_text' || command.type === 'acquire_pdf') && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
       source.id === command.materialId && source.kind === (command.type === 'acquire_pdf' ? 'pdf' : 'markdown') && source.input.kind === 'upload' && source.input.assetId === command.assetId)) return previous;
     if (command.type === 'acquire_web' && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
@@ -53,7 +54,7 @@ export class DraftService {
       source.id === command.materialId && source.kind === 'notion' && source.input.kind === 'url' && source.input.url === command.url)) return previous;
     if (previous.revision !== baseRevision) throw new DraftConflict(previous);
     const next = applyCommand(previous, command);
-    if (command.type === 'request_recommendations' || command.type === 'acquire_text' || command.type === 'acquire_pdf' || command.type === 'acquire_web' || command.type === 'inspect_youtube' || command.type === 'observe_youtube' || command.type === 'acquire_github' || command.type === 'acquire_notion') {
+    if (command.type === 'discover_material' || command.type === 'request_recommendations' || command.type === 'acquire_text' || command.type === 'acquire_pdf' || command.type === 'acquire_web' || command.type === 'inspect_youtube' || command.type === 'observe_youtube' || command.type === 'acquire_github' || command.type === 'acquire_notion') {
       const queued = await this.jobs.enqueue(owner, previous, next);
       if (!queued) throw new DraftConflict(await this.load(owner, id));
       return queued;

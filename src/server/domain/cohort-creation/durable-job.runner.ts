@@ -8,6 +8,9 @@ import type { RecommendationService } from './recommendation.service';
 import type { ClaimedNotionJob } from './durable-job';
 import type { NotionAcquisitionService } from './materials/notion-acquisition.service';
 import { validateNotionRetention } from './job-completion';
+import { validateDiscoveryCheckpoint } from './job-completion';
+import type { ClaimedDiscoveryJob } from './durable-job';
+import type { DiscoveryService } from './discovery.service';
 
 import type { TextAcquisitionService } from './materials/text-acquisition.service';
 import { CreationStorageError } from '@/src/server/infrastructure/storage/creation.contracts';
@@ -23,9 +26,10 @@ type YoutubeInspectorFactory = (job: ClaimedYoutubeInspectionJob) => Pick<Youtub
 type YoutubeAcquirerFactory = (job: ClaimedYoutubeObservationJob) => Pick<YoutubeAcquisitionService, 'acquire'>;
 type GithubAcquirerFactory = (job: ClaimedGithubJob) => Pick<GithubAcquisitionService, 'acquire' | 'extract'>;
 type NotionAcquirerFactory = (job: ClaimedNotionJob) => Pick<NotionAcquisitionService, 'acquire' | 'extract'>;
+type DiscoveryFactory = (job: ClaimedDiscoveryJob) => Pick<DiscoveryService, 'run'>;
 /** One task invocation; browser connections are deliberately not an input. */
 export async function executeCreationJob(repo: CreationJobRepository, job: ClaimedCreationJob,
-  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory) {
+  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory, discoverer?: DiscoveryFactory) {
   const lease = new AbortController();
   const remaining = Math.max(1, job.deadlineAt.getTime() - Date.now());
   const timeout = AbortSignal.timeout(remaining);
@@ -48,6 +52,13 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
     if (job.deadlineAt.getTime() <= Date.now()) throw new DOMException('Job deadline elapsed', 'TimeoutError');
     signal.throwIfAborted();
     const result = job.kind === 'recommendations' ? await recommender(job).recommend(job.input, signal)
+      : job.kind === 'discover_material' ? await (() => {
+        if (!discoverer) throw new Error('Resource discovery unavailable');
+        const checkpoint = job.checkpoint && 'phase' in job.checkpoint ? validateDiscoveryCheckpoint(job, job.checkpoint) : undefined;
+        return discoverer(job).run({ ownerId: job.ownerId, draftId: job.draftId }, job.input, signal, async value => {
+          if (!await repo.checkpoint(job, value)) throw new LeaseLost();
+        }, checkpoint);
+      })()
       : job.kind === 'acquire_notion' ? await (() => {
         if (!notionAcquirer) throw new Error('Notion acquisition service unavailable');
         const service = notionAcquirer(job); const scope = { ownerId: job.ownerId, draftId: job.draftId };
@@ -122,14 +133,14 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
 }
 
 export async function runCreationWorker(repo: CreationJobRepository, workerId: string,
-  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory) {
+  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory, discoverer?: DiscoveryFactory) {
   const tasks = new Set<Promise<void>>();
   while (!signal.aborted) {
     try {
       if (tasks.size < 2) {
         const job = await repo.claim(workerId);
         if (job) {
-          const task = executeCreationJob(repo, job, recommender, signal, acquirer, webAcquirer, pdfAcquirer, youtubeInspector, youtubeAcquirer, githubAcquirer, notionAcquirer).catch(reportError);
+          const task = executeCreationJob(repo, job, recommender, signal, acquirer, webAcquirer, pdfAcquirer, youtubeInspector, youtubeAcquirer, githubAcquirer, notionAcquirer, discoverer).catch(reportError);
           tasks.add(task);
           void task.finally(() => tasks.delete(task));
           continue;

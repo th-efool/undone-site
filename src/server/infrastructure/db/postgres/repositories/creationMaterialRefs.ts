@@ -2,8 +2,11 @@ import type { Prisma } from '@/generated/prisma/client';
 import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 
 function refs(state: CreationSnapshot) {
+  const checkpoint = state.discovery?.checkpoint;
   return [...state.materials.flatMap(source => source.input.kind === 'upload' ? [source.input.assetId] : []),
-    ...state.extractions.map(extraction => extraction.artifactRef), ...state.materialRefs.flatMap(ref => ref.ids)];
+    ...state.extractions.map(extraction => extraction.artifactRef), ...state.materialRefs.flatMap(ref => ref.ids),
+    ...(checkpoint ? [checkpoint.searchArtifact.id, ...(checkpoint.observationArtifact ? [checkpoint.observationArtifact.id] : []),
+      ...(checkpoint.selectionArtifact ? [checkpoint.selectionArtifact.id] : [])] : [])];
 }
 /** Caller holds the owner draft lock; detach only references absent from the next snapshot. */
 export async function releaseDetachedMaterialRefs(tx: Prisma.TransactionClient, ownerId: string,
