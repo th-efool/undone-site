@@ -10,10 +10,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCreation } from './hooks/useCreation';
 import { RecommendationResults } from './components/RecommendationResults';
-import { StartingPoint } from './components/StartingPoint';
-import { TextMaterial } from './components/TextMaterial';
-import { CreationConnections } from './components/CreationConnections';
-import { DiscoveryMaterials } from './components/DiscoveryMaterials';
+import { StartingWorkspace } from './components/StartingWorkspace';
 import { ChunkingProgress } from './components/ChunkingProgress';
 import { UnderstandingProgress } from './components/UnderstandingProgress';
 import styles from './CreationExperience.module.css';
@@ -40,6 +37,26 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
       {snapshot.result ? <RecommendationResults result={snapshot.result} onCreateOwn={createOwn} /> : <RecommendationPending creation={creation} />}
     </CreationShell>;
   }
+  if (creation.hydrated && snapshot.stage === 'starting_point') {
+    return <CreationShell variant="starting" query={snapshot.result?.intent.rawQuery ?? snapshot.query} saved={creation.saved}
+      disabled={creation.materialPending || snapshot.status === 'running'}
+      reply={<><p>Sure.</p><p>Let’s make something that fits what you actually want.</p></>}
+      hintTitle="We’ll keep this simple." hint="You can start with the material you already have, have me find the best resources, or just tell me your goal and I’ll figure out the rest."
+      suggestions={[
+        { label: 'I have a YouTube playlist', action: () => void creation.chooseStartingPoint('have_material') },
+        { label: 'Find material for me', action: () => void creation.chooseStartingPoint('find_material') },
+        { label: 'I just have a goal', action: () => void creation.chooseStartingPoint('have_goal') },
+      ]} onMessage={async message => {
+        if (/don't|do not|no material|not sure/i.test(message)) throw new Error('Choose whether you want me to find resources or start from your goal below.');
+        if (/find|recommend|resources for me/i.test(message)) await creation.chooseStartingPoint('find_material');
+        else if (/just.*goal|only.*goal|have a goal/i.test(message)) await creation.chooseStartingPoint('have_goal');
+        else if (/material|youtube|playlist|pdf|article|github|notion|video|file/i.test(message)) await creation.chooseStartingPoint('have_material');
+        else throw new Error('Choose a starting point below, or tell me whether you have material, want resources, or just have a goal.');
+      }}>
+      {creation.message && <p role="alert">{creation.message}</p>}
+      <StartingWorkspace creation={creation} draftId={draftId} />
+    </CreationShell>;
+  }
   return <main id="main-content" className={styles.page}>
     <header className={styles.header}><Link href="/">Undone</Link><span>Cohort creation</span></header>
     <p className={styles.notice}>{creation.saved ? 'Your draft is saved to your account.' : 'Waiting for server confirmation.'}</p>
@@ -60,19 +77,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
           onBuild={creation.buildCurriculum} onStart={creation.analyzeMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'processing' && snapshot.processing?.phase === 'chunking' ? <ChunkingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
           onAnalyze={creation.analyzeMaterial} onStart={creation.chunkMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'processing' ? <UnderstandingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
           onChunk={creation.chunkMaterial} onStart={creation.understandMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'starting_point' ? <>
-          <StartingPoint selected={snapshot.startingPoint} onSelect={creation.chooseStartingPoint} onBack={creation.back}
-            disabled={creation.materialPending || snapshot.status === 'running'} />
-          {snapshot.startingPoint === 'have_material' ? <><CreationConnections draftId={draftId} disabled={!creation.saved || creation.materialPending || snapshot.status === 'running'} />
-          <TextMaterial snapshot={snapshot} uploading={creation.uploading} pending={creation.materialPending}
-            onUpload={creation.uploadText} onCancelUpload={creation.cancelUpload} onCancel={creation.cancel} onRetry={creation.retryMaterial}
-            onRemove={creation.removeMaterial} onWeb={creation.acquireWeb} onSelectUnits={creation.selectYoutubeUnits} onObserve={creation.observeYoutube} onGithub={creation.acquireGithub} onNotion={creation.acquireNotion} /></> :
-            snapshot.startingPoint && <><DiscoveryMaterials snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
-              onFind={creation.discoverMaterial} onAcquire={creation.acquireDiscovered} onGithub={creation.acquireGithub} onCancel={creation.cancel} />
-              {!!snapshot.materials.length && <TextMaterial snapshot={snapshot} uploading={false} pending={creation.materialPending} selectionOnly
-                onUpload={creation.uploadText} onCancelUpload={creation.cancelUpload} onCancel={creation.cancel} onRetry={creation.retryMaterial}
-                onRemove={creation.removeMaterial} onWeb={creation.acquireWeb} onSelectUnits={creation.selectYoutubeUnits} onObserve={creation.observeYoutube} onGithub={creation.acquireGithub} />}</>}
-          {!!snapshot.materials.length && <UnderstandingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending || snapshot.status === 'running'}
-            onChunk={creation.chunkMaterial} onStart={creation.understandMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} />}
+          <StartingWorkspace creation={creation} draftId={draftId} />
         </> : <>
           <form key={snapshot.query} onSubmit={event => {
             event.preventDefault();

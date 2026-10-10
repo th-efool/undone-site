@@ -43,6 +43,7 @@
 .suggestions { display: flex; flex-direction: column; align-items: start; gap: 8px; margin-top: 11px; }
 .suggestions button { border: 1px solid #d9ddee; background: var(--creation-surface); border-radius: 30px; padding: 8px 20px; color: var(--creation-muted); text-align: left; line-height: 1.25; }
 .saved { display: block; margin: 12px 2px 0; font-size: 10px; color: var(--creation-muted); }
+.messageError { color: var(--creation-ink); font-size: 12px; line-height: 1.4; margin: 8px 0; }
 .canvas { min-width: 0; padding: 26px 48px 15px 44px; position: relative; }
 .tools { position: absolute; right: 40px; top: 22px; display: flex; align-items: center; gap: 22px; z-index: 2; }
 .account { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; background: #142039; color: #fff; text-decoration: none; font-size: 13px; }

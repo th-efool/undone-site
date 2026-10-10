@@ -25,6 +25,7 @@ export type CreationShellProps = {
 export function CreationShell({ children, query, reply, hintTitle, hint, suggestions = [], onMessage,
   disabled = false, saved = true, variant = 'recommendations' }: CreationShellProps) {
   const [message, setMessage] = useState(''); const [collapsed, setCollapsed] = useState(false);
+  const [messageError, setMessageError] = useState<string | null>(null);
   const { theme, isDark } = useTheme();
   return <main id="main-content" className={styles.page} data-theme={theme} data-variant={variant} data-rail-collapsed={collapsed}>
     <aside className={styles.rail} aria-label="Creation conversation">
@@ -43,7 +44,7 @@ export function CreationShell({ children, query, reply, hintTitle, hint, suggest
           <div className={styles.messageRow}><span className={styles.youAvatar} aria-hidden="true">Y</span>
             <div className={styles.userBubble}><span className={styles.sender}>You</span><p>{query}</p></div>
           </div>
-          <div className={styles.messageRow}><Image className={styles.assistantAvatar} src="/undone-logo-transparent.svg" width={34} height={34} alt="" />
+          <div className={styles.messageRow}><Image className={styles.assistantAvatar} src={isDark ? '/undone-logo-dark.svg' : '/undone-logo-transparent.svg'} width={34} height={34} alt="" />
             <div className={styles.assistantBubble}><span className={styles.sender}>Undone</span><div>{reply}</div></div>
           </div>
           <div className={styles.hint}><Lightbulb size={27} strokeWidth={1.3} aria-hidden="true" /><div><strong>{hintTitle}</strong><p>{hint}</p></div></div>
@@ -51,15 +52,17 @@ export function CreationShell({ children, query, reply, hintTitle, hint, suggest
         <div className={styles.composerArea}>
           <form className={styles.composer} onSubmit={async event => {
             event.preventDefault(); if (disabled || message.trim().length < 3) return;
-            await onMessage(message.trim()); setMessage('');
+            try { await onMessage(message.trim()); setMessage(''); setMessageError(null); }
+            catch (error) { setMessageError(error instanceof Error ? error.message : 'Your message could not be sent. Retry.'); }
           }}>
             <label className={styles.srOnly} htmlFor="creation-conversation-message">Say anything</label>
             <textarea id="creation-conversation-message" placeholder="Say anything…" value={message} maxLength={2000} minLength={3}
               rows={1} required disabled={disabled} onChange={event => setMessage(event.target.value)} />
             <button type="submit" disabled={disabled || message.trim().length < 3} aria-label="Send message"><ArrowUp size={22} /></button>
           </form>
+          {messageError && <p className={styles.messageError} role="alert">{messageError}</p>}
           <div className={styles.suggestions}>{suggestions.map(suggestion => <button type="button" key={suggestion.label}
-            disabled={disabled} onClick={suggestion.action}>{suggestion.label}</button>)}</div>
+            disabled={disabled} aria-label={`Suggested action: ${suggestion.label}`} onClick={suggestion.action}>{suggestion.label}</button>)}</div>
           <span className={styles.saved} role="status">{saved ? 'Saved to your account' : 'Waiting for server confirmation'}</span>
         </div>
       </div>

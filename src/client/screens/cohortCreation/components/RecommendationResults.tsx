@@ -3,12 +3,13 @@ import Image from 'next/image';
 import { ArrowRight, BookOpen, Clock3, Compass, Star, Users } from 'lucide-react';
 import type { RecommendationResult } from '@/src/shared/cohort-creation/contracts';
 import styles from './RecommendationResults.module.css';
+import { InkUnderline } from './InkUnderline';
 
 export function RecommendationResults({ result, onCreateOwn }: { result: RecommendationResult; onCreateOwn: () => void }) {
   return <section aria-label="Cohort recommendations" className={styles.results}>
     <header className={styles.heading}>
       <p className={styles.eyebrow}>People are already learning this</p>
-      <h1>{result.intent.topic.value}</h1>
+      <h1>{result.intent.topic.value}<InkUnderline className={styles.underline} /></h1>
       <p className={styles.subtitle}>I found a few ways you could jump in.</p>
       <span className={styles.annotation} aria-hidden="true">Real people.<br />Real progress.<br />Join a community<br />that’s learning.</span>
     </header>

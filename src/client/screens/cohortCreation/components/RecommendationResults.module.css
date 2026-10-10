@@ -2,7 +2,7 @@
 .heading { padding: 0 20px 12px; position: relative; padding-right: 165px; }
 .eyebrow { text-transform: uppercase; color: #8a8074; font-size: 13px; font-weight: 750; letter-spacing: .24em; margin: 0 0 2px; }
 .heading h1 { display: inline-block; position: relative; font-family: var(--font-playfair-display), Georgia, serif; font-size: clamp(42px, 4.2vw, 70px); line-height: 1.1; letter-spacing: -.045em; font-weight: 650; margin: 0 0 7px; overflow-wrap: anywhere; }
-.heading h1::after { content: ''; position: absolute; height: 7px; width: 45%; right: 0; bottom: -4px; background: url('/images/hero-collage/underline-flourish.svg') center / 100% 100% no-repeat; }
+.underline { position: absolute; height: 10px; width: 50%; right: -2px; bottom: -4px; color: #343eff; pointer-events: none; }
 .subtitle { font-family: var(--font-playfair-display), Georgia, serif; font-size: 22px; color: var(--creation-muted); margin: 1px 0 0; }
 .annotation { position: absolute; right: 10px; top: 40px; font-family: var(--font-caveat-next), cursive; font-size: 20px; line-height: 1.05; transform: rotate(3deg); color: #444852; }
 .annotation::after { content: '↘'; display: block; text-align: right; font-size: 36px; line-height: .75; }
