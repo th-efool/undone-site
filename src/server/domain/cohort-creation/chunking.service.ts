@@ -8,6 +8,7 @@ import type { CreationArtifactRepository } from '@/src/server/infrastructure/sto
 import { CreationStorageError, type StorageScope } from '@/src/server/infrastructure/storage/creation.contracts';
 import { acceptedUnderstanding, type UnderstandingContentService } from './understanding-content.service';
 import { understandingSourceIdentity } from './understanding.service';
+import type { ProcessingPartition } from './processing-input';
 import { assembleGroundedChunks, groundChunkBoundaries, type CreationChunking } from './chunking';
 import { creationFailure } from './errors';
 
@@ -26,6 +27,27 @@ export function validateChunkingCheckpoint(snapshot: CreationSnapshot, requestId
   return checkpoint;
 }
 function invalid(): never { throw new CreationStorageError('INTEGRITY', 'Retained chunking does not match the accepted understanding, source revision or partition ledger.'); }
+
+/** Shared owned receipt read for restart and downstream processing. */
+export async function readChunkingReceipt(artifacts: Pick<CreationArtifactRepository, 'getJSON' | 'ref'>, scope: StorageScope,
+  checkpoint: ChunkingCheckpoint, partition: ProcessingPartition,
+  evidence: Awaited<ReturnType<UnderstandingContentService['load']>>['understanding'][number],
+  existing: ChunkingCheckpoint['completed'][number], signal: AbortSignal) {
+  signal.throwIfAborted();
+  if (existing.partitionId !== partition.id || evidence.partitionId !== partition.id) invalid();
+  const actual = await artifacts.ref(scope, existing.artifact.id);
+  if (actual.kind !== 'artifact' || actual.id !== existing.artifact.id || actual.checksum !== existing.artifact.checksum || actual.byteLength !== existing.artifact.byteLength) invalid();
+  const receipt = chunkingReceiptSchema.parse(await artifacts.getJSON(scope, existing.artifact.id, {
+    artifactType: 'creation-chunking', schemaVersion: 1,
+    inputFingerprint: chunkingArtifactFingerprint(checkpoint.inputFingerprint, partition.id), schema: chunkingReceiptSchema, signal }));
+  signal.throwIfAborted();
+  if (receipt.requestId !== checkpoint.requestId || receipt.inputFingerprint !== checkpoint.inputFingerprint || receipt.partitionId !== partition.id ||
+    JSON.stringify(receipt.source) !== JSON.stringify(understandingSourceIdentity(partition)) ||
+    JSON.stringify(receipt.understanding) !== JSON.stringify({ inputFingerprint: checkpoint.understandingFingerprint, artifact: evidence.artifact })) invalid();
+  const chunks = groundChunkBoundaries(receipt.proposal, partition, evidence.receipt.proposal, checkpoint.inputRevision, signal);
+  if (existing.chunkCount !== chunks.length) invalid();
+  return { receipt, chunks };
+}
 
 /** Proposes immutable receipts. Only the fenced job repository may accept/pin them. */
 export class ChunkingService {
@@ -61,12 +83,7 @@ export class ChunkingService {
         inputFingerprint: chunkingArtifactFingerprint(inputFingerprint, partition.id), schema: chunkingReceiptSchema, signal };
       const existing = checkpoint.completed[index]; let proposal;
       if (existing) {
-        const actual = await this.artifacts.ref(scope, existing.artifact.id);
-        if (actual.kind !== 'artifact' || actual.id !== existing.artifact.id || actual.checksum !== existing.artifact.checksum || actual.byteLength !== existing.artifact.byteLength) invalid();
-        const receipt = chunkingReceiptSchema.parse(await this.artifacts.getJSON(scope, existing.artifact.id, options));
-        if (receipt.requestId !== requestId || receipt.inputFingerprint !== inputFingerprint || receipt.partitionId !== partition.id ||
-          JSON.stringify(receipt.source) !== JSON.stringify(source) || JSON.stringify(receipt.understanding) !== JSON.stringify(dependency)) invalid();
-        proposal = receipt.proposal;
+        proposal = (await readChunkingReceipt(this.artifacts, scope, checkpoint, partition, evidence, existing, signal)).receipt.proposal;
       } else proposal = await this.ai.chunk(snapshot.result.intent, partition, evidence.receipt.proposal, signal);
       signal.throwIfAborted(); const chunks = groundChunkBoundaries(proposal, partition, evidence.receipt.proposal, snapshot.inputRevision, signal);
       if (existing && existing.chunkCount !== chunks.length) invalid();
