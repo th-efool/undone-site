@@ -12,19 +12,13 @@ import type { DiscoverySourceObserver } from './discovery-observer';
 export const discoveryRequestSchema = z.strictObject({ requestId: z.uuid(), inputRevision: z.number().int().nonnegative(), intent: learningIntentSchema });
 export type DiscoveryRequest = z.infer<typeof discoveryRequestSchema>;
 const artifactRef = retainedObjectRefSchema.extend({ kind: z.literal('artifact') });
-export const discoveryCheckpointSchema = z.strictObject({ phase: z.literal('discovery_sources'), requestId: z.uuid(),
-  inputRevision: z.number().int().nonnegative(), inputFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
-  searchArtifact: artifactRef, observationArtifact: artifactRef.nullable(), selectionArtifact: artifactRef.nullable(),
-  processed: z.number().int().nonnegative().max(DISCOVERY_LIMITS.citations), total: z.number().int().nonnegative().max(DISCOVERY_LIMITS.citations),
-}).refine(value => value.processed <= value.total && (!value.processed || !!value.observationArtifact) &&
-  (!value.selectionArtifact || !!value.observationArtifact && value.processed === value.total), 'Invalid discovery progress');
-export type DiscoveryCheckpoint = z.infer<typeof discoveryCheckpointSchema>;
+import { discoveryCheckpointSchema, discoveryFailureSchema, discoveryResultSchema, type DiscoveryCheckpoint } from '@/src/shared/cohort-creation/discovery';
+export { discoveryCheckpointSchema } from '@/src/shared/cohort-creation/discovery';
+export type { DiscoveryCheckpoint } from '@/src/shared/cohort-creation/discovery';
 const searchReceiptSchema = z.strictObject({ schemaVersion: z.literal(1), request: discoveryRequestSchema, search: groundedSearchSchema });
-const failureSchema = z.strictObject({ citationId: z.string().min(1).max(256), code: z.enum(['INVALID_INPUT', 'LIMIT_EXCEEDED', 'UNAVAILABLE']),
-  message: z.string().min(1).max(300) });
 const observationsSchema = z.strictObject({ schemaVersion: z.literal(1), searchArtifact: artifactRef,
   processedIds: z.array(z.string().min(1).max(256)).max(DISCOVERY_LIMITS.citations),
-  candidates: z.array(discoveryCandidateSchema).max(DISCOVERY_LIMITS.candidates), failures: z.array(failureSchema).max(DISCOVERY_LIMITS.citations) });
+  candidates: z.array(discoveryCandidateSchema).max(DISCOVERY_LIMITS.candidates), failures: z.array(discoveryFailureSchema).max(DISCOVERY_LIMITS.citations) });
 const selectionReceiptSchema = z.strictObject({ schemaVersion: z.literal(1), observationArtifact: artifactRef, selection: discoverySelectionSchema });
 export const discoveryFingerprint = (request: DiscoveryRequest) => createHash('sha256').update(JSON.stringify(discoveryRequestSchema.parse(request))).digest('hex');
 const sameRef = (first: z.infer<typeof artifactRef>, second: z.infer<typeof artifactRef>) => first.id === second.id && first.checksum === second.checksum && first.byteLength === second.byteLength;
@@ -113,6 +107,6 @@ export class DiscoveryService {
       checkpoint = { ...checkpoint, selectionArtifact: artifactRef.parse(await this.artifacts.putJSON(scope, { schemaVersion: 1, observationArtifact, selection },
         { artifactType: 'discovery-selection', schemaVersion: 1, inputFingerprint, schema: selectionReceiptSchema, signal })) }; await save(checkpoint);
     }
-    signal.throwIfAborted(); return { checkpoint, candidates: observations.candidates, failures: observations.failures, selection };
+    signal.throwIfAborted(); return discoveryResultSchema.parse({ checkpoint, candidates: observations.candidates, failures: observations.failures, selection });
   }
 }

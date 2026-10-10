@@ -1,11 +1,10 @@
 import { z } from 'zod';
 import { extractedContentSchema, materialSourceSchema, sourceLocationSchema } from './contracts';
+import { retainedObjectRefSchema } from './storage';
+export { retainedObjectRefSchema } from './storage';
 
 export const MATERIAL_LIMITS = { sources: 20, selectedUnits: 100, extractedTextBytes: 1024 * 1024 } as const;
 const checksum = z.string().regex(/^[a-f0-9]{64}$/);
-export const retainedObjectRefSchema = z.strictObject({
-  id: z.uuid(), kind: z.enum(['upload', 'artifact']), byteLength: z.number().int().positive().max(25 * 1024 * 1024), checksum,
-});
 export const materialSelectionSchema = z.array(materialSourceSchema).max(MATERIAL_LIMITS.sources)
   .superRefine((sources, ctx) => {
     if (new Set(sources.map(source => source.id)).size !== sources.length) ctx.addIssue({ code: 'custom', message: 'Duplicate material IDs' });
