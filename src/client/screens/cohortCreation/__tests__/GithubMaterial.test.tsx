@@ -8,6 +8,20 @@ import { draftId } from '@/src/shared/cohort-creation/__tests__/fixtures';
 
 afterEach(cleanup);
 describe('explicit GitHub path scope', () => {
+  it('restores explicit connected scope and keeps public reads opt-in to credentials', async () => {
+    const onAcquire = vi.fn().mockResolvedValue(false);
+    render(<GithubMaterial disabled={false} initialUrl="https://github.com/Example/Lessons"
+      initialScope={{ ref: null, paths: ['README.md'], connection: 'github' }} onAcquire={onAcquire} />);
+    const checkbox = screen.getByLabelText('Use my connected GitHub account') as HTMLInputElement;
+    expect(checkbox.checked).toBe(true);
+    fireEvent.click(screen.getByRole('button', { name: 'Acquire selected GitHub files' }));
+    await waitFor(() => expect(onAcquire).toHaveBeenCalledWith(expect.objectContaining({ connection: 'github' })));
+    await waitFor(() => expect((screen.getByRole('button') as HTMLButtonElement).disabled).toBe(false));
+    fireEvent.click(checkbox);
+    fireEvent.click(screen.getByRole('button', { name: 'Acquire selected GitHub files' }));
+    await waitFor(() => expect(onAcquire).toHaveBeenCalledTimes(2));
+    expect(onAcquire.mock.calls[1][0]).not.toHaveProperty('connection');
+  });
   it('restores saved paths/ref and sends only bounded user choices', async () => {
     const onAcquire = vi.fn().mockResolvedValue(true);
     render(<GithubMaterial disabled={false} initialUrl="https://github.com/Example/Lessons" initialScope={{ ref: 'lesson-branch', paths: ['README.md', 'docs'] }} onAcquire={onAcquire} />);
