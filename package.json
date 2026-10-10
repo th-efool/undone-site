@@ -71,6 +71,7 @@
     "next": "16.2.11",
     "next-auth": "^5.0.0-beta.32",
     "p-limit": "^7.3.1",
+    "pdfjs-dist": "6.4.299",
     "pg": "^8.23.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -82,6 +83,7 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@agrimsinghx/domshift": "file:../domshift/packages/cli",
     "@capacitor/android": "^8.5.0",
     "@capacitor/cli": "^8.5.0",
     "@tailwindcss/postcss": "^4",
@@ -99,8 +101,7 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "vercel": "^59.11.7",
-    "vitest": "^4.1.11",
-    "@agrimsinghx/domshift": "file:../domshift/packages/cli"
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "es-toolkit": "1.49.0"
