@@ -58,17 +58,21 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
       <StartingWorkspace creation={creation} draftId={draftId} />
     </CreationShell>;
   }
-  if (creation.hydrated && snapshot.stage === 'processing' && snapshot.processing?.phase === 'understanding') {
+  if (creation.hydrated && snapshot.stage === 'processing' && (snapshot.processing?.phase === 'understanding' || snapshot.processing?.phase === 'chunking')) {
+    const chunking = snapshot.processing.phase === 'chunking';
+    const target = chunking ? 'creation-accepted-chunks' : 'creation-accepted-concepts';
     return <CreationShell query={snapshot.result?.intent.rawQuery ?? snapshot.query} saved={creation.saved}
-      disabled={creation.materialPending} reply={<><p>I’ve got it.</p><p>{snapshot.processing.complete ? 'Your material is understood. Review the saved concepts, then continue to chunking.' : 'I’m going through your retained material and understanding what it’s about.'}</p></>}
-      hintTitle="Grounded in your material" hint="Concepts appear only after source evidence is saved. Your work keeps running if you close this page."
+      disabled={creation.materialPending} reply={<><p>I’ve got it.</p><p>{chunking ? 'I’m turning your retained content into meaningful learning pieces. Each chunk keeps its source evidence.' : snapshot.processing.complete ? 'Your material is understood. Review the saved concepts, then continue to chunking.' : 'I’m going through your retained material and understanding what it’s about.'}</p></>}
+      hintTitle="Grounded in your material" hint={chunking ? 'Chunks appear only after their boundaries are saved. Duration estimates are labelled, and analysis comes next.' : 'Concepts appear only after source evidence is saved. Your work keeps running if you close this page.'}
       onMessage={message => {
-        if (/concept|idea|summary|summaries/i.test(message)) document.getElementById('creation-accepted-concepts')?.scrollIntoView({ behavior: 'auto', block: 'start' });
-        else throw new Error('You can view the accepted concepts here. Use the processing controls to cancel, restart or continue.');
-      }} suggestions={[{ label: 'Show the extracted concepts', action: () => document.getElementById('creation-accepted-concepts')?.scrollIntoView({ behavior: 'auto', block: 'start' }) }]}>
+        if ((chunking ? /chunk|piece|boundar/i : /concept|idea|summary|summaries/i).test(message)) document.getElementById(target)?.scrollIntoView({ behavior: 'auto', block: 'start' });
+        else throw new Error('Use the saved evidence panel to inspect this stage, or the processing controls to cancel, restart or continue.');
+      }} suggestions={[{ label: chunking ? 'Show the accepted chunks' : 'Show the extracted concepts', action: () => document.getElementById(target)?.scrollIntoView({ behavior: 'auto', block: 'start' }) }]}>
       {creation.message && <p role="alert">{creation.message}</p>}
-      <UnderstandingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
-        onChunk={creation.chunkMaterial} onStart={creation.understandMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} />
+      {chunking ? <ChunkingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
+        onAnalyze={creation.analyzeMaterial} onStart={creation.chunkMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> :
+        <UnderstandingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
+        onChunk={creation.chunkMaterial} onStart={creation.understandMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} />}
     </CreationShell>;
   }
   return <main id="main-content" className={styles.page}>

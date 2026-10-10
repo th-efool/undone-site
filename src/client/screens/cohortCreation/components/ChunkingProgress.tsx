@@ -1,6 +1,7 @@
 'use client';
 import { useRef, useState } from 'react';
 import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
+import { ChunkingWorkspace } from './ChunkingWorkspace';
 
 export function ChunkingProgress({ snapshot, disabled, onStart, onCancel, onBack, onAnalyze }: {
   onAnalyze?: () => Promise<boolean>; snapshot: CreationSnapshot; disabled: boolean; onStart: () => Promise<boolean>; onCancel: () => void; onBack: () => Promise<boolean>;
@@ -12,8 +13,7 @@ export function ChunkingProgress({ snapshot, disabled, onStart, onCancel, onBack
     saving.current = true; setPending(true);
     try { await action(); } finally { saving.current = false; setPending(false); }
   };
-  return <section aria-label="Chunking material">
-    <h2>Chunking</h2>
+  return <ChunkingWorkspace snapshot={snapshot}>
     <p>Accepted understanding and source material remain saved.</p>
     {running ? <div role="status">
       <p>{checkpoint ? `${checkpoint.completed.length} of ${checkpoint.total} retained content partitions chunked; ${checkpoint.completed.reduce((sum, item) => sum + item.chunkCount, 0)} chunks saved.`
@@ -29,5 +29,5 @@ export function ChunkingProgress({ snapshot, disabled, onStart, onCancel, onBack
       <button disabled={disabled || pending} onClick={() => void start()}>Start fresh chunking</button>
       <button disabled={disabled || pending} onClick={() => void onBack()}>Back to material</button>
     </>}
-  </section>;
+  </ChunkingWorkspace>;
 }

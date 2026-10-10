@@ -5,7 +5,7 @@ import path from 'node:path';
 const workspace = process.cwd();
 const root = path.join(workspace, '.tmp/phase4-comparison');
 const baseline = '33660b2';
-const files = execFileSync('git', ['ls-tree', '-r', '--name-only', baseline, 'src/client/screens/cohortCreation'], { encoding: 'utf8' }).trim().split('\n');
+const files = execFileSync('git', ['ls-tree', '-r', '--name-only', baseline, 'src/client/screens/cohortCreation'], { encoding: 'utf8' }).trim().split('\n').filter(file => !file.includes('/__tests__/'));
 for (const file of files) {
   const output = path.join(root, 'baseline', file); mkdirSync(path.dirname(output), { recursive: true });
   writeFileSync(output, execFileSync('git', ['show', `${baseline}:${file}`]));
@@ -16,9 +16,9 @@ writeFileSync(path.join(root, 'main.tsx'), `import {createRoot} from 'react-dom/
 import {CreationExperience as Before} from './baseline/src/client/screens/cohortCreation/CreationExperience';
 import {CreationExperience as Current} from '/@fs/${workspace.replaceAll('\\', '/')}/src/client/screens/cohortCreation/CreationExperience.tsx';
 import {draftId} from '@/src/shared/cohort-creation/__tests__/fixtures';
-import {conceptPreview,reviewResponse} from '/@fs/${workspace.replaceAll('\\', '/')}/scripts/creation-visual/fixtures.ts';
+import {conceptPreview,chunkPreview,reviewResponse} from '/@fs/${workspace.replaceAll('\\', '/')}/scripts/creation-visual/fixtures.ts';
 import '@/src/app/styles/reset.css'; import './fonts.css';
-window.__creationVisualFixtures={conceptPreview,reviewResponse};
+window.__creationVisualFixtures={conceptPreview,chunkPreview,reviewResponse};
 const Component=new URLSearchParams(location.search).get('version')==='before'?Before:Current;
 createRoot(document.getElementById('root')!).render(<Component draftId={draftId} resume />);`);
 writeFileSync(path.join(root, 'fonts.css'), `@font-face{font-family:Manrope;src:url('/fonts/Manrope-Medium.ttf');font-weight:400 600} @font-face{font-family:Manrope;src:url('/fonts/Manrope-Bold.ttf');font-weight:700 900} @font-face{font-family:Caveat;src:url('/fonts/Caveat-Bold.ttf')} @font-face{font-family:Playfair;src:url('/preview-playfair.woff2');font-weight:400 900} :root{--font-manrope-next:Manrope;--font-geist-sans:Manrope;--font-caveat-next:Caveat;--font-playfair-display:Playfair} body{margin:0}`);

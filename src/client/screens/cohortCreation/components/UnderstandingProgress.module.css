@@ -4,6 +4,7 @@
 .steps li span { display: grid; place-items: center; background: #e4e3e0; color: #17234b; width: 31px; height: 31px; border-radius: 50%; }
 .steps li[aria-current] { color: var(--creation-blue, #3037ff); border-color: var(--creation-blue, #3037ff); }
 .steps li[aria-current] span { background: var(--creation-blue, #3037ff); color: white; }
+.steps li[data-complete='true'] span { color: var(--creation-blue, #3037ff); background: #e3e4ff; }
 .columns { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.05fr); gap: 18px; }
 .heading { padding: 0 12px 22px; }
 .eyebrow { text-transform: uppercase; letter-spacing: .22em; font-size: 12px; font-weight: 700; color: var(--creation-muted, #766e64); margin-bottom: 14px; }

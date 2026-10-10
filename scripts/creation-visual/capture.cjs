@@ -13,11 +13,12 @@ const screens = [
  const manifestPath=path.join(directory,'manifest.json');
  const manifest=fs.existsSync(manifestPath)?JSON.parse(fs.readFileSync(manifestPath,'utf8')):{baseline:'33660b2',screens:[]};
  const selected=process.env.SCREENS?.split(',').map(Number);
- const completed=Number(process.env.COMPLETED_CHECKPOINT??4.4);
+ const completed=Number(process.env.COMPLETED_CHECKPOINT??Math.max(4.4,...manifest.screens.filter(screen=>screen.status.startsWith('Implemented')).map(screen=>screen.checkpoint)));
  try {
   const page=await browser.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
   await page.addInitScript(()=>localStorage.setItem('undone_theme','light'));
   await page.route('**/api/cohort-creation/drafts/*/understanding',async route=>route.fulfill({json:await page.evaluate(()=>window.__creationVisualFixtures.conceptPreview)}));
+  await page.route('**/api/cohort-creation/drafts/*/chunks',async route=>route.fulfill({json:await page.evaluate(()=>window.__creationVisualFixtures.chunkPreview)}));
   await page.route('**/api/cohort-creation/drafts/*/review',async route=>route.fulfill({json:await page.evaluate(()=>window.__creationVisualFixtures.reviewResponse)}));
   for (const [number,name,width,height,checkpoint] of screens) {
    if(selected&&!selected.includes(number))continue;
@@ -28,6 +29,7 @@ const screens = [
     await page.locator('main').waitFor();await page.evaluate(()=>document.fonts.ready);
     if(number===9)await page.getByRole('heading',{name:'Foundations',exact:true}).waitFor();
     if(number===5&&version==='after')await page.getByText('Distributed systems',{exact:true}).waitFor();
+    if(number===6&&version==='after'&&completed>=4.5)await page.getByText('What makes a distributed system?',{exact:true}).waitFor();
     // Wait for every rendered image, including Next image wrapper substitutes.
     await page.evaluate(()=>Promise.all([...document.images].map(image=>image.decode().catch(()=>{}))));
     await page.screenshot({path:path.join(directory,filename)});
@@ -41,6 +43,7 @@ const screens = [
    const previous=manifest.screens.find(screen=>screen.number===number);
    const entry={number,name,width,height,checkpoint,status:checkpoint<=completed?'Implemented; final fidelity review pending':'Pending visual checkpoint',
     currentCommit:execFileSync('git',['rev-parse','--short','HEAD'],{encoding:'utf8'}).trim(),capturedAt:new Date().toISOString()};
+   entry.uncommittedCode=Boolean(execFileSync('git',['status','--porcelain','--','src','scripts/creation-visual'],{encoding:'utf8'}).trim());
    if(previous)Object.assign(previous,entry);else manifest.screens.push(entry);
    console.log(`Captured screen ${number}: ${name}`);
   }

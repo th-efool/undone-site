@@ -4,6 +4,7 @@ import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 import { FileText, Check, LoaderCircle } from 'lucide-react';
 import { InkUnderline } from './InkUnderline';
 import { UnderstandingConcepts } from './UnderstandingConcepts';
+import { ProcessingSteps } from './ProcessingSteps';
 import styles from './UnderstandingProgress.module.css';
 
 export function UnderstandingProgress({ snapshot, disabled, onStart, onCancel, onBack, onChunk }: {
@@ -34,8 +35,7 @@ export function UnderstandingProgress({ snapshot, disabled, onStart, onCancel, o
     </>}</div>;
   if (snapshot.stage !== 'processing') return <section className={styles.embedded} aria-label="Understanding material"><h2>Understanding</h2>{controls}</section>;
   return <section aria-label="Understanding material" className={styles.workspace}>
-    <ol className={styles.steps} aria-label="Creation progress">{['Understanding', 'Chunking', 'Analyzing', 'Building'].map((label, index) =>
-      <li key={label} aria-current={index === 0 ? 'step' : undefined}><span>{index + 1}</span>{label}</li>)}</ol>
+    <ProcessingSteps current={0} />
     <div className={styles.columns}><div><header className={styles.heading}>
       <p className={styles.eyebrow}>Understanding your material</p><h1>{snapshot.processing?.complete ? <>Your content,<br /><span>understood.<InkUnderline className={styles.underline} /></span></> : <>Reading through<br /><span>your content…<InkUnderline className={styles.underline} /></span></>}</h1>
       <p>I’m working with your retained sources and the evidence in them.</p>
