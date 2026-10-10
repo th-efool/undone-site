@@ -14,6 +14,10 @@ export class VercelMaterialObservation implements MaterialObservation {
   constructor(private readonly model: LanguageModel, private readonly execution: {
     beforeCall: () => Promise<void | (() => Promise<void>)>;
   }) {}
+  get identity() {
+    if (typeof this.model === 'string') throw creationFailure('AI_UNAVAILABLE', 'Video observation requires an explicit provider model.', false);
+    return { provider: this.model.provider, modelId: this.model.modelId, adapterVersion: 'vercel-video-observation-v1' };
+  }
   async observeVideo(input: YoutubeVideoMetadata, callerSignal: AbortSignal) {
     const video = youtubeVideoMetadataSchema.parse(input);
     const signal = AbortSignal.any([callerSignal, AbortSignal.timeout(90_000)]);

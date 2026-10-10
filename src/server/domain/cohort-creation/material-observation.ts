@@ -10,7 +10,9 @@ export const videoObservationProposalSchema = z.strictObject({
   limitations: z.array(z.string().trim().min(1).max(1000)).max(20),
 });
 export type VideoObservationProposal = z.infer<typeof videoObservationProposalSchema>;
+export const observationModelIdentitySchema = z.strictObject({ provider: z.string().min(1).max(256), modelId: z.string().min(1).max(256), adapterVersion: z.string().min(1).max(128) });
 export interface MaterialObservation {
+  readonly identity: z.infer<typeof observationModelIdentitySchema>;
   observeVideo(video: YoutubeVideoMetadata, signal: AbortSignal): Promise<VideoObservationProposal>;
 }
 
