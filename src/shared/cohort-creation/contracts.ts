@@ -122,7 +122,7 @@ export const extractedContentSchema = z.strictObject({
   extractionKind: z.enum(['text', 'authorized_caption', 'user_transcript', 'video_observation', 'generated_guide']),
   segmentCount: z.number().int().nonnegative(),
   complete: z.boolean(),
-  selectionScope: z.enum(['main_article', 'full_text_response', 'video_observation']).optional(),
+  selectionScope: z.enum(['main_article', 'full_text_response', 'video_observation', 'selected_paths']).optional(),
 });
 export const conceptSchema = z.strictObject({
   id: key, label: fieldValueSchema(text(200)), summary: fieldValueSchema(text(2000)),
