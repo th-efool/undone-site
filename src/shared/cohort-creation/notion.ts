@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { MATERIAL_LIMITS } from './materials';
+import { MATERIAL_LIMITS, retainedObjectRefSchema, materialManifestSchema } from './materials';
+import { sourceLocationSchema } from './contracts';
 
 export const NOTION_API_VERSION = '2022-06-28';
 export const NOTION_LIMITS = { depth: 8, blocks: 2000, snapshotBytes: 8 * 1024 * 1024, requests: 250 } as const;
@@ -56,3 +57,56 @@ export const notionSnapshotSchema = z.strictObject({ schemaVersion: z.literal(1)
   } catch { ctx.addIssue({ code: 'custom', message: 'Invalid Notion block provenance, content or scope' }); }
 });
 export type NotionSnapshot = z.infer<typeof notionSnapshotSchema>;
+
+export const NOTION_PARSER_VERSION = 'notion-page-block-text-v1';
+const checksum = z.string().regex(/^[a-f0-9]{64}$/);
+const artifactRef = retainedObjectRefSchema.extend({ kind: z.literal('artifact') });
+export const notionReceiptSchema = z.strictObject({ schemaVersion: z.literal(1), materialId: z.uuid(),
+  inputRevision: z.number().int().nonnegative(), parserVersion: z.literal(NOTION_PARSER_VERSION), snapshot: notionSnapshotSchema });
+export const retainedNotionCheckpointSchema = z.strictObject({ phase: z.literal('retained_notion'), materialId: z.uuid(),
+  inputRevision: z.number().int().nonnegative(), pageId: notionIdSchema, pageEditedAt: z.iso.datetime(), unitId: checksum,
+  blockCount: z.number().int().min(1).max(NOTION_LIMITS.blocks), textBytes: z.number().int().positive().max(MATERIAL_LIMITS.extractedTextBytes),
+  artifact: artifactRef, inputFingerprint: checksum });
+export type RetainedNotionCheckpoint = z.infer<typeof retainedNotionCheckpointSchema>;
+export const notionExtractionArtifactSchema = z.strictObject({ schemaVersion: z.literal(1), materialId: z.uuid(), sourceArtifact: artifactRef,
+  version: checksum, unitId: checksum, pageId: notionIdSchema, pageEditedAt: z.iso.datetime(), contentOrigin: z.literal('external'),
+  coverage: z.strictObject({ scope: z.literal('supported_page_text'), completeSupportedText: z.literal(true) }),
+  blocks: z.array(z.strictObject({ id: notionIdSchema, parentId: notionIdSchema, depth: z.number().int().min(1).max(8),
+    editedAt: z.iso.datetime(), type: z.string().min(1).max(100), text: z.string().max(MATERIAL_LIMITS.extractedTextBytes),
+    omission: z.enum(['linked_page_or_database', 'unsupported_or_media']).nullable(),
+    segments: z.array(z.strictObject({ id: checksum, start: z.number().int().nonnegative(), end: z.number().int().positive(),
+      text: z.string().min(1).max(4096), location: sourceLocationSchema })).max(20_000),
+  })).min(1).max(NOTION_LIMITS.blocks),
+}).superRefine((artifact, ctx) => {
+  const blocks = new Map<string, number>([[artifact.pageId, 0]]); const segments = new Set<string>(); let bytes = 0;
+  for (const block of artifact.blocks) {
+    if (blocks.has(block.id) || blocks.get(block.parentId) !== block.depth - 1 || block.omission && (block.text || block.segments.length)) {
+      ctx.addIssue({ code: 'custom', message: 'Invalid Notion extraction hierarchy or omission' }); return;
+    }
+    blocks.set(block.id, block.depth); bytes += new TextEncoder().encode(block.text).byteLength; let cursor = 0;
+    for (const segment of block.segments) {
+      if (segments.has(segment.id) || segment.start !== cursor || segment.end <= cursor || segment.end > block.text.length ||
+        segment.text !== block.text.slice(cursor, segment.end) || segment.location.materialId !== artifact.materialId ||
+        segment.location.unitId !== artifact.unitId || segment.location.segmentId !== segment.id ||
+        segment.location.anchor.kind !== 'block' || segment.location.anchor.blockId !== block.id) {
+        ctx.addIssue({ code: 'custom', message: 'Invalid Notion block segment provenance' }); return;
+      }
+      cursor = segment.end; segments.add(segment.id);
+    }
+    if (cursor !== block.text.length) { ctx.addIssue({ code: 'custom', message: 'Incomplete Notion block text' }); return; }
+  }
+  if (!segments.size || segments.size > 20_000 || bytes > MATERIAL_LIMITS.extractedTextBytes) ctx.addIssue({ code: 'custom', message: 'Invalid Notion text scope' });
+});
+export type NotionExtractionArtifact = z.infer<typeof notionExtractionArtifactSchema>;
+export const notionMaterialManifestSchema = materialManifestSchema.safeExtend({ notion: retainedNotionCheckpointSchema })
+  .superRefine((manifest, ctx) => {
+    const retained = manifest.notion;
+    if (manifest.source.kind !== 'notion' || manifest.source.input.kind !== 'url' ||
+      manifest.source.input.url !== `https://www.notion.so/${retained.pageId.replaceAll('-', '')}` ||
+      manifest.source.id !== retained.materialId || manifest.inputRevision !== retained.inputRevision ||
+      JSON.stringify(manifest.retainedSource) !== JSON.stringify(retained.artifact) || manifest.source.selectedUnitIds.length !== 1 ||
+      manifest.source.selectedUnitIds[0] !== retained.unitId || manifest.parserVersion !== NOTION_PARSER_VERSION ||
+      manifest.extraction.extractionKind !== 'text' || !manifest.extraction.complete || manifest.extraction.selectionScope !== 'supported_page_text') {
+      ctx.addIssue({ code: 'custom', message: 'Invalid Notion material manifest' });
+    }
+  });
