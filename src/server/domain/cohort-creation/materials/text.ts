@@ -25,6 +25,13 @@ export function extractRetainedText(bytes: Uint8Array, sourceRef: CreationObject
     throw new CreationStorageError('INVALID_INPUT', 'The source is empty or contains binary control characters.');
   }
   const version = textExtractionVersion(sourceRef.checksum);
+  return textExtractionArtifactSchema.parse({ schemaVersion: 1, materialId, unitId, version,
+    sourceChecksum: sourceRef.checksum, sourceRef, extractionKind: 'text', contentOrigin: 'user', offsetUnit: 'utf16',
+    text, utf8ByteLength: bytes.byteLength, segments: segmentRetainedText(text, materialId, unitId, version, signal), coverage: { complete: true, omittedRanges: [] } });
+}
+
+/** Shared deterministic anchors into an artifact's own text, never invented raw-source offsets. */
+export function segmentRetainedText(text: string, materialId: string, unitId: string, version: string, signal?: AbortSignal) {
   const segments: TextExtractionArtifact['segments'] = [];
   function emit(start: number, end: number, kind: 'text' | 'heading' | 'code') {
     while (start < end) {
@@ -57,7 +64,5 @@ export function extractRetainedText(bytes: Uint8Array, sourceRef: CreationObject
     } else { cursor += line.length; }
   }
   emit(blockStart, text.length, fence ? 'code' : 'text');
-  return textExtractionArtifactSchema.parse({ schemaVersion: 1, materialId, unitId, version,
-    sourceChecksum: sourceRef.checksum, sourceRef, extractionKind: 'text', contentOrigin: 'user', offsetUnit: 'utf16',
-    text, utf8ByteLength: bytes.byteLength, segments, coverage: { complete: true, omittedRanges: [] } });
+  return segments;
 }

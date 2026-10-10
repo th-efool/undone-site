@@ -20,7 +20,7 @@ export const materialSelectionSchema = z.array(materialSourceSchema).max(MATERIA
 export const textExtractionArtifactSchema = z.strictObject({
   schemaVersion: z.literal(1), materialId: z.string().min(1).max(128), unitId: z.string().min(1).max(128),
   version: checksum, sourceChecksum: checksum, sourceRef: retainedObjectRefSchema,
-  extractionKind: z.literal('text'), contentOrigin: z.literal('user'), offsetUnit: z.literal('utf16'),
+  extractionKind: z.literal('text'), contentOrigin: z.enum(['user', 'external']), offsetUnit: z.literal('utf16'),
   text: z.string().min(1).max(MATERIAL_LIMITS.extractedTextBytes),
   utf8ByteLength: z.number().int().positive().max(MATERIAL_LIMITS.extractedTextBytes),
   segments: z.array(z.strictObject({ id: z.string().min(1).max(128),
