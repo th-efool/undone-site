@@ -38,6 +38,7 @@ async function main() {
   process.once('SIGTERM', stop);
   process.once('SIGINT', stop);
   let maintenance: Promise<void> | null = null;
+  let closeConnectors: (() => Promise<void>) | undefined;
   const sweep = () => {
     if (maintenance || shutdown.signal.aborted) return;
     maintenance = import('./infrastructure/storage/creation.runtime')
@@ -83,7 +84,12 @@ async function main() {
       } }),
       () => ({ acquire: async (...args) => {
         const storage = await import('./infrastructure/storage/creation.runtime');
-        return new GithubAcquisitionService(new GithubMaterialReader(new GithubPublicApi()), storage.creationArtifactRepository).acquire(...args);
+        let reader = new GithubMaterialReader(new GithubPublicApi());
+        if (args[3].connection) {
+          closeConnectors = (await import('./infrastructure/connectors/creation-corsair')).closeCreationCorsairRuntime;
+          reader = await (await import('./infrastructure/connectors/creation-source-access')).createOwnedGithubReader(args[0], args[4]);
+        }
+        return new GithubAcquisitionService(reader, storage.creationArtifactRepository).acquire(...args);
       }, extract: async (...args) => {
         const storage = await import('./infrastructure/storage/creation.runtime');
         return new GithubAcquisitionService(new GithubMaterialReader(new GithubPublicApi()), storage.creationArtifactRepository).extract(...args);
@@ -92,7 +98,7 @@ async function main() {
     clearInterval(retentionTimer);
     await maintenance;
     process.removeListener('SIGTERM', stop); process.removeListener('SIGINT', stop);
-    await Promise.all([prisma.$disconnect(), (await import('mongoose')).default.disconnect()]);
+    await Promise.all([prisma.$disconnect(), (await import('mongoose')).default.disconnect(), closeConnectors?.()]);
   }
 }
 void main().catch(error => { console.error('[creation-worker]', error instanceof Error ? error.message : 'Startup failed'); process.exitCode = 1; });

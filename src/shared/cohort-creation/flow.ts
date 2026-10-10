@@ -7,7 +7,7 @@ import {
 import { materialManifestSchema } from './materials';
 import { webMaterialManifestSchema } from './web';
 import { retainedYoutubeMetadataSchema, youtubeMaterialManifestSchema } from './youtube';
-import { githubSelectionSchema, githubMaterialManifestSchema } from './github';
+import { githubSelectionSchema, githubMaterialManifestSchema, githubRepositoryScope } from './github';
 
 export const creationCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('request_recommendations'), query: querySchema, requestId: z.uuid() }),
@@ -84,7 +84,7 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
       if (state.stage !== 'starting_point' || state.startingPoint !== 'have_material' || state.status === 'running' || !state.result) throw new Error('Starting point is not available');
       if (command.type === 'acquire_github' && state.materials.filter(source => source.id !== command.materialId).reduce((sum, source) => sum + source.selectedUnitIds.length, 0) >= 100) throw new Error('The draft already has 100 selected units. Remove a source before adding GitHub files.');
       const material = { id: command.materialId, ...(command.type === 'acquire_github'
-        ? { kind: 'github' as const, input: { kind: 'url' as const, url: command.selection.url, repositoryScope: { ref: command.selection.ref, paths: command.selection.paths } } }
+        ? { kind: 'github' as const, input: { kind: 'url' as const, url: command.selection.url, repositoryScope: githubRepositoryScope(command.selection) } }
         : command.type === 'inspect_youtube'
         ? { kind: new URL(command.url).pathname === '/playlist' ? 'youtube_playlist' as const : 'youtube_video' as const, input: { kind: 'url' as const, url: command.url } }
         : command.type !== 'acquire_web'

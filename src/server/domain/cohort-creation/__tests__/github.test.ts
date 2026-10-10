@@ -2,7 +2,8 @@ import { createHash } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
 import { GithubMaterialReader, githubRepositoryUrl, type PublicGithubProvider } from '../materials/github';
-import { GithubPublicApi } from '../materials/github-public-api';
+import { GithubPublicApi, GithubApiTransport } from '../materials/github-public-api';
+import { githubReceiptSchema } from '@/src/shared/cohort-creation/github';
 
 const sha = (value: string) => value.repeat(40);
 const blob = (text: string) => { const bytes = Buffer.from(text); return { sha: createHash('sha1').update(`blob ${bytes.length}\0`).update(bytes).digest('hex'), size: bytes.length, content: bytes.toString('base64') }; };
@@ -24,6 +25,34 @@ function fixture() {
   return { provider, selection, reader: new GithubMaterialReader(provider), readme, lesson };
 }
 describe('commit-pinned GitHub source content', () => {
+  it('accepts private content only with an explicit connected capability and preserves that provenance', async () => {
+    const f = fixture();
+    f.provider.getRepository.mockResolvedValue({ owner: { login: 'Example' }, name: 'Lessons', private: true, default_branch: 'main' });
+    const selection = { ...f.selection, connection: 'github' as const };
+    await expect(f.reader.read(selection)).rejects.toThrow('connection does not match');
+    expect(f.provider.getRepository).not.toHaveBeenCalled();
+    const reader = new GithubMaterialReader(f.provider, 'connected');
+    await expect(reader.read(f.selection)).rejects.toThrow('connection does not match');
+    const snapshot = await reader.read(selection);
+    expect(snapshot).toMatchObject({ access: 'connected', repositoryPrivate: true, commit: sha('a') });
+    const receipt = { schemaVersion: 1, materialId: '11111111-1111-4111-8111-111111111111', inputRevision: 1,
+      parserVersion: 'github-commit-text-lines-v1', selection, snapshot };
+    expect(githubReceiptSchema.safeParse(receipt).success).toBe(true);
+    expect(githubReceiptSchema.safeParse({ ...receipt, selection: f.selection }).success).toBe(false);
+    expect(githubReceiptSchema.safeParse({ ...receipt, snapshot: { ...snapshot, access: 'public' } }).success).toBe(false);
+  });
+  it('sends an owned bearer token only to fixed GitHub endpoints with redirects disabled', async () => {
+    const request = vi.fn<typeof fetch>(async () => Response.json({ ok: true }));
+    const provider = new GithubApiTransport(request, 'fixture-owned-token');
+    await provider.getContent({ owner: 'Example', repo: 'Lessons' }, 'README.md', sha('a'), new AbortController().signal);
+    const [url, options] = request.mock.calls[0];
+    expect(new URL(String(url)).hostname).toBe('api.github.com');
+    expect(options).toMatchObject({ redirect: 'error', credentials: 'omit', headers: { Authorization: 'Bearer fixture-owned-token' } });
+    const publicRequest = vi.fn<typeof fetch>(async () => Response.json({ ok: true }));
+    await new GithubPublicApi(publicRequest).getRepository({ owner: 'Example', repo: 'Lessons' }, new AbortController().signal);
+    expect(publicRequest.mock.calls[0][1]?.headers).not.toHaveProperty('Authorization');
+    expect(() => new GithubApiTransport(request, 'token\r\nInjected: true')).toThrow();
+  });
   it('reads only selected paths at the same commit and preserves exact text plus explicit omissions', async () => {
     const f = fixture(); const result = await f.reader.read(f.selection);
     expect(result.commit).toBe(sha('a')); expect(result.files.map(file => file.path)).toEqual(['README.md', 'docs/lesson.md']);

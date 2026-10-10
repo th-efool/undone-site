@@ -36,10 +36,11 @@ export function githubRepositoryUrl(input: string) {
 
 /** Reads selected paths at one immutable commit. No source URL, download URL or repository code is executed. */
 export class GithubMaterialReader {
-  constructor(private readonly provider: PublicGithubProvider) {}
+  constructor(private readonly provider: PublicGithubProvider, private readonly access: 'public' | 'connected' = 'public') {}
   async read(request: GithubSelection, callerSignal?: AbortSignal, maxFiles = 100) {
     if (!Number.isSafeInteger(maxFiles) || maxFiles < 1 || maxFiles > 100) return fail('GitHub requires remaining draft unit capacity.');
     const selection = githubSelectionSchema.parse(request); const repository = githubRepositoryUrl(selection.url);
+    if (this.access !== (selection.connection ? 'connected' : 'public')) return fail('The selected GitHub connection does not match this acquisition.');
     const signal = AbortSignal.any([...(callerSignal ? [callerSignal] : []), AbortSignal.timeout(60_000)]);
     signal.throwIfAborted(); let calls = 0;
     const call = async <T extends z.ZodType>(schema: T, operation: () => Promise<unknown>): Promise<z.output<T>> => {
@@ -49,7 +50,7 @@ export class GithubMaterialReader {
       return parsed.data;
     };
     const info = await call(repositorySchema, () => this.provider.getRepository(repository, signal));
-    if (info.private || info.owner.login.toLowerCase() !== repository.owner.toLowerCase() || info.name.toLowerCase() !== repository.repo.toLowerCase()) {
+    if (info.private && this.access === 'public' || info.owner.login.toLowerCase() !== repository.owner.toLowerCase() || info.name.toLowerCase() !== repository.repo.toLowerCase()) {
       return fail('Select a public repository. Private repositories require your own connected account.');
     }
     const commit = await call(commitSchema, () => this.provider.getCommit(repository, selection.ref ?? info.default_branch, signal));
@@ -100,6 +101,6 @@ export class GithubMaterialReader {
     if (!files.length) return fail('Selected paths contain no readable UTF-8 text. Choose README/docs text or upload material.');
     return githubSnapshotSchema.parse({ schemaVersion: 1, sourceUrl: repository.url, owner: repository.owner, repo: repository.repo,
       commit: commit.sha, tree: commit.commit.tree.sha, requestedPaths: selection.paths, fetchedAt: new Date().toISOString(),
-      access: 'public', files, skipped, coverage: 'selected_paths' });
+      access: this.access, repositoryPrivate: info.private, files, skipped, coverage: 'selected_paths' });
   }
 }

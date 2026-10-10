@@ -6,9 +6,14 @@ export { githubPathSchema } from './contracts';
 export const githubShaSchema = z.string().regex(/^[a-f0-9]{40}$/);
 export const githubSelectionSchema = githubRepositoryScopeSchema.safeExtend({ url: z.url().max(2048) });
 export type GithubSelection = z.infer<typeof githubSelectionSchema>;
+export function githubRepositoryScope(selection: GithubSelection) {
+  return githubRepositoryScopeSchema.parse({ ref: selection.ref, paths: selection.paths,
+    ...(selection.connection ? { connection: selection.connection } : {}) });
+}
 export const githubSnapshotSchema = z.strictObject({ schemaVersion: z.literal(1), sourceUrl: z.url().max(2048),
   owner: z.string().min(1).max(100), repo: z.string().min(1).max(100), commit: githubShaSchema, tree: githubShaSchema,
-  requestedPaths: z.array(githubPathSchema).min(1).max(100), fetchedAt: z.iso.datetime(), access: z.literal('public'),
+  requestedPaths: z.array(githubPathSchema).min(1).max(100), fetchedAt: z.iso.datetime(), access: z.enum(['public', 'connected']),
+  repositoryPrivate: z.boolean().optional(),
   files: z.array(z.strictObject({ path: githubPathSchema, blobSha: githubShaSchema,
     byteLength: z.number().int().positive().max(MATERIAL_LIMITS.extractedTextBytes),
     text: z.string().min(1).max(MATERIAL_LIMITS.extractedTextBytes) })).min(1).max(100),
@@ -19,7 +24,7 @@ export const githubSnapshotSchema = z.strictObject({ schemaVersion: z.literal(1)
   if (new Set(paths).size !== paths.length || snapshot.files.reduce((sum, file) => sum + file.byteLength, 0) > MATERIAL_LIMITS.extractedTextBytes ||
     snapshot.files.some(file => new TextEncoder().encode(file.text).byteLength !== file.byteLength) ||
     paths.some(path => !snapshot.requestedPaths.some(root => path === root || path.startsWith(`${root}/`))) ||
-    snapshot.sourceUrl !== `https://github.com/${snapshot.owner}/${snapshot.repo}`) ctx.addIssue({ code: 'custom', message: 'Invalid retained GitHub text or selection coverage' });
+    snapshot.sourceUrl !== `https://github.com/${snapshot.owner}/${snapshot.repo}` || snapshot.access === 'public' && snapshot.repositoryPrivate === true) ctx.addIssue({ code: 'custom', message: 'Invalid retained GitHub text or selection coverage' });
 });
 export type GithubSnapshot = z.infer<typeof githubSnapshotSchema>;
 
@@ -29,7 +34,8 @@ const artifactRef = retainedObjectRefSchema.extend({ kind: z.literal('artifact')
 export const githubReceiptSchema = z.strictObject({ schemaVersion: z.literal(1), materialId: z.uuid(), inputRevision: z.number().int().nonnegative(),
   parserVersion: z.literal(GITHUB_PARSER_VERSION), selection: githubSelectionSchema, snapshot: githubSnapshotSchema })
   .superRefine((receipt, ctx) => {
-    if (receipt.selection.url !== receipt.snapshot.sourceUrl || JSON.stringify(receipt.selection.paths) !== JSON.stringify(receipt.snapshot.requestedPaths) ||
+    if (receipt.snapshot.access !== (receipt.selection.connection ? 'connected' : 'public') ||
+      receipt.selection.url !== receipt.snapshot.sourceUrl || JSON.stringify(receipt.selection.paths) !== JSON.stringify(receipt.snapshot.requestedPaths) ||
       receipt.selection.ref && /^[a-f0-9]{40}$/.test(receipt.selection.ref) && receipt.selection.ref !== receipt.snapshot.commit) {
       ctx.addIssue({ code: 'custom', message: 'GitHub receipt does not match its selected source' });
     }

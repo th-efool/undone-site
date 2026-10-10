@@ -1,7 +1,7 @@
 import 'server-only';
 import { materialSourceSchema, type MaterialSource } from '@/src/shared/cohort-creation/contracts';
 import { githubSelectionSchema, githubReceiptSchema, retainedGithubCheckpointSchema, githubExtractionArtifactSchema,
-  githubMaterialManifestSchema, GITHUB_PARSER_VERSION, type GithubSelection, type RetainedGithubCheckpoint } from '@/src/shared/cohort-creation/github';
+  githubMaterialManifestSchema, githubRepositoryScope, GITHUB_PARSER_VERSION, type GithubSelection, type RetainedGithubCheckpoint } from '@/src/shared/cohort-creation/github';
 import { CreationStorageError, type StorageScope } from '@/src/server/infrastructure/storage/creation.contracts';
 import type { CreationArtifactRepository } from '@/src/server/infrastructure/storage/creation.store';
 import type { GithubMaterialReader } from './github';
@@ -58,7 +58,7 @@ export class GithubAcquisitionService {
     const source = materialSourceSchema.parse(input); const selection = githubSelectionSchema.parse(requested);
     if (source.kind !== 'github' || source.input.kind !== 'url' || !Number.isSafeInteger(inputRevision) || inputRevision < 0 ||
       source.input.url !== selection.url || githubRepositoryUrl(selection.url).url !== selection.url ||
-      source.input.repositoryScope && JSON.stringify(source.input.repositoryScope) !== JSON.stringify({ ref: selection.ref, paths: selection.paths })) {
+      source.input.repositoryScope && JSON.stringify(source.input.repositoryScope) !== JSON.stringify(githubRepositoryScope(selection))) {
       throw new CreationStorageError('INVALID_INPUT', 'Select a canonical GitHub repository and explicit paths.');
     }
     return { source, selection };

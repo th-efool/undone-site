@@ -37,6 +37,19 @@ function fixture() {
   return { own, command, running, job, repo, retained, manifest };
 }
 describe('durable selected GitHub material', () => {
+  it('binds explicit connected scope into persisted commands, deduplication and checkpoint identity', async () => {
+    const f = fixture(); let stored = f.own;
+    const enqueue = vi.fn(async (_owner, _previous, next) => { stored = next; return next; });
+    const service = new DraftService({ create: vi.fn(), load: vi.fn(async () => stored), swap: vi.fn() }, { enqueue, cancel: vi.fn() });
+    const command = { ...f.command, selection: { ...f.command.selection, connection: 'github' as const } };
+    const result = await service.command('owner', draftId, f.own.revision, command);
+    expect(result.materials[0].input).toMatchObject({ repositoryScope: { connection: 'github' } });
+    expect(await service.command('owner', draftId, f.own.revision, command)).toBe(result);
+    await expect(service.command('owner', draftId, f.own.revision, f.command)).rejects.toBeInstanceOf(DraftConflict);
+    const job = { ...f.job, input: { ...f.job.input, source: result.materials[0] } };
+    expect(() => validateGithubRetention(job, f.retained)).toThrow();
+    expect(enqueue).toHaveBeenCalledOnce();
+  });
   it('persists explicit scope, authorizes/CAS/deduplicates commands and canonicalizes repository roots', async () => {
     const f = fixture(); let stored = f.own; const enqueue = vi.fn(async (_owner, _previous, next) => { stored = next; return next; });
     const service = new DraftService({ create: vi.fn(), load: vi.fn(async owner => owner === 'owner' ? stored : null), swap: vi.fn() }, { enqueue, cancel: vi.fn() });

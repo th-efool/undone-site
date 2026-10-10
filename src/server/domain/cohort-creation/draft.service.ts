@@ -5,6 +5,7 @@ import type { CreationJobRepository } from './durable-job';
 import { webSourceUrl } from './materials/web-fetch';
 import { youtubeSourceUrl } from './materials/youtube-url';
 import { githubRepositoryUrl } from './materials/github';
+import { githubRepositoryScope } from '@/src/shared/cohort-creation/github';
 
 export class DraftConflict extends Error {
   constructor(readonly current: CreationSnapshot) { super('Draft changed. Reload before retrying your edit.'); }
@@ -45,7 +46,7 @@ export class DraftService {
       previous.youtubeSources.some(source => source.materialId === command.materialId)) return previous;
     if (command.type === 'acquire_github' && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
       source.id === command.materialId && source.kind === 'github' && source.input.kind === 'url' && source.input.url === command.selection.url &&
-      JSON.stringify(source.input.repositoryScope) === JSON.stringify({ ref: command.selection.ref, paths: command.selection.paths }))) return previous;
+      JSON.stringify(source.input.repositoryScope) === JSON.stringify(githubRepositoryScope(command.selection)))) return previous;
     if (previous.revision !== baseRevision) throw new DraftConflict(previous);
     const next = applyCommand(previous, command);
     if (command.type === 'request_recommendations' || command.type === 'acquire_text' || command.type === 'acquire_pdf' || command.type === 'acquire_web' || command.type === 'inspect_youtube' || command.type === 'observe_youtube' || command.type === 'acquire_github') {

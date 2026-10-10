@@ -36,6 +36,21 @@ function fixture() {
   return { text, snapshot, source, scope, selection, rows, read, service: new GithubAcquisitionService({ read }, { putJSON, getJSON, ref }) };
 }
 describe('retained GitHub content and line extraction', () => {
+  it('retains connected private provenance and resumes without requesting credentials or source content again', async () => {
+    const f = fixture();
+    const selection = { ...f.selection, connection: 'github' as const };
+    const source = { ...f.source, input: { ...f.source.input, repositoryScope: { ref: selection.ref, paths: selection.paths, connection: 'github' as const } } };
+    f.read.mockResolvedValue({ ...f.snapshot, access: 'connected', repositoryPrivate: true });
+    const manifest = await f.service.acquire(f.scope, source, 7, selection);
+    const raw = f.rows.get(manifest.retainedSource.id)!;
+    expect(raw.value).toMatchObject({ selection: { connection: 'github' }, snapshot: { access: 'connected', repositoryPrivate: true } });
+    f.read.mockRejectedValue(new Error('Connection unavailable after restart'));
+    const resumed = await f.service.extract(f.scope, source, 7, selection, manifest.github);
+    expect(resumed.source.input).toEqual(manifest.source.input);
+    expect(f.read).toHaveBeenCalledTimes(1);
+    await expect(f.service.extract({ ...f.scope, ownerId: 'other' }, source, 7, selection, manifest.github)).rejects.toThrow('not found');
+    await expect(f.service.extract(f.scope, source, 7, f.selection, manifest.github)).rejects.toThrow();
+  });
   it('retains exact source text privately and derives deterministic commit/path/line anchors', async () => {
     const f = fixture(); const save = vi.fn(); const manifest = await f.service.acquire(f.scope, f.source, 7, f.selection, undefined, save);
     const stored = [...f.rows.values()].find(row => row.type === 'github-extraction')!;

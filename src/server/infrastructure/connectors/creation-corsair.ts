@@ -48,10 +48,15 @@ function createRuntime() {
     },
     disconnect: (tenantId, plugin) => client.manage.disconnect({ tenantId, plugin }),
   };
-  return { client, gateway, origin: config.origin };
+  return { client, gateway, origin: config.origin, close: () => database.destroy() };
 }
 let singleton: ReturnType<typeof createRuntime> | undefined;
 export function creationCorsairRuntime() { return singleton ??= createRuntime(); }
+export async function closeCreationCorsairRuntime() {
+  const current = singleton;
+  singleton = undefined;
+  await current?.close();
+}
 
 export async function handleCreationConnectorDelivery(request: Request): Promise<Response> {
   if (!['GET', 'POST'].includes(request.method) || new URL(request.url).pathname !== CREATION_CONNECTOR_DELIVERY_PATH) return new Response(null, { status: 404 });

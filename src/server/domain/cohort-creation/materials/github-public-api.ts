@@ -3,9 +3,11 @@ import { githubPathSchema, githubShaSchema } from '@/src/shared/cohort-creation/
 import { CreationStorageError } from '@/src/server/infrastructure/storage/creation.contracts';
 import { githubRepositoryUrl, type GithubRepository, type PublicGithubProvider } from './github';
 
-/** Public reads never inherit the legacy Corsair singleton or application OAuth credentials. */
-export class GithubPublicApi implements PublicGithubProvider {
-  constructor(private readonly request: typeof fetch = fetch) {}
+/** Fixed GitHub API host, bounded responses and no redirects, including authenticated reads. */
+export class GithubApiTransport implements PublicGithubProvider {
+  constructor(private readonly request: typeof fetch = fetch, private readonly accessToken?: string) {
+    if (accessToken !== undefined && (!accessToken || accessToken.length > 4096 || /[\u0000-\u0020\u007f]/.test(accessToken))) throw new CreationStorageError('UNAVAILABLE', 'GitHub connection credentials are unavailable. Reconnect your account.');
+  }
   private async json(repository: GithubRepository, suffix: string, inputSignal: AbortSignal, query?: Record<string, string>) {
     const identity = githubRepositoryUrl(`https://github.com/${repository.owner}/${repository.repo}`);
     const url = new URL(`https://api.github.com/repos/${identity.owner}/${identity.repo}${suffix}`);
@@ -14,15 +16,15 @@ export class GithubPublicApi implements PublicGithubProvider {
     let response: Response;
     try {
       response = await this.request(url, { headers: { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28',
-        'User-Agent': 'SideQuestHQ-Material/1.0' }, credentials: 'omit', redirect: 'error', cache: 'no-store', signal });
+        'User-Agent': 'SideQuestHQ-Material/1.0', ...(this.accessToken ? { Authorization: `Bearer ${this.accessToken}` } : {}) }, credentials: 'omit', redirect: 'error', cache: 'no-store', signal });
     } catch { signal.throwIfAborted(); throw new CreationStorageError('UNAVAILABLE', 'GitHub could not be reached. Retry the selected paths.'); }
     try {
       if (!response.ok) {
         const retryable = response.status === 429 || response.status >= 500 || response.status === 403 &&
           (response.headers.get('x-ratelimit-remaining') === '0' || response.headers.has('retry-after'));
         throw new CreationStorageError(retryable ? 'UNAVAILABLE' : 'INVALID_INPUT', retryable
-          ? 'GitHub public quota or availability is limited. Retry later; no content was fabricated.'
-          : 'GitHub public content is unavailable. Check the repository/path or use your own connection for private material.');
+          ? 'GitHub quota or availability is limited. Retry later; no content was fabricated.'
+          : 'GitHub content is unavailable. Check the selected repository, paths and account access.');
       }
       if (!response.headers.get('content-type')?.toLowerCase().includes('json') || !response.body) throw new CreationStorageError('INVALID_INPUT', 'GitHub returned an unsupported response.');
       const maximum = 4 * 1024 * 1024; const length = response.headers.get('content-length');
@@ -53,4 +55,8 @@ export class GithubPublicApi implements PublicGithubProvider {
   getContent(repository: GithubRepository, path: string, commit: string, signal: AbortSignal) {
     return this.json(repository, `/contents/${githubPathSchema.parse(path).split('/').map(encodeURIComponent).join('/')}`, signal, { ref: githubShaSchema.parse(commit) });
   }
+}
+/** Public reads never inherit the legacy Corsair singleton or application OAuth credentials. */
+export class GithubPublicApi extends GithubApiTransport {
+  constructor(request: typeof fetch = fetch) { super(request); }
 }

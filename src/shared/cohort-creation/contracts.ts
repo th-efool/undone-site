@@ -94,7 +94,7 @@ export const errorResponseSchema = z.strictObject({ error: creationErrorSchema }
 export const githubPathSchema = z.string().min(1).max(1024).refine(path =>
   !/[\u0000-\u001f\u007f\\]/.test(path) && path.split('/').every(part => part && part !== '.' && part !== '..'), 'Select a repository-relative path');
 export const githubRepositoryScopeSchema = z.strictObject({ ref: z.string().min(1).max(255).nullable().default(null),
-  paths: z.array(githubPathSchema).min(1).max(100) }).superRefine((selection, ctx) => {
+  paths: z.array(githubPathSchema).min(1).max(100), connection: z.literal('github').optional() }).superRefine((selection, ctx) => {
   if (selection.paths.some((path, index) => selection.paths.some((other, otherIndex) => otherIndex !== index &&
     (path === other || path.startsWith(`${other}/`))))) ctx.addIssue({ code: 'custom', message: 'Select distinct, non-overlapping paths' });
 });
