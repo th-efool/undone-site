@@ -24,6 +24,17 @@ export const discoveryFingerprint = (request: DiscoveryRequest) => createHash('s
 const sameRef = (first: z.infer<typeof artifactRef>, second: z.infer<typeof artifactRef>) => first.id === second.id && first.checksum === second.checksum && first.byteLength === second.byteLength;
 const integrity = (): never => { throw new CreationStorageError('INTEGRITY', 'Retained discovery evidence does not match its request and progress.'); };
 
+export async function readDiscoveryAttribution(artifacts: Pick<CreationArtifactRepository, 'getJSON' | 'ref'>,
+  scope: StorageScope, value: DiscoveryCheckpoint, signal: AbortSignal) {
+  const checkpoint = discoveryCheckpointSchema.parse(value); signal.throwIfAborted();
+  const actual = artifactRef.parse(await artifacts.ref(scope, checkpoint.searchArtifact.id));
+  if (!sameRef(actual, checkpoint.searchArtifact)) integrity();
+  const receipt = await artifacts.getJSON(scope, actual.id, { artifactType: 'discovery-search', schemaVersion: 1,
+    inputFingerprint: checkpoint.inputFingerprint, schema: searchReceiptSchema, signal });
+  if (discoveryFingerprint(receipt.request) !== checkpoint.inputFingerprint) integrity();
+  return validateGroundedSearch(receipt.search).attribution?.renderedContent ?? null;
+}
+
 /** Proposes private artifacts/checkpoints. Only the fenced application repository may accept them. */
 export class DiscoveryService {
   constructor(private readonly ai: ResourceDiscovery, private readonly observer: Pick<DiscoverySourceObserver, 'observe'>,
