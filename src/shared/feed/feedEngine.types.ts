@@ -20,6 +20,7 @@ export interface FeedChunkInput {
   totalChunksInLesson?: number;
   lessonOrder: number;
   lessonType: string;           // 'video' | 'reading' | 'assignment'
+  content?: FeedReadingContent;
 
   seasonId: string;
   seasonTitle: string;
@@ -90,12 +91,22 @@ export interface FeedItem {
   cohortTitle: string;
   lessonThumbnail?: string;
   lessonVideoId?: string;
+  lessonType?: string;
+  content?: FeedReadingContent;
   totalChunksInLesson?: number;   // total chunks in this lesson, for "Chunk X / Y" display
   matchScore: number;
   // Lesson/season position metadata for UI display (S{seasonOrder} V{lessonOrder}/{totalLessonsInSeason})
   lessonOrder?: number;
   seasonOrder?: number;
   totalLessonsInSeason?: number;
+}
+
+/** Inert retained text and explicit provenance; never rendered as model-generated HTML. */
+export interface FeedReadingContent {
+  text: string;
+  contentOrigin?: 'user' | 'external' | 'ai';
+  limitations: string[];
+  durationMethod?: 'source' | 'reading_estimate' | 'model_estimate';
 }
 
 export interface FeedEngineOutput {

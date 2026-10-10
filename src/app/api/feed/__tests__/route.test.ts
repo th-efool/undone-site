@@ -1,151 +1,76 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+vi.mock('server-only', () => ({}));
+const f = vi.hoisted(() => ({ auth: vi.fn(), lessons: vi.fn(), progress: vi.fn(), generate: vi.fn() }));
+vi.mock('@/src/server/infrastructure/auth/auth.config', () => ({ auth: f.auth }));
+vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({ prisma: { lesson: { findMany: f.lessons } } }));
+vi.mock('@/src/server/domain/progress/chunkProgress.service', () => ({ ChunkProgressService: { getUserProgressMap: f.progress } }));
+vi.mock('@/src/shared/feed/feedEngine', () => ({ generateFeed: f.generate }));
 import { GET } from '../route';
-import { connectToMongoDB } from '@/src/server/infrastructure/db/mongodb/client';
-import { UserChunkProgress } from '@/src/server/database/mongo/models/UserChunkProgress';
-import { Chunk } from '@/src/server/database/mongo/models/Chunk';
-import { computeTargetVector } from '@/src/shared/curriculum/pedagogicalVector.engine';
-import { generateFeed } from '@/src/shared/feed/feedEngine';
+import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
+const lessons = [{ id: 'lesson', title: 'Reading', order: 1, thumbnailUrl: null, videoId: null, lessonType: 'ARTICLE', seasonId: 'season',
+  season: { title: 'Season', order: 1, cohortId: 'cohort', cohort: { title: 'Cohort', coverImage: null } },
+  chunks: [{ id: 'one', text: 'Retained text one.', durationSeconds: 10 }, { id: 'two', text: 'Retained text two.', durationSeconds: 12 }] }];
+const request = (query = '') => new NextRequest(`http://localhost/api/feed${query}`);
+beforeEach(() => { vi.resetAllMocks(); f.auth.mockResolvedValue({ user: { id: 'user' } }); f.lessons.mockResolvedValue(lessons);
+  f.progress.mockResolvedValue(new Map()); f.generate.mockReturnValue({ items: [] }); });
 
-vi.mock('@/src/server/infrastructure/auth/auth.config', () => ({
-  auth: vi.fn().mockResolvedValue({ user: { id: 'test_user_id' } }),
-}));
-
-vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({
-  prisma: {
-    cohortMember: {
-      findMany: vi.fn().mockResolvedValue([]),
-    },
-    lesson: {
-      findMany: vi.fn().mockResolvedValue([
-        {
-          id: 'lesson1',
-          title: 'Lesson 1',
-          order: 1,
-          thumbnailUrl: '',
-          videoId: 'oHg5SJYRHA0',
-          seasonId: 'season1',
-          season: {
-            id: 'season1',
-            title: 'Season 1',
-            order: 1,
-            cohortId: 'cohort1',
-            cohort: {
-              id: 'cohort1',
-              title: 'Cohort 1',
-              coverImage: '',
-            }
-          },
-          chunks: [
-            {
-              id: 'chunk1',
-              title: 'Chunk 1',
-              order: 1,
-              duration: '3m',
-              startSeconds: 0,
-              endSeconds: 180,
-            },
-            {
-              id: 'chunk2',
-              title: 'Chunk 2',
-              order: 2,
-              duration: '2m',
-              startSeconds: 180,
-              endSeconds: 300,
-            }
-          ]
-        }
-      ]),
-    },
-  },
-}));
-
-vi.mock('@/src/server/infrastructure/db/mongodb/client', () => ({
-  connectToMongoDB: vi.fn(),
-}));
-
-vi.mock('@/src/server/database/mongo/models/UserChunkProgress', () => ({
-  UserChunkProgress: {
-    find: vi.fn(() => ({
-      sort: vi.fn().mockResolvedValue([]),
-    })),
-  },
-}));
-
-vi.mock('@/src/server/database/mongo/models/Chunk', () => ({
-  Chunk: {
-    aggregate: vi.fn(),
-  },
-}));
-
-vi.mock('@/src/shared/curriculum/pedagogicalVector.engine', () => ({
-  computeTargetVector: vi.fn().mockReturnValue({
-    cognitive_load: 0,
-    practicality_actionability: 0,
-    visual_dependence: 0,
-    scaffolding_guidance: 0,
-    linearity_dependency: 0,
-    novelty_divergence: 0,
-    abstraction_depth: 0,
-    pacing_density: 0,
-    rigor_formality: 0,
-    interactivity_agency: 0,
-    breadth_scope: 0,
-    emotional_energy: 0,
-  }),
-}));
-
-vi.mock('@/src/shared/feed/feedEngine', () => ({
-  generateFeed: vi.fn().mockReturnValue({ items: [] }),
-}));
-
-describe('GET /api/feed', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+describe('owned and public feed boundary', () => {
+  it('queries only published accessible cohorts before fetching any progress or retained text', async () => {
+    const response = await GET(request()); expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('no-store');
+    const query = f.lessons.mock.calls[0][0];
+    expect(query.where).toMatchObject({ isPublished: true, season: { cohort: { is: { AND: [{ isPublished: true }, accessibleCohortWhere('user')] } } } });
+    expect(f.progress).toHaveBeenCalledWith('user', ['one', 'two']);
+    expect(f.generate.mock.calls[0][0].allChunks[0].content.text).toBe('Retained text one.');
   });
-
-  it('should fetch candidate lessons from Postgres and pass them to generateFeed', async () => {
-    const req = new NextRequest('http://localhost/api/feed?channel=default');
-    const response = await GET(req);
-    const json = await response.json();
-
-    expect(generateFeed).toHaveBeenCalled();
-
-    const generateFeedArgs = vi.mocked(generateFeed).mock.calls[0][0];
-
-    // Verify allChunks are passed in correctly
-    expect(generateFeedArgs.allChunks).toHaveLength(2);
-    expect(generateFeedArgs.allChunks).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        chunkId: 'chunk1',
-        chunkTitle: 'Chunk 1',
-        chunkOrder: 1,
-      }),
-      expect.objectContaining({
-        chunkId: 'chunk2',
-        chunkTitle: 'Chunk 2',
-        chunkOrder: 2,
-      }),
+  it('uses public-only filtering for anonymous requests without progress lookups', async () => {
+    f.auth.mockResolvedValue(null); await GET(request());
+    expect(f.lessons.mock.calls[0][0].where.season.cohort.is.AND).toEqual([{ isPublished: true }, { isPublished: true, visibility: 'PUBLIC' }]);
+    expect(f.progress).not.toHaveBeenCalled();
+  });
+  it('returns an empty feed without a less restrictive fallback when no accessible lessons exist', async () => {
+    f.lessons.mockResolvedValue([]);
+    expect(await (await GET(request())).json()).toEqual({ items: [] });
+    expect(f.lessons).toHaveBeenCalledOnce(); expect(f.progress).not.toHaveBeenCalled();
+    expect(f.generate.mock.calls[0][0].allChunks).toEqual([]);
+  });
+  it.each(['auth', 'lessons', 'progress'] as const)('fails closed on %s failures without a second query', async failing => {
+    f[failing].mockRejectedValue(new Error('private backend detail'));
+    const response = await GET(request()); expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: 'Feed is unavailable. Try again.' });
+    expect(f.lessons.mock.calls.length).toBeLessThanOrEqual(1); expect(f.generate).not.toHaveBeenCalled();
+    if (failing === 'auth') expect(f.lessons).not.toHaveBeenCalled();
+  });
+  it('filters completed chunks using only progress with matching lesson and cohort identities', async () => {
+    f.progress.mockResolvedValue(new Map([
+      ['one', { lessonId: 'lesson', cohortId: 'cohort', status: 'COMPLETED', watchedSeconds: 10, totalSeconds: 10 }],
+      ['two', { lessonId: 'foreign', cohortId: 'foreign', status: 'COMPLETED', watchedSeconds: 12, totalSeconds: 12 }],
     ]));
-
-    // Verify successful response
-    expect(response.status).toBe(200);
-    expect(json).toEqual({ items: [] });
+    await GET(request()); const input = f.generate.mock.calls[0][0];
+    expect(input.allChunks.map((chunk: { chunkId: string }) => chunk.chunkId)).toEqual(['two']);
+    expect(Object.keys(input.chunkProgress)).toEqual(['one']);
   });
-
-  it('should correctly offset the timezone for chronobiological math', async () => {
-    const now = Date.now();
-    const req = new NextRequest('http://localhost/api/feed?timezoneOffset=120'); // 120 minutes = 2 hours
-    await GET(req);
-
-    expect(generateFeed).toHaveBeenCalled();
-    const generateFeedArgs = vi.mocked(generateFeed).mock.calls[0][0];
-    const computedTime = generateFeedArgs.currentTime.getTime();
-    
-    // Expected time is 'now' minus 120 minutes
-    const expectedTime = now - 120 * 60 * 1000;
-    const diff = Math.abs(computedTime - expectedTime);
-    
-    expect(diff).toBeLessThan(1000); // Allow 1s tolerance
+  it('preserves explicit completed-chunk revisits and scopes lesson/cohort selection before projection', async () => {
+    f.progress.mockResolvedValue(new Map([['one', { lessonId: 'lesson', cohortId: 'cohort', status: 'COMPLETED' }]]));
+    await GET(request('?cohort=cohort&lesson=lesson&chunk=one&channel=deep_dive'));
+    expect(f.lessons.mock.calls[0][0].where).toMatchObject({ id: 'lesson', season: { cohortId: 'cohort' } });
+    expect(f.generate.mock.calls[0][0]).toMatchObject({ requestedCohortId: 'cohort', requestedLessonId: 'lesson', requestedChunkId: 'one', activeChannel: 'deep_dive' });
+    expect(f.generate.mock.calls[0][0].allChunks).toHaveLength(2);
+  });
+  it('rejects an unavailable selected chunk instead of substituting another lesson artifact', async () => {
+    expect((await GET(request('?chunk=foreign'))).status).toBe(404);
+    expect(f.progress).not.toHaveBeenCalled(); expect(f.generate).not.toHaveBeenCalled();
+  });
+  it('never sends malformed retained reading bodies to the feed engine', async () => {
+    f.lessons.mockResolvedValue([{ ...lessons[0], chunks: [{ id: 'one' }] }]);
+    await GET(request()); expect(f.generate.mock.calls[0][0].allChunks).toEqual([]); expect(f.progress).not.toHaveBeenCalled();
+  });
+  it('preserves timezone offset behavior within valid timezone bounds', async () => {
+    const now = Date.now(); await GET(request('?timezoneOffset=120'));
+    expect(Math.abs(f.generate.mock.calls[0][0].currentTime.getTime() - (now - 120 * 60_000))).toBeLessThan(1000);
+  });
+  it.each(['?limit=0', '?pageIndex=-1', '?pageIndex=101', '?limit=21', '?pageIndex=NaN', '?cohort=', '?lesson=' + 'x'.repeat(129), '?timezoneOffset=900'])('rejects invalid query %s before SQL reads', async query => {
+    expect((await GET(request(query))).status).toBe(400); expect(f.lessons).not.toHaveBeenCalled();
   });
 });
