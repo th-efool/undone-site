@@ -28,6 +28,19 @@ function fixture() {
 }
 const request = (method: string, body?: unknown) => new Request('http://localhost/api/drafts', { method, ...(body ? { body: JSON.stringify(body) } : {}) });
 describe('owned durable drafts', () => {
+  it.each([
+    ['Save a video selection before observing it', 400],
+    ['The draft already has 100 selected units. Remove a source before adding GitHub files.', 400],
+    ['Unexpected database failure', 503],
+  ])('maps command failures safely: %s', async (message, status) => {
+    const { service } = fixture();
+    vi.spyOn(service, 'command').mockRejectedValue(new Error(message));
+    const response = await draftHandlers(service, async () => 'alice')(request('PATCH', {
+      baseRevision: 0, command: { type: 'create_own' },
+    }), draftId);
+    expect(response.status).toBe(status);
+    expect((await response.json()).message).toBe(status === 400 ? message : 'Draft storage is unavailable. Try again.');
+  });
   it('creates idempotently for the authenticated owner and rejects unauthenticated access', async () => {
     const { service } = fixture();
     const handler = draftHandlers(service, async () => 'alice');

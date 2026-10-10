@@ -8,6 +8,11 @@ import { CreationStorageError } from '@/src/server/infrastructure/storage/creati
 const idSchema = z.uuid();
 const createSchema = z.strictObject({ draftId: idSchema });
 const updateSchema = z.strictObject({ baseRevision: z.number().int().nonnegative(), command: creationCommandSchema });
+const commandGuardMessages = new Set([
+  'Intent is not ready', 'Starting point is not available', 'Operation is still running',
+  'Save a video selection before observing it',
+  'The draft already has 100 selected units. Remove a source before adding GitHub files.',
+]);
 export function draftHandlers(service: DraftService, getOwner: () => Promise<string | null>) {
   async function handle(request: Request, id?: string): Promise<Response> {
     try {
@@ -30,7 +35,8 @@ export function draftHandlers(service: DraftService, getOwner: () => Promise<str
       if (error instanceof JobBudgetExceeded) return Response.json({ message: error.message }, { status: 429, headers: { 'Retry-After': '60' } });
       if (error instanceof CreationFailure) return Response.json({ message: error.detail.message }, { status: error.detail.code === 'INVALID_REQUEST' ? 400 : 503 });
       if (error instanceof DraftConflict) return Response.json({ message: error.message, current: error.current }, { status: 409 });
-      if (error instanceof z.ZodError || error instanceof SyntaxError || (error instanceof Error && ['Intent is not ready', 'Starting point is not available', 'Operation is still running'].includes(error.message))) return Response.json({ message: 'Invalid draft command.' }, { status: 400 });
+      if (error instanceof Error && commandGuardMessages.has(error.message)) return Response.json({ message: error.message }, { status: 400 });
+      if (error instanceof z.ZodError || error instanceof SyntaxError) return Response.json({ message: 'Invalid draft command.' }, { status: 400 });
       return Response.json({ message: 'Draft storage is unavailable. Try again.' }, { status: 503 });
     }
   }
