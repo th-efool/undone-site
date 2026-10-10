@@ -88,3 +88,14 @@ export type RefinementRequest = z.infer<typeof refinementRequestSchema>;
 export const refinementResultSchema = z.strictObject({ requestId: z.uuid(), inputRevision: z.number().int().nonnegative(), baseEditRevision: z.number().int().nonnegative(),
   buildFingerprint: z.string().regex(/^[a-f0-9]{64}$/), proposal: refinementProposalSchema });
 export type RefinementResult = z.infer<typeof refinementResultSchema>;
+
+export const publicationRequestSchema = z.strictObject({ requestId: z.uuid(), inputRevision: z.number().int().nonnegative(), mode: z.enum(['private_activation', 'public_publish']),
+  cohortId: z.uuid(), snapshotHash: z.string().regex(/^[a-f0-9]{64}$/), snapshot: creationSnapshotSchema })
+  .superRefine((request, ctx) => {
+    const state = request.snapshot;
+    if (state.stage !== 'review' || state.status !== 'succeeded' || state.activeRequestId !== null || state.inputRevision !== request.inputRevision ||
+      !state.review || state.review.orphanedLessonIds.length || state.review.proposal || state.review.request || !state.processing?.building?.complete ||
+      state.review.buildFingerprint !== state.processing.building.checkpoint?.inputFingerprint || state.publication?.requestId !== request.requestId ||
+      state.publication.mode !== request.mode || state.publication.cohortId !== request.cohortId || state.publication.snapshotHash !== request.snapshotHash) ctx.addIssue({ code: 'custom', message: 'Current accepted review is required for publication' });
+  });
+export type PublicationRequest = z.infer<typeof publicationRequestSchema>;

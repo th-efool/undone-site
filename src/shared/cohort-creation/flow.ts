@@ -1,3 +1,4 @@
+import { publicationCheckpointSchema, publicationReceiptSchema } from './publication';
 import { reviewPatchSchema, lessonEditSchema, editReview, editLesson, applyRefinement } from './review-flow';
 import { refinementResultSchema } from './jobs';
 import { buildingCheckpointSchema } from './build';
@@ -17,6 +18,7 @@ import { discoveryResultSchema } from './discovery';
 import { understandingCheckpointSchema, chunkingCheckpointSchema } from './processing';
 
 export const creationCommandSchema = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.literal('finalize_creation'), requestId: z.uuid(), mode: z.enum(['private_activation', 'public_publish']) }),
   z.strictObject({ type: z.literal('open_review') }),
   z.strictObject({ type: z.literal('edit_review'), patch: reviewPatchSchema }),
   z.strictObject({ type: z.literal('edit_lesson'), ...lessonEditSchema.shape }),
@@ -50,6 +52,8 @@ export const creationCommandSchema = z.discriminatedUnion('type', [
 ]);
 export type CreationCommand = z.infer<typeof creationCommandSchema>;
 export const creationEventSchema = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.literal('publication_prepared'), requestId: z.uuid(), result: publicationCheckpointSchema }),
+  z.strictObject({ type: z.literal('publication_committed'), requestId: z.uuid(), receipt: publicationReceiptSchema }),
   z.strictObject({ type: z.literal('refinement_received'), requestId: z.uuid(), result: refinementResultSchema }),
   z.strictObject({ type: z.literal('recommendations_received'), result: recommendationResultSchema }),
   z.strictObject({ type: z.literal('operation_failed'), requestId: z.uuid(), error: creationErrorSchema }),
@@ -81,8 +85,17 @@ export function canEnterStage(state: CreationSnapshot, stage: WorkspaceStage): b
 
 export function applyCommand(state: CreationSnapshot, input: CreationCommand): CreationSnapshot {
   const command = creationCommandSchema.parse(input);
+  if (state.publication?.receipt && !['finalize_creation', 'cancel_processing'].includes(command.type)) throw new Error('This cohort is already activated');
   const changed = { ...state, revision: state.revision + 1, error: null };
   switch (command.type) {
+    case 'finalize_creation':
+      if (!['review', 'finalizing', 'published'].includes(state.stage) || state.status === 'running' || !state.review || state.review.orphanedLessonIds.length || state.review.proposal || state.review.request ||
+        !state.processing?.building?.complete || state.review.buildFingerprint !== state.processing.building.checkpoint?.inputFingerprint ||
+        state.publication?.receipt?.mode === 'public_publish' && command.mode !== 'public_publish') throw new Error('Publication is not available');
+      return creationSnapshotSchema.parse({ ...changed, stage: 'finalizing', status: 'running', activeRequestId: command.requestId,
+        publication: { requestId: command.requestId, mode: command.mode, cohortId: state.publication?.receipt?.cohortId ?? null, snapshotHash: null,
+          checkpoint: null, receipt: state.publication?.receipt ?? null } });
+
     case 'open_review':
       throw new Error('Opening review requires the owned curriculum service');
     case 'edit_review':
@@ -130,7 +143,7 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
       return creationSnapshotSchema.parse({ ...changed, stage: 'processing', status: 'running', activeRequestId: command.requestId,
         processing: { requestId: command.requestId, inputRevision: state.inputRevision, checkpoint: null, complete: false } });
     case 'cancel_processing':
-      if (!['processing', 'review'].includes(state.stage)) throw new Error('Processing is not available');
+      if (!['processing', 'review', 'finalizing'].includes(state.stage)) throw new Error('Processing is not available');
       return state.activeRequestId ? applyEvent(state, { type: 'operation_cancelled', requestId: state.activeRequestId }) : state;
     case 'back_to_materials':
       if (!['processing', 'ready', 'review'].includes(state.stage) || state.status === 'running') throw new Error('Processing is still running');
@@ -251,6 +264,10 @@ export function applyEvent(state: CreationSnapshot, input: CreationEvent): Creat
     event.result.checkpoint.inputRevision !== state.inputRevision || event.result.checkpoint.requestId !== requestId)) return state;
   if (event.type === 'understanding_received' && (state.stage !== 'processing' || state.processing?.phase !== 'understanding' || state.processing.requestId !== requestId ||
     event.result.requestId !== requestId || event.result.inputRevision !== state.inputRevision || event.result.completed.length !== event.result.total)) return state;
+  if (event.type === 'publication_prepared') return state; // The transaction repository alone can commit delivery.
+  if (event.type === 'publication_committed' && (state.stage !== 'finalizing' || state.publication?.requestId !== requestId ||
+    event.receipt.requestId !== requestId || event.receipt.mode !== state.publication.mode || event.receipt.snapshotHash !== state.publication.snapshotHash ||
+    event.receipt.cohortId !== state.publication.cohortId)) return state;
   if (event.type === 'refinement_received' && (state.stage !== 'review' || !state.review || state.review.request?.requestId !== requestId ||
     event.result.requestId !== requestId || event.result.inputRevision !== state.inputRevision || event.result.buildFingerprint !== state.review.buildFingerprint ||
     event.result.baseEditRevision !== state.review.editRevision || event.result.proposal.changes.some(change => 'lessonId' in change && !state.review!.lessonIds.includes(change.lessonId)))) return state;
@@ -277,6 +294,8 @@ export function applyEvent(state: CreationSnapshot, input: CreationEvent): Creat
       source.kind === event.result.receipt.metadata.kind && source.input.kind === 'url' && source.input.url === event.result.receipt.metadata.sourceUrl))) return state;
   const changed = { ...state, revision: state.revision + 1, activeRequestId: null };
   switch (event.type) {
+    case 'publication_committed':
+      return creationSnapshotSchema.parse({ ...changed, stage: 'published', status: 'succeeded', error: null, publication: { ...state.publication!, receipt: event.receipt } });
     case 'refinement_received':
       return creationSnapshotSchema.parse({ ...changed, status: 'succeeded', error: null, review: { ...state.review!, request: null, proposal: { requestId, baseEditRevision: event.result.baseEditRevision, result: event.result.proposal } } });
     case 'building_received':

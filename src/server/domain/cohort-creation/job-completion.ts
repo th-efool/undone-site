@@ -1,3 +1,4 @@
+import { validatePublicationCheckpoint } from './publication.service';
 import { validateRefinementResult } from './refinement.service';
 import { validateBuildingCheckpoint } from './building.service';
 import { validateAnalysisCheckpoint } from './analysis.service';
@@ -64,6 +65,11 @@ export function validateWebRetention(job: ClaimedWebJob, value: unknown): Retain
 }
 
 export function jobCompletion(job: ClaimedCreationJob, value: CreationCheckpoint): CreationEvent {
+  if (job.kind === 'finalize_creation') {
+    const result = validatePublicationCheckpoint(job.input.snapshot, job.requestId, job.input.mode, job.input.cohortId, value);
+    if (result.completed.length !== result.total) throw new Error('Publication preparation is incomplete');
+    return { type: 'publication_prepared', requestId: job.requestId, result };
+  }
   if (job.kind === 'refine_curriculum') return { type: 'refinement_received', requestId: job.requestId, result: validateRefinementResult(job.input, value) };
   if (job.kind === 'understand_material') {
     const result = validateUnderstandingCheckpoint(job.input.snapshot, job.requestId, value);

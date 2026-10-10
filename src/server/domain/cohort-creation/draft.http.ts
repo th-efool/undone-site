@@ -9,6 +9,7 @@ const idSchema = z.uuid();
 const createSchema = z.strictObject({ draftId: idSchema });
 const updateSchema = z.strictObject({ baseRevision: z.number().int().nonnegative(), command: creationCommandSchema });
 const commandGuardMessages = new Set([
+  'Publication is not available', 'This cohort is already activated',
   'Review is not available', 'Unknown review lesson', 'Unknown orphaned edit', 'Refinement proposal is stale', 'Refinement proposal is invalid',
   'Intent is not ready', 'Starting point is not available', 'Operation is still running',
   'Save a video selection before observing it',

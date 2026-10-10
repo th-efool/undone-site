@@ -1,3 +1,8 @@
+import { publicationRequestSchema } from '@/src/shared/cohort-creation/jobs';
+import { publicationCheckpointSchema } from '@/src/shared/cohort-creation/publication';
+import { validatePublicationCheckpoint } from '@/src/server/domain/cohort-creation/publication.service';
+import { reserveCreationPublication, pinPublication, preservePublication, materializeCreationPublication } from './creationPublication.repo';
+import { loadPublicationPrepared } from '@/src/server/domain/cohort-creation/publication.runtime';
 import { refinementRequestSchema, refinementResultSchema } from '@/src/shared/cohort-creation/jobs';
 import { validateRefinementResult } from '@/src/server/domain/cohort-creation/refinement.service';
 import { appendCreationConversation } from './creationConversation.repo';
@@ -62,6 +67,7 @@ async function fenced(tx: Prisma.TransactionClient, job: ClaimedCreationJob) {
 function claimed(row: CreationJob): ClaimedCreationJob {
   const base = { ...jobSummary(row), draftId: row.draftId, ownerId: row.ownerId,
     inputFingerprint: row.inputFingerprint, leaseToken: row.leaseToken!, deadlineAt: row.deadlineAt! };
+  if (row.kind === 'finalize_creation') return { ...base, kind: 'finalize_creation', input: publicationRequestSchema.parse(row.input), checkpoint: row.checkpoint ? publicationCheckpointSchema.parse(row.checkpoint) : null };
   if (row.kind === 'refine_curriculum') return { ...base, kind: 'refine_curriculum', input: refinementRequestSchema.parse(row.input), checkpoint: row.checkpoint ? refinementResultSchema.parse(row.checkpoint) : null };
   if (row.kind === 'build_curriculum') return { ...base, kind: 'build_curriculum', input: buildingRequestSchema.parse(row.input),
     checkpoint: row.checkpoint ? buildingCheckpointSchema.parse(row.checkpoint) : null };
@@ -194,17 +200,31 @@ function preserveNotionSource(current: CreationSnapshot, retained: RetainedNotio
   const refs = current.materialRefs.find(ref => ref.materialId === retained.materialId);
   if (refs && (!refs.ids.includes(retained.artifact.id) || partial && refs.ids.length !== 1)) throw new Error('Cannot replace a retained Notion receipt or completed checkpoint');
 }
-export function createCreationJobRepository(prisma = defaultPrisma): CreationJobRepository {
+export function createCreationJobRepository(prisma = defaultPrisma, publicationLoader = loadPublicationPrepared): CreationJobRepository {
  return {
   async enqueue(owner, previous, next) {
     return prisma.$transaction(async tx => {
       const current = await lockedDraft(tx, owner, previous.draftId);
       if (!current) return null;
+      let queued = next;
+      if (next.stage === 'finalizing') {
+        if (current.revision !== previous.revision) return null;
+        const operation = next.publication!;
+        const reserved = await reserveCreationPublication(tx, owner, next, operation.requestId, operation.mode);
+        queued = creationSnapshotSchema.parse({ ...next, publication: { ...operation, cohortId: reserved.cohortId, snapshotHash: reserved.snapshotHash } });
+        if (reserved.receipt) {
+          const receipt = reserved.receipt;
+          const recovered = creationSnapshotSchema.parse({ ...queued, stage: 'published', status: 'succeeded', activeRequestId: null,
+            publication: { ...queued.publication!, requestId: receipt.requestId, mode: receipt.mode, cohortId: receipt.cohortId, snapshotHash: receipt.snapshotHash, checkpoint: null, receipt } });
+          await writeDraftEvent(tx, owner, recovered, 'snapshot'); return recovered;
+        }
+      }
       const source = next.materials.find(source => source.status === 'acquiring');
       const metadata = next.youtubeSources.find(preview => preview.materialId === source?.id);
-      const kind = next.stage === 'review' ? 'refine_curriculum' : next.stage === 'processing' ? next.processing?.phase === 'building' ? 'build_curriculum' : next.processing?.phase === 'analysis' ? 'analyze_material' : next.processing?.phase === 'chunking' ? 'chunk_material' : 'understand_material' : next.stage === 'recommendations' ? 'recommendations' : next.discovery?.requestId === next.activeRequestId ? 'discover_material' : source?.kind === 'notion' ? 'acquire_notion' : source?.kind === 'github' ? 'acquire_github' : source?.kind === 'web' ? 'acquire_web' : source?.kind === 'pdf' ? 'acquire_pdf' : ['youtube_video', 'youtube_playlist'].includes(source?.kind ?? '') ? metadata && source?.selectedUnitIds.length ? 'observe_youtube' : 'inspect_youtube' : 'acquire_text';
+      const kind = next.stage === 'finalizing' ? 'finalize_creation' : next.stage === 'review' ? 'refine_curriculum' : next.stage === 'processing' ? next.processing?.phase === 'building' ? 'build_curriculum' : next.processing?.phase === 'analysis' ? 'analyze_material' : next.processing?.phase === 'chunking' ? 'chunk_material' : 'understand_material' : next.stage === 'recommendations' ? 'recommendations' : next.discovery?.requestId === next.activeRequestId ? 'discover_material' : source?.kind === 'notion' ? 'acquire_notion' : source?.kind === 'github' ? 'acquire_github' : source?.kind === 'web' ? 'acquire_web' : source?.kind === 'pdf' ? 'acquire_pdf' : ['youtube_video', 'youtube_playlist'].includes(source?.kind ?? '') ? metadata && source?.selectedUnitIds.length ? 'observe_youtube' : 'inspect_youtube' : 'acquire_text';
       const input = kind === 'recommendations'
         ? recommendationRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, query: next.query })
+        : kind === 'finalize_creation' ? publicationRequestSchema.parse({ requestId: queued.activeRequestId, inputRevision: queued.inputRevision, mode: queued.publication!.mode, cohortId: queued.publication!.cohortId, snapshotHash: queued.publication!.snapshotHash, snapshot: { ...queued, stage: 'review', status: 'succeeded', activeRequestId: null } })
         : kind === 'refine_curriculum' ? refinementRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, snapshot: { ...next, status: 'succeeded', activeRequestId: null } })
         : kind === 'build_curriculum' ? buildingRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision,
           snapshot: { ...next, status: 'succeeded', activeRequestId: null, processing: { ...next.processing, phase: 'analysis', building: null } } })
@@ -250,8 +270,8 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
         inputFingerprint: fingerprint, input } });
       if (kind === 'refine_curriculum' && !await appendCreationConversation(tx, owner, next.draftId, { id: randomUUID(), draftId: next.draftId,
         requestId: input.requestId, role: 'user', message: next.review!.request!.prompt, proposal: null, createdAt: new Date().toISOString() })) throw new Error('Conversation write failed');
-      await writeDraftEvent(tx, owner, next, 'job_queued', job);
-      return next;
+      await writeDraftEvent(tx, owner, queued, 'job_queued', job);
+      return queued;
     });
   },
   async cancel(owner, previous, next) {
@@ -278,7 +298,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const candidates = await tx.$queryRaw<{ id: string; draftId: string; ownerId: string }[]>`
         SELECT j."id",j."draftId",j."ownerId" FROM "creation_jobs" j
         JOIN "creation_drafts" d ON d."id"=j."draftId"
-        WHERE d."expiredAt" IS NULL AND j."kind" IN ('recommendations','acquire_text','acquire_web','acquire_pdf','inspect_youtube','observe_youtube','acquire_github','acquire_notion','discover_material','understand_material','chunk_material','analyze_material','build_curriculum','refine_curriculum') AND j."cancelRequestedAt" IS NULL AND
+        WHERE d."expiredAt" IS NULL AND j."kind" IN ('recommendations','acquire_text','acquire_web','acquire_pdf','inspect_youtube','observe_youtube','acquire_github','acquire_notion','discover_material','understand_material','chunk_material','analyze_material','build_curriculum','refine_curriculum','finalize_creation') AND j."cancelRequestedAt" IS NULL AND
         ((j."status"='queued' AND j."nextRunAt"<=CURRENT_TIMESTAMP) OR
          (j."status"='running' AND j."leaseUntil"<=CURRENT_TIMESTAMP))
         ORDER BY j."nextRunAt",j."createdAt" LIMIT 1 FOR UPDATE OF d SKIP LOCKED`;
@@ -294,7 +314,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const rows = await tx.$queryRaw<CreationJob[]>`UPDATE "creation_jobs" SET "status"='running',
         "attempt"="attempt"+1,"leaseOwner"=${worker},"leaseToken"=${token},
         "leaseUntil"=CURRENT_TIMESTAMP + interval '90 seconds',"heartbeatAt"=CURRENT_TIMESTAMP,
-        "deadlineAt"=COALESCE("deadlineAt",CURRENT_TIMESTAMP + CASE WHEN "kind" IN ('understand_material','chunk_material','analyze_material','build_curriculum','refine_curriculum') THEN interval '6 hours' WHEN "kind"='discover_material' THEN interval '15 minutes' WHEN "kind"='observe_youtube' THEN interval '6 hours' WHEN "kind" IN ('acquire_github','acquire_notion') THEN interval '6 minutes' WHEN "kind" IN ('acquire_web','acquire_pdf','inspect_youtube') THEN interval '120 seconds' WHEN "kind"='acquire_text' THEN interval '60 seconds' ELSE interval '30 seconds' END),"updatedAt"=CURRENT_TIMESTAMP
+        "deadlineAt"=COALESCE("deadlineAt",CURRENT_TIMESTAMP + CASE WHEN "kind" IN ('understand_material','chunk_material','analyze_material','build_curriculum','refine_curriculum','finalize_creation') THEN interval '6 hours' WHEN "kind"='discover_material' THEN interval '15 minutes' WHEN "kind"='observe_youtube' THEN interval '6 hours' WHEN "kind" IN ('acquire_github','acquire_notion') THEN interval '6 minutes' WHEN "kind" IN ('acquire_web','acquire_pdf','inspect_youtube') THEN interval '120 seconds' WHEN "kind"='acquire_text' THEN interval '60 seconds' ELSE interval '30 seconds' END),"updatedAt"=CURRENT_TIMESTAMP
         WHERE "id"=${job.id} RETURNING *`;
       await writeDraftEvent(tx, row.ownerId, { ...current, revision: current.revision + 1 }, 'job_started', rows[0]);
       return claimed(rows[0]);
@@ -360,11 +380,20 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
     };
   },
   async finish(job, event) {
+    const prepared = event.type === 'publication_prepared' && job.kind === 'finalize_creation'
+      ? await publicationLoader({ ownerId: job.ownerId, draftId: job.draftId }, job.input.snapshot, event.result) : null;
     try {
       return await prisma.$transaction(async tx => {
         const current = await lockedDraft(tx, job.ownerId, job.draftId);
         if (!current || current.activeRequestId !== job.requestId || current.inputRevision !== job.inputRevision) return false;
         await fenced(tx, job);
+        if (event.type === 'publication_prepared') {
+          if (job.kind !== 'finalize_creation' || !prepared) throw new Error('Invalid publication job');
+          jobCompletion(job, event.result); preservePublication(current.publication?.checkpoint ?? null, event.result);
+          await pinPublication(tx, { ownerId: job.ownerId, draftId: job.draftId }, event.result);
+          const receipt = await materializeCreationPublication(tx, job.ownerId, job.input.snapshot, event.result, prepared);
+          event = { type: 'publication_committed', requestId: job.requestId, receipt };
+        }
         if (event.type === 'refinement_received') {
           if (job.kind !== 'refine_curriculum') throw new Error('Invalid refinement job');
           jobCompletion(job, event.result);
@@ -404,7 +433,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
         if (event.type === 'youtube_metadata_received') { jobCompletion(job, event.result); await pinYoutubeMetadata(tx, job, event.result); }
         const next = applyEvent(current, event);
         if (next === current) return false;
-        const status = event.type === 'refinement_received' || event.type === 'building_received' || event.type === 'analysis_received' || event.type === 'chunking_received' || event.type === 'understanding_received' || event.type === 'discovery_received' || event.type === 'recommendations_received' || event.type === 'material_received' || event.type === 'youtube_metadata_received' ? 'succeeded' : event.type === 'operation_cancelled' ? 'canceled' : 'failed';
+        const status = event.type === 'publication_committed' || event.type === 'refinement_received' || event.type === 'building_received' || event.type === 'analysis_received' || event.type === 'chunking_received' || event.type === 'understanding_received' || event.type === 'discovery_received' || event.type === 'recommendations_received' || event.type === 'material_received' || event.type === 'youtube_metadata_received' ? 'succeeded' : event.type === 'operation_cancelled' ? 'canceled' : 'failed';
         const completed = await tx.creationJob.update({ where: { id: job.id }, data: { status,
           ...(event.type === 'recommendations_received' ? { checkpoint: event.result } : {}),
           ...(event.type === 'material_received' ? { checkpoint: event.manifest } : {}),
@@ -420,10 +449,23 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
           requestId: job.requestId, role: 'assistant', message: event.result.proposal.message, proposal: event.result.proposal, createdAt: new Date().toISOString() })) throw new Error('Conversation write failed');
         await writeDraftEvent(tx, job.ownerId, next, status === 'succeeded' ? 'job_completed' : status === 'failed' ? 'job_failed' : 'job_canceled', completed);
         return true;
-      });
+      }, { timeout: 120_000 });
     } catch (error) { if (error instanceof LeaseLost) return false; throw error; }
   },
   async checkpoint(job, result) {
+    if (job.kind === 'finalize_creation') {
+      const checkpoint = validatePublicationCheckpoint(job.input.snapshot, job.requestId, job.input.mode, job.input.cohortId, result);
+      try { return await prisma.$transaction(async tx => {
+        const current = await lockedDraft(tx, job.ownerId, job.draftId);
+        if (!current || current.activeRequestId !== job.requestId || current.inputRevision !== job.inputRevision || current.publication?.requestId !== job.requestId ||
+          current.publication.snapshotHash !== checkpoint.snapshotHash || current.publication.cohortId !== checkpoint.cohortId) return false;
+        await fenced(tx, job); preservePublication(current.publication.checkpoint, checkpoint);
+        await pinPublication(tx, { ownerId: job.ownerId, draftId: job.draftId }, checkpoint);
+        const next = creationSnapshotSchema.parse({ ...current, revision: current.revision + 1, publication: { ...current.publication, checkpoint } });
+        const updated = await tx.creationJob.update({ where: { id: job.id }, data: { checkpoint } });
+        await writeDraftEvent(tx, job.ownerId, next, 'snapshot', updated); return true;
+      }); } catch (error) { if (error instanceof LeaseLost) return false; throw error; }
+    }
     if (job.kind === 'refine_curriculum') {
       const checkpoint = validateRefinementResult(job.input, result);
       try { return await prisma.$transaction(async tx => {

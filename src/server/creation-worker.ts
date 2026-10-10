@@ -1,3 +1,4 @@
+import { publicationService } from './domain/cohort-creation/publication.runtime';
 import { VercelCreationRefinement } from './infrastructure/ai/vercelCreationRefinement';
 import { RefinementService } from './domain/cohort-creation/refinement.service';
 import type { CreationRefinement } from './domain/cohort-creation/refinement';
@@ -171,7 +172,8 @@ async function main() {
         const chunks = new ChunkingContentService(understanding, storage.creationArtifactRepository);
         const analysis = new AnalysisContentService(chunks, storage.creationArtifactRepository);
         return new RefinementService(new BuildingContentService(analysis, storage.creationArtifactRepository), ai).run(...args);
-      } }));
+      } }),
+      () => ({ run: async (...args) => (await publicationService()).run(...args) }));
   } finally {
     clearInterval(retentionTimer);
     await maintenance;

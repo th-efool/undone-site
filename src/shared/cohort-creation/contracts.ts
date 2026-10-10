@@ -1,3 +1,4 @@
+import { publicationCheckpointSchema, publicationReceiptSchema } from './publication';
 import { reviewWorkspaceSchema } from './review';
 import { buildingCheckpointSchema } from './build';
 import { analysisCheckpointSchema } from './analysis';
@@ -165,7 +166,7 @@ export const youtubeSourceStateSchema = z.strictObject({ materialId: key, source
 });
 export const creationSnapshotSchema = z.strictObject({
   schemaVersion: z.literal(1), draftId: z.uuid(), storage: z.literal('postgres'), revision, inputRevision: revision,
-  stage: z.enum(['recommendations', 'starting_point', 'processing', 'ready', 'review']), query: z.string().max(2000),
+  stage: z.enum(['recommendations', 'starting_point', 'processing', 'ready', 'review', 'finalizing', 'published']), query: z.string().max(2000),
   status: z.enum(['idle', 'running', 'succeeded', 'failed', 'canceled']), activeRequestId: z.uuid().nullable(),
   result: recommendationResultSchema.nullable(), startingPoint: startingPointSchema.nullable(), error: creationErrorSchema.nullable(),
   materials: z.array(materialSourceSchema).max(20).default([]),
@@ -175,6 +176,8 @@ export const creationSnapshotSchema = z.strictObject({
   youtubeSources: z.array(youtubeSourceStateSchema).max(20).default([]),
   discovery: z.strictObject({ requestId: z.uuid(), inputRevision: revision,
     checkpoint: discoveryCheckpointSchema.nullable(), result: discoveryResultSchema.nullable() }).nullable().default(null),
+  publication: z.strictObject({ requestId: z.uuid(), mode: z.enum(['private_activation', 'public_publish']), cohortId: z.uuid().nullable(),
+    snapshotHash: z.string().regex(/^[a-f0-9]{64}$/).nullable(), checkpoint: publicationCheckpointSchema.nullable(), receipt: publicationReceiptSchema.nullable() }).nullable().default(null),
   review: reviewWorkspaceSchema.nullable().default(null),
   processing: z.strictObject({ requestId: z.uuid(), inputRevision: revision,
     checkpoint: understandingCheckpointSchema.nullable(), complete: z.boolean(), phase: z.enum(['understanding', 'chunking', 'analysis', 'building']).default('understanding'),
@@ -222,6 +225,15 @@ export const creationSnapshotSchema = z.strictObject({
     state.status === 'running' && (state.review.request?.requestId !== state.activeRequestId || state.review.request.baseEditRevision !== state.review.editRevision))) {
     ctx.addIssue({ code: 'custom', message: 'Review requires accepted curriculum and a current refinement request' });
   }
+  const publication = state.publication;
+  if (publication?.checkpoint && (publication.checkpoint.requestId !== publication.requestId || publication.checkpoint.mode !== publication.mode ||
+    publication.checkpoint.cohortId !== publication.cohortId || publication.checkpoint.snapshotHash !== publication.snapshotHash)) ctx.addIssue({ code: 'custom', message: 'Invalid publication checkpoint' });
+  if (state.stage === 'finalizing' && (!publication || !building?.complete || !state.review || state.review.orphanedLessonIds.length || state.review.proposal ||
+    state.review.buildFingerprint !== building.checkpoint?.inputFingerprint || state.status === 'running' && state.activeRequestId !== publication.requestId)) {
+    ctx.addIssue({ code: 'custom', message: 'Finalization requires a current accepted review' });
+  }
+  if (state.stage === 'published' && (!publication?.receipt || publication.receipt.cohortId !== publication.cohortId || state.status !== 'succeeded' ||
+    publication.receipt.mode !== publication.mode || publication.receipt.snapshotHash !== publication.snapshotHash)) ctx.addIssue({ code: 'custom', message: 'Committed publication receipt is required' });
   if ((state.status === 'running') !== (state.activeRequestId !== null)) ctx.addIssue({ code: 'custom', message: 'Invalid active operation' });
   if (state.status === 'running' && ((state.stage === 'recommendations' && state.result !== null) ||
     (state.stage === 'starting_point' && !(state.discovery?.requestId === state.activeRequestId && state.discovery.result === null) &&

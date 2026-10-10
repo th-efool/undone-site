@@ -1,3 +1,5 @@
+import type { PublicationRequest } from '@/src/shared/cohort-creation/jobs';
+import type { PublicationCheckpoint } from '@/src/shared/cohort-creation/publication';
 import type { RefinementRequest, RefinementResult } from '@/src/shared/cohort-creation/jobs';
 import type { BuildingCheckpoint } from '@/src/shared/cohort-creation/build';
 import type { BuildingRequest } from '@/src/shared/cohort-creation/jobs';
@@ -36,12 +38,13 @@ export type ClaimedGithubJob = JobBase & { kind: 'acquire_github'; input: Github
 export type ClaimedNotionJob = JobBase & { kind: 'acquire_notion'; input: NotionAcquisitionRequest; checkpoint: RetainedNotionCheckpoint | NotionMaterialManifest | null };
 export type ClaimedDiscoveryJob = JobBase & { kind: 'discover_material'; input: DiscoveryRequest; checkpoint: DiscoveryCheckpoint | DiscoveryResult | null };
 export type ClaimedUnderstandingJob = JobBase & { kind: 'understand_material'; input: UnderstandingRequest; checkpoint: UnderstandingCheckpoint | null };
+export type ClaimedPublicationJob = JobBase & { kind: 'finalize_creation'; input: PublicationRequest; checkpoint: PublicationCheckpoint | null };
 export type ClaimedRefinementJob = JobBase & { kind: 'refine_curriculum'; input: RefinementRequest; checkpoint: RefinementResult | null };
 export type ClaimedBuildingJob = JobBase & { kind: 'build_curriculum'; input: BuildingRequest; checkpoint: BuildingCheckpoint | null };
 export type ClaimedAnalysisJob = JobBase & { kind: 'analyze_material'; input: AnalysisRequest; checkpoint: AnalysisCheckpoint | null };
 export type ClaimedChunkingJob = JobBase & { kind: 'chunk_material'; input: ChunkingRequest; checkpoint: ChunkingCheckpoint | null };
-export type ClaimedCreationJob = ClaimedRecommendationJob | ClaimedTextJob | ClaimedWebJob | ClaimedPdfJob | ClaimedYoutubeInspectionJob | ClaimedYoutubeObservationJob | ClaimedGithubJob | ClaimedNotionJob | ClaimedDiscoveryJob | ClaimedUnderstandingJob | ClaimedChunkingJob | ClaimedAnalysisJob | ClaimedBuildingJob | ClaimedRefinementJob;
-export type CreationCheckpoint = RecommendationResult | MaterialManifest | RetainedWebCheckpoint | WebMaterialManifest | RetainedYoutubeMetadata | YoutubeObservationCheckpoint | YoutubeMaterialManifest | RetainedGithubCheckpoint | GithubMaterialManifest | RetainedNotionCheckpoint | NotionMaterialManifest | DiscoveryCheckpoint | DiscoveryResult | UnderstandingCheckpoint | ChunkingCheckpoint | AnalysisCheckpoint | BuildingCheckpoint | RefinementResult;
+export type ClaimedCreationJob = ClaimedRecommendationJob | ClaimedTextJob | ClaimedWebJob | ClaimedPdfJob | ClaimedYoutubeInspectionJob | ClaimedYoutubeObservationJob | ClaimedGithubJob | ClaimedNotionJob | ClaimedDiscoveryJob | ClaimedUnderstandingJob | ClaimedChunkingJob | ClaimedAnalysisJob | ClaimedBuildingJob | ClaimedRefinementJob | ClaimedPublicationJob;
+export type CreationCheckpoint = RecommendationResult | MaterialManifest | RetainedWebCheckpoint | WebMaterialManifest | RetainedYoutubeMetadata | YoutubeObservationCheckpoint | YoutubeMaterialManifest | RetainedGithubCheckpoint | GithubMaterialManifest | RetainedNotionCheckpoint | NotionMaterialManifest | DiscoveryCheckpoint | DiscoveryResult | UnderstandingCheckpoint | ChunkingCheckpoint | AnalysisCheckpoint | BuildingCheckpoint | RefinementResult | PublicationCheckpoint;
 export interface CreationJobRepository {
   enqueue(owner: string, previous: CreationSnapshot, next: CreationSnapshot): Promise<CreationSnapshot | null>;
   cancel(owner: string, previous: CreationSnapshot, next: CreationSnapshot): Promise<boolean>;
