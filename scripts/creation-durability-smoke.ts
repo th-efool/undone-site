@@ -31,6 +31,8 @@ import { notionMaterialManifestSchema, retainedNotionCheckpointSchema, NOTION_PA
 import { notionExtractionVersion, notionReceiptFingerprint, notionUnitId } from '../src/server/domain/cohort-creation/materials/notion-extraction';
 import { discoveryResultSchema } from '../src/shared/cohort-creation/discovery';
 import { discoveryFingerprint } from '../src/server/domain/cohort-creation/discovery.service';
+import { understandingInputFingerprint, understandingArtifactFingerprint } from '../src/server/domain/cohort-creation/understanding.service';
+import { understandingCheckpointSchema } from '../src/shared/cohort-creation/processing';
 
 let stage = 'connection';
 async function main() {
@@ -503,6 +505,59 @@ async function main() {
     assert.equal(await db.creationStorageObject.count({ where: { draftId: dcDraftId, referencedAt: { not: null } } }), 3);
     assert.equal(await drafts.swap(owner, dcDraftId, dcReady.revision, applyCommand(dcReady, { type: 'choose_starting_point', startingPoint: 'have_material' })), true);
     assert.equal(await db.creationStorageObject.count({ where: { draftId: dcDraftId, referencedAt: { not: null } } }), 0, 'abandoned discovery evidence detaches');
+    stage = 'durable understanding inventory, partition budgets and recovery';
+    const unDraftId = randomUUID(); const unMaterialId = randomUUID(); const unAsset = dcRef(); const unExtraction = dcRef();
+    const unStart = creationSnapshotSchema.parse({ ...starting, draftId: unDraftId,
+      materials: [{ id: unMaterialId, kind: 'markdown', input: { kind: 'upload', assetId: unAsset.id }, status: 'ready', selectedUnitIds: [unMaterialId] }],
+      extractions: [{ materialId: unMaterialId, version: 'a'.repeat(64), checksum: unAsset.checksum, artifactRef: unExtraction.id,
+        extractionKind: 'text', complete: true, segmentCount: 2 }], materialRefs: [{ materialId: unMaterialId, ids: [unExtraction.id] }] });
+    await db.creationDraft.create({ data: { id: unDraftId, ownerId: owner, snapshot: unStart, revision: unStart.revision } });
+    for (const [ref, kind] of [[unAsset, 'upload'], [unExtraction, 'artifact']] as const) await db.creationStorageObject.create({ data: {
+      ...ref, kind, ownerId: owner, draftId: unDraftId, blobId: randomUUID(), status: 'ready', mediaType: 'application/json',
+      reservedBytes: ref.byteLength, ...(kind === 'artifact' ? { artifactType: 'text-extraction', schemaVersion: 1, inputFingerprint: 'fixture' } : {}) } });
+    const unNext = applyCommand(unStart, { type: 'understand_material', requestId: randomUUID() });
+    assert.ok(await repo.enqueue(owner, unStart, unNext)); assert.ok(await repo.enqueue(owner, unStart, unNext));
+    assert.equal(await repo.enqueue('foreign-owner', unStart, unNext), null);
+    assert.equal(await db.creationJob.count({ where: { draftId: unDraftId } }), 1);
+    const unJob = await repo.claim('understanding-worker'); assert.ok(unJob?.kind === 'understand_material');
+    await db.creationJob.update({ where: { id: unJob.id }, data: { leaseUntil: new Date(Date.now() + 600_000) } });
+    await assert.rejects(repo.reserveModelCall(unJob, 'a'.repeat(64)), 'partition inventory must be persisted before paid calls');
+    const unCheckpoint = understandingCheckpointSchema.parse({ phase: 'understanding', requestId: unJob.requestId, inputRevision: unJob.inputRevision,
+      inputFingerprint: understandingInputFingerprint(unJob.input.snapshot, unJob.requestId), total: 2, partitionIds: ['a'.repeat(64), 'b'.repeat(64)], completed: [] });
+    assert.equal(await repo.checkpoint(unJob, unCheckpoint), true);
+    await assert.rejects(repo.reserveModelCall(unJob, 'f'.repeat(64)), /partition is not available/);
+    for (let call = 0; call < 2; call++) { const release = await repo.reserveModelCall(unJob, unCheckpoint.partitionIds[0]); assert.ok(release); await release(); }
+    await assert.rejects(repo.reserveModelCall(unJob, unCheckpoint.partitionIds[0]), JobBudgetExceeded);
+    const unRefs = [dcRef(), dcRef()];
+    for (const [index, ref] of unRefs.entries()) await db.creationStorageObject.create({ data: { ...ref, ownerId: owner, draftId: unDraftId,
+      blobId: randomUUID(), status: 'ready', mediaType: 'application/json', reservedBytes: ref.byteLength,
+      artifactType: 'creation-understanding', schemaVersion: 1, inputFingerprint: understandingArtifactFingerprint(unCheckpoint.inputFingerprint, unCheckpoint.partitionIds[index]) } });
+    const unPartial = { ...unCheckpoint, completed: [{ partitionId: unCheckpoint.partitionIds[0], artifact: unRefs[0] }] };
+    await db.creationStorageObject.update({ where: { id: unRefs[0].id }, data: { ownerId: 'foreign-owner' } });
+    await assert.rejects(repo.checkpoint(unJob, unPartial), /storage reference unavailable/);
+    await db.creationStorageObject.update({ where: { id: unRefs[0].id }, data: { ownerId: owner } });
+    assert.equal(await repo.checkpoint(unJob, unPartial), true);
+    await assert.rejects(repo.checkpoint(unJob, unCheckpoint), /Cannot regress/);
+    await assert.rejects(repo.reserveModelCall(unJob, unCheckpoint.partitionIds[0]), /partition is not available/);
+    assert.equal((await drafts.load(owner, unDraftId))?.processing?.checkpoint?.completed.length, 1);
+    await db.creationJob.update({ where: { id: unJob.id }, data: { leaseUntil: new Date(0) } });
+    const unResumed = await repo.claim('understanding-restart'); assert.ok(unResumed?.kind === 'understand_material' && unResumed.checkpoint);
+    await db.creationJob.update({ where: { id: unResumed.id }, data: { leaseUntil: new Date(Date.now() + 600_000) } });
+    assert.equal(await repo.checkpoint(unJob, unPartial), false, 'old understanding worker is fenced');
+    const releasePartition = await repo.reserveModelCall(unResumed, unCheckpoint.partitionIds[1]); assert.ok(releasePartition); await releasePartition();
+    const unComplete = { ...unPartial, completed: [...unPartial.completed, { partitionId: unCheckpoint.partitionIds[1], artifact: unRefs[1] }] };
+    assert.equal(await repo.checkpoint(unResumed, unComplete), true);
+    await executeCreationJob(repo, { ...unResumed, checkpoint: unComplete, deadlineAt: new Date(0) }, () => { throw new Error('No AI expected'); }, new AbortController().signal);
+    const unReady = await drafts.load(owner, unDraftId); assert.ok(unReady?.processing?.complete); assert.equal(unReady.stage, 'processing');
+    assert.equal(await db.creationStorageObject.count({ where: { id: { in: unRefs.map(ref => ref.id) }, referencedAt: { not: null } } }), 2);
+    const unAgain = applyCommand(unReady, { type: 'understand_material', requestId: randomUUID() });
+    assert.ok(await repo.enqueue(owner, unReady, unAgain));
+    const unCancelJob = await repo.claim('understanding-cancel'); assert.ok(unCancelJob?.kind === 'understand_material');
+    const unBeforeCancel = await drafts.load(owner, unDraftId); assert.ok(unBeforeCancel);
+    const unCanceled = applyCommand(unBeforeCancel, { type: 'cancel_processing' }); assert.equal(await repo.cancel(owner, unBeforeCancel, unCanceled), true);
+    assert.equal(await repo.checkpoint(unCancelJob, { ...unCheckpoint, requestId: unCancelJob.requestId,
+      inputFingerprint: understandingInputFingerprint(unCancelJob.input.snapshot, unCancelJob.requestId) }), false);
+    assert.equal(await db.creationStorageObject.count({ where: { id: { in: unRefs.map(ref => ref.id) }, referencedAt: { not: null } } }), 0, 'fresh generation releases old understanding pins');
     stage = 'retention protection and tombstones';
     const retention = createCreationRetentionRepository(db);
     const old = new Date(Date.now() - 61 * 86400_000);
@@ -558,7 +613,7 @@ async function main() {
     try { if (created) await admin.query(`DROP SCHEMA "${schema}" CASCADE`); }
     finally { await admin.end(); }
   }
-  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web/PDF/YouTube/GitHub/Notion/discovery, three-call discovery budget, provider backoff, unit capacity, per-video budgets, checkpoint fencing, restart, pin release, reload, retention; isolated schema removed.');
+  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web/PDF/YouTube/GitHub/Notion/discovery/understanding, inventory and per-partition budgets, three-call discovery budget, provider backoff, unit capacity, per-video budgets, checkpoint fencing, restart, pin release, reload, retention; isolated schema removed.');
 }
 
 main().catch(error => {
