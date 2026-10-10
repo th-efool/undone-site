@@ -41,6 +41,23 @@ describe('retained analysis and owned downstream reads', () => {
     expect(loaded.partitions).toEqual(f.partitions);
     expect(loaded.analyses[0][0].modelId).toBe('fixture');
   });
+  it('previews only accepted partial analysis, rejects tampering/foreign ownership, and honors aborts without AI', async () => {
+    const f = await fixture(); const result = await f.run(); vi.mocked(f.ai.analyze).mockClear();
+    const state = applyCommand(f.state, { type: 'analyze_material', requestId: f.requestId });
+    state.processing!.analysis!.checkpoint = { ...result, completed: result.completed.slice(0, 1) };
+    const reader = new AnalysisContentService(f.content, f.artifacts); const signal = new AbortController().signal;
+    const preview = await reader.preview(f.scope, state, signal);
+    expect(preview.chunks).toHaveLength(2); expect(preview.analyses).toHaveLength(1);
+    expect(preview.analyses[0].chunkId).toBe(preview.chunks[0].id);
+    await expect(reader.preview({ ...f.scope, ownerId: 'other' }, state, signal)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    const stale = structuredClone(state); stale.inputRevision += 1;
+    await expect(reader.preview(f.scope, stale, signal)).rejects.toThrow();
+    const tampered = structuredClone(state); tampered.processing!.analysis!.checkpoint!.completed[0].artifact.checksum = 'f'.repeat(64);
+    await expect(reader.preview(f.scope, tampered, signal)).rejects.toThrow();
+    const canceled = new AbortController(); canceled.abort();
+    await expect(reader.preview(f.scope, state, canceled.signal)).rejects.toThrow();
+    expect(f.ai.analyze).not.toHaveBeenCalled();
+  });
   it('stops on failed acceptance and resumes only unfinished partitions', async () => {
     const f = await fixture(); let saved: AnalysisCheckpoint | undefined;
     await expect(f.run(undefined, async value => { saved = value; if (value.completed.length === 1) throw new Error('lease lost'); })).rejects.toThrow('lease lost');

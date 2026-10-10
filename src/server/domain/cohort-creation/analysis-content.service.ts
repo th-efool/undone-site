@@ -19,6 +19,23 @@ export function acceptedAnalysis(input: CreationSnapshot) {
 export class AnalysisContentService {
   constructor(private readonly content: Pick<ChunkingContentService, 'load'>,
     private readonly artifacts: Pick<CreationArtifactRepository, 'getJSON' | 'ref'>) {}
+  /** Reads only accepted partial analysis; loading never generates or advances the draft. */
+  async preview(scope: StorageScope, input: CreationSnapshot, signal: AbortSignal) {
+    signal.throwIfAborted(); const state = creationSnapshotSchema.parse(input);
+    const operation = state.processing?.analysis;
+    if (scope.draftId !== state.draftId || !operation?.checkpoint) invalid();
+    const checkpoint = validateAnalysisCheckpoint(state, operation.requestId, operation.checkpoint);
+    const loaded = await this.content.load(scope, state, signal);
+    if (checkpoint.chunkingFingerprint !== loaded.checkpoint.inputFingerprint ||
+      JSON.stringify(checkpoint.partitionIds) !== JSON.stringify(loaded.checkpoint.partitionIds)) invalid();
+    const analyses = [];
+    for (const [index, retained] of checkpoint.completed.entries()) {
+      const partition = loaded.partitions[index]; const chunks = loaded.chunks[index];
+      const receipt = await readAnalysisReceipt(this.artifacts, scope, checkpoint, partition, chunks, loaded.receipts[index].artifact, retained, signal);
+      analyses.push(...groundAnalysis(receipt.proposal, partition, chunks, state.inputRevision, receipt.model));
+    }
+    signal.throwIfAborted(); return { chunks: loaded.chunks.flat(), analyses };
+  }
   async load(scope: StorageScope, input: CreationSnapshot, signal: AbortSignal) {
     signal.throwIfAborted(); const state = creationSnapshotSchema.parse(input);
     if (scope.draftId !== state.draftId) invalid();

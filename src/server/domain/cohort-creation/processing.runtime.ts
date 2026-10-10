@@ -17,6 +17,12 @@ export async function loadChunkingPreview(scope: StorageScope, snapshot: Creatio
   return new ChunkingContentService(new UnderstandingContentService(new ProcessingContentService(artifacts), artifacts), artifacts).preview(scope, snapshot, signal);
 }
 
+export async function loadAnalysisPreview(scope: StorageScope, snapshot: CreationSnapshot, signal: AbortSignal) {
+  const { creationArtifactRepository: artifacts } = await import('@/src/server/infrastructure/storage/creation.runtime');
+  return new AnalysisContentService(new ChunkingContentService(new UnderstandingContentService(
+    new ProcessingContentService(artifacts), artifacts), artifacts), artifacts).preview(scope, snapshot, signal);
+}
+
 /** Lazy storage construction keeps route imports and unauthenticated requests free of blob connections. */
 export async function loadBuiltCurriculum(scope: StorageScope, snapshot: CreationSnapshot, signal: AbortSignal) {
   const { creationArtifactRepository: artifacts } = await import('@/src/server/infrastructure/storage/creation.runtime');
