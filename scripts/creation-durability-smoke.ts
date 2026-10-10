@@ -1,3 +1,4 @@
+import { setupPublicationSmokeSchema, runPublicationSmoke } from './creation-publication-smoke';
 /** Opt-in real SQL smoke test. Uses and removes only a newly created isolated schema.
  * No public migrations, model calls, Mongo access, or existing application records.
  */
@@ -36,6 +37,11 @@ import { understandingCheckpointSchema } from '../src/shared/cohort-creation/pro
 import { chunkingCheckpointSchema } from '../src/shared/cohort-creation/processing';
 import { chunkingInputFingerprint, chunkingArtifactFingerprint } from '../src/server/domain/cohort-creation/chunking.service';
 
+import { analysisCheckpointSchema } from '../src/shared/cohort-creation/analysis';
+import { analysisInputFingerprint, analysisArtifactFingerprint } from '../src/server/domain/cohort-creation/analysis.service';
+import { buildingCheckpointSchema } from '../src/shared/cohort-creation/build';
+import { buildingInputFingerprint, buildingArtifactFingerprint } from '../src/server/domain/cohort-creation/building.service';
+
 let stage = 'connection';
 async function main() {
   const connectionString = process.env.CREATION_SMOKE_DATABASE_URL || process.env.DIRECT_URL || process.env.DATABASE_URL;
@@ -57,6 +63,7 @@ async function main() {
     for (const file of ['creation-draft.sql', 'creation-durability.sql', 'creation-retention.sql']) {
       await pool.query(await readFile(new URL(`../prisma/${file}`, import.meta.url), 'utf8'));
     }
+    await setupPublicationSmokeSchema(pool);
     stage = 'enqueue and revision checks';
     const owner = randomUUID();
     await pool.query('INSERT INTO "users" ("id") VALUES ($1)', [owner]);
@@ -507,6 +514,9 @@ async function main() {
     assert.equal(await db.creationStorageObject.count({ where: { draftId: dcDraftId, referencedAt: { not: null } } }), 3);
     assert.equal(await drafts.swap(owner, dcDraftId, dcReady.revision, applyCommand(dcReady, { type: 'choose_starting_point', startingPoint: 'have_material' })), true);
     assert.equal(await db.creationStorageObject.count({ where: { draftId: dcDraftId, referencedAt: { not: null } } }), 0, 'abandoned discovery evidence detaches');
+    {
+    // Keep this processing journey below the independently enforced owner enqueue budget.
+    const owner = randomUUID(); await pool.query('INSERT INTO "users" ("id") VALUES ($1)', [owner]);
     stage = 'durable understanding inventory, partition budgets and recovery';
     const unDraftId = randomUUID(); const unMaterialId = randomUUID(); const unAsset = dcRef(); const unExtraction = dcRef();
     const unStart = creationSnapshotSchema.parse({ ...starting, draftId: unDraftId,
@@ -587,7 +597,98 @@ async function main() {
     await executeCreationJob(repo, { ...chResumed, checkpoint: chComplete, deadlineAt: new Date(0) }, () => { throw new Error('No AI expected'); }, new AbortController().signal);
     const chReady = await drafts.load(owner, unDraftId); assert.ok(chReady?.processing?.chunking?.complete); assert.ok(chReady.processing.complete);
     assert.equal(chReady.inputRevision, unReady.inputRevision);
-    const chAgain = applyCommand(chReady, { type: 'chunk_material', requestId: randomUUID() }); assert.ok(await repo.enqueue(owner, chReady, chAgain));
+    stage = 'durable analysis dependencies, budgets and fenced recovery';
+    const anNext = applyCommand(chReady, { type: 'analyze_material', requestId: randomUUID() });
+    assert.ok(await repo.enqueue(owner, chReady, anNext)); assert.ok(await repo.enqueue(owner, chReady, anNext));
+    assert.equal(await repo.enqueue('foreign-owner', chReady, anNext), null);
+    const anJob = await repo.claim('analysis-worker'); assert.ok(anJob?.kind === 'analyze_material');
+    await db.creationJob.update({ where: { id: anJob.id }, data: { leaseUntil: new Date(Date.now() + 600_000) } });
+    await assert.rejects(repo.reserveModelCall(anJob, unCheckpoint.partitionIds[0]));
+    const anCheckpoint = analysisCheckpointSchema.parse({ phase: 'analysis', requestId: anJob.requestId, inputRevision: anJob.inputRevision,
+      inputFingerprint: analysisInputFingerprint(anJob.input.snapshot, anJob.requestId), chunkingFingerprint: chComplete.inputFingerprint,
+      total: 2, partitionIds: unCheckpoint.partitionIds, completed: [] });
+    assert.equal(await repo.checkpoint(anJob, anCheckpoint), true);
+    await assert.rejects(repo.reserveModelCall(anJob, 'f'.repeat(64)), /partition is not available/);
+    for (let call = 0; call < 2; call++) { const release = await repo.reserveModelCall(anJob, anCheckpoint.partitionIds[0]); assert.ok(release); await release(); }
+    await assert.rejects(repo.reserveModelCall(anJob, anCheckpoint.partitionIds[0]), JobBudgetExceeded);
+    const anRefs = [dcRef(), dcRef()];
+    for (const [index, ref] of anRefs.entries()) await db.creationStorageObject.create({ data: { ...ref, ownerId: owner, draftId: unDraftId,
+      blobId: randomUUID(), status: 'ready', mediaType: 'application/json', reservedBytes: ref.byteLength,
+      artifactType: 'creation-analysis', schemaVersion: 1, inputFingerprint: analysisArtifactFingerprint(anCheckpoint.inputFingerprint, anCheckpoint.partitionIds[index]) } });
+    const anPartial = { ...anCheckpoint, completed: [{ partitionId: anCheckpoint.partitionIds[0], artifact: anRefs[0], chunkCount: 2 }] };
+    await db.creationStorageObject.update({ where: { id: anRefs[0].id }, data: { ownerId: 'foreign-owner' } });
+    await assert.rejects(repo.checkpoint(anJob, anPartial), /storage reference unavailable/);
+    await db.creationStorageObject.update({ where: { id: anRefs[0].id }, data: { ownerId: owner } });
+    assert.equal(await repo.checkpoint(anJob, anPartial), true);
+    await assert.rejects(repo.checkpoint(anJob, anCheckpoint), /Cannot regress/);
+    await assert.rejects(repo.reserveModelCall(anJob, anCheckpoint.partitionIds[0]), /partition is not available/);
+    assert.equal((await drafts.load(owner, unDraftId))?.processing?.analysis?.checkpoint?.completed.length, 1);
+    await db.creationJob.update({ where: { id: anJob.id }, data: { leaseUntil: new Date(0) } });
+    const anResumed = await repo.claim('analysis-restart'); assert.ok(anResumed?.kind === 'analyze_material');
+    await db.creationJob.update({ where: { id: anResumed.id }, data: { leaseUntil: new Date(Date.now() + 600_000) } });
+    assert.equal(await repo.checkpoint(anJob, anPartial), false);
+    const anComplete = { ...anPartial, completed: [...anPartial.completed, { partitionId: anCheckpoint.partitionIds[1], artifact: anRefs[1], chunkCount: 1 }] };
+    assert.equal(await repo.checkpoint(anResumed, anComplete), true);
+    await executeCreationJob(repo, { ...anResumed, checkpoint: anComplete, deadlineAt: new Date(0) }, () => { throw new Error('No AI expected'); }, new AbortController().signal);
+    const anReady = await drafts.load(owner, unDraftId); assert.ok(anReady?.processing?.analysis?.complete); assert.ok(anReady.processing.chunking?.complete);
+    assert.equal(anReady.inputRevision, chReady.inputRevision);
+    stage = 'durable building dependencies, budgets and fenced recovery';
+    const bdNext = applyCommand(anReady, { type: 'build_curriculum', requestId: randomUUID() });
+    assert.ok(await repo.enqueue(owner, anReady, bdNext)); assert.ok(await repo.enqueue(owner, anReady, bdNext));
+    assert.equal(await repo.enqueue('foreign-owner', anReady, bdNext), null);
+    const bdJob = await repo.claim('building-worker'); assert.ok(bdJob?.kind === 'build_curriculum');
+    await db.creationJob.update({ where: { id: bdJob.id }, data: { leaseUntil: new Date(Date.now() + 600_000) } });
+    await assert.rejects(repo.reserveModelCall(bdJob, unCheckpoint.partitionIds[0]));
+    const bdCheckpoint = buildingCheckpointSchema.parse({ phase: 'building', requestId: bdJob.requestId, inputRevision: bdJob.inputRevision,
+      inputFingerprint: buildingInputFingerprint(bdJob.input.snapshot, bdJob.requestId), analysisFingerprint: anComplete.inputFingerprint,
+      total: 2, partitionIds: unCheckpoint.partitionIds, completed: [] });
+    assert.equal(await repo.checkpoint(bdJob, bdCheckpoint), true);
+    await assert.rejects(repo.reserveModelCall(bdJob, 'f'.repeat(64)), /partition is not available/);
+    for (let call = 0; call < 2; call++) { const release = await repo.reserveModelCall(bdJob, bdCheckpoint.partitionIds[0]); assert.ok(release); await release(); }
+    await assert.rejects(repo.reserveModelCall(bdJob, bdCheckpoint.partitionIds[0]), JobBudgetExceeded);
+    const bdRefs = [dcRef(), dcRef()];
+    for (const [index, ref] of bdRefs.entries()) await db.creationStorageObject.create({ data: { ...ref, ownerId: owner, draftId: unDraftId,
+      blobId: randomUUID(), status: 'ready', mediaType: 'application/json', reservedBytes: ref.byteLength,
+      artifactType: 'creation-building', schemaVersion: 1, inputFingerprint: buildingArtifactFingerprint(bdCheckpoint.inputFingerprint, bdCheckpoint.partitionIds[index]) } });
+    const bdPartial = { ...bdCheckpoint, completed: [{ partitionId: bdCheckpoint.partitionIds[0], artifact: bdRefs[0], lessonCount: 2 }] };
+    await db.creationStorageObject.update({ where: { id: bdRefs[0].id }, data: { ownerId: 'foreign-owner' } });
+    await assert.rejects(repo.checkpoint(bdJob, bdPartial), /storage reference unavailable/);
+    await db.creationStorageObject.update({ where: { id: bdRefs[0].id }, data: { ownerId: owner } });
+    assert.equal(await repo.checkpoint(bdJob, bdPartial), true);
+    await assert.rejects(repo.checkpoint(bdJob, bdCheckpoint), /Cannot regress/);
+    await assert.rejects(repo.reserveModelCall(bdJob, bdCheckpoint.partitionIds[0]), /partition is not available/);
+    assert.equal((await drafts.load(owner, unDraftId))?.processing?.building?.checkpoint?.completed.length, 1);
+    await db.creationJob.update({ where: { id: bdJob.id }, data: { leaseUntil: new Date(0) } });
+    const bdResumed = await repo.claim('building-restart'); assert.ok(bdResumed?.kind === 'build_curriculum');
+    await db.creationJob.update({ where: { id: bdResumed.id }, data: { leaseUntil: new Date(Date.now() + 600_000) } });
+    assert.equal(await repo.checkpoint(bdJob, bdPartial), false);
+    const bdComplete = { ...bdPartial, completed: [...bdPartial.completed, { partitionId: bdCheckpoint.partitionIds[1], artifact: bdRefs[1], lessonCount: 1 }] };
+    assert.equal(await repo.checkpoint(bdResumed, bdComplete), true);
+    await executeCreationJob(repo, { ...bdResumed, checkpoint: bdComplete, deadlineAt: new Date(0) }, () => { throw new Error('No AI expected'); }, new AbortController().signal);
+    const bdReady = await drafts.load(owner, unDraftId); assert.ok(bdReady?.processing?.building?.complete); assert.ok(bdReady.processing.chunking?.complete);
+    assert.equal(bdReady.inputRevision, anReady.inputRevision);
+    stage = 'owned review, conversation and artifacts-first publication transactions';
+    await runPublicationSmoke(db, pool, owner, bdReady);
+    // Publication protects its source inventory; use a restored fixture copy for independent invalidation checks.
+    await db.creationDraft.update({ where: { id: unDraftId }, data: { snapshot: bdReady, revision: bdReady.revision } });
+    await db.creationStorageObject.updateMany({ where: { draftId: unDraftId }, data: { publishedAt: null } });
+    for (const phase of ['building', 'analysis'] as const) {
+      const before = await drafts.load(owner, unDraftId); assert.ok(before);
+      const next = applyCommand(before, { type: phase === 'building' ? 'build_curriculum' : 'analyze_material', requestId: randomUUID() });
+      assert.ok(await repo.enqueue(owner, before, next));
+      const refs = phase === 'building' ? bdRefs : anRefs;
+      assert.equal(await db.creationStorageObject.count({ where: { id: { in: refs.map(ref => ref.id) }, referencedAt: { not: null } } }), 0,
+        `fresh ${phase} releases previous accepted pins`);
+      const job = await repo.claim(`${phase}-cancel`); assert.ok(job && (job.kind === 'build_curriculum' || job.kind === 'analyze_material'));
+      const current = await drafts.load(owner, unDraftId); assert.ok(current);
+      assert.equal(await repo.cancel(owner, current, applyCommand(current, { type: 'cancel_processing' })), true);
+      const checkpoint = job.kind === 'build_curriculum' ? { ...bdCheckpoint, requestId: job.requestId,
+        inputFingerprint: buildingInputFingerprint(job.input.snapshot, job.requestId) } : { ...anCheckpoint, requestId: job.requestId,
+        inputFingerprint: analysisInputFingerprint(job.input.snapshot, job.requestId) };
+      assert.equal(await repo.checkpoint(job, checkpoint), false, 'cancellation fences checkpoint writes');
+    }
+    const processingLatest = await drafts.load(owner, unDraftId); assert.ok(processingLatest);
+    const chAgain = applyCommand(processingLatest, { type: 'chunk_material', requestId: randomUUID() }); assert.ok(await repo.enqueue(owner, processingLatest, chAgain));
     assert.equal(await db.creationStorageObject.count({ where: { id: { in: chRefs.map(ref => ref.id) }, referencedAt: { not: null } } }), 0);
     assert.equal(await db.creationStorageObject.count({ where: { id: { in: unRefs.map(ref => ref.id) }, referencedAt: { not: null } } }), 2);
     const chCancelJob = await repo.claim('chunk-cancel'); assert.ok(chCancelJob?.kind === 'chunk_material');
@@ -604,6 +705,7 @@ async function main() {
     assert.equal(await repo.checkpoint(unCancelJob, { ...unCheckpoint, requestId: unCancelJob.requestId,
       inputFingerprint: understandingInputFingerprint(unCancelJob.input.snapshot, unCancelJob.requestId) }), false);
     assert.equal(await db.creationStorageObject.count({ where: { id: { in: unRefs.map(ref => ref.id) }, referencedAt: { not: null } } }), 0, 'fresh generation releases old understanding pins');
+    }
     stage = 'retention protection and tombstones';
     const retention = createCreationRetentionRepository(db);
     const old = new Date(Date.now() - 61 * 86400_000);
@@ -659,7 +761,7 @@ async function main() {
     try { if (created) await admin.query(`DROP SCHEMA "${schema}" CASCADE`); }
     finally { await admin.end(); }
   }
-  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web/PDF/YouTube/GitHub/Notion/discovery/understanding/chunking, inventory and per-partition budgets, three-call discovery budget, provider backoff, unit capacity, per-video budgets, checkpoint fencing, restart, pin release, reload, retention; isolated schema removed.');
+  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web/PDF/YouTube/GitHub/Notion/discovery/understanding/chunking/analysis/building/review/publication, real SQL receipt rollback/idempotency/private-to-public promotion, inventory and per-partition budgets, three-call discovery budget, provider backoff, unit capacity, per-video budgets, checkpoint fencing, restart, pin release, reload, retention; isolated schema removed.');
 }
 
 main().catch(error => {
