@@ -24,6 +24,8 @@ import { materialManifestSchema } from '../src/shared/cohort-creation/materials'
 import { retainedYoutubeMetadataSchema, YOUTUBE_METADATA_VERSION, youtubeObservationCheckpointSchema, youtubeMaterialManifestSchema } from '../src/shared/cohort-creation/youtube';
 import { youtubeMaterialVersion, YOUTUBE_BUNDLE_VERSION } from '../src/server/domain/cohort-creation/materials/youtube-identity';
 import { JobBudgetExceeded } from '../src/server/domain/cohort-creation/durable-job';
+import { githubSelectionSchema, retainedGithubCheckpointSchema, githubMaterialManifestSchema, GITHUB_PARSER_VERSION } from '../src/shared/cohort-creation/github';
+import { githubExtractionVersion, githubReceiptFingerprint, githubUnitId } from '../src/server/domain/cohort-creation/materials/github-extraction';
 import { youtubeMetadataFingerprint } from '../src/server/domain/cohort-creation/materials/youtube-artifacts';
 
 let stage = 'connection';
@@ -347,6 +349,53 @@ async function main() {
     assert.equal(await db.creationStorageObject.count({ where: { draftId: ytDraftId, referencedAt: { not: null } } }), 1, 'only metadata remains pinned after deselection');
     assert.equal(await drafts.swap(owner, ytDraftId, clearedVideos.revision, applyCommand(clearedVideos, { type: 'remove_material', materialId: ytCommand.materialId })), true);
     assert.equal((await db.creationStorageObject.findUniqueOrThrow({ where: { id: ytArtifact.id } })).referencedAt, null);
+    stage = 'durable GitHub content, unit capacity and receipt recovery';
+    const ghDraftId = randomUUID(); const ghStart = creationSnapshotSchema.parse({ ...starting, draftId: ghDraftId,
+      materials: [{ id: randomUUID(), kind: 'markdown', input: { kind: 'upload', assetId: randomUUID() }, status: 'pending',
+        selectedUnitIds: Array.from({ length: 99 }, (_, index) => `fixture-unit-${index}`) }] });
+    await db.creationDraft.create({ data: { id: ghDraftId, ownerId: owner, snapshot: ghStart, revision: ghStart.revision } });
+    const ghSelection = githubSelectionSchema.parse({ url: 'https://github.com/Example/Lessons', paths: ['README.md'] });
+    const ghCommand = { type: 'acquire_github' as const, materialId: randomUUID(), requestId: randomUUID(), selection: ghSelection };
+    const ghNext = applyCommand(ghStart, ghCommand);
+    assert.ok(await repo.enqueue(owner, ghStart, ghNext)); assert.ok(await repo.enqueue(owner, ghStart, ghNext));
+    assert.equal(await db.creationJob.count({ where: { draftId: ghDraftId } }), 1);
+    const ghJob = await repo.claim('github-acquirer'); assert.ok(ghJob?.kind === 'acquire_github');
+    assert.equal(ghJob.input.maxUnits, 1); assert.ok(ghJob.deadlineAt.getTime() > Date.now() + 300_000);
+    await db.creationJob.update({ where: { id: ghJob.id }, data: { leaseUntil: new Date(Date.now() + 300_000) } });
+    await assert.rejects(repo.reserveModelCall(ghJob), /selected video/);
+    const ghRaw = { id: randomUUID(), kind: 'artifact' as const, byteLength: 1500, checksum: 'e'.repeat(64) };
+    const ghRetained = retainedGithubCheckpointSchema.parse({ phase: 'retained_github', materialId: ghCommand.materialId,
+      inputRevision: ghJob.inputRevision, selection: ghSelection, commit: 'f'.repeat(40), files: [{ path: 'README.md', blobSha: 'a'.repeat(40), byteLength: 100 }],
+      artifact: ghRaw, inputFingerprint: githubReceiptFingerprint(ghCommand.materialId, ghJob.inputRevision, ghSelection) });
+    await db.creationStorageObject.create({ data: { ...ghRaw, blobId: randomUUID(), ownerId: 'foreign-owner', draftId: ghDraftId,
+      status: 'ready', mediaType: 'application/json', reservedBytes: ghRaw.byteLength, artifactType: 'github-source', schemaVersion: 1, inputFingerprint: ghRetained.inputFingerprint } });
+    await assert.rejects(repo.checkpoint(ghJob, ghRetained), /Checkpoint storage reference unavailable/);
+    await db.creationStorageObject.update({ where: { id: ghRaw.id }, data: { ownerId: owner } });
+    assert.equal(await repo.checkpoint(ghJob, ghRetained), true);
+    const ghPartial = await drafts.load(owner, ghDraftId); assert.ok(ghPartial);
+    assert.equal(ghPartial.materialRefs[0].ids[0], ghRaw.id); assert.equal(ghPartial.extractions.length, 0);
+    await db.creationJob.update({ where: { id: ghJob.id }, data: { leaseUntil: new Date(0) } });
+    const ghResumed = await repo.claim('github-restart'); assert.ok(ghResumed?.kind === 'acquire_github' && ghResumed.checkpoint);
+    await db.creationJob.update({ where: { id: ghResumed.id }, data: { leaseUntil: new Date(Date.now() + 300_000) } });
+    assert.equal(await repo.checkpoint(ghJob, ghRetained), false, 'old GitHub worker is fenced');
+    const ghVersion = githubExtractionVersion(ghRaw.checksum);
+    const ghExtracted = { id: randomUUID(), kind: 'artifact' as const, byteLength: 2000, checksum: 'b'.repeat(64) };
+    const ghManifest = githubMaterialManifestSchema.parse({ schemaVersion: 1, inputRevision: ghResumed.inputRevision,
+      source: { ...ghResumed.input.source, status: 'ready', selectedUnitIds: [githubUnitId(ghRetained.commit, 'README.md')] },
+      retainedSource: ghRaw, github: ghRetained, extraction: { materialId: ghCommand.materialId, version: ghVersion, checksum: ghRaw.checksum,
+        artifactRef: ghExtracted.id, extractionKind: 'text', selectionScope: 'selected_paths', complete: true, segmentCount: 1 },
+      extractionArtifact: ghExtracted, parserVersion: GITHUB_PARSER_VERSION, inputFingerprint: ghVersion, acquiredAt: new Date().toISOString() });
+    await db.creationStorageObject.create({ data: { ...ghExtracted, blobId: randomUUID(), ownerId: owner, draftId: ghDraftId,
+      status: 'ready', mediaType: 'application/json', reservedBytes: ghExtracted.byteLength, artifactType: 'github-extraction', schemaVersion: 1, inputFingerprint: ghVersion } });
+    await executeCreationJob(repo, ghResumed, () => { throw new Error('No AI expected'); }, new AbortController().signal,
+      undefined, undefined, undefined, undefined, undefined, () => ({ acquire: async () => { throw new Error('Retained receipt must not refetch moved branch'); },
+        extract: async () => ghManifest }));
+    const ghReady = await drafts.load(owner, ghDraftId); assert.ok(ghReady);
+    assert.equal(ghReady.materials[1].status, 'ready'); assert.equal(ghReady.materialRefs[0].ids.length, 2);
+    assert.equal(ghReady.extractions[0].selectionScope, 'selected_paths');
+    assert.equal(ghReady.materials.reduce((sum, source) => sum + source.selectedUnitIds.length, 0), 100);
+    assert.equal(await drafts.swap(owner, ghDraftId, ghReady.revision, applyCommand(ghReady, { type: 'remove_material', materialId: ghCommand.materialId })), true);
+    assert.equal(await db.creationStorageObject.count({ where: { draftId: ghDraftId, referencedAt: { not: null } } }), 0);
     stage = 'retention protection and tombstones';
     const retention = createCreationRetentionRepository(db);
     const old = new Date(Date.now() - 61 * 86400_000);
@@ -402,7 +451,7 @@ async function main() {
     try { if (created) await admin.query(`DROP SCHEMA "${schema}" CASCADE`); }
     finally { await admin.end(); }
   }
-  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web/PDF/YouTube inspection and observations, per-video budgets, checkpoint fencing, restart, pin release, reload, retention; isolated schema removed.');
+  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web/PDF/YouTube/GitHub, unit capacity, per-video budgets, checkpoint fencing, restart, pin release, reload, retention; isolated schema removed.');
 }
 
 main().catch(error => {
