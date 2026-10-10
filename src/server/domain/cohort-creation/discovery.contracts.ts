@@ -13,6 +13,8 @@ export const discoveryCandidateSchema = z.strictObject({
   key: z.string().regex(/^[a-f0-9]{64}$/), citationIds: z.array(z.string().min(1).max(256)).min(1).max(DISCOVERY_LIMITS.citations),
   url: z.url().max(2048), title: z.string().min(1).max(300), kind: z.enum(['web', 'youtube_video', 'youtube_playlist', 'github']),
   observedAt: z.iso.datetime(),
+  observation: z.strictObject({ method: z.enum(['public_http', 'youtube_api', 'github_api']), requestedUrl: z.url().max(2048),
+    redirects: z.array(z.url().max(2048)).max(3), titleOrigin: z.enum(['observed', 'application']), contentRetained: z.literal(false) }),
 });
 export const discoverySelectionSchema = z.strictObject({ selected: z.array(z.strictObject({
   candidateKey: z.string().regex(/^[a-f0-9]{64}$/), reason: z.string().trim().min(1).max(600),

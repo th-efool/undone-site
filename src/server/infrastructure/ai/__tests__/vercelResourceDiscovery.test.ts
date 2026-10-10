@@ -7,7 +7,8 @@ import { intent, modelOutput } from '@/src/shared/cohort-creation/__tests__/fixt
 import { JobBudgetExceeded } from '@/src/server/domain/cohort-creation/durable-job';
 
 const candidate = discoveryCandidateSchema.parse({ key: 'a'.repeat(64), citationIds: ['citation-1'],
-  url: 'https://docs.unrealengine.com/learning', title: 'Rendering documentation', kind: 'web', observedAt: new Date().toISOString() });
+  url: 'https://docs.unrealengine.com/learning', title: 'Rendering documentation', kind: 'web', observedAt: new Date().toISOString(),
+  observation: { method: 'public_http', requestedUrl: 'https://docs.unrealengine.com/learning', redirects: [], titleOrigin: 'observed', contentRetained: false } });
 const citation = { type: 'source' as const, sourceType: 'url' as const, id: 'citation-1', url: candidate.url, title: candidate.title };
 const searchOutput = () => ({ ...modelOutput('ignored'), content: [
   { type: 'text' as const, text: 'Invented link: https://invented.example/resource' }, citation,
