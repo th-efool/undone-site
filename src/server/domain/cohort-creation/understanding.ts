@@ -1,16 +1,11 @@
-import { z } from 'zod';
 import type { LearningIntent } from '@/src/shared/cohort-creation/contracts';
 import { creationFailure } from './errors';
 import { validateProcessingPartition, type ProcessingPartition } from './processing-input';
 
 /** The model proposes educational content and segment keys, never persisted IDs or commands. */
-export const understandingProposalSchema = z.strictObject({
-  summary: z.string().trim().min(1).max(2000),
-  concepts: z.array(z.strictObject({ label: z.string().trim().min(1).max(200), summary: z.string().trim().min(1).max(2000),
-    segmentIds: z.array(z.string().min(1).max(128)).min(1).max(50) })).min(1).max(20),
-  limitations: z.array(z.string().trim().min(1).max(1000)).max(8),
-});
-export type UnderstandingProposal = z.infer<typeof understandingProposalSchema>;
+import { understandingProposalSchema, type UnderstandingProposal } from '@/src/shared/cohort-creation/processing';
+export { understandingProposalSchema } from '@/src/shared/cohort-creation/processing';
+export type { UnderstandingProposal } from '@/src/shared/cohort-creation/processing';
 export interface CreationUnderstanding {
   readonly identity: { provider: string; modelId: string; adapterVersion: string };
   understand(intent: LearningIntent, partition: ProcessingPartition, signal: AbortSignal): Promise<UnderstandingProposal>;
