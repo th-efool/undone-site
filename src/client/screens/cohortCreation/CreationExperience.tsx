@@ -38,10 +38,11 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
     </CreationShell>;
   }
   if (creation.hydrated && snapshot.stage === 'starting_point') {
-    return <CreationShell variant="starting" query={snapshot.result?.intent.rawQuery ?? snapshot.query} saved={creation.saved}
+    return <CreationShell variant={snapshot.startingPoint ? 'material' : 'starting'} query={snapshot.result?.intent.rawQuery ?? snapshot.query} saved={creation.saved}
       disabled={creation.materialPending || snapshot.status === 'running'}
-      reply={<><p>Sure.</p><p>Let’s make something that fits what you actually want.</p></>}
-      hintTitle="We’ll keep this simple." hint="You can start with the material you already have, have me find the best resources, or just tell me your goal and I’ll figure out the rest."
+      reply={snapshot.startingPoint === 'have_material' ? <><p>Perfect.</p><p>Give me the material and I’ll figure out how to turn it into something learnable.</p></> : <><p>Sure.</p><p>Let’s make something that fits what you actually want.</p></>}
+      hintTitle={snapshot.startingPoint ? 'You can give me multiple sources' : 'We’ll keep this simple.'}
+      hint={snapshot.startingPoint ? 'A playlist, some PDFs, a GitHub repo, articles — whatever you’ve got. I’ll understand it, break it down, and turn it into a structured learning journey.' : 'You can start with the material you already have, have me find the best resources, or just tell me your goal and I’ll figure out the rest.'}
       suggestions={[
         { label: 'I have a YouTube playlist', action: () => void creation.chooseStartingPoint('have_material') },
         { label: 'Find material for me', action: () => void creation.chooseStartingPoint('find_material') },

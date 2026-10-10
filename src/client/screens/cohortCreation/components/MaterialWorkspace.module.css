@@ -1,0 +1,13 @@
+.workspace { position: relative; isolation: isolate; padding-bottom: 45px; }
+.decorations { position: absolute; inset: 0 -48px 0; overflow: hidden; pointer-events: none; z-index: -1; }
+.photo { position: absolute; top: 0; left: -55px; width: 220px; height: 330px; transform: rotate(-9deg); border: 10px solid #fffcf2; box-shadow: 0 4px 12px #56401a21; }
+.books { position: absolute; top: 220px; right: -130px; width: 270px; height: 350px; transform: rotate(5deg); border: 9px solid #fffcf2; }
+.photo img, .books img { object-fit: cover; }
+.note { position: absolute; top: 350px; left: 5px; padding: 24px; background: #f6ebd6; color: #48443d; font: 700 24px/1.15 var(--font-caveat-next), cursive; transform: rotate(-8deg); box-shadow: 0 4px 12px #56401a16; }
+.connections { width: min(800px, 80%); margin: 20px auto; font-size: 13px; color: var(--creation-muted); }
+.connections summary { cursor: pointer; padding: 12px 0; }
+.workspace button { cursor: pointer; }
+.workspace button:disabled { cursor: wait; opacity: .5; }
+.workspace button:focus-visible, .workspace summary:focus-visible { outline: 2px solid var(--creation-blue); outline-offset: 3px; }
+.workspace > section:not(:first-of-type) { margin: 24px auto; max-width: 800px; }
+@media (max-width: 1300px) { .decorations { display: none; } .connections { width: 100%; } }

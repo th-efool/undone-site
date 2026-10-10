@@ -4,7 +4,7 @@ import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 import type { DiscoveryCandidate } from '@/src/shared/cohort-creation/discovery';
 import type { GithubSelection } from '@/src/shared/cohort-creation/github';
 import { GithubMaterial } from './GithubMaterial';
-import styles from '../CreationExperience.module.css';
+import styles from './TextMaterial.module.css';
 
 export function DiscoveryMaterials({ snapshot, disabled, onFind, onAcquire, onGithub, onCancel }: {
   snapshot: CreationSnapshot; disabled: boolean; onFind: () => Promise<boolean>;

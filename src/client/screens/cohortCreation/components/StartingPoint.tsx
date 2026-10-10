@@ -10,7 +10,12 @@ const choices = [
   { value: 'find_material', label: 'Find material for me', description: 'I know what I want to learn. Help me find the best resources.', icon: Search },
   { value: 'have_goal', label: 'I just have a goal', description: 'Help me figure out the rest — the material, structure, pacing, and everything in between.', icon: Target },
 ] satisfies { value: StartingPointValue; label: string; description: string; icon: typeof Upload }[];
-export function StartingPoint({ selected, onSelect, onBack, disabled = false }: { selected: StartingPointValue | null; onSelect: (choice: StartingPointValue) => void; onBack: () => void; disabled?: boolean }) {
+export function StartingPoint({ selected, onSelect, onBack, disabled = false, compact = false }: { selected: StartingPointValue | null; onSelect: (choice: StartingPointValue) => void; onBack: () => void; disabled?: boolean; compact?: boolean }) {
+  if (compact) return <nav aria-label="Starting point" className={styles.compact}>
+    <button type="button" disabled={disabled} onClick={onBack} aria-label="Back to recommendations"><ArrowLeft size={16} /></button>
+    {choices.map(choice => <button key={choice.value} type="button" disabled={disabled} aria-pressed={selected === choice.value}
+      onClick={() => onSelect(choice.value)}>{choice.label}</button>)}
+  </nav>;
   return <section aria-label="Starting point" className={styles.starting} data-selected={!!selected}>
     <div className={styles.decorations} aria-hidden="true">
       <span className={styles.edgePhoto}><Image src="/images/hero-collage/real-mountains.jpg" alt="" fill sizes="200px" /></span>
