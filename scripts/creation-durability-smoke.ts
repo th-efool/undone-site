@@ -21,6 +21,8 @@ import { retainedWebCheckpointSchema, webMaterialManifestSchema } from '../src/s
 import { WEB_PARSER_VERSION, webExtractionVersion, webExtractionFingerprint, webReceiptFingerprint } from '../src/server/domain/cohort-creation/materials/web-identity';
 import { PDF_PARSER_VERSION, pdfExtractionVersion, pdfAcquisitionFingerprint } from '../src/server/domain/cohort-creation/materials/pdf-identity';
 import { materialManifestSchema } from '../src/shared/cohort-creation/materials';
+import { retainedYoutubeMetadataSchema, YOUTUBE_METADATA_VERSION } from '../src/shared/cohort-creation/youtube';
+import { youtubeMetadataFingerprint } from '../src/server/domain/cohort-creation/materials/youtube-artifacts';
 
 let stage = 'connection';
 async function main() {
@@ -253,6 +255,40 @@ async function main() {
     assert.equal(readyPdf.materials[0].status, 'ready'); assert.equal(readyPdf.materialRefs[0].ids.length, 2);
     assert.equal(await drafts.swap(owner, pdfDraftId, readyPdf.revision, applyCommand(readyPdf, { type: 'remove_material', materialId: pdfCommand.materialId })), true);
     assert.equal(await db.creationStorageObject.count({ where: { draftId: pdfDraftId, referencedAt: { not: null } } }), 0);
+    stage = 'durable YouTube inspection and preview fencing';
+    const ytDraftId = randomUUID(); const ytStart = { ...starting, draftId: ytDraftId };
+    await db.creationDraft.create({ data: { id: ytDraftId, ownerId: owner, snapshot: ytStart, revision: ytStart.revision } });
+    const ytUrl = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+    const ytCommand = { type: 'inspect_youtube' as const, requestId: randomUUID(), materialId: randomUUID(), url: ytUrl };
+    const ytNext = applyCommand(ytStart, ytCommand);
+    assert.ok(await repo.enqueue(owner, ytStart, ytNext)); assert.ok(await repo.enqueue(owner, ytStart, ytNext));
+    assert.equal(await db.creationJob.count({ where: { draftId: ytDraftId } }), 1);
+    const ytJob = await repo.claim('youtube-inspector'); assert.ok(ytJob?.kind === 'inspect_youtube');
+    ytJob.deadlineAt = new Date(Date.now() + 300_000);
+    await db.creationJob.update({ where: { id: ytJob.id }, data: { deadlineAt: ytJob.deadlineAt, leaseUntil: new Date(Date.now() + 300_000) } });
+    const ytArtifact = { id: randomUUID(), kind: 'artifact' as const, byteLength: 1500, checksum: 'f'.repeat(64) };
+    const ytRetained = retainedYoutubeMetadataSchema.parse({ receipt: { schemaVersion: 1, materialId: ytCommand.materialId,
+      inputRevision: ytJob.inputRevision, parserVersion: YOUTUBE_METADATA_VERSION, metadata: { schemaVersion: 1, kind: 'youtube_video', playlistId: null,
+        sourceUrl: ytUrl, fetchedAt: new Date().toISOString(), coverage: 'complete_metadata', units: [{ videoId: 'dQw4w9WgXcQ', url: ytUrl,
+          title: 'Real fixture lighting lesson', description: 'Metadata is not extracted video content', channelId: 'channel', channelTitle: 'Teacher',
+          publishedAt: '2026-01-01T00:00:00Z', etag: 'etag', privacy: 'public', durationSeconds: 120 }] } },
+      artifact: ytArtifact, inputFingerprint: youtubeMetadataFingerprint(ytCommand.materialId, ytJob.inputRevision, ytUrl) });
+    await db.creationStorageObject.create({ data: { ...ytArtifact, blobId: randomUUID(), ownerId: 'foreign-owner', draftId: ytDraftId,
+      status: 'ready', mediaType: 'application/json', reservedBytes: ytArtifact.byteLength, artifactType: 'youtube-metadata', schemaVersion: 1, inputFingerprint: ytRetained.inputFingerprint } });
+    await assert.rejects(repo.checkpoint(ytJob, ytRetained), /Checkpoint storage reference unavailable/);
+    await db.creationStorageObject.update({ where: { id: ytArtifact.id }, data: { ownerId: owner } });
+    assert.equal(await repo.checkpoint(ytJob, ytRetained), true);
+    await db.creationJob.update({ where: { id: ytJob.id }, data: { leaseUntil: new Date(0) } });
+    const ytResumed = await repo.claim('youtube-restart'); assert.ok(ytResumed?.kind === 'inspect_youtube' && ytResumed.checkpoint);
+    assert.equal(await repo.checkpoint(ytJob, ytRetained), false);
+    await executeCreationJob(repo, ytResumed, () => { throw new Error('No AI expected'); }, new AbortController().signal,
+      undefined, undefined, undefined, () => ({ retainMetadata: async () => { throw new Error('Complete receipt must not refetch'); } }));
+    const ytReady = await drafts.load(owner, ytDraftId); assert.ok(ytReady);
+    assert.equal(ytReady.materials[0].status, 'needs_input'); assert.equal(ytReady.extractions.length, 0);
+    assert.equal(ytReady.youtubeSources[0].units[0].title, 'Real fixture lighting lesson');
+    assert.equal(ytReady.materialRefs[0].ids[0], ytArtifact.id);
+    assert.equal(await drafts.swap(owner, ytDraftId, ytReady.revision, applyCommand(ytReady, { type: 'remove_material', materialId: ytCommand.materialId })), true);
+    assert.equal((await db.creationStorageObject.findUniqueOrThrow({ where: { id: ytArtifact.id } })).referencedAt, null);
     stage = 'retention protection and tombstones';
     const retention = createCreationRetentionRepository(db);
     const old = new Date(Date.now() - 61 * 86400_000);
@@ -308,7 +344,7 @@ async function main() {
     try { if (created) await admin.query(`DROP SCHEMA "${schema}" CASCADE`); }
     finally { await admin.end(); }
   }
-  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web/PDF jobs, retained receipt fencing, restart, pin release, reload, retention; isolated schema removed.');
+  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web/PDF/YouTube inspection, retained receipt fencing, restart, pin release, reload, retention; isolated schema removed.');
 }
 
 main().catch(error => {
