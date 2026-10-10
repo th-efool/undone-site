@@ -1,3 +1,5 @@
+import type { ClaimedBuildingJob } from './durable-job';
+import { validateBuildingCheckpoint, type BuildingService } from './building.service';
 import type { ClaimedAnalysisJob } from './durable-job';
 import { validateAnalysisCheckpoint, type AnalysisService } from './analysis.service';
 import { CreationFailure, ProviderBackoff } from './errors';
@@ -34,18 +36,19 @@ type YoutubeAcquirerFactory = (job: ClaimedYoutubeObservationJob) => Pick<Youtub
 type GithubAcquirerFactory = (job: ClaimedGithubJob) => Pick<GithubAcquisitionService, 'acquire' | 'extract'>;
 type NotionAcquirerFactory = (job: ClaimedNotionJob) => Pick<NotionAcquisitionService, 'acquire' | 'extract'>;
 type DiscoveryFactory = (job: ClaimedDiscoveryJob) => Pick<DiscoveryService, 'run'>;
+type BuildingFactory = (job: ClaimedBuildingJob) => Pick<BuildingService, 'run'>;
 type AnalysisFactory = (job: ClaimedAnalysisJob) => Pick<AnalysisService, 'run'>;
 type ChunkingFactory = (job: ClaimedChunkingJob) => Pick<ChunkingService, 'run'>;
 type UnderstandingFactory = (job: ClaimedUnderstandingJob) => Pick<UnderstandingService, 'run'>;
 /** One task invocation; browser connections are deliberately not an input. */
 export async function executeCreationJob(repo: CreationJobRepository, job: ClaimedCreationJob,
-  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory, discoverer?: DiscoveryFactory, understander?: UnderstandingFactory, chunker?: ChunkingFactory, analyzer?: AnalysisFactory) {
+  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory, discoverer?: DiscoveryFactory, understander?: UnderstandingFactory, chunker?: ChunkingFactory, analyzer?: AnalysisFactory, builder?: BuildingFactory) {
   const lease = new AbortController();
   const remaining = Math.max(1, job.deadlineAt.getTime() - Date.now());
   const timeout = AbortSignal.timeout(remaining);
   const signal = AbortSignal.any([shutdown, lease.signal, timeout]);
   let heartbeatPending = false;
-  const completedProcessing = (job.kind === 'understand_material' || job.kind === 'chunk_material' || job.kind === 'analyze_material') && job.checkpoint !== null && job.checkpoint.completed.length === job.checkpoint.total;
+  const completedProcessing = (job.kind === 'understand_material' || job.kind === 'chunk_material' || job.kind === 'analyze_material' || job.kind === 'build_curriculum') && job.checkpoint !== null && job.checkpoint.completed.length === job.checkpoint.total;
   let modelFinished = completedProcessing || job.checkpoint !== null && !('phase' in job.checkpoint);
   const timer = setInterval(async () => {
     if (heartbeatPending) return;
@@ -63,6 +66,13 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
     if (job.deadlineAt.getTime() <= Date.now()) throw new DOMException('Job deadline elapsed', 'TimeoutError');
     signal.throwIfAborted();
     const result = job.kind === 'recommendations' ? await recommender(job).recommend(job.input, signal)
+      : job.kind === 'build_curriculum' ? await (() => {
+        if (!builder) throw new Error('Building service unavailable');
+        const checkpoint = job.checkpoint ? validateBuildingCheckpoint(job.input.snapshot, job.requestId, job.checkpoint) : undefined;
+        return builder(job).run({ ownerId: job.ownerId, draftId: job.draftId }, job.input.snapshot, job.requestId, signal, async value => {
+          if (!await repo.checkpoint(job, value)) throw new LeaseLost();
+        }, checkpoint);
+      })()
       : job.kind === 'analyze_material' ? await (() => {
         if (!analyzer) throw new Error('Analysis service unavailable');
         const checkpoint = job.checkpoint ? validateAnalysisCheckpoint(job.input.snapshot, job.requestId, job.checkpoint) : undefined;
@@ -151,11 +161,11 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
       : error instanceof JobBudgetExceeded
       ? { code: 'RATE_LIMITED' as const, message: 'The generation budget is exhausted. Try again later.', retryable: true }
       : timeout.aborted || (error instanceof Error && error.name === 'TimeoutError')
-        ? { code: job.kind === 'recommendations' || job.kind === 'understand_material' || job.kind === 'chunk_material' || job.kind === 'analyze_material' ? 'AI_TIMEOUT' as const : 'DATA_UNAVAILABLE' as const,
-          message: job.kind === 'analyze_material' ? 'Analysis stopped. Accepted chunks and analysis remain saved.' : job.kind === 'chunk_material' ? 'Chunking stopped. Retained material, understanding and accepted chunks remain saved.' : job.kind === 'understand_material' ? 'Understanding took too long. Retained material and accepted partitions remain saved.' : job.kind === 'recommendations' ? 'Recommendations took too long. Try again.' : 'Material acquisition took too long. Retry the selected source.', retryable: true }
+        ? { code: job.kind === 'recommendations' || job.kind === 'understand_material' || job.kind === 'chunk_material' || job.kind === 'analyze_material' || job.kind === 'build_curriculum' ? 'AI_TIMEOUT' as const : 'DATA_UNAVAILABLE' as const,
+          message: job.kind === 'build_curriculum' ? 'Building stopped. Accepted analysis and lessons remain saved.' : job.kind === 'analyze_material' ? 'Analysis stopped. Accepted chunks and analysis remain saved.' : job.kind === 'chunk_material' ? 'Chunking stopped. Retained material, understanding and accepted chunks remain saved.' : job.kind === 'understand_material' ? 'Understanding took too long. Retained material and accepted partitions remain saved.' : job.kind === 'recommendations' ? 'Recommendations took too long. Try again.' : 'Material acquisition took too long. Retry the selected source.', retryable: true }
         : error instanceof CreationFailure ? error.detail
-          : { code: job.kind === 'recommendations' || job.kind === 'understand_material' || job.kind === 'chunk_material' || job.kind === 'analyze_material' ? 'AI_UNAVAILABLE' as const : 'DATA_UNAVAILABLE' as const,
-            message: job.kind === 'analyze_material' ? 'Analysis stopped. Accepted chunks and analysis remain saved.' : job.kind === 'chunk_material' ? 'Chunking stopped. Retained material, understanding and accepted chunks remain saved.' : job.kind === 'understand_material' ? 'Understanding is unavailable. Retained material and accepted partitions remain saved.' : job.kind === 'recommendations' ? 'Recommendations could not be generated. Try again.' : 'Material acquisition is unavailable. Retry the selected source.', retryable: true };
+          : { code: job.kind === 'recommendations' || job.kind === 'understand_material' || job.kind === 'chunk_material' || job.kind === 'analyze_material' || job.kind === 'build_curriculum' ? 'AI_UNAVAILABLE' as const : 'DATA_UNAVAILABLE' as const,
+            message: job.kind === 'build_curriculum' ? 'Building stopped. Accepted analysis and lessons remain saved.' : job.kind === 'analyze_material' ? 'Analysis stopped. Accepted chunks and analysis remain saved.' : job.kind === 'chunk_material' ? 'Chunking stopped. Retained material, understanding and accepted chunks remain saved.' : job.kind === 'understand_material' ? 'Understanding is unavailable. Retained material and accepted partitions remain saved.' : job.kind === 'recommendations' ? 'Recommendations could not be generated. Try again.' : 'Material acquisition is unavailable. Retry the selected source.', retryable: true };
     const transient = (error instanceof CreationFailure || error instanceof CreationStorageError) && detail.retryable &&
       ['AI_UNAVAILABLE', 'RATE_LIMITED', 'DATA_UNAVAILABLE'].includes(detail.code);
     const retryDelay = Math.max(1000 * 2 ** job.attempt, error instanceof ProviderBackoff ? error.retryAfterMs : 0);
@@ -165,14 +175,14 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
 }
 
 export async function runCreationWorker(repo: CreationJobRepository, workerId: string,
-  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory, discoverer?: DiscoveryFactory, understander?: UnderstandingFactory, chunker?: ChunkingFactory, analyzer?: AnalysisFactory) {
+  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory, discoverer?: DiscoveryFactory, understander?: UnderstandingFactory, chunker?: ChunkingFactory, analyzer?: AnalysisFactory, builder?: BuildingFactory) {
   const tasks = new Set<Promise<void>>();
   while (!signal.aborted) {
     try {
       if (tasks.size < 2) {
         const job = await repo.claim(workerId);
         if (job) {
-          const task = executeCreationJob(repo, job, recommender, signal, acquirer, webAcquirer, pdfAcquirer, youtubeInspector, youtubeAcquirer, githubAcquirer, notionAcquirer, discoverer, understander, chunker, analyzer).catch(reportError);
+          const task = executeCreationJob(repo, job, recommender, signal, acquirer, webAcquirer, pdfAcquirer, youtubeInspector, youtubeAcquirer, githubAcquirer, notionAcquirer, discoverer, understander, chunker, analyzer, builder).catch(reportError);
           tasks.add(task);
           void task.finally(() => tasks.delete(task));
           continue;

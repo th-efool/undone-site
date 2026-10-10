@@ -5,6 +5,7 @@ function refs(state: CreationSnapshot) {
   const checkpoint = state.discovery?.checkpoint;
   return [...state.materials.flatMap(source => source.input.kind === 'upload' ? [source.input.assetId] : []),
     ...(state.processing?.checkpoint?.completed.map(item => item.artifact.id) ?? []),
+    ...(state.processing?.building?.checkpoint?.completed.map(item => item.artifact.id) ?? []),
     ...(state.processing?.analysis?.checkpoint?.completed.map(item => item.artifact.id) ?? []),
     ...(state.processing?.chunking?.checkpoint?.completed.map(item => item.artifact.id) ?? []),
     ...state.materials.flatMap(source => source.discoveredFrom ? [source.discoveredFrom.searchArtifactId, source.discoveredFrom.observationArtifactId] : []),

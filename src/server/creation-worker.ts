@@ -1,3 +1,7 @@
+import { VercelCreationBuild } from './infrastructure/ai/vercelCreationBuild';
+import type { CreationBuilding } from './domain/cohort-creation/build';
+import { BuildingService } from './domain/cohort-creation/building.service';
+import { AnalysisContentService } from './domain/cohort-creation/analysis-content.service';
 import { VercelCreationAnalysis } from './infrastructure/ai/vercelCreationAnalysis';
 import type { CreationAnalysis } from './domain/cohort-creation/analysis';
 import { AnalysisService } from './domain/cohort-creation/analysis.service';
@@ -146,6 +150,14 @@ async function main() {
         const ai: CreationAnalysis = { get identity() { return adapter().identity; }, analyze: (...input) => adapter().analyze(...input) };
         const understanding = new UnderstandingContentService(new ProcessingContentService(storage.creationArtifactRepository), storage.creationArtifactRepository);
         return new AnalysisService(new ChunkingContentService(understanding, storage.creationArtifactRepository), ai, storage.creationArtifactRepository).run(...args);
+      } }),
+      job => ({ run: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        const adapter = () => new VercelCreationBuild(createCohortModel(), { beforeCall: partitionId => creationJobRepo.reserveModelCall(job, partitionId) });
+        const ai: CreationBuilding = { get identity() { return adapter().identity; }, build: (...input) => adapter().build(...input) };
+        const understanding = new UnderstandingContentService(new ProcessingContentService(storage.creationArtifactRepository), storage.creationArtifactRepository);
+        const chunks = new ChunkingContentService(understanding, storage.creationArtifactRepository);
+        return new BuildingService(new AnalysisContentService(chunks, storage.creationArtifactRepository), ai, storage.creationArtifactRepository).run(...args);
       } }));
   } finally {
     clearInterval(retentionTimer);

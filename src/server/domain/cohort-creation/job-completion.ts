@@ -1,3 +1,4 @@
+import { validateBuildingCheckpoint } from './building.service';
 import { validateAnalysisCheckpoint } from './analysis.service';
 import { recommendationResultSchema } from '@/src/shared/cohort-creation/contracts';
 import { materialManifestSchema } from '@/src/shared/cohort-creation/materials';
@@ -66,6 +67,11 @@ export function jobCompletion(job: ClaimedCreationJob, value: CreationCheckpoint
     const result = validateUnderstandingCheckpoint(job.input.snapshot, job.requestId, value);
     if (result.completed.length !== result.total) throw new Error('Understanding is incomplete');
     return { type: 'understanding_received', requestId: job.requestId, result };
+  }
+  if (job.kind === 'build_curriculum') {
+    const result = validateBuildingCheckpoint(job.input.snapshot, job.requestId, value);
+    if (result.completed.length !== result.total) throw new Error('Building is incomplete');
+    return { type: 'building_received', requestId: job.requestId, result };
   }
   if (job.kind === 'analyze_material') {
     const result = validateAnalysisCheckpoint(job.input.snapshot, job.requestId, value);

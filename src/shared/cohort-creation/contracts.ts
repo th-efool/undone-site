@@ -1,3 +1,4 @@
+import { buildingCheckpointSchema } from './build';
 import { analysisCheckpointSchema } from './analysis';
 import { z } from 'zod';
 import { discoveryCheckpointSchema, discoveryResultSchema } from './discovery';
@@ -163,7 +164,7 @@ export const youtubeSourceStateSchema = z.strictObject({ materialId: key, source
 });
 export const creationSnapshotSchema = z.strictObject({
   schemaVersion: z.literal(1), draftId: z.uuid(), storage: z.literal('postgres'), revision, inputRevision: revision,
-  stage: z.enum(['recommendations', 'starting_point', 'processing']), query: z.string().max(2000),
+  stage: z.enum(['recommendations', 'starting_point', 'processing', 'ready']), query: z.string().max(2000),
   status: z.enum(['idle', 'running', 'succeeded', 'failed', 'canceled']), activeRequestId: z.uuid().nullable(),
   result: recommendationResultSchema.nullable(), startingPoint: startingPointSchema.nullable(), error: creationErrorSchema.nullable(),
   materials: z.array(materialSourceSchema).max(20).default([]),
@@ -174,7 +175,8 @@ export const creationSnapshotSchema = z.strictObject({
   discovery: z.strictObject({ requestId: z.uuid(), inputRevision: revision,
     checkpoint: discoveryCheckpointSchema.nullable(), result: discoveryResultSchema.nullable() }).nullable().default(null),
   processing: z.strictObject({ requestId: z.uuid(), inputRevision: revision,
-    checkpoint: understandingCheckpointSchema.nullable(), complete: z.boolean(), phase: z.enum(['understanding', 'chunking', 'analysis']).default('understanding'),
+    checkpoint: understandingCheckpointSchema.nullable(), complete: z.boolean(), phase: z.enum(['understanding', 'chunking', 'analysis', 'building']).default('understanding'),
+    building: z.strictObject({ requestId: z.uuid(), checkpoint: buildingCheckpointSchema.nullable(), complete: z.boolean() }).nullable().default(null),
     analysis: z.strictObject({ requestId: z.uuid(), checkpoint: analysisCheckpointSchema.nullable(), complete: z.boolean() }).nullable().default(null),
     chunking: z.strictObject({ requestId: z.uuid(), checkpoint: chunkingCheckpointSchema.nullable(), complete: z.boolean() }).nullable().default(null) }).nullable().default(null),
 }).superRefine((state, ctx) => {
@@ -182,7 +184,9 @@ export const creationSnapshotSchema = z.strictObject({
     state.processing.checkpoint && (state.processing.checkpoint.requestId !== state.processing.requestId || state.processing.checkpoint.inputRevision !== state.processing.inputRevision) ||
     state.processing.complete && (!state.processing.checkpoint || state.processing.checkpoint.completed.length !== state.processing.checkpoint.total)) ||
     state.stage === 'processing' && (!state.processing || !state.result || !state.materials.length || state.materials.some(source => source.status !== 'ready') ||
-      state.status === 'running' && (state.processing.phase === 'analysis'
+      state.status === 'running' && (state.processing.phase === 'building'
+        ? state.activeRequestId !== state.processing.building?.requestId || state.processing.building?.complete
+        : state.processing.phase === 'analysis'
         ? state.activeRequestId !== state.processing.analysis?.requestId || state.processing.analysis?.complete
         : state.processing.phase === 'chunking'
         ? state.activeRequestId !== state.processing.chunking?.requestId || state.processing.chunking?.complete
@@ -203,6 +207,15 @@ export const creationSnapshotSchema = z.strictObject({
       analysis.checkpoint.completed.some((item, index) => item.chunkCount !== chunks.checkpoint!.completed[index]?.chunkCount)) ||
     analysis.complete && (!analysis.checkpoint || analysis.checkpoint.completed.length !== analysis.checkpoint.total)) ||
     state.processing?.phase === 'analysis' && !analysis) ctx.addIssue({ code: 'custom', message: 'Invalid analysis dependency or coverage' });
+  const building = state.processing?.building;
+  if (building && (!analysis?.complete || !analysis.checkpoint ||
+    building.checkpoint && (building.checkpoint.requestId !== building.requestId || building.checkpoint.inputRevision !== state.inputRevision ||
+      building.checkpoint.analysisFingerprint !== analysis.checkpoint.inputFingerprint || JSON.stringify(building.checkpoint.partitionIds) !== JSON.stringify(analysis.checkpoint.partitionIds)) ||
+    building.complete && (!building.checkpoint || building.checkpoint.completed.length !== building.checkpoint.total)) ||
+    state.processing?.phase === 'building' && !building) ctx.addIssue({ code: 'custom', message: 'Invalid building dependency or coverage' });
+  if (state.stage === 'ready' && (!building?.complete || state.processing?.phase !== 'building' || state.status !== 'succeeded')) {
+    ctx.addIssue({ code: 'custom', message: 'Accepted complete curriculum is required for ready state' });
+  }
   if ((state.status === 'running') !== (state.activeRequestId !== null)) ctx.addIssue({ code: 'custom', message: 'Invalid active operation' });
   if (state.status === 'running' && ((state.stage === 'recommendations' && state.result !== null) ||
     (state.stage === 'starting_point' && !(state.discovery?.requestId === state.activeRequestId && state.discovery.result === null) &&

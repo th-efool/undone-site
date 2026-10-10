@@ -28,6 +28,15 @@ export const analysisRequestSchema = z.strictObject({ requestId: z.uuid(), input
     }
   });
 export type AnalysisRequest = z.infer<typeof analysisRequestSchema>;
+export const buildingRequestSchema = z.strictObject({ requestId: z.uuid(), inputRevision: z.number().int().nonnegative(), snapshot: creationSnapshotSchema })
+  .superRefine((request, ctx) => {
+    const state = request.snapshot;
+    if (request.inputRevision !== state.inputRevision || state.stage !== 'processing' || state.status !== 'succeeded' ||
+      !state.processing?.analysis?.complete || !state.processing.analysis.checkpoint || state.processing.phase !== 'analysis' || state.processing.building !== null) {
+      ctx.addIssue({ code: 'custom', message: 'Complete accepted analysis is required for building' });
+    }
+  });
+export type BuildingRequest = z.infer<typeof buildingRequestSchema>;
 export const textAcquisitionRequestSchema = z.strictObject({
   requestId: z.uuid(), inputRevision: z.number().int().nonnegative(),
   source: materialSourceSchema.refine(source => source.kind === 'markdown' && source.input.kind === 'upload', 'An uploaded text source is required'),
