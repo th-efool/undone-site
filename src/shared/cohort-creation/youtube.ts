@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import { MATERIAL_LIMITS, retainedObjectRefSchema } from './materials';
+import { MATERIAL_LIMITS, retainedObjectRefSchema, materialManifestSchema } from './materials';
+import { creationArtifactRefSchema, youtubeUnitObservationRefSchema } from './contracts';
 
 export const youtubeVideoIdSchema = z.string().regex(/^[A-Za-z0-9_-]{11}$/);
 export const youtubePlaylistIdSchema = z.string().regex(/^[A-Za-z0-9_-]{10,128}$/);
@@ -30,3 +31,26 @@ export const youtubeMetadataReceiptSchema = z.strictObject({ schemaVersion: z.li
 export const retainedYoutubeMetadataSchema = z.strictObject({ receipt: youtubeMetadataReceiptSchema,
   artifact: retainedObjectRefSchema.extend({ kind: z.literal('artifact') }), inputFingerprint: z.string().regex(/^[a-f0-9]{64}$/) });
 export type RetainedYoutubeMetadata = z.infer<typeof retainedYoutubeMetadataSchema>;
+export const youtubeObservationCheckpointSchema = z.strictObject({ phase: z.literal('youtube_observations'),
+  materialId: z.uuid(), inputRevision: z.number().int().nonnegative(), sourceRevision: z.number().int().nonnegative(),
+  metadataArtifact: creationArtifactRefSchema, metadataFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+  units: z.array(youtubeUnitObservationRefSchema).max(MATERIAL_LIMITS.selectedUnits),
+}).superRefine((value, ctx) => {
+  if (value.sourceRevision > value.inputRevision || new Set(value.units.map(unit => unit.unitId)).size !== value.units.length ||
+    value.units.reduce((sum, unit) => sum + unit.textBytes, 0) > MATERIAL_LIMITS.extractedTextBytes) ctx.addIssue({ code: 'custom', message: 'Invalid observation checkpoint scope' });
+});
+export type YoutubeObservationCheckpoint = z.infer<typeof youtubeObservationCheckpointSchema>;
+export const youtubeMaterialManifestSchema = materialManifestSchema.safeExtend({ youtube: youtubeObservationCheckpointSchema })
+  .superRefine((manifest, ctx) => {
+    const units = manifest.youtube.units;
+    if (!['youtube_video', 'youtube_playlist'].includes(manifest.source.kind) || manifest.source.input.kind !== 'url' ||
+      manifest.source.id !== manifest.youtube.materialId || manifest.inputRevision !== manifest.youtube.inputRevision ||
+      manifest.retainedSource.kind !== 'artifact' || manifest.retainedSource.id !== manifest.youtube.metadataArtifact.id ||
+      manifest.retainedSource.checksum !== manifest.youtube.metadataArtifact.checksum || !units.length ||
+      JSON.stringify(manifest.source.selectedUnitIds) !== JSON.stringify(units.map(unit => unit.unitId)) ||
+      manifest.extraction.extractionKind !== 'video_observation' || manifest.extraction.complete !== false ||
+      manifest.extraction.selectionScope !== 'video_observation' || manifest.extraction.segmentCount !== units.reduce((sum, unit) => sum + unit.segmentCount, 0)) {
+      ctx.addIssue({ code: 'custom', message: 'Invalid video observation manifest scope or provenance' });
+    }
+  });
+export type YoutubeMaterialManifest = z.infer<typeof youtubeMaterialManifestSchema>;

@@ -6,6 +6,9 @@ import { youtubeMetadataSchema } from '@/src/shared/cohort-creation/youtube';
 import { CreationStorageError, type CreationObjectRef, type StorageScope, type ArtifactOptions } from '@/src/server/infrastructure/storage/creation.contracts';
 import { YoutubeObservationService } from '../materials/youtube-observation.service';
 import { youtubeObservationArtifactSchema } from '../materials/youtube-artifacts';
+import { YoutubeAcquisitionService } from '../materials/youtube-acquisition.service';
+import { youtubeObservationRequestSchema } from '@/src/shared/cohort-creation/jobs';
+import type { YoutubeObservationCheckpoint } from '@/src/shared/cohort-creation/youtube';
 
 function fixture() {
   const videoId = 'dQw4w9WgXcQ'; const scope = { ownerId: 'owner', draftId: randomUUID() };
@@ -34,8 +37,57 @@ function fixture() {
     return options.schema.parse(structuredClone(row.value)) as z.output<T>;
   };
   const ref = async (owner: StorageScope, id: string) => owned(owner, id).ref;
-  return { scope, source, metadata, read, observeVideo, observer, stored, service: new YoutubeObservationService({ read }, observer, { putJSON, getJSON, ref }) };
+  return { scope, source, metadata, read, observeVideo, observer, stored, putJSON, service: new YoutubeObservationService({ read }, observer, { putJSON, getJSON, ref }) };
 }
+
+async function acquisitionFixture() {
+  const f = fixture(); const retained = await f.service.retainMetadata(f.scope, f.source, 5);
+  const input = youtubeObservationRequestSchema.parse({ requestId: randomUUID(), inputRevision: 7,
+    source: { ...f.source, selectedUnitIds: [f.metadata.units[0].videoId] },
+    metadata: { materialId: f.source.id, sourceRevision: 5, metadataArtifact: retained.artifact,
+      metadataFingerprint: retained.inputFingerprint, units: f.metadata.units.map(unit => ({ unitId: unit.videoId, title: unit.title, durationSeconds: unit.durationSeconds })) } });
+  return { ...f, input, acquire: new YoutubeAcquisitionService(f.service, { putJSON: f.putJSON }) };
+}
+
+describe('selected video acquisition', () => {
+  it('retains honest observation scope and reuses original source revision after restart', async () => {
+    const f = await acquisitionFixture(); const save = vi.fn(async (value: YoutubeObservationCheckpoint) => { expect(value.units).toHaveLength(1); });
+    const manifest = await f.acquire.acquire(f.scope, f.input, new AbortController().signal, save);
+    expect(save).toHaveBeenCalledOnce(); expect(manifest.extraction.complete).toBe(false);
+    expect(manifest.extraction.selectionScope).toBe('video_observation');
+    expect(manifest.youtube.sourceRevision).toBe(5); expect(manifest.inputRevision).toBe(7);
+    expect(manifest.youtube.units[0].segmentCount).toBe(1); expect(manifest.source.status).toBe('ready');
+    const resumed = await f.acquire.acquire(f.scope, f.input, new AbortController().signal, save, save.mock.calls[0][0]);
+    expect(resumed.extraction.version).toBe(manifest.extraction.version);
+    expect(f.observeVideo).toHaveBeenCalledOnce(); expect(f.read).toHaveBeenCalledOnce();
+  });
+  it('stops immediately when checkpoint persistence fails and resumes without repaying', async () => {
+    const f = await acquisitionFixture(); let checkpoint: YoutubeObservationCheckpoint | undefined;
+    await expect(f.acquire.acquire(f.scope, f.input, new AbortController().signal, async value => {
+      checkpoint = value; throw new Error('lease lost');
+    })).rejects.toThrow('lease lost');
+    expect([...f.stored.values()].some(row => row.type === 'youtube-material')).toBe(false);
+    await f.acquire.acquire(f.scope, f.input, new AbortController().signal, async () => {}, checkpoint);
+    expect(f.observeVideo).toHaveBeenCalledOnce();
+  });
+  it('rejects forged checkpoint counts, source identity, dropped saved work and foreign ownership before another model call', async () => {
+    const f = await acquisitionFixture(); let saved: YoutubeObservationCheckpoint | undefined;
+    await f.acquire.acquire(f.scope, f.input, new AbortController().signal, async value => { saved = value; });
+    const checkpoint = saved!; const signal = new AbortController().signal;
+    await expect(f.acquire.acquire(f.scope, f.input, signal, async () => {}, { ...checkpoint,
+      units: [{ ...checkpoint.units[0], textBytes: 1 }] })).rejects.toThrow('counts');
+    await expect(f.acquire.acquire(f.scope, f.input, signal, async () => {}, { ...checkpoint, sourceRevision: 6 })).rejects.toThrow('checkpoint');
+    const warm = { ...f.input, metadata: { ...f.input.metadata, observations: checkpoint.units } };
+    await expect(f.acquire.acquire(f.scope, warm, signal, async () => {}, { ...checkpoint, units: [] })).rejects.toThrow('checkpoint');
+    await expect(f.acquire.acquire({ ...f.scope, ownerId: 'foreign' }, f.input, signal, async () => {}, checkpoint)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    expect(f.observeVideo).toHaveBeenCalledOnce();
+  });
+  it('rejects canceled work before calling the model or writing a checkpoint', async () => {
+    const f = await acquisitionFixture(); const controller = new AbortController(); controller.abort(); const save = vi.fn();
+    await expect(f.acquire.acquire(f.scope, f.input, controller.signal, save)).rejects.toThrow();
+    expect(f.observeVideo).not.toHaveBeenCalled(); expect(save).not.toHaveBeenCalled();
+  });
+});
 describe('owned retained YouTube observations', () => {
   it('retains actual metadata and AI interpretation with immutable model/source/page-independent video provenance', async () => {
     const f = fixture(); const retained = await f.service.retainMetadata(f.scope, f.source, 5);

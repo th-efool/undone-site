@@ -122,7 +122,7 @@ export const extractedContentSchema = z.strictObject({
   extractionKind: z.enum(['text', 'authorized_caption', 'user_transcript', 'video_observation', 'generated_guide']),
   segmentCount: z.number().int().nonnegative(),
   complete: z.boolean(),
-  selectionScope: z.enum(['main_article', 'full_text_response']).optional(),
+  selectionScope: z.enum(['main_article', 'full_text_response', 'video_observation']).optional(),
 });
 export const conceptSchema = z.strictObject({
   id: key, label: fieldValueSchema(text(200)), summary: fieldValueSchema(text(2000)),
@@ -139,6 +139,16 @@ export type Concept = z.infer<typeof conceptSchema>;
 export type CreationChunk = z.infer<typeof chunkSchema>;
 
 // Defaults safely decode existing schema-1 drafts/events without rewriting stored JSON.
+export const creationArtifactRefSchema = z.strictObject({ id: z.uuid(), kind: z.literal('artifact'),
+  byteLength: z.number().int().positive().max(25 * 1024 * 1024), checksum: z.string().regex(/^[a-f0-9]{64}$/) });
+export const youtubeUnitObservationRefSchema = z.strictObject({ unitId: z.string().regex(/^[A-Za-z0-9_-]{11}$/),
+  artifact: creationArtifactRefSchema, version: z.string().regex(/^[a-f0-9]{64}$/), segmentCount: z.number().int().positive().max(200),
+  textBytes: z.number().int().positive().max(1024 * 1024) });
+export const youtubeSourceStateSchema = z.strictObject({ materialId: key, sourceRevision: revision,
+  metadataFingerprint: z.string().regex(/^[a-f0-9]{64}$/), metadataArtifact: creationArtifactRefSchema,
+  units: z.array(z.strictObject({ unitId: z.string().regex(/^[A-Za-z0-9_-]{11}$/), title: z.string().min(1).max(1000), durationSeconds: z.number().int().positive() })).min(1).max(100),
+  observations: z.array(youtubeUnitObservationRefSchema).max(100).default([]),
+});
 export const creationSnapshotSchema = z.strictObject({
   schemaVersion: z.literal(1), draftId: z.uuid(), storage: z.literal('postgres'), revision, inputRevision: revision,
   stage: z.enum(['recommendations', 'starting_point']), query: z.string().max(2000),
@@ -147,11 +157,8 @@ export const creationSnapshotSchema = z.strictObject({
   materials: z.array(materialSourceSchema).max(20).default([]),
   extractions: z.array(extractedContentSchema).max(20).default([]),
   lastMaterialRequestId: z.uuid().nullable().default(null),
-  materialRefs: z.array(z.strictObject({ materialId: key, ids: z.array(z.uuid()).min(1).max(3) })).max(20).default([]),
-  youtubeSources: z.array(z.strictObject({ materialId: key, sourceRevision: revision, metadataFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
-    metadataArtifact: z.strictObject({ id: z.uuid(), kind: z.literal('artifact'), byteLength: z.number().int().positive().max(25 * 1024 * 1024), checksum: z.string().regex(/^[a-f0-9]{64}$/) }),
-    units: z.array(z.strictObject({ unitId: z.string().regex(/^[A-Za-z0-9_-]{11}$/), title: z.string().min(1).max(1000), durationSeconds: z.number().int().positive() })).min(1).max(100),
-  })).max(20).default([]),
+  materialRefs: z.array(z.strictObject({ materialId: key, ids: z.array(z.uuid()).min(1).max(102) })).max(20).default([]),
+  youtubeSources: z.array(youtubeSourceStateSchema).max(20).default([]),
 }).superRefine((state, ctx) => {
   if ((state.status === 'running') !== (state.activeRequestId !== null)) ctx.addIssue({ code: 'custom', message: 'Invalid active operation' });
   if (state.status === 'running' && ((state.stage === 'recommendations' && state.result !== null) ||
@@ -169,7 +176,11 @@ export const creationSnapshotSchema = z.strictObject({
   if (new Set(state.youtubeSources.map(source => source.materialId)).size !== state.youtubeSources.length ||
     state.youtubeSources.some(source => source.sourceRevision > state.inputRevision || new Set(source.units.map(unit => unit.unitId)).size !== source.units.length ||
       !state.materials.some(material => material.id === source.materialId && ['youtube_video', 'youtube_playlist'].includes(material.kind)) ||
-      !state.materialRefs.some(ref => ref.materialId === source.materialId && ref.ids.includes(source.metadataArtifact.id)))) {
+      !state.materialRefs.some(ref => ref.materialId === source.materialId && ref.ids.includes(source.metadataArtifact.id)) ||
+      new Set(source.observations.map(unit => unit.unitId)).size !== source.observations.length ||
+      source.observations.reduce((sum, unit) => sum + unit.textBytes, 0) > 1024 * 1024 ||
+      source.observations.some(unit => !source.units.some(candidate => candidate.unitId === unit.unitId) ||
+        !state.materialRefs.some(ref => ref.materialId === source.materialId && ref.ids.includes(unit.artifact.id))))) {
     ctx.addIssue({ code: 'custom', message: 'Invalid YouTube unit preview or provenance' });
   }
   if (new Set(ids).size !== ids.length || new Set(state.extractions.map(extraction => extraction.materialId)).size !== state.extractions.length ||

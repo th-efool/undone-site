@@ -16,7 +16,7 @@ describe('one text material step', () => {
     render(<TextMaterial snapshot={{ ...snapshot,
       materials: [{ id: draftId, kind: 'youtube_video', input: { kind: 'url', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }, selectedUnitIds: [], status: 'needs_input' }],
       materialRefs: [{ materialId: draftId, ids: [draftId] }],
-      youtubeSources: [{ materialId: draftId, sourceRevision: 0, metadataArtifact: artifact, metadataFingerprint: 'b'.repeat(64), units: [{ unitId: 'dQw4w9WgXcQ', title: 'Real lighting lesson', durationSeconds: 120 }] }],
+      youtubeSources: [{ materialId: draftId, sourceRevision: 0, metadataArtifact: artifact, metadataFingerprint: 'b'.repeat(64), observations: [], units: [{ unitId: 'dQw4w9WgXcQ', title: 'Real lighting lesson', durationSeconds: 120 }] }],
     }} uploading={false} pending={false} onUpload={vi.fn()} onCancelUpload={vi.fn()} onCancel={vi.fn()} onRetry={vi.fn()} onRemove={vi.fn()} onWeb={vi.fn()} />);
     expect(screen.getByLabelText('Source 1 videos').textContent).toContain('Real lighting lesson');
     expect(screen.getByText(/Metadata retained; video observation pending/)).toBeTruthy();
