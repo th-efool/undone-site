@@ -69,7 +69,7 @@ describe('retained per-partition understanding', () => {
     await expect(run({ ...f.state, inputRevision: 3 })).rejects.toThrow('source revision');
     await expect(run(f.state, final, f.scope, randomUUID())).rejects.toThrow('source revision');
     await expect(run({ ...f.state, materials: [{ ...f.state.materials[0], selectedUnitIds: ['different-unit'] }] })).rejects.toThrow('source revision');
-    await expect(run(f.state, { ...final, completed: [...final.completed].reverse() })).rejects.toThrow('partition ledger');
+    await expect(run(f.state, { ...final, completed: [...final.completed].reverse() })).rejects.toThrow('ledger');
     expect(f.ai.understand).not.toHaveBeenCalled();
   });
   it('validates owned receipt checksums, partition evidence and stored source references on resume', async () => {

@@ -11,9 +11,12 @@ export const understandingProposalSchema = z.strictObject({
 export type UnderstandingProposal = z.infer<typeof understandingProposalSchema>;
 export const understandingCheckpointSchema = z.strictObject({ phase: z.literal('understanding'), requestId: z.uuid(),
   inputRevision: z.number().int().nonnegative(), inputFingerprint: checksum, total: z.number().int().min(1).max(1000),
+  partitionIds: z.array(checksum).min(1).max(1000),
   completed: z.array(z.strictObject({ partitionId: checksum, artifact: retainedObjectRefSchema.extend({ kind: z.literal('artifact') }) })).max(1000),
 }).superRefine((checkpoint, ctx) => {
-  if (checkpoint.completed.length > checkpoint.total || new Set(checkpoint.completed.map(item => item.partitionId)).size !== checkpoint.completed.length ||
+  if (checkpoint.partitionIds.length !== checkpoint.total || new Set(checkpoint.partitionIds).size !== checkpoint.total ||
+    checkpoint.completed.some((item, index) => item.partitionId !== checkpoint.partitionIds[index]) ||
+    checkpoint.completed.length > checkpoint.total || new Set(checkpoint.completed.map(item => item.partitionId)).size !== checkpoint.completed.length ||
     new Set(checkpoint.completed.map(item => item.artifact.id)).size !== checkpoint.completed.length) ctx.addIssue({ code: 'custom', message: 'Invalid understanding coverage ledger' });
 });
 export type UnderstandingCheckpoint = z.infer<typeof understandingCheckpointSchema>;

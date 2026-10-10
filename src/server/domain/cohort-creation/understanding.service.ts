@@ -30,10 +30,12 @@ export class UnderstandingService {
     if (checkpoint && (checkpoint.requestId !== requestId || checkpoint.inputRevision !== snapshot.inputRevision || checkpoint.inputFingerprint !== inputFingerprint)) invalid();
     const { partitions } = await this.content.load(scope, snapshot, signal);
     if (!checkpoint) {
-      checkpoint = understandingCheckpointSchema.parse({ phase: 'understanding', requestId, inputRevision: snapshot.inputRevision, inputFingerprint, total: partitions.length, completed: [] });
+      checkpoint = understandingCheckpointSchema.parse({ phase: 'understanding', requestId, inputRevision: snapshot.inputRevision, inputFingerprint,
+        total: partitions.length, partitionIds: partitions.map(partition => partition.id), completed: [] });
       signal.throwIfAborted(); await save(checkpoint);
     }
-    if (checkpoint.total !== partitions.length || checkpoint.completed.some((item, index) => item.partitionId !== partitions[index].id)) invalid();
+    if (checkpoint.total !== partitions.length || JSON.stringify(checkpoint.partitionIds) !== JSON.stringify(partitions.map(partition => partition.id)) ||
+      checkpoint.completed.some((item, index) => item.partitionId !== partitions[index].id)) invalid();
     for (const [index, partition] of partitions.entries()) {
       signal.throwIfAborted(); const source = { materialId: partition.materialId, unitId: partition.unitId, extractionVersion: partition.extractionVersion,
         artifactId: partition.artifactId, segmentIds: partition.segments.map(segment => segment.id) };
@@ -42,7 +44,7 @@ export class UnderstandingService {
       const existing = checkpoint.completed[index];
       if (existing) {
         const actual = await this.artifacts.ref(scope, existing.artifact.id);
-        if (actual.kind !== 'artifact' || actual.checksum !== existing.artifact.checksum || actual.byteLength !== existing.artifact.byteLength) invalid();
+        if (actual.kind !== 'artifact' || actual.id !== existing.artifact.id || actual.checksum !== existing.artifact.checksum || actual.byteLength !== existing.artifact.byteLength) invalid();
         const receipt = await this.artifacts.getJSON(scope, existing.artifact.id, options);
         if (receipt.requestId !== requestId || receipt.inputFingerprint !== inputFingerprint || receipt.partitionId !== partition.id ||
           JSON.stringify(receipt.source) !== JSON.stringify(source)) invalid();
