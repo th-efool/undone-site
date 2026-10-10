@@ -23,15 +23,16 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
   const busy = pending || queuing || removing || snapshot.status === 'running';
   const select = (files: FileList | null) => {
     if (busy || !files?.length) return;
-    if (files.length !== 1 || !/\.(md|markdown|txt)$/i.test(files[0].name)) {
+    if (files.length !== 1 || !/\.(md|markdown|txt|pdf)$/i.test(files[0].name)) {
       setFile(null);
-      setError('Select one .md, .markdown or .txt file.'); return;
+      setError('Select one .pdf, .md, .markdown or .txt file.'); return;
     }
     setFile(files[0]); setError(null); setMode('file');
   };
   return <section aria-label="Learning material" className={styles.material}>
     <h2>Add your learning material</h2>
     <p>UTF-8 text or Markdown, up to 1 MiB per source. Files and pasted text follow the same saved acquisition flow.</p>
+    <p>PDFs: up to 25 MiB, 200 pages and 1 MiB extracted text. Text is anchored to pages; images and annotations are not interpreted. Scanned or blank pages require OCR text or a text alternative.</p>
     <p>Public HTTPS articles are captured on the server. Main-article text is selected from HTML; the full response remains retained. Login and JavaScript-only pages require upload or paste.</p>
     {replacementId && <p role={replacement ? 'status' : 'alert'}>{replacement ? `Replacing source ${snapshot.materials.indexOf(replacement) + 1}. The current source stays selected until the replacement is saved.` : 'This source is no longer selected. Cancel replacement before adding another source.'}
       <button type="button" disabled={busy} onClick={() => setReplacementId(null)}>Cancel replacement</button></p>}
@@ -48,7 +49,7 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
         finally { setQueuing(false); }
         return;
       }
-      const bytes = mode === 'paste' ? new Blob([text], { type: 'text/plain' }) : file ? new Blob([file], { type: /\.(md|markdown)$/i.test(file.name) ? 'text/markdown' : 'text/plain' }) : null;
+      const bytes = mode === 'paste' ? new Blob([text], { type: 'text/plain' }) : file ? new Blob([file], { type: /\.pdf$/i.test(file.name) ? 'application/pdf' : /\.(md|markdown)$/i.test(file.name) ? 'text/markdown' : 'text/plain' }) : null;
       if (!bytes) { setError('Choose a file first.'); return; }
       if (await onUpload(bytes, mode === 'paste' ? 'pasted-text.txt' : file!.name, replacementId ?? undefined)) { setText(''); setFile(null); setError(null); setReplacementId(null); if (picker.current) picker.current.value = ''; }
     }}>
@@ -58,8 +59,8 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
         <div className={styles.drop} onDragOver={event => event.preventDefault()} onDrop={event => {
           event.preventDefault(); select(event.dataTransfer.files);
         }}>
-          <label htmlFor="material-file">Choose or drop a text/Markdown file</label>
-          <input ref={picker} id="material-file" type="file" accept=".md,.markdown,.txt" disabled={busy} onChange={event => select(event.target.files)} />
+          <label htmlFor="material-file">Choose or drop a PDF/text/Markdown file</label>
+          <input ref={picker} id="material-file" type="file" accept=".pdf,.md,.markdown,.txt" disabled={busy} onChange={event => select(event.target.files)} />
           {file && <p>Selected: {file.name}</p>}
         </div>}
       <button type="submit" disabled={busy || (!!replacementId && !replacement) || (!replacement && snapshot.materials.length >= 20)}>Save and acquire material</button>

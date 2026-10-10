@@ -47,6 +47,22 @@ describe('owned creation workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save and acquire material' }));
   }
   const asset = { id: '44444444-4444-4444-8444-444444444444', kind: 'upload', byteLength: 19, checksum: 'a'.repeat(64) };
+  it('queues PDF uploads, resumes without reupload and retries the same adapter', async () => {
+    materialDraft(); const revision = saved.revision; upload.mockResolvedValue(asset);
+    render(<CreationExperience draftId={draftId} resume />);
+    const input = await screen.findByLabelText('Choose or drop a PDF/text/Markdown file');
+    fireEvent.change(input, { target: { files: [new File(['%PDF-1.4'], 'lesson.pdf')] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save and acquire material' }));
+    await screen.findByRole('button', { name: 'Cancel acquisition' });
+    expect(api.command.mock.calls[0][1]).toBe(revision); expect(api.command.mock.calls[0][2]).toMatchObject({ type: 'acquire_pdf', assetId: asset.id });
+    cleanup(); render(<CreationExperience draftId={draftId} resume />);
+    await screen.findByRole('button', { name: 'Cancel acquisition' }); expect(upload).toHaveBeenCalledOnce(); expect(api.command).toHaveBeenCalledOnce();
+    saved = applyEvent(saved, { type: 'operation_failed', requestId: saved.activeRequestId!, error: { code: 'INVALID_REQUEST', message: 'Supply OCR text', retryable: false } });
+    cleanup(); render(<CreationExperience draftId={draftId} resume />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry source 1' }));
+    await screen.findByRole('button', { name: 'Cancel acquisition' });
+    expect(api.command.mock.calls[1][2]).toMatchObject({ type: 'acquire_pdf', assetId: asset.id }); expect(upload).toHaveBeenCalledOnce();
+  });
   it('saves URL selection and resumes without duplicate fetch commands', async () => {
     materialDraft(); render(<CreationExperience draftId={draftId} resume />);
     fireEvent.click(await screen.findByRole('button', { name: 'Paste a link' }));

@@ -11,6 +11,13 @@ function mount() {
   render(<TextMaterial {...props} />); return props;
 }
 describe('one text material step', () => {
+  it('accepts a dropped PDF using the PDF upload media type', async () => {
+    const props = mount(); const drop = screen.getByLabelText('Choose or drop a PDF/text/Markdown file').parentElement!;
+    fireEvent.drop(drop, { dataTransfer: { files: [new File(['%PDF-1.4'], 'lesson.pdf')] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save and acquire material' }));
+    await waitFor(() => expect(props.onUpload).toHaveBeenCalledOnce());
+    expect(props.onUpload.mock.calls[0][0].type).toBe('application/pdf'); expect(props.onUpload.mock.calls[0][1]).toBe('lesson.pdf');
+  });
   it('does not silently add a new source when a replacement target disappears', () => {
     const base = initialSnapshot(draftId);
     const source = { id: draftId, kind: 'markdown' as const, input: { kind: 'upload' as const, assetId: draftId }, status: 'failed' as const, selectedUnitIds: [] };
@@ -53,7 +60,7 @@ describe('one text material step', () => {
     await waitFor(() => expect((screen.getByLabelText('Learning text') as HTMLTextAreaElement).value).toBe(''));
   });
   it('accepts a Markdown file and clears the selection after acknowledgment', async () => {
-    const props = mount(); const input = screen.getByLabelText('Choose or drop a text/Markdown file');
+    const props = mount(); const input = screen.getByLabelText('Choose or drop a PDF/text/Markdown file');
     fireEvent.change(input, { target: { files: [new File(['# Notes'], 'lesson.md')] } });
     fireEvent.click(screen.getByRole('button', { name: 'Save and acquire material' }));
     await waitFor(() => expect(props.onUpload).toHaveBeenCalledOnce());
@@ -62,10 +69,10 @@ describe('one text material step', () => {
     await waitFor(() => expect(screen.queryByText('Selected: lesson.md')).toBeNull());
   });
   it('accepts a drop and discards old selection after an invalid drop', async () => {
-    const props = mount(); const drop = screen.getByLabelText('Choose or drop a text/Markdown file').parentElement!;
+    const props = mount(); const drop = screen.getByLabelText('Choose or drop a PDF/text/Markdown file').parentElement!;
     fireEvent.drop(drop, { dataTransfer: { files: [new File(['notes'], 'notes.txt')] } });
     expect(screen.getByText('Selected: notes.txt')).toBeTruthy();
-    fireEvent.drop(drop, { dataTransfer: { files: [new File(['pdf'], 'notes.pdf')] } });
+    fireEvent.drop(drop, { dataTransfer: { files: [new File(['pdf'], 'notes.zip')] } });
     expect(screen.queryByText('Selected: notes.txt')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Save and acquire material' }));
     expect(props.onUpload).not.toHaveBeenCalled();

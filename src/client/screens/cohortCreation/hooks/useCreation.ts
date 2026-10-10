@@ -7,6 +7,7 @@ import { draftApi, DraftApiError } from '../services/draftApi';
 import { observeDraftEvents } from '../services/draftEvents';
 import { materialApi } from '../services/materialApi';
 import { MATERIAL_LIMITS } from '@/src/shared/cohort-creation/materials';
+import { PDF_LIMITS } from '@/src/shared/cohort-creation/pdf';
 
 type ViewState = { snapshot: CreationSnapshot; hydrated: boolean; saved: boolean; message: string | null };
 export function useCreation(draftId: string, initialQuery: string, resume: boolean) {
@@ -101,8 +102,9 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
   };
   const uploadText = async (bytes: Blob, filename: string, materialId?: string) => {
     if (editPending.current) return false;
-    if (!bytes.size || bytes.size > MATERIAL_LIMITS.extractedTextBytes) {
-      failure(new DraftApiError('Provide text up to 1 MiB. Select a smaller source; nothing was truncated.', 413)); return false;
+    const pdf = bytes.type === 'application/pdf';
+    if (!bytes.size || bytes.size > (pdf ? PDF_LIMITS.bytes : MATERIAL_LIMITS.extractedTextBytes)) {
+      failure(new DraftApiError(`Provide ${pdf ? 'a PDF up to 25 MiB' : 'text up to 1 MiB'}. Select a smaller source; nothing was truncated.`, 413)); return false;
     }
     const base = current.current;
     const operation = new AbortController(); uploadController.current = operation;
@@ -112,7 +114,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
       operation.signal.throwIfAborted();
       uploadController.current = null; setUploading(false);
       // Always use the captured revision: never attach an earlier upload to a newer intent.
-      return await send({ type: 'acquire_text', materialId: materialId ?? crypto.randomUUID(), assetId: ref.id,
+      return await send({ type: pdf ? 'acquire_pdf' : 'acquire_text', materialId: materialId ?? crypto.randomUUID(), assetId: ref.id,
         requestId: crypto.randomUUID() }, undefined, base.revision);
     } catch (error) {
       if (operation.signal.aborted) display(current.current, true, 'Upload canceled. Select material to retry.');
@@ -126,7 +128,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
   return { ...view, uploading, materialPending, uploadText, cancelUpload: () => uploadController.current?.abort(),
     removeMaterial: (materialId: string) => edit({ type: 'remove_material', materialId }),
     acquireWeb: (url: string, materialId?: string) => edit({ type: 'acquire_web', materialId: materialId ?? crypto.randomUUID(), url, requestId: crypto.randomUUID() }),
-    retryMaterial: (materialId: string, assetId: string) => edit({ type: 'acquire_text', materialId, assetId, requestId: crypto.randomUUID() }),
+    retryMaterial: (materialId: string, assetId: string) => edit({ type: current.current.materials.find(source => source.id === materialId)?.kind === 'pdf' ? 'acquire_pdf' : 'acquire_text', materialId, assetId, requestId: crypto.randomUUID() }),
     runQuery, cancel, createOwn: () => edit({ type: 'create_own' }),
     chooseStartingPoint: (startingPoint: StartingPoint) => edit({ type: 'choose_starting_point', startingPoint }),
     back: () => edit({ type: 'back_to_recommendations' }) };
