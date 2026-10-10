@@ -11,6 +11,20 @@ function mount() {
   render(<TextMaterial {...props} />); return props;
 }
 describe('one text material step', () => {
+  it('resumes saved video observations without reinspecting or discarding partial work', async () => {
+    const snapshot = initialSnapshot(draftId); const artifact = { id: draftId, kind: 'artifact' as const, byteLength: 500, checksum: 'a'.repeat(64) };
+    const onObserve = vi.fn().mockResolvedValue(true); const onWeb = vi.fn();
+    render(<TextMaterial snapshot={{ ...snapshot,
+      materials: [{ id: draftId, kind: 'youtube_video', input: { kind: 'url', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }, selectedUnitIds: ['dQw4w9WgXcQ'], status: 'failed' }],
+      materialRefs: [{ materialId: draftId, ids: [draftId] }],
+      youtubeSources: [{ materialId: draftId, sourceRevision: 0, metadataArtifact: artifact, metadataFingerprint: 'b'.repeat(64), observations: [],
+        units: [{ unitId: 'dQw4w9WgXcQ', title: 'Real lighting lesson', durationSeconds: 120 }] }],
+    }} uploading={false} pending={false} onUpload={vi.fn()} onCancelUpload={vi.fn()} onCancel={vi.fn()} onRetry={vi.fn()} onRemove={vi.fn()} onWeb={onWeb} onObserve={onObserve} />);
+    expect(screen.getByText(/0 of 1 selected video observations retained/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Resume selected video observations for source 1' }));
+    await waitFor(() => expect(onObserve).toHaveBeenCalledWith(draftId)); expect(onWeb).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Retry source 1' })).toBeNull();
+  });
   it('shows retained YouTube unit metadata without claiming extracted learning content', () => {
     const snapshot = initialSnapshot(draftId); const artifact = { id: draftId, kind: 'artifact' as const, byteLength: 500, checksum: 'a'.repeat(64) };
     render(<TextMaterial snapshot={{ ...snapshot,
