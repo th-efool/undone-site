@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
 import { NotionApi } from '../materials/notion-api';
+import { ProviderBackoff } from '../errors';
 
 const id = '11111111-1111-4111-8111-111111111111';
 afterEach(() => vi.useRealTimers());
@@ -30,8 +31,25 @@ describe('bounded Notion transport', () => {
   it.each([401, 403, 404, 429, 500])('sanitizes provider error %i and closes its body', async status => {
     const request = vi.fn<typeof fetch>(async () => Response.json({ message: 'private provider error', token: 'secret' }, { status }));
     const work = new NotionApi('fixture', request).getPage(id, new AbortController().signal);
-    await expect(work).rejects.toMatchObject({ code: status === 429 || status >= 500 ? 'UNAVAILABLE' : 'INVALID_INPUT' });
+    await expect(work).rejects.toMatchObject(status === 429 ? { detail: { code: 'RATE_LIMITED' }, retryAfterMs: 60_000 } : { code: status >= 500 ? 'UNAVAILABLE' : 'INVALID_INPUT' });
     await expect(work).rejects.not.toThrow('private provider error');
+  });
+  it('propagates provider minimum delays, including values beyond a job deadline, without sleeping or retrying in transport', async () => {
+    for (const [status, header, delay] of [[429, '90', 90_000], [529, '600', 600_000], [503, '120', 120_000], [429, 'invalid', 60_000],
+      [429, '999999999999999999999999', Number.MAX_SAFE_INTEGER]] as const) {
+      const request = vi.fn<typeof fetch>(async () => Response.json({ private: true }, { status, headers: { 'Retry-After': header } }));
+      await expect(new NotionApi('fixture', request).getPage(id, new AbortController().signal)).rejects.toMatchObject({ retryAfterMs: delay });
+      expect(request).toHaveBeenCalledOnce();
+    }
+  });
+  it('honors HTTP-date Retry-After and never retries forbidden source access', async () => {
+    vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-10T00:00:00Z'));
+    const request = vi.fn<typeof fetch>(async () => Response.json({}, { status: 429, headers: { 'Retry-After': 'Sat, 10 Oct 2026 00:02:00 GMT' } }));
+    await expect(new NotionApi('fixture', request).getPage(id, new AbortController().signal)).rejects.toMatchObject({ retryAfterMs: 120_000 });
+    const forbidden = vi.fn<typeof fetch>(async () => Response.json({ code: 'public_api_request_blocked' }, { status: 403, headers: { 'Retry-After': '90' } }));
+    const work = new NotionApi('fixture', forbidden).getPage(id, new AbortController().signal);
+    await expect(work).rejects.not.toBeInstanceOf(ProviderBackoff);
+    await expect(work).rejects.toMatchObject({ code: 'INVALID_INPUT' });
   });
   it('rejects unsupported, malformed, incomplete and oversized responses', async () => {
     for (const response of [new Response('<html>private</html>', { headers: { 'Content-Type': 'text/html' } }),

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { executeCreationJob } from '../durable-job.runner';
 import { JobBudgetExceeded, type ClaimedCreationJob, type CreationJobRepository } from '../durable-job';
-import { creationFailure } from '../errors';
+import { creationFailure, ProviderBackoff } from '../errors';
 import { draftId, requestId, result } from '@/src/shared/cohort-creation/__tests__/fixtures';
 
 function fixture() {
@@ -83,5 +83,14 @@ describe('durable recommendation worker', () => {
     expect(started).toBe(true); fence();
     await vi.advanceTimersByTimeAsync(20_000); await work;
     expect(repo.heartbeat).toHaveBeenCalledOnce(); expect(repo.finish).not.toHaveBeenCalled();
+  });
+  it('passes provider minimum delays to durable scheduling and exposes retryable failure when scheduling is denied', async () => {
+    for (const scheduled of [true, false]) {
+      const { repo, job } = fixture(); vi.mocked(repo.retry).mockResolvedValue(scheduled);
+      await executeCreationJob(repo, job, () => ({ recommend: async () => { throw new ProviderBackoff(90_000); } }), new AbortController().signal);
+      expect(repo.retry).toHaveBeenCalledWith(job, 90_000);
+      expect(repo.finish).toHaveBeenCalledTimes(scheduled ? 0 : 1);
+      if (!scheduled) expect(repo.finish).toHaveBeenCalledWith(job, expect.objectContaining({ error: expect.objectContaining({ code: 'RATE_LIMITED', retryable: true }) }));
+    }
   });
 });

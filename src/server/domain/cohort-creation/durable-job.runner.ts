@@ -1,4 +1,4 @@
-import { CreationFailure } from './errors';
+import { CreationFailure, ProviderBackoff } from './errors';
 import { JobBudgetExceeded, LeaseLost, type ClaimedCreationJob, type ClaimedRecommendationJob, type ClaimedTextJob, type ClaimedWebJob, type ClaimedPdfJob, type ClaimedYoutubeInspectionJob, type ClaimedYoutubeObservationJob, type CreationJobRepository } from './durable-job';
 import type { YoutubeAcquisitionService } from './materials/youtube-acquisition.service';
 import { validateYoutubeCheckpoint } from './materials/youtube-identity';
@@ -102,7 +102,8 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
             message: job.kind === 'recommendations' ? 'Recommendations could not be generated. Try again.' : 'Material acquisition is unavailable. Retry the selected source.', retryable: true };
     const transient = (error instanceof CreationFailure || error instanceof CreationStorageError) && detail.retryable &&
       ['AI_UNAVAILABLE', 'RATE_LIMITED', 'DATA_UNAVAILABLE'].includes(detail.code);
-    if (transient && !timeout.aborted && await repo.retry(job, 1000 * 2 ** job.attempt)) return;
+    const retryDelay = Math.max(1000 * 2 ** job.attempt, error instanceof ProviderBackoff ? error.retryAfterMs : 0);
+    if (transient && !timeout.aborted && await repo.retry(job, retryDelay)) return;
     await repo.finish(job, { type: 'operation_failed', requestId: job.requestId, error: detail });
   } finally { clearInterval(timer); }
 }

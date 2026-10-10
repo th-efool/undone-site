@@ -2,6 +2,19 @@ import 'server-only';
 import { notionIdSchema, NOTION_API_VERSION } from '@/src/shared/cohort-creation/notion';
 import { CreationStorageError } from '@/src/server/infrastructure/storage/creation.contracts';
 import type { NotionPageProvider } from './notion';
+import { ProviderBackoff } from '../errors';
+
+function retryAfter(value: string | null): number {
+  if (value && /^\d+$/.test(value)) {
+    const milliseconds = Number(value) * 1000;
+    return Number.isSafeInteger(milliseconds) ? milliseconds : Number.MAX_SAFE_INTEGER;
+  }
+  if (value) {
+    const date = Date.parse(value);
+    if (Number.isFinite(date)) return Math.max(0, date - Date.now());
+  }
+  return 60_000;
+}
 
 /** Matches installed Corsair endpoint/version contracts, with bounded reads and no SDK content-cache side effects. */
 export class NotionApi implements NotionPageProvider {
@@ -34,6 +47,9 @@ export class NotionApi implements NotionPageProvider {
         Accept: 'application/json' }, redirect: 'error', credentials: 'omit', cache: 'no-store', signal });
     } catch { signal.throwIfAborted(); throw new CreationStorageError('UNAVAILABLE', 'Notion could not be reached. Retry the selected page.'); }
     try {
+      if (response.status === 429 || response.status === 529 || response.status === 503 && response.headers.has('retry-after')) {
+        throw new ProviderBackoff(retryAfter(response.headers.get('retry-after')));
+      }
       if (!response.ok) throw new CreationStorageError(response.status === 429 || response.status >= 500 ? 'UNAVAILABLE' : 'INVALID_INPUT',
         response.status === 429 ? 'Notion request limit reached. Retry later.' : 'Notion page is unavailable. Check your connection and shared page access.');
       if (!response.headers.get('content-type')?.toLowerCase().includes('json') || !response.body) throw new CreationStorageError('INVALID_INPUT', 'Notion returned an unsupported response.');
