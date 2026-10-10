@@ -1,4 +1,5 @@
 'use client';
+import { BuildingProgress } from './components/BuildingProgress';
 import { AnalysisProgress } from './components/AnalysisProgress';
 
 import Link from 'next/link';
@@ -35,8 +36,9 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
         </> : <p>Your query will become a structured learning intent. You remain in control of what happens next.</p>}
       </aside>
       <div>
-        {snapshot.stage === 'processing' && snapshot.processing?.phase === 'analysis' ? <AnalysisProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
-          onStart={creation.analyzeMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'processing' && snapshot.processing?.phase === 'chunking' ? <ChunkingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
+        {snapshot.stage === 'ready' ? <section aria-label="Curriculum ready"><h2>Curriculum ready</h2><p>Lessons and provenance are saved. Review is not available yet.</p><button disabled={!creation.saved || creation.materialPending} onClick={() => void creation.backToMaterials()}>Back to material</button></section> : snapshot.stage === 'processing' && snapshot.processing?.phase === 'building' ? <BuildingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
+          onStart={creation.buildCurriculum} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'processing' && snapshot.processing?.phase === 'analysis' ? <AnalysisProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
+          onBuild={creation.buildCurriculum} onStart={creation.analyzeMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'processing' && snapshot.processing?.phase === 'chunking' ? <ChunkingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
           onAnalyze={creation.analyzeMaterial} onStart={creation.chunkMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'processing' ? <UnderstandingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
           onChunk={creation.chunkMaterial} onStart={creation.understandMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'starting_point' ? <>
           <StartingPoint selected={snapshot.startingPoint} onSelect={creation.chooseStartingPoint} onBack={creation.back}

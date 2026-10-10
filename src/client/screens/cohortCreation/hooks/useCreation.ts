@@ -129,6 +129,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
   };
   return { ...view, uploading, materialPending, uploadText, cancelUpload: () => uploadController.current?.abort(),
     understandMaterial: () => edit({ type: 'understand_material', requestId: crypto.randomUUID() }),
+    buildCurriculum: () => edit({ type: 'build_curriculum', requestId: crypto.randomUUID() }),
     analyzeMaterial: () => edit({ type: 'analyze_material', requestId: crypto.randomUUID() }),
     chunkMaterial: () => edit({ type: 'chunk_material', requestId: crypto.randomUUID() }),
     backToMaterials: () => edit({ type: 'back_to_materials' }),
