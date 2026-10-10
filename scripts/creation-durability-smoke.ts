@@ -29,6 +29,8 @@ import { githubExtractionVersion, githubReceiptFingerprint, githubUnitId } from 
 import { youtubeMetadataFingerprint } from '../src/server/domain/cohort-creation/materials/youtube-artifacts';
 import { notionMaterialManifestSchema, retainedNotionCheckpointSchema, NOTION_PARSER_VERSION } from '../src/shared/cohort-creation/notion';
 import { notionExtractionVersion, notionReceiptFingerprint, notionUnitId } from '../src/server/domain/cohort-creation/materials/notion-extraction';
+import { discoveryResultSchema } from '../src/shared/cohort-creation/discovery';
+import { discoveryFingerprint } from '../src/server/domain/cohort-creation/discovery.service';
 
 let stage = 'connection';
 async function main() {
@@ -454,6 +456,53 @@ async function main() {
     assert.equal(ntReady.materialRefs[0].ids.length, 2);
     assert.equal(await drafts.swap(owner, ntDraftId, ntReady.revision, applyCommand(ntReady, { type: 'remove_material', materialId: ntCommand.materialId })), true);
     assert.equal(await db.creationStorageObject.count({ where: { draftId: ntDraftId, referencedAt: { not: null } } }), 0);
+    stage = 'durable grounded discovery budgets and fenced evidence recovery';
+    const dcDraftId = randomUUID(); const dcStart = creationSnapshotSchema.parse({ ...starting, draftId: dcDraftId, startingPoint: 'find_material' });
+    await db.creationDraft.create({ data: { id: dcDraftId, ownerId: owner, snapshot: dcStart, revision: dcStart.revision } });
+    const dcCommand = { type: 'discover_material' as const, requestId: randomUUID() }; const dcNext = applyCommand(dcStart, dcCommand);
+    assert.ok(await repo.enqueue(owner, dcStart, dcNext)); assert.ok(await repo.enqueue(owner, dcStart, dcNext));
+    assert.equal(await db.creationJob.count({ where: { draftId: dcDraftId } }), 1);
+    assert.equal(await repo.enqueue('foreign-owner', dcStart, dcNext), null);
+    const dcJob = await repo.claim('discovery-worker'); assert.ok(dcJob?.kind === 'discover_material');
+    assert.ok(dcJob.deadlineAt.getTime() > Date.now() + 800_000);
+    await db.creationJob.update({ where: { id: dcJob.id }, data: { leaseUntil: new Date(Date.now() + 600_000) } });
+    for (let call = 0; call < 3; call++) { const release = await repo.reserveModelCall(dcJob); assert.ok(release); await release(); }
+    await assert.rejects(repo.reserveModelCall(dcJob), JobBudgetExceeded, 'discovery cannot exceed three paid calls');
+    const dcFingerprint = discoveryFingerprint(dcJob.input);
+    const dcRef = () => ({ id: randomUUID(), kind: 'artifact' as const, byteLength: 1200, checksum: createHash('sha256').update(randomUUID()).digest('hex') });
+    const dcSearch = dcRef(); const dcObservation = dcRef(); const dcSelection = dcRef();
+    const dcCheckpoint = { phase: 'discovery_sources' as const, requestId: dcJob.requestId, inputRevision: dcJob.inputRevision,
+      inputFingerprint: dcFingerprint, searchArtifact: dcSearch, observationArtifact: null, selectionArtifact: null, processed: 0, total: 1 };
+    await db.creationStorageObject.create({ data: { ...dcSearch, blobId: randomUUID(), ownerId: 'foreign-owner', draftId: dcDraftId,
+      status: 'ready', mediaType: 'application/json', reservedBytes: dcSearch.byteLength, artifactType: 'discovery-search', schemaVersion: 1, inputFingerprint: dcFingerprint } });
+    await assert.rejects(repo.checkpoint(dcJob, dcCheckpoint), /Checkpoint storage reference unavailable/);
+    await db.creationStorageObject.update({ where: { id: dcSearch.id }, data: { ownerId: owner } });
+    assert.equal(await repo.checkpoint(dcJob, dcCheckpoint), true);
+    const dcPartial = await drafts.load(owner, dcDraftId); assert.ok(dcPartial);
+    assert.equal(dcPartial.discovery?.checkpoint?.searchArtifact.id, dcSearch.id);
+    await db.creationJob.update({ where: { id: dcJob.id }, data: { leaseUntil: new Date(0) } });
+    const dcResumed = await repo.claim('discovery-restart'); assert.ok(dcResumed?.kind === 'discover_material');
+    await db.creationJob.update({ where: { id: dcResumed.id }, data: { leaseUntil: new Date(Date.now() + 600_000) } });
+    assert.equal(await repo.checkpoint(dcJob, dcCheckpoint), false, 'old discovery worker is fenced');
+    for (const item of [{ ref: dcObservation, type: 'discovery-observations' }, { ref: dcSelection, type: 'discovery-selection' }]) {
+      await db.creationStorageObject.create({ data: { ...item.ref, blobId: randomUUID(), ownerId: owner, draftId: dcDraftId,
+        status: 'ready', mediaType: 'application/json', reservedBytes: item.ref.byteLength, artifactType: item.type, schemaVersion: 1, inputFingerprint: dcFingerprint } });
+    }
+    const dcUrl = 'https://www.typescriptlang.org/docs/handbook/intro.html'; const dcKey = createHash('sha256').update(dcUrl).digest('hex');
+    const dcResult = discoveryResultSchema.parse({ checkpoint: { ...dcCheckpoint, observationArtifact: dcObservation, selectionArtifact: dcSelection, processed: 1 },
+      candidates: [{ key: dcKey, citationIds: ['fixture-citation'], url: dcUrl, title: 'Fixture handbook observation', kind: 'web', observedAt: new Date().toISOString(),
+        observation: { method: 'public_http', requestedUrl: dcUrl, redirects: [], titleOrigin: 'observed', contentRetained: false } }],
+      failures: [], selection: { selected: [{ candidateKey: dcKey, reason: 'Fixture educational match' }] } });
+    await executeCreationJob(repo, dcResumed, () => { throw new Error('No recommendation call'); }, new AbortController().signal,
+      undefined, undefined, undefined, undefined, undefined, undefined, undefined, () => ({ run: async (...args) => {
+        assert.deepEqual(args[4], dcCheckpoint, 'retained search is passed to resumed discovery'); return dcResult;
+      } }));
+    const dcReady = await drafts.load(owner, dcDraftId); assert.ok(dcReady);
+    assert.equal(dcReady.discovery?.result?.selection.selected[0].candidateKey, dcKey);
+    assert.equal(dcReady.materials.length, 0, 'discovery metadata is not imported material');
+    assert.equal(await db.creationStorageObject.count({ where: { draftId: dcDraftId, referencedAt: { not: null } } }), 3);
+    assert.equal(await drafts.swap(owner, dcDraftId, dcReady.revision, applyCommand(dcReady, { type: 'choose_starting_point', startingPoint: 'have_material' })), true);
+    assert.equal(await db.creationStorageObject.count({ where: { draftId: dcDraftId, referencedAt: { not: null } } }), 0, 'abandoned discovery evidence detaches');
     stage = 'retention protection and tombstones';
     const retention = createCreationRetentionRepository(db);
     const old = new Date(Date.now() - 61 * 86400_000);
@@ -509,7 +558,7 @@ async function main() {
     try { if (created) await admin.query(`DROP SCHEMA "${schema}" CASCADE`); }
     finally { await admin.end(); }
   }
-  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web/PDF/YouTube/GitHub/Notion, provider backoff, unit capacity, per-video budgets, checkpoint fencing, restart, pin release, reload, retention; isolated schema removed.');
+  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web/PDF/YouTube/GitHub/Notion/discovery, three-call discovery budget, provider backoff, unit capacity, per-video budgets, checkpoint fencing, restart, pin release, reload, retention; isolated schema removed.');
 }
 
 main().catch(error => {
