@@ -1,4 +1,7 @@
 'use client';
+import type { z } from 'zod';
+import type { reviewPatchSchema, lessonEditSchema } from '@/src/shared/cohort-creation/review-flow';
+
 import type { GithubSelection } from '@/src/shared/cohort-creation/github';
 import type { DiscoveryCandidate } from '@/src/shared/cohort-creation/discovery';
 
@@ -99,7 +102,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
         display(latest, true, 'The active request changed. Review the current draft before canceling.');
         return;
       }
-      await edit({ type: latest.stage === 'processing' ? 'cancel_processing' : latest.stage === 'starting_point' ? 'cancel_material_acquisition' : 'cancel_recommendations' });
+      await edit({ type: latest.stage === 'processing' || latest.stage === 'review' ? 'cancel_processing' : latest.stage === 'starting_point' ? 'cancel_material_acquisition' : 'cancel_recommendations' });
     } catch (error) { failure(error); }
   };
   const uploadText = async (bytes: Blob, filename: string, materialId?: string) => {
@@ -128,6 +131,13 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     }
   };
   return { ...view, uploading, materialPending, uploadText, cancelUpload: () => uploadController.current?.abort(),
+    openReview: () => edit({ type: 'open_review' }),
+    editReview: (patch: z.infer<typeof reviewPatchSchema>) => edit({ type: 'edit_review', patch }),
+    editLesson: (lessonId: string, patch: Omit<z.infer<typeof lessonEditSchema>, 'lessonId'>) => edit({ type: 'edit_lesson', lessonId, ...patch }),
+    requestRefinement: (prompt: string) => edit({ type: 'refine_curriculum', prompt, requestId: crypto.randomUUID() }),
+    applyRefinement: (requestId: string) => edit({ type: 'apply_refinement', requestId }),
+    discardRefinement: (requestId: string) => edit({ type: 'discard_refinement', requestId }),
+    discardOrphanedEdits: (lessonIds: string[]) => edit({ type: 'discard_orphaned_edits', lessonIds }),
     understandMaterial: () => edit({ type: 'understand_material', requestId: crypto.randomUUID() }),
     buildCurriculum: () => edit({ type: 'build_curriculum', requestId: crypto.randomUUID() }),
     analyzeMaterial: () => edit({ type: 'analyze_material', requestId: crypto.randomUUID() }),
