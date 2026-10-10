@@ -11,7 +11,7 @@ const updateSchema = z.strictObject({ baseRevision: z.number().int().nonnegative
 const commandGuardMessages = new Set([
   'Intent is not ready', 'Starting point is not available', 'Operation is still running',
   'Save a video selection before observing it',
-  'Retained material is not ready', 'Processing is not available', 'Processing is still running',
+  'Retained material is not ready', 'Processing is not available', 'Processing is still running', 'Understanding is not complete',
   'The draft already has 100 selected units. Remove a source before adding GitHub files.',
   'The draft already has 100 selected units. Remove a source before adding a Notion page.',
 ]);

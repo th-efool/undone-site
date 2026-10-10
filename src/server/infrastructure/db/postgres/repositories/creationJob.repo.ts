@@ -27,6 +27,10 @@ import { discoveryRequestSchema } from '@/src/server/domain/cohort-creation/disc
 import { discoveryCheckpointSchema, discoveryResultSchema } from '@/src/shared/cohort-creation/discovery';
 import { validateDiscoveryCheckpoint } from '@/src/server/domain/cohort-creation/job-completion';
 import { pinDiscovery, preserveDiscovery } from './creationDiscovery.repo';
+import { chunkingRequestSchema } from '@/src/shared/cohort-creation/jobs';
+import { chunkingCheckpointSchema } from '@/src/shared/cohort-creation/processing';
+import { validateChunkingCheckpoint } from '@/src/server/domain/cohort-creation/chunking.service';
+import { pinChunking, preserveChunking } from './creationChunking.repo';
 import { understandingRequestSchema } from '@/src/shared/cohort-creation/jobs';
 import { understandingCheckpointSchema } from '@/src/shared/cohort-creation/processing';
 import { validateUnderstandingCheckpoint } from '@/src/server/domain/cohort-creation/understanding.service';
@@ -47,6 +51,8 @@ async function fenced(tx: Prisma.TransactionClient, job: ClaimedCreationJob) {
 function claimed(row: CreationJob): ClaimedCreationJob {
   const base = { ...jobSummary(row), draftId: row.draftId, ownerId: row.ownerId,
     inputFingerprint: row.inputFingerprint, leaseToken: row.leaseToken!, deadlineAt: row.deadlineAt! };
+  if (row.kind === 'chunk_material') return { ...base, kind: 'chunk_material', input: chunkingRequestSchema.parse(row.input),
+    checkpoint: row.checkpoint ? chunkingCheckpointSchema.parse(row.checkpoint) : null };
   if (row.kind === 'understand_material') return { ...base, kind: 'understand_material', input: understandingRequestSchema.parse(row.input),
     checkpoint: row.checkpoint ? understandingCheckpointSchema.parse(row.checkpoint) : null };
   if (row.kind === 'acquire_text') return { ...base, kind: 'acquire_text', input: textAcquisitionRequestSchema.parse(row.input),
@@ -180,9 +186,11 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       if (!current) return null;
       const source = next.materials.find(source => source.status === 'acquiring');
       const metadata = next.youtubeSources.find(preview => preview.materialId === source?.id);
-      const kind = next.stage === 'processing' ? 'understand_material' : next.stage === 'recommendations' ? 'recommendations' : next.discovery?.requestId === next.activeRequestId ? 'discover_material' : source?.kind === 'notion' ? 'acquire_notion' : source?.kind === 'github' ? 'acquire_github' : source?.kind === 'web' ? 'acquire_web' : source?.kind === 'pdf' ? 'acquire_pdf' : ['youtube_video', 'youtube_playlist'].includes(source?.kind ?? '') ? metadata && source?.selectedUnitIds.length ? 'observe_youtube' : 'inspect_youtube' : 'acquire_text';
+      const kind = next.stage === 'processing' ? next.processing?.phase === 'chunking' ? 'chunk_material' : 'understand_material' : next.stage === 'recommendations' ? 'recommendations' : next.discovery?.requestId === next.activeRequestId ? 'discover_material' : source?.kind === 'notion' ? 'acquire_notion' : source?.kind === 'github' ? 'acquire_github' : source?.kind === 'web' ? 'acquire_web' : source?.kind === 'pdf' ? 'acquire_pdf' : ['youtube_video', 'youtube_playlist'].includes(source?.kind ?? '') ? metadata && source?.selectedUnitIds.length ? 'observe_youtube' : 'inspect_youtube' : 'acquire_text';
       const input = kind === 'recommendations'
         ? recommendationRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, query: next.query })
+        : kind === 'chunk_material' ? chunkingRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision,
+          snapshot: { ...next, status: 'succeeded', activeRequestId: null, processing: { ...next.processing, phase: 'understanding', chunking: null } } })
         : kind === 'understand_material' ? understandingRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision,
           snapshot: { ...next, stage: 'starting_point', status: 'succeeded', activeRequestId: null, processing: null } })
         : kind === 'discover_material' ? discoveryRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, intent: next.result?.intent })
@@ -247,7 +255,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const candidates = await tx.$queryRaw<{ id: string; draftId: string; ownerId: string }[]>`
         SELECT j."id",j."draftId",j."ownerId" FROM "creation_jobs" j
         JOIN "creation_drafts" d ON d."id"=j."draftId"
-        WHERE d."expiredAt" IS NULL AND j."kind" IN ('recommendations','acquire_text','acquire_web','acquire_pdf','inspect_youtube','observe_youtube','acquire_github','acquire_notion','discover_material','understand_material') AND j."cancelRequestedAt" IS NULL AND
+        WHERE d."expiredAt" IS NULL AND j."kind" IN ('recommendations','acquire_text','acquire_web','acquire_pdf','inspect_youtube','observe_youtube','acquire_github','acquire_notion','discover_material','understand_material','chunk_material') AND j."cancelRequestedAt" IS NULL AND
         ((j."status"='queued' AND j."nextRunAt"<=CURRENT_TIMESTAMP) OR
          (j."status"='running' AND j."leaseUntil"<=CURRENT_TIMESTAMP))
         ORDER BY j."nextRunAt",j."createdAt" LIMIT 1 FOR UPDATE OF d SKIP LOCKED`;
@@ -263,7 +271,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const rows = await tx.$queryRaw<CreationJob[]>`UPDATE "creation_jobs" SET "status"='running',
         "attempt"="attempt"+1,"leaseOwner"=${worker},"leaseToken"=${token},
         "leaseUntil"=CURRENT_TIMESTAMP + interval '90 seconds',"heartbeatAt"=CURRENT_TIMESTAMP,
-        "deadlineAt"=COALESCE("deadlineAt",CURRENT_TIMESTAMP + CASE WHEN "kind"='understand_material' THEN interval '6 hours' WHEN "kind"='discover_material' THEN interval '15 minutes' WHEN "kind"='observe_youtube' THEN interval '6 hours' WHEN "kind" IN ('acquire_github','acquire_notion') THEN interval '6 minutes' WHEN "kind" IN ('acquire_web','acquire_pdf','inspect_youtube') THEN interval '120 seconds' WHEN "kind"='acquire_text' THEN interval '60 seconds' ELSE interval '30 seconds' END),"updatedAt"=CURRENT_TIMESTAMP
+        "deadlineAt"=COALESCE("deadlineAt",CURRENT_TIMESTAMP + CASE WHEN "kind" IN ('understand_material','chunk_material') THEN interval '6 hours' WHEN "kind"='discover_material' THEN interval '15 minutes' WHEN "kind"='observe_youtube' THEN interval '6 hours' WHEN "kind" IN ('acquire_github','acquire_notion') THEN interval '6 minutes' WHEN "kind" IN ('acquire_web','acquire_pdf','inspect_youtube') THEN interval '120 seconds' WHEN "kind"='acquire_text' THEN interval '60 seconds' ELSE interval '30 seconds' END),"updatedAt"=CURRENT_TIMESTAMP
         WHERE "id"=${job.id} RETURNING *`;
       await writeDraftEvent(tx, row.ownerId, { ...current, revision: current.revision + 1 }, 'job_started', rows[0]);
       return claimed(rows[0]);
@@ -277,13 +285,18 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
     return count === 1;
   },
   async reserveModelCall(job, unitId) {
-    if (job.kind !== 'understand_material' && job.kind !== 'discover_material' && job.kind !== 'recommendations' && (job.kind !== 'observe_youtube' || !unitId || !job.input.source.selectedUnitIds.includes(unitId))) throw new Error('Model calls require a recommendation, discovery, selected video or understanding job');
+    if (job.kind !== 'chunk_material' && job.kind !== 'understand_material' && job.kind !== 'discover_material' && job.kind !== 'recommendations' && (job.kind !== 'observe_youtube' || !unitId || !job.input.source.selectedUnitIds.includes(unitId))) throw new Error('Model calls require a recommendation, discovery, selected video or understanding job');
     // Separate from job leases: cancellation does not immediately free a still-running SDK call.
-    const until = new Date(Date.now() + (job.kind === 'observe_youtube' ? 120_000 : job.kind === 'discover_material' || job.kind === 'understand_material' ? 90_000 : 30_000));
+    const until = new Date(Date.now() + (job.kind === 'observe_youtube' ? 120_000 : job.kind === 'discover_material' || job.kind === 'understand_material' || job.kind === 'chunk_material' ? 90_000 : 30_000));
     const slot = await prisma.$transaction(async tx => {
       const current = await lockedDraft(tx, job.ownerId, job.draftId);
       if (!current || current.activeRequestId !== job.requestId || current.inputRevision !== job.inputRevision) throw new LeaseLost();
       await fenced(tx, job);
+      if (job.kind === 'chunk_material') {
+        const saved = await tx.creationJob.findUnique({ where: { id: job.id }, select: { checkpoint: true } });
+        const checkpoint = validateChunkingCheckpoint(job.input.snapshot, job.requestId, saved?.checkpoint);
+        if (!unitId || !checkpoint.partitionIds.includes(unitId) || checkpoint.completed.some(item => item.partitionId === unitId)) throw new Error('Chunking partition is not available');
+      }
       if (job.kind === 'understand_material') {
         const saved = await tx.creationJob.findUnique({ where: { id: job.id }, select: { checkpoint: true } });
         const checkpoint = validateUnderstandingCheckpoint(job.input.snapshot, job.requestId, saved?.checkpoint);
@@ -302,8 +315,8 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       if (!acquired) throw creationFailure('RATE_LIMITED', 'Model capacity is busy. Try again shortly.');
       const budget = hourlyBudget(`model:${job.ownerId}`);
       await reserveBudget(tx, budget.key, 40, budget.expiresAt);
-      await reserveBudget(tx, job.kind === 'observe_youtube' || job.kind === 'understand_material' ? `model-job:${job.id}:unit:${unitId}` : `model-job:${job.id}`,
-        job.kind === 'observe_youtube' || job.kind === 'understand_material' ? 2 : job.kind === 'discover_material' ? 3 : 4, new Date(Date.now() + 60 * 86400_000));
+      await reserveBudget(tx, job.kind === 'observe_youtube' || job.kind === 'understand_material' || job.kind === 'chunk_material' ? `model-job:${job.id}:unit:${unitId}` : `model-job:${job.id}`,
+        job.kind === 'observe_youtube' || job.kind === 'understand_material' || job.kind === 'chunk_material' ? 2 : job.kind === 'discover_material' ? 3 : 4, new Date(Date.now() + 60 * 86400_000));
       return acquired;
     });
     return async () => {
@@ -320,6 +333,11 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
         if (!current || current.activeRequestId !== job.requestId || current.inputRevision !== job.inputRevision) return false;
         await fenced(tx, job);
         if (event.type === 'recommendations_received') jobCompletion(job, event.result);
+        if (event.type === 'chunking_received') {
+          if (job.kind !== 'chunk_material') throw new Error('Invalid chunking job');
+          jobCompletion(job, event.result); preserveChunking(current.processing?.chunking?.checkpoint ?? null, event.result);
+          await pinChunking(tx, { ownerId: job.ownerId, draftId: job.draftId }, event.result);
+        }
         if (event.type === 'understanding_received') {
           if (job.kind !== 'understand_material') throw new Error('Invalid understanding job');
           jobCompletion(job, event.result); preserveUnderstanding(current.processing?.checkpoint ?? null, event.result);
@@ -339,13 +357,14 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
         if (event.type === 'youtube_metadata_received') { jobCompletion(job, event.result); await pinYoutubeMetadata(tx, job, event.result); }
         const next = applyEvent(current, event);
         if (next === current) return false;
-        const status = event.type === 'understanding_received' || event.type === 'discovery_received' || event.type === 'recommendations_received' || event.type === 'material_received' || event.type === 'youtube_metadata_received' ? 'succeeded' : event.type === 'operation_cancelled' ? 'canceled' : 'failed';
+        const status = event.type === 'chunking_received' || event.type === 'understanding_received' || event.type === 'discovery_received' || event.type === 'recommendations_received' || event.type === 'material_received' || event.type === 'youtube_metadata_received' ? 'succeeded' : event.type === 'operation_cancelled' ? 'canceled' : 'failed';
         const completed = await tx.creationJob.update({ where: { id: job.id }, data: { status,
           ...(event.type === 'recommendations_received' ? { checkpoint: event.result } : {}),
           ...(event.type === 'material_received' ? { checkpoint: event.manifest } : {}),
           ...(event.type === 'youtube_metadata_received' ? { checkpoint: event.result } : {}),
           ...(event.type === 'discovery_received' ? { checkpoint: event.result } : {}),
           ...(event.type === 'understanding_received' ? { checkpoint: event.result } : {}),
+          ...(event.type === 'chunking_received' ? { checkpoint: event.result } : {}),
           leaseToken: null, leaseUntil: null, leaseOwner: null } });
         await writeDraftEvent(tx, job.ownerId, next, status === 'succeeded' ? 'job_completed' : status === 'failed' ? 'job_failed' : 'job_canceled', completed);
         return true;
@@ -353,6 +372,21 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
     } catch (error) { if (error instanceof LeaseLost) return false; throw error; }
   },
   async checkpoint(job, result) {
+    if (job.kind === 'chunk_material') {
+      const checkpoint = validateChunkingCheckpoint(job.input.snapshot, job.requestId, result);
+      try {
+        return await prisma.$transaction(async tx => {
+          const current = await lockedDraft(tx, job.ownerId, job.draftId);
+          if (!current || current.activeRequestId !== job.requestId || current.inputRevision !== job.inputRevision || current.processing?.chunking?.requestId !== job.requestId) return false;
+          await fenced(tx, job); preserveChunking(current.processing.chunking.checkpoint, checkpoint);
+          await pinChunking(tx, { ownerId: job.ownerId, draftId: job.draftId }, checkpoint);
+          const next = creationSnapshotSchema.parse({ ...current, revision: current.revision + 1,
+            processing: { ...current.processing, chunking: { requestId: job.requestId, checkpoint, complete: false } } });
+          const updated = await tx.creationJob.update({ where: { id: job.id }, data: { checkpoint } });
+          await writeDraftEvent(tx, job.ownerId, next, 'snapshot', updated); return true;
+        });
+      } catch (error) { if (error instanceof LeaseLost) return false; throw error; }
+    }
     if (job.kind === 'understand_material') {
       const checkpoint = validateUnderstandingCheckpoint(job.input.snapshot, job.requestId, result);
       try {

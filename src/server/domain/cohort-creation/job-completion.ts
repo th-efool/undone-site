@@ -22,6 +22,7 @@ import type { ClaimedDiscoveryJob } from './durable-job';
 import { discoveryCheckpointSchema, discoveryResultSchema } from '@/src/shared/cohort-creation/discovery';
 import { discoveryFingerprint } from './discovery.service';
 import { validateUnderstandingCheckpoint } from './understanding.service';
+import { validateChunkingCheckpoint } from './chunking.service';
 
 export function validateDiscoveryCheckpoint(job: ClaimedDiscoveryJob, value: unknown) {
   const checkpoint = discoveryCheckpointSchema.parse(value);
@@ -64,6 +65,11 @@ export function jobCompletion(job: ClaimedCreationJob, value: CreationCheckpoint
     const result = validateUnderstandingCheckpoint(job.input.snapshot, job.requestId, value);
     if (result.completed.length !== result.total) throw new Error('Understanding is incomplete');
     return { type: 'understanding_received', requestId: job.requestId, result };
+  }
+  if (job.kind === 'chunk_material') {
+    const result = validateChunkingCheckpoint(job.input.snapshot, job.requestId, value);
+    if (result.completed.length !== result.total) throw new Error('Chunking is incomplete');
+    return { type: 'chunking_received', requestId: job.requestId, result };
   }
   if (job.kind === 'discover_material') {
     const result = discoveryResultSchema.parse(value); validateDiscoveryCheckpoint(job, result.checkpoint);

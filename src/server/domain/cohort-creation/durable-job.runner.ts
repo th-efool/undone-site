@@ -14,6 +14,8 @@ import type { DiscoveryService } from './discovery.service';
 import type { ClaimedUnderstandingJob } from './durable-job';
 import type { UnderstandingService } from './understanding.service';
 import { validateUnderstandingCheckpoint } from './understanding.service';
+import type { ClaimedChunkingJob } from './durable-job';
+import { validateChunkingCheckpoint, type ChunkingService } from './chunking.service';
 
 import type { TextAcquisitionService } from './materials/text-acquisition.service';
 import { CreationStorageError } from '@/src/server/infrastructure/storage/creation.contracts';
@@ -30,17 +32,18 @@ type YoutubeAcquirerFactory = (job: ClaimedYoutubeObservationJob) => Pick<Youtub
 type GithubAcquirerFactory = (job: ClaimedGithubJob) => Pick<GithubAcquisitionService, 'acquire' | 'extract'>;
 type NotionAcquirerFactory = (job: ClaimedNotionJob) => Pick<NotionAcquisitionService, 'acquire' | 'extract'>;
 type DiscoveryFactory = (job: ClaimedDiscoveryJob) => Pick<DiscoveryService, 'run'>;
+type ChunkingFactory = (job: ClaimedChunkingJob) => Pick<ChunkingService, 'run'>;
 type UnderstandingFactory = (job: ClaimedUnderstandingJob) => Pick<UnderstandingService, 'run'>;
 /** One task invocation; browser connections are deliberately not an input. */
 export async function executeCreationJob(repo: CreationJobRepository, job: ClaimedCreationJob,
-  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory, discoverer?: DiscoveryFactory, understander?: UnderstandingFactory) {
+  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory, discoverer?: DiscoveryFactory, understander?: UnderstandingFactory, chunker?: ChunkingFactory) {
   const lease = new AbortController();
   const remaining = Math.max(1, job.deadlineAt.getTime() - Date.now());
   const timeout = AbortSignal.timeout(remaining);
   const signal = AbortSignal.any([shutdown, lease.signal, timeout]);
   let heartbeatPending = false;
-  const completedUnderstanding = job.kind === 'understand_material' && job.checkpoint !== null && job.checkpoint.completed.length === job.checkpoint.total;
-  let modelFinished = completedUnderstanding || job.checkpoint !== null && !('phase' in job.checkpoint);
+  const completedProcessing = (job.kind === 'understand_material' || job.kind === 'chunk_material') && job.checkpoint !== null && job.checkpoint.completed.length === job.checkpoint.total;
+  let modelFinished = completedProcessing || job.checkpoint !== null && !('phase' in job.checkpoint);
   const timer = setInterval(async () => {
     if (heartbeatPending) return;
     heartbeatPending = true;
@@ -50,13 +53,20 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
   }, 20_000);
   try {
     // A complete checkpoint survives a crash between its commit and finalization.
-    if (job.checkpoint && (completedUnderstanding || !('phase' in job.checkpoint))) {
+    if (job.checkpoint && (completedProcessing || !('phase' in job.checkpoint))) {
       await repo.finish(job, jobCompletion(job, job.checkpoint));
       return;
     }
     if (job.deadlineAt.getTime() <= Date.now()) throw new DOMException('Job deadline elapsed', 'TimeoutError');
     signal.throwIfAborted();
     const result = job.kind === 'recommendations' ? await recommender(job).recommend(job.input, signal)
+      : job.kind === 'chunk_material' ? await (() => {
+        if (!chunker) throw new Error('Chunking service unavailable');
+        const checkpoint = job.checkpoint ? validateChunkingCheckpoint(job.input.snapshot, job.requestId, job.checkpoint) : undefined;
+        return chunker(job).run({ ownerId: job.ownerId, draftId: job.draftId }, job.input.snapshot, job.requestId, signal, async value => {
+          if (!await repo.checkpoint(job, value)) throw new LeaseLost();
+        }, checkpoint);
+      })()
       : job.kind === 'understand_material' ? await (() => {
         if (!understander) throw new Error('Understanding service unavailable');
         const checkpoint = job.checkpoint ? validateUnderstandingCheckpoint(job.input.snapshot, job.requestId, job.checkpoint) : undefined;
@@ -131,11 +141,11 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
       : error instanceof JobBudgetExceeded
       ? { code: 'RATE_LIMITED' as const, message: 'The generation budget is exhausted. Try again later.', retryable: true }
       : timeout.aborted || (error instanceof Error && error.name === 'TimeoutError')
-        ? { code: job.kind === 'recommendations' || job.kind === 'understand_material' ? 'AI_TIMEOUT' as const : 'DATA_UNAVAILABLE' as const,
-          message: job.kind === 'understand_material' ? 'Understanding took too long. Retained material and accepted partitions remain saved.' : job.kind === 'recommendations' ? 'Recommendations took too long. Try again.' : 'Material acquisition took too long. Retry the selected source.', retryable: true }
+        ? { code: job.kind === 'recommendations' || job.kind === 'understand_material' || job.kind === 'chunk_material' ? 'AI_TIMEOUT' as const : 'DATA_UNAVAILABLE' as const,
+          message: job.kind === 'chunk_material' ? 'Chunking stopped. Retained material, understanding and accepted chunks remain saved.' : job.kind === 'understand_material' ? 'Understanding took too long. Retained material and accepted partitions remain saved.' : job.kind === 'recommendations' ? 'Recommendations took too long. Try again.' : 'Material acquisition took too long. Retry the selected source.', retryable: true }
         : error instanceof CreationFailure ? error.detail
-          : { code: job.kind === 'recommendations' || job.kind === 'understand_material' ? 'AI_UNAVAILABLE' as const : 'DATA_UNAVAILABLE' as const,
-            message: job.kind === 'understand_material' ? 'Understanding is unavailable. Retained material and accepted partitions remain saved.' : job.kind === 'recommendations' ? 'Recommendations could not be generated. Try again.' : 'Material acquisition is unavailable. Retry the selected source.', retryable: true };
+          : { code: job.kind === 'recommendations' || job.kind === 'understand_material' || job.kind === 'chunk_material' ? 'AI_UNAVAILABLE' as const : 'DATA_UNAVAILABLE' as const,
+            message: job.kind === 'chunk_material' ? 'Chunking stopped. Retained material, understanding and accepted chunks remain saved.' : job.kind === 'understand_material' ? 'Understanding is unavailable. Retained material and accepted partitions remain saved.' : job.kind === 'recommendations' ? 'Recommendations could not be generated. Try again.' : 'Material acquisition is unavailable. Retry the selected source.', retryable: true };
     const transient = (error instanceof CreationFailure || error instanceof CreationStorageError) && detail.retryable &&
       ['AI_UNAVAILABLE', 'RATE_LIMITED', 'DATA_UNAVAILABLE'].includes(detail.code);
     const retryDelay = Math.max(1000 * 2 ** job.attempt, error instanceof ProviderBackoff ? error.retryAfterMs : 0);
@@ -145,14 +155,14 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
 }
 
 export async function runCreationWorker(repo: CreationJobRepository, workerId: string,
-  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory, discoverer?: DiscoveryFactory, understander?: UnderstandingFactory) {
+  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory, discoverer?: DiscoveryFactory, understander?: UnderstandingFactory, chunker?: ChunkingFactory) {
   const tasks = new Set<Promise<void>>();
   while (!signal.aborted) {
     try {
       if (tasks.size < 2) {
         const job = await repo.claim(workerId);
         if (job) {
-          const task = executeCreationJob(repo, job, recommender, signal, acquirer, webAcquirer, pdfAcquirer, youtubeInspector, youtubeAcquirer, githubAcquirer, notionAcquirer, discoverer, understander).catch(reportError);
+          const task = executeCreationJob(repo, job, recommender, signal, acquirer, webAcquirer, pdfAcquirer, youtubeInspector, youtubeAcquirer, githubAcquirer, notionAcquirer, discoverer, understander, chunker).catch(reportError);
           tasks.add(task);
           void task.finally(() => tasks.delete(task));
           continue;

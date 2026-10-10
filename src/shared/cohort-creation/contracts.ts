@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { discoveryCheckpointSchema, discoveryResultSchema } from './discovery';
-import { understandingCheckpointSchema } from './processing';
+import { understandingCheckpointSchema, chunkingCheckpointSchema } from './processing';
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 export const querySchema = text(2000).min(3);
@@ -173,15 +173,25 @@ export const creationSnapshotSchema = z.strictObject({
   discovery: z.strictObject({ requestId: z.uuid(), inputRevision: revision,
     checkpoint: discoveryCheckpointSchema.nullable(), result: discoveryResultSchema.nullable() }).nullable().default(null),
   processing: z.strictObject({ requestId: z.uuid(), inputRevision: revision,
-    checkpoint: understandingCheckpointSchema.nullable(), complete: z.boolean() }).nullable().default(null),
+    checkpoint: understandingCheckpointSchema.nullable(), complete: z.boolean(), phase: z.enum(['understanding', 'chunking']).default('understanding'),
+    chunking: z.strictObject({ requestId: z.uuid(), checkpoint: chunkingCheckpointSchema.nullable(), complete: z.boolean() }).nullable().default(null) }).nullable().default(null),
 }).superRefine((state, ctx) => {
   if (state.processing && (state.processing.inputRevision !== state.inputRevision ||
     state.processing.checkpoint && (state.processing.checkpoint.requestId !== state.processing.requestId || state.processing.checkpoint.inputRevision !== state.processing.inputRevision) ||
     state.processing.complete && (!state.processing.checkpoint || state.processing.checkpoint.completed.length !== state.processing.checkpoint.total)) ||
     state.stage === 'processing' && (!state.processing || !state.result || !state.materials.length || state.materials.some(source => source.status !== 'ready') ||
-      state.status === 'running' && (state.activeRequestId !== state.processing.requestId || state.processing.complete))) {
+      state.status === 'running' && (state.processing.phase === 'chunking'
+        ? state.activeRequestId !== state.processing.chunking?.requestId || state.processing.chunking?.complete
+        : state.activeRequestId !== state.processing.requestId || state.processing.complete))) {
     ctx.addIssue({ code: 'custom', message: 'Invalid processing request or coverage' });
   }
+  const chunks = state.processing?.chunking;
+  if (chunks && (!state.processing?.complete || !state.processing.checkpoint ||
+    chunks.checkpoint && (chunks.checkpoint.requestId !== chunks.requestId || chunks.checkpoint.inputRevision !== state.inputRevision ||
+      chunks.checkpoint.understandingFingerprint !== state.processing.checkpoint.inputFingerprint ||
+      JSON.stringify(chunks.checkpoint.partitionIds) !== JSON.stringify(state.processing.checkpoint.partitionIds)) ||
+    chunks.complete && (!chunks.checkpoint || chunks.checkpoint.completed.length !== chunks.checkpoint.total)) ||
+    state.processing?.phase === 'chunking' && !chunks) ctx.addIssue({ code: 'custom', message: 'Invalid chunking dependency or coverage' });
   if ((state.status === 'running') !== (state.activeRequestId !== null)) ctx.addIssue({ code: 'custom', message: 'Invalid active operation' });
   if (state.status === 'running' && ((state.stage === 'recommendations' && state.result !== null) ||
     (state.stage === 'starting_point' && !(state.discovery?.requestId === state.activeRequestId && state.discovery.result === null) &&

@@ -27,6 +27,10 @@ import { ProcessingContentService } from './domain/cohort-creation/processing-co
 import { UnderstandingService } from './domain/cohort-creation/understanding.service';
 import type { CreationUnderstanding } from './domain/cohort-creation/understanding';
 import { VercelCreationUnderstanding } from './infrastructure/ai/vercelCreationUnderstanding';
+import { VercelCreationChunking } from './infrastructure/ai/vercelCreationChunking';
+import type { CreationChunking } from './domain/cohort-creation/chunking';
+import { ChunkingService } from './domain/cohort-creation/chunking.service';
+import { UnderstandingContentService } from './domain/cohort-creation/understanding-content.service';
 
 async function main() {
   if (process.argv.includes('--check')) {
@@ -124,6 +128,13 @@ async function main() {
         const adapter = () => new VercelCreationUnderstanding(createCohortModel(), { beforeCall: partitionId => creationJobRepo.reserveModelCall(job, partitionId) });
         const ai: CreationUnderstanding = { get identity() { return adapter().identity; }, understand: (...input) => adapter().understand(...input) };
         return new UnderstandingService(new ProcessingContentService(storage.creationArtifactRepository), ai, storage.creationArtifactRepository).run(...args);
+      } }),
+      job => ({ run: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        const adapter = () => new VercelCreationChunking(createCohortModel(), { beforeCall: partitionId => creationJobRepo.reserveModelCall(job, partitionId) });
+        const ai: CreationChunking = { get identity() { return adapter().identity; }, chunk: (...input) => adapter().chunk(...input) };
+        const content = new UnderstandingContentService(new ProcessingContentService(storage.creationArtifactRepository), storage.creationArtifactRepository);
+        return new ChunkingService(content, ai, storage.creationArtifactRepository).run(...args);
       } }));
   } finally {
     clearInterval(retentionTimer);
