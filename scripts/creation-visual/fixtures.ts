@@ -4,6 +4,7 @@ import { result, draftId } from '../../src/shared/cohort-creation/__tests__/fixt
 
 // Browser-only fixtures. Never imported by application routes or used for live generation.
 export const screenNumber = Number(new URLSearchParams(location.search).get('screen') ?? 2);
+export const visualActions: string[] = [];
 const field = <T,>(value: T) => ({ value, origin: 'ai' as const, acceptedRevision: 1 });
 const hash = (letter: string) => letter.repeat(64);
 export const partitionIds = [hash('a'), hash('b'), hash('c')];
@@ -57,10 +58,15 @@ export function useCreation() {
     status: variant === 'complete' ? 'succeeded' : variant === 'canceled' ? 'canceled' : 'running',
     processing: { ...snapshot.processing, analysis: { ...snapshot.processing.analysis, complete: variant === 'complete',
       checkpoint: variant === 'unknown' ? null : snapshot.processing.analysis.checkpoint } } } : null;
-  const state = analysisVariant ?? (screenNumber === 6 && snapshot.processing?.chunking && variant ? { ...snapshot,
+  const buildingVariant = screenNumber === 8 && snapshot.processing?.building && variant ? { ...snapshot,
+    stage: 'processing', status: variant === 'canceled' ? 'canceled' : variant === 'failed' ? 'failed' : 'running',
+    error: variant === 'failed' ? { code: 'UPSTREAM_UNAVAILABLE', message: 'Fixture build interruption. Retry saved work.', retryable: true } : null,
+    processing: { ...snapshot.processing, building: { ...snapshot.processing.building, complete: false,
+      checkpoint: variant === 'unknown' ? null : { ...snapshot.processing.building.checkpoint, completed: snapshot.processing.building.checkpoint.completed.slice(0, 1) } } } } : null;
+  const state = buildingVariant ?? analysisVariant ?? (screenNumber === 6 && snapshot.processing?.chunking && variant ? { ...snapshot,
     status: variant === 'complete' ? 'succeeded' : variant === 'canceled' ? 'canceled' : 'running',
     processing: { ...snapshot.processing, chunking: { ...snapshot.processing.chunking, complete: variant === 'complete',
       checkpoint: variant === 'unknown' ? null : snapshot.processing.chunking.checkpoint } } } : snapshot);
-  return new Proxy({ snapshot: state, hydrated: true, saved: true, materialPending: false, uploading: false, message: null, query: state.query },
-    { get: (target, property) => property in target ? target[property as keyof typeof target] : async () => true });
+  return new Proxy({ snapshot: state, hydrated: true, saved: true, materialPending: false, activatingReady: false, uploading: false, message: null, query: state.query },
+    { get: (target, property) => property in target ? target[property as keyof typeof target] : async () => { visualActions.push(String(property)); return true; } });
 }

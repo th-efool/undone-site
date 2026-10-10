@@ -32,6 +32,7 @@ const screens = [
     if(number===5&&version==='after')await page.getByText('Distributed systems',{exact:true}).waitFor();
     if(number===6&&version==='after'&&completed>=4.5)await page.getByText('What makes a distributed system?',{exact:true}).waitFor();
     if(number===7&&version==='after'&&completed>=4.6)await page.getByText('Analysis saved',{exact:true}).first().waitFor();
+    if(number===8&&version==='after'&&completed>=4.7)await page.getByRole('heading',{name:'All set.',exact:true}).waitFor();
     // Wait for every rendered image, including Next image wrapper substitutes.
     await page.evaluate(()=>Promise.all([...document.images].map(image=>image.decode().catch(()=>{}))));
     await page.screenshot({path:path.join(directory,filename)});

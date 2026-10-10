@@ -1,4 +1,6 @@
 'use client';
+import { useEffect, useRef } from 'react';
+import { ReadyWorkspace } from './components/ReadyWorkspace';
 import { BuildingProgress } from './components/BuildingProgress';
 import { ReviewWorkspace } from './components/ReviewWorkspace';
 import { PublicationStatus } from './components/PublicationStatus';
@@ -19,6 +21,20 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
   const creation = useCreation(draftId, initialQuery, resume);
   const { snapshot } = creation;
   const router = useRouter();
+  const feedRequested = useRef(false);
+  useEffect(() => {
+    const receipt = snapshot.publication?.receipt;
+    if (feedRequested.current && snapshot.stage === 'published' && receipt?.mode === 'private_activation') {
+      feedRequested.current = false;
+      router.push(`/play?cohort=${encodeURIComponent(receipt.cohortId)}`);
+    }
+  }, [snapshot.stage, snapshot.publication?.receipt, router]);
+  const activateReady = async () => {
+    feedRequested.current = true;
+    const accepted = await creation.activateReady();
+    if (!accepted) feedRequested.current = false;
+    return accepted;
+  };
   const createOwn = async () => {
     if (await creation.createOwn()) router.push(`/quest/draft/${draftId}`);
   };
@@ -75,6 +91,22 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
         onAnalyze={creation.analyzeMaterial} onStart={creation.chunkMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> :
         <UnderstandingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
         onChunk={creation.chunkMaterial} onStart={creation.understandMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} />}
+    </CreationShell>;
+  }
+  if (creation.hydrated && (snapshot.stage === 'ready' || creation.activatingReady || snapshot.stage === 'processing' && snapshot.processing?.phase === 'building')) {
+    const ready = snapshot.stage === 'ready' || creation.activatingReady;
+    return <CreationShell query={snapshot.result?.intent.rawQuery ?? snapshot.query} saved={creation.saved} disabled={creation.materialPending}
+      reply={ready ? <><p>That’s done.</p><p>Your material is processed and the lessons are saved. Review them, or activate this cohort privately to start learning.</p></> : <><p>One more step.</p><p>I’m building lessons from your accepted analysis, chunks and source material.</p></>}
+      hintTitle={ready ? 'You choose what happens next' : 'Your work stays saved'}
+      hint={ready ? 'Go to your feed activates this cohort privately. Review cohort lets you edit it first. Public publishing is always a separate choice.' : 'Building progress reflects saved work. You can close this page and return while processing continues.'}
+      onMessage={message => {
+        if (/source|material|lesson|progress|ready/i.test(message)) document.getElementById('creation-ready-workspace')?.scrollIntoView({ behavior: 'auto', block: 'start' });
+        else throw new Error(ready ? 'Use Review cohort to edit your learning experience, or Go to my feed to activate it privately.' : 'Use the processing controls to cancel, restart or inspect saved progress.');
+      }} suggestions={[{ label: ready ? 'Show my learning experience' : 'Show building progress', action: () => document.getElementById('creation-ready-workspace')?.scrollIntoView({ behavior: 'auto', block: 'start' }) }]}>
+      {creation.message && <p role="alert">{creation.message}</p>}
+      <div id="creation-ready-workspace">{ready ? <ReadyWorkspace snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
+        onActivate={activateReady} onReview={creation.openReview} onBack={creation.backToMaterials} /> :
+        <BuildingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending} onStart={creation.buildCurriculum} onCancel={creation.cancel} onBack={creation.backToMaterials} />}</div>
     </CreationShell>;
   }
   return <main id="main-content" className={styles.page}>
