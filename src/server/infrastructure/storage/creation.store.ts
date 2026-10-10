@@ -136,6 +136,14 @@ export class MaterialBlobStore {
 }
 
 export class CreationArtifactRepository extends MaterialBlobStore {
+  /** Owned immutable header only. Callers still validate body identity against accepted application state. */
+  async describeArtifact(scope: StorageScope, id: string) {
+    const row = await this.record(scope, id);
+    if (row.kind !== 'artifact') fail('INTEGRITY', 'Expected a retained artifact.');
+    const header = artifactHeader.parse({ artifactType: row.artifactType, schemaVersion: row.schemaVersion, inputFingerprint: row.inputFingerprint });
+    return { ...header, ref: publicRef(row) };
+  }
+
   async putJSON<T extends z.ZodType>(scope: StorageScope, value: z.input<T>, options: ArtifactOptions<T>) {
     const header = artifactHeader.parse(options);
     const validated = options.schema.parse(value);

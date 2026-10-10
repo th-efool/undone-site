@@ -43,6 +43,14 @@ function fixture() {
 }
 
 describe('private streaming storage', () => {
+  it('describes only ready owned artifact headers, never raw uploads or other owners', async () => {
+    const f = fixture(); const ref = await f.store.putJSON(scope, { text: 'retained' }, artifact);
+    expect(await f.store.describeArtifact(scope, ref.id)).toEqual({ ref, artifactType: artifact.artifactType, schemaVersion: 1, inputFingerprint: artifact.inputFingerprint });
+    await expect(f.store.describeArtifact({ ...scope, ownerId: 'foreign' }, ref.id)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(f.store.describeArtifact({ ...scope, draftId: '20000000-0000-4000-8000-000000000002' }, ref.id)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    const upload = await f.store.putStream(scope, chunks('raw'), { mediaType: 'text/plain' });
+    await expect(f.store.describeArtifact(scope, upload.id)).rejects.toMatchObject({ code: 'INTEGRITY' });
+  });
   it('hashes streaming chunks and exposes only an opaque reference', async () => {
     const f = fixture(); const ref = await f.store.putStream(scope, chunks('hello ', 'world'), { mediaType: 'text/plain', maxBytes: 11 });
     expect(ref).toEqual({ id: expect.any(String), kind: 'upload', byteLength: 11, checksum: createHash('sha256').update('hello world').digest('hex') });
