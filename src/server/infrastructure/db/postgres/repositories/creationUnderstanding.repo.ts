@@ -1,16 +1,8 @@
 import type { Prisma } from '@/generated/prisma/client';
-import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 import { understandingCheckpointSchema, type UnderstandingCheckpoint } from '@/src/shared/cohort-creation/processing';
-import { understandingArtifactFingerprint, understandingInputFingerprint } from '@/src/server/domain/cohort-creation/understanding.service';
+import { understandingArtifactFingerprint } from '@/src/server/domain/cohort-creation/understanding.service';
+export { validateUnderstandingCheckpoint } from '@/src/server/domain/cohort-creation/understanding.service';
 import type { StorageScope } from '@/src/server/infrastructure/storage/creation.contracts';
-
-/** The enclosing repository transaction must lock the draft and check its current request/lease first. */
-export function validateUnderstandingCheckpoint(snapshot: CreationSnapshot, requestId: string, value: unknown) {
-  const checkpoint = understandingCheckpointSchema.parse(value);
-  if (checkpoint.requestId !== requestId || checkpoint.inputRevision !== snapshot.inputRevision ||
-    checkpoint.inputFingerprint !== understandingInputFingerprint(snapshot, requestId)) throw new Error('Understanding request unavailable');
-  return checkpoint;
-}
 
 export function preserveUnderstanding(previous: UnderstandingCheckpoint | null, value: UnderstandingCheckpoint) {
   const checkpoint = understandingCheckpointSchema.parse(value);

@@ -1,5 +1,15 @@
 import { z } from 'zod';
-import { materialSourceSchema, youtubeSourceStateSchema } from './contracts';
+import { creationSnapshotSchema, materialSourceSchema, youtubeSourceStateSchema } from './contracts';
+export const understandingRequestSchema = z.strictObject({ requestId: z.uuid(), inputRevision: z.number().int().nonnegative(), snapshot: creationSnapshotSchema })
+  .superRefine((request, ctx) => {
+    const state = request.snapshot;
+    if (request.inputRevision !== state.inputRevision || state.stage !== 'starting_point' || state.status === 'running' || state.processing !== null ||
+      !state.result || !state.materials.length || state.materials.some(source => source.status !== 'ready') || state.extractions.length !== state.materials.length ||
+      state.extractions.some(extraction => !state.materialRefs.some(ref => ref.materialId === extraction.materialId && ref.ids.includes(extraction.artifactRef)))) {
+      ctx.addIssue({ code: 'custom', message: 'Accepted retained material is required for understanding' });
+    }
+  });
+export type UnderstandingRequest = z.infer<typeof understandingRequestSchema>;
 export const textAcquisitionRequestSchema = z.strictObject({
   requestId: z.uuid(), inputRevision: z.number().int().nonnegative(),
   source: materialSourceSchema.refine(source => source.kind === 'markdown' && source.input.kind === 'upload', 'An uploaded text source is required'),

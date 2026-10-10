@@ -10,10 +10,14 @@ import { retainedYoutubeMetadataSchema, youtubeMaterialManifestSchema } from './
 import { githubSelectionSchema, githubMaterialManifestSchema, githubRepositoryScope } from './github';
 import { notionMaterialManifestSchema } from './notion';
 import { discoveryResultSchema } from './discovery';
+import { understandingCheckpointSchema } from './processing';
 
 export const creationCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('request_recommendations'), query: querySchema, requestId: z.uuid() }),
   z.strictObject({ type: z.literal('create_own') }),
+  z.strictObject({ type: z.literal('understand_material'), requestId: z.uuid() }),
+  z.strictObject({ type: z.literal('cancel_processing') }),
+  z.strictObject({ type: z.literal('back_to_materials') }),
   z.strictObject({ type: z.literal('discover_material'), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('choose_starting_point'), startingPoint: startingPointSchema }),
   z.strictObject({ type: z.literal('back_to_recommendations') }),
@@ -38,6 +42,7 @@ export const creationEventSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('material_received'), requestId: z.uuid(), manifest: z.union([notionMaterialManifestSchema, githubMaterialManifestSchema, youtubeMaterialManifestSchema, webMaterialManifestSchema, materialManifestSchema]) }),
   z.strictObject({ type: z.literal('youtube_metadata_received'), requestId: z.uuid(), result: retainedYoutubeMetadataSchema }),
   z.strictObject({ type: z.literal('discovery_received'), requestId: z.uuid(), result: discoveryResultSchema }),
+  z.strictObject({ type: z.literal('understanding_received'), requestId: z.uuid(), result: understandingCheckpointSchema }),
 ]);
 export type CreationEvent = z.infer<typeof creationEventSchema>;
 
@@ -60,6 +65,18 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
   const command = creationCommandSchema.parse(input);
   const changed = { ...state, revision: state.revision + 1, error: null };
   switch (command.type) {
+    case 'understand_material':
+      if (!['starting_point', 'processing'].includes(state.stage) || state.status === 'running' || !state.result || !state.materials.length ||
+        state.materials.some(source => source.status !== 'ready' || !source.selectedUnitIds.length) || state.extractions.length !== state.materials.length ||
+        state.extractions.some(extraction => !state.materialRefs.some(ref => ref.materialId === extraction.materialId && ref.ids.includes(extraction.artifactRef)))) throw new Error('Retained material is not ready');
+      return creationSnapshotSchema.parse({ ...changed, stage: 'processing', status: 'running', activeRequestId: command.requestId,
+        processing: { requestId: command.requestId, inputRevision: state.inputRevision, checkpoint: null, complete: false } });
+    case 'cancel_processing':
+      if (state.stage !== 'processing') throw new Error('Processing is not available');
+      return state.activeRequestId ? applyEvent(state, { type: 'operation_cancelled', requestId: state.activeRequestId }) : state;
+    case 'back_to_materials':
+      if (state.stage !== 'processing' || state.status === 'running') throw new Error('Processing is still running');
+      return creationSnapshotSchema.parse({ ...changed, stage: 'starting_point', status: 'succeeded' });
     case 'cancel_recommendations':
       if (state.stage !== 'recommendations') throw new Error('Operation is still running');
       if (!state.activeRequestId) return state;
@@ -73,18 +90,18 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
         ...changed, query: command.query, inputRevision: state.inputRevision + 1,
         stage: 'recommendations', status: 'running', activeRequestId: command.requestId,
         result: null, startingPoint: null,
-        materials: [], extractions: [], materialRefs: [], youtubeSources: [], lastMaterialRequestId: null, discovery: null,
+        materials: [], extractions: [], materialRefs: [], youtubeSources: [], lastMaterialRequestId: null, discovery: null, processing: null,
       });
     case 'create_own':
       if (!canEnterStage(state, 'starting_point')) throw new Error('Intent is not ready');
       return creationSnapshotSchema.parse({ ...changed, stage: 'starting_point' });
     case 'discover_material':
       if (state.stage !== 'starting_point' || !['find_material', 'have_goal'].includes(state.startingPoint ?? '') || state.status === 'running' || !state.result) throw new Error('Starting point is not available');
-      return creationSnapshotSchema.parse({ ...changed, inputRevision: state.inputRevision + 1, status: 'running', activeRequestId: command.requestId,
+      return creationSnapshotSchema.parse({ ...changed, processing: null, inputRevision: state.inputRevision + 1, status: 'running', activeRequestId: command.requestId,
         discovery: { requestId: command.requestId, inputRevision: state.inputRevision + 1, checkpoint: null, result: null } });
     case 'choose_starting_point':
       if (state.stage !== 'starting_point' || state.status === 'running' || !state.result) throw new Error('Starting point is not available');
-      return creationSnapshotSchema.parse({ ...changed, startingPoint: command.startingPoint, status: 'succeeded',
+      return creationSnapshotSchema.parse({ ...changed, processing: null, startingPoint: command.startingPoint, status: 'succeeded',
         discovery: state.startingPoint === command.startingPoint ? state.discovery : null });
     case 'acquire_text':
     case 'acquire_pdf':
@@ -120,7 +137,7 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
           searchArtifactId: state.discovery.checkpoint.searchArtifact.id, observationArtifactId: state.discovery.checkpoint.observationArtifact.id } }
           : sameInput && previous?.discoveredFrom ? { discoveredFrom: previous.discoveredFrom } : {}),
         selectedUnitIds: [], status: 'acquiring' as const };
-      return creationSnapshotSchema.parse({ ...changed, inputRevision: state.inputRevision + 1,
+      return creationSnapshotSchema.parse({ ...changed, processing: null, inputRevision: state.inputRevision + 1,
         status: 'running', activeRequestId: command.requestId, lastMaterialRequestId: command.requestId,
         materials: [...state.materials.filter(source => source.id !== material.id), material],
         materialRefs: state.materialRefs.filter(ref => ref.materialId !== material.id),
@@ -130,7 +147,7 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
     case 'remove_material': {
       if (state.stage !== 'starting_point' || !state.startingPoint || state.status === 'running' ||
         !state.materials.some(source => source.id === command.materialId)) throw new Error('Starting point is not available');
-      return creationSnapshotSchema.parse({ ...changed, inputRevision: state.inputRevision + 1,
+      return creationSnapshotSchema.parse({ ...changed, processing: null, inputRevision: state.inputRevision + 1,
         status: 'succeeded', lastMaterialRequestId: null,
         materials: state.materials.filter(source => source.id !== command.materialId),
         materialRefs: state.materialRefs.filter(ref => ref.materialId !== command.materialId),
@@ -142,7 +159,7 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
       const preview = state.youtubeSources.find(source => source.materialId === command.materialId);
       if (state.stage !== 'starting_point' || !state.startingPoint || state.status === 'running' || !state.result ||
         !source || !preview || !source.selectedUnitIds.length || source.status === 'ready') throw new Error('Save a video selection before observing it');
-      return creationSnapshotSchema.parse({ ...changed, inputRevision: state.inputRevision + 1, status: 'running',
+      return creationSnapshotSchema.parse({ ...changed, processing: null, inputRevision: state.inputRevision + 1, status: 'running',
         activeRequestId: command.requestId, lastMaterialRequestId: command.requestId,
         materials: state.materials.map(item => item.id === source.id ? { ...item, status: 'acquiring' } : item) });
     }
@@ -150,7 +167,7 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
       const preview = state.youtubeSources.find(source => source.materialId === command.materialId);
       if (state.stage !== 'starting_point' || !state.startingPoint || state.status === 'running' || !preview ||
         command.unitIds.some(id => !preview.units.some(unit => unit.unitId === id))) throw new Error('Starting point is not available');
-      return creationSnapshotSchema.parse({ ...changed, inputRevision: state.inputRevision + 1, status: 'succeeded', lastMaterialRequestId: null,
+      return creationSnapshotSchema.parse({ ...changed, processing: null, inputRevision: state.inputRevision + 1, status: 'succeeded', lastMaterialRequestId: null,
         materials: state.materials.map(source => source.id === command.materialId ? { ...source, status: 'needs_input', selectedUnitIds: command.unitIds } : source),
         youtubeSources: state.youtubeSources.map(source => source.materialId === command.materialId
           ? { ...source, observations: source.observations.filter(unit => command.unitIds.includes(unit.unitId)) } : source),
@@ -174,6 +191,8 @@ export function applyEvent(state: CreationSnapshot, input: CreationEvent): Creat
   )) return state;
   if (event.type === 'discovery_received' && (state.stage !== 'starting_point' || state.discovery?.requestId !== requestId ||
     event.result.checkpoint.inputRevision !== state.inputRevision || event.result.checkpoint.requestId !== requestId)) return state;
+  if (event.type === 'understanding_received' && (state.stage !== 'processing' || state.processing?.requestId !== requestId ||
+    event.result.requestId !== requestId || event.result.inputRevision !== state.inputRevision || event.result.completed.length !== event.result.total)) return state;
   if (event.type === 'material_received' && (state.stage !== 'starting_point' ||
     event.manifest.inputRevision !== state.inputRevision || !state.materials.some(source =>
       source.id === event.manifest.source.id && source.status === 'acquiring' && source.kind === event.manifest.source.kind &&
@@ -184,6 +203,9 @@ export function applyEvent(state: CreationSnapshot, input: CreationEvent): Creat
       source.kind === event.result.receipt.metadata.kind && source.input.kind === 'url' && source.input.url === event.result.receipt.metadata.sourceUrl))) return state;
   const changed = { ...state, revision: state.revision + 1, activeRequestId: null };
   switch (event.type) {
+    case 'understanding_received':
+      return creationSnapshotSchema.parse({ ...changed, status: 'succeeded', error: null,
+        processing: { requestId, inputRevision: state.inputRevision, checkpoint: event.result, complete: true } });
     case 'discovery_received':
       return creationSnapshotSchema.parse({ ...changed, status: 'succeeded', error: null,
         discovery: { requestId, inputRevision: state.inputRevision, checkpoint: event.result.checkpoint, result: event.result } });

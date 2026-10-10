@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { discoveryCheckpointSchema, discoveryResultSchema } from './discovery';
+import { understandingCheckpointSchema } from './processing';
 
 const text = (max: number) => z.string().trim().min(1).max(max);
 export const querySchema = text(2000).min(3);
@@ -161,7 +162,7 @@ export const youtubeSourceStateSchema = z.strictObject({ materialId: key, source
 });
 export const creationSnapshotSchema = z.strictObject({
   schemaVersion: z.literal(1), draftId: z.uuid(), storage: z.literal('postgres'), revision, inputRevision: revision,
-  stage: z.enum(['recommendations', 'starting_point']), query: z.string().max(2000),
+  stage: z.enum(['recommendations', 'starting_point', 'processing']), query: z.string().max(2000),
   status: z.enum(['idle', 'running', 'succeeded', 'failed', 'canceled']), activeRequestId: z.uuid().nullable(),
   result: recommendationResultSchema.nullable(), startingPoint: startingPointSchema.nullable(), error: creationErrorSchema.nullable(),
   materials: z.array(materialSourceSchema).max(20).default([]),
@@ -171,7 +172,16 @@ export const creationSnapshotSchema = z.strictObject({
   youtubeSources: z.array(youtubeSourceStateSchema).max(20).default([]),
   discovery: z.strictObject({ requestId: z.uuid(), inputRevision: revision,
     checkpoint: discoveryCheckpointSchema.nullable(), result: discoveryResultSchema.nullable() }).nullable().default(null),
+  processing: z.strictObject({ requestId: z.uuid(), inputRevision: revision,
+    checkpoint: understandingCheckpointSchema.nullable(), complete: z.boolean() }).nullable().default(null),
 }).superRefine((state, ctx) => {
+  if (state.processing && (state.processing.inputRevision !== state.inputRevision ||
+    state.processing.checkpoint && (state.processing.checkpoint.requestId !== state.processing.requestId || state.processing.checkpoint.inputRevision !== state.processing.inputRevision) ||
+    state.processing.complete && (!state.processing.checkpoint || state.processing.checkpoint.completed.length !== state.processing.checkpoint.total)) ||
+    state.stage === 'processing' && (!state.processing || !state.result || !state.materials.length || state.materials.some(source => source.status !== 'ready') ||
+      state.status === 'running' && (state.activeRequestId !== state.processing.requestId || state.processing.complete))) {
+    ctx.addIssue({ code: 'custom', message: 'Invalid processing request or coverage' });
+  }
   if ((state.status === 'running') !== (state.activeRequestId !== null)) ctx.addIssue({ code: 'custom', message: 'Invalid active operation' });
   if (state.status === 'running' && ((state.stage === 'recommendations' && state.result !== null) ||
     (state.stage === 'starting_point' && !(state.discovery?.requestId === state.activeRequestId && state.discovery.result === null) &&
@@ -187,7 +197,7 @@ export const creationSnapshotSchema = z.strictObject({
   if (state.result && (state.result.inputRevision > state.inputRevision || state.result.intent.rawQuery !== state.query)) {
     ctx.addIssue({ code: 'custom', message: 'Stale snapshot result' });
   }
-  if ((state.stage === 'starting_point' || state.status === 'succeeded') && !state.result) {
+  if ((state.stage === 'starting_point' || state.stage === 'processing' || state.status === 'succeeded') && !state.result) {
     ctx.addIssue({ code: 'custom', message: 'Accepted intent is required' });
   }
   const ids = state.materials.map(source => source.id);

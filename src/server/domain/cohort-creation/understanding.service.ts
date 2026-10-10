@@ -15,9 +15,15 @@ export function understandingInputFingerprint(snapshot: CreationSnapshot, reques
     intent: state.result?.intent, materials: state.materials, extractions: state.extractions, materialRefs: state.materialRefs, youtubeSources: state.youtubeSources });
 }
 export const understandingArtifactFingerprint = (inputFingerprint: string, partitionId: string) => hash({ version: 'understanding-receipt-v1', inputFingerprint, partitionId });
+export function validateUnderstandingCheckpoint(snapshot: CreationSnapshot, requestId: string, value: unknown) {
+  const checkpoint = understandingCheckpointSchema.parse(value);
+  if (checkpoint.requestId !== requestId || checkpoint.inputRevision !== snapshot.inputRevision ||
+    checkpoint.inputFingerprint !== understandingInputFingerprint(snapshot, requestId)) throw new Error('Understanding request unavailable');
+  return checkpoint;
+}
 function invalid(): never { throw new CreationStorageError('INTEGRITY', 'Retained understanding does not match the source revision and partition ledger.'); }
 
-/** Proposes immutable receipts; only a future fenced job commit may accept/pin progress. */
+/** Proposes immutable receipts; only the fenced job repository may accept/pin progress. */
 export class UnderstandingService {
   constructor(private readonly content: Pick<ProcessingContentService, 'load'>, private readonly ai: CreationUnderstanding,
     private readonly artifacts: Pick<CreationArtifactRepository, 'putJSON' | 'getJSON' | 'ref'>) {}

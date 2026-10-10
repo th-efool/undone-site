@@ -23,6 +23,10 @@ import { DiscoveryService } from './domain/cohort-creation/discovery.service';
 import { DiscoverySourceObserver } from './domain/cohort-creation/discovery-observer';
 import { VercelResourceDiscovery } from './infrastructure/ai/vercelResourceDiscovery';
 import type { ResourceDiscovery } from './domain/cohort-creation/discovery.contracts';
+import { ProcessingContentService } from './domain/cohort-creation/processing-content.service';
+import { UnderstandingService } from './domain/cohort-creation/understanding.service';
+import type { CreationUnderstanding } from './domain/cohort-creation/understanding';
+import { VercelCreationUnderstanding } from './infrastructure/ai/vercelCreationUnderstanding';
 
 async function main() {
   if (process.argv.includes('--check')) {
@@ -114,6 +118,12 @@ async function main() {
         const adapter = () => new VercelResourceDiscovery(createCohortModel(), { beforeCall: () => creationJobRepo.reserveModelCall(job) });
         const ai: ResourceDiscovery = { search: (...input) => adapter().search(...input), select: (...input) => adapter().select(...input) };
         return new DiscoveryService(ai, new DiscoverySourceObserver(new YoutubeMetadataReader(), new GithubPublicApi()), storage.creationArtifactRepository).run(...args);
+      } }),
+      job => ({ run: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        const adapter = () => new VercelCreationUnderstanding(createCohortModel(), { beforeCall: partitionId => creationJobRepo.reserveModelCall(job, partitionId) });
+        const ai: CreationUnderstanding = { get identity() { return adapter().identity; }, understand: (...input) => adapter().understand(...input) };
+        return new UnderstandingService(new ProcessingContentService(storage.creationArtifactRepository), ai, storage.creationArtifactRepository).run(...args);
       } }));
   } finally {
     clearInterval(retentionTimer);

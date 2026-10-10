@@ -102,4 +102,13 @@ describe('owned durable drafts', () => {
     expect(creationSignInUrl('/quest/new?q=Learn%20rendering')).toContain('returnTo=%2Fquest%2Fnew');
     expect(safeReturnTo(undefined)).toBe('/home');
   });
+  it('returns actionable command errors for unavailable processing rather than storage failures', async () => {
+    const { service } = fixture(); await service.create('alice', draftId);
+    const handler = draftHandlers(service, async () => 'alice');
+    for (const command of [{ type: 'understand_material', requestId: result.requestId }, { type: 'cancel_processing' }, { type: 'back_to_materials' }]) {
+      const response = await handler(request('PATCH', { baseRevision: 0, command }), draftId);
+      expect(response.status).toBe(400);
+      expect((await response.json()).message).not.toContain('storage');
+    }
+  });
 });

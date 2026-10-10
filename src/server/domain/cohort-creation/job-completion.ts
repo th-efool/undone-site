@@ -21,6 +21,7 @@ import { notionPageIdentity } from './materials/notion';
 import type { ClaimedDiscoveryJob } from './durable-job';
 import { discoveryCheckpointSchema, discoveryResultSchema } from '@/src/shared/cohort-creation/discovery';
 import { discoveryFingerprint } from './discovery.service';
+import { validateUnderstandingCheckpoint } from './understanding.service';
 
 export function validateDiscoveryCheckpoint(job: ClaimedDiscoveryJob, value: unknown) {
   const checkpoint = discoveryCheckpointSchema.parse(value);
@@ -59,6 +60,11 @@ export function validateWebRetention(job: ClaimedWebJob, value: unknown): Retain
 }
 
 export function jobCompletion(job: ClaimedCreationJob, value: CreationCheckpoint): CreationEvent {
+  if (job.kind === 'understand_material') {
+    const result = validateUnderstandingCheckpoint(job.input.snapshot, job.requestId, value);
+    if (result.completed.length !== result.total) throw new Error('Understanding is incomplete');
+    return { type: 'understanding_received', requestId: job.requestId, result };
+  }
   if (job.kind === 'discover_material') {
     const result = discoveryResultSchema.parse(value); validateDiscoveryCheckpoint(job, result.checkpoint);
     return { type: 'discovery_received', requestId: job.requestId, result };
