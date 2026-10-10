@@ -58,6 +58,19 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
       <StartingWorkspace creation={creation} draftId={draftId} />
     </CreationShell>;
   }
+  if (creation.hydrated && snapshot.stage === 'processing' && snapshot.processing?.phase === 'understanding') {
+    return <CreationShell query={snapshot.result?.intent.rawQuery ?? snapshot.query} saved={creation.saved}
+      disabled={creation.materialPending} reply={<><p>I’ve got it.</p><p>{snapshot.processing.complete ? 'Your material is understood. Review the saved concepts, then continue to chunking.' : 'I’m going through your retained material and understanding what it’s about.'}</p></>}
+      hintTitle="Grounded in your material" hint="Concepts appear only after source evidence is saved. Your work keeps running if you close this page."
+      onMessage={message => {
+        if (/concept|idea|summary|summaries/i.test(message)) document.getElementById('creation-accepted-concepts')?.scrollIntoView({ behavior: 'auto', block: 'start' });
+        else throw new Error('You can view the accepted concepts here. Use the processing controls to cancel, restart or continue.');
+      }} suggestions={[{ label: 'Show the extracted concepts', action: () => document.getElementById('creation-accepted-concepts')?.scrollIntoView({ behavior: 'auto', block: 'start' }) }]}>
+      {creation.message && <p role="alert">{creation.message}</p>}
+      <UnderstandingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
+        onChunk={creation.chunkMaterial} onStart={creation.understandMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} />
+    </CreationShell>;
+  }
   return <main id="main-content" className={styles.page}>
     <header className={styles.header}><Link href="/">Undone</Link><span>Cohort creation</span></header>
     <p className={styles.notice}>{creation.saved ? 'Your draft is saved to your account.' : 'Waiting for server confirmation.'}</p>

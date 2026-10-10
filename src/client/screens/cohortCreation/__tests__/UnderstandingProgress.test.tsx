@@ -44,7 +44,7 @@ describe('real understanding progress controls', () => {
         inputFingerprint: 'a'.repeat(64), total: 1, partitionIds: ['b'.repeat(64)], completed: [{ partitionId: 'b'.repeat(64), artifact: {
           id: randomUUID(), kind: 'artifact', checksum: 'c'.repeat(64), byteLength: 500 } }] } } });
     await act(async () => root.render(<UnderstandingProgress snapshot={completed} disabled={false} onStart={vi.fn()} onCancel={vi.fn()} onBack={onBack} onChunk={onChunk} />));
-    expect(host.textContent).toContain('Curriculum building is not available yet'); expect(host.textContent).not.toContain('Publish');
+    expect(host.textContent).toContain('Continue to chunking before building your curriculum'); expect(host.textContent).not.toContain('Publish');
     await act(async () => Array.from(host.querySelectorAll('button')).find(button => button.textContent === 'Chunk selected material')!.click());
     expect(onChunk).toHaveBeenCalledOnce();
     await act(async () => Array.from(host.querySelectorAll('button')).find(button => button.textContent === 'Back to material')!.click());
