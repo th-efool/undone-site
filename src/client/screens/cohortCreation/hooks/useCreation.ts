@@ -25,6 +25,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
   const uploadController = useRef<AbortController | null>(null);
   const [uploading, setUploading] = useState(false);
   const [materialPending, setMaterialPending] = useState(false);
+  const [activatingReady, setActivatingReady] = useState(false);
   const display = useCallback((snapshot: CreationSnapshot, saved = true, message: string | null = null) => {
     if (snapshot.draftId !== current.current.draftId || snapshot.revision < current.current.revision) return;
     current.current = snapshot;
@@ -130,7 +131,21 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
       editPending.current = false; setUploading(false); setMaterialPending(false);
     }
   };
-  return { ...view, uploading, materialPending, uploadText, cancelUpload: () => uploadController.current?.abort(),
+  /** Reuse owned review preparation and finalization; keep both commands fenced to their accepted revisions. */
+  const activateReady = async () => {
+    if (editPending.current || current.current.stage !== 'ready') return false;
+    editPending.current = true; setActivatingReady(true); setMaterialPending(true);
+    const base = current.current;
+    try {
+      const reviewed = await draftApi.command(draftId, base.revision, { type: 'open_review' });
+      display(reviewed);
+      // A newer snapshot must not be privately activated by an earlier click.
+      if (reviewed.draftId !== draftId || current.current.revision !== reviewed.revision || reviewed.stage !== 'review') return false;
+      return await send({ type: 'finalize_creation', mode: 'private_activation', requestId: crypto.randomUUID() }, undefined, reviewed.revision);
+    } catch (error) { failure(error); return false; }
+    finally { editPending.current = false; setActivatingReady(false); setMaterialPending(false); }
+  };
+  return { ...view, uploading, materialPending, activatingReady, activateReady, uploadText, cancelUpload: () => uploadController.current?.abort(),
     finalize: (mode: 'private_activation' | 'public_publish') => edit({ type: 'finalize_creation', mode, requestId: crypto.randomUUID() }),
     openReview: () => edit({ type: 'open_review' }),
     editReview: (patch: z.infer<typeof reviewPatchSchema>) => edit({ type: 'edit_review', patch }),
