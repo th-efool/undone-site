@@ -1,5 +1,6 @@
 'use client';
 
+import { ReadingSurface } from './components/ReadingSurface';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '@/src/client/hooks/useToast';
 import Image from 'next/image';
@@ -62,7 +63,7 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
   const handleIndexChange = useCallback((newIndex: number) => {
     if (newIndex > playback.currentIndex) {
       playback.nextChunk();
-      toast.success('Lesson completed! Keep going.');
+
     } else if (newIndex < playback.currentIndex) {
       playback.previousChunk();
     }
@@ -117,7 +118,7 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
           bookmarked={playback.bookmarked}
           onBookmark={playback.toggleBookmark}
           onSpeed={handleSpeedCycle}
-          onComplete={() => { triggerHaptic('success'); playback.completeActiveChunk(); playback.nextChunk(); }}
+          onComplete={() => { triggerHaptic('success'); void playback.completeActiveChunk(); }}
         />
       </div>
 
@@ -143,7 +144,7 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
           onSkipForward={() => playback.skipSeconds(10)}
           onVolumeChange={playback.setVolume}
           onFullscreen={handleFullscreen}
-          onCompleteChunk={() => { triggerHaptic('success'); playback.completeActiveChunk(); playback.nextChunk(); }}
+          onCompleteChunk={() => { triggerHaptic('success'); void playback.completeActiveChunk(); }}
           onNextChunk={playback.nextChunk}
           onPreviousChunk={playback.previousChunk}
           hasNext={playback.hasNext}
@@ -160,9 +161,9 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
       if (isActive) {
         return (
           <div className={styles.surfaceContainer}>
-            <PlayerSurface containerRef={playback.playerContainerRef}>
+            {item?.content ? <ReadingSurface item={item} pending={playback.completionPending} error={playback.completionError} onComplete={() => void playback.completeActiveChunk()} /> : <PlayerSurface containerRef={playback.playerContainerRef}>
               {desktopOverlays}
-            </PlayerSurface>
+            </PlayerSurface>}
           </div>
         );
       }

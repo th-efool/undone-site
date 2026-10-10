@@ -84,6 +84,9 @@ export function usePlayback() {
   const [notesText, setNotesText] = useState('');
   const [ytApiReady, setYtApiReady] = useState(false);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const [completionPending, setCompletionPending] = useState(false);
+  const [completionError, setCompletionError] = useState<string | null>(null);
+  const completing = useRef(false);
   const [dailyGoalPercent, setDailyGoalPercent] = useState(68);
   const [stats, setStats] = useState({ cohortsCovered: 3, chunksRemaining: 20, estimatedMinutes: 90 });
 
@@ -126,7 +129,11 @@ export function usePlayback() {
         }
       }
       
-      const res = await fetch(`/api/feed?channel=${channelId}&pageIndex=${pageIndex}${prefsQuery}`, {
+      const selection = new URLSearchParams();
+      if (requestedCohortId) selection.set('cohort', requestedCohortId);
+      if (requestedLessonId) selection.set('lesson', requestedLessonId);
+      if (requestedChunkId) selection.set('chunk', requestedChunkId);
+      const res = await fetch(`/api/feed?channel=${channelId}&pageIndex=${pageIndex}${prefsQuery}&${selection}`, {
         signal: abortController.signal
       });
       if (!res.ok) throw new Error('Failed to fetch feed');
@@ -160,7 +167,25 @@ export function usePlayback() {
         [channelId]: { ...prev[channelId], isFetching: false, hasError: true }
       }));
     }
-  }, []);
+  }, [requestedCohortId, requestedLessonId, requestedChunkId]);
+
+  const completeActiveChunk = useCallback(async () => {
+    if (!activeItem || completing.current) return false;
+    completing.current = true; setCompletionPending(true); setCompletionError(null);
+    try {
+      const duration = Math.max(1, activeItem.endSeconds - activeItem.startSeconds);
+      const response = await fetch('/api/progress/chunk', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chunkId: activeItem.chunkId, lessonId: activeItem.lessonId, cohortId: activeItem.cohortId,
+          watchedSeconds: duration, totalSeconds: duration, forceStatus: 'COMPLETED' }) });
+      if (!response.ok) throw new Error(response.status === 401 ? 'Sign in to save completion.' : 'Completion could not be saved. Retry.');
+      reportedChunksRef.current.add(activeItem.chunkId);
+      setChannelCaches(previous => ({ ...previous, [activeChannel]: { ...previous[activeChannel], currentIndex: 0,
+        items: previous[activeChannel].items.filter(item => item.chunkId !== activeItem.chunkId) } }));
+      await fetchChannelFeed(activeChannel, 0);
+      return true;
+    } catch (error) { setCompletionError(error instanceof Error ? error.message : 'Completion could not be saved.'); return false; }
+    finally { completing.current = false; setCompletionPending(false); }
+  }, [activeItem, activeChannel, fetchChannelFeed]);
 
   useEffect(() => {
     return () => {
@@ -203,7 +228,7 @@ export function usePlayback() {
 
   // Handle YouTube IFrame API Load
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !activeItem?.lessonVideoId || activeItem.lessonType === 'reading' || activeItem.lessonType === 'assignment') return;
     if (window.YT && window.YT.Player) {
       setYtApiReady(true);
       return;
@@ -219,7 +244,7 @@ export function usePlayback() {
       tag.async = true;
       document.head.appendChild(tag);
     }
-  }, []);
+  }, [activeItem?.lessonVideoId, activeItem?.lessonType]);
 
   // Sync state when active item changes
   useEffect(() => {
@@ -235,9 +260,14 @@ export function usePlayback() {
   const isPlayerReadyRef = useRef(false);
 
   useEffect(() => {
+    if (!activeItem?.lessonVideoId || activeItem.lessonType === 'reading' || activeItem.lessonType === 'assignment') {
+      if (playerRef.current) { try { playerRef.current.destroy(); } catch {} playerRef.current = null; }
+      isPlayerReadyRef.current = false;
+      return;
+    }
     if (!ytApiReady || !playerContainerRef.current || !activeItem) return;
     const container = playerContainerRef.current;
-    const videoId = activeItem.lessonVideoId || 'oHg5SJYRHA0';
+    const videoId = activeItem.lessonVideoId;
     const startSecs = activeItem.startSeconds || 0;
     const endSecs = activeItem.endSeconds || startSecs + 180;
     const hasMount = container.querySelector('#yt-player-mount');
@@ -343,39 +373,7 @@ export function usePlayback() {
           setCurrentTimeSeconds(Math.min(relCurrent, totalChunkDur));
 
           if (rawCurrent >= endSecs - 0.5 && isPlayingRef.current) {
-            // 3. Duplicate Progress Reporting
-            if (!reportedChunksRef.current.has(activeItem.chunkId)) {
-              reportedChunksRef.current.add(activeItem.chunkId);
-              
-              // Background API call to mark completed
-              fetch('/api/progress/chunk', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  chunkId: activeItem.chunkId,
-                  lessonId: activeItem.lessonId,
-                  cohortId: activeItem.cohortId,
-                  watchedSeconds: totalChunkDur,
-                  totalSeconds: totalChunkDur,
-                  status: 'completed', // 4. Missing status field
-                }),
-              });
-              
-              // 3. Out-of-bounds Advance 
-              setChannelCaches(prev => {
-                const ch = prev[activeChannelRef.current];
-                if (ch.currentIndex + 1 < ch.items.length) {
-                  return {
-                    ...prev,
-                    [activeChannelRef.current]: {
-                      ...ch,
-                      currentIndex: ch.currentIndex + 1
-                    }
-                  };
-                }
-                return prev;
-              });
-            }
+            if (!reportedChunksRef.current.has(activeItem.chunkId) && !completionError) void completeActiveChunk();
           }
         }
       } catch {}
@@ -384,7 +382,7 @@ export function usePlayback() {
     return () => {
       if (syncTimerRef.current) clearInterval(syncTimerRef.current);
     };
-  }, [activeItem, chunkDurationSeconds, isPlayerReady]);
+  }, [activeItem, chunkDurationSeconds, isPlayerReady, completeActiveChunk, completionError]);
 
   // Backward compatibility wrapper for setting index
   const setCurrentIndex = useCallback((updater: number | ((prev: number) => number)) => {
@@ -420,7 +418,7 @@ export function usePlayback() {
   const previousChunk = useCallback(() => goToIndex(currentIndex - 1), [goToIndex, currentIndex]);
 
   const togglePlayback = useCallback(() => {
-    if (!playerRef.current || !isPlayerReady) return setIsPlaying(p => !p);
+    if (!playerRef.current || !isPlayerReady) return;
     try {
       if (isPlaying) {
         playerRef.current.pauseVideo();
@@ -440,7 +438,7 @@ export function usePlayback() {
     const targetAbsSecs = (activeItem.startSeconds || 0) + targetRelSecs;
     setCurrentTimeSeconds(targetRelSecs);
     try { playerRef.current.seekTo(targetAbsSecs, true); } catch {}
-  }, [activeItem, chunkDurationSeconds, isPlayerReady]);
+  }, [activeItem, chunkDurationSeconds, isPlayerReady, completeActiveChunk, completionError]);
 
   const skipSeconds = useCallback((deltaSecs: number) => {
     if (!activeItem || !playerRef.current || !isPlayerReady) return;
@@ -467,7 +465,6 @@ export function usePlayback() {
   }, []);
 
   const toggleBookmark = useCallback(() => setBookmarkedState(p => !p), []);
-  const completeActiveChunk = useCallback(() => nextChunk(), [nextChunk]);
   const saveNotes = useCallback((notes: string) => setNotesText(notes), []);
 
   const timelineProgress = Math.min(100, Math.max(0, (currentTimeSeconds / Math.max(1, chunkDurationSeconds)) * 100));
@@ -493,7 +490,7 @@ export function usePlayback() {
     endTime: formatSecs(chunkDurationSeconds),
     currentTime: formatSecs(currentTimeSeconds),
     totalDuration: formatSecs(chunkDurationSeconds),
-    videoId: activeItem?.lessonVideoId || 'oHg5SJYRHA0',
+    videoId: activeItem?.lessonVideoId,
   };
 
   return {
@@ -527,6 +524,8 @@ export function usePlayback() {
     setPlaybackSpeed,
     toggleBookmark,
     completeActiveChunk,
+    completionPending,
+    completionError,
     saveNotes,
     setActiveTool,
     

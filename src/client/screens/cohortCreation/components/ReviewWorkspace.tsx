@@ -7,15 +7,15 @@ import type { ReviewWorkspace as ReviewState } from '@/src/shared/cohort-creatio
 
 type Creation = ReturnType<typeof useCreation>;
 type Lesson = GeneratedCurriculum['seasons'][number]['lessons'][number];
-function MetadataEditor({ review, disabled, save }: { review: ReviewState; disabled: boolean; save: Creation['editReview'] }) {
+function MetadataEditor({ review, disabled, save, onDirty }: { onDirty: (dirty: boolean) => void; review: ReviewState; disabled: boolean; save: Creation['editReview'] }) {
   type Fields = Pick<ReviewState, 'title' | 'description' | 'visibility' | 'chatEnabled' | 'eventsEnabled'>;
   const [local, setLocal] = useState<Fields | null>(null); const [pending, setPending] = useState(false);
   const fields: Fields = local ?? { title: review.title, description: review.description, visibility: review.visibility,
     chatEnabled: review.chatEnabled, eventsEnabled: review.eventsEnabled };
   const dirty = local !== null;
-  const change = (patch: Partial<Fields>) => setLocal({ ...fields, ...patch });
+  const change = (patch: Partial<Fields>) => { setLocal({ ...fields, ...patch }); onDirty(true); };
   return <form onSubmit={async event => { event.preventDefault(); if (pending || disabled) return; setPending(true);
-    try { if (await save(fields)) setLocal(null); } finally { setPending(false); }
+    try { if (await save(fields)) { setLocal(null); onDirty(false); } } finally { setPending(false); }
   }}>
     <label>Cohort title<input value={fields.title} onChange={event => change({ title: event.target.value })} required maxLength={300} /></label>
     <label>Description<textarea value={fields.description} onChange={event => change({ description: event.target.value })} required maxLength={2000} /></label>
@@ -25,22 +25,24 @@ function MetadataEditor({ review, disabled, save }: { review: ReviewState; disab
     <button disabled={disabled || pending || !dirty}>Save cohort details</button>{dirty && <span> Unsaved edits</span>}
   </form>;
 }
-function LessonEditor({ lesson, disabled, save }: { lesson: Lesson; disabled: boolean; save: (id: string, title: string, objectives: string[]) => Promise<boolean> }) {
+function LessonEditor({ lesson, disabled, save, onDirty }: { onDirty: (dirty: boolean) => void; lesson: Lesson; disabled: boolean; save: (id: string, title: string, objectives: string[]) => Promise<boolean> }) {
   const [local, setLocal] = useState<{ title: string; objectives: string } | null>(null); const [pending, setPending] = useState(false);
   const title = local?.title ?? lesson.title.value; const objectives = local?.objectives ?? lesson.objectives.value.join('\n'); const dirty = local !== null;
   return <form onSubmit={async event => {
     event.preventDefault(); if (pending || disabled) return; setPending(true);
-    try { if (await save(lesson.id, title, objectives.split('\n').map(item => item.trim()).filter(Boolean))) setLocal(null); }
+    try { if (await save(lesson.id, title, objectives.split('\n').map(item => item.trim()).filter(Boolean))) { setLocal(null); onDirty(false); } }
     finally { setPending(false); }
   }}>
-    <label>Lesson title<input value={title} maxLength={300} required onChange={event => setLocal({ title: event.target.value, objectives })} /></label>
-    <label>Learning objectives (one per line)<textarea value={objectives} required onChange={event => setLocal({ title, objectives: event.target.value })} /></label>
+    <label>Lesson title<input value={title} maxLength={300} required onChange={event => { setLocal({ title: event.target.value, objectives }); onDirty(true); }} /></label>
+    <label>Learning objectives (one per line)<textarea value={objectives} required onChange={event => { setLocal({ title, objectives: event.target.value }); onDirty(true); }} /></label>
     <p>{lesson.type === 'VIDEO' ? 'Video' : 'Reading'} · {lesson.chunkIds.length} retained chunks · {Math.ceil(lesson.durationSeconds / 60)} estimated minutes</p>
     <button disabled={disabled || pending || !dirty}>Save lesson edits</button>{dirty && <span> Unsaved edits</span>}
   </form>;
 }
 
 export function ReviewWorkspace({ creation }: { creation: Creation }) {
+  const [dirtyEditors, setDirtyEditors] = useState<string[]>([]);
+  const dirty = (id: string, value: boolean) => setDirtyEditors(previous => value ? [...new Set([...previous, id])] : previous.filter(item => item !== id));
   const { snapshot } = creation; const review = snapshot.review!;
   const [loaded, setLoaded] = useState<ReviewResponse | null>(null); const [error, setError] = useState<string | null>(null);
   const [reload, setReload] = useState(0); const [prompt, setPrompt] = useState(''); const [pending, setPending] = useState(false);
@@ -56,13 +58,13 @@ export function ReviewWorkspace({ creation }: { creation: Creation }) {
     <h2>Review your cohort</h2>
     <p>Edits are saved to your account. Source content and provenance remain attached to every lesson.</p>
     {error && <p role="alert">{error} <button onClick={() => setReload(value => value + 1)}>Reload review</button></p>}
-    <MetadataEditor review={review} disabled={disabled} save={creation.editReview} />
+    <MetadataEditor onDirty={value => dirty('metadata', value)} review={review} disabled={disabled} save={creation.editReview} />
     {!!review.orphanedLessonIds.length && <div role="alert"><p>Some saved lesson edits no longer match this build. They remain saved until you explicitly discard them.</p>
       <button disabled={disabled} onClick={() => void act(() => creation.discardOrphanedEdits(review.orphanedLessonIds))}>Discard unmatched lesson edits</button></div>}
     {!loaded ? <p role="status">Loading retained curriculum…</p> : <>
       {!!loaded.curriculum.warnings.length && <ul>{loaded.curriculum.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul>}
       {loaded.curriculum.seasons.map(season => <section key={season.id}><h3>{season.title.value}</h3>
-        {season.lessons.map(lesson => <LessonEditor key={lesson.id} lesson={lesson} disabled={disabled}
+        {season.lessons.map(lesson => <LessonEditor key={lesson.id} onDirty={value => dirty(lesson.id, value)} lesson={lesson} disabled={disabled}
           save={(lessonId, title, objectives) => act(() => creation.editLesson(lessonId, { title, objectives }))} />)}</section>)}
     </>}
     <aside aria-label="Refine curriculum">
@@ -83,6 +85,6 @@ export function ReviewWorkspace({ creation }: { creation: Creation }) {
         <button disabled={disabled} onClick={() => void act(() => creation.discardRefinement(review.proposal!.requestId))}>Discard proposal</button>
       </div>}
     </aside>
-    <p>Activation and publication will be available after delivery validation is connected.</p>
+    <section aria-label="Activate cohort"><h3>Ready to start?</h3><p>Private activation limits access to authorized members. Public publication makes this cohort discoverable.</p>{!!dirtyEditors.length && <p>Save your edits before finalizing.</p>}<button disabled={disabled || !loaded || !!error || !!dirtyEditors.length || !!review.proposal || !!review.orphanedLessonIds.length} onClick={() => void act(() => creation.finalize('private_activation'))}>Activate privately</button><button disabled={disabled || !loaded || !!error || !!dirtyEditors.length || !!review.proposal || !!review.orphanedLessonIds.length} onClick={() => void act(() => creation.finalize('public_publish'))}>Publish publicly</button></section>
   </section>;
 }
