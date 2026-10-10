@@ -2,8 +2,9 @@
 import { useRef, useState } from 'react';
 import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 
-export function UnderstandingProgress({ snapshot, disabled, onStart, onCancel, onBack }: {
+export function UnderstandingProgress({ snapshot, disabled, onStart, onCancel, onBack, onChunk }: {
   snapshot: CreationSnapshot; disabled: boolean; onStart: () => Promise<boolean>; onCancel: () => void; onBack: () => Promise<boolean>;
+  onChunk?: () => Promise<boolean>;
 }) {
   const [pending, setPending] = useState(false); const saving = useRef(false);
   const checkpoint = snapshot.processing?.checkpoint; const running = snapshot.stage === 'processing' && snapshot.status === 'running';
@@ -25,6 +26,7 @@ export function UnderstandingProgress({ snapshot, disabled, onStart, onCancel, o
       {snapshot.error && snapshot.stage === 'processing' && <p role="alert">{snapshot.error.message}</p>}
       {snapshot.processing && !snapshot.processing.complete && <p>A fresh request starts understanding again. Automatic worker retries reuse saved partitions.</p>}
       <button disabled={disabled || pending || !ready} onClick={start}>{snapshot.processing ? 'Start fresh understanding' : 'Understand selected material'}</button>
+      {snapshot.processing?.complete && onChunk && <button disabled={disabled || pending} onClick={() => void onChunk()}>Chunk selected material</button>}
       {!ready && <p>Acquire all selected sources before continuing.</p>}
       {snapshot.stage === 'processing' && <button disabled={disabled || pending} onClick={() => void onBack()}>Back to material</button>}
     </>}

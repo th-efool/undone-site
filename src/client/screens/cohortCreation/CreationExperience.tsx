@@ -8,6 +8,7 @@ import { StartingPoint } from './components/StartingPoint';
 import { TextMaterial } from './components/TextMaterial';
 import { CreationConnections } from './components/CreationConnections';
 import { DiscoveryMaterials } from './components/DiscoveryMaterials';
+import { ChunkingProgress } from './components/ChunkingProgress';
 import { UnderstandingProgress } from './components/UnderstandingProgress';
 import styles from './CreationExperience.module.css';
 
@@ -33,8 +34,9 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
         </> : <p>Your query will become a structured learning intent. You remain in control of what happens next.</p>}
       </aside>
       <div>
-        {snapshot.stage === 'processing' ? <UnderstandingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
-          onStart={creation.understandMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'starting_point' ? <>
+        {snapshot.stage === 'processing' && snapshot.processing?.phase === 'chunking' ? <ChunkingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
+          onStart={creation.chunkMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'processing' ? <UnderstandingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
+          onChunk={creation.chunkMaterial} onStart={creation.understandMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'starting_point' ? <>
           <StartingPoint selected={snapshot.startingPoint} onSelect={creation.chooseStartingPoint} onBack={creation.back}
             disabled={creation.materialPending || snapshot.status === 'running'} />
           {snapshot.startingPoint === 'have_material' ? <><CreationConnections draftId={draftId} disabled={!creation.saved || creation.materialPending || snapshot.status === 'running'} />
@@ -47,7 +49,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
                 onUpload={creation.uploadText} onCancelUpload={creation.cancelUpload} onCancel={creation.cancel} onRetry={creation.retryMaterial}
                 onRemove={creation.removeMaterial} onWeb={creation.acquireWeb} onSelectUnits={creation.selectYoutubeUnits} onObserve={creation.observeYoutube} onGithub={creation.acquireGithub} />}</>}
           {!!snapshot.materials.length && <UnderstandingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending || snapshot.status === 'running'}
-            onStart={creation.understandMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} />}
+            onChunk={creation.chunkMaterial} onStart={creation.understandMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} />}
         </> : <>
           <form key={snapshot.query} onSubmit={event => {
             event.preventDefault();

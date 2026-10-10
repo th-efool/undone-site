@@ -38,13 +38,15 @@ describe('real understanding progress controls', () => {
     expect(onStart).toHaveBeenCalledOnce(); await act(async () => finish(true)); await act(async () => root.unmount());
   });
   it('distinguishes understanding completion from curriculum readiness and permits returning to material', async () => {
-    const state = fixture(); const host = document.createElement('div'); const root = createRoot(host); const onBack = vi.fn(async () => true);
+    const state = fixture(); const host = document.createElement('div'); const root = createRoot(host); const onBack = vi.fn(async () => true); const onChunk = vi.fn(async () => true);
     const completed = creationSnapshotSchema.parse({ ...state, status: 'succeeded', activeRequestId: null,
       processing: { ...state.processing!, complete: true, checkpoint: { phase: 'understanding', requestId: state.processing!.requestId, inputRevision: 2,
         inputFingerprint: 'a'.repeat(64), total: 1, partitionIds: ['b'.repeat(64)], completed: [{ partitionId: 'b'.repeat(64), artifact: {
           id: randomUUID(), kind: 'artifact', checksum: 'c'.repeat(64), byteLength: 500 } }] } } });
-    await act(async () => root.render(<UnderstandingProgress snapshot={completed} disabled={false} onStart={vi.fn()} onCancel={vi.fn()} onBack={onBack} />));
+    await act(async () => root.render(<UnderstandingProgress snapshot={completed} disabled={false} onStart={vi.fn()} onCancel={vi.fn()} onBack={onBack} onChunk={onChunk} />));
     expect(host.textContent).toContain('Curriculum building is not available yet'); expect(host.textContent).not.toContain('Publish');
+    await act(async () => Array.from(host.querySelectorAll('button')).find(button => button.textContent === 'Chunk selected material')!.click());
+    expect(onChunk).toHaveBeenCalledOnce();
     await act(async () => Array.from(host.querySelectorAll('button')).find(button => button.textContent === 'Back to material')!.click());
     expect(onBack).toHaveBeenCalledOnce(); await act(async () => root.unmount());
   });
