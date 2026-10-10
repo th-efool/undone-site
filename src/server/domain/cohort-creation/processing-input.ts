@@ -113,3 +113,12 @@ export function partitionProcessingInput(units: ProcessingUnit[], maxTextBytes: 
   }
   return result;
 }
+
+export function validateProcessingPartition(partition: ProcessingPartition): ProcessingPartition {
+  const parts = partitionProcessingInput([partition]);
+  if (parts.length !== 1 || !Number.isSafeInteger(partition.index) || partition.index < 0 ||
+    partition.textBytes !== parts[0].textBytes || partition.id !== hash({ version: 'processing-partition-v1', materialId: partition.materialId,
+      unitId: partition.unitId, extractionVersion: partition.extractionVersion, artifactId: partition.artifactId,
+      index: partition.index, segments: partition.segments })) invalid();
+  return partition;
+}
