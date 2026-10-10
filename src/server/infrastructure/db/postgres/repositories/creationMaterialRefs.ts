@@ -3,7 +3,7 @@ import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 
 function refs(state: CreationSnapshot) {
   return [...state.materials.flatMap(source => source.input.kind === 'upload' ? [source.input.assetId] : []),
-    ...state.extractions.map(extraction => extraction.artifactRef)];
+    ...state.extractions.map(extraction => extraction.artifactRef), ...state.materialRefs.flatMap(ref => ref.ids)];
 }
 /** Caller holds the owner draft lock; detach only references absent from the next snapshot. */
 export async function releaseDetachedMaterialRefs(tx: Prisma.TransactionClient, ownerId: string,

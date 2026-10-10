@@ -1,21 +1,23 @@
 import { CreationFailure } from './errors';
-import { JobBudgetExceeded, LeaseLost, type ClaimedCreationJob, type ClaimedRecommendationJob, type ClaimedTextJob, type CreationJobRepository } from './durable-job';
+import { JobBudgetExceeded, LeaseLost, type ClaimedCreationJob, type ClaimedRecommendationJob, type ClaimedTextJob, type ClaimedWebJob, type CreationJobRepository } from './durable-job';
 import type { RecommendationService } from './recommendation.service';
 
 import type { TextAcquisitionService } from './materials/text-acquisition.service';
 import { CreationStorageError } from '@/src/server/infrastructure/storage/creation.contracts';
-import { jobCompletion } from './job-completion';
+import { jobCompletion, validateWebRetention } from './job-completion';
+import type { WebAcquisitionService } from './materials/web-acquisition.service';
 type RecommenderFactory = (job: ClaimedRecommendationJob) => Pick<RecommendationService, 'recommend'>;
 type AcquirerFactory = (job: ClaimedTextJob) => Pick<TextAcquisitionService, 'acquire'>;
+type WebAcquirerFactory = (job: ClaimedWebJob) => Pick<WebAcquisitionService, 'acquire' | 'extract'>;
 /** One task invocation; browser connections are deliberately not an input. */
 export async function executeCreationJob(repo: CreationJobRepository, job: ClaimedCreationJob,
-  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory) {
+  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory) {
   const lease = new AbortController();
   const remaining = Math.max(1, job.deadlineAt.getTime() - Date.now());
   const timeout = AbortSignal.timeout(remaining);
   const signal = AbortSignal.any([shutdown, lease.signal, timeout]);
   let heartbeatPending = false;
-  let modelFinished = job.checkpoint !== null;
+  let modelFinished = job.checkpoint !== null && !('phase' in job.checkpoint);
   const timer = setInterval(async () => {
     if (heartbeatPending) return;
     heartbeatPending = true;
@@ -25,14 +27,24 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
   }, 20_000);
   try {
     // A complete checkpoint survives a crash between its commit and finalization.
-    if (job.checkpoint) {
+    if (job.checkpoint && !('phase' in job.checkpoint)) {
       await repo.finish(job, jobCompletion(job, job.checkpoint));
       return;
     }
     if (job.deadlineAt.getTime() <= Date.now()) throw new DOMException('Job deadline elapsed', 'TimeoutError');
     signal.throwIfAborted();
     const result = job.kind === 'recommendations' ? await recommender(job).recommend(job.input, signal)
-      : await (() => {
+      : job.kind === 'acquire_web' ? await (() => {
+        if (!webAcquirer) throw new Error('Web acquisition service unavailable');
+        const service = webAcquirer(job); const scope = { ownerId: job.ownerId, draftId: job.draftId };
+        if (job.checkpoint && 'phase' in job.checkpoint) {
+          const retained = validateWebRetention(job, job.checkpoint);
+          return service.extract(scope, job.input.source, job.inputRevision, retained.receiptArtifact, retained.receiptFingerprint, signal);
+        }
+        return service.acquire(scope, job.input.source, job.inputRevision, signal, async retained => {
+          if (!await repo.checkpoint(job, retained)) throw new LeaseLost();
+        });
+      })() : await (() => {
         if (!acquirer) throw new Error('Text acquisition service unavailable');
         return acquirer(job).acquire({ ownerId: job.ownerId, draftId: job.draftId }, job.input.source, job.inputRevision, signal);
       })();
@@ -65,14 +77,14 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
 }
 
 export async function runCreationWorker(repo: CreationJobRepository, workerId: string,
-  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory) {
+  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory) {
   const tasks = new Set<Promise<void>>();
   while (!signal.aborted) {
     try {
       if (tasks.size < 2) {
         const job = await repo.claim(workerId);
         if (job) {
-          const task = executeCreationJob(repo, job, recommender, signal, acquirer).catch(reportError);
+          const task = executeCreationJob(repo, job, recommender, signal, acquirer, webAcquirer).catch(reportError);
           tasks.add(task);
           void task.finally(() => tasks.delete(task));
           continue;

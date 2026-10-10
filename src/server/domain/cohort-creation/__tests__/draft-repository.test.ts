@@ -60,4 +60,16 @@ describe('PostgreSQL ownership and revision boundaries', () => {
     expect(await getCreationOwner()).toBe('guest');
     expect(mocks.findUnique).toHaveBeenCalledWith({ where: { id: 'guest' }, select: { id: true } });
   });
+  it('detaches retained receipt pins even if extraction never completed', async () => {
+    const materialId = '44444444-4444-4444-8444-444444444444';
+    const rawId = '55555555-5555-4555-8555-555555555555';
+    const receiptId = '66666666-6666-4666-8666-666666666666';
+    const previous = { ...initialSnapshot(draftId), materials: [{ id: materialId, kind: 'web' as const,
+      input: { kind: 'url' as const, url: 'https://docs.example.com/lesson' }, selectedUnitIds: [], status: 'failed' as const }],
+      materialRefs: [{ materialId, ids: [rawId, receiptId] }] };
+    mocks.queryRaw.mockResolvedValue([{ revision: 0, snapshot: previous }]);
+    const next = { ...initialSnapshot(draftId), revision: 1 };
+    expect(await creationDraftRepo.swap('alice', draftId, 0, next)).toBe(true);
+    expect(mocks.detach).toHaveBeenCalledExactlyOnceWith({ where: { id: { in: [rawId, receiptId] }, ownerId: 'alice', draftId, publishedAt: null }, data: { referencedAt: null } });
+  });
 });

@@ -3,6 +3,7 @@ import { creationCommandSchema } from '@/src/shared/cohort-creation/flow';
 import { DraftConflict, DraftNotFound, type DraftService } from './draft.service';
 import { JobBudgetExceeded } from './durable-job';
 import { CreationFailure } from './errors';
+import { CreationStorageError } from '@/src/server/infrastructure/storage/creation.contracts';
 
 const idSchema = z.uuid();
 const createSchema = z.strictObject({ draftId: idSchema });
@@ -25,6 +26,7 @@ export function draftHandlers(service: DraftService, getOwner: () => Promise<str
       return Response.json(await service.command(owner, id, body.baseRevision, body.command), { headers: { 'Cache-Control': 'no-store' } });
     } catch (error) {
       if (error instanceof DraftNotFound) return Response.json({ message: 'Draft not found.' }, { status: 404 });
+      if (error instanceof CreationStorageError && error.code === 'INVALID_INPUT') return Response.json({ message: error.message }, { status: 400 });
       if (error instanceof JobBudgetExceeded) return Response.json({ message: error.message }, { status: 429, headers: { 'Retry-After': '60' } });
       if (error instanceof CreationFailure) return Response.json({ message: error.detail.message }, { status: error.detail.code === 'INVALID_REQUEST' ? 400 : 503 });
       if (error instanceof DraftConflict) return Response.json({ message: error.message, current: error.current }, { status: 409 });

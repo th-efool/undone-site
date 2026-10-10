@@ -42,3 +42,9 @@ export const webMaterialManifestSchema = materialManifestSchema.safeExtend({
   }
 });
 export type WebMaterialManifest = z.infer<typeof webMaterialManifestSchema>;
+export const retainedWebCheckpointSchema = z.strictObject({
+  phase: z.literal('retained_web'), receipt: webResponseReceiptSchema,
+  receiptArtifact: retainedObjectRefSchema.extend({ kind: z.literal('artifact') }),
+  receiptFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+});
+export type RetainedWebCheckpoint = z.infer<typeof retainedWebCheckpointSchema>;

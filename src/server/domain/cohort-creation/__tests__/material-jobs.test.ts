@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
+vi.mock('server-only', () => ({}));
 import { applyCommand, applyEvent, initialSnapshot } from '@/src/shared/cohort-creation/flow';
 import { creationSnapshotSchema } from '@/src/shared/cohort-creation/contracts';
 import { materialManifestSchema } from '@/src/shared/cohort-creation/materials';

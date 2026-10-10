@@ -1,7 +1,8 @@
 import type { CreationSnapshot, RecommendationRequest, RecommendationResult } from '@/src/shared/cohort-creation/contracts';
 import type { CreationEvent } from '@/src/shared/cohort-creation/flow';
 import type { CreationEventEnvelope, CreationJobSummary } from '@/src/shared/cohort-creation/durable';
-import type { TextAcquisitionRequest } from '@/src/shared/cohort-creation/jobs';
+import type { TextAcquisitionRequest, WebAcquisitionRequest } from '@/src/shared/cohort-creation/jobs';
+import type { RetainedWebCheckpoint, WebMaterialManifest } from '@/src/shared/cohort-creation/web';
 import type { MaterialManifest } from '@/src/shared/cohort-creation/materials';
 
 export class JobBudgetExceeded extends Error {}
@@ -12,8 +13,9 @@ type JobBase = Omit<CreationJobSummary, 'kind'> & {
 };
 export type ClaimedRecommendationJob = JobBase & { kind: 'recommendations'; input: RecommendationRequest; checkpoint: RecommendationResult | null };
 export type ClaimedTextJob = JobBase & { kind: 'acquire_text'; input: TextAcquisitionRequest; checkpoint: MaterialManifest | null };
-export type ClaimedCreationJob = ClaimedRecommendationJob | ClaimedTextJob;
-export type CreationCheckpoint = RecommendationResult | MaterialManifest;
+export type ClaimedWebJob = JobBase & { kind: 'acquire_web'; input: WebAcquisitionRequest; checkpoint: RetainedWebCheckpoint | WebMaterialManifest | null };
+export type ClaimedCreationJob = ClaimedRecommendationJob | ClaimedTextJob | ClaimedWebJob;
+export type CreationCheckpoint = RecommendationResult | MaterialManifest | RetainedWebCheckpoint | WebMaterialManifest;
 export interface CreationJobRepository {
   enqueue(owner: string, previous: CreationSnapshot, next: CreationSnapshot): Promise<CreationSnapshot | null>;
   cancel(owner: string, previous: CreationSnapshot, next: CreationSnapshot): Promise<boolean>;

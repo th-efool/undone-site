@@ -8,6 +8,8 @@ import { VercelCohortAi } from './infrastructure/ai/vercelCohortAi';
 import { RecommendationService } from './domain/cohort-creation/recommendation.service';
 import { runCreationWorker } from './domain/cohort-creation/durable-job.runner';
 import { TextAcquisitionService } from './domain/cohort-creation/materials/text-acquisition.service';
+import { WebAcquisitionService } from './domain/cohort-creation/materials/web-acquisition.service';
+import { WebRetentionService } from './domain/cohort-creation/materials/web-retention.service';
 
 async function main() {
   if (process.argv.includes('--check')) {
@@ -47,6 +49,15 @@ async function main() {
       () => ({ acquire: async (...args) => {
         const storage = await import('./infrastructure/storage/creation.runtime');
         return new TextAcquisitionService(storage.materialBlobStore, storage.creationArtifactRepository).acquire(...args);
+      } }),
+      () => ({ acquire: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        return new WebAcquisitionService(new WebRetentionService(storage.materialBlobStore, storage.creationArtifactRepository),
+          storage.materialBlobStore, storage.creationArtifactRepository).acquire(...args);
+      }, extract: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        return new WebAcquisitionService(new WebRetentionService(storage.materialBlobStore, storage.creationArtifactRepository),
+          storage.materialBlobStore, storage.creationArtifactRepository).extract(...args);
       } }));
   } finally {
     clearInterval(retentionTimer);

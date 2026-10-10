@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+vi.mock('server-only', () => ({}));
 import { textUploadHandler } from '../upload.http';
 import { DraftNotFound } from '../draft.service';
 import { CreationStorageError } from '@/src/server/infrastructure/storage/creation.contracts';

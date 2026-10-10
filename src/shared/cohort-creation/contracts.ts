@@ -122,6 +122,7 @@ export const extractedContentSchema = z.strictObject({
   extractionKind: z.enum(['text', 'authorized_caption', 'user_transcript', 'video_observation', 'generated_guide']),
   segmentCount: z.number().int().nonnegative(),
   complete: z.boolean(),
+  selectionScope: z.enum(['main_article', 'full_text_response']).optional(),
 });
 export const conceptSchema = z.strictObject({
   id: key, label: fieldValueSchema(text(200)), summary: fieldValueSchema(text(2000)),
@@ -146,6 +147,7 @@ export const creationSnapshotSchema = z.strictObject({
   materials: z.array(materialSourceSchema).max(20).default([]),
   extractions: z.array(extractedContentSchema).max(20).default([]),
   lastMaterialRequestId: z.uuid().nullable().default(null),
+  materialRefs: z.array(z.strictObject({ materialId: key, ids: z.array(z.uuid()).min(1).max(3) })).max(20).default([]),
 }).superRefine((state, ctx) => {
   if ((state.status === 'running') !== (state.activeRequestId !== null)) ctx.addIssue({ code: 'custom', message: 'Invalid active operation' });
   if (state.status === 'running' && ((state.stage === 'recommendations' && state.result !== null) ||
@@ -161,6 +163,8 @@ export const creationSnapshotSchema = z.strictObject({
   }
   const ids = state.materials.map(source => source.id);
   if (new Set(ids).size !== ids.length || new Set(state.extractions.map(extraction => extraction.materialId)).size !== state.extractions.length ||
+    new Set(state.materialRefs.map(ref => ref.materialId)).size !== state.materialRefs.length ||
+    state.materialRefs.some(ref => !ids.includes(ref.materialId) || new Set(ref.ids).size !== ref.ids.length) ||
     state.materials.reduce((sum, source) => sum + source.selectedUnitIds.length, 0) > 100 ||
     state.extractions.some(extraction => !state.materials.some(source => source.id === extraction.materialId && source.status === 'ready'))) {
     ctx.addIssue({ code: 'custom', message: 'Invalid material selection or extraction' });

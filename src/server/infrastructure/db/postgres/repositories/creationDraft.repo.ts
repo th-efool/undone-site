@@ -1,5 +1,5 @@
 import 'server-only';
-import { prisma } from '../client';
+import { prisma as defaultPrisma } from '../client';
 import { creationSnapshotSchema, type CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 import { initialSnapshot } from '@/src/shared/cohort-creation/flow';
 import { writeDraftEvent } from './creationEvent.repo';
@@ -10,7 +10,7 @@ export interface DraftRepository {
   load(ownerId: string, id: string): Promise<CreationSnapshot | null>;
   swap(ownerId: string, id: string, baseRevision: number, next: CreationSnapshot): Promise<boolean>;
 }
-export const creationDraftRepo: DraftRepository = {
+export function createCreationDraftRepository(prisma = defaultPrisma): DraftRepository { return {
   async create(ownerId, id) {
     // Retrying the same UUID is idempotent; it can never reassign ownership.
     await prisma.creationDraft.createMany({ data: [{ id, ownerId, snapshot: initialSnapshot(id) }], skipDuplicates: true });
@@ -37,4 +37,5 @@ export const creationDraftRepo: DraftRepository = {
       return true;
     });
   },
-};
+}; }
+export const creationDraftRepo = createCreationDraftRepository();

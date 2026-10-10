@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+vi.mock('server-only', () => ({}));
 import { DraftService } from '../draft.service';
 import type { CreationJobRepository } from '../durable-job';
 import { draftHandlers } from '../draft.http';

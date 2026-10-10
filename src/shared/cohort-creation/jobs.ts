@@ -5,3 +5,8 @@ export const textAcquisitionRequestSchema = z.strictObject({
   source: materialSourceSchema.refine(source => source.kind === 'markdown' && source.input.kind === 'upload', 'An uploaded text source is required'),
 });
 export type TextAcquisitionRequest = z.infer<typeof textAcquisitionRequestSchema>;
+export const webAcquisitionRequestSchema = z.strictObject({
+  requestId: z.uuid(), inputRevision: z.number().int().nonnegative(),
+  source: materialSourceSchema.refine(source => source.kind === 'web' && source.input.kind === 'url', 'A web source is required'),
+});
+export type WebAcquisitionRequest = z.infer<typeof webAcquisitionRequestSchema>;

@@ -7,13 +7,10 @@ import { webExtractionArtifactSchema, webResponseReceiptSchema, type WebResponse
 import { CreationStorageError } from '@/src/server/infrastructure/storage/creation.contracts';
 import { segmentRetainedText } from './text';
 
-export const WEB_PARSER_VERSION = 'readability-0.6.0-jsdom-29.1.1-text-v1';
+import { WEB_PARSER_VERSION, webExtractionVersion } from './web-identity';
+export { WEB_PARSER_VERSION, webExtractionVersion, webExtractionFingerprint } from './web-identity';
 export const WEB_HTML_LIMIT = 2 * 1024 * 1024;
 const hash = (value: string | Uint8Array) => createHash('sha256').update(value).digest('hex');
-export const webExtractionVersion = (checksum: string) => hash(`${WEB_PARSER_VERSION}:${checksum}`);
-export const webExtractionFingerprint = (receipt: WebResponseReceipt) => hash(JSON.stringify({ materialId: receipt.materialId,
-  inputRevision: receipt.inputRevision, sourceId: receipt.retainedSource.id, checksum: receipt.retainedSource.checksum,
-  requestedUrl: receipt.requestedUrl, finalUrl: receipt.finalUrl, parser: WEB_PARSER_VERSION }));
 function unsupported(message: string): never { throw new CreationStorageError('INVALID_INPUT', `${message} Upload or paste accessible text.`); }
 
 /** No scripts, resources or HTML output. Offsets address retained extraction text, not raw HTML. */
