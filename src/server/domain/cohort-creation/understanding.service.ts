@@ -7,6 +7,7 @@ import type { CreationArtifactRepository } from '@/src/server/infrastructure/sto
 import { CreationStorageError, type StorageScope } from '@/src/server/infrastructure/storage/creation.contracts';
 import type { ProcessingContentService } from './processing-content.service';
 import { validateUnderstanding, type CreationUnderstanding } from './understanding';
+import type { ProcessingPartition } from './processing-input';
 
 const hash = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 export function understandingInputFingerprint(snapshot: CreationSnapshot, requestId: string) {
@@ -22,6 +23,22 @@ export function validateUnderstandingCheckpoint(snapshot: CreationSnapshot, requ
   return checkpoint;
 }
 function invalid(): never { throw new CreationStorageError('INTEGRITY', 'Retained understanding does not match the source revision and partition ledger.'); }
+export const understandingSourceIdentity = (partition: ProcessingPartition) => ({ materialId: partition.materialId, unitId: partition.unitId,
+  extractionVersion: partition.extractionVersion, artifactId: partition.artifactId, segmentIds: partition.segments.map(segment => segment.id) });
+
+/** Shared owned read for understanding restart and downstream processing. */
+export async function readUnderstandingReceipt(artifacts: Pick<CreationArtifactRepository, 'getJSON' | 'ref'>, scope: StorageScope,
+  checkpoint: UnderstandingCheckpoint, partition: ProcessingPartition, artifact: UnderstandingCheckpoint['completed'][number]['artifact'], signal: AbortSignal) {
+  signal.throwIfAborted(); const actual = await artifacts.ref(scope, artifact.id);
+  if (actual.kind !== 'artifact' || actual.id !== artifact.id || actual.checksum !== artifact.checksum || actual.byteLength !== artifact.byteLength) invalid();
+  const receipt = understandingReceiptSchema.parse(await artifacts.getJSON(scope, artifact.id, {
+    artifactType: 'creation-understanding', schemaVersion: 1, inputFingerprint: understandingArtifactFingerprint(checkpoint.inputFingerprint, partition.id),
+    schema: understandingReceiptSchema, signal }));
+  signal.throwIfAborted();
+  if (receipt.requestId !== checkpoint.requestId || receipt.inputFingerprint !== checkpoint.inputFingerprint || receipt.partitionId !== partition.id ||
+    JSON.stringify(receipt.source) !== JSON.stringify(understandingSourceIdentity(partition))) invalid();
+  validateUnderstanding(receipt.proposal, partition); return receipt;
+}
 
 /** Proposes immutable receipts; only the fenced job repository may accept/pin progress. */
 export class UnderstandingService {
@@ -43,18 +60,12 @@ export class UnderstandingService {
     if (checkpoint.total !== partitions.length || JSON.stringify(checkpoint.partitionIds) !== JSON.stringify(partitions.map(partition => partition.id)) ||
       checkpoint.completed.some((item, index) => item.partitionId !== partitions[index].id)) invalid();
     for (const [index, partition] of partitions.entries()) {
-      signal.throwIfAborted(); const source = { materialId: partition.materialId, unitId: partition.unitId, extractionVersion: partition.extractionVersion,
-        artifactId: partition.artifactId, segmentIds: partition.segments.map(segment => segment.id) };
+      signal.throwIfAborted(); const source = understandingSourceIdentity(partition);
       const fingerprint = understandingArtifactFingerprint(inputFingerprint, partition.id);
       const options = { artifactType: 'creation-understanding', schemaVersion: 1, inputFingerprint: fingerprint, schema: understandingReceiptSchema, signal };
       const existing = checkpoint.completed[index];
       if (existing) {
-        const actual = await this.artifacts.ref(scope, existing.artifact.id);
-        if (actual.kind !== 'artifact' || actual.id !== existing.artifact.id || actual.checksum !== existing.artifact.checksum || actual.byteLength !== existing.artifact.byteLength) invalid();
-        const receipt = await this.artifacts.getJSON(scope, existing.artifact.id, options);
-        if (receipt.requestId !== requestId || receipt.inputFingerprint !== inputFingerprint || receipt.partitionId !== partition.id ||
-          JSON.stringify(receipt.source) !== JSON.stringify(source)) invalid();
-        validateUnderstanding(receipt.proposal, partition); continue;
+        await readUnderstandingReceipt(this.artifacts, scope, checkpoint, partition, existing.artifact, signal); continue;
       }
       const proposal = validateUnderstanding(await this.ai.understand(snapshot.result.intent, partition, signal), partition);
       signal.throwIfAborted(); const artifact = await this.artifacts.putJSON(scope,
