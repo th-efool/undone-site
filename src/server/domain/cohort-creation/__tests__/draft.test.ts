@@ -31,6 +31,7 @@ describe('owned durable drafts', () => {
   it.each([
     ['Save a video selection before observing it', 400],
     ['The draft already has 100 selected units. Remove a source before adding GitHub files.', 400],
+    ['The draft already has 100 selected units. Remove a source before adding a Notion page.', 400],
     ['Unexpected database failure', 503],
   ])('maps command failures safely: %s', async (message, status) => {
     const { service } = fixture();

@@ -27,6 +27,8 @@ import { JobBudgetExceeded } from '../src/server/domain/cohort-creation/durable-
 import { githubSelectionSchema, retainedGithubCheckpointSchema, githubMaterialManifestSchema, GITHUB_PARSER_VERSION } from '../src/shared/cohort-creation/github';
 import { githubExtractionVersion, githubReceiptFingerprint, githubUnitId } from '../src/server/domain/cohort-creation/materials/github-extraction';
 import { youtubeMetadataFingerprint } from '../src/server/domain/cohort-creation/materials/youtube-artifacts';
+import { notionMaterialManifestSchema, retainedNotionCheckpointSchema, NOTION_PARSER_VERSION } from '../src/shared/cohort-creation/notion';
+import { notionExtractionVersion, notionReceiptFingerprint, notionUnitId } from '../src/server/domain/cohort-creation/materials/notion-extraction';
 
 let stage = 'connection';
 async function main() {
@@ -396,6 +398,62 @@ async function main() {
     assert.equal(ghReady.materials.reduce((sum, source) => sum + source.selectedUnitIds.length, 0), 100);
     assert.equal(await drafts.swap(owner, ghDraftId, ghReady.revision, applyCommand(ghReady, { type: 'remove_material', materialId: ghCommand.materialId })), true);
     assert.equal(await db.creationStorageObject.count({ where: { draftId: ghDraftId, referencedAt: { not: null } } }), 0);
+    stage = 'durable Notion receipt, provider backoff and fenced restart';
+    const ntDraftId = randomUUID(); const ntStart = creationSnapshotSchema.parse({ ...starting, draftId: ntDraftId });
+    await db.creationDraft.create({ data: { id: ntDraftId, ownerId: owner, snapshot: ntStart, revision: ntStart.revision } });
+    const ntPage = randomUUID(); const ntCommand = { type: 'acquire_notion' as const, materialId: randomUUID(), requestId: randomUUID(),
+      url: `https://www.notion.so/${ntPage.replaceAll('-', '')}` };
+    const ntNext = applyCommand(ntStart, ntCommand);
+    assert.ok(await repo.enqueue(owner, ntStart, ntNext)); assert.ok(await repo.enqueue(owner, ntStart, ntNext));
+    assert.equal(await db.creationJob.count({ where: { draftId: ntDraftId } }), 1);
+    assert.equal(await repo.enqueue('foreign-owner', ntStart, ntNext), null);
+    const ntJob = await repo.claim('notion-acquirer'); assert.ok(ntJob?.kind === 'acquire_notion');
+    assert.equal(ntJob.input.maxUnits, 100); assert.ok(ntJob.deadlineAt.getTime() > Date.now() + 300_000);
+    // Extend only fixture deadlines/leases to exclude remote SQL inspection latency.
+    const ntDeadline = new Date(Date.now() + 900_000); ntJob.deadlineAt = ntDeadline;
+    await db.creationJob.update({ where: { id: ntJob.id }, data: { deadlineAt: ntDeadline, leaseUntil: new Date(Date.now() + 600_000) } });
+    const ntRetryAt = Date.now() + 90_000;
+    assert.equal(await repo.retry(ntJob, 90_000), true);
+    const ntScheduled = await db.creationJob.findUniqueOrThrow({ where: { id: ntJob.id } });
+    assert.ok(ntScheduled.nextRunAt.getTime() >= ntRetryAt); assert.equal(ntScheduled.leaseToken, null);
+    assert.equal(await repo.claim('notion-too-early'), null, 'provider minimum delay survives database reload');
+    await db.creationJob.update({ where: { id: ntJob.id }, data: { nextRunAt: new Date(0) } });
+    const ntRetry = await repo.claim('notion-retry'); assert.ok(ntRetry?.kind === 'acquire_notion');
+    await db.creationJob.update({ where: { id: ntRetry.id }, data: { leaseUntil: new Date(Date.now() + 600_000) } });
+    const ntRaw = { id: randomUUID(), kind: 'artifact' as const, byteLength: 1500, checksum: 'f'.repeat(64) };
+    const ntRetained = retainedNotionCheckpointSchema.parse({ phase: 'retained_notion', materialId: ntCommand.materialId,
+      inputRevision: ntRetry.inputRevision, pageId: ntPage, pageEditedAt: new Date().toISOString(), unitId: notionUnitId(ntPage), blockCount: 2, textBytes: 200,
+      artifact: ntRaw, inputFingerprint: notionReceiptFingerprint(ntCommand.materialId, ntRetry.inputRevision, ntPage) });
+    await db.creationStorageObject.create({ data: { ...ntRaw, blobId: randomUUID(), ownerId: 'foreign-owner', draftId: ntDraftId,
+      status: 'ready', mediaType: 'application/json', reservedBytes: ntRaw.byteLength, artifactType: 'notion-source', schemaVersion: 1, inputFingerprint: ntRetained.inputFingerprint } });
+    await assert.rejects(repo.checkpoint(ntRetry, ntRetained), /Checkpoint storage reference unavailable/);
+    await db.creationStorageObject.update({ where: { id: ntRaw.id }, data: { ownerId: owner, artifactType: 'wrong-type' } });
+    await assert.rejects(repo.checkpoint(ntRetry, ntRetained), /Checkpoint storage reference unavailable/);
+    await db.creationStorageObject.update({ where: { id: ntRaw.id }, data: { artifactType: 'notion-source' } });
+    assert.equal(await repo.checkpoint(ntRetry, ntRetained), true);
+    const ntPartial = await drafts.load(owner, ntDraftId); assert.ok(ntPartial);
+    assert.equal(ntPartial.materialRefs[0].ids[0], ntRaw.id); assert.equal(ntPartial.extractions.length, 0);
+    await db.creationJob.update({ where: { id: ntRetry.id }, data: { leaseUntil: new Date(0) } });
+    const ntResumed = await repo.claim('notion-restart'); assert.ok(ntResumed?.kind === 'acquire_notion' && ntResumed.checkpoint);
+    await db.creationJob.update({ where: { id: ntResumed.id }, data: { leaseUntil: new Date(Date.now() + 600_000) } });
+    assert.equal(await repo.checkpoint(ntRetry, ntRetained), false, 'old Notion lease is fenced');
+    const ntVersion = notionExtractionVersion(ntRaw.checksum);
+    const ntExtracted = { id: randomUUID(), kind: 'artifact' as const, byteLength: 2000, checksum: 'b'.repeat(64) };
+    const ntManifest = notionMaterialManifestSchema.parse({ schemaVersion: 1, inputRevision: ntResumed.inputRevision,
+      source: { ...ntResumed.input.source, status: 'ready', selectedUnitIds: [ntRetained.unitId] }, retainedSource: ntRaw, notion: ntRetained,
+      extraction: { materialId: ntCommand.materialId, version: ntVersion, checksum: ntRaw.checksum, artifactRef: ntExtracted.id,
+        extractionKind: 'text', selectionScope: 'supported_page_text', complete: true, segmentCount: 1 },
+      extractionArtifact: ntExtracted, parserVersion: NOTION_PARSER_VERSION, inputFingerprint: ntVersion, acquiredAt: new Date().toISOString() });
+    await db.creationStorageObject.create({ data: { ...ntExtracted, blobId: randomUUID(), ownerId: owner, draftId: ntDraftId,
+      status: 'ready', mediaType: 'application/json', reservedBytes: ntExtracted.byteLength, artifactType: 'notion-extraction', schemaVersion: 1, inputFingerprint: ntVersion } });
+    assert.equal(await repo.checkpoint(ntResumed, ntManifest), true);
+    await assert.rejects(repo.checkpoint(ntResumed, ntRetained), /Cannot replace a retained Notion receipt or completed checkpoint/);
+    await executeCreationJob(repo, { ...ntResumed, checkpoint: ntManifest }, () => { throw new Error('No AI expected'); }, new AbortController().signal);
+    const ntReady = await drafts.load(owner, ntDraftId); assert.ok(ntReady);
+    assert.equal(ntReady.materials[0].status, 'ready'); assert.equal(ntReady.extractions[0].selectionScope, 'supported_page_text');
+    assert.equal(ntReady.materialRefs[0].ids.length, 2);
+    assert.equal(await drafts.swap(owner, ntDraftId, ntReady.revision, applyCommand(ntReady, { type: 'remove_material', materialId: ntCommand.materialId })), true);
+    assert.equal(await db.creationStorageObject.count({ where: { draftId: ntDraftId, referencedAt: { not: null } } }), 0);
     stage = 'retention protection and tombstones';
     const retention = createCreationRetentionRepository(db);
     const old = new Date(Date.now() - 61 * 86400_000);
@@ -451,7 +509,7 @@ async function main() {
     try { if (created) await admin.query(`DROP SCHEMA "${schema}" CASCADE`); }
     finally { await admin.end(); }
   }
-  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web/PDF/YouTube/GitHub, unit capacity, per-video budgets, checkpoint fencing, restart, pin release, reload, retention; isolated schema removed.');
+  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web/PDF/YouTube/GitHub/Notion, provider backoff, unit capacity, per-video budgets, checkpoint fencing, restart, pin release, reload, retention; isolated schema removed.');
 }
 
 main().catch(error => {

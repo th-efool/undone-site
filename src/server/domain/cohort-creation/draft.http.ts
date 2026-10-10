@@ -12,6 +12,7 @@ const commandGuardMessages = new Set([
   'Intent is not ready', 'Starting point is not available', 'Operation is still running',
   'Save a video selection before observing it',
   'The draft already has 100 selected units. Remove a source before adding GitHub files.',
+  'The draft already has 100 selected units. Remove a source before adding a Notion page.',
 ]);
 export function draftHandlers(service: DraftService, getOwner: () => Promise<string | null>) {
   async function handle(request: Request, id?: string): Promise<Response> {

@@ -110,3 +110,4 @@ export const notionMaterialManifestSchema = materialManifestSchema.safeExtend({ 
       ctx.addIssue({ code: 'custom', message: 'Invalid Notion material manifest' });
     }
   });
+export type NotionMaterialManifest = z.infer<typeof notionMaterialManifestSchema>;

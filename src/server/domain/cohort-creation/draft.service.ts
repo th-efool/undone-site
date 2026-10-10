@@ -6,6 +6,7 @@ import { webSourceUrl } from './materials/web-fetch';
 import { youtubeSourceUrl } from './materials/youtube-url';
 import { githubRepositoryUrl } from './materials/github';
 import { githubRepositoryScope } from '@/src/shared/cohort-creation/github';
+import { notionPageIdentity } from './materials/notion';
 
 export class DraftConflict extends Error {
   constructor(readonly current: CreationSnapshot) { super('Draft changed. Reload before retrying your edit.'); }
@@ -34,6 +35,7 @@ export class DraftService {
     if (command.type === 'acquire_web') command.url = webSourceUrl(command.url).href;
     if (command.type === 'inspect_youtube') command.url = youtubeSourceUrl(command.url).url;
     if (command.type === 'acquire_github') command.selection.url = githubRepositoryUrl(command.selection.url).url;
+    if (command.type === 'acquire_notion') command.url = notionPageIdentity(command.url).url;
     if (command.type === 'request_recommendations' && previous.query === command.query &&
       (previous.activeRequestId === command.requestId || previous.result?.requestId === command.requestId)) return previous;
     if ((command.type === 'acquire_text' || command.type === 'acquire_pdf') && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
@@ -47,9 +49,11 @@ export class DraftService {
     if (command.type === 'acquire_github' && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
       source.id === command.materialId && source.kind === 'github' && source.input.kind === 'url' && source.input.url === command.selection.url &&
       JSON.stringify(source.input.repositoryScope) === JSON.stringify(githubRepositoryScope(command.selection)))) return previous;
+    if (command.type === 'acquire_notion' && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
+      source.id === command.materialId && source.kind === 'notion' && source.input.kind === 'url' && source.input.url === command.url)) return previous;
     if (previous.revision !== baseRevision) throw new DraftConflict(previous);
     const next = applyCommand(previous, command);
-    if (command.type === 'request_recommendations' || command.type === 'acquire_text' || command.type === 'acquire_pdf' || command.type === 'acquire_web' || command.type === 'inspect_youtube' || command.type === 'observe_youtube' || command.type === 'acquire_github') {
+    if (command.type === 'request_recommendations' || command.type === 'acquire_text' || command.type === 'acquire_pdf' || command.type === 'acquire_web' || command.type === 'inspect_youtube' || command.type === 'observe_youtube' || command.type === 'acquire_github' || command.type === 'acquire_notion') {
       const queued = await this.jobs.enqueue(owner, previous, next);
       if (!queued) throw new DraftConflict(await this.load(owner, id));
       return queued;

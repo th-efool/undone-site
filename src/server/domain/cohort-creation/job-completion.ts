@@ -14,6 +14,20 @@ import { youtubeSourceUrl } from './materials/youtube-url';
 import { githubMaterialManifestSchema, retainedGithubCheckpointSchema, githubSelectionSchema, GITHUB_PARSER_VERSION } from '@/src/shared/cohort-creation/github';
 import { githubExtractionVersion, githubReceiptFingerprint, githubUnitId } from './materials/github-extraction';
 import type { ClaimedGithubJob } from './durable-job';
+import type { ClaimedNotionJob } from './durable-job';
+import { notionMaterialManifestSchema, retainedNotionCheckpointSchema, NOTION_PARSER_VERSION } from '@/src/shared/cohort-creation/notion';
+import { notionReceiptFingerprint, notionExtractionVersion, notionUnitId } from './materials/notion-extraction';
+import { notionPageIdentity } from './materials/notion';
+
+export function validateNotionRetention(job: ClaimedNotionJob, value: unknown) {
+  const retained = retainedNotionCheckpointSchema.parse(value);
+  if (job.input.source.input.kind !== 'url') throw new Error('Invalid Notion checkpoint input');
+  const identity = notionPageIdentity(job.input.source.input.url);
+  if (identity.url !== job.input.source.input.url || retained.pageId !== identity.pageId || retained.materialId !== job.input.source.id ||
+    retained.inputRevision !== job.inputRevision || job.input.maxUnits < 1 || retained.unitId !== notionUnitId(identity.pageId) ||
+    retained.inputFingerprint !== notionReceiptFingerprint(retained.materialId, retained.inputRevision, identity.pageId)) throw new Error('Invalid Notion checkpoint input');
+  return retained;
+}
 
 export function githubJobSelection(job: ClaimedGithubJob) {
   if (job.input.source.input.kind !== 'url' || !job.input.source.input.repositoryScope) throw new Error('Invalid GitHub checkpoint input');
@@ -36,6 +50,14 @@ export function validateWebRetention(job: ClaimedWebJob, value: unknown): Retain
 }
 
 export function jobCompletion(job: ClaimedCreationJob, value: CreationCheckpoint): CreationEvent {
+  if (job.kind === 'acquire_notion') {
+    const manifest = notionMaterialManifestSchema.parse(value); const retained = validateNotionRetention(job, manifest.notion);
+    const version = notionExtractionVersion(retained.artifact.checksum);
+    if (manifest.inputRevision !== job.inputRevision || manifest.parserVersion !== NOTION_PARSER_VERSION || manifest.inputFingerprint !== version ||
+      manifest.extraction.version !== version || manifest.extraction.segmentCount < 1 ||
+      JSON.stringify(manifest.source.input) !== JSON.stringify(job.input.source.input)) throw new Error('Invalid Notion checkpoint input');
+    return { type: 'material_received', requestId: job.requestId, manifest };
+  }
   if (job.kind === 'acquire_github') {
     const manifest = githubMaterialManifestSchema.parse(value); const retained = validateGithubRetention(job, manifest.github);
     const version = githubExtractionVersion(retained.artifact.checksum);

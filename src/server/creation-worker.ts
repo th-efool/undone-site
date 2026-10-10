@@ -18,6 +18,7 @@ import { YoutubeMetadataReader } from './domain/cohort-creation/materials/youtub
 import { GithubMaterialReader } from './domain/cohort-creation/materials/github';
 import { GithubPublicApi } from './domain/cohort-creation/materials/github-public-api';
 import { GithubAcquisitionService } from './domain/cohort-creation/materials/github-acquisition.service';
+import { NotionAcquisitionService } from './domain/cohort-creation/materials/notion-acquisition.service';
 
 async function main() {
   if (process.argv.includes('--check')) {
@@ -93,6 +94,16 @@ async function main() {
       }, extract: async (...args) => {
         const storage = await import('./infrastructure/storage/creation.runtime');
         return new GithubAcquisitionService(new GithubMaterialReader(new GithubPublicApi()), storage.creationArtifactRepository).extract(...args);
+      } }),
+      () => ({ acquire: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        closeConnectors = (await import('./infrastructure/connectors/creation-corsair')).closeCreationCorsairRuntime;
+        const reader = await (await import('./infrastructure/connectors/creation-source-access')).createOwnedNotionReader(args[0], args[3]);
+        return new NotionAcquisitionService(reader, storage.creationArtifactRepository).acquire(...args);
+      }, extract: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        // Retained recovery needs no live connection and must never refetch a mutable page.
+        return new NotionAcquisitionService({ read: async () => { throw new Error('Retained recovery cannot read Notion'); } }, storage.creationArtifactRepository).extract(...args);
       } }));
   } finally {
     clearInterval(retentionTimer);

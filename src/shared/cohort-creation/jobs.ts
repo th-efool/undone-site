@@ -34,3 +34,7 @@ export const githubAcquisitionRequestSchema = z.strictObject({ requestId: z.uuid
   maxUnits: z.number().int().positive().max(100), source: materialSourceSchema.refine(source => source.kind === 'github' &&
     source.input.kind === 'url' && !!source.input.repositoryScope, 'Select explicit GitHub repository paths') });
 export type GithubAcquisitionRequest = z.infer<typeof githubAcquisitionRequestSchema>;
+export const notionAcquisitionRequestSchema = z.strictObject({ requestId: z.uuid(), inputRevision: z.number().int().nonnegative(),
+  maxUnits: z.number().int().positive().max(100), source: materialSourceSchema.refine(source => source.kind === 'notion' &&
+    source.input.kind === 'url', 'Select a connected Notion page') });
+export type NotionAcquisitionRequest = z.infer<typeof notionAcquisitionRequestSchema>;
