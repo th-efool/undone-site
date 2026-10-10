@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MATERIAL_LIMITS } from './materials';
+import { MATERIAL_LIMITS, retainedObjectRefSchema } from './materials';
 
 export const youtubeVideoIdSchema = z.string().regex(/^[A-Za-z0-9_-]{11}$/);
 export const youtubePlaylistIdSchema = z.string().regex(/^[A-Za-z0-9_-]{10,128}$/);
@@ -24,3 +24,9 @@ export const youtubeMetadataSchema = z.strictObject({
 });
 export type YoutubeVideoMetadata = z.infer<typeof youtubeVideoMetadataSchema>;
 export type YoutubeMetadata = z.infer<typeof youtubeMetadataSchema>;
+export const YOUTUBE_METADATA_VERSION = 'youtube-data-public-v1';
+export const youtubeMetadataReceiptSchema = z.strictObject({ schemaVersion: z.literal(1), materialId: z.uuid(),
+  inputRevision: z.number().int().nonnegative(), parserVersion: z.literal(YOUTUBE_METADATA_VERSION), metadata: youtubeMetadataSchema });
+export const retainedYoutubeMetadataSchema = z.strictObject({ receipt: youtubeMetadataReceiptSchema,
+  artifact: retainedObjectRefSchema.extend({ kind: z.literal('artifact') }), inputFingerprint: z.string().regex(/^[a-f0-9]{64}$/) });
+export type RetainedYoutubeMetadata = z.infer<typeof retainedYoutubeMetadataSchema>;

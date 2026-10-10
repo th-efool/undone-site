@@ -7,6 +7,9 @@ import { retainedWebCheckpointSchema, webMaterialManifestSchema, type RetainedWe
 import { WEB_PARSER_VERSION, webExtractionFingerprint, webExtractionVersion, webReceiptFingerprint } from './materials/web-identity';
 import type { ClaimedWebJob } from './durable-job';
 import { PDF_PARSER_VERSION, pdfAcquisitionFingerprint, pdfExtractionVersion } from './materials/pdf-identity';
+import { retainedYoutubeMetadataSchema } from '@/src/shared/cohort-creation/youtube';
+import { youtubeMetadataFingerprint } from './materials/youtube-artifacts';
+import { youtubeSourceUrl } from './materials/youtube-url';
 
 export function validateWebRetention(job: ClaimedWebJob, value: unknown): RetainedWebCheckpoint {
   const retained = retainedWebCheckpointSchema.parse(value);
@@ -21,6 +24,14 @@ export function jobCompletion(job: ClaimedCreationJob, value: CreationCheckpoint
     const result = recommendationResultSchema.parse(value);
     if (result.requestId !== job.requestId || result.inputRevision !== job.inputRevision || result.intent.rawQuery !== job.input.query) throw new Error('Invalid checkpoint input');
     return { type: 'recommendations_received', result };
+  }
+  if (job.kind === 'inspect_youtube') {
+    const retained = retainedYoutubeMetadataSchema.parse(value); const { receipt } = retained;
+    if (job.input.source.input.kind !== 'url' || job.input.source.id !== receipt.materialId || job.inputRevision !== receipt.inputRevision ||
+      job.input.source.kind !== receipt.metadata.kind || job.input.source.input.url !== receipt.metadata.sourceUrl ||
+      youtubeSourceUrl(receipt.metadata.sourceUrl).url !== receipt.metadata.sourceUrl ||
+      retained.inputFingerprint !== youtubeMetadataFingerprint(receipt.materialId, receipt.inputRevision, receipt.metadata.sourceUrl)) throw new Error('Invalid checkpoint input');
+    return { type: 'youtube_metadata_received', requestId: job.requestId, result: retained };
   }
   if (job.kind === 'acquire_web') {
     const manifest = webMaterialManifestSchema.parse(value);

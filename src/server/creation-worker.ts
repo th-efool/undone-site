@@ -11,6 +11,8 @@ import { TextAcquisitionService } from './domain/cohort-creation/materials/text-
 import { WebAcquisitionService } from './domain/cohort-creation/materials/web-acquisition.service';
 import { WebRetentionService } from './domain/cohort-creation/materials/web-retention.service';
 import { PdfAcquisitionService } from './domain/cohort-creation/materials/pdf-acquisition.service';
+import { YoutubeMetadataRetentionService } from './domain/cohort-creation/materials/youtube-observation.service';
+import { YoutubeMetadataReader } from './domain/cohort-creation/materials/youtube-metadata';
 
 async function main() {
   if (process.argv.includes('--check')) {
@@ -63,6 +65,10 @@ async function main() {
       () => ({ acquire: async (...args) => {
         const storage = await import('./infrastructure/storage/creation.runtime');
         return new PdfAcquisitionService(storage.materialBlobStore, storage.creationArtifactRepository).acquire(...args);
+      } }),
+      () => ({ retainMetadata: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        return new YoutubeMetadataRetentionService(new YoutubeMetadataReader(), storage.creationArtifactRepository).retainMetadata(...args);
       } }));
   } finally {
     clearInterval(retentionTimer);

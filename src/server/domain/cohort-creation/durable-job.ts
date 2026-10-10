@@ -1,7 +1,8 @@
 import type { CreationSnapshot, RecommendationRequest, RecommendationResult } from '@/src/shared/cohort-creation/contracts';
 import type { CreationEvent } from '@/src/shared/cohort-creation/flow';
 import type { CreationEventEnvelope, CreationJobSummary } from '@/src/shared/cohort-creation/durable';
-import type { TextAcquisitionRequest, WebAcquisitionRequest, PdfAcquisitionRequest } from '@/src/shared/cohort-creation/jobs';
+import type { TextAcquisitionRequest, WebAcquisitionRequest, PdfAcquisitionRequest, YoutubeInspectionRequest } from '@/src/shared/cohort-creation/jobs';
+import type { RetainedYoutubeMetadata } from '@/src/shared/cohort-creation/youtube';
 import type { RetainedWebCheckpoint, WebMaterialManifest } from '@/src/shared/cohort-creation/web';
 import type { MaterialManifest } from '@/src/shared/cohort-creation/materials';
 
@@ -15,8 +16,9 @@ export type ClaimedRecommendationJob = JobBase & { kind: 'recommendations'; inpu
 export type ClaimedTextJob = JobBase & { kind: 'acquire_text'; input: TextAcquisitionRequest; checkpoint: MaterialManifest | null };
 export type ClaimedWebJob = JobBase & { kind: 'acquire_web'; input: WebAcquisitionRequest; checkpoint: RetainedWebCheckpoint | WebMaterialManifest | null };
 export type ClaimedPdfJob = JobBase & { kind: 'acquire_pdf'; input: PdfAcquisitionRequest; checkpoint: MaterialManifest | null };
-export type ClaimedCreationJob = ClaimedRecommendationJob | ClaimedTextJob | ClaimedWebJob | ClaimedPdfJob;
-export type CreationCheckpoint = RecommendationResult | MaterialManifest | RetainedWebCheckpoint | WebMaterialManifest;
+export type ClaimedYoutubeInspectionJob = JobBase & { kind: 'inspect_youtube'; input: YoutubeInspectionRequest; checkpoint: RetainedYoutubeMetadata | null };
+export type ClaimedCreationJob = ClaimedRecommendationJob | ClaimedTextJob | ClaimedWebJob | ClaimedPdfJob | ClaimedYoutubeInspectionJob;
+export type CreationCheckpoint = RecommendationResult | MaterialManifest | RetainedWebCheckpoint | WebMaterialManifest | RetainedYoutubeMetadata;
 export interface CreationJobRepository {
   enqueue(owner: string, previous: CreationSnapshot, next: CreationSnapshot): Promise<CreationSnapshot | null>;
   cancel(owner: string, previous: CreationSnapshot, next: CreationSnapshot): Promise<boolean>;

@@ -2,15 +2,13 @@ import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { sourceLocationSchema } from '@/src/shared/cohort-creation/contracts';
 import { retainedObjectRefSchema } from '@/src/shared/cohort-creation/materials';
-import { youtubeMetadataSchema, youtubeVideoMetadataSchema } from '@/src/shared/cohort-creation/youtube';
+import { YOUTUBE_METADATA_VERSION, youtubeVideoMetadataSchema } from '@/src/shared/cohort-creation/youtube';
 import { observationModelIdentitySchema, videoObservationCoverage, videoObservationProposalSchema, validateVideoObservation } from '../material-observation';
 
-export const YOUTUBE_METADATA_VERSION = 'youtube-data-public-v1';
+export { YOUTUBE_METADATA_VERSION, youtubeMetadataReceiptSchema } from '@/src/shared/cohort-creation/youtube';
 const checksum = z.string().regex(/^[a-f0-9]{64}$/);
 export const youtubeMetadataFingerprint = (materialId: string, inputRevision: number, url: string) =>
   createHash('sha256').update(JSON.stringify({ materialId, inputRevision, url, parser: YOUTUBE_METADATA_VERSION })).digest('hex');
-export const youtubeMetadataReceiptSchema = z.strictObject({ schemaVersion: z.literal(1), materialId: z.uuid(),
-  inputRevision: z.number().int().nonnegative(), parserVersion: z.literal(YOUTUBE_METADATA_VERSION), metadata: youtubeMetadataSchema });
 export const youtubeObservationArtifactSchema = z.strictObject({
   schemaVersion: z.literal(1), materialId: z.uuid(), unitId: z.string().regex(/^[A-Za-z0-9_-]{11}$/),
   inputRevision: z.number().int().nonnegative(), version: checksum, metadataFingerprint: checksum,

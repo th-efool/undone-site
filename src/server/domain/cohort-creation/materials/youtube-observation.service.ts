@@ -1,6 +1,7 @@
 import 'server-only';
 import { materialSourceSchema, type MaterialSource } from '@/src/shared/cohort-creation/contracts';
 import { retainedObjectRefSchema } from '@/src/shared/cohort-creation/materials';
+import { retainedYoutubeMetadataSchema } from '@/src/shared/cohort-creation/youtube';
 import { CreationStorageError, type CreationObjectRef, type StorageScope } from '@/src/server/infrastructure/storage/creation.contracts';
 import type { CreationArtifactRepository } from '@/src/server/infrastructure/storage/creation.store';
 import { observationModelIdentitySchema, validateVideoObservation, videoObservationCoverage, type MaterialObservation } from '../material-observation';
@@ -9,9 +10,9 @@ import { youtubeSourceUrl } from './youtube-url';
 import { YOUTUBE_METADATA_VERSION, youtubeMetadataFingerprint, youtubeMetadataReceiptSchema,
   youtubeObservationArtifactSchema, youtubeObservationVersion, youtubeObservationSegmentId } from './youtube-artifacts';
 
-export class YoutubeObservationService {
-  constructor(private readonly reader: Pick<YoutubeMetadataReader, 'read'>, private readonly observer: MaterialObservation,
-    private readonly artifacts: Pick<CreationArtifactRepository, 'putJSON' | 'getJSON' | 'ref'>) {}
+export class YoutubeMetadataRetentionService {
+  constructor(private readonly reader: Pick<YoutubeMetadataReader, 'read'>,
+    protected readonly artifacts: Pick<CreationArtifactRepository, 'putJSON' | 'getJSON' | 'ref'>) {}
 
   async retainMetadata(scope: StorageScope, input: MaterialSource, inputRevision: number, signal?: AbortSignal) {
     signal?.throwIfAborted(); const source = materialSourceSchema.parse(input);
@@ -27,8 +28,12 @@ export class YoutubeObservationService {
     const fingerprint = youtubeMetadataFingerprint(source.id, inputRevision, canonical.url);
     const artifact = await this.artifacts.putJSON(scope, receipt, { artifactType: 'youtube-metadata', schemaVersion: 1,
       inputFingerprint: fingerprint, schema: youtubeMetadataReceiptSchema, signal });
-    signal?.throwIfAborted(); return { receipt, artifact, inputFingerprint: fingerprint };
+    signal?.throwIfAborted(); return retainedYoutubeMetadataSchema.parse({ receipt, artifact, inputFingerprint: fingerprint });
   }
+}
+export class YoutubeObservationService extends YoutubeMetadataRetentionService {
+  constructor(reader: Pick<YoutubeMetadataReader, 'read'>, private readonly observer: MaterialObservation,
+    artifacts: Pick<CreationArtifactRepository, 'putJSON' | 'getJSON' | 'ref'>) { super(reader, artifacts); }
   private async receipt(scope: StorageScope, inputRef: CreationObjectRef, fingerprint: string, materialId: string, inputRevision: number, signal?: AbortSignal) {
     const ref = retainedObjectRefSchema.extend({ kind: retainedObjectRefSchema.shape.kind.extract(['artifact']) }).parse(inputRef);
     const owned = await this.artifacts.ref(scope, ref.id);

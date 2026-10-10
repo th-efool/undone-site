@@ -8,7 +8,8 @@ import { LeaseLost, type ClaimedCreationJob, type CreationJobRepository } from '
 import { hourlyBudget, reserveBudget } from './creationBudget.repo';
 import { creationFailure } from '@/src/server/domain/cohort-creation/errors';
 import { jobSummary, writeDraftEvent } from './creationEvent.repo';
-import { textAcquisitionRequestSchema, webAcquisitionRequestSchema, pdfAcquisitionRequestSchema } from '@/src/shared/cohort-creation/jobs';
+import { textAcquisitionRequestSchema, webAcquisitionRequestSchema, pdfAcquisitionRequestSchema, youtubeInspectionRequestSchema } from '@/src/shared/cohort-creation/jobs';
+import { retainedYoutubeMetadataSchema, type RetainedYoutubeMetadata } from '@/src/shared/cohort-creation/youtube';
 import { materialManifestSchema } from '@/src/shared/cohort-creation/materials';
 import { jobCompletion, validateWebRetention } from '@/src/server/domain/cohort-creation/job-completion';
 import { releaseDetachedMaterialRefs } from './creationMaterialRefs';
@@ -34,6 +35,8 @@ function claimed(row: CreationJob): ClaimedCreationJob {
     checkpoint: row.checkpoint ? materialManifestSchema.parse(row.checkpoint) : null };
   if (row.kind === 'acquire_pdf') return { ...base, kind: 'acquire_pdf', input: pdfAcquisitionRequestSchema.parse(row.input),
     checkpoint: row.checkpoint ? materialManifestSchema.parse(row.checkpoint) : null };
+  if (row.kind === 'inspect_youtube') return { ...base, kind: 'inspect_youtube', input: youtubeInspectionRequestSchema.parse(row.input),
+    checkpoint: row.checkpoint ? retainedYoutubeMetadataSchema.parse(row.checkpoint) : null };
   if (row.kind === 'acquire_web') return { ...base, kind: 'acquire_web', input: webAcquisitionRequestSchema.parse(row.input),
     checkpoint: row.checkpoint ? retainedWebCheckpointSchema.or(webMaterialManifestSchema).parse(row.checkpoint) : null };
   return { ...base, kind: 'recommendations', input: recommendationRequestSchema.parse(row.input),
@@ -65,6 +68,13 @@ async function pinWebReceipt(tx: Prisma.TransactionClient, job: ClaimedWebJob, r
     if (updated.count !== 1) throw new Error('Checkpoint storage reference unavailable');
   }
 }
+async function pinYoutubeMetadata(tx: Prisma.TransactionClient, job: ClaimedCreationJob, retained: RetainedYoutubeMetadata) {
+  const ref = retained.artifact;
+  const pinned = await tx.creationStorageObject.updateMany({ where: { id: ref.id, ownerId: job.ownerId, draftId: job.draftId,
+    status: 'ready', kind: 'artifact', byteLength: ref.byteLength, checksum: ref.checksum, artifactType: 'youtube-metadata',
+    schemaVersion: 1, inputFingerprint: retained.inputFingerprint }, data: { referencedAt: new Date() } });
+  if (pinned.count !== 1) throw new Error('Checkpoint storage reference unavailable');
+}
 export function createCreationJobRepository(prisma = defaultPrisma): CreationJobRepository {
  return {
   async enqueue(owner, previous, next) {
@@ -72,10 +82,10 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const current = await lockedDraft(tx, owner, previous.draftId);
       if (!current) return null;
       const source = next.materials.find(source => source.status === 'acquiring');
-      const kind = next.stage === 'recommendations' ? 'recommendations' : source?.kind === 'web' ? 'acquire_web' : source?.kind === 'pdf' ? 'acquire_pdf' : 'acquire_text';
+      const kind = next.stage === 'recommendations' ? 'recommendations' : source?.kind === 'web' ? 'acquire_web' : source?.kind === 'pdf' ? 'acquire_pdf' : ['youtube_video', 'youtube_playlist'].includes(source?.kind ?? '') ? 'inspect_youtube' : 'acquire_text';
       const input = kind === 'recommendations'
         ? recommendationRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, query: next.query })
-        : (kind === 'acquire_web' ? webAcquisitionRequestSchema : kind === 'acquire_pdf' ? pdfAcquisitionRequestSchema : textAcquisitionRequestSchema).parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, source });
+        : (kind === 'acquire_web' ? webAcquisitionRequestSchema : kind === 'acquire_pdf' ? pdfAcquisitionRequestSchema : kind === 'inspect_youtube' ? youtubeInspectionRequestSchema : textAcquisitionRequestSchema).parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, source });
       const fingerprint = createHash('sha256').update(JSON.stringify({ kind, schema: 1, input })).digest('hex');
       const existing = await tx.creationJob.findUnique({ where: { draftId_kind_inputFingerprint: {
         draftId: next.draftId, kind, inputFingerprint: fingerprint } } });
@@ -125,7 +135,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const candidates = await tx.$queryRaw<{ id: string; draftId: string; ownerId: string }[]>`
         SELECT j."id",j."draftId",j."ownerId" FROM "creation_jobs" j
         JOIN "creation_drafts" d ON d."id"=j."draftId"
-        WHERE d."expiredAt" IS NULL AND j."kind" IN ('recommendations','acquire_text','acquire_web','acquire_pdf') AND j."cancelRequestedAt" IS NULL AND
+        WHERE d."expiredAt" IS NULL AND j."kind" IN ('recommendations','acquire_text','acquire_web','acquire_pdf','inspect_youtube') AND j."cancelRequestedAt" IS NULL AND
         ((j."status"='queued' AND j."nextRunAt"<=CURRENT_TIMESTAMP) OR
          (j."status"='running' AND j."leaseUntil"<=CURRENT_TIMESTAMP))
         ORDER BY j."nextRunAt",j."createdAt" LIMIT 1 FOR UPDATE OF d SKIP LOCKED`;
@@ -141,7 +151,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const rows = await tx.$queryRaw<CreationJob[]>`UPDATE "creation_jobs" SET "status"='running',
         "attempt"="attempt"+1,"leaseOwner"=${worker},"leaseToken"=${token},
         "leaseUntil"=CURRENT_TIMESTAMP + interval '90 seconds',"heartbeatAt"=CURRENT_TIMESTAMP,
-        "deadlineAt"=COALESCE("deadlineAt",CURRENT_TIMESTAMP + CASE WHEN "kind" IN ('acquire_web','acquire_pdf') THEN interval '120 seconds' WHEN "kind"='acquire_text' THEN interval '60 seconds' ELSE interval '30 seconds' END),"updatedAt"=CURRENT_TIMESTAMP
+        "deadlineAt"=COALESCE("deadlineAt",CURRENT_TIMESTAMP + CASE WHEN "kind" IN ('acquire_web','acquire_pdf','inspect_youtube') THEN interval '120 seconds' WHEN "kind"='acquire_text' THEN interval '60 seconds' ELSE interval '30 seconds' END),"updatedAt"=CURRENT_TIMESTAMP
         WHERE "id"=${job.id} RETURNING *`;
       await writeDraftEvent(tx, row.ownerId, { ...current, revision: current.revision + 1 }, 'job_started', rows[0]);
       return claimed(rows[0]);
@@ -196,12 +206,14 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
           jobCompletion(job, event.manifest);
           await pinMaterial(tx, job, event.manifest);
         }
+        if (event.type === 'youtube_metadata_received') { jobCompletion(job, event.result); await pinYoutubeMetadata(tx, job, event.result); }
         const next = applyEvent(current, event);
         if (next === current) return false;
-        const status = event.type === 'recommendations_received' || event.type === 'material_received' ? 'succeeded' : event.type === 'operation_cancelled' ? 'canceled' : 'failed';
+        const status = event.type === 'recommendations_received' || event.type === 'material_received' || event.type === 'youtube_metadata_received' ? 'succeeded' : event.type === 'operation_cancelled' ? 'canceled' : 'failed';
         const completed = await tx.creationJob.update({ where: { id: job.id }, data: { status,
           ...(event.type === 'recommendations_received' ? { checkpoint: event.result } : {}),
           ...(event.type === 'material_received' ? { checkpoint: event.manifest } : {}),
+          ...(event.type === 'youtube_metadata_received' ? { checkpoint: event.result } : {}),
           leaseToken: null, leaseUntil: null, leaseOwner: null } });
         await writeDraftEvent(tx, job.ownerId, next, status === 'succeeded' ? 'job_completed' : status === 'failed' ? 'job_failed' : 'job_canceled', completed);
         return true;
@@ -225,18 +237,21 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       } catch (error) { if (error instanceof LeaseLost) return false; throw error; }
     }
     const completion = jobCompletion(job, result);
-    const valid = completion.type === 'material_received' ? completion.manifest : recommendationResultSchema.parse(result);
+    const valid = completion.type === 'material_received' ? completion.manifest : completion.type === 'youtube_metadata_received' ? completion.result : recommendationResultSchema.parse(result);
     try {
       return await prisma.$transaction(async tx => {
         const current = await lockedDraft(tx, job.ownerId, job.draftId);
         if (!current || current.activeRequestId !== job.requestId || current.inputRevision !== job.inputRevision) return false;
         await fenced(tx, job);
         if (completion.type === 'material_received') await pinMaterial(tx, job, completion.manifest);
+        if (completion.type === 'youtube_metadata_received') await pinYoutubeMetadata(tx, job, completion.result);
         const updated = await tx.creationJob.update({ where: { id: job.id }, data: { checkpoint: valid } });
         await writeDraftEvent(tx, job.ownerId, { ...current, revision: current.revision + 1,
           ...(completion.type === 'material_received' ? { materialRefs: [...current.materialRefs.filter(ref => ref.materialId !== completion.manifest.source.id),
             { materialId: completion.manifest.source.id, ids: [completion.manifest.retainedSource.id, completion.manifest.extractionArtifact.id,
-              ...('receiptArtifact' in completion.manifest ? [completion.manifest.receiptArtifact.id] : [])] }] } : {}) }, 'snapshot', updated);
+              ...('receiptArtifact' in completion.manifest ? [completion.manifest.receiptArtifact.id] : [])] }] } : {}),
+          ...(completion.type === 'youtube_metadata_received' ? { materialRefs: [...current.materialRefs.filter(ref => ref.materialId !== completion.result.receipt.materialId),
+            { materialId: completion.result.receipt.materialId, ids: [completion.result.artifact.id] }] } : {}) }, 'snapshot', updated);
         return true;
       });
     } catch (error) { if (error instanceof LeaseLost) return false; throw error; }

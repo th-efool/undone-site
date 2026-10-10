@@ -15,3 +15,8 @@ export const pdfAcquisitionRequestSchema = z.strictObject({
   source: materialSourceSchema.refine(source => source.kind === 'pdf' && source.input.kind === 'upload', 'An uploaded PDF source is required'),
 });
 export type PdfAcquisitionRequest = z.infer<typeof pdfAcquisitionRequestSchema>;
+export const youtubeInspectionRequestSchema = z.strictObject({
+  requestId: z.uuid(), inputRevision: z.number().int().nonnegative(),
+  source: materialSourceSchema.refine(source => ['youtube_video', 'youtube_playlist'].includes(source.kind) && source.input.kind === 'url', 'A YouTube URL source is required'),
+});
+export type YoutubeInspectionRequest = z.infer<typeof youtubeInspectionRequestSchema>;

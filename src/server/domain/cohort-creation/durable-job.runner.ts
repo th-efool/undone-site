@@ -1,5 +1,5 @@
 import { CreationFailure } from './errors';
-import { JobBudgetExceeded, LeaseLost, type ClaimedCreationJob, type ClaimedRecommendationJob, type ClaimedTextJob, type ClaimedWebJob, type ClaimedPdfJob, type CreationJobRepository } from './durable-job';
+import { JobBudgetExceeded, LeaseLost, type ClaimedCreationJob, type ClaimedRecommendationJob, type ClaimedTextJob, type ClaimedWebJob, type ClaimedPdfJob, type ClaimedYoutubeInspectionJob, type CreationJobRepository } from './durable-job';
 import type { RecommendationService } from './recommendation.service';
 
 import type { TextAcquisitionService } from './materials/text-acquisition.service';
@@ -7,13 +7,15 @@ import { CreationStorageError } from '@/src/server/infrastructure/storage/creati
 import { jobCompletion, validateWebRetention } from './job-completion';
 import type { WebAcquisitionService } from './materials/web-acquisition.service';
 import type { PdfAcquisitionService } from './materials/pdf-acquisition.service';
+import type { YoutubeMetadataRetentionService } from './materials/youtube-observation.service';
 type RecommenderFactory = (job: ClaimedRecommendationJob) => Pick<RecommendationService, 'recommend'>;
 type AcquirerFactory = (job: ClaimedTextJob) => Pick<TextAcquisitionService, 'acquire'>;
 type WebAcquirerFactory = (job: ClaimedWebJob) => Pick<WebAcquisitionService, 'acquire' | 'extract'>;
 type PdfAcquirerFactory = (job: ClaimedPdfJob) => Pick<PdfAcquisitionService, 'acquire'>;
+type YoutubeInspectorFactory = (job: ClaimedYoutubeInspectionJob) => Pick<YoutubeMetadataRetentionService, 'retainMetadata'>;
 /** One task invocation; browser connections are deliberately not an input. */
 export async function executeCreationJob(repo: CreationJobRepository, job: ClaimedCreationJob,
-  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory) {
+  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory) {
   const lease = new AbortController();
   const remaining = Math.max(1, job.deadlineAt.getTime() - Date.now());
   const timeout = AbortSignal.timeout(remaining);
@@ -46,6 +48,9 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
         return service.acquire(scope, job.input.source, job.inputRevision, signal, async retained => {
           if (!await repo.checkpoint(job, retained)) throw new LeaseLost();
         });
+      })() : job.kind === 'inspect_youtube' ? await (() => {
+        if (!youtubeInspector) throw new Error('YouTube inspection service unavailable');
+        return youtubeInspector(job).retainMetadata({ ownerId: job.ownerId, draftId: job.draftId }, job.input.source, job.inputRevision, signal);
       })() : job.kind === 'acquire_pdf' ? await (() => {
         if (!pdfAcquirer) throw new Error('PDF acquisition service unavailable');
         return pdfAcquirer(job).acquire({ ownerId: job.ownerId, draftId: job.draftId }, job.input.source, job.inputRevision, signal);
@@ -82,14 +87,14 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
 }
 
 export async function runCreationWorker(repo: CreationJobRepository, workerId: string,
-  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory) {
+  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory) {
   const tasks = new Set<Promise<void>>();
   while (!signal.aborted) {
     try {
       if (tasks.size < 2) {
         const job = await repo.claim(workerId);
         if (job) {
-          const task = executeCreationJob(repo, job, recommender, signal, acquirer, webAcquirer, pdfAcquirer).catch(reportError);
+          const task = executeCreationJob(repo, job, recommender, signal, acquirer, webAcquirer, pdfAcquirer, youtubeInspector).catch(reportError);
           tasks.add(task);
           void task.finally(() => tasks.delete(task));
           continue;

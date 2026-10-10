@@ -148,6 +148,10 @@ export const creationSnapshotSchema = z.strictObject({
   extractions: z.array(extractedContentSchema).max(20).default([]),
   lastMaterialRequestId: z.uuid().nullable().default(null),
   materialRefs: z.array(z.strictObject({ materialId: key, ids: z.array(z.uuid()).min(1).max(3) })).max(20).default([]),
+  youtubeSources: z.array(z.strictObject({ materialId: key, sourceRevision: revision, metadataFingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+    metadataArtifact: z.strictObject({ id: z.uuid(), kind: z.literal('artifact'), byteLength: z.number().int().positive().max(25 * 1024 * 1024), checksum: z.string().regex(/^[a-f0-9]{64}$/) }),
+    units: z.array(z.strictObject({ unitId: z.string().regex(/^[A-Za-z0-9_-]{11}$/), title: z.string().min(1).max(1000), durationSeconds: z.number().int().positive() })).min(1).max(100),
+  })).max(20).default([]),
 }).superRefine((state, ctx) => {
   if ((state.status === 'running') !== (state.activeRequestId !== null)) ctx.addIssue({ code: 'custom', message: 'Invalid active operation' });
   if (state.status === 'running' && ((state.stage === 'recommendations' && state.result !== null) ||
@@ -162,6 +166,12 @@ export const creationSnapshotSchema = z.strictObject({
     ctx.addIssue({ code: 'custom', message: 'Accepted intent is required' });
   }
   const ids = state.materials.map(source => source.id);
+  if (new Set(state.youtubeSources.map(source => source.materialId)).size !== state.youtubeSources.length ||
+    state.youtubeSources.some(source => source.sourceRevision > state.inputRevision || new Set(source.units.map(unit => unit.unitId)).size !== source.units.length ||
+      !state.materials.some(material => material.id === source.materialId && ['youtube_video', 'youtube_playlist'].includes(material.kind)) ||
+      !state.materialRefs.some(ref => ref.materialId === source.materialId && ref.ids.includes(source.metadataArtifact.id)))) {
+    ctx.addIssue({ code: 'custom', message: 'Invalid YouTube unit preview or provenance' });
+  }
   if (new Set(ids).size !== ids.length || new Set(state.extractions.map(extraction => extraction.materialId)).size !== state.extractions.length ||
     new Set(state.materialRefs.map(ref => ref.materialId)).size !== state.materialRefs.length ||
     state.materialRefs.some(ref => !ids.includes(ref.materialId) || new Set(ref.ids).size !== ref.ids.length) ||
