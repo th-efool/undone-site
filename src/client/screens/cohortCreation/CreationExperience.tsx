@@ -7,6 +7,7 @@ import { RecommendationResults } from './components/RecommendationResults';
 import { StartingPoint } from './components/StartingPoint';
 import { TextMaterial } from './components/TextMaterial';
 import { CreationConnections } from './components/CreationConnections';
+import { DiscoveryMaterials } from './components/DiscoveryMaterials';
 import styles from './CreationExperience.module.css';
 
 export function CreationExperience({ draftId, initialQuery = '', resume = false }: { draftId: string; initialQuery?: string; resume?: boolean }) {
@@ -38,7 +39,11 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
           <TextMaterial snapshot={snapshot} uploading={creation.uploading} pending={creation.materialPending}
             onUpload={creation.uploadText} onCancelUpload={creation.cancelUpload} onCancel={creation.cancel} onRetry={creation.retryMaterial}
             onRemove={creation.removeMaterial} onWeb={creation.acquireWeb} onSelectUnits={creation.selectYoutubeUnits} onObserve={creation.observeYoutube} onGithub={creation.acquireGithub} onNotion={creation.acquireNotion} /></> :
-            snapshot.startingPoint && <p>Material discovery for this starting point is not available yet.</p>}
+            snapshot.startingPoint && <><DiscoveryMaterials snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
+              onFind={creation.discoverMaterial} onAcquire={creation.acquireDiscovered} onGithub={creation.acquireGithub} onCancel={creation.cancel} />
+              {!!snapshot.materials.length && <TextMaterial snapshot={snapshot} uploading={false} pending={creation.materialPending} selectionOnly
+                onUpload={creation.uploadText} onCancelUpload={creation.cancelUpload} onCancel={creation.cancel} onRetry={creation.retryMaterial}
+                onRemove={creation.removeMaterial} onWeb={creation.acquireWeb} onSelectUnits={creation.selectYoutubeUnits} onObserve={creation.observeYoutube} onGithub={creation.acquireGithub} />}</>}
         </> : <>
           <form key={snapshot.query} onSubmit={event => {
             event.preventDefault();

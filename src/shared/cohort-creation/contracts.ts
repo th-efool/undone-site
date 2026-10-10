@@ -109,6 +109,8 @@ export const materialSourceSchema = z.strictObject({
   ]),
   selectedUnitIds: z.array(key).max(100),
   status: z.enum(['pending', 'acquiring', 'ready', 'needs_input', 'failed']),
+  discoveredFrom: z.strictObject({ requestId: z.uuid(), inputRevision: revision, candidateKey: z.string().regex(/^[a-f0-9]{64}$/),
+    searchArtifactId: z.uuid(), observationArtifactId: z.uuid() }).optional(),
 }).refine(source => source.input.kind !== 'url' || !source.input.repositoryScope || source.kind === 'github', 'Repository scope requires a GitHub source');
 export const sourceLocationSchema = z.strictObject({
   materialId: key, unitId: key, segmentId: key,

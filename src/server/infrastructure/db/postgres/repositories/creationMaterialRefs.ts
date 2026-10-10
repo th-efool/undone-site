@@ -4,6 +4,7 @@ import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 function refs(state: CreationSnapshot) {
   const checkpoint = state.discovery?.checkpoint;
   return [...state.materials.flatMap(source => source.input.kind === 'upload' ? [source.input.assetId] : []),
+    ...state.materials.flatMap(source => source.discoveredFrom ? [source.discoveredFrom.searchArtifactId, source.discoveredFrom.observationArtifactId] : []),
     ...state.extractions.map(extraction => extraction.artifactRef), ...state.materialRefs.flatMap(ref => ref.ids),
     ...(checkpoint ? [checkpoint.searchArtifact.id, ...(checkpoint.observationArtifact ? [checkpoint.observationArtifact.id] : []),
       ...(checkpoint.selectionArtifact ? [checkpoint.selectionArtifact.id] : [])] : [])];

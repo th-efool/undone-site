@@ -7,7 +7,7 @@ import { GithubMaterial } from './GithubMaterial';
 import { NotionMaterial } from './NotionMaterial';
 import type { GithubSelection } from '@/src/shared/cohort-creation/github';
 
-export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelUpload, onCancel, onRetry, onRemove, onWeb, onSelectUnits, onObserve, onGithub, onNotion }: {
+export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelUpload, onCancel, onRetry, onRemove, onWeb, onSelectUnits, onObserve, onGithub, onNotion, selectionOnly = false }: {
   snapshot: CreationSnapshot; uploading: boolean; pending: boolean;
   onUpload: (bytes: Blob, filename: string, materialId?: string) => Promise<boolean>; onCancelUpload: () => void;
   onCancel: () => void; onRetry: (materialId: string, assetId: string) => void;
@@ -17,6 +17,7 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
   onObserve?: (materialId: string) => Promise<boolean>;
   onGithub?: (selection: GithubSelection, materialId?: string) => Promise<boolean>;
   onNotion?: (url: string, materialId?: string) => Promise<boolean>;
+  selectionOnly?: boolean;
 }) {
   const [mode, setMode] = useState<'file' | 'paste' | 'url' | 'github' | 'notion'>('file');
   const [url, setUrl] = useState('');
@@ -38,7 +39,8 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
     setFile(files[0]); setError(null); setMode('file');
   };
   return <section aria-label="Learning material" className={styles.material}>
-    <h2>Add your learning material</h2>
+    <h2>{selectionOnly ? 'Selected learning material' : 'Add your learning material'}</h2>
+    {!selectionOnly && <>
     <p>UTF-8 text or Markdown, up to 1 MiB per source. Files and pasted text follow the same saved acquisition flow.</p>
     <p>PDFs: up to 25 MiB, 200 pages and 1 MiB extracted text. Text is anchored to pages; images and annotations are not interpreted. Scanned or blank pages require OCR text or a text alternative.</p>
     <p>Public HTTPS articles are captured on the server. Main-article text is selected from HTML; the full response remains retained. Login and JavaScript-only pages require upload or paste.</p>
@@ -91,6 +93,7 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
         </div>}
       <button type="submit" disabled={busy || (!!replacementId && !replacement) || (!replacement && snapshot.materials.length >= 20)}>Save and acquire material</button>
     </form>}
+    </>}
     {error && <p role="alert">{error}</p>}
     {uploading ? <p role="status">Uploading material… <button onClick={onCancelUpload}>Cancel upload</button></p> : pending ? <p role="status">Queuing material acquisition…</p> : null}
     {snapshot.status === 'running' && <p role="status">Acquiring retained material. You can return later. <button onClick={onCancel}>Cancel acquisition</button></p>}
@@ -125,7 +128,7 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
             else if (source.kind === 'notion') await onNotion?.(source.input.url, source.id);
             else await onWeb(source.input.url, source.id); } finally { setQueuing(false); }
         }}>Retry source {index + 1}</button>}
-      <button type="button" disabled={busy} onClick={() => { setReplacementId(source.id); setError(null); }}>Replace source {index + 1}</button>
+      {!selectionOnly && <button type="button" disabled={busy} onClick={() => { setReplacementId(source.id); setError(null); }}>Replace source {index + 1}</button>}
       <button type="button" disabled={busy} onClick={async () => {
         setRemoving(true);
         try { if (await onRemove(source.id) && replacementId === source.id) setReplacementId(null); }

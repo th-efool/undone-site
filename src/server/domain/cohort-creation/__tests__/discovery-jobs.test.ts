@@ -12,6 +12,7 @@ import { jobCompletion, validateDiscoveryCheckpoint } from '../job-completion';
 import type { ClaimedDiscoveryJob, CreationJobRepository } from '../durable-job';
 import { preserveDiscovery, pinDiscovery } from '@/src/server/infrastructure/db/postgres/repositories/creationDiscovery.repo';
 import type { Prisma } from '@/generated/prisma/client';
+import { releaseDetachedMaterialRefs } from '@/src/server/infrastructure/db/postgres/repositories/creationMaterialRefs';
 
 function fixture(startingPoint: 'find_material' | 'have_goal' = 'find_material') {
   const accepted = applyEvent(applyCommand(initialSnapshot(draftId), { type: 'request_recommendations', requestId: result.requestId,
@@ -31,6 +32,29 @@ function fixture(startingPoint: 'find_material' | 'have_goal' = 'find_material')
   return { own, running, command, job, checkpoint, completed, repo };
 }
 describe('owned durable discovery orchestration', () => {
+  it('acquires only an explicitly observed source and retains grounding provenance after changing the starting point', async () => {
+    const f = fixture(); const url = 'https://docs.example.org/lesson';
+    const completed = discoveryResultSchema.parse({ ...f.completed, checkpoint: { ...f.completed.checkpoint, total: 1, processed: 1 },
+      candidates: [{ key: 'b'.repeat(64), citationIds: ['source-one'], url, title: 'Actual observed title', kind: 'web', observedAt: new Date().toISOString(),
+        observation: { method: 'public_http', requestedUrl: url, redirects: [], titleOrigin: 'observed', contentRetained: false } }] });
+    const ready = applyEvent(f.running, jobCompletion(f.job, completed));
+    expect(() => applyCommand(ready, { type: 'acquire_web', materialId: randomUUID(), requestId: randomUUID(), url: 'https://invented.example.org/source' })).toThrow('Starting point');
+    const acquiring = applyCommand(ready, { type: 'acquire_web', materialId: randomUUID(), requestId: randomUUID(), url });
+    expect(acquiring.startingPoint).toBe('find_material'); expect(acquiring.materials[0].discoveredFrom).toMatchObject({
+      candidateKey: 'b'.repeat(64), requestId: f.command.requestId, searchArtifactId: f.checkpoint.searchArtifact.id,
+      observationArtifactId: completed.checkpoint.observationArtifact!.id });
+    const canceled = applyCommand(acquiring, { type: 'cancel_material_acquisition' });
+    const manual = applyCommand(canceled, { type: 'choose_starting_point', startingPoint: 'have_material' });
+    const updateMany = vi.fn(async () => ({ count: 1 }));
+    await releaseDetachedMaterialRefs({ creationStorageObject: { updateMany } } as unknown as Prisma.TransactionClient, 'owner', canceled, manual);
+    expect(updateMany.mock.calls[0]).toEqual([expect.objectContaining({ where: expect.objectContaining({ id: { in: [completed.checkpoint.selectionArtifact!.id] } }) })]);
+    expect(manual.materials[0].discoveredFrom).toEqual(acquiring.materials[0].discoveredFrom);
+    const returning = applyCommand(manual, { type: 'choose_starting_point', startingPoint: 'find_material' });
+    const retry = applyCommand(returning, { type: 'acquire_web', materialId: acquiring.materials[0].id, requestId: randomUUID(), url });
+    expect(retry.materials[0].discoveredFrom).toEqual(acquiring.materials[0].discoveredFrom);
+    expect(() => applyCommand(returning, { type: 'acquire_web', materialId: acquiring.materials[0].id,
+      requestId: randomUUID(), url: 'https://example.com/unconfirmed' })).toThrow('Starting point');
+  });
   it.each(['find_material', 'have_goal'] as const)('supports %s with owner/CAS and duplicate request protection', async point => {
     const f = fixture(point); let stored = f.own;
     const enqueue = vi.fn(async (_owner, _before, next) => { stored = next; return next; });

@@ -1,5 +1,6 @@
 'use client';
 import type { GithubSelection } from '@/src/shared/cohort-creation/github';
+import type { DiscoveryCandidate } from '@/src/shared/cohort-creation/discovery';
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { type CreationSnapshot, type StartingPoint, querySchema } from '@/src/shared/cohort-creation/contracts';
@@ -127,6 +128,12 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     }
   };
   return { ...view, uploading, materialPending, uploadText, cancelUpload: () => uploadController.current?.abort(),
+    discoverMaterial: () => edit({ type: 'discover_material', requestId: crypto.randomUUID() }),
+    acquireDiscovered: (candidate: DiscoveryCandidate) => {
+      if (candidate.kind === 'github') return Promise.resolve(false); // GitHub requires explicit ref/path selection.
+      return edit({ type: candidate.kind === 'web' ? 'acquire_web' : 'inspect_youtube',
+        materialId: crypto.randomUUID(), requestId: crypto.randomUUID(), url: candidate.url });
+    },
     selectYoutubeUnits: (materialId: string, unitIds: string[]) => edit({ type: 'select_youtube_units', materialId, unitIds }),
     observeYoutube: (materialId: string) => edit({ type: 'observe_youtube', materialId, requestId: crypto.randomUUID() }),
     acquireGithub: (selection: GithubSelection, materialId?: string) => edit({ type: 'acquire_github', materialId: materialId ?? crypto.randomUUID(), requestId: crypto.randomUUID(), selection }),

@@ -92,7 +92,18 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
     case 'acquire_github':
     case 'acquire_notion':
     case 'acquire_web': {
-      if (state.stage !== 'starting_point' || state.startingPoint !== 'have_material' || state.status === 'running' || !state.result) throw new Error('Starting point is not available');
+      const url = command.type === 'acquire_github' ? command.selection.url : 'url' in command ? command.url : null;
+      const kind = command.type === 'acquire_github' ? 'github' : command.type === 'inspect_youtube'
+        ? new URL(command.url).pathname === '/playlist' ? 'youtube_playlist' : 'youtube_video' : command.type === 'acquire_web' ? 'web' : null;
+      const discovered = state.discovery?.result?.candidates.find(candidate => candidate.url === url && candidate.kind === kind);
+      const previous = state.materials.find(source => source.id === command.materialId);
+      const sameInput = previous && (url !== null
+        ? previous.input.kind === 'url' && previous.input.url === url && (
+          command.type === 'acquire_github' ? previous.kind === 'github' && JSON.stringify(previous.input.repositoryScope) === JSON.stringify(githubRepositoryScope(command.selection))
+          : command.type === 'acquire_notion' ? previous.kind === 'notion' : previous.kind === kind)
+        : previous.input.kind === 'upload' && 'assetId' in command && previous.input.assetId === command.assetId &&
+          previous.kind === (command.type === 'acquire_pdf' ? 'pdf' : 'markdown'));
+      if (state.stage !== 'starting_point' || !state.startingPoint || (state.startingPoint !== 'have_material' && !discovered && !sameInput) || state.status === 'running' || !state.result) throw new Error('Starting point is not available');
       if (command.type === 'acquire_github' && state.materials.filter(source => source.id !== command.materialId).reduce((sum, source) => sum + source.selectedUnitIds.length, 0) >= 100) throw new Error('The draft already has 100 selected units. Remove a source before adding GitHub files.');
       if (command.type === 'acquire_notion' && state.materials.filter(source => source.id !== command.materialId).reduce((sum, source) => sum + source.selectedUnitIds.length, 0) >= 100) throw new Error('The draft already has 100 selected units. Remove a source before adding a Notion page.');
       const material = { id: command.materialId, ...(command.type === 'acquire_github'
@@ -104,6 +115,10 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
         : command.type !== 'acquire_web'
         ? { kind: command.type === 'acquire_pdf' ? 'pdf' as const : 'markdown' as const, input: { kind: 'upload' as const, assetId: command.assetId } }
         : { kind: 'web' as const, input: { kind: 'url' as const, url: command.url } }),
+        ...(discovered && state.discovery?.checkpoint?.observationArtifact ? { discoveredFrom: {
+          requestId: state.discovery.requestId, inputRevision: state.discovery.inputRevision, candidateKey: discovered.key,
+          searchArtifactId: state.discovery.checkpoint.searchArtifact.id, observationArtifactId: state.discovery.checkpoint.observationArtifact.id } }
+          : sameInput && previous?.discoveredFrom ? { discoveredFrom: previous.discoveredFrom } : {}),
         selectedUnitIds: [], status: 'acquiring' as const };
       return creationSnapshotSchema.parse({ ...changed, inputRevision: state.inputRevision + 1,
         status: 'running', activeRequestId: command.requestId, lastMaterialRequestId: command.requestId,
@@ -113,7 +128,7 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
         extractions: state.extractions.filter(extraction => extraction.materialId !== material.id) });
     }
     case 'remove_material': {
-      if (state.stage !== 'starting_point' || state.startingPoint !== 'have_material' || state.status === 'running' ||
+      if (state.stage !== 'starting_point' || !state.startingPoint || state.status === 'running' ||
         !state.materials.some(source => source.id === command.materialId)) throw new Error('Starting point is not available');
       return creationSnapshotSchema.parse({ ...changed, inputRevision: state.inputRevision + 1,
         status: 'succeeded', lastMaterialRequestId: null,
@@ -125,7 +140,7 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
     case 'observe_youtube': {
       const source = state.materials.find(source => source.id === command.materialId);
       const preview = state.youtubeSources.find(source => source.materialId === command.materialId);
-      if (state.stage !== 'starting_point' || state.startingPoint !== 'have_material' || state.status === 'running' || !state.result ||
+      if (state.stage !== 'starting_point' || !state.startingPoint || state.status === 'running' || !state.result ||
         !source || !preview || !source.selectedUnitIds.length || source.status === 'ready') throw new Error('Save a video selection before observing it');
       return creationSnapshotSchema.parse({ ...changed, inputRevision: state.inputRevision + 1, status: 'running',
         activeRequestId: command.requestId, lastMaterialRequestId: command.requestId,
@@ -133,7 +148,7 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
     }
     case 'select_youtube_units': {
       const preview = state.youtubeSources.find(source => source.materialId === command.materialId);
-      if (state.stage !== 'starting_point' || state.startingPoint !== 'have_material' || state.status === 'running' || !preview ||
+      if (state.stage !== 'starting_point' || !state.startingPoint || state.status === 'running' || !preview ||
         command.unitIds.some(id => !preview.units.some(unit => unit.unitId === id))) throw new Error('Starting point is not available');
       return creationSnapshotSchema.parse({ ...changed, inputRevision: state.inputRevision + 1, status: 'succeeded', lastMaterialRequestId: null,
         materials: state.materials.map(source => source.id === command.materialId ? { ...source, status: 'needs_input', selectedUnitIds: command.unitIds } : source),
