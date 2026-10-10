@@ -11,6 +11,17 @@ function mount() {
   render(<TextMaterial {...props} />); return props;
 }
 describe('one text material step', () => {
+  it('shows retained YouTube unit metadata without claiming extracted learning content', () => {
+    const snapshot = initialSnapshot(draftId); const artifact = { id: draftId, kind: 'artifact' as const, byteLength: 500, checksum: 'a'.repeat(64) };
+    render(<TextMaterial snapshot={{ ...snapshot,
+      materials: [{ id: draftId, kind: 'youtube_video', input: { kind: 'url', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }, selectedUnitIds: [], status: 'needs_input' }],
+      materialRefs: [{ materialId: draftId, ids: [draftId] }],
+      youtubeSources: [{ materialId: draftId, sourceRevision: 0, metadataArtifact: artifact, metadataFingerprint: 'b'.repeat(64), units: [{ unitId: 'dQw4w9WgXcQ', title: 'Real lighting lesson', durationSeconds: 120 }] }],
+    }} uploading={false} pending={false} onUpload={vi.fn()} onCancelUpload={vi.fn()} onCancel={vi.fn()} onRetry={vi.fn()} onRemove={vi.fn()} onWeb={vi.fn()} />);
+    expect(screen.getByLabelText('Source 1 videos').textContent).toContain('Real lighting lesson');
+    expect(screen.getByText(/Metadata retained; video observation pending/)).toBeTruthy();
+    expect(screen.queryByText(/Retained text ready/)).toBeNull(); expect(screen.queryByText(/extracted segments/)).toBeNull();
+  });
   it('accepts a dropped PDF using the PDF upload media type', async () => {
     const props = mount(); const drop = screen.getByLabelText('Choose or drop a PDF/text/Markdown file').parentElement!;
     fireEvent.drop(drop, { dataTransfer: { files: [new File(['%PDF-1.4'], 'lesson.pdf')] } });

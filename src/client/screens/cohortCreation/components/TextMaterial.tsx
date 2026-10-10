@@ -34,6 +34,7 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
     <p>UTF-8 text or Markdown, up to 1 MiB per source. Files and pasted text follow the same saved acquisition flow.</p>
     <p>PDFs: up to 25 MiB, 200 pages and 1 MiB extracted text. Text is anchored to pages; images and annotations are not interpreted. Scanned or blank pages require OCR text or a text alternative.</p>
     <p>Public HTTPS articles are captured on the server. Main-article text is selected from HTML; the full response remains retained. Login and JavaScript-only pages require upload or paste.</p>
+    <p>Public YouTube links retain video/playlist metadata for source selection. Metadata alone is not extracted learning content.</p>
     {replacementId && <p role={replacement ? 'status' : 'alert'}>{replacement ? `Replacing source ${snapshot.materials.indexOf(replacement) + 1}. The current source stays selected until the replacement is saved.` : 'This source is no longer selected. Cancel replacement before adding another source.'}
       <button type="button" disabled={busy} onClick={() => setReplacementId(null)}>Cancel replacement</button></p>}
     <div className={styles.cards}>
@@ -53,7 +54,7 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
       if (!bytes) { setError('Choose a file first.'); return; }
       if (await onUpload(bytes, mode === 'paste' ? 'pasted-text.txt' : file!.name, replacementId ?? undefined)) { setText(''); setFile(null); setError(null); setReplacementId(null); if (picker.current) picker.current.value = ''; }
     }}>
-      {mode === 'url' ? <><label htmlFor="material-url">Public article URL</label>
+      {mode === 'url' ? <><label htmlFor="material-url">Public article or YouTube URL</label>
         <input id="material-url" type="url" required maxLength={2048} pattern="https://.*" disabled={busy} value={url} onChange={event => setUrl(event.target.value)} /></> : mode === 'paste' ? <><label htmlFor="material-text">Learning text</label>
         <textarea id="material-text" disabled={busy} value={text} onChange={event => setText(event.target.value)} rows={8} required /></> :
         <div className={styles.drop} onDragOver={event => event.preventDefault()} onDrop={event => {
@@ -71,10 +72,13 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
     {queuing && <p role="status">Saving source selection…</p>}
     {snapshot.error && <p role="alert">{snapshot.error.message}</p>}
     <ul>{snapshot.materials.map((source, index) => <li key={source.id}>
-      Source {index + 1}: {source.status === 'ready' ? 'Retained text ready' : source.status === 'acquiring' ? 'Acquiring' : source.status === 'failed' ? 'Acquisition failed' : 'Selected; acquisition pending'}
+      Source {index + 1}: {source.status === 'ready' ? 'Retained text ready' : source.status === 'acquiring' ? 'Acquiring' : source.status === 'failed' ? 'Acquisition failed' : source.status === 'needs_input' ? 'Metadata retained; video observation pending' : 'Selected; acquisition pending'}
       {source.status === 'ready' && <span> · {snapshot.extractions.find(extraction => extraction.materialId === source.id)?.segmentCount ?? 0} extracted segments</span>}
       {source.input.kind === 'url' && <span> · {source.input.url}</span>}
       {snapshot.extractions.find(extraction => extraction.materialId === source.id)?.selectionScope === 'main_article' && <span> · Main article selected; full page retained.</span>}
+      {snapshot.youtubeSources.find(preview => preview.materialId === source.id) && <ul aria-label={`Source ${index + 1} videos`}>
+        {snapshot.youtubeSources.find(preview => preview.materialId === source.id)!.units.map(unit => <li key={unit.unitId}>{unit.title} · {unit.durationSeconds} seconds</li>)}
+      </ul>}
       {(source.status === 'failed' || source.status === 'pending') && source.input.kind === 'upload' &&
         <button disabled={busy} onClick={() => { if (source.input.kind === 'upload') onRetry(source.id, source.input.assetId); }}>Retry source {index + 1}</button>}
       {(source.status === 'failed' || source.status === 'pending') && source.input.kind === 'url' &&

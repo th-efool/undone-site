@@ -127,7 +127,11 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
   };
   return { ...view, uploading, materialPending, uploadText, cancelUpload: () => uploadController.current?.abort(),
     removeMaterial: (materialId: string) => edit({ type: 'remove_material', materialId }),
-    acquireWeb: (url: string, materialId?: string) => edit({ type: 'acquire_web', materialId: materialId ?? crypto.randomUUID(), url, requestId: crypto.randomUUID() }),
+    acquireWeb: (url: string, materialId?: string) => {
+      let youtube = false;
+      try { youtube = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be'].includes(new URL(url).hostname); } catch { /* Server validation supplies the canonical error. */ }
+      return edit({ type: youtube ? 'inspect_youtube' : 'acquire_web', materialId: materialId ?? crypto.randomUUID(), url, requestId: crypto.randomUUID() });
+    },
     retryMaterial: (materialId: string, assetId: string) => edit({ type: current.current.materials.find(source => source.id === materialId)?.kind === 'pdf' ? 'acquire_pdf' : 'acquire_text', materialId, assetId, requestId: crypto.randomUUID() }),
     runQuery, cancel, createOwn: () => edit({ type: 'create_own' }),
     chooseStartingPoint: (startingPoint: StartingPoint) => edit({ type: 'choose_starting_point', startingPoint }),
