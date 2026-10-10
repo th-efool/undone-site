@@ -1,3 +1,5 @@
+import { auth } from '@/src/server/infrastructure/auth/auth.config';
+import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
 import { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
@@ -5,8 +7,8 @@ import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 export async function generateMetadata({ params }: { params: Promise<{ cohortId: string }> }): Promise<Metadata> {
   const { cohortId } = await params;
   
-  const dbCohort = await prisma.cohort.findUnique({
-    where: { id: cohortId },
+  const dbCohort = await prisma.cohort.findFirst({
+    where: { id: cohortId, ...accessibleCohortWhere((await auth())?.user?.id ?? null) },
     select: { title: true, description: true, coverImage: true },
   });
 

@@ -1,3 +1,4 @@
+import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
 import { Metadata } from 'next';
 import React from 'react';
 import dynamic from 'next/dynamic';
@@ -11,8 +12,8 @@ const Archives = dynamic(() => import('@/src/client/screens/cohort').then((mod) 
 export async function generateMetadata({ params }: { params: Promise<{ cohortId: string }> }): Promise<Metadata> {
   const { cohortId } = await params;
   
-  const dbCohort = await prisma.cohort.findUnique({
-    where: { id: cohortId },
+  const dbCohort = await prisma.cohort.findFirst({
+    where: { id: cohortId, ...accessibleCohortWhere((await auth())?.user?.id ?? null) },
     select: { title: true, description: true, coverImage: true },
   });
 
@@ -41,8 +42,8 @@ export async function generateMetadata({ params }: { params: Promise<{ cohortId:
 export default async function ArchivesPage({ params }: { params: Promise<{ cohortId: string }> }) {
   const { cohortId } = await params;
   
-  const dbCohort = await prisma.cohort.findUnique({
-    where: { id: cohortId },
+  const dbCohort = await prisma.cohort.findFirst({
+    where: { id: cohortId, ...accessibleCohortWhere((await auth())?.user?.id ?? null) },
     include: {
       creator: true,
       seasons: {

@@ -1,3 +1,5 @@
+import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
+import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { NextResponse } from 'next/server';
 import { auth } from '@/src/server/infrastructure/auth/auth.config';
 import { ChunkProgressService } from '@/src/server/domain/progress/chunkProgress.service';
@@ -29,6 +31,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required chunk identifiers' }, { status: 400 });
     }
 
+    const lesson = await prisma.lesson.findFirst({ where: { id: cleanLessonId,
+      season: { cohortId: cleanCohortId, cohort: accessibleCohortWhere(userId) } }, select: { chunks: true } });
+    const chunkExists = lesson && Array.isArray(lesson.chunks) && lesson.chunks.some(chunk =>
+      chunk !== null && typeof chunk === 'object' && !Array.isArray(chunk) && chunk.id === cleanChunkId);
+    if (!chunkExists) return NextResponse.json({ error: 'Chunk not found' }, { status: 404 });
     const progress = await ChunkProgressService.recordProgress({
       userId,
       chunkId: cleanChunkId,
@@ -40,9 +47,8 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json({ success: true, progress });
-  } catch (error: any) {
+  } catch (error) {
     console.error('[API Chunk Progress Error]:', error);
-    const errorMessage = error instanceof Error ? error.message : (typeof error?.message === 'string' ? error.message : 'Internal Server Error');
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

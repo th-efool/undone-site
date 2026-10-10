@@ -1,3 +1,6 @@
+import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
+import { auth } from '@/src/server/infrastructure/auth/auth.config';
+import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { NextResponse } from 'next/server';
 import { communityRepo } from '@/src/server/infrastructure/db/postgres/repositories/community.repo';
 
@@ -7,6 +10,9 @@ export async function GET(
 ) {
   try {
     const { cohortId } = await params;
+    const session = await auth();
+    const cohort = await prisma.cohort.findFirst({ where: { id: cohortId, ...accessibleCohortWhere(session?.user?.id ?? null) }, select: { id: true } });
+    if (!cohort) return NextResponse.json({ error: 'Community not found' }, { status: 404 });
     const community = await communityRepo.getCommunityChannels(cohortId);
     
     if (!community) {

@@ -1,3 +1,4 @@
+import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
 import { NextResponse } from 'next/server';
 import { auth } from '@/src/server/infrastructure/auth/auth.config';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
@@ -21,10 +22,14 @@ export async function POST(
       return NextResponse.json({ error: 'Cohort ID is required' }, { status: 400 });
     }
 
-    await prisma.cohortMember.create({
-      data: {
+    const cohortId = id.trim();
+    const cohort = await prisma.cohort.findFirst({ where: { id: cohortId, ...accessibleCohortWhere(userId) }, select: { id: true } });
+    if (!cohort) return NextResponse.json({ error: 'Cohort not found' }, { status: 404 });
+    // Repeating join is safe, including a lost successful response.
+    await prisma.cohortMember.upsert({
+      where: { cohortId_userId: { cohortId, userId } }, update: {}, create: {
         userId,
-        cohortId: id.trim(),
+        cohortId,
       },
     });
 

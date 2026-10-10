@@ -1,3 +1,4 @@
+import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
 import { Metadata } from 'next';
 import dynamic from 'next/dynamic';
 import { auth } from '@/src/server/infrastructure/auth/auth.config';
@@ -36,7 +37,7 @@ export default async function home() {
 
   try {
     enrolledMembers = await prisma.cohortMember.findMany({
-      where: { userId },
+      where: { userId, cohort: accessibleCohortWhere(userId) },
       include: { 
         cohort: { 
           include: { 

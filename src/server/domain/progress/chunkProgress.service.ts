@@ -97,9 +97,9 @@ export class ChunkProgressService {
     return updatedProgress;
   }
 
-  static async getUserProgressMap(userId: string) {
+  static async getUserProgressMap(userId: string, chunkIds?: string[]) {
     await connectToMongoDB();
-    const list = await UserChunkProgress.find({ userId });
+    const list = await UserChunkProgress.find({ userId, ...(chunkIds ? { chunkId: { $in: chunkIds } } : {}) });
     return new Map(list.map((p) => [p.chunkId, p]));
   }
 }

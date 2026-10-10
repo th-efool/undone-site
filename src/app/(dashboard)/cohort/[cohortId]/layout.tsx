@@ -1,3 +1,4 @@
+import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
 import { Cohort } from '@/src/client/screens/cohort';
 
 import { auth } from '@/src/server/infrastructure/auth/auth.config';
@@ -34,8 +35,8 @@ export default async function CohortRouteLayout({
     }
   }
 
-  const dbCohort = await prisma.cohort.findUnique({
-    where: { id: cohortId },
+  const dbCohort = await prisma.cohort.findFirst({
+    where: { id: cohortId, ...accessibleCohortWhere((await auth())?.user?.id ?? null) },
     include: {
       creator: true,
       seasons: {
