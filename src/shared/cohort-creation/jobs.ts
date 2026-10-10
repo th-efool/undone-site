@@ -10,3 +10,8 @@ export const webAcquisitionRequestSchema = z.strictObject({
   source: materialSourceSchema.refine(source => source.kind === 'web' && source.input.kind === 'url', 'A web source is required'),
 });
 export type WebAcquisitionRequest = z.infer<typeof webAcquisitionRequestSchema>;
+export const pdfAcquisitionRequestSchema = z.strictObject({
+  requestId: z.uuid(), inputRevision: z.number().int().nonnegative(),
+  source: materialSourceSchema.refine(source => source.kind === 'pdf' && source.input.kind === 'upload', 'An uploaded PDF source is required'),
+});
+export type PdfAcquisitionRequest = z.infer<typeof pdfAcquisitionRequestSchema>;

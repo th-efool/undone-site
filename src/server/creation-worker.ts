@@ -10,6 +10,7 @@ import { runCreationWorker } from './domain/cohort-creation/durable-job.runner';
 import { TextAcquisitionService } from './domain/cohort-creation/materials/text-acquisition.service';
 import { WebAcquisitionService } from './domain/cohort-creation/materials/web-acquisition.service';
 import { WebRetentionService } from './domain/cohort-creation/materials/web-retention.service';
+import { PdfAcquisitionService } from './domain/cohort-creation/materials/pdf-acquisition.service';
 
 async function main() {
   if (process.argv.includes('--check')) {
@@ -58,6 +59,10 @@ async function main() {
         const storage = await import('./infrastructure/storage/creation.runtime');
         return new WebAcquisitionService(new WebRetentionService(storage.materialBlobStore, storage.creationArtifactRepository),
           storage.materialBlobStore, storage.creationArtifactRepository).extract(...args);
+      } }),
+      () => ({ acquire: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        return new PdfAcquisitionService(storage.materialBlobStore, storage.creationArtifactRepository).acquire(...args);
       } }));
   } finally {
     clearInterval(retentionTimer);

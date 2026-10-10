@@ -6,7 +6,7 @@ import { PdfAcquisitionService } from '../materials/pdf-acquisition.service';
 import { pdfExtractionArtifactSchema } from '@/src/shared/cohort-creation/pdf';
 
 /** Minimal real PDF with accurate byte offsets. No parser mocks or external fixtures. */
-function pdf(pages = ['Rendering light transport', 'Surface reflectance and visibility']) {
+function pdf(pages = ['Rendering light transport', 'Surface reflectance and visibility'], encrypted = false) {
   const objects = ['<< /Type /Catalog /Pages 2 0 R >>',
     `<< /Type /Pages /Kids [${pages.map((_, index) => `${4 + index * 2} 0 R`).join(' ')}] /Count ${pages.length} >>`,
     '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>'];
@@ -15,10 +15,11 @@ function pdf(pages = ['Rendering light transport', 'Surface reflectance and visi
     objects.push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents ${5 + index * 2} 0 R >>`,
       `<< /Length ${Buffer.byteLength(stream)} >>\nstream\n${stream}\nendstream`);
   }
+  if (encrypted) objects.push(`<< /Filter /Standard /V 1 /R 2 /O <${'00'.repeat(32)}> /U <${'00'.repeat(32)}> /P -4 >>`);
   let document = '%PDF-1.4\n'; const offsets = [0];
   for (const [index, object] of objects.entries()) { offsets.push(Buffer.byteLength(document)); document += `${index + 1} 0 obj\n${object}\nendobj\n`; }
   const xref = Buffer.byteLength(document);
-  document += `xref\n0 ${offsets.length}\n0000000000 65535 f \n${offsets.slice(1).map(offset => `${String(offset).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size ${offsets.length} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  document += `xref\n0 ${offsets.length}\n0000000000 65535 f \n${offsets.slice(1).map(offset => `${String(offset).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size ${offsets.length} /Root 1 0 R ${encrypted ? `/Encrypt ${objects.length} 0 R /ID [<${'00'.repeat(16)}> <${'00'.repeat(16)}>]` : ''} >>\nstartxref\n${xref}\n%%EOF`;
   return Buffer.from(document);
 }
 function ref(bytes: Buffer) { return { id: randomUUID(), kind: 'upload' as const, byteLength: bytes.length, checksum: createHash('sha256').update(bytes).digest('hex') }; }
@@ -38,6 +39,10 @@ describe('retained PDF extraction', () => {
   it('rejects blank/image-only pages without silently skipping them', async () => {
     const bytes = pdf(['Accessible first page', '']);
     await expect(extractRetainedPdf(bytes, ref(bytes), randomUUID())).rejects.toThrow('Page 2 has no extractable text');
+  });
+  it('asks for an unlocked alternative when PDF encryption requires a password', async () => {
+    const bytes = pdf(['Protected lesson'], true);
+    await expect(extractRetainedPdf(bytes, ref(bytes), randomUUID())).rejects.toThrow('Password-protected');
   });
   it('rejects page and extracted text limits without truncation', async () => {
     const pages = pdf(Array.from({ length: 201 }, () => 'Lesson'));

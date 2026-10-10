@@ -63,12 +63,18 @@ describe('owned streaming text upload', () => {
     expect((await handle(request(), draftId)).status).toBe(409); expect(putStream).not.toHaveBeenCalled();
   });
   it('rejects unsupported and declared oversized sources before storage', async () => {
-    expect((await handle(request({ 'Content-Type': 'application/pdf' }), draftId)).status).toBe(415);
+    expect((await handle(request({ 'Content-Type': 'application/zip' }), draftId)).status).toBe(415);
     expect((await handle(request({ 'Content-Length': String(MATERIAL_LIMITS.extractedTextBytes + 1) }), draftId)).status).toBe(413);
     expect(putStream).not.toHaveBeenCalled();
   });
   it('enforces actual streaming bytes even when a caller understates the length', async () => {
     expect((await handle(request({ 'Content-Length': '2' }), draftId)).status).toBe(413);
+  });
+  it('accepts PDF bytes with a separate 25 MiB ceiling and no draft selection yet', async () => {
+    expect((await handle(request({ 'Content-Type': 'application/pdf' }), draftId)).status).toBe(201);
+    expect(putStream.mock.calls[0][2]).toMatchObject({ mediaType: 'application/pdf', maxBytes: 25 * 1024 * 1024 });
+    expect((await handle(request({ 'Content-Type': 'application/pdf', 'Content-Length': String(25 * 1024 * 1024 + 1) }), draftId)).status).toBe(413);
+    expect(putStream).toHaveBeenCalledOnce(); expect(snapshot.materials).toEqual([]);
   });
   it('does not acknowledge an interrupted request', async () => {
     const controller = new AbortController(); controller.abort();

@@ -14,6 +14,7 @@ export const creationCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('back_to_recommendations') }),
   z.strictObject({ type: z.literal('cancel_recommendations') }),
   z.strictObject({ type: z.literal('acquire_text'), materialId: z.uuid(), assetId: z.uuid(), requestId: z.uuid() }),
+  z.strictObject({ type: z.literal('acquire_pdf'), materialId: z.uuid(), assetId: z.uuid(), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('cancel_material_acquisition') }),
   z.strictObject({ type: z.literal('remove_material'), materialId: z.uuid() }),
   z.strictObject({ type: z.literal('acquire_web'), materialId: z.uuid(), url: z.url().max(2048), requestId: z.uuid() }),
@@ -68,10 +69,11 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
       if (state.stage !== 'starting_point' || state.status === 'running' || !state.result) throw new Error('Starting point is not available');
       return creationSnapshotSchema.parse({ ...changed, startingPoint: command.startingPoint, status: 'succeeded' });
     case 'acquire_text':
+    case 'acquire_pdf':
     case 'acquire_web': {
       if (state.stage !== 'starting_point' || state.startingPoint !== 'have_material' || state.status === 'running' || !state.result) throw new Error('Starting point is not available');
-      const material = { id: command.materialId, ...(command.type === 'acquire_text'
-        ? { kind: 'markdown' as const, input: { kind: 'upload' as const, assetId: command.assetId } }
+      const material = { id: command.materialId, ...(command.type !== 'acquire_web'
+        ? { kind: command.type === 'acquire_pdf' ? 'pdf' as const : 'markdown' as const, input: { kind: 'upload' as const, assetId: command.assetId } }
         : { kind: 'web' as const, input: { kind: 'url' as const, url: command.url } }),
         selectedUnitIds: [], status: 'acquiring' as const };
       return creationSnapshotSchema.parse({ ...changed, inputRevision: state.inputRevision + 1,

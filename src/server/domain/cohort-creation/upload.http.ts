@@ -4,6 +4,7 @@ import { DraftNotFound } from './draft.service';
 import type { MaterialBlobStore } from '@/src/server/infrastructure/storage/creation.store';
 import { CreationStorageError } from '@/src/server/infrastructure/storage/creation.contracts';
 import { MATERIAL_LIMITS, retainedObjectRefSchema } from '@/src/shared/cohort-creation/materials';
+import { PDF_LIMITS } from '@/src/shared/cohort-creation/pdf';
 
 export function textUploadHandler(drafts: Pick<DraftService, 'load'>, blobs: Pick<MaterialBlobStore, 'putStream'>,
   getOwner: () => Promise<string | null>) {
@@ -25,12 +26,13 @@ export function textUploadHandler(drafts: Pick<DraftService, 'load'>, blobs: Pic
       }
       if (!replacementId && snapshot.materials.length >= MATERIAL_LIMITS.sources) return Response.json({ message: 'Twenty source limit reached.' }, { status: 413 });
       const mediaType = request.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase();
-      if (!mediaType || !['text/plain', 'text/markdown', 'text/x-markdown'].includes(mediaType)) {
-        return Response.json({ message: 'Upload UTF-8 text or Markdown.' }, { status: 415 });
+      if (!mediaType || !['text/plain', 'text/markdown', 'text/x-markdown', 'application/pdf'].includes(mediaType)) {
+        return Response.json({ message: 'Upload a PDF, UTF-8 text or Markdown.' }, { status: 415 });
       }
+      const maxBytes = mediaType === 'application/pdf' ? PDF_LIMITS.bytes : MATERIAL_LIMITS.extractedTextBytes;
       const length = request.headers.get('Content-Length');
       if (length && (!/^\d+$/.test(length) || Number(length) < 1)) return Response.json({ message: 'Invalid content length.' }, { status: 400 });
-      if (length && Number(length) > MATERIAL_LIMITS.extractedTextBytes) return Response.json({ message: 'Text exceeds 1 MiB. Select a smaller source; nothing was truncated.' }, { status: 413 });
+      if (length && Number(length) > maxBytes) return Response.json({ message: `${mediaType === 'application/pdf' ? 'PDF exceeds 25 MiB' : 'Text exceeds 1 MiB'}. Select a smaller source; nothing was truncated.` }, { status: 413 });
       if (!request.body) return Response.json({ message: 'Upload content is required.' }, { status: 400 });
       const encodedName = request.headers.get('X-Creation-Filename');
       const filename = encodedName ? decodeURIComponent(encodedName) : undefined;
@@ -53,7 +55,7 @@ export function textUploadHandler(drafts: Pick<DraftService, 'load'>, blobs: Pic
       }
       try {
         const ref = await blobs.putStream({ ownerId, draftId }, content(), { mediaType, filename,
-          maxBytes: length ? Number(length) : MATERIAL_LIMITS.extractedTextBytes, signal });
+          maxBytes: length ? Number(length) : maxBytes, signal });
         signal.throwIfAborted();
         return Response.json(retainedObjectRefSchema.parse(ref), { status: 201, headers: { 'Cache-Control': 'no-store' } });
       } finally {

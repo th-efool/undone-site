@@ -6,6 +6,7 @@ import { textAcquisitionFingerprint, textExtractionVersion, TEXT_PARSER_VERSION 
 import { retainedWebCheckpointSchema, webMaterialManifestSchema, type RetainedWebCheckpoint } from '@/src/shared/cohort-creation/web';
 import { WEB_PARSER_VERSION, webExtractionFingerprint, webExtractionVersion, webReceiptFingerprint } from './materials/web-identity';
 import type { ClaimedWebJob } from './durable-job';
+import { PDF_PARSER_VERSION, pdfAcquisitionFingerprint, pdfExtractionVersion } from './materials/pdf-identity';
 
 export function validateWebRetention(job: ClaimedWebJob, value: unknown): RetainedWebCheckpoint {
   const retained = retainedWebCheckpointSchema.parse(value);
@@ -32,12 +33,13 @@ export function jobCompletion(job: ClaimedCreationJob, value: CreationCheckpoint
     return { type: 'material_received', requestId: job.requestId, manifest };
   }
   const manifest = materialManifestSchema.parse(value);
+  const pdf = job.kind === 'acquire_pdf';
   if (manifest.inputRevision !== job.inputRevision || manifest.source.id !== job.input.source.id ||
-    manifest.source.kind !== 'markdown' || manifest.source.input.kind !== 'upload' || job.input.source.input.kind !== 'upload' ||
+    manifest.source.kind !== (pdf ? 'pdf' : 'markdown') || manifest.source.input.kind !== 'upload' || job.input.source.input.kind !== 'upload' ||
     manifest.source.input.assetId !== job.input.source.input.assetId || manifest.retainedSource.id !== manifest.source.input.assetId ||
     manifest.retainedSource.kind !== 'upload' || !manifest.extraction.complete || manifest.extraction.extractionKind !== 'text' ||
     manifest.source.selectedUnitIds.length !== 1 || manifest.source.selectedUnitIds[0] !== manifest.source.id ||
-    manifest.parserVersion !== TEXT_PARSER_VERSION || manifest.extraction.version !== textExtractionVersion(manifest.retainedSource.checksum) ||
-    manifest.inputFingerprint !== textAcquisitionFingerprint(manifest.source.id, job.inputRevision, manifest.retainedSource)) throw new Error('Invalid checkpoint input');
+    manifest.parserVersion !== (pdf ? PDF_PARSER_VERSION : TEXT_PARSER_VERSION) || manifest.extraction.version !== (pdf ? pdfExtractionVersion : textExtractionVersion)(manifest.retainedSource.checksum) ||
+    manifest.inputFingerprint !== (pdf ? pdfAcquisitionFingerprint : textAcquisitionFingerprint)(manifest.source.id, job.inputRevision, manifest.retainedSource)) throw new Error('Invalid checkpoint input');
   return { type: 'material_received', requestId: job.requestId, manifest };
 }

@@ -8,7 +8,7 @@ import { LeaseLost, type ClaimedCreationJob, type CreationJobRepository } from '
 import { hourlyBudget, reserveBudget } from './creationBudget.repo';
 import { creationFailure } from '@/src/server/domain/cohort-creation/errors';
 import { jobSummary, writeDraftEvent } from './creationEvent.repo';
-import { textAcquisitionRequestSchema, webAcquisitionRequestSchema } from '@/src/shared/cohort-creation/jobs';
+import { textAcquisitionRequestSchema, webAcquisitionRequestSchema, pdfAcquisitionRequestSchema } from '@/src/shared/cohort-creation/jobs';
 import { materialManifestSchema } from '@/src/shared/cohort-creation/materials';
 import { jobCompletion, validateWebRetention } from '@/src/server/domain/cohort-creation/job-completion';
 import { releaseDetachedMaterialRefs } from './creationMaterialRefs';
@@ -32,6 +32,8 @@ function claimed(row: CreationJob): ClaimedCreationJob {
     inputFingerprint: row.inputFingerprint, leaseToken: row.leaseToken!, deadlineAt: row.deadlineAt! };
   if (row.kind === 'acquire_text') return { ...base, kind: 'acquire_text', input: textAcquisitionRequestSchema.parse(row.input),
     checkpoint: row.checkpoint ? materialManifestSchema.parse(row.checkpoint) : null };
+  if (row.kind === 'acquire_pdf') return { ...base, kind: 'acquire_pdf', input: pdfAcquisitionRequestSchema.parse(row.input),
+    checkpoint: row.checkpoint ? materialManifestSchema.parse(row.checkpoint) : null };
   if (row.kind === 'acquire_web') return { ...base, kind: 'acquire_web', input: webAcquisitionRequestSchema.parse(row.input),
     checkpoint: row.checkpoint ? retainedWebCheckpointSchema.or(webMaterialManifestSchema).parse(row.checkpoint) : null };
   return { ...base, kind: 'recommendations', input: recommendationRequestSchema.parse(row.input),
@@ -48,7 +50,7 @@ async function pinMaterial(tx: Prisma.TransactionClient, job: ClaimedCreationJob
   for (const ref of refs) {
     const updated = await tx.creationStorageObject.updateMany({ where: { id: ref.id, ownerId: job.ownerId, draftId: job.draftId,
       status: 'ready', kind: ref.kind, byteLength: ref.byteLength, checksum: ref.checksum,
-      ...(ref.kind === 'artifact' ? { artifactType: job.kind === 'acquire_web' ? 'web-extraction' : 'text-extraction', schemaVersion: 1, inputFingerprint: valid.inputFingerprint } : {}) },
+      ...(ref.kind === 'artifact' ? { artifactType: job.kind === 'acquire_web' ? 'web-extraction' : job.kind === 'acquire_pdf' ? 'pdf-extraction' : 'text-extraction', schemaVersion: 1, inputFingerprint: valid.inputFingerprint } : {}) },
       data: { referencedAt: new Date() } });
     if (updated.count !== 1) throw new Error('Checkpoint storage reference unavailable');
   }
@@ -69,23 +71,23 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
     return prisma.$transaction(async tx => {
       const current = await lockedDraft(tx, owner, previous.draftId);
       if (!current) return null;
-      const kind = next.stage === 'recommendations' ? 'recommendations' : next.materials.find(source => source.status === 'acquiring')?.kind === 'web' ? 'acquire_web' : 'acquire_text';
+      const source = next.materials.find(source => source.status === 'acquiring');
+      const kind = next.stage === 'recommendations' ? 'recommendations' : source?.kind === 'web' ? 'acquire_web' : source?.kind === 'pdf' ? 'acquire_pdf' : 'acquire_text';
       const input = kind === 'recommendations'
         ? recommendationRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, query: next.query })
-        : (kind === 'acquire_web' ? webAcquisitionRequestSchema : textAcquisitionRequestSchema).parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision,
-          source: next.materials.find(source => source.status === 'acquiring') });
+        : (kind === 'acquire_web' ? webAcquisitionRequestSchema : kind === 'acquire_pdf' ? pdfAcquisitionRequestSchema : textAcquisitionRequestSchema).parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, source });
       const fingerprint = createHash('sha256').update(JSON.stringify({ kind, schema: 1, input })).digest('hex');
       const existing = await tx.creationJob.findUnique({ where: { draftId_kind_inputFingerprint: {
         draftId: next.draftId, kind, inputFingerprint: fingerprint } } });
       // A lost HTTP response can replay exactly the same operation safely.
       if (existing && current.inputRevision === input.inputRevision) return current;
       if (current.revision !== previous.revision) return null;
-      if (kind === 'acquire_text' && 'source' in input) {
-        if (input.source.input.kind !== 'upload') throw creationFailure('INVALID_REQUEST', 'Select an owned text upload.');
+      if ((kind === 'acquire_text' || kind === 'acquire_pdf') && 'source' in input) {
+        if (input.source.input.kind !== 'upload') throw creationFailure('INVALID_REQUEST', 'Select an owned upload.');
         const pinned = await tx.creationStorageObject.updateMany({ where: { id: input.source.input.assetId, ownerId: owner,
-          draftId: next.draftId, kind: 'upload', status: 'ready', mediaType: { in: ['text/plain','text/markdown','text/x-markdown'] } },
+          draftId: next.draftId, kind: 'upload', status: 'ready', mediaType: { in: kind === 'acquire_pdf' ? ['application/pdf'] : ['text/plain','text/markdown','text/x-markdown'] } },
           data: { referencedAt: new Date() } });
-        if (pinned.count !== 1) throw creationFailure('INVALID_REQUEST', 'The text upload is unavailable.');
+        if (pinned.count !== 1) throw creationFailure('INVALID_REQUEST', 'The selected upload is unavailable.');
       }
       await releaseDetachedMaterialRefs(tx, owner, current, next);
       const budget = hourlyBudget(`jobs:${owner}`);
@@ -123,7 +125,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const candidates = await tx.$queryRaw<{ id: string; draftId: string; ownerId: string }[]>`
         SELECT j."id",j."draftId",j."ownerId" FROM "creation_jobs" j
         JOIN "creation_drafts" d ON d."id"=j."draftId"
-        WHERE d."expiredAt" IS NULL AND j."kind" IN ('recommendations','acquire_text','acquire_web') AND j."cancelRequestedAt" IS NULL AND
+        WHERE d."expiredAt" IS NULL AND j."kind" IN ('recommendations','acquire_text','acquire_web','acquire_pdf') AND j."cancelRequestedAt" IS NULL AND
         ((j."status"='queued' AND j."nextRunAt"<=CURRENT_TIMESTAMP) OR
          (j."status"='running' AND j."leaseUntil"<=CURRENT_TIMESTAMP))
         ORDER BY j."nextRunAt",j."createdAt" LIMIT 1 FOR UPDATE OF d SKIP LOCKED`;
@@ -139,7 +141,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const rows = await tx.$queryRaw<CreationJob[]>`UPDATE "creation_jobs" SET "status"='running',
         "attempt"="attempt"+1,"leaseOwner"=${worker},"leaseToken"=${token},
         "leaseUntil"=CURRENT_TIMESTAMP + interval '90 seconds',"heartbeatAt"=CURRENT_TIMESTAMP,
-        "deadlineAt"=COALESCE("deadlineAt",CURRENT_TIMESTAMP + CASE WHEN "kind"='acquire_web' THEN interval '120 seconds' WHEN "kind"='acquire_text' THEN interval '60 seconds' ELSE interval '30 seconds' END),"updatedAt"=CURRENT_TIMESTAMP
+        "deadlineAt"=COALESCE("deadlineAt",CURRENT_TIMESTAMP + CASE WHEN "kind" IN ('acquire_web','acquire_pdf') THEN interval '120 seconds' WHEN "kind"='acquire_text' THEN interval '60 seconds' ELSE interval '30 seconds' END),"updatedAt"=CURRENT_TIMESTAMP
         WHERE "id"=${job.id} RETURNING *`;
       await writeDraftEvent(tx, row.ownerId, { ...current, revision: current.revision + 1 }, 'job_started', rows[0]);
       return claimed(rows[0]);

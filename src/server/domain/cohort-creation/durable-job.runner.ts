@@ -1,17 +1,19 @@
 import { CreationFailure } from './errors';
-import { JobBudgetExceeded, LeaseLost, type ClaimedCreationJob, type ClaimedRecommendationJob, type ClaimedTextJob, type ClaimedWebJob, type CreationJobRepository } from './durable-job';
+import { JobBudgetExceeded, LeaseLost, type ClaimedCreationJob, type ClaimedRecommendationJob, type ClaimedTextJob, type ClaimedWebJob, type ClaimedPdfJob, type CreationJobRepository } from './durable-job';
 import type { RecommendationService } from './recommendation.service';
 
 import type { TextAcquisitionService } from './materials/text-acquisition.service';
 import { CreationStorageError } from '@/src/server/infrastructure/storage/creation.contracts';
 import { jobCompletion, validateWebRetention } from './job-completion';
 import type { WebAcquisitionService } from './materials/web-acquisition.service';
+import type { PdfAcquisitionService } from './materials/pdf-acquisition.service';
 type RecommenderFactory = (job: ClaimedRecommendationJob) => Pick<RecommendationService, 'recommend'>;
 type AcquirerFactory = (job: ClaimedTextJob) => Pick<TextAcquisitionService, 'acquire'>;
 type WebAcquirerFactory = (job: ClaimedWebJob) => Pick<WebAcquisitionService, 'acquire' | 'extract'>;
+type PdfAcquirerFactory = (job: ClaimedPdfJob) => Pick<PdfAcquisitionService, 'acquire'>;
 /** One task invocation; browser connections are deliberately not an input. */
 export async function executeCreationJob(repo: CreationJobRepository, job: ClaimedCreationJob,
-  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory) {
+  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory) {
   const lease = new AbortController();
   const remaining = Math.max(1, job.deadlineAt.getTime() - Date.now());
   const timeout = AbortSignal.timeout(remaining);
@@ -44,6 +46,9 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
         return service.acquire(scope, job.input.source, job.inputRevision, signal, async retained => {
           if (!await repo.checkpoint(job, retained)) throw new LeaseLost();
         });
+      })() : job.kind === 'acquire_pdf' ? await (() => {
+        if (!pdfAcquirer) throw new Error('PDF acquisition service unavailable');
+        return pdfAcquirer(job).acquire({ ownerId: job.ownerId, draftId: job.draftId }, job.input.source, job.inputRevision, signal);
       })() : await (() => {
         if (!acquirer) throw new Error('Text acquisition service unavailable');
         return acquirer(job).acquire({ ownerId: job.ownerId, draftId: job.draftId }, job.input.source, job.inputRevision, signal);
@@ -77,14 +82,14 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
 }
 
 export async function runCreationWorker(repo: CreationJobRepository, workerId: string,
-  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory) {
+  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory) {
   const tasks = new Set<Promise<void>>();
   while (!signal.aborted) {
     try {
       if (tasks.size < 2) {
         const job = await repo.claim(workerId);
         if (job) {
-          const task = executeCreationJob(repo, job, recommender, signal, acquirer, webAcquirer).catch(reportError);
+          const task = executeCreationJob(repo, job, recommender, signal, acquirer, webAcquirer, pdfAcquirer).catch(reportError);
           tasks.add(task);
           void task.finally(() => tasks.delete(task));
           continue;

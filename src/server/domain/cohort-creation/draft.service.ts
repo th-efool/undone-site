@@ -31,13 +31,13 @@ export class DraftService {
     if (command.type === 'acquire_web') command.url = webSourceUrl(command.url).href;
     if (command.type === 'request_recommendations' && previous.query === command.query &&
       (previous.activeRequestId === command.requestId || previous.result?.requestId === command.requestId)) return previous;
-    if (command.type === 'acquire_text' && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
-      source.id === command.materialId && source.input.kind === 'upload' && source.input.assetId === command.assetId)) return previous;
+    if ((command.type === 'acquire_text' || command.type === 'acquire_pdf') && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
+      source.id === command.materialId && source.kind === (command.type === 'acquire_pdf' ? 'pdf' : 'markdown') && source.input.kind === 'upload' && source.input.assetId === command.assetId)) return previous;
     if (command.type === 'acquire_web' && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
       source.id === command.materialId && source.input.kind === 'url' && source.input.url === command.url)) return previous;
     if (previous.revision !== baseRevision) throw new DraftConflict(previous);
     const next = applyCommand(previous, command);
-    if (command.type === 'request_recommendations' || command.type === 'acquire_text' || command.type === 'acquire_web') {
+    if (command.type === 'request_recommendations' || command.type === 'acquire_text' || command.type === 'acquire_pdf' || command.type === 'acquire_web') {
       const queued = await this.jobs.enqueue(owner, previous, next);
       if (!queued) throw new DraftConflict(await this.load(owner, id));
       return queued;
