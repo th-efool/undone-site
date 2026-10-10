@@ -39,9 +39,11 @@ export class DraftService {
       source.id === command.materialId && source.input.kind === 'url' && source.input.url === command.url)) return previous;
     if (command.type === 'inspect_youtube' && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
       source.id === command.materialId && ['youtube_video', 'youtube_playlist'].includes(source.kind) && source.input.kind === 'url' && source.input.url === command.url)) return previous;
+    if (command.type === 'observe_youtube' && previous.lastMaterialRequestId === command.requestId &&
+      previous.youtubeSources.some(source => source.materialId === command.materialId)) return previous;
     if (previous.revision !== baseRevision) throw new DraftConflict(previous);
     const next = applyCommand(previous, command);
-    if (command.type === 'request_recommendations' || command.type === 'acquire_text' || command.type === 'acquire_pdf' || command.type === 'acquire_web' || command.type === 'inspect_youtube') {
+    if (command.type === 'request_recommendations' || command.type === 'acquire_text' || command.type === 'acquire_pdf' || command.type === 'acquire_web' || command.type === 'inspect_youtube' || command.type === 'observe_youtube') {
       const queued = await this.jobs.enqueue(owner, previous, next);
       if (!queued) throw new DraftConflict(await this.load(owner, id));
       return queued;

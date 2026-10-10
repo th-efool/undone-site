@@ -1,5 +1,4 @@
 import 'server-only';
-import { createHash } from 'node:crypto';
 import { creationArtifactRefSchema, youtubeUnitObservationRefSchema } from '@/src/shared/cohort-creation/contracts';
 import { youtubeObservationRequestSchema, type YoutubeObservationRequest } from '@/src/shared/cohort-creation/jobs';
 import { MATERIAL_LIMITS } from '@/src/shared/cohort-creation/materials';
@@ -7,25 +6,7 @@ import { youtubeMaterialManifestSchema, youtubeObservationCheckpointSchema, type
 import { CreationStorageError, type StorageScope } from '@/src/server/infrastructure/storage/creation.contracts';
 import type { CreationArtifactRepository } from '@/src/server/infrastructure/storage/creation.store';
 import type { YoutubeObservationService } from './youtube-observation.service';
-
-export const YOUTUBE_BUNDLE_VERSION = 'youtube-selected-observations-v1';
-export const youtubeMaterialVersion = (checkpoint: YoutubeObservationCheckpoint) => createHash('sha256')
-  .update(JSON.stringify({ parser: YOUTUBE_BUNDLE_VERSION, checkpoint: youtubeObservationCheckpointSchema.parse(checkpoint) })).digest('hex');
-
-/** Validates checkpoint identity before any retained content is read or a model is called. */
-export function validateYoutubeCheckpoint(input: YoutubeObservationRequest, value: unknown) {
-  const checkpoint = youtubeObservationCheckpointSchema.parse(value); const metadata = input.metadata;
-  const selected = input.source.selectedUnitIds;
-  if (checkpoint.materialId !== input.source.id || checkpoint.inputRevision !== input.inputRevision ||
-    checkpoint.sourceRevision !== metadata.sourceRevision || checkpoint.metadataFingerprint !== metadata.metadataFingerprint ||
-    JSON.stringify(checkpoint.metadataArtifact) !== JSON.stringify(metadata.metadataArtifact) ||
-    checkpoint.units.some(unit => !selected.includes(unit.unitId)) ||
-    JSON.stringify(checkpoint.units.map(unit => unit.unitId)) !== JSON.stringify(selected.filter(id => checkpoint.units.some(unit => unit.unitId === id))) ||
-    metadata.observations.some(previous => !checkpoint.units.some(unit => JSON.stringify(unit) === JSON.stringify(previous)))) {
-    throw new CreationStorageError('INTEGRITY', 'Observation checkpoint does not match the saved selection and retained work.');
-  }
-  return checkpoint;
-}
+import { validateYoutubeCheckpoint, youtubeMaterialVersion, YOUTUBE_BUNDLE_VERSION } from './youtube-identity';
 
 export class YoutubeAcquisitionService {
   constructor(private readonly observations: Pick<YoutubeObservationService, 'observeUnit' | 'resumeUnit'>,
@@ -74,8 +55,10 @@ export class YoutubeAcquisitionService {
   }
 
   private reference(unitId: string, result: Awaited<ReturnType<YoutubeObservationService['observeUnit']>>) {
+    const textBytes = result.observation.segments.reduce((sum, segment) => sum + Buffer.byteLength(segment.text, 'utf8'), 0);
+    if (textBytes > MATERIAL_LIMITS.extractedTextBytes) throw new CreationStorageError('LIMIT_EXCEEDED', 'Video observations exceed 1 MiB. Select a shorter video; nothing was truncated.');
     return youtubeUnitObservationRefSchema.parse({ unitId, artifact: creationArtifactRefSchema.parse(result.artifact),
       version: result.inputFingerprint, segmentCount: result.observation.segments.length,
-      textBytes: result.observation.segments.reduce((sum, segment) => sum + Buffer.byteLength(segment.text, 'utf8'), 0) });
+      textBytes });
   }
 }

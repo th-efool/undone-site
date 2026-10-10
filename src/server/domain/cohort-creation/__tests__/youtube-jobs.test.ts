@@ -4,10 +4,12 @@ vi.mock('server-only', () => ({}));
 import { applyCommand, applyEvent, initialSnapshot } from '@/src/shared/cohort-creation/flow';
 import { creationSnapshotSchema } from '@/src/shared/cohort-creation/contracts';
 import { draftId, result } from '@/src/shared/cohort-creation/__tests__/fixtures';
-import { retainedYoutubeMetadataSchema, YOUTUBE_METADATA_VERSION } from '@/src/shared/cohort-creation/youtube';
+import { retainedYoutubeMetadataSchema, YOUTUBE_METADATA_VERSION, youtubeObservationCheckpointSchema, youtubeMaterialManifestSchema } from '@/src/shared/cohort-creation/youtube';
 import { youtubeMetadataFingerprint } from '../materials/youtube-artifacts';
 import { executeCreationJob } from '../durable-job.runner';
-import type { ClaimedYoutubeInspectionJob, CreationJobRepository } from '../durable-job';
+import type { ClaimedYoutubeInspectionJob, ClaimedYoutubeObservationJob, CreationJobRepository } from '../durable-job';
+import { youtubeMaterialVersion, YOUTUBE_BUNDLE_VERSION } from '../materials/youtube-identity';
+import type { YoutubeAcquisitionService } from '../materials/youtube-acquisition.service';
 import { jobCompletion } from '../job-completion';
 import { DraftConflict, DraftNotFound, DraftService } from '../draft.service';
 
@@ -34,6 +36,74 @@ function fixture() {
     retry: vi.fn(async () => false), release: vi.fn() };
   return { own, command, running, retained, job, repo };
 }
+
+function observationFixture() {
+  const f = fixture(); const ready = applyEvent(f.running, jobCompletion(f.job, f.retained));
+  const selected = applyCommand(ready, { type: 'select_youtube_units', materialId: f.command.materialId, unitIds: ['dQw4w9WgXcQ'] });
+  const command = { type: 'observe_youtube' as const, materialId: f.command.materialId, requestId: randomUUID() };
+  const running = applyCommand(selected, command);
+  const job: ClaimedYoutubeObservationJob = { ...f.job, kind: 'observe_youtube', checkpoint: null,
+    requestId: command.requestId, inputRevision: running.inputRevision, input: { requestId: command.requestId,
+      inputRevision: running.inputRevision, source: running.materials[0], metadata: selected.youtubeSources[0] } };
+  const checkpoint = youtubeObservationCheckpointSchema.parse({ phase: 'youtube_observations', materialId: command.materialId,
+    inputRevision: job.inputRevision, sourceRevision: selected.youtubeSources[0].sourceRevision,
+    metadataArtifact: f.retained.artifact, metadataFingerprint: f.retained.inputFingerprint,
+    units: [{ unitId: 'dQw4w9WgXcQ', artifact: { id: randomUUID(), kind: 'artifact', byteLength: 500, checksum: 'b'.repeat(64) },
+      version: 'c'.repeat(64), segmentCount: 1, textBytes: 100 }] });
+  const version = youtubeMaterialVersion(checkpoint); const bundle = { id: randomUUID(), kind: 'artifact' as const, byteLength: 800, checksum: 'd'.repeat(64) };
+  const manifest = youtubeMaterialManifestSchema.parse({ schemaVersion: 1, inputRevision: job.inputRevision, source: { ...job.input.source, status: 'ready' },
+    retainedSource: f.retained.artifact, youtube: checkpoint, extraction: { materialId: command.materialId, version,
+      checksum: f.retained.artifact.checksum, artifactRef: bundle.id, extractionKind: 'video_observation', selectionScope: 'video_observation', complete: false, segmentCount: 1 },
+    extractionArtifact: bundle, parserVersion: YOUTUBE_BUNDLE_VERSION, inputFingerprint: version, acquiredAt: new Date().toISOString() });
+  return { ...f, ready, selected, command, running, job, checkpoint, manifest };
+}
+
+describe('durable selected video observation jobs', () => {
+  it('requires confirmed selection and authorizes/deduplicates observation commands before CAS', async () => {
+    const f = observationFixture();
+    expect(() => applyCommand(f.ready, f.command)).toThrow('Save a video selection');
+    let stored = f.selected; const enqueue = vi.fn(async (_owner, _previous, next) => { stored = next; return next; });
+    const service = new DraftService({ create: vi.fn(), load: vi.fn(async owner => owner === 'owner' ? stored : null), swap: vi.fn() }, { enqueue, cancel: vi.fn() });
+    await expect(service.command('other', draftId, stored.revision, f.command)).rejects.toBeInstanceOf(DraftNotFound);
+    await expect(service.command('owner', draftId, stored.revision - 1, f.command)).rejects.toBeInstanceOf(DraftConflict);
+    await service.command('owner', draftId, stored.revision, f.command);
+    expect(await service.command('owner', draftId, f.selected.revision, f.command)).toBe(stored);
+    expect(enqueue).toHaveBeenCalledOnce(); expect(stored.youtubeSources[0].sourceRevision).toBe(f.retained.receipt.inputRevision);
+  });
+  it('commits partial work before final readiness and retains every observation reference', async () => {
+    const f = observationFixture(); const acquire = vi.fn<YoutubeAcquisitionService['acquire']>(async (...args) => { await args[3](f.checkpoint); return f.manifest; });
+    await executeCreationJob(f.repo, f.job, () => ({ recommend: vi.fn() }), new AbortController().signal,
+      undefined, undefined, undefined, undefined, () => ({ acquire }));
+    expect(f.repo.checkpoint).toHaveBeenNthCalledWith(1, f.job, f.checkpoint);
+    expect(f.repo.checkpoint).toHaveBeenNthCalledWith(2, f.job, f.manifest);
+    expect(f.repo.finish).toHaveBeenCalledWith(f.job, jobCompletion(f.job, f.manifest));
+    const ready = applyEvent(f.running, jobCompletion(f.job, f.manifest));
+    expect(ready.youtubeSources[0].observations).toEqual(f.checkpoint.units);
+    expect(ready.materialRefs[0].ids).toEqual([f.retained.artifact.id, f.manifest.extractionArtifact.id, f.checkpoint.units[0].artifact.id]);
+    expect(ready.extractions[0].complete).toBe(false);
+    const cleared = applyCommand(ready, { type: 'select_youtube_units', materialId: f.command.materialId, unitIds: [] });
+    expect(cleared.materialRefs[0].ids).toEqual([f.retained.artifact.id]); expect(cleared.youtubeSources[0].observations).toEqual([]);
+    expect(cleared.extractions).toEqual([]);
+  });
+  it('resumes partial checkpoints and refuses failed checkpoint fences without finalization', async () => {
+    const f = observationFixture(); f.job.checkpoint = f.checkpoint;
+    const acquire = vi.fn<YoutubeAcquisitionService['acquire']>(async (...args) => { await args[3](f.checkpoint); return f.manifest; });
+    vi.mocked(f.repo.checkpoint).mockResolvedValue(false);
+    await executeCreationJob(f.repo, f.job, () => ({ recommend: vi.fn() }), new AbortController().signal,
+      undefined, undefined, undefined, undefined, () => ({ acquire }));
+    expect(acquire.mock.calls[0][4]).toEqual(f.checkpoint); expect(f.repo.finish).not.toHaveBeenCalled();
+  });
+  it('finalizes a complete bundle after deadline without another model call and rejects stale/broadened manifests', async () => {
+    const f = observationFixture(); f.job.checkpoint = f.manifest; f.job.deadlineAt = new Date(0); const acquire = vi.fn();
+    await executeCreationJob(f.repo, f.job, () => ({ recommend: vi.fn() }), new AbortController().signal,
+      undefined, undefined, undefined, undefined, () => ({ acquire }));
+    expect(acquire).not.toHaveBeenCalled(); expect(f.repo.finish).toHaveBeenCalledOnce();
+    expect(() => jobCompletion(f.job, { ...f.manifest, inputRevision: 0 })).toThrow();
+    expect(() => jobCompletion(f.job, { ...f.manifest, extraction: { ...f.manifest.extraction, complete: true } })).toThrow();
+    expect(() => jobCompletion(f.job, { ...f.manifest, inputFingerprint: 'e'.repeat(64) })).toThrow();
+    expect(applyEvent(applyCommand(f.running, { type: 'cancel_material_acquisition' }), jobCompletion(f.job, f.manifest)).status).toBe('canceled');
+  });
+});
 describe('durable YouTube metadata inspection', () => {
   it('saves only known unique unit choices, preserving the receipt source revision', () => {
     const f = fixture(); const ready = applyEvent(f.running, jobCompletion(f.job, f.retained));

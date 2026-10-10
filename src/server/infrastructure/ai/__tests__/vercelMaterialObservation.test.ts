@@ -22,7 +22,7 @@ describe('bounded Vercel video observation', () => {
     const call = model.doGenerateCalls[0]; expect(call.responseFormat?.type).toBe('json'); expect(call.maxOutputTokens).toBe(12_000);
     const files = call.prompt.flatMap(message => message.role === 'user' ? message.content.filter(part => part.type === 'file') : []);
     expect(files).toHaveLength(1); expect(files[0]).toMatchObject({ type: 'file', mediaType: 'video/mp4', data: new URL(video.url) });
-    expect(fetch).not.toHaveBeenCalled(); expect(beforeCall).toHaveBeenCalledOnce(); expect(release).toHaveBeenCalledOnce();
+    expect(fetch).not.toHaveBeenCalled(); expect(beforeCall).toHaveBeenCalledWith(video.videoId); expect(release).toHaveBeenCalledOnce();
   });
   it('derives honest estimated gaps and never claims exhaustive or transcript coverage', () => {
     expect(videoObservationCoverage(proposal, video)).toEqual({ kind: 'model_observation', exhaustive: false, timestampsEstimated: true,

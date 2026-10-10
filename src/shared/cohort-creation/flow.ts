@@ -6,7 +6,7 @@ import {
 } from './contracts';
 import { materialManifestSchema } from './materials';
 import { webMaterialManifestSchema } from './web';
-import { retainedYoutubeMetadataSchema } from './youtube';
+import { retainedYoutubeMetadataSchema, youtubeMaterialManifestSchema } from './youtube';
 
 export const creationCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('request_recommendations'), query: querySchema, requestId: z.uuid() }),
@@ -17,6 +17,7 @@ export const creationCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('acquire_text'), materialId: z.uuid(), assetId: z.uuid(), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('acquire_pdf'), materialId: z.uuid(), assetId: z.uuid(), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('inspect_youtube'), materialId: z.uuid(), url: z.url().max(2048), requestId: z.uuid() }),
+  z.strictObject({ type: z.literal('observe_youtube'), materialId: z.uuid(), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('select_youtube_units'), materialId: z.uuid(), unitIds: z.array(z.string().regex(/^[A-Za-z0-9_-]{11}$/)).max(100)
     .refine(ids => new Set(ids).size === ids.length, 'Select each video only once') }),
   z.strictObject({ type: z.literal('cancel_material_acquisition') }),
@@ -28,7 +29,7 @@ export const creationEventSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('recommendations_received'), result: recommendationResultSchema }),
   z.strictObject({ type: z.literal('operation_failed'), requestId: z.uuid(), error: creationErrorSchema }),
   z.strictObject({ type: z.literal('operation_cancelled'), requestId: z.uuid() }),
-  z.strictObject({ type: z.literal('material_received'), requestId: z.uuid(), manifest: z.union([webMaterialManifestSchema, materialManifestSchema]) }),
+  z.strictObject({ type: z.literal('material_received'), requestId: z.uuid(), manifest: z.union([youtubeMaterialManifestSchema, webMaterialManifestSchema, materialManifestSchema]) }),
   z.strictObject({ type: z.literal('youtube_metadata_received'), requestId: z.uuid(), result: retainedYoutubeMetadataSchema }),
 ]);
 export type CreationEvent = z.infer<typeof creationEventSchema>;
@@ -101,12 +102,25 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
         youtubeSources: state.youtubeSources.filter(source => source.materialId !== command.materialId),
         extractions: state.extractions.filter(extraction => extraction.materialId !== command.materialId) });
     }
+    case 'observe_youtube': {
+      const source = state.materials.find(source => source.id === command.materialId);
+      const preview = state.youtubeSources.find(source => source.materialId === command.materialId);
+      if (state.stage !== 'starting_point' || state.startingPoint !== 'have_material' || state.status === 'running' || !state.result ||
+        !source || !preview || !source.selectedUnitIds.length || source.status === 'ready') throw new Error('Save a video selection before observing it');
+      return creationSnapshotSchema.parse({ ...changed, inputRevision: state.inputRevision + 1, status: 'running',
+        activeRequestId: command.requestId, lastMaterialRequestId: command.requestId,
+        materials: state.materials.map(item => item.id === source.id ? { ...item, status: 'acquiring' } : item) });
+    }
     case 'select_youtube_units': {
       const preview = state.youtubeSources.find(source => source.materialId === command.materialId);
       if (state.stage !== 'starting_point' || state.startingPoint !== 'have_material' || state.status === 'running' || !preview ||
         command.unitIds.some(id => !preview.units.some(unit => unit.unitId === id))) throw new Error('Starting point is not available');
       return creationSnapshotSchema.parse({ ...changed, inputRevision: state.inputRevision + 1, status: 'succeeded', lastMaterialRequestId: null,
         materials: state.materials.map(source => source.id === command.materialId ? { ...source, status: 'needs_input', selectedUnitIds: command.unitIds } : source),
+        youtubeSources: state.youtubeSources.map(source => source.materialId === command.materialId
+          ? { ...source, observations: source.observations.filter(unit => command.unitIds.includes(unit.unitId)) } : source),
+        materialRefs: state.materialRefs.map(ref => ref.materialId === command.materialId
+          ? { ...ref, ids: [preview.metadataArtifact.id, ...preview.observations.filter(unit => command.unitIds.includes(unit.unitId)).map(unit => unit.artifact.id)] } : ref),
         extractions: state.extractions.filter(extraction => extraction.materialId !== command.materialId) });
     }
     case 'back_to_recommendations':
@@ -144,9 +158,12 @@ export function applyEvent(state: CreationSnapshot, input: CreationEvent): Creat
     }
     case 'material_received':
       return creationSnapshotSchema.parse({ ...changed, status: 'succeeded', error: null,
+        youtubeSources: state.youtubeSources.map(source => source.materialId === event.manifest.source.id && 'youtube' in event.manifest
+          ? { ...source, observations: event.manifest.youtube.units } : source),
         materialRefs: [...state.materialRefs.filter(ref => ref.materialId !== event.manifest.source.id),
           { materialId: event.manifest.source.id, ids: [event.manifest.retainedSource.id, event.manifest.extractionArtifact.id,
-            ...('receiptArtifact' in event.manifest ? [event.manifest.receiptArtifact.id] : [])] }],
+            ...('receiptArtifact' in event.manifest ? [event.manifest.receiptArtifact.id] : []),
+            ...('youtube' in event.manifest ? event.manifest.youtube.units.map(unit => unit.artifact.id) : [])] }],
         materials: state.materials.map(source => source.id === event.manifest.source.id ? event.manifest.source : source),
         extractions: [...state.extractions.filter(extraction => extraction.materialId !== event.manifest.source.id), event.manifest.extraction] });
     case 'recommendations_received':

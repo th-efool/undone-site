@@ -25,6 +25,8 @@ export const youtubeObservationRequestSchema = youtubeInspectionRequestSchema.ex
     if (input.source.id !== input.metadata.materialId || !input.source.selectedUnitIds.length ||
       new Set(input.source.selectedUnitIds).size !== input.source.selectedUnitIds.length ||
       input.metadata.sourceRevision > input.inputRevision || input.source.selectedUnitIds.some(id => !input.metadata.units.some(unit => unit.unitId === id)) ||
+      new Set(input.metadata.units.map(unit => unit.unitId)).size !== input.metadata.units.length ||
+      new Set(input.metadata.observations.map(unit => unit.unitId)).size !== input.metadata.observations.length ||
       input.metadata.observations.some(unit => !input.source.selectedUnitIds.includes(unit.unitId))) ctx.addIssue({ code: 'custom', message: 'Invalid selected video observation request' });
   });
 export type YoutubeObservationRequest = z.infer<typeof youtubeObservationRequestSchema>;

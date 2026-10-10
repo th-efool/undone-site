@@ -37,6 +37,7 @@ export const youtubeObservationCheckpointSchema = z.strictObject({ phase: z.lite
   units: z.array(youtubeUnitObservationRefSchema).max(MATERIAL_LIMITS.selectedUnits),
 }).superRefine((value, ctx) => {
   if (value.sourceRevision > value.inputRevision || new Set(value.units.map(unit => unit.unitId)).size !== value.units.length ||
+    new Set([value.metadataArtifact.id, ...value.units.map(unit => unit.artifact.id)]).size !== value.units.length + 1 ||
     value.units.reduce((sum, unit) => sum + unit.textBytes, 0) > MATERIAL_LIMITS.extractedTextBytes) ctx.addIssue({ code: 'custom', message: 'Invalid observation checkpoint scope' });
 });
 export type YoutubeObservationCheckpoint = z.infer<typeof youtubeObservationCheckpointSchema>;
@@ -47,6 +48,7 @@ export const youtubeMaterialManifestSchema = materialManifestSchema.safeExtend({
       manifest.source.id !== manifest.youtube.materialId || manifest.inputRevision !== manifest.youtube.inputRevision ||
       manifest.retainedSource.kind !== 'artifact' || manifest.retainedSource.id !== manifest.youtube.metadataArtifact.id ||
       manifest.retainedSource.checksum !== manifest.youtube.metadataArtifact.checksum || !units.length ||
+      manifest.retainedSource.byteLength !== manifest.youtube.metadataArtifact.byteLength ||
       JSON.stringify(manifest.source.selectedUnitIds) !== JSON.stringify(units.map(unit => unit.unitId)) ||
       manifest.extraction.extractionKind !== 'video_observation' || manifest.extraction.complete !== false ||
       manifest.extraction.selectionScope !== 'video_observation' || manifest.extraction.segmentCount !== units.reduce((sum, unit) => sum + unit.segmentCount, 0)) {

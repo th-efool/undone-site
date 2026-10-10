@@ -11,7 +11,9 @@ import { TextAcquisitionService } from './domain/cohort-creation/materials/text-
 import { WebAcquisitionService } from './domain/cohort-creation/materials/web-acquisition.service';
 import { WebRetentionService } from './domain/cohort-creation/materials/web-retention.service';
 import { PdfAcquisitionService } from './domain/cohort-creation/materials/pdf-acquisition.service';
-import { YoutubeMetadataRetentionService } from './domain/cohort-creation/materials/youtube-observation.service';
+import { YoutubeMetadataRetentionService, YoutubeObservationService } from './domain/cohort-creation/materials/youtube-observation.service';
+import { YoutubeAcquisitionService } from './domain/cohort-creation/materials/youtube-acquisition.service';
+import { VercelMaterialObservation } from './infrastructure/ai/vercelMaterialObservation';
 import { YoutubeMetadataReader } from './domain/cohort-creation/materials/youtube-metadata';
 
 async function main() {
@@ -69,6 +71,12 @@ async function main() {
       () => ({ retainMetadata: async (...args) => {
         const storage = await import('./infrastructure/storage/creation.runtime');
         return new YoutubeMetadataRetentionService(new YoutubeMetadataReader(), storage.creationArtifactRepository).retainMetadata(...args);
+      } }),
+      job => ({ acquire: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        const observer = new VercelMaterialObservation(createCohortModel(), { beforeCall: unitId => creationJobRepo.reserveModelCall(job, unitId) });
+        const service = new YoutubeObservationService(new YoutubeMetadataReader(), observer, storage.creationArtifactRepository);
+        return new YoutubeAcquisitionService(service, storage.creationArtifactRepository).acquire(...args);
       } }));
   } finally {
     clearInterval(retentionTimer);

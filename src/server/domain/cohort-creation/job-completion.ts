@@ -7,7 +7,8 @@ import { retainedWebCheckpointSchema, webMaterialManifestSchema, type RetainedWe
 import { WEB_PARSER_VERSION, webExtractionFingerprint, webExtractionVersion, webReceiptFingerprint } from './materials/web-identity';
 import type { ClaimedWebJob } from './durable-job';
 import { PDF_PARSER_VERSION, pdfAcquisitionFingerprint, pdfExtractionVersion } from './materials/pdf-identity';
-import { retainedYoutubeMetadataSchema } from '@/src/shared/cohort-creation/youtube';
+import { retainedYoutubeMetadataSchema, youtubeMaterialManifestSchema } from '@/src/shared/cohort-creation/youtube';
+import { validateYoutubeCheckpoint, youtubeMaterialVersion, YOUTUBE_BUNDLE_VERSION } from './materials/youtube-identity';
 import { youtubeMetadataFingerprint } from './materials/youtube-artifacts';
 import { youtubeSourceUrl } from './materials/youtube-url';
 
@@ -24,6 +25,16 @@ export function jobCompletion(job: ClaimedCreationJob, value: CreationCheckpoint
     const result = recommendationResultSchema.parse(value);
     if (result.requestId !== job.requestId || result.inputRevision !== job.inputRevision || result.intent.rawQuery !== job.input.query) throw new Error('Invalid checkpoint input');
     return { type: 'recommendations_received', result };
+  }
+  if (job.kind === 'observe_youtube') {
+    const manifest = youtubeMaterialManifestSchema.parse(value);
+    validateYoutubeCheckpoint(job.input, manifest.youtube);
+    const version = youtubeMaterialVersion(manifest.youtube);
+    if (manifest.inputRevision !== job.inputRevision || manifest.source.kind !== job.input.source.kind || manifest.source.input.kind !== 'url' || job.input.source.input.kind !== 'url' ||
+      manifest.source.input.url !== job.input.source.input.url || manifest.parserVersion !== YOUTUBE_BUNDLE_VERSION ||
+      manifest.extraction.version !== version || manifest.inputFingerprint !== version ||
+      JSON.stringify(manifest.source.selectedUnitIds) !== JSON.stringify(job.input.source.selectedUnitIds)) throw new Error('Invalid checkpoint input');
+    return { type: 'material_received', requestId: job.requestId, manifest };
   }
   if (job.kind === 'inspect_youtube') {
     const retained = retainedYoutubeMetadataSchema.parse(value); const { receipt } = retained;

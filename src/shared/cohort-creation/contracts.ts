@@ -180,6 +180,7 @@ export const creationSnapshotSchema = z.strictObject({
       new Set(source.observations.map(unit => unit.unitId)).size !== source.observations.length ||
       source.observations.reduce((sum, unit) => sum + unit.textBytes, 0) > 1024 * 1024 ||
       source.observations.some(unit => !source.units.some(candidate => candidate.unitId === unit.unitId) ||
+        !state.materials.find(material => material.id === source.materialId)?.selectedUnitIds.includes(unit.unitId) ||
         !state.materialRefs.some(ref => ref.materialId === source.materialId && ref.ids.includes(unit.artifact.id))))) {
     ctx.addIssue({ code: 'custom', message: 'Invalid YouTube unit preview or provenance' });
   }

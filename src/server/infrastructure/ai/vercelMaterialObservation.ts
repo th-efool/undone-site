@@ -12,7 +12,7 @@ Each observation must describe what was actually observed in its interval; inter
 
 export class VercelMaterialObservation implements MaterialObservation {
   constructor(private readonly model: LanguageModel, private readonly execution: {
-    beforeCall: () => Promise<void | (() => Promise<void>)>;
+    beforeCall: (unitId: string) => Promise<void | (() => Promise<void>)>;
   }) {}
   get identity() {
     if (typeof this.model === 'string') throw creationFailure('AI_UNAVAILABLE', 'Video observation requires an explicit provider model.', false);
@@ -31,7 +31,7 @@ export class VercelMaterialObservation implements MaterialObservation {
     for (let attempt = 0; attempt < 2; attempt++) {
       signal.throwIfAborted();
       // Reservation errors retain their original lease/budget meaning for the durable worker.
-      const release = await this.execution.beforeCall();
+      const release = await this.execution.beforeCall(video.videoId);
       try {
         signal.throwIfAborted();
         const result = await generateText({ model: this.model, instructions,

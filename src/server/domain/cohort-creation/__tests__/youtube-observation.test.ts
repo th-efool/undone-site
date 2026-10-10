@@ -10,13 +10,13 @@ import { YoutubeAcquisitionService } from '../materials/youtube-acquisition.serv
 import { youtubeObservationRequestSchema } from '@/src/shared/cohort-creation/jobs';
 import type { YoutubeObservationCheckpoint } from '@/src/shared/cohort-creation/youtube';
 
-function fixture() {
-  const videoId = 'dQw4w9WgXcQ'; const scope = { ownerId: 'owner', draftId: randomUUID() };
-  const metadata = youtubeMetadataSchema.parse({ schemaVersion: 1, kind: 'youtube_video', playlistId: null,
-    sourceUrl: `https://www.youtube.com/watch?v=${videoId}`, fetchedAt: new Date().toISOString(), coverage: 'complete_metadata',
-    units: [{ videoId, url: `https://www.youtube.com/watch?v=${videoId}`, title: 'Lighting lesson', description: 'Provider description',
-      channelId: 'channel', channelTitle: 'Teacher', publishedAt: '2026-01-01T00:00:00Z', etag: 'etag', privacy: 'public', durationSeconds: 120 }] });
-  const source = { id: randomUUID(), kind: 'youtube_video' as const, input: { kind: 'url' as const, url: metadata.sourceUrl }, selectedUnitIds: [], status: 'acquiring' as const };
+function fixture(videoIds = ['dQw4w9WgXcQ']) {
+  const scope = { ownerId: 'owner', draftId: randomUUID() }; const playlist = videoIds.length > 1;
+  const metadata = youtubeMetadataSchema.parse({ schemaVersion: 1, kind: playlist ? 'youtube_playlist' : 'youtube_video', playlistId: playlist ? 'PL1234567890' : null,
+    sourceUrl: playlist ? 'https://www.youtube.com/playlist?list=PL1234567890' : `https://www.youtube.com/watch?v=${videoIds[0]}`, fetchedAt: new Date().toISOString(), coverage: 'complete_metadata',
+    units: videoIds.map(videoId => ({ videoId, url: `https://www.youtube.com/watch?v=${videoId}`, title: 'Lighting lesson', description: 'Provider description',
+      channelId: 'channel', channelTitle: 'Teacher', publishedAt: '2026-01-01T00:00:00Z', etag: 'etag', privacy: 'public', durationSeconds: 120 })) });
+  const source = { id: randomUUID(), kind: metadata.kind, input: { kind: 'url' as const, url: metadata.sourceUrl }, selectedUnitIds: [], status: 'acquiring' as const };
   const read = vi.fn(async () => metadata);
   const observeVideo = vi.fn(async () => ({ canObserve: true, observations: [{ startSeconds: 10, endSeconds: 90, text: 'Observed lighting techniques and reflectance.' }], limitations: ['Small text is unclear.'] }));
   const observer = { identity: { provider: 'fixture-provider', modelId: 'fixture-model', adapterVersion: 'fixture-v1' }, observeVideo };
@@ -40,16 +40,37 @@ function fixture() {
   return { scope, source, metadata, read, observeVideo, observer, stored, putJSON, service: new YoutubeObservationService({ read }, observer, { putJSON, getJSON, ref }) };
 }
 
-async function acquisitionFixture() {
-  const f = fixture(); const retained = await f.service.retainMetadata(f.scope, f.source, 5);
+async function acquisitionFixture(videoIds?: string[]) {
+  const f = fixture(videoIds); const retained = await f.service.retainMetadata(f.scope, f.source, 5);
   const input = youtubeObservationRequestSchema.parse({ requestId: randomUUID(), inputRevision: 7,
-    source: { ...f.source, selectedUnitIds: [f.metadata.units[0].videoId] },
+    source: { ...f.source, selectedUnitIds: f.metadata.units.map(unit => unit.videoId) },
     metadata: { materialId: f.source.id, sourceRevision: 5, metadataArtifact: retained.artifact,
       metadataFingerprint: retained.inputFingerprint, units: f.metadata.units.map(unit => ({ unitId: unit.videoId, title: unit.title, durationSeconds: unit.durationSeconds })) } });
   return { ...f, input, acquire: new YoutubeAcquisitionService(f.service, { putJSON: f.putJSON }) };
 }
 
 describe('selected video acquisition', () => {
+  it('reuses a non-prefix saved unit, preserving selected order without another metadata fetch', async () => {
+    const f = await acquisitionFixture(['dQw4w9WgXcQ', 'AAAAAAAAAAA']); let checkpoint: YoutubeObservationCheckpoint | undefined;
+    const secondOnly = { ...f.input, source: { ...f.input.source, selectedUnitIds: ['AAAAAAAAAAA'] } };
+    await f.acquire.acquire(f.scope, secondOnly, new AbortController().signal, async value => { checkpoint = value; });
+    const expanded = { ...f.input, inputRevision: 8, metadata: { ...f.input.metadata, observations: checkpoint!.units } };
+    const save = vi.fn(); const manifest = await f.acquire.acquire(f.scope, expanded, new AbortController().signal, save);
+    expect(f.observeVideo).toHaveBeenCalledTimes(2); expect(f.read).toHaveBeenCalledOnce();
+    expect(manifest.youtube.units.map(unit => unit.unitId)).toEqual(f.input.source.selectedUnitIds);
+    expect(manifest.youtube.units[1]).toEqual(checkpoint!.units[0]); expect(save).toHaveBeenCalledOnce();
+  });
+  it('retains completed units when a later video fails and avoids silent aggregate truncation', async () => {
+    const f = await acquisitionFixture(['dQw4w9WgXcQ', 'AAAAAAAAAAA']); let saved: YoutubeObservationCheckpoint | undefined;
+    const large = { canObserve: true, observations: Array.from({ length: 60 }, (_, index) => ({ startSeconds: index, endSeconds: index + 1, text: 'x'.repeat(10_000) })), limitations: [] };
+    f.observeVideo.mockResolvedValue(large);
+    await expect(f.acquire.acquire(f.scope, f.input, new AbortController().signal, async value => { saved = value; })).rejects.toMatchObject({ code: 'LIMIT_EXCEEDED' });
+    expect(saved!.units).toHaveLength(1); expect(saved!.units[0].textBytes).toBe(600_000);
+    expect([...f.stored.values()].some(row => row.type === 'youtube-material')).toBe(false);
+    const resumedInput = { ...f.input, source: { ...f.input.source, selectedUnitIds: [saved!.units[0].unitId] }, metadata: { ...f.input.metadata, observations: saved!.units } };
+    await f.acquire.acquire(f.scope, resumedInput, new AbortController().signal, async () => {});
+    expect(f.observeVideo).toHaveBeenCalledTimes(2);
+  });
   it('retains honest observation scope and reuses original source revision after restart', async () => {
     const f = await acquisitionFixture(); const save = vi.fn(async (value: YoutubeObservationCheckpoint) => { expect(value.units).toHaveLength(1); });
     const manifest = await f.acquire.acquire(f.scope, f.input, new AbortController().signal, save);
