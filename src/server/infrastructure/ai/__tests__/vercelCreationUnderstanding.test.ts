@@ -71,7 +71,7 @@ describe('bounded retained-content understanding', () => {
     const f = fixture(); const model = new MockLanguageModelV4({ doGenerate: modelOutput(f.proposal) }); const beforeCall = vi.fn(async () => {});
     const service = new VercelCreationUnderstanding(model, { beforeCall });
     await expect(service.understand(intent, { ...f.partition, id: 'b'.repeat(64) }, new AbortController().signal)).rejects.toThrow('accepted source');
-    const huge = { ...f.partition, coverage: { ...f.partition.coverage, limitations: ['x'.repeat(50_000)] } };
+    const huge = partitionProcessingInput([{ ...f.partition, coverage: { ...f.partition.coverage, limitations: ['x'.repeat(50_000)] } }])[0];
     await expect(service.understand(intent, huge, new AbortController().signal)).rejects.toMatchObject({ detail: { code: 'INVALID_REQUEST' } });
     expect(beforeCall).not.toHaveBeenCalled(); expect(model.doGenerateCalls).toHaveLength(0);
   });

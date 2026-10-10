@@ -6,7 +6,7 @@ import { extractRetainedText } from '../materials/text';
 import { youtubeMaterialVersion } from '../materials/youtube-identity';
 import { youtubeObservationSegmentId, youtubeObservationVersion } from '../materials/youtube-artifacts';
 import { videoObservationCoverage } from '../material-observation';
-import { normalizeProcessingInput, partitionProcessingInput } from '../processing-input';
+import { normalizeProcessingInput, partitionProcessingInput, validateProcessingPartition } from '../processing-input';
 
 const checksum = 'a'.repeat(64);
 const artifact = () => ({ id: randomUUID(), kind: 'artifact' as const, checksum, byteLength: 500 });
@@ -77,6 +77,8 @@ describe('grounded processing inputs', () => {
     expect(parts.map(part => part.index)).toEqual(parts.map((_, index) => index));
     const changed = structuredClone(units); changed[0].artifactId = randomUUID();
     expect(partitionProcessingInput(changed, max)[0].id).not.toBe(parts[0].id);
+    expect(() => validateProcessingPartition({ ...parts[0], coverage: { ...parts[0].coverage, exhaustive: false } })).toThrow();
+    expect(() => normalizeProcessingInput({ ...f.source, input: { kind: 'url', url: 'https://example.com/unaccepted' } }, f.extraction, f.body)).toThrow();
     expect(() => partitionProcessingInput(units, 1)).toThrow('nothing was truncated');
     expect(() => partitionProcessingInput([...units, ...units])).toThrow('accepted source');
     const controller = new AbortController(); controller.abort();

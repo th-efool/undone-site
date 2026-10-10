@@ -27,7 +27,8 @@ export function normalizeProcessingInput(input: MaterialSource, accepted: Extrac
   observations: unknown[] = [], signal?: AbortSignal): ProcessingUnit[] {
   signal?.throwIfAborted(); const source = materialSourceSchema.parse(input); const extraction = extractedContentSchema.parse(accepted);
   if (source.status !== 'ready' || source.id !== extraction.materialId || !source.selectedUnitIds.length ||
-    new Set(source.selectedUnitIds).size !== source.selectedUnitIds.length) invalid();
+    new Set(source.selectedUnitIds).size !== source.selectedUnitIds.length ||
+    (['markdown', 'pdf'].includes(source.kind) ? source.input.kind !== 'upload' : source.input.kind !== 'url')) invalid();
   let version: string; let checksum: string; let materialId: string; let units: ProcessingUnit[];
   const unit = (unitId: string, segments: ProcessingSegment[], origin: ProcessingUnit['contentOrigin'], scope: string,
     exhaustive = true, limitations: string[] = []): ProcessingUnit => ({ materialId: source.id, unitId, extractionVersion: extraction.version,
@@ -101,7 +102,8 @@ export function partitionProcessingInput(units: ProcessingUnit[], maxTextBytes: 
       if (!segments.length) return;
       if (result.length >= PROCESSING_LIMITS.partitions) limit();
       result.push({ ...unit, segments, index, textBytes, id: hash({ version: 'processing-partition-v1', materialId: unit.materialId,
-        unitId: unit.unitId, extractionVersion: unit.extractionVersion, artifactId: unit.artifactId, index, segments }) });
+        unitId: unit.unitId, extractionVersion: unit.extractionVersion, artifactId: unit.artifactId,
+        contentOrigin: unit.contentOrigin, coverage: unit.coverage, index, segments }) });
       segments = []; textBytes = 0; index++;
     };
     for (const segment of unit.segments) {
@@ -119,6 +121,6 @@ export function validateProcessingPartition(partition: ProcessingPartition): Pro
   if (parts.length !== 1 || !Number.isSafeInteger(partition.index) || partition.index < 0 ||
     partition.textBytes !== parts[0].textBytes || partition.id !== hash({ version: 'processing-partition-v1', materialId: partition.materialId,
       unitId: partition.unitId, extractionVersion: partition.extractionVersion, artifactId: partition.artifactId,
-      index: partition.index, segments: partition.segments })) invalid();
+      contentOrigin: partition.contentOrigin, coverage: partition.coverage, index: partition.index, segments: partition.segments })) invalid();
   return partition;
 }
