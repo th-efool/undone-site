@@ -1,3 +1,4 @@
+import { refinementProposalSchema } from './review';
 import { z } from 'zod';
 import { creationSnapshotSchema, materialSourceSchema, youtubeSourceStateSchema } from './contracts';
 export const understandingRequestSchema = z.strictObject({ requestId: z.uuid(), inputRevision: z.number().int().nonnegative(), snapshot: creationSnapshotSchema })
@@ -75,3 +76,15 @@ export const notionAcquisitionRequestSchema = z.strictObject({ requestId: z.uuid
   maxUnits: z.number().int().positive().max(100), source: materialSourceSchema.refine(source => source.kind === 'notion' &&
     source.input.kind === 'url', 'Select a connected Notion page') });
 export type NotionAcquisitionRequest = z.infer<typeof notionAcquisitionRequestSchema>;
+
+export const refinementRequestSchema = z.strictObject({ requestId: z.uuid(), inputRevision: z.number().int().nonnegative(), snapshot: creationSnapshotSchema })
+  .superRefine((request, ctx) => {
+    const state = request.snapshot;
+    if (state.stage !== 'review' || state.status !== 'succeeded' || !state.review || !state.processing?.building?.complete ||
+      state.inputRevision !== request.inputRevision || state.review.request?.requestId !== request.requestId ||
+      state.review.request.baseEditRevision !== state.review.editRevision || state.review.orphanedLessonIds.length) ctx.addIssue({ code: 'custom', message: 'Current owned review is required for refinement' });
+  });
+export type RefinementRequest = z.infer<typeof refinementRequestSchema>;
+export const refinementResultSchema = z.strictObject({ requestId: z.uuid(), inputRevision: z.number().int().nonnegative(), baseEditRevision: z.number().int().nonnegative(),
+  buildFingerprint: z.string().regex(/^[a-f0-9]{64}$/), proposal: refinementProposalSchema });
+export type RefinementResult = z.infer<typeof refinementResultSchema>;

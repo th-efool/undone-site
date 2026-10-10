@@ -1,3 +1,5 @@
+import { reviewPatchSchema, lessonEditSchema, editReview, editLesson, applyRefinement } from './review-flow';
+import { refinementResultSchema } from './jobs';
 import { buildingCheckpointSchema } from './build';
 import { analysisCheckpointSchema } from './analysis';
 import { z } from 'zod';
@@ -15,6 +17,13 @@ import { discoveryResultSchema } from './discovery';
 import { understandingCheckpointSchema, chunkingCheckpointSchema } from './processing';
 
 export const creationCommandSchema = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.literal('open_review') }),
+  z.strictObject({ type: z.literal('edit_review'), patch: reviewPatchSchema }),
+  z.strictObject({ type: z.literal('edit_lesson'), ...lessonEditSchema.shape }),
+  z.strictObject({ type: z.literal('discard_orphaned_edits'), lessonIds: z.array(z.string().min(1).max(128)).min(1).max(2500) }),
+  z.strictObject({ type: z.literal('refine_curriculum'), requestId: z.uuid(), prompt: z.string().trim().min(1).max(2000) }),
+  z.strictObject({ type: z.literal('apply_refinement'), requestId: z.uuid() }),
+  z.strictObject({ type: z.literal('discard_refinement'), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('request_recommendations'), query: querySchema, requestId: z.uuid() }),
   z.strictObject({ type: z.literal('create_own') }),
   z.strictObject({ type: z.literal('understand_material'), requestId: z.uuid() }),
@@ -41,6 +50,7 @@ export const creationCommandSchema = z.discriminatedUnion('type', [
 ]);
 export type CreationCommand = z.infer<typeof creationCommandSchema>;
 export const creationEventSchema = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.literal('refinement_received'), requestId: z.uuid(), result: refinementResultSchema }),
   z.strictObject({ type: z.literal('recommendations_received'), result: recommendationResultSchema }),
   z.strictObject({ type: z.literal('operation_failed'), requestId: z.uuid(), error: creationErrorSchema }),
   z.strictObject({ type: z.literal('operation_cancelled'), requestId: z.uuid() }),
@@ -73,29 +83,57 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
   const command = creationCommandSchema.parse(input);
   const changed = { ...state, revision: state.revision + 1, error: null };
   switch (command.type) {
+    case 'open_review':
+      throw new Error('Opening review requires the owned curriculum service');
+    case 'edit_review':
+    case 'edit_lesson':
+    case 'apply_refinement':
+    case 'discard_refinement':
+    case 'discard_orphaned_edits': {
+      if (state.stage !== 'review' || state.status === 'running' || !state.review) throw new Error('Review is not available');
+      let review = state.review;
+      if (command.type === 'edit_review') review = editReview(review, command.patch);
+      if (command.type === 'edit_lesson') review = editLesson(review, { lessonId: command.lessonId, title: command.title, objectives: command.objectives });
+      if (command.type === 'apply_refinement') review = applyRefinement(review, command.requestId);
+      if (command.type === 'discard_refinement') {
+        if (review.proposal?.requestId !== command.requestId) throw new Error('Refinement proposal is stale');
+        review = { ...review, proposal: null, request: null };
+      }
+      if (command.type === 'discard_orphaned_edits') {
+        if (command.lessonIds.some(id => !review.orphanedLessonIds.includes(id))) throw new Error('Unknown orphaned edit');
+        review = { ...review, editRevision: review.editRevision + 1,
+          lessonEdits: review.lessonEdits.filter(edit => !command.lessonIds.includes(edit.lessonId)),
+          orphanedLessonIds: review.orphanedLessonIds.filter(id => !command.lessonIds.includes(id)), invalidated: ['preview', 'publication'] };
+      }
+      return creationSnapshotSchema.parse({ ...changed, review });
+    }
+    case 'refine_curriculum':
+      if (state.stage !== 'review' || state.status === 'running' || !state.review || state.review.orphanedLessonIds.length) throw new Error('Review is not available');
+      return creationSnapshotSchema.parse({ ...changed, status: 'running', activeRequestId: command.requestId,
+        review: { ...state.review, proposal: null, request: { requestId: command.requestId, prompt: command.prompt, baseEditRevision: state.review.editRevision } } });
     case 'build_curriculum':
-      if (!['starting_point', 'processing', 'ready'].includes(state.stage) || state.status === 'running' || !state.processing?.analysis?.complete || !state.processing.analysis.checkpoint) throw new Error('Analysis is not complete');
+      if (!['starting_point', 'processing', 'ready', 'review'].includes(state.stage) || state.status === 'running' || !state.processing?.analysis?.complete || !state.processing.analysis.checkpoint) throw new Error('Analysis is not complete');
       return creationSnapshotSchema.parse({ ...changed, stage: 'processing', status: 'running', activeRequestId: command.requestId,
         processing: { ...state.processing, phase: 'building', building: { requestId: command.requestId, checkpoint: null, complete: false } } });
     case 'analyze_material':
-      if (!['starting_point', 'processing', 'ready'].includes(state.stage) || state.status === 'running' || !state.processing?.chunking?.complete || !state.processing.chunking.checkpoint) throw new Error('Chunking is not complete');
+      if (!['starting_point', 'processing', 'ready', 'review'].includes(state.stage) || state.status === 'running' || !state.processing?.chunking?.complete || !state.processing.chunking.checkpoint) throw new Error('Chunking is not complete');
       return creationSnapshotSchema.parse({ ...changed, stage: 'processing', status: 'running', activeRequestId: command.requestId,
         processing: { ...state.processing, phase: 'analysis', building: null, analysis: { requestId: command.requestId, checkpoint: null, complete: false } } });
     case 'chunk_material':
-      if (!['starting_point', 'processing', 'ready'].includes(state.stage) || state.status === 'running' || !state.processing?.complete || !state.processing.checkpoint) throw new Error('Understanding is not complete');
+      if (!['starting_point', 'processing', 'ready', 'review'].includes(state.stage) || state.status === 'running' || !state.processing?.complete || !state.processing.checkpoint) throw new Error('Understanding is not complete');
       return creationSnapshotSchema.parse({ ...changed, stage: 'processing', status: 'running', activeRequestId: command.requestId,
         processing: { ...state.processing, phase: 'chunking', building: null, analysis: null, chunking: { requestId: command.requestId, checkpoint: null, complete: false } } });
     case 'understand_material':
-      if (!['starting_point', 'processing', 'ready'].includes(state.stage) || state.status === 'running' || !state.result || !state.materials.length ||
+      if (!['starting_point', 'processing', 'ready', 'review'].includes(state.stage) || state.status === 'running' || !state.result || !state.materials.length ||
         state.materials.some(source => source.status !== 'ready' || !source.selectedUnitIds.length) || state.extractions.length !== state.materials.length ||
         state.extractions.some(extraction => !state.materialRefs.some(ref => ref.materialId === extraction.materialId && ref.ids.includes(extraction.artifactRef)))) throw new Error('Retained material is not ready');
       return creationSnapshotSchema.parse({ ...changed, stage: 'processing', status: 'running', activeRequestId: command.requestId,
         processing: { requestId: command.requestId, inputRevision: state.inputRevision, checkpoint: null, complete: false } });
     case 'cancel_processing':
-      if (state.stage !== 'processing') throw new Error('Processing is not available');
+      if (!['processing', 'review'].includes(state.stage)) throw new Error('Processing is not available');
       return state.activeRequestId ? applyEvent(state, { type: 'operation_cancelled', requestId: state.activeRequestId }) : state;
     case 'back_to_materials':
-      if (!['processing', 'ready'].includes(state.stage) || state.status === 'running') throw new Error('Processing is still running');
+      if (!['processing', 'ready', 'review'].includes(state.stage) || state.status === 'running') throw new Error('Processing is still running');
       return creationSnapshotSchema.parse({ ...changed, stage: 'starting_point', status: 'succeeded' });
     case 'cancel_recommendations':
       if (state.stage !== 'recommendations') throw new Error('Operation is still running');
@@ -213,6 +251,9 @@ export function applyEvent(state: CreationSnapshot, input: CreationEvent): Creat
     event.result.checkpoint.inputRevision !== state.inputRevision || event.result.checkpoint.requestId !== requestId)) return state;
   if (event.type === 'understanding_received' && (state.stage !== 'processing' || state.processing?.phase !== 'understanding' || state.processing.requestId !== requestId ||
     event.result.requestId !== requestId || event.result.inputRevision !== state.inputRevision || event.result.completed.length !== event.result.total)) return state;
+  if (event.type === 'refinement_received' && (state.stage !== 'review' || !state.review || state.review.request?.requestId !== requestId ||
+    event.result.requestId !== requestId || event.result.inputRevision !== state.inputRevision || event.result.buildFingerprint !== state.review.buildFingerprint ||
+    event.result.baseEditRevision !== state.review.editRevision || event.result.proposal.changes.some(change => 'lessonId' in change && !state.review!.lessonIds.includes(change.lessonId)))) return state;
   if (event.type === 'building_received' && (state.stage !== 'processing' || state.processing?.phase !== 'building' || state.processing.building?.requestId !== requestId ||
     event.result.requestId !== requestId || event.result.inputRevision !== state.inputRevision || event.result.completed.length !== event.result.total ||
     event.result.analysisFingerprint !== state.processing.analysis?.checkpoint?.inputFingerprint ||
@@ -236,6 +277,8 @@ export function applyEvent(state: CreationSnapshot, input: CreationEvent): Creat
       source.kind === event.result.receipt.metadata.kind && source.input.kind === 'url' && source.input.url === event.result.receipt.metadata.sourceUrl))) return state;
   const changed = { ...state, revision: state.revision + 1, activeRequestId: null };
   switch (event.type) {
+    case 'refinement_received':
+      return creationSnapshotSchema.parse({ ...changed, status: 'succeeded', error: null, review: { ...state.review!, request: null, proposal: { requestId, baseEditRevision: event.result.baseEditRevision, result: event.result.proposal } } });
     case 'building_received':
       return creationSnapshotSchema.parse({ ...changed, stage: 'ready', status: 'succeeded', error: null, processing: { ...state.processing!, building: { requestId, checkpoint: event.result, complete: true } } });
     case 'analysis_received':

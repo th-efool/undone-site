@@ -9,6 +9,7 @@ const idSchema = z.uuid();
 const createSchema = z.strictObject({ draftId: idSchema });
 const updateSchema = z.strictObject({ baseRevision: z.number().int().nonnegative(), command: creationCommandSchema });
 const commandGuardMessages = new Set([
+  'Review is not available', 'Unknown review lesson', 'Unknown orphaned edit', 'Refinement proposal is stale', 'Refinement proposal is invalid',
   'Intent is not ready', 'Starting point is not available', 'Operation is still running',
   'Save a video selection before observing it',
   'Retained material is not ready', 'Processing is not available', 'Processing is still running', 'Understanding is not complete', 'Chunking is not complete', 'Analysis is not complete',
@@ -23,7 +24,7 @@ export function draftHandlers(service: DraftService, getOwner: () => Promise<str
       if (id !== undefined && !idSchema.safeParse(id).success) return Response.json({ message: 'Draft not found.' }, { status: 404 });
       if (request.method === 'GET') return Response.json(await service.load(owner, id!), { headers: { 'Cache-Control': 'no-store' } });
       const raw = await request.text();
-      if (raw.length > 8192) return Response.json({ message: 'Request too large.' }, { status: 400 });
+      if (raw.length > 65536) return Response.json({ message: 'Request too large.' }, { status: 400 });
       if (!id) {
         const body = createSchema.parse(JSON.parse(raw));
         return Response.json(await service.create(owner, body.draftId), { status: 201 });

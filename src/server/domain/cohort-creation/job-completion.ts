@@ -1,3 +1,4 @@
+import { validateRefinementResult } from './refinement.service';
 import { validateBuildingCheckpoint } from './building.service';
 import { validateAnalysisCheckpoint } from './analysis.service';
 import { recommendationResultSchema } from '@/src/shared/cohort-creation/contracts';
@@ -63,6 +64,7 @@ export function validateWebRetention(job: ClaimedWebJob, value: unknown): Retain
 }
 
 export function jobCompletion(job: ClaimedCreationJob, value: CreationCheckpoint): CreationEvent {
+  if (job.kind === 'refine_curriculum') return { type: 'refinement_received', requestId: job.requestId, result: validateRefinementResult(job.input, value) };
   if (job.kind === 'understand_material') {
     const result = validateUnderstandingCheckpoint(job.input.snapshot, job.requestId, value);
     if (result.completed.length !== result.total) throw new Error('Understanding is incomplete');

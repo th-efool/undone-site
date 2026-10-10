@@ -1,3 +1,7 @@
+import { VercelCreationRefinement } from './infrastructure/ai/vercelCreationRefinement';
+import { RefinementService } from './domain/cohort-creation/refinement.service';
+import type { CreationRefinement } from './domain/cohort-creation/refinement';
+import { BuildingContentService } from './domain/cohort-creation/building-content.service';
 import { VercelCreationBuild } from './infrastructure/ai/vercelCreationBuild';
 import type { CreationBuilding } from './domain/cohort-creation/build';
 import { BuildingService } from './domain/cohort-creation/building.service';
@@ -158,6 +162,15 @@ async function main() {
         const understanding = new UnderstandingContentService(new ProcessingContentService(storage.creationArtifactRepository), storage.creationArtifactRepository);
         const chunks = new ChunkingContentService(understanding, storage.creationArtifactRepository);
         return new BuildingService(new AnalysisContentService(chunks, storage.creationArtifactRepository), ai, storage.creationArtifactRepository).run(...args);
+      } }),
+      job => ({ run: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        const adapter = () => new VercelCreationRefinement(createCohortModel(), { beforeCall: () => creationJobRepo.reserveModelCall(job) });
+        const ai: CreationRefinement = { get identity() { return adapter().identity; }, refine: (...input) => adapter().refine(...input) };
+        const understanding = new UnderstandingContentService(new ProcessingContentService(storage.creationArtifactRepository), storage.creationArtifactRepository);
+        const chunks = new ChunkingContentService(understanding, storage.creationArtifactRepository);
+        const analysis = new AnalysisContentService(chunks, storage.creationArtifactRepository);
+        return new RefinementService(new BuildingContentService(analysis, storage.creationArtifactRepository), ai).run(...args);
       } }));
   } finally {
     clearInterval(retentionTimer);

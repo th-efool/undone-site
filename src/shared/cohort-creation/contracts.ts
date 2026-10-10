@@ -1,3 +1,4 @@
+import { reviewWorkspaceSchema } from './review';
 import { buildingCheckpointSchema } from './build';
 import { analysisCheckpointSchema } from './analysis';
 import { z } from 'zod';
@@ -164,7 +165,7 @@ export const youtubeSourceStateSchema = z.strictObject({ materialId: key, source
 });
 export const creationSnapshotSchema = z.strictObject({
   schemaVersion: z.literal(1), draftId: z.uuid(), storage: z.literal('postgres'), revision, inputRevision: revision,
-  stage: z.enum(['recommendations', 'starting_point', 'processing', 'ready']), query: z.string().max(2000),
+  stage: z.enum(['recommendations', 'starting_point', 'processing', 'ready', 'review']), query: z.string().max(2000),
   status: z.enum(['idle', 'running', 'succeeded', 'failed', 'canceled']), activeRequestId: z.uuid().nullable(),
   result: recommendationResultSchema.nullable(), startingPoint: startingPointSchema.nullable(), error: creationErrorSchema.nullable(),
   materials: z.array(materialSourceSchema).max(20).default([]),
@@ -174,6 +175,7 @@ export const creationSnapshotSchema = z.strictObject({
   youtubeSources: z.array(youtubeSourceStateSchema).max(20).default([]),
   discovery: z.strictObject({ requestId: z.uuid(), inputRevision: revision,
     checkpoint: discoveryCheckpointSchema.nullable(), result: discoveryResultSchema.nullable() }).nullable().default(null),
+  review: reviewWorkspaceSchema.nullable().default(null),
   processing: z.strictObject({ requestId: z.uuid(), inputRevision: revision,
     checkpoint: understandingCheckpointSchema.nullable(), complete: z.boolean(), phase: z.enum(['understanding', 'chunking', 'analysis', 'building']).default('understanding'),
     building: z.strictObject({ requestId: z.uuid(), checkpoint: buildingCheckpointSchema.nullable(), complete: z.boolean() }).nullable().default(null),
@@ -215,6 +217,10 @@ export const creationSnapshotSchema = z.strictObject({
     state.processing?.phase === 'building' && !building) ctx.addIssue({ code: 'custom', message: 'Invalid building dependency or coverage' });
   if (state.stage === 'ready' && (!building?.complete || state.processing?.phase !== 'building' || state.status !== 'succeeded')) {
     ctx.addIssue({ code: 'custom', message: 'Accepted complete curriculum is required for ready state' });
+  }
+  if (state.stage === 'review' && (!building?.complete || !state.review || state.review.buildFingerprint !== building.checkpoint?.inputFingerprint ||
+    state.status === 'running' && (state.review.request?.requestId !== state.activeRequestId || state.review.request.baseEditRevision !== state.review.editRevision))) {
+    ctx.addIssue({ code: 'custom', message: 'Review requires accepted curriculum and a current refinement request' });
   }
   if ((state.status === 'running') !== (state.activeRequestId !== null)) ctx.addIssue({ code: 'custom', message: 'Invalid active operation' });
   if (state.status === 'running' && ((state.stage === 'recommendations' && state.result !== null) ||
