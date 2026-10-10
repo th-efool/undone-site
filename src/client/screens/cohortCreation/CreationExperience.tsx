@@ -2,6 +2,8 @@
 import { BuildingProgress } from './components/BuildingProgress';
 import { ReviewWorkspace } from './components/ReviewWorkspace';
 import { PublicationStatus } from './components/PublicationStatus';
+import { CreationShell } from './components/CreationShell';
+import { RecommendationPending } from './components/RecommendationPending';
 import { AnalysisProgress } from './components/AnalysisProgress';
 
 import Link from 'next/link';
@@ -23,6 +25,21 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
   const createOwn = async () => {
     if (await creation.createOwn()) router.push(`/quest/draft/${draftId}`);
   };
+  if (creation.hydrated && snapshot.stage === 'recommendations') {
+    return <CreationShell query={snapshot.result?.intent.rawQuery ?? (snapshot.query || initialQuery || 'I’m looking for something new to learn.')} saved={creation.saved}
+      disabled={snapshot.status === 'running' || creation.materialPending}
+      reply={snapshot.result ? <><p>Got it.</p><p>You’re looking to learn {snapshot.result.intent.topic.value}.</p>
+        <p>{snapshot.result.items.length ? 'I found a few existing SideQuests that might be a good fit.' : 'Let’s make a learning journey that fits you.'}</p></> : <p>Tell me what you want to learn. I’ll look for a good place to start.</p>}
+      hintTitle="Why these?" hint="These cohorts match your interest, level, and what people are currently learning. You can join one, or tell me what you’re looking for and I’ll help make a custom one."
+      onMessage={creation.runQuery} suggestions={snapshot.result ? [
+        { label: 'Show more advanced ones', action: () => void creation.runQuery(`${snapshot.query}\nI want more advanced material.`) },
+        { label: 'I want something more practical', action: () => void creation.runQuery(`${snapshot.query}\nI want practical, hands-on learning.`) },
+        { label: 'I’ll create my own instead', action: () => void createOwn() },
+      ] : []}>
+      {creation.message && <p role="alert">{creation.message}</p>}
+      {snapshot.result ? <RecommendationResults result={snapshot.result} onCreateOwn={createOwn} /> : <RecommendationPending creation={creation} />}
+    </CreationShell>;
+  }
   return <main id="main-content" className={styles.page}>
     <header className={styles.header}><Link href="/">Undone</Link><span>Cohort creation</span></header>
     <p className={styles.notice}>{creation.saved ? 'Your draft is saved to your account.' : 'Waiting for server confirmation.'}</p>
