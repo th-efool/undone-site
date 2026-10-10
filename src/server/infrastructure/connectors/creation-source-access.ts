@@ -8,6 +8,8 @@ import { creationConnectorSchema } from '@/src/shared/cohort-creation/connectors
 import { CreationStorageError, type StorageScope } from '@/src/server/infrastructure/storage/creation.contracts';
 import { GithubMaterialReader } from '@/src/server/domain/cohort-creation/materials/github';
 import { GithubApiTransport } from '@/src/server/domain/cohort-creation/materials/github-public-api';
+import { NotionMaterialReader } from '@/src/server/domain/cohort-creation/materials/notion';
+import { NotionApi } from '@/src/server/domain/cohort-creation/materials/notion-api';
 
 async function cancellable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
   let abort: () => void = () => undefined;
@@ -49,4 +51,8 @@ export async function getOwnedCreationToken(scope: StorageScope, provider: Creat
 export async function createOwnedGithubReader(scope: StorageScope, signal?: AbortSignal) {
   const token = await getOwnedCreationToken(scope, 'github', signal);
   return new GithubMaterialReader(new GithubApiTransport(fetch, token), 'connected');
+}
+export async function createOwnedNotionReader(scope: StorageScope, signal?: AbortSignal) {
+  const token = await getOwnedCreationToken(scope, 'notion', signal);
+  return new NotionMaterialReader(new NotionApi(token));
 }
