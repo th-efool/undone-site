@@ -16,6 +16,9 @@ import { createCreationStorageMetadata } from '../src/server/infrastructure/stor
 import { creationSnapshotSchema, type RecommendationResult } from '../src/shared/cohort-creation/contracts';
 import { TextAcquisitionService } from '../src/server/domain/cohort-creation/materials/text-acquisition.service';
 import { executeCreationJob } from '../src/server/domain/cohort-creation/durable-job.runner';
+import { createCreationDraftRepository } from '../src/server/infrastructure/db/postgres/repositories/creationDraft.repo';
+import { retainedWebCheckpointSchema, webMaterialManifestSchema } from '../src/shared/cohort-creation/web';
+import { WEB_PARSER_VERSION, webExtractionVersion, webExtractionFingerprint, webReceiptFingerprint } from '../src/server/domain/cohort-creation/materials/web-identity';
 
 let stage = 'connection';
 async function main() {
@@ -159,6 +162,57 @@ async function main() {
     assert.ok(await repo.enqueue(owner, readyText, replacedIntent));
     assert.equal((await db.creationStorageObject.findUniqueOrThrow({ where: { id: sourceRef.id } })).referencedAt, null);
     assert.ok(await repo.cancel(owner, replacedIntent, applyCommand(replacedIntent, { type: 'cancel_recommendations' })));
+    stage = 'web receipt checkpoints, restart and owner pins';
+    const drafts = createCreationDraftRepository(db);
+    const webDraftId = randomUUID();
+    const webOwn = creationSnapshotSchema.parse({ ...readyText, draftId: webDraftId, revision: 0,
+      materials: [], extractions: [], materialRefs: [] });
+    await db.creationDraft.create({ data: { id: webDraftId, ownerId: owner, snapshot: webOwn } });
+    const webCommand = { type: 'acquire_web' as const, requestId: randomUUID(), materialId: randomUUID(), url: 'https://docs.example.com/article' };
+    const webQueued = applyCommand(webOwn, webCommand);
+    assert.ok(await repo.enqueue(owner, webOwn, webQueued));
+    assert.ok(await repo.enqueue(owner, webOwn, webQueued), 'duplicate URL enqueue replays');
+    const webJob = await repo.claim('web-first'); assert.ok(webJob?.kind === 'acquire_web');
+    const rawWeb = { id: randomUUID(), kind: 'upload' as const, byteLength: 100, checksum: 'a'.repeat(64) };
+    const receiptRef = { id: randomUUID(), kind: 'artifact' as const, byteLength: 500, checksum: 'b'.repeat(64) };
+    const extractionRef = { id: randomUUID(), kind: 'artifact' as const, byteLength: 1000, checksum: 'c'.repeat(64) };
+    const receipt = { schemaVersion: 1 as const, materialId: webCommand.materialId, inputRevision: webQueued.inputRevision,
+      requestedUrl: webCommand.url, finalUrl: webCommand.url, redirects: [], mediaType: 'text/html' as const,
+      retainedSource: rawWeb, fetchedAt: new Date().toISOString(), fetchVersion: 'public-https-pinned-v1' as const };
+    const retained = retainedWebCheckpointSchema.parse({ phase: 'retained_web', receipt, receiptArtifact: receiptRef,
+      receiptFingerprint: webReceiptFingerprint(receipt) });
+    const webManifest = webMaterialManifestSchema.parse({ schemaVersion: 1, inputRevision: webQueued.inputRevision,
+      source: { ...webQueued.materials[0], status: 'ready', selectedUnitIds: [webCommand.materialId] },
+      retainedSource: rawWeb, extractionArtifact: extractionRef,
+      extraction: { materialId: webCommand.materialId, version: webExtractionVersion(rawWeb.checksum), checksum: rawWeb.checksum,
+        artifactRef: extractionRef.id, extractionKind: 'text', segmentCount: 2, complete: true, selectionScope: 'main_article' },
+      parserVersion: WEB_PARSER_VERSION, inputFingerprint: webExtractionFingerprint(receipt), acquiredAt: new Date().toISOString(),
+      receipt, receiptArtifact: receiptRef, receiptFingerprint: retained.receiptFingerprint });
+    for (const ref of [rawWeb, receiptRef, extractionRef]) await db.creationStorageObject.create({ data: {
+      ...ref, blobId: randomUUID(), draftId: webDraftId, ownerId: ref.id === receiptRef.id ? 'foreign-owner' : owner,
+      status: 'ready', mediaType: ref.kind === 'upload' ? 'text/html' : 'application/json', reservedBytes: ref.byteLength,
+      artifactType: ref.id === receiptRef.id ? 'web-response' : ref.id === extractionRef.id ? 'web-extraction' : null,
+      schemaVersion: ref.kind === 'artifact' ? 1 : null,
+      inputFingerprint: ref.id === receiptRef.id ? retained.receiptFingerprint : ref.id === extractionRef.id ? webManifest.inputFingerprint : null,
+    } });
+    await assert.rejects(repo.checkpoint(webJob, retained), /Checkpoint storage reference unavailable/);
+    assert.equal((await db.creationStorageObject.findUniqueOrThrow({ where: { id: rawWeb.id } })).referencedAt, null, 'foreign receipt rolls back raw pin');
+    await db.creationStorageObject.update({ where: { id: receiptRef.id }, data: { ownerId: owner } });
+    assert.equal(await repo.checkpoint(webJob, retained), true);
+    const retainedState = await drafts.load(owner, webDraftId); assert.ok(retainedState);
+    assert.equal(retainedState.materials[0].status, 'acquiring'); assert.equal(retainedState.materialRefs[0].ids.length, 2);
+    await db.creationJob.update({ where: { id: webJob.id }, data: { leaseUntil: new Date(0) } });
+    const resumedWeb = await repo.claim('web-restart'); assert.ok(resumedWeb?.kind === 'acquire_web' && resumedWeb.checkpoint && 'phase' in resumedWeb.checkpoint);
+    assert.equal(await repo.checkpoint(webJob, retained), false, 'old web lease cannot overwrite retained checkpoint');
+    await executeCreationJob(repo, resumedWeb, () => { throw new Error('No AI expected'); }, new AbortController().signal, undefined,
+      () => ({ acquire: async () => { throw new Error('Retained checkpoint must not refetch'); }, extract: async () => webManifest }));
+    const readyWeb = await drafts.load(owner, webDraftId); assert.ok(readyWeb);
+    assert.equal(readyWeb.materials[0].status, 'ready'); assert.equal(readyWeb.materialRefs[0].ids.length, 3);
+    const removedWeb = applyCommand(readyWeb, { type: 'remove_material', materialId: webCommand.materialId });
+    assert.equal(await drafts.swap('other-owner', webDraftId, readyWeb.revision, removedWeb), false);
+    assert.equal(await drafts.swap(owner, webDraftId, readyWeb.revision, removedWeb), true);
+    assert.equal(await drafts.swap(owner, webDraftId, readyWeb.revision, removedWeb), false, 'stale removal cannot replay');
+    assert.equal(await db.creationStorageObject.count({ where: { draftId: webDraftId, referencedAt: { not: null } } }), 0, 'all detached web pins release');
     stage = 'retention protection and tombstones';
     const retention = createCreationRetentionRepository(db);
     const old = new Date(Date.now() - 61 * 86400_000);
@@ -214,7 +268,7 @@ async function main() {
     try { if (created) await admin.query(`DROP SCHEMA "${schema}" CASCADE`); }
     finally { await admin.end(); }
   }
-  console.log('SQL smoke passed: ownership, CAS, recommendation/text jobs, artifact pinning, restart, reload, retention; isolated schema removed.');
+  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web jobs, retained receipt fencing, restart, pin release, reload, retention; isolated schema removed.');
 }
 
 main().catch(error => {
