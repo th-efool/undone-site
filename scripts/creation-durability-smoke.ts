@@ -19,6 +19,8 @@ import { executeCreationJob } from '../src/server/domain/cohort-creation/durable
 import { createCreationDraftRepository } from '../src/server/infrastructure/db/postgres/repositories/creationDraft.repo';
 import { retainedWebCheckpointSchema, webMaterialManifestSchema } from '../src/shared/cohort-creation/web';
 import { WEB_PARSER_VERSION, webExtractionVersion, webExtractionFingerprint, webReceiptFingerprint } from '../src/server/domain/cohort-creation/materials/web-identity';
+import { PDF_PARSER_VERSION, pdfExtractionVersion, pdfAcquisitionFingerprint } from '../src/server/domain/cohort-creation/materials/pdf-identity';
+import { materialManifestSchema } from '../src/shared/cohort-creation/materials';
 
 let stage = 'connection';
 async function main() {
@@ -213,6 +215,44 @@ async function main() {
     assert.equal(await drafts.swap(owner, webDraftId, readyWeb.revision, removedWeb), true);
     assert.equal(await drafts.swap(owner, webDraftId, readyWeb.revision, removedWeb), false, 'stale removal cannot replay');
     assert.equal(await db.creationStorageObject.count({ where: { draftId: webDraftId, referencedAt: { not: null } } }), 0, 'all detached web pins release');
+    stage = 'durable PDF ownership, typed uploads and checkpoint recovery';
+    const pdfDraftId = randomUUID(); const pdfStart = { ...starting, draftId: pdfDraftId };
+    await db.creationDraft.create({ data: { id: pdfDraftId, ownerId: owner, snapshot: pdfStart, revision: pdfStart.revision } });
+    const pdfRef = { id: randomUUID(), kind: 'upload' as const, byteLength: 800, checksum: 'd'.repeat(64) };
+    await db.creationStorageObject.create({ data: { ...pdfRef, blobId: randomUUID(), draftId: pdfDraftId,
+      ownerId: 'foreign-owner', status: 'ready', mediaType: 'application/pdf', reservedBytes: pdfRef.byteLength } });
+    const pdfCommand = { type: 'acquire_pdf' as const, requestId: randomUUID(), materialId: randomUUID(), assetId: pdfRef.id };
+    const pdfNext = applyCommand(pdfStart, pdfCommand);
+    await assert.rejects(repo.enqueue(owner, pdfStart, pdfNext), error => error instanceof CreationFailure && error.detail.code === 'INVALID_REQUEST');
+    await db.creationStorageObject.update({ where: { id: pdfRef.id }, data: { ownerId: owner, mediaType: 'text/plain' } });
+    await assert.rejects(repo.enqueue(owner, pdfStart, pdfNext), error => error instanceof CreationFailure && error.detail.code === 'INVALID_REQUEST');
+    await db.creationStorageObject.update({ where: { id: pdfRef.id }, data: { mediaType: 'application/pdf' } });
+    assert.ok(await repo.enqueue(owner, pdfStart, pdfNext)); assert.ok(await repo.enqueue(owner, pdfStart, pdfNext));
+    assert.equal(await db.creationJob.count({ where: { draftId: pdfDraftId } }), 1, 'duplicate PDF enqueue reuses job');
+    const pdfJob = await repo.claim('pdf-worker'); assert.ok(pdfJob?.kind === 'acquire_pdf');
+    pdfJob.deadlineAt = new Date(Date.now() + 300_000);
+    await db.creationJob.update({ where: { id: pdfJob.id }, data: { deadlineAt: pdfJob.deadlineAt, leaseUntil: new Date(Date.now() + 300_000) } });
+    const pdfArtifact = { id: randomUUID(), kind: 'artifact' as const, byteLength: 1500, checksum: 'e'.repeat(64) };
+    const pdfManifest = materialManifestSchema.parse({ schemaVersion: 1, inputRevision: pdfJob.inputRevision,
+      source: { ...pdfJob.input.source, selectedUnitIds: [pdfCommand.materialId], status: 'ready' }, retainedSource: pdfRef,
+      extractionArtifact: pdfArtifact, parserVersion: PDF_PARSER_VERSION, inputFingerprint: pdfAcquisitionFingerprint(pdfCommand.materialId, pdfJob.inputRevision, pdfRef),
+      acquiredAt: new Date().toISOString(), extraction: { materialId: pdfCommand.materialId, version: pdfExtractionVersion(pdfRef.checksum),
+        checksum: pdfRef.checksum, artifactRef: pdfArtifact.id, extractionKind: 'text', segmentCount: 2, complete: true } });
+    await db.creationStorageObject.create({ data: { ...pdfArtifact, blobId: randomUUID(), draftId: pdfDraftId,
+      ownerId: owner, status: 'ready', mediaType: 'application/json', reservedBytes: pdfArtifact.byteLength,
+      artifactType: 'text-extraction', schemaVersion: 1, inputFingerprint: pdfManifest.inputFingerprint } });
+    await assert.rejects(repo.checkpoint(pdfJob, pdfManifest), /Checkpoint storage reference unavailable/);
+    await db.creationStorageObject.update({ where: { id: pdfArtifact.id }, data: { artifactType: 'pdf-extraction' } });
+    assert.equal(await repo.checkpoint(pdfJob, pdfManifest), true);
+    await db.creationJob.update({ where: { id: pdfJob.id }, data: { leaseUntil: new Date(0) } });
+    const resumedPdf = await repo.claim('pdf-restart'); assert.ok(resumedPdf?.kind === 'acquire_pdf' && resumedPdf.checkpoint);
+    assert.equal(await repo.checkpoint(pdfJob, pdfManifest), false, 'old PDF lease cannot overwrite checkpoint');
+    await executeCreationJob(repo, resumedPdf, () => { throw new Error('No AI expected'); }, new AbortController().signal,
+      undefined, undefined, () => ({ acquire: async () => { throw new Error('Complete PDF checkpoint must not parse again'); } }));
+    const readyPdf = await drafts.load(owner, pdfDraftId); assert.ok(readyPdf);
+    assert.equal(readyPdf.materials[0].status, 'ready'); assert.equal(readyPdf.materialRefs[0].ids.length, 2);
+    assert.equal(await drafts.swap(owner, pdfDraftId, readyPdf.revision, applyCommand(readyPdf, { type: 'remove_material', materialId: pdfCommand.materialId })), true);
+    assert.equal(await db.creationStorageObject.count({ where: { draftId: pdfDraftId, referencedAt: { not: null } } }), 0);
     stage = 'retention protection and tombstones';
     const retention = createCreationRetentionRepository(db);
     const old = new Date(Date.now() - 61 * 86400_000);
@@ -268,7 +308,7 @@ async function main() {
     try { if (created) await admin.query(`DROP SCHEMA "${schema}" CASCADE`); }
     finally { await admin.end(); }
   }
-  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web jobs, retained receipt fencing, restart, pin release, reload, retention; isolated schema removed.');
+  console.log('SQL smoke passed: ownership, CAS, recommendation/text/web/PDF jobs, retained receipt fencing, restart, pin release, reload, retention; isolated schema removed.');
 }
 
 main().catch(error => {
