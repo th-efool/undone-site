@@ -7,14 +7,14 @@ import { TextMaterial } from '../components/TextMaterial';
 afterEach(cleanup);
 function mount() {
   const props = { snapshot: initialSnapshot(draftId), uploading: false, pending: false,
-    onUpload: vi.fn().mockResolvedValue(true), onCancelUpload: vi.fn(), onCancel: vi.fn(), onRetry: vi.fn(), onRemove: vi.fn().mockResolvedValue(true) };
+    onUpload: vi.fn().mockResolvedValue(true), onCancelUpload: vi.fn(), onCancel: vi.fn(), onRetry: vi.fn(), onRemove: vi.fn().mockResolvedValue(true), onWeb: vi.fn().mockResolvedValue(true) };
   render(<TextMaterial {...props} />); return props;
 }
 describe('one text material step', () => {
   it('does not silently add a new source when a replacement target disappears', () => {
     const base = initialSnapshot(draftId);
     const source = { id: draftId, kind: 'markdown' as const, input: { kind: 'upload' as const, assetId: draftId }, status: 'failed' as const, selectedUnitIds: [] };
-    const props = { uploading: false, pending: false, onUpload: vi.fn(), onCancelUpload: vi.fn(), onCancel: vi.fn(), onRetry: vi.fn(), onRemove: vi.fn() };
+    const props = { uploading: false, pending: false, onUpload: vi.fn(), onCancelUpload: vi.fn(), onCancel: vi.fn(), onRetry: vi.fn(), onRemove: vi.fn(), onWeb: vi.fn() };
     const view = render(<TextMaterial {...props} snapshot={{ ...base, materials: [source] }} />);
     fireEvent.click(screen.getByRole('button', { name: 'Replace source 1' }));
     view.rerender(<TextMaterial {...props} snapshot={base} />);
@@ -30,7 +30,7 @@ describe('one text material step', () => {
       input: { kind: 'upload' as const, assetId: draftId }, status: 'failed' as const, selectedUnitIds: [] }));
     const upload = vi.fn().mockResolvedValue(false);
     render(<TextMaterial snapshot={{ ...base, materials }} uploading={false} pending={false} onUpload={upload}
-      onCancelUpload={vi.fn()} onCancel={vi.fn()} onRetry={vi.fn()} onRemove={vi.fn()} />);
+      onCancelUpload={vi.fn()} onCancel={vi.fn()} onRetry={vi.fn()} onRemove={vi.fn()} onWeb={vi.fn()} />);
     const submit = screen.getByRole('button', { name: 'Save and acquire material' }) as HTMLButtonElement;
     expect(submit.disabled).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'Replace source 1' }));

@@ -47,6 +47,16 @@ describe('owned creation workspace', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Save and acquire material' }));
   }
   const asset = { id: '44444444-4444-4444-8444-444444444444', kind: 'upload', byteLength: 19, checksum: 'a'.repeat(64) };
+  it('saves URL selection and resumes without duplicate fetch commands', async () => {
+    materialDraft(); render(<CreationExperience draftId={draftId} resume />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Paste a link' }));
+    fireEvent.change(screen.getByLabelText('Public article URL'), { target: { value: 'https://docs.example.com/lesson' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save and acquire material' }));
+    await screen.findByRole('button', { name: 'Cancel acquisition' });
+    expect(api.command.mock.calls[0][2]).toMatchObject({ type: 'acquire_web', url: 'https://docs.example.com/lesson' });
+    expect(upload).not.toHaveBeenCalled(); cleanup(); render(<CreationExperience draftId={draftId} resume />);
+    await screen.findByRole('button', { name: 'Cancel acquisition' }); expect(api.command).toHaveBeenCalledOnce();
+  });
   function failedMaterial() {
     materialDraft();
     saved = applyCommand(saved, { type: 'acquire_text', materialId: asset.id,
