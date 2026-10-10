@@ -176,6 +176,9 @@ export const creationSnapshotSchema = z.strictObject({
     new Set(state.materialRefs.map(ref => ref.materialId)).size !== state.materialRefs.length ||
     state.materialRefs.some(ref => !ids.includes(ref.materialId) || new Set(ref.ids).size !== ref.ids.length) ||
     state.materials.reduce((sum, source) => sum + source.selectedUnitIds.length, 0) > 100 ||
+    state.materials.some(source => new Set(source.selectedUnitIds).size !== source.selectedUnitIds.length ||
+      (['youtube_video', 'youtube_playlist'].includes(source.kind) && source.selectedUnitIds.some(id =>
+        !state.youtubeSources.find(preview => preview.materialId === source.id)?.units.some(unit => unit.unitId === id)))) ||
     state.extractions.some(extraction => !state.materials.some(source => source.id === extraction.materialId && source.status === 'ready'))) {
     ctx.addIssue({ code: 'custom', message: 'Invalid material selection or extraction' });
   }

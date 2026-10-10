@@ -35,6 +35,29 @@ function fixture() {
   return { own, command, running, retained, job, repo };
 }
 describe('durable YouTube metadata inspection', () => {
+  it('saves only known unique unit choices, preserving the receipt source revision', () => {
+    const f = fixture(); const ready = applyEvent(f.running, jobCompletion(f.job, f.retained));
+    const selected = applyCommand(ready, { type: 'select_youtube_units', materialId: f.command.materialId, unitIds: ['dQw4w9WgXcQ'] });
+    expect(selected.inputRevision).toBe(ready.inputRevision + 1); expect(selected.youtubeSources).toEqual(ready.youtubeSources);
+    expect(selected.materialRefs).toEqual(ready.materialRefs); expect(selected.extractions).toEqual([]);
+    expect(creationSnapshotSchema.parse(JSON.parse(JSON.stringify(selected))).materials[0].selectedUnitIds).toEqual(['dQw4w9WgXcQ']);
+    expect(applyCommand(selected, { type: 'select_youtube_units', materialId: f.command.materialId, unitIds: [] }).materials[0].selectedUnitIds).toEqual([]);
+    for (const state of [f.own, f.running]) expect(() => applyCommand(state, { type: 'select_youtube_units', materialId: f.command.materialId, unitIds: ['dQw4w9WgXcQ'] })).toThrow();
+    for (const unitIds of [['AAAAAAAAAAA'], ['dQw4w9WgXcQ', 'dQw4w9WgXcQ']]) expect(() => applyCommand(ready, { type: 'select_youtube_units', materialId: f.command.materialId, unitIds })).toThrow();
+    const full = creationSnapshotSchema.parse({ ...ready, materials: [...ready.materials, { id: randomUUID(), kind: 'github', input: { kind: 'url', url: 'https://github.com/example/lessons' }, status: 'pending', selectedUnitIds: Array.from({ length: 100 }, (_, index) => `file${index}`) }] });
+    expect(() => applyCommand(full, { type: 'select_youtube_units', materialId: f.command.materialId, unitIds: ['dQw4w9WgXcQ'] })).toThrow('Invalid material');
+  });
+  it('authorizes selection mutations and resumes them without job enqueue', async () => {
+    const f = fixture(); let stored = applyEvent(f.running, jobCompletion(f.job, f.retained));
+    const swap = vi.fn(async (_owner, _id, revision, next) => { if (revision !== stored.revision) return false; stored = next; return true; });
+    const service = new DraftService({ create: vi.fn(async () => stored), load: vi.fn(async owner => owner === 'owner' ? stored : null), swap }, f.repo);
+    const command = { type: 'select_youtube_units' as const, materialId: f.command.materialId, unitIds: ['dQw4w9WgXcQ'] };
+    await expect(service.command('other', draftId, stored.revision, command)).rejects.toBeInstanceOf(DraftNotFound);
+    await expect(service.command('owner', draftId, stored.revision - 1, command)).rejects.toBeInstanceOf(DraftConflict);
+    const revision = stored.revision; await service.command('owner', draftId, revision, command);
+    expect((await service.load('owner', draftId)).materials[0].selectedUnitIds).toEqual(command.unitIds);
+    expect(f.repo.enqueue).not.toHaveBeenCalled(); expect(swap).toHaveBeenCalledOnce();
+  });
   it('retains metadata without AI or extracted-content success and persists bounded previews', async () => {
     const f = fixture(); const recommend = vi.fn(); const retainMetadata = vi.fn(async () => f.retained);
     await executeCreationJob(f.repo, f.job, () => ({ recommend }), new AbortController().signal, undefined, undefined, undefined, () => ({ retainMetadata }));

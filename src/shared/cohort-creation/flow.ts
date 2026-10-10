@@ -17,6 +17,8 @@ export const creationCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('acquire_text'), materialId: z.uuid(), assetId: z.uuid(), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('acquire_pdf'), materialId: z.uuid(), assetId: z.uuid(), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('inspect_youtube'), materialId: z.uuid(), url: z.url().max(2048), requestId: z.uuid() }),
+  z.strictObject({ type: z.literal('select_youtube_units'), materialId: z.uuid(), unitIds: z.array(z.string().regex(/^[A-Za-z0-9_-]{11}$/)).max(100)
+    .refine(ids => new Set(ids).size === ids.length, 'Select each video only once') }),
   z.strictObject({ type: z.literal('cancel_material_acquisition') }),
   z.strictObject({ type: z.literal('remove_material'), materialId: z.uuid() }),
   z.strictObject({ type: z.literal('acquire_web'), materialId: z.uuid(), url: z.url().max(2048), requestId: z.uuid() }),
@@ -97,6 +99,14 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
         materials: state.materials.filter(source => source.id !== command.materialId),
         materialRefs: state.materialRefs.filter(ref => ref.materialId !== command.materialId),
         youtubeSources: state.youtubeSources.filter(source => source.materialId !== command.materialId),
+        extractions: state.extractions.filter(extraction => extraction.materialId !== command.materialId) });
+    }
+    case 'select_youtube_units': {
+      const preview = state.youtubeSources.find(source => source.materialId === command.materialId);
+      if (state.stage !== 'starting_point' || state.startingPoint !== 'have_material' || state.status === 'running' || !preview ||
+        command.unitIds.some(id => !preview.units.some(unit => unit.unitId === id))) throw new Error('Starting point is not available');
+      return creationSnapshotSchema.parse({ ...changed, inputRevision: state.inputRevision + 1, status: 'succeeded', lastMaterialRequestId: null,
+        materials: state.materials.map(source => source.id === command.materialId ? { ...source, status: 'needs_input', selectedUnitIds: command.unitIds } : source),
         extractions: state.extractions.filter(extraction => extraction.materialId !== command.materialId) });
     }
     case 'back_to_recommendations':
