@@ -9,6 +9,10 @@ export const understandingProposalSchema = z.strictObject({
   limitations: z.array(z.string().trim().min(1).max(1000)).max(8),
 });
 export type UnderstandingProposal = z.infer<typeof understandingProposalSchema>;
+export const understandingPreviewSchema = z.strictObject({ revision: z.number().int().nonnegative(),
+  partitions: z.array(z.strictObject({ partitionId: z.string().regex(/^[a-f0-9]{64}$/), materialId: z.string().min(1).max(128),
+    unitId: z.string().min(1).max(128), proposal: understandingProposalSchema })).max(1000) });
+export type UnderstandingPreview = z.infer<typeof understandingPreviewSchema>;
 export const understandingCheckpointSchema = z.strictObject({ phase: z.literal('understanding'), requestId: z.uuid(),
   inputRevision: z.number().int().nonnegative(), inputFingerprint: checksum, total: z.number().int().min(1).max(1000),
   partitionIds: z.array(checksum).min(1).max(1000),

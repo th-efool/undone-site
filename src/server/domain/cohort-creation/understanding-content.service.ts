@@ -18,6 +18,21 @@ export function acceptedUnderstanding(input: CreationSnapshot) {
 export class UnderstandingContentService {
   constructor(private readonly content: Pick<ProcessingContentService, 'load'>,
     private readonly artifacts: Pick<CreationArtifactRepository, 'getJSON' | 'ref'>) {}
+  /** Partial, accepted receipts for the workspace; never generates or exposes arbitrary artifact IDs. */
+  async preview(scope: StorageScope, input: CreationSnapshot, signal: AbortSignal) {
+    signal.throwIfAborted(); const state = creationSnapshotSchema.parse(input);
+    if (scope.draftId !== state.draftId || !state.processing?.checkpoint) invalid();
+    const checkpoint = validateUnderstandingCheckpoint(state, state.processing.requestId, state.processing.checkpoint);
+    const { partitions } = await this.content.load(scope, state, signal);
+    if (JSON.stringify(checkpoint.partitionIds) !== JSON.stringify(partitions.map(partition => partition.id))) invalid();
+    const previews = [];
+    for (const [index, accepted] of checkpoint.completed.entries()) {
+      const partition = partitions[index];
+      const receipt = await readUnderstandingReceipt(this.artifacts, scope, checkpoint, partition, accepted.artifact, signal);
+      previews.push({ partitionId: partition.id, materialId: partition.materialId, unitId: partition.unitId, proposal: receipt.proposal });
+    }
+    signal.throwIfAborted(); return previews;
+  }
   async load(scope: StorageScope, input: CreationSnapshot, signal: AbortSignal) {
     signal.throwIfAborted(); const state = creationSnapshotSchema.parse(input);
     if (scope.draftId !== state.draftId) invalid();

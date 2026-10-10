@@ -8,6 +8,20 @@ import { ChunkingContentService } from '../chunking-content.service';
 import { chunkingFixture as fixture } from './processing.fixture';
 
 describe('owned accepted understanding reads', () => {
+  it('previews partial accepted concepts with the same source and owner validation', async () => {
+    const f = await fixture(); const state = structuredClone(f.state);
+    state.processing!.complete = false;
+    state.processing!.checkpoint!.completed = state.processing!.checkpoint!.completed.slice(0, 1);
+    const signal = new AbortController().signal;
+    const preview = await f.content.preview(f.scope, state, signal);
+    expect(preview).toHaveLength(1); expect(preview[0].proposal.concepts.length).toBeGreaterThan(0);
+    expect(preview[0].materialId).toBe(state.materials[0].id);
+    await expect(f.content.preview({ ...f.scope, ownerId: 'foreign' }, state, signal)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(f.content.preview(f.scope, { ...state, inputRevision: state.inputRevision + 1 }, signal)).rejects.toThrow();
+    const controller = new AbortController(); controller.abort();
+    await expect(f.content.preview(f.scope, state, controller.signal)).rejects.toThrow();
+    expect(f.ai.chunk).not.toHaveBeenCalled();
+  });
   it('loads actual source partitions and owned evidence without calling a current model', async () => {
     const f = await fixture(); const loaded = await f.content.load(f.scope, f.state, new AbortController().signal);
     expect(loaded.partitions).toEqual(f.partitions); expect(loaded.understanding).toHaveLength(2);
