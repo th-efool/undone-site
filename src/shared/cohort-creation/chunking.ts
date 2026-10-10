@@ -23,6 +23,8 @@ export const groundedChunkSchema = chunkSchema.extend({
   coverage: z.strictObject({ scope: z.string().min(1), exhaustive: z.boolean(), limitations: z.array(z.string()) }),
 });
 export type GroundedChunk = z.infer<typeof groundedChunkSchema>;
+export const chunkingPreviewSchema = z.strictObject({ revision: z.number().int().nonnegative(), chunks: z.array(groundedChunkSchema).max(CHUNK_LIMITS.perDraft) });
+export type ChunkingPreview = z.infer<typeof chunkingPreviewSchema>;
 export const chunkingReceiptSchema = z.strictObject({ schemaVersion: z.literal(1), requestId: z.uuid(),
   inputFingerprint: z.string().regex(/^[a-f0-9]{64}$/), partitionId: z.string().regex(/^[a-f0-9]{64}$/),
   source: understandingReceiptSchema.shape.source,

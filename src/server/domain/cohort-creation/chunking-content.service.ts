@@ -19,6 +19,22 @@ export function acceptedChunking(input: CreationSnapshot) {
 export class ChunkingContentService {
   constructor(private readonly content: Pick<UnderstandingContentService, 'load'>,
     private readonly artifacts: Pick<CreationArtifactRepository, 'getJSON' | 'ref'>) {}
+  /** Read accepted partial work for the owner workspace; source evidence still passes the downstream reader. */
+  async preview(scope: StorageScope, input: CreationSnapshot, signal: AbortSignal) {
+    signal.throwIfAborted(); const state = creationSnapshotSchema.parse(input);
+    const operation = state.processing?.chunking;
+    if (scope.draftId !== state.draftId || !operation?.checkpoint) invalid();
+    const checkpoint = validateChunkingCheckpoint(state, operation.requestId, operation.checkpoint);
+    const { partitions, understanding, checkpoint: accepted } = await this.content.load(scope, state, signal);
+    if (checkpoint.understandingFingerprint !== accepted.inputFingerprint || understanding.length !== partitions.length ||
+      JSON.stringify(checkpoint.partitionIds) !== JSON.stringify(partitions.map(partition => partition.id))) invalid();
+    const chunks = [];
+    for (const [index, retained] of checkpoint.completed.entries()) {
+      const loaded = await readChunkingReceipt(this.artifacts, scope, checkpoint, partitions[index], understanding[index], retained, signal);
+      chunks.push(...loaded.chunks);
+    }
+    signal.throwIfAborted(); return chunks;
+  }
   async load(scope: StorageScope, input: CreationSnapshot, signal: AbortSignal) {
     signal.throwIfAborted(); const state = creationSnapshotSchema.parse(input);
     if (scope.draftId !== state.draftId) invalid();

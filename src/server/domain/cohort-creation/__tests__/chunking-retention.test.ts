@@ -124,6 +124,21 @@ async function chunkReaderFixture() {
 }
 
 describe('owned accepted chunk reads', () => {
+  it('previews only accepted partial chunks with ownership, revision and receipt checks', async () => {
+    const f = await chunkReaderFixture(); const state = structuredClone(f.state);
+    state.processing!.chunking!.complete = false;
+    state.processing!.chunking!.checkpoint!.completed = state.processing!.chunking!.checkpoint!.completed.slice(0, 1);
+    const signal = new AbortController().signal; const before = f.rows.size;
+    const chunks = await f.reader.preview(f.scope, state, signal);
+    expect(chunks).toHaveLength(1); expect(chunks[0].sourceRefs).toEqual(f.partitions[0].segments.map(segment => segment.location));
+    await expect(f.reader.preview({ ...f.scope, ownerId: 'foreign' }, state, signal)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+    await expect(f.reader.preview(f.scope, { ...state, inputRevision: state.inputRevision + 1 }, signal)).rejects.toThrow();
+    const bad = structuredClone(state); bad.processing!.chunking!.checkpoint!.completed[0].artifact.checksum = 'f'.repeat(64);
+    await expect(f.reader.preview(f.scope, bad, signal)).rejects.toThrow('partition ledger');
+    const controller = new AbortController(); controller.abort();
+    await expect(f.reader.preview(f.scope, state, controller.signal)).rejects.toThrow();
+    expect(f.rows.size).toBe(before); expect(f.ai.chunk).not.toHaveBeenCalled();
+  });
   it('rederives accepted chunks from actual source bodies without model calls or writes', async () => {
     const f = await chunkReaderFixture(); const retainedCount = f.rows.size;
     Object.defineProperty(f.ai, 'identity', { get: () => { throw new Error('No model credentials'); } });
