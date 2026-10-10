@@ -1,3 +1,7 @@
+import { VercelCreationAnalysis } from './infrastructure/ai/vercelCreationAnalysis';
+import type { CreationAnalysis } from './domain/cohort-creation/analysis';
+import { AnalysisService } from './domain/cohort-creation/analysis.service';
+import { ChunkingContentService } from './domain/cohort-creation/chunking-content.service';
 import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { prisma } from './infrastructure/db/postgres/client';
@@ -135,6 +139,13 @@ async function main() {
         const ai: CreationChunking = { get identity() { return adapter().identity; }, chunk: (...input) => adapter().chunk(...input) };
         const content = new UnderstandingContentService(new ProcessingContentService(storage.creationArtifactRepository), storage.creationArtifactRepository);
         return new ChunkingService(content, ai, storage.creationArtifactRepository).run(...args);
+      } }),
+      job => ({ run: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        const adapter = () => new VercelCreationAnalysis(createCohortModel(), { beforeCall: partitionId => creationJobRepo.reserveModelCall(job, partitionId) });
+        const ai: CreationAnalysis = { get identity() { return adapter().identity; }, analyze: (...input) => adapter().analyze(...input) };
+        const understanding = new UnderstandingContentService(new ProcessingContentService(storage.creationArtifactRepository), storage.creationArtifactRepository);
+        return new AnalysisService(new ChunkingContentService(understanding, storage.creationArtifactRepository), ai, storage.creationArtifactRepository).run(...args);
       } }));
   } finally {
     clearInterval(retentionTimer);

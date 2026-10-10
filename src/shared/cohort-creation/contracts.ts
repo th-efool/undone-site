@@ -1,3 +1,4 @@
+import { analysisCheckpointSchema } from './analysis';
 import { z } from 'zod';
 import { discoveryCheckpointSchema, discoveryResultSchema } from './discovery';
 import { understandingCheckpointSchema, chunkingCheckpointSchema } from './processing';
@@ -173,14 +174,17 @@ export const creationSnapshotSchema = z.strictObject({
   discovery: z.strictObject({ requestId: z.uuid(), inputRevision: revision,
     checkpoint: discoveryCheckpointSchema.nullable(), result: discoveryResultSchema.nullable() }).nullable().default(null),
   processing: z.strictObject({ requestId: z.uuid(), inputRevision: revision,
-    checkpoint: understandingCheckpointSchema.nullable(), complete: z.boolean(), phase: z.enum(['understanding', 'chunking']).default('understanding'),
+    checkpoint: understandingCheckpointSchema.nullable(), complete: z.boolean(), phase: z.enum(['understanding', 'chunking', 'analysis']).default('understanding'),
+    analysis: z.strictObject({ requestId: z.uuid(), checkpoint: analysisCheckpointSchema.nullable(), complete: z.boolean() }).nullable().default(null),
     chunking: z.strictObject({ requestId: z.uuid(), checkpoint: chunkingCheckpointSchema.nullable(), complete: z.boolean() }).nullable().default(null) }).nullable().default(null),
 }).superRefine((state, ctx) => {
   if (state.processing && (state.processing.inputRevision !== state.inputRevision ||
     state.processing.checkpoint && (state.processing.checkpoint.requestId !== state.processing.requestId || state.processing.checkpoint.inputRevision !== state.processing.inputRevision) ||
     state.processing.complete && (!state.processing.checkpoint || state.processing.checkpoint.completed.length !== state.processing.checkpoint.total)) ||
     state.stage === 'processing' && (!state.processing || !state.result || !state.materials.length || state.materials.some(source => source.status !== 'ready') ||
-      state.status === 'running' && (state.processing.phase === 'chunking'
+      state.status === 'running' && (state.processing.phase === 'analysis'
+        ? state.activeRequestId !== state.processing.analysis?.requestId || state.processing.analysis?.complete
+        : state.processing.phase === 'chunking'
         ? state.activeRequestId !== state.processing.chunking?.requestId || state.processing.chunking?.complete
         : state.activeRequestId !== state.processing.requestId || state.processing.complete))) {
     ctx.addIssue({ code: 'custom', message: 'Invalid processing request or coverage' });
@@ -192,6 +196,13 @@ export const creationSnapshotSchema = z.strictObject({
       JSON.stringify(chunks.checkpoint.partitionIds) !== JSON.stringify(state.processing.checkpoint.partitionIds)) ||
     chunks.complete && (!chunks.checkpoint || chunks.checkpoint.completed.length !== chunks.checkpoint.total)) ||
     state.processing?.phase === 'chunking' && !chunks) ctx.addIssue({ code: 'custom', message: 'Invalid chunking dependency or coverage' });
+  const analysis = state.processing?.analysis;
+  if (analysis && (!chunks?.complete || !chunks.checkpoint ||
+    analysis.checkpoint && (analysis.checkpoint.requestId !== analysis.requestId || analysis.checkpoint.inputRevision !== state.inputRevision ||
+      analysis.checkpoint.chunkingFingerprint !== chunks.checkpoint.inputFingerprint || JSON.stringify(analysis.checkpoint.partitionIds) !== JSON.stringify(chunks.checkpoint.partitionIds) ||
+      analysis.checkpoint.completed.some((item, index) => item.chunkCount !== chunks.checkpoint!.completed[index]?.chunkCount)) ||
+    analysis.complete && (!analysis.checkpoint || analysis.checkpoint.completed.length !== analysis.checkpoint.total)) ||
+    state.processing?.phase === 'analysis' && !analysis) ctx.addIssue({ code: 'custom', message: 'Invalid analysis dependency or coverage' });
   if ((state.status === 'running') !== (state.activeRequestId !== null)) ctx.addIssue({ code: 'custom', message: 'Invalid active operation' });
   if (state.status === 'running' && ((state.stage === 'recommendations' && state.result !== null) ||
     (state.stage === 'starting_point' && !(state.discovery?.requestId === state.activeRequestId && state.discovery.result === null) &&

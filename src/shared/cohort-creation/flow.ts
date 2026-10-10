@@ -1,3 +1,4 @@
+import { analysisCheckpointSchema } from './analysis';
 import { z } from 'zod';
 import {
   creationErrorSchema, creationSnapshotSchema, querySchema,
@@ -16,6 +17,7 @@ export const creationCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('request_recommendations'), query: querySchema, requestId: z.uuid() }),
   z.strictObject({ type: z.literal('create_own') }),
   z.strictObject({ type: z.literal('understand_material'), requestId: z.uuid() }),
+  z.strictObject({ type: z.literal('analyze_material'), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('chunk_material'), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('cancel_processing') }),
   z.strictObject({ type: z.literal('back_to_materials') }),
@@ -44,6 +46,7 @@ export const creationEventSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('youtube_metadata_received'), requestId: z.uuid(), result: retainedYoutubeMetadataSchema }),
   z.strictObject({ type: z.literal('discovery_received'), requestId: z.uuid(), result: discoveryResultSchema }),
   z.strictObject({ type: z.literal('understanding_received'), requestId: z.uuid(), result: understandingCheckpointSchema }),
+  z.strictObject({ type: z.literal('analysis_received'), requestId: z.uuid(), result: analysisCheckpointSchema }),
   z.strictObject({ type: z.literal('chunking_received'), requestId: z.uuid(), result: chunkingCheckpointSchema }),
 ]);
 export type CreationEvent = z.infer<typeof creationEventSchema>;
@@ -67,10 +70,14 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
   const command = creationCommandSchema.parse(input);
   const changed = { ...state, revision: state.revision + 1, error: null };
   switch (command.type) {
+    case 'analyze_material':
+      if (!['starting_point', 'processing'].includes(state.stage) || state.status === 'running' || !state.processing?.chunking?.complete || !state.processing.chunking.checkpoint) throw new Error('Chunking is not complete');
+      return creationSnapshotSchema.parse({ ...changed, stage: 'processing', status: 'running', activeRequestId: command.requestId,
+        processing: { ...state.processing, phase: 'analysis', analysis: { requestId: command.requestId, checkpoint: null, complete: false } } });
     case 'chunk_material':
       if (!['starting_point', 'processing'].includes(state.stage) || state.status === 'running' || !state.processing?.complete || !state.processing.checkpoint) throw new Error('Understanding is not complete');
       return creationSnapshotSchema.parse({ ...changed, stage: 'processing', status: 'running', activeRequestId: command.requestId,
-        processing: { ...state.processing, phase: 'chunking', chunking: { requestId: command.requestId, checkpoint: null, complete: false } } });
+        processing: { ...state.processing, phase: 'chunking', analysis: null, chunking: { requestId: command.requestId, checkpoint: null, complete: false } } });
     case 'understand_material':
       if (!['starting_point', 'processing'].includes(state.stage) || state.status === 'running' || !state.result || !state.materials.length ||
         state.materials.some(source => source.status !== 'ready' || !source.selectedUnitIds.length) || state.extractions.length !== state.materials.length ||
@@ -199,6 +206,11 @@ export function applyEvent(state: CreationSnapshot, input: CreationEvent): Creat
     event.result.checkpoint.inputRevision !== state.inputRevision || event.result.checkpoint.requestId !== requestId)) return state;
   if (event.type === 'understanding_received' && (state.stage !== 'processing' || state.processing?.phase !== 'understanding' || state.processing.requestId !== requestId ||
     event.result.requestId !== requestId || event.result.inputRevision !== state.inputRevision || event.result.completed.length !== event.result.total)) return state;
+  if (event.type === 'analysis_received' && (state.stage !== 'processing' || state.processing?.phase !== 'analysis' || state.processing.analysis?.requestId !== requestId ||
+    event.result.requestId !== requestId || event.result.inputRevision !== state.inputRevision || event.result.completed.length !== event.result.total ||
+    event.result.chunkingFingerprint !== state.processing.chunking?.checkpoint?.inputFingerprint ||
+    JSON.stringify(event.result.partitionIds) !== JSON.stringify(state.processing.chunking.checkpoint.partitionIds) ||
+    event.result.completed.some((item, index) => item.chunkCount !== state.processing!.chunking!.checkpoint!.completed[index]?.chunkCount))) return state;
   if (event.type === 'chunking_received' && (state.stage !== 'processing' || state.processing?.phase !== 'chunking' || state.processing.chunking?.requestId !== requestId ||
     event.result.requestId !== requestId || event.result.inputRevision !== state.inputRevision || event.result.completed.length !== event.result.total ||
     event.result.understandingFingerprint !== state.processing.checkpoint?.inputFingerprint ||
@@ -213,6 +225,8 @@ export function applyEvent(state: CreationSnapshot, input: CreationEvent): Creat
       source.kind === event.result.receipt.metadata.kind && source.input.kind === 'url' && source.input.url === event.result.receipt.metadata.sourceUrl))) return state;
   const changed = { ...state, revision: state.revision + 1, activeRequestId: null };
   switch (event.type) {
+    case 'analysis_received':
+      return creationSnapshotSchema.parse({ ...changed, status: 'succeeded', error: null, processing: { ...state.processing!, analysis: { requestId, checkpoint: event.result, complete: true } } });
     case 'chunking_received':
       return creationSnapshotSchema.parse({ ...changed, status: 'succeeded', error: null,
         processing: { ...state.processing!, chunking: { requestId, checkpoint: event.result, complete: true } } });

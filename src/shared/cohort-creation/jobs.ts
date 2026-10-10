@@ -19,6 +19,15 @@ export const chunkingRequestSchema = z.strictObject({ requestId: z.uuid(), input
     }
   });
 export type ChunkingRequest = z.infer<typeof chunkingRequestSchema>;
+export const analysisRequestSchema = z.strictObject({ requestId: z.uuid(), inputRevision: z.number().int().nonnegative(), snapshot: creationSnapshotSchema })
+  .superRefine((request, ctx) => {
+    const state = request.snapshot;
+    if (request.inputRevision !== state.inputRevision || state.stage !== 'processing' || state.status !== 'succeeded' ||
+      !state.processing?.chunking?.complete || !state.processing.chunking.checkpoint || state.processing.phase !== 'chunking' || state.processing.analysis !== null) {
+      ctx.addIssue({ code: 'custom', message: 'Complete accepted chunking is required for analysis' });
+    }
+  });
+export type AnalysisRequest = z.infer<typeof analysisRequestSchema>;
 export const textAcquisitionRequestSchema = z.strictObject({
   requestId: z.uuid(), inputRevision: z.number().int().nonnegative(),
   source: materialSourceSchema.refine(source => source.kind === 'markdown' && source.input.kind === 'upload', 'An uploaded text source is required'),

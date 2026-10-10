@@ -1,3 +1,4 @@
+import { validateAnalysisCheckpoint } from './analysis.service';
 import { recommendationResultSchema } from '@/src/shared/cohort-creation/contracts';
 import { materialManifestSchema } from '@/src/shared/cohort-creation/materials';
 import type { CreationEvent } from '@/src/shared/cohort-creation/flow';
@@ -65,6 +66,11 @@ export function jobCompletion(job: ClaimedCreationJob, value: CreationCheckpoint
     const result = validateUnderstandingCheckpoint(job.input.snapshot, job.requestId, value);
     if (result.completed.length !== result.total) throw new Error('Understanding is incomplete');
     return { type: 'understanding_received', requestId: job.requestId, result };
+  }
+  if (job.kind === 'analyze_material') {
+    const result = validateAnalysisCheckpoint(job.input.snapshot, job.requestId, value);
+    if (result.completed.length !== result.total) throw new Error('Analysis is incomplete');
+    return { type: 'analysis_received', requestId: job.requestId, result };
   }
   if (job.kind === 'chunk_material') {
     const result = validateChunkingCheckpoint(job.input.snapshot, job.requestId, value);
