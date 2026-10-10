@@ -91,17 +91,24 @@ export type CreationError = z.infer<typeof creationErrorSchema>;
 export const errorResponseSchema = z.strictObject({ error: creationErrorSchema });
 
 // Foundation contracts for future artifacts; no ingestion/processing is executed in 3A.
+export const githubPathSchema = z.string().min(1).max(1024).refine(path =>
+  !/[\u0000-\u001f\u007f\\]/.test(path) && path.split('/').every(part => part && part !== '.' && part !== '..'), 'Select a repository-relative path');
+export const githubRepositoryScopeSchema = z.strictObject({ ref: z.string().min(1).max(255).nullable().default(null),
+  paths: z.array(githubPathSchema).min(1).max(100) }).superRefine((selection, ctx) => {
+  if (selection.paths.some((path, index) => selection.paths.some((other, otherIndex) => otherIndex !== index &&
+    (path === other || path.startsWith(`${other}/`))))) ctx.addIssue({ code: 'custom', message: 'Select distinct, non-overlapping paths' });
+});
 export const materialSourceSchema = z.strictObject({
   id: key,
   kind: z.enum(['youtube_video', 'youtube_playlist', 'web', 'pdf', 'markdown', 'github', 'notion', 'generated_guide']),
   input: z.discriminatedUnion('kind', [
-    z.strictObject({ kind: z.literal('url'), url: z.url().max(2048) }),
+    z.strictObject({ kind: z.literal('url'), url: z.url().max(2048), repositoryScope: githubRepositoryScopeSchema.optional() }),
     z.strictObject({ kind: z.literal('upload'), assetId: key }),
     z.strictObject({ kind: z.literal('goal'), intentId: z.uuid() }),
   ]),
   selectedUnitIds: z.array(key).max(100),
   status: z.enum(['pending', 'acquiring', 'ready', 'needs_input', 'failed']),
-});
+}).refine(source => source.input.kind !== 'url' || !source.input.repositoryScope || source.kind === 'github', 'Repository scope requires a GitHub source');
 export const sourceLocationSchema = z.strictObject({
   materialId: key, unitId: key, segmentId: key,
   anchor: z.discriminatedUnion('kind', [
@@ -109,7 +116,7 @@ export const sourceLocationSchema = z.strictObject({
     z.strictObject({ kind: z.literal('video'), startSeconds: z.number().nonnegative(), endSeconds: z.number().positive(), estimated: z.boolean() }),
     z.strictObject({ kind: z.literal('page'), page: z.number().int().positive() }),
     z.strictObject({ kind: z.literal('block'), blockId: key }),
-    z.strictObject({ kind: z.literal('file'), commit: key, path: text(1024), startLine: z.number().int().positive(), endLine: z.number().int().positive() }),
+    z.strictObject({ kind: z.literal('file'), commit: key, path: githubPathSchema, startLine: z.number().int().positive(), endLine: z.number().int().positive() }),
   ]),
 }).refine(({ anchor }) => {
   if (anchor.kind === 'text') return anchor.end > anchor.start;

@@ -15,6 +15,9 @@ import { YoutubeMetadataRetentionService, YoutubeObservationService } from './do
 import { YoutubeAcquisitionService } from './domain/cohort-creation/materials/youtube-acquisition.service';
 import { VercelMaterialObservation } from './infrastructure/ai/vercelMaterialObservation';
 import { YoutubeMetadataReader } from './domain/cohort-creation/materials/youtube-metadata';
+import { GithubMaterialReader } from './domain/cohort-creation/materials/github';
+import { GithubPublicApi } from './domain/cohort-creation/materials/github-public-api';
+import { GithubAcquisitionService } from './domain/cohort-creation/materials/github-acquisition.service';
 
 async function main() {
   if (process.argv.includes('--check')) {
@@ -77,6 +80,13 @@ async function main() {
         const observer = new VercelMaterialObservation(createCohortModel(), { beforeCall: unitId => creationJobRepo.reserveModelCall(job, unitId) });
         const service = new YoutubeObservationService(new YoutubeMetadataReader(), observer, storage.creationArtifactRepository);
         return new YoutubeAcquisitionService(service, storage.creationArtifactRepository).acquire(...args);
+      } }),
+      () => ({ acquire: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        return new GithubAcquisitionService(new GithubMaterialReader(new GithubPublicApi()), storage.creationArtifactRepository).acquire(...args);
+      }, extract: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        return new GithubAcquisitionService(new GithubMaterialReader(new GithubPublicApi()), storage.creationArtifactRepository).extract(...args);
       } }));
   } finally {
     clearInterval(retentionTimer);

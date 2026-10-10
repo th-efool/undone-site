@@ -12,9 +12,10 @@ export class GithubAcquisitionService {
   constructor(private readonly reader: Pick<GithubMaterialReader, 'read'>,
     private readonly artifacts: Pick<CreationArtifactRepository, 'putJSON' | 'getJSON' | 'ref'>) {}
   async acquire(scope: StorageScope, input: MaterialSource, inputRevision: number, requested: GithubSelection,
-    signal?: AbortSignal, checkpoint?: (value: RetainedGithubCheckpoint) => Promise<void>) {
+    signal?: AbortSignal, checkpoint?: (value: RetainedGithubCheckpoint) => Promise<void>, maxUnits = 100) {
     signal?.throwIfAborted(); const { source, selection } = this.input(input, inputRevision, requested);
-    const snapshot = await this.reader.read(selection, signal);
+    const snapshot = await this.reader.read(selection, signal, maxUnits);
+    this.capacity(snapshot.files.length, maxUnits);
     const receipt = githubReceiptSchema.parse({ schemaVersion: 1, materialId: source.id, inputRevision, parserVersion: GITHUB_PARSER_VERSION, selection, snapshot });
     const inputFingerprint = githubReceiptFingerprint(source.id, inputRevision, selection);
     const artifact = await this.artifacts.putJSON(scope, receipt, { artifactType: 'github-source', schemaVersion: 1,
@@ -23,12 +24,13 @@ export class GithubAcquisitionService {
       materialId: source.id, inputRevision, selection, commit: snapshot.commit,
       files: snapshot.files.map(({ path, blobSha, byteLength }) => ({ path, blobSha, byteLength })), artifact, inputFingerprint });
     await checkpoint?.(retained);
-    return this.extract(scope, source, inputRevision, selection, retained, signal);
+    return this.extract(scope, source, inputRevision, selection, retained, signal, maxUnits);
   }
   async extract(scope: StorageScope, input: MaterialSource, inputRevision: number, requested: GithubSelection,
-    checkpoint: RetainedGithubCheckpoint, signal?: AbortSignal) {
+    checkpoint: RetainedGithubCheckpoint, signal?: AbortSignal, maxUnits = 100) {
     signal?.throwIfAborted(); const { source, selection } = this.input(input, inputRevision, requested);
     const retained = retainedGithubCheckpointSchema.parse(checkpoint); const ref = retained.artifact;
+    this.capacity(retained.files.length, maxUnits);
     const fingerprint = githubReceiptFingerprint(source.id, inputRevision, selection);
     const owned = await this.artifacts.ref(scope, ref.id);
     if (owned.kind !== 'artifact' || owned.checksum !== ref.checksum || owned.byteLength !== ref.byteLength || retained.inputFingerprint !== fingerprint) {
@@ -55,9 +57,13 @@ export class GithubAcquisitionService {
   private input(input: MaterialSource, inputRevision: number, requested: GithubSelection) {
     const source = materialSourceSchema.parse(input); const selection = githubSelectionSchema.parse(requested);
     if (source.kind !== 'github' || source.input.kind !== 'url' || !Number.isSafeInteger(inputRevision) || inputRevision < 0 ||
-      source.input.url !== selection.url || githubRepositoryUrl(selection.url).url !== selection.url) {
+      source.input.url !== selection.url || githubRepositoryUrl(selection.url).url !== selection.url ||
+      source.input.repositoryScope && JSON.stringify(source.input.repositoryScope) !== JSON.stringify({ ref: selection.ref, paths: selection.paths })) {
       throw new CreationStorageError('INVALID_INPUT', 'Select a canonical GitHub repository and explicit paths.');
     }
     return { source, selection };
+  }
+  private capacity(count: number, maximum: number) {
+    if (!Number.isSafeInteger(maximum) || maximum < 1 || maximum > 100 || count > maximum) throw new CreationStorageError('LIMIT_EXCEEDED', 'GitHub scope exceeds remaining draft unit capacity. Select fewer paths; nothing was truncated.');
   }
 }

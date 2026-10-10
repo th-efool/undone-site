@@ -7,6 +7,7 @@ import {
 import { materialManifestSchema } from './materials';
 import { webMaterialManifestSchema } from './web';
 import { retainedYoutubeMetadataSchema, youtubeMaterialManifestSchema } from './youtube';
+import { githubSelectionSchema, githubMaterialManifestSchema } from './github';
 
 export const creationCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('request_recommendations'), query: querySchema, requestId: z.uuid() }),
@@ -18,6 +19,7 @@ export const creationCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('acquire_pdf'), materialId: z.uuid(), assetId: z.uuid(), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('inspect_youtube'), materialId: z.uuid(), url: z.url().max(2048), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('observe_youtube'), materialId: z.uuid(), requestId: z.uuid() }),
+  z.strictObject({ type: z.literal('acquire_github'), materialId: z.uuid(), selection: githubSelectionSchema, requestId: z.uuid() }),
   z.strictObject({ type: z.literal('select_youtube_units'), materialId: z.uuid(), unitIds: z.array(z.string().regex(/^[A-Za-z0-9_-]{11}$/)).max(100)
     .refine(ids => new Set(ids).size === ids.length, 'Select each video only once') }),
   z.strictObject({ type: z.literal('cancel_material_acquisition') }),
@@ -29,7 +31,7 @@ export const creationEventSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('recommendations_received'), result: recommendationResultSchema }),
   z.strictObject({ type: z.literal('operation_failed'), requestId: z.uuid(), error: creationErrorSchema }),
   z.strictObject({ type: z.literal('operation_cancelled'), requestId: z.uuid() }),
-  z.strictObject({ type: z.literal('material_received'), requestId: z.uuid(), manifest: z.union([youtubeMaterialManifestSchema, webMaterialManifestSchema, materialManifestSchema]) }),
+  z.strictObject({ type: z.literal('material_received'), requestId: z.uuid(), manifest: z.union([githubMaterialManifestSchema, youtubeMaterialManifestSchema, webMaterialManifestSchema, materialManifestSchema]) }),
   z.strictObject({ type: z.literal('youtube_metadata_received'), requestId: z.uuid(), result: retainedYoutubeMetadataSchema }),
 ]);
 export type CreationEvent = z.infer<typeof creationEventSchema>;
@@ -77,9 +79,13 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
     case 'acquire_text':
     case 'acquire_pdf':
     case 'inspect_youtube':
+    case 'acquire_github':
     case 'acquire_web': {
       if (state.stage !== 'starting_point' || state.startingPoint !== 'have_material' || state.status === 'running' || !state.result) throw new Error('Starting point is not available');
-      const material = { id: command.materialId, ...(command.type === 'inspect_youtube'
+      if (command.type === 'acquire_github' && state.materials.filter(source => source.id !== command.materialId).reduce((sum, source) => sum + source.selectedUnitIds.length, 0) >= 100) throw new Error('The draft already has 100 selected units. Remove a source before adding GitHub files.');
+      const material = { id: command.materialId, ...(command.type === 'acquire_github'
+        ? { kind: 'github' as const, input: { kind: 'url' as const, url: command.selection.url, repositoryScope: { ref: command.selection.ref, paths: command.selection.paths } } }
+        : command.type === 'inspect_youtube'
         ? { kind: new URL(command.url).pathname === '/playlist' ? 'youtube_playlist' as const : 'youtube_video' as const, input: { kind: 'url' as const, url: command.url } }
         : command.type !== 'acquire_web'
         ? { kind: command.type === 'acquire_pdf' ? 'pdf' as const : 'markdown' as const, input: { kind: 'upload' as const, assetId: command.assetId } }

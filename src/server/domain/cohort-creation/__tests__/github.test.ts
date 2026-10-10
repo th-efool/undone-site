@@ -87,6 +87,10 @@ describe('commit-pinned GitHub source content', () => {
       getContent: async (_repository, path) => ({ type: 'file', path, encoding: 'base64', ...large }) };
     await expect(new GithubMaterialReader(provider).read({ ...f.selection, paths: ['one.md', 'two.md'] })).rejects.toMatchObject({ code: 'LIMIT_EXCEEDED' });
   });
+  it('respects remaining draft unit capacity before accepting a second selected file', async () => {
+    const f = fixture(); await expect(f.reader.read(f.selection, undefined, 1)).rejects.toThrow('remaining 1 draft units');
+    await expect(f.reader.read(f.selection, undefined, 0)).rejects.toThrow('remaining draft unit capacity');
+  });
 });
 
 describe('public-only GitHub HTTP boundary', () => {

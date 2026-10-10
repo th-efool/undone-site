@@ -11,6 +11,21 @@ import { retainedYoutubeMetadataSchema, youtubeMaterialManifestSchema } from '@/
 import { validateYoutubeCheckpoint, youtubeMaterialVersion, YOUTUBE_BUNDLE_VERSION } from './materials/youtube-identity';
 import { youtubeMetadataFingerprint } from './materials/youtube-artifacts';
 import { youtubeSourceUrl } from './materials/youtube-url';
+import { githubMaterialManifestSchema, retainedGithubCheckpointSchema, githubSelectionSchema, GITHUB_PARSER_VERSION } from '@/src/shared/cohort-creation/github';
+import { githubExtractionVersion, githubReceiptFingerprint, githubUnitId } from './materials/github-extraction';
+import type { ClaimedGithubJob } from './durable-job';
+
+export function githubJobSelection(job: ClaimedGithubJob) {
+  if (job.input.source.input.kind !== 'url' || !job.input.source.input.repositoryScope) throw new Error('Invalid GitHub checkpoint input');
+  return githubSelectionSchema.parse({ ...job.input.source.input.repositoryScope, url: job.input.source.input.url });
+}
+export function validateGithubRetention(job: ClaimedGithubJob, value: unknown) {
+  const retained = retainedGithubCheckpointSchema.parse(value); const selection = githubJobSelection(job);
+  if (retained.materialId !== job.input.source.id || retained.inputRevision !== job.inputRevision || retained.files.length > job.input.maxUnits ||
+    JSON.stringify(retained.selection) !== JSON.stringify(selection) ||
+    retained.inputFingerprint !== githubReceiptFingerprint(retained.materialId, retained.inputRevision, selection)) throw new Error('Invalid GitHub checkpoint input');
+  return retained;
+}
 
 export function validateWebRetention(job: ClaimedWebJob, value: unknown): RetainedWebCheckpoint {
   const retained = retainedWebCheckpointSchema.parse(value);
@@ -21,6 +36,15 @@ export function validateWebRetention(job: ClaimedWebJob, value: unknown): Retain
 }
 
 export function jobCompletion(job: ClaimedCreationJob, value: CreationCheckpoint): CreationEvent {
+  if (job.kind === 'acquire_github') {
+    const manifest = githubMaterialManifestSchema.parse(value); const retained = validateGithubRetention(job, manifest.github);
+    const version = githubExtractionVersion(retained.artifact.checksum);
+    if (manifest.inputRevision !== job.inputRevision || manifest.parserVersion !== GITHUB_PARSER_VERSION ||
+      manifest.inputFingerprint !== version || manifest.extraction.version !== version || manifest.extraction.segmentCount < retained.files.length ||
+      JSON.stringify(manifest.source.input) !== JSON.stringify(job.input.source.input) ||
+      JSON.stringify(manifest.source.selectedUnitIds) !== JSON.stringify(retained.files.map(file => githubUnitId(retained.commit, file.path)))) throw new Error('Invalid GitHub checkpoint input');
+    return { type: 'material_received', requestId: job.requestId, manifest };
+  }
   if (job.kind === 'recommendations') {
     const result = recommendationResultSchema.parse(value);
     if (result.requestId !== job.requestId || result.inputRevision !== job.inputRevision || result.intent.rawQuery !== job.input.query) throw new Error('Invalid checkpoint input');

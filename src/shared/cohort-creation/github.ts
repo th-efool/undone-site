@@ -1,15 +1,10 @@
 import { z } from 'zod';
 import { MATERIAL_LIMITS, retainedObjectRefSchema, materialManifestSchema } from './materials';
-import { sourceLocationSchema } from './contracts';
+import { sourceLocationSchema, githubPathSchema, githubRepositoryScopeSchema } from './contracts';
+export { githubPathSchema } from './contracts';
 
 export const githubShaSchema = z.string().regex(/^[a-f0-9]{40}$/);
-export const githubPathSchema = z.string().min(1).max(1024).refine(path =>
-  !/[\u0000-\u001f\u007f\\]/.test(path) && path.split('/').every(part => part && part !== '.' && part !== '..'), 'Select a repository-relative path');
-export const githubSelectionSchema = z.strictObject({ url: z.url().max(2048), ref: z.string().min(1).max(255).nullable().default(null),
-  paths: z.array(githubPathSchema).min(1).max(100) }).superRefine((selection, ctx) => {
-  if (selection.paths.some((path, index) => selection.paths.some((other, otherIndex) => otherIndex !== index &&
-    (path === other || path.startsWith(`${other}/`))))) ctx.addIssue({ code: 'custom', message: 'Select distinct, non-overlapping paths' });
-});
+export const githubSelectionSchema = githubRepositoryScopeSchema.safeExtend({ url: z.url().max(2048) });
 export type GithubSelection = z.infer<typeof githubSelectionSchema>;
 export const githubSnapshotSchema = z.strictObject({ schemaVersion: z.literal(1), sourceUrl: z.url().max(2048),
   owner: z.string().min(1).max(100), repo: z.string().min(1).max(100), commit: githubShaSchema, tree: githubShaSchema,
@@ -44,7 +39,14 @@ export const retainedGithubCheckpointSchema = z.strictObject({ phase: z.literal(
   inputRevision: z.number().int().nonnegative(), selection: githubSelectionSchema, commit: githubShaSchema,
   files: z.array(z.strictObject({ path: githubPathSchema, blobSha: githubShaSchema,
     byteLength: z.number().int().positive().max(MATERIAL_LIMITS.extractedTextBytes) })).min(1).max(100),
-  artifact: artifactRef, inputFingerprint: checksum });
+  artifact: artifactRef, inputFingerprint: checksum }).superRefine((retained, ctx) => {
+    if (new Set(retained.files.map(file => file.path)).size !== retained.files.length ||
+      retained.files.reduce((sum, file) => sum + file.byteLength, 0) > MATERIAL_LIMITS.extractedTextBytes ||
+      retained.files.some(file => !retained.selection.paths.some(path => file.path === path || file.path.startsWith(`${path}/`))) ||
+      retained.selection.ref && /^[a-f0-9]{40}$/.test(retained.selection.ref) && retained.selection.ref !== retained.commit) {
+      ctx.addIssue({ code: 'custom', message: 'Invalid GitHub checkpoint file scope' });
+    }
+  });
 export type RetainedGithubCheckpoint = z.infer<typeof retainedGithubCheckpointSchema>;
 export const githubExtractionArtifactSchema = z.strictObject({ schemaVersion: z.literal(1), materialId: z.uuid(), sourceArtifact: artifactRef,
   version: checksum, commit: githubShaSchema, contentOrigin: z.literal('external'),
@@ -85,3 +87,4 @@ export const githubMaterialManifestSchema = materialManifestSchema.safeExtend({ 
       ctx.addIssue({ code: 'custom', message: 'Invalid GitHub material manifest provenance or scope' });
     }
   });
+export type GithubMaterialManifest = z.infer<typeof githubMaterialManifestSchema>;

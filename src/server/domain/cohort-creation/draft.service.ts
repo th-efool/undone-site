@@ -4,6 +4,7 @@ import type { DraftRepository } from '@/src/server/infrastructure/db/postgres/re
 import type { CreationJobRepository } from './durable-job';
 import { webSourceUrl } from './materials/web-fetch';
 import { youtubeSourceUrl } from './materials/youtube-url';
+import { githubRepositoryUrl } from './materials/github';
 
 export class DraftConflict extends Error {
   constructor(readonly current: CreationSnapshot) { super('Draft changed. Reload before retrying your edit.'); }
@@ -31,6 +32,7 @@ export class DraftService {
     const command = creationCommandSchema.parse(input);
     if (command.type === 'acquire_web') command.url = webSourceUrl(command.url).href;
     if (command.type === 'inspect_youtube') command.url = youtubeSourceUrl(command.url).url;
+    if (command.type === 'acquire_github') command.selection.url = githubRepositoryUrl(command.selection.url).url;
     if (command.type === 'request_recommendations' && previous.query === command.query &&
       (previous.activeRequestId === command.requestId || previous.result?.requestId === command.requestId)) return previous;
     if ((command.type === 'acquire_text' || command.type === 'acquire_pdf') && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
@@ -41,9 +43,12 @@ export class DraftService {
       source.id === command.materialId && ['youtube_video', 'youtube_playlist'].includes(source.kind) && source.input.kind === 'url' && source.input.url === command.url)) return previous;
     if (command.type === 'observe_youtube' && previous.lastMaterialRequestId === command.requestId &&
       previous.youtubeSources.some(source => source.materialId === command.materialId)) return previous;
+    if (command.type === 'acquire_github' && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
+      source.id === command.materialId && source.kind === 'github' && source.input.kind === 'url' && source.input.url === command.selection.url &&
+      JSON.stringify(source.input.repositoryScope) === JSON.stringify({ ref: command.selection.ref, paths: command.selection.paths }))) return previous;
     if (previous.revision !== baseRevision) throw new DraftConflict(previous);
     const next = applyCommand(previous, command);
-    if (command.type === 'request_recommendations' || command.type === 'acquire_text' || command.type === 'acquire_pdf' || command.type === 'acquire_web' || command.type === 'inspect_youtube' || command.type === 'observe_youtube') {
+    if (command.type === 'request_recommendations' || command.type === 'acquire_text' || command.type === 'acquire_pdf' || command.type === 'acquire_web' || command.type === 'inspect_youtube' || command.type === 'observe_youtube' || command.type === 'acquire_github') {
       const queued = await this.jobs.enqueue(owner, previous, next);
       if (!queued) throw new DraftConflict(await this.load(owner, id));
       return queued;

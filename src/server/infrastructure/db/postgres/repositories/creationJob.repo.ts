@@ -8,12 +8,14 @@ import { LeaseLost, type ClaimedCreationJob, type CreationJobRepository } from '
 import { hourlyBudget, reserveBudget } from './creationBudget.repo';
 import { creationFailure } from '@/src/server/domain/cohort-creation/errors';
 import { jobSummary, writeDraftEvent } from './creationEvent.repo';
-import { textAcquisitionRequestSchema, webAcquisitionRequestSchema, pdfAcquisitionRequestSchema, youtubeInspectionRequestSchema, youtubeObservationRequestSchema } from '@/src/shared/cohort-creation/jobs';
+import { textAcquisitionRequestSchema, webAcquisitionRequestSchema, pdfAcquisitionRequestSchema, youtubeInspectionRequestSchema, youtubeObservationRequestSchema, githubAcquisitionRequestSchema } from '@/src/shared/cohort-creation/jobs';
+import { retainedGithubCheckpointSchema, githubMaterialManifestSchema, type RetainedGithubCheckpoint } from '@/src/shared/cohort-creation/github';
+import type { ClaimedGithubJob } from '@/src/server/domain/cohort-creation/durable-job';
 import { retainedYoutubeMetadataSchema, youtubeObservationCheckpointSchema, youtubeMaterialManifestSchema, type RetainedYoutubeMetadata, type YoutubeObservationCheckpoint } from '@/src/shared/cohort-creation/youtube';
 import { validateYoutubeCheckpoint } from '@/src/server/domain/cohort-creation/materials/youtube-identity';
 import type { ClaimedYoutubeObservationJob } from '@/src/server/domain/cohort-creation/durable-job';
 import { materialManifestSchema } from '@/src/shared/cohort-creation/materials';
-import { jobCompletion, validateWebRetention } from '@/src/server/domain/cohort-creation/job-completion';
+import { jobCompletion, validateWebRetention, validateGithubRetention } from '@/src/server/domain/cohort-creation/job-completion';
 import { releaseDetachedMaterialRefs } from './creationMaterialRefs';
 import { retainedWebCheckpointSchema, webMaterialManifestSchema, type RetainedWebCheckpoint } from '@/src/shared/cohort-creation/web';
 import type { ClaimedWebJob } from '@/src/server/domain/cohort-creation/durable-job';
@@ -41,12 +43,23 @@ function claimed(row: CreationJob): ClaimedCreationJob {
     checkpoint: row.checkpoint ? retainedYoutubeMetadataSchema.parse(row.checkpoint) : null };
   if (row.kind === 'observe_youtube') return { ...base, kind: 'observe_youtube', input: youtubeObservationRequestSchema.parse(row.input),
     checkpoint: row.checkpoint ? youtubeObservationCheckpointSchema.or(youtubeMaterialManifestSchema).parse(row.checkpoint) : null };
+  if (row.kind === 'acquire_github') return { ...base, kind: 'acquire_github', input: githubAcquisitionRequestSchema.parse(row.input),
+    checkpoint: row.checkpoint ? retainedGithubCheckpointSchema.or(githubMaterialManifestSchema).parse(row.checkpoint) : null };
   if (row.kind === 'acquire_web') return { ...base, kind: 'acquire_web', input: webAcquisitionRequestSchema.parse(row.input),
     checkpoint: row.checkpoint ? retainedWebCheckpointSchema.or(webMaterialManifestSchema).parse(row.checkpoint) : null };
   return { ...base, kind: 'recommendations', input: recommendationRequestSchema.parse(row.input),
     checkpoint: row.checkpoint ? recommendationResultSchema.parse(row.checkpoint) : null };
 }
 async function pinMaterial(tx: Prisma.TransactionClient, job: ClaimedCreationJob, manifest: unknown) {
+  if (job.kind === 'acquire_github') {
+    const valid = githubMaterialManifestSchema.parse(manifest);
+    await pinGithubReceipt(tx, job, valid.github); const ref = valid.extractionArtifact;
+    const pinned = await tx.creationStorageObject.updateMany({ where: { id: ref.id, ownerId: job.ownerId, draftId: job.draftId,
+      status: 'ready', kind: 'artifact', byteLength: ref.byteLength, checksum: ref.checksum, artifactType: 'github-extraction',
+      schemaVersion: 1, inputFingerprint: valid.inputFingerprint }, data: { referencedAt: new Date() } });
+    if (pinned.count !== 1) throw new Error('Checkpoint storage reference unavailable');
+    return;
+  }
   if (job.kind === 'observe_youtube') {
     const valid = youtubeMaterialManifestSchema.parse(manifest);
     await pinYoutubeObservations(tx, job, valid.youtube);
@@ -110,6 +123,17 @@ function preserveYoutubeWork(current: CreationSnapshot, checkpoint: YoutubeObser
   validateYoutubeCheckpoint({ requestId: current.activeRequestId!, inputRevision: current.inputRevision,
     source: current.materials.find(source => source.id === checkpoint.materialId)!, metadata: preview }, checkpoint);
 }
+async function pinGithubReceipt(tx: Prisma.TransactionClient, job: ClaimedGithubJob, retained: RetainedGithubCheckpoint) {
+  const valid = validateGithubRetention(job, retained); const ref = valid.artifact;
+  const pinned = await tx.creationStorageObject.updateMany({ where: { id: ref.id, ownerId: job.ownerId, draftId: job.draftId,
+    status: 'ready', kind: 'artifact', byteLength: ref.byteLength, checksum: ref.checksum, artifactType: 'github-source',
+    schemaVersion: 1, inputFingerprint: valid.inputFingerprint }, data: { referencedAt: new Date() } });
+  if (pinned.count !== 1) throw new Error('Checkpoint storage reference unavailable');
+}
+function preserveGithubSource(current: CreationSnapshot, retained: RetainedGithubCheckpoint, partial = false) {
+  const refs = current.materialRefs.find(ref => ref.materialId === retained.materialId);
+  if (refs && (!refs.ids.includes(retained.artifact.id) || partial && refs.ids.length !== 1)) throw new Error('Cannot replace a retained GitHub receipt or completed checkpoint');
+}
 export function createCreationJobRepository(prisma = defaultPrisma): CreationJobRepository {
  return {
   async enqueue(owner, previous, next) {
@@ -118,9 +142,11 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       if (!current) return null;
       const source = next.materials.find(source => source.status === 'acquiring');
       const metadata = next.youtubeSources.find(preview => preview.materialId === source?.id);
-      const kind = next.stage === 'recommendations' ? 'recommendations' : source?.kind === 'web' ? 'acquire_web' : source?.kind === 'pdf' ? 'acquire_pdf' : ['youtube_video', 'youtube_playlist'].includes(source?.kind ?? '') ? metadata && source?.selectedUnitIds.length ? 'observe_youtube' : 'inspect_youtube' : 'acquire_text';
+      const kind = next.stage === 'recommendations' ? 'recommendations' : source?.kind === 'github' ? 'acquire_github' : source?.kind === 'web' ? 'acquire_web' : source?.kind === 'pdf' ? 'acquire_pdf' : ['youtube_video', 'youtube_playlist'].includes(source?.kind ?? '') ? metadata && source?.selectedUnitIds.length ? 'observe_youtube' : 'inspect_youtube' : 'acquire_text';
       const input = kind === 'recommendations'
         ? recommendationRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, query: next.query })
+        : kind === 'acquire_github' ? githubAcquisitionRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, source,
+          maxUnits: 100 - next.materials.filter(item => item.id !== source?.id).reduce((sum, item) => sum + item.selectedUnitIds.length, 0) })
         : kind === 'observe_youtube' ? youtubeObservationRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, source, metadata })
         : (kind === 'acquire_web' ? webAcquisitionRequestSchema : kind === 'acquire_pdf' ? pdfAcquisitionRequestSchema : kind === 'inspect_youtube' ? youtubeInspectionRequestSchema : textAcquisitionRequestSchema).parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, source });
       const fingerprint = createHash('sha256').update(JSON.stringify({ kind, schema: 1, input })).digest('hex');
@@ -180,7 +206,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const candidates = await tx.$queryRaw<{ id: string; draftId: string; ownerId: string }[]>`
         SELECT j."id",j."draftId",j."ownerId" FROM "creation_jobs" j
         JOIN "creation_drafts" d ON d."id"=j."draftId"
-        WHERE d."expiredAt" IS NULL AND j."kind" IN ('recommendations','acquire_text','acquire_web','acquire_pdf','inspect_youtube','observe_youtube') AND j."cancelRequestedAt" IS NULL AND
+        WHERE d."expiredAt" IS NULL AND j."kind" IN ('recommendations','acquire_text','acquire_web','acquire_pdf','inspect_youtube','observe_youtube','acquire_github') AND j."cancelRequestedAt" IS NULL AND
         ((j."status"='queued' AND j."nextRunAt"<=CURRENT_TIMESTAMP) OR
          (j."status"='running' AND j."leaseUntil"<=CURRENT_TIMESTAMP))
         ORDER BY j."nextRunAt",j."createdAt" LIMIT 1 FOR UPDATE OF d SKIP LOCKED`;
@@ -196,7 +222,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
       const rows = await tx.$queryRaw<CreationJob[]>`UPDATE "creation_jobs" SET "status"='running',
         "attempt"="attempt"+1,"leaseOwner"=${worker},"leaseToken"=${token},
         "leaseUntil"=CURRENT_TIMESTAMP + interval '90 seconds',"heartbeatAt"=CURRENT_TIMESTAMP,
-        "deadlineAt"=COALESCE("deadlineAt",CURRENT_TIMESTAMP + CASE WHEN "kind"='observe_youtube' THEN interval '6 hours' WHEN "kind" IN ('acquire_web','acquire_pdf','inspect_youtube') THEN interval '120 seconds' WHEN "kind"='acquire_text' THEN interval '60 seconds' ELSE interval '30 seconds' END),"updatedAt"=CURRENT_TIMESTAMP
+        "deadlineAt"=COALESCE("deadlineAt",CURRENT_TIMESTAMP + CASE WHEN "kind"='observe_youtube' THEN interval '6 hours' WHEN "kind"='acquire_github' THEN interval '6 minutes' WHEN "kind" IN ('acquire_web','acquire_pdf','inspect_youtube') THEN interval '120 seconds' WHEN "kind"='acquire_text' THEN interval '60 seconds' ELSE interval '30 seconds' END),"updatedAt"=CURRENT_TIMESTAMP
         WHERE "id"=${job.id} RETURNING *`;
       await writeDraftEvent(tx, row.ownerId, { ...current, revision: current.revision + 1 }, 'job_started', rows[0]);
       return claimed(rows[0]);
@@ -251,6 +277,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
         if (event.type === 'material_received') {
           jobCompletion(job, event.manifest);
           if ('youtube' in event.manifest) preserveYoutubeWork(current, event.manifest.youtube);
+          if ('github' in event.manifest) preserveGithubSource(current, event.manifest.github);
           await pinMaterial(tx, job, event.manifest);
         }
         if (event.type === 'youtube_metadata_received') { jobCompletion(job, event.result); await pinYoutubeMetadata(tx, job, event.result); }
@@ -268,6 +295,21 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
     } catch (error) { if (error instanceof LeaseLost) return false; throw error; }
   },
   async checkpoint(job, result) {
+    if (job.kind === 'acquire_github' && 'phase' in result) {
+      const valid = validateGithubRetention(job, result);
+      try {
+        return await prisma.$transaction(async tx => {
+          const current = await lockedDraft(tx, job.ownerId, job.draftId);
+          if (!current || current.activeRequestId !== job.requestId || current.inputRevision !== job.inputRevision) return false;
+          await fenced(tx, job); preserveGithubSource(current, valid, true); await pinGithubReceipt(tx, job, valid);
+          const updated = await tx.creationJob.update({ where: { id: job.id }, data: { checkpoint: valid } });
+          await writeDraftEvent(tx, job.ownerId, { ...current, revision: current.revision + 1,
+            materialRefs: [...current.materialRefs.filter(ref => ref.materialId !== valid.materialId),
+              { materialId: valid.materialId, ids: [valid.artifact.id] }] }, 'snapshot', updated);
+          return true;
+        });
+      } catch (error) { if (error instanceof LeaseLost) return false; throw error; }
+    }
     if (job.kind === 'observe_youtube' && 'phase' in result) {
       const valid = validateYoutubeCheckpoint(job.input, result);
       try {
@@ -308,6 +350,7 @@ export function createCreationJobRepository(prisma = defaultPrisma): CreationJob
         if (!current || current.activeRequestId !== job.requestId || current.inputRevision !== job.inputRevision) return false;
         await fenced(tx, job);
         if (completion.type === 'material_received' && 'youtube' in completion.manifest) preserveYoutubeWork(current, completion.manifest.youtube);
+        if (completion.type === 'material_received' && 'github' in completion.manifest) preserveGithubSource(current, completion.manifest.github);
         if (completion.type === 'material_received') await pinMaterial(tx, job, completion.manifest);
         if (completion.type === 'youtube_metadata_received') await pinYoutubeMetadata(tx, job, completion.result);
         const updated = await tx.creationJob.update({ where: { id: job.id }, data: { checkpoint: valid } });

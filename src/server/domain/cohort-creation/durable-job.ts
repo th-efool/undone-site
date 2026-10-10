@@ -1,7 +1,8 @@
 import type { CreationSnapshot, RecommendationRequest, RecommendationResult } from '@/src/shared/cohort-creation/contracts';
 import type { CreationEvent } from '@/src/shared/cohort-creation/flow';
 import type { CreationEventEnvelope, CreationJobSummary } from '@/src/shared/cohort-creation/durable';
-import type { TextAcquisitionRequest, WebAcquisitionRequest, PdfAcquisitionRequest, YoutubeInspectionRequest, YoutubeObservationRequest } from '@/src/shared/cohort-creation/jobs';
+import type { TextAcquisitionRequest, WebAcquisitionRequest, PdfAcquisitionRequest, YoutubeInspectionRequest, YoutubeObservationRequest, GithubAcquisitionRequest } from '@/src/shared/cohort-creation/jobs';
+import type { RetainedGithubCheckpoint, GithubMaterialManifest } from '@/src/shared/cohort-creation/github';
 import type { RetainedYoutubeMetadata, YoutubeObservationCheckpoint, YoutubeMaterialManifest } from '@/src/shared/cohort-creation/youtube';
 import type { RetainedWebCheckpoint, WebMaterialManifest } from '@/src/shared/cohort-creation/web';
 import type { MaterialManifest } from '@/src/shared/cohort-creation/materials';
@@ -18,8 +19,9 @@ export type ClaimedWebJob = JobBase & { kind: 'acquire_web'; input: WebAcquisiti
 export type ClaimedPdfJob = JobBase & { kind: 'acquire_pdf'; input: PdfAcquisitionRequest; checkpoint: MaterialManifest | null };
 export type ClaimedYoutubeInspectionJob = JobBase & { kind: 'inspect_youtube'; input: YoutubeInspectionRequest; checkpoint: RetainedYoutubeMetadata | null };
 export type ClaimedYoutubeObservationJob = JobBase & { kind: 'observe_youtube'; input: YoutubeObservationRequest; checkpoint: YoutubeObservationCheckpoint | YoutubeMaterialManifest | null };
-export type ClaimedCreationJob = ClaimedRecommendationJob | ClaimedTextJob | ClaimedWebJob | ClaimedPdfJob | ClaimedYoutubeInspectionJob | ClaimedYoutubeObservationJob;
-export type CreationCheckpoint = RecommendationResult | MaterialManifest | RetainedWebCheckpoint | WebMaterialManifest | RetainedYoutubeMetadata | YoutubeObservationCheckpoint | YoutubeMaterialManifest;
+export type ClaimedGithubJob = JobBase & { kind: 'acquire_github'; input: GithubAcquisitionRequest; checkpoint: RetainedGithubCheckpoint | GithubMaterialManifest | null };
+export type ClaimedCreationJob = ClaimedRecommendationJob | ClaimedTextJob | ClaimedWebJob | ClaimedPdfJob | ClaimedYoutubeInspectionJob | ClaimedYoutubeObservationJob | ClaimedGithubJob;
+export type CreationCheckpoint = RecommendationResult | MaterialManifest | RetainedWebCheckpoint | WebMaterialManifest | RetainedYoutubeMetadata | YoutubeObservationCheckpoint | YoutubeMaterialManifest | RetainedGithubCheckpoint | GithubMaterialManifest;
 export interface CreationJobRepository {
   enqueue(owner: string, previous: CreationSnapshot, next: CreationSnapshot): Promise<CreationSnapshot | null>;
   cancel(owner: string, previous: CreationSnapshot, next: CreationSnapshot): Promise<boolean>;

@@ -37,7 +37,8 @@ export function githubRepositoryUrl(input: string) {
 /** Reads selected paths at one immutable commit. No source URL, download URL or repository code is executed. */
 export class GithubMaterialReader {
   constructor(private readonly provider: PublicGithubProvider) {}
-  async read(request: GithubSelection, callerSignal?: AbortSignal) {
+  async read(request: GithubSelection, callerSignal?: AbortSignal, maxFiles = 100) {
+    if (!Number.isSafeInteger(maxFiles) || maxFiles < 1 || maxFiles > 100) return fail('GitHub requires remaining draft unit capacity.');
     const selection = githubSelectionSchema.parse(request); const repository = githubRepositoryUrl(selection.url);
     const signal = AbortSignal.any([...(callerSignal ? [callerSignal] : []), AbortSignal.timeout(60_000)]);
     signal.throwIfAborted(); let calls = 0;
@@ -89,7 +90,7 @@ export class GithubMaterialReader {
           if (skipped.length >= 2000) return limit('GitHub skipped-entry manifest exceeds 2,000 entries');
           skipped.push({ path, reason: text?.trim() ? 'binary' : text === undefined ? 'binary' : 'empty' }); continue;
         }
-        if (files.length >= 100) return limit('GitHub scope exceeds 100 text files. Select fewer paths');
+        if (files.length >= maxFiles) return limit(`GitHub scope exceeds the remaining ${maxFiles} draft units. Select fewer paths`);
         totalBytes += bytes.length; if (totalBytes > MATERIAL_LIMITS.extractedTextBytes) return limit('Selected GitHub text exceeds 1 MiB. Select fewer files');
         files.push({ path, blobSha, byteLength: bytes.length, text });
       }

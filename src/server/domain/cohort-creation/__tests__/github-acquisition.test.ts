@@ -88,4 +88,13 @@ describe('retained GitHub content and line extraction', () => {
     await expect(f.service.acquire(f.scope, f.source, -1, f.selection)).rejects.toThrow('canonical GitHub');
     expect(f.rows.size).toBe(0); expect(f.read).not.toHaveBeenCalled();
   });
+  it('preserves literal file paths in anchors and rejects resume without unit capacity', async () => {
+    const f = fixture(); const manifest = await f.service.acquire(f.scope, f.source, 7, f.selection);
+    await expect(f.service.extract(f.scope, f.source, 7, f.selection, manifest.github, undefined, 0)).rejects.toThrow('unit capacity');
+    const raw = structuredClone([...f.rows.values()].find(row => row.type === 'github-source')!.value) as {
+      snapshot: typeof f.snapshot; selection: typeof f.selection;
+    };
+    raw.snapshot.files[0].path = ' lesson.md '; raw.snapshot.requestedPaths = [' lesson.md ']; raw.selection.paths = [' lesson.md '];
+    expect(extractGithubReceipt(raw, manifest.retainedSource).files[0].segments[0].location.anchor).toMatchObject({ path: ' lesson.md ' });
+  });
 });

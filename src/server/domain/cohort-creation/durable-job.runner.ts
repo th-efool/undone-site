@@ -2,11 +2,13 @@ import { CreationFailure } from './errors';
 import { JobBudgetExceeded, LeaseLost, type ClaimedCreationJob, type ClaimedRecommendationJob, type ClaimedTextJob, type ClaimedWebJob, type ClaimedPdfJob, type ClaimedYoutubeInspectionJob, type ClaimedYoutubeObservationJob, type CreationJobRepository } from './durable-job';
 import type { YoutubeAcquisitionService } from './materials/youtube-acquisition.service';
 import { validateYoutubeCheckpoint } from './materials/youtube-identity';
+import type { ClaimedGithubJob } from './durable-job';
+import type { GithubAcquisitionService } from './materials/github-acquisition.service';
 import type { RecommendationService } from './recommendation.service';
 
 import type { TextAcquisitionService } from './materials/text-acquisition.service';
 import { CreationStorageError } from '@/src/server/infrastructure/storage/creation.contracts';
-import { jobCompletion, validateWebRetention } from './job-completion';
+import { jobCompletion, validateWebRetention, validateGithubRetention, githubJobSelection } from './job-completion';
 import type { WebAcquisitionService } from './materials/web-acquisition.service';
 import type { PdfAcquisitionService } from './materials/pdf-acquisition.service';
 import type { YoutubeMetadataRetentionService } from './materials/youtube-observation.service';
@@ -16,9 +18,10 @@ type WebAcquirerFactory = (job: ClaimedWebJob) => Pick<WebAcquisitionService, 'a
 type PdfAcquirerFactory = (job: ClaimedPdfJob) => Pick<PdfAcquisitionService, 'acquire'>;
 type YoutubeInspectorFactory = (job: ClaimedYoutubeInspectionJob) => Pick<YoutubeMetadataRetentionService, 'retainMetadata'>;
 type YoutubeAcquirerFactory = (job: ClaimedYoutubeObservationJob) => Pick<YoutubeAcquisitionService, 'acquire'>;
+type GithubAcquirerFactory = (job: ClaimedGithubJob) => Pick<GithubAcquisitionService, 'acquire' | 'extract'>;
 /** One task invocation; browser connections are deliberately not an input. */
 export async function executeCreationJob(repo: CreationJobRepository, job: ClaimedCreationJob,
-  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory) {
+  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory) {
   const lease = new AbortController();
   const remaining = Math.max(1, job.deadlineAt.getTime() - Date.now());
   const timeout = AbortSignal.timeout(remaining);
@@ -41,6 +44,15 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
     if (job.deadlineAt.getTime() <= Date.now()) throw new DOMException('Job deadline elapsed', 'TimeoutError');
     signal.throwIfAborted();
     const result = job.kind === 'recommendations' ? await recommender(job).recommend(job.input, signal)
+      : job.kind === 'acquire_github' ? await (() => {
+        if (!githubAcquirer) throw new Error('GitHub acquisition service unavailable');
+        const service = githubAcquirer(job); const scope = { ownerId: job.ownerId, draftId: job.draftId }; const selection = githubJobSelection(job);
+        if (job.checkpoint && 'phase' in job.checkpoint) return service.extract(scope, job.input.source, job.inputRevision, selection,
+          validateGithubRetention(job, job.checkpoint), signal, job.input.maxUnits);
+        return service.acquire(scope, job.input.source, job.inputRevision, selection, signal, async retained => {
+          if (!await repo.checkpoint(job, retained)) throw new LeaseLost();
+        }, job.input.maxUnits);
+      })()
       : job.kind === 'acquire_web' ? await (() => {
         if (!webAcquirer) throw new Error('Web acquisition service unavailable');
         const service = webAcquirer(job); const scope = { ownerId: job.ownerId, draftId: job.draftId };
@@ -96,14 +108,14 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
 }
 
 export async function runCreationWorker(repo: CreationJobRepository, workerId: string,
-  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory) {
+  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory) {
   const tasks = new Set<Promise<void>>();
   while (!signal.aborted) {
     try {
       if (tasks.size < 2) {
         const job = await repo.claim(workerId);
         if (job) {
-          const task = executeCreationJob(repo, job, recommender, signal, acquirer, webAcquirer, pdfAcquirer, youtubeInspector, youtubeAcquirer).catch(reportError);
+          const task = executeCreationJob(repo, job, recommender, signal, acquirer, webAcquirer, pdfAcquirer, youtubeInspector, youtubeAcquirer, githubAcquirer).catch(reportError);
           tasks.add(task);
           void task.finally(() => tasks.delete(task));
           continue;

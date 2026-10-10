@@ -30,3 +30,7 @@ export const youtubeObservationRequestSchema = youtubeInspectionRequestSchema.ex
       input.metadata.observations.some(unit => !input.source.selectedUnitIds.includes(unit.unitId))) ctx.addIssue({ code: 'custom', message: 'Invalid selected video observation request' });
   });
 export type YoutubeObservationRequest = z.infer<typeof youtubeObservationRequestSchema>;
+export const githubAcquisitionRequestSchema = z.strictObject({ requestId: z.uuid(), inputRevision: z.number().int().nonnegative(),
+  maxUnits: z.number().int().positive().max(100), source: materialSourceSchema.refine(source => source.kind === 'github' &&
+    source.input.kind === 'url' && !!source.input.repositoryScope, 'Select explicit GitHub repository paths') });
+export type GithubAcquisitionRequest = z.infer<typeof githubAcquisitionRequestSchema>;
