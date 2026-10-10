@@ -6,6 +6,7 @@ import { useCreation } from './hooks/useCreation';
 import { RecommendationResults } from './components/RecommendationResults';
 import { StartingPoint } from './components/StartingPoint';
 import { TextMaterial } from './components/TextMaterial';
+import { CreationConnections } from './components/CreationConnections';
 import styles from './CreationExperience.module.css';
 
 export function CreationExperience({ draftId, initialQuery = '', resume = false }: { draftId: string; initialQuery?: string; resume?: boolean }) {
@@ -33,9 +34,10 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
         {snapshot.stage === 'starting_point' ? <>
           <StartingPoint selected={snapshot.startingPoint} onSelect={creation.chooseStartingPoint} onBack={creation.back}
             disabled={creation.materialPending || snapshot.status === 'running'} />
-          {snapshot.startingPoint === 'have_material' ? <TextMaterial snapshot={snapshot} uploading={creation.uploading} pending={creation.materialPending}
+          {snapshot.startingPoint === 'have_material' ? <><CreationConnections draftId={draftId} disabled={!creation.saved || creation.materialPending || snapshot.status === 'running'} />
+          <TextMaterial snapshot={snapshot} uploading={creation.uploading} pending={creation.materialPending}
             onUpload={creation.uploadText} onCancelUpload={creation.cancelUpload} onCancel={creation.cancel} onRetry={creation.retryMaterial}
-            onRemove={creation.removeMaterial} onWeb={creation.acquireWeb} onSelectUnits={creation.selectYoutubeUnits} onObserve={creation.observeYoutube} onGithub={creation.acquireGithub} /> :
+            onRemove={creation.removeMaterial} onWeb={creation.acquireWeb} onSelectUnits={creation.selectYoutubeUnits} onObserve={creation.observeYoutube} onGithub={creation.acquireGithub} /></> :
             snapshot.startingPoint && <p>Material discovery for this starting point is not available yet.</p>}
         </> : <>
           <form key={snapshot.query} onSubmit={event => {

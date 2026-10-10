@@ -87,6 +87,9 @@ describe('owned creation connections', () => {
       const response = await handler(request(method, method === 'GET' ? undefined : { plugin: 'github' }), draftId);
       expect(response.status).toBe(200);
       expect(response.headers.get('Cache-Control')).toBe('no-store');
+      if (method === 'POST') {
+        expect(response.headers.get('Set-Cookie')).toContain(`${draftId}; Path=/quest/connections/return; HttpOnly; SameSite=Lax; Max-Age=1800; Secure`);
+      } else expect(response.headers.get('Set-Cookie')).toBeNull();
     }
   });
 });

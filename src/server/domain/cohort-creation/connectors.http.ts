@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { connectorCommandSchema } from '@/src/shared/cohort-creation/connectors';
 import { DraftNotFound } from './draft.service';
 import type { CreationConnectorService } from './connectors.service';
+export const CONNECTION_RETURN_COOKIE = 'creation_connection_return';
 
 async function readCommand(request: Request) {
   if (!request.body) throw new SyntaxError('Missing command');
@@ -42,7 +43,9 @@ export function creationConnectorHandler(service: CreationConnectorService, getO
       if (request.headers.get('Content-Type')?.split(';')[0].trim() !== 'application/json') return new Response(null, { status: 415 });
       const { plugin } = await readCommand(request);
       const result = request.method === 'POST' ? await service.connect(owner, draftId, plugin) : await service.disconnect(owner, draftId, plugin);
-      return Response.json(result, { headers: { 'Cache-Control': 'no-store' } });
+      return Response.json(result, { headers: { 'Cache-Control': 'no-store', ...(request.method === 'POST' ? {
+        'Set-Cookie': `${CONNECTION_RETURN_COOKIE}=${draftId}; Path=/quest/connections/return; HttpOnly; SameSite=Lax; Max-Age=1800${origin().startsWith('https:') ? '; Secure' : ''}`,
+      } : {}) } });
     } catch (error) {
       if (error instanceof DraftNotFound) return Response.json({ message: 'Draft not found.' }, { status: 404 });
       if (error instanceof z.ZodError || error instanceof SyntaxError) return Response.json({ message: 'Invalid connection request.' }, { status: 400 });
