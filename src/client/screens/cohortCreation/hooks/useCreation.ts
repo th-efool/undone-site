@@ -99,7 +99,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
         display(latest, true, 'The active request changed. Review the current draft before canceling.');
         return;
       }
-      await edit({ type: latest.stage === 'starting_point' ? 'cancel_material_acquisition' : 'cancel_recommendations' });
+      await edit({ type: latest.stage === 'processing' ? 'cancel_processing' : latest.stage === 'starting_point' ? 'cancel_material_acquisition' : 'cancel_recommendations' });
     } catch (error) { failure(error); }
   };
   const uploadText = async (bytes: Blob, filename: string, materialId?: string) => {
@@ -128,6 +128,8 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     }
   };
   return { ...view, uploading, materialPending, uploadText, cancelUpload: () => uploadController.current?.abort(),
+    understandMaterial: () => edit({ type: 'understand_material', requestId: crypto.randomUUID() }),
+    backToMaterials: () => edit({ type: 'back_to_materials' }),
     discoverMaterial: () => edit({ type: 'discover_material', requestId: crypto.randomUUID() }),
     acquireDiscovered: (candidate: DiscoveryCandidate) => {
       if (candidate.kind === 'github') return Promise.resolve(false); // GitHub requires explicit ref/path selection.
