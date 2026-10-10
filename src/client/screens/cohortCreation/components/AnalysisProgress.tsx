@@ -1,6 +1,7 @@
 'use client';
 import { useRef, useState } from 'react';
 import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
+import { AnalysisWorkspace } from './AnalysisWorkspace';
 
 export function AnalysisProgress({ snapshot, disabled, onStart, onCancel, onBack, onBuild }: {
   onBuild?: () => Promise<boolean>; snapshot: CreationSnapshot; disabled: boolean; onStart: () => Promise<boolean>; onCancel: () => void; onBack: () => Promise<boolean>;
@@ -12,7 +13,7 @@ export function AnalysisProgress({ snapshot, disabled, onStart, onCancel, onBack
     saving.current = true; setPending(true);
     try { await action(); } finally { saving.current = false; setPending(false); }
   };
-  return <section aria-label="Analyzing material">
+  return <AnalysisWorkspace snapshot={snapshot}><section aria-label="Analyzing material">
     <h2>Analyzing</h2>
     <p>Accepted chunks, understanding and source material remain saved.</p>
     {running ? <div role="status">
@@ -29,5 +30,5 @@ export function AnalysisProgress({ snapshot, disabled, onStart, onCancel, onBack
       <button disabled={disabled || pending} onClick={() => void start()}>Start fresh analysis</button>
       <button disabled={disabled || pending} onClick={() => void onBack()}>Back to material</button>
     </>}
-  </section>;
+  </section></AnalysisWorkspace>;
 }

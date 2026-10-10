@@ -19,6 +19,7 @@ const screens = [
   await page.addInitScript(()=>localStorage.setItem('undone_theme','light'));
   await page.route('**/api/cohort-creation/drafts/*/understanding',async route=>route.fulfill({json:await page.evaluate(()=>window.__creationVisualFixtures.conceptPreview)}));
   await page.route('**/api/cohort-creation/drafts/*/chunks',async route=>route.fulfill({json:await page.evaluate(()=>window.__creationVisualFixtures.chunkPreview)}));
+  await page.route('**/api/cohort-creation/drafts/*/analysis',async route=>route.fulfill({json:await page.evaluate(()=>window.__creationVisualFixtures.analysisPreview)}));
   await page.route('**/api/cohort-creation/drafts/*/review',async route=>route.fulfill({json:await page.evaluate(()=>window.__creationVisualFixtures.reviewResponse)}));
   for (const [number,name,width,height,checkpoint] of screens) {
    if(selected&&!selected.includes(number))continue;
@@ -30,6 +31,7 @@ const screens = [
     if(number===9)await page.getByRole('heading',{name:'Foundations',exact:true}).waitFor();
     if(number===5&&version==='after')await page.getByText('Distributed systems',{exact:true}).waitFor();
     if(number===6&&version==='after'&&completed>=4.5)await page.getByText('What makes a distributed system?',{exact:true}).waitFor();
+    if(number===7&&version==='after'&&completed>=4.6)await page.getByText('Analysis saved',{exact:true}).first().waitFor();
     // Wait for every rendered image, including Next image wrapper substitutes.
     await page.evaluate(()=>Promise.all([...document.images].map(image=>image.decode().catch(()=>{}))));
     await page.screenshot({path:path.join(directory,filename)});

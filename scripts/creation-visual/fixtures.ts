@@ -1,3 +1,4 @@
+import { PEDAGOGICAL_DIMENSIONS } from '../../src/shared/curriculum/pedagogicalVector.types';
 import { initialSnapshot } from '../../src/shared/cohort-creation/flow';
 import { result, draftId } from '../../src/shared/cohort-creation/__tests__/fixtures';
 
@@ -21,6 +22,11 @@ export const chunkPreview = { revision: 1, chunks: ['What makes a distributed sy
   title: field(title), summary: field(['Understand the components and tradeoffs of systems that span multiple machines.', 'Explore failure handling and the design choices behind reliable services.', 'Compare guarantees and their implications for a real application.'][index]),
   sourceRefs: [{ materialId: draftId, unitId: draftId, segmentId: `segment-${index}`, anchor: { kind: 'text', start: index * 100, end: (index + 1) * 100 } }],
   durationSeconds: 300 + index * 60, durationMethod: 'reading_estimate', conceptIndices: [], contentOrigin: 'external', coverage: { scope: 'main article', exhaustive: true, limitations: ['Visual fixture, not a live extraction.'] }
+})) };
+export const analysisPreview = { revision: 1, chunks: chunkPreview.chunks, analyses: chunkPreview.chunks.map((chunk, index) => ({
+  chunkId: chunk.id, vector: Object.fromEntries(PEDAGOGICAL_DIMENSIONS.map((key, dimension) => [key, [0.5, 0.7, 0.3, 0.6, 0.4][(dimension + index) % 5]])),
+  isStrictlyLinear: index === 0, confidence: 0.8, reasoning: 'Fixture analysis of the retained explanation and its learning dependencies. This is not a live model result.',
+  modelId: 'visual-fixture', promptVersion: 'analysis-v1', inputRevision: 1,
 })) };
 export const curriculum = { version: hash('a'), inputRevision: 1, title: field('System Design from First Principles'), description: field('Build a practical mental model of modern distributed systems.'), warnings: [],
   seasons: [{ id: 'season-1', title: field('Foundations'), order: 0, lessons: ['Understanding distributed systems', 'Designing for availability', 'Choosing consistency guarantees'].map((title, order) => ({
@@ -47,10 +53,14 @@ export const snapshot = { ...initialSnapshot(draftId), revision: 1, inputRevisio
   ...(screenNumber >= 5 && screenNumber <= 7 ? { status: 'running', activeRequestId: draftId } : {}) };
 export function useCreation() {
   const variant = new URLSearchParams(location.search).get('case');
-  const state = screenNumber === 6 && snapshot.processing?.chunking && variant ? { ...snapshot,
+  const analysisVariant = screenNumber === 7 && snapshot.processing?.analysis && variant ? { ...snapshot,
+    status: variant === 'complete' ? 'succeeded' : variant === 'canceled' ? 'canceled' : 'running',
+    processing: { ...snapshot.processing, analysis: { ...snapshot.processing.analysis, complete: variant === 'complete',
+      checkpoint: variant === 'unknown' ? null : snapshot.processing.analysis.checkpoint } } } : null;
+  const state = analysisVariant ?? (screenNumber === 6 && snapshot.processing?.chunking && variant ? { ...snapshot,
     status: variant === 'complete' ? 'succeeded' : variant === 'canceled' ? 'canceled' : 'running',
     processing: { ...snapshot.processing, chunking: { ...snapshot.processing.chunking, complete: variant === 'complete',
-      checkpoint: variant === 'unknown' ? null : snapshot.processing.chunking.checkpoint } } } : snapshot;
+      checkpoint: variant === 'unknown' ? null : snapshot.processing.chunking.checkpoint } } } : snapshot);
   return new Proxy({ snapshot: state, hydrated: true, saved: true, materialPending: false, uploading: false, message: null, query: state.query },
     { get: (target, property) => property in target ? target[property as keyof typeof target] : async () => true });
 }
