@@ -1,4 +1,5 @@
 'use client';
+import type { GithubSelection } from '@/src/shared/cohort-creation/github';
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { type CreationSnapshot, type StartingPoint, querySchema } from '@/src/shared/cohort-creation/contracts';
@@ -128,6 +129,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
   return { ...view, uploading, materialPending, uploadText, cancelUpload: () => uploadController.current?.abort(),
     selectYoutubeUnits: (materialId: string, unitIds: string[]) => edit({ type: 'select_youtube_units', materialId, unitIds }),
     observeYoutube: (materialId: string) => edit({ type: 'observe_youtube', materialId, requestId: crypto.randomUUID() }),
+    acquireGithub: (selection: GithubSelection, materialId?: string) => edit({ type: 'acquire_github', materialId: materialId ?? crypto.randomUUID(), requestId: crypto.randomUUID(), selection }),
     removeMaterial: (materialId: string) => edit({ type: 'remove_material', materialId }),
     acquireWeb: (url: string, materialId?: string) => {
       let youtube = false;
