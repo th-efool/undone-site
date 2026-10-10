@@ -37,7 +37,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
           {snapshot.startingPoint === 'have_material' ? <><CreationConnections draftId={draftId} disabled={!creation.saved || creation.materialPending || snapshot.status === 'running'} />
           <TextMaterial snapshot={snapshot} uploading={creation.uploading} pending={creation.materialPending}
             onUpload={creation.uploadText} onCancelUpload={creation.cancelUpload} onCancel={creation.cancel} onRetry={creation.retryMaterial}
-            onRemove={creation.removeMaterial} onWeb={creation.acquireWeb} onSelectUnits={creation.selectYoutubeUnits} onObserve={creation.observeYoutube} onGithub={creation.acquireGithub} /></> :
+            onRemove={creation.removeMaterial} onWeb={creation.acquireWeb} onSelectUnits={creation.selectYoutubeUnits} onObserve={creation.observeYoutube} onGithub={creation.acquireGithub} onNotion={creation.acquireNotion} /></> :
             snapshot.startingPoint && <p>Material discovery for this starting point is not available yet.</p>}
         </> : <>
           <form key={snapshot.query} onSubmit={event => {

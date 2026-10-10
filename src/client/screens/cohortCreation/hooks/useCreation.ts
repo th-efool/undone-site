@@ -130,6 +130,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     selectYoutubeUnits: (materialId: string, unitIds: string[]) => edit({ type: 'select_youtube_units', materialId, unitIds }),
     observeYoutube: (materialId: string) => edit({ type: 'observe_youtube', materialId, requestId: crypto.randomUUID() }),
     acquireGithub: (selection: GithubSelection, materialId?: string) => edit({ type: 'acquire_github', materialId: materialId ?? crypto.randomUUID(), requestId: crypto.randomUUID(), selection }),
+    acquireNotion: (url: string, materialId?: string) => edit({ type: 'acquire_notion', materialId: materialId ?? crypto.randomUUID(), requestId: crypto.randomUUID(), url }),
     removeMaterial: (materialId: string) => edit({ type: 'remove_material', materialId }),
     acquireWeb: (url: string, materialId?: string) => {
       let youtube = false;

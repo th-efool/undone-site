@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+vi.mock('server-only', () => ({}));
 import { executeCreationJob } from '../durable-job.runner';
 import { JobBudgetExceeded, type ClaimedCreationJob, type CreationJobRepository } from '../durable-job';
 import { creationFailure, ProviderBackoff } from '../errors';
