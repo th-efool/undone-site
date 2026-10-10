@@ -44,13 +44,15 @@ describe('real chunking progress controls', () => {
     expect(onStart).toHaveBeenCalledOnce(); await act(async () => finish(true)); await act(async () => root.unmount());
   });
   it('does not present chunk completion as ready curriculum and allows returning to material', async () => {
-    const host = document.createElement('div'); const root = createRoot(host); const state = fixture(); const onBack = vi.fn(async () => true);
+    const host = document.createElement('div'); const root = createRoot(host); const state = fixture(); const onBack = vi.fn(async () => true); const onAnalyze = vi.fn(async () => true);
     const complete = creationSnapshotSchema.parse({ ...state, status: 'succeeded', activeRequestId: null, processing: { ...state.processing!,
       chunking: { ...state.processing!.chunking!, complete: true, checkpoint: { phase: 'chunking', requestId: state.activeRequestId, inputRevision: 2,
         inputFingerprint: 'd'.repeat(64), understandingFingerprint: 'a'.repeat(64), total: 1, partitionIds: ['b'.repeat(64)],
         completed: [{ partitionId: 'b'.repeat(64), chunkCount: 1, artifact: { id: randomUUID(), kind: 'artifact', checksum: 'e'.repeat(64), byteLength: 300 } }] } } } });
-    await act(async () => root.render(<ChunkingProgress snapshot={complete} disabled={false} onStart={vi.fn(async () => true)} onCancel={vi.fn()} onBack={onBack} />));
-    expect(host.textContent).toContain('Analysis and curriculum building are not available yet');
+    await act(async () => root.render(<ChunkingProgress snapshot={complete} disabled={false} onStart={vi.fn(async () => true)} onCancel={vi.fn()} onBack={onBack} onAnalyze={onAnalyze} />));
+    expect(host.textContent).toContain('Grounded chunks are saved');
+    await act(async () => Array.from(host.querySelectorAll('button')).find(button => button.textContent === 'Analyze grounded chunks')!.click());
+    expect(onAnalyze).toHaveBeenCalledOnce();
     await act(async () => Array.from(host.querySelectorAll('button')).find(button => button.textContent === 'Back to material')!.click());
     expect(onBack).toHaveBeenCalledOnce(); await act(async () => root.unmount());
   });

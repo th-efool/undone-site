@@ -1,4 +1,5 @@
 'use client';
+import { AnalysisProgress } from './components/AnalysisProgress';
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -34,8 +35,9 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
         </> : <p>Your query will become a structured learning intent. You remain in control of what happens next.</p>}
       </aside>
       <div>
-        {snapshot.stage === 'processing' && snapshot.processing?.phase === 'chunking' ? <ChunkingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
-          onStart={creation.chunkMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'processing' ? <UnderstandingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
+        {snapshot.stage === 'processing' && snapshot.processing?.phase === 'analysis' ? <AnalysisProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
+          onStart={creation.analyzeMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'processing' && snapshot.processing?.phase === 'chunking' ? <ChunkingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
+          onAnalyze={creation.analyzeMaterial} onStart={creation.chunkMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'processing' ? <UnderstandingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
           onChunk={creation.chunkMaterial} onStart={creation.understandMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'starting_point' ? <>
           <StartingPoint selected={snapshot.startingPoint} onSelect={creation.chooseStartingPoint} onBack={creation.back}
             disabled={creation.materialPending || snapshot.status === 'running'} />
