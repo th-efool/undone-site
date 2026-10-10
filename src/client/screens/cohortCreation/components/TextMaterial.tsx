@@ -2,13 +2,15 @@
 import { useRef, useState } from 'react';
 import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 import styles from '../CreationExperience.module.css';
+import { YoutubeUnits } from './YoutubeUnits';
 
-export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelUpload, onCancel, onRetry, onRemove, onWeb }: {
+export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelUpload, onCancel, onRetry, onRemove, onWeb, onSelectUnits }: {
   snapshot: CreationSnapshot; uploading: boolean; pending: boolean;
   onUpload: (bytes: Blob, filename: string, materialId?: string) => Promise<boolean>; onCancelUpload: () => void;
   onCancel: () => void; onRetry: (materialId: string, assetId: string) => void;
   onRemove: (materialId: string) => Promise<boolean>;
   onWeb: (url: string, materialId?: string) => Promise<boolean>;
+  onSelectUnits?: (materialId: string, unitIds: string[]) => Promise<boolean>;
 }) {
   const [mode, setMode] = useState<'file' | 'paste' | 'url'>('file');
   const [url, setUrl] = useState('');
@@ -76,9 +78,13 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
       {source.status === 'ready' && <span> · {snapshot.extractions.find(extraction => extraction.materialId === source.id)?.segmentCount ?? 0} extracted segments</span>}
       {source.input.kind === 'url' && <span> · {source.input.url}</span>}
       {snapshot.extractions.find(extraction => extraction.materialId === source.id)?.selectionScope === 'main_article' && <span> · Main article selected; full page retained.</span>}
-      {snapshot.youtubeSources.find(preview => preview.materialId === source.id) && <ul aria-label={`Source ${index + 1} videos`}>
+      {!onSelectUnits && snapshot.youtubeSources.find(preview => preview.materialId === source.id) && <ul aria-label={`Source ${index + 1} videos`}>
         {snapshot.youtubeSources.find(preview => preview.materialId === source.id)!.units.map(unit => <li key={unit.unitId}>{unit.title} · {unit.durationSeconds} seconds</li>)}
       </ul>}
+      {onSelectUnits && snapshot.youtubeSources.find(preview => preview.materialId === source.id) && <YoutubeUnits
+        key={`${source.id}:${source.selectedUnitIds.join(',')}`} selected={source.selectedUnitIds}
+        units={snapshot.youtubeSources.find(preview => preview.materialId === source.id)!.units} disabled={busy}
+        onSave={ids => onSelectUnits(source.id, ids)} />}
       {(source.status === 'failed' || source.status === 'pending') && source.input.kind === 'upload' &&
         <button disabled={busy} onClick={() => { if (source.input.kind === 'upload') onRetry(source.id, source.input.assetId); }}>Retry source {index + 1}</button>}
       {(source.status === 'failed' || source.status === 'pending') && source.input.kind === 'url' &&

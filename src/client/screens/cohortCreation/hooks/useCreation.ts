@@ -126,6 +126,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     }
   };
   return { ...view, uploading, materialPending, uploadText, cancelUpload: () => uploadController.current?.abort(),
+    selectYoutubeUnits: (materialId: string, unitIds: string[]) => edit({ type: 'select_youtube_units', materialId, unitIds }),
     removeMaterial: (materialId: string) => edit({ type: 'remove_material', materialId }),
     acquireWeb: (url: string, materialId?: string) => {
       let youtube = false;
