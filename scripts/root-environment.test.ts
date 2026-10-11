@@ -12,6 +12,21 @@ function directory() { const cwd = mkdtempSync(path.join(tmpdir(), 'undone-root-
 afterEach(() => directories.splice(0).forEach(cwd => rmSync(cwd, { recursive: true, force: true })));
 
 describe('root-only local environment', () => {
+  it('preloads root values before Next captures public variables or forks workers', () => {
+    const cwd = directory();
+    writeFileSync(path.join(cwd, '.env'), 'MONGODB_URI=root-value\n');
+    writeFileSync(path.join(cwd, '.env.local'), 'MONGODB_URI=wrong-value\nNEXT_PUBLIC_APP_URL=https://invalid.example\n');
+    const nextEnv = pathToFileURL(createRequire(import.meta.url).resolve('@next/env')).href;
+    const register = new URL('./register-root-environment.mjs', import.meta.url).href;
+    const code = `import nextEnv from ${JSON.stringify(nextEnv)};
+      nextEnv.loadEnvConfig(process.cwd(),false);
+      console.log(JSON.stringify({mongo:process.env.MONGODB_URI,variant:process.env.NEXT_PUBLIC_APP_URL}));`;
+    const child = spawnSync(process.execPath, ['--import', register, '--input-type=module', '-e', code], {
+      cwd, encoding: 'utf8', timeout: 10_000, env: { NODE_ENV: 'production', SystemRoot: process.env.SystemRoot },
+    });
+    expect(child.status, child.stderr).toBe(0);
+    expect(JSON.parse(child.stdout)).toEqual({ mongo: 'root-value' });
+  });
   it('cleans actual Next.js loading precedence in a separate process', () => {
     const cwd = directory();
     writeFileSync(path.join(cwd, '.env'), 'MONGODB_URI=root-value\n');
