@@ -1,3 +1,4 @@
+import { createCreationExecutionRepository } from '../src/server/infrastructure/db/postgres/creationExecution.repo';
 import { setupPublicationSmokeSchema, runPublicationSmoke } from './creation-publication-smoke';
 /** Opt-in real SQL smoke test. Uses and removes only a newly created isolated schema.
  * No public migrations, model calls, Mongo access, or existing application records.
@@ -60,7 +61,7 @@ async function main() {
     created = true;
     stage = 'isolated schema setup (requires direct/session database connection)';
     await pool.query('CREATE TABLE "users" ("id" TEXT PRIMARY KEY)');
-    for (const file of ['creation-draft.sql', 'creation-durability.sql', 'creation-retention.sql']) {
+    for (const file of ['creation-draft.sql', 'creation-durability.sql', 'creation-execution.sql', 'creation-retention.sql']) {
       await pool.query(await readFile(new URL(`../prisma/${file}`, import.meta.url), 'utf8'));
     }
     await setupPublicationSmokeSchema(pool);
@@ -80,6 +81,26 @@ async function main() {
         type: 'request_recommendations', query: 'Changed query', requestId: randomUUID(),
       })), null, 'stale revision');
     }
+    stage = 'execution dispatch receipts';
+    const dispatch = createCreationExecutionRepository(db);
+    const queued = await db.creationJob.findFirstOrThrow();
+    const scope = { ownerId: owner, draftId: queued.draftId, requestId: queued.requestId };
+    assert.equal(await dispatch.reserve({ ...scope, ownerId: randomUUID() }), null);
+    const reservations = await Promise.all([dispatch.reserve(scope), dispatch.reserve(scope)]);
+    assert.equal(reservations.filter(Boolean).length, 1, 'one transport start per job');
+    const reservation = reservations.find(Boolean)!;
+    await dispatch.confirm(reservation.jobId, 'wrong-token', 'wrong-run');
+    assert.equal(await dispatch.reserve(scope), null, 'reservation lease blocks duplicate');
+    await dispatch.confirm(reservation.jobId, reservation.token, 'run-one');
+    await dispatch.release(reservation.jobId, reservation.token);
+    assert.equal(await dispatch.reserve(scope), null, 'confirmed run cannot be deleted');
+    await db.$executeRaw`UPDATE "creation_execution_dispatches" SET "leaseUntil"=CURRENT_TIMESTAMP - interval '1 second'`;
+    const recoveredDispatch = await dispatch.reserve(scope);
+    assert.ok(recoveredDispatch, 'expired transport recovers');
+    await dispatch.release(reservation.jobId, reservation.token);
+    assert.equal(await dispatch.reserve(scope), null, 'old token cannot delete new reservation');
+    await dispatch.release(recoveredDispatch.jobId, recoveredDispatch.token);
+    assert.ok(await dispatch.reserve(scope), 'failed start can retry');
     stage = 'concurrent queue claims';
     const claims = await Promise.all([repo.claim('one'), repo.claim('two'), repo.claim('three')]);
     const jobs = claims.filter(job => job !== null);

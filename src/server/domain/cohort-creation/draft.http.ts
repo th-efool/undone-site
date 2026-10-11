@@ -19,7 +19,7 @@ const commandGuardMessages = new Set([
   'The draft already has 100 selected units. Remove a source before adding a Notion page.',
 ]);
 export function draftHandlers(service: DraftService, getOwner: () => Promise<string | null>,
-  onSnapshot?: (owner: string, snapshot: CreationSnapshot) => void) {
+  onSnapshot?: (owner: string, snapshot: CreationSnapshot) => void | Promise<void>) {
   async function handle(request: Request, id?: string): Promise<Response> {
     try {
       const owner = await getOwner();
@@ -27,7 +27,7 @@ export function draftHandlers(service: DraftService, getOwner: () => Promise<str
       if (id !== undefined && !idSchema.safeParse(id).success) return Response.json({ message: 'Draft not found.' }, { status: 404 });
       if (request.method === 'GET') {
         const snapshot = await service.load(owner, id!);
-        onSnapshot?.(owner, snapshot);
+        await onSnapshot?.(owner, snapshot);
         return Response.json(snapshot, { headers: { 'Cache-Control': 'no-store' } });
       }
       const raw = await request.text();
@@ -39,7 +39,7 @@ export function draftHandlers(service: DraftService, getOwner: () => Promise<str
       const body = updateSchema.parse(JSON.parse(raw));
       // This request enqueues work. Its disconnect signal never cancels the job.
       const snapshot = await service.command(owner, id, body.baseRevision, body.command);
-      onSnapshot?.(owner, snapshot);
+      await onSnapshot?.(owner, snapshot);
       return Response.json(snapshot, { headers: { 'Cache-Control': 'no-store' } });
     } catch (error) {
       if (error instanceof DraftNotFound) return Response.json({ message: 'Draft not found.' }, { status: 404 });

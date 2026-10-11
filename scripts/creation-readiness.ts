@@ -45,7 +45,7 @@ async function sqlCheck(): Promise<Check> {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1,
     connectionTimeoutMillis: 5000, query_timeout: 5000 });
   try {
-    const tables = ['creation_drafts', 'creation_jobs', 'creation_events', 'creation_budgets', 'creation_storage_objects',
+    const tables = ['creation_drafts', 'creation_jobs', 'creation_execution_dispatches', 'creation_events', 'creation_budgets', 'creation_storage_objects',
       'creation_conversation_entries', 'creation_publication_reservations', 'creation_publications'];
     const result = await pool.query("SELECT count(*)::int AS count FROM information_schema.tables WHERE table_schema='public' AND table_name=ANY($1::text[])", [tables]);
     const columns = await pool.query("SELECT count(*)::int AS count FROM information_schema.columns WHERE table_schema='public' AND ((table_name='creation_drafts' AND column_name IN ('expiredAt','eventSequence')) OR (table_name='cohorts' AND column_name='creationSettings'))");

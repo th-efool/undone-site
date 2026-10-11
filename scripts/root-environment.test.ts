@@ -27,6 +27,28 @@ describe('root-only local environment', () => {
     expect(child.status, child.stderr).toBe(0);
     expect(JSON.parse(child.stdout)).toEqual({ mongo: 'root-value' });
   });
+  it('restores root-only configuration after a plugin forces Next environment reload', () => {
+    const cwd = directory();
+    writeFileSync(path.join(cwd, '.env'), 'MONGODB_URI=root-value\n');
+    writeFileSync(path.join(cwd, '.env.local'), 'NEXT_PUBLIC_APP_URL=https://[SENSITIVE]\n');
+    const nextEnv = pathToFileURL(createRequire(import.meta.url).resolve('@next/env')).href;
+    const register = new URL('./register-root-environment.mjs', import.meta.url).href;
+    const loader = new URL('./root-environment.mjs', import.meta.url).href;
+    const code = `import nextEnv from ${JSON.stringify(nextEnv)};
+      import {loadRootEnvironment} from ${JSON.stringify(loader)};
+      const baseline={...process.env};
+      const loaded=nextEnv.loadEnvConfig(process.cwd(),false,console,true);
+      if(!process.env.NEXT_PUBLIC_APP_URL) throw new Error('Plugin fixture did not load variant');
+      loadRootEnvironment({initialEnv:baseline,loadedEnvFiles:loaded.loadedEnvFiles});
+      nextEnv.processEnv([],process.cwd(),console,true);
+      nextEnv.updateInitialEnv(process.env); nextEnv.resetEnv();
+      console.log(JSON.stringify({mongo:process.env.MONGODB_URI,variant:process.env.NEXT_PUBLIC_APP_URL}));`;
+    const child = spawnSync(process.execPath, ['--import', register, '--input-type=module', '-e', code], {
+      cwd, encoding: 'utf8', timeout: 10_000, env: { NODE_ENV: 'production', SystemRoot: process.env.SystemRoot },
+    });
+    expect(child.status, child.stderr).toBe(0);
+    expect(JSON.parse(child.stdout)).toEqual({ mongo: 'root-value' });
+  });
   it('cleans actual Next.js loading precedence in a separate process', () => {
     const cwd = directory();
     writeFileSync(path.join(cwd, '.env'), 'MONGODB_URI=root-value\n');

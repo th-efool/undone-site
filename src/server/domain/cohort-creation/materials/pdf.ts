@@ -2,6 +2,7 @@ import 'server-only';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { Worker } from 'node:worker_threads';
+import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { z } from 'zod';
 import { MATERIAL_LIMITS } from '@/src/shared/cohort-creation/materials';
@@ -22,7 +23,7 @@ export async function extractRetainedPdf(bytes: Uint8Array, sourceRef: CreationO
   if (Buffer.from(bytes.subarray(0, 5)).toString('ascii') !== '%PDF-') throw new CreationStorageError('INVALID_INPUT', 'Provide a valid PDF document.');
   const moduleUrl = pathToFileURL(createRequire(import.meta.url).resolve('pdfjs-dist/legacy/build/pdf.mjs')).href;
   const pages = await new Promise<string[]>((resolve, reject) => {
-    const worker = new Worker(new URL('./pdf-parser.worker.mjs', import.meta.url), {
+    const worker = new Worker(path.join(process.cwd(), 'src/server/domain/cohort-creation/materials/pdf-parser.worker.mjs'), {
       workerData: { bytes, moduleUrl, maxPages: PDF_LIMITS.pages, maxTextBytes: MATERIAL_LIMITS.extractedTextBytes },
       execArgv: [], resourceLimits: { maxOldGenerationSizeMb: 128, stackSizeMb: 4 },
     });

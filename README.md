@@ -277,3 +277,11 @@ npm run build
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](./LICENSE) for details.
+
+## Durable creation execution on Vercel
+
+Apply `prisma/creation-execution.sql` after the existing creation schema migrations and before deploying the Workflow-enabled application. It adds only transport dispatch receipts; draft state, content, budgets and fencing remain in the existing repositories.
+
+The pinned Workflow SDK generates queue-protected `/.well-known/workflow/` routes during `npm run build`. Keep these routes outside authentication redirects. On Vercel, enable Fluid Compute and allow at least 300 seconds per function: creation executes in 240-second slices with durable sleeps between retries. `VERCEL=1` selects this transport automatically. No Render service is used. Local development continues to use the existing creation worker started by `npm run dev`; `dev:bare` needs a separately running `npm run creation:worker` for long operations.
+
+A request reserves a SQL dispatch receipt before starting a workflow. Duplicate observers cannot start another run while that reservation is live. Each workflow step renews its receipt and claims only the exact owner/draft/request. Lost start responses can produce an additional transport run after reservation expiry; SQL job leases, model budgets and checkpoint fencing still prevent concurrent acceptance of results. A failed transport can be redispatched on an owned draft load after its ten-minute receipt expires. Deployment/account failures still require operational intervention; successful builds do not verify production queue execution.

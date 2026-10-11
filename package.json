@@ -78,6 +78,7 @@
     "server-only": "0.0.1",
     "simple-icons": "^16.27.1",
     "tsx": "^4.23.12",
+    "workflow": "5.2.0",
     "zod": "4.4.3"
   },
   "devDependencies": {

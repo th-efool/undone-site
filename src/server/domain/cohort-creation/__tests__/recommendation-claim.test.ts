@@ -14,9 +14,9 @@ describe('recommendation claim boundary', () => {
   });
   it('limits web claims to recommendation kind, owner, draft and request in SQL', async () => {
     expect(await creationJobRepo.claim('web-search', { ownerId: 'alice', draftId, requestId })).toBeNull();
-    const [parts, unrestricted, kind, owner, draft, request] = mocks.query.mock.calls[2];
+    const [parts, unrestricted, anyKind, kind, owner, draft, request] = mocks.query.mock.calls[2];
     const sql = parts.join('?');
-    expect(unrestricted).toBe(false);
+    expect(unrestricted).toBe(false); expect(anyKind).toBe(false);
     expect([owner, draft, request]).toEqual(['alice', draftId, requestId]);
     expect(kind).toBe('recommendations');
     expect(sql).toContain('j."kind"=?');
@@ -26,7 +26,11 @@ describe('recommendation claim boundary', () => {
   });
   it('scopes a YouTube inspection without allowing other materials or video observation', async () => {
     await creationJobRepo.claim('web-inspection', { ownerId: 'alice', draftId, requestId, kind: 'inspect_youtube' });
-    expect(mocks.query.mock.calls[2].slice(1)).toEqual([false, 'inspect_youtube', 'alice', draftId, requestId]);
+    expect(mocks.query.mock.calls[2].slice(1)).toEqual([false, false, 'inspect_youtube', 'alice', draftId, requestId]);
+  });
+  it('allows all job kinds only inside an exact owned workflow request', async () => {
+    await creationJobRepo.claim('workflow', { ownerId: 'alice', draftId, requestId, kind: 'any' });
+    expect(mocks.query.mock.calls[2].slice(1)).toEqual([false, true, 'any', 'alice', draftId, requestId]);
   });
   it('preserves unscoped worker claiming and the global concurrency cap', async () => {
     await creationJobRepo.claim('worker');
