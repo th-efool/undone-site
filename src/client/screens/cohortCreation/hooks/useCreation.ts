@@ -7,7 +7,7 @@ import type { DiscoveryCandidate } from '@/src/shared/cohort-creation/discovery'
 
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { type CreationSnapshot, type StartingPoint, querySchema } from '@/src/shared/cohort-creation/contracts';
-import { applyCommand, initialSnapshot, type CreationCommand } from '@/src/shared/cohort-creation/flow';
+import { initialSnapshot, type CreationCommand } from '@/src/shared/cohort-creation/flow';
 import { draftApi, DraftApiError } from '../services/draftApi';
 import { observeDraftEvents } from '../services/draftEvents';
 import { materialApi } from '../services/materialApi';
@@ -20,6 +20,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     snapshot: initialSnapshot(draftId), hydrated: false, saved: false, message: null,
   });
   const current = useRef(view.snapshot);
+  const established = useRef(resume);
   const controller = useRef<AbortController | null>(null);
   const editPending = useRef(false);
   const uploadController = useRef<AbortController | null>(null);
@@ -27,19 +28,29 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
   const [materialPending, setMaterialPending] = useState(false);
   const [activatingReady, setActivatingReady] = useState(false);
   const [queueNotice, setQueueNotice] = useState<string | null>(null);
+  const [queryPending, setQueryPending] = useState(false);
+  const promoteUrl = useCallback((pendingQuery = '') => {
+    window.history.replaceState(window.history.state, '', `/quest/draft/${draftId}${pendingQuery ? `?q=${encodeURIComponent(pendingQuery)}` : ''}`);
+  }, [draftId]);
   const display = useCallback((snapshot: CreationSnapshot, saved = true, message: string | null = null) => {
     if (snapshot.draftId !== current.current.draftId || snapshot.revision < current.current.revision) return;
     current.current = snapshot;
     render({ snapshot, hydrated: true, saved, message });
   }, []);
   const failure = useCallback((error: unknown) => {
-    const canonical = error instanceof DraftApiError && error.current?.draftId === draftId && error.current.revision >= current.current.revision ? error.current : null;
+    const provided = error instanceof DraftApiError && error.current?.draftId === draftId ? error.current : null;
+    const canonical = provided ? provided.revision >= current.current.revision ? provided : current.current : null;
     display(canonical ?? current.current, Boolean(canonical), error instanceof DraftApiError ? error.message : 'Draft storage is unavailable. Retry or reload this page.');
   }, [display, draftId]);
   const reload = useCallback(async () => {
-    try { display(await draftApi.load(draftId)); return true; }
+    try {
+      const snapshot = established.current ? await draftApi.load(draftId) : await draftApi.create(draftId);
+      established.current = true; display(snapshot);
+      if (!resume) promoteUrl(snapshot.query ? '' : initialQuery);
+      return true;
+    }
     catch (error) { failure(error); return false; }
-  }, [display, draftId, failure]);
+  }, [display, draftId, failure, initialQuery, promoteUrl, resume]);
   const send = useCallback(async (command: CreationCommand, signal?: AbortSignal, baseRevision?: number) => {
     const base = current.current;
     try {
@@ -53,29 +64,36 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
   }, [draftId, display, failure]);
   const runQuery = useCallback(async (query: string) => {
     const parsed = querySchema.safeParse(query);
-    if (!parsed.success) return;
-    controller.current?.abort();
+    if (!parsed.success) { display(current.current, established.current, 'Enter a learning query between 3 and 2,000 characters. Shorten it before trying again.'); return false; }
+    if (controller.current || editPending.current || current.current.status === 'running') return false;
     const operation = new AbortController(); controller.current = operation;
     const command: CreationCommand = { type: 'request_recommendations', query: parsed.data, requestId: crypto.randomUUID() };
-    render({ snapshot: applyCommand(current.current, command), hydrated: true, saved: false, message: null });
-    await send(command, operation.signal);
-    if (controller.current === operation) controller.current = null;
-  }, [send]);
+    setQueryPending(true);
+    try {
+      const accepted = await send(command, operation.signal);
+      if (accepted && !operation.signal.aborted) promoteUrl();
+      return accepted;
+    } finally {
+      if (controller.current === operation) controller.current = null;
+      setQueryPending(false);
+    }
+  }, [display, promoteUrl, send]);
   useEffect(() => {
     let disposed = false;
     const timer = window.setTimeout(async () => {
       try {
         const snapshot = resume ? await draftApi.load(draftId) : await draftApi.create(draftId);
         if (disposed) return;
+        established.current = true;
         display(snapshot);
         if (!resume) {
-          window.history.replaceState(window.history.state, '', `/quest/draft/${draftId}`);
+          promoteUrl(snapshot.query ? '' : initialQuery);
           if (querySchema.safeParse(initialQuery).success) await runQuery(initialQuery);
         }
       } catch (error) { if (!disposed) failure(error); }
     }, 0);
     return () => { disposed = true; window.clearTimeout(timer); controller.current?.abort(); uploadController.current?.abort(); };
-  }, [draftId, initialQuery, resume, display, failure, runQuery]);
+  }, [draftId, initialQuery, resume, display, failure, promoteUrl, runQuery]);
   // This connection only observes persisted work. Disconnecting cannot cancel a job.
   useEffect(() => {
     if (!view.hydrated || view.snapshot.status !== 'running') return;
@@ -164,7 +182,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     } catch (error) { failure(error); return false; }
     finally { editPending.current = false; setActivatingReady(false); setMaterialPending(false); }
   };
-  return { ...view, queueNotice: view.snapshot.status === 'running' ? queueNotice : null, reload, uploading, materialPending, activatingReady, activateReady, uploadText, cancelUpload: () => uploadController.current?.abort(),
+  return { ...view, queryPending, queueNotice: view.snapshot.status === 'running' ? queueNotice : null, reload, uploading, materialPending, activatingReady, activateReady, uploadText, cancelUpload: () => uploadController.current?.abort(),
     finalize: (mode: 'private_activation' | 'public_publish') => edit({ type: 'finalize_creation', mode, requestId: crypto.randomUUID() }),
     openReview: () => edit({ type: 'open_review' }),
     editReview: (patch: z.infer<typeof reviewPatchSchema>) => edit({ type: 'edit_review', patch }),

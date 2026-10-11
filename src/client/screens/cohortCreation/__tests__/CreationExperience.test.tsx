@@ -35,6 +35,53 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 describe('owned creation workspace', () => {
+  it('explains over-limit suggested queries instead of silently doing nothing', async () => {
+    const query = 'a'.repeat(2000);
+    const running = applyCommand(saved, { type: 'request_recommendations', query, requestId: result.requestId });
+    saved = applyEvent(running, { type: 'recommendations_received', result: { ...result, intent: { ...result.intent, rawQuery: query } } });
+    render(<CreationExperience draftId={draftId} resume />); await screen.findByText('Real rendering cohort');
+    fireEvent.click(screen.getByRole('button', { name: 'Suggested action: Show more advanced ones' }));
+    await screen.findByText('Enter a learning query between 3 and 2,000 characters. Shorten it before trying again.');
+    expect(api.command).not.toHaveBeenCalled();
+  });
+  it('retains composer input after a failed query save', async () => {
+    const running = applyCommand(saved, { type: 'request_recommendations', query: result.intent.rawQuery, requestId: result.requestId });
+    saved = applyEvent(running, { type: 'recommendations_received', result });
+    render(<CreationExperience draftId={draftId} resume />); await screen.findByText('Real rendering cohort');
+    api.command.mockRejectedValueOnce(new DraftApiError('Storage unavailable.', 503));
+    const composer = screen.getByLabelText('Say anything') as HTMLTextAreaElement;
+    fireEvent.change(composer, { target: { value: 'Learn watercolor painting' } });
+    fireEvent.submit(composer.closest('form')!);
+    await screen.findByText('Your message was not saved. It is still here; resolve the error and retry.');
+    expect(composer.value).toBe('Learn watercolor painting'); expect(api.command).toHaveBeenCalledOnce();
+  });
+  it('serializes query submissions and observes only confirmed server work', async () => {
+    let accept!: (value: typeof saved) => void;
+    api.command.mockImplementationOnce(() => new Promise(resolve => { accept = resolve; }));
+    render(<CreationExperience draftId={draftId} initialQuery={result.intent.rawQuery} />);
+    await screen.findByText('Saving your learning query…');
+    expect(observer).not.toHaveBeenCalled();
+    const submit = screen.getByRole('button', { name: 'Find cohorts' }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true); fireEvent.submit(submit.closest('form')!);
+    expect(api.command).toHaveBeenCalledOnce();
+    const command = api.command.mock.calls[0][2] as CreationCommand;
+    await act(async () => { saved = applyCommand(saved, command); accept(saved); });
+    await waitFor(() => expect(observer).toHaveBeenCalledOnce());
+    expect(window.location.search).toBe('');
+  });
+  it('keeps the initial query in the resume URL when enqueue fails and recovers creation idempotently', async () => {
+    api.command.mockRejectedValueOnce(new DraftApiError('Queue unavailable.', 503));
+    render(<CreationExperience draftId={draftId} initialQuery={result.intent.rawQuery} />);
+    await screen.findByText('Queue unavailable.');
+    expect(new URLSearchParams(window.location.search).get('q')).toBe(result.intent.rawQuery);
+    expect((screen.getByLabelText('Your learning query') as HTMLTextAreaElement).value).toBe(result.intent.rawQuery);
+    cleanup(); api.create.mockRejectedValueOnce(new DraftApiError('Connection interrupted.', 0));
+    render(<CreationExperience draftId={draftId} initialQuery={result.intent.rawQuery} />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Reload saved draft' }));
+    await screen.findByRole('button', { name: 'Find cohorts' });
+    expect(api.create.mock.calls.every(call => call[0] === draftId)).toBe(true);
+    expect(api.command).toHaveBeenCalledOnce();
+  });
   it('finishes a zero-match search and continues into creating an owned cohort', async () => {
     const running = applyCommand(saved, { type: 'request_recommendations', query: result.intent.rawQuery, requestId: result.requestId });
     saved = applyEvent(running, { type: 'recommendations_received', result: { ...result, items: [] } });
@@ -167,13 +214,15 @@ describe('owned creation workspace', () => {
     expect((screen.getByLabelText('Learning text') as HTMLTextAreaElement).value).toBe('Real retained notes');
   });
   it('does not replace an observed completion with an older command conflict', async () => {
+    saved = applyCommand(saved, { type: 'request_recommendations', query: result.intent.rawQuery, requestId: result.requestId });
     let rejectCommand!: (error: Error) => void;
     api.command.mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectCommand = reject; }));
-    render(<CreationExperience draftId={draftId} initialQuery={result.intent.rawQuery} />);
+    render(<CreationExperience draftId={draftId} resume />);
     await waitFor(() => expect(observer).toHaveBeenCalled());
-    const command = api.command.mock.calls[0][2] as Extract<CreationCommand, { type: 'request_recommendations' }>;
-    const running = applyCommand(saved, command);
-    const completed = applyEvent(running, { type: 'recommendations_received', result: { ...result, requestId: command.requestId } });
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(api.command).toHaveBeenCalledOnce());
+    const running = saved;
+    const completed = applyEvent(running, { type: 'recommendations_received', result });
     await act(async () => {
       observer.mock.calls.at(-1)![0].onEvent({ snapshot: completed });
       rejectCommand(new DraftApiError('Old command conflicted.', 409, running));

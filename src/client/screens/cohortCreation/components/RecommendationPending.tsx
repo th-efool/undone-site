@@ -2,7 +2,7 @@
 import type { useCreation } from '../hooks/useCreation';
 import styles from './RecommendationResults.module.css';
 
-export function RecommendationPending({ creation }: { creation: ReturnType<typeof useCreation> }) {
+export function RecommendationPending({ creation, initialQuery = '' }: { creation: ReturnType<typeof useCreation>; initialQuery?: string }) {
   const { snapshot } = creation;
   return <section className={styles.results} aria-label="Find cohort recommendations">
     <header className={styles.heading}><p className={styles.eyebrow}>A little curiosity goes a long way</p>
@@ -20,8 +20,8 @@ export function RecommendationPending({ creation }: { creation: ReturnType<typeo
     }}>
       {snapshot.status === 'canceled' && <p role="status">Generation stopped. Your query is still here.</p>}
       <label htmlFor="learning-query">Your learning query</label>
-      <textarea id="learning-query" name="query" defaultValue={snapshot.query} minLength={3} maxLength={2000} required rows={3} />
-      <button className={styles.retry} type="submit">{snapshot.status === 'canceled' || snapshot.error?.retryable ? 'Retry' : 'Find cohorts'}</button>
+      <textarea id="learning-query" name="query" defaultValue={snapshot.query || initialQuery} minLength={3} maxLength={2000} required rows={3} />
+      <button className={styles.retry} type="submit" disabled={creation.queryPending}>{snapshot.status === 'canceled' || snapshot.error?.retryable ? 'Retry' : 'Find cohorts'}</button>
     </form>}
   </section>;
 }

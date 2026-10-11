@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './JoinCohortButton.module.css';
+import { creationSignInUrl } from '@/src/shared/auth/returnTo';
+import { apiUrl } from '@/src/shared/api/apiUrl';
 
 interface JoinCohortButtonProps {
   cohortId: string;
@@ -12,37 +14,43 @@ interface JoinCohortButtonProps {
 export function JoinCohortButton({ cohortId, isLoggedIn }: JoinCohortButtonProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const pending = React.useRef(false);
 
   const handleJoin = async () => {
     if (!isLoggedIn) {
-      router.push('/auth');
+      router.push(creationSignInUrl(`/cohort/${encodeURIComponent(cohortId)}`));
       return;
     }
 
-    setIsLoading(true);
+    if (pending.current) return;
+    pending.current = true; setIsLoading(true); setError(null);
     try {
-      const response = await fetch(`/api/cohort/${cohortId}/join`, {
-        method: 'POST',
+      const response = await fetch(apiUrl(`/api/cohort/${encodeURIComponent(cohortId)}/join`), {
+        method: 'POST', credentials: 'include', signal: AbortSignal.timeout(30_000),
       });
       if (response.ok) {
         router.refresh();
+      } else if (response.status === 401) {
+        router.push(creationSignInUrl(`/cohort/${encodeURIComponent(cohortId)}`));
       } else {
-        console.error('Failed to join cohort');
+        setError(response.status === 404 || response.status === 403 ? 'This cohort is no longer available to join.' : 'Joining failed. Try again.');
       }
-    } catch (error) {
-      console.error(error);
+    } catch {
+      setError('Joining could not be confirmed. Reload the cohort to check your membership before retrying.');
     } finally {
       setIsLoading(false);
+      pending.current = false;
     }
   };
 
   return (
-    <button
+    <><button
       onClick={handleJoin}
       disabled={isLoading}
       className={styles.button}
     >
       {isLoading ? 'Joining...' : 'Join Cohort'}
-    </button>
+    </button>{error && <p role="alert">{error}</p>}</>
   );
 }

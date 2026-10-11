@@ -21,7 +21,7 @@ import styles from './CreationExperience.module.css';
 export function CreationExperience({ draftId, initialQuery = '', resume = false }: { draftId: string; initialQuery?: string; resume?: boolean }) {
   const creation = useCreation(draftId, initialQuery, resume);
   const { snapshot } = creation;
-  const recovery = <>{creation.queueNotice && <p role="status">{creation.queueNotice}</p>}{creation.message && <p role="alert">{creation.message} <button type="button" onClick={() => void creation.reload()}>Reload saved draft</button></p>}</>;
+  const recovery = <>{creation.queryPending && <p role="status">Saving your learning query…</p>}{creation.queueNotice && <p role="status">{creation.queueNotice}</p>}{creation.message && <p role="alert">{creation.message} <button type="button" onClick={() => void creation.reload()}>Reload saved draft</button></p>}</>;
   const router = useRouter();
   const feedRequested = useRef(false);
   useEffect(() => {
@@ -42,7 +42,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
   };
   if (creation.hydrated && snapshot.stage === 'recommendations') {
     return <CreationShell query={snapshot.result?.intent.rawQuery ?? (snapshot.query || initialQuery || 'I’m looking for something new to learn.')} saved={creation.saved}
-      disabled={snapshot.status === 'running' || creation.materialPending}
+      disabled={snapshot.status === 'running' || creation.materialPending || creation.queryPending}
       reply={snapshot.result ? <><p>Got it.</p><p>You’re looking to learn {snapshot.result.intent.topic.value}.</p>
         <p>{snapshot.result.items.length ? 'I found a few existing SideQuests that might be a good fit.' : 'Let’s make a learning journey that fits you.'}</p></> : <p>Tell me what you want to learn. I’ll look for a good place to start.</p>}
       hintTitle={snapshot.result?.items.length === 0 ? 'A new path' : 'Why these?'}
@@ -53,7 +53,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
         { label: 'I’ll create my own instead', action: () => void createOwn() },
       ] : []}>
       {recovery}
-      {snapshot.result ? <RecommendationResults result={snapshot.result} onCreateOwn={createOwn} /> : <RecommendationPending creation={creation} />}
+      {snapshot.result ? <RecommendationResults result={snapshot.result} onCreateOwn={createOwn} /> : <RecommendationPending creation={creation} initialQuery={initialQuery} />}
     </CreationShell>;
   }
   if (creation.hydrated && snapshot.stage === 'starting_point') {
@@ -68,9 +68,9 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
         { label: 'I just have a goal', action: () => void creation.chooseStartingPoint('have_goal') },
       ]} onMessage={async message => {
         if (/don't|do not|no material|not sure/i.test(message)) throw new Error('Choose whether you want me to find resources or start from your goal below.');
-        if (/find|recommend|resources for me/i.test(message)) await creation.chooseStartingPoint('find_material');
-        else if (/just.*goal|only.*goal|have a goal/i.test(message)) await creation.chooseStartingPoint('have_goal');
-        else if (/material|youtube|playlist|pdf|article|github|notion|video|file/i.test(message)) await creation.chooseStartingPoint('have_material');
+        if (/find|recommend|resources for me/i.test(message)) return await creation.chooseStartingPoint('find_material');
+        else if (/just.*goal|only.*goal|have a goal/i.test(message)) return await creation.chooseStartingPoint('have_goal');
+        else if (/material|youtube|playlist|pdf|article|github|notion|video|file/i.test(message)) return await creation.chooseStartingPoint('have_material');
         else throw new Error('Choose a starting point below, or tell me whether you have material, want resources, or just have a goal.');
       }}>
       {recovery}
@@ -144,7 +144,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
           }} className={styles.form}>
             <label htmlFor="learning-query">Your learning query</label>
             <textarea id="learning-query" name="query" defaultValue={snapshot.query || initialQuery} minLength={3} maxLength={2000} required rows={3} />
-            <button type="submit" disabled={snapshot.status === 'running'}>Find cohorts</button>
+            <button type="submit" disabled={snapshot.status === 'running' || creation.queryPending}>Find cohorts</button>
           </form>
           {snapshot.status === 'running' && <div role="status"><p>Understanding your intent and finding public cohorts…</p><p>You can return later; this request is saved.</p><button type="button" onClick={creation.cancel}>Cancel</button></div>}
           {snapshot.error && <div role="alert"><p>{snapshot.error.message}</p>{snapshot.error.retryable && <button type="button" onClick={() => void creation.runQuery(snapshot.query)}>Retry</button>}</div>}

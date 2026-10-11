@@ -15,7 +15,7 @@ export type CreationShellProps = {
   hintTitle: string;
   hint: string;
   suggestions?: { label: string; action: () => void }[];
-  onMessage: (message: string) => Promise<void> | void;
+  onMessage: (message: string) => Promise<void | boolean> | void | boolean;
   disabled?: boolean;
   saved?: boolean;
   conversation?: ReactNode;
@@ -55,7 +55,10 @@ export function CreationShell({ children, query, reply, hintTitle, hint, suggest
         <div className={styles.composerArea}>
           <form className={styles.composer} onSubmit={async event => {
             event.preventDefault(); if (disabled || message.trim().length < 3) return;
-            try { await onMessage(message.trim()); setMessage(''); setMessageError(null); }
+            try {
+              if (await onMessage(message.trim()) === false) { setMessageError('Your message was not saved. It is still here; resolve the error and retry.'); return; }
+              setMessage(''); setMessageError(null);
+            }
             catch (error) { setMessageError(error instanceof Error ? error.message : 'Your message could not be sent. Retry.'); }
           }}>
             <label className={styles.srOnly} htmlFor="creation-conversation-message">{composerLabel}</label>
