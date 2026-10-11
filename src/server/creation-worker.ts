@@ -1,3 +1,5 @@
+import { GeneratedGuideService } from './domain/cohort-creation/materials/generated-guide.service';
+import { VercelCreationGuideAuthor } from './infrastructure/ai/vercelCreationGuideAuthor';
 import { publicationService } from './domain/cohort-creation/publication.runtime';
 import { VercelCreationRefinement } from './infrastructure/ai/vercelCreationRefinement';
 import { RefinementService } from './domain/cohort-creation/refinement.service';
@@ -173,7 +175,12 @@ async function main() {
         const analysis = new AnalysisContentService(chunks, storage.creationArtifactRepository);
         return new RefinementService(new BuildingContentService(analysis, storage.creationArtifactRepository), ai).run(...args);
       } }),
-      () => ({ run: async (...args) => (await publicationService()).run(...args) }));
+      () => ({ run: async (...args) => (await publicationService()).run(...args) }),
+      job => ({ acquire: async (...args) => {
+        const storage = await import('./infrastructure/storage/creation.runtime');
+        const author = new VercelCreationGuideAuthor(createCohortModel(), { beforeCall: () => creationJobRepo.reserveModelCall(job) });
+        return new GeneratedGuideService(author, storage.creationArtifactRepository).acquire(...args);
+      } }));
   } finally {
     clearInterval(retentionTimer);
     await maintenance;

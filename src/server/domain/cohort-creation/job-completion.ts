@@ -65,6 +65,17 @@ export function validateWebRetention(job: ClaimedWebJob, value: unknown): Retain
 }
 
 export function jobCompletion(job: ClaimedCreationJob, value: CreationCheckpoint): CreationEvent {
+  if (job.kind === 'author_guide') {
+    const manifest = materialManifestSchema.parse(value);
+    if (manifest.inputRevision !== job.inputRevision || manifest.source.id !== job.input.source.id ||
+      manifest.source.kind !== 'generated_guide' || manifest.source.input.kind !== 'goal' ||
+      manifest.source.input.intentId !== job.input.intent.id || manifest.source.discoveredFrom ||
+      manifest.parserVersion !== GENERATED_GUIDE_VERSION || manifest.inputFingerprint !== generatedGuideFingerprint(manifest.source.id, job.inputRevision, job.input.intent) ||
+      manifest.retainedSource.kind !== 'artifact' || JSON.stringify(manifest.retainedSource) !== JSON.stringify(manifest.extractionArtifact) ||
+      manifest.extraction.extractionKind !== 'generated_guide' || !manifest.extraction.complete ||
+      manifest.source.selectedUnitIds.length !== 1 || manifest.source.selectedUnitIds[0] !== manifest.source.id) throw new Error('Invalid generated guide checkpoint');
+    return { type: 'material_received', requestId: job.requestId, manifest };
+  }
   if (job.kind === 'finalize_creation') {
     const result = validatePublicationCheckpoint(job.input.snapshot, job.requestId, job.input.mode, job.input.cohortId, value);
     if (result.completed.length !== result.total) throw new Error('Publication preparation is incomplete');
@@ -156,3 +167,5 @@ export function jobCompletion(job: ClaimedCreationJob, value: CreationCheckpoint
     manifest.inputFingerprint !== (pdf ? pdfAcquisitionFingerprint : textAcquisitionFingerprint)(manifest.source.id, job.inputRevision, manifest.retainedSource)) throw new Error('Invalid checkpoint input');
   return { type: 'material_received', requestId: job.requestId, manifest };
 }
+import { generatedGuideFingerprint } from './generated-guide';
+import { GENERATED_GUIDE_VERSION } from '@/src/shared/cohort-creation/generated-guide';

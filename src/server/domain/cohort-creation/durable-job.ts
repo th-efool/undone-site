@@ -1,4 +1,5 @@
 import type { PublicationRequest } from '@/src/shared/cohort-creation/jobs';
+import type { GeneratedGuideRequest } from '@/src/shared/cohort-creation/jobs';
 import type { PublicationCheckpoint } from '@/src/shared/cohort-creation/publication';
 import type { RefinementRequest, RefinementResult } from '@/src/shared/cohort-creation/jobs';
 import type { BuildingCheckpoint } from '@/src/shared/cohort-creation/build';
@@ -30,6 +31,7 @@ type JobBase = Omit<CreationJobSummary, 'kind'> & {
 };
 export type ClaimedRecommendationJob = JobBase & { kind: 'recommendations'; input: RecommendationRequest; checkpoint: RecommendationResult | null };
 export type ClaimedTextJob = JobBase & { kind: 'acquire_text'; input: TextAcquisitionRequest; checkpoint: MaterialManifest | null };
+export type ClaimedGuideJob = JobBase & { kind: 'author_guide'; input: GeneratedGuideRequest; checkpoint: MaterialManifest | null };
 export type ClaimedWebJob = JobBase & { kind: 'acquire_web'; input: WebAcquisitionRequest; checkpoint: RetainedWebCheckpoint | WebMaterialManifest | null };
 export type ClaimedPdfJob = JobBase & { kind: 'acquire_pdf'; input: PdfAcquisitionRequest; checkpoint: MaterialManifest | null };
 export type ClaimedYoutubeInspectionJob = JobBase & { kind: 'inspect_youtube'; input: YoutubeInspectionRequest; checkpoint: RetainedYoutubeMetadata | null };
@@ -43,7 +45,7 @@ export type ClaimedRefinementJob = JobBase & { kind: 'refine_curriculum'; input:
 export type ClaimedBuildingJob = JobBase & { kind: 'build_curriculum'; input: BuildingRequest; checkpoint: BuildingCheckpoint | null };
 export type ClaimedAnalysisJob = JobBase & { kind: 'analyze_material'; input: AnalysisRequest; checkpoint: AnalysisCheckpoint | null };
 export type ClaimedChunkingJob = JobBase & { kind: 'chunk_material'; input: ChunkingRequest; checkpoint: ChunkingCheckpoint | null };
-export type ClaimedCreationJob = ClaimedRecommendationJob | ClaimedTextJob | ClaimedWebJob | ClaimedPdfJob | ClaimedYoutubeInspectionJob | ClaimedYoutubeObservationJob | ClaimedGithubJob | ClaimedNotionJob | ClaimedDiscoveryJob | ClaimedUnderstandingJob | ClaimedChunkingJob | ClaimedAnalysisJob | ClaimedBuildingJob | ClaimedRefinementJob | ClaimedPublicationJob;
+export type ClaimedCreationJob = ClaimedGuideJob | ClaimedRecommendationJob | ClaimedTextJob | ClaimedWebJob | ClaimedPdfJob | ClaimedYoutubeInspectionJob | ClaimedYoutubeObservationJob | ClaimedGithubJob | ClaimedNotionJob | ClaimedDiscoveryJob | ClaimedUnderstandingJob | ClaimedChunkingJob | ClaimedAnalysisJob | ClaimedBuildingJob | ClaimedRefinementJob | ClaimedPublicationJob;
 export type CreationCheckpoint = RecommendationResult | MaterialManifest | RetainedWebCheckpoint | WebMaterialManifest | RetainedYoutubeMetadata | YoutubeObservationCheckpoint | YoutubeMaterialManifest | RetainedGithubCheckpoint | GithubMaterialManifest | RetainedNotionCheckpoint | NotionMaterialManifest | DiscoveryCheckpoint | DiscoveryResult | UnderstandingCheckpoint | ChunkingCheckpoint | AnalysisCheckpoint | BuildingCheckpoint | RefinementResult | PublicationCheckpoint;
 export interface CreationJobRepository {
   enqueue(owner: string, previous: CreationSnapshot, next: CreationSnapshot): Promise<CreationSnapshot | null>;

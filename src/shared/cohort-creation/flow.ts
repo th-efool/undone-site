@@ -38,6 +38,7 @@ export const creationCommandSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('choose_starting_point'), startingPoint: startingPointSchema }),
   z.strictObject({ type: z.literal('back_to_recommendations') }),
   z.strictObject({ type: z.literal('cancel_recommendations') }),
+  z.strictObject({ type: z.literal('author_guide'), materialId: z.uuid(), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('acquire_text'), materialId: z.uuid(), assetId: z.uuid(), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('acquire_pdf'), materialId: z.uuid(), assetId: z.uuid(), requestId: z.uuid() }),
   z.strictObject({ type: z.literal('inspect_youtube'), materialId: z.uuid(), url: z.url().max(2048), requestId: z.uuid() }),
@@ -174,6 +175,7 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
       if (state.stage !== 'starting_point' || state.status === 'running' || !state.result) throw new Error('Starting point is not available');
       return creationSnapshotSchema.parse({ ...changed, processing: null, startingPoint: command.startingPoint, status: 'succeeded',
         discovery: state.startingPoint === command.startingPoint ? state.discovery : null });
+    case 'author_guide':
     case 'acquire_text':
     case 'acquire_pdf':
     case 'inspect_youtube':
@@ -185,19 +187,24 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
         ? new URL(command.url).pathname === '/playlist' ? 'youtube_playlist' : 'youtube_video' : command.type === 'acquire_web' ? 'web' : null;
       const discovered = state.discovery?.result?.candidates.find(candidate => candidate.url === url && candidate.kind === kind);
       const previous = state.materials.find(source => source.id === command.materialId);
-      const sameInput = previous && (url !== null
+      const sameInput = previous && (command.type === 'author_guide'
+        ? previous.kind === 'generated_guide' && previous.input.kind === 'goal' && previous.input.intentId === state.result?.intent.id : url !== null
         ? previous.input.kind === 'url' && previous.input.url === url && (
           command.type === 'acquire_github' ? previous.kind === 'github' && JSON.stringify(previous.input.repositoryScope) === JSON.stringify(githubRepositoryScope(command.selection))
           : command.type === 'acquire_notion' ? previous.kind === 'notion' : previous.kind === kind)
         : previous.input.kind === 'upload' && 'assetId' in command && previous.input.assetId === command.assetId &&
           previous.kind === (command.type === 'acquire_pdf' ? 'pdf' : 'markdown'));
-      if (state.stage !== 'starting_point' || !state.startingPoint || (state.startingPoint !== 'have_material' && !discovered && !sameInput) || state.status === 'running' || !state.result) throw new Error('Starting point is not available');
+      if (state.stage !== 'starting_point' || !state.startingPoint ||
+        (command.type === 'author_guide' ? state.startingPoint !== 'have_goal' : state.startingPoint !== 'have_material' && !discovered && !sameInput) ||
+        state.status === 'running' || !state.result) throw new Error('Starting point is not available');
       if (!previous && state.materials.length >= MATERIAL_LIMITS.sources) throw new Error('The draft already has 20 sources. Remove or replace a source before adding another.');
       if (command.type !== 'inspect_youtube' && state.materials.filter(source => source.id !== command.materialId)
         .reduce((sum, source) => sum + source.selectedUnitIds.length, 0) >= MATERIAL_LIMITS.selectedUnits) {
         throw new Error('The draft already has 100 selected units. Remove a source or reduce video selection before acquiring another source.');
       }
-      const material = { id: command.materialId, ...(command.type === 'acquire_github'
+      const material = { id: command.materialId, ...(command.type === 'author_guide'
+        ? { kind: 'generated_guide' as const, input: { kind: 'goal' as const, intentId: state.result.intent.id } }
+        : command.type === 'acquire_github'
         ? { kind: 'github' as const, input: { kind: 'url' as const, url: command.selection.url, repositoryScope: githubRepositoryScope(command.selection) } }
         : command.type === 'acquire_notion'
         ? { kind: 'notion' as const, input: { kind: 'url' as const, url: command.url } }
@@ -294,7 +301,9 @@ export function applyEvent(state: CreationSnapshot, input: CreationEvent): Creat
     event.manifest.inputRevision !== state.inputRevision || !state.materials.some(source =>
       source.id === event.manifest.source.id && source.status === 'acquiring' && source.kind === event.manifest.source.kind &&
       ((source.input.kind === 'upload' && event.manifest.source.input.kind === 'upload' && source.input.assetId === event.manifest.source.input.assetId) ||
-      (source.input.kind === 'url' && event.manifest.source.input.kind === 'url' && source.input.url === event.manifest.source.input.url))))) return state;
+      (source.input.kind === 'url' && event.manifest.source.input.kind === 'url' && source.input.url === event.manifest.source.input.url) ||
+      (source.kind === 'generated_guide' && source.input.kind === 'goal' && event.manifest.source.input.kind === 'goal' &&
+        source.input.intentId === event.manifest.source.input.intentId && source.input.intentId === state.result?.intent.id))))) return state;
   if (event.type === 'youtube_metadata_received' && (state.stage !== 'starting_point' || event.result.receipt.inputRevision !== state.inputRevision ||
     !state.materials.some(source => source.id === event.result.receipt.materialId && source.status === 'acquiring' &&
       source.kind === event.result.receipt.metadata.kind && source.input.kind === 'url' && source.input.url === event.result.receipt.metadata.sourceUrl))) return state;
@@ -331,9 +340,9 @@ export function applyEvent(state: CreationSnapshot, input: CreationEvent): Creat
         youtubeSources: state.youtubeSources.map(source => source.materialId === event.manifest.source.id && 'youtube' in event.manifest
           ? { ...source, observations: event.manifest.youtube.units } : source),
         materialRefs: [...state.materialRefs.filter(ref => ref.materialId !== event.manifest.source.id),
-          { materialId: event.manifest.source.id, ids: [event.manifest.retainedSource.id, event.manifest.extractionArtifact.id,
+          { materialId: event.manifest.source.id, ids: [...new Set([event.manifest.retainedSource.id, event.manifest.extractionArtifact.id,
             ...('receiptArtifact' in event.manifest ? [event.manifest.receiptArtifact.id] : []),
-            ...('youtube' in event.manifest ? event.manifest.youtube.units.map(unit => unit.artifact.id) : [])] }],
+            ...('youtube' in event.manifest ? event.manifest.youtube.units.map(unit => unit.artifact.id) : [])])] }],
         materials: state.materials.map(source => source.id === event.manifest.source.id ? event.manifest.source : source),
         extractions: [...state.extractions.filter(extraction => extraction.materialId !== event.manifest.source.id), event.manifest.extraction] });
     case 'recommendations_received':

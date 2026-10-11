@@ -51,6 +51,8 @@ export class DraftService {
     if (command.type === 'chunk_material' && previous.processing?.chunking?.requestId === command.requestId) return previous;
     if ((command.type === 'acquire_text' || command.type === 'acquire_pdf') && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
       source.id === command.materialId && source.kind === (command.type === 'acquire_pdf' ? 'pdf' : 'markdown') && source.input.kind === 'upload' && source.input.assetId === command.assetId)) return previous;
+    if (command.type === 'author_guide' && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
+      source.id === command.materialId && source.kind === 'generated_guide' && source.input.kind === 'goal' && source.input.intentId === previous.result?.intent.id)) return previous;
     if (command.type === 'acquire_web' && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
       source.id === command.materialId && source.input.kind === 'url' && source.input.url === command.url)) return previous;
     if (command.type === 'inspect_youtube' && previous.lastMaterialRequestId === command.requestId && previous.materials.some(source =>
@@ -71,7 +73,7 @@ export class DraftService {
       return this.commit(owner, previous, next);
     }
     const next = applyCommand(previous, command);
-    if (command.type === 'finalize_creation' || command.type === 'refine_curriculum' || command.type === 'build_curriculum' || command.type === 'analyze_material' || command.type === 'chunk_material' || command.type === 'understand_material' || command.type === 'discover_material' || command.type === 'request_recommendations' || command.type === 'acquire_text' || command.type === 'acquire_pdf' || command.type === 'acquire_web' || command.type === 'inspect_youtube' || command.type === 'observe_youtube' || command.type === 'acquire_github' || command.type === 'acquire_notion') {
+    if (command.type === 'author_guide' || command.type === 'finalize_creation' || command.type === 'refine_curriculum' || command.type === 'build_curriculum' || command.type === 'analyze_material' || command.type === 'chunk_material' || command.type === 'understand_material' || command.type === 'discover_material' || command.type === 'request_recommendations' || command.type === 'acquire_text' || command.type === 'acquire_pdf' || command.type === 'acquire_web' || command.type === 'inspect_youtube' || command.type === 'observe_youtube' || command.type === 'acquire_github' || command.type === 'acquire_notion') {
       const queued = await this.jobs.enqueue(owner, previous, next);
       if (!queued) throw new DraftConflict(await this.load(owner, id));
       return queued;

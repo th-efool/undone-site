@@ -1,3 +1,6 @@
+import type { ClaimedGuideJob } from './durable-job';
+import type { GeneratedGuideService } from './materials/generated-guide.service';
+type GuideAuthorFactory = (job: ClaimedGuideJob) => Pick<GeneratedGuideService, 'acquire'>;
 import type { ClaimedPublicationJob } from './durable-job';
 import type { PublicationService } from './publication.service';
 import { validatePublicationCheckpoint } from './publication.service';
@@ -49,7 +52,7 @@ type ChunkingFactory = (job: ClaimedChunkingJob) => Pick<ChunkingService, 'run'>
 type UnderstandingFactory = (job: ClaimedUnderstandingJob) => Pick<UnderstandingService, 'run'>;
 /** One task invocation; browser connections are deliberately not an input. */
 export async function executeCreationJob(repo: CreationJobRepository, job: ClaimedCreationJob,
-  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory, discoverer?: DiscoveryFactory, understander?: UnderstandingFactory, chunker?: ChunkingFactory, analyzer?: AnalysisFactory, builder?: BuildingFactory, refiner?: RefinementFactory, publisher?: PublicationFactory) {
+  recommender: RecommenderFactory, shutdown: AbortSignal, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory, discoverer?: DiscoveryFactory, understander?: UnderstandingFactory, chunker?: ChunkingFactory, analyzer?: AnalysisFactory, builder?: BuildingFactory, refiner?: RefinementFactory, publisher?: PublicationFactory, guideAuthor?: GuideAuthorFactory) {
   const lease = new AbortController();
   const remaining = Math.max(1, job.deadlineAt.getTime() - Date.now());
   const timeout = AbortSignal.timeout(remaining);
@@ -73,6 +76,10 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
     if (job.deadlineAt.getTime() <= Date.now()) throw new DOMException('Job deadline elapsed', 'TimeoutError');
     signal.throwIfAborted();
     const result = job.kind === 'recommendations' ? await recommender(job).recommend(job.input, signal)
+      : job.kind === 'author_guide' ? await (() => {
+        if (!guideAuthor) throw new Error('Guide author service unavailable');
+        return guideAuthor(job).acquire({ ownerId: job.ownerId, draftId: job.draftId }, job.input.source, job.inputRevision, job.input.intent, signal);
+      })()
       : job.kind === 'finalize_creation' ? await (() => {
         if (!publisher) throw new Error('Publication service unavailable');
         const checkpoint = job.checkpoint ? validatePublicationCheckpoint(job.input.snapshot, job.requestId, job.input.mode, job.input.cohortId, job.checkpoint) : undefined;
@@ -179,11 +186,11 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
       : error instanceof JobBudgetExceeded
       ? { code: 'RATE_LIMITED' as const, message: 'The generation budget is exhausted. Try again later.', retryable: true }
       : timeout.aborted || (error instanceof Error && error.name === 'TimeoutError')
-        ? { code: job.kind === 'recommendations' || job.kind === 'understand_material' || job.kind === 'chunk_material' || job.kind === 'analyze_material' || job.kind === 'build_curriculum' || job.kind === 'refine_curriculum' ? 'AI_TIMEOUT' as const : 'DATA_UNAVAILABLE' as const,
-          message: job.kind === 'finalize_creation' ? 'Finalization stopped. Your review and prepared delivery artifacts remain saved.' : job.kind === 'refine_curriculum' ? 'Refinement stopped. Your review and edits remain saved.' : job.kind === 'build_curriculum' ? 'Building stopped. Accepted analysis and lessons remain saved.' : job.kind === 'analyze_material' ? 'Analysis stopped. Accepted chunks and analysis remain saved.' : job.kind === 'chunk_material' ? 'Chunking stopped. Retained material, understanding and accepted chunks remain saved.' : job.kind === 'understand_material' ? 'Understanding took too long. Retained material and accepted partitions remain saved.' : job.kind === 'recommendations' ? 'Recommendations took too long. Try again.' : 'Material acquisition took too long. Retry the selected source.', retryable: true }
+        ? { code: job.kind === 'author_guide' || job.kind === 'recommendations' || job.kind === 'understand_material' || job.kind === 'chunk_material' || job.kind === 'analyze_material' || job.kind === 'build_curriculum' || job.kind === 'refine_curriculum' ? 'AI_TIMEOUT' as const : 'DATA_UNAVAILABLE' as const,
+          message: job.kind === 'author_guide' ? 'Guide generation stopped. Your learning goal remains saved; retry explicitly.' : job.kind === 'finalize_creation' ? 'Finalization stopped. Your review and prepared delivery artifacts remain saved.' : job.kind === 'refine_curriculum' ? 'Refinement stopped. Your review and edits remain saved.' : job.kind === 'build_curriculum' ? 'Building stopped. Accepted analysis and lessons remain saved.' : job.kind === 'analyze_material' ? 'Analysis stopped. Accepted chunks and analysis remain saved.' : job.kind === 'chunk_material' ? 'Chunking stopped. Retained material, understanding and accepted chunks remain saved.' : job.kind === 'understand_material' ? 'Understanding took too long. Retained material and accepted partitions remain saved.' : job.kind === 'recommendations' ? 'Recommendations took too long. Try again.' : 'Material acquisition took too long. Retry the selected source.', retryable: true }
         : error instanceof CreationFailure ? error.detail
-          : { code: job.kind === 'recommendations' || job.kind === 'understand_material' || job.kind === 'chunk_material' || job.kind === 'analyze_material' || job.kind === 'build_curriculum' || job.kind === 'refine_curriculum' ? 'AI_UNAVAILABLE' as const : 'DATA_UNAVAILABLE' as const,
-            message: job.kind === 'finalize_creation' ? 'Finalization stopped. Your review and prepared delivery artifacts remain saved.' : job.kind === 'refine_curriculum' ? 'Refinement stopped. Your review and edits remain saved.' : job.kind === 'build_curriculum' ? 'Building stopped. Accepted analysis and lessons remain saved.' : job.kind === 'analyze_material' ? 'Analysis stopped. Accepted chunks and analysis remain saved.' : job.kind === 'chunk_material' ? 'Chunking stopped. Retained material, understanding and accepted chunks remain saved.' : job.kind === 'understand_material' ? 'Understanding is unavailable. Retained material and accepted partitions remain saved.' : job.kind === 'recommendations' ? 'Recommendations could not be generated. Try again.' : 'Material acquisition is unavailable. Retry the selected source.', retryable: true };
+          : { code: job.kind === 'author_guide' || job.kind === 'recommendations' || job.kind === 'understand_material' || job.kind === 'chunk_material' || job.kind === 'analyze_material' || job.kind === 'build_curriculum' || job.kind === 'refine_curriculum' ? 'AI_UNAVAILABLE' as const : 'DATA_UNAVAILABLE' as const,
+            message: job.kind === 'author_guide' ? 'Guide generation stopped. Your learning goal remains saved; retry explicitly.' : job.kind === 'finalize_creation' ? 'Finalization stopped. Your review and prepared delivery artifacts remain saved.' : job.kind === 'refine_curriculum' ? 'Refinement stopped. Your review and edits remain saved.' : job.kind === 'build_curriculum' ? 'Building stopped. Accepted analysis and lessons remain saved.' : job.kind === 'analyze_material' ? 'Analysis stopped. Accepted chunks and analysis remain saved.' : job.kind === 'chunk_material' ? 'Chunking stopped. Retained material, understanding and accepted chunks remain saved.' : job.kind === 'understand_material' ? 'Understanding is unavailable. Retained material and accepted partitions remain saved.' : job.kind === 'recommendations' ? 'Recommendations could not be generated. Try again.' : 'Material acquisition is unavailable. Retry the selected source.', retryable: true };
     const transient = (error instanceof CreationFailure || error instanceof CreationStorageError) && detail.retryable &&
       ['AI_UNAVAILABLE', 'RATE_LIMITED', 'DATA_UNAVAILABLE'].includes(detail.code);
     const retryDelay = Math.max(1000 * 2 ** job.attempt, error instanceof ProviderBackoff ? error.retryAfterMs : 0);
@@ -193,14 +200,14 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
 }
 
 export async function runCreationWorker(repo: CreationJobRepository, workerId: string,
-  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory, discoverer?: DiscoveryFactory, understander?: UnderstandingFactory, chunker?: ChunkingFactory, analyzer?: AnalysisFactory, builder?: BuildingFactory, refiner?: RefinementFactory, publisher?: PublicationFactory) {
+  recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory, discoverer?: DiscoveryFactory, understander?: UnderstandingFactory, chunker?: ChunkingFactory, analyzer?: AnalysisFactory, builder?: BuildingFactory, refiner?: RefinementFactory, publisher?: PublicationFactory, guideAuthor?: GuideAuthorFactory) {
   const tasks = new Set<Promise<void>>();
   while (!signal.aborted) {
     try {
       if (tasks.size < 2) {
         const job = await repo.claim(workerId);
         if (job) {
-          const task = executeCreationJob(repo, job, recommender, signal, acquirer, webAcquirer, pdfAcquirer, youtubeInspector, youtubeAcquirer, githubAcquirer, notionAcquirer, discoverer, understander, chunker, analyzer, builder, refiner, publisher).catch(reportError);
+          const task = executeCreationJob(repo, job, recommender, signal, acquirer, webAcquirer, pdfAcquirer, youtubeInspector, youtubeAcquirer, githubAcquirer, notionAcquirer, discoverer, understander, chunker, analyzer, builder, refiner, publisher, guideAuthor).catch(reportError);
           tasks.add(task);
           void task.finally(() => tasks.delete(task));
           continue;

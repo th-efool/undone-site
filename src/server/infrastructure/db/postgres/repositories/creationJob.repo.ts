@@ -1,3 +1,4 @@
+import { generatedGuideRequestSchema } from '@/src/shared/cohort-creation/jobs';
 import { publicationRequestSchema } from '@/src/shared/cohort-creation/jobs';
 import { publicationCheckpointSchema } from '@/src/shared/cohort-creation/publication';
 import { publicationSnapshotHash, validatePublicationCheckpoint } from '@/src/server/domain/cohort-creation/publication.service';
@@ -77,6 +78,8 @@ function claimed(row: CreationJob): ClaimedCreationJob {
     checkpoint: row.checkpoint ? chunkingCheckpointSchema.parse(row.checkpoint) : null };
   if (row.kind === 'understand_material') return { ...base, kind: 'understand_material', input: understandingRequestSchema.parse(row.input),
     checkpoint: row.checkpoint ? understandingCheckpointSchema.parse(row.checkpoint) : null };
+  if (row.kind === 'author_guide') return { ...base, kind: 'author_guide', input: generatedGuideRequestSchema.parse(row.input),
+    checkpoint: row.checkpoint ? materialManifestSchema.parse(row.checkpoint) : null };
   if (row.kind === 'acquire_text') return { ...base, kind: 'acquire_text', input: textAcquisitionRequestSchema.parse(row.input),
     checkpoint: row.checkpoint ? materialManifestSchema.parse(row.checkpoint) : null };
   if (row.kind === 'acquire_pdf') return { ...base, kind: 'acquire_pdf', input: pdfAcquisitionRequestSchema.parse(row.input),
@@ -135,7 +138,7 @@ async function pinMaterial(tx: Prisma.TransactionClient, job: ClaimedCreationJob
   for (const ref of refs) {
     const updated = await tx.creationStorageObject.updateMany({ where: { id: ref.id, ownerId: job.ownerId, draftId: job.draftId,
       status: 'ready', kind: ref.kind, byteLength: ref.byteLength, checksum: ref.checksum,
-      ...(ref.kind === 'artifact' ? { artifactType: job.kind === 'acquire_web' ? 'web-extraction' : job.kind === 'acquire_pdf' ? 'pdf-extraction' : 'text-extraction', schemaVersion: 1, inputFingerprint: valid.inputFingerprint } : {}) },
+      ...(ref.kind === 'artifact' ? { artifactType: job.kind === 'author_guide' ? 'generated-guide' : job.kind === 'acquire_web' ? 'web-extraction' : job.kind === 'acquire_pdf' ? 'pdf-extraction' : 'text-extraction', schemaVersion: 1, inputFingerprint: valid.inputFingerprint } : {}) },
       data: { referencedAt: new Date() } });
     if (updated.count !== 1) throw new Error('Checkpoint storage reference unavailable');
   }
@@ -227,7 +230,7 @@ export function createCreationJobRepository(prisma = defaultPrisma, publicationL
       }
       const source = next.materials.find(source => source.status === 'acquiring');
       const metadata = next.youtubeSources.find(preview => preview.materialId === source?.id);
-      const kind = next.stage === 'finalizing' ? 'finalize_creation' : next.stage === 'review' ? 'refine_curriculum' : next.stage === 'processing' ? next.processing?.phase === 'building' ? 'build_curriculum' : next.processing?.phase === 'analysis' ? 'analyze_material' : next.processing?.phase === 'chunking' ? 'chunk_material' : 'understand_material' : next.stage === 'recommendations' ? 'recommendations' : next.discovery?.requestId === next.activeRequestId ? 'discover_material' : source?.kind === 'notion' ? 'acquire_notion' : source?.kind === 'github' ? 'acquire_github' : source?.kind === 'web' ? 'acquire_web' : source?.kind === 'pdf' ? 'acquire_pdf' : ['youtube_video', 'youtube_playlist'].includes(source?.kind ?? '') ? metadata && source?.selectedUnitIds.length ? 'observe_youtube' : 'inspect_youtube' : 'acquire_text';
+      const kind = next.stage === 'finalizing' ? 'finalize_creation' : next.stage === 'review' ? 'refine_curriculum' : next.stage === 'processing' ? next.processing?.phase === 'building' ? 'build_curriculum' : next.processing?.phase === 'analysis' ? 'analyze_material' : next.processing?.phase === 'chunking' ? 'chunk_material' : 'understand_material' : next.stage === 'recommendations' ? 'recommendations' : next.discovery?.requestId === next.activeRequestId ? 'discover_material' : source?.kind === 'generated_guide' ? 'author_guide' : source?.kind === 'notion' ? 'acquire_notion' : source?.kind === 'github' ? 'acquire_github' : source?.kind === 'web' ? 'acquire_web' : source?.kind === 'pdf' ? 'acquire_pdf' : ['youtube_video', 'youtube_playlist'].includes(source?.kind ?? '') ? metadata && source?.selectedUnitIds.length ? 'observe_youtube' : 'inspect_youtube' : 'acquire_text';
       const input = kind === 'recommendations'
         ? recommendationRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, query: next.query })
         : kind === 'finalize_creation' ? publicationRequestSchema.parse({ requestId: queued.activeRequestId, inputRevision: queued.inputRevision, mode: queued.publication!.mode, cohortId: queued.publication!.cohortId, snapshotHash: queued.publication!.snapshotHash, snapshot: { ...queued, stage: 'review', status: 'succeeded', activeRequestId: null } })
@@ -240,6 +243,7 @@ export function createCreationJobRepository(prisma = defaultPrisma, publicationL
           snapshot: { ...next, status: 'succeeded', activeRequestId: null, processing: { ...next.processing, phase: 'understanding', chunking: null, analysis: null, building: null } } })
         : kind === 'understand_material' ? understandingRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision,
           snapshot: { ...next, stage: 'starting_point', status: 'succeeded', activeRequestId: null, processing: null } })
+        : kind === 'author_guide' ? generatedGuideRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, source, intent: next.result?.intent })
         : kind === 'discover_material' ? discoveryRequestSchema.parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, intent: next.result?.intent })
         : kind === 'acquire_github' || kind === 'acquire_notion' ? (kind === 'acquire_github' ? githubAcquisitionRequestSchema : notionAcquisitionRequestSchema).parse({ requestId: next.activeRequestId, inputRevision: next.inputRevision, source,
           maxUnits: 100 - next.materials.filter(item => item.id !== source?.id).reduce((sum, item) => sum + item.selectedUnitIds.length, 0) })
@@ -304,7 +308,7 @@ export function createCreationJobRepository(prisma = defaultPrisma, publicationL
       const candidates = await tx.$queryRaw<{ id: string; draftId: string; ownerId: string }[]>`
         SELECT j."id",j."draftId",j."ownerId" FROM "creation_jobs" j
         JOIN "creation_drafts" d ON d."id"=j."draftId"
-        WHERE d."expiredAt" IS NULL AND j."kind" IN ('recommendations','acquire_text','acquire_web','acquire_pdf','inspect_youtube','observe_youtube','acquire_github','acquire_notion','discover_material','understand_material','chunk_material','analyze_material','build_curriculum','refine_curriculum','finalize_creation') AND j."cancelRequestedAt" IS NULL AND
+        WHERE d."expiredAt" IS NULL AND j."kind" IN ('author_guide','recommendations','acquire_text','acquire_web','acquire_pdf','inspect_youtube','observe_youtube','acquire_github','acquire_notion','discover_material','understand_material','chunk_material','analyze_material','build_curriculum','refine_curriculum','finalize_creation') AND j."cancelRequestedAt" IS NULL AND
         ((j."status"='queued' AND j."nextRunAt"<=CURRENT_TIMESTAMP) OR
          (j."status"='running' AND j."leaseUntil"<=CURRENT_TIMESTAMP))
         ORDER BY j."nextRunAt",j."createdAt" LIMIT 1 FOR UPDATE OF d SKIP LOCKED`;
@@ -320,7 +324,7 @@ export function createCreationJobRepository(prisma = defaultPrisma, publicationL
       const rows = await tx.$queryRaw<CreationJob[]>`UPDATE "creation_jobs" SET "status"='running',
         "attempt"="attempt"+1,"leaseOwner"=${worker},"leaseToken"=${token},
         "leaseUntil"=CURRENT_TIMESTAMP + interval '90 seconds',"heartbeatAt"=CURRENT_TIMESTAMP,
-        "deadlineAt"=COALESCE("deadlineAt",CURRENT_TIMESTAMP + CASE WHEN "kind" IN ('understand_material','chunk_material','analyze_material','build_curriculum','refine_curriculum','finalize_creation') THEN interval '6 hours' WHEN "kind"='discover_material' THEN interval '15 minutes' WHEN "kind"='observe_youtube' THEN interval '6 hours' WHEN "kind" IN ('acquire_github','acquire_notion') THEN interval '6 minutes' WHEN "kind" IN ('acquire_web','acquire_pdf','inspect_youtube') THEN interval '120 seconds' WHEN "kind"='acquire_text' THEN interval '60 seconds' ELSE interval '30 seconds' END),"updatedAt"=CURRENT_TIMESTAMP
+        "deadlineAt"=COALESCE("deadlineAt",CURRENT_TIMESTAMP + CASE WHEN "kind" IN ('understand_material','chunk_material','analyze_material','build_curriculum','refine_curriculum','finalize_creation') THEN interval '6 hours' WHEN "kind"='discover_material' THEN interval '15 minutes' WHEN "kind"='observe_youtube' THEN interval '6 hours' WHEN "kind" IN ('acquire_github','acquire_notion') THEN interval '6 minutes' WHEN "kind" IN ('author_guide','acquire_web','acquire_pdf','inspect_youtube') THEN interval '120 seconds' WHEN "kind"='acquire_text' THEN interval '60 seconds' ELSE interval '30 seconds' END),"updatedAt"=CURRENT_TIMESTAMP
         WHERE "id"=${job.id} RETURNING *`;
       await writeDraftEvent(tx, row.ownerId, { ...current, revision: current.revision + 1 }, 'job_started', rows[0]);
       return claimed(rows[0]);
@@ -334,9 +338,9 @@ export function createCreationJobRepository(prisma = defaultPrisma, publicationL
     return count === 1;
   },
   async reserveModelCall(job, unitId) {
-    if (job.kind !== 'refine_curriculum' && job.kind !== 'build_curriculum' && job.kind !== 'analyze_material' && job.kind !== 'chunk_material' && job.kind !== 'understand_material' && job.kind !== 'discover_material' && job.kind !== 'recommendations' && (job.kind !== 'observe_youtube' || !unitId || !job.input.source.selectedUnitIds.includes(unitId))) throw new Error('Model calls require a recommendation, discovery, selected video or understanding job');
+    if (job.kind !== 'author_guide' && job.kind !== 'refine_curriculum' && job.kind !== 'build_curriculum' && job.kind !== 'analyze_material' && job.kind !== 'chunk_material' && job.kind !== 'understand_material' && job.kind !== 'discover_material' && job.kind !== 'recommendations' && (job.kind !== 'observe_youtube' || !unitId || !job.input.source.selectedUnitIds.includes(unitId))) throw new Error('Model calls require a recommendation, discovery, selected video or understanding job');
     // Separate from job leases: cancellation does not immediately free a still-running SDK call.
-    const until = new Date(Date.now() + (job.kind === 'observe_youtube' ? 120_000 : job.kind === 'discover_material' || job.kind === 'understand_material' || job.kind === 'chunk_material' || job.kind === 'analyze_material' || job.kind === 'build_curriculum' || job.kind === 'refine_curriculum' ? 90_000 : 30_000));
+    const until = new Date(Date.now() + (job.kind === 'observe_youtube' ? 120_000 : job.kind === 'author_guide' || job.kind === 'discover_material' || job.kind === 'understand_material' || job.kind === 'chunk_material' || job.kind === 'analyze_material' || job.kind === 'build_curriculum' || job.kind === 'refine_curriculum' ? 90_000 : 30_000));
     const slot = await prisma.$transaction(async tx => {
       const current = await lockedDraft(tx, job.ownerId, job.draftId);
       if (!current || current.activeRequestId !== job.requestId || current.inputRevision !== job.inputRevision) throw new LeaseLost();
@@ -375,7 +379,7 @@ export function createCreationJobRepository(prisma = defaultPrisma, publicationL
       const budget = hourlyBudget(`model:${job.ownerId}`);
       await reserveBudget(tx, budget.key, 40, budget.expiresAt);
       await reserveBudget(tx, job.kind === 'observe_youtube' || job.kind === 'understand_material' || job.kind === 'chunk_material' || job.kind === 'analyze_material' || job.kind === 'build_curriculum' ? `model-job:${job.id}:unit:${unitId}` : `model-job:${job.id}`,
-        job.kind === 'observe_youtube' || job.kind === 'understand_material' || job.kind === 'chunk_material' || job.kind === 'analyze_material' || job.kind === 'build_curriculum' || job.kind === 'refine_curriculum' ? 2 : job.kind === 'discover_material' ? 3 : 4, new Date(Date.now() + 60 * 86400_000));
+        job.kind === 'observe_youtube' || job.kind === 'understand_material' || job.kind === 'chunk_material' || job.kind === 'analyze_material' || job.kind === 'build_curriculum' || job.kind === 'refine_curriculum' || job.kind === 'author_guide' ? 2 : job.kind === 'discover_material' ? 3 : 4, new Date(Date.now() + 60 * 86400_000));
       return acquired;
     });
     return async () => {
@@ -639,9 +643,9 @@ export function createCreationJobRepository(prisma = defaultPrisma, publicationL
         const updated = await tx.creationJob.update({ where: { id: job.id }, data: { checkpoint: valid } });
         await writeDraftEvent(tx, job.ownerId, { ...current, revision: current.revision + 1,
           ...(completion.type === 'material_received' ? { materialRefs: [...current.materialRefs.filter(ref => ref.materialId !== completion.manifest.source.id),
-            { materialId: completion.manifest.source.id, ids: [completion.manifest.retainedSource.id, completion.manifest.extractionArtifact.id,
+            { materialId: completion.manifest.source.id, ids: [...new Set([completion.manifest.retainedSource.id, completion.manifest.extractionArtifact.id,
               ...('receiptArtifact' in completion.manifest ? [completion.manifest.receiptArtifact.id] : []),
-              ...('youtube' in completion.manifest ? completion.manifest.youtube.units.map(unit => unit.artifact.id) : [])] }],
+              ...('youtube' in completion.manifest ? completion.manifest.youtube.units.map(unit => unit.artifact.id) : [])])] }],
             ...('youtube' in completion.manifest ? { youtubeSources: current.youtubeSources.map(source => source.materialId === completion.manifest.source.id && 'youtube' in completion.manifest ? { ...source, observations: completion.manifest.youtube.units } : source) } : {}) } : {}),
           ...(completion.type === 'youtube_metadata_received' ? { materialRefs: [...current.materialRefs.filter(ref => ref.materialId !== completion.result.receipt.materialId),
             { materialId: completion.result.receipt.materialId, ids: [completion.result.artifact.id] }] } : {}) }, 'snapshot', updated);

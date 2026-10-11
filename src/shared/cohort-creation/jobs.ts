@@ -1,6 +1,13 @@
 import { refinementProposalSchema } from './review';
 import { z } from 'zod';
-import { creationSnapshotSchema, materialSourceSchema, youtubeSourceStateSchema } from './contracts';
+import { creationSnapshotSchema, learningIntentSchema, materialSourceSchema, youtubeSourceStateSchema } from './contracts';
+export const generatedGuideRequestSchema = z.strictObject({ requestId: z.uuid(), inputRevision: z.number().int().nonnegative(),
+  source: materialSourceSchema, intent: learningIntentSchema }).superRefine((request, ctx) => {
+  if (request.source.kind !== 'generated_guide' || request.source.input.kind !== 'goal' ||
+    request.source.input.intentId !== request.intent.id || request.intent.revision > request.inputRevision || request.source.discoveredFrom ||
+    request.source.selectedUnitIds.length) ctx.addIssue({ code: 'custom', message: 'Explicit accepted goal is required for guide generation' });
+});
+export type GeneratedGuideRequest = z.infer<typeof generatedGuideRequestSchema>;
 export const understandingRequestSchema = z.strictObject({ requestId: z.uuid(), inputRevision: z.number().int().nonnegative(), snapshot: creationSnapshotSchema })
   .superRefine((request, ctx) => {
     const state = request.snapshot;
