@@ -17,7 +17,9 @@ export function GithubMaterial({ disabled, initialUrl = '', initialScope, onAcqu
       ...(connected ? { connection: 'github' } : {}) });
     if (!selected.success) { setError(selected.error.issues[0]?.message ?? 'Select repository paths.'); return; }
     setError(null); saving.current = true; setPending(true);
-    try { if (await onAcquire(selected.data)) { setUrl(''); setRef(''); setPaths('README.md'); } }
+    try { if (await onAcquire(selected.data)) { setUrl(''); setRef(''); setPaths('README.md'); }
+      else setError('Source selection was not acknowledged. Your paths are still here. Check the saved draft before retrying.'); }
+    catch { setError('Source selection could not be saved. Your paths are still here. Check the saved draft before retrying.'); }
     finally { saving.current = false; setPending(false); }
   }}>
     <p>Select README/docs text paths. A directory includes its readable text files. Public reads use no account credentials.</p>

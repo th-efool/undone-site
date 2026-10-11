@@ -18,7 +18,7 @@ export function DiscoveryMaterials({ snapshot, disabled, onFind, onAcquire, onGi
   const busy = disabled || pending || snapshot.status === 'running';
   const find = async () => {
     if (busy || saving.current) return; saving.current = true; setPending(true); setError(null); setGithub(null);
-    try { await onFind(); } catch { setError('Source search could not be queued. Your goal is still saved.'); }
+    try { if (!await onFind()) setError('Source search was not acknowledged. Your goal is saved. Check the draft before retrying.'); } catch { setError('Source search could not be queued. Your goal is still saved.'); }
     finally { saving.current = false; setPending(false); }
   };
   const choose = async (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -27,7 +27,7 @@ export function DiscoveryMaterials({ snapshot, disabled, onFind, onAcquire, onGi
     if (!candidate) return;
     if (candidate.kind === 'github') { setGithub(candidate); return; }
     saving.current = true; setPending(true); setError(null);
-    try { await onAcquire(candidate); } catch { setError('This source could not be queued. Select it again to retry.'); }
+    try { if (!await onAcquire(candidate)) setError('Source selection was not acknowledged. Check the saved draft before selecting it again.'); } catch { setError('This source could not be queued. Check the saved draft before retrying.'); }
     finally { saving.current = false; setPending(false); }
   };
   return <section aria-label="Discover learning material" className={styles.material}>

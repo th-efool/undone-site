@@ -16,6 +16,7 @@ describe('explicit connected Notion selection', () => {
     expect(onAcquire).toHaveBeenCalledExactlyOnceWith(url);
     expect((screen.getByRole('button') as HTMLButtonElement).disabled).toBe(true);
     resolve(false); await waitFor(() => expect((screen.getByRole('button') as HTMLButtonElement).disabled).toBe(false));
+    expect(screen.getByRole('alert').textContent).toContain('not acknowledged');
     expect((screen.getByLabelText('Notion page URL') as HTMLInputElement).value).toBe(url);
   });
   it('clears the link only after confirmed saving and explains supported-text scope', async () => {

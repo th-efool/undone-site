@@ -35,10 +35,20 @@ describe('explicit video scope', () => {
     const save = vi.fn(async () => false); render(<YoutubeUnits units={units} selected={[]} disabled={false} onSave={save} />);
     fireEvent.click(screen.getByLabelText(/Lighting lesson/)); fireEvent.click(screen.getByRole('button', { name: 'Save video selection' }));
     await waitFor(() => expect(save).toHaveBeenCalledOnce());
+    expect(screen.getByRole('alert').textContent).toContain('not acknowledged');
     expect((screen.getByLabelText(/Lighting lesson/) as HTMLInputElement).checked).toBe(true);
     await waitFor(() => expect((screen.getByRole('button', { name: 'Save video selection' }) as HTMLButtonElement).disabled).toBe(false));
     fireEvent.click(screen.getByLabelText(/Lighting lesson/)); fireEvent.click(screen.getByRole('button', { name: 'Save video selection' }));
     await waitFor(() => expect(save).toHaveBeenLastCalledWith([]));
+  });
+  it('serializes save requests and retains choices after unexpected rejection', async () => {
+    const save = vi.fn().mockRejectedValue(new Error('offline'));
+    render(<YoutubeUnits units={units} selected={['AAAAAAAAAAA']} disabled={false} onSave={save} />);
+    const form = screen.getByRole('form', { name: 'Video scope' }); fireEvent.submit(form); fireEvent.submit(form);
+    expect(save).toHaveBeenCalledOnce();
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('could not be saved'));
+    expect((screen.getByLabelText(/Reflectance lesson/) as HTMLInputElement).checked).toBe(true);
+    expect((screen.getByRole('button', { name: 'Save video selection' }) as HTMLButtonElement).disabled).toBe(false);
   });
   it('blocks edits while material work is active', () => {
     const save = vi.fn(); render(<YoutubeUnits units={units} selected={[]} disabled onSave={save} />);

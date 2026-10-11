@@ -10,7 +10,8 @@ export function NotionMaterial({ disabled, initialUrl = '', onAcquire }: {
   return <form className={styles.form} aria-label="Connected Notion page" onSubmit={async event => {
     event.preventDefault(); if (disabled || saving.current) return;
     saving.current = true; setPending(true); setError(null);
-    try { if (await onAcquire(url)) setUrl(''); }
+    try { if (await onAcquire(url)) setUrl('');
+      else setError('Page selection was not acknowledged. Your link is still here. Check the saved draft before retrying.'); }
     catch { setError('The page could not be queued. Your link is still here; retry when ready.'); }
     finally { saving.current = false; setPending(false); }
   }}>

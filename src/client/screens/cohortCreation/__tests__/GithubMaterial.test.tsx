@@ -42,8 +42,20 @@ describe('explicit GitHub path scope', () => {
     const form = screen.getByRole('form', { name: 'GitHub material scope' }); fireEvent.submit(form); fireEvent.submit(form);
     expect(onAcquire).toHaveBeenCalledOnce(); expect((screen.getByRole('button') as HTMLButtonElement).disabled).toBe(true);
     resolve(false); await waitFor(() => expect((screen.getByRole('button') as HTMLButtonElement).disabled).toBe(false));
+    expect(screen.getByRole('alert').textContent).toContain('not acknowledged');
     expect((screen.getByLabelText('GitHub repository URL') as HTMLInputElement).value).toBe('https://github.com/Example/Lessons');
     expect((screen.getByLabelText('Repository paths (one per line)') as HTMLTextAreaElement).value).toBe('README.md');
+  });
+  it('keeps paths after unexpected failures and permits an explicit retry', async () => {
+    const onAcquire = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(true);
+    render(<GithubMaterial disabled={false} initialUrl="https://github.com/Example/Lessons" initialScope={{ ref: 'main', paths: ['docs'] }} onAcquire={onAcquire} />);
+    const button = screen.getByRole('button', { name: 'Acquire selected GitHub files' });
+    fireEvent.click(button);
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('could not be saved'));
+    expect((screen.getByLabelText('Repository paths (one per line)') as HTMLTextAreaElement).value).toBe('docs');
+    expect(onAcquire).toHaveBeenCalledOnce(); fireEvent.click(button);
+    await waitFor(() => expect(onAcquire).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull());
   });
   it('routes a pasted GitHub link to explicit scope selection before acquisition', async () => {
     const onGithub = vi.fn().mockResolvedValue(true); const onWeb = vi.fn();

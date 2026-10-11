@@ -24,6 +24,15 @@ describe('grounded source confirmation workspace', () => {
     render(<DiscoveryMaterials snapshot={initialSnapshot(draftId)} disabled={false} onFind={onFind} onAcquire={vi.fn()} onGithub={vi.fn()} onCancel={vi.fn()} />);
     const button = screen.getByRole('button', { name: 'Find sources' }); fireEvent.click(button); fireEvent.click(button);
     expect(onFind).toHaveBeenCalledOnce(); resolve(false); await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
+    expect(screen.getByRole('alert').textContent).toContain('not acknowledged');
+  });
+  it.each(['declined', 'rejected'])('shows %s source acquisition and preserves observed choices for explicit retry', async outcome => {
+    const onAcquire = outcome === 'declined' ? vi.fn().mockResolvedValue(false) : vi.fn().mockRejectedValue(new Error('offline'));
+    render(<DiscoveryMaterials snapshot={snapshot(true)} disabled={false} onFind={vi.fn()} onAcquire={onAcquire} onGithub={vi.fn()} onCancel={vi.fn()} />);
+    const button = screen.getByRole('button', { name: 'Acquire source 1' }); fireEvent.click(button);
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('saved draft'));
+    expect(screen.getByText(candidate.title)).toBeTruthy(); expect(onAcquire).toHaveBeenCalledOnce();
+    expect((button as HTMLButtonElement).disabled).toBe(false);
   });
   it('shows known progress and isolated attribution without claiming acquisition success', () => {
     const onCancel = vi.fn(); render(<DiscoveryMaterials snapshot={snapshot()} disabled={false} onFind={vi.fn()} onAcquire={vi.fn()} onGithub={vi.fn()} onCancel={onCancel} />);

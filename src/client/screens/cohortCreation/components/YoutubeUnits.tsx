@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { YoutubeThumbnail } from './YoutubeThumbnail';
 
 export function YoutubeUnits({ units, selected, disabled, onSave, maxSelected = 100 }: {
@@ -8,10 +8,12 @@ export function YoutubeUnits({ units, selected, disabled, onSave, maxSelected = 
   maxSelected?: number;
 }) {
   const [choice, setChoice] = useState(() => new Set(selected)); const [saving, setSaving] = useState(false);
+  const pending = useRef(false); const [error, setError] = useState<string | null>(null);
   return <form aria-label="Video scope" onSubmit={async event => {
-    event.preventDefault(); if (disabled || saving || choice.size > maxSelected) return; setSaving(true);
-    try { await onSave(units.filter(unit => choice.has(unit.unitId)).map(unit => unit.unitId)); }
-    finally { setSaving(false); }
+    event.preventDefault(); if (disabled || pending.current || choice.size > maxSelected) return; pending.current = true; setSaving(true); setError(null);
+    try { if (!await onSave(units.filter(unit => choice.has(unit.unitId)).map(unit => unit.unitId))) setError('Video selection was not acknowledged. Choices are still here. Check the saved draft before retrying.'); }
+    catch { setError('Video selection could not be saved. Choices are still here. Check the saved draft before retrying.'); }
+    finally { pending.current = false; setSaving(false); }
   }}>
     <p>Select videos to include. Saving scope retains your choices; it does not claim video content has been processed.</p>
     <p>Up to {maxSelected} videos available for this source within the draft’s 100-unit limit.</p>
@@ -23,5 +25,6 @@ export function YoutubeUnits({ units, selected, disabled, onSave, maxSelected = 
     <button type="submit" disabled={disabled || saving || choice.size > maxSelected}>Save video selection</button>
     {choice.size > maxSelected && <p role="alert">Other sources use this capacity. Deselect videos before saving.</p>}
     {saving && <p role="status">Saving video selection…</p>}
+    {error && <p role="alert">{error}</p>}
   </form>;
 }
