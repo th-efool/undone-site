@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
 vi.mock('server-only', () => ({}));
 const f = vi.hoisted(() => ({ auth: vi.fn(), lessons: vi.fn(), progress: vi.fn(), generate: vi.fn() }));
@@ -14,6 +14,7 @@ const lessons = [{ id: 'lesson', title: 'Reading', order: 1, thumbnailUrl: null,
 const request = (query = '') => new NextRequest(`http://localhost/api/feed${query}`);
 beforeEach(() => { vi.resetAllMocks(); f.auth.mockResolvedValue({ user: { id: 'user' } }); f.lessons.mockResolvedValue(lessons);
   f.progress.mockResolvedValue(new Map()); f.generate.mockReturnValue({ items: [] }); });
+afterEach(() => vi.restoreAllMocks());
 
 describe('owned and public feed boundary', () => {
   it('queries only published accessible cohorts before fetching any progress or retained text', async () => {
@@ -63,8 +64,21 @@ describe('owned and public feed boundary', () => {
     expect(f.progress).not.toHaveBeenCalled(); expect(f.generate).not.toHaveBeenCalled();
   });
   it('never sends malformed retained reading bodies to the feed engine', async () => {
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
     f.lessons.mockResolvedValue([{ ...lessons[0], chunks: [{ id: 'one' }] }]);
-    await GET(request()); expect(f.generate.mock.calls[0][0].allChunks).toEqual([]); expect(f.progress).not.toHaveBeenCalled();
+    const response = await GET(request()); expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ error: 'Saved learning content is unavailable. Try again later.' });
+    expect(f.generate).not.toHaveBeenCalled(); expect(f.progress).not.toHaveBeenCalled();
+    expect(warning).toHaveBeenCalledWith('[feed] Unavailable retained deliveries', [{ lessonId: 'lesson', cohortId: 'cohort', reason: 'MISSING_TEXT' }]);
+  });
+  it('keeps valid authorized delivery and reports damaged counts without content in diagnostics', async () => {
+    const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    f.lessons.mockResolvedValue([...lessons, { ...lessons[0], id: 'damaged', chunks: [{ id: 'bad', text: 'private retained text', vector: ['invalid'] }] }]);
+    const response = await GET(request()); expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ items: [], delivery: { unavailableLessons: 1 } });
+    expect(f.generate.mock.calls[0][0].allChunks).toHaveLength(2);
+    expect(warning).toHaveBeenCalledWith('[feed] Unavailable retained deliveries', [{ lessonId: 'damaged', cohortId: 'cohort', reason: 'INVALID_CHUNKS' }]);
+    expect(JSON.stringify(warning.mock.calls)).not.toContain('private retained text');
   });
   it('preserves timezone offset behavior within valid timezone bounds', async () => {
     const now = Date.now(); await GET(request('?timezoneOffset=120'));

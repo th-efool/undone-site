@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { deliveryFeedChunks } from '../delivery-feed';
 import { PEDAGOGICAL_DIMENSIONS } from '@/src/shared/curriculum/pedagogicalVector.types';
 
@@ -8,6 +8,22 @@ const lesson = (chunks: unknown, lessonType = 'ARTICLE') => ({ id: 'lesson', tit
 const chunk = { id: 'chunk', title: 'Actual section', text: 'Actual retained source text.\nSecond paragraph.', durationSeconds: 12,
   contentOrigin: 'external', durationMethod: 'reading_estimate', coverage: { limitations: ['Selected pages only.'] } };
 describe('retained delivery projection', () => {
+  it('accounts for every rejected lesson without exposing raw content or weakening validation', () => {
+    const cases = [
+      { value: lesson(null), reason: 'INVALID_CHUNKS' }, { value: lesson([]), reason: 'INVALID_CHUNKS' },
+      { value: lesson([{ ...chunk, vector: ['private corrupt payload'] }]), reason: 'INVALID_CHUNKS' },
+      { value: lesson([chunk], 'UNKNOWN'), reason: 'UNSUPPORTED_LESSON_TYPE' }, { value: lesson([chunk, chunk]), reason: 'DUPLICATE_CHUNKS' },
+      { value: lesson([{ ...chunk, startSeconds: 20, endSeconds: 5 }]), reason: 'INVALID_TIMING' },
+      { value: lesson([{ id: 'missing' }]), reason: 'MISSING_TEXT' }, { value: lesson([chunk], 'VIDEO'), reason: 'MISSING_VIDEO' },
+      { value: lesson([chunk, { ...chunk, id: 'later', endSeconds: 1 }]), reason: 'INVALID_TIMING' },
+      { value: lesson([{ ...chunk, id: 'first', durationSeconds: 1.7e308 }, { ...chunk, id: 'next', durationSeconds: 1.7e308 }]), reason: 'INVALID_TIMING' },
+    ];
+    for (const item of cases) {
+      const rejected = vi.fn(); expect(deliveryFeedChunks([item.value, { ...lesson([chunk]), id: 'valid' }], rejected)).toHaveLength(1);
+      expect(rejected).toHaveBeenCalledExactlyOnceWith({ lessonId: 'lesson', cohortId: 'cohort', reason: item.reason });
+    }
+    const rejected = vi.fn(); expect(deliveryFeedChunks([], rejected)).toEqual([]); expect(rejected).not.toHaveBeenCalled();
+  });
   it('delivers original text, origin, limitations and reading estimate without needing a video', () => {
     const output = deliveryFeedChunks([lesson([chunk])]); expect(output).toHaveLength(1);
     expect(output[0]).toMatchObject({ chunkId: 'chunk', lessonType: 'reading', startSeconds: 0, endSeconds: 12,

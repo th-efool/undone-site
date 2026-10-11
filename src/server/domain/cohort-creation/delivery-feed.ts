@@ -11,22 +11,29 @@ const chunkSchema = z.object({ id: z.union([z.string().min(1), z.number()]).tran
   coverage: z.object({ limitations: z.array(z.string().max(2000)).max(100) }).optional() });
 type Lesson = { id: string; title: string; videoId: string | null; lessonType: string; thumbnailUrl: string | null; order: number;
   seasonId: string; chunks: unknown; season: { order: number; title: string; cohortId: string; cohort: { title: string; coverImage: string | null } } };
+export type DeliveryRejection = { lessonId: string; cohortId: string;
+  reason: 'INVALID_CHUNKS' | 'UNSUPPORTED_LESSON_TYPE' | 'DUPLICATE_CHUNKS' | 'INVALID_TIMING' | 'MISSING_TEXT' | 'MISSING_VIDEO' };
 function seconds(duration: string | undefined) {
   if (!duration) return 180;
   const matches = [...duration.matchAll(/(\d+(?:\.\d+)?)\s*([hms])/giu)];
   return matches.length ? matches.reduce((sum, match) => sum + Number(match[1]) * (match[2].toLowerCase() === 'h' ? 3600 : match[2].toLowerCase() === 'm' ? 60 : 1), 0) : 180;
 }
 /** Caller must authorize published SQL lessons first. Invalid delivery data is never fabricated. */
-export function deliveryFeedChunks(lessons: Lesson[]): FeedChunkInput[] {
+export function deliveryFeedChunks(lessons: Lesson[], onRejected?: (failure: DeliveryRejection) => void): FeedChunkInput[] {
   return lessons.flatMap(lesson => {
-    if (!Array.isArray(lesson.chunks)) return [];
+    const reject = (reason: DeliveryRejection['reason']): FeedChunkInput[] => {
+      onRejected?.({ lessonId: lesson.id, cohortId: lesson.season.cohortId, reason }); return [];
+    };
+    if (!Array.isArray(lesson.chunks) || !lesson.chunks.length) return reject('INVALID_CHUNKS');
     const parsed = lesson.chunks.map(value => chunkSchema.safeParse(value));
-    if (parsed.some(value => !value.success)) return [];
+    if (parsed.some(value => !value.success)) return reject('INVALID_CHUNKS');
     const chunks = parsed.flatMap(value => value.success ? [value.data] : []).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    if (!['VIDEO', 'ARTICLE', 'ASSIGNMENT'].includes(lesson.lessonType) || new Set(chunks.map(chunk => chunk.id)).size !== chunks.length ||
-      chunks.some(chunk => chunk.startSeconds !== undefined && chunk.endSeconds !== undefined && chunk.endSeconds < chunk.startSeconds)) return [];
+    if (!['VIDEO', 'ARTICLE', 'ASSIGNMENT'].includes(lesson.lessonType)) return reject('UNSUPPORTED_LESSON_TYPE');
+    if (new Set(chunks.map(chunk => chunk.id)).size !== chunks.length) return reject('DUPLICATE_CHUNKS');
+    if (chunks.some(chunk => chunk.startSeconds !== undefined && chunk.endSeconds !== undefined && chunk.endSeconds < chunk.startSeconds)) return reject('INVALID_TIMING');
     const reading = lesson.lessonType !== 'VIDEO';
-    if (reading ? chunks.some(chunk => !chunk.text?.trim()) : !lesson.videoId) return [];
+    if (reading && chunks.some(chunk => !chunk.text?.trim())) return reject('MISSING_TEXT');
+    if (!reading && !lesson.videoId) return reject('MISSING_VIDEO');
     let offset = 0;
     const projected = chunks.map((chunk, index) => {
       const duration = chunk.durationSeconds ?? seconds(chunk.duration); const start = chunk.startSeconds ?? offset; const end = chunk.endSeconds ?? start + duration; offset = end;
@@ -41,6 +48,7 @@ export function deliveryFeedChunks(lessons: Lesson[]): FeedChunkInput[] {
         chunkVector: Array.isArray(vector) ? vector : vector ? PEDAGOGICAL_DIMENSIONS.map(key => vector[key]) : undefined,
         ...(chunk.text ? { content: { text: chunk.text, contentOrigin: chunk.contentOrigin, limitations: chunk.coverage?.limitations ?? [], durationMethod: chunk.durationMethod } } : {}) };
     });
-    return projected.some(chunk => chunk.endSeconds < chunk.startSeconds) ? [] : projected;
+    return projected.some(chunk => !Number.isFinite(chunk.startSeconds) || !Number.isFinite(chunk.endSeconds) || chunk.endSeconds < chunk.startSeconds)
+      ? reject('INVALID_TIMING') : projected;
   });
 }

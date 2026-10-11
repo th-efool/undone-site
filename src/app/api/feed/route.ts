@@ -4,7 +4,7 @@ import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { generateFeed } from '@/src/shared/feed/feedEngine';
 import { auth } from '@/src/server/infrastructure/auth/auth.config';
 import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
-import { deliveryFeedChunks } from '@/src/server/domain/cohort-creation/delivery-feed';
+import { deliveryFeedChunks, type DeliveryRejection } from '@/src/server/domain/cohort-creation/delivery-feed';
 import type { ChannelId } from '@/src/shared/curriculum/pedagogicalVector.types';
 import { ChunkProgressService } from '@/src/server/domain/progress/chunkProgress.service';
 import type { ChunkProgress } from '@/src/shared/feed/feedEngine.types';
@@ -32,7 +32,12 @@ export async function GET(request: NextRequest) {
       ...(lessonId ? { id: lessonId } : {}), season: { ...(cohortId ? { cohortId } : {}),
         cohort: { is: { AND: [{ isPublished: true }, accessibleCohortWhere(userId)] } } } },
       include: { season: { include: { cohort: true } } }, orderBy: [{ season: { order: 'asc' } }, { order: 'asc' }, { id: 'asc' }], take: 100 });
-    const chunks = deliveryFeedChunks(lessons);
+    const rejected: DeliveryRejection[] = [];
+    const chunks = deliveryFeedChunks(lessons, failure => rejected.push(failure));
+    if (rejected.length) console.warn('[feed] Unavailable retained deliveries', rejected);
+    if (rejected.length && !chunks.length) {
+      return NextResponse.json({ error: 'Saved learning content is unavailable. Try again later.' }, { status: 503, headers: { 'Cache-Control': 'no-store' } });
+    }
     if (chunkId && !chunks.some(chunk => chunk.chunkId === chunkId)) {
       return NextResponse.json({ error: 'Chunk not found.' }, { status: 404 });
     }
@@ -48,7 +53,8 @@ export async function GET(request: NextRequest) {
     const output = generateFeed({ allChunks: candidates, chunkProgress, cohortStates: [], currentTime: new Date(Date.now() - timezoneOffset * 60_000),
       dailyGoalMinutes: 30, completedTodayMinutes: 0, feedSize: (page + 1) * limit, activeChannel: channel,
       requestedCohortId: cohortId ?? undefined, requestedLessonId: lessonId ?? undefined, requestedChunkId: chunkId ?? undefined });
-    return NextResponse.json({ items: output.items.slice(page * limit, (page + 1) * limit) }, { headers: { 'Cache-Control': 'no-store' } });
+    return NextResponse.json({ items: output.items.slice(page * limit, (page + 1) * limit),
+      ...(rejected.length ? { delivery: { unavailableLessons: rejected.length } } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
   } catch {
     return NextResponse.json({ error: 'Feed is unavailable. Try again.' }, { status: 503 });
   }
