@@ -18,10 +18,21 @@ export function createCreationDraftRepository(prisma = defaultPrisma): DraftRepo
     return this.load(ownerId, id);
   },
   async load(ownerId, id) {
-    await prisma.$transaction(tx => expireStalledCreationJob(tx, ownerId, id, writeDraftEvent));
-    const row = await prisma.creationDraft.findFirst({ where: { id, ownerId, expiredAt: null } });
+    let row = await prisma.creationDraft.findFirst({ where: { id, ownerId, expiredAt: null } });
     if (!row) return null;
-    const state = creationSnapshotSchema.parse(row.snapshot);
+    let state = creationSnapshotSchema.parse(row.snapshot);
+    if (state.draftId !== id || state.revision !== row.revision || state.schemaVersion !== row.schemaVersion) throw new Error('Invalid stored draft');
+    if (state.status === 'running') {
+      const preview = row;
+      row = await prisma.$transaction(async tx => {
+        // Idle steps need one owned read, not a recovery transaction. Active jobs
+        // still recheck under the draft lock before any timeout transition.
+        await expireStalledCreationJob(tx, ownerId, id, writeDraftEvent, new Date(), preview);
+        return tx.creationDraft.findFirst({ where: { id, ownerId, expiredAt: null } });
+      });
+      if (!row) return null;
+      state = creationSnapshotSchema.parse(row.snapshot);
+    }
     if (state.draftId !== id || state.revision !== row.revision || state.schemaVersion !== row.schemaVersion) throw new Error('Invalid stored draft');
     return state;
   },

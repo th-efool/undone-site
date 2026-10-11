@@ -2,11 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { initialSnapshot, applyCommand } from '@/src/shared/cohort-creation/flow';
 import { draftId, result } from '@/src/shared/cohort-creation/__tests__/fixtures';
 
-const mocks = vi.hoisted(() => ({ findFirst: vi.fn(), queryRaw: vi.fn(), writeEvent: vi.fn(), createMany: vi.fn(), findUnique: vi.fn(), getUser: vi.fn(), detach: vi.fn() }));
+const mocks = vi.hoisted(() => ({ findFirst: vi.fn(), queryRaw: vi.fn(), writeEvent: vi.fn(), createMany: vi.fn(), findUnique: vi.fn(), getUser: vi.fn(), detach: vi.fn(), transaction: vi.fn() }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({ prisma: {
-  $transaction: (work: (tx: unknown) => unknown) => work({ $queryRaw: mocks.queryRaw,
-    creationDraft: { findFirst: mocks.findFirst }, creationStorageObject: { updateMany: mocks.detach } }),
+  $transaction: (work: (tx: unknown) => unknown) => { mocks.transaction(); return work({ $queryRaw: mocks.queryRaw,
+    creationDraft: { findFirst: mocks.findFirst }, creationStorageObject: { updateMany: mocks.detach } }); },
   creationDraft: { findFirst: mocks.findFirst, createMany: mocks.createMany },
   user: { findUnique: mocks.findUnique },
 } }));
@@ -17,6 +17,33 @@ import { getCreationOwner } from '@/src/server/infrastructure/auth/getCreationOw
 
 describe('PostgreSQL ownership and revision boundaries', () => {
   beforeEach(() => vi.resetAllMocks());
+  it('loads idle steps with one owned read and no timeout transaction', async () => {
+    const snapshot = initialSnapshot(draftId);
+    mocks.findFirst.mockResolvedValue({ snapshot, revision: 0, schemaVersion: 1 });
+    expect(await creationDraftRepo.load('alice', draftId)).toEqual(snapshot);
+    expect(mocks.findFirst).toHaveBeenCalledExactlyOnceWith({ where: { id: draftId, ownerId: 'alice', expiredAt: null } });
+    expect(mocks.transaction).not.toHaveBeenCalled();
+    mocks.findFirst.mockResolvedValue(null);
+    expect(await creationDraftRepo.load('bob', draftId)).toBeNull();
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
+  it('retains locked recovery and the latest owned snapshot for running work', async () => {
+    const running = applyCommand(initialSnapshot(draftId), { type: 'request_recommendations', query: result.intent.rawQuery, requestId: result.requestId });
+    const canceled = applyCommand(running, { type: 'cancel_recommendations' });
+    mocks.findFirst.mockResolvedValueOnce({ snapshot: running, revision: running.revision, schemaVersion: 1 })
+      .mockResolvedValue({ snapshot: canceled, revision: canceled.revision, schemaVersion: 1 });
+    // A concurrent cancellation is visible when the recovery lock is acquired.
+    mocks.queryRaw.mockResolvedValue([{ snapshot: canceled }]);
+    expect(await creationDraftRepo.load('alice', draftId)).toEqual(canceled);
+    expect(mocks.transaction).toHaveBeenCalledOnce();
+    expect(mocks.findFirst).toHaveBeenCalledTimes(2);
+    expect(mocks.queryRaw.mock.calls[0][0].join('')).toContain('FOR UPDATE');
+  });
+  it('rejects stored revision mismatches before any recovery writes', async () => {
+    mocks.findFirst.mockResolvedValue({ snapshot: initialSnapshot(draftId), revision: 5, schemaVersion: 1 });
+    await expect(creationDraftRepo.load('alice', draftId)).rejects.toThrow('Invalid stored draft');
+    expect(mocks.transaction).not.toHaveBeenCalled();
+  });
   it('filters reads by owner and creates without reassigning existing ownership', async () => {
     const snapshot = initialSnapshot(draftId);
     mocks.findFirst.mockResolvedValue({ snapshot, revision: 0, schemaVersion: 1 });

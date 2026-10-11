@@ -17,8 +17,8 @@ export function recommendationExpired(job: { status: string; createdAt: Date; de
 
 /** Recover unclaimed work even when no worker is alive. Preserve claimed checkpoint recovery. */
 export async function expireStalledCreationJob(tx: Prisma.TransactionClient, ownerId: string, draftId: string,
-  persist: typeof writeDraftEvent, now = new Date()) {
-  const preview = await tx.creationDraft.findFirst({ where: { id: draftId, ownerId, expiredAt: null } });
+  persist: typeof writeDraftEvent, now = new Date(), suppliedPreview?: { snapshot: unknown }) {
+  const preview = suppliedPreview ?? await tx.creationDraft.findFirst({ where: { id: draftId, ownerId, expiredAt: null } });
   if (!preview) return;
   const state = creationSnapshotSchema.parse(preview.snapshot);
   if (state.status !== 'running') return;
