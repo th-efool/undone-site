@@ -1,5 +1,5 @@
 'use client';
-import { useRef, useState } from 'react';
+import { useProcessingAction } from '../hooks/useProcessingAction';
 import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 import { FileText, Check, LoaderCircle } from 'lucide-react';
 import { InkUnderline } from './InkUnderline';
@@ -11,13 +11,9 @@ export function UnderstandingProgress({ snapshot, disabled, onStart, onCancel, o
   snapshot: CreationSnapshot; disabled: boolean; onStart: () => Promise<boolean>; onCancel: () => void; onBack: () => Promise<boolean>;
   onChunk?: () => Promise<boolean>;
 }) {
-  const [pending, setPending] = useState(false); const saving = useRef(false);
   const checkpoint = snapshot.processing?.checkpoint; const running = snapshot.stage === 'processing' && snapshot.status === 'running';
-  const start = async () => {
-    if (disabled || pending || saving.current || running) return;
-    saving.current = true; setPending(true);
-    try { await onStart(); } finally { saving.current = false; setPending(false); }
-  };
+  const { pending, error, run } = useProcessingAction(disabled || running);
+  const start = () => run(onStart, 'Understanding request');
   const ready = !!snapshot.materials.length && snapshot.materials.every(source => source.status === 'ready') && snapshot.extractions.length === snapshot.materials.length;
   const controls = <div className={styles.controls}>{running ? <div role="status">
       <p>{checkpoint ? `${checkpoint.completed.length} of ${checkpoint.total} retained content partitions understood.` : 'Validating retained content; partition total is not known yet.'}</p>
@@ -27,11 +23,12 @@ export function UnderstandingProgress({ snapshot, disabled, onStart, onCancel, o
       {snapshot.processing?.complete ? <p role="status">Understanding complete. Retained summaries and concept evidence are saved. Continue to chunking before building your curriculum.</p>
         : snapshot.stage === 'processing' && <p role="status">Understanding {snapshot.status === 'canceled' ? 'canceled' : 'stopped'}. Accepted partitions remain saved.</p>}
       {snapshot.error && snapshot.stage === 'processing' && <p role="alert">{snapshot.error.message}</p>}
+      {error && <p role="alert">{error}</p>}
       {snapshot.processing && !snapshot.processing.complete && <p>A fresh request starts understanding again. Automatic worker retries reuse saved partitions.</p>}
       <button disabled={disabled || pending || !ready} onClick={start}>{snapshot.processing ? 'Start fresh understanding' : 'Understand selected material'}</button>
-      {snapshot.processing?.complete && onChunk && <button disabled={disabled || pending} onClick={() => void onChunk()}>Chunk selected material</button>}
+      {snapshot.processing?.complete && onChunk && <button disabled={disabled || pending} onClick={() => void run(onChunk, 'Chunking request')}>Chunk selected material</button>}
       {!ready && <p>Acquire all selected sources before continuing.</p>}
-      {snapshot.stage === 'processing' && <button disabled={disabled || pending} onClick={() => void onBack()}>Back to material</button>}
+      {snapshot.stage === 'processing' && <button disabled={disabled || pending} onClick={() => void run(onBack, 'Return to material')}>Back to material</button>}
     </>}</div>;
   if (snapshot.stage !== 'processing') return <section className={styles.embedded} aria-label="Understanding material"><h2>Understanding</h2>{controls}</section>;
   return <section aria-label="Understanding material" className={styles.workspace}>

@@ -56,4 +56,20 @@ describe('real chunking progress controls', () => {
     await act(async () => Array.from(host.querySelectorAll('button')).find(button => button.textContent === 'Back to material')!.click());
     expect(onBack).toHaveBeenCalledOnce(); await act(async () => root.unmount());
   });
+  it('surfaces declined actions and uncertain back navigation without losing saved progress', async () => {
+    const state = fixture(); const host = document.createElement('div'); const root = createRoot(host);
+    const onStart = vi.fn(async () => false); const onBack = vi.fn(async () => { throw new Error('network'); });
+    await act(async () => root.render(<ChunkingProgress snapshot={{ ...state, status: 'canceled', activeRequestId: null }}
+      disabled={false} onStart={onStart} onBack={onBack} onCancel={vi.fn()} />));
+    const button = (text: string) => Array.from(host.querySelectorAll('button')).find(item => item.textContent === text)!;
+    await act(async () => button('Start fresh chunking').click());
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain('Chunking request was not acknowledged');
+    expect(button('Start fresh chunking').disabled).toBe(false);
+    await act(async () => button('Back to material').click());
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain('Return to material could not be confirmed');
+    expect(host.textContent).toContain('remain saved');
+    onStart.mockResolvedValue(true); await act(async () => button('Start fresh chunking').click());
+    expect(host.querySelector('[role="alert"]')).toBeNull(); await act(async () => root.unmount());
+  });
+
 });
