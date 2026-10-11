@@ -1,9 +1,9 @@
 'use client';
 import { useState } from 'react';
-import Image from 'next/image';
-import { ArrowRight, BookOpen, Clock3, ExternalLink, FileText, Globe, List, LockKeyhole, UserRound } from 'lucide-react';
+import { BookOpen, Clock3, ExternalLink, FileText, Globe, List } from 'lucide-react';
 import type { ReviewModel } from '../hooks/useReviewWorkspace';
 import { LessonEditor, MetadataEditor } from './ReviewEditors';
+import { CohortPreviewHero } from './CohortPreviewHero';
 import styles from './ReviewWorkspace.module.css';
 
 const sections = [{ id: 'creation-review-overview', label: 'Overview' }, { id: 'creation-review-lessons', label: 'What you’ll see' }, { id: 'creation-review-community', label: 'Community' }, { id: 'creation-review-creator', label: 'About the creator' }];
@@ -13,13 +13,7 @@ export function ReviewPreview({ model }: { model: ReviewModel }) {
   const lessons = preview?.curriculum.seasons.flatMap(season => season.lessons) ?? [];
   const minutes = Math.ceil(lessons.reduce((sum, lesson) => sum + lesson.durationSeconds, 0) / 60);
   return <>
-    <div className={styles.hero}><Image className={styles.heroArt} src="/images/hero-collage/real-galaxy.jpg" alt="" fill sizes="(max-width:820px) 100vw, 75vw" priority />
-      <span className={styles.illustration}>Draft illustration</span>
-      <div className={styles.heroCopy}><div className={styles.tags}><span>{snapshot.result?.intent.topic.value ?? 'Your learning journey'}</span></div>
-        <h1>{fields.title}</h1><p>{fields.description}</p>
-        <div className={styles.creator}><span><UserRound size={24} aria-hidden="true" /></span><div><strong>Created by you</strong><p>Based on {snapshot.materials.length} retained {snapshot.materials.length === 1 ? 'source' : 'sources'}</p></div></div>
-      </div><div className={styles.join}><button disabled>Join Cohort <ArrowRight size={22} aria-hidden="true" /></button><p>Preview only · available after activation</p><span><LockKeyhole size={17} aria-hidden="true" />{fields.visibility === 'PUBLIC' ? 'Public draft preference' : 'Private draft'}</span></div>
-    </div>
+    <CohortPreviewHero snapshot={snapshot} fields={fields} />
     <nav className={styles.tabs} aria-label="Draft sections">{sections.map(section => <a key={section.id} href={`#${section.id}`} aria-current={active === section.id ? 'location' : undefined} onClick={() => setActive(section.id)}>{section.label}</a>)}</nav>
     <div className={styles.previewGrid}><div>
       <section className={styles.panel} id="creation-review-overview"><h2>About this cohort</h2><p className={styles.copy}>{fields.description}</p>
