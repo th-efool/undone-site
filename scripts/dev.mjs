@@ -2,6 +2,9 @@ import { spawn } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
+import { loadRootEnvironment } from './root-environment.mjs';
+
+loadRootEnvironment();
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
@@ -17,7 +20,7 @@ const nextProcess = spawn(nextCmd, ["next", "dev"], {
 
 // Durable creation requests are queued by Next and need their own polling process.
 const creationWorker = spawn(process.execPath, ["--conditions=react-server", "--import", "tsx",
-  "--env-file-if-exists=.env", "src/server/creation-worker.ts"], { cwd: projectRoot, stdio: "inherit" });
+  "--import", "./scripts/register-root-environment.mjs", "src/server/creation-worker.ts"], { cwd: projectRoot, stdio: "inherit" });
 creationWorker.on("error", () => console.error("[creation-worker] Could not start. Creation searches will time out until the worker is available."));
 creationWorker.on("exit", code => {
   if (code !== 0 && code !== null) console.error("[creation-worker] Stopped unexpectedly. Restart npm run dev to resume durable creation work.");

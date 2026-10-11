@@ -171,7 +171,7 @@ npm install
 ```
 
 ### 3. Configure Environment Variables
-Create a `.env.local` file in the project root:
+Create a `.env` file in the project root. It is the only local environment file used by Next.js and the creation worker. Values from `.env.local`, `.env.development` and other variants are ignored; keep secrets out of Git. When `.env` is absent, hosted deployment environment variables remain supported.
 
 ```env
 # Next.js & Server

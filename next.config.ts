@@ -1,5 +1,11 @@
 import type { NextConfig } from 'next';
 import path from 'path';
+import { initialEnv, loadEnvConfig, updateInitialEnv } from '@next/env';
+import { loadRootEnvironment } from './scripts/root-environment.mjs';
+
+const loaded = loadEnvConfig(process.cwd(), process.env.NODE_ENV !== 'production');
+loadRootEnvironment({ initialEnv: initialEnv ?? process.env, loadedEnvFiles: loaded.loadedEnvFiles });
+updateInitialEnv(process.env);
 
 const isMobileBuild = process.env.MOBILE_BUILD === 'true';
 
