@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { parseEnv } from 'node:util';
 
@@ -22,4 +22,23 @@ export function loadRootEnvironment({ cwd = process.cwd(), env = process.env, in
     }
   }
   Object.assign(env, root);
+}
+
+/**
+ * Explicit Next public defines prevent late plugin reloads from inlining variants.
+ * @param {{ cwd?: string, env?: Record<string, string | undefined> }} [options]
+ */
+export function rootPublicEnvironment({ cwd = process.cwd(), env = process.env } = {}) {
+  const file = path.join(cwd, '.env');
+  if (!existsSync(file)) return Object.fromEntries(Object.entries(env)
+    .filter(([key, value]) => key.startsWith('NEXT_PUBLIC_') && value !== undefined));
+  const root = parseEnv(readFileSync(file, 'utf8'));
+  const keys = new Set([...Object.keys(env), ...Object.keys(root)]);
+  for (const name of readdirSync(cwd)) {
+    if (name === '.env' || !name.startsWith('.env.')) continue;
+    try { for (const key of Object.keys(parseEnv(readFileSync(path.join(cwd, name), 'utf8')))) keys.add(key); }
+    catch (error) { if (error.code !== 'EISDIR') throw error; }
+  }
+  return Object.fromEntries([...keys].filter(key => key.startsWith('NEXT_PUBLIC_'))
+    .map(key => [key, root[key] ?? '']));
 }

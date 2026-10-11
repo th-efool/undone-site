@@ -2,7 +2,7 @@ import { withWorkflow } from 'workflow/next';
 import type { NextConfig } from 'next';
 import path from 'path';
 import { initialEnv, loadEnvConfig, processEnv, updateInitialEnv } from '@next/env';
-import { loadRootEnvironment } from './scripts/root-environment.mjs';
+import { loadRootEnvironment, rootPublicEnvironment } from './scripts/root-environment.mjs';
 
 const loaded = loadEnvConfig(process.cwd(), process.env.NODE_ENV !== 'production');
 loadRootEnvironment({ initialEnv: initialEnv ?? process.env, loadedEnvFiles: loaded.loadedEnvFiles });
@@ -11,6 +11,7 @@ updateInitialEnv(process.env);
 const isMobileBuild = process.env.MOBILE_BUILD === 'true';
 
 const nextConfig: NextConfig = {
+  env: rootPublicEnvironment(),
   turbopack: {
     root: path.resolve('.'),
   },

@@ -5,7 +5,7 @@ import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
-import { loadRootEnvironment } from './root-environment.mjs';
+import { loadRootEnvironment, rootPublicEnvironment } from './root-environment.mjs';
 
 const directories: string[] = [];
 function directory() { const cwd = mkdtempSync(path.join(tmpdir(), 'undone-root-env-')); directories.push(cwd); return cwd; }
@@ -94,5 +94,21 @@ describe('root-only local environment', () => {
       { path: '.env.production.local', env: { VARIANT_ONLY: 'wrong' } },
     ] });
     expect(env).toEqual({ DATABASE_URL: 'hosted-sql' });
+  });
+});
+
+
+describe('root-only Next public defines', () => {
+  it('pins root public values and neutralizes variant-only values even after late reload', () => {
+    const cwd = directory();
+    writeFileSync(path.join(cwd, '.env'), 'NEXT_PUBLIC_APP_URL=https://root.example\n');
+    writeFileSync(path.join(cwd, '.env.local'), 'NEXT_PUBLIC_APP_URL=https://wrong.example\nNEXT_PUBLIC_VARIANT=wrong\n');
+    expect(rootPublicEnvironment({ cwd, env: { NEXT_PUBLIC_APP_URL: 'late-wrong' } })).toEqual({
+      NEXT_PUBLIC_APP_URL: 'https://root.example', NEXT_PUBLIC_VARIANT: '',
+    });
+  });
+  it('preserves hosted public configuration when no root env file exists', () => {
+    expect(rootPublicEnvironment({ cwd: directory(), env: { NEXT_PUBLIC_APP_URL: 'https://host.example', PRIVATE_KEY: 'never-export' } }))
+      .toEqual({ NEXT_PUBLIC_APP_URL: 'https://host.example' });
   });
 });
