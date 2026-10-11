@@ -54,10 +54,11 @@
 .page[data-variant='review'] .canvas { padding: 16px 16px 24px 10px; }
 .page[data-variant='review'] .tools { display: none; }
 .page[data-variant='review'] .messages { padding: 18px 30px 14px; }
-.page[data-variant='review'] .messageRow { margin-bottom: 24px; }
+.page[data-variant='review'] .messageRow { margin-bottom: 18px; }
 .page[data-variant='review'] .hint { display: none; }
 .page[data-variant='review'] .assistantBubble p { font-size: 19px; }
-.page[data-variant='review'] .composerArea { padding-top: 12px; display: flex; flex-direction: column; }
+.page[data-variant='review'] .composerArea { padding-top: 12px; padding-bottom: 18px; display: flex; flex-direction: column; }
+.page[data-variant='review'] .saved { margin-top: 7px; }
 .page[data-variant='review'] .suggestions { order: -1; margin: 0 0 12px; gap: 5px; }
 .page[data-variant='review'] .suggestions button { padding: 5px 15px; }
 @media (max-width: 1300px) { .brandHeader { padding: 24px 20px; } .messages { padding: 34px 22px 16px; } .canvas { padding-inline: 30px; } .composerArea { padding-inline: 22px; } .brand strong { font-size: 22px; } .brand em { font-size: 18px; } }

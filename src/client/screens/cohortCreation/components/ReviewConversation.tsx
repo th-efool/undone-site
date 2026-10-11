@@ -19,7 +19,7 @@ export function ReviewConversation({ model, onCancel }: { model: ReviewModel; on
       <button disabled={model.disabled} onClick={() => void model.discardProposal()}>Discard proposal</button>
     </section>}
     <section className={styles.publishNote} aria-label="Activate cohort"><Send size={26} strokeWidth={1.5} aria-hidden="true" /><div><h3>Ready to publish?</h3>
-      <p>Public publishing makes this cohort discoverable. Private activation limits access to authorized members.</p>
+      <p>Publish for discovery, or activate privately for authorized members.</p>
       <button disabled={!model.canFinalize} onClick={() => void model.finalize('public_publish')}>Publish publicly</button>
       <button className={styles.privateAction} disabled={!model.canFinalize} onClick={() => void model.finalize('private_activation')}>Activate privately</button>
       {model.dirty && <p>Save your edits before finalizing.</p>}
