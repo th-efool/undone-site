@@ -8,7 +8,7 @@ import { readyFixture, readyReview } from './ready.fixture';
 const { api, push, observer } = vi.hoisted(() => ({ api: { create: vi.fn(), load: vi.fn(), command: vi.fn() }, push: vi.fn(), observer: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 vi.mock('../services/draftApi', async original => ({ ...await original<typeof import('../services/draftApi')>(), draftApi: api }));
-vi.mock('../services/draftEvents', () => ({ observeDraftEvents: observer }));
+vi.mock('../services/draftEvents', async original => ({ ...await original<typeof import('../services/draftEvents')>(), observeDraftEvents: observer }));
 import { DraftApiError } from '../services/draftApi';
 import { useCreation } from '../hooks/useCreation';
 let state = readyFixture();

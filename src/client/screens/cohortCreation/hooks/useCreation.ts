@@ -9,7 +9,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { type CreationSnapshot, type StartingPoint, querySchema } from '@/src/shared/cohort-creation/contracts';
 import { initialSnapshot, type CreationCommand } from '@/src/shared/cohort-creation/flow';
 import { draftApi, DraftApiError } from '../services/draftApi';
-import { observeDraftEvents } from '../services/draftEvents';
+import { observeDraftEvents, pollDraftRecovery } from '../services/draftEvents';
 import { materialApi } from '../services/materialApi';
 import { MATERIAL_LIMITS } from '@/src/shared/cohort-creation/materials';
 import { PDF_LIMITS } from '@/src/shared/cohort-creation/pdf';
@@ -98,6 +98,15 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
   useEffect(() => {
     if (!view.hydrated || view.snapshot.status !== 'running') return;
     const observer = new AbortController();
+    // Proxies can keep a healthy-looking stream open without forwarding updates.
+    // This owned GET also recovers queued short searches on the web host.
+    void pollDraftRecovery({ signal: observer.signal,
+      reload: async () => {
+        const snapshot = await draftApi.load(draftId, observer.signal);
+        if (!observer.signal.aborted) display(snapshot);
+      },
+      onError: failure,
+    });
     void observeDraftEvents({
       draftId, signal: observer.signal,
       onEvent: event => {

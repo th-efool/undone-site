@@ -102,6 +102,20 @@ function pause(ms: number, signal: AbortSignal): Promise<void> {
   });
 }
 
+/** Canonical recovery must not depend on an event connection failing or delivering bytes. */
+export async function pollDraftRecovery(options: {
+  signal: AbortSignal;
+  reload: () => Promise<unknown>;
+  onError: (error: unknown) => void;
+}, intervalMs = 10_000): Promise<void> {
+  while (!options.signal.aborted) {
+    await pause(intervalMs, options.signal);
+    if (options.signal.aborted) return;
+    try { await options.reload(); }
+    catch (error) { if (!options.signal.aborted) options.onError(error); }
+  }
+}
+
 /** Reconnect NDJSON and fall back to canonical reloads; performs no mutation requests. */
 export async function observeDraftEvents(options: ObserverOptions): Promise<void> {
   let cursor = options.after ?? 0;

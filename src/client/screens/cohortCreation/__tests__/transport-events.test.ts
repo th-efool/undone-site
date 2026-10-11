@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { initialSnapshot } from '@/src/shared/cohort-creation/flow';
 import { draftId } from '@/src/shared/cohort-creation/__tests__/fixtures';
 import type { CreationEventEnvelope } from '@/src/shared/cohort-creation/durable';
-import { DraftEventStreamError, observeDraftEvents, readDraftEventStream } from '../services/draftEvents';
+import { DraftEventStreamError, observeDraftEvents, readDraftEventStream, pollDraftRecovery } from '../services/draftEvents';
 
 const encoder = new TextEncoder();
 function event(sequence: number, kind: CreationEventEnvelope['kind'] = 'job_started'): CreationEventEnvelope {
@@ -23,6 +23,30 @@ function options(after = 0) {
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe('draft NDJSON transport', () => {
+  it('reloads canonical state independently of a buffered stream and stops on unmount', async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController();
+    const reload = vi.fn().mockResolvedValue(undefined);
+    const work = pollDraftRecovery({ signal: controller.signal, reload, onError: vi.fn() });
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(reload).toHaveBeenCalledOnce();
+    controller.abort(); await work;
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(reload).toHaveBeenCalledOnce();
+  });
+  it('retries canonical recovery after failure without overlapping reloads', async () => {
+    vi.useFakeTimers();
+    const controller = new AbortController(); const onError = vi.fn();
+    let resolve!: () => void;
+    const reload = vi.fn().mockRejectedValueOnce(new Error('offline'))
+      .mockImplementationOnce(() => new Promise<void>(done => { resolve = done; }));
+    const work = pollDraftRecovery({ signal: controller.signal, reload, onError });
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(onError).toHaveBeenCalledOnce(); expect(reload).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(reload).toHaveBeenCalledTimes(2);
+    controller.abort(); resolve(); await work;
+  });
   it('delivers worker health without inventing a snapshot revision and rejects foreign heartbeats', async () => {
     const input = { ...options(), onWorkerState: vi.fn() };
     const heartbeat = { kind: 'heartbeat', cursor: 0, draftId, requestId: draftId, inputRevision: 1, workerState: 'recovering' };

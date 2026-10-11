@@ -7,7 +7,7 @@ import { applyCommand, applyEvent, initialSnapshot, type CreationCommand } from 
 const { api, push, observer, upload } = vi.hoisted(() => ({ api: { create: vi.fn(), load: vi.fn(), command: vi.fn() }, push: vi.fn(), observer: vi.fn(), upload: vi.fn() }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }));
 vi.mock('../services/draftApi', async original => ({ ...await original<typeof import('../services/draftApi')>(), draftApi: api }));
-vi.mock('../services/draftEvents', () => ({ observeDraftEvents: observer }));
+vi.mock('../services/draftEvents', async original => ({ ...await original<typeof import('../services/draftEvents')>(), observeDraftEvents: observer }));
 vi.mock('../services/materialApi', () => ({ materialApi: { upload } }));
 import { DraftApiError } from '../services/draftApi';
 import { CreationExperience } from '../CreationExperience';
@@ -33,8 +33,22 @@ beforeEach(() => {
     return saved;
   });
 });
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.useRealTimers(); });
 describe('owned creation workspace', () => {
+  it('ends loading through canonical recovery even when the event stream delivers nothing', async () => {
+    vi.useFakeTimers();
+    observer.mockImplementationOnce(() => Promise.resolve());
+    saved = applyCommand(saved, { type: 'request_recommendations', query: 'monkey', requestId: result.requestId });
+    render(<CreationExperience draftId={draftId} resume />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
+    expect(screen.getByRole('button', { name: 'Cancel' })).toBeTruthy();
+    saved = applyEvent(saved, { type: 'operation_failed', requestId: result.requestId,
+      error: { code: 'AI_TIMEOUT', message: 'Cohort search did not finish in time.', retryable: true } });
+    await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+    expect(screen.getByText('Cohort search did not finish in time.')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Cancel' })).toBeNull();
+    expect(api.command).not.toHaveBeenCalled();
+  });
   it('explains over-limit suggested queries instead of silently doing nothing', async () => {
     const query = 'a'.repeat(2000);
     const running = applyCommand(saved, { type: 'request_recommendations', query, requestId: result.requestId });
