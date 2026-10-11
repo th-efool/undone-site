@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
+vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({ prisma: {} }));
+import { createCreationJobRepository } from '@/src/server/infrastructure/db/postgres/repositories/creationJob.repo';
 import { creationSnapshotSchema } from '@/src/shared/cohort-creation/contracts';
 import { generatedCurriculumSchema } from '@/src/shared/cohort-creation/artifacts';
 import { buildingRequestSchema, publicationRequestSchema } from '@/src/shared/cohort-creation/jobs';
@@ -83,6 +85,25 @@ function publicationFixture(mode: 'private_activation' | 'public_publish' = 'pri
   return { ...f, command, running, input, checkpoint, complete, receipt, job, execute };
 }
 describe('durable artifacts-first finalization', () => {
+  it('recovers an owned publication enqueue replay before stale-revision rejection', async () => {
+    const f = reviewFixture();
+    const next = applyCommand(f.state, { type: 'finalize_creation', requestId: randomUUID(), mode: 'private_activation' });
+    const current = creationSnapshotSchema.parse({ ...next, publication: { ...next.publication,
+      cohortId: randomUUID(), snapshotHash: publicationSnapshotHash(next) } });
+    const query = vi.fn(async () => [{ snapshot: current }]);
+    const client = { $transaction: async (work: (tx: unknown) => unknown) => work({ $queryRaw: query }) } as unknown as Parameters<typeof createCreationJobRepository>[0];
+    const repository = createCreationJobRepository(client);
+    await expect(repository.enqueue('owner', f.state, next)).resolves.toEqual(current);
+    expect(query).toHaveBeenCalledOnce(); // No new reservation, job, budget or event.
+    const changed = creationSnapshotSchema.parse({ ...next, review: { ...next.review, title: 'Changed content' } });
+    await expect(repository.enqueue('owner', f.state, changed)).resolves.toBeNull();
+    const otherRequestId = randomUUID();
+    const differentRequest = creationSnapshotSchema.parse({ ...next, activeRequestId: otherRequestId,
+      publication: { ...next.publication, requestId: otherRequestId } });
+    await expect(repository.enqueue('owner', f.state, differentRequest)).resolves.toBeNull();
+    query.mockResolvedValueOnce([]);
+    await expect(repository.enqueue('foreign-owner', f.state, next)).resolves.toBeNull();
+  });
   it.each(['private_activation', 'public_publish'] as const)('requires reviewed accepted curriculum for %s and freezes the current revision', mode => {
     const f = publicationFixture(mode); expect(f.running.stage).toBe('finalizing'); expect(f.running.inputRevision).toBe(f.state.inputRevision);
     expect(f.running.materials).toEqual(f.state.materials); expect(f.running.processing).toEqual(f.state.processing);

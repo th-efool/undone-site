@@ -1,6 +1,6 @@
 import { publicationRequestSchema } from '@/src/shared/cohort-creation/jobs';
 import { publicationCheckpointSchema } from '@/src/shared/cohort-creation/publication';
-import { validatePublicationCheckpoint } from '@/src/server/domain/cohort-creation/publication.service';
+import { publicationSnapshotHash, validatePublicationCheckpoint } from '@/src/server/domain/cohort-creation/publication.service';
 import { reserveCreationPublication, pinPublication, preservePublication, materializeCreationPublication } from './creationPublication.repo';
 import { loadPublicationPrepared } from '@/src/server/domain/cohort-creation/publication.runtime';
 import { refinementRequestSchema, refinementResultSchema } from '@/src/shared/cohort-creation/jobs';
@@ -208,8 +208,14 @@ export function createCreationJobRepository(prisma = defaultPrisma, publicationL
       if (!current) return null;
       let queued = next;
       if (next.stage === 'finalizing') {
-        if (current.revision !== previous.revision) return null;
         const operation = next.publication!;
+        if (current.revision !== previous.revision) {
+          // The first enqueue commits a new revision before its HTTP response arrives.
+          // Recover only that exact owned operation; changed content/mode stays stale.
+          if (current.inputRevision === next.inputRevision && current.publication?.requestId === operation.requestId &&
+            current.publication.mode === operation.mode && current.publication.snapshotHash === publicationSnapshotHash(next)) return current;
+          return null;
+        }
         const reserved = await reserveCreationPublication(tx, owner, next, operation.requestId, operation.mode);
         queued = creationSnapshotSchema.parse({ ...next, publication: { ...operation, cohortId: reserved.cohortId, snapshotHash: reserved.snapshotHash } });
         if (reserved.receipt) {
