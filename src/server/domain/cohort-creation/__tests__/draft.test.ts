@@ -28,6 +28,22 @@ function fixture() {
 }
 const request = (method: string, body?: unknown) => new Request('http://localhost/api/drafts', { method, ...(body ? { body: JSON.stringify(body) } : {}) });
 describe('owned durable drafts', () => {
+  it('waits for durable dispatch acceptance before returning an accepted command', async () => {
+    const { service } = fixture(); await service.create('alice', draftId);
+    let accept!: () => void;
+    const accepted = new Promise<void>(resolve => { accept = resolve; });
+    const dispatch = vi.fn(() => accepted);
+    const handler = draftHandlers(service, async () => 'alice', dispatch);
+    let returned = false;
+    const response = handler(request('PATCH', { baseRevision: 0, command: {
+      type: 'request_recommendations', requestId: result.requestId, query: result.intent.rawQuery,
+    } }), draftId).then(value => { returned = true; return value; });
+    await vi.waitFor(() => expect(dispatch).toHaveBeenCalledOnce());
+    expect(returned).toBe(false);
+    accept();
+    expect((await response).status).toBe(200);
+    expect((await service.load('alice', draftId)).status).toBe('running');
+  });
   it('dispatches only authenticated owned snapshots on accepted commands and resume', async () => {
     const { service } = fixture();
     await service.create('alice', draftId);
