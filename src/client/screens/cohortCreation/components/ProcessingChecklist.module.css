@@ -1,0 +1,9 @@
+.list { display: grid; gap: 13px; list-style: none; padding: 0; margin: 4px 0 24px 25px; }
+.list li { display: flex; align-items: start; gap: 14px; font-size: 13px; line-height: 1.4; color: var(--creation-muted); }
+.marker { display: grid; place-items: center; width: 20px; height: 20px; flex: 0 0 20px; color: color-mix(in srgb, var(--creation-muted) 40%, var(--creation-surface)); }
+.list li[data-state='current'], .list li[data-state='complete'] { color: var(--creation-ink); font-weight: 700; }
+.list li[data-state='current'] .marker, .list li[data-state='complete'] .marker { background: var(--creation-blue); border-radius: 50%; color: #fff; }
+.list li[data-state='failed'] .marker { color: #b03c38; }
+.list li[data-state='canceled'] .marker { color: var(--creation-muted); }
+.srOnly { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 820px) { .list { margin-left: 10px; } }

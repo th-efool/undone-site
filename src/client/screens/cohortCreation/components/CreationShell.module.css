@@ -61,6 +61,9 @@
 .page[data-variant='review'] .saved { margin-top: 7px; }
 .page[data-variant='review'] .suggestions { order: -1; margin: 0 0 12px; gap: 5px; }
 .page[data-variant='review'] .suggestions button { padding: 5px 15px; }
+.page[data-variant='processing'] .messageRow { margin-bottom: 24px; }
+.page[data-variant='processing'] .hint { padding: 15px; }
+.page[data-variant='processing'] .hint p { font-size: 12px; }
 @media (max-width: 1300px) { .brandHeader { padding: 24px 20px; } .messages { padding: 34px 22px 16px; } .canvas { padding-inline: 30px; } .composerArea { padding-inline: 22px; } .brand strong { font-size: 22px; } .brand em { font-size: 18px; } }
 @media (max-width: 1024px) { .page { grid-template-columns: 280px minmax(0, 1fr); } .brandHeader { padding-inline: 16px; gap: 6px; } .brand { gap: 9px; } .brand img { width: 35px; height: 35px; } .brand em { font-size: 16px; } .messages { padding-inline: 16px; } .messageRow { gap: 8px; } .assistantBubble { padding-right: 0; } .canvas { padding-inline: 24px; } .tools { right: 24px; } }
 @media (max-width: 820px) { .page, .page[data-rail-collapsed='true'] { display: flex; flex-direction: column; } .rail { position: relative; height: auto; min-height: 0; border-radius: 0 0 18px 18px; } .brandHeader { padding: 17px 22px; } .brand em { font-size: 19px; } .brand strong { font-size: 23px; } .messages { padding: 10px 22px; } .messageRow { margin-bottom: 20px; } .assistantBubble p { font-size: 18px; } .hint { padding: 15px; } .composerArea { padding: 12px 22px 18px; } .suggestions { flex-direction: row; flex-wrap: wrap; } .suggestions button { font-size: 12px; padding: 7px 11px; } .saved { margin-top: 7px; } .canvas { padding: 72px 20px 24px; } .tools { top: 16px; right: 22px; } .page[data-rail-collapsed='true'] .brandHeader { flex-direction: row; padding: 17px 22px; } .page[data-rail-collapsed='true'] .brand span { display: grid; } }

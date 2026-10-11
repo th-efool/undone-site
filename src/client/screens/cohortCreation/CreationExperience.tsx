@@ -15,6 +15,7 @@ import { RecommendationResults } from './components/RecommendationResults';
 import { StartingWorkspace } from './components/StartingWorkspace';
 import { ChunkingProgress } from './components/ChunkingProgress';
 import { UnderstandingProgress } from './components/UnderstandingProgress';
+import { ProcessingChecklist } from './components/ProcessingChecklist';
 import styles from './CreationExperience.module.css';
 
 export function CreationExperience({ draftId, initialQuery = '', resume = false }: { draftId: string; initialQuery?: string; resume?: boolean }) {
@@ -78,7 +79,8 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
     const chunking = snapshot.processing.phase === 'chunking';
     const analyzing = snapshot.processing.phase === 'analysis';
     const target = analyzing ? 'creation-accepted-analysis' : chunking ? 'creation-accepted-chunks' : 'creation-accepted-concepts';
-    return <CreationShell query={snapshot.result?.intent.rawQuery ?? snapshot.query} saved={creation.saved}
+    return <CreationShell variant="processing" query={snapshot.result?.intent.rawQuery ?? snapshot.query} saved={creation.saved}
+      conversation={<ProcessingChecklist snapshot={snapshot} />}
       disabled={creation.materialPending} reply={<><p>I’ve got it.</p><p>{analyzing ? 'I’m analyzing each piece to understand what it’s like and how it fits your learning experience.' : chunking ? 'I’m turning your retained content into meaningful learning pieces. Each chunk keeps its source evidence.' : snapshot.processing.complete ? 'Your material is understood. Review the saved concepts, then continue to chunking.' : 'I’m going through your retained material and understanding what it’s about.'}</p></>}
       hintTitle="Grounded in your material" hint={analyzing ? 'These scores are AI estimates, saved with their reasoning and source evidence. Expand a chunk to inspect all twelve dimensions.' : chunking ? 'Chunks appear only after their boundaries are saved. Duration estimates are labelled, and analysis comes next.' : 'Concepts appear only after source evidence is saved. Your work keeps running if you close this page.'}
       onMessage={message => {

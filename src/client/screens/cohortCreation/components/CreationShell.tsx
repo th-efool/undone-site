@@ -20,7 +20,7 @@ export type CreationShellProps = {
   saved?: boolean;
   conversation?: ReactNode;
   composerLabel?: string;
-  variant?: 'recommendations' | 'starting' | 'material' | 'review';
+  variant?: 'recommendations' | 'starting' | 'material' | 'processing' | 'review';
 };
 
 /** Conversation is an interaction surface. Commands and durable state stay in useCreation. */
