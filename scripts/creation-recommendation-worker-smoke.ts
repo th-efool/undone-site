@@ -20,7 +20,8 @@ import { recommendationResultSchema } from '../src/shared/cohort-creation/contra
 let stage = 'configuration';
 let calls = 0;
 async function main() {
-  assert.ok(process.env.GEMINI_API_KEY && process.env.DATABASE_URL);
+  const timeoutOnly = process.argv[2] === '--timeout-only';
+  assert.ok(process.env.DATABASE_URL && (timeoutOnly || process.env.GEMINI_API_KEY));
   const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
   const schema = `creation_smoke_${randomUUID().replaceAll('-', '')}`;
   assert.match(schema, /^creation_smoke_[a-f0-9]{32}$/);
@@ -42,6 +43,30 @@ async function main() {
     const initial = await service.create(owner, draftId);
     stage = 'durable enqueue and claim';
     await service.command(owner, draftId, initial.revision, { type: 'request_recommendations', requestId, query: 'I want to learn JavaScript functions and closures' });
+    if (timeoutOnly) {
+      stage = 'queued timeout without worker';
+      await db.creationJob.updateMany({ where: { draftId }, data: { createdAt: new Date(Date.now() - 61_000) } });
+      await assert.rejects(service.load(randomUUID(), draftId), DraftNotFound);
+      assert.equal((await db.creationJob.findFirstOrThrow({ where: { draftId } })).status, 'queued');
+      const expired = await service.load(owner, draftId);
+      assert.equal(expired.status, 'failed'); assert.equal(expired.error?.code, 'AI_TIMEOUT');
+      assert.equal(await jobs.claim(randomUUID()), null);
+      assert.equal((await service.load(owner, draftId)).revision, expired.revision);
+      stage = 'running timeout and late worker fencing';
+      const retryId = randomUUID();
+      await service.command(owner, draftId, expired.revision, { type: 'request_recommendations', requestId: retryId, query: 'I want to learn JavaScript functions and closures' });
+      const claimed = await jobs.claim(randomUUID()); assert.ok(claimed);
+      await db.creationJob.update({ where: { id: claimed.id }, data: { deadlineAt: new Date(Date.now() - 1000) } });
+      const stopped = await service.load(owner, draftId);
+      assert.equal(stopped.error?.code, 'AI_TIMEOUT'); assert.equal(stopped.status, 'failed');
+      assert.equal(await jobs.heartbeat(claimed), false);
+      assert.equal(await jobs.finish(claimed, { type: 'operation_failed', requestId: retryId,
+        error: { code: 'AI_UNAVAILABLE', message: 'Late worker failure', retryable: true } }), false);
+      assert.equal((await service.load(owner, draftId)).revision, stopped.revision);
+      assert.equal(await db.creationEvent.count({ where: { draftId, envelope: { path: ['kind'], equals: 'job_failed' } } }), 2);
+      console.log('Queued/running recommendation expiry, owner checks, reload and late-worker fencing passed; zero AI calls.');
+      return;
+    }
     const job = await jobs.claim(randomUUID());
     assert.ok(job && job.kind === 'recommendations');
     stage = 'live worker execution';

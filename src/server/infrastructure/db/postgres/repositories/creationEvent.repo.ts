@@ -4,6 +4,7 @@ import { prisma } from '../client';
 import { creationSnapshotSchema, type CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 import { creationEventEnvelopeSchema, creationJobSummarySchema, type CreationEventEnvelope } from '@/src/shared/cohort-creation/durable';
 import type { CreationEventRepository } from '@/src/server/domain/cohort-creation/durable-job';
+import { expireStalledRecommendation } from './creationRecommendationTimeout';
 
 export const jobSummary = (job: CreationJob) => creationJobSummarySchema.parse({
   id: job.id, kind: job.kind, status: job.status, inputRevision: job.inputRevision,
@@ -29,6 +30,7 @@ export const creationEventRepo: CreationEventRepository = {
   async read(ownerId, draftId, after) {
     // Repeatable read prevents a cursor newer than the snapshot/event batch.
     return prisma.$transaction(async tx => {
+      await expireStalledRecommendation(tx, ownerId, draftId, writeDraftEvent);
       const draft = await tx.creationDraft.findFirst({ where: { id: draftId, ownerId, expiredAt: null } });
       if (!draft) return null;
       const snapshot = creationSnapshotSchema.parse(draft.snapshot);

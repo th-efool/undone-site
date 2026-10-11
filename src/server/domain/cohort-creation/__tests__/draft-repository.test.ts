@@ -5,7 +5,8 @@ import { draftId, result } from '@/src/shared/cohort-creation/__tests__/fixtures
 const mocks = vi.hoisted(() => ({ findFirst: vi.fn(), queryRaw: vi.fn(), writeEvent: vi.fn(), createMany: vi.fn(), findUnique: vi.fn(), getUser: vi.fn(), detach: vi.fn() }));
 vi.mock('server-only', () => ({}));
 vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({ prisma: {
-  $transaction: (work: (tx: unknown) => unknown) => work({ $queryRaw: mocks.queryRaw, creationStorageObject: { updateMany: mocks.detach } }),
+  $transaction: (work: (tx: unknown) => unknown) => work({ $queryRaw: mocks.queryRaw,
+    creationDraft: { findFirst: mocks.findFirst }, creationStorageObject: { updateMany: mocks.detach } }),
   creationDraft: { findFirst: mocks.findFirst, createMany: mocks.createMany },
   user: { findUnique: mocks.findUnique },
 } }));
