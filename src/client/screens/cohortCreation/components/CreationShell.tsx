@@ -18,12 +18,14 @@ export type CreationShellProps = {
   onMessage: (message: string) => Promise<void> | void;
   disabled?: boolean;
   saved?: boolean;
-  variant?: 'recommendations' | 'starting' | 'material';
+  conversation?: ReactNode;
+  composerLabel?: string;
+  variant?: 'recommendations' | 'starting' | 'material' | 'review';
 };
 
 /** Conversation is an interaction surface. Commands and durable state stay in useCreation. */
 export function CreationShell({ children, query, reply, hintTitle, hint, suggestions = [], onMessage,
-  disabled = false, saved = true, variant = 'recommendations' }: CreationShellProps) {
+  disabled = false, saved = true, variant = 'recommendations', conversation, composerLabel = 'Say anything' }: CreationShellProps) {
   const [message, setMessage] = useState(''); const [collapsed, setCollapsed] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
   const { theme, isDark } = useTheme();
@@ -47,6 +49,7 @@ export function CreationShell({ children, query, reply, hintTitle, hint, suggest
           <div className={styles.messageRow}><Image className={styles.assistantAvatar} src={isDark ? '/undone-logo-dark.svg' : '/undone-logo-transparent.svg'} width={34} height={34} alt="" />
             <div className={styles.assistantBubble}><span className={styles.sender}>Undone</span><div>{reply}</div></div>
           </div>
+          {conversation}
           <div className={styles.hint}><Lightbulb size={27} strokeWidth={1.3} aria-hidden="true" /><div><strong>{hintTitle}</strong><p>{hint}</p></div></div>
         </div>
         <div className={styles.composerArea}>
@@ -55,7 +58,7 @@ export function CreationShell({ children, query, reply, hintTitle, hint, suggest
             try { await onMessage(message.trim()); setMessage(''); setMessageError(null); }
             catch (error) { setMessageError(error instanceof Error ? error.message : 'Your message could not be sent. Retry.'); }
           }}>
-            <label className={styles.srOnly} htmlFor="creation-conversation-message">Say anything</label>
+            <label className={styles.srOnly} htmlFor="creation-conversation-message">{composerLabel}</label>
             <textarea id="creation-conversation-message" placeholder="Say anything…" value={message} maxLength={2000} minLength={3}
               rows={1} required disabled={disabled} onChange={event => setMessage(event.target.value)} />
             <button type="submit" disabled={disabled || message.trim().length < 3} aria-label="Send message"><ArrowUp size={22} /></button>

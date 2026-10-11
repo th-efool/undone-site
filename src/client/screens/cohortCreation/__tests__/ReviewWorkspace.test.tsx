@@ -34,7 +34,7 @@ describe('functional review workspace', () => {
     const changed = { ...creation, snapshot: { ...creation.snapshot, revision: 2, review: { ...creation.snapshot.review!, title: 'Other tab title', editRevision: 1 } } };
     await act(async () => root.render(<ReviewWorkspace creation={changed} />));
     expect(title.value).toBe('Unsent local title');
-    await act(async () => host.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+    await act(async () => title.closest('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
     expect(creation.editReview).toHaveBeenCalledWith(expect.objectContaining({ title: 'Unsent local title', visibility: 'PRIVATE' }));
     expect(title.value).toBe('Unsent local title'); expect(host.textContent).toContain('Unsaved edits');
     await act(async () => root.unmount()); host.remove();

@@ -109,6 +109,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
         <BuildingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending} onStart={creation.buildCurriculum} onCancel={creation.cancel} onBack={creation.backToMaterials} />}</div>
     </CreationShell>;
   }
+  if (creation.hydrated && snapshot.stage === 'review') return <ReviewWorkspace creation={creation} />;
   return <main id="main-content" className={styles.page}>
     <header className={styles.header}><Link href="/">Undone</Link><span>Cohort creation</span></header>
     <p className={styles.notice}>{creation.saved ? 'Your draft is saved to your account.' : 'Waiting for server confirmation.'}</p>
