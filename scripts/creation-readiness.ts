@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { Pool } from 'pg';
 import mongoose from 'mongoose';
 import { readCorsairConfig } from '../src/server/corsair-config';
+import { configureRequestOriginAuth } from '../src/server/infrastructure/auth/auth.environment';
 
 type FailureReason = 'missing' | 'invalid_url' | 'dns_not_found' | 'dns_timeout' | 'authentication_failed' | 'connection_failed' | 'schema_incomplete';
 type Check = { name: string; required: boolean; status: 'configured' | 'ready' | 'blocked' | 'not_configured'; reason?: FailureReason };
@@ -19,12 +20,13 @@ const httpUrl = (value?: string, originOnly = false) => {
     (!originOnly || url.pathname === '/') && !url.search && !url.hash; } catch { return false; }
 };
 export function configurationChecks(env: NodeJS.ProcessEnv): Check[] {
-  const authOrigins = [env.AUTH_URL, env.NEXTAUTH_URL].filter(Boolean);
+  // Evaluate the app's actual policy without changing the caller's environment.
+  const authEnvironment = { ...env }; configureRequestOriginAuth(authEnvironment);
   let corsair = false;
   try { readCorsairConfig(env); corsair = true; } catch { /* Never log secret-bearing configuration. */ }
   return [
-    { name: 'authentication origins', required: true, status: authOrigins.length && authOrigins.every(value => httpUrl(value)) ? 'configured' : 'blocked',
-      ...(!authOrigins.length ? { reason: 'missing' as const } : !authOrigins.every(value => httpUrl(value)) ? { reason: 'invalid_url' as const } : {}) },
+    { name: 'authentication origin policy (request-derived, not live session verification)', required: true,
+      status: !authEnvironment.AUTH_URL && !authEnvironment.NEXTAUTH_URL ? 'configured' : 'blocked' },
     { name: 'authentication secret', required: true, status: secret(env.AUTH_SECRET || env.NEXTAUTH_SECRET) ? 'configured' : 'blocked' },
     { name: 'Google key presence (not live validation)', required: true, status: secret(env.GEMINI_API_KEY) ? 'configured' : 'blocked' },
     { name: 'site metadata origin', required: true, status: !env.NEXT_PUBLIC_APP_URL || httpUrl(env.NEXT_PUBLIC_APP_URL) ? 'configured' : 'blocked' },
