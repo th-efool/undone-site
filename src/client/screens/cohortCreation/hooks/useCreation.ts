@@ -26,6 +26,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
   const [uploading, setUploading] = useState(false);
   const [materialPending, setMaterialPending] = useState(false);
   const [activatingReady, setActivatingReady] = useState(false);
+  const [queueNotice, setQueueNotice] = useState<string | null>(null);
   const display = useCallback((snapshot: CreationSnapshot, saved = true, message: string | null = null) => {
     if (snapshot.draftId !== current.current.draftId || snapshot.revision < current.current.revision) return;
     current.current = snapshot;
@@ -81,7 +82,12 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     const observer = new AbortController();
     void observeDraftEvents({
       draftId, signal: observer.signal,
-      onEvent: event => { if (!observer.signal.aborted) display(event.snapshot); },
+      onEvent: event => {
+        if (observer.signal.aborted || event.snapshot.revision < current.current.revision) return;
+        setQueueNotice(event.job?.status === 'queued' && event.job.requestId === event.snapshot.activeRequestId
+          ? 'Your request is queued and saved. Processing starts when a server worker is available.' : null);
+        display(event.snapshot);
+      },
       reload: async () => {
         const snapshot = await draftApi.load(draftId, observer.signal);
         if (!observer.signal.aborted && snapshot.revision >= current.current.revision) display(snapshot);
@@ -92,6 +98,11 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
       onTerminalError: error => {
         if (error.status === 401) { void reload(); return; }
         failure(new DraftApiError('This draft is no longer available to your account. Return home or sign in with its owner account.', error.status ?? 404));
+      },
+      onWorkerState: value => {
+        if (observer.signal.aborted || value.requestId !== current.current.activeRequestId || value.inputRevision !== current.current.inputRevision) return;
+        setQueueNotice(value.state === 'queued' ? 'Your request is queued and saved. Processing starts when a server worker is available.'
+          : value.state === 'recovering' ? 'The processing worker lease expired. Saved checkpoints are waiting for a worker to resume; you can cancel this request.' : null);
       },
     }).catch(() => { /* Aborted observers never mutate durable job state. */ });
     return () => { observer.abort(); };
@@ -153,7 +164,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     } catch (error) { failure(error); return false; }
     finally { editPending.current = false; setActivatingReady(false); setMaterialPending(false); }
   };
-  return { ...view, reload, uploading, materialPending, activatingReady, activateReady, uploadText, cancelUpload: () => uploadController.current?.abort(),
+  return { ...view, queueNotice: view.snapshot.status === 'running' ? queueNotice : null, reload, uploading, materialPending, activatingReady, activateReady, uploadText, cancelUpload: () => uploadController.current?.abort(),
     finalize: (mode: 'private_activation' | 'public_publish') => edit({ type: 'finalize_creation', mode, requestId: crypto.randomUUID() }),
     openReview: () => edit({ type: 'open_review' }),
     editReview: (patch: z.infer<typeof reviewPatchSchema>) => edit({ type: 'edit_review', patch }),

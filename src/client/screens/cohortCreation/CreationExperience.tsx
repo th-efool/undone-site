@@ -21,7 +21,7 @@ import styles from './CreationExperience.module.css';
 export function CreationExperience({ draftId, initialQuery = '', resume = false }: { draftId: string; initialQuery?: string; resume?: boolean }) {
   const creation = useCreation(draftId, initialQuery, resume);
   const { snapshot } = creation;
-  const recovery = creation.message && <p role="alert">{creation.message} <button type="button" onClick={() => void creation.reload()}>Reload saved draft</button></p>;
+  const recovery = <>{creation.queueNotice && <p role="status">{creation.queueNotice}</p>}{creation.message && <p role="alert">{creation.message} <button type="button" onClick={() => void creation.reload()}>Reload saved draft</button></p>}</>;
   const router = useRouter();
   const feedRequested = useRef(false);
   useEffect(() => {

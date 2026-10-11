@@ -22,6 +22,7 @@ export function PublicationStatus({ creation }: { creation: ReturnType<typeof us
     hintTitle="Saved to your account" hint="You can return to this draft at any time." disabled onMessage={() => {}}
     conversation={receipt ? <ol className={styles.checklist}>{['Reading through the material', 'Chunking into meaningful pieces', 'Analyzing each piece', 'Building your learning experience', 'Reviewing and refining'].map(label => <li key={label}><CheckCircle2 size={20} aria-hidden="true" /><span>{label}</span></li>)}</ol> : undefined}>
     <section className={styles.workspace} aria-label={receipt ? 'Cohort activated' : 'Finalizing cohort'}>
+      {creation.queueNotice && <p role="status">{creation.queueNotice}</p>}
       {creation.message && <p role="alert" className={styles.alert}>{creation.message} <button onClick={() => void creation.reload()}>Reload saved draft</button></p>}
       {!publication || snapshot.stage === 'published' && !receipt ? <p role="alert">Publication state is unavailable. Reload this saved draft.</p> : receipt && cohortPath ? <>
         <header className={styles.toolbar}><div><h2>{publicCohort ? 'Your cohort is published' : 'Your private cohort is ready'}</h2><p>Committed to your account. Your cohort is ready to open.</p></div><div className={styles.toolbarActions}><Link href={cohortPath}>Open cohort</Link></div></header>

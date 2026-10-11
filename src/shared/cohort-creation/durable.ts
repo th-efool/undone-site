@@ -6,6 +6,7 @@ export const creationJobSummarySchema = z.strictObject({
   status: z.enum(['queued', 'running', 'succeeded', 'failed', 'canceled']),
   inputRevision: z.number().int().nonnegative(), requestId: z.uuid(),
   attempt: z.number().int().nonnegative(), createdAt: z.iso.datetime(), updatedAt: z.iso.datetime(),
+  leaseExpiresAt: z.iso.datetime().nullable().optional(),
 });
 export type CreationJobSummary = z.infer<typeof creationJobSummarySchema>;
 export const creationEventEnvelopeSchema = z.strictObject({
@@ -17,5 +18,7 @@ export const creationEventEnvelopeSchema = z.strictObject({
 export type CreationEventEnvelope = z.infer<typeof creationEventEnvelopeSchema>;
 export const creationStreamFrameSchema = z.union([
   creationEventEnvelopeSchema,
-  z.strictObject({ kind: z.literal('heartbeat'), cursor: z.number().int().nonnegative() }),
+  z.strictObject({ kind: z.literal('heartbeat'), cursor: z.number().int().nonnegative(),
+    draftId: z.uuid().optional(), requestId: z.uuid().nullable().optional(), inputRevision: z.number().int().nonnegative().optional(),
+    workerState: z.enum(['queued', 'working', 'recovering', 'idle']).optional() }),
 ]);

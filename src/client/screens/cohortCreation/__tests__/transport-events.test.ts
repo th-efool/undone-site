@@ -23,6 +23,14 @@ function options(after = 0) {
 afterEach(() => { vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe('draft NDJSON transport', () => {
+  it('delivers worker health without inventing a snapshot revision and rejects foreign heartbeats', async () => {
+    const input = { ...options(), onWorkerState: vi.fn() };
+    const heartbeat = { kind: 'heartbeat', cursor: 0, draftId, requestId: draftId, inputRevision: 1, workerState: 'recovering' };
+    expect(await readDraftEventStream(stream([encoder.encode(JSON.stringify(heartbeat))]), input)).toBe(0);
+    expect(input.onWorkerState).toHaveBeenCalledWith({ requestId: draftId, inputRevision: 1, state: 'recovering' });
+    expect(input.onEvent).not.toHaveBeenCalled();
+    await expect(readDraftEventStream(stream([encoder.encode(JSON.stringify({ ...heartbeat, draftId: crypto.randomUUID() }))]), input)).rejects.toMatchObject({ kind: 'protocol' });
+  });
   it('handles every-byte UTF-8 splits, CRLF, multiple lines and a final line without newline', async () => {
     const input = options();
     const bytes = encoder.encode(`${JSON.stringify(event(0, 'snapshot'))}\r\n\r\n${JSON.stringify({ kind: 'heartbeat', cursor: 0 })}\n${JSON.stringify(event(1))}`);

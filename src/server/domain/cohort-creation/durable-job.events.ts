@@ -33,7 +33,10 @@ export function creationEventsHandler(repo: CreationEventRepository, getOwner: (
             } else {
               for (const event of page.events) { send(event); cursor = event.sequence; }
             }
-            send({ kind: 'heartbeat', cursor });
+            const active = page.jobs.find(job => job.requestId === page.snapshot.activeRequestId && job.inputRevision === page.snapshot.inputRevision);
+            const workerState = !active ? 'idle' : active.status === 'queued' ? 'queued'
+              : active.leaseExpiresAt && Date.parse(active.leaseExpiresAt) <= Date.now() ? 'recovering' : 'working';
+            send({ kind: 'heartbeat', cursor, draftId, requestId: page.snapshot.activeRequestId, inputRevision: page.snapshot.inputRevision, workerState });
             if (Date.now() >= until) break;
             // Drain a bounded replay page immediately, rather than losing its tail.
             if (cursor >= page.cursor) await new Promise<void>(resolve => {

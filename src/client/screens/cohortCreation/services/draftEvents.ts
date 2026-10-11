@@ -7,6 +7,7 @@ type StreamOptions = {
   after: number;
   signal: AbortSignal;
   onEvent: (event: CreationEventEnvelope) => void;
+  onWorkerState?: (value: { requestId: string | null; inputRevision: number; state: 'queued' | 'working' | 'recovering' | 'idle' }) => void;
 };
 
 export class DraftEventStreamError extends Error {
@@ -38,7 +39,13 @@ export async function readDraftEventStream(response: Response, options: StreamOp
     let frame;
     try { frame = creationStreamFrameSchema.parse(JSON.parse(line)); }
     catch { throw new DraftEventStreamError('protocol', 'Invalid draft event.'); }
-    if (frame.kind === 'heartbeat') return;
+    if (frame.kind === 'heartbeat') {
+      if (frame.workerState) {
+        if (frame.draftId !== options.draftId || frame.requestId === undefined || frame.inputRevision === undefined) throw new DraftEventStreamError('protocol', 'Worker heartbeat identity mismatch.');
+        options.onWorkerState?.({ requestId: frame.requestId, inputRevision: frame.inputRevision, state: frame.workerState });
+      }
+      return;
+    }
     if (frame.draftId !== options.draftId || frame.snapshot.draftId !== options.draftId ||
       frame.inputRevision !== frame.snapshot.inputRevision || (frame.job && frame.job.id !== frame.jobId)) {
       throw new DraftEventStreamError('protocol', 'Draft event identity mismatch.');

@@ -4,7 +4,7 @@ import { creationSnapshotSchema, type CreationSnapshot } from '@/src/shared/coho
 import { initialSnapshot } from '@/src/shared/cohort-creation/flow';
 import { writeDraftEvent } from './creationEvent.repo';
 import { releaseDetachedMaterialRefs } from './creationMaterialRefs';
-import { expireStalledRecommendation } from './creationRecommendationTimeout';
+import { expireStalledCreationJob } from './creationRecommendationTimeout';
 
 export interface DraftRepository {
   create(ownerId: string, id: string): Promise<CreationSnapshot | null>;
@@ -18,7 +18,7 @@ export function createCreationDraftRepository(prisma = defaultPrisma): DraftRepo
     return this.load(ownerId, id);
   },
   async load(ownerId, id) {
-    await prisma.$transaction(tx => expireStalledRecommendation(tx, ownerId, id, writeDraftEvent));
+    await prisma.$transaction(tx => expireStalledCreationJob(tx, ownerId, id, writeDraftEvent));
     const row = await prisma.creationDraft.findFirst({ where: { id, ownerId, expiredAt: null } });
     if (!row) return null;
     const state = creationSnapshotSchema.parse(row.snapshot);
