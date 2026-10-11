@@ -21,6 +21,35 @@ function request(body: unknown = input) {
 }
 
 describe('recommendation service and HTTP vertical slice', () => {
+  it.each(['AI_TIMEOUT', 'AI_UNAVAILABLE', 'AI_INVALID_OUTPUT', 'RATE_LIMITED'] as const)('uses authoritative database matches when interpretation fails with %s', async code => {
+    const ai = { interpret: vi.fn(async () => { throw creationFailure(code, 'provider failure'); }), rank: vi.fn() };
+    const repo = repository();
+    const result = await new RecommendationService(ai, repo).recommend(input, signal());
+    expect(result.mode).toBe('database_fallback');
+    expect(result.intent.rawQuery).toBe(input.query);
+    expect(result.intent.topic.origin).toBe('application');
+    expect(result.intent.outcomes.value).toEqual([]);
+    expect(result.items[0].cohort).toEqual(candidate);
+    expect(result.items[0].reason).toContain('original query');
+    expect(ai.rank).not.toHaveBeenCalled();
+    expect(repo.retainEligible).toHaveBeenCalledWith([candidate.cohortId], expect.any(AbortSignal));
+  });
+  it('returns a truthful empty fallback rather than blocking create-own on AI availability', async () => {
+    const ai = { interpret: async () => { throw creationFailure('AI_TIMEOUT', 'provider timeout'); }, rank: vi.fn() };
+    const result = await new RecommendationService(ai, repository([])).recommend(input, signal());
+    expect(result.items).toEqual([]); expect(result.mode).toBe('database_fallback');
+    expect(recommendationResultSchema.safeParse(result).success).toBe(true);
+  });
+  it('never converts caller cancellation or lease/budget errors into fallback results', async () => {
+    const shutdown = new AbortController();
+    const repo = repository();
+    const ai = { interpret: async () => { shutdown.abort(); throw creationFailure('AI_TIMEOUT', 'provider timeout'); }, rank: vi.fn() };
+    await expect(new RecommendationService(ai, repo).recommend(input, shutdown.signal)).rejects.toMatchObject({ name: 'AbortError' });
+    expect(repo.findCandidates).not.toHaveBeenCalled();
+    const lease = new Error('lease lost');
+    await expect(new RecommendationService({ ...ai, interpret: async () => { throw lease; } }, repo).recommend(input, signal())).rejects.toBe(lease);
+  });
+
   it('runs structured intent → database candidates → structured ranking → authoritative cards', async () => {
     const repo = repository();
     const service = new RecommendationService(sdk(intentProposal, { matches: [{ candidateKey: candidate.cohortId, reason: 'Matches your lighting goal.' }] }), repo);

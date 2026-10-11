@@ -17,15 +17,30 @@ export class RecommendationService {
   async recommend(input: RecommendationRequest, signal: AbortSignal): Promise<RecommendationResult> {
     const request = recommendationRequestSchema.parse(input);
     signal.throwIfAborted();
-    const proposal = intentProposalSchema.parse(await this.ai.interpret(request.query, signal));
-    const field = <T>(value: T) => ({ value, origin: 'ai' as const, acceptedRevision: request.inputRevision });
-    const intent = learningIntentSchema.parse({
-      id: randomUUID(), rawQuery: request.query, revision: request.inputRevision,
-      topic: field(proposal.topic), outcomes: field(proposal.outcomes),
-      level: proposal.level ? field(proposal.level) : null,
-      language: proposal.language ? field(proposal.language) : null,
-      searchTerms: proposal.searchTerms, uncertainties: proposal.uncertainties,
-    });
+    let intent: LearningIntent;
+    let mode: RecommendationResult['mode'] = 'ai';
+    try {
+      const proposal = intentProposalSchema.parse(await this.ai.interpret(request.query, signal));
+      const field = <T>(value: T) => ({ value, origin: 'ai' as const, acceptedRevision: request.inputRevision });
+      intent = learningIntentSchema.parse({
+        id: randomUUID(), rawQuery: request.query, revision: request.inputRevision,
+        topic: field(proposal.topic), outcomes: field(proposal.outcomes),
+        level: proposal.level ? field(proposal.level) : null,
+        language: proposal.language ? field(proposal.language) : null,
+        searchTerms: proposal.searchTerms, uncertainties: proposal.uncertainties,
+      });
+    } catch (error) {
+      signal.throwIfAborted();
+      if (!(error instanceof CreationFailure) || !['AI_UNAVAILABLE', 'AI_TIMEOUT', 'AI_INVALID_OUTPUT', 'RATE_LIMITED'].includes(error.detail.code)) throw error;
+      mode = 'database_fallback';
+      const field = <T>(value: T) => ({ value, origin: 'application' as const, acceptedRevision: request.inputRevision });
+      // Preserve the complete query; the topic is only a bounded display/search excerpt.
+      intent = learningIntentSchema.parse({
+        id: randomUUID(), rawQuery: request.query, revision: request.inputRevision,
+        topic: field(request.query.slice(0, 160)), outcomes: field([]), level: null, language: null,
+        searchTerms: [], uncertainties: ['AI interpretation was unavailable. These results use database matching against your original query.'],
+      });
+    }
     let candidates: ExistingCohortReference[];
     try {
       candidates = (await this.repository.findCandidates(intent, signal)).map(candidate => existingCohortSchema.parse(candidate));
@@ -34,9 +49,11 @@ export class RecommendationService {
       signal.throwIfAborted();
       throw creationFailure('DATA_UNAVAILABLE', 'Cohorts could not be loaded. Try again.');
     }
-    let mode: RecommendationResult['mode'] = 'ai';
     let matches: { candidateKey: string; reason: string }[] = [];
-    if (candidates.length) {
+    if (candidates.length && mode === 'database_fallback') {
+      matches = candidates.slice(0, 5).map(candidate => ({ candidateKey: candidate.cohortId,
+        reason: 'Found by database search against your original query. AI interpretation is currently unavailable.' }));
+    } else if (candidates.length) {
       try {
         matches = validateRanking(await this.ai.rank(intent, candidates, signal), candidates).matches;
       } catch (error) {

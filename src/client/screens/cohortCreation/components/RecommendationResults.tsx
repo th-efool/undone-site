@@ -13,7 +13,7 @@ export function RecommendationResults({ result, onCreateOwn }: { result: Recomme
       <p className={styles.subtitle}>{result.items.length ? 'I found a few ways you could jump in.' : 'No matching public cohorts yet. Start a new learning journey.'}</p>
       {!!result.items.length && <span className={styles.annotation} aria-hidden="true">Real people.<br />Real progress.<br />Join a community<br />that’s learning.</span>}
     </header>
-    {result.mode === 'database_fallback' && <p role="status" className={styles.status}>Showing database search results. AI ranking is unavailable.</p>}
+    {result.mode === 'database_fallback' && <p role="status" className={styles.status}>Showing database search results. AI assistance is unavailable.</p>}
     {!result.items.length && <div className={styles.empty}><Compass size={32} strokeWidth={1.5} /><h2>A new path starts here.</h2>
       <p>No matching public cohorts were found. You can start your own from this intent.</p></div>}
     <div className={styles.cards}>
