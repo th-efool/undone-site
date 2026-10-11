@@ -15,12 +15,21 @@ function fixture() {
     title: { value: 'Title', origin: 'ai', acceptedRevision: 1 }, description: { value: 'Description', origin: 'ai', acceptedRevision: 1 }, seasons: [], warnings: [] }, conversation: { entries: [], nextBefore: null } };
   vi.mocked(loadReview).mockResolvedValue(response);
   const calls: string[] = [];
-  const creation = { snapshot, saved: true, editReview: vi.fn(async () => { calls.push('metadata'); return true; }),
+  const creation = { snapshot, saved: true, reload: vi.fn(async () => true), editReview: vi.fn(async () => { calls.push('metadata'); return true; }),
     editLesson: vi.fn(async (id: string) => { calls.push(id); return true; }), finalize: vi.fn(async () => true), requestRefinement: vi.fn(async () => true),
     applyRefinement: vi.fn(async () => true), discardRefinement: vi.fn(async () => true), backToMaterials: vi.fn(async () => true) } as unknown as ReturnType<typeof useCreation>;
   return { creation, response, calls };
 }
 describe('review orchestration', () => {
+  it('reloads canonical state without discarding local review changes', async () => {
+    const { creation } = fixture(); const { result } = renderHook(() => useReviewWorkspace(creation));
+    await waitFor(() => expect(result.current.preview).not.toBeNull());
+    act(() => { result.current.changeMetadata({ title: 'Unsubmitted title' }); result.current.changeLesson('lesson-a', { title: 'My lesson', objectives: 'My objective' }); });
+    await act(async () => { await result.current.reload(); });
+    expect(creation.reload).toHaveBeenCalledOnce();
+    expect(result.current.fields.title).toBe('Unsubmitted title'); expect(result.current.lessonEdits['lesson-a'].title).toBe('My lesson');
+    expect(result.current.canFinalize).toBe(false);
+  });
   it('saves metadata then lessons in order, stopping on failure without losing remaining edits', async () => {
     const { creation, calls } = fixture(); vi.mocked(creation.editLesson).mockImplementation(async id => { calls.push(id); return false; });
     const { result } = renderHook(() => useReviewWorkspace(creation));
@@ -64,7 +73,7 @@ describe('review orchestration', () => {
     rerender({ value: { ...creation, snapshot: { ...creation.snapshot, revision: 2 } } });
     await waitFor(() => expect(result.current.error).toContain('saved review changed'));
     expect(signal.aborted).toBe(true); expect(result.current.preview).toBeNull(); expect(result.current.canFinalize).toBe(false);
-    vi.mocked(loadReview).mockResolvedValue({ ...response, revision: 2 }); act(() => result.current.reload());
+    vi.mocked(loadReview).mockResolvedValue({ ...response, revision: 2 }); await act(async () => { await result.current.reload(); });
     await waitFor(() => expect(result.current.canFinalize).toBe(true));
   });
   it('does not apply proposals over local edits or a different edit revision', async () => {
@@ -93,6 +102,6 @@ describe('review orchestration', () => {
     const { creation, response } = fixture(); vi.mocked(loadReview).mockRejectedValueOnce(new Error('Owned content unavailable'));
     const { result } = renderHook(() => useReviewWorkspace(creation)); await waitFor(() => expect(result.current.error).toContain('unavailable'));
     expect(result.current.canFinalize).toBe(false); vi.mocked(loadReview).mockResolvedValue(response);
-    act(() => result.current.reload()); await waitFor(() => expect(result.current.canFinalize).toBe(true));
+    await act(async () => { await result.current.reload(); }); await waitFor(() => expect(result.current.canFinalize).toBe(true));
   });
 });

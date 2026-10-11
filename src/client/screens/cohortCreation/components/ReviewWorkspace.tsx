@@ -26,7 +26,7 @@ export function ReviewWorkspace({ creation }: { creation: ReturnType<typeof useC
         <div className={styles.toolbarActions}><button disabled={model.disabled || !model.dirty} onClick={() => void model.saveAll()}><Save size={17} aria-hidden="true" />Save draft</button>
           <button className={styles.primary} aria-label="Publish publicly" disabled={!model.canFinalize} onClick={() => void model.finalize('public_publish')}>Publish cohort<ArrowRight size={21} aria-hidden="true" /></button></div>
       </header>
-      {creation.message && <p role="alert" className={styles.alert}>{creation.message}</p>}
+        {creation.message && <p role="alert" className={styles.alert}>{creation.message} <button onClick={() => void model.reload()}>Reload saved draft</button></p>}
       {model.actionError && <p role="alert" className={styles.alert}>{model.actionError}</p>}
       {model.error && <p role="alert" className={styles.alert}>{model.error} <button onClick={model.reload}>Reload review</button></p>}
       {model.snapshot.error && <p role="alert" className={styles.alert}>{model.snapshot.error.message}</p>}

@@ -1,25 +1,24 @@
-import { apiUrl } from '@/src/shared/api/apiUrl';
 import { creationSnapshotSchema } from '@/src/shared/cohort-creation/contracts';
 import { retainedObjectRefSchema } from '@/src/shared/cohort-creation/materials';
-import { creationSignInUrl } from '@/src/shared/auth/returnTo';
+import { creationJson, creationErrorMessage, CreationTransportError } from './creationTransport';
 import { DraftApiError } from './draftApi';
 
 export const materialApi = {
   async upload(draftId: string, bytes: Blob, revision: number, filename: string, signal?: AbortSignal, materialId?: string) {
-    const response = await fetch(apiUrl(`/api/cohort-creation/drafts/${draftId}/uploads`), {
+    let result;
+    try { result = await creationJson(`/api/cohort-creation/drafts/${draftId}/uploads`, {
       method: 'POST', credentials: 'include', cache: 'no-store', signal, body: bytes,
       headers: { 'Content-Type': bytes.type, 'X-Creation-Revision': String(revision), 'X-Creation-Filename': encodeURIComponent(filename),
         ...(materialId ? { 'X-Creation-Material': materialId } : {}) },
-    });
-    if (response.status === 401) {
-      window.location.assign(creationSignInUrl(window.location.pathname + window.location.search));
-      throw new DraftApiError('Sign in to resume your draft.', 401);
+    }); } catch (error) {
+      if (error instanceof CreationTransportError) throw new DraftApiError(error.message, error.status, undefined, error.retryAfterSeconds);
+      throw error;
     }
-    const body = await response.json();
+    const { response, body, retryAfterSeconds } = result;
     if (!response.ok) {
-      const current = creationSnapshotSchema.safeParse(body.current);
-      throw new DraftApiError(typeof body.message === 'string' ? body.message : 'Upload failed. Retry your material.', response.status,
-        current.success ? current.data : undefined);
+      const current = creationSnapshotSchema.safeParse(body && typeof body === 'object' && 'current' in body ? body.current : undefined);
+      throw new DraftApiError(creationErrorMessage(body, 'Upload failed. Retry your material.'), response.status,
+        current.success ? current.data : undefined, retryAfterSeconds);
     }
     return retainedObjectRefSchema.parse(body);
   },

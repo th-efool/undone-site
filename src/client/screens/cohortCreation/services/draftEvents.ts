@@ -82,6 +82,7 @@ type ObserverOptions = Omit<StreamOptions, 'after'> & {
   after?: number;
   /** Reload canonical state on transport/gap failure; return its coherent cursor if available. */
   reload: () => Promise<number | void>;
+  onTerminalError?: (error: DraftEventStreamError) => void;
   onConnectionChange?: (state: 'connecting' | 'connected' | 'reconnecting') => void;
 };
 
@@ -120,8 +121,12 @@ export async function observeDraftEvents(options: ObserverOptions): Promise<void
         },
       });
       failures = 0;
-    } catch {
+    } catch (error) {
       if (options.signal.aborted) break;
+      if (error instanceof DraftEventStreamError && error.kind === 'http' && [400, 401, 403, 404, 410].includes(error.status ?? 0)) {
+        options.onTerminalError?.(error);
+        break;
+      }
       failures++;
       options.onConnectionChange?.('reconnecting');
       try {

@@ -66,7 +66,7 @@ export function useReviewWorkspace(creation: ReturnType<typeof useCreation>) {
     changeLesson: (id: string, value: LessonFields) => setLessonEdits(previous => ({ ...previous, [id]: value })),
     unmatchedLocalIds: Object.keys(lessonEdits).filter(id => !review.lessonIds.includes(id)),
     discardLocalLesson: (id: string) => setLessonEdits(previous => { const next = { ...previous }; delete next[id]; return next; }),
-    reload: () => setReload(value => value + 1),
+    reload: async () => { if (await creation.reload()) setReload(value => value + 1); },
     saveMetadata: () => act(saveMetadata), saveLesson: (id: string) => act(() => saveLesson(id)),
     saveAll: () => act(async () => { if (!await saveMetadata()) return false; for (const id of Object.keys(lessonEdits)) if (!await saveLesson(id)) return false; return true; }),
     canFinalize, canRefine: canFinalize,

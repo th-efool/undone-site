@@ -49,6 +49,16 @@ describe('Ready private activation commands', () => {
     });
     await act(async () => { expect(await hook.result.current.activateReady()).toBe(false); });
     expect(api.command).toHaveBeenCalledTimes(2); expect(hook.result.current.snapshot.stage).toBe('review');
-    expect(hook.result.current.snapshot.revision).toBe(2); expect(hook.result.current.saved).toBe(false);
+    expect(hook.result.current.snapshot.revision).toBe(2); expect(hook.result.current.saved).toBe(true);
+    expect(hook.result.current.message).toBe('Draft changed');
+  });
+  it('recovers after uncertain preparation without repeating activation commands', async () => {
+    const hook = renderHook(() => useCreation(draftId, '', true)); await waitFor(() => expect(hook.result.current.hydrated).toBe(true));
+    api.command.mockRejectedValueOnce(new DraftApiError('Connection interrupted', 0));
+    await act(async () => { expect(await hook.result.current.activateReady()).toBe(false); });
+    expect(hook.result.current.saved).toBe(false);
+    await act(async () => { expect(await hook.result.current.reload()).toBe(true); });
+    expect(hook.result.current.saved).toBe(true); expect(hook.result.current.message).toBeNull();
+    expect(api.command).toHaveBeenCalledOnce(); expect(hook.result.current.snapshot).toEqual(state);
   });
 });

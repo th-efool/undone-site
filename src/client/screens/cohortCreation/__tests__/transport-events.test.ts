@@ -89,6 +89,13 @@ describe('draft NDJSON transport', () => {
 });
 
 describe('draft event observation recovery', () => {
+  it.each([400, 401, 403, 404, 410])('stops reconnecting terminal HTTP %s', async status => {
+    const fetcher = vi.fn(async () => new Response('', { status })); vi.stubGlobal('fetch', fetcher);
+    const reload = vi.fn(); const onTerminalError = vi.fn();
+    await observeDraftEvents({ draftId, signal: new AbortController().signal, reload, onTerminalError, onEvent: vi.fn() });
+    expect(fetcher).toHaveBeenCalledOnce(); expect(reload).not.toHaveBeenCalled();
+    expect(onTerminalError).toHaveBeenCalledWith(expect.objectContaining({ status }));
+  });
   it('reconnects healthy finite streams without falling back or inventing a sequence gap', async () => {
     vi.useFakeTimers();
     const controller = new AbortController();

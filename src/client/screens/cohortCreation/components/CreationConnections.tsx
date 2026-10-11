@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useState, type MouseEvent } from 'react';
+import { creationJson } from '../services/creationTransport';
 import { creationConnectionStatusSchema, creationConnectorSchema, type CreationConnectionStatus, type CreationConnector } from '@/src/shared/cohort-creation/connectors';
 
 export function CreationConnections({ draftId, disabled = false, navigate = url => window.location.assign(url) }: {
@@ -14,10 +15,9 @@ export function CreationConnections({ draftId, disabled = false, navigate = url 
     running.current = true; setPending(true); setMessage('');
     try {
       const endpoint = `/api/cohort-creation/drafts/${encodeURIComponent(draftId)}/connectors`;
-      const response = await fetch(endpoint, { method, credentials: 'same-origin', cache: 'no-store',
-        signal: AbortSignal.timeout(30_000), ...(plugin ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plugin }) } : {}) });
+      const { response, body: result } = await creationJson(endpoint, { method,
+        ...(plugin ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plugin }) } : {}) });
       if (!response.ok) throw new Error(response.status === 401 ? 'Sign in again to manage connections.' : 'Connections are unavailable. Try again.');
-      const result: unknown = await response.json();
       if (method === 'POST') {
         if (!result || typeof result !== 'object' || !('connectUrl' in result) || typeof result.connectUrl !== 'string') throw new Error('Invalid connection response.');
         const url = new URL(result.connectUrl);

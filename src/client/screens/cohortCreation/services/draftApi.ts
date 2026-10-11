@@ -1,21 +1,22 @@
-import { apiUrl } from '@/src/shared/api/apiUrl';
 import { creationSnapshotSchema, type CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 import type { CreationCommand } from '@/src/shared/cohort-creation/flow';
-import { creationSignInUrl } from '@/src/shared/auth/returnTo';
+import { creationJson, creationErrorMessage, CreationTransportError } from './creationTransport';
 
 export class DraftApiError extends Error {
-  constructor(message: string, readonly status: number, readonly current?: CreationSnapshot) { super(message); }
+  constructor(message: string, readonly status: number, readonly current?: CreationSnapshot, readonly retryAfterSeconds?: number) { super(message); }
 }
 async function request(path: string, init?: RequestInit): Promise<CreationSnapshot> {
-  const response = await fetch(apiUrl(path), { ...init, credentials: 'include', cache: 'no-store', headers: { 'Content-Type': 'application/json' } });
-  if (response.status === 401) {
-    window.location.assign(creationSignInUrl(window.location.pathname + window.location.search));
-    throw new DraftApiError('Sign in to resume your draft.', 401);
+  let result;
+  try { result = await creationJson(path, { ...init, headers: { 'Content-Type': 'application/json' } }); }
+  catch (error) {
+    if (error instanceof CreationTransportError) throw new DraftApiError(error.message, error.status, undefined, error.retryAfterSeconds);
+    throw error;
   }
-  const body = await response.json();
+  const { response, body, retryAfterSeconds } = result;
   if (!response.ok) {
-    const current = creationSnapshotSchema.safeParse(body.current);
-    throw new DraftApiError(response.status === 409 ? 'Draft changed in another request. Your edit was not saved; review the current draft before retrying.' : 'Draft could not be saved or loaded. Try again.', response.status, current.success ? current.data : undefined);
+    const current = creationSnapshotSchema.safeParse(body && typeof body === 'object' && 'current' in body ? body.current : undefined);
+    const message = response.status === 409 ? 'Draft changed in another request. Your edit was not saved; review the current draft before retrying.' : creationErrorMessage(body, 'Draft could not be saved or loaded. Try again.');
+    throw new DraftApiError(`${message}${retryAfterSeconds === undefined ? '' : ` Try again in ${retryAfterSeconds} seconds.`}`, response.status, current.success ? current.data : undefined, retryAfterSeconds);
   }
   return creationSnapshotSchema.parse(body);
 }

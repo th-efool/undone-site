@@ -32,9 +32,13 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     render({ snapshot, hydrated: true, saved, message });
   }, []);
   const failure = useCallback((error: unknown) => {
-    const restored = error instanceof DraftApiError && error.current?.draftId === draftId && error.current.revision >= current.current.revision ? error.current : current.current;
-    display(restored, false, error instanceof DraftApiError ? error.message : 'Draft storage is unavailable. Retry or reload this page.');
+    const canonical = error instanceof DraftApiError && error.current?.draftId === draftId && error.current.revision >= current.current.revision ? error.current : null;
+    display(canonical ?? current.current, Boolean(canonical), error instanceof DraftApiError ? error.message : 'Draft storage is unavailable. Retry or reload this page.');
   }, [display, draftId]);
+  const reload = useCallback(async () => {
+    try { display(await draftApi.load(draftId)); return true; }
+    catch (error) { failure(error); return false; }
+  }, [display, draftId, failure]);
   const send = useCallback(async (command: CreationCommand, signal?: AbortSignal, baseRevision?: number) => {
     const base = current.current;
     try {
@@ -85,9 +89,13 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
       onConnectionChange: state => {
         if (!observer.signal.aborted && state === 'reconnecting') render({ snapshot: current.current, hydrated: true, saved: true, message: 'Connection interrupted. Your work continues on the server; reconnecting…' });
       },
+      onTerminalError: error => {
+        if (error.status === 401) { void reload(); return; }
+        failure(new DraftApiError('This draft is no longer available to your account. Return home or sign in with its owner account.', error.status ?? 404));
+      },
     }).catch(() => { /* Aborted observers never mutate durable job state. */ });
     return () => { observer.abort(); };
-  }, [draftId, view.hydrated, view.snapshot.status, display]);
+  }, [draftId, view.hydrated, view.snapshot.status, display, failure, reload]);
   const edit = async (command: CreationCommand) => {
     if (editPending.current) return false;
     editPending.current = true;
@@ -145,7 +153,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     } catch (error) { failure(error); return false; }
     finally { editPending.current = false; setActivatingReady(false); setMaterialPending(false); }
   };
-  return { ...view, uploading, materialPending, activatingReady, activateReady, uploadText, cancelUpload: () => uploadController.current?.abort(),
+  return { ...view, reload, uploading, materialPending, activatingReady, activateReady, uploadText, cancelUpload: () => uploadController.current?.abort(),
     finalize: (mode: 'private_activation' | 'public_publish') => edit({ type: 'finalize_creation', mode, requestId: crypto.randomUUID() }),
     openReview: () => edit({ type: 'open_review' }),
     editReview: (patch: z.infer<typeof reviewPatchSchema>) => edit({ type: 'edit_review', patch }),

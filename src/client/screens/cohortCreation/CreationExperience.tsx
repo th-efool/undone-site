@@ -21,6 +21,7 @@ import styles from './CreationExperience.module.css';
 export function CreationExperience({ draftId, initialQuery = '', resume = false }: { draftId: string; initialQuery?: string; resume?: boolean }) {
   const creation = useCreation(draftId, initialQuery, resume);
   const { snapshot } = creation;
+  const recovery = creation.message && <p role="alert">{creation.message} <button type="button" onClick={() => void creation.reload()}>Reload saved draft</button></p>;
   const router = useRouter();
   const feedRequested = useRef(false);
   useEffect(() => {
@@ -51,7 +52,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
         { label: 'I want something more practical', action: () => void creation.runQuery(`${snapshot.query}\nI want practical, hands-on learning.`) },
         { label: 'I’ll create my own instead', action: () => void createOwn() },
       ] : []}>
-      {creation.message && <p role="alert">{creation.message}</p>}
+      {recovery}
       {snapshot.result ? <RecommendationResults result={snapshot.result} onCreateOwn={createOwn} /> : <RecommendationPending creation={creation} />}
     </CreationShell>;
   }
@@ -72,7 +73,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
         else if (/material|youtube|playlist|pdf|article|github|notion|video|file/i.test(message)) await creation.chooseStartingPoint('have_material');
         else throw new Error('Choose a starting point below, or tell me whether you have material, want resources, or just have a goal.');
       }}>
-      {creation.message && <p role="alert">{creation.message}</p>}
+      {recovery}
       <StartingWorkspace creation={creation} draftId={draftId} />
     </CreationShell>;
   }
@@ -88,7 +89,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
         if ((analyzing ? /analys|score|dimension|reason/i : chunking ? /chunk|piece|boundar/i : /concept|idea|summary|summaries/i).test(message)) document.getElementById(target)?.scrollIntoView({ behavior: 'auto', block: 'start' });
         else throw new Error('Use the saved evidence panel to inspect this stage, or the processing controls to cancel, restart or continue.');
       }} suggestions={[{ label: analyzing ? 'Show the saved analysis' : chunking ? 'Show the accepted chunks' : 'Show the extracted concepts', action: () => document.getElementById(target)?.scrollIntoView({ behavior: 'auto', block: 'start' }) }]}>
-      {creation.message && <p role="alert">{creation.message}</p>}
+      {recovery}
       {analyzing ? <AnalysisProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
         onBuild={creation.buildCurriculum} onStart={creation.analyzeMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : chunking ? <ChunkingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
         onAnalyze={creation.analyzeMaterial} onStart={creation.chunkMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> :
@@ -106,7 +107,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
         if (/source|material|lesson|progress|ready/i.test(message)) document.getElementById('creation-ready-workspace')?.scrollIntoView({ behavior: 'auto', block: 'start' });
         else throw new Error(ready ? 'Use Review cohort to edit your learning experience, or Go to my feed to activate it privately.' : 'Use the processing controls to cancel, restart or inspect saved progress.');
       }} suggestions={[{ label: ready ? 'Show my learning experience' : 'Show building progress', action: () => document.getElementById('creation-ready-workspace')?.scrollIntoView({ behavior: 'auto', block: 'start' }) }]}>
-      {creation.message && <p role="alert">{creation.message}</p>}
+      {recovery}
       <div id="creation-ready-workspace">{ready ? <ReadyWorkspace snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
         onActivate={activateReady} onReview={creation.openReview} onBack={creation.backToMaterials} /> :
         <BuildingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending} onStart={creation.buildCurriculum} onCancel={creation.cancel} onBack={creation.backToMaterials} />}</div>
@@ -117,7 +118,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
   return <main id="main-content" className={styles.page}>
     <header className={styles.header}><Link href="/">Undone</Link><span>Cohort creation</span></header>
     <p className={styles.notice}>{creation.saved ? 'Your draft is saved to your account.' : 'Waiting for server confirmation.'}</p>
-    {creation.message && <p role="alert">{creation.message}</p>}
+      {recovery}
     {!creation.hydrated ? <p role="status">Opening workspace…</p> : <div className={styles.workspace}>
       <aside className={styles.intent} aria-label="Learning intent">
         <h1>What do you want to learn?</h1>

@@ -1,5 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
+import { apiUrl } from '@/src/shared/api/apiUrl';
 import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 import type { DiscoveryCandidate } from '@/src/shared/cohort-creation/discovery';
 import type { GithubSelection } from '@/src/shared/cohort-creation/github';
@@ -41,7 +42,7 @@ export function DiscoveryMaterials({ snapshot, disabled, onFind, onAcquire, onGi
     {snapshot.error && !snapshot.materials.some(source => source.status === 'failed') && <p role="alert">{snapshot.error.message}</p>}
     {error && <p role="alert">{error}</p>}
     {discovery?.checkpoint && <iframe title="Google Search attribution" sandbox="allow-popups" referrerPolicy="no-referrer"
-      src={`/api/cohort-creation/drafts/${snapshot.draftId}/discovery-attribution?search=${discovery.checkpoint.searchArtifact.id}`} />}
+      src={apiUrl(`/api/cohort-creation/drafts/${snapshot.draftId}/discovery-attribution?search=${discovery.checkpoint.searchArtifact.id}`)} />}
     {result && <>
       {!result.candidates.length && <p>No usable public sources were observed. Search again or choose “I already have material” to provide your own.</p>}
       <ul>{result.candidates.map((candidate, index) => <li key={candidate.key}>

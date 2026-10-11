@@ -1,6 +1,7 @@
 import { understandingPreviewSchema } from '@/src/shared/cohort-creation/processing';
+import { creationJson, CreationTransportError, creationErrorMessage } from './creationTransport';
 export async function loadUnderstandingPreview(draftId: string, signal: AbortSignal) {
-  const response = await fetch(`/api/cohort-creation/drafts/${encodeURIComponent(draftId)}/understanding`, { cache: 'no-store', signal });
-  if (!response.ok) throw new Error(response.status === 401 ? 'Sign in again to read your saved concepts.' : 'Saved concepts could not be loaded. Retry.');
-  return understandingPreviewSchema.parse(await response.json());
+  const { response, body, retryAfterSeconds } = await creationJson(`/api/cohort-creation/drafts/${encodeURIComponent(draftId)}/understanding`, { signal });
+  if (!response.ok) throw new CreationTransportError(creationErrorMessage(body, 'Saved concepts could not be loaded. Retry.'), response.status, retryAfterSeconds);
+  return understandingPreviewSchema.parse(body);
 }

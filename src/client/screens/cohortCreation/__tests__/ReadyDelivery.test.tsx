@@ -28,6 +28,7 @@ describe('Ready receipt-gated delivery', () => {
     render(<CreationExperience draftId={draftId} resume />);
     fireEvent.click(await screen.findByRole('button', { name: 'Go to my feed' }));
     await screen.findByRole('heading', { name: 'Finalizing your cohort' }); expect(push).not.toHaveBeenCalled();
+    await waitFor(() => expect(observer).toHaveBeenCalled());
     const receipt = { requestId: state.activeRequestId!, mode: 'private_activation' as const, snapshotHash: 'a'.repeat(64), cohortId: draftId, committedAt: new Date().toISOString() };
     state = creationSnapshotSchema.parse({ ...state, revision: state.revision + 1, stage: 'published', status: 'succeeded', activeRequestId: null,
       publication: { ...state.publication!, cohortId: draftId, snapshotHash: receipt.snapshotHash, receipt } });

@@ -14,7 +14,7 @@ describe('source connections panel', () => {
     expect(fetch).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Show connections' }));
     await screen.findByText('GitHub: Connected');
-    expect(fetch).toHaveBeenCalledWith(`/api/cohort-creation/drafts/${draftId}/connectors`, expect.objectContaining({ method: 'GET', credentials: 'same-origin' }));
+    expect(fetch).toHaveBeenCalledWith(`/api/cohort-creation/drafts/${draftId}/connectors`, expect.objectContaining({ method: 'GET', credentials: 'include' }));
   });
   it('connects only the selected provider and follows the server-validated Hub URL', async () => {
     const fetch = vi.fn().mockResolvedValueOnce(json({ github: 'not_connected', notion: 'not_connected' }))
