@@ -1,5 +1,5 @@
 /**
- * Render Workflows Pipeline - Cohort & Chunk Vectorization (Sponsor Track)
+ * Shared cohort and chunk vectorization pipeline.
  * Implements a durable fan-out / fan-in map-reduce workflow with exponential retry logic.
  */
 
