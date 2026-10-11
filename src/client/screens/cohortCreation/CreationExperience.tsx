@@ -113,7 +113,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
         <BuildingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending} onStart={creation.buildCurriculum} onCancel={creation.cancel} onBack={creation.backToMaterials} />}</div>
     </CreationShell>;
   }
-  if (creation.hydrated && snapshot.stage === 'review') return <ReviewWorkspace creation={creation} />;
+  if (creation.hydrated && snapshot.stage === 'review') return <ReviewWorkspace key={draftId} creation={creation} />;
   if (creation.hydrated && (snapshot.stage === 'published' || snapshot.stage === 'finalizing')) return <PublicationStatus creation={creation} />;
   return <main id="main-content" className={styles.page}>
     <header className={styles.header}><Link href="/">Undone</Link><span>Cohort creation</span></header>
@@ -130,7 +130,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
         </> : <p>Your query will become a structured learning intent. You remain in control of what happens next.</p>}
       </aside>
       <div>
-        {snapshot.stage === 'published' || snapshot.stage === 'finalizing' ? <PublicationStatus creation={creation} /> : snapshot.stage === 'review' ? <ReviewWorkspace creation={creation} /> : snapshot.stage === 'ready' ? <section aria-label="Curriculum ready"><h2>Curriculum ready</h2><p>Lessons and provenance are saved.</p><button disabled={!creation.saved || creation.materialPending} onClick={() => void creation.openReview()}>Review cohort</button><button disabled={!creation.saved || creation.materialPending} onClick={() => void creation.backToMaterials()}>Back to material</button></section> : snapshot.stage === 'processing' && snapshot.processing?.phase === 'building' ? <BuildingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
+        {snapshot.stage === 'published' || snapshot.stage === 'finalizing' ? <PublicationStatus creation={creation} /> : snapshot.stage === 'review' ? <ReviewWorkspace key={draftId} creation={creation} /> : snapshot.stage === 'ready' ? <section aria-label="Curriculum ready"><h2>Curriculum ready</h2><p>Lessons and provenance are saved.</p><button disabled={!creation.saved || creation.materialPending} onClick={() => void creation.openReview()}>Review cohort</button><button disabled={!creation.saved || creation.materialPending} onClick={() => void creation.backToMaterials()}>Back to material</button></section> : snapshot.stage === 'processing' && snapshot.processing?.phase === 'building' ? <BuildingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
           onStart={creation.buildCurriculum} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'processing' && snapshot.processing?.phase === 'analysis' ? <AnalysisProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
           onBuild={creation.buildCurriculum} onStart={creation.analyzeMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'processing' && snapshot.processing?.phase === 'chunking' ? <ChunkingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
           onAnalyze={creation.analyzeMaterial} onStart={creation.chunkMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} /> : snapshot.stage === 'processing' ? <UnderstandingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}

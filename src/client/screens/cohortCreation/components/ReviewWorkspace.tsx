@@ -29,6 +29,13 @@ export function ReviewWorkspace({ creation }: { creation: ReturnType<typeof useC
         {creation.queueNotice && <p role="status">{creation.queueNotice}</p>}
         {creation.message && <p role="alert" className={styles.alert}>{creation.message} <button onClick={() => void model.reload()}>Reload saved draft</button></p>}
       {model.actionError && <p role="alert" className={styles.alert}>{model.actionError}</p>}
+      {model.recoveryMessage && <p role="status">{model.recoveryMessage}</p>}
+      {model.recovery && <section className={styles.alert} aria-label="Recover unsaved review edits"><h3>Earlier unsaved edits found in this tab</h3>
+        <p>The saved curriculum or review changed. Restore your earlier copy for comparison, or discard it. Nothing is applied to your account automatically.</p>
+        <button disabled={model.running || model.pending} onClick={model.restoreRecovery}>Restore earlier unsaved edits</button>
+        <button disabled={model.running || model.pending} onClick={model.discardRecovery}>Discard earlier tab copy</button></section>}
+      {model.dirty && <p role="status">{model.recoveryAvailable ? 'Unsaved edits are kept in this tab for reload recovery. Save to your account before closing the tab.' : 'Tab backup is unavailable. Save to your account before leaving this page.'}
+        <button disabled={model.disabled} onClick={model.discardLocalEdits}>Discard all unsaved edits</button></p>}
       {model.error && <p role="alert" className={styles.alert}>{model.error} <button onClick={model.reload}>Reload review</button></p>}
       {model.snapshot.error && <p role="alert" className={styles.alert}>{model.snapshot.error.message}</p>}
       {!!model.review.orphanedLessonIds.length && <div role="alert" className={styles.alert}><p>Some saved lesson edits no longer match this build. They remain saved until you explicitly discard them.</p>

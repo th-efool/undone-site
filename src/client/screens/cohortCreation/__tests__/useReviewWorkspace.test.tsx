@@ -5,9 +5,10 @@ import { readyFixture, readyReview } from './ready.fixture';
 import { useReviewWorkspace } from '../hooks/useReviewWorkspace';
 import type { useCreation } from '../hooks/useCreation';
 import { loadReview, type ReviewResponse } from '../services/reviewApi';
+import { readReviewRecovery, writeReviewRecovery } from '../services/reviewRecovery';
 vi.mock('../services/reviewApi', () => ({ loadReview: vi.fn() }));
 afterEach(cleanup);
-beforeEach(() => vi.mocked(loadReview).mockReset());
+beforeEach(() => { vi.mocked(loadReview).mockReset(); window.sessionStorage.clear(); });
 
 function fixture() {
   const snapshot = { ...readyFixture(), stage: 'review' as const, review: { ...readyReview, lessonIds: ['lesson-a', 'lesson-b'] } };
@@ -21,6 +22,47 @@ function fixture() {
   return { creation, response, calls };
 }
 describe('review orchestration', () => {
+  it('restores tab edits after an owned reload, preserves partial saves and clears confirmed/discarded copies', async () => {
+    const { creation } = fixture(); const first = renderHook(() => useReviewWorkspace(creation));
+    await waitFor(() => expect(first.result.current.canFinalize).toBe(true));
+    act(() => { first.result.current.changeMetadata({ title: 'Recovered title' }); first.result.current.changeLesson('lesson-a', { title: 'Unsent lesson', objectives: 'My objective' }); });
+    expect(readReviewRecovery(creation.snapshot.draftId, window.sessionStorage)?.metadata?.title).toBe('Recovered title'); first.unmount();
+    const second = renderHook(() => useReviewWorkspace(creation)); await waitFor(() => expect(second.result.current.fields.title).toBe('Recovered title'));
+    expect(second.result.current.lessonEdits['lesson-a'].title).toBe('Unsent lesson'); expect(second.result.current.canFinalize).toBe(false);
+    vi.mocked(creation.editLesson).mockResolvedValue(false);
+    await act(async () => { expect(await second.result.current.saveAll()).toBe(false); });
+    expect(readReviewRecovery(creation.snapshot.draftId, window.sessionStorage)).toMatchObject({ metadata: null, lessonEdits: { 'lesson-a': { title: 'Unsent lesson' } } });
+    act(() => second.result.current.discardLocalEdits()); expect(readReviewRecovery(creation.snapshot.draftId, window.sessionStorage)).toBeNull();
+    act(() => second.result.current.changeMetadata({ title: 'Confirmed' })); await act(async () => { expect(await second.result.current.saveAll()).toBe(true); });
+    expect(readReviewRecovery(creation.snapshot.draftId, window.sessionStorage)).toBeNull();
+  });
+  it('does not read tab copy before an owned review succeeds and requires explicit recovery for stale builds', async () => {
+    const { creation, response } = fixture();
+    writeReviewRecovery({ schemaVersion: 1, draftId: creation.snapshot.draftId, buildFingerprint: 'e'.repeat(64), editRevision: 77, savedAt: Date.now(),
+      metadata: { title: 'Earlier private edit', description: 'Local', visibility: 'PRIVATE', chatEnabled: false, eventsEnabled: false },
+      lessonEdits: { old: { title: 'Earlier lesson', objectives: 'Earlier objective' } } }, window.sessionStorage);
+    const read = vi.spyOn(Storage.prototype, 'getItem'); vi.mocked(loadReview).mockRejectedValueOnce(new Error('Not authorized'));
+    const { result } = renderHook(() => useReviewWorkspace(creation)); await waitFor(() => expect(result.current.error).toContain('Not authorized'));
+    expect(read).not.toHaveBeenCalled(); expect(result.current.fields.title).not.toBe('Earlier private edit'); expect(result.current.canFinalize).toBe(false);
+    vi.mocked(loadReview).mockResolvedValue(response); await act(async () => { await result.current.reload(); });
+    await waitFor(() => expect(result.current.recovery).not.toBeNull()); expect(result.current.canFinalize).toBe(false);
+    await act(async () => { expect(await result.current.saveAll()).toBe(false); }); expect(creation.editReview).not.toHaveBeenCalled();
+    act(() => result.current.restoreRecovery()); expect(result.current.fields.title).toBe('Earlier private edit'); expect(result.current.unmatchedLocalIds).toEqual(['old']);
+    read.mockRestore();
+  });
+  it('warns before losing unsaved copy, then removes the guard after discard', async () => {
+    const { creation } = fixture(); const { result } = renderHook(() => useReviewWorkspace(creation)); await waitFor(() => expect(result.current.canFinalize).toBe(true));
+    act(() => result.current.changeMetadata({ title: 'Unsent' }));
+    const dirtyEvent = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(dirtyEvent); expect(dirtyEvent.defaultPrevented).toBe(true);
+    act(() => result.current.discardLocalEdits()); const cleanEvent = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(cleanEvent);
+    expect(cleanEvent.defaultPrevented).toBe(false);
+  });
+  it('keeps edits usable when session storage is unavailable', async () => {
+    const { creation } = fixture(); const storage = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('denied'); });
+    const { result } = renderHook(() => useReviewWorkspace(creation)); await waitFor(() => expect(result.current.canFinalize).toBe(true));
+    expect(result.current.recoveryMessage).toContain('unavailable'); act(() => result.current.changeMetadata({ title: 'Still here' }));
+    expect(result.current.fields.title).toBe('Still here'); storage.mockRestore();
+  });
   it('reloads canonical state without discarding local review changes', async () => {
     const { creation } = fixture(); const { result } = renderHook(() => useReviewWorkspace(creation));
     await waitFor(() => expect(result.current.preview).not.toBeNull());

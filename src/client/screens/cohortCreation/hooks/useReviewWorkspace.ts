@@ -5,6 +5,7 @@ import type { GeneratedCurriculum } from '@/src/shared/cohort-creation/artifacts
 import type { ReviewWorkspace } from '@/src/shared/cohort-creation/review';
 import { lessonEditSchema, reviewPatchSchema } from '@/src/shared/cohort-creation/review-flow';
 import { loadReview, type ReviewResponse } from '../services/reviewApi';
+import { readReviewRecovery, writeReviewRecovery, removeReviewRecovery, type ReviewRecovery } from '../services/reviewRecovery';
 
 export type ReviewFields = Pick<ReviewWorkspace, 'title' | 'description' | 'visibility' | 'chatEnabled' | 'eventsEnabled'>;
 export type LessonFields = { title: string; objectives: string };
@@ -19,27 +20,63 @@ export function useReviewWorkspace(creation: ReturnType<typeof useCreation>) {
   const [readError, setReadError] = useState<{ revision: number; message: string } | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [reload, setReload] = useState(0); const [pending, setPending] = useState(false);
+  const [recoveryReady, setRecoveryReady] = useState<string | null>(null);
+  const [recovery, setRecovery] = useState<ReviewRecovery | null>(null);
+  const [recoveryMessage, setRecoveryMessage] = useState<string | null>(null);
+  const [recoveryAvailable, setRecoveryAvailable] = useState(true);
   const lock = useRef(false); const pageController = useRef<AbortController | null>(null);
-  const currentRevision = useRef(snapshot.revision);
+  const currentRevision = useRef(snapshot.revision); const initializedRecovery = useRef<string | null>(null);
   useEffect(() => {
     currentRevision.current = snapshot.revision;
     const controller = new AbortController();
     void loadReview(snapshot.draftId, controller.signal).then(value => {
       if (!controller.signal.aborted) {
         setLoaded(value);
+        // Read private tab copy only after this owned API response matches the canonical review.
+        if (value.revision === snapshot.revision && value.curriculum.version === review.buildFingerprint && initializedRecovery.current !== snapshot.draftId) {
+          setMetadata(null); setLessonEdits({}); setRecovery(null);
+          try {
+            const saved = readReviewRecovery(snapshot.draftId, window.sessionStorage);
+            setRecoveryAvailable(true);
+            if (saved && saved.buildFingerprint === review.buildFingerprint && saved.editRevision === review.editRevision) {
+              setMetadata(saved.metadata); setLessonEdits(saved.lessonEdits); setRecoveryMessage('Recovered unsaved edits from this tab. Save to confirm them to your account.');
+            } else if (saved) { setRecovery(saved); setRecoveryMessage(null); }
+          } catch { setRecoveryAvailable(false); setRecoveryMessage('Tab recovery is unavailable. Save edits before leaving this page.'); }
+          initializedRecovery.current = snapshot.draftId; setRecoveryReady(snapshot.draftId);
+        }
         setReadError(value.revision === snapshot.revision && value.curriculum.version === review.buildFingerprint ? null : { revision: snapshot.revision, message: 'The saved review changed. Reload the draft to continue.' });
       }
     }).catch(reason => { if (!controller.signal.aborted) setReadError({ revision: snapshot.revision, message: reason instanceof Error ? reason.message : 'Review unavailable.' }); });
     return () => { controller.abort(); pageController.current?.abort(); };
-  }, [snapshot.draftId, snapshot.revision, review.buildFingerprint, reload]);
+  }, [snapshot.draftId, snapshot.revision, review.buildFingerprint, review.editRevision, reload]);
   const preview = loaded?.revision === snapshot.revision && loaded.curriculum.version === review.buildFingerprint ? loaded : null;
   const error = readError?.revision === snapshot.revision ? readError.message : null;
   const fields = metadata ?? { title: review.title, description: review.description, visibility: review.visibility, chatEnabled: review.chatEnabled, eventsEnabled: review.eventsEnabled };
   const dirty = metadata !== null || Object.keys(lessonEdits).length > 0;
+  useEffect(() => {
+    if (recoveryReady !== snapshot.draftId || !preview || recovery) return;
+    let canceled = false;
+    const report = (available: boolean, message?: string) => queueMicrotask(() => {
+      if (!canceled) { setRecoveryAvailable(available); if (message) setRecoveryMessage(message); }
+    });
+    try {
+      if (dirty) writeReviewRecovery({ schemaVersion: 1, draftId: snapshot.draftId, buildFingerprint: review.buildFingerprint,
+        editRevision: review.editRevision, savedAt: Date.now(), metadata, lessonEdits }, window.sessionStorage);
+      else removeReviewRecovery(snapshot.draftId, window.sessionStorage);
+      report(true);
+    } catch { report(false, 'Unsaved edits could not be backed up in this tab. Save before leaving this page.'); }
+    return () => { canceled = true; };
+  }, [recoveryReady, preview, recovery, dirty, snapshot.draftId, review.buildFingerprint, review.editRevision, metadata, lessonEdits]);
+  useEffect(() => {
+    if (!dirty && !recovery) return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty, recovery]);
   const running = snapshot.status === 'running';
-  const disabled = running || pending || !creation.saved || Boolean(creation.materialPending);
+  const disabled = running || pending || !creation.saved || Boolean(creation.materialPending) || recoveryReady !== snapshot.draftId || Boolean(recovery);
   const act = async (action: () => Promise<boolean>) => {
-    if (lock.current || running || !creation.saved || creation.materialPending) return false;
+    if (lock.current || running || !creation.saved || creation.materialPending || recoveryReady !== snapshot.draftId || recovery) return false;
     lock.current = true; setPending(true); setActionError(null);
     try { const accepted = await action(); if (!accepted) setActionError(current => current ?? 'Change was not saved. Your unsaved edits are still here.'); return accepted; }
     catch { setActionError('Change could not be saved. Retry without losing your edits.'); return false; }
@@ -59,9 +96,14 @@ export function useReviewWorkspace(creation: ReturnType<typeof useCreation>) {
     if (!await creation.editLesson(id, { title: parsed.data.title, objectives: parsed.data.objectives })) return false;
     setLessonEdits(current => { if (current[id] !== captured) return current; const next = { ...current }; delete next[id]; return next; }); return true;
   };
-  const canFinalize = !disabled && Boolean(preview) && !error && !dirty && !review.proposal && !review.request && !review.orphanedLessonIds.length;
+  const canFinalize = !disabled && Boolean(preview) && !error && !dirty && !recovery && !review.proposal && !review.request && !review.orphanedLessonIds.length;
   return { snapshot, review, fields, preview, error, actionError, disabled, running, pending, dirty,
     metadataDirty: metadata !== null, lessonEdits,
+    recovery, recoveryMessage, recoveryAvailable,
+    restoreRecovery: () => { if (recovery && preview && !running && !pending && creation.saved && !creation.materialPending) { setMetadata(recovery.metadata); setLessonEdits(recovery.lessonEdits); setRecovery(null); setRecoveryMessage('Recovered earlier unsaved copy. Review it against the current curriculum before saving.'); } },
+    discardRecovery: () => { try { removeReviewRecovery(snapshot.draftId, window.sessionStorage); setRecovery(null); setRecoveryMessage(null); }
+      catch { setRecoveryMessage('The tab copy could not be cleared. Retry before leaving this page.'); } },
+    discardLocalEdits: () => { if (!disabled) { setMetadata(null); setLessonEdits({}); setRecoveryMessage(null); } },
     changeMetadata: (patch: Partial<ReviewFields>) => setMetadata({ ...fields, ...patch }),
     changeLesson: (id: string, value: LessonFields) => setLessonEdits(previous => ({ ...previous, [id]: value })),
     unmatchedLocalIds: Object.keys(lessonEdits).filter(id => !review.lessonIds.includes(id)),

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { initialSnapshot } from '@/src/shared/cohort-creation/flow';
 import { draftId } from '@/src/shared/cohort-creation/__tests__/fixtures';
 import { reviewWorkspaceSchema } from '@/src/shared/cohort-creation/review';
@@ -10,6 +10,7 @@ import { loadReview } from '../services/reviewApi';
 import type { useCreation } from '../hooks/useCreation';
 vi.mock('../services/reviewApi', () => ({ loadReview: vi.fn() }));
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+beforeEach(() => window.sessionStorage.clear());
 
 function fixture() {
   const review = reviewWorkspaceSchema.parse({ title: 'Saved title', description: 'Saved description', buildFingerprint: 'a'.repeat(64), editRevision: 0,
