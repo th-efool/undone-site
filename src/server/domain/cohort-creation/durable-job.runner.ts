@@ -201,13 +201,19 @@ export async function executeCreationJob(repo: CreationJobRepository, job: Claim
 
 export async function runCreationWorker(repo: CreationJobRepository, workerId: string,
   recommender: RecommenderFactory, signal: AbortSignal, reportError: (error: unknown) => void, acquirer?: AcquirerFactory, webAcquirer?: WebAcquirerFactory, pdfAcquirer?: PdfAcquirerFactory, youtubeInspector?: YoutubeInspectorFactory, youtubeAcquirer?: YoutubeAcquirerFactory, githubAcquirer?: GithubAcquirerFactory, notionAcquirer?: NotionAcquirerFactory, discoverer?: DiscoveryFactory, understander?: UnderstandingFactory, chunker?: ChunkingFactory, analyzer?: AnalysisFactory, builder?: BuildingFactory, refiner?: RefinementFactory, publisher?: PublicationFactory, guideAuthor?: GuideAuthorFactory) {
+  return runCreationPollingLoop(repo, workerId, signal,
+    (job, shutdown) => executeCreationJob(repo, job, recommender, shutdown, acquirer, webAcquirer, pdfAcquirer, youtubeInspector, youtubeAcquirer, githubAcquirer, notionAcquirer, discoverer, understander, chunker, analyzer, builder, refiner, publisher, guideAuthor), reportError);
+}
+
+export async function runCreationPollingLoop(repo: CreationJobRepository, workerId: string, signal: AbortSignal,
+  execute: (job: ClaimedCreationJob, signal: AbortSignal) => Promise<void>, reportError: (error: unknown) => void) {
   const tasks = new Set<Promise<void>>();
   while (!signal.aborted) {
     try {
       if (tasks.size < 2) {
         const job = await repo.claim(workerId);
         if (job) {
-          const task = executeCreationJob(repo, job, recommender, signal, acquirer, webAcquirer, pdfAcquirer, youtubeInspector, youtubeAcquirer, githubAcquirer, notionAcquirer, discoverer, understander, chunker, analyzer, builder, refiner, publisher, guideAuthor).catch(reportError);
+          const task = execute(job, signal).catch(reportError);
           tasks.add(task);
           void task.finally(() => tasks.delete(task));
           continue;

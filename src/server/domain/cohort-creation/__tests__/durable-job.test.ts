@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
-import { executeCreationJob } from '../durable-job.runner';
+import { executeCreationJob, runCreationPollingLoop } from '../durable-job.runner';
 import { JobBudgetExceeded, type ClaimedCreationJob, type CreationJobRepository } from '../durable-job';
 import { creationFailure, ProviderBackoff } from '../errors';
 import { draftId, requestId, result } from '@/src/shared/cohort-creation/__tests__/fixtures';
@@ -93,5 +93,28 @@ describe('durable recommendation worker', () => {
       expect(repo.finish).toHaveBeenCalledTimes(scheduled ? 0 : 1);
       if (!scheduled) expect(repo.finish).toHaveBeenCalledWith(job, expect.objectContaining({ error: expect.objectContaining({ code: 'RATE_LIMITED', retryable: true }) }));
     }
+  });
+});
+
+
+describe('shared creation polling transport', () => {
+  it('passes the claimed job and shutdown signal to the shared executor', async () => {
+    const { repo, job } = fixture();
+    const shutdown = new AbortController();
+    vi.mocked(repo.claim).mockResolvedValueOnce(job).mockResolvedValue(null);
+    const execute = vi.fn(async () => { shutdown.abort(); });
+    await runCreationPollingLoop(repo, 'worker', shutdown.signal, execute, vi.fn());
+    expect(execute).toHaveBeenCalledExactlyOnceWith(job, shutdown.signal);
+    expect(repo.claim).toHaveBeenCalledWith('worker');
+  });
+  it('reports executor errors without losing shutdown cleanup', async () => {
+    const { repo, job } = fixture();
+    const shutdown = new AbortController();
+    const error = new Error('storage unavailable');
+    vi.mocked(repo.claim).mockResolvedValueOnce(job).mockResolvedValue(null);
+    const execute = vi.fn(async () => { shutdown.abort(); throw error; });
+    const report = vi.fn();
+    await runCreationPollingLoop(repo, 'worker', shutdown.signal, execute, report);
+    expect(report).toHaveBeenCalledWith(error);
   });
 });
