@@ -29,6 +29,7 @@ const screens = [
     await page.setViewportSize({width,height});await page.goto(`${target}/?screen=${number}&version=${version}`);
     await page.locator('main').waitFor();await page.evaluate(()=>document.fonts.ready);
     if(number===9)await page.getByRole('heading',{name:'Foundations',exact:true}).waitFor();
+    if(number===10&&version==='after'&&completed>=4.9)await page.getByRole('dialog',{name:'Your cohort is live!',exact:true}).waitFor();
     if(number===5&&version==='after')await page.getByText('Distributed systems',{exact:true}).waitFor();
     if(number===6&&version==='after'&&completed>=4.5)await page.getByText('What makes a distributed system?',{exact:true}).waitFor();
     if(number===7&&version==='after'&&completed>=4.6)await page.getByText('Analysis saved',{exact:true}).first().waitFor();

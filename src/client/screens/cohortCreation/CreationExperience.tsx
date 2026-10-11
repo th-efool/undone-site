@@ -110,6 +110,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
     </CreationShell>;
   }
   if (creation.hydrated && snapshot.stage === 'review') return <ReviewWorkspace creation={creation} />;
+  if (creation.hydrated && (snapshot.stage === 'published' || snapshot.stage === 'finalizing')) return <PublicationStatus creation={creation} />;
   return <main id="main-content" className={styles.page}>
     <header className={styles.header}><Link href="/">Undone</Link><span>Cohort creation</span></header>
     <p className={styles.notice}>{creation.saved ? 'Your draft is saved to your account.' : 'Waiting for server confirmation.'}</p>

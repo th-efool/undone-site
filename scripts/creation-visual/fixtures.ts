@@ -50,10 +50,15 @@ export const snapshot = { ...initialSnapshot(draftId), revision: 1, inputRevisio
     building: screenNumber < 8 ? null : { requestId: draftId, complete: true, checkpoint: { ...checkpoint, phase: 'building', completed: checkpoint.completed.map(item => ({ ...item, lessonCount: 1 })) } } },
   review: screenNumber < 9 ? null : review,
   publication: screenNumber < 10 ? null : { requestId: draftId, mode: 'public_publish', cohortId: draftId, snapshotHash: hash('a'), checkpoint: null,
-    receipt: { cohortId: draftId, mode: 'public_publish', committedAt: '2026-10-11T00:00:00.000Z' } },
+    receipt: { requestId: draftId, snapshotHash: hash('a'), cohortId: draftId, mode: 'public_publish', committedAt: '2026-10-11T00:00:00.000Z' } },
   ...(screenNumber >= 5 && screenNumber <= 7 ? { status: 'running', activeRequestId: draftId } : {}) };
 export function useCreation() {
   const variant = new URLSearchParams(location.search).get('case');
+  const publicationVariant = screenNumber === 10 && snapshot.publication && variant ? { ...snapshot,
+    stage: ['pending', 'failed'].includes(variant) ? 'finalizing' : 'published', status: variant === 'pending' ? 'running' : variant === 'failed' ? 'failed' : 'succeeded',
+    error: variant === 'failed' ? { code: 'DATA_UNAVAILABLE', message: 'Fixture publication interruption. Retry saved work.', retryable: true } : null,
+    publication: { ...snapshot.publication, mode: variant === 'private' ? 'private_activation' : 'public_publish',
+      receipt: ['pending', 'failed', 'missing'].includes(variant) ? null : { ...snapshot.publication.receipt!, mode: variant === 'private' ? 'private_activation' : 'public_publish' } } } : null;
   const analysisVariant = screenNumber === 7 && snapshot.processing?.analysis && variant ? { ...snapshot,
     status: variant === 'complete' ? 'succeeded' : variant === 'canceled' ? 'canceled' : 'running',
     processing: { ...snapshot.processing, analysis: { ...snapshot.processing.analysis, complete: variant === 'complete',
@@ -63,7 +68,7 @@ export function useCreation() {
     error: variant === 'failed' ? { code: 'UPSTREAM_UNAVAILABLE', message: 'Fixture build interruption. Retry saved work.', retryable: true } : null,
     processing: { ...snapshot.processing, building: { ...snapshot.processing.building, complete: false,
       checkpoint: variant === 'unknown' ? null : { ...snapshot.processing.building.checkpoint, completed: snapshot.processing.building.checkpoint.completed.slice(0, 1) } } } } : null;
-  const state = buildingVariant ?? analysisVariant ?? (screenNumber === 6 && snapshot.processing?.chunking && variant ? { ...snapshot,
+  const state = publicationVariant ?? buildingVariant ?? analysisVariant ?? (screenNumber === 6 && snapshot.processing?.chunking && variant ? { ...snapshot,
     status: variant === 'complete' ? 'succeeded' : variant === 'canceled' ? 'canceled' : 'running',
     processing: { ...snapshot.processing, chunking: { ...snapshot.processing.chunking, complete: variant === 'complete',
       checkpoint: variant === 'unknown' ? null : snapshot.processing.chunking.checkpoint } } } : snapshot);
