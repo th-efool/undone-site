@@ -49,7 +49,7 @@ describe('owned creation workspace', () => {
     saved = applyEvent(running, { type: 'recommendations_received', result });
     render(<CreationExperience draftId={draftId} resume />); await screen.findByText('Real rendering cohort');
     api.command.mockRejectedValueOnce(new DraftApiError('Storage unavailable.', 503));
-    const composer = screen.getByLabelText('Say anything') as HTMLTextAreaElement;
+    const composer = screen.getByLabelText('Describe what you want to learn') as HTMLTextAreaElement;
     fireEvent.change(composer, { target: { value: 'Learn watercolor painting' } });
     fireEvent.submit(composer.closest('form')!);
     await screen.findByText('Your message was not saved. It is still here; resolve the error and retry.');

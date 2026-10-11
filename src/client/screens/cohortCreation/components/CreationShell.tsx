@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowUp, Lightbulb, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
@@ -25,9 +25,14 @@ export type CreationShellProps = {
 
 /** Conversation is an interaction surface. Commands and durable state stay in useCreation. */
 export function CreationShell({ children, query, reply, hintTitle, hint, suggestions = [], onMessage,
-  disabled = false, saved = true, variant = 'recommendations', conversation, composerLabel = 'Say anything' }: CreationShellProps) {
+  disabled = false, saved = true, variant = 'recommendations', conversation, composerLabel }: CreationShellProps) {
   const [message, setMessage] = useState(''); const [collapsed, setCollapsed] = useState(false);
+  const [sending, setSending] = useState(false); const submitting = useRef(false);
   const [messageError, setMessageError] = useState<string | null>(null);
+  const label = composerLabel ?? (variant === 'processing' ? 'Ask to see saved concepts, chunks or analysis'
+    : variant === 'starting' || variant === 'material' ? 'Describe your starting point or material'
+    : variant === 'review' ? 'Request a supported curriculum refinement' : 'Describe what you want to learn');
+  const busy = disabled || sending;
   const { theme, isDark } = useTheme();
   return <main id="main-content" className={styles.page} data-theme={theme} data-variant={variant} data-rail-collapsed={collapsed}>
     <aside className={styles.rail} aria-label="Creation conversation">
@@ -54,21 +59,23 @@ export function CreationShell({ children, query, reply, hintTitle, hint, suggest
         </div>
         <div className={styles.composerArea}>
           <form className={styles.composer} onSubmit={async event => {
-            event.preventDefault(); if (disabled || message.trim().length < 3) return;
+            event.preventDefault(); if (busy || submitting.current || message.trim().length < 3) return;
+            submitting.current = true; setSending(true);
             try {
               if (await onMessage(message.trim()) === false) { setMessageError('Your message was not saved. It is still here; resolve the error and retry.'); return; }
               setMessage(''); setMessageError(null);
             }
             catch (error) { setMessageError(error instanceof Error ? error.message : 'Your message could not be sent. Retry.'); }
+            finally { submitting.current = false; setSending(false); }
           }}>
-            <label className={styles.srOnly} htmlFor="creation-conversation-message">{composerLabel}</label>
-            <textarea id="creation-conversation-message" placeholder="Say anything…" value={message} maxLength={2000} minLength={3}
-              rows={1} required disabled={disabled} onChange={event => setMessage(event.target.value)} />
-            <button type="submit" disabled={disabled || message.trim().length < 3} aria-label="Send message"><ArrowUp size={22} /></button>
+            <label className={styles.srOnly} htmlFor="creation-conversation-message">{label}</label>
+            <textarea id="creation-conversation-message" placeholder={label} value={message} maxLength={2000} minLength={3}
+              rows={1} required disabled={busy} onChange={event => setMessage(event.target.value)} />
+            <button type="submit" disabled={busy || message.trim().length < 3} aria-label="Send message"><ArrowUp size={22} /></button>
           </form>
           {messageError && <p className={styles.messageError} role="alert">{messageError}</p>}
           <div className={styles.suggestions}>{suggestions.map(suggestion => <button type="button" key={suggestion.label}
-            disabled={disabled} aria-label={`Suggested action: ${suggestion.label}`} onClick={suggestion.action}>{suggestion.label}</button>)}</div>
+            disabled={busy} aria-label={`Suggested action: ${suggestion.label}`} onClick={suggestion.action}>{suggestion.label}</button>)}</div>
           <span className={styles.saved} role="status">{saved ? 'Saved to your account' : 'Waiting for server confirmation'}</span>
         </div>
       </div>
