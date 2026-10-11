@@ -59,6 +59,17 @@ function observationFixture() {
 }
 
 describe('durable selected video observation jobs', () => {
+  it('checks video scope against other sources and allows replacing its current selection', () => {
+    const f = observationFixture();
+    const other = { id: randomUUID(), kind: 'github' as const, input: { kind: 'url' as const, url: 'https://github.com/acme/project' },
+      status: 'ready' as const, selectedUnitIds: Array.from({ length: 100 }, (_, index) => `file-${index}`) };
+    const full = creationSnapshotSchema.parse({ ...f.ready, materials: [...f.ready.materials, other] });
+    const selection = { type: 'select_youtube_units' as const, materialId: f.command.materialId, unitIds: ['dQw4w9WgXcQ'] };
+    expect(() => applyCommand(full, selection)).toThrow('Select at most 0 videos');
+    expect(applyCommand(full, { ...selection, unitIds: [] }).materials[0].selectedUnitIds).toEqual([]);
+    const available = creationSnapshotSchema.parse({ ...f.selected, materials: [...f.selected.materials, { ...other, selectedUnitIds: other.selectedUnitIds.slice(0, 99) }] });
+    expect(applyCommand(available, selection).materials[0].selectedUnitIds).toEqual(selection.unitIds);
+  });
   it('requires confirmed selection and authorizes/deduplicates observation commands before CAS', async () => {
     const f = observationFixture();
     expect(() => applyCommand(f.ready, f.command)).toThrow('Save a video selection');
@@ -115,7 +126,7 @@ describe('durable YouTube metadata inspection', () => {
     for (const state of [f.own, f.running]) expect(() => applyCommand(state, { type: 'select_youtube_units', materialId: f.command.materialId, unitIds: ['dQw4w9WgXcQ'] })).toThrow();
     for (const unitIds of [['AAAAAAAAAAA'], ['dQw4w9WgXcQ', 'dQw4w9WgXcQ']]) expect(() => applyCommand(ready, { type: 'select_youtube_units', materialId: f.command.materialId, unitIds })).toThrow();
     const full = creationSnapshotSchema.parse({ ...ready, materials: [...ready.materials, { id: randomUUID(), kind: 'github', input: { kind: 'url', url: 'https://github.com/example/lessons' }, status: 'pending', selectedUnitIds: Array.from({ length: 100 }, (_, index) => `file${index}`) }] });
-    expect(() => applyCommand(full, { type: 'select_youtube_units', materialId: f.command.materialId, unitIds: ['dQw4w9WgXcQ'] })).toThrow('Invalid material');
+    expect(() => applyCommand(full, { type: 'select_youtube_units', materialId: f.command.materialId, unitIds: ['dQw4w9WgXcQ'] })).toThrow('Select at most 0 videos');
   });
   it('authorizes selection mutations and resumes them without job enqueue', async () => {
     const f = fixture(); let stored = applyEvent(f.running, jobCompletion(f.job, f.retained));

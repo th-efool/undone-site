@@ -25,6 +25,9 @@ export function textUploadHandler(drafts: Pick<DraftService, 'load'>, blobs: Pic
         return Response.json({ message: 'Select an existing source to replace.' }, { status: 400 });
       }
       if (!replacementId && snapshot.materials.length >= MATERIAL_LIMITS.sources) return Response.json({ message: 'Twenty source limit reached.' }, { status: 413 });
+      if (snapshot.materials.filter(source => source.id !== replacementId).reduce((sum, source) => sum + source.selectedUnitIds.length, 0) >= MATERIAL_LIMITS.selectedUnits) {
+        return Response.json({ message: 'The draft already has 100 selected units. Remove a source or reduce video selection before uploading.' }, { status: 413 });
+      }
       const mediaType = request.headers.get('Content-Type')?.split(';')[0].trim().toLowerCase();
       if (!mediaType || !['text/plain', 'text/markdown', 'text/x-markdown', 'application/pdf'].includes(mediaType)) {
         return Response.json({ message: 'Upload a PDF, UTF-8 text or Markdown.' }, { status: 415 });

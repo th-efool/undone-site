@@ -9,7 +9,7 @@ import {
   recommendationResultSchema, startingPointSchema,
   type CreationSnapshot, type WorkspaceStage,
 } from './contracts';
-import { materialManifestSchema } from './materials';
+import { MATERIAL_LIMITS, materialManifestSchema } from './materials';
 import { webMaterialManifestSchema } from './web';
 import { retainedYoutubeMetadataSchema, youtubeMaterialManifestSchema } from './youtube';
 import { githubSelectionSchema, githubMaterialManifestSchema, githubRepositoryScope } from './github';
@@ -192,8 +192,11 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
         : previous.input.kind === 'upload' && 'assetId' in command && previous.input.assetId === command.assetId &&
           previous.kind === (command.type === 'acquire_pdf' ? 'pdf' : 'markdown'));
       if (state.stage !== 'starting_point' || !state.startingPoint || (state.startingPoint !== 'have_material' && !discovered && !sameInput) || state.status === 'running' || !state.result) throw new Error('Starting point is not available');
-      if (command.type === 'acquire_github' && state.materials.filter(source => source.id !== command.materialId).reduce((sum, source) => sum + source.selectedUnitIds.length, 0) >= 100) throw new Error('The draft already has 100 selected units. Remove a source before adding GitHub files.');
-      if (command.type === 'acquire_notion' && state.materials.filter(source => source.id !== command.materialId).reduce((sum, source) => sum + source.selectedUnitIds.length, 0) >= 100) throw new Error('The draft already has 100 selected units. Remove a source before adding a Notion page.');
+      if (!previous && state.materials.length >= MATERIAL_LIMITS.sources) throw new Error('The draft already has 20 sources. Remove or replace a source before adding another.');
+      if (command.type !== 'inspect_youtube' && state.materials.filter(source => source.id !== command.materialId)
+        .reduce((sum, source) => sum + source.selectedUnitIds.length, 0) >= MATERIAL_LIMITS.selectedUnits) {
+        throw new Error('The draft already has 100 selected units. Remove a source or reduce video selection before acquiring another source.');
+      }
       const material = { id: command.materialId, ...(command.type === 'acquire_github'
         ? { kind: 'github' as const, input: { kind: 'url' as const, url: command.selection.url, repositoryScope: githubRepositoryScope(command.selection) } }
         : command.type === 'acquire_notion'
@@ -238,6 +241,9 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
       const preview = state.youtubeSources.find(source => source.materialId === command.materialId);
       if (state.stage !== 'starting_point' || !state.startingPoint || state.status === 'running' || !preview ||
         command.unitIds.some(id => !preview.units.some(unit => unit.unitId === id))) throw new Error('Starting point is not available');
+      const remaining = MATERIAL_LIMITS.selectedUnits - state.materials.filter(source => source.id !== command.materialId)
+        .reduce((sum, source) => sum + source.selectedUnitIds.length, 0);
+      if (command.unitIds.length > remaining) throw new Error(`Select at most ${remaining} videos for this source. The draft supports 100 selected units across all sources.`);
       return creationSnapshotSchema.parse({ ...changed, processing: null, inputRevision: state.inputRevision + 1, status: 'succeeded', lastMaterialRequestId: null,
         materials: state.materials.map(source => source.id === command.materialId ? { ...source, status: 'needs_input', selectedUnitIds: command.unitIds } : source),
         youtubeSources: state.youtubeSources.map(source => source.materialId === command.materialId

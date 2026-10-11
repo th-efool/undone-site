@@ -94,10 +94,19 @@ describe('owned streaming text upload', () => {
     expect((await handle(request(), draftId)).status).toBe(413); expect(putStream).not.toHaveBeenCalled();
   });
   it('permits a full selection replacement only for an existing source ID', async () => {
-    load.mockResolvedValue({ ...snapshot, materials: Array(20).fill({ id: ref.id }) });
+    load.mockResolvedValue({ ...snapshot, materials: Array(20).fill({ id: ref.id, selectedUnitIds: [] }) });
     expect((await handle(request({ 'X-Creation-Material': ref.id }), draftId)).status).toBe(201);
     expect((await handle(request({ 'X-Creation-Material': '55555555-5555-4555-8555-555555555555' }), draftId)).status).toBe(400);
     expect((await handle(request({ 'X-Creation-Material': 'bad' }), draftId)).status).toBe(400);
+    expect(putStream).toHaveBeenCalledOnce();
+  });
+  it('rejects uploads before storage when other sources exhaust selected-unit capacity', async () => {
+    load.mockResolvedValue({ ...snapshot, materials: [{ id: ref.id, selectedUnitIds: Array.from({ length: 100 }, (_, index) => `file-${index}`) }] });
+    const input = request();
+    const response = await handle(input, draftId);
+    expect(response.status).toBe(413); expect((await response.json()).message).toContain('100 selected units');
+    expect(input.bodyUsed).toBe(false); expect(putStream).not.toHaveBeenCalled();
+    expect((await handle(request({ 'X-Creation-Material': ref.id }), draftId)).status).toBe(201);
     expect(putStream).toHaveBeenCalledOnce();
   });
   it('cancels an unread body if quota reservation rejects before iteration', async () => {

@@ -35,6 +35,7 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
   const [removing, setRemoving] = useState(false);
   const submitting = useRef(false);
   const replacement = snapshot.materials.find(source => source.id === replacementId);
+  const selectedUnits = snapshot.materials.reduce((sum, source) => sum + source.selectedUnitIds.length, 0);
   const busy = uploading || pending || queuing || removing || snapshot.status === 'running';
   const validateBytes = (size: number, pdf: boolean) => {
     if (size > 0 && size <= (pdf ? PDF_LIMITS.bytes : MATERIAL_LIMITS.extractedTextBytes)) return true;
@@ -57,6 +58,8 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
       <p>You can give me multiple sources — videos, PDFs, websites, code, or notes.<br />I’ll understand them and turn them into a structured learning journey.</p>
     </header>}
     {!selectionOnly && <>
+    {snapshot.materials.length >= MATERIAL_LIMITS.sources && <p role="status">20-source limit reached. Remove or replace a source to add different material.</p>}
+    {selectedUnits >= MATERIAL_LIMITS.selectedUnits && <p role="status">100 selected units reached. Remove a source, reduce video selection, or replace an existing source before acquiring more content.</p>}
     {replacementId && <p role={replacement ? 'status' : 'alert'}>{replacement ? `Replacing source ${snapshot.materials.indexOf(replacement) + 1}. The current source stays selected until the replacement is saved.` : 'This source is no longer selected. Cancel replacement before adding another source.'}
       <button type="button" disabled={busy} onClick={() => setReplacementId(null)}>Cancel replacement</button></p>}
     <div className={styles.inputPanel}>
@@ -147,6 +150,7 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
       </ul>}
       {onSelectUnits && snapshot.youtubeSources.find(preview => preview.materialId === source.id) && <YoutubeUnits
         key={`${source.id}:${source.selectedUnitIds.join(',')}`} selected={source.selectedUnitIds}
+        maxSelected={MATERIAL_LIMITS.selectedUnits - selectedUnits + source.selectedUnitIds.length}
         units={snapshot.youtubeSources.find(preview => preview.materialId === source.id)!.units} disabled={busy}
         onSave={ids => onSelectUnits(source.id, ids)} />}
       </div><div className={styles.sourceActions}>

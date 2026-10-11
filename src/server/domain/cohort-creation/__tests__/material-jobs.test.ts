@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
-import { applyCommand, applyEvent, initialSnapshot } from '@/src/shared/cohort-creation/flow';
+import { applyCommand, applyEvent, initialSnapshot, type CreationCommand } from '@/src/shared/cohort-creation/flow';
 import { creationSnapshotSchema } from '@/src/shared/cohort-creation/contracts';
 import { materialManifestSchema } from '@/src/shared/cohort-creation/materials';
 import { draftId, result } from '@/src/shared/cohort-creation/__tests__/fixtures';
@@ -37,6 +37,30 @@ function fixture() {
   return { accepted, own, command, running, manifest, job, repo };
 }
 describe('durable material state', () => {
+  it('rejects new text/PDF/web/GitHub/Notion work at unit capacity while allowing source replacement', () => {
+    const f = fixture(); const id = randomUUID();
+    const state = creationSnapshotSchema.parse({ ...f.own, materials: [{ id, kind: 'github', input: { kind: 'url', url: 'https://github.com/acme/project' },
+      status: 'ready', selectedUnitIds: Array.from({ length: 100 }, (_, index) => `file-${index}`) }] });
+    const common = { materialId: randomUUID(), requestId: randomUUID() };
+    const commands: CreationCommand[] = [
+      { ...common, type: 'acquire_text', assetId: randomUUID() }, { ...common, type: 'acquire_pdf', assetId: randomUUID() },
+      { ...common, type: 'acquire_web', url: 'https://docs.example.com/lesson' },
+      { ...common, type: 'acquire_github', selection: { url: 'https://github.com/acme/other', paths: ['README.md'], ref: null } },
+      { ...common, type: 'acquire_notion', url: 'https://www.notion.so/123456781234123412341234567890ab' },
+    ];
+    for (const command of commands) {
+      expect(() => applyCommand(state, command)).toThrow('100 selected units');
+      if ('materialId' in command) expect(applyCommand(state, { ...command, materialId: id }).status).toBe('running');
+    }
+    expect(state.status).toBe('succeeded'); expect(state.materials[0].selectedUnitIds).toHaveLength(100);
+  });
+  it('rejects the twenty-first source before scheduling but preserves replacement capacity', () => {
+    const f = fixture();
+    const state = creationSnapshotSchema.parse({ ...f.own, materials: Array.from({ length: 20 }, () => ({ id: randomUUID(), kind: 'markdown',
+      input: { kind: 'upload', assetId: randomUUID() }, status: 'failed', selectedUnitIds: [] })) });
+    expect(() => applyCommand(state, f.command)).toThrow('20 sources');
+    expect(applyCommand(state, { ...f.command, materialId: state.materials[0].id }).materials).toHaveLength(20);
+  });
   it('removes only selected provenance, preserves intent and rejects late results', () => {
     const f = fixture(); const ready = applyEvent(f.running, jobCompletion(f.job, f.manifest));
     const other = { ...ready.materials[0], id: randomUUID() };

@@ -81,6 +81,7 @@ describe('one text material step', () => {
     expect(upload.mock.calls[0][2]).toBe('source-0');
     fireEvent.click(screen.getByRole('button', { name: 'Cancel replacement' }));
     expect(submit.disabled).toBe(true);
+    expect(screen.getByText(/20-source limit reached/)).toBeTruthy();
   });
   it('submits pasted content through the same byte upload action', async () => {
     const props = mount(); fireEvent.click(screen.getByRole('button', { name: 'Paste text' }));
