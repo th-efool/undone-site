@@ -4,8 +4,13 @@
 import NextAuth from 'next-auth';
 import GitHub from 'next-auth/providers/github';
 import Slack from 'next-auth/providers/slack';
+import { configureRequestOriginAuth } from './auth.environment';
+
+configureRequestOriginAuth();
 
 export const { auth } = NextAuth({
+  basePath: '/api/auth',
+  trustHost: true,
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'sidequest-hq-dev-secret-key-32-chars-minimum-12345',
   providers: [
     GitHub({

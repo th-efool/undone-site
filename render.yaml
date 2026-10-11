@@ -22,8 +22,10 @@ services:
         sync: false
       - key: NEXTAUTH_SECRET
         sync: false
-      - key: NEXTAUTH_URL
-        sync: false
+      # Auth.js infers the public origin from trusted platform headers.
+      # Do not pin AUTH_URL/NEXTAUTH_URL to a different app hostname.
+      - key: AUTH_TRUST_HOST
+        value: 'true'
 
   - name: undone-worker
     type: worker

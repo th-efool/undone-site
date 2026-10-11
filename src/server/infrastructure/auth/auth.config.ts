@@ -5,8 +5,14 @@ import GitHub from 'next-auth/providers/github';
 import Slack from 'next-auth/providers/slack';
 import Credentials from 'next-auth/providers/credentials';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
+import { configureRequestOriginAuth } from './auth.environment';
+import { getGuestAccount } from './guestAccount';
+
+configureRequestOriginAuth();
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
+  basePath: '/api/auth',
+  trustHost: true,
   secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'sidequest-hq-dev-secret-key-32-chars-minimum-12345',
   adapter: PrismaAdapter(prisma),
   providers: [
@@ -24,33 +30,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "text" }
       },
       async authorize(credentials) {
-        if (credentials?.email === 'guest@sidequesthq.com' || credentials?.email === 'guest@undone.com') {
-          const guestEmail = credentials.email as string;
-          try {
-            let user = await prisma.user.findUnique({
-              where: { email: guestEmail }
-            });
-            if (!user) {
-              user = await prisma.user.create({
-                data: {
-                  email: guestEmail,
-                  name: 'Guest Explorer',
-                  username: 'guest',
-                }
-              });
-            }
-            return user;
-          } catch (dbError) {
-            console.warn('[auth] Database connection failed for guest signin, falling back to mock user:', dbError);
-            return {
-              id: 'guest-explorer-dev-id',
-              name: 'Guest Explorer',
-              email: guestEmail,
-              username: 'guest',
-            };
-          }
+        try { return await getGuestAccount(credentials?.email, prisma.user); }
+        catch {
+          console.warn('[auth] Guest sign-in could not resolve a database account.');
+          return null;
         }
-        return null;
       }
     }),
   ],
@@ -63,7 +47,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.sub = user.id;
         token.name = user.name;
         token.email = user.email;
-        (token as any).username = (user as any).username || 'guest';
+        token.username = 'username' in user && typeof user.username === 'string' ? user.username : 'guest';
       }
       return token;
     },
@@ -72,10 +56,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (user?.id) {
           session.user.id = user.id;
         } else if (token?.sub) {
-          session.user.id = token.sub as string;
+          session.user.id = token.sub;
         }
-        if ((token as any)?.username) {
-          (session.user as any).username = (token as any).username;
+        if (typeof token?.username === 'string') {
+          (session.user as typeof session.user & { username?: string }).username = token.username;
         }
       }
       return session;
