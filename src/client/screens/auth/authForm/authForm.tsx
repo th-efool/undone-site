@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { safeReturnTo } from '@/src/shared/auth/returnTo';
 import styles from './authForm.module.css';
 import { AuthProviders } from './authProviders';
 import { AuthDivider } from './authDivider';
@@ -26,7 +28,22 @@ const GENDER_OPTIONS = [
 
 export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
   const [activeTab, setActiveTab] = useState<'signup' | 'login'>('signup');
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const signingIn = useRef(false);
+  const router = useRouter();
   const isSignUp = activeTab === 'signup';
+  const guestSignIn = async () => {
+    if (signingIn.current) return;
+    signingIn.current = true; setPending(true); setError(null);
+    try {
+      const result = await signIn('credentials', { email: 'guest@undone.com', redirect: false, redirectTo: safeReturnTo(returnTo) });
+      if (!result?.ok || result.error) { setError('Guest sign-in could not create a saved account. Try again or use GitHub or Slack.'); return; }
+      router.replace(safeReturnTo(returnTo));
+      router.refresh();
+    } catch { setError('Sign-in is unavailable. Please retry.'); }
+    finally { signingIn.current = false; setPending(false); }
+  };
 
   return (
     <aside className={styles.form}>
@@ -125,14 +142,15 @@ export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
       </header>
 
       <section className={styles.oauth}>
-        <AuthProviders returnTo={returnTo} />
+        <AuthProviders returnTo={safeReturnTo(returnTo)} disabled={pending} />
       </section>
 
       <section className={styles.divider}>
         <AuthDivider />
       </section>
 
-      <section className={styles.inputs}>
+      <p>Email/password sign-in is not available yet. Use GitHub, Slack, or continue as Guest.</p>
+      <fieldset disabled className={styles.inputs} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
         {isSignUp && (
           <AuthInput
             label="Full Name"
@@ -169,23 +187,21 @@ export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
             />
           </div>
         )}
-      </section>
+      </fieldset>
 
       <section className={styles.cta}>
-        <AuthButton href={returnTo}>{isSignUp ? "Create Account" : "Log In"}</AuthButton>
+        <AuthButton disabled>{isSignUp ? "Create Account" : "Log In"}</AuthButton>
 
         <AuthButton
           variant="secondary"
-          onClick={() => {
-            signIn('credentials', {
-              email: 'guest@undone.com',
-              callbackUrl: returnTo
-            });
-          }}
+          loading={pending}
+          disabled={pending}
+          onClick={guestSignIn}
         >
           Continue as Guest
         </AuthButton>
       </section>
+      {error && <p role="alert">{error}</p>}
 
       <section className={styles.legal}>
         <AuthLegal />

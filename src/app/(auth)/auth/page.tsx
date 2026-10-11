@@ -1,7 +1,9 @@
 import { Metadata } from 'next';
 import dynamic from 'next/dynamic';
-import { safeReturnTo } from '@/src/shared/auth/returnTo';
+import { authReturnTo } from '@/src/shared/auth/returnTo';
+import { headers } from 'next/headers';
 import { getCreationOwner } from '@/src/server/infrastructure/auth/getCreationOwner';
+import { signInErrorMessage } from '@/src/shared/auth/signInError';
 
 const Auth = dynamic(() => import('@/src/client/screens/auth/').then((mod) => mod.Auth));
 
@@ -21,12 +23,16 @@ export const metadata: Metadata = {
   }
 };
 
-export default async function AuthPage({ searchParams }: { searchParams: Promise<{ returnTo?: string }> }) {
-  const returnTo = safeReturnTo((await searchParams).returnTo);
+export default async function AuthPage({ searchParams }: { searchParams: Promise<{ returnTo?: string; callbackUrl?: string; error?: string }> }) {
+  const params = await searchParams;
+  const requestHeaders = await headers();
+  const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host');
+  const protocol = requestHeaders.get('x-forwarded-proto') ?? 'https';
+  const returnTo = authReturnTo(params.returnTo, params.callbackUrl, `${protocol}://${host}`);
   const allowAuthenticatedRedirect = !returnTo.startsWith('/quest/') || Boolean(await getCreationOwner());
   return (
     <main>
-      <Auth returnTo={returnTo} allowAuthenticatedRedirect={allowAuthenticatedRedirect} />
+      <Auth returnTo={returnTo} allowAuthenticatedRedirect={allowAuthenticatedRedirect} signInError={signInErrorMessage(params.error)} />
     </main>
   );
 }

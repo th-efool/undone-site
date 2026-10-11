@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import styles from './Auth.module.css';
 import AuthShowcase from './authShowcase/authShowcase';
 import { AuthForm } from './authForm/authForm';
 import { safeReturnTo } from '@/src/shared/auth/returnTo';
 
-export function Auth({ returnTo = '/home', allowAuthenticatedRedirect = true }: { returnTo?: string; allowAuthenticatedRedirect?: boolean }) {
+export function Auth({ returnTo = '/home', allowAuthenticatedRedirect = true, signInError = null }: { returnTo?: string; allowAuthenticatedRedirect?: boolean; signInError?: string | null }) {
   const destination = safeReturnTo(returnTo);
   const { status } = useSession();
   const router = useRouter();
@@ -16,6 +16,7 @@ export function Auth({ returnTo = '/home', allowAuthenticatedRedirect = true }: 
   useEffect(() => {
     if (status === 'authenticated' && allowAuthenticatedRedirect) {
       router.replace(destination);
+      router.refresh();
     }
   }, [status, router, destination, allowAuthenticatedRedirect]);
 
@@ -37,7 +38,10 @@ export function Auth({ returnTo = '/home', allowAuthenticatedRedirect = true }: 
         <AuthShowcase />
       </div>
       <aside className={styles.panel}>
-        {status === 'authenticated' && !allowAuthenticatedRedirect && <p>Sign in with a database-backed account to save your draft.</p>}
+        {signInError && <p role="alert">{signInError}</p>}
+        {status === 'authenticated' && !allowAuthenticatedRedirect && <p>Your session has no saved account. Sign out, then sign in again to save your draft.
+          <button type="button" onClick={() => signOut({ redirectTo: `/auth?returnTo=${encodeURIComponent(destination)}` })}>Sign out and retry</button>
+        </p>}
         <AuthForm returnTo={destination} />
       </aside>
     </section>
