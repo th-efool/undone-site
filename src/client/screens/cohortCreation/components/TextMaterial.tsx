@@ -2,7 +2,7 @@
 import { useRef, useState } from 'react';
 import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 import styles from './TextMaterial.module.css';
-import { FileText, Globe, Link as LinkIcon, Plus, Upload } from 'lucide-react';
+import { CircleCheck, FileText, Globe, Link as LinkIcon, Plus, Upload } from 'lucide-react';
 import { SiGithub, SiYoutube } from 'react-icons/si';
 import { InkUnderline } from './InkUnderline';
 import { YoutubeUnits } from './YoutubeUnits';
@@ -41,20 +41,13 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
     }
     setFile(files[0]); setError(null); setMode('file');
   };
-  return <section aria-label="Learning material" className={styles.material}>
+  return <section aria-label="Learning material" className={`${styles.material} ${styles.materialInput}`}>
     {selectionOnly ? <h2>Selected learning material</h2> : <header className={styles.heading}>
       <p className={styles.eyebrow}>Give me what you’ve got</p>
       <h1>Paste a link, upload a file, <br />or drop <span>your material<InkUnderline className={styles.underline} /></span> here.</h1>
       <p>You can give me multiple sources — videos, PDFs, websites, code, or notes.<br />I’ll understand them and turn them into a structured learning journey.</p>
     </header>}
     {!selectionOnly && <>
-    <details className={styles.limits}><summary>Supported sources and limits</summary>
-    <p>UTF-8 text or Markdown, up to 1 MiB per source. Files and pasted text follow the same saved acquisition flow.</p>
-    <p>PDFs: up to 25 MiB, 200 pages and 1 MiB extracted text. Text is anchored to pages; images and annotations are not interpreted. Scanned or blank pages require OCR text or a text alternative.</p>
-    <p>Public HTTPS articles are captured on the server. Main-article text is selected from HTML; the full response remains retained. Login and JavaScript-only pages require upload or paste.</p>
-    <p>Public YouTube links retain metadata for source selection. Save your video choices, then generate educational observations. These are AI interpretations with estimated timestamps, not transcripts or exhaustive coverage.</p>
-    <p>Up to 20 sources. Content that exceeds a limit must be narrowed or supplied as a supported alternative.</p>
-    </details>
     {replacementId && <p role={replacement ? 'status' : 'alert'}>{replacement ? `Replacing source ${snapshot.materials.indexOf(replacement) + 1}. The current source stays selected until the replacement is saved.` : 'This source is no longer selected. Cancel replacement before adding another source.'}
       <button type="button" disabled={busy} onClick={() => setReplacementId(null)}>Cancel replacement</button></p>}
     <div className={styles.inputPanel}>
@@ -102,13 +95,20 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
           <button type="button" className={styles.pickFile} disabled={busy} aria-label="Choose a file" onClick={() => picker.current?.click()}><Plus size={32} /></button>
           <strong>Drop your material here</strong>
           <button type="button" className={styles.pasteLink} disabled={busy} onClick={() => setMode('url')}>or paste a link</button>
-          <label htmlFor="material-file">Choose or drop a PDF/text/Markdown file</label>
+          <label className={styles.fileLabel} htmlFor="material-file">Choose or drop a PDF/text/Markdown file</label>
           <input ref={picker} id="material-file" type="file" accept=".pdf,.md,.markdown,.txt" disabled={busy} onChange={event => select(event.target.files)} />
           {file && <p>Selected: {file.name}</p>}
         </div>}
-      <button type="submit" disabled={busy || (!!replacementId && !replacement) || (!replacement && snapshot.materials.length >= 20)}>Save and acquire material</button>
+      {(mode !== 'file' || file || replacementId) && <button type="submit" disabled={busy || (!!replacementId && !replacement) || (!replacement && snapshot.materials.length >= 20)}>Save and acquire material</button>}
     </form>}
     </div>
+    <details className={styles.limits}><summary>Supported sources and limits</summary>
+    <p>UTF-8 text or Markdown, up to 1 MiB per source. Files and pasted text follow the same saved acquisition flow.</p>
+    <p>PDFs: up to 25 MiB, 200 pages and 1 MiB extracted text. Text is anchored to pages; images and annotations are not interpreted. Scanned or blank pages require OCR text or a text alternative.</p>
+    <p>Public HTTPS articles are captured on the server. Main-article text is selected from HTML; the full response remains retained. Login and JavaScript-only pages require upload or paste.</p>
+    <p>Public YouTube links retain metadata for source selection. Save your video choices, then generate educational observations. These are AI interpretations with estimated timestamps, not transcripts or exhaustive coverage.</p>
+    <p>Up to 20 sources. Content that exceeds a limit must be narrowed or supplied as a supported alternative.</p>
+    </details>
     </>}
     {error && <p role="alert">{error}</p>}
     {uploading ? <p role="status">Uploading material… <button onClick={onCancelUpload}>Cancel upload</button></p> : pending ? <p role="status">Queuing material acquisition…</p> : null}
@@ -117,6 +117,8 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
     {snapshot.error && <p role="alert">{snapshot.error.message}</p>}
     {!!snapshot.materials.length && <h2 className={styles.sourceHeading}>Added material</h2>}
     <ul className={styles.sources}>{snapshot.materials.map((source, index) => <li key={source.id}>
+      {source.status === 'ready' ? <CircleCheck className={styles.sourceIcon} data-ready aria-hidden="true" size={25} /> : <FileText className={styles.sourceIcon} aria-hidden="true" size={25} />}
+      <div className={styles.sourceDetails}>
       Source {index + 1}: {source.status === 'ready' ? ['youtube_video', 'youtube_playlist'].includes(source.kind) ? 'Retained video observations ready' : 'Retained text ready' : source.status === 'acquiring' ? 'Acquiring' : source.status === 'failed' ? 'Acquisition failed' : source.status === 'needs_input' ? 'Metadata retained; video observation pending' : 'Selected; acquisition pending'}
       {source.status === 'ready' && <span> · {snapshot.extractions.find(extraction => extraction.materialId === source.id)?.segmentCount ?? 0} extracted segments</span>}
       {source.input.kind === 'url' && <span> · {source.input.url}</span>}
@@ -132,6 +134,7 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
         key={`${source.id}:${source.selectedUnitIds.join(',')}`} selected={source.selectedUnitIds}
         units={snapshot.youtubeSources.find(preview => preview.materialId === source.id)!.units} disabled={busy}
         onSave={ids => onSelectUnits(source.id, ids)} />}
+      </div><div className={styles.sourceActions}>
       {onObserve && snapshot.youtubeSources.some(preview => preview.materialId === source.id) && source.status !== 'ready' &&
         <button disabled={busy || !source.selectedUnitIds.length} onClick={async () => {
           setQueuing(true); try { await onObserve(source.id); } finally { setQueuing(false); }
@@ -150,7 +153,7 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
         setRemoving(true);
         try { if (await onRemove(source.id) && replacementId === source.id) setReplacementId(null); }
         finally { setRemoving(false); }
-      }}>Remove source {index + 1}</button>
+      }}>Remove source {index + 1}</button></div>
     </li>)}</ul>
     {!!snapshot.extractions.length && <p className={styles.saved}>Sources are saved. Continue below to understand your material.</p>}
   </section>;

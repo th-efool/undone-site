@@ -11,6 +11,13 @@ function mount() {
   render(<TextMaterial {...props} />); return props;
 }
 describe('one text material step', () => {
+  it('offers file selection before showing an upload submission action', () => {
+    mount();
+    expect(screen.queryByRole('button', { name: 'Save and acquire material' })).toBeNull();
+    expect(screen.getByRole('button', { name: 'Choose a file' })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Choose or drop a PDF/text/Markdown file'), { target: { files: [new File(['notes'], 'notes.txt')] } });
+    expect(screen.getByRole('button', { name: 'Save and acquire material' })).toBeTruthy();
+  });
   it('resumes saved video observations without reinspecting or discarding partial work', async () => {
     const snapshot = initialSnapshot(draftId); const artifact = { id: draftId, kind: 'artifact' as const, byteLength: 500, checksum: 'a'.repeat(64) };
     const onObserve = vi.fn().mockResolvedValue(true); const onWeb = vi.fn();
@@ -54,7 +61,7 @@ describe('one text material step', () => {
     expect((screen.getByRole('button', { name: 'Save and acquire material' }) as HTMLButtonElement).disabled).toBe(true);
     expect(props.onUpload).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Cancel replacement' }));
-    expect((screen.getByRole('button', { name: 'Save and acquire material' }) as HTMLButtonElement).disabled).toBe(false);
+    expect(screen.queryByRole('button', { name: 'Save and acquire material' })).toBeNull();
   });
   it('allows replacing a source at the selection limit and can cancel the replacement', async () => {
     const base = initialSnapshot(draftId);
@@ -63,9 +70,9 @@ describe('one text material step', () => {
     const upload = vi.fn().mockResolvedValue(false);
     render(<TextMaterial snapshot={{ ...base, materials }} uploading={false} pending={false} onUpload={upload}
       onCancelUpload={vi.fn()} onCancel={vi.fn()} onRetry={vi.fn()} onRemove={vi.fn()} onWeb={vi.fn()} />);
-    const submit = screen.getByRole('button', { name: 'Save and acquire material' }) as HTMLButtonElement;
-    expect(submit.disabled).toBe(true);
+    expect(screen.queryByRole('button', { name: 'Save and acquire material' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Replace source 1' }));
+    const submit = screen.getByRole('button', { name: 'Save and acquire material' }) as HTMLButtonElement;
     expect(submit.disabled).toBe(false);
     fireEvent.click(screen.getByRole('button', { name: 'Paste text' }));
     fireEvent.change(screen.getByLabelText('Learning text'), { target: { value: 'smaller source' } });
@@ -99,9 +106,9 @@ describe('one text material step', () => {
     expect(screen.getByText('Selected: notes.txt')).toBeTruthy();
     fireEvent.drop(drop, { dataTransfer: { files: [new File(['pdf'], 'notes.zip')] } });
     expect(screen.queryByText('Selected: notes.txt')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Save and acquire material' }));
+    expect(screen.queryByRole('button', { name: 'Save and acquire material' })).toBeNull();
     expect(props.onUpload).not.toHaveBeenCalled();
-    expect(screen.getByRole('alert').textContent).toBe('Choose a file first.');
+    expect(screen.getByRole('alert').textContent).toBe('Select one .pdf, .md, .markdown or .txt file.');
   });
   it('retains pasted content after failed upload for an explicit retry', async () => {
     const props = mount(); props.onUpload.mockResolvedValue(false);

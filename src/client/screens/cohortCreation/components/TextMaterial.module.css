@@ -43,5 +43,28 @@
 .saved { text-align: center; font-size: 13px; color: var(--creation-muted, #657085); margin-top: 16px; }
 .material > p[role] { margin-top: 14px; line-height: 1.6; }
 .material p[role='alert'] { color: #b03c38; }
+.materialInput .heading { padding-top: 0; padding-bottom: 20px; }
+.materialInput .eyebrow { margin-top: 0; }
+.materialInput .inputPanel { width: min(660px, 80%); padding: 24px; }
+.materialInput .drop { gap: 6px; }
+.fileLabel { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; clip-path: inset(50%); overflow: hidden; white-space: nowrap; }
+.materialInput .cards { gap: 6px; margin-top: 14px; }
+.materialInput .cards button { padding: 6px; gap: 5px; }
+.materialInput .limits { width: min(660px, 80%); margin-top: 18px; margin-bottom: 0; }
+.materialInput > h2.sourceHeading { margin-top: 30px; font-size: 23px; }
+.materialInput .sources > li { display: grid; grid-template-columns: 25px minmax(0, 1fr) auto; align-items: center; gap: 18px; min-height: 116px; }
+.sourceIcon { color: var(--creation-muted); }
+.sourceIcon[data-ready] { color: #42a51d; }
+.sourceDetails { min-width: 0; }
+.sourceDetails > span { color: var(--creation-muted); }
+.sourceActions { display: flex; flex-wrap: wrap; justify-content: end; gap: 8px; max-width: 240px; }
+.sourceActions button { margin: 0; }
 @media (max-width: 1300px) { .inputPanel, .limits, .sources, .sourceHeading, .saved, .material > p { width: 100%; } .heading { padding-inline: 0; } }
 @media (max-width: 820px) { .heading h1 { font-size: 38px; } .heading { padding-top: 20px; } .heading h1 br { display: none; } .eyebrow { font-size: 10px; } .inputPanel { outline-width: 5px; padding: 18px 12px; } .cards { gap: 2px; } .cards button { padding: 5px; } .sources > li { padding: 16px; } }
+@media (max-width: 1300px) { .materialInput .inputPanel, .materialInput .limits { width: min(660px, 100%); } }
+@media (max-width: 820px) {
+  .materialInput .heading { padding-top: 16px; }
+  .materialInput .inputPanel { padding: 18px 12px; }
+  .materialInput .sources > li { grid-template-columns: 25px minmax(0, 1fr); gap: 12px; }
+  .sourceActions { grid-column: 2; justify-content: start; max-width: none; }
+}
