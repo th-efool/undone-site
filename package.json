@@ -59,7 +59,7 @@
     "corsair": "^0.1.119",
     "framer-motion": "^13.1.0",
     "hls.js": "^1.7.3",
-    "jsdom": "29.1.1",
+    "jsdom": "26.1.0",
     "lightningcss": "^1.29.1",
     "lodash.debounce": "^4.0.8",
     "lucide-react": "^1.27.0",

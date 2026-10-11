@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { WebResponseReceipt } from '@/src/shared/cohort-creation/web';
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
-export const WEB_PARSER_VERSION = 'readability-0.6.0-jsdom-29.1.1-text-v1';
+export const WEB_PARSER_VERSION = 'readability-0.6.0-jsdom-26.1.0-text-v1';
 export const webExtractionVersion = (checksum: string) => hash(`${WEB_PARSER_VERSION}:${checksum}`);
 export const webExtractionFingerprint = (receipt: WebResponseReceipt) => hash(JSON.stringify({ materialId: receipt.materialId,
   inputRevision: receipt.inputRevision, sourceId: receipt.retainedSource.id, checksum: receipt.retainedSource.checksum,
