@@ -1,9 +1,9 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { ArrowRight, BookOpen, Clock3, Compass, Star, Users } from 'lucide-react';
 import type { RecommendationResult } from '@/src/shared/cohort-creation/contracts';
 import styles from './RecommendationResults.module.css';
 import { InkUnderline } from './InkUnderline';
+import { RecommendationCover } from './RecommendationCover';
 
 export function RecommendationResults({ result, onCreateOwn }: { result: RecommendationResult; onCreateOwn: () => void }) {
   return <section aria-label="Cohort recommendations" className={styles.results}>
@@ -19,8 +19,7 @@ export function RecommendationResults({ result, onCreateOwn }: { result: Recomme
     <div className={styles.cards}>
       {result.items.map((item, index) => <article className={styles.card} data-featured={index === 0} key={item.cohort.cohortId}>
         <div className={styles.art}>
-          {item.cohort.coverImage ? <Image src={item.cohort.coverImage} alt="" fill unoptimized sizes={index === 0 ? '460px' : '200px'} /> :
-            <div className={styles.missingCover} aria-label="No cover image"><BookOpen size={index === 0 ? 68 : 42} strokeWidth={1} /><span>Learn something<br />that stays with you.</span></div>}
+          <RecommendationCover src={item.cohort.coverImage} featured={index === 0} />
         </div>
         <div className={styles.cardBody}>
           {item.isBestMatch && <span className={styles.badge}><Star size={14} fill="currentColor" aria-hidden="true" />{result.mode === 'ai' ? 'Best match' : 'First search result'}</span>}
