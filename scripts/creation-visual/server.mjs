@@ -19,6 +19,7 @@ import {draftId} from '@/src/shared/cohort-creation/__tests__/fixtures';
 import {conceptPreview,chunkPreview,analysisPreview,reviewResponse,visualActions} from '/@fs/${workspace.replaceAll('\\', '/')}/scripts/creation-visual/fixtures.ts';
 import '@/src/app/styles/reset.css'; import './fonts.css';
 window.__creationVisualFixtures={conceptPreview,chunkPreview,analysisPreview,reviewResponse,visualActions};
+if(new URLSearchParams(location.search).has('journey')) window.__creationJourney=await import('/@fs/${workspace.replaceAll('\\', '/')}/scripts/creation-visual/journey-fixtures.ts');
 const Component=new URLSearchParams(location.search).get('version')==='before'?Before:Current;
 createRoot(document.getElementById('root')!).render(<Component draftId={draftId} resume />);`);
 writeFileSync(path.join(root, 'fonts.css'), `@font-face{font-family:Manrope;src:url('/fonts/Manrope-Medium.ttf');font-weight:400 600} @font-face{font-family:Manrope;src:url('/fonts/Manrope-Bold.ttf');font-weight:700 900} @font-face{font-family:Caveat;src:url('/fonts/Caveat-Bold.ttf')} @font-face{font-family:Playfair;src:url('/preview-playfair.woff2');font-weight:400 900} :root{--font-manrope-next:Manrope;--font-geist-sans:Manrope;--font-caveat-next:Caveat;--font-playfair-display:Playfair} body{margin:0}`);
@@ -27,6 +28,7 @@ if (!existsSync(font)) throw new Error('Cached production Playfair font missing;
 const fixture = path.join(workspace, 'scripts/creation-visual/fixtures.ts');
 const wrapper = path.join(workspace, 'scripts/creation-visual/wrappers.tsx');
 const server = await createServer({ configFile: false, root, publicDir: path.join(workspace, 'public'), esbuild: { jsx: 'automatic' },
+  define: { 'process.env.NEXT_PUBLIC_API_ORIGIN': '""', 'process.env.NEXT_PUBLIC_MOBILE_BUILD': '"false"' },
   resolve: { alias: { '@': workspace, 'next/image': wrapper, 'next/navigation': wrapper } },
   plugins: [{ name: 'creation-fixture-boundary', enforce: 'pre', resolveId(source, importer) {
     if (source === './hooks/useCreation' && importer?.replaceAll('\\', '/').endsWith('/CreationExperience.tsx')) return fixture;

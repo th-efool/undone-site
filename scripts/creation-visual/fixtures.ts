@@ -1,6 +1,7 @@
 import { PEDAGOGICAL_DIMENSIONS } from '../../src/shared/curriculum/pedagogicalVector.types';
 import { initialSnapshot } from '../../src/shared/cohort-creation/flow';
 import { result, draftId } from '../../src/shared/cohort-creation/__tests__/fixtures';
+import { useCreation as useDurableCreation } from '../../src/client/screens/cohortCreation/hooks/useCreation';
 
 // Browser-only fixtures. Never imported by application routes or used for live generation.
 export const screenNumber = Number(new URLSearchParams(location.search).get('screen') ?? 2);
@@ -52,7 +53,7 @@ export const snapshot = { ...initialSnapshot(draftId), revision: 1, inputRevisio
   publication: screenNumber < 10 ? null : { requestId: draftId, mode: 'public_publish', cohortId: draftId, snapshotHash: hash('a'), checkpoint: null,
     receipt: { requestId: draftId, snapshotHash: hash('a'), cohortId: draftId, mode: 'public_publish', committedAt: '2026-10-11T00:00:00.000Z' } },
   ...(screenNumber >= 5 && screenNumber <= 7 ? { status: 'running', activeRequestId: draftId } : {}) };
-export function useCreation() {
+function useVisualCreation() {
   const variant = new URLSearchParams(location.search).get('case');
   const publicationVariant = screenNumber === 10 && snapshot.publication && variant ? { ...snapshot,
     stage: ['pending', 'failed'].includes(variant) ? 'finalizing' : 'published', status: variant === 'pending' ? 'running' : variant === 'failed' ? 'failed' : 'succeeded',
@@ -75,3 +76,5 @@ export function useCreation() {
   return new Proxy({ snapshot: state, hydrated: true, saved: true, materialPending: false, activatingReady: false, uploading: false, message: null, query: state.query },
     { get: (target, property) => property in target ? target[property as keyof typeof target] : async () => { visualActions.push(String(property)); return true; } });
 }
+// Only the isolated preview supports this opt-in real-hook transport journey.
+export const useCreation = new URLSearchParams(location.search).has('journey') ? useDurableCreation : useVisualCreation;
