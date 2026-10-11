@@ -26,6 +26,7 @@ export function useReviewWorkspace(creation: ReturnType<typeof useCreation>) {
   const [recoveryAvailable, setRecoveryAvailable] = useState(true);
   const lock = useRef(false); const pageController = useRef<AbortController | null>(null);
   const currentRevision = useRef(snapshot.revision); const initializedRecovery = useRef<string | null>(null);
+  const recoveryReadable = useRef(true);
   useEffect(() => {
     currentRevision.current = snapshot.revision;
     const controller = new AbortController();
@@ -37,11 +38,11 @@ export function useReviewWorkspace(creation: ReturnType<typeof useCreation>) {
           setMetadata(null); setLessonEdits({}); setRecovery(null);
           try {
             const saved = readReviewRecovery(snapshot.draftId, window.sessionStorage);
-            setRecoveryAvailable(true);
+          recoveryReadable.current = true; setRecoveryAvailable(true);
             if (saved && saved.buildFingerprint === review.buildFingerprint && saved.editRevision === review.editRevision) {
               setMetadata(saved.metadata); setLessonEdits(saved.lessonEdits); setRecoveryMessage('Recovered unsaved edits from this tab. Save to confirm them to your account.');
             } else if (saved) { setRecovery(saved); setRecoveryMessage(null); }
-          } catch { setRecoveryAvailable(false); setRecoveryMessage('Tab recovery is unavailable. Save edits before leaving this page.'); }
+        } catch { recoveryReadable.current = false; setRecoveryAvailable(false); setRecoveryMessage('Tab recovery is unavailable. Save edits before leaving this page.'); }
           initializedRecovery.current = snapshot.draftId; setRecoveryReady(snapshot.draftId);
         }
         setReadError(value.revision === snapshot.revision && value.curriculum.version === review.buildFingerprint ? null : { revision: snapshot.revision, message: 'The saved review changed. Reload the draft to continue.' });
@@ -63,7 +64,7 @@ export function useReviewWorkspace(creation: ReturnType<typeof useCreation>) {
       if (dirty) writeReviewRecovery({ schemaVersion: 1, draftId: snapshot.draftId, buildFingerprint: review.buildFingerprint,
         editRevision: review.editRevision, savedAt: Date.now(), metadata, lessonEdits }, window.sessionStorage);
       else removeReviewRecovery(snapshot.draftId, window.sessionStorage);
-      report(true);
+      report(recoveryReadable.current);
     } catch { report(false, 'Unsaved edits could not be backed up in this tab. Save before leaving this page.'); }
     return () => { canceled = true; };
   }, [recoveryReady, preview, recovery, dirty, snapshot.draftId, review.buildFingerprint, review.editRevision, metadata, lessonEdits]);

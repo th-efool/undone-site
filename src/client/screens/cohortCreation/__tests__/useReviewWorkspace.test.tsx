@@ -61,7 +61,7 @@ describe('review orchestration', () => {
     const { creation } = fixture(); const storage = vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('denied'); });
     const { result } = renderHook(() => useReviewWorkspace(creation)); await waitFor(() => expect(result.current.canFinalize).toBe(true));
     expect(result.current.recoveryMessage).toContain('unavailable'); act(() => result.current.changeMetadata({ title: 'Still here' }));
-    expect(result.current.fields.title).toBe('Still here'); storage.mockRestore();
+    expect(result.current.fields.title).toBe('Still here'); await waitFor(() => expect(result.current.recoveryAvailable).toBe(false)); storage.mockRestore();
   });
   it('reloads canonical state without discarding local review changes', async () => {
     const { creation } = fixture(); const { result } = renderHook(() => useReviewWorkspace(creation));
