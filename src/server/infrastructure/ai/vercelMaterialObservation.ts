@@ -1,4 +1,5 @@
 import 'server-only';
+import { creationOutputSchema } from './creationOutputSchema';
 import { APICallError, generateText, NoObjectGeneratedError, NoOutputGeneratedError, Output, type LanguageModel } from 'ai';
 import { z } from 'zod';
 import { youtubeVideoMetadataSchema, type YoutubeVideoMetadata } from '@/src/shared/cohort-creation/youtube';
@@ -39,7 +40,7 @@ export class VercelMaterialObservation implements MaterialObservation {
             { type: 'text', text: JSON.stringify({ videoId: video.videoId, durationSeconds: video.durationSeconds,
               title: video.title, ...(attempt ? { correction: 'Previous output failed schema validation. Return only the requested structured fields.' } : {}) }) },
             { type: 'file', data: new URL(video.url), mediaType: 'video/mp4' },
-          ] }], output: Output.object({ schema: videoObservationProposalSchema }),
+          ] }], output: Output.object({ schema: creationOutputSchema(videoObservationProposalSchema, this.model) }),
           maxOutputTokens: 12_000, maxRetries: 0, abortSignal: signal, timeout: { totalMs: 90_000 },
           telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },
         });

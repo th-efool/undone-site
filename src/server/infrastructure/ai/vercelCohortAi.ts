@@ -1,4 +1,5 @@
 import 'server-only';
+import { creationOutputSchema } from './creationOutputSchema';
 import { APICallError, generateText, NoObjectGeneratedError, NoOutputGeneratedError, Output, RetryError, type LanguageModel } from 'ai';
 import { z } from 'zod';
 import type { ExistingCohortReference, LearningIntent } from '@/src/shared/cohort-creation/contracts';
@@ -45,7 +46,7 @@ export class VercelCohortAi implements CohortAi {
         const result = await generateText({
           model: this.model, instructions,
           prompt,
-          output: Output.object({ schema }), maxOutputTokens: 2000,
+          output: Output.object({ schema: creationOutputSchema(schema, this.model) }), maxOutputTokens: 2000,
           maxRetries: this.execution?.maxRetries ?? 2, timeout: { totalMs: 15_000 }, abortSignal: signal,
           telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },
         });

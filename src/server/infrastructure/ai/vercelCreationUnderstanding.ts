@@ -1,4 +1,5 @@
 import 'server-only';
+import { creationOutputSchema } from './creationOutputSchema';
 import { APICallError, generateText, NoObjectGeneratedError, NoOutputGeneratedError, Output, type LanguageModel } from 'ai';
 import { z } from 'zod';
 import { learningIntentSchema, type LearningIntent } from '@/src/shared/cohort-creation/contracts';
@@ -34,7 +35,7 @@ export class VercelCreationUnderstanding implements CreationUnderstanding {
       signal.throwIfAborted(); const release = await this.execution.beforeCall(partition.id);
       try {
         signal.throwIfAborted();
-        const result = await generateText({ model: this.model, instructions, prompt, output: Output.object({ schema: understandingProposalSchema }),
+        const result = await generateText({ model: this.model, instructions, prompt, output: Output.object({ schema: creationOutputSchema(understandingProposalSchema, this.model) }),
           maxOutputTokens: 6000, maxRetries: 0, abortSignal: signal, timeout: { totalMs: 60_000 },
           telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false } });
         signal.throwIfAborted();

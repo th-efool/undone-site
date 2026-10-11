@@ -1,4 +1,5 @@
 import 'server-only';
+import { creationOutputSchema } from './creationOutputSchema';
 import { APICallError, generateText, NoObjectGeneratedError, NoOutputGeneratedError, Output, type LanguageModel } from 'ai';
 import { z } from 'zod';
 import type { GeneratedCurriculum } from '@/src/shared/cohort-creation/artifacts';
@@ -31,7 +32,7 @@ export class VercelCreationRefinement implements CreationRefinement {
       signal.throwIfAborted(); const release = await this.execution.beforeCall();
       try {
         signal.throwIfAborted();
-        const result = await generateText({ model: this.model, instructions, prompt, output: Output.object({ schema: refinementProposalSchema }),
+        const result = await generateText({ model: this.model, instructions, prompt, output: Output.object({ schema: creationOutputSchema(refinementProposalSchema, this.model) }),
           maxOutputTokens: 6000, maxRetries: 0, abortSignal: signal, timeout: { totalMs: 60_000 },
           telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false } });
         signal.throwIfAborted();

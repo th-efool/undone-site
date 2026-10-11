@@ -1,4 +1,5 @@
 import 'server-only';
+import { creationOutputSchema } from './creationOutputSchema';
 import { google } from '@ai-sdk/google';
 import { APICallError, generateText, NoObjectGeneratedError, NoOutputGeneratedError, Output, stepCountIs, type LanguageModel } from 'ai';
 import { z } from 'zod';
@@ -82,7 +83,7 @@ export class VercelResourceDiscovery implements ResourceDiscovery {
       try {
         signal.throwIfAborted();
         const result = await generateText({ model: this.model, instructions: selectionInstructions, prompt,
-          output: Output.object({ schema: discoverySelectionSchema }), maxRetries: 0, maxOutputTokens: 2000,
+          output: Output.object({ schema: creationOutputSchema(discoverySelectionSchema, this.model) }), maxRetries: 0, maxOutputTokens: 2000,
           timeout: { totalMs: 30_000 }, abortSignal: signal, telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false } });
         signal.throwIfAborted();
         if (result.finishReason !== 'stop') throw creationFailure('AI_INVALID_OUTPUT', 'Source selection did not complete. Try again.', false);

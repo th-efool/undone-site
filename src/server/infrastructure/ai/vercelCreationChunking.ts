@@ -1,4 +1,5 @@
 import 'server-only';
+import { creationOutputSchema } from './creationOutputSchema';
 import { APICallError, generateText, NoObjectGeneratedError, NoOutputGeneratedError, Output, type LanguageModel } from 'ai';
 import { z } from 'zod';
 import { learningIntentSchema, type LearningIntent } from '@/src/shared/cohort-creation/contracts';
@@ -40,7 +41,7 @@ export class VercelCreationChunking implements CreationChunking {
       signal.throwIfAborted(); const release = await this.execution.beforeCall(partition.id);
       try {
         signal.throwIfAborted();
-        const result = await generateText({ model: this.model, instructions, prompt, output: Output.object({ schema: chunkBoundaryProposalSchema }),
+        const result = await generateText({ model: this.model, instructions, prompt, output: Output.object({ schema: creationOutputSchema(chunkBoundaryProposalSchema, this.model) }),
           maxOutputTokens: 6000, maxRetries: 0, abortSignal: signal, timeout: { totalMs: 60_000 },
           telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false } });
         signal.throwIfAborted();
