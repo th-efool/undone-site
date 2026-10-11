@@ -3,7 +3,7 @@ import { createGoogle } from '@ai-sdk/google';
 import type { LanguageModel } from 'ai';
 import { creationFailure } from '@/src/server/domain/cohort-creation/errors';
 
-export const DEFAULT_COHORT_MODEL = 'gemini-3.5-flash-lite';
+export const DEFAULT_COHORT_MODEL = 'gemini-3.1-flash-lite';
 export function createCohortModel(config: { apiKey?: string; modelId?: string } = {
   apiKey: process.env.GEMINI_API_KEY,
   modelId: process.env.COHORT_AI_MODEL,

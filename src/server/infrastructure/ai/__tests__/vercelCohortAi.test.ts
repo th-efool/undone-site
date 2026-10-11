@@ -56,6 +56,7 @@ describe('Vercel SDK creation adapter', () => {
   });
   it('requires a key and allows the configured model to change without task/UI changes', () => {
     expect(() => createCohortModel({})).toThrow('not configured');
+    expect(createCohortModel({ apiKey: 'test' })).toMatchObject({ modelId: 'gemini-3.1-flash-lite' });
     expect(createCohortModel({ apiKey: 'test', modelId: 'replacement-model' })).toMatchObject({ modelId: 'replacement-model' });
   });
 });
