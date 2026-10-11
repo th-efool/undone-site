@@ -64,7 +64,9 @@ export class NotionApi implements NotionPageProvider {
           if (bytes > maxBytes) throw new CreationStorageError('LIMIT_EXCEEDED', 'Notion response exceeds 4 MiB. Select a smaller page; nothing was truncated.');
           chunks.push(part.value);
         }
-        if (length && bytes !== Number(length)) throw new CreationStorageError('INVALID_INPUT', 'Notion returned an incomplete response. Retry the page.');
+        // Fetch decodes compressed bodies but retains the wire Content-Length.
+        const encoding = response.headers.get('content-encoding')?.trim().toLowerCase();
+        if (length && (!encoding || encoding === 'identity') && bytes !== Number(length)) throw new CreationStorageError('INVALID_INPUT', 'Notion returned an incomplete response. Retry the page.');
         try { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks))) as unknown; }
         catch { throw new CreationStorageError('INVALID_INPUT', 'Notion returned malformed JSON.'); }
       } finally { signal.removeEventListener('abort', abort); await reader.cancel().catch(() => undefined); reader.releaseLock(); }

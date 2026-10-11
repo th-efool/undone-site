@@ -39,6 +39,9 @@ export class GithubApiTransport implements PublicGithubProvider {
           chunks.push(chunk.value);
         }
         signal.throwIfAborted();
+        // Fetch decodes compressed bodies but retains the wire Content-Length.
+        const encoding = response.headers.get('content-encoding')?.trim().toLowerCase();
+        if (length && (!encoding || encoding === 'identity') && bytes !== Number(length)) throw new CreationStorageError('INVALID_INPUT', 'GitHub returned an incomplete response. Retry the selected paths.');
         try { return JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Buffer.concat(chunks))) as unknown; }
         catch { throw new CreationStorageError('INVALID_INPUT', 'GitHub returned malformed JSON.'); }
       } finally { signal.removeEventListener('abort', abort); await reader.cancel().catch(() => undefined); reader.releaseLock(); }
