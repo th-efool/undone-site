@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PEDAGOGICAL_DIMENSIONS } from '@/src/shared/curriculum/pedagogicalVector.types';
+import { pedagogicalVectorSchema } from './pedagogical-vector';
 import { fieldValueSchema, learningIntentSchema, materialSourceSchema, workspaceStageSchema } from './contracts';
 
 const key = z.string().min(1).max(128);
@@ -8,7 +8,7 @@ const revision = z.number().int().nonnegative();
 // These contracts declare boundaries only; their processing/persistence starts in 3B/3C.
 export const chunkAnalysisSchema = z.strictObject({
   chunkId: key,
-  vector: z.record(z.enum(PEDAGOGICAL_DIMENSIONS), z.number().min(0).max(1)),
+  vector: pedagogicalVectorSchema,
   isStrictlyLinear: z.boolean(), confidence: z.number().min(0).max(1),
   reasoning: copy, modelId: key, promptVersion: key, inputRevision: revision,
 });

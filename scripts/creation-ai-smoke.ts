@@ -6,6 +6,14 @@ import { createCohortModel } from '../src/server/infrastructure/ai/modelRegistry
 import { VercelCohortAi } from '../src/server/infrastructure/ai/vercelCohortAi';
 import { VercelCreationUnderstanding } from '../src/server/infrastructure/ai/vercelCreationUnderstanding';
 import { VercelCreationChunking } from '../src/server/infrastructure/ai/vercelCreationChunking';
+import { VercelCreationAnalysis } from '../src/server/infrastructure/ai/vercelCreationAnalysis';
+import { VercelCreationBuild } from '../src/server/infrastructure/ai/vercelCreationBuild';
+import { groundChunkBoundaries } from '../src/server/domain/cohort-creation/chunking';
+import { groundAnalysis } from '../src/server/domain/cohort-creation/analysis';
+import { groundBuildProposal } from '../src/server/domain/cohort-creation/build';
+import { VercelCreationRefinement } from '../src/server/infrastructure/ai/vercelCreationRefinement';
+import { generatedCurriculumSchema } from '../src/shared/cohort-creation/artifacts';
+import { reviewWorkspaceSchema } from '../src/shared/cohort-creation/review';
 import { VercelResourceDiscovery } from '../src/server/infrastructure/ai/vercelResourceDiscovery';
 import { learningIntentSchema } from '../src/shared/cohort-creation/contracts';
 import { extractRetainedText } from '../src/server/domain/cohort-creation/materials/text';
@@ -16,7 +24,7 @@ let calls = 0;
 const started = Date.now();
 const mode = process.argv[2] ?? 'intent';
 async function main() {
-  assert.ok(['intent', 'text', 'discovery'].includes(mode), 'Expected intent, text or discovery');
+  assert.ok(['intent', 'text', 'discovery', 'refinement'].includes(mode), 'Expected intent, text, discovery or refinement');
   const configuredModel = createCohortModel();
   assert.ok(typeof configuredModel !== 'string');
   assert.equal(configuredModel.specificationVersion, 'v4');
@@ -62,6 +70,19 @@ async function main() {
     topic: field(proposal.topic), outcomes: field(proposal.outcomes), level: proposal.level ? field(proposal.level) : null,
     language: proposal.language ? field(proposal.language) : null, searchTerms: proposal.searchTerms, uncertainties: proposal.uncertainties });
   console.log(JSON.stringify({ stage, status: mode === 'intent' ? 'passed' : 'local smoke input', model: model.modelId, calls }));
+  if (mode === 'refinement') {
+    stage = 'refinement';
+    const local = <T>(value: T) => ({ value, origin: 'user' as const, acceptedRevision: 0 });
+    const curriculum = generatedCurriculumSchema.parse({ version: 'a'.repeat(64), inputRevision: 0,
+      title: local('JavaScript basics'), description: local('A locally authored smoke example about variables and functions.'), warnings: [],
+      seasons: [{ id: 'local-season', title: local('Basics'), order: 0, lessons: [{ id: 'local-lesson', title: local('Variables and functions'),
+        objectives: local(['Explain const, let and return']), order: 0, type: 'ARTICLE', chunkIds: ['local-chunk'], materialIds: ['local-material'], durationSeconds: 60 }] }] });
+    const review = reviewWorkspaceSchema.parse({ title: curriculum.title.value, description: curriculum.description.value, buildFingerprint: curriculum.version,
+      editRevision: 0, lessonIds: ['local-lesson'], lessonEdits: [], visibility: 'PRIVATE', chatEnabled: false, eventsEnabled: false, proposal: null });
+    const result = await new VercelCreationRefinement(model, { beforeCall }).refine('Change the cohort title to "JavaScript variables and functions for beginners".', curriculum, review, signal);
+    assert.ok(result.changes.some(change => change.type === 'title'));
+    console.log(JSON.stringify({ stage, status: 'passed', proposals: result.changes.length, calls, applied: false }));
+  }
   if (mode === 'discovery') {
     stage = 'grounded discovery';
     const result = await new VercelResourceDiscovery(model, { beforeCall }).search(intent, signal);
@@ -83,6 +104,17 @@ async function main() {
     stage = 'chunking';
     const chunking = await new VercelCreationChunking(model, { beforeCall }).chunk(intent, partition, understanding, signal);
     console.log(JSON.stringify({ stage, status: 'passed', chunks: chunking.chunks.length, calls }));
+    const chunks = groundChunkBoundaries(chunking, partition, understanding, 0, signal);
+    stage = 'analysis';
+    const analyzer = new VercelCreationAnalysis(model, { beforeCall });
+    const analysis = await analyzer.analyze(intent, partition, chunks, signal);
+    const analyses = groundAnalysis(analysis, partition, chunks, 0, analyzer.identity);
+    console.log(JSON.stringify({ stage, status: 'passed', analyses: analyses.length, calls }));
+    stage = 'building';
+    const build = await new VercelCreationBuild(model, { beforeCall }).build(intent, partition, chunks, analyses, signal);
+    const lessons = groundBuildProposal(build, partition, chunks, 0);
+    assert.equal(lessons.flatMap(lesson => lesson.chunkIds).length, chunks.length);
+    console.log(JSON.stringify({ stage, status: 'passed', lessons: lessons.length, calls }));
   }
   console.log(JSON.stringify({ status: 'passed', mode, calls, elapsedMs: Date.now() - started, persistence: 'none' }));
 }

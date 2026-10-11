@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PEDAGOGICAL_DIMENSIONS } from '@/src/shared/curriculum/pedagogicalVector.types';
+import { pedagogicalVectorSchema } from './pedagogical-vector';
 import { understandingReceiptSchema } from './processing';
 import { retainedObjectRefSchema } from './storage';
 
@@ -7,7 +7,7 @@ const checksum = z.string().regex(/^[a-f0-9]{64}$/);
 const artifact = retainedObjectRefSchema.extend({ kind: z.literal('artifact') });
 export const analysisProposalSchema = z.strictObject({
   analyses: z.array(z.strictObject({ chunkIndex: z.number().int().min(0).max(199),
-    vector: z.record(z.enum(PEDAGOGICAL_DIMENSIONS), z.number().min(0).max(1)),
+    vector: pedagogicalVectorSchema,
     isStrictlyLinear: z.boolean(), confidence: z.number().min(0).max(1),
     reasoning: z.string().trim().min(1).max(2000),
   })).min(1).max(200),
