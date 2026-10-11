@@ -16,6 +16,38 @@ const mode = process.argv[2] ?? 'web';
 let stage = 'configuration';
 async function main() {
   assert.ok(['web', 'youtube', 'video', 'github'].includes(mode));
+  if (mode === 'youtube') {
+    const urls = process.argv.slice(3);
+    const sources = urls.length ? urls : [
+      'https://www.youtube.com/watch?v=y_rdvDr3wB4',
+      'https://www.youtube.com/watch?v=jNQXAC9IVRw',
+      'https://youtu.be/rfscVS0vtbw',
+      'https://www.youtube.com/watch?v=jNQXAC9IVRw&list=PLUl4u3cNGP63WbdFxL8giv4yhgdMGaZNA',
+      'https://www.youtube.com/playlist?list=PLUl4u3cNGP63WbdFxL8giv4yhgdMGaZNA',
+    ];
+    assert.ok(sources.length <= 10, 'At most ten explicit metadata checks per invocation');
+    let failures = 0;
+    for (const [index, url] of sources.entries()) {
+      let requests = 0;
+      const started = performance.now();
+      const reader = new YoutubeMetadataReader(undefined, async (...args) => { requests++; return fetch(...args); });
+      try {
+        const metadata = await reader.read(url, AbortSignal.timeout(20_000));
+        console.log(JSON.stringify({ mode, source: index + 1, status: 'passed', kind: metadata.kind,
+          videos: metadata.units.length, durationSeconds: metadata.units.reduce((sum, unit) => sum + unit.durationSeconds, 0),
+          elapsedMs: Math.round(performance.now() - started), requests, persistence: 'none', modelCalls: 0 }));
+      } catch (error) {
+        failures++;
+        const failure = error as { code?: string; name?: string };
+        const code = failure.code ?? failure.name ?? 'UNKNOWN';
+        console.log(JSON.stringify({ mode, source: index + 1, status: 'failed',
+          code: /^[A-Za-z_]{1,40}$/.test(code) ? code : 'UNKNOWN',
+          elapsedMs: Math.round(performance.now() - started), requests, persistence: 'none', modelCalls: 0 }));
+      }
+    }
+    if (failures) process.exitCode = 1;
+    return;
+  }
   const signal = AbortSignal.timeout(100_000);
   if (mode === 'web') {
     stage = 'public fetch';
