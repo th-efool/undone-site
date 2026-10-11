@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir = path.resolve(__dirname, '..');
-const outputFile = path.join(rootDir, 'plans', 'directory-structure.md');
+const outputFile = path.join(rootDir, '.tmp', 'directory-structure.md');
 
 const IGNORE_PATTERNS = [
   /^\.git$/,
@@ -15,6 +15,15 @@ const IGNORE_PATTERNS = [
   /^dist-worker$/,
   /^coverage$/,
   /^\.idea$/,
+  /^\.tmp$/,
+  /^out$/,
+  /^generated$/,
+  /^\.vercel$/,
+  /^\.agents$/,
+  /^\.gradle$/,
+  /^build$/,
+  /^\.env(?:\.|$)/,
+  /\.(?:pem|jks|tsbuildinfo)$/,
   /^\.DS_Store$/
 ];
 

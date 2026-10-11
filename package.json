@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "node scripts/dev.mjs",
     "dev:bare": "next dev",
-    "build": "node scripts/update-directory-structure.mjs && prisma generate && next build",
+    "build": "prisma generate && next build",
     "update:structure": "node scripts/update-directory-structure.mjs",
     "build:worker": "tsc --project tsconfig.worker.json",
     "build:workflow": "tsc --project tsconfig.worker.json",
