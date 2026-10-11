@@ -9,6 +9,8 @@ import { YoutubeUnits } from './YoutubeUnits';
 import { GithubMaterial } from './GithubMaterial';
 import { NotionMaterial } from './NotionMaterial';
 import type { GithubSelection } from '@/src/shared/cohort-creation/github';
+import { MATERIAL_LIMITS } from '@/src/shared/cohort-creation/materials';
+import { PDF_LIMITS } from '@/src/shared/cohort-creation/pdf';
 
 export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelUpload, onCancel, onRetry, onRemove, onWeb, onSelectUnits, onObserve, onGithub, onNotion, selectionOnly = false }: {
   snapshot: CreationSnapshot; uploading: boolean; pending: boolean;
@@ -31,14 +33,21 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
   const picker = useRef<HTMLInputElement>(null);
   const [replacementId, setReplacementId] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
+  const submitting = useRef(false);
   const replacement = snapshot.materials.find(source => source.id === replacementId);
-  const busy = pending || queuing || removing || snapshot.status === 'running';
+  const busy = uploading || pending || queuing || removing || snapshot.status === 'running';
+  const validateBytes = (size: number, pdf: boolean) => {
+    if (size > 0 && size <= (pdf ? PDF_LIMITS.bytes : MATERIAL_LIMITS.extractedTextBytes)) return true;
+    setError(`Provide ${pdf ? 'a PDF up to 25 MiB' : 'text up to 1 MiB'}. Select a smaller source; nothing was truncated.`);
+    return false;
+  };
   const select = (files: FileList | null) => {
     if (busy || !files?.length) return;
     if (files.length !== 1 || !/\.(md|markdown|txt|pdf)$/i.test(files[0].name)) {
       setFile(null);
       setError('Select one .pdf, .md, .markdown or .txt file.'); return;
     }
+    if (!validateBytes(files[0].size, /\.pdf$/i.test(files[0].name))) { setFile(null); return; }
     setFile(files[0]); setError(null); setMode('file');
   };
   return <section aria-label="Learning material" className={`${styles.material} ${styles.materialInput}`}>
@@ -84,7 +93,13 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
       }
       const bytes = mode === 'paste' ? new Blob([text], { type: 'text/plain' }) : file ? new Blob([file], { type: /\.pdf$/i.test(file.name) ? 'application/pdf' : /\.(md|markdown)$/i.test(file.name) ? 'text/markdown' : 'text/plain' }) : null;
       if (!bytes) { setError('Choose a file first.'); return; }
-      if (await onUpload(bytes, mode === 'paste' ? 'pasted-text.txt' : file!.name, replacementId ?? undefined)) { setText(''); setFile(null); setError(null); setReplacementId(null); if (picker.current) picker.current.value = ''; }
+      if (submitting.current || !validateBytes(bytes.size, bytes.type === 'application/pdf')) return;
+      submitting.current = true; setQueuing(true); setError(null);
+      try {
+        if (await onUpload(bytes, mode === 'paste' ? 'pasted-text.txt' : file!.name, replacementId ?? undefined)) { setText(''); setFile(null); setReplacementId(null); if (picker.current) picker.current.value = ''; }
+      } catch {
+        setError('Material could not be saved. Your input is still here. Reload the saved draft before retrying if the upload may have completed.');
+      } finally { submitting.current = false; setQueuing(false); }
     }}>
       {mode === 'url' ? <><label htmlFor="material-url">Public article or YouTube URL</label>
         <div className={styles.urlInput}><LinkIcon size={20} aria-hidden="true" /><input id="material-url" type="url" placeholder="https://…" required maxLength={2048} pattern="https://.*" disabled={busy} value={url} onChange={event => setUrl(event.target.value)} /></div></> : mode === 'paste' ? <><label htmlFor="material-text">Learning text</label>

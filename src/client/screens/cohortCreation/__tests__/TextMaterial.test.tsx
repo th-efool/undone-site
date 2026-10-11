@@ -118,4 +118,35 @@ describe('one text material step', () => {
     await waitFor(() => expect(props.onUpload).toHaveBeenCalledOnce());
     expect((screen.getByLabelText('Learning text') as HTMLTextAreaElement).value).toBe('Keep this source');
   });
+  it.each([['notes.txt', 1024 * 1024 + 1], ['lesson.pdf', 25 * 1024 * 1024 + 1], ['empty.md', 0]])('rejects invalid file sizes before upload: %s', (filename, size) => {
+    const props = mount(); const file = new File(['x'], filename);
+    Object.defineProperty(file, 'size', { value: size });
+    fireEvent.change(screen.getByLabelText('Choose or drop a PDF/text/Markdown file'), { target: { files: [file] } });
+    expect(screen.getByRole('alert').textContent).toContain('nothing was truncated');
+    expect(screen.queryByText(`Selected: ${filename}`)).toBeNull();
+    expect(props.onUpload).not.toHaveBeenCalled();
+  });
+  it('counts pasted UTF-8 bytes instead of characters for the text limit', () => {
+    const props = mount(); fireEvent.click(screen.getByRole('button', { name: 'Paste text' }));
+    const text = 'é'.repeat(524289);
+    fireEvent.change(screen.getByLabelText('Learning text'), { target: { value: text } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save and acquire material' }));
+    expect(screen.getByRole('alert').textContent).toContain('text up to 1 MiB');
+    expect((screen.getByLabelText('Learning text') as HTMLTextAreaElement).value).toBe(text);
+    expect(props.onUpload).not.toHaveBeenCalled();
+  });
+  it('serializes submissions and retains input after an unexpected upload failure', async () => {
+    const props = mount(); let reject!: (error: Error) => void;
+    props.onUpload.mockImplementation(() => new Promise((_resolve, rejectPromise) => { reject = rejectPromise; }));
+    fireEvent.click(screen.getByRole('button', { name: 'Paste text' }));
+    fireEvent.change(screen.getByLabelText('Learning text'), { target: { value: 'Keep these notes' } });
+    const submit = screen.getByRole('button', { name: 'Save and acquire material' });
+    fireEvent.submit(submit.closest('form')!); fireEvent.submit(submit.closest('form')!);
+    expect(props.onUpload).toHaveBeenCalledOnce();
+    expect((screen.getByRole('button', { name: 'Upload a file' }) as HTMLButtonElement).disabled).toBe(true);
+    reject(new Error('storage failed'));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('Your input is still here'));
+    expect((screen.getByLabelText('Learning text') as HTMLTextAreaElement).value).toBe('Keep these notes');
+    expect((submit as HTMLButtonElement).disabled).toBe(false);
+  });
 });
