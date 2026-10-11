@@ -35,6 +35,17 @@ beforeEach(() => {
 });
 afterEach(cleanup);
 describe('owned creation workspace', () => {
+  it('finishes a zero-match search and continues into creating an owned cohort', async () => {
+    const running = applyCommand(saved, { type: 'request_recommendations', query: result.intent.rawQuery, requestId: result.requestId });
+    saved = applyEvent(running, { type: 'recommendations_received', result: { ...result, items: [] } });
+    render(<CreationExperience draftId={draftId} resume />);
+    expect(await screen.findByText('No matching public cohorts were found. You can start your own from this intent.')).toBeTruthy();
+    expect(screen.queryByText('Finding your people…')).toBeNull();
+    expect(screen.queryByText('I found a few ways you could jump in.')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /create my own cohort/i }));
+    await screen.findByRole('button', { name: /i already have material/i });
+    expect(saved.stage).toBe('starting_point');
+  });
   function materialDraft() {
     saved = applyCommand(saved, { type: 'request_recommendations', query: result.intent.rawQuery, requestId: result.requestId });
     saved = applyEvent(saved, { type: 'recommendations_received', result });

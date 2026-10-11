@@ -8,10 +8,10 @@ import { InkUnderline } from './InkUnderline';
 export function RecommendationResults({ result, onCreateOwn }: { result: RecommendationResult; onCreateOwn: () => void }) {
   return <section aria-label="Cohort recommendations" className={styles.results}>
     <header className={styles.heading}>
-      <p className={styles.eyebrow}>People are already learning this</p>
+      <p className={styles.eyebrow}>{result.items.length ? 'People are already learning this' : 'Make room for your curiosity'}</p>
       <h1>{result.intent.topic.value}<InkUnderline className={styles.underline} /></h1>
-      <p className={styles.subtitle}>I found a few ways you could jump in.</p>
-      <span className={styles.annotation} aria-hidden="true">Real people.<br />Real progress.<br />Join a community<br />that’s learning.</span>
+      <p className={styles.subtitle}>{result.items.length ? 'I found a few ways you could jump in.' : 'No matching public cohorts yet. Start a new learning journey.'}</p>
+      {!!result.items.length && <span className={styles.annotation} aria-hidden="true">Real people.<br />Real progress.<br />Join a community<br />that’s learning.</span>}
     </header>
     {result.mode === 'database_fallback' && <p role="status" className={styles.status}>Showing database search results. AI ranking is unavailable.</p>}
     {!result.items.length && <div className={styles.empty}><Compass size={32} strokeWidth={1.5} /><h2>A new path starts here.</h2>

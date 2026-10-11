@@ -15,6 +15,14 @@ const nextProcess = spawn(nextCmd, ["next", "dev"], {
   shell: true,
 });
 
+// Durable creation requests are queued by Next and need their own polling process.
+const creationWorker = spawn(process.execPath, ["--conditions=react-server", "--import", "tsx",
+  "--env-file-if-exists=.env", "src/server/creation-worker.ts"], { cwd: projectRoot, stdio: "inherit" });
+creationWorker.on("error", () => console.error("[creation-worker] Could not start. Creation searches will time out until the worker is available."));
+creationWorker.on("exit", code => {
+  if (code !== 0 && code !== null) console.error("[creation-worker] Stopped unexpectedly. Restart npm run dev to resume durable creation work.");
+});
+
 // 2. Poll until Next.js dev server is reachable on port 3000
 async function waitForDevServer(port = 3000, timeout = 30000) {
   const start = Date.now();
@@ -76,6 +84,7 @@ let domshiftProcess = null;
 
 // 4. Handle clean termination
 function cleanup() {
+  creationWorker.kill("SIGTERM");
   if (domshiftProcess) {
     try { domshiftProcess.kill("SIGTERM"); } catch {}
   }
@@ -89,6 +98,7 @@ process.on("SIGINT", cleanup);
 process.on("SIGTERM", cleanup);
 
 nextProcess.on("exit", (code) => {
+  creationWorker.kill("SIGTERM");
   if (domshiftProcess) {
     try { domshiftProcess.kill("SIGTERM"); } catch {}
   }

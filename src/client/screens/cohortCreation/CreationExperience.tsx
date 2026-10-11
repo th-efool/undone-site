@@ -44,7 +44,8 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
       disabled={snapshot.status === 'running' || creation.materialPending}
       reply={snapshot.result ? <><p>Got it.</p><p>You’re looking to learn {snapshot.result.intent.topic.value}.</p>
         <p>{snapshot.result.items.length ? 'I found a few existing SideQuests that might be a good fit.' : 'Let’s make a learning journey that fits you.'}</p></> : <p>Tell me what you want to learn. I’ll look for a good place to start.</p>}
-      hintTitle="Why these?" hint="These cohorts match your interest, level, and what people are currently learning. You can join one, or tell me what you’re looking for and I’ll help make a custom one."
+      hintTitle={snapshot.result?.items.length === 0 ? 'A new path' : 'Why these?'}
+      hint={snapshot.result?.items.length === 0 ? 'No matching public cohort was found. Create your own from this learning intent.' : 'We search public cohorts for your learning intent. You can join a match or create your own.'}
       onMessage={creation.runQuery} suggestions={snapshot.result ? [
         { label: 'Show more advanced ones', action: () => void creation.runQuery(`${snapshot.query}\nI want more advanced material.`) },
         { label: 'I want something more practical', action: () => void creation.runQuery(`${snapshot.query}\nI want practical, hands-on learning.`) },
