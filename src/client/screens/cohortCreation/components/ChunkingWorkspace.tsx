@@ -6,6 +6,7 @@ import type { ChunkingPreview } from '@/src/shared/cohort-creation/chunking';
 import { loadChunkingPreview } from '../services/chunkingApi';
 import { InkUnderline } from './InkUnderline';
 import { ProcessingSteps } from './ProcessingSteps';
+import { YoutubeThumbnail } from './YoutubeThumbnail';
 import shared from './UnderstandingProgress.module.css';
 import styles from './ChunkingWorkspace.module.css';
 
@@ -43,6 +44,7 @@ export function ChunkingWorkspace({ snapshot, children }: { snapshot: CreationSn
       <fieldset className={styles.sourceList}><legend className={styles.srOnly}>Select a source to inspect its chunks</legend>
         {sources.map((item, index) => <label key={item.key} className={styles.source} data-selected={item.key === source?.key}>
           <input type="radio" name="chunk-source" checked={item.key === source?.key} onChange={() => setSelected(item.key)} />
+          {item.unitId && <YoutubeThumbnail videoId={item.unitId} />}
           <span className={styles.number}>{String(index + 1).padStart(2, '0')}</span><span className={styles.sourceTitle}>{item.title}
             {item.duration !== null && <small>{Math.ceil(item.duration / 60)} source minutes</small>}</span>
           <small>{loaded?.revision === snapshot.revision ? `${chunks.filter(chunk => chunk.materialId === item.materialId && (!item.unitId || chunk.unitId === item.unitId)).length} chunks` : 'Pending preview'}</small><ChevronRight size={16} aria-hidden="true" />
@@ -57,7 +59,7 @@ export function ChunkingWorkspace({ snapshot, children }: { snapshot: CreationSn
       {error?.revision === snapshot.revision ? <p role="alert">{error.message} <button onClick={() => setRetry(value => value + 1)}>Reload chunks</button></p> : !selectedChunks.length ?
         <p role="status" className={styles.empty}>{accepted && loaded?.revision !== snapshot.revision ? 'Loading accepted chunks…' : 'Chunks appear here when this source has accepted boundaries.'}</p> :
         <ol className={styles.chunks}>{selectedChunks.map((chunk, index) => <li key={chunk.id}><details>
-          <summary><span className={styles.chunkNumber}>{String(index + 1).padStart(2, '0')}</span><span><small>{Math.ceil(chunk.durationSeconds / 60)} min · {chunk.durationMethod === 'source' ? 'source duration' : chunk.durationMethod === 'reading_estimate' ? 'reading estimate' : 'model estimate'}</small>
+          <summary>{source?.unitId ? <YoutubeThumbnail videoId={source.unitId} /> : <span className={styles.chunkNumber}>{String(index + 1).padStart(2, '0')}</span>}<span><small>{Math.ceil(chunk.durationSeconds / 60)} min · {chunk.durationMethod === 'source' ? 'source duration' : chunk.durationMethod === 'reading_estimate' ? 'reading estimate' : 'model estimate'}</small>
             <strong>{chunk.title.value}</strong><span className={styles.teaser}>{chunk.summary.value}</span></span><ChevronRight size={17} aria-hidden="true" /></summary>
           <div className={styles.evidence}><p>Content origin: {chunk.contentOrigin}. Coverage: {chunk.coverage.scope}{chunk.coverage.exhaustive ? '.' : ' (non-exhaustive).'}</p>
             <ul>{chunk.sourceRefs.map(ref => <li key={ref.segmentId}>{ref.anchor.kind === 'video' ? `${ref.anchor.startSeconds}–${ref.anchor.endSeconds}s${ref.anchor.estimated ? ' (estimated)' : ''}` :

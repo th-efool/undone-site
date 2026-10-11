@@ -1,7 +1,8 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 const folder='plans/before-after';
 const manifest=JSON.parse(readFileSync(`${folder}/manifest.json`,'utf8'));
-const sections=manifest.screens.map(s=>`<section id="screen-${s.number}"><header><h2>${s.number}. ${s.name}</h2><span class="status">${s.status}</span></header>
+const thumbnailLink=existsSync(`${folder}/chunking-video.html`)?'<p class="note"><a href="chunking-video.html">Chunking video thumbnail repair: before/after, loaded public artwork and mobile evidence</a></p>':'';
+const sections=thumbnailLink+manifest.screens.map(s=>`<section id="screen-${s.number}"><header><h2>${s.number}. ${s.name}</h2><span class="status">${s.status}</span></header>
 <p class="meta">Reference viewport assumption: ${s.width} × ${s.height} CSS px · checkpoint ${s.checkpoint} · capture ${s.capturedAt.slice(0,10)} · code ${s.currentCommit}${s.uncommittedCode?' + working tree':''}</p>
 <div class="pair"><figure><figcaption>BEFORE <small>Actual Phase 3 UI · ${manifest.baseline}</small></figcaption><a href="before-${s.number}-full.png"><img src="before-${s.number}.png" alt="${s.name} before Phase 4" loading="lazy" width="${s.width}" height="${s.height}"></a></figure>
 <figure><figcaption>AFTER / CURRENT <small>${s.status.startsWith('Pending')?'Not restyled yet':'Phase 4 implementation'}</small></figcaption><a href="after-${s.number}-full.png"><img src="after-${s.number}.png" alt="Current ${s.name} screen" loading="lazy" width="${s.width}" height="${s.height}"></a></figure></div>

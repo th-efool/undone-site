@@ -5,6 +5,8 @@ import { useCreation as useDurableCreation } from '../../src/client/screens/coho
 
 // Browser-only fixtures. Never imported by application routes or used for live generation.
 export const screenNumber = Number(new URLSearchParams(location.search).get('screen') ?? 2);
+const videoFixture = screenNumber === 6 && new URLSearchParams(location.search).get('source') === 'youtube';
+const videoId = 'W6NZfCO5SIk';
 export const visualActions: string[] = [];
 const field = <T,>(value: T) => ({ value, origin: 'ai' as const, acceptedRevision: 1 });
 const hash = (letter: string) => letter.repeat(64);
@@ -20,10 +22,12 @@ export const conceptPreview = { revision: 1, partitions: [{ partitionId: partiti
   proposal: { summary: 'A retained fixture section about designing reliable systems.', concepts: ['Distributed systems', 'Load balancing', 'Consistency', 'Replication', 'Partitioning', 'Caching', 'Queues', 'Availability', 'Transactions', 'Observability']
     .map(label => ({ label, summary: `Fixture explanation of ${label}.`, segmentIds: ['segment-1'] })), limitations: ['Visual fixture, not a live AI result.'] } }] };
 export const chunkPreview = { revision: 1, chunks: ['What makes a distributed system?', 'Why availability matters', 'Choosing consistency guarantees'].map((title, index) => ({
-  id: `fixture-chunk-${index}`, materialId: draftId, unitId: draftId, partitionId: partitionIds[0], extractionVersion: hash('b'), artifactRef: draftId, position: index,
+  id: `fixture-chunk-${index}`, materialId: draftId, unitId: videoFixture ? videoId : draftId, partitionId: partitionIds[0], extractionVersion: hash('b'), artifactRef: draftId, position: index,
   title: field(title), summary: field(['Understand the components and tradeoffs of systems that span multiple machines.', 'Explore failure handling and the design choices behind reliable services.', 'Compare guarantees and their implications for a real application.'][index]),
-  sourceRefs: [{ materialId: draftId, unitId: draftId, segmentId: `segment-${index}`, anchor: { kind: 'text', start: index * 100, end: (index + 1) * 100 } }],
-  durationSeconds: 300 + index * 60, durationMethod: 'reading_estimate', conceptIndices: [], contentOrigin: 'external', coverage: { scope: 'main article', exhaustive: true, limitations: ['Visual fixture, not a live extraction.'] }
+  sourceRefs: [{ materialId: draftId, unitId: videoFixture ? videoId : draftId, segmentId: `segment-${index}`, anchor: videoFixture ?
+    { kind: 'video', startSeconds: index * 300, endSeconds: (index + 1) * 300, estimated: true } : { kind: 'text', start: index * 100, end: (index + 1) * 100 } }],
+  durationSeconds: 300 + index * 60, durationMethod: videoFixture ? 'source' : 'reading_estimate', conceptIndices: [], contentOrigin: videoFixture ? 'ai' : 'external',
+  coverage: { scope: videoFixture ? 'video_observation' : 'main article', exhaustive: !videoFixture, limitations: ['Visual fixture, not a live extraction.'] }
 })) };
 export const analysisPreview = { revision: 1, chunks: chunkPreview.chunks, analyses: chunkPreview.chunks.map((chunk, index) => ({
   chunkId: chunk.id, vector: Object.fromEntries(PEDAGOGICAL_DIMENSIONS.map((key, dimension) => [key, [0.5, 0.7, 0.3, 0.6, 0.4][(dimension + index) % 5]])),
@@ -41,7 +45,9 @@ const checkpoint = { phase: 'understanding', requestId: draftId, inputRevision: 
 export const snapshot = { ...initialSnapshot(draftId), revision: 1, inputRevision: 1, query: recommendations.intent.rawQuery, result: recommendations,
   status: 'succeeded', stage: screenNumber === 2 ? 'recommendations' : screenNumber <= 4 ? 'starting_point' : screenNumber <= 7 ? 'processing' : screenNumber === 8 ? 'ready' : screenNumber === 9 ? 'review' : 'published',
   startingPoint: screenNumber <= 3 ? null : 'have_material',
-  materials: screenNumber <= 3 ? [] : [{ id: draftId, kind: 'web', input: { kind: 'url', url: 'https://example.com/system-design-guide' }, status: 'ready', selectedUnitIds: [draftId] }],
+  materials: screenNumber <= 3 ? [] : [{ id: draftId, kind: videoFixture ? 'youtube_video' : 'web', input: { kind: 'url', url: videoFixture ? `https://www.youtube.com/watch?v=${videoId}` : 'https://example.com/system-design-guide' }, status: 'ready', selectedUnitIds: [videoFixture ? videoId : draftId] }],
+  youtubeSources: videoFixture ? [{ materialId: draftId, sourceRevision: 1, metadataArtifact: ref, metadataFingerprint: hash('b'),
+    units: [{ unitId: videoId, title: 'Public video · thumbnail layout fixture', durationSeconds: 1200 }], observations: [] }] : [],
   extractions: screenNumber <= 3 ? [] : [{ materialId: draftId, version: hash('b'), checksum: hash('c'), artifactRef: draftId, extractionKind: 'text', complete: true, segmentCount: 18 }],
   processing: screenNumber < 5 ? null : { requestId: draftId, inputRevision: 1, phase: screenNumber === 5 ? 'understanding' : screenNumber === 6 ? 'chunking' : screenNumber === 7 ? 'analysis' : 'building',
     complete: screenNumber !== 5, checkpoint: screenNumber === 5 ? { ...checkpoint, completed: checkpoint.completed.slice(0, 1) } : checkpoint,

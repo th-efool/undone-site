@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { YoutubeThumbnail } from './YoutubeThumbnail';
 
 export function YoutubeUnits({ units, selected, disabled, onSave }: {
   units: { unitId: string; title: string; durationSeconds: number }[]; selected: string[]; disabled: boolean;
@@ -12,10 +13,10 @@ export function YoutubeUnits({ units, selected, disabled, onSave }: {
     finally { setSaving(false); }
   }}>
     <p>Select videos to include. Saving scope retains your choices; it does not claim video content has been processed.</p>
-    {units.map(unit => <label key={unit.unitId} style={{ display: 'block' }}>
+    {units.map(unit => <label key={unit.unitId} style={{ display: 'flex', alignItems: 'center', gap: 10, paddingBlock: 8 }}>
       <input type="checkbox" checked={choice.has(unit.unitId)} disabled={disabled || saving} onChange={event => {
         const next = new Set(choice); if (event.target.checked) next.add(unit.unitId); else next.delete(unit.unitId); setChoice(next);
-      }} /> {unit.title} · {unit.durationSeconds} seconds
+      }} /><YoutubeThumbnail videoId={unit.unitId} /><span>{unit.title} · {unit.durationSeconds} seconds</span>
     </label>)}
     <button type="submit" disabled={disabled || saving}>Save video selection</button>
     {saving && <p role="status">Saving video selection…</p>}

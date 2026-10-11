@@ -21,6 +21,22 @@ function chunk(materialId: string, title: string): GroundedChunk {
     durationSeconds: 120, durationMethod: 'reading_estimate', conceptIndices: [], contentOrigin: 'external', coverage: { scope: 'main article', exhaustive: true, limitations: [] } };
 }
 describe('chunking workspace', () => {
+  it('renders actual video artwork for sources and accepted chunks without changing selection', async () => {
+    const snapshot = state();
+    const videoIds = ['dQw4w9WgXcQ', 'AAAAAAAAAAA'];
+    const videoSnapshot = { ...snapshot,
+      materials: snapshot.materials.map((source, index) => ({ ...source, kind: 'youtube_video' as const, selectedUnitIds: [videoIds[index]] })),
+      youtubeSources: snapshot.materials.map((source, index) => ({ materialId: source.id, sourceRevision: 0,
+      metadataArtifact: { id: draftId, kind: 'artifact' as const, checksum: 'a'.repeat(64), byteLength: 500 }, metadataFingerprint: 'a'.repeat(64),
+      units: [{ unitId: videoIds[index], title: `Video ${index + 1}`, durationSeconds: 120 }], observations: [] })) };
+    vi.mocked(loadChunkingPreview).mockResolvedValue({ revision: 1, chunks: snapshot.materials.map((source, index) => ({ ...chunk(source.id, `Video chunk ${index + 1}`), unitId: videoIds[index] })) });
+    const view = render(<ChunkingWorkspace snapshot={videoSnapshot}>Saved controls</ChunkingWorkspace>);
+    await screen.findByText('Video chunk 1');
+    expect(view.container.querySelectorAll('img[src*="/dQw4w9WgXcQ/"]')).toHaveLength(2);
+    fireEvent.click(screen.getAllByRole('radio')[1]);
+    expect(screen.getByText('Video chunk 2')).toBeTruthy();
+    expect(view.container.querySelectorAll('img[src*="/AAAAAAAAAAA/"]')).toHaveLength(2);
+  });
   it('selects actual sources and exposes retained boundaries with labelled duration estimates', async () => {
     vi.mocked(loadChunkingPreview).mockResolvedValue({ revision: 1, chunks: [chunk('first', 'First idea'), chunk('second', 'Second idea')] });
     render(<ChunkingWorkspace snapshot={state()}>Saved controls</ChunkingWorkspace>); await screen.findByText('First idea');
