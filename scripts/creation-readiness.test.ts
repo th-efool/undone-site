@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { configurationChecks } from './creation-readiness';
+import { configurationChecks, connectionFailureReason } from './creation-readiness';
 const env = { NODE_ENV: 'test' as const, AUTH_URL: 'http://localhost:4177', AUTH_SECRET: 'fixture-secret-long-enough', GEMINI_API_KEY: 'fixture-key-long-enough' };
 describe('readiness configuration gate', () => {
   it('separates optional connector/video capabilities from core prerequisites', () => {
@@ -21,5 +21,15 @@ describe('readiness configuration gate', () => {
     const checks = configurationChecks({ ...env, GEMINI_API_KEY: value });
     expect(checks.find(check => check.name.startsWith('Google'))?.status).toBe('blocked');
     expect(JSON.stringify(checks)).not.toContain(value);
+  });
+  it('distinguishes a missing auth origin from a present invalid one', () => {
+    expect(configurationChecks({ ...env, AUTH_URL: undefined })[0].reason).toBe('missing');
+    expect(configurationChecks({ ...env, AUTH_URL: 'https://[SENSITIVE]' })[0].reason).toBe('invalid_url');
+    expect(configurationChecks(env)[0].reason).toBeUndefined();
+  });
+  it.each([['ENOTFOUND', 'dns_not_found'], ['ETIMEOUT', 'dns_timeout'], [18, 'authentication_failed'],
+    ['28P01', 'authentication_failed'], ['secret-bearing-arbitrary-code', 'connection_failed']])('classifies %s without copying provider messages', (code, reason) => {
+    expect(connectionFailureReason({ code, message: 'secret driver details' })).toBe(reason);
+    expect(connectionFailureReason(new Error('secret driver details'))).toBe('connection_failed');
   });
 });

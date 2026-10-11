@@ -4,7 +4,15 @@ import { Pool } from 'pg';
 import mongoose from 'mongoose';
 import { readCorsairConfig } from '../src/server/corsair-config';
 
-type Check = { name: string; required: boolean; status: 'configured' | 'ready' | 'blocked' | 'not_configured' };
+type FailureReason = 'missing' | 'invalid_url' | 'dns_not_found' | 'dns_timeout' | 'authentication_failed' | 'connection_failed' | 'schema_incomplete';
+type Check = { name: string; required: boolean; status: 'configured' | 'ready' | 'blocked' | 'not_configured'; reason?: FailureReason };
+export function connectionFailureReason(error: unknown): FailureReason {
+  const code = typeof error === 'object' && error !== null && 'code' in error ? error.code : undefined;
+  if (code === 'ENOTFOUND' || code === 'EAI_NONAME') return 'dns_not_found';
+  if (code === 'ETIMEOUT' || code === 'EAI_AGAIN') return 'dns_timeout';
+  if (code === 18 || code === '28P01') return 'authentication_failed';
+  return 'connection_failed';
+}
 const secret = (value?: string) => Boolean(value && value.length >= 20 && !/\[SENSITIVE\]|placeholder|changeme|^your[_-]/i.test(value));
 const httpUrl = (value?: string, originOnly = false) => {
   try { const url = new URL(value!); return ['https:', 'http:'].includes(url.protocol) && !url.username && !url.password &&
@@ -15,7 +23,8 @@ export function configurationChecks(env: NodeJS.ProcessEnv): Check[] {
   let corsair = false;
   try { readCorsairConfig(env); corsair = true; } catch { /* Never log secret-bearing configuration. */ }
   return [
-    { name: 'authentication origins', required: true, status: authOrigins.length && authOrigins.every(value => httpUrl(value)) ? 'configured' : 'blocked' },
+    { name: 'authentication origins', required: true, status: authOrigins.length && authOrigins.every(value => httpUrl(value)) ? 'configured' : 'blocked',
+      ...(!authOrigins.length ? { reason: 'missing' as const } : !authOrigins.every(value => httpUrl(value)) ? { reason: 'invalid_url' as const } : {}) },
     { name: 'authentication secret', required: true, status: secret(env.AUTH_SECRET || env.NEXTAUTH_SECRET) ? 'configured' : 'blocked' },
     { name: 'Google key presence (not live validation)', required: true, status: secret(env.GEMINI_API_KEY) ? 'configured' : 'blocked' },
     { name: 'site metadata origin', required: true, status: !env.NEXT_PUBLIC_APP_URL || httpUrl(env.NEXT_PUBLIC_APP_URL) ? 'configured' : 'blocked' },
@@ -30,7 +39,7 @@ export function configurationChecks(env: NodeJS.ProcessEnv): Check[] {
 
 async function sqlCheck(): Promise<Check> {
   const check: Check = { name: 'SQL creation schema', required: true, status: 'blocked' };
-  if (!process.env.DATABASE_URL) return check;
+  if (!process.env.DATABASE_URL) return { ...check, reason: 'missing' };
   const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 1,
     connectionTimeoutMillis: 5000, query_timeout: 5000 });
   try {
@@ -39,20 +48,21 @@ async function sqlCheck(): Promise<Check> {
     const result = await pool.query("SELECT count(*)::int AS count FROM information_schema.tables WHERE table_schema='public' AND table_name=ANY($1::text[])", [tables]);
     const columns = await pool.query("SELECT count(*)::int AS count FROM information_schema.columns WHERE table_schema='public' AND ((table_name='creation_drafts' AND column_name IN ('expiredAt','eventSequence')) OR (table_name='cohorts' AND column_name='creationSettings'))");
     if (result.rows[0].count === tables.length && columns.rows[0].count === 3) check.status = 'ready';
-  } catch { /* Redact driver errors, which can include connection details. */ }
+    else check.reason = 'schema_incomplete';
+  } catch (error) { check.reason = connectionFailureReason(error); }
   finally { await pool.end(); }
   return check;
 }
 async function mongoCheck(): Promise<Check> {
   const check: Check = { name: 'Mongo connection/ping (not blob permissions)', required: true, status: 'blocked' };
-  if (!process.env.MONGODB_URI) return check;
+  if (!process.env.MONGODB_URI) return { ...check, reason: 'missing' };
   let client: mongoose.mongo.MongoClient | undefined;
   try {
     client = new mongoose.mongo.MongoClient(process.env.MONGODB_URI, { serverSelectionTimeoutMS: 5000, connectTimeoutMS: 5000, maxPoolSize: 1 });
     await client.connect();
     await client.db().command({ ping: 1 });
     check.status = 'ready';
-  } catch { /* No URI, host, credentials or raw error text. */ }
+  } catch (error) { check.reason = connectionFailureReason(error); }
   finally { await client?.close(); }
   return check;
 }
