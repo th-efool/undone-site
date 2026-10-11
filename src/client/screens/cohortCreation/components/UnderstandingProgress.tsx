@@ -45,7 +45,7 @@ export function UnderstandingProgress({ snapshot, disabled, onStart, onCancel, o
         const extraction = snapshot.extractions.find(item => item.materialId === source.id);
         const videos = snapshot.youtubeSources.find(item => item.materialId === source.id)?.units.filter(unit => source.selectedUnitIds.includes(unit.unitId)) ?? [];
         return <li key={source.id}><div className={styles.source}><span className={styles.sourceNumber}>{String(index + 1).padStart(2, '0')}</span><div>
-          <strong>{source.input.kind === 'url' ? source.input.url : `Source ${index + 1} · ${source.kind === 'pdf' ? 'PDF' : 'Text / Markdown'}`}</strong>
+          <strong>{source.input.kind === 'url' ? source.input.url : `Source ${index + 1} · ${source.kind === 'generated_guide' ? 'AI-authored guide' : source.kind === 'pdf' ? 'PDF' : 'Text / Markdown'}`}</strong>
           <p>{extraction?.segmentCount ?? 0} retained segments · {extraction?.extractionKind.replaceAll('_', ' ') ?? source.status}</p>
         </div><Check size={18} aria-label="Content acquired" /></div>
         {!!videos.length && <ol className={styles.videos}>{videos.map(unit => <li key={unit.unitId}><span>{unit.title}</span><small>{Math.ceil(unit.durationSeconds / 60)} min</small></li>)}</ol>}

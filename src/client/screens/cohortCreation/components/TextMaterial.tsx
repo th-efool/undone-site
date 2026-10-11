@@ -148,6 +148,7 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
       {!onSelectUnits && snapshot.youtubeSources.find(preview => preview.materialId === source.id) && <ul aria-label={`Source ${index + 1} videos`}>
         {snapshot.youtubeSources.find(preview => preview.materialId === source.id)!.units.map(unit => <li key={unit.unitId}>{unit.title} · {unit.durationSeconds} seconds</li>)}
       </ul>}
+      {source.kind === 'generated_guide' && <p>AI-authored guide. Not verified external source material; check factual claims independently.</p>}
       {onSelectUnits && snapshot.youtubeSources.find(preview => preview.materialId === source.id) && <YoutubeUnits
         key={`${source.id}:${source.selectedUnitIds.join(',')}`} selected={source.selectedUnitIds}
         maxSelected={MATERIAL_LIMITS.selectedUnits - selectedUnits + source.selectedUnitIds.length}

@@ -20,9 +20,11 @@ import { PublicationService, publicationSnapshotHash } from '../publication.serv
 import type { PublicationCheckpoint } from '@/src/shared/cohort-creation/publication';
 import { reserveCreationPublication, materializeCreationPublication, preservePublication } from '@/src/server/infrastructure/db/postgres/repositories/creationPublication.repo';
 import type { Prisma } from '@/generated/prisma/client';
+import { GENERATED_GUIDE_LIMITATION, renderGeneratedGuide } from '@/src/shared/cohort-creation/generated-guide';
+import { deliveryFeedChunks } from '../delivery-feed';
 
-async function fixture(text?: string, partitionBytes?: number) {
-  const f = await chunkingFixture(text, partitionBytes); const checkpoint = await f.run();
+async function fixture(text?: string, partitionBytes?: number, generatedGuide = false) {
+  const f = await chunkingFixture(text, partitionBytes, generatedGuide); const checkpoint = await f.run();
   const state = applyEvent(applyCommand(f.state, { type: 'chunk_material', requestId: f.requestId }),
     { type: 'chunking_received', requestId: f.requestId, result: checkpoint });
   const content = new ChunkingContentService(f.content, f.artifacts); const requestId = randomUUID();
@@ -51,6 +53,22 @@ async function fixture(text?: string, partitionBytes?: number) {
 }
 
 describe('artifacts-first publication preparation and receipts', () => {
+  it('preserves goal-guide text, AI disclosure and source anchors through all processing and delivery stages', async () => {
+    const text = 'Change one light and compare how surfaces respond. Record what you observe.';
+    const f = await fixture(text, 4096, true); const checkpoint = await f.run();
+    const prepared = await f.service.loadPrepared(f.scope, f.state, checkpoint, new AbortController().signal);
+    const expected = renderGeneratedGuide({ title: 'Learning guide', sections: [{ heading: 'Practice', text }], limitations: ['Introductory scope.'] });
+    expect(prepared.flatMap(lesson => lesson.chunks).map(chunk => chunk.text).join('')).toBe(expected);
+    expect(prepared.flatMap(lesson => lesson.chunks).every(chunk => chunk.contentOrigin === 'ai' && !chunk.coverage.exhaustive &&
+      chunk.coverage.scope === 'ai_authored_guide' && chunk.coverage.limitations.includes(GENERATED_GUIDE_LIMITATION))).toBe(true);
+    expect((await f.content.load(f.scope, f.state, new AbortController().signal)).curriculum.warnings).toContain(GENERATED_GUIDE_LIMITATION);
+    expect(prepared[0].chunks[0].sourceRefs[0].materialId).toBe(f.state.materials[0].id);
+    const feed = deliveryFeedChunks(prepared.map((lesson, order) => ({ id: lesson.lessonId, title: lesson.title, chunks: lesson.chunks,
+      videoId: null, lessonType: 'ARTICLE', thumbnailUrl: null, order, seasonId: 'season',
+      season: { order: 0, title: 'Guide', cohortId: f.cohortId, cohort: { title: 'Guide cohort', coverImage: null } } })));
+    expect(feed[0].content).toMatchObject({ contentOrigin: 'ai', limitations: expect.arrayContaining([GENERATED_GUIDE_LIMITATION]) });
+    expect(feed.map(chunk => chunk.content?.text).join('')).toBe(expected);
+  });
   it('preserves accepted user copy without rewriting retained source or educational dependency identities', async () => {
     const f = await fixture(); const lessonId = f.state.review!.lessonIds[0];
     f.state.review!.title = 'My own cohort title'; f.state.review!.description = 'My own description';

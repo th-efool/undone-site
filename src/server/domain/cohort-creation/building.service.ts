@@ -42,7 +42,7 @@ export class BuildingService {
       if (count > 100 || minimum.size >= 100 && !minimum.has(key)) throw new CreationStorageError('LIMIT_EXCEEDED', 'Curriculum exceeds 100 units or needs over 100 lessons per unit. Narrow the scope; nothing was truncated.');
       minimum.set(key, count);
       for (const limitation of partition.coverage.limitations) warnings.add(limitation);
-      if (partition.contentOrigin === 'ai') warnings.add('AI-authored source observations are not transcripts or exhaustive source coverage.');
+      if (partition.contentOrigin === 'ai') warnings.add('AI-authored material is not verified external evidence or exhaustive source coverage.');
     }
     if (warnings.size > 100) throw new CreationStorageError('LIMIT_EXCEEDED', 'Source limitations exceed the review scope; narrow the selected material.');
     if (!checkpoint) {

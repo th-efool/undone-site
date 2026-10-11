@@ -197,6 +197,7 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     chunkMaterial: () => edit({ type: 'chunk_material', requestId: crypto.randomUUID() }),
     backToMaterials: () => edit({ type: 'back_to_materials' }),
     discoverMaterial: () => edit({ type: 'discover_material', requestId: crypto.randomUUID() }),
+    authorGuide: (materialId?: string) => edit({ type: 'author_guide', materialId: materialId ?? crypto.randomUUID(), requestId: crypto.randomUUID() }),
     acquireDiscovered: (candidate: DiscoveryCandidate) => {
       if (candidate.kind === 'github') return Promise.resolve(false); // GitHub requires explicit ref/path selection.
       return edit({ type: candidate.kind === 'web' ? 'acquire_web' : 'inspect_youtube',

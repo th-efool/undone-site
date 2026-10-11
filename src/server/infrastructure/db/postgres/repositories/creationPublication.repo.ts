@@ -54,7 +54,7 @@ export async function pinPublication(tx: Prisma.TransactionClient, scope: Storag
     if (result.count !== 1) throw new Error('Prepared publication artifact unavailable');
   }
 }
-const sourceTypes: Record<string, SourceType> = { youtube_video: 'YOUTUBE_VIDEO', youtube_playlist: 'YOUTUBE_PLAYLIST', web: 'WEBSITE', pdf: 'PDF', markdown: 'MARKDOWN', github: 'GITHUB_REPO', notion: 'NOTION' };
+const sourceTypes: Record<string, SourceType> = { youtube_video: 'YOUTUBE_VIDEO', youtube_playlist: 'YOUTUBE_PLAYLIST', web: 'WEBSITE', pdf: 'PDF', markdown: 'MARKDOWN', github: 'GITHUB_REPO', notion: 'NOTION', generated_guide: 'MARKDOWN' };
 /** Called inside the fenced job-finalization transaction, after owned delivery bytes have been read and validated. */
 export async function materializeCreationPublication(tx: Prisma.TransactionClient, ownerId: string, snapshot: CreationSnapshot,
   value: PublicationCheckpoint, prepared: DeliveryArtifact[]): Promise<PublicationReceipt> {
@@ -94,7 +94,7 @@ export async function materializeCreationPublication(tx: Prisma.TransactionClien
         editRevision: snapshot.review.editRevision, snapshotHash: checkpoint.snapshotHash, deliveryVersion: 1 },
       members: { create: { userId: ownerId, role: 'CREATOR' } },
       sources: { create: snapshot.materials.map(material => ({ id: publicationSourceId(checkpoint.cohortId, material.id),
-        type: sourceTypes[material.kind] ?? 'CUSTOM_LINK', title: material.kind.startsWith('youtube') ? 'Selected YouTube material' : `Selected ${material.kind} material`,
+        type: sourceTypes[material.kind] ?? 'CUSTOM_LINK', title: material.kind === 'generated_guide' ? 'AI-authored learning guide' : material.kind.startsWith('youtube') ? 'Selected YouTube material' : `Selected ${material.kind} material`,
         url: material.input.kind === 'url' ? material.input.url : `/cohort/${checkpoint.cohortId}?material=${material.id}`, chunkingMethod: 'retained-segment-boundaries-v1' })) },
       seasons: { create: [...seasonIds.values()].map((season, order) => ({ id: season.id, title: season.title, order,
         lessons: { create: season.lessons.map((artifact, lessonOrder) => ({ id: artifact.lessonId, title: artifact.title,

@@ -50,7 +50,7 @@ export class BuildingContentService {
       }
       for (const lesson of lessons) season.lessons.push({ ...lesson, order: season.lessons.length });
       for (const limitation of partition.coverage.limitations) warnings.add(limitation);
-      if (partition.contentOrigin === 'ai') warnings.add('AI-authored source observations are not transcripts or exhaustive source coverage.');
+      if (partition.contentOrigin === 'ai') warnings.add('AI-authored material is not verified external evidence or exhaustive source coverage.');
       if (season.lessons.length > 100 || seasons.length > 100) throw new CreationStorageError('LIMIT_EXCEEDED', 'Curriculum exceeds 100 units or 100 lessons per unit; narrow the source scope.');
     }
     if (warnings.size > 100) throw new CreationStorageError('LIMIT_EXCEEDED', 'Source limitations exceed the review scope; narrow the selected material.');

@@ -8,6 +8,7 @@ import { draftId, result } from '@/src/shared/cohort-creation/__tests__/fixtures
 import { applyCommand, applyEvent, initialSnapshot } from '@/src/shared/cohort-creation/flow';
 import { CreationStorageError, type ArtifactOptions, type CreationObjectRef, type StorageScope } from '@/src/server/infrastructure/storage/creation.contracts';
 import { extractRetainedText } from '../materials/text';
+import { retainGeneratedGuide } from '../generated-guide';
 import { normalizeProcessingInput, partitionProcessingInput } from '../processing-input';
 import { UnderstandingService } from '../understanding.service';
 import { UnderstandingContentService } from '../understanding-content.service';
@@ -15,15 +16,18 @@ import type { CreationUnderstanding } from '../understanding';
 import type { CreationChunking } from '../chunking';
 import { ChunkingService } from '../chunking.service';
 
-export async function chunkingFixture(text = 'a'.repeat(5000), partitionBytes = 4096) {
+export async function chunkingFixture(text = 'a'.repeat(5000), partitionBytes = 4096, generatedGuide = false) {
   const scope = { ownerId: 'owner', draftId }; const materialId = randomUUID(); const requestId = randomUUID();
   const bytes = Buffer.from(text);
   const upload = { id: randomUUID(), kind: 'upload' as const, checksum: createHash('sha256').update(bytes).digest('hex'), byteLength: bytes.length };
-  const body = extractRetainedText(bytes, upload, materialId, materialId); const artifactRef = randomUUID();
+  const body = generatedGuide ? retainGeneratedGuide(materialId, 2, result.intent, { provider: 'fixture', modelId: 'guide', adapterVersion: 'v1' },
+    { title: 'Learning guide', sections: [{ heading: 'Practice', text }], limitations: ['Introductory scope.'] }) : extractRetainedText(bytes, upload, materialId, materialId);
+  const artifactRef = randomUUID();
   const before = creationSnapshotSchema.parse({ ...initialSnapshot(draftId), inputRevision: 2, revision: 5, query: result.intent.rawQuery,
-    result, stage: 'starting_point', startingPoint: 'have_material', status: 'succeeded',
-    materials: [{ id: materialId, kind: 'markdown', input: { kind: 'upload', assetId: upload.id }, selectedUnitIds: [materialId], status: 'ready' }],
-    extractions: [{ materialId, version: body.version, checksum: upload.checksum, artifactRef, extractionKind: 'text', segmentCount: body.segments.length, complete: true }],
+    result, stage: 'starting_point', startingPoint: generatedGuide ? 'have_goal' : 'have_material', status: 'succeeded',
+    materials: [{ id: materialId, kind: generatedGuide ? 'generated_guide' : 'markdown',
+      input: generatedGuide ? { kind: 'goal', intentId: result.intent.id } : { kind: 'upload', assetId: upload.id }, selectedUnitIds: [materialId], status: 'ready' }],
+    extractions: [{ materialId, version: body.version, checksum: upload.checksum, artifactRef, extractionKind: body.extractionKind, segmentCount: body.segments.length, complete: true }],
     materialRefs: [{ materialId, ids: [artifactRef] }] });
   const units = normalizeProcessingInput(before.materials[0], before.extractions[0], body); const partitions = partitionProcessingInput(units, partitionBytes);
   const load = vi.fn(async () => ({ units, partitions }));

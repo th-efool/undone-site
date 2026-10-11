@@ -6,6 +6,8 @@ import { pdfExtractionArtifactSchema } from '@/src/shared/cohort-creation/pdf';
 import { webExtractionArtifactSchema } from '@/src/shared/cohort-creation/web';
 import { githubExtractionArtifactSchema } from '@/src/shared/cohort-creation/github';
 import { notionExtractionArtifactSchema } from '@/src/shared/cohort-creation/notion';
+import { generatedGuideArtifactSchema } from '@/src/shared/cohort-creation/generated-guide';
+import { generatedGuideVersion } from './generated-guide';
 import { youtubeObservationCheckpointSchema } from '@/src/shared/cohort-creation/youtube';
 import { youtubeObservationArtifactSchema } from './materials/youtube-artifacts';
 import { youtubeMaterialVersion } from './materials/youtube-identity';
@@ -28,13 +30,18 @@ export function normalizeProcessingInput(input: MaterialSource, accepted: Extrac
   signal?.throwIfAborted(); const source = materialSourceSchema.parse(input); const extraction = extractedContentSchema.parse(accepted);
   if (source.status !== 'ready' || source.id !== extraction.materialId || !source.selectedUnitIds.length ||
     new Set(source.selectedUnitIds).size !== source.selectedUnitIds.length ||
-    (['markdown', 'pdf'].includes(source.kind) ? source.input.kind !== 'upload' : source.input.kind !== 'url')) invalid();
+    (source.kind === 'generated_guide' ? source.input.kind !== 'goal' : ['markdown', 'pdf'].includes(source.kind) ? source.input.kind !== 'upload' : source.input.kind !== 'url')) invalid();
   let version: string; let checksum: string; let materialId: string; let units: ProcessingUnit[];
   const unit = (unitId: string, segments: ProcessingSegment[], origin: ProcessingUnit['contentOrigin'], scope: string,
     exhaustive = true, limitations: string[] = []): ProcessingUnit => ({ materialId: source.id, unitId, extractionVersion: extraction.version,
     artifactId: extraction.artifactRef, contentOrigin: origin, coverage: { scope, exhaustive, limitations },
     segments: segments.map(segment => segmentSchema.parse({ id: segment.id, text: segment.text, location: segment.location })) });
-  if (source.kind === 'github') {
+  if (source.kind === 'generated_guide') {
+    const body = generatedGuideArtifactSchema.parse(value); ({ version, materialId } = body); checksum = extraction.checksum;
+    if (source.input.kind !== 'goal' || source.input.intentId !== body.intentId || generatedGuideVersion(body) !== body.version ||
+      extraction.extractionKind !== 'generated_guide' || !extraction.complete) invalid();
+    units = [unit(body.unitId, body.segments, 'ai', body.coverage.scope, false, body.coverage.limitations)];
+  } else if (source.kind === 'github') {
     const body = githubExtractionArtifactSchema.parse(value); ({ version, materialId } = body); checksum = body.sourceArtifact.checksum;
     if (extraction.selectionScope !== 'selected_paths') invalid();
     units = body.files.map(file => unit(file.unitId, file.segments, body.contentOrigin, 'selected_paths', true,
@@ -68,7 +75,7 @@ export function normalizeProcessingInput(input: MaterialSource, accepted: Extrac
     units = [unit(body.unitId, body.segments, body.contentOrigin, web ? web.web.scope : 'full_text')];
   }
   if (source.id !== materialId || extraction.version !== version || extraction.checksum !== checksum ||
-    (source.kind !== 'youtube_video' && source.kind !== 'youtube_playlist' && (extraction.extractionKind !== 'text' || !extraction.complete)) ||
+    (source.kind !== 'generated_guide' && source.kind !== 'youtube_video' && source.kind !== 'youtube_playlist' && (extraction.extractionKind !== 'text' || !extraction.complete)) ||
     JSON.stringify(units.map(item => item.unitId)) !== JSON.stringify(source.selectedUnitIds) ||
     units.reduce((sum, item) => sum + item.segments.length, 0) !== extraction.segmentCount) invalid();
   validateUnits(units, signal); return units;

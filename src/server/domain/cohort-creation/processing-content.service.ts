@@ -6,6 +6,8 @@ import { webExtractionArtifactSchema } from '@/src/shared/cohort-creation/web';
 import { pdfExtractionArtifactSchema } from '@/src/shared/cohort-creation/pdf';
 import { githubExtractionArtifactSchema } from '@/src/shared/cohort-creation/github';
 import { notionExtractionArtifactSchema } from '@/src/shared/cohort-creation/notion';
+import { generatedGuideArtifactSchema } from '@/src/shared/cohort-creation/generated-guide';
+import { generatedGuideFingerprint, generatedGuideIntentFingerprint } from './generated-guide';
 import { youtubeObservationCheckpointSchema } from '@/src/shared/cohort-creation/youtube';
 import type { CreationArtifactRepository } from '@/src/server/infrastructure/storage/creation.store';
 import { CreationStorageError, type CreationObjectRef, type StorageScope } from '@/src/server/infrastructure/storage/creation.contracts';
@@ -27,16 +29,26 @@ export class ProcessingContentService {
       signal.throwIfAborted(); const accepted = state.extractions.find(item => item.materialId === source.id);
       const ids = state.materialRefs.find(item => item.materialId === source.id)?.ids;
       if (!accepted || !ids?.includes(accepted.artifactRef)) invalid();
-      const read = async <T extends z.ZodType>(id: string, artifactType: string, schema: T, expected?: CreationObjectRef, fingerprint?: string) => {
+      const read = async <T extends z.ZodType>(id: string, artifactType: string, schema: T, expected?: CreationObjectRef, fingerprint?: string,
+        bodyFingerprint?: (body: z.output<T>) => string) => {
         signal.throwIfAborted(); if (!ids.includes(id)) invalid();
         const header = await this.artifacts.describeArtifact(scope, id);
         if (header.ref.kind !== 'artifact' || header.ref.id !== id || header.artifactType !== artifactType || header.schemaVersion !== 1 ||
           expected && (header.ref.checksum !== expected.checksum || header.ref.byteLength !== expected.byteLength) ||
           fingerprint && header.inputFingerprint !== fingerprint) invalid();
-        return this.artifacts.getJSON(scope, id, { artifactType, schemaVersion: 1, inputFingerprint: header.inputFingerprint, schema, signal });
+        const body = await this.artifacts.getJSON(scope, id, { artifactType, schemaVersion: 1, inputFingerprint: header.inputFingerprint, schema, signal });
+        if (bodyFingerprint && bodyFingerprint(body) !== header.inputFingerprint) invalid();
+        if (artifactType === 'generated-guide' && header.ref.checksum !== accepted.checksum) invalid();
+        return body;
       };
       let body: unknown; const observations: unknown[] = [];
-      if (source.kind === 'youtube_video' || source.kind === 'youtube_playlist') {
+      if (source.kind === 'generated_guide') {
+        body = await read(accepted.artifactRef, 'generated-guide', generatedGuideArtifactSchema, undefined, undefined, guide => {
+          if (guide.inputRevision > state.inputRevision || guide.intentId !== state.result!.intent.id ||
+            guide.intentFingerprint !== generatedGuideIntentFingerprint(state.result!.intent)) invalid();
+          return generatedGuideFingerprint(source.id, guide.inputRevision, state.result!.intent);
+        });
+      } else if (source.kind === 'youtube_video' || source.kind === 'youtube_playlist') {
         const bundle = await read(accepted.artifactRef, 'youtube-material', youtubeObservationCheckpointSchema, undefined, accepted.version);
         const preview = state.youtubeSources.find(item => item.materialId === source.id);
         if (!preview || preview.sourceRevision !== bundle.sourceRevision || preview.metadataFingerprint !== bundle.metadataFingerprint ||
