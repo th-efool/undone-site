@@ -1,4 +1,5 @@
 import { corsair } from '@/src/server/corsair';
+import { readCorsairConfig } from '@/src/server/corsair-config';
 import { type ImportPublishEvent, type ServerImportedSourceModel, type ServerImportedLessonModel } from '@/src/server/imports/youtube/youtube-import.service';
 
 export interface ImportRequest {
@@ -68,9 +69,7 @@ export async function importNotionPage(
     if (e.name === 'AuthMissingError' || e.name === 'PermissionRequiredError' || e.message?.includes('AuthMissingError') || e.message?.includes('PermissionRequiredError')) {
       const { createCorsairClient } = require('corsair');
       const mgt = createCorsairClient({ 
-        projectApiKey: (process.env.NODE_ENV === 'production' 
-          ? process.env.CORSAIR_PROD_API_KEY 
-          : process.env.CORSAIR_DEV_API_KEY) || 'dummy',
+        projectApiKey: readCorsairConfig().hub.projectApiKey,
         baseUrl: process.env.CORSAIR_HUB_URL || 'https://api.corsair.dev'
       });
       const link = await mgt.connect.createLink({ plugin: 'notion', tenantId, oauthMode: 'managed' });
