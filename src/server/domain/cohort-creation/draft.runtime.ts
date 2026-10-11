@@ -5,6 +5,7 @@ import { creationDraftRepo } from '@/src/server/infrastructure/db/postgres/repos
 import { creationJobRepo } from '@/src/server/infrastructure/db/postgres/repositories/creationJob.repo';
 import { DraftService } from './draft.service';
 import { draftHandlers } from './draft.http';
+import { dispatchRecommendation } from './recommendation.runtime';
 
 export const draftService = new DraftService(creationDraftRepo, creationJobRepo, { load: loadBuiltCurriculum });
-export const handleDraftRequest = draftHandlers(draftService, getCreationOwner);
+export const handleDraftRequest = draftHandlers(draftService, getCreationOwner, dispatchRecommendation);

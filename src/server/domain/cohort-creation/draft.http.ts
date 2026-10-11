@@ -4,6 +4,7 @@ import { DraftConflict, DraftNotFound, type DraftService } from './draft.service
 import { JobBudgetExceeded } from './durable-job';
 import { CreationFailure } from './errors';
 import { CreationStorageError } from '@/src/server/infrastructure/storage/creation.contracts';
+import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 
 const idSchema = z.uuid();
 const createSchema = z.strictObject({ draftId: idSchema });
@@ -17,13 +18,18 @@ const commandGuardMessages = new Set([
   'The draft already has 100 selected units. Remove a source before adding GitHub files.',
   'The draft already has 100 selected units. Remove a source before adding a Notion page.',
 ]);
-export function draftHandlers(service: DraftService, getOwner: () => Promise<string | null>) {
+export function draftHandlers(service: DraftService, getOwner: () => Promise<string | null>,
+  onSnapshot?: (owner: string, snapshot: CreationSnapshot) => void) {
   async function handle(request: Request, id?: string): Promise<Response> {
     try {
       const owner = await getOwner();
       if (!owner) return Response.json({ message: 'Sign in to access drafts.' }, { status: 401 });
       if (id !== undefined && !idSchema.safeParse(id).success) return Response.json({ message: 'Draft not found.' }, { status: 404 });
-      if (request.method === 'GET') return Response.json(await service.load(owner, id!), { headers: { 'Cache-Control': 'no-store' } });
+      if (request.method === 'GET') {
+        const snapshot = await service.load(owner, id!);
+        onSnapshot?.(owner, snapshot);
+        return Response.json(snapshot, { headers: { 'Cache-Control': 'no-store' } });
+      }
       const raw = await request.text();
       if (raw.length > 65536) return Response.json({ message: 'Request too large.' }, { status: 400 });
       if (!id) {
@@ -32,7 +38,9 @@ export function draftHandlers(service: DraftService, getOwner: () => Promise<str
       }
       const body = updateSchema.parse(JSON.parse(raw));
       // This request enqueues work. Its disconnect signal never cancels the job.
-      return Response.json(await service.command(owner, id, body.baseRevision, body.command), { headers: { 'Cache-Control': 'no-store' } });
+      const snapshot = await service.command(owner, id, body.baseRevision, body.command);
+      onSnapshot?.(owner, snapshot);
+      return Response.json(snapshot, { headers: { 'Cache-Control': 'no-store' } });
     } catch (error) {
       if (error instanceof DraftNotFound) return Response.json({ message: 'Draft not found.' }, { status: 404 });
       if (error instanceof CreationStorageError && error.code === 'INVALID_INPUT') return Response.json({ message: error.message }, { status: 400 });

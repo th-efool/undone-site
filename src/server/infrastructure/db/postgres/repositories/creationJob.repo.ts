@@ -296,7 +296,7 @@ export function createCreationJobRepository(prisma = defaultPrisma, publicationL
       return true;
     });
   },
-  async claim(worker) {
+  async claim(worker, recommendation) {
     return prisma.$transaction(async tx => {
       // Coordinates the global two-job limit across multiple worker processes.
       // Return a supported scalar; PostgreSQL's void return type cannot be decoded by Prisma.
@@ -309,6 +309,9 @@ export function createCreationJobRepository(prisma = defaultPrisma, publicationL
         SELECT j."id",j."draftId",j."ownerId" FROM "creation_jobs" j
         JOIN "creation_drafts" d ON d."id"=j."draftId"
         WHERE d."expiredAt" IS NULL AND j."kind" IN ('author_guide','recommendations','acquire_text','acquire_web','acquire_pdf','inspect_youtube','observe_youtube','acquire_github','acquire_notion','discover_material','understand_material','chunk_material','analyze_material','build_curriculum','refine_curriculum','finalize_creation') AND j."cancelRequestedAt" IS NULL AND
+        (${recommendation === undefined} OR (j."kind"='recommendations'
+          AND j."ownerId"=${recommendation?.ownerId ?? ''} AND j."draftId"=${recommendation?.draftId ?? ''}
+          AND j."requestId"=${recommendation?.requestId ?? ''})) AND
         ((j."status"='queued' AND j."nextRunAt"<=CURRENT_TIMESTAMP) OR
          (j."status"='running' AND j."leaseUntil"<=CURRENT_TIMESTAMP))
         ORDER BY j."nextRunAt",j."createdAt" LIMIT 1 FOR UPDATE OF d SKIP LOCKED`;

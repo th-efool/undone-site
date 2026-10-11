@@ -28,6 +28,23 @@ function fixture() {
 }
 const request = (method: string, body?: unknown) => new Request('http://localhost/api/drafts', { method, ...(body ? { body: JSON.stringify(body) } : {}) });
 describe('owned durable drafts', () => {
+  it('dispatches only authenticated owned snapshots on accepted commands and resume', async () => {
+    const { service } = fixture();
+    await service.create('alice', draftId);
+    const dispatch = vi.fn();
+    const alice = draftHandlers(service, async () => 'alice', dispatch);
+    expect((await alice(request('PATCH', { baseRevision: 0, command: {
+      type: 'request_recommendations', requestId: result.requestId, query: result.intent.rawQuery,
+    } }), draftId)).status).toBe(200);
+    expect(dispatch).toHaveBeenCalledWith('alice', expect.objectContaining({ status: 'running', draftId }));
+    dispatch.mockClear();
+    expect((await alice(request('GET'), draftId)).status).toBe(200);
+    expect(dispatch).toHaveBeenCalledOnce();
+    dispatch.mockClear();
+    expect((await draftHandlers(service, async () => 'bob', dispatch)(request('GET'), draftId)).status).toBe(404);
+    expect((await draftHandlers(service, async () => null, dispatch)(request('GET'), draftId)).status).toBe(401);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
   it.each([
     ['Save a video selection before observing it', 400],
     ['The draft already has 100 selected units. Remove a source before adding GitHub files.', 400],
