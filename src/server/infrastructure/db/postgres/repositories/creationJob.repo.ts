@@ -309,7 +309,7 @@ export function createCreationJobRepository(prisma = defaultPrisma, publicationL
         SELECT j."id",j."draftId",j."ownerId" FROM "creation_jobs" j
         JOIN "creation_drafts" d ON d."id"=j."draftId"
         WHERE d."expiredAt" IS NULL AND j."kind" IN ('author_guide','recommendations','acquire_text','acquire_web','acquire_pdf','inspect_youtube','observe_youtube','acquire_github','acquire_notion','discover_material','understand_material','chunk_material','analyze_material','build_curriculum','refine_curriculum','finalize_creation') AND j."cancelRequestedAt" IS NULL AND
-        (${recommendation === undefined} OR (j."kind"='recommendations'
+        (${recommendation === undefined} OR (j."kind"=${recommendation?.kind ?? 'recommendations'}
           AND j."ownerId"=${recommendation?.ownerId ?? ''} AND j."draftId"=${recommendation?.draftId ?? ''}
           AND j."requestId"=${recommendation?.requestId ?? ''})) AND
         ((j."status"='queued' AND j."nextRunAt"<=CURRENT_TIMESTAMP) OR

@@ -50,7 +50,7 @@ export type CreationCheckpoint = RecommendationResult | MaterialManifest | Retai
 export interface CreationJobRepository {
   enqueue(owner: string, previous: CreationSnapshot, next: CreationSnapshot): Promise<CreationSnapshot | null>;
   cancel(owner: string, previous: CreationSnapshot, next: CreationSnapshot): Promise<boolean>;
-  claim(worker: string, recommendation?: { ownerId: string; draftId: string; requestId: string }): Promise<ClaimedCreationJob | null>;
+  claim(worker: string, shortOperation?: { ownerId: string; draftId: string; requestId: string; kind?: 'recommendations' | 'inspect_youtube' }): Promise<ClaimedCreationJob | null>;
   heartbeat(job: ClaimedCreationJob): Promise<boolean>;
   reserveModelCall(job: ClaimedCreationJob, unitId?: string): Promise<void | (() => Promise<void>)>;
   checkpoint(job: ClaimedCreationJob, result: CreationCheckpoint): Promise<boolean>;

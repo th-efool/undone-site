@@ -17,7 +17,10 @@ async function main() {
   try {
     await client.connect();
     stage = 'temporary bucket inspection';
-    assert.equal((await db.listCollections({ name: { $in: collections } }).toArray()).length, 0);
+    // Atlas-compatible servers may reject $in in listCollections name filters.
+    for (const collection of collections) {
+      assert.equal((await db.listCollections({ name: collection }).toArray()).length, 0);
+    }
     safeCleanup = true;
     const bucket = new mongoose.mongo.GridFSBucket(db, { bucketName: name });
     const driver = createCreationGridFS(async () => bucket);
