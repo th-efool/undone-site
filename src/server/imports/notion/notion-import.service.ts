@@ -1,4 +1,4 @@
-import { corsair } from '@/src/server/corsair';
+import { getCorsair } from '@/src/server/corsair';
 import { readCorsairConfig } from '@/src/server/corsair-config';
 import { type ImportPublishEvent, type ServerImportedSourceModel, type ServerImportedLessonModel } from '@/src/server/imports/youtube/youtube-import.service';
 
@@ -48,6 +48,7 @@ export async function importNotionPage(
   });
 
   const tenantId = request.sourceId;
+  const corsair = getCorsair();
   const t = (corsair as any).withTenant ? (corsair as any).withTenant(tenantId) : (corsair as any);
 
   let pageInfo;

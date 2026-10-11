@@ -1,4 +1,4 @@
-import { corsair } from '@/src/server/corsair';
+import { getCorsair } from '@/src/server/corsair';
 import { type ImportPublishEvent, type ServerImportedSourceModel, type ServerImportedLessonModel } from '@/src/server/imports/youtube/youtube-import.service';
 
 export interface ImportRequest {
@@ -46,7 +46,7 @@ export async function importGitHubRepo(
     },
   });
 
-  const extraction = await (corsair as any).extract(request?.url || '', { plugin: 'github' });
+  const extraction = await (getCorsair() as any).extract(request?.url || '', { plugin: 'github' });
   if (!extraction) {
     throw new Error('Failed to extract GitHub repository data.');
   }

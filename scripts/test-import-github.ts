@@ -1,9 +1,9 @@
 import { POST } from '../src/app/api/import/github/route';
 import { NextRequest } from 'next/server';
-import { corsair } from '../src/server/corsair';
+import { getCorsair } from '../src/server/corsair';
 
 // Mock corsair.extract to avoid real database/network calls
-(corsair as any).extract = async (url: string, options: any) => {
+(getCorsair() as any).extract = async (url: string, options: any) => {
   return {
     title: 'Mock Repo',
     description: 'A mocked github repo',

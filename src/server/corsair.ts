@@ -6,15 +6,20 @@ import { notion } from "@corsair-dev/notion";
 import { Pool } from "pg";
 import { readCorsairConfig } from './corsair-config';
 
-const config = readCorsairConfig();
-const pool = new Pool({ connectionString: config.connectionString });
+function createRuntime() {
+    const config = readCorsairConfig();
+    const pool = new Pool({ connectionString: config.connectionString });
+    return createCorsair({
+        kek: config.kek,
+        database: pool,
+        hub: config.hub,
+        plugins: [
+            github({ authType: 'managed' }),
+            notion({ authType: 'managed' })
+        ],
+    });
+}
 
-export const corsair = createCorsair({
-    kek: config.kek,
-    database: pool,
-    hub: config.hub,
-    plugins: [
-        github({ authType: 'managed' }),
-        notion({ authType: 'managed' })
-    ],
-});
+let singleton: ReturnType<typeof createRuntime> | undefined;
+/** Configuration and Hub side effects belong to actual requests, never module discovery. */
+export function getCorsair() { return singleton ??= createRuntime(); }
