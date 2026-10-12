@@ -33,7 +33,8 @@ describe('chunking workspace', () => {
     const view = render(<ChunkingWorkspace snapshot={videoSnapshot}>Saved controls</ChunkingWorkspace>);
     await screen.findByText('Video chunk 1');
     expect(screen.getByText('Lecture 01')).toBeTruthy();
-    expect(screen.getAllByText('2:00')).toHaveLength(3);
+    expect(screen.getAllByText('02:00')).toHaveLength(4);
+    expect(screen.getByText('1 accepted chunk from this lecture.')).toBeTruthy();
     expect(view.container.querySelectorAll('img[src*="/dQw4w9WgXcQ/"]')).toHaveLength(2);
     fireEvent.click(screen.getAllByRole('radio')[1]);
     expect(screen.getByText('Video chunk 2')).toBeTruthy();
@@ -46,7 +47,17 @@ describe('chunking workspace', () => {
     expect(screen.queryByText('Second idea')).toBeNull();
     fireEvent.click(screen.getAllByRole('radio')[1]); expect(screen.getByText('Second idea')).toBeTruthy(); expect(screen.queryByText('First idea')).toBeNull();
     fireEvent.click(screen.getByText('Second idea')); expect(screen.getByText(/Text offsets 0–100/)).toBeTruthy();
-    expect(screen.getByText(/2 min · reading estimate/)).toBeTruthy(); expect(screen.getByRole('progressbar').getAttribute('value')).toBe('1');
+    expect(screen.getByText('02:00')).toBeTruthy(); expect(screen.getByText(/reading estimate/)).toBeTruthy();
+    expect(screen.getByText('1 accepted chunk from this source.')).toBeTruthy(); expect(screen.getByRole('progressbar').getAttribute('value')).toBe('1');
+  });
+  it('retains duration seconds and labels estimated video anchors instead of claiming exact playback boundaries', async () => {
+    const observed = { ...chunk('first', 'Observed idea'), durationSeconds: 91, durationMethod: 'source' as const,
+      sourceRefs: [{ materialId: 'first', unitId: 'first', segmentId: 'observed-segment', anchor: { kind: 'video' as const, startSeconds: 10, endSeconds: 101, estimated: true } }] };
+    vi.mocked(loadChunkingPreview).mockResolvedValue({ revision: 1, chunks: [observed] });
+    render(<ChunkingWorkspace snapshot={state()}>Saved controls</ChunkingWorkspace>); await screen.findByText('Observed idea');
+    const duration = screen.getByText('01:31'); expect(duration.getAttribute('datetime')).toBe('PT91S');
+    expect(screen.getByText(/estimated source interval/)).toBeTruthy();
+    expect(screen.queryByText(/2 min/)).toBeNull();
   });
   it('hides obsolete previews and aborts superseded requests', async () => {
     vi.mocked(loadChunkingPreview).mockResolvedValueOnce({ revision: 1, chunks: [chunk('first', 'Old chunk')] });
@@ -54,6 +65,7 @@ describe('chunking workspace', () => {
     const view = render(<ChunkingWorkspace snapshot={state()}>Saved controls</ChunkingWorkspace>); await screen.findByText('Old chunk');
     const signal = vi.mocked(loadChunkingPreview).mock.calls[0][1]; view.rerender(<ChunkingWorkspace snapshot={state(2)}>Saved controls</ChunkingWorkspace>);
     expect(signal.aborted).toBe(true); expect(screen.queryByText('Old chunk')).toBeNull();
+    expect(screen.queryByText('1 accepted chunk from this source.')).toBeNull();
     await act(async () => finish({ revision: 2, chunks: [chunk('first', 'New chunk')] })); expect(screen.getByText('New chunk')).toBeTruthy();
   });
   it('offers recovery when retained chunk loading fails', async () => {

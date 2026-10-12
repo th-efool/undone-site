@@ -14,7 +14,7 @@ function sourceTime(seconds: number) {
   const whole = Math.max(0, Math.floor(seconds));
   const hours = Math.floor(whole / 3600);
   const minutes = Math.floor(whole / 60) % 60;
-  return `${hours ? `${hours}:` : ''}${String(minutes).padStart(hours ? 2 : 1, '0')}:${String(whole % 60).padStart(2, '0')}`;
+  return `${hours ? `${hours}:` : ''}${String(minutes).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;
 }
 
 export function ChunkingWorkspace({ snapshot, children }: { snapshot: CreationSnapshot; children: ReactNode }) {
@@ -67,7 +67,7 @@ export function ChunkingWorkspace({ snapshot, children }: { snapshot: CreationSn
       {error?.revision === snapshot.revision ? <p role="alert">{error.message} <button onClick={() => setRetry(value => value + 1)}>Reload chunks</button></p> : !selectedChunks.length ?
         <p role="status" className={styles.empty}>{accepted && loaded?.revision !== snapshot.revision ? 'Loading accepted chunks…' : 'Chunks appear here when this source has accepted boundaries.'}</p> :
         <ol className={styles.chunks}>{selectedChunks.map((chunk, index) => <li key={chunk.id}><details>
-          <summary>{source?.unitId ? <YoutubeThumbnail videoId={source.unitId} /> : <span className={styles.chunkNumber}>{String(index + 1).padStart(2, '0')}</span>}<span><small>{Math.ceil(chunk.durationSeconds / 60)} min · {chunk.durationMethod === 'source' ? 'source duration' : chunk.durationMethod === 'reading_estimate' ? 'reading estimate' : 'model estimate'}</small>
+          <summary>{source?.unitId ? <YoutubeThumbnail videoId={source.unitId} /> : <span className={styles.chunkNumber}>{String(index + 1).padStart(2, '0')}</span>}<span><span className={styles.duration}><time dateTime={`PT${chunk.durationSeconds}S`}>{sourceTime(chunk.durationSeconds)}</time><small> · {chunk.durationMethod === 'source' ? chunk.sourceRefs.some(ref => ref.anchor.kind === 'video' && ref.anchor.estimated) ? 'estimated source interval' : 'source duration' : chunk.durationMethod === 'reading_estimate' ? 'reading estimate' : 'model estimate'}</small></span>
             <strong>{chunk.title.value}</strong><span className={styles.teaser}>{chunk.summary.value}</span></span><ChevronRight size={17} aria-hidden="true" /></summary>
           <div className={styles.evidence}><p>Content origin: {chunk.contentOrigin}. Coverage: {chunk.coverage.scope}{chunk.coverage.exhaustive ? '.' : ' (non-exhaustive).'}</p>
             <ul>{chunk.sourceRefs.map(ref => <li key={ref.segmentId}>{ref.anchor.kind === 'video' ? `${ref.anchor.startSeconds}–${ref.anchor.endSeconds}s${ref.anchor.estimated ? ' (estimated)' : ''}` :
@@ -75,7 +75,7 @@ export function ChunkingWorkspace({ snapshot, children }: { snapshot: CreationSn
             {!!chunk.coverage.limitations.length && <ul>{chunk.coverage.limitations.map((item, i) => <li key={i}>{item}</li>)}</ul>}
           </div>
         </details></li>)}</ol>}
-      <div className={shared.insight}><Lightbulb size={27} aria-hidden="true" /><p><strong>{checkpoint ? `${checkpoint.completed.reduce((sum, item) => sum + item.chunkCount, 0)} chunks accepted so far.` : 'Waiting for accepted chunk counts.'}</strong><span>Source boundaries and evidence are retained. Analysis comes next.</span></p></div>
+      <div className={shared.insight}><Lightbulb size={27} aria-hidden="true" /><p><strong>{loaded?.revision === snapshot.revision ? `${selectedChunks.length} accepted ${selectedChunks.length === 1 ? 'chunk' : 'chunks'} from this ${source?.unitId ? 'lecture' : 'source'}.` : 'Waiting for this source’s accepted chunks.'}</strong><span>Source boundaries and evidence are retained. Analysis comes next.</span></p></div>
     </aside></div>
   </section>;
 }

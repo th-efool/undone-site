@@ -30,6 +30,8 @@
 .chunks summary > svg { flex-shrink: 0; margin-top: 15px; color: var(--creation-muted, #657085); }
 .chunks summary strong { display: block; font: 600 18px/1.2 var(--font-playfair-display), Georgia, serif; margin: 4px 0; overflow-wrap: anywhere; }
 .chunks summary small { font-size: 10px; color: var(--creation-muted, #657085); }
+.duration { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
+.duration time { font-size: 12px; font-weight: 700; color: var(--creation-ink, #08143d); font-variant-numeric: tabular-nums; }
 .teaser { display: block; font-size: 12px; color: var(--creation-muted, #657085); line-height: 1.4; }
 .chunkNumber { display: grid; place-items: center; background: color-mix(in srgb, var(--creation-blue, #3037ff) 7%, transparent); color: var(--creation-blue, #3037ff); width: 40px; height: 60px; border-radius: 8px; flex-shrink: 0; font-size: 12px; }
 .evidence { border-top: 1px solid var(--creation-border, #e6ded1); margin-top: 15px; padding-top: 12px; font-size: 11px; color: var(--creation-muted, #657085); line-height: 1.7; overflow-wrap: anywhere; }
