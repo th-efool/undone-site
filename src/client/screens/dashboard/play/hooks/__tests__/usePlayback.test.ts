@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { usePlayback } from '../usePlayback';
 
@@ -111,5 +111,38 @@ describe('usePlayback fetch abort behavior', () => {
     // It should have called fetch a 3rd time!
     console.log(fetchMock.mock.calls.map((c) => c[0]));
     expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+});
+
+
+describe('feed terminal states', () => {
+  beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); });
+  it('settles an empty response without fetching forever', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => ({ items: [] }) });
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.feedLoading).toBe(false));
+    expect(result.current.activeItem).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await act(async () => { await result.current.fetchChannelFeed('default', 0); });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(result.current.feedLoading).toBe(false);
+  });
+  it('stops prefetch when the next page is empty', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ items: [{ chunkId: 'last', lessonId: 'lesson', startSeconds: 0, endSeconds: 10 }] }) })
+      .mockResolvedValue({ ok: true, json: async () => ({ items: [] }) });
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.feedLoading).toBe(false));
+    expect(result.current.feedItems).toHaveLength(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+  it('exposes failure and clears it after explicit retry', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: false }).mockResolvedValue({ ok: true, json: async () => ({ items: [] }) });
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.feedError).toBe(true));
+    expect(result.current.feedLoading).toBe(false);
+    await act(async () => { await result.current.fetchChannelFeed('default', 0); });
+    expect(result.current.feedError).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

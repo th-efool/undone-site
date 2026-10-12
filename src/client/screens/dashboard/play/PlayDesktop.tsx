@@ -4,6 +4,7 @@ import { ReadingSurface } from './components/ReadingSurface';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useToast } from '@/src/client/hooks/useToast';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Play as PlayIcon, Layers } from 'lucide-react';
 import {
   LessonCard,
@@ -203,7 +204,11 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
 
   return (
     <div ref={playContainerRef} className={styles.play}>
-      <CinematicStage
+      {!playback.activeItem ? <section role={playback.feedError ? "alert" : "status"} style={{ margin: "auto", padding: "2rem", color: "#f1f5f9", textAlign: "center" }}>
+        <h1 style={{ color: "inherit" }}>{playback.feedLoading ? "Loading your lessons..." : playback.feedError ? "Lessons could not be loaded" : "No remaining lessons"}</h1>
+        {!playback.feedLoading && <><p style={{ color: "#cbd5e1" }}>{playback.feedError ? "Try loading this feed again." : "You're caught up with this selection. Choose another channel or return home."}</p>
+          <button onClick={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}>Reload lessons</button> <Link href="/home" style={{ color: "#c7d2fe" }}>Back home</Link></>}
+      </section> : <CinematicStage
         currentIndex={playback.currentIndex}
         totalItems={playback.feedItems.length || 1}
         isPlaying={playback.isPlaying}
@@ -214,7 +219,7 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
         onTogglePlay={playback.togglePlayback}
         onToggleFullscreen={handleFullscreen}
         renderScene={renderScene}
-      />
+      />}
     </div>
   );
 }

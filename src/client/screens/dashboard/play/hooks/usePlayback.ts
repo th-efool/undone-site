@@ -20,6 +20,7 @@ type ChannelCache = {
   isFetching: boolean;
   currentIndex: number;
   hasError: boolean;
+  exhausted?: boolean;
   prefs?: string;
 };
 
@@ -148,6 +149,8 @@ export function usePlayback() {
             items: [...existingItems, ...data.items],
             pageIndex: pageIndex,
             isFetching: false,
+            hasError: false,
+            exhausted: data.items.length === 0,
             prefs: rawPrefs
           }
         };
@@ -204,7 +207,7 @@ export function usePlayback() {
     const cache = channelCaches[activeChannel];
     const isCacheStale = cache.prefs !== undefined && cache.prefs !== currentPrefs;
     
-    if ((cache.items.length === 0 || isCacheStale) && !cache.isFetching && !cache.hasError) {
+    if (((cache.items.length === 0 && cache.prefs === undefined) || isCacheStale) && !cache.isFetching && !cache.hasError) {
       // If stale, invalidate first? fetchChannelFeed sets isFetching to true and overrides everything when done for pageIndex 0
       fetchChannelFeed(activeChannel, 0);
     }
@@ -219,6 +222,7 @@ export function usePlayback() {
     if (
       currentIndex >= feedItems.length - 2 && 
       !channelCaches[activeChannel].isFetching &&
+      !channelCaches[activeChannel].exhausted &&
       !channelCaches[activeChannel].hasError && // 2. Infinite API Loop on Prefetch Failure
       feedItems.length > 0
     ) {
@@ -495,6 +499,8 @@ export function usePlayback() {
 
   return {
     activeItem,
+    feedLoading: currentCache.isFetching || (currentCache.prefs === undefined && !currentCache.hasError),
+    feedError: currentCache.hasError,
     feedItems,
     currentIndex,
     lesson: lessonModel,
