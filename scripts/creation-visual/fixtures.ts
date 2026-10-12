@@ -5,8 +5,19 @@ import { useCreation as useDurableCreation } from '../../src/client/screens/coho
 
 // Browser-only fixtures. Never imported by application routes or used for live generation.
 export const screenNumber = Number(new URLSearchParams(location.search).get('screen') ?? 2);
-const videoFixture = [4, 6].includes(screenNumber) && new URLSearchParams(location.search).get('source') === 'youtube';
+const sourceVariant = new URLSearchParams(location.search).get('source');
+const playlistFixture = screenNumber === 6 && sourceVariant === 'playlist';
+const videoFixture = [4, 6].includes(screenNumber) && (sourceVariant === 'youtube' || playlistFixture);
 const videoId = 'W6NZfCO5SIk';
+// Synthetic lecture titles/timing for layout checks, not metadata from these public videos.
+const videoUnits = playlistFixture ? [
+  { unitId: videoId, title: 'Fixture lecture: Introduction to reliable systems', durationSeconds: 3736 },
+  { unitId: 'jNQXAC9IVRw', title: 'Fixture lecture: Availability and failure recovery', durationSeconds: 3523 },
+  { unitId: 'y_rdvDr3wB4', title: 'Fixture lecture: Consistency across distributed services', durationSeconds: 2972 },
+  { unitId: 'xh3702GQUI4', title: 'Fixture lecture: Replication strategies', durationSeconds: 3917 },
+  { unitId: '17XZGUX_9iM', title: 'Fixture lecture: Queues and backpressure', durationSeconds: 3143 },
+  { unitId: 'dQw4w9WgXcQ', title: 'Fixture lecture: Observability and capacity planning with a deliberately longer title', durationSeconds: 3408 },
+] : [{ unitId: videoId, title: 'Public video · thumbnail layout fixture', durationSeconds: 1200 }];
 export const visualActions: string[] = [];
 const field = <T,>(value: T) => ({ value, origin: 'ai' as const, acceptedRevision: 1 });
 const hash = (letter: string) => letter.repeat(64);
@@ -21,12 +32,13 @@ export const recommendations = { ...result, intent: { ...result.intent, rawQuery
 export const conceptPreview = { revision: 1, partitions: [{ partitionId: partitionIds[0], materialId: draftId, unitId: draftId,
   proposal: { summary: 'A retained fixture section about designing reliable systems.', concepts: ['Distributed systems', 'Load balancing', 'Consistency', 'Replication', 'Partitioning', 'Caching', 'Queues', 'Availability', 'Transactions', 'Observability']
     .map(label => ({ label, summary: `Fixture explanation of ${label}.`, segmentIds: ['segment-1'] })), limitations: ['Visual fixture, not a live AI result.'] } }] };
-export const chunkPreview = { revision: 1, chunks: ['What makes a distributed system?', 'Why availability matters', 'Choosing consistency guarantees'].map((title, index) => ({
+const chunkTitles = ['What makes a distributed system?', 'Why availability matters', 'Choosing consistency guarantees', ...(playlistFixture ? ['Recovering after partial failure', 'Applying the tradeoffs in practice'] : [])];
+export const chunkPreview = { revision: 1, chunks: chunkTitles.map((title, index) => ({
   id: `fixture-chunk-${index}`, materialId: draftId, unitId: videoFixture ? videoId : draftId, partitionId: partitionIds[0], extractionVersion: hash('b'), artifactRef: draftId, position: index,
-  title: field(title), summary: field(['Understand the components and tradeoffs of systems that span multiple machines.', 'Explore failure handling and the design choices behind reliable services.', 'Compare guarantees and their implications for a real application.'][index]),
+  title: field(title), summary: field(['Understand the components and tradeoffs of systems that span multiple machines.', 'Explore failure handling and the design choices behind reliable services.', 'Compare guarantees and their implications for a real application.', 'Trace recovery boundaries using the retained source evidence.', 'Connect the preceding concepts to a concrete design decision.'][index]),
   sourceRefs: [{ materialId: draftId, unitId: videoFixture ? videoId : draftId, segmentId: `segment-${index}`, anchor: videoFixture ?
     { kind: 'video', startSeconds: index * 300, endSeconds: (index + 1) * 300, estimated: true } : { kind: 'text', start: index * 100, end: (index + 1) * 100 } }],
-  durationSeconds: 300 + index * 60, durationMethod: videoFixture ? 'source' : 'reading_estimate', conceptIndices: [], contentOrigin: videoFixture ? 'ai' : 'external',
+  durationSeconds: playlistFixture ? 300 : 300 + index * 60, durationMethod: videoFixture ? 'source' : 'reading_estimate', conceptIndices: [], contentOrigin: videoFixture ? 'ai' : 'external',
   coverage: { scope: videoFixture ? 'video_observation' : 'main article', exhaustive: !videoFixture, limitations: ['Visual fixture, not a live extraction.'] }
 })) };
 export const analysisPreview = { revision: 1, chunks: chunkPreview.chunks, analyses: chunkPreview.chunks.map((chunk, index) => ({
@@ -45,14 +57,14 @@ const checkpoint = { phase: 'understanding', requestId: draftId, inputRevision: 
 export const snapshot = { ...initialSnapshot(draftId), revision: 1, inputRevision: 1, query: recommendations.intent.rawQuery, result: recommendations,
   status: 'succeeded', stage: screenNumber === 2 ? 'recommendations' : screenNumber <= 4 ? 'starting_point' : screenNumber <= 7 ? 'processing' : screenNumber === 8 ? 'ready' : screenNumber === 9 ? 'review' : 'published',
   startingPoint: screenNumber <= 3 ? null : 'have_material',
-  materials: screenNumber <= 3 ? [] : [{ id: draftId, kind: videoFixture ? 'youtube_video' : 'web', input: { kind: 'url', url: videoFixture ? `https://www.youtube.com/watch?v=${videoId}` : 'https://example.com/system-design-guide' }, status: videoFixture && screenNumber === 4 ? 'needs_input' : 'ready', selectedUnitIds: videoFixture && screenNumber === 4 ? [] : [videoFixture ? videoId : draftId] }],
+  materials: screenNumber <= 3 ? [] : [{ id: draftId, kind: playlistFixture ? 'youtube_playlist' : videoFixture ? 'youtube_video' : 'web', input: { kind: 'url', url: playlistFixture ? 'https://www.youtube.com/playlist?list=visual-fixture' : videoFixture ? `https://www.youtube.com/watch?v=${videoId}` : 'https://example.com/system-design-guide' }, status: videoFixture && screenNumber === 4 ? 'needs_input' : 'ready', selectedUnitIds: videoFixture && screenNumber === 4 ? [] : videoFixture ? videoUnits.map(unit => unit.unitId) : [draftId] }],
   youtubeSources: videoFixture ? [{ materialId: draftId, sourceRevision: 1, metadataArtifact: ref, metadataFingerprint: hash('b'),
-    units: [{ unitId: videoId, title: 'Public video · thumbnail layout fixture', durationSeconds: 1200 }], observations: [] }] : [],
+    units: videoUnits, observations: [] }] : [],
   extractions: screenNumber <= 3 || videoFixture && screenNumber === 4 ? [] : [{ materialId: draftId, version: hash('b'), checksum: hash('c'), artifactRef: draftId, extractionKind: 'text', complete: true, segmentCount: 18 }],
   processing: screenNumber < 5 ? null : { requestId: draftId, inputRevision: 1, phase: screenNumber === 5 ? 'understanding' : screenNumber === 6 ? 'chunking' : screenNumber === 7 ? 'analysis' : 'building',
     complete: screenNumber !== 5, checkpoint: screenNumber === 5 ? { ...checkpoint, completed: checkpoint.completed.slice(0, 1) } : checkpoint,
     chunking: screenNumber < 6 ? null : { requestId: draftId, complete: screenNumber > 6, checkpoint: { ...checkpoint, phase: 'chunking', understandingFingerprint: hash('d'),
-      completed: checkpoint.completed.slice(0, screenNumber === 6 ? 1 : 3).map(item => ({ ...item, chunkCount: 3 })) } },
+      completed: checkpoint.completed.slice(0, screenNumber === 6 ? 1 : 3).map(item => ({ ...item, chunkCount: playlistFixture ? 5 : 3 })) } },
     analysis: screenNumber < 7 ? null : { requestId: draftId, complete: screenNumber > 7, checkpoint: { ...checkpoint, phase: 'analysis', completed: checkpoint.completed.slice(0, 1).map(item => ({ ...item, chunkCount: 3 })) } },
     building: screenNumber < 8 ? null : { requestId: draftId, complete: true, checkpoint: { ...checkpoint, phase: 'building', completed: checkpoint.completed.map(item => ({ ...item, lessonCount: 1 })) } } },
   review: screenNumber < 9 ? null : review,

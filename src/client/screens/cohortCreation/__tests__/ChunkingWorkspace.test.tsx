@@ -21,6 +21,26 @@ function chunk(materialId: string, title: string): GroundedChunk {
     durationSeconds: 120, durationMethod: 'reading_estimate', conceptIndices: [], contentOrigin: 'external', coverage: { scope: 'main article', exhaustive: true, limitations: [] } };
 }
 describe('chunking workspace', () => {
+  it('keeps a multi-lecture playlist scoped to the selected unit, including pending lectures and full titles', async () => {
+    const snapshot = state();
+    const longTitle = 'A deliberately long lecture title about reliable distributed services and recovery boundaries';
+    const units = Array.from({ length: 6 }, (_, index) => ({ unitId: `video-${index}`, title: index === 5 ? longTitle : `Lecture topic ${index + 1}`, durationSeconds: 3600 + index }));
+    const playlist = { ...snapshot, materials: [{ ...snapshot.materials[0], kind: 'youtube_playlist' as const, selectedUnitIds: units.map(unit => unit.unitId) }],
+      youtubeSources: [{ materialId: 'first', sourceRevision: 0, metadataArtifact: { id: draftId, kind: 'artifact' as const, checksum: 'a'.repeat(64), byteLength: 500 }, metadataFingerprint: 'a'.repeat(64), units, observations: [] }] };
+    vi.mocked(loadChunkingPreview).mockResolvedValue({ revision: 1, chunks: [{ ...chunk('first', 'Saved first lecture idea'), unitId: units[0].unitId }] });
+    render(<ChunkingWorkspace snapshot={playlist}>Saved controls</ChunkingWorkspace>);
+    await screen.findByText('Saved first lecture idea');
+    expect(screen.getAllByRole('radio')).toHaveLength(6);
+    expect(screen.getByText(longTitle).getAttribute('title')).toBe(longTitle);
+    fireEvent.click(screen.getByRole('radio', { name: new RegExp(longTitle) }));
+    expect(screen.getByText('Lecture 06')).toBeTruthy();
+    expect(screen.queryByText('Saved first lecture idea')).toBeNull();
+    expect(screen.getByText('Chunks appear here when this source has accepted boundaries.')).toBeTruthy();
+    expect(screen.getByText('0 accepted chunks from this lecture.')).toBeTruthy();
+    expect(screen.getByRole('progressbar').getAttribute('value')).toBe('1');
+    fireEvent.click(screen.getAllByRole('radio')[0]);
+    expect(screen.getByText('Saved first lecture idea')).toBeTruthy();
+  });
   it('renders actual video artwork for sources and accepted chunks without changing selection', async () => {
     const snapshot = state();
     const videoIds = ['dQw4w9WgXcQ', 'AAAAAAAAAAA'];
