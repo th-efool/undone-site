@@ -14,7 +14,8 @@ export function YoutubeUnits({ units, selected, disabled, onSave, onPrepare, max
   return <form aria-label="Video scope" onSubmit={async event => {
     event.preventDefault(); if (disabled || pending.current || choice.size > maxSelected || (onPrepare && !choice.size)) return; pending.current = true; setSaving(true); setError(null);
     try {
-      if (!await onSave(units.filter(unit => choice.has(unit.unitId)).map(unit => unit.unitId))) setError('Video selection was not acknowledged. Choices are still here. Check the saved draft before retrying.');
+      const unchanged = selected.length === choice.size && selected.every(id => choice.has(id));
+      if (!(onPrepare && unchanged) && !await onSave(units.filter(unit => choice.has(unit.unitId)).map(unit => unit.unitId))) setError('Video selection was not acknowledged. Choices are still here. Check the saved draft before retrying.');
       else if (onPrepare && !await onPrepare()) setError('Selection saved, but preparation could not start. Retry preparing this source.');
     }
     catch { setError('Video selection could not be saved. Choices are still here. Check the saved draft before retrying.'); }

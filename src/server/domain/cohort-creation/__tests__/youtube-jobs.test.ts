@@ -96,6 +96,13 @@ describe('durable selected video observation jobs', () => {
     expect(cleared.materialRefs[0].ids).toEqual([f.retained.artifact.id]); expect(cleared.youtubeSources[0].observations).toEqual([]);
     expect(cleared.extractions).toEqual([]);
   });
+  it('acknowledges unchanged video scope without discarding ready content or changing input revision', () => {
+    const f = observationFixture(); const ready = applyEvent(f.running, jobCompletion(f.job, f.manifest));
+    const next = applyCommand(ready, { type: 'select_youtube_units', materialId: f.command.materialId, unitIds: [...ready.materials[0].selectedUnitIds] });
+    expect(next).toEqual({ ...ready, revision: ready.revision + 1 });
+    expect(next.materials[0].status).toBe('ready'); expect(next.extractions).toHaveLength(1);
+    expect(() => applyCommand(next, { type: 'observe_youtube', materialId: f.command.materialId, requestId: randomUUID() })).toThrow();
+  });
   it('resumes partial checkpoints and refuses failed checkpoint fences without finalization', async () => {
     const f = observationFixture(); f.job.checkpoint = f.checkpoint;
     const acquire = vi.fn<YoutubeAcquisitionService['acquire']>(async (...args) => { await args[3](f.checkpoint); return f.manifest; });

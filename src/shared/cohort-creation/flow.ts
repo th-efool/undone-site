@@ -246,11 +246,16 @@ export function applyCommand(state: CreationSnapshot, input: CreationCommand): C
     }
     case 'select_youtube_units': {
       const preview = state.youtubeSources.find(source => source.materialId === command.materialId);
-      if (state.stage !== 'starting_point' || !state.startingPoint || state.status === 'running' || !preview ||
+      const material = state.materials.find(source => source.id === command.materialId);
+      if (state.stage !== 'starting_point' || !state.startingPoint || state.status === 'running' || !preview || !material ||
         command.unitIds.some(id => !preview.units.some(unit => unit.unitId === id))) throw new Error('Starting point is not available');
       const remaining = MATERIAL_LIMITS.selectedUnits - state.materials.filter(source => source.id !== command.materialId)
         .reduce((sum, source) => sum + source.selectedUnitIds.length, 0);
       if (command.unitIds.length > remaining) throw new Error(`Select at most ${remaining} videos for this source. The draft supports 100 selected units across all sources.`);
+      // Acknowledging an identical scope must not discard already retained content.
+      if (command.unitIds.length === material.selectedUnitIds.length && command.unitIds.every(id => material.selectedUnitIds.includes(id))) {
+        return creationSnapshotSchema.parse({ ...state, revision: changed.revision });
+      }
       return creationSnapshotSchema.parse({ ...changed, processing: null, inputRevision: state.inputRevision + 1, status: 'succeeded', lastMaterialRequestId: null,
         materials: state.materials.map(source => source.id === command.materialId ? { ...source, status: 'needs_input', selectedUnitIds: command.unitIds } : source),
         youtubeSources: state.youtubeSources.map(source => source.materialId === command.materialId

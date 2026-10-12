@@ -59,6 +59,13 @@ describe('explicit video scope', () => {
 
 
 describe('selection and preparation', () => {
+  it('prepares an acknowledged scope directly without a redundant save request', async () => {
+    const save = vi.fn(async () => true); const prepare = vi.fn(async () => true);
+    render(<YoutubeUnits units={units} selected={[units[0].unitId]} disabled={false} onSave={save} onPrepare={prepare} />);
+    expect(prepare).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Use selected videos' }));
+    await waitFor(() => expect(prepare).toHaveBeenCalledOnce()); expect(save).not.toHaveBeenCalled();
+  });
   it('preselects one video locally and prepares only after save succeeds', async () => {
     const order: string[] = []; const save = vi.fn(async () => { order.push('save'); return true; });
     const prepare = vi.fn(async () => { order.push('prepare'); return true; });
