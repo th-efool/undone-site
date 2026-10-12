@@ -17,10 +17,15 @@ export class VercelMaterialObservation implements MaterialObservation {
   }) {}
   get identity() {
     if (typeof this.model === 'string') throw creationFailure('AI_UNAVAILABLE', 'Video observation requires an explicit provider model.', false);
-    return { provider: this.model.provider, modelId: this.model.modelId, adapterVersion: 'vercel-video-observation-v2' };
+    return { provider: this.model.provider, modelId: this.model.modelId, adapterVersion: 'vercel-video-observation-v3' };
   }
   async observeVideo(input: YoutubeVideoMetadata, callerSignal: AbortSignal) {
     const video = youtubeVideoMetadataSchema.parse(input);
+    const interval = videoObservationProposalSchema.shape.observations.element;
+    const schema = videoObservationProposalSchema.extend({ observations: z.array(interval.extend({
+      startSeconds: interval.shape.startSeconds.max(video.durationSeconds),
+      endSeconds: interval.shape.endSeconds.max(video.durationSeconds),
+    })).max(200) });
     const signal = AbortSignal.any([callerSignal, AbortSignal.timeout(90_000)]);
     signal.throwIfAborted();
     if (typeof this.model === 'string') throw creationFailure('AI_UNAVAILABLE', 'Video observation requires a provider model with native YouTube URL support.', false);
@@ -41,7 +46,7 @@ export class VercelMaterialObservation implements MaterialObservation {
             { type: 'text', text: JSON.stringify({ videoId: video.videoId, durationSeconds: video.durationSeconds,
               title: video.title, ...(correction ? { correction } : {}) }) },
             { type: 'file', data: new URL(video.url), mediaType: 'video/mp4' },
-          ] }], output: Output.object({ schema: creationOutputSchema(videoObservationProposalSchema, this.model) }),
+          ] }], output: Output.object({ schema: creationOutputSchema(schema, this.model) }),
           maxOutputTokens: 12_000, maxRetries: 0, abortSignal: signal, timeout: { totalMs: 90_000 },
           telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },
         });

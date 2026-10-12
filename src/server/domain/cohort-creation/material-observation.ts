@@ -28,9 +28,9 @@ export function validateVideoObservation(input: unknown, metadata: YoutubeVideoM
   if (!proposal.observations.length) throw creationFailure('AI_INVALID_OUTPUT', 'No usable video observations were returned.');
   let cursor = 0;
   for (const item of proposal.observations) {
-    if (item.startSeconds < cursor || item.endSeconds <= item.startSeconds || item.endSeconds > video.durationSeconds) {
-      throw creationFailure('AI_INVALID_OUTPUT', 'Video observations contain invalid, overlapping or out-of-duration ranges.');
-    }
+    if (item.endSeconds <= item.startSeconds) throw creationFailure('AI_INVALID_OUTPUT', 'Video observation end seconds must be greater than start seconds.');
+    if (item.endSeconds > video.durationSeconds) throw creationFailure('AI_INVALID_OUTPUT', 'Video observations contain out-of-duration ranges; end seconds must not exceed the authoritative video duration.');
+    if (item.startSeconds < cursor) throw creationFailure('AI_INVALID_OUTPUT', 'Video observations overlap or are not in playback order.');
     cursor = item.endSeconds;
   }
   if (Buffer.byteLength(proposal.observations.map(item => item.text).join('\n\n'), 'utf8') > MATERIAL_LIMITS.extractedTextBytes) {

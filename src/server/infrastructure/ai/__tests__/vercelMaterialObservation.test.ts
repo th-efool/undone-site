@@ -16,10 +16,13 @@ afterEach(() => vi.unstubAllGlobals());
 describe('bounded Vercel video observation', () => {
   it('sends one native file URL through the SDK without application downloads or tool loops', async () => {
     const fetch = vi.fn(() => { throw new Error('Unexpected download'); }); vi.stubGlobal('fetch', fetch);
-    const model = new MockLanguageModelV4({ supportedUrls, doGenerate: modelOutput(proposal) });
+    const model = new MockLanguageModelV4({ provider: 'google.generative-ai', supportedUrls, doGenerate: modelOutput(proposal) });
     const release = vi.fn(async () => {}); const beforeCall = vi.fn(async () => release);
     expect(await new VercelMaterialObservation(model, { beforeCall }).observeVideo(video, new AbortController().signal)).toEqual(proposal);
     const call = model.doGenerateCalls[0]; expect(call.responseFormat?.type).toBe('json'); expect(call.maxOutputTokens).toBe(12_000);
+    expect(call.responseFormat).toMatchObject({ schema: { properties: { observations: { items: { properties: {
+      startSeconds: { maximum: video.durationSeconds }, endSeconds: { maximum: video.durationSeconds },
+    } } } } } });
     const files = call.prompt.flatMap(message => message.role === 'user' ? message.content.filter(part => part.type === 'file') : []);
     expect(files).toHaveLength(1); expect(files[0]).toMatchObject({ type: 'file', mediaType: 'video/mp4', data: new URL(video.url) });
     expect(fetch).not.toHaveBeenCalled(); expect(beforeCall).toHaveBeenCalledWith(video.videoId); expect(release).toHaveBeenCalledOnce();
@@ -57,7 +60,7 @@ describe('bounded Vercel video observation', () => {
     expect(await new VercelMaterialObservation(model, { beforeCall }).observeVideo(video, new AbortController().signal)).toEqual(proposal);
     expect(beforeCall).toHaveBeenCalledTimes(2); expect(release).toHaveBeenCalledTimes(2);
     const prompt = model.doGenerateCalls[1].prompt.flatMap(message => message.role === 'user' ? message.content.filter(part => part.type === 'text') : []);
-    expect(JSON.stringify(prompt)).toContain('invalid, overlapping or out-of-duration');
+    expect(JSON.stringify(prompt)).toContain('correction');
     expect(JSON.stringify(prompt)).toContain('numeric seconds');
   });
   it('exhausts semantic repair after two calls and never retries an inaccessible video', async () => {
