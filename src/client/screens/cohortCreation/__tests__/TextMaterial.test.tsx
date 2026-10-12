@@ -28,6 +28,8 @@ describe('one text material step', () => {
         units: [{ unitId: 'dQw4w9WgXcQ', title: 'Real lighting lesson', durationSeconds: 120 }] }],
     }} uploading={false} pending={false} onUpload={vi.fn()} onCancelUpload={vi.fn()} onCancel={vi.fn()} onRetry={vi.fn()} onRemove={vi.fn()} onWeb={onWeb} onObserve={onObserve} />);
     expect(screen.getByText(/0 of 1 selected video observations retained/)).toBeTruthy();
+    expect(screen.getByText(/paste authorized transcript\/text material instead/)).toBeTruthy();
+    expect(document.getElementById(`creation-material-${draftId}`)).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Resume selected video observations for source 1' }));
     await waitFor(() => expect(onObserve).toHaveBeenCalledWith(draftId)); expect(onWeb).not.toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: 'Retry source 1' })).toBeNull();

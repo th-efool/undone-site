@@ -22,3 +22,13 @@ it('starts understanding only for retained ready content and reports rejection',
   await waitFor(() => expect(onStart).toHaveBeenCalledOnce());
   expect(await screen.findByRole('alert')).toBeTruthy();
 });
+it('reviews the unfinished source rather than an earlier ready video', () => {
+  const source = { id: draftId, kind: 'youtube_video' as const, input: { kind: 'url' as const, url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }, status: 'ready' as const, selectedUnitIds: ['dQw4w9WgXcQ'] };
+  const snapshot = { ...base, materials: [source, { ...source, id: 'unfinished', status: 'failed' as const }] };
+  const { container } = render(<><div id={`creation-material-${draftId}`} /><div id="creation-material-unfinished" /><UnderstandingProgress snapshot={snapshot} disabled={false} {...callbacks} /></>);
+  const readyScroll = vi.fn(); const unfinishedScroll = vi.fn();
+  container.querySelector(`#creation-material-${draftId}`)!.scrollIntoView = readyScroll;
+  container.querySelector('#creation-material-unfinished')!.scrollIntoView = unfinishedScroll;
+  fireEvent.click(screen.getByRole('button', { name: /Review material/ }));
+  expect(readyScroll).not.toHaveBeenCalled(); expect(unfinishedScroll).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+});

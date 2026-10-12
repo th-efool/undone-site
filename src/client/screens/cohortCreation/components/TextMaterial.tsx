@@ -134,7 +134,7 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
     {queuing && <p role="status">Saving source selection…</p>}
     {snapshot.error && <p role="alert">{snapshot.error.message}</p>}
     {!!snapshot.materials.length && <h2 className={styles.sourceHeading}>Added material</h2>}
-    <ul className={styles.sources}>{snapshot.materials.map((source, index) => <li key={source.id} data-playlist={(snapshot.youtubeSources.find(preview => preview.materialId === source.id)?.units.length ?? 0) > 1}>
+    <ul className={styles.sources}>{snapshot.materials.map((source, index) => <li key={source.id} id={`creation-material-${source.id}`} data-playlist={(snapshot.youtubeSources.find(preview => preview.materialId === source.id)?.units.length ?? 0) > 1}>
       {source.status === 'ready' ? <CircleCheck className={styles.sourceIcon} data-ready aria-hidden="true" size={25} /> : <FileText className={styles.sourceIcon} aria-hidden="true" size={25} />}
       <div className={styles.sourceDetails}>
       <h3 className={styles.sourceTitle}>{snapshot.youtubeSources.find(preview => preview.materialId === source.id)?.units.length === 1 ? snapshot.youtubeSources.find(preview => preview.materialId === source.id)!.units[0].title : `Source ${index + 1}${source.kind === 'youtube_playlist' ? ' · YouTube playlist' : ''}`}</h3>
@@ -152,6 +152,7 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
       </ul>}
       {source.kind === 'generated_guide' && <p>AI-authored guide. Not verified external source material; check factual claims independently.</p>}
       </details>
+      {source.status === 'failed' && <p>Preparation failed. Retry this source or replace it.{['youtube_video', 'youtube_playlist'].includes(source.kind) && ' You can also paste authorized transcript/text material instead.'}</p>}
       {onSelectUnits && snapshot.youtubeSources.find(preview => preview.materialId === source.id) && <YoutubeUnits
         key={`${source.id}:${source.selectedUnitIds.join(',')}`} selected={source.selectedUnitIds}
         maxSelected={MATERIAL_LIMITS.selectedUnits - selectedUnits + source.selectedUnitIds.length}

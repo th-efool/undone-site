@@ -34,7 +34,10 @@ export function UnderstandingProgress({ snapshot, disabled, onStart, onCancel, o
     <div><strong>{ready ? 'Your material is ready' : 'Prepare your selected material'}</strong><p>{ready ? 'Turn it into a learning journey.' : snapshot.status === 'running' ? 'Preparation is running. Your progress is saved.' : 'Choose videos and use selected videos, or retry unfinished sources.'}</p></div>
     {error && <p role="alert">{error}</p>}
     {ready ? <button disabled={disabled || pending} onClick={start}>{pending ? 'Starting…' : 'Continue to understanding'} →</button> :
-      <button disabled={pending} onClick={() => (document.querySelector('[aria-label="Video scope"]') ?? document.querySelector('[aria-label="Learning material"]'))?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>Review material ↑</button>}
+      <button disabled={pending} onClick={() => {
+        const unfinished = snapshot.materials.find(source => source.status !== 'ready');
+        (unfinished ? document.getElementById(`creation-material-${unfinished.id}`) ?? document.querySelector('[aria-label="Learning material"]') : document.querySelector('[aria-label="Learning material"]'))?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }}>Review material ↑</button>}
   </section>;
   return <section aria-label="Understanding material" className={styles.workspace}>
     <ProcessingSteps current={0} />
