@@ -1,0 +1,59 @@
+.reader {
+  /* Play stays dark independently of the application's selected theme. */
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #cbd5e1;
+  color: var(--color-text-primary);
+  background: #111827;
+  color-scheme: dark;
+  overflow-y: auto;
+  max-height: 100%;
+  width: 100%;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  overflow-wrap: anywhere;
+}
+
+.reader > * {
+  max-width: 72ch;
+  margin-inline: auto;
+}
+
+.reader h1 {
+  font-size: clamp(1.75rem, 3vw, 2.75rem);
+  margin-block: 1rem;
+}
+
+.reader h2 {
+  font-size: 1.25rem;
+  margin-block: 1.5rem 0.5rem;
+}
+
+.reader p,
+.reader li {
+  color: var(--color-text-secondary);
+  line-height: 1.7;
+}
+
+.reader ul {
+  list-style: disc;
+  padding-inline-start: 1.5rem;
+}
+
+.reader button {
+  display: block;
+  margin-block: 1.5rem;
+  min-height: 44px;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.75rem;
+  background: #c7d2fe;
+  color: #111827;
+  font-weight: 600;
+}
+
+.reader button:disabled {
+  opacity: 0.65;
+}
+
+.reader button:focus-visible {
+  outline: 2px solid #f1f5f9;
+  outline-offset: 4px;
+}

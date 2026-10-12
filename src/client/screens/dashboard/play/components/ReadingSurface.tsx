@@ -1,11 +1,12 @@
 'use client';
 
 import type { FeedItem } from '@/src/shared/feed/feedEngine.types';
+import styles from './ReadingSurface.module.css';
 
 export function ReadingSurface({ item, pending, error, onComplete }: {
   item: FeedItem; pending: boolean; error: string | null; onComplete: () => void;
 }) {
-  return <article aria-label="Lesson reading" style={{ overflowY: 'auto', maxHeight: '100%', padding: '2rem', width: '100%' }}>
+  return <article aria-label="Lesson reading" className={styles.reader}>
     <p>{item.cohortTitle} · {item.lessonTitle}</p>
     <h1>{item.chunkTitle}</h1>
     {item.content?.contentOrigin === 'ai' && <p>AI-authored learning content. Check the source context and limitations below.</p>}
