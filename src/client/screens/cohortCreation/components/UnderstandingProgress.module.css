@@ -1,4 +1,9 @@
 .workspace, .embedded { color: var(--creation-ink, #08143d); }
+.continueDock { position: fixed; right: 28px; bottom: 24px; z-index: 5; display: flex; flex-wrap: wrap; align-items: center; gap: 14px; max-width: min(620px, calc(100vw - 48px)); padding: 18px 22px; background: var(--creation-surface, #fffcf7); color: var(--creation-ink, #08143d); border: 1px solid var(--creation-line, #e9e0d5); border-radius: 20px; box-shadow: 0 8px 36px #08143d1a; }
+.continueDock p { margin: 4px 0 0; font-size: 12px; line-height: 1.5; color: var(--creation-muted, #536788); }
+.continueDock button { border: 0; border-radius: 24px; padding: 13px 20px; min-height: 44px; background: var(--creation-blue, #303cff); color: #fff; font: 600 13px var(--font-manrope-next), sans-serif; cursor: pointer; }
+.continueDock button:focus-visible { outline: 2px solid var(--creation-blue, #303cff); outline-offset: 4px; }
+@media(max-width:820px) { .continueDock { right: 12px; left: 12px; bottom: 12px; max-width: none; padding: 14px 16px; } .continueDock button { margin-left: auto; } }
 .steps { list-style: none; display: flex; justify-content: center; gap: 0; padding: 0 100px 0 0; margin: 6px 0 48px; }
 .steps li { display: flex; align-items: center; gap: 12px; text-transform: uppercase; font-size: 11px; font-weight: 700; color: var(--creation-muted, #72819a); padding: 0 22px 12px; border-bottom: 2px solid #d7d6d1; }
 .steps li span { display: grid; place-items: center; background: #e4e3e0; color: #17234b; width: 31px; height: 31px; border-radius: 50%; }

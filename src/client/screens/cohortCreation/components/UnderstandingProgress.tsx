@@ -30,7 +30,12 @@ export function UnderstandingProgress({ snapshot, disabled, onStart, onCancel, o
       {!ready && <p>Acquire all selected sources before continuing.</p>}
       {snapshot.stage === 'processing' && <button disabled={disabled || pending} onClick={() => void run(onBack, 'Return to material')}>Back to material</button>}
     </>}</div>;
-  if (snapshot.stage !== 'processing') return <section className={styles.embedded} aria-label="Understanding material"><h2>Understanding</h2>{controls}</section>;
+  if (snapshot.stage !== 'processing') return <section className={styles.continueDock} aria-label="Continue with material">
+    <div><strong>{ready ? 'Your material is ready' : 'Prepare your selected material'}</strong><p>{ready ? 'Turn it into a learning journey.' : snapshot.status === 'running' ? 'Preparation is running. Your progress is saved.' : 'Choose videos and use selected videos, or retry unfinished sources.'}</p></div>
+    {error && <p role="alert">{error}</p>}
+    {ready ? <button disabled={disabled || pending} onClick={start}>{pending ? 'Starting…' : 'Continue to understanding'} →</button> :
+      <button disabled={pending} onClick={() => (document.querySelector('[aria-label="Video scope"]') ?? document.querySelector('[aria-label="Learning material"]'))?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>Review material ↑</button>}
+  </section>;
   return <section aria-label="Understanding material" className={styles.workspace}>
     <ProcessingSteps current={0} />
     <div className={styles.columns}><div><header className={styles.heading}>

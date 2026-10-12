@@ -1,4 +1,4 @@
-.workspace { position: relative; isolation: isolate; padding-bottom: 45px; }
+.workspace { position: relative; isolation: isolate; padding-bottom: 180px; }
 .decorations { position: absolute; inset: 0 -48px 0; overflow: hidden; pointer-events: none; z-index: -1; }
 .photo { position: absolute; top: 0; left: -55px; width: 220px; height: 330px; transform: rotate(-9deg); border: 10px solid #fffcf2; box-shadow: 0 4px 12px #56401a21; }
 .books { position: absolute; top: 220px; right: -130px; width: 270px; height: 350px; transform: rotate(5deg); border: 9px solid #fffcf2; }

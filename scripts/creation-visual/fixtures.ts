@@ -5,7 +5,7 @@ import { useCreation as useDurableCreation } from '../../src/client/screens/coho
 
 // Browser-only fixtures. Never imported by application routes or used for live generation.
 export const screenNumber = Number(new URLSearchParams(location.search).get('screen') ?? 2);
-const videoFixture = screenNumber === 6 && new URLSearchParams(location.search).get('source') === 'youtube';
+const videoFixture = [4, 6].includes(screenNumber) && new URLSearchParams(location.search).get('source') === 'youtube';
 const videoId = 'W6NZfCO5SIk';
 export const visualActions: string[] = [];
 const field = <T,>(value: T) => ({ value, origin: 'ai' as const, acceptedRevision: 1 });
@@ -45,10 +45,10 @@ const checkpoint = { phase: 'understanding', requestId: draftId, inputRevision: 
 export const snapshot = { ...initialSnapshot(draftId), revision: 1, inputRevision: 1, query: recommendations.intent.rawQuery, result: recommendations,
   status: 'succeeded', stage: screenNumber === 2 ? 'recommendations' : screenNumber <= 4 ? 'starting_point' : screenNumber <= 7 ? 'processing' : screenNumber === 8 ? 'ready' : screenNumber === 9 ? 'review' : 'published',
   startingPoint: screenNumber <= 3 ? null : 'have_material',
-  materials: screenNumber <= 3 ? [] : [{ id: draftId, kind: videoFixture ? 'youtube_video' : 'web', input: { kind: 'url', url: videoFixture ? `https://www.youtube.com/watch?v=${videoId}` : 'https://example.com/system-design-guide' }, status: 'ready', selectedUnitIds: [videoFixture ? videoId : draftId] }],
+  materials: screenNumber <= 3 ? [] : [{ id: draftId, kind: videoFixture ? 'youtube_video' : 'web', input: { kind: 'url', url: videoFixture ? `https://www.youtube.com/watch?v=${videoId}` : 'https://example.com/system-design-guide' }, status: videoFixture && screenNumber === 4 ? 'needs_input' : 'ready', selectedUnitIds: videoFixture && screenNumber === 4 ? [] : [videoFixture ? videoId : draftId] }],
   youtubeSources: videoFixture ? [{ materialId: draftId, sourceRevision: 1, metadataArtifact: ref, metadataFingerprint: hash('b'),
     units: [{ unitId: videoId, title: 'Public video · thumbnail layout fixture', durationSeconds: 1200 }], observations: [] }] : [],
-  extractions: screenNumber <= 3 ? [] : [{ materialId: draftId, version: hash('b'), checksum: hash('c'), artifactRef: draftId, extractionKind: 'text', complete: true, segmentCount: 18 }],
+  extractions: screenNumber <= 3 || videoFixture && screenNumber === 4 ? [] : [{ materialId: draftId, version: hash('b'), checksum: hash('c'), artifactRef: draftId, extractionKind: 'text', complete: true, segmentCount: 18 }],
   processing: screenNumber < 5 ? null : { requestId: draftId, inputRevision: 1, phase: screenNumber === 5 ? 'understanding' : screenNumber === 6 ? 'chunking' : screenNumber === 7 ? 'analysis' : 'building',
     complete: screenNumber !== 5, checkpoint: screenNumber === 5 ? { ...checkpoint, completed: checkpoint.completed.slice(0, 1) } : checkpoint,
     chunking: screenNumber < 6 ? null : { requestId: draftId, complete: screenNumber > 6, checkpoint: { ...checkpoint, phase: 'chunking', understandingFingerprint: hash('d'),
