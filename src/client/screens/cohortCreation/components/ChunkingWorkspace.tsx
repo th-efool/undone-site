@@ -10,6 +10,13 @@ import { YoutubeThumbnail } from './YoutubeThumbnail';
 import shared from './UnderstandingProgress.module.css';
 import styles from './ChunkingWorkspace.module.css';
 
+function sourceTime(seconds: number) {
+  const whole = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(whole / 3600);
+  const minutes = Math.floor(whole / 60) % 60;
+  return `${hours ? `${hours}:` : ''}${String(minutes).padStart(hours ? 2 : 1, '0')}:${String(whole % 60).padStart(2, '0')}`;
+}
+
 export function ChunkingWorkspace({ snapshot, children }: { snapshot: CreationSnapshot; children: ReactNode }) {
   const [loaded, setLoaded] = useState<ChunkingPreview | null>(null);
   const [error, setError] = useState<{ revision: number; message: string } | null>(null);
@@ -32,21 +39,22 @@ export function ChunkingWorkspace({ snapshot, children }: { snapshot: CreationSn
       [{ key: `${material.id}:${material.selectedUnitIds[0] ?? material.id}`, materialId: material.id, unitId: null, title, duration: null }];
   });
   const source = sources.find(item => item.key === selected) ?? sources[0];
+  const sourceIndex = sources.findIndex(item => item.key === source?.key);
   const selectedChunks = chunks.filter(chunk => chunk.materialId === source?.materialId && (!source.unitId || chunk.unitId === source.unitId));
-  return <section aria-label="Chunking material" className={shared.workspace}>
+  return <section aria-label="Chunking material" className={`${shared.workspace} ${styles.workspace}`}>
     <ProcessingSteps current={1} />
-    <div className={shared.columns}><div><header className={shared.heading}>
+    <div className={`${shared.columns} ${styles.columns}`}><div><header className={`${shared.heading} ${styles.heading}`}>
       <p className={shared.eyebrow}>Turning content into learning pieces</p>
       <h1>{operation?.complete ? <>Your learning<br /><span>chunks are saved.<InkUnderline className={shared.underline} /></span></> : <>Finding natural<br /><span>learning chunks…<InkUnderline className={shared.underline} /></span></>}</h1>
       <p>I’m breaking the material into meaningful pieces, based on its topics and source evidence.</p>
     </header>
-    <div className={shared.inventory}><h2><FileText size={22} aria-hidden="true" />Selected material<span>{sources.length} {sources.length === 1 ? 'source' : 'sources'}</span></h2>
+    <div className={`${shared.inventory} ${styles.inventory}`}><h2><FileText size={22} aria-hidden="true" />Selected material<span>{sources.length} {sources.every(item => item.unitId) ? (sources.length === 1 ? 'video' : 'videos') : (sources.length === 1 ? 'source' : 'sources')}</span></h2>
       <fieldset className={styles.sourceList}><legend className={styles.srOnly}>Select a source to inspect its chunks</legend>
         {sources.map((item, index) => <label key={item.key} className={styles.source} data-selected={item.key === source?.key}>
           <input type="radio" name="chunk-source" checked={item.key === source?.key} onChange={() => setSelected(item.key)} />
           {item.unitId && <YoutubeThumbnail videoId={item.unitId} />}
           <span className={styles.number}>{String(index + 1).padStart(2, '0')}</span><span className={styles.sourceTitle}>{item.title}
-            {item.duration !== null && <small>{Math.ceil(item.duration / 60)} source minutes</small>}</span>
+            {item.duration !== null && <small>{sourceTime(item.duration)}</small>}</span>
           <small>{loaded?.revision === snapshot.revision ? `${chunks.filter(chunk => chunk.materialId === item.materialId && (!item.unitId || chunk.unitId === item.unitId)).length} chunks` : 'Pending preview'}</small><ChevronRight size={16} aria-hidden="true" />
         </label>)}
       </fieldset>
@@ -54,8 +62,8 @@ export function ChunkingWorkspace({ snapshot, children }: { snapshot: CreationSn
       <div className={shared.controls}>{children}</div>
     </div></div>
     <aside className={styles.detail} id="creation-accepted-chunks" aria-label="Accepted chunks">
-      <div className={styles.detailMeta}><span>Selected source</span><span>{loaded?.revision === snapshot.revision ? `${selectedChunks.length} accepted chunks loaded` : 'Waiting for preview'}</span></div>
-      <h2>{source?.title ?? 'Your learning pieces'}</h2><p className={styles.intro}>Natural boundaries, grounded in your retained material.</p>
+      <div className={styles.detailMeta}><span>{source ? `${source.unitId ? 'Lecture' : 'Source'} ${String(sourceIndex + 1).padStart(2, '0')}` : 'Selected source'}</span>{source?.duration !== null && source?.duration !== undefined && <time>{sourceTime(source.duration)}</time>}<span>{loaded?.revision === snapshot.revision ? `${selectedChunks.length} accepted chunks loaded` : 'Waiting for preview'}</span></div>
+      <h2><span>{source?.title ?? 'Your learning pieces'}<InkUnderline className={styles.titleUnderline} /></span></h2><p className={styles.intro}>Natural boundaries, grounded in your retained material.</p>
       {error?.revision === snapshot.revision ? <p role="alert">{error.message} <button onClick={() => setRetry(value => value + 1)}>Reload chunks</button></p> : !selectedChunks.length ?
         <p role="status" className={styles.empty}>{accepted && loaded?.revision !== snapshot.revision ? 'Loading accepted chunks…' : 'Chunks appear here when this source has accepted boundaries.'}</p> :
         <ol className={styles.chunks}>{selectedChunks.map((chunk, index) => <li key={chunk.id}><details>

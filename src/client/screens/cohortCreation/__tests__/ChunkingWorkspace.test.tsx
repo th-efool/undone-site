@@ -32,9 +32,12 @@ describe('chunking workspace', () => {
     vi.mocked(loadChunkingPreview).mockResolvedValue({ revision: 1, chunks: snapshot.materials.map((source, index) => ({ ...chunk(source.id, `Video chunk ${index + 1}`), unitId: videoIds[index] })) });
     const view = render(<ChunkingWorkspace snapshot={videoSnapshot}>Saved controls</ChunkingWorkspace>);
     await screen.findByText('Video chunk 1');
+    expect(screen.getByText('Lecture 01')).toBeTruthy();
+    expect(screen.getAllByText('2:00')).toHaveLength(3);
     expect(view.container.querySelectorAll('img[src*="/dQw4w9WgXcQ/"]')).toHaveLength(2);
     fireEvent.click(screen.getAllByRole('radio')[1]);
     expect(screen.getByText('Video chunk 2')).toBeTruthy();
+    expect(screen.getByText('Lecture 02')).toBeTruthy();
     expect(view.container.querySelectorAll('img[src*="/AAAAAAAAAAA/"]')).toHaveLength(2);
   });
   it('selects actual sources and exposes retained boundaries with labelled duration estimates', async () => {

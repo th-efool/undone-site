@@ -36,7 +36,11 @@ const server = await createServer({ configFile: false, root, publicDir: path.joi
   plugins: [{ name: 'creation-fixture-boundary', enforce: 'pre', resolveId(source, importer) {
     if (source === './hooks/useCreation' && importer?.replaceAll('\\', '/').endsWith('/CreationExperience.tsx')) return fixture;
     if (source === 'next/link') return '\0preview-link';
-  }, load(id) { if (id === '\0preview-link') return `export {Link as default} from ${JSON.stringify(wrapper.replaceAll('\\', '/'))};`; },
+    if (source === '../services/chunkingApi') return '\0preview-chunks';
+  }, load(id) {
+    if (id === '\0preview-link') return `export {Link as default} from ${JSON.stringify(wrapper.replaceAll('\\', '/'))};`;
+    if (id === '\0preview-chunks') return `import {loadChunkingPreview as real} from '/@fs/${workspace.replaceAll('\\', '/')}/src/client/screens/cohortCreation/services/chunkingApi.ts';export async function loadChunkingPreview(...args){return new URLSearchParams(location.search).has('preview-data')&&!new URLSearchParams(location.search).has('journey')?window.__creationVisualFixtures.chunkPreview:real(...args);}`;
+  },
     configureServer(app) { app.middlewares.use('/preview-playfair.woff2', (_request, response) => { response.setHeader('Content-Type', 'font/woff2'); response.end(readFileSync(font)); }); } }],
   server: { host: '127.0.0.1', port: 4175, strictPort: true, fs: { allow: [workspace] } } });
 await server.listen(); server.printUrls();

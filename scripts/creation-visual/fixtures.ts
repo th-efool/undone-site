@@ -79,7 +79,7 @@ function useVisualCreation() {
     status: variant === 'complete' ? 'succeeded' : variant === 'canceled' ? 'canceled' : 'running',
     processing: { ...snapshot.processing, chunking: { ...snapshot.processing.chunking, complete: variant === 'complete',
       checkpoint: variant === 'unknown' ? null : snapshot.processing.chunking.checkpoint } } } : snapshot);
-  return new Proxy({ snapshot: state, hydrated: true, saved: true, materialPending: false, activatingReady: false, uploading: false, message: null, query: state.query },
+  return new Proxy({ snapshot: state, hydrated: true, saved: true, queryPending: false, queueNotice: null, materialPending: false, activatingReady: false, uploading: false, message: null, query: state.query },
     { get: (target, property) => property in target ? target[property as keyof typeof target] : async () => { visualActions.push(String(property)); return true; } });
 }
 // Only the isolated preview supports this opt-in real-hook transport journey.
