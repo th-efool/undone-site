@@ -1,4 +1,5 @@
 .workspace .heading h1 span { font-style: normal; }
+@media(min-width:1101px) { .workspace > ol { margin-bottom: 30px; } .workspace > ol > li { font-size: 12px; } }
 .columns { grid-template-columns: minmax(0, .9fr) minmax(0, 1fr); align-items: start; gap: 18px; }
 .heading { padding: 10px 14px 24px; }
 .inventory { padding: 22px 16px; }

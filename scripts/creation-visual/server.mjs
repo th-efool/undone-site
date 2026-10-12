@@ -13,6 +13,11 @@ for (const [folder, baseline] of [['baseline', '33660b2'], ['repair-baseline', '
 }
 mkdirSync(root, { recursive: true });
 writeFileSync(path.join(root, 'index.html'), '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Creation visual fixture</title></head><body><div id="root"></div><script type="module" src="/main.tsx"></script></body></html>');
+// Measurable iframe viewports when the browser's outer viewport override is unavailable.
+// These pages are isolated rendering fixtures, not application routes or live AI journeys.
+for (const [name, width, height] of [['desktop', 1586, 992], ['mobile', 390, 844]]) {
+  writeFileSync(path.join(root, `${name}-frame.html`), `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chunking ${name} embedded-frame fixture</title><style>html,body{margin:0;width:${width}px;height:${height}px}iframe{display:block;border:0;width:${width}px;height:${height}px}</style></head><body><iframe title="Chunking ${width} by ${height} fixture viewport" src="/?screen=6&amp;source=playlist&amp;version=after&amp;preview-data=1"></iframe></body></html>`);
+}
 writeFileSync(path.join(root, 'main.tsx'), `import {createRoot} from 'react-dom/client';
 import {CreationExperience as Before} from './baseline/src/client/screens/cohortCreation/CreationExperience';
 import {CreationExperience as RepairBefore} from './repair-baseline/src/client/screens/cohortCreation/CreationExperience';
