@@ -48,6 +48,11 @@ const screens = [
    const entry={number,name,width,height,checkpoint,status:checkpoint<=completed?'Implemented; final fidelity review pending':'Pending visual checkpoint',
     currentCommit:execFileSync('git',['rev-parse','--short','HEAD'],{encoding:'utf8'}).trim(),capturedAt:new Date().toISOString()};
    entry.uncommittedCode=Boolean(execFileSync('git',['status','--porcelain','--','src','scripts/creation-visual'],{encoding:'utf8'}).trim());
+   // Replace alternate browser-export metadata when fresh standard captures are written.
+   Object.assign(entry, { beforeImage: `before-${number}.png`, beforeFullImage: `before-${number}-full.png`,
+    afterImage: `after-${number}.png`, afterFullImage: `after-${number}-full.png`,
+    captureViewport: {width,height}, captureRaster: {width,height}, mobileStale: false,
+    fixture: 'Explicit rendering fixtures; no live AI/database journey' });
    if(previous)Object.assign(previous,entry);else manifest.screens.push(entry);
    console.log(`Captured screen ${number}: ${name}`);
   }
