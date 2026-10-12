@@ -7,17 +7,20 @@ import { useCreation as useDurableCreation } from '../../src/client/screens/coho
 export const screenNumber = Number(new URLSearchParams(location.search).get('screen') ?? 2);
 const sourceVariant = new URLSearchParams(location.search).get('source');
 const playlistFixture = screenNumber === 6 && sourceVariant === 'playlist';
+const shortTitlesFixture = playlistFixture && new URLSearchParams(location.search).get('titles') === 'short';
 const videoFixture = [4, 6].includes(screenNumber) && (sourceVariant === 'youtube' || playlistFixture);
 const videoId = 'W6NZfCO5SIk';
 // Synthetic lecture titles/timing for layout checks, not metadata from these public videos.
-const videoUnits = playlistFixture ? [
+const shortLectureTitles = ['Introduction to systems', 'Availability', 'Consistency', 'Replication', 'Queues', 'Recovery'];
+const videoUnits = (playlistFixture ? [
   { unitId: videoId, title: 'Fixture lecture: Introduction to reliable systems', durationSeconds: 3736 },
   { unitId: 'jNQXAC9IVRw', title: 'Fixture lecture: Availability and failure recovery', durationSeconds: 3523 },
   { unitId: 'y_rdvDr3wB4', title: 'Fixture lecture: Consistency across distributed services', durationSeconds: 2972 },
   { unitId: 'xh3702GQUI4', title: 'Fixture lecture: Replication strategies', durationSeconds: 3917 },
   { unitId: '17XZGUX_9iM', title: 'Fixture lecture: Queues and backpressure', durationSeconds: 3143 },
   { unitId: 'dQw4w9WgXcQ', title: 'Fixture lecture: Observability and capacity planning with a deliberately longer title', durationSeconds: 3408 },
-] : [{ unitId: videoId, title: 'Public video · thumbnail layout fixture', durationSeconds: 1200 }];
+] : [{ unitId: videoId, title: 'Public video · thumbnail layout fixture', durationSeconds: 1200 }])
+  .map((unit, index) => ({ ...unit, title: shortTitlesFixture ? shortLectureTitles[index] : unit.title }));
 export const visualActions: string[] = [];
 const field = <T,>(value: T) => ({ value, origin: 'ai' as const, acceptedRevision: 1 });
 const hash = (letter: string) => letter.repeat(64);

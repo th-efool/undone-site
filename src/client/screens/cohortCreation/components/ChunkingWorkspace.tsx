@@ -45,7 +45,7 @@ export function ChunkingWorkspace({ snapshot, children }: { snapshot: CreationSn
     <ProcessingSteps current={1} />
     <div className={`${shared.columns} ${styles.columns}`}><div><header className={`${shared.heading} ${styles.heading}`}>
       <p className={shared.eyebrow}>Turning content into learning pieces</p>
-      <h1>{operation?.complete ? <>Your learning<br /><span>chunks are saved.<InkUnderline className={shared.underline} /></span></> : <>Finding natural<br /><span>learning chunks…<InkUnderline className={shared.underline} /></span></>}</h1>
+      <h1>{operation?.complete ? <>Your learning<br /><span>chunks are saved.<InkUnderline className={`${shared.underline} ${styles.headlineUnderline}`} /></span></> : <>Finding natural<br /><span>learning chunks…<InkUnderline className={`${shared.underline} ${styles.headlineUnderline}`} /></span></>}</h1>
       <p>I’m breaking the material into meaningful pieces, based on its topics and source evidence.</p>
     </header>
     <div className={`${shared.inventory} ${styles.inventory}`}><h2><FileText size={22} aria-hidden="true" />Selected material<span>{sources.length} {sources.every(item => item.unitId) ? (sources.length === 1 ? 'video' : 'videos') : (sources.length === 1 ? 'source' : 'sources')}</span></h2>
@@ -63,9 +63,9 @@ export function ChunkingWorkspace({ snapshot, children }: { snapshot: CreationSn
     </div></div>
     <aside className={styles.detail} id="creation-accepted-chunks" aria-label="Accepted chunks">
       <div className={styles.detailMeta}><span>{source ? `${source.unitId ? 'Lecture' : 'Source'} ${String(sourceIndex + 1).padStart(2, '0')}` : 'Selected source'}</span>{source?.duration !== null && source?.duration !== undefined && <time>{sourceTime(source.duration)}</time>}<span>{loaded?.revision === snapshot.revision ? `${selectedChunks.length} accepted chunks loaded` : 'Waiting for preview'}</span></div>
-      <h2><span>{source?.title ?? 'Your learning pieces'}<InkUnderline className={styles.titleUnderline} /></span></h2>
-      <div className={styles.detailIntro}><p className={styles.intro}>Natural boundaries, grounded in your retained material.</p>
-        <p className={styles.annotation}>Each chunk keeps its source boundaries. Open a piece to inspect the evidence.</p></div>
+      <div className={styles.detailHeader}><div><h2><span>{source?.title ?? 'Your learning pieces'}<InkUnderline className={styles.titleUnderline} /></span></h2>
+        <p className={styles.intro}>Grounded in your retained material.</p></div>
+        <p className={styles.annotation}>Each chunk keeps its source evidence. Open a piece to explore.</p></div>
       {error?.revision === snapshot.revision ? <p role="alert">{error.message} <button onClick={() => setRetry(value => value + 1)}>Reload chunks</button></p> : !selectedChunks.length ?
         <p role="status" className={styles.empty}>{accepted && loaded?.revision !== snapshot.revision ? 'Loading accepted chunks…' : 'Chunks appear here when this source has accepted boundaries.'}</p> :
         <ol className={styles.chunks}>{selectedChunks.map((chunk, index) => <li key={chunk.id}><details>
