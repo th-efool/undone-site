@@ -68,3 +68,13 @@
   .materialInput .sources > li { grid-template-columns: 25px minmax(0, 1fr); gap: 12px; }
   .sourceActions { grid-column: 2; justify-content: start; max-width: none; }
 }
+
+/* Source groups use the legacy asset-grid composition without its dark theme. */
+.materialInput .sources > li { grid-template-columns: 25px minmax(0, 1fr); align-items: start; }
+.sourceTitle { font: 600 20px/1.3 var(--font-playfair-display), Georgia, serif; margin: 0 0 8px; }
+.provenance { font-size: 11px; color: var(--creation-muted, #536788); margin-bottom: 12px; }
+.provenance summary { cursor: pointer; padding-block: 4px; }
+.sourceActions { grid-column: 2; max-width: none; }
+
+.materialInput .sources { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr)); gap: 18px; align-items: start; }
+.materialInput .sources > li[data-playlist='true'] { grid-column: 1 / -1; }

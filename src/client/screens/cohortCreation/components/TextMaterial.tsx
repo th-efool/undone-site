@@ -134,9 +134,11 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
     {queuing && <p role="status">Saving source selection…</p>}
     {snapshot.error && <p role="alert">{snapshot.error.message}</p>}
     {!!snapshot.materials.length && <h2 className={styles.sourceHeading}>Added material</h2>}
-    <ul className={styles.sources}>{snapshot.materials.map((source, index) => <li key={source.id}>
+    <ul className={styles.sources}>{snapshot.materials.map((source, index) => <li key={source.id} data-playlist={(snapshot.youtubeSources.find(preview => preview.materialId === source.id)?.units.length ?? 0) > 1}>
       {source.status === 'ready' ? <CircleCheck className={styles.sourceIcon} data-ready aria-hidden="true" size={25} /> : <FileText className={styles.sourceIcon} aria-hidden="true" size={25} />}
       <div className={styles.sourceDetails}>
+      <h3 className={styles.sourceTitle}>{snapshot.youtubeSources.find(preview => preview.materialId === source.id)?.units.length === 1 ? snapshot.youtubeSources.find(preview => preview.materialId === source.id)!.units[0].title : `Source ${index + 1}${source.kind === 'youtube_playlist' ? ' · YouTube playlist' : ''}`}</h3>
+      <details className={styles.provenance}><summary>{source.status === 'ready' ? 'Ready · source details' : source.status === 'needs_input' ? 'Choose videos to prepare · source details' : `${source.status.replaceAll('_', ' ')} · source details`}</summary>
       Source {index + 1}: {source.status === 'ready' ? ['youtube_video', 'youtube_playlist'].includes(source.kind) ? 'Retained video observations ready' : 'Retained text ready' : source.status === 'acquiring' ? 'Acquiring' : source.status === 'failed' ? 'Acquisition failed' : source.status === 'needs_input' ? 'Metadata retained; video observation pending' : 'Selected; acquisition pending'}
       {source.status === 'ready' && <span> · {snapshot.extractions.find(extraction => extraction.materialId === source.id)?.segmentCount ?? 0} extracted segments</span>}
       {source.input.kind === 'url' && <span> · {source.input.url}</span>}
@@ -149,13 +151,15 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
         {snapshot.youtubeSources.find(preview => preview.materialId === source.id)!.units.map(unit => <li key={unit.unitId}>{unit.title} · {unit.durationSeconds} seconds</li>)}
       </ul>}
       {source.kind === 'generated_guide' && <p>AI-authored guide. Not verified external source material; check factual claims independently.</p>}
+      </details>
       {onSelectUnits && snapshot.youtubeSources.find(preview => preview.materialId === source.id) && <YoutubeUnits
         key={`${source.id}:${source.selectedUnitIds.join(',')}`} selected={source.selectedUnitIds}
         maxSelected={MATERIAL_LIMITS.selectedUnits - selectedUnits + source.selectedUnitIds.length}
         units={snapshot.youtubeSources.find(preview => preview.materialId === source.id)!.units} disabled={busy}
-        onSave={ids => onSelectUnits(source.id, ids)} />}
+        onSave={ids => onSelectUnits(source.id, ids)}
+        onPrepare={onObserve && source.status !== 'ready' ? () => onObserve(source.id) : undefined} />}
       </div><div className={styles.sourceActions}>
-      {onObserve && snapshot.youtubeSources.some(preview => preview.materialId === source.id) && source.status !== 'ready' &&
+      {onObserve && !onSelectUnits && snapshot.youtubeSources.some(preview => preview.materialId === source.id) && source.status !== 'ready' &&
         <button disabled={busy || !source.selectedUnitIds.length} onClick={async () => {
           setQueuing(true); try { await onObserve(source.id); } finally { setQueuing(false); }
         }}>{source.status === 'failed' || source.status === 'pending' ? 'Resume' : 'Generate'} selected video observations for source {index + 1}</button>}

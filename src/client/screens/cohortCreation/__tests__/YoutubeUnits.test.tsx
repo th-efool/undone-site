@@ -56,3 +56,30 @@ describe('explicit video scope', () => {
     expect((screen.getByRole('button', { name: 'Save video selection' }) as HTMLButtonElement).disabled).toBe(true); expect(save).not.toHaveBeenCalled();
   });
 });
+
+
+describe('selection and preparation', () => {
+  it('preselects one video locally and prepares only after save succeeds', async () => {
+    const order: string[] = []; const save = vi.fn(async () => { order.push('save'); return true; });
+    const prepare = vi.fn(async () => { order.push('prepare'); return true; });
+    render(<YoutubeUnits units={[units[0]]} selected={[]} disabled={false} onSave={save} onPrepare={prepare} />);
+    expect((screen.getByLabelText(/Lighting lesson/) as HTMLInputElement).checked).toBe(true);
+    expect(save).not.toHaveBeenCalled(); expect(prepare).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Use selected videos' }));
+    await waitFor(() => expect(order).toEqual(['save', 'prepare']));
+    expect(save).toHaveBeenCalledWith(['dQw4w9WgXcQ']);
+  });
+  it('does not prepare unacknowledged selections', async () => {
+    const prepare = vi.fn();
+    render(<YoutubeUnits units={[units[0]]} selected={[]} disabled={false} onSave={async () => false} onPrepare={prepare} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Use selected videos' }));
+    await screen.findByRole('alert'); expect(prepare).not.toHaveBeenCalled();
+  });
+  it('requires explicit playlist selection and exposes failed preparation', async () => {
+    render(<YoutubeUnits units={units} selected={[]} disabled={false} onSave={async () => true} onPrepare={async () => false} />);
+    expect((screen.getByRole('button', { name: 'Use selected videos' }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByLabelText(/Lighting lesson/));
+    fireEvent.click(screen.getByRole('button', { name: 'Use selected videos' }));
+    await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('preparation could not start'));
+  });
+});
