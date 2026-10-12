@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { resolveMetadataBase } from '@/src/shared/lib/metadataBase';
 import { Caveat, Dancing_Script, Geist, Geist_Mono, Manrope, Lora, Playfair_Display } from 'next/font/google';
 import { CapacitorBridge } from '@/src/client/components/global/CapacitorBridge/CapacitorBridge';
 import { ReactQueryProvider } from '@/src/client/providers/ReactQueryProvider';
@@ -46,10 +47,11 @@ const playfairDisplay = Playfair_Display({
 });
 
 
-const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://undone.in';
+const metadataBase = resolveMetadataBase(process.env.NEXT_PUBLIC_APP_URL);
+const siteUrl = metadataBase.href;
 
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase,
 
   title: {
     default: 'Undone — For a more curious you',
