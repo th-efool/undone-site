@@ -47,6 +47,36 @@ describe('bounded Vercel video observation', () => {
     expect(() => validateVideoObservation({ canObserve: false, observations: [], limitations: ['Unavailable'] }, video)).toThrow('could not observe');
     expect(() => validateVideoObservation({ ...proposal, canObserve: false }, video)).toThrow('inconsistent');
   });
+  it.each([
+    [{ startSeconds: 0, endSeconds: 80, text: 'First' }, { startSeconds: 60, endSeconds: 100, text: 'Overlap' }],
+    [{ startSeconds: 0, endSeconds: 121, text: 'Outside duration' }],
+    [{ startSeconds: 50, endSeconds: 20, text: 'Reversed interval' }],
+  ])('repairs invalid intervals once without accepting or modifying the first output: %j', async (...observations) => {
+    const release = vi.fn(async () => {}); const beforeCall = vi.fn(async () => release);
+    const model = new MockLanguageModelV4({ supportedUrls, doGenerate: [modelOutput({ ...proposal, observations }), modelOutput(proposal)] });
+    expect(await new VercelMaterialObservation(model, { beforeCall }).observeVideo(video, new AbortController().signal)).toEqual(proposal);
+    expect(beforeCall).toHaveBeenCalledTimes(2); expect(release).toHaveBeenCalledTimes(2);
+    const prompt = model.doGenerateCalls[1].prompt.flatMap(message => message.role === 'user' ? message.content.filter(part => part.type === 'text') : []);
+    expect(JSON.stringify(prompt)).toContain('invalid, overlapping or out-of-duration');
+    expect(JSON.stringify(prompt)).toContain('numeric seconds');
+  });
+  it('exhausts semantic repair after two calls and never retries an inaccessible video', async () => {
+    const invalid = new MockLanguageModelV4({ supportedUrls, doGenerate: modelOutput({ ...proposal, observations: [{ startSeconds: 0, endSeconds: 121, text: 'Invalid' }] }) });
+    const release = vi.fn(async () => {}); const beforeCall = vi.fn(async () => release);
+    await expect(new VercelMaterialObservation(invalid, { beforeCall }).observeVideo(video, new AbortController().signal)).rejects.toMatchObject({ detail: { code: 'AI_INVALID_OUTPUT' } });
+    expect(invalid.doGenerateCalls).toHaveLength(2); expect(release).toHaveBeenCalledTimes(2);
+    const inaccessible = new MockLanguageModelV4({ supportedUrls, doGenerate: modelOutput({ canObserve: false, observations: [], limitations: ['Unavailable'] }) });
+    await expect(new VercelMaterialObservation(inaccessible, { beforeCall }).observeVideo(video, new AbortController().signal)).rejects.toMatchObject({ detail: { code: 'DATA_UNAVAILABLE' } });
+    expect(inaccessible.doGenerateCalls).toHaveLength(1);
+  });
+  it('does not reserve a repair call after cancellation', async () => {
+    const stopped = new AbortController();
+    const release = vi.fn(async () => { stopped.abort(new Error('Canceled between attempts')); });
+    const beforeCall = vi.fn(async () => release);
+    const model = new MockLanguageModelV4({ supportedUrls, doGenerate: modelOutput({ ...proposal, observations: [] }) });
+    await expect(new VercelMaterialObservation(model, { beforeCall }).observeVideo(video, stopped.signal)).rejects.toThrow('Canceled between attempts');
+    expect(model.doGenerateCalls).toHaveLength(1); expect(beforeCall).toHaveBeenCalledOnce();
+  });
   it('does not silently accept or repair token-truncated observations', async () => {
     const model = new MockLanguageModelV4({ supportedUrls, doGenerate: { ...modelOutput(proposal), finishReason: { unified: 'length', raw: 'MAX_TOKENS' } } });
     await expect(new VercelMaterialObservation(model, { beforeCall: async () => {} }).observeVideo(video, new AbortController().signal)).rejects.toMatchObject({ detail: { code: 'AI_INVALID_OUTPUT', retryable: false } });
