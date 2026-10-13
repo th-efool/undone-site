@@ -24,6 +24,7 @@ node_modules/
 .DS_Store
 *.pem
 *.jks
+*.tgz
 keystore.properties
 local.properties
 

@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["../../../src/adapters/ai/index.ts"],
+  "sourcesContent": ["import { generateText, stepCountIs, type LanguageModel, type ModelMessage } from 'ai';\nimport type {\n  InteractionModelAdapter,\n  InteractionModelTurnInput,\n  InteractionModelTurnOutput,\n} from '../../runtime/runner';\n\nexport function createAiSdkModelAdapter(model: LanguageModel): InteractionModelAdapter {\n  return {\n    async executeTurn(input: InteractionModelTurnInput): Promise<InteractionModelTurnOutput> {\n      const messages: ModelMessage[] = input.messages.map(m => ({\n        role: m.role as 'user' | 'assistant' | 'system',\n        content: m.content,\n      }));\n\n      const result = await generateText({\n        model,\n        system: input.systemPrompt,\n        messages,\n        tools: input.tools,\n        stopWhen: stepCountIs(input.maxSteps ?? 5),\n      });\n\n      return {\n        text: result.text,\n        stepsCount: result.steps?.length ?? 1,\n      };\n    },\n  };\n}\n\nexport type { LanguageModel };\n"],
+  "mappings": ";AAAA,SAAS,cAAc,mBAA0D;AAO1E,SAAS,wBAAwB,OAA+C;AACrF,SAAO;AAAA,IACL,MAAM,YAAY,OAAuE;AACvF,YAAM,WAA2B,MAAM,SAAS,IAAI,QAAM;AAAA,QACxD,MAAM,EAAE;AAAA,QACR,SAAS,EAAE;AAAA,MACb,EAAE;AAEF,YAAM,SAAS,MAAM,aAAa;AAAA,QAChC;AAAA,QACA,QAAQ,MAAM;AAAA,QACd;AAAA,QACA,OAAO,MAAM;AAAA,QACb,UAAU,YAAY,MAAM,YAAY,CAAC;AAAA,MAC3C,CAAC;AAED,aAAO;AAAA,QACL,MAAM,OAAO;AAAA,QACb,YAAY,OAAO,OAAO,UAAU;AAAA,MACtC;AAAA,IACF;AAAA,EACF;AACF;",
+  "names": []
+}
