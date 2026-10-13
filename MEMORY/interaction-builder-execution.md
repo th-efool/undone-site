@@ -18,7 +18,7 @@ S3 CURRENT SLICE:
 - NOT YET IMPLEMENTED to the full authoritative plan: live use of the prepared job/artifact tables, job claim/lease/fence/acceptance and per-source partial failure, selected-unit/24-KiB partition policy and complete coverage validation, rich lesson assembly, real SQL concurrency, authenticated browser E2E, and provider-backed acceptance. Do not call S3 complete.
 
 CURRENT ARCHITECTURE:
-- Authoritative standalone package in `packages/interaction-builder` with explicit subpaths:
+- Authoritative standalone package in `packages/interaction-builder` (currently a Git submodule at `3f40a6af`; verify both repository states before package edits) with explicit subpaths:
   - `interaction-builder/core`: browser-safe schemas, envelopes, entity refs, receipts, events, reducer.
   - `interaction-builder/runtime`: action service, generic repository interface, runner loop, handlers, fencing, step journaling, proposals, deterministicUuid, undo (fully decoupled from AI SDK and adapters).
   - `interaction-builder/client`: browser external store, HTTP transport, SSE stream parser.
@@ -50,8 +50,9 @@ CURRENT ARCHITECTURE:
 | Interactive Agenda UI Test | PASSED | `packages/interaction-builder/__tests__/agenda-ui.test.tsx` (jsdom: interactive button clicks, input updates, and chat submission without prod credentials) |
 | S3 text pipeline tests | PASSED | `npx vitest run src/server/domain/cohort-builder/__tests__/text-pipeline.test.ts` (11 tests passed after coverage/orphan checks) |
 | S3 component tests | PASSED | `npx vitest run src/client/screens/cohortBuilder/__tests__/CohortWorkspacePane.test.tsx` (2 interactive jsdom tests passed) |
+| Prepared S3 storage tests | PASSED | `npx vitest run prisma/__tests__/interaction-s3-storage.test.ts src/server/domain/cohort-builder/__tests__/text-artifacts.test.ts` (3 isolated PGlite tests passed; no shared-DB writes) |
 | Cohort Builder & Domain tests | PASSED (prior baseline) | `npx vitest run src/server/domain/cohort-builder src/shared/cohort-builder` (9 files, 40 tests passed before S3 edits; covered in current full suite below) |
-| Full Monorepo Vitest Suite | PASSED | `npx vitest run` (156 test files passed, 1092 tests passed, 0 failed, 2 skipped) |
+| Full Monorepo Vitest Suite | PASSED | `npx vitest run` (158 test files passed, 1095 tests passed, 0 failed, 2 skipped) |
 | Standalone Package Build | PASSED | `node build.mjs` (ESM bundle + `.d.ts` declaration generation in `dist/` with `'use client'`) |
 | NPM Pack & Isolated Consumer Test | PASSED | `node scripts/verify-packed-consumer.mjs` (fresh rebuild -> `npm pack` -> isolated temp directory -> `tsc` exit 0 -> ESM pg load -> full roundtrip -> React SSR render -> exit 0) |
 | Boundaries Enforcement | PASSED | `packages/interaction-builder/__tests__/boundaries.test.ts` (0 host imports, 0 AI SDK imports in runtime/core, 0 adapter imports in runtime/core, 0 server imports in browser code) |
