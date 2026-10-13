@@ -1,7 +1,7 @@
 # Interaction builder execution checkpoint
 
 STATUS: S3 IN PROGRESS — bounded pasted-text pipeline is worker-driven and restartable in revisioned workspace snapshots; plan-level job/artifact and live verification gates remain open.
-LAST_CHECKPOINT: `IB-S3-SOURCE-PROCESSOR-PREPARED-2026-10-14`
+LAST_CHECKPOINT: `IB-S3-CURRENT-ACCEPT-PREPARED-2026-10-14`
 
 S3 CURRENT SLICE:
 - `src/shared/cohort-builder/contracts.ts` owns retained, size-bounded pasted-text sources, source versions, chunks, understanding, analysis, processing checkpoint, and public add/edit/remove/retry actions. The old synchronous `process_sources` action is removed.
@@ -27,7 +27,8 @@ S3 CURRENT SLICE:
 - A previously superseded logical job key is reactivated under a fresh fence when its exact dependency scope returns (goal A → B → A); its attempts/error/lease reset, while accepted historical jobs stay accepted. PGlite regression covers identity reuse and reactivation.
 - `src/server/domain/cohort-builder/text-job-tick.ts` composes one prepared claim → injected host-stage processor → owned immutable artifact write → fenced acceptance. Processor failure is recorded only while lease is current; late results remain unreferenced and return stale. Isolated PGlite tests cover prerequisite progression, restart without duplicate work, visible failure/retry, and late result rejection. It is not wired to the production worker.
 - `src/server/domain/cohort-builder/text-source-processor.ts` is a host-only, unwired processor for per-source acquisition/understanding/chunking/analysis jobs. It checks the current planned fingerprint, reads exactly one accepted owned prerequisite, verifies artifact integrity and source version, reuses the existing deterministic stage calculator, and emits schema-checked bytes. PGlite tests cover two-source progression, edit-only recomputation, source-specific failure/retry, stale source and tampered prerequisite rejection.
-- Cutover gate still open: job acceptance must atomically recheck current source/plan identity with the workspace transition; a source edit between processor read and SQL acceptance can otherwise race if scheduler reconciliation has not committed. Do not wire this path live yet.
+- `src/server/domain/cohort-builder/text-job-acceptance.ts` prepares a workspace-row-locked transaction that compares the canonical snapshot, exact current plan key/fingerprint, and claimed job fields before invoking the existing fenced artifact acceptance. `text-job-tick.ts` now requires an explicit acceptance callback so a production caller cannot silently use the lower-level unchecked acceptance. Isolated PGlite tests prove edit-before-accept rejection, accept-before-edit history, unplanned-key rejection, and stale tick result after an edit during processing. This is still unwired.
+- Cutover gate still open: source-edit commit, DAG reconciliation, and current projection need one coherent transaction/guard; the serial PGlite tests do not prove separate-connection PostgreSQL concurrency. Do not wire this path live yet.
 - NOT YET IMPLEMENTED to the full authoritative plan: live use of the prepared job/artifact tables, per-source partial failure, rich lesson assembly, real SQL concurrency with separate connections, authenticated browser E2E, and provider-backed acceptance. Do not call S3 complete.
 
 SELECTED-REFINEMENT VERIFICATION: `npx vitest run` passed 162 files, 1105 tests, 2 skipped before one additional trigger-message regression test; `npx vitest run src/server/domain/cohort-builder/__tests__/selection.test.ts` passed all 3 tests after that addition; `npx tsc --noEmit --pretty false` exit 0; `npm run build` exit 0 (existing pdfjs/middleware warnings). No paid model or shared-DB migration was run.
@@ -39,8 +40,9 @@ TRIGGERED-CONTEXT VERIFICATION: package build exit 0; `npx vitest run` passed 16
 DAG-REACTIVATION VERIFICATION: `npx vitest run` passed 162 files, 1113 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0. Prepared scheduler only; no shared database migration.
 JOB-TICK VERIFICATION: `npx vitest run` passed 163 files, 1115 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0. Deterministic injected processor in isolated PGlite only; no provider or shared database calls.
 SOURCE-PROCESSOR VERIFICATION: `npx vitest run` passed 164 files, 1118 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0. Isolated PGlite only; no live database or paid provider call.
+CURRENT-ACCEPT VERIFICATION: `npx vitest run` passed 165 files, 1122 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0. Isolated PGlite serial ordering only; separate-connection PostgreSQL concurrency remains open.
 
-NEXT CHECKPOINT: Close the read-to-accept race by transactionally checking current workspace source/plan identity during job acceptance, and prove edit-versus-accept concurrency with isolated PostgreSQL transactions. Then implement global assembly artifact/acceptance and projection without overwriting manual pins. Keep production worker on snapshot checkpoints until migration authorization and browser/provider verification.
+NEXT CHECKPOINT: Prepare global assembly artifact/acceptance and projection without overwriting manual pins; then couple source-edit commit to DAG reconciliation. Prove edit-versus-accept concurrency on isolated PostgreSQL with separate connections when available. Keep production worker on snapshot checkpoints until migration authorization and browser/provider verification.
 
 CURRENT ARCHITECTURE:
 - Authoritative standalone package in `packages/interaction-builder` (currently a Git submodule at `3f40a6af`; verify both repository states before package edits) with explicit subpaths:
