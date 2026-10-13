@@ -1,7 +1,6 @@
+import dynamic from 'next/dynamic';
 import { ArrowLeft, MoreHorizontal, PanelLeftOpen, Menu as MenuIcon, Share } from 'lucide-react';
 import { CanvasSwitcher, Menu } from './NotesComponents';
-import { NotesCanvas } from './NotesCanvas/NotesCanvas';
-import { NotesKanban } from './NotesKanban/NotesKanban';
 import { NotesSaveStatus } from './NotesSaveStatus/NotesSaveStatus';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
 import styles from '../Notes.module.css';
@@ -10,6 +9,22 @@ import type { useNotes } from '../hooks/useNotes';
 import type { useNotesNavigation } from '../hooks/useNotesNavigation';
 import type { NoteDocument } from '../models/notes.models';
 import type { CanvasSceneData, CanvasState } from '../models/canvas.models';
+
+const EditorLoading = () => <div className={styles.loadingScene}>Loading editor...</div>;
+
+import '@/packages/notes-board/dist/index.css';
+
+// These editors pull in large third-party libraries and their CSS. Segregated into
+// @undone/notes-board so the root site stays light and avoids heavy recompilations.
+const NotesCanvas = dynamic(
+  () => import('@undone/notes-board').then((module) => module.NotesCanvas),
+  { ssr: false, loading: EditorLoading },
+);
+
+const NotesKanban = dynamic(
+  () => import('@undone/notes-board').then((module) => module.NotesKanban),
+  { ssr: false, loading: EditorLoading },
+);
 
 type NotesContextType = ReturnType<typeof useNotes>;
 type NavigationType = ReturnType<typeof useNotesNavigation>;

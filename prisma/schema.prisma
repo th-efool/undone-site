@@ -30,6 +30,7 @@ model User {
   studyRooms        RoomParticipant[]
   lessonProgress    LessonProgress[]
   creationDrafts    CreationDraft[]
+  interactionWorkspaces InteractionWorkspace[]
 
   @@map("users")
 }
@@ -185,6 +186,81 @@ model CreationStorageObject {
   @@index([draftId, status])
   @@index([status, createdAt])
   @@map("creation_storage_objects")
+}
+
+model InteractionWorkspace {
+  id             String   @id @default(uuid())
+  ownerId        String
+  domainId       String
+  domainVersion  Int
+  snapshot       Json
+  revision       Int      @default(0)
+  contextEpoch   Int      @default(0)
+  sequence       Int      @default(0)
+  lifecycle      String   @default("active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  owner          User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  requests       InteractionRequest[]
+  events         InteractionEvent[]
+  outbox         InteractionOutbox[]
+
+  @@index([ownerId, updatedAt])
+  @@index([domainId, lifecycle])
+  @@map("interaction_workspaces")
+}
+
+model InteractionRequest {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  actorId      String
+  operation    String
+  requestId    String
+  payloadHash  String
+  response     Json
+  createdAt    DateTime @default(now())
+  workspace    InteractionWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, actorId, operation, requestId])
+  @@index([createdAt])
+  @@map("interaction_requests")
+}
+
+model InteractionEvent {
+  id              String   @id @default(uuid())
+  workspaceId     String
+  sequence        Int
+  protocolVersion Int      @default(1)
+  type            String
+  revision        Int?
+  payload         Json
+  createdAt       DateTime @default(now())
+  workspace       InteractionWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, sequence])
+  @@index([createdAt])
+  @@map("interaction_events")
+}
+
+model InteractionOutbox {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  kind         String
+  payload      Json
+  dedupKey     String   @unique
+  status       String   @default("pending")
+  attempts     Int      @default(0)
+  dueAt        DateTime @default(now())
+  leaseOwner   String?
+  leaseToken   String?
+  leaseUntil   DateTime?
+  deliveredAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  workspace    InteractionWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([status, dueAt, leaseUntil])
+  @@map("interaction_outbox")
 }
 
 // ─────────────────────────────────────────────────────────────────

@@ -20,7 +20,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@undone/notes-board": ["./packages/notes-board/dist/index.js"],
+      "@undone/notes-board/*": ["./packages/notes-board/*"]
     }
   },
   "include": [

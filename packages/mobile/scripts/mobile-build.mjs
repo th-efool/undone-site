@@ -4,13 +4,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(__dirname, '..');
+const mobileDir = path.resolve(__dirname, '..');
+const rootDir = path.resolve(mobileDir, '../..');
 const apiDir = path.join(rootDir, 'src', 'app', 'api');
 const apiHiddenDir = path.join(rootDir, 'src', 'app', '_api_mobile_hidden');
 
-function run(command, args, env = {}) {
+function run(command, args, env = {}, cwd = rootDir) {
   const result = spawnSync(command, args, {
-    cwd: rootDir,
+    cwd,
     stdio: 'inherit',
     shell: process.platform === 'win32',
     env: { ...process.env, ...env },
@@ -60,8 +61,8 @@ try {
     MOBILE_BUILD: 'true',
     NEXT_PUBLIC_MOBILE_BUILD: 'true',
     NEXT_PUBLIC_API_ORIGIN: apiOrigin,
-  });
-  run('npx', ['@capacitor/cli', 'sync', 'android']);
+  }, rootDir);
+  run('npx', ['@capacitor/cli', 'sync', 'android'], {}, mobileDir);
 } finally {
   restoreApiRoutes();
 }

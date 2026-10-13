@@ -5,9 +5,18 @@ import { ArrowLeft, MoreHorizontal } from 'lucide-react';
 import type { UseNotesResult } from '@/src/client/screens/dashboard/notes/hooks/useNotes';
 import { useCanvasScene } from '@/src/client/screens/dashboard/notes/hooks/useCanvasScene';
 import { useCanvasPersistence } from '@/src/client/screens/dashboard/notes/hooks/useCanvasPersistence';
-import { NotesCanvas } from '@/src/client/screens/dashboard/notes/components/NotesCanvas/NotesCanvas';
-import { NotesKanban } from '@/src/client/screens/dashboard/notes/components/NotesKanban/NotesKanban';
+import dynamic from 'next/dynamic';
 import { NotesSaveStatus } from '@/src/client/screens/dashboard/notes/components/NotesSaveStatus/NotesSaveStatus';
+
+const NotesCanvas = dynamic(
+  () => import('@undone/notes-board').then((module) => module.NotesCanvas),
+  { ssr: false, loading: () => <div style={{ color: '#a1a1aa', padding: 20 }}>Loading canvas…</div> },
+);
+
+const NotesKanban = dynamic(
+  () => import('@undone/notes-board').then((module) => module.NotesKanban),
+  { ssr: false, loading: () => <div style={{ color: '#a1a1aa', padding: 20 }}>Loading kanban…</div> },
+);
 import type { NoteDocument } from '@/src/client/screens/dashboard/notes/models/notes.models';
 import styles from '../NotesMobile.module.css';
 

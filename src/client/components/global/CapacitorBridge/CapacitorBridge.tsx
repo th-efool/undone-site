@@ -57,13 +57,15 @@ export function CapacitorBridge() {
     let removeBackButton: (() => void) | undefined;
 
     void (async () => {
-      let App: any;
-      try {
-        const pkgName = '@capacitor/app';
-        const capApp = await import(pkgName);
-        App = capApp.App;
-      } catch {
-        return;
+      let App: any = (window as any).Capacitor?.Plugins?.App;
+      if (!App) {
+        try {
+          const pkgName = '@capacitor/app';
+          const capApp = await import(pkgName);
+          App = capApp.App;
+        } catch {
+          return;
+        }
       }
 
       if (cancelled || !App) {
@@ -143,14 +145,9 @@ export function CapacitorBridge() {
 
     void (async () => {
       try {
-        const [capOrientation, capStatusBar] = await Promise.all([
-          import('@capacitor/screen-orientation').catch(() => null),
-          import('@capacitor/status-bar').catch(() => null),
-        ]);
-        
-        const ScreenOrientation = capOrientation?.ScreenOrientation;
-        const StatusBar = capStatusBar?.StatusBar;
-        const Style = capStatusBar?.Style;
+        const ScreenOrientation = (window as any).Capacitor?.Plugins?.ScreenOrientation;
+        const StatusBar = (window as any).Capacitor?.Plugins?.StatusBar;
+        const Style = { Dark: 'DARK', Light: 'LIGHT', Default: 'DEFAULT' };
 
         if (!cancelled) {
           if (isPlay) {
