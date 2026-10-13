@@ -1,0 +1,707 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #faf7f2;
+  color: #1a1921;
+  font-family: var(--font-manrope-next), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 28px;
+  background: #ffffff;
+  border-bottom: 1px solid #e8e2d8;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+
+.brandNav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brandLink {
+  font-weight: 800;
+  font-size: 17px;
+  color: #1a1921;
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.divider {
+  width: 1px;
+  height: 20px;
+  background: #e8e2d8;
+}
+
+.workspaceTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #4f4b59;
+}
+
+.topMeta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.connectionBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+  border: 1px solid #e8e2d8;
+  background: #fbfaf8;
+}
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.dotConnected {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+}
+
+.dotReconnecting {
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+}
+
+.dotDisconnected {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+}
+
+.revBadge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #635e69;
+  background: #efebe4;
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.receiptNotice {
+  font-size: 12px;
+  color: #065f46;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: fadeIn 0.2s ease;
+}
+
+.errorNotice {
+  font-size: 12px;
+  color: #991b1b;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  padding: 4px 12px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Two-column layout */
+.mainContainer {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(360px, 440px) minmax(0, 1fr);
+  height: calc(100vh - 57px);
+  overflow: hidden;
+}
+
+/* Left Pane: Chat & Controls */
+.leftPane {
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border-right: 1px solid #e8e2d8;
+  height: 100%;
+  overflow: hidden;
+}
+
+.chatHeader {
+  padding: 16px 20px;
+  border-bottom: 1px solid #efebe4;
+  background: #fdfcfb;
+}
+
+.chatHeader h2 {
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 4px;
+}
+
+.chatHeader p {
+  font-size: 12px;
+  color: #686371;
+  margin: 0;
+}
+
+.messagesList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  scroll-behavior: smooth;
+}
+
+.emptyChat {
+  margin: auto;
+  text-align: center;
+  max-width: 280px;
+  color: #7b7584;
+}
+
+.emptyChat h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: #2b2833;
+  margin-bottom: 6px;
+}
+
+.emptyChat p {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.messageRow {
+  display: flex;
+  flex-direction: column;
+  max-width: 88%;
+}
+
+.messageUser {
+  align-self: flex-end;
+}
+
+.messageAssistant {
+  align-self: flex-start;
+}
+
+.messageSender {
+  font-size: 11px;
+  font-weight: 700;
+  color: #7b7584;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.messageBubble {
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+.bubbleUser {
+  background: #2b2450;
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+}
+
+.bubbleAssistant {
+  background: #f4f0eb;
+  color: #1a1921;
+  border-bottom-left-radius: 4px;
+  border: 1px solid #e8e2d8;
+}
+
+.chipsContainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.entityChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.entityChipLight {
+  background: #e8e2d8;
+  color: #2b2450;
+}
+
+.suggestionsBar {
+  padding: 12px 20px;
+  background: #fdfcfb;
+  border-top: 1px solid #efebe4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.suggestionBtn {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #ded8ce;
+  background: #ffffff;
+  color: #4b4458;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.suggestionBtn:hover {
+  background: #f4f0eb;
+  border-color: #2b2450;
+  color: #2b2450;
+}
+
+.activeRefBar {
+  padding: 8px 20px;
+  background: #f3effe;
+  border-top: 1px solid #ddd5f8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #433385;
+}
+
+.clearRefBtn {
+  background: transparent;
+  border: 0;
+  font-size: 11px;
+  color: #433385;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.chatComposer {
+  padding: 16px 20px;
+  border-top: 1px solid #e8e2d8;
+  background: #ffffff;
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+.chatInput {
+  flex: 1;
+  padding: 12px 14px;
+  border: 1px solid #ded8ce;
+  border-radius: 12px;
+  font-size: 13px;
+  font-family: inherit;
+  resize: none;
+  min-height: 44px;
+  max-height: 120px;
+  line-height: 1.4;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.chatInput:focus {
+  border-color: #5a50bf;
+  box-shadow: 0 0 0 3px rgba(90, 80, 191, 0.12);
+}
+
+.sendBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: none;
+  background: #2b2450;
+  color: #ffffff;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  flex-shrink: 0;
+}
+
+.sendBtn:hover:not(:disabled) {
+  background: #3f3675;
+}
+
+.sendBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Right Pane: Outline & Live Workspace */
+.rightPane {
+  flex: 1;
+  overflow-y: auto;
+  padding: 28px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.heroCard {
+  background: #ffffff;
+  border: 1px solid #ded8ce;
+  border-radius: 16px;
+  padding: 24px 28px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+}
+
+.heroHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.heroTitle {
+  font-family: var(--font-playfair-display), Georgia, serif;
+  font-size: 26px;
+  font-weight: 700;
+  color: #1a1921;
+  margin: 0;
+}
+
+.editActionBtn {
+  background: transparent;
+  border: 1px solid #ded8ce;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #4b4458;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background 0.15s;
+}
+
+.editActionBtn:hover {
+  background: #f4f0eb;
+}
+
+.intentText {
+  font-size: 15px;
+  line-height: 1.6;
+  color: #3b3644;
+  margin: 0 0 18px;
+}
+
+.metaGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  border-top: 1px solid #efebe4;
+  padding-top: 16px;
+}
+
+.metaItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #4f4b59;
+  background: #f9f7f4;
+  padding: 6px 14px;
+  border-radius: 10px;
+  border: 1px solid #e8e2d8;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.sectionHeader h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1921;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.addLessonBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: #2b2450;
+  color: #ffffff;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.addLessonBtn:hover {
+  background: #423877;
+}
+
+.lessonsList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lessonCard {
+  background: #ffffff;
+  border: 1px solid #ded8ce;
+  border-radius: 14px;
+  padding: 18px 22px;
+  display: flex;
+  gap: 16px;
+  transition: box-shadow 0.15s, border-color 0.15s;
+}
+
+.lessonCard:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+  border-color: #c9c2b5;
+}
+
+.lessonCardPinned {
+  border-left: 4px solid #5a50bf;
+  background: #faf9ff;
+}
+
+.lessonNumber {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #f0ece5;
+  color: #4b4458;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.lessonBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.lessonHeadRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.lessonTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1921;
+  margin: 0;
+}
+
+.lessonObjective {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #554f60;
+  margin: 0 0 10px;
+}
+
+.lessonActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.iconBtn {
+  background: transparent;
+  border: 1px solid #ded8ce;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: #5a5467;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.iconBtn:hover:not(:disabled) {
+  background: #f0ece5;
+  color: #1a1921;
+}
+
+.iconBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.iconBtnActive {
+  background: #efebe4;
+  border-color: #5a50bf;
+  color: #5a50bf;
+}
+
+.chatRefBtn {
+  background: transparent;
+  border: 1px dashed #b7aed8;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #5a50bf;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s;
+}
+
+.chatRefBtn:hover {
+  background: #f3effe;
+  border-style: solid;
+}
+
+/* Modal styles for editing */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 20px;
+}
+
+.modalCard {
+  background: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+  padding: 24px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modalCard h3 {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.formField label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #4b4458;
+}
+
+.formField input,
+.formField textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ded8ce;
+  border-radius: 10px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+
+.formField input:focus,
+.formField textarea:focus {
+  border-color: #5a50bf;
+  box-shadow: 0 0 0 3px rgba(90, 80, 191, 0.12);
+}
+
+.modalActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.cancelBtn {
+  background: transparent;
+  border: 1px solid #ded8ce;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #4b4458;
+  cursor: pointer;
+}
+
+.saveBtn {
+  background: #2b2450;
+  color: #ffffff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 900px) {
+  .mainContainer {
+    grid-template-columns: 1fr;
+    height: auto;
+    overflow: visible;
+  }
+  .leftPane {
+    height: 500px;
+    border-right: none;
+    border-bottom: 1px solid #e8e2d8;
+  }
+  .rightPane {
+    padding: 20px;
+  }
+}
