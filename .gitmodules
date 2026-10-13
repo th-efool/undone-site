@@ -1,0 +1,6 @@
+[submodule "plans/ai-builder/Forge"]
+	path = plans/ai-builder/Forge
+	url = https://github.com/th-efool/Forge.git
+[submodule "plans/ai-builder/builder"]
+	path = plans/ai-builder/builder
+	url = https://github.com/th-efool/builder.git
