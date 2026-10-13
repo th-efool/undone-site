@@ -1,7 +1,7 @@
 # Interaction builder execution checkpoint
 
 STATUS: S3 IN PROGRESS — bounded pasted-text pipeline is worker-driven and restartable in revisioned workspace snapshots; plan-level job/artifact and live verification gates remain open.
-LAST_CHECKPOINT: `IB-S3-DAG-RECONCILE-2026-10-13`
+LAST_CHECKPOINT: `IB-S3-TRIGGERED-CONTEXT-2026-10-13`
 
 S3 CURRENT SLICE:
 - `src/shared/cohort-builder/contracts.ts` owns retained, size-bounded pasted-text sources, source versions, chunks, understanding, analysis, processing checkpoint, and public add/edit/remove/retry actions. The old synchronous `process_sources` action is removed.
@@ -14,6 +14,7 @@ S3 CURRENT SLICE:
 - `src/client/screens/cohortBuilder/CohortWorkspacePane.tsx` provides paste/edit/remove intake, real stage/status, retry, grounded lesson excerpts, and the same canonical action path used by chat.
 - `src/server/domain/cohort-builder/selection.ts` resolves the durable triggering user turn's selected lesson ID/version (paging older messages when needed); both direct runner and supervised worker pass it to cohort tools. Selected edit/pin/remove actions must target that lesson and carry its entity version; stale or wrong targets reject before mutation. The remove action now checks entity version too.
 - The reusable package's handler maps a host domain's Zod validation error to HTTP 400 even when host and package have different Zod majors; the host regression test and package conformance test pass.
+- The reusable runner pages durable chat history to the run's `triggeringMessageId` and gives the model only bounded context ending there; later user messages cannot silently retarget an earlier run. The host-selected lesson resolver uses the same trigger identity.
 - `src/client/screens/cohortBuilder/__tests__/CohortWorkspacePane.test.tsx` exercises interactive paste/edit, evidence display, orphan warning, and retry; source form controls have associated labels.
 - Focused worker tests cover restart, fabricated/foreign/missing anchors, source edits, stale results, concurrent acceptance, preserved overrides, dependency reuse, size limits, and visible failure/retry.
 - Prepared but did NOT apply additive host-owned `cohort_text_artifacts`, `cohort_text_jobs`, and `cohort_text_job_edges` schema in `prisma/schema.prisma` and `prisma/interaction-s3-storage.sql`. Workspace-scoped composite foreign keys prevent cross-workspace job dependencies and result artifacts. Existing production worker remains on snapshot checkpoints until migration authorization and runtime integration.
@@ -30,6 +31,7 @@ UNIT-BOUNDARY VERIFICATION: `npx vitest run` passed 162 files, 1108 tests, 2 ski
 JOB-FAILURE-FENCE VERIFICATION: `npx vitest run` passed 162 files, 1109 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0. No shared database migration or paid provider calls.
 JOB-RETRY-CEILING VERIFICATION: `npx vitest run` passed 162 files, 1110 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0. No shared database migration or paid provider calls.
 DAG-RECONCILE VERIFICATION: `npx vitest run` passed 162 files, 1111 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0. Isolated PGlite test covers source edit, empty scope, stale lease revocation, and transaction rollback; no shared database migration.
+TRIGGERED-CONTEXT VERIFICATION: package build exit 0; `npx vitest run` passed 162 files, 1112 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0; `node scripts/verify-packed-consumer.mjs` passed isolated tarball consumer. No live PostgreSQL or browser E2E performed.
 
 CURRENT ARCHITECTURE:
 - Authoritative standalone package in `packages/interaction-builder` (currently a Git submodule at `3f40a6af`; verify both repository states before package edits) with explicit subpaths:
