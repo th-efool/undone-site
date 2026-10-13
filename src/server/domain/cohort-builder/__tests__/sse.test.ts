@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { MemoryInteractionRepository } from '../memory.repository';
-import { createInteractionHandlers, type DomainDefinition } from '../handlers';
-import { dispatchInteraction } from '../http';
-import { streamEvents } from '../sse';
+import { MemoryInteractionRepository, createInteractionHandlers, streamEvents, type DomainDefinition } from 'interaction-builder/runtime';
+import { dispatchInteraction } from 'interaction-builder/adapters/http';
 import { cohortWorkspaceSchema, planCohortAction } from '@/src/shared/cohort-builder/contracts';
 
 const domain: DomainDefinition = { id: 'cohort', version: 1, initialState: b => cohortWorkspaceSchema.parse(b), plan: planCohortAction };

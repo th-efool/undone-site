@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MemoryInteractionRepository } from '../memory.repository';
-import { createInteractionHandlers, type DomainDefinition } from '../handlers';
+import { MemoryInteractionRepository, createInteractionHandlers, type DomainDefinition } from 'interaction-builder/runtime';
 import { cohortWorkspaceSchema, planCohortAction, type CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 
 const cohort: DomainDefinition<CohortWorkspace> = {

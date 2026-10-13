@@ -24,4 +24,16 @@ describe('cohort builder action plan', () => {
     expect(() => planCohortAction(base(), { type: 'reorder_lessons', lessonIds: ['l1', 'l1'] }, context)).toThrow('INVALID_LESSON_ORDER');
     expect(() => planCohortAction(base(), { type: 'edit_lesson', lessonId: 'l1', objective: 'New' }, { ...context, entityVersions: new Map([['l1', 4]]) })).toThrow('STALE_ENTITY');
   });
+  it('adds and removes lessons while respecting locks', () => {
+    const added = planCohortAction(base(), { type: 'add_lesson', title: 'Generics', objective: 'Learn generics' }, context);
+    expect(added.nextState.lessons).toHaveLength(3);
+    expect(added.nextState.lessons[2].title).toBe('Generics');
+
+    const removed = planCohortAction(base(), { type: 'remove_lesson', lessonId: 'l1' }, context);
+    expect(removed.nextState.lessons).toHaveLength(1);
+    expect(removed.nextState.lessons[0].id).toBe('l2');
+
+    const pinned = base(); pinned.lessons[0].pinned = true;
+    expect(() => planCohortAction(pinned, { type: 'remove_lesson', lessonId: 'l1' }, context)).toThrow('PINNED_LESSON_LOCKED');
+  });
 });

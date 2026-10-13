@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { MemoryInteractionRepository } from '../memory.repository';
+import { MemoryInteractionRepository } from 'interaction-builder/runtime';
 import { planCohortAction, type CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 
 const sampleCohort: CohortWorkspace = {
@@ -20,7 +20,7 @@ const sampleCohort: CohortWorkspace = {
   ],
 };
 
-describe('InteractionRepository (Memory Testkit)', () => {
+describe('InteractionRepository (Memory Testkit with Cohort)', () => {
   it('creates and loads workspaces with owner isolation', async () => {
     const repo = new MemoryInteractionRepository();
     const ws = await repo.createWorkspace({
@@ -208,7 +208,7 @@ describe('InteractionRepository (Memory Testkit)', () => {
       ],
     });
 
-    const now = new Date('2026-10-13T12:00:00Z');
+    const now = new Date();
     const claimed = await repo.claimOutbox({
       leaseOwner: 'worker-node-1',
       leaseToken: 'token-abc',
@@ -226,7 +226,7 @@ describe('InteractionRepository (Memory Testkit)', () => {
       leaseOwner: 'worker-node-2',
       leaseToken: 'token-def',
       leaseDurationMs: 60_000,
-      now: new Date('2026-10-13T12:00:30Z'),
+      now: new Date(now.getTime() + 30_000),
     });
     expect(secondClaim.length).toBe(0);
 
@@ -234,7 +234,7 @@ describe('InteractionRepository (Memory Testkit)', () => {
     const acked = await repo.ackOutbox({
       ids: [claimed[0]!.id],
       leaseToken: 'token-abc',
-      now: new Date('2026-10-13T12:00:35Z'),
+      now: new Date(now.getTime() + 35_000),
     });
     expect(acked).toBe(1);
 
@@ -243,7 +243,7 @@ describe('InteractionRepository (Memory Testkit)', () => {
       leaseOwner: 'worker-node-2',
       leaseToken: 'token-def',
       leaseDurationMs: 60_000,
-      now: new Date('2026-10-13T12:02:00Z'),
+      now: new Date(now.getTime() + 120_000),
     });
     expect(claimAfterAck.length).toBe(0);
   });

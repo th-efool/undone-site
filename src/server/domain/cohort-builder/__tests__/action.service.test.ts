@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { planActionCommit } from '../action.service';
+import { planActionCommit } from 'interaction-builder/runtime';
 import { cohortWorkspaceSchema, planCohortAction, type CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 
 const workspaceId = '00000000-0000-4000-8000-000000000001';

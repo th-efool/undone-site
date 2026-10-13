@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { entityRefSchema, type DomainActionPlan } from '@/src/shared/interaction/contracts';
+import { entityRefSchema, type DomainActionPlan } from 'interaction-builder/core';
 
 const text = z.string().trim().min(1).max(4_000);
 const id = z.string().min(1).max(200);
@@ -29,6 +29,8 @@ export const cohortActionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('set_audience'), audience: z.string().trim().max(500) }),
   z.strictObject({ type: z.literal('set_daily_minutes'), dailyMinutes: z.number().int().min(1).max(1_440) }),
   z.strictObject({ type: z.literal('edit_lesson'), lessonId: id, title: text.optional(), objective: text.optional() }).refine(value => value.title !== undefined || value.objective !== undefined, 'Lesson edit needs title or objective'),
+  z.strictObject({ type: z.literal('add_lesson'), lessonId: id.optional(), title: text, objective: text }),
+  z.strictObject({ type: z.literal('remove_lesson'), lessonId: id }),
   z.strictObject({ type: z.literal('reorder_lessons'), lessonIds: z.array(id).min(1).max(200) }),
   z.strictObject({ type: z.literal('set_lesson_pin'), lessonId: id, pinned: z.boolean() }),
 ]);
@@ -57,6 +59,31 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   if (action.type === 'set_intent') { next.intent = action.intent; invalidated.push('curriculum'); return { nextState: next, changed: [], invalidated, summary: 'Learning intent updated.', undoable: true }; }
   if (action.type === 'set_audience') { next.audience = action.audience; invalidated.push('analysis', 'curriculum'); return { nextState: next, changed: [], invalidated, summary: 'Audience updated.', undoable: true }; }
   if (action.type === 'set_daily_minutes') { next.dailyMinutes = action.dailyMinutes; invalidated.push('curriculum'); return { nextState: next, changed: [], invalidated, summary: 'Daily learning time updated.', undoable: true }; }
+
+  if (action.type === 'add_lesson') {
+    const newLesson: CohortLesson = {
+      id: action.lessonId ?? crypto.randomUUID(),
+      version: 0,
+      title: action.title,
+      objective: action.objective,
+      sourceChunkIds: [],
+      pinned: false,
+    };
+    next.lessons.push(newLesson);
+    touch(newLesson);
+    invalidated.push('curriculum');
+    return { nextState: next, changed, invalidated, summary: `Added lesson: ${newLesson.title}`, undoable: true };
+  }
+
+  if (action.type === 'remove_lesson') {
+    const targetIdx = next.lessons.findIndex(item => item.id === action.lessonId);
+    if (targetIdx === -1) throw new Error('UNKNOWN_LESSON');
+    const target = next.lessons[targetIdx];
+    if (target.pinned) throw new Error('PINNED_LESSON_LOCKED');
+    next.lessons.splice(targetIdx, 1);
+    invalidated.push('curriculum');
+    return { nextState: next, changed: [], invalidated, summary: `Removed lesson: ${target.title}`, undoable: true };
+  }
 
   const lessonId = action.type === 'reorder_lessons' ? null : action.lessonId;
   const lesson = lessonId === null ? undefined : next.lessons.find(item => item.id === lessonId);
