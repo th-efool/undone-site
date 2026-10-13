@@ -7,6 +7,7 @@ import { createCohortAiTools } from './domain/cohort-builder/tools';
 import { cohortDomain } from './domain/cohort-builder/domain';
 import { advanceTextWorkspace } from './domain/cohort-builder/text-worker';
 import { cohortAssistantPrompt } from './domain/cohort-builder/context';
+import { selectedLessonForLatestTurn } from './domain/cohort-builder/selection';
 import { cohortWorkspaceSchema, type CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 
 export interface InteractionWorkerOptions {
@@ -78,13 +79,14 @@ export async function runInteractionWorkerLoop(
         const model = createAiSdkModelAdapter(createCohortModel());
         const current = await repo.loadWorkspace<CohortWorkspace>({ workspaceId: run.workspaceId, ownerId: wsRow.ownerId });
         if (!current) throw new Error('WORKSPACE_NOT_FOUND');
+        const selectedLesson = await selectedLessonForLatestTurn(repo, wsRow.ownerId, run.workspaceId, run.triggeringMessageId);
         const res = await runAssistantTurn({
           workspaceId: run.workspaceId,
           ownerId: wsRow.ownerId,
           repo,
           domain: cohortDomain,
           model,
-          createTools: createCohortAiTools,
+          createTools: deps => createCohortAiTools({ ...deps, selectedLesson }),
           runId: run.id,
           leaseToken,
           systemPrompt: cohortAssistantPrompt(cohortWorkspaceSchema.parse(current.snapshot), current.revision),

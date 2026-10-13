@@ -61,7 +61,7 @@ export function CapacitorBridge() {
       if (!App) {
         try {
           const pkgName = '@capacitor/app';
-          const capApp = await import(pkgName);
+          const capApp = await import(/* webpackIgnore: true */ pkgName);
           App = capApp.App;
         } catch {
           return;

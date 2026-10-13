@@ -8,6 +8,7 @@ import { createCohortAiTools } from './domain/cohort-builder/tools';
 import { cohortDomain } from './domain/cohort-builder/domain';
 import { createCohortModel } from './infrastructure/ai/modelRegistry';
 import { cohortAssistantPrompt } from './domain/cohort-builder/context';
+import { selectedLessonForLatestTurn } from './domain/cohort-builder/selection';
 import { cohortWorkspaceSchema, type CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 
 export async function executeAssistantTurn(ownerId: string, workspaceId: string) {
@@ -27,6 +28,7 @@ export async function executeAssistantTurn(ownerId: string, workspaceId: string)
   const model = createAiSdkModelAdapter(createCohortModel());
   const current = await postgresInteractionRepo.loadWorkspace<CohortWorkspace>({ workspaceId, ownerId });
   if (!current) throw new Error('WORKSPACE_NOT_FOUND');
+  const selectedLesson = await selectedLessonForLatestTurn(postgresInteractionRepo, ownerId, workspaceId, activeRun.triggeringMessageId);
   try {
     const res = await runAssistantTurn({
       workspaceId,
@@ -34,7 +36,7 @@ export async function executeAssistantTurn(ownerId: string, workspaceId: string)
       repo: postgresInteractionRepo,
       domain: cohortDomain,
       model,
-      createTools: createCohortAiTools,
+      createTools: deps => createCohortAiTools({ ...deps, selectedLesson }),
       runId: activeRun.id,
       leaseToken: activeToken,
       systemPrompt: cohortAssistantPrompt(cohortWorkspaceSchema.parse(current.snapshot), current.revision),

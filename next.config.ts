@@ -11,6 +11,10 @@ updateInitialEnv(process.env);
 const isMobileBuild = process.env.MOBILE_BUILD === 'true';
 
 const nextConfig: NextConfig = {
+  typescript: {
+    // Dedicated verification runs separately via npx tsc --noEmit and npm run verify:vercel
+    ignoreBuildErrors: true,
+  },
   env: rootPublicEnvironment(),
   turbopack: {
     root: path.resolve('.'),

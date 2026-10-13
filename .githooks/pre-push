@@ -3,6 +3,10 @@ if [ "$SYNC_PUSHING" = "1" ]; then
   exit 0
 fi
 
+if [ "$SKIP_VERIFY" != "1" ]; then
+  npm run verify:vercel || exit 1
+fi
+
 if [ "$(git branch --show-current)" = "planning" ]; then
   exit 0
 fi

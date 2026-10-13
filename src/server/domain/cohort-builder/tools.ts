@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { tool } from 'ai';
 import { deterministicUuid, type InteractionRepository, type DomainDefinition } from 'interaction-builder/runtime';
 import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
+import type { SelectedLesson } from './selection';
 
 export interface CohortAiToolsDeps {
   workspaceId: string;
@@ -9,6 +10,7 @@ export interface CohortAiToolsDeps {
   repo: InteractionRepository;
   domain: DomainDefinition<CohortWorkspace>;
   observedRevision?: number;
+  selectedLesson?: SelectedLesson | null;
   runFence?: { runId: string; leaseToken: string };
   onToolStep?: (
     toolName: string,
@@ -26,6 +28,9 @@ export function createCohortAiTools(deps: CohortAiToolsDeps) {
   async function executeAction(toolName: string, inputPayload: unknown, action: any) {
     const currentTask = commitQueue.then(async () => {
       const runCommit = async (meta?: { ordinal: number; requestId: string }) => {
+        const selected = deps.selectedLesson;
+        const targetsLesson = action && ['edit_lesson', 'set_lesson_pin', 'remove_lesson'].includes(action.type);
+        if (selected && targetsLesson && action.lessonId !== selected.id) throw new Error('SELECTED_LESSON_MISMATCH');
         if (currentRevision === undefined) {
           const ws = await repo.loadWorkspace<CohortWorkspace>({ workspaceId, ownerId });
           if (!ws) throw new Error('WORKSPACE_NOT_FOUND');
@@ -47,7 +52,7 @@ export function createCohortAiTools(deps: CohortAiToolsDeps) {
           actionId,
           workspaceId,
           expectedRevision,
-          entityVersions: [],
+          entityVersions: selected && targetsLesson ? [{ kind: 'lesson', id: selected.id, version: selected.version }] : [],
           action: normalizedAction,
         };
 
