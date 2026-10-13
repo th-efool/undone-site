@@ -11,5 +11,9 @@ if [ "$(git branch --show-current)" = "planning" ]; then
   exit 0
 fi
 
-node scripts/sync-planning.mjs --push
-exit $?
+# Sync planning worktree locally
+node scripts/sync-planning.mjs
+
+# Push planning to origin; outer git push command will push master cleanly
+SYNC_PUSHING=1 git push origin planning || true
+exit 0
