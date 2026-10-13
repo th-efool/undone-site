@@ -43,8 +43,7 @@ export function MobileNav() {
 
     void (async () => {
       try {
-        const capKeyboard = await import('@capacitor/keyboard');
-        const Keyboard = capKeyboard.Keyboard;
+        const Keyboard = (window as any).Capacitor?.Plugins?.Keyboard;
 
         if (!cancelled && Keyboard) {
           await Keyboard.addListener('keyboardWillShow', () => {

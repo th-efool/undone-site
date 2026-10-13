@@ -4,13 +4,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(__dirname, '..');
-const androidDir = path.join(rootDir, 'android');
+const mobileDir = path.resolve(__dirname, '..');
+const rootDir = path.resolve(mobileDir, '../..');
+const androidDir = path.join(mobileDir, 'android');
 const keystorePropertiesPath = path.join(androidDir, 'keystore.properties');
 
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
-    cwd: rootDir,
+    cwd: mobileDir,
     stdio: 'inherit',
     shell: process.platform === 'win32',
     ...options,

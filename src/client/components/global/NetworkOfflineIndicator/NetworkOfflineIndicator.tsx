@@ -24,14 +24,13 @@ export function NetworkOfflineIndicator() {
     // Override with Capacitor Network plugin if available
     void (async () => {
       try {
-        const capNetwork = await import('@capacitor/network');
-        const Network = capNetwork.Network;
+        const Network = (window as any).Capacitor?.Plugins?.Network;
         
         if (!cancelled && Network) {
           const status = await Network.getStatus();
           setIsOffline(!status.connected);
 
-          await Network.addListener('networkStatusChange', (status) => {
+          await Network.addListener('networkStatusChange', (status: any) => {
             setIsOffline(!status.connected);
           });
         }

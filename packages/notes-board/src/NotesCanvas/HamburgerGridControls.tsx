@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Palette } from 'lucide-react';
-import { Slider } from '@/src/client/components/ui/Slider/Slider';
+import { Slider } from '../ui/Slider/Slider';
 import styles from './HamburgerGridControls.module.css';
 
 export interface GridSettingsConfig {

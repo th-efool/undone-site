@@ -24,6 +24,13 @@ creationWorker.on("exit", code => {
   if (code !== 0 && code !== null) console.error("[creation-worker] Stopped unexpectedly. Restart npm run dev to resume durable creation work.");
 });
 
+const interactionWorker = spawn(process.execPath, ["--conditions=react-server", "--import", "tsx",
+  "--import", "./scripts/register-root-environment.mjs", "src/server/interaction-worker.ts"], { cwd: projectRoot, stdio: "inherit" });
+interactionWorker.on("error", () => console.error("[interaction-worker] Could not start. New builder jobs will remain queued."));
+interactionWorker.on("exit", code => {
+  if (code !== 0 && code !== null) console.error("[interaction-worker] Stopped unexpectedly. Restart npm run dev to resume builder jobs.");
+});
+
 // 2. Poll until Next.js dev server is reachable on port 3000
 async function waitForDevServer(port = 3000, timeout = 30000) {
   const start = Date.now();
@@ -86,6 +93,7 @@ let domshiftProcess = null;
 // 4. Handle clean termination
 function cleanup() {
   creationWorker.kill("SIGTERM");
+  interactionWorker.kill("SIGTERM");
   if (domshiftProcess) {
     try { domshiftProcess.kill("SIGTERM"); } catch {}
   }
@@ -100,6 +108,7 @@ process.on("SIGTERM", cleanup);
 
 nextProcess.on("exit", (code) => {
   creationWorker.kill("SIGTERM");
+  interactionWorker.kill("SIGTERM");
   if (domshiftProcess) {
     try { domshiftProcess.kill("SIGTERM"); } catch {}
   }

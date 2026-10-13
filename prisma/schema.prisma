@@ -30,6 +30,7 @@ model User {
   studyRooms        RoomParticipant[]
   lessonProgress    LessonProgress[]
   creationDrafts    CreationDraft[]
+  interactionWorkspaces InteractionWorkspace[]
 
   @@map("users")
 }
@@ -185,6 +186,229 @@ model CreationStorageObject {
   @@index([draftId, status])
   @@index([status, createdAt])
   @@map("creation_storage_objects")
+}
+
+model InteractionWorkspace {
+  id             String   @id @default(uuid())
+  ownerId        String
+  domainId       String
+  domainVersion  Int
+  snapshot       Json
+  revision       Int      @default(0)
+  contextEpoch   Int      @default(0)
+  sequence       Int      @default(0)
+  lifecycle      String   @default("active")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  owner          User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  requests       InteractionRequest[]
+  events         InteractionEvent[]
+  outbox         InteractionOutbox[]
+  messages       InteractionMessage[]
+  runs           InteractionRun[]
+  proposals      InteractionProposal[]
+  cohortTextArtifacts CohortTextArtifact[]
+  cohortTextJobs      CohortTextJob[]
+
+  @@index([ownerId, updatedAt])
+  @@index([domainId, lifecycle])
+  @@map("interaction_workspaces")
+}
+
+model InteractionRequest {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  actorId      String
+  operation    String
+  requestId    String
+  payloadHash  String
+  response     Json
+  createdAt    DateTime @default(now())
+  workspace    InteractionWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, actorId, operation, requestId])
+  @@index([createdAt])
+  @@map("interaction_requests")
+}
+
+model InteractionEvent {
+  id              String   @id @default(uuid())
+  workspaceId     String
+  sequence        Int
+  protocolVersion Int      @default(1)
+  type            String
+  revision        Int?
+  payload         Json
+  createdAt       DateTime @default(now())
+  workspace       InteractionWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, sequence])
+  @@index([createdAt])
+  @@map("interaction_events")
+}
+
+model InteractionMessage {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  role         String
+  parts        Json
+  sequence     Int
+  runId        String?
+  createdAt    DateTime @default(now())
+  workspace    InteractionWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, sequence])
+  @@map("interaction_messages")
+}
+
+model InteractionOutbox {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  kind         String
+  payload      Json
+  dedupKey     String   @unique
+  status       String   @default("pending")
+  attempts     Int      @default(0)
+  dueAt        DateTime @default(now())
+  leaseOwner   String?
+  leaseToken   String?
+  leaseUntil   DateTime?
+  deliveredAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  workspace    InteractionWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([status, dueAt, leaseUntil])
+  @@map("interaction_outbox")
+}
+
+model InteractionRun {
+  id                  String   @id @default(uuid())
+  workspaceId         String
+  triggeringMessageId String?
+  status              String   @default("queued")
+  contextEpoch        Int      @default(0)
+  observedRevision    Int      @default(0)
+  cursor              Int      @default(0)
+  fence               Int      @default(0)
+  leaseOwner          String?
+  leaseToken          String?
+  leaseUntil          DateTime?
+  deadline            DateTime?
+  budgetReservation   Json?
+  budgetActual        Json?
+  error               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  workspace           InteractionWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  steps               InteractionStep[]
+
+  @@index([workspaceId, status])
+  @@index([status, leaseUntil])
+  @@map("interaction_runs")
+}
+
+model InteractionStep {
+  id           String   @id @default(uuid())
+  runId        String
+  ordinal      Int
+  kind         String
+  toolName     String?
+  inputHash    String?
+  inputPayload Json?
+  state        String   @default("started")
+  result       Json?
+  error        String?
+  effectKey    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  run          InteractionRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, ordinal])
+  @@index([runId, toolName, inputHash])
+  @@map("interaction_steps")
+}
+
+model InteractionProposal {
+  id            String   @id @default(uuid())
+  workspaceId   String
+  actionPayload Json
+  readSet       Json?
+  summary       String
+  state         String   @default("pending")
+  expiresAt     DateTime?
+  decisionActor String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  workspace     InteractionWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, state])
+  @@map("interaction_proposals")
+}
+
+// Host-owned S3 storage. The running text worker continues using the
+// interaction snapshot until this additive schema is applied and verified.
+model CohortTextArtifact {
+  id               String   @id @default(uuid())
+  workspaceId      String
+  sourceId         String?
+  sourceVersion    Int?
+  kind             String
+  inputFingerprint String
+  checksum         String
+  byteLength       Int
+  body             Bytes    @db.ByteA
+  createdAt        DateTime @default(now())
+  workspace        InteractionWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  resultForJob     CohortTextJob?
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId, sourceId, sourceVersion, kind])
+  @@map("cohort_text_artifacts")
+}
+
+model CohortTextJob {
+  id                    String   @id @default(uuid())
+  workspaceId           String
+  jobKey                String
+  sourceId              String?
+  sourceVersion         Int?
+  stage                 String
+  handlerVersion        Int      @default(1)
+  dependencyFingerprint String
+  status                String   @default("queued")
+  attempts              Int      @default(0)
+  dueAt                 DateTime @default(now())
+  fence                 Int      @default(0)
+  leaseOwner            String?
+  leaseToken            String?
+  leaseUntil            DateTime?
+  resultArtifactId      String?
+  errorCode             String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  workspace             InteractionWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  resultArtifact        CohortTextArtifact? @relation(fields: [resultArtifactId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  prerequisites         CohortTextJobEdge[] @relation("JobPrerequisites")
+  dependents            CohortTextJobEdge[] @relation("JobDependents")
+
+  @@unique([workspaceId, jobKey])
+  @@unique([id, workspaceId])
+  @@unique([resultArtifactId, workspaceId])
+  @@index([status, dueAt, leaseUntil])
+  @@index([workspaceId, sourceId, sourceVersion])
+  @@map("cohort_text_jobs")
+}
+
+model CohortTextJobEdge {
+  workspaceId    String
+  jobId          String
+  prerequisiteId String
+  job            CohortTextJob @relation("JobPrerequisites", fields: [jobId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  prerequisite   CohortTextJob @relation("JobDependents", fields: [prerequisiteId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+
+  @@id([workspaceId, jobId, prerequisiteId])
+  @@map("cohort_text_job_edges")
 }
 
 // ─────────────────────────────────────────────────────────────────

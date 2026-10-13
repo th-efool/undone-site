@@ -37,7 +37,7 @@ function relativeTime(dateStr?: string): string {
   return `Updated ${Math.floor(diffDays / 30)}mo ago`;
 }
 
-import { InlineEditor } from '@/src/client/components/ui/InlineEditor/InlineEditor';
+import { InlineEditor } from '../ui/InlineEditor/InlineEditor';
 
 export function KanbanCard({ card, onMenuClick, onUpdateCard }: KanbanCardProps) {
   const timeLabel = relativeTime(card.updatedAt);

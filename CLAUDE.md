@@ -26,6 +26,12 @@ You operate within a 3-layer architecture that separates concerns to maximize re
 
 ## Operating Principles
 
+## Repository memory
+
+`MEMORY/` is the repository's agent-optimized operational index. Before broad exploration, cross-cutting changes, or work on a documented subsystem, inspect `MEMORY/README.md` and the relevant memory file first. Use it to locate authoritative contracts, routes, runtime composition, dependencies, commands, and known boundaries; then verify the exact source files being changed.
+
+Keep memory terse, path-first, and implementation-oriented. Update or add a relevant `MEMORY/*.md` file when a cross-cutting workflow, dependency, ownership boundary, or entry point materially changes. Do not store secrets, copied logs, or transient runtime output there.
+
 **1. Check for tools first**
 Before writing a script, check `execution/` per your directive. Only create new scripts if none exist.
 

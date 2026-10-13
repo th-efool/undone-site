@@ -1,7 +1,7 @@
 'use client';
 import React, { useState } from 'react';
 import { ListTodo, Calendar, ChevronDown } from 'lucide-react';
-import { FormEditor, FieldOrGroup } from '@/src/client/components/ui/FormEditor';
+import { FormEditor, FieldOrGroup } from '../ui/FormEditor/FormEditor';
 
 const PRIORITY_OPTIONS = [
   { value: 'low',    label: 'Low',    color: '#4ade80' },
