@@ -97,13 +97,14 @@ export async function acceptTextJob(sql: TextArtifactSql, job: ClaimedTextJob, a
   return result.rows.length === 1;
 }
 
-export async function failTextJob(sql: TextArtifactSql, job: ClaimedTextJob, errorCode: string): Promise<boolean> {
+export async function failTextJob(sql: TextArtifactSql, job: ClaimedTextJob, errorCode: string, now: Date): Promise<boolean> {
+  if (!Number.isFinite(now.getTime())) throw new Error('INVALID_FAILURE_TIME');
   const result = await sql.query(`UPDATE "cohort_text_jobs"
     SET "status" = 'failed', "errorCode" = $1, "leaseOwner" = NULL,
-        "leaseToken" = NULL, "leaseUntil" = NULL, "updatedAt" = CURRENT_TIMESTAMP
+        "leaseToken" = NULL, "leaseUntil" = NULL, "updatedAt" = $6::timestamp
     WHERE "id" = $2 AND "workspaceId" = $3 AND "status" = 'running'
-      AND "leaseToken" = $4 AND "fence" = $5 RETURNING "id"`,
-  [errorCode.slice(0, 100), job.id, job.workspaceId, job.leaseToken, job.fence]);
+      AND "leaseToken" = $4 AND "fence" = $5 AND "leaseUntil" > $6::timestamp RETURNING "id"`,
+  [errorCode.slice(0, 100), job.id, job.workspaceId, job.leaseToken, job.fence, now.toISOString()]);
   return result.rows.length === 1;
 }
 

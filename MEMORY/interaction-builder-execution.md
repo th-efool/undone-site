@@ -1,7 +1,7 @@
 # Interaction builder execution checkpoint
 
 STATUS: S3 IN PROGRESS — bounded pasted-text pipeline is worker-driven and restartable in revisioned workspace snapshots; plan-level job/artifact and live verification gates remain open.
-LAST_CHECKPOINT: `IB-S3-UNIT-BOUNDARY-2026-10-13`
+LAST_CHECKPOINT: `IB-S3-JOB-FAILURE-FENCE-2026-10-13`
 
 S3 CURRENT SLICE:
 - `src/shared/cohort-builder/contracts.ts` owns retained, size-bounded pasted-text sources, source versions, chunks, understanding, analysis, processing checkpoint, and public add/edit/remove/retry actions. The old synchronous `process_sources` action is removed.
@@ -19,11 +19,13 @@ S3 CURRENT SLICE:
 - Prepared but did NOT apply additive host-owned `cohort_text_artifacts`, `cohort_text_jobs`, and `cohort_text_job_edges` schema in `prisma/schema.prisma` and `prisma/interaction-s3-storage.sql`. Workspace-scoped composite foreign keys prevent cross-workspace job dependencies and result artifacts. Existing production worker remains on snapshot checkpoints until migration authorization and runtime integration.
 - `src/server/domain/cohort-builder/text-artifacts.ts` is an unwired, injected-SQL artifact adapter: server computes bytes/hash, owner-scoped reads rehash body, and stale/foreign/malformed refs fail. `prisma/__tests__/interaction-s3-storage.test.ts` and `src/server/domain/cohort-builder/__tests__/text-artifacts.test.ts` run against isolated PGlite; PGlite is an explicit dev dependency.
 - `src/server/domain/cohort-builder/text-jobs.ts` is an unwired host job adapter. A single SQL claim only selects dependency-ready jobs; heartbeat and acceptance check lease token/fence; acceptance verifies artifact bytes and rechecks workspace/source identity, stage kind, fingerprint, and prerequisite state; retry is bounded and old source-version jobs are superseded. Isolated PGlite tests simulate expiry/reclaim and stale worker rejection.
+- Job failure transitions also require an unexpired lease at an explicit clock; an expired worker cannot fail a job while its replacement is about to reclaim it. Isolated PGlite regression covers expiry, reclaim, and retry.
 - `src/server/domain/cohort-builder/text-job-plan.ts` derives stable per-source acquisition → understanding → chunking → analysis keys plus global assembly dependencies. Source edits preserve other sources' keys; intent/pacing affect assembly only; audience affects analysis and assembly. `text-job-scheduler.ts` inserts the full graph in one transaction, idempotently by workspace/key; a failed edge insert rolls the graph back. These are prepared and not yet wired to the live worker.
 - NOT YET IMPLEMENTED to the full authoritative plan: live use of the prepared job/artifact tables, per-source partial failure, selected-unit/24-KiB partition policy and complete coverage validation, rich lesson assembly, real SQL concurrency with separate connections, authenticated browser E2E, and provider-backed acceptance. Do not call S3 complete.
 
 SELECTED-REFINEMENT VERIFICATION: `npx vitest run` passed 162 files, 1105 tests, 2 skipped before one additional trigger-message regression test; `npx vitest run src/server/domain/cohort-builder/__tests__/selection.test.ts` passed all 3 tests after that addition; `npx tsc --noEmit --pretty false` exit 0; `npm run build` exit 0 (existing pdfjs/middleware warnings). No paid model or shared-DB migration was run.
 UNIT-BOUNDARY VERIFICATION: `npx vitest run` passed 162 files, 1108 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0. Exact 24 KiB Unicode and fabricated-gap cases added to text-pipeline tests.
+JOB-FAILURE-FENCE VERIFICATION: `npx vitest run` passed 162 files, 1109 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0. No shared database migration or paid provider calls.
 
 CURRENT ARCHITECTURE:
 - Authoritative standalone package in `packages/interaction-builder` (currently a Git submodule at `3f40a6af`; verify both repository states before package edits) with explicit subpaths:
