@@ -131,6 +131,7 @@ async function main() {
     }
   }
   runSafe('git add .gitmodules', planningDir);
+  runSafe('git add packages/interaction-builder', planningDir);
 
   const planningStatus = runSafe('git status --porcelain', planningDir);
   if (planningStatus && planningStatus.length > 0) {
