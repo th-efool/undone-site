@@ -49,4 +49,4 @@ Include commands or artifact paths needed to resume, but never credentials. Reco
 
 ## This repository
 
-The current cohort visual-repair ledger is `plans/cohort-creation-end-to-end-repair-plan.md`; comparisons live under `plans/before-after/`. These are examples of durable project state, not permission to expand another task into cohort work. This file is saved under `docs/` as requested; saving it here alone does not install it into Codex's automatic skill discovery.
+The cohort visual-repair ledger and comparisons are maintained on the `planning` branch. They are examples of durable project state, not permission to expand another task into cohort work. This file is saved under `docs/` as requested; saving it here alone does not install it into Codex's automatic skill discovery.

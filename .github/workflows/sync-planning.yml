@@ -1,0 +1,44 @@
+name: Sync planning branch
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: planning-branch-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out planning
+        uses: actions/checkout@v4
+        with:
+          ref: planning
+          fetch-depth: 0
+
+      - name: Merge master into planning
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin master planning
+          if git merge-base --is-ancestor origin/master HEAD; then
+            echo "planning already contains master"
+            exit 0
+          fi
+          planning_head="$(git rev-parse HEAD)"
+          git merge --no-commit --no-ff origin/master
+          git restore --source="$planning_head" --staged --worktree -- \
+            plans \
+            artifacts \
+            _archived \
+            assets/playstore-listing \
+            "assets/ChatGPT Image Aug 11, 2026, 12_24_28 PM.png"
+          git commit --no-edit
+          git push origin HEAD:planning
