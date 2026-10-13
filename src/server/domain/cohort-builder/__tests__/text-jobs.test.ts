@@ -87,4 +87,24 @@ describe('durable text job leases and dependencies', () => {
       await db.close();
     }
   }, 30_000);
+
+  it('turns three expired claims into a visible terminal failure', async () => {
+    const { db, sql } = await setup();
+    try {
+      await db.exec(`INSERT INTO "cohort_text_jobs" ("id", "workspaceId", "jobKey", "stage", "dependencyFingerprint", "dueAt")
+        VALUES ('job-crashing', 'workspace-a', 'crashing', 'assembly', 'fingerprint', '2020-01-01')`);
+      for (const offset of [0, 2_001, 4_002]) {
+        const claim = await claimTextJob(sql, `worker-${offset}`, later(offset), 2_000);
+        expect(claim?.id).toBe('job-crashing');
+      }
+      expect(await claimTextJob(sql, 'worker-four', later(6_003), 2_000)).toBeNull();
+      const row = (await db.query<{ status: string; errorCode: string; attempts: number }>(
+        `SELECT "status", "errorCode", "attempts" FROM "cohort_text_jobs" WHERE "id" = 'job-crashing'`
+      )).rows[0];
+      expect(row).toEqual({ status: 'failed', errorCode: 'RETRY_EXHAUSTED', attempts: 3 });
+      expect(await retryTextJob(sql, 'workspace-a', 'job-crashing', later(6_100))).toBe(false);
+    } finally {
+      await db.close();
+    }
+  }, 30_000);
 });

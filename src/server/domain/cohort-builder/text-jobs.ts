@@ -28,9 +28,13 @@ export async function claimTextJob(sql: TextArtifactSql, workerId: string, now: 
   if (!workerId.trim()) throw new Error('INVALID_WORKER_ID');
   const time = leaseBounds(now, leaseMs);
   const token = randomUUID();
+  await sql.query(`UPDATE "cohort_text_jobs"
+    SET "status" = 'failed', "errorCode" = 'RETRY_EXHAUSTED',
+        "leaseOwner" = NULL, "leaseToken" = NULL, "leaseUntil" = NULL, "updatedAt" = $1::timestamp
+    WHERE "status" = 'running' AND "leaseUntil" < $1::timestamp AND "attempts" >= 3`, [time.at]);
   const result = await sql.query(`WITH candidate AS (
     SELECT j."id" FROM "cohort_text_jobs" j
-    WHERE ((j."status" = 'queued' AND j."dueAt" <= $1::timestamp)
+    WHERE j."attempts" < 3 AND ((j."status" = 'queued' AND j."dueAt" <= $1::timestamp)
       OR (j."status" = 'running' AND j."leaseUntil" < $1::timestamp))
       AND NOT EXISTS (
         SELECT 1 FROM "cohort_text_job_edges" e
