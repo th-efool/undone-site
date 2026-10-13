@@ -1,0 +1,4 @@
+{
+  "framework": "nextjs",
+  "installCommand": "node scripts/ensure-submodules.mjs && npm install"
+}
