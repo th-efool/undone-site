@@ -204,6 +204,9 @@ model InteractionWorkspace {
   requests       InteractionRequest[]
   events         InteractionEvent[]
   outbox         InteractionOutbox[]
+  messages       InteractionMessage[]
+  runs           InteractionRun[]
+  proposals      InteractionProposal[]
 
   @@index([ownerId, updatedAt])
   @@index([domainId, lifecycle])
@@ -242,6 +245,20 @@ model InteractionEvent {
   @@map("interaction_events")
 }
 
+model InteractionMessage {
+  id           String   @id @default(uuid())
+  workspaceId  String
+  role         String
+  parts        Json
+  sequence     Int
+  runId        String?
+  createdAt    DateTime @default(now())
+  workspace    InteractionWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, sequence])
+  @@map("interaction_messages")
+}
+
 model InteractionOutbox {
   id           String   @id @default(uuid())
   workspaceId  String
@@ -261,6 +278,70 @@ model InteractionOutbox {
 
   @@index([status, dueAt, leaseUntil])
   @@map("interaction_outbox")
+}
+
+model InteractionRun {
+  id                  String   @id @default(uuid())
+  workspaceId         String
+  triggeringMessageId String?
+  status              String   @default("queued")
+  contextEpoch        Int      @default(0)
+  observedRevision    Int      @default(0)
+  cursor              Int      @default(0)
+  fence               Int      @default(0)
+  leaseOwner          String?
+  leaseToken          String?
+  leaseUntil          DateTime?
+  deadline            DateTime?
+  budgetReservation   Json?
+  budgetActual        Json?
+  error               String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  workspace           InteractionWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  steps               InteractionStep[]
+
+  @@index([workspaceId, status])
+  @@index([status, leaseUntil])
+  @@map("interaction_runs")
+}
+
+model InteractionStep {
+  id           String   @id @default(uuid())
+  runId        String
+  ordinal      Int
+  kind         String
+  toolName     String?
+  inputHash    String?
+  inputPayload Json?
+  state        String   @default("started")
+  result       Json?
+  error        String?
+  effectKey    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  run          InteractionRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, ordinal])
+  @@index([runId, toolName, inputHash])
+  @@map("interaction_steps")
+}
+
+model InteractionProposal {
+  id            String   @id @default(uuid())
+  workspaceId   String
+  actionPayload Json
+  readSet       Json?
+  summary       String
+  state         String   @default("pending")
+  expiresAt     DateTime?
+  decisionActor String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  workspace     InteractionWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, state])
+  @@map("interaction_proposals")
 }
 
 // ─────────────────────────────────────────────────────────────────
