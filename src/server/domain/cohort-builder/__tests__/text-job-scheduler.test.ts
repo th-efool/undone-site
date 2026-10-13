@@ -60,4 +60,46 @@ describe('atomic cohort text job scheduling', () => {
       await db.close();
     }
   }, 30_000);
+
+  it('supersedes only invalidated graph nodes and clears work when source scope is empty', async () => {
+    const { db, port } = await setup();
+    try {
+      const first = await enqueueTextJobPlan(port, 'workspace-a', workspace);
+      await db.exec(`UPDATE "cohort_text_jobs" SET "status" = 'running', "leaseOwner" = 'old-worker',
+        "leaseToken" = 'old-token', "leaseUntil" = '2030-01-01' WHERE "id" = '${first.jobIds[0]}'`);
+      const edited = structuredClone(workspace);
+      edited.sources[0].version = 1;
+      edited.sources[0].text = 'Quorums need overlap.';
+      const brokenPort: TextJobTransactionPort = {
+        transaction: work => port.transaction(tx => work({
+          query: (statement, parameters) => {
+            if (statement.includes('INSERT INTO "cohort_text_job_edges"')) throw new Error('INJECTED_EDGE_FAILURE');
+            return tx.query(statement, parameters);
+          },
+        })),
+      };
+      await expect(enqueueTextJobPlan(brokenPort, 'workspace-a', edited)).rejects.toThrow('INJECTED_EDGE_FAILURE');
+      const beforeCommit = (await db.query<{ status: string; leaseToken: string | null }>(
+        `SELECT "status", "leaseToken" FROM "cohort_text_jobs" WHERE "id" = $1`, [first.jobIds[0]]
+      )).rows[0];
+      expect(beforeCommit).toMatchObject({ status: 'running', leaseToken: 'old-token' });
+      const second = await enqueueTextJobPlan(port, 'workspace-a', edited);
+      expect(second).toMatchObject({ inserted: 5, superseded: 5 });
+      const old = (await db.query<{ status: string; fence: number; leaseToken: string | null }>(
+        `SELECT "status", "fence", "leaseToken" FROM "cohort_text_jobs" WHERE "id" = $1`, [first.jobIds[0]]
+      )).rows[0];
+      expect(old).toMatchObject({ status: 'superseded', fence: 1, leaseToken: null });
+      const unchanged = (await db.query<{ status: string }>(
+        `SELECT "status" FROM "cohort_text_jobs" WHERE "id" = $1`, [first.jobIds[4]]
+      )).rows[0];
+      expect(unchanged.status).toBe('queued');
+      const noSources = { ...edited, sources: [] };
+      const cleared = await enqueueTextJobPlan(port, 'workspace-a', noSources);
+      expect(cleared).toEqual({ jobIds: [], inserted: 0, superseded: 9 });
+      const active = await db.query<{ count: string }>(`SELECT count(*)::text AS count FROM "cohort_text_jobs" WHERE "status" IN ('queued', 'running', 'failed')`);
+      expect(active.rows[0].count).toBe('0');
+    } finally {
+      await db.close();
+    }
+  }, 30_000);
 });

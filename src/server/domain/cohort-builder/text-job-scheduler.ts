@@ -8,10 +8,15 @@ export interface TextJobTransactionPort {
 }
 
 /** Persist a complete dependency graph atomically; repeat calls reuse logical job keys. */
-export async function enqueueTextJobPlan(port: TextJobTransactionPort, workspaceId: string, state: CohortWorkspace): Promise<{ jobIds: string[]; inserted: number }> {
+export async function enqueueTextJobPlan(port: TextJobTransactionPort, workspaceId: string, state: CohortWorkspace): Promise<{ jobIds: string[]; inserted: number; superseded: number }> {
   const intents = planTextJobs(state);
-  if (intents.length === 0) return { jobIds: [], inserted: 0 };
   return port.transaction(async tx => {
+    const obsolete = await tx.query(`UPDATE "cohort_text_jobs"
+      SET "status" = 'superseded', "fence" = "fence" + 1,
+          "leaseOwner" = NULL, "leaseToken" = NULL, "leaseUntil" = NULL, "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "workspaceId" = $1 AND "status" IN ('queued', 'running', 'failed')
+        AND NOT ("jobKey" = ANY($2::text[])) RETURNING "id"`,
+    [workspaceId, intents.map(intent => intent.jobKey)]);
     const ids = new Map<string, string>();
     let inserted = 0;
     for (const intent of intents) {
@@ -34,6 +39,6 @@ export async function enqueueTextJobPlan(port: TextJobTransactionPort, workspace
           VALUES ($1, $2, $3) ON CONFLICT DO NOTHING`, [workspaceId, jobId, prerequisiteId]);
       }
     }
-    return { jobIds: intents.map(intent => ids.get(intent.jobKey)!), inserted };
+    return { jobIds: intents.map(intent => ids.get(intent.jobKey)!), inserted, superseded: obsolete.rows.length };
   });
 }
