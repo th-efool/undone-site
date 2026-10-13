@@ -22,6 +22,11 @@ const initialSnapshot: CohortWorkspace = {
       pinned: false,
     },
   ],
+  sources: [],
+  chunks: [],
+  understanding: [],
+  analyses: [],
+  processing: { status: 'idle', stage: 'done', generation: 0, sourceFingerprint: null, error: null },
 };
 
 const defaultUsage = {
@@ -333,17 +338,19 @@ describe('S2 Durability: Scheduling, Leases, Fencing, Replay, and Proposals', ()
     });
 
     // The runner executes; the tool call is rejected with STALE_WORKSPACE
-    await runAssistantTurn({
-      workspaceId: WS,
-      ownerId: OWNER,
-      repo,
-      domain: cohortDomain,
-      model: createAiSdkModelAdapter(model),
-      createTools: createCohortAiTools,
-      runId: run!.id,
-      leaseToken: 'token-1',
-      maxSteps: 1,
-    });
+    await expect(
+      runAssistantTurn({
+        workspaceId: WS,
+        ownerId: OWNER,
+        repo,
+        domain: cohortDomain,
+        model: createAiSdkModelAdapter(model),
+        createTools: createCohortAiTools,
+        runId: run!.id,
+        leaseToken: 'token-1',
+        maxSteps: 1,
+      })
+    ).rejects.toThrow('STALE_WORKSPACE');
 
     // Journal recorded the failed tool step due to STALE_WORKSPACE
     const steps = await repo.listSteps({ runId: run!.id });

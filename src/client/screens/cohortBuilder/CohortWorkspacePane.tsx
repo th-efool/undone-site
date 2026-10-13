@@ -14,7 +14,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { useWorkspaceView, useDispatchAction } from '@/src/client/interaction/hooks';
-import type { CohortWorkspace, CohortAction, CohortLesson } from '@/src/shared/cohort-builder/contracts';
+import { cohortWorkspaceSchema, type CohortWorkspace, type CohortAction, type CohortLesson } from '@/src/shared/cohort-builder/contracts';
 import type { EntityRef } from 'interaction-builder/core';
 import styles from './CohortBuilder.module.css';
 
@@ -23,7 +23,8 @@ interface CohortWorkspacePaneProps {
 }
 
 export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePaneProps) {
-  const workspace = useWorkspaceView<CohortWorkspace>();
+  const rawWorkspace = useWorkspaceView<CohortWorkspace>();
+  const workspace = rawWorkspace ? cohortWorkspaceSchema.parse(rawWorkspace) : null;
   const dispatchAction = useDispatchAction<CohortAction>();
 
   // Modals state
@@ -39,6 +40,8 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
 
   const [addingLesson, setAddingLesson] = useState(false);
   const [newLessonForm, setNewLessonForm] = useState({ title: '', objective: '' });
+  const [sourceForm, setSourceForm] = useState({ label: '', text: '' });
+  const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
 
   if (!workspace) {
     return <div className={styles.rightPane}>Loading workspace state...</div>;
@@ -129,6 +132,17 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
     setAddingLesson(false);
   };
 
+  const handleAddSource = async () => {
+    if (!sourceForm.label.trim() || !sourceForm.text.trim()) return;
+    const action: CohortAction = editingSourceId
+      ? { type: 'edit_text_source', sourceId: editingSourceId, label: sourceForm.label.trim(), text: sourceForm.text.trim() }
+      : { type: 'add_text_source', label: sourceForm.label.trim(), text: sourceForm.text.trim() };
+    if (await dispatchAction(action)) {
+      setSourceForm({ label: '', text: '' });
+      setEditingSourceId(null);
+    }
+  };
+
   return (
     <main className={styles.rightPane} aria-label="Cohort Curriculum Workspace">
       {/* Hero / Overview Card */}
@@ -154,6 +168,29 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
             <span>Pace: <strong>{workspace.dailyMinutes} mins/day</strong></span>
           </div>
         </div>
+      </section>
+
+      <section className={styles.heroCard} aria-label="Grounded source text">
+        <div className={styles.sectionHeader}>
+          <h3>Source text</h3>
+          <small>{workspace.processing.status}{workspace.processing.status === 'queued' ? ` · ${workspace.processing.stage} waiting for worker` : ''}</small>
+        </div>
+        <div className={styles.formField}>
+          <label htmlFor="cohort-source-title">Source title</label>
+          <input id="cohort-source-title" value={sourceForm.label} placeholder="e.g. Distributed systems notes" onChange={event => setSourceForm({ ...sourceForm, label: event.target.value })} />
+        </div>
+        <div className={styles.formField}>
+          <label htmlFor="cohort-source-text">Paste text to retain and ground this curriculum</label>
+          <textarea id="cohort-source-text" rows={6} maxLength={200_000} value={sourceForm.text} onChange={event => setSourceForm({ ...sourceForm, text: event.target.value })} />
+        </div>
+        <div className={styles.modalActions}>
+          <button className={styles.saveBtn} onClick={() => void handleAddSource()}>{editingSourceId ? 'Save source changes' : 'Add text source'}</button>
+          {editingSourceId && <button className={styles.editActionBtn} onClick={() => { setEditingSourceId(null); setSourceForm({ label: '', text: '' }); }}>Cancel edit</button>}
+        </div>
+        {workspace.processing.error && <p role="alert">{workspace.processing.error}</p>}
+        {workspace.processing.status === 'failed' && <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'retry_processing' })}>Retry processing</button>}
+        {workspace.sources.length > 0 && workspace.processing.status === 'ready' && <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'retry_processing' })}>Rebuild from sources</button>}
+        {workspace.sources.map(source => <p key={source.id} className={styles.intentText}>{source.label} · {source.state} <button className={styles.editActionBtn} onClick={() => { setEditingSourceId(source.id); setSourceForm({ label: source.label, text: source.text }); }}>Edit</button> <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'remove_source', sourceId: source.id })}>Remove</button></p>)}
       </section>
 
       {/* Curriculum Outline */}
@@ -227,6 +264,13 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
               </div>
 
               <p className={styles.lessonObjective}>{lesson.objective}</p>
+              {lesson.evidenceStatus === 'orphaned' && <p role="alert" className={styles.intentText}>This retained lesson references changed or removed source text. Review its evidence before relying on it.</p>}
+              {lesson.sourceChunkIds.length > 0 && (
+                <p className={styles.intentText}>Grounded in {lesson.sourceChunkIds.map(chunkId => {
+                  const chunk = workspace.chunks.find(item => item.id === chunkId);
+                  return chunk ? `“${chunk.text.slice(0, 160)}”` : 'unavailable retained passage';
+                }).join(' ')}</p>
+              )}
 
               <button
                 className={styles.chatRefBtn}

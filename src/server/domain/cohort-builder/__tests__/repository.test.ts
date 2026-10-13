@@ -18,6 +18,11 @@ const sampleCohort: CohortWorkspace = {
       pinned: false,
     },
   ],
+  sources: [],
+  chunks: [],
+  understanding: [],
+  analyses: [],
+  processing: { status: 'idle', stage: 'done', generation: 0, sourceFingerprint: null, error: null },
 };
 
 describe('InteractionRepository (Memory Testkit with Cohort)', () => {

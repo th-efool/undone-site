@@ -5,6 +5,9 @@ import { postgresInteractionRepo } from './infrastructure/db/postgres/repositori
 import { runAssistantTurn, type InteractionRepository } from 'interaction-builder/runtime';
 import { createCohortAiTools } from './domain/cohort-builder/tools';
 import { cohortDomain } from './domain/cohort-builder/domain';
+import { advanceTextWorkspace } from './domain/cohort-builder/text-worker';
+import { cohortAssistantPrompt } from './domain/cohort-builder/context';
+import { cohortWorkspaceSchema, type CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 
 export interface InteractionWorkerOptions {
   repo?: InteractionRepository;
@@ -12,6 +15,7 @@ export interface InteractionWorkerOptions {
   pollIntervalMs?: number;
   leaseDurationMs?: number;
   heartbeatIntervalMs?: number;
+  textWorkspaceCandidates?: () => Promise<Array<{ id: string; ownerId: string }>>;
 }
 
 export async function runInteractionWorkerLoop(
@@ -23,9 +27,19 @@ export async function runInteractionWorkerLoop(
   const pollIntervalMs = options.pollIntervalMs ?? 1000;
   const leaseDurationMs = options.leaseDurationMs ?? 60_000;
   const heartbeatIntervalMs = options.heartbeatIntervalMs ?? 15_000;
+  const textWorkspaceCandidates = options.textWorkspaceCandidates ?? (() => prisma.$queryRaw<Array<{ id: string; ownerId: string }>>`
+    SELECT "id", "ownerId" FROM "interaction_workspaces"
+    WHERE "domainId" = 'cohort' AND "lifecycle" = 'active'
+      AND "snapshot"->'processing'->>'status' = 'queued'
+    ORDER BY "updatedAt" ASC LIMIT 20`);
 
   while (!signal.aborted) {
     try {
+      const candidates = await textWorkspaceCandidates();
+      for (const candidate of candidates) {
+        if (signal.aborted) break;
+        await advanceTextWorkspace(repo, candidate.ownerId, candidate.id);
+      }
       const leaseToken = randomUUID();
       const run = await repo.claimRun({
         leaseOwner: workerId,
@@ -62,6 +76,8 @@ export async function runInteractionWorkerLoop(
         const { createCohortModel } = await import('./infrastructure/ai/modelRegistry');
         const { createAiSdkModelAdapter } = await import('interaction-builder/adapters/ai');
         const model = createAiSdkModelAdapter(createCohortModel());
+        const current = await repo.loadWorkspace<CohortWorkspace>({ workspaceId: run.workspaceId, ownerId: wsRow.ownerId });
+        if (!current) throw new Error('WORKSPACE_NOT_FOUND');
         const res = await runAssistantTurn({
           workspaceId: run.workspaceId,
           ownerId: wsRow.ownerId,
@@ -71,6 +87,7 @@ export async function runInteractionWorkerLoop(
           createTools: createCohortAiTools,
           runId: run.id,
           leaseToken,
+          systemPrompt: cohortAssistantPrompt(cohortWorkspaceSchema.parse(current.snapshot), current.revision),
         });
 
         if (heartbeatTimer) {

@@ -7,7 +7,7 @@ const cohort: DomainDefinition<CohortWorkspace> = {
   initialState: b => cohortWorkspaceSchema.parse(b),
   plan: planCohortAction,
 };
-const boot: CohortWorkspace = { schemaVersion: 1, title: 't', intent: 'learn', audience: 'a', dailyMinutes: 20, lessons: [] };
+const boot: CohortWorkspace = { schemaVersion: 1, title: 't', intent: 'learn', audience: 'a', dailyMinutes: 20, lessons: [], sources: [], chunks: [], understanding: [], analyses: [], processing: { status: 'idle', stage: 'done', generation: 0, sourceFingerprint: null, error: null } };
 const WS = '4f828a1c-3b09-42b7-8738-4e50257ad42f';
 const mk = () => createInteractionHandlers({ repo: new MemoryInteractionRepository(), domains: new Map([['cohort', cohort]]) });
 const env = (rev: number, action: unknown) => ({ actionId: crypto.randomUUID(), workspaceId: WS, expectedRevision: rev, entityVersions: [], action });

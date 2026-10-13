@@ -1,6 +1,6 @@
 # interaction-builder-plan
 
-STATUS: STANDALONE PACKAGE IMPLEMENTED & VERIFIED (`packages/interaction-builder`). S1 + S2 complete; Undone rewired; ready for S3.
+STATUS: STANDALONE PACKAGE IMPLEMENTED & VERIFIED (`packages/interaction-builder`). S1 + S2 complete; Undone rewired; S3 pasted-text slice in progress (see `MEMORY/interaction-builder-execution.md`).
 ROOT: `D:/ThisPC/Documents/SideQuestHQ/undone-site`
 SCOPE: reusable embedded human–AI–website interaction layer; cohort creation first domain; agenda reference domain in package.
 NOT: website/app/code generation, generated-site hosting, arbitrary executable UI.
@@ -36,11 +36,12 @@ packages/interaction-builder/core           schemas/contracts/pure reducer; brow
 packages/interaction-builder/runtime        orchestration/journals/ports/policy/runner/fencing/memory repo
 packages/interaction-builder/client         browser store/SSE parser/HTTP transport
 packages/interaction-builder/react          InteractionProvider + typed hooks
-packages/interaction-builder/adapters/pg    native pg.Pool PostgreSQL repository (no Prisma)
+packages/interaction-builder/adapters/pg    native pg.Pool PostgreSQL repository (no Prisma, ESM-compatible)
 packages/interaction-builder/adapters/http  Web Request/Response HTTP dispatcher
+packages/interaction-builder/adapters/ai    AI SDK LanguageModel adapter (createAiSdkModelAdapter)
 packages/interaction-builder/testkit       MemoryInteractionRepository + mock models + agenda reference domain
 src/shared/cohort-builder                   cohort schemas/actions/domain contracts
-src/server/domain/cohort-builder            cohort tools/context/tests
+src/server/domain/cohort-builder            cohort tools/context/text-pipeline/text-worker/tests
 src/client/screens/cohortBuilder            cohort renderers/editors
 src/server/interaction.runtime.ts           host composition root
 ```

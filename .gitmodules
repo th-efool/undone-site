@@ -1,0 +1,3 @@
+[submodule "packages/interaction-builder"]
+	path = packages/interaction-builder
+	url = https://github.com/th-efool/interaction-builder.git

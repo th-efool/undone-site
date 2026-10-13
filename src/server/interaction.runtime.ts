@@ -7,6 +7,8 @@ import { createAiSdkModelAdapter } from 'interaction-builder/adapters/ai';
 import { createCohortAiTools } from './domain/cohort-builder/tools';
 import { cohortDomain } from './domain/cohort-builder/domain';
 import { createCohortModel } from './infrastructure/ai/modelRegistry';
+import { cohortAssistantPrompt } from './domain/cohort-builder/context';
+import { cohortWorkspaceSchema, type CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 
 export async function executeAssistantTurn(ownerId: string, workspaceId: string) {
   // Ensure a run exists and claim it with a lease
@@ -23,6 +25,8 @@ export async function executeAssistantTurn(ownerId: string, workspaceId: string)
   const activeToken = claimed ? leaseToken : (activeRun.leaseToken ?? leaseToken);
 
   const model = createAiSdkModelAdapter(createCohortModel());
+  const current = await postgresInteractionRepo.loadWorkspace<CohortWorkspace>({ workspaceId, ownerId });
+  if (!current) throw new Error('WORKSPACE_NOT_FOUND');
   try {
     const res = await runAssistantTurn({
       workspaceId,
@@ -33,6 +37,7 @@ export async function executeAssistantTurn(ownerId: string, workspaceId: string)
       createTools: createCohortAiTools,
       runId: activeRun.id,
       leaseToken: activeToken,
+      systemPrompt: cohortAssistantPrompt(cohortWorkspaceSchema.parse(current.snapshot), current.revision),
     });
     await postgresInteractionRepo.completeRun({
       runId: activeRun.id,

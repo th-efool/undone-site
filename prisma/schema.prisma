@@ -207,6 +207,8 @@ model InteractionWorkspace {
   messages       InteractionMessage[]
   runs           InteractionRun[]
   proposals      InteractionProposal[]
+  cohortTextArtifacts CohortTextArtifact[]
+  cohortTextJobs      CohortTextJob[]
 
   @@index([ownerId, updatedAt])
   @@index([domainId, lifecycle])
@@ -342,6 +344,71 @@ model InteractionProposal {
 
   @@index([workspaceId, state])
   @@map("interaction_proposals")
+}
+
+// Host-owned S3 storage. The running text worker continues using the
+// interaction snapshot until this additive schema is applied and verified.
+model CohortTextArtifact {
+  id               String   @id @default(uuid())
+  workspaceId      String
+  sourceId         String?
+  sourceVersion    Int?
+  kind             String
+  inputFingerprint String
+  checksum         String
+  byteLength       Int
+  body             Bytes    @db.ByteA
+  createdAt        DateTime @default(now())
+  workspace        InteractionWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  resultForJob     CohortTextJob?
+
+  @@unique([id, workspaceId])
+  @@index([workspaceId, sourceId, sourceVersion, kind])
+  @@map("cohort_text_artifacts")
+}
+
+model CohortTextJob {
+  id                    String   @id @default(uuid())
+  workspaceId           String
+  jobKey                String
+  sourceId              String?
+  sourceVersion         Int?
+  stage                 String
+  handlerVersion        Int      @default(1)
+  dependencyFingerprint String
+  status                String   @default("queued")
+  attempts              Int      @default(0)
+  dueAt                 DateTime @default(now())
+  fence                 Int      @default(0)
+  leaseOwner            String?
+  leaseToken            String?
+  leaseUntil            DateTime?
+  resultArtifactId      String?
+  errorCode             String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  workspace             InteractionWorkspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  resultArtifact        CohortTextArtifact? @relation(fields: [resultArtifactId, workspaceId], references: [id, workspaceId], onDelete: Restrict)
+  prerequisites         CohortTextJobEdge[] @relation("JobPrerequisites")
+  dependents            CohortTextJobEdge[] @relation("JobDependents")
+
+  @@unique([workspaceId, jobKey])
+  @@unique([id, workspaceId])
+  @@unique([resultArtifactId, workspaceId])
+  @@index([status, dueAt, leaseUntil])
+  @@index([workspaceId, sourceId, sourceVersion])
+  @@map("cohort_text_jobs")
+}
+
+model CohortTextJobEdge {
+  workspaceId    String
+  jobId          String
+  prerequisiteId String
+  job            CohortTextJob @relation("JobPrerequisites", fields: [jobId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+  prerequisite   CohortTextJob @relation("JobDependents", fields: [prerequisiteId, workspaceId], references: [id, workspaceId], onDelete: Cascade)
+
+  @@id([workspaceId, jobId, prerequisiteId])
+  @@map("cohort_text_job_edges")
 }
 
 // ─────────────────────────────────────────────────────────────────

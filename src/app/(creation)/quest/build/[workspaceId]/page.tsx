@@ -63,6 +63,11 @@ export default async function QuestBuildPage({
             pinned: false,
           },
         ],
+        sources: [],
+        chunks: [],
+        understanding: [],
+        analyses: [],
+        processing: { status: 'idle', stage: 'done', generation: 0, sourceFingerprint: null, error: null },
       },
     });
   }

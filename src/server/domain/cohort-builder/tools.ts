@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { tool } from 'ai';
-import type { InteractionRepository, DomainDefinition } from 'interaction-builder/runtime';
+import { deterministicUuid, type InteractionRepository, type DomainDefinition } from 'interaction-builder/runtime';
 import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 
 export interface CohortAiToolsDeps {
@@ -20,42 +20,76 @@ export interface CohortAiToolsDeps {
 export function createCohortAiTools(deps: CohortAiToolsDeps) {
   const { workspaceId, ownerId, repo, domain } = deps;
 
-  async function executeAction(toolName: string, inputPayload: unknown, action: unknown) {
-    const runCommit = async (meta?: { ordinal: number; requestId: string }) => {
-      let expectedRevision = deps.observedRevision;
-      if (expectedRevision === undefined) {
-        const ws = await repo.loadWorkspace<CohortWorkspace>({ workspaceId, ownerId });
-        if (!ws) throw new Error('WORKSPACE_NOT_FOUND');
-        expectedRevision = ws.revision;
-      }
-      const envelope = {
-        actionId: crypto.randomUUID(),
-        workspaceId,
-        expectedRevision,
-        entityVersions: [],
-        action,
-      };
-      const res = await repo.commitAction({
-        workspaceId,
-        ownerId,
-        expectedRevision,
-        envelope,
-        plan: domain.plan,
-        runFence: deps.runFence,
-        requestId: meta?.requestId,
-      });
-      return {
-        success: true,
-        revision: res.revision,
-        summary: res.receipt.summary,
-        changed: res.receipt.changed,
-      };
-    };
+  let currentRevision: number | undefined = deps.observedRevision;
+  let commitQueue: Promise<unknown> = Promise.resolve();
 
-    if (deps.onToolStep) {
-      return deps.onToolStep(toolName, inputPayload, runCommit);
-    }
-    return runCommit();
+  async function executeAction(toolName: string, inputPayload: unknown, action: any) {
+    const currentTask = commitQueue.then(async () => {
+      const runCommit = async (meta?: { ordinal: number; requestId: string }) => {
+        if (currentRevision === undefined) {
+          const ws = await repo.loadWorkspace<CohortWorkspace>({ workspaceId, ownerId });
+          if (!ws) throw new Error('WORKSPACE_NOT_FOUND');
+          currentRevision = ws.revision;
+        }
+
+        // Derive deterministic actionId when retrying with a stable requestId
+        const actionId = meta?.requestId ? deterministicUuid('action:' + meta.requestId) : crypto.randomUUID();
+
+        // Normalize action with deterministic entity ID for add_lesson if not supplied
+        let normalizedAction = action;
+        if (action && typeof action === 'object' && action.type === 'add_lesson') {
+          const lessonId = action.lessonId ?? (meta?.requestId ? deterministicUuid('lesson:' + meta.requestId) : crypto.randomUUID());
+          normalizedAction = { ...action, lessonId };
+        }
+
+        const expectedRevision = currentRevision;
+        const envelope = {
+          actionId,
+          workspaceId,
+          expectedRevision,
+          entityVersions: [],
+          action: normalizedAction,
+        };
+
+        const res = await repo.commitAction({
+          workspaceId,
+          ownerId,
+          expectedRevision,
+          envelope,
+          plan: domain.plan,
+          runFence: deps.runFence,
+          requestId: meta?.requestId,
+        });
+
+        // Advance this run's tracked revision strictly from the successful commit receipt
+        currentRevision = res.revision;
+
+        return {
+          success: true,
+          revision: res.revision,
+          summary: res.receipt.summary,
+          changed: res.receipt.changed,
+        };
+      };
+
+      let stepRes: any;
+      if (deps.onToolStep) {
+        stepRes = await deps.onToolStep(toolName, inputPayload, runCommit);
+      } else {
+        stepRes = await runCommit();
+      }
+
+      // If onToolStep returned a recovered/journaled step without running runCommit,
+      // advance currentRevision from the recovered result
+      if (stepRes && typeof stepRes.revision === 'number') {
+        currentRevision = Math.max(currentRevision ?? 0, stepRes.revision);
+      }
+
+      return stepRes;
+    });
+
+    commitQueue = currentTask.catch(() => {});
+    return currentTask;
   }
 
   return {

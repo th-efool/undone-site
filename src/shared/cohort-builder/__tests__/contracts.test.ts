@@ -36,4 +36,18 @@ describe('cohort builder action plan', () => {
     const pinned = base(); pinned.lessons[0].pinned = true;
     expect(() => planCohortAction(pinned, { type: 'remove_lesson', lessonId: 'l1' }, context)).toThrow('PINNED_LESSON_LOCKED');
   });
+
+  it('queues retained text without inventing evidence during the user action', () => {
+    const withSource = planCohortAction(base(), {
+      type: 'add_text_source', sourceId: 'source-1', label: 'Systems notes',
+      text: 'Consensus makes replicas agree on order. Quorums tolerate a minority of failures.',
+    }, context).nextState;
+    expect(withSource.processing).toMatchObject({ status: 'queued', stage: 'acquisition' });
+    expect(withSource.sources[0].checksum).toBeNull();
+    expect(withSource.chunks).toHaveLength(0);
+  });
+
+  it('does not process a workspace without retained source text', () => {
+    expect(() => planCohortAction(base(), { type: 'retry_processing' }, context)).toThrow('NO_SOURCES');
+  });
 });
