@@ -59,14 +59,30 @@ describe('durable text job leases and dependencies', () => {
       await db.exec(`INSERT INTO "cohort_text_jobs" ("id", "workspaceId", "jobKey", "sourceId", "sourceVersion", "stage", "dependencyFingerprint", "dueAt")
         VALUES ('job-old', 'workspace-a', 'old', 'source-1', 0, 'analysis', 'old-fingerprint', '2020-01-01')`);
       const claimed = (await claimTextJob(sql, 'worker-1', start, 2_000))!;
-      expect(await failTextJob(sql, claimed, 'PARTIAL_FAILURE')).toBe(true);
+      expect(await failTextJob(sql, claimed, 'PARTIAL_FAILURE', later(100))).toBe(true);
       expect(await retryTextJob(sql, 'workspace-b', 'job-old', later(100))).toBe(false);
       expect(await retryTextJob(sql, 'workspace-a', 'job-old', later(100))).toBe(true);
       const retry = (await claimTextJob(sql, 'worker-2', later(100), 2_000))!;
       expect(retry.fence).toBeGreaterThan(claimed.fence);
       expect(await supersedeTextSourceJobs(sql, 'workspace-a', 'source-1', 1)).toBe(1);
-      expect(await failTextJob(sql, retry, 'LATE_FAILURE')).toBe(false);
+      expect(await failTextJob(sql, retry, 'LATE_FAILURE', later(200))).toBe(false);
       expect(await claimTextJob(sql, 'worker-3', later(3_000), 2_000)).toBeNull();
+    } finally {
+      await db.close();
+    }
+  }, 30_000);
+
+  it('does not let an expired worker report failure before a replacement claims the job', async () => {
+    const { db, sql } = await setup();
+    try {
+      await db.exec(`INSERT INTO "cohort_text_jobs" ("id", "workspaceId", "jobKey", "stage", "dependencyFingerprint", "dueAt")
+        VALUES ('job-expired', 'workspace-a', 'expired', 'assembly', 'fingerprint', '2020-01-01')`);
+      const expired = (await claimTextJob(sql, 'worker-1', start, 2_000))!;
+      expect(await failTextJob(sql, expired, 'LATE_ERROR', later(2_001))).toBe(false);
+      const replacement = (await claimTextJob(sql, 'worker-2', later(2_001), 2_000))!;
+      expect(replacement.fence).toBeGreaterThan(expired.fence);
+      expect(await failTextJob(sql, replacement, 'RETRYABLE_ERROR', later(2_100))).toBe(true);
+      expect(await retryTextJob(sql, 'workspace-a', 'job-expired', later(2_200))).toBe(true);
     } finally {
       await db.close();
     }
