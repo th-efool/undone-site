@@ -26,6 +26,9 @@ const nextConfig: NextConfig = {
     '/.well-known/workflow/**': ['./src/server/domain/cohort-creation/materials/pdf-parser.worker.mjs', './node_modules/pdfjs-dist/legacy/build/**'],
   },
   transpilePackages: ['es-toolkit'],
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'framer-motion', '@reduxjs/toolkit'],
+  },
   images: {
     unoptimized: isMobileBuild,
     formats: ['image/avif', 'image/webp'],
