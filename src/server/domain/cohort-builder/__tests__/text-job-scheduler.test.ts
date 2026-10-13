@@ -102,4 +102,24 @@ describe('atomic cohort text job scheduling', () => {
       await db.close();
     }
   }, 30_000);
+
+  it('reactivates a superseded key when the earlier goal returns', async () => {
+    const { db, port } = await setup();
+    try {
+      const first = await enqueueTextJobPlan(port, 'workspace-a', workspace);
+      const originalAssemblyId = first.jobIds.at(-1)!;
+      const changedGoal = { ...workspace, intent: 'Learn log replication' };
+      const changed = await enqueueTextJobPlan(port, 'workspace-a', changedGoal);
+      expect(changed).toMatchObject({ inserted: 1, superseded: 1 });
+      const restored = await enqueueTextJobPlan(port, 'workspace-a', workspace);
+      expect(restored.jobIds.at(-1)).toBe(originalAssemblyId);
+      expect(restored).toMatchObject({ inserted: 0, superseded: 1 });
+      const assembly = (await db.query<{ status: string; fence: number; attempts: number }>(
+        `SELECT "status", "fence", "attempts" FROM "cohort_text_jobs" WHERE "id" = $1`, [originalAssemblyId]
+      )).rows[0];
+      expect(assembly).toMatchObject({ status: 'queued', fence: 2, attempts: 0 });
+    } finally {
+      await db.close();
+    }
+  }, 30_000);
 });

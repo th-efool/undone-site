@@ -1,7 +1,7 @@
 # Interaction builder execution checkpoint
 
 STATUS: S3 IN PROGRESS — bounded pasted-text pipeline is worker-driven and restartable in revisioned workspace snapshots; plan-level job/artifact and live verification gates remain open.
-LAST_CHECKPOINT: `IB-S3-TRIGGERED-CONTEXT-2026-10-13`
+LAST_CHECKPOINT: `IB-S3-DAG-REACTIVATION-2026-10-13`
 
 S3 CURRENT SLICE:
 - `src/shared/cohort-builder/contracts.ts` owns retained, size-bounded pasted-text sources, source versions, chunks, understanding, analysis, processing checkpoint, and public add/edit/remove/retry actions. The old synchronous `process_sources` action is removed.
@@ -24,6 +24,7 @@ S3 CURRENT SLICE:
 - An expired running job at the three-attempt ceiling is marked `failed` with `RETRY_EXHAUSTED` and is never silently reclaimed again; explicit retry rejects at that ceiling. Isolated PGlite test covers three claims, terminal failure, and retry refusal.
 - `src/server/domain/cohort-builder/text-job-plan.ts` derives stable per-source acquisition → understanding → chunking → analysis keys plus global assembly dependencies. Source edits preserve other sources' keys; intent/pacing affect assembly only; audience affects analysis and assembly. `text-job-scheduler.ts` inserts the full graph in one transaction, idempotently by workspace/key; a failed edge insert rolls the graph back. These are prepared and not yet wired to the live worker.
 - The prepared scheduler now transactionally supersedes obsolete queued/running/failed graph nodes (fence increment, lease cleared), including an empty-source plan. Unchanged source jobs retain their identities; a failed edge write rolls back both insertion and supersession. Historical accepted artifacts remain.
+- A previously superseded logical job key is reactivated under a fresh fence when its exact dependency scope returns (goal A → B → A); its attempts/error/lease reset, while accepted historical jobs stay accepted. PGlite regression covers identity reuse and reactivation.
 - NOT YET IMPLEMENTED to the full authoritative plan: live use of the prepared job/artifact tables, per-source partial failure, rich lesson assembly, real SQL concurrency with separate connections, authenticated browser E2E, and provider-backed acceptance. Do not call S3 complete.
 
 SELECTED-REFINEMENT VERIFICATION: `npx vitest run` passed 162 files, 1105 tests, 2 skipped before one additional trigger-message regression test; `npx vitest run src/server/domain/cohort-builder/__tests__/selection.test.ts` passed all 3 tests after that addition; `npx tsc --noEmit --pretty false` exit 0; `npm run build` exit 0 (existing pdfjs/middleware warnings). No paid model or shared-DB migration was run.
@@ -32,6 +33,7 @@ JOB-FAILURE-FENCE VERIFICATION: `npx vitest run` passed 162 files, 1109 tests, 2
 JOB-RETRY-CEILING VERIFICATION: `npx vitest run` passed 162 files, 1110 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0. No shared database migration or paid provider calls.
 DAG-RECONCILE VERIFICATION: `npx vitest run` passed 162 files, 1111 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0. Isolated PGlite test covers source edit, empty scope, stale lease revocation, and transaction rollback; no shared database migration.
 TRIGGERED-CONTEXT VERIFICATION: package build exit 0; `npx vitest run` passed 162 files, 1112 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0; `node scripts/verify-packed-consumer.mjs` passed isolated tarball consumer. No live PostgreSQL or browser E2E performed.
+DAG-REACTIVATION VERIFICATION: `npx vitest run` passed 162 files, 1113 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0. Prepared scheduler only; no shared database migration.
 
 CURRENT ARCHITECTURE:
 - Authoritative standalone package in `packages/interaction-builder` (currently a Git submodule at `3f40a6af`; verify both repository states before package edits) with explicit subpaths:

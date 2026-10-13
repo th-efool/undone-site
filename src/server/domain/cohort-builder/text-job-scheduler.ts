@@ -26,8 +26,17 @@ export async function enqueueTextJobPlan(port: TextJobTransactionPort, workspace
         ON CONFLICT ("workspaceId", "jobKey") DO NOTHING RETURNING "id"`,
       [randomUUID(), workspaceId, intent.jobKey, intent.sourceId, intent.sourceVersion, intent.stage, intent.dependencyFingerprint]);
       inserted += result.rows.length;
-      const row = result.rows[0] ?? (await tx.query(`SELECT "id" FROM "cohort_text_jobs" WHERE "workspaceId" = $1 AND "jobKey" = $2`, [workspaceId, intent.jobKey])).rows[0];
+      const row = result.rows[0] ?? (await tx.query(`SELECT "id", "status" FROM "cohort_text_jobs"
+        WHERE "workspaceId" = $1 AND "jobKey" = $2 FOR UPDATE`, [workspaceId, intent.jobKey])).rows[0];
       if (!row) throw new Error('JOB_IDENTITY_LOST');
+      if (row.status === 'superseded') {
+        await tx.query(`UPDATE "cohort_text_jobs"
+          SET "status" = 'queued', "dueAt" = CURRENT_TIMESTAMP, "attempts" = 0,
+              "errorCode" = NULL, "fence" = "fence" + 1,
+              "leaseOwner" = NULL, "leaseToken" = NULL, "leaseUntil" = NULL,
+              "resultArtifactId" = NULL, "updatedAt" = CURRENT_TIMESTAMP
+          WHERE "id" = $1 AND "workspaceId" = $2 AND "status" = 'superseded'`, [row.id, workspaceId]);
+      }
       ids.set(intent.jobKey, String(row.id));
     }
     for (const intent of intents) {
