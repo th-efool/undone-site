@@ -17,9 +17,18 @@ const PLANNING_PATHS = [
   'assets/ChatGPT Image Aug 11, 2026, 12_24_28 PM.png',
 ];
 
-function run(cmd, cwd = rootDir) {
+function cleanGitEnv(extra = {}) {
+  const env = { ...process.env, ...extra };
+  delete env.GIT_DIR;
+  delete env.GIT_WORK_TREE;
+  delete env.GIT_INDEX_FILE;
+  delete env.GIT_PREFIX;
+  return env;
+}
+
+function run(cmd, cwd = rootDir, extraEnv = {}) {
   try {
-    return execSync(cmd, { cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+    return execSync(cmd, { cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], env: cleanGitEnv(extraEnv) }).trim();
   } catch (err) {
     const stderr = err.stderr ? err.stderr.toString() : '';
     const stdout = err.stdout ? err.stdout.toString() : '';
@@ -27,9 +36,9 @@ function run(cmd, cwd = rootDir) {
   }
 }
 
-function runSafe(cmd, cwd = rootDir) {
+function runSafe(cmd, cwd = rootDir, extraEnv = {}) {
   try {
-    return execSync(cmd, { cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+    return execSync(cmd, { cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], env: cleanGitEnv(extraEnv) }).trim();
   } catch {
     return null;
   }
@@ -134,7 +143,7 @@ async function main() {
   // 6. Push if requested or hook triggered
   if (shouldPush) {
     console.log('🚀 Pushing master and planning to origin...');
-    const env = { ...process.env, SYNC_PUSHING: '1' };
+    const env = cleanGitEnv({ SYNC_PUSHING: '1' });
     
     // Push master
     execSync('git push origin master', { cwd: rootDir, stdio: 'inherit', env });
