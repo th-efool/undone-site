@@ -33,6 +33,8 @@
     "mobile:open": "npm --prefix packages/mobile run open",
     "mobile:run": "npm --prefix packages/mobile run run",
     "mobile:release:aab": "npm --prefix packages/mobile run release:aab",
+    "git:sync": "node scripts/sync-planning.mjs",
+    "git:push": "node scripts/sync-planning.mjs --push",
     "domshift": "npx @agrimsinghx/domshift 3000"
   },
   "dependencies": {

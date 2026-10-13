@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+if [ "$SYNC_PUSHING" = "1" ]; then
+  exit 0
+fi
+
+node scripts/sync-planning.mjs
+exit 0
