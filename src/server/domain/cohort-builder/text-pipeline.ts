@@ -13,6 +13,7 @@ export interface TextStageAction {
 }
 
 const digest = (value: string) => createHash('sha256').update(value).digest('hex');
+const MAX_UNIT_BYTES = 24 * 1024;
 
 /** Includes retained content, so even a versioning bug cannot accept changed bytes. */
 export function sourceFingerprint(state: CohortWorkspace): string {
@@ -21,15 +22,23 @@ export function sourceFingerprint(state: CohortWorkspace): string {
 
 function splitSource(source: CohortWorkspace['sources'][number]): CohortChunk[] {
   const chunks: CohortChunk[] = [];
-  const matches = source.text.matchAll(/[^.!?\n]+(?:[.!?]+|$)/g);
+  const matches = source.text.matchAll(/[^.!?\n]*(?:[.!?]+|$)/g);
   for (const match of matches) {
     const raw = match[0];
     const leading = raw.length - raw.trimStart().length;
     const value = raw.trim();
     if (!value) continue;
     const start = (match.index ?? 0) + leading;
-    for (let offset = 0; offset < value.length; offset += 4_000) {
-      const text = value.slice(offset, offset + 4_000);
+    for (let offset = 0; offset < value.length;) {
+      let end = offset;
+      let bytes = 0;
+      for (const codePoint of value.slice(offset)) {
+        const nextBytes = Buffer.byteLength(codePoint, 'utf8');
+        if (end > offset && bytes + nextBytes > MAX_UNIT_BYTES) break;
+        end += codePoint.length;
+        bytes += nextBytes;
+      }
+      const text = value.slice(offset, end);
       const anchor = start + offset;
       chunks.push({
         id: `${source.id}:v${source.version}:${anchor}`,
@@ -41,9 +50,25 @@ function splitSource(source: CohortWorkspace['sources'][number]): CohortChunk[] 
         checksum: digest(text),
       });
       if (chunks.length > 100) throw new Error('TOO_MANY_CHUNKS');
+      offset = end;
     }
   }
+  validateCoverage(source.text, chunks);
   return chunks;
+}
+
+function validateCoverage(text: string, chunks: CohortChunk[]): void {
+  let coveredUntil = 0;
+  for (const chunk of chunks) {
+    if (chunk.start < coveredUntil || Buffer.byteLength(chunk.text, 'utf8') > MAX_UNIT_BYTES) throw new Error('INVALID_SELECTED_UNIT');
+    for (let index = coveredUntil; index < chunk.start; index += 1) {
+      if (!/\s/u.test(text[index])) throw new Error('INCOMPLETE_SOURCE_COVERAGE');
+    }
+    coveredUntil = chunk.end;
+  }
+  for (let index = coveredUntil; index < text.length; index += 1) {
+    if (!/\s/u.test(text[index])) throw new Error('INCOMPLETE_SOURCE_COVERAGE');
+  }
 }
 
 function validateChunk(state: CohortWorkspace, chunk: CohortChunk): void {
@@ -119,6 +144,7 @@ export function planTextStage(state: CohortWorkspace, input: unknown, context: {
     const chunks = action.result as CohortChunk[];
     if (!Array.isArray(chunks) || chunks.length === 0 || chunks.length > 100) throw new Error('INVALID_CHUNKS');
     chunks.forEach(chunk => validateChunk(next, chunk));
+    for (const source of next.sources) validateCoverage(source.text, chunks.filter(chunk => chunk.sourceId === source.id));
     if (JSON.stringify(chunks) !== JSON.stringify(next.sources.flatMap(splitSource))) throw new Error('FABRICATED_SOURCE_ANCHOR');
     next.chunks = chunks;
   } else if (action.stage === 'analysis') {

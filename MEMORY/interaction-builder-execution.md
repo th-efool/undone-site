@@ -1,7 +1,7 @@
 # Interaction builder execution checkpoint
 
 STATUS: S3 IN PROGRESS — bounded pasted-text pipeline is worker-driven and restartable in revisioned workspace snapshots; plan-level job/artifact and live verification gates remain open.
-LAST_CHECKPOINT: `IB-S3-SELECTED-REFINEMENT-2026-10-13`
+LAST_CHECKPOINT: `IB-S3-UNIT-BOUNDARY-2026-10-13`
 
 S3 CURRENT SLICE:
 - `src/shared/cohort-builder/contracts.ts` owns retained, size-bounded pasted-text sources, source versions, chunks, understanding, analysis, processing checkpoint, and public add/edit/remove/retry actions. The old synchronous `process_sources` action is removed.
@@ -9,6 +9,7 @@ S3 CURRENT SLICE:
 - `src/server/domain/cohort-builder/text-worker.ts` advances one persisted stage per call; the supervised `src/server/interaction-worker.ts` polls queued cohort workspaces and `scripts/dev.mjs` launches it locally. Restart resumes from the next accepted stage. Failure is persisted with an explicit retry action.
 - Adding/editing/removing a source invalidates affected descendants; unchanged source chunks/analysis are reused. Pinned or manually edited lessons survive regeneration. Intent/pacing changes queue assembly, audience changes queue analysis.
 - Assembly covers every accepted chunk (up to 100); excessive scope fails visibly instead of silently dropping material. A retained manual/pinned lesson whose source changed is marked `evidenceStatus: orphaned` in the UI.
+- Deterministic selected units split on Unicode code-point boundaries at no more than 24 KiB UTF-8; chunk acceptance checks complete non-whitespace retained-text coverage and rejects fabricated gaps. The 100-unit ceiling remains explicit. This is the live snapshot pipeline boundary; durable job cutover remains unwired.
 - `src/server/domain/cohort-builder/context.ts` gives the assistant bounded, untrusted source excerpts and current lessons; chat stays available while source processing is queued.
 - `src/client/screens/cohortBuilder/CohortWorkspacePane.tsx` provides paste/edit/remove intake, real stage/status, retry, grounded lesson excerpts, and the same canonical action path used by chat.
 - `src/server/domain/cohort-builder/selection.ts` resolves the durable triggering user turn's selected lesson ID/version (paging older messages when needed); both direct runner and supervised worker pass it to cohort tools. Selected edit/pin/remove actions must target that lesson and carry its entity version; stale or wrong targets reject before mutation. The remove action now checks entity version too.
@@ -22,6 +23,7 @@ S3 CURRENT SLICE:
 - NOT YET IMPLEMENTED to the full authoritative plan: live use of the prepared job/artifact tables, per-source partial failure, selected-unit/24-KiB partition policy and complete coverage validation, rich lesson assembly, real SQL concurrency with separate connections, authenticated browser E2E, and provider-backed acceptance. Do not call S3 complete.
 
 SELECTED-REFINEMENT VERIFICATION: `npx vitest run` passed 162 files, 1105 tests, 2 skipped before one additional trigger-message regression test; `npx vitest run src/server/domain/cohort-builder/__tests__/selection.test.ts` passed all 3 tests after that addition; `npx tsc --noEmit --pretty false` exit 0; `npm run build` exit 0 (existing pdfjs/middleware warnings). No paid model or shared-DB migration was run.
+UNIT-BOUNDARY VERIFICATION: `npx vitest run` passed 162 files, 1108 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0. Exact 24 KiB Unicode and fabricated-gap cases added to text-pipeline tests.
 
 CURRENT ARCHITECTURE:
 - Authoritative standalone package in `packages/interaction-builder` (currently a Git submodule at `3f40a6af`; verify both repository states before package edits) with explicit subpaths:

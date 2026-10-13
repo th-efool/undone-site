@@ -62,6 +62,38 @@ describe('owned pasted-text processing checkpoints', () => {
     expect(() => planTextStage(removed.snapshot, action, { expectedRevision: removed.revision, currentRevision: removed.revision })).toThrow('STALE_SOURCE_RESULT');
   });
 
+  it('bounds Unicode selected units by 24 KiB and preserves exact offsets', async () => {
+    const repo = await setup();
+    const text = '界'.repeat(8_193) + '😀';
+    await userAction(repo, { type: 'add_text_source', sourceId: 'source-1', label: 'Unicode', text });
+    await advanceTextWorkspace(repo, ownerId, workspaceId);
+    await advanceTextWorkspace(repo, ownerId, workspaceId);
+    await advanceTextWorkspace(repo, ownerId, workspaceId);
+    const state = (await repo.loadWorkspace<CohortWorkspace>({ workspaceId, ownerId }))!.snapshot;
+    expect(state.chunks.length).toBeGreaterThan(1);
+    expect(Buffer.byteLength(state.chunks[0].text, 'utf8')).toBe(24 * 1024);
+    expect(state.chunks.map(chunk => chunk.text).join('')).toBe(text);
+    for (const chunk of state.chunks) {
+      expect(Buffer.byteLength(chunk.text, 'utf8')).toBeLessThanOrEqual(24 * 1024);
+      expect(text.slice(chunk.start, chunk.end)).toBe(chunk.text);
+      expect(chunk.text).not.toContain('\uFFFD');
+    }
+  });
+
+  it('rejects a deterministic split that silently omits non-whitespace source text', async () => {
+    const repo = await setup();
+    await userAction(repo, { type: 'add_text_source', sourceId: 'source-1', label: 'Leading punctuation', text: '?!Important detail.' });
+    await advanceTextWorkspace(repo, ownerId, workspaceId);
+    await advanceTextWorkspace(repo, ownerId, workspaceId);
+    const current = (await repo.loadWorkspace<CohortWorkspace>({ workspaceId, ownerId }))!;
+    const action = computeTextStage(current.snapshot);
+    const chunks = action.result as CohortWorkspace['chunks'];
+    expect(chunks.map(chunk => chunk.text).join('')).toBe('?!Important detail.');
+    expect(() => planTextStage(current.snapshot, { ...action, result: chunks.slice(1) }, {
+      expectedRevision: current.revision, currentRevision: current.revision,
+    })).toThrow('INCOMPLETE_SOURCE_COVERAGE');
+  });
+
   it('keeps a pinned manual lesson while regenerating after another source', async () => {
     const repo = await setup();
     await userAction(repo, { type: 'add_lesson', lessonId: 'manual-1', title: 'My lesson', objective: 'Keep my outcome' });
