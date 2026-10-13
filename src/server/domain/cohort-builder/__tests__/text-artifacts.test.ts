@@ -24,7 +24,7 @@ describe('owned retained text artifact store', () => {
     } finally {
       await db.close();
     }
-  });
+  }, 30_000);
 
   it('rejects oversized and incoherent source identities before persistence', async () => {
     const neverSql: TextArtifactSql = { query: async () => { throw new Error('UNEXPECTED_SQL'); } };

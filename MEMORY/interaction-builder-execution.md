@@ -1,7 +1,7 @@
 # Interaction builder execution checkpoint
 
 STATUS: S3 IN PROGRESS — bounded pasted-text pipeline is worker-driven and restartable in revisioned workspace snapshots; plan-level job/artifact and live verification gates remain open.
-LAST_CHECKPOINT: `IB-S3-TEXT-COVERAGE-2026-10-13`
+LAST_CHECKPOINT: `IB-S3-STORAGE-PREPARED-2026-10-13`
 
 S3 CURRENT SLICE:
 - `src/shared/cohort-builder/contracts.ts` owns retained, size-bounded pasted-text sources, source versions, chunks, understanding, analysis, processing checkpoint, and public add/edit/remove/retry actions. The old synchronous `process_sources` action is removed.
@@ -13,7 +13,9 @@ S3 CURRENT SLICE:
 - `src/client/screens/cohortBuilder/CohortWorkspacePane.tsx` provides paste/edit/remove intake, real stage/status, retry, grounded lesson excerpts, and the same canonical action path used by chat.
 - `src/client/screens/cohortBuilder/__tests__/CohortWorkspacePane.test.tsx` exercises interactive paste/edit, evidence display, orphan warning, and retry; source form controls have associated labels.
 - Focused worker tests cover restart, fabricated/foreign/missing anchors, source edits, stale results, concurrent acceptance, preserved overrides, dependency reuse, size limits, and visible failure/retry.
-- NOT YET IMPLEMENTED to the full authoritative plan: dedicated job records/dependency leases and per-source partial failure, retained artifact bodies with separate ownership/checksum validation, selected-unit/24-KiB partition policy and complete coverage validation, rich lesson assembly, real SQL concurrency, authenticated browser E2E, and provider-backed acceptance. Do not call S3 complete.
+- Prepared but did NOT apply additive host-owned `cohort_text_artifacts`, `cohort_text_jobs`, and `cohort_text_job_edges` schema in `prisma/schema.prisma` and `prisma/interaction-s3-storage.sql`. Workspace-scoped composite foreign keys prevent cross-workspace job dependencies and result artifacts. Existing production worker remains on snapshot checkpoints until migration authorization and runtime integration.
+- `src/server/domain/cohort-builder/text-artifacts.ts` is an unwired, injected-SQL artifact adapter: server computes bytes/hash, owner-scoped reads rehash body, and stale/foreign/malformed refs fail. `prisma/__tests__/interaction-s3-storage.test.ts` and `src/server/domain/cohort-builder/__tests__/text-artifacts.test.ts` run against isolated PGlite; PGlite is an explicit dev dependency.
+- NOT YET IMPLEMENTED to the full authoritative plan: live use of the prepared job/artifact tables, job claim/lease/fence/acceptance and per-source partial failure, selected-unit/24-KiB partition policy and complete coverage validation, rich lesson assembly, real SQL concurrency, authenticated browser E2E, and provider-backed acceptance. Do not call S3 complete.
 
 CURRENT ARCHITECTURE:
 - Authoritative standalone package in `packages/interaction-builder` with explicit subpaths:

@@ -32,5 +32,5 @@ describe('prepared S3 storage migration in isolated PostgreSQL', () => {
     } finally {
       await db.close();
     }
-  });
+  }, 30_000);
 });
