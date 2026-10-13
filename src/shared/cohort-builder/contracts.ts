@@ -169,6 +169,8 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     const targetIdx = next.lessons.findIndex(item => item.id === action.lessonId);
     if (targetIdx === -1) throw new Error('UNKNOWN_LESSON');
     const target = next.lessons[targetIdx];
+    const expectedVersion = context.entityVersions.get(target.id);
+    if (expectedVersion !== undefined && expectedVersion !== target.version) throw new Error('STALE_ENTITY');
     if (target.pinned) throw new Error('PINNED_LESSON_LOCKED');
     next.lessons.splice(targetIdx, 1);
     invalidated.push('curriculum');

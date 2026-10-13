@@ -1,7 +1,7 @@
 # Interaction builder execution checkpoint
 
 STATUS: S3 IN PROGRESS — bounded pasted-text pipeline is worker-driven and restartable in revisioned workspace snapshots; plan-level job/artifact and live verification gates remain open.
-LAST_CHECKPOINT: `IB-S3-DAG-PREPARED-2026-10-13`
+LAST_CHECKPOINT: `IB-S3-SELECTED-REFINEMENT-2026-10-13`
 
 S3 CURRENT SLICE:
 - `src/shared/cohort-builder/contracts.ts` owns retained, size-bounded pasted-text sources, source versions, chunks, understanding, analysis, processing checkpoint, and public add/edit/remove/retry actions. The old synchronous `process_sources` action is removed.
@@ -11,6 +11,8 @@ S3 CURRENT SLICE:
 - Assembly covers every accepted chunk (up to 100); excessive scope fails visibly instead of silently dropping material. A retained manual/pinned lesson whose source changed is marked `evidenceStatus: orphaned` in the UI.
 - `src/server/domain/cohort-builder/context.ts` gives the assistant bounded, untrusted source excerpts and current lessons; chat stays available while source processing is queued.
 - `src/client/screens/cohortBuilder/CohortWorkspacePane.tsx` provides paste/edit/remove intake, real stage/status, retry, grounded lesson excerpts, and the same canonical action path used by chat.
+- `src/server/domain/cohort-builder/selection.ts` resolves the latest durable user turn's selected lesson ID/version; both direct runner and supervised worker pass it to cohort tools. Selected edit/pin/remove actions must target that lesson and carry its entity version; stale or wrong targets reject before mutation. The remove action now checks entity version too.
+- The reusable package's handler maps a host domain's Zod validation error to HTTP 400 even when host and package have different Zod majors; the host regression test and package conformance test pass.
 - `src/client/screens/cohortBuilder/__tests__/CohortWorkspacePane.test.tsx` exercises interactive paste/edit, evidence display, orphan warning, and retry; source form controls have associated labels.
 - Focused worker tests cover restart, fabricated/foreign/missing anchors, source edits, stale results, concurrent acceptance, preserved overrides, dependency reuse, size limits, and visible failure/retry.
 - Prepared but did NOT apply additive host-owned `cohort_text_artifacts`, `cohort_text_jobs`, and `cohort_text_job_edges` schema in `prisma/schema.prisma` and `prisma/interaction-s3-storage.sql`. Workspace-scoped composite foreign keys prevent cross-workspace job dependencies and result artifacts. Existing production worker remains on snapshot checkpoints until migration authorization and runtime integration.
@@ -18,6 +20,8 @@ S3 CURRENT SLICE:
 - `src/server/domain/cohort-builder/text-jobs.ts` is an unwired host job adapter. A single SQL claim only selects dependency-ready jobs; heartbeat and acceptance check lease token/fence; acceptance verifies artifact bytes and rechecks workspace/source identity, stage kind, fingerprint, and prerequisite state; retry is bounded and old source-version jobs are superseded. Isolated PGlite tests simulate expiry/reclaim and stale worker rejection.
 - `src/server/domain/cohort-builder/text-job-plan.ts` derives stable per-source acquisition → understanding → chunking → analysis keys plus global assembly dependencies. Source edits preserve other sources' keys; intent/pacing affect assembly only; audience affects analysis and assembly. `text-job-scheduler.ts` inserts the full graph in one transaction, idempotently by workspace/key; a failed edge insert rolls the graph back. These are prepared and not yet wired to the live worker.
 - NOT YET IMPLEMENTED to the full authoritative plan: live use of the prepared job/artifact tables, per-source partial failure, selected-unit/24-KiB partition policy and complete coverage validation, rich lesson assembly, real SQL concurrency with separate connections, authenticated browser E2E, and provider-backed acceptance. Do not call S3 complete.
+
+SELECTED-REFINEMENT VERIFICATION: `npx vitest run` passed 162 files, 1105 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0; `npm run build` exit 0 (existing pdfjs/middleware warnings). No paid model or shared-DB migration was run.
 
 CURRENT ARCHITECTURE:
 - Authoritative standalone package in `packages/interaction-builder` (currently a Git submodule at `3f40a6af`; verify both repository states before package edits) with explicit subpaths:
