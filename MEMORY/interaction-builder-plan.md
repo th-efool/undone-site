@@ -1,8 +1,8 @@
 # interaction-builder-plan
 
-STATUS: PARTIAL IMPLEMENTATION. Architecture recorded 2026-10-13. S0/S1 pure contracts started; durable server/API/UI runtime still not implemented. Do not use proposed paths as current implementation evidence.
+STATUS: STANDALONE PACKAGE IMPLEMENTED & VERIFIED (`packages/interaction-builder`). S1 + S2 complete; Undone rewired; ready for S3.
 ROOT: `D:/ThisPC/Documents/SideQuestHQ/undone-site`
-SCOPE: reusable embedded human–AI–website interaction layer; cohort creation first domain.
+SCOPE: reusable embedded human–AI–website interaction layer; cohort creation first domain; agenda reference domain in package.
 NOT: website/app/code generation, generated-site hosting, arbitrary executable UI.
 
 ## Read routes
@@ -29,21 +29,23 @@ manual overrides/pins separate from generated baseline and immutable evidence
 host-supplied renderers; no generated React/HTML/filesystem tools
 ```
 
-## Planned module boundaries
+## Implemented Module Boundaries
 
 ```text
-packages/interaction-core        schemas/contracts/pure reducer; no host/provider/UI
-packages/interaction-runtime     orchestration/journals/ports/policy; no cohort semantics
-packages/interaction-adapters    PostgreSQL/AI SDK/HTTP/SSE/Node/Workflow subpath adapters
-packages/interaction-react       hooks + optional shell; no server code
-packages/interaction-testkit     deterministic infrastructure + unrelated agenda fixture
-src/shared/cohort-builder        cohort schemas/actions/dependencies/projection
-src/server/domain/cohort-builder cohort tools/context/jobs/acceptance/release
-src/client/screens/cohortBuilder cohort renderers/editors
-src/server/interaction.runtime.ts host composition
+packages/interaction-builder/core           schemas/contracts/pure reducer; browser-safe, zero host dependencies
+packages/interaction-builder/runtime        orchestration/journals/ports/policy/runner/fencing/memory repo
+packages/interaction-builder/client         browser store/SSE parser/HTTP transport
+packages/interaction-builder/react          InteractionProvider + typed hooks
+packages/interaction-builder/adapters/pg    native pg.Pool PostgreSQL repository (no Prisma)
+packages/interaction-builder/adapters/http  Web Request/Response HTTP dispatcher
+packages/interaction-builder/testkit       MemoryInteractionRepository + mock models + agenda reference domain
+src/shared/cohort-builder                   cohort schemas/actions/domain contracts
+src/server/domain/cohort-builder            cohort tools/context/tests
+src/client/screens/cohortBuilder            cohort renderers/editors
+src/server/interaction.runtime.ts           host composition root
 ```
 
-PLANNED routes: `/quest/build/:workspaceId`; `/api/interaction/v1/*`.
+LIVE routes: `/quest/build/:workspaceId`; `/api/interaction/v1/*`.
 CURRENT routes: `/quest/new`; `/quest/draft/:draftId`; `/api/cohort-creation/*`.
 MIGRATION: new workspaces opt into v2; v1 keeps its writer/resume route; no dual writes; rollback stops new v2 intake but preserves accepted work.
 
@@ -69,15 +71,25 @@ DO_NOT_INFER: implemented package exports, migrations, test passes, worker deplo
 | --- | --- | --- |
 | `src/shared/interaction/contracts.ts` | Typed refs, receipts, message parts, event/action envelopes | Implemented, verified |
 | `src/shared/interaction/reducer.ts` | Pure snapshot/event/pending-action client reducer; sequence/gap/workspace guards | Implemented, verified |
-| `src/shared/cohort-builder/contracts.ts` | Cohort draft schema + typed intent/audience/time/lesson/order/pin actions + pure action planner | Implemented, verified |
+| `src/shared/cohort-builder/contracts.ts` | Cohort draft schema + typed intent/audience/time/lesson/order/pin/add/remove actions + pure action planner | Implemented, verified |
 | `src/server/domain/interaction/action.service.ts` | Stateless domain commit boundary & receipt generator | Implemented, verified |
 | `src/server/domain/interaction/repository.ts` | Typed repository interface, records, canonical payload hashing | Implemented, verified |
 | `src/server/domain/interaction/memory.repository.ts` | In-memory testkit double with CAS, idempotency replay, outbox leasing | Implemented, verified |
 | `src/server/infrastructure/db/postgres/repositories/interaction.repo.ts` | Postgres / Prisma row-lock CAS transaction repo + outbox | Implemented, verified |
-| `src/shared/interaction/__tests__/reducer.test.ts` | Duplicate, gap, foreign workspace, commit revision tests | Verified (4 tests passed) |
-| `src/shared/cohort-builder/__tests__/contracts.test.ts` | Action, pin, stale revision/entity, order validation tests | Verified (3 tests passed) |
-| `src/server/domain/interaction/__tests__/action.service.test.ts` | Receipt/revision and stale workspace tests | Verified (2 tests passed) |
-| `src/server/domain/interaction/__tests__/repository.test.ts` | Concurrency, CAS, idempotency replay/mismatch, outbox lifecycle | Verified (5 tests passed) |
-| `src/server/domain/interaction/__tests__/portability.test.ts` | Engine portability fixture with Agenda domain (zero cohort imports) | Verified (1 test passed) |
+| `src/server/domain/interaction/handlers.ts` | HTTP request handlers (workspaces, actions, messages, events, runner) | Implemented, verified |
+| `src/server/domain/interaction/http.ts` | Explicit Next.js dispatcher for `/api/interaction/v1` routes | Implemented, verified |
+| `src/server/domain/interaction/sse.ts` | Replay-to-live event stream over SSE with sequence cursor | Implemented, verified |
+| `src/server/domain/interaction/runner.ts` | Multi-step assistant runner loop via AI SDK v7 (`generateText` + `stopWhen`) | Implemented, verified |
+| `src/server/domain/cohort-builder/tools.ts` | AI SDK cohort tools dispatching through `commitAction` | Implemented, verified |
+| `src/server/interaction.runtime.ts` | Composition root wiring Postgres repo, Cohort domain, Gemini model | Implemented, verified |
+| `src/shared/interaction/store.ts` | Reconnectable external store with optimistic commits, CAS, gap recovery | Implemented, verified |
+| `src/shared/interaction/transport.ts` | Fetch + chunk-safe SSE streaming parser (`parseSseStream`) with `/run` trigger | Implemented, verified |
+| `src/client/interaction/provider.tsx` | React 19 external store provider (`InteractionProvider`) | Implemented, verified |
+| `src/client/interaction/hooks.ts` | External store hooks (`useInteractionState`, `useWorkspaceView`, `useSendMessage`, etc.) | Implemented, verified |
+| `src/client/screens/cohortBuilder/` | Complete 2-column builder UI (`CohortInteractionScreen`, `ChatPane`, `CohortWorkspacePane`, CSS) | Implemented, verified |
+| `src/server/domain/cohort-builder/domain.ts` | Pure cohort domain definition decoupled from React/Next.js | Implemented, verified |
+| `src/server/interaction-worker.ts` | Supervised worker loop with lease claiming, heartbeating, shutdown | Implemented, verified |
+| `scripts/interaction-readiness.ts` | Read-only schema & credentials readiness probe (8 tables + active index) | Implemented, verified |
+| `src/server/domain/interaction/__tests__/scheduling.test.ts` | S2 durability test suite (8 tests covering leasing, fencing, replay, stale rejects, proposals) | Implemented, verified |
 
-These files provide the headless interaction core, cohort action planner, durable repository layer with Postgres CAS and outbox, and memory testkit. Next implementation slice: S3 text-to-cohort processing pipeline & durable DAG execution.
+All 13 test suites (50 tests) passing in Vitest. TypeScript compilation clean (exit code 0). S2 durability verified. Next implementation slice: S3 text-to-cohort processing pipeline & durable DAG execution.
