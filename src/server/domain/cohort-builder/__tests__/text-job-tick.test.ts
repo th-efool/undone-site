@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { describe, expect, it } from 'vitest';
 import type { TextArtifactSql } from '../text-artifacts';
-import { retryTextJob } from '../text-jobs';
+import { acceptTextJob, retryTextJob } from '../text-jobs';
 import { runTextJobTick } from '../text-job-tick';
 
 const migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
@@ -29,6 +29,7 @@ describe('prepared durable text job tick', () => {
       const seen: string[] = [];
       const tick = () => runTextJobTick({ sql, workerId: 'worker', leaseMs: 2_000, now: () => start,
         process: async job => { seen.push(job.id); return Buffer.from(job.id); },
+        accept: (job, artifact, at) => acceptTextJob(sql, job, artifact, at),
       });
       expect(await tick()).toEqual({ status: 'accepted', jobId: 'acquire' });
       expect(await tick()).toEqual({ status: 'accepted', jobId: 'understand' });
@@ -49,6 +50,7 @@ describe('prepared durable text job tick', () => {
       let clock = start;
       const run = (process: () => Promise<Uint8Array>) => runTextJobTick({
         sql, workerId: 'worker', leaseMs: 2_000, now: () => clock, process,
+        accept: (job, artifact, at) => acceptTextJob(sql, job, artifact, at),
       });
       expect(await run(async () => { throw new Error('MODEL_FAILED'); })).toEqual({ status: 'failed', jobId: 'assemble' });
       const failed = (await db.query<{ status: string; errorCode: string }>(

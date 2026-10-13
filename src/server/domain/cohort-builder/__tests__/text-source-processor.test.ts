@@ -6,7 +6,7 @@ import type { TextArtifactSql } from '../text-artifacts';
 import { planTextJobs } from '../text-job-plan';
 import { enqueueTextJobPlan, type TextJobTransactionPort } from '../text-job-scheduler';
 import { runTextJobTick } from '../text-job-tick';
-import { claimTextJob, retryTextJob } from '../text-jobs';
+import { acceptTextJob, claimTextJob, retryTextJob } from '../text-jobs';
 import { createTextSourceProcessor } from '../text-source-processor';
 
 const migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
@@ -39,7 +39,9 @@ describe('owned per-source deterministic artifact processor', () => {
       let state: CohortWorkspace = initial();
       await enqueueTextJobPlan(port, workspaceId, state);
       const processor = createTextSourceProcessor({ sql, loadWorkspace: async () => state });
-      const tick = () => runTextJobTick({ sql, workerId: 'worker', leaseMs: 2_000, now: () => now, process: processor });
+      const tick = () => runTextJobTick({ sql, workerId: 'worker', leaseMs: 2_000, now: () => now, process: processor,
+        accept: (job, artifact, at) => acceptTextJob(sql, job, artifact, at),
+      });
       for (let index = 0; index < 8; index += 1) expect((await tick()).status).toBe('accepted');
       const first = await db.query<{ sourceId: string; status: string; resultArtifactId: string }>(
         `SELECT "sourceId", "status", "resultArtifactId" FROM "cohort_text_jobs" WHERE "sourceId" IS NOT NULL`);
@@ -74,6 +76,7 @@ describe('owned per-source deterministic artifact processor', () => {
       const processor = createTextSourceProcessor({ sql, loadWorkspace: async () => state });
       let failA = true;
       const tick = () => runTextJobTick({ sql, workerId: 'worker', leaseMs: 2_000, now: () => now,
+        accept: (job, artifact, at) => acceptTextJob(sql, job, artifact, at),
         process: async job => {
           if (job.sourceId === 'source-a' && job.stage === 'acquisition' && failA) {
             failA = false;
@@ -117,7 +120,9 @@ describe('owned per-source deterministic artifact processor', () => {
       state = initial();
       state.sources = state.sources.slice(0, 1);
       const result = await runTextJobTick({ sql, workerId: 'replacement', leaseMs: 2_000,
-        now: () => new Date(now.getTime() + 2_001), process: processor });
+        now: () => new Date(now.getTime() + 2_001), process: processor,
+        accept: (job, artifact, at) => acceptTextJob(sql, job, artifact, at),
+      });
       expect(result.status).toBe('accepted');
       const acceptedId = result.jobId!;
       await db.query(`UPDATE "cohort_text_artifacts" SET "checksum" = $1 WHERE "id" =

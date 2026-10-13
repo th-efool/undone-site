@@ -1,5 +1,5 @@
-import { putTextArtifact, type CohortTextArtifactKind, type TextArtifactSql } from './text-artifacts';
-import { acceptTextJob, claimTextJob, failTextJob, type ClaimedTextJob } from './text-jobs';
+import { putTextArtifact, type CohortTextArtifactKind, type TextArtifactRef, type TextArtifactSql } from './text-artifacts';
+import { claimTextJob, failTextJob, type ClaimedTextJob } from './text-jobs';
 
 const artifactKind: Record<string, CohortTextArtifactKind> = {
   acquisition: 'source_raw', understanding: 'understanding', chunking: 'chunks',
@@ -15,6 +15,7 @@ export async function runTextJobTick(input: {
   leaseMs: number;
   now: () => Date;
   process: (job: ClaimedTextJob) => Promise<Uint8Array>;
+  accept: (job: ClaimedTextJob, artifact: TextArtifactRef, now: Date) => Promise<boolean>;
 }): Promise<TextJobTickResult> {
   const job = await claimTextJob(input.sql, input.workerId, input.now(), input.leaseMs);
   if (!job) return { status: 'idle' };
@@ -27,7 +28,7 @@ export async function runTextJobTick(input: {
       ...(job.sourceId === null ? {} : { sourceId: job.sourceId, sourceVersion: job.sourceVersion! }),
       kind, inputFingerprint: job.dependencyFingerprint, bytes,
     });
-    const accepted = await acceptTextJob(input.sql, job, artifact, input.now());
+    const accepted = await input.accept(job, artifact, input.now());
     return { status: accepted ? 'accepted' : 'stale', jobId: job.id };
   } catch (error) {
     const code = error instanceof Error && /^[A-Z_]+$/.test(error.message) ? error.message : 'PROCESSOR_FAILURE';
