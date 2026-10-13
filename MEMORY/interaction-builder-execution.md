@@ -37,6 +37,8 @@ TRIGGERED-CONTEXT VERIFICATION: package build exit 0; `npx vitest run` passed 16
 DAG-REACTIVATION VERIFICATION: `npx vitest run` passed 162 files, 1113 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0. Prepared scheduler only; no shared database migration.
 JOB-TICK VERIFICATION: `npx vitest run` passed 163 files, 1115 tests, 2 skipped; `npx tsc --noEmit --pretty false` exit 0. Deterministic injected processor in isolated PGlite only; no provider or shared database calls.
 
+NEXT CHECKPOINT: Host-only deterministic per-source job processor consuming owned accepted prerequisites and producing schema-checked artifacts through the prepared tick. Verify source-specific failure/retry and edit invalidation in isolated PGlite; keep production worker on snapshot checkpoints until schema authorization and cutover tests.
+
 CURRENT ARCHITECTURE:
 - Authoritative standalone package in `packages/interaction-builder` (currently a Git submodule at `3f40a6af`; verify both repository states before package edits) with explicit subpaths:
   - `interaction-builder/core`: browser-safe schemas, envelopes, entity refs, receipts, events, reducer.
