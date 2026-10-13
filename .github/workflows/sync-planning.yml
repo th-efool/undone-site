@@ -23,6 +23,8 @@ jobs:
           ref: planning
           fetch-depth: 0
 
+          submodules: false
+
       - name: Merge master into planning
         run: |
           git config user.name "github-actions[bot]"
@@ -33,13 +35,26 @@ jobs:
             exit 0
           fi
           planning_head="$(git rev-parse HEAD)"
-          git merge --no-commit --no-ff origin/master
+          git merge --no-commit --no-ff origin/master || true
+
+          if git status --porcelain | grep -E "^(UU|AA) .gitmodules"; then
+            git checkout origin/master -- .gitmodules || git checkout HEAD -- .gitmodules
+          fi
+
           git restore --source="$planning_head" --staged --worktree -- \
             plans \
             artifacts \
             _archived \
             assets/playstore-listing \
             "assets/ChatGPT Image Aug 11, 2026, 12_24_28 PM.png" \
-            MEMORY
-          git commit --no-edit
-          git push origin HEAD:planning
+            MEMORY || true
+
+          git checkout --theirs . || true
+          git add -A
+
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(planning): sync master into planning [skip ci]"
+            git push origin HEAD:planning
+          else
+            echo "No changes after merge resolution"
+          fi
