@@ -21,7 +21,7 @@ export const cohortChunkSchema = z.strictObject({
   sourceVersion: z.number().int().nonnegative(),
   start: z.number().int().nonnegative(),
   end: z.number().int().positive(),
-  text: z.string().min(1).max(8_000),
+  text: z.string().min(1).max(24 * 1024),
   checksum: z.string().regex(/^[a-f0-9]{64}$/),
 });
 export type CohortChunk = z.infer<typeof cohortChunkSchema>;
