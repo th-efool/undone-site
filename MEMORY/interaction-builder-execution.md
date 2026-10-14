@@ -110,9 +110,10 @@ S4A checkpoint 1 checks: targeted intake/canonical tests 8 passed; real PostgreS
 - `scripts/s3-local-environment.mjs`: verified fresh local PostgreSQL provisioning and schema generation/installation. `docs/s3-verification.md` contains reproducible commands; test-only binaries live under `.tmp`, outside production dependencies.
 - Local database/server/browser services were stopped after verification; retained synthetic fixtures/screenshots remain under `.tmp`.
 
-## Rollout status
+## UX repair checkpoints
 
-- Shared database: read-only probe confirmed 0 of 3 S3 tables present. No shared migration was applied and no deployment occurred.
-- Reviewed additive SQL: `prisma/interaction-s3-storage.sql`; operator command/configuration in `plans/interaction-builder/s3-schema-rollout.md`.
-- Authorize/install the additive schema, then select durable consistently for HTTP/worker and check readiness before shared activation. Default snapshot mode remains for the current shared environment.
-- Local S3 verification is complete; shared rollout, live paid-provider quality evaluations and broader S6 operational/security/load gates remain distinct future work.
+- Checkpoint 1 (Diagnosis & Reference Audit): Traced intake fallback in CentralInterface. Root cause: INTERACTION_COHORT_V2_ENABLED unset. Mapped legacy CreationShell/StartingPoint/ReviewWorkspace visual tokens.
+- Checkpoint 2 (Homepage Handoff & Fallback UX): CohortIntakeScreen updated with clear policy/readiness messages and explicit creator link (/quest/new?handoff=1). Tests: 12 intake tests pass.
+- Checkpoint 3 (Shell & Chat Parity): Replaced generic top bar and dashboard chat with exact legacy rail (clamp 300px, 26.1vw, 420px, collapsible to 80px), Playfair Display typography, circular avatars, lightbulb hint box, suggestion pills, and rounded composer. Tests: 30 cohortBuilder unit tests pass.
+- Checkpoint 4 (Creation Journey Presentation Parity): Adapted right pane and journey states in CohortWorkspacePane and CohortBuilder.module.css to legacy visual aesthetic. Added 4-stage CreationSteps progress tracker (Understanding, Chunking, Analyzing, Building) mapped to canonical processing state. Styled source inventory with kind icons, state badges, and action buttons. Styled curriculum outline cards with number badges, Playfair typography, evidence drawer blockquotes/citations, and lock/unlock pins. Replaced hardcoded inline styles in ReleasePanel with semantic theme variables (var(--creation-surface), var(--creation-line), var(--creation-ink), var(--creation-blue)). All 30 unit tests pass, tsc --noEmit exit 0.
+
