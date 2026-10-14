@@ -199,13 +199,11 @@ export function validateCohortReadiness(
  */
 export function deriveCandidateSnapshotHash(
   workspace: CohortWorkspace,
-  options: { workspaceId: string; workspaceRevision: number; mode: 'private_activation' | 'public_publish' }
+  options: { workspaceId: string; workspaceRevision?: number; mode?: 'private_activation' | 'public_publish' }
 ): string {
   const normalized = {
     schemaVersion: 1,
     workspaceId: options.workspaceId,
-    workspaceRevision: options.workspaceRevision,
-    mode: options.mode,
     title: workspace.title.trim(),
     intent: workspace.intent.trim(),
     audience: workspace.audience.trim(),
@@ -275,7 +273,7 @@ export function freezeCohortCandidate(
     mode: options.mode,
   });
 
-  const cohortId = options.cohortId ?? deliveryCohortId(options.workspaceId, snapshotHash);
+  const cohortId = options.cohortId ?? workspace.release?.cohortId ?? deliveryCohortId(options.workspaceId, snapshotHash);
 
   const delivery = projectCohortToLearnerDelivery(workspace, {
     workspaceId: options.workspaceId,
