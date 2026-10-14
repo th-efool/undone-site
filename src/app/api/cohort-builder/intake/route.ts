@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 const reply = (body: unknown, status = 200) => Response.json(body, { status, headers: { 'Cache-Control': 'private, no-store' } });
 export async function GET() {
   const ownerId = await getCreationOwner();
-  return reply({ ownerId, enabled: cohortIntakeEnabled(ownerId, process.env) });
+  return reply({ ownerId, enabled: ownerId ? cohortIntakeEnabled(ownerId, process.env) : process.env.INTERACTION_COHORT_V2_ENABLED === '1' });
 }
 export async function POST(request: Request) {
   if (request.headers.get('origin') !== new URL(request.url).origin) return reply({ code: 'INVALID_ORIGIN' }, 403);
@@ -25,7 +25,10 @@ export async function POST(request: Request) {
       text += decoder.decode(part.value, { stream: true });
     }
     text += decoder.decode();
-    return reply(await acceptCohortIntake(ownerId, JSON.parse(text)), 202);
+    const parsed = JSON.parse(text);
+    if (parsed?.expectedOwnerId !== ownerId) return reply({ code: 'SESSION_CHANGED' }, 409);
+    const { expectedOwnerId: _expectedOwnerId, ...body } = parsed;
+    return reply(await acceptCohortIntake(ownerId, body), 202);
   }
   catch (error) {
     const code = error instanceof Error ? error.message : '';

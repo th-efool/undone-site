@@ -18,7 +18,13 @@ const engineHandlers = createInteractionHandlers({
     return await executeAssistantTurn(ownerId, workspaceId);
   },
 });
-const handlers = { ...engineHandlers, createWorkspace: async (ownerId: string, input: unknown) => {
+const handlers = { ...engineHandlers, sendMessage: async (...args: Parameters<typeof engineHandlers.sendMessage>) => {
+  const result = await engineHandlers.sendMessage(...args);
+  if ((result.body as { message?: string })?.message === 'MESSAGE_QUEUE_FULL') return {
+    status: 429, body: { code: 'MESSAGE_QUEUE_FULL', retryable: true, message: 'Five messages are waiting. Retry after one is handled.' },
+  };
+  return result;
+}, createWorkspace: async (ownerId: string, input: unknown) => {
   if ((input as { domainId?: string } | null)?.domainId === 'cohort') {
     return { status: 405, body: { code: 'USE_COHORT_INTAKE' } };
   }

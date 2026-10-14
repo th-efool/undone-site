@@ -1,8 +1,27 @@
 # Interaction builder execution checkpoint
 
-STATUS: S3 LOCAL IMPLEMENTATION COMPLETE AND VERIFIED. Shared rollout remains pending authorization.
-LAST_CHECKPOINT: `IB-S3-VERTICAL-SLICE-VERIFIED-2026-10-14`
-NEXT: S4A checkpoint 4 integrated PostgreSQL/browser acceptance. Checkpoint 1 committed/pushed `5f0aa02`: atomic owner-scoped intake in `src/server/infrastructure/db/postgres/cohort-intake.ts`, canonical source/message composition; `/api/cohort-builder/intake` server feature/driver/schema gate; `/quest/start` session handoff with explicit authenticated confirmation. Builder GET now reads only. Existing v1 entry remains when v2 disabled. No shared rollout.
+STATUS: S4A LOCAL IMPLEMENTATION COMPLETE AND VERIFIED. Shared rollout remains pending authorization.
+LAST_CHECKPOINT: `IB-S4A-INTEGRATED-JOURNEY-2026-10-14`
+NEXT: S4B PDF/web ingestion as a separately scoped slice. Do not activate shared durable processing before authorized additive schema rollout. S4 overall is not complete.
+
+## S4A current entry points
+
+- `src/client/screens/landing/Hero/components/CentralInterface.tsx`: private session handoff; optional pasted text. Unsupported upload/template controls disabled.
+- `src/shared/cohort-builder/intake.ts` / `src/server/infrastructure/db/postgres/cohort-intake.ts`: owner-derived deterministic workspace identity; one transaction reuses canonical source action, message, run/outbox and request receipt. Advisory creation lock; retry payload mismatch rejects; event failure rolls everything back.
+- `/api/cohort-builder/intake`: same-origin, authenticated expected-owner binding, bounded body, feature/allowlist and durable driver/schema gating. Anonymous policy supports authentication handoff without authorizing mutation.
+- `/quest/start`: explicit authenticated confirmation; session draft is owner-bound and expires after one hour. `/quest/build/:id` is read-only and never creates workspaces from a GET.
+- `/quest/new?handoff=1` / `src/client/screens/cohortCreation/LegacyLandingHandoff.tsx`: private confirmed prompt handoff to the existing v1 writer. Old q links and draft resume retained; no v1/v2 dual writer.
+- `CohortInteractionScreen.tsx` / `CohortBuilder.module.css`: fixed viewport with independently scrolling panes, one provider, mounted responsive Chat/Workspace switching, scoped local drafts, source/outline navigation and safe session teardown.
+- `BuilderDialog.tsx` / `CohortWorkspacePane.tsx`: focus trap/return, full anchored evidence, explicit lesson/source/overview conflict comparison/reapplication that preserves untouched remote fields.
+- `transport.ts`: failed chat acknowledgement retains original message/request identity. `assistant-queue.ts`: FIFO saved-message admission after terminal runs, five pending turn cap; host transcript lease binding.
+- `/api/cohort-builder/workspaces/:id/activity` / `useAssistantActivity.ts` / `ChatPane.tsx`: bounded owned turn status; queued/running/terminal truth, assistant Stop distinct from source Stop, stale selection rejection. HTTP schedules; supervised worker executes. Cancellation is idempotent; terminal status and transcript acceptance respect leases.
+- Feature names: `INTERACTION_COHORT_V2_ENABLED` defaults off; optional `INTERACTION_COHORT_V2_OWNERS`; v2 intake requires `INTERACTION_TEXT_DRIVER=durable`. Disabling intake preserves owned resume. No shared settings changed.
+
+S4A checks: `npx vitest run --maxWorkers=2` = 188 files/1201 tests passed, 2 existing skips; `npx tsc --noEmit --pretty false` exit 0. Real separate-connection PostgreSQL gate passed atomic intake, retries/rollback, FIFO/cap, idempotent cancellation and stale transcript fences. Authenticated browser gate exit 0 (`BROWSER_JOURNEY_PASS`): landing/auth return, lost intake/chat acknowledgements, grounded refinement, evidence, pins/manual edits, reload/mobile drafts, restart/partial failure/targeted retry, reconnect, two-tab conflict/reapplication, running Stop, disabled intake with v2 resume and private v1 handoff. No paid calls. Commands/configuration: `docs/s4a-verification.md`.
+
+Checkpoint 1 committed/pushed `5f0aa02`; checkpoint 2 `7d6ba14`; checkpoint 3 `7e343fe` (plus concurrent queue/UI commits below). Checkpoint 4 is the host commit titled `Finish S4A intake and workspace journey with verified browser and SQL gates`.
+
+`npm run verify:vercel` exit 0: submodule/public distributions, TypeScript, Prisma generation and optimized production build passed (154.1s build). Existing middleware/pdfjs warnings remain. No deployment. Test services on 3107/3108/15433/15434 stopped; synthetic fixtures retained under `.tmp`.
 
 S4A checkpoint 3: `assistant-queue.ts` admits saved turns FIFO under the workspace lock after completion/failure/cancel; five pending turn ceiling. Canonical commits recheck run fence after locking; assistant transcript appends carry host lease fence; heartbeats cannot resurrect expired leases. HTTP schedules; supervised worker executes. Owned bounded `/api/cohort-builder/workspaces/:id/activity` exposes safe turn states; UI separates assistant Stop from source Stop, retains conflict edits and guards stale selections. Host transport retries lost message acknowledgement with original ID/key. Concurrent session committed shared queue/UI edits as `64b9d61`, `fedfeac`, `fe66977` and upgraded package pointer to `f2f78b9`; preserved and verified, no package edits by this agent. Real PostgreSQL FIFO/cap/cancel/replacement/recovery tests passed; focused shell/transport/selection tests 10 passed.
 
@@ -12,7 +31,7 @@ S4A checkpoint 1 checks: targeted intake/canonical tests 8 passed; real PostgreS
 
 ## Authoritative boundaries
 
-- `packages/interaction-builder` remains the reusable engine, consumed through public package exports. Its submodule stayed at `7e75a350`; no package changes in this pass.
+- `packages/interaction-builder` remains the reusable engine, consumed through public package exports. Concurrent package work advanced the pointer from S3's `7e75a350` to `f2f78b9`; preserved and verified. This S4A implementation made no package edits.
 - `src/shared/cohort-builder/contracts.ts`: owned retained pasted text (exact whitespace/bytes), source versions, strict canonical actions, pins/manual overrides, bounded safe current-job views, targeted retry/cancel.
 - `src/server/infrastructure/db/postgres/repositories/interaction.repo.ts`: owner/lifecycle checks, row-lock CAS, idempotency recheck after lock, receipt/event sequencing, and same-transaction cohort DAG reconciliation. Fresh queued assistant claims capture current workspace revision before model execution; recovered running claims retain their journal context.
 - `src/server/domain/cohort-builder/text-action-jobs.ts`: canonical action integration; the old standalone source-edit helper is not an HTTP API or production writer.
@@ -28,7 +47,7 @@ S4A checkpoint 1 checks: targeted intake/canonical tests 8 passed; real PostgreS
 - `src/client/screens/cohortBuilder/`: canonical source intake/status/retry/cancel, evidence, selected chat refinement, edits/pins/order. Failed saves preserve editors and unsent input. New workspaces start without fabricated placeholder lessons.
 - Existing v1 creation path retained; no dual writes, connectors, discovery, publishing, registry publication or deployment.
 
-## Verification evidence
+## S3 baseline verification evidence
 
 - `npx vitest run --maxWorkers=2`: 181 files passed, 1179 tests passed, 2 skipped (existing skips). Includes package portability/boundary tests, host regression, transaction rollback, source invalidation, deadline and UI conflict tests.
 - `npx tsc --noEmit --pretty false`: exit 0.

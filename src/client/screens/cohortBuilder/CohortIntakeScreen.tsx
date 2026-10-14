@@ -13,7 +13,7 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
     if (!draft || busy) return;
     setBusy(true); setError('');
     try {
-      const response = await fetch('/api/cohort-builder/intake', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(draft) });
+      const response = await fetch('/api/cohort-builder/intake', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...draft, expectedOwnerId: ownerId }) });
       const body = await response.json();
       if (!response.ok) throw new Error(body.code);
       // Keep acknowledged identity until navigation succeeds: retry returns the same workspace.

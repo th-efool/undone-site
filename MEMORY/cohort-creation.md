@@ -28,10 +28,13 @@ PRECEDENCE: current source/schema > `plans/cohort-creation-checkpoint.md` curren
 
 ```text
 CentralInterface.handleSubmit
-  -> window.location.href('/quest/new?q=<query>')
-  -> (creation)/quest/new/page.tsx: querySchema + getCreationOwner()
-  -> unauthenticated: creationSignInUrl(returnTo=/quest/new?...)
-  -> authenticated: CreationExperience(randomUUID(), initialQuery)
+  -> GET /api/cohort-builder/intake (server feature policy + owner)
+  -> tab-local session handoff (owned/expiring; prompt/source stay out of URLs)
+  -> v2 enabled: /quest/start -> authenticate -> explicit owner confirmation
+     -> atomic POST /api/cohort-builder/intake -> /quest/build/<workspaceId>
+  -> v2 disabled, no source: /quest/new?handoff=1 -> authenticate -> explicit confirmation
+     -> existing CreationExperience(requestId, retainedPrompt)
+  -> old explicit /quest/new?q links remain compatible
   -> useCreation: POST /api/cohort-creation/drafts
   -> browser URL: /quest/draft/<draftId>
   -> request_recommendations command
@@ -39,8 +42,9 @@ CentralInterface.handleSubmit
 
 LANDING_FACTS:
 
-- Functional landing creation input: central prompt only.
-- Hero “Add sources”, “Upload”, “Use a template”, “Plan” controls are presentational; they do not carry input to creation.
+- Landing prompt supports optional pasted text for flagged v2 intake; file uploads/templates remain disabled there. Add sources/attachment controls reveal text input; Plan uses the same intake.
+- `src/client/screens/cohortCreation/LegacyLandingHandoff.tsx` only hands a confirmed private prompt to the existing v1 writer. It does not participate in v2 source processing.
+- `MEMORY/interaction-builder-execution.md` owns the v2 canonical/DAG/worker map and local verification status. Shared v2 durable rollout remains separately authorized.
 - `/create-cohort` is legacy dashboard flow; do not treat it as the landing creation path.
 - Draft route requires authenticated user that exists in PostgreSQL (`getCreationOwner`), not a guest/mock identity.
 

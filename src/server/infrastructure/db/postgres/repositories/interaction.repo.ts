@@ -806,7 +806,8 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
 
         const run = await tx.interactionRun.findUnique({ where: { id: params.runId } });
         if (!run || run.workspaceId !== params.workspaceId) return false;
-        if (run.status === 'completed' || run.status === 'failed' || run.status === 'canceled') return false;
+        if (run.status === 'canceled') return true;
+        if (run.status === 'completed' || run.status === 'failed') return false;
 
         const updated = await tx.interactionRun.update({
           where: { id: params.runId },
@@ -902,7 +903,7 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
         await tx.$queryRaw`SELECT w.id FROM interaction_workspaces w JOIN interaction_runs r ON r."workspaceId"=w.id
           WHERE r.id=${params.runId} FOR UPDATE OF w`;
         const run = await tx.interactionRun.findUnique({ where: { id: params.runId } });
-        if (!run || run.leaseToken !== params.leaseToken || run.status !== 'running') return false;
+        if (!run || run.leaseToken !== params.leaseToken || run.status !== 'running' || !run.leaseUntil || run.leaseUntil < (params.now ?? new Date())) return false;
 
         const updated = await tx.interactionRun.update({
           where: { id: params.runId },

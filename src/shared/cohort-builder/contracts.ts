@@ -137,6 +137,8 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   if (action.type === 'edit_text_source') {
     const source = next.sources.find(item => item.id === action.sourceId);
     if (!source) throw new Error('UNKNOWN_SOURCE');
+    const expectedVersion = context.entityVersions.get(source.id);
+    if (expectedVersion !== undefined && expectedVersion !== source.version) throw new Error('STALE_ENTITY');
     if (new TextEncoder().encode(action.text).byteLength > 200_000) throw new Error('SOURCE_TOO_LARGE');
     source.version += 1;
     source.label = action.label;
@@ -155,6 +157,8 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   if (action.type === 'remove_source') {
     const source = next.sources.find(item => item.id === action.sourceId);
     if (!source) throw new Error('UNKNOWN_SOURCE');
+    const expectedVersion = context.entityVersions.get(source.id);
+    if (expectedVersion !== undefined && expectedVersion !== source.version) throw new Error('STALE_ENTITY');
     next.sources = next.sources.filter(item => item.id !== action.sourceId);
     next.chunks = next.chunks.filter(chunk => chunk.sourceId !== action.sourceId);
     next.understanding = next.understanding.filter(unit => unit.sourceId !== action.sourceId);

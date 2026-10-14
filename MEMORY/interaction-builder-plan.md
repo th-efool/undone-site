@@ -1,6 +1,6 @@
 # interaction-builder-plan
 
-STATUS: STANDALONE PACKAGE IMPLEMENTED & VERIFIED (`packages/interaction-builder`). S3 local pasted-text vertical slice complete and verified on real isolated PostgreSQL and an authenticated browser. Shared rollout awaits additive schema authorization. See `MEMORY/interaction-builder-execution.md` for current authoritative paths/evidence; historical tables below describe earlier checkpoints.
+STATUS: STANDALONE PACKAGE IMPLEMENTED & VERIFIED (`packages/interaction-builder`). S3 and S4A local vertical journeys complete and verified on real isolated PostgreSQL and an authenticated browser; production build passed. Shared rollout awaits additive schema authorization. See `MEMORY/interaction-builder-execution.md` for current paths/evidence; historical tables below describe earlier checkpoints.
 ROOT: `D:/ThisPC/Documents/SideQuestHQ/undone-site`
 SCOPE: reusable embedded human–AI–website interaction layer; cohort creation first domain; agenda reference domain in package.
 NOT: website/app/code generation, generated-site hosting, arbitrary executable UI.
@@ -60,8 +60,8 @@ MIGRATION: new workspaces opt into v2; v1 keeps its writer/resume route; no dual
 ## Fast start for future implementation
 
 1. Read README + owning plan document; verify current git/source state.
-2. Start S0/S1; demonstrate one persistent chat↔UI loop, then S2 durability/agenda portability.
-3. S3 grounded text cohort before widening connectors; S5 release before public rollout.
+2. Resume from the execution checkpoint; S0–S3 and S4A local implementation already exist. Do not restart early slices from historical tables.
+3. Next bounded slice is S4B PDF/web ingestion with independent security/conformance gates; S5 release and S6 operational rollout remain later work.
 4. Keep status per slice accurate. Update this memory with actual source/commands after implementation; do not remove proposed labels from unfinished work.
 
 DO_NOT_INFER: implemented package exports, migrations, test passes, worker deployment, live provider reliability, or production readiness from these documents.
@@ -93,4 +93,4 @@ DO_NOT_INFER: implemented package exports, migrations, test passes, worker deplo
 | `scripts/interaction-readiness.ts` | Read-only schema & credentials readiness probe (8 tables + active index) | Implemented, verified |
 | `src/server/domain/interaction/__tests__/scheduling.test.ts` | S2 durability test suite (8 tests covering leasing, fencing, replay, stale rejects, proposals) | Implemented, verified |
 
-Current verification: 181 test files / 1179 tests passed, 2 existing skips; TypeScript clean. Real PostgreSQL concurrency and authenticated browser journey passed with deterministic providers. Next slice: S4 planning/implementation; shared S3 rollout remains separately authorized. Current implementation locators and commands are in `MEMORY/interaction-builder-execution.md` and `docs/s3-verification.md`.
+Current verification: 188 test files / 1201 tests passed, 2 existing skips; TypeScript and production build clean. Real PostgreSQL concurrency and authenticated S4A browser journey passed with deterministic providers. Next slice: S4B PDF/web ingestion; shared rollout remains separately authorized. Current locators and commands: `MEMORY/interaction-builder-execution.md`, `docs/s3-verification.md`, `docs/s4a-verification.md`.

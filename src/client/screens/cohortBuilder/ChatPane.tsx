@@ -172,6 +172,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
       </div>
 
       <div className={styles.chatComposer}>
+        {sending && <span role="status">Saving message…</span>}
         <textarea
           aria-label="Message the cohort assistant"
           className={styles.chatInput}
