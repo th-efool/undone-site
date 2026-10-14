@@ -13,7 +13,7 @@ export async function acceptCurrentTextJob(
 ): Promise<boolean> {
   return port.transaction(async tx => {
     const workspace = (await tx.query(`SELECT "snapshot" FROM "interaction_workspaces"
-      WHERE "id" = $1 FOR UPDATE`, [job.workspaceId])).rows[0];
+      WHERE "id" = $1 AND "lifecycle" = 'active' AND "domainId" = 'cohort' FOR UPDATE`, [job.workspaceId])).rows[0];
     if (!workspace) return false;
     const state = cohortWorkspaceSchema.parse(typeof workspace.snapshot === 'string'
       ? JSON.parse(workspace.snapshot) : workspace.snapshot);
