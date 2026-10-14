@@ -25,8 +25,8 @@ export async function enqueueTextJobPlanInTransaction(tx: TextArtifactSql, works
     let inserted = 0;
     for (const intent of intents) {
       const result = await tx.query(`INSERT INTO "cohort_text_jobs"
-        ("id", "workspaceId", "jobKey", "sourceId", "sourceVersion", "stage", "dependencyFingerprint")
-        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        ("id", "workspaceId", "jobKey", "sourceId", "sourceVersion", "stage", "dependencyFingerprint", "updatedAt")
+        VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)
         ON CONFLICT ("workspaceId", "jobKey") DO NOTHING RETURNING "id"`,
       [randomUUID(), workspaceId, intent.jobKey, intent.sourceId, intent.sourceVersion, intent.stage, intent.dependencyFingerprint]);
       inserted += result.rows.length;
