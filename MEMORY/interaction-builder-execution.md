@@ -1,8 +1,14 @@
 # Interaction builder execution checkpoint
 
-STATUS: S4B LOCAL COMPLETE. S3/S4A/S4B real isolated journeys verified; shared rollout remains pending authorization. Not all of S4 is complete.
-LAST_CHECKPOINT: `IB-S4B-PDF-WEB-VERIFIED-2026-10-14`
-NEXT: propose bounded S4C YouTube transcript ingestion with separate conformance/security gates; do not begin automatically. Do not activate shared durable processing before authorized schema rollout.
+STATUS: S4C INCOMPLETE / CHECKPOINT 3 COMPLETE / UI & INTEGRATED GATES OPEN. S4B remains locally complete; shared rollout remains unauthorized.
+LAST_CHECKPOINT: `IB-S4C-CANONICAL-DAG-2026-10-14`
+NEXT: Checkpoint 4 UI and chat parity. Extend ExternalSources.tsx to render YouTube intake, track/timestamp status, and physical timestamp evidence chips while respecting server capability gating. Plan: `plans/interaction-builder/s4c-checkpoints.md`; evidence: `docs/s4c-verification.md`.
+
+S4C durable DAG and canonical acceptance: `add_youtube_source` and `set_youtube_scope` canonical actions added to `contracts.ts`, planned in `text-job-plan.ts`, executed via `createTextSourceProcessor` with injected non-billing provider port, extracted deterministically via `extractRetainedSource` with timestamped locations (`startMs`, `endMs`, `segmentId`), and accepted into state and downstream assembly under workspace lock. Scope changes reuse retained bytes without re-acquisition. Capability gating strictly enforces `SOURCE_CAPABILITY_DISABLED` by default. 5 composed PGlite tests in `youtube-canonical-jobs.test.ts` pass, verifying gating, end-to-end DAG execution, scope change reuse, failure/retry, and fabricated extraction rejection. Checkpoint 2 commit `48fe3ec` pushed.
+
+S4C independent retention: `src/server/domain/cohort-builder/youtube-transcript.ts` has bounded non-billing injected stream port, deadline/cancellation/redaction, exact provider/video/track checks, retained scope reuse, timestamp/UTF-16 anchors and read-only artifact identity/checksum checks. No installed network provider or source writer/job/UI registration. 10 adapter + 18 shared tests pass; TypeScript exit 0. Checkpoint contracts commit `f39e09b` pushed with planning. Do not describe these helpers as a working builder journey or waive real provider/SQL/browser gates.
+
+S4C starting HEAD `3678c4e` contains separate S5 work; preserved unchanged. Engine `bf96b84` unchanged. No transcript provider/endpoint configured; v1 `youtube-observation.service.ts` is paid AI observation, not transcript. Official caption download requires video-edit permission; metadata key alone does not authorize arbitrary public-video transcripts. Shared contracts in `src/shared/cohort-builder/youtube-transcript.ts`: exact single-video URLs, original track/language/kind, bounded scopes/segments and identity validation. Owned `/sources` capability explicitly returns YouTube disabled/reason even if a flag is set. No canonical source kind or writer added while acquisition is unresolved. Contract tests 18 passed, existing YouTube/PDF-web baseline 44 passed, TypeScript exit 0. Live and integrated S4C gates remain open; no scraping bypass or paid calls.
 
 S4B host commits: contracts `7ac3b3f`, adapters `a25602b`, durable integration `e838973`, UI/chat `fad12b7`, final integrated verification `b6b1b0a`. Engine `bf96b84` pushed before host pointer. Master/planning synchronize together; no shared rollout performed.
 

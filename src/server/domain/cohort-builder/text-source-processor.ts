@@ -4,6 +4,7 @@ import { planTextJobs, type TextJobStage } from './text-job-plan';
 import type { ClaimedTextJob } from './text-jobs';
 import { computeTextStage } from './text-pipeline';
 import type { WebTransport } from '../cohort-creation/materials/web-fetch';
+import type { YoutubeTranscriptProvider } from './youtube-transcript';
 
 type SourceStage = Exclude<TextJobStage, 'assembly'>;
 
@@ -29,6 +30,7 @@ export function createTextSourceProcessor(input: {
   sql: TextArtifactSql;
   loadWorkspace: (workspaceId: string) => Promise<unknown>;
   webTransport?: WebTransport;
+  youtubeTranscriptProvider?: YoutubeTranscriptProvider;
 }): (job: ClaimedTextJob) => Promise<Uint8Array> {
   return async job => {
     if (!job.sourceId || job.sourceVersion === null || job.stage === 'assembly') throw new Error('INVALID_SOURCE_JOB');
@@ -49,9 +51,16 @@ export function createTextSourceProcessor(input: {
           (retained.ref.sourceId !== null && retained.ref.sourceId !== source.id)) throw new Error('FOREIGN_SOURCE_PREREQUISITE');
         return retained.bytes;
       }
-      if (source.input.kind !== 'web') throw new Error('MISSING_RETAINED_INPUT');
-      const {fetchRetainedWeb}=await import('./source-adapters');
-      return fetchRetainedWeb(source.input.url,input.webTransport);
+      if (source.input.kind === 'web') {
+        const {fetchRetainedWeb}=await import('./source-adapters');
+        return fetchRetainedWeb(source.input.url,input.webTransport);
+      }
+      if (source.input.kind === 'youtube') {
+        const {acquireYoutubeTranscript}=await import('./youtube-transcript');
+        const acquired = await acquireYoutubeTranscript(source.input, input.youtubeTranscriptProvider);
+        return acquired.bytes;
+      }
+      throw new Error('MISSING_RETAINED_INPUT');
     }
 
     const required = stage === 'understanding' && source.input ? {stage:'extraction',kind:'extraction'} as const : prerequisite[stage];

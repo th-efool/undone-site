@@ -54,10 +54,15 @@ export async function acceptCurrentTextJob(
       if(source.input.kind==='pdf') {
         const upload=await readTextArtifact(tx,job.workspaceId,source.input.uploadId);
         if(upload.ref.kind!=='source_input' || !upload.bytes.equals(retained.bytes)) throw new Error('FOREIGN_SOURCE_PREREQUISITE');
-      } else {
+      } else if (source.input.kind==='web') {
         const {retainedWebSchema}=await import('./source-adapters');
         const response=retainedWebSchema.parse(JSON.parse(retained.bytes.toString('utf8')));
         if(response.requestedUrl!==source.input.url) throw new Error('FOREIGN_WEB_RESPONSE');
+      } else {
+        const {retainedYoutubeTranscriptSchema,singleYoutubeVideo}=await import('@/src/shared/cohort-builder/youtube-transcript');
+        const response=retainedYoutubeTranscriptSchema.parse(JSON.parse(retained.bytes.toString('utf8')));
+        if(response.video.id!==singleYoutubeVideo(source.input.url).videoId || response.video.url!==source.input.url ||
+          JSON.stringify(response.track)!==JSON.stringify(source.input.track)) throw new Error('FOREIGN_TRANSCRIPT');
       }
       next={...state,sources:state.sources.map(item=>item.id===source.id?{...item,retainedInputId:artifact.id}:item)};
     } else if (extracted && source?.input) {
