@@ -6,6 +6,8 @@ import { runAssistantTurn, type InteractionRepository } from 'interaction-builde
 import { createCohortAiTools } from './domain/cohort-builder/tools';
 import { cohortDomain } from './domain/cohort-builder/domain';
 import { advanceTextWorkspace } from './domain/cohort-builder/text-worker';
+import { textDriver } from './domain/cohort-builder/text-driver';
+import { createTextJobRuntime } from './infrastructure/db/postgres/text-job-runtime';
 import { cohortAssistantPrompt } from './domain/cohort-builder/context';
 import { selectedLessonForLatestTurn } from './domain/cohort-builder/selection';
 import { cohortWorkspaceSchema, type CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
@@ -34,9 +36,13 @@ export async function runInteractionWorkerLoop(
       AND "snapshot"->'processing'->>'status' = 'queued'
     ORDER BY "updatedAt" ASC LIMIT 20`);
 
+  const durable = textDriver() === 'durable'
+    ? await createTextJobRuntime(process.env.DATABASE_URL ?? '', workerId, leaseDurationMs) : null;
+  try {
   while (!signal.aborted) {
     try {
-      const candidates = await textWorkspaceCandidates();
+      if (durable) await durable.tick();
+      const candidates = durable ? [] : await textWorkspaceCandidates();
       for (const candidate of candidates) {
         if (signal.aborted) break;
         await advanceTextWorkspace(repo, candidate.ownerId, candidate.id);
@@ -120,6 +126,7 @@ export async function runInteractionWorkerLoop(
       await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
     }
   }
+  } finally { await durable?.close(); }
 }
 
 async function main() {

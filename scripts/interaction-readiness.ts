@@ -3,6 +3,8 @@
  * No paid model calls, writes, credentials, or secrets in output.
  */
 import { Pool } from 'pg';
+import { textDriver } from '../src/server/domain/cohort-builder/text-driver';
+import { assertTextJobSchema } from '../src/server/domain/cohort-builder/text-schema-readiness';
 
 type FailureReason = 'missing' | 'invalid_url' | 'dns_not_found' | 'dns_timeout' | 'authentication_failed' | 'connection_failed' | 'schema_incomplete';
 type Check = { name: string; required: boolean; status: 'configured' | 'ready' | 'blocked' | 'not_configured'; reason?: FailureReason };
@@ -74,6 +76,10 @@ export async function interactionSqlCheck(): Promise<Check> {
       );
 
       if (tableRes.rows[0].count === requiredTables.length && indexRes.rows[0].count === 1) {
+        if (textDriver() === 'durable') {
+          check.name = 'PostgreSQL interaction + S3 durable text schema';
+          await assertTextJobSchema({ query: (statement, parameters) => pool.query(statement, parameters) });
+        }
         check.status = 'ready';
         check.reason = undefined;
       } else {

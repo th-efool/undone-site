@@ -18,7 +18,7 @@ const initial = () => cohortWorkspaceSchema.parse({
 
 async function setup(claim = true) {
   const db = new PGlite();
-  await db.exec('CREATE TABLE "interaction_workspaces" ("id" TEXT PRIMARY KEY, "snapshot" JSONB NOT NULL)');
+  await db.exec(`CREATE TABLE "interaction_workspaces" ("id" TEXT PRIMARY KEY, "snapshot" JSONB NOT NULL, "lifecycle" TEXT DEFAULT 'active', "domainId" TEXT DEFAULT 'cohort')`);
   await db.exec(migration);
   const state = initial();
   await db.query(`INSERT INTO "interaction_workspaces" ("id", "snapshot") VALUES ($1, $2::jsonb)`, [workspaceId, JSON.stringify(state)]);

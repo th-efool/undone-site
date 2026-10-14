@@ -18,7 +18,7 @@ export function runDurableTextJobTick(input: {
   const source = createTextSourceProcessor({ sql: input.sql, loadWorkspace: input.loadWorkspace });
   const assembly = createTextAssemblyProcessor({ sql: input.sql, loadWorkspace: input.loadWorkspace });
   return runTextJobTick({
-    sql: input.sql, workerId: input.workerId, leaseMs: input.leaseMs, now: input.now,
+    sql: input.sql, workerId: input.workerId, leaseMs: input.leaseMs, now: input.now, renewLease: true,
     process: job => job.stage === 'assembly' ? assembly(job) : source(job),
     accept: (job, artifact, at) => job.stage === 'assembly'
       ? acceptAssemblyProjection(input.transaction, job, artifact, at)
