@@ -764,6 +764,81 @@
   background: color-mix(in srgb, #dc2626 15%, transparent);
 }
 
+.creationSteps li[data-inspected='true'] {
+  color: var(--creation-blue);
+  border-bottom-color: var(--creation-blue);
+}
+
+.creationSteps li[data-inspected='true'] span {
+  background: var(--creation-blue);
+  color: #ffffff;
+}
+
+.stepperNav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+
+.curriculumStepBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--creation-muted);
+  padding: 0 16px 12px;
+  border: none;
+  border-bottom: 2px solid #d7d6d1;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  margin-top: -36px;
+}
+
+.curriculumStepBtn:hover {
+  color: var(--creation-ink);
+}
+
+.curriculumStepActive,
+.curriculumStepBtn[data-inspected='true'] {
+  color: var(--creation-blue);
+  border-bottom-color: var(--creation-blue);
+}
+
+.inspectingBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  margin: 0 0 20px;
+  background: color-mix(in srgb, var(--creation-blue) 8%, var(--creation-surface));
+  border: 1px dashed var(--creation-blue);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--creation-ink);
+}
+
+.resetStageBtn {
+  background: transparent;
+  border: 1px solid var(--creation-blue);
+  color: var(--creation-blue);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.resetStageBtn:hover {
+  background: var(--creation-blue);
+  color: #ffffff;
+}
+
 @media (max-width: 640px) {
   .creationSteps {
     flex-wrap: wrap;

@@ -35,10 +35,10 @@ The captures verify that the new cohort builder faithfully embodies the legacy *
 | **Source Selection / Inventory** | Desktop (1280×900) | Dark | `legacy-source-workspace-desktop-dark.png` | `builder-source-workspace-desktop-dark.png` | Verified Parity |
 | **Source Selection / Inventory** | Mobile (390×844) | Light | `legacy-source-workspace-mobile-light.png` | `builder-source-workspace-mobile-light.png` | Verified Parity |
 | **Source Selection / Inventory** | Mobile (390×844) | Dark | `legacy-source-workspace-mobile-dark.png` | `builder-source-workspace-mobile-dark.png` | Verified Parity |
-| **Processing (Understanding / Chunking)** | Desktop (1280×900) | Light | `legacy-processing-chunking-desktop-light.png` | `builder-processing-chunking-desktop-light.png` | ⚠️ Pending Stage-Specific Layout Composition |
-| **Processing (Understanding / Chunking)** | Desktop (1280×900) | Dark | `legacy-processing-chunking-desktop-dark.png` | `builder-processing-chunking-desktop-dark.png` | ⚠️ Pending Stage-Specific Layout Composition |
-| **Processing (Understanding / Chunking)** | Mobile (390×844) | Light | `legacy-processing-chunking-mobile-light.png` | `builder-processing-chunking-mobile-light.png` | ⚠️ Pending Stage-Specific Layout Composition |
-| **Processing (Understanding / Chunking)** | Mobile (390×844) | Dark | `legacy-processing-chunking-mobile-dark.png` | `builder-processing-chunking-mobile-dark.png` | ⚠️ Pending Stage-Specific Layout Composition |
+| **Processing (Understanding / Chunking)** | Desktop (1280×900) | Light | `legacy-processing-chunking-desktop-light.png` | `builder-processing-chunking-desktop-light.png` | Verified Parity |
+| **Processing (Understanding / Chunking)** | Desktop (1280×900) | Dark | `legacy-processing-chunking-desktop-dark.png` | `builder-processing-chunking-desktop-dark.png` | Verified Parity |
+| **Processing (Understanding / Chunking)** | Mobile (390×844) | Light | `legacy-processing-chunking-mobile-light.png` | `builder-processing-chunking-mobile-light.png` | Verified Parity |
+| **Processing (Understanding / Chunking)** | Mobile (390×844) | Dark | `legacy-processing-chunking-mobile-dark.png` | `builder-processing-chunking-mobile-dark.png` | Verified Parity |
 | **Curriculum Outline & Evidence** | Desktop (1280×900) | Light | `legacy-curriculum-evidence-desktop-light.png` | `builder-curriculum-evidence-desktop-light.png` | Verified Parity |
 | **Curriculum Outline & Evidence** | Desktop (1280×900) | Dark | `legacy-curriculum-evidence-desktop-dark.png` | `builder-curriculum-evidence-desktop-dark.png` | Verified Parity |
 | **Curriculum Outline & Evidence** | Mobile (390×844) | Light | `legacy-curriculum-evidence-mobile-light.png` | `builder-curriculum-evidence-mobile-light.png` | Verified Parity |
