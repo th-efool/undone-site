@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { entityRefSchema, type DomainActionPlan } from 'interaction-builder/core';
 import { youtubeVideoUrlSchema, youtubeTrackSchema, youtubeTimeScopeSchema } from './youtube-transcript';
+import { githubRepoUrlSchema, githubRefSchema, githubPathsSchema } from './github-source';
 
 const text = z.string().trim().min(1).max(4_000);
 const id = z.string().min(1).max(200);
@@ -12,6 +13,7 @@ export const sourceInputSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('pdf'), uploadId: z.uuid(), pages: z.array(z.number().int().min(1).max(200)).min(1).max(200).optional() }),
   z.strictObject({ kind: z.literal('web'), url: publicSourceUrlSchema }),
   z.strictObject({ kind: z.literal('youtube'), url: youtubeVideoUrlSchema, track: youtubeTrackSchema, scope: youtubeTimeScopeSchema.optional() }),
+  z.strictObject({ kind: z.literal('github'), repoUrl: githubRepoUrlSchema, ref: githubRefSchema, commitSha: z.string().regex(/^[a-f0-9]{40}$/).optional(), paths: githubPathsSchema.optional() }),
 ]);
 
 export const cohortSourceSchema = z.strictObject({
@@ -29,16 +31,23 @@ export const cohortSourceSchema = z.strictObject({
     startMs: z.number().int().nonnegative().optional(),
     endMs: z.number().int().nonnegative().optional(),
     segmentId: z.string().optional(),
+    filePath: z.string().optional(),
+    startLine: z.number().int().positive().optional(),
+    endLine: z.number().int().positive().optional(),
   })).max(1000).optional(),
   provenance: z.strictObject({
     parserVersion: z.string().max(128),
     rawChecksum: z.string().regex(/^[a-f0-9]{64}$/),
-    scope: z.enum(['selected_pages', 'main_article', 'full_text_response', 'transcript_only']),
+    scope: z.enum(['selected_pages', 'main_article', 'full_text_response', 'transcript_only', 'selected_files']),
     finalUrl: z.string().max(2048).optional(),
     pageCount: z.number().int().positive().max(200).optional(),
     videoId: z.string().optional(),
     track: youtubeTrackSchema.optional(),
     timeScope: youtubeTimeScopeSchema.optional(),
+    repoUrl: z.string().max(2048).optional(),
+    ref: z.string().max(100).optional(),
+    commitSha: z.string().regex(/^[a-f0-9]{40}$/).optional(),
+    fileCount: z.number().int().positive().max(25).optional(),
   }).optional(),
   checksum: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
   state: z.enum(['queued', 'ready', 'processing', 'failed', 'stale']),
@@ -101,9 +110,11 @@ export const cohortActionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('add_pdf_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), uploadId: z.uuid() }),
   z.strictObject({ type: z.literal('add_web_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), url: publicSourceUrlSchema }),
   z.strictObject({ type: z.literal('add_youtube_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), url: youtubeVideoUrlSchema, track: youtubeTrackSchema, scope: youtubeTimeScopeSchema.optional() }),
+  z.strictObject({ type: z.literal('add_github_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), repoUrl: githubRepoUrlSchema, ref: githubRefSchema.default('main'), paths: githubPathsSchema.optional() }),
   z.strictObject({ type: z.literal('set_pdf_pages'), sourceId: id, pages: z.array(z.number().int().min(1).max(200)).min(1).max(200) }),
   z.strictObject({ type: z.literal('refresh_web_source'), sourceId: id, url: publicSourceUrlSchema.optional() }),
   z.strictObject({ type: z.literal('set_youtube_scope'), sourceId: id, scope: youtubeTimeScopeSchema.optional() }),
+  z.strictObject({ type: z.literal('set_github_scope'), sourceId: id, paths: githubPathsSchema }),
   z.strictObject({ type: z.literal('set_intent'), intent: text }),
   z.strictObject({ type: z.literal('set_audience'), audience: z.string().trim().max(500) }),
   z.strictObject({ type: z.literal('set_daily_minutes'), dailyMinutes: z.number().int().min(1).max(1_440) }),
@@ -177,7 +188,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
     return { nextState: next, changed: [], invalidated: ['sources', 'chunks', 'analysis', 'curriculum'], summary: `Added source: ${action.label}`, undoable: true };
   }
-  if (action.type === 'add_pdf_source' || action.type === 'add_web_source' || action.type === 'add_youtube_source') {
+  if (action.type === 'add_pdf_source' || action.type === 'add_web_source' || action.type === 'add_youtube_source' || action.type === 'add_github_source') {
     const sourceId = action.sourceId ?? context.actionId;
     if (next.sources.some(source => source.id === sourceId)) throw new Error('DUPLICATE_SOURCE');
     if (next.sources.length >= 20) throw new Error('TOO_MANY_SOURCES');
@@ -185,13 +196,15 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
       ? { kind: 'pdf' as const, uploadId: action.uploadId }
       : action.type === 'add_web_source'
       ? { kind: 'web' as const, url: new URL(action.url).href.split('#')[0] }
-      : { kind: 'youtube' as const, url: action.url, track: action.track, ...(action.scope ? { scope: action.scope } : {}) };
+      : action.type === 'add_youtube_source'
+      ? { kind: 'youtube' as const, url: action.url, track: action.track, ...(action.scope ? { scope: action.scope } : {}) }
+      : { kind: 'github' as const, repoUrl: action.repoUrl, ref: action.ref, ...(action.paths ? { paths: action.paths } : {}) };
     next.sources.push({ id: sourceId, version: 0, label: action.label, text: '', checksum: null, state: 'queued', input });
     next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
-    const labelKind = action.type === 'add_pdf_source' ? 'PDF' : action.type === 'add_web_source' ? 'web' : 'YouTube';
+    const labelKind = action.type === 'add_pdf_source' ? 'PDF' : action.type === 'add_web_source' ? 'web' : action.type === 'add_youtube_source' ? 'YouTube' : 'GitHub';
     return { nextState: next, changed: [], invalidated: ['sources', 'curriculum'], summary: `Added ${labelKind} source: ${action.label}`, undoable: true };
   }
-  if (action.type === 'set_pdf_pages' || action.type === 'refresh_web_source' || action.type === 'set_youtube_scope') {
+  if (action.type === 'set_pdf_pages' || action.type === 'refresh_web_source' || action.type === 'set_youtube_scope' || action.type === 'set_github_scope') {
     const source = next.sources.find(item => item.id === action.sourceId);
     if (!source) throw new Error('UNKNOWN_SOURCE');
     const expected = context.entityVersions.get(source.id);
@@ -202,10 +215,13 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     } else if (action.type === 'refresh_web_source') {
       if (source.input?.kind !== 'web') throw new Error('INVALID_WEB_SOURCE');
       source.input.url = new URL(action.url ?? source.input.url).href.split('#')[0]; delete source.retainedInputId;
-    } else {
+    } else if (action.type === 'set_youtube_scope') {
       if (source.input?.kind !== 'youtube') throw new Error('INVALID_YOUTUBE_SOURCE');
       if (action.scope) source.input.scope = action.scope;
       else delete source.input.scope;
+    } else {
+      if (source.input?.kind !== 'github') throw new Error('INVALID_GITHUB_SOURCE');
+      source.input.paths = action.paths;
     }
     source.version++; source.text = ''; source.state = 'queued'; source.checksum = null;
     delete source.extractionId; delete source.locations; delete source.provenance;
@@ -217,6 +233,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
     return { nextState: next, changed: [], invalidated: ['sources', 'curriculum'], summary: 'Source scope updated.', undoable: true };
   }
+
   if (action.type === 'edit_text_source') {
     const source = next.sources.find(item => item.id === action.sourceId);
     if (!source) throw new Error('UNKNOWN_SOURCE');

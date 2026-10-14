@@ -8,6 +8,7 @@ import { openWebSource, webSourceUrl, type WebTransport } from '@/src/server/dom
 import { PDF_PARSER_VERSION } from '@/src/server/domain/cohort-creation/materials/pdf-identity';
 import { WEB_PARSER_VERSION } from '@/src/server/domain/cohort-creation/materials/web-identity';
 import { YOUTUBE_TRANSCRIPT_VERSION } from '@/src/shared/cohort-builder/youtube-transcript';
+import { GITHUB_SOURCE_VERSION } from '@/src/shared/cohort-builder/github-source';
 import { cohortSourceSchema, type CohortSource } from '@/src/shared/cohort-builder/contracts';
 import type { TextArtifactRef } from './text-artifacts';
 import { PDF_SOURCE_BYTES } from './source-policy';
@@ -28,13 +29,13 @@ export const sourceExtractionSchema = z.strictObject({ format:z.literal('cohort-
 });
 export type SourceExtraction = z.infer<typeof sourceExtractionSchema>;
 
-function sourceError(error:unknown,kind:'pdf'|'web'|'youtube'): never {
+function sourceError(error:unknown,kind:'pdf'|'web'|'youtube'|'github'): never {
   const code = (error as {code?:string})?.code;
   if (code === 'LIMIT_EXCEEDED') throw new Error('SOURCE_LIMIT_EXCEEDED');
   if (code === 'INTEGRITY') throw new Error('RETAINED_SOURCE_INTEGRITY');
   if (code === 'UNAVAILABLE') throw new Error('WEB_SOURCE_UNAVAILABLE');
   if (error instanceof Error && /^[A-Z_]+$/.test(error.message)) throw error;
-  throw new Error(kind === 'pdf' ? 'PDF_UNREADABLE' : kind === 'web' ? 'WEB_SOURCE_REJECTED' : 'TRANSCRIPT_UNREADABLE');
+  throw new Error(kind === 'pdf' ? 'PDF_UNREADABLE' : kind === 'web' ? 'WEB_SOURCE_REJECTED' : kind === 'youtube' ? 'TRANSCRIPT_UNREADABLE' : 'GITHUB_SOURCE_UNREADABLE');
 }
 
 /** Uses the existing pinned connection transport; fixture transports still pass every URL/DNS check. */
@@ -54,7 +55,7 @@ const cache = new Map<string,Promise<SourceExtraction>>();
 /** Only trusted parser results enter this bounded cache; accepted blobs never seed it. */
 export async function extractRetainedSource(source:CohortSource,ref:TextArtifactRef,bytes:Uint8Array):Promise<SourceExtraction> {
   if (!source.input || ref.checksum !== hash(bytes)) throw new Error('RETAINED_SOURCE_INTEGRITY');
-  const key = hash(JSON.stringify([ref.checksum,source.input,PDF_PARSER_VERSION,WEB_PARSER_VERSION,YOUTUBE_TRANSCRIPT_VERSION]));
+  const key = hash(JSON.stringify([ref.checksum,source.input,PDF_PARSER_VERSION,WEB_PARSER_VERSION,YOUTUBE_TRANSCRIPT_VERSION,GITHUB_SOURCE_VERSION]));
   const prior = cache.get(key); if (prior) return prior;
   const work = (async () => {
     try {
@@ -95,17 +96,24 @@ export async function extractRetainedSource(source:CohortSource,ref:TextArtifact
         });
         result = {format:'cohort-extraction-v1',text:parsed.text,locations:[{start:0,end:parsed.text.length}],
           provenance:{parserVersion:WEB_PARSER_VERSION,rawChecksum:ref.checksum,scope:parsed.scope,finalUrl:retained.finalUrl}};
-      } else {
+      } else if (source.input!.kind === 'youtube') {
         const {extractYoutubeTranscript}=await import('./youtube-transcript');
         const extracted=extractYoutubeTranscript(bytes,source.input!);
         result = {format:'cohort-extraction-v1',text:extracted.text,locations:extracted.locations,
           provenance:{parserVersion:YOUTUBE_TRANSCRIPT_VERSION,rawChecksum:ref.checksum,scope:'transcript_only',
             finalUrl:source.input!.url,videoId:extracted.videoId,track:extracted.track,timeScope:source.input!.scope}};
+      } else {
+        const {extractGithubSource}=await import('./github-source');
+        const extracted=extractGithubSource(bytes,source.input!);
+        result = {format:'cohort-extraction-v1',text:extracted.text,locations:extracted.locations,
+          provenance:{parserVersion:GITHUB_SOURCE_VERSION,rawChecksum:ref.checksum,scope:'selected_files',
+            repoUrl:source.input!.repoUrl,ref:source.input!.ref,commitSha:extracted.commitSha,fileCount:extracted.fileCount}};
       }
       if (Buffer.byteLength(result.text)>200_000) throw new Error('SOURCE_LIMIT_EXCEEDED');
       return sourceExtractionSchema.parse(result);
     } catch(error) { return sourceError(error,source.input!.kind); }
   })();
+
   cache.set(key,work); if(cache.size>8) cache.delete(cache.keys().next().value!);
   try {return await work;} catch(error) {cache.delete(key);throw error;}
 }
