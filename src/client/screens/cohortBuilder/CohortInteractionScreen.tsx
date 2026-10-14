@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
@@ -14,6 +14,7 @@ import type { EntityRef } from 'interaction-builder/core';
 import { ChatPane } from './ChatPane';
 import { CohortWorkspacePane } from './CohortWorkspacePane';
 import styles from './CohortBuilder.module.css';
+import { createCohortTransport } from './transport';
 
 interface AttachedEntity {
   entity: EntityRef;
@@ -108,11 +109,12 @@ export function CohortInteractionScreen({
   ownerId,
 }: CohortInteractionScreenProps) {
   const { data: session, status } = useSession();
+  const transport = useMemo(() => createCohortTransport(workspaceId), [workspaceId, ownerId]);
   const identityLost = status === 'unauthenticated' || (status === 'authenticated' && ownerId && session?.user?.id !== ownerId);
   useEffect(() => { if (identityLost) sessionStorage.removeItem('undone:cohort-intake'); }, [identityLost]);
   if (identityLost) return <p>Session changed. Sign in again to resume this workspace.</p>;
   return (
-    <InteractionProvider key={`${ownerId}:${workspaceId}`} workspaceId={workspaceId} initialView={initialView}>
+    <InteractionProvider key={`${ownerId}:${workspaceId}`} workspaceId={workspaceId} initialView={initialView} transport={transport}>
       <InnerBuilderScreen />
     </InteractionProvider>
   );

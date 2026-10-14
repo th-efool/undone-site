@@ -9,9 +9,13 @@ export async function createInteractionModelAdapter(selected?: { id: string } | 
   const database = new URL(process.env.DATABASE_URL ?? '');
   if (process.env.NODE_ENV !== 'development' || !['127.0.0.1', 'localhost'].includes(database.hostname)
     || !database.pathname.startsWith('/s3test')) throw new Error('LOCAL_MODEL_FIXTURE_FORBIDDEN');
-  const turns = JSON.parse(process.env.INTERACTION_LOCAL_MODEL_SCRIPT ?? '[]') as Array<{ tool: string; input: Record<string, unknown>; text: string }>;
+  const turns = JSON.parse(process.env.INTERACTION_LOCAL_MODEL_SCRIPT ?? '[]') as Array<{ tool: string; input: Record<string, unknown>; text: string; delayMs?: number }>;
   const turn = turns[fixtureTurn++];
   if (!turn) throw new Error('LOCAL_MODEL_FIXTURE_EXHAUSTED');
+  if (turn.delayMs !== undefined) {
+    if (!Number.isSafeInteger(turn.delayMs) || turn.delayMs < 0 || turn.delayMs > 10_000) throw new Error('LOCAL_MODEL_FIXTURE_DELAY_INVALID');
+    await new Promise(resolve => setTimeout(resolve, turn.delayMs));
+  }
   const input = { ...turn.input };
   if (input.lessonId === '$selected') {
     if (!selected) throw new Error('LOCAL_MODEL_SELECTION_MISSING');

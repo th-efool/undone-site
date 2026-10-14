@@ -34,7 +34,7 @@ export function ProfilePill() {
           </div>
           <div className={styles.divider} />
           <button
-            onClick={() => signOut({ callbackUrl: '/' })}
+            onClick={() => { sessionStorage.removeItem('undone:cohort-intake'); void signOut({ callbackUrl: '/' }); }}
             className={styles.logoutButton}
           >
             <LogOut size={16} />
