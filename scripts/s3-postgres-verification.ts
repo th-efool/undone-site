@@ -317,6 +317,110 @@ try {
   assert.equal(ytEvents.length, ytSnapshot.sequence);
   assert.equal(ytSnapshot.revision, ytSnapshot.sequence);
   console.log('PASS separate PostgreSQL YouTube disability, intake, timestamp extraction, scope reuse, and event consistency');
+
+  // --- S4D GitHub repository verification ---
+  await pool.query(`UPDATE cohort_text_jobs SET status='canceled',"leaseToken"=NULL,"leaseUntil"=NULL,"leaseOwner"=NULL
+    WHERE "workspaceId" IN (SELECT id FROM interaction_workspaces WHERE "ownerId"=$1) AND status IN ('queued','running','failed')`,[ownerId]);
+
+  // 1. Disability proof: without INTERACTION_GITHUB_ENABLED/mock, action is rejected
+  const ghDisabledWorkspace = crypto.randomUUID();
+  await repo.createWorkspace({ id: ghDisabledWorkspace, ownerId, domainId: 'cohort', domainVersion: 1, initialSnapshot: snapshot });
+  const ghRepoUrl = 'https://github.com/sidequesthq/undone';
+  const ghAction = {
+    actionId: crypto.randomUUID(), workspaceId: ghDisabledWorkspace, expectedRevision: 0, entityVersions: [],
+    action: { type: 'add_github_source' as const, sourceId: 'gh-source', label: 'GitHub Repo', repoUrl: ghRepoUrl, ref: 'main', paths: ['README.md', 'src/consensus.ts'] },
+  };
+  await assert.rejects(
+    repo.commitAction({ workspaceId: ghDisabledWorkspace, ownerId, expectedRevision: 0, envelope: ghAction, plan: planCohortAction }),
+    /SOURCE_CAPABILITY_DISABLED/,
+    'GitHub intake must be rejected when capability is disabled'
+  );
+
+  // 2. Enable test mock capability
+  process.env.INTERACTION_GITHUB_ENABLED = '1';
+  process.env.INTERACTION_GITHUB_TEST_MOCK = '1';
+  const ghId = crypto.randomUUID();
+  await repo.createWorkspace({ id: ghId, ownerId, domainId: 'cohort', domainVersion: 1, initialSnapshot: snapshot });
+  const ghCommitAction = {
+    actionId: crypto.randomUUID(), workspaceId: ghId, expectedRevision: 0, entityVersions: [],
+    action: { type: 'add_github_source' as const, sourceId: 'gh-source', label: 'Consensus Repo', repoUrl: ghRepoUrl, ref: 'main', paths: ['README.md', 'src/consensus.ts'] },
+  };
+  await repo.commitAction({ workspaceId: ghId, ownerId, expectedRevision: 0, requestId: crypto.randomUUID(), envelope: ghCommitAction, plan: planCohortAction });
+
+  // Mock GitHub provider
+  let ghProviderCallCount = 0;
+  const mockCommitSha = 'c'.repeat(40);
+  const githubProvider = {
+    id: 'mock-gh-fixture',
+    version: '1',
+    billing: 'none' as const,
+    resolveRef: async (_repo: { owner: string; repo: string }, _ref: string) => {
+      ghProviderCallCount++;
+      return { commitSha: mockCommitSha };
+    },
+    fetchFiles: async (_repo: { owner: string; repo: string }, _commitSha: string, paths: string[]) => {
+      const files: Array<{ path: string; content: Uint8Array }> = [];
+      for (const p of paths) {
+        if (p === 'README.md') {
+          files.push({ path: p, content: Buffer.from('# Undone\nQuorums overlap and provide consensus across nodes.\n') });
+        } else if (p === 'src/consensus.ts') {
+          files.push({ path: p, content: Buffer.from('export function hasQuorum(votes: number, total: number): boolean {\n  return votes > Math.floor(total / 2);\n}\n') });
+        }
+      }
+      return files;
+    },
+  };
+
+  const loadGhWorkspace = async () => (await repo.loadWorkspace({ workspaceId: ghId, ownerId }))!.snapshot;
+  now = new Date(Date.now() + 2000);
+
+  // Drain DAG ticks for GitHub: acquisition, extraction, chunking, analysis, assembly
+  for (let i = 0; i < 6; i++) {
+    const res = await runDurableTextJobTick({
+      sql, transaction: port, workerId: 'gh-worker', leaseMs: 60000, now: () => now,
+      loadWorkspace: loadGhWorkspace, githubSourceProvider: githubProvider,
+    });
+    if (res.status !== 'accepted') break;
+  }
+
+  const ghWorkspace = cohortWorkspaceSchema.parse(await loadGhWorkspace());
+  assert.equal(ghWorkspace.processing.status, 'ready');
+  assert.equal(ghWorkspace.sources.length, 1);
+  assert(ghWorkspace.sources[0].locations && ghWorkspace.sources[0].locations.length >= 2);
+  assert(ghWorkspace.sources[0].locations.some(loc => loc.filePath === 'README.md' && loc.startLine === 1));
+  assert(ghWorkspace.sources[0].locations.some(loc => loc.filePath === 'src/consensus.ts' && loc.startLine === 1));
+  assert.equal(ghWorkspace.sources[0].provenance?.parserVersion, 'github-source-v1');
+  assert.equal(ghWorkspace.sources[0].provenance?.commitSha, mockCommitSha);
+  assert.equal(ghProviderCallCount, 1, 'GitHub provider should have been called once for initial resolution');
+
+  // Scope reduction: verify scope reuses retained raw bytes without refetching from provider
+  const currentGh = (await repo.loadWorkspace({ workspaceId: ghId, ownerId }))!;
+  const ghScopeAction = {
+    actionId: crypto.randomUUID(), workspaceId: ghId, expectedRevision: currentGh.revision,
+    entityVersions: [{ kind: 'source' as const, id: 'gh-source', version: ghWorkspace.sources[0].version }],
+    action: { type: 'set_github_scope' as const, sourceId: 'gh-source', paths: ['README.md'] },
+  };
+  await repo.commitAction({ workspaceId: ghId, ownerId, expectedRevision: currentGh.revision, requestId: crypto.randomUUID(), envelope: ghScopeAction, plan: planCohortAction });
+
+  for (let i = 0; i < 6; i++) {
+    const res = await runDurableTextJobTick({
+      sql, transaction: port, workerId: 'gh-worker', leaseMs: 60000, now: () => now,
+      loadWorkspace: loadGhWorkspace, githubSourceProvider: githubProvider,
+    });
+    if (res.status !== 'accepted') break;
+  }
+
+  assert.equal(ghProviderCallCount, 1, 'GitHub provider must NOT be called again when adjusting file scope');
+  const scopedGhWorkspace = cohortWorkspaceSchema.parse(await loadGhWorkspace());
+  assert.equal(scopedGhWorkspace.processing.status, 'ready');
+  assert.equal(scopedGhWorkspace.sources[0].locations?.length, 1);
+  assert.equal(scopedGhWorkspace.sources[0].locations![0].filePath, 'README.md');
+
+  const ghEvents = await repo.queryEvents({ workspaceId: ghId, ownerId, afterSequence: 0, limit: 100 });
+  const ghSnapshot = (await repo.loadWorkspace({ workspaceId: ghId, ownerId }))!;
+  assert.equal(ghEvents.length, ghSnapshot.sequence);
+  assert.equal(ghSnapshot.revision, ghSnapshot.sequence);
+  console.log('PASS separate PostgreSQL GitHub disability, intake, line-anchored extraction, scope reuse, and event consistency');
 } finally { await pool.end(); await prisma.$disconnect(); }
 }
 void main().catch(error => { console.error(error); process.exitCode = 1; });
