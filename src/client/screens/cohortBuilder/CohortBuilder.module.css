@@ -732,3 +732,262 @@
 @media (prefers-reduced-motion: reduce) {
   .page *, .page *::before, .page *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Release Panel */
+.releaseSection {
+  background: #ffffff;
+  border: 1px solid #ded8ce;
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.releaseHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.releaseTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.releaseTitleGroup h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1921;
+  margin: 0;
+}
+
+.badgeReady {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+
+.badgeBlocked {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.badgeReleased {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: #ede9fe;
+  color: #5b21b6;
+  border: 1px solid #ddd6fe;
+}
+
+.modeSelector {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.modeOption {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid #ded8ce;
+  border-radius: 12px;
+  background: #fbfaf8;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.modeOption:hover:not(.modeDisabled) {
+  border-color: #5a50bf;
+  background: #faf9ff;
+}
+
+.modeOptionActive {
+  border-color: #5a50bf;
+  background: #f4f1fd;
+  box-shadow: 0 0 0 2px rgba(90, 80, 191, 0.2);
+}
+
+.modeDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modeOption input[type="radio"] {
+  margin-top: 3px;
+  accent-color: #5a50bf;
+}
+
+.modeText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.modeLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1921;
+}
+
+.modeDescription {
+  font-size: 12px;
+  color: #686371;
+  line-height: 1.4;
+}
+
+.blockersContainer {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blockersTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #991b1b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.blockersList {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 12px;
+  color: #7f1d1d;
+  line-height: 1.5;
+}
+
+.warningsContainer {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.warningsTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #92400e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.warningsList {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 12px;
+  color: #78350f;
+  line-height: 1.5;
+}
+
+.releaseActionsBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-top: 8px;
+}
+
+.releaseBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #2b2450;
+  color: #ffffff;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.releaseBtn:hover:not(:disabled) {
+  background: #433878;
+}
+
+.releaseBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.destinationBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #059669;
+  color: #ffffff;
+  border: none;
+  padding: 10px 22px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.destinationBtn:hover {
+  background: #047857;
+}
+
+.receiptCard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.receiptCard p {
+  margin: 0;
+  font-size: 12px;
+  color: #475569;
+}
+
+.receiptCard strong {
+  color: #0f172a;
+}
+
