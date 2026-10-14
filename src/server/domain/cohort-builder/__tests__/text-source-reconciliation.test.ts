@@ -26,7 +26,8 @@ describe('source edit and DAG reconciliation', () => {
     expect(result.superseded).toBe(5);
     const rows = await db.query<{ status: string; sourceVersion: number }>(`SELECT "status", "sourceVersion" FROM "cohort_text_jobs" WHERE "workspaceId" = $1`, [workspaceId]);
     expect(rows.rows.filter(row => row.status === 'superseded')).toHaveLength(5);
-    expect(rows.rows.filter(row => row.status === 'queued' && Number(row.sourceVersion) === 1)).toHaveLength(5);
+    expect(rows.rows.filter(row => row.status === 'queued' && Number(row.sourceVersion) === 1)).toHaveLength(4);
+    expect(rows.rows.filter(row => row.status === 'queued' && row.sourceVersion === null)).toHaveLength(1);
     await db.close();
   }, 30_000);
 });
