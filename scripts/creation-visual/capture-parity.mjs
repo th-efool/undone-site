@@ -107,6 +107,9 @@ try {
   const context = await browser.newContext();
   const page = await context.newPage();
   page.setDefaultTimeout(30000);
+  page.on('pageerror', (err) => {
+    console.error(`[pageerror at ${page.url()}]:`, err.message);
+  });
 
   for (const target of targets) {
     for (const vp of viewports) {
@@ -126,6 +129,14 @@ try {
         await page.evaluate(() => document.fonts.ready);
         await page.evaluate(() => Promise.all([...document.images].map((img) => img.decode().catch(() => {}))));
         await page.waitForTimeout(300);
+
+        const legacyAlerts = await page.$$eval('[role="alert"]', (els) =>
+          els.map((e) => e.textContent?.trim()).filter(Boolean)
+        );
+        if (legacyAlerts.length > 0) {
+          console.warn(`[alerts on legacy ${target.id} ${vp.name} ${th}]:`, legacyAlerts);
+        }
+
         await page.screenshot({ path: legacyPath, fullPage: false });
 
         if (target.id === 'curriculum-evidence') {
