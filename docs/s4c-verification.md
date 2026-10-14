@@ -42,7 +42,28 @@ Ceilings: 1 MiB retained JSON, 1000 segments, 4-hour video/time bounds, 200,000
 UTF-8 extracted bytes and a 20-second acquisition deadline. These are deliberately
 bounded contracts, not claims that every video under four hours can be acquired.
 
-## Outstanding gates
+## Independent retention adapter
+
+`src/server/domain/cohort-builder/youtube-transcript.ts` implements an injected,
+non-billing provider port, streaming byte/deadline limits, cancellation (including
+late-open cleanup), safe error codes, exact video/track/provider matching,
+read-only owned artifact checks, and deterministic timestamped extraction.
+Scope changes operate on retained bytes without calling the port again. Partial
+cue boundaries are rejected: without word timing, clipping cue timestamps would
+falsely attribute the complete caption text to a narrower interval. Text offsets
+are UTF-16; segment IDs derive from retained checksum and original cue index.
+
+The port has no installed network implementation. It does not prove provider
+permissions, destination/redirect security, real caption availability, or live
+acquisition. It is not registered as a canonical source writer, job handler or UI
+capability. Caller authorization and current DAG acceptance still belong to the
+existing canonical transaction and must be wired after provider selection.
+
+Independent tests: 18 shared contract tests and 10 retention adapter tests pass;
+existing YouTube observation/metadata and PDF/web baseline 44 tests pass.
+TypeScript passes. Further regression/build outcomes are indexed in MEMORY.
+
+## Outstanding gates (still open)
 
 Select an authorized provider/access path and establish its network/security,
 quota/cost, track availability and actual live acquisition conformance first.
