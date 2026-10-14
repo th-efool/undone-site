@@ -6,6 +6,8 @@ PRECEDENCE: current source/schema > `plans/cohort-creation-checkpoint.md` curren
 
 ## Locate first
 
+UX REPAIR (CP1-CP5): Canonical builder at `/quest/build/[workspaceId]` completely reproduces legacy frontend design (`CreationShell`, `StartingPoint`, `ReviewWorkspace` typography, spacing, colors, illustrations, composer, source intake, processing steps, curriculum outline, evidence drawer, release panel) while preserving the canonical backend and InteractionProvider/store. Intake fallback displays clear policy/readiness messages and offers explicit link to `/quest/new?handoff=1` with retained draft input. Checkpoints 1-5 verified.
+
 V2 S4B: `src/server/domain/cohort-builder/source-adapters.ts`, `source-evidence.ts`, durable `text-*` jobs; `src/server/infrastructure/db/postgres/cohort-pdf-upload.ts`; `src/client/screens/cohortBuilder/ExternalSources.tsx`; owned `/api/cohort-builder/workspaces/:id/pdf` and `/sources`. PDF/web flags default off, durable driver + additive S4B constraints required. Local real SQL/browser verification passed; shared rollout unauthorized. See `docs/s4b-verification.md` and `MEMORY/interaction-builder-execution.md`. V1 writer/processors remain separate; only narrow parser/transport reuse.
 
 | Concern | Primary path(s) |

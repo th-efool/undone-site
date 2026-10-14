@@ -1,17 +1,24 @@
 # Interaction builder execution checkpoint
 
-STATUS: S5 LOCALLY COMPLETE / VERIFIED / READY FOR REVIEW. UX Repair Checkpoints 1, 2 & 3 complete; shared rollout remains unauthorized.
-LAST_CHECKPOINT: `IB-UX-REPAIR-CP3-SHELL-AND-CHAT-2026-10-14`
-NEXT: Checkpoint 4 — Parity throughout the creation journey (source intake, processing, curriculum, review).
+STATUS: S5 LOCALLY COMPLETE / VERIFIED / READY FOR REVIEW. UX Repair Checkpoints 1 & 2 verified locally; Checkpoints 3 & 4 in progress. Shared rollout remains unauthorized.
+LAST_CHECKPOINT: `IB-UX-REPAIR-CP1-HOMEPAGE-HANDOFF-2026-10-14`
+NEXT: Checkpoint 2 (Mobile Nav & Truthful Progress) commit; Checkpoint 3 (Visual Parity Review); Checkpoint 4 (Integrated Acceptance & Sync).
 
-UX Repair Checkpoint 3 (Legacy Shell and Chat Visual Parity):
-- Shell presentation: `CohortInteractionScreen.tsx` refactored to reuse the exact legacy 2-column grid (`clamp(300px, 26.1vw, 420px)` and `1fr`), collapsible rail (`80px`), brand header with Caveat script flourish ("For a more curious you."), account circle, and ThemeToggle integration while preserving canonical `InteractionProvider`, multi-tab identity, and responsive mobile pane switching.
-- Chat & Composer presentation: `ChatPane.tsx` updated with Playfair Display typography, circular avatars ('Y' and Undone mark), hint card with Lightbulb icon, suggestions bar, and rounded composer with ArrowUp blue gradient button. Preserves real persisted messages, canonical actions, activity turns, and active entity references without fake assistant responses.
-- Styles & verification: `CohortBuilder.module.css` incorporates legacy color tokens (`--creation-paper`, `--creation-surface`, `--creation-ink`, `--creation-blue`, `--creation-line`), paper texture, and responsive breakpoints. All 30 cohortBuilder unit tests (including `shell.test.tsx`) pass. Root TypeScript exit 0.
+UX Repair Checkpoint 1 (Homepage Handoff Defect Fix):
+- Root defect resolved: Removed silent redirect `if (!policy.enabled) { window.location.href = '/quest/new?handoff=1'; }` in `CentralInterface.tsx`.
+- Canonical journey implemented: Homepage prompt & optional pasted source text save to `sessionStorage` via `saveIntakeDraft` with stable `requestId`, navigating directly to `/quest/start`.
+- Unavailability & disabled fallback: When server policy is disabled or intake unavailable, `CohortIntakeScreen.tsx` displays honest status (`"New builder intake is unavailable. Existing workspaces remain accessible."`), preserves prompt in a blockquote, and preserves optional pasted source text.
+- Fallback compatibility: If draft has no source text, explicitly presents `<a href="/quest/new?handoff=1">Continue with existing creator</a>`. If draft includes pasted source text, explains incompatibility (`"The existing creator only supports text prompts without pasted sources."`) without discarding text or silently redirecting.
+- Verification: 12 unit tests in `intake-screen.test.tsx` and `CentralInterface.test.tsx` pass. TypeScript exit 0.
 
-UX Repair Checkpoint 1 & 2 (Homepage Intake & Routing Repair):
-- Checkpoint 1 Diagnosis & Reference: Proven feature flag `INTERACTION_COHORT_V2_ENABLED` gating redirects unconfigured landing flows to `/quest/new?handoff=1`. Design reference, component ownership map, and visual parity checklist codified from legacy `/quest/draft/[draftId]` and `CreationShell`.
-- Checkpoint 2 Intake Handoff: `CohortIntakeScreen.tsx` updated to explicitly present existing creator alternative (`/quest/new?handoff=1`) on policy disability or readiness error, preserving retained input for retry and keeping sensitive parameters out of URLs. Unit test suite `intake-screen.test.tsx` added (4 tests passing). All 12 intake vitests and root TypeScript pass.
+UX Repair Checkpoint 2 (Mobile Navigation Trap & Truthful Processing Indicators):
+- Defect A (Mobile Navigation Trap): In `CohortInteractionScreen.tsx`, moved persistent `.paneNavigation` outside the conditionally hidden `.canvas` to the top level. At `<= 820px`, navigation buttons (`Chat` and `Workspace`) remain accessible in both views, preventing the mobile trap. Unsent composer and editor states survive switching.
+- Defect B (Misleading Processing Completion): In `CohortWorkspacePane.tsx`, replaced naive `stage === 'done'` stepper check with pure `getProcessingProgress()`. An empty or initial workspace from `initialCohort()` (`status: 'idle', stage: 'done'`) correctly renders all 4 steps as incomplete with step numbers (1, 2, 3, 4) and zero false checkmarks. Correctly handles queued, running (`status: 'processing'`), partial failure, failed/canceled, and source edits after prior assembly (`needsRebuild`).
+- Verification: All 46 tests across 7 cohortBuilder & landing test files pass (including `CohortWorkspacePane.test.tsx` and `shell.test.tsx`). TypeScript exit 0.
+
+UX Repair Previous Checkpoints:
+- Checkpoint 4 Presentation Parity (`76b9896`): CreationSteps, source cards, curriculum outline cards, ReleasePanel semantic tokens.
+- Checkpoint 3 Shell & Chat Parity (`6860d20`): Legacy 2-column grid, rail collapse, Playfair typography, composer styling.
 
 
 S5 End-to-End Learner Delivery and Workspace Release (Checkpoints 1-4):
