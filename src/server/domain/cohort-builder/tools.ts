@@ -236,5 +236,22 @@ export function createCohortAiTools(deps: CohortAiToolsDeps) {
       }),
       execute: async ({ lessonId }) => executeAction('remove_lesson', { lessonId }, { type: 'remove_lesson', lessonId }),
     }),
+
+    prepare_release: tool({
+      description: 'Validate and prepare the cohort workspace for release. Verifies curriculum readiness and checks for blockers.',
+      inputSchema: z.object({
+        mode: z.enum(['private_activation', 'public_publish']).default('private_activation').describe('Release mode: private_activation (for learner play) or public_publish (for directory).'),
+      }),
+      execute: async input => executeAction('prepare_release', input, { type: 'prepare_release', mode: input.mode }),
+    }),
+
+    commit_release: tool({
+      description: 'Commit an approved release for the cohort workspace using a validated release candidate hash. Final user confirmation via the Release Panel is recommended.',
+      inputSchema: z.object({
+        mode: z.enum(['private_activation', 'public_publish']).describe('Release mode.'),
+        candidateHash: z.string().describe('The validated candidate content hash to release.'),
+      }),
+      execute: async input => executeAction('commit_release', input, { type: 'commit_release', mode: input.mode, candidateHash: input.candidateHash }),
+    }),
   };
 }

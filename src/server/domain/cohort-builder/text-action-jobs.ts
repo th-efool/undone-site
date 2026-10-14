@@ -19,6 +19,8 @@ export async function reconcileTextAction(tx: TextArtifactSql, workspaceId: stri
     await tx.query(`UPDATE "cohort_text_jobs" SET "status" = 'canceled', "fence" = "fence" + 1,
       "leaseToken" = NULL, "leaseUntil" = NULL, "leaseOwner" = NULL
       WHERE "workspaceId" = $1 AND "status" IN ('queued', 'running', 'failed') RETURNING "id"`, [workspaceId]);
+  } else if (typed.type === 'prepare_release' || typed.type === 'commit_release') {
+    return textJobStatus(tx, workspaceId, next);
   } else if (next.sources.length && next.processing.error !== 'PROCESSING_CANCELED') {
     await enqueueTextJobPlanInTransaction(tx, workspaceId, next);
   } else if (typed.type === 'remove_source') {

@@ -1,22 +1,14 @@
 import 'server-only';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import { type CohortWorkspace, cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
+import { type CohortWorkspace, cohortWorkspaceSchema, cohortReleaseReceiptSchema } from '@/src/shared/cohort-builder/contracts';
 import {
   type LearnerDeliveryPayload,
   projectCohortToLearnerDelivery,
   deliveryCohortId,
 } from '@/src/shared/cohort-builder/delivery';
 
-export const releaseReceiptSchema = z.strictObject({
-  effectKey: z.string().regex(/^[a-f0-9]{64}$/),
-  cohortId: z.string().min(1),
-  workspaceId: z.string().min(1),
-  contentHash: z.string().regex(/^[a-f0-9]{64}$/),
-  mode: z.enum(['private_activation', 'public_publish']),
-  releasedAt: z.string(),
-  destinationUrl: z.string().min(1),
-});
+export const releaseReceiptSchema = cohortReleaseReceiptSchema;
 export type ReleaseReceipt = z.infer<typeof releaseReceiptSchema>;
 
 export interface CohortReadinessChecks {
@@ -174,6 +166,10 @@ export function validateCohortReadiness(
   let rightsValid = true;
   if (mode === 'public_publish') {
     if (orphanedLessons.length > 0) {
+      rightsValid = false;
+    }
+    if (sources.some(s => s.isRestricted)) {
+      blockers.push('Private, connector, or restricted sources cannot be published publicly without an approved redistribution policy.');
       rightsValid = false;
     }
   }
