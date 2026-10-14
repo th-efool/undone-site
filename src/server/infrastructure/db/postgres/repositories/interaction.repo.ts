@@ -1,6 +1,9 @@
 import 'server-only';
 import { prisma as defaultPrisma } from '../client';
 import { Prisma } from '@/generated/prisma/client';
+import { cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
+import { textDriver } from '@/src/server/domain/cohort-builder/text-driver';
+import { enqueueTextJobPlanInTransaction } from '@/src/server/domain/cohort-builder/text-job-scheduler';
 import {
   type ActionCommitInput,
   type ActionCommitSuccess,
@@ -410,6 +413,13 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
         });
 
         const nextSequence = workspace.sequence + 1;
+
+        if (workspace.domainId === 'cohort' && textDriver() === 'durable') {
+          // Static application SQL, all values bound separately on the same transaction.
+          await enqueueTextJobPlanInTransaction({ query: async (statement, parameters) => ({
+            rows: await tx.$queryRawUnsafe<Record<string, unknown>[]>(statement, ...parameters),
+          }) }, input.workspaceId, cohortWorkspaceSchema.parse(commitResult.state));
+        }
 
         await tx.interactionWorkspace.update({
           where: { id: input.workspaceId },

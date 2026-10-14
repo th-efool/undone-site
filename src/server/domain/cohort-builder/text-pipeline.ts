@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { DomainActionPlan } from 'interaction-builder/core';
 import type { CohortWorkspace, CohortChunk, CohortLesson } from '@/src/shared/cohort-builder/contracts';
+import { projectGeneratedLessons } from './lesson-projection';
 
 export type TextStage = 'acquisition' | 'understanding' | 'chunking' | 'analysis' | 'assembly';
 
@@ -159,9 +160,7 @@ export function planTextStage(state: CohortWorkspace, input: unknown, context: {
     }
     const expected = computeTextStage({ ...state, processing: { ...state.processing, stage: 'assembly' } }).result;
     if (JSON.stringify(lessons) !== JSON.stringify(expected)) throw new Error('INVALID_ASSEMBLY');
-    const pinned = next.lessons.filter(lesson => lesson.pinned);
-    const manuallyEdited = next.lessons.filter(lesson => !lesson.pinned && (lesson.manualOverride || !lesson.id.startsWith('grounded:')));
-    next.lessons = [...pinned, ...manuallyEdited, ...lessons.filter(lesson => !pinned.some(item => item.id === lesson.id) && !manuallyEdited.some(item => item.id === lesson.id))];
+    next.lessons = projectGeneratedLessons(next.lessons, lessons, new Set(next.chunks.map(chunk => chunk.id)));
   }
   next.processing = {
     status: nextStage[action.stage] === 'done' ? 'ready' : 'queued',

@@ -10,7 +10,11 @@ export interface TextJobTransactionPort {
 /** Persist a complete dependency graph atomically; repeat calls reuse logical job keys. */
 export async function enqueueTextJobPlan(port: TextJobTransactionPort, workspaceId: string, state: CohortWorkspace): Promise<{ jobIds: string[]; inserted: number; superseded: number }> {
   const intents = planTextJobs(state);
-  return port.transaction(async tx => {
+  return port.transaction(tx => enqueueTextJobPlanInTransaction(tx, workspaceId, state, intents));
+}
+
+export async function enqueueTextJobPlanInTransaction(tx: TextArtifactSql, workspaceId: string, state: CohortWorkspace, planned = planTextJobs(state)): Promise<{ jobIds: string[]; inserted: number; superseded: number }> {
+  const intents = planned;
     const obsolete = await tx.query(`UPDATE "cohort_text_jobs"
       SET "status" = 'superseded', "fence" = "fence" + 1,
           "leaseOwner" = NULL, "leaseToken" = NULL, "leaseUntil" = NULL, "updatedAt" = CURRENT_TIMESTAMP
@@ -49,5 +53,4 @@ export async function enqueueTextJobPlan(port: TextJobTransactionPort, workspace
       }
     }
     return { jobIds: intents.map(intent => ids.get(intent.jobKey)!), inserted, superseded: obsolete.rows.length };
-  });
 }
