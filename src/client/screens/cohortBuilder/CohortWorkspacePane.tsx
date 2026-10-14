@@ -136,8 +136,8 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
   const handleAddSource = async () => {
     if (!sourceForm.label.trim() || !sourceForm.text.trim()) return;
     const action: CohortAction = editingSourceId
-      ? { type: 'edit_text_source', sourceId: editingSourceId, label: sourceForm.label.trim(), text: sourceForm.text.trim() }
-      : { type: 'add_text_source', label: sourceForm.label.trim(), text: sourceForm.text.trim() };
+      ? { type: 'edit_text_source', sourceId: editingSourceId, label: sourceForm.label.trim(), text: sourceForm.text }
+      : { type: 'add_text_source', label: sourceForm.label.trim(), text: sourceForm.text };
     if (await dispatchAction(action)) {
       setSourceForm({ label: '', text: '' });
       setEditingSourceId(null);
