@@ -173,12 +173,16 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
         {activeTurn && (
           <div className={styles.turnStatusNotice} role="status">
             <p>
-              Assistant {activeTurn.status}…{' '}
-              <button type="button" onClick={() => void stopAssistant()}>
-                Stop
-              </button>
+              Assistant {activeTurn.status}. {activity.turns.filter(turn => turn.status === 'pending').length} messages waiting.
             </p>
+            <button type="button" onClick={() => void stopAssistant()}>
+              Stop assistant turn
+            </button>
           </div>
+        )}
+
+        {activity.turns.some(turn => turn.status === 'failed' || turn.status === 'canceled') && (
+          <p>Stopped or failed turns remain saved. Send a follow-up to retry the intended change.</p>
         )}
 
         {cancelError && <p role="alert">{cancelError}</p>}
@@ -253,11 +257,6 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
             : connection === 'live'
             ? 'Saved to your account'
             : 'Last saved state'}
-          {connection === 'live' && (
-            <span className={styles.liveBadge}>
-              <span className={styles.liveDot} /> live
-            </span>
-          )}
         </span>
       </div>
     </div>

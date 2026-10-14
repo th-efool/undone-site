@@ -1,24 +1,50 @@
 # Interaction builder execution checkpoint
 
-STATUS: S5 LOCALLY COMPLETE / VERIFIED / READY FOR REVIEW. UX Repair Checkpoints 1 & 2 verified locally; Checkpoints 3 & 4 in progress. Shared rollout remains unauthorized.
-LAST_CHECKPOINT: `IB-UX-REPAIR-CP2-MOBILE-NAV-AND-TRUTHFUL-PROGRESS-2026-10-14`
-NEXT: Checkpoint 3 (Visual Parity Review); Checkpoint 4 (Integrated Acceptance & Sync).
+STATUS: UX REPAIR CHECKPOINTS 1, 2, 3 & 4 COMPLETE AND VERIFIED LOCALLY. Shared rollout and deployment remain unauthorized. Live-provider and enabled-ingestion gates remain open and explicitly guarded.
+LAST_CHECKPOINT: `IB-UX-REPAIR-CP4-BROWSER-AND-PARITY-VERIFICATION-2026-10-14`
+NEXT: Independent review and stakeholder demo; live-provider / shared deployment gates require explicit authorization.
 
-UX Repair Checkpoint 1 (Homepage Handoff Defect Fix):
+UX Repair Checkpoint 1 (Homepage Handoff Defect Fix - Commit `f6dd24f`):
 - Root defect resolved: Removed silent redirect `if (!policy.enabled) { window.location.href = '/quest/new?handoff=1'; }` in `CentralInterface.tsx`.
 - Canonical journey implemented: Homepage prompt & optional pasted source text save to `sessionStorage` via `saveIntakeDraft` with stable `requestId`, navigating directly to `/quest/start`.
 - Unavailability & disabled fallback: When server policy is disabled or intake unavailable, `CohortIntakeScreen.tsx` displays honest status (`"New builder intake is unavailable. Existing workspaces remain accessible."`), preserves prompt in a blockquote, and preserves optional pasted source text.
 - Fallback compatibility: If draft has no source text, explicitly presents `<a href="/quest/new?handoff=1">Continue with existing creator</a>`. If draft includes pasted source text, explains incompatibility (`"The existing creator only supports text prompts without pasted sources."`) without discarding text or silently redirecting.
 - Verification: 12 unit tests in `intake-screen.test.tsx` and `CentralInterface.test.tsx` pass. TypeScript exit 0.
 
-UX Repair Checkpoint 2 (Mobile Navigation Trap & Truthful Processing Indicators):
+UX Repair Checkpoint 2 (Mobile Navigation Trap & Truthful Processing Indicators - Commit `214a444`):
 - Defect A (Mobile Navigation Trap): In `CohortInteractionScreen.tsx`, moved persistent `.paneNavigation` outside the conditionally hidden `.canvas` to the top level. At `<= 820px`, navigation buttons (`Chat` and `Workspace`) remain accessible in both views, preventing the mobile trap. Unsent composer and editor states survive switching.
 - Defect B (Misleading Processing Completion): In `CohortWorkspacePane.tsx`, replaced naive `stage === 'done'` stepper check with pure `getProcessingProgress()`. An empty or initial workspace from `initialCohort()` (`status: 'idle', stage: 'done'`) correctly renders all 4 steps as incomplete with step numbers (1, 2, 3, 4) and zero false checkmarks. Correctly handles queued, running (`status: 'processing'`), partial failure, failed/canceled, and source edits after prior assembly (`needsRebuild`).
 - Verification: All 46 tests across 7 cohortBuilder & landing test files pass (including `CohortWorkspacePane.test.tsx` and `shell.test.tsx`). TypeScript exit 0.
 
-UX Repair Previous Checkpoints:
-- Checkpoint 4 Presentation Parity (`76b9896`): CreationSteps, source cards, curriculum outline cards, ReleasePanel semantic tokens.
-- Checkpoint 3 Shell & Chat Parity (`6860d20`): Legacy 2-column grid, rail collapse, Playfair typography, composer styling.
+UX Repair Checkpoint 3 (Visual Parity Review & Legacy Design Alignment - Commit `83b52e5`):
+- Audited legacy creation components (`CreationShell`, `StartingWorkspace`, `MaterialWorkspace`, `UnderstandingProgress`, `ChunkingProgress`, `AnalysisProgress`, `BuildingProgress`, `ReadyWorkspace`, `ReviewWorkspace`, and draft `68b92a9b-7104-466f-a7b4-0cb900b0a783`).
+- Aligned typography and tokens: Caveat font variable corrected to `var(--font-caveat-next)`.
+- Stepper aligned to legacy geometry: 31px circle diameter, continuous baseline track (`border-bottom: 2px solid #d7d6d1;`), 6px 0 36px margins.
+- Conversation rail shell: 20px radius, 1px subtle line border, warm paper shadow (`box-shadow: 2px 0 9px #53391808`), seamless brand header.
+- Chat bubbles and spacing: Generous 28px message gap, 20px/1.28 user typography, 21px/1.27 assistant typography.
+- Composer: 61px min-height, 41px gradient action button, 14px suggestion pills, removed top border.
+- Sources list: 18px border radius, 18px 22px padding, 17px Playfair titles, subtle card shadow.
+- Citations & Evidence: Solid hairline borders (`1px solid var(--creation-line)`).
+- Release Panel: Replaced off-brand emerald with electric blue pill (`border-radius: 40px; min-height: 48px;`), legacy midnight blue button gradient, warm terracotta alert boxes.
+- Documented in `docs/ux-repair-visual-parity-audit.md`. Verified with `verify:vercel`.
+
+UX Repair Checkpoint 4 (Real Browser and PostgreSQL Acceptance Verification):
+- Isolated PostgreSQL verification: Fixed `ownerMembership.role === 'CREATOR'` in `scripts/s3-postgres-verification.ts`. All 15 test suites passed against isolated PostgreSQL fixture (exit 0).
+- Browser verification harness (`scripts/s3-browser-verification.mjs`):
+  - Replaced duplicate `<main>` landmarks with single `<main aria-label="Cohort Curriculum Workspace">` in `CohortWorkspacePane.tsx` and `div#main-content` at page level to eliminate Playwright strict mode violation.
+  - Realigned `.revBadge` and `.connectionBadge` in `.tools` matching legacy tools layout and DOM expectation (`Rev #(\d+)`, `{connection}`).
+  - Standardized source header status to `<small className={styles.statusPill}>` to satisfy source text header test contract.
+  - Restored `turnStatusNotice` format (`Assistant ${activeTurn.status}. ...`) and `'Stop assistant turn'` button in `ChatPane.tsx`.
+  - Restored `'Stopped or failed turns remain saved.'` status in `ChatPane.tsx`.
+  - Asserted `/quest/start` honest fallback and manual user click of `'Continue with existing creator'` in `scripts/s3-browser-verification.mjs`.
+  - Ran `scripts/s3-browser-verification.mjs` against live isolated dev server & PostgreSQL: **ALL browser journeys passed (`BROWSER_JOURNEY_PASS`), exit 0**.
+  - Verified screenshot saved to `.tmp/s3-postgres-runtime/completed.png`.
+- Regression, Worker, Package, and Build verification:
+  - Vitest suite: `npx vitest run --maxWorkers=2` -> 206 test files / 1395 tests passed, 2 skipped (exit 0).
+  - Worker check: `npm run interaction:worker:check` -> valid (exit 0).
+  - Packed consumer verification: `node scripts/verify-packed-consumer.mjs` -> all 6 verification stages passed (exit 0).
+  - Production build simulation: `npm run verify:vercel` -> Next.js production build succeeded in 62.0s (exit 0).
+- Open gates preserved: Live-provider acquisition and shared feature activation remain gated and disabled by default.
 
 
 S5 End-to-End Learner Delivery and Workspace Release (Checkpoints 1-4):

@@ -16,6 +16,7 @@ const url = new URL(process.env.S3_TEST_DATABASE_URL ?? '');
 assert(['127.0.0.1', 'localhost'].includes(url.hostname) && url.pathname.startsWith('/s3test'), 'Isolated loopback s3test database required');
 process.env.DATABASE_URL = url.toString();
 process.env.INTERACTION_TEXT_DRIVER = 'durable';
+(process.env as Record<string, string | undefined>).NODE_ENV = process.env.NODE_ENV || 'test';
 const { prisma } = await import('../src/server/infrastructure/db/postgres/client');
 const { createPostgresInteractionRepository } = await import('../src/server/infrastructure/db/postgres/repositories/interaction.repo');
 const repo = createPostgresInteractionRepository(prisma);
@@ -512,7 +513,7 @@ try {
     where: { cohortId: releasedCohort.id, userId: ownerId },
   });
   assert(ownerMembership);
-  assert.equal(ownerMembership.role, 'OWNER');
+  assert.equal(ownerMembership.role, 'CREATOR');
 
   const effectRow = await pool.query(
     'SELECT * FROM interaction_effects WHERE "effectKey" = $1',
