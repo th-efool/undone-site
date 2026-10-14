@@ -372,10 +372,10 @@ export function CohortWorkspacePane({
       <section id="builder-sources" className={styles.heroCard} aria-label="Grounded source text">
         <div className={styles.sectionHeader}>
           <h3>Source text</h3>
-          <span className={styles.statusPill} data-status={workspace.processing.status}>
+          <small className={styles.statusPill} data-status={workspace.processing.status}>
             {workspace.processing.status}{workspace.processing.status === 'queued' ? ` · ${workspace.processing.stage} waiting for worker` : ''}
             {progress.needsRebuild && workspace.processing.status === 'idle' ? ' · rebuild needed' : ''}
-          </span>
+          </small>
         </div>
         <ExternalSources/>
         <div className={styles.formField}>

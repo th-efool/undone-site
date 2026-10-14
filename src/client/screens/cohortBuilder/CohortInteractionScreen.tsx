@@ -6,7 +6,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { InteractionProvider } from '@/src/client/interaction/provider';
-import { useWorkspaceConnection } from '@/src/client/interaction/hooks';
+import {
+  useWorkspaceConnection,
+  useInteractionState,
+} from '@/src/client/interaction/hooks';
 import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import type { EntityRef } from 'interaction-builder/core';
 import { ThemeToggle } from '@/src/client/screens/landing/Hero/components/ThemeToggle';
@@ -29,15 +32,22 @@ interface CohortInteractionScreenProps {
 
 function InnerBuilderScreen() {
   const connection = useWorkspaceConnection();
+  const state = useInteractionState<CohortWorkspace>();
   const [attachedEntity, setAttachedEntity] = useState<AttachedEntity | null>(null);
   const [pane, setPane] = useState<'chat' | 'workspace'>('workspace');
   const [collapsed, setCollapsed] = useState(false);
   const { theme, isDark } = useTheme();
 
+  const dotClass =
+    connection === 'live'
+      ? styles.dotConnected
+      : connection === 'reconnecting' || connection === 'connecting'
+      ? styles.dotReconnecting
+      : styles.dotDisconnected;
+
   return (
-    <main
+    <div
       id="main-content"
-      aria-label="Cohort Curriculum Workspace"
       className={styles.page}
       data-theme={theme}
       data-rail-collapsed={collapsed}
@@ -97,6 +107,11 @@ function InnerBuilderScreen() {
       {/* Right Canvas matching legacy CreationShell */}
       <div className={styles.canvas}>
         <div className={styles.tools}>
+          <div className={styles.connectionBadge} data-connection={connection}>
+            <span className={`${styles.dot} ${dotClass}`} />
+            <span>{connection}</span>
+          </div>
+          <span className={styles.revBadge}>Rev #{state.revision}</span>
           <ThemeToggle />
           <Link href="/home" className={styles.account} aria-label="Open your account">
             Y
@@ -110,7 +125,7 @@ function InnerBuilderScreen() {
           }}
         />
       </div>
-    </main>
+    </div>
   );
 }
 

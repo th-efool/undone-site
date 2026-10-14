@@ -356,6 +356,9 @@ try {
   await disabled.goto('http://localhost:3108/');
   await disabled.getByLabel('What do you want to learn about?').fill('Private legacy learning goal');
   await disabled.getByRole('button',{ name:'Begin journey',exact:true }).click();
+  await disabled.waitForURL('**/quest/start');
+  await disabled.getByText('New builder intake is unavailable').waitFor();
+  await disabled.getByRole('link', { name: 'Continue with existing creator' }).click();
   await disabled.waitForURL('**/quest/new?handoff=1');
   await disabled.getByText('Private legacy learning goal',{ exact:true }).waitFor();
   assert(!disabled.url().includes('Private'));
