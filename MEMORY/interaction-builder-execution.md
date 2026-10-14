@@ -1,7 +1,9 @@
 # Interaction builder execution checkpoint
 
 STATUS: S3 IN PROGRESS — bounded pasted-text pipeline is worker-driven and restartable in revisioned workspace snapshots; plan-level job/artifact and live verification gates remain open.
-LAST_CHECKPOINT: `IB-S3-SOURCE-STATUS-RETRY-2026-10-14`
+LAST_CHECKPOINT: `IB-S3-COMPOSED-JOURNEY-2026-10-14`
+
+COMPOSED JOURNEY: canonical-text-repository.test.ts now runs the production repository through a thin PGlite/Prisma bridge, real durable ticks/artifacts/acceptance, actual AI SDK mock + generic assistant runner + cohort tools, SQL-backed transcript, public client store, persisted event delivery, source edit regeneration, pinned/manual orphan preservation, and reload. Second journey proves one failed source does not block the other source's chain and targeted retry preserves the successful source's exact artifact refs. Five canonical integration tests and root TypeScript pass. This is an isolated integration journey, not authenticated browser or separate-connection PostgreSQL verification. Docker Desktop start was attempted; engine remains unavailable. Next: local PostgreSQL alternative and actual browser fixture/gates; no S4 yet.
 
 STATUS/RETRY INTEGRATION: current graph exposes at most 81 safe job views in canonical processing state. Source acceptance/failure emits transactional workspace receipts/events; canonical retry_text_job preserves accepted prerequisites and attempts; cancel_text_processing revokes pending/running jobs. UI shows stage, failure and retry ceiling; chat tools share the same actions and receive job IDs in bounded context. Persisted durable driver marker prevents snapshot workers from processing migrated workspaces. Recovery bootstraps queued pre-cutover work and refreshes exhausted statuses. Focused integration/domain/UI suite: 26 files, 101 tests passed; TypeScript passed. Next: composed deterministic provider/client journey and actual PostgreSQL/browser gates. Shared schema still unapplied.
 
