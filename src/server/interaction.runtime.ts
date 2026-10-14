@@ -57,13 +57,19 @@ export async function executeAssistantTurn(ownerId: string, workspaceId: string)
   }
 }
 
-const handlers = createInteractionHandlers({
+const engineHandlers = createInteractionHandlers({
   repo: postgresInteractionRepo,
   domains: new Map([[cohortDomain.id, cohortDomain]]),
   runAssistant: async (ownerId, workspaceId) => {
     return await executeAssistantTurn(ownerId, workspaceId);
   },
 });
+const handlers = { ...engineHandlers, createWorkspace: async (ownerId: string, input: unknown) => {
+  if ((input as { domainId?: string } | null)?.domainId === 'cohort') {
+    return { status: 405, body: { code: 'USE_COHORT_INTAKE' } };
+  }
+  return engineHandlers.createWorkspace(ownerId, input);
+} };
 
 export function handleInteractionRequest(request: Request, segments: string[]) {
   return dispatchInteraction(request, segments, getCreationOwner, handlers);

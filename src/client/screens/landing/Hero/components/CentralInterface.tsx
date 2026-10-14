@@ -14,6 +14,7 @@ import { TextBar } from '@/src/client/components/ui';
 import { SuggestionPromptRow } from './SuggestionPromptRow';
 import { FeaturedCohortsStrip } from './FeaturedCohortsStrip';
 import styles from '../Hero.module.css';
+import { saveIntakeDraft } from '@/src/client/screens/cohortBuilder/intake-draft';
 const CATEGORIES = [
   'SideQuests',
   'Trending',
@@ -24,6 +25,10 @@ const CATEGORIES = [
 
 export function CentralInterface() {
   const [query, setQuery] = useState('');
+  const [showSource, setShowSource] = useState(false);
+  const [sourceText, setSourceText] = useState('');
+  const [intakeError, setIntakeError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('SideQuests');
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
@@ -38,14 +43,26 @@ export function CentralInterface() {
     }
   };
 
-  const handleSubmit = (valOrEvent?: string | React.FormEvent) => {
+  const handleSubmit = async (valOrEvent?: string | React.FormEvent) => {
     if (typeof valOrEvent === 'object' && valOrEvent && 'preventDefault' in valOrEvent) {
       valOrEvent.preventDefault();
     }
     const textToSearch = typeof valOrEvent === 'string' ? valOrEvent : query;
-    if (textToSearch.trim()) {
-      window.location.href = `/quest/new?q=${encodeURIComponent(textToSearch.trim())}`;
-    }
+    if (!textToSearch.trim() || submitting) return;
+    setSubmitting(true); setIntakeError('');
+    try {
+      const response = await fetch('/api/cohort-builder/intake', { cache: 'no-store' });
+      if (!response.ok) throw new Error('Intake unavailable');
+      const policy = await response.json();
+      if (!policy.enabled) {
+        if (sourceText.trim()) throw new Error('Pasted-text builder is not enabled for this account. Your text is retained here.');
+        window.location.href = `/quest/new?q=${encodeURIComponent(textToSearch.trim())}`;
+        return;
+      }
+      saveIntakeDraft({ requestId: crypto.randomUUID(), prompt: textToSearch.trim(),
+        ...(sourceText.trim() ? { source: { label: 'Pasted text', text: sourceText } } : {}) }, policy.ownerId);
+      window.location.href = '/quest/start';
+    } catch (error) { setIntakeError(error instanceof Error ? error.message : 'Intake unavailable'); setSubmitting(false); }
   };
 
   return (
@@ -102,7 +119,7 @@ export function CentralInterface() {
                 <Plus size={18} strokeWidth={2.2} />
               </button>
 
-              <button type="button" className={styles.promptPill}>
+              <button type="button" className={styles.promptPill} onClick={() => setShowSource(value => !value)} aria-expanded={showSource}>
                 <FileText size={17} strokeWidth={1.8} />
                 <span>Add sources</span>
               </button>
@@ -126,7 +143,7 @@ export function CentralInterface() {
 
               <span className={styles.promptDivider} aria-hidden="true" />
 
-              <button type="submit" className={styles.promptBeginBtn}>
+              <button type="submit" className={styles.promptBeginBtn} disabled={submitting}>
                 <span>Begin journey</span>
                 <ArrowRight size={17} strokeWidth={2.2} />
               </button>
@@ -134,6 +151,11 @@ export function CentralInterface() {
           </div>
         }
       />
+      {showSource && <label>Paste source text
+        <textarea aria-label="Paste source text" maxLength={200_000} value={sourceText}
+          onChange={event => setSourceText(event.target.value)} style={{ width: '100%', minHeight: 120 }} />
+      </label>}
+      {intakeError && <p role="alert">{intakeError}</p>}
 
       {/* Suggestion Prompt Cards Row (Unfinished pursuits) */}
       <SuggestionPromptRow onSelectPrompt={handleSelectPrompt} />

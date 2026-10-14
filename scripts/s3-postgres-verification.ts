@@ -99,6 +99,29 @@ try {
   assert.equal(events.length, final.sequence);
   assert.deepEqual(events.map(event => event.sequence), Array.from({ length: final.sequence }, (_, i) => i + 1));
   console.log('PASS real PostgreSQL restart, grounded completion and contiguous event sequence');
+  const { acceptCohortIntake } = await import('../src/server/infrastructure/db/postgres/cohort-intake');
+  const intake = { requestId: crypto.randomUUID(), prompt: 'Learn consensus', source: { label: 'Notes', text: '  Quorums overlap.\n' } };
+  const intakeReceipts = await Promise.all([acceptCohortIntake(ownerId, intake), acceptCohortIntake(ownerId, intake)]);
+  assert.deepEqual(intakeReceipts[0], intakeReceipts[1]);
+  const intakeId = intakeReceipts[0].workspaceId;
+  assert.equal(await prisma.interactionMessage.count({ where: { workspaceId: intakeId } }), 1);
+  assert.equal(await prisma.interactionRun.count({ where: { workspaceId: intakeId } }), 1);
+  assert.equal(await prisma.cohortTextJob.count({ where: { workspaceId: intakeId } }), 5);
+  const intakeState = cohortWorkspaceSchema.parse((await repo.loadWorkspace({ workspaceId: intakeId, ownerId }))!.snapshot);
+  assert.equal(intakeState.sources[0].text, intake.source.text);
+  await assert.rejects(acceptCohortIntake(ownerId, { ...intake, prompt: 'Different' }), /IDEMPOTENCY_MISMATCH/);
+  const other = await acceptCohortIntake(ownerId, { requestId: crypto.randomUUID(), prompt: 'No source yet' });
+  assert.notEqual(other.workspaceId, intakeId);
+  // A failing persisted event rolls back workspace, source jobs and scheduling together.
+  await pool.query(`CREATE FUNCTION s4a_reject_intake() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+    IF (SELECT snapshot->>'intent' FROM interaction_workspaces WHERE id=NEW."workspaceId") = 'Rollback intake'
+    THEN RAISE EXCEPTION 'TEST_INTAKE_ROLLBACK'; END IF; RETURN NEW; END $$`);
+  await pool.query(`CREATE TRIGGER s4a_reject_intake BEFORE INSERT ON interaction_events FOR EACH ROW EXECUTE FUNCTION s4a_reject_intake()`);
+  try {
+    await assert.rejects(acceptCohortIntake(ownerId, { ...intake, requestId: crypto.randomUUID(), prompt: 'Rollback intake' }));
+    assert.equal(await prisma.interactionWorkspace.count({ where: { ownerId, snapshot: { path: ['intent'], equals: 'Rollback intake' } } }), 0);
+  } finally { await pool.query('DROP TRIGGER s4a_reject_intake ON interaction_events'); await pool.query('DROP FUNCTION s4a_reject_intake()'); }
+  console.log('PASS atomic landing intake, concurrent/lost-response retry, mismatch and event rollback');
 } finally { await pool.end(); await prisma.$disconnect(); }
 }
 void main().catch(error => { console.error(error); process.exitCode = 1; });
