@@ -14,11 +14,15 @@ export function ExternalSources() {
     web: boolean;
     youtube?: boolean;
     youtubeUnavailableReason?: string;
-  }>({pdf:false,web:false,youtube:false});
+    github?: boolean;
+    githubUnavailableReason?: string;
+  }>({pdf:false,web:false,youtube:false,github:false});
   const [file,setFile]=useState<File|null>(null);const [label,setLabel]=useState('');const [url,setUrl]=useState('');
   const [ytUrl,setYtUrl]=useState('');const [ytLabel,setYtLabel]=useState('');
   const [ytTrackLang,setYtTrackLang]=useState('en');
   const [ytTrackKind,setYtTrackKind]=useState<'manual'|'automatic'>('manual');
+  const [ghUrl,setGhUrl]=useState('');const [ghLabel,setGhLabel]=useState('');
+  const [ghRef,setGhRef]=useState('main');const [ghPaths,setGhPaths]=useState('');
   const [busy,setBusy]=useState(false);const [error,setError]=useState('');
   const ticket=useRef<{requestId:string;revision:number;ownerId:string}|null>(null);
   useEffect(()=>{let active=true;const controller=new AbortController();
@@ -68,6 +72,28 @@ export function ExternalSources() {
         void dispatch({type:'add_youtube_source',label:ytLabel.trim()||ytUrl.trim(),url:ytUrl.trim(),track}).then(saved=>{if(saved){setYtUrl('');setYtLabel('');}}).finally(()=>setBusy(false));
       }}>Add YouTube source</button>
     </fieldset> : <div role="note" aria-label="YouTube unavailable"><p>YouTube transcript ingestion is currently unavailable ({capabilities.youtubeUnavailableReason??'TRANSCRIPT_PROVIDER_REQUIRED'}).</p></div>}
+    {capabilities.github ? <fieldset disabled={busy} className={styles.formField}><legend>Retain GitHub repository files</legend>
+      <label htmlFor="builder-gh-label">Repository title</label><input id="builder-gh-label" value={ghLabel} onChange={event=>setGhLabel(event.target.value)} maxLength={300} placeholder="e.g. Core Protocols"/>
+      <label htmlFor="builder-gh-url">Public GitHub repository URL</label><input id="builder-gh-url" type="url" value={ghUrl} onChange={event=>setGhUrl(event.target.value)} maxLength={2048} placeholder="https://github.com/owner/repo"/>
+      <label htmlFor="builder-gh-ref">Branch, tag, or commit</label><input id="builder-gh-ref" value={ghRef} onChange={event=>setGhRef(event.target.value)} maxLength={100} placeholder="main"/>
+      <label htmlFor="builder-gh-paths">Selected files (optional, comma or newline separated, up to 25 files)</label>
+      <textarea id="builder-gh-paths" rows={3} value={ghPaths} onChange={event=>setGhPaths(event.target.value)} placeholder="README.md&#10;src/index.ts"/>
+      <p>Public HTTPS GitHub repositories only, up to 25 text/code files (max 500 KB per file, 2 MiB total). No binary files, archives, lockfiles, or private repositories.</p>
+      <button disabled={!ghUrl.trim()} onClick={()=>{
+        setBusy(true);
+        const parsedPaths=ghPaths.split(/[\r\n,]+/).map(p=>p.trim()).filter(Boolean);
+        const action: CohortAction = {
+          type: 'add_github_source',
+          label: ghLabel.trim() || ghUrl.trim(),
+          repoUrl: ghUrl.trim(),
+          ref: ghRef.trim() || 'main',
+          ...(parsedPaths.length > 0 ? { paths: parsedPaths } : {}),
+        };
+        void dispatch(action).then(saved=>{
+          if(saved){ setGhUrl(''); setGhLabel(''); setGhRef('main'); setGhPaths(''); }
+        }).finally(()=>setBusy(false));
+      }}>Add GitHub source</button>
+    </fieldset> : <div role="note" aria-label="GitHub unavailable"><p>GitHub repository ingestion is currently unavailable ({capabilities.githubUnavailableReason??'GITHUB_CAPABILITY_DISABLED'}).</p></div>}
     {error && <div role="alert"><p>{error}. The selected file is retained; retry uses the same submission identity.</p>
       {error==='STALE_WORKSPACE' && <button onClick={()=>{ticket.current=null;setError('Review current workspace, then submit the retained file again.');}}>Use current revision for next attempt</button>}
     </div>}
@@ -80,6 +106,7 @@ export function ExternalSourceScope({source}:{source:CohortSource}) {
   const [pages,setPages]=useState(source.input?.kind==='pdf'?source.input.pages?.join(',')??'':'');
   const [startSeconds,setStartSeconds]=useState(source.input?.kind==='youtube' && source.input.scope ? String(Math.floor(source.input.scope.startMs/1000)) : '');
   const [endSeconds,setEndSeconds]=useState(source.input?.kind==='youtube' && source.input.scope ? String(Math.floor(source.input.scope.endMs/1000)) : '');
+  const [githubPaths,setGithubPaths]=useState(source.input?.kind==='github'?source.input.paths?.join(', ')??'':'');
   const [baseVersion,setBaseVersion]=useState(source.version);
   const [error,setError]=useState('');
   if(!source.input) return null;
@@ -117,6 +144,25 @@ export function ExternalSourceScope({source}:{source:CohortSource}) {
             });
           }}>Apply transcript scope</button>
           {source.version!==baseVersion && <span role="alert">Current scope: {currentScope}. Your selection is retained. <button onClick={()=>{setBaseVersion(source.version);setError('');}}>Use current source version for my transcript selection</button></span>}
+        </>;
+      })()}</>
+      :source.input.kind==='github'?<>{(() => {
+        const currentScope = source.input.paths?.length ? source.input.paths.join(', ') : 'all repository files';
+        return <><span> · Files: {currentScope}</span>
+          <label htmlFor={`paths-${source.id}`}>Selected files (comma-separated)</label>
+          <input id={`paths-${source.id}`} value={githubPaths} onChange={event=>setGithubPaths(event.target.value)} placeholder="e.g. README.md, src/index.ts"/>
+          <button onClick={()=>{
+            if(source.version!==baseVersion){setError('Scope changed elsewhere. Your file selection is retained; review the current scope before reapplying.');return;}
+            const selected=githubPaths.split(/[\r\n,]+/).map(p=>p.trim()).filter(Boolean);
+            if(selected.length===0){setError('Select at least one file.');return;}
+            if(selected.length>25){setError('Cannot select more than 25 files.');return;}
+            if(new Set(selected).size!==selected.length){setError('Duplicate file paths are not permitted.');return;}
+            void dispatch({type:'set_github_scope',sourceId:source.id,paths:selected},[{kind:'source',id:source.id,version:baseVersion}]).then(saved=>{
+              if(saved)setBaseVersion(baseVersion+1);
+              setError(saved?'':'Scope changed elsewhere. Your file selection is retained; review and retry.');
+            });
+          }}>Apply file scope</button>
+          {source.version!==baseVersion && <span role="alert">Current scope: {currentScope}. Your selection is retained. <button onClick={()=>{setBaseVersion(source.version);setError('');}}>Use current source version for my file selection</button></span>}
         </>;
       })()}</>
       :<><span> · {source.provenance?.scope??'acquisition pending'}</span><button onClick={()=>void dispatch({type:'refresh_web_source',sourceId:source.id},[{kind:'source',id:source.id,version:source.version}])}>Fetch a new web version</button></>}
