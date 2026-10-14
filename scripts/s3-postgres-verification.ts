@@ -135,6 +135,9 @@ try {
   const next = (await repo.claimRun({ workspaceId: queueId, leaseOwner: 'queue-two', leaseToken: 'second', leaseDurationMs: 60_000 }))!;
   assert.equal(next.triggeringMessageId, queuedIds[0]);
   assert(await repo.cancelRun({ runId: next.id, workspaceId: queueId, ownerId }));
+  const afterCancel = await prisma.interactionEvent.count({ where: { workspaceId: queueId } });
+  assert(await repo.cancelRun({ runId: next.id, workspaceId: queueId, ownerId }));
+  assert.equal(await prisma.interactionEvent.count({ where: { workspaceId: queueId } }),afterCancel);
   const { bindAssistantLease } = await import('../src/server/infrastructure/db/postgres/assistant-queue');
   await assert.rejects(bindAssistantLease(repo, next.id, 'second').appendMessage({ workspaceId: queueId, ownerId, id: crypto.randomUUID(), role: 'assistant', parts: [{ type: 'text', text: 'Late success' }] }), /RUN_CANCELED/);
   const third = (await repo.claimRun({ workspaceId: queueId, leaseOwner: 'queue-three', leaseToken: 'third', leaseDurationMs: 60_000 }))!;

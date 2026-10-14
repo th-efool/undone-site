@@ -56,7 +56,8 @@ export function CentralInterface() {
       const policy = await response.json();
       if (!policy.enabled) {
         if (sourceText.trim()) throw new Error('Pasted-text builder is not enabled for this account. Your text is retained here.');
-        window.location.href = `/quest/new?q=${encodeURIComponent(textToSearch.trim())}`;
+        saveIntakeDraft({ requestId:crypto.randomUUID(), prompt:textToSearch.trim() }, policy.ownerId);
+        window.location.href = '/quest/new?handoff=1';
         return;
       }
       saveIntakeDraft({ requestId: crypto.randomUUID(), prompt: textToSearch.trim(),
@@ -114,7 +115,8 @@ export function CentralInterface() {
               <button
                 type="button"
                 className={styles.promptPlusPill}
-                aria-label="Add attachment"
+                aria-label="Add pasted text source"
+                onClick={() => setShowSource(value => !value)}
               >
                 <Plus size={18} strokeWidth={2.2} />
               </button>
@@ -124,19 +126,19 @@ export function CentralInterface() {
                 <span>Add sources</span>
               </button>
 
-              <button type="button" className={styles.promptPill}>
+              <button type="button" className={styles.promptPill} disabled title="File uploads are not available in this intake yet">
                 <Paperclip size={17} strokeWidth={1.8} />
                 <span>Upload</span>
               </button>
 
-              <button type="button" className={styles.promptPill}>
+              <button type="button" className={styles.promptPill} disabled title="Templates are not available in this intake yet">
                 <Sparkles size={17} strokeWidth={1.8} />
                 <span>Use a template</span>
               </button>
             </div>
 
             <div className={styles.promptRightActions}>
-              <button type="button" className={styles.promptPlanBtn}>
+              <button type="button" className={styles.promptPlanBtn} disabled={submitting} onClick={() => void handleSubmit()}>
                 <Lightbulb size={18} strokeWidth={1.8} />
                 <span>Plan</span>
               </button>

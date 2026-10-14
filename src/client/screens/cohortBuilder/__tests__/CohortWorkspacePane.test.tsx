@@ -14,6 +14,20 @@ import { CohortWorkspacePane } from '../CohortWorkspacePane';
 afterEach(() => { cleanup(); fake.succeeds = true; });
 
 describe('grounded cohort workspace UI', () => {
+  it('requires deliberate overview conflict recovery and preserves untouched remote fields', async () => {
+    fake.actions = [];
+    fake.state = cohortWorkspaceSchema.parse({ schemaVersion: 1, title: 'Test', intent: 'Old goal', audience: 'Original', dailyMinutes: 20, lessons: [] });
+    const result = render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+    fireEvent.click(screen.getByRole('button', { name: /Edit details/ }));
+    fireEvent.change(screen.getByRole('dialog').querySelector('textarea')!, { target: { value: 'My changed goal' } });
+    fake.state = { ...fake.state, audience: 'Remote audience' };
+    result.rerender(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Save changes' })));
+    expect(fake.actions).toEqual([]);
+    fireEvent.click(screen.getByRole('button', { name: 'Keep my overview edits against current values' }));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Save changes' })));
+    expect(fake.actions).toEqual([{ type: 'set_intent', intent: 'My changed goal' }]);
+  });
   it('sends pasted text through the canonical action and shows retained evidence', async () => {
     fake.actions = [];
     fake.state = cohortWorkspaceSchema.parse({

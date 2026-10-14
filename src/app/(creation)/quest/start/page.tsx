@@ -7,5 +7,5 @@ export const dynamic = 'force-dynamic';
 export default async function StartCohortPage() {
   const ownerId = await getCreationOwner();
   if (!ownerId) redirect(creationSignInUrl('/quest/start'));
-  return <CohortIntakeScreen ownerId={ownerId} enabled={cohortIntakeEnabled(ownerId, process.env)} />;
+  return <CohortIntakeScreen key={ownerId} ownerId={ownerId} enabled={cohortIntakeEnabled(ownerId, process.env)} />;
 }

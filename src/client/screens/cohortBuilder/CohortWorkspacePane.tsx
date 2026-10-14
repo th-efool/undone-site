@@ -35,6 +35,7 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
     audience: workspace?.audience ?? '',
     dailyMinutes: workspace?.dailyMinutes ?? 20,
   });
+  const [overviewBase, setOverviewBase] = useState(overviewForm);
 
   const [editingLesson, setEditingLesson] = useState<CohortLesson | null>(null);
   const [lessonForm, setLessonForm] = useState({ title: '', objective: '' });
@@ -43,6 +44,8 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
   const [newLessonForm, setNewLessonForm] = useState({ title: '', objective: '' });
   const [sourceForm, setSourceForm] = useState({ label: '', text: '' });
   const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
+  const [editingSourceVersion, setEditingSourceVersion] = useState<number | null>(null);
+  const [sourceBase, setSourceBase] = useState(sourceForm);
 
   if (!workspace) {
     return <div className={styles.rightPane}>Loading workspace state...</div>;
@@ -50,15 +53,17 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
 
   // --- Handlers ---
   const handleOpenOverview = () => {
-    setOverviewForm({
+    const fields = {
       intent: workspace.intent,
       audience: workspace.audience,
       dailyMinutes: workspace.dailyMinutes,
-    });
+    };
+    setOverviewForm(fields); setOverviewBase(fields);
     setEditingOverview(true);
   };
 
   const handleSaveOverview = async () => {
+    if (overviewBase.intent !== workspace.intent || overviewBase.audience !== workspace.audience || overviewBase.dailyMinutes !== workspace.dailyMinutes) return;
     if (overviewForm.intent !== workspace.intent) {
       if (!await dispatchAction({ type: 'set_intent', intent: overviewForm.intent })) return;
     }
@@ -139,7 +144,7 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
     const action: CohortAction = editingSourceId
       ? { type: 'edit_text_source', sourceId: editingSourceId, label: sourceForm.label.trim(), text: sourceForm.text }
       : { type: 'add_text_source', label: sourceForm.label.trim(), text: sourceForm.text };
-    if (await dispatchAction(action)) {
+    if (await dispatchAction(action, editingSourceId ? [{ kind: 'source', id: editingSourceId, version: editingSourceVersion ?? 0 }] : [])) {
       setSourceForm({ label: '', text: '' });
       setEditingSourceId(null);
     }
@@ -189,10 +194,20 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
           <button className={styles.saveBtn} onClick={() => void handleAddSource()}>{editingSourceId ? 'Save source changes' : 'Add text source'}</button>
           {editingSourceId && <button className={styles.editActionBtn} onClick={() => { setEditingSourceId(null); setSourceForm({ label: '', text: '' }); }}>Cancel edit</button>}
         </div>
+        {editingSourceId && workspace.sources.find(source => source.id === editingSourceId)?.version !== editingSourceVersion && <div role="alert">
+          <p>This source changed or was removed. Your text is retained.</p>
+          {workspace.sources.some(source => source.id === editingSourceId) && <><details><summary>Compare current source</summary><p>{workspace.sources.find(source => source.id === editingSourceId)?.text}</p></details>
+            <button onClick={() => {
+              const current = workspace.sources.find(source => source.id === editingSourceId)!;
+              setSourceForm({ label: sourceForm.label === sourceBase.label ? current.label : sourceForm.label,
+                text: sourceForm.text === sourceBase.text ? current.text : sourceForm.text });
+              setSourceBase({ label: current.label, text: current.text }); setEditingSourceVersion(current.version);
+            }}>Use current source version and keep my edit</button></>}
+        </div>}
         {workspace.processing.error && <p role="alert">{workspace.processing.error}</p>}
         {workspace.processing.status === 'failed' && !workspace.processing.jobs?.length && <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'retry_processing' })}>Retry processing</button>}
         {workspace.sources.length > 0 && workspace.processing.status === 'ready' && <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'retry_processing' })}>Rebuild from sources</button>}
-        {workspace.sources.map(source => <p key={source.id} className={styles.intentText}>{source.label} · {source.state} <button className={styles.editActionBtn} onClick={() => { setEditingSourceId(source.id); setSourceForm({ label: source.label, text: source.text }); }}>Edit</button> <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'remove_source', sourceId: source.id })}>Remove</button></p>)}
+        {workspace.sources.map(source => <p key={source.id} className={styles.intentText}>{source.label} · {source.state} <button className={styles.editActionBtn} onClick={() => { setEditingSourceId(source.id); setEditingSourceVersion(source.version); setSourceForm({ label: source.label, text: source.text }); setSourceBase({ label: source.label, text: source.text }); }}>Edit</button> <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'remove_source', sourceId: source.id }, [{ kind: 'source', id: source.id, version: source.version }])}>Remove</button></p>)}
         {workspace.processing.jobs?.length ? <section aria-label="Source processing jobs" aria-live="polite">
           {workspace.processing.jobs.map(job => <p key={job.id}>
             {workspace.sources.find(source => source.id === job.sourceId)?.label ?? 'Curriculum'} · {job.stage} · {job.status}
@@ -313,10 +328,20 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
         <div className={styles.modalBackdrop}>
           <BuilderDialog label="Edit Cohort Overview" onClose={() => setEditingOverview(false)}>
             <h3>Edit Cohort Overview</h3>
+            {(overviewBase.intent !== workspace.intent || overviewBase.audience !== workspace.audience || overviewBase.dailyMinutes !== workspace.dailyMinutes) && <div role="alert">
+              <p>Overview changed while you were editing. Current: {workspace.intent} · {workspace.audience} · {workspace.dailyMinutes} minutes.</p>
+              <button onClick={() => {
+                setOverviewForm({ intent: overviewForm.intent === overviewBase.intent ? workspace.intent : overviewForm.intent,
+                  audience: overviewForm.audience === overviewBase.audience ? workspace.audience : overviewForm.audience,
+                  dailyMinutes: overviewForm.dailyMinutes === overviewBase.dailyMinutes ? workspace.dailyMinutes : overviewForm.dailyMinutes });
+                setOverviewBase({ intent: workspace.intent, audience: workspace.audience, dailyMinutes: workspace.dailyMinutes });
+              }}>Keep my overview edits against current values</button>
+            </div>}
 
             <div className={styles.formField}>
               <label>Learning Intent</label>
               <textarea
+                aria-label="Learning intent"
                 rows={3}
                 value={overviewForm.intent}
                 onChange={e => setOverviewForm({ ...overviewForm, intent: e.target.value })}
@@ -326,6 +351,7 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
             <div className={styles.formField}>
               <label>Target Audience</label>
               <input
+                aria-label="Target audience"
                 type="text"
                 value={overviewForm.audience}
                 onChange={e => setOverviewForm({ ...overviewForm, audience: e.target.value })}
@@ -335,6 +361,7 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
             <div className={styles.formField}>
               <label>Daily Minutes</label>
               <input
+                aria-label="Daily minutes"
                 type="number"
                 min={1}
                 max={1440}
@@ -365,12 +392,18 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
             {workspace.lessons.find(lesson => lesson.id === editingLesson.id)?.version !== editingLesson.version && <div role="alert">
               <p>This lesson changed while you were editing. Your writing is retained.</p>
               <p>Current objective: {workspace.lessons.find(lesson => lesson.id === editingLesson.id)?.objective ?? 'Lesson removed'}</p>
-              {workspace.lessons.some(lesson => lesson.id === editingLesson.id) && <button onClick={() => setEditingLesson(workspace.lessons.find(lesson => lesson.id === editingLesson.id)!)}>Use current version and keep my edit</button>}
+              {workspace.lessons.some(lesson => lesson.id === editingLesson.id) && <button onClick={() => {
+                const current = workspace.lessons.find(lesson => lesson.id === editingLesson.id)!;
+                setLessonForm({ title: lessonForm.title === editingLesson.title ? current.title : lessonForm.title,
+                  objective: lessonForm.objective === editingLesson.objective ? current.objective : lessonForm.objective });
+                setEditingLesson(current);
+              }}>Use current version and keep my edit</button>}
             </div>}
 
             <div className={styles.formField}>
               <label>Title {editingLesson.pinned && '(Locked: unpin to edit)'}</label>
               <input
+                aria-label="Lesson title"
                 type="text"
                 disabled={editingLesson.pinned}
                 value={lessonForm.title}
@@ -381,6 +414,7 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
             <div className={styles.formField}>
               <label>Learning Objective</label>
               <textarea
+                aria-label="Learning objective"
                 rows={4}
                 value={lessonForm.objective}
                 onChange={e => setLessonForm({ ...lessonForm, objective: e.target.value })}
@@ -408,6 +442,7 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
             <div className={styles.formField}>
               <label>Title</label>
               <input
+                aria-label="New lesson title"
                 type="text"
                 placeholder="e.g. Asynchronous Job Queues"
                 value={newLessonForm.title}
@@ -418,6 +453,7 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
             <div className={styles.formField}>
               <label>Learning Objective</label>
               <textarea
+                aria-label="New lesson objective"
                 rows={4}
                 placeholder="What will the learner master in this lesson?"
                 value={newLessonForm.objective}

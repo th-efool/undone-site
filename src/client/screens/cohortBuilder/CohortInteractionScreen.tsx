@@ -55,14 +55,15 @@ function InnerBuilderScreen() {
         </div>
 
         <div className={styles.topMeta}>
-          {state.lastReceipt && (
+          <span role="status">{Object.keys(state.pending).length ? 'Saving…' : connection === 'live' ? 'Saved' : 'Last saved state'}</span>
+          {state.lastReceipt && !Object.keys(state.pending).length && (
             <div className={styles.receiptNotice} role="status">
               <CheckCircle2 size={14} />
               <span>{state.lastReceipt.summary}</span>
             </div>
           )}
 
-          {state.lastError && (
+          {state.lastError && !state.messages?.some(message => message.id === state.lastError!.actionId) && (
             <div className={styles.errorNotice} role="alert">
               <AlertCircle size={14} />
               <span>Action error: {state.lastError.code}</span>
