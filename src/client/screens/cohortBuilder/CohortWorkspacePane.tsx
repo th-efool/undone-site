@@ -362,6 +362,11 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
         <div className={styles.modalBackdrop}>
           <BuilderDialog label="Edit Lesson" onClose={() => setEditingLesson(null)}>
             <h3>Edit Lesson</h3>
+            {workspace.lessons.find(lesson => lesson.id === editingLesson.id)?.version !== editingLesson.version && <div role="alert">
+              <p>This lesson changed while you were editing. Your writing is retained.</p>
+              <p>Current objective: {workspace.lessons.find(lesson => lesson.id === editingLesson.id)?.objective ?? 'Lesson removed'}</p>
+              {workspace.lessons.some(lesson => lesson.id === editingLesson.id) && <button onClick={() => setEditingLesson(workspace.lessons.find(lesson => lesson.id === editingLesson.id)!)}>Use current version and keep my edit</button>}
+            </div>}
 
             <div className={styles.formField}>
               <label>Title {editingLesson.pinned && '(Locked: unpin to edit)'}</label>

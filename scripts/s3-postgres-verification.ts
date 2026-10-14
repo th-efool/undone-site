@@ -122,6 +122,35 @@ try {
     assert.equal(await prisma.interactionWorkspace.count({ where: { ownerId, snapshot: { path: ['intent'], equals: 'Rollback intake' } } }), 0);
   } finally { await pool.query('DROP TRIGGER s4a_reject_intake ON interaction_events'); await pool.query('DROP FUNCTION s4a_reject_intake()'); }
   console.log('PASS atomic landing intake, concurrent/lost-response retry, mismatch and event rollback');
+  const queueId = other.workspaceId;
+  const firstRun = (await repo.claimRun({ workspaceId: queueId, leaseOwner: 'queue-one', leaseToken: 'first', leaseDurationMs: 60_000 }))!;
+  assert(firstRun);
+  const queuedIds: string[] = [];
+  for (let i = 0; i < 5; i++) {
+    const id = crypto.randomUUID(); queuedIds.push(id);
+    await repo.appendMessage({ workspaceId: queueId, ownerId, id, role: 'user', parts: [{ type: 'text', text: `Queued ${i}` }], requestId: id });
+  }
+  await assert.rejects(repo.appendMessage({ workspaceId: queueId, ownerId, id: crypto.randomUUID(), role: 'user', parts: [{ type: 'text', text: 'Overflow' }] }), /MESSAGE_QUEUE_FULL/);
+  assert(await repo.completeRun({ runId: firstRun.id, leaseToken: 'first' }));
+  const next = (await repo.claimRun({ workspaceId: queueId, leaseOwner: 'queue-two', leaseToken: 'second', leaseDurationMs: 60_000 }))!;
+  assert.equal(next.triggeringMessageId, queuedIds[0]);
+  assert(await repo.cancelRun({ runId: next.id, workspaceId: queueId, ownerId }));
+  const { bindAssistantLease } = await import('../src/server/infrastructure/db/postgres/assistant-queue');
+  await assert.rejects(bindAssistantLease(repo, next.id, 'second').appendMessage({ workspaceId: queueId, ownerId, id: crypto.randomUUID(), role: 'assistant', parts: [{ type: 'text', text: 'Late success' }] }), /RUN_CANCELED/);
+  const third = (await repo.claimRun({ workspaceId: queueId, leaseOwner: 'queue-three', leaseToken: 'third', leaseDurationMs: 60_000 }))!;
+  assert.equal(third.triggeringMessageId, queuedIds[1]);
+  await prisma.interactionRun.update({ where: { id: third.id }, data: { leaseUntil: new Date(Date.now() - 1000) } });
+  const reclaimed = (await repo.claimRun({ workspaceId: queueId, leaseOwner: 'replacement', leaseToken: 'replacement', leaseDurationMs: 60_000 }))!;
+  assert.equal(reclaimed.id, third.id);
+  await assert.rejects(bindAssistantLease(repo, third.id, 'third').appendMessage({ workspaceId: queueId, ownerId, id: crypto.randomUUID(), role: 'assistant', parts: [{ type: 'text', text: 'Old worker' }] }), /FENCE_EXPIRED/);
+  assert(await repo.failRun({ runId: third.id, leaseToken: 'replacement', error: 'TEST_PROVIDER_FAILURE' }));
+  for (const expected of queuedIds.slice(2)) {
+    const run = (await repo.claimRun({ workspaceId: queueId, leaseOwner: 'drain', leaseToken: expected, leaseDurationMs: 60_000 }))!;
+    assert.equal(run.triggeringMessageId, expected);
+    assert(await repo.completeRun({ runId: run.id, leaseToken: expected }));
+  }
+  assert.equal(await repo.claimRun({ workspaceId: queueId, leaseOwner: 'empty', leaseToken: 'empty', leaseDurationMs: 60_000 }), null);
+  console.log('PASS persisted FIFO admission, bounded queue, cancellation/replacement transcript fences and terminal recovery');
 } finally { await pool.end(); await prisma.$disconnect(); }
 }
 void main().catch(error => { console.error(error); process.exitCode = 1; });
