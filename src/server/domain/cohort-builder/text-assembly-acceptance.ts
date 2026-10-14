@@ -6,6 +6,7 @@ import type { TextJobTransactionPort } from './text-job-scheduler';
 import { acceptTextJob, type ClaimedTextJob } from './text-jobs';
 import { createTextAssemblyProcessor } from './text-assembly-processor';
 import { computeTextStage, sourceFingerprint } from './text-pipeline';
+import { commitTextProjection } from './text-projection-commit';
 
 /** Atomically accepts assembly and projects only validated generated lessons. */
 export async function acceptAssemblyProjection(
@@ -16,7 +17,7 @@ export async function acceptAssemblyProjection(
 ): Promise<boolean> {
   return port.transaction(async tx => {
     if (job.stage !== 'assembly' || job.sourceId !== null || job.sourceVersion !== null) return false;
-    const row = (await tx.query(`SELECT "snapshot", "revision" FROM "interaction_workspaces" WHERE "id" = $1 FOR UPDATE`, [job.workspaceId])).rows[0];
+    const row = (await tx.query(`SELECT "snapshot", "revision" FROM "interaction_workspaces" WHERE "id" = $1 AND "lifecycle" = 'active' AND "domainId" = 'cohort' FOR UPDATE`, [job.workspaceId])).rows[0];
     if (!row) return false;
     const state = cohortWorkspaceSchema.parse(typeof row.snapshot === 'string' ? JSON.parse(row.snapshot) : row.snapshot);
     const jobRow = (await tx.query(`SELECT "jobKey", "stage", "sourceId", "sourceVersion", "dependencyFingerprint"
@@ -43,9 +44,7 @@ export async function acceptAssemblyProjection(
       processing: { ...state.processing, status: 'ready', stage: 'done', sourceFingerprint: sourceFingerprint(state), error: null },
     });
     if (!await acceptTextJob(tx, job, artifact, now)) return false;
-    const updated = await tx.query(`UPDATE "interaction_workspaces" SET "snapshot" = $1::jsonb, "revision" = "revision" + 1
-      WHERE "id" = $2 AND "revision" = $3 RETURNING "revision"`, [JSON.stringify(next), job.workspaceId, Number(row.revision)]);
-    if (updated.rows.length !== 1) throw new Error('ASSEMBLY_PROJECTION_CONFLICT');
+    await commitTextProjection(tx, job.workspaceId, state, next, Number(row.revision), `text-assembly:${job.id}:${job.fence}`, 'Grounded lessons accepted.');
     return true;
   });
 }

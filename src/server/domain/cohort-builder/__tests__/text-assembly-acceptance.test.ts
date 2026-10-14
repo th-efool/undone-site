@@ -10,7 +10,7 @@ import { runDurableTextJobTick } from '../durable-text-worker';
 import { createTextAssemblyProcessor } from '../text-assembly-processor';
 
 const migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
-const workspaceId = 'workspace-a';
+const workspaceId = '7d4e49d0-bad0-4aba-a777-122326020001';
 const now = new Date('2030-01-01T00:00:00.000Z');
 const state = (): CohortWorkspace => cohortWorkspaceSchema.parse({ schemaVersion: 1, title: 'Systems', intent: 'Learn consensus', audience: 'Engineers', dailyMinutes: 25,
   lessons: [{ id: 'manual:one', version: 0, title: 'Pinned', objective: 'Keep', sourceChunkIds: ['source-a:v0:0'], pinned: true }],
@@ -19,7 +19,11 @@ const state = (): CohortWorkspace => cohortWorkspaceSchema.parse({ schemaVersion
 
 async function setup() {
   const db = new PGlite();
-  await db.exec('CREATE TABLE "interaction_workspaces" ("id" TEXT PRIMARY KEY, "snapshot" JSONB NOT NULL, "revision" INTEGER NOT NULL DEFAULT 0)');
+  await db.exec(`CREATE TABLE "interaction_workspaces" ("id" TEXT PRIMARY KEY, "snapshot" JSONB NOT NULL,
+    "revision" INTEGER NOT NULL DEFAULT 0, "sequence" INTEGER NOT NULL DEFAULT 0, "contextEpoch" INTEGER NOT NULL DEFAULT 0,
+    "lifecycle" TEXT DEFAULT 'active', "domainId" TEXT DEFAULT 'cohort', "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE "interaction_events" ("id" TEXT PRIMARY KEY, "workspaceId" TEXT, "sequence" INTEGER,
+    "protocolVersion" INTEGER, "type" TEXT, "revision" INTEGER, "payload" JSONB, UNIQUE ("workspaceId", "sequence"));`);
   await db.exec(migration);
   const sql: TextArtifactSql = { query: async (statement, parameters) => db.query<Record<string, unknown>>(statement, parameters) };
   const port: TextJobTransactionPort = { transaction: work => db.transaction(tx => work({ query: async (s, p) => tx.query<Record<string, unknown>>(s, p) })) };
@@ -49,6 +53,19 @@ describe('atomic assembly acceptance and projection', () => {
       expect(projected.chunks).toHaveLength(1);
       expect(projected.analyses).toHaveLength(1);
       expect(projected.sources[0].state).toBe('ready');
+      const event = (await db.query<{ sequence: number; payload: { revision: number; baseRevision: number } }>(`SELECT "sequence", "payload" FROM "interaction_events"`)).rows[0];
+      expect(event.sequence).toBe(1);
+      expect(event.payload).toMatchObject({ revision: 1, baseRevision: 0 });
+    } finally { await db.close(); }
+  }, 30_000);
+
+  it('rolls job acceptance and projection back when event persistence fails', async () => {
+    const { db, port, job, assembly } = await setup();
+    try {
+      await db.exec(`ALTER TABLE "interaction_events" ADD CONSTRAINT "reject_event" CHECK ("sequence" < 0)`);
+      await expect(acceptAssemblyProjection(port, job, assembly, now)).rejects.toThrow();
+      expect((await db.query<{ revision: number }>(`SELECT "revision" FROM "interaction_workspaces"`)).rows[0].revision).toBe(0);
+      expect((await db.query<{ status: string }>(`SELECT "status" FROM "cohort_text_jobs" WHERE "id" = $1`, [job.id])).rows[0].status).toBe('running');
     } finally { await db.close(); }
   }, 30_000);
 
