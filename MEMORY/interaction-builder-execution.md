@@ -2,7 +2,9 @@
 
 STATUS: S4B IN PROGRESS. S3/S4A locally verified; shared rollout remains pending authorization.
 LAST_CHECKPOINT: `IB-S4A-INTEGRATED-JOURNEY-2026-10-14`
-NEXT: S4B checkpoint 3 durable integration. Plan: `plans/interaction-builder/s4b-checkpoints.md`. Do not activate shared durable processing before authorized schema rollout.
+NEXT: S4B checkpoint 4 UI/chat parity. Plan: `plans/interaction-builder/s4b-checkpoints.md`. Do not activate shared durable processing before authorized schema rollout.
+
+S4B checkpoint 3: durable external sources add extraction between acquisition and understanding; input/parser fingerprints exclude derived projections. Handler version 2 prevents old workers claiming external jobs. Accepted raw/extraction IDs, text and provenance project atomically with persisted events; extraction is re-derived before locking and assembly verifies owned accepted retention. PDF page changes reuse bytes; unaffected web analysis remains accepted. Composed PGlite tests cover both actual parsers through canonical actions/jobs/assembly/events, fabricated extraction and event rollback. Focused host suite and TypeScript pass; separate-connection PostgreSQL/browser S4B gates remain checkpoint 5, not satisfied by these tests. Checkpoint 2 `a25602b` pushed with planning.
 
 S4B checkpoint 2: `source-adapters.ts` reuses pinned HTTPS acquisition and isolated PDF/HTML parsing. Retains exact web response; immutable checksum checked before extraction; page scope and location coverage validated. PDF 2 MiB/200 pages, web 1 MiB, output 200,000 UTF-8 bytes; unsupported scanned/encrypted PDFs fail, no OCR. `source-web.worker.mjs` has 192 MiB/20s parser limits. Focused source-adapter + existing PDF/web acquisition/transport tests: 4 files/77 tests passed; root TypeScript exit 0. Not yet connected to durable processing or UI. Checkpoint 1 `7ac3b3f` pushed with planning.
 

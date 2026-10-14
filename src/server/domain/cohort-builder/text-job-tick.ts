@@ -2,7 +2,7 @@ import { putTextArtifact, type CohortTextArtifactKind, type TextArtifactRef, typ
 import { claimTextJob, failTextJob, heartbeatTextJob, type ClaimedTextJob } from './text-jobs';
 
 const artifactKind: Record<string, CohortTextArtifactKind> = {
-  acquisition: 'source_raw', understanding: 'understanding', chunking: 'chunks',
+  acquisition: 'source_raw', extraction: 'extraction', understanding: 'understanding', chunking: 'chunks',
   analysis: 'analysis', assembly: 'assembly',
 };
 

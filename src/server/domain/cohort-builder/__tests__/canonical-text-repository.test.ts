@@ -14,6 +14,10 @@ import { createAiSdkModelAdapter } from 'interaction-builder/adapters/ai';
 import { MockLanguageModelV4 } from 'ai/test';
 import { createCohortAiTools } from '../tools';
 import { cohortDomain } from '../domain';
+import { putTextArtifact } from '../text-artifacts';
+import { sourcePdf } from './source-fixture';
+import { createTextSourceProcessor } from '../text-source-processor';
+import { acceptCurrentTextJob } from '../text-job-acceptance';
 
 afterEach(() => vi.unstubAllEnvs());
 const id = '7d4e49d0-bad0-4aba-a777-122326020001';
@@ -70,6 +74,54 @@ async function fixture() {
 }
 
 describe('production canonical text repository integration', () => {
+  it('rejects fabricated extraction and rolls acceptance back if canonical events fail',async()=>{
+    vi.stubEnv('INTERACTION_TEXT_DRIVER','durable');vi.stubEnv('INTERACTION_WEB_ENABLED','1');
+    const {db,repo,input,sql,port}=await fixture();
+    try {
+      await db.exec(readFileSync(new URL('../../../../../prisma/interaction-s4b-sources.sql',import.meta.url),'utf8'));
+      await repo.commitAction({...input,envelope:{...input.envelope,action:{type:'add_web_source',sourceId:'web-source',label:'Web',url:'https://docs.example.org/quorum'}}});
+      const now=()=>new Date('2030-01-01');
+      const loadWorkspace=async()=> (await sql.query(`SELECT snapshot FROM interaction_workspaces WHERE id=$1`,[id])).rows[0].snapshot;
+      expect((await runDurableTextJobTick({sql,transaction:port,workerId:'first',leaseMs:60000,now,loadWorkspace,
+        webTransport:{resolve:async()=>[{address:'93.184.216.34',family:4}],open:async()=>({status:200,headers:{'content-type':'text/plain'},bytes:(async function*(){yield Buffer.from('Quorums overlap.');})(),close:()=>{}})}})).status).toBe('accepted');
+      const job=(await claimTextJob(sql,'replacement',now(),60000))!;expect(job.stage).toBe('extraction');
+      const bytes=await createTextSourceProcessor({sql,loadWorkspace})(job);
+      const valid=JSON.parse(Buffer.from(bytes).toString());const bad=Buffer.from(JSON.stringify({...valid,text:'Fabricated claim',locations:[{start:0,end:16}]}));
+      const forged=await putTextArtifact(sql,{workspaceId:id,sourceId:job.sourceId!,sourceVersion:job.sourceVersion!,kind:'extraction',inputFingerprint:job.dependencyFingerprint,bytes:bad});
+      await expect(acceptCurrentTextJob(port,job,forged,now())).rejects.toThrow('FABRICATED_SOURCE_EXTRACTION');
+      const artifact=await putTextArtifact(sql,{workspaceId:id,sourceId:job.sourceId!,sourceVersion:job.sourceVersion!,kind:'extraction',inputFingerprint:job.dependencyFingerprint,bytes});
+      await db.exec(`ALTER TABLE interaction_events ADD CHECK (sequence < 0) NOT VALID`);
+      await expect(acceptCurrentTextJob(port,job,artifact,now())).rejects.toThrow();
+      expect((await sql.query(`SELECT status FROM cohort_text_jobs WHERE id=$1`,[job.id])).rows[0].status).toBe('running');
+      expect(cohortWorkspaceSchema.parse(await loadWorkspace()).sources[0].extractionId).toBeUndefined();
+    } finally {await db.close();}
+  },30000);
+  it('composes canonical PDF/web intake, retained extraction, assembly, scope reuse and events',async()=>{
+    vi.stubEnv('INTERACTION_TEXT_DRIVER','durable');vi.stubEnv('INTERACTION_PDF_ENABLED','1');vi.stubEnv('INTERACTION_WEB_ENABLED','1');
+    const {db,repo,input,sql,port}=await fixture();
+    try {
+      await db.exec(readFileSync(new URL('../../../../../prisma/interaction-s4b-sources.sql',import.meta.url),'utf8'));
+      const upload=await putTextArtifact(sql,{workspaceId:id,kind:'source_input',inputFingerprint:'a'.repeat(64),bytes:sourcePdf(['Quorums overlap.','Majorities prevent conflict.'])});
+      const read=async()=>{const row=(await sql.query(`SELECT snapshot,revision FROM interaction_workspaces WHERE id=$1`,[id])).rows[0];return {state:cohortWorkspaceSchema.parse(row.snapshot),revision:Number(row.revision)};};
+      const commit=async(action:unknown,entityVersions:unknown[]=[])=>{const row=await read();return repo.commitAction({...input,requestId:crypto.randomUUID(),expectedRevision:row.revision,envelope:{...input.envelope,actionId:crypto.randomUUID(),expectedRevision:row.revision,entityVersions,action}});};
+      await commit({type:'add_pdf_source',sourceId:'pdf-source',uploadId:upload.id,label:'PDF'});
+      await commit({type:'add_web_source',sourceId:'web-source',url:'https://docs.example.org/quorums',label:'Web'});
+      const open=vi.fn(async()=>({status:200,headers:{'content-type':'text/plain'},bytes:(async function*(){yield Buffer.from('Majority voting ensures quorum overlap.');})(),close:()=>{}}));
+      const tick=()=>runDurableTextJobTick({sql,transaction:port,workerId:'composed',leaseMs:60000,now:()=>new Date('2030-01-01'),loadWorkspace:async()=> (await read()).state,
+        webTransport:{resolve:async()=>[{address:'93.184.216.34',family:4}],open}});
+      for(let i=0;i<11;i++) expect((await tick()).status).toBe('accepted');
+      let row=await read();expect(row.state.processing.status).toBe('ready');expect(row.state.lessons.length).toBe(3);
+      expect(row.state.sources[0].locations?.map(item=>item.page)).toEqual([1,2]);expect(row.state.sources[1].provenance?.finalUrl).toBe('https://docs.example.org/quorums');
+      const webAnalysis=(await sql.query(`SELECT id FROM cohort_text_jobs WHERE "sourceId"='web-source' AND stage='analysis' AND status='accepted'`,[])).rows[0].id;
+      await commit({type:'set_pdf_pages',sourceId:'pdf-source',pages:[2]},[{kind:'source',id:'pdf-source',version:row.state.sources[0].version}]);
+      for(let i=0;i<6;i++) expect((await tick()).status).toBe('accepted');
+      row=await read();expect(row.state.sources[0].text).toBe('Majorities prevent conflict.');expect(row.state.processing.status).toBe('ready');
+      expect((await sql.query(`SELECT status FROM cohort_text_jobs WHERE id=$1`,[webAnalysis])).rows[0].status).toBe('accepted');
+      expect(open).toHaveBeenCalledOnce();expect((await tick()).status).toBe('idle');
+      const events=(await sql.query(`SELECT revision,sequence FROM interaction_events ORDER BY sequence`,[])).rows;
+      expect(events.length).toBe(row.revision);expect(events.map(event=>event.sequence)).toEqual(Array.from({length:events.length},(_,i)=>i+1));
+    } finally {await db.close();}
+  },30000);
   it('commits source, DAG, receipt and event once through the authorized action path', async () => {
     vi.stubEnv('INTERACTION_TEXT_DRIVER', 'durable');
     const { db, repo, input } = await fixture();

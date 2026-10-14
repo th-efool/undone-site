@@ -28,7 +28,7 @@ describe('owned retained text artifact store', () => {
 
   it('rejects oversized and incoherent source identities before persistence', async () => {
     const neverSql: TextArtifactSql = { query: async () => { throw new Error('UNEXPECTED_SQL'); } };
-    await expect(putTextArtifact(neverSql, { workspaceId: 'owner-a', kind: 'source_raw', inputFingerprint: 'f', bytes: new Uint8Array(200_001) })).rejects.toThrow('ARTIFACT_SIZE_LIMIT');
+    await expect(putTextArtifact(neverSql, { workspaceId: 'owner-a', kind: 'source_raw', inputFingerprint: 'f', bytes: new Uint8Array(2*1024*1024+1) })).rejects.toThrow('ARTIFACT_SIZE_LIMIT');
     await expect(putTextArtifact(neverSql, { workspaceId: 'owner-a', kind: 'analysis', sourceId: 'source-1', inputFingerprint: 'f', bytes: Buffer.from('ok') })).rejects.toThrow('INVALID_SOURCE_IDENTITY');
   });
 });

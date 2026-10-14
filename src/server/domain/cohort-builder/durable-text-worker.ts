@@ -6,6 +6,7 @@ import type { TextJobTransactionPort } from './text-job-scheduler';
 import { createTextAssemblyProcessor } from './text-assembly-processor';
 import { createTextSourceProcessor } from './text-source-processor';
 import { failCurrentTextJob } from './text-job-failure';
+import type { WebTransport } from '../cohort-creation/materials/web-fetch';
 
 /** Durable S3 driver composition. It is injectable and remains opt-in until migration rollout. */
 export function runDurableTextJobTick(input: {
@@ -15,8 +16,9 @@ export function runDurableTextJobTick(input: {
   leaseMs: number;
   now: () => Date;
   loadWorkspace: (workspaceId: string) => Promise<unknown>;
+  webTransport?: WebTransport;
 }): Promise<TextJobTickResult> {
-  const source = createTextSourceProcessor({ sql: input.sql, loadWorkspace: input.loadWorkspace });
+  const source = createTextSourceProcessor({ sql: input.sql, loadWorkspace: input.loadWorkspace, webTransport:input.webTransport });
   const assembly = createTextAssemblyProcessor({ sql: input.sql, loadWorkspace: input.loadWorkspace });
   return runTextJobTick({
     sql: input.sql, workerId: input.workerId, leaseMs: input.leaseMs, now: input.now, renewLease: true,

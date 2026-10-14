@@ -8,6 +8,7 @@ import { createTextAssemblyProcessor } from './text-assembly-processor';
 import { computeTextStage, sourceFingerprint } from './text-pipeline';
 import { commitTextProjection } from './text-projection-commit';
 import { textJobStatus } from './text-job-status';
+import { validateRetainedSourceEvidence } from './source-evidence';
 
 /** Atomically accepts assembly and projects only validated generated lessons. */
 export async function acceptAssemblyProjection(
@@ -16,6 +17,12 @@ export async function acceptAssemblyProjection(
   artifact: Pick<TextArtifactRef, 'id' | 'workspaceId' | 'kind' | 'inputFingerprint' | 'checksum'>,
   now: Date,
 ): Promise<boolean> {
+  // Warm trusted parser results before acquiring the canonical lock. Acceptance
+  // repeats artifact/identity checks inside the transaction; no accepted blob seeds cache.
+  await port.transaction(async tx=>{
+    const row=(await tx.query(`SELECT "snapshot" FROM "interaction_workspaces" WHERE "id"=$1 AND "lifecycle"='active' AND "domainId"='cohort'`,[job.workspaceId])).rows[0];
+    if(row) await validateRetainedSourceEvidence(tx,job.workspaceId,cohortWorkspaceSchema.parse(row.snapshot));
+  });
   return port.transaction(async tx => {
     if (job.stage !== 'assembly' || job.sourceId !== null || job.sourceVersion !== null) return false;
     const row = (await tx.query(`SELECT "snapshot", "revision" FROM "interaction_workspaces" WHERE "id" = $1 AND "lifecycle" = 'active' AND "domainId" = 'cohort' FOR UPDATE`, [job.workspaceId])).rows[0];

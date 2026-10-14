@@ -1,7 +1,9 @@
 import { createHash } from 'node:crypto';
 import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
+import { PDF_PARSER_VERSION } from '../cohort-creation/materials/pdf-identity';
+import { WEB_PARSER_VERSION } from '../cohort-creation/materials/web-identity';
 
-export type TextJobStage = 'acquisition' | 'understanding' | 'chunking' | 'analysis' | 'assembly';
+export type TextJobStage = 'acquisition' | 'extraction' | 'understanding' | 'chunking' | 'analysis' | 'assembly';
 
 export interface TextJobIntent {
   jobKey: string;
@@ -20,7 +22,8 @@ export function planTextJobs(state: CohortWorkspace): TextJobIntent[] {
   const jobs: TextJobIntent[] = [];
   const analysisKeys: string[] = [];
   for (const source of [...state.sources].sort((a, b) => a.id.localeCompare(b.id))) {
-    const sourceIdentity = [source.id, source.version, digest(source.text)];
+    // Derived extraction projections must not change the graph that produced them.
+    const sourceIdentity = [source.id, source.version, digest(source.input ?? source.text)];
     const stage = (name: Exclude<TextJobStage, 'assembly'>, inputs: unknown[], prerequisites: string[]): TextJobIntent => {
       const dependencyFingerprint = digest([name, algorithmVersion, sourceIdentity, ...inputs]);
       const intent: TextJobIntent = {
@@ -32,7 +35,8 @@ export function planTextJobs(state: CohortWorkspace): TextJobIntent[] {
       return intent;
     };
     const acquisition = stage('acquisition', [], []);
-    const understanding = stage('understanding', [acquisition.jobKey], [acquisition.jobKey]);
+    const retained = source.input ? stage('extraction', ['cohort-extraction-v1', source.input.kind === 'pdf' ? PDF_PARSER_VERSION : WEB_PARSER_VERSION, acquisition.jobKey], [acquisition.jobKey]) : acquisition;
+    const understanding = stage('understanding', [retained.jobKey], [retained.jobKey]);
     const chunking = stage('chunking', [understanding.jobKey], [understanding.jobKey]);
     const analysis = stage('analysis', [chunking.jobKey, state.audience], [chunking.jobKey]);
     analysisKeys.push(analysis.jobKey);

@@ -3,6 +3,7 @@ import { readTextArtifact, type TextArtifactSql } from './text-artifacts';
 import { planTextJobs } from './text-job-plan';
 import type { ClaimedTextJob } from './text-jobs';
 import { computeTextStage } from './text-pipeline';
+import { validateRetainedSourceEvidence } from './source-evidence';
 
 /** Prepared host processor. Emits validated bytes; it never projects lessons into canonical state. */
 export function createTextAssemblyProcessor(input: {
@@ -15,6 +16,7 @@ export function createTextAssemblyProcessor(input: {
     const plan = planTextJobs(state);
     const assembly = plan.find(intent => intent.stage === 'assembly');
     if (!assembly || assembly.dependencyFingerprint !== job.dependencyFingerprint) throw new Error('STALE_ASSEMBLY_JOB');
+    await validateRetainedSourceEvidence(input.sql,job.workspaceId,state);
     const expected = new Map(plan.filter(intent => intent.stage === 'analysis').map(intent => [intent.jobKey, intent]));
     const result = await input.sql.query(`SELECT analysis."jobKey", analysis."stage" AS "analysisStage", analysis."sourceId", analysis."sourceVersion",
         analysis."dependencyFingerprint" AS "analysisFingerprint", analysis."resultArtifactId" AS "analysisArtifactId",
