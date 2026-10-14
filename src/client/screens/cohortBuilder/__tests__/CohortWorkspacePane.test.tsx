@@ -115,4 +115,32 @@ describe('grounded cohort workspace UI', () => {
     expect(screen.getByText('Inspect evidence')).toBeDefined();
     expect(screen.getByText(/timestamp 01:05–02:05/)).toBeDefined();
   });
+  it('renders GitHub file and line citations in evidence citations', async () => {
+    fake.actions = [];
+    fake.state = cohortWorkspaceSchema.parse({
+      schemaVersion: 1, title: 'Systems', intent: 'Learn consensus', audience: 'Engineers', dailyMinutes: 25,
+      sources: [{
+        id: 'gh-source', version: 0, label: 'Consensus Repo', text: 'Quorums overlap and provide consensus.',
+        checksum: 'a'.repeat(64), state: 'ready',
+        input: { kind: 'github', repoUrl: 'https://github.com/sidequesthq/undone', ref: 'main', paths: ['src/consensus.ts'] },
+        locations: [{ start: 0, end: 38, filePath: 'src/consensus.ts', startLine: 10, endLine: 25 }],
+        provenance: {
+          parserVersion: 'github-source-v1',
+          rawChecksum: 'b'.repeat(64),
+          scope: 'selected_files',
+          repoUrl: 'https://github.com/sidequesthq/undone',
+          ref: 'main',
+          commitSha: 'c'.repeat(40),
+          fileCount: 1,
+        },
+      }],
+      chunks: [{ id: 'chunk-gh-1', sourceId: 'gh-source', sourceVersion: 0, start: 0, end: 38, text: 'Quorums overlap and provide consensus.', checksum: 'd'.repeat(64) }],
+      lessons: [{ id: 'lesson-1', version: 0, title: 'Quorum Overlap', objective: 'Understand overlap', sourceChunkIds: ['chunk-gh-1'], pinned: false }],
+      processing: { status: 'ready', stage: 'done', generation: 1, sourceFingerprint: 'fp', error: null },
+    });
+    render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+    expect(screen.getByText('Inspect evidence')).toBeDefined();
+    expect(screen.getByText(/src\/consensus\.ts#L10-L25/)).toBeDefined();
+    expect(screen.getByText(/https:\/\/github\.com\/sidequesthq\/undone@ccccccc/)).toBeDefined();
+  });
 });

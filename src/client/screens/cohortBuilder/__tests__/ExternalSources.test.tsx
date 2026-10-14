@@ -11,9 +11,10 @@ afterEach(()=>{cleanup();vi.unstubAllGlobals();fake.dispatch.mockClear();});
 
 it('retains PDF submission identity after lost acknowledgement and uses canonical web action',async()=>{
   fake.view=cohortWorkspaceSchema.parse({schemaVersion:1,title:'Test',intent:'Learn',audience:'',dailyMinutes:20,lessons:[]});
-  const fetch=vi.fn().mockResolvedValueOnce({ok:true,json:async()=>({pdf:true,web:true,youtube:false,youtubeUnavailableReason:'TRANSCRIPT_PROVIDER_REQUIRED'})}).mockRejectedValueOnce(new Error('NETWORK')).mockResolvedValue({ok:true,json:async()=>({})});vi.stubGlobal('fetch',fetch);
+  const fetch=vi.fn().mockResolvedValueOnce({ok:true,json:async()=>({pdf:true,web:true,youtube:false,youtubeUnavailableReason:'TRANSCRIPT_PROVIDER_REQUIRED',github:false,githubUnavailableReason:'GITHUB_CAPABILITY_DISABLED'})}).mockRejectedValueOnce(new Error('NETWORK')).mockResolvedValue({ok:true,json:async()=>({})});vi.stubGlobal('fetch',fetch);
   await act(async()=>{render(<ExternalSources/>);});
   expect(screen.getByText(/YouTube transcript ingestion is currently unavailable \(TRANSCRIPT_PROVIDER_REQUIRED\)/)).toBeDefined();
+  expect(screen.getByText(/GitHub repository ingestion is currently unavailable \(GITHUB_CAPABILITY_DISABLED\)/)).toBeDefined();
   fireEvent.change(screen.getByLabelText('PDF file (2 MiB maximum)'),{target:{files:[new File(['%PDF-1.4'],'notes.pdf',{type:'application/pdf'})]}});
   await act(async()=>{fireEvent.click(screen.getByRole('button',{name:'Add PDF source'}));});
   expect(screen.getByRole('alert').textContent).toContain('NETWORK');
@@ -102,4 +103,61 @@ it('does not silently rebase a YouTube transcript scope across a concurrent sour
   expect((screen.getByLabelText('Start (seconds)') as HTMLInputElement).value).toBe('10');
   expect((screen.getByLabelText('End (seconds)') as HTMLInputElement).value).toBe('50');
   expect(screen.getByRole('button',{name:'Use current source version for my transcript selection'})).toBeDefined();
+});
+
+it('renders GitHub form and dispatches add_github_source when enabled',async()=>{
+  fake.view=cohortWorkspaceSchema.parse({schemaVersion:1,title:'Test',intent:'Learn',audience:'',dailyMinutes:20,lessons:[]});
+  const fetch=vi.fn().mockResolvedValueOnce({ok:true,json:async()=>({pdf:true,web:true,youtube:false,github:true})});vi.stubGlobal('fetch',fetch);
+  await act(async()=>{render(<ExternalSources/>);});
+  fireEvent.change(screen.getByLabelText('Repository title'),{target:{value:'Core Protocols'}});
+  fireEvent.change(screen.getByLabelText('Public GitHub repository URL'),{target:{value:'https://github.com/sidequesthq/undone'}});
+  fireEvent.change(screen.getByLabelText('Branch, tag, or commit'),{target:{value:'v1.0.0'}});
+  fireEvent.change(screen.getByLabelText('Selected files (optional, comma or newline separated, up to 25 files)'),{target:{value:'README.md, src/index.ts'}});
+  await act(async()=>{fireEvent.click(screen.getByRole('button',{name:'Add GitHub source'}));});
+  expect(fake.dispatch).toHaveBeenCalledWith({
+    type:'add_github_source',
+    label:'Core Protocols',
+    repoUrl:'https://github.com/sidequesthq/undone',
+    ref:'v1.0.0',
+    paths:['README.md','src/index.ts'],
+  });
+});
+
+it('validates GitHub file scope and submits scoped canonical entity versions',async()=>{
+  fake.view=cohortWorkspaceSchema.parse({schemaVersion:1,title:'Test',intent:'Learn',audience:'',dailyMinutes:20,lessons:[]});
+  const source=cohortSourceSchema.parse({
+    id:'gh-1',version:2,label:'GitHub Repo',text:'',checksum:null,state:'queued',
+    input:{kind:'github',repoUrl:'https://github.com/sidequesthq/undone',ref:'main',paths:['README.md']},
+  });
+  render(<ExternalSourceScope source={source}/>);
+  expect(screen.getByText(/Files: README.md/)).toBeDefined();
+
+  // Invalid scope: empty
+  fireEvent.change(screen.getByLabelText('Selected files (comma-separated)'),{target:{value:''}});
+  fireEvent.click(screen.getByRole('button',{name:'Apply file scope'}));
+  expect(fake.dispatch).not.toHaveBeenCalled();
+  expect(screen.getByRole('alert').textContent).toContain('Select at least one file');
+
+  // Valid scope: README.md, src/core.ts
+  fireEvent.change(screen.getByLabelText('Selected files (comma-separated)'),{target:{value:'README.md, src/core.ts'}});
+  await act(async()=>{fireEvent.click(screen.getByRole('button',{name:'Apply file scope'}));});
+  expect(fake.dispatch).toHaveBeenCalledWith(
+    {type:'set_github_scope',sourceId:'gh-1',paths:['README.md','src/core.ts']},
+    [{kind:'source',id:'gh-1',version:2}]
+  );
+});
+
+it('does not silently rebase a GitHub file scope across a concurrent source edit',()=>{
+  fake.view=cohortWorkspaceSchema.parse({schemaVersion:1,title:'Test',intent:'Learn',audience:'',dailyMinutes:20,lessons:[]});
+  const source=cohortSourceSchema.parse({
+    id:'gh-1',version:2,label:'GitHub Repo',text:'',checksum:null,state:'queued',
+    input:{kind:'github',repoUrl:'https://github.com/sidequesthq/undone',ref:'main',paths:['README.md']},
+  });
+  const mounted=render(<ExternalSourceScope source={source}/>);
+  fireEvent.change(screen.getByLabelText('Selected files (comma-separated)'),{target:{value:'docs/spec.md'}});
+  mounted.rerender(<ExternalSourceScope source={{...source,version:3}}/>);
+  fireEvent.click(screen.getByRole('button',{name:'Apply file scope'}));
+  expect(fake.dispatch).not.toHaveBeenCalled();
+  expect((screen.getByLabelText('Selected files (comma-separated)') as HTMLInputElement).value).toBe('docs/spec.md');
+  expect(screen.getByRole('button',{name:'Use current source version for my file selection'})).toBeDefined();
 });
