@@ -1,6 +1,6 @@
 # interaction-builder-plan
 
-STATUS: STANDALONE PACKAGE IMPLEMENTED & VERIFIED (`packages/interaction-builder`). S1 + S2 complete; Undone rewired; S3 pasted-text slice in progress (see `MEMORY/interaction-builder-execution.md`).
+STATUS: STANDALONE PACKAGE IMPLEMENTED & VERIFIED (`packages/interaction-builder`). S3 local pasted-text vertical slice complete and verified on real isolated PostgreSQL and an authenticated browser. Shared rollout awaits additive schema authorization. See `MEMORY/interaction-builder-execution.md` for current authoritative paths/evidence; historical tables below describe earlier checkpoints.
 ROOT: `D:/ThisPC/Documents/SideQuestHQ/undone-site`
 SCOPE: reusable embedded human–AI–website interaction layer; cohort creation first domain; agenda reference domain in package.
 NOT: website/app/code generation, generated-site hosting, arbitrary executable UI.
@@ -93,4 +93,4 @@ DO_NOT_INFER: implemented package exports, migrations, test passes, worker deplo
 | `scripts/interaction-readiness.ts` | Read-only schema & credentials readiness probe (8 tables + active index) | Implemented, verified |
 | `src/server/domain/interaction/__tests__/scheduling.test.ts` | S2 durability test suite (8 tests covering leasing, fencing, replay, stale rejects, proposals) | Implemented, verified |
 
-All 13 test suites (50 tests) passing in Vitest. TypeScript compilation clean (exit code 0). S2 durability verified. Next implementation slice: S3 text-to-cohort processing pipeline & durable DAG execution.
+Current verification: 181 test files / 1179 tests passed, 2 existing skips; TypeScript clean. Real PostgreSQL concurrency and authenticated browser journey passed with deterministic providers. Next slice: S4 planning/implementation; shared S3 rollout remains separately authorized. Current implementation locators and commands are in `MEMORY/interaction-builder-execution.md` and `docs/s3-verification.md`.
