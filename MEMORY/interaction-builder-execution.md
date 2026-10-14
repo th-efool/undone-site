@@ -1,8 +1,8 @@
 # Interaction builder execution checkpoint
 
 STATUS: S5 LOCALLY COMPLETE / VERIFIED / READY FOR REVIEW. UX Repair Checkpoints 1 & 2 verified locally; Checkpoints 3 & 4 in progress. Shared rollout remains unauthorized.
-LAST_CHECKPOINT: `IB-UX-REPAIR-CP1-HOMEPAGE-HANDOFF-2026-10-14`
-NEXT: Checkpoint 2 (Mobile Nav & Truthful Progress) commit; Checkpoint 3 (Visual Parity Review); Checkpoint 4 (Integrated Acceptance & Sync).
+LAST_CHECKPOINT: `IB-UX-REPAIR-CP2-MOBILE-NAV-AND-TRUTHFUL-PROGRESS-2026-10-14`
+NEXT: Checkpoint 3 (Visual Parity Review); Checkpoint 4 (Integrated Acceptance & Sync).
 
 UX Repair Checkpoint 1 (Homepage Handoff Defect Fix):
 - Root defect resolved: Removed silent redirect `if (!policy.enabled) { window.location.href = '/quest/new?handoff=1'; }` in `CentralInterface.tsx`.
