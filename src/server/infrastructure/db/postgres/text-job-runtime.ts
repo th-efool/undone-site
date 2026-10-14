@@ -7,7 +7,8 @@ import type { TextJobTransactionPort } from '@/src/server/domain/cohort-builder/
 
 /** Same database as canonical commits; one checked-out connection per acceptance transaction. */
 export async function createTextJobRuntime(connectionString: string, workerId: string, leaseMs: number) {
-  const pool = new Pool({ connectionString, max: 3, connectionTimeoutMillis: 15_000 });
+  const pool = new Pool({ connectionString, max: 3, connectionTimeoutMillis: 15_000,
+    options: '-c timezone=UTC -c statement_timeout=15000 -c lock_timeout=5000' });
   const sql: TextArtifactSql = { query: (statement, parameters) => pool.query(statement, parameters) };
   try { await assertTextJobSchema(sql); } catch (error) { await pool.end(); throw error; }
   const transaction: TextJobTransactionPort = { transaction: async work => {

@@ -21,4 +21,9 @@ describe('lesson projection', () => {
     const result = projectGeneratedLessons(existing, [], new Set());
     expect(result[0].evidenceStatus).toBe('orphaned');
   });
+  it('advances entity versions when an existing generated lesson changes', () => {
+    const before = { ...generated('grounded:a', 'a'), version: 4 };
+    expect(projectGeneratedLessons([before], [{ ...before, version: 0 }], new Set(['a']))[0].version).toBe(4);
+    expect(projectGeneratedLessons([before], [{ ...before, version: 0, objective: 'Changed goal' }], new Set(['a']))[0].version).toBe(5);
+  });
 });
