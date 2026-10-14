@@ -12,6 +12,9 @@ import {
   Clock,
   Users,
   MessageSquare,
+  Check,
+  FileText,
+  Globe,
 } from 'lucide-react';
 import { useWorkspaceView, useDispatchAction, useInteractionState } from '@/src/client/interaction/hooks';
 import { cohortWorkspaceSchema, type CohortWorkspace, type CohortAction, type CohortLesson } from '@/src/shared/cohort-builder/contracts';
@@ -21,6 +24,22 @@ import { BuilderDialog } from './BuilderDialog';
 import { ExternalSources, ExternalSourceScope } from './ExternalSources';
 import { formatYoutubeTimestamp } from '@/src/shared/cohort-builder/youtube-transcript';
 import { ReleasePanel } from './components/ReleasePanel';
+
+function YoutubeIcon({ size = 20, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+    </svg>
+  );
+}
+
+function GithubIcon({ size = 20, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+    </svg>
+  );
+}
 
 interface CohortWorkspacePaneProps {
   workspaceId?: string;
@@ -161,12 +180,35 @@ export function CohortWorkspacePane({
     }
   };
 
+  const currentStep = (() => {
+    if (workspace.processing.status === 'ready' && workspace.lessons.length > 0) return 3;
+    if (workspace.processing.stage === 'done') return 3;
+    if (workspace.processing.stage === 'analysis') return 2;
+    if (workspace.processing.stage === 'chunking') return 1;
+    return 0;
+  })();
+
   return (
     <main className={styles.rightPane} aria-label="Cohort Curriculum Workspace">
+      {/* Creation Journey Progress Steps */}
+      <ol className={styles.creationSteps} aria-label="Creation journey progress">
+        {['Understanding', 'Chunking', 'Analyzing', 'Building'].map((label, index) => {
+          const isCurrent = index === currentStep;
+          const isComplete = workspace.processing.status === 'ready' || index < currentStep;
+          return (
+            <li key={label} aria-current={isCurrent ? 'step' : undefined} data-complete={isComplete}>
+              <span>{isComplete && index < currentStep ? <Check size={13} aria-label="Complete" /> : index + 1}</span>
+              {label}
+            </li>
+          );
+        })}
+      </ol>
+
       {/* Hero / Overview Card */}
       <section className={styles.heroCard}>
         <div className={styles.heroHeader}>
           <div>
+            <span className={styles.heroEyebrow}>Learning Blueprint</span>
             <h1 className={styles.heroTitle}>{workspace.title || 'Cohort Blueprint'}</h1>
           </div>
           <button className={styles.editActionBtn} onClick={handleOpenOverview}>
@@ -178,11 +220,11 @@ export function CohortWorkspacePane({
 
         <div className={styles.metaGrid}>
           <div className={styles.metaItem}>
-            <Users size={16} color="#5a50bf" />
+            <Users size={16} color="var(--creation-blue)" />
             <span>Audience: <strong>{workspace.audience}</strong></span>
           </div>
           <div className={styles.metaItem}>
-            <Clock size={16} color="#5a50bf" />
+            <Clock size={16} color="var(--creation-blue)" />
             <span>Pace: <strong>{workspace.dailyMinutes} mins/day</strong></span>
           </div>
         </div>
@@ -191,7 +233,9 @@ export function CohortWorkspacePane({
       <section id="builder-sources" className={styles.heroCard} aria-label="Grounded source text">
         <div className={styles.sectionHeader}>
           <h3>Source text</h3>
-          <small>{workspace.processing.status}{workspace.processing.status === 'queued' ? ` · ${workspace.processing.stage} waiting for worker` : ''}</small>
+          <span className={styles.statusPill} data-status={workspace.processing.status}>
+            {workspace.processing.status}{workspace.processing.status === 'queued' ? ` · ${workspace.processing.stage} waiting for worker` : ''}
+          </span>
         </div>
         <ExternalSources/>
         <div className={styles.formField}>
@@ -206,7 +250,7 @@ export function CohortWorkspacePane({
           <button className={styles.saveBtn} onClick={() => void handleAddSource()}>{editingSourceId ? 'Save source changes' : 'Add text source'}</button>
           {editingSourceId && <button className={styles.editActionBtn} onClick={() => { setEditingSourceId(null); setSourceForm({ label: '', text: '' }); }}>Cancel edit</button>}
         </div>
-        {editingSourceId && workspace.sources.find(source => source.id === editingSourceId)?.version !== editingSourceVersion && <div role="alert">
+        {editingSourceId && workspace.sources.find(source => source.id === editingSourceId)?.version !== editingSourceVersion && <div role="alert" className={styles.alertBox}>
           <p>This source changed or was removed. Your text is retained.</p>
           {workspace.sources.some(source => source.id === editingSourceId) && <><details><summary>Compare current source</summary><p>{workspace.sources.find(source => source.id === editingSourceId)?.text}</p></details>
             <button onClick={() => {
@@ -216,11 +260,65 @@ export function CohortWorkspacePane({
               setSourceBase({ label: current.label, text: current.text }); setEditingSourceVersion(current.version);
             }}>Use current source version and keep my edit</button></>}
         </div>}
-        {workspace.processing.error && <p role="alert">{workspace.processing.error}</p>}
+        {workspace.processing.error && <p role="alert" className={styles.alertBox}>{workspace.processing.error}</p>}
         {workspace.processing.status === 'failed' && !workspace.processing.jobs?.length && <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'retry_processing' })}>Retry processing</button>}
         {workspace.sources.length > 0 && workspace.processing.status === 'ready' && <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'retry_processing' })}>Rebuild from sources</button>}
-        {workspace.sources.map(source => <div key={source.id} className={styles.intentText}>{source.label} · {source.input?.kind??'text'} · {source.state} {!source.input && <button className={styles.editActionBtn} onClick={() => { setEditingSourceId(source.id); setEditingSourceVersion(source.version); setSourceForm({ label: source.label, text: source.text }); setSourceBase({ label: source.label, text: source.text }); }}>Edit</button>} <ExternalSourceScope source={source}/> <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'remove_source', sourceId: source.id }, [{ kind: 'source', id: source.id, version: source.version }])}>Remove</button></div>)}
-        {workspace.processing.jobs?.length ? <section aria-label="Source processing jobs" aria-live="polite">
+        
+        {workspace.sources.length > 0 && (
+          <div className={styles.sourceList}>
+            {workspace.sources.map(source => (
+              <div key={source.id} className={styles.sourceItem}>
+                <div className={styles.sourceItemLeading}>
+                  <div className={styles.sourceItemIcon}>
+                    {source.input?.kind === 'youtube' ? <YoutubeIcon size={20} /> :
+                     source.input?.kind === 'github' ? <GithubIcon size={20} /> :
+                     source.input?.kind === 'pdf' ? <FileText size={20} /> :
+                     source.input?.kind === 'web' ? <Globe size={20} /> :
+                     <FileText size={20} />}
+                  </div>
+                  <div className={styles.sourceItemMeta}>
+                    <div className={styles.sourceItemTitle}>
+                      <strong>{source.label}</strong>
+                      <span className={styles.sourceKindBadge}>{source.input?.kind ?? 'text'}</span>
+                      <span className={styles.sourceStateBadge} data-state={source.state}>{source.state}</span>
+                    </div>
+                    <ExternalSourceScope source={source}/>
+                  </div>
+                </div>
+                <div className={styles.sourceItemActions}>
+                  {!source.input && (
+                    <button
+                      type="button"
+                      className={styles.editActionBtn}
+                      onClick={() => {
+                        setEditingSourceId(source.id);
+                        setEditingSourceVersion(source.version);
+                        setSourceForm({ label: source.label, text: source.text });
+                        setSourceBase({ label: source.label, text: source.text });
+                      }}
+                    >
+                      Edit
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className={styles.editActionBtn}
+                    onClick={() =>
+                      void dispatchAction(
+                        { type: 'remove_source', sourceId: source.id },
+                        [{ kind: 'source', id: source.id, version: source.version }]
+                      )
+                    }
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {workspace.processing.jobs?.length ? <section className={styles.processingJobs} aria-label="Source processing jobs" aria-live="polite">
           {workspace.processing.jobs.map(job => <p key={job.id}>
             {workspace.sources.find(source => source.id === job.sourceId)?.label ?? 'Curriculum'} · {job.stage} · {job.status}
             {job.error && <span> · {job.error}</span>}
@@ -304,14 +402,14 @@ export function CohortWorkspacePane({
               </div>
 
               <p className={styles.lessonObjective}>{lesson.objective}</p>
-              {lesson.evidenceStatus === 'orphaned' && <p role="alert" className={styles.intentText}>This retained lesson references changed or removed source text. Review its evidence before relying on it.</p>}
+              {lesson.evidenceStatus === 'orphaned' && <p role="alert" className={styles.alertBox}>This retained lesson references changed or removed source text. Review its evidence before relying on it.</p>}
               {lesson.sourceChunkIds.length > 0 && (
                 <p className={styles.intentText}>Grounded in {lesson.sourceChunkIds.map(chunkId => {
                   const chunk = workspace.chunks.find(item => item.id === chunkId);
                   return chunk ? `“${chunk.text.slice(0, 160)}”` : 'unavailable retained passage';
                 }).join(' ')}</p>
               )}
-              {lesson.sourceChunkIds.length > 0 && <details><summary>Inspect evidence</summary>
+              {lesson.sourceChunkIds.length > 0 && <details className={styles.evidenceDrawer}><summary>Inspect evidence</summary>
                 {lesson.sourceChunkIds.map(chunkId => {
                   const chunk = workspace.chunks.find(item => item.id === chunkId);
                   const source = workspace.sources.find(item => item.id === chunk?.sourceId);
@@ -320,7 +418,7 @@ export function CohortWorkspacePane({
                   const timestamps=timeLoc?.length?` · timestamp ${formatYoutubeTimestamp(Math.min(...timeLoc.map(l=>l.startMs!)))}–${formatYoutubeTimestamp(Math.max(...timeLoc.map(l=>l.endMs!)))}`:'';
                   const fileLoc=source?.locations?.filter(location=>location.filePath && location.start<(chunk?.end??0) && location.end>(chunk?.start??0));
                   const fileCitations=fileLoc?.length?` · ${Array.from(new Set(fileLoc.map(l=>l.startLine && l.endLine ? `${l.filePath}#L${l.startLine}-L${l.endLine}` : l.filePath).filter(Boolean))).join(', ')}`:'';
-                  return <blockquote key={chunkId}>{chunk ? <><cite>{source?.label ?? 'Retained source'} · version {chunk.sourceVersion}{pages?.length?` · physical page ${pages.join(', ')}`:''}{timestamps}{fileCitations} · characters {chunk.start}–{chunk.end}{source?.provenance?` · ${source.provenance.scope} · ${source.provenance.parserVersion}`:''}</cite>{(source?.provenance?.finalUrl || source?.provenance?.repoUrl) && <p>{source.provenance.finalUrl ?? `${source.provenance.repoUrl}@${source.provenance.commitSha ? source.provenance.commitSha.slice(0, 7) : (source.provenance.ref ?? '')}`}</p>}<p>{chunk.text}</p></> : 'Retained passage unavailable; review orphan warning.'}</blockquote>;
+                  return <blockquote key={chunkId} className={styles.evidenceBlockquote}>{chunk ? <><cite className={styles.evidenceCite}>{source?.label ?? 'Retained source'} · version {chunk.sourceVersion}{pages?.length?` · physical page ${pages.join(', ')}`:''}{timestamps}{fileCitations} · characters {chunk.start}–{chunk.end}{source?.provenance?` · ${source.provenance.scope} · ${source.provenance.parserVersion}`:''}</cite>{(source?.provenance?.finalUrl || source?.provenance?.repoUrl) && <p>{source.provenance.finalUrl ?? `${source.provenance.repoUrl}@${source.provenance.commitSha ? source.provenance.commitSha.slice(0, 7) : (source.provenance.ref ?? '')}`}</p>}<p>{chunk.text}</p></> : 'Retained passage unavailable; review orphan warning.'}</blockquote>;
                 })}
               </details>}
 

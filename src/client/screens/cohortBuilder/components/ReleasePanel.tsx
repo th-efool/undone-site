@@ -121,7 +121,7 @@ export function ReleasePanel({
     >
       <div className={styles.releaseHeader}>
         <div className={styles.releaseTitleGroup}>
-          <Rocket size={20} color="#5a50bf" />
+          <Rocket size={20} className={styles.releaseIcon} />
           <h3>Release & Learner Delivery</h3>
         </div>
 
@@ -188,7 +188,7 @@ export function ReleasePanel({
       </div>
 
       {isPubliclyPublished && (
-        <p style={{ margin: 0, fontSize: 12, color: '#686371', fontStyle: 'italic' }}>
+        <p className={styles.releaseSubnote}>
           * This cohort has been published publicly. Downgrading public cohorts to private activation is not permitted.
         </p>
       )}
@@ -230,7 +230,7 @@ export function ReleasePanel({
             <AlertCircle size={15} />
             Release Error
           </h4>
-          <p style={{ margin: 0, fontSize: 12, color: '#7f1d1d' }}>{releaseError}</p>
+          <p className={styles.releaseErrorText}>{releaseError}</p>
         </div>
       )}
 
