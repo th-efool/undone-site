@@ -2,7 +2,9 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Send, Sparkles, MessageSquare, X } from 'lucide-react';
-import { useWorkspaceMessages, useSendMessage } from '@/src/client/interaction/hooks';
+import { useWorkspaceMessages, useSendMessage, useInteractionState } from '@/src/client/interaction/hooks';
+import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
+import { useAssistantActivity } from './useAssistantActivity';
 import type { EntityRef } from 'interaction-builder/core';
 import styles from './CohortBuilder.module.css';
 
@@ -19,6 +21,12 @@ interface ChatPaneProps {
 export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProps) {
   const messages = useWorkspaceMessages();
   const sendMessage = useSendMessage();
+  const state = useInteractionState<CohortWorkspace>();
+  const activity = useAssistantActivity();
+  const [cancelError, setCancelError] = useState('');
+  const activeTurn = activity.turns.find(turn => turn.status === 'running' || turn.status === 'queued');
+  const selected = attachedEntity && state.view?.lessons.find(lesson => lesson.id === attachedEntity.entity.id);
+  const staleSelection = !!attachedEntity && (!selected || selected.version !== attachedEntity.entity.version);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -32,7 +40,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
 
   const handleSend = async (customText?: string) => {
     const textToSend = customText ?? input;
-    if (!textToSend.trim() && !attachedEntity) return;
+    if (sending || staleSelection || (!textToSend.trim() && !attachedEntity)) return;
     setSending(true);
 
     try {
@@ -46,6 +54,16 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
       setSending(false);
     }
   };
+  async function stopAssistant() {
+    if (!activeTurn?.runId) return;
+    setCancelError('');
+    try {
+      const response = await fetch(`/api/interaction/v1/workspaces/${state.workspaceId}/runs/${activeTurn.runId}/cancel`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reason: 'Stopped by user' }),
+      });
+      if (!response.ok) throw new Error('Could not stop assistant; retry.');
+    } catch (error) { setCancelError(error instanceof Error ? error.message : 'Could not stop assistant'); }
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -69,6 +87,10 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
           Cohort Assistant
         </h2>
         <p>Chat directly with AI to draft, structure, and refine your curriculum.</p>
+        <p role="status">{activity.unavailable ? 'Assistant status unavailable; saved conversation retained.' : activeTurn
+          ? `Assistant ${activeTurn.status}. ${activity.turns.filter(turn => turn.status === 'pending').length} messages waiting.` : 'Assistant idle.'}</p>
+        {activeTurn && <button onClick={() => void stopAssistant()}>Stop assistant turn</button>}
+        {cancelError && <p role="alert">{cancelError}</p>}
       </div>
 
       <div className={styles.messagesList} ref={scrollRef} onScroll={() => {
@@ -92,6 +114,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
               >
                 <div className={styles.messageSender}>
                   {isUser ? 'You' : 'Assistant'}
+                  {isUser && activity.turns.find(turn => turn.messageId === m.id) && <small> · {activity.turns.find(turn => turn.messageId === m.id)!.status}</small>}
                 </div>
                 <div
                   className={`${styles.messageBubble} ${
@@ -132,6 +155,8 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
           </button>
         </div>
       )}
+      {staleSelection && <p role="alert">Selected lesson changed or was removed. Clear the selection, then select its current version.</p>}
+      {activity.turns.some(turn => turn.status === 'failed' || turn.status === 'canceled') && <p>Stopped or failed turns remain saved. Send a follow-up to retry the intended change.</p>}
 
       <div className={styles.suggestionsBar}>
         {suggestions.map((s, idx) => (
@@ -160,7 +185,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
         <button
           className={styles.sendBtn}
           onClick={() => void handleSend()}
-          disabled={sending || (!input.trim() && !attachedEntity)}
+          disabled={sending || staleSelection || (!input.trim() && !attachedEntity)}
           aria-label="Send message"
         >
           <Send size={18} />

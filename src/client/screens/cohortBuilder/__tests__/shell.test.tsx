@@ -4,6 +4,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
 const fake = vi.hoisted(() => ({ view: null as any, connects: 0 }));
+vi.mock('../useAssistantActivity', () => ({ useAssistantActivity: () => ({ turns: [], unavailable: false }) }));
 vi.mock('next-auth/react', () => ({ useSession: () => ({ status: 'authenticated', data: { user: { id: 'owner' } } }) }));
 vi.mock('@/src/client/interaction/provider', () => ({ InteractionProvider: ({ children }: any) => { fake.connects++; return children; } }));
 vi.mock('@/src/client/interaction/hooks', () => ({
