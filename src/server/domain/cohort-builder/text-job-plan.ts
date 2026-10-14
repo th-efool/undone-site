@@ -37,7 +37,7 @@ export function planTextJobs(state: CohortWorkspace): TextJobIntent[] {
     const acquisition = stage('acquisition', [], []);
     const retained = source.input ? stage('extraction', ['cohort-extraction-v1', source.input.kind === 'pdf' ? PDF_PARSER_VERSION : WEB_PARSER_VERSION, acquisition.jobKey], [acquisition.jobKey]) : acquisition;
     const understanding = stage('understanding', [retained.jobKey], [retained.jobKey]);
-    const chunking = stage('chunking', [understanding.jobKey], [understanding.jobKey]);
+    const chunking = stage('chunking', [understanding.jobKey, 'complete-line-coverage-v2'], [understanding.jobKey]);
     const analysis = stage('analysis', [chunking.jobKey, state.audience], [chunking.jobKey]);
     analysisKeys.push(analysis.jobKey);
   }

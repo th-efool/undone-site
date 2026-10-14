@@ -178,6 +178,38 @@ try {
   await assert.rejects(acceptPdfUpload(ownerId,{...uploadInput,requestId:crypto.randomUUID(),expectedRevision:1},pdf),/SOURCE_CAPABILITY_DISABLED/);
   assert(await repo.loadWorkspace({workspaceId:uploadWorkspace,ownerId}));
   console.log('PASS PDF owned atomic upload, concurrent replay, foreign refs, limits, stale rollback and capability gate');
+  // Retire only this run's synthetic graphs before exercising global claims again.
+  await pool.query(`UPDATE cohort_text_jobs SET status='canceled',"leaseToken"=NULL,"leaseUntil"=NULL,"leaseOwner"=NULL
+    WHERE "workspaceId" IN (SELECT id FROM interaction_workspaces WHERE "ownerId"=$1) AND status IN ('queued','running','failed')`,[ownerId]);
+  process.env.INTERACTION_PDF_ENABLED='1';
+  const externalId=crypto.randomUUID();await repo.createWorkspace({id:externalId,ownerId,domainId:'cohort',domainVersion:1,initialSnapshot:snapshot});
+  const {sourcePdf}=await import('../src/server/domain/cohort-builder/__tests__/source-fixture');
+  await acceptPdfUpload(ownerId,{workspaceId:externalId,requestId:crypto.randomUUID(),expectedRevision:0,label:'Real PDF'},sourcePdf(['Quorum overlap prevents conflict.','Majorities retain decisions.']));
+  const webAction={actionId:crypto.randomUUID(),workspaceId:externalId,expectedRevision:1,entityVersions:[],action:{type:'add_web_source',sourceId:'web',label:'Real web',url:'https://docs.example.org/quorums'}};
+  await repo.commitAction({workspaceId:externalId,ownerId,expectedRevision:1,requestId:crypto.randomUUID(),envelope:webAction,plan:planCohortAction});
+  now=new Date(Date.now()+2000);
+  const externalClaims=await Promise.all([claimTextJob(sql,'pdf-claim',now,1000),claimTextJob(sql,'web-claim',now,1000)]);
+  assert(externalClaims.every(Boolean));assert.notEqual(externalClaims[0]!.id,externalClaims[1]!.id);
+  now=new Date(now.getTime()+1001);
+  const {createTextSourceProcessor}=await import('../src/server/domain/cohort-builder/text-source-processor');
+  const webOpen=async()=>({status:200,headers:{'content-type':'text/plain'},bytes:(async function*(){yield Buffer.from('Majority voting provides overlap.');})(),close:()=>{}});
+  const webTransport={resolve:async()=>[{address:'93.184.216.34',family:4}],open:webOpen};
+  const loadWorkspace=async()=> (await repo.loadWorkspace({workspaceId:externalId,ownerId}))!.snapshot;
+  for(const old of externalClaims) {
+    const bytes=await createTextSourceProcessor({sql,loadWorkspace,webTransport})(old!);
+    const artifact=await putTextArtifact(sql,{workspaceId:externalId,sourceId:old!.sourceId!,sourceVersion:old!.sourceVersion!,kind:'source_raw',inputFingerprint:old!.dependencyFingerprint,bytes});
+    assert.equal(await acceptCurrentTextJob(port,old!,artifact,now),false,'Expired acquisition must not project retained identity');
+  }
+  for(let i=0;i<11;i++) {
+    const result=await runDurableTextJobTick({sql,transaction:port,workerId:'external-replacement',leaseMs:60000,now:()=>now,loadWorkspace,webTransport});
+    assert.equal(result.status,'accepted',JSON.stringify(result));
+  }
+  const external=cohortWorkspaceSchema.parse(await loadWorkspace());assert.equal(external.processing.status,'ready');assert.equal(external.lessons.length,3);
+  assert.deepEqual(external.sources[0].locations?.map(item=>item.page),[1,2]);assert.equal(external.sources[1].provenance?.finalUrl,webAction.action.url);
+  const externalSnapshot=(await repo.loadWorkspace({workspaceId:externalId,ownerId}))!;
+  const externalEvents=await repo.queryEvents({workspaceId:externalId,ownerId,afterSequence:0,limit:100});
+  assert.equal(externalEvents.length,externalSnapshot.sequence);assert.equal(externalSnapshot.revision,externalSnapshot.sequence);
+  console.log('PASS separate PostgreSQL PDF/web claims, expired acquisition fences, retained extraction, assembly and event consistency');
 } finally { await pool.end(); await prisma.$disconnect(); }
 }
 void main().catch(error => { console.error(error); process.exitCode = 1; });

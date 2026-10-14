@@ -9,6 +9,8 @@ import { validateRetainedSourceEvidence } from './source-evidence';
 export function createTextAssemblyProcessor(input: {
   sql: TextArtifactSql;
   loadWorkspace: (workspaceId: string) => Promise<unknown>;
+  /** Internal acceptance only, after an exact source preflight proof. */
+  reparseSources?: boolean;
 }): (job: ClaimedTextJob) => Promise<Uint8Array> {
   return async job => {
     if (job.stage !== 'assembly' || job.sourceId !== null || job.sourceVersion !== null) throw new Error('INVALID_ASSEMBLY_JOB');
@@ -16,7 +18,7 @@ export function createTextAssemblyProcessor(input: {
     const plan = planTextJobs(state);
     const assembly = plan.find(intent => intent.stage === 'assembly');
     if (!assembly || assembly.dependencyFingerprint !== job.dependencyFingerprint) throw new Error('STALE_ASSEMBLY_JOB');
-    await validateRetainedSourceEvidence(input.sql,job.workspaceId,state);
+    await validateRetainedSourceEvidence(input.sql,job.workspaceId,state,input.reparseSources!==false);
     const expected = new Map(plan.filter(intent => intent.stage === 'analysis').map(intent => [intent.jobKey, intent]));
     const result = await input.sql.query(`SELECT analysis."jobKey", analysis."stage" AS "analysisStage", analysis."sourceId", analysis."sourceVersion",
         analysis."dependencyFingerprint" AS "analysisFingerprint", analysis."resultArtifactId" AS "analysisArtifactId",

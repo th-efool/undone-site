@@ -31,3 +31,13 @@ it('validates page selection and submits scoped canonical entity versions',async
   await act(async()=>{fireEvent.click(screen.getByRole('button',{name:'Apply page scope'}));});
   expect(fake.dispatch).toHaveBeenCalledWith({type:'set_pdf_pages',sourceId:'pdf',pages:[2]},[{kind:'source',id:'pdf',version:2}]);
 });
+it('does not silently rebase a page scope across a concurrent source edit',()=>{
+  fake.view=cohortWorkspaceSchema.parse({schemaVersion:1,title:'Test',intent:'Learn',audience:'',dailyMinutes:20,lessons:[]});
+  const source=cohortSourceSchema.parse({id:'pdf',version:2,label:'PDF',text:'',checksum:null,state:'queued',input:{kind:'pdf',uploadId:crypto.randomUUID(),pages:[1]}});
+  const mounted=render(<ExternalSourceScope source={source}/>);
+  fireEvent.change(screen.getByLabelText('Physical pages (comma-separated)'),{target:{value:'2'}});
+  mounted.rerender(<ExternalSourceScope source={{...source,version:3}}/>);
+  fireEvent.click(screen.getByRole('button',{name:'Apply page scope'}));
+  expect(fake.dispatch).not.toHaveBeenCalled();expect((screen.getByLabelText('Physical pages (comma-separated)') as HTMLInputElement).value).toBe('2');
+  expect(screen.getByRole('button',{name:'Use current source version for my page selection'})).toBeDefined();
+});

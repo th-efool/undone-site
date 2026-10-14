@@ -19,15 +19,21 @@ export async function acceptAssemblyProjection(
 ): Promise<boolean> {
   // Warm trusted parser results before acquiring the canonical lock. Acceptance
   // repeats artifact/identity checks inside the transaction; no accepted blob seeds cache.
+  let sourceProof:string|undefined;
   await port.transaction(async tx=>{
     const row=(await tx.query(`SELECT "snapshot" FROM "interaction_workspaces" WHERE "id"=$1 AND "lifecycle"='active' AND "domainId"='cohort'`,[job.workspaceId])).rows[0];
-    if(row) await validateRetainedSourceEvidence(tx,job.workspaceId,cohortWorkspaceSchema.parse(row.snapshot));
+    if(row) {
+      const state=cohortWorkspaceSchema.parse(row.snapshot);
+      await validateRetainedSourceEvidence(tx,job.workspaceId,state);
+      sourceProof=JSON.stringify(state.sources);
+    }
   });
   return port.transaction(async tx => {
     if (job.stage !== 'assembly' || job.sourceId !== null || job.sourceVersion !== null) return false;
     const row = (await tx.query(`SELECT "snapshot", "revision" FROM "interaction_workspaces" WHERE "id" = $1 AND "lifecycle" = 'active' AND "domainId" = 'cohort' FOR UPDATE`, [job.workspaceId])).rows[0];
     if (!row) return false;
     const state = cohortWorkspaceSchema.parse(typeof row.snapshot === 'string' ? JSON.parse(row.snapshot) : row.snapshot);
+    if(sourceProof!==JSON.stringify(state.sources)) return false;
     const jobRow = (await tx.query(`SELECT "jobKey", "stage", "sourceId", "sourceVersion", "dependencyFingerprint"
       FROM "cohort_text_jobs" WHERE "id" = $1 AND "workspaceId" = $2 FOR UPDATE`, [job.id, job.workspaceId])).rows[0];
     if (!jobRow || jobRow.stage !== 'assembly' || jobRow.sourceId !== null || jobRow.sourceVersion !== null
@@ -38,7 +44,7 @@ export async function acceptAssemblyProjection(
       kind: 'assembly', inputFingerprint: job.dependencyFingerprint, checksum: artifact.checksum,
     });
     const generated = cohortLessonSchema.array().parse(JSON.parse(retained.bytes.toString('utf8')));
-    const expected = await createTextAssemblyProcessor({ sql: tx, loadWorkspace: async () => state })(job);
+    const expected = await createTextAssemblyProcessor({ sql: tx, loadWorkspace: async () => state, reparseSources:false })(job);
     if (!retained.bytes.equals(Buffer.from(expected))) return false;
     const chunks = cohortWorkspaceSchema.shape.chunks.parse(computeTextStage({ ...state, chunks: [], processing: { ...state.processing, stage: 'chunking' } }).result);
     const analyses = cohortWorkspaceSchema.shape.analyses.parse(computeTextStage({ ...state, chunks, analyses: [], processing: { ...state.processing, stage: 'analysis' } }).result);
