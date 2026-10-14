@@ -2,6 +2,7 @@ import 'server-only';
 import { randomUUID } from 'node:crypto';
 import { prisma } from './infrastructure/db/postgres/client';
 import { postgresInteractionRepo } from './infrastructure/db/postgres/repositories/interaction.repo';
+import { bindAssistantLease } from './infrastructure/db/postgres/assistant-queue';
 import { runAssistantTurn, type InteractionRepository } from 'interaction-builder/runtime';
 import { createCohortAiTools } from './domain/cohort-builder/tools';
 import { cohortDomain } from './domain/cohort-builder/domain';
@@ -89,7 +90,7 @@ export async function runInteractionWorkerLoop(
         const res = await runAssistantTurn({
           workspaceId: run.workspaceId,
           ownerId: wsRow.ownerId,
-          repo,
+          repo: bindAssistantLease(repo, run.id, leaseToken),
           domain: cohortDomain,
           model,
           createTools: deps => createCohortAiTools({ ...deps, selectedLesson }),
