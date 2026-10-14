@@ -4,6 +4,7 @@ import { Prisma } from '@/generated/prisma/client';
 import { cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
 import { textDriver } from '@/src/server/domain/cohort-builder/text-driver';
 import { reconcileTextAction } from '@/src/server/domain/cohort-builder/text-action-jobs';
+import { validateSourceAction } from '@/src/server/domain/cohort-builder/source-policy';
 import { admitPendingAssistantMessage } from '../assistant-queue';
 import {
   type ActionCommitInput,
@@ -412,6 +413,7 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
           throw new Error('STALE_WORKSPACE');
         }
 
+        if (workspace.domainId === 'cohort') await validateSourceAction({ query: async (sql, values) => ({ rows: await tx.$queryRawUnsafe(sql, ...values) }) }, input.workspaceId, (input.envelope as { action: unknown }).action);
         const commitResult = planActionCommit({
           state: workspace.snapshot as State,
           currentRevision: workspace.revision,

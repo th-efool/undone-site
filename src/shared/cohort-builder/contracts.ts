@@ -4,15 +4,28 @@ import { entityRefSchema, type DomainActionPlan } from 'interaction-builder/core
 const text = z.string().trim().min(1).max(4_000);
 const id = z.string().min(1).max(200);
 const sourceText = z.string().min(1).max(200_000).refine(value => value.trim().length > 0, 'Source text must contain non-whitespace content');
+export const publicSourceUrlSchema = z.string().max(2048).url().refine(value => {
+  const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password && !url.port;
+}, 'Use a public HTTPS URL without credentials or a custom port');
+export const sourceInputSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('pdf'), uploadId: z.uuid(), pages: z.array(z.number().int().min(1).max(200)).min(1).max(200).optional() }),
+  z.strictObject({ kind: z.literal('web'), url: publicSourceUrlSchema }),
+]);
 
 export const cohortSourceSchema = z.strictObject({
   id,
   version: z.number().int().nonnegative(),
   label: z.string().trim().min(1).max(300),
-  text: sourceText,
+  text: z.union([sourceText, z.literal('')]),
+  input: sourceInputSchema.optional(),
+  retainedInputId: z.uuid().optional(),
+  extractionId: z.uuid().optional(),
+  locations: z.array(z.strictObject({ start: z.number().int().nonnegative(), end: z.number().int().positive(), page: z.number().int().positive().optional() })).max(200).optional(),
+  provenance: z.strictObject({ parserVersion: z.string().max(128), rawChecksum: z.string().regex(/^[a-f0-9]{64}$/),
+    scope: z.enum(['selected_pages', 'main_article', 'full_text_response']), finalUrl: publicSourceUrlSchema.optional(), pageCount: z.number().int().positive().max(200).optional() }).optional(),
   checksum: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
   state: z.enum(['queued', 'ready', 'processing', 'failed', 'stale']),
-});
+}).superRefine((source,ctx) => { if (!source.input && !source.text.trim()) ctx.addIssue({ code:'custom',message:'Text sources require retained text' }); });
 export type CohortSource = z.infer<typeof cohortSourceSchema>;
 
 export const cohortChunkSchema = z.strictObject({
@@ -39,7 +52,7 @@ export const cohortLessonSchema = z.strictObject({
 export type CohortLesson = z.infer<typeof cohortLessonSchema>;
 
 export const cohortTextJobViewSchema = z.strictObject({
-  id, sourceId: id.nullable(), stage: z.enum(['acquisition', 'understanding', 'chunking', 'analysis', 'assembly']),
+  id, sourceId: id.nullable(), stage: z.enum(['acquisition', 'extraction', 'understanding', 'chunking', 'analysis', 'assembly']),
   status: z.enum(['queued', 'running', 'accepted', 'failed', 'canceled', 'superseded']),
   attempts: z.number().int().nonnegative(), error: z.string().max(100).nullable(), retryable: z.boolean(),
 });
@@ -57,17 +70,21 @@ export const cohortWorkspaceSchema = z.strictObject({
   analyses: z.array(z.strictObject({ chunkId: id, summary: z.string().max(500), question: z.string().max(500) })).default([]),
   processing: z.strictObject({
     status: z.enum(['idle', 'queued', 'processing', 'ready', 'failed']),
-    stage: z.enum(['acquisition', 'understanding', 'chunking', 'analysis', 'assembly', 'done']).default('done'),
+    stage: z.enum(['acquisition', 'extraction', 'understanding', 'chunking', 'analysis', 'assembly', 'done']).default('done'),
     generation: z.number().int().nonnegative().default(0),
     sourceFingerprint: z.string().nullable(),
     error: z.string().nullable(),
-    jobs: z.array(cohortTextJobViewSchema).max(81).optional(),
+    jobs: z.array(cohortTextJobViewSchema).max(101).optional(),
     driver: z.enum(['snapshot', 'durable']).optional(),
   }).default({ status: 'idle', stage: 'done', generation: 0, sourceFingerprint: null, error: null }),
 });
 export type CohortWorkspace = z.infer<typeof cohortWorkspaceSchema>;
 
 export const cohortActionSchema = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.literal('add_pdf_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), uploadId: z.uuid() }),
+  z.strictObject({ type: z.literal('add_web_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), url: publicSourceUrlSchema }),
+  z.strictObject({ type: z.literal('set_pdf_pages'), sourceId: id, pages: z.array(z.number().int().min(1).max(200)).min(1).max(200) }),
+  z.strictObject({ type: z.literal('refresh_web_source'), sourceId: id, url: publicSourceUrlSchema.optional() }),
   z.strictObject({ type: z.literal('set_intent'), intent: text }),
   z.strictObject({ type: z.literal('set_audience'), audience: z.string().trim().max(500) }),
   z.strictObject({ type: z.literal('set_daily_minutes'), dailyMinutes: z.number().int().min(1).max(1_440) }),
@@ -134,9 +151,41 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
     return { nextState: next, changed: [], invalidated: ['sources', 'chunks', 'analysis', 'curriculum'], summary: `Added source: ${action.label}`, undoable: true };
   }
+  if (action.type === 'add_pdf_source' || action.type === 'add_web_source') {
+    const sourceId = action.sourceId ?? context.actionId;
+    if (next.sources.some(source => source.id === sourceId)) throw new Error('DUPLICATE_SOURCE');
+    if (next.sources.length >= 20) throw new Error('TOO_MANY_SOURCES');
+    next.sources.push({ id: sourceId, version: 0, label: action.label, text: '', checksum: null, state: 'queued',
+      input: action.type === 'add_pdf_source' ? { kind: 'pdf', uploadId: action.uploadId } : { kind: 'web', url: new URL(action.url).href.split('#')[0] } });
+    next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
+    return { nextState: next, changed: [], invalidated: ['sources', 'curriculum'], summary: `Added ${action.type === 'add_pdf_source' ? 'PDF' : 'web'} source: ${action.label}`, undoable: true };
+  }
+  if (action.type === 'set_pdf_pages' || action.type === 'refresh_web_source') {
+    const source = next.sources.find(item => item.id === action.sourceId);
+    if (!source) throw new Error('UNKNOWN_SOURCE');
+    const expected = context.entityVersions.get(source.id);
+    if (expected !== undefined && expected !== source.version) throw new Error('STALE_ENTITY');
+    if (action.type === 'set_pdf_pages') {
+      if (source.input?.kind !== 'pdf' || new Set(action.pages).size !== action.pages.length) throw new Error('INVALID_PDF_SCOPE');
+      source.input.pages = [...action.pages].sort((a,b) => a-b);
+    } else {
+      if (source.input?.kind !== 'web') throw new Error('INVALID_WEB_SOURCE');
+      source.input.url = new URL(action.url ?? source.input.url).href.split('#')[0]; delete source.retainedInputId;
+    }
+    source.version++; source.text = ''; source.state = 'queued'; source.checksum = null;
+    delete source.extractionId; delete source.locations; delete source.provenance;
+    next.chunks = next.chunks.filter(chunk => chunk.sourceId !== source.id);
+    next.understanding = next.understanding.filter(item => item.sourceId !== source.id);
+    const valid = new Set(next.chunks.map(chunk => chunk.id)); next.analyses = next.analyses.filter(item => valid.has(item.chunkId));
+    next.lessons = next.lessons.filter(lesson => lesson.pinned || lesson.manualOverride || lesson.sourceChunkIds.every(id => valid.has(id)));
+    next.lessons.forEach(lesson => { if (lesson.sourceChunkIds.some(id => !valid.has(id))) lesson.evidenceStatus = 'orphaned'; });
+    next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
+    return { nextState: next, changed: [], invalidated: ['sources', 'curriculum'], summary: 'Source scope updated.', undoable: true };
+  }
   if (action.type === 'edit_text_source') {
     const source = next.sources.find(item => item.id === action.sourceId);
     if (!source) throw new Error('UNKNOWN_SOURCE');
+    if (source.input) throw new Error('SOURCE_REQUIRES_SCOPE_ACTION');
     const expectedVersion = context.entityVersions.get(source.id);
     if (expectedVersion !== undefined && expectedVersion !== source.version) throw new Error('STALE_ENTITY');
     if (new TextEncoder().encode(action.text).byteLength > 200_000) throw new Error('SOURCE_TOO_LARGE');

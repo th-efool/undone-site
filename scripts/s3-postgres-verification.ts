@@ -1,5 +1,6 @@
 /** Opt-in isolated PostgreSQL verification. Refuses non-loopback/non-test databases. */
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { Pool } from 'pg';
 import { cohortWorkspaceSchema, planCohortAction } from '../src/shared/cohort-builder/contracts';
 import { claimTextJob } from '../src/server/domain/cohort-builder/text-jobs';
@@ -154,6 +155,29 @@ try {
   }
   assert.equal(await repo.claimRun({ workspaceId: queueId, leaseOwner: 'empty', leaseToken: 'empty', leaseDurationMs: 60_000 }), null);
   console.log('PASS persisted FIFO admission, bounded queue, cancellation/replacement transcript fences and terminal recovery');
+  await pool.query(readFileSync('prisma/interaction-s4b-sources.sql','utf8'));
+  process.env.INTERACTION_PDF_ENABLED='1'; process.env.INTERACTION_WEB_ENABLED='1';
+  const { acceptPdfUpload } = await import('../src/server/infrastructure/db/postgres/cohort-pdf-upload');
+  const uploadWorkspace = crypto.randomUUID();
+  await repo.createWorkspace({ id:uploadWorkspace, ownerId, domainId:'cohort', domainVersion:1, initialSnapshot:snapshot });
+  const uploadInput = { workspaceId:uploadWorkspace, requestId:crypto.randomUUID(), expectedRevision:0, label:'Retained PDF' };
+  const pdf = Buffer.from('%PDF-1.7\nretained parser input');
+  const uploaded = await Promise.all([acceptPdfUpload(ownerId,uploadInput,pdf),acceptPdfUpload(ownerId,uploadInput,pdf)]);
+  assert.deepEqual(uploaded[0],uploaded[1]);
+  assert.equal(await prisma.cohortTextArtifact.count({where:{workspaceId:uploadWorkspace,kind:'source_input'}}),1);
+  assert.equal(cohortWorkspaceSchema.parse((await repo.loadWorkspace({workspaceId:uploadWorkspace,ownerId}))!.snapshot).sources.length,1);
+  await assert.rejects(acceptPdfUpload('foreign',uploadInput,pdf),/WORKSPACE_NOT_FOUND/);
+  await assert.rejects(acceptPdfUpload(ownerId,uploadInput,Buffer.from('%PDF-different')),/IDEMPOTENCY_MISMATCH/);
+  await assert.rejects(acceptPdfUpload(ownerId,{...uploadInput,requestId:crypto.randomUUID()},pdf),/STALE_WORKSPACE/);
+  assert.equal(await prisma.cohortTextArtifact.count({where:{workspaceId:uploadWorkspace,kind:'source_input'}}),1);
+  await assert.rejects(acceptPdfUpload(ownerId,uploadInput,Buffer.alloc(2*1024*1024+1)),/INVALID_PDF_UPLOAD/);
+  const foreignAction = {actionId:crypto.randomUUID(),workspaceId:queueId,expectedRevision:(await repo.loadWorkspace({workspaceId:queueId,ownerId}))!.revision,
+    entityVersions:[],action:{type:'add_pdf_source',uploadId:uploaded[0].uploadId,label:'Foreign upload'}};
+  await assert.rejects(repo.commitAction({ workspaceId:queueId,ownerId,expectedRevision:foreignAction.expectedRevision,envelope:foreignAction,plan:planCohortAction }),/ARTIFACT_NOT_FOUND/);
+  process.env.INTERACTION_PDF_ENABLED='0';
+  await assert.rejects(acceptPdfUpload(ownerId,{...uploadInput,requestId:crypto.randomUUID(),expectedRevision:1},pdf),/SOURCE_CAPABILITY_DISABLED/);
+  assert(await repo.loadWorkspace({workspaceId:uploadWorkspace,ownerId}));
+  console.log('PASS PDF owned atomic upload, concurrent replay, foreign refs, limits, stale rollback and capability gate');
 } finally { await pool.end(); await prisma.$disconnect(); }
 }
 void main().catch(error => { console.error(error); process.exitCode = 1; });
