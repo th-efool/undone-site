@@ -21,6 +21,7 @@ interface AttachedEntity {
 
 interface CohortInteractionScreenProps {
   workspaceId: string;
+  ownerId?: string;
   initialView: CohortWorkspace;
 }
 

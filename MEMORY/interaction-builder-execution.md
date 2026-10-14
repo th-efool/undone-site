@@ -2,7 +2,9 @@
 
 STATUS: S3 LOCAL IMPLEMENTATION COMPLETE AND VERIFIED. Shared rollout remains pending authorization.
 LAST_CHECKPOINT: `IB-S3-VERTICAL-SLICE-VERIFIED-2026-10-14`
-NEXT: S4 planning/implementation may begin; do not enable the shared durable driver before additive schema authorization/readiness. No S4 changes were made in this pass.
+NEXT: S4A checkpoint 2 responsive workspace. Checkpoint 1 verified: atomic owner-scoped intake in `src/server/infrastructure/db/postgres/cohort-intake.ts`, canonical source/message composition; `/api/cohort-builder/intake` server feature/driver/schema gate; `/quest/start` session handoff with explicit authenticated confirmation. Builder GET now reads only. Existing v1 entry remains when v2 disabled. No shared rollout.
+
+S4A checkpoint 1 checks: targeted intake/canonical tests 8 passed; real PostgreSQL script passed including concurrent/lost-response intake, mismatch and event-failure rollback. Plan: `plans/interaction-builder/s4a-checkpoints.md`.
 
 ## Authoritative boundaries
 
