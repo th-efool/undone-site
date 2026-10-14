@@ -76,8 +76,37 @@ describe('bounded retained source adapters',()=>{
   it('closes an oversized streamed response without retaining a partial success',async()=>{
     const network=transport(Buffer.alloc(1024*1024+1));await expect(fetchRetainedWeb(url,network)).rejects.toThrow('WEB_RESPONSE_SIZE_LIMIT');expect(network.close).toHaveBeenCalled();
   });
+  it('extracts retained GitHub source and handles file scope',async()=>{
+    const retainedData = {
+      format: 'github-source-v1',
+      acquiredAt: '2026-10-14T00:00:00.000Z',
+      repo: { owner: 'facebook', repo: 'react', url: 'https://github.com/facebook/react' },
+      ref: 'main',
+      commitSha: '1234567890abcdef1234567890abcdef12345678',
+      files: [
+        { path: 'README.md', content: 'Intro to React', size: 14, checksum: 'b'.repeat(64) },
+        { path: 'docs/arch.md', content: 'Architecture details', size: 20, checksum: 'c'.repeat(64) },
+      ],
+    };
+    const bytes = Buffer.from(JSON.stringify(retainedData));
+    const ghSource = cohortSourceSchema.parse({
+      id: randomUUID(),
+      version: 0,
+      label: 'React repo',
+      text: '',
+      state: 'queued',
+      checksum: 'a'.repeat(64),
+      input: { kind: 'github', repoUrl: 'https://github.com/facebook/react', ref: 'main', paths: ['README.md'] },
+    });
+    const result = await extractRetainedSource(ghSource, ref(bytes), bytes);
+    expect(result.text).toContain('Intro to React');
+    expect(result.text).not.toContain('Architecture details');
+    expect(result.locations[0].filePath).toBe('README.md');
+    expect(result.provenance.scope).toBe('selected_files');
+  });
   it('rejects incomplete or overlapping location coverage',()=>{
     const result={format:'cohort-extraction-v1',text:'abcdef',locations:[{start:1,end:6}],provenance:{parserVersion:'test',rawChecksum:'a'.repeat(64),scope:'full_text_response'}};
     expect(sourceExtractionSchema.safeParse(result).success).toBe(false);
   });
 });
+
