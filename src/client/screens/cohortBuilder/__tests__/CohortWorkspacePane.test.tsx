@@ -474,5 +474,71 @@ describe('grounded cohort workspace UI', () => {
     expect(progress.steps[0].isCurrent).toBe(true);
     expect(progress.steps[3].isComplete).toBe(false); // Building is NOT complete just because lessons exist!
   });
+
+  it('supports stepper inspection via click and keyboard (Enter/Space), toggling views and returning to active stage without dispatching actions', async () => {
+    fake.actions = [];
+    fake.state = cohortWorkspaceSchema.parse({
+      schemaVersion: 1,
+      title: 'Active Curriculum Workspace',
+      intent: 'Learn testing',
+      audience: 'Engineers',
+      dailyMinutes: 20,
+      sources: [
+        { id: 'source-1', version: 0, label: 'Doc 1', text: 'Quorums overlap and replicate logs.', checksum: 'a'.repeat(64), state: 'ready' },
+      ],
+      chunks: [
+        { id: 'c-1', sourceId: 'source-1', sourceVersion: 0, start: 0, end: 15, text: 'Quorums overlap', checksum: 'b'.repeat(64) },
+      ],
+      understanding: [
+        { sourceId: 'source-1', sourceVersion: 0, topics: ['Consensus', 'Quorum'] },
+      ],
+      lessons: [
+        { id: 'lesson-1', version: 0, title: 'Consensus Basics', objective: 'Objective', sourceChunkIds: ['c-1'], pinned: false },
+      ],
+      processing: {
+        status: 'ready',
+        stage: 'done',
+        generation: 1,
+        sourceFingerprint: 'fprint',
+        error: null,
+      },
+    });
+
+    render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+
+    // Initially in curriculum stage
+    expect(screen.getByText('Learning Blueprint')).toBeDefined();
+    expect(screen.queryByTestId('stage-inspection-banner')).toBeNull();
+
+    // Find stepper items
+    const steps = screen.getByLabelText('Creation journey progress').querySelectorAll('li');
+    expect(steps.length).toBe(4);
+
+    // 1. Click Understanding step (step 0)
+    fireEvent.click(steps[0]);
+    expect(screen.getByTestId('stage-inspection-banner')).toBeDefined();
+    expect(screen.getByText(/Inspecting/i).textContent).toContain('understanding');
+    // Understanding stage should be rendered
+    expect(screen.getByLabelText('Accepted concepts')).toBeDefined();
+    expect(fake.actions).toEqual([]);
+
+    // 2. Use keyboard 'Enter' on Chunking step (step 1)
+    fireEvent.keyDown(steps[1], { key: 'Enter' });
+    expect(screen.getByText(/Inspecting/i).textContent).toContain('chunking');
+    expect(screen.getByLabelText('Chunking material')).toBeDefined();
+    expect(fake.actions).toEqual([]);
+
+    // 3. Use keyboard ' ' (Space) on Analyzing step (step 2)
+    fireEvent.keyDown(steps[2], { key: ' ' });
+    expect(screen.getByText(/Inspecting/i).textContent).toContain('analysis');
+    expect(screen.getByLabelText('Analysis workspace')).toBeDefined();
+    expect(fake.actions).toEqual([]);
+
+    // 4. Click 'Return to active stage' button in banner
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to active stage' }));
+    expect(screen.queryByTestId('stage-inspection-banner')).toBeNull();
+    expect(screen.getByText('Learning Blueprint')).toBeDefined();
+    expect(fake.actions).toEqual([]);
+  });
 });
 

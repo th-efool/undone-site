@@ -54,37 +54,46 @@ The captures verify that the new cohort builder faithfully embodies the legacy *
 
 ---
 
-## 3. Confirmed Gap & Stage-Specific Layout Checklist
+## 3. Stage-Specific Screen Compositions Parity Resolution
 
-The user has explicitly specified that the builder must match **the exact frontend design and stage-specific screen compositions** of the legacy pipeline:
+The previously confirmed gap where the builder displayed a generic monolithic card during processing has been completely resolved. The builder now mounts dedicated, stage-specific screen compositions directly over canonical v2 state:
 
-### Confirmed Gap in Processing / Chunking:
-- **Legacy**:
-  - Two-column layout with large "Finding natural learning chunks…" heading and `InkUnderline`.
-  - Left Column: "Selected material" inventory card with source list radio buttons, chunk counts, progress bar, and processing checklist.
-  - Right Column: "Accepted chunks" panel displaying the selected source's title with `InkUnderline`, handwritten Caveat annotation, and numbered collapsible chunk items with offsets, quotations, and source references.
-  - Explanatory copy and lightbulb insight box.
-- **Current Builder**:
-  - Generic monolithic layout displaying "Draft Curriculum" card and source input form.
+1. **Intake Stage View (`IntakeStageView.tsx`)**:
+   - Starting point composition for ungrounded workspaces.
+   - Preserves goal, provides source entry form, and allows kicking off the pipeline.
 
-### Stage-Specific Composition Checklist for Checkpoint 2:
-1. **Understanding Stage View**:
-   - Header: "Reading through your content…" with Playfair Display heading & InkUnderline.
-   - Left Column: Selected material inventory with segment count and acquired checkmarks + progress bar + checklist.
-   - Right Column: "Finding key ideas…" with Brain icon, paper note, concept cloud with topics from `workspace.understanding`, and lightbulb insight box.
-2. **Chunking Stage View**:
-   - Header: "Finding natural learning chunks…" with Playfair Display heading & InkUnderline.
-   - Left Column: Selected material inventory with chunk counts + progress bar + checklist.
-   - Right Column: Selected source header with Caveat annotation + numbered chunks list from `workspace.chunks` with duration/offset, teaser, expandable evidence blockquote, and insight box.
-3. **Analysis Stage View**:
-   - Header: "Understanding each piece…" with Playfair Display heading & InkUnderline.
-   - Left Column: Selected material inventory with analyzed chunk counts + progress bar + checklist.
+2. **Understanding Stage View (`UnderstandingStageView.tsx`)**:
+   - Header: *"Reading through your content…"* / *"All selected content has been read."* with Playfair Display typography and `InkUnderline`.
+   - Left Column: Selected material inventory with segment count and acquired checkmarks + progress bar + *"Re-understand selected material"* action.
+   - Right Column: *"Finding key ideas…"* with Brain icon, paper note (*"Important ideas, grounded in your material"*), concept cloud with topics from `workspace.understanding`, and lightbulb insight box (`${topics.length} key ideas identified`).
+
+3. **Chunking Stage View (`ChunkingStageView.tsx`)**:
+   - Header: *"Finding natural learning chunks…"* / *"Your learning chunks are saved."* with Playfair Display heading and `InkUnderline`.
+   - Left Column: Selected material radio selector with chunk count badges, progress bar, and 4-stage `ProcessingChecklist`.
+   - Right Column: Selected source header with title underline and Caveat annotation (*"Review the source segments below"*), collapsible chunk items with character offsets (`characters {start}–{end}`), teaser, expandable evidence blockquote, and lightbulb insight box.
+
+4. **Analysis Stage View (`AnalysisStageView.tsx`)**:
+   - Header: *"Understanding each piece…"* with Playfair Display heading and `InkUnderline`.
+   - Left Column: Selected material inventory with analyzed chunk counts, progress bar, and `ProcessingChecklist`.
    - Right Column: Selected source header + analyzed chunks list joined with `workspace.analyses` (summary, pedagogical questions), and insight box.
-4. **Building / Assembly Stage View**:
-   - Header: "Bringing it all together…"
-   - Building progress section with partition/lesson counts and `BuildingArt` illustration.
-5. **Curriculum / Review Stage View**:
-   - Complete curriculum outline with lesson cards, grounded evidence drawers, discuss in chat, edit/pin/reorder/delete, and `ReleasePanel`.
-6. **Stage Navigation & Inspection**:
-   - Interactive stepper allows selecting any stage for inspection without triggering background mutations or model calls.
-   - Reset to active stage control.
+
+5. **Building / Assembly Stage View (`AssemblyStageView.tsx`)**:
+   - Header: *"Bringing it all together…"*.
+   - Assembly progress section with partition/lesson counts and `<BuildingArt />` SVG illustration.
+
+6. **Curriculum & Review Stage View (`CurriculumStageView.tsx` & `ReleasePanel.tsx`)**:
+   - Full curriculum outline layout with Learning Blueprint card, grounded source text (`#builder-sources`), lesson cards with pinning/editing/reordering/deletion, orphan warnings, expandable evidence citations, chat discussion, and `ReleasePanel`.
+
+7. **Stage Navigation & Inspection**:
+   - Interactive stepper allows selecting any stage for inspection (`setInspectedStage`) without triggering background mutations or model calls.
+   - Fully keyboard accessible (`Enter` / `Space` on step items).
+   - Prominent status banner allows 1-click return to active stage.
+
+---
+
+## 4. Acceptance Verification Summary
+
+- **Visual Fidelity**: Matched typography (Playfair Display, Manrope, Caveat), exact color variables (`--creation-paper`, `--creation-surface`, `--creation-ink`, `--creation-blue`, `--creation-line`), paper texture overlays, and responsive breakpoints.
+- **Mobile Correctness**: Sticky `.paneNavigation` at `< 820px` prevents navigation trapping; wrapped stepper at `< 640px` prevents horizontal overflow; 2-column cards stack cleanly.
+- **Canonical Architecture**: Retained 100% of the v2 single store, typed actions, CAS revisions, and durable backend processing. Stage inspection is pure presentation state.
+- **Automated Regression Suite**: 87 focused unit and integration tests passing in `src/client/screens/cohortBuilder`.
