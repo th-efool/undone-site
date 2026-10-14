@@ -30,8 +30,12 @@ export const youtubeTimeScopeSchema = z.strictObject({startMs:milliseconds,endMs
 export const youtubeTrackSchema = z.strictObject({id:z.string().min(1).max(200),
   language:z.string().regex(/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$/).max(35),
   kind:z.enum(['manual','automatic']),translated:z.literal(false)});
-export const youtubeTranscriptInputSchema = z.strictObject({url:youtubeVideoUrlSchema,
-  track:youtubeTrackSchema,scope:youtubeTimeScopeSchema.optional()});
+export const youtubeTranscriptInputSchema = z.strictObject({
+  kind: z.literal('youtube').optional(),
+  url: youtubeVideoUrlSchema,
+  track: youtubeTrackSchema,
+  scope: youtubeTimeScopeSchema.optional(),
+});
 export type YoutubeTranscriptInput = z.infer<typeof youtubeTranscriptInputSchema>;
 
 /** A trusted adapter must independently verify public visibility and exact track identity.

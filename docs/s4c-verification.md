@@ -63,13 +63,42 @@ Independent tests: 18 shared contract tests and 10 retention adapter tests pass;
 existing YouTube observation/metadata and PDF/web baseline 44 tests pass.
 TypeScript passes. Further regression/build outcomes are indexed in MEMORY.
 
+## Durable DAG and canonical acceptance
+
+Canonical actions `add_youtube_source` and `set_youtube_scope` are integrated into
+`src/shared/cohort-builder/contracts.ts` and validated via `source-policy.ts`.
+Capability gating (`INTERACTION_YOUTUBE_ENABLED=1` + readiness) strictly protects
+production routes (`SOURCE_CAPABILITY_DISABLED` by default).
+
+The text jobs DAG (`text-job-plan.ts`) plans `acquisition` and `extraction` stages
+using `YOUTUBE_TRANSCRIPT_VERSION`. `createTextSourceProcessor` accepts an injected
+non-billing `YoutubeTranscriptProvider` port to acquire `source_raw` JSON bytes,
+and `extractRetainedSource` deterministically produces `cohort-extraction-v1` with
+timestamped locations (`startMs`, `endMs`, `segmentId`) and transcript coverage.
+Downstream understanding, chunking, analysis, and assembly stages run identically
+to existing grounded sources.
+
+`set_youtube_scope` adjusts caption time bounds while preserving `retainedInputId`.
+Acquisition reuses retained bytes without calling the provider again; extraction
+re-slices the transcript deterministically, updates evidence, and preserves
+unrelated source artifacts and pinned lessons. Acceptance under the canonical
+workspace lock validates raw transcript structure, exact video/track match, and
+re-derived extraction proof before committing projections.
+
+Composed PGlite tests: 5 tests in `youtube-canonical-jobs.test.ts` pass, verifying:
+- Disabled capability rejection
+- End-to-end DAG execution from acquisition through assembly
+- Scope change without provider re-acquisition
+- Honest provider failure (`TRANSCRIPT_UNAVAILABLE`) and targeted job retry
+- Fabricated extraction rejection (`FABRICATED_SOURCE_EXTRACTION`) and CAS consistency
+
 ## Outstanding gates (still open)
 
 Select an authorized provider/access path and establish its network/security,
 quota/cost, track availability and actual live acquisition conformance first.
-Then integrate canonical actions/DAG/worker, UI/chat, owned timestamp evidence,
-and extend the real SQL/browser harness. Existing S4B evidence does not prove S4C.
-Do not claim completion from contract or deterministic normalization tests.
+Then complete UI/chat parity and extend the real SQL/browser harness. Existing S4B
+evidence does not prove S4C. Do not claim completion from contract or deterministic
+mock tests.
 
 No shared migration/activation, deployment, registry publication or next slice
 has been performed. See `plans/interaction-builder/s4c-checkpoints.md` and
