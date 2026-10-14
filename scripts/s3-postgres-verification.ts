@@ -474,6 +474,135 @@ try {
   assert.equal(ghEvents.length, ghSnapshot.sequence);
   assert.equal(ghSnapshot.revision, ghSnapshot.sequence);
   console.log('PASS separate PostgreSQL GitHub disability, intake, line-anchored extraction, scope reuse, and event consistency');
+
+  // --- S5 Verification: Learner Delivery and Workspace Release ---
+  await pool.query(readFileSync('prisma/interaction-s5-effects.sql', 'utf8'));
+  const { releaseWorkspace } = await import('../src/server/domain/cohort-builder/release-service');
+
+  // 1. Private Activation release
+  const privateRelease = await releaseWorkspace(prisma, {
+    workspaceId: ghId,
+    ownerId,
+    mode: 'private_activation',
+  });
+
+  assert(privateRelease.receipt);
+  assert.equal(privateRelease.receipt.mode, 'private_activation');
+  assert.equal(privateRelease.receipt.destinationUrl, `/play?cohort=${privateRelease.receipt.cohortId}`);
+
+  // Verify relational Prisma records
+  const releasedCohort = await prisma.cohort.findUnique({
+    where: { id: privateRelease.receipt.cohortId },
+  });
+  assert(releasedCohort);
+  assert.equal(releasedCohort.visibility, 'PRIVATE');
+  assert.equal(releasedCohort.creatorId, ownerId);
+
+  const releasedSeason = await prisma.season.findFirst({
+    where: { cohortId: releasedCohort.id },
+  });
+  assert(releasedSeason);
+
+  const releasedLessons = await prisma.lesson.findMany({
+    where: { seasonId: releasedSeason.id },
+  });
+  assert.equal(releasedLessons.length, scopedGhWorkspace.lessons.length);
+
+  const ownerMembership = await prisma.cohortMember.findFirst({
+    where: { cohortId: releasedCohort.id, userId: ownerId },
+  });
+  assert(ownerMembership);
+  assert.equal(ownerMembership.role, 'OWNER');
+
+  const effectRow = await pool.query(
+    'SELECT * FROM interaction_effects WHERE "effectKey" = $1',
+    [privateRelease.receipt.effectKey]
+  );
+  assert.equal(effectRow.rows.length, 1);
+  assert.equal(effectRow.rows[0].state, 'committed');
+
+  // Verify workspace snapshot and event
+  const releasedWsRow = (await repo.loadWorkspace({ workspaceId: ghId, ownerId }))!;
+  const releasedWs = cohortWorkspaceSchema.parse(releasedWsRow.snapshot);
+  assert.equal(releasedWs.release?.status, 'released');
+  assert.equal(releasedWs.release?.cohortId, privateRelease.receipt.cohortId);
+
+  // 2. Release Idempotency: re-releasing private activation produces identical receipt
+  const reRelease = await releaseWorkspace(prisma, {
+    workspaceId: ghId,
+    ownerId,
+    mode: 'private_activation',
+  });
+  assert.equal(reRelease.receipt.effectKey, privateRelease.receipt.effectKey);
+  assert.equal(reRelease.receipt.cohortId, privateRelease.receipt.cohortId);
+  assert.equal(reRelease.revision, privateRelease.revision);
+
+  // 3. Promotion to Public Publish: in-place promotion under identical cohortId
+  const publicRelease = await releaseWorkspace(prisma, {
+    workspaceId: ghId,
+    ownerId,
+    mode: 'public_publish',
+  });
+  assert.equal(publicRelease.receipt.cohortId, privateRelease.receipt.cohortId);
+  assert.equal(publicRelease.receipt.mode, 'public_publish');
+  assert.equal(publicRelease.receipt.destinationUrl, `/cohort/${publicRelease.receipt.cohortId}`);
+
+  const promotedCohort = await prisma.cohort.findUnique({
+    where: { id: publicRelease.receipt.cohortId },
+  });
+  assert.equal(promotedCohort?.visibility, 'PUBLIC');
+
+  // 4. Downgrade Prevention: Attempting to downgrade public cohort back to private must fail
+  let downgradeBlocked = false;
+  try {
+    await releaseWorkspace(prisma, {
+      workspaceId: ghId,
+      ownerId,
+      mode: 'private_activation',
+    });
+  } catch (error) {
+    if ((error as Error).message.includes('CANNOT_DOWNGRADE_PUBLIC_COHORT')) {
+      downgradeBlocked = true;
+    }
+  }
+  assert.equal(downgradeBlocked, true, 'Downgrading a public cohort must be blocked');
+
+  // 5. Block unredacted restricted sources from public release
+  const restrictedWsId = crypto.randomUUID();
+  const restrictedSnapshot = cohortWorkspaceSchema.parse({
+    schemaVersion: 1,
+    title: 'Secret Internal Cohort',
+    intent: 'Internal procedures',
+    audience: 'Employees',
+    dailyMinutes: 15,
+    lessons: [
+      { id: 'sec-1', version: 0, title: 'Secrets', objective: 'Keep private', sourceChunkIds: ['src-sec:v0:0'], pinned: false },
+    ],
+    sources: [
+      { id: 'src-sec', version: 0, label: 'Confidential Notes', text: 'Private key data', checksum: 'd'.repeat(64), state: 'ready', isRestricted: true },
+    ],
+    chunks: [
+      { id: 'src-sec:v0:0', sourceId: 'src-sec', sourceVersion: 0, start: 0, end: 16, text: 'Private key data', checksum: 'e'.repeat(64) },
+    ],
+    processing: { status: 'ready', stage: 'done', generation: 1, sourceFingerprint: 'sec-fp', error: null },
+  });
+  await repo.createWorkspace({ id: restrictedWsId, ownerId, domainId: 'cohort', domainVersion: 1, initialSnapshot: restrictedSnapshot });
+
+  let restrictedBlocked = false;
+  try {
+    await releaseWorkspace(prisma, {
+      workspaceId: restrictedWsId,
+      ownerId,
+      mode: 'public_publish',
+    });
+  } catch (error) {
+    if ((error as Error).name === 'CohortReadinessError') {
+      restrictedBlocked = true;
+    }
+  }
+  assert.equal(restrictedBlocked, true, 'Public release with restricted sources must be blocked by readiness check');
+
+  console.log('PASS separate PostgreSQL S5 learner delivery, relational materialization, promotion, downgrade prevention, and restricted source blocking');
 } finally { await pool.end(); await prisma.$disconnect(); }
 }
 void main().catch(error => { console.error(error); process.exitCode = 1; });
