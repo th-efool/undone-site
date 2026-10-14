@@ -3,6 +3,7 @@ import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import { PDF_PARSER_VERSION } from '../cohort-creation/materials/pdf-identity';
 import { WEB_PARSER_VERSION } from '../cohort-creation/materials/web-identity';
 import { YOUTUBE_TRANSCRIPT_VERSION } from '@/src/shared/cohort-builder/youtube-transcript';
+import { GITHUB_SOURCE_VERSION } from '@/src/shared/cohort-builder/github-source';
 
 export type TextJobStage = 'acquisition' | 'extraction' | 'understanding' | 'chunking' | 'analysis' | 'assembly';
 
@@ -36,12 +37,17 @@ export function planTextJobs(state: CohortWorkspace): TextJobIntent[] {
       return intent;
     };
     const acquisition = stage('acquisition', [], []);
-    const retained = source.input ? stage('extraction', ['cohort-extraction-v1', source.input.kind === 'pdf' ? PDF_PARSER_VERSION : (source.input.kind === 'web' ? WEB_PARSER_VERSION : YOUTUBE_TRANSCRIPT_VERSION), acquisition.jobKey], [acquisition.jobKey]) : acquisition;
+    const parserVersion = source.input?.kind === 'pdf' ? PDF_PARSER_VERSION
+      : source.input?.kind === 'web' ? WEB_PARSER_VERSION
+      : source.input?.kind === 'youtube' ? YOUTUBE_TRANSCRIPT_VERSION
+      : GITHUB_SOURCE_VERSION;
+    const retained = source.input ? stage('extraction', ['cohort-extraction-v1', parserVersion, acquisition.jobKey], [acquisition.jobKey]) : acquisition;
     const understanding = stage('understanding', [retained.jobKey], [retained.jobKey]);
     const chunking = stage('chunking', [understanding.jobKey, 'complete-line-coverage-v2'], [understanding.jobKey]);
     const analysis = stage('analysis', [chunking.jobKey, state.audience], [chunking.jobKey]);
     analysisKeys.push(analysis.jobKey);
   }
+
   if (analysisKeys.length > 0) {
     const overrides = state.lessons.filter(lesson => lesson.manualOverride || lesson.pinned || !lesson.id.startsWith('grounded:'))
       .map(lesson => [lesson.id, lesson.version, lesson.title, lesson.objective, lesson.pinned, lesson.sourceChunkIds]);

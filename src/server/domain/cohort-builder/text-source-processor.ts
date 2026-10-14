@@ -5,6 +5,7 @@ import type { ClaimedTextJob } from './text-jobs';
 import { computeTextStage } from './text-pipeline';
 import type { WebTransport } from '../cohort-creation/materials/web-fetch';
 import type { YoutubeTranscriptProvider } from './youtube-transcript';
+import type { GithubSourceProvider } from './github-source';
 
 type SourceStage = Exclude<TextJobStage, 'assembly'>;
 
@@ -31,6 +32,7 @@ export function createTextSourceProcessor(input: {
   loadWorkspace: (workspaceId: string) => Promise<unknown>;
   webTransport?: WebTransport;
   youtubeTranscriptProvider?: YoutubeTranscriptProvider;
+  githubSourceProvider?: GithubSourceProvider;
 }): (job: ClaimedTextJob) => Promise<Uint8Array> {
   return async job => {
     if (!job.sourceId || job.sourceVersion === null || job.stage === 'assembly') throw new Error('INVALID_SOURCE_JOB');
@@ -58,6 +60,11 @@ export function createTextSourceProcessor(input: {
       if (source.input.kind === 'youtube') {
         const {acquireYoutubeTranscript}=await import('./youtube-transcript');
         const acquired = await acquireYoutubeTranscript(source.input, input.youtubeTranscriptProvider);
+        return acquired.bytes;
+      }
+      if (source.input.kind === 'github') {
+        const {acquireGithubSource}=await import('./github-source');
+        const acquired = await acquireGithubSource(source.input, input.githubSourceProvider);
         return acquired.bytes;
       }
       throw new Error('MISSING_RETAINED_INPUT');
