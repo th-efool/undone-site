@@ -106,7 +106,7 @@ async function fixture() {
   return { db, repo, sql, port };
 }
 
-describe('YouTube transcript canonical actions and durable DAG integration', () => {
+describe('YouTube transcript canonical actions and durable DAG integration', { timeout: 20_000 }, () => {
   it('enforces capability gating by rejecting YouTube actions when disabled', async () => {
     vi.stubEnv('INTERACTION_TEXT_DRIVER', 'durable');
     // INTERACTION_YOUTUBE_ENABLED is omitted

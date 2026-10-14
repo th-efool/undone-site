@@ -1,8 +1,10 @@
 # Interaction builder execution checkpoint
 
-STATUS: S4C INCOMPLETE / CHECKPOINT 4 COMPLETE / INTEGRATED ACCEPTANCE GATES OPEN. S4B remains locally complete; shared rollout remains unauthorized.
-LAST_CHECKPOINT: `IB-S4C-UI-CHAT-2026-10-14`
-NEXT: Checkpoint 5 integrated acceptance & final verification. Plan: `plans/interaction-builder/s4c-checkpoints.md`; evidence: `docs/s4c-verification.md`.
+STATUS: S4C LOCALLY COMPLETE (LIVE GATE OPEN) / ALL 5 CHECKPOINTS PASS / READY FOR REVIEW. S4B remains locally complete; shared rollout remains unauthorized.
+LAST_CHECKPOINT: `IB-S4C-INTEGRATED-ACCEPTANCE-2026-10-14`
+NEXT: Await provider selection / live acquisition authorization. Live YouTube capability remains disabled by default with TRANSCRIPT_PROVIDER_REQUIRED.
+
+S4C integrated acceptance and disability proof: `scripts/s3-postgres-verification.ts` extended with YouTube disability verification, mock provider acquisition, durable DAG execution, timestamped locations, scope reduction reuse without provider re-fetch, and event sequence consistency. `scripts/s3-browser-verification.mjs` extended with YouTube disability assertions (button count 0 and honest unavailable notice). All 10 domain/S4C test files (88 tests) pass. `verify:vercel`, `interaction:worker:check`, and `verify-packed-consumer.mjs` pass. Test ports released. Checkpoint 4 commit `112d7e1` pushed.
 
 S4C UI and chat parity: `add_youtube_source` and `set_youtube_scope` AI tools registered in `tools.ts` with canonical actions and deterministic step IDs. `context.ts` binds `youtube: sourceCapability('youtube')` to assistant context and adds capability prompt guidance. `ExternalSources.tsx` renders honest disabled notice `YouTube transcript ingestion is currently unavailable (${reason})` when capability is off, renders intake form when enabled, and provides `ExternalSourceScope` with `formatYoutubeTimestamp`, start/end seconds range validation, and concurrent conflict recovery. `CohortWorkspacePane.tsx` displays grounded timestamp ranges in evidence citations. 17 UI/chat tests pass; TypeScript exit 0. Checkpoint 3 commit `a4227bf` pushed.
 
