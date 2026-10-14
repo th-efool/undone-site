@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 
-export type CohortTextArtifactKind = 'source_raw' | 'understanding' | 'chunks' | 'analysis' | 'assembly';
+export type CohortTextArtifactKind = 'source_input' | 'source_raw' | 'extraction' | 'understanding' | 'chunks' | 'analysis' | 'assembly';
 
 /** Injected SQL port keeps this host-owned store usable with real PostgreSQL and isolated tests. */
 export interface TextArtifactSql {
@@ -30,7 +30,7 @@ export async function putTextArtifact(sql: TextArtifactSql, input: {
   bytes: Uint8Array;
 }): Promise<TextArtifactRef> {
   const bytes = Buffer.from(input.bytes);
-  if (bytes.length === 0 || bytes.length > maxArtifactBytes || (input.kind === 'source_raw' && bytes.length > 200_000)) throw new Error('ARTIFACT_SIZE_LIMIT');
+  if (bytes.length === 0 || bytes.length > maxArtifactBytes) throw new Error('ARTIFACT_SIZE_LIMIT');
   if ((input.sourceId === undefined) !== (input.sourceVersion === undefined) || (input.sourceVersion !== undefined && (!Number.isSafeInteger(input.sourceVersion) || input.sourceVersion < 0))) throw new Error('INVALID_SOURCE_IDENTITY');
   const ref: TextArtifactRef = {
     id: randomUUID(), workspaceId: input.workspaceId,

@@ -26,6 +26,7 @@ try {
     await client.query(schema.stdout);
     await client.query(readFileSync('prisma/interaction-runs-and-journal.sql','utf8'));
     await client.query(readFileSync('prisma/interaction-s3-storage.sql','utf8'));
+    await client.query(readFileSync('prisma/interaction-s4b-sources.sql','utf8'));
   } finally { await client.end(); }
   if (process.argv.includes('--serve')) {
     const hostDirectory = resolve(directory,'host');

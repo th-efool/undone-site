@@ -4,7 +4,7 @@ import { cohortSourceSchema, cohortWorkspaceSchema } from './contracts';
 export const cohortIntakeSchema = z.strictObject({
   requestId: z.uuid(),
   prompt: z.string().trim().min(1).max(4_000),
-  source: cohortSourceSchema.pick({ label: true, text: true }).optional(),
+  source: z.strictObject({ label: cohortSourceSchema.shape.label, text: z.string().min(1).max(200_000).refine(value => !!value.trim()) }).optional(),
 });
 export type CohortIntake = z.infer<typeof cohortIntakeSchema>;
 

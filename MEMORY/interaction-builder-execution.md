@@ -1,8 +1,10 @@
 # Interaction builder execution checkpoint
 
-STATUS: S4A LOCAL IMPLEMENTATION COMPLETE AND VERIFIED. Shared rollout remains pending authorization.
+STATUS: S4B IN PROGRESS. S3/S4A locally verified; shared rollout remains pending authorization.
 LAST_CHECKPOINT: `IB-S4A-INTEGRATED-JOURNEY-2026-10-14`
-NEXT: S4B PDF/web ingestion as a separately scoped slice. Do not activate shared durable processing before authorized additive schema rollout. S4 overall is not complete.
+NEXT: S4B checkpoint 2 acquisition/extraction adapters. Plan: `plans/interaction-builder/s4b-checkpoints.md`. Do not activate shared durable processing before authorized schema rollout.
+
+S4B checkpoint 1: optional source input/provenance/scope contracts preserve old pasted snapshots; canonical PDF/web/scope actions in shared contracts. `cohort-pdf-upload.ts` uses one owned locked transaction for immutable SQL input plus the existing canonical action/receipt/event path. `source-policy.ts` gates new capabilities and rejects foreign uploaded refs. Additive `prisma/interaction-s4b-sources.sql` expands artifact/stage checks only; installed only in isolated test fixture. Flags default off (`INTERACTION_PDF_ENABLED`, `INTERACTION_WEB_ENABLED`); extraction/worker/UI activation still pending. Real PostgreSQL upload/replay/foreign/size/stale rollback tests passed; existing focused text/intake tests 17 passed.
 
 ## S4A current entry points
 

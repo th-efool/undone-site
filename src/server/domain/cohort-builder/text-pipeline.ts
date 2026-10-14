@@ -82,6 +82,7 @@ function validateChunk(state: CohortWorkspace, chunk: CohortChunk): void {
 export function computeTextStage(state: CohortWorkspace): TextStageAction {
   const stage = state.processing.stage;
   if (stage === 'done') throw new Error('NO_PENDING_STAGE');
+  if (stage === 'extraction') throw new Error('SOURCE_REQUIRES_DURABLE_DRIVER');
   const fingerprint = sourceFingerprint(state);
   let result: unknown;
   if (stage === 'acquisition') {
