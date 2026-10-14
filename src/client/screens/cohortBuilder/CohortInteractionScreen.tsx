@@ -43,6 +43,23 @@ function InnerBuilderScreen() {
       data-rail-collapsed={collapsed}
       data-pane={pane}
     >
+      <nav className={styles.paneNavigation} aria-label="Builder views">
+        <button
+          type="button"
+          aria-pressed={pane === 'chat'}
+          onClick={() => setPane('chat')}
+        >
+          Chat
+        </button>
+        <button
+          type="button"
+          aria-pressed={pane === 'workspace'}
+          onClick={() => setPane('workspace')}
+        >
+          Workspace
+        </button>
+      </nav>
+
       {/* Left Conversation Rail matching legacy CreationShell */}
       <aside className={styles.rail} aria-label="Creation conversation">
         <header className={styles.brandHeader}>
@@ -85,23 +102,6 @@ function InnerBuilderScreen() {
             Y
           </Link>
         </div>
-
-        <nav className={styles.paneNavigation} aria-label="Builder views">
-          <button
-            type="button"
-            aria-pressed={pane === 'chat'}
-            onClick={() => setPane('chat')}
-          >
-            Chat
-          </button>
-          <button
-            type="button"
-            aria-pressed={pane === 'workspace'}
-            onClick={() => setPane('workspace')}
-          >
-            Workspace
-          </button>
-        </nav>
 
         <CohortWorkspacePane
           onSelectLessonForChat={attached => {

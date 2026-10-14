@@ -13,6 +13,7 @@ import {
   Users,
   MessageSquare,
   Check,
+  AlertCircle,
   FileText,
   Globe,
 } from 'lucide-react';
@@ -24,6 +25,140 @@ import { BuilderDialog } from './BuilderDialog';
 import { ExternalSources, ExternalSourceScope } from './ExternalSources';
 import { formatYoutubeTimestamp } from '@/src/shared/cohort-builder/youtube-transcript';
 import { ReleasePanel } from './components/ReleasePanel';
+
+export interface ProcessingStep {
+  label: 'Understanding' | 'Chunking' | 'Analyzing' | 'Building';
+  isComplete: boolean;
+  isCurrent: boolean;
+  isFailed: boolean;
+}
+
+export interface ProcessingProgress {
+  currentStepIndex: number;
+  steps: ProcessingStep[];
+  needsRebuild: boolean;
+}
+
+export function getProcessingProgress(workspace: CohortWorkspace): ProcessingProgress {
+  const stepLabels: Array<ProcessingStep['label']> = ['Understanding', 'Chunking', 'Analyzing', 'Building'];
+
+  const status = workspace.processing.status as string;
+  const stage = workspace.processing.stage as string;
+  const sources = workspace.sources ?? [];
+
+  const stageToIndex = (st: string): number => {
+    switch (st) {
+      case 'acquisition':
+      case 'extraction':
+      case 'understanding':
+        return 0;
+      case 'chunking':
+        return 1;
+      case 'analysis':
+        return 2;
+      case 'assembly':
+      case 'building':
+      case 'done':
+        return 3;
+      default:
+        return 0;
+    }
+  };
+
+  // 1. If workspace.sources.length === 0 or (workspace.processing.status === 'idle' and workspace.processing.sourceFingerprint === null):
+  // Workspace is empty/idle. currentStepIndex = -1 (no active step). No steps are complete (isComplete = false for all).
+  if (sources.length === 0 || (status === 'idle' && workspace.processing.sourceFingerprint === null)) {
+    return {
+      currentStepIndex: -1,
+      steps: stepLabels.map(label => ({
+        label,
+        isComplete: false,
+        isCurrent: false,
+        isFailed: false,
+      })),
+      needsRebuild: false,
+    };
+  }
+
+  // 2. If workspace.processing.status === 'failed' or workspace.processing.status === 'canceled':
+  // Mark the failing stage with error/canceled status; NEVER mark subsequent steps complete.
+  if (status === 'failed' || status === 'canceled') {
+    const failingIndex = stageToIndex(stage);
+    return {
+      currentStepIndex: -1,
+      steps: stepLabels.map((label, index) => ({
+        label,
+        isComplete: index < failingIndex,
+        isCurrent: false,
+        isFailed: index === failingIndex,
+      })),
+      needsRebuild: true,
+    };
+  }
+
+  // 3. If workspace.processing.status === 'running' or workspace.processing.status === 'queued' or 'processing':
+  // Map stage:
+  // - 'understanding' -> step 0 is active/current, 0 complete.
+  // - 'chunking' -> step 0 complete, step 1 is active/current.
+  // - 'analysis' -> steps 0, 1 complete, step 2 is active/current.
+  // - 'building' or 'done' -> steps 0, 1, 2 complete, step 3 is active/current.
+  if (status === 'running' || status === 'queued' || status === 'processing') {
+    const activeIndex = stageToIndex(stage);
+    return {
+      currentStepIndex: activeIndex,
+      steps: stepLabels.map((label, index) => ({
+        label,
+        isComplete: index < activeIndex,
+        isCurrent: index === activeIndex,
+        isFailed: false,
+      })),
+      needsRebuild: false,
+    };
+  }
+
+  // 4. Source edits occur after prior assembly (e.g. source has state pending or processing status is idle with sources present):
+  // Do NOT show all steps complete! Indicate that sources need rebuilding or processing is idle/pending.
+  const anySourceNotReady = sources.some(s => (s.state as string) === 'pending' || s.state !== 'ready');
+  if (anySourceNotReady || (status === 'idle' && sources.length > 0)) {
+    return {
+      currentStepIndex: -1,
+      steps: stepLabels.map(label => ({
+        label,
+        isComplete: false,
+        isCurrent: false,
+        isFailed: false,
+      })),
+      needsRebuild: true,
+    };
+  }
+
+  // 5. If workspace.processing.status === 'ready' and workspace.sources.length > 0 and workspace.sources.every(s => s.state === 'ready'):
+  // Assembly is accepted and complete. All 4 steps (0, 1, 2, 3) are complete!
+  if (status === 'ready' && sources.length > 0 && sources.every(s => (s.state as string) === 'ready')) {
+    return {
+      currentStepIndex: -1,
+      steps: stepLabels.map(label => ({
+        label,
+        isComplete: true,
+        isCurrent: false,
+        isFailed: false,
+      })),
+      needsRebuild: false,
+    };
+  }
+
+  // Fallback
+  return {
+    currentStepIndex: -1,
+    steps: stepLabels.map(label => ({
+      label,
+      isComplete: false,
+      isCurrent: false,
+      isFailed: false,
+    })),
+    needsRebuild: sources.length > 0,
+  };
+}
 
 function YoutubeIcon({ size = 20, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) {
   return (
@@ -55,7 +190,8 @@ export function CohortWorkspacePane({
   const interactionState = useInteractionState<CohortWorkspace>();
   const workspaceId = propWorkspaceId ?? interactionState?.workspaceId ?? '';
   const rawWorkspace = useWorkspaceView<CohortWorkspace>();
-  const workspace = rawWorkspace ? cohortWorkspaceSchema.parse(rawWorkspace) : null;
+  const parsed = rawWorkspace ? cohortWorkspaceSchema.safeParse(rawWorkspace) : null;
+  const workspace = parsed?.success ? parsed.data : (rawWorkspace as CohortWorkspace | null);
   const dispatchAction = useDispatchAction<CohortAction>();
 
   // Modals state
@@ -180,28 +316,31 @@ export function CohortWorkspacePane({
     }
   };
 
-  const currentStep = (() => {
-    if (workspace.processing.status === 'ready' && workspace.lessons.length > 0) return 3;
-    if (workspace.processing.stage === 'done') return 3;
-    if (workspace.processing.stage === 'analysis') return 2;
-    if (workspace.processing.stage === 'chunking') return 1;
-    return 0;
-  })();
+  const progress = getProcessingProgress(workspace);
 
   return (
     <main className={styles.rightPane} aria-label="Cohort Curriculum Workspace">
       {/* Creation Journey Progress Steps */}
       <ol className={styles.creationSteps} aria-label="Creation journey progress">
-        {['Understanding', 'Chunking', 'Analyzing', 'Building'].map((label, index) => {
-          const isCurrent = index === currentStep;
-          const isComplete = workspace.processing.status === 'ready' || index < currentStep;
-          return (
-            <li key={label} aria-current={isCurrent ? 'step' : undefined} data-complete={isComplete}>
-              <span>{isComplete && index < currentStep ? <Check size={13} aria-label="Complete" /> : index + 1}</span>
-              {label}
-            </li>
-          );
-        })}
+        {progress.steps.map((step, index) => (
+          <li
+            key={step.label}
+            aria-current={step.isCurrent ? 'step' : undefined}
+            data-complete={step.isComplete}
+            data-failed={step.isFailed || undefined}
+          >
+            <span>
+              {step.isComplete ? (
+                <Check size={13} aria-label="Complete" />
+              ) : step.isFailed ? (
+                <AlertCircle size={13} aria-label="Failed" />
+              ) : (
+                index + 1
+              )}
+            </span>
+            {step.label}
+          </li>
+        ))}
       </ol>
 
       {/* Hero / Overview Card */}
@@ -235,6 +374,7 @@ export function CohortWorkspacePane({
           <h3>Source text</h3>
           <span className={styles.statusPill} data-status={workspace.processing.status}>
             {workspace.processing.status}{workspace.processing.status === 'queued' ? ` · ${workspace.processing.stage} waiting for worker` : ''}
+            {progress.needsRebuild && workspace.processing.status === 'idle' ? ' · rebuild needed' : ''}
           </span>
         </div>
         <ExternalSources/>
@@ -262,7 +402,9 @@ export function CohortWorkspacePane({
         </div>}
         {workspace.processing.error && <p role="alert" className={styles.alertBox}>{workspace.processing.error}</p>}
         {workspace.processing.status === 'failed' && !workspace.processing.jobs?.length && <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'retry_processing' })}>Retry processing</button>}
-        {workspace.sources.length > 0 && workspace.processing.status === 'ready' && <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'retry_processing' })}>Rebuild from sources</button>}
+        {workspace.sources.length > 0 && workspace.sources.every(s => (s.state as string) === 'ready') && (workspace.processing.status === 'ready' || workspace.processing.status === 'idle') && (
+          <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'retry_processing' })}>Rebuild from sources</button>
+        )}
         
         {workspace.sources.length > 0 && (
           <div className={styles.sourceList}>

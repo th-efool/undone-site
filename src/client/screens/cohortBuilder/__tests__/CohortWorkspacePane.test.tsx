@@ -3,6 +3,7 @@ import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
+import { initialCohort } from '@/src/shared/cohort-builder/intake';
 
 const fake = vi.hoisted(() => ({ state: null as any, actions: [] as unknown[], succeeds: true }));
 vi.mock('next-auth/react',()=>({useSession:()=>({data:{user:{id:'owner'}}})}));
@@ -12,7 +13,7 @@ vi.mock('@/src/client/interaction/hooks', () => ({
   useDispatchAction: () => async (action: unknown) => { fake.actions.push(action); return fake.succeeds; },
 }));
 
-import { CohortWorkspacePane } from '../CohortWorkspacePane';
+import { CohortWorkspacePane, getProcessingProgress } from '../CohortWorkspacePane';
 afterEach(() => { cleanup(); fake.succeeds = true; });
 
 describe('grounded cohort workspace UI', () => {
@@ -142,5 +143,155 @@ describe('grounded cohort workspace UI', () => {
     expect(screen.getByText('Inspect evidence')).toBeDefined();
     expect(screen.getByText(/src\/consensus\.ts#L10-L25/)).toBeDefined();
     expect(screen.getByText(/https:\/\/github\.com\/sidequesthq\/undone@ccccccc/)).toBeDefined();
+  });
+
+  it('initial empty workspace shows no completed steps and no false progress checkmarks', () => {
+    fake.state = initialCohort('my goal');
+    const progress = getProcessingProgress(fake.state);
+    expect(progress.currentStepIndex).toBe(-1);
+    expect(progress.steps.every(s => !s.isComplete)).toBe(true);
+
+    render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+    const checkmarks = screen.queryAllByLabelText('Complete');
+    expect(checkmarks).toHaveLength(0);
+
+    const stepsList = screen.getByRole('list', { name: 'Creation journey progress' });
+    const items = stepsList.querySelectorAll('li');
+    expect(items).toHaveLength(4);
+    items.forEach(li => {
+      expect(li.getAttribute('data-complete')).toBe('false');
+      expect(li.getAttribute('aria-current')).toBeNull();
+    });
+    expect(screen.getByText('1')).toBeDefined();
+    expect(screen.getByText('2')).toBeDefined();
+    expect(screen.getByText('3')).toBeDefined();
+    expect(screen.getByText('4')).toBeDefined();
+  });
+
+  it('workspace with running stage (stage: chunking, status: running) marks only Understanding as complete and Chunking as active', () => {
+    fake.state = {
+      schemaVersion: 1,
+      title: 'Systems',
+      intent: 'Learn consensus',
+      audience: 'Engineers',
+      dailyMinutes: 25,
+      sources: [{ id: 'source-1', version: 0, label: 'Notes', text: 'Quorums overlap.', checksum: 'a'.repeat(64), state: 'processing' }],
+      chunks: [],
+      understanding: [],
+      analyses: [],
+      lessons: [],
+      processing: { status: 'processing', stage: 'chunking', generation: 1, sourceFingerprint: null, error: null },
+    };
+    const progress = getProcessingProgress(fake.state);
+    expect(progress.currentStepIndex).toBe(1);
+    expect(progress.steps[0].isComplete).toBe(true);
+    expect(progress.steps[1].isCurrent).toBe(true);
+    expect(progress.steps[1].isComplete).toBe(false);
+    expect(progress.steps[2].isComplete).toBe(false);
+    expect(progress.steps[3].isComplete).toBe(false);
+
+    render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+    const checkmarks = screen.getAllByLabelText('Complete');
+    expect(checkmarks).toHaveLength(1);
+
+    const stepsList = screen.getByRole('list', { name: 'Creation journey progress' });
+    const items = stepsList.querySelectorAll('li');
+    // Step 0: Understanding - complete
+    expect(items[0].getAttribute('data-complete')).toBe('true');
+    expect(items[0].getAttribute('aria-current')).toBeNull();
+    // Step 1: Chunking - active
+    expect(items[1].getAttribute('aria-current')).toBe('step');
+    expect(items[1].getAttribute('data-complete')).toBe('false');
+    // Steps 2 & 3: Analyzing & Building - pending
+    expect(items[2].getAttribute('data-complete')).toBe('false');
+    expect(items[2].getAttribute('aria-current')).toBeNull();
+    expect(items[3].getAttribute('data-complete')).toBe('false');
+    expect(items[3].getAttribute('aria-current')).toBeNull();
+  });
+
+  it('fully ready workspace with ready sources marks all 4 steps complete', () => {
+    fake.state = cohortWorkspaceSchema.parse({
+      schemaVersion: 1,
+      title: 'Systems',
+      intent: 'Learn consensus',
+      audience: 'Engineers',
+      dailyMinutes: 25,
+      sources: [{ id: 'source-1', version: 0, label: 'Notes', text: 'Quorums overlap.', checksum: 'a'.repeat(64), state: 'ready' }],
+      chunks: [{ id: 'source-1:v0:0', sourceId: 'source-1', sourceVersion: 0, start: 0, end: 16, text: 'Quorums overlap.', checksum: 'b'.repeat(64) }],
+      lessons: [{ id: 'lesson-1', version: 0, title: 'Quorums', objective: 'Understand overlap', sourceChunkIds: ['source-1:v0:0'], pinned: false }],
+      processing: { status: 'ready', stage: 'done', generation: 1, sourceFingerprint: 'fingerprint', error: null },
+    });
+    const progress = getProcessingProgress(fake.state);
+    expect(progress.steps.every(s => s.isComplete)).toBe(true);
+
+    render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+    const checkmarks = screen.getAllByLabelText('Complete');
+    expect(checkmarks).toHaveLength(4);
+
+    const stepsList = screen.getByRole('list', { name: 'Creation journey progress' });
+    const items = stepsList.querySelectorAll('li');
+    items.forEach(li => {
+      expect(li.getAttribute('data-complete')).toBe('true');
+    });
+  });
+
+  it('source edit after prior assembly (source state pending, processing status idle) does NOT show all steps complete', () => {
+    fake.state = {
+      schemaVersion: 1,
+      title: 'Systems',
+      intent: 'Learn consensus',
+      audience: 'Engineers',
+      dailyMinutes: 25,
+      sources: [{ id: 'source-1', version: 1, label: 'Notes edited', text: 'Quorums overlap and more.', checksum: null, state: 'pending' as any }],
+      chunks: [],
+      understanding: [],
+      analyses: [],
+      lessons: [{ id: 'lesson-1', version: 0, title: 'Quorums', objective: 'Understand overlap', sourceChunkIds: [], pinned: false }],
+      processing: { status: 'idle', stage: 'done', generation: 1, sourceFingerprint: 'old-fingerprint', error: null },
+    };
+    const progress = getProcessingProgress(fake.state);
+    expect(progress.steps.every(s => s.isComplete)).toBe(false);
+    expect(progress.needsRebuild).toBe(true);
+
+    render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+    const checkmarks = screen.queryAllByLabelText('Complete');
+    expect(checkmarks.length).toBe(0);
+
+    const stepsList = screen.getByRole('list', { name: 'Creation journey progress' });
+    const items = stepsList.querySelectorAll('li');
+    items.forEach(li => {
+      expect(li.getAttribute('data-complete')).toBe('false');
+    });
+    expect(screen.getByText(/rebuild needed/)).toBeDefined();
+  });
+
+  it('failed processing does not show subsequent steps complete', () => {
+    fake.state = cohortWorkspaceSchema.parse({
+      schemaVersion: 1,
+      title: 'Systems',
+      intent: 'Learn consensus',
+      audience: 'Engineers',
+      dailyMinutes: 25,
+      sources: [{ id: 'source-1', version: 0, label: 'Notes', text: 'Quorums overlap.', checksum: 'a'.repeat(64), state: 'ready' }],
+      lessons: [],
+      processing: { status: 'failed', stage: 'analysis', generation: 1, sourceFingerprint: null, error: 'ANALYSIS_FAILED' },
+    });
+    const progress = getProcessingProgress(fake.state);
+    expect(progress.steps[0].isComplete).toBe(true); // Understanding
+    expect(progress.steps[1].isComplete).toBe(true); // Chunking
+    expect(progress.steps[2].isFailed).toBe(true);   // Analyzing failed
+    expect(progress.steps[2].isComplete).toBe(false);
+    expect(progress.steps[3].isComplete).toBe(false); // Building pending (NEVER complete!)
+
+    render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+    const stepsList = screen.getByRole('list', { name: 'Creation journey progress' });
+    const items = stepsList.querySelectorAll('li');
+    expect(items[0].getAttribute('data-complete')).toBe('true');
+    expect(items[1].getAttribute('data-complete')).toBe('true');
+    expect(items[2].getAttribute('data-complete')).toBe('false');
+    expect(items[2].getAttribute('data-failed')).toBe('true');
+    expect(items[3].getAttribute('data-complete')).toBe('false');
+    expect(items[3].getAttribute('data-failed')).toBeNull();
+    expect(screen.getByLabelText('Failed')).toBeDefined();
   });
 });

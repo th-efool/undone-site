@@ -40,3 +40,140 @@ it('traps dialog keyboard focus and restores invoking control', () => {
   fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' }); expect(close).toHaveBeenCalledOnce();
   result.unmount(); expect(document.activeElement).toBe(invoking); invoking.remove();
 });
+
+it('permits mobile pane switching both ways repeatedly without trapping the user', () => {
+  fake.view = cohortWorkspaceSchema.parse({
+    schemaVersion: 1,
+    title: 'Distributed Systems',
+    intent: 'Learn Paxos',
+    audience: 'Engineers',
+    dailyMinutes: 20,
+    lessons: [
+      { id: 'lesson-1', version: 0, title: 'Consensus Basics', objective: 'Explain consensus', sourceChunkIds: [], pinned: false },
+    ],
+  });
+  const props = { workspaceId: 'ws-mobile', ownerId: 'owner', initialView: fake.view };
+  render(<CohortInteractionScreen {...props} />);
+
+  const main = document.getElementById('main-content')!;
+  const chatBtn = screen.getByRole('button', { name: 'Chat' });
+  const workspaceBtn = screen.getByRole('button', { name: 'Workspace' });
+
+  // Initial state is workspace
+  expect(main.getAttribute('data-pane')).toBe('workspace');
+  expect(workspaceBtn.getAttribute('aria-pressed')).toBe('true');
+  expect(chatBtn.getAttribute('aria-pressed')).toBe('false');
+
+  // Switch to chat
+  fireEvent.click(chatBtn);
+  expect(main.getAttribute('data-pane')).toBe('chat');
+  expect(chatBtn.getAttribute('aria-pressed')).toBe('true');
+  expect(workspaceBtn.getAttribute('aria-pressed')).toBe('false');
+
+  // Switch back to workspace
+  fireEvent.click(workspaceBtn);
+  expect(main.getAttribute('data-pane')).toBe('workspace');
+  expect(workspaceBtn.getAttribute('aria-pressed')).toBe('true');
+  expect(chatBtn.getAttribute('aria-pressed')).toBe('false');
+
+  // Repeat back and forth
+  fireEvent.click(chatBtn);
+  expect(main.getAttribute('data-pane')).toBe('chat');
+  fireEvent.click(workspaceBtn);
+  expect(main.getAttribute('data-pane')).toBe('workspace');
+  fireEvent.click(chatBtn);
+  expect(main.getAttribute('data-pane')).toBe('chat');
+  fireEvent.click(workspaceBtn);
+  expect(main.getAttribute('data-pane')).toBe('workspace');
+});
+
+it('switches to chat when selecting a lesson for chat and allows returning to workspace with retained drafts', () => {
+  fake.view = cohortWorkspaceSchema.parse({
+    schemaVersion: 1,
+    title: 'Distributed Systems',
+    intent: 'Learn Paxos',
+    audience: 'Engineers',
+    dailyMinutes: 20,
+    lessons: [
+      { id: 'lesson-1', version: 0, title: 'Consensus Basics', objective: 'Explain consensus', sourceChunkIds: [], pinned: false },
+    ],
+  });
+  const props = { workspaceId: 'ws-mobile', ownerId: 'owner', initialView: fake.view };
+  render(<CohortInteractionScreen {...props} />);
+
+  const main = document.getElementById('main-content')!;
+  const composer = screen.getByLabelText('Message the cohort assistant');
+  const source = screen.getByLabelText('Paste text to retain and ground this curriculum');
+
+  fireEvent.change(composer, { target: { value: 'Unsent question about consensus' } });
+  fireEvent.change(source, { target: { value: 'Unsaved source notes' } });
+
+  // Select lesson for chat
+  const discussBtn = screen.getByRole('button', { name: 'Discuss in chat' });
+  fireEvent.click(discussBtn);
+
+  // Verifies navigation switched to chat
+  expect(main.getAttribute('data-pane')).toBe('chat');
+  expect(screen.getAllByText(/Consensus Basics/).length).toBeGreaterThanOrEqual(1);
+  expect((composer as HTMLTextAreaElement).value).toBe('Unsent question about consensus');
+
+  // Return to workspace using the persistent navigation
+  const workspaceBtn = screen.getByRole('button', { name: 'Workspace' });
+  fireEvent.click(workspaceBtn);
+
+  expect(main.getAttribute('data-pane')).toBe('workspace');
+  expect((source as HTMLTextAreaElement).value).toBe('Unsaved source notes');
+  expect((composer as HTMLTextAreaElement).value).toBe('Unsent question about consensus');
+});
+
+it('mobile navigation: persistent paneNavigation is present outside canvas, switches data-pane, and maintains composer and mounted state', () => {
+  fake.view = cohortWorkspaceSchema.parse({
+    schemaVersion: 1,
+    title: 'Mobile Shell Test',
+    intent: 'Learn',
+    audience: 'Everyone',
+    dailyMinutes: 15,
+    lessons: [],
+  });
+  const props = { workspaceId: 'ws-mobile-nav', ownerId: 'owner', initialView: fake.view };
+  render(<CohortInteractionScreen {...props} />);
+
+  const main = document.getElementById('main-content')!;
+  const nav = screen.getByRole('navigation', { name: 'Builder views' });
+  expect(nav).toBeDefined();
+
+  const chatBtn = screen.getByRole('button', { name: 'Chat' });
+  const workspaceBtn = screen.getByRole('button', { name: 'Workspace' });
+  const composer = screen.getByLabelText('Message the cohort assistant');
+  const source = screen.getByLabelText('Paste text to retain and ground this curriculum');
+
+  // Type in composer and source drafts
+  fireEvent.change(composer, { target: { value: 'Draft while navigating' } });
+  fireEvent.change(source, { target: { value: 'Source draft' } });
+
+  // Switch to chat view (as on mobile data-pane='chat')
+  fireEvent.click(chatBtn);
+  expect(main.getAttribute('data-pane')).toBe('chat');
+  expect(chatBtn.getAttribute('aria-pressed')).toBe('true');
+  expect(workspaceBtn.getAttribute('aria-pressed')).toBe('false');
+
+  // Verify paneNavigation is still present and not hidden inside canvas
+  expect(screen.getByRole('navigation', { name: 'Builder views' })).toBe(nav);
+
+  // Click Workspace to switch back
+  fireEvent.click(workspaceBtn);
+  expect(main.getAttribute('data-pane')).toBe('workspace');
+  expect(workspaceBtn.getAttribute('aria-pressed')).toBe('true');
+  expect(chatBtn.getAttribute('aria-pressed')).toBe('false');
+
+  // Click Chat again to switch back
+  fireEvent.click(chatBtn);
+  expect(main.getAttribute('data-pane')).toBe('chat');
+
+  // Verify composer and source remain mounted with preserved values
+  expect((composer as HTMLTextAreaElement).value).toBe('Draft while navigating');
+  expect((source as HTMLTextAreaElement).value).toBe('Source draft');
+  expect(screen.getByLabelText('Message the cohort assistant')).toBe(composer);
+  expect(screen.getByLabelText('Paste text to retain and ground this curriculum')).toBe(source);
+});
+
