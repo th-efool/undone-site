@@ -19,7 +19,7 @@ NEXT: S4B PDF/web ingestion as a separately scoped slice. Do not activate shared
 
 S4A checks: `npx vitest run --maxWorkers=2` = 188 files/1201 tests passed, 2 existing skips; `npx tsc --noEmit --pretty false` exit 0. Real separate-connection PostgreSQL gate passed atomic intake, retries/rollback, FIFO/cap, idempotent cancellation and stale transcript fences. Authenticated browser gate exit 0 (`BROWSER_JOURNEY_PASS`): landing/auth return, lost intake/chat acknowledgements, grounded refinement, evidence, pins/manual edits, reload/mobile drafts, restart/partial failure/targeted retry, reconnect, two-tab conflict/reapplication, running Stop, disabled intake with v2 resume and private v1 handoff. No paid calls. Commands/configuration: `docs/s4a-verification.md`.
 
-Checkpoint 1 committed/pushed `5f0aa02`; checkpoint 2 `7d6ba14`; checkpoint 3 `7e343fe` (plus concurrent queue/UI commits below). Checkpoint 4 is the host commit titled `Finish S4A intake and workspace journey with verified browser and SQL gates`.
+Checkpoint 1 `5f0aa02`; checkpoint 2 `7d6ba14`; checkpoint 3 `7e343fe` (plus concurrent queue/UI commits below); checkpoint 4 `759b0bc`. All verified host checkpoints are pushed with planning synchronization.
 
 `npm run verify:vercel` exit 0: submodule/public distributions, TypeScript, Prisma generation and optimized production build passed (154.1s build). Existing middleware/pdfjs warnings remain. No deployment. Test services on 3107/3108/15433/15434 stopped; synthetic fixtures retained under `.tmp`.
 
