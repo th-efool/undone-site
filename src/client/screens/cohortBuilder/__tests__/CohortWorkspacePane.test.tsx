@@ -4,14 +4,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
 
-const fake = vi.hoisted(() => ({ state: null as any, actions: [] as unknown[] }));
+const fake = vi.hoisted(() => ({ state: null as any, actions: [] as unknown[], succeeds: true }));
 vi.mock('@/src/client/interaction/hooks', () => ({
   useWorkspaceView: () => fake.state,
-  useDispatchAction: () => async (action: unknown) => { fake.actions.push(action); return true; },
+  useDispatchAction: () => async (action: unknown) => { fake.actions.push(action); return fake.succeeds; },
 }));
 
 import { CohortWorkspacePane } from '../CohortWorkspacePane';
-afterEach(cleanup);
+afterEach(() => { cleanup(); fake.succeeds = true; });
 
 describe('grounded cohort workspace UI', () => {
   it('sends pasted text through the canonical action and shows retained evidence', async () => {
@@ -67,5 +67,17 @@ describe('grounded cohort workspace UI', () => {
     expect(screen.queryByRole('button', { name: 'Retry processing' })).toBeNull();
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Retry analysis' })));
     expect(fake.actions).toEqual([{ type: 'retry_text_job', jobId: 'retry' }]);
+  });
+  it('keeps an unsaved lesson objective open after a conflict', async () => {
+    fake.state = cohortWorkspaceSchema.parse({ schemaVersion: 1, title: 'Systems', intent: 'Learn', audience: '', dailyMinutes: 20,
+      lessons: [{ id: 'lesson', version: 1, title: 'Pinned lesson', objective: 'Original', sourceChunkIds: [], pinned: true }] });
+    fake.actions = []; fake.succeeds = false;
+    render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Edit lesson' })));
+    const objective = screen.getByDisplayValue('Original');
+    fireEvent.change(objective, { target: { value: 'Unsaved objective' } });
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Update Lesson' })));
+    expect(screen.getByDisplayValue('Unsaved objective')).toBeTruthy();
+    expect(fake.actions).toEqual([{ type: 'edit_lesson', lessonId: 'lesson', objective: 'Unsaved objective' }]);
   });
 });

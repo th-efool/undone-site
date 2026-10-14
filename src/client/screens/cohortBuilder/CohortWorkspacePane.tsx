@@ -59,13 +59,13 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
 
   const handleSaveOverview = async () => {
     if (overviewForm.intent !== workspace.intent) {
-      await dispatchAction({ type: 'set_intent', intent: overviewForm.intent });
+      if (!await dispatchAction({ type: 'set_intent', intent: overviewForm.intent })) return;
     }
     if (overviewForm.audience !== workspace.audience) {
-      await dispatchAction({ type: 'set_audience', audience: overviewForm.audience });
+      if (!await dispatchAction({ type: 'set_audience', audience: overviewForm.audience })) return;
     }
     if (overviewForm.dailyMinutes !== workspace.dailyMinutes) {
-      await dispatchAction({ type: 'set_daily_minutes', dailyMinutes: overviewForm.dailyMinutes });
+      if (!await dispatchAction({ type: 'set_daily_minutes', dailyMinutes: overviewForm.dailyMinutes })) return;
     }
     setEditingOverview(false);
   };
@@ -96,16 +96,16 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
 
   const handleSaveEditLesson = async () => {
     if (!editingLesson) return;
-    await dispatchAction(
+    const saved = await dispatchAction(
       {
         type: 'edit_lesson',
         lessonId: editingLesson.id,
-        title: lessonForm.title,
+        ...(editingLesson.pinned ? {} : { title: lessonForm.title }),
         objective: lessonForm.objective,
       },
       [{ kind: 'lesson', id: editingLesson.id, version: editingLesson.version }]
     );
-    setEditingLesson(null);
+    if (saved) setEditingLesson(null);
   };
 
   const handleDeleteLesson = async (lesson: CohortLesson) => {
@@ -123,11 +123,12 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
 
   const handleSaveAddLesson = async () => {
     if (!newLessonForm.title.trim() || !newLessonForm.objective.trim()) return;
-    await dispatchAction({
+    const saved = await dispatchAction({
       type: 'add_lesson',
       title: newLessonForm.title.trim(),
       objective: newLessonForm.objective.trim(),
     });
+    if (!saved) return;
     setNewLessonForm({ title: '', objective: '' });
     setAddingLesson(false);
   };

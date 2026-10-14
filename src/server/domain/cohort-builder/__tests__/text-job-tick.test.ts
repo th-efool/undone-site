@@ -19,6 +19,19 @@ async function setup() {
 }
 
 describe('prepared durable text job tick', () => {
+  it('persists a bounded deadline failure without accepting a late processor result', async () => {
+    const { db, sql } = await setup();
+    try {
+      await db.exec(`INSERT INTO "cohort_text_jobs" ("id","workspaceId","jobKey","stage","dependencyFingerprint","dueAt")
+        VALUES ('deadline','workspace-a','deadline','assembly','fp','2020-01-01')`);
+      expect(await runTextJobTick({ sql, workerId:'worker', leaseMs:2_000, now:() => start,
+        processTimeoutMs:1, process:() => new Promise<Uint8Array>(() => {}),
+        accept:(job, artifact, at) => acceptTextJob(sql,job,artifact,at),
+      })).toEqual({ status:'failed', jobId:'deadline' });
+      expect((await db.query<{ errorCode:string }>(`SELECT "errorCode" FROM cohort_text_jobs WHERE id='deadline'`)).rows[0].errorCode).toBe('PROCESSOR_DEADLINE');
+      expect((await db.query(`SELECT id FROM cohort_text_artifacts`)).rows).toHaveLength(0);
+    } finally { await db.close(); }
+  }, 30_000);
   it('advances prerequisites and resumes without repeating accepted work', async () => {
     const { db, sql } = await setup();
     try {

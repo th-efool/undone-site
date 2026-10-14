@@ -8,7 +8,7 @@ const artifactKind: Record<string, CohortTextArtifactKind> = {
 
 export type TextJobTickResult = { status: 'idle' | 'accepted' | 'failed' | 'stale'; jobId?: string };
 
-/** Prepared host orchestration; callers own the deterministic stage processor and SQL connection. */
+/** Host orchestration; callers own the stage processor and SQL connection. */
 export async function runTextJobTick(input: {
   sql: TextArtifactSql;
   workerId: string;
@@ -18,11 +18,15 @@ export async function runTextJobTick(input: {
   accept: (job: ClaimedTextJob, artifact: TextArtifactRef, now: Date) => Promise<boolean>;
   renewLease?: boolean;
   fail?: (job: ClaimedTextJob, code: string, now: Date) => Promise<boolean>;
+  processTimeoutMs?: number;
 }): Promise<TextJobTickResult> {
+  const processTimeoutMs = input.processTimeoutMs ?? 45_000;
+  if (!Number.isSafeInteger(processTimeoutMs) || processTimeoutMs < 1 || processTimeoutMs > 300_000) throw new Error('INVALID_PROCESS_DEADLINE');
   const job = await claimTextJob(input.sql, input.workerId, input.now(), input.leaseMs);
   if (!job) return { status: 'idle' };
   let lostLease = false;
   let renewing: Promise<void> | null = null;
+  let deadline: ReturnType<typeof setTimeout> | undefined;
   const timer = input.renewLease ? setInterval(() => {
     if (renewing) return;
     renewing = heartbeatTextJob(input.sql, job, input.now(), input.leaseMs)
@@ -32,7 +36,10 @@ export async function runTextJobTick(input: {
   try {
     const kind = artifactKind[job.stage];
     if (!kind) throw new Error('INVALID_JOB_STAGE');
-    const bytes = await input.process(job);
+    const bytes = await Promise.race([input.process(job), new Promise<never>((_resolve, reject) => {
+      deadline = setTimeout(() => reject(new Error('PROCESSOR_DEADLINE')), processTimeoutMs);
+    })]);
+    if (deadline) clearTimeout(deadline);
     if (lostLease) return { status: 'stale', jobId: job.id };
     const artifact = await putTextArtifact(input.sql, {
       workspaceId: job.workspaceId,
@@ -47,6 +54,7 @@ export async function runTextJobTick(input: {
     return { status: failed ? 'failed' : 'stale', jobId: job.id };
   } finally {
     if (timer) clearInterval(timer);
+    if (deadline) clearTimeout(deadline);
     if (renewing) await renewing;
   }
 }
