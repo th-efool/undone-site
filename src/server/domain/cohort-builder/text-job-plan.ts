@@ -40,7 +40,8 @@ export function planTextJobs(state: CohortWorkspace): TextJobIntent[] {
   if (analysisKeys.length > 0) {
     const overrides = state.lessons.filter(lesson => lesson.manualOverride || lesson.pinned || !lesson.id.startsWith('grounded:'))
       .map(lesson => [lesson.id, lesson.version, lesson.title, lesson.objective, lesson.pinned, lesson.sourceChunkIds]);
-    const dependencyFingerprint = digest(['assembly', algorithmVersion, analysisKeys, state.intent, state.dailyMinutes, overrides]);
+    // A new explicit processing generation must receive a new projection even if an old content scope returns.
+    const dependencyFingerprint = digest(['assembly', algorithmVersion, state.processing.generation, analysisKeys, state.intent, state.dailyMinutes, overrides]);
     jobs.push({
       jobKey: `text:assembly:${dependencyFingerprint}`,
       stage: 'assembly', sourceId: null, sourceVersion: null,

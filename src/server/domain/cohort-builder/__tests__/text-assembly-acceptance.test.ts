@@ -46,25 +46,25 @@ describe('atomic assembly acceptance and projection', () => {
     try {
       expect(await acceptAssemblyProjection(port, job, assembly, now)).toBe(true);
       const row = await db.query<{ snapshot: CohortWorkspace; revision: number; status: string }>(`SELECT "snapshot", "revision" FROM "interaction_workspaces" WHERE "id" = $1`, [workspaceId]);
-      expect(Number(row.rows[0].revision)).toBe(1);
+      expect(Number(row.rows[0].revision)).toBe(5);
       const projected = cohortWorkspaceSchema.parse(row.rows[0].snapshot);
       expect(projected.lessons.map(lesson => lesson.id)).toEqual(['manual:one', 'grounded:source-a:v0:0']);
       expect(projected.processing.stage).toBe('done');
       expect(projected.chunks).toHaveLength(1);
       expect(projected.analyses).toHaveLength(1);
       expect(projected.sources[0].state).toBe('ready');
-      const event = (await db.query<{ sequence: number; payload: { revision: number; baseRevision: number } }>(`SELECT "sequence", "payload" FROM "interaction_events"`)).rows[0];
-      expect(event.sequence).toBe(1);
-      expect(event.payload).toMatchObject({ revision: 1, baseRevision: 0 });
+      const event = (await db.query<{ sequence: number; payload: { revision: number; baseRevision: number } }>(`SELECT "sequence", "payload" FROM "interaction_events" ORDER BY "sequence" DESC`)).rows[0];
+      expect(event.sequence).toBe(5);
+      expect(event.payload).toMatchObject({ revision: 5, baseRevision: 4 });
     } finally { await db.close(); }
   }, 30_000);
 
   it('rolls job acceptance and projection back when event persistence fails', async () => {
     const { db, port, job, assembly } = await setup();
     try {
-      await db.exec(`ALTER TABLE "interaction_events" ADD CONSTRAINT "reject_event" CHECK ("sequence" < 0)`);
+      await db.exec(`ALTER TABLE "interaction_events" ADD CONSTRAINT "reject_event" CHECK ("sequence" < 5)`);
       await expect(acceptAssemblyProjection(port, job, assembly, now)).rejects.toThrow();
-      expect((await db.query<{ revision: number }>(`SELECT "revision" FROM "interaction_workspaces"`)).rows[0].revision).toBe(0);
+      expect((await db.query<{ revision: number }>(`SELECT "revision" FROM "interaction_workspaces"`)).rows[0].revision).toBe(4);
       expect((await db.query<{ status: string }>(`SELECT "status" FROM "cohort_text_jobs" WHERE "id" = $1`, [job.id])).rows[0].status).toBe('running');
     } finally { await db.close(); }
   }, 30_000);
@@ -74,7 +74,7 @@ describe('atomic assembly acceptance and projection', () => {
     try {
       expect(await acceptAssemblyProjection(port, job, assembly, new Date(now.getTime() + 2_001))).toBe(false);
       const row = (await db.query<{ revision: number; snapshot: CohortWorkspace }>(`SELECT "revision", "snapshot" FROM "interaction_workspaces" WHERE "id" = $1`, [workspaceId])).rows[0];
-      expect(row.revision).toBe(0);
+      expect(row.revision).toBe(4);
       expect(row.snapshot.chunks).toHaveLength(0);
       expect((await db.query<{ status: string }>(`SELECT "status" FROM "cohort_text_jobs" WHERE "id" = $1`, [job.id])).rows[0].status).toBe('running');
     } finally { await db.close(); }
@@ -86,7 +86,7 @@ describe('atomic assembly acceptance and projection', () => {
       const forged = await putTextArtifact(sql, { workspaceId, kind: 'assembly', inputFingerprint: job.dependencyFingerprint,
         bytes: Buffer.from(JSON.stringify([{ id: 'fake', version: 0, title: 'Fabricated', objective: 'Unsupported', sourceChunkIds: ['source-a:v0:0'], pinned: false }])) });
       expect(await acceptAssemblyProjection(port, job, forged, now)).toBe(false);
-      expect((await db.query<{ revision: number }>(`SELECT "revision" FROM "interaction_workspaces" WHERE "id" = $1`, [workspaceId])).rows[0].revision).toBe(0);
+      expect((await db.query<{ revision: number }>(`SELECT "revision" FROM "interaction_workspaces" WHERE "id" = $1`, [workspaceId])).rows[0].revision).toBe(4);
     } finally { await db.close(); }
   }, 30_000);
 
@@ -96,7 +96,7 @@ describe('atomic assembly acceptance and projection', () => {
       await db.query(`UPDATE "interaction_workspaces" SET "snapshot" = jsonb_set("snapshot", '{intent}', '"Changed"') WHERE "id" = $1`, [workspaceId]);
       expect(await acceptAssemblyProjection(port, job, assembly, now)).toBe(false);
       const row = await db.query<{ revision: number }>(`SELECT "revision" FROM "interaction_workspaces" WHERE "id" = $1`, [workspaceId]);
-      expect(Number(row.rows[0].revision)).toBe(0);
+      expect(Number(row.rows[0].revision)).toBe(4);
     } finally { await db.close(); }
   }, 30_000);
 
@@ -110,7 +110,7 @@ describe('atomic assembly acceptance and projection', () => {
       expect((await tick()).status).toBe('accepted');
       expect((await tick()).status).toBe('idle');
       const row = (await db.query<{ revision: number; snapshot: CohortWorkspace }>(`SELECT "revision", "snapshot" FROM "interaction_workspaces" WHERE "id" = $1`, [workspaceId])).rows[0];
-      expect(row.revision).toBe(1);
+      expect(row.revision).toBe(5);
       expect(row.snapshot.lessons).toHaveLength(2);
       expect(row.snapshot.processing.status).toBe('ready');
     } finally { await db.close(); }

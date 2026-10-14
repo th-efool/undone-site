@@ -38,6 +38,12 @@ export const cohortLessonSchema = z.strictObject({
 });
 export type CohortLesson = z.infer<typeof cohortLessonSchema>;
 
+export const cohortTextJobViewSchema = z.strictObject({
+  id, sourceId: id.nullable(), stage: z.enum(['acquisition', 'understanding', 'chunking', 'analysis', 'assembly']),
+  status: z.enum(['queued', 'running', 'accepted', 'failed', 'canceled', 'superseded']),
+  attempts: z.number().int().nonnegative(), error: z.string().max(100).nullable(), retryable: z.boolean(),
+});
+
 export const cohortWorkspaceSchema = z.strictObject({
   schemaVersion: z.literal(1),
   title: z.string().max(300),
@@ -55,6 +61,8 @@ export const cohortWorkspaceSchema = z.strictObject({
     generation: z.number().int().nonnegative().default(0),
     sourceFingerprint: z.string().nullable(),
     error: z.string().nullable(),
+    jobs: z.array(cohortTextJobViewSchema).max(81).optional(),
+    driver: z.enum(['snapshot', 'durable']).optional(),
   }).default({ status: 'idle', stage: 'done', generation: 0, sourceFingerprint: null, error: null }),
 });
 export type CohortWorkspace = z.infer<typeof cohortWorkspaceSchema>;
@@ -72,6 +80,8 @@ export const cohortActionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('edit_text_source'), sourceId: id, label: z.string().trim().min(1).max(300), text: sourceText }),
   z.strictObject({ type: z.literal('remove_source'), sourceId: id }),
   z.strictObject({ type: z.literal('retry_processing') }),
+  z.strictObject({ type: z.literal('retry_text_job'), jobId: id }),
+  z.strictObject({ type: z.literal('cancel_text_processing') }),
 ]);
 export type CohortAction = z.infer<typeof cohortActionSchema>;
 
@@ -94,6 +104,17 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   const changed: ReturnType<typeof ref>[] = [];
   const invalidated: string[] = [];
   const touch = (lesson: CohortLesson) => { lesson.version += 1; changed.push(ref(context.workspaceId, lesson)); };
+  if (action.type === 'retry_text_job') {
+    const job = next.processing.jobs?.find(item => item.id === action.jobId);
+    if (!job || job.status !== 'failed' || !job.retryable) throw new Error('JOB_NOT_RETRYABLE');
+    next.processing.status = 'queued'; next.processing.error = null;
+    return { nextState: next, changed: [], invalidated: [], summary: 'Failed source job queued for retry.', undoable: false };
+  }
+  if (action.type === 'cancel_text_processing') {
+    if (!next.processing.jobs?.length) throw new Error('NO_DURABLE_JOBS');
+    next.processing.status = 'idle'; next.processing.error = null;
+    return { nextState: next, changed: [], invalidated: [], summary: 'Source processing canceled.', undoable: false };
+  }
   const queueAfterPreferenceChange = (readyStage: 'analysis' | 'assembly') => {
     if (!next.sources.length) return;
     const stage = next.processing.status === 'ready' ? readyStage : next.processing.status === 'failed' ? 'acquisition' : next.processing.stage;

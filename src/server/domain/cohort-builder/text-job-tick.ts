@@ -17,6 +17,7 @@ export async function runTextJobTick(input: {
   process: (job: ClaimedTextJob) => Promise<Uint8Array>;
   accept: (job: ClaimedTextJob, artifact: TextArtifactRef, now: Date) => Promise<boolean>;
   renewLease?: boolean;
+  fail?: (job: ClaimedTextJob, code: string, now: Date) => Promise<boolean>;
 }): Promise<TextJobTickResult> {
   const job = await claimTextJob(input.sql, input.workerId, input.now(), input.leaseMs);
   if (!job) return { status: 'idle' };
@@ -42,7 +43,7 @@ export async function runTextJobTick(input: {
     return { status: accepted ? 'accepted' : 'stale', jobId: job.id };
   } catch (error) {
     const code = error instanceof Error && /^[A-Z_]+$/.test(error.message) ? error.message : 'PROCESSOR_FAILURE';
-    const failed = await failTextJob(input.sql, job, code, input.now());
+    const failed = await (input.fail ?? ((claimed, errorCode, at) => failTextJob(input.sql, claimed, errorCode, at)))(job, code, input.now());
     return { status: failed ? 'failed' : 'stale', jobId: job.id };
   } finally {
     if (timer) clearInterval(timer);

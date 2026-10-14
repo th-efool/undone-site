@@ -34,6 +34,7 @@ export async function runInteractionWorkerLoop(
     SELECT "id", "ownerId" FROM "interaction_workspaces"
     WHERE "domainId" = 'cohort' AND "lifecycle" = 'active'
       AND "snapshot"->'processing'->>'status' = 'queued'
+      AND COALESCE("snapshot"->'processing'->>'driver', 'snapshot') <> 'durable'
     ORDER BY "updatedAt" ASC LIMIT 20`);
 
   const durable = textDriver() === 'durable'

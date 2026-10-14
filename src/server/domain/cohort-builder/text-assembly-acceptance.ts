@@ -7,6 +7,7 @@ import { acceptTextJob, type ClaimedTextJob } from './text-jobs';
 import { createTextAssemblyProcessor } from './text-assembly-processor';
 import { computeTextStage, sourceFingerprint } from './text-pipeline';
 import { commitTextProjection } from './text-projection-commit';
+import { textJobStatus } from './text-job-status';
 
 /** Atomically accepts assembly and projects only validated generated lessons. */
 export async function acceptAssemblyProjection(
@@ -44,7 +45,7 @@ export async function acceptAssemblyProjection(
       processing: { ...state.processing, status: 'ready', stage: 'done', sourceFingerprint: sourceFingerprint(state), error: null },
     });
     if (!await acceptTextJob(tx, job, artifact, now)) return false;
-    await commitTextProjection(tx, job.workspaceId, state, next, Number(row.revision), `text-assembly:${job.id}:${job.fence}`, 'Grounded lessons accepted.');
+    await commitTextProjection(tx, job.workspaceId, state, await textJobStatus(tx, job.workspaceId, next), Number(row.revision), `text-assembly:${job.id}:${job.fence}`, 'Grounded lessons accepted.');
     return true;
   });
 }

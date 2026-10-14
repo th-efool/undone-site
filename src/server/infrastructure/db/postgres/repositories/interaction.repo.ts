@@ -3,7 +3,7 @@ import { prisma as defaultPrisma } from '../client';
 import { Prisma } from '@/generated/prisma/client';
 import { cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
 import { textDriver } from '@/src/server/domain/cohort-builder/text-driver';
-import { enqueueTextJobPlanInTransaction } from '@/src/server/domain/cohort-builder/text-job-scheduler';
+import { reconcileTextAction } from '@/src/server/domain/cohort-builder/text-action-jobs';
 import {
   type ActionCommitInput,
   type ActionCommitSuccess,
@@ -401,6 +401,9 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
         if (workspace.lifecycle !== 'active') {
           throw new Error('WORKSPACE_NOT_ACTIVE');
         }
+        if (workspace.domainId === 'cohort' && cohortWorkspaceSchema.parse(workspace.snapshot).processing.driver === 'durable' && textDriver() !== 'durable') {
+          throw new Error('TEXT_DRIVER_MISMATCH');
+        }
         if (workspace.revision !== input.expectedRevision) {
           throw new Error('STALE_WORKSPACE');
         }
@@ -416,9 +419,9 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
 
         if (workspace.domainId === 'cohort' && textDriver() === 'durable') {
           // Static application SQL, all values bound separately on the same transaction.
-          await enqueueTextJobPlanInTransaction({ query: async (statement, parameters) => ({
+          commitResult.state = await reconcileTextAction({ query: async (statement, parameters) => ({
             rows: await tx.$queryRawUnsafe<Record<string, unknown>[]>(statement, ...parameters),
-          }) }, input.workspaceId, cohortWorkspaceSchema.parse(commitResult.state));
+          }) }, input.workspaceId, cohortWorkspaceSchema.parse(commitResult.state), (input.envelope as { action: unknown }).action) as State;
         }
 
         await tx.interactionWorkspace.update({

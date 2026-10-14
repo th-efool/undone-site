@@ -98,6 +98,26 @@ export function createCohortAiTools(deps: CohortAiToolsDeps) {
   }
 
   return {
+    add_text_source: tool({ description: 'Retain user-supplied pasted text and queue grounded processing.',
+      inputSchema: z.object({ label: z.string(), text: z.string().max(200_000) }),
+      execute: async input => executeAction('add_text_source', input, { type: 'add_text_source', ...input }),
+    }),
+    edit_text_source: tool({ description: 'Replace an owned source with user-supplied text; invalidate dependent work.',
+      inputSchema: z.object({ sourceId: z.string(), label: z.string(), text: z.string().max(200_000) }),
+      execute: async input => executeAction('edit_text_source', input, { type: 'edit_text_source', ...input }),
+    }),
+    remove_source: tool({ description: 'Remove the source explicitly identified by the user.',
+      inputSchema: z.object({ sourceId: z.string() }),
+      execute: async input => executeAction('remove_source', input, { type: 'remove_source', ...input }),
+    }),
+    retry_text_job: tool({ description: 'Retry a failed current job marked retryable in workspace status.',
+      inputSchema: z.object({ jobId: z.string() }),
+      execute: async input => executeAction('retry_text_job', input, { type: 'retry_text_job', ...input }),
+    }),
+    cancel_text_processing: tool({ description: 'Stop current source processing when the user requests cancellation.',
+      inputSchema: z.object({}),
+      execute: async () => executeAction('cancel_text_processing', {}, { type: 'cancel_text_processing' }),
+    }),
     set_intent: tool({
       description: 'Update the overall learning goal or intent of the cohort.',
       inputSchema: z.object({
