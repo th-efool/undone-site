@@ -1,7 +1,6 @@
 import { cohortActionSchema } from '@/src/shared/cohort-builder/contracts';
 import { readTextArtifact, type TextArtifactSql } from './text-artifacts';
 import { textDriver } from './text-driver';
-import { webSourceUrl } from '@/src/server/domain/cohort-creation/materials/web-fetch';
 
 export const PDF_SOURCE_BYTES = 2 * 1024 * 1024;
 export function sourceCapability(kind: 'pdf' | 'web') {
@@ -25,5 +24,8 @@ export async function validateSourceAction(sql: TextArtifactSql, workspaceId: st
     const artifact = await readTextArtifact(sql,workspaceId,action.uploadId);
     if (artifact.ref.kind !== 'source_input' || artifact.bytes.length > PDF_SOURCE_BYTES || artifact.bytes.subarray(0,5).toString() !== '%PDF-') throw new Error('INVALID_PDF_UPLOAD');
   }
-  if (action.type === 'add_web_source' || action.type === 'refresh_web_source' && action.url) webSourceUrl(action.url!);
+  if (action.type === 'add_web_source' || action.type === 'refresh_web_source' && action.url) {
+    const {webSourceUrl}=await import('@/src/server/domain/cohort-creation/materials/web-fetch');
+    webSourceUrl(action.url!);
+  }
 }

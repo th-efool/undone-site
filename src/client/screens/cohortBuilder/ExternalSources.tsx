@@ -52,6 +52,7 @@ export function ExternalSources() {
 export function ExternalSourceScope({source}:{source:CohortSource}) {
   const state=useInteractionState<CohortWorkspace>();
   const dispatch=useDispatchAction<CohortAction>();const [pages,setPages]=useState(source.input?.kind==='pdf'?source.input.pages?.join(',')??'':'');
+  const [baseVersion,setBaseVersion]=useState(source.version);
   const [error,setError]=useState('');
   if(!source.input) return null;
   return <span>
@@ -60,8 +61,10 @@ export function ExternalSourceScope({source}:{source:CohortSource}) {
     {source.input.kind==='pdf'?<><label htmlFor={`pages-${source.id}`}>Physical pages (comma-separated)</label>
       <input id={`pages-${source.id}`} value={pages} onChange={event=>setPages(event.target.value)} placeholder="e.g. 1,2"/>
       <button onClick={()=>{const selected=pages.split(',').map(value=>Number(value.trim()));
+        if(source.version!==baseVersion){setError('Scope changed elsewhere. Your page selection is retained; review the current scope before reapplying.');return;}
         if(selected.some(page=>!Number.isInteger(page)||page<1||page>200)||new Set(selected).size!==selected.length){setError('Choose distinct physical pages from 1 to 200.');return;}
-        void dispatch({type:'set_pdf_pages',sourceId:source.id,pages:selected},[{kind:'source',id:source.id,version:source.version}]).then(saved=>setError(saved?'':'Scope changed elsewhere. Your page selection is retained; review and retry.'));}}>Apply page scope</button></>
+        void dispatch({type:'set_pdf_pages',sourceId:source.id,pages:selected},[{kind:'source',id:source.id,version:baseVersion}]).then(saved=>{if(saved)setBaseVersion(baseVersion+1);setError(saved?'':'Scope changed elsewhere. Your page selection is retained; review and retry.');});}}>Apply page scope</button>
+      {source.version!==baseVersion && <span role="alert">Current scope: {source.input.pages?.join(', ')??'all readable pages'}. Your selection is retained. <button onClick={()=>{setBaseVersion(source.version);setError('');}}>Use current source version for my page selection</button></span>}</>
       :<><span> · {source.provenance?.scope??'acquisition pending'}</span><button onClick={()=>void dispatch({type:'refresh_web_source',sourceId:source.id},[{kind:'source',id:source.id,version:source.version}])}>Fetch a new web version</button></>}
     {error && <span role="alert">{error}</span>}
   </span>;

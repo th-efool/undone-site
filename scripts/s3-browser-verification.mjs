@@ -25,6 +25,7 @@ const context = await browser.newContext({ viewport: { width: 1280, height: 900 
 const page = await context.newPage();
 page.setDefaultTimeout(120_000);
 const errors = [];
+const s4bOnly=process.argv.includes('--s4b-only');
 page.on('pageerror', error => errors.push(error.message));
 function startWorker() {
   const child = spawn(process.execPath, ['--conditions=react-server', '--import', 'tsx', '--import', './scripts/register-root-environment.mjs', 'src/server/interaction-worker.ts'],
@@ -34,13 +35,25 @@ function startWorker() {
 }
 let worker = startWorker();
 let disabledServer;
-const waitReady = () => page.locator('section[aria-label="Grounded source text"] small').filter({ hasText:/^ready$/ }).waitFor({ timeout:120_000 });
+async function waitReady() {
+  const deadline=Date.now()+120_000;
+  while(Date.now()<deadline) {
+    const row=(await pool.query(`SELECT revision,snapshot->'processing'->>'status' AS status FROM interaction_workspaces WHERE id=$1`,[workspaceId])).rows[0];
+    if(row?.status==='ready') {
+      await page.waitForFunction(revision=>Number(document.body.textContent.match(/Rev #(\d+)/)?.[1])>=revision,Number(row.revision));
+      await page.locator('section[aria-label="Grounded source text"] small').filter({hasText:/^ready$/}).waitFor();return;
+    }
+    await new Promise(resolve=>setTimeout(resolve,250));
+  }
+  throw new Error('CANONICAL_PROCESSING_DID_NOT_REACH_READY');
+}
 async function stopWorker() {
-  if (worker.exitCode !== null) return;
+  if (worker.exitCode !== null || worker.signalCode !== null) return;
   const closed = new Promise(resolve => worker.once('close', resolve));
   worker.kill(); await closed;
 }
 try {
+  if(!s4bOnly) {
   await page.goto('http://localhost:3107/', { timeout: 120_000 });
   await page.getByLabel('What do you want to learn about?').fill('Help me learn quorum overlap.');
   await page.getByRole('button', { name:'Add sources', exact:true }).click();
@@ -226,6 +239,88 @@ try {
   await page.waitForFunction(() => document.body.textContent.includes('Stopped or failed turns remain saved'), undefined, { timeout:30_000 });
   assert((await pool.query(`SELECT id FROM interaction_runs WHERE "workspaceId"=$1 AND status='canceled'`,[workspaceId])).rows.length>0);
   console.log('PASS running assistant Stop and visible terminal recovery');
+  } else {
+    await context.addCookies([{name:'authjs.session-token',value:token,domain:'localhost',path:'/',httpOnly:true,sameSite:'Lax',secure:false}]);
+    const intake=await context.request.post('http://localhost:3107/api/cohort-builder/intake',{headers:{Origin:'http://localhost:3107'},data:{requestId:crypto.randomUUID(),expectedOwnerId:userId,prompt:'Learn quorum overlap',source:{label:'Pasted text',text:'Quorums overlap. Logs retain writes.'}}});
+    assert.equal(intake.status(),202);workspaceId=(await intake.json()).workspaceId;
+    await page.goto(`http://localhost:3107/quest/build/${workspaceId}`);await page.getByText('Learning goal saved.',{exact:true}).waitFor();await waitReady();
+    await page.getByRole('button',{name:'Pin lesson',exact:true}).first().click();await page.getByRole('button',{name:'Unpin lesson',exact:true}).waitFor();await waitReady();
+    await page.getByRole('button',{name:'Edit lesson',exact:true}).nth(1).click();
+    await page.getByRole('dialog').locator('textarea').fill('Second tab attempted objective');
+    await page.getByRole('button',{name:'Update Lesson',exact:true}).click();await page.getByText('Second tab attempted objective',{exact:true}).waitFor();await waitReady();
+  }
+  const {sourcePdf}=await import('../src/server/domain/cohort-builder/__tests__/source-fixture.ts');
+  await waitReady();
+  await page.getByLabel('PDF file (2 MiB maximum)').setInputFiles({name:'Consensus PDF.pdf',mimeType:'application/pdf',buffer:sourcePdf(['PDF quorums overlap.','PDF majority voting retains decisions.'])});
+  let lostPdfAcknowledgement=false;
+  await page.route('**/pdf',async route=>{
+    if(route.request().method()!=='POST') return route.continue();
+    const result=await route.fetch();
+    if(result.status()!==202) return route.fulfill({response:result});
+    lostPdfAcknowledgement=true;await route.abort('failed');await page.unroute('**/pdf');
+  });
+  for(let i=0;i<4&&!lostPdfAcknowledgement;i++) {
+    await page.getByRole('button',{name:'Add PDF source',exact:true}).click();
+    await page.getByRole('alert').filter({hasText:'selected file is retained'}).waitFor();
+    if(!lostPdfAcknowledgement) {
+      await page.getByRole('button',{name:'Use current revision for next attempt',exact:true}).click();
+      const revision=Number((await pool.query(`SELECT revision FROM interaction_workspaces WHERE id=$1`,[workspaceId])).rows[0].revision);
+      await page.getByText(`Rev #${revision}`,{exact:true}).waitFor();
+    }
+  }
+  assert(lostPdfAcknowledgement,'PDF did not reach accepted acknowledgement-loss fixture');
+  await page.getByRole('button',{name:'Add PDF source',exact:true}).click();
+  await page.waitForFunction(()=>!document.body.textContent.includes('selected file is retained'));
+  await waitReady();
+  let externalState=(await pool.query(`SELECT snapshot FROM interaction_workspaces WHERE id=$1`,[workspaceId])).rows[0].snapshot;
+  console.log('PASS S4B PDF upload acknowledgement recovery and grounded processing');
+  const pdfSource=externalState.sources.find(source=>source.input?.kind==='pdf');assert(pdfSource);
+  assert.equal(externalState.sources.filter(source=>source.input?.kind==='pdf').length,1);
+  await page.locator('article').filter({hasText:'PDF majority voting retains decisions.'}).last().getByText('Inspect evidence',{exact:true}).click();
+  await page.locator('details[open] cite').filter({hasText:'physical page'}).first().waitFor();
+  console.log('PASS S4B retained physical-page evidence');
+  await page.getByLabel('Public HTTPS URL').fill('https://s4b-fixture.example.org/retry');
+  await page.getByRole('button',{name:'Add web source',exact:true}).click();
+  await page.getByRole('button',{name:'Retry acquisition',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Retry acquisition',exact:true}).click();await waitReady();
+  console.log('PASS S4B web acquisition failure and targeted retry');
+  externalState=(await pool.query(`SELECT snapshot FROM interaction_workspaces WHERE id=$1`,[workspaceId])).rows[0].snapshot;
+  const webSource=externalState.sources.find(source=>source.input?.kind==='web');assert(webSource?.retainedInputId);
+  const retainedWeb=webSource.retainedInputId;
+  await stopWorker();worker=startWorker();await page.reload();await waitReady();
+  await page.getByLabel('Physical pages (comma-separated)').fill('2');
+  let scopeRevision;
+  for(let attempt=0;attempt<4;attempt++) {
+    const currentRevision=Number((await pool.query(`SELECT revision FROM interaction_workspaces WHERE id=$1`,[workspaceId])).rows[0].revision);
+    await page.waitForFunction(revision=>Number(document.body.textContent.match(/Rev #(\d+)/)?.[1])>=revision,currentRevision);
+    const reapply=page.getByRole('button',{name:'Use current source version for my page selection',exact:true});
+    if(await reapply.count()) await reapply.click();
+    const [scoped]=await Promise.all([page.waitForResponse(response=>response.url().endsWith('/actions')&&response.request().method()==='POST'),page.getByRole('button',{name:'Apply page scope',exact:true}).click()]);
+    if(scoped.status()===200){scopeRevision=(await scoped.json()).revision;break;}
+    assert.equal(scoped.status(),409);await page.getByText('Scope changed elsewhere. Your page selection is retained; review and retry.',{exact:true}).waitFor();
+  }
+  assert(Number.isInteger(scopeRevision),'Scope reapplication did not commit');
+  await page.waitForFunction(revision=>Number(document.body.textContent.match(/Rev #(\d+)/)?.[1])>=revision,scopeRevision);await waitReady();
+  externalState=(await pool.query(`SELECT snapshot FROM interaction_workspaces WHERE id=$1`,[workspaceId])).rows[0].snapshot;
+  assert.equal(externalState.sources.find(source=>source.id===pdfSource.id).text,'PDF majority voting retains decisions.');
+  assert.equal(externalState.sources.find(source=>source.id===webSource.id).retainedInputId,retainedWeb);
+  assert(externalState.lessons.some(lesson=>lesson.pinned));
+  // Reset the guarded provider's script, then refine an external-source lesson
+  // through the same model/tool boundary as a real conversation.
+  await stopWorker();worker=startWorker();
+  const previousGoals=await page.getByText('Learning goal saved.',{exact:true}).count();
+  await page.getByLabel('Message the cohort assistant').fill('Keep the learning goal focused on quorum overlap.');
+  await page.getByRole('button',{name:'Send message',exact:true}).click();
+  await page.getByText('Learning goal saved.',{exact:true}).nth(previousGoals).waitFor();await waitReady();
+  const selectedExternal=externalState.lessons.at(-1).id;
+  const previousRefinements=await page.getByText('Selected lesson refined.',{exact:true}).count();
+  await page.getByRole('button',{name:'Discuss in chat',exact:true}).last().click();
+  await page.getByLabel('Message the cohort assistant').fill('Refine this source-grounded lesson objective.');
+  await page.getByRole('button',{name:'Send message',exact:true}).click();
+  await page.getByText('Selected lesson refined.',{exact:true}).nth(previousRefinements).waitFor();await waitReady();
+  const refined=(await pool.query(`SELECT snapshot FROM interaction_workspaces WHERE id=$1`,[workspaceId])).rows[0].snapshot.lessons.find(lesson=>lesson.id===selectedExternal);
+  assert.equal(refined.objective,'Explain quorum overlap.');assert(refined.manualOverride);
+  console.log('PASS S4B real PDF upload/lost acknowledgement, page evidence, web acquisition failure/retry, worker restart, reload and scoped retention reuse');
   // A second local-only HTTP process verifies rollout policy without changing the running server or shared configuration.
   const disabledDirectory = mkdtempSync(resolve('.tmp/s4a-disabled-'));
   const checkout = spawnSync('git',['worktree','add','--detach',disabledDirectory,'HEAD'],{ encoding:'utf8', windowsHide:true });
@@ -245,10 +340,13 @@ try {
     await new Promise(resolve => setTimeout(resolve,500));
   }
   const disabled = await context.newPage();
-  const denied = await context.request.post('http://localhost:3108/api/cohort-builder/intake',{ headers:{ Origin:'http://localhost:3108' }, data:{ ...originalIntake, requestId:crypto.randomUUID(), expectedOwnerId:userId } });
+  disabled.setDefaultTimeout(120_000);disabled.setDefaultNavigationTimeout(120_000);
+  const denied = await context.request.post('http://localhost:3108/api/cohort-builder/intake',{ headers:{ Origin:'http://localhost:3108' }, data:{ prompt:'Disabled intake', requestId:crypto.randomUUID(), expectedOwnerId:userId } });
   assert.equal(denied.status(),403);
   await disabled.goto(`http://localhost:3108/quest/build/${workspaceId}`);
   await disabled.getByText('Second tab attempted objective',{ exact:true }).waitFor();
+  assert.equal(await disabled.getByRole('button',{name:'Add PDF source',exact:true}).count(),0);
+  assert.equal(await disabled.getByRole('button',{name:'Add web source',exact:true}).count(),0);
   const legacy = await disabled.goto('http://localhost:3108/quest/new'); assert.equal(legacy.status(),200);
   assert(!disabled.url().includes('/quest/start'));
   await disabled.goto('http://localhost:3108/');

@@ -5,6 +5,7 @@
 import { Pool } from 'pg';
 import { textDriver } from '../src/server/domain/cohort-builder/text-driver';
 import { assertTextJobSchema } from '../src/server/domain/cohort-builder/text-schema-readiness';
+import { assertSourceSchema } from '../src/server/domain/cohort-builder/source-policy';
 
 type FailureReason = 'missing' | 'invalid_url' | 'dns_not_found' | 'dns_timeout' | 'authentication_failed' | 'connection_failed' | 'schema_incomplete';
 type Check = { name: string; required: boolean; status: 'configured' | 'ready' | 'blocked' | 'not_configured'; reason?: FailureReason };
@@ -79,6 +80,10 @@ export async function interactionSqlCheck(): Promise<Check> {
         if (textDriver() === 'durable') {
           check.name = 'PostgreSQL interaction + S3 durable text schema';
           await assertTextJobSchema({ query: (statement, parameters) => pool.query(statement, parameters) });
+          if(process.env.INTERACTION_PDF_ENABLED==='1'||process.env.INTERACTION_WEB_ENABLED==='1') {
+            check.name='PostgreSQL interaction + S3/S4B durable source schema';
+            await assertSourceSchema({query:(statement,parameters)=>pool.query(statement,parameters)});
+          }
         }
         check.status = 'ready';
         check.reason = undefined;
