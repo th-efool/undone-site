@@ -43,16 +43,23 @@ export const deliverySourceSchema = z.strictObject({
   sourceId: z.string().min(1),
   version: z.number().int().nonnegative(),
   label: z.string().trim().min(1).max(300),
-  kind: z.enum(['text', 'pdf', 'web']),
+  kind: z.enum(['text', 'pdf', 'web', 'youtube', 'github']),
   url: z.string().optional(),
   checksum: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
   isRestricted: z.boolean().default(false),
   provenance: z.strictObject({
     parserVersion: z.string().max(128),
     rawChecksum: z.string().regex(/^[a-f0-9]{64}$/),
-    scope: z.enum(['selected_pages', 'main_article', 'full_text_response']),
+    scope: z.enum(['selected_pages', 'main_article', 'full_text_response', 'transcript_only', 'selected_files']),
     finalUrl: z.string().optional(),
     pageCount: z.number().int().positive().max(200).optional(),
+    videoId: z.string().optional(),
+    track: z.any().optional(),
+    timeScope: z.any().optional(),
+    repoUrl: z.string().optional(),
+    ref: z.string().optional(),
+    commitSha: z.string().optional(),
+    fileCount: z.number().int().optional(),
   }).optional(),
 });
 export type DeliverySource = z.infer<typeof deliverySourceSchema>;
@@ -134,6 +141,10 @@ export function projectCohortToLearnerDelivery(
     const kind = source.input?.kind ?? 'text';
     const url = source.input?.kind === 'web'
       ? source.input.url
+      : source.input?.kind === 'youtube'
+      ? source.input.url
+      : source.input?.kind === 'github'
+      ? source.input.repoUrl
       : source.provenance?.finalUrl;
 
     return deliverySourceSchema.parse({
@@ -144,7 +155,7 @@ export function projectCohortToLearnerDelivery(
       kind,
       url,
       checksum: source.checksum,
-      isRestricted: false,
+      isRestricted: source.isRestricted ?? false,
       provenance: source.provenance,
     });
   });

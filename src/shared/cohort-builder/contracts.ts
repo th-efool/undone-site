@@ -50,6 +50,7 @@ export const cohortSourceSchema = z.strictObject({
     fileCount: z.number().int().positive().max(25).optional(),
   }).optional(),
   checksum: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
+  isRestricted: z.boolean().optional(),
   state: z.enum(['queued', 'ready', 'processing', 'failed', 'stale']),
 }).superRefine((source,ctx) => { if (!source.input && !source.text.trim()) ctx.addIssue({ code:'custom',message:'Text sources require retained text' }); });
 export type CohortSource = z.infer<typeof cohortSourceSchema>;
@@ -83,6 +84,29 @@ export const cohortTextJobViewSchema = z.strictObject({
   attempts: z.number().int().nonnegative(), error: z.string().max(100).nullable(), retryable: z.boolean(),
 });
 
+export const cohortReleaseReceiptSchema = z.strictObject({
+  effectKey: z.string().regex(/^[a-f0-9]{64}$/),
+  cohortId: z.string().min(1),
+  workspaceId: z.string().min(1),
+  contentHash: z.string().regex(/^[a-f0-9]{64}$/),
+  mode: z.enum(['private_activation', 'public_publish']),
+  releasedAt: z.string(),
+  destinationUrl: z.string().min(1),
+});
+export type CohortReleaseReceipt = z.infer<typeof cohortReleaseReceiptSchema>;
+
+export const cohortReleaseStateSchema = z.strictObject({
+  status: z.enum(['draft', 'prepared', 'released']),
+  mode: z.enum(['private_activation', 'public_publish']).optional(),
+  candidateHash: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  effectKey: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+  cohortId: z.string().min(1).optional(),
+  preparedAt: z.string().optional(),
+  releasedAt: z.string().optional(),
+  receipt: cohortReleaseReceiptSchema.optional(),
+});
+export type CohortReleaseState = z.infer<typeof cohortReleaseStateSchema>;
+
 export const cohortWorkspaceSchema = z.strictObject({
   schemaVersion: z.literal(1),
   title: z.string().max(300),
@@ -103,6 +127,7 @@ export const cohortWorkspaceSchema = z.strictObject({
     jobs: z.array(cohortTextJobViewSchema).max(101).optional(),
     driver: z.enum(['snapshot', 'durable']).optional(),
   }).default({ status: 'idle', stage: 'done', generation: 0, sourceFingerprint: null, error: null }),
+  release: cohortReleaseStateSchema.optional(),
 });
 export type CohortWorkspace = z.infer<typeof cohortWorkspaceSchema>;
 
@@ -130,6 +155,8 @@ export const cohortActionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('retry_text_job'), jobId: id }),
   z.strictObject({ type: z.literal('cancel_text_processing') }),
   z.strictObject({ type: z.literal('cancel_source_processing'), sourceId:id }),
+  z.strictObject({ type: z.literal('prepare_release'), mode: z.enum(['private_activation', 'public_publish']).default('private_activation'), candidateHash: z.string().regex(/^[a-f0-9]{64}$/).optional() }),
+  z.strictObject({ type: z.literal('commit_release'), mode: z.enum(['private_activation', 'public_publish']), candidateHash: z.string().regex(/^[a-f0-9]{64}$/), receipt: cohortReleaseReceiptSchema.optional() }),
 ]);
 export type CohortAction = z.infer<typeof cohortActionSchema>;
 
@@ -152,6 +179,12 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   const changed: ReturnType<typeof ref>[] = [];
   const invalidated: string[] = [];
   const touch = (lesson: CohortLesson) => { lesson.version += 1; changed.push(ref(context.workspaceId, lesson)); };
+  const invalidateRelease = () => {
+    if (next.release && next.release.status !== 'draft') {
+      next.release = { status: 'draft' };
+      if (!invalidated.includes('release')) invalidated.push('release');
+    }
+  };
   if (action.type === 'retry_text_job') {
     const job = next.processing.jobs?.find(item => item.id === action.jobId);
     if (!job || job.status !== 'failed' || !job.retryable) throw new Error('JOB_NOT_RETRYABLE');
@@ -170,16 +203,18 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     return {nextState:next,changed:[],invalidated:[],summary:'Selected source processing stopped; other sources continue.',undoable:false};
   }
   const queueAfterPreferenceChange = (readyStage: 'analysis' | 'assembly') => {
+    invalidateRelease();
     if (!next.sources.length) return;
     const stage = next.processing.status === 'ready' ? readyStage : next.processing.status === 'failed' ? 'acquisition' : next.processing.stage;
     next.processing = { ...next.processing, status: 'queued', stage, generation: next.processing.generation + 1, error: null };
   };
 
-  if (action.type === 'set_intent') { next.intent = action.intent; invalidated.push('curriculum'); queueAfterPreferenceChange('assembly'); return { nextState: next, changed: [], invalidated, summary: 'Learning intent updated.', undoable: true }; }
-  if (action.type === 'set_audience') { next.audience = action.audience; invalidated.push('analysis', 'curriculum'); queueAfterPreferenceChange('analysis'); return { nextState: next, changed: [], invalidated, summary: 'Audience updated.', undoable: true }; }
-  if (action.type === 'set_daily_minutes') { next.dailyMinutes = action.dailyMinutes; invalidated.push('curriculum'); queueAfterPreferenceChange('assembly'); return { nextState: next, changed: [], invalidated, summary: 'Daily learning time updated.', undoable: true }; }
+  if (action.type === 'set_intent') { invalidateRelease(); next.intent = action.intent; invalidated.push('curriculum'); queueAfterPreferenceChange('assembly'); return { nextState: next, changed: [], invalidated, summary: 'Learning intent updated.', undoable: true }; }
+  if (action.type === 'set_audience') { invalidateRelease(); next.audience = action.audience; invalidated.push('analysis', 'curriculum'); queueAfterPreferenceChange('analysis'); return { nextState: next, changed: [], invalidated, summary: 'Audience updated.', undoable: true }; }
+  if (action.type === 'set_daily_minutes') { invalidateRelease(); next.dailyMinutes = action.dailyMinutes; invalidated.push('curriculum'); queueAfterPreferenceChange('assembly'); return { nextState: next, changed: [], invalidated, summary: 'Daily learning time updated.', undoable: true }; }
 
   if (action.type === 'add_text_source') {
+    invalidateRelease();
     const sourceId = action.sourceId ?? context.actionId;
     if (next.sources.some(source => source.id === sourceId)) throw new Error('DUPLICATE_SOURCE');
     if (next.sources.length >= 20) throw new Error('TOO_MANY_SOURCES');
@@ -189,6 +224,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     return { nextState: next, changed: [], invalidated: ['sources', 'chunks', 'analysis', 'curriculum'], summary: `Added source: ${action.label}`, undoable: true };
   }
   if (action.type === 'add_pdf_source' || action.type === 'add_web_source' || action.type === 'add_youtube_source' || action.type === 'add_github_source') {
+    invalidateRelease();
     const sourceId = action.sourceId ?? context.actionId;
     if (next.sources.some(source => source.id === sourceId)) throw new Error('DUPLICATE_SOURCE');
     if (next.sources.length >= 20) throw new Error('TOO_MANY_SOURCES');
@@ -205,6 +241,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     return { nextState: next, changed: [], invalidated: ['sources', 'curriculum'], summary: `Added ${labelKind} source: ${action.label}`, undoable: true };
   }
   if (action.type === 'set_pdf_pages' || action.type === 'refresh_web_source' || action.type === 'set_youtube_scope' || action.type === 'set_github_scope') {
+    invalidateRelease();
     const source = next.sources.find(item => item.id === action.sourceId);
     if (!source) throw new Error('UNKNOWN_SOURCE');
     const expected = context.entityVersions.get(source.id);
@@ -235,6 +272,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   }
 
   if (action.type === 'edit_text_source') {
+    invalidateRelease();
     const source = next.sources.find(item => item.id === action.sourceId);
     if (!source) throw new Error('UNKNOWN_SOURCE');
     if (source.input) throw new Error('SOURCE_REQUIRES_SCOPE_ACTION');
@@ -256,6 +294,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     return { nextState: next, changed: [], invalidated: ['sources', 'chunks', 'analysis', 'curriculum'], summary: `Updated source: ${source.label}`, undoable: true };
   }
   if (action.type === 'remove_source') {
+    invalidateRelease();
     const source = next.sources.find(item => item.id === action.sourceId);
     if (!source) throw new Error('UNKNOWN_SOURCE');
     const expectedVersion = context.entityVersions.get(source.id);
@@ -277,6 +316,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   }
 
   if (action.type === 'add_lesson') {
+    invalidateRelease();
     const newLesson: CohortLesson = {
       id: action.lessonId ?? crypto.randomUUID(),
       version: 0,
@@ -292,6 +332,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   }
 
   if (action.type === 'remove_lesson') {
+    invalidateRelease();
     const targetIdx = next.lessons.findIndex(item => item.id === action.lessonId);
     if (targetIdx === -1) throw new Error('UNKNOWN_LESSON');
     const target = next.lessons[targetIdx];
@@ -300,7 +341,59 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     if (target.pinned) throw new Error('PINNED_LESSON_LOCKED');
     next.lessons.splice(targetIdx, 1);
     invalidated.push('curriculum');
-    return { nextState: next, changed: [], invalidated, summary: `Removed lesson: ${target.title}`, undoable: true };
+    return { nextState: next, changed, invalidated, summary: `Removed lesson: ${target.title}`, undoable: true };
+  }
+
+  if (action.type === 'prepare_release') {
+    if (next.processing.status === 'processing' || next.processing.status === 'queued') {
+      throw new Error('PROCESSING_NOT_COMPLETE');
+    }
+    if (next.lessons.length === 0) {
+      throw new Error('NO_LESSONS');
+    }
+    if (next.lessons.some(l => !l.title.trim() || !l.objective.trim())) {
+      throw new Error('INCOMPLETE_LESSONS');
+    }
+    if (action.mode === 'public_publish') {
+      if (next.lessons.some(l => l.evidenceStatus === 'orphaned')) {
+        throw new Error('PUBLIC_RELEASE_ORPHANED_EVIDENCE');
+      }
+      if (next.sources.some(s => s.isRestricted)) {
+        throw new Error('PUBLIC_RELEASE_RESTRICTED_SOURCE');
+      }
+    }
+    next.release = {
+      status: 'prepared',
+      mode: action.mode,
+      candidateHash: action.candidateHash,
+      preparedAt: new Date().toISOString(),
+    };
+    return {
+      nextState: next,
+      changed: [],
+      invalidated: ['release'],
+      summary: `Workspace prepared for ${action.mode === 'public_publish' ? 'public publication' : 'private activation'}.`,
+      undoable: true,
+    };
+  }
+
+  if (action.type === 'commit_release') {
+    next.release = {
+      status: 'released',
+      mode: action.mode,
+      candidateHash: action.candidateHash,
+      effectKey: action.receipt?.effectKey,
+      cohortId: action.receipt?.cohortId,
+      releasedAt: action.receipt?.releasedAt ?? new Date().toISOString(),
+      receipt: action.receipt,
+    };
+    return {
+      nextState: next,
+      changed: [],
+      invalidated: ['release'],
+      summary: `Workspace released as ${action.mode === 'public_publish' ? 'public cohort' : 'private cohort'}.`,
+      undoable: false,
+    };
   }
 
   const lessonId = action.type === 'reorder_lessons' ? null : action.lessonId;
@@ -311,14 +404,16 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     if (expectedVersion !== undefined && expectedVersion !== lesson.version) throw new Error('STALE_ENTITY');
   }
   if (action.type === 'edit_lesson' && lesson) {
+    invalidateRelease();
     if (action.title !== undefined && lesson.pinned) throw new Error('PINNED_LESSON_TITLE');
     if (action.title !== undefined) lesson.title = action.title;
     if (action.objective !== undefined) lesson.objective = action.objective;
     lesson.manualOverride = true;
-    touch(lesson); return { nextState: next, changed, invalidated: [], summary: `Lesson ${lesson.id} updated.`, undoable: true };
+    touch(lesson); return { nextState: next, changed, invalidated, summary: `Lesson ${lesson.id} updated.`, undoable: true };
   }
-  if (action.type === 'set_lesson_pin' && lesson) { lesson.pinned = action.pinned; touch(lesson); return { nextState: next, changed, invalidated: [], summary: action.pinned ? `Lesson ${lesson.id} pinned.` : `Lesson ${lesson.id} unpinned.`, undoable: true }; }
+  if (action.type === 'set_lesson_pin' && lesson) { invalidateRelease(); lesson.pinned = action.pinned; touch(lesson); return { nextState: next, changed, invalidated, summary: action.pinned ? `Lesson ${lesson.id} pinned.` : `Lesson ${lesson.id} unpinned.`, undoable: true }; }
   if (action.type === 'reorder_lessons') {
+    invalidateRelease();
     const current = new Set(next.lessons.map(item => item.id));
     if (action.lessonIds.length !== next.lessons.length || action.lessonIds.some(item => !current.has(item)) || new Set(action.lessonIds).size !== action.lessonIds.length) throw new Error('INVALID_LESSON_ORDER');
     const byId = new Map(next.lessons.map(item => [item.id, item]));

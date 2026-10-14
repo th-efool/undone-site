@@ -18,6 +18,8 @@ const SOURCE_TYPE_MAP: Record<DeliverySource['kind'], SourceType> = {
   text: 'MARKDOWN',
   pdf: 'PDF',
   web: 'WEBSITE',
+  youtube: 'YOUTUBE_VIDEO',
+  github: 'GITHUB_REPO',
 };
 
 /**
