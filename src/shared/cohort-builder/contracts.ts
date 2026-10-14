@@ -3,7 +3,7 @@ import { entityRefSchema, type DomainActionPlan } from 'interaction-builder/core
 
 const text = z.string().trim().min(1).max(4_000);
 const id = z.string().min(1).max(200);
-const sourceText = z.string().trim().min(1).max(200_000);
+const sourceText = z.string().min(1).max(200_000).refine(value => value.trim().length > 0, 'Source text must contain non-whitespace content');
 
 export const cohortSourceSchema = z.strictObject({
   id,

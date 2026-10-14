@@ -9,6 +9,11 @@ const base = (): CohortWorkspace => cohortWorkspaceSchema.parse({ schemaVersion:
 const context = { actionId: workspaceId, workspaceId, expectedRevision: 0, currentRevision: 0, entityVersions: new Map() };
 
 describe('cohort builder action plan', () => {
+  it('retains exact pasted whitespace while rejecting blank material', () => {
+    const raw = '\n  Quorums overlap. \n';
+    expect(planCohortAction(base(), { type:'add_text_source', sourceId:'raw', label:'Notes', text:raw }, context).nextState.sources[0].text).toBe(raw);
+    expect(() => planCohortAction(base(), { type:'add_text_source', label:'Blank', text:' \n ' }, context)).toThrow();
+  });
   it('edits lesson through typed action and returns invalidation', () => {
     const result = planCohortAction(base(), { type: 'edit_lesson', lessonId: 'l1', objective: 'Explain type narrowing' }, context);
     expect(result.nextState.lessons[0].objective).toBe('Explain type narrowing');

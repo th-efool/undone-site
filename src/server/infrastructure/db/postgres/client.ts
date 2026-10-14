@@ -11,7 +11,7 @@ const createPrismaClient = () => {
     const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
     return new PrismaClient({
         adapter,
-        log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+        log: process.env.NODE_ENV === 'development' && process.env.INTERACTION_LOCAL_MODEL_FIXTURE !== '1' ? ['query', 'error', 'warn'] : ['error'],
     });
 };
 
