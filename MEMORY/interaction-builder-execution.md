@@ -1,7 +1,9 @@
 # Interaction builder execution checkpoint
 
 STATUS: S3 IN PROGRESS — bounded pasted-text pipeline is worker-driven and restartable in revisioned workspace snapshots; plan-level job/artifact and live verification gates remain open.
-LAST_CHECKPOINT: `IB-S3-DURABLE-DRIVER-INTEGRATION-2026-10-14`
+LAST_CHECKPOINT: `IB-S3-SOURCE-STATUS-RETRY-2026-10-14`
+
+STATUS/RETRY INTEGRATION: current graph exposes at most 81 safe job views in canonical processing state. Source acceptance/failure emits transactional workspace receipts/events; canonical retry_text_job preserves accepted prerequisites and attempts; cancel_text_processing revokes pending/running jobs. UI shows stage, failure and retry ceiling; chat tools share the same actions and receive job IDs in bounded context. Persisted durable driver marker prevents snapshot workers from processing migrated workspaces. Recovery bootstraps queued pre-cutover work and refreshes exhausted statuses. Focused integration/domain/UI suite: 26 files, 101 tests passed; TypeScript passed. Next: composed deterministic provider/client journey and actual PostgreSQL/browser gates. Shared schema still unapplied.
 
 DRIVER INTEGRATION: supervised `interaction-worker.ts` selects snapshot or durable through `text-driver.ts`. Durable SQL runtime uses the same configured PostgreSQL database with connection-scoped acceptance transactions; startup checks S3 tables/handler versions, source acceptance checks active cohort lifecycle, claims reject unknown handlers, and long ticks renew leases. Worker import check, root TypeScript, 12 acceptance/tick tests, and 2 driver/readiness tests pass. Rollout instructions: plans/interaction-builder/s3-schema-rollout.md. Shared migration remains unauthorized/unapplied. Next: bounded source-job status and canonical targeted retry/cancel; then composed journey and live gates.
 

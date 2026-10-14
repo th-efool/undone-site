@@ -3,6 +3,8 @@ import type { TextArtifactRef } from './text-artifacts';
 import { planTextJobs } from './text-job-plan';
 import type { TextJobTransactionPort } from './text-job-scheduler';
 import { acceptTextJob, type ClaimedTextJob } from './text-jobs';
+import { textJobStatus } from './text-job-status';
+import { commitTextProjection } from './text-projection-commit';
 
 /** Prepared cutover boundary: lock canonical workspace state before fenced result acceptance. */
 export async function acceptCurrentTextJob(
@@ -12,7 +14,7 @@ export async function acceptCurrentTextJob(
   now: Date
 ): Promise<boolean> {
   return port.transaction(async tx => {
-    const workspace = (await tx.query(`SELECT "snapshot" FROM "interaction_workspaces"
+    const workspace = (await tx.query(`SELECT "snapshot", "revision" FROM "interaction_workspaces"
       WHERE "id" = $1 AND "lifecycle" = 'active' AND "domainId" = 'cohort' FOR UPDATE`, [job.workspaceId])).rows[0];
     if (!workspace) return false;
     const state = cohortWorkspaceSchema.parse(typeof workspace.snapshot === 'string'
@@ -28,6 +30,9 @@ export async function acceptCurrentTextJob(
       && intent.sourceVersion === job.sourceVersion
       && intent.dependencyFingerprint === job.dependencyFingerprint);
     if (!current) return false;
-    return acceptTextJob(tx, job, artifact, now);
+    if (!await acceptTextJob(tx, job, artifact, now)) return false;
+    await commitTextProjection(tx, job.workspaceId, state, await textJobStatus(tx, job.workspaceId, state),
+      Number(workspace.revision), `text-stage:${job.id}:${job.fence}`, `Source ${job.stage} accepted.`);
+    return true;
   });
 }

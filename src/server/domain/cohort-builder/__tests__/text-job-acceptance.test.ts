@@ -9,7 +9,7 @@ import { enqueueTextJobPlan, type TextJobTransactionPort } from '../text-job-sch
 import { claimTextJob } from '../text-jobs';
 
 const migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
-const workspaceId = 'workspace-a';
+const workspaceId = '7d4e49d0-bad0-4aba-a777-122326020002';
 const now = new Date('2030-01-01T00:00:00.000Z');
 const initial = () => cohortWorkspaceSchema.parse({
   schemaVersion: 1, title: 'Systems', intent: 'Learn consensus', audience: 'Engineers', dailyMinutes: 25, lessons: [],
@@ -18,7 +18,9 @@ const initial = () => cohortWorkspaceSchema.parse({
 
 async function setup(claim = true) {
   const db = new PGlite();
-  await db.exec(`CREATE TABLE "interaction_workspaces" ("id" TEXT PRIMARY KEY, "snapshot" JSONB NOT NULL, "lifecycle" TEXT DEFAULT 'active', "domainId" TEXT DEFAULT 'cohort')`);
+  await db.exec(`CREATE TABLE "interaction_workspaces" ("id" TEXT PRIMARY KEY, "snapshot" JSONB NOT NULL, "lifecycle" TEXT DEFAULT 'active', "domainId" TEXT DEFAULT 'cohort',
+    "revision" INT DEFAULT 0, "sequence" INT DEFAULT 0, "contextEpoch" INT DEFAULT 0, "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+    CREATE TABLE "interaction_events" ("id" TEXT, "workspaceId" TEXT, "sequence" INT, "protocolVersion" INT, "type" TEXT, "revision" INT, "payload" JSONB)`);
   await db.exec(migration);
   const state = initial();
   await db.query(`INSERT INTO "interaction_workspaces" ("id", "snapshot") VALUES ($1, $2::jsonb)`, [workspaceId, JSON.stringify(state)]);

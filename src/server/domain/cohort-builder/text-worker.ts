@@ -7,6 +7,7 @@ export async function advanceTextWorkspace(repo: InteractionRepository, ownerId:
   const record = await repo.loadWorkspace<unknown>({ ownerId, workspaceId });
   if (!record) return false;
   const state = cohortWorkspaceSchema.parse(record.snapshot);
+  if (state.processing.driver === 'durable') return false;
   if (state.processing.status !== 'queued' || state.processing.stage === 'done') return false;
   let action;
   try {

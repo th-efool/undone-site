@@ -188,9 +188,20 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
           {editingSourceId && <button className={styles.editActionBtn} onClick={() => { setEditingSourceId(null); setSourceForm({ label: '', text: '' }); }}>Cancel edit</button>}
         </div>
         {workspace.processing.error && <p role="alert">{workspace.processing.error}</p>}
-        {workspace.processing.status === 'failed' && <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'retry_processing' })}>Retry processing</button>}
+        {workspace.processing.status === 'failed' && !workspace.processing.jobs?.length && <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'retry_processing' })}>Retry processing</button>}
         {workspace.sources.length > 0 && workspace.processing.status === 'ready' && <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'retry_processing' })}>Rebuild from sources</button>}
         {workspace.sources.map(source => <p key={source.id} className={styles.intentText}>{source.label} · {source.state} <button className={styles.editActionBtn} onClick={() => { setEditingSourceId(source.id); setSourceForm({ label: source.label, text: source.text }); }}>Edit</button> <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'remove_source', sourceId: source.id })}>Remove</button></p>)}
+        {workspace.processing.jobs?.length ? <section aria-label="Source processing jobs" aria-live="polite">
+          {workspace.processing.jobs.map(job => <p key={job.id}>
+            {workspace.sources.find(source => source.id === job.sourceId)?.label ?? 'Curriculum'} · {job.stage} · {job.status}
+            {job.error && <span> · {job.error}</span>}
+            {job.status === 'failed' && (job.retryable
+              ? <button onClick={() => void dispatchAction({ type: 'retry_text_job', jobId: job.id })}>Retry {job.stage}</button>
+              : <span> · Retry limit reached; edit or remove affected source.</span>)}
+          </p>)}
+          {workspace.processing.jobs.some(job => job.status === 'queued' || job.status === 'running') &&
+            <button onClick={() => void dispatchAction({ type: 'cancel_text_processing' })}>Stop source processing</button>}
+        </section> : null}
       </section>
 
       {/* Curriculum Outline */}

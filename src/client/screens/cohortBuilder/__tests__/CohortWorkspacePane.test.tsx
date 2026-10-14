@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
 
 const fake = vi.hoisted(() => ({ state: null as any, actions: [] as unknown[] }));
@@ -11,6 +11,7 @@ vi.mock('@/src/client/interaction/hooks', () => ({
 }));
 
 import { CohortWorkspacePane } from '../CohortWorkspacePane';
+afterEach(cleanup);
 
 describe('grounded cohort workspace UI', () => {
   it('sends pasted text through the canonical action and shows retained evidence', async () => {
@@ -50,5 +51,21 @@ describe('grounded cohort workspace UI', () => {
     expect(screen.getByText(/references changed or removed source text/)).toBeTruthy();
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Retry processing' })); });
     expect(fake.actions).toContainEqual({ type: 'retry_processing' });
+  });
+
+  it('retries only the failed job and shows a terminal attempt ceiling', async () => {
+    fake.actions = [];
+    fake.state = cohortWorkspaceSchema.parse({ schemaVersion: 1, title: 'Systems', intent: 'Learn', audience: '', dailyMinutes: 20,
+      sources: [{ id: 's', version: 0, label: 'Notes', text: 'Retained.', checksum: null, state: 'queued' }], lessons: [],
+      processing: { status: 'failed', stage: 'analysis', generation: 1, sourceFingerprint: null, error: 'PROCESSOR_FAILURE', jobs: [
+        { id: 'retry', sourceId: 's', stage: 'analysis', status: 'failed', attempts: 1, error: 'PROCESSOR_FAILURE', retryable: true },
+        { id: 'terminal', sourceId: null, stage: 'assembly', status: 'failed', attempts: 3, error: 'RETRY_EXHAUSTED', retryable: false },
+      ] },
+    });
+    render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+    expect(screen.getByText(/Retry limit reached/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'Retry processing' })).toBeNull();
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Retry analysis' })));
+    expect(fake.actions).toEqual([{ type: 'retry_text_job', jobId: 'retry' }]);
   });
 });
