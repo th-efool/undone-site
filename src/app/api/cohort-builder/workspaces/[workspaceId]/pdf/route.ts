@@ -9,6 +9,7 @@ export async function POST(request:Request,{ params }:{ params:Promise<{workspac
   const ownerId = await getCreationOwner(); if (!ownerId) return reply({ code:'UNAUTHORIZED' },401);
   if (request.headers.get('x-owner-id') !== ownerId) return reply({ code:'SESSION_CHANGED' },409);
   if (request.headers.get('content-type') !== 'application/pdf') return reply({ code:'INVALID_PDF_UPLOAD' },415);
+  if (!/^\d+$/.test(request.headers.get('x-workspace-revision')??'')) return reply({code:'INVALID_PDF_UPLOAD'},400);
   const reader = request.body?.getReader(); if (!reader) return reply({ code:'INVALID_PDF_UPLOAD' },400);
   const chunks:Uint8Array[] = []; let count = 0;
   try {

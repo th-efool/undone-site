@@ -99,6 +99,7 @@ export const cohortActionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('retry_processing') }),
   z.strictObject({ type: z.literal('retry_text_job'), jobId: id }),
   z.strictObject({ type: z.literal('cancel_text_processing') }),
+  z.strictObject({ type: z.literal('cancel_source_processing'), sourceId:id }),
 ]);
 export type CohortAction = z.infer<typeof cohortActionSchema>;
 
@@ -131,6 +132,12 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     if (!next.processing.jobs?.length) throw new Error('NO_DURABLE_JOBS');
     next.processing.status = 'idle'; next.processing.error = null;
     return { nextState: next, changed: [], invalidated: [], summary: 'Source processing canceled.', undoable: false };
+  }
+  if(action.type==='cancel_source_processing') {
+    const source=next.sources.find(item=>item.id===action.sourceId);if(!source) throw new Error('UNKNOWN_SOURCE');
+    const expected=context.entityVersions.get(source.id);if(expected!==undefined && expected!==source.version) throw new Error('STALE_ENTITY');
+    if(!next.processing.jobs?.some(job=>job.sourceId===source.id && ['queued','running','failed'].includes(job.status))) throw new Error('NO_ACTIVE_SOURCE_JOBS');
+    return {nextState:next,changed:[],invalidated:[],summary:'Selected source processing stopped; other sources continue.',undoable:false};
   }
   const queueAfterPreferenceChange = (readyStage: 'analysis' | 'assembly') => {
     if (!next.sources.length) return;

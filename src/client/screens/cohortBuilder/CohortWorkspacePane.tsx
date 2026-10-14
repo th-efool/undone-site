@@ -18,6 +18,7 @@ import { cohortWorkspaceSchema, type CohortWorkspace, type CohortAction, type Co
 import type { EntityRef } from 'interaction-builder/core';
 import styles from './CohortBuilder.module.css';
 import { BuilderDialog } from './BuilderDialog';
+import { ExternalSources, ExternalSourceScope } from './ExternalSources';
 
 interface CohortWorkspacePaneProps {
   onSelectLessonForChat: (attached: { entity: EntityRef; label: string }) => void;
@@ -182,6 +183,7 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
           <h3>Source text</h3>
           <small>{workspace.processing.status}{workspace.processing.status === 'queued' ? ` · ${workspace.processing.stage} waiting for worker` : ''}</small>
         </div>
+        <ExternalSources/>
         <div className={styles.formField}>
           <label htmlFor="cohort-source-title">Source title</label>
           <input id="cohort-source-title" value={sourceForm.label} placeholder="e.g. Distributed systems notes" onChange={event => setSourceForm({ ...sourceForm, label: event.target.value })} />
@@ -207,7 +209,7 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
         {workspace.processing.error && <p role="alert">{workspace.processing.error}</p>}
         {workspace.processing.status === 'failed' && !workspace.processing.jobs?.length && <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'retry_processing' })}>Retry processing</button>}
         {workspace.sources.length > 0 && workspace.processing.status === 'ready' && <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'retry_processing' })}>Rebuild from sources</button>}
-        {workspace.sources.map(source => <p key={source.id} className={styles.intentText}>{source.label} · {source.state} <button className={styles.editActionBtn} onClick={() => { setEditingSourceId(source.id); setEditingSourceVersion(source.version); setSourceForm({ label: source.label, text: source.text }); setSourceBase({ label: source.label, text: source.text }); }}>Edit</button> <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'remove_source', sourceId: source.id }, [{ kind: 'source', id: source.id, version: source.version }])}>Remove</button></p>)}
+        {workspace.sources.map(source => <div key={source.id} className={styles.intentText}>{source.label} · {source.input?.kind??'text'} · {source.state} {!source.input && <button className={styles.editActionBtn} onClick={() => { setEditingSourceId(source.id); setEditingSourceVersion(source.version); setSourceForm({ label: source.label, text: source.text }); setSourceBase({ label: source.label, text: source.text }); }}>Edit</button>} <ExternalSourceScope source={source}/> <button className={styles.editActionBtn} onClick={() => void dispatchAction({ type: 'remove_source', sourceId: source.id }, [{ kind: 'source', id: source.id, version: source.version }])}>Remove</button></div>)}
         {workspace.processing.jobs?.length ? <section aria-label="Source processing jobs" aria-live="polite">
           {workspace.processing.jobs.map(job => <p key={job.id}>
             {workspace.sources.find(source => source.id === job.sourceId)?.label ?? 'Curriculum'} · {job.stage} · {job.status}
@@ -303,7 +305,8 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
                 {lesson.sourceChunkIds.map(chunkId => {
                   const chunk = workspace.chunks.find(item => item.id === chunkId);
                   const source = workspace.sources.find(item => item.id === chunk?.sourceId);
-                  return <blockquote key={chunkId}>{chunk ? <><cite>{source?.label ?? 'Retained source'} · version {chunk.sourceVersion} · characters {chunk.start}–{chunk.end}</cite><p>{chunk.text}</p></> : 'Retained passage unavailable; review orphan warning.'}</blockquote>;
+                  const pages=source?.locations?.filter(location=>location.page && location.start< (chunk?.end??0) && location.end>(chunk?.start??0)).map(location=>location.page);
+                  return <blockquote key={chunkId}>{chunk ? <><cite>{source?.label ?? 'Retained source'} · version {chunk.sourceVersion}{pages?.length?` · physical page ${pages.join(', ')}`:''} · characters {chunk.start}–{chunk.end}{source?.provenance?` · ${source.provenance.scope} · ${source.provenance.parserVersion}`:''}</cite>{source?.provenance?.finalUrl && <p>{source.provenance.finalUrl}</p>}<p>{chunk.text}</p></> : 'Retained passage unavailable; review orphan warning.'}</blockquote>;
                 })}
               </details>}
 
