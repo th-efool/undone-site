@@ -23,7 +23,7 @@ export function sourceFingerprint(state: CohortWorkspace): string {
 
 function splitSource(source: CohortWorkspace['sources'][number]): CohortChunk[] {
   const chunks: CohortChunk[] = [];
-  const matches = source.text.matchAll(/[^.!?\n]*(?:[.!?]+|$)/g);
+  const matches = source.text.matchAll(/[^.!?\n]*(?:[.!?]+|(?=\n)|$)/g);
   for (const match of matches) {
     const raw = match[0];
     const leading = raw.length - raw.trimStart().length;

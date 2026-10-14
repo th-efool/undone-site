@@ -7,7 +7,7 @@ export async function textJobStatus(tx: TextArtifactSql, workspaceId: string, st
   const keys = planTextJobs(state).map(item => item.jobKey);
   const rows = await tx.query(`SELECT "id", "sourceId", "stage", "status", "attempts", "errorCode"
     FROM "cohort_text_jobs" WHERE "workspaceId" = $1 AND "jobKey" = ANY($2::text[])
-    ORDER BY "createdAt", "id" LIMIT 81`, [workspaceId, keys]);
+    ORDER BY "createdAt", "id" LIMIT 101`, [workspaceId, keys]);
   const jobs = rows.rows.map(row => cohortTextJobViewSchema.parse({ id: row.id, sourceId: row.sourceId, stage: row.stage,
     status: row.status, attempts: Number(row.attempts), error: row.errorCode,
     retryable: row.status === 'failed' && Number(row.attempts) < 3,
@@ -19,7 +19,7 @@ export async function textJobStatus(tx: TextArtifactSql, workspaceId: string, st
   return { ...state, sources: state.sources.map(source => {
     const own = jobs.filter(job => job.sourceId === source.id);
     const status = own.some(job => job.status === 'failed') ? 'failed'
-      : own.length === 4 && own.every(job => job.status === 'accepted') ? 'ready'
+      : own.length === (source.input ? 5 : 4) && own.every(job => job.status === 'accepted') ? 'ready'
       : own.some(job => job.status === 'running') ? 'processing' : 'queued';
     return { ...source, state: status };
   }), processing: { ...state.processing, jobs,

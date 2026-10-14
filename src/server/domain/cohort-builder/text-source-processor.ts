@@ -3,16 +3,18 @@ import { readTextArtifact, type CohortTextArtifactKind, type TextArtifactSql } f
 import { planTextJobs, type TextJobStage } from './text-job-plan';
 import type { ClaimedTextJob } from './text-jobs';
 import { computeTextStage } from './text-pipeline';
+import type { WebTransport } from '../cohort-creation/materials/web-fetch';
 
 type SourceStage = Exclude<TextJobStage, 'assembly'>;
 
 const prerequisite: Partial<Record<SourceStage, { stage: SourceStage; kind: CohortTextArtifactKind }>> = {
+  extraction: { stage: 'acquisition', kind: 'source_raw' },
   understanding: { stage: 'acquisition', kind: 'source_raw' },
   chunking: { stage: 'understanding', kind: 'understanding' },
   analysis: { stage: 'chunking', kind: 'chunks' },
 };
 
-function stageResult(state: CohortWorkspace, stage: SourceStage, chunks: CohortWorkspace['chunks'] = []): unknown {
+function stageResult(state: CohortWorkspace, stage: Exclude<SourceStage,'extraction'>, chunks: CohortWorkspace['chunks'] = []): unknown {
   return computeTextStage({
     ...state,
     sources: state.sources.slice(0, 1),
@@ -26,6 +28,7 @@ function stageResult(state: CohortWorkspace, stage: SourceStage, chunks: CohortW
 export function createTextSourceProcessor(input: {
   sql: TextArtifactSql;
   loadWorkspace: (workspaceId: string) => Promise<unknown>;
+  webTransport?: WebTransport;
 }): (job: ClaimedTextJob) => Promise<Uint8Array> {
   return async job => {
     if (!job.sourceId || job.sourceVersion === null || job.stage === 'assembly') throw new Error('INVALID_SOURCE_JOB');
@@ -37,9 +40,21 @@ export function createTextSourceProcessor(input: {
     if (!source) throw new Error('STALE_SOURCE_JOB');
     const isolated: CohortWorkspace = { ...state, sources: [source] };
     const stage = job.stage as SourceStage;
-    if (stage === 'acquisition') return Buffer.from(source.text, 'utf8');
+    if (stage === 'acquisition') {
+      if (!source.input) return Buffer.from(source.text, 'utf8');
+      const retainedId = source.retainedInputId ?? (source.input.kind === 'pdf' ? source.input.uploadId : undefined);
+      if (retainedId) {
+        const retained = await readTextArtifact(input.sql,job.workspaceId,retainedId);
+        if (retained.ref.kind !== (source.retainedInputId ? 'source_raw' : 'source_input') ||
+          (retained.ref.sourceId !== null && retained.ref.sourceId !== source.id)) throw new Error('FOREIGN_SOURCE_PREREQUISITE');
+        return retained.bytes;
+      }
+      if (source.input.kind !== 'web') throw new Error('MISSING_RETAINED_INPUT');
+      const {fetchRetainedWeb}=await import('./source-adapters');
+      return fetchRetainedWeb(source.input.url,input.webTransport);
+    }
 
-    const required = prerequisite[stage];
+    const required = stage === 'understanding' && source.input ? {stage:'extraction',kind:'extraction'} as const : prerequisite[stage];
     if (!required) throw new Error('INVALID_SOURCE_JOB');
     const found = await input.sql.query(`SELECT prior."stage", prior."sourceId", prior."sourceVersion",
         prior."dependencyFingerprint", prior."resultArtifactId", artifact."checksum"
@@ -55,8 +70,18 @@ export function createTextSourceProcessor(input: {
       kind: required.kind, inputFingerprint: String(row.dependencyFingerprint), checksum: String(row.checksum),
     });
     if (retained.ref.sourceId !== source.id || retained.ref.sourceVersion !== source.version) throw new Error('FOREIGN_SOURCE_PREREQUISITE');
+    if (stage === 'extraction') {
+      const {extractRetainedSource}=await import('./source-adapters');
+      return Buffer.from(JSON.stringify(await extractRetainedSource(source,retained.ref,retained.bytes)));
+    }
     if (stage === 'understanding') {
-      if (retained.bytes.toString('utf8') !== source.text) throw new Error('STALE_SOURCE_PREREQUISITE');
+      if (source.input) {
+        const {sourceExtractionSchema}=await import('./source-adapters');
+        const extraction = sourceExtractionSchema.parse(JSON.parse(retained.bytes.toString('utf8')));
+        if (source.extractionId !== retained.ref.id || extraction.text !== source.text ||
+          JSON.stringify(extraction.locations) !== JSON.stringify(source.locations) ||
+          JSON.stringify(extraction.provenance) !== JSON.stringify(source.provenance)) throw new Error('STALE_SOURCE_PREREQUISITE');
+      } else if (retained.bytes.toString('utf8') !== source.text) throw new Error('STALE_SOURCE_PREREQUISITE');
       const result = cohortWorkspaceSchema.shape.understanding.parse(stageResult(isolated, stage));
       return Buffer.from(JSON.stringify(result));
     }
