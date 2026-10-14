@@ -4,6 +4,7 @@ import { Prisma } from '@/generated/prisma/client';
 import { cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
 import { textDriver } from '@/src/server/domain/cohort-builder/text-driver';
 import { reconcileTextAction } from '@/src/server/domain/cohort-builder/text-action-jobs';
+import { admitPendingAssistantMessage } from '../assistant-queue';
 import {
   type ActionCommitInput,
   type ActionCommitSuccess,
@@ -159,6 +160,18 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
           }
         }
 
+        if (input.role === 'assistant' && input.runId) {
+          const run = await tx.interactionRun.findUnique({ where: { id: input.runId } });
+          if (!run || run.workspaceId !== input.workspaceId || run.status !== 'running' || !run.leaseUntil || run.leaseUntil < new Date()) throw new Error('RUN_CANCELED');
+          const lease = (input as AppendMessageInput & { runLeaseToken?: string }).runLeaseToken;
+          if (lease !== undefined && run.leaseToken !== lease) throw new Error('FENCE_EXPIRED');
+        }
+        if (input.role === 'user' && input.scheduleRun !== false) {
+          const pending = await tx.$queryRaw<Array<{ count: number }>>`SELECT count(*)::int AS count FROM interaction_messages m
+            WHERE m."workspaceId"=${input.workspaceId} AND m.role='user'
+              AND NOT EXISTS (SELECT 1 FROM interaction_runs r WHERE r."workspaceId"=m."workspaceId" AND r."triggeringMessageId"=m.id)`;
+          if (pending[0].count >= 5) throw new Error('MESSAGE_QUEUE_FULL');
+        }
         const sequence = ws.sequence + 1;
         await tx.interactionWorkspace.update({ where: { id: input.workspaceId }, data: { sequence } });
 
@@ -195,45 +208,11 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
         });
 
         let scheduledRun: InteractionRunRecord | undefined;
+        // Admission also drains older pending turns before this newly submitted turn.
         if (input.scheduleRun !== false && input.role === 'user') {
-          const active = await tx.interactionRun.findFirst({
-            where: {
-              workspaceId: input.workspaceId,
-              status: { in: ['queued', 'running'] },
-            },
-          });
-          if (active) {
-            scheduledRun = mapRun(active);
-          } else {
-            const runId = crypto.randomUUID();
-            const runRow = await tx.interactionRun.create({
-              data: {
-                id: runId,
-                workspaceId: input.workspaceId,
-                triggeringMessageId: input.id,
-                status: 'queued',
-                contextEpoch: ws.contextEpoch ?? 0,
-                observedRevision: ws.revision ?? 0,
-                cursor: sequence,
-                fence: 0,
-              },
-            });
-            await tx.interactionOutbox.create({
-              data: {
-                id: crypto.randomUUID(),
-                workspaceId: input.workspaceId,
-                kind: 'assistant_run',
-                payload: { runId, workspaceId: input.workspaceId } as never,
-                dedupKey: `run:${runId}`,
-                status: 'pending',
-                attempts: 0,
-                dueAt: new Date(),
-              },
-            });
-            scheduledRun = mapRun(runRow);
-          }
+          const admitted = await admitPendingAssistantMessage(tx, input.workspaceId);
+          if (admitted) scheduledRun = mapRun(admitted);
         }
-
         const result = { message, sequence, run: scheduledRun };
         if (input.requestId && hash) {
           await tx.interactionRequest.create({
@@ -419,6 +398,12 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
         }
         if (workspace.lifecycle !== 'active') {
           throw new Error('WORKSPACE_NOT_ACTIVE');
+        }
+        // Cancellation and acceptance serialize on this lock; recheck after waiting for it.
+        if (input.runFence) {
+          const run = await tx.interactionRun.findUnique({ where: { id: input.runFence.runId } });
+          if (!run || run.workspaceId !== input.workspaceId || run.status !== 'running') throw new Error('RUN_CANCELED');
+          if (run.leaseToken !== input.runFence.leaseToken || !run.leaseUntil || run.leaseUntil < new Date()) throw new Error('FENCE_EXPIRED');
         }
         if (workspace.domainId === 'cohort' && cohortWorkspaceSchema.parse(workspace.snapshot).processing.driver === 'durable' && textDriver() !== 'durable') {
           throw new Error('TEXT_DRIVER_MISMATCH');
@@ -669,6 +654,10 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
           where: { workspaceId: params.workspaceId, status: { in: ['queued', 'running'] } },
         });
         if (active) return mapRun(active);
+        if (!params.triggeringMessageId) {
+          const pending = await admitPendingAssistantMessage(tx, params.workspaceId);
+          if (pending) return mapRun(pending);
+        }
 
         const runId = params.runId ?? crypto.randomUUID();
         const runRow = await tx.interactionRun.create({
@@ -729,12 +718,13 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
 
       return prisma.$transaction(async tx => {
         const candidates = await tx.$queryRaw<Array<{ id: string; workspaceId: string; status: string }>>`
-          SELECT "id", "workspaceId", "status" FROM "interaction_runs"
-          WHERE ("status" = 'queued' OR ("status" = 'running' AND "leaseUntil" < ${now}))
-          ${params.workspaceId ? Prisma.sql`AND "workspaceId" = ${params.workspaceId}` : Prisma.empty}
-          ORDER BY "createdAt" ASC
+          SELECT r."id", r."workspaceId", r."status" FROM "interaction_runs" r
+          JOIN interaction_workspaces w ON w.id=r."workspaceId"
+          WHERE w.lifecycle='active' AND (r."status" = 'queued' OR (r."status" = 'running' AND r."leaseUntil" < ${now}))
+          ${params.workspaceId ? Prisma.sql`AND r."workspaceId" = ${params.workspaceId}` : Prisma.empty}
+          ORDER BY r."createdAt" ASC
           LIMIT 1
-          FOR UPDATE SKIP LOCKED
+          FOR UPDATE OF w SKIP LOCKED
         `;
 
         if (candidates.length === 0) return null;
@@ -793,6 +783,7 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
           id: params.runId,
           leaseToken: params.leaseToken,
           status: 'running',
+          leaseUntil: { gt: now },
         },
         data: {
           leaseUntil,
@@ -809,10 +800,8 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
       now?: Date;
     }): Promise<boolean> {
       return prisma.$transaction(async tx => {
-        const ws = await tx.interactionWorkspace.findFirst({
-          where: { id: params.workspaceId, ownerId: params.ownerId },
-          select: { sequence: true },
-        });
+        const ws = (await tx.$queryRaw<Array<{ sequence: number }>>`SELECT sequence FROM interaction_workspaces
+          WHERE id=${params.workspaceId} AND "ownerId"=${params.ownerId} FOR UPDATE`)[0];
         if (!ws) throw new Error('WORKSPACE_NOT_FOUND');
 
         const run = await tx.interactionRun.findUnique({ where: { id: params.runId } });
@@ -845,6 +834,7 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
           },
         });
 
+        await admitPendingAssistantMessage(tx, params.workspaceId);
         return true;
       });
     },
@@ -857,8 +847,10 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
       now?: Date;
     }): Promise<boolean> {
       return prisma.$transaction(async tx => {
+        await tx.$queryRaw`SELECT w.id FROM interaction_workspaces w JOIN interaction_runs r ON r."workspaceId"=w.id
+          WHERE r.id=${params.runId} FOR UPDATE OF w`;
         const run = await tx.interactionRun.findUnique({ where: { id: params.runId } });
-        if (!run || run.leaseToken !== params.leaseToken || run.status !== 'running') return false;
+        if (!run || run.leaseToken !== params.leaseToken || run.status !== 'running' || !run.leaseUntil || run.leaseUntil < (params.now ?? new Date())) return false;
 
         const updated = await tx.interactionRun.update({
           where: { id: params.runId },
@@ -894,6 +886,7 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
           });
         }
 
+        await admitPendingAssistantMessage(tx, run.workspaceId);
         return true;
       });
     },
@@ -906,6 +899,8 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
       now?: Date;
     }): Promise<boolean> {
       return prisma.$transaction(async tx => {
+        await tx.$queryRaw`SELECT w.id FROM interaction_workspaces w JOIN interaction_runs r ON r."workspaceId"=w.id
+          WHERE r.id=${params.runId} FOR UPDATE OF w`;
         const run = await tx.interactionRun.findUnique({ where: { id: params.runId } });
         if (!run || run.leaseToken !== params.leaseToken || run.status !== 'running') return false;
 
@@ -944,6 +939,7 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
           });
         }
 
+        await admitPendingAssistantMessage(tx, run.workspaceId);
         return true;
       });
     },
