@@ -92,23 +92,30 @@ const wrapper = path.join(workspace, 'scripts/creation-visual/wrappers.tsx');
 const mockInteraction = path.join(workspace, 'scripts/creation-visual/mock-interaction.tsx');
 const server = await createServer({ configFile: false, root, publicDir: path.join(workspace, 'public'), esbuild: { jsx: 'automatic' },
   define: { 'process.env.NEXT_PUBLIC_API_ORIGIN': '""', 'process.env.NEXT_PUBLIC_MOBILE_BUILD': '"false"' },
-  resolve: { alias: {
-    '@': workspace,
-    'next/image': wrapper,
-    'next/navigation': wrapper,
-    'next-auth/react': wrapper,
-    'react-icons/si': wrapper,
-    'react-icons': wrapper,
-    '@/src/client/interaction/provider': mockInteraction,
-    '@/src/client/interaction/hooks': mockInteraction,
-  } },
+  resolve: { alias: [
+    { find: '@/src/client/interaction/provider', replacement: mockInteraction },
+    { find: '@/src/client/interaction/hooks', replacement: mockInteraction },
+    { find: 'interaction-builder/react', replacement: mockInteraction },
+    { find: 'next/image', replacement: wrapper },
+    { find: 'next/navigation', replacement: wrapper },
+    { find: 'next-auth/react', replacement: wrapper },
+    { find: 'react-icons/si', replacement: wrapper },
+    { find: 'react-icons', replacement: wrapper },
+    { find: '@', replacement: workspace },
+  ] },
   plugins: [{ name: 'creation-fixture-boundary', enforce: 'pre', resolveId(source, importer) {
     if (source === './hooks/useCreation' && importer?.replaceAll('\\', '/').endsWith('/CreationExperience.tsx')) return fixture;
     if (source === 'next/link') return '\0preview-link';
-    if (source === '../services/chunkingApi') return '\0preview-chunks';
+    if (source.includes('chunkingApi')) return '\0preview-chunks';
+    if (source.includes('understandingApi')) return '\0preview-understanding';
+    if (source.includes('analysisApi')) return '\0preview-analysis';
+    if (source.includes('reviewApi')) return '\0preview-review';
   }, load(id) {
     if (id === '\0preview-link') return `export {Link as default} from ${JSON.stringify(wrapper.replaceAll('\\', '/'))};`;
-    if (id === '\0preview-chunks') return `import {loadChunkingPreview as real} from '/@fs/${workspace.replaceAll('\\', '/')}/src/client/screens/cohortCreation/services/chunkingApi.ts';export async function loadChunkingPreview(...args){return new URLSearchParams(location.search).has('preview-data')&&!new URLSearchParams(location.search).has('journey')?window.__creationVisualFixtures.chunkPreview:real(...args);}`;
+    if (id === '\0preview-chunks') return `export async function loadChunkingPreview() { return window.__creationVisualFixtures.chunkPreview; }`;
+    if (id === '\0preview-understanding') return `export async function loadUnderstandingPreview() { return window.__creationVisualFixtures.conceptPreview; }`;
+    if (id === '\0preview-analysis') return `export async function loadAnalysisPreview() { return window.__creationVisualFixtures.analysisPreview; }`;
+    if (id === '\0preview-review') return `export async function loadReview() { return window.__creationVisualFixtures.reviewResponse; } export const reviewResponseSchema = {};`;
   },
     configureServer(app) { app.middlewares.use('/preview-playfair.woff2', (_request, response) => { response.setHeader('Content-Type', 'font/woff2'); response.end(readFileSync(font)); }); } }],
   server: { host: '127.0.0.1', port: 4175, strictPort: true, fs: { allow: [workspace] } } });

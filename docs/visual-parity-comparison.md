@@ -35,10 +35,10 @@ The captures verify that the new cohort builder faithfully embodies the legacy *
 | **Source Selection / Inventory** | Desktop (1280×900) | Dark | `legacy-source-workspace-desktop-dark.png` | `builder-source-workspace-desktop-dark.png` | Verified Parity |
 | **Source Selection / Inventory** | Mobile (390×844) | Light | `legacy-source-workspace-mobile-light.png` | `builder-source-workspace-mobile-light.png` | Verified Parity |
 | **Source Selection / Inventory** | Mobile (390×844) | Dark | `legacy-source-workspace-mobile-dark.png` | `builder-source-workspace-mobile-dark.png` | Verified Parity |
-| **Processing Progress & Stepper** | Desktop (1280×900) | Light | `legacy-processing-chunking-desktop-light.png` | `builder-processing-chunking-desktop-light.png` | Verified Parity |
-| **Processing Progress & Stepper** | Desktop (1280×900) | Dark | `legacy-processing-chunking-desktop-dark.png` | `builder-processing-chunking-desktop-dark.png` | Verified Parity |
-| **Processing Progress & Stepper** | Mobile (390×844) | Light | `legacy-processing-chunking-mobile-light.png` | `builder-processing-chunking-mobile-light.png` | Verified Parity |
-| **Processing Progress & Stepper** | Mobile (390×844) | Dark | `legacy-processing-chunking-mobile-dark.png` | `builder-processing-chunking-mobile-dark.png` | Verified Parity |
+| **Processing (Understanding / Chunking)** | Desktop (1280×900) | Light | `legacy-processing-chunking-desktop-light.png` | `builder-processing-chunking-desktop-light.png` | ⚠️ Pending Stage-Specific Layout Composition |
+| **Processing (Understanding / Chunking)** | Desktop (1280×900) | Dark | `legacy-processing-chunking-desktop-dark.png` | `builder-processing-chunking-desktop-dark.png` | ⚠️ Pending Stage-Specific Layout Composition |
+| **Processing (Understanding / Chunking)** | Mobile (390×844) | Light | `legacy-processing-chunking-mobile-light.png` | `builder-processing-chunking-mobile-light.png` | ⚠️ Pending Stage-Specific Layout Composition |
+| **Processing (Understanding / Chunking)** | Mobile (390×844) | Dark | `legacy-processing-chunking-mobile-dark.png` | `builder-processing-chunking-mobile-dark.png` | ⚠️ Pending Stage-Specific Layout Composition |
 | **Curriculum Outline & Evidence** | Desktop (1280×900) | Light | `legacy-curriculum-evidence-desktop-light.png` | `builder-curriculum-evidence-desktop-light.png` | Verified Parity |
 | **Curriculum Outline & Evidence** | Desktop (1280×900) | Dark | `legacy-curriculum-evidence-desktop-dark.png` | `builder-curriculum-evidence-desktop-dark.png` | Verified Parity |
 | **Curriculum Outline & Evidence** | Mobile (390×844) | Light | `legacy-curriculum-evidence-mobile-light.png` | `builder-curriculum-evidence-mobile-light.png` | Verified Parity |
@@ -54,19 +54,37 @@ The captures verify that the new cohort builder faithfully embodies the legacy *
 
 ---
 
-## 3. Discrepancy Analysis & Deliberate Architectural Distinctions
+## 3. Confirmed Gap & Stage-Specific Layout Checklist
 
-While visual, typographic, and atmospheric parity is established, the independent review identifies the following intentional distinctions between the legacy v1 flow and the new v2 canonical builder:
+The user has explicitly specified that the builder must match **the exact frontend design and stage-specific screen compositions** of the legacy pipeline:
 
-1. **Intake Flow Structure**:
-   - *Legacy*: Multi-step questionnaire with recommendation cards and multiple fork choices before workspace creation.
-   - *Builder*: Direct intentional handoff from homepage into `/quest/start` confirmation, preserving user input and request identity, followed immediately by entry into `/quest/build/[workspaceId]`.
-2. **Unified Continuous Workspace vs. Disjoint Wizards**:
-   - *Legacy*: Switches entire full-screen views between `StartingWorkspace`, `MaterialWorkspace`, `ChunkingProgress`, `AnalysisProgress`, and `ReviewWorkspace`.
-   - *Builder*: Uses a single unified canvas where progress steps, grounded sources, live curriculum, evidence drawers, and release controls coexist continuously. This avoids jarring screen transitions and maintains persistent chat context.
-3. **Evidence Citations**:
-   - *Legacy*: Shows chunk inspection in a separate modal/workspace with 12 pedagogical dimension sliders.
-   - *Builder*: Grounded citations appear directly inside expandable accordion drawers within each lesson card (`<details className={styles.evidenceDrawer}>`), with exact character/page/timestamp anchors and direct "Discuss in chat" deep linking.
-4. **Mobile Navigation Model**:
-   - *Legacy*: In some stages, chat and workspace were stacked or inaccessible simultaneously.
-   - *Builder*: Explicit sticky two-state view switcher (`Chat` / `Workspace`) at `<= 820px` keeps both views fully accessible without state loss or navigation trapping.
+### Confirmed Gap in Processing / Chunking:
+- **Legacy**:
+  - Two-column layout with large "Finding natural learning chunks…" heading and `InkUnderline`.
+  - Left Column: "Selected material" inventory card with source list radio buttons, chunk counts, progress bar, and processing checklist.
+  - Right Column: "Accepted chunks" panel displaying the selected source's title with `InkUnderline`, handwritten Caveat annotation, and numbered collapsible chunk items with offsets, quotations, and source references.
+  - Explanatory copy and lightbulb insight box.
+- **Current Builder**:
+  - Generic monolithic layout displaying "Draft Curriculum" card and source input form.
+
+### Stage-Specific Composition Checklist for Checkpoint 2:
+1. **Understanding Stage View**:
+   - Header: "Reading through your content…" with Playfair Display heading & InkUnderline.
+   - Left Column: Selected material inventory with segment count and acquired checkmarks + progress bar + checklist.
+   - Right Column: "Finding key ideas…" with Brain icon, paper note, concept cloud with topics from `workspace.understanding`, and lightbulb insight box.
+2. **Chunking Stage View**:
+   - Header: "Finding natural learning chunks…" with Playfair Display heading & InkUnderline.
+   - Left Column: Selected material inventory with chunk counts + progress bar + checklist.
+   - Right Column: Selected source header with Caveat annotation + numbered chunks list from `workspace.chunks` with duration/offset, teaser, expandable evidence blockquote, and insight box.
+3. **Analysis Stage View**:
+   - Header: "Understanding each piece…" with Playfair Display heading & InkUnderline.
+   - Left Column: Selected material inventory with analyzed chunk counts + progress bar + checklist.
+   - Right Column: Selected source header + analyzed chunks list joined with `workspace.analyses` (summary, pedagogical questions), and insight box.
+4. **Building / Assembly Stage View**:
+   - Header: "Bringing it all together…"
+   - Building progress section with partition/lesson counts and `BuildingArt` illustration.
+5. **Curriculum / Review Stage View**:
+   - Complete curriculum outline with lesson cards, grounded evidence drawers, discuss in chat, edit/pin/reorder/delete, and `ReleasePanel`.
+6. **Stage Navigation & Inspection**:
+   - Interactive stepper allows selecting any stage for inspection without triggering background mutations or model calls.
+   - Reset to active stage control.

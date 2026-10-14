@@ -12,6 +12,59 @@ export const builderIntakeDraft = {
 
 export const builderWorkspaceEmpty: CohortWorkspace = initialCohort('System Design from First Principles');
 
+export const chunk1: CohortChunk = {
+  id: 'chunk-0',
+  sourceId: 'source-1',
+  sourceVersion: 0,
+  start: 0,
+  end: 98,
+  text: 'Quorums overlap. A write quorum and read quorum must intersect on at least one node to guarantee freshness.',
+  checksum: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+};
+
+export const chunk2: CohortChunk = {
+  id: 'chunk-1',
+  sourceId: 'source-1',
+  sourceVersion: 0,
+  start: 100,
+  end: 185,
+  text: 'Availability requires multi-region active clusters with asynchronous replication logs.',
+  checksum: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+};
+
+export const lesson1: CohortLesson = {
+  id: 'lesson-0',
+  version: 0,
+  title: 'Understanding Distributed Systems and Consensus',
+  objective: 'Explain why quorums must overlap to guarantee read freshness in partitioned environments.',
+  pinned: true,
+  sourceChunkIds: ['chunk-0'],
+};
+
+export const lesson2: CohortLesson = {
+  id: 'lesson-1',
+  version: 0,
+  title: 'Designing for High Availability and Partition Tolerance',
+  objective: 'Analyze failure recovery and the tradeoffs between strong consistency and low-latency availability.',
+  pinned: false,
+  sourceChunkIds: ['chunk-1'],
+};
+
+export const lesson3: CohortLesson = {
+  id: 'lesson-2',
+  version: 0,
+  title: 'Choosing Consistency Guarantees in Practice',
+  objective: 'Evaluate linearizability versus eventual and causal consistency for distributed financial records.',
+  pinned: false,
+  sourceChunkIds: [],
+};
+
+const understanding1 = {
+  sourceId: 'source-1',
+  sourceVersion: 0,
+  topics: ['Consensus quorums', 'Replication logs', 'Partition tolerance', 'Read/write overlap'],
+};
+
 export const builderWorkspaceProcessing: CohortWorkspace = {
   ...initialCohort('System Design from First Principles'),
   sources: [
@@ -24,6 +77,8 @@ export const builderWorkspaceProcessing: CohortWorkspace = {
       state: 'processing',
     },
   ],
+  chunks: [chunk1, chunk2],
+  understanding: [understanding1],
   processing: {
     status: 'processing',
     stage: 'chunking',
@@ -54,53 +109,6 @@ export const builderWorkspaceProcessing: CohortWorkspace = {
   },
 };
 
-const chunk1: CohortChunk = {
-  id: 'chunk-0',
-  sourceId: 'source-1',
-  sourceVersion: 0,
-  start: 0,
-  end: 98,
-  text: 'Quorums overlap. A write quorum and read quorum must intersect on at least one node to guarantee freshness.',
-  checksum: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-};
-
-const chunk2: CohortChunk = {
-  id: 'chunk-1',
-  sourceId: 'source-1',
-  sourceVersion: 0,
-  start: 100,
-  end: 185,
-  text: 'Availability requires multi-region active clusters with asynchronous replication logs.',
-  checksum: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
-};
-
-const lesson1: CohortLesson = {
-  id: 'lesson-0',
-  version: 0,
-  title: 'Understanding Distributed Systems and Consensus',
-  objective: 'Explain why quorums must overlap to guarantee read freshness in partitioned environments.',
-  pinned: true,
-  sourceChunkIds: ['chunk-0'],
-};
-
-const lesson2: CohortLesson = {
-  id: 'lesson-1',
-  version: 0,
-  title: 'Designing for High Availability and Partition Tolerance',
-  objective: 'Analyze failure recovery and the tradeoffs between strong consistency and low-latency availability.',
-  pinned: false,
-  sourceChunkIds: ['chunk-1'],
-};
-
-const lesson3: CohortLesson = {
-  id: 'lesson-2',
-  version: 0,
-  title: 'Choosing Consistency Guarantees in Practice',
-  objective: 'Evaluate linearizability versus eventual and causal consistency for distributed financial records.',
-  pinned: false,
-  sourceChunkIds: [],
-};
-
 export const builderWorkspaceCurriculum: CohortWorkspace = {
   ...initialCohort('System Design from First Principles'),
   sources: [
@@ -114,6 +122,7 @@ export const builderWorkspaceCurriculum: CohortWorkspace = {
     },
   ],
   chunks: [chunk1, chunk2],
+  understanding: [understanding1],
   processing: {
     status: 'ready',
     stage: 'done',

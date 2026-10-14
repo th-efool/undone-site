@@ -25,6 +25,11 @@ import { BuilderDialog } from './BuilderDialog';
 import { ExternalSources, ExternalSourceScope } from './ExternalSources';
 import { formatYoutubeTimestamp } from '@/src/shared/cohort-builder/youtube-transcript';
 import { ReleasePanel } from './components/ReleasePanel';
+import {
+  type BuilderStage,
+  getActiveStage,
+  getEffectiveStage,
+} from './stage-selectors';
 
 export interface ProcessingStep {
   label: 'Understanding' | 'Chunking' | 'Analyzing' | 'Building';
@@ -290,6 +295,7 @@ export function CohortWorkspacePane({
   const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
   const [editingSourceVersion, setEditingSourceVersion] = useState<number | null>(null);
   const [sourceBase, setSourceBase] = useState(sourceForm);
+  const [inspectedStage, setInspectedStage] = useState<BuilderStage | null>(null);
 
   if (!workspace) {
     return <div className={styles.rightPane}>Loading workspace state...</div>;
@@ -395,31 +401,88 @@ export function CohortWorkspacePane({
   };
 
   const progress = getProcessingProgress(workspace);
+  const activeStage = getActiveStage(workspace);
+  const effectiveStage = getEffectiveStage(workspace, inspectedStage);
+
+  const stepToStageMap: Record<ProcessingStep['label'], BuilderStage> = {
+    Understanding: 'understanding',
+    Chunking: 'chunking',
+    Analyzing: 'analysis',
+    Building: 'assembly',
+  };
 
   return (
     <main className={styles.rightPane} aria-label="Cohort Curriculum Workspace">
       {/* Creation Journey Progress Steps */}
       <ol className={styles.creationSteps} aria-label="Creation journey progress">
-        {progress.steps.map((step, index) => (
-          <li
-            key={step.label}
-            aria-current={step.isCurrent ? 'step' : undefined}
-            data-complete={step.isComplete}
-            data-failed={step.isFailed || undefined}
-          >
-            <span>
-              {step.isComplete ? (
-                <Check size={13} aria-label="Complete" />
-              ) : step.isFailed ? (
-                <AlertCircle size={13} aria-label="Failed" />
-              ) : (
-                index + 1
-              )}
-            </span>
-            {step.label}
-          </li>
-        ))}
+        {progress.steps.map((step, index) => {
+          const stepStage = stepToStageMap[step.label];
+          const isInspected = inspectedStage === stepStage;
+          const isCurrent = inspectedStage ? isInspected : step.isCurrent;
+          return (
+            <li
+              key={step.label}
+              role="button"
+              tabIndex={0}
+              aria-current={isCurrent ? 'step' : undefined}
+              data-complete={step.isComplete}
+              data-failed={step.isFailed || undefined}
+              data-inspected={isInspected || undefined}
+              onClick={() => {
+                // Pure presentation state: sets inspectedStage, no actions dispatched, no store re-creation
+                setInspectedStage(current => (current === stepStage ? null : stepStage));
+              }}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  setInspectedStage(current => (current === stepStage ? null : stepStage));
+                }
+              }}
+              style={{ cursor: 'pointer' }}
+            >
+              <span>
+                {step.isComplete ? (
+                  <Check size={13} aria-label="Complete" />
+                ) : step.isFailed ? (
+                  <AlertCircle size={13} aria-label="Failed" />
+                ) : (
+                  index + 1
+                )}
+              </span>
+              {step.label}
+            </li>
+          );
+        })}
       </ol>
+
+      {inspectedStage && (
+        <div
+          data-testid="stage-inspection-banner"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: '6px 12px',
+            margin: '0 0 16px',
+            background: 'var(--creation-surface)',
+            border: '1px dashed var(--creation-blue)',
+            borderRadius: '8px',
+            fontSize: '12px',
+          }}
+        >
+          <span>
+            Inspecting stage: <strong>{inspectedStage}</strong> (presentation preview)
+          </span>
+          <button
+            type="button"
+            className={styles.editActionBtn}
+            onClick={() => setInspectedStage(null)}
+            style={{ padding: '2px 8px', fontSize: '11px' }}
+          >
+            Reset to active stage
+          </button>
+        </div>
+      )}
 
       {/* Hero / Overview Card */}
       <section className={styles.heroCard}>
