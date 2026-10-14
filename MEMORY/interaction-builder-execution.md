@@ -1,8 +1,13 @@
 # Interaction builder execution checkpoint
 
-STATUS: S5 LOCALLY COMPLETE / VERIFIED / READY FOR REVIEW. S3/S4A-D/S5 pass all verification gates; shared rollout remains unauthorized.
-LAST_CHECKPOINT: `IB-S5-RELEASE-AND-DELIVERY-2026-10-14`
-NEXT: Await operator authorization for shared schema rollout and deployment.
+STATUS: S5 LOCALLY COMPLETE / VERIFIED / READY FOR REVIEW. UX Repair Checkpoints 1 & 2 complete; shared rollout remains unauthorized.
+LAST_CHECKPOINT: `IB-UX-REPAIR-CP2-INTAKE-HANDOFF-2026-10-14`
+NEXT: Checkpoint 3 — Legacy shell and chat visual parity in CohortInteractionScreen.
+
+UX Repair Checkpoint 1 & 2 (Homepage Intake & Routing Repair):
+- Checkpoint 1 Diagnosis & Reference: Proven feature flag `INTERACTION_COHORT_V2_ENABLED` gating redirects unconfigured landing flows to `/quest/new?handoff=1`. Design reference, component ownership map, and visual parity checklist codified from legacy `/quest/draft/[draftId]` and `CreationShell`.
+- Checkpoint 2 Intake Handoff: `CohortIntakeScreen.tsx` updated to explicitly present existing creator alternative (`/quest/new?handoff=1`) on policy disability or readiness error, preserving retained input for retry and keeping sensitive parameters out of URLs. Unit test suite `intake-screen.test.tsx` added (4 tests passing). All 12 intake vitests and root TypeScript pass.
+
 
 S5 End-to-End Learner Delivery and Workspace Release (Checkpoints 1-4):
 - Contracts & AI Tools: canonical `prepare_release` and `commit_release` actions in `contracts.ts`, schema definitions for `cohortReleaseReceiptSchema` and `cohortReleaseStateSchema`. Invalidation on curriculum/source mutation. Registered AI tools in `tools.ts`. Expanded `deliverySourceSchema` for YouTube/GitHub provenance and restrictions.
