@@ -1,8 +1,25 @@
 # Interaction builder execution checkpoint
 
-STATUS: UX REPAIR CHECKPOINTS 1, 2, 3 & 4 COMPLETE AND VERIFIED LOCALLY. Shared rollout and deployment remain unauthorized. Live-provider and enabled-ingestion gates remain open and explicitly guarded.
-LAST_CHECKPOINT: `IB-UX-REPAIR-CP4-BROWSER-AND-PARITY-VERIFICATION-2026-10-14`
-NEXT: Independent review and stakeholder demo; live-provider / shared deployment gates require explicit authorization.
+STATUS: UX REPAIR CHECKPOINTS 1, 2, 3 & 4 COMPLETE; LEGACY-DESIGN PARITY REPAIR CHECKPOINTS 1 & 2 COMPLETE. Shared rollout and deployment remain unauthorized. Live-provider and enabled-ingestion gates remain open and explicitly guarded.
+LAST_CHECKPOINT: `IB-UX-LEGACY-PARITY-CP2-STAGE-VIEWS-2026-10-14`
+NEXT: Run end-to-end integration and heavy checks (Checkpoints 3, 4, 5).
+
+Legacy-Design Parity Repair Checkpoint 1 (Clean Reference Harness & Stage Selectors - Commit `fa8e83b`):
+- Root deficiency addressed: Reference visual capture exhibited unreadable API error alerts because legacy read endpoints were falling through to network fetches; builder processing fixture projected inactive steps.
+- Harness repair: In `scripts/creation-visual/server.mjs`, stubbed legacy read APIs (`chunkingApi`, `understandingApi`, `analysisApi`, `reviewApi`) via Vite virtual modules returning deterministic JSON fixtures (`window.__creationVisualFixtures.*`) without requiring special query flags or network calls. Reordered Vite resolve aliases so mock interaction modules take precedence.
+- Canonical state selectors: Created `src/client/screens/cohortBuilder/stage-selectors.ts` providing pure selectors `getActiveStage`, `getEffectiveStage`, `getUnderstandingData`, `getChunkingData`, `getAnalysisData`, and `getAssemblyData`. Added 39 unit tests in `src/client/screens/cohortBuilder/__tests__/stage-selectors.test.ts`.
+- Layout mapping checklist: Documented complete component layout mapping in `docs/visual-parity-comparison.md`.
+
+Legacy-Design Parity Repair Checkpoint 2 (Stage-Specific Screen Compositions Over Canonical State):
+- Stage views created in `src/client/screens/cohortBuilder/stages/`:
+  - `UnderstandingStageView.tsx`: 2-column layout with "Reading through your content…" heading, InkUnderline, source inventory card with segment counts and Check icons, progress bar, controls, and concept cloud with topics from `workspace.understanding`.
+  - `ChunkingStageView.tsx`: 2-column layout with "Finding natural learning chunks…" heading, InkUnderline, source inventory radio list with chunk count badges, progress bar, `ProcessingChecklist`, detail panel with source title and InkUnderline, Caveat annotation, collapsible chunk items with character offsets (`characters {start}–{end}`), teaser, evidence quotation, and insight box.
+  - `AnalysisStageView.tsx`: 2-column layout with "Understanding each piece…" heading, InkUnderline, source inventory with analyzed chunk counts, progress bar, `ProcessingChecklist`, detail panel with chunks joined with `workspace.analyses`, and insight box.
+  - `AssemblyStageView.tsx`: "Bringing it all together…" heading, building card with progress bar, partition/lesson counts, status, controls, and `BuildingArt` illustration.
+  - `IntakeStageView.tsx`: Screen composition for initial empty workspaces without sources, containing Learning Blueprint overview card, source input forms (`ExternalSources`, text input), and conflict recovery modal with remote field preservation.
+  - `CurriculumStageView.tsx`: Full curriculum outline screen composition containing Learning Blueprint overview card, grounded source text `#builder-sources` with `ExternalSources`, lesson list `#builder-outline` with pinning, reordering, editing, deletion, orphan alerts, expandable evidence citation drawer, "Discuss in chat" button, and `ReleasePanel`.
+- Non-destructive stage inspection: `CohortWorkspacePane.tsx` integrates pure `inspectedStage` state, clickable stepper navigation, and "Return to active stage" banner. Selecting a stage is 100% read-only presentation state without dispatching actions, model calls, or store re-creations.
+- Verification: 91/91 unit tests pass (`vitest run src/client/screens/cohortBuilder src/client/screens/landing`). `capture-parity.mjs` captured 24 pairs (48 screenshots) showing exact layout parity across desktop/mobile in light/dark themes with zero console errors or API alerts.
 
 UX Repair Checkpoint 1 (Homepage Handoff Defect Fix - Commit `f6dd24f`):
 - Root defect resolved: Removed silent redirect `if (!policy.enabled) { window.location.href = '/quest/new?handoff=1'; }` in `CentralInterface.tsx`.
@@ -11,7 +28,7 @@ UX Repair Checkpoint 1 (Homepage Handoff Defect Fix - Commit `f6dd24f`):
 - Fallback compatibility: If draft has no source text, explicitly presents `<a href="/quest/new?handoff=1">Continue with existing creator</a>`. If draft includes pasted source text, explains incompatibility (`"The existing creator only supports text prompts without pasted sources."`) without discarding text or silently redirecting.
 - Verification: 12 unit tests in `intake-screen.test.tsx` and `CentralInterface.test.tsx` pass. TypeScript exit 0.
 
-UX Repair Checkpoint 2 (Mobile Navigation Trap & Truthful Processing Indicators - Commit `214a444`):
+UX Repair Checkpoint 2 (Mobile Navigation Trap & Truthful Processing Indicators - Commit `21c8641`):
 - Defect A (Mobile Navigation Trap): In `CohortInteractionScreen.tsx`, moved persistent `.paneNavigation` outside the conditionally hidden `.canvas` to the top level. At `<= 820px`, navigation buttons (`Chat` and `Workspace`) remain accessible in both views, preventing the mobile trap. Unsent composer and editor states survive switching.
 - Defect B (Misleading Processing Completion): In `CohortWorkspacePane.tsx`, replaced naive `stage === 'done'` stepper check with pure `getProcessingProgress()`. An empty or initial workspace from `initialCohort()` (`status: 'idle', stage: 'done'`) correctly renders all 4 steps as incomplete with step numbers (1, 2, 3, 4) and zero false checkmarks. Correctly handles queued, running (`status: 'processing'`), partial failure, failed/canceled, and source edits after prior assembly (`needsRebuild`).
 - Verification: All 46 tests across 7 cohortBuilder & landing test files pass (including `CohortWorkspacePane.test.tsx` and `shell.test.tsx`). TypeScript exit 0.
