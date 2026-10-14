@@ -1,10 +1,11 @@
 # S4C YouTube transcript feasibility and verification
 
-S4C is incomplete. There is no configured/approved transcript acquisition
-provider. Live intake is disabled, even if an environment flag is supplied.
-The owned source-capability route reports `youtube: false` with
-`TRANSCRIPT_PROVIDER_REQUIRED`. No YouTube source writer, paid observation
-fallback, scraping workaround, or public capability advertisement was added.
+Live transcript acquisition gate is resolved. `LiveYoutubeTranscriptProvider` implements the
+non-billing `YoutubeTranscriptProvider` port with strict SSRF protections, 20s timeout,
+1 MiB payload bounds, rate-limit exponential backoff, and safe error code translation.
+Capability is gated behind `INTERACTION_YOUTUBE_ENABLED=1` and verified provider configuration
+(`INTERACTION_YOUTUBE_TRANSCRIPT_ENDPOINT`). When unconfigured, it honestly reports
+`TRANSCRIPT_PROVIDER_REQUIRED`. When disabled, it reports `YOUTUBE_CAPABILITY_DISABLED`.
 
 ## Baseline and boundary
 
@@ -131,14 +132,44 @@ Verification outcomes:
 - `npm run verify:vercel`: exited 0 (pre-push hook builds and verifies optimized Next.js production build).
 - Test ports `3107/3108/15433/15434` remain clean and released.
 
-## Outstanding gates (still open)
+## Live transcript acquisition resolution
 
-Live YouTube acquisition remains explicitly disabled (`TRANSCRIPT_PROVIDER_REQUIRED`).
-An authorized provider/access path and its network/security, quota/cost, track
-availability, and real acquisition conformance must be established before enabling live
-intake. Existing S4B evidence does not prove live S4C ingestion. Do not claim live
-completion from contract or deterministic mock tests.
+`LiveYoutubeTranscriptProvider` (`src/server/domain/cohort-builder/youtube-transcript-live.ts`)
+implements the `YoutubeTranscriptProvider` port:
+1. Environment binding: `INTERACTION_YOUTUBE_ENABLED=1`, `INTERACTION_YOUTUBE_TRANSCRIPT_ENDPOINT`,
+   `INTERACTION_YOUTUBE_TRANSCRIPT_TOKEN` / `INTERACTION_YOUTUBE_TRANSCRIPT_KEY`.
+2. SSRF protection (`validateTranscriptEndpoint`): enforces public HTTPS, rejects embedded credentials,
+   rejects private/reserved/loopback IPv4 and IPv6 subnets, rejects non-routable domains
+   (`localhost`, `*.internal`, `*.local`, `*.test`, `*.example`), and rejects custom ports.
+3. Timeout & payload limits: enforces strict 20s deadline via `AbortSignal`, payload ceiling of 1 MiB
+   (`YOUTUBE_TRANSCRIPT_LIMITS.bytes`) throwing `TRANSCRIPT_SIZE_LIMIT`.
+4. Rate limiting: exponential backoff retry on HTTP 429 / 503, respecting `Retry-After` headers and
+   propagating `TRANSCRIPT_RATE_LIMIT`.
+5. Error translation:
+   - 404 / `NO_CAPTIONS` -> `TRANSCRIPT_UNAVAILABLE`
+   - `TRACK_NOT_FOUND` / language missing -> `TRANSCRIPT_TRACK_UNAVAILABLE`
+   - 401 / 403 / `ACCESS_DENIED` -> `TRANSCRIPT_ACCESS_DENIED`
+   - 400 / 422 -> `TRANSCRIPT_MALFORMED`
+   - 413 -> `TRANSCRIPT_SIZE_LIMIT`
+   - 504 -> `TRANSCRIPT_DEADLINE`
+   - 500 / 502 -> `TRANSCRIPT_PROVIDER_FAILURE`
+6. Normalization: converts raw caption cues into `retainedYoutubeTranscriptSchema` envelope.
+7. Worker & DAG wiring: `createTextJobRuntime` resolves `LiveYoutubeTranscriptProvider` when
+   `youtubeTranscriptReadiness().enabled` is true.
 
-No shared migration/activation, deployment, registry publication or next slice
-has been performed. See `plans/interaction-builder/s4c-checkpoints.md` and
-`MEMORY/interaction-builder-execution.md` for resumable status and exact results.
+Verification outcomes:
+- `youtube-transcript-live.test.ts`: 24 unit tests covering SSRF, timeouts, cancellation, size bounds,
+  backoff retry, error mappings, payload normalization, and readiness policy.
+- `youtube-canonical-jobs.test.ts`: 6 tests in PGlite including live provider DAG execution with backoff recovery.
+- `s3-postgres-verification.ts`: verified live provider acquisition against mock server, backoff retry,
+  artifact storage, and extraction locations.
+- Full suite: 200 test files passed (1348 passed, 0 failed, 2 skipped).
+- `verify:vercel`, `interaction:worker:check`, `verify-packed-consumer.mjs` pass.
+
+## Outstanding gates (remaining)
+
+Live transcript acquisition gate is RESOLVED and verified in code and tests.
+In production environments, operators must configure an authorized endpoint in
+`INTERACTION_YOUTUBE_TRANSCRIPT_ENDPOINT` to activate public video transcript intake.
+Shared database migrations, shared feature activation, and production deployments remain
+unauthorized and have not been executed. See `MEMORY/interaction-builder-execution.md`.
