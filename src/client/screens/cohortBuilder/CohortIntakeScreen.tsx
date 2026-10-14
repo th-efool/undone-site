@@ -22,12 +22,18 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
   }
   return <main style={{ maxWidth: 680, margin: '60px auto', padding: 24 }}>
     <h1>Start your cohort</h1>
-    {!enabled ? <p role="status">New builder intake is unavailable. Existing workspaces remain accessible.</p> : draft ? <>
+    {!enabled ? <div>
+      <p role="status">New builder intake is unavailable. Existing workspaces remain accessible.</p>
+      {draft && !draft.source && <p><a href="/quest/new?handoff=1">Continue with existing creator</a></p>}
+    </div> : draft ? <>
       <p>Confirm this learning goal for your signed-in account.</p><blockquote>{draft.prompt}</blockquote>
       {draft.source && <p>Retained text: {draft.source.label} ({draft.source.text.length} characters)</p>}
       <button disabled={busy} onClick={() => void submit()}>{busy ? 'Saving…' : 'Create cohort'}</button>
       <button disabled={busy} onClick={() => { clearIntakeDraft(); setDraft(null); }}>Discard</button>
     </> : <p>No pending input. <a href="/#explore">Return to landing</a>.</p>}
-    {error && <p role="alert">Could not save: {error}. Your input is retained; retry when available.</p>}
+    {error && <div role="alert">
+      <p>Could not save: {error}. Your input is retained; retry when available.</p>
+      {draft && !draft.source && <p><a href="/quest/new?handoff=1">Or continue with existing creator</a></p>}
+    </div>}
   </main>;
 }
