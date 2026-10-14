@@ -1,8 +1,18 @@
 # Interaction builder execution checkpoint
 
-STATUS: S4C LOCALLY COMPLETE (LIVE GATE OPEN) / ALL 5 CHECKPOINTS PASS / READY FOR REVIEW. S4B remains locally complete; shared rollout remains unauthorized.
-LAST_CHECKPOINT: `IB-S4C-INTEGRATED-ACCEPTANCE-2026-10-14`
-NEXT: Await provider selection / live acquisition authorization. Live YouTube capability remains disabled by default with TRANSCRIPT_PROVIDER_REQUIRED.
+STATUS: S4D LOCALLY COMPLETE / ALL 5 CHECKPOINTS PASS / READY FOR REVIEW. S4B/S4C remain locally complete; shared rollout remains unauthorized.
+LAST_CHECKPOINT: `IB-S4D-INTEGRATED-ACCEPTANCE-2026-10-14`
+NEXT: Await live acquisition authorization. Live GitHub capability remains disabled by default with GITHUB_CAPABILITY_DISABLED.
+
+S4D integrated acceptance and verification (Checkpoint 5): `scripts/s3-postgres-verification.ts` extended with GitHub disability proof, mock provider DAG execution, line-anchored locations (`filePath`, `startLine`, `endLine`), scope reduction reuse without provider re-fetch, and event sequence consistency. `scripts/s3-browser-verification.mjs` extended with GitHub disability assertions (button count 0 and honest unavailable notice). All 41 domain, shared, and client test files (240 tests) pass. `verify:vercel`, `interaction:worker:check`, and `verify-packed-consumer.mjs` pass. Documented in `docs/s4d-verification.md`. Checkpoint 5 complete.
+
+S4D UI and chat parity (Checkpoint 4): `add_github_source` and `set_github_scope` AI tools registered in `tools.ts` with canonical actions and deterministic step IDs. `context.ts` binds `github: sourceCapability('github')` to assistant context and adds capability prompt guidance. `ExternalSources.tsx` renders honest disabled notice `GitHub repository ingestion is currently unavailable (${reason})` when capability is off, renders intake form when enabled, and provides `ExternalSourceScope` with file path editing, validation, and concurrent conflict recovery. `CohortWorkspacePane.tsx` displays grounded line-anchored citations (`{filePath}#L{startLine}-L{endLine}`) and repository provenance in evidence citations. Checkpoint 4 commit `3a1e911` pushed.
+
+S4D durable DAG and canonical acceptance (Checkpoint 3): `add_github_source` and `set_github_scope` canonical actions planned in `text-job-plan.ts` using `GITHUB_SOURCE_VERSION`, executed via `createTextSourceProcessor` with injected non-billing provider port, extracted deterministically with line-anchored locations, and accepted into state and downstream assembly under workspace lock. Scope changes reuse retained bytes without re-acquisition. 5 composed PGlite tests in `github-canonical-jobs.test.ts` pass. Checkpoint 3 commit `579da8c` pushed.
+
+S4D retention and line-anchored extraction (Checkpoint 2): `src/server/domain/cohort-builder/github-source.ts` implements injected non-billing `GithubSourceProvider` port, 15s deadline, SSRF protection, binary file detection (`BINARY_FILE_REJECTED`), and deterministic line-anchored extraction. Checkpoint 2 commit `6a258f7` pushed.
+
+S4D contracts, bounded scope and policy (Checkpoint 1): `src/shared/cohort-builder/github-source.ts` defines strict public repo URL validation, ref schema, file path sanitization and extension allowlists, quotas (25 files, 500 KB per file, 2 MB total, 200k chars), and `retainedGithubSourceSchema`. `contracts.ts` adds GitHub source schemas and actions. `github-policy.ts` gates capability behind `INTERACTION_GITHUB_ENABLED === '1'`. Checkpoint 1 commit `c3100d5` pushed.
 
 S4C integrated acceptance and disability proof: `scripts/s3-postgres-verification.ts` extended with YouTube disability verification, mock provider acquisition, durable DAG execution, timestamped locations, scope reduction reuse without provider re-fetch, and event sequence consistency. `scripts/s3-browser-verification.mjs` extended with YouTube disability assertions (button count 0 and honest unavailable notice). All 10 domain/S4C test files (88 tests) pass. `verify:vercel`, `interaction:worker:check`, and `verify-packed-consumer.mjs` pass. Test ports released. Checkpoint 4 commit `112d7e1` pushed.
 
