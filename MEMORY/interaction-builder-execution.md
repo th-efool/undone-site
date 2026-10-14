@@ -1,8 +1,10 @@
 # Interaction builder execution checkpoint
 
-STATUS: S4C INCOMPLETE / CHECKPOINT 3 COMPLETE / UI & INTEGRATED GATES OPEN. S4B remains locally complete; shared rollout remains unauthorized.
-LAST_CHECKPOINT: `IB-S4C-CANONICAL-DAG-2026-10-14`
-NEXT: Checkpoint 4 UI and chat parity. Extend ExternalSources.tsx to render YouTube intake, track/timestamp status, and physical timestamp evidence chips while respecting server capability gating. Plan: `plans/interaction-builder/s4c-checkpoints.md`; evidence: `docs/s4c-verification.md`.
+STATUS: S4C INCOMPLETE / CHECKPOINT 4 COMPLETE / INTEGRATED ACCEPTANCE GATES OPEN. S4B remains locally complete; shared rollout remains unauthorized.
+LAST_CHECKPOINT: `IB-S4C-UI-CHAT-2026-10-14`
+NEXT: Checkpoint 5 integrated acceptance & final verification. Plan: `plans/interaction-builder/s4c-checkpoints.md`; evidence: `docs/s4c-verification.md`.
+
+S4C UI and chat parity: `add_youtube_source` and `set_youtube_scope` AI tools registered in `tools.ts` with canonical actions and deterministic step IDs. `context.ts` binds `youtube: sourceCapability('youtube')` to assistant context and adds capability prompt guidance. `ExternalSources.tsx` renders honest disabled notice `YouTube transcript ingestion is currently unavailable (${reason})` when capability is off, renders intake form when enabled, and provides `ExternalSourceScope` with `formatYoutubeTimestamp`, start/end seconds range validation, and concurrent conflict recovery. `CohortWorkspacePane.tsx` displays grounded timestamp ranges in evidence citations. 17 UI/chat tests pass; TypeScript exit 0. Checkpoint 3 commit `a4227bf` pushed.
 
 S4C durable DAG and canonical acceptance: `add_youtube_source` and `set_youtube_scope` canonical actions added to `contracts.ts`, planned in `text-job-plan.ts`, executed via `createTextSourceProcessor` with injected non-billing provider port, extracted deterministically via `extractRetainedSource` with timestamped locations (`startMs`, `endMs`, `segmentId`), and accepted into state and downstream assembly under workspace lock. Scope changes reuse retained bytes without re-acquisition. Capability gating strictly enforces `SOURCE_CAPABILITY_DISABLED` by default. 5 composed PGlite tests in `youtube-canonical-jobs.test.ts` pass, verifying gating, end-to-end DAG execution, scope change reuse, failure/retry, and fabricated extraction rejection. Checkpoint 2 commit `48fe3ec` pushed.
 

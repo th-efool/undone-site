@@ -92,13 +92,29 @@ Composed PGlite tests: 5 tests in `youtube-canonical-jobs.test.ts` pass, verifyi
 - Honest provider failure (`TRANSCRIPT_UNAVAILABLE`) and targeted job retry
 - Fabricated extraction rejection (`FABRICATED_SOURCE_EXTRACTION`) and CAS consistency
 
+## UI and chat parity (Checkpoint 4)
+
+`src/server/domain/cohort-builder/tools.ts` registers `add_youtube_source` and `set_youtube_scope` AI tools returning canonical actions and preserving deterministic step IDs.
+`src/server/domain/cohort-builder/context.ts` binds `youtube: sourceCapability('youtube')` to assistant context and provides explicit capability guidance in the prompt.
+`src/client/screens/cohortBuilder/ExternalSources.tsx` fetches workspace source capabilities:
+- When YouTube ingestion is disabled (default), renders honest notice: `YouTube transcript ingestion is currently unavailable (${reason})`.
+- When enabled, renders intake form with video URL, label, caption track language/type, and dispatches canonical `add_youtube_source`.
+- In `ExternalSourceScope`, renders timestamp scope (`formatYoutubeTimestamp`), start/end seconds inputs with range validation, and dispatches canonical `set_youtube_scope` with entity versions `[{ kind: 'source', id: source.id, version: baseVersion }]`.
+- Preserves draft inputs across concurrent workspace edits and prompts to use current source revision.
+`src/client/screens/cohortBuilder/CohortWorkspacePane.tsx` inspects source locations for segment `startMs`/`endMs` and renders grounded timestamps (`timestamp MM:SS–MM:SS`) in evidence citations.
+
+Tests:
+- `external-tools.test.ts`: tool execution, prompt capability, and system prompt text.
+- `ExternalSources.test.tsx`: disabled notice, enabled intake dispatch, scope validation/dispatch, and concurrent conflict recovery.
+- `CohortWorkspacePane.test.tsx`: timestamp evidence citation rendering.
+All 17 UI/chat tests pass.
+
 ## Outstanding gates (still open)
 
 Select an authorized provider/access path and establish its network/security,
 quota/cost, track availability and actual live acquisition conformance first.
-Then complete UI/chat parity and extend the real SQL/browser harness. Existing S4B
-evidence does not prove S4C. Do not claim completion from contract or deterministic
-mock tests.
+Then extend the real SQL/browser harness. Existing S4B evidence does not prove S4C.
+Do not claim completion from contract or deterministic mock tests.
 
 No shared migration/activation, deployment, registry publication or next slice
 has been performed. See `plans/interaction-builder/s4c-checkpoints.md` and
