@@ -1,8 +1,13 @@
 # Interaction builder execution checkpoint
 
-STATUS: S5 LOCALLY COMPLETE / VERIFIED / READY FOR REVIEW. UX Repair Checkpoints 1 & 2 complete; shared rollout remains unauthorized.
-LAST_CHECKPOINT: `IB-UX-REPAIR-CP2-INTAKE-HANDOFF-2026-10-14`
-NEXT: Checkpoint 3 — Legacy shell and chat visual parity in CohortInteractionScreen.
+STATUS: S5 LOCALLY COMPLETE / VERIFIED / READY FOR REVIEW. UX Repair Checkpoints 1, 2 & 3 complete; shared rollout remains unauthorized.
+LAST_CHECKPOINT: `IB-UX-REPAIR-CP3-SHELL-AND-CHAT-2026-10-14`
+NEXT: Checkpoint 4 — Parity throughout the creation journey (source intake, processing, curriculum, review).
+
+UX Repair Checkpoint 3 (Legacy Shell and Chat Visual Parity):
+- Shell presentation: `CohortInteractionScreen.tsx` refactored to reuse the exact legacy 2-column grid (`clamp(300px, 26.1vw, 420px)` and `1fr`), collapsible rail (`80px`), brand header with Caveat script flourish ("For a more curious you."), account circle, and ThemeToggle integration while preserving canonical `InteractionProvider`, multi-tab identity, and responsive mobile pane switching.
+- Chat & Composer presentation: `ChatPane.tsx` updated with Playfair Display typography, circular avatars ('Y' and Undone mark), hint card with Lightbulb icon, suggestions bar, and rounded composer with ArrowUp blue gradient button. Preserves real persisted messages, canonical actions, activity turns, and active entity references without fake assistant responses.
+- Styles & verification: `CohortBuilder.module.css` incorporates legacy color tokens (`--creation-paper`, `--creation-surface`, `--creation-ink`, `--creation-blue`, `--creation-line`), paper texture, and responsive breakpoints. All 30 cohortBuilder unit tests (including `shell.test.tsx`) pass. Root TypeScript exit 0.
 
 UX Repair Checkpoint 1 & 2 (Homepage Intake & Routing Repair):
 - Checkpoint 1 Diagnosis & Reference: Proven feature flag `INTERACTION_COHORT_V2_ENABLED` gating redirects unconfigured landing flows to `/quest/new?handoff=1`. Design reference, component ownership map, and visual parity checklist codified from legacy `/quest/draft/[draftId]` and `CreationShell`.
