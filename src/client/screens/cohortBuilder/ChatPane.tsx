@@ -22,9 +22,10 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const nearBottom = useRef(true);
 
   useEffect(() => {
-    if (scrollRef.current) {
+    if (scrollRef.current && nearBottom.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages.length]);
@@ -70,7 +71,9 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
         <p>Chat directly with AI to draft, structure, and refine your curriculum.</p>
       </div>
 
-      <div className={styles.messagesList} ref={scrollRef}>
+      <div className={styles.messagesList} ref={scrollRef} onScroll={() => {
+        const node = scrollRef.current!; nearBottom.current = node.scrollHeight - node.scrollTop - node.clientHeight < 80;
+      }}>
         {messages.length === 0 ? (
           <div className={styles.emptyChat}>
             <MessageSquare size={32} color="#b5afc3" style={{ margin: '0 auto 12px' }} />
@@ -145,6 +148,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity }: ChatPaneProp
 
       <div className={styles.chatComposer}>
         <textarea
+          aria-label="Message the cohort assistant"
           className={styles.chatInput}
           rows={1}
           placeholder="Type an instruction or request..."

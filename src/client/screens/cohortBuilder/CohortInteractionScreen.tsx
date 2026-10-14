@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { InteractionProvider } from '@/src/client/interaction/provider';
@@ -29,6 +30,7 @@ function InnerBuilderScreen() {
   const connection = useWorkspaceConnection();
   const state = useInteractionState<CohortWorkspace>();
   const [attachedEntity, setAttachedEntity] = useState<AttachedEntity | null>(null);
+  const [pane, setPane] = useState<'chat' | 'workspace'>('workspace');
 
   const dotClass =
     connection === 'live'
@@ -76,14 +78,25 @@ function InnerBuilderScreen() {
       </header>
 
       {/* Main Split Layout */}
-      <div className={styles.mainContainer}>
+      <nav className={styles.paneNavigation} aria-label="Builder views">
+        <button aria-pressed={pane === 'chat'} onClick={() => setPane('chat')}>Chat</button>
+        <button aria-pressed={pane === 'workspace'} onClick={() => setPane('workspace')}>Workspace</button>
+      </nav>
+      <div className={styles.mainContainer} data-pane={pane}>
+        <div className={styles.chatRegion}>
         <ChatPane
           attachedEntity={attachedEntity}
           onClearAttachedEntity={() => setAttachedEntity(null)}
         />
+        </div>
+        <div className={styles.workspaceRegion}>
+        <nav aria-label="Workspace sections" className={styles.sectionNavigation}>
+          <a href="#builder-sources">Sources</a><a href="#builder-outline">Outline and evidence</a>
+        </nav>
         <CohortWorkspacePane
-          onSelectLessonForChat={attached => setAttachedEntity(attached)}
+          onSelectLessonForChat={attached => { setAttachedEntity(attached); setPane('chat'); }}
         />
+        </div>
       </div>
     </div>
   );
@@ -92,9 +105,14 @@ function InnerBuilderScreen() {
 export function CohortInteractionScreen({
   workspaceId,
   initialView,
+  ownerId,
 }: CohortInteractionScreenProps) {
+  const { data: session, status } = useSession();
+  const identityLost = status === 'unauthenticated' || (status === 'authenticated' && ownerId && session?.user?.id !== ownerId);
+  useEffect(() => { if (identityLost) sessionStorage.removeItem('undone:cohort-intake'); }, [identityLost]);
+  if (identityLost) return <p>Session changed. Sign in again to resume this workspace.</p>;
   return (
-    <InteractionProvider workspaceId={workspaceId} initialView={initialView}>
+    <InteractionProvider key={`${ownerId}:${workspaceId}`} workspaceId={workspaceId} initialView={initialView}>
       <InnerBuilderScreen />
     </InteractionProvider>
   );

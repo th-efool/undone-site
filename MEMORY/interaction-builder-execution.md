@@ -2,7 +2,9 @@
 
 STATUS: S3 LOCAL IMPLEMENTATION COMPLETE AND VERIFIED. Shared rollout remains pending authorization.
 LAST_CHECKPOINT: `IB-S3-VERTICAL-SLICE-VERIFIED-2026-10-14`
-NEXT: S4A checkpoint 2 responsive workspace. Checkpoint 1 verified: atomic owner-scoped intake in `src/server/infrastructure/db/postgres/cohort-intake.ts`, canonical source/message composition; `/api/cohort-builder/intake` server feature/driver/schema gate; `/quest/start` session handoff with explicit authenticated confirmation. Builder GET now reads only. Existing v1 entry remains when v2 disabled. No shared rollout.
+NEXT: S4A checkpoint 3 queue/cancellation/conflict experience. Checkpoint 1 committed/pushed `5f0aa02`: atomic owner-scoped intake in `src/server/infrastructure/db/postgres/cohort-intake.ts`, canonical source/message composition; `/api/cohort-builder/intake` server feature/driver/schema gate; `/quest/start` session handoff with explicit authenticated confirmation. Builder GET now reads only. Existing v1 entry remains when v2 disabled. No shared rollout.
+
+S4A checkpoint 2: one mounted provider/panes across responsive switching; native source/outline navigation, full anchored evidence details; accessible dialog focus trap/return; composer respects transcript scroll. Session loss removes workspace provider. Draft edits stay component-local, identity-keyed and do not persist outside mounted workspace. Focused workspace/shell tests 6 passed; TypeScript passed. Concurrent unrelated package edits appeared during this pass and were preserved, not committed.
 
 S4A checkpoint 1 checks: targeted intake/canonical tests 8 passed; real PostgreSQL script passed including concurrent/lost-response intake, mismatch and event-failure rollback. Plan: `plans/interaction-builder/s4a-checkpoints.md`.
 
