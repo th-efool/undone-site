@@ -294,4 +294,185 @@ describe('grounded cohort workspace UI', () => {
     expect(items[3].getAttribute('data-failed')).toBeNull();
     expect(screen.getByLabelText('Failed')).toBeDefined();
   });
+
+  it('multi-source mixed-rate progress: does not infer global stage completion from one advanced source', () => {
+    // Source A is at analysis, but Source B is still running understanding
+    fake.state = cohortWorkspaceSchema.parse({
+      schemaVersion: 1,
+      title: 'Distributed Systems',
+      intent: 'Learn consensus and replication',
+      audience: 'Engineers',
+      dailyMinutes: 25,
+      sources: [
+        { id: 'source-a', version: 0, label: 'Consensus paper', text: 'Quorums overlap.', checksum: 'a'.repeat(64), state: 'processing' },
+        { id: 'source-b', version: 0, label: 'Replication notes', text: 'Leaders replicate logs.', checksum: 'b'.repeat(64), state: 'processing' },
+      ],
+      lessons: [],
+      processing: {
+        status: 'queued',
+        stage: 'understanding',
+        generation: 1,
+        sourceFingerprint: 'multi-fingerprint',
+        error: null,
+        jobs: [
+          // Source A completed understanding & chunking, and is queued for analysis
+          { id: 'job-a-u', sourceId: 'source-a', stage: 'understanding', status: 'accepted', attempts: 1, error: null, retryable: false },
+          { id: 'job-a-c', sourceId: 'source-a', stage: 'chunking', status: 'accepted', attempts: 1, error: null, retryable: false },
+          { id: 'job-a-a', sourceId: 'source-a', stage: 'analysis', status: 'queued', attempts: 0, error: null, retryable: false },
+          // Source B is only running understanding
+          { id: 'job-b-u', sourceId: 'source-b', stage: 'understanding', status: 'running', attempts: 1, error: null, retryable: false },
+          { id: 'job-b-c', sourceId: 'source-b', stage: 'chunking', status: 'queued', attempts: 0, error: null, retryable: false },
+          { id: 'job-b-a', sourceId: 'source-b', stage: 'analysis', status: 'queued', attempts: 0, error: null, retryable: false },
+        ],
+      },
+    });
+
+    const progress = getProcessingProgress(fake.state);
+    // Global understanding is NOT complete because Source B has not finished understanding!
+    expect(progress.steps[0].isComplete).toBe(false);
+    expect(progress.steps[0].isCurrent).toBe(true);
+    // Steps 1, 2, 3 must NOT be complete
+    expect(progress.steps[1].isComplete).toBe(false);
+    expect(progress.steps[2].isComplete).toBe(false);
+    expect(progress.steps[3].isComplete).toBe(false);
+    expect(progress.currentStepIndex).toBe(0);
+  });
+
+  it('multi-source partial failure: marks only failing stage and never marks subsequent stages complete', () => {
+    // Both sources completed understanding. Source A failed chunking, while Source B accepted chunking and is analyzing
+    fake.state = cohortWorkspaceSchema.parse({
+      schemaVersion: 1,
+      title: 'Systems',
+      intent: 'Learn',
+      audience: 'Engineers',
+      dailyMinutes: 20,
+      sources: [
+        { id: 'source-a', version: 0, label: 'Doc A', text: 'Text A', checksum: 'a'.repeat(64), state: 'failed' },
+        { id: 'source-b', version: 0, label: 'Doc B', text: 'Text B', checksum: 'b'.repeat(64), state: 'processing' },
+      ],
+      lessons: [],
+      processing: {
+        status: 'failed',
+        stage: 'chunking',
+        generation: 1,
+        sourceFingerprint: 'fprint',
+        error: 'CHUNKING_FAILED',
+        jobs: [
+          { id: 'job-a-u', sourceId: 'source-a', stage: 'understanding', status: 'accepted', attempts: 1, error: null, retryable: false },
+          { id: 'job-a-c', sourceId: 'source-a', stage: 'chunking', status: 'failed', attempts: 1, error: 'CHUNKING_FAILED', retryable: true },
+          { id: 'job-b-u', sourceId: 'source-b', stage: 'understanding', status: 'accepted', attempts: 1, error: null, retryable: false },
+          { id: 'job-b-c', sourceId: 'source-b', stage: 'chunking', status: 'accepted', attempts: 1, error: null, retryable: false },
+          { id: 'job-b-a', sourceId: 'source-b', stage: 'analysis', status: 'running', attempts: 1, error: null, retryable: false },
+        ],
+      },
+    });
+
+    const progress = getProcessingProgress(fake.state);
+    expect(progress.steps[0].isComplete).toBe(true);  // Understanding complete for both
+    expect(progress.steps[1].isFailed).toBe(true);    // Chunking failed for Source A
+    expect(progress.steps[1].isComplete).toBe(false);
+    expect(progress.steps[2].isComplete).toBe(false);  // Analyzing is NOT complete
+    expect(progress.steps[3].isComplete).toBe(false);  // Building is NOT complete
+    expect(progress.needsRebuild).toBe(true);
+  });
+
+  it('server cancellation (status: idle, error: PROCESSING_CANCELED): retains accepted stages without false completion of in-flight work', () => {
+    fake.state = cohortWorkspaceSchema.parse({
+      schemaVersion: 1,
+      title: 'Canceled Workspace',
+      intent: 'Learn',
+      audience: 'Engineers',
+      dailyMinutes: 20,
+      sources: [
+        { id: 'source-1', version: 0, label: 'Doc', text: 'Content', checksum: 'a'.repeat(64), state: 'stale' },
+      ],
+      lessons: [],
+      processing: {
+        status: 'idle',
+        stage: 'chunking',
+        generation: 1,
+        sourceFingerprint: 'fprint',
+        error: 'PROCESSING_CANCELED',
+        jobs: [
+          { id: 'job-1', sourceId: 'source-1', stage: 'understanding', status: 'accepted', attempts: 1, error: null, retryable: false },
+          { id: 'job-2', sourceId: 'source-1', stage: 'chunking', status: 'canceled', attempts: 1, error: null, retryable: false },
+        ],
+      },
+    });
+
+    const progress = getProcessingProgress(fake.state);
+    expect(progress.steps[0].isComplete).toBe(true);   // Understanding was accepted prior to cancel
+    expect(progress.steps[1].isComplete).toBe(false);  // Chunking was canceled
+    expect(progress.steps[1].isCurrent).toBe(false);
+    expect(progress.steps[2].isComplete).toBe(false);
+    expect(progress.steps[3].isComplete).toBe(false);
+    expect(progress.currentStepIndex).toBe(-1);
+    expect(progress.needsRebuild).toBe(true);
+  });
+
+  it('targeted retry: retrying failed job restores active state and preserves prerequisites', () => {
+    // When job-a-c is retried, its status updates from failed to running
+    fake.state = cohortWorkspaceSchema.parse({
+      schemaVersion: 1,
+      title: 'Retrying Workspace',
+      intent: 'Learn',
+      audience: 'Engineers',
+      dailyMinutes: 20,
+      sources: [
+        { id: 'source-a', version: 0, label: 'Doc A', text: 'Text A', checksum: 'a'.repeat(64), state: 'processing' },
+      ],
+      lessons: [],
+      processing: {
+        status: 'queued',
+        stage: 'chunking',
+        generation: 1,
+        sourceFingerprint: 'fprint',
+        error: null,
+        jobs: [
+          { id: 'job-a-u', sourceId: 'source-a', stage: 'understanding', status: 'accepted', attempts: 1, error: null, retryable: false },
+          { id: 'job-a-c', sourceId: 'source-a', stage: 'chunking', status: 'running', attempts: 2, error: null, retryable: true },
+        ],
+      },
+    });
+
+    const progress = getProcessingProgress(fake.state);
+    expect(progress.steps[0].isComplete).toBe(true);   // Understanding remains complete
+    expect(progress.steps[1].isComplete).toBe(false);
+    expect(progress.steps[1].isFailed).toBe(false);    // No longer failed
+    expect(progress.steps[1].isCurrent).toBe(true);    // Chunking is now actively retrying
+    expect(progress.currentStepIndex).toBe(1);
+  });
+
+  it('manual lessons do not fabricate progress during incomplete processing', () => {
+    fake.state = cohortWorkspaceSchema.parse({
+      schemaVersion: 1,
+      title: 'Manual Lessons Workspace',
+      intent: 'Learn',
+      audience: 'Engineers',
+      dailyMinutes: 20,
+      sources: [
+        { id: 'source-1', version: 0, label: 'Doc 1', text: 'Text', checksum: 'a'.repeat(64), state: 'processing' },
+      ],
+      lessons: [
+        { id: 'manual-1', version: 1, title: 'Manual lesson', objective: 'Objective', sourceChunkIds: [], pinned: true, manualOverride: true },
+        { id: 'manual-2', version: 1, title: 'Another manual lesson', objective: 'Objective 2', sourceChunkIds: [], pinned: true, manualOverride: true },
+      ],
+      processing: {
+        status: 'queued',
+        stage: 'understanding',
+        generation: 1,
+        sourceFingerprint: 'fprint',
+        error: null,
+        jobs: [
+          { id: 'job-u', sourceId: 'source-1', stage: 'understanding', status: 'running', attempts: 1, error: null, retryable: false },
+        ],
+      },
+    });
+
+    const progress = getProcessingProgress(fake.state);
+    expect(progress.steps.every(s => s.isComplete)).toBe(false);
+    expect(progress.steps[0].isCurrent).toBe(true);
+    expect(progress.steps[3].isComplete).toBe(false); // Building is NOT complete just because lessons exist!
+  });
 });
+

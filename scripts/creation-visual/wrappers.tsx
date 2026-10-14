@@ -7,3 +7,7 @@ export default function Image({ fill, priority: _priority, unoptimized: _unoptim
 }
 export function Link(props: AnchorHTMLAttributes<HTMLAnchorElement>) { return <a {...props} />; }
 export function useRouter() { return { push: () => {}, replace: () => {}, refresh: () => {} }; }
+export function useSession() { return { status: 'authenticated', data: { user: { id: 'owner-test', name: 'Test Learner' } } }; }
+export const SiNotion = () => null;
+export const SiYoutube = () => null;
+export const SiGithub = () => null;

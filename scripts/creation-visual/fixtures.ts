@@ -28,7 +28,10 @@ export const partitionIds = [hash('a'), hash('b'), hash('c')];
 const ref = { id: draftId, kind: 'artifact', byteLength: 500, checksum: hash('e') };
 const titles = ['System Design from First Principles', 'System Design Interviews', 'Distributed Systems in Practice', 'Scalability & Performance', 'System Design for Product Engineers'];
 const images = ['/mock/thumbnails/system-design.jpeg', '/images/hero-collage/real-map.jpg', '/images/hero-collage/real-galaxy.jpg', '/mock/thumbnails/docker.avif', '/mock/thumbnails/reader.webp'];
-export const recommendations = { ...result, intent: { ...result.intent, rawQuery: 'I want to learn system design.', topic: field('System Design') },
+const isNamedDraft = typeof location !== 'undefined' && (new URLSearchParams(location.search).get('draft') === 'named' || new URLSearchParams(location.search).get('screen') === 'named');
+const rawQuery = isNamedDraft ? "I have a 56-hour course I've been meaning to finish for months." : 'I want to learn system design.';
+const rawTopic = isNamedDraft ? '56-hour Course Completion' : 'System Design';
+export const recommendations = { ...result, intent: { ...result.intent, rawQuery, topic: field(rawTopic) },
   items: titles.map((title, index) => ({ ...result.items[0], rank: index + 1, isBestMatch: index === 0,
     cohort: { ...result.items[0].cohort, cohortId: `fixture-${index}`, title, description: 'Build a practical understanding of modern systems, from core concepts to real-world architecture.',
       coverImage: images[index], categories: ['Theory + Practice'], memberCount: [1284, 643, 318, 521, 292][index], lessonCount: 42 - index * 5, estimatedCompletionTime: '8h 20m' } })) };

@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { ArrowUp, Lightbulb, X } from 'lucide-react';
+import { ArrowUp, BookOpen, Lightbulb, X } from 'lucide-react';
 import { useWorkspaceMessages, useSendMessage, useInteractionState } from '@/src/client/interaction/hooks';
 import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import { useAssistantActivity } from './useAssistantActivity';
@@ -154,11 +154,30 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
                       return <p key={idx}>{p.text}</p>;
                     }
                     if (p.type === 'entity_ref' && p.entity) {
+                      const fullTitle = p.label ?? p.entity.id;
+                      const entityId = p.entity.id;
+                      const entityVersion = p.entity.version;
                       return (
                         <div key={idx} className={styles.chipsContainer}>
-                          <span className={styles.entityChip}>
-                            [Lesson: {p.label ?? p.entity.id}]
-                          </span>
+                          <button
+                            type="button"
+                            className={styles.entityChip}
+                            data-entity-id={entityId}
+                            data-entity-version={entityVersion}
+                            title={`Lesson: ${fullTitle}`}
+                            aria-label={`Lesson: ${fullTitle}`}
+                            onClick={() => {
+                              const target = document.getElementById(`lesson-${entityId}`);
+                              if (target) {
+                                target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                target.focus?.();
+                              }
+                            }}
+                          >
+                            <BookOpen size={12} className={styles.entityChipIcon} aria-hidden="true" />
+                            <span className={styles.entityChipPrefix}>Lesson:</span>
+                            <span className={styles.entityChipText}>{fullTitle}</span>
+                          </button>
                         </div>
                       );
                     }

@@ -104,26 +104,30 @@ function InnerBuilderScreen() {
         />
       </aside>
 
-      {/* Right Canvas matching legacy CreationShell */}
+      {/* Right Canvas matching legacy CreationShell with dedicated toolbar header */}
       <div className={styles.canvas}>
-        <div className={styles.tools}>
-          <div className={styles.connectionBadge} data-connection={connection}>
-            <span className={`${styles.dot} ${dotClass}`} />
-            <span>{connection}</span>
+        <header className={styles.canvasHeader} aria-label="Workspace toolbar">
+          <div className={styles.tools}>
+            <div className={styles.connectionBadge} data-connection={connection}>
+              <span className={`${styles.dot} ${dotClass}`} />
+              <span>{connection}</span>
+            </div>
+            <span className={styles.revBadge}>Rev #{state.revision}</span>
+            <ThemeToggle />
+            <Link href="/home" className={styles.account} aria-label="Open your account">
+              Y
+            </Link>
           </div>
-          <span className={styles.revBadge}>Rev #{state.revision}</span>
-          <ThemeToggle />
-          <Link href="/home" className={styles.account} aria-label="Open your account">
-            Y
-          </Link>
-        </div>
+        </header>
 
-        <CohortWorkspacePane
-          onSelectLessonForChat={attached => {
-            setAttachedEntity(attached);
-            setPane('chat');
-          }}
-        />
+        <div className={styles.canvasContent}>
+          <CohortWorkspacePane
+            onSelectLessonForChat={attached => {
+              setAttachedEntity(attached);
+              setPane('chat');
+            }}
+          />
+        </div>
       </div>
     </div>
   );
