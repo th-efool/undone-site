@@ -10,6 +10,7 @@ import { runDurableTextJobTick } from '../durable-text-worker';
 import { putTextArtifact } from '../text-artifacts';
 import { acceptCurrentTextJob } from '../text-job-acceptance';
 import type { YoutubeTranscriptProvider } from '../youtube-transcript';
+import { LiveYoutubeTranscriptProvider } from '../youtube-transcript-live';
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -402,6 +403,108 @@ describe('YouTube transcript canonical actions and durable DAG integration', { t
         },
         plan: planCohortAction,
       })).rejects.toThrow('STALE_WORKSPACE');
+    } finally {
+      await db.close();
+    }
+  });
+
+  it('executes durable text jobs with LiveYoutubeTranscriptProvider through entire DAG with rate limit backoff recovery', async () => {
+    vi.stubEnv('INTERACTION_YOUTUBE_ENABLED', '1');
+    vi.stubEnv('INTERACTION_YOUTUBE_TEST_MOCK', '1');
+    vi.stubEnv('INTERACTION_TEXT_DRIVER', 'durable');
+
+    const { db, repo, sql, port } = await fixture();
+    try {
+      let callCount = 0;
+      const fetchFn = vi.fn<typeof fetch>(async () => {
+        callCount++;
+        if (callCount === 1) {
+          return new Response(JSON.stringify({ error: 'rate_limited' }), {
+            status: 429,
+            headers: { 'Content-Type': 'application/json', 'Retry-After': '0' },
+          });
+        }
+        return new Response(
+          JSON.stringify([
+            { startMs: 0, endMs: 5000, text: 'Quorums overlap and provide consensus.' },
+            { startMs: 6000, endMs: 10000, text: 'Majorities retain immutable decisions.' },
+          ]),
+          {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        );
+      });
+
+      const liveProvider = new LiveYoutubeTranscriptProvider({
+        endpoint: 'https://captions.example-gateway.com/v1/transcript',
+        token: 'auth-token-123',
+        initialBackoffMs: 5,
+        maxRetries: 2,
+        fetchFn,
+      });
+
+      const commit = await repo.commitAction({
+        ownerId,
+        workspaceId: id,
+        expectedRevision: 0,
+        requestId: 'req-live-add-yt',
+        envelope: {
+          actionId: crypto.randomUUID(),
+          workspaceId: id,
+          expectedRevision: 0,
+          entityVersions: [],
+          action: {
+            type: 'add_youtube_source',
+            sourceId: 'live-yt-source',
+            label: 'Consensus Talk Live',
+            url: videoUrl,
+            track,
+          },
+        },
+        plan: planCohortAction,
+      });
+
+      const loadWorkspace = async () =>
+        (await sql.query(`SELECT snapshot FROM interaction_workspaces WHERE id=$1`, [id])).rows[0].snapshot;
+      const now = () => new Date('2030-01-01T00:00:00.000Z');
+
+      // Tick through stages: acquisition, extraction, understanding, chunking, analysis, assembly
+      for (let i = 0; i < 15; i++) {
+        const tick = await runDurableTextJobTick({
+          sql,
+          transaction: port,
+          workerId: 'worker-live-yt',
+          leaseMs: 60_000,
+          now,
+          loadWorkspace,
+          youtubeTranscriptProvider: liveProvider,
+        });
+        if (tick.status === 'idle') break;
+      }
+
+      // Verify backoff retry occurred
+      expect(callCount).toBe(2);
+
+      // Verify workspace state
+      const finalWorkspace = cohortWorkspaceSchema.parse(await loadWorkspace());
+      expect(finalWorkspace.processing.status).toBe('ready');
+      expect(finalWorkspace.sources).toHaveLength(1);
+      const ytSource = finalWorkspace.sources[0];
+      expect(ytSource.state).toBe('ready');
+      expect(ytSource.text).toBe(
+        'Quorums overlap and provide consensus.\n\nMajorities retain immutable decisions.'
+      );
+      expect(ytSource.locations).toHaveLength(2);
+      expect(ytSource.locations![0]).toMatchObject({
+        startMs: 0,
+        endMs: 5000,
+      });
+      expect(ytSource.locations![1]).toMatchObject({
+        startMs: 6000,
+        endMs: 10000,
+      });
+      expect(finalWorkspace.lessons.length).toBeGreaterThan(0);
     } finally {
       await db.close();
     }
