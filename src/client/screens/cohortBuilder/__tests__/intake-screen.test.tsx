@@ -53,7 +53,7 @@ it('submits valid intake and assigns location on success', async () => {
   });
 });
 
-it('displays error and presents explicit alternative to existing creator', async () => {
+it('displays error and presents explicit alternative to existing creator when draft has no source text', async () => {
   saveIntakeDraft(draft, 'owner-1');
   global.fetch = vi.fn().mockResolvedValue({
     ok: false,
@@ -72,7 +72,32 @@ it('displays error and presents explicit alternative to existing creator', async
   });
 });
 
-it('displays disabled notice and explicit link to existing creator when intake is disabled', () => {
+it('displays error and does NOT offer legacy alternative when draft has source text', async () => {
+  const draftWithSource = {
+    ...draft,
+    source: {
+      label: 'Pasted text',
+      text: 'Specialized source text research notes',
+    },
+  };
+  saveIntakeDraft(draftWithSource, 'owner-1');
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: false,
+    json: async () => ({ code: 'DURABLE_DRIVER_REQUIRED' }),
+  });
+
+  render(<CohortIntakeScreen ownerId="owner-1" enabled={true} />);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Create cohort' }));
+
+  await waitFor(() => {
+    expect(screen.getByRole('alert').textContent).toContain('Could not save: DURABLE_DRIVER_REQUIRED');
+    expect(screen.getByText('The existing creator only supports text prompts without pasted sources.')).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /continue with existing creator/i })).toBeNull();
+  });
+});
+
+it('displays disabled notice, preserved prompt in blockquote, and explicit link to existing creator when intake is disabled (compatible draft without source text)', () => {
   saveIntakeDraft(draft, 'owner-1');
 
   render(<CohortIntakeScreen ownerId="owner-1" enabled={false} />);
@@ -80,15 +105,54 @@ it('displays disabled notice and explicit link to existing creator when intake i
   expect(
     screen.getByText('New builder intake is unavailable. Existing workspaces remain accessible.')
   ).toBeTruthy();
+  expect(screen.getByText('Learn distributed systems').closest('blockquote')).not.toBeNull();
   expect(screen.getByRole('link', { name: 'Continue with existing creator' }).getAttribute('href')).toBe(
     '/quest/new?handoff=1'
   );
+  expect(screen.getByRole('button', { name: 'Discard' })).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Return to landing' }).getAttribute('href')).toBe('/#explore');
 });
 
-it('clears draft when discard is clicked', () => {
+it('retains and displays pasted text label and character count, explains incompatibility, and does NOT offer legacy link when intake is disabled with source text', () => {
+  const draftWithSource = {
+    ...draft,
+    source: {
+      label: 'Pasted text',
+      text: 'Detailed source text to preserve',
+    },
+  };
+  saveIntakeDraft(draftWithSource, 'owner-1');
+
+  render(<CohortIntakeScreen ownerId="owner-1" enabled={false} />);
+
+  expect(
+    screen.getByText('New builder intake is unavailable. Existing workspaces remain accessible.')
+  ).toBeTruthy();
+  expect(screen.getByText('Learn distributed systems').closest('blockquote')).not.toBeNull();
+  expect(screen.getByText(/Retained text: Pasted text \(32 characters\)/)).toBeTruthy();
+  expect(
+    screen.getByText('The existing creator only supports text prompts without pasted sources.')
+  ).toBeTruthy();
+  expect(screen.queryByRole('link', { name: /continue with existing creator/i })).toBeNull();
+  expect(screen.getByRole('button', { name: 'Discard' })).toBeTruthy();
+  expect(screen.getByRole('link', { name: 'Return to landing' }).getAttribute('href')).toBe('/#explore');
+});
+
+it('clears draft when discard is clicked in enabled state', () => {
   saveIntakeDraft(draft, 'owner-1');
 
   render(<CohortIntakeScreen ownerId="owner-1" enabled={true} />);
+
+  fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
+
+  expect(screen.getByText(/No pending input/)).toBeTruthy();
+  expect(sessionStorage.getItem('undone:cohort-intake')).toBeNull();
+});
+
+it('clears draft when discard is clicked in disabled state', () => {
+  saveIntakeDraft(draft, 'owner-1');
+
+  render(<CohortIntakeScreen ownerId="owner-1" enabled={false} />);
 
   fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
 

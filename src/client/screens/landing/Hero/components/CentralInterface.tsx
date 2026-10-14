@@ -49,21 +49,32 @@ export function CentralInterface() {
     }
     const textToSearch = typeof valOrEvent === 'string' ? valOrEvent : query;
     if (!textToSearch.trim() || submitting) return;
-    setSubmitting(true); setIntakeError('');
+    setSubmitting(true);
+    setIntakeError('');
     try {
-      const response = await fetch('/api/cohort-builder/intake', { cache: 'no-store' });
-      if (!response.ok) throw new Error('Intake unavailable');
-      const policy = await response.json();
-      if (!policy.enabled) {
-        if (sourceText.trim()) throw new Error('Pasted-text builder is not enabled for this account. Your text is retained here.');
-        saveIntakeDraft({ requestId:crypto.randomUUID(), prompt:textToSearch.trim() }, policy.ownerId);
-        window.location.href = '/quest/new?handoff=1';
-        return;
+      let ownerId: string | null = null;
+      try {
+        const response = await fetch('/api/cohort-builder/intake', { cache: 'no-store' });
+        if (response.ok) {
+          const policy = await response.json();
+          ownerId = policy.ownerId ?? null;
+        }
+      } catch {
+        // Proceed on server/network error with null ownerId
       }
-      saveIntakeDraft({ requestId: crypto.randomUUID(), prompt: textToSearch.trim(),
-        ...(sourceText.trim() ? { source: { label: 'Pasted text', text: sourceText } } : {}) }, policy.ownerId);
+      saveIntakeDraft(
+        {
+          requestId: crypto.randomUUID(),
+          prompt: textToSearch.trim(),
+          ...(sourceText.trim() ? { source: { label: 'Pasted text', text: sourceText } } : {}),
+        },
+        ownerId
+      );
       window.location.href = '/quest/start';
-    } catch (error) { setIntakeError(error instanceof Error ? error.message : 'Intake unavailable'); setSubmitting(false); }
+    } catch (error) {
+      setIntakeError(error instanceof Error ? error.message : 'Intake unavailable');
+      setSubmitting(false);
+    }
   };
 
   return (
