@@ -2,7 +2,9 @@
 
 STATUS: S4B IN PROGRESS. S3/S4A locally verified; shared rollout remains pending authorization.
 LAST_CHECKPOINT: `IB-S4A-INTEGRATED-JOURNEY-2026-10-14`
-NEXT: S4B checkpoint 4 UI/chat parity. Plan: `plans/interaction-builder/s4b-checkpoints.md`. Do not activate shared durable processing before authorized schema rollout.
+NEXT: S4B checkpoint 5 real PostgreSQL/authenticated browser, broad regression and build. Plan: `plans/interaction-builder/s4b-checkpoints.md`. Do not activate shared durable processing before authorized schema rollout.
+
+S4B checkpoint 4: owned `/sources` readiness/capability projection; `ExternalSources.tsx` mounts bounded PDF upload and HTTPS submission, retained upload retry identity, page-scope conflict values and explicit web refresh. Canonical source cancellation fences only selected source jobs; other sources continue, blocked assembly is honest. Tools use the same PDF/web/scope/refresh/cancel actions. Evidence shows physical PDF pages or retained web URL/parser/scope. Host transport preserves lost canonical action acknowledgement identity; existing mounted panes/drafts unchanged. Focused UI/transport/runner/canonical fixture checks: 6 files/25 tests passed; TypeScript exit 0. Checkpoint 3 `e838973` pushed with planning. Both enabled S4B live journey gates still pending; not complete.
 
 S4B checkpoint 3: durable external sources add extraction between acquisition and understanding; input/parser fingerprints exclude derived projections. Handler version 2 prevents old workers claiming external jobs. Accepted raw/extraction IDs, text and provenance project atomically with persisted events; extraction is re-derived before locking and assembly verifies owned accepted retention. PDF page changes reuse bytes; unaffected web analysis remains accepted. Composed PGlite tests cover both actual parsers through canonical actions/jobs/assembly/events, fabricated extraction and event rollback. Focused host suite and TypeScript pass; separate-connection PostgreSQL/browser S4B gates remain checkpoint 5, not satisfied by these tests. Checkpoint 2 `a25602b` pushed with planning.
 

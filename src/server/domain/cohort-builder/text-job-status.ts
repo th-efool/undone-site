@@ -18,7 +18,7 @@ export async function textJobStatus(tx: TextArtifactSql, workspaceId: string, st
   const pending = jobs.find(job => job.status !== 'accepted');
   return { ...state, sources: state.sources.map(source => {
     const own = jobs.filter(job => job.sourceId === source.id);
-    const status = own.some(job => job.status === 'failed') ? 'failed'
+    const status = own.some(job => job.status === 'canceled') ? 'stale' : own.some(job => job.status === 'failed') ? 'failed'
       : own.length === (source.input ? 5 : 4) && own.every(job => job.status === 'accepted') ? 'ready'
       : own.some(job => job.status === 'running') ? 'processing' : 'queued';
     return { ...source, state: status };

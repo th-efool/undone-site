@@ -5,7 +5,9 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
 
 const fake = vi.hoisted(() => ({ state: null as any, actions: [] as unknown[], succeeds: true }));
+vi.mock('next-auth/react',()=>({useSession:()=>({data:{user:{id:'owner'}}})}));
 vi.mock('@/src/client/interaction/hooks', () => ({
+  useInteractionState:()=>({workspaceId:'workspace',revision:0,view:fake.state}),
   useWorkspaceView: () => fake.state,
   useDispatchAction: () => async (action: unknown) => { fake.actions.push(action); return fake.succeeds; },
 }));

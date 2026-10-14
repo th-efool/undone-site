@@ -8,9 +8,13 @@ import { textJobStatus } from './text-job-status';
 export async function reconcileTextAction(tx: TextArtifactSql, workspaceId: string, state: unknown, action: unknown) {
   const next = cohortWorkspaceSchema.parse(state);
   next.processing.driver = 'durable';
-  const typed = action as { type?: string; jobId?: string };
+  const typed = action as { type?: string; jobId?: string; sourceId?:string };
   if (typed.type === 'retry_text_job') {
     if (!await retryTextJob(tx, workspaceId, typed.jobId!, new Date())) throw new Error('JOB_NOT_RETRYABLE');
+  } else if (typed.type === 'cancel_source_processing') {
+    await tx.query(`UPDATE "cohort_text_jobs" SET "status"='canceled',"fence"="fence"+1,
+      "leaseToken"=NULL,"leaseUntil"=NULL,"leaseOwner"=NULL
+      WHERE "workspaceId"=$1 AND "sourceId"=$2 AND "status" IN ('queued','running','failed')`,[workspaceId,typed.sourceId]);
   } else if (typed.type === 'cancel_text_processing') {
     await tx.query(`UPDATE "cohort_text_jobs" SET "status" = 'canceled', "fence" = "fence" + 1,
       "leaseToken" = NULL, "leaseUntil" = NULL, "leaseOwner" = NULL
