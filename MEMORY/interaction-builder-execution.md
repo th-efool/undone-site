@@ -2,7 +2,9 @@
 
 STATUS: S4B IN PROGRESS. S3/S4A locally verified; shared rollout remains pending authorization.
 LAST_CHECKPOINT: `IB-S4A-INTEGRATED-JOURNEY-2026-10-14`
-NEXT: S4B checkpoint 2 acquisition/extraction adapters. Plan: `plans/interaction-builder/s4b-checkpoints.md`. Do not activate shared durable processing before authorized schema rollout.
+NEXT: S4B checkpoint 3 durable integration. Plan: `plans/interaction-builder/s4b-checkpoints.md`. Do not activate shared durable processing before authorized schema rollout.
+
+S4B checkpoint 2: `source-adapters.ts` reuses pinned HTTPS acquisition and isolated PDF/HTML parsing. Retains exact web response; immutable checksum checked before extraction; page scope and location coverage validated. PDF 2 MiB/200 pages, web 1 MiB, output 200,000 UTF-8 bytes; unsupported scanned/encrypted PDFs fail, no OCR. `source-web.worker.mjs` has 192 MiB/20s parser limits. Focused source-adapter + existing PDF/web acquisition/transport tests: 4 files/77 tests passed; root TypeScript exit 0. Not yet connected to durable processing or UI. Checkpoint 1 `7ac3b3f` pushed with planning.
 
 S4B checkpoint 1: optional source input/provenance/scope contracts preserve old pasted snapshots; canonical PDF/web/scope actions in shared contracts. `cohort-pdf-upload.ts` uses one owned locked transaction for immutable SQL input plus the existing canonical action/receipt/event path. `source-policy.ts` gates new capabilities and rejects foreign uploaded refs. Additive `prisma/interaction-s4b-sources.sql` expands artifact/stage checks only; installed only in isolated test fixture. Flags default off (`INTERACTION_PDF_ENABLED`, `INTERACTION_WEB_ENABLED`); extraction/worker/UI activation still pending. Real PostgreSQL upload/replay/foreign/size/stale rollback tests passed; existing focused text/intake tests 17 passed.
 
