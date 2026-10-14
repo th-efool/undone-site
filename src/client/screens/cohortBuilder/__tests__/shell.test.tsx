@@ -3,13 +3,13 @@ import React from 'react';
 import { afterEach, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
-const fake = vi.hoisted(() => ({ view: null as any, connects: 0 }));
+const fake = vi.hoisted(() => ({ view: null as any, connects: 0, messages: [] as any[] }));
 vi.mock('../useAssistantActivity', () => ({ useAssistantActivity: () => ({ turns: [], unavailable: false }) }));
 vi.mock('next-auth/react', () => ({ useSession: () => ({ status: 'authenticated', data: { user: { id: 'owner' } } }) }));
 vi.mock('@/src/client/interaction/provider', () => ({ InteractionProvider: ({ children }: any) => { fake.connects++; return children; } }));
 vi.mock('@/src/client/interaction/hooks', () => ({
   useWorkspaceConnection: () => 'live', useInteractionState: () => ({ view: fake.view, revision: 0, pending: {} }),
-  useWorkspaceMessages: () => [], useSendMessage: () => async () => true,
+  useWorkspaceMessages: () => fake.messages ?? [], useSendMessage: () => async () => true,
   useWorkspaceView: () => fake.view, useDispatchAction: () => async () => true,
 }));
 import { CohortInteractionScreen } from '../CohortInteractionScreen';
@@ -175,5 +175,59 @@ it('mobile navigation: persistent paneNavigation is present outside canvas, swit
   expect((source as HTMLTextAreaElement).value).toBe('Source draft');
   expect(screen.getByLabelText('Message the cohort assistant')).toBe(composer);
   expect(screen.getByLabelText('Paste text to retain and ground this curriculum')).toBe(source);
+});
+
+it('toolbar and entity reference layout: canvasHeader provides reserved layout space and entity chips are compact buttons', () => {
+  fake.view = cohortWorkspaceSchema.parse({
+    schemaVersion: 1,
+    title: 'Toolbar Layout Test',
+    intent: 'Learn layout',
+    audience: 'Everyone',
+    dailyMinutes: 15,
+    lessons: [
+      {
+        id: 'lesson-alpha',
+        version: 1,
+        title: 'Very Long Comprehensive Lesson Title About Distributed System Quorums',
+        objective: 'Test objective',
+        sourceChunkIds: [],
+        pinned: false,
+      },
+    ],
+  });
+  fake.messages = [
+    {
+      id: 'm-1',
+      role: 'user',
+      parts: [
+        { type: 'text', text: 'Refine this objective.' },
+        {
+          type: 'entity_ref',
+          entity: { kind: 'lesson', id: 'lesson-alpha', version: 1 },
+          label: 'Very Long Comprehensive Lesson Title About Distributed System Quorums',
+        },
+      ],
+      createdAt: new Date().toISOString(),
+    },
+  ];
+  const props = { workspaceId: 'ws-layout-test', ownerId: 'owner', initialView: fake.view };
+  render(<CohortInteractionScreen {...props} />);
+
+  // 1. Reserved toolbar header exists outside workspace content
+  const toolbarHeader = screen.getByRole('banner', { name: 'Workspace toolbar' });
+  expect(toolbarHeader).toBeDefined();
+  expect(toolbarHeader.textContent).toContain('Rev #');
+
+  // 2. Entity reference chip is a button with title, aria-label, stable IDs, and icon
+  const chipButton = screen.getByRole('button', {
+    name: 'Lesson: Very Long Comprehensive Lesson Title About Distributed System Quorums',
+  });
+  expect(chipButton).toBeDefined();
+  expect(chipButton.getAttribute('data-entity-id')).toBe('lesson-alpha');
+  expect(chipButton.getAttribute('data-entity-version')).toBe('1');
+  expect(chipButton.getAttribute('title')).toBe(
+    'Lesson: Very Long Comprehensive Lesson Title About Distributed System Quorums'
+  );
+  expect(chipButton.querySelector('svg')).toBeDefined();
 });
 

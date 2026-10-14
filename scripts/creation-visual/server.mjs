@@ -22,22 +22,86 @@ writeFileSync(path.join(root, 'main.tsx'), `import {createRoot} from 'react-dom/
 import {CreationExperience as Before} from './baseline/src/client/screens/cohortCreation/CreationExperience';
 import {CreationExperience as RepairBefore} from './repair-baseline/src/client/screens/cohortCreation/CreationExperience';
 import {CreationExperience as Current} from '/@fs/${workspace.replaceAll('\\', '/')}/src/client/screens/cohortCreation/CreationExperience.tsx';
+import {CohortIntakeScreen} from '/@fs/${workspace.replaceAll('\\', '/')}/src/client/screens/cohortBuilder/CohortIntakeScreen.tsx';
+import {CohortInteractionScreen} from '/@fs/${workspace.replaceAll('\\', '/')}/src/client/screens/cohortBuilder/CohortInteractionScreen.tsx';
+import {MockInteractionContext} from '/@fs/${workspace.replaceAll('\\', '/')}/scripts/creation-visual/mock-interaction.tsx';
+import {
+  builderIntakeDraft,
+  builderWorkspaceEmpty,
+  builderWorkspaceProcessing,
+  builderWorkspaceCurriculum,
+  builderWorkspaceReview,
+  builderChatMessages,
+} from '/@fs/${workspace.replaceAll('\\', '/')}/scripts/creation-visual/builder-fixtures.ts';
+import { saveIntakeDraft } from '/@fs/${workspace.replaceAll('\\', '/')}/src/client/screens/cohortBuilder/intake-draft.ts';
 import {draftId} from '@/src/shared/cohort-creation/__tests__/fixtures';
 import {conceptPreview,chunkPreview,analysisPreview,reviewResponse,visualActions} from '/@fs/${workspace.replaceAll('\\', '/')}/scripts/creation-visual/fixtures.ts';
 import '@/src/app/styles/reset.css'; import './fonts.css';
 window.__creationVisualFixtures={conceptPreview,chunkPreview,analysisPreview,reviewResponse,visualActions};
 if(new URLSearchParams(location.search).has('journey')) window.__creationJourney=await import('/@fs/${workspace.replaceAll('\\', '/')}/scripts/creation-visual/journey-fixtures.ts');
-const version=new URLSearchParams(location.search).get('version');
-const Component=version==='before'?Before:version==='repair-before'?RepairBefore:Current;
-createRoot(document.getElementById('root')!).render(<Component draftId={draftId} resume />);`);
+const params = new URLSearchParams(location.search);
+const app = params.get('app') || 'legacy';
+const theme = params.get('theme') || localStorage.getItem('undone_theme') || 'light';
+document.documentElement.setAttribute('data-theme', theme);
+localStorage.setItem('undone_theme', theme);
+
+const rootEl = document.getElementById('root')!;
+if (app === 'builder') {
+  const screen = params.get('screen') || 'curriculum';
+  if (screen === 'intake') {
+    saveIntakeDraft(builderIntakeDraft, 'owner-test');
+    createRoot(rootEl).render(<CohortIntakeScreen ownerId="owner-test" enabled={true} />);
+  } else if (screen === 'intake-disabled') {
+    saveIntakeDraft(builderIntakeDraft, 'owner-test');
+    createRoot(rootEl).render(<CohortIntakeScreen ownerId="owner-test" enabled={false} />);
+  } else if (screen === 'source-selection') {
+    createRoot(rootEl).render(
+      <MockInteractionContext.Provider value={{ view: builderWorkspaceEmpty, revision: 1, messages: [] }}>
+        <CohortInteractionScreen workspaceId="ws-fixture" ownerId="owner-test" initialView={builderWorkspaceEmpty} />
+      </MockInteractionContext.Provider>
+    );
+  } else if (screen === 'processing') {
+    createRoot(rootEl).render(
+      <MockInteractionContext.Provider value={{ view: builderWorkspaceProcessing, revision: 2, messages: [] }}>
+        <CohortInteractionScreen workspaceId="ws-fixture" ownerId="owner-test" initialView={builderWorkspaceProcessing} />
+      </MockInteractionContext.Provider>
+    );
+  } else if (screen === 'review') {
+    createRoot(rootEl).render(
+      <MockInteractionContext.Provider value={{ view: builderWorkspaceReview, revision: 3, messages: builderChatMessages }}>
+        <CohortInteractionScreen workspaceId="ws-fixture" ownerId="owner-test" initialView={builderWorkspaceReview} />
+      </MockInteractionContext.Provider>
+    );
+  } else {
+    createRoot(rootEl).render(
+      <MockInteractionContext.Provider value={{ view: builderWorkspaceCurriculum, revision: 3, messages: builderChatMessages }}>
+        <CohortInteractionScreen workspaceId="ws-fixture" ownerId="owner-test" initialView={builderWorkspaceCurriculum} />
+      </MockInteractionContext.Provider>
+    );
+  }
+} else {
+  const version = params.get('version');
+  const Component = version === 'before' ? Before : version === 'repair-before' ? RepairBefore : Current;
+  createRoot(rootEl).render(<Component draftId={draftId} resume />);
+}`);
 writeFileSync(path.join(root, 'fonts.css'), `@font-face{font-family:Manrope;src:url('/fonts/Manrope-Medium.ttf');font-weight:400 600} @font-face{font-family:Manrope;src:url('/fonts/Manrope-Bold.ttf');font-weight:700 900} @font-face{font-family:Caveat;src:url('/fonts/Caveat-Bold.ttf')} @font-face{font-family:Playfair;src:url('/preview-playfair.woff2');font-weight:400 900} :root{--font-manrope-next:Manrope;--font-geist-sans:Manrope;--font-caveat-next:Caveat;--font-playfair-display:Playfair} body{margin:0}`);
 const font = path.join(workspace, '.next/static/media/2a65768255d6b625-s.p.3u4lli0-axodc.woff2');
 if (!existsSync(font)) throw new Error('Cached production Playfair font missing; build the app before visual captures.');
 const fixture = path.join(workspace, 'scripts/creation-visual/fixtures.ts');
 const wrapper = path.join(workspace, 'scripts/creation-visual/wrappers.tsx');
+const mockInteraction = path.join(workspace, 'scripts/creation-visual/mock-interaction.tsx');
 const server = await createServer({ configFile: false, root, publicDir: path.join(workspace, 'public'), esbuild: { jsx: 'automatic' },
   define: { 'process.env.NEXT_PUBLIC_API_ORIGIN': '""', 'process.env.NEXT_PUBLIC_MOBILE_BUILD': '"false"' },
-  resolve: { alias: { '@': workspace, 'next/image': wrapper, 'next/navigation': wrapper } },
+  resolve: { alias: {
+    '@': workspace,
+    'next/image': wrapper,
+    'next/navigation': wrapper,
+    'next-auth/react': wrapper,
+    'react-icons/si': wrapper,
+    'react-icons': wrapper,
+    '@/src/client/interaction/provider': mockInteraction,
+    '@/src/client/interaction/hooks': mockInteraction,
+  } },
   plugins: [{ name: 'creation-fixture-boundary', enforce: 'pre', resolveId(source, importer) {
     if (source === './hooks/useCreation' && importer?.replaceAll('\\', '/').endsWith('/CreationExperience.tsx')) return fixture;
     if (source === 'next/link') return '\0preview-link';
