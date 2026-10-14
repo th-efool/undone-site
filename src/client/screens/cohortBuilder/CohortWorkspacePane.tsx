@@ -17,6 +17,7 @@ import { useWorkspaceView, useDispatchAction } from '@/src/client/interaction/ho
 import { cohortWorkspaceSchema, type CohortWorkspace, type CohortAction, type CohortLesson } from '@/src/shared/cohort-builder/contracts';
 import type { EntityRef } from 'interaction-builder/core';
 import styles from './CohortBuilder.module.css';
+import { BuilderDialog } from './BuilderDialog';
 
 interface CohortWorkspacePaneProps {
   onSelectLessonForChat: (attached: { entity: EntityRef; label: string }) => void;
@@ -171,7 +172,7 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
         </div>
       </section>
 
-      <section className={styles.heroCard} aria-label="Grounded source text">
+      <section id="builder-sources" className={styles.heroCard} aria-label="Grounded source text">
         <div className={styles.sectionHeader}>
           <h3>Source text</h3>
           <small>{workspace.processing.status}{workspace.processing.status === 'queued' ? ` · ${workspace.processing.stage} waiting for worker` : ''}</small>
@@ -213,7 +214,7 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
         </button>
       </div>
 
-      <div className={styles.lessonsList}>
+      <div id="builder-outline" className={styles.lessonsList}>
         {workspace.lessons.map((lesson, idx) => (
           <article
             key={lesson.id}
@@ -283,6 +284,13 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
                   return chunk ? `“${chunk.text.slice(0, 160)}”` : 'unavailable retained passage';
                 }).join(' ')}</p>
               )}
+              {lesson.sourceChunkIds.length > 0 && <details><summary>Inspect evidence</summary>
+                {lesson.sourceChunkIds.map(chunkId => {
+                  const chunk = workspace.chunks.find(item => item.id === chunkId);
+                  const source = workspace.sources.find(item => item.id === chunk?.sourceId);
+                  return <blockquote key={chunkId}>{chunk ? <><cite>{source?.label ?? 'Retained source'} · version {chunk.sourceVersion} · characters {chunk.start}–{chunk.end}</cite><p>{chunk.text}</p></> : 'Retained passage unavailable; review orphan warning.'}</blockquote>;
+                })}
+              </details>}
 
               <button
                 className={styles.chatRefBtn}
@@ -303,7 +311,7 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
       {/* Edit Overview Modal */}
       {editingOverview && (
         <div className={styles.modalBackdrop}>
-          <div className={styles.modalCard}>
+          <BuilderDialog label="Edit Cohort Overview" onClose={() => setEditingOverview(false)}>
             <h3>Edit Cohort Overview</h3>
 
             <div className={styles.formField}>
@@ -345,14 +353,14 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
                 Save changes
               </button>
             </div>
-          </div>
+          </BuilderDialog>
         </div>
       )}
 
       {/* Edit Lesson Modal */}
       {editingLesson && (
         <div className={styles.modalBackdrop}>
-          <div className={styles.modalCard}>
+          <BuilderDialog label="Edit Lesson" onClose={() => setEditingLesson(null)}>
             <h3>Edit Lesson</h3>
 
             <div className={styles.formField}>
@@ -382,14 +390,14 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
                 Update Lesson
               </button>
             </div>
-          </div>
+          </BuilderDialog>
         </div>
       )}
 
       {/* Add Lesson Modal */}
       {addingLesson && (
         <div className={styles.modalBackdrop}>
-          <div className={styles.modalCard}>
+          <BuilderDialog label="Add New Lesson" onClose={() => setAddingLesson(false)}>
             <h3>Add New Lesson</h3>
 
             <div className={styles.formField}>
@@ -420,7 +428,7 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
                 Create Lesson
               </button>
             </div>
-          </div>
+          </BuilderDialog>
         </div>
       )}
     </main>
