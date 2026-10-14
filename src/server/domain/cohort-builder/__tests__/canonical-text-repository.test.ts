@@ -7,6 +7,13 @@ import { createPostgresInteractionRepository } from '@/src/server/infrastructure
 import { cohortWorkspaceSchema, planCohortAction } from '@/src/shared/cohort-builder/contracts';
 import { claimTextJob } from '../text-jobs';
 import { failCurrentTextJob } from '../text-job-failure';
+import { runDurableTextJobTick } from '../durable-text-worker';
+import { createInteractionStore, type InteractionTransport } from 'interaction-builder/client';
+import { runAssistantTurn } from 'interaction-builder/runtime';
+import { createAiSdkModelAdapter } from 'interaction-builder/adapters/ai';
+import { MockLanguageModelV4 } from 'ai/test';
+import { createCohortAiTools } from '../tools';
+import { cohortDomain } from '../domain';
 
 afterEach(() => vi.unstubAllEnvs());
 const id = '7d4e49d0-bad0-4aba-a777-122326020001';
@@ -22,11 +29,17 @@ async function fixture() {
     CREATE TABLE interaction_requests ("workspaceId" TEXT, "actorId" TEXT, operation TEXT, "requestId" TEXT,
     "payloadHash" TEXT, response JSONB, UNIQUE ("workspaceId", "actorId", operation, "requestId"));
     CREATE TABLE interaction_events (id TEXT, "workspaceId" TEXT, sequence INT, payload JSONB,
-    "protocolVersion" INT, type TEXT, revision INT, UNIQUE ("workspaceId", sequence));`);
+    "protocolVersion" INT, type TEXT, revision INT, UNIQUE ("workspaceId", sequence));
+    CREATE TABLE interaction_messages (id TEXT PRIMARY KEY, "workspaceId" TEXT, role TEXT, parts JSONB,
+    sequence INT, "runId" TEXT, "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP);`);
   await db.exec(migration);
   await db.query(`INSERT INTO interaction_workspaces (id, "ownerId", "domainId", snapshot) VALUES ($1,$2,'cohort',$3::jsonb)`,
     [id, ownerId, JSON.stringify(cohortWorkspaceSchema.parse({ schemaVersion: 1, title: 'Test', intent: 'Learn', audience: '', dailyMinutes: 20, lessons: [] }))]);
-  const prisma = { $transaction: async (work: (tx: unknown) => Promise<unknown>) => db.transaction(async tx => work({
+  const prisma = {
+    interactionWorkspace: { findFirst: async ({ where }: any) => (await db.query(`SELECT * FROM interaction_workspaces WHERE id=$1 AND "ownerId"=$2`, [where.id, where.ownerId])).rows[0] },
+    interactionMessage: { findMany: async ({ where, take }: any) => (await db.query(`SELECT * FROM interaction_messages
+      WHERE "workspaceId"=$1 AND sequence<$2 ORDER BY sequence DESC LIMIT $3`, [where.workspaceId, where.sequence?.lt ?? 2147483647, take])).rows },
+    $transaction: async (work: (tx: unknown) => Promise<unknown>) => db.transaction(async tx => work({
     $queryRaw: async (strings: TemplateStringsArray, ...values: unknown[]) => (await tx.query(strings.reduce((sql, part, index) => sql + (index ? `$${index}` : '') + part, ''), values)).rows,
     $queryRawUnsafe: async (sql: string, ...values: unknown[]) => (await tx.query(sql, values)).rows,
     interactionRequest: {
@@ -36,11 +49,16 @@ async function fixture() {
       create: async ({ data }: any) => tx.query(`INSERT INTO interaction_requests VALUES ($1,$2,$3,$4,$5,$6::jsonb)`,
         [data.workspaceId, data.actorId, data.operation, data.requestId, data.payloadHash, JSON.stringify(data.response)]),
     },
-    interactionWorkspace: { update: async ({ where, data }: any) => tx.query(`UPDATE interaction_workspaces
+    interactionWorkspace: { update: async ({ where, data }: any) => data.snapshot === undefined
+      ? tx.query(`UPDATE interaction_workspaces SET sequence=$1 WHERE id=$2`, [data.sequence, where.id])
+      : tx.query(`UPDATE interaction_workspaces
       SET snapshot=$1::jsonb, revision=$2, sequence=$3, "contextEpoch"="contextEpoch"+1 WHERE id=$4`,
       [JSON.stringify(data.snapshot), data.revision, data.sequence, where.id]) },
-    interactionEvent: { create: async ({ data }: any) => tx.query(`INSERT INTO interaction_events ("workspaceId", sequence, payload) VALUES ($1,$2,$3::jsonb)`,
-      [data.workspaceId, data.sequence, JSON.stringify(data.payload)]) },
+    interactionEvent: { create: async ({ data }: any) => tx.query(`INSERT INTO interaction_events (id, "workspaceId", sequence, payload, "protocolVersion", type, revision)
+      VALUES ($1,$2,$3,$4::jsonb,$5,$6,$7)`, [data.id, data.workspaceId, data.sequence, JSON.stringify(data.payload), data.protocolVersion, data.type, data.revision]) },
+    interactionMessage: { create: async ({ data }: any) => (await tx.query(`INSERT INTO interaction_messages
+      (id,"workspaceId",role,parts,sequence,"runId") VALUES ($1,$2,$3,$4::jsonb,$5,$6) RETURNING *`,
+      [data.id, data.workspaceId, data.role, JSON.stringify(data.parts), data.sequence, data.runId])).rows[0] },
   })) };
   const repo = createPostgresInteractionRepository(prisma as any);
   const input = { ownerId, workspaceId: id, expectedRevision: 0, requestId: 'request-a',
@@ -96,6 +114,99 @@ describe('production canonical text repository integration', () => {
         expectedRevision: receipt.revision, action: { type: 'cancel_text_processing' } } });
       expect((await db.query(`SELECT * FROM cohort_text_jobs WHERE status='canceled'`)).rows).toHaveLength(5);
       expect((await db.query(`SELECT * FROM interaction_events`)).rows).toHaveLength(4);
+    } finally { await db.close(); }
+  }, 30_000);
+
+  it('runs retained text, model refinement, canonical events and reload through the composed path', async () => {
+    vi.stubEnv('INTERACTION_TEXT_DRIVER', 'durable');
+    const { db, repo, sql, port } = await fixture();
+    let listener: ((event: unknown) => void) | undefined;
+    const transport: InteractionTransport<ReturnType<typeof cohortWorkspaceSchema.parse>> = {
+      getWorkspace: async () => {
+        const ws = (await db.query<{ snapshot: unknown; revision: number; sequence: number }>(`SELECT snapshot,revision,sequence FROM interaction_workspaces`)).rows[0];
+        const messages = await repo.listMessages({ ownerId, workspaceId: id });
+        return { workspaceId: id, revision: ws.revision, cursor: ws.sequence, snapshot: cohortWorkspaceSchema.parse(ws.snapshot),
+          messages: messages.map(({ id, role, parts, sequence, runId }) => ({ id, role, parts, sequence, runId })) as any };
+      },
+      commit: async (envelope, requestId) => {
+        const e = envelope as { expectedRevision: number };
+        const result = await repo.commitAction({ ownerId, workspaceId: id, expectedRevision: e.expectedRevision, envelope, requestId, plan: planCohortAction });
+        return { revision: result.revision, cursor: result.sequence, snapshot: result.state, receipt: result.receipt };
+      },
+      openEvents: (_cursor, onEvent) => { listener = onEvent; return () => { listener = undefined; }; },
+    };
+    const makeStore = () => createInteractionStore({ workspaceId: id, initialView: cohortWorkspaceSchema.parse({ schemaVersion: 1,
+      title: '', intent: 'Learn', audience: '', dailyMinutes: 20, lessons: [] }), transport });
+    let store = makeStore();
+    const pump = async () => {
+      const events = await sql.query(`SELECT * FROM interaction_events WHERE sequence>$1 ORDER BY sequence`, [store.getState().sequence]);
+      for (const event of events.rows) listener?.({ protocolVersion: 1, eventId: event.id, workspaceId: id, sequence: event.sequence,
+        type: event.type, ...(event.revision === null ? {} : { revision: event.revision }), payload: event.payload });
+      const ws = await transport.getWorkspace();
+      await vi.waitFor(() => expect(store.getState().revision).toBe(ws.revision));
+      await vi.waitFor(() => expect(store.getState().view).toEqual(ws.snapshot));
+    };
+    const tick = () => runDurableTextJobTick({ sql, transaction: port, workerId: 'replacement', leaseMs: 60_000,
+      now: () => new Date('2030-01-01T00:00:00.000Z'), loadWorkspace: async () => (await transport.getWorkspace()).snapshot });
+    try {
+      await store.connect();
+      expect(await store.dispatchAction({ type: 'add_text_source', sourceId: 'source-a', label: 'Notes', text: 'Quorums overlap.' })).toBe(true);
+      for (let i = 0; i < 5; i++) { expect((await tick()).status).toBe('accepted'); await pump(); }
+      expect(store.getState().view.processing.status).toBe('ready');
+      const lesson = store.getState().view.lessons[0];
+      expect(store.getState().view.chunks[0].text).toBe('Quorums overlap.');
+      await repo.appendMessage({ ownerId, workspaceId: id, id: crypto.randomUUID(), role: 'user', scheduleRun: false,
+        parts: [{ type: 'text', text: 'Shorten this lesson objective.' }, { type: 'entity_ref', entity: { kind: 'lesson', id: lesson.id, version: lesson.version }, label: lesson.title }] });
+      let generated = 0;
+      const model = new MockLanguageModelV4({ doGenerate: async () => ({
+        content: ++generated === 1 ? [{ type: 'tool-call', toolCallId: 'edit', toolName: 'edit_lesson',
+          input: JSON.stringify({ lessonId: lesson.id, objective: 'Explain quorum overlap.' }) }] : [{ type: 'text', text: 'Objective shortened.' }],
+        finishReason: { unified: generated === 1 ? 'tool-calls' : 'stop', raw: generated === 1 ? 'tool-calls' : 'stop' },
+        usage: { inputTokens: { total: 10, noCache: 10, cacheRead: 0, cacheWrite: 0 }, outputTokens: { total: 10, text: 10, reasoning: 0 } }, warnings: [],
+      }) });
+      await runAssistantTurn({ workspaceId: id, ownerId, repo, domain: cohortDomain, model: createAiSdkModelAdapter(model),
+        createTools: deps => createCohortAiTools({ ...deps, selectedLesson: { id: lesson.id, version: lesson.version } }) });
+      await pump();
+      expect(store.getState().view.lessons[0]).toMatchObject({ objective: 'Explain quorum overlap.', manualOverride: true });
+      expect(await store.dispatchAction({ type: 'set_lesson_pin', lessonId: lesson.id, pinned: true })).toBe(true);
+      expect(await store.dispatchAction({ type: 'edit_text_source', sourceId: 'source-a', label: 'Revised', text: 'Quorums intersect.' })).toBe(true);
+      for (let i = 0; i < 5; i++) { expect((await tick()).status).toBe('accepted'); await pump(); }
+      expect(store.getState().view.lessons.find(item => item.id === lesson.id)).toMatchObject({ pinned: true, objective: 'Explain quorum overlap.', evidenceStatus: 'orphaned' });
+      const saved = store.getState().view;
+      store.disconnect(); store = makeStore(); await store.connect();
+      expect(store.getState().view).toEqual(saved);
+      expect(store.getState().messages).toHaveLength(2);
+      expect((await tick()).status).toBe('idle');
+    } finally { store.disconnect(); await db.close(); }
+  }, 30_000);
+
+  it('keeps successful source artifacts through partial failure and targeted retry', async () => {
+    vi.stubEnv('INTERACTION_TEXT_DRIVER', 'durable');
+    const { db, repo, input, sql, port } = await fixture();
+    const read = async () => (await db.query<{ snapshot: unknown; revision: number }>(`SELECT snapshot,revision FROM interaction_workspaces`)).rows[0];
+    let failOnce = true;
+    const tick = () => runDurableTextJobTick({ sql, transaction: port, workerId: 'worker', leaseMs: 60_000,
+      now: () => new Date('2030-01-01T00:00:00.000Z'), loadWorkspace: async () => {
+        if (failOnce) { failOnce = false; throw new Error('SOURCE_TEMPORARILY_UNAVAILABLE'); }
+        return (await read()).snapshot;
+      } });
+    try {
+      await repo.commitAction(input);
+      await repo.commitAction({ ...input, expectedRevision: 1, requestId: 'source-b', envelope: { ...input.envelope,
+        expectedRevision: 1, action: { type: 'add_text_source', sourceId: 'source-b', label: 'B', text: 'Logs retain writes.' } } });
+      expect((await tick()).status).toBe('failed');
+      for (let i = 0; i < 4; i++) expect((await tick()).status).toBe('accepted');
+      expect((await tick()).status).toBe('idle');
+      const saved = (await sql.query(`SELECT "resultArtifactId" FROM cohort_text_jobs WHERE "sourceId"='source-b' ORDER BY stage`, [])).rows;
+      const current = await read();
+      const job = cohortWorkspaceSchema.parse(current.snapshot).processing.jobs!.find(item => item.status === 'failed')!;
+      await repo.commitAction({ ...input, expectedRevision: current.revision, requestId: 'targeted-retry', envelope: { ...input.envelope,
+        expectedRevision: current.revision, action: { type: 'retry_text_job', jobId: job.id } } });
+      for (let i = 0; i < 5; i++) expect((await tick()).status).toBe('accepted');
+      expect((await sql.query(`SELECT "resultArtifactId" FROM cohort_text_jobs WHERE "sourceId"='source-b' ORDER BY stage`, [])).rows).toEqual(saved);
+      const final = cohortWorkspaceSchema.parse((await read()).snapshot);
+      expect(final.processing.status).toBe('ready');
+      expect(final.lessons).toHaveLength(2);
     } finally { await db.close(); }
   }, 30_000);
 });
