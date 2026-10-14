@@ -81,12 +81,11 @@ export async function runInteractionWorkerLoop(
           throw new Error('WORKSPACE_NOT_FOUND');
         }
 
-        const { createCohortModel } = await import('./infrastructure/ai/modelRegistry');
-        const { createAiSdkModelAdapter } = await import('interaction-builder/adapters/ai');
-        const model = createAiSdkModelAdapter(createCohortModel());
         const current = await repo.loadWorkspace<CohortWorkspace>({ workspaceId: run.workspaceId, ownerId: wsRow.ownerId });
         if (!current) throw new Error('WORKSPACE_NOT_FOUND');
         const selectedLesson = await selectedLessonForLatestTurn(repo, wsRow.ownerId, run.workspaceId, run.triggeringMessageId);
+        const { createInteractionModelAdapter } = await import('./infrastructure/ai/interactionModel');
+        const model = await createInteractionModelAdapter(selectedLesson);
         const res = await runAssistantTurn({
           workspaceId: run.workspaceId,
           ownerId: wsRow.ownerId,

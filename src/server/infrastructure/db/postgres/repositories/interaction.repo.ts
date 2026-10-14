@@ -148,6 +148,16 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
         const ws = rows[0];
         if (!ws) throw new Error('WORKSPACE_NOT_FOUND');
         if (ws.lifecycle !== 'active') throw new Error('WORKSPACE_NOT_ACTIVE');
+        // Another request may have committed while this transaction waited for the row lock.
+        if (input.requestId && hash) {
+          const prior = await tx.interactionRequest.findUnique({ where: { workspaceId_actorId_operation_requestId: {
+            workspaceId: input.workspaceId, actorId: input.ownerId, operation: 'appendMessage', requestId: input.requestId,
+          } } });
+          if (prior) {
+            if (prior.payloadHash !== hash) throw new Error('IDEMPOTENCY_MISMATCH');
+            return prior.response as unknown as { message: InteractionMessageRecord; sequence: number; run?: InteractionRunRecord };
+          }
+        }
 
         const sequence = ws.sequence + 1;
         await tx.interactionWorkspace.update({ where: { id: input.workspaceId }, data: { sequence } });
@@ -397,6 +407,15 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
         const workspace = rows[0];
         if (!workspace) {
           throw new Error('WORKSPACE_NOT_FOUND');
+        }
+        if (input.requestId && payloadHash) {
+          const prior = await tx.interactionRequest.findUnique({ where: { workspaceId_actorId_operation_requestId: {
+            workspaceId: input.workspaceId, actorId: input.ownerId, operation: 'commitAction', requestId: input.requestId,
+          } } });
+          if (prior) {
+            if (prior.payloadHash !== payloadHash) throw new Error('IDEMPOTENCY_MISMATCH');
+            return prior.response as unknown as ActionCommitSuccess<State>;
+          }
         }
         if (workspace.lifecycle !== 'active') {
           throw new Error('WORKSPACE_NOT_ACTIVE');
@@ -709,8 +728,8 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
       const leaseUntil = new Date(now.getTime() + params.leaseDurationMs);
 
       return prisma.$transaction(async tx => {
-        const candidates = await tx.$queryRaw<Array<{ id: string; workspaceId: string }>>`
-          SELECT "id", "workspaceId" FROM "interaction_runs"
+        const candidates = await tx.$queryRaw<Array<{ id: string; workspaceId: string; status: string }>>`
+          SELECT "id", "workspaceId", "status" FROM "interaction_runs"
           WHERE ("status" = 'queued' OR ("status" = 'running' AND "leaseUntil" < ${now}))
           ${params.workspaceId ? Prisma.sql`AND "workspaceId" = ${params.workspaceId}` : Prisma.empty}
           ORDER BY "createdAt" ASC
@@ -720,6 +739,10 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
 
         if (candidates.length === 0) return null;
         const candidateId = candidates[0].id;
+        const locked = (await tx.$queryRaw<Array<{ sequence: number; revision: number; contextEpoch: number }>>`
+          SELECT "sequence", "revision", "contextEpoch" FROM "interaction_workspaces"
+          WHERE "id" = ${candidates[0].workspaceId} FOR UPDATE`)[0];
+        if (!locked) return null;
 
         const updated = await tx.interactionRun.update({
           where: { id: candidateId },
@@ -729,13 +752,11 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
             leaseToken: params.leaseToken,
             leaseUntil,
             fence: { increment: 1 },
+            ...(candidates[0].status === 'queued' ? { observedRevision: locked.revision, contextEpoch: locked.contextEpoch } : {}),
           },
         });
 
-        const ws = await tx.interactionWorkspace.findUnique({
-          where: { id: updated.workspaceId },
-          select: { sequence: true },
-        });
+        const ws = locked;
         if (ws) {
           const nextSeq = ws.sequence + 1;
           await tx.interactionWorkspace.update({
