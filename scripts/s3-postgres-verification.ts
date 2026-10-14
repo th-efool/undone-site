@@ -210,6 +210,113 @@ try {
   const externalEvents=await repo.queryEvents({workspaceId:externalId,ownerId,afterSequence:0,limit:100});
   assert.equal(externalEvents.length,externalSnapshot.sequence);assert.equal(externalSnapshot.revision,externalSnapshot.sequence);
   console.log('PASS separate PostgreSQL PDF/web claims, expired acquisition fences, retained extraction, assembly and event consistency');
+
+  // --- S4C YouTube transcript verification ---
+  await pool.query(`UPDATE cohort_text_jobs SET status='canceled',"leaseToken"=NULL,"leaseUntil"=NULL,"leaseOwner"=NULL
+    WHERE "workspaceId" IN (SELECT id FROM interaction_workspaces WHERE "ownerId"=$1) AND status IN ('queued','running','failed')`,[ownerId]);
+
+  // 1. Disability proof: without INTERACTION_YOUTUBE_ENABLED/mock, action is rejected
+  const ytDisabledWorkspace = crypto.randomUUID();
+  await repo.createWorkspace({ id: ytDisabledWorkspace, ownerId, domainId: 'cohort', domainVersion: 1, initialSnapshot: snapshot });
+  const ytVideoUrl = 'https://www.youtube.com/watch?v=s4cVideo123';
+  const ytTrack = { id: 'en-manual', language: 'en', kind: 'manual' as const, translated: false as const };
+  const ytAction = {
+    actionId: crypto.randomUUID(), workspaceId: ytDisabledWorkspace, expectedRevision: 0, entityVersions: [],
+    action: { type: 'add_youtube_source' as const, sourceId: 'yt-source', label: 'YouTube Video', url: ytVideoUrl, track: ytTrack },
+  };
+  await assert.rejects(
+    repo.commitAction({ workspaceId: ytDisabledWorkspace, ownerId, expectedRevision: 0, envelope: ytAction, plan: planCohortAction }),
+    /SOURCE_CAPABILITY_DISABLED/,
+    'YouTube intake must be rejected when capability is disabled'
+  );
+
+  // 2. Enable test mock capability
+  process.env.INTERACTION_YOUTUBE_ENABLED = '1';
+  process.env.INTERACTION_YOUTUBE_TEST_MOCK = '1';
+  const ytId = crypto.randomUUID();
+  await repo.createWorkspace({ id: ytId, ownerId, domainId: 'cohort', domainVersion: 1, initialSnapshot: snapshot });
+  const ytCommitAction = {
+    actionId: crypto.randomUUID(), workspaceId: ytId, expectedRevision: 0, entityVersions: [],
+    action: { type: 'add_youtube_source' as const, sourceId: 'yt-source', label: 'Consensus Talk', url: ytVideoUrl, track: ytTrack },
+  };
+  await repo.commitAction({ workspaceId: ytId, ownerId, expectedRevision: 0, requestId: crypto.randomUUID(), envelope: ytCommitAction, plan: planCohortAction });
+
+  // Mock transcript provider
+  const rawTranscript = {
+    format: 'youtube-transcript-v1',
+    provider: { id: 'mock-fixture', version: '1' },
+    acquiredAt: '2026-10-14T00:00:00.000Z',
+    video: { id: 's4cVideo123', url: ytVideoUrl, durationMs: 60_000, visibility: 'public', state: 'complete' },
+    track: ytTrack,
+    segments: [
+      { startMs: 0, endMs: 5000, text: 'Quorums overlap and provide consensus.' },
+      { startMs: 6000, endMs: 12000, text: 'Majorities retain immutable decisions.' },
+    ],
+  };
+  const rawBytes = Buffer.from(JSON.stringify(rawTranscript));
+  let providerCallCount = 0;
+  const youtubeProvider = {
+    id: 'mock-fixture', version: '1', billing: 'none' as const,
+    open: async () => {
+      providerCallCount++;
+      return {
+        mediaType: 'application/json' as const,
+        bytes: (async function* () { yield rawBytes; })(),
+        close: () => {},
+      };
+    },
+  };
+
+  const loadYtWorkspace = async () => (await repo.loadWorkspace({ workspaceId: ytId, ownerId }))!.snapshot;
+  now = new Date(Date.now() + 2000);
+
+  // Drain DAG ticks for YouTube: acquisition, extraction, chunking, analysis, assembly
+  for (let i = 0; i < 6; i++) {
+    const res = await runDurableTextJobTick({
+      sql, transaction: port, workerId: 'yt-worker', leaseMs: 60000, now: () => now,
+      loadWorkspace: loadYtWorkspace, youtubeTranscriptProvider: youtubeProvider,
+    });
+    if (res.status !== 'accepted') break;
+  }
+
+  const ytWorkspace = cohortWorkspaceSchema.parse(await loadYtWorkspace());
+  assert.equal(ytWorkspace.processing.status, 'ready');
+  assert.equal(ytWorkspace.sources.length, 1);
+  assert.equal(ytWorkspace.sources[0].locations?.length, 2);
+  assert.equal(ytWorkspace.sources[0].locations![0].startMs, 0);
+  assert.equal(ytWorkspace.sources[0].locations![0].endMs, 5000);
+  assert.equal(ytWorkspace.sources[0].provenance?.parserVersion, 'youtube-transcript-v1');
+  assert.equal(providerCallCount, 1, 'Provider should have been called exactly once for acquisition');
+
+  // Scope reduction: verify scope reuses retained raw bytes without refetching from provider
+  const currentYt = (await repo.loadWorkspace({ workspaceId: ytId, ownerId }))!;
+  const ytScopeAction = {
+    actionId: crypto.randomUUID(), workspaceId: ytId, expectedRevision: currentYt.revision,
+    entityVersions: [{ kind: 'source' as const, id: 'yt-source', version: ytWorkspace.sources[0].version }],
+    action: { type: 'set_youtube_scope' as const, sourceId: 'yt-source', scope: { startMs: 6000, endMs: 12000 } },
+  };
+  await repo.commitAction({ workspaceId: ytId, ownerId, expectedRevision: currentYt.revision, requestId: crypto.randomUUID(), envelope: ytScopeAction, plan: planCohortAction });
+
+  for (let i = 0; i < 6; i++) {
+    const res = await runDurableTextJobTick({
+      sql, transaction: port, workerId: 'yt-worker', leaseMs: 60000, now: () => now,
+      loadWorkspace: loadYtWorkspace, youtubeTranscriptProvider: youtubeProvider,
+    });
+    if (res.status !== 'accepted') break;
+  }
+
+  assert.equal(providerCallCount, 1, 'Provider must NOT be called again when adjusting transcript scope');
+  const scopedYtWorkspace = cohortWorkspaceSchema.parse(await loadYtWorkspace());
+  assert.equal(scopedYtWorkspace.processing.status, 'ready');
+  assert.equal(scopedYtWorkspace.sources[0].locations?.length, 1);
+  assert.equal(scopedYtWorkspace.sources[0].locations![0].startMs, 6000);
+  assert.equal(scopedYtWorkspace.sources[0].locations![0].endMs, 12000);
+
+  const ytEvents = await repo.queryEvents({ workspaceId: ytId, ownerId, afterSequence: 0, limit: 100 });
+  const ytSnapshot = (await repo.loadWorkspace({ workspaceId: ytId, ownerId }))!;
+  assert.equal(ytEvents.length, ytSnapshot.sequence);
+  assert.equal(ytSnapshot.revision, ytSnapshot.sequence);
+  console.log('PASS separate PostgreSQL YouTube disability, intake, timestamp extraction, scope reuse, and event consistency');
 } finally { await pool.end(); await prisma.$disconnect(); }
 }
 void main().catch(error => { console.error(error); process.exitCode = 1; });

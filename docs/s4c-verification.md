@@ -109,12 +109,35 @@ Tests:
 - `CohortWorkspacePane.test.tsx`: timestamp evidence citation rendering.
 All 17 UI/chat tests pass.
 
+## Integrated acceptance and disability proof (Checkpoint 5)
+
+Integration harnesses extended:
+- `scripts/s3-postgres-verification.ts`:
+  1. Disability proof: verifies that `add_youtube_source` is rejected with `SOURCE_CAPABILITY_DISABLED` when capability flags are not set.
+  2. Mock-enabled execution: commits `add_youtube_source` on an owned workspace with mock caption segments.
+  3. Executes durable ticks with injected non-billing `YoutubeTranscriptProvider` through acquisition, extraction, chunking, analysis, and assembly.
+  4. Verifies timestamped locations (`startMs`, `endMs`) and immutable `source_raw` artifact storage.
+  5. Verifies scope reduction (`set_youtube_scope`) reuses retained raw bytes without calling provider again (`providerCallCount === 1`).
+  6. Verifies event sequence matches sequence and revision.
+- `scripts/s3-browser-verification.mjs`:
+  1. On the disabled host, verifies that `Add YouTube source` button count is 0.
+  2. Verifies that the honest notice `YouTube transcript ingestion is currently unavailable` is displayed.
+
+Verification outcomes:
+- `npx vitest run`: 10 domain test files passed (88 tests passed, 0 failures).
+- `npx tsc --noEmit`: exited 0 with no errors.
+- `npm run interaction:worker:check`: exited 0 with valid imports.
+- `node scripts/verify-packed-consumer.mjs`: exited 0; packed tarball installation, types, and execution verified in an isolated temp environment.
+- `npm run verify:vercel`: exited 0 (pre-push hook builds and verifies optimized Next.js production build).
+- Test ports `3107/3108/15433/15434` remain clean and released.
+
 ## Outstanding gates (still open)
 
-Select an authorized provider/access path and establish its network/security,
-quota/cost, track availability and actual live acquisition conformance first.
-Then extend the real SQL/browser harness. Existing S4B evidence does not prove S4C.
-Do not claim completion from contract or deterministic mock tests.
+Live YouTube acquisition remains explicitly disabled (`TRANSCRIPT_PROVIDER_REQUIRED`).
+An authorized provider/access path and its network/security, quota/cost, track
+availability, and real acquisition conformance must be established before enabling live
+intake. Existing S4B evidence does not prove live S4C ingestion. Do not claim live
+completion from contract or deterministic mock tests.
 
 No shared migration/activation, deployment, registry publication or next slice
 has been performed. See `plans/interaction-builder/s4c-checkpoints.md` and

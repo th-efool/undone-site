@@ -347,6 +347,8 @@ try {
   await disabled.getByText('Second tab attempted objective',{ exact:true }).waitFor();
   assert.equal(await disabled.getByRole('button',{name:'Add PDF source',exact:true}).count(),0);
   assert.equal(await disabled.getByRole('button',{name:'Add web source',exact:true}).count(),0);
+  assert.equal(await disabled.getByRole('button',{name:'Add YouTube source',exact:true}).count(),0);
+  await disabled.getByText(/YouTube transcript ingestion is currently unavailable/).waitFor();
   const legacy = await disabled.goto('http://localhost:3108/quest/new'); assert.equal(legacy.status(),200);
   assert(!disabled.url().includes('/quest/start'));
   await disabled.goto('http://localhost:3108/');
