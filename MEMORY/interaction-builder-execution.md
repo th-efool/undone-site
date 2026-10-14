@@ -1,8 +1,14 @@
 # Interaction builder execution checkpoint
 
-STATUS: S4B IN PROGRESS. S3/S4A locally verified; shared rollout remains pending authorization.
-LAST_CHECKPOINT: `IB-S4A-INTEGRATED-JOURNEY-2026-10-14`
-NEXT: S4B checkpoint 5 real PostgreSQL/authenticated browser, broad regression and build. Plan: `plans/interaction-builder/s4b-checkpoints.md`. Do not activate shared durable processing before authorized schema rollout.
+STATUS: S4B LOCAL COMPLETE. S3/S4A/S4B real isolated journeys verified; shared rollout remains pending authorization. Not all of S4 is complete.
+LAST_CHECKPOINT: `IB-S4B-PDF-WEB-VERIFIED-2026-10-14`
+NEXT: propose bounded S4C YouTube transcript ingestion with separate conformance/security gates; do not begin automatically. Do not activate shared durable processing before authorized schema rollout.
+
+S4B host commits: contracts `7ac3b3f`, adapters `a25602b`, durable integration `e838973`, UI/chat `fad12b7`, final integrated verification `b6b1b0a`. Engine `bf96b84` pushed before host pointer. Master/planning synchronize together; no shared rollout performed.
+
+S4B checkpoint 5: real fresh PostgreSQL gate exit 0, including external claims/expiry, actual PDF/web retention/extraction/assembly and snapshot/event consistency; original concurrency/rollback/FIFO gates pass. Full authenticated browser exit 0 (`BROWSER_JOURNEY_PASS`), including S4A regressions, PDF CAS/lost-ack replay/page evidence, web failure/targeted retry, external lesson refinement through the model/tool adapter, scope reuse, restart/resume, disabled capabilities and v1. Acceptance preflight parses outside the canonical lock; exact source proof and immutable artifacts are rechecked inside it. Engine generic snapshot-coalescing fix pushed `bf96b84`: 23 files/82 tests, distribution build and packed consumer pass. No cohort code moved into engine.
+
+Final commands: `npx vitest run --maxWorkers=2` = 191 files passed/1 skipped, 1223 tests passed/2 existing skips (run alone after fixture shutdown); `npm run verify:vercel` exit 0, current TypeScript/public distributions/Prisma generation and optimized build (43.1s) pass; `npm run interaction:worker:check` exit 0; `node scripts/verify-packed-consumer.mjs` exit 0. `node --conditions=react-server --import tsx scripts/s3-postgres-verification.ts` and `node --import tsx scripts/s3-browser-verification.mjs` both exit 0 on isolated fixtures. Exact environment and operator-only additive SQL command: `docs/s4b-verification.md`. Earlier parallel run timed out unchanged v1 delivery; final isolated regression passes. Existing middleware/pdfjs build warnings remain. Test ports 3107/3108/15433/15434 stopped; synthetic files retained under `.tmp`. No shared migration/activation, deployment or paid calls.
 
 S4B checkpoint 4: owned `/sources` readiness/capability projection; `ExternalSources.tsx` mounts bounded PDF upload and HTTPS submission, retained upload retry identity, page-scope conflict values and explicit web refresh. Canonical source cancellation fences only selected source jobs; other sources continue, blocked assembly is honest. Tools use the same PDF/web/scope/refresh/cancel actions. Evidence shows physical PDF pages or retained web URL/parser/scope. Host transport preserves lost canonical action acknowledgement identity; existing mounted panes/drafts unchanged. Focused UI/transport/runner/canonical fixture checks: 6 files/25 tests passed; TypeScript exit 0. Checkpoint 3 `e838973` pushed with planning. Both enabled S4B live journey gates still pending; not complete.
 

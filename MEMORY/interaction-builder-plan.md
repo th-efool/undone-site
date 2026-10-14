@@ -1,6 +1,6 @@
 # interaction-builder-plan
 
-STATUS: STANDALONE PACKAGE IMPLEMENTED & VERIFIED (`packages/interaction-builder`). S3 and S4A local vertical journeys complete and verified on real isolated PostgreSQL and an authenticated browser; production build passed. Shared rollout awaits additive schema authorization. See `MEMORY/interaction-builder-execution.md` for current paths/evidence; historical tables below describe earlier checkpoints.
+STATUS: STANDALONE PACKAGE IMPLEMENTED & VERIFIED (`packages/interaction-builder`). S3, S4A and S4B local vertical journeys complete on real isolated PostgreSQL and authenticated browser; regression/production build passed. S4B supports bounded PDF/public HTTPS, not all of S4. Shared rollout awaits additive schema authorization. See `MEMORY/interaction-builder-execution.md` and `docs/s4b-verification.md` for current paths/evidence; historical tables below describe earlier checkpoints.
 ROOT: `D:/ThisPC/Documents/SideQuestHQ/undone-site`
 SCOPE: reusable embedded human–AI–website interaction layer; cohort creation first domain; agenda reference domain in package.
 NOT: website/app/code generation, generated-site hosting, arbitrary executable UI.
