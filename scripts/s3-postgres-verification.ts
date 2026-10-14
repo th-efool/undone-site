@@ -8,6 +8,8 @@ import { putTextArtifact } from '../src/server/domain/cohort-builder/text-artifa
 import { acceptCurrentTextJob } from '../src/server/domain/cohort-builder/text-job-acceptance';
 import { runDurableTextJobTick } from '../src/server/domain/cohort-builder/durable-text-worker';
 import type { TextJobTransactionPort } from '../src/server/domain/cohort-builder/text-job-scheduler';
+import { createServer } from 'node:http';
+import { LiveYoutubeTranscriptProvider } from '../src/server/domain/cohort-builder/youtube-transcript-live';
 
 async function main() {
 const url = new URL(process.env.S3_TEST_DATABASE_URL ?? '');
@@ -317,6 +319,57 @@ try {
   assert.equal(ytEvents.length, ytSnapshot.sequence);
   assert.equal(ytSnapshot.revision, ytSnapshot.sequence);
   console.log('PASS separate PostgreSQL YouTube disability, intake, timestamp extraction, scope reuse, and event consistency');
+
+  // 3. Live provider test against authorized local mock service
+  let liveServerRequests = 0;
+  const liveServer = createServer((req, res) => {
+    liveServerRequests++;
+    if (liveServerRequests === 1) {
+      res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '0' });
+      res.end(JSON.stringify({ error: 'rate_limited' }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      segments: [
+        { startMs: 0, endMs: 5000, text: 'Consensus protocols require overlap.' },
+        { startMs: 6000, endMs: 12000, text: 'Majorities commit transactions.' },
+      ],
+    }));
+  });
+  await new Promise<void>(resolve => liveServer.listen(0, '127.0.0.1', () => resolve()));
+  const liveServerPort = (liveServer.address() as any).port;
+  const liveEndpoint = `http://127.0.0.1:${liveServerPort}/transcript`;
+  const liveProvider = new LiveYoutubeTranscriptProvider({
+    endpoint: liveEndpoint,
+    token: 'test-token',
+    initialBackoffMs: 5,
+    maxRetries: 2,
+  });
+
+  const ytLiveId = crypto.randomUUID();
+  await repo.createWorkspace({ id: ytLiveId, ownerId, domainId: 'cohort', domainVersion: 1, initialSnapshot: snapshot });
+  const ytLiveAction = {
+    actionId: crypto.randomUUID(), workspaceId: ytLiveId, expectedRevision: 0, entityVersions: [],
+    action: { type: 'add_youtube_source' as const, sourceId: 'yt-live-source', label: 'Live Consensus', url: ytVideoUrl, track: ytTrack },
+  };
+  await repo.commitAction({ workspaceId: ytLiveId, ownerId, expectedRevision: 0, requestId: crypto.randomUUID(), envelope: ytLiveAction, plan: planCohortAction });
+
+  const loadYtLiveWorkspace = async () => (await repo.loadWorkspace({ workspaceId: ytLiveId, ownerId }))!.snapshot;
+  for (let i = 0; i < 6; i++) {
+    const res = await runDurableTextJobTick({
+      sql, transaction: port, workerId: 'yt-live-worker', leaseMs: 60000, now: () => now,
+      loadWorkspace: loadYtLiveWorkspace, youtubeTranscriptProvider: liveProvider,
+    });
+    if (res.status !== 'accepted') break;
+  }
+  await new Promise<void>((resolve, reject) => liveServer.close(err => err ? reject(err) : resolve()));
+
+  assert.equal(liveServerRequests, 2, 'Live provider should have retried on 429 and succeeded on second attempt');
+  const ytLiveWorkspace = cohortWorkspaceSchema.parse(await loadYtLiveWorkspace());
+  assert.equal(ytLiveWorkspace.processing.status, 'ready');
+  assert.equal(ytLiveWorkspace.sources[0].locations?.length, 2);
+  console.log('PASS LiveYoutubeTranscriptProvider acquisition, rate-limit backoff, and end-to-end DAG execution');
 
   // --- S4D GitHub repository verification ---
   await pool.query(`UPDATE cohort_text_jobs SET status='canceled',"leaseToken"=NULL,"leaseUntil"=NULL,"leaseOwner"=NULL
