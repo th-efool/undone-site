@@ -13,19 +13,28 @@ import {
   Users,
   MessageSquare,
 } from 'lucide-react';
-import { useWorkspaceView, useDispatchAction } from '@/src/client/interaction/hooks';
+import { useWorkspaceView, useDispatchAction, useInteractionState } from '@/src/client/interaction/hooks';
 import { cohortWorkspaceSchema, type CohortWorkspace, type CohortAction, type CohortLesson } from '@/src/shared/cohort-builder/contracts';
 import type { EntityRef } from 'interaction-builder/core';
 import styles from './CohortBuilder.module.css';
 import { BuilderDialog } from './BuilderDialog';
 import { ExternalSources, ExternalSourceScope } from './ExternalSources';
 import { formatYoutubeTimestamp } from '@/src/shared/cohort-builder/youtube-transcript';
+import { ReleasePanel } from './components/ReleasePanel';
 
 interface CohortWorkspacePaneProps {
+  workspaceId?: string;
   onSelectLessonForChat: (attached: { entity: EntityRef; label: string }) => void;
+  onNavigateToDestination?: (url: string) => void;
 }
 
-export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePaneProps) {
+export function CohortWorkspacePane({
+  workspaceId: propWorkspaceId,
+  onSelectLessonForChat,
+  onNavigateToDestination,
+}: CohortWorkspacePaneProps) {
+  const interactionState = useInteractionState<CohortWorkspace>();
+  const workspaceId = propWorkspaceId ?? interactionState?.workspaceId ?? '';
   const rawWorkspace = useWorkspaceView<CohortWorkspace>();
   const workspace = rawWorkspace ? cohortWorkspaceSchema.parse(rawWorkspace) : null;
   const dispatchAction = useDispatchAction<CohortAction>();
@@ -330,6 +339,12 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
           </article>
         ))}
       </div>
+
+      <ReleasePanel
+        workspace={workspace}
+        workspaceId={workspaceId}
+        onNavigateToDestination={onNavigateToDestination}
+      />
 
       {/* Edit Overview Modal */}
       {editingOverview && (

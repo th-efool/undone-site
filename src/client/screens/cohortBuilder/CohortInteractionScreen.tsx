@@ -93,7 +93,9 @@ function InnerBuilderScreen() {
         </div>
         <div className={styles.workspaceRegion}>
         <nav aria-label="Workspace sections" className={styles.sectionNavigation}>
-          <a href="#builder-sources">Sources</a><a href="#builder-outline">Outline and evidence</a>
+          <a href="#builder-sources">Sources</a>
+          <a href="#builder-outline">Outline and evidence</a>
+          <a href="#builder-release">Release</a>
         </nav>
         <CohortWorkspacePane
           onSelectLessonForChat={attached => { setAttachedEntity(attached); setPane('chat'); }}
