@@ -96,4 +96,23 @@ describe('grounded cohort workspace UI', () => {
     expect(screen.getByDisplayValue('Unsaved objective')).toBeTruthy();
     expect(fake.actions).toEqual([{ type: 'edit_lesson', lessonId: 'lesson', objective: 'Unsaved objective' }]);
   });
+  it('renders YouTube transcript timestamp range in evidence citations', async () => {
+    fake.actions = [];
+    fake.state = cohortWorkspaceSchema.parse({
+      schemaVersion: 1, title: 'Systems', intent: 'Learn consensus', audience: 'Engineers', dailyMinutes: 25,
+      sources: [{
+        id: 'yt-source', version: 0, label: 'Consensus Talk', text: 'Quorums overlap and provide consensus.',
+        checksum: 'a'.repeat(64), state: 'ready',
+        input: { kind: 'youtube', url: 'https://www.youtube.com/watch?v=s4cVideo123', track: { id: 'en', language: 'en', kind: 'manual', translated: false } },
+        locations: [{ start: 0, end: 38, startMs: 65_000, endMs: 125_000, segmentId: 'seg-1' }],
+        provenance: { parserVersion: 'youtube-transcript-v1', rawChecksum: 'b'.repeat(64), scope: 'transcript_only' },
+      }],
+      chunks: [{ id: 'chunk-yt-1', sourceId: 'yt-source', sourceVersion: 0, start: 0, end: 38, text: 'Quorums overlap and provide consensus.', checksum: 'c'.repeat(64) }],
+      lessons: [{ id: 'lesson-1', version: 0, title: 'Quorum Overlap', objective: 'Understand overlap', sourceChunkIds: ['chunk-yt-1'], pinned: false }],
+      processing: { status: 'ready', stage: 'done', generation: 1, sourceFingerprint: 'fp', error: null },
+    });
+    render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+    expect(screen.getByText('Inspect evidence')).toBeDefined();
+    expect(screen.getByText(/timestamp 01:05–02:05/)).toBeDefined();
+  });
 });

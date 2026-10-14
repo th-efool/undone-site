@@ -19,6 +19,7 @@ import type { EntityRef } from 'interaction-builder/core';
 import styles from './CohortBuilder.module.css';
 import { BuilderDialog } from './BuilderDialog';
 import { ExternalSources, ExternalSourceScope } from './ExternalSources';
+import { formatYoutubeTimestamp } from '@/src/shared/cohort-builder/youtube-transcript';
 
 interface CohortWorkspacePaneProps {
   onSelectLessonForChat: (attached: { entity: EntityRef; label: string }) => void;
@@ -306,7 +307,9 @@ export function CohortWorkspacePane({ onSelectLessonForChat }: CohortWorkspacePa
                   const chunk = workspace.chunks.find(item => item.id === chunkId);
                   const source = workspace.sources.find(item => item.id === chunk?.sourceId);
                   const pages=source?.locations?.filter(location=>location.page && location.start< (chunk?.end??0) && location.end>(chunk?.start??0)).map(location=>location.page);
-                  return <blockquote key={chunkId}>{chunk ? <><cite>{source?.label ?? 'Retained source'} · version {chunk.sourceVersion}{pages?.length?` · physical page ${pages.join(', ')}`:''} · characters {chunk.start}–{chunk.end}{source?.provenance?` · ${source.provenance.scope} · ${source.provenance.parserVersion}`:''}</cite>{source?.provenance?.finalUrl && <p>{source.provenance.finalUrl}</p>}<p>{chunk.text}</p></> : 'Retained passage unavailable; review orphan warning.'}</blockquote>;
+                  const timeLoc=source?.locations?.filter(location=>location.startMs!==undefined && location.endMs!==undefined && location.start<(chunk?.end??0) && location.end>(chunk?.start??0));
+                  const timestamps=timeLoc?.length?` · timestamp ${formatYoutubeTimestamp(Math.min(...timeLoc.map(l=>l.startMs!)))}–${formatYoutubeTimestamp(Math.max(...timeLoc.map(l=>l.endMs!)))}`:'';
+                  return <blockquote key={chunkId}>{chunk ? <><cite>{source?.label ?? 'Retained source'} · version {chunk.sourceVersion}{pages?.length?` · physical page ${pages.join(', ')}`:''}{timestamps} · characters {chunk.start}–{chunk.end}{source?.provenance?` · ${source.provenance.scope} · ${source.provenance.parserVersion}`:''}</cite>{source?.provenance?.finalUrl && <p>{source.provenance.finalUrl}</p>}<p>{chunk.text}</p></> : 'Retained passage unavailable; review orphan warning.'}</blockquote>;
                 })}
               </details>}
 

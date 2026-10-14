@@ -25,6 +25,14 @@ export const youtubeVideoUrlSchema = z.string().max(2048).transform((input,ctx) 
   try {return singleYoutubeVideo(input).url;} catch {ctx.addIssue({code:'custom',message:'Use a single public HTTPS YouTube video URL without playlist/time scope'});return z.NEVER;}
 });
 const milliseconds = z.number().int().min(0).max(YOUTUBE_TRANSCRIPT_LIMITS.durationMs);
+export function formatYoutubeTimestamp(ms: number): string {
+  const totalSeconds = Math.floor(Math.max(0, ms) / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return hours > 0 ? `${pad(hours)}:${pad(minutes)}:${pad(seconds)}` : `${pad(minutes)}:${pad(seconds)}`;
+}
 export const youtubeTimeScopeSchema = z.strictObject({startMs:milliseconds,endMs:milliseconds})
   .refine(value=>value.endMs>value.startMs,'Scope end must follow start');
 export const youtubeTrackSchema = z.strictObject({id:z.string().min(1).max(200),
