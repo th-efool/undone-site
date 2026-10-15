@@ -17,6 +17,7 @@ import { acceptCurrentTextJob } from '../src/server/domain/cohort-builder/text-j
 import { runDurableTextJobTick } from '../src/server/domain/cohort-builder/durable-text-worker';
 import { assertTextJobSchema } from '../src/server/domain/cohort-builder/text-schema-readiness';
 import { assertSourceSchema } from '../src/server/domain/cohort-builder/source-policy';
+import { assertReleaseSchema } from '../src/server/domain/cohort-builder/release-schema-readiness';
 import { collectWorkerDiagnostics } from '../src/server/domain/cohort-builder/worker-diagnostics';
 import {
   interactionSqlCheck,
@@ -221,7 +222,8 @@ async function main() {
         "SELECT count(*)::int AS count FROM information_schema.tables WHERE table_schema='public' AND table_name = 'interaction_effects'"
       );
       assert.equal(m4Check.rows[0].count, 1);
-      console.log('[Phase 5] PASS: Migration 4 applied. interaction_effects table verified.\n');
+      await assertReleaseSchema(sqlAdapter);
+      console.log('[Phase 5] PASS: Migration 4 applied. interaction_effects table and constraints verified.\n');
 
       // Phase 6: Automated Schema & Readiness Validation
       console.log('[Phase 6] Validating comprehensive readiness via probe tools...');
