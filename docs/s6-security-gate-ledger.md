@@ -63,3 +63,28 @@ This ledger records the verified enforcement state of security and authority bou
 5. `node scripts/verify-packed-consumer.mjs`: **PASSED (exit 0)**
 6. `npx tsc --noEmit --pretty false`: **PASSED (exit 0, 0 errors)**
 7. `node scripts/verify-vercel.mjs`: **PASSED in 45.8s (exit 0)**
+
+---
+
+## 5. S6 Checkpoint 3: Retention, Safe Cleanup & Backup/Restore Integrity
+
+| Axis | Boundary | Enforcement Mechanism | Adversarial Test Coverage | Status |
+| --- | --- | --- | --- | --- |
+| **1. Explicit Policy Separation** | Transcripts vs Replay vs Drafts vs Released | Separate day policies in `CohortRetentionPolicy`: transcripts (90d), replay (7d), drafts (30d), orphans (1d), tombstones (14d). Transcripts strictly outlive replay events. Released artifacts permanently pinned (`pinnedPermanently: true`). | `retention-cleanup.test.ts` (T1): Validates policies; rejects transcript < replay and negative days. | **ENFORCED & VERIFIED** |
+| **2. Production Policy Validation** | Missing / invalid retention configuration | `validateCohortRetentionPolicy(policy, isProduction)` fails closed in production when required policy parameters are missing or invalid (`CohortRetentionPolicyError`). Never invents unverified retention promises. | `retention-cleanup.test.ts` (T1): Fails closed on missing or unpinned released artifacts in production mode. | **ENFORCED & VERIFIED** |
+| **3. Tombstoning & Revocation** | Workspace deletion → immediate revocation | `tombstoneWorkspace` verifies ownership, transitions status to `'tombstoned'`, cancels active runs (`WORKSPACE_TOMBSTONED`), cancels active DAG jobs, marks artifacts with `tombstonedAt` (leaving released artifacts intact), logs to `cohort_retention_audit_log`. | `retention-cleanup.test.ts` (T2): Immediate access revocation, work cancellation, and audit logging before eligible physical purge. | **ENFORCED & VERIFIED** |
+| **4. Active Read Protection (Leases)** | Concurrent cleanup vs in-flight stream/read | `acquireArtifactReadLease` sets `readLeaseUntil`. `runRetentionSweep` Sweep 2 skips any artifact where `readLeaseUntil > now()`. Reclaims safely once lease expires. | `retention-cleanup.test.ts` (T3), `backup-restore-drill.test.ts` (T3): Active read lease blocks deletion; lease expiration enables eventual reclamation across separate DB connections. | **ENFORCED & VERIFIED** |
+| **5. Released Content Protection (Pins)** | Released learner delivery vs draft workspace purge | `pinArtifactPermanently` sets `pinnedPermanently: true`. Tombstoning a draft workspace or running orphan cleanup never deletes pinned artifacts required by public/private cohorts. | `retention-cleanup.test.ts` (T4): Draft workspace tombstoning/cleanup preserves released cohort artifacts and ensures uninterrupted learner delivery. | **ENFORCED & VERIFIED** |
+| **6. Inspect-Only Default & Bounded Sweeps** | Destructive purge safeguards | `runRetentionSweep` defaults to `dryRun: true` (inspect mode). Sweep mutations require explicit `dryRun: false` and isolated target environment (`ALLOW_PRODUCTION_CLEANUP !== '0'`). Deletions capped at `batchLimit` per sweep. | `retention-cleanup.test.ts` (T5): Dry-run reports candidates without deletion; batch limit caps per-run prunes. | **ENFORCED & VERIFIED** |
+| **7. Ownership-Safe Export** | Tenant boundary on data export | `exportWorkspaceData` enforces strict ownership check (`UNAUTHORIZED_OWNER`). Produces portable self-contained bundle with SHA-256 checksums, transcript, events, artifacts, and jobs. | `retention-cleanup.test.ts` (T6): Unauthorized owner rejected; valid owner receives verified portable export. | **ENFORCED & VERIFIED** |
+| **8. Backup Restore Integrity Drill** | Disaster recovery into fresh isolated instance | `validateBackupBundle` verifies SHA-256 checksums, byte lengths, and artifact references. `restoreWorkspaceFromBundle` restores state into fresh database, recovers in-flight jobs (`running` → `queued`), and demotes corrupted/incomplete cohorts to draft (`processing.error`). | `backup-restore-drill.test.ts` (T1, T2): Full drill across separate PostgreSQL/MongoDB instances; verifies checksums, references, resume, job recovery, and blocks incomplete public exposure. | **ENFORCED & VERIFIED** |
+
+### Automated Evidence for Checkpoint 3:
+1. `npx vitest run src/server/domain/cohort-builder/__tests__/retention-cleanup.test.ts`: **6/6 PASSED in 7.0s**
+2. `npx vitest run src/server/domain/cohort-builder/__tests__/backup-restore-drill.test.ts`: **3/3 PASSED in 4.7s**
+3. `npx vitest run src/server/domain/cohort-builder/ --maxWorkers=2`: **42 test files / 262 tests PASSED in 66.4s**
+4. `npm run interaction:worker:check`: **PASSED (exit 0)**
+5. `node scripts/verify-packed-consumer.mjs`: **6/6 stages PASSED (exit 0)**
+6. `npx tsc --noEmit --pretty false`: **PASSED (exit 0, 0 errors)**
+7. `node scripts/verify-vercel.mjs`: **Full Vercel simulation PASSED in 46.3s (exit 0)**
+
