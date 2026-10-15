@@ -1,8 +1,8 @@
 # Interaction builder execution checkpoint
 
-STATUS: S6A OPERATIONAL READINESS AND ROLLOUT PREPARATION UNDERWAY (Checkpoint 1 complete: capability matrix reconciled across 5 levels, documentation in docs/s6a-capability-inventory.md). Shared rollout and deployment remain unauthorized.
-LAST_CHECKPOINT: `IB-S6A-CP1-INVENTORY-2026-10-15`
-NEXT: Execute Checkpoint 2 (Fail-closed configuration profiles and readiness verification).
+STATUS: S6A OPERATIONAL READINESS AND ROLLOUT PREPARATION UNDERWAY (Checkpoints 1 & 2 complete: capability inventory, fail-closed configuration profiles, and readiness test suite verified). Shared rollout and deployment remain unauthorized.
+LAST_CHECKPOINT: `IB-S6A-CP2-CONFIG-READINESS-2026-10-15`
+NEXT: Execute Checkpoint 3 (Worker operations and safe diagnostics).
 
 S6A Operational Readiness & Rollout Preparation (Checkpoints 1-5):
 - Checkpoint 1 (Accurate Capability & Readiness Inventory):
@@ -10,6 +10,10 @@ S6A Operational Readiness & Rollout Preparation (Checkpoints 1-5):
   - Published comprehensive capability matrix in `docs/s6a-capability-inventory.md`.
   - Identified hard blockers: YouTube live transcript acquisition is fundamentally blocked without video owner OAuth credentials; GitHub public API requires dedicated token to prevent 60 req/hr rate limit exhaustion. Both must remain disabled (`'0'`).
   - Confirmed v2 landing intake, existing workspace resume, pasted text processing, private activation, and public release are ready for controlled operator rollout rehearsal. Shared activation remains unauthorized.
+- Checkpoint 2 (Fail-Closed Configuration and Readiness):
+  - Enhanced `scripts/interaction-readiness.ts` to enforce agreement between HTTP and background workers across drivers, schemas, and source capabilities.
+  - Documented 3 minimal configuration profiles in `docs/s6a-configuration-profiles.md`: Profile 1 (`isolated_local`), Profile 2 (`initial_rollout`), Profile 3 (`disabled_intake`).
+  - Added unit test suite `scripts/interaction-readiness.test.ts` (15 tests passing) verifying fail-closed driver validation, agreement checks, capability statuses, zero secret disclosure, and connection error classification.
 
 S4 Acceptance Closure & S5 End-to-End Learner Delivery (Checkpoints 1-8):
 - Checkpoints 1-5 (S4 Acceptance Matrix & Ingestion Closure - Commit `ad57645`):

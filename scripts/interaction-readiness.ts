@@ -1,5 +1,6 @@
 /**
- * Read-only readiness check for Interaction Builder (S1 + S2 durability).
+ * Read-only readiness and configuration probe for Interaction Builder & Canonical Cohort Builder.
+ * S6A operational readiness: fail-closed validation, driver agreement, zero secret disclosure.
  * No paid model calls, writes, credentials, or secrets in output.
  */
 import { Pool } from 'pg';
@@ -7,52 +8,244 @@ import { textDriver } from '../src/server/domain/cohort-builder/text-driver';
 import { assertTextJobSchema } from '../src/server/domain/cohort-builder/text-schema-readiness';
 import { assertSourceSchema } from '../src/server/domain/cohort-builder/source-policy';
 
-type FailureReason = 'missing' | 'invalid_url' | 'dns_not_found' | 'dns_timeout' | 'authentication_failed' | 'connection_failed' | 'schema_incomplete';
-type Check = { name: string; required: boolean; status: 'configured' | 'ready' | 'blocked' | 'not_configured'; reason?: FailureReason };
+export type FailureReason =
+  | 'missing'
+  | 'invalid_url'
+  | 'dns_not_found'
+  | 'dns_timeout'
+  | 'authentication_failed'
+  | 'connection_failed'
+  | 'schema_incomplete'
+  | 'invalid_driver'
+  | 'durable_driver_required'
+  | 'unsupported_handler_version'
+  | 'missing_provider_credentials'
+  | 'rate_limit_risk';
 
-function connectionFailureReason(error: unknown): FailureReason {
-  const code = typeof error === 'object' && error !== null && 'code' in error ? error.code : undefined;
+export type Check = {
+  name: string;
+  required: boolean;
+  status: 'configured' | 'ready' | 'blocked' | 'not_configured' | 'disabled';
+  reason?: FailureReason;
+  details?: string;
+};
+
+export function connectionFailureReason(error: unknown): FailureReason {
+  const code = typeof error === 'object' && error !== null && 'code' in error ? (error as any).code : undefined;
   if (code === 'ENOTFOUND' || code === 'EAI_NONAME') return 'dns_not_found';
   if (code === 'ETIMEOUT' || code === 'EAI_AGAIN') return 'dns_timeout';
   if (code === 18 || code === '28P01') return 'authentication_failed';
   return 'connection_failed';
 }
 
-const isSecretConfigured = (value?: string) =>
+export const isSecretConfigured = (value?: string): boolean =>
   Boolean(value && value.length >= 20 && !/\[SENSITIVE\]|placeholder|changeme|^your[_-]/i.test(value));
 
+export type RolloutProfile = 'isolated_local' | 'initial_rollout' | 'disabled_intake' | 'custom';
+
+export function getConfigurationProfile(env: NodeJS.ProcessEnv): RolloutProfile {
+  const isV2Enabled = env.INTERACTION_COHORT_V2_ENABLED === '1';
+  const isDurable = (env.INTERACTION_TEXT_DRIVER ?? 'snapshot') === 'durable';
+  const hasDb = Boolean(env.DATABASE_URL);
+  const isLocalFixture = env.NODE_ENV === 'test' || env.INTERACTION_MODEL_FIXTURE === '1' || env.S3_TEST_DATABASE_URL !== undefined;
+
+  if (isLocalFixture) return 'isolated_local';
+  if (!isV2Enabled) return 'disabled_intake';
+  if (isV2Enabled && isDurable && hasDb && env.INTERACTION_YOUTUBE_ENABLED !== '1' && env.INTERACTION_GITHUB_ENABLED !== '1') {
+    return 'initial_rollout';
+  }
+  return 'custom';
+}
+
 export function interactionConfigurationChecks(env: NodeJS.ProcessEnv): Check[] {
-  return [
-    {
-      name: 'DATABASE_URL presence (PostgreSQL)',
+  const checks: Check[] = [];
+
+  // 1. Database URL
+  checks.push({
+    name: 'DATABASE_URL presence (PostgreSQL)',
+    required: true,
+    status: env.DATABASE_URL ? 'configured' : 'blocked',
+    reason: env.DATABASE_URL ? undefined : 'missing',
+  });
+
+  // 2. Text Driver Validity
+  let driver: 'snapshot' | 'durable' | null = null;
+  const rawDriver = env.INTERACTION_TEXT_DRIVER ?? 'snapshot';
+  if (rawDriver !== 'snapshot' && rawDriver !== 'durable') {
+    checks.push({
+      name: 'INTERACTION_TEXT_DRIVER valid (snapshot | durable)',
       required: true,
-      status: env.DATABASE_URL ? 'configured' : 'blocked',
-      reason: env.DATABASE_URL ? undefined : 'missing',
-    },
-    {
-      name: 'Google Gemini key presence (not live validation)',
+      status: 'blocked',
+      reason: 'invalid_driver',
+      details: 'Must be either "snapshot" or "durable"',
+    });
+  } else {
+    driver = rawDriver;
+    checks.push({
+      name: `INTERACTION_TEXT_DRIVER value (${driver})`,
       required: true,
-      status: isSecretConfigured(env.GEMINI_API_KEY) ? 'configured' : 'blocked',
-      reason: isSecretConfigured(env.GEMINI_API_KEY) ? undefined : 'missing',
-    },
-    {
-      name: 'Anthropic key presence (optional fallback)',
+      status: 'configured',
+    });
+  }
+
+  // 3. V2 Intake and Driver Agreement
+  const v2IntakeEnabled = env.INTERACTION_COHORT_V2_ENABLED === '1';
+  if (v2IntakeEnabled) {
+    if (driver !== 'durable') {
+      checks.push({
+        name: 'V2 Landing Intake driver agreement',
+        required: true,
+        status: 'blocked',
+        reason: 'durable_driver_required',
+        details: 'INTERACTION_COHORT_V2_ENABLED=1 requires INTERACTION_TEXT_DRIVER=durable',
+      });
+    } else {
+      checks.push({
+        name: 'V2 Landing Intake driver agreement (durable)',
+        required: true,
+        status: 'configured',
+      });
+    }
+  } else {
+    checks.push({
+      name: 'V2 Landing Intake policy (disabled - fallback to legacy creator active)',
       required: false,
-      status: isSecretConfigured(env.ANTHROPIC_API_KEY) ? 'configured' : 'not_configured',
-    },
-  ];
+      status: 'disabled',
+      details: 'Existing v2 workspaces remain readable and resumable',
+    });
+  }
+
+  // 4. Source Connectors and Driver Agreement
+  const connectorsEnabled =
+    env.INTERACTION_PDF_ENABLED === '1' ||
+    env.INTERACTION_WEB_ENABLED === '1' ||
+    env.INTERACTION_YOUTUBE_ENABLED === '1' ||
+    env.INTERACTION_GITHUB_ENABLED === '1';
+
+  if (connectorsEnabled && driver !== 'durable') {
+    checks.push({
+      name: 'External Source connectors driver agreement',
+      required: true,
+      status: 'blocked',
+      reason: 'durable_driver_required',
+      details: 'Active source connectors require INTERACTION_TEXT_DRIVER=durable',
+    });
+  }
+
+  // 5. Model Provider Credentials (Read-only presence, no paid API calls)
+  const isGeminiConfigured = isSecretConfigured(env.GEMINI_API_KEY);
+  const isAnthropicConfigured = isSecretConfigured(env.ANTHROPIC_API_KEY);
+  const isTestMock = env.NODE_ENV === 'test' || env.INTERACTION_MODEL_FIXTURE === '1';
+
+  checks.push({
+    name: 'Google Gemini key presence (not live validation)',
+    required: !isTestMock,
+    status: isGeminiConfigured || isTestMock ? 'configured' : 'blocked',
+    reason: isGeminiConfigured || isTestMock ? undefined : 'missing_provider_credentials',
+    details: isTestMock ? 'Local test/fixture mode enabled' : undefined,
+  });
+
+  checks.push({
+    name: 'Anthropic key presence (optional fallback)',
+    required: false,
+    status: isAnthropicConfigured ? 'configured' : 'not_configured',
+  });
+
+  // 6. Capability-Specific Configuration Checks
+  // PDF
+  if (env.INTERACTION_PDF_ENABLED === '1') {
+    checks.push({
+      name: 'PDF Source Capability (enabled)',
+      required: false,
+      status: 'configured',
+      details: 'Requires S4B schema constraints in PostgreSQL',
+    });
+  } else {
+    checks.push({
+      name: 'PDF Source Capability (disabled)',
+      required: false,
+      status: 'disabled',
+    });
+  }
+
+  // Web
+  if (env.INTERACTION_WEB_ENABLED === '1') {
+    checks.push({
+      name: 'Web Source Capability (enabled)',
+      required: false,
+      status: 'configured',
+      details: 'Requires S4B schema constraints and SSRF protections active',
+    });
+  } else {
+    checks.push({
+      name: 'Web Source Capability (disabled)',
+      required: false,
+      status: 'disabled',
+    });
+  }
+
+  // YouTube
+  if (env.INTERACTION_YOUTUBE_ENABLED === '1') {
+    const hasFixture = env.INTERACTION_YOUTUBE_FIXTURE === '1' || env.INTERACTION_YOUTUBE_TEST_MOCK === '1';
+    if (!hasFixture && !env.YOUTUBE_API_KEY) {
+      checks.push({
+        name: 'YouTube Source Capability',
+        required: true,
+        status: 'blocked',
+        reason: 'missing_provider_credentials',
+        details: 'YouTube Data API v3 requires video owner OAuth credentials; public transcripts blocked',
+      });
+    } else {
+      checks.push({
+        name: 'YouTube Source Capability (enabled)',
+        required: false,
+        status: hasFixture ? 'configured' : 'blocked',
+        details: hasFixture ? 'Running with local test fixture' : 'Requires video owner OAuth credentials',
+      });
+    }
+  } else {
+    checks.push({
+      name: 'YouTube Source Capability (disabled)',
+      required: false,
+      status: 'disabled',
+    });
+  }
+
+  // GitHub
+  if (env.INTERACTION_GITHUB_ENABLED === '1') {
+    const hasToken = isSecretConfigured(env.GITHUB_TOKEN);
+    checks.push({
+      name: 'GitHub Source Capability (enabled)',
+      required: false,
+      status: 'configured',
+      reason: hasToken ? undefined : 'rate_limit_risk',
+      details: hasToken ? 'Dedicated GITHUB_TOKEN configured' : 'Warning: Unauthenticated API limited to 60 req/hr',
+    });
+  } else {
+    checks.push({
+      name: 'GitHub Source Capability (disabled)',
+      required: false,
+      status: 'disabled',
+    });
+  }
+
+  return checks;
 }
 
 export async function interactionSqlCheck(): Promise<Check> {
-  const check: Check = { name: 'PostgreSQL interaction schema (8 tables + indexes)', required: true, status: 'blocked' };
+  const check: Check = {
+    name: 'PostgreSQL interaction schema (8 tables + indexes)',
+    required: true,
+    status: 'blocked',
+  };
   if (!process.env.DATABASE_URL) return { ...check, reason: 'missing' };
 
   for (let attempt = 1; attempt <= 3; attempt++) {
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
       max: 1,
-      connectionTimeoutMillis: 15000,
-      query_timeout: 15000,
+      connectionTimeoutMillis: 15_000,
+      query_timeout: 15_000,
     });
 
     try {
@@ -77,12 +270,46 @@ export async function interactionSqlCheck(): Promise<Check> {
       );
 
       if (tableRes.rows[0].count === requiredTables.length && indexRes.rows[0].count === 1) {
-        if (textDriver() === 'durable') {
+        let isDurable = false;
+        try {
+          isDurable = textDriver() === 'durable';
+        } catch {
+          check.status = 'blocked';
+          check.reason = 'invalid_driver';
+          await pool.end();
+          return check;
+        }
+
+        if (isDurable) {
           check.name = 'PostgreSQL interaction + S3 durable text schema';
-          await assertTextJobSchema({ query: (statement, parameters) => pool.query(statement, parameters) });
-          if(process.env.INTERACTION_PDF_ENABLED==='1'||process.env.INTERACTION_WEB_ENABLED==='1') {
-            check.name='PostgreSQL interaction + S3/S4B durable source schema';
-            await assertSourceSchema({query:(statement,parameters)=>pool.query(statement,parameters)});
+          try {
+            await assertTextJobSchema({ query: (statement, parameters) => pool.query(statement, parameters) });
+          } catch (schemaErr: any) {
+            check.status = 'blocked';
+            check.reason = schemaErr.message === 'S3_HANDLER_VERSION_UNSUPPORTED'
+              ? 'unsupported_handler_version'
+              : 'schema_incomplete';
+            check.details = schemaErr.message;
+            await pool.end();
+            return check;
+          }
+
+          if (
+            process.env.INTERACTION_PDF_ENABLED === '1' ||
+            process.env.INTERACTION_WEB_ENABLED === '1' ||
+            process.env.INTERACTION_YOUTUBE_ENABLED === '1' ||
+            process.env.INTERACTION_GITHUB_ENABLED === '1'
+          ) {
+            check.name = 'PostgreSQL interaction + S3/S4B durable source schema';
+            try {
+              await assertSourceSchema({ query: (statement, parameters) => pool.query(statement, parameters) });
+            } catch (sourceSchemaErr: any) {
+              check.status = 'blocked';
+              check.reason = 'schema_incomplete';
+              check.details = sourceSchemaErr.message;
+              await pool.end();
+              return check;
+            }
           }
         }
         check.status = 'ready';
@@ -105,28 +332,35 @@ export async function interactionSqlCheck(): Promise<Check> {
   return check;
 }
 
-async function main() {
-  console.log('--- Interaction Builder Readiness Probe ---');
+export async function main() {
+  console.log('=== Interaction Builder & Cohort Builder Operational Readiness Probe ===\n');
+
+  const profile = getConfigurationProfile(process.env);
+  console.log(`Detected Configuration Profile: [${profile.toUpperCase()}]`);
+
   const envChecks = interactionConfigurationChecks(process.env);
   const sql = await interactionSqlCheck();
 
   const allChecks = [...envChecks, sql];
   let allOk = true;
 
+  console.log('\n--- Configuration & Driver Agreement Checks ---');
   for (const c of allChecks) {
-    const mark = c.status === 'ready' || c.status === 'configured' ? '✓' : c.required ? '✗' : '○';
+    const mark = c.status === 'ready' || c.status === 'configured' ? '✓' : c.status === 'disabled' ? '○' : c.required ? '✗' : '!';
     const reasonText = c.reason ? ` (${c.reason})` : '';
-    console.log(`${mark} [${c.status}] ${c.name}${reasonText}`);
+    const detailsText = c.details ? ` - ${c.details}` : '';
+    console.log(`${mark} [${c.status.toUpperCase()}] ${c.name}${reasonText}${detailsText}`);
     if (c.required && c.status === 'blocked') {
       allOk = false;
     }
   }
 
+  console.log('\n-----------------------------------------------');
   if (!allOk) {
-    console.log('\nResult: BLOCKED (one or more required checks failed)');
+    console.log('Result: BLOCKED (one or more required operational checks failed)');
     process.exitCode = 1;
   } else {
-    console.log('\nResult: READY (all required durability checks passed)');
+    console.log('Result: READY (all required operational readiness checks passed)');
   }
 }
 
