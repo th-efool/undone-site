@@ -1,8 +1,36 @@
 # Interaction builder execution checkpoint
 
-STATUS: S6A OPERATIONAL READINESS AND ROLLOUT PREPARATION UNDERWAY (Checkpoints 1, 2, & 3 complete: capability inventory, fail-closed configuration, worker resilience and safe operator diagnostics). Shared rollout and deployment remain unauthorized.
-LAST_CHECKPOINT: `IB-S6A-CP3-WORKER-DIAGNOSTICS-2026-10-15`
-NEXT: Execute Checkpoint 4 (Rehearse additive rollout and rollback locally on isolated PostgreSQL).
+STATUS: S4, S5, AND S6A LOCAL BASELINE FULLY CLOSED & VERIFIED (`packages/interaction-builder` + host). Local implementation, fail-closed configuration profiles, release schema readiness assertions, worker resilience, additive migration rehearsals on isolated PostgreSQL, and operator handoff package are complete. Shared production rollout (S6) remains pending operator execution.
+LAST_CHECKPOINT: `IB-FINAL-CLOSURE-S4-S5-S6A-2026-10-15`
+NEXT: Controlled operator rollout (S6 shared rollout according to `docs/s6a-operator-handoff.md`).
+
+Final Closure Pass — S4, S5, and S6A Local Baseline (Checkpoints 1-5):
+- Checkpoint 1 (Configuration, Schema & Readiness Contracts - Commit `e584cac`):
+  - Created `src/server/domain/cohort-builder/release-schema-readiness.ts` exporting `assertReleaseSchema(sql)` to validate `interaction_effects` table and check constraints (`interaction_effects_state_ck`, `interaction_effects_mode_ck`).
+  - Hardened `scripts/interaction-readiness.ts`:
+    - Checks `INTERACTION_LOCAL_MODEL_FIXTURE === '1'`. Enforces `forbidden_fixture_configuration` if enabled under `NODE_ENV === 'production'` or against a non-loopback / non-s3test database.
+    - Inspects `env.INTERACTION_GITHUB_TOKEN ?? env.GITHUB_TOKEN` for token presence and reports `rate_limit_risk` if unauthenticated.
+    - Verifies `assertReleaseSchema` within `interactionSqlCheck()`.
+    - Probes active worker leases (`cohort_text_jobs` running with active lease) and reports background worker execution status.
+    - Adds `MONGODB_URI` presence check for learner chunk progress persistence (`UserChunkProgress`).
+  - Expanded unit tests in `scripts/interaction-readiness.test.ts` (all 21 tests passed).
+  - Updated documentation in `docs/s6a-configuration-profiles.md`, `docs/s6a-rollout-rehearsal.md`, and `docs/s6a-operator-handoff.md` to document honest fallback screen behavior (`/quest/start`) with explicit link (`<a href="/quest/new?handoff=1">Continue with existing creator</a>`) instead of silent redirection.
+- Checkpoint 2 (Close S4 Ingestion & Provider Acceptance - Commit `d8b7294`):
+  - Verified live unauthenticated GitHub REST API tree and blob fetching against public `octocat/Hello-World` repo (`src/server/domain/cohort-builder/__tests__/github-source-live.test.ts` 11/11 tests passed in 883ms).
+  - Verified S4 canonical DAGs and source adapters (`source-adapters.test.ts`, `github-canonical-jobs.test.ts`, `youtube-canonical-jobs.test.ts` 24/24 tests passed).
+  - Updated `docs/s4-closure-audit.md` formalizing token precedence and clarifying YouTube Google Data API v3 OAuth constraints vs deterministic dev fixtures (`INTERACTION_YOUTUBE_FIXTURE=1`).
+- Checkpoint 3 (S5 Learner Behavior & Progress Persistence - Commit `3fe8f93`):
+  - Verified S5 release transaction and delivery suites: `delivery.test.ts`, `release.test.ts`, `release-actions.test.ts`, `release-postgres.test.ts` (33/33 tests passed).
+  - Audited `/api/progress/chunk`, `/api/feed`, and `ChunkProgressService`.
+  - Added unit tests in `src/server/domain/progress/__tests__/chunkProgress.test.ts` verifying `getUserProgressMap` returns an empty `Map` safely without throwing when `MONGODB_URI` is unset.
+- Checkpoint 4 (S6A Rollout & Rollback Rehearsal - Commit `00d0068`):
+  - Updated `scripts/rehearse-additive-rollout.ts` to incorporate `assertReleaseSchema(sqlAdapter)` in Phase 5.
+  - Rehearsed all 11 phases (`npm run interaction:rehearse:rollout`) on isolated disposable PostgreSQL (port 15433). All phases passed cleanly (exit 0).
+- Checkpoint 5 (Full Sequential Regressions & Verification Gates):
+  - `npm run interaction:worker:check`: Passed (exit 0).
+  - `node scripts/verify-packed-consumer.mjs`: All 6 verification stages passed (exit 0).
+  - `npx vitest run --maxWorkers=2`: 212 test files passed, 1501 tests passed, 2 skipped (exit 0).
+  - `npm run verify:vercel`: Next.js production build simulation succeeded in 49.2s (exit 0).
 
 S6A Operational Readiness & Rollout Preparation (Checkpoints 1-5):
 - Checkpoint 1 (Accurate Capability & Readiness Inventory):
