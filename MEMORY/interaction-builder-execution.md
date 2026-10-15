@@ -1,8 +1,29 @@
 # Interaction builder execution checkpoint
 
-STATUS: S4, S5, AND S6A LOCAL BASELINE FULLY CLOSED & VERIFIED (`packages/interaction-builder` + host). Real learner-progress persistence through authenticated UI/API into isolated MongoDB verified. Authenticated intake disable/resume, data preservation, and local re-enable verified. Fail-closed configuration profiles, release schema readiness assertions, worker resilience, additive migration rehearsals on isolated PostgreSQL, and operator handoff package are complete. Shared production rollout (S6) remains pending operator execution.
-LAST_CHECKPOINT: `IB-PROGRESS-PERSISTENCE-DISABLE-RESUME-ACCEPTANCE-2026-10-15`
-NEXT: Controlled operator rollout (S6 shared rollout according to `docs/s6a-operator-handoff.md`).
+STATUS: S6 CHECKPOINT 1 (SECURITY & AUTHORITY ENFORCEMENT) COMPLETE & VERIFIED. Origin/CSRF protections, request body bounds, stale approval CAS concurrency guards, tenant isolation, URL protocol sanitization, SSRF IP/metadata blocking, and tool execution boundaries are enforced across host routes and services. S4, S5, and S6A local baselines remain fully verified.
+LAST_CHECKPOINT: `IB-S6-SECURITY-AUTHORITY-ENFORCEMENT-2026-10-15`
+NEXT: S6 Checkpoint 2 (Budget & Resource Controls / Operational Gate).
+
+S6 Checkpoint 1: Security & Authority Enforcement (2026-10-15):
+- Axis 1 (Ownership & Tenant Isolation): Foreign owner blocked from reading/modifying workspace, streaming events (404), or releasing (403 UNAUTHORIZED_OWNER). Foreign artifact attachment rejected (`ARTIFACT_NOT_FOUND`).
+- Axis 2 (CSRF / Origin Check): Enforced `request.headers.get('origin') === new URL(request.url).origin` returning 403 `INVALID_ORIGIN` across `/api/cohort-builder/workspaces/[workspaceId]/release`, `/api/interaction/v1/workspaces`, `/api/cohort-builder/intake`, and `/api/cohort-builder/.../pdf`.
+- Axis 3 (Payload Bounds): Enforced `MAX_RELEASE_BODY = 64KB` (413 `INPUT_TOO_LARGE`) on release route, `MAX_BODY = 256KB` on interaction actions, `850KB` on intake stream, `2MB` on PDF uploads.
+- Axis 4 (Tool Capabilities & Strict Schemas): Model tools strictly allowlisted and validated via `cohortActionSchema` and Zod (`z.strictObject`). Unregistered capabilities or injected fields fail validation before side effects (T14).
+- Axis 5 (Stale Approvals & Revision CAS): Added `expectedRevision` CAS check to `ReleaseWorkspaceParams`, `releaseWorkspace`, and `release/route.ts`. Modifications post-approval throw 409 `STALE_WORKSPACE` (T21). Downgrades from public to private blocked (`CANNOT_DOWNGRADE_PUBLIC_COHORT`).
+- Axis 6 (Untrusted Content & Safe Links): Created `sanitizeHref` utility in `src/shared/cohort-builder/security.ts`. Neutralizes `javascript:`, `data:`, `vbscript:`, protocol-relative `//` escapes, backslashes `/\`, and control characters. Destination links sanitized in `ReleasePanel.tsx` (T17).
+- Axis 7 (SSE Authorization): Stream lifetime capped at 25s; ownership verified on open and per-poll; stream terminates on 401/404/403.
+- Axis 8 (Import Boundaries & Secret Isolation): `server-only` markers in place; strict package subpath exports verified via `node scripts/verify-packed-consumer.mjs` (exit 0) and Next.js production build (exit 0).
+- Axis 9 (SSRF & Parser Security): `web-fetch.ts` employs `BlockList` blocking private IPv4/IPv6, loopback, and cloud metadata (`169.254.169.254`). Socket remote address pinned against resolved address. PDF signatures validated (`%PDF-`).
+- Automated Regression Coverage:
+  - `src/server/domain/cohort-builder/__tests__/security-enforcement.test.ts`: 20/20 adversarial tests passing.
+  - Full domain test suite: 39 test files / 245 tests passing.
+  - Full package test suite: 23 test files / 82 tests passing.
+  - Full client builder test suite: 9 test files / 109 tests passing.
+  - `npm run interaction:worker:check`: Passed (exit 0).
+  - `node scripts/verify-packed-consumer.mjs`: Passed (exit 0).
+  - `npx tsc --noEmit --pretty false`: 0 errors (exit 0).
+  - `node scripts/verify-vercel.mjs`: Full Vercel simulation passed in 82.2s (exit 0).
+- Gate Ledger: Documented in `docs/s6-security-gate-ledger.md`. S4 live YouTube caption acquisition remains explicitly recorded as OPEN due to Google Data API v3 OAuth constraints.
 
 Definitive Acceptance & Hardening Pass (Checkpoints A-C):
 - Checkpoint A (Real Learner-Progress Persistence into Isolated MongoDB):
