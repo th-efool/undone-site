@@ -88,3 +88,28 @@ This ledger records the verified enforcement state of security and authority bou
 6. `npx tsc --noEmit --pretty false`: **PASSED (exit 0, 0 errors)**
 7. `node scripts/verify-vercel.mjs`: **Full Vercel simulation PASSED in 46.3s (exit 0)**
 
+---
+
+## 6. S6 Checkpoint 4: Supervision, Controls, Metrics & Measured Load
+
+| Axis | Boundary | Enforcement Mechanism | Adversarial Test Coverage | Status |
+| --- | --- | --- | --- | --- |
+| **1. Driver Authority Identification** | Intended execution driver | Next HTTP + Supervised Node Worker (`src/server/interaction-worker.ts`) + PostgreSQL single authority. Workflow verified as v1-only; no competing execution authority for v2. | Verified across repository entry points and `interaction-worker.ts`. | **ENFORCED & VERIFIED** |
+| **2. Worker Heartbeat & Liveness** | Independent worker liveness vs job leases | `interaction_worker_heartbeats` table tracks worker registration, heartbeat timestamp, host, PID, and active claims count. Distinguishes active workers (`lastHeartbeat < 30s`) from stale/crashed workers. Clean deregistration on SIGTERM/SIGINT. | `worker-supervision.test.ts` (T1, T2): Worker heartbeats recorded, stale workers detected, clean shutdown deregistered. | **ENFORCED & VERIFIED** |
+| **3. Missing-Worker Bounded Queue Growth** | Worker absence failure mode | `assertAdmissionQueueCapacity` blocks silent shifting of heavy work to browser threads when no workers are active. Admits queued work up to bounded ceiling (50); rejects with 503 `WORKER_UNAVAILABLE` (`{ retryable: true }`) when exceeded. | `worker-supervision.test.ts` (T3): Queue bounded under worker absence; 503 thrown on overload; recovers on worker restart. | **ENFORCED & VERIFIED** |
+| **4. Extended Diagnostics & Privacy Redaction** | Operator visibility vs secret disclosure | `collectWorkerDiagnostics` reports worker supervision status, outbox event lag, budget accounting, and release statistics. `formatDiagnosticsReport` redacts correlation IDs (`redactId`), strips prompt/source text, secrets, and raw provider payloads. | `worker-supervision.test.ts` (T4): Full diagnostics report formatted with redacted IDs and zero secret leakage. | **ENFORCED & VERIFIED** |
+| **5. Administrative Controls & Audit Trail** | Operator controls vs model tools | Dedicated `cohort_admin_controls` and immutable `cohort_admin_control_audit` tables. Provides typed operations for intake toggles, model call pauses, specific job/run cancellation, source capability toggles, and public release suspension. Strictly unavailable to model tools. | `admin-controls.test.ts` (T1-T4): Safe defaults, audit trail logging, work item cancellation with conservative accounting, and strict model tool isolation verified. | **ENFORCED & VERIFIED** |
+| **6. Measured Load Acceptance** | Performance distributions vs Plan 06 targets | `scripts/load/measured-load-harness.ts` (`npm run interaction:load:measure`) measures intake acknowledgement (p95 3.37ms vs < 1000ms target), event visibility (p95 0.85ms vs < 1000ms target), reconnect/resnapshot (p95 0.15ms vs < 3000ms target), 0 lost accepted actions, 0 duplicate releases, and overload recovery. | `measured-load.test.ts` (T1-T3): Sample calculations, hardware profiling, and load run pass all Plan 06 provisional performance targets. | **ENFORCED & VERIFIED** |
+
+### Automated Evidence for Checkpoint 4:
+1. `npm run interaction:load:measure`: **PASSED (all Plan 06 provisional targets met)**
+2. `npx vitest run src/server/domain/cohort-builder/__tests__/worker-supervision.test.ts`: **4/4 PASSED in 14ms**
+3. `npx vitest run src/server/domain/cohort-builder/__tests__/admin-controls.test.ts`: **4/4 PASSED in 16ms**
+4. `npx vitest run src/server/domain/cohort-builder/__tests__/measured-load.test.ts`: **3/3 PASSED in 17ms**
+5. `npx vitest run src/server/domain/cohort-builder/ --maxWorkers=2`: **45 test files / 273 tests PASSED in 65.7s**
+6. `npm run interaction:worker:check`: **PASSED (exit 0)**
+7. `node scripts/verify-packed-consumer.mjs`: **6/6 stages PASSED (exit 0)**
+8. `npx tsc --noEmit --pretty false`: **PASSED (exit 0, 0 errors)**
+9. `node scripts/verify-vercel.mjs`: **Full Vercel simulation PASSED in 79.6s (exit 0)**
+
+

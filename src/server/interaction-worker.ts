@@ -13,6 +13,12 @@ import { cohortAssistantPrompt } from './domain/cohort-builder/context';
 import { selectedLessonForLatestTurn } from './domain/cohort-builder/selection';
 import { cohortWorkspaceSchema, type CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import { settleModelTurnBudget } from './domain/cohort-builder/budget-policy';
+import {
+  recordWorkerHeartbeat,
+  deregisterWorker,
+  initWorkerSupervisionTables,
+  type SupervisionSql,
+} from './domain/cohort-builder/worker-supervision';
 
 export interface InteractionWorkerOptions {
   repo?: InteractionRepository;
@@ -20,6 +26,7 @@ export interface InteractionWorkerOptions {
   pollIntervalMs?: number;
   leaseDurationMs?: number;
   heartbeatIntervalMs?: number;
+  supervisionSql?: SupervisionSql;
   textWorkspaceCandidates?: () => Promise<Array<{ id: string; ownerId: string }>>;
 }
 
@@ -39,11 +46,47 @@ export async function runInteractionWorkerLoop(
       AND COALESCE("snapshot"->'processing'->>'driver', 'snapshot') <> 'durable'
     ORDER BY "updatedAt" ASC LIMIT 20`);
 
+  const supervisionSql = options.supervisionSql ?? (process.env.DATABASE_URL ? {
+    query: async (stmt: string, params: unknown[] = []) => {
+      try {
+        const rows = await prisma.$queryRawUnsafe<any[]>(stmt, ...params);
+        return { rows: Array.isArray(rows) ? rows : [] };
+      } catch {
+        await prisma.$executeRawUnsafe(stmt, ...params).catch(() => {});
+        return { rows: [] };
+      }
+    },
+  } : undefined);
+
+  if (supervisionSql) {
+    try {
+      await initWorkerSupervisionTables(supervisionSql);
+      await recordWorkerHeartbeat(supervisionSql, {
+        workerId,
+        driver: textDriver(),
+        status: 'active',
+      });
+    } catch (err) {
+      console.warn('[interaction-worker] Initial supervision heartbeat skipped:', err);
+    }
+  }
+
+  let lastWorkerHeartbeat = Date.now();
   const durable = textDriver() === 'durable'
     ? await createTextJobRuntime(process.env.DATABASE_URL ?? '', workerId, leaseDurationMs) : null;
   try {
   while (!signal.aborted) {
     try {
+      if (supervisionSql && (Date.now() - lastWorkerHeartbeat >= heartbeatIntervalMs)) {
+        try {
+          await recordWorkerHeartbeat(supervisionSql, {
+            workerId,
+            driver: textDriver(),
+            status: 'active',
+          });
+          lastWorkerHeartbeat = Date.now();
+        } catch {}
+      }
       // Prioritize interactive assistant runs so background bulk text jobs cannot starve interactive turns
       const leaseToken = randomUUID();
       const run = await repo.claimRun({
@@ -145,7 +188,14 @@ export async function runInteractionWorkerLoop(
       await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
     }
   }
-  } finally { await durable?.close(); }
+  } finally {
+    if (supervisionSql) {
+      try {
+        await deregisterWorker(supervisionSql, { workerId, status: 'stopped' });
+      } catch {}
+    }
+    await durable?.close();
+  }
 }
 
 async function main() {
