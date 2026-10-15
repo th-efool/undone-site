@@ -1,8 +1,40 @@
 # Interaction builder execution checkpoint
 
-STATUS: ALL UX REPAIR AND LEGACY-DESIGN PARITY REPAIR CHECKPOINTS (1, 2, 3, 4, 5) COMPLETE. Shared rollout and deployment remain unauthorized. Live-provider and enabled-ingestion gates remain open and explicitly guarded.
-LAST_CHECKPOINT: `IB-UX-LEGACY-PARITY-CP3-5-VERIFICATION-2026-10-14` (Commit `1f8c58c`)
+STATUS: ALL FINAL STABILIZATION AND VISUAL ACCEPTANCE CHECKPOINTS (1, 2, 3, 4, 5) COMPLETE AND VERIFIED. Shared rollout and deployment remain unauthorized. Live-provider and enabled-ingestion gates remain open and explicitly guarded.
+LAST_CHECKPOINT: `IB-UX-FINAL-STABILIZATION-AND-ACCEPTANCE-2026-10-15` (Commit `1f4ea85`)
 NEXT: Await further user instruction. No further S4/S5 expansion without explicit user authorization.
+
+Final Stabilization and Visual Acceptance Pass (Checkpoints 1-5 - Commits `bf65a24`, `1f4ea85`):
+- Checkpoint 1 (Draft & Inspection Preservation Across Stage Transitions):
+  - Created `src/client/screens/cohortBuilder/draft-context.tsx` providing an in-memory draft store scoped strictly by `workspaceKey = `${ownerId ?? ''}:${workspaceId}`` to prevent any draft leakage across workspaces or owners.
+  - Preserves dirty drafts across unmounted stage views (`IntakeStageView`, `CurriculumStageView`, `ChunkingStageView`, `AnalysisStageView`, `ExternalSources`) for pasted sources, overview edits, lesson edits, add lesson forms, external source inputs, and inspection state (selected sources/expanded chunks).
+  - In-flight typing protection: compares current draft values against submitted snapshot upon save completion, preserving any additional characters typed while saving was in flight.
+  - Remote deletion protection: when an entity being edited is deleted remotely, the draft is retained with an honest message and options to "Save as new" or "Discard".
+  - CAS conflict handling: detects version bumps, presents conflict resolution with current remote values, and cleanly reapplies edits against the current version.
+  - Automated coverage: 8/8 tests in `draft-preservation.test.tsx` passing.
+- Checkpoint 2 (One Canonical Basis for Stage Progress & Invalidation):
+  - Refactored `src/client/screens/cohortBuilder/stage-selectors.ts` to derive stage completion and progress strictly from canonical evidence (`workspace.processing.jobs`, current `source.version` matching, accepted prerequisites, terminal failure, and cancellation semantics).
+  - Eliminated naive array length checks (`chunks.length > 0`, `lessons.length > 0`) from declaring completion.
+  - Version-scoped filtering via `getValidChunks` and `getValidAnalyses`: stale chunks and analyses from prior source versions are filtered out upon source edits/scope changes.
+  - Cancellation semantics: when `workspace.processing.status === 'idle' && workspace.processing.error === 'PROCESSING_CANCELED'`, in-flight stages are marked canceled while earlier accepted prerequisites remain preserved.
+  - Targeted retry restoration: added `Source processing jobs` sections to `UnderstandingStageView`, `ChunkingStageView`, and `AssemblyStageView` enabling targeted retry (`Retry {job.stage}`) on individual failed jobs.
+  - Automated coverage: 10/10 tests in `stage-canonical-progress.test.ts` passing.
+- Checkpoint 3 (Legacy Visual Parity & Layout Refinement):
+  - Left rail checklist: Relocated `ProcessingChecklist` to `ChatPane.tsx` in the left conversation rail right above the lightbulb hint (matching legacy `CreationExperience.tsx` and `CreationShell.tsx`), removing duplicate instances from workspace views.
+  - Eliminated toolbar vertical gap: Replaced block-level `.canvasHeader` with an absolute, backdrop-filtered pill capsule at `right: 40px; top: 22px;` (matching legacy `CreationShell.module.css`), centering `.creationSteps` and setting `.rightPane` top padding to `26px 48px 15px 44px` to eliminate the ~60px downward offset.
+  - Chat initial scroll: Initialized chat scroll to `scrollTop = 0` on mount so initial user queries and assistant greetings are never clipped.
+  - Regenerated all visual references via `scripts/creation-visual/capture-parity.mjs` (24 pairs / 48 screenshots total) into `.tmp/visual-parity-gallery/`.
+- Checkpoint 4 (Real Authenticated Browser Verification):
+  - Ran `scripts/s3-browser-verification.mjs` against isolated local PostgreSQL (port 15433) and Next.js instance (port 3107).
+  - Verified full authenticated journey to completion (`BROWSER_JOURNEY_PASS`, exit code 0).
+  - Output screenshot verified fresh at `.tmp/s3-postgres-runtime/completed.png` (162,861 bytes).
+  - Cleanly stopped all background browser/database services and confirmed ports released.
+- Checkpoint 5 (Full Sequential Regressions & Verification Gates):
+  - `npm run interaction:worker:check`: Passed (exit 0).
+  - `node scripts/verify-packed-consumer.mjs`: All 6 verification stages passed (exit 0).
+  - `npx vitest run --maxWorkers=2`: 209 test files passed, 1463 tests passed, 2 skipped (exit 0).
+  - `npm run verify:vercel`: Next.js production build simulation succeeded (exit 0).
+
 
 Legacy-Design Parity Repair Checkpoint 1 (Clean Reference Harness & Stage Selectors - Commit `fa8e83b`):
 - Root deficiency addressed: Reference visual capture exhibited unreadable API error alerts because legacy read endpoints were falling through to network fetches; builder processing fixture projected inactive steps.
