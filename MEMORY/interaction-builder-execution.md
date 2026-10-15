@@ -1,5 +1,33 @@
 # Interaction builder execution checkpoint
 
+CHECKPOINT 5 COMPLETE (2026-10-16) — Processing Views, Ready Screen, Review Stage, Truthful Evidence & Publication:
+- Processing Views & Stepper Inspection (`stage-selectors.ts`, `CohortWorkspacePane.tsx`, `ChatPane.tsx`, `ReadyStageView.tsx`):
+  - `journey.step = 'processing'` displays the actual active processing stage derived from canonical jobs/stage (`understanding`, `chunking`, `analysis`, `assembly`).
+  - Stepper navigation bar visible across `processing`, `ready`, and `review` stages (`hideStepper = false`).
+  - Completed stages remain inspectable without creating jobs or mutating workspace state; sets `inspectedStage`, renders inspected stage, displays inspection banner (`data-testid="stage-inspection-banner"`), and returns on reset.
+  - `ReadyStageView.tsx`: Full AFTER Screen 8 presentation matching `ReadyWorkspace.tsx` (headline "All set." with rays, topic header, source/chunk/lesson summary, "Processed" badge, 4 feature cards, notes row, BuildingArt, and primary/secondary CTAs for `open_review`, `prepare_release`, and `back_to_starting_point`).
+- Review Stage & Provenance Integrity (`CurriculumStageView.tsx`, `ReleasePanel.tsx`):
+  - Full AFTER Screen 9 layout: review toolbar ("Draft preview", "Save draft", "Publish cohort"), hero banner ("Learning Blueprint", "Private draft", creator info, preview button), and navigation tabs ("What you’ll see", "Overview", "Community", "About the creator").
+  - Lesson list: title, objective, pin toggle (`set_lesson_pin`), reorder up/down (`reorder_lessons`), edit modal, delete button (`remove_lesson`, disabled for pinned lessons).
+  - Source form in collapsible `<details><summary>Add or edit source text</summary>`, never permanently expanded above completed curriculum.
+  - Truthful evidence provenance: video observation ("Retained video observations ready · Coverage is non-exhaustive; timestamps are estimated."), generated guide ("AI-authored learning guide, not verified external source material. Check factual claims independently."), transcript (track details and timestamps), PDF/web (pages and character ranges).
+  - `ReleasePanel.tsx`: commit_release cleanly sets `journey.step = 'published'` and displays `PublicationStageView` without hard window navigation.
+- Publication Success (`PublicationStageView.tsx`):
+  - Appears only on committed release receipt (`journey.step = 'published'`).
+  - Exact AFTER Screen 10 presentation: celebration header, PartyPopper icon, confetti, cohort destination URL, Copy button with copied feedback, visibility badge, and next-step tiles ("View cohort", "Share", "Start learning").
+- Visual Fixtures & Server:
+  - `scripts/creation-visual/builder-fixtures.ts`: added journey fields to processing, curriculum, review workspaces; added `builderWorkspaceReady` and `builderWorkspacePublished` with valid 64-hex receipt.
+  - `scripts/creation-visual/server.mjs`: added routes for `ready` and `published` visual screens.
+- Comprehensive Testing & Verification:
+  - `journey-checkpoint5-integration.test.ts`: server integration, active stage derivation, assembly acceptance, readiness checks, release commit, and back navigation guards (7/7 passed).
+  - `journey-checkpoint5-processing.test.tsx`: UI processing derivation, stepper inspection, banner dismiss, and ReadyStageView actions (7/7 passed).
+  - `journey-checkpoint5-review.test.tsx`: UI review layout, pin/unpin/reorder actions, delete disabled for pinned, evidence provenance truthfulness, and PublicationStageView (6/6 passed).
+  - Full suite: 17 journey test files, 196/196 tests passing.
+  - `npx tsc --noEmit`: 0 TypeScript errors.
+  - `npm run verify:vercel`: 100% passed (pre-verify, submodules, typecheck, prisma, Next.js production build simulation).
+LAST_CHECKPOINT: `COHORT-JOURNEY-CP5-REVIEW-PUBLICATION-2026-10-16`
+NEXT: Post-Checkpoint 5 operational review and production rollout.
+
 CHECKPOINT 4 COMPLETE (2026-10-16) — Discovery, Goal Generation Branches & Proof Verification:
 - Discovery Durable Handler & Artifact Storage (`journey-discovery-adapter.ts`, `journey-job-handlers.ts`, `interaction.repo.ts`, `journey-discovery-adapter.test.ts`):
   - `WorkspaceArtifactStoreAdapter` stores search results in `cohort_text_artifacts` with kind `'discovery'`.

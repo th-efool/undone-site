@@ -109,8 +109,6 @@ export function ReleasePanel({
 
         if (onNavigateToDestination && data.receipt.destinationUrl) {
           onNavigateToDestination(data.receipt.destinationUrl);
-        } else if (data.receipt.destinationUrl) {
-          window.location.assign(data.receipt.destinationUrl);
         }
       }
     } catch (err) {

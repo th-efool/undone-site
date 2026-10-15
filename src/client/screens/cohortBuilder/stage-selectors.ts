@@ -37,7 +37,9 @@ export type BuilderStage =
   | 'analysis'
   | 'assembly'
   | 'curriculum'
-  | 'review';
+  | 'review'
+  | 'ready'
+  | 'published';
 
 /**
  * Pure presentation selector to derive the current active stage of a cohort workspace.
@@ -78,6 +80,65 @@ export function getActiveStage(workspace: CohortWorkspace): BuilderStage {
     }
     if (workspace.journey.step === 'goal_setup') {
       return 'goal_setup';
+    }
+    if (workspace.journey.step === 'ready') {
+      return 'ready';
+    }
+    if (workspace.journey.step === 'review') {
+      return 'review';
+    }
+    if (workspace.journey.step === 'published') {
+      return 'published';
+    }
+    if (workspace.journey.step === 'processing') {
+      const jobs = workspace.processing.jobs;
+      if (jobs && jobs.length > 0) {
+        const failedJobs = jobs.filter(j => j.status === 'failed');
+        if (failedJobs.length > 0) {
+          if (failedJobs.some(j => ['understanding', 'acquisition', 'extraction'].includes(j.stage))) {
+            return 'understanding';
+          }
+          if (failedJobs.some(j => j.stage === 'chunking')) {
+            return 'chunking';
+          }
+          if (failedJobs.some(j => j.stage === 'analysis')) {
+            return 'analysis';
+          }
+          if (failedJobs.some(j => j.stage === 'assembly')) {
+            return 'assembly';
+          }
+        }
+        const activeJobs = jobs.filter(j => j.status === 'running' || j.status === 'queued');
+        if (activeJobs.length > 0) {
+          if (activeJobs.some(j => ['understanding', 'acquisition', 'extraction'].includes(j.stage))) {
+            return 'understanding';
+          }
+          if (activeJobs.some(j => j.stage === 'chunking')) {
+            return 'chunking';
+          }
+          if (activeJobs.some(j => j.stage === 'analysis')) {
+            return 'analysis';
+          }
+          if (activeJobs.some(j => j.stage === 'assembly')) {
+            return 'assembly';
+          }
+        }
+      }
+      switch (workspace.processing.stage) {
+        case 'acquisition':
+        case 'extraction':
+        case 'understanding':
+          return 'understanding';
+        case 'chunking':
+          return 'chunking';
+        case 'analysis':
+          return 'analysis';
+        case 'assembly':
+          return 'assembly';
+        case 'done':
+          return 'assembly';
+      }
+      return 'understanding';
     }
   }
 

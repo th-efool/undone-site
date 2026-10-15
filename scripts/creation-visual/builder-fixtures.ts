@@ -67,6 +67,13 @@ const understanding1 = {
 
 export const builderWorkspaceProcessing: CohortWorkspace = {
   ...initialCohort('System Design from First Principles'),
+  journey: {
+    version: 1,
+    step: 'processing',
+    branch: 'have_material',
+    processingStarted: true,
+    intentVersion: 0,
+  },
   sources: [
     {
       id: 'source-1',
@@ -109,8 +116,53 @@ export const builderWorkspaceProcessing: CohortWorkspace = {
   },
 };
 
+export const builderWorkspaceReady: CohortWorkspace = {
+  ...initialCohort('System Design from First Principles'),
+  journey: {
+    version: 1,
+    step: 'ready',
+    branch: 'have_material',
+    processingStarted: true,
+    intentVersion: 0,
+  },
+  sources: [
+    {
+      id: 'source-1',
+      version: 0,
+      label: 'Distributed Systems Architecture Guide',
+      text: 'Quorums overlap. Logs retain writes. A write quorum and read quorum must intersect on at least one node to guarantee freshness.',
+      checksum: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      state: 'ready',
+    },
+  ],
+  chunks: [chunk1, chunk2],
+  understanding: [understanding1],
+  processing: {
+    status: 'ready',
+    stage: 'done',
+    generation: 1,
+    sourceFingerprint: 'f1a2b3c4',
+    error: null,
+    driver: 'durable',
+    jobs: [
+      { id: 'job-1', sourceId: 'source-1', stage: 'understanding', status: 'accepted', attempts: 1, error: null, retryable: false },
+      { id: 'job-2', sourceId: 'source-1', stage: 'chunking', status: 'accepted', attempts: 1, error: null, retryable: false },
+      { id: 'job-3', sourceId: 'source-1', stage: 'analysis', status: 'accepted', attempts: 1, error: null, retryable: false },
+      { id: 'job-4', sourceId: 'source-1', stage: 'assembly', status: 'accepted', attempts: 1, error: null, retryable: false },
+    ],
+  },
+  lessons: [lesson1, lesson2, lesson3],
+};
+
 export const builderWorkspaceCurriculum: CohortWorkspace = {
   ...initialCohort('System Design from First Principles'),
+  journey: {
+    version: 1,
+    step: 'review',
+    branch: 'have_material',
+    processingStarted: true,
+    intentVersion: 0,
+  },
   sources: [
     {
       id: 'source-1',
@@ -145,6 +197,33 @@ export const builderWorkspaceReview: CohortWorkspace = {
   release: {
     status: 'draft',
     mode: 'private_activation',
+  },
+};
+
+export const builderWorkspacePublished: CohortWorkspace = {
+  ...builderWorkspaceCurriculum,
+  journey: {
+    version: 1,
+    step: 'published',
+    branch: 'have_material',
+    processingStarted: true,
+    intentVersion: 0,
+  },
+  release: {
+    status: 'released',
+    mode: 'public_publish',
+    candidateHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+    cohortId: 'cohort-sys-design-1',
+    releasedAt: new Date().toISOString(),
+    receipt: {
+      effectKey: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      cohortId: 'cohort-sys-design-1',
+      workspaceId: 'ws-fixture',
+      mode: 'public_publish',
+      releasedAt: new Date().toISOString(),
+      contentHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      destinationUrl: '/cohort/cohort-sys-design-1',
+    },
   },
 };
 

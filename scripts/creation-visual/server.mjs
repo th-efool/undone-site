@@ -34,6 +34,8 @@ import {
   builderWorkspaceRecommendations,
   builderWorkspaceStartingPoint,
   builderWorkspaceMaterialInput,
+  builderWorkspaceReady,
+  builderWorkspacePublished,
   builderMaterialMessages,
   builderChatMessages,
 } from '/@fs/${workspace.replaceAll('\\', '/')}/scripts/creation-visual/builder-fixtures.ts';
@@ -116,10 +118,22 @@ if (app === 'builder') {
         <CohortInteractionScreen workspaceId="ws-fixture" ownerId="owner-test" initialView={builderWorkspaceProcessing} />
       </MockInteractionContext.Provider>
     );
+  } else if (screen === 'ready') {
+    createRoot(rootEl).render(
+      <MockInteractionContext.Provider value={{ view: builderWorkspaceReady, revision: 2, messages: [] }}>
+        <CohortInteractionScreen workspaceId="ws-fixture" ownerId="owner-test" initialView={builderWorkspaceReady} />
+      </MockInteractionContext.Provider>
+    );
   } else if (screen === 'review') {
     createRoot(rootEl).render(
       <MockInteractionContext.Provider value={{ view: builderWorkspaceReview, revision: 3, messages: builderChatMessages }}>
         <CohortInteractionScreen workspaceId="ws-fixture" ownerId="owner-test" initialView={builderWorkspaceReview} />
+      </MockInteractionContext.Provider>
+    );
+  } else if (screen === 'published') {
+    createRoot(rootEl).render(
+      <MockInteractionContext.Provider value={{ view: builderWorkspacePublished, revision: 3, messages: [] }}>
+        <CohortInteractionScreen workspaceId="ws-fixture" ownerId="owner-test" initialView={builderWorkspacePublished} />
       </MockInteractionContext.Provider>
     );
   } else {
