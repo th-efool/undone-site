@@ -100,8 +100,9 @@ Restart or reload the Next.js application processes.
 ### Step 2: Verify Intake Fallback Behavior
 1. **New User Landing**:
    - Visiting `/` or `/quest/start` detects `INTERACTION_COHORT_V2_ENABLED='0'`.
-   - The user is redirected to the legacy cohort creator `/quest/new?handoff=1`.
-   - If the user had entered a prompt, the prompt is preserved in browser `sessionStorage`.
+   - The user is navigated to `/quest/start`, which displays an honest notice: *"New builder intake is unavailable. Existing workspaces remain accessible."*
+   - The user's prompt is preserved in browser `sessionStorage` and rendered in a blockquote.
+   - For compatible drafts (prompts without pasted sources), an explicit link `<a href="/quest/new?handoff=1">Continue with existing creator</a>` is provided. If pasted text is attached, an honest incompatibility notice is displayed and the text is preserved without redirect.
 2. **Existing V2 Workspaces**:
    - Creators with existing workspaces at `/quest/build/[workspaceId]` retain **100% read, resume, and edit access**.
    - Workspaces in `interaction_workspaces` remain accessible.

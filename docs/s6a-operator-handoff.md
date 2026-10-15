@@ -118,8 +118,9 @@ If an operational incident occurs or the operator decides to pause v2 cohort cre
    INTERACTION_COHORT_V2_ENABLED=0
    ```
 2. **Reload Web Application**:
-   - New cohort creators visiting `/` or `/quest/start` are seamlessly redirected to the legacy creator `/quest/new?handoff=1`.
-   - Any typed prompt is preserved in browser `sessionStorage`.
+   - New cohort creators visiting `/` or `/quest/start` see an honest notice on `/quest/start`: *"New builder intake is unavailable. Existing workspaces remain accessible."*
+   - Any typed prompt is preserved in browser `sessionStorage` and rendered in a blockquote.
+   - For compatible drafts without attached sources, an explicit link `<a href="/quest/new?handoff=1">Continue with existing creator</a>` is presented.
 3. **Data Preservation Guarantee**:
    - All existing workspaces in `interaction_workspaces` remain **100% accessible, readable, and resumable** at `/quest/build/[workspaceId]`.
    - All released learner deliveries (`/play?cohort=...` and `/cohort/.../overview`) remain active.

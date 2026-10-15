@@ -17,9 +17,12 @@ INTERACTION_TEXT_DRIVER="durable"
 INTERACTION_COHORT_V2_ENABLED="1"
 
 # Local Deterministic Fixtures (Zero Paid API Calls)
-INTERACTION_MODEL_FIXTURE="1"
+INTERACTION_LOCAL_MODEL_FIXTURE="1"
 INTERACTION_YOUTUBE_FIXTURE="1"
 INTERACTION_GITHUB_TEST_MOCK="1"
+
+# Learner Progress Tracking (MongoDB)
+MONGODB_URI="mongodb://127.0.0.1:27017/sidequest_test"
 
 # Capabilities (Under Test)
 INTERACTION_PDF_ENABLED="1"
@@ -40,6 +43,9 @@ INTERACTION_COHORT_V2_ENABLED="1"
 # Production Model Credentials (Budget Capped)
 GEMINI_API_KEY="<production_gemini_api_key_minimum_20_chars>"
 # ANTHROPIC_API_KEY="<optional_fallback_key>"
+
+# Learner Progress Tracking (MongoDB)
+MONGODB_URI="mongodb+srv://<user>:<password>@<cluster>.mongodb.net/production?retryWrites=true&w=majority"
 
 # Supported Initial Capabilities
 INTERACTION_PDF_ENABLED="0"       # Keep disabled until file size/memory quotas verified

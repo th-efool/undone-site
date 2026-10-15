@@ -7,6 +7,7 @@ import { Pool } from 'pg';
 import { textDriver } from '../src/server/domain/cohort-builder/text-driver';
 import { assertTextJobSchema } from '../src/server/domain/cohort-builder/text-schema-readiness';
 import { assertSourceSchema } from '../src/server/domain/cohort-builder/source-policy';
+import { assertReleaseSchema } from '../src/server/domain/cohort-builder/release-schema-readiness';
 
 export type FailureReason =
   | 'missing'
@@ -20,7 +21,8 @@ export type FailureReason =
   | 'durable_driver_required'
   | 'unsupported_handler_version'
   | 'missing_provider_credentials'
-  | 'rate_limit_risk';
+  | 'rate_limit_risk'
+  | 'forbidden_fixture_configuration';
 
 export type Check = {
   name: string;
@@ -47,7 +49,11 @@ export function getConfigurationProfile(env: NodeJS.ProcessEnv): RolloutProfile 
   const isV2Enabled = env.INTERACTION_COHORT_V2_ENABLED === '1';
   const isDurable = (env.INTERACTION_TEXT_DRIVER ?? 'snapshot') === 'durable';
   const hasDb = Boolean(env.DATABASE_URL);
-  const isLocalFixture = env.NODE_ENV === 'test' || env.INTERACTION_MODEL_FIXTURE === '1' || env.S3_TEST_DATABASE_URL !== undefined;
+  const isLocalFixture =
+    env.NODE_ENV === 'test' ||
+    env.INTERACTION_LOCAL_MODEL_FIXTURE === '1' ||
+    env.INTERACTION_MODEL_FIXTURE === '1' ||
+    env.S3_TEST_DATABASE_URL !== undefined;
 
   if (isLocalFixture) return 'isolated_local';
   if (!isV2Enabled) return 'disabled_intake';
@@ -132,10 +138,48 @@ export function interactionConfigurationChecks(env: NodeJS.ProcessEnv): Check[] 
     });
   }
 
-  // 5. Model Provider Credentials (Read-only presence, no paid API calls)
+  // 5. Local Model Fixture Safety Check
+  const isLocalFixtureRequested =
+    env.INTERACTION_LOCAL_MODEL_FIXTURE === '1' || env.INTERACTION_MODEL_FIXTURE === '1';
+  if (isLocalFixtureRequested) {
+    let dbHost = '';
+    let dbPath = '';
+    try {
+      if (env.DATABASE_URL) {
+        const u = new URL(env.DATABASE_URL);
+        dbHost = u.hostname;
+        dbPath = u.pathname;
+      }
+    } catch {}
+    const isProduction = env.NODE_ENV === 'production';
+    const isLoopback = ['127.0.0.1', 'localhost'].includes(dbHost);
+    const isS3TestDb = dbPath.startsWith('/s3test');
+
+    if (isProduction || (env.DATABASE_URL && (!isLoopback || !isS3TestDb))) {
+      checks.push({
+        name: 'Deterministic Local Model Fixture mode',
+        required: true,
+        status: 'blocked',
+        reason: 'forbidden_fixture_configuration',
+        details: 'Local model fixture is strictly forbidden in production or against non-loopback/non-s3test database',
+      });
+    } else {
+      checks.push({
+        name: 'Deterministic Local Model Fixture mode (active)',
+        required: false,
+        status: 'configured',
+        details: 'Local deterministic mock enabled for test/dev loopback database',
+      });
+    }
+  }
+
+  // 6. Model Provider Credentials (Read-only presence, no paid API calls)
   const isGeminiConfigured = isSecretConfigured(env.GEMINI_API_KEY);
   const isAnthropicConfigured = isSecretConfigured(env.ANTHROPIC_API_KEY);
-  const isTestMock = env.NODE_ENV === 'test' || env.INTERACTION_MODEL_FIXTURE === '1';
+  const isTestMock =
+    env.NODE_ENV === 'test' ||
+    env.INTERACTION_LOCAL_MODEL_FIXTURE === '1' ||
+    env.INTERACTION_MODEL_FIXTURE === '1';
 
   checks.push({
     name: 'Google Gemini key presence (not live validation)',
@@ -151,7 +195,7 @@ export function interactionConfigurationChecks(env: NodeJS.ProcessEnv): Check[] 
     status: isAnthropicConfigured ? 'configured' : 'not_configured',
   });
 
-  // 6. Capability-Specific Configuration Checks
+  // 7. Capability-Specific Configuration Checks
   // PDF
   if (env.INTERACTION_PDF_ENABLED === '1') {
     checks.push({
@@ -213,13 +257,16 @@ export function interactionConfigurationChecks(env: NodeJS.ProcessEnv): Check[] 
 
   // GitHub
   if (env.INTERACTION_GITHUB_ENABLED === '1') {
-    const hasToken = isSecretConfigured(env.GITHUB_TOKEN);
+    const configuredToken = env.INTERACTION_GITHUB_TOKEN ?? env.GITHUB_TOKEN;
+    const hasToken = isSecretConfigured(configuredToken);
     checks.push({
       name: 'GitHub Source Capability (enabled)',
       required: false,
       status: 'configured',
       reason: hasToken ? undefined : 'rate_limit_risk',
-      details: hasToken ? 'Dedicated GITHUB_TOKEN configured' : 'Warning: Unauthenticated API limited to 60 req/hr',
+      details: hasToken
+        ? `Dedicated ${env.INTERACTION_GITHUB_TOKEN ? 'INTERACTION_GITHUB_TOKEN' : 'GITHUB_TOKEN'} configured`
+        : 'Warning: Unauthenticated API limited to 60 req/hr',
     });
   } else {
     checks.push({
@@ -228,6 +275,19 @@ export function interactionConfigurationChecks(env: NodeJS.ProcessEnv): Check[] 
       status: 'disabled',
     });
   }
+
+  // 8. Learner Progress Persistence (MongoDB)
+  const isMongoConfigured =
+    isSecretConfigured(env.MONGODB_URI) ||
+    Boolean(env.MONGODB_URI && (env.MONGODB_URI.startsWith('mongodb://') || env.MONGODB_URI.startsWith('mongodb+srv://')));
+  checks.push({
+    name: 'MONGODB_URI presence (for learner progress persistence)',
+    required: false,
+    status: isMongoConfigured ? 'configured' : 'not_configured',
+    details: isMongoConfigured
+      ? 'UserChunkProgress persistence enabled'
+      : 'Optional for builder; required for learner progress tracking (UserChunkProgress)',
+  });
 
   return checks;
 }
@@ -311,6 +371,31 @@ export async function interactionSqlCheck(): Promise<Check> {
               return check;
             }
           }
+
+          check.name = 'PostgreSQL interaction + S3 durable + S5 release effects schema';
+          try {
+            await assertReleaseSchema({ query: (statement, parameters) => pool.query(statement, parameters) });
+          } catch (releaseErr: any) {
+            check.status = 'blocked';
+            check.reason = 'schema_incomplete';
+            check.details = releaseErr.message;
+            await pool.end();
+            return check;
+          }
+
+          let activeWorkerDetails = '';
+          try {
+            const activeLeaseRes = await pool.query<{ count: number }>(
+              `SELECT count(*)::int AS count FROM "cohort_text_jobs" WHERE "status" = 'running' AND "leaseUntil" > CURRENT_TIMESTAMP`
+            );
+            const activeCount = Number(activeLeaseRes.rows[0]?.count ?? 0);
+            activeWorkerDetails = activeCount > 0
+              ? `Active worker leases detected (${activeCount} running)`
+              : 'No active worker leases (start background worker with `npm run interaction:worker`)';
+          } catch {
+            activeWorkerDetails = 'Worker lease status unavailable';
+          }
+          check.details = activeWorkerDetails;
         }
         check.status = 'ready';
         check.reason = undefined;
