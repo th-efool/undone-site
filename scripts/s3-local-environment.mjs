@@ -1,5 +1,5 @@
 /** Disposable local verification environment. Never reads the shared connection string. */
-import { mkdirSync, mkdtempSync, writeFileSync, createWriteStream, symlinkSync, copyFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync, createWriteStream, symlinkSync, copyFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { spawn, spawnSync } from 'node:child_process';
@@ -15,9 +15,19 @@ const { default: EmbeddedPostgres } = await import(pathToFileURL(modulePath).hre
 const database = new EmbeddedPostgres({ databaseDir: resolve(directory,'data'), user:'s3test', password:'s3-local-only', port,
   persistent:true, createPostgresUser:false, postgresFlags:['-h','127.0.0.1','-c','timezone=UTC'], onLog:() => {}, onError:console.error });
 let host;
+let mongod;
+let mongoUri = '';
 try {
   await database.initialise(); await database.start(); await database.createDatabase('s3test');
   const connectionString = `postgresql://s3test:s3-local-only@127.0.0.1:${port}/s3test`;
+  const mongoModule = resolve(root, process.env.S3_MONGODB_MEMORY_SERVER_MODULE ?? '.tmp/s3-postgres-runtime/node_modules/mongodb-memory-server/index.js');
+  const mongoBin = resolve(root, process.env.S3_MONGOD_BINARY ?? '.tmp/s3-postgres-runtime/node_modules/.cache/mongodb-memory-server/mongod-x64-win32-8.2.6.exe');
+  if (existsSync(mongoModule) && existsSync(mongoBin)) {
+    const { MongoMemoryServer } = await import(pathToFileURL(mongoModule).href);
+    mongod = await MongoMemoryServer.create({ binary: { systemBinary: mongoBin } });
+    mongoUri = `${mongod.getUri()}s5test`;
+    console.log(`S3_TEST_MONGODB_URI=${mongoUri}`);
+  }
   const schema = spawnSync(process.execPath, ['node_modules/prisma/build/index.js','migrate','diff','--from-empty','--to-schema','prisma/schema.prisma','--script'],
     { cwd:root, encoding:'utf8', env:{ ...process.env, DATABASE_URL:connectionString }, windowsHide:true });
   if (schema.status !== 0) throw new Error(schema.stderr);
@@ -46,7 +56,7 @@ try {
     symlinkSync(resolve(root,'generated'),resolve(hostDirectory,'generated'),'junction');
     const script = [{ tool:'set_intent', input:{ intent:'Learn quorum overlap' }, text:'Learning goal saved.', delayMs: 6000 },
       { tool:'edit_lesson', input:{ lessonId:'$selected', objective:'Explain quorum overlap.' }, text:'Selected lesson refined.' }];
-    writeFileSync(resolve(hostDirectory,'.env'), `DATABASE_URL=${connectionString}\nAUTH_SECRET=${randomBytes(32).toString('hex')}\nNODE_ENV=development\nINTERACTION_COHORT_V2_ENABLED=1\nINTERACTION_TEXT_DRIVER=durable\nINTERACTION_PDF_ENABLED=1\nINTERACTION_WEB_ENABLED=1\nINTERACTION_YOUTUBE_ENABLED=1\nINTERACTION_YOUTUBE_FIXTURE=1\nINTERACTION_GITHUB_ENABLED=1\nINTERACTION_GITHUB_FIXTURE=1\nINTERACTION_LOCAL_SOURCE_FIXTURE=1\nINTERACTION_LOCAL_MODEL_FIXTURE=1\nINTERACTION_LOCAL_MODEL_SCRIPT='${JSON.stringify(script)}'\n`);
+    writeFileSync(resolve(hostDirectory,'.env'), `DATABASE_URL=${connectionString}\nAUTH_SECRET=${randomBytes(32).toString('hex')}\nNODE_ENV=development\nINTERACTION_COHORT_V2_ENABLED=1\nINTERACTION_TEXT_DRIVER=durable\nINTERACTION_PDF_ENABLED=1\nINTERACTION_WEB_ENABLED=1\nINTERACTION_YOUTUBE_ENABLED=1\nINTERACTION_YOUTUBE_FIXTURE=1\nINTERACTION_GITHUB_ENABLED=1\nINTERACTION_GITHUB_FIXTURE=1\nINTERACTION_LOCAL_SOURCE_FIXTURE=1\nINTERACTION_LOCAL_MODEL_FIXTURE=1\nINTERACTION_LOCAL_MODEL_SCRIPT='${JSON.stringify(script)}'\n${mongoUri ? `MONGODB_URI=${mongoUri}\n` : ''}`);
     const log = createWriteStream(resolve(directory,'host.log'));
     host = spawn(process.execPath,[resolve(root,'node_modules/next/dist/bin/next'),'dev','--webpack','-p','3107'],
       { cwd:hostDirectory, stdio:['ignore','pipe','pipe'], windowsHide:true });
@@ -56,6 +66,6 @@ try {
   console.log(`S3_TEST_DATABASE_URL=${connectionString}`);
   console.log('Local fixtures ready. Ctrl+C stops services; fixture files remain under .tmp.');
   const timer = setInterval(() => {},1000);
-  async function stop() { clearInterval(timer); host?.kill(); await database.stop(); process.exit(0); }
+  async function stop() { clearInterval(timer); host?.kill(); await database.stop(); if (mongod) await mongod.stop(); process.exit(0); }
   process.once('SIGINT',stop); process.once('SIGTERM',stop);
-} catch (error) { host?.kill(); await database.stop().catch(() => {}); throw error; }
+} catch (error) { host?.kill(); await database.stop().catch(() => {}); if (mongod) await mongod.stop().catch(() => {}); throw error; }

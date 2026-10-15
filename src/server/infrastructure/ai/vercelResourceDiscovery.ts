@@ -25,7 +25,7 @@ function sanitized(error: unknown, signal: AbortSignal) {
     signal.reason?.name === 'TimeoutError' || !signal.aborted ? 'AI_TIMEOUT' : 'CANCELLED',
     signal.reason?.name === 'TimeoutError' || !signal.aborted ? 'Source discovery took too long. Try again.' : 'Source discovery was canceled.');
   if (invalid(error)) return creationFailure('AI_INVALID_OUTPUT', 'Source discovery output could not be validated. Try again.');
-  if (APICallError.isInstance(error) && error.statusCode === 429) return creationFailure('RATE_LIMITED', 'Source discovery is busy. Try again later.');
+  if (APICallError.isInstance(error) && (error as { statusCode?: number }).statusCode === 429) return creationFailure('RATE_LIMITED', 'Source discovery is busy. Try again later.');
   return creationFailure('AI_UNAVAILABLE', 'Source discovery is unavailable. Try again later.');
 }
 function boundedPrompt(input: unknown) {
