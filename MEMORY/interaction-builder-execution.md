@@ -1,8 +1,28 @@
 # Interaction builder execution checkpoint
 
-STATUS: S6 CHECKPOINT 2 (BUDGETS, QUOTAS & ADMISSION CONTROL) COMPLETE & VERIFIED. Per-user concurrency ceilings, atomic pre-execution reservations in creation_budgets, conservative settlement on worker failures/unknown outcomes, non-refunding cancellation accounting, and fair worker scheduling (interactive prioritized over background DAG) are enforced across the host. Engine and host policy remain strictly decoupled. S4, S5, S6 Checkpoint 1, and S6A remain fully verified.
-LAST_CHECKPOINT: `IB-S6-BUDGET-QUOTA-ADMISSION-2026-10-15`
-NEXT: S6 Checkpoint 3 (Retention and Restore Integrity).
+STATUS: S6 CHECKPOINT 3 (RETENTION, SAFE CLEANUP & RESTORE INTEGRITY) COMPLETE & VERIFIED. Explicit lifecycle retention policies, fail-closed production policy validation, workspace tombstoning with immediate access revocation and in-flight cancellation, atomic read leases and permanent release pins, dry-run inspect mode by default, bounded sweep batches, ownership-safe export, and comprehensive backup/restore drills across isolated databases are enforced and verified. S4, S5, S6 Checkpoint 1, S6 Checkpoint 2, and S6A remain fully verified.
+LAST_CHECKPOINT: `IB-S6-RETENTION-RESTORE-DRILL-2026-10-15`
+NEXT: S6 Checkpoint 4 (Supervision, Controls, Metrics and Measured Load).
+
+S6 Checkpoint 3: Retention, Safe Cleanup & Backup/Restore Integrity (2026-10-15):
+- 1. Explicit Policy Separation: Separate day policies in `CohortRetentionPolicy`: transcripts (90d), replay (7d), drafts (30d), orphans (1d), tombstones (14d). Transcripts strictly outlive replay events. Released artifacts permanently pinned (`pinnedPermanently: true`).
+- 2. Production Policy Validation: `validateCohortRetentionPolicy(policy, isProduction)` fails closed in production when required policy parameters are missing or invalid (`CohortRetentionPolicyError`). Never invents unverified retention promises.
+- 3. Tombstoning & Revocation: `tombstoneWorkspace` verifies ownership, transitions status to `'tombstoned'`, cancels active runs (`WORKSPACE_TOMBSTONED`), cancels active DAG jobs, marks artifacts with `tombstonedAt` (leaving released artifacts intact), logs to `cohort_retention_audit_log`.
+- 4. Active Read Protection (Leases): `acquireArtifactReadLease` sets `readLeaseUntil`. `runRetentionSweep` Sweep 2 skips any artifact where `readLeaseUntil > now()`. Reclaims safely once lease expires.
+- 5. Released Content Protection (Pins): `pinArtifactPermanently` sets `pinnedPermanently: true`. Tombstoning a draft workspace or running orphan cleanup never deletes pinned artifacts required by public/private cohorts.
+- 6. Inspect-Only Default & Bounded Sweeps: `runRetentionSweep` defaults to `dryRun: true` (inspect mode). Sweep mutations require explicit `dryRun: false` and isolated target environment (`ALLOW_PRODUCTION_CLEANUP !== '0'`). Deletions capped at `batchLimit` per sweep.
+- 7. Ownership-Safe Export: `exportWorkspaceData` enforces strict ownership check (`UNAUTHORIZED_OWNER`). Produces portable self-contained bundle with SHA-256 checksums, transcript, events, artifacts, and jobs.
+- 8. Backup Restore Integrity Drill: `validateBackupBundle` verifies SHA-256 checksums, byte lengths, and artifact references. `restoreWorkspaceFromBundle` restores state into fresh database, recovers in-flight jobs (`running` → `queued`), and demotes corrupted/incomplete cohorts to draft (`processing.error`).
+- Automated Regression Coverage:
+  - `src/server/domain/cohort-builder/__tests__/retention-cleanup.test.ts`: 6/6 adversarial tests passing (7.0s).
+  - `src/server/domain/cohort-builder/__tests__/backup-restore-drill.test.ts`: 3/3 drill tests passing (4.7s).
+  - Full domain test suite: 42 test files / 262 tests passing (66.4s).
+  - Submodule test suite (`packages/interaction-builder`): 23 test files / 82 tests passing (2.5s).
+  - `npm run interaction:worker:check`: Passed (exit 0).
+  - `node scripts/verify-packed-consumer.mjs`: All 6 stages passed (exit 0).
+  - `npx tsc --noEmit --pretty false`: 0 errors (exit 0).
+  - `node scripts/verify-vercel.mjs`: Full Vercel simulation passed in 46.3s (exit 0).
+- Gate Ledger: Documented in `docs/s6-security-gate-ledger.md` Section 5. S4 live YouTube caption acquisition remains explicitly recorded as OPEN due to Google Data API v3 OAuth constraints.
 
 S6 Checkpoint 2: Budgets, Quotas & Admission Control (2026-10-15):
 - 1. Per-User Concurrency Ceilings: `checkUserConcurrency` enforces configured limit (`COHORT_BUILDER_MAX_CONCURRENT_RUNS_PER_USER = 1`) across all active runs (`queued`, `running`) owned by user across workspaces. Rejections return HTTP 429 `CONCURRENT_RUNS_EXCEEDED` (`{ retryable: true }`). Tenant isolated.
