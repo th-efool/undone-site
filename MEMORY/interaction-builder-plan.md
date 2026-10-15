@@ -1,6 +1,6 @@
 # interaction-builder-plan
 
-STATUS: S0 THROUGH S5 AND S6A OPERATIONAL READINESS COMPLETE & LOCALLY VERIFIED (`packages/interaction-builder` + host). Final closure pass complete: S4 ingestion closure, S5 learner delivery and progress persistence, S6A local rollout and rollback rehearsal, and full sequential regression pipeline verified. S6 production rollout remains pending operator execution. See `MEMORY/interaction-builder-execution.md` and `docs/s6a-rollout-rehearsal.md` for current paths/evidence; historical tables below describe earlier checkpoints.
+STATUS: S0 THROUGH S5 AND S6A OPERATIONAL READINESS COMPLETE & LOCALLY VERIFIED (`packages/interaction-builder` + host). Real learner-progress persistence through authenticated UI/API into isolated MongoDB verified. Authenticated intake disable/resume, data preservation, and local re-enable verified. Full sequential regression pipeline verified. S6 production rollout remains pending operator execution. See `MEMORY/interaction-builder-execution.md` and `docs/s6a-rollout-rehearsal.md` for current paths/evidence; historical tables below describe earlier checkpoints.
 ROOT: `D:/ThisPC/Documents/SideQuestHQ/undone-site`
 SCOPE: reusable embedded human–AI–website interaction layer; cohort creation first domain; agenda reference domain in package.
 NOT: website/app/code generation, generated-site hosting, arbitrary executable UI.
