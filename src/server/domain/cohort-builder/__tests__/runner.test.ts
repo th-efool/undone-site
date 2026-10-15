@@ -42,6 +42,28 @@ const initialSnapshot: CohortWorkspace = {
 const WS = '7b91950e-561b-4fbc-bdf5-d4e51147a4f9';
 
 describe('Cohort Assistant Runner (Chat ↔ Right Workspace Sync)', () => {
+  it('advertises required tool inputs through the real provider adapter and commits the supplied minutes', async () => {
+    const repo = new MemoryInteractionRepository();
+    await repo.createWorkspace({ id: WS, ownerId: 'user-1', domainId: 'cohort', domainVersion: 1, initialSnapshot });
+    await repo.appendMessage({ workspaceId: WS, ownerId: 'user-1', id: crypto.randomUUID(), role: 'user',
+      parts: [{ type: 'text', text: 'Set daily commitment to 35 minutes.' }] });
+    let step = 0;
+    const model = new MockLanguageModelV4({ doGenerate: async (options: { tools?: Array<{ type: string; name?: string; inputSchema?: unknown }> }) => {
+      const advertised = options.tools?.find(tool => tool.type === 'function' && tool.name === 'set_daily_minutes');
+      expect(advertised).toMatchObject({ inputSchema: { required: ['dailyMinutes'], properties: { dailyMinutes: { type: 'integer' } } } });
+      return {
+        content: ++step === 1
+          ? [{ type: 'tool-call', toolCallId: 'minutes', toolName: 'set_daily_minutes', input: JSON.stringify({ dailyMinutes: 35 }) }]
+          : [{ type: 'text', text: 'Daily commitment saved.' }],
+        finishReason: { unified: step === 1 ? 'tool-calls' : 'stop', raw: step === 1 ? 'tool-calls' : 'stop' },
+        usage: { inputTokens: { total: 0 }, outputTokens: { total: 0 } }, warnings: [],
+      };
+    } });
+    await runAssistantTurn({ workspaceId: WS, ownerId: 'user-1', repo, domain: cohortDomain,
+      model: createAiSdkModelAdapter(model), createTools: deps => createCohortAiTools(deps) });
+    expect((await repo.loadWorkspace<CohortWorkspace>({ workspaceId: WS, ownerId: 'user-1' }))?.snapshot.dailyMinutes).toBe(35);
+  });
+
   it('executes model tool calls against commitAction and appends assistant response', async () => {
     const repo = new MemoryInteractionRepository();
     await repo.createWorkspace({

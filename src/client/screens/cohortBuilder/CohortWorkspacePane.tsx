@@ -14,6 +14,7 @@ import { AssemblyStageView } from './stages/AssemblyStageView';
 import { CurriculumStageView } from './stages/CurriculumStageView';
 import { IntakeStageView } from './stages/IntakeStageView';
 import { type BuilderStage, CohortDraftProvider, useCohortDrafts } from './draft-context';
+import { getActiveStage as selectActiveStage } from './stage-selectors';
 
 export type Stage = BuilderStage;
 
@@ -31,59 +32,7 @@ export interface ProcessingProgress {
 }
 
 export function getActiveStage(workspace: CohortWorkspace): Stage {
-  const sources = workspace.sources ?? [];
-  const lessons = workspace.lessons ?? [];
-  const processing = workspace.processing;
-
-  // 1. If no sources and no lessons, initial intake is active
-  if (sources.length === 0 && lessons.length === 0) {
-    return 'intake';
-  }
-
-  // 2. If processing is ready
-  if (processing.status === 'ready') {
-    if (workspace.release && workspace.release.status !== 'draft') {
-      return 'review';
-    }
-    return 'curriculum';
-  }
-
-  // 3. If processing is processing, queued, or failed
-  const jobs = processing.jobs ?? [];
-  if (jobs.length > 0) {
-    const failedJob = jobs.find(j => j.status === 'failed');
-    if (failedJob) {
-      if (['acquisition', 'extraction', 'understanding'].includes(failedJob.stage)) return 'understanding';
-      if (failedJob.stage === 'chunking') return 'chunking';
-      if (failedJob.stage === 'analysis') return 'analysis';
-      if (failedJob.stage === 'assembly') return 'assembly';
-    }
-    const activeJob = jobs.find(j => j.status === 'running' || j.status === 'queued');
-    if (activeJob) {
-      if (['acquisition', 'extraction', 'understanding'].includes(activeJob.stage)) return 'understanding';
-      if (activeJob.stage === 'chunking') return 'chunking';
-      if (activeJob.stage === 'analysis') return 'analysis';
-      if (activeJob.stage === 'assembly') return 'assembly';
-    }
-  }
-
-  switch (processing.stage as string) {
-    case 'acquisition':
-    case 'extraction':
-    case 'understanding':
-      return 'understanding';
-    case 'chunking':
-      return 'chunking';
-    case 'analysis':
-      return 'analysis';
-    case 'assembly':
-    case 'building':
-      return 'assembly';
-    case 'done':
-      return 'curriculum';
-    default:
-      return lessons.length > 0 ? 'curriculum' : 'intake';
-  }
+  return selectActiveStage(workspace);
 }
 
 export function getEffectiveStage(
