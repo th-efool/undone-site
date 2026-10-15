@@ -8,7 +8,6 @@ import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import { useAssistantActivity } from './useAssistantActivity';
 import { useTheme } from '@/src/client/hooks/useTheme';
 import type { EntityRef } from 'interaction-builder/core';
-import { ProcessingChecklist } from './stages/ProcessingChecklist';
 import styles from './CohortBuilder.module.css';
 
 interface AttachedEntity {
@@ -218,12 +217,6 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
           <p role="alert">
             Selected lesson changed or was removed. Clear the selection, then select its current version.
           </p>
-        )}
-
-        {state.view && (state.view.processing.status === 'processing' || state.view.processing.status === 'queued' || (state.view.processing.status as string) === 'running' || state.view.processing.status === 'failed' || (state.view.sources.length > 0 && (state.view.processing.status === 'idle' || state.view.processing.status === 'ready')) || (state.view.processing.jobs && state.view.processing.jobs.length > 0)) && (
-          <div className={styles.railChecklistWrapper}>
-            <ProcessingChecklist workspace={state.view} />
-          </div>
         )}
 
         <div className={styles.hint}>

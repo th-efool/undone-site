@@ -43,18 +43,22 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { theme, isDark } = useTheme();
 
-  const dotClass =
-    connection === 'live'
-      ? styles.dotConnected
-      : connection === 'reconnecting' || connection === 'connecting'
-      ? styles.dotReconnecting
-      : styles.dotDisconnected;
+  const stage = state.view
+    ? state.view.processing.status === 'processing' ||
+      state.view.processing.status === 'queued' ||
+      (state.view.processing.status as string) === 'running'
+      ? 'processing'
+      : state.view.lessons.length > 0 || (state.view.release && state.view.release.status !== 'draft')
+      ? 'review'
+      : 'material'
+    : 'material';
 
   return (
     <div
       id="main-content"
       className={styles.page}
       data-theme={theme}
+      data-variant={stage}
       data-rail-collapsed={collapsed}
       data-pane={pane}
     >
@@ -113,11 +117,7 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
       <div className={styles.canvas}>
         <header className={styles.canvasHeader} aria-label="Workspace toolbar">
           <div className={styles.tools}>
-            <div className={styles.connectionBadge} data-connection={connection}>
-              <span className={`${styles.dot} ${dotClass}`} />
-              <span>{connection}</span>
-            </div>
-            <span className={styles.revBadge}>Rev #{state.revision}</span>
+            <span className={styles.srOnly}>Rev #{state.revision}</span>
             <ThemeToggle />
             <Link href="/home" className={styles.account} aria-label="Open your account">
               Y
