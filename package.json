@@ -32,6 +32,7 @@
     "interaction:readiness": "node --import tsx --import ./scripts/register-root-environment.mjs scripts/interaction-readiness.ts",
     "interaction:rehearse:rollout": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs scripts/rehearse-additive-rollout.ts",
     "interaction:gate": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs scripts/verify-s6-release-gate.ts",
+    "interaction:acceptance": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs scripts/s6-integrated-acceptance.ts",
     "creation:material:smoke": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs scripts/creation-material-smoke.ts",
     "postinstall": "prisma generate",
     "start": "node --import ./scripts/register-root-environment.mjs ./node_modules/next/dist/bin/next start",

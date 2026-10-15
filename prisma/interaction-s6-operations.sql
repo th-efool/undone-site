@@ -41,16 +41,21 @@ ON "cohort_retention_audit_log"("targetType", "targetId");
 -- 3. Worker supervision and liveness heartbeats (distinct from individual job lease claims)
 CREATE TABLE IF NOT EXISTS "interaction_worker_heartbeats" (
   "worker_id" TEXT PRIMARY KEY,
+  "driver" TEXT NOT NULL DEFAULT 'durable',
   "hostname" TEXT NOT NULL,
   "pid" INTEGER NOT NULL,
-  "registered_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "started_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
   "last_heartbeat_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "active_claims" INTEGER NOT NULL DEFAULT 0,
+  "status" TEXT NOT NULL DEFAULT 'active',
+  "active_claims_count" INTEGER NOT NULL DEFAULT 0,
   "metadata" JSONB
 );
 
 CREATE INDEX IF NOT EXISTS "interaction_worker_heartbeats_last_idx"
 ON "interaction_worker_heartbeats"("last_heartbeat_at");
+
+CREATE INDEX IF NOT EXISTS "idx_worker_heartbeats_status_time"
+ON "interaction_worker_heartbeats"("status", "last_heartbeat_at");
 
 -- 4. Administrative controls (operator toggles for intake, model calls, release, sources)
 CREATE TABLE IF NOT EXISTS "cohort_admin_controls" (
@@ -63,14 +68,14 @@ CREATE TABLE IF NOT EXISTS "cohort_admin_controls" (
 
 -- 5. Administrative control audit trail (immutable log of all operator toggle changes)
 CREATE TABLE IF NOT EXISTS "cohort_admin_control_audit" (
-  "id" TEXT PRIMARY KEY,
-  "control_key" TEXT NOT NULL,
-  "previous_value" JSONB,
+  "id" BIGSERIAL PRIMARY KEY,
+  "control_key" VARCHAR(64) NOT NULL,
+  "old_value" JSONB,
   "new_value" JSONB NOT NULL,
-  "updated_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "updated_by" TEXT NOT NULL,
-  "reason" TEXT NOT NULL
+  "actor_id" VARCHAR(128) NOT NULL,
+  "reason" TEXT NOT NULL,
+  "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS "cohort_admin_control_audit_key_idx"
-ON "cohort_admin_control_audit"("control_key", "updated_at");
+CREATE INDEX IF NOT EXISTS "idx_admin_audit_key_time"
+ON "cohort_admin_control_audit"("control_key", "created_at" DESC);

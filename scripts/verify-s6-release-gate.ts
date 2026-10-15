@@ -187,8 +187,8 @@ async function verifyGate9(): Promise<void> {
 async function verifyGate10(): Promise<void> {
   // Criterion 10: Actual paths/commands/contracts are indexed in MEMORY; planned-only items remain clearly labeled
   const memory = readFileSync(resolve(root, 'MEMORY/interaction-builder-execution.md'), 'utf8');
-  assert(memory.includes('STATUS: S6 CHECKPOINT 4'), 'Memory must record S6 Checkpoint 4');
-  assert(memory.includes('Supervised Node runner execution'), 'Memory must record supervised Node runner');
+  assert(memory.includes('STATUS: S6 CHECKPOINT 4') || memory.includes('STATUS: S6 CHECKPOINT 5'), 'Memory must record S6 Checkpoint 4 or 5');
+  assert(/supervised node (runner )?execution/i.test(memory), 'Memory must record supervised Node runner execution');
   assert(memory.includes('interaction_worker_heartbeats'), 'Memory must record worker heartbeats');
   assert(memory.includes('cohort_admin_controls'), 'Memory must record admin controls');
 

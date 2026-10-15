@@ -130,8 +130,16 @@ This ledger records the verified enforcement state of security and authority bou
 | **Gate 10: Memory Indexing & Truthful Labeling** | All checkpoints, contracts, and commands indexed in MEMORY; operator runbooks formalized in `docs/s6-operator-release-package.md`. | **ENFORCED & VERIFIED** |
 
 ### Automated Evidence for Final Release Gate:
-1. `npm run interaction:gate`: **ALL 10 PRODUCTION GATES PASSED (exit 0)**
-2. `npm run interaction:rehearse:rollout`: **ALL S6 ADDITIVE ROLLOUT & ROLLBACK PHASES PASSED CLEANLY (exit 0)**
-3. `npm run interaction:readiness`: **READY (initial_rollout profile, exit 0)**
+1. `npm run interaction:acceptance`: **ALL 11 INTEGRATED OPERATIONAL ACCEPTANCE PHASES PASSED (exit 0)**
+2. `npm run interaction:gate`: **ALL 10 PRODUCTION GATES PASSED (exit 0)**
+3. `npm run interaction:rehearse:rollout`: **ALL S6 ADDITIVE ROLLOUT & ROLLBACK PHASES PASSED CLEANLY (exit 0)**
+4. `npm run interaction:readiness`: **READY (initial_rollout profile, exit 0)**
+
+### Authoritative Final Decision
+> **Local operational preparation complete; final S6 deployment gate open.**
+
+- Local implementation, rehearsal, and synthetic validation are complete across all 11 lifecycle phases.
+- Shared production deployment gate remains **OPEN** awaiting authorized operator execution.
+- S7 (standalone template extraction / package publication) carries open S6 deployment gates into its baseline and must NOT be auto-started without explicit user prompt.
 
 
