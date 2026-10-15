@@ -3,7 +3,7 @@ import { claimTextJob, failTextJob, heartbeatTextJob, type ClaimedTextJob } from
 
 const artifactKind: Record<string, CohortTextArtifactKind> = {
   acquisition: 'source_raw', extraction: 'extraction', understanding: 'understanding', chunking: 'chunks',
-  analysis: 'analysis', assembly: 'assembly',
+  analysis: 'analysis', assembly: 'assembly', recommendations: 'recommendations', discovery: 'discovery',
 };
 
 export type TextJobTickResult = { status: 'idle' | 'accepted' | 'failed' | 'stale'; jobId?: string };

@@ -42,6 +42,7 @@ export function createTextSourceProcessor(input: {
     if (!planned) throw new Error('STALE_SOURCE_JOB');
     const source = state.sources.find(item => item.id === job.sourceId && item.version === job.sourceVersion);
     if (!source) throw new Error('STALE_SOURCE_JOB');
+    if (source.input?.kind === 'generated_guide') throw new Error('GENERATED_GUIDE_HANDLER_UNAVAILABLE');
     const isolated: CohortWorkspace = { ...state, sources: [source] };
     const stage = job.stage as SourceStage;
     if (stage === 'acquisition') {

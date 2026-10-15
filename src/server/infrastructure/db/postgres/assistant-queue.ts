@@ -17,6 +17,8 @@ export async function admitPendingAssistantMessage(tx: Prisma.TransactionClient,
   const messages = await tx.$queryRaw<Array<{ id: string; sequence: number }>>`
     SELECT m.id, m.sequence FROM interaction_messages m
     WHERE m."workspaceId"=${workspaceId} AND m.role='user'
+      AND NOT EXISTS (SELECT 1 FROM interaction_requests q WHERE q."workspaceId"=m."workspaceId"
+        AND q.operation='assistantSchedulingSuppressed' AND q."requestId"=m.id)
       AND NOT EXISTS (SELECT 1 FROM interaction_runs r WHERE r."workspaceId"=m."workspaceId" AND r."triggeringMessageId"=m.id)
     ORDER BY m.sequence LIMIT 1`;
   if (!messages[0]) return null;

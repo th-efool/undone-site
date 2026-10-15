@@ -129,7 +129,9 @@ function mapProposal(row: {
 export function createPostgresInteractionRepository(prisma = defaultPrisma): InteractionRepository {
   return {
     async appendMessage(input: AppendMessageInput) {
-      const payload = { id: input.id, role: input.role, parts: input.parts, runId: input.runId ?? null };
+      const shouldSchedule = input.scheduleAssistant !== false && input.scheduleRun !== false;
+      const payload = { id: input.id, role: input.role, parts: input.parts, runId: input.runId ?? null,
+        ...(!shouldSchedule ? { scheduleAssistant: false } : {}) };
       return prisma.$transaction(async tx => {
         let hash: string | null = null;
         if (input.requestId) {
@@ -172,10 +174,12 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
           const lease = (input as AppendMessageInput & { runLeaseToken?: string }).runLeaseToken;
           if (lease !== undefined && run.leaseToken !== lease) throw new Error('FENCE_EXPIRED');
         }
-        if (input.role === 'user' && input.scheduleRun !== false) {
+        if (input.role === 'user' && shouldSchedule) {
           const pending = await tx.$queryRaw<Array<{ count: number }>>`SELECT count(*)::int AS count FROM interaction_messages m
             WHERE m."workspaceId"=${input.workspaceId} AND m.role='user'
-              AND NOT EXISTS (SELECT 1 FROM interaction_runs r WHERE r."workspaceId"=m."workspaceId" AND r."triggeringMessageId"=m.id)`;
+              AND NOT EXISTS (SELECT 1 FROM interaction_runs r WHERE r."workspaceId"=m."workspaceId" AND r."triggeringMessageId"=m.id)
+              AND NOT EXISTS (SELECT 1 FROM interaction_requests s WHERE s."workspaceId"=m."workspaceId"
+                AND s.operation='assistantSchedulingSuppressed' AND s."requestId"=m.id)`;
           if (pending[0].count >= 5) throw new Error('MESSAGE_QUEUE_FULL');
         }
         const sequence = ws.sequence + 1;
@@ -214,8 +218,16 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
         });
 
         let scheduledRun: InteractionRunRecord | undefined;
+        if (input.role === 'user' && !shouldSchedule) {
+          await tx.interactionRequest.create({ data: {
+            id: crypto.randomUUID(), workspaceId: input.workspaceId, actorId: input.ownerId,
+            operation: 'assistantSchedulingSuppressed', requestId: input.id,
+            payloadHash: computePayloadHash({ messageId: input.id }),
+            response: { messageId: input.id },
+          } });
+        }
         // Admission also drains older pending turns before this newly submitted turn.
-        if (input.scheduleRun !== false && input.role === 'user') {
+        if (shouldSchedule && input.role === 'user') {
           const admitted = await admitPendingAssistantMessage(tx, input.workspaceId);
           if (admitted) scheduledRun = mapRun(admitted);
         }

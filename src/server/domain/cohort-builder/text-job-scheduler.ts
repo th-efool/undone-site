@@ -19,6 +19,7 @@ export async function enqueueTextJobPlanInTransaction(tx: TextArtifactSql, works
       SET "status" = 'superseded', "fence" = "fence" + 1,
           "leaseOwner" = NULL, "leaseToken" = NULL, "leaseUntil" = NULL, "updatedAt" = CURRENT_TIMESTAMP
       WHERE "workspaceId" = $1 AND "status" IN ('queued', 'running', 'failed')
+        AND "jobKey" LIKE 'text:%'
         AND NOT ("jobKey" = ANY($2::text[])) RETURNING "id"`,
     [workspaceId, intents.map(intent => intent.jobKey)]);
     const ids = new Map<string, string>();

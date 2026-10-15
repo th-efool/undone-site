@@ -52,6 +52,7 @@ export async function acceptAssemblyProjection(
     const acquired = computeTextStage({ ...state, processing: { ...state.processing, stage: 'acquisition' } }).result as Array<{ id: string; checksum: string }>;
     const next = cohortWorkspaceSchema.parse({
       ...state,
+      ...(state.journey?.step === 'processing' ? { journey: { ...state.journey, step: 'ready' } } : {}),
       chunks, analyses, understanding,
       sources: state.sources.map(source => ({ ...source, state: 'ready', checksum: acquired.find(item => item.id === source.id)!.checksum })),
       lessons: projectGeneratedLessons(state.lessons, generated, new Set(chunks.map(chunk => chunk.id))),

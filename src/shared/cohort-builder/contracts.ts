@@ -10,6 +10,7 @@ export const publicSourceUrlSchema = z.string().max(2048).url().refine(value => 
   const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password && !url.port;
 }, 'Use a public HTTPS URL without credentials or a custom port');
 export const sourceInputSchema = z.discriminatedUnion('kind', [
+  z.strictObject({ kind: z.literal('generated_guide'), goal: text, audience: z.string().max(500), dailyMinutes: z.number().int().min(1).max(1_440), intentVersion: z.number().int().nonnegative() }),
   z.strictObject({ kind: z.literal('pdf'), uploadId: z.uuid(), pages: z.array(z.number().int().min(1).max(200)).min(1).max(200).optional() }),
   z.strictObject({ kind: z.literal('web'), url: publicSourceUrlSchema }),
   z.strictObject({ kind: z.literal('youtube'), url: youtubeVideoUrlSchema, track: youtubeTrackSchema, scope: youtubeTimeScopeSchema.optional() }),
@@ -107,6 +108,28 @@ export const cohortReleaseStateSchema = z.strictObject({
 });
 export type CohortReleaseState = z.infer<typeof cohortReleaseStateSchema>;
 
+export const cohortJourneySchema = z.strictObject({
+  version: z.literal(1),
+  step: z.enum(['recommendations', 'starting_point', 'material_input', 'discovery', 'goal_setup', 'processing', 'ready', 'review', 'published']),
+  branch: z.enum(['have_material', 'find_material', 'have_goal']).nullable(),
+  processingStarted: z.boolean(),
+  intentVersion: z.number().int().nonnegative(),
+});
+export type CohortJourney = z.infer<typeof cohortJourneySchema>;
+const journeyResultFields = {
+  requestId: id, fingerprint: z.string().min(1).max(200),
+  status: z.enum(['queued', 'running', 'ready', 'failed', 'canceled']),
+  resultId: id.optional(), generation: z.number().int().nonnegative(),
+};
+export const cohortRecommendationItemSchema = z.strictObject({ id, label: z.string().trim().min(1).max(300), url: publicSourceUrlSchema });
+export const cohortDiscoveryItemSchema = z.strictObject({ id, label: z.string().trim().min(1).max(300), kind: z.literal('web'), url: publicSourceUrlSchema });
+export const cohortRecommendationsSchema = z.strictObject({ ...journeyResultFields, items: z.array(cohortRecommendationItemSchema).max(20) });
+export type CohortRecommendations = z.infer<typeof cohortRecommendationsSchema>;
+export type CohortRecommendationItem = z.infer<typeof cohortRecommendationItemSchema>;
+export const cohortDiscoverySchema = z.strictObject({ ...journeyResultFields, items: z.array(cohortDiscoveryItemSchema).max(20) });
+export type CohortDiscovery = z.infer<typeof cohortDiscoverySchema>;
+export type CohortDiscoveryItem = z.infer<typeof cohortDiscoveryItemSchema>;
+
 export const cohortWorkspaceSchema = z.strictObject({
   schemaVersion: z.literal(1),
   title: z.string().max(300),
@@ -128,10 +151,22 @@ export const cohortWorkspaceSchema = z.strictObject({
     driver: z.enum(['snapshot', 'durable']).optional(),
   }).default({ status: 'idle', stage: 'done', generation: 0, sourceFingerprint: null, error: null }),
   release: cohortReleaseStateSchema.optional(),
+  journey: cohortJourneySchema.optional(),
+  recommendations: cohortRecommendationsSchema.optional(),
+  discovery: cohortDiscoverySchema.optional(),
 });
 export type CohortWorkspace = z.infer<typeof cohortWorkspaceSchema>;
 
 export const cohortActionSchema = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.literal('create_own_cohort') }),
+  z.strictObject({ type: z.literal('choose_starting_point'), choice: z.enum(['have_material', 'find_material', 'have_goal']) }),
+  z.strictObject({ type: z.literal('back_to_recommendations') }),
+  z.strictObject({ type: z.literal('back_to_starting_point') }),
+  z.strictObject({ type: z.literal('start_discovery') }),
+  z.strictObject({ type: z.literal('select_discovery_resources'), resultId: id, candidateIds: z.array(id).min(1).max(20).refine(ids => new Set(ids).size === ids.length, 'Duplicate candidate') }),
+  z.strictObject({ type: z.literal('start_goal_generation') }),
+  z.strictObject({ type: z.literal('begin_material_processing') }),
+  z.strictObject({ type: z.literal('open_review') }),
   z.strictObject({ type: z.literal('add_pdf_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), uploadId: z.uuid() }),
   z.strictObject({ type: z.literal('add_web_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), url: publicSourceUrlSchema }),
   z.strictObject({ type: z.literal('add_youtube_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), url: youtubeVideoUrlSchema, track: youtubeTrackSchema, scope: youtubeTimeScopeSchema.optional() }),
@@ -166,6 +201,8 @@ export interface CohortActionContext {
   expectedRevision: number;
   currentRevision: number;
   entityVersions: ReadonlyMap<string, number>;
+  /** Trusted repository proof loaded from an owned accepted discovery artifact. Never client supplied. */
+  discoveryResult?: { resultId: string; fingerprint: string; items: z.infer<typeof cohortDiscoveryItemSchema>[] };
 }
 
 function ref(workspaceId: string, lesson: CohortLesson) {
@@ -185,6 +222,80 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
       if (!invalidated.includes('release')) invalidated.push('release');
     }
   };
+  const navigationResult = (summary: string): DomainActionPlan<CohortWorkspace> => ({ nextState: next, changed, invalidated, summary, undoable: false });
+  const journey = () => {
+    if (!next.journey) next.journey = { version: 1, step: 'recommendations', branch: null, processingStarted: next.sources.length > 0 || next.lessons.length > 0, intentVersion: 0 };
+    return next.journey;
+  };
+  const requireStep = (...steps: CohortJourney['step'][]) => {
+    const current = journey();
+    if (!steps.includes(current.step)) throw new Error('INVALID_JOURNEY_TRANSITION');
+    return current;
+  };
+  if (action.type === 'create_own_cohort') { requireStep('recommendations').step = 'starting_point'; return navigationResult('Starting point opened.'); }
+  if (action.type === 'choose_starting_point') {
+    const current = requireStep('starting_point'); current.branch = action.choice;
+    current.step = action.choice === 'have_material' ? 'material_input' : action.choice === 'find_material' ? 'discovery' : 'goal_setup';
+    return navigationResult('Starting point selected.');
+  }
+  if (action.type === 'back_to_recommendations' || action.type === 'back_to_starting_point') {
+    const current = journey(); if (current.step === 'published') throw new Error('INVALID_JOURNEY_TRANSITION');
+    current.step = action.type === 'back_to_recommendations' ? 'recommendations' : 'starting_point';
+    return navigationResult('Journey navigation updated.');
+  }
+  if (action.type === 'start_discovery') {
+    const current = requireStep('discovery'); if (current.branch !== 'find_material') throw new Error('INVALID_JOURNEY_BRANCH');
+    if (next.discovery && ['queued', 'running', 'ready'].includes(next.discovery.status)) return navigationResult('Existing discovery retained.');
+    next.discovery = { requestId: context.actionId, fingerprint: `pending:${current.intentVersion}:${context.actionId}`, status: 'queued', generation: (next.discovery?.generation ?? -1) + 1, items: [] };
+    return navigationResult('Resource discovery requested.');
+  }
+  if (action.type === 'select_discovery_resources') {
+    const current = requireStep('discovery');
+    const projection = next.discovery; const proof = context.discoveryResult;
+    if (current.branch !== 'find_material' || projection?.status !== 'ready' || projection.resultId !== action.resultId || !proof || proof.resultId !== action.resultId || proof.fingerprint !== projection.fingerprint) throw new Error('INVALID_DISCOVERY_RESULT');
+    const candidates = z.array(cohortDiscoveryItemSchema).max(20).parse(proof.items);
+    if (new Set(candidates.map(item => item.id)).size !== candidates.length) throw new Error('INVALID_DISCOVERY_RESULT');
+    const selected = action.candidateIds.map(candidateId => {
+      const candidate = candidates.find(item => item.id === candidateId);
+      if (!candidate || !projection.items.some(item => item.id === candidate.id && item.url === candidate.url && item.kind === candidate.kind)) throw new Error('INVALID_DISCOVERY_CANDIDATE');
+      return candidate;
+    });
+    if (next.sources.length + selected.length > 20) throw new Error('TOO_MANY_SOURCES');
+    selected.forEach((candidate, index) => {
+      const sourceId = `${context.actionId}:discovery:${index}`;
+      if (sourceId.length > 200 || next.sources.some(item => item.id === sourceId)) throw new Error('DUPLICATE_SOURCE');
+      next.sources.push({ id: sourceId, version: 0, label: candidate.label, text: '', input: { kind: 'web', url: candidate.url }, checksum: null, state: 'queued' });
+    });
+    invalidateRelease(); current.step = 'material_input'; invalidated.push('sources', 'curriculum');
+    if (current.processingStarted) next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
+    return navigationResult('Selected resources retained.');
+  }
+  if (action.type === 'start_goal_generation' || action.type === 'begin_material_processing') {
+    const current = requireStep(action.type === 'start_goal_generation' ? 'goal_setup' : 'material_input');
+    if (action.type === 'start_goal_generation') {
+      if (current.branch !== 'have_goal' || !next.intent.trim() || next.dailyMinutes < 1) throw new Error('GOAL_NOT_CONFIRMED');
+      const sourceId = `generated-guide:${current.intentVersion}`;
+      const input = { kind: 'generated_guide' as const, goal: next.intent, audience: next.audience, dailyMinutes: next.dailyMinutes, intentVersion: current.intentVersion };
+      const existing = next.sources.find(item => item.id === sourceId);
+      if (existing && existing.input?.kind !== 'generated_guide') throw new Error('DUPLICATE_SOURCE');
+      if (!existing) {
+        if (next.sources.length >= 20) throw new Error('TOO_MANY_SOURCES');
+        next.sources.push({ id: sourceId, version: 0, label: 'Generated learning guide', text: '', input, checksum: null, state: 'queued' });
+      } else if (JSON.stringify(existing.input) !== JSON.stringify(input)) {
+        existing.input = input; existing.version++; existing.text = ''; existing.state = 'queued'; existing.checksum = null;
+        delete existing.retainedInputId; delete existing.extractionId; delete existing.locations; delete existing.provenance;
+      }
+    } else if (!['have_material', 'find_material'].includes(current.branch ?? '') || !next.sources.length) throw new Error('NO_SOURCES');
+    current.processingStarted = true; current.step = 'processing'; invalidateRelease();
+    next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
+    return navigationResult('Source processing requested.');
+  }
+  if (action.type === 'open_review') {
+    const current = requireStep('ready');
+    if (next.processing.status !== 'ready' || !next.processing.sourceFingerprint || !next.lessons.length) throw new Error('ASSEMBLY_NOT_READY');
+    current.step = 'review'; return navigationResult('Curriculum review opened.');
+  }
+  if (next.journey && !next.journey.processingStarted && (action.type === 'retry_processing' || action.type === 'retry_text_job')) throw new Error('PROCESSING_NOT_STARTED');
   if (action.type === 'retry_text_job') {
     const job = next.processing.jobs?.find(item => item.id === action.jobId);
     if (!job || job.status !== 'failed' || !job.retryable) throw new Error('JOB_NOT_RETRYABLE');
@@ -204,14 +315,22 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   }
   const queueAfterPreferenceChange = (readyStage: 'analysis' | 'assembly') => {
     invalidateRelease();
-    if (!next.sources.length) return;
+    if (!next.sources.length || (next.journey && !next.journey.processingStarted)) return;
     const stage = next.processing.status === 'ready' ? readyStage : next.processing.status === 'failed' ? 'acquisition' : next.processing.stage;
     next.processing = { ...next.processing, status: 'queued', stage, generation: next.processing.generation + 1, error: null };
   };
 
-  if (action.type === 'set_intent') { invalidateRelease(); next.intent = action.intent; invalidated.push('curriculum'); queueAfterPreferenceChange('assembly'); return { nextState: next, changed: [], invalidated, summary: 'Learning intent updated.', undoable: true }; }
+  if (action.type === 'set_intent') { invalidateRelease(); if (next.intent !== action.intent && next.journey) { next.journey.intentVersion++; delete next.recommendations; delete next.discovery; } next.intent = action.intent; invalidated.push('curriculum'); queueAfterPreferenceChange('assembly'); return { nextState: next, changed: [], invalidated, summary: 'Learning intent updated.', undoable: true }; }
   if (action.type === 'set_audience') { invalidateRelease(); next.audience = action.audience; invalidated.push('analysis', 'curriculum'); queueAfterPreferenceChange('analysis'); return { nextState: next, changed: [], invalidated, summary: 'Audience updated.', undoable: true }; }
   if (action.type === 'set_daily_minutes') { invalidateRelease(); next.dailyMinutes = action.dailyMinutes; invalidated.push('curriculum'); queueAfterPreferenceChange('assembly'); return { nextState: next, changed: [], invalidated, summary: 'Daily learning time updated.', undoable: true }; }
+
+  const queueProcessing = () => {
+    if (next.journey && !next.journey.processingStarted) {
+      next.processing = { ...next.processing, status: 'idle', stage: 'done', error: null };
+      return;
+    }
+    next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
+  };
 
   if (action.type === 'add_text_source') {
     invalidateRelease();
@@ -220,7 +339,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     if (next.sources.length >= 20) throw new Error('TOO_MANY_SOURCES');
     if (new TextEncoder().encode(action.text).byteLength > 200_000) throw new Error('SOURCE_TOO_LARGE');
     next.sources.push({ id: sourceId, version: 0, label: action.label, text: action.text, checksum: null, state: 'queued' });
-    next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
+    queueProcessing();
     return { nextState: next, changed: [], invalidated: ['sources', 'chunks', 'analysis', 'curriculum'], summary: `Added source: ${action.label}`, undoable: true };
   }
   if (action.type === 'add_pdf_source' || action.type === 'add_web_source' || action.type === 'add_youtube_source' || action.type === 'add_github_source') {
@@ -236,7 +355,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
       ? { kind: 'youtube' as const, url: action.url, track: action.track, ...(action.scope ? { scope: action.scope } : {}) }
       : { kind: 'github' as const, repoUrl: action.repoUrl, ref: action.ref, ...(action.paths ? { paths: action.paths } : {}) };
     next.sources.push({ id: sourceId, version: 0, label: action.label, text: '', checksum: null, state: 'queued', input });
-    next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
+    queueProcessing();
     const labelKind = action.type === 'add_pdf_source' ? 'PDF' : action.type === 'add_web_source' ? 'web' : action.type === 'add_youtube_source' ? 'YouTube' : 'GitHub';
     return { nextState: next, changed: [], invalidated: ['sources', 'curriculum'], summary: `Added ${labelKind} source: ${action.label}`, undoable: true };
   }
@@ -267,7 +386,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     const valid = new Set(next.chunks.map(chunk => chunk.id)); next.analyses = next.analyses.filter(item => valid.has(item.chunkId));
     next.lessons = next.lessons.filter(lesson => lesson.pinned || lesson.manualOverride || lesson.sourceChunkIds.every(id => valid.has(id)));
     next.lessons.forEach(lesson => { if (lesson.sourceChunkIds.some(id => !valid.has(id))) lesson.evidenceStatus = 'orphaned'; });
-    next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
+    queueProcessing();
     return { nextState: next, changed: [], invalidated: ['sources', 'curriculum'], summary: 'Source scope updated.', undoable: true };
   }
 
@@ -290,7 +409,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     next.analyses = next.analyses.filter(item => validChunks.has(item.chunkId));
     next.lessons = next.lessons.filter(lesson => lesson.pinned || lesson.manualOverride || lesson.sourceChunkIds.every(chunkId => validChunks.has(chunkId)));
     next.lessons.forEach(lesson => { if (lesson.sourceChunkIds.some(chunkId => !validChunks.has(chunkId))) lesson.evidenceStatus = 'orphaned'; });
-    next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
+    queueProcessing();
     return { nextState: next, changed: [], invalidated: ['sources', 'chunks', 'analysis', 'curriculum'], summary: `Updated source: ${source.label}`, undoable: true };
   }
   if (action.type === 'remove_source') {
@@ -306,7 +425,11 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     next.analyses = next.analyses.filter(item => validChunks.has(item.chunkId));
     next.lessons = next.lessons.filter(lesson => lesson.pinned || lesson.manualOverride || lesson.sourceChunkIds.every(chunkId => validChunks.has(chunkId)));
     next.lessons.forEach(lesson => { if (lesson.sourceChunkIds.some(chunkId => !validChunks.has(chunkId))) lesson.evidenceStatus = 'orphaned'; });
-    next.processing = { status: next.sources.length ? 'queued' : 'idle', stage: next.sources.length ? 'acquisition' : 'done', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
+    if (next.journey && !next.journey.processingStarted) {
+      next.processing = { ...next.processing, status: 'idle', stage: 'done', error: null };
+    } else {
+      next.processing = { status: next.sources.length ? 'queued' : 'idle', stage: next.sources.length ? 'acquisition' : 'done', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
+    }
     return { nextState: next, changed: [], invalidated: ['sources', 'chunks', 'analysis', 'curriculum'], summary: `Removed source: ${source.label}`, undoable: true };
   }
   if (action.type === 'retry_processing') {
@@ -387,6 +510,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
       releasedAt: action.receipt?.releasedAt ?? new Date().toISOString(),
       receipt: action.receipt,
     };
+    if (next.journey) next.journey.step = 'published';
     return {
       nextState: next,
       changed: [],

@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 
-export type CohortTextArtifactKind = 'source_input' | 'source_raw' | 'extraction' | 'understanding' | 'chunks' | 'analysis' | 'assembly';
+export type CohortTextArtifactKind = 'source_input' | 'source_raw' | 'extraction' | 'understanding' | 'chunks' | 'analysis' | 'assembly' | 'recommendations' | 'discovery';
 
 /** Injected SQL port keeps this host-owned store usable with real PostgreSQL and isolated tests. */
 export interface TextArtifactSql {

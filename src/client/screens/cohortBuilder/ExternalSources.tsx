@@ -249,14 +249,7 @@ function InnerExternalSources() {
             Add YouTube source
           </button>
         </fieldset>
-      ) : (
-        <div role="note" aria-label="YouTube unavailable">
-          <p>
-            YouTube transcript ingestion is currently unavailable (
-            {capabilities.youtubeUnavailableReason ?? 'TRANSCRIPT_PROVIDER_REQUIRED'}).
-          </p>
-        </div>
-      )}
+      ) : null}
 
       {capabilities.github ? (
         <fieldset disabled={busy} className={styles.formField}>
@@ -330,14 +323,7 @@ function InnerExternalSources() {
             Add GitHub source
           </button>
         </fieldset>
-      ) : (
-        <div role="note" aria-label="GitHub unavailable">
-          <p>
-            GitHub repository ingestion is currently unavailable (
-            {capabilities.githubUnavailableReason ?? 'GITHUB_CAPABILITY_DISABLED'}).
-          </p>
-        </div>
-      )}
+      ) : null}
 
       {error && (
         <div role="alert">
