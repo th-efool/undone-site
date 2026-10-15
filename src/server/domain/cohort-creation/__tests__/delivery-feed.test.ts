@@ -52,4 +52,37 @@ describe('retained delivery projection', () => {
     expect(output.map(item => [item.chunkId, item.startSeconds, item.endSeconds])).toEqual([['one', 0, 120], ['two', 120, 210]]);
     expect(output.every(item => item.lessonType === 'video' && item.content === undefined)).toBe(true);
   });
+  it('delivers chunks formatted by the S5 delivery adapter without rejection', () => {
+    const s5Chunk = {
+      id: 'chunk-1',
+      chunkId: 'chunk-1',
+      sourceId: 'source-1',
+      sourceLabel: 'TS Handbook',
+      title: 'TS Handbook',
+      text: 'Generics are a key feature of TypeScript allowing reusable components.',
+      order: 0,
+      start: 0,
+      end: 50,
+      checksum: 'b'.repeat(64),
+      contentOrigin: 'user',
+      durationMethod: 'reading_estimate',
+    };
+    const l = {
+      id: 'lesson-1',
+      title: 'Generics',
+      videoId: null,
+      lessonType: 'ARTICLE',
+      thumbnailUrl: null,
+      order: 0,
+      seasonId: 'season-1',
+      chunks: [s5Chunk],
+      season: { order: 0, title: 'Season 1', cohortId: 'cohort-1', cohort: { title: 'Cohort 1', coverImage: null } },
+    };
+    const rejected = vi.fn();
+    const output = deliveryFeedChunks([l], rejected);
+    expect(rejected).not.toHaveBeenCalled();
+    expect(output).toHaveLength(1);
+    expect(output[0].chunkId).toBe('chunk-1');
+    expect(output[0].content?.text).toContain('Generics');
+  });
 });
