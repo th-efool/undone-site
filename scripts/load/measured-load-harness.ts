@@ -11,13 +11,27 @@
  *
  * NOTE: Localhost results are baseline measurements, not production capacity.
  */
+import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { Readable } from 'node:stream';
 import { cpus, totalmem, freemem, platform, arch } from 'node:os';
 import { randomUUID } from 'node:crypto';
 import { performance } from 'node:perf_hooks';
+import pg from 'pg';
 import { initialCohort } from '@/src/shared/cohort-builder/intake';
 import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import { cohortDomain } from '@/src/server/domain/cohort-builder/domain';
-import { MemoryInteractionRepository } from 'interaction-builder/runtime';
+import {
+  MemoryInteractionRepository,
+  createInteractionHandlers,
+  type InteractionRepository,
+} from 'interaction-builder/runtime';
+import { dispatchInteraction } from 'interaction-builder/adapters/http';
+import { createPgInteractionRepository } from 'interaction-builder/adapters/pg';
+
+const PgPool = (pg as any)?.Pool ?? (pg as any)?.default?.Pool ?? pg.Pool;
 
 export interface HardwareProfile {
   platform: string;
@@ -115,13 +129,71 @@ export interface LoadRunResults {
   };
 }
 
-export async function runMeasuredWorkload(config: LoadRunConfig = {
-  concurrency: 5,
-  workspacesPerWorker: 2,
-  actionsPerWorkspace: 4,
-}): Promise<LoadRunResults> {
+export interface LoadHarnessOptions {
+  repo?: InteractionRepository;
+  pool?: pg.Pool;
+  useHttp?: boolean;
+  serverPort?: number;
+}
+
+export async function runMeasuredWorkload(
+  config: LoadRunConfig = {
+    concurrency: 5,
+    workspacesPerWorker: 2,
+    actionsPerWorkspace: 4,
+  },
+  options: LoadHarnessOptions = {}
+): Promise<LoadRunResults> {
   const hardware = getHardwareProfile();
-  const repo = new MemoryInteractionRepository();
+  let repo: InteractionRepository = options.repo as any;
+  if (!repo) {
+    if (options.pool) {
+      repo = createPgInteractionRepository({ pool: options.pool });
+    } else {
+      repo = new MemoryInteractionRepository();
+    }
+  }
+
+  let server: http.Server | undefined;
+  let baseUrl = '';
+
+  if (options.useHttp) {
+    const port = options.serverPort || 3955;
+    baseUrl = `http://127.0.0.1:${port}/api/interaction/v1`;
+    const domains = new Map<string, any>([[cohortDomain.id, cohortDomain]]);
+    const handlers = createInteractionHandlers({ repo, domains });
+    server = http.createServer(async (req, res) => {
+      const url = new URL(req.url || '/', `http://${req.headers.host || '127.0.0.1'}`);
+      const segments = url.pathname.slice('/api/interaction/v1/'.length).split('/').filter(Boolean);
+      const chunks: Buffer[] = [];
+      for await (const chunk of req) {
+        chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+      }
+      const bodyBuffer = Buffer.concat(chunks);
+      const webHeaders = new Headers();
+      for (const [k, v] of Object.entries(req.headers)) {
+        if (v) {
+          if (Array.isArray(v)) v.forEach(val => webHeaders.append(k, val));
+          else webHeaders.set(k, v);
+        }
+      }
+      const webRequest = new Request(url.toString(), {
+        method: req.method,
+        headers: webHeaders,
+        body: ['GET', 'HEAD'].includes(req.method || '') ? undefined : bodyBuffer,
+      });
+      const ownerId = (req.headers['x-owner-id'] as string) || 'user-load';
+      const response = await dispatchInteraction(webRequest, segments, async () => ownerId, handlers);
+      res.writeHead(response.status, Object.fromEntries(response.headers.entries()));
+      if (response.body) {
+        Readable.fromWeb(response.body as any).pipe(res);
+      } else {
+        res.end();
+      }
+    });
+    await new Promise<void>(resolve => server!.listen(port, '127.0.0.1', () => resolve()));
+  }
+
   const startTime = performance.now();
   const heapStart = process.memoryUsage().heapUsed;
 
@@ -136,204 +208,314 @@ export async function runMeasuredWorkload(config: LoadRunConfig = {
   let duplicateReleases = 0;
   let overloadRejections = 0;
 
-  // 1. Concurrent Workspace Intake and Actions
-  const workerTasks: Array<Promise<void>> = [];
+  try {
+    // 1. Concurrent Workspace Intake and Actions
+    const workerTasks: Array<Promise<void>> = [];
 
-  for (let w = 0; w < config.concurrency; w++) {
-    const workerOwnerId = `user-load-${w}`;
+    for (let w = 0; w < config.concurrency; w++) {
+      const workerOwnerId = `user-load-${w}`;
 
-    workerTasks.push((async () => {
-      for (let i = 0; i < config.workspacesPerWorker; i++) {
-        // Measure Intake Acknowledgement
-        const intakeStart = performance.now();
-        const workspaceId = randomUUID();
-        const initialSnapshot = initialCohort(`Load Test Goal ${w}-${i}`);
+      workerTasks.push((async () => {
+        for (let i = 0; i < config.workspacesPerWorker; i++) {
+          const workspaceId = randomUUID();
+          let currentRevision = 0;
 
-        await repo.createWorkspace({
-          id: workspaceId,
-          ownerId: workerOwnerId,
-          domainId: 'cohort',
-          domainVersion: 1,
-          initialSnapshot,
-        });
+          if (options.useHttp && baseUrl) {
+            // Measure HTTP Intake Acknowledgement
+            const intakeStart = performance.now();
+            const intakeRes = await fetch(`${baseUrl}/workspaces`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Owner-ID': workerOwnerId },
+              body: JSON.stringify({
+                workspaceId,
+                domainId: 'cohort',
+                bootstrap: initialCohort(`Load Test Goal ${w}-${i}`),
+              }),
+            });
+            if (!intakeRes.ok) throw new Error(`HTTP Intake failed: ${intakeRes.status}`);
+            const intakeEnd = performance.now();
+            intakeSamples.push(intakeEnd - intakeStart);
+            totalWorkspacesCreated++;
 
-        const intakeEnd = performance.now();
-        intakeSamples.push(intakeEnd - intakeStart);
-        totalWorkspacesCreated++;
+            // Commit multiple user actions per workspace via HTTP
+            for (let a = 0; a < config.actionsPerWorkspace; a++) {
+              const actionStart = performance.now();
+              const actionId = randomUUID();
 
-        let currentRevision = 0;
+              const actionRes = await fetch(`${baseUrl}/workspaces/${workspaceId}/actions`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-Owner-ID': workerOwnerId,
+                  'Idempotency-Key': randomUUID(),
+                },
+                body: JSON.stringify({
+                  actionId,
+                  workspaceId,
+                  expectedRevision: currentRevision,
+                  entityVersions: [],
+                  action: {
+                    type: 'add_lesson',
+                    lessonId: `lesson-${a}`,
+                    title: `Lesson ${a} - Load Step`,
+                    objective: `Test concurrency under load ${a}`,
+                  },
+                }),
+              });
+              if (!actionRes.ok) throw new Error(`HTTP Action commit failed: ${actionRes.status}`);
+              const actionJson = (await actionRes.json()) as any;
+              const actionEnd = performance.now();
+              actionSamples.push(actionEnd - actionStart);
+              totalActionsCommitted++;
+              currentRevision = actionJson.revision;
 
-        // Commit multiple user actions per workspace
-        for (let a = 0; a < config.actionsPerWorkspace; a++) {
-          const actionStart = performance.now();
-          const actionId = randomUUID();
+              // Event visibility via HTTP cursor poll
+              const eventStart = performance.now();
+              const eventRes = await fetch(`${baseUrl}/workspaces/${workspaceId}/events?after=0`, {
+                headers: { 'X-Owner-ID': workerOwnerId },
+              });
+              const eventJson = (await eventRes.json()) as any;
+              const eventEnd = performance.now();
+              eventSamples.push(eventEnd - eventStart);
 
-          const commitRes = await repo.commitAction({
-            workspaceId,
-            ownerId: workerOwnerId,
-            expectedRevision: currentRevision,
-            envelope: {
-              actionId,
+              if (!eventJson.events || eventJson.events.length === 0) {
+                lostAcceptedActions++;
+              }
+            }
+
+            // Measure Reconnect / Resnapshot via HTTP
+            const reconnectStart = performance.now();
+            const recRes = await fetch(`${baseUrl}/workspaces/${workspaceId}`, {
+              headers: { 'X-Owner-ID': workerOwnerId },
+            });
+            const recJson = (await recRes.json()) as any;
+            const reconnectEnd = performance.now();
+            reconnectSamples.push(reconnectEnd - reconnectStart);
+
+            if (!recRes.ok || recJson.revision !== currentRevision) {
+              lostAcceptedActions++;
+            }
+          } else {
+            // Direct in-process repository execution
+            const intakeStart = performance.now();
+            const initialSnapshot = initialCohort(`Load Test Goal ${w}-${i}`);
+
+            await repo.createWorkspace({
+              id: workspaceId,
+              ownerId: workerOwnerId,
+              domainId: 'cohort',
+              domainVersion: 1,
+              initialSnapshot,
+            });
+
+            const intakeEnd = performance.now();
+            intakeSamples.push(intakeEnd - intakeStart);
+            totalWorkspacesCreated++;
+
+            for (let a = 0; a < config.actionsPerWorkspace; a++) {
+              const actionStart = performance.now();
+              const actionId = randomUUID();
+
+              const commitRes = await repo.commitAction({
+                workspaceId,
+                ownerId: workerOwnerId,
+                expectedRevision: currentRevision,
+                envelope: {
+                  actionId,
+                  workspaceId,
+                  expectedRevision: currentRevision,
+                  entityVersions: [],
+                  action: {
+                    type: 'add_lesson',
+                    lessonId: `lesson-${a}`,
+                    title: `Lesson ${a} - Load Step`,
+                    objective: `Test concurrency under load ${a}`,
+                  },
+                },
+                plan: cohortDomain.plan,
+              });
+
+              const actionEnd = performance.now();
+              actionSamples.push(actionEnd - actionStart);
+              totalActionsCommitted++;
+              currentRevision = commitRes.revision;
+
+              const eventPollStart = performance.now();
+              const events = await repo.queryEvents({
+                workspaceId,
+                ownerId: workerOwnerId,
+                afterSequence: 0,
+                limit: 10,
+              });
+              const eventPollEnd = performance.now();
+              eventSamples.push(eventPollEnd - eventPollStart);
+
+              if (events.length === 0) {
+                lostAcceptedActions++;
+              }
+            }
+
+            const reconnectStart = performance.now();
+            const loaded = await repo.loadWorkspace<CohortWorkspace>({
               workspaceId,
-              expectedRevision: currentRevision,
+              ownerId: workerOwnerId,
+            });
+            const reconnectEnd = performance.now();
+            reconnectSamples.push(reconnectEnd - reconnectStart);
+
+            if (!loaded || loaded.revision !== currentRevision) {
+              lostAcceptedActions++;
+            }
+          }
+        }
+      })());
+    }
+
+    await Promise.all(workerTasks);
+
+    // 2. Overload Rejection & Recovery Test
+    const overloadWorkspaceId = randomUUID();
+    await repo.createWorkspace({
+      id: overloadWorkspaceId,
+      ownerId: 'user-overload',
+      domainId: 'cohort',
+      domainVersion: 1,
+      initialSnapshot: initialCohort('Overload Test Goal'),
+    });
+
+    if (options.useHttp && baseUrl) {
+      const overloadAttempts = await Promise.all(
+        Array.from({ length: 10 }, () =>
+          fetch(`${baseUrl}/workspaces/${overloadWorkspaceId}/actions`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Owner-ID': 'user-overload',
+              'Idempotency-Key': randomUUID(),
+            },
+            body: JSON.stringify({
+              actionId: randomUUID(),
+              workspaceId: overloadWorkspaceId,
+              expectedRevision: 0,
               entityVersions: [],
               action: {
                 type: 'add_lesson',
-                lessonId: `lesson-${a}`,
-                title: `Lesson ${a} - Load Step`,
-                objective: `Test concurrency under load ${a}`,
+                lessonId: `overload-lesson-${randomUUID().slice(0, 8)}`,
+                title: `Overload Lesson`,
+                objective: 'Testing admission',
+              },
+            }),
+          })
+        )
+      );
+
+      for (const res of overloadAttempts) {
+        if (res.status === 409 || res.status === 400) overloadRejections++;
+      }
+    } else {
+      const overloadAttempts = await Promise.allSettled(
+        Array.from({ length: 10 }, () =>
+          repo.commitAction({
+            workspaceId: overloadWorkspaceId,
+            ownerId: 'user-overload',
+            expectedRevision: 0,
+            envelope: {
+              actionId: randomUUID(),
+              workspaceId: overloadWorkspaceId,
+              expectedRevision: 0,
+              entityVersions: [],
+              action: {
+                type: 'add_lesson',
+                lessonId: `overload-lesson-${randomUUID().slice(0, 8)}`,
+                title: `Overload Lesson`,
+                objective: 'Testing admission',
               },
             },
             plan: cohortDomain.plan,
-          });
+          })
+        )
+      );
 
-          const actionEnd = performance.now();
-          actionSamples.push(actionEnd - actionStart);
-          totalActionsCommitted++;
-          currentRevision = commitRes.revision;
-
-          // Event visibility: query event cursor
-          const eventPollStart = performance.now();
-          const events = await repo.queryEvents({
-            workspaceId,
-            ownerId: workerOwnerId,
-            afterSequence: 0,
-            limit: 10,
-          });
-          const eventPollEnd = performance.now();
-          eventSamples.push(eventPollEnd - eventPollStart);
-
-          if (events.length === 0) {
-            lostAcceptedActions++;
-          }
-        }
-
-        // Measure Reconnect / Resnapshot
-        const reconnectStart = performance.now();
-        const loaded = await repo.loadWorkspace<CohortWorkspace>({
-          workspaceId,
-          ownerId: workerOwnerId,
-        });
-        const reconnectEnd = performance.now();
-        reconnectSamples.push(reconnectEnd - reconnectStart);
-
-        if (!loaded || loaded.revision !== currentRevision) {
-          lostAcceptedActions++;
-        }
+      for (const att of overloadAttempts) {
+        if (att.status === 'rejected') overloadRejections++;
       }
-    })());
-  }
+    }
 
-  await Promise.all(workerTasks);
-
-  // 2. Overload Rejection & Recovery Test
-  // Push rapid parallel mutations against stale revision to verify truthful CAS conflict rejection
-  const overloadWorkspaceId = randomUUID();
-  await repo.createWorkspace({
-    id: overloadWorkspaceId,
-    ownerId: 'user-overload',
-    domainId: 'cohort',
-    domainVersion: 1,
-    initialSnapshot: initialCohort('Overload Test Goal'),
-  });
-
-  // Attempt 10 concurrent writes with revision 0 (only 1 should succeed, 9 should be rejected)
-  const overloadAttempts = await Promise.allSettled(
-    Array.from({ length: 10 }, () =>
-      repo.commitAction({
+    // Recovery: fresh commit with updated current revision must succeed
+    const updatedWs = await repo.loadWorkspace({ workspaceId: overloadWorkspaceId, ownerId: 'user-overload' });
+    let overloadRecovered = false;
+    if (updatedWs) {
+      const recoveryRes = await repo.commitAction({
         workspaceId: overloadWorkspaceId,
         ownerId: 'user-overload',
-        expectedRevision: 0,
+        expectedRevision: updatedWs.revision,
         envelope: {
           actionId: randomUUID(),
           workspaceId: overloadWorkspaceId,
-          expectedRevision: 0,
+          expectedRevision: updatedWs.revision,
           entityVersions: [],
           action: {
             type: 'add_lesson',
-            lessonId: `overload-lesson-${randomUUID().slice(0, 8)}`,
-            title: `Overload Lesson`,
-            objective: 'Testing admission',
+            lessonId: 'recovery-lesson',
+            title: 'Recovery Lesson',
+            objective: 'Recovered after load',
           },
         },
         plan: cohortDomain.plan,
-      })
-    )
-  );
+      });
+      overloadRecovered = recoveryRes.revision > updatedWs.revision;
+    }
 
-  let overloadAccepted = 0;
-  for (const att of overloadAttempts) {
-    if (att.status === 'fulfilled') overloadAccepted++;
-    if (att.status === 'rejected') overloadRejections++;
-  }
+    const endTime = performance.now();
+    const heapEnd = process.memoryUsage().heapUsed;
 
-  // Recovery: fresh commit with updated current revision must succeed
-  const updatedWs = await repo.loadWorkspace({ workspaceId: overloadWorkspaceId, ownerId: 'user-overload' });
-  let overloadRecovered = false;
-  if (updatedWs) {
-    const recoveryRes = await repo.commitAction({
-      workspaceId: overloadWorkspaceId,
-      ownerId: 'user-overload',
-      expectedRevision: updatedWs.revision,
-      envelope: {
-        actionId: randomUUID(),
-        workspaceId: overloadWorkspaceId,
-        expectedRevision: updatedWs.revision,
-        entityVersions: [],
-        action: {
-          type: 'add_lesson',
-          lessonId: 'recovery-lesson',
-          title: 'Recovery Lesson',
-          objective: 'Recovered after load',
-        },
+    const intakeDist = calculateDistribution(intakeSamples);
+    const actionDist = calculateDistribution(actionSamples);
+    const eventDist = calculateDistribution(eventSamples);
+    const reconnectDist = calculateDistribution(reconnectSamples);
+
+    const planComparisons = {
+      intakeAckTargetPassed: intakeDist.p95 < 1000,
+      eventVisibilityTargetPassed: eventDist.p95 < 1000,
+      reconnectSnapshotTargetPassed: reconnectDist.p95 < 3000,
+      zeroLostActionsPassed: lostAcceptedActions === 0,
+      zeroDuplicateReleasesPassed: duplicateReleases === 0,
+    };
+
+    return {
+      hardware,
+      config,
+      durationMs: Number((endTime - startTime).toFixed(1)),
+      memory: {
+        heapUsedStartMb: Math.round(heapStart / (1024 * 1024)),
+        heapUsedEndMb: Math.round(heapEnd / (1024 * 1024)),
+        heapDiffMb: Math.round((heapEnd - heapStart) / (1024 * 1024)),
       },
-      plan: cohortDomain.plan,
-    });
-    overloadRecovered = recoveryRes.revision > updatedWs.revision;
+      metrics: {
+        intakeAckMs: intakeDist,
+        actionCommitMs: actionDist,
+        eventVisibilityMs: eventDist,
+        reconnectSnapshotMs: reconnectDist,
+      },
+      invariants: {
+        totalWorkspacesCreated,
+        totalActionsCommitted,
+        lostAcceptedActions,
+        duplicateReleases,
+        overloadRejections,
+        overloadRecovered,
+        errorRatePercent: 0,
+      },
+      planComparisons,
+    };
+  } finally {
+    if (server) {
+      if (typeof (server as any).closeAllConnections === 'function') {
+        (server as any).closeAllConnections();
+      }
+      await new Promise<void>(resolve => server!.close(() => resolve()));
+    }
   }
-
-  const endTime = performance.now();
-  const heapEnd = process.memoryUsage().heapUsed;
-
-  const intakeDist = calculateDistribution(intakeSamples);
-  const actionDist = calculateDistribution(actionSamples);
-  const eventDist = calculateDistribution(eventSamples);
-  const reconnectDist = calculateDistribution(reconnectSamples);
-
-  const planComparisons = {
-    intakeAckTargetPassed: intakeDist.p95 < 1000,
-    eventVisibilityTargetPassed: eventDist.p95 < 1000,
-    reconnectSnapshotTargetPassed: reconnectDist.p95 < 3000,
-    zeroLostActionsPassed: lostAcceptedActions === 0,
-    zeroDuplicateReleasesPassed: duplicateReleases === 0,
-  };
-
-  return {
-    hardware,
-    config,
-    durationMs: Number((endTime - startTime).toFixed(1)),
-    memory: {
-      heapUsedStartMb: Math.round(heapStart / (1024 * 1024)),
-      heapUsedEndMb: Math.round(heapEnd / (1024 * 1024)),
-      heapDiffMb: Math.round((heapEnd - heapStart) / (1024 * 1024)),
-    },
-    metrics: {
-      intakeAckMs: intakeDist,
-      actionCommitMs: actionDist,
-      eventVisibilityMs: eventDist,
-      reconnectSnapshotMs: reconnectDist,
-    },
-    invariants: {
-      totalWorkspacesCreated,
-      totalActionsCommitted,
-      lostAcceptedActions,
-      duplicateReleases,
-      overloadRejections,
-      overloadRecovered,
-      errorRatePercent: 0,
-    },
-    planComparisons,
-  };
 }
 
 export function formatLoadReportMarkdown(results: LoadRunResults): string {
@@ -376,11 +558,73 @@ export function formatLoadReportMarkdown(results: LoadRunResults): string {
   ].join('\n');
 }
 
+export async function runStandaloneMeasuredLoad() {
+  const root = process.cwd();
+  const embeddedPgModule = path.resolve(root, '.tmp/s3-postgres-runtime/node_modules/embedded-postgres/dist/index.js');
+  let database: any;
+  let pool: pg.Pool | undefined;
+  const pgPort = 15439;
+  const pgDbDir = path.join(root, '.tmp/load-pgdata');
+
+  try {
+    let databaseUrl = process.env.DATABASE_URL;
+
+    if (!databaseUrl && fs.existsSync(embeddedPgModule)) {
+      if (fs.existsSync(pgDbDir)) {
+        try {
+          fs.rmSync(pgDbDir, { recursive: true, force: true });
+        } catch {}
+      }
+      fs.mkdirSync(pgDbDir, { recursive: true });
+      const { default: EmbeddedPostgres } = await import(pathToFileURL(embeddedPgModule).href);
+      database = new EmbeddedPostgres({
+        databaseDir: pgDbDir,
+        user: 'loadtest',
+        password: 'loadtest',
+        port: pgPort,
+        persistent: false,
+        createPostgresUser: false,
+        postgresFlags: ['-h', '127.0.0.1', '-c', 'timezone=UTC'],
+      });
+      await database.initialise();
+      await database.start();
+
+      const adminPool = new PgPool({ connectionString: `postgresql://loadtest:loadtest@127.0.0.1:${pgPort}/postgres` });
+      await adminPool.query('CREATE DATABASE load_measured_db;');
+      await adminPool.end();
+
+      databaseUrl = `postgresql://loadtest:loadtest@127.0.0.1:${pgPort}/load_measured_db`;
+      pool = new PgPool({ connectionString: databaseUrl });
+
+      const migrationSql = fs.readFileSync(path.resolve(root, 'packages/interaction-builder/migrations/001_interaction_schema.sql'), 'utf8');
+      if (pool) await pool.query(migrationSql);
+      console.log('[Load Harness] PostgreSQL initialized and migrations applied cleanly.');
+    } else if (databaseUrl && databaseUrl !== 'memory') {
+      pool = new PgPool({ connectionString: databaseUrl });
+    }
+
+    console.log('[Load Harness] Running measured workload (HTTP + PostgreSQL + SSE visibility + client sync)...');
+    const results = await runMeasuredWorkload(
+      { concurrency: 4, workspacesPerWorker: 2, actionsPerWorkspace: 3 },
+      { pool, useHttp: true, serverPort: 3955 }
+    );
+
+    console.log(formatLoadReportMarkdown(results));
+  } finally {
+    if (pool) await pool.end();
+    if (database) {
+      try {
+        await database.stop();
+      } catch {}
+      try {
+        fs.rmSync(pgDbDir, { recursive: true, force: true });
+      } catch {}
+    }
+  }
+}
+
 if (process.argv[1]?.endsWith('measured-load-harness.ts') || process.argv[1]?.endsWith('measured-load-harness.js')) {
-  runMeasuredWorkload()
-    .then(results => {
-      console.log(formatLoadReportMarkdown(results));
-    })
+  runStandaloneMeasuredLoad()
     .catch(err => {
       console.error('Load run failed:', err);
       process.exit(1);

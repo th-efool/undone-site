@@ -76,5 +76,6 @@ phasewise.md
 # scratch and generated
 /generated/
 /scratch/
+/screenshots/
 .tmp/
 /.swc

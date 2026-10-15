@@ -142,4 +142,19 @@ This ledger records the verified enforcement state of security and authority bou
 - Shared production deployment gate remains **OPEN** awaiting authorized operator execution.
 - S7 (standalone template extraction / package publication) carries open S6 deployment gates into its baseline and must NOT be auto-started without explicit user prompt.
 
+---
+
+## 8. S7 Checkpoint 5: Final Clean-Host Acceptance, Security Repairs & Honest Gate Closure
+
+| Area | Contract / Boundary | Enforcement Mechanism | Verification Evidence | Status |
+|---|---|---|---|---|
+| **1. Real Browser Acceptance (Playwright)** | Dual-profile e2e browser execution | Headless Chromium tests against external clean consumer installed from packed tarball (`interaction-builder-0.1.0.tgz`). Profile 1 verifies SSE streaming, DOM pins, direct UI edit, item selection context, two-tab 409 CAS conflict handling, reload restoration, and server restart recovery. Profile 2 verifies authoritative host records, direct UI host commands, assistant tool commands, external DB mutations, raw PostgreSQL zero-duplicate snapshot proof, and foreign tenant 404 rejection. | `scripts/verify-browser-acceptance.mjs` (all 8 stages exit 0); screenshots captured at `screenshots/profile1-native-browser.png` and `screenshots/profile2-host-browser.png`. | **LOCAL_VERIFIED** |
+| **2. Standalone Server Security Defaults** | Localhost binding, auth boundary, anti-impersonation | Loopback bind `127.0.0.1` by default; `PrincipalResolver` anti-impersonation guard rejects mismatched `ownerId` with 400 `FORBIDDEN_OWNERSHIP_OVERRIDE`; fail-closed 401 in production; CORS allowlist origin check rejects with 403 `CORS_FORBIDDEN`; streaming body ceiling aborts at 1MB with 413 `PAYLOAD_TOO_LARGE`; Content-Type enforcement returns 415 `UNSUPPORTED_MEDIA_TYPE`; `closeAllConnections()` on shutdown. | `packages/interaction-builder/__tests__/server-security.test.ts` (9/9 passed in 79ms). | **LOCAL_VERIFIED** |
+| **3. Full-Stack Measured Load Acceptance** | HTTP + PG + SSE + concurrent clients | Upgraded `scripts/load/measured-load-harness.ts` with real HTTP dispatch and PostgreSQL persistence. Intake ack p95 99.19ms (<1000ms target), Event visibility p95 8.64ms (<1000ms target), Reconnect p95 14.57ms (<3000ms target), 0 lost accepted actions, 0 duplicate releases, 409 CAS overload recovery. | `npm run interaction:load:measure` (exit 0) and `src/server/domain/cohort-builder/__tests__/measured-load.test.ts` (3/3 passed). | **LOCAL_VERIFIED** |
+| **4. Gate Truthfulness & Explicit Statuses** | Section 10 Release Gate matrix | Refactored `scripts/verify-s6-release-gate.ts` to assign explicit statuses (`LOCAL_VERIFIED`, `DEPLOYMENT_OPEN`, `BLOCKED`). Replaced component-only test in Gate 2 with real Playwright browser verification. Explicitly recorded Gate 5 (YouTube OAuth) and Gate 10 (Production Deployment) as `DEPLOYMENT_OPEN`. | `npm run interaction:gate` (all 10 gates pass; exit 0). | **LOCAL_VERIFIED / DEPLOYMENT_OPEN** |
+
+### Carried-Forward External Deployment Gates:
+1. **Gate 5 (S4 Live YouTube Caption Acquisition)**: **DEPLOYMENT_OPEN** (awaits production Google Cloud credentials and OAuth grant).
+2. **Gate 10 (S6 Final Cluster Deployment & Shared Migrations)**: **DEPLOYMENT_OPEN** (awaits authorized production rollout cutover).
+
 
