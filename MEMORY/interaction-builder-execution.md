@@ -1,8 +1,42 @@
 # Interaction builder execution checkpoint
 
-STATUS: S7 CHECKPOINT 2 COMPLETE. Runnable standalone example using native interaction-managed state complete; final S6 deployment gate open; S4 live YouTube Data API v3 OAuth gate open. Verified via isolated external sandbox harness `scripts/verify-standalone-agenda-example.mjs` (exit 0) exercising all 7 scenarios against a packed tarball (`interaction-builder-0.1.0.tgz`), disposable loopback PostgreSQL (port 15435), and standalone HTTP server (port 3939): zero Undone imports/aliases, clean `tsc --noEmit`, workspace intake, conversation UI + assistant tool execution, direct human action, stale revision conflict rejection (HTTP 409 CONFLICT), idempotent request deduplication, and full persistence through server reload. Engine submodule committed and pushed at `7139deb`. Multi-profile packed consumer test (`node scripts/verify-packed-consumer.mjs` across Profiles A, B, C, D) passes cleanly (exit 0). All 10 Plan 06 Section 10 production criteria verified via `npm run interaction:gate` (exit 0). Engine submodule test suite passes 82/82 tests across 23 test files (exit 0). Worker check (exit 0), host TypeScript check (0 errors), and full Vercel deployment simulation (exit 0) remain verified.
-LAST_CHECKPOINT: `IB-S7-STANDALONE-AGENDA-EXAMPLE-2026-10-15`
-NEXT: S7 Checkpoint 3: Host-owned business-resource integration (Undone cohort adapter mapping, private release, and learner progress binding) (pending user prompt; carries open S6 deployment and S4 YouTube gates into baseline; do NOT auto-start).
+STATUS: S7 CHECKPOINT 3 COMPLETE. Host-owned business resource integration profile complete; final S6 deployment gate open; S4 live YouTube Data API v3 OAuth gate open. Verified via isolated external sandbox harness `scripts/verify-host-owned-resource-example.mjs` (exit 0) exercising all 8 scenarios against packed tarball (`interaction-builder-0.1.0.tgz`), disposable loopback PostgreSQL (port 15436), and standalone HTTP server (port 3940): authoritative host records in host database, zero duplicate business state in `interaction_workspaces.snapshot` (zero dual writers), direct UI commands and assistant model tools unified through `HostAgendaService.executeCommand`, row-level locking CAS (`SELECT ... FOR UPDATE`) with 409 `STALE_HOST_RESOURCE` conflict handling on real concurrent connections, command idempotency via `host_agenda_receipts`, cancellation effect preservation, and multi-tenant owner isolation. Engine submodule committed and pushed at `c1a8854` to `origin/main`. Independent adversarial architectural review passed with PASS verdict. Standalone agenda verification (`node scripts/verify-standalone-agenda-example.mjs`) passes (exit 0). Multi-profile packed consumer test (`node scripts/verify-packed-consumer.mjs` across Profiles A, B, C, D) passes (exit 0). All 10 Plan 06 Section 10 production criteria verified via `npm run interaction:gate` (exit 0). Submodule test suite passes 90/90 tests across 24 test files (exit 0). Host TypeScript check passes with 0 errors (`npx tsc --noEmit`).
+LAST_CHECKPOINT: `IB-S7-HOST-OWNED-RESOURCE-2026-10-15`
+NEXT: S7 Checkpoint 4: Reusable interaction-builder contract versioning, migration and upgrade compatibility (pending user prompt; carries open S6 deployment and S4 YouTube gates into baseline; do NOT auto-start).
+
+S7 Checkpoint 3: Host-Owned Business Resource Integration Profile (2026-10-15):
+- 1. Zero Duplicate Copy / No Dual Writers:
+  - Host business records (`host_agenda_meetings`, `host_agenda_items`) reside authoritatively in the application's database.
+  - Interaction builder snapshot (`HostBoundAgendaWorkspace`) stores ONLY reference and selection metadata:
+    `{ schemaVersion: 1, meetingId, observedVersion, selectedItemId: null }`.
+  - Raw SQL inspection of `interaction_workspaces.snapshot` in PostgreSQL verifies zero duplicate fields (`meetingTitle` and `items` are undefined).
+- 2. Unified Authorized Host Command Boundary:
+  - Direct UI commands (`HostAgendaViewer` / `HostAgendaApp` via `POST /api/host/meetings/:id/commands`) and assistant AI tools (`createHostAgendaAiTools`) execute through the exact same authorized host boundary: `HostAgendaService.executeCommand`.
+  - Zero bypass of authorization, CAS checks, read-set validation, or receipt persistence.
+- 3. Monotonic Versioning, CAS, and Row-Level Locking (`SELECT ... FOR UPDATE`):
+  - Every host mutation increments `version` monotonically.
+  - `executeCommandTransaction` in `createPgHostAgendaRepository` opens a PostgreSQL transaction, acquires an exclusive row lock (`SELECT ... FOR UPDATE`), validates `expectedVersion === currentVersion`, and verifies item `readSet` integrity before applying mutations.
+  - Concurrent requests from separate client connections are safely serialized: the winner commits cleanly (200 OK) while the loser throws `STALE_HOST_RESOURCE` (HTTP 409 CONFLICT) without silent overwrites or state corruption.
+- 4. Durable Command Receipts & Idempotency:
+  - `host_agenda_receipts` table stores receipts keyed by unique `("ownerId", "commandId")`.
+  - Retried commands or lost-response reconciliations return the cached receipt immediately without re-executing mutations or advancing versions.
+- 5. Effect Durability Under Cancellation:
+  - Host mutations committed during an assistant turn remain durable even if subsequent interaction steps or runs are aborted or cancelled.
+  - Unit tests (`__tests__/host-resource.test.ts` Test 8) confirm zero phantom rollbacks of committed host effects.
+- 6. Multi-Tenant Owner Isolation:
+  - Queries and mutations filter by `ownerId`. Foreign reads return 404/null; foreign commands reject with `UNAUTHORIZED_OWNER` (HTTP 403 Forbidden).
+- 7. Generic Package Contracts:
+  - Generic schemas exported from `interaction-builder/core`: `hostCommandEnvelopeSchema`, `HostCommandEnvelope`, `hostCommandReceiptSchema`, `HostCommandReceipt`, `hostResourceBindingSchema`, `HostResourceBinding`.
+  - Zero cohort or Undone terminology in generic engine.
+- 8. Automated Verification & Adversarial Review:
+  - `scripts/verify-host-owned-resource-example.mjs`: All 8 scenarios passed against live PostgreSQL in isolated external sandbox (exit 0).
+  - `packages/interaction-builder/__tests__/host-resource.test.ts`: 8/8 unit tests passed (19ms).
+  - Independent Architectural Review: Full audit confirmed all distributed systems invariants; awarded **PASS** verdict.
+- 9. Engine Submodule Authority:
+  - Submodule `packages/interaction-builder` committed (`c1a8854`) and pushed to `origin/main`.
+- 10. Carried-Forward External Gates:
+  - S6 Final Deployment Gate: Remains OPEN (awaits production infrastructure, shared database migrations, and operational cutover authorization).
+  - S4 Live YouTube Gate: Remains OPEN (awaits Google Data API v3 OAuth production credentials; local deterministic adapters verified).
 
 S7 Checkpoint 2: Runnable Standalone Example Using Native Interaction-Managed State (2026-10-15):
 - 1. Standalone Agenda Domain & Workspace Architecture:
