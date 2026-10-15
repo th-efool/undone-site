@@ -171,10 +171,10 @@ describe('Cohort Assistant Runner (Chat ↔ Right Workspace Sync)', () => {
 
     let observedSystemPrompt = '';
     const model = new MockLanguageModelV4({
-      doGenerate: async (options) => {
+      doGenerate: async (options: any) => {
         observedSystemPrompt = options.prompt
-          .filter(p => p.role === 'system')
-          .map(p => (typeof p.content === 'string' ? p.content : ''))
+          .filter((p: any) => p.role === 'system')
+          .map((p: any) => (typeof p.content === 'string' ? p.content : ''))
           .join('\n');
         return {
           content: [{ type: 'text', text: 'The audience is Staff Engineers.' }],

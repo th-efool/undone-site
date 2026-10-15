@@ -7,6 +7,11 @@ import { reconcileTextAction } from '@/src/server/domain/cohort-builder/text-act
 import { validateSourceAction } from '@/src/server/domain/cohort-builder/source-policy';
 import { admitPendingAssistantMessage } from '../assistant-queue';
 import {
+  checkUserConcurrency,
+  reserveModelTurnBudget,
+  settleModelTurnBudget,
+} from '@/src/server/domain/cohort-builder/budget-policy';
+import {
   type ActionCommitInput,
   type ActionCommitSuccess,
   type AppendMessageInput,
@@ -644,6 +649,7 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
       triggeringMessageId?: string | null;
       observedRevision?: number;
       runId?: string;
+      budgetReservation?: unknown;
     }): Promise<InteractionRunRecord> {
       return prisma.$transaction(async tx => {
         const rows = await tx.$queryRaw<Array<{ id: string; revision: number; sequence: number; contextEpoch: number }>>`
@@ -656,12 +662,24 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
           where: { workspaceId: params.workspaceId, status: { in: ['queued', 'running'] } },
         });
         if (active) return mapRun(active);
+
+        // Enforce per-user concurrency ceiling across all workspaces
+        await checkUserConcurrency(tx, { userId: params.ownerId, workspaceId: params.workspaceId });
+
         if (!params.triggeringMessageId) {
-          const pending = await admitPendingAssistantMessage(tx, params.workspaceId);
+          const pending = await admitPendingAssistantMessage(tx, params.workspaceId).catch(() => null);
           if (pending) return mapRun(pending);
         }
 
         const runId = params.runId ?? crypto.randomUUID();
+
+        // Atomically reserve model turn budget before run creation
+        const reservation = params.budgetReservation ?? await reserveModelTurnBudget(tx, {
+          userId: params.ownerId,
+          workspaceId: params.workspaceId,
+          runId,
+        });
+
         const runRow = await tx.interactionRun.create({
           data: {
             id: runId,
@@ -672,6 +690,7 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
             observedRevision: params.observedRevision ?? ws.revision ?? 0,
             cursor: ws.sequence,
             fence: 0,
+            budgetReservation: reservation as never,
           },
         });
         await tx.interactionOutbox.create({
@@ -811,12 +830,19 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
         if (run.status === 'canceled') return true;
         if (run.status === 'completed' || run.status === 'failed') return false;
 
+        const budgetActual = run.budgetActual ?? (run.budgetReservation ? settleModelTurnBudget({
+          reservation: run.budgetReservation,
+          error: params.reason ?? 'Canceled by user',
+          now: params.now,
+        }) : null);
+
         const updated = await tx.interactionRun.update({
           where: { id: params.runId },
           data: {
             status: 'canceled',
             fence: { increment: 1 },
             error: params.reason ?? 'Canceled by user',
+            budgetActual: (budgetActual ?? null) as never,
           },
         });
 
@@ -837,7 +863,7 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
           },
         });
 
-        await admitPendingAssistantMessage(tx, params.workspaceId);
+        await admitPendingAssistantMessage(tx, params.workspaceId).catch(() => null);
         return true;
       });
     },
@@ -855,6 +881,11 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
         const run = await tx.interactionRun.findUnique({ where: { id: params.runId } });
         if (!run || run.leaseToken !== params.leaseToken || run.status !== 'running' || !run.leaseUntil || run.leaseUntil < (params.now ?? new Date())) return false;
 
+        const budgetActual = params.budgetActual ?? (run.budgetReservation ? settleModelTurnBudget({
+          reservation: run.budgetReservation,
+          now: params.now,
+        }) : null);
+
         const updated = await tx.interactionRun.update({
           where: { id: params.runId },
           data: {
@@ -862,7 +893,7 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
             leaseOwner: null,
             leaseToken: null,
             leaseUntil: null,
-            budgetActual: (params.budgetActual ?? null) as never,
+            budgetActual: (budgetActual ?? null) as never,
           },
         });
 
@@ -889,7 +920,7 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
           });
         }
 
-        await admitPendingAssistantMessage(tx, run.workspaceId);
+        await admitPendingAssistantMessage(tx, run.workspaceId).catch(() => null);
         return true;
       });
     },
@@ -907,6 +938,12 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
         const run = await tx.interactionRun.findUnique({ where: { id: params.runId } });
         if (!run || run.leaseToken !== params.leaseToken || run.status !== 'running' || !run.leaseUntil || run.leaseUntil < (params.now ?? new Date())) return false;
 
+        const budgetActual = params.budgetActual ?? (run.budgetReservation ? settleModelTurnBudget({
+          reservation: run.budgetReservation,
+          error: params.error,
+          now: params.now,
+        }) : null);
+
         const updated = await tx.interactionRun.update({
           where: { id: params.runId },
           data: {
@@ -915,7 +952,7 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
             leaseOwner: null,
             leaseToken: null,
             leaseUntil: null,
-            budgetActual: (params.budgetActual ?? null) as never,
+            budgetActual: (budgetActual ?? null) as never,
           },
         });
 
@@ -942,7 +979,7 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
           });
         }
 
-        await admitPendingAssistantMessage(tx, run.workspaceId);
+        await admitPendingAssistantMessage(tx, run.workspaceId).catch(() => null);
         return true;
       });
     },

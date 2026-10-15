@@ -163,7 +163,9 @@ describe('LiveGithubSourceProvider', () => {
   });
 
   describe('Real public GitHub API smoke test (unauthenticated)', () => {
-    it('successfully fetches README from octocat/Hello-World within unauthenticated limits', async () => {
+    it(
+      'successfully fetches README from octocat/Hello-World within unauthenticated limits',
+      async () => {
       const provider = new LiveGithubSourceProvider();
       try {
         const resolved = await provider.resolveRef(
@@ -191,6 +193,6 @@ describe('LiveGithubSourceProvider', () => {
         }
         throw err;
       }
-    });
+    }, 15_000);
   });
 });
