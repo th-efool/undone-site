@@ -55,7 +55,8 @@ export async function GET(request: NextRequest) {
       requestedCohortId: cohortId ?? undefined, requestedLessonId: lessonId ?? undefined, requestedChunkId: chunkId ?? undefined });
     return NextResponse.json({ items: output.items.slice(page * limit, (page + 1) * limit),
       ...(rejected.length ? { delivery: { unavailableLessons: rejected.length } } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
-  } catch {
+  } catch (err) {
+    console.error('[feed error]', err);
     return NextResponse.json({ error: 'Feed is unavailable. Try again.' }, { status: 503 });
   }
 }

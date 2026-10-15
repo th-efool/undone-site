@@ -2,13 +2,21 @@ import { z } from 'zod';
 import type { FeedChunkInput } from '@/src/shared/feed/feedEngine.types';
 import { PEDAGOGICAL_DIMENSIONS } from '@/src/shared/curriculum/pedagogicalVector.types';
 
-const chunkSchema = z.object({ id: z.union([z.string().min(1), z.number()]).transform(String), title: z.string().max(2000).optional(),
-  order: z.number().int().nonnegative().optional(), duration: z.string().max(100).optional(), durationSeconds: z.number().nonnegative().optional(),
-  startSeconds: z.number().nonnegative().optional(), endSeconds: z.number().nonnegative().optional(), text: z.string().max(1024 * 1024).optional(),
-  vector: z.union([z.array(z.number().min(0).max(1)).length(12), z.record(z.enum(PEDAGOGICAL_DIMENSIONS), z.number().min(0).max(1))]).optional(),
-  isStrictlyLinear: z.boolean().optional(), contentOrigin: z.enum(['user', 'external', 'ai']).optional(),
-  durationMethod: z.enum(['source', 'reading_estimate', 'model_estimate']).optional(),
-  coverage: z.object({ limitations: z.array(z.string().max(2000)).max(100) }).optional() });
+const chunkSchema = z.preprocess(
+  raw => {
+    if (raw && typeof raw === 'object' && !('id' in raw) && 'chunkId' in raw) {
+      return { ...raw, id: (raw as any).chunkId };
+    }
+    return raw;
+  },
+  z.object({ id: z.union([z.string().min(1), z.number()]).transform(String), title: z.string().max(2000).optional(),
+    order: z.number().int().nonnegative().optional(), duration: z.string().max(100).optional(), durationSeconds: z.number().nonnegative().optional(),
+    startSeconds: z.number().nonnegative().optional(), endSeconds: z.number().nonnegative().optional(), text: z.string().max(1024 * 1024).optional(),
+    vector: z.union([z.array(z.number().min(0).max(1)).length(12), z.record(z.enum(PEDAGOGICAL_DIMENSIONS), z.number().min(0).max(1))]).optional(),
+    isStrictlyLinear: z.boolean().optional(), contentOrigin: z.enum(['user', 'external', 'ai']).optional(),
+    durationMethod: z.enum(['source', 'reading_estimate', 'model_estimate']).optional(),
+    coverage: z.object({ limitations: z.array(z.string().max(2000)).max(100) }).optional() }).passthrough()
+);
 type Lesson = { id: string; title: string; videoId: string | null; lessonType: string; thumbnailUrl: string | null; order: number;
   seasonId: string; chunks: unknown; season: { order: number; title: string; cohortId: string; cohort: { title: string; coverImage: string | null } } };
 export type DeliveryRejection = { lessonId: string; cohortId: string;

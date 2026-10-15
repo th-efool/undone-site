@@ -1,15 +1,38 @@
 # Interaction builder execution checkpoint
 
-STATUS: S4 ACCEPTANCE CLOSURE AND S5 END-TO-END LEARNER DELIVERY UNDERWAY (Checkpoint 1 complete: full S4 matrix reconciled, implementation plan established). Shared rollout and deployment remain unauthorized. Live-provider and enabled-ingestion gates remain explicitly guarded.
-LAST_CHECKPOINT: `IB-S4-S5-CLOSURE-CP1-2026-10-15`
-NEXT: Execute Checkpoint 2 (re-verify local S4A/S4B regression suites) and Checkpoint 3 (YouTube/GitHub conformance).
+STATUS: S4 ACCEPTANCE CLOSURE AND S5 END-TO-END LEARNER DELIVERY COMPLETE. Local PostgreSQL and browser journeys verified for both S4-enabled ingestion and S5 transactional release / learner delivery. Shared rollout and deployment remain unauthorized.
+LAST_CHECKPOINT: `IB-S4-S5-CLOSURE-COMPLETE-2026-10-15`
+NEXT: S4/S5 scope finished. Stand by for user instructions. Do NOT begin Slice 6.
 
 S4 Acceptance Closure & S5 End-to-End Learner Delivery (Checkpoints 1-8):
-- Checkpoint 1 (Reconciliation & Closure Plan):
-  - Created implementation plan artifact `s4-s5-closure-plan.md`.
-  - Reconciled full S4 matrix across Text/Intake (S4A), PDF (S4B), Web (S4B), YouTube Transcripts (S4C), and GitHub Repositories (S4D).
-  - Explicitly documented live provider status vs. deterministic test doubles: YouTube live acquisition blocked by official Google API video ownership requirement without dedicated proxy; GitHub public REST reads supported unauthenticated up to 60 req/hr rate limits.
-  - S5 release pipeline mapped: readiness validation -> frozen candidate -> transactional Prisma materialization (`Cohort`, `Season`, `Lesson`, `CohortMember`, `Community`) + receipt recovery (`interaction_effects`) -> learner delivery (`/play?cohort=<id>` private vs `/cohort/<id>` public) -> downgrade prevention.
+- Checkpoints 1-5 (S4 Acceptance Matrix & Ingestion Closure - Commit `ad57645`):
+  - Created implementation plan artifact `s4-s5-closure-plan.md` and audit documentation `docs/s4-closure-audit.md`.
+  - Implemented `LiveGithubSourceProvider` in `src/server/domain/cohort-builder/github-source-live.ts` with public unauthenticated GitHub REST API tree and blob fetching, text content filtering, rate limit backoff, and 11 unit/smoke tests.
+  - Documented YouTube acquisition: official Google Data API v3 `captions.download` requires video owner OAuth credentials; deterministic dev fixture `INTERACTION_YOUTUBE_FIXTURE=1` safely enables local testing without paid calls or account creation.
+  - Executed and passed `scripts/s4-enabled-browser-verification.mjs` against isolated local PostgreSQL (`S4_ENABLED_BROWSER_JOURNEY_PASS`, exit 0).
+- Checkpoint 6 (Release & Learner Access Contracts Audit):
+  - Audited `releaseWorkspace` in `src/server/domain/cohort-builder/release-service.ts` and `/api/cohort-builder/workspaces/[workspaceId]/release/route.ts`: row-level lock (`SELECT ... FOR UPDATE`), transaction atomicity, effect idempotency (`interaction_effects`), and downgrade protection (`CANNOT_DOWNGRADE_PUBLIC_COHORT`) verified.
+  - Audited learner delivery routes (`/play` and `/cohort/[cohortId]/overview`) and access policies in `src/server/domain/cohort/cohortAccessPolicy.ts`.
+  - Verified unit test suite: 33 tests in `delivery.test.ts`, `release.test.ts`, `release-postgres.test.ts`, and `release-actions.test.ts` passed cleanly.
+- Checkpoint 7 (S5 End-to-End Browser & Delivery Verification):
+  - Resolved feed compatibility in `src/server/domain/cohort-creation/delivery-feed.ts` (accepts `chunkId` as well as `id` via `z.preprocess`) and `delivery.adapter.ts`.
+  - Handled MongoDB absence gracefully in `src/server/domain/progress/chunkProgress.service.ts` when running against PostgreSQL-only environments.
+  - Created and executed `scripts/s5-browser-verification.mjs` against isolated local PostgreSQL instance (port 15433) and dev server (port 3107):
+    - Authenticated creator intake handoff -> ready workspace.
+    - Private release commit -> transactional artifacts & relational cohort verified.
+    - Learner delivery on `/play?cohort=<id>` -> 3 lesson chunks rendered with reload persistence.
+    - Privacy isolation -> uninvited user blocked on `/play` and receives 404 on private overview.
+    - Promotion to Public Publish -> cohort updated to PUBLIC in database.
+    - Anonymous learner delivery -> public overview and Join Cohort button verified.
+    - Downgrade protection -> UI disables private radio; API rejects downgrade with 409 `CANNOT_DOWNGRADE_PUBLIC_COHORT`.
+    - Captured evidence screenshot `.tmp/s5-postgres-runtime/s5-completed.png`.
+    - Script exited cleanly with `S5_BROWSER_DELIVERY_PASS` (exit 0).
+- Checkpoint 8 (Sequential Regressions & Build Verification):
+  - All test services stopped, test ports confirmed released.
+  - `npm run interaction:worker:check`: Passed (exit 0).
+  - `node scripts/verify-packed-consumer.mjs`: Passed all 6 stages (exit 0).
+  - `npx vitest run --maxWorkers=2`: 210 test files passed (1,475 tests passed, 100% of runnable tests, exit 0).
+  - `npm run verify:vercel`: Next.js production build simulation succeeded (exit 0).
 
 Final Stabilization and Visual Acceptance Pass (Checkpoints 1-5 - Commits `bf65a24`, `1f4ea85`):
 - Checkpoint 1 (Draft & Inspection Preservation Across Stage Transitions):
