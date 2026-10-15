@@ -1,8 +1,51 @@
 # Interaction builder execution checkpoint
 
-STATUS: S7 CHECKPOINT 1 COMPLETE. Reusable interaction-builder contract and export hardening complete; final S6 deployment gate open; S4 live YouTube Data API v3 OAuth gate open. Verified via multi-profile packed consumer test across Profile A (Browser/React), Profile B (Worker/PG), Profile C (Headless AI), and Profile D (Integrated) via `node scripts/verify-packed-consumer.mjs` (exit 0). All 10 Plan 06 Section 10 production criteria verified via `npm run interaction:gate` (exit 0). Engine submodule committed and pushed at `f727838`. TypeScript (0 errors), worker check (exit 0), and full Vercel deployment simulation (exit 0) remain verified.
-LAST_CHECKPOINT: `IB-S7-CONTRACT-EXPORT-HARDENING-2026-10-15`
-NEXT: S7 Checkpoint 2: Standalone domain fixture, template extraction, and host integration examples (pending user prompt; carries open S6 deployment and S4 YouTube gates into baseline; do NOT auto-start).
+STATUS: S7 CHECKPOINT 2 COMPLETE. Runnable standalone example using native interaction-managed state complete; final S6 deployment gate open; S4 live YouTube Data API v3 OAuth gate open. Verified via isolated external sandbox harness `scripts/verify-standalone-agenda-example.mjs` (exit 0) exercising all 7 scenarios against a packed tarball (`interaction-builder-0.1.0.tgz`), disposable loopback PostgreSQL (port 15435), and standalone HTTP server (port 3939): zero Undone imports/aliases, clean `tsc --noEmit`, workspace intake, conversation UI + assistant tool execution, direct human action, stale revision conflict rejection (HTTP 409 CONFLICT), idempotent request deduplication, and full persistence through server reload. Engine submodule committed and pushed at `7139deb`. Multi-profile packed consumer test (`node scripts/verify-packed-consumer.mjs` across Profiles A, B, C, D) passes cleanly (exit 0). All 10 Plan 06 Section 10 production criteria verified via `npm run interaction:gate` (exit 0). Engine submodule test suite passes 82/82 tests across 23 test files (exit 0). Worker check (exit 0), host TypeScript check (0 errors), and full Vercel deployment simulation (exit 0) remain verified.
+LAST_CHECKPOINT: `IB-S7-STANDALONE-AGENDA-EXAMPLE-2026-10-15`
+NEXT: S7 Checkpoint 3: Host-owned business-resource integration (Undone cohort adapter mapping, private release, and learner progress binding) (pending user prompt; carries open S6 deployment and S4 YouTube gates into baseline; do NOT auto-start).
+
+S7 Checkpoint 2: Runnable Standalone Example Using Native Interaction-Managed State (2026-10-15):
+- 1. Standalone Agenda Domain & Workspace Architecture:
+  - Built strictly on the clean meeting agenda domain (`AgendaWorkspace`, `agendaDomain`, `agendaActionSchema`, `createAgendaAiTools`) in `packages/interaction-builder/examples/agenda/`. Zero cohort imports, host aliases (`@/`), or monorepo coupling.
+  - Demonstrates native interaction-managed state: conversation transcript + business workspace UI, one canonical store and typed action path (`set_meeting_title`, `add_agenda_item`, `set_item_duration`, `set_item_pin`, `reorder_items`).
+- 2. React 19 Referential Snapshot Stability:
+  - Resolved `useSyncExternalStore` maximum update depth infinite loop by caching `historySnapshot` in `packages/interaction-builder/src/client/store.ts` and updating it only on revision advance, time-travel, undo/redo, or push events.
+  - Unit tests in `packages/interaction-builder` pass cleanly (82/82 tests across 23 files), including interactive React 19 testing in `__tests__/agenda-ui.test.tsx` (354ms).
+- 3. Interactive UI & Presentation Components (`examples/agenda/agenda.ui.tsx`):
+  - `AgendaViewer`: Title edit form, live item selection chips (`selectedItemId`), pin toggle, undo/redo toolbar via `useInteractionHistory`, real-time connection status badge, and conflict alert banner (`data-testid="conflict-banner"`).
+  - `AgendaChat`: Message transcript, entity-ref chips (`@Architecture Review`), selected item context bar (`[Referencing: ...]`), and Enter-key sending.
+- 4. Deterministic Background Worker (`examples/agenda/worker.ts`):
+  - Implemented `startAgendaWorker` and `createDeterministicAgendaModelAdapter` supporting instructions: title rename, item pinning/unpinning, duration editing, and item reordering. Zero paid provider calls or API keys required.
+  - Claims runs via `repo.claimRun`, resolves `ownerId` from PostgreSQL `interaction_workspaces` or memory repository, executes assistant turn via `runAssistantTurn`, and completes/fails run cleanly.
+  - Attaches `pool.on('error', ...)` to prevent unhandled connection reset crashes.
+- 5. Standalone HTTP Server & Endpoints (`examples/agenda/server.ts`):
+  - Implemented `createAgendaServer` and `runStandaloneServer` on port 3030/3939 using `dispatchInteraction` from `interaction-builder/adapters/http`.
+  - Auto-applies `migrations/001_interaction_schema.sql` on PostgreSQL startup.
+  - Supports `/health` endpoint (`{ status: 'ok', storage: 'postgres' | 'memory' }`) and CORS headers.
+  - Pipes Web streams using Node's `Readable.fromWeb`.
+- 6. Configuration & Documentation (`examples/agenda/`):
+  - Created `.env.example` with safe local defaults (`PORT=3030`, `DATABASE_URL=postgres://...`, `EMBEDDED_WORKER=true`).
+  - Created `README.md` covering architecture, quickstart commands (in-memory vs. PostgreSQL), API reference table, and clean shutdown.
+- 7. Automated External Sandbox Verification (`scripts/verify-standalone-agenda-example.mjs`):
+  - Builds and packs `interaction-builder-0.1.0.tgz`.
+  - Creates isolated sandbox in `os.tmpdir()`, asserts ZERO Undone imports or monorepo aliases.
+  - Installs dependencies from tarball and runs `tsc --noEmit` in external sandbox (0 errors).
+  - Starts disposable loopback PostgreSQL on port 15435 via `EmbeddedPostgres` and applies migration schema.
+  - Starts standalone server on port 3939 and verifies:
+    - Scenario 1: Workspace Intake (`POST /api/interaction/v1/workspaces`).
+    - Scenario 2: Conversation UI & Assistant Tool Execution (`set_meeting_title`, `set_item_pin`, transcript reply).
+    - Scenario 3: Direct Human Action Dispatch (duration edit, revision advance).
+    - Scenario 4: Two-Client Conflict Handling (stale revision rejected with HTTP 409 `CONFLICT`).
+    - Scenario 5: Duplicate / Lost-Response Retry (idempotency key deduplication returns cached receipt).
+    - Scenario 6: Persistence Through Reload (server restarted against PostgreSQL; exact revision and state intact).
+    - Scenario 7: Clean process tree shutdown (`taskkill /F /T`) and resource cleanup.
+  - Verified exit code 0.
+- 8. Engine Submodule Authority:
+  - Engine submodule committed and pushed cleanly to `origin/main` at commit `7139deb`.
+- 9. Carried-Forward External Gates:
+  - S6 Final Deployment Gate: Remains OPEN (awaits production infrastructure, shared database migrations, and operational cutover authorization).
+  - S4 Live YouTube Gate: Remains OPEN (awaits Google Data API v3 OAuth production credentials; local deterministic adapters verified).
+
 
 S7 Checkpoint 1: Reusable Interaction-Builder Contract & Export Hardening (2026-10-15):
 - 1. Type Declaration Leakage Fix:
