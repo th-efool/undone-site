@@ -1,8 +1,8 @@
 # Interaction builder execution checkpoint
 
-STATUS: UX REPAIR CHECKPOINTS 1, 2, 3 & 4 COMPLETE; LEGACY-DESIGN PARITY REPAIR CHECKPOINTS 1 & 2 COMPLETE. Shared rollout and deployment remain unauthorized. Live-provider and enabled-ingestion gates remain open and explicitly guarded.
-LAST_CHECKPOINT: `IB-UX-LEGACY-PARITY-CP2-STAGE-VIEWS-2026-10-14`
-NEXT: Run end-to-end integration and heavy checks (Checkpoints 3, 4, 5).
+STATUS: ALL UX REPAIR AND LEGACY-DESIGN PARITY REPAIR CHECKPOINTS (1, 2, 3, 4, 5) COMPLETE. Shared rollout and deployment remain unauthorized. Live-provider and enabled-ingestion gates remain open and explicitly guarded.
+LAST_CHECKPOINT: `IB-UX-LEGACY-PARITY-CP3-5-VERIFICATION-2026-10-14` (Commit `1f8c58c`)
+NEXT: Await further user instruction. No further S4/S5 expansion without explicit user authorization.
 
 Legacy-Design Parity Repair Checkpoint 1 (Clean Reference Harness & Stage Selectors - Commit `fa8e83b`):
 - Root deficiency addressed: Reference visual capture exhibited unreadable API error alerts because legacy read endpoints were falling through to network fetches; builder processing fixture projected inactive steps.
@@ -20,6 +20,22 @@ Legacy-Design Parity Repair Checkpoint 2 (Stage-Specific Screen Compositions Ove
   - `CurriculumStageView.tsx`: Full curriculum outline screen composition containing Learning Blueprint overview card, grounded source text `#builder-sources` with `ExternalSources`, lesson list `#builder-outline` with pinning, reordering, editing, deletion, orphan alerts, expandable evidence citation drawer, "Discuss in chat" button, and `ReleasePanel`.
 - Non-destructive stage inspection: `CohortWorkspacePane.tsx` integrates pure `inspectedStage` state, clickable stepper navigation, and "Return to active stage" banner. Selecting a stage is 100% read-only presentation state without dispatching actions, model calls, or store re-creations.
 - Verification: 91/91 unit tests pass (`vitest run src/client/screens/cohortBuilder src/client/screens/landing`). `capture-parity.mjs` captured 24 pairs (48 screenshots) showing exact layout parity across desktop/mobile in light/dark themes with zero console errors or API alerts.
+
+Legacy-Design Parity Repair Checkpoints 3-5 (Progress/Navigation, Visual Acceptance & Integration - Commit `1f8c58c`):
+- Checkpoint 3 (Progress, Navigation & Responsive Correctness):
+  - Stepper keyboard navigation: Verified `Enter` and `Space` on step items toggles inspection (`inspectedStage`) without dispatching actions or mutating store.
+  - Inspection banner: "Inspecting {stage} stage. [Return to active stage]" allows 1-click reset to active stage.
+  - Mobile responsiveness: `.paneNavigation` sticky at `<= 820px` prevents mobile trapping; `.creationSteps` wraps cleanly at `<= 640px`; two-column stage layouts stack cleanly into responsive cards.
+- Checkpoint 4 (Visual Parity Acceptance Review):
+  - Updated `docs/visual-parity-comparison.md` confirming full resolution of the stage composition gap.
+  - All stage-specific screen compositions (`UnderstandingStageView`, `ChunkingStageView`, `AnalysisStageView`, `AssemblyStageView`, `CurriculumStageView`) verified visually via browser screenshot pairs in `.tmp/visual-parity-gallery/` across viewports and themes.
+- Checkpoint 5 (Real Authenticated Integration & Sequential Heavy Checks):
+  - Isolated PostgreSQL verification: All 15 test suites in `scripts/s3-postgres-verification.ts` passed (exit 0).
+  - Worker check: `npm run interaction:worker:check` passed (exit 0).
+  - Packed consumer verification: `scripts/verify-packed-consumer.mjs` passed (exit 0).
+  - Full vitest suite: `npx vitest run --maxWorkers=2` -> 207 test files / 1441 tests passed, 2 skipped (exit 0).
+  - Pre-deployment verification: `npm run verify:vercel` passed (exit 0).
+  - Remote synchronization: `master` (`1f8c58c`) and `planning` (`8a25bbc`) synchronized and pushed to `origin`.
 
 UX Repair Checkpoint 1 (Homepage Handoff Defect Fix - Commit `f6dd24f`):
 - Root defect resolved: Removed silent redirect `if (!policy.enabled) { window.location.href = '/quest/new?handoff=1'; }` in `CentralInterface.tsx`.

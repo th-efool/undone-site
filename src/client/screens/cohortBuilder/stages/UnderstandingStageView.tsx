@@ -4,6 +4,10 @@ import React from 'react';
 import { FileText, Check, Brain, Lightbulb, LoaderCircle } from 'lucide-react';
 import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
 import { InkUnderline } from '@/src/client/screens/cohortCreation/components/InkUnderline';
+import {
+  isStageComplete,
+  getStageProgressDetails,
+} from '../stage-selectors';
 import styles from '@/src/client/screens/cohortCreation/components/UnderstandingProgress.module.css';
 
 interface UnderstandingStageViewProps {
@@ -13,16 +17,23 @@ interface UnderstandingStageViewProps {
 
 export function UnderstandingStageView({ workspace, dispatchAction }: UnderstandingStageViewProps) {
   const sources = workspace.sources ?? [];
-  const understanding = workspace.understanding ?? [];
   const status = workspace.processing.status;
-  const isRunning = status === 'queued' || status === 'processing' || (status as string) === 'running';
-  const isFailed = status === 'failed';
-  const isComplete = status === 'ready' || understanding.length > 0;
 
-  const understoodCount = understanding.length;
+  const stageProgress = getStageProgressDetails(workspace);
+  const isComplete = isStageComplete(workspace, 'understanding');
+  const isRunning = stageProgress.understanding.status === 'running';
+  const isFailed = stageProgress.understanding.status === 'failed';
+
+  const understoodCount = stageProgress.understanding.completedCount;
   const totalCount = sources.length;
 
-  const allTopics = understanding.flatMap((u, uIdx) =>
+  const sourceVersionMap = new Map(sources.map(s => [s.id, s.version]));
+  const validUnderstanding = (workspace.understanding ?? []).filter(u => {
+    const v = sourceVersionMap.get(u.sourceId);
+    return v === undefined || u.sourceVersion === undefined || u.sourceVersion === v;
+  });
+
+  const allTopics = validUnderstanding.flatMap((u, uIdx) =>
     u.topics.map((topic, tIdx) => ({
       key: `${u.sourceId}:${uIdx}:${tIdx}`,
       sourceId: u.sourceId,

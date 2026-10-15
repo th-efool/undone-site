@@ -22,6 +22,7 @@ import { BuilderDialog } from '../BuilderDialog';
 import { ExternalSources, ExternalSourceScope } from '../ExternalSources';
 import { formatYoutubeTimestamp } from '@/src/shared/cohort-builder/youtube-transcript';
 import { ReleasePanel } from '../components/ReleasePanel';
+import { useCohortDrafts } from '../draft-context';
 
 function YoutubeIcon({ size = 20, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) {
   return (
@@ -56,55 +57,63 @@ export function CurriculumStageView({
   onSelectLessonForChat,
   onNavigateToDestination,
 }: CurriculumStageViewProps) {
-  // Modals state
-  const [editingOverview, setEditingOverview] = useState(false);
-  const [overviewForm, setOverviewForm] = useState({
-    intent: workspace.intent,
-    audience: workspace.audience,
-    dailyMinutes: workspace.dailyMinutes,
-  });
-  const [overviewBase, setOverviewBase] = useState(overviewForm);
+  const {
+    sourceDraft,
+    updateSourceDraft,
+    openEditSource,
+    clearSourceDraft,
+    clearSourceDraftIfUnchanged,
 
-  const [editingLesson, setEditingLesson] = useState<CohortLesson | null>(null);
-  const [lessonForm, setLessonForm] = useState({ title: '', objective: '' });
+    overviewDraft,
+    openOverview,
+    updateOverviewDraft,
+    closeOverview,
+    closeOverviewIfUnchanged,
 
-  const [addingLesson, setAddingLesson] = useState(false);
-  const [newLessonForm, setNewLessonForm] = useState({ title: '', objective: '' });
-  const [sourceForm, setSourceForm] = useState({ label: '', text: '' });
-  const [editingSourceId, setEditingSourceId] = useState<string | null>(null);
-  const [editingSourceVersion, setEditingSourceVersion] = useState<number | null>(null);
-  const [sourceBase, setSourceBase] = useState(sourceForm);
+    lessonDraft,
+    openEditLesson,
+    updateLessonDraft,
+    closeEditLesson,
+    closeEditLessonIfUnchanged,
+
+    newLessonDraft,
+    openAddLesson,
+    updateNewLessonDraft,
+    closeAddLesson,
+    closeAddLessonIfUnchanged,
+  } = useCohortDrafts();
 
   // --- Handlers ---
   const handleOpenOverview = () => {
-    const fields = {
-      intent: workspace.intent,
-      audience: workspace.audience,
-      dailyMinutes: workspace.dailyMinutes,
-    };
-    setOverviewForm(fields);
-    setOverviewBase(fields);
-    setEditingOverview(true);
+    openOverview(workspace, 'curriculum');
   };
 
   const handleSaveOverview = async () => {
     if (
-      overviewBase.intent !== workspace.intent ||
-      overviewBase.audience !== workspace.audience ||
-      overviewBase.dailyMinutes !== workspace.dailyMinutes
+      overviewDraft.baseIntent !== workspace.intent ||
+      overviewDraft.baseAudience !== workspace.audience ||
+      overviewDraft.baseDailyMinutes !== workspace.dailyMinutes
     ) {
       return;
     }
-    if (overviewForm.intent !== workspace.intent) {
-      if (!(await dispatchAction({ type: 'set_intent', intent: overviewForm.intent }))) return;
+    const submittedIntent = overviewDraft.intent;
+    const submittedAudience = overviewDraft.audience;
+    const submittedDailyMinutes = overviewDraft.dailyMinutes;
+
+    if (submittedIntent !== workspace.intent) {
+      if (!(await dispatchAction({ type: 'set_intent', intent: submittedIntent }))) return;
     }
-    if (overviewForm.audience !== workspace.audience) {
-      if (!(await dispatchAction({ type: 'set_audience', audience: overviewForm.audience }))) return;
+    if (submittedAudience !== workspace.audience) {
+      if (!(await dispatchAction({ type: 'set_audience', audience: submittedAudience }))) return;
     }
-    if (overviewForm.dailyMinutes !== workspace.dailyMinutes) {
-      if (!(await dispatchAction({ type: 'set_daily_minutes', dailyMinutes: overviewForm.dailyMinutes }))) return;
+    if (submittedDailyMinutes !== workspace.dailyMinutes) {
+      if (!(await dispatchAction({ type: 'set_daily_minutes', dailyMinutes: submittedDailyMinutes }))) return;
     }
-    setEditingOverview(false);
+    closeOverviewIfUnchanged({
+      intent: submittedIntent,
+      audience: submittedAudience,
+      dailyMinutes: submittedDailyMinutes,
+    });
   };
 
   const handleTogglePin = async (lesson: CohortLesson) => {
@@ -127,22 +136,30 @@ export function CurriculumStageView({
   };
 
   const handleOpenEditLesson = (lesson: CohortLesson) => {
-    setEditingLesson(lesson);
-    setLessonForm({ title: lesson.title, objective: lesson.objective });
+    openEditLesson(lesson, 'curriculum');
   };
 
   const handleSaveEditLesson = async () => {
-    if (!editingLesson) return;
+    if (!lessonDraft.lessonId) return;
+    const currentLesson = workspace.lessons.find(lesson => lesson.id === lessonDraft.lessonId);
+    if (!currentLesson) return;
+    if (currentLesson.version !== lessonDraft.lessonVersion) return;
+
+    const submittedTitle = lessonDraft.title;
+    const submittedObjective = lessonDraft.objective;
+
     const saved = await dispatchAction(
       {
         type: 'edit_lesson',
-        lessonId: editingLesson.id,
-        ...(editingLesson.pinned ? {} : { title: lessonForm.title }),
-        objective: lessonForm.objective,
+        lessonId: lessonDraft.lessonId,
+        ...(currentLesson.pinned ? {} : { title: submittedTitle }),
+        objective: submittedObjective,
       },
-      [{ kind: 'lesson', id: editingLesson.id, version: editingLesson.version }]
+      [{ kind: 'lesson', id: lessonDraft.lessonId, version: lessonDraft.lessonVersion ?? 0 }]
     );
-    if (saved) setEditingLesson(null);
+    if (saved) {
+      closeEditLessonIfUnchanged({ title: submittedTitle, objective: submittedObjective });
+    }
   };
 
   const handleDeleteLesson = async (lesson: CohortLesson) => {
@@ -159,30 +176,34 @@ export function CurriculumStageView({
   };
 
   const handleSaveAddLesson = async () => {
-    if (!newLessonForm.title.trim() || !newLessonForm.objective.trim()) return;
+    const submittedTitle = newLessonDraft.title.trim();
+    const submittedObjective = newLessonDraft.objective.trim();
+    if (!submittedTitle || !submittedObjective) return;
+
     const saved = await dispatchAction({
       type: 'add_lesson',
-      title: newLessonForm.title.trim(),
-      objective: newLessonForm.objective.trim(),
+      title: submittedTitle,
+      objective: submittedObjective,
     });
     if (!saved) return;
-    setNewLessonForm({ title: '', objective: '' });
-    setAddingLesson(false);
+    closeAddLessonIfUnchanged({ title: submittedTitle, objective: submittedObjective });
   };
 
   const handleAddSource = async () => {
-    if (!sourceForm.label.trim() || !sourceForm.text.trim()) return;
-    const action: CohortAction = editingSourceId
-      ? { type: 'edit_text_source', sourceId: editingSourceId, label: sourceForm.label.trim(), text: sourceForm.text }
-      : { type: 'add_text_source', label: sourceForm.label.trim(), text: sourceForm.text };
-    if (
-      await dispatchAction(
-        action,
-        editingSourceId ? [{ kind: 'source', id: editingSourceId, version: editingSourceVersion ?? 0 }] : []
-      )
-    ) {
-      setSourceForm({ label: '', text: '' });
-      setEditingSourceId(null);
+    const submittedLabel = sourceDraft.label.trim();
+    const submittedText = sourceDraft.text;
+    if (!submittedLabel || !submittedText.trim()) return;
+
+    const action: CohortAction = sourceDraft.editingSourceId
+      ? { type: 'edit_text_source', sourceId: sourceDraft.editingSourceId, label: submittedLabel, text: submittedText }
+      : { type: 'add_text_source', label: submittedLabel, text: submittedText };
+
+    const expected = sourceDraft.editingSourceId
+      ? [{ kind: 'source', id: sourceDraft.editingSourceId, version: sourceDraft.editingSourceVersion ?? 0 }]
+      : [];
+
+    if (await dispatchAction(action, expected)) {
+      clearSourceDraftIfUnchanged({ label: submittedLabel, text: submittedText });
     }
   };
 
@@ -229,9 +250,9 @@ export function CurriculumStageView({
           <label htmlFor="cohort-source-title">Source title</label>
           <input
             id="cohort-source-title"
-            value={sourceForm.label}
+            value={sourceDraft.label}
             placeholder="e.g. Distributed systems notes"
-            onChange={event => setSourceForm({ ...sourceForm, label: event.target.value })}
+            onChange={event => updateSourceDraft({ label: event.target.value }, 'curriculum')}
           />
         </div>
         <div className={styles.formField}>
@@ -240,50 +261,71 @@ export function CurriculumStageView({
             id="cohort-source-text"
             rows={6}
             maxLength={200_000}
-            value={sourceForm.text}
-            onChange={event => setSourceForm({ ...sourceForm, text: event.target.value })}
+            value={sourceDraft.text}
+            onChange={event => updateSourceDraft({ text: event.target.value }, 'curriculum')}
           />
         </div>
         <div className={styles.modalActions}>
           <button type="button" className={styles.saveBtn} onClick={() => void handleAddSource()}>
-            {editingSourceId ? 'Save source changes' : 'Add text source'}
+            {sourceDraft.editingSourceId ? 'Save source changes' : 'Add text source'}
           </button>
-          {editingSourceId && (
+          {sourceDraft.editingSourceId && (
             <button
               type="button"
               className={styles.editActionBtn}
-              onClick={() => {
-                setEditingSourceId(null);
-                setSourceForm({ label: '', text: '' });
-              }}
+              onClick={clearSourceDraft}
             >
               Cancel edit
             </button>
           )}
         </div>
-        {editingSourceId &&
-          workspace.sources.find(source => source.id === editingSourceId)?.version !== editingSourceVersion && (
+        {sourceDraft.editingSourceId &&
+          workspace.sources.find(source => source.id === sourceDraft.editingSourceId)?.version !== sourceDraft.editingSourceVersion && (
             <div role="alert" className={styles.alertBox}>
               <p>This source changed or was removed. Your text is retained.</p>
-              {workspace.sources.some(source => source.id === editingSourceId) && (
+              {workspace.sources.some(source => source.id === sourceDraft.editingSourceId) ? (
                 <>
                   <details>
                     <summary>Compare current source</summary>
-                    <p>{workspace.sources.find(source => source.id === editingSourceId)?.text}</p>
+                    <p>{workspace.sources.find(source => source.id === sourceDraft.editingSourceId)?.text}</p>
                   </details>
                   <button
                     type="button"
                     onClick={() => {
-                      const current = workspace.sources.find(source => source.id === editingSourceId)!;
-                      setSourceForm({
-                        label: sourceForm.label === sourceBase.label ? current.label : sourceForm.label,
-                        text: sourceForm.text === sourceBase.text ? current.text : sourceForm.text,
-                      });
-                      setSourceBase({ label: current.label, text: current.text });
-                      setEditingSourceVersion(current.version);
+                      const current = workspace.sources.find(source => source.id === sourceDraft.editingSourceId)!;
+                      updateSourceDraft({
+                        label: sourceDraft.label === sourceDraft.baseLabel ? current.label : sourceDraft.label,
+                        text: sourceDraft.text === sourceDraft.baseText ? current.text : sourceDraft.text,
+                        baseLabel: current.label,
+                        baseText: current.text,
+                        editingSourceVersion: current.version,
+                        conflictDetected: false,
+                      }, 'curriculum');
                     }}
                   >
                     Use current source version and keep my edit
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p>This source was removed remotely. You can save your writing as a new source or discard it.</p>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const action: CohortAction = {
+                        type: 'add_text_source',
+                        label: sourceDraft.label.trim() || 'Restored source',
+                        text: sourceDraft.text,
+                      };
+                      if (await dispatchAction(action)) {
+                        clearSourceDraft();
+                      }
+                    }}
+                  >
+                    Save as new source
+                  </button>
+                  <button type="button" onClick={clearSourceDraft}>
+                    Discard
                   </button>
                 </>
               )}
@@ -345,12 +387,7 @@ export function CurriculumStageView({
                     <button
                       type="button"
                       className={styles.editActionBtn}
-                      onClick={() => {
-                        setEditingSourceId(source.id);
-                        setEditingSourceVersion(source.version);
-                        setSourceForm({ label: source.label, text: source.text });
-                        setSourceBase({ label: source.label, text: source.text });
-                      }}
+                      onClick={() => openEditSource(source, 'curriculum')}
                     >
                       Edit
                     </button>
@@ -401,7 +438,7 @@ export function CurriculumStageView({
       {/* Curriculum Outline */}
       <div className={styles.sectionHeader}>
         <h3>Curriculum Outline ({workspace.lessons.length} lessons)</h3>
-        <button type="button" className={styles.addLessonBtn} onClick={() => setAddingLesson(true)}>
+        <button type="button" className={styles.addLessonBtn} onClick={() => openAddLesson('curriculum')}>
           <Plus size={15} /> Add Lesson
         </button>
       </div>
@@ -571,13 +608,13 @@ export function CurriculumStageView({
       />
 
       {/* Edit Overview Modal */}
-      {editingOverview && (
+      {overviewDraft.isOpen && (
         <div className={styles.modalBackdrop}>
-          <BuilderDialog label="Edit Cohort Overview" onClose={() => setEditingOverview(false)}>
+          <BuilderDialog label="Edit Cohort Overview" onClose={closeOverview}>
             <h3>Edit Cohort Overview</h3>
-            {(overviewBase.intent !== workspace.intent ||
-              overviewBase.audience !== workspace.audience ||
-              overviewBase.dailyMinutes !== workspace.dailyMinutes) && (
+            {(overviewDraft.baseIntent !== workspace.intent ||
+              overviewDraft.baseAudience !== workspace.audience ||
+              overviewDraft.baseDailyMinutes !== workspace.dailyMinutes) && (
               <div role="alert">
                 <p>
                   Overview changed while you were editing. Current: {workspace.intent} · {workspace.audience} · {workspace.dailyMinutes} minutes.
@@ -585,12 +622,14 @@ export function CurriculumStageView({
                 <button
                   type="button"
                   onClick={() => {
-                    setOverviewForm({
-                      intent: overviewForm.intent === overviewBase.intent ? workspace.intent : overviewForm.intent,
-                      audience: overviewForm.audience === overviewBase.audience ? workspace.audience : overviewForm.audience,
-                      dailyMinutes: overviewForm.dailyMinutes === overviewBase.dailyMinutes ? workspace.dailyMinutes : overviewForm.dailyMinutes,
+                    updateOverviewDraft({
+                      intent: overviewDraft.intent === overviewDraft.baseIntent ? workspace.intent : overviewDraft.intent,
+                      audience: overviewDraft.audience === overviewDraft.baseAudience ? workspace.audience : overviewDraft.audience,
+                      dailyMinutes: overviewDraft.dailyMinutes === overviewDraft.baseDailyMinutes ? workspace.dailyMinutes : overviewDraft.dailyMinutes,
+                      baseIntent: workspace.intent,
+                      baseAudience: workspace.audience,
+                      baseDailyMinutes: workspace.dailyMinutes,
                     });
-                    setOverviewBase({ intent: workspace.intent, audience: workspace.audience, dailyMinutes: workspace.dailyMinutes });
                   }}
                 >
                   Keep my overview edits against current values
@@ -603,8 +642,8 @@ export function CurriculumStageView({
               <textarea
                 aria-label="Learning intent"
                 rows={3}
-                value={overviewForm.intent}
-                onChange={e => setOverviewForm({ ...overviewForm, intent: e.target.value })}
+                value={overviewDraft.intent}
+                onChange={e => updateOverviewDraft({ intent: e.target.value })}
               />
             </div>
 
@@ -613,8 +652,8 @@ export function CurriculumStageView({
               <input
                 aria-label="Target audience"
                 type="text"
-                value={overviewForm.audience}
-                onChange={e => setOverviewForm({ ...overviewForm, audience: e.target.value })}
+                value={overviewDraft.audience}
+                onChange={e => updateOverviewDraft({ audience: e.target.value })}
               />
             </div>
 
@@ -625,15 +664,15 @@ export function CurriculumStageView({
                 type="number"
                 min={1}
                 max={1440}
-                value={overviewForm.dailyMinutes}
+                value={overviewDraft.dailyMinutes}
                 onChange={e =>
-                  setOverviewForm({ ...overviewForm, dailyMinutes: Number(e.target.value) || 20 })
+                  updateOverviewDraft({ dailyMinutes: Number(e.target.value) || 20 })
                 }
               />
             </div>
 
             <div className={styles.modalActions}>
-              <button type="button" className={styles.cancelBtn} onClick={() => setEditingOverview(false)}>
+              <button type="button" className={styles.cancelBtn} onClick={closeOverview}>
                 Cancel
               </button>
               <button type="button" className={styles.saveBtn} onClick={() => void handleSaveOverview()}>
@@ -645,69 +684,102 @@ export function CurriculumStageView({
       )}
 
       {/* Edit Lesson Modal */}
-      {editingLesson && (
-        <div className={styles.modalBackdrop}>
-          <BuilderDialog label="Edit Lesson" onClose={() => setEditingLesson(null)}>
-            <h3>Edit Lesson</h3>
-            {workspace.lessons.find(lesson => lesson.id === editingLesson.id)?.version !== editingLesson.version && (
-              <div role="alert">
-                <p>This lesson changed while you were editing. Your writing is retained.</p>
-                <p>Current objective: {workspace.lessons.find(lesson => lesson.id === editingLesson.id)?.objective ?? 'Lesson removed'}</p>
-                {workspace.lessons.some(lesson => lesson.id === editingLesson.id) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const current = workspace.lessons.find(lesson => lesson.id === editingLesson.id)!;
-                      setLessonForm({
-                        title: lessonForm.title === editingLesson.title ? current.title : lessonForm.title,
-                        objective: lessonForm.objective === editingLesson.objective ? current.objective : lessonForm.objective,
-                      });
-                      setEditingLesson(current);
-                    }}
-                  >
-                    Use current version and keep my edit
-                  </button>
-                )}
-              </div>
-            )}
+      {lessonDraft.isOpen && (() => {
+        const targetLesson = workspace.lessons.find(lesson => lesson.id === lessonDraft.lessonId);
+        const hasConflict = targetLesson && targetLesson.version !== lessonDraft.lessonVersion;
 
-            <div className={styles.formField}>
-              <label>Title {editingLesson.pinned && '(Locked: unpin to edit)'}</label>
-              <input
-                aria-label="Lesson title"
-                type="text"
-                disabled={editingLesson.pinned}
-                value={lessonForm.title}
-                onChange={e => setLessonForm({ ...lessonForm, title: e.target.value })}
-              />
-            </div>
+        return (
+          <div className={styles.modalBackdrop}>
+            <BuilderDialog label="Edit Lesson" onClose={closeEditLesson}>
+              <h3>Edit Lesson</h3>
 
-            <div className={styles.formField}>
-              <label>Learning Objective</label>
-              <textarea
-                aria-label="Learning objective"
-                rows={4}
-                value={lessonForm.objective}
-                onChange={e => setLessonForm({ ...lessonForm, objective: e.target.value })}
-              />
-            </div>
+              {!targetLesson ? (
+                <div role="alert">
+                  <p>This lesson was removed remotely while you were editing. Your writing is retained.</p>
+                  <div className={styles.modalActions}>
+                    <button
+                      type="button"
+                      className={styles.saveBtn}
+                      onClick={async () => {
+                        const saved = await dispatchAction({
+                          type: 'add_lesson',
+                          title: lessonDraft.title.trim() || 'Restored Lesson',
+                          objective: lessonDraft.objective.trim(),
+                        });
+                        if (saved) closeEditLesson();
+                      }}
+                    >
+                      Save as new lesson
+                    </button>
+                    <button type="button" className={styles.cancelBtn} onClick={closeEditLesson}>
+                      Discard edit
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  {hasConflict && (
+                    <div role="alert">
+                      <p>This lesson changed while you were editing. Your writing is retained.</p>
+                      <p>Current objective: {targetLesson.objective}</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          updateLessonDraft({
+                            title: lessonDraft.title === lessonDraft.baseTitle ? targetLesson.title : lessonDraft.title,
+                            objective: lessonDraft.objective === lessonDraft.baseObjective ? targetLesson.objective : lessonDraft.objective,
+                            baseTitle: targetLesson.title,
+                            baseObjective: targetLesson.objective,
+                            lessonVersion: targetLesson.version,
+                            conflictDetected: false,
+                          });
+                        }}
+                      >
+                        Use current version and keep my edit
+                      </button>
+                    </div>
+                  )}
 
-            <div className={styles.modalActions}>
-              <button type="button" className={styles.cancelBtn} onClick={() => setEditingLesson(null)}>
-                Cancel
-              </button>
-              <button type="button" className={styles.saveBtn} onClick={() => void handleSaveEditLesson()}>
-                Update Lesson
-              </button>
-            </div>
-          </BuilderDialog>
-        </div>
-      )}
+                  <div className={styles.formField}>
+                    <label>Title {targetLesson.pinned && '(Locked: unpin to edit)'}</label>
+                    <input
+                      aria-label="Lesson title"
+                      type="text"
+                      disabled={targetLesson.pinned}
+                      value={lessonDraft.title}
+                      onChange={e => updateLessonDraft({ title: e.target.value })}
+                    />
+                  </div>
+
+                  <div className={styles.formField}>
+                    <label>Learning Objective</label>
+                    <textarea
+                      aria-label="Learning objective"
+                      rows={4}
+                      value={lessonDraft.objective}
+                      onChange={e => updateLessonDraft({ objective: e.target.value })}
+                    />
+                  </div>
+
+                  <div className={styles.modalActions}>
+                    <button type="button" className={styles.cancelBtn} onClick={closeEditLesson}>
+                      Cancel
+                    </button>
+                    <button type="button" className={styles.saveBtn} onClick={() => void handleSaveEditLesson()}>
+                      Update Lesson
+                    </button>
+                  </div>
+                </>
+              )}
+            </BuilderDialog>
+          </div>
+        );
+      })()}
 
       {/* Add Lesson Modal */}
-      {addingLesson && (
+      {newLessonDraft.isOpen && (
         <div className={styles.modalBackdrop}>
-          <BuilderDialog label="Add New Lesson" onClose={() => setAddingLesson(false)}>
+          <BuilderDialog label="Add New Lesson" onClose={closeAddLesson}>
             <h3>Add New Lesson</h3>
 
             <div className={styles.formField}>
@@ -716,8 +788,8 @@ export function CurriculumStageView({
                 aria-label="New lesson title"
                 type="text"
                 placeholder="e.g. Asynchronous Job Queues"
-                value={newLessonForm.title}
-                onChange={e => setNewLessonForm({ ...newLessonForm, title: e.target.value })}
+                value={newLessonDraft.title}
+                onChange={e => updateNewLessonDraft({ title: e.target.value })}
               />
             </div>
 
@@ -727,13 +799,13 @@ export function CurriculumStageView({
                 aria-label="New lesson objective"
                 rows={4}
                 placeholder="What will the learner master in this lesson?"
-                value={newLessonForm.objective}
-                onChange={e => setNewLessonForm({ ...newLessonForm, objective: e.target.value })}
+                value={newLessonDraft.objective}
+                onChange={e => updateNewLessonDraft({ objective: e.target.value })}
               />
             </div>
 
             <div className={styles.modalActions}>
-              <button type="button" className={styles.cancelBtn} onClick={() => setAddingLesson(false)}>
+              <button type="button" className={styles.cancelBtn} onClick={closeAddLesson}>
                 Cancel
               </button>
               <button type="button" className={styles.saveBtn} onClick={() => void handleSaveAddLesson()}>

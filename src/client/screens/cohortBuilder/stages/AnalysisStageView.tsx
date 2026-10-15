@@ -4,10 +4,16 @@ import React, { useState } from 'react';
 import { ChevronRight, FileText, Lightbulb } from 'lucide-react';
 import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
 import { InkUnderline } from '@/src/client/screens/cohortCreation/components/InkUnderline';
-import { ProcessingChecklist } from './ProcessingChecklist';
+import {
+  isStageComplete,
+  getStageProgressDetails,
+  getValidChunks,
+  getValidAnalyses,
+} from '../stage-selectors';
 import shared from '@/src/client/screens/cohortCreation/components/UnderstandingProgress.module.css';
 import chunks from '@/src/client/screens/cohortCreation/components/ChunkingWorkspace.module.css';
 import styles from '@/src/client/screens/cohortCreation/components/AnalysisWorkspace.module.css';
+import { useCohortDrafts } from '../draft-context';
 
 interface AnalysisStageViewProps {
   workspace: CohortWorkspace;
@@ -15,21 +21,37 @@ interface AnalysisStageViewProps {
 }
 
 export function AnalysisStageView({ workspace, dispatchAction }: AnalysisStageViewProps) {
+  let inspection: any = { analysisSelectedSourceId: null, analysisExpandedChunkId: null };
+  let setInspectionState: any = () => {};
+  try {
+    const drafts = useCohortDrafts();
+    inspection = drafts.inspection;
+    setInspectionState = drafts.setInspectionState;
+  } catch {
+    // Graceful fallback when rendered outside CohortDraftProvider
+  }
   const sources = workspace.sources ?? [];
-  const chunkList = workspace.chunks ?? [];
-  const analysesList = workspace.analyses ?? [];
+  const validChunks = getValidChunks(workspace);
+  const validAnalyses = getValidAnalyses(workspace);
   const status = workspace.processing.status;
-  const isRunning = status === 'queued' || status === 'processing' || (status as string) === 'running';
-  const isFailed = status === 'failed';
-  const isComplete = analysesList.length > 0 && status !== 'failed';
 
-  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(sources[0]?.id ?? null);
-  const currentSource = sources.find(s => s.id === selectedSourceId) ?? sources[0];
-  const sourceChunks = (item: typeof currentSource) => chunkList.filter(chunk => chunk.sourceId === item?.id);
+  const stageProgress = getStageProgressDetails(workspace);
+  const isComplete = isStageComplete(workspace, 'analysis');
+  const isRunning = stageProgress.analysis.status === 'running';
+  const isFailed = stageProgress.analysis.status === 'failed';
+
+  const effectiveSelectedSourceId =
+    inspection.analysisSelectedSourceId && sources.some(s => s.id === inspection.analysisSelectedSourceId)
+      ? inspection.analysisSelectedSourceId
+      : (sources[0]?.id ?? null);
+
+  const currentSource = sources.find(s => s.id === effectiveSelectedSourceId) ?? sources[0];
+  const sourceChunks = (item: typeof currentSource) => validChunks.filter(chunk => chunk.sourceId === item?.id);
   const selectedChunks = sourceChunks(currentSource);
 
-  const analysesMap = new Map(analysesList.map(item => [item.chunkId, item]));
-  const analyzedTotalCount = chunkList.filter(c => analysesMap.has(c.id)).length;
+  const analysesMap = new Map(validAnalyses.map(item => [item.chunkId, item]));
+  const analyzedTotalCount = validChunks.filter(c => analysesMap.has(c.id)).length;
+  const totalChunksCount = validChunks.length;
 
   return (
     <section aria-label="Analysis workspace" className={shared.workspace}>
@@ -71,7 +93,7 @@ export function AnalysisStageView({ workspace, dispatchAction }: AnalysisStageVi
                       type="radio"
                       name="analysis-source"
                       checked={item.id === currentSource?.id}
-                      onChange={() => setSelectedSourceId(item.id)}
+                      onChange={() => setInspectionState({ analysisSelectedSourceId: item.id })}
                     />
                     <span className={chunks.number}>{String(index + 1).padStart(2, '0')}</span>
                     <span className={chunks.sourceTitle}>
@@ -85,11 +107,9 @@ export function AnalysisStageView({ workspace, dispatchAction }: AnalysisStageVi
             </fieldset>
 
             <div className={shared.progress}>
-              <progress max={chunkList.length || 1} value={analyzedTotalCount} aria-label="Content partitions analyzed" />
-              <span>{analyzedTotalCount}/{chunkList.length} partitions analyzed</span>
+              <progress max={totalChunksCount || 1} value={analyzedTotalCount} aria-label="Content partitions analyzed" />
+              <span>{analyzedTotalCount}/{totalChunksCount} partitions analyzed</span>
             </div>
-
-            <ProcessingChecklist currentStage="analysis" processingStatus={status} />
 
             <div className={shared.controls}>
               {workspace.processing.jobs?.length ? (
@@ -127,7 +147,7 @@ export function AnalysisStageView({ workspace, dispatchAction }: AnalysisStageVi
 
               {isRunning && !workspace.processing.jobs?.length && (
                 <div role="status">
-                  <p>{analyzedTotalCount} of {chunkList.length} chunks analyzed.</p>
+                  <p>{analyzedTotalCount} of {totalChunksCount} chunks analyzed.</p>
                   <button type="button" onClick={() => void dispatchAction({ type: 'cancel_text_processing' })}>
                     Cancel analysis
                   </button>
@@ -156,7 +176,13 @@ export function AnalysisStageView({ workspace, dispatchAction }: AnalysisStageVi
                 const analysis = analysesMap.get(chunk.id);
                 return (
                   <li key={chunk.id}>
-                    <details>
+                    <details
+                      open={inspection.analysisExpandedChunkId === chunk.id}
+                      onToggle={e => {
+                        const isOpen = (e.currentTarget as HTMLDetailsElement).open;
+                        setInspectionState({ analysisExpandedChunkId: isOpen ? chunk.id : null });
+                      }}
+                    >
                       <summary>
                         <span className={chunks.chunkNumber}>{String(index + 1).padStart(2, '0')}</span>
                         <span>

@@ -13,15 +13,9 @@ import { AnalysisStageView } from './stages/AnalysisStageView';
 import { AssemblyStageView } from './stages/AssemblyStageView';
 import { CurriculumStageView } from './stages/CurriculumStageView';
 import { IntakeStageView } from './stages/IntakeStageView';
+import { type BuilderStage, CohortDraftProvider, useCohortDrafts } from './draft-context';
 
-export type Stage =
-  | 'intake'
-  | 'understanding'
-  | 'chunking'
-  | 'analysis'
-  | 'assembly'
-  | 'curriculum'
-  | 'review';
+export type Stage = BuilderStage;
 
 export interface ProcessingStep {
   label: 'Understanding' | 'Chunking' | 'Analyzing' | 'Building';
@@ -94,9 +88,14 @@ export function getActiveStage(workspace: CohortWorkspace): Stage {
 
 export function getEffectiveStage(
   workspace: CohortWorkspace,
-  inspectedStage?: Stage | null
+  inspectedStage?: Stage | null,
+  drafts?: { isAnyDirtyOrOpen: () => boolean; editingStage: Stage | null }
 ): Stage {
-  return inspectedStage ?? getActiveStage(workspace);
+  if (inspectedStage) return inspectedStage;
+  if (drafts && drafts.isAnyDirtyOrOpen() && drafts.editingStage) {
+    return drafts.editingStage;
+  }
+  return getActiveStage(workspace);
 }
 
 export function getProcessingProgress(workspace: CohortWorkspace): ProcessingProgress {
@@ -300,15 +299,27 @@ export function getProcessingProgress(workspace: CohortWorkspace): ProcessingPro
 
 interface CohortWorkspacePaneProps {
   workspaceId?: string;
+  ownerId?: string;
   onSelectLessonForChat: (attached: { entity: EntityRef; label: string }) => void;
   onNavigateToDestination?: (url: string) => void;
 }
 
-export function CohortWorkspacePane({
+export function CohortWorkspacePane(props: CohortWorkspacePaneProps) {
+  const interactionState = useInteractionState<CohortWorkspace>();
+  const workspaceId = props.workspaceId ?? interactionState?.workspaceId ?? '';
+  return (
+    <CohortDraftProvider workspaceId={workspaceId} ownerId={props.ownerId}>
+      <InnerCohortWorkspacePane {...props} />
+    </CohortDraftProvider>
+  );
+}
+
+function InnerCohortWorkspacePane({
   workspaceId: propWorkspaceId,
   onSelectLessonForChat,
   onNavigateToDestination,
 }: CohortWorkspacePaneProps) {
+  const drafts = useCohortDrafts();
   const interactionState = useInteractionState<CohortWorkspace>();
   const workspaceId = propWorkspaceId ?? interactionState?.workspaceId ?? '';
   const rawWorkspace = useWorkspaceView<CohortWorkspace>();
@@ -324,7 +335,7 @@ export function CohortWorkspacePane({
 
   const progress = getProcessingProgress(workspace);
   const activeStage = getActiveStage(workspace);
-  const effectiveStage = getEffectiveStage(workspace, inspectedStage);
+  const effectiveStage = getEffectiveStage(workspace, inspectedStage, drafts);
 
   const stepToStageMap: Record<ProcessingStep['label'], Stage> = {
     Understanding: 'understanding',

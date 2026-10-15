@@ -4,9 +4,14 @@ import React, { useState } from 'react';
 import { ChevronRight, FileText, Lightbulb } from 'lucide-react';
 import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
 import { InkUnderline } from '@/src/client/screens/cohortCreation/components/InkUnderline';
-import { ProcessingChecklist } from './ProcessingChecklist';
+import {
+  isStageComplete,
+  getStageProgressDetails,
+  getValidChunks,
+} from '../stage-selectors';
 import shared from '@/src/client/screens/cohortCreation/components/UnderstandingProgress.module.css';
 import styles from '@/src/client/screens/cohortCreation/components/ChunkingWorkspace.module.css';
+import { useCohortDrafts } from '../draft-context';
 
 interface ChunkingStageViewProps {
   workspace: CohortWorkspace;
@@ -14,19 +19,33 @@ interface ChunkingStageViewProps {
 }
 
 export function ChunkingStageView({ workspace, dispatchAction }: ChunkingStageViewProps) {
+  let inspection: any = { chunkingSelectedSourceId: null, chunkingExpandedChunkId: null };
+  let setInspectionState: any = () => {};
+  try {
+    const drafts = useCohortDrafts();
+    inspection = drafts.inspection;
+    setInspectionState = drafts.setInspectionState;
+  } catch {
+    // Graceful fallback when rendered outside CohortDraftProvider
+  }
   const sources = workspace.sources ?? [];
-  const chunks = workspace.chunks ?? [];
+  const validChunks = getValidChunks(workspace);
   const status = workspace.processing.status;
-  const isRunning = status === 'queued' || status === 'processing' || (status as string) === 'running';
-  const isFailed = status === 'failed';
-  const isComplete = chunks.length > 0 && status !== 'failed';
 
-  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(sources[0]?.id ?? null);
-  const currentSource = sources.find(s => s.id === selectedSourceId) ?? sources[0];
+  const stageProgress = getStageProgressDetails(workspace);
+  const isComplete = isStageComplete(workspace, 'chunking');
+  const isRunning = stageProgress.chunking.status === 'running';
+  const isFailed = stageProgress.chunking.status === 'failed';
+  const chunkedSourcesCount = stageProgress.chunking.completedCount;
+
+  const effectiveSelectedSourceId =
+    inspection.chunkingSelectedSourceId && sources.some(s => s.id === inspection.chunkingSelectedSourceId)
+      ? inspection.chunkingSelectedSourceId
+      : (sources[0]?.id ?? null);
+
+  const currentSource = sources.find(s => s.id === effectiveSelectedSourceId) ?? sources[0];
   const currentSourceIndex = sources.findIndex(s => s.id === currentSource?.id);
-  const selectedChunks = chunks.filter(c => c.sourceId === currentSource?.id);
-
-  const chunkedSourcesCount = sources.filter(s => chunks.some(c => c.sourceId === s.id)).length;
+  const selectedChunks = validChunks.filter(c => c.sourceId === currentSource?.id);
 
   return (
     <section aria-label="Chunking material" className={`${shared.workspace} ${styles.workspace}`}>
@@ -60,14 +79,14 @@ export function ChunkingStageView({ workspace, dispatchAction }: ChunkingStageVi
             <fieldset className={styles.sourceList}>
               <legend className={styles.srOnly}>Select a source to inspect its chunks</legend>
               {sources.map((item, index) => {
-                const count = chunks.filter(c => c.sourceId === item.id).length;
+                const count = validChunks.filter(c => c.sourceId === item.id).length;
                 return (
                   <label key={item.id} className={styles.source} data-selected={item.id === currentSource?.id}>
                     <input
                       type="radio"
                       name="chunk-source"
                       checked={item.id === currentSource?.id}
-                      onChange={() => setSelectedSourceId(item.id)}
+                      onChange={() => setInspectionState({ chunkingSelectedSourceId: item.id })}
                     />
                     <span className={styles.number}>{String(index + 1).padStart(2, '0')}</span>
                     <span className={styles.sourceTitle}>
@@ -85,8 +104,6 @@ export function ChunkingStageView({ workspace, dispatchAction }: ChunkingStageVi
               <span>{chunkedSourcesCount}/{sources.length} partitions</span>
             </div>
 
-            <ProcessingChecklist currentStage="chunking" processingStatus={status} />
-
             <div className={shared.controls}>
               {workspace.lessons.some(l => l.evidenceStatus === 'orphaned') && (
                 <p role="alert">This lesson references changed or removed source text.</p>
@@ -94,7 +111,7 @@ export function ChunkingStageView({ workspace, dispatchAction }: ChunkingStageVi
 
               {isRunning ? (
                 <div role="status">
-                  <p>{chunks.length} chunks generated across {chunkedSourcesCount} sources.</p>
+                  <p>{validChunks.length} chunks generated across {chunkedSourcesCount} sources.</p>
                   <p>You can close this page and return while work continues.</p>
                   <button type="button" onClick={() => void dispatchAction({ type: 'cancel_text_processing' })}>
                     Cancel chunking
@@ -145,7 +162,13 @@ export function ChunkingStageView({ workspace, dispatchAction }: ChunkingStageVi
             <ol className={styles.chunks}>
               {selectedChunks.map((chunk, index) => (
                 <li key={chunk.id}>
-                  <details>
+                  <details
+                    open={inspection.chunkingExpandedChunkId === chunk.id}
+                    onToggle={e => {
+                      const isOpen = (e.currentTarget as HTMLDetailsElement).open;
+                      setInspectionState({ chunkingExpandedChunkId: isOpen ? chunk.id : null });
+                    }}
+                  >
                     <summary>
                       <span className={styles.chunkNumber}>{String(index + 1).padStart(2, '0')}</span>
                       <span>
