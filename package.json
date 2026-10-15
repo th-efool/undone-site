@@ -27,6 +27,7 @@
     "creation:readiness": "node --import tsx --import ./scripts/register-root-environment.mjs scripts/creation-readiness.ts",
     "interaction:worker": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs src/server/interaction-worker.ts",
     "interaction:worker:check": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs src/server/interaction-worker.ts --check",
+    "interaction:worker:diagnostics": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs scripts/worker-diagnostics.ts",
     "interaction:readiness": "node --import tsx --import ./scripts/register-root-environment.mjs scripts/interaction-readiness.ts",
     "creation:material:smoke": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs scripts/creation-material-smoke.ts",
     "postinstall": "prisma generate",
