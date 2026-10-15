@@ -103,6 +103,26 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
             </div>
 
             <div className={styles.controls}>
+              {workspace.processing.jobs?.length ? (
+                <section aria-label="Source processing jobs" aria-live="polite">
+                  {workspace.processing.jobs.map(job => (
+                    <p key={job.id}>
+                      {sources.find(s => s.id === job.sourceId)?.label ?? 'Curriculum'} · {job.stage} · {job.status}
+                      {job.error && <span> · {job.error}</span>}
+                      {job.status === 'failed' && (
+                        job.retryable ? (
+                          <button type="button" onClick={() => void dispatchAction({ type: 'retry_text_job', jobId: job.id })}>
+                            Retry {job.stage}
+                          </button>
+                        ) : (
+                          <span> · Retry limit reached; edit or remove affected source.</span>
+                        )
+                      )}
+                    </p>
+                  ))}
+                </section>
+              ) : null}
+
               {isRunning ? (
                 <div role="status">
                   <p>{understoodCount} of {totalCount} retained content partitions understood.</p>
