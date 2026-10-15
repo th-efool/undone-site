@@ -113,11 +113,28 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
         'Find material for me',
         'I just have a goal',
       ]
+    : step === 'processing'
+    ? [
+        'Show understanding progress',
+        'Show chunking details',
+        'Cancel processing',
+      ]
+    : step === 'ready'
+    ? [
+        'Show my learning experience',
+        'Review my cohort',
+        'What happens next?',
+      ]
+    : step === 'published'
+    ? [
+        'View cohort page',
+        'Start learning in feed',
+      ]
     : [
+        'Make the description shorter',
+        'Make the title clearer',
+        'Clarify the learning objectives',
         'Add a capstone project lesson',
-        'Tighten audience to intermediate devs',
-        'Set daily commitment to 25 mins',
-        'Clarify objectives across all lessons',
       ];
 
   const hintTitle = step === 'recommendations'
@@ -130,7 +147,13 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
     ? 'Discovering sources'
     : step === 'goal_setup'
     ? 'AI-authored guide'
-    : 'Grounded in your material';
+    : step === 'processing'
+    ? 'Your work stays saved'
+    : step === 'ready'
+    ? 'You choose what happens next'
+    : step === 'published'
+    ? 'Your cohort is live'
+    : 'You stay in control';
 
   const hintText = step === 'recommendations'
     ? (state.view?.recommendations?.items.length === 0
@@ -144,7 +167,13 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
     ? 'Review observed sources before acquiring them, or search again.'
     : step === 'goal_setup'
     ? 'Shape your learning goal and pacing. We will generate a structured learning guide.'
-    : 'Chat directly with AI to draft, structure, and refine your curriculum with source provenance.';
+    : step === 'processing'
+    ? 'Building progress reflects saved work. You can close this page and return while processing continues.'
+    : step === 'ready'
+    ? 'Go to your feed activates this cohort privately. Review cohort lets you edit it first. Public publishing is always a separate choice.'
+    : step === 'published'
+    ? 'Your learning experience is published and accessible from your cohort receipt.'
+    : 'Suggestions can change titles, descriptions and learning objectives. Source material and publication decisions stay under your control.';
 
   const placeholder = step === 'recommendations'
     ? 'Describe what you want to learn...'

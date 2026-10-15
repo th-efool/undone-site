@@ -19,6 +19,8 @@ import { StartingPointStageView } from './stages/StartingPointStageView';
 import { MaterialStageView } from './stages/MaterialStageView';
 import { DiscoveryStageView } from './stages/DiscoveryStageView';
 import { GoalStageView } from './stages/GoalStageView';
+import { ReadyStageView } from './stages/ReadyStageView';
+import { PublicationStageView } from './stages/PublicationStageView';
 import { CohortDraftProvider, useCohortDrafts } from './draft-context';
 import { getActiveStage as selectActiveStage, type BuilderStage } from './stage-selectors';
 
@@ -308,6 +310,7 @@ function InnerCohortWorkspacePane({
     effectiveStage === 'material_input' ||
     effectiveStage === 'discovery' ||
     effectiveStage === 'goal_setup';
+  const hideStepper = isJourneyInitialStep || effectiveStage === 'published';
 
   const stepToStageMap: Record<ProcessingStep['label'], Stage> = {
     Understanding: 'understanding',
@@ -319,7 +322,7 @@ function InnerCohortWorkspacePane({
   return (
     <main className={styles.rightPane} aria-label="Cohort Curriculum Workspace">
       {/* Stepper Navigation */}
-      {!isJourneyInitialStep && (
+      {!hideStepper && (
         <div className={styles.stepperNav}>
           <ol className={styles.creationSteps} aria-label="Creation journey progress">
             {progress.steps.map((step, index) => {
@@ -365,7 +368,7 @@ function InnerCohortWorkspacePane({
       )}
 
       {/* Stage Inspection Banner */}
-      {!isJourneyInitialStep && inspectedStage && (
+      {!hideStepper && inspectedStage && (
         <div
           data-testid="stage-inspection-banner"
           className={styles.inspectingBanner}
@@ -453,6 +456,9 @@ function InnerCohortWorkspacePane({
       {effectiveStage === 'assembly' && (
         <AssemblyStageView workspace={workspace} dispatchAction={dispatchAction} />
       )}
+      {effectiveStage === 'ready' && (
+        <ReadyStageView workspace={workspace} dispatchAction={dispatchAction} />
+      )}
       {(effectiveStage === 'curriculum' || effectiveStage === 'review') && (
         <CurriculumStageView
           workspace={workspace}
@@ -461,6 +467,13 @@ function InnerCohortWorkspacePane({
           needsRebuild={progress.needsRebuild}
           dispatchAction={dispatchAction}
           onSelectLessonForChat={onSelectLessonForChat}
+          onNavigateToDestination={onNavigateToDestination}
+        />
+      )}
+      {effectiveStage === 'published' && (
+        <PublicationStageView
+          workspace={workspace}
+          dispatchAction={dispatchAction}
           onNavigateToDestination={onNavigateToDestination}
         />
       )}

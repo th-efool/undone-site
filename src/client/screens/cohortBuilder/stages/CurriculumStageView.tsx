@@ -662,17 +662,39 @@ export function CurriculumStageView({
                             const fileCitations = fileLoc?.length
                               ? ` · ${Array.from(new Set(fileLoc.map(l => (l.startLine && l.endLine ? `${l.filePath}#L${l.startLine}-L${l.endLine}` : l.filePath)).filter(Boolean))).join(', ')}`
                               : '';
+                            const isVideoObservation = source?.input?.kind === 'youtube' && source.input.mode === 'video_observation';
+                            const isGeneratedGuide =
+                              (source?.input?.kind === 'generated_guide' || source?.provenance?.scope === 'ai_authored_guide') &&
+                              !isVideoObservation;
+                            const isTranscript = source?.input?.kind === 'youtube' && source.input.mode === 'transcript';
+
                             return (
                               <blockquote key={chunkId} className={styles.evidenceBlockquote}>
                                 {chunk ? (
                                   <>
                                     <cite className={styles.evidenceCite}>
-                                      {source?.label ?? 'Retained source'} · version {chunk.sourceVersion}
+                                      {isVideoObservation
+                                        ? `${source?.label ?? 'YouTube Video'} · AI observation`
+                                        : isGeneratedGuide
+                                        ? 'AI-authored guide'
+                                        : isTranscript
+                                        ? `${source?.label ?? 'YouTube Video'} · transcript`
+                                        : source?.label ?? 'Retained source'} · version {chunk.sourceVersion}
                                       {pages?.length ? ` · physical page ${pages.join(', ')}` : ''}
                                       {timestamps}
                                       {fileCitations} · characters {chunk.start}–{chunk.end}
                                       {source?.provenance ? ` · ${source.provenance.scope} · ${source.provenance.parserVersion}` : ''}
                                     </cite>
+                                    {isVideoObservation && (
+                                      <p style={{ fontSize: 12, color: 'var(--creation-muted, #59677b)', fontStyle: 'italic', margin: '4px 0' }}>
+                                        Retained video observations ready · Coverage is non-exhaustive; timestamps are estimated.
+                                      </p>
+                                    )}
+                                    {isGeneratedGuide && (
+                                      <p style={{ fontSize: 12, color: 'var(--creation-muted, #59677b)', fontStyle: 'italic', margin: '4px 0' }}>
+                                        AI-authored learning guide, not verified external source material. Check factual claims independently.
+                                      </p>
+                                    )}
                                     {(source?.provenance?.finalUrl || source?.provenance?.repoUrl) && (
                                       <p>
                                         {source.provenance.finalUrl ??
