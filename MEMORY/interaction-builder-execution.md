@@ -1,8 +1,15 @@
 # Interaction builder execution checkpoint
 
-STATUS: ALL FINAL STABILIZATION AND VISUAL ACCEPTANCE CHECKPOINTS (1, 2, 3, 4, 5) COMPLETE AND VERIFIED. Shared rollout and deployment remain unauthorized. Live-provider and enabled-ingestion gates remain open and explicitly guarded.
-LAST_CHECKPOINT: `IB-UX-FINAL-STABILIZATION-AND-ACCEPTANCE-2026-10-15` (Commit `1f4ea85`)
-NEXT: Await further user instruction. No further S4/S5 expansion without explicit user authorization.
+STATUS: S4 ACCEPTANCE CLOSURE AND S5 END-TO-END LEARNER DELIVERY UNDERWAY (Checkpoint 1 complete: full S4 matrix reconciled, implementation plan established). Shared rollout and deployment remain unauthorized. Live-provider and enabled-ingestion gates remain explicitly guarded.
+LAST_CHECKPOINT: `IB-S4-S5-CLOSURE-CP1-2026-10-15`
+NEXT: Execute Checkpoint 2 (re-verify local S4A/S4B regression suites) and Checkpoint 3 (YouTube/GitHub conformance).
+
+S4 Acceptance Closure & S5 End-to-End Learner Delivery (Checkpoints 1-8):
+- Checkpoint 1 (Reconciliation & Closure Plan):
+  - Created implementation plan artifact `s4-s5-closure-plan.md`.
+  - Reconciled full S4 matrix across Text/Intake (S4A), PDF (S4B), Web (S4B), YouTube Transcripts (S4C), and GitHub Repositories (S4D).
+  - Explicitly documented live provider status vs. deterministic test doubles: YouTube live acquisition blocked by official Google API video ownership requirement without dedicated proxy; GitHub public REST reads supported unauthenticated up to 60 req/hr rate limits.
+  - S5 release pipeline mapped: readiness validation -> frozen candidate -> transactional Prisma materialization (`Cohort`, `Season`, `Lesson`, `CohortMember`, `Community`) + receipt recovery (`interaction_effects`) -> learner delivery (`/play?cohort=<id>` private vs `/cohort/<id>` public) -> downgrade prevention.
 
 Final Stabilization and Visual Acceptance Pass (Checkpoints 1-5 - Commits `bf65a24`, `1f4ea85`):
 - Checkpoint 1 (Draft & Inspection Preservation Across Stage Transitions):
