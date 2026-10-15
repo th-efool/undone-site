@@ -7,6 +7,24 @@ import type {
 export type CohortTextJob = NonNullable<CohortWorkspace['processing']['jobs']>[number];
 export type CohortTextJobView = CohortTextJob;
 
+export type CanonicalStage = 'understanding' | 'chunking' | 'analysis' | 'assembly';
+
+export interface StageStatus {
+  status: 'complete' | 'running' | 'failed' | 'canceled' | 'pending';
+  completedCount: number;
+  totalCount: number;
+  failedCount: number;
+  retryable: boolean;
+  isCanceled: boolean;
+}
+
+export type StageProgressDetails = {
+  understanding: StageStatus;
+  chunking: StageStatus;
+  analysis: StageStatus;
+  assembly: StageStatus;
+};
+
 export type BuilderStage =
   | 'intake'
   | 'understanding'
@@ -44,8 +62,8 @@ export function getActiveStage(workspace: CohortWorkspace): BuilderStage {
   const lessons = workspace.lessons ?? [];
   const processing = workspace.processing;
 
-  // 1. If workspace.sources.length === 0: return 'intake'
-  if (sources.length === 0) {
+  // 1. If workspace.sources.length === 0 and lessons.length === 0: return 'intake'
+  if (sources.length === 0 && lessons.length === 0) {
     return 'intake';
   }
 
@@ -134,6 +152,340 @@ export function getEffectiveStage(
 }
 
 // ---------------------------------------------------------------------------
+// Canonical Progress Selectors & Data Filters
+// ---------------------------------------------------------------------------
+
+const STAGE_ORDER_MAP: Record<string, number> = {
+  acquisition: 0,
+  extraction: 0,
+  understanding: 0,
+  chunking: 1,
+  analysis: 2,
+  assembly: 3,
+  building: 3,
+  done: 4,
+};
+
+function getLegacyStageIndex(stage: string): number {
+  return STAGE_ORDER_MAP[stage] ?? 0;
+}
+
+function jobMatchesSource(j: CohortTextJob, s: CohortSource): boolean {
+  if (j.sourceId !== s.id) return false;
+  const jVersion = (j as any).sourceVersion;
+  return jVersion === undefined || jVersion === s.version;
+}
+
+function isSourceUnderstandingAccepted(s: CohortSource, jobs: CohortTextJob[]): boolean {
+  const ownJobs = jobs.filter(j => jobMatchesSource(j, s));
+  const stageJobs = ownJobs.filter(j => ['acquisition', 'extraction', 'understanding'].includes(j.stage));
+  if (stageJobs.length === 0) return false;
+  const hasIncomplete = stageJobs.some(
+    j => j.status === 'running' || j.status === 'queued' || j.status === 'failed' || j.status === 'canceled'
+  );
+  if (hasIncomplete) return false;
+  const uJob = stageJobs.find(j => j.stage === 'understanding');
+  if (uJob) {
+    return uJob.status === 'accepted';
+  }
+  return stageJobs.some(j => j.status === 'accepted');
+}
+
+function isSourceChunkingAccepted(s: CohortSource, jobs: CohortTextJob[]): boolean {
+  const ownJobs = jobs.filter(j => jobMatchesSource(j, s));
+  const chunkingJobs = ownJobs.filter(j => j.stage === 'chunking');
+  if (chunkingJobs.length === 0) return false;
+  const hasIncomplete = chunkingJobs.some(
+    j => j.status === 'running' || j.status === 'queued' || j.status === 'failed' || j.status === 'canceled'
+  );
+  if (hasIncomplete) return false;
+  return chunkingJobs.some(j => j.status === 'accepted');
+}
+
+function isSourceAnalysisAccepted(s: CohortSource, jobs: CohortTextJob[]): boolean {
+  const ownJobs = jobs.filter(j => jobMatchesSource(j, s));
+  const analysisJobs = ownJobs.filter(j => j.stage === 'analysis');
+  if (analysisJobs.length === 0) return false;
+  const hasIncomplete = analysisJobs.some(
+    j => j.status === 'running' || j.status === 'queued' || j.status === 'failed' || j.status === 'canceled'
+  );
+  if (hasIncomplete) return false;
+  return analysisJobs.some(j => j.status === 'accepted');
+}
+
+function isAssemblyAccepted(jobs: CohortTextJob[]): boolean {
+  const assemblyJobs = jobs.filter(j => j.stage === 'assembly' || j.sourceId === null);
+  if (assemblyJobs.length === 0) return false;
+  const hasIncomplete = assemblyJobs.some(
+    j => j.status === 'running' || j.status === 'queued' || j.status === 'failed' || j.status === 'canceled'
+  );
+  if (hasIncomplete) return false;
+  return assemblyJobs.some(j => j.status === 'accepted');
+}
+
+/**
+ * Filter valid current chunks matching chunk.sourceVersion === source.version.
+ * Chunks from older versions are historical/retained.
+ */
+export function getValidChunks(workspace: CohortWorkspace): CohortChunk[] {
+  const sources = workspace.sources ?? [];
+  const sourceVersionMap = new Map(sources.map(s => [s.id, s.version]));
+  return (workspace.chunks ?? []).filter(chunk => {
+    const currentVersion = sourceVersionMap.get(chunk.sourceId);
+    return currentVersion !== undefined && chunk.sourceVersion === currentVersion;
+  });
+}
+
+/**
+ * Filter valid analyses belonging to valid current chunks.
+ */
+export function getValidAnalyses(workspace: CohortWorkspace): CohortWorkspace['analyses'] {
+  const validChunks = getValidChunks(workspace);
+  const validChunkIds = new Set(validChunks.map(c => c.id));
+  return (workspace.analyses ?? []).filter(a => validChunkIds.has(a.chunkId));
+}
+
+/**
+ * Robust pure selector verifying if a specific stage has completed canonically.
+ * Does not rely on array presence (chunks.length > 0, lessons.length > 0).
+ */
+export function isStageComplete(
+  workspace: CohortWorkspace,
+  stage: 'understanding' | 'chunking' | 'analysis' | 'assembly'
+): boolean {
+  const sources = workspace.sources ?? [];
+  if (sources.length === 0) return false;
+
+  const jobs = workspace.processing?.jobs;
+  if (jobs && jobs.length > 0) {
+    const uComplete = sources.every(s => isSourceUnderstandingAccepted(s, jobs));
+    if (stage === 'understanding') return uComplete;
+
+    const cComplete = uComplete && sources.every(s => isSourceChunkingAccepted(s, jobs));
+    if (stage === 'chunking') return cComplete;
+
+    const aComplete = cComplete && sources.every(s => isSourceAnalysisAccepted(s, jobs));
+    if (stage === 'analysis') return aComplete;
+
+    const asComplete = aComplete && isAssemblyAccepted(jobs);
+    if (stage === 'assembly') return asComplete;
+
+    return false;
+  }
+
+  // Conservative legacy fallback without jobs
+  if (workspace.processing?.status === 'ready') return true;
+  if (workspace.processing?.status === 'idle') return false;
+
+  const currentIdx = getLegacyStageIndex(workspace.processing?.stage ?? 'done');
+  const targetIdx = stage === 'understanding' ? 0 : stage === 'chunking' ? 1 : stage === 'analysis' ? 2 : 3;
+  return targetIdx < currentIdx;
+}
+
+/**
+ * Returns detailed per-stage status based strictly on canonical job evidence
+ * or conservative legacy fallback.
+ */
+export function getStageProgressDetails(workspace: CohortWorkspace): StageProgressDetails {
+  const sources = workspace.sources ?? [];
+  const jobs = workspace.processing?.jobs ?? [];
+  const error = workspace.processing?.error;
+  const isServerCanceled = workspace.processing?.status === 'idle' && error === 'PROCESSING_CANCELED';
+  const hasJobs = jobs.length > 0;
+
+  if (sources.length === 0) {
+    const emptyStatus: StageStatus = {
+      status: 'pending',
+      completedCount: 0,
+      totalCount: 0,
+      failedCount: 0,
+      retryable: false,
+      isCanceled: false,
+    };
+    return {
+      understanding: { ...emptyStatus },
+      chunking: { ...emptyStatus },
+      analysis: { ...emptyStatus },
+      assembly: { ...emptyStatus, totalCount: 1 },
+    };
+  }
+
+  if (hasJobs) {
+    // Stage 0: Understanding
+    const uTotal = sources.length;
+    const uCompleted = sources.filter(s => isSourceUnderstandingAccepted(s, jobs)).length;
+    const uFailed = sources.filter(s => {
+      const own = jobs.filter(j => jobMatchesSource(j, s));
+      return own.some(j => ['acquisition', 'extraction', 'understanding'].includes(j.stage) && j.status === 'failed');
+    }).length;
+    const uRetryable = jobs.some(j => ['acquisition', 'extraction', 'understanding'].includes(j.stage) && j.status === 'failed' && j.retryable);
+    const uHasCanceled = jobs.some(j => ['acquisition', 'extraction', 'understanding'].includes(j.stage) && j.status === 'canceled');
+    const uHasRunning = jobs.some(j => ['acquisition', 'extraction', 'understanding'].includes(j.stage) && (j.status === 'running' || j.status === 'queued'));
+    const uComplete = isStageComplete(workspace, 'understanding');
+    const uCanceled = !uComplete && (uHasCanceled || isServerCanceled);
+
+    let uStatus: StageStatus['status'] = 'pending';
+    if (uComplete) uStatus = 'complete';
+    else if (uFailed > 0) uStatus = 'failed';
+    else if (uCanceled) uStatus = 'canceled';
+    else if (uHasRunning) uStatus = 'running';
+
+    const understandingStatus: StageStatus = {
+      status: uStatus,
+      completedCount: uCompleted,
+      totalCount: uTotal,
+      failedCount: uFailed,
+      retryable: uRetryable,
+      isCanceled: uCanceled,
+    };
+
+    // Stage 1: Chunking
+    const cTotal = sources.length;
+    const cCompleted = sources.filter(s => isSourceChunkingAccepted(s, jobs)).length;
+    const cFailed = sources.filter(s => {
+      const own = jobs.filter(j => jobMatchesSource(j, s));
+      return own.some(j => j.stage === 'chunking' && j.status === 'failed');
+    }).length;
+    const cRetryable = jobs.some(j => j.stage === 'chunking' && j.status === 'failed' && j.retryable);
+    const cHasCanceled = jobs.some(j => j.stage === 'chunking' && j.status === 'canceled');
+    const cHasRunning = jobs.some(j => j.stage === 'chunking' && (j.status === 'running' || j.status === 'queued'));
+    const cComplete = isStageComplete(workspace, 'chunking');
+    const cCanceled = !cComplete && (cHasCanceled || (isServerCanceled && uComplete));
+
+    let cStatus: StageStatus['status'] = 'pending';
+    if (cComplete) cStatus = 'complete';
+    else if (cFailed > 0) cStatus = 'failed';
+    else if (cCanceled) cStatus = 'canceled';
+    else if (cHasRunning) cStatus = 'running';
+
+    const chunkingStatus: StageStatus = {
+      status: cStatus,
+      completedCount: cCompleted,
+      totalCount: cTotal,
+      failedCount: cFailed,
+      retryable: cRetryable,
+      isCanceled: cCanceled,
+    };
+
+    // Stage 2: Analysis
+    const aTotal = sources.length;
+    const aCompleted = sources.filter(s => isSourceAnalysisAccepted(s, jobs)).length;
+    const aFailed = sources.filter(s => {
+      const own = jobs.filter(j => jobMatchesSource(j, s));
+      return own.some(j => j.stage === 'analysis' && j.status === 'failed');
+    }).length;
+    const aRetryable = jobs.some(j => j.stage === 'analysis' && j.status === 'failed' && j.retryable);
+    const aHasCanceled = jobs.some(j => j.stage === 'analysis' && j.status === 'canceled');
+    const aHasRunning = jobs.some(j => j.stage === 'analysis' && (j.status === 'running' || j.status === 'queued'));
+    const aComplete = isStageComplete(workspace, 'analysis');
+    const aCanceled = !aComplete && (aHasCanceled || (isServerCanceled && cComplete));
+
+    let aStatus: StageStatus['status'] = 'pending';
+    if (aComplete) aStatus = 'complete';
+    else if (aFailed > 0) aStatus = 'failed';
+    else if (aCanceled) aStatus = 'canceled';
+    else if (aHasRunning) aStatus = 'running';
+
+    const analysisStatus: StageStatus = {
+      status: aStatus,
+      completedCount: aCompleted,
+      totalCount: aTotal,
+      failedCount: aFailed,
+      retryable: aRetryable,
+      isCanceled: aCanceled,
+    };
+
+    // Stage 3: Assembly
+    const asTotal = 1;
+    const assemblyJob = jobs.find(j => j.stage === 'assembly' || j.sourceId === null);
+    const asCompleted = assemblyJob?.status === 'accepted' ? 1 : 0;
+    const asFailed = assemblyJob?.status === 'failed' ? 1 : 0;
+    const asRetryable = Boolean(assemblyJob?.status === 'failed' && assemblyJob?.retryable);
+    const asHasCanceled = assemblyJob?.status === 'canceled';
+    const asHasRunning = assemblyJob?.status === 'running' || assemblyJob?.status === 'queued';
+    const asComplete = isStageComplete(workspace, 'assembly');
+    const asCanceled = !asComplete && (asHasCanceled || (isServerCanceled && aComplete));
+
+    let asStatus: StageStatus['status'] = 'pending';
+    if (asComplete) asStatus = 'complete';
+    else if (asFailed > 0) asStatus = 'failed';
+    else if (asCanceled) asStatus = 'canceled';
+    else if (asHasRunning) asStatus = 'running';
+
+    const assemblyStatus: StageStatus = {
+      status: asStatus,
+      completedCount: asCompleted,
+      totalCount: asTotal,
+      failedCount: asFailed,
+      retryable: asRetryable,
+      isCanceled: asCanceled,
+    };
+
+    return {
+      understanding: understandingStatus,
+      chunking: chunkingStatus,
+      analysis: analysisStatus,
+      assembly: assemblyStatus,
+    };
+  }
+
+  // Conservative legacy fallback without jobs
+  const status = workspace.processing?.status;
+  const stage = workspace.processing?.stage;
+  const isCanceled = isServerCanceled || error === 'PROCESSING_CANCELED';
+
+  if (isCanceled) {
+    return {
+      understanding: { status: 'canceled', completedCount: 0, totalCount: sources.length, failedCount: 0, retryable: false, isCanceled: true },
+      chunking: { status: 'canceled', completedCount: 0, totalCount: sources.length, failedCount: 0, retryable: false, isCanceled: true },
+      analysis: { status: 'canceled', completedCount: 0, totalCount: sources.length, failedCount: 0, retryable: false, isCanceled: true },
+      assembly: { status: 'canceled', completedCount: 0, totalCount: 1, failedCount: 0, retryable: false, isCanceled: true },
+    };
+  }
+
+  if (status === 'ready') {
+    return {
+      understanding: { status: 'complete', completedCount: sources.length, totalCount: sources.length, failedCount: 0, retryable: false, isCanceled: false },
+      chunking: { status: 'complete', completedCount: sources.length, totalCount: sources.length, failedCount: 0, retryable: false, isCanceled: false },
+      analysis: { status: 'complete', completedCount: sources.length, totalCount: sources.length, failedCount: 0, retryable: false, isCanceled: false },
+      assembly: { status: 'complete', completedCount: 1, totalCount: 1, failedCount: 0, retryable: false, isCanceled: false },
+    };
+  }
+
+  if (status === 'idle') {
+    return {
+      understanding: { status: 'pending', completedCount: 0, totalCount: sources.length, failedCount: 0, retryable: false, isCanceled: false },
+      chunking: { status: 'pending', completedCount: 0, totalCount: sources.length, failedCount: 0, retryable: false, isCanceled: false },
+      analysis: { status: 'pending', completedCount: 0, totalCount: sources.length, failedCount: 0, retryable: false, isCanceled: false },
+      assembly: { status: 'pending', completedCount: 0, totalCount: 1, failedCount: 0, retryable: false, isCanceled: false },
+    };
+  }
+
+  const activeIdx = getLegacyStageIndex(stage ?? 'done');
+
+  const mapLegacyStageStatus = (idx: number, isAssemblyStage: boolean): StageStatus => {
+    const total = isAssemblyStage ? 1 : sources.length;
+    if (idx < activeIdx) {
+      return { status: 'complete', completedCount: total, totalCount: total, failedCount: 0, retryable: false, isCanceled: false };
+    }
+    if (idx === activeIdx) {
+      if (status === 'failed') {
+        return { status: 'failed', completedCount: 0, totalCount: total, failedCount: 1, retryable: true, isCanceled: false };
+      }
+      return { status: 'running', completedCount: 0, totalCount: total, failedCount: 0, retryable: false, isCanceled: false };
+    }
+    return { status: 'pending', completedCount: 0, totalCount: total, failedCount: 0, retryable: false, isCanceled: false };
+  };
+
+  return {
+    understanding: mapLegacyStageStatus(0, false),
+    chunking: mapLegacyStageStatus(1, false),
+    analysis: mapLegacyStageStatus(2, false),
+    assembly: mapLegacyStageStatus(3, true),
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Stage Data View Models & Selectors
 // ---------------------------------------------------------------------------
 
@@ -158,12 +510,17 @@ export interface UnderstandingStageData extends Array<UnderstandingSourceItem> {
  * Supports being used directly as an array or via .sources property.
  */
 export function getUnderstandingData(workspace: CohortWorkspace): UnderstandingStageData {
+  const sources = workspace.sources ?? [];
+  const sourceVersionMap = new Map(sources.map(s => [s.id, s.version]));
   const understandingMap = new Map<string, string[]>();
   for (const entry of workspace.understanding ?? []) {
-    understandingMap.set(entry.sourceId, entry.topics);
+    const currentVersion = sourceVersionMap.get(entry.sourceId);
+    if (currentVersion === undefined || entry.sourceVersion === undefined || entry.sourceVersion === currentVersion) {
+      understandingMap.set(entry.sourceId, entry.topics);
+    }
   }
 
-  const items: UnderstandingSourceItem[] = (workspace.sources ?? []).map(source => {
+  const items: UnderstandingSourceItem[] = sources.map(source => {
     const topics = understandingMap.get(source.id) ?? [];
     const segmentCount = source.locations?.length ?? (source.text && source.text.trim().length > 0 ? 1 : 0);
     return {
@@ -218,17 +575,17 @@ export interface ChunkingStageData {
 
 /**
  * Returns sources list with chunk counts, and for the selected source, the array of chunks
- * from workspace.chunks with offsets, length, and text snippets.
+ * from valid current workspace.chunks with offsets, length, and text snippets.
  */
 export function getChunkingData(
   workspace: CohortWorkspace,
   selectedSourceId?: string
 ): ChunkingStageData {
   const sources = workspace.sources ?? [];
-  const rawChunks = workspace.chunks ?? [];
+  const validChunks = getValidChunks(workspace);
 
   const chunkCountBySource = new Map<string, number>();
-  for (const chunk of rawChunks) {
+  for (const chunk of validChunks) {
     chunkCountBySource.set(chunk.sourceId, (chunkCountBySource.get(chunk.sourceId) ?? 0) + 1);
   }
 
@@ -262,7 +619,7 @@ export function getChunkingData(
     };
   };
 
-  const allChunks = rawChunks.map(mapChunk);
+  const allChunks = validChunks.map(mapChunk);
   const chunks = effectiveSelectedSourceId
     ? allChunks.filter(c => c.sourceId === effectiveSelectedSourceId)
     : allChunks;
@@ -271,7 +628,7 @@ export function getChunkingData(
     sources: sourceItems,
     selectedSourceId: effectiveSelectedSourceId,
     chunks,
-    totalChunks: rawChunks.length,
+    totalChunks: validChunks.length,
     allChunks,
   };
 }
@@ -312,18 +669,18 @@ export interface AnalysisStageData {
 }
 
 /**
- * Returns sources and chunks joined with workspace.analyses (summary, pedagogical question).
+ * Returns sources and valid current chunks joined with valid current workspace.analyses (summary, pedagogical question).
  */
 export function getAnalysisData(
   workspace: CohortWorkspace,
   selectedSourceId?: string
 ): AnalysisStageData {
   const sources = workspace.sources ?? [];
-  const rawChunks = workspace.chunks ?? [];
-  const analyses = workspace.analyses ?? [];
+  const validChunks = getValidChunks(workspace);
+  const validAnalyses = getValidAnalyses(workspace);
 
   const analysisByChunkId = new Map<string, { summary: string; question: string }>();
-  for (const analysis of analyses) {
+  for (const analysis of validAnalyses) {
     analysisByChunkId.set(analysis.chunkId, {
       summary: analysis.summary,
       question: analysis.question,
@@ -332,7 +689,7 @@ export function getAnalysisData(
 
   const chunkCountBySource = new Map<string, number>();
   const analyzedCountBySource = new Map<string, number>();
-  for (const chunk of rawChunks) {
+  for (const chunk of validChunks) {
     chunkCountBySource.set(chunk.sourceId, (chunkCountBySource.get(chunk.sourceId) ?? 0) + 1);
     if (analysisByChunkId.has(chunk.id)) {
       analyzedCountBySource.set(
@@ -378,7 +735,7 @@ export function getAnalysisData(
     };
   };
 
-  const allChunks = rawChunks.map(mapAnalyzedChunk);
+  const allChunks = validChunks.map(mapAnalyzedChunk);
   const chunks = effectiveSelectedSourceId
     ? allChunks.filter(c => c.sourceId === effectiveSelectedSourceId)
     : allChunks;
@@ -387,8 +744,8 @@ export function getAnalysisData(
     sources: sourceItems,
     selectedSourceId: effectiveSelectedSourceId,
     chunks,
-    totalAnalyses: analyses.length,
-    totalChunks: rawChunks.length,
+    totalAnalyses: validAnalyses.length,
+    totalChunks: validChunks.length,
     allChunks,
   };
 }

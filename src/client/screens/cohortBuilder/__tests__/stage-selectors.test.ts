@@ -10,6 +10,10 @@ import {
   getChunkingData,
   getAnalysisData,
   getAssemblyData,
+  isStageComplete,
+  getStageProgressDetails,
+  getValidChunks,
+  getValidAnalyses,
 } from '../stage-selectors';
 import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 
@@ -53,9 +57,17 @@ function createMinimalWorkspace(overrides: Partial<CohortWorkspace> = {}): Cohor
 
 describe('stage-selectors', () => {
   describe('getActiveStage', () => {
-    it('returns "intake" when sources array is empty', () => {
-      const workspace = createMinimalWorkspace({ sources: [] });
+    it('returns "intake" when sources array is empty and lessons is empty', () => {
+      const workspace = createMinimalWorkspace({ sources: [], lessons: [] });
       expect(getActiveStage(workspace)).toBe('intake');
+    });
+
+    it('returns "curriculum" when sources array is empty but lessons already exist', () => {
+      const workspace = createMinimalWorkspace({
+        sources: [],
+        lessons: [{ id: 'l1', version: 0, title: 'L1', objective: 'Obj1', sourceChunkIds: [], pinned: false }],
+      });
+      expect(getActiveStage(workspace)).toBe('curriculum');
     });
 
     it('returns "curriculum" when processing status is "ready" and no release or release is draft', () => {
@@ -801,5 +813,72 @@ describe('stage-selectors', () => {
       expect(fake.actions).toHaveLength(0);
     });
   });
+
+  describe('isStageComplete & getStageProgressDetails', () => {
+    it('returns false for all stages on empty sources', () => {
+      const workspace = createMinimalWorkspace({ sources: [] });
+      expect(isStageComplete(workspace, 'understanding')).toBe(false);
+      expect(isStageComplete(workspace, 'chunking')).toBe(false);
+      expect(isStageComplete(workspace, 'analysis')).toBe(false);
+      expect(isStageComplete(workspace, 'assembly')).toBe(false);
+
+      const details = getStageProgressDetails(workspace);
+      expect(details.understanding.status).toBe('pending');
+      expect(details.chunking.status).toBe('pending');
+      expect(details.analysis.status).toBe('pending');
+      expect(details.assembly.status).toBe('pending');
+    });
+
+    it('requires all sources to have accepted understanding before stage completion', () => {
+      const workspace = createMinimalWorkspace({
+        sources: [
+          { id: 's1', version: 0, label: 'S1', text: 'txt', checksum: null, state: 'ready' },
+          { id: 's2', version: 0, label: 'S2', text: 'txt', checksum: null, state: 'processing' },
+        ],
+        processing: {
+          status: 'processing',
+          stage: 'understanding',
+          generation: 1,
+          sourceFingerprint: null,
+          error: null,
+          jobs: [
+            { id: 'j1', sourceId: 's1', stage: 'understanding', status: 'accepted', attempts: 1, error: null, retryable: false },
+            { id: 'j2', sourceId: 's2', stage: 'understanding', status: 'running', attempts: 1, error: null, retryable: true },
+          ],
+        },
+      });
+
+      expect(isStageComplete(workspace, 'understanding')).toBe(false);
+      const details = getStageProgressDetails(workspace);
+      expect(details.understanding.completedCount).toBe(1);
+      expect(details.understanding.totalCount).toBe(2);
+      expect(details.understanding.status).toBe('running');
+    });
+
+    it('filters out stale chunks from older source versions in getValidChunks and getValidAnalyses', () => {
+      const workspace = createMinimalWorkspace({
+        sources: [
+          { id: 's1', version: 1, label: 'S1 v1', text: 'new text', checksum: null, state: 'ready' },
+        ],
+        chunks: [
+          { id: 'c-old', sourceId: 's1', sourceVersion: 0, start: 0, end: 10, text: 'old', checksum: 'a'.repeat(64) },
+          { id: 'c-new', sourceId: 's1', sourceVersion: 1, start: 0, end: 10, text: 'new', checksum: 'b'.repeat(64) },
+        ],
+        analyses: [
+          { chunkId: 'c-old', summary: 'old summary', question: 'old question' },
+          { chunkId: 'c-new', summary: 'new summary', question: 'new question' },
+        ],
+      });
+
+      const validChunks = getValidChunks(workspace);
+      expect(validChunks).toHaveLength(1);
+      expect(validChunks[0].id).toBe('c-new');
+
+      const validAnalyses = getValidAnalyses(workspace);
+      expect(validAnalyses).toHaveLength(1);
+      expect(validAnalyses[0].chunkId).toBe('c-new');
+    });
+  });
 });
+
 

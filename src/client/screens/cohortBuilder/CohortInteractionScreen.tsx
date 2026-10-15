@@ -30,7 +30,12 @@ interface CohortInteractionScreenProps {
   initialView: CohortWorkspace;
 }
 
-function InnerBuilderScreen() {
+interface InnerBuilderScreenProps {
+  workspaceId: string;
+  ownerId?: string;
+}
+
+function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
   const connection = useWorkspaceConnection();
   const state = useInteractionState<CohortWorkspace>();
   const [attachedEntity, setAttachedEntity] = useState<AttachedEntity | null>(null);
@@ -122,6 +127,8 @@ function InnerBuilderScreen() {
 
         <div className={styles.canvasContent}>
           <CohortWorkspacePane
+            workspaceId={workspaceId}
+            ownerId={ownerId}
             onSelectLessonForChat={attached => {
               setAttachedEntity(attached);
               setPane('chat');
@@ -157,7 +164,7 @@ export function CohortInteractionScreen({
       initialView={initialView}
       transport={transport}
     >
-      <InnerBuilderScreen />
+      <InnerBuilderScreen workspaceId={workspaceId} ownerId={ownerId} />
     </InteractionProvider>
   );
 }

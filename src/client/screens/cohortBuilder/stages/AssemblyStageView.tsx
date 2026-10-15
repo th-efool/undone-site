@@ -3,7 +3,11 @@
 import React from 'react';
 import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
 import { BuildingArt } from '@/src/client/screens/cohortCreation/components/BuildingArt';
-import { ProcessingChecklist } from './ProcessingChecklist';
+import {
+  isStageComplete,
+  getStageProgressDetails,
+  getValidChunks,
+} from '../stage-selectors';
 import styles from '@/src/client/screens/cohortCreation/components/ReadyWorkspace.module.css';
 
 interface AssemblyStageViewProps {
@@ -13,11 +17,14 @@ interface AssemblyStageViewProps {
 
 export function AssemblyStageView({ workspace, dispatchAction }: AssemblyStageViewProps) {
   const lessonCount = workspace.lessons.length;
-  const chunkCount = workspace.chunks.length;
+  const validChunks = getValidChunks(workspace);
+  const chunkCount = validChunks.length;
   const status = workspace.processing.status;
-  const isRunning = status === 'queued' || status === 'processing' || (status as string) === 'running';
-  const isFailed = status === 'failed';
-  const isComplete = status === 'ready' || (status === 'idle' && lessonCount > 0);
+
+  const stageProgress = getStageProgressDetails(workspace);
+  const isComplete = isStageComplete(workspace, 'assembly');
+  const isRunning = stageProgress.assembly.status === 'running';
+  const isFailed = stageProgress.assembly.status === 'failed';
 
   return (
     <div className={styles.workspace}>
@@ -35,13 +42,9 @@ export function AssemblyStageView({ workspace, dispatchAction }: AssemblyStageVi
 
             <progress
               max={lessonCount > 0 ? lessonCount : 1}
-              value={lessonCount}
+              value={isComplete ? lessonCount : 0}
               aria-label="Content partitions built"
             />
-
-            <div style={{ marginTop: 16 }}>
-              <ProcessingChecklist currentStage="assembly" processingStatus={status} />
-            </div>
 
             {isRunning ? (
               <div role="status">
@@ -56,7 +59,7 @@ export function AssemblyStageView({ workspace, dispatchAction }: AssemblyStageVi
             ) : (
               <div>
                 <p role="status">
-                  {status === 'ready'
+                  {isComplete
                     ? 'Building complete. Curriculum lessons are saved.'
                     : `Building ${status}.`}
                 </p>
@@ -66,7 +69,7 @@ export function AssemblyStageView({ workspace, dispatchAction }: AssemblyStageVi
                     Retry building
                   </button>
                 )}
-                {status !== 'ready' && !isFailed && (
+                {!isComplete && !isFailed && (
                   <button type="button" onClick={() => void dispatchAction({ type: 'retry_processing' })}>
                     Start fresh building
                   </button>

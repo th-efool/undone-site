@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Edit3, Clock, Users, FileText } from 'lucide-react';
+import React from 'react';
+import { Edit3, Clock, Users } from 'lucide-react';
 import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
 import type { EntityRef } from 'interaction-builder/core';
 import styles from '../CohortBuilder.module.css';
 import { BuilderDialog } from '../BuilderDialog';
 import { ExternalSources } from '../ExternalSources';
+import { useCohortDrafts } from '../draft-context';
 
 interface IntakeStageViewProps {
   workspace: CohortWorkspace;
@@ -15,58 +16,69 @@ interface IntakeStageViewProps {
 }
 
 export function IntakeStageView({ workspace, needsRebuild = false, dispatchAction }: IntakeStageViewProps) {
-  const [editingOverview, setEditingOverview] = useState(false);
-  const [overviewForm, setOverviewForm] = useState({
-    intent: workspace.intent,
-    audience: workspace.audience,
-    dailyMinutes: workspace.dailyMinutes,
-  });
-  const [overviewBase, setOverviewBase] = useState(overviewForm);
-
-  const [sourceForm, setSourceForm] = useState({ label: '', text: '' });
+  const {
+    sourceDraft,
+    updateSourceDraft,
+    clearSourceDraftIfUnchanged,
+    overviewDraft,
+    openOverview,
+    updateOverviewDraft,
+    closeOverview,
+    closeOverviewIfUnchanged,
+  } = useCohortDrafts();
 
   const handleOpenOverview = () => {
-    const fields = {
-      intent: workspace.intent,
-      audience: workspace.audience,
-      dailyMinutes: workspace.dailyMinutes,
-    };
-    setOverviewForm(fields);
-    setOverviewBase(fields);
-    setEditingOverview(true);
+    openOverview(workspace, 'intake');
   };
 
   const handleSaveOverview = async () => {
     if (
-      overviewBase.intent !== workspace.intent ||
-      overviewBase.audience !== workspace.audience ||
-      overviewBase.dailyMinutes !== workspace.dailyMinutes
+      overviewDraft.baseIntent !== workspace.intent ||
+      overviewDraft.baseAudience !== workspace.audience ||
+      overviewDraft.baseDailyMinutes !== workspace.dailyMinutes
     ) {
       return;
     }
-    if (overviewForm.intent !== workspace.intent) {
-      if (!(await dispatchAction({ type: 'set_intent', intent: overviewForm.intent }))) return;
+    const submittedIntent = overviewDraft.intent;
+    const submittedAudience = overviewDraft.audience;
+    const submittedDailyMinutes = overviewDraft.dailyMinutes;
+
+    if (submittedIntent !== workspace.intent) {
+      if (!(await dispatchAction({ type: 'set_intent', intent: submittedIntent }))) return;
     }
-    if (overviewForm.audience !== workspace.audience) {
-      if (!(await dispatchAction({ type: 'set_audience', audience: overviewForm.audience }))) return;
+    if (submittedAudience !== workspace.audience) {
+      if (!(await dispatchAction({ type: 'set_audience', audience: submittedAudience }))) return;
     }
-    if (overviewForm.dailyMinutes !== workspace.dailyMinutes) {
-      if (!(await dispatchAction({ type: 'set_daily_minutes', dailyMinutes: overviewForm.dailyMinutes }))) return;
+    if (submittedDailyMinutes !== workspace.dailyMinutes) {
+      if (!(await dispatchAction({ type: 'set_daily_minutes', dailyMinutes: submittedDailyMinutes }))) return;
     }
-    setEditingOverview(false);
+    closeOverviewIfUnchanged({
+      intent: submittedIntent,
+      audience: submittedAudience,
+      dailyMinutes: submittedDailyMinutes,
+    });
   };
 
   const handleAddSource = async () => {
-    if (!sourceForm.label.trim() || !sourceForm.text.trim()) return;
+    const submittedLabel = sourceDraft.label.trim();
+    const submittedText = sourceDraft.text;
+    if (!submittedLabel || !submittedText.trim()) return;
+
     const action: CohortAction = {
       type: 'add_text_source',
-      label: sourceForm.label.trim(),
-      text: sourceForm.text,
+      label: submittedLabel,
+      text: submittedText,
     };
     if (await dispatchAction(action)) {
-      setSourceForm({ label: '', text: '' });
+      clearSourceDraftIfUnchanged({ label: submittedLabel, text: submittedText });
     }
   };
+
+  const hasOverviewConflict =
+    overviewDraft.isOpen &&
+    (overviewDraft.baseIntent !== workspace.intent ||
+      overviewDraft.baseAudience !== workspace.audience ||
+      overviewDraft.baseDailyMinutes !== workspace.dailyMinutes);
 
   return (
     <>
@@ -113,9 +125,9 @@ export function IntakeStageView({ workspace, needsRebuild = false, dispatchActio
           <label htmlFor="cohort-source-title">Source title</label>
           <input
             id="cohort-source-title"
-            value={sourceForm.label}
+            value={sourceDraft.label}
             placeholder="e.g. Distributed systems notes"
-            onChange={event => setSourceForm({ ...sourceForm, label: event.target.value })}
+            onChange={event => updateSourceDraft({ label: event.target.value }, 'intake')}
           />
         </div>
 
@@ -125,8 +137,8 @@ export function IntakeStageView({ workspace, needsRebuild = false, dispatchActio
             id="cohort-source-text"
             rows={6}
             maxLength={200_000}
-            value={sourceForm.text}
-            onChange={event => setSourceForm({ ...sourceForm, text: event.target.value })}
+            value={sourceDraft.text}
+            onChange={event => updateSourceDraft({ text: event.target.value }, 'intake')}
           />
         </div>
 
@@ -138,27 +150,23 @@ export function IntakeStageView({ workspace, needsRebuild = false, dispatchActio
       </section>
 
       {/* Overview edit modal */}
-      {editingOverview && (
+      {overviewDraft.isOpen && (
         <div className={styles.modalBackdrop}>
-          <BuilderDialog label="Edit Cohort Overview" onClose={() => setEditingOverview(false)}>
+          <BuilderDialog label="Edit Cohort Overview" onClose={closeOverview}>
             <h3>Edit Cohort Overview</h3>
-            {(overviewBase.intent !== workspace.intent ||
-              overviewBase.audience !== workspace.audience ||
-              overviewBase.dailyMinutes !== workspace.dailyMinutes) && (
+            {hasOverviewConflict && (
               <div role="alert">
                 <p>Overview changed while you were editing. Current: {workspace.intent} · {workspace.audience} · {workspace.dailyMinutes} minutes.</p>
                 <button
                   type="button"
                   onClick={() => {
-                    setOverviewForm({
-                      intent: overviewForm.intent === overviewBase.intent ? workspace.intent : overviewForm.intent,
-                      audience: overviewForm.audience === overviewBase.audience ? workspace.audience : overviewForm.audience,
-                      dailyMinutes: overviewForm.dailyMinutes === overviewBase.dailyMinutes ? workspace.dailyMinutes : overviewForm.dailyMinutes,
-                    });
-                    setOverviewBase({
-                      intent: workspace.intent,
-                      audience: workspace.audience,
-                      dailyMinutes: workspace.dailyMinutes,
+                    updateOverviewDraft({
+                      intent: overviewDraft.intent === overviewDraft.baseIntent ? workspace.intent : overviewDraft.intent,
+                      audience: overviewDraft.audience === overviewDraft.baseAudience ? workspace.audience : overviewDraft.audience,
+                      dailyMinutes: overviewDraft.dailyMinutes === overviewDraft.baseDailyMinutes ? workspace.dailyMinutes : overviewDraft.dailyMinutes,
+                      baseIntent: workspace.intent,
+                      baseAudience: workspace.audience,
+                      baseDailyMinutes: workspace.dailyMinutes,
                     });
                   }}
                 >
@@ -172,8 +180,8 @@ export function IntakeStageView({ workspace, needsRebuild = false, dispatchActio
               <textarea
                 aria-label="Learning intent"
                 rows={3}
-                value={overviewForm.intent}
-                onChange={e => setOverviewForm({ ...overviewForm, intent: e.target.value })}
+                value={overviewDraft.intent}
+                onChange={e => updateOverviewDraft({ intent: e.target.value })}
               />
             </div>
 
@@ -182,8 +190,8 @@ export function IntakeStageView({ workspace, needsRebuild = false, dispatchActio
               <input
                 aria-label="Target audience"
                 type="text"
-                value={overviewForm.audience}
-                onChange={e => setOverviewForm({ ...overviewForm, audience: e.target.value })}
+                value={overviewDraft.audience}
+                onChange={e => updateOverviewDraft({ audience: e.target.value })}
               />
             </div>
 
@@ -194,15 +202,15 @@ export function IntakeStageView({ workspace, needsRebuild = false, dispatchActio
                 type="number"
                 min={1}
                 max={1440}
-                value={overviewForm.dailyMinutes}
+                value={overviewDraft.dailyMinutes}
                 onChange={e =>
-                  setOverviewForm({ ...overviewForm, dailyMinutes: Number(e.target.value) || 20 })
+                  updateOverviewDraft({ dailyMinutes: Number(e.target.value) || 20 })
                 }
               />
             </div>
 
             <div className={styles.modalActions}>
-              <button type="button" className={styles.cancelBtn} onClick={() => setEditingOverview(false)}>
+              <button type="button" className={styles.cancelBtn} onClick={closeOverview}>
                 Cancel
               </button>
               <button type="button" className={styles.saveBtn} onClick={() => void handleSaveOverview()}>
