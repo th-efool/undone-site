@@ -1,8 +1,31 @@
 # Interaction builder execution checkpoint
 
-STATUS: S6 CHECKPOINT 5 COMPLETE. Local operational preparation complete; final S6 deployment gate open. All 11 integrated operational acceptance phases verified via `npm run interaction:acceptance` (exit 0). All 10 Plan 06 Section 10 production criteria verified via `npm run interaction:gate` (exit 0). Authoritative Operator Release Package formalized in `docs/s6-operator-release-package.md` with full 5-tier T01–T31 matrix. Ordered 5-step additive migrations verified via `npm run interaction:rehearse:rollout` (exit 0). Readiness probe returns ready under `initial_rollout` profile via `npm run interaction:readiness` (exit 0). S4 live YouTube acquisition gate remains explicitly documented as OPEN due to Google Data API v3 OAuth constraints. Submodule authority (`4f92118`), TypeScript (0 errors), packed consumer (6/6 stages), worker check (exit 0), and full Vercel deployment simulation (exit 0) remain verified.
-LAST_CHECKPOINT: `IB-S6-INTEGRATED-OPERATOR-RELEASE-GATE-2026-10-15`
-NEXT: S7 independent package/template extraction (pending user prompt; carries open S6 deployment gates into its baseline; do NOT auto-start).
+STATUS: S7 CHECKPOINT 1 COMPLETE. Reusable interaction-builder contract and export hardening complete; final S6 deployment gate open; S4 live YouTube Data API v3 OAuth gate open. Verified via multi-profile packed consumer test across Profile A (Browser/React), Profile B (Worker/PG), Profile C (Headless AI), and Profile D (Integrated) via `node scripts/verify-packed-consumer.mjs` (exit 0). All 10 Plan 06 Section 10 production criteria verified via `npm run interaction:gate` (exit 0). Engine submodule committed and pushed at `f727838`. TypeScript (0 errors), worker check (exit 0), and full Vercel deployment simulation (exit 0) remain verified.
+LAST_CHECKPOINT: `IB-S7-CONTRACT-EXPORT-HARDENING-2026-10-15`
+NEXT: S7 Checkpoint 2: Standalone domain fixture, template extraction, and host integration examples (pending user prompt; carries open S6 deployment and S4 YouTube gates into baseline; do NOT auto-start).
+
+S7 Checkpoint 1: Reusable Interaction-Builder Contract & Export Hardening (2026-10-15):
+- 1. Type Declaration Leakage Fix:
+  - Eliminated ambient `import("..")` declaration synthesis in `dist/react/hooks.d.ts` by explicitly importing `type { HistoryEntry, StoreState } from '../client/store'` in `src/react/hooks.ts` and declaring an explicit return interface `InteractionHistoryState<View>`.
+  - Zero `import("..")` references remain across any package `dist/**/*.d.ts` files.
+- 2. React Client Boundary & Prop Ergonimics:
+  - Preserved `'use client';` directive at the head of `dist/react/index.js`.
+  - Updated `InteractionProviderProps<View>` to mark `children?: React.ReactNode` optional, providing seamless compatibility with both JSX and `React.createElement` invocation styles without type mismatch.
+- 3. Package Manifest & Runtime Support:
+  - Specified `"engines": { "node": ">=18.0.0" }` in `packages/interaction-builder/package.json` to accurately document platform requirements (ES2022, `node:crypto`, `globalThis.fetch`, `BroadcastChannel`).
+  - Removed redundant `"Documentation"` directory from `"files": [...]` manifest, retaining clean published file distribution (`dist`, `migrations`, `README.md`, `docs`).
+  - Expanded `README.md` with complete Subpath Exports & Profiles matrix detailing required peer/optional dependencies and browser bundling boundaries.
+- 4. Multi-Profile Clean External Tarball Verification (`scripts/verify-packed-consumer.mjs`):
+  - Profile A (Browser/React Client): Verified with ONLY `react`, `react-dom`, `zod` installed (zero DB/AI dependencies). `tsc --noEmit`, client store, and `renderToString` passed cleanly.
+  - Profile B (Node.js PostgreSQL Worker): Verified with ONLY `pg`, `zod` installed (zero React/AI dependencies). `tsc --noEmit`, pool instantiation, deterministic UUIDs/hashing, and `planActionCommit` passed cleanly.
+  - Profile C (Headless AI Engine / Testkit): Verified with ONLY `ai`, `zod` installed (zero React/PG dependencies). `tsc --noEmit`, memory repository, scripted model, and assistant turn execution passed cleanly.
+  - Profile D (Full Integrated Consumer): Verified complete cross-boundary lifecycle (subpaths, action commit, stale rejection `STALE_WORKSPACE`, proposals, and React SSR).
+- 5. Engine Submodule Authority:
+  - Engine submodule committed and pushed cleanly to `origin/main` at commit `f727838`.
+  - Zero host aliases (`@/`), zero cohort terminology in generic modules, and zero database/provider code in browser imports.
+- 6. Carried-Forward External Gates:
+  - S6 Final Deployment Gate: Remains OPEN (awaits production infrastructure, shared database migrations, and operational cutover authorization).
+  - S4 Live YouTube Gate: Remains OPEN (awaits Google Data API v3 OAuth production credentials; local deterministic adapters verified).
 
 S6 Integrated Release Gate & Operator Package (2026-10-15):
 - 1. Plan 06 Section 10 Conformance: Deterministic gate runner `scripts/verify-s6-release-gate.ts` (`npm run interaction:gate`) executed and passed all 10 production criteria:
