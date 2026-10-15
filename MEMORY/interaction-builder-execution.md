@@ -1,8 +1,50 @@
 # Interaction builder execution checkpoint
 
-STATUS: S7 CHECKPOINT 3 COMPLETE. Host-owned business resource integration profile complete; final S6 deployment gate open; S4 live YouTube Data API v3 OAuth gate open. Verified via isolated external sandbox harness `scripts/verify-host-owned-resource-example.mjs` (exit 0) exercising all 8 scenarios against packed tarball (`interaction-builder-0.1.0.tgz`), disposable loopback PostgreSQL (port 15436), and standalone HTTP server (port 3940): authoritative host records in host database, zero duplicate business state in `interaction_workspaces.snapshot` (zero dual writers), direct UI commands and assistant model tools unified through `HostAgendaService.executeCommand`, row-level locking CAS (`SELECT ... FOR UPDATE`) with 409 `STALE_HOST_RESOURCE` conflict handling on real concurrent connections, command idempotency via `host_agenda_receipts`, cancellation effect preservation, and multi-tenant owner isolation. Engine submodule committed and pushed at `c1a8854` to `origin/main`. Independent adversarial architectural review passed with PASS verdict. Standalone agenda verification (`node scripts/verify-standalone-agenda-example.mjs`) passes (exit 0). Multi-profile packed consumer test (`node scripts/verify-packed-consumer.mjs` across Profiles A, B, C, D) passes (exit 0). All 10 Plan 06 Section 10 production criteria verified via `npm run interaction:gate` (exit 0). Submodule test suite passes 90/90 tests across 24 test files (exit 0). Host TypeScript check passes with 0 errors (`npx tsc --noEmit`).
-LAST_CHECKPOINT: `IB-S7-HOST-OWNED-RESOURCE-2026-10-15`
-NEXT: S7 Checkpoint 4: Reusable interaction-builder contract versioning, migration and upgrade compatibility (pending user prompt; carries open S6 deployment and S4 YouTube gates into baseline; do NOT auto-start).
+STATUS: S7 CHECKPOINT 5 COMPLETE. Reusable interaction-builder contract verified, hardened, and clean-host accepted; final S6 deployment gate open; S4 live YouTube Data API v3 OAuth gate open. Verified via:
+1. Real Playwright browser acceptance in Chromium (`scripts/verify-browser-acceptance.mjs`, exit 0) across both Profile 1 (Native Interaction-Managed State) and Profile 2 (Host-Owned Business Resources) in an isolated external sandbox installed from packed tarball (`interaction-builder-0.1.0.tgz`), loopback PostgreSQL (port 15438), capturing screenshots at `screenshots/profile1-native-browser.png` and `screenshots/profile2-host-browser.png`.
+2. Standalone server production security defaults (`examples/agenda/server.ts`): loopback default bind (`127.0.0.1`), trusted `PrincipalResolver` boundary with anti-impersonation guard (HTTP 400 `FORBIDDEN_OWNERSHIP_OVERRIDE`), fail-closed 401 in production, CORS origin allowlist (HTTP 403 `CORS_FORBIDDEN`), streaming body limit ceiling (HTTP 413 `PAYLOAD_TOO_LARGE`), `Content-Type: application/json` enforcement (HTTP 415 `UNSUPPORTED_MEDIA_TYPE`), and `closeAllConnections()` socket termination. Unit tests in `__tests__/server-security.test.ts` pass 9/9 (exit 0).
+3. Full-stack measured load harness (`scripts/load/measured-load-harness.ts` via `npm run interaction:load:measure`): verified HTTP + PostgreSQL + SSE + concurrent clients with intake p95 ~99ms (<1000ms target), event visibility p95 ~9ms (<1000ms target), reconnect resnapshot p95 ~15ms (<3000ms target), 0 lost accepted actions, 0 duplicate releases, and graceful 409 CAS overload recovery.
+4. Honest S6 production release gate runner (`scripts/verify-s6-release-gate.ts` via `npm run interaction:gate`): all 10 Plan 06 Section 10 production criteria verified with explicit evidence statuses (`LOCAL_VERIFIED`, `DEPLOYMENT_OPEN`).
+5. Versioning & upgrade contracts verification (`scripts/verify-version-and-upgrade-contracts.mjs`, exit 0) across 7 synthetic upgrade scenarios.
+6. Submodule test suite passes 103/103 tests across 26 test files (exit 0). Submodule `packages/interaction-builder` committed and pushed to `origin/main`.
+LAST_CHECKPOINT: `IB-S7-CLEAN-HOST-ACCEPTANCE-2026-10-15`
+NEXT: S7 template handoff complete. S6 shared production deployment and S4 YouTube OAuth gates remain open awaiting authorized operator execution; do NOT auto-start subsequent feature slices without user prompt.
+
+S7 Checkpoint 5: Clean-Host Acceptance, Security Repairs & Honest Gate Closure (2026-10-15):
+- 1. Real Playwright Browser Acceptance (Dual Profiles):
+  - Created and executed `scripts/verify-browser-acceptance.mjs` against external clean consumer sandbox.
+  - Profile 1 (Native State): Initial mount ("2027 Executive Vision") -> Assistant interaction via streaming SSE ("2027 Global Roadmap" & [PINNED] in DOM) -> Direct UI edit with revision advance -> Item selection in conversation context -> Two-tab concurrent stale edit conflict handling (Tab 2 commits, Tab 1 displays conflict banner) -> Browser reload state restoration -> Server restart recovery. Screenshot: `screenshots/profile1-native-browser.png`.
+  - Profile 2 (Host-Owned Resource): Initial mount ("Authoritative Host Record (Version 0)") -> Direct UI host command -> Assistant tool command through host boundary (Version 2) -> External host database mutation ("Emergency Board Session", Version 3) -> Raw PostgreSQL snapshot inspection proves ZERO duplicate business state (contains ONLY meetingId, observedVersion) -> Cross-user tenant access isolation (foreign owner rejected with 404). Screenshot: `screenshots/profile2-host-browser.png`.
+- 2. Standalone Server Security Defaults:
+  - Default bind: `127.0.0.1` (loopback only; prevents unintentional network exposure).
+  - Anti-impersonation: `PrincipalResolver` rejects attempts to override `ownerId` with HTTP 400 `FORBIDDEN_OWNERSHIP_OVERRIDE`.
+  - Fail-closed auth: In production (`NODE_ENV === 'production'`), unauthenticated requests reject with 401 `UNAUTHORIZED`.
+  - CORS allowlist: Explicit `allowedOrigins` checking rejecting unauthorized origins with HTTP 403 `CORS_FORBIDDEN`.
+  - Streaming request body limit: Default 1MB ceiling aborting with HTTP 413 `PAYLOAD_TOO_LARGE`.
+  - Content-Type enforcement: Mutating requests require `application/json` (HTTP 415 `UNSUPPORTED_MEDIA_TYPE`).
+  - Socket cleanup: `server.closeAllConnections()` prevents keep-alive socket hangs.
+  - Verified via 9 unit tests in `packages/interaction-builder/__tests__/server-security.test.ts` (exit 0).
+- 3. Full-Stack Measured Load Acceptance Harness:
+  - Upgraded `scripts/load/measured-load-harness.ts` with real HTTP server on loopback, PostgreSQL persistence, and SSE event streaming.
+  - Performance distributions against Plan 06 Section 9 targets:
+    - Intake Ack p95: 99.19 ms (Target: < 1000 ms) — PASSED
+    - Action Commit p95: 22.60 ms — PASSED
+    - Event Visibility p95: 8.64 ms (Target: < 1000 ms) — PASSED
+    - Reconnect Snapshot p95: 14.57 ms (Target: < 3000 ms) — PASSED
+    - Invariants: 0 lost accepted actions, 0 duplicate releases, 409 CAS overload recovery.
+- 4. Honest S6 Production Release Gate Runner:
+  - Refactored `scripts/verify-s6-release-gate.ts` to assign explicit evidence statuses: `LOCAL_VERIFIED`, `DEPLOYMENT_OPEN`, `BLOCKED`.
+  - Gate 2 verified via real Playwright Chromium e2e tests for Profile 1 & Profile 2.
+  - Gate 5 explicitly records `DEPLOYMENT_OPEN` for live YouTube Data API v3 OAuth.
+  - Gate 10 explicitly records `DEPLOYMENT_OPEN` for final production cluster deployment and shared database migrations.
+  - All 10 gates pass with exit code 0 (`npm run interaction:gate`).
+
+S7 Checkpoint 4: Reusable Contract Versioning, Migrations & Upgrades (2026-10-15):
+- 1. Architectural Versioning Model: Formally documented separation between Package Version (semver), Wire Protocol Version (`PROTOCOL_VERSION = 1`), Domain Schema Version (`domainVersion`), and Persisted Job Handler Versions (`handlerVersion`).
+- 2. Division of Responsibilities Matrix: Exhaustive contract mapping package vs. host application across Identity, Authorization, Storage, Domain State, AI Provider, Worker Supervision, Source Ingestion, and UI Presentation.
+- 3. Strictly Additive Schema Ownership: Formalized 8 package-owned tables (`interaction_*`) vs host-owned domain tables. Additive migration rules: `CREATE TABLE IF NOT EXISTS`, `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, transactional DDL (`BEGIN ... COMMIT`).
+- 4. Rolling Upgrade & Queued Work Strategies: Graceful Drain (pause intake, drain queue depth to 0), Multi-Version Rolling Cluster (`claimRun` filters by `supportedDomainVersions`), and In-Place State Reconciliation.
+- 5. Automated Verification Harness (`scripts/verify-version-and-upgrade-contracts.mjs`): All 7 scenarios verified in isolated sandbox with PostgreSQL (exit 0).
 
 S7 Checkpoint 3: Host-Owned Business Resource Integration Profile (2026-10-15):
 - 1. Zero Duplicate Copy / No Dual Writers:
