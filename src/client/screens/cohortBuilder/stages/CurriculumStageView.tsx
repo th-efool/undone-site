@@ -43,6 +43,7 @@ function GithubIcon({ size = 20, ...props }: React.SVGProps<SVGSVGElement> & { s
 export interface CurriculumStageViewProps {
   workspace: CohortWorkspace;
   workspaceId?: string;
+  revision?: number;
   needsRebuild?: boolean;
   dispatchAction: (action: CohortAction, expected?: EntityRef[]) => Promise<boolean>;
   onSelectLessonForChat: (attached: { entity: EntityRef; label: string }) => void;
@@ -52,6 +53,7 @@ export interface CurriculumStageViewProps {
 export function CurriculumStageView({
   workspace,
   workspaceId = '',
+  revision,
   needsRebuild = false,
   dispatchAction,
   onSelectLessonForChat,
@@ -604,6 +606,7 @@ export function CurriculumStageView({
       <ReleasePanel
         workspace={workspace}
         workspaceId={workspaceId}
+        revision={revision}
         onNavigateToDestination={onNavigateToDestination}
       />
 

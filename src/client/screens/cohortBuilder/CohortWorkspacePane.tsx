@@ -431,6 +431,7 @@ function InnerCohortWorkspacePane({
         <CurriculumStageView
           workspace={workspace}
           workspaceId={workspaceId}
+          revision={interactionState?.revision}
           needsRebuild={progress.needsRebuild}
           dispatchAction={dispatchAction}
           onSelectLessonForChat={onSelectLessonForChat}

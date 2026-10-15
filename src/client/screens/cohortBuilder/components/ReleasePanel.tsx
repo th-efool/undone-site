@@ -15,17 +15,20 @@ import {
 import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
 import { validateCohortReadiness } from '@/src/shared/cohort-builder/readiness';
 import { useDispatchAction } from '@/src/client/interaction/hooks';
+import { sanitizeHref } from '@/src/shared/cohort-builder/security';
 import styles from '../CohortBuilder.module.css';
 
 export interface ReleasePanelProps {
   workspace: CohortWorkspace;
   workspaceId: string;
+  revision?: number;
   onNavigateToDestination?: (url: string) => void;
 }
 
 export function ReleasePanel({
   workspace,
   workspaceId,
+  revision,
   onNavigateToDestination,
 }: ReleasePanelProps) {
   const dispatchAction = useDispatchAction<CohortAction>();
@@ -69,10 +72,14 @@ export function ReleasePanel({
     setReleaseError(null);
 
     try {
+      const expectedRevision = revision ?? (workspace as { revision?: number }).revision;
       const response = await fetch(`/api/cohort-builder/workspaces/${workspaceId}/release`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode: selectedMode }),
+        body: JSON.stringify({
+          mode: selectedMode,
+          expectedRevision: typeof expectedRevision === 'number' ? expectedRevision : undefined,
+        }),
       });
 
       const data = await response.json();
@@ -257,7 +264,7 @@ export function ReleasePanel({
         <div>
           {destinationUrl && (
             <a
-              href={destinationUrl}
+              href={sanitizeHref(destinationUrl)}
               className={styles.destinationBtn}
               target="_self"
               rel="noreferrer"
