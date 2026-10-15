@@ -4,14 +4,16 @@
 
 This document is the authoritative **Operator Release Package & Production Handoff** for the canonical cohort builder (`undone-site` and `packages/interaction-builder`).
 
-### Release Decision
-- **S6 Production Gate Status**: **READY FOR OPERATOR HANDOFF**. All 10 production criteria specified in `plans/interaction-builder/06-production-and-verification.md` Section 10 are implemented, tested, and verified via `npm run interaction:gate`.
-- **Pre-Rollout Constraint Status**:
-  - S4 live YouTube caption acquisition remains explicitly recorded as **OPEN** due to Google Data API v3 OAuth requirements (video owner credentials required). It remains strictly disabled in initial rollout (`INTERACTION_YOUTUBE_ENABLED=0`). Local development and tests continue safely via `INTERACTION_YOUTUBE_FIXTURE=1`.
-  - S4 GitHub acquisition works with public unauthenticated API limits (60 req/hr) and must remain disabled in initial rollout (`INTERACTION_GITHUB_ENABLED=0`) until a dedicated monitored personal access token is configured.
-  - S5 relational release and learner progress persistence into MongoDB are fully verified.
-  - S6 operational supervision, administrative controls, retention lifecycles, and measured load gates are fully verified.
-- **Authorization Boundary**: Local implementation, rehearsal, and synthetic validation are complete. Shared production database migration execution, shared environment variable activation, and production service deployment require human operator authorization following this handoff.
+### Authoritative Release Decision
+> **Local operational preparation complete; final S6 deployment gate open.**
+
+- **S6 Production Gate Status**: Local implementation, isolated database verification, supervision, admin controls, retention sweeps, disaster restore drills, and measured load acceptance are **COMPLETE**. All 10 production criteria specified in `plans/interaction-builder/06-production-and-verification.md` Section 10 are implemented, tested, and verified via `npm run interaction:gate`.
+- **Shared Production Status**: The final deployment gate remains **OPEN** awaiting authorized operator execution. Zero shared migrations were executed, zero shared environment variables were activated, zero live cloud deployments were made, and zero paid API calls were triggered.
+- **S4 YouTube Live Captions Gate**: Remains explicitly recorded as **OPEN** due to Google Data API v3 OAuth constraints (video owner credentials required). It remains strictly disabled in initial rollout (`INTERACTION_YOUTUBE_ENABLED=0`). Local development and tests continue safely via `INTERACTION_YOUTUBE_FIXTURE=1`.
+- **S4 GitHub Acquisition**: Operates with public unauthenticated API limits (60 req/hr) and must remain disabled in initial rollout (`INTERACTION_GITHUB_ENABLED=0`) until a dedicated monitored personal access token is configured.
+- **S5 Learner Delivery**: Relational release and learner progress persistence into MongoDB are fully verified locally and across isolated test databases.
+- **S6 Operational Readiness**: Operational supervision, administrative controls, retention lifecycles, and measured load gates are fully verified.
+- **S7 Decoupling Constraint**: S7 (standalone template/package extraction) carries all open S6 deployment gates into its baseline and must **NOT** be auto-started without an explicit user prompt.
 
 ---
 
@@ -23,30 +25,85 @@ This document is the authoritative **Operator Release Package & Production Hando
 | **Engine Submodule (`packages/interaction-builder`)** | `4f92118` | Authority for reusable engine; consumed via public exports; clean working tree |
 | **End-to-End Acceptance Artifacts** | `s4-enabled-completed.png`, `s5-completed.png` | Located in `.tmp/s4-postgres-runtime/` and `.tmp/s5-postgres-runtime/` |
 | **Measured Load Baseline** | `npm run interaction:load:measure` | Intake ack p95 < 3.4ms; event visibility p95 < 0.9ms; reconnect p95 < 0.2ms |
+| **Integrated Acceptance Suite** | `npm run interaction:acceptance` | All 11 operational lifecycle phases passed on isolated PostgreSQL & MongoDB (exit 0) |
 
 ---
 
-## 3. Capability Inventory & Production Readiness Matrix
+## 3. Requirement-to-Evidence Matrix (T01–T31 Across 5 Explicit Tiers)
 
-All 10 canonical cohort builder capabilities are classified across 5 explicit readiness levels:
-- **Level A**: Code implemented
-- **Level B**: Isolated deterministic tests passed
-- **Level C**: Live provider tested & verified
-- **Level D**: Shared environment configured
-- **Level E**: Shared feature activated
+Every requirement from `plans/interaction-builder/06-production-and-verification.md` is strictly classified across 5 distinct operational tiers. Requirements are never downgraded or falsely marked green.
 
-| Capability | Readiness Level | Rollout Status | Prerequisites / Blockers |
+### Tier 1: Verified Local Implementation (Unit, Property, and Schema Tests)
+*Tests execute in-repo using deterministic pure logic, Zod schema contracts, and client view-model reducers.*
+
+| Req ID | Requirement Description | Verification Evidence | Status |
 |---|---|---|---|
-| **1. New V2 Landing Intake** | Level B (Local Verified) | Ready for Profile 2 | Requires `INTERACTION_COHORT_V2_ENABLED=1` and `INTERACTION_TEXT_DRIVER=durable`. |
-| **2. Existing V2 Workspace Resume** | Level B (Local Verified) | Always Active | Works regardless of `INTERACTION_COHORT_V2_ENABLED`; zero lock-out risk. |
-| **3. Pasted Text Processing** | Level B (Local Verified) | Ready for Profile 2 | Core durable pipeline; 5-stage DAG execution verified. |
-| **4. PDF Upload & Extraction** | Level B (Local Verified) | Ready for Profile 2 | S4B schema constraints; 2MB upload ceiling; isolated server-side parsing. |
-| **5. Web Extraction** | Level B (Local Verified) | Ready for Profile 2 | S4B schema constraints; SSRF `BlockList` protections active; 200KB bound. |
-| **6. YouTube Transcripts** | Level B (Fixture Only) | **DISABLED (`'0'`)** | **Hard Blocker**: Google Data API v3 `captions.download` requires video owner OAuth credentials. Public transcripts cannot be acquired without owner auth. Must remain `'0'`. |
-| **7. GitHub Source Acquisition** | Level C (Live Verified) | **DISABLED (`'0'`)** | **Hard Blocker**: Unauthenticated GitHub REST API limited to 60 req/hr. Must remain `'0'` until dedicated monitored token configured. |
-| **8. Supervised Runner Execution** | Level B (Local Verified) | Ready for Profile 2 | Supervised Node worker (`interaction-worker.ts`); heartbeats; fail-closed queue capacity (limit: 50). |
-| **9. Private Learner Activation** | Level B (Local Verified) | Ready for Profile 2 | Relational cohort/lesson projection; `/play?cohort=...` delivery; MongoDB progress tracking. |
-| **10. Public Cohort Release** | Level B (Local Verified) | Ready for Profile 2 | Public publishing; `/cohort/.../overview` discovery; unpublish and downgrade protection. |
+| **T01** | Core/Domain Separation & Agenda Portability | `packages/interaction-builder/__tests__/agenda.test.ts` (Zero host or Next imports in engine core) | **VERIFIED** |
+| **T02** | Client Reducer & Immutability | `packages/interaction-builder/__tests__/store.test.ts` (Single-store immutability, zero lost actions) | **VERIFIED** |
+| **T03** | Truthful 5-Stage Job Progress Derivation | `src/client/screens/cohortBuilder/__tests__/stage-canonical-progress.test.ts` (10/10 contract tests pass) | **VERIFIED** |
+| **T04** | Draft Preservation Across Transitions | `src/client/screens/cohortBuilder/__tests__/draft-preservation.test.tsx` (8/8 tests pass without unmounting) | **VERIFIED** |
+| **T05** | Mobile Viewport Navigation & Visibility | `src/client/screens/cohortBuilder/__tests__/shell.test.tsx` (Persistent pane switch at <=820px) | **VERIFIED** |
+| **T11** | Action Schema Validation & Tool Filtering | `security-enforcement.test.ts` Axis 4 (Forged actions & unregistered tools rejected in plan) | **VERIFIED** |
+| **T12** | Request & Body Payload Ceilings | `security-enforcement.test.ts` Axis 3 (256KB action bound, 2MB PDF bound, 64KB release bound) | **VERIFIED** |
+| **T13** | Safe Link Sanitization & Protocol Defense | `security-enforcement.test.ts` Axis 6 (`javascript:`, `vbscript:`, `data:` URLs neutralized) | **VERIFIED** |
+| **T14** | Source Prompt Injection Containment | `security-enforcement.test.ts` Axis 4 (Untrusted text safely isolated from system prompt instructions) | **VERIFIED** |
+| **T15** | SSRF & Loopback/Metadata BlockList | `security-enforcement.test.ts` Axis 9 (`169.254.169.254`, `127.0.0.1`, private IPv4/IPv6 rejected) | **VERIFIED** |
+| **T16** | DNS Rebinding Socket Address Verification | `security-enforcement.test.ts` Axis 9 (Socket remote address matched against resolved IP) | **VERIFIED** |
+| **T21** | Revision CAS & Stale Approval Rejection | `security-enforcement.test.ts` Axis 5 (Mismatching `expectedRevision` throws 409 `STALE_WORKSPACE`) | **VERIFIED** |
+| **T22** | Public Cohort Downgrade Protection | `release-postgres.test.ts` (Attempt to revert public cohort to private throws 409) | **VERIFIED** |
+| **T26** | Conservative Budget Accounting on Failure | `budget-enforcement.test.ts` T3, T4, T5 (Unknown outcome retained as spent without refund) | **VERIFIED** |
+| **T27** | Retention Policy Production Validation | `retention-cleanup.test.ts` T1 (Fails closed on missing or unpinned released artifacts) | **VERIFIED** |
+| **T28** | Administrative Control Isolation | `admin-controls.test.ts` T1-T4 (Controls strictly excluded from model tools; audit logged) | **VERIFIED** |
+| **T31** | Extended Diagnostics Privacy Redaction | `worker-supervision.test.ts` T4 (All correlation IDs redacted; zero secret or prompt leakage) | **VERIFIED** |
+
+### Tier 2: Verified Isolated Integration (Local PostgreSQL, MongoDB, SSE, Supervised Worker)
+*Tests execute against disposable loopback PostgreSQL (`15434`), MongoMemoryServer, and real background workers.*
+
+| Req ID | Requirement Description | Verification Evidence | Status |
+|---|---|---|---|
+| **T06** | Real PostgreSQL Restart & DAG Execution | `scripts/s3-postgres-verification.ts`, `scripts/s6-integrated-acceptance.ts` Phase 2 | **VERIFIED** |
+| **T07** | Expired Lease Recovery & CAS Fencing | `scripts/s6-integrated-acceptance.ts` Phase 5 (Replacement worker claims expired lease; fence protects) | **VERIFIED** |
+| **T08** | Authenticated SSE Stream Reconnection | `src/app/api/interaction/v1/workspaces/[workspaceId]/events/route.test.ts`, `sse.test.ts` | **VERIFIED** |
+| **T09** | PDF Server-Side Upload & Parsing | `scripts/creation-durability-smoke.ts`, `prisma/interaction-s4b-sources.sql` | **VERIFIED** |
+| **T10** | Web Extraction & Content Boundary Bounds | `src/server/domain/cohort-creation/__tests__/web-extraction.test.ts` (200KB limit, article extraction) | **VERIFIED** |
+| **T17** | Supervised Worker Heartbeats & Draining | `worker-supervision.test.ts`, `scripts/s6-integrated-acceptance.ts` Phase 5 (SIGTERM clean exit) | **VERIFIED** |
+| **T18** | Missing-Worker Queue Admission Ceiling | `worker-supervision.test.ts` T3 (Queue capped at 50; throws 503 `WORKER_UNAVAILABLE`) | **VERIFIED** |
+| **T19** | Per-User Concurrency Across Workspaces | `budget-enforcement.test.ts` T1, `scripts/s6-integrated-acceptance.ts` Phase 6 (Limit: 1 active run) | **VERIFIED** |
+| **T20** | Atomic Budget Reservation in SQL | `budget-enforcement.test.ts` T2, `scripts/s6-integrated-acceptance.ts` Phase 6 (Zero oversubscription) | **VERIFIED** |
+| **T23** | Relational Release & Artifact Pinning | `scripts/s6-integrated-acceptance.ts` Phase 7 (Permanent pins protect released cohort artifacts) | **VERIFIED** |
+| **T24** | Real Learner Progress in MongoDB | `scripts/s6-integrated-acceptance.ts` Phase 7 (Chunk completion persisted in `user_chunk_progress`) | **VERIFIED** |
+| **T25** | Synthetic Public Release & Discovery | `scripts/s6-integrated-acceptance.ts` Phase 8 (Public cohort materialization and overview route) | **VERIFIED** |
+| **T29** | Retention Cleanup Dry-Run Sweep | `scripts/s6-integrated-acceptance.ts` Phase 11 (Inspect-only sweep reports candidates safely) | **VERIFIED** |
+| **T30** | Disaster Restore Drill & SHA-256 Checksums | `scripts/s6-integrated-acceptance.ts` Phase 11 (`validateBackupBundle` verifies checksums) | **VERIFIED** |
+
+### Tier 3: External-Provider Prerequisites (Requires External Credentials / Quotas)
+*Prerequisites that cannot be satisfied by local code and require external account authorization.*
+
+| Req ID | Requirement Description | Operational Prerequisite | Status |
+|---|---|---|---|
+| **P01** | Live YouTube Caption Acquisition | Google Data API v3 `captions.download` requires video owner OAuth credentials. Public transcripts cannot be downloaded without owner auth. Disabled in production (`INTERACTION_YOUTUBE_ENABLED=0`). Tested via `INTERACTION_YOUTUBE_FIXTURE=1`. | **OPEN (Explicit Blocker)** |
+| **P02** | Monitored GitHub API Personal Access Token | Public GitHub API is rate-limited to 60 req/hr unauthenticated. A dedicated monitored GitHub PAT is required before enabling public repo intake (`INTERACTION_GITHUB_ENABLED=0` in Profile 2). | **OPEN (Explicit Blocker)** |
+| **P03** | Paid Cloud LLM Provider Accounts | Production API keys for OpenAI / Anthropic / Google Gemini with billing accounts and rate quotas. Tested locally via deterministic fake model streams. | **OPEN for Operator Provisioning** |
+
+### Tier 4: Deployment-Environment Checks (To Validate Post-Deployment in Target Env)
+*Infrastructure parameters that depend on target hosting provider (Vercel, AWS, Fly.io, etc.).*
+
+| Check ID | Infrastructure Check | Target Specification | Status |
+|---|---|---|---|
+| **E01** | Database Network Latency | Regional co-location between HTTP Edge and PostgreSQL (< 50ms latency) | **Pending Deployment** |
+| **E02** | PostgreSQL Connection Pool Ceiling | Pool size sized to handle HTTP requests + background worker concurrency | **Pending Deployment** |
+| **E03** | Edge CDN Buffering / SSE Bypass | CDN must NOT buffer SSE stream endpoints (`/api/interaction/v1/workspaces/*/events`) | **Pending Deployment** |
+| **E04** | Worker Process Supervisor | Process manager (systemd, ECS, Docker) configured with restart policy | **Pending Deployment** |
+
+### Tier 5: Shared Actions Requiring Authorization (Human Operator Execution)
+*Actions strictly prohibited from autonomous assistant execution.*
+
+| Action ID | Action Description | Execution Method | Status |
+|---|---|---|---|
+| **A01** | Shared Production Database Migrations | Execute Migrations 1-5 with `-v ON_ERROR_STOP=1` on production DB | **Requires Operator Auth** |
+| **A02** | Production Environment Variables | Configure Profile 2 environment variables in deployment dashboard | **Requires Operator Auth** |
+| **A03** | Production Worker Daemon Launch | Start background worker (`npm run interaction:worker`) on production host | **Requires Operator Auth** |
+| **A04** | Public DNS / Routing Activation | Point production domain or feature flag to new V2 landing intake | **Requires Operator Auth** |
 
 ---
 
@@ -56,7 +113,7 @@ Three configuration profiles are formalized in `docs/s6a-configuration-profiles.
 
 ### Profile 1: Isolated Local Verification (`isolated_local`)
 - For local unit tests, CI test runs, and isolated rehearsal scripts.
-- Uses embedded PostgreSQL (`s3test` loopback on port `15433`).
+- Uses embedded PostgreSQL (`s3test` loopback on port `15434`).
 - Uses local deterministic model and provider fixtures (`INTERACTION_LOCAL_MODEL_FIXTURE=1`).
 
 ### Profile 2: Recommended Initial Production Rollout (`initial_rollout`)
@@ -85,23 +142,23 @@ INTERACTION_TEXT_DRIVER=durable
 
 ## 5. Ordered Database Migration Sequence
 
-All 5 migrations are additive, non-destructive, and idempotent. Apply them in this exact order:
+All 5 migrations are additive, non-destructive, and idempotent. Apply them in this exact order using `-v ON_ERROR_STOP=1`:
 
 ```bash
 # 1. Core interaction engine tables (8 tables + active unique index)
-psql "$DATABASE_URL" -f packages/interaction-builder/migrations/001_interaction_schema.sql
+psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f packages/interaction-builder/migrations/001_interaction_schema.sql
 
 # 2. Durable text pipeline (cohort_text_artifacts, cohort_text_jobs, cohort_text_job_edges)
-psql "$DATABASE_URL" -f prisma/interaction-s3-storage.sql
+psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f prisma/interaction-s3-storage.sql
 
 # 3. Source constraints expansion (supports source_input, source_raw, acquisition, extraction)
-psql "$DATABASE_URL" -f prisma/interaction-s4b-sources.sql
+psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f prisma/interaction-s4b-sources.sql
 
 # 4. Release effect journaling (interaction_effects)
-psql "$DATABASE_URL" -f prisma/interaction-s5-effects.sql
+psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f prisma/interaction-s5-effects.sql
 
 # 5. S6 Operational supervision, admin controls, artifact protection & retention audit
-psql "$DATABASE_URL" -f prisma/interaction-s6-operations.sql
+psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f prisma/interaction-s6-operations.sql
 ```
 
 ---
@@ -110,6 +167,7 @@ psql "$DATABASE_URL" -f prisma/interaction-s6-operations.sql
 
 | Command | Purpose | Expected Output / Result |
 |---|---|---|
+| `npm run interaction:acceptance` | Runs full 11-phase integrated operational acceptance test suite on isolated PostgreSQL & MongoDB. | `ALL 11 INTEGRATED OPERATIONAL ACCEPTANCE PHASES PASSED!`, exit 0. |
 | `npm run interaction:gate` | Runs full S6 production release gate (10 criteria). | `ALL 10 S6 PRODUCTION GATES PASSED!`, exit 0. |
 | `npm run interaction:readiness` | Probes environment, database schema, driver agreement, and worker heartbeats. | Reports `status: ready`, profile: `initial_rollout`, exit 0. |
 | `npm run interaction:worker:diagnostics` | Read-only operational query for queue backlog, outbox lag, worker heartbeats, and budget accounting. | Formatted diagnostic report with redacted correlation IDs and zero secret exposure. |
@@ -144,21 +202,21 @@ All administrative operations are performed via `src/server/domain/cohort-builde
 
 1. **Pause / Resume New Intake**:
    - Check status: `await isIntakeEnabled(pool)`
-   - Pause: `await setIntakeEnabled(pool, false, 'operator-username', 'Scheduled maintenance')`
-   - Resume: `await setIntakeEnabled(pool, true, 'operator-username', 'Maintenance completed')`
+   - Pause: `await setIntakeEnabled(pool, { enabled: false, actorId: 'operator-username', reason: 'Scheduled maintenance' })`
+   - Resume: `await setIntakeEnabled(pool, { enabled: true, actorId: 'operator-username', reason: 'Maintenance completed' })`
    - Behavior when paused: Homepage and `/quest/start` honestly explain intake is unavailable; existing workspaces and learner deliveries remain 100% accessible.
 2. **Pause / Resume Model Calls**:
-   - Pause: `await setModelCallsPaused(pool, true, 'operator-username', 'Provider outage')`
+   - Pause: `await setModelCallsPaused(pool, { paused: true, actorId: 'operator-username', reason: 'Provider outage' })`
    - When paused, new model turns fail closed with 503 `MODEL_CALLS_PAUSED`; manual UI edits remain fully functional.
 3. **Cancel Specific Job or Run**:
    - `await cancelWorkItem(pool, 'run', runId, 'operator-username', 'Run stuck in loop')`
    - `await cancelWorkItem(pool, 'job', jobId, 'operator-username', 'Source unreadable')`
    - Cancels the item and preserves conservative budget accounting (`unknown_outcome_retained`) without falsely refunding in-flight costs.
 4. **Toggle Source Capabilities**:
-   - `await setSourceCapabilityEnabled(pool, 'youtube', false, 'operator-username', 'Quota limit reached')`
+   - `await setSourceCapabilityEnabled(pool, { capability: 'youtube', enabled: false, actorId: 'operator-username', reason: 'Quota limit reached' })`
    - Options: `'pdf' | 'web' | 'youtube' | 'github'`.
 5. **Suspend Public Release**:
-   - `await setPublicReleaseSuspended(pool, true, 'operator-username', 'Content review ongoing')`
+   - `await setPublicReleaseSuspended(pool, { suspended: true, actorId: 'operator-username', reason: 'Content review ongoing' })`
 
 ### Runbook C: Retention Lifecycle & Safe Cleanup
 All cleanup operations are performed via `src/server/domain/cohort-builder/retention-cleanup.ts`.
@@ -187,13 +245,13 @@ All cleanup operations are performed via `src/server/domain/cohort-builder/reten
 ### Runbook D: Disaster Recovery & Restore Drill
 In the event of database failure or corrupted state:
 1. **Export Workspace**:
-   - `const bundle = await exportWorkspaceData(pool, workspaceId, ownerId);`
+   - `const bundle = await exportWorkspaceData(sqlAdapter, { workspaceId, ownerId });`
    - Generates a self-contained JSON backup with SHA-256 checksums, transcript, events, artifacts, and jobs.
 2. **Validate Backup Bundle**:
    - `validateBackupBundle(bundle);`
    - Verifies SHA-256 hash match, byte counts, and artifact reference completeness. Fails closed on tampering or corruption.
 3. **Restore into Fresh Instance**:
-   - `await restoreWorkspaceFromBundle(newPool, bundle, { recoverInFlightJobs: true, demoteCorruptedRelease: true });`
+   - `await restoreWorkspaceFromBundle(newSql, bundle, { recoverInFlightJobs: true, demoteCorruptedRelease: true });`
    - Restores workspace record, requests, events, messages, and artifacts.
    - Recovers in-flight jobs (`running` → `queued`) so replacement workers can resume processing.
    - If release artifacts are corrupted or incomplete, demotes the cohort to draft (`processing.error = 'CORRUPTED_RESTORE_DEMOTED'`), preventing broken content from becoming public.
@@ -233,12 +291,13 @@ If an operational incident occurs post-rollout:
 
 Before enabling Profile 2 in a shared or staging environment, verify:
 - [ ] Database backup completed before running SQL migrations.
-- [ ] Migrations 1 through 5 executed in strict sequential order:
-  - `packages/interaction-builder/migrations/001_interaction_schema.sql`
-  - `prisma/interaction-s3-storage.sql`
-  - `prisma/interaction-s4b-sources.sql`
-  - `prisma/interaction-s5-effects.sql`
-  - `prisma/interaction-s6-operations.sql`
+- [ ] Migrations 1 through 5 executed in strict sequential order with `-v ON_ERROR_STOP=1`:
+  - `psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f packages/interaction-builder/migrations/001_interaction_schema.sql`
+  - `psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f prisma/interaction-s3-storage.sql`
+  - `psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f prisma/interaction-s4b-sources.sql`
+  - `psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f prisma/interaction-s5-effects.sql`
+  - `psql -v ON_ERROR_STOP=1 "$DATABASE_URL" -f prisma/interaction-s6-operations.sql`
+- [ ] `npm run interaction:acceptance` returns exit code 0 (all 11 operational lifecycle phases passed).
 - [ ] `npm run interaction:gate` returns exit code 0 (all 10 production criteria passed).
 - [ ] `npm run interaction:readiness` returns exit code 0 with `initial_rollout` profile.
 - [ ] `INTERACTION_TEXT_DRIVER=durable` is set on both HTTP app and background worker.
