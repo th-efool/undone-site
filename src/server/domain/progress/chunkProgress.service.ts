@@ -87,7 +87,7 @@ export class ChunkProgressService {
           ...(isNewlyCompleted ? { completedAt: new Date() } : {})
         },
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     // TODO: LessonProgress roll-up could be handled in Postgres if Lesson metadata is there,

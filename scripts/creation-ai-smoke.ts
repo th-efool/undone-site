@@ -39,20 +39,21 @@ async function main() {
         return result;
       } catch (error) {
         if (APICallError.isInstance(error)) {
+          const apiError = error as { responseBody?: string; message?: string; statusCode?: number };
           let categories: string[] = [];
           try {
-            const message = JSON.parse(error.responseBody ?? '{}')?.error?.message ?? '';
+            const message = JSON.parse(apiError.responseBody ?? '{}')?.error?.message ?? '';
             categories = ['schema', 'maxItems', 'minItems', 'additionalProperties', 'too many', 'nesting', 'token', 'API key', 'quota', 'model', 'unsupported', 'complex', 'temperature']
               .filter(word => typeof message === 'string' && message.toLowerCase().includes(word.toLowerCase()));
           } catch { /* Diagnostics deliberately exclude response bodies. */ }
           // These inputs are public/local smoke material only. Select the error message,
           // redact environment values and URLs, and never log request headers/bodies.
-          let diagnostic = error.message;
+          let diagnostic = apiError.message ?? '';
           for (const value of Object.values(process.env)) {
             if (value && value.length >= 8) diagnostic = diagnostic.replaceAll(value, '[redacted]');
           }
           diagnostic = diagnostic.replace(/https?:\/\/\S+/g, '[url]').slice(0, 500);
-          console.error(JSON.stringify({ stage, providerHttpStatus: error.statusCode, categories, diagnostic }));
+          console.error(JSON.stringify({ stage, providerHttpStatus: apiError.statusCode, categories, diagnostic }));
         }
         throw error;
       }

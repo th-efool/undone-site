@@ -36,11 +36,11 @@ async function main() {
     const aliceToken = `fixture-alice-${randomUUID()}`;
     const bobToken = `fixture-bob-${randomUUID()}`;
     stage = 'credential writes';
-    await client.withTenant(alice).notion.keys.set_access_token(aliceToken);
-    await client.withTenant(bob).notion.keys.set_access_token(bobToken);
+    await (client.withTenant(alice) as any).notion.keys.set_access_token(aliceToken);
+    await (client.withTenant(bob) as any).notion.keys.set_access_token(bobToken);
     stage = 'credential isolation';
-    assert.equal(await client.withTenant(alice).notion.keys.get_access_token(), aliceToken);
-    assert.equal(await client.withTenant(bob).notion.keys.get_access_token(), bobToken);
+    assert.equal(await (client.withTenant(alice) as any).notion.keys.get_access_token(), aliceToken);
+    assert.equal(await (client.withTenant(bob) as any).notion.keys.get_access_token(), bobToken);
     const rows = await pool.query('SELECT tenant_id, config, dek FROM corsair_accounts');
     assert.equal(rows.rowCount, 2);
     for (const row of rows.rows) {
@@ -51,7 +51,7 @@ async function main() {
     stage = 'scoped disconnect';
     await client.manage.disconnect({ tenantId: alice, plugin: 'notion' });
     assert.equal((await pool.query('SELECT id FROM corsair_accounts WHERE tenant_id = $1', [alice])).rowCount, 0);
-    assert.equal(await client.withTenant(bob).notion.keys.get_access_token(), bobToken);
+    assert.equal(await (client.withTenant(bob) as any).notion.keys.get_access_token(), bobToken);
     assert.equal((await pool.query('SHOW search_path')).rows[0].search_path, schema);
     console.log('Connector SQL smoke passed: installed SDK provisioning, encrypted owner isolation, scoped disconnect and isolated search path. Fixture credentials only.');
   } finally {
