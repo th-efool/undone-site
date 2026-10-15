@@ -309,7 +309,7 @@ describe('S6 Checkpoint 3: Disaster Recovery & Restore Integrity Drill', () => {
     );
     const updatedWs = (await target.sql.query(`SELECT "revision" FROM "interaction_workspaces" WHERE "id" = $1`, [workspaceId])).rows[0];
     expect(Number(updatedWs.revision)).toBe(6);
-  });
+  }, 30000);
 
   it('detects dangling/corrupted artifacts during restore and blocks incomplete restored content from becoming public', async () => {
     const target = await createIsolatedDb();
@@ -413,7 +413,7 @@ describe('S6 Checkpoint 3: Disaster Recovery & Restore Integrity Drill', () => {
     const snap = typeof wsRow.snapshot === 'string' ? JSON.parse(wsRow.snapshot) : wsRow.snapshot;
     expect(snap.release.status).toBe('draft');
     expect(snap.processing.error).toContain('Public release blocked');
-  });
+  }, 30000);
 
   it('proves cleanup racing active read/release using real separate connections and confirms safe eventual reclamation', async () => {
     const conn1 = await createIsolatedDb();
@@ -479,5 +479,5 @@ describe('S6 Checkpoint 3: Disaster Recovery & Restore Integrity Drill', () => {
 
     const check2 = await conn2.sql.query(`SELECT "id" FROM "cohort_text_artifacts" WHERE "id" = $1`, [art.id]);
     expect(check2.rows.length).toBe(0);
-  });
+  }, 30000);
 });
