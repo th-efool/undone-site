@@ -26,7 +26,8 @@ export interface InteractionWorkerOptions {
   pollIntervalMs?: number;
   leaseDurationMs?: number;
   heartbeatIntervalMs?: number;
-  supervisionSql?: SupervisionSql;
+  supervisionSql?: SupervisionSql | null;
+  durable?: { tick: () => Promise<void>; close: () => Promise<void> } | null;
   textWorkspaceCandidates?: () => Promise<Array<{ id: string; ownerId: string }>>;
 }
 
@@ -46,17 +47,19 @@ export async function runInteractionWorkerLoop(
       AND COALESCE("snapshot"->'processing'->>'driver', 'snapshot') <> 'durable'
     ORDER BY "updatedAt" ASC LIMIT 20`);
 
-  const supervisionSql = options.supervisionSql ?? (process.env.DATABASE_URL ? {
-    query: async (stmt: string, params: unknown[] = []) => {
-      try {
-        const rows = await prisma.$queryRawUnsafe<any[]>(stmt, ...params);
-        return { rows: Array.isArray(rows) ? rows : [] };
-      } catch {
-        await prisma.$executeRawUnsafe(stmt, ...params).catch(() => {});
-        return { rows: [] };
-      }
-    },
-  } : undefined);
+  const supervisionSql = options.supervisionSql === null
+    ? null
+    : (options.supervisionSql ?? (process.env.DATABASE_URL ? {
+        query: async (stmt: string, params: unknown[] = []) => {
+          try {
+            const rows = await prisma.$queryRawUnsafe<any[]>(stmt, ...params);
+            return { rows: Array.isArray(rows) ? rows : [] };
+          } catch {
+            await prisma.$executeRawUnsafe(stmt, ...params).catch(() => {});
+            return { rows: [] };
+          }
+        },
+      } : undefined));
 
   if (supervisionSql) {
     try {
@@ -72,8 +75,10 @@ export async function runInteractionWorkerLoop(
   }
 
   let lastWorkerHeartbeat = Date.now();
-  const durable = textDriver() === 'durable'
-    ? await createTextJobRuntime(process.env.DATABASE_URL ?? '', workerId, leaseDurationMs) : null;
+  const durable = options.durable !== undefined
+    ? options.durable
+    : (textDriver() === 'durable' && process.env.DATABASE_URL
+        ? await createTextJobRuntime(process.env.DATABASE_URL, workerId, leaseDurationMs) : null);
   try {
   while (!signal.aborted) {
     try {

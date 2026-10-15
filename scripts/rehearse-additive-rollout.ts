@@ -18,6 +18,7 @@ import { runDurableTextJobTick } from '../src/server/domain/cohort-builder/durab
 import { assertTextJobSchema } from '../src/server/domain/cohort-builder/text-schema-readiness';
 import { assertSourceSchema } from '../src/server/domain/cohort-builder/source-policy';
 import { assertReleaseSchema } from '../src/server/domain/cohort-builder/release-schema-readiness';
+import { assertS6OperationalSchema } from '../src/server/domain/cohort-builder/operational-schema-readiness';
 import { collectWorkerDiagnostics } from '../src/server/domain/cohort-builder/worker-diagnostics';
 import {
   interactionSqlCheck,
@@ -225,6 +226,29 @@ async function main() {
       await assertReleaseSchema(sqlAdapter);
       console.log('[Phase 5] PASS: Migration 4 applied. interaction_effects table and constraints verified.\n');
 
+      // Phase 5b: Apply Migration 5 - prisma/interaction-s6-operations.sql
+      console.log('[Phase 5b] Applying Migration 5: interaction-s6-operations.sql (S6 operations, supervision & governance)...');
+      const migration5 = readFileSync(
+        resolve(root, 'prisma/interaction-s6-operations.sql'),
+        'utf8'
+      );
+      await client.query(migration5);
+
+      const m5Tables = [
+        'cohort_text_artifact_protection',
+        'cohort_retention_audit_log',
+        'interaction_worker_heartbeats',
+        'cohort_admin_controls',
+        'cohort_admin_control_audit',
+      ];
+      const m5Check = await client.query<{ count: number }>(
+        "SELECT count(*)::int AS count FROM information_schema.tables WHERE table_schema='public' AND table_name=ANY($1::text[])",
+        [m5Tables]
+      );
+      assert.equal(m5Check.rows[0].count, m5Tables.length);
+      await assertS6OperationalSchema(sqlAdapter);
+      console.log('[Phase 5b] PASS: Migration 5 applied. 5 operational tables and indexes verified.\n');
+
       // Phase 6: Automated Schema & Readiness Validation
       console.log('[Phase 6] Validating comprehensive readiness via probe tools...');
       process.env.DATABASE_URL = connectionString;
@@ -233,6 +257,8 @@ async function main() {
 
       await assertTextJobSchema(sqlAdapter);
       await assertSourceSchema(sqlAdapter);
+      await assertReleaseSchema(sqlAdapter);
+      await assertS6OperationalSchema(sqlAdapter);
 
       const sqlReadiness = await interactionSqlCheck();
       assert.equal(sqlReadiness.status, 'ready', `SQL readiness check must pass, got: ${sqlReadiness.status} (${sqlReadiness.reason})`);
@@ -474,17 +500,17 @@ async function main() {
       // Verify zero tables dropped
       const finalTableCheck = await client.query<{ count: number }>(
         "SELECT count(*)::int AS count FROM information_schema.tables WHERE table_schema='public' AND table_name=ANY($1::text[])",
-        [[...m1Tables, ...m2Tables, 'interaction_effects']]
+        [[...m1Tables, ...m2Tables, 'interaction_effects', ...m5Tables]]
       );
       assert.equal(
         finalTableCheck.rows[0].count,
-        m1Tables.length + m2Tables.length + 1,
-        'All 12 additive tables must remain present; rollback does not destroy schema or data'
+        m1Tables.length + m2Tables.length + 1 + m5Tables.length,
+        'All 17 additive tables must remain present; rollback does not destroy schema or data'
       );
       console.log('[Phase 10] PASS: Safe rollback preserves all data; new intake disabled while existing workspaces stay intact.\n');
 
       console.log('===========================================================');
-      console.log('✅ ALL S6A ADDITIVE ROLLOUT & ROLLBACK PHASES PASSED CLEANLY');
+      console.log('✅ ALL S6 ADDITIVE ROLLOUT & ROLLBACK PHASES PASSED CLEANLY');
       console.log('===========================================================');
     } finally {
       client.release();

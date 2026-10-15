@@ -681,6 +681,8 @@ describe('S6 Checkpoint 2: Server-Enforced Budgets, Quotas and Admission Control
         workerId: 'test-priority-worker',
         pollIntervalMs: 50,
         textWorkspaceCandidates: candidatesFn,
+        supervisionSql: null,
+        durable: null,
       },
       ac.signal
     );
