@@ -29,6 +29,8 @@ export type BuilderStage =
   | 'recommendations'
   | 'starting_point'
   | 'material_input'
+  | 'discovery'
+  | 'goal_setup'
   | 'intake'
   | 'understanding'
   | 'chunking'
@@ -70,6 +72,12 @@ export function getActiveStage(workspace: CohortWorkspace): BuilderStage {
     }
     if (workspace.journey.step === 'material_input') {
       return 'material_input';
+    }
+    if (workspace.journey.step === 'discovery') {
+      return 'discovery';
+    }
+    if (workspace.journey.step === 'goal_setup') {
+      return 'goal_setup';
     }
   }
 
@@ -164,7 +172,13 @@ export function getEffectiveStage(
   inspectedStage: BuilderStage | null
 ): BuilderStage {
   const active = getActiveStage(workspace);
-  if (active === 'recommendations' || active === 'starting_point' || active === 'material_input') {
+  if (
+    active === 'recommendations' ||
+    active === 'starting_point' ||
+    active === 'material_input' ||
+    active === 'discovery' ||
+    active === 'goal_setup'
+  ) {
     return active;
   }
   return inspectedStage ?? active;

@@ -49,7 +49,7 @@ export const cohortSourceSchema = z.strictObject({
   provenance: z.strictObject({
     parserVersion: z.string().max(128),
     rawChecksum: z.string().regex(/^[a-f0-9]{64}$/),
-    scope: z.enum(['selected_pages', 'main_article', 'full_text_response', 'transcript_only', 'selected_files', 'video_observation']),
+    scope: z.enum(['selected_pages', 'main_article', 'full_text_response', 'transcript_only', 'selected_files', 'video_observation', 'ai_authored_guide']),
     finalUrl: z.string().max(2048).optional(),
     pageCount: z.number().int().positive().max(200).optional(),
     videoId: z.string().optional(),

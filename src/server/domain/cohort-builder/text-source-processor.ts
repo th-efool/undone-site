@@ -6,6 +6,7 @@ import { computeTextStage } from './text-pipeline';
 import type { WebTransport } from '../cohort-creation/materials/web-fetch';
 import type { YoutubeTranscriptProvider } from './youtube-transcript';
 import type { GithubSourceProvider } from './github-source';
+import type { CreationGuideAuthor } from '../cohort-creation/generated-guide';
 
 type SourceStage = Exclude<TextJobStage, 'assembly'>;
 
@@ -34,6 +35,7 @@ export function createTextSourceProcessor(input: {
   youtubeTranscriptProvider?: YoutubeTranscriptProvider;
   videoObservationProvider?: any;
   githubSourceProvider?: GithubSourceProvider;
+  guideAuthor?: CreationGuideAuthor;
 }): (job: ClaimedTextJob) => Promise<Uint8Array> {
   return async job => {
     if (!job.sourceId || job.sourceVersion === null || job.stage === 'assembly') throw new Error('INVALID_SOURCE_JOB');
@@ -43,7 +45,6 @@ export function createTextSourceProcessor(input: {
     if (!planned) throw new Error('STALE_SOURCE_JOB');
     const source = state.sources.find(item => item.id === job.sourceId && item.version === job.sourceVersion);
     if (!source) throw new Error('STALE_SOURCE_JOB');
-    if (source.input?.kind === 'generated_guide') throw new Error('GENERATED_GUIDE_HANDLER_UNAVAILABLE');
     const isolated: CohortWorkspace = { ...state, sources: [source] };
     const stage = job.stage as SourceStage;
     if (stage === 'acquisition') {
@@ -54,6 +55,11 @@ export function createTextSourceProcessor(input: {
         if (retained.ref.kind !== (source.retainedInputId ? 'source_raw' : 'source_input') ||
           (retained.ref.sourceId !== null && retained.ref.sourceId !== source.id)) throw new Error('FOREIGN_SOURCE_PREREQUISITE');
         return retained.bytes;
+      }
+      if (source.input.kind === 'generated_guide') {
+        const { acquireGeneratedGuide } = await import('./journey-goal-adapter');
+        const acquired = await acquireGeneratedGuide(source.input, input.guideAuthor);
+        return acquired.bytes;
       }
       if (source.input.kind === 'web') {
         const {fetchRetainedWeb}=await import('./source-adapters');

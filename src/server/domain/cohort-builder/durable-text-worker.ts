@@ -38,6 +38,8 @@ export function runDurableTextJobTick(input: {
   recommendationAdapter?: JourneyRecommendationAdapter;
   recommendationDeps?: RecommendationExecutorDeps;
   discoveryDeps?: DiscoveryExecutorDeps;
+  discoveryAdapter?: any;
+  guideAuthor?: any;
 }): Promise<TextJobTickResult> {
   const source = createTextSourceProcessor({
     sql: input.sql,
@@ -46,6 +48,7 @@ export function runDurableTextJobTick(input: {
     youtubeTranscriptProvider: input.youtubeTranscriptProvider,
     videoObservationProvider: input.videoObservationProvider,
     githubSourceProvider: input.githubSourceProvider,
+    guideAuthor: input.guideAuthor,
   });
   const assembly = createTextAssemblyProcessor({ sql: input.sql, loadWorkspace: input.loadWorkspace });
   const journey = createJourneyJobProcessor({
@@ -54,7 +57,7 @@ export function runDurableTextJobTick(input: {
       adapter: input.recommendationAdapter ?? createJourneyRecommendationAdapter(),
       sql: input.sql,
     },
-    discoveryDeps: input.discoveryDeps,
+    discoveryDeps: input.discoveryDeps ?? (input.discoveryAdapter ? { adapter: input.discoveryAdapter, sql: input.sql } : undefined),
   });
   return runTextJobTick({
     sql: input.sql, workerId: input.workerId, leaseMs: input.leaseMs, now: input.now, renewLease: true,
