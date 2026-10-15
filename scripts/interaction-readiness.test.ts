@@ -5,6 +5,7 @@ import {
   connectionFailureReason,
   isSecretConfigured,
 } from './interaction-readiness';
+import { assertS6OperationalSchema } from '../src/server/domain/cohort-builder/operational-schema-readiness';
 
 describe('S6A Interaction Readiness & Fail-Closed Configuration Gate', () => {
   const baseEnv: NodeJS.ProcessEnv = {
@@ -267,6 +268,40 @@ describe('S6A Interaction Readiness & Fail-Closed Configuration Gate', () => {
               ],
             };
           }
+          return { rows: [] };
+        },
+      })
+    ).resolves.toBeUndefined();
+  });
+
+  it('assertS6OperationalSchema enforces presence of 5 tables and required indexes', async () => {
+    // Missing table case
+    await expect(
+      assertS6OperationalSchema({
+        query: async (stmt: string) => {
+          if (stmt.includes('information_schema.tables')) return { rows: [{ count: 4 }] };
+          return { rows: [] };
+        },
+      })
+    ).rejects.toThrow('S6_OPERATIONAL_SCHEMA_NOT_INSTALLED');
+
+    // Missing index case
+    await expect(
+      assertS6OperationalSchema({
+        query: async (stmt: string) => {
+          if (stmt.includes('information_schema.tables')) return { rows: [{ count: 5 }] };
+          if (stmt.includes('pg_indexes')) return { rows: [{ count: 1 }] };
+          return { rows: [] };
+        },
+      })
+    ).rejects.toThrow('S6_OPERATIONAL_INDEXES_NOT_INSTALLED');
+
+    // Valid case
+    await expect(
+      assertS6OperationalSchema({
+        query: async (stmt: string) => {
+          if (stmt.includes('information_schema.tables')) return { rows: [{ count: 5 }] };
+          if (stmt.includes('pg_indexes')) return { rows: [{ count: 2 }] };
           return { rows: [] };
         },
       })

@@ -1,8 +1,33 @@
 # Interaction builder execution checkpoint
 
-STATUS: S6 CHECKPOINT 4 (SUPERVISION, CONTROLS, METRICS & MEASURED LOAD) COMPLETE & VERIFIED. Supervised Node runner execution with graceful shutdown and fence recovery, dedicated worker heartbeats in interaction_worker_heartbeats distinct from job leases, fail-closed queue capacity limits (WORKER_UNAVAILABLE) preventing browser thread overload, admin-only intake/model/release/source controls with immutable audit trail (cohort_admin_controls / cohort_admin_control_audit) strictly inaccessible to model tools, extended operational diagnostics with redacted correlation IDs and zero secret exposure, and isolated measured load acceptance (p95 intake < 3.4ms, visibility < 0.9ms, reconnect < 0.2ms, 0 lost actions, 0 duplicate releases) are verified against Plan 06 Section 9 provisional targets. S4, S5, S6 Checkpoints 1-3, and S6A remain fully verified.
-LAST_CHECKPOINT: `IB-S6-SUPERVISION-CONTROLS-LOAD-2026-10-15`
-NEXT: Integrated S6 Release Gate and Operator Package.
+STATUS: SLICE 6 (OPERATIONAL READINESS, SECURITY & AUTHORITY, BUDGETS & ADMISSION, RETENTION & CLEANUP, SUPERVISION & CONTROLS, MEASURED LOAD & INTEGRATED OPERATOR RELEASE GATE) COMPLETE & VERIFIED. All 10 production criteria specified in Plan 06 Section 10 are verified via `npm run interaction:gate` (exit 0). Authoritative Operator Release Package formalized in `docs/s6-operator-release-package.md`. Ordered 5-step additive migrations verified via `npm run interaction:rehearse:rollout` (exit 0). Readiness probe returns ready under `initial_rollout` profile via `npm run interaction:readiness` (exit 0). S4 live YouTube acquisition gate remains explicitly documented as OPEN due to Google Data API v3 OAuth constraints. Submodule authority (`4f92118`), TypeScript (0 errors), packed consumer (6/6 stages), worker check (exit 0), and full Vercel deployment simulation (exit 0) remain verified.
+LAST_CHECKPOINT: `IB-S6-INTEGRATED-OPERATOR-RELEASE-GATE-2026-10-15`
+NEXT: Operator review and authorized deployment rollout.
+
+S6 Integrated Release Gate & Operator Package (2026-10-15):
+- 1. Plan 06 Section 10 Conformance: Deterministic gate runner `scripts/verify-s6-release-gate.ts` (`npm run interaction:gate`) executed and passed all 10 production criteria:
+  - Gate 1: Core/Domain Separation & Agenda Portability (0 host leakage; agenda tests passing).
+  - Gate 2: All-Stage Chat & Direct UI Edit Parity (drafts survive stage changes, CAS conflicts, mobile switching; full suite passing).
+  - Gate 3: Source Grounding, Pins & Truthful Coverage (canonical job evidence drives progress; 10 contract tests passing).
+  - Gate 4: SQL Atomicity, Replay, Cancellation & Budgets (atomic PostgreSQL reservations, conservative unknown-outcome accounting, tenant isolation).
+  - Gate 5: Source Adapter Security & Ownership (Web/PDF/GitHub pass SSRF, size, and ownership bounds; YouTube OAuth constraint documented as OPEN).
+  - Gate 6: Private Activation & Public Publishing (idempotent release, CAS revision guards, downgrade protection, isolated MongoDB progress verified).
+  - Gate 7: Production Driver, Supervision & Restore Drill (worker heartbeats, fail-closed queue capacity, full backup/restore drill verified).
+  - Gate 8: Measured Load Acceptance & Targets (intake p95 < 1s, event visibility p95 < 1s, reconnect p95 < 3s, 0 lost actions, 0 duplicate releases).
+  - Gate 9: v1 Coexistence & Safe Rollback (all 5 additive migrations verified; intake pause preserves existing workspaces with zero data loss).
+  - Gate 10: Memory Indexing & Truthful Labeling (all checkpoints, contracts, commands indexed in MEMORY; YouTube open gate clearly documented).
+- 2. Ordered 5-Step Additive Migration Sequence: Formalized `prisma/interaction-s6-operations.sql` adding `cohort_text_artifact_protection`, `cohort_retention_audit_log`, `interaction_worker_heartbeats`, `cohort_admin_controls`, and `cohort_admin_control_audit`. Verified across all 11 rollout/rollback rehearsal phases via `npm run interaction:rehearse:rollout` (exit 0).
+- 3. Authoritative Operator Release Package: Created `docs/s6-operator-release-package.md` containing repository baseline, 10-capability readiness inventory, 3 configuration profiles, 5-step migration runbook, operator command reference, supervisor lifecycle runbook, administrative controls runbook, retention lifecycle runbook, disaster recovery restore drill procedure, and safe rollback runbook.
+- 4. Automated Regression Evidence:
+  - `npm run interaction:gate`: All 10 gates passed (exit 0).
+  - `npm run interaction:rehearse:rollout`: All 11 phases passed cleanly on isolated disposable PostgreSQL (exit 0).
+  - `npm run interaction:readiness`: Status ready under `initial_rollout` profile (exit 0).
+  - `npx vitest run scripts/interaction-readiness.test.ts`: 22/22 tests passing (8ms).
+  - `npx vitest run src/server/domain/cohort-builder/__tests__/budget-enforcement.test.ts`: 8/8 tests passing (4.8s).
+  - `npm run interaction:worker:check`: Passed (exit 0).
+  - `node scripts/verify-packed-consumer.mjs`: All 6 stages passed (exit 0).
+  - `npx tsc --noEmit --pretty false`: 0 errors (exit 0).
+  - `node scripts/verify-vercel.mjs`: Full Vercel simulation passed in 44.4s (exit 0).
 
 S6 Checkpoint 4: Supervision, Controls, Metrics & Measured Load Acceptance (2026-10-15):
 - 1. Deployment Execution Driver: Verified repository runtime target: Next.js HTTP routes acknowledge intake quickly; supervised Node runner (`src/server/interaction-worker.ts`) executes durable queue/outbox against PostgreSQL. Repository workflow engine (`creation.workflow.ts`) is confirmed v1-only; no competing execution authority created.

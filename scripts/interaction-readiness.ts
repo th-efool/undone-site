@@ -8,6 +8,7 @@ import { textDriver } from '../src/server/domain/cohort-builder/text-driver';
 import { assertTextJobSchema } from '../src/server/domain/cohort-builder/text-schema-readiness';
 import { assertSourceSchema } from '../src/server/domain/cohort-builder/source-policy';
 import { assertReleaseSchema } from '../src/server/domain/cohort-builder/release-schema-readiness';
+import { assertS6OperationalSchema } from '../src/server/domain/cohort-builder/operational-schema-readiness';
 
 export type FailureReason =
   | 'missing'
@@ -372,7 +373,7 @@ export async function interactionSqlCheck(): Promise<Check> {
             }
           }
 
-          check.name = 'PostgreSQL interaction + S3 durable + S5 release effects schema';
+          check.name = 'PostgreSQL interaction + S3 durable + S5 effects + S6 operational schema';
           try {
             await assertReleaseSchema({ query: (statement, parameters) => pool.query(statement, parameters) });
           } catch (releaseErr: any) {
@@ -383,17 +384,35 @@ export async function interactionSqlCheck(): Promise<Check> {
             return check;
           }
 
+          try {
+            await assertS6OperationalSchema({ query: (statement, parameters) => pool.query(statement, parameters) });
+          } catch (s6Err: any) {
+            check.status = 'blocked';
+            check.reason = 'schema_incomplete';
+            check.details = s6Err.message;
+            await pool.end();
+            return check;
+          }
+
           let activeWorkerDetails = '';
           try {
-            const activeLeaseRes = await pool.query<{ count: number }>(
-              `SELECT count(*)::int AS count FROM "cohort_text_jobs" WHERE "status" = 'running' AND "leaseUntil" > CURRENT_TIMESTAMP`
+            const heartbeatRes = await pool.query<{ count: number }>(
+              `SELECT count(*)::int AS count FROM "interaction_worker_heartbeats" WHERE "last_heartbeat_at" >= CURRENT_TIMESTAMP - INTERVAL '30 seconds'`
             );
-            const activeCount = Number(activeLeaseRes.rows[0]?.count ?? 0);
-            activeWorkerDetails = activeCount > 0
-              ? `Active worker leases detected (${activeCount} running)`
-              : 'No active worker leases (start background worker with `npm run interaction:worker`)';
+            const activeWorkers = Number(heartbeatRes.rows[0]?.count ?? 0);
+            if (activeWorkers > 0) {
+              activeWorkerDetails = `Active supervised worker heartbeats detected (${activeWorkers} active)`;
+            } else {
+              const activeLeaseRes = await pool.query<{ count: number }>(
+                `SELECT count(*)::int AS count FROM "cohort_text_jobs" WHERE "status" = 'running' AND "leaseUntil" > CURRENT_TIMESTAMP`
+              );
+              const activeCount = Number(activeLeaseRes.rows[0]?.count ?? 0);
+              activeWorkerDetails = activeCount > 0
+                ? `Active worker leases detected (${activeCount} running)`
+                : 'No active worker heartbeats (start background worker with `npm run interaction:worker`)';
+            }
           } catch {
-            activeWorkerDetails = 'Worker lease status unavailable';
+            activeWorkerDetails = 'Worker supervision status unavailable';
           }
           check.details = activeWorkerDetails;
         }
