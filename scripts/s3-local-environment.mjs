@@ -27,6 +27,7 @@ try {
     await client.query(readFileSync('prisma/interaction-runs-and-journal.sql','utf8'));
     await client.query(readFileSync('prisma/interaction-s3-storage.sql','utf8'));
     await client.query(readFileSync('prisma/interaction-s4b-sources.sql','utf8'));
+    await client.query(readFileSync('prisma/interaction-s5-effects.sql','utf8'));
   } finally { await client.end(); }
   if (process.argv.includes('--serve')) {
     const hostDirectory = resolve(directory,'host');
@@ -45,7 +46,7 @@ try {
     symlinkSync(resolve(root,'generated'),resolve(hostDirectory,'generated'),'junction');
     const script = [{ tool:'set_intent', input:{ intent:'Learn quorum overlap' }, text:'Learning goal saved.', delayMs: 6000 },
       { tool:'edit_lesson', input:{ lessonId:'$selected', objective:'Explain quorum overlap.' }, text:'Selected lesson refined.' }];
-    writeFileSync(resolve(hostDirectory,'.env'), `DATABASE_URL=${connectionString}\nAUTH_SECRET=${randomBytes(32).toString('hex')}\nNODE_ENV=development\nINTERACTION_COHORT_V2_ENABLED=1\nINTERACTION_TEXT_DRIVER=durable\nINTERACTION_PDF_ENABLED=1\nINTERACTION_WEB_ENABLED=1\nINTERACTION_LOCAL_SOURCE_FIXTURE=1\nINTERACTION_LOCAL_MODEL_FIXTURE=1\nINTERACTION_LOCAL_MODEL_SCRIPT='${JSON.stringify(script)}'\n`);
+    writeFileSync(resolve(hostDirectory,'.env'), `DATABASE_URL=${connectionString}\nAUTH_SECRET=${randomBytes(32).toString('hex')}\nNODE_ENV=development\nINTERACTION_COHORT_V2_ENABLED=1\nINTERACTION_TEXT_DRIVER=durable\nINTERACTION_PDF_ENABLED=1\nINTERACTION_WEB_ENABLED=1\nINTERACTION_YOUTUBE_ENABLED=1\nINTERACTION_YOUTUBE_FIXTURE=1\nINTERACTION_GITHUB_ENABLED=1\nINTERACTION_GITHUB_FIXTURE=1\nINTERACTION_LOCAL_SOURCE_FIXTURE=1\nINTERACTION_LOCAL_MODEL_FIXTURE=1\nINTERACTION_LOCAL_MODEL_SCRIPT='${JSON.stringify(script)}'\n`);
     const log = createWriteStream(resolve(directory,'host.log'));
     host = spawn(process.execPath,[resolve(root,'node_modules/next/dist/bin/next'),'dev','--webpack','-p','3107'],
       { cwd:hostDirectory, stdio:['ignore','pipe','pipe'], windowsHide:true });
