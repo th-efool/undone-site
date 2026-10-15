@@ -40,6 +40,13 @@ const exampleFiles = [
   'agenda.domain.ts',
   'agenda.tools.ts',
   'agenda.ui.tsx',
+  'host-agenda.domain.ts',
+  'host-agenda.repository.ts',
+  'host-agenda.service.ts',
+  'host-agenda.tools.ts',
+  'host-agenda.worker.ts',
+  'host-agenda.ui.tsx',
+  'host-schema.sql',
   'server.ts',
   'worker.ts',
   'run.ts',
@@ -55,6 +62,10 @@ for (const file of exampleFiles) {
   }
 }
 fs.copyFileSync(migrationSrcPath, path.join(sandboxDir, 'migrations/001_interaction_schema.sql'));
+const hostSchemaSrcPath = path.join(agendaExampleSrcDir, 'host-schema.sql');
+if (fs.existsSync(hostSchemaSrcPath)) {
+  fs.copyFileSync(hostSchemaSrcPath, path.join(sandboxDir, 'host-schema.sql'));
+}
 
 // 3. Verify zero Undone imports or monorepo aliases
 console.log('\n[3/7] Asserting ZERO Undone imports or monorepo aliases in sandbox...');
