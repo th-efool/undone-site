@@ -58,11 +58,19 @@ export async function acceptCurrentTextJob(
         const {retainedWebSchema}=await import('./source-adapters');
         const response=retainedWebSchema.parse(JSON.parse(retained.bytes.toString('utf8')));
         if(response.requestedUrl!==source.input.url) throw new Error('FOREIGN_WEB_RESPONSE');
-      } else if (source.input.kind==='youtube') {
-        const {retainedYoutubeTranscriptSchema,singleYoutubeVideo}=await import('@/src/shared/cohort-builder/youtube-transcript');
-        const response=retainedYoutubeTranscriptSchema.parse(JSON.parse(retained.bytes.toString('utf8')));
-        if(response.video.id!==singleYoutubeVideo(source.input.url).videoId || response.video.url!==source.input.url ||
-          JSON.stringify(response.track)!==JSON.stringify(source.input.track)) throw new Error('FOREIGN_TRANSCRIPT');
+      } else if (source.input.kind === 'youtube') {
+        if (source.input.mode === 'video_observation') {
+          const { retainedVideoObservationSchema, singleYoutubeVideo } = await import('@/src/shared/cohort-builder/youtube-video-observation');
+          const response = retainedVideoObservationSchema.parse(JSON.parse(retained.bytes.toString('utf8')));
+          if (response.video.id !== singleYoutubeVideo(source.input.url).videoId || response.video.url !== source.input.url) {
+            throw new Error('FOREIGN_VIDEO_OBSERVATION');
+          }
+        } else {
+          const { retainedYoutubeTranscriptSchema, singleYoutubeVideo } = await import('@/src/shared/cohort-builder/youtube-transcript');
+          const response = retainedYoutubeTranscriptSchema.parse(JSON.parse(retained.bytes.toString('utf8')));
+          if (response.video.id !== singleYoutubeVideo(source.input.url).videoId || response.video.url !== source.input.url ||
+            JSON.stringify(response.track) !== JSON.stringify(source.input.track)) throw new Error('FOREIGN_TRANSCRIPT');
+        }
       } else if (source.input.kind === 'github') {
         const {retainedGithubSourceSchema,singleGithubRepo}=await import('@/src/shared/cohort-builder/github-source');
         const response=retainedGithubSourceSchema.parse(JSON.parse(retained.bytes.toString('utf8')));

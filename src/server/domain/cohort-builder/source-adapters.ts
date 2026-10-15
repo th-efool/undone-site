@@ -8,6 +8,7 @@ import { openWebSource, webSourceUrl, type WebTransport } from '@/src/server/dom
 import { PDF_PARSER_VERSION } from '@/src/server/domain/cohort-creation/materials/pdf-identity';
 import { WEB_PARSER_VERSION } from '@/src/server/domain/cohort-creation/materials/web-identity';
 import { YOUTUBE_TRANSCRIPT_VERSION } from '@/src/shared/cohort-builder/youtube-transcript';
+import { VIDEO_OBSERVATION_PARSER_VERSION } from '@/src/shared/cohort-builder/youtube-video-observation';
 import { GITHUB_SOURCE_VERSION } from '@/src/shared/cohort-builder/github-source';
 import { cohortSourceSchema, type CohortSource } from '@/src/shared/cohort-builder/contracts';
 import type { TextArtifactRef } from './text-artifacts';
@@ -55,7 +56,7 @@ const cache = new Map<string,Promise<SourceExtraction>>();
 /** Only trusted parser results enter this bounded cache; accepted blobs never seed it. */
 export async function extractRetainedSource(source:CohortSource,ref:TextArtifactRef,bytes:Uint8Array):Promise<SourceExtraction> {
   if (!source.input || ref.checksum !== hash(bytes)) throw new Error('RETAINED_SOURCE_INTEGRITY');
-  const key = hash(JSON.stringify([ref.checksum,source.input,PDF_PARSER_VERSION,WEB_PARSER_VERSION,YOUTUBE_TRANSCRIPT_VERSION,GITHUB_SOURCE_VERSION]));
+  const key = hash(JSON.stringify([ref.checksum,source.input,PDF_PARSER_VERSION,WEB_PARSER_VERSION,YOUTUBE_TRANSCRIPT_VERSION,VIDEO_OBSERVATION_PARSER_VERSION,GITHUB_SOURCE_VERSION]));
   const prior = cache.get(key); if (prior) return prior;
   const work = (async () => {
     try {
@@ -97,11 +98,44 @@ export async function extractRetainedSource(source:CohortSource,ref:TextArtifact
         result = {format:'cohort-extraction-v1',text:parsed.text,locations:[{start:0,end:parsed.text.length}],
           provenance:{parserVersion:WEB_PARSER_VERSION,rawChecksum:ref.checksum,scope:parsed.scope,finalUrl:retained.finalUrl}};
       } else if (source.input!.kind === 'youtube') {
-        const {extractYoutubeTranscript}=await import('./youtube-transcript');
-        const extracted=extractYoutubeTranscript(bytes,source.input!);
-        result = {format:'cohort-extraction-v1',text:extracted.text,locations:extracted.locations,
-          provenance:{parserVersion:YOUTUBE_TRANSCRIPT_VERSION,rawChecksum:ref.checksum,scope:'transcript_only',
-            finalUrl:source.input!.url,videoId:extracted.videoId,track:extracted.track,timeScope:source.input!.scope}};
+        if (source.input!.mode === 'video_observation') {
+          const { extractVideoObservation } = await import('./journey-video-adapter');
+          const extracted = extractVideoObservation(bytes, source.input!);
+          result = {
+            format: 'cohort-extraction-v1',
+            text: extracted.text,
+            locations: extracted.locations,
+            provenance: {
+              parserVersion: VIDEO_OBSERVATION_PARSER_VERSION,
+              rawChecksum: ref.checksum,
+              scope: 'video_observation',
+              finalUrl: source.input!.url,
+              videoId: extracted.videoId,
+              model: extracted.model,
+              contentOrigin: 'ai',
+              limitations: extracted.limitations,
+              estimatedIntervals: true,
+            },
+          };
+        } else {
+          if (!source.input!.track) throw new Error('TRANSCRIPT_TRACK_REQUIRED');
+          const { extractYoutubeTranscript } = await import('./youtube-transcript');
+          const extracted = extractYoutubeTranscript(bytes, { ...source.input!, track: source.input!.track });
+          result = {
+            format: 'cohort-extraction-v1',
+            text: extracted.text,
+            locations: extracted.locations,
+            provenance: {
+              parserVersion: YOUTUBE_TRANSCRIPT_VERSION,
+              rawChecksum: ref.checksum,
+              scope: 'transcript_only',
+              finalUrl: source.input!.url,
+              videoId: extracted.videoId,
+              track: extracted.track,
+              timeScope: source.input!.scope,
+            },
+          };
+        }
       } else if (source.input!.kind === 'github') {
         const {extractGithubSource}=await import('./github-source');
         const extracted=extractGithubSource(bytes,source.input!);

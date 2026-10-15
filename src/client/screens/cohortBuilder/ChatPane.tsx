@@ -97,7 +97,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
         'I want something more practical',
         'I’ll create my own instead',
       ]
-    : step === 'starting_point'
+    : step === 'starting_point' || step === 'material_input'
     ? [
         'I have a YouTube playlist',
         'Find material for me',
@@ -114,6 +114,8 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
     ? (state.view?.recommendations?.items.length === 0 ? 'A new path' : 'Why these?')
     : step === 'starting_point'
     ? 'We’ll keep this simple.'
+    : step === 'material_input'
+    ? 'You can give me multiple sources'
     : 'Grounded in your material';
 
   const hintText = step === 'recommendations'
@@ -122,12 +124,16 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
         : 'We search public cohorts for your learning intent. You can join a match or create your own.')
     : step === 'starting_point'
     ? 'You can start with the material you already have, have me find the best resources, or just tell me your goal and I’ll figure out the rest.'
+    : step === 'material_input'
+    ? 'A playlist, some PDFs, a GitHub repo, articles — whatever you’ve got. I’ll understand it, break it down, and turn it into a structured learning journey.'
     : 'Chat directly with AI to draft, structure, and refine your curriculum with source provenance.';
 
   const placeholder = step === 'recommendations'
     ? 'Describe what you want to learn...'
     : step === 'starting_point'
     ? 'Describe your starting point or material...'
+    : step === 'material_input'
+    ? 'Say anything...'
     : 'Type an instruction or request...';
 
   const logoSrc = isDark ? '/undone-logo-dark.svg' : '/undone-logo-transparent.svg';

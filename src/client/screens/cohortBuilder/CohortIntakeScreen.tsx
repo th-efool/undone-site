@@ -135,6 +135,14 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
                 <div className={styles.promptCard}>
                   <blockquote className={styles.promptQuote}>{draft.prompt}</blockquote>
                 </div>
+                {draft.source ? (
+                  <div className={styles.sourceCard}>
+                    <span className={styles.sourceBadge}>Source</span>
+                    <p className={styles.sourceLabel}>
+                      Retained text: {draft.source.label} ({draft.source.text.length} characters)
+                    </p>
+                  </div>
+                ) : null}
                 <div className={styles.noticeError} role="alert" style={{ marginBottom: '20px' }}>
                   <p>Could not save: {error}. Your input is retained; retry when available.</p>
                 </div>
