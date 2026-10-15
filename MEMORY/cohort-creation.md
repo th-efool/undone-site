@@ -6,6 +6,8 @@ PRECEDENCE: current source/schema > `plans/cohort-creation-checkpoint.md` curren
 
 ## Locate first
 
+JOURNEY CP1 (2026-10-16): Authoritative journey state, actions, durable stages and intake scheduling implemented per plans/interaction-builder/journey-implementation-contract.md. Workspaces start at `recommendations`; `journey` is optional for legacy snapshots; intake retains input without queuing source processing DAG or curriculum assistant turn until explicit Continue (`begin_material_processing` / `start_goal_generation`). Durable `recommendations` and `discovery` jobs operate in isolated `journey:*` namespaces. Additive migration `prisma/interaction-journey-stages.sql`.
+
 LIVE CUTOVER (2026-10-15): Production new intake enabled, shared additive S3–S6 + workflow-dispatch schema installed with user authorization. `/quest/start` → `/quest/build/[workspaceId]`; hosted execution uses `src/server/interaction.workflow.ts` via SQL-deduplicated dispatch. New intake no longer offers a legacy detour on disabled/error states. Existing v1 drafts retain their resume route. Live authenticated landing/source/assistant action/evidence/pin/reload verified; see `docs/live-builder-cutover.md`. Host repair commits `dacfbc8`, `519e4c8`; reusable engine unchanged.
 
 UX REPAIR (CP1-CP5): Canonical builder uses the legacy visual language while preserving the canonical backend and InteractionProvider/store. Mounted stage routing delegates to `stage-selectors.ts`; queued checklist work displays pending. Composer remains writable while sending and preserves text typed before acknowledgement.

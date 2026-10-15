@@ -1,5 +1,32 @@
 # Interaction builder execution checkpoint
 
+CHECKPOINT 1 COMPLETE (2026-10-16) — Cohort Journey Foundation, Actions, Durable Stages & Intake:
+- Reusable Engine (`packages/interaction-builder`): Added internal `scheduleAssistant?: boolean` to `AppendMessageInput` across Memory and PostgreSQL repositories; rebuilt declarations and bundled artifacts. Committed `c3c6bbc` and pushed to `origin/main`. 103/103 tests passing.
+- Journey Schemas & Transitions (`src/shared/cohort-builder/contracts.ts`, `intake.ts`):
+  - Added optional `journey` to `CohortWorkspace` (legacy snapshots parse cleanly and preserve `journey === undefined`).
+  - Added `CohortJourney` with step enum (`recommendations`, `starting_point`, `material_input`, `discovery`, `goal_setup`, `processing`, `ready`, `review`, `published`) and branch enum (`have_material`, `find_material`, `have_goal`, `null`).
+  - New workspaces start at `recommendations` with `processingStarted: false` and `intentVersion: 0`.
+  - Added bounded projections `recommendations` and `discovery`.
+  - Implemented transition guards for canonical user actions: `create_own_cohort`, `choose_starting_point`, `back_to_recommendations`, `back_to_starting_point`, `start_discovery`, `select_discovery_resources`, `start_goal_generation`, `begin_material_processing`, `open_review`.
+  - Enforced `processingStarted` invariant: adding/editing/removing sources before Continue retains inputs without queueing source processing DAG; explicit Continue queues processing; back-navigation preserves accepted work and `processingStarted`.
+  - Intent changes bump `intentVersion` and clear stale projections.
+  - Verified in `src/shared/cohort-builder/__tests__/journey-actions.test.ts` (36/36 tests passing).
+- Durable Work & Reconciliation (`journey-job-plan.ts`, `journey-job-scheduler.ts`, `journey-job-handlers.ts`, `interaction-journey-stages.sql`):
+  - Extended durable job pipeline with `recommendations` and `discovery` stages without introducing new queues or workers.
+  - Separate job-key namespaces: `journey:recommendations:${intentVersion}` and `journey:discovery:${intentVersion}:${generation}`.
+  - Strict reconciliation isolation: text reconciliation never touches `journey:*` jobs, and journey reconciliation never touches `text:*` jobs.
+  - Preserved existing leases, fences, attempts, and atomic acceptance.
+  - Created additive migration `prisma/interaction-journey-stages.sql`.
+  - Verified in `src/server/domain/cohort-builder/__tests__/journey-scheduler.test.ts` (7/7 tests passing).
+- Scheduling & Intake (`cohort-intake.ts`, `interaction.step.ts`, `durable-text-worker.ts`):
+  - Initial intake atomically creates workspace, retains landing input, appends user message, and queues `journey:recommendations:0` without automatically starting source DAG or scheduling an assistant turn (`scheduleAssistant: false`).
+  - Subsequent user chat continues normal assistant scheduling.
+  - Hosted worker pending-work predicate recognizes runnable journey jobs and prevents premature exit.
+  - Verified in `src/server/infrastructure/db/postgres/__tests__/cohort-intake-journey.test.ts` (8/8 tests passing).
+- Verification: 103/103 tests passing across focused suites, zero TypeScript errors (`tsc --noEmit`), `npm run interaction:worker:check` exit 0.
+LAST_CHECKPOINT: `COHORT-JOURNEY-CP1-FOUNDATION-2026-10-16`
+NEXT: Checkpoint 2: Working starting branches and clean material intake (`authoritative-flow-plan.md`).
+
 LIVE CUTOVER COMPLETE — 2026-10-15 (user-authorized): shared additive S3/S4B/S5/S6 + dispatch schema installed; production durable/intake flags enabled. Host commits `dacfbc8`, `519e4c8` pushed; `519e4c8` deployed as `dpl_Evdrh7DWMMDS14FMcVLPcx21nZMm`, READY on `www.undone.one`. New hosting path: `interaction-dispatch.runtime.ts` → `interaction.workflow.ts` → bounded canonical worker via `interaction.step.ts`; SQL reservation deduplicates wake-ups. Intake/API actions/owned builder resume wake processing. Removed legacy intake detour; writable composer preserves new text during acknowledgement. Fixed Neon pooled startup options, provider tool `inputSchema`, mounted stage order and queued checklist status. `.vercelignore` excludes local secrets/scratch/planning.
 
 Live evidence: authenticated landing + pasted text → canonical builder → hosted source DAG → four grounded lessons; assistant tool changed pace to 20 minutes via persisted events; pin/evidence/reload verified. `docs/live-builder-cutover.md` owns exact rollout and outcomes. Local validation: `verify:vercel` passed after both patches; sequential 61 files / 440 tests, follow-up 5 files / 76 tests. Engine unchanged at `ab0e9d9`. NEXT: standalone demo-auth environment bypass and load-evidence audit remain separate open review items; live YouTube acquisition remains gated. Historical S7/S6 claims below must not override these current limits.
