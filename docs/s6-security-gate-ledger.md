@@ -40,3 +40,26 @@ This ledger records the verified enforcement state of security and authority bou
 6. `node scripts/verify-packed-consumer.mjs`: **6/6 stages PASSED (exit 0)**
 7. `npx tsc --noEmit --pretty false`: **PASSED (exit 0, 0 errors)**
 8. `node scripts/verify-vercel.mjs`: **Full Vercel Pre-Verification PASSED in 82.2s (exit 0)**
+
+---
+
+## 4. S6 Checkpoint 2: Budgets, Quotas & Admission Control
+
+| Axis | Boundary | Enforcement Mechanism | Adversarial Test Coverage | Status |
+| --- | --- | --- | --- | --- |
+| **1. Per-User Concurrency Ceilings** | Active run ceiling across workspaces | `checkUserConcurrency` enforces configured limit (`COHORT_BUILDER_MAX_CONCURRENT_RUNS_PER_USER = 1`) across all active runs (`queued`, `running`) owned by user. | `budget-enforcement.test.ts` (T1, T6): Rejects concurrent execution across multiple workspaces with 429 `CONCURRENT_RUNS_EXCEEDED` (`{ retryable: true }`). Tenant isolated. | **ENFORCED & VERIFIED** |
+| **2. Atomic Budget Reservation** | Pre-execution resource reservation | Atomic SQL `INSERT ... ON CONFLICT ("key") DO UPDATE SET "used" = "used" + 1 WHERE "used" < "limit" RETURNING "used"` in `creation_budgets`. Zero oversubscription. | `budget-enforcement.test.ts` (T2): Parallel race condition (`Promise.all` with 10 concurrent requests against budget limit 3) allows exactly 3 and truthfully rejects 7 with 429 `BUDGET_EXHAUSTED`. | **ENFORCED & VERIFIED** |
+| **3. Conservative Settlement** | Actual spend reconciliation vs unknown provider outcome | `settleModelTurnBudget`: Settles actual token usage when provider reports (`promptTokens`, `completionTokens`, `totalTokens`). On worker crash, timeout, or error, retains reserved unit (`unknown_outcome_retained`) without refunding unverified spend. | `budget-enforcement.test.ts` (T3, T4, T5): `completeRun` sets `settled` with actual token usage; `failRun` retains `unknown_outcome_retained` with original reservation intact. | **ENFORCED & VERIFIED** |
+| **4. Cancellation Accounting** | Mid-stream or queued cancellation | `cancelRun` preserves conservative spend (`unknown_outcome_retained`). Intermediate tool step records and journals are strictly preserved. Never falsely refunds in-flight or incurred cost. | `budget-enforcement.test.ts` (T5, T7): Mid-flight cancellation preserves step 1 `completed` journal and marks budget `unknown_outcome_retained`. | **ENFORCED & VERIFIED** |
+| **5. Fair Scheduling & Anti-Starvation** | Interactive assistant turns vs bulk text DAG | `interaction-worker.ts` tick loop claims interactive assistant runs *first* before claiming background text DAG candidates. | `budget-enforcement.test.ts` (T8): Interactive run claimed and admitted ahead of pending background text DAG job. | **ENFORCED & VERIFIED** |
+| **6. Truthful HTTP 429 Mapping** | Quota / Concurrency exhaustion responses | `interaction.runtime.ts` and `handlers.sendMessage` catch `CONCURRENT_RUNS_EXCEEDED` and `BUDGET_EXHAUSTED` and return structured HTTP 429 with `{ retryable: true, message, code }`. | `budget-enforcement.test.ts` (T6): HTTP status 429 returned with `retryable: true`. | **ENFORCED & VERIFIED** |
+| **7. Reusable Engine Decoupling** | Generic engine vs host pricing policy | `packages/interaction-builder` defines abstract `budgetReservation?: unknown` and propagates `usage?: { promptTokens, completionTokens, totalTokens }`. Zero model prices or financial policy in generic engine. | Verified via `node scripts/verify-packed-consumer.mjs` and submodule build / tests (exit 0). | **ENFORCED & VERIFIED** |
+
+### Automated Evidence for Checkpoint 2:
+1. `npx vitest run src/server/domain/cohort-builder/__tests__/budget-enforcement.test.ts`: **8/8 PASSED in 6.2s**
+2. `npx vitest run src/server/domain/cohort-builder/ --maxWorkers=2`: **40 test files / 253 tests PASSED in 57.9s**
+3. `packages/interaction-builder`: **23 test files / 82 tests PASSED in 2.5s**
+4. `npm run interaction:worker:check`: **PASSED (exit 0)**
+5. `node scripts/verify-packed-consumer.mjs`: **PASSED (exit 0)**
+6. `npx tsc --noEmit --pretty false`: **PASSED (exit 0, 0 errors)**
+7. `node scripts/verify-vercel.mjs`: **PASSED in 45.8s (exit 0)**

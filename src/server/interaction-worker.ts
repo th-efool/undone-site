@@ -12,6 +12,7 @@ import { createTextJobRuntime } from './infrastructure/db/postgres/text-job-runt
 import { cohortAssistantPrompt } from './domain/cohort-builder/context';
 import { selectedLessonForLatestTurn } from './domain/cohort-builder/selection';
 import { cohortWorkspaceSchema, type CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
+import { settleModelTurnBudget } from './domain/cohort-builder/budget-policy';
 
 export interface InteractionWorkerOptions {
   repo?: InteractionRepository;
@@ -43,12 +44,7 @@ export async function runInteractionWorkerLoop(
   try {
   while (!signal.aborted) {
     try {
-      if (durable) await durable.tick();
-      const candidates = durable ? [] : await textWorkspaceCandidates();
-      for (const candidate of candidates) {
-        if (signal.aborted) break;
-        await advanceTextWorkspace(repo, candidate.ownerId, candidate.id);
-      }
+      // Prioritize interactive assistant runs so background bulk text jobs cannot starve interactive turns
       const leaseToken = randomUUID();
       const run = await repo.claimRun({
         leaseOwner: workerId,
@@ -57,6 +53,13 @@ export async function runInteractionWorkerLoop(
       });
 
       if (!run) {
+        // No pending interactive runs; execute background text processing DAG tick
+        if (durable) await durable.tick();
+        const candidates = durable ? [] : await textWorkspaceCandidates();
+        for (const candidate of candidates) {
+          if (signal.aborted) break;
+          await advanceTextWorkspace(repo, candidate.ownerId, candidate.id);
+        }
         await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
         continue;
       }
@@ -104,10 +107,19 @@ export async function runInteractionWorkerLoop(
           heartbeatTimer = null;
         }
 
+        const budgetActual = settleModelTurnBudget({
+          reservation: run.budgetReservation,
+          actualUsage: res.usage ? {
+            ...res.usage,
+            stepsCount: res.stepsCount,
+          } : undefined,
+        });
+
         await repo.completeRun({
           runId: run.id,
           leaseToken,
           assistantMessageId: res.assistantMessageId,
+          budgetActual,
         });
       } catch (err: any) {
         if (heartbeatTimer) {
@@ -115,10 +127,16 @@ export async function runInteractionWorkerLoop(
           heartbeatTimer = null;
         }
 
+        const budgetActual = settleModelTurnBudget({
+          reservation: run.budgetReservation,
+          error: err.message ?? String(err),
+        });
+
         await repo.failRun({
           runId: run.id,
           leaseToken,
           error: err.message ?? String(err),
+          budgetActual,
         });
       }
     } catch (loopErr) {
