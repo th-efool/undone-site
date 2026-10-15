@@ -47,7 +47,8 @@ This audit formally closes the Slice 4 (S4) acceptance gates for the SideQuestHQ
   - 11 server tests in `github-source-live.test.ts` verifying `LiveGithubSourceProvider`, ref resolution, base64 file decoding, directory rejection, size limits, and a live public smoke test against `octocat/Hello-World`.
   - 5 composed PGlite DAG tests in `github-canonical-jobs.test.ts` verifying DAG execution from `add_github_source` to assembled lessons, line-anchored locations (`filePath#Lstart-Lend`), and scope change reuse without re-fetching.
   - Real browser evidence citations format line numbers: `{filePath}#L{startLine}-L{endLine}`.
-  - Live public GitHub REST API can be queried unauthenticated (subject to standard 60 req/hr IP rate limits) or with `INTERACTION_GITHUB_TOKEN`.
+  - Live public GitHub REST API can be queried unauthenticated (subject to standard 60 req/hr IP rate limits) or with dedicated credentials using `INTERACTION_GITHUB_TOKEN` (with fallback to `GITHUB_TOKEN`).
+  - Readiness check verifies token configuration and flags `rate_limit_risk` if unauthenticated.
 
 ---
 
