@@ -1,8 +1,26 @@
 # Interaction builder execution checkpoint
 
-STATUS: S6 CHECKPOINT 1 (SECURITY & AUTHORITY ENFORCEMENT) COMPLETE & VERIFIED. Origin/CSRF protections, request body bounds, stale approval CAS concurrency guards, tenant isolation, URL protocol sanitization, SSRF IP/metadata blocking, and tool execution boundaries are enforced across host routes and services. S4, S5, and S6A local baselines remain fully verified.
-LAST_CHECKPOINT: `IB-S6-SECURITY-AUTHORITY-ENFORCEMENT-2026-10-15`
-NEXT: S6 Checkpoint 2 (Budget & Resource Controls / Operational Gate).
+STATUS: S6 CHECKPOINT 2 (BUDGETS, QUOTAS & ADMISSION CONTROL) COMPLETE & VERIFIED. Per-user concurrency ceilings, atomic pre-execution reservations in creation_budgets, conservative settlement on worker failures/unknown outcomes, non-refunding cancellation accounting, and fair worker scheduling (interactive prioritized over background DAG) are enforced across the host. Engine and host policy remain strictly decoupled. S4, S5, S6 Checkpoint 1, and S6A remain fully verified.
+LAST_CHECKPOINT: `IB-S6-BUDGET-QUOTA-ADMISSION-2026-10-15`
+NEXT: S6 Checkpoint 3 (Retention and Restore Integrity).
+
+S6 Checkpoint 2: Budgets, Quotas & Admission Control (2026-10-15):
+- 1. Per-User Concurrency Ceilings: `checkUserConcurrency` enforces configured limit (`COHORT_BUILDER_MAX_CONCURRENT_RUNS_PER_USER = 1`) across all active runs (`queued`, `running`) owned by user across workspaces. Rejections return HTTP 429 `CONCURRENT_RUNS_EXCEEDED` (`{ retryable: true }`). Tenant isolated.
+- 2. Atomic Budget Reservation: `reserveModelTurnBudget` uses atomic PostgreSQL `INSERT ... ON CONFLICT ("key") DO UPDATE SET "used" = "used" + 1 WHERE "used" < "limit" RETURNING "used"` in `creation_budgets`. Parallel race conditions (`Promise.all` with 10 concurrent requests against limit 3) strictly admit exactly 3 and reject 7 with HTTP 429 `BUDGET_EXHAUSTED`. Zero oversubscription.
+- 3. Conservative Settlement: `settleModelTurnBudget` records actual tokens (`promptTokens`, `completionTokens`, `totalTokens`) on successful completion. On worker failure, timeout, or uncaught exception, retains reserved spend with status `unknown_outcome_retained` without refunding unverified costs.
+- 4. Cancellation Accounting: `cancelRun` preserves conservative spend (`unknown_outcome_retained`). Intermediate tool step records and journals are strictly preserved with state `completed`. Never falsely refunds in-flight or incurred cost.
+- 5. Fair Scheduling & Anti-Starvation: `interaction-worker.ts` tick loop prioritizes claiming interactive assistant runs *first* before claiming background durable text DAG candidates.
+- 6. Truthful HTTP 429 Mapping: `interaction.runtime.ts` and `handlers.sendMessage` catch `CONCURRENT_RUNS_EXCEEDED` and `BUDGET_EXHAUSTED` and return structured HTTP 429 with `{ retryable: true, message, code }`.
+- 7. Generic Engine Decoupling: `packages/interaction-builder` defines abstract `budgetReservation?: unknown` in `scheduleRun` and propagates `usage?: { promptTokens, completionTokens, totalTokens }` in runner and AI adapter. Zero model prices or financial policy in generic engine.
+- Automated Regression Coverage:
+  - `src/server/domain/cohort-builder/__tests__/budget-enforcement.test.ts`: 8/8 adversarial tests passing (6.3s).
+  - Full domain test suite: 40 test files / 253 tests passing (57.9s).
+  - Submodule test suite (`packages/interaction-builder`): 23 test files / 82 tests passing (2.5s). Submodule commit `4f92118` pushed to `origin/main`.
+  - `npm run interaction:worker:check`: Passed (exit 0).
+  - `node scripts/verify-packed-consumer.mjs`: Passed (exit 0).
+  - `npx tsc --noEmit --pretty false`: 0 errors (exit 0).
+  - `node scripts/verify-vercel.mjs`: Full Vercel simulation passed in 45.8s (exit 0).
+- Gate Ledger: Documented in `docs/s6-security-gate-ledger.md` Section 4. S4 live YouTube caption acquisition remains explicitly recorded as OPEN due to Google Data API v3 OAuth constraints.
 
 S6 Checkpoint 1: Security & Authority Enforcement (2026-10-15):
 - Axis 1 (Ownership & Tenant Isolation): Foreign owner blocked from reading/modifying workspace, streaming events (404), or releasing (403 UNAUTHORIZED_OWNER). Foreign artifact attachment rejected (`ARTIFACT_NOT_FOUND`).
