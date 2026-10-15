@@ -241,3 +241,55 @@ export const builderWorkspaceStartingPoint: CohortWorkspace = {
     intentVersion: 0,
   },
 };
+
+export const builderWorkspaceMaterialInput: CohortWorkspace = {
+  ...initialCohort('Distributed Systems Architecture'),
+  intent: 'I want to learn system design.',
+  journey: {
+    version: 1,
+    step: 'material_input',
+    branch: 'have_material',
+    processingStarted: false,
+    intentVersion: 0,
+  },
+  sources: [
+    {
+      id: 'source-1',
+      version: 0,
+      label: 'Source 1: Retained text ready',
+      text: 'Quorums overlap. Logs retain writes. A write quorum and read quorum must intersect on at least one node to guarantee freshness.',
+      checksum: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      state: 'ready',
+      input: {
+        kind: 'web',
+        url: 'https://example.com/system-design-guide',
+      },
+      provenance: {
+        parserVersion: 'web-v1',
+        rawChecksum: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+        scope: 'main_article',
+        finalUrl: 'https://example.com/system-design-guide',
+      },
+      locations: Array.from({ length: 18 }, (_, i) => ({
+        start: i * 10,
+        end: (i + 1) * 10,
+        segmentId: `seg-${i}`,
+      })),
+    },
+  ],
+};
+
+export const builderMaterialMessages = [
+  {
+    id: 'msg-mat-1',
+    role: 'user',
+    parts: [{ type: 'text', text: 'I want to learn system design.' }],
+    createdAt: new Date(Date.now() - 30000).toISOString(),
+  },
+  {
+    id: 'msg-mat-2',
+    role: 'assistant',
+    parts: [{ type: 'text', text: 'Perfect.\n\nGive me the material and I’ll figure out how to turn it into something learnable.' }],
+    createdAt: new Date().toISOString(),
+  },
+];

@@ -1,32 +1,41 @@
 # Interaction builder execution checkpoint
 
-CHECKPOINT 2 COMPLETE (2026-10-16) — Recommendations Handler, Frontend Mounting (Screens 2–3) & Integration Verification:
-- Route and Intake Handoff (`src/client/screens/cohortBuilder/CohortIntakeScreen.tsx`):
-  - Retained `/quest/start` authenticated handoff and `/quest/build/[workspaceId]` stable workspace route.
-  - Eliminated generic "Learning Blueprint / Start your cohort" confirmation card for same-owner handoffs; auto-submits seamlessly to `/quest/build/[workspaceId]` while showing clean transition state.
-  - Preserved identity-change protection (`undone:cohort-intake` clears on owner mismatch) and retained draft input on errors.
-- Recommendation Handler & Host Adapter (`journey-recommendation-adapter.ts`, `journey-job-handlers.ts`, `durable-text-worker.ts`):
-  - Implemented `JourneyRecommendationAdapter` reusing `RecommendationService` with read-only catalog repository (`creationRecommendationRepo`) and configured AI (`VercelCohortAi` + `createCohortModel`). Zero imports of `recommendation.runtime.ts`, `creationJobRepo`, or legacy dispatchers.
-  - Bounded safe display projection: converts recommendation results into `CohortRecommendationItem` with safe display fields (`description`, `coverImage`, `creatorName`, `difficulty`, `categories`, `estimatedCompletionTime`, `memberCount`, `lessonCount`, `reason`, `isBestMatch`).
-  - Full results retained in `cohort_text_artifacts` artifacts; safe projection committed atomically into `workspace.recommendations`.
-  - Rejection of stale `intentVersion`: `acceptJourneyJob` rejects acceptance (`return false`) if the job's `intentVersion` does not match `state.journey.intentVersion`, preventing stale background jobs from overwriting updated workspaces.
-  - Honest empty/error states: empty catalog matches return `items: []` triggering designed empty state; AI failures fall back to database search; catalog errors throw retryable `DATA_UNAVAILABLE`.
-  - Wired into `durable-text-worker.ts` for automated worker execution.
-- Frontend Presentation (`RecommendationsStageView.tsx`, `StartingPointStageView.tsx`, `CohortWorkspacePane.tsx`, `stage-selectors.ts`, `ChatPane.tsx`):
-  - Mounted `RecommendationsStageView` for `workspace.journey.step === 'recommendations'`: renders canonical `RecommendationResults` with eligible cohorts or designed empty state; bottom CTA "Create my own cohort" dispatches `create_own_cohort`.
-  - Mounted `StartingPointStageView` for `workspace.journey.step === 'starting_point'`: renders `StartingPoint` with the exact 3 illustrated choices (`have_material`, `find_material`, `have_goal`), dispatching canonical `choose_starting_point { choice }`; "Back to recommendations" dispatches `back_to_recommendations`.
-  - Stepper navigation and capability inspection banners suppressed during initial journey steps.
-  - Shared conversation rail remains fully writable across all steps and surfaces stage-aware suggestion chips.
-  - Legacy workspaces without `journey` preserve existing active stage selectors and stage views.
+CHECKPOINT 3 COMPLETE (2026-10-16) — Native-Video Observation Adapter, Screen 4 Material UI, Composed Pipeline & Parity Verification:
+- Native-Video Observation Adapter (`journey-video-adapter.ts`, `youtube-video-observation.ts`, `source-adapters.ts`, `text-source-processor.ts`, `youtube-video-policy.ts`):
+  - Canonical `video_observation` acquisition mode alongside `transcript`.
+  - Implemented `VideoObservationProvider`, `LiveVideoObservationProvider`, `acquireVideoObservation`, `extractVideoObservation`, and `defaultVideoObservationProvider`.
+  - Narrow host adapter reusing `VercelMaterialObservation` and `YoutubeMetadataReader`; zero imports of `creationJobRepo`, old draft writer, or runtime dispatcher.
+  - Video observations retain AI origin (`contentOrigin: 'ai'`), provider/model identity (`google/gemini-2.5-flash`), limitations (`Coverage is non-exhaustive; timestamps are estimated`), and estimated intervals (`estimatedIntervals: true`).
+  - Model observations are never treated as verbatim captions.
+  - YouTube acquisition mode toggle (`set_youtube_mode`): increments `source.version` and invalidates affected downstream jobs.
+  - Verified in `src/server/domain/cohort-builder/__tests__/journey-video-adapter.test.ts` (17/17 tests passing).
+- Screen 4 Material UI (`MaterialStageView.tsx`, `MaterialStageView.module.css`, `stage-selectors.ts`, `CohortWorkspacePane.tsx`, `ChatPane.tsx`):
+  - Exact implementation of AFTER Screen 4: typography, artwork, stickers, collage decorations, and responsive layout.
+  - Single URL control classifying validated web vs YouTube (`mode: 'video_observation'`).
+  - Shared file handler for picker and drag-and-drop: PDF routes to binary upload endpoint `/api/cohort-builder/workspaces/[workspaceId]/pdf` with idempotency, owner, and revision headers; text/markdown routes to `add_text_source`. Never decodes PDF with `FileReader.readAsText`.
+  - Removed GitHub forms from default journey (existing GitHub sources remain readable).
+  - Added material section rendering status checkmark/alert, detailed provenance summaries, human-readable contextual error messages with retry buttons, preserving failed inputs for retry.
+  - Continue CTA invokes canonical `begin_material_processing`.
+  - Top starting point tabs and back navigation dispatch canonical `back_to_starting_point` and `choose_starting_point`.
+  - Stepper navigation suppressed during material input stage.
+  - Verified in `src/client/screens/cohortBuilder/__tests__/material-stage-view.test.tsx` (14/14 tests passing).
+- Verification & Composability (`journey-checkpoint3-integration.test.ts`, `journey-checkpoint3-material.test.tsx`, `intake-screen.test.tsx`, `youtube-canonical-jobs.test.ts`):
+  - Real composed pipeline execution using `runDurableTextJobTick` for deterministic PDF, web, text, and native-video fixtures through all stages.
+  - Transcript mode tested separately from native-video observation.
+  - Worker restart reuses accepted acquisition artifacts via `retainedInputId` without network calls.
+  - Stale acceptance rejection (mismatched fingerprint or version) and optimistic locking verified.
+  - Contextual error recording on failed sources verified.
+  - Fixed intake screen error view to render retained source text (`draft.source`).
+  - 58/58 tests passing across Checkpoint 3 focused suites (0 failures).
 - Visual Verification:
-  - Fresh desktop reference (1585 × 992) and mobile (390 × 844) captures generated for Screens 2 (Recommendations) and 3 (Starting point) matching AFTER design references. Saved to `plans/before-after/after-2.png`, `after-3.png`, `mobile-2.png`, `mobile-3.png`.
+  - Fresh desktop reference (1585 × 992) and mobile (390 × 844) captures generated for Screen 4 (Material input) matching AFTER design references. Saved to `plans/before-after/after-4.png`, `after-4-full.png`, `mobile-4.png`.
   - Updated `plans/before-after/manifest.json` and regenerated `plans/before-after/index.html`.
 - Verification Suite:
-  - 144/144 tests passing across 9 test files (0 failures).
+  - Focused vitest suites: 100% passing across Checkpoints 1, 2, and 3.
   - `npx tsc --noEmit`: 0 TypeScript errors.
   - `npm run verify:vercel`: All pre-verification, TypeScript, and Next.js production build simulation passed (exit 0).
-LAST_CHECKPOINT: `COHORT-JOURNEY-CP2-RECOMMENDATIONS-STARTING-POINT-2026-10-16`
-NEXT: Checkpoint 3: Material input stage, resource selection, and clean source ingestion (`authoritative-flow-plan.md`).
+LAST_CHECKPOINT: `COHORT-JOURNEY-CP3-MATERIAL-INPUT-NATIVE-VIDEO-2026-10-16`
+NEXT: Checkpoint 4: Discovery, goal generation & processing pipeline stages (`authoritative-flow-plan.md`).
 
 CHECKPOINT 1 COMPLETE (2026-10-16) — Cohort Journey Foundation, Actions, Durable Stages & Intake:
 - Reusable Engine (`packages/interaction-builder`): Added internal `scheduleAssistant?: boolean` to `AppendMessageInput` across Memory and PostgreSQL repositories; rebuilt declarations and bundled artifacts. Committed `c3c6bbc` and pushed to `origin/main`. 103/103 tests passing.

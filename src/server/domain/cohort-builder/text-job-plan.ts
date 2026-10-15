@@ -5,6 +5,8 @@ import { WEB_PARSER_VERSION } from '../cohort-creation/materials/web-identity';
 import { YOUTUBE_TRANSCRIPT_VERSION } from '@/src/shared/cohort-builder/youtube-transcript';
 import { GITHUB_SOURCE_VERSION } from '@/src/shared/cohort-builder/github-source';
 
+import { VIDEO_OBSERVATION_PARSER_VERSION } from '@/src/shared/cohort-builder/youtube-video-observation';
+
 export type TextJobStage = 'acquisition' | 'extraction' | 'understanding' | 'chunking' | 'analysis' | 'assembly';
 
 export interface TextJobIntent {
@@ -40,7 +42,8 @@ export function planTextJobs(state: CohortWorkspace): TextJobIntent[] {
     const acquisition = stage('acquisition', [], []);
     const parserVersion = source.input?.kind === 'pdf' ? PDF_PARSER_VERSION
       : source.input?.kind === 'web' ? WEB_PARSER_VERSION
-      : source.input?.kind === 'youtube' ? YOUTUBE_TRANSCRIPT_VERSION
+      : source.input?.kind === 'youtube'
+        ? (source.input.mode === 'video_observation' ? VIDEO_OBSERVATION_PARSER_VERSION : YOUTUBE_TRANSCRIPT_VERSION)
       : GITHUB_SOURCE_VERSION;
     const retained = source.input ? stage('extraction', ['cohort-extraction-v1', parserVersion, acquisition.jobKey], [acquisition.jobKey]) : acquisition;
     const understanding = stage('understanding', [retained.jobKey], [retained.jobKey]);

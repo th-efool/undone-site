@@ -28,6 +28,7 @@ export type StageProgressDetails = {
 export type BuilderStage =
   | 'recommendations'
   | 'starting_point'
+  | 'material_input'
   | 'intake'
   | 'understanding'
   | 'chunking'
@@ -66,6 +67,9 @@ export function getActiveStage(workspace: CohortWorkspace): BuilderStage {
     }
     if (workspace.journey.step === 'starting_point') {
       return 'starting_point';
+    }
+    if (workspace.journey.step === 'material_input') {
+      return 'material_input';
     }
   }
 
@@ -160,7 +164,7 @@ export function getEffectiveStage(
   inspectedStage: BuilderStage | null
 ): BuilderStage {
   const active = getActiveStage(workspace);
-  if (active === 'recommendations' || active === 'starting_point') {
+  if (active === 'recommendations' || active === 'starting_point' || active === 'material_input') {
     return active;
   }
   return inspectedStage ?? active;

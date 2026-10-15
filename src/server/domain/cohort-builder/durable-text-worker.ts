@@ -33,6 +33,7 @@ export function runDurableTextJobTick(input: {
   loadWorkspace: (workspaceId: string) => Promise<unknown>;
   webTransport?: WebTransport;
   youtubeTranscriptProvider?: YoutubeTranscriptProvider;
+  videoObservationProvider?: any;
   githubSourceProvider?: GithubSourceProvider;
   recommendationAdapter?: JourneyRecommendationAdapter;
   recommendationDeps?: RecommendationExecutorDeps;
@@ -43,6 +44,7 @@ export function runDurableTextJobTick(input: {
     loadWorkspace: input.loadWorkspace,
     webTransport: input.webTransport,
     youtubeTranscriptProvider: input.youtubeTranscriptProvider,
+    videoObservationProvider: input.videoObservationProvider,
     githubSourceProvider: input.githubSourceProvider,
   });
   const assembly = createTextAssemblyProcessor({ sql: input.sql, loadWorkspace: input.loadWorkspace });

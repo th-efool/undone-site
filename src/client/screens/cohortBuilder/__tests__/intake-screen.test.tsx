@@ -36,10 +36,6 @@ it('submits valid intake and assigns location on success', async () => {
 
   render(<CohortIntakeScreen ownerId="owner-1" enabled={true} />);
 
-  expect(screen.getByText('Learn distributed systems')).toBeTruthy();
-  const createButton = screen.getByRole('button', { name: 'Create cohort' });
-  fireEvent.click(createButton);
-
   await waitFor(() => {
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/cohort-builder/intake',
@@ -62,8 +58,6 @@ it('retains failed intake without sending the user to the legacy creator', async
 
   render(<CohortIntakeScreen ownerId="owner-1" enabled={true} />);
 
-  fireEvent.click(screen.getByRole('button', { name: 'Create cohort' }));
-
   await waitFor(() => {
     expect(screen.getByRole('alert').textContent).toContain('Could not save: DURABLE_DRIVER_REQUIRED');
     expect(screen.queryByRole('link', { name: /existing creator/i })).toBeNull();
@@ -85,8 +79,6 @@ it('displays error and does NOT offer legacy alternative when draft has source t
   });
 
   render(<CohortIntakeScreen ownerId="owner-1" enabled={true} />);
-
-  fireEvent.click(screen.getByRole('button', { name: 'Create cohort' }));
 
   await waitFor(() => {
     expect(screen.getByRole('alert').textContent).toContain('Could not save: DURABLE_DRIVER_REQUIRED');
@@ -134,11 +126,18 @@ it('retains and displays pasted text label and character count, explains incompa
   expect(screen.getByRole('link', { name: 'Return to landing' }).getAttribute('href')).toBe('/#explore');
 });
 
-it('clears draft when discard is clicked in enabled state', () => {
+it('clears draft when discard is clicked in enabled state', async () => {
   saveIntakeDraft(draft, 'owner-1');
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: false,
+    json: async () => ({ code: 'DURABLE_DRIVER_REQUIRED' }),
+  });
 
   render(<CohortIntakeScreen ownerId="owner-1" enabled={true} />);
 
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Discard' })).toBeTruthy();
+  });
   fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
 
   expect(screen.getByText(/No pending input/)).toBeTruthy();

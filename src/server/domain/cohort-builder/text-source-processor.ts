@@ -32,6 +32,7 @@ export function createTextSourceProcessor(input: {
   loadWorkspace: (workspaceId: string) => Promise<unknown>;
   webTransport?: WebTransport;
   youtubeTranscriptProvider?: YoutubeTranscriptProvider;
+  videoObservationProvider?: any;
   githubSourceProvider?: GithubSourceProvider;
 }): (job: ClaimedTextJob) => Promise<Uint8Array> {
   return async job => {
@@ -59,8 +60,14 @@ export function createTextSourceProcessor(input: {
         return fetchRetainedWeb(source.input.url,input.webTransport);
       }
       if (source.input.kind === 'youtube') {
-        const {acquireYoutubeTranscript}=await import('./youtube-transcript');
-        const acquired = await acquireYoutubeTranscript(source.input, input.youtubeTranscriptProvider);
+        if (source.input.mode === 'video_observation') {
+          const { acquireVideoObservation } = await import('./journey-video-adapter');
+          const acquired = await acquireVideoObservation(source.input, input.videoObservationProvider);
+          return acquired.bytes;
+        }
+        if (!source.input.track) throw new Error('TRANSCRIPT_TRACK_REQUIRED');
+        const { acquireYoutubeTranscript } = await import('./youtube-transcript');
+        const acquired = await acquireYoutubeTranscript({ ...source.input, track: source.input.track }, input.youtubeTranscriptProvider);
         return acquired.bytes;
       }
       if (source.input.kind === 'github') {

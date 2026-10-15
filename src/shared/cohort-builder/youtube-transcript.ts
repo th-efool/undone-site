@@ -40,6 +40,7 @@ export const youtubeTrackSchema = z.strictObject({id:z.string().min(1).max(200),
   kind:z.enum(['manual','automatic']),translated:z.literal(false)});
 export const youtubeTranscriptInputSchema = z.strictObject({
   kind: z.literal('youtube').optional(),
+  mode: z.enum(['transcript', 'video_observation']).optional(),
   url: youtubeVideoUrlSchema,
   track: youtubeTrackSchema,
   scope: youtubeTimeScopeSchema.optional(),

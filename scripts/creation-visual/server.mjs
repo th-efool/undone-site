@@ -33,6 +33,8 @@ import {
   builderWorkspaceReview,
   builderWorkspaceRecommendations,
   builderWorkspaceStartingPoint,
+  builderWorkspaceMaterialInput,
+  builderMaterialMessages,
   builderChatMessages,
 } from '/@fs/${workspace.replaceAll('\\', '/')}/scripts/creation-visual/builder-fixtures.ts';
 import { saveIntakeDraft } from '/@fs/${workspace.replaceAll('\\', '/')}/src/client/screens/cohortBuilder/intake-draft.ts';
@@ -94,6 +96,12 @@ if (app === 'builder') {
     createRoot(rootEl).render(
       <MockInteractionContext.Provider value={{ view: builderWorkspaceStartingPoint, revision: 1, messages: startingMessages }}>
         <CohortInteractionScreen workspaceId="ws-fixture" ownerId="owner-test" initialView={builderWorkspaceStartingPoint} />
+      </MockInteractionContext.Provider>
+    );
+  } else if (screen === 'material_input' || screen === 'material-input' || screen === 'materials') {
+    createRoot(rootEl).render(
+      <MockInteractionContext.Provider value={{ view: builderWorkspaceMaterialInput, revision: 1, messages: builderMaterialMessages }}>
+        <CohortInteractionScreen workspaceId="ws-fixture" ownerId="owner-test" initialView={builderWorkspaceMaterialInput} />
       </MockInteractionContext.Provider>
     );
   } else if (screen === 'source-selection') {

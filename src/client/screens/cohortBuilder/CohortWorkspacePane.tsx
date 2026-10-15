@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Check, AlertCircle } from 'lucide-react';
+import { Check, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useWorkspaceView, useDispatchAction, useInteractionState } from '@/src/client/interaction/hooks';
 import { cohortWorkspaceSchema, type CohortWorkspace, type CohortAction } from '@/src/shared/cohort-builder/contracts';
 import type { EntityRef } from 'interaction-builder/core';
 import styles from './CohortBuilder.module.css';
+import startingStyles from '@/src/client/screens/cohortCreation/components/StartingPoint.module.css';
 
 import { UnderstandingStageView } from './stages/UnderstandingStageView';
 import { ChunkingStageView } from './stages/ChunkingStageView';
@@ -15,6 +16,7 @@ import { CurriculumStageView } from './stages/CurriculumStageView';
 import { IntakeStageView } from './stages/IntakeStageView';
 import { RecommendationsStageView } from './stages/RecommendationsStageView';
 import { StartingPointStageView } from './stages/StartingPointStageView';
+import { MaterialStageView } from './stages/MaterialStageView';
 import { CohortDraftProvider, useCohortDrafts } from './draft-context';
 import { getActiveStage as selectActiveStage, type BuilderStage } from './stage-selectors';
 
@@ -43,7 +45,7 @@ export function getEffectiveStage(
   drafts?: { isAnyDirtyOrOpen: () => boolean; editingStage: Stage | null }
 ): Stage {
   const active = getActiveStage(workspace);
-  if (active === 'recommendations' || active === 'starting_point') {
+  if (active === 'recommendations' || active === 'starting_point' || active === 'material_input') {
     return active;
   }
   if (inspectedStage) return inspectedStage;
@@ -271,6 +273,7 @@ export function CohortWorkspacePane(props: CohortWorkspacePaneProps) {
 
 function InnerCohortWorkspacePane({
   workspaceId: propWorkspaceId,
+  ownerId: propOwnerId,
   onSelectLessonForChat,
   onNavigateToDestination,
 }: CohortWorkspacePaneProps) {
@@ -291,7 +294,10 @@ function InnerCohortWorkspacePane({
   const progress = getProcessingProgress(workspace);
   const activeStage = getActiveStage(workspace);
   const effectiveStage = getEffectiveStage(workspace, inspectedStage, drafts);
-  const isJourneyInitialStep = effectiveStage === 'recommendations' || effectiveStage === 'starting_point';
+  const isJourneyInitialStep =
+    effectiveStage === 'recommendations' ||
+    effectiveStage === 'starting_point' ||
+    effectiveStage === 'material_input';
 
   const stepToStageMap: Record<ProcessingStep['label'], Stage> = {
     Understanding: 'understanding',
@@ -369,12 +375,52 @@ function InnerCohortWorkspacePane({
         </div>
       )}
 
+      {/* Top starting point tabs for material_input */}
+      {effectiveStage === 'material_input' && (
+        <nav aria-label="Starting point" className={startingStyles.compact}>
+          <button
+            type="button"
+            onClick={() => void dispatchAction({ type: 'back_to_starting_point' })}
+            aria-label="Back to starting point"
+          >
+            <ArrowLeft size={16} />
+          </button>
+          {[
+            { value: 'have_material' as const, label: 'I already have material' },
+            { value: 'find_material' as const, label: 'Find material for me' },
+            { value: 'have_goal' as const, label: 'I just have a goal' },
+          ].map(choice => (
+            <button
+              key={choice.value}
+              type="button"
+              aria-pressed={(workspace.journey?.branch ?? 'have_material') === choice.value}
+              onClick={async () => {
+                if (workspace.journey?.branch === choice.value) return;
+                await dispatchAction({ type: 'back_to_starting_point' });
+                await dispatchAction({ type: 'choose_starting_point', choice: choice.value });
+              }}
+            >
+              {choice.label}
+            </button>
+          ))}
+        </nav>
+      )}
+
       {/* Stage Specific Views */}
       {effectiveStage === 'recommendations' && (
         <RecommendationsStageView workspace={workspace} dispatchAction={dispatchAction} />
       )}
       {effectiveStage === 'starting_point' && (
         <StartingPointStageView workspace={workspace} dispatchAction={dispatchAction} />
+      )}
+      {effectiveStage === 'material_input' && (
+        <MaterialStageView
+          workspace={workspace}
+          workspaceId={workspaceId}
+          revision={interactionState?.revision}
+          ownerId={propOwnerId}
+          dispatchAction={dispatchAction}
+        />
       )}
       {effectiveStage === 'intake' && (
         <IntakeStageView workspace={workspace} needsRebuild={progress.needsRebuild} dispatchAction={dispatchAction} />

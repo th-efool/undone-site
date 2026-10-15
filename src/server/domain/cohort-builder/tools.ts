@@ -118,7 +118,8 @@ export function createCohortAiTools(deps: CohortAiToolsDeps) {
       inputSchema: z.object({
         label: z.string().trim().min(1).max(300),
         url: youtubeVideoUrlSchema,
-        track: youtubeTrackSchema,
+        mode: z.enum(['transcript', 'video_observation']).optional(),
+        track: youtubeTrackSchema.optional(),
         scope: youtubeTimeScopeSchema.optional(),
       }),
       execute: async (input: any) => executeAction('add_youtube_source', input, { type: 'add_youtube_source', ...input }),
