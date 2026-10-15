@@ -28,6 +28,7 @@
     "interaction:worker": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs src/server/interaction-worker.ts",
     "interaction:worker:check": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs src/server/interaction-worker.ts --check",
     "interaction:worker:diagnostics": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs scripts/worker-diagnostics.ts",
+    "interaction:load:measure": "node --import tsx scripts/load/measured-load-harness.ts",
     "interaction:readiness": "node --import tsx --import ./scripts/register-root-environment.mjs scripts/interaction-readiness.ts",
     "interaction:rehearse:rollout": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs scripts/rehearse-additive-rollout.ts",
     "creation:material:smoke": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs scripts/creation-material-smoke.ts",

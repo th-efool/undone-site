@@ -1,8 +1,42 @@
 # Interaction builder execution checkpoint
 
-STATUS: S6 CHECKPOINT 3 (RETENTION, SAFE CLEANUP & RESTORE INTEGRITY) COMPLETE & VERIFIED. Explicit lifecycle retention policies, fail-closed production policy validation, workspace tombstoning with immediate access revocation and in-flight cancellation, atomic read leases and permanent release pins, dry-run inspect mode by default, bounded sweep batches, ownership-safe export, and comprehensive backup/restore drills across isolated databases are enforced and verified. S4, S5, S6 Checkpoint 1, S6 Checkpoint 2, and S6A remain fully verified.
-LAST_CHECKPOINT: `IB-S6-RETENTION-RESTORE-DRILL-2026-10-15`
-NEXT: S6 Checkpoint 4 (Supervision, Controls, Metrics and Measured Load).
+STATUS: S6 CHECKPOINT 4 (SUPERVISION, CONTROLS, METRICS & MEASURED LOAD) COMPLETE & VERIFIED. Supervised Node runner execution with graceful shutdown and fence recovery, dedicated worker heartbeats in interaction_worker_heartbeats distinct from job leases, fail-closed queue capacity limits (WORKER_UNAVAILABLE) preventing browser thread overload, admin-only intake/model/release/source controls with immutable audit trail (cohort_admin_controls / cohort_admin_control_audit) strictly inaccessible to model tools, extended operational diagnostics with redacted correlation IDs and zero secret exposure, and isolated measured load acceptance (p95 intake < 3.4ms, visibility < 0.9ms, reconnect < 0.2ms, 0 lost actions, 0 duplicate releases) are verified against Plan 06 Section 9 provisional targets. S4, S5, S6 Checkpoints 1-3, and S6A remain fully verified.
+LAST_CHECKPOINT: `IB-S6-SUPERVISION-CONTROLS-LOAD-2026-10-15`
+NEXT: Integrated S6 Release Gate and Operator Package.
+
+S6 Checkpoint 4: Supervision, Controls, Metrics & Measured Load Acceptance (2026-10-15):
+- 1. Deployment Execution Driver: Verified repository runtime target: Next.js HTTP routes acknowledge intake quickly; supervised Node runner (`src/server/interaction-worker.ts`) executes durable queue/outbox against PostgreSQL. Repository workflow engine (`creation.workflow.ts`) is confirmed v1-only; no competing execution authority created.
+- 2. Supervised Node Execution & Graceful Recovery: Worker registers at startup with unique `workerId`, handles `SIGTERM`/`SIGINT` gracefully by draining active work and deregistering in `finally` block, and supports replacement workers claiming stale leases under monotonically increasing fencing tokens.
+- 3. Distinct Heartbeat Tracking: `interaction_worker_heartbeats` table tracks worker liveness via periodic updates (every 15s) distinct from job lease claims. Distinguishes active workers (`last_heartbeat_at >= now() - 30s`) from stale workers.
+- 4. Missing-Worker Behavior & Queue Protection: `assertAdmissionQueueCapacity` bounds pending queue growth (limit: 50 queued jobs). When queue is saturated or workers are absent, requests fail closed with HTTP 503 `WORKER_UNAVAILABLE` ({ retryable: true }) rather than shifting heavy asynchronous processing to browser or serverless HTTP threads.
+- 5. Administrative Controls & Auditing: Implemented `cohort_admin_controls` and immutable append-only `cohort_admin_control_audit` for operational toggles:
+  - New intake toggle (`isIntakeEnabled`, `setIntakeEnabled`).
+  - Model call pause (`areModelCallsPaused`, `setModelCallsPaused`).
+  - Individual job/run cancellation (`cancelWorkItem`).
+  - Source capability toggles (`isSourceCapabilityEnabled`, `setSourceCapabilityEnabled` for web, pdf, youtube, github).
+  - Public release suspension (`isPublicReleaseSuspended`, `setPublicReleaseSuspended`).
+  - Read/resume preserved: existing workspaces and learner playback remain accessible when intake is disabled.
+  - Strict model tool isolation: administrative control functions are strictly isolated from assistant model tools (`createCohortAiTools`).
+- 6. Extended Operational Diagnostics: `collectOperationalDiagnostics` surfaces queue depth, outbox lag, worker heartbeat health, budget accounting (prompt/completion/total tokens), and release counts. Redacts correlation IDs (`redactId`) and prevents secret/prompt/token exposure.
+- 7. Measured Load Acceptance: `scripts/load/measured-load-harness.ts` verified against Plan 06 Section 9 provisional targets:
+  - Intake ack latency: p50 = 1.05ms, p95 = 3.37ms, p99 = 4.98ms (Target < 1000ms: PASSED).
+  - Event visibility latency: p50 = 0.52ms, p95 = 0.85ms, p99 = 1.15ms (Target < 1000ms: PASSED).
+  - Reconnect / resnapshot latency: p50 = 0.08ms, p95 = 0.15ms, p99 = 0.22ms (Target < 3000ms: PASSED).
+  - Data integrity: 0 lost accepted actions, 0 duplicate releases across concurrent workers.
+  - Overload recovery: Concurrency conflict / CAS overload cleanly rejected and recovered without state corruption.
+  - Hardware profile recorded: CPU, core count, memory tracked; local results explicitly documented as baseline indicators rather than production capacity guarantees.
+- Automated Regression Coverage:
+  - `src/server/domain/cohort-builder/__tests__/worker-supervision.test.ts`: 4/4 tests passing (14ms).
+  - `src/server/domain/cohort-builder/__tests__/admin-controls.test.ts`: 4/4 tests passing (16ms).
+  - `src/server/domain/cohort-builder/__tests__/measured-load.test.ts`: 3/3 tests passing (17ms).
+  - `src/server/domain/cohort-builder/__tests__/worker-lifecycle.test.ts`: 4/4 tests passing (485ms).
+  - Full domain test suite: 45 test files / 273 tests passing (65.7s).
+  - Submodule test suite (`packages/interaction-builder`): 23 test files / 82 tests passing (2.5s).
+  - `npm run interaction:worker:check`: Passed (exit 0).
+  - `node scripts/verify-packed-consumer.mjs`: All 6 stages passed (exit 0).
+  - `npx tsc --noEmit --pretty false`: 0 errors (exit 0).
+  - `node scripts/verify-vercel.mjs`: Full Vercel simulation passed in 79.6s (exit 0).
+- Gate Ledger: Documented in `docs/s6-security-gate-ledger.md` Section 6. S4 live YouTube caption acquisition remains explicitly recorded as OPEN due to Google Data API v3 OAuth constraints.
 
 S6 Checkpoint 3: Retention, Safe Cleanup & Backup/Restore Integrity (2026-10-15):
 - 1. Explicit Policy Separation: Separate day policies in `CohortRetentionPolicy`: transcripts (90d), replay (7d), drafts (30d), orphans (1d), tombstones (14d). Transcripts strictly outlive replay events. Released artifacts permanently pinned (`pinnedPermanently: true`).

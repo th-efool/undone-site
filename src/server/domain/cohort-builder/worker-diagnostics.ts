@@ -1,11 +1,12 @@
 /**
  * Safe, read-only operational diagnostics for Interaction Worker & Durable Text Pipeline.
  * Zero secret disclosure: excludes conversation prompts, source texts, tokens, and credentials.
- * Provides operator visibility into queue backlogs, oldest work, lease recovery, and failed jobs.
+ * Provides operator visibility into queue backlogs, oldest work, lease recovery, failed jobs,
+ * worker supervision heartbeats, outbox latency, budget accounting, and releases.
  */
-import { Pool } from 'pg';
 import { textDriver } from './text-driver';
 import { assertTextJobSchema } from './text-schema-readiness';
+import { collectWorkerSupervision, type WorkerSupervisionReport } from './worker-supervision';
 
 export interface DiagnosticsSql {
   query: (statement: string, parameters?: unknown[]) => Promise<{ rows: any[] }>;
@@ -53,6 +54,22 @@ export interface LeaseRecoverySummary {
   multiFenceJobs: number;
 }
 
+export interface OutboxLagSummary {
+  totalEvents: number;
+  oldestEventAgeSeconds: number | null;
+}
+
+export interface BudgetAccountingSummary {
+  totalReservations: number;
+  settledCount: number;
+  retainedCount: number;
+}
+
+export interface ReleaseStatsSummary {
+  privateCount: number;
+  publicCount: number;
+}
+
 export interface WorkerDiagnosticsReport {
   timestamp: string;
   driver: 'snapshot' | 'durable';
@@ -62,6 +79,15 @@ export interface WorkerDiagnosticsReport {
   oldestRunningJob: OldestWorkItem | null;
   leaseRecovery: LeaseRecoverySummary;
   recentFailedJobs: FailedJobSummary[];
+  supervision?: WorkerSupervisionReport;
+  outboxLag?: OutboxLagSummary;
+  budgetAccounting?: BudgetAccountingSummary;
+  releases?: ReleaseStatsSummary;
+}
+
+export function redactId(id: string, prefixLen: number = 8): string {
+  if (id.length <= prefixLen) return id;
+  return `${id.slice(0, prefixLen)}...`;
 }
 
 export async function collectWorkerDiagnostics(sql: DiagnosticsSql, now: Date = new Date()): Promise<WorkerDiagnosticsReport> {
@@ -165,6 +191,75 @@ export async function collectWorkerDiagnostics(sql: DiagnosticsSql, now: Date = 
     updatedAt: new Date(row.updatedAt).toISOString(),
   }));
 
+  // 5. Worker Supervision (Heartbeats)
+  let supervision: WorkerSupervisionReport | undefined;
+  try {
+    supervision = await collectWorkerSupervision(sql, { now });
+  } catch {
+    // Table may not exist yet in test fixtures
+  }
+
+  // 6. Outbox / Event Lag
+  let outboxLag: OutboxLagSummary | undefined;
+  try {
+    const eventStatsRes = await sql.query(`
+      SELECT
+        COUNT(*)::int AS total,
+        EXTRACT(EPOCH FROM ($1::timestamp - MIN("createdAt")))::int AS "oldestAgeSeconds"
+      FROM "interaction_events"
+    `, [now.toISOString()]);
+    const rawAge = eventStatsRes.rows[0]?.oldestAgeSeconds;
+    outboxLag = {
+      totalEvents: Number(eventStatsRes.rows[0]?.total ?? 0),
+      oldestEventAgeSeconds: rawAge !== null && rawAge !== undefined && !isNaN(Number(rawAge))
+        ? Math.max(0, Number(rawAge))
+        : null,
+    };
+  } catch {
+    // Optional table
+  }
+
+  // 7. Budget Accounting
+  let budgetAccounting: BudgetAccountingSummary | undefined;
+  try {
+    const budgetRes = await sql.query(`
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE "used" = "limit")::int AS exhausted
+      FROM "creation_budgets"
+    `);
+    const runsRes = await sql.query(`
+      SELECT
+        COUNT(*) FILTER (WHERE "budgetActual"->>'status' = 'settled')::int AS settled,
+        COUNT(*) FILTER (WHERE "budgetActual"->>'status' = 'unknown_outcome_retained')::int AS retained
+      FROM "interaction_runs"
+    `);
+    budgetAccounting = {
+      totalReservations: Number(budgetRes.rows[0]?.total ?? 0),
+      settledCount: Number(runsRes.rows[0]?.settled ?? 0),
+      retainedCount: Number(runsRes.rows[0]?.retained ?? 0),
+    };
+  } catch {
+    // Optional table
+  }
+
+  // 8. Release Statistics
+  let releases: ReleaseStatsSummary | undefined;
+  try {
+    const releaseRes = await sql.query(`
+      SELECT
+        COUNT(*) FILTER (WHERE "visibility" = 'private')::int AS private,
+        COUNT(*) FILTER (WHERE "visibility" = 'public')::int AS public
+      FROM "cohort_releases"
+    `);
+    releases = {
+      privateCount: Number(releaseRes.rows[0]?.private ?? 0),
+      publicCount: Number(releaseRes.rows[0]?.public ?? 0),
+    };
+  } catch {
+    // Optional table
+  }
+
   return {
     timestamp: now.toISOString(),
     driver,
@@ -193,6 +288,10 @@ export async function collectWorkerDiagnostics(sql: DiagnosticsSql, now: Date = 
       multiFenceJobs: Number(leaseRow.multiFence),
     },
     recentFailedJobs,
+    supervision,
+    outboxLag,
+    budgetAccounting,
+    releases,
   };
 }
 
@@ -202,31 +301,71 @@ export function formatDiagnosticsReport(report: WorkerDiagnosticsReport): string
     `Timestamp: ${report.timestamp}`,
     `Driver: ${report.driver.toUpperCase()} | Schema Status: ${report.schemaStatus.toUpperCase()}`,
     ``,
+  ];
+
+  if (report.supervision) {
+    lines.push(
+      `--- Worker Supervision & Liveness ---`,
+      `Active Workers : ${report.supervision.activeWorkerCount} (${report.supervision.isAvailable ? 'AVAILABLE' : 'ABSENT'})`,
+      `Stale Workers  : ${report.supervision.staleWorkerCount}`,
+      report.supervision.oldestHeartbeatAgeSeconds !== null
+        ? `Oldest Active Heartbeat: ${report.supervision.oldestHeartbeatAgeSeconds}s ago`
+        : `Oldest Active Heartbeat: None`,
+      ``
+    );
+  }
+
+  lines.push(
     `--- Queue Backlog ---`,
     `Durable Jobs : ${report.backlog.jobs.queued} queued | ${report.backlog.jobs.running} running | ${report.backlog.jobs.failed} failed | ${report.backlog.jobs.accepted} accepted (Total: ${report.backlog.jobs.total})`,
     `Assistant Runs: ${report.backlog.runs.pending} pending | ${report.backlog.runs.running} running | ${report.backlog.runs.failed} failed | ${report.backlog.runs.completed} completed (Total: ${report.backlog.runs.total})`,
     ``,
     `--- In-Flight Age ---`,
     report.oldestQueuedJob
-      ? `Oldest Queued Job : ${report.oldestQueuedJob.id} (${report.oldestQueuedJob.stage}, ${report.oldestQueuedJob.ageSeconds}s old, ${report.oldestQueuedJob.attempts} attempts)`
+      ? `Oldest Queued Job : ${redactId(report.oldestQueuedJob.id)} (${report.oldestQueuedJob.stage}, ${report.oldestQueuedJob.ageSeconds}s old, ${report.oldestQueuedJob.attempts} attempts)`
       : `Oldest Queued Job : None (queue empty)`,
     report.oldestRunningJob
-      ? `Oldest Running Job: ${report.oldestRunningJob.id} (${report.oldestRunningJob.stage}, ${report.oldestRunningJob.ageSeconds}s old, worker: ${report.oldestRunningJob.leaseOwner})`
+      ? `Oldest Running Job: ${redactId(report.oldestRunningJob.id)} (${report.oldestRunningJob.stage}, ${report.oldestRunningJob.ageSeconds}s old, worker: ${report.oldestRunningJob.leaseOwner ? redactId(report.oldestRunningJob.leaseOwner, 24) : 'none'})`
       : `Oldest Running Job: None (no active claims)`,
     ``,
     `--- Lease & Recovery Metrics ---`,
     `Expired Running Jobs (Eligible for Reclaim) : ${report.leaseRecovery.expiredRunningJobs}`,
     `Jobs with Exhausted Retries               : ${report.leaseRecovery.exhaustedRetryJobs}`,
     `Jobs Re-Fenced After Prior Lease Expiration : ${report.leaseRecovery.multiFenceJobs}`,
-  ];
+    ``
+  );
+
+  if (report.outboxLag && report.outboxLag.totalEvents > 0) {
+    lines.push(
+      `--- Outbox / Event Lag ---`,
+      `Total Events: ${report.outboxLag.totalEvents} | Oldest Event Age: ${report.outboxLag.oldestEventAgeSeconds !== null ? `${report.outboxLag.oldestEventAgeSeconds}s` : 'none'}`,
+      ``
+    );
+  }
+
+  if (report.budgetAccounting && report.budgetAccounting.totalReservations > 0) {
+    lines.push(
+      `--- Budget Accounting ---`,
+      `Reservations: ${report.budgetAccounting.totalReservations} | Settled: ${report.budgetAccounting.settledCount} | Retained (Unknown Outcome): ${report.budgetAccounting.retainedCount}`,
+      ``
+    );
+  }
+
+  if (report.releases && (report.releases.privateCount > 0 || report.releases.publicCount > 0)) {
+    lines.push(
+      `--- Release Statistics ---`,
+      `Private Cohorts: ${report.releases.privateCount} | Public Cohorts: ${report.releases.publicCount}`,
+      ``
+    );
+  }
 
   if (report.recentFailedJobs.length > 0) {
-    lines.push(``, `--- Recent Failed Jobs (Last ${report.recentFailedJobs.length}) ---`);
+    lines.push(`--- Recent Failed Jobs (Last ${report.recentFailedJobs.length}) ---`);
     for (const f of report.recentFailedJobs) {
-      lines.push(`- Job ${f.id} [${f.stage}] workspace=${f.workspaceId} attempts=${f.attempts} error=${f.errorCode ?? 'UNKNOWN'} at=${f.updatedAt}`);
+      lines.push(`- Job ${redactId(f.id)} [${f.stage}] workspace=${redactId(f.workspaceId)} attempts=${f.attempts} error=${f.errorCode ?? 'UNKNOWN'} at=${f.updatedAt}`);
     }
   } else {
-    lines.push(``, `Recent Failed Jobs: None`);
+    lines.push(`Recent Failed Jobs: None`);
   }
 
   return lines.join('\n');
