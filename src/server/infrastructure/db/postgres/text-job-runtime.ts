@@ -5,11 +5,13 @@ import { runDurableTextJobTick } from '@/src/server/domain/cohort-builder/durabl
 import { recoverTextWorkspace } from '@/src/server/domain/cohort-builder/text-job-recovery';
 import type { TextJobTransactionPort } from '@/src/server/domain/cohort-builder/text-job-scheduler';
 import { assertSourceSchema } from '@/src/server/domain/cohort-builder/source-policy';
-import { localSourceFixture } from '@/src/server/infrastructure/ai/localSourceFixture';
+import { localSourceFixture, localYoutubeFixture, localGithubFixture } from '@/src/server/infrastructure/ai/localSourceFixture';
 import type { YoutubeTranscriptProvider } from '@/src/server/domain/cohort-builder/youtube-transcript';
 import type { GithubSourceProvider } from '@/src/server/domain/cohort-builder/github-source';
 import { youtubeTranscriptReadiness } from '@/src/server/domain/cohort-builder/youtube-transcript-policy';
 import { LiveYoutubeTranscriptProvider } from '@/src/server/domain/cohort-builder/youtube-transcript-live';
+import { githubSourceReadiness } from '@/src/server/domain/cohort-builder/github-policy';
+import { LiveGithubSourceProvider } from '@/src/server/domain/cohort-builder/github-source-live';
 
 /** Same database as canonical commits; one checked-out connection per acceptance transaction. */
 export async function createTextJobRuntime(
@@ -49,10 +51,14 @@ export async function createTextJobRuntime(
         ORDER BY "updatedAt" LIMIT 20`, []);
       for (const row of candidates.rows) await recoverTextWorkspace(transaction, String(row.id));
       const youtubeTranscriptProvider = options?.youtubeTranscriptProvider ??
+        localYoutubeFixture() ??
         (youtubeTranscriptReadiness().enabled ? new LiveYoutubeTranscriptProvider() : undefined);
+      const githubSourceProvider = options?.githubSourceProvider ??
+        localGithubFixture() ??
+        (githubSourceReadiness().enabled ? new LiveGithubSourceProvider() : undefined);
       return runDurableTextJobTick({
         sql, workerId, leaseMs, now: () => new Date(), transaction, webTransport,
-        youtubeTranscriptProvider, githubSourceProvider: options?.githubSourceProvider,
+        youtubeTranscriptProvider, githubSourceProvider,
         loadWorkspace: async workspaceId => {
           const row = (await sql.query(`SELECT "snapshot" FROM "interaction_workspaces"
             WHERE "id" = $1 AND "lifecycle" = 'active' AND "domainId" = 'cohort'`, [workspaceId])).rows[0];
