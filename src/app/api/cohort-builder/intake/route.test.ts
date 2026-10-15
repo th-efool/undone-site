@@ -2,6 +2,7 @@ import { afterEach, expect, it, vi } from 'vitest';
 const fake = vi.hoisted(() => ({ owner: 'owner', accept: vi.fn().mockResolvedValue({ workspaceId: 'saved' }) }));
 vi.mock('@/src/server/infrastructure/auth/getCreationOwner', () => ({ getCreationOwner: async () => fake.owner }));
 vi.mock('@/src/server/infrastructure/db/postgres/cohort-intake', () => ({ acceptCohortIntake: fake.accept }));
+vi.mock('@/src/server/interaction-dispatch.runtime', () => ({ dispatchInteractionExecution: vi.fn().mockResolvedValue(undefined) }));
 import { GET, POST } from './route';
 afterEach(() => { vi.unstubAllEnvs(); fake.owner = 'owner'; fake.accept.mockClear(); });
 const body = { requestId: '54103d7b-2709-4dd6-bb18-522f96b97241', prompt: 'Learn', expectedOwnerId: 'owner' };

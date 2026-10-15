@@ -86,15 +86,7 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
                       </p>
                     </div>
                   ) : null}
-                  {draft.source ? (
-                    <p>The existing creator only supports text prompts without pasted sources.</p>
-                  ) : (
-                    <p>
-                      <a className={styles.linkButton} href="/quest/new?handoff=1">
-                        Continue with existing creator <ArrowRight size={15} aria-hidden="true" />
-                      </a>
-                    </p>
-                  )}
+                  <p>Your input is retained for the new builder. Please retry when creation is available.</p>
                   <div className={styles.actions}>
                     <button
                       type="button"
@@ -162,15 +154,6 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
           {error && (
             <div className={styles.noticeError} role="alert">
               <p>Could not save: {error}. Your input is retained; retry when available.</p>
-              {draft && !draft.source ? (
-                <p>
-                  <a className={styles.linkButton} href="/quest/new?handoff=1">
-                    Or continue with existing creator <ArrowRight size={15} aria-hidden="true" />
-                  </a>
-                </p>
-              ) : draft?.source ? (
-                <p>The existing creator only supports text prompts without pasted sources.</p>
-              ) : null}
             </div>
           )}
         </div>

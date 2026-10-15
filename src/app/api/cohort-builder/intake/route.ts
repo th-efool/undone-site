@@ -1,6 +1,7 @@
 import { getCreationOwner } from '@/src/server/infrastructure/auth/getCreationOwner';
 import { acceptCohortIntake } from '@/src/server/infrastructure/db/postgres/cohort-intake';
 import { cohortIntakeEnabled } from '@/src/shared/cohort-builder/intake';
+import { dispatchInteractionExecution } from '@/src/server/interaction-dispatch.runtime';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,7 +29,9 @@ export async function POST(request: Request) {
     const parsed = JSON.parse(text);
     if (parsed?.expectedOwnerId !== ownerId) return reply({ code: 'SESSION_CHANGED' }, 409);
     const { expectedOwnerId: _expectedOwnerId, ...body } = parsed;
-    return reply(await acceptCohortIntake(ownerId, body), 202);
+    const accepted = await acceptCohortIntake(ownerId, body);
+    await dispatchInteractionExecution();
+    return reply(accepted, 202);
   }
   catch (error) {
     const code = error instanceof Error ? error.message : '';

@@ -60,7 +60,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
       const entityRefs = attachedEntity ? [attachedEntity] : [];
       const ok = await sendMessage(textToSend, entityRefs);
       if (ok) {
-        if (!customText) setInput('');
+        if (!customText) setInput(current => current === textToSend ? '' : current);
         onClearAttachedEntity();
       }
     } finally {
@@ -261,7 +261,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             rows={1}
-            disabled={sending}
+            aria-busy={sending}
           />
           <button
             type="submit"
