@@ -152,4 +152,124 @@ describe('S6A Interaction Readiness & Fail-Closed Configuration Gate', () => {
   ])('classifies connection failure code %s accurately without echoing raw driver messages', (code, reason) => {
     expect(connectionFailureReason({ code, message: 'sensitive db internal' })).toBe(reason);
   });
+
+  it('strictly blocks deterministic local model fixture mode in production', () => {
+    const checks = interactionConfigurationChecks({
+      ...baseEnv,
+      NODE_ENV: 'production',
+      INTERACTION_LOCAL_MODEL_FIXTURE: '1',
+      DATABASE_URL: 'postgresql://test:test@127.0.0.1:5432/s3test',
+    });
+    const fixtureCheck = checks.find(c => c.name === 'Deterministic Local Model Fixture mode');
+    expect(fixtureCheck?.status).toBe('blocked');
+    expect(fixtureCheck?.reason).toBe('forbidden_fixture_configuration');
+  });
+
+  it('strictly blocks deterministic local model fixture mode on non-loopback / non-s3test database', () => {
+    const checks = interactionConfigurationChecks({
+      ...baseEnv,
+      NODE_ENV: 'development',
+      INTERACTION_LOCAL_MODEL_FIXTURE: '1',
+      DATABASE_URL: 'postgresql://produser:secret@database.internal.prod:5432/production_db',
+    });
+    const fixtureCheck = checks.find(c => c.name === 'Deterministic Local Model Fixture mode');
+    expect(fixtureCheck?.status).toBe('blocked');
+    expect(fixtureCheck?.reason).toBe('forbidden_fixture_configuration');
+  });
+
+  it('permits local model fixture mode on loopback development s3test database', () => {
+    const checks = interactionConfigurationChecks({
+      ...baseEnv,
+      NODE_ENV: 'development',
+      INTERACTION_LOCAL_MODEL_FIXTURE: '1',
+      DATABASE_URL: 'postgresql://test:test@127.0.0.1:5432/s3test',
+    });
+    const fixtureCheck = checks.find(c => c.name.includes('Deterministic Local Model Fixture mode'));
+    expect(fixtureCheck?.status).toBe('configured');
+    expect(fixtureCheck?.details).toContain('loopback database');
+  });
+
+  it('recognizes INTERACTION_GITHUB_TOKEN with precedence over GITHUB_TOKEN', () => {
+    const checksBoth = interactionConfigurationChecks({
+      ...baseEnv,
+      INTERACTION_GITHUB_ENABLED: '1',
+      INTERACTION_GITHUB_TOKEN: 'ghp_interaction_token_sufficiently_long_12345',
+      GITHUB_TOKEN: 'ghp_general_token_sufficiently_long_67890',
+    });
+    const checkBoth = checksBoth.find(c => c.name.includes('GitHub Source Capability'));
+    expect(checkBoth?.status).toBe('configured');
+    expect(checkBoth?.reason).toBeUndefined();
+    expect(checkBoth?.details).toContain('INTERACTION_GITHUB_TOKEN');
+
+    const checksGeneral = interactionConfigurationChecks({
+      ...baseEnv,
+      INTERACTION_GITHUB_ENABLED: '1',
+      INTERACTION_GITHUB_TOKEN: undefined,
+      GITHUB_TOKEN: 'ghp_general_token_sufficiently_long_67890',
+    });
+    const checkGeneral = checksGeneral.find(c => c.name.includes('GitHub Source Capability'));
+    expect(checkGeneral?.status).toBe('configured');
+    expect(checkGeneral?.reason).toBeUndefined();
+    expect(checkGeneral?.details).toContain('GITHUB_TOKEN');
+  });
+
+  it('reports MONGODB_URI configured status accurately for learner progress persistence', () => {
+    const checksWithMongo = interactionConfigurationChecks({
+      ...baseEnv,
+      MONGODB_URI: 'mongodb://127.0.0.1:27017/sidequest_test',
+    });
+    const mongoCheck = checksWithMongo.find(c => c.name.includes('MONGODB_URI'));
+    expect(mongoCheck?.status).toBe('configured');
+
+    const checksWithoutMongo = interactionConfigurationChecks({
+      ...baseEnv,
+      MONGODB_URI: undefined,
+    });
+    const mongoCheckNone = checksWithoutMongo.find(c => c.name.includes('MONGODB_URI'));
+    expect(mongoCheckNone?.status).toBe('not_configured');
+    expect(mongoCheckNone?.required).toBe(false);
+  });
+
+  it('assertReleaseSchema validates interaction_effects table and constraints accurately', async () => {
+    const { assertReleaseSchema } = await import('../src/server/domain/cohort-builder/release-schema-readiness');
+
+    // Missing table case
+    await expect(
+      assertReleaseSchema({
+        query: async (stmt: string) => {
+          if (stmt.includes('information_schema.tables')) return { rows: [{ count: 0 }] };
+          return { rows: [] };
+        },
+      })
+    ).rejects.toThrow('S5_EFFECTS_SCHEMA_NOT_INSTALLED');
+
+    // Missing constraints case
+    await expect(
+      assertReleaseSchema({
+        query: async (stmt: string) => {
+          if (stmt.includes('information_schema.tables')) return { rows: [{ count: 1 }] };
+          if (stmt.includes('pg_constraint')) return { rows: [{ conname: 'interaction_effects_state_ck' }] }; // only 1 constraint
+          return { rows: [] };
+        },
+      })
+    ).rejects.toThrow('S5_EFFECTS_CONSTRAINTS_NOT_INSTALLED');
+
+    // Valid case
+    await expect(
+      assertReleaseSchema({
+        query: async (stmt: string) => {
+          if (stmt.includes('information_schema.tables')) return { rows: [{ count: 1 }] };
+          if (stmt.includes('pg_constraint')) {
+            return {
+              rows: [
+                { conname: 'interaction_effects_state_ck', definition: 'CHECK (state IN (...))' },
+                { conname: 'interaction_effects_mode_ck', definition: 'CHECK (mode IN (...))' },
+              ],
+            };
+          }
+          return { rows: [] };
+        },
+      })
+    ).resolves.toBeUndefined();
+  });
 });
