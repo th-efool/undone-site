@@ -31,6 +31,8 @@ import {
   builderWorkspaceProcessing,
   builderWorkspaceCurriculum,
   builderWorkspaceReview,
+  builderWorkspaceRecommendations,
+  builderWorkspaceStartingPoint,
   builderChatMessages,
 } from '/@fs/${workspace.replaceAll('\\', '/')}/scripts/creation-visual/builder-fixtures.ts';
 import { saveIntakeDraft } from '/@fs/${workspace.replaceAll('\\', '/')}/src/client/screens/cohortBuilder/intake-draft.ts';
@@ -54,6 +56,46 @@ if (app === 'builder') {
   } else if (screen === 'intake-disabled') {
     saveIntakeDraft(builderIntakeDraft, 'owner-test');
     createRoot(rootEl).render(<CohortIntakeScreen ownerId="owner-test" enabled={false} />);
+  } else if (screen === 'recommendations') {
+    const recMessages = [
+      {
+        id: 'msg-rec-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'I want to learn distributed systems and consensus.' }],
+        createdAt: new Date(Date.now() - 30000).toISOString(),
+      },
+      {
+        id: 'msg-rec-2',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'Got it. You’re looking to learn distributed systems. I found a few existing SideQuests that might be a good fit.' }],
+        createdAt: new Date().toISOString(),
+      },
+    ];
+    createRoot(rootEl).render(
+      <MockInteractionContext.Provider value={{ view: builderWorkspaceRecommendations, revision: 1, messages: recMessages }}>
+        <CohortInteractionScreen workspaceId="ws-fixture" ownerId="owner-test" initialView={builderWorkspaceRecommendations} />
+      </MockInteractionContext.Provider>
+    );
+  } else if (screen === 'starting_point' || screen === 'starting-point') {
+    const startingMessages = [
+      {
+        id: 'msg-sp-1',
+        role: 'user',
+        parts: [{ type: 'text', text: 'I’ll create my own instead.' }],
+        createdAt: new Date(Date.now() - 30000).toISOString(),
+      },
+      {
+        id: 'msg-sp-2',
+        role: 'assistant',
+        parts: [{ type: 'text', text: 'Sure. Let’s make something that fits what you actually want.' }],
+        createdAt: new Date().toISOString(),
+      },
+    ];
+    createRoot(rootEl).render(
+      <MockInteractionContext.Provider value={{ view: builderWorkspaceStartingPoint, revision: 1, messages: startingMessages }}>
+        <CohortInteractionScreen workspaceId="ws-fixture" ownerId="owner-test" initialView={builderWorkspaceStartingPoint} />
+      </MockInteractionContext.Provider>
+    );
   } else if (screen === 'source-selection') {
     createRoot(rootEl).render(
       <MockInteractionContext.Provider value={{ view: builderWorkspaceEmpty, revision: 1, messages: [] }}>

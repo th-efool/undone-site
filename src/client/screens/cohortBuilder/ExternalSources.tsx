@@ -249,6 +249,12 @@ function InnerExternalSources() {
             Add YouTube source
           </button>
         </fieldset>
+      ) : capabilities.youtubeUnavailableReason ? (
+        <div role="note" aria-label="YouTube unavailable">
+          <p>
+            YouTube transcript ingestion is currently unavailable ({capabilities.youtubeUnavailableReason}).
+          </p>
+        </div>
       ) : null}
 
       {capabilities.github ? (
@@ -323,6 +329,12 @@ function InnerExternalSources() {
             Add GitHub source
           </button>
         </fieldset>
+      ) : capabilities.githubUnavailableReason ? (
+        <div role="note" aria-label="GitHub unavailable">
+          <p>
+            GitHub repository ingestion is currently unavailable ({capabilities.githubUnavailableReason}).
+          </p>
+        </div>
       ) : null}
 
       {error && (

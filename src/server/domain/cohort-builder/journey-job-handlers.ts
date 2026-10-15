@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
+import type { LanguageModel } from 'ai';
 import {
   cohortDiscoveryItemSchema,
   cohortRecommendationItemSchema,
@@ -19,12 +20,21 @@ import {
   type ClaimedTextJob,
 } from './text-jobs';
 import { planJourneyJobs } from './journey-job-plan';
-import type { RecommendationService } from '../cohort-creation/recommendation.service';
+import type { RecommendationService, RecommendationRepository } from '../cohort-creation/recommendation.service';
+import type { CohortAi } from '../cohort-creation/ai.contracts';
+import {
+  executeCohortRecommendations,
+  type JourneyRecommendationAdapter,
+} from './journey-recommendation-adapter';
 
 export interface RecommendationExecutorDeps {
+  adapter?: JourneyRecommendationAdapter;
   recommendationService?: Pick<RecommendationService, 'recommend'>;
   loadCatalog?: (query: string, signal?: AbortSignal) => Promise<Array<{ id: string; label: string; url: string }>>;
   sql?: TextArtifactSql;
+  ai?: CohortAi;
+  catalogRepo?: RecommendationRepository;
+  model?: LanguageModel;
 }
 
 export interface DiscoveryExecutorDeps {
@@ -38,8 +48,27 @@ export async function executeRecommendationJob(
   deps?: RecommendationExecutorDeps,
   signal?: AbortSignal
 ): Promise<Array<z.infer<typeof cohortRecommendationItemSchema>>> {
+  if (deps?.adapter) {
+    const result = await deps.adapter.executeCohortRecommendations(workspace, signal);
+    const items = [...result.items];
+    Object.assign(items, { rawResult: result.rawResult });
+    return items;
+  }
+
+  if (deps?.ai || deps?.catalogRepo || deps?.model) {
+    const result = await executeCohortRecommendations(
+      workspace,
+      { ai: deps.ai, catalogRepo: deps.catalogRepo, model: deps.model },
+      signal
+    );
+    const items = [...result.items];
+    Object.assign(items, { rawResult: result.rawResult });
+    return items;
+  }
+
   if (deps?.recommendationService) {
-    const query = workspace.intent.trim() || 'General Learning';
+    const rawQuery = workspace.intent.trim() || 'General Learning';
+    const query = rawQuery.length >= 3 ? rawQuery.slice(0, 2000) : `${rawQuery} Learning`;
     const result = await deps.recommendationService.recommend(
       {
         requestId: randomUUID(),
@@ -52,8 +81,20 @@ export async function executeRecommendationJob(
       id: String(item.cohort.cohortId).slice(0, 200),
       label: String(item.cohort.title).trim().slice(0, 300),
       url: `https://undone.app/cohorts/${encodeURIComponent(item.cohort.cohortId)}`,
+      description: item.cohort.description?.slice(0, 10000),
+      coverImage: item.cohort.coverImage ? item.cohort.coverImage.slice(0, 2048) : null,
+      creatorName: item.cohort.creatorName ? item.cohort.creatorName.slice(0, 200) : null,
+      difficulty: item.cohort.difficulty,
+      categories: Array.isArray(item.cohort.categories) ? item.cohort.categories.map(c => String(c).slice(0, 200)).slice(0, 100) : [],
+      estimatedCompletionTime: item.cohort.estimatedCompletionTime ? item.cohort.estimatedCompletionTime.slice(0, 200) : null,
+      memberCount: item.cohort.memberCount ?? 0,
+      lessonCount: item.cohort.lessonCount ?? 0,
+      reason: item.reason?.slice(0, 600),
+      isBestMatch: item.isBestMatch,
     }));
-    return z.array(cohortRecommendationItemSchema).max(20).parse(items);
+    const validated = z.array(cohortRecommendationItemSchema).max(20).parse(items);
+    Object.assign(validated, { rawResult: result });
+    return validated;
   }
 
   if (deps?.loadCatalog) {
@@ -83,7 +124,10 @@ export async function executeRecommendationJob(
     }
   }
 
-  return [];
+  const result = await executeCohortRecommendations(workspace, undefined, signal);
+  const items = [...result.items];
+  Object.assign(items, { rawResult: result.rawResult });
+  return items;
 }
 
 /** Produces candidate items [{ id, label, kind: 'web', url }]. */
@@ -108,9 +152,16 @@ export async function executeDiscoveryJob(
 export async function retainJourneyArtifact(
   sql: TextArtifactSql,
   job: ClaimedTextJob,
-  items: unknown[]
+  resultOrItems: unknown[] | { items: unknown[]; rawResult?: unknown }
 ): Promise<TextArtifactRef> {
-  const bytes = Buffer.from(JSON.stringify({ items }));
+  let payload: { items: unknown[]; rawResult?: unknown };
+  if (Array.isArray(resultOrItems)) {
+    const rawResult = (resultOrItems as { rawResult?: unknown }).rawResult;
+    payload = { items: resultOrItems, ...(rawResult !== undefined ? { rawResult } : {}) };
+  } else {
+    payload = resultOrItems;
+  }
+  const bytes = Buffer.from(JSON.stringify(payload));
   return putTextArtifact(sql, {
     workspaceId: job.workspaceId,
     kind: job.stage as CohortTextArtifactKind,
@@ -142,6 +193,8 @@ export async function acceptJourneyJob(
     typeof workspaceRow.snapshot === 'string' ? JSON.parse(workspaceRow.snapshot) : workspaceRow.snapshot
   );
 
+  if (!state.journey) return false;
+
   // 2. Lock job row and validate fence, stage, dependencyFingerprint, lease
   const jobRow = (await tx.query(
     `SELECT "jobKey", "stage", "dependencyFingerprint", "fence", "status", "leaseToken"
@@ -157,6 +210,22 @@ export async function acceptJourneyJob(
     jobRow.status !== 'running'
   ) {
     return false;
+  }
+
+  // Explicit stale intentVersion check from jobRow.jobKey or job:
+  const jobKey = String(jobRow.jobKey ?? (job as unknown as { jobKey?: string }).jobKey ?? '');
+  if (job.stage === 'recommendations') {
+    const match = /^journey:recommendations:(\d+)$/.exec(jobKey);
+    const jobIntentVersion = match !== null ? Number(match[1]) : null;
+    if (jobIntentVersion !== null && state.journey.intentVersion !== jobIntentVersion) {
+      return false;
+    }
+  } else if (job.stage === 'discovery') {
+    const match = /^journey:discovery:(\d+):(\d+)$/.exec(jobKey);
+    const jobIntentVersion = match !== null ? Number(match[1]) : null;
+    if (jobIntentVersion !== null && state.journey.intentVersion !== jobIntentVersion) {
+      return false;
+    }
   }
 
   // 3. Verify job is currently planned for this workspace state
@@ -246,6 +315,23 @@ export async function failJourneyJob(
     typeof workspaceRow.snapshot === 'string' ? JSON.parse(workspaceRow.snapshot) : workspaceRow.snapshot
   );
 
+  // If workspace has journey and job is stale (intentVersion changed), do not overwrite with failed
+  const jobRow = (await tx.query(
+    `SELECT "jobKey" FROM "cohort_text_jobs" WHERE "id" = $1 AND "workspaceId" = $2`,
+    [job.id, job.workspaceId]
+  )).rows[0];
+
+  const jobKey = String(jobRow?.jobKey ?? (job as unknown as { jobKey?: string }).jobKey ?? '');
+  if (state.journey && jobKey) {
+    const parts = jobKey.split(':');
+    const jobIntentVersion = (parts[0] === 'journey' && (parts[1] === 'recommendations' || parts[1] === 'discovery'))
+      ? Number(parts[2])
+      : NaN;
+    if (!Number.isNaN(jobIntentVersion) && state.journey.intentVersion !== jobIntentVersion) {
+      return true;
+    }
+  }
+
   // 3. Update workspace projection to failed
   let next: CohortWorkspace;
   if (job.stage === 'recommendations') {
@@ -293,7 +379,8 @@ export function createJourneyJobProcessor(deps: {
     const workspace = await deps.loadWorkspace(job.workspaceId);
     if (job.stage === 'recommendations') {
       const items = await executeRecommendationJob(workspace, deps.recommendationDeps, signal);
-      return Buffer.from(JSON.stringify({ items }));
+      const rawResult = (items as { rawResult?: unknown }).rawResult;
+      return Buffer.from(JSON.stringify({ items, ...(rawResult !== undefined ? { rawResult } : {}) }));
     }
     if (job.stage === 'discovery') {
       const items = await executeDiscoveryJob(workspace, deps.discoveryDeps, signal);
