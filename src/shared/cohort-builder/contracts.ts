@@ -121,7 +121,21 @@ const journeyResultFields = {
   status: z.enum(['queued', 'running', 'ready', 'failed', 'canceled']),
   resultId: id.optional(), generation: z.number().int().nonnegative(),
 };
-export const cohortRecommendationItemSchema = z.strictObject({ id, label: z.string().trim().min(1).max(300), url: publicSourceUrlSchema });
+export const cohortRecommendationItemSchema = z.strictObject({
+  id,
+  label: z.string().trim().min(1).max(300),
+  url: publicSourceUrlSchema,
+  description: z.string().max(10000).optional(),
+  coverImage: z.string().max(2048).nullable().optional(),
+  creatorName: z.string().max(200).nullable().optional(),
+  difficulty: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']).optional(),
+  categories: z.array(z.string().max(200)).max(100).optional(),
+  estimatedCompletionTime: z.string().max(200).nullable().optional(),
+  memberCount: z.number().int().nonnegative().optional(),
+  lessonCount: z.number().int().nonnegative().optional(),
+  reason: z.string().max(600).optional(),
+  isBestMatch: z.boolean().optional(),
+});
 export const cohortDiscoveryItemSchema = z.strictObject({ id, label: z.string().trim().min(1).max(300), kind: z.literal('web'), url: publicSourceUrlSchema });
 export const cohortRecommendationsSchema = z.strictObject({ ...journeyResultFields, items: z.array(cohortRecommendationItemSchema).max(20) });
 export type CohortRecommendations = z.infer<typeof cohortRecommendationsSchema>;

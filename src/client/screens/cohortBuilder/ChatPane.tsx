@@ -89,12 +89,46 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
     }
   };
 
-  const suggestions = [
-    'Add a capstone project lesson',
-    'Tighten audience to intermediate devs',
-    'Set daily commitment to 25 mins',
-    'Clarify objectives across all lessons',
-  ];
+  const step = state.view?.journey?.step;
+
+  const suggestions = step === 'recommendations'
+    ? [
+        'Show more advanced ones',
+        'I want something more practical',
+        'I’ll create my own instead',
+      ]
+    : step === 'starting_point'
+    ? [
+        'I have a YouTube playlist',
+        'Find material for me',
+        'I just have a goal',
+      ]
+    : [
+        'Add a capstone project lesson',
+        'Tighten audience to intermediate devs',
+        'Set daily commitment to 25 mins',
+        'Clarify objectives across all lessons',
+      ];
+
+  const hintTitle = step === 'recommendations'
+    ? (state.view?.recommendations?.items.length === 0 ? 'A new path' : 'Why these?')
+    : step === 'starting_point'
+    ? 'We’ll keep this simple.'
+    : 'Grounded in your material';
+
+  const hintText = step === 'recommendations'
+    ? (state.view?.recommendations?.items.length === 0
+        ? 'No matching public cohort was found. Create your own from this learning intent.'
+        : 'We search public cohorts for your learning intent. You can join a match or create your own.')
+    : step === 'starting_point'
+    ? 'You can start with the material you already have, have me find the best resources, or just tell me your goal and I’ll figure out the rest.'
+    : 'Chat directly with AI to draft, structure, and refine your curriculum with source provenance.';
+
+  const placeholder = step === 'recommendations'
+    ? 'Describe what you want to learn...'
+    : step === 'starting_point'
+    ? 'Describe your starting point or material...'
+    : 'Type an instruction or request...';
 
   const logoSrc = isDark ? '/undone-logo-dark.svg' : '/undone-logo-transparent.svg';
 
@@ -130,7 +164,15 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
               />
               <div className={styles.assistantBubble}>
                 <span className={styles.sender}>Undone</span>
-                <p>I’ve got it. Let’s make a learning journey that fits you.</p>
+                <p>
+                  {step === 'recommendations'
+                    ? (state.view?.recommendations?.items.length
+                        ? 'I found a few existing cohorts that might be a good fit, or we can build your own.'
+                        : 'Let’s make a learning journey that fits you.')
+                    : step === 'starting_point'
+                    ? 'Let’s make something that fits what you actually want. Pick a starting point or describe it.'
+                    : 'I’ve got it. Let’s make a learning journey that fits you.'}
+                </p>
               </div>
             </div>
           </>
@@ -222,8 +264,8 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
         <div className={styles.hint}>
           <Lightbulb size={27} strokeWidth={1.3} aria-hidden="true" />
           <div>
-            <strong>Grounded in your material</strong>
-            <p>Chat directly with AI to draft, structure, and refine your curriculum with source provenance.</p>
+            <strong>{hintTitle}</strong>
+            <p>{hintText}</p>
           </div>
         </div>
       </div>
@@ -249,7 +291,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
         >
           <textarea
             aria-label="Message the cohort assistant"
-            placeholder="Type an instruction or request..."
+            placeholder={placeholder}
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -279,7 +321,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
         </div>
 
         <span className={styles.saved} role="status">
-          {Object.keys(state.pending).length
+          {Object.keys(state.pending ?? {}).length
             ? 'Saving…'
             : connection === 'live'
             ? 'Saved to your account'

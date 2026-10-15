@@ -13,8 +13,10 @@ import { AnalysisStageView } from './stages/AnalysisStageView';
 import { AssemblyStageView } from './stages/AssemblyStageView';
 import { CurriculumStageView } from './stages/CurriculumStageView';
 import { IntakeStageView } from './stages/IntakeStageView';
-import { type BuilderStage, CohortDraftProvider, useCohortDrafts } from './draft-context';
-import { getActiveStage as selectActiveStage } from './stage-selectors';
+import { RecommendationsStageView } from './stages/RecommendationsStageView';
+import { StartingPointStageView } from './stages/StartingPointStageView';
+import { CohortDraftProvider, useCohortDrafts } from './draft-context';
+import { getActiveStage as selectActiveStage, type BuilderStage } from './stage-selectors';
 
 export type Stage = BuilderStage;
 
@@ -40,11 +42,15 @@ export function getEffectiveStage(
   inspectedStage?: Stage | null,
   drafts?: { isAnyDirtyOrOpen: () => boolean; editingStage: Stage | null }
 ): Stage {
+  const active = getActiveStage(workspace);
+  if (active === 'recommendations' || active === 'starting_point') {
+    return active;
+  }
   if (inspectedStage) return inspectedStage;
   if (drafts && drafts.isAnyDirtyOrOpen() && drafts.editingStage) {
     return drafts.editingStage;
   }
-  return getActiveStage(workspace);
+  return active;
 }
 
 export function getProcessingProgress(workspace: CohortWorkspace): ProcessingProgress {
@@ -285,6 +291,7 @@ function InnerCohortWorkspacePane({
   const progress = getProcessingProgress(workspace);
   const activeStage = getActiveStage(workspace);
   const effectiveStage = getEffectiveStage(workspace, inspectedStage, drafts);
+  const isJourneyInitialStep = effectiveStage === 'recommendations' || effectiveStage === 'starting_point';
 
   const stepToStageMap: Record<ProcessingStep['label'], Stage> = {
     Understanding: 'understanding',
@@ -296,51 +303,53 @@ function InnerCohortWorkspacePane({
   return (
     <main className={styles.rightPane} aria-label="Cohort Curriculum Workspace">
       {/* Stepper Navigation */}
-      <div className={styles.stepperNav}>
-        <ol className={styles.creationSteps} aria-label="Creation journey progress">
-          {progress.steps.map((step, index) => {
-            const stepStage = stepToStageMap[step.label];
-            const isInspected = inspectedStage === stepStage;
-            const isCurrent = inspectedStage ? isInspected : step.isCurrent;
-            return (
-              <li
-                key={step.label}
-                role="button"
-                tabIndex={0}
-                aria-current={isCurrent ? 'step' : undefined}
-                data-complete={step.isComplete}
-                data-failed={step.isFailed || undefined}
-                data-inspected={isInspected || undefined}
-                onClick={() => {
-                  // Pure presentation state: sets inspectedStage, no actions dispatched, no store re-creation
-                  setInspectedStage(current => (current === stepStage ? null : stepStage));
-                }}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
+      {!isJourneyInitialStep && (
+        <div className={styles.stepperNav}>
+          <ol className={styles.creationSteps} aria-label="Creation journey progress">
+            {progress.steps.map((step, index) => {
+              const stepStage = stepToStageMap[step.label];
+              const isInspected = inspectedStage === stepStage;
+              const isCurrent = inspectedStage ? isInspected : step.isCurrent;
+              return (
+                <li
+                  key={step.label}
+                  role="button"
+                  tabIndex={0}
+                  aria-current={isCurrent ? 'step' : undefined}
+                  data-complete={step.isComplete}
+                  data-failed={step.isFailed || undefined}
+                  data-inspected={isInspected || undefined}
+                  onClick={() => {
+                    // Pure presentation state: sets inspectedStage, no actions dispatched, no store re-creation
                     setInspectedStage(current => (current === stepStage ? null : stepStage));
-                  }
-                }}
-                style={{ cursor: 'pointer' }}
-              >
-                <span>
-                  {step.isComplete ? (
-                    <Check size={13} aria-label="Complete" />
-                  ) : step.isFailed ? (
-                    <AlertCircle size={13} aria-label="Failed" />
-                  ) : (
-                    index + 1
-                  )}
-                </span>
-                {step.label}
-              </li>
-            );
-          })}
-        </ol>
-      </div>
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setInspectedStage(current => (current === stepStage ? null : stepStage));
+                    }
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <span>
+                    {step.isComplete ? (
+                      <Check size={13} aria-label="Complete" />
+                    ) : step.isFailed ? (
+                      <AlertCircle size={13} aria-label="Failed" />
+                    ) : (
+                      index + 1
+                    )}
+                  </span>
+                  {step.label}
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      )}
 
       {/* Stage Inspection Banner */}
-      {inspectedStage && (
+      {!isJourneyInitialStep && inspectedStage && (
         <div
           data-testid="stage-inspection-banner"
           className={styles.inspectingBanner}
@@ -361,6 +370,12 @@ function InnerCohortWorkspacePane({
       )}
 
       {/* Stage Specific Views */}
+      {effectiveStage === 'recommendations' && (
+        <RecommendationsStageView workspace={workspace} dispatchAction={dispatchAction} />
+      )}
+      {effectiveStage === 'starting_point' && (
+        <StartingPointStageView workspace={workspace} dispatchAction={dispatchAction} />
+      )}
       {effectiveStage === 'intake' && (
         <IntakeStageView workspace={workspace} needsRebuild={progress.needsRebuild} dispatchAction={dispatchAction} />
       )}

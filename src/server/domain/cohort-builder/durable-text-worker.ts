@@ -10,8 +10,18 @@ import { failCurrentTextJob } from './text-job-failure';
 import type { WebTransport } from '../cohort-creation/materials/web-fetch';
 import type { YoutubeTranscriptProvider } from './youtube-transcript';
 import type { GithubSourceProvider } from './github-source';
-import { createJourneyJobProcessor, acceptJourneyJob, failJourneyJob } from './journey-job-handlers';
+import {
+  createJourneyJobProcessor,
+  acceptJourneyJob,
+  failJourneyJob,
+  type RecommendationExecutorDeps,
+  type DiscoveryExecutorDeps,
+} from './journey-job-handlers';
 import { cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
+import {
+  createJourneyRecommendationAdapter,
+  type JourneyRecommendationAdapter,
+} from './journey-recommendation-adapter';
 
 /** Durable S3 driver composition. It is injectable and remains opt-in until migration rollout. */
 export function runDurableTextJobTick(input: {
@@ -24,6 +34,9 @@ export function runDurableTextJobTick(input: {
   webTransport?: WebTransport;
   youtubeTranscriptProvider?: YoutubeTranscriptProvider;
   githubSourceProvider?: GithubSourceProvider;
+  recommendationAdapter?: JourneyRecommendationAdapter;
+  recommendationDeps?: RecommendationExecutorDeps;
+  discoveryDeps?: DiscoveryExecutorDeps;
 }): Promise<TextJobTickResult> {
   const source = createTextSourceProcessor({
     sql: input.sql,
@@ -35,7 +48,11 @@ export function runDurableTextJobTick(input: {
   const assembly = createTextAssemblyProcessor({ sql: input.sql, loadWorkspace: input.loadWorkspace });
   const journey = createJourneyJobProcessor({
     loadWorkspace: async (id) => cohortWorkspaceSchema.parse(await input.loadWorkspace(id)),
-    recommendationDeps: { sql: input.sql },
+    recommendationDeps: input.recommendationDeps ?? {
+      adapter: input.recommendationAdapter ?? createJourneyRecommendationAdapter(),
+      sql: input.sql,
+    },
+    discoveryDeps: input.discoveryDeps,
   });
   return runTextJobTick({
     sql: input.sql, workerId: input.workerId, leaseMs: input.leaseMs, now: input.now, renewLease: true,

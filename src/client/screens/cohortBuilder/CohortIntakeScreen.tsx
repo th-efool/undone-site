@@ -14,30 +14,39 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
   const [busy, setBusy] = useState(false);
   const { theme, isDark } = useTheme();
 
-  useEffect(() => {
-    const saved = readIntakeDraft(ownerId);
-    setDraft(saved);
-    if (saved) saveIntakeDraft(saved, ownerId);
-  }, [ownerId]);
-
-  async function submit() {
-    if (!draft || busy) return;
+  const submitDraft = async (intake: CohortIntake) => {
     setBusy(true);
     setError('');
     try {
       const response = await fetch('/api/cohort-builder/intake', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...draft, expectedOwnerId: ownerId }),
+        body: JSON.stringify({ ...intake, expectedOwnerId: ownerId }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.code);
       // Keep acknowledged identity until navigation succeeds: retry returns the same workspace.
       window.location.assign(`/quest/build/${body.workspaceId}`);
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'INTAKE_UNAVAILABLE');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'INTAKE_UNAVAILABLE');
       setBusy(false);
     }
+  };
+
+  useEffect(() => {
+    const saved = readIntakeDraft(ownerId);
+    setDraft(saved);
+    if (saved) {
+      saveIntakeDraft(saved, ownerId);
+      if (enabled) {
+        void submitDraft(saved);
+      }
+    }
+  }, [ownerId, enabled]);
+
+  async function submit() {
+    if (!draft || busy) return;
+    await submitDraft(draft);
   }
 
   return (
@@ -62,16 +71,12 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
 
       <main className={styles.main}>
         <div className={styles.card}>
-          <div className={styles.cardHeader}>
-            <span className={styles.eyebrow}>Learning Blueprint</span>
-            <h1 className={styles.title}>Start your cohort</h1>
-            {enabled && draft && (
-              <p className={styles.subtitle}>Confirm this learning goal for your signed-in account.</p>
-            )}
-          </div>
-
           {!enabled ? (
             <div className={styles.noticeAlert} role="status">
+              <div className={styles.cardHeader}>
+                <span className={styles.eyebrow}>Notice</span>
+                <h1 className={styles.title}>Intake Unavailable</h1>
+              </div>
               <p>New builder intake is unavailable. Existing workspaces remain accessible.</p>
               {draft ? (
                 <>
@@ -110,50 +115,60 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
               )}
             </div>
           ) : draft ? (
-            <>
-              <div className={styles.promptCard}>
-                <blockquote className={styles.promptQuote}>{draft.prompt}</blockquote>
-              </div>
-              {draft.source && (
-                <div className={styles.sourceCard}>
-                  <BookOpen size={16} className={styles.sourceBadge} aria-hidden="true" />
-                  <p className={styles.sourceLabel}>
-                    Retained text: {draft.source.label} ({draft.source.text.length} characters)
-                  </p>
+            busy ? (
+              <div role="status" aria-live="polite" style={{ textAlign: 'center', padding: '32px 16px' }}>
+                <span className={styles.eyebrow}>Preparing recommendations</span>
+                <h1 className={styles.title} style={{ marginTop: '8px', marginBottom: '16px' }}>
+                  Setting up your learning workspace…
+                </h1>
+                <div className={styles.promptCard} style={{ textAlign: 'left', maxWidth: '480px', margin: '0 auto 20px' }}>
+                  <blockquote className={styles.promptQuote}>{draft.prompt}</blockquote>
                 </div>
-              )}
-              <div className={styles.actions}>
-                <button
-                  type="button"
-                  className={styles.primaryBtn}
-                  disabled={busy}
-                  onClick={() => void submit()}
-                >
-                  {busy ? 'Saving…' : 'Create cohort'}
-                  {!busy && <ArrowRight size={17} aria-hidden="true" />}
-                </button>
-                <button
-                  type="button"
-                  className={styles.secondaryBtn}
-                  disabled={busy}
-                  onClick={() => {
-                    clearIntakeDraft();
-                    setDraft(null);
-                  }}
-                >
-                  Discard
-                </button>
+                <p className={styles.subtitle}>Finding matching cohorts and crafting your personalized path.</p>
               </div>
-            </>
+            ) : error ? (
+              <div>
+                <div className={styles.cardHeader}>
+                  <span className={styles.eyebrow}>Connection Error</span>
+                  <h1 className={styles.title}>Could not resume workspace</h1>
+                </div>
+                <div className={styles.promptCard}>
+                  <blockquote className={styles.promptQuote}>{draft.prompt}</blockquote>
+                </div>
+                <div className={styles.noticeError} role="alert" style={{ marginBottom: '20px' }}>
+                  <p>Could not save: {error}. Your input is retained; retry when available.</p>
+                </div>
+                <div className={styles.actions}>
+                  <button
+                    type="button"
+                    className={styles.primaryBtn}
+                    onClick={() => void submit()}
+                  >
+                    Retry
+                    <ArrowRight size={17} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryBtn}
+                    onClick={() => {
+                      clearIntakeDraft();
+                      setDraft(null);
+                    }}
+                  >
+                    Discard
+                  </button>
+                </div>
+              </div>
+            ) : null
           ) : (
-            <p className={styles.subtitle}>
-              No pending input. <a className={styles.linkButton} href="/#explore">Return to landing</a>.
-            </p>
-          )}
-
-          {error && (
-            <div className={styles.noticeError} role="alert">
-              <p>Could not save: {error}. Your input is retained; retry when available.</p>
+            <div style={{ textAlign: 'center', padding: '32px 16px' }}>
+              <div className={styles.cardHeader}>
+                <span className={styles.eyebrow}>No active quest</span>
+                <h1 className={styles.title}>Start a new cohort</h1>
+              </div>
+              <p className={styles.subtitle}>
+                No pending input found. <a className={styles.linkButton} href="/#explore">Return to landing</a> to begin.
+              </p>
             </div>
           )}
         </div>

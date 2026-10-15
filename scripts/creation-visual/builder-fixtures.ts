@@ -178,3 +178,66 @@ export const builderChatMessages = [
     createdAt: new Date().toISOString(),
   },
 ];
+
+export const builderWorkspaceRecommendations: CohortWorkspace = {
+  ...initialCohort('Distributed Systems Architecture'),
+  intent: 'Distributed Systems Architecture',
+  journey: {
+    version: 1,
+    step: 'recommendations',
+    branch: null,
+    processingStarted: false,
+    intentVersion: 0,
+  },
+  recommendations: {
+    requestId: 'rec-fixture-1',
+    fingerprint: 'fp-rec-1',
+    status: 'ready',
+    resultId: 'art-rec-1',
+    generation: 0,
+    items: [
+      {
+        id: 'cohort-dist-sys-1',
+        label: 'Designing Distributed Systems at Scale',
+        url: 'https://undone.app/cohorts/cohort-dist-sys-1',
+        description: 'Master consensus algorithms, Paxos, Raft, and distributed replication in production environments.',
+        coverImage: '/images/hero-collage/real-mountains.jpg',
+        creatorName: 'Elena Rostova',
+        difficulty: 'ADVANCED',
+        categories: ['Architecture', 'Distributed Systems', 'Backend'],
+        estimatedCompletionTime: '6 weeks',
+        memberCount: 1420,
+        lessonCount: 18,
+        reason: 'Direct match for your interest in distributed consensus and quorum replication.',
+        isBestMatch: true,
+      },
+      {
+        id: 'cohort-dist-sys-2',
+        label: 'Fault-Tolerant Microservices & Event Streams',
+        url: 'https://undone.app/cohorts/cohort-dist-sys-2',
+        description: 'Build reliable distributed pipelines using Kafka, event sourcing, and CQRS patterns.',
+        coverImage: '/images/hero-collage/real-cathedral.jpg',
+        creatorName: 'Marcus Vance',
+        difficulty: 'INTERMEDIATE',
+        categories: ['Microservices', 'Event-Driven', 'DevOps'],
+        estimatedCompletionTime: '4 weeks',
+        memberCount: 890,
+        lessonCount: 12,
+        reason: 'Focuses on practical event stream resilience and partition handling.',
+        isBestMatch: false,
+      },
+    ],
+  },
+};
+
+export const builderWorkspaceStartingPoint: CohortWorkspace = {
+  ...initialCohort('Distributed Systems Architecture'),
+  intent: 'Distributed Systems Architecture',
+  journey: {
+    version: 1,
+    step: 'starting_point',
+    branch: null,
+    processingStarted: false,
+    intentVersion: 0,
+  },
+};

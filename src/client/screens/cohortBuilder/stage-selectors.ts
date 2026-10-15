@@ -26,6 +26,8 @@ export type StageProgressDetails = {
 };
 
 export type BuilderStage =
+  | 'recommendations'
+  | 'starting_point'
   | 'intake'
   | 'understanding'
   | 'chunking'
@@ -58,6 +60,15 @@ export type BuilderStage =
  * 4. Default: 'curriculum' if lessons exist, else 'intake'
  */
 export function getActiveStage(workspace: CohortWorkspace): BuilderStage {
+  if (workspace.journey) {
+    if (workspace.journey.step === 'recommendations') {
+      return 'recommendations';
+    }
+    if (workspace.journey.step === 'starting_point') {
+      return 'starting_point';
+    }
+  }
+
   const sources = workspace.sources ?? [];
   const lessons = workspace.lessons ?? [];
   const processing = workspace.processing;
@@ -148,7 +159,11 @@ export function getEffectiveStage(
   workspace: CohortWorkspace,
   inspectedStage: BuilderStage | null
 ): BuilderStage {
-  return inspectedStage ?? getActiveStage(workspace);
+  const active = getActiveStage(workspace);
+  if (active === 'recommendations' || active === 'starting_point') {
+    return active;
+  }
+  return inspectedStage ?? active;
 }
 
 // ---------------------------------------------------------------------------
