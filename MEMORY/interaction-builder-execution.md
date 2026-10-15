@@ -1,5 +1,33 @@
 # Interaction builder execution checkpoint
 
+CHECKPOINT 2 COMPLETE (2026-10-16) — Recommendations Handler, Frontend Mounting (Screens 2–3) & Integration Verification:
+- Route and Intake Handoff (`src/client/screens/cohortBuilder/CohortIntakeScreen.tsx`):
+  - Retained `/quest/start` authenticated handoff and `/quest/build/[workspaceId]` stable workspace route.
+  - Eliminated generic "Learning Blueprint / Start your cohort" confirmation card for same-owner handoffs; auto-submits seamlessly to `/quest/build/[workspaceId]` while showing clean transition state.
+  - Preserved identity-change protection (`undone:cohort-intake` clears on owner mismatch) and retained draft input on errors.
+- Recommendation Handler & Host Adapter (`journey-recommendation-adapter.ts`, `journey-job-handlers.ts`, `durable-text-worker.ts`):
+  - Implemented `JourneyRecommendationAdapter` reusing `RecommendationService` with read-only catalog repository (`creationRecommendationRepo`) and configured AI (`VercelCohortAi` + `createCohortModel`). Zero imports of `recommendation.runtime.ts`, `creationJobRepo`, or legacy dispatchers.
+  - Bounded safe display projection: converts recommendation results into `CohortRecommendationItem` with safe display fields (`description`, `coverImage`, `creatorName`, `difficulty`, `categories`, `estimatedCompletionTime`, `memberCount`, `lessonCount`, `reason`, `isBestMatch`).
+  - Full results retained in `cohort_text_artifacts` artifacts; safe projection committed atomically into `workspace.recommendations`.
+  - Rejection of stale `intentVersion`: `acceptJourneyJob` rejects acceptance (`return false`) if the job's `intentVersion` does not match `state.journey.intentVersion`, preventing stale background jobs from overwriting updated workspaces.
+  - Honest empty/error states: empty catalog matches return `items: []` triggering designed empty state; AI failures fall back to database search; catalog errors throw retryable `DATA_UNAVAILABLE`.
+  - Wired into `durable-text-worker.ts` for automated worker execution.
+- Frontend Presentation (`RecommendationsStageView.tsx`, `StartingPointStageView.tsx`, `CohortWorkspacePane.tsx`, `stage-selectors.ts`, `ChatPane.tsx`):
+  - Mounted `RecommendationsStageView` for `workspace.journey.step === 'recommendations'`: renders canonical `RecommendationResults` with eligible cohorts or designed empty state; bottom CTA "Create my own cohort" dispatches `create_own_cohort`.
+  - Mounted `StartingPointStageView` for `workspace.journey.step === 'starting_point'`: renders `StartingPoint` with the exact 3 illustrated choices (`have_material`, `find_material`, `have_goal`), dispatching canonical `choose_starting_point { choice }`; "Back to recommendations" dispatches `back_to_recommendations`.
+  - Stepper navigation and capability inspection banners suppressed during initial journey steps.
+  - Shared conversation rail remains fully writable across all steps and surfaces stage-aware suggestion chips.
+  - Legacy workspaces without `journey` preserve existing active stage selectors and stage views.
+- Visual Verification:
+  - Fresh desktop reference (1585 × 992) and mobile (390 × 844) captures generated for Screens 2 (Recommendations) and 3 (Starting point) matching AFTER design references. Saved to `plans/before-after/after-2.png`, `after-3.png`, `mobile-2.png`, `mobile-3.png`.
+  - Updated `plans/before-after/manifest.json` and regenerated `plans/before-after/index.html`.
+- Verification Suite:
+  - 144/144 tests passing across 9 test files (0 failures).
+  - `npx tsc --noEmit`: 0 TypeScript errors.
+  - `npm run verify:vercel`: All pre-verification, TypeScript, and Next.js production build simulation passed (exit 0).
+LAST_CHECKPOINT: `COHORT-JOURNEY-CP2-RECOMMENDATIONS-STARTING-POINT-2026-10-16`
+NEXT: Checkpoint 3: Material input stage, resource selection, and clean source ingestion (`authoritative-flow-plan.md`).
+
 CHECKPOINT 1 COMPLETE (2026-10-16) — Cohort Journey Foundation, Actions, Durable Stages & Intake:
 - Reusable Engine (`packages/interaction-builder`): Added internal `scheduleAssistant?: boolean` to `AppendMessageInput` across Memory and PostgreSQL repositories; rebuilt declarations and bundled artifacts. Committed `c3c6bbc` and pushed to `origin/main`. 103/103 tests passing.
 - Journey Schemas & Transitions (`src/shared/cohort-builder/contracts.ts`, `intake.ts`):
@@ -24,8 +52,6 @@ CHECKPOINT 1 COMPLETE (2026-10-16) — Cohort Journey Foundation, Actions, Durab
   - Hosted worker pending-work predicate recognizes runnable journey jobs and prevents premature exit.
   - Verified in `src/server/infrastructure/db/postgres/__tests__/cohort-intake-journey.test.ts` (8/8 tests passing).
 - Verification: 103/103 tests passing across focused suites, zero TypeScript errors (`tsc --noEmit`), `npm run interaction:worker:check` exit 0.
-LAST_CHECKPOINT: `COHORT-JOURNEY-CP1-FOUNDATION-2026-10-16`
-NEXT: Checkpoint 2: Working starting branches and clean material intake (`authoritative-flow-plan.md`).
 
 LIVE CUTOVER COMPLETE — 2026-10-15 (user-authorized): shared additive S3/S4B/S5/S6 + dispatch schema installed; production durable/intake flags enabled. Host commits `dacfbc8`, `519e4c8` pushed; `519e4c8` deployed as `dpl_Evdrh7DWMMDS14FMcVLPcx21nZMm`, READY on `www.undone.one`. New hosting path: `interaction-dispatch.runtime.ts` → `interaction.workflow.ts` → bounded canonical worker via `interaction.step.ts`; SQL reservation deduplicates wake-ups. Intake/API actions/owned builder resume wake processing. Removed legacy intake detour; writable composer preserves new text during acknowledgement. Fixed Neon pooled startup options, provider tool `inputSchema`, mounted stage order and queued checklist status. `.vercelignore` excludes local secrets/scratch/planning.
 
