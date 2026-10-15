@@ -5,6 +5,7 @@ import { creationSignInUrl } from '@/src/shared/auth/returnTo';
 import { postgresInteractionRepo } from '@/src/server/infrastructure/db/postgres/repositories/interaction.repo';
 import { CohortInteractionScreen } from '@/src/client/screens/cohortBuilder/CohortInteractionScreen';
 import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
+import { dispatchInteractionExecution } from '@/src/server/interaction-dispatch.runtime';
 
 export default async function QuestBuildPage({
   params,
@@ -25,6 +26,9 @@ export default async function QuestBuildPage({
   });
 
   if (!ws) notFound();
+
+  // Recover a missed wake-up after a lost acknowledgement or hosting interruption.
+  await dispatchInteractionExecution();
 
   return (
     <CohortInteractionScreen

@@ -4,6 +4,7 @@ import { dispatchInteraction } from 'interaction-builder/adapters/http';
 import { postgresInteractionRepo } from './infrastructure/db/postgres/repositories/interaction.repo';
 import { getCreationOwner } from './infrastructure/auth/getCreationOwner';
 import { cohortDomain } from './domain/cohort-builder/domain';
+import { dispatchInteractionExecution } from './interaction-dispatch.runtime';
 
 export async function executeAssistantTurn(ownerId: string, workspaceId: string) {
   // HTTP persists intent; the supervised worker owns execution and heartbeat.
@@ -51,9 +52,14 @@ const handlers = { ...engineHandlers, sendMessage: async (...args: Parameters<ty
   return engineHandlers.createWorkspace(ownerId, input);
 } };
 
-export function handleInteractionRequest(request: Request, segments: string[]) {
+export async function handleInteractionRequest(request: Request, segments: string[]) {
   if (request.method === 'POST' && request.headers.get('origin') !== new URL(request.url).origin) {
     return Response.json({ code: 'INVALID_ORIGIN' }, { status: 403, headers: { 'Cache-Control': 'no-store' } });
   }
-  return dispatchInteraction(request, segments, getCreationOwner, handlers);
+  const response = await dispatchInteraction(request, segments, getCreationOwner, handlers);
+  if (request.method === 'POST' && response.ok) {
+    try { await dispatchInteractionExecution(); }
+    catch { return Response.json({ code: 'EXECUTION_UNAVAILABLE', retryable: true }, { status: 503 }); }
+  }
+  return response;
 }

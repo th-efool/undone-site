@@ -29,6 +29,8 @@ export interface InteractionWorkerOptions {
   supervisionSql?: SupervisionSql | null;
   durable?: { tick: () => Promise<void>; close: () => Promise<void> } | null;
   textWorkspaceCandidates?: () => Promise<Array<{ id: string; ownerId: string }>>;
+  /** Bounded execution for durable hosting steps; SQL leases remain authoritative. */
+  maxIterations?: number;
 }
 
 export async function runInteractionWorkerLoop(
@@ -80,7 +82,8 @@ export async function runInteractionWorkerLoop(
     : (textDriver() === 'durable' && process.env.DATABASE_URL
         ? await createTextJobRuntime(process.env.DATABASE_URL, workerId, leaseDurationMs) : null);
   try {
-  while (!signal.aborted) {
+  let iterations = 0;
+  while (!signal.aborted && (options.maxIterations === undefined || iterations++ < options.maxIterations)) {
     try {
       if (supervisionSql && (Date.now() - lastWorkerHeartbeat >= heartbeatIntervalMs)) {
         try {

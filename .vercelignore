@@ -1,0 +1,24 @@
+# Keep local credentials, scratch databases, generated files and planning out of uploads.
+.env
+.env.*
+.tmp/
+.agents/
+.claude/
+.codex/
+.windsurf/
+MEMORY/
+plans/
+artifacts/
+_archived/
+screenshots/
+scratch/
+coverage/
+out/
+dist-worker/
+generated/
+**/android/
+**/*.tgz
+**/*.pem
+**/*.jks
+credentials.json
+token.json

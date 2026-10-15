@@ -24,7 +24,7 @@ export async function createTextJobRuntime(
   }
 ) {
   const pool = new Pool({ connectionString, max: 3, connectionTimeoutMillis: 15_000,
-    options: '-c timezone=UTC -c statement_timeout=15000 -c lock_timeout=5000' });
+    query_timeout: 15_000 });
   const sql: TextArtifactSql = { query: (statement, parameters) => pool.query(statement, parameters) };
   const webTransport=localSourceFixture();
   try {
@@ -37,6 +37,7 @@ export async function createTextJobRuntime(
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      await client.query("SET LOCAL timezone='UTC'; SET LOCAL statement_timeout='15s'; SET LOCAL lock_timeout='5s'");
       const result = await work({ query: (statement, parameters) => client.query(statement, parameters) });
       await client.query('COMMIT');
       return result;
