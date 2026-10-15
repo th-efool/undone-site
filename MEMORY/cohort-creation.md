@@ -6,7 +6,9 @@ PRECEDENCE: current source/schema > `plans/cohort-creation-checkpoint.md` curren
 
 ## Locate first
 
-UX REPAIR (CP1-CP5): Canonical builder at `/quest/build/[workspaceId]` completely reproduces legacy frontend design (`CreationShell`, `StartingPoint`, `ReviewWorkspace` typography, spacing, colors, illustrations, composer, source intake, processing steps, curriculum outline, evidence drawer, release panel) while preserving the canonical backend and InteractionProvider/store. Intake fallback displays clear policy/readiness messages and offers explicit link to `/quest/new?handoff=1` with retained draft input. Checkpoints 1-5 verified.
+LIVE CUTOVER (2026-10-15): Production new intake enabled, shared additive S3–S6 + workflow-dispatch schema installed with user authorization. `/quest/start` → `/quest/build/[workspaceId]`; hosted execution uses `src/server/interaction.workflow.ts` via SQL-deduplicated dispatch. New intake no longer offers a legacy detour on disabled/error states. Existing v1 drafts retain their resume route. Live authenticated landing/source/assistant action/evidence/pin/reload verified; see `docs/live-builder-cutover.md`. Host repair commits `dacfbc8`, `519e4c8`; reusable engine unchanged.
+
+UX REPAIR (CP1-CP5): Canonical builder uses the legacy visual language while preserving the canonical backend and InteractionProvider/store. Mounted stage routing delegates to `stage-selectors.ts`; queued checklist work displays pending. Composer remains writable while sending and preserves text typed before acknowledgement.
 
 V2 S4B: `src/server/domain/cohort-builder/source-adapters.ts`, `source-evidence.ts`, durable `text-*` jobs; `src/server/infrastructure/db/postgres/cohort-pdf-upload.ts`; `src/client/screens/cohortBuilder/ExternalSources.tsx`; owned `/api/cohort-builder/workspaces/:id/pdf` and `/sources`. PDF/web flags default off, durable driver + additive S4B constraints required. Local real SQL/browser verification passed; shared rollout unauthorized. See `docs/s4b-verification.md` and `MEMORY/interaction-builder-execution.md`. V1 writer/processors remain separate; only narrow parser/transport reuse.
 
@@ -36,8 +38,7 @@ CentralInterface.handleSubmit
   -> tab-local session handoff (owned/expiring; prompt/source stay out of URLs)
   -> v2 enabled: /quest/start -> authenticate -> explicit owner confirmation
      -> atomic POST /api/cohort-builder/intake -> /quest/build/<workspaceId>
-  -> v2 disabled, no source: /quest/new?handoff=1 -> authenticate -> explicit confirmation
-     -> existing CreationExperience(requestId, retainedPrompt)
+  -> v2 disabled: retained input + unavailable notice, without legacy redirection
   -> old explicit /quest/new?q links remain compatible
   -> useCreation: POST /api/cohort-creation/drafts
   -> browser URL: /quest/draft/<draftId>

@@ -32,6 +32,13 @@ Vercel project `undone`: production `INTERACTION_TEXT_DRIVER=durable`, `INTERACT
 - Real authenticated landing prompt + pasted source reached `/quest/build/e9b92638-cf2d-4926-a6a8-86f775aecce8`.
 - Hosted worker completed initial assistant reply and all five durable source stages; snapshot reached ready with four grounded lessons. No local polling worker was running.
 - Live textarea remained writable during send; newly typed text survived acknowledgement.
-- First daily-minutes tool call exposed obsolete provider schemas and failed visibly; follow-up deployment and successful live retry still pending.
+- First daily-minutes tool call exposed obsolete provider schemas and failed visibly. Follow-up `519e4c8` deployed as `dpl_Evdrh7DWMMDS14FMcVLPcx21nZMm` (READY; aliased to `www.undone.one`). Live retry completed successfully, changed canonical pace to 20 minutes, delivered an assistant reply through the mounted conversation and updated the workspace without reload. Regeneration retained the pin.
+- Reload of the real authenticated route preserved the transcript, four lessons, 20-minute pace and pinned lesson. Composer remained enabled. Screenshot: `.tmp/live-builder-cutover.png` (local verification artifact, excluded from commits/deployment).
+
+## Closure
+
+Landing/composer/hosted-execution repair is complete and live. Host commits `dacfbc8` and `519e4c8` pushed; reusable engine unchanged at `ab0e9d9`. Planning updates synchronized separately. The local tests use deterministic providers; live smoke used the existing configured provider through normal authenticated product actions.
+
+This cutover does not certify every historical S6/S7 gate or enable gated external connectors. The standalone demo authentication configuration issue and load-evidence audit remain separate follow-up items.
 
 No database reset, existing draft deletion, authentication bypass or fixture mode was used for live verification.
