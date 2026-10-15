@@ -1,5 +1,33 @@
 # Interaction builder execution checkpoint
 
+CHECKPOINT 4 COMPLETE (2026-10-16) — Discovery, Goal Generation Branches & Proof Verification:
+- Discovery Durable Handler & Artifact Storage (`journey-discovery-adapter.ts`, `journey-job-handlers.ts`, `interaction.repo.ts`, `journey-discovery-adapter.test.ts`):
+  - `WorkspaceArtifactStoreAdapter` stores search results in `cohort_text_artifacts` with kind `'discovery'`.
+  - Zero legacy draft rows created in `cohort_creation_drafts`.
+  - Maps safe candidates into `CohortDiscoveryItem` (`kind: 'web'`, bounded to 20, valid URLs).
+  - Handles empty citations honestly (`items: []`).
+  - Stale `intentVersion` rejection on job acceptance.
+  - Proof verification in `commitAction` for `select_discovery_resources`: loads artifact by `resultId` from `cohort_text_artifacts`, verifies proof matches projection, validates candidate IDs, atomically creates canonical web sources, advances to `material_input`.
+- Goal Generation Branch & AI-Authored Guide (`journey-goal-adapter.ts`, `text-source-processor.ts`, `text-job-acceptance.ts`, `source-adapters.ts`, `journey-goal-adapter.test.ts`):
+  - Canonical source input kind `generated_guide`.
+  - `acquireGeneratedGuide` authors guide using `CreationGuideAuthor` and retains it via `retainGeneratedGuide`.
+  - Explicit AI provenance: `contentOrigin: 'ai'`, `scope: 'ai_authored_guide'`, with `GENERATED_GUIDE_LIMITATION`.
+  - Executed as acquisition in the existing source DAG.
+  - `acceptCurrentTextJob` accepts `generated_guide` acquisition artifact.
+  - `extractGeneratedGuide` extracts text, locations, and provenance for downstream stages (understanding, chunking, analysis, assembly).
+- Branch UI (`DiscoveryStageView.tsx` & `.module.css`, `GoalStageView.tsx` & `.module.css`, `stage-selectors.ts`, `CohortWorkspacePane.tsx`, `ChatPane.tsx`, `journey-checkpoint4-branch.test.tsx`):
+  - Discovery: search prompt, loading state with cancellation, honest empty state with retry/switch options, candidate selection checkboxes, select-all helper, "Acquire selected sources" button.
+  - Goal: goal textarea, target audience input, daily minutes pacing pills, explicit AI disclosure confirmation checkbox, "Generate learning guide" button.
+  - Shared conversation shell with contextual suggestion chips. Stepper navigation suppressed during discovery and goal setup.
+  - Canonical actions only.
+- Verification & Test Suite (`journey-checkpoint4-integration.test.ts`):
+  - End-to-end integration test verifying both branches, proof validation, DAG execution, edge cases (empty discovery, provider failure, retry, stale intent).
+  - 176/176 tests passing across all 14 journey test files.
+  - `npx tsc --noEmit`: 0 TypeScript compilation errors.
+  - `npm run verify:vercel`: 100% passed (pre-verify, submodules, typecheck, prisma, Next.js production build simulation).
+LAST_CHECKPOINT: `COHORT-JOURNEY-CP4-DISCOVERY-GOAL-BRANCHES-2026-10-16`
+NEXT: Checkpoint 5: Review stage, curriculum assembly & publishing (`authoritative-flow-plan.md`).
+
 CHECKPOINT 3 COMPLETE (2026-10-16) — Native-Video Observation Adapter, Screen 4 Material UI, Composed Pipeline & Parity Verification:
 - Native-Video Observation Adapter (`journey-video-adapter.ts`, `youtube-video-observation.ts`, `source-adapters.ts`, `text-source-processor.ts`, `youtube-video-policy.ts`):
   - Canonical `video_observation` acquisition mode alongside `transcript`.

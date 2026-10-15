@@ -76,6 +76,12 @@ export async function acceptCurrentTextJob(
         const response=retainedGithubSourceSchema.parse(JSON.parse(retained.bytes.toString('utf8')));
         const normalized=singleGithubRepo(source.input.repoUrl);
         if(response.repo.owner!==normalized.owner || response.repo.repo!==normalized.repo || response.ref!==source.input.ref) throw new Error('FOREIGN_GITHUB_REPOSITORY');
+      } else if (source.input.kind === 'generated_guide') {
+        const { generatedGuideArtifactSchema } = await import('@/src/shared/cohort-creation/generated-guide');
+        const artifactData = generatedGuideArtifactSchema.parse(JSON.parse(retained.bytes.toString('utf8')));
+        if (artifactData.extractionKind !== 'generated_guide' || artifactData.contentOrigin !== 'ai') {
+          throw new Error('FOREIGN_GENERATED_GUIDE');
+        }
       } else {
         throw new Error('UNSUPPORTED_SOURCE_PREREQUISITE');
       }

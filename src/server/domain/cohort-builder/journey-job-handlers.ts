@@ -26,6 +26,14 @@ import {
   executeCohortRecommendations,
   type JourneyRecommendationAdapter,
 } from './journey-recommendation-adapter';
+import {
+  executeCohortDiscovery,
+  type DiscoveryAdapter,
+  type DiscoveryAdapterDeps,
+} from './journey-discovery-adapter';
+import type { ResourceDiscovery } from '../cohort-creation/discovery.contracts';
+import type { DiscoverySourceObserver } from '../cohort-creation/discovery-observer';
+import type { CreationArtifactRepository } from '@/src/server/infrastructure/storage/creation.store';
 
 export interface RecommendationExecutorDeps {
   adapter?: JourneyRecommendationAdapter;
@@ -38,8 +46,14 @@ export interface RecommendationExecutorDeps {
 }
 
 export interface DiscoveryExecutorDeps {
+  adapter?: DiscoveryAdapter;
   discoverCandidates?: (query: string, signal?: AbortSignal) => Promise<Array<{ id: string; label: string; kind?: 'web'; url: string }>>;
   sql?: TextArtifactSql;
+  ai?: ResourceDiscovery;
+  observer?: Pick<DiscoverySourceObserver, 'observe'>;
+  storage?: Pick<CreationArtifactRepository, 'putJSON' | 'getJSON' | 'ref'>;
+  model?: LanguageModel;
+  workspaceId?: string;
 }
 
 /** Reads public accessible cohorts catalog or uses RecommendationService (read-only). Produces safe items [{ id, label, url }]. */
@@ -146,7 +160,29 @@ export async function executeDiscoveryJob(
     }));
     return z.array(cohortDiscoveryItemSchema).max(20).parse(items);
   }
-  return [];
+
+  if (deps?.adapter) {
+    const result = await deps.adapter.executeCohortDiscovery(workspace, signal);
+    const items = [...result.items];
+    Object.assign(items, { rawResult: result.rawResult });
+    return items;
+  }
+
+  const result = await executeCohortDiscovery(
+    workspace,
+    {
+      ai: deps?.ai,
+      observer: deps?.observer,
+      storage: deps?.storage,
+      sql: deps?.sql,
+      model: deps?.model,
+      workspaceId: deps?.workspaceId,
+    },
+    signal
+  );
+  const items = [...result.items];
+  Object.assign(items, { rawResult: result.rawResult });
+  return items;
 }
 
 export async function retainJourneyArtifact(
@@ -383,8 +419,13 @@ export function createJourneyJobProcessor(deps: {
       return Buffer.from(JSON.stringify({ items, ...(rawResult !== undefined ? { rawResult } : {}) }));
     }
     if (job.stage === 'discovery') {
-      const items = await executeDiscoveryJob(workspace, deps.discoveryDeps, signal);
-      return Buffer.from(JSON.stringify({ items }));
+      const items = await executeDiscoveryJob(
+        workspace,
+        deps.discoveryDeps ? { workspaceId: job.workspaceId, ...deps.discoveryDeps } : { workspaceId: job.workspaceId },
+        signal
+      );
+      const rawResult = (items as { rawResult?: unknown }).rawResult;
+      return Buffer.from(JSON.stringify({ items, ...(rawResult !== undefined ? { rawResult } : {}) }));
     }
     throw new Error('UNSUPPORTED_JOURNEY_STAGE');
   };

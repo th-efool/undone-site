@@ -97,6 +97,16 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
         'I want something more practical',
         'I’ll create my own instead',
       ]
+    : step === 'discovery'
+    ? [
+        'Search again',
+        'I’ll provide my own sources instead',
+      ]
+    : step === 'goal_setup'
+    ? [
+        '30 minutes per day',
+        'For intermediate developers',
+      ]
     : step === 'starting_point' || step === 'material_input'
     ? [
         'I have a YouTube playlist',
@@ -116,6 +126,10 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
     ? 'We’ll keep this simple.'
     : step === 'material_input'
     ? 'You can give me multiple sources'
+    : step === 'discovery'
+    ? 'Discovering sources'
+    : step === 'goal_setup'
+    ? 'AI-authored guide'
     : 'Grounded in your material';
 
   const hintText = step === 'recommendations'
@@ -126,6 +140,10 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
     ? 'You can start with the material you already have, have me find the best resources, or just tell me your goal and I’ll figure out the rest.'
     : step === 'material_input'
     ? 'A playlist, some PDFs, a GitHub repo, articles — whatever you’ve got. I’ll understand it, break it down, and turn it into a structured learning journey.'
+    : step === 'discovery'
+    ? 'Review observed sources before acquiring them, or search again.'
+    : step === 'goal_setup'
+    ? 'Shape your learning goal and pacing. We will generate a structured learning guide.'
     : 'Chat directly with AI to draft, structure, and refine your curriculum with source provenance.';
 
   const placeholder = step === 'recommendations'
@@ -134,6 +152,10 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
     ? 'Describe your starting point or material...'
     : step === 'material_input'
     ? 'Say anything...'
+    : step === 'discovery'
+    ? 'Refine your search or ask about sources...'
+    : step === 'goal_setup'
+    ? 'Describe your goal, pacing, or background...'
     : 'Type an instruction or request...';
 
   const logoSrc = isDark ? '/undone-logo-dark.svg' : '/undone-logo-transparent.svg';
@@ -177,6 +199,10 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
                         : 'Let’s make a learning journey that fits you.')
                     : step === 'starting_point'
                     ? 'Let’s make something that fits what you actually want. Pick a starting point or describe it.'
+                    : step === 'discovery'
+                    ? 'I can search for grounded sources to fit your goal, or you can provide your own.'
+                    : step === 'goal_setup'
+                    ? 'Let’s shape your goal and daily pace to generate your learning guide.'
                     : 'I’ve got it. Let’s make a learning journey that fits you.'}
                 </p>
               </div>

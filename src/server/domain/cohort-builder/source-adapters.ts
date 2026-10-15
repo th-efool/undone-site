@@ -10,6 +10,7 @@ import { WEB_PARSER_VERSION } from '@/src/server/domain/cohort-creation/material
 import { YOUTUBE_TRANSCRIPT_VERSION } from '@/src/shared/cohort-builder/youtube-transcript';
 import { VIDEO_OBSERVATION_PARSER_VERSION } from '@/src/shared/cohort-builder/youtube-video-observation';
 import { GITHUB_SOURCE_VERSION } from '@/src/shared/cohort-builder/github-source';
+import { GENERATED_GUIDE_VERSION } from '@/src/shared/cohort-creation/generated-guide';
 import { cohortSourceSchema, type CohortSource } from '@/src/shared/cohort-builder/contracts';
 import type { TextArtifactRef } from './text-artifacts';
 import { PDF_SOURCE_BYTES } from './source-policy';
@@ -30,13 +31,13 @@ export const sourceExtractionSchema = z.strictObject({ format:z.literal('cohort-
 });
 export type SourceExtraction = z.infer<typeof sourceExtractionSchema>;
 
-function sourceError(error:unknown,kind:'pdf'|'web'|'youtube'|'github'): never {
+function sourceError(error:unknown,kind:'pdf'|'web'|'youtube'|'github'|'generated_guide'): never {
   const code = (error as {code?:string})?.code;
   if (code === 'LIMIT_EXCEEDED') throw new Error('SOURCE_LIMIT_EXCEEDED');
   if (code === 'INTEGRITY') throw new Error('RETAINED_SOURCE_INTEGRITY');
   if (code === 'UNAVAILABLE') throw new Error('WEB_SOURCE_UNAVAILABLE');
   if (error instanceof Error && /^[A-Z_]+$/.test(error.message)) throw error;
-  throw new Error(kind === 'pdf' ? 'PDF_UNREADABLE' : kind === 'web' ? 'WEB_SOURCE_REJECTED' : kind === 'youtube' ? 'TRANSCRIPT_UNREADABLE' : 'GITHUB_SOURCE_UNREADABLE');
+  throw new Error(kind === 'pdf' ? 'PDF_UNREADABLE' : kind === 'web' ? 'WEB_SOURCE_REJECTED' : kind === 'youtube' ? 'TRANSCRIPT_UNREADABLE' : kind === 'github' ? 'GITHUB_SOURCE_UNREADABLE' : 'GENERATED_GUIDE_UNREADABLE');
 }
 
 /** Uses the existing pinned connection transport; fixture transports still pass every URL/DNS check. */
@@ -56,7 +57,7 @@ const cache = new Map<string,Promise<SourceExtraction>>();
 /** Only trusted parser results enter this bounded cache; accepted blobs never seed it. */
 export async function extractRetainedSource(source:CohortSource,ref:TextArtifactRef,bytes:Uint8Array):Promise<SourceExtraction> {
   if (!source.input || ref.checksum !== hash(bytes)) throw new Error('RETAINED_SOURCE_INTEGRITY');
-  const key = hash(JSON.stringify([ref.checksum,source.input,PDF_PARSER_VERSION,WEB_PARSER_VERSION,YOUTUBE_TRANSCRIPT_VERSION,VIDEO_OBSERVATION_PARSER_VERSION,GITHUB_SOURCE_VERSION]));
+  const key = hash(JSON.stringify([ref.checksum,source.input,PDF_PARSER_VERSION,WEB_PARSER_VERSION,YOUTUBE_TRANSCRIPT_VERSION,VIDEO_OBSERVATION_PARSER_VERSION,GITHUB_SOURCE_VERSION,GENERATED_GUIDE_VERSION]));
   const prior = cache.get(key); if (prior) return prior;
   const work = (async () => {
     try {
@@ -142,13 +143,16 @@ export async function extractRetainedSource(source:CohortSource,ref:TextArtifact
         result = {format:'cohort-extraction-v1',text:extracted.text,locations:extracted.locations,
           provenance:{parserVersion:GITHUB_SOURCE_VERSION,rawChecksum:ref.checksum,scope:'selected_files',
             repoUrl:source.input!.repoUrl,ref:source.input!.ref,commitSha:extracted.commitSha,fileCount:extracted.fileCount}};
+      } else if (source.input!.kind === 'generated_guide') {
+        const { extractGeneratedGuide } = await import('./journey-goal-adapter');
+        result = extractGeneratedGuide(bytes, source.input!);
       } else {
         throw new Error('UNSUPPORTED_SOURCE_KIND');
       }
       if (Buffer.byteLength(result.text)>200_000) throw new Error('SOURCE_LIMIT_EXCEEDED');
       return sourceExtractionSchema.parse(result);
     } catch(error) {
-      if (source.input?.kind === 'pdf' || source.input?.kind === 'web' || source.input?.kind === 'youtube' || source.input?.kind === 'github') {
+      if (source.input?.kind === 'pdf' || source.input?.kind === 'web' || source.input?.kind === 'youtube' || source.input?.kind === 'github' || source.input?.kind === 'generated_guide') {
         return sourceError(error, source.input.kind);
       }
       throw error;

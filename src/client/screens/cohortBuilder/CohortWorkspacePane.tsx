@@ -17,6 +17,8 @@ import { IntakeStageView } from './stages/IntakeStageView';
 import { RecommendationsStageView } from './stages/RecommendationsStageView';
 import { StartingPointStageView } from './stages/StartingPointStageView';
 import { MaterialStageView } from './stages/MaterialStageView';
+import { DiscoveryStageView } from './stages/DiscoveryStageView';
+import { GoalStageView } from './stages/GoalStageView';
 import { CohortDraftProvider, useCohortDrafts } from './draft-context';
 import { getActiveStage as selectActiveStage, type BuilderStage } from './stage-selectors';
 
@@ -45,7 +47,13 @@ export function getEffectiveStage(
   drafts?: { isAnyDirtyOrOpen: () => boolean; editingStage: Stage | null }
 ): Stage {
   const active = getActiveStage(workspace);
-  if (active === 'recommendations' || active === 'starting_point' || active === 'material_input') {
+  if (
+    active === 'recommendations' ||
+    active === 'starting_point' ||
+    active === 'material_input' ||
+    active === 'discovery' ||
+    active === 'goal_setup'
+  ) {
     return active;
   }
   if (inspectedStage) return inspectedStage;
@@ -297,7 +305,9 @@ function InnerCohortWorkspacePane({
   const isJourneyInitialStep =
     effectiveStage === 'recommendations' ||
     effectiveStage === 'starting_point' ||
-    effectiveStage === 'material_input';
+    effectiveStage === 'material_input' ||
+    effectiveStage === 'discovery' ||
+    effectiveStage === 'goal_setup';
 
   const stepToStageMap: Record<ProcessingStep['label'], Stage> = {
     Understanding: 'understanding',
@@ -421,6 +431,12 @@ function InnerCohortWorkspacePane({
           ownerId={propOwnerId}
           dispatchAction={dispatchAction}
         />
+      )}
+      {effectiveStage === 'discovery' && (
+        <DiscoveryStageView workspace={workspace} dispatchAction={dispatchAction} />
+      )}
+      {effectiveStage === 'goal_setup' && (
+        <GoalStageView workspace={workspace} dispatchAction={dispatchAction} />
       )}
       {effectiveStage === 'intake' && (
         <IntakeStageView workspace={workspace} needsRebuild={progress.needsRebuild} dispatchAction={dispatchAction} />

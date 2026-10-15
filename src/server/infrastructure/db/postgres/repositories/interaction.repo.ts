@@ -430,12 +430,45 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
           throw new Error('STALE_WORKSPACE');
         }
 
-        if (workspace.domainId === 'cohort') await validateSourceAction({ query: async (sql, values) => ({ rows: await tx.$queryRawUnsafe(sql, ...values) }) }, input.workspaceId, (input.envelope as { action: unknown }).action);
+        let planToExecute = input.plan;
+        if (workspace.domainId === 'cohort') {
+          await validateSourceAction({ query: async (sql, values) => ({ rows: await tx.$queryRawUnsafe(sql, ...values) }) }, input.workspaceId, (input.envelope as { action: unknown }).action);
+          const rawAction = (input.envelope as { action?: { type?: string; resultId?: string } })?.action;
+          if (rawAction?.type === 'select_discovery_resources' && rawAction.resultId) {
+            const artifactRows = await tx.$queryRaw<Array<{ id: string; fingerprint: string; body: unknown }>>`
+              SELECT "id", "inputFingerprint" as "fingerprint", "body"
+              FROM "cohort_text_artifacts"
+              WHERE "id" = ${rawAction.resultId} AND "workspaceId" = ${input.workspaceId} AND "kind" = 'discovery'
+            `;
+            const art = artifactRows[0];
+            if (art) {
+              let parsedPayload: any;
+              try {
+                const bodyStr = (art.body instanceof Uint8Array || Buffer.isBuffer(art.body))
+                  ? Buffer.from(art.body).toString('utf8')
+                  : typeof art.body === 'string'
+                  ? art.body
+                  : JSON.stringify(art.body);
+                parsedPayload = JSON.parse(bodyStr);
+              } catch {
+                parsedPayload = art.body;
+              }
+              const items = Array.isArray(parsedPayload) ? parsedPayload : (Array.isArray(parsedPayload?.items) ? parsedPayload.items : []);
+              const discoveryResult = {
+                resultId: art.id,
+                fingerprint: art.fingerprint,
+                items,
+              };
+              const originalPlan = input.plan;
+              planToExecute = (st, act, ctx) => originalPlan(st, act, { ...ctx, discoveryResult } as any);
+            }
+          }
+        }
         const commitResult = planActionCommit({
           state: workspace.snapshot as State,
           currentRevision: workspace.revision,
           envelope: input.envelope,
-          plan: input.plan,
+          plan: planToExecute,
         });
 
         const nextSequence = workspace.sequence + 1;
