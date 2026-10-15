@@ -19,6 +19,7 @@ export interface ReleaseWorkspaceParams {
   ownerId: string;
   mode: 'private_activation' | 'public_publish';
   operationId?: string;
+  expectedRevision?: number;
 }
 
 export interface ReleaseWorkspaceResult {
@@ -65,6 +66,9 @@ export async function releaseWorkspace(
     }
     if (workspaceRow.lifecycle === 'archived') {
       throw new Error('WORKSPACE_ARCHIVED: Archived workspaces cannot be released.');
+    }
+    if (params.expectedRevision !== undefined && workspaceRow.revision !== params.expectedRevision) {
+      throw new Error(`STALE_WORKSPACE: Workspace was modified since approval (expected revision ${params.expectedRevision}, found ${workspaceRow.revision}).`);
     }
 
     // 2. Validate workspace readiness
