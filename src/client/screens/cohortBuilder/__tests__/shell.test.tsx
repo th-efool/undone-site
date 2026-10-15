@@ -14,7 +14,20 @@ vi.mock('@/src/client/interaction/hooks', () => ({
 }));
 import { CohortInteractionScreen } from '../CohortInteractionScreen';
 import { BuilderDialog } from '../BuilderDialog';
+import { getStageProgressDetails } from '../stage-selectors';
 afterEach(cleanup);
+it('opens the earliest unfinished stage when persisted jobs arrive out of order', () => {
+  const job = (stage: string) => ({ id: stage, sourceId: stage === 'assembly' ? null : 'source', stage,
+    status: 'queued', attempts: 0, error: null, retryable: false });
+  fake.view = cohortWorkspaceSchema.parse({ schemaVersion: 1, title: 'Test', intent: 'Learn', audience: '', dailyMinutes: 20,
+    lessons: [], sources: [{ id: 'source', version: 0, label: 'Notes', text: 'Quorums overlap.', checksum: null, state: 'processing' }],
+    processing: { status: 'queued', stage: 'acquisition', generation: 1, sourceFingerprint: null, error: null,
+      jobs: [job('analysis'), job('acquisition'), job('assembly'), job('chunking'), job('understanding')] } });
+  render(<CohortInteractionScreen workspaceId="workspace" ownerId="owner" initialView={fake.view} />);
+  expect(screen.getByRole('region', { name: 'Understanding material' })).toBeTruthy();
+  expect(getStageProgressDetails(fake.view).analysis.status).toBe('pending');
+  expect(getStageProgressDetails(fake.view).assembly.status).toBe('pending');
+});
 it('keeps composer and source inputs mounted through pane switches and canonical updates', () => {
   fake.view = cohortWorkspaceSchema.parse({ schemaVersion: 1, title: 'Test', intent: 'Learn', audience: '', dailyMinutes: 20, lessons: [] });
   const props = { workspaceId: 'workspace', ownerId: 'owner', initialView: fake.view };
