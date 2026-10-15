@@ -3,7 +3,7 @@ import { readTextArtifact, type CohortTextArtifactKind, type TextArtifactSql } f
 
 const stageArtifactKind: Record<string, CohortTextArtifactKind> = {
   acquisition: 'source_raw', extraction: 'extraction', understanding: 'understanding', chunking: 'chunks',
-  analysis: 'analysis', assembly: 'assembly',
+  analysis: 'analysis', assembly: 'assembly', recommendations: 'recommendations', discovery: 'discovery',
 };
 
 export interface ClaimedTextJob {
@@ -34,7 +34,7 @@ export async function claimTextJob(sql: TextArtifactSql, workerId: string, now: 
     WHERE "status" = 'running' AND "leaseUntil" < $1::timestamp AND "attempts" >= 3`, [time.at]);
   const result = await sql.query(`WITH candidate AS (
     SELECT j."id" FROM "cohort_text_jobs" j
-    WHERE j."handlerVersion" IN (1,2) AND j."attempts" < 3 AND ((j."status" = 'queued' AND j."dueAt" <= $1::timestamp)
+    WHERE j."handlerVersion" IN (1,2,3) AND j."attempts" < 3 AND ((j."status" = 'queued' AND j."dueAt" <= $1::timestamp)
       OR (j."status" = 'running' AND j."leaseUntil" < $1::timestamp))
       AND NOT EXISTS (
         SELECT 1 FROM "cohort_text_job_edges" e

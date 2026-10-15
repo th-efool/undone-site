@@ -102,16 +102,23 @@ export async function extractRetainedSource(source:CohortSource,ref:TextArtifact
         result = {format:'cohort-extraction-v1',text:extracted.text,locations:extracted.locations,
           provenance:{parserVersion:YOUTUBE_TRANSCRIPT_VERSION,rawChecksum:ref.checksum,scope:'transcript_only',
             finalUrl:source.input!.url,videoId:extracted.videoId,track:extracted.track,timeScope:source.input!.scope}};
-      } else {
+      } else if (source.input!.kind === 'github') {
         const {extractGithubSource}=await import('./github-source');
         const extracted=extractGithubSource(bytes,source.input!);
         result = {format:'cohort-extraction-v1',text:extracted.text,locations:extracted.locations,
           provenance:{parserVersion:GITHUB_SOURCE_VERSION,rawChecksum:ref.checksum,scope:'selected_files',
             repoUrl:source.input!.repoUrl,ref:source.input!.ref,commitSha:extracted.commitSha,fileCount:extracted.fileCount}};
+      } else {
+        throw new Error('UNSUPPORTED_SOURCE_KIND');
       }
       if (Buffer.byteLength(result.text)>200_000) throw new Error('SOURCE_LIMIT_EXCEEDED');
       return sourceExtractionSchema.parse(result);
-    } catch(error) { return sourceError(error,source.input!.kind); }
+    } catch(error) {
+      if (source.input?.kind === 'pdf' || source.input?.kind === 'web' || source.input?.kind === 'youtube' || source.input?.kind === 'github') {
+        return sourceError(error, source.input.kind);
+      }
+      throw error;
+    }
   })();
 
   cache.set(key,work); if(cache.size>8) cache.delete(cache.keys().next().value!);

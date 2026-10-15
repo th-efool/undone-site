@@ -9,9 +9,29 @@ export const cohortIntakeSchema = z.strictObject({
 export type CohortIntake = z.infer<typeof cohortIntakeSchema>;
 
 export function initialCohort(prompt: string) {
-  return cohortWorkspaceSchema.parse({ schemaVersion: 1, title: 'Draft Curriculum', intent: prompt,
-    audience: '', dailyMinutes: 25, lessons: [], processing: { status: 'idle', stage: 'done',
-      generation: 0, sourceFingerprint: null, error: null, driver: 'durable' } });
+  return cohortWorkspaceSchema.parse({
+    schemaVersion: 1,
+    title: 'Draft Curriculum',
+    intent: prompt,
+    audience: '',
+    dailyMinutes: 25,
+    lessons: [],
+    processing: {
+      status: 'idle',
+      stage: 'done',
+      generation: 0,
+      sourceFingerprint: null,
+      error: null,
+      driver: 'durable',
+    },
+    journey: {
+      version: 1,
+      step: 'recommendations',
+      branch: null,
+      processingStarted: false,
+      intentVersion: 0,
+    },
+  });
 }
 
 export function cohortIntakeEnabled(ownerId: string | null, env: Record<string, string | undefined>) {

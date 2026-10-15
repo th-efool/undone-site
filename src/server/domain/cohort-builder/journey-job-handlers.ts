@@ -1,0 +1,304 @@
+import { randomUUID } from 'node:crypto';
+import { z } from 'zod';
+import {
+  cohortDiscoveryItemSchema,
+  cohortRecommendationItemSchema,
+  cohortWorkspaceSchema,
+  type CohortWorkspace,
+} from '@/src/shared/cohort-builder/contracts';
+import {
+  putTextArtifact,
+  readTextArtifact,
+  type CohortTextArtifactKind,
+  type TextArtifactRef,
+  type TextArtifactSql,
+} from './text-artifacts';
+import {
+  acceptTextJob,
+  failTextJob,
+  type ClaimedTextJob,
+} from './text-jobs';
+import { planJourneyJobs } from './journey-job-plan';
+import type { RecommendationService } from '../cohort-creation/recommendation.service';
+
+export interface RecommendationExecutorDeps {
+  recommendationService?: Pick<RecommendationService, 'recommend'>;
+  loadCatalog?: (query: string, signal?: AbortSignal) => Promise<Array<{ id: string; label: string; url: string }>>;
+  sql?: TextArtifactSql;
+}
+
+export interface DiscoveryExecutorDeps {
+  discoverCandidates?: (query: string, signal?: AbortSignal) => Promise<Array<{ id: string; label: string; kind?: 'web'; url: string }>>;
+  sql?: TextArtifactSql;
+}
+
+/** Reads public accessible cohorts catalog or uses RecommendationService (read-only). Produces safe items [{ id, label, url }]. */
+export async function executeRecommendationJob(
+  workspace: CohortWorkspace,
+  deps?: RecommendationExecutorDeps,
+  signal?: AbortSignal
+): Promise<Array<z.infer<typeof cohortRecommendationItemSchema>>> {
+  if (deps?.recommendationService) {
+    const query = workspace.intent.trim() || 'General Learning';
+    const result = await deps.recommendationService.recommend(
+      {
+        requestId: randomUUID(),
+        inputRevision: workspace.journey?.intentVersion ?? 0,
+        query,
+      },
+      signal ?? new AbortController().signal
+    );
+    const items = result.items.map(item => ({
+      id: String(item.cohort.cohortId).slice(0, 200),
+      label: String(item.cohort.title).trim().slice(0, 300),
+      url: `https://undone.app/cohorts/${encodeURIComponent(item.cohort.cohortId)}`,
+    }));
+    return z.array(cohortRecommendationItemSchema).max(20).parse(items);
+  }
+
+  if (deps?.loadCatalog) {
+    const raw = await deps.loadCatalog(workspace.intent.trim(), signal);
+    const items = raw.map(item => ({
+      id: String(item.id).slice(0, 200),
+      label: String(item.label).trim().slice(0, 300),
+      url: item.url,
+    }));
+    return z.array(cohortRecommendationItemSchema).max(20).parse(items);
+  }
+
+  if (deps?.sql) {
+    try {
+      const result = await deps.sql.query(
+        `SELECT "id", "title" FROM "cohorts" WHERE "isPublished" = true AND "visibility" = 'PUBLIC' LIMIT 20`,
+        []
+      );
+      const items = result.rows.map(row => ({
+        id: String(row.id).slice(0, 200),
+        label: String(row.title).trim().slice(0, 300),
+        url: `https://undone.app/cohorts/${encodeURIComponent(String(row.id))}`,
+      }));
+      return z.array(cohortRecommendationItemSchema).max(20).parse(items);
+    } catch {
+      return [];
+    }
+  }
+
+  return [];
+}
+
+/** Produces candidate items [{ id, label, kind: 'web', url }]. */
+export async function executeDiscoveryJob(
+  workspace: CohortWorkspace,
+  deps?: DiscoveryExecutorDeps,
+  signal?: AbortSignal
+): Promise<Array<z.infer<typeof cohortDiscoveryItemSchema>>> {
+  if (deps?.discoverCandidates) {
+    const raw = await deps.discoverCandidates(workspace.intent.trim(), signal);
+    const items = raw.map(item => ({
+      id: String(item.id).slice(0, 200),
+      label: String(item.label).trim().slice(0, 300),
+      kind: 'web' as const,
+      url: item.url,
+    }));
+    return z.array(cohortDiscoveryItemSchema).max(20).parse(items);
+  }
+  return [];
+}
+
+export async function retainJourneyArtifact(
+  sql: TextArtifactSql,
+  job: ClaimedTextJob,
+  items: unknown[]
+): Promise<TextArtifactRef> {
+  const bytes = Buffer.from(JSON.stringify({ items }));
+  return putTextArtifact(sql, {
+    workspaceId: job.workspaceId,
+    kind: job.stage as CohortTextArtifactKind,
+    inputFingerprint: job.dependencyFingerprint,
+    bytes,
+  });
+}
+
+/** Atomically validates fence, updates workspace snapshot projection with status='ready', items, resultId, etc., and marks job accepted. */
+export async function acceptJourneyJob(
+  tx: TextArtifactSql,
+  job: ClaimedTextJob,
+  artifact: Pick<TextArtifactRef, 'id' | 'workspaceId' | 'kind' | 'inputFingerprint' | 'checksum'>,
+  now: Date
+): Promise<boolean> {
+  if (job.stage !== 'recommendations' && job.stage !== 'discovery') return false;
+  if (job.sourceId !== null || job.sourceVersion !== null) return false;
+  if (artifact.workspaceId !== job.workspaceId || artifact.inputFingerprint !== job.dependencyFingerprint) return false;
+  if (artifact.kind !== job.stage) return false;
+
+  // 1. Lock workspace
+  const workspaceRow = (await tx.query(
+    `SELECT "snapshot", "revision" FROM "interaction_workspaces" WHERE "id" = $1 FOR UPDATE`,
+    [job.workspaceId]
+  )).rows[0];
+  if (!workspaceRow) return false;
+
+  const state = cohortWorkspaceSchema.parse(
+    typeof workspaceRow.snapshot === 'string' ? JSON.parse(workspaceRow.snapshot) : workspaceRow.snapshot
+  );
+
+  // 2. Lock job row and validate fence, stage, dependencyFingerprint, lease
+  const jobRow = (await tx.query(
+    `SELECT "jobKey", "stage", "dependencyFingerprint", "fence", "status", "leaseToken"
+     FROM "cohort_text_jobs" WHERE "id" = $1 AND "workspaceId" = $2 FOR UPDATE`,
+    [job.id, job.workspaceId]
+  )).rows[0];
+  if (!jobRow) return false;
+  if (
+    jobRow.stage !== job.stage ||
+    jobRow.dependencyFingerprint !== job.dependencyFingerprint ||
+    Number(jobRow.fence) !== job.fence ||
+    jobRow.leaseToken !== job.leaseToken ||
+    jobRow.status !== 'running'
+  ) {
+    return false;
+  }
+
+  // 3. Verify job is currently planned for this workspace state
+  const planned = planJourneyJobs(state).find(
+    intent => intent.jobKey === jobRow.jobKey && intent.stage === job.stage && intent.dependencyFingerprint === job.dependencyFingerprint
+  );
+  if (!planned) return false;
+
+  // 4. Read retained artifact bytes
+  const { bytes } = await readTextArtifact(tx, job.workspaceId, artifact.id, {
+    kind: job.stage as CohortTextArtifactKind,
+    inputFingerprint: job.dependencyFingerprint,
+    checksum: artifact.checksum,
+  });
+
+  const parsedJson = JSON.parse(bytes.toString('utf8'));
+  const rawItems = Array.isArray(parsedJson) ? parsedJson : (parsedJson.items ?? []);
+
+  // 5. Accept the job in cohort_text_jobs (atomically validates leaseUntil, fence, artifact, dependencies)
+  const accepted = await acceptTextJob(tx, job, artifact, now);
+  if (!accepted) return false;
+
+  // 6. Update workspace snapshot projection
+  let next: CohortWorkspace;
+  if (job.stage === 'recommendations') {
+    const items = z.array(cohortRecommendationItemSchema).max(20).parse(rawItems);
+    next = {
+      ...state,
+      recommendations: {
+        requestId: state.recommendations?.requestId ?? artifact.id,
+        fingerprint: job.dependencyFingerprint,
+        status: 'ready',
+        resultId: artifact.id,
+        generation: state.recommendations?.generation ?? 0,
+        items,
+      },
+    };
+  } else {
+    const items = z.array(cohortDiscoveryItemSchema).max(20).parse(rawItems);
+    next = {
+      ...state,
+      discovery: {
+        requestId: state.discovery?.requestId ?? artifact.id,
+        fingerprint: job.dependencyFingerprint,
+        status: 'ready',
+        resultId: artifact.id,
+        generation: state.discovery?.generation ?? 0,
+        items,
+      },
+    };
+  }
+
+  cohortWorkspaceSchema.parse(next);
+
+  // 7. Atomically commit the updated workspace projection
+  const updated = await tx.query(
+    `UPDATE "interaction_workspaces"
+     SET "snapshot" = $1::jsonb, "revision" = "revision" + 1, "updatedAt" = CURRENT_TIMESTAMP
+     WHERE "id" = $2 AND "revision" = $3 RETURNING "revision"`,
+    [JSON.stringify(next), job.workspaceId, Number(workspaceRow.revision)]
+  );
+
+  return updated.rows.length === 1;
+}
+
+/** If job fails: sets job status='failed', updates projection status='failed'. */
+export async function failJourneyJob(
+  tx: TextArtifactSql,
+  job: ClaimedTextJob,
+  errorCode: string,
+  now: Date
+): Promise<boolean> {
+  if (job.stage !== 'recommendations' && job.stage !== 'discovery') return false;
+
+  // 1. Fail the job in cohort_text_jobs (atomically validates lease & fence)
+  const failed = await failTextJob(tx, job, errorCode, now);
+  if (!failed) return false;
+
+  // 2. Lock workspace
+  const workspaceRow = (await tx.query(
+    `SELECT "snapshot", "revision" FROM "interaction_workspaces" WHERE "id" = $1 FOR UPDATE`,
+    [job.workspaceId]
+  )).rows[0];
+  if (!workspaceRow) return false;
+
+  const state = cohortWorkspaceSchema.parse(
+    typeof workspaceRow.snapshot === 'string' ? JSON.parse(workspaceRow.snapshot) : workspaceRow.snapshot
+  );
+
+  // 3. Update workspace projection to failed
+  let next: CohortWorkspace;
+  if (job.stage === 'recommendations') {
+    next = {
+      ...state,
+      recommendations: {
+        requestId: state.recommendations?.requestId ?? job.id,
+        fingerprint: job.dependencyFingerprint,
+        status: 'failed',
+        generation: state.recommendations?.generation ?? 0,
+        items: state.recommendations?.items ?? [],
+      },
+    };
+  } else {
+    next = {
+      ...state,
+      discovery: {
+        requestId: state.discovery?.requestId ?? job.id,
+        fingerprint: job.dependencyFingerprint,
+        status: 'failed',
+        generation: state.discovery?.generation ?? 0,
+        items: state.discovery?.items ?? [],
+      },
+    };
+  }
+
+  cohortWorkspaceSchema.parse(next);
+
+  const updated = await tx.query(
+    `UPDATE "interaction_workspaces"
+     SET "snapshot" = $1::jsonb, "revision" = "revision" + 1, "updatedAt" = CURRENT_TIMESTAMP
+     WHERE "id" = $2 AND "revision" = $3 RETURNING "revision"`,
+    [JSON.stringify(next), job.workspaceId, Number(workspaceRow.revision)]
+  );
+
+  return updated.rows.length === 1;
+}
+
+export function createJourneyJobProcessor(deps: {
+  loadWorkspace: (workspaceId: string) => Promise<CohortWorkspace>;
+  recommendationDeps?: RecommendationExecutorDeps;
+  discoveryDeps?: DiscoveryExecutorDeps;
+}): (job: ClaimedTextJob, signal?: AbortSignal) => Promise<Uint8Array> {
+  return async (job, signal) => {
+    const workspace = await deps.loadWorkspace(job.workspaceId);
+    if (job.stage === 'recommendations') {
+      const items = await executeRecommendationJob(workspace, deps.recommendationDeps, signal);
+      return Buffer.from(JSON.stringify({ items }));
+    }
+    if (job.stage === 'discovery') {
+      const items = await executeDiscoveryJob(workspace, deps.discoveryDeps, signal);
+      return Buffer.from(JSON.stringify({ items }));
+    }
+    throw new Error('UNSUPPORTED_JOURNEY_STAGE');
+  };
+}

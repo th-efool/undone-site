@@ -63,11 +63,13 @@ export async function acceptCurrentTextJob(
         const response=retainedYoutubeTranscriptSchema.parse(JSON.parse(retained.bytes.toString('utf8')));
         if(response.video.id!==singleYoutubeVideo(source.input.url).videoId || response.video.url!==source.input.url ||
           JSON.stringify(response.track)!==JSON.stringify(source.input.track)) throw new Error('FOREIGN_TRANSCRIPT');
-      } else {
+      } else if (source.input.kind === 'github') {
         const {retainedGithubSourceSchema,singleGithubRepo}=await import('@/src/shared/cohort-builder/github-source');
         const response=retainedGithubSourceSchema.parse(JSON.parse(retained.bytes.toString('utf8')));
         const normalized=singleGithubRepo(source.input.repoUrl);
         if(response.repo.owner!==normalized.owner || response.repo.repo!==normalized.repo || response.ref!==source.input.ref) throw new Error('FOREIGN_GITHUB_REPOSITORY');
+      } else {
+        throw new Error('UNSUPPORTED_SOURCE_PREREQUISITE');
       }
       next={...state,sources:state.sources.map(item=>item.id===source.id?{...item,retainedInputId:artifact.id}:item)};
     } else if (extracted && source?.input) {

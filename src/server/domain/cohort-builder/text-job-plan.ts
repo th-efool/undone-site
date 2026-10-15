@@ -21,6 +21,7 @@ const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(va
 
 /** Exact dependency keys; no current revision or unrelated workspace fields. */
 export function planTextJobs(state: CohortWorkspace): TextJobIntent[] {
+  if (state.journey && !state.journey.processingStarted) return [];
   const jobs: TextJobIntent[] = [];
   const analysisKeys: string[] = [];
   for (const source of [...state.sources].sort((a, b) => a.id.localeCompare(b.id))) {
