@@ -109,7 +109,7 @@ describe('Release API Route', () => {
 
     const req = new Request(`https://test.local/api/cohort-builder/workspaces/${validWorkspaceId}/release`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'origin': 'https://test.local' },
       body: JSON.stringify({ mode: 'public_publish' }),
     });
 
@@ -120,12 +120,25 @@ describe('Release API Route', () => {
     expect(data.report.blockers).toContain('Workspace has no lessons in its curriculum.');
   });
 
+  it('POST rejects invalid origin with 403', async () => {
+    const req = new Request(`https://test.local/api/cohort-builder/workspaces/${validWorkspaceId}/release`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'origin': 'https://malicious.com' },
+      body: JSON.stringify({ mode: 'private_activation' }),
+    });
+
+    const res = await POST(req, { params: Promise.resolve({ workspaceId: validWorkspaceId }) });
+    expect(res.status).toBe(403);
+    const data = await res.json();
+    expect(data.code).toBe('INVALID_ORIGIN');
+  });
+
   it('POST handles downgrade prevention with 409', async () => {
     fake.releaseError = new Error('CANNOT_DOWNGRADE_PUBLIC_COHORT: Cannot downgrade');
 
     const req = new Request(`https://test.local/api/cohort-builder/workspaces/${validWorkspaceId}/release`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'origin': 'https://test.local' },
       body: JSON.stringify({ mode: 'private_activation' }),
     });
 
@@ -150,7 +163,7 @@ describe('Release API Route', () => {
 
     const req = new Request(`https://test.local/api/cohort-builder/workspaces/${validWorkspaceId}/release`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'origin': 'https://test.local' },
       body: JSON.stringify({ mode: 'private_activation' }),
     });
 
