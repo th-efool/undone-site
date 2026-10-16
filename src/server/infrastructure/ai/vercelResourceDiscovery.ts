@@ -37,7 +37,10 @@ function boundedPrompt(input: unknown) {
 /** Google-specific tool integration behind provider-independent application contracts. */
 export class VercelResourceDiscovery implements ResourceDiscovery {
   constructor(private readonly model: LanguageModel, private readonly execution: {
-    beforeCall: () => Promise<void | (() => Promise<void>)>;
+    beforeCall: () => Promise<void | ((settlement?: {
+      actualUsage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number; stepsCount?: number };
+      error?: unknown;
+    }) => Promise<void>)>;
   }) {}
   async search(input: LearningIntent, callerSignal: AbortSignal) {
     const intent = learningIntentSchema.parse(input); const signal = AbortSignal.any([callerSignal, AbortSignal.timeout(60_000)]);
@@ -47,12 +50,28 @@ export class VercelResourceDiscovery implements ResourceDiscovery {
     }
     const prompt = boundedPrompt({ query: intent.rawQuery, topic: intent.topic.value, outcomes: intent.outcomes.value, searchTerms: intent.searchTerms });
     const release = await this.execution.beforeCall();
+    let settlement: {
+      actualUsage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number; stepsCount?: number };
+      error?: unknown;
+    } | undefined;
     try {
       signal.throwIfAborted();
       const result = await generateText({ model: this.model, instructions: searchInstructions, prompt,
         tools: { google_search: google.tools.googleSearch({}) }, stopWhen: stepCountIs(1), maxRetries: 0,
         maxOutputTokens: 2000, timeout: { totalMs: 60_000 }, abortSignal: signal,
         telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false } });
+      const u = (result as any)?.usage ?? {};
+      const promptTokens = u.inputTokens ?? u.promptTokens ?? 0;
+      const completionTokens = u.outputTokens ?? u.completionTokens ?? 0;
+      const totalTokens = u.totalTokens ?? (promptTokens + completionTokens);
+      settlement = {
+        actualUsage: {
+          promptTokens,
+          completionTokens,
+          totalTokens,
+          stepsCount: Array.isArray((result as any)?.steps) ? (result as any).steps.length || 1 : 1,
+        },
+      };
       signal.throwIfAborted();
       if (result.finishReason !== 'stop') throw creationFailure('AI_INVALID_OUTPUT', 'Grounded search did not complete. Try a narrower goal.', false);
       // Generated prose is deliberately ignored: only provider source records can propose URLs.
@@ -65,8 +84,11 @@ export class VercelResourceDiscovery implements ResourceDiscovery {
         return { id: source.id, url: source.url, title: source.title ?? '' };
       }), attribution: entryPoint ? { provider: 'google_search', renderedContent: entryPoint.renderedContent } : null,
         searchedAt: new Date().toISOString(), model: { provider: this.model.provider, id: this.model.modelId } });
-    } catch (error) { throw sanitized(error, signal); }
-    finally { if (release) await release().catch(() => undefined); }
+    } catch (error) {
+      settlement = { ...settlement, error };
+      throw sanitized(error, signal);
+    }
+    finally { if (release) await release(settlement).catch(() => undefined); }
   }
   async select(input: LearningIntent, values: DiscoveryCandidate[], callerSignal: AbortSignal) {
     const intent = learningIntentSchema.parse(input);
@@ -80,18 +102,35 @@ export class VercelResourceDiscovery implements ResourceDiscovery {
       signal.throwIfAborted();
       const prompt = boundedPrompt({ ...inputContext, ...(attempt ? { correction: 'Return valid structured selection using unique keys from the supplied inventory only.' } : {}) });
       const release = await this.execution.beforeCall();
+      let settlement: {
+        actualUsage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number; stepsCount?: number };
+        error?: unknown;
+      } | undefined;
       try {
         signal.throwIfAborted();
         const result = await generateText({ model: this.model, instructions: selectionInstructions, prompt,
           output: Output.object({ schema: creationOutputSchema(discoverySelectionSchema, this.model) }), maxRetries: 0, maxOutputTokens: 2000,
           timeout: { totalMs: 30_000 }, abortSignal: signal, telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false } });
+        const u = (result as any)?.usage ?? {};
+        const promptTokens = u.inputTokens ?? u.promptTokens ?? 0;
+        const completionTokens = u.outputTokens ?? u.completionTokens ?? 0;
+        const totalTokens = u.totalTokens ?? (promptTokens + completionTokens);
+        settlement = {
+          actualUsage: {
+            promptTokens,
+            completionTokens,
+            totalTokens,
+            stepsCount: Array.isArray((result as any)?.steps) ? (result as any).steps.length || 1 : 1,
+          },
+        };
         signal.throwIfAborted();
         if (result.finishReason !== 'stop') throw creationFailure('AI_INVALID_OUTPUT', 'Source selection did not complete. Try again.', false);
         return validateDiscoverySelection(result.output, candidates);
       } catch (error) {
+        settlement = { ...settlement, error };
         if (attempt === 0 && invalid(error) && !(error instanceof CreationFailure && !error.detail.retryable) && !signal.aborted) continue;
         throw sanitized(error, signal);
-      } finally { if (release) await release().catch(() => undefined); }
+      } finally { if (release) await release(settlement).catch(() => undefined); }
     }
     throw creationFailure('AI_INVALID_OUTPUT', 'Source selection could not be validated.');
   }

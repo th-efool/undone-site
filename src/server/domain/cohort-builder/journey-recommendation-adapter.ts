@@ -23,6 +23,7 @@ export interface RecommendationAdapterDeps {
   sql?: TextArtifactSql;
   workspaceId?: string;
   jobKey?: string;
+  dependencyFingerprint?: string;
   attempt?: number;
   skipPauseCheck?: boolean;
 }
@@ -50,7 +51,10 @@ async function loadDefaultCatalogRepo(): Promise<RecommendationRepository> {
 
 async function loadDefaultAi(
   model?: LanguageModel,
-  beforeCall?: () => Promise<void | (() => Promise<void>)>
+  beforeCall?: () => Promise<void | ((settlement?: {
+    actualUsage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number; stepsCount?: number };
+    error?: unknown;
+  }) => Promise<void>)>
 ): Promise<CohortAi> {
   const [{ createCohortModel }, { VercelCohortAi }] = await Promise.all([
     import('@/src/server/infrastructure/ai/modelRegistry'),
@@ -117,7 +121,10 @@ export async function executeCohortRecommendations(
 
   let ai = deps?.ai;
   if (!ai) {
-    let beforeCall: (() => Promise<void | (() => Promise<void>)>) | undefined;
+    let beforeCall: (() => Promise<void | ((settlement?: {
+      actualUsage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number; stepsCount?: number };
+      error?: unknown;
+    }) => Promise<void>)>) | undefined;
     if (deps?.sql) {
       const workspaceId = deps.workspaceId ?? (workspace as { workspaceId?: string }).workspaceId;
       if (!workspaceId) {
@@ -128,7 +135,9 @@ export async function executeCohortRecommendations(
         sql: deps.sql,
         workspaceId,
         jobKey: deps.jobKey ?? `journey:recommendations:${inputRevision}`,
+        dependencyFingerprint: deps.dependencyFingerprint,
         operation: 'recommendation_ai',
+        generation: workspace.recommendations?.generation ?? 0,
         attempt: deps.attempt ?? 0,
         skipPauseCheck: deps.skipPauseCheck,
       });

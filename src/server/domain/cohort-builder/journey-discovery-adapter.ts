@@ -42,6 +42,7 @@ export interface DiscoveryAdapterDeps {
   sql?: TextArtifactSql;
   workspaceId?: string;
   jobKey?: string;
+  dependencyFingerprint?: string;
   attempt?: number;
   model?: LanguageModel;
   __allowInMemoryStorage?: boolean;
@@ -268,7 +269,10 @@ function createInMemoryArtifactStore(
 
 async function loadDefaultAi(
   model?: LanguageModel,
-  beforeCall?: () => Promise<void | (() => Promise<void>)>
+  beforeCall?: () => Promise<void | ((settlement?: {
+    actualUsage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number; stepsCount?: number };
+    error?: unknown;
+  }) => Promise<void>)>
 ): Promise<ResourceDiscovery> {
   const [{ createCohortModel }, { VercelResourceDiscovery }] = await Promise.all([
     import('@/src/server/infrastructure/ai/modelRegistry'),
@@ -372,7 +376,10 @@ export async function executeCohortDiscovery(
 
   let ai = deps?.ai;
   if (!ai) {
-    let beforeCall: (() => Promise<void | (() => Promise<void>)>) | undefined;
+    let beforeCall: (() => Promise<void | ((settlement?: {
+      actualUsage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number; stepsCount?: number };
+      error?: unknown;
+    }) => Promise<void>)>) | undefined;
     if (deps?.sql) {
       const targetWorkspaceId = deps.workspaceId ?? (workspace as any).workspaceId ?? workspaceId;
       if (!targetWorkspaceId) {
@@ -383,6 +390,7 @@ export async function executeCohortDiscovery(
         sql: deps.sql,
         workspaceId: targetWorkspaceId,
         jobKey: deps.jobKey ?? `journey:discovery:${inputRevision}:${generation}`,
+        dependencyFingerprint: deps.dependencyFingerprint,
         operation: 'discovery_ai',
         generation,
         attempt: deps.attempt ?? 0,

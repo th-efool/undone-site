@@ -1,5 +1,24 @@
 # Interaction builder execution checkpoint
 
+FINAL COHORT JOURNEY REPAIR — CHECKPOINT 1 COMPLETE (2026-10-16):
+- Atomic, Restart-Safe Provider Accounting & Usage Settlement:
+  - `prisma/interaction-journey-stages.sql` & `src/server/domain/cohort-builder/text-schema-readiness.ts`:
+    - Added `cohort_model_invocations` table (`invocationKey` PK, `workspaceId`, `ownerId`, `jobKey`, `dependencyFingerprint`, `operation`, `attempt`, `ordinal`, `status` IN `('reserved', 'settled', 'unknown_outcome_retained')`, `promptTokens`, `completionTokens`, `totalTokens`, `stepsCount`, `error`, `createdAt`, `settledAt`).
+    - Updated `assertTextJobSchema` to assert `cohort_model_invocations` table presence.
+  - `src/server/domain/cohort-builder/budget-policy.ts`:
+    - Rewrote `reserveModelTurnBudgetSql` to use an atomic PostgreSQL CTE locking the user's hourly row in `creation_budgets` (`FOR UPDATE`), claiming the unique `invocationKey` in `cohort_model_invocations` (`ON CONFLICT ("invocationKey") DO NOTHING`) only when `used < limit`, and incrementing `creation_budgets` only when `claimed_inv` inserted a row.
+    - Updated `release` to accept `ProviderCallSettlementInput` (`actualUsage` and `error`), settling `cohort_model_invocations` with `status = 'settled'` and token counts on success, or `status = 'unknown_outcome_retained'` with error details on failure/uncertainty.
+    - Updated `createDurableProviderCallHook` to include `dependencyFingerprint` in `invocationKey` and maintain monotonically increasing `ordinal` across nested calls or schema-repair retries.
+  - `src/server/domain/cohort-builder/text-source-processor.ts`, `journey-video-adapter.ts`, `journey-goal-adapter.ts`, `journey-recommendation-adapter.ts`, `journey-discovery-adapter.ts`, `journey-job-handlers.ts`:
+    - Eliminated duplicate outer reservation boundaries around default `VercelMaterialObservation` and `VercelCreationGuideAuthor` while preserving outer reservation when custom mock providers are injected.
+    - Instantiated `createDurableProviderCallHook` once per job/attempt/unit so `ordinal` increments (`1, 2, ...`) across nested calls or repair retries.
+  - `src/server/infrastructure/ai/vercelCohortAi.ts`, `vercelResourceDiscovery.ts`, `vercelCreationGuideAuthor.ts`, `vercelMaterialObservation.ts`:
+    - Extracted `result.usage` from `generateText` and forwarded `{ actualUsage }` or `{ error }` to `release(settlement)`.
+  - Verification:
+    - `src/server/domain/cohort-builder/__tests__/journey-provider-safety.test.ts`: 26/26 tests passed, including real isolated `EmbeddedPostgres` multi-connection concurrency test (6 separate `pg.Pool` connections racing on the same `invocationKey` and concurrent budget exhaustion).
+LAST_CHECKPOINT: `FINAL-COHORT-JOURNEY-REPAIR-CP1-PROVIDER-ACCOUNTING-2026-10-16`
+STATUS: Checkpoint 1 complete, verified, and ready for commit.
+
 CANONICAL COHORT JOURNEY REPAIR — CHECKPOINT 5 COMPLETE (2026-10-16):
 - Controlled Production Delivery & Live Verification:
   - Shared Neon PostgreSQL Additive Rollout:

@@ -862,5 +862,417 @@ describe('Checkpoint 3: Provider Safety, Metadata Fail-Closed, Budgets & Aborts'
         })
       ).rejects.toThrow('OWNER_REQUIRED');
     });
+
+    it('single reservation per single-call operation for generated_guide and video_observation (no double outer reservation)', async () => {
+      const { sql, db } = await setupTestDb();
+      const workspaceId = '33333333-3333-4333-8333-333333333333';
+      const ownerId = 'user-single-reservation';
+
+      await db.query(`
+        INSERT INTO "interaction_workspaces" ("id", "ownerId", "domainId", "snapshot")
+        VALUES ($1, $2, 'cohort', '{}')
+      `, [workspaceId, ownerId]);
+
+      const fakeGuideModel = new MockLanguageModelV4({
+        provider: 'google.generative-ai',
+        modelId: 'gemini-1.5-pro',
+        doGenerate: modelOutput({
+          title: 'Learn Rust Guide',
+          sections: [
+            {
+              heading: 'Getting Started',
+              text: 'Guide body text explaining Rust fundamentals in clear structured prose.',
+            },
+          ],
+          limitations: ['AI-authored content.'],
+        }),
+      });
+
+      const baseGuide = initialCohort('Learn Rust');
+      const guideWorkspace: CohortWorkspace = {
+        ...baseGuide,
+        journey: {
+          version: 1,
+          step: 'processing',
+          branch: 'have_goal',
+          processingStarted: true,
+          intentVersion: 0,
+        },
+        sources: [
+          {
+            id: 'src-guide-single',
+            version: 1,
+            label: 'AI Guide',
+            text: '',
+            checksum: null,
+            state: 'queued',
+            input: {
+              kind: 'generated_guide',
+              goal: 'Learn Rust',
+              audience: 'Beginners',
+              dailyMinutes: 30,
+              intentVersion: 0,
+            },
+          },
+        ],
+      };
+
+      const { createDurableProviderCallHook } = await import('../budget-policy');
+      const [plannedGuide] = planTextJobs(guideWorkspace);
+      const guideHook = createDurableProviderCallHook({
+        sql,
+        workspaceId,
+        jobKey: plannedGuide.jobKey,
+        dependencyFingerprint: plannedGuide.dependencyFingerprint,
+        operation: 'guide_author',
+        attempt: 0,
+      });
+
+      const liveAuthor = new LiveCreationGuideAuthor({
+        model: fakeGuideModel as any,
+        beforeCall: guideHook,
+      });
+
+      await acquireGeneratedGuide(
+        guideWorkspace.sources[0].input as any,
+        liveAuthor,
+        new AbortController().signal
+      );
+
+      const nowMs = Date.now();
+      const hour = Math.floor(nowMs / 3_600_000);
+      const userKey = `user:${ownerId}:model_turn:${hour}`;
+      const guideBudget = (await db.query(`SELECT "used" FROM "creation_budgets" WHERE "key" = $1`, [userKey])).rows[0] as { used: number };
+      expect(guideBudget.used).toBe(1);
+
+      const invRows = (await db.query(`SELECT "invocationKey", "status", "ordinal" FROM "cohort_model_invocations" WHERE "workspaceId" = $1`, [workspaceId])).rows;
+      expect(invRows).toHaveLength(1);
+      expect(invRows[0].status).toBe('settled');
+      expect(Number(invRows[0].ordinal)).toBe(1);
+    });
+
+    it('schema-repair retry inside VercelCreationGuideAuthor increments ordinal (1 then 2) and settles both', async () => {
+      const { sql, db } = await setupTestDb();
+      const workspaceId = '44444444-4444-4444-8444-444444444444';
+      const ownerId = 'user-repair-ordinal';
+
+      await db.query(`
+        INSERT INTO "interaction_workspaces" ("id", "ownerId", "domainId", "snapshot")
+        VALUES ($1, $2, 'cohort', '{}')
+      `, [workspaceId, ownerId]);
+
+      let callNum = 0;
+      const repairingModel = new MockLanguageModelV4({
+        provider: 'google.generative-ai',
+        modelId: 'gemini-1.5-pro',
+        doGenerate: async () => {
+          callNum += 1;
+          if (callNum === 1) {
+            // Return invalid schema on attempt 1 so it triggers repair attempt 2
+            return modelOutput({ invalid: true });
+          }
+          return modelOutput({
+            title: 'Repaired Guide',
+            sections: [{ heading: 'Section 1', text: 'Valid repaired guide text content.' }],
+            limitations: ['AI-authored content.'],
+          });
+        },
+      });
+
+      const { createDurableProviderCallHook } = await import('../budget-policy');
+      const hook = createDurableProviderCallHook({
+        sql,
+        workspaceId,
+        jobKey: 'text:src-1:1:acquisition',
+        dependencyFingerprint: 'fp-guide-repair',
+        operation: 'guide_author',
+        attempt: 0,
+      });
+
+      const author = new LiveCreationGuideAuthor({
+        model: repairingModel as any,
+        beforeCall: hook,
+      });
+
+      const acquired = await acquireGeneratedGuide(
+        {
+          kind: 'generated_guide',
+          goal: 'Learn TypeScript',
+          audience: 'Developers',
+          dailyMinutes: 25,
+          intentVersion: 0,
+        },
+        author,
+        new AbortController().signal
+      );
+      expect(acquired.artifact.text).toContain('Repaired Guide');
+
+      const invRows = (await db.query(
+        `SELECT "ordinal", "status", "promptTokens", "completionTokens", "error"
+         FROM "cohort_model_invocations"
+         WHERE "workspaceId" = $1
+         ORDER BY "ordinal" ASC`,
+        [workspaceId]
+      )).rows as Array<{ ordinal: number; status: string; promptTokens: number | null; completionTokens: number | null; error: string | null }>;
+
+      expect(invRows).toHaveLength(2);
+      expect(Number(invRows[0].ordinal)).toBe(1);
+      expect(invRows[0].status).toBe('unknown_outcome_retained');
+      expect(Number(invRows[1].ordinal)).toBe(2);
+      expect(invRows[1].status).toBe('settled');
+    });
+
+    it('LiveVideoObservationProvider with VercelMaterialObservation reserves once per attempt and increments ordinal on schema repair', async () => {
+      const { sql, db } = await setupTestDb();
+      const workspaceId = '55555555-5555-4555-8555-555555555555';
+      const ownerId = 'user-video-ordinal';
+      const videoId = 'sampleVid12';
+      const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
+
+      await db.query(`
+        INSERT INTO "interaction_workspaces" ("id", "ownerId", "domainId", "snapshot")
+        VALUES ($1, $2, 'cohort', '{}')
+      `, [workspaceId, ownerId]);
+
+      let callNum = 0;
+      const fakeVideoModel: any = new MockLanguageModelV4({
+        provider: 'google.generative-ai',
+        modelId: 'gemini-1.5-pro',
+        doGenerate: async () => {
+          callNum += 1;
+          if (callNum === 1) {
+            return modelOutput({ bad: 1 });
+          }
+          return modelOutput({
+            canObserve: true,
+            observations: [{ startSeconds: 0, endSeconds: 45, text: 'Observed lecture segment.' }],
+            limitations: ['Estimated intervals.'],
+          });
+        },
+      });
+      Object.defineProperty(fakeVideoModel, 'supportedUrls', {
+        value: Promise.resolve({
+          'video/mp4': [new RegExp('https://www.youtube.com/watch\\?v=[A-Za-z0-9_-]{11}')],
+        }),
+        configurable: true,
+      });
+
+      const verifiedMetadata: YoutubeVideoMetadata = {
+        videoId,
+        url: videoUrl,
+        title: 'Lecture Video',
+        description: 'Notes',
+        channelId: 'chan-1',
+        channelTitle: 'Channel 1',
+        durationSeconds: 120,
+        etag: 'etag-1',
+        privacy: 'public' as const,
+        publishedAt: new Date().toISOString(),
+      };
+
+      const validReader = {
+        read: vi.fn().mockResolvedValue({
+          schemaVersion: 1,
+          sourceUrl: videoUrl,
+          fetchedAt: new Date().toISOString(),
+          kind: 'youtube_video',
+          playlistId: null,
+          units: [verifiedMetadata],
+          coverage: 'complete_metadata',
+        }),
+      };
+
+      const { createDurableProviderCallHook } = await import('../budget-policy');
+      const unitHook = createDurableProviderCallHook({
+        sql,
+        workspaceId,
+        jobKey: 'text:src-vid:1:acquisition',
+        dependencyFingerprint: 'fp-vid-1',
+        operation: `video_observation:${videoId}`,
+        attempt: 0,
+      });
+
+      const provider = new LiveVideoObservationProvider({
+        reader: validReader,
+        model: fakeVideoModel,
+        beforeCall: () => unitHook(),
+      });
+
+      const result = await provider.observeVideo(verifiedMetadata, new AbortController().signal);
+      expect(result.video.id).toBe(videoId);
+
+      const invRows = (await db.query(
+        `SELECT "ordinal", "status" FROM "cohort_model_invocations" WHERE "workspaceId" = $1 ORDER BY "ordinal" ASC`,
+        [workspaceId]
+      )).rows;
+      // 2 actual model calls (attempt 1 failed schema, attempt 2 succeeded), NOT 3 or 4 from duplicate outer wrapper
+      expect(invRows).toHaveLength(2);
+      expect(Number(invRows[0].ordinal)).toBe(1);
+      expect(invRows[0].status).toBe('unknown_outcome_retained');
+      expect(Number(invRows[1].ordinal)).toBe(2);
+      expect(invRows[1].status).toBe('settled');
+    });
+  });
+
+  describe('4. Real Isolated PostgreSQL Multi-Connection Concurrency & Atomic Deduplication', () => {
+    it('atomically deduplicates simultaneous reservations for the same invocationKey across separate PostgreSQL pool connections', async () => {
+      const { mkdtempSync, rmSync } = await import('node:fs');
+      const { resolve } = await import('node:path');
+      const { pathToFileURL } = await import('node:url');
+      const { Pool } = await import('pg');
+
+      const root = process.cwd();
+      const port = 15449;
+      const tempDir = mkdtempSync(resolve(root, '.tmp/pg-acct-concurrency-'));
+      const embeddedPostgresModule = resolve(
+        root,
+        '.tmp/s3-postgres-runtime/node_modules/embedded-postgres/dist/index.js'
+      );
+      const { default: EmbeddedPostgres } = await import(pathToFileURL(embeddedPostgresModule).href);
+
+      const database = new EmbeddedPostgres({
+        databaseDir: resolve(tempDir, 'data'),
+        user: 's3test',
+        password: 's3-local-only',
+        port,
+        persistent: false,
+        createPostgresUser: false,
+        postgresFlags: ['-h', '127.0.0.1', '-c', 'timezone=UTC'],
+        onLog: () => {},
+        onError: () => {},
+      });
+
+      const connectionString = `postgresql://s3test:s3-local-only@127.0.0.1:${port}/s3test`;
+      try {
+        await database.initialise();
+        await database.start();
+        await database.createDatabase('s3test');
+
+        const pool = new Pool({ connectionString, max: 10 });
+        try {
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS "interaction_workspaces" (
+              "id" TEXT PRIMARY KEY,
+              "ownerId" TEXT NOT NULL,
+              "domainId" TEXT NOT NULL DEFAULT 'cohort',
+              "snapshot" JSONB NOT NULL DEFAULT '{}'
+            );
+            CREATE TABLE IF NOT EXISTS "creation_budgets" (
+              "key" TEXT PRIMARY KEY,
+              "used" INTEGER NOT NULL DEFAULT 0,
+              "expiresAt" TIMESTAMP(3) NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS "cohort_admin_controls" (
+              "control_key" VARCHAR(64) PRIMARY KEY,
+              "value" JSONB NOT NULL,
+              "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+              "updated_by" VARCHAR(128) NOT NULL,
+              "reason" TEXT
+            );
+          `);
+          await pool.query(s3Migration);
+          await pool.query(journeyMigration);
+
+          const workspaceId = 'ws-pg-concurrent';
+          const userId = 'user-pg-concurrent';
+          await pool.query(
+            `INSERT INTO "interaction_workspaces" ("id", "ownerId") VALUES ($1, $2)`,
+            [workspaceId, userId]
+          );
+
+          // Create 6 separate dedicated clients from the pool to guarantee true concurrent connections
+          const clients = await Promise.all(Array.from({ length: 6 }, () => pool.connect()));
+          try {
+            const sameInvocationKey = 'job:journey:recommendations:0:fp:abc:op:recommendation_ai:gen:0:att:0:ord:1';
+            const results = await Promise.all(
+              clients.map(client =>
+                reserveModelTurnBudgetSql(
+                  { query: (q, p) => client.query(q, p) },
+                  {
+                    userId,
+                    workspaceId,
+                    invocationKey: sameInvocationKey,
+                    jobKey: 'journey:recommendations:0',
+                    dependencyFingerprint: 'abc',
+                    operation: 'recommendation_ai',
+                    attempt: 0,
+                    ordinal: 1,
+                    limit: 10,
+                  }
+                )
+              )
+            );
+
+            // Exactly 1 connection must report isExistingReservation = false; the other 5 must report true
+            const freshCount = results.filter(r => !r.isExistingReservation).length;
+            const existingCount = results.filter(r => r.isExistingReservation).length;
+            expect(freshCount).toBe(1);
+            expect(existingCount).toBe(5);
+
+            // User hourly budget must be incremented to 1, NOT 6!
+            const hour = Math.floor(Date.now() / 3_600_000);
+            const userBudgetKey = `user:${userId}:model_turn:${hour}`;
+            const budgetRes = await pool.query(`SELECT "used" FROM "creation_budgets" WHERE "key" = $1`, [userBudgetKey]);
+            expect(Number(budgetRes.rows[0].used)).toBe(1);
+
+            // Settle with actual token usage on the winning reservation
+            const winner = results.find(r => !r.isExistingReservation)!;
+            await winner.release({
+              actualUsage: { promptTokens: 320, completionTokens: 180, totalTokens: 500, stepsCount: 1 },
+            });
+
+            const invRow = (await pool.query(
+              `SELECT "status", "promptTokens", "completionTokens", "totalTokens"
+               FROM "cohort_model_invocations" WHERE "invocationKey" = $1`,
+              [sameInvocationKey]
+            )).rows[0];
+            expect(invRow.status).toBe('settled');
+            expect(Number(invRow.promptTokens)).toBe(320);
+            expect(Number(invRow.completionTokens)).toBe(180);
+            expect(Number(invRow.totalTokens)).toBe(500);
+
+            // Test budget exhaustion across concurrent connections with distinct invocation keys:
+            // Limit is 3, 1 is already used, so out of 5 concurrent distinct invocations, exactly 2 succeed and 3 reject
+            const distinctOutcomes = await Promise.allSettled(
+              clients.slice(0, 5).map((client, idx) =>
+                reserveModelTurnBudgetSql(
+                  { query: (q, p) => client.query(q, p) },
+                  {
+                    userId,
+                    workspaceId,
+                    invocationKey: `job:journey:discovery:0:0:op:discovery_ai:gen:0:att:0:ord:${idx + 10}`,
+                    jobKey: 'journey:discovery:0:0',
+                    operation: 'discovery_ai',
+                    attempt: 0,
+                    ordinal: idx + 10,
+                    limit: 3,
+                  }
+                )
+              )
+            );
+
+            const fulfilled = distinctOutcomes.filter(o => o.status === 'fulfilled');
+            const rejected = distinctOutcomes.filter(o => o.status === 'rejected');
+            expect(fulfilled).toHaveLength(2);
+            expect(rejected).toHaveLength(3);
+
+            // Verify no orphan invocation rows exist for the 3 rejected calls
+            const totalInvRows = await pool.query(
+              `SELECT count(*)::int AS count FROM "cohort_model_invocations" WHERE "workspaceId" = $1`,
+              [workspaceId]
+            );
+            expect(Number(totalInvRows.rows[0].count)).toBe(3); // 1 initial + 2 fulfilled
+          } finally {
+            for (const c of clients) c.release();
+          }
+        } finally {
+          await pool.end();
+        }
+      } finally {
+        await database.stop().catch(() => {});
+        rmSync(tempDir, { recursive: true, force: true });
+      }
+    }, 90_000);
   });
 });
+

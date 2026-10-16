@@ -27,7 +27,11 @@ function sanitizedAiError(error: unknown, signal: AbortSignal): CreationFailure 
 
 export class VercelCohortAi implements CohortAi {
   constructor(private readonly model: LanguageModel, private readonly execution?: {
-    maxRetries: number; beforeCall: () => Promise<void | (() => Promise<void>)>;
+    maxRetries: number;
+    beforeCall: () => Promise<void | ((settlement?: {
+      actualUsage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number; stepsCount?: number };
+      error?: unknown;
+    }) => Promise<void>)>;
   }) {}
 
   private async structured<T extends z.ZodType>(schema: T, instructions: string, input: unknown, signal: AbortSignal): Promise<z.output<T>> {
@@ -36,6 +40,10 @@ export class VercelCohortAi implements CohortAi {
       // Durable lease/budget failures must reach the worker without AI error remapping.
       if (signal.aborted) throw sanitizedAiError(signal.reason, signal);
       const release = await this.execution?.beforeCall();
+      let settlement: {
+        actualUsage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number; stepsCount?: number };
+        error?: unknown;
+      } | undefined;
       try {
         signal.throwIfAborted();
         const prompt = JSON.stringify({ input, ...(attempt ? { correction: 'Previous output failed schema validation. Return only the requested structured fields.' } : {}) });
@@ -50,15 +58,28 @@ export class VercelCohortAi implements CohortAi {
           maxRetries: this.execution?.maxRetries ?? 2, timeout: { totalMs: 15_000 }, abortSignal: signal,
           telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },
         });
+        const u = (result as any)?.usage ?? {};
+        const promptTokens = u.inputTokens ?? u.promptTokens ?? 0;
+        const completionTokens = u.outputTokens ?? u.completionTokens ?? 0;
+        const totalTokens = u.totalTokens ?? (promptTokens + completionTokens);
+        settlement = {
+          actualUsage: {
+            promptTokens,
+            completionTokens,
+            totalTokens,
+            stepsCount: Array.isArray((result as any)?.steps) ? (result as any).steps.length || 1 : 1,
+          },
+        };
         signal.throwIfAborted();
         return schema.parse(result.output);
       } catch (error) {
+        settlement = { ...settlement, error };
         const invalid = NoObjectGeneratedError.isInstance(error) || NoOutputGeneratedError.isInstance(error) || error instanceof z.ZodError;
         if (attempt === 0 && invalid && !signal.aborted) continue;
         throw sanitizedAiError(error, signal);
       } finally {
         // An uncertain release remains conservatively occupied until its durable lease expires.
-        if (release) await release().catch(() => undefined);
+        if (release) await release(settlement).catch(() => undefined);
       }
     }
     throw creationFailure('AI_INVALID_OUTPUT', 'The generated response could not be validated.');
