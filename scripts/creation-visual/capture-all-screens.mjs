@@ -65,7 +65,7 @@ const screens = [
     desktopWidth: 1585,
     desktopHeight: 992,
     checkpoint: 4.1,
-    status: 'Verified canonical recommendations presentation',
+    status: 'Component preview: mounted canonical recommendations presentation (fixture state)',
   },
   {
     number: 3,
@@ -74,7 +74,7 @@ const screens = [
     desktopWidth: 1585,
     desktopHeight: 992,
     checkpoint: 4.2,
-    status: 'Verified canonical starting point presentation',
+    status: 'Component preview: mounted canonical starting point presentation (fixture state)',
   },
   {
     number: 4,
@@ -83,7 +83,7 @@ const screens = [
     desktopWidth: 1585,
     desktopHeight: 992,
     checkpoint: 4.3,
-    status: 'Verified canonical material input presentation',
+    status: 'Component preview: mounted canonical material input presentation (fixture state)',
   },
   {
     number: 5,
@@ -92,7 +92,7 @@ const screens = [
     desktopWidth: 1585,
     desktopHeight: 992,
     checkpoint: 4.4,
-    status: 'Verified canonical understanding presentation',
+    status: 'Component preview: mounted canonical understanding presentation (fixture state)',
   },
   {
     number: 6,
@@ -101,7 +101,7 @@ const screens = [
     desktopWidth: 1586,
     desktopHeight: 992,
     checkpoint: 4.5,
-    status: 'Verified canonical chunking presentation',
+    status: 'Component preview: mounted canonical chunking presentation (fixture state)',
   },
   {
     number: 7,
@@ -110,7 +110,7 @@ const screens = [
     desktopWidth: 1586,
     desktopHeight: 992,
     checkpoint: 4.6,
-    status: 'Verified canonical analysis presentation',
+    status: 'Component preview: mounted canonical analysis presentation (fixture state)',
   },
   {
     number: 8,
@@ -119,7 +119,7 @@ const screens = [
     desktopWidth: 1585,
     desktopHeight: 992,
     checkpoint: 5.1,
-    status: 'Verified canonical ready presentation',
+    status: 'Component preview: mounted canonical ready presentation (fixture state)',
   },
   {
     number: 9,
@@ -128,7 +128,7 @@ const screens = [
     desktopWidth: 1585,
     desktopHeight: 992,
     checkpoint: 5.2,
-    status: 'Verified canonical review presentation',
+    status: 'Component preview: mounted canonical review presentation (fixture state)',
   },
   {
     number: 10,
@@ -137,7 +137,7 @@ const screens = [
     desktopWidth: 1585,
     desktopHeight: 992,
     checkpoint: 5.3,
-    status: 'Verified canonical publication success presentation',
+    status: 'Component preview: mounted canonical publication success presentation (fixture state)',
   },
 ];
 
@@ -214,7 +214,7 @@ try {
         desktopFull: `captures/${headCommit}/after-${scr.number}-full.png`,
         mobile: `captures/${headCommit}/mobile-${scr.number}.png`,
       },
-      fixture: `Canonical interaction builder; verified Checkpoint 6 ${scr.name.toLowerCase()} presentation`,
+      fixture: `Component preview harness (scripts/creation-visual/server.mjs); fixture state, not end-to-end authenticated worker`,
     });
   }
 
