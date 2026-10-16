@@ -112,10 +112,42 @@ if (app === 'builder') {
         <CohortInteractionScreen workspaceId="ws-fixture" ownerId="owner-test" initialView={builderWorkspaceEmpty} />
       </MockInteractionContext.Provider>
     );
-  } else if (screen === 'processing') {
+  } else if (screen === 'processing' || screen === 'chunking') {
     createRoot(rootEl).render(
       <MockInteractionContext.Provider value={{ view: builderWorkspaceProcessing, revision: 2, messages: [] }}>
         <CohortInteractionScreen workspaceId="ws-fixture" ownerId="owner-test" initialView={builderWorkspaceProcessing} />
+      </MockInteractionContext.Provider>
+    );
+  } else if (screen === 'understanding') {
+    const wsUnderstanding = {
+      ...builderWorkspaceProcessing,
+      processing: {
+        ...builderWorkspaceProcessing.processing,
+        stage: 'understanding',
+        jobs: [{ id: 'job-1', sourceId: 'source-1', stage: 'understanding', status: 'running', attempts: 1, error: null, retryable: false }],
+      },
+    };
+    createRoot(rootEl).render(
+      <MockInteractionContext.Provider value={{ view: wsUnderstanding, revision: 2, messages: [] }}>
+        <CohortInteractionScreen workspaceId="ws-fixture" ownerId="owner-test" initialView={wsUnderstanding} />
+      </MockInteractionContext.Provider>
+    );
+  } else if (screen === 'analysis' || screen === 'analyzing') {
+    const wsAnalysis = {
+      ...builderWorkspaceProcessing,
+      processing: {
+        ...builderWorkspaceProcessing.processing,
+        stage: 'analysis',
+        jobs: [
+          { id: 'job-1', sourceId: 'source-1', stage: 'understanding', status: 'accepted', attempts: 1, error: null, retryable: false },
+          { id: 'job-2', sourceId: 'source-1', stage: 'chunking', status: 'accepted', attempts: 1, error: null, retryable: false },
+          { id: 'job-3', sourceId: 'source-1', stage: 'analysis', status: 'running', attempts: 1, error: null, retryable: false },
+        ],
+      },
+    };
+    createRoot(rootEl).render(
+      <MockInteractionContext.Provider value={{ view: wsAnalysis, revision: 2, messages: [] }}>
+        <CohortInteractionScreen workspaceId="ws-fixture" ownerId="owner-test" initialView={wsAnalysis} />
       </MockInteractionContext.Provider>
     );
   } else if (screen === 'ready') {

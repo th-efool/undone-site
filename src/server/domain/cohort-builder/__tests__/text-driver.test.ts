@@ -20,7 +20,7 @@ describe('durable driver readiness', () => {
       await expect(assertTextJobSchema(sql)).resolves.toBeUndefined();
       await db.exec(`INSERT INTO interaction_workspaces VALUES ('a');
         INSERT INTO cohort_text_jobs (id, "workspaceId", "jobKey", stage, "dependencyFingerprint", "handlerVersion")
-        VALUES ('job','a','key','assembly','fingerprint',3)`);
+        VALUES ('job','a','key','assembly','fingerprint',99)`);
       await expect(assertTextJobSchema(sql)).rejects.toThrow('S3_HANDLER_VERSION_UNSUPPORTED');
     } finally { await db.close(); }
   }, 30_000);

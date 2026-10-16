@@ -146,7 +146,7 @@ describe('grounded cohort workspace UI', () => {
   });
 
   it('initial empty workspace shows no completed steps and no false progress checkmarks', () => {
-    fake.state = initialCohort('my goal');
+    fake.state = { ...initialCohort('my goal'), journey: undefined };
     const progress = getProcessingProgress(fake.state);
     expect(progress.currentStepIndex).toBe(-1);
     expect(progress.steps.every(s => !s.isComplete)).toBe(true);
