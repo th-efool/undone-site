@@ -1,5 +1,22 @@
 # Interaction builder execution checkpoint
 
+CANONICAL COHORT JOURNEY REPAIR — CHECKPOINT 4 COMPLETE (2026-10-16):
+- Actual PostgreSQL and Authenticated Acceptance & Evidence Corrections:
+  - Evidence Label Truthfulness:
+    - Updated `scripts/creation-visual/capture-all-screens.mjs` and `plans/before-after/manifest.json`: truthfully marked preview captures as component previews with fixture state, rather than claiming parity verification without proof.
+    - Preserved canonical baseline reference integrity in `plans/before-after/reference/` with zero mutations.
+  - Operational PostgreSQL Acceptance:
+    - `npm run interaction:rehearse:rollout`: 10/10 phases passed cleanly (disposable PostgreSQL, ordered migrations, v1 non-interference, v2 intake/durability, worker replacement & fencing, safe rollback).
+    - `npm run interaction:acceptance`: 11/11 phases passed cleanly (isolated PostgreSQL + MongoDB, canonical intake, 5-stage progress, draft preservation, lesson pins/retry/cancel, worker heartbeat/fencing, concurrency & budget reservation, private release, public promotion, administrative pause, restore drill).
+  - Comprehensive Journey & Browser Acceptance:
+    - `journey-checkpoint6-acceptance.test.ts`: all 13 tests passed (material branch, discovery branch, goal branch, two-tab conflict, duplicate/lost acknowledgement, worker restart & resume, worker replacement/fencing, partial failure & targeted retry, real-time events, writable chat & preserved drafts, legacy workspace compatibility, stage navigation inspection non-destructiveness, truthful provenance & disclaimers).
+    - Client screen suites: 6 files, 65 tests passed cleanly (`journey-stages`, `journey-checkpoint2-navigation`, `journey-checkpoint3-material`, `journey-checkpoint4-branch`, `journey-checkpoint5-processing`, `journey-checkpoint5-review`).
+    - Server integration suites: 5 files, 32 tests passed cleanly (`journey-checkpoint2-integration`, `journey-checkpoint3-integration`, `journey-checkpoint4-integration`, `journey-checkpoint5-integration`, `journey-acceptance-events`).
+    - Unit & adapter suites: 6 files, 99 tests passed cleanly (`journey-actions`, `journey-video-adapter`, `journey-goal-adapter`, `journey-recommendation-adapter`, `journey-scheduler`, `cohort-intake-journey`).
+    - TypeScript compilation: `npx tsc --noEmit` verified 0 errors.
+LAST_CHECKPOINT: `COHORT-JOURNEY-REPAIR-CP4-POSTGRES-ACCEPTANCE-2026-10-16`
+STATUS: Checkpoint 4 complete, verified, and ready for commit.
+
 CANONICAL COHORT JOURNEY REPAIR — CHECKPOINT 3 COMPLETE (2026-10-16):
 - Protect Original Design References & Runtime Guards:
   - Canonical Reference Isolation:
