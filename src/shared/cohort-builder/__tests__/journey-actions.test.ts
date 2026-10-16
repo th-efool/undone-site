@@ -1023,5 +1023,102 @@ describe('Cohort Journey: Detailed Source & Discovery Edge Cases', () => {
     }, createActionContext({ actionId: 'a8' })).nextState;
     expect(s7.processing.status).toBe('idle');
   });
+
+  describe('retry_recommendations action', () => {
+    it('bumps generation, resets status to queued, and clears items', () => {
+      const ws = initialCohort('Learn Distributed Systems');
+      ws.recommendations = {
+        requestId: 'req-old',
+        fingerprint: 'fp-old',
+        status: 'failed',
+        generation: 0,
+        items: [],
+      };
+      const ctx = createActionContext({ actionId: 'retry-1' });
+      const plan = planCohortAction(ws, { type: 'retry_recommendations' }, ctx);
+      expect(plan.nextState.recommendations?.status).toBe('queued');
+      expect(plan.nextState.recommendations?.generation).toBe(1);
+      expect(plan.nextState.recommendations?.requestId).toBe('retry-1');
+      expect(plan.nextState.recommendations?.items).toEqual([]);
+      expect(plan.summary).toBe('Recommendations queued for retry.');
+    });
+
+    it('rejects retry_recommendations if not in recommendations step', () => {
+      const ws = initialCohort('Learn Distributed Systems');
+      ws.journey!.step = 'starting_point';
+      const ctx = createActionContext();
+      expect(() => planCohortAction(ws, { type: 'retry_recommendations' }, ctx))
+        .toThrow('INVALID_JOURNEY_TRANSITION');
+    });
+  });
+
+  describe('cancel_discovery action', () => {
+    it('sets discovery status to canceled when discovery is queued or running', () => {
+      const ws = initialCohort('Learn Distributed Systems');
+      ws.journey!.step = 'discovery';
+      ws.journey!.branch = 'find_material';
+      ws.discovery = {
+        requestId: 'req-1',
+        fingerprint: 'fp-1',
+        status: 'running',
+        generation: 0,
+        items: [],
+      };
+      const ctx = createActionContext({ actionId: 'cancel-1' });
+      const plan = planCohortAction(ws, { type: 'cancel_discovery' }, ctx);
+      expect(plan.nextState.discovery?.status).toBe('canceled');
+      expect(plan.summary).toBe('Resource discovery canceled.');
+    });
+
+    it('rejects cancel_discovery if not in discovery step or wrong branch', () => {
+      const ws = initialCohort('Learn Distributed Systems');
+      ws.journey!.step = 'material_input';
+      ws.journey!.branch = 'have_material';
+      ws.discovery = {
+        requestId: 'req-1',
+        fingerprint: 'fp-1',
+        status: 'running',
+        generation: 0,
+        items: [],
+      };
+      const ctx = createActionContext();
+      expect(() => planCohortAction(ws, { type: 'cancel_discovery' }, ctx))
+        .toThrow('INVALID_JOURNEY_TRANSITION');
+    });
+
+    it('rejects cancel_discovery if no active discovery is running or queued', () => {
+      const ws = initialCohort('Learn Distributed Systems');
+      ws.journey!.step = 'discovery';
+      ws.journey!.branch = 'find_material';
+      ws.discovery = {
+        requestId: 'req-1',
+        fingerprint: 'fp-1',
+        status: 'ready',
+        resultId: 'res-1',
+        generation: 0,
+        items: [],
+      };
+      const ctx = createActionContext();
+      expect(() => planCohortAction(ws, { type: 'cancel_discovery' }, ctx))
+        .toThrow('NO_ACTIVE_DISCOVERY');
+    });
+
+    it('allows start_discovery to re-queue discovery after cancellation', () => {
+      const ws = initialCohort('Learn Distributed Systems');
+      ws.journey!.step = 'discovery';
+      ws.journey!.branch = 'find_material';
+      ws.discovery = {
+        requestId: 'req-1',
+        fingerprint: 'fp-1',
+        status: 'canceled',
+        generation: 0,
+        items: [],
+      };
+      const ctx = createActionContext({ actionId: 'restart-1' });
+      const plan = planCohortAction(ws, { type: 'start_discovery' }, ctx);
+      expect(plan.nextState.discovery?.status).toBe('queued');
+      expect(plan.nextState.discovery?.generation).toBe(1);
+    });
+  });
 });
 

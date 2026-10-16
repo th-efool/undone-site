@@ -240,6 +240,8 @@ export const cohortActionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('add_text_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), text: sourceText }),
   z.strictObject({ type: z.literal('edit_text_source'), sourceId: id, label: z.string().trim().min(1).max(300), text: sourceText }),
   z.strictObject({ type: z.literal('remove_source'), sourceId: id }),
+  z.strictObject({ type: z.literal('retry_recommendations') }),
+  z.strictObject({ type: z.literal('cancel_discovery') }),
   z.strictObject({ type: z.literal('retry_processing') }),
   z.strictObject({ type: z.literal('retry_text_job'), jobId: id }),
   z.strictObject({ type: z.literal('cancel_text_processing') }),
@@ -296,6 +298,31 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     const current = journey(); if (current.step === 'published') throw new Error('INVALID_JOURNEY_TRANSITION');
     current.step = action.type === 'back_to_recommendations' ? 'recommendations' : 'starting_point';
     return navigationResult('Journey navigation updated.');
+  }
+  if (action.type === 'retry_recommendations') {
+    const current = requireStep('recommendations');
+    const prevGen = next.recommendations?.generation ?? 0;
+    const nextGen = prevGen + 1;
+    next.recommendations = {
+      requestId: context.actionId,
+      fingerprint: `pending:${current.intentVersion}:${context.actionId}:${nextGen}`,
+      status: 'queued',
+      generation: nextGen,
+      items: [],
+    };
+    return navigationResult('Recommendations queued for retry.');
+  }
+  if (action.type === 'cancel_discovery') {
+    const current = requireStep('discovery');
+    if (current.branch !== 'find_material') throw new Error('INVALID_JOURNEY_BRANCH');
+    if (!next.discovery || !['queued', 'running'].includes(next.discovery.status)) {
+      throw new Error('NO_ACTIVE_DISCOVERY');
+    }
+    next.discovery = {
+      ...next.discovery,
+      status: 'canceled',
+    };
+    return navigationResult('Resource discovery canceled.');
   }
   if (action.type === 'start_discovery') {
     const current = requireStep('discovery'); if (current.branch !== 'find_material') throw new Error('INVALID_JOURNEY_BRANCH');

@@ -133,7 +133,7 @@ export function DiscoveryStageView({
             <p className={styles.loadingText}>Searching for grounded sources...</p>
             <button
               type="button"
-              onClick={() => void dispatchAction({ type: 'cancel_text_processing' })}
+              onClick={() => void dispatchAction({ type: 'cancel_discovery' })}
               className={styles.cancelBtn}
             >
               Cancel search

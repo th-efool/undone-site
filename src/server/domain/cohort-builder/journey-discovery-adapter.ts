@@ -28,7 +28,11 @@ import type { DiscoverySourceObserver } from '../cohort-creation/discovery-obser
 import {
   learningIntentSchema,
 } from '@/src/shared/cohort-creation/contracts';
-import type { DiscoveryResult } from '@/src/shared/cohort-creation/discovery';
+import {
+  discoveryCheckpointSchema,
+  type DiscoveryCheckpoint,
+  type DiscoveryResult,
+} from '@/src/shared/cohort-creation/discovery';
 import { CreationFailure, creationFailure } from '../cohort-creation/errors';
 
 export interface DiscoveryAdapterDeps {
@@ -38,6 +42,7 @@ export interface DiscoveryAdapterDeps {
   sql?: TextArtifactSql;
   workspaceId?: string;
   model?: LanguageModel;
+  __allowInMemoryStorage?: boolean;
 }
 
 export class WorkspaceArtifactStoreAdapter
@@ -197,14 +202,20 @@ async function loadDefaultObserver(): Promise<DiscoverySourceObserver> {
   return new DiscoverySourceObserver(new YoutubeMetadataReader(), new GithubPublicApi());
 }
 
+function deterministicUuid(seed: string): string {
+  const hash = createHash('sha256').update(seed).digest('hex');
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-4${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20, 32)}`;
+}
+
 async function loadDiscoveryService(): Promise<{
   DiscoveryService: typeof DiscoveryServiceType;
   discoveryRequestSchema: typeof import('../cohort-creation/discovery.service').discoveryRequestSchema;
+  discoveryFingerprint: typeof import('../cohort-creation/discovery.service').discoveryFingerprint;
 }> {
-  const { DiscoveryService, discoveryRequestSchema } = await import(
+  const { DiscoveryService, discoveryRequestSchema, discoveryFingerprint } = await import(
     '../cohort-creation/discovery.service'
   );
-  return { DiscoveryService, discoveryRequestSchema };
+  return { DiscoveryService, discoveryRequestSchema, discoveryFingerprint };
 }
 
 export class DiscoveryAdapter {
@@ -254,8 +265,14 @@ export async function executeCohortDiscovery(
   if (!storage) {
     if (deps?.sql) {
       storage = new WorkspaceArtifactStoreAdapter(deps.sql, workspaceId);
-    } else {
+    } else if (deps?.__allowInMemoryStorage || process.env.NODE_ENV === 'test') {
       storage = createInMemoryArtifactStore(workspaceId);
+    } else {
+      throw creationFailure(
+        'DATA_UNAVAILABLE',
+        'Durable SQL storage required for discovery artifacts; in-memory store prohibited in production',
+        false
+      );
     }
   }
 
@@ -288,10 +305,11 @@ export async function executeCohortDiscovery(
     }
   }
 
-  const { DiscoveryService, discoveryRequestSchema } = await loadDiscoveryService();
+  const { DiscoveryService, discoveryRequestSchema, discoveryFingerprint } = await loadDiscoveryService();
   const service = new DiscoveryService(ai, observer, storage);
 
   const inputRevision = workspace.journey?.intentVersion ?? 0;
+  const generation = workspace.discovery?.generation ?? 0;
   const rawIntent = workspace.intent.trim() || 'General Learning';
   const topicValue = rawIntent.slice(0, 160);
   const rawQuery = rawIntent.length >= 3 ? rawIntent.slice(0, 2000) : `${rawIntent} Learning`;
@@ -301,10 +319,12 @@ export async function executeCohortDiscovery(
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
       workspace.discovery.requestId
     );
-  const requestId = isUuid ? workspace.discovery!.requestId : randomUUID();
+  const requestId = isUuid
+    ? workspace.discovery!.requestId
+    : deterministicUuid(`discovery:req:${workspaceId}:${inputRevision}:${generation}`);
 
   const intent = learningIntentSchema.parse({
-    id: randomUUID(),
+    id: deterministicUuid(`discovery:intent:${workspaceId}:${inputRevision}:${generation}`),
     rawQuery,
     revision: inputRevision,
     topic: {
@@ -331,8 +351,41 @@ export async function executeCohortDiscovery(
 
   const scope: StorageScope = {
     ownerId: `workspace:${workspaceId}`,
-    draftId: randomUUID(),
+    draftId: deterministicUuid(`discovery:scope:${workspaceId}:${inputRevision}:${generation}`),
   };
+
+  const inputFingerprint = discoveryFingerprint(request);
+  const checkpointKey = `checkpoint:${inputFingerprint}`;
+  let savedCheckpoint: DiscoveryCheckpoint | undefined;
+
+  if (deps?.sql) {
+    try {
+      const existing = await deps.sql.query(
+        `SELECT "body" FROM "cohort_text_artifacts"
+         WHERE "workspaceId" = $1 AND "kind" = 'discovery' AND "inputFingerprint" = $2
+         ORDER BY "createdAt" DESC LIMIT 1`,
+        [workspaceId, checkpointKey]
+      );
+      if (existing.rows.length > 0) {
+        const raw = existing.rows[0].body;
+        const json = Buffer.isBuffer(raw)
+          ? raw.toString('utf8')
+          : typeof raw === 'string'
+          ? raw
+          : raw instanceof Uint8Array
+          ? Buffer.from(raw).toString('utf8')
+          : JSON.stringify(raw);
+        const parsed = JSON.parse(json);
+        const value = parsed?.value ?? parsed;
+        const valid = discoveryCheckpointSchema.safeParse(value);
+        if (valid.success && valid.data.inputFingerprint === inputFingerprint) {
+          savedCheckpoint = valid.data;
+        }
+      }
+    } catch {
+      // resume not available, start fresh
+    }
+  }
 
   const effectiveSignal = signal ?? new AbortController().signal;
 
@@ -342,7 +395,20 @@ export async function executeCohortDiscovery(
       scope,
       request,
       effectiveSignal,
-      async () => {}
+      async (cp: DiscoveryCheckpoint) => {
+        try {
+          await storage.putJSON(scope, cp, {
+            artifactType: 'discovery-checkpoint',
+            schemaVersion: 1,
+            inputFingerprint: checkpointKey,
+            schema: discoveryCheckpointSchema,
+            signal: effectiveSignal,
+          });
+        } catch {
+          // checkpoint failure should not block discovery progress
+        }
+      },
+      savedCheckpoint
     );
   } catch (error) {
     effectiveSignal.throwIfAborted();
@@ -366,8 +432,11 @@ export async function executeCohortDiscovery(
     if (candidate.kind !== 'web') {
       continue;
     }
+    const candidateId = candidate.key
+      ? String(candidate.key).slice(0, 200)
+      : createHash('sha256').update(candidate.url).digest('hex').slice(0, 200);
     const candidateItem = {
-      id: String(candidate.key).slice(0, 200),
+      id: candidateId,
       label: String(candidate.title || 'Untitled Resource').trim().slice(0, 300),
       kind: 'web' as const,
       url: candidate.url,
