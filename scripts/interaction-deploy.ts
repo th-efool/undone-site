@@ -7,6 +7,7 @@ const files = [
   'prisma/interaction-s3-storage.sql', 'prisma/interaction-s4b-sources.sql',
   'prisma/interaction-s5-effects.sql', 'prisma/interaction-s6-operations.sql',
   'prisma/interaction-workflow-dispatch.sql',
+  'prisma/interaction-journey-stages.sql',
 ];
 async function main() {
   const apply = process.argv.slice(2).join(' ') === '--apply';

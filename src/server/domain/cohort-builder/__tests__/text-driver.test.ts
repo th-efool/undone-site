@@ -17,6 +17,8 @@ describe('durable driver readiness', () => {
       await expect(assertTextJobSchema(sql)).rejects.toThrow('S3_SCHEMA_NOT_INSTALLED');
       await db.exec('CREATE TABLE interaction_workspaces (id TEXT PRIMARY KEY)');
       await db.exec(readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8'));
+      await expect(assertTextJobSchema(sql)).rejects.toThrow('JOURNEY_STAGE_SCHEMA_NOT_INSTALLED');
+      await db.exec(readFileSync(new URL('../../../../../prisma/interaction-journey-stages.sql', import.meta.url), 'utf8'));
       await expect(assertTextJobSchema(sql)).resolves.toBeUndefined();
       await db.exec(`INSERT INTO interaction_workspaces VALUES ('a');
         INSERT INTO cohort_text_jobs (id, "workspaceId", "jobKey", stage, "dependencyFingerprint", "handlerVersion")
