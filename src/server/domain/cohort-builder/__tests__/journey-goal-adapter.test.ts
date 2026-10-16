@@ -34,6 +34,7 @@ import type { CreationGuideAuthor } from '@/src/server/domain/cohort-creation/ge
 
 const s3Migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
 const s4bMigration = readFileSync(new URL('../../../../../prisma/interaction-s4b-sources.sql', import.meta.url), 'utf8');
+const journeyMigration = readFileSync(new URL('../../../../../prisma/interaction-journey-stages.sql', import.meta.url), 'utf8');
 
 const now = new Date('2030-01-01T00:00:00.000Z');
 const sampleProposal: GeneratedGuideProposal = {
@@ -464,6 +465,7 @@ describe('journey-goal-adapter: generated_guide canonical source', () => {
       `);
       await db.exec(s3Migration);
       await db.exec(s4bMigration);
+      await db.exec(journeyMigration);
       await db.exec(`INSERT INTO "interaction_workspaces" ("id", "ownerId") VALUES ('workspace-guide', 'user-guide-owner')`);
 
       const sql: TextArtifactSql = {

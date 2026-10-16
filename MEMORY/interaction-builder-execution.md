@@ -1,5 +1,29 @@
 # Interaction builder execution checkpoint
 
+FINAL COHORT JOURNEY REPAIR — CHECKPOINT 3 COMPLETE (2026-10-16):
+- Authenticated Journey Verification, Published Step Transition, Local Fixtures & Full Operational Acceptance:
+  - `src/server/domain/cohort-builder/release-service.ts`:
+    - Added journey step transition to `'published'` on `releaseWorkspace` when `workspace.journey` is present, ensuring `getActiveStage()` returns `'published'` and `<PublicationStageView>` renders with live receipt.
+  - `src/server/infrastructure/ai/localSourceFixture.ts`:
+    - Added guarded deterministic local fixtures: `localRecommendationAiFixture` (typed IntentProposal & RankingProposal), `localDiscoveryAiFixture`, `localDiscoveryObserverFixture`, `localVideoObservationFixture`, and `localGuideAuthorFixture`.
+  - `src/server/domain/cohort-builder/journey-recommendation-adapter.ts` & `journey-discovery-adapter.ts`:
+    - Routed through local fixtures when `INTERACTION_LOCAL_MODEL_FIXTURE=1`.
+  - `src/server/infrastructure/db/postgres/text-job-runtime.ts`:
+    - Wired video, guide, and discovery observer local fixtures into `runDurableTextJobTick`.
+  - `src/server/domain/cohort-builder/__tests__/journey-goal-adapter.test.ts`:
+    - Added `interaction-journey-stages.sql` migration in `setupDb()` installing `cohort_model_invocations` table.
+  - Full Verification Suite:
+    - 20/20 journey test suites passed (257/257 tests passing).
+    - `reference-guard.test.ts` passed (7/7 tests passing).
+    - `npx tsc --noEmit` verified 0 TypeScript compilation errors.
+    - S6 Release Gates: `npm run interaction:gate` passed 10/10 gates.
+    - Operational Acceptance: `npm run interaction:acceptance` passed all 11 phases.
+    - Additive Rollout Rehearsal: `npm run interaction:rehearse:rollout` passed all 10 phases.
+    - Readiness Probe: `npm run interaction:readiness` returned READY.
+    - Production Build: `npm run verify:vercel` passed in 65.2s.
+LAST_CHECKPOINT: `FINAL-COHORT-JOURNEY-REPAIR-CP3-JOURNEY-ACCEPTANCE-2026-10-16`
+STATUS: Checkpoint 3 complete, verified, and ready for commit.
+
 FINAL COHORT JOURNEY REPAIR — CHECKPOINT 2 COMPLETE (2026-10-16):
 - Strict Discovery Artifact Envelope Validation & Checkpoint Integrity:
   - `src/server/domain/cohort-builder/journey-discovery-adapter.ts`:
