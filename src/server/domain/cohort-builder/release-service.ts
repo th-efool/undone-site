@@ -126,6 +126,14 @@ export async function releaseWorkspace(
 
     const nextWorkspace: CohortWorkspace = {
       ...workspace,
+      ...(workspace.journey
+        ? {
+            journey: {
+              ...workspace.journey,
+              step: 'published',
+            },
+          }
+        : {}),
       release: {
         status: 'released',
         mode: params.mode,
