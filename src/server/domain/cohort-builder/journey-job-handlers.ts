@@ -43,6 +43,7 @@ export interface RecommendationExecutorDeps {
   sql?: TextArtifactSql;
   workspaceId?: string;
   jobKey?: string;
+  dependencyFingerprint?: string;
   attempt?: number;
   ai?: CohortAi;
   catalogRepo?: RecommendationRepository;
@@ -59,6 +60,7 @@ export interface DiscoveryExecutorDeps {
   model?: LanguageModel;
   workspaceId?: string;
   jobKey?: string;
+  dependencyFingerprint?: string;
   attempt?: number;
 }
 
@@ -71,7 +73,7 @@ export async function executeRecommendationJob(
   if (deps?.adapter) {
     const result = await deps.adapter.executeCohortRecommendations(
       workspace,
-      { workspaceId: deps.workspaceId, sql: deps.sql, jobKey: deps.jobKey, attempt: deps.attempt, ...deps },
+      { workspaceId: deps.workspaceId, sql: deps.sql, jobKey: deps.jobKey, dependencyFingerprint: deps.dependencyFingerprint, attempt: deps.attempt, ...deps },
       signal
     );
     const items = [...result.items];
@@ -82,7 +84,7 @@ export async function executeRecommendationJob(
   if (deps?.ai || deps?.catalogRepo || deps?.model) {
     const result = await executeCohortRecommendations(
       workspace,
-      { ai: deps.ai, catalogRepo: deps.catalogRepo, model: deps.model, sql: deps.sql, workspaceId: deps.workspaceId, jobKey: deps.jobKey, attempt: deps.attempt },
+      { ai: deps.ai, catalogRepo: deps.catalogRepo, model: deps.model, sql: deps.sql, workspaceId: deps.workspaceId, jobKey: deps.jobKey, dependencyFingerprint: deps.dependencyFingerprint, attempt: deps.attempt },
       signal
     );
     const items = [...result.items];
@@ -150,7 +152,7 @@ export async function executeRecommendationJob(
 
   const result = await executeCohortRecommendations(
     workspace,
-    deps ? { sql: deps.sql, workspaceId: deps.workspaceId, jobKey: deps.jobKey, attempt: deps.attempt } : undefined,
+    deps ? { sql: deps.sql, workspaceId: deps.workspaceId, jobKey: deps.jobKey, dependencyFingerprint: deps.dependencyFingerprint, attempt: deps.attempt } : undefined,
     signal
   );
   const items = [...result.items];
@@ -178,7 +180,7 @@ export async function executeDiscoveryJob(
   if (deps?.adapter) {
     const result = await deps.adapter.executeCohortDiscovery(
       workspace,
-      { workspaceId: deps.workspaceId, sql: deps.sql, jobKey: deps.jobKey, attempt: deps.attempt, ...deps },
+      { workspaceId: deps.workspaceId, sql: deps.sql, jobKey: deps.jobKey, dependencyFingerprint: deps.dependencyFingerprint, attempt: deps.attempt, ...deps },
       signal
     );
     const items = [...result.items];
@@ -196,6 +198,7 @@ export async function executeDiscoveryJob(
       model: deps?.model,
       workspaceId: deps?.workspaceId,
       jobKey: deps?.jobKey,
+      dependencyFingerprint: deps?.dependencyFingerprint,
       attempt: deps?.attempt,
     },
     signal
@@ -460,6 +463,7 @@ export function createJourneyJobProcessor(deps: {
       const recDeps: RecommendationExecutorDeps = {
         workspaceId: job.workspaceId,
         jobKey,
+        dependencyFingerprint: job.dependencyFingerprint,
         attempt,
         sql: deps.recommendationDeps?.sql,
         ...deps.recommendationDeps,
@@ -472,6 +476,7 @@ export function createJourneyJobProcessor(deps: {
       const discDeps: DiscoveryExecutorDeps = {
         workspaceId: job.workspaceId,
         jobKey,
+        dependencyFingerprint: job.dependencyFingerprint,
         attempt,
         sql: deps.discoveryDeps?.sql,
         ...deps.discoveryDeps,

@@ -13,7 +13,10 @@ Each observation must describe what was actually observed in its interval. Use n
 
 export class VercelMaterialObservation implements MaterialObservation {
   constructor(private readonly model: LanguageModel, private readonly execution: {
-    beforeCall: (unitId: string) => Promise<void | (() => Promise<void>)>;
+    beforeCall: (unitId: string) => Promise<void | ((settlement?: {
+      actualUsage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number; stepsCount?: number };
+      error?: unknown;
+    }) => Promise<void>)>;
   }) {}
   get identity() {
     if (typeof this.model === 'string') throw creationFailure('AI_UNAVAILABLE', 'Video observation requires an explicit provider model.', false);
@@ -39,6 +42,10 @@ export class VercelMaterialObservation implements MaterialObservation {
       signal.throwIfAborted();
       // Reservation errors retain their original lease/budget meaning for the durable worker.
       const release = await this.execution.beforeCall(video.videoId);
+      let settlement: {
+        actualUsage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number; stepsCount?: number };
+        error?: unknown;
+      } | undefined;
       try {
         signal.throwIfAborted();
         const result = await generateText({ model: this.model, instructions,
@@ -50,10 +57,23 @@ export class VercelMaterialObservation implements MaterialObservation {
           maxOutputTokens: 12_000, maxRetries: 0, abortSignal: signal, timeout: { totalMs: 90_000 },
           telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },
         });
+        const u = (result as any)?.usage ?? {};
+        const promptTokens = u.inputTokens ?? u.promptTokens ?? 0;
+        const completionTokens = u.outputTokens ?? u.completionTokens ?? 0;
+        const totalTokens = u.totalTokens ?? (promptTokens + completionTokens);
+        settlement = {
+          actualUsage: {
+            promptTokens,
+            completionTokens,
+            totalTokens,
+            stepsCount: Array.isArray((result as any)?.steps) ? (result as any).steps.length || 1 : 1,
+          },
+        };
         signal.throwIfAborted();
         if (result.finishReason === 'length') throw creationFailure('AI_INVALID_OUTPUT', 'Video observations exceeded the response scope. Select a shorter source; nothing was accepted or silently truncated.', false);
         return validateVideoObservation(result.output, video);
       } catch (error) {
+        settlement = { ...settlement, error: signal.aborted ? (signal.reason ?? error) : error };
         if (signal.aborted) throw signal.reason;
         if (error instanceof CreationFailure) {
           // Semantic failures use the same bounded repair as schema failures, never a relaxed validator.
@@ -75,7 +95,7 @@ export class VercelMaterialObservation implements MaterialObservation {
         if (invalid) throw creationFailure('AI_INVALID_OUTPUT', 'Video observations could not be validated. Retry or supply text.');
         if (APICallError.isInstance(error) && error.statusCode === 429) throw creationFailure('RATE_LIMITED', 'Video observation quota is busy. Retry later.');
         throw creationFailure('AI_UNAVAILABLE', 'Video observation is unavailable. Retry or supply authorized transcript/text material.');
-      } finally { if (release) await release().catch(() => undefined); }
+      } finally { if (release) await release(settlement).catch(() => undefined); }
     }
     throw creationFailure('AI_INVALID_OUTPUT', 'Video observations could not be validated.');
   }

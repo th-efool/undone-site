@@ -32,21 +32,29 @@ export type CohortSourceInput = z.infer<typeof sourceInputSchema>;
 export interface GoalAdapterDeps {
   author?: CreationGuideAuthor;
   model?: LanguageModel;
-  beforeCall?: () => Promise<void | (() => Promise<void>)>;
+  beforeCall?: () => Promise<void | ((settlement?: {
+    actualUsage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number; stepsCount?: number };
+    error?: unknown;
+  }) => Promise<void>)>;
 }
 
 export class LiveCreationGuideAuthor implements CreationGuideAuthor {
   private _author?: CreationGuideAuthor;
+  private readonly hasCustomAuthor: boolean;
   private readonly model?: LanguageModel;
-  private readonly beforeCall?: () => Promise<void | (() => Promise<void>)>;
+  private readonly beforeCall?: GoalAdapterDeps['beforeCall'];
 
   constructor(options?: GoalAdapterDeps | LanguageModel) {
     if (options && typeof (options as any).doGenerate === 'function') {
       this.model = options as LanguageModel;
+      this.hasCustomAuthor = false;
     } else if (options) {
       this._author = (options as GoalAdapterDeps).author;
+      this.hasCustomAuthor = Boolean((options as GoalAdapterDeps).author);
       this.model = (options as GoalAdapterDeps).model;
       this.beforeCall = (options as GoalAdapterDeps).beforeCall;
+    } else {
+      this.hasCustomAuthor = false;
     }
   }
 
@@ -65,7 +73,22 @@ export class LiveCreationGuideAuthor implements CreationGuideAuthor {
   }
 
   async author(intent: LearningIntent, signal: AbortSignal): Promise<GeneratedGuideProposal> {
-    return this.authorInstance.author(intent, signal);
+    const release = this.hasCustomAuthor ? await this.beforeCall?.() : undefined;
+    let settlementError: unknown;
+    try {
+      return await this.authorInstance.author(intent, signal);
+    } catch (err) {
+      settlementError = err;
+      throw err;
+    } finally {
+      if (release) {
+        await release(
+          settlementError
+            ? { error: settlementError }
+            : { actualUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0, stepsCount: 1 } }
+        ).catch(() => undefined);
+      }
+    }
   }
 }
 

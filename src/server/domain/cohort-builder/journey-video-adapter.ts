@@ -30,17 +30,22 @@ export interface VideoObservationProviderOptions {
   observer?: MaterialObservation;
   reader?: Pick<YoutubeMetadataReader, 'read'>;
   model?: LanguageModel;
-  beforeCall?: (unitId: string) => Promise<void | (() => Promise<void>)>;
+  beforeCall?: (unitId: string) => Promise<void | ((settlement?: {
+    actualUsage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number; stepsCount?: number };
+    error?: unknown;
+  }) => Promise<void>)>;
 }
 
 export class LiveVideoObservationProvider implements VideoObservationProvider {
   private _observer?: MaterialObservation;
+  private readonly hasCustomObserver: boolean;
   private readonly reader: Pick<YoutubeMetadataReader, 'read'>;
   private readonly model?: LanguageModel;
-  private readonly beforeCall?: (unitId: string) => Promise<void | (() => Promise<void>)>;
+  private readonly beforeCall?: VideoObservationProviderOptions['beforeCall'];
 
   constructor(options?: VideoObservationProviderOptions) {
     this._observer = options?.observer;
+    this.hasCustomObserver = Boolean(options?.observer);
     this.reader = options?.reader ?? new YoutubeMetadataReader();
     this.model = options?.model;
     this.beforeCall = options?.beforeCall;
@@ -76,7 +81,10 @@ export class LiveVideoObservationProvider implements VideoObservationProvider {
     }
 
     signal.throwIfAborted();
-    const release = await this.beforeCall?.(validVideo.videoId);
+    // Only invoke outer beforeCall when a custom observer was injected;
+    // when using the default VercelMaterialObservation, it invokes beforeCall per model attempt directly.
+    const release = this.hasCustomObserver ? await this.beforeCall?.(validVideo.videoId) : undefined;
+    let settlementError: unknown;
     try {
       const observer = this.observer;
       const proposal = await observer.observeVideo(validVideo, signal);
@@ -107,8 +115,17 @@ export class LiveVideoObservationProvider implements VideoObservationProvider {
           text: obs.text,
         })),
       });
+    } catch (err) {
+      settlementError = err;
+      throw err;
     } finally {
-      if (release) await release().catch(() => undefined);
+      if (release) {
+        await release(
+          settlementError
+            ? { error: settlementError }
+            : { actualUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0, stepsCount: 1 } }
+        ).catch(() => undefined);
+      }
     }
   }
 }

@@ -22,7 +22,12 @@ export async function assertTextJobSchema(sql: TextArtifactSql): Promise<void> {
   const hasJourneyArtifactStages = Boolean(artifactKindCk?.def.includes('recommendations') && artifactKindCk?.def.includes('discovery'));
   const hasJourneyJobStages = Boolean(jobStageCk?.def.includes('recommendations') && jobStageCk?.def.includes('discovery'));
 
-  if (!hasJourneyArtifactStages || !hasJourneyJobStages) {
+  const invTable = await sql.query(`SELECT count(*)::int AS count FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'cohort_model_invocations'`, []);
+  const hasModelInvocationsTable = Number(invTable.rows[0]?.count) === 1;
+
+  if (!hasJourneyArtifactStages || !hasJourneyJobStages || !hasModelInvocationsTable) {
     throw new Error('JOURNEY_STAGE_SCHEMA_NOT_INSTALLED');
   }
 }
+

@@ -175,10 +175,27 @@ export function settleModelTurnBudget(params: {
 import type { TextArtifactSql } from './text-artifacts';
 import { areModelCallsPaused } from './admin-controls';
 
+export interface ProviderCallSettlementInput {
+  actualUsage?: {
+    promptTokens?: number;
+    completionTokens?: number;
+    totalTokens?: number;
+    stepsCount?: number;
+  };
+  error?: unknown;
+}
+
+export type ReleaseProviderCall = (settlement?: ProviderCallSettlementInput) => Promise<void>;
+
 export interface ReserveModelTurnBudgetSqlParams {
   userId: string;
   workspaceId: string;
   invocationKey?: string;
+  jobKey?: string;
+  dependencyFingerprint?: string;
+  operation?: string;
+  attempt?: number;
+  ordinal?: number;
   now?: Date;
   limit?: number;
   skipPauseCheck?: boolean;
@@ -212,9 +229,10 @@ export async function resolveWorkspaceOwner(
 }
 
 /**
- * Atomically reserves a model turn in creation_budgets using direct TextArtifactSql.
+ * Atomically reserves a model turn in creation_budgets and cohort_model_invocations using a single SQL statement.
  * Assigns a persisted logical invocation identity tied to invocationKey.
- * Dedupes duplicate reservations restart-safely, enforces pause policy, and retains conservative spend.
+ * Dedupes duplicate reservations across concurrent connections without double-counting,
+ * enforces pause policy, and retains conservative spend when outcome is uncertain.
  */
 export async function reserveModelTurnBudgetSql(
   sql: TextArtifactSql,
@@ -222,15 +240,7 @@ export async function reserveModelTurnBudgetSql(
 ): Promise<{
   reservation: ModelTurnReservation;
   isExistingReservation: boolean;
-  release: (settlement?: {
-    actualUsage?: {
-      promptTokens?: number;
-      completionTokens?: number;
-      totalTokens?: number;
-      stepsCount?: number;
-    };
-    error?: unknown;
-  }) => Promise<void>;
+  release: ReleaseProviderCall;
 }> {
   if (!params.userId || typeof params.userId !== 'string' || !params.userId.trim()) {
     throw new Error('OWNER_REQUIRED');
@@ -260,75 +270,115 @@ export async function reserveModelTurnBudgetSql(
   const userBudgetHourKey = `user:${params.userId}:model_turn:${hour}`;
   const expiresAt = new Date((hour + 2) * 3_600_000);
   const limit = params.limit ?? hourlyUserModelTurns();
-
   const invocationKey = params.invocationKey;
 
-  // 2. Restart-safe deduplication on invocationKey
+  let isExistingReservation = false;
+
   if (invocationKey) {
-    const invKey = `inv:${invocationKey}`;
-    try {
-      const existingInv = await sql.query(
-        `SELECT "key", "used" FROM "creation_budgets" WHERE "key" = $1`,
-        [invKey]
-      );
-      if (existingInv.rows && existingInv.rows.length > 0 && Number(existingInv.rows[0].used) >= 1) {
-        // Already reserved for this exact invocation. Reuse without double-incrementing.
-        const reservation: ModelTurnReservation = {
-          resource: 'model_turn',
-          key: userBudgetHourKey,
-          units: 1,
-          estimatedTokens: 2000,
-          reservedAt: now.toISOString(),
-        };
-        return {
-          reservation,
-          isExistingReservation: true,
-          release: async (settlement) => {
-            if (settlement?.actualUsage && !settlement.error) {
-              await sql.query(
-                `UPDATE "creation_budgets" SET "used" = 2 WHERE "key" = $1`,
-                [invKey]
-              ).catch(() => undefined);
-            }
-          },
-        };
-      }
-    } catch (err: any) {
-      throw new Error(`ACCOUNTING_STORAGE_UNAVAILABLE: Failed to check invocation accounting: ${err?.message || err}`);
-    }
-  }
-
-  // 3. Atomically reserve turn in user hourly budget
-  let rows;
-  try {
-    rows = await sql.query(
-      `INSERT INTO "creation_budgets" ("key", "used", "expiresAt")
-       VALUES ($1, 1, $2)
-       ON CONFLICT ("key") DO UPDATE SET "used" = "creation_budgets"."used" + 1
-       WHERE "creation_budgets"."used" < $3
-       RETURNING "used"`,
-      [userBudgetHourKey, expiresAt, limit]
-    );
-  } catch (err: any) {
-    throw new Error(`ACCOUNTING_STORAGE_UNAVAILABLE: Failed to reserve model budget: ${err?.message || err}`);
-  }
-
-  if (!rows.rows || rows.rows.length === 0) {
-    throw new UserBudgetExceededError();
-  }
-
-  // 4. Record invocation identity record
-  if (invocationKey) {
-    const invKey = `inv:${invocationKey}`;
+    const invBudgetKey = `inv:${invocationKey}`;
     try {
       await sql.query(
         `INSERT INTO "creation_budgets" ("key", "used", "expiresAt")
-         VALUES ($1, 1, $2)
+         VALUES ($1, 0, $2)
          ON CONFLICT ("key") DO NOTHING`,
-        [invKey, expiresAt]
+        [userBudgetHourKey, expiresAt]
+      );
+
+      const atomicRes = await sql.query(
+        `WITH budget_lock AS (
+           SELECT "used"
+           FROM "creation_budgets"
+           WHERE "key" = $10
+           FOR UPDATE
+         ),
+         claimed_inv AS (
+           INSERT INTO "cohort_model_invocations" (
+             "invocationKey", "workspaceId", "ownerId", "jobKey", "dependencyFingerprint",
+             "operation", "attempt", "ordinal", "status", "createdAt"
+           )
+           SELECT $1, $2, $3, $4, $5, $6, $7, $8, 'reserved', $9
+           FROM budget_lock
+           WHERE budget_lock."used" < $12
+           ON CONFLICT ("invocationKey") DO NOTHING
+           RETURNING "invocationKey"
+         ),
+         budget_step AS (
+           UPDATE "creation_budgets"
+           SET "used" = "creation_budgets"."used" + 1
+           FROM claimed_inv
+           WHERE "creation_budgets"."key" = $10
+           RETURNING "creation_budgets"."used" AS "used"
+         ),
+         compat_inv AS (
+           INSERT INTO "creation_budgets" ("key", "used", "expiresAt")
+           SELECT $13, 1, $11
+           FROM claimed_inv
+           ON CONFLICT ("key") DO NOTHING
+           RETURNING "key"
+         )
+         SELECT
+           (SELECT "used" FROM budget_lock) AS "lockedUsed",
+           EXISTS (SELECT 1 FROM claimed_inv) AS "wasInserted",
+           (SELECT "used" FROM budget_step) AS "budgetUsed"`,
+        [
+          invocationKey,
+          params.workspaceId,
+          params.userId,
+          params.jobKey ?? null,
+          params.dependencyFingerprint ?? null,
+          params.operation ?? null,
+          params.attempt ?? 0,
+          params.ordinal ?? 1,
+          now,
+          userBudgetHourKey,
+          expiresAt,
+          limit,
+          invBudgetKey,
+        ]
+      );
+
+      const row = atomicRes.rows?.[0];
+      const wasInserted = Boolean(row?.wasInserted);
+      const lockedUsed = row?.lockedUsed !== null && row?.lockedUsed !== undefined ? Number(row.lockedUsed) : 0;
+
+      if (wasInserted) {
+        isExistingReservation = false;
+      } else {
+        const checkExisting = await sql.query(
+          `SELECT "invocationKey" FROM "cohort_model_invocations" WHERE "invocationKey" = $1`,
+          [invocationKey]
+        );
+        if (checkExisting.rows && checkExisting.rows.length > 0) {
+          isExistingReservation = true;
+        } else if (lockedUsed >= limit) {
+          throw new UserBudgetExceededError();
+        } else {
+          throw new UserBudgetExceededError();
+        }
+      }
+    } catch (err: any) {
+      if (err instanceof UserBudgetExceededError || err?.code === 'BUDGET_EXHAUSTED') {
+        throw err;
+      }
+      throw new Error(`ACCOUNTING_STORAGE_UNAVAILABLE: Failed to reserve model invocation budget: ${err?.message || err}`);
+    }
+  } else {
+    let rows;
+    try {
+      rows = await sql.query(
+        `INSERT INTO "creation_budgets" ("key", "used", "expiresAt")
+         VALUES ($1, 1, $2)
+         ON CONFLICT ("key") DO UPDATE SET "used" = "creation_budgets"."used" + 1
+         WHERE "creation_budgets"."used" < $3
+         RETURNING "used"`,
+        [userBudgetHourKey, expiresAt, limit]
       );
     } catch (err: any) {
-      throw new Error(`ACCOUNTING_STORAGE_UNAVAILABLE: Failed to record invocation: ${err?.message || err}`);
+      throw new Error(`ACCOUNTING_STORAGE_UNAVAILABLE: Failed to reserve model budget: ${err?.message || err}`);
+    }
+
+    if (!rows.rows || rows.rows.length === 0) {
+      throw new UserBudgetExceededError();
     }
   }
 
@@ -343,18 +393,58 @@ export async function reserveModelTurnBudgetSql(
   let settled = false;
   return {
     reservation,
-    isExistingReservation: false,
+    isExistingReservation,
     release: async (settlement) => {
       if (settled) return;
       settled = true;
-      if (invocationKey && settlement?.actualUsage && !settlement.error) {
-        const invKey = `inv:${invocationKey}`;
+      if (!invocationKey) return;
+
+      const invBudgetKey = `inv:${invocationKey}`;
+      const settledAt = new Date();
+      if (settlement?.actualUsage && !settlement.error) {
+        const promptTokens = Number.isFinite(settlement.actualUsage.promptTokens)
+          ? Math.max(0, Math.trunc(Number(settlement.actualUsage.promptTokens)))
+          : 0;
+        const completionTokens = Number.isFinite(settlement.actualUsage.completionTokens)
+          ? Math.max(0, Math.trunc(Number(settlement.actualUsage.completionTokens)))
+          : 0;
+        const totalTokens = Number.isFinite(settlement.actualUsage.totalTokens)
+          ? Math.max(0, Math.trunc(Number(settlement.actualUsage.totalTokens)))
+          : promptTokens + completionTokens;
+        const stepsCount = Number.isFinite(settlement.actualUsage.stepsCount)
+          ? Math.max(1, Math.trunc(Number(settlement.actualUsage.stepsCount)))
+          : 1;
+
         await sql.query(
-          `UPDATE "creation_budgets" SET "used" = 2 WHERE "key" = $1`,
-          [invKey]
+          `WITH update_inv AS (
+             UPDATE "cohort_model_invocations"
+             SET "status" = 'settled',
+                 "promptTokens" = $2,
+                 "completionTokens" = $3,
+                 "totalTokens" = $4,
+                 "stepsCount" = $5,
+                 "error" = NULL,
+                 "settledAt" = $6
+             WHERE "invocationKey" = $1
+           )
+           UPDATE "creation_budgets"
+           SET "used" = 2
+           WHERE "key" = $7`,
+          [invocationKey, promptTokens, completionTokens, totalTokens, stepsCount, settledAt, invBudgetKey]
+        ).catch(() => undefined);
+      } else {
+        const errMessage = settlement?.error
+          ? (settlement.error instanceof Error ? settlement.error.message : String(settlement.error)).slice(0, 500)
+          : 'UNKNOWN_OUTCOME';
+        await sql.query(
+          `UPDATE "cohort_model_invocations"
+           SET "status" = CASE WHEN "status" = 'settled' THEN 'settled' ELSE 'unknown_outcome_retained' END,
+               "error" = CASE WHEN "status" = 'settled' THEN "error" ELSE $2 END,
+               "settledAt" = COALESCE("settledAt", $3)
+           WHERE "invocationKey" = $1`,
+          [invocationKey, errMessage, settledAt]
         ).catch(() => undefined);
       }
-      // Conservative spend is retained on error or crash (used stays 1)
     },
   };
 }
@@ -367,26 +457,35 @@ export function createDurableProviderCallHook(params: {
   sql: TextArtifactSql;
   workspaceId: string;
   jobKey: string;
+  dependencyFingerprint?: string;
   operation: string;
   generation?: number;
   attempt?: number;
   ownerId?: string;
   skipPauseCheck?: boolean;
-}): () => Promise<void | (() => Promise<void>)> {
+}): () => Promise<ReleaseProviderCall> {
   let ordinal = 0;
   return async () => {
     ordinal += 1;
+    const currentOrdinal = ordinal;
     const ownerId = params.ownerId ?? (await resolveWorkspaceOwner(params.sql, params.workspaceId));
-    const invocationKey = `job:${params.jobKey}:op:${params.operation}:gen:${params.generation ?? 0}:att:${params.attempt ?? 0}:ord:${ordinal}`;
+    const fpSegment = params.dependencyFingerprint ? `:fp:${params.dependencyFingerprint}` : '';
+    const invocationKey = `job:${params.jobKey}${fpSegment}:op:${params.operation}:gen:${params.generation ?? 0}:att:${params.attempt ?? 0}:ord:${currentOrdinal}`;
     const { release } = await reserveModelTurnBudgetSql(params.sql, {
       userId: ownerId,
       workspaceId: params.workspaceId,
       invocationKey,
+      jobKey: params.jobKey,
+      dependencyFingerprint: params.dependencyFingerprint,
+      operation: params.operation,
+      attempt: params.attempt ?? 0,
+      ordinal: currentOrdinal,
       skipPauseCheck: params.skipPauseCheck,
     });
-    return async () => {
-      await release();
+    return async (settlement?: ProviderCallSettlementInput) => {
+      await release(settlement);
     };
   };
 }
+
 
