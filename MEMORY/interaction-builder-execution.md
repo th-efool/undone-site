@@ -1,5 +1,26 @@
 # Interaction builder execution checkpoint
 
+CHECKPOINT 6 COMPLETE (2026-10-16) — Integrated Acceptance, Full-Screen Visual Audits & Production Delivery:
+- Integrated Acceptance Suite (`journey-checkpoint6-acceptance.test.ts`):
+  - Multi-branch lifecycle fully accepted: Homepage → Recommendations → Starting Point → All 3 branches (`have_material`, `find_material`, `have_goal`) → `processing` → `ready` → `review` → explicit `commit_release` → `published`.
+  - Truthful evidence provenance across YouTube native-video observations, transcripts, AI-authored guides, and web/PDF documents.
+  - Concurrency & CAS: two-tab conflict throws `STALE_WORKSPACE`; bumping intent increments `intentVersion` and clears stale recommendations.
+  - Backward compatibility: legacy workspaces without journey parse cleanly, edit normally, and retain `journey: undefined`.
+  - Back navigation guards: once published, `back_to_starting_point` and `back_to_recommendations` throw `INVALID_JOURNEY_TRANSITION`.
+- Visual Gallery Audit & Screen Capture (`capture-all-screens.mjs`, `server.mjs`, `plans/before-after/manifest.json`):
+  - Mounted Screens 2–10 captured in both Desktop (1585x992) and Mobile (390x844).
+  - All screens verified: Recommendations (2), Starting Point (3), Material Input (4), Understanding (5), Chunking (6), Analyzing (7), Ready (8), Review (9), Publication Success (10).
+  - Manifest updated with `mobileStale: false` and commit reference.
+- Reliability & Operational Readiness:
+  - `npm run interaction:readiness`: Result READY.
+  - `npm run interaction:worker:check`: Valid imports and server conditions.
+  - `npm run interaction:gate`: All 10 S6 Release Gates verified.
+  - `npm run interaction:acceptance`: All 11 operational phases passed.
+  - Full Vitest suite: 243 test files, 18 journey suites, 203 journey tests passing.
+  - `npm run verify:vercel`: 100% passed (submodules, TypeScript, package builds, Prisma client, production build simulation).
+LAST_CHECKPOINT: `COHORT-JOURNEY-CP6-INTEGRATED-ACCEPTANCE-2026-10-16`
+NEXT: Production deployment and live smoke test.
+
 CHECKPOINT 5 COMPLETE (2026-10-16) — Processing Views, Ready Screen, Review Stage, Truthful Evidence & Publication:
 - Processing Views & Stepper Inspection (`stage-selectors.ts`, `CohortWorkspacePane.tsx`, `ChatPane.tsx`, `ReadyStageView.tsx`):
   - `journey.step = 'processing'` displays the actual active processing stage derived from canonical jobs/stage (`understanding`, `chunking`, `analysis`, `assembly`).

@@ -56,7 +56,7 @@ describe('Cohort Assistant Runner (Chat ↔ Right Workspace Sync)', () => {
           ? [{ type: 'tool-call', toolCallId: 'minutes', toolName: 'set_daily_minutes', input: JSON.stringify({ dailyMinutes: 35 }) }]
           : [{ type: 'text', text: 'Daily commitment saved.' }],
         finishReason: { unified: step === 1 ? 'tool-calls' : 'stop', raw: step === 1 ? 'tool-calls' : 'stop' },
-        usage: { inputTokens: { total: 0 }, outputTokens: { total: 0 } }, warnings: [],
+        usage: { inputTokens: { total: 0, noCache: 0, cacheRead: 0, cacheWrite: 0 }, outputTokens: { total: 0, text: 0, reasoning: 0 } }, warnings: [],
       };
     } });
     await runAssistantTurn({ workspaceId: WS, ownerId: 'user-1', repo, domain: cohortDomain,
