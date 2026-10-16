@@ -3,13 +3,16 @@ import type { TextArtifactSql } from './text-artifacts';
 import { enqueueTextJobPlanInTransaction } from './text-job-scheduler';
 import { retryTextJob } from './text-jobs';
 import { textJobStatus } from './text-job-status';
-import { enqueueJourneyJobPlanInTransaction } from './journey-job-scheduler';
+import { enqueueJourneyJobPlanInTransaction, cancelJourneyDiscovery } from './journey-job-scheduler';
 
 /** Called only inside the authorized canonical repository transaction. */
 export async function reconcileTextAction(tx: TextArtifactSql, workspaceId: string, state: unknown, action: unknown) {
   const next = cohortWorkspaceSchema.parse(state);
   next.processing.driver = 'durable';
   const typed = action as { type?: string; jobId?: string; sourceId?:string };
+  if (typed.type === 'cancel_discovery') {
+    await cancelJourneyDiscovery(tx, workspaceId);
+  }
   if (next.journey) {
     await enqueueJourneyJobPlanInTransaction(tx, workspaceId, next);
   }

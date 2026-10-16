@@ -154,7 +154,7 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
       expect(fake.actions).toContainEqual({ type: 'start_discovery' });
     });
 
-    it('2. Renders loading state and dispatches cancel_text_processing', async () => {
+    it('2. Renders loading state and dispatches cancel_discovery', async () => {
       const ws = createDiscoveryWorkspace({
         discovery: {
           requestId: 'req-loading-1',
@@ -183,7 +183,7 @@ describe('Checkpoint 4: Journey Branch UI Suite (Discovery, Goal, WorkspacePane,
         fireEvent.click(cancelBtn);
       });
 
-      expect(fake.actions).toContainEqual({ type: 'cancel_text_processing' });
+      expect(fake.actions).toContainEqual({ type: 'cancel_discovery' });
     });
 
     it('3. Renders failed state and dispatches start_discovery on retry', async () => {

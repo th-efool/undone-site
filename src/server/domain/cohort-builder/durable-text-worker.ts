@@ -22,6 +22,10 @@ import {
   createJourneyRecommendationAdapter,
   type JourneyRecommendationAdapter,
 } from './journey-recommendation-adapter';
+import {
+  createJourneyDiscoveryAdapter,
+  type DiscoveryAdapter,
+} from './journey-discovery-adapter';
 
 /** Durable S3 driver composition. It is injectable and remains opt-in until migration rollout. */
 export function runDurableTextJobTick(input: {
@@ -38,7 +42,7 @@ export function runDurableTextJobTick(input: {
   recommendationAdapter?: JourneyRecommendationAdapter;
   recommendationDeps?: RecommendationExecutorDeps;
   discoveryDeps?: DiscoveryExecutorDeps;
-  discoveryAdapter?: any;
+  discoveryAdapter?: DiscoveryAdapter;
   guideAuthor?: any;
 }): Promise<TextJobTickResult> {
   const source = createTextSourceProcessor({
@@ -57,7 +61,10 @@ export function runDurableTextJobTick(input: {
       adapter: input.recommendationAdapter ?? createJourneyRecommendationAdapter(),
       sql: input.sql,
     },
-    discoveryDeps: input.discoveryDeps ?? (input.discoveryAdapter ? { adapter: input.discoveryAdapter, sql: input.sql } : undefined),
+    discoveryDeps: input.discoveryDeps ?? {
+      adapter: input.discoveryAdapter ?? createJourneyDiscoveryAdapter({ sql: input.sql }),
+      sql: input.sql,
+    },
   });
   return runTextJobTick({
     sql: input.sql, workerId: input.workerId, leaseMs: input.leaseMs, now: input.now, renewLease: true,

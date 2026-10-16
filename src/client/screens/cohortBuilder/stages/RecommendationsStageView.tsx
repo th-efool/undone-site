@@ -124,7 +124,7 @@ export function RecommendationsStageView({
             type="button"
             className={styles.retry}
             onClick={() => {
-              void dispatchAction({ type: 'set_intent', intent: workspace.intent });
+              void dispatchAction({ type: 'retry_recommendations' });
             }}
           >
             <RotateCcw size={16} aria-hidden="true" style={{ display: 'inline', marginRight: 6, verticalAlign: 'text-bottom' }} />

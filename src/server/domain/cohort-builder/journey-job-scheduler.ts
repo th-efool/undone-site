@@ -51,8 +51,25 @@ export async function enqueueJourneyJobPlanInTransaction(
             "resultArtifactId" = NULL,
             "updatedAt" = CURRENT_TIMESTAMP
       WHERE "cohort_text_jobs"."dependencyFingerprint" <> EXCLUDED."dependencyFingerprint"
-         OR "cohort_text_jobs"."status" = 'superseded'`,
+         OR "cohort_text_jobs"."status" IN ('superseded', 'failed', 'canceled')`,
       [newId, workspaceId, intent.jobKey, intent.stage, intent.handlerVersion, intent.dependencyFingerprint]
     );
   }
 }
+
+export async function cancelJourneyDiscovery(
+  tx: TextArtifactSql,
+  workspaceId: string
+): Promise<string[]> {
+  const result = await tx.query(
+    `UPDATE "cohort_text_jobs"
+     SET "status" = 'canceled', "fence" = "fence" + 1,
+         "leaseOwner" = NULL, "leaseToken" = NULL, "leaseUntil" = NULL, "updatedAt" = CURRENT_TIMESTAMP
+     WHERE "workspaceId" = $1 AND "jobKey" LIKE 'journey:discovery:%'
+       AND "status" IN ('queued', 'running', 'failed', 'superseded')
+     RETURNING "id"`,
+    [workspaceId]
+  );
+  return result.rows.map(r => String(r.id));
+}
+

@@ -210,8 +210,7 @@ describe('Checkpoint 2 Client Navigation: Recommendations and StartingPoint View
         fireEvent.click(retryButton);
       });
       expect(fake.actions).toContainEqual({
-        type: 'set_intent',
-        intent: 'Master Distributed Consensus',
+        type: 'retry_recommendations',
       });
 
       // Verify create my own button is also available:

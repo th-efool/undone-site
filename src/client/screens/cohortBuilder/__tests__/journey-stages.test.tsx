@@ -235,8 +235,7 @@ describe('Checkpoint 2: Journey Stages & Selectors', () => {
       const retryBtn = screen.getByRole('button', { name: /Retry recommendation search/i });
       fireEvent.click(retryBtn);
       expect(dispatchAction).toHaveBeenCalledWith({
-        type: 'set_intent',
-        intent: 'Master Distributed Systems',
+        type: 'retry_recommendations',
       });
 
       const createOwnBtn = screen.getByRole('button', { name: /Create my own cohort/i });

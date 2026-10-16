@@ -163,7 +163,11 @@ export async function executeDiscoveryJob(
   }
 
   if (deps?.adapter) {
-    const result = await deps.adapter.executeCohortDiscovery(workspace, signal);
+    const result = await deps.adapter.executeCohortDiscovery(
+      workspace,
+      { workspaceId: deps.workspaceId, sql: deps.sql, ...deps },
+      signal
+    );
     const items = [...result.items];
     Object.assign(items, { rawResult: result.rawResult });
     return items;
