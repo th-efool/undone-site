@@ -36,8 +36,32 @@ export function createTextSourceProcessor(input: {
   videoObservationProvider?: any;
   githubSourceProvider?: GithubSourceProvider;
   guideAuthor?: CreationGuideAuthor;
-}): (job: ClaimedTextJob) => Promise<Uint8Array> {
-  return async job => {
+  beforeModelCall?: (params: { kind: 'video' | 'guide'; id: string; workspaceId: string }) => Promise<void | (() => Promise<void>)>;
+}): (job: ClaimedTextJob, signal?: AbortSignal) => Promise<Uint8Array> {
+  const beforeModelCall = input.beforeModelCall ?? (async (params: { kind: 'video' | 'guide'; id: string; workspaceId: string }) => {
+    try {
+      const wsRes = await input.sql.query(
+        `SELECT "ownerId" FROM "interaction_workspaces" WHERE "id" = $1`,
+        [params.workspaceId]
+      );
+      const ownerId = wsRes.rows[0]?.ownerId;
+      if (ownerId) {
+        const { reserveModelTurnBudgetSql } = await import('./budget-policy');
+        const { release } = await reserveModelTurnBudgetSql(input.sql, {
+          userId: String(ownerId),
+          workspaceId: params.workspaceId,
+        });
+        return release;
+      }
+    } catch (e: any) {
+      if (e?.code === 'BUDGET_EXHAUSTED' || e?.name === 'UserBudgetExceededError' || e?.message?.includes('budget reached')) {
+        throw e;
+      }
+    }
+  });
+
+  return async (job, signal) => {
+    signal?.throwIfAborted();
     if (!job.sourceId || job.sourceVersion === null || job.stage === 'assembly') throw new Error('INVALID_SOURCE_JOB');
     const state = cohortWorkspaceSchema.parse(await input.loadWorkspace(job.workspaceId));
     const planned = planTextJobs(state).find(intent => intent.stage === job.stage && intent.sourceId === job.sourceId
@@ -57,28 +81,40 @@ export function createTextSourceProcessor(input: {
         return retained.bytes;
       }
       if (source.input.kind === 'generated_guide') {
-        const { acquireGeneratedGuide } = await import('./journey-goal-adapter');
-        const acquired = await acquireGeneratedGuide(source.input, input.guideAuthor);
-        return acquired.bytes;
+        const { acquireGeneratedGuide, LiveCreationGuideAuthor } = await import('./journey-goal-adapter');
+        const release = await beforeModelCall({ kind: 'guide', id: source.id, workspaceId: job.workspaceId });
+        try {
+          const author = input.guideAuthor ?? new LiveCreationGuideAuthor();
+          const acquired = await acquireGeneratedGuide(source.input, author, signal);
+          return acquired.bytes;
+        } finally {
+          if (release) await release().catch(() => undefined);
+        }
       }
       if (source.input.kind === 'web') {
-        const {fetchRetainedWeb}=await import('./source-adapters');
-        return fetchRetainedWeb(source.input.url,input.webTransport);
+        const { fetchRetainedWeb } = await import('./source-adapters');
+        return fetchRetainedWeb(source.input.url, input.webTransport, signal);
       }
       if (source.input.kind === 'youtube') {
         if (source.input.mode === 'video_observation') {
-          const { acquireVideoObservation } = await import('./journey-video-adapter');
-          const acquired = await acquireVideoObservation(source.input, input.videoObservationProvider);
-          return acquired.bytes;
+          const { acquireVideoObservation, LiveVideoObservationProvider } = await import('./journey-video-adapter');
+          const release = await beforeModelCall({ kind: 'video', id: source.id, workspaceId: job.workspaceId });
+          try {
+            const provider = input.videoObservationProvider ?? new LiveVideoObservationProvider();
+            const acquired = await acquireVideoObservation(source.input, provider, signal);
+            return acquired.bytes;
+          } finally {
+            if (release) await release().catch(() => undefined);
+          }
         }
         if (!source.input.track) throw new Error('TRANSCRIPT_TRACK_REQUIRED');
         const { acquireYoutubeTranscript } = await import('./youtube-transcript');
-        const acquired = await acquireYoutubeTranscript({ ...source.input, track: source.input.track }, input.youtubeTranscriptProvider);
+        const acquired = await acquireYoutubeTranscript({ ...source.input, track: source.input.track }, input.youtubeTranscriptProvider, signal);
         return acquired.bytes;
       }
       if (source.input.kind === 'github') {
-        const {acquireGithubSource}=await import('./github-source');
-        const acquired = await acquireGithubSource(source.input, input.githubSourceProvider);
+        const { acquireGithubSource } = await import('./github-source');
+        const acquired = await acquireGithubSource(source.input, input.githubSourceProvider, signal);
         return acquired.bytes;
       }
       throw new Error('MISSING_RETAINED_INPUT');

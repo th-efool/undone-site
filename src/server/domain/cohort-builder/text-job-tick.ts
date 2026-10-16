@@ -14,7 +14,7 @@ export async function runTextJobTick(input: {
   workerId: string;
   leaseMs: number;
   now: () => Date;
-  process: (job: ClaimedTextJob) => Promise<Uint8Array>;
+  process: (job: ClaimedTextJob, signal?: AbortSignal) => Promise<Uint8Array>;
   accept: (job: ClaimedTextJob, artifact: TextArtifactRef, now: Date) => Promise<boolean>;
   renewLease?: boolean;
   fail?: (job: ClaimedTextJob, code: string, now: Date) => Promise<boolean>;
@@ -27,20 +27,49 @@ export async function runTextJobTick(input: {
   let lostLease = false;
   let renewing: Promise<void> | null = null;
   let deadline: ReturnType<typeof setTimeout> | undefined;
+
+  const abortController = new AbortController();
+
   const timer = input.renewLease ? setInterval(() => {
     if (renewing) return;
     renewing = heartbeatTextJob(input.sql, job, input.now(), input.leaseMs)
-      .then(ok => { if (!ok) lostLease = true; }, () => { lostLease = true; })
+      .then(ok => {
+        if (!ok) {
+          lostLease = true;
+          abortController.abort(new Error('LEASE_LOST'));
+        }
+      }, () => {
+        lostLease = true;
+        abortController.abort(new Error('LEASE_LOST'));
+      })
       .finally(() => { renewing = null; });
   }, Math.max(250, Math.floor(input.leaseMs / 3))) : null;
+
   try {
     const kind = artifactKind[job.stage];
     if (!kind) throw new Error('INVALID_JOB_STAGE');
-    const bytes = await Promise.race([input.process(job), new Promise<never>((_resolve, reject) => {
-      deadline = setTimeout(() => reject(new Error('PROCESSOR_DEADLINE')), processTimeoutMs);
-    })]);
+
+    deadline = setTimeout(() => {
+      abortController.abort(new Error('PROCESSOR_DEADLINE'));
+    }, processTimeoutMs);
+
+    const bytes = await Promise.race([
+      input.process(job, abortController.signal),
+      new Promise<never>((_resolve, reject) => {
+        if (abortController.signal.aborted) {
+          const reason = abortController.signal.reason;
+          reject(reason instanceof Error ? reason : new Error('PROCESSOR_DEADLINE'));
+        } else {
+          abortController.signal.addEventListener('abort', () => {
+            const reason = abortController.signal.reason;
+            reject(reason instanceof Error ? reason : new Error('PROCESSOR_DEADLINE'));
+          }, { once: true });
+        }
+      }),
+    ]);
+
     if (deadline) clearTimeout(deadline);
-    if (lostLease) return { status: 'stale', jobId: job.id };
+    if (lostLease || abortController.signal.aborted) return { status: 'stale', jobId: job.id };
     const artifact = await putTextArtifact(input.sql, {
       workspaceId: job.workspaceId,
       ...(job.sourceId === null ? {} : { sourceId: job.sourceId, sourceVersion: job.sourceVersion! }),
@@ -49,6 +78,9 @@ export async function runTextJobTick(input: {
     const accepted = await input.accept(job, artifact, input.now());
     return { status: accepted ? 'accepted' : 'stale', jobId: job.id };
   } catch (error) {
+    if (lostLease || (error instanceof Error && error.message === 'LEASE_LOST')) {
+      return { status: 'stale', jobId: job.id };
+    }
     const code = error instanceof Error && /^[A-Z_]+$/.test(error.message) ? error.message : 'PROCESSOR_FAILURE';
     const failed = await (input.fail ?? ((claimed, errorCode, at) => failTextJob(input.sql, claimed, errorCode, at)))(job, code, input.now());
     return { status: failed ? 'failed' : 'stale', jobId: job.id };

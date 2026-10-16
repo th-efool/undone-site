@@ -11,10 +11,12 @@ export function createTextAssemblyProcessor(input: {
   loadWorkspace: (workspaceId: string) => Promise<unknown>;
   /** Internal acceptance only, after an exact source preflight proof. */
   reparseSources?: boolean;
-}): (job: ClaimedTextJob) => Promise<Uint8Array> {
-  return async job => {
+}): (job: ClaimedTextJob, signal?: AbortSignal) => Promise<Uint8Array> {
+  return async (job, signal) => {
+    signal?.throwIfAborted();
     if (job.stage !== 'assembly' || job.sourceId !== null || job.sourceVersion !== null) throw new Error('INVALID_ASSEMBLY_JOB');
     const state = cohortWorkspaceSchema.parse(await input.loadWorkspace(job.workspaceId));
+    signal?.throwIfAborted();
     const plan = planTextJobs(state);
     const assembly = plan.find(intent => intent.stage === 'assembly');
     if (!assembly || assembly.dependencyFingerprint !== job.dependencyFingerprint) throw new Error('STALE_ASSEMBLY_JOB');

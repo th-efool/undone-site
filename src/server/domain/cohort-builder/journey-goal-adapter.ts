@@ -32,11 +32,13 @@ export type CohortSourceInput = z.infer<typeof sourceInputSchema>;
 export interface GoalAdapterDeps {
   author?: CreationGuideAuthor;
   model?: LanguageModel;
+  beforeCall?: () => Promise<void | (() => Promise<void>)>;
 }
 
 export class LiveCreationGuideAuthor implements CreationGuideAuthor {
   private _author?: CreationGuideAuthor;
   private readonly model?: LanguageModel;
+  private readonly beforeCall?: () => Promise<void | (() => Promise<void>)>;
 
   constructor(options?: GoalAdapterDeps | LanguageModel) {
     if (options && typeof (options as any).doGenerate === 'function') {
@@ -44,6 +46,7 @@ export class LiveCreationGuideAuthor implements CreationGuideAuthor {
     } else if (options) {
       this._author = (options as GoalAdapterDeps).author;
       this.model = (options as GoalAdapterDeps).model;
+      this.beforeCall = (options as GoalAdapterDeps).beforeCall;
     }
   }
 
@@ -51,7 +54,7 @@ export class LiveCreationGuideAuthor implements CreationGuideAuthor {
     if (!this._author) {
       const model = this.model ?? createCohortModel();
       this._author = new VercelCreationGuideAuthor(model, {
-        beforeCall: async () => {},
+        beforeCall: this.beforeCall ?? (async () => {}),
       });
     }
     return this._author;
@@ -166,6 +169,9 @@ export async function acquireGeneratedGuide(
     if (error instanceof CreationFailure) {
       throw new Error(error.detail.code);
     }
+    if (error instanceof Error && ((error as any).code === 'BUDGET_EXHAUSTED' || error.message === 'BUDGET_EXHAUSTED')) {
+      throw error;
+    }
     const code = error instanceof Error ? error.message : '';
     const safeCodes = [
       'GENERATED_GUIDE_CANCELED',
@@ -175,6 +181,7 @@ export async function acquireGeneratedGuide(
       'AI_INVALID_OUTPUT',
       'AI_UNAVAILABLE',
       'RATE_LIMITED',
+      'BUDGET_EXHAUSTED',
     ];
     if (safeCodes.includes(code)) {
       throw error;
