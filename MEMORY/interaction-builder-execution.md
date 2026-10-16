@@ -1,5 +1,44 @@
 # Interaction builder execution checkpoint
 
+CHECKPOINT 2 REPAIRED & VERIFIED (2026-10-16) — Durable Discovery Persistence & Correct Journey Controls:
+- Durable Discovery Persistence & Checkpoint Resume (`journey-discovery-adapter.ts`, `durable-text-worker.ts`, `journey-discovery-durability.test.ts`):
+  - Enforced fail-closed storage in production: throws DATA_UNAVAILABLE unless SQL storage is provided or explicit test flag `__allowInMemoryStorage` is set.
+  - Intermediate checkpoints persisted in `cohort_text_artifacts` with kind `'discovery'` and `inputFingerprint: 'checkpoint:${inputFingerprint}'`.
+  - On worker restart or interruption, queries saved checkpoint from SQL and passes to `DiscoveryService.run`, which resumes without repeating AI search queries.
+  - Deterministic candidate and request IDs derived from workspaceId, inputRevision, generation, and candidate identity (no random UUID mutations on retry).
+- Canonical Actions & Transitions (`contracts.ts`, `journey-job-scheduler.ts`, `text-action-jobs.ts`):
+  - Added `retry_recommendations`: requires `journey.step === 'recommendations'`, increments `recommendations.generation`, sets `status = 'queued'`, clears `items`, and generates pending fingerprint.
+  - Added `cancel_discovery`: requires `journey.step === 'discovery'` and `branch === 'find_material'`, validates active discovery status (`'queued' | 'running'`), and sets `discovery.status = 'canceled'`.
+  - `cancelJourneyDiscovery(tx, workspaceId)` fences active discovery jobs (`fence = fence + 1`, `status = 'canceled'`, clears lease).
+  - `text-action-jobs.ts`: dispatches `cancelJourneyDiscovery` prior to job plan re-enqueue.
+- Stage Views Updated (`RecommendationsStageView.tsx`, `DiscoveryStageView.tsx`):
+  - Recommendations retry dispatches `retry_recommendations`.
+  - Discovery cancel dispatches `cancel_discovery` (targeting journey namespace rather than text DAG).
+- Comprehensive Test Verification:
+  - 8 new durability tests in `src/server/domain/cohort-builder/__tests__/journey-discovery-durability.test.ts`.
+  - 6 new action tests in `src/shared/cohort-builder/__tests__/journey-actions.test.ts` (42/42 passing).
+  - Full suite: 80 test files, 670 tests passing. Zero TypeScript errors (`tsc --noEmit`).
+  - `npm run verify:vercel`: 100% passed.
+LAST_CHECKPOINT: `COHORT-JOURNEY-CP2-DURABLE-DISCOVERY-CONTROLS-2026-10-16`
+NEXT: Checkpoint 3: Provider Safety, Metadata, Budgets, and Aborts.
+
+CHECKPOINT 1 REPAIRED & VERIFIED (2026-10-16) — Canonical Journey Acceptance, Events & Lock Ordering:
+- Canonical Projection Commit & Event Emission (`journey-job-handlers.ts`, `text-projection-commit.ts`):
+  - Refactored `acceptJourneyJob` and `failJourneyJob` to route through canonical `commitTextProjection`.
+  - Atomically locks workspace FOR UPDATE with `"domainId" = 'cohort' AND "lifecycle" = 'active'`.
+  - Consistent lock ordering across acceptance, failure, and source actions (workspace FIRST, then job row).
+  - Emits canonical `workspace.committed` event in `interaction_events` with sequence increment, contextEpoch bump, and structured receipt (`summary: 'Journey recommendations accepted.'` or `'Journey discovery accepted.'`).
+  - Failure projection emits compatible `workspace.committed` event with status `'failed'` and summary.
+  - Event insertion failure rolls back the entire transaction (job remains running, workspace revision/sequence untouched).
+  - Duplicate acceptance returns `false` with no mutations and no duplicate event.
+  - Expired, replaced, or canceled workers (fence or leaseToken mismatch) cannot project.
+  - Inactive workspaces (`lifecycle != 'active'`) reject acceptance.
+  - Connected SSE clients at cursor receive canonical events in real time without manual reload or additional actions.
+- Verified in `src/server/domain/cohort-builder/__tests__/journey-acceptance-events.test.ts` (8/8 tests passing).
+- All 11 journey test suites (116/116 tests) passing cleanly. Zero TypeScript compilation errors (`tsc --noEmit`).
+LAST_CHECKPOINT_CP1: `COHORT-JOURNEY-CP1-CANONICAL-ACCEPTANCE-EVENTS-2026-10-16`
+
+
 CHECKPOINT 6 COMPLETE (2026-10-16) — Integrated Acceptance, Full-Screen Visual Audits & Production Delivery:
 - Integrated Acceptance Suite (`journey-checkpoint6-acceptance.test.ts`):
   - Multi-branch lifecycle fully accepted: Homepage → Recommendations → Starting Point → All 3 branches (`have_material`, `find_material`, `have_goal`) → `processing` → `ready` → `review` → explicit `commit_release` → `published`.
