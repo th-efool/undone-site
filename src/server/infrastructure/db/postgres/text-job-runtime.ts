@@ -5,7 +5,14 @@ import { runDurableTextJobTick } from '@/src/server/domain/cohort-builder/durabl
 import { recoverTextWorkspace } from '@/src/server/domain/cohort-builder/text-job-recovery';
 import type { TextJobTransactionPort } from '@/src/server/domain/cohort-builder/text-job-scheduler';
 import { assertSourceSchema } from '@/src/server/domain/cohort-builder/source-policy';
-import { localSourceFixture, localYoutubeFixture, localGithubFixture } from '@/src/server/infrastructure/ai/localSourceFixture';
+import {
+  localSourceFixture,
+  localYoutubeFixture,
+  localGithubFixture,
+  localDiscoveryObserverFixture,
+  localVideoObservationFixture,
+  localGuideAuthorFixture,
+} from '@/src/server/infrastructure/ai/localSourceFixture';
 import type { YoutubeTranscriptProvider } from '@/src/server/domain/cohort-builder/youtube-transcript';
 import type { GithubSourceProvider } from '@/src/server/domain/cohort-builder/github-source';
 import { youtubeTranscriptReadiness } from '@/src/server/domain/cohort-builder/youtube-transcript-policy';
@@ -57,9 +64,13 @@ export async function createTextJobRuntime(
       const githubSourceProvider = options?.githubSourceProvider ??
         localGithubFixture() ??
         (githubSourceReadiness().enabled ? new LiveGithubSourceProvider() : undefined);
+      const videoObservationProvider = localVideoObservationFixture();
+      const guideAuthor = localGuideAuthorFixture();
+      const discoveryObserver = localDiscoveryObserverFixture();
       return runDurableTextJobTick({
         sql, workerId, leaseMs, now: () => new Date(), transaction, webTransport,
-        youtubeTranscriptProvider, githubSourceProvider,
+        youtubeTranscriptProvider, githubSourceProvider, videoObservationProvider, guideAuthor,
+        ...(discoveryObserver ? { discoveryDeps: { observer: discoveryObserver, sql } } : {}),
         loadWorkspace: async workspaceId => {
           const row = (await sql.query(`SELECT "snapshot" FROM "interaction_workspaces"
             WHERE "id" = $1 AND "lifecycle" = 'active' AND "domainId" = 'cohort'`, [workspaceId])).rows[0];

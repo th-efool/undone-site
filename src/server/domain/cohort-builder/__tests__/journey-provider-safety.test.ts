@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+﻿import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 
@@ -945,7 +945,7 @@ describe('Checkpoint 3: Provider Safety, Metadata Fail-Closed, Budgets & Aborts'
       const guideBudget = (await db.query(`SELECT "used" FROM "creation_budgets" WHERE "key" = $1`, [userKey])).rows[0] as { used: number };
       expect(guideBudget.used).toBe(1);
 
-      const invRows = (await db.query(`SELECT "invocationKey", "status", "ordinal" FROM "cohort_model_invocations" WHERE "workspaceId" = $1`, [workspaceId])).rows;
+      const invRows = (await db.query(`SELECT "invocationKey", "status", "ordinal" FROM "cohort_model_invocations" WHERE "workspaceId" = $1`, [workspaceId])).rows as Array<{ invocationKey: string; status: string; ordinal: number }>;
       expect(invRows).toHaveLength(1);
       expect(invRows[0].status).toBe('settled');
       expect(Number(invRows[0].ordinal)).toBe(1);
@@ -1104,7 +1104,7 @@ describe('Checkpoint 3: Provider Safety, Metadata Fail-Closed, Budgets & Aborts'
       const invRows = (await db.query(
         `SELECT "ordinal", "status" FROM "cohort_model_invocations" WHERE "workspaceId" = $1 ORDER BY "ordinal" ASC`,
         [workspaceId]
-      )).rows;
+      )).rows as Array<{ ordinal: number; status: string }>;
       // 2 actual model calls (attempt 1 failed schema, attempt 2 succeeded), NOT 3 or 4 from duplicate outer wrapper
       expect(invRows).toHaveLength(2);
       expect(Number(invRows[0].ordinal)).toBe(1);
@@ -1275,4 +1275,6 @@ describe('Checkpoint 3: Provider Safety, Metadata Fail-Closed, Budgets & Aborts'
     }, 90_000);
   });
 });
+
+
 

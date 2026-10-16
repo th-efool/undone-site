@@ -384,6 +384,11 @@ async function loadDefaultAi(
     error?: unknown;
   }) => Promise<void>)>
 ): Promise<ResourceDiscovery> {
+  if (!model && process.env.INTERACTION_LOCAL_MODEL_FIXTURE === '1') {
+    const { localDiscoveryAiFixture } = await import('@/src/server/infrastructure/ai/localSourceFixture');
+    const fixture = localDiscoveryAiFixture({ beforeCall });
+    if (fixture) return fixture;
+  }
   const [{ createCohortModel }, { VercelResourceDiscovery }] = await Promise.all([
     import('@/src/server/infrastructure/ai/modelRegistry'),
     import('@/src/server/infrastructure/ai/vercelResourceDiscovery'),
