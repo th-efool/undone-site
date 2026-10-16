@@ -14,10 +14,31 @@ import {
 import type { CohortAi } from '../cohort-creation/ai.contracts';
 import { CreationFailure, creationFailure } from '../cohort-creation/errors';
 
+import type { TextArtifactSql } from './text-artifacts';
+
 export interface RecommendationAdapterDeps {
   ai?: CohortAi;
   catalogRepo?: RecommendationRepository;
   model?: LanguageModel;
+  sql?: TextArtifactSql;
+  workspaceId?: string;
+  jobKey?: string;
+  attempt?: number;
+  skipPauseCheck?: boolean;
+}
+
+function isAccountingError(err: unknown): boolean {
+  if (!err) return false;
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    msg.includes('OWNER_REQUIRED') ||
+    msg.includes('WORKSPACE_REQUIRED') ||
+    msg.includes('ACCOUNTING_STORAGE_UNAVAILABLE') ||
+    msg.includes('MODEL_CALLS_PAUSED') ||
+    msg.includes('BUDGET_EXHAUSTED') ||
+    (err as any)?.code === 'BUDGET_EXHAUSTED' ||
+    (err as any)?.name === 'UserBudgetExceededError'
+  );
 }
 
 async function loadDefaultCatalogRepo(): Promise<RecommendationRepository> {
@@ -27,13 +48,19 @@ async function loadDefaultCatalogRepo(): Promise<RecommendationRepository> {
   return creationRecommendationRepo;
 }
 
-async function loadDefaultAi(model?: LanguageModel): Promise<CohortAi> {
+async function loadDefaultAi(
+  model?: LanguageModel,
+  beforeCall?: () => Promise<void | (() => Promise<void>)>
+): Promise<CohortAi> {
   const [{ createCohortModel }, { VercelCohortAi }] = await Promise.all([
     import('@/src/server/infrastructure/ai/modelRegistry'),
     import('@/src/server/infrastructure/ai/vercelCohortAi'),
   ]);
   const resolvedModel = model ?? createCohortModel();
-  return new VercelCohortAi(resolvedModel);
+  return new VercelCohortAi(resolvedModel, {
+    maxRetries: 2,
+    beforeCall: beforeCall ?? (async () => {}),
+  });
 }
 
 export class JourneyRecommendationAdapter {
@@ -90,9 +117,29 @@ export async function executeCohortRecommendations(
 
   let ai = deps?.ai;
   if (!ai) {
+    let beforeCall: (() => Promise<void | (() => Promise<void>)>) | undefined;
+    if (deps?.sql) {
+      const workspaceId = deps.workspaceId ?? (workspace as { workspaceId?: string }).workspaceId;
+      if (!workspaceId) {
+        throw new Error('WORKSPACE_REQUIRED: Workspace ID is required for recommendation accounting');
+      }
+      const { createDurableProviderCallHook } = await import('./budget-policy');
+      beforeCall = createDurableProviderCallHook({
+        sql: deps.sql,
+        workspaceId,
+        jobKey: deps.jobKey ?? `journey:recommendations:${inputRevision}`,
+        operation: 'recommendation_ai',
+        attempt: deps.attempt ?? 0,
+        skipPauseCheck: deps.skipPauseCheck,
+      });
+    } else {
+      throw new Error('ACCOUNTING_STORAGE_UNAVAILABLE: Durable SQL connection required for recommendation provider accounting');
+    }
+
     try {
-      ai = await loadDefaultAi(deps?.model);
+      ai = await loadDefaultAi(deps?.model, beforeCall);
     } catch (error) {
+      if (isAccountingError(error)) throw error;
       ai = {
         interpret: async () => {
           throw (error instanceof CreationFailure ? error : creationFailure('AI_UNAVAILABLE', 'Cohort AI unavailable'));
@@ -110,6 +157,7 @@ export async function executeCohortRecommendations(
         return await ai!.interpret(q, sig);
       } catch (err) {
         sig.throwIfAborted();
+        if (isAccountingError(err)) throw err;
         if (err instanceof CreationFailure) throw err;
         throw creationFailure('AI_UNAVAILABLE', err instanceof Error ? err.message : 'AI unavailable');
       }
@@ -119,6 +167,7 @@ export async function executeCohortRecommendations(
         return await ai!.rank(intent, candidates, sig);
       } catch (err) {
         sig.throwIfAborted();
+        if (isAccountingError(err)) throw err;
         if (err instanceof CreationFailure) throw err;
         throw creationFailure('AI_UNAVAILABLE', err instanceof Error ? err.message : 'AI ranking unavailable');
       }
@@ -140,6 +189,7 @@ export async function executeCohortRecommendations(
     );
   } catch (error) {
     effectiveSignal.throwIfAborted();
+    if (isAccountingError(error)) throw error;
     if (error instanceof CreationFailure) {
       throw creationFailure(error.detail.code, error.detail.code, error.detail.retryable);
     }

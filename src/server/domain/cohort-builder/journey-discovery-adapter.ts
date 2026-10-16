@@ -41,8 +41,25 @@ export interface DiscoveryAdapterDeps {
   storage?: Pick<CreationArtifactRepository, 'putJSON' | 'getJSON' | 'ref'>;
   sql?: TextArtifactSql;
   workspaceId?: string;
+  jobKey?: string;
+  attempt?: number;
   model?: LanguageModel;
   __allowInMemoryStorage?: boolean;
+  skipPauseCheck?: boolean;
+}
+
+function isAccountingError(err: unknown): boolean {
+  if (!err) return false;
+  const msg = err instanceof Error ? err.message : String(err);
+  return (
+    msg.includes('OWNER_REQUIRED') ||
+    msg.includes('WORKSPACE_REQUIRED') ||
+    msg.includes('ACCOUNTING_STORAGE_UNAVAILABLE') ||
+    msg.includes('MODEL_CALLS_PAUSED') ||
+    msg.includes('BUDGET_EXHAUSTED') ||
+    (err as any)?.code === 'BUDGET_EXHAUSTED' ||
+    (err as any)?.name === 'UserBudgetExceededError'
+  );
 }
 
 export class WorkspaceArtifactStoreAdapter
@@ -178,14 +195,17 @@ function createInMemoryArtifactStore(
   };
 }
 
-async function loadDefaultAi(model?: LanguageModel): Promise<ResourceDiscovery> {
+async function loadDefaultAi(
+  model?: LanguageModel,
+  beforeCall?: () => Promise<void | (() => Promise<void>)>
+): Promise<ResourceDiscovery> {
   const [{ createCohortModel }, { VercelResourceDiscovery }] = await Promise.all([
     import('@/src/server/infrastructure/ai/modelRegistry'),
     import('@/src/server/infrastructure/ai/vercelResourceDiscovery'),
   ]);
   const resolvedModel = model ?? createCohortModel();
   return new VercelResourceDiscovery(resolvedModel, {
-    beforeCall: async () => {},
+    beforeCall: beforeCall ?? (async () => {}),
   });
 }
 
@@ -276,11 +296,35 @@ export async function executeCohortDiscovery(
     }
   }
 
+  const inputRevision = workspace.journey?.intentVersion ?? 0;
+  const generation = workspace.discovery?.generation ?? 0;
+
   let ai = deps?.ai;
   if (!ai) {
+    let beforeCall: (() => Promise<void | (() => Promise<void>)>) | undefined;
+    if (deps?.sql) {
+      const targetWorkspaceId = deps.workspaceId ?? (workspace as any).workspaceId ?? workspaceId;
+      if (!targetWorkspaceId) {
+        throw new Error('WORKSPACE_REQUIRED: Workspace ID is required for discovery accounting');
+      }
+      const { createDurableProviderCallHook } = await import('./budget-policy');
+      beforeCall = createDurableProviderCallHook({
+        sql: deps.sql,
+        workspaceId: targetWorkspaceId,
+        jobKey: deps.jobKey ?? `journey:discovery:${inputRevision}:${generation}`,
+        operation: 'discovery_ai',
+        generation,
+        attempt: deps.attempt ?? 0,
+        skipPauseCheck: deps.skipPauseCheck,
+      });
+    } else {
+      throw new Error('ACCOUNTING_STORAGE_UNAVAILABLE: Durable SQL connection required for discovery provider accounting');
+    }
+
     try {
-      ai = await loadDefaultAi(deps?.model);
+      ai = await loadDefaultAi(deps?.model, beforeCall);
     } catch (error) {
+      if (isAccountingError(error)) throw error;
       ai = {
         search: async () => {
           throw (error instanceof CreationFailure ? error : creationFailure('AI_UNAVAILABLE', 'Resource discovery AI unavailable'));
@@ -307,9 +351,6 @@ export async function executeCohortDiscovery(
 
   const { DiscoveryService, discoveryRequestSchema, discoveryFingerprint } = await loadDiscoveryService();
   const service = new DiscoveryService(ai, observer, storage);
-
-  const inputRevision = workspace.journey?.intentVersion ?? 0;
-  const generation = workspace.discovery?.generation ?? 0;
   const rawIntent = workspace.intent.trim() || 'General Learning';
   const topicValue = rawIntent.slice(0, 160);
   const rawQuery = rawIntent.length >= 3 ? rawIntent.slice(0, 2000) : `${rawIntent} Learning`;
@@ -412,6 +453,7 @@ export async function executeCohortDiscovery(
     );
   } catch (error) {
     effectiveSignal.throwIfAborted();
+    if (isAccountingError(error)) throw error;
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw error;
     }
