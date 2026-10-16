@@ -70,12 +70,22 @@ export class WorkspaceArtifactStoreAdapter
     private readonly workspaceId: string
   ) {}
 
+  private validateScopeTenant(scope: StorageScope): void {
+    if (scope.ownerId && scope.ownerId.startsWith('workspace:')) {
+      const scopeWorkspaceId = scope.ownerId.slice('workspace:'.length);
+      if (scopeWorkspaceId !== this.workspaceId) {
+        throw new CreationStorageError('NOT_FOUND', 'Stored content was not found for workspace.');
+      }
+    }
+  }
+
   async putJSON<T extends z.ZodType>(
     scope: StorageScope,
     value: z.input<T>,
     options: ArtifactOptions<T>
   ): Promise<CreationObjectRef> {
     options.signal?.throwIfAborted();
+    this.validateScopeTenant(scope);
     const validated = options.schema.parse(value);
     const envelope = {
       artifactType: options.artifactType,
@@ -102,6 +112,7 @@ export class WorkspaceArtifactStoreAdapter
   }
 
   async ref(scope: StorageScope, id: string): Promise<CreationObjectRef> {
+    this.validateScopeTenant(scope);
     const result = await this.sql.query(
       `SELECT "id", "checksum", "byteLength"
        FROM "cohort_text_artifacts"
@@ -126,8 +137,9 @@ export class WorkspaceArtifactStoreAdapter
     options: ArtifactOptions<T>
   ): Promise<z.output<T>> {
     options.signal?.throwIfAborted();
+    this.validateScopeTenant(scope);
     const result = await this.sql.query(
-      `SELECT "id", "checksum", "byteLength", "body"
+      `SELECT "id", "checksum", "byteLength", "body", "kind", "inputFingerprint"
        FROM "cohort_text_artifacts"
        WHERE "workspaceId" = $1 AND "id" = $2`,
       [this.workspaceId, id]
@@ -145,11 +157,46 @@ export class WorkspaceArtifactStoreAdapter
       ? Buffer.from(rawBody, 'utf8')
       : Buffer.from(rawBody as ArrayBuffer);
 
-    const envelope = JSON.parse(bytes.toString('utf8'));
-    const valueToValidate =
-      envelope && typeof envelope === 'object' && 'value' in envelope
-        ? envelope.value
-        : envelope;
+    // Verify byteLength
+    if (row.byteLength !== undefined && row.byteLength !== null) {
+      if (bytes.byteLength !== Number(row.byteLength)) {
+        throw new CreationStorageError(
+          'INTEGRITY',
+          `ARTIFACT_LENGTH_MISMATCH: Stored length ${row.byteLength} !== actual length ${bytes.byteLength}`
+        );
+      }
+    }
+
+    // Verify checksum
+    if (row.checksum) {
+      const computedChecksum = createHash('sha256').update(bytes).digest('hex');
+      if (computedChecksum !== String(row.checksum)) {
+        throw new CreationStorageError(
+          'INTEGRITY',
+          `ARTIFACT_CHECKSUM_MISMATCH: Stored checksum ${row.checksum} !== computed checksum ${computedChecksum}`
+        );
+      }
+    }
+
+    let envelope: any;
+    try {
+      envelope = JSON.parse(bytes.toString('utf8'));
+    } catch {
+      throw new CreationStorageError('INTEGRITY', 'ARTIFACT_CORRUPT_JSON: Failed to parse stored artifact JSON');
+    }
+
+    if (!envelope || typeof envelope !== 'object') {
+      throw new CreationStorageError('INTEGRITY', 'ARTIFACT_INVALID_ENVELOPE: Stored artifact is not an object');
+    }
+
+    if (options.artifactType && envelope.artifactType && envelope.artifactType !== options.artifactType) {
+      throw new CreationStorageError(
+        'INTEGRITY',
+        `ARTIFACT_TYPE_MISMATCH: Expected ${options.artifactType} but found ${envelope.artifactType}`
+      );
+    }
+
+    const valueToValidate = 'value' in envelope ? envelope.value : envelope;
     return options.schema.parse(valueToValidate);
   }
 }
@@ -158,9 +205,18 @@ function createInMemoryArtifactStore(
   workspaceId: string
 ): Pick<CreationArtifactRepository, 'putJSON' | 'getJSON' | 'ref'> {
   const artifacts = new Map<string, { checksum: string; byteLength: number; body: Buffer }>();
+  function validateScope(scope: StorageScope): void {
+    if (scope.ownerId && scope.ownerId.startsWith('workspace:')) {
+      const scopeWorkspaceId = scope.ownerId.slice('workspace:'.length);
+      if (scopeWorkspaceId !== workspaceId) {
+        throw new CreationStorageError('NOT_FOUND', 'Stored content was not found for workspace.');
+      }
+    }
+  }
   return {
     async putJSON(scope, value, options) {
       options.signal?.throwIfAborted();
+      validateScope(scope);
       const validated = options.schema.parse(value);
       const envelope = {
         artifactType: options.artifactType,
@@ -176,6 +232,7 @@ function createInMemoryArtifactStore(
       return { id, kind: 'artifact' as const, byteLength: bytes.length, checksum };
     },
     async ref(scope, id) {
+      validateScope(scope);
       const found = artifacts.get(id);
       if (!found) {
         throw new CreationStorageError('NOT_FOUND', 'Stored content was not found.');
@@ -184,9 +241,23 @@ function createInMemoryArtifactStore(
     },
     async getJSON(scope, id, options) {
       options.signal?.throwIfAborted();
+      validateScope(scope);
       const found = artifacts.get(id);
       if (!found) {
         throw new CreationStorageError('NOT_FOUND', 'Stored content was not found.');
+      }
+      if (found.body.byteLength !== found.byteLength) {
+        throw new CreationStorageError(
+          'INTEGRITY',
+          `ARTIFACT_LENGTH_MISMATCH: Expected ${found.byteLength} !== actual ${found.body.byteLength}`
+        );
+      }
+      const actualChecksum = createHash('sha256').update(found.body).digest('hex');
+      if (actualChecksum !== found.checksum) {
+        throw new CreationStorageError(
+          'INTEGRITY',
+          `ARTIFACT_CHECKSUM_MISMATCH: Stored ${found.checksum} !== computed ${actualChecksum}`
+        );
       }
       const parsed = JSON.parse(found.body.toString('utf8'));
       const val = parsed && typeof parsed === 'object' && 'value' in parsed ? parsed.value : parsed;
@@ -402,29 +473,58 @@ export async function executeCohortDiscovery(
   if (deps?.sql) {
     try {
       const existing = await deps.sql.query(
-        `SELECT "body" FROM "cohort_text_artifacts"
+        `SELECT "body", "checksum", "byteLength" FROM "cohort_text_artifacts"
          WHERE "workspaceId" = $1 AND "kind" = 'discovery' AND "inputFingerprint" = $2
          ORDER BY "createdAt" DESC LIMIT 1`,
         [workspaceId, checkpointKey]
       );
       if (existing.rows.length > 0) {
-        const raw = existing.rows[0].body;
-        const json = Buffer.isBuffer(raw)
-          ? raw.toString('utf8')
-          : typeof raw === 'string'
+        const row = existing.rows[0];
+        const raw = row.body;
+        const bytes = Buffer.isBuffer(raw)
           ? raw
           : raw instanceof Uint8Array
-          ? Buffer.from(raw).toString('utf8')
-          : JSON.stringify(raw);
-        const parsed = JSON.parse(json);
+          ? Buffer.from(raw)
+          : typeof raw === 'string'
+          ? Buffer.from(raw, 'utf8')
+          : Buffer.from(raw as ArrayBuffer);
+
+        if (row.byteLength !== undefined && row.byteLength !== null && bytes.byteLength !== Number(row.byteLength)) {
+          throw new Error(`DISCOVERY_CHECKPOINT_CORRUPT: Byte length mismatch (${bytes.byteLength} vs ${row.byteLength})`);
+        }
+
+        if (row.checksum) {
+          const actualChecksum = createHash('sha256').update(bytes).digest('hex');
+          if (actualChecksum !== String(row.checksum)) {
+            throw new Error(`DISCOVERY_CHECKPOINT_CORRUPT: Checksum mismatch (${actualChecksum} vs ${row.checksum})`);
+          }
+        }
+
+        let parsed: any;
+        try {
+          parsed = JSON.parse(bytes.toString('utf8'));
+        } catch {
+          throw new Error('DISCOVERY_CHECKPOINT_CORRUPT: Checkpoint body contains invalid JSON');
+        }
+
         const value = parsed?.value ?? parsed;
         const valid = discoveryCheckpointSchema.safeParse(value);
-        if (valid.success && valid.data.inputFingerprint === inputFingerprint) {
+        if (!valid.success) {
+          throw new Error(`DISCOVERY_CHECKPOINT_CORRUPT: Checkpoint schema validation failed: ${valid.error.message}`);
+        }
+        if (valid.data.inputFingerprint === inputFingerprint) {
           savedCheckpoint = valid.data;
         }
       }
-    } catch {
-      // resume not available, start fresh
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message.startsWith('DISCOVERY_CHECKPOINT_CORRUPT')) {
+        throw err;
+      }
+      throw creationFailure(
+        'DATA_UNAVAILABLE',
+        `DISCOVERY_STORAGE_READ_FAILED: ${(err as Error).message || String(err)}`,
+        true
+      );
     }
   }
 
@@ -445,8 +545,9 @@ export async function executeCohortDiscovery(
             schema: discoveryCheckpointSchema,
             signal: effectiveSignal,
           });
-        } catch {
-          // checkpoint failure should not block discovery progress
+        } catch (err: unknown) {
+          effectiveSignal.throwIfAborted();
+          throw new Error(`DISCOVERY_CHECKPOINT_WRITE_FAILED: ${(err as Error).message || String(err)}`);
         }
       },
       savedCheckpoint
@@ -454,6 +555,14 @@ export async function executeCohortDiscovery(
   } catch (error) {
     effectiveSignal.throwIfAborted();
     if (isAccountingError(error)) throw error;
+    if (
+      error instanceof Error &&
+      (error.message.startsWith('DISCOVERY_CHECKPOINT_WRITE_FAILED') ||
+       error.message.startsWith('DISCOVERY_CHECKPOINT_CORRUPT') ||
+       error.message.startsWith('DISCOVERY_STORAGE_READ_FAILED'))
+    ) {
+      throw error;
+    }
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw error;
     }
@@ -461,6 +570,9 @@ export async function executeCohortDiscovery(
       throw creationFailure(error.detail.code, error.detail.code, error.detail.retryable);
     }
     if (error instanceof CreationStorageError) {
+      if (error.code === 'INTEGRITY') {
+        throw creationFailure('DATA_UNAVAILABLE', error.message, false);
+      }
       const mappedCode = error.code === 'INVALID_INPUT' ? 'INVALID_REQUEST' : 'DATA_UNAVAILABLE';
       throw creationFailure(mappedCode, error.code, false);
     }

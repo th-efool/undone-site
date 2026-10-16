@@ -592,4 +592,232 @@ describe('Checkpoint 2: Durable Discovery and Correct Journey Controls', () => {
       expect(updatedJob.status).toBe('canceled');
     });
   });
+
+  describe('7. Checkpoint & Artifact Integrity Verification (Checkpoint 2)', () => {
+    it('WorkspaceArtifactStoreAdapter.getJSON rejects when byteLength does not match body length', async () => {
+      const workspaceId = 'ws-integrity-len';
+      const scope = { ownerId: `workspace:${workspaceId}`, draftId: 'draft-1' };
+      const body = Buffer.from(JSON.stringify({ value: { test: 'data' } }), 'utf8');
+
+      // Mock SQL returning byteLength !== body.byteLength
+      const mockSql: TextArtifactSql = {
+        query: vi.fn().mockResolvedValue({
+          rows: [
+            {
+              id: 'art-len-mismatch',
+              workspaceId,
+              checksum: createHash('sha256').update(body).digest('hex'),
+              byteLength: body.byteLength + 10,
+              body,
+            },
+          ],
+        }),
+      };
+      const adapter = new WorkspaceArtifactStoreAdapter(mockSql, workspaceId);
+
+      await expect(
+        adapter.getJSON(scope, 'art-len-mismatch', {
+          artifactType: 'test-artifact',
+          schemaVersion: 1,
+          inputFingerprint: 'fp-test-1',
+          schema: z.object({ test: z.string() }),
+        })
+      ).rejects.toThrow('ARTIFACT_LENGTH_MISMATCH');
+    });
+
+    it('WorkspaceArtifactStoreAdapter.getJSON rejects when checksum does not match body hash', async () => {
+      const { db, sql } = await setupDb();
+      const workspaceId = 'ws-integrity-chk';
+      await insertWorkspace(db, workspaceId, createInitialWorkspace());
+      const adapter = new WorkspaceArtifactStoreAdapter(sql, workspaceId);
+      const scope = { ownerId: `workspace:${workspaceId}`, draftId: 'draft-1' };
+
+      const ref = await adapter.putJSON(scope, { test: 'data' }, {
+        artifactType: 'test-artifact',
+        schemaVersion: 1,
+        inputFingerprint: 'fp-test-2',
+        schema: z.object({ test: z.string() }),
+      });
+
+      // Tamper checksum in database with valid 64-char sha256 hex of different content
+      const badChecksum = createHash('sha256').update('different-content').digest('hex');
+      await db.query(`UPDATE "cohort_text_artifacts" SET "checksum" = $1 WHERE "id" = $2`, [badChecksum, ref.id]);
+
+      await expect(
+        adapter.getJSON(scope, ref.id, {
+          artifactType: 'test-artifact',
+          schemaVersion: 1,
+          inputFingerprint: 'fp-test-2',
+          schema: z.object({ test: z.string() }),
+        })
+      ).rejects.toThrow('ARTIFACT_CHECKSUM_MISMATCH');
+    });
+
+    it('WorkspaceArtifactStoreAdapter enforces tenant workspace isolation', async () => {
+      const { sql } = await setupDb();
+      const workspaceId = 'ws-tenant-target';
+      const adapter = new WorkspaceArtifactStoreAdapter(sql, workspaceId);
+
+      const foreignScope = { ownerId: 'workspace:ws-foreign', draftId: 'draft-1' };
+
+      await expect(
+        adapter.putJSON(foreignScope, { test: 'data' }, {
+          artifactType: 'test-artifact',
+          schemaVersion: 1,
+          inputFingerprint: 'fp-test-3',
+          schema: z.object({ test: z.string() }),
+        })
+      ).rejects.toThrow('Stored content was not found');
+
+      await expect(
+        adapter.getJSON(foreignScope, 'art-1', {
+          artifactType: 'test-artifact',
+          schemaVersion: 1,
+          inputFingerprint: 'fp-test-3',
+          schema: z.object({ test: z.string() }),
+        })
+      ).rejects.toThrow('Stored content was not found');
+    });
+
+    it('executeCohortDiscovery halts with DISCOVERY_CHECKPOINT_CORRUPT when saved checkpoint has corrupted checksum', async () => {
+      const { db, sql } = await setupDb();
+      const workspaceId = 'ws-corrupt-cp';
+      const workspace = createInitialWorkspace();
+      await insertWorkspace(db, workspaceId, workspace);
+
+      const c1 = createMockCandidate('https://example.com/res-1', 'Resource 1');
+      const c2 = createMockCandidate('https://example.com/res-2', 'Resource 2');
+
+      const mockAi: ResourceDiscovery = {
+        search: vi.fn().mockResolvedValue({
+          citations: [
+            { id: c1.citationIds[0], url: c1.url, title: c1.title },
+            { id: c2.citationIds[0], url: c2.url, title: c2.title },
+          ],
+          attribution: null,
+          searchedAt: new Date().toISOString(),
+          model: { provider: 'google', id: 'gemini-test' },
+        }),
+        select: vi.fn().mockResolvedValue({
+          selected: [{ candidateKey: c1.key, reason: 'Good' }],
+        }),
+      };
+
+      const controller = new AbortController();
+      const mockObserver: Pick<DiscoverySourceObserver, 'observe'> = {
+        observe: vi.fn().mockImplementation(async () => {
+          controller.abort();
+          throw new DOMException('The operation was aborted', 'AbortError');
+        }),
+      };
+
+      // 1. Initial run: writes a real checkpoint into database and aborts
+      await expect(
+        executeCohortDiscovery(
+          workspace,
+          { ai: mockAi, observer: mockObserver, sql, workspaceId },
+          controller.signal
+        )
+      ).rejects.toThrow();
+
+      // Verify checkpoint exists
+      const cpRows = await sql.query(
+        `SELECT "id" FROM "cohort_text_artifacts"
+         WHERE "workspaceId" = $1 AND "inputFingerprint" LIKE 'checkpoint:%'`,
+        [workspaceId]
+      );
+      expect(cpRows.rows.length).toBeGreaterThan(0);
+
+      // 2. Tamper checkpoint checksum in DB
+      const badChecksum = createHash('sha256').update('tampered-checkpoint').digest('hex');
+      await db.query(
+        `UPDATE "cohort_text_artifacts" SET "checksum" = $1
+         WHERE "workspaceId" = $2 AND "inputFingerprint" LIKE 'checkpoint:%'`,
+        [badChecksum, workspaceId]
+      );
+
+      // 3. Second run: must halt with DISCOVERY_CHECKPOINT_CORRUPT
+      mockAi.search = vi.fn();
+      await expect(
+        executeCohortDiscovery(workspace, {
+          ai: mockAi,
+          sql,
+          workspaceId,
+        })
+      ).rejects.toThrow('DISCOVERY_CHECKPOINT_CORRUPT');
+
+      // AI was never queried on corrupt checkpoint
+      expect(mockAi.search).not.toHaveBeenCalled();
+    });
+
+    it('executeCohortDiscovery propagates DISCOVERY_STORAGE_READ_FAILED when SQL checkpoint read fails and does not query AI', async () => {
+      const { db } = await setupDb();
+      const workspaceId = 'ws-sql-fail';
+      const workspace = createInitialWorkspace();
+      await insertWorkspace(db, workspaceId, workspace);
+
+      const failingSql: TextArtifactSql = {
+        query: vi.fn().mockRejectedValue(new Error('DATABASE_CONNECTION_LOST')),
+      };
+
+      const mockAi: ResourceDiscovery = {
+        search: vi.fn(),
+        select: vi.fn(),
+      };
+
+      await expect(
+        executeCohortDiscovery(workspace, {
+          ai: mockAi,
+          sql: failingSql,
+          workspaceId,
+        })
+      ).rejects.toThrow('DISCOVERY_STORAGE_READ_FAILED');
+
+      expect(mockAi.search).not.toHaveBeenCalled();
+    });
+
+    it('executeCohortDiscovery halts with DISCOVERY_CHECKPOINT_WRITE_FAILED when mandatory checkpoint write fails', async () => {
+      const { db } = await setupDb();
+      const workspaceId = 'ws-write-fail';
+      const workspace = createInitialWorkspace();
+      await insertWorkspace(db, workspaceId, workspace);
+
+      const candidate = createMockCandidate('https://example.com/item', 'Item');
+      const mockAi: ResourceDiscovery = {
+        search: vi.fn().mockResolvedValue({
+          citations: [{ id: candidate.citationIds[0], url: candidate.url, title: candidate.title }],
+          attribution: null,
+          searchedAt: new Date().toISOString(),
+          model: { provider: 'google', id: 'gemini-test' },
+        }),
+        select: vi.fn().mockResolvedValue({
+          selected: [{ candidateKey: candidate.key, reason: 'Selected' }],
+        }),
+      };
+      const mockObserver: Pick<DiscoverySourceObserver, 'observe'> = {
+        observe: vi.fn().mockResolvedValue(candidate),
+      };
+
+      const { randomUUID } = await import('node:crypto');
+      const failingStorage = {
+        putJSON: vi.fn().mockImplementation(async (scope, value, options) => {
+          if (options.artifactType === 'discovery-checkpoint') {
+            throw new Error('DISK_FULL');
+          }
+          return { id: randomUUID(), kind: 'artifact' as const, byteLength: 10, checksum: '0'.repeat(64) };
+        }),
+        getJSON: vi.fn().mockResolvedValue({}),
+        ref: vi.fn().mockResolvedValue({ id: randomUUID(), kind: 'artifact' as const, byteLength: 0, checksum: '0'.repeat(64) }),
+      };
+
+      await expect(
+        executeCohortDiscovery(workspace, {
+          ai: mockAi,
+          observer: mockObserver,
+          storage: failingStorage,
+          workspaceId,
+        })
+      ).rejects.toThrow('DISCOVERY_CHECKPOINT_WRITE_FAILED');
+    });
+  });
 });
