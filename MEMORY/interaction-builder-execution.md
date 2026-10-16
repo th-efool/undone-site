@@ -1,5 +1,36 @@
 # Interaction builder execution checkpoint
 
+CANONICAL COHORT JOURNEY REPAIR — CHECKPOINT 5 COMPLETE (2026-10-16):
+- Controlled Production Delivery & Live Verification:
+  - Shared Neon PostgreSQL Additive Rollout:
+    - Applied all 7 reviewed additive migration scripts under transactional advisory lock (`hashtext('interaction-builder-rollout')`):
+      1. `packages/interaction-builder/migrations/001_interaction_schema.sql` (8 core engine tables)
+      2. `prisma/interaction-s3-storage.sql` (durable text storage)
+      3. `prisma/interaction-s4b-sources.sql` (source constraint expansion)
+      4. `prisma/interaction-s5-effects.sql` (release effect journaling)
+      5. `prisma/interaction-s6-operations.sql` (operations, supervision & governance)
+      6. `prisma/interaction-workflow-dispatch.sql` (workflow dispatch tables)
+      7. `prisma/interaction-journey-stages.sql` (journey stages: recommendations & discovery constraints)
+    - Zero data loss or reset; all existing v1 creation drafts preserved intact.
+  - Operational Readiness Probe:
+    - `npm run interaction:readiness`: passed with result `READY` across PostgreSQL schema, Neon SSL connectivity, MongoDB persistence, and Gemini credentials.
+  - Vercel Deployment Pre-Verification:
+    - `npm run verify:vercel`: passed all 5 stages in 421.1s:
+      1. Git submodules verified (`packages/interaction-builder`).
+      2. Fast TypeScript validation: 0 errors.
+      3. Package distributions check: `notes-board` and `interaction-builder` dists verified.
+      4. Prisma Client generation: v7.9.1 generated cleanly.
+      5. Full production build simulation: Next.js optimized production build with 35 static pages and dynamic route handlers compiled successfully.
+  - Live Smoke Test (`undone.one`):
+    - Homepage (`https://undone.one/` -> `https://www.undone.one/`): 200 OK, dynamic rendering of prompt bar, category pills, and featured cohorts scroller.
+    - Live intake endpoint (`https://www.undone.one/api/cohort-builder/intake`): 200 OK, returned `{"ownerId":null,"enabled":true}`.
+  - Completion Status:
+    - Deployed Host Commit: `8e9d8590` (and planning branch `e455a8e7`).
+    - Interaction-Builder Engine Submodule: `c3c6bbc08f07c9944ae7c7b3860abcace3a7220b`.
+    - All 5 checkpoints finalized, verified, committed, and delivered.
+LAST_CHECKPOINT: `COHORT-JOURNEY-REPAIR-CP5-PRODUCTION-DELIVERY-2026-10-16`
+STATUS: Checkpoint 5 complete, delivered, and live.
+
 CANONICAL COHORT JOURNEY REPAIR — CHECKPOINT 4 COMPLETE (2026-10-16):
 - Actual PostgreSQL and Authenticated Acceptance & Evidence Corrections:
   - Evidence Label Truthfulness:
