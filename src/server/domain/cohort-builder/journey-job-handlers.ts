@@ -19,6 +19,7 @@ import {
   failTextJob,
   type ClaimedTextJob,
 } from './text-jobs';
+import { commitTextProjection } from './text-projection-commit';
 import { planJourneyJobs } from './journey-job-plan';
 import type { RecommendationService, RecommendationRepository } from '../cohort-creation/recommendation.service';
 import type { CohortAi } from '../cohort-creation/ai.contracts';
@@ -218,9 +219,10 @@ export async function acceptJourneyJob(
   if (artifact.workspaceId !== job.workspaceId || artifact.inputFingerprint !== job.dependencyFingerprint) return false;
   if (artifact.kind !== job.stage) return false;
 
-  // 1. Lock workspace
+  // 1. Lock workspace with active & domainId='cohort' check
   const workspaceRow = (await tx.query(
-    `SELECT "snapshot", "revision" FROM "interaction_workspaces" WHERE "id" = $1 FOR UPDATE`,
+    `SELECT "snapshot", "revision" FROM "interaction_workspaces"
+     WHERE "id" = $1 AND "domainId" = 'cohort' AND "lifecycle" = 'active' FOR UPDATE`,
     [job.workspaceId]
   )).rows[0];
   if (!workspaceRow) return false;
@@ -316,15 +318,18 @@ export async function acceptJourneyJob(
 
   cohortWorkspaceSchema.parse(next);
 
-  // 7. Atomically commit the updated workspace projection
-  const updated = await tx.query(
-    `UPDATE "interaction_workspaces"
-     SET "snapshot" = $1::jsonb, "revision" = "revision" + 1, "updatedAt" = CURRENT_TIMESTAMP
-     WHERE "id" = $2 AND "revision" = $3 RETURNING "revision"`,
-    [JSON.stringify(next), job.workspaceId, Number(workspaceRow.revision)]
+  // 7. Route projection update through canonical projection commit machinery
+  await commitTextProjection(
+    tx,
+    job.workspaceId,
+    state,
+    next,
+    Number(workspaceRow.revision),
+    `journey-stage:${job.id}:${job.fence}`,
+    `Journey ${job.stage} accepted.`
   );
 
-  return updated.rows.length === 1;
+  return true;
 }
 
 /** If job fails: sets job status='failed', updates projection status='failed'. */
@@ -336,13 +341,10 @@ export async function failJourneyJob(
 ): Promise<boolean> {
   if (job.stage !== 'recommendations' && job.stage !== 'discovery') return false;
 
-  // 1. Fail the job in cohort_text_jobs (atomically validates lease & fence)
-  const failed = await failTextJob(tx, job, errorCode, now);
-  if (!failed) return false;
-
-  // 2. Lock workspace
+  // 1. Lock workspace FIRST (consistent lock ordering with acceptJourneyJob and source actions)
   const workspaceRow = (await tx.query(
-    `SELECT "snapshot", "revision" FROM "interaction_workspaces" WHERE "id" = $1 FOR UPDATE`,
+    `SELECT "snapshot", "revision" FROM "interaction_workspaces"
+     WHERE "id" = $1 AND "domainId" = 'cohort' AND "lifecycle" = 'active' FOR UPDATE`,
     [job.workspaceId]
   )).rows[0];
   if (!workspaceRow) return false;
@@ -351,13 +353,29 @@ export async function failJourneyJob(
     typeof workspaceRow.snapshot === 'string' ? JSON.parse(workspaceRow.snapshot) : workspaceRow.snapshot
   );
 
-  // If workspace has journey and job is stale (intentVersion changed), do not overwrite with failed
+  // 2. Lock job row and validate fence, stage, dependencyFingerprint, lease
   const jobRow = (await tx.query(
-    `SELECT "jobKey" FROM "cohort_text_jobs" WHERE "id" = $1 AND "workspaceId" = $2`,
+    `SELECT "jobKey", "stage", "dependencyFingerprint", "fence", "status", "leaseToken"
+     FROM "cohort_text_jobs" WHERE "id" = $1 AND "workspaceId" = $2 FOR UPDATE`,
     [job.id, job.workspaceId]
   )).rows[0];
+  if (!jobRow) return false;
+  if (
+    jobRow.stage !== job.stage ||
+    jobRow.dependencyFingerprint !== job.dependencyFingerprint ||
+    Number(jobRow.fence) !== job.fence ||
+    jobRow.leaseToken !== job.leaseToken ||
+    jobRow.status !== 'running'
+  ) {
+    return false;
+  }
 
-  const jobKey = String(jobRow?.jobKey ?? (job as unknown as { jobKey?: string }).jobKey ?? '');
+  // 3. Fail the job in cohort_text_jobs (atomically validates lease & fence)
+  const failed = await failTextJob(tx, job, errorCode, now);
+  if (!failed) return false;
+
+  // If workspace has journey and job is stale (intentVersion changed), do not overwrite with failed
+  const jobKey = String(jobRow.jobKey ?? (job as unknown as { jobKey?: string }).jobKey ?? '');
   if (state.journey && jobKey) {
     const parts = jobKey.split(':');
     const jobIntentVersion = (parts[0] === 'journey' && (parts[1] === 'recommendations' || parts[1] === 'discovery'))
@@ -368,7 +386,7 @@ export async function failJourneyJob(
     }
   }
 
-  // 3. Update workspace projection to failed
+  // 4. Update workspace projection to failed
   let next: CohortWorkspace;
   if (job.stage === 'recommendations') {
     next = {
@@ -396,14 +414,18 @@ export async function failJourneyJob(
 
   cohortWorkspaceSchema.parse(next);
 
-  const updated = await tx.query(
-    `UPDATE "interaction_workspaces"
-     SET "snapshot" = $1::jsonb, "revision" = "revision" + 1, "updatedAt" = CURRENT_TIMESTAMP
-     WHERE "id" = $2 AND "revision" = $3 RETURNING "revision"`,
-    [JSON.stringify(next), job.workspaceId, Number(workspaceRow.revision)]
+  // 5. Route failure projection through canonical projection commit machinery
+  await commitTextProjection(
+    tx,
+    job.workspaceId,
+    state,
+    next,
+    Number(workspaceRow.revision),
+    `journey-failure:${job.id}:${job.fence}`,
+    `Journey ${job.stage} failed; retry status updated.`
   );
 
-  return updated.rows.length === 1;
+  return true;
 }
 
 export function createJourneyJobProcessor(deps: {

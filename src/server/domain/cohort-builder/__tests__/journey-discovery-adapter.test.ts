@@ -117,7 +117,19 @@ async function setupDb() {
       "lifecycle" TEXT DEFAULT 'active',
       "domainId" TEXT DEFAULT 'cohort',
       "revision" INTEGER NOT NULL DEFAULT 0,
+      "sequence" INTEGER NOT NULL DEFAULT 0,
+      "contextEpoch" INTEGER NOT NULL DEFAULT 0,
       "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE TABLE IF NOT EXISTS "interaction_events" (
+      "id" TEXT PRIMARY KEY,
+      "workspaceId" TEXT NOT NULL,
+      "sequence" INTEGER NOT NULL,
+      "protocolVersion" INTEGER NOT NULL DEFAULT 1,
+      "type" TEXT NOT NULL,
+      "revision" INTEGER,
+      "payload" JSONB NOT NULL,
+      "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
   await db.exec(s3Migration);
@@ -140,7 +152,7 @@ describe('journey-discovery-adapter', () => {
     it('stores and retrieves JSON artifacts using cohort_text_artifacts table with kind discovery', async () => {
       const { db, sql } = await setupDb();
       try {
-        const workspaceId = 'workspace-artifact-test';
+        const workspaceId = '11111111-1111-4111-8111-111111111111';
         await db.query(
           `INSERT INTO "interaction_workspaces" ("id", "snapshot", "revision") VALUES ($1, $2::jsonb, 0)`,
           [workspaceId, JSON.stringify(createInitialWorkspace())]
@@ -578,7 +590,7 @@ describe('journey-discovery-adapter', () => {
     it('atomically projects items into workspace.discovery with status ready when intentVersion matches', async () => {
       const { db, port, sql } = await setupDb();
       try {
-        const workspaceId = 'workspace-discovery-accept';
+        const workspaceId = '22222222-2222-4222-8222-222222222222';
         const state = createInitialWorkspace();
         await db.query(
           `INSERT INTO "interaction_workspaces" ("id", "snapshot", "revision") VALUES ($1, $2::jsonb, 0)`,
@@ -637,7 +649,7 @@ describe('journey-discovery-adapter', () => {
     it('rejects acceptance in acceptJourneyJob when intentVersion is stale', async () => {
       const { db, port, sql } = await setupDb();
       try {
-        const workspaceId = 'workspace-discovery-stale';
+        const workspaceId = '33333333-3333-4333-8333-333333333333';
         const state0 = createInitialWorkspace({
           journey: {
             version: 1,
@@ -714,7 +726,7 @@ describe('journey-discovery-adapter', () => {
     it('updates workspace.discovery with status failed when failJourneyJob is called', async () => {
       const { db, port, sql } = await setupDb();
       try {
-        const workspaceId = 'workspace-discovery-fail';
+        const workspaceId = '44444444-4444-4444-8444-444444444444';
         const state = createInitialWorkspace();
         await db.query(
           `INSERT INTO "interaction_workspaces" ("id", "snapshot", "revision") VALUES ($1, $2::jsonb, 0)`,
