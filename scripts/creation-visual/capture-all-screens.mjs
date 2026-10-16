@@ -2,9 +2,20 @@ import { spawn, execSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import {
+  computeReferenceHashes,
+  assertReferenceIntegrity,
+  validateCaptureOutputPath,
+} from './reference-guard.mjs';
 
 const outputDir = resolve('plans/before-after');
 mkdirSync(outputDir, { recursive: true });
+
+// Assert baseline references exist and take snapshot of their hashes
+const refHashesBefore = computeReferenceHashes();
+if (refHashesBefore.size === 0) {
+  throw new Error('NO_CANONICAL_REFERENCES_FOUND: plans/before-after/reference is empty');
+}
 
 // Load playwright-core from runtime
 const { chromium } = await import(
@@ -155,35 +166,28 @@ try {
     const commitDir = resolve(outputDir, 'captures', headCommit);
     mkdirSync(commitDir, { recursive: true });
 
-    // 1. Desktop reference size (commit-scoped and latest output)
-    const commitDesktopPath = resolve(commitDir, `after-${scr.number}.png`);
-    const commitDesktopFullPath = resolve(commitDir, `after-${scr.number}-full.png`);
-    const desktopPath = resolve(outputDir, `after-${scr.number}.png`);
-    const desktopFullPath = resolve(outputDir, `after-${scr.number}-full.png`);
+    // 1. Desktop reference size (commit-scoped ONLY - never overwriting canonical references)
+    const commitDesktopPath = validateCaptureOutputPath(resolve(commitDir, `after-${scr.number}.png`), headCommit);
+    const commitDesktopFullPath = validateCaptureOutputPath(resolve(commitDir, `after-${scr.number}-full.png`), headCommit);
     await page.screenshot({ path: commitDesktopPath, fullPage: false });
     await page.screenshot({ path: commitDesktopFullPath, fullPage: true });
-    await page.screenshot({ path: desktopPath, fullPage: false });
-    await page.screenshot({ path: desktopFullPath, fullPage: true });
     console.log(`-> Saved commit-scoped desktop: ${commitDesktopPath}`);
-    console.log(`-> Saved desktop: ${desktopPath}`);
 
-    // 2. Mobile (390 x 844)
+    // 2. Mobile (390 x 844) (commit-scoped ONLY)
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(400);
-    const commitMobilePath = resolve(commitDir, `mobile-${scr.number}.png`);
-    const mobilePath = resolve(outputDir, `mobile-${scr.number}.png`);
+    const commitMobilePath = validateCaptureOutputPath(resolve(commitDir, `mobile-${scr.number}.png`), headCommit);
     await page.screenshot({ path: commitMobilePath, fullPage: true });
-    await page.screenshot({ path: mobilePath, fullPage: true });
     console.log(`-> Saved commit-scoped mobile: ${commitMobilePath}`);
-    console.log(`-> Saved mobile: ${mobilePath}`);
   }
 
   // Update manifest.json
   const manifestPath = resolve(outputDir, 'manifest.json');
-  let manifest = { baseline: '33660b2', screens: [] };
+  let manifest = { baseline: '33660b2', referenceDir: 'reference', screens: [] };
   if (readFileSync(manifestPath, 'utf8')) {
     try {
       manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+      manifest.referenceDir = 'reference';
     } catch {}
   }
 
@@ -217,6 +221,10 @@ try {
   manifest.screens = Array.from(manifestMap.values()).sort((a, b) => a.number - b.number);
   writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
   console.log(`Updated manifest: ${manifestPath}`);
+
+  // 3. Post-capture assertion: verify zero mutations to canonical references
+  assertReferenceIntegrity(refHashesBefore);
+  console.log('✓ Canonical reference integrity verified. Zero reference mutations detected.');
 
 } finally {
   await browser.close();

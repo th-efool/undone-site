@@ -1,5 +1,23 @@
 # Interaction builder execution checkpoint
 
+CANONICAL COHORT JOURNEY REPAIR — CHECKPOINT 3 COMPLETE (2026-10-16):
+- Protect Original Design References & Runtime Guards:
+  - Canonical Reference Isolation:
+    - Restored all 45 original approved baseline assets (Screens 2–10 desktop, desktop-full, mobile, and before) from commit `0fde0f4a` into `plans/before-after/reference/`.
+    - Generated immutable baseline index `plans/before-after/reference/reference-manifest.json` with exact byte counts and SHA-256 digests.
+    - Restored canonical files in `plans/before-after/`.
+  - Capture Script Hard Guards & Integrity Assertions:
+    - Created `scripts/creation-visual/reference-guard.mjs`:
+      - `validateCaptureOutputPath(path, commit)`: rejects any write resolving into `plans/before-after/reference/` or directly into `plans/before-after/` root with `CANNOT_OVERWRITE_CANONICAL_REFERENCE`. Enforces that candidate captures write exclusively to `captures/${commit}/`.
+      - `computeReferenceHashes()` & `assertReferenceIntegrity(before)`: computes SHA-256 digests of all reference files before capture runs and re-verifies them post-capture, throwing `CANONICAL_REFERENCE_MUTATED` if any reference asset was touched.
+    - Updated `scripts/creation-visual/capture-all-screens.mjs`, `capture-checkpoint2.mjs`, and `capture-checkpoint3.mjs` to integrate reference guards, commit-scoped writes only, and pre/post reference integrity assertions.
+    - Updated `manifest.json` schema documenting `referenceDir: "reference"`.
+  - Comprehensive Verification:
+    - `scripts/creation-visual/__tests__/reference-guard.test.ts`: all 7 tests passing.
+    - Verified zero TypeScript compilation errors with `npx tsc --noEmit`.
+LAST_CHECKPOINT: `COHORT-JOURNEY-REPAIR-CP3-REFERENCE-PROTECTION-2026-10-16`
+STATUS: Checkpoint 3 complete, verified, and ready for commit.
+
 CANONICAL COHORT JOURNEY REPAIR — CHECKPOINT 2 COMPLETE (2026-10-16):
 - Discovery Checkpoint & Artifact Integrity:
   - `src/server/domain/cohort-builder/journey-discovery-adapter.ts`:
