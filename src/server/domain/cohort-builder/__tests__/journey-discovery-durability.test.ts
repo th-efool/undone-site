@@ -597,7 +597,15 @@ describe('Checkpoint 2: Durable Discovery and Correct Journey Controls', () => {
     it('WorkspaceArtifactStoreAdapter.getJSON rejects when byteLength does not match body length', async () => {
       const workspaceId = 'ws-integrity-len';
       const scope = { ownerId: `workspace:${workspaceId}`, draftId: 'draft-1' };
-      const body = Buffer.from(JSON.stringify({ value: { test: 'data' } }), 'utf8');
+      const body = Buffer.from(
+        JSON.stringify({
+          artifactType: 'test-artifact',
+          schemaVersion: 1,
+          inputFingerprint: 'fp-test-1',
+          value: { test: 'data' },
+        }),
+        'utf8'
+      );
 
       // Mock SQL returning byteLength !== body.byteLength
       const mockSql: TextArtifactSql = {
@@ -606,6 +614,8 @@ describe('Checkpoint 2: Durable Discovery and Correct Journey Controls', () => {
             {
               id: 'art-len-mismatch',
               workspaceId,
+              kind: 'discovery',
+              inputFingerprint: 'fp-test-1',
               checksum: createHash('sha256').update(body).digest('hex'),
               byteLength: body.byteLength + 10,
               body,
@@ -653,30 +663,150 @@ describe('Checkpoint 2: Durable Discovery and Correct Journey Controls', () => {
       ).rejects.toThrow('ARTIFACT_CHECKSUM_MISMATCH');
     });
 
-    it('WorkspaceArtifactStoreAdapter enforces tenant workspace isolation', async () => {
+    it('WorkspaceArtifactStoreAdapter enforces tenant workspace isolation including missing or unprefixed ownerId', async () => {
       const { sql } = await setupDb();
       const workspaceId = 'ws-tenant-target';
       const adapter = new WorkspaceArtifactStoreAdapter(sql, workspaceId);
 
       const foreignScope = { ownerId: 'workspace:ws-foreign', draftId: 'draft-1' };
+      const unprefixedScope = { ownerId: 'raw-user-id', draftId: 'draft-1' };
+      const emptyScope = { ownerId: '', draftId: 'draft-1' };
 
-      await expect(
-        adapter.putJSON(foreignScope, { test: 'data' }, {
-          artifactType: 'test-artifact',
-          schemaVersion: 1,
-          inputFingerprint: 'fp-test-3',
-          schema: z.object({ test: z.string() }),
-        })
-      ).rejects.toThrow('Stored content was not found');
+      for (const badScope of [foreignScope, unprefixedScope, emptyScope]) {
+        await expect(
+          adapter.putJSON(badScope, { test: 'data' }, {
+            artifactType: 'test-artifact',
+            schemaVersion: 1,
+            inputFingerprint: 'fp-test-3',
+            schema: z.object({ test: z.string() }),
+          })
+        ).rejects.toThrow('Stored content was not found');
 
+        await expect(
+          adapter.getJSON(badScope, 'art-1', {
+            artifactType: 'test-artifact',
+            schemaVersion: 1,
+            inputFingerprint: 'fp-test-3',
+            schema: z.object({ test: z.string() }),
+          })
+        ).rejects.toThrow('Stored content was not found');
+      }
+    });
+
+    it('WorkspaceArtifactStoreAdapter.getJSON rejects missing or mismatched artifactType, schemaVersion, inputFingerprint, or row kind', async () => {
+      const workspaceId = 'ws-envelope-strict';
+      const scope = { ownerId: `workspace:${workspaceId}`, draftId: 'draft-1' };
+
+      function makeMockAdapter(envelopeObj: unknown, rowOverrides: Record<string, unknown> = {}) {
+        const body = Buffer.from(JSON.stringify(envelopeObj), 'utf8');
+        const mockSql: TextArtifactSql = {
+          query: vi.fn().mockResolvedValue({
+            rows: [
+              {
+                id: 'art-env',
+                workspaceId,
+                kind: 'discovery',
+                inputFingerprint: 'fp-expected',
+                checksum: createHash('sha256').update(body).digest('hex'),
+                byteLength: body.byteLength,
+                body,
+                ...rowOverrides,
+              },
+            ],
+          }),
+        };
+        return new WorkspaceArtifactStoreAdapter(mockSql, workspaceId);
+      }
+
+      const opts = {
+        artifactType: 'discovery-checkpoint',
+        schemaVersion: 1,
+        inputFingerprint: 'fp-expected',
+        schema: z.object({ test: z.string() }),
+      };
+
+      // 1. Missing artifactType in envelope
       await expect(
-        adapter.getJSON(foreignScope, 'art-1', {
-          artifactType: 'test-artifact',
+        makeMockAdapter({ schemaVersion: 1, inputFingerprint: 'fp-expected', value: { test: 'ok' } }).getJSON(
+          scope,
+          'art-env',
+          opts
+        )
+      ).rejects.toThrow('ARTIFACT_MISSING_TYPE');
+
+      // 2. Mismatched artifactType in envelope
+      await expect(
+        makeMockAdapter({
+          artifactType: 'wrong-type',
           schemaVersion: 1,
-          inputFingerprint: 'fp-test-3',
-          schema: z.object({ test: z.string() }),
-        })
-      ).rejects.toThrow('Stored content was not found');
+          inputFingerprint: 'fp-expected',
+          value: { test: 'ok' },
+        }).getJSON(scope, 'art-env', opts)
+      ).rejects.toThrow('ARTIFACT_TYPE_MISMATCH');
+
+      // 3. Missing schemaVersion in envelope
+      await expect(
+        makeMockAdapter({
+          artifactType: 'discovery-checkpoint',
+          inputFingerprint: 'fp-expected',
+          value: { test: 'ok' },
+        }).getJSON(scope, 'art-env', opts)
+      ).rejects.toThrow('ARTIFACT_MISSING_SCHEMA_VERSION');
+
+      // 4. Mismatched schemaVersion in envelope
+      await expect(
+        makeMockAdapter({
+          artifactType: 'discovery-checkpoint',
+          schemaVersion: 99,
+          inputFingerprint: 'fp-expected',
+          value: { test: 'ok' },
+        }).getJSON(scope, 'art-env', opts)
+      ).rejects.toThrow('ARTIFACT_SCHEMA_VERSION_MISMATCH');
+
+      // 5. Missing inputFingerprint in envelope
+      await expect(
+        makeMockAdapter({
+          artifactType: 'discovery-checkpoint',
+          schemaVersion: 1,
+          value: { test: 'ok' },
+        }).getJSON(scope, 'art-env', opts)
+      ).rejects.toThrow('ARTIFACT_MISSING_FINGERPRINT');
+
+      // 6. Mismatched inputFingerprint in envelope
+      await expect(
+        makeMockAdapter({
+          artifactType: 'discovery-checkpoint',
+          schemaVersion: 1,
+          inputFingerprint: 'fp-wrong',
+          value: { test: 'ok' },
+        }).getJSON(scope, 'art-env', opts)
+      ).rejects.toThrow('ARTIFACT_FINGERPRINT_MISMATCH');
+
+      // 7. Mismatched row.inputFingerprint vs options.inputFingerprint
+      await expect(
+        makeMockAdapter(
+          {
+            artifactType: 'discovery-checkpoint',
+            schemaVersion: 1,
+            inputFingerprint: 'fp-expected',
+            value: { test: 'ok' },
+          },
+          { inputFingerprint: 'fp-db-mismatch' }
+        ).getJSON(scope, 'art-env', opts)
+      ).rejects.toThrow('ARTIFACT_FINGERPRINT_MISMATCH');
+
+      // 8. Wrong row.kind (e.g. 'recommendations' instead of 'discovery')
+      await expect(
+        makeMockAdapter(
+          {
+            artifactType: 'discovery-checkpoint',
+            schemaVersion: 1,
+            inputFingerprint: 'fp-expected',
+            value: { test: 'ok' },
+          },
+          { kind: 'recommendations' }
+        ).getJSON(scope, 'art-env', opts)
+      ).rejects.toThrow('ARTIFACT_KIND_MISMATCH');
     });
 
     it('executeCohortDiscovery halts with DISCOVERY_CHECKPOINT_CORRUPT when saved checkpoint has corrupted checksum', async () => {
@@ -747,6 +877,75 @@ describe('Checkpoint 2: Durable Discovery and Correct Journey Controls', () => {
       ).rejects.toThrow('DISCOVERY_CHECKPOINT_CORRUPT');
 
       // AI was never queried on corrupt checkpoint
+      expect(mockAi.search).not.toHaveBeenCalled();
+    });
+
+    it('executeCohortDiscovery halts with DISCOVERY_CHECKPOINT_CORRUPT when saved checkpoint has mismatched internal inputFingerprint (never silently restarts)', async () => {
+      const { db, sql } = await setupDb();
+      const workspaceId = 'ws-mismatch-cp-fp';
+      const workspace = createInitialWorkspace();
+      await insertWorkspace(db, workspaceId, workspace);
+
+      const c1 = createMockCandidate('https://example.com/res-1', 'Resource 1');
+      const mockAi: ResourceDiscovery = {
+        search: vi.fn().mockResolvedValue({
+          citations: [{ id: c1.citationIds[0], url: c1.url, title: c1.title }],
+          attribution: null,
+          searchedAt: new Date().toISOString(),
+          model: { provider: 'google', id: 'gemini-test' },
+        }),
+        select: vi.fn().mockResolvedValue({
+          selected: [{ candidateKey: c1.key, reason: 'Good' }],
+        }),
+      };
+
+      const controller = new AbortController();
+      const mockObserver: Pick<DiscoverySourceObserver, 'observe'> = {
+        observe: vi.fn().mockImplementation(async () => {
+          controller.abort();
+          throw new DOMException('The operation was aborted', 'AbortError');
+        }),
+      };
+
+      // 1. Write valid checkpoint and abort
+      await expect(
+        executeCohortDiscovery(
+          workspace,
+          { ai: mockAi, observer: mockObserver, sql, workspaceId },
+          controller.signal
+        )
+      ).rejects.toThrow();
+
+      // 2. Mutate the internal checkpoint.value.inputFingerprint while keeping valid outer envelope & checksum
+      const cpRows = await sql.query(
+        `SELECT "id", "body" FROM "cohort_text_artifacts"
+         WHERE "workspaceId" = $1 AND "inputFingerprint" LIKE 'checkpoint:%'`,
+        [workspaceId]
+      );
+      expect(cpRows.rows.length).toBeGreaterThan(0);
+      const cpRow = cpRows.rows[0];
+      const rawBody = Buffer.from(cpRow.body as Uint8Array);
+      const parsedEnvelope = JSON.parse(rawBody.toString('utf8'));
+      parsedEnvelope.value.inputFingerprint = 'f'.repeat(64); // Mismatched inner fingerprint!
+      const newBytes = Buffer.from(JSON.stringify(parsedEnvelope), 'utf8');
+      const newChecksum = createHash('sha256').update(newBytes).digest('hex');
+
+      await db.query(
+        `UPDATE "cohort_text_artifacts"
+         SET "body" = $1, "byteLength" = $2, "checksum" = $3
+         WHERE "id" = $4`,
+        [newBytes, newBytes.byteLength, newChecksum, cpRow.id]
+      );
+
+      // 3. Resume must throw DISCOVERY_CHECKPOINT_CORRUPT and never call AI search
+      mockAi.search = vi.fn();
+      await expect(
+        executeCohortDiscovery(workspace, {
+          ai: mockAi,
+          sql,
+          workspaceId,
+        })
+      ).rejects.toThrow('DISCOVERY_CHECKPOINT_CORRUPT');
       expect(mockAi.search).not.toHaveBeenCalled();
     });
 

@@ -72,11 +72,9 @@ export class WorkspaceArtifactStoreAdapter
   ) {}
 
   private validateScopeTenant(scope: StorageScope): void {
-    if (scope.ownerId && scope.ownerId.startsWith('workspace:')) {
-      const scopeWorkspaceId = scope.ownerId.slice('workspace:'.length);
-      if (scopeWorkspaceId !== this.workspaceId) {
-        throw new CreationStorageError('NOT_FOUND', 'Stored content was not found for workspace.');
-      }
+    const expectedOwnerId = `workspace:${this.workspaceId}`;
+    if (!scope || typeof scope.ownerId !== 'string' || scope.ownerId !== expectedOwnerId) {
+      throw new CreationStorageError('NOT_FOUND', 'Stored content was not found for workspace.');
     }
   }
 
@@ -87,6 +85,15 @@ export class WorkspaceArtifactStoreAdapter
   ): Promise<CreationObjectRef> {
     options.signal?.throwIfAborted();
     this.validateScopeTenant(scope);
+    if (!options.artifactType || typeof options.artifactType !== 'string') {
+      throw new CreationStorageError('INVALID_INPUT', 'ARTIFACT_MISSING_TYPE: artifactType is required');
+    }
+    if (typeof options.schemaVersion !== 'number' || !Number.isInteger(options.schemaVersion)) {
+      throw new CreationStorageError('INVALID_INPUT', 'ARTIFACT_MISSING_SCHEMA_VERSION: schemaVersion is required');
+    }
+    if (!options.inputFingerprint || typeof options.inputFingerprint !== 'string') {
+      throw new CreationStorageError('INVALID_INPUT', 'ARTIFACT_MISSING_FINGERPRINT: inputFingerprint is required');
+    }
     const validated = options.schema.parse(value);
     const envelope = {
       artifactType: options.artifactType,
@@ -115,7 +122,7 @@ export class WorkspaceArtifactStoreAdapter
   async ref(scope: StorageScope, id: string): Promise<CreationObjectRef> {
     this.validateScopeTenant(scope);
     const result = await this.sql.query(
-      `SELECT "id", "checksum", "byteLength"
+      `SELECT "id", "checksum", "byteLength", "kind"
        FROM "cohort_text_artifacts"
        WHERE "workspaceId" = $1 AND "id" = $2`,
       [this.workspaceId, id]
@@ -123,6 +130,12 @@ export class WorkspaceArtifactStoreAdapter
     const row = result.rows[0];
     if (!row) {
       throw new CreationStorageError('NOT_FOUND', 'Stored content was not found.');
+    }
+    if (row.kind !== undefined && row.kind !== null && String(row.kind) !== 'discovery') {
+      throw new CreationStorageError(
+        'INTEGRITY',
+        `ARTIFACT_KIND_MISMATCH: Expected discovery artifact kind, found ${String(row.kind)}`
+      );
     }
     return {
       id: String(row.id),
@@ -139,6 +152,16 @@ export class WorkspaceArtifactStoreAdapter
   ): Promise<z.output<T>> {
     options.signal?.throwIfAborted();
     this.validateScopeTenant(scope);
+    if (!options.artifactType || typeof options.artifactType !== 'string') {
+      throw new CreationStorageError('INTEGRITY', 'ARTIFACT_MISSING_TYPE: Expected artifactType in options');
+    }
+    if (typeof options.schemaVersion !== 'number' || !Number.isInteger(options.schemaVersion)) {
+      throw new CreationStorageError('INTEGRITY', 'ARTIFACT_MISSING_SCHEMA_VERSION: Expected integer schemaVersion in options');
+    }
+    if (!options.inputFingerprint || typeof options.inputFingerprint !== 'string') {
+      throw new CreationStorageError('INTEGRITY', 'ARTIFACT_MISSING_FINGERPRINT: Expected inputFingerprint in options');
+    }
+
     const result = await this.sql.query(
       `SELECT "id", "checksum", "byteLength", "body", "kind", "inputFingerprint"
        FROM "cohort_text_artifacts"
@@ -149,6 +172,19 @@ export class WorkspaceArtifactStoreAdapter
     if (!row) {
       throw new CreationStorageError('NOT_FOUND', 'Stored content was not found.');
     }
+    if (row.kind === undefined || row.kind === null || String(row.kind) !== 'discovery') {
+      throw new CreationStorageError(
+        'INTEGRITY',
+        `ARTIFACT_KIND_MISMATCH: Expected discovery artifact kind, found ${String(row.kind)}`
+      );
+    }
+    if (row.inputFingerprint === undefined || row.inputFingerprint === null || String(row.inputFingerprint) !== options.inputFingerprint) {
+      throw new CreationStorageError(
+        'INTEGRITY',
+        `ARTIFACT_FINGERPRINT_MISMATCH: Row fingerprint ${String(row.inputFingerprint)} !== expected ${options.inputFingerprint}`
+      );
+    }
+
     const rawBody = row.body;
     const bytes = Buffer.isBuffer(rawBody)
       ? rawBody
@@ -159,24 +195,23 @@ export class WorkspaceArtifactStoreAdapter
       : Buffer.from(rawBody as ArrayBuffer);
 
     // Verify byteLength
-    if (row.byteLength !== undefined && row.byteLength !== null) {
-      if (bytes.byteLength !== Number(row.byteLength)) {
-        throw new CreationStorageError(
-          'INTEGRITY',
-          `ARTIFACT_LENGTH_MISMATCH: Stored length ${row.byteLength} !== actual length ${bytes.byteLength}`
-        );
-      }
+    if (row.byteLength === undefined || row.byteLength === null || bytes.byteLength !== Number(row.byteLength)) {
+      throw new CreationStorageError(
+        'INTEGRITY',
+        `ARTIFACT_LENGTH_MISMATCH: Stored length ${row.byteLength} !== actual length ${bytes.byteLength}`
+      );
     }
 
     // Verify checksum
-    if (row.checksum) {
-      const computedChecksum = createHash('sha256').update(bytes).digest('hex');
-      if (computedChecksum !== String(row.checksum)) {
-        throw new CreationStorageError(
-          'INTEGRITY',
-          `ARTIFACT_CHECKSUM_MISMATCH: Stored checksum ${row.checksum} !== computed checksum ${computedChecksum}`
-        );
-      }
+    if (!row.checksum || typeof row.checksum !== 'string') {
+      throw new CreationStorageError('INTEGRITY', 'ARTIFACT_CHECKSUM_MISSING: Stored checksum is missing');
+    }
+    const computedChecksum = createHash('sha256').update(bytes).digest('hex');
+    if (computedChecksum !== String(row.checksum)) {
+      throw new CreationStorageError(
+        'INTEGRITY',
+        `ARTIFACT_CHECKSUM_MISMATCH: Stored checksum ${row.checksum} !== computed checksum ${computedChecksum}`
+      );
     }
 
     let envelope: any;
@@ -186,32 +221,69 @@ export class WorkspaceArtifactStoreAdapter
       throw new CreationStorageError('INTEGRITY', 'ARTIFACT_CORRUPT_JSON: Failed to parse stored artifact JSON');
     }
 
-    if (!envelope || typeof envelope !== 'object') {
+    if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope)) {
       throw new CreationStorageError('INTEGRITY', 'ARTIFACT_INVALID_ENVELOPE: Stored artifact is not an object');
     }
 
-    if (options.artifactType && envelope.artifactType && envelope.artifactType !== options.artifactType) {
+    if (typeof envelope.artifactType !== 'string' || !envelope.artifactType) {
+      throw new CreationStorageError('INTEGRITY', 'ARTIFACT_MISSING_TYPE: Stored envelope is missing artifactType');
+    }
+    if (envelope.artifactType !== options.artifactType) {
       throw new CreationStorageError(
         'INTEGRITY',
         `ARTIFACT_TYPE_MISMATCH: Expected ${options.artifactType} but found ${envelope.artifactType}`
       );
     }
 
-    const valueToValidate = 'value' in envelope ? envelope.value : envelope;
-    return options.schema.parse(valueToValidate);
+    if (typeof envelope.schemaVersion !== 'number' || !Number.isInteger(envelope.schemaVersion)) {
+      throw new CreationStorageError('INTEGRITY', 'ARTIFACT_MISSING_SCHEMA_VERSION: Stored envelope is missing schemaVersion');
+    }
+    if (envelope.schemaVersion !== options.schemaVersion) {
+      throw new CreationStorageError(
+        'INTEGRITY',
+        `ARTIFACT_SCHEMA_VERSION_MISMATCH: Expected ${options.schemaVersion} but found ${envelope.schemaVersion}`
+      );
+    }
+
+    if (typeof envelope.inputFingerprint !== 'string' || !envelope.inputFingerprint) {
+      throw new CreationStorageError('INTEGRITY', 'ARTIFACT_MISSING_FINGERPRINT: Stored envelope is missing inputFingerprint');
+    }
+    if (envelope.inputFingerprint !== options.inputFingerprint) {
+      throw new CreationStorageError(
+        'INTEGRITY',
+        `ARTIFACT_FINGERPRINT_MISMATCH: Envelope fingerprint ${envelope.inputFingerprint} !== expected ${options.inputFingerprint}`
+      );
+    }
+    if (String(row.inputFingerprint) !== envelope.inputFingerprint) {
+      throw new CreationStorageError(
+        'INTEGRITY',
+        `ARTIFACT_FINGERPRINT_MISMATCH: Row fingerprint ${String(row.inputFingerprint)} !== envelope ${envelope.inputFingerprint}`
+      );
+    }
+
+    if (!('value' in envelope)) {
+      throw new CreationStorageError('INTEGRITY', 'ARTIFACT_INVALID_ENVELOPE: Stored envelope is missing value property');
+    }
+
+    try {
+      return options.schema.parse(envelope.value);
+    } catch (err) {
+      throw new CreationStorageError(
+        'INTEGRITY',
+        `ARTIFACT_SCHEMA_INVALID: ${(err as Error).message || String(err)}`
+      );
+    }
   }
 }
 
 function createInMemoryArtifactStore(
   workspaceId: string
 ): Pick<CreationArtifactRepository, 'putJSON' | 'getJSON' | 'ref'> {
-  const artifacts = new Map<string, { checksum: string; byteLength: number; body: Buffer }>();
+  const artifacts = new Map<string, { checksum: string; byteLength: number; body: Buffer; kind: string; inputFingerprint: string }>();
   function validateScope(scope: StorageScope): void {
-    if (scope.ownerId && scope.ownerId.startsWith('workspace:')) {
-      const scopeWorkspaceId = scope.ownerId.slice('workspace:'.length);
-      if (scopeWorkspaceId !== workspaceId) {
-        throw new CreationStorageError('NOT_FOUND', 'Stored content was not found for workspace.');
-      }
+    const expectedOwnerId = `workspace:${workspaceId}`;
+    if (!scope || typeof scope.ownerId !== 'string' || scope.ownerId !== expectedOwnerId) {
+      throw new CreationStorageError('NOT_FOUND', 'Stored content was not found for workspace.');
     }
   }
   return {
@@ -229,7 +301,13 @@ function createInMemoryArtifactStore(
       const bytes = Buffer.from(serialized, 'utf8');
       const id = randomUUID();
       const checksum = createHash('sha256').update(bytes).digest('hex');
-      artifacts.set(id, { checksum, byteLength: bytes.length, body: bytes });
+      artifacts.set(id, {
+        checksum,
+        byteLength: bytes.length,
+        body: bytes,
+        kind: 'discovery',
+        inputFingerprint: options.inputFingerprint,
+      });
       return { id, kind: 'artifact' as const, byteLength: bytes.length, checksum };
     },
     async ref(scope, id) {
@@ -247,6 +325,15 @@ function createInMemoryArtifactStore(
       if (!found) {
         throw new CreationStorageError('NOT_FOUND', 'Stored content was not found.');
       }
+      if (found.kind !== 'discovery') {
+        throw new CreationStorageError('INTEGRITY', `ARTIFACT_KIND_MISMATCH: Expected discovery, found ${found.kind}`);
+      }
+      if (found.inputFingerprint !== options.inputFingerprint) {
+        throw new CreationStorageError(
+          'INTEGRITY',
+          `ARTIFACT_FINGERPRINT_MISMATCH: Expected ${options.inputFingerprint}, found ${found.inputFingerprint}`
+        );
+      }
       if (found.body.byteLength !== found.byteLength) {
         throw new CreationStorageError(
           'INTEGRITY',
@@ -260,9 +347,32 @@ function createInMemoryArtifactStore(
           `ARTIFACT_CHECKSUM_MISMATCH: Stored ${found.checksum} !== computed ${actualChecksum}`
         );
       }
-      const parsed = JSON.parse(found.body.toString('utf8'));
-      const val = parsed && typeof parsed === 'object' && 'value' in parsed ? parsed.value : parsed;
-      return options.schema.parse(val);
+      let envelope: any;
+      try {
+        envelope = JSON.parse(found.body.toString('utf8'));
+      } catch {
+        throw new CreationStorageError('INTEGRITY', 'ARTIFACT_CORRUPT_JSON: Failed to parse stored artifact JSON');
+      }
+      if (!envelope || typeof envelope !== 'object' || Array.isArray(envelope)) {
+        throw new CreationStorageError('INTEGRITY', 'ARTIFACT_INVALID_ENVELOPE: Stored artifact is not an object');
+      }
+      if (envelope.artifactType !== options.artifactType) {
+        throw new CreationStorageError('INTEGRITY', `ARTIFACT_TYPE_MISMATCH: Expected ${options.artifactType} !== ${envelope.artifactType}`);
+      }
+      if (envelope.schemaVersion !== options.schemaVersion) {
+        throw new CreationStorageError('INTEGRITY', `ARTIFACT_SCHEMA_VERSION_MISMATCH: Expected ${options.schemaVersion} !== ${envelope.schemaVersion}`);
+      }
+      if (envelope.inputFingerprint !== options.inputFingerprint) {
+        throw new CreationStorageError('INTEGRITY', `ARTIFACT_FINGERPRINT_MISMATCH: Expected ${options.inputFingerprint} !== ${envelope.inputFingerprint}`);
+      }
+      if (!('value' in envelope)) {
+        throw new CreationStorageError('INTEGRITY', 'ARTIFACT_INVALID_ENVELOPE: Missing value in envelope');
+      }
+      try {
+        return options.schema.parse(envelope.value);
+      } catch (err) {
+        throw new CreationStorageError('INTEGRITY', `ARTIFACT_SCHEMA_INVALID: ${(err as Error).message}`);
+      }
     },
   };
 }
@@ -474,69 +584,61 @@ export async function executeCohortDiscovery(
     draftId: deterministicUuid(`discovery:scope:${workspaceId}:${inputRevision}:${generation}`),
   };
 
+  const effectiveSignal = signal ?? new AbortController().signal;
   const inputFingerprint = discoveryFingerprint(request);
   const checkpointKey = `checkpoint:${inputFingerprint}`;
   let savedCheckpoint: DiscoveryCheckpoint | undefined;
 
   if (deps?.sql) {
+    let checkpointRowId: string | undefined;
     try {
       const existing = await deps.sql.query(
-        `SELECT "body", "checksum", "byteLength" FROM "cohort_text_artifacts"
+        `SELECT "id" FROM "cohort_text_artifacts"
          WHERE "workspaceId" = $1 AND "kind" = 'discovery' AND "inputFingerprint" = $2
          ORDER BY "createdAt" DESC LIMIT 1`,
         [workspaceId, checkpointKey]
       );
       if (existing.rows.length > 0) {
-        const row = existing.rows[0];
-        const raw = row.body;
-        const bytes = Buffer.isBuffer(raw)
-          ? raw
-          : raw instanceof Uint8Array
-          ? Buffer.from(raw)
-          : typeof raw === 'string'
-          ? Buffer.from(raw, 'utf8')
-          : Buffer.from(raw as ArrayBuffer);
-
-        if (row.byteLength !== undefined && row.byteLength !== null && bytes.byteLength !== Number(row.byteLength)) {
-          throw new Error(`DISCOVERY_CHECKPOINT_CORRUPT: Byte length mismatch (${bytes.byteLength} vs ${row.byteLength})`);
-        }
-
-        if (row.checksum) {
-          const actualChecksum = createHash('sha256').update(bytes).digest('hex');
-          if (actualChecksum !== String(row.checksum)) {
-            throw new Error(`DISCOVERY_CHECKPOINT_CORRUPT: Checksum mismatch (${actualChecksum} vs ${row.checksum})`);
-          }
-        }
-
-        let parsed: any;
-        try {
-          parsed = JSON.parse(bytes.toString('utf8'));
-        } catch {
-          throw new Error('DISCOVERY_CHECKPOINT_CORRUPT: Checkpoint body contains invalid JSON');
-        }
-
-        const value = parsed?.value ?? parsed;
-        const valid = discoveryCheckpointSchema.safeParse(value);
-        if (!valid.success) {
-          throw new Error(`DISCOVERY_CHECKPOINT_CORRUPT: Checkpoint schema validation failed: ${valid.error.message}`);
-        }
-        if (valid.data.inputFingerprint === inputFingerprint) {
-          savedCheckpoint = valid.data;
-        }
+        checkpointRowId = String(existing.rows[0].id);
       }
     } catch (err: unknown) {
-      if (err instanceof Error && err.message.startsWith('DISCOVERY_CHECKPOINT_CORRUPT')) {
-        throw err;
-      }
       throw creationFailure(
         'DATA_UNAVAILABLE',
         `DISCOVERY_STORAGE_READ_FAILED: ${(err as Error).message || String(err)}`,
         true
       );
     }
-  }
 
-  const effectiveSignal = signal ?? new AbortController().signal;
+    if (checkpointRowId) {
+      try {
+        const checkpointData = await storage.getJSON(scope, checkpointRowId, {
+          artifactType: 'discovery-checkpoint',
+          schemaVersion: 1,
+          inputFingerprint: checkpointKey,
+          schema: discoveryCheckpointSchema,
+          signal: effectiveSignal,
+        });
+        if (checkpointData.inputFingerprint !== inputFingerprint) {
+          throw new Error(
+            `DISCOVERY_CHECKPOINT_CORRUPT: Checkpoint inputFingerprint mismatch (${checkpointData.inputFingerprint} !== ${inputFingerprint})`
+          );
+        }
+        savedCheckpoint = checkpointData;
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message.startsWith('DISCOVERY_CHECKPOINT_CORRUPT')) {
+          throw err;
+        }
+        if (err instanceof CreationStorageError && err.code === 'INTEGRITY') {
+          throw new Error(`DISCOVERY_CHECKPOINT_CORRUPT: ${err.message}`);
+        }
+        throw creationFailure(
+          'DATA_UNAVAILABLE',
+          `DISCOVERY_STORAGE_READ_FAILED: ${(err as Error).message || String(err)}`,
+          true
+        );
+      }
+    }
+  }
 
   let result: DiscoveryResult;
   try {

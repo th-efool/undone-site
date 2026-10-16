@@ -1,5 +1,20 @@
 # Interaction builder execution checkpoint
 
+FINAL COHORT JOURNEY REPAIR — CHECKPOINT 2 COMPLETE (2026-10-16):
+- Strict Discovery Artifact Envelope Validation & Checkpoint Integrity:
+  - `src/server/domain/cohort-builder/journey-discovery-adapter.ts`:
+    - `WorkspaceArtifactStoreAdapter`:
+      - Enforced strict tenant scope ownership: `scope.ownerId` must equal `workspace:${this.workspaceId}` (rejects missing, empty, unprefixed, or foreign `ownerId` with `NOT_FOUND`).
+      - Enforced full envelope validation on `getJSON` (and `createInMemoryArtifactStore`): verifies `row.kind === 'discovery'`, `row.inputFingerprint === options.inputFingerprint`, `byteLength`, `sha256` checksum, non-array JSON object envelope with required `envelope.artifactType`, `envelope.schemaVersion`, `envelope.inputFingerprint`, and `'value' in envelope`, exact matches against `options`, and schema parsing of `envelope.value`.
+    - Checkpoint Loading in `executeCohortDiscovery`:
+      - Queries latest discovery checkpoint ID for `(workspaceId, checkpointKey)` and loads it through `storage.getJSON` with `artifactType: 'discovery-checkpoint'`, `schemaVersion: 1`, `inputFingerprint: checkpointKey`, and `schema: discoveryCheckpointSchema`.
+      - Validates `checkpoint.inputFingerprint === inputFingerprint`; throws `DISCOVERY_CHECKPOINT_CORRUPT` on any envelope/checksum/length/schema/fingerprint mismatch, never silently starting fresh AI discovery.
+  - Verification:
+    - `src/server/domain/cohort-builder/__tests__/journey-discovery-durability.test.ts`: 16/16 tests passed.
+    - `src/server/domain/cohort-builder/__tests__/journey-discovery-adapter.test.ts`: 14/14 tests passed.
+LAST_CHECKPOINT: `FINAL-COHORT-JOURNEY-REPAIR-CP2-DISCOVERY-ENVELOPE-2026-10-16`
+STATUS: Checkpoint 2 complete, verified, and ready for commit.
+
 FINAL COHORT JOURNEY REPAIR — CHECKPOINT 1 COMPLETE (2026-10-16):
 - Atomic, Restart-Safe Provider Accounting & Usage Settlement:
   - `prisma/interaction-journey-stages.sql` & `src/server/domain/cohort-builder/text-schema-readiness.ts`:

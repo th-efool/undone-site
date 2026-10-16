@@ -160,7 +160,7 @@ describe('journey-discovery-adapter', () => {
 
         const store = new WorkspaceArtifactStoreAdapter(sql, workspaceId);
         const testSchema = z.strictObject({ message: z.string(), count: z.number() });
-        const scope = { ownerId: 'workspace-owner', draftId: randomUUID() };
+        const scope = { ownerId: `workspace:${workspaceId}`, draftId: randomUUID() };
         const inputFingerprint = createHash('sha256').update('test-fingerprint').digest('hex');
 
         // putJSON
@@ -218,7 +218,7 @@ describe('journey-discovery-adapter', () => {
       const { db, sql } = await setupDb();
       try {
         const store = new WorkspaceArtifactStoreAdapter(sql, 'workspace-nonexistent');
-        const scope = { ownerId: 'user', draftId: randomUUID() };
+        const scope = { ownerId: 'workspace:workspace-nonexistent', draftId: randomUUID() };
         const missingId = randomUUID();
 
         await expect(store.ref(scope, missingId)).rejects.toThrowError(CreationStorageError);
@@ -258,6 +258,8 @@ describe('journey-discovery-adapter', () => {
               rows: [
                 {
                   id: parameters[1],
+                  kind: 'discovery',
+                  inputFingerprint: 'fp',
                   checksum: createHash('sha256').update(body).digest('hex'),
                   byteLength: body.length,
                   body,
@@ -270,6 +272,7 @@ describe('journey-discovery-adapter', () => {
               rows: [
                 {
                   id: parameters[1],
+                  kind: 'discovery',
                   checksum: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
                   byteLength: 2,
                 },
@@ -281,7 +284,7 @@ describe('journey-discovery-adapter', () => {
       };
 
       const store = new WorkspaceArtifactStoreAdapter(mockSql, 'workspace-no-drafts');
-      const scope = { ownerId: 'user', draftId: randomUUID() };
+      const scope = { ownerId: 'workspace:workspace-no-drafts', draftId: randomUUID() };
 
       await store.putJSON(
         scope,
