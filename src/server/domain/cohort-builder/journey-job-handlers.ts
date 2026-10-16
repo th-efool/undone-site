@@ -41,6 +41,9 @@ export interface RecommendationExecutorDeps {
   recommendationService?: Pick<RecommendationService, 'recommend'>;
   loadCatalog?: (query: string, signal?: AbortSignal) => Promise<Array<{ id: string; label: string; url: string }>>;
   sql?: TextArtifactSql;
+  workspaceId?: string;
+  jobKey?: string;
+  attempt?: number;
   ai?: CohortAi;
   catalogRepo?: RecommendationRepository;
   model?: LanguageModel;
@@ -55,6 +58,8 @@ export interface DiscoveryExecutorDeps {
   storage?: Pick<CreationArtifactRepository, 'putJSON' | 'getJSON' | 'ref'>;
   model?: LanguageModel;
   workspaceId?: string;
+  jobKey?: string;
+  attempt?: number;
 }
 
 /** Reads public accessible cohorts catalog or uses RecommendationService (read-only). Produces safe items [{ id, label, url }]. */
@@ -64,7 +69,11 @@ export async function executeRecommendationJob(
   signal?: AbortSignal
 ): Promise<Array<z.infer<typeof cohortRecommendationItemSchema>>> {
   if (deps?.adapter) {
-    const result = await deps.adapter.executeCohortRecommendations(workspace, signal);
+    const result = await deps.adapter.executeCohortRecommendations(
+      workspace,
+      { workspaceId: deps.workspaceId, sql: deps.sql, jobKey: deps.jobKey, attempt: deps.attempt, ...deps },
+      signal
+    );
     const items = [...result.items];
     Object.assign(items, { rawResult: result.rawResult });
     return items;
@@ -73,7 +82,7 @@ export async function executeRecommendationJob(
   if (deps?.ai || deps?.catalogRepo || deps?.model) {
     const result = await executeCohortRecommendations(
       workspace,
-      { ai: deps.ai, catalogRepo: deps.catalogRepo, model: deps.model },
+      { ai: deps.ai, catalogRepo: deps.catalogRepo, model: deps.model, sql: deps.sql, workspaceId: deps.workspaceId, jobKey: deps.jobKey, attempt: deps.attempt },
       signal
     );
     const items = [...result.items];
@@ -139,7 +148,11 @@ export async function executeRecommendationJob(
     }
   }
 
-  const result = await executeCohortRecommendations(workspace, undefined, signal);
+  const result = await executeCohortRecommendations(
+    workspace,
+    deps ? { sql: deps.sql, workspaceId: deps.workspaceId, jobKey: deps.jobKey, attempt: deps.attempt } : undefined,
+    signal
+  );
   const items = [...result.items];
   Object.assign(items, { rawResult: result.rawResult });
   return items;
@@ -165,7 +178,7 @@ export async function executeDiscoveryJob(
   if (deps?.adapter) {
     const result = await deps.adapter.executeCohortDiscovery(
       workspace,
-      { workspaceId: deps.workspaceId, sql: deps.sql, ...deps },
+      { workspaceId: deps.workspaceId, sql: deps.sql, jobKey: deps.jobKey, attempt: deps.attempt, ...deps },
       signal
     );
     const items = [...result.items];
@@ -182,6 +195,8 @@ export async function executeDiscoveryJob(
       sql: deps?.sql,
       model: deps?.model,
       workspaceId: deps?.workspaceId,
+      jobKey: deps?.jobKey,
+      attempt: deps?.attempt,
     },
     signal
   );
@@ -439,17 +454,29 @@ export function createJourneyJobProcessor(deps: {
 }): (job: ClaimedTextJob, signal?: AbortSignal) => Promise<Uint8Array> {
   return async (job, signal) => {
     const workspace = await deps.loadWorkspace(job.workspaceId);
+    const jobKey = (job as { jobKey?: string }).jobKey ?? job.id;
+    const attempt = (job as { attempts?: number }).attempts ?? job.fence;
     if (job.stage === 'recommendations') {
-      const items = await executeRecommendationJob(workspace, deps.recommendationDeps, signal);
+      const recDeps: RecommendationExecutorDeps = {
+        workspaceId: job.workspaceId,
+        jobKey,
+        attempt,
+        sql: deps.recommendationDeps?.sql,
+        ...deps.recommendationDeps,
+      };
+      const items = await executeRecommendationJob(workspace, recDeps, signal);
       const rawResult = (items as { rawResult?: unknown }).rawResult;
       return Buffer.from(JSON.stringify({ items, ...(rawResult !== undefined ? { rawResult } : {}) }));
     }
     if (job.stage === 'discovery') {
-      const items = await executeDiscoveryJob(
-        workspace,
-        deps.discoveryDeps ? { workspaceId: job.workspaceId, ...deps.discoveryDeps } : { workspaceId: job.workspaceId },
-        signal
-      );
+      const discDeps: DiscoveryExecutorDeps = {
+        workspaceId: job.workspaceId,
+        jobKey,
+        attempt,
+        sql: deps.discoveryDeps?.sql,
+        ...deps.discoveryDeps,
+      };
+      const items = await executeDiscoveryJob(workspace, discDeps, signal);
       const rawResult = (items as { rawResult?: unknown }).rawResult;
       return Buffer.from(JSON.stringify({ items, ...(rawResult !== undefined ? { rawResult } : {}) }));
     }

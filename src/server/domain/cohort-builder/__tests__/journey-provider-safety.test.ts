@@ -67,6 +67,22 @@ async function setupTestDb(): Promise<{ db: PGlite; sql: TextArtifactSql }> {
       "used" INTEGER NOT NULL DEFAULT 0,
       "expiresAt" TIMESTAMP(3) NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS "cohort_admin_controls" (
+      "control_key" VARCHAR(64) PRIMARY KEY,
+      "value" JSONB NOT NULL,
+      "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "updated_by" VARCHAR(128) NOT NULL,
+      "reason" TEXT
+    );
+    CREATE TABLE IF NOT EXISTS "cohort_admin_control_audit" (
+      "id" BIGSERIAL PRIMARY KEY,
+      "control_key" VARCHAR(64) NOT NULL,
+      "old_value" JSONB,
+      "new_value" JSONB NOT NULL,
+      "actor_id" VARCHAR(128) NOT NULL,
+      "reason" TEXT NOT NULL,
+      "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
   `);
   const sql: TextArtifactSql = {
     query: async (queryText: string, parameters: unknown[]) => {
@@ -681,6 +697,170 @@ describe('Checkpoint 3: Provider Safety, Metadata Fail-Closed, Budgets & Aborts'
           controller.signal
         )
       ).rejects.toThrow('GENERATED_GUIDE_CANCELED');
+    });
+  });
+
+  describe('3. Fail-Closed Provider Accounting & Restart Safety (Checkpoint 1)', () => {
+    it('resolveWorkspaceOwner fails closed with OWNER_REQUIRED when workspace does not exist', async () => {
+      const { sql } = await setupTestDb();
+      const { resolveWorkspaceOwner } = await import('../budget-policy');
+
+      await expect(
+        resolveWorkspaceOwner(sql, 'non-existent-workspace-id')
+      ).rejects.toThrow('OWNER_REQUIRED');
+    });
+
+    it('resolveWorkspaceOwner fails closed with ACCOUNTING_STORAGE_UNAVAILABLE on database failure', async () => {
+      const failingSql: TextArtifactSql = {
+        query: vi.fn().mockRejectedValue(new Error('connection dropped')),
+      };
+      const { resolveWorkspaceOwner } = await import('../budget-policy');
+
+      await expect(
+        resolveWorkspaceOwner(failingSql, 'some-ws')
+      ).rejects.toThrow('ACCOUNTING_STORAGE_UNAVAILABLE');
+    });
+
+    it('reserveModelTurnBudgetSql fails closed with MODEL_CALLS_PAUSED when model calls are paused by operator', async () => {
+      const { sql } = await setupTestDb();
+      const { setModelCallsPaused } = await import('../admin-controls');
+      await setModelCallsPaused({ query: (stmt, p) => sql.query(stmt, p ?? []) }, {
+        paused: true,
+        actorId: 'operator-1',
+        reason: 'Maintenance window',
+      });
+
+      await expect(
+        reserveModelTurnBudgetSql(sql, {
+          userId: 'user-pause-test',
+          workspaceId: 'ws-pause-test',
+        })
+      ).rejects.toThrow('MODEL_CALLS_PAUSED');
+    });
+
+    it('reserveModelTurnBudgetSql is restart-safe and does not double-count on duplicate invocationKey', async () => {
+      const { sql, db } = await setupTestDb();
+      const userId = 'user-restart-test';
+      const workspaceId = 'ws-restart-test';
+      const invocationKey = 'job:rec:0:gen:0:att:0:ord:1';
+
+      // First attempt
+      const res1 = await reserveModelTurnBudgetSql(sql, {
+        userId,
+        workspaceId,
+        invocationKey,
+        limit: 10,
+      });
+      expect(res1.isExistingReservation).toBe(false);
+
+      // Check user budget count = 1
+      const nowMs = Date.now();
+      const hour = Math.floor(nowMs / 3_600_000);
+      const userKey = `user:${userId}:model_turn:${hour}`;
+      const userBudgetRow1 = (await db.query(`SELECT "used" FROM "creation_budgets" WHERE "key" = $1`, [userKey])).rows[0] as { used: number };
+      expect(userBudgetRow1.used).toBe(1);
+
+      // Settle reservation
+      await res1.release({ actualUsage: { promptTokens: 100, completionTokens: 50 } });
+
+      // Check invocation record is settled (used = 2)
+      const invRow1 = (await db.query(`SELECT "used" FROM "creation_budgets" WHERE "key" = $1`, [`inv:${invocationKey}`])).rows[0] as { used: number };
+      expect(invRow1.used).toBe(2);
+
+      // Re-execution / restart with the same invocationKey (e.g. idempotency replay)
+      const res2 = await reserveModelTurnBudgetSql(sql, {
+        userId,
+        workspaceId,
+        invocationKey,
+        limit: 10,
+      });
+      expect(res2.isExistingReservation).toBe(true);
+
+      // User budget count MUST STILL BE 1 (not double-counted!)
+      const userBudgetRow2 = (await db.query(`SELECT "used" FROM "creation_budgets" WHERE "key" = $1`, [userKey])).rows[0] as { used: number };
+      expect(userBudgetRow2.used).toBe(1);
+    });
+
+    it('createDurableProviderCallHook tracks call ordinals for nested provider calls', async () => {
+      const { sql, db } = await setupTestDb();
+      const workspaceId = 'ws-nested-calls';
+      const ownerId = 'user-nested-calls';
+
+      await db.query(`
+        INSERT INTO "interaction_workspaces" ("id", "ownerId", "domainId", "snapshot")
+        VALUES ($1, $2, 'cohort', '{}')
+      `, [workspaceId, ownerId]);
+
+      const { createDurableProviderCallHook } = await import('../budget-policy');
+      const hook = createDurableProviderCallHook({
+        sql,
+        workspaceId,
+        jobKey: 'journey:discovery:0:0',
+        operation: 'discovery',
+        generation: 0,
+        attempt: 0,
+      });
+
+      // Call 1 (e.g. search): ordinal 1
+      const release1 = await hook();
+      if (typeof release1 === 'function') await release1();
+
+      // Call 2 (e.g. select): ordinal 2
+      const release2 = await hook();
+      if (typeof release2 === 'function') await release2();
+
+      // Invocations recorded:
+      const inv1 = (await db.query(`SELECT "key" FROM "creation_budgets" WHERE "key" = $1`, [
+        'inv:job:journey:discovery:0:0:op:discovery:gen:0:att:0:ord:1'
+      ])).rows;
+      expect(inv1).toHaveLength(1);
+
+      const inv2 = (await db.query(`SELECT "key" FROM "creation_budgets" WHERE "key" = $1`, [
+        'inv:job:journey:discovery:0:0:op:discovery:gen:0:att:0:ord:2'
+      ])).rows;
+      expect(inv2).toHaveLength(1);
+
+      // Total user turns spent = 2
+      const nowMs = Date.now();
+      const hour = Math.floor(nowMs / 3_600_000);
+      const userKey = `user:${ownerId}:model_turn:${hour}`;
+      const userBudgetRow = (await db.query(`SELECT "used" FROM "creation_budgets" WHERE "key" = $1`, [userKey])).rows[0] as { used: number };
+      expect(userBudgetRow.used).toBe(2);
+    });
+
+    it('executeCohortRecommendations fails closed when sql is missing and default AI is requested', async () => {
+      const { executeCohortRecommendations } = await import('../journey-recommendation-adapter');
+      const workspace = initialCohort('Learn Chemistry');
+
+      await expect(
+        executeCohortRecommendations(workspace, {})
+      ).rejects.toThrow('ACCOUNTING_STORAGE_UNAVAILABLE');
+    });
+
+    it('executeCohortDiscovery fails closed when sql is missing and default AI is requested', async () => {
+      const { executeCohortDiscovery } = await import('../journey-discovery-adapter');
+      const workspace = initialCohort('Learn Physics');
+
+      await expect(
+        executeCohortDiscovery(workspace, {})
+      ).rejects.toThrow('ACCOUNTING_STORAGE_UNAVAILABLE');
+    });
+
+    it('executeCohortRecommendations fails closed when workspace has no owner in database', async () => {
+      const { sql } = await setupTestDb();
+      const { executeCohortRecommendations } = await import('../journey-recommendation-adapter');
+      const workspace = initialCohort('Learn Biology');
+      const mockModel: any = new MockLanguageModelV4({
+        doGenerate: vi.fn() as any,
+      });
+
+      await expect(
+        executeCohortRecommendations(workspace, {
+          sql,
+          workspaceId: 'ws-no-owner',
+          model: mockModel as any,
+        })
+      ).rejects.toThrow('OWNER_REQUIRED');
     });
   });
 });

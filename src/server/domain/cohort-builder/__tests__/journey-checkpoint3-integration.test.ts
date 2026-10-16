@@ -156,6 +156,20 @@ async function createTestDb(): Promise<PGlite> {
       "draftId" TEXT NOT NULL,
       "status" TEXT NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS "creation_budgets" (
+      "key" TEXT PRIMARY KEY,
+      "used" INTEGER NOT NULL DEFAULT 0,
+      "expiresAt" TIMESTAMP(3) NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS "cohort_admin_controls" (
+      "control_key" VARCHAR(64) PRIMARY KEY,
+      "value" JSONB NOT NULL,
+      "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "updated_by" VARCHAR(128) NOT NULL,
+      "reason" TEXT
+    );
   `);
 
   await db.exec(s3Migration);

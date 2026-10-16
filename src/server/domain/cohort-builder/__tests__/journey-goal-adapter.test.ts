@@ -444,10 +444,27 @@ describe('journey-goal-adapter: generated_guide canonical source', () => {
   describe('text-source-processor: source DAG execution on generated_guide', () => {
     async function setupDb() {
       const db = new PGlite();
-      await db.exec('CREATE TABLE "interaction_workspaces" ("id" TEXT PRIMARY KEY)');
+      await db.exec(`
+        CREATE TABLE "interaction_workspaces" (
+          "id" TEXT PRIMARY KEY,
+          "ownerId" TEXT NOT NULL DEFAULT 'user-guide-owner'
+        );
+        CREATE TABLE IF NOT EXISTS "creation_budgets" (
+          "key" TEXT PRIMARY KEY,
+          "used" INTEGER NOT NULL DEFAULT 0,
+          "expiresAt" TIMESTAMP(3) NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS "cohort_admin_controls" (
+          "control_key" VARCHAR(64) PRIMARY KEY,
+          "value" JSONB NOT NULL,
+          "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+          "updated_by" VARCHAR(128) NOT NULL,
+          "reason" TEXT
+        );
+      `);
       await db.exec(s3Migration);
       await db.exec(s4bMigration);
-      await db.exec(`INSERT INTO "interaction_workspaces" ("id") VALUES ('workspace-guide')`);
+      await db.exec(`INSERT INTO "interaction_workspaces" ("id", "ownerId") VALUES ('workspace-guide', 'user-guide-owner')`);
 
       const sql: TextArtifactSql = {
         query: async (statement, parameters) => db.query<Record<string, unknown>>(statement, parameters),

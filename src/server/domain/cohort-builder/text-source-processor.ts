@@ -36,28 +36,18 @@ export function createTextSourceProcessor(input: {
   videoObservationProvider?: any;
   githubSourceProvider?: GithubSourceProvider;
   guideAuthor?: CreationGuideAuthor;
-  beforeModelCall?: (params: { kind: 'video' | 'guide'; id: string; workspaceId: string }) => Promise<void | (() => Promise<void>)>;
+  beforeModelCall?: (params: { kind: 'video' | 'guide'; id: string; workspaceId: string; jobKey?: string; attempt?: number }) => Promise<void | (() => Promise<void>)>;
 }): (job: ClaimedTextJob, signal?: AbortSignal) => Promise<Uint8Array> {
-  const beforeModelCall = input.beforeModelCall ?? (async (params: { kind: 'video' | 'guide'; id: string; workspaceId: string }) => {
-    try {
-      const wsRes = await input.sql.query(
-        `SELECT "ownerId" FROM "interaction_workspaces" WHERE "id" = $1`,
-        [params.workspaceId]
-      );
-      const ownerId = wsRes.rows[0]?.ownerId;
-      if (ownerId) {
-        const { reserveModelTurnBudgetSql } = await import('./budget-policy');
-        const { release } = await reserveModelTurnBudgetSql(input.sql, {
-          userId: String(ownerId),
-          workspaceId: params.workspaceId,
-        });
-        return release;
-      }
-    } catch (e: any) {
-      if (e?.code === 'BUDGET_EXHAUSTED' || e?.name === 'UserBudgetExceededError' || e?.message?.includes('budget reached')) {
-        throw e;
-      }
-    }
+  const beforeModelCall = input.beforeModelCall ?? (async (params: { kind: 'video' | 'guide'; id: string; workspaceId: string; jobKey?: string; attempt?: number }) => {
+    const { resolveWorkspaceOwner, reserveModelTurnBudgetSql } = await import('./budget-policy');
+    const ownerId = await resolveWorkspaceOwner(input.sql, params.workspaceId);
+    const invocationKey = `job:${params.jobKey ?? params.id}:op:${params.kind}:att:${params.attempt ?? 0}:ord:1`;
+    const { release } = await reserveModelTurnBudgetSql(input.sql, {
+      userId: ownerId,
+      workspaceId: params.workspaceId,
+      invocationKey,
+    });
+    return release;
   });
 
   return async (job, signal) => {
@@ -80,11 +70,25 @@ export function createTextSourceProcessor(input: {
           (retained.ref.sourceId !== null && retained.ref.sourceId !== source.id)) throw new Error('FOREIGN_SOURCE_PREREQUISITE');
         return retained.bytes;
       }
+      const jobKey = (job as { jobKey?: string }).jobKey ?? job.id;
+      const attempt = (job as { attempts?: number }).attempts ?? job.fence;
       if (source.input.kind === 'generated_guide') {
         const { acquireGeneratedGuide, LiveCreationGuideAuthor } = await import('./journey-goal-adapter');
-        const release = await beforeModelCall({ kind: 'guide', id: source.id, workspaceId: job.workspaceId });
+        const release = await beforeModelCall({ kind: 'guide', id: source.id, workspaceId: job.workspaceId, jobKey, attempt });
         try {
-          const author = input.guideAuthor ?? new LiveCreationGuideAuthor();
+          const author = input.guideAuthor ?? new LiveCreationGuideAuthor({
+            beforeCall: async () => {
+              const { createDurableProviderCallHook } = await import('./budget-policy');
+              const hook = createDurableProviderCallHook({
+                sql: input.sql,
+                workspaceId: job.workspaceId,
+                jobKey,
+                operation: 'guide_author',
+                attempt,
+              });
+              return hook();
+            },
+          });
           const acquired = await acquireGeneratedGuide(source.input, author, signal);
           return acquired.bytes;
         } finally {
@@ -98,9 +102,21 @@ export function createTextSourceProcessor(input: {
       if (source.input.kind === 'youtube') {
         if (source.input.mode === 'video_observation') {
           const { acquireVideoObservation, LiveVideoObservationProvider } = await import('./journey-video-adapter');
-          const release = await beforeModelCall({ kind: 'video', id: source.id, workspaceId: job.workspaceId });
+          const release = await beforeModelCall({ kind: 'video', id: source.id, workspaceId: job.workspaceId, jobKey, attempt });
           try {
-            const provider = input.videoObservationProvider ?? new LiveVideoObservationProvider();
+            const provider = input.videoObservationProvider ?? new LiveVideoObservationProvider({
+              beforeCall: async (unitId: string) => {
+                const { createDurableProviderCallHook } = await import('./budget-policy');
+                const hook = createDurableProviderCallHook({
+                  sql: input.sql,
+                  workspaceId: job.workspaceId,
+                  jobKey,
+                  operation: `video_observation:${unitId}`,
+                  attempt,
+                });
+                return hook();
+              },
+            });
             const acquired = await acquireVideoObservation(source.input, provider, signal);
             return acquired.bytes;
           } finally {

@@ -180,6 +180,14 @@ async function createTestDb(): Promise<PGlite> {
       "expiresAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS "cohort_admin_controls" (
+      "control_key" VARCHAR(64) PRIMARY KEY,
+      "value" JSONB NOT NULL,
+      "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      "updated_by" VARCHAR(128) NOT NULL,
+      "reason" TEXT
+    );
+
     CREATE TABLE IF NOT EXISTS "interaction_outbox" (
       "id" TEXT PRIMARY KEY,
       "workspaceId" TEXT NOT NULL,
