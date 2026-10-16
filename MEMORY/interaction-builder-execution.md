@@ -1,5 +1,27 @@
 # Interaction builder execution checkpoint
 
+CANONICAL COHORT JOURNEY REPAIR — CHECKPOINT 2 COMPLETE (2026-10-16):
+- Discovery Checkpoint & Artifact Integrity:
+  - `src/server/domain/cohort-builder/journey-discovery-adapter.ts`:
+    - `WorkspaceArtifactStoreAdapter`:
+      - Tenant workspace isolation: validates `scope.ownerId` matches `workspace:${this.workspaceId}`; rejects foreign workspace reads/writes with `NOT_FOUND`.
+      - Artifact length verification: verifies `body.byteLength === Number(row.byteLength)`, throws `CreationStorageError('INTEGRITY', 'ARTIFACT_LENGTH_MISMATCH: ...')` on mismatch.
+      - Checksum verification: computes `sha256(body)` and verifies equality against stored `checksum`, throwing `CreationStorageError('INTEGRITY', 'ARTIFACT_CHECKSUM_MISMATCH: ...')` on corruption.
+      - Envelope verification: verifies JSON envelope structure and `options.artifactType` match.
+    - Checkpoint Read Classification:
+      - Clean start when no checkpoint row exists (`rows.length === 0`).
+      - SQL connection/query failure propagates `creationFailure('DATA_UNAVAILABLE', 'DISCOVERY_STORAGE_READ_FAILED: ...', true)`.
+      - Corrupted checkpoint (invalid JSON, length mismatch, checksum mismatch, or schema error) throws `DISCOVERY_CHECKPOINT_CORRUPT` and halts (never queries AI).
+    - Mandatory Checkpoint Writes:
+      - Awaits `storage.putJSON` for intermediate discovery states.
+      - Throws `DISCOVERY_CHECKPOINT_WRITE_FAILED` if write fails, halting progression instead of silently swallowing errors.
+  - Comprehensive Verification:
+    - `src/server/domain/cohort-builder/__tests__/journey-discovery-durability.test.ts`: all 14 tests passing.
+    - `src/server/domain/cohort-builder/__tests__/journey-discovery-adapter.test.ts`: all 14 tests passing.
+    - Verified zero TypeScript compilation errors with `npx tsc --noEmit`.
+LAST_CHECKPOINT: `COHORT-JOURNEY-REPAIR-CP2-DISCOVERY-INTEGRITY-2026-10-16`
+STATUS: Checkpoint 2 complete, verified, and ready for commit.
+
 CANONICAL COHORT JOURNEY REPAIR — CHECKPOINT 1 COMPLETE (2026-10-16):
 - Fail-Closed, Restart-Safe Provider Accounting:
   - `src/server/domain/cohort-builder/budget-policy.ts`:
