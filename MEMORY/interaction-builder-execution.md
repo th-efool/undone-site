@@ -1,5 +1,31 @@
 # Interaction builder execution checkpoint
 
+CHECKPOINT 5 REPAIRED & VERIFIED (2026-10-16) — Real Integrated Acceptance with Unmocked Pipeline Execution:
+- Comprehensive Unmocked Pipeline Acceptance Suite (`journey-checkpoint6-acceptance.test.ts`):
+  - Completely replaced fixture-only / mock-state planner tests with an end-to-end acceptance suite executing real PGlite database, real `acceptCohortIntake`, and real `runDurableTextJobTick` across all 3 journey branches:
+    1. Branch 1 (`have_material`): Real multi-format sources (Text, ASCII PDF via `sourcePdf`, Web via deterministic mock fetch, and YouTube video observation with estimated intervals) advance through durable worker ticks (Acquisition -> Extraction -> Understanding -> Chunking -> Analysis -> Assembly) into `ready`, dispatches `open_review`, supports curation/pins/reorder/manual edit, triggers assembly reconciliation tick, validates readiness, and commits release with immutable receipt into `published`.
+    2. Branch 2 (`find_material`): Intake -> `choose_starting_point(find_material)` -> `start_discovery` -> durable discovery tick -> candidate projection -> `select_discovery_resources` -> `material_input` -> durable ticks -> `ready` -> `review` -> `commit_release` -> `published`.
+    3. Branch 3 (`have_goal`): Intake -> `choose_starting_point(have_goal)` -> `goal_setup` (intent, audience, dailyMinutes) -> `start_goal_generation` -> `generated_guide` source DAG -> durable ticks with `guideAuthor` -> AI authored provenance & disclaimers -> `ready` -> `review` -> `commit_release` -> `published`.
+- Fault Tolerance & Concurrency Guarantees Verified:
+  - Two-tab conflict resolution: Concurrent commit with mismatched `expectedRevision` throws `STALE_WORKSPACE`.
+  - Duplicate / lost acknowledgement: Identical intake request returns cached response without duplicate run.
+  - Worker restart & resume: Reuses accepted artifacts without re-executing finished stages.
+  - Worker replacement & fencing: Stale worker tick with expired lease or bumped fence is rejected.
+  - Partial failure & targeted retry: Failing web source fails closed with `WEB_SOURCE_REJECTED`, healthy sources proceed, and `retry_text_job` re-queues only the failed job.
+  - Real-time event emission: Every stage advancement and commit emits sequential `workspace.committed` and `message.accepted` events in `interaction_events`.
+  - Writable chat & preserved drafts: Appending message updates messages without resetting journey state.
+  - Legacy workspace compatibility: Workspaces without journey parse cleanly and keep `journey: undefined`.
+  - Non-destructive stage navigation: Inspecting earlier stage returns inspected stage without state mutation.
+  - Truthful evidence provenance: YouTube video observations retain AI origin and estimated intervals; transcripts retain track provenance; generated guides retain AI authoring limitations; PDFs and web retain segment locations.
+- Verification & Test Suites:
+  - 13/13 tests passed in `journey-checkpoint6-acceptance.test.ts` (19.15s).
+  - Full cohort-builder backend suite: 59 test files, 409 passed tests.
+  - Full client cohort-builder suite: 17 test files, 190 passed tests.
+  - `npx tsc --noEmit`: 0 TypeScript errors.
+  - `npm run verify:vercel`: 100% passed (pre-verify, submodules, typecheck, prisma, production build simulation).
+LAST_CHECKPOINT: `COHORT-JOURNEY-CP5-REAL-INTEGRATED-ACCEPTANCE-2026-10-16`
+NEXT: Checkpoint 6: Controlled Live Cutover and Final Evidence.
+
 CHECKPOINT 4 REPAIRED & VERIFIED (2026-10-16) — Schema Readiness, Rollout Scripts, and Commit-Scoped Visual Captures:
 - Additive Deploy Migration Files (`scripts/interaction-deploy.ts`):
   - Added `prisma/interaction-journey-stages.sql` to `files` array so deployment migrations apply journey stages.
