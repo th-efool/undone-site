@@ -26,26 +26,31 @@ export interface VideoObservationProvider {
   observeVideo(metadata: YoutubeVideoMetadata, signal: AbortSignal): Promise<RetainedVideoObservation>;
 }
 
+export interface VideoObservationProviderOptions {
+  observer?: MaterialObservation;
+  reader?: Pick<YoutubeMetadataReader, 'read'>;
+  model?: LanguageModel;
+  beforeCall?: (unitId: string) => Promise<void | (() => Promise<void>)>;
+}
+
 export class LiveVideoObservationProvider implements VideoObservationProvider {
   private _observer?: MaterialObservation;
   private readonly reader: Pick<YoutubeMetadataReader, 'read'>;
   private readonly model?: LanguageModel;
+  private readonly beforeCall?: (unitId: string) => Promise<void | (() => Promise<void>)>;
 
-  constructor(options?: {
-    observer?: MaterialObservation;
-    reader?: Pick<YoutubeMetadataReader, 'read'>;
-    model?: LanguageModel;
-  }) {
+  constructor(options?: VideoObservationProviderOptions) {
     this._observer = options?.observer;
     this.reader = options?.reader ?? new YoutubeMetadataReader();
     this.model = options?.model;
+    this.beforeCall = options?.beforeCall;
   }
 
   get observer(): MaterialObservation {
     if (!this._observer) {
       const model = this.model ?? createCohortModel();
       this._observer = new VercelMaterialObservation(model, {
-        beforeCall: async () => {},
+        beforeCall: this.beforeCall ?? (async () => {}),
       });
     }
     return this._observer;
@@ -54,62 +59,57 @@ export class LiveVideoObservationProvider implements VideoObservationProvider {
   async observeVideo(metadata: YoutubeVideoMetadata, signal: AbortSignal): Promise<RetainedVideoObservation> {
     signal.throwIfAborted();
     const videoUrl = metadata.url;
-    let validVideo: YoutubeVideoMetadata;
+    const parsedUrl = singleYoutubeVideo(videoUrl);
 
-    try {
-      const fetched = await this.reader.read(videoUrl, signal);
-      signal.throwIfAborted();
-      const parsedUrl = singleYoutubeVideo(videoUrl);
-      const unit = fetched.units.find(u => u.videoId === parsedUrl.videoId) ?? fetched.units[0];
-      if (!unit) {
-        throw new Error('VIDEO_NOT_FOUND');
-      }
-      validVideo = youtubeVideoMetadataSchema.parse(unit);
-    } catch (error) {
-      signal.throwIfAborted();
-      // If metadata passed in is already a complete, valid YoutubeVideoMetadata (e.g. in test fixture), fallback to it
-      const parsedCandidate = youtubeVideoMetadataSchema.safeParse(metadata);
-      if (parsedCandidate.success) {
-        validVideo = parsedCandidate.data;
-      } else {
-        throw error;
-      }
+    // Fail closed: must fetch and verify trusted metadata from reader; no synthetic fallback
+    const fetched = await this.reader.read(videoUrl, signal);
+    signal.throwIfAborted();
+
+    const unit = fetched.units.find(u => u.videoId === parsedUrl.videoId);
+    if (!unit) {
+      throw new Error('VIDEO_NOT_FOUND');
     }
+    const validVideo = youtubeVideoMetadataSchema.parse(unit);
 
     if (validVideo.durationSeconds > YOUTUBE_VIDEO_LIMITS.durationSeconds) {
       throw new Error('VIDEO_DURATION_LIMIT_EXCEEDED');
     }
 
     signal.throwIfAborted();
-    const observer = this.observer;
-    const proposal = await observer.observeVideo(validVideo, signal);
-    signal.throwIfAborted();
-    const validatedProposal = validateVideoObservation(proposal, validVideo);
+    const release = await this.beforeCall?.(validVideo.videoId);
+    try {
+      const observer = this.observer;
+      const proposal = await observer.observeVideo(validVideo, signal);
+      signal.throwIfAborted();
+      const validatedProposal = validateVideoObservation(proposal, validVideo);
 
-    const modelIdentity = observer.identity ?? {
-      provider: 'google',
-      modelId: DEFAULT_COHORT_MODEL,
-      adapterVersion: 'vercel-video-observation-v3',
-    };
+      const modelIdentity = observer.identity ?? {
+        provider: 'google',
+        modelId: DEFAULT_COHORT_MODEL,
+        adapterVersion: 'vercel-video-observation-v3',
+      };
 
-    return retainedVideoObservationSchema.parse({
-      format: 'youtube-video-observation-v1',
-      video: {
-        id: validVideo.videoId,
-        title: validVideo.title.slice(0, 500),
-        durationSeconds: validVideo.durationSeconds,
-        url: validVideo.url,
-      },
-      model: modelIdentity,
-      contentOrigin: 'ai',
-      observedAt: new Date().toISOString(),
-      limitations: validatedProposal.limitations,
-      observations: validatedProposal.observations.map(obs => ({
-        startSeconds: obs.startSeconds,
-        endSeconds: obs.endSeconds,
-        text: obs.text,
-      })),
-    });
+      return retainedVideoObservationSchema.parse({
+        format: 'youtube-video-observation-v1',
+        video: {
+          id: validVideo.videoId,
+          title: validVideo.title.slice(0, 500),
+          durationSeconds: validVideo.durationSeconds,
+          url: validVideo.url,
+        },
+        model: modelIdentity,
+        contentOrigin: 'ai',
+        observedAt: new Date().toISOString(),
+        limitations: validatedProposal.limitations,
+        observations: validatedProposal.observations.map(obs => ({
+          startSeconds: obs.startSeconds,
+          endSeconds: obs.endSeconds,
+          text: obs.text,
+        })),
+      });
+    } finally {
+      if (release) await release().catch(() => undefined);
+    }
   }
 }
 
@@ -189,6 +189,9 @@ export async function acquireVideoObservation(
     if (error instanceof CreationFailure) {
       throw new Error(error.detail.code);
     }
+    if (error instanceof Error && ((error as any).code === 'BUDGET_EXHAUSTED' || error.message === 'BUDGET_EXHAUSTED')) {
+      throw error;
+    }
     const code = error instanceof Error ? error.message : '';
     const safe = [
       'VIDEO_OBSERVATION_CANCELED',
@@ -206,6 +209,7 @@ export async function acquireVideoObservation(
       'AI_UNAVAILABLE',
       'DATA_UNAVAILABLE',
       'RATE_LIMITED',
+      'BUDGET_EXHAUSTED',
     ];
     if (safe.includes(code)) {
       throw error;

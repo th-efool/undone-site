@@ -41,12 +41,18 @@ function sourceError(error:unknown,kind:'pdf'|'web'|'youtube'|'github'|'generate
 }
 
 /** Uses the existing pinned connection transport; fixture transports still pass every URL/DNS check. */
-export async function fetchRetainedWeb(url:string,transport?:WebTransport): Promise<Uint8Array> {
+export async function fetchRetainedWeb(url:string, transport?:WebTransport, signal?:AbortSignal): Promise<Uint8Array> {
   try {
-    const response = await openWebSource(url,undefined,transport);
+    signal?.throwIfAborted();
+    const response = await openWebSource(url, signal, transport);
     try {
       const chunks:Buffer[] = []; let length = 0;
-      for await (const chunk of response.bytes) { length += chunk.length; if (length>1024*1024) throw new Error('WEB_RESPONSE_SIZE_LIMIT'); chunks.push(Buffer.from(chunk)); }
+      for await (const chunk of response.bytes) {
+        signal?.throwIfAborted();
+        length += chunk.length;
+        if (length>1024*1024) throw new Error('WEB_RESPONSE_SIZE_LIMIT');
+        chunks.push(Buffer.from(chunk));
+      }
       return Buffer.from(JSON.stringify(retainedWebSchema.parse({ format:'web-response-v1', requestedUrl:response.requestedUrl,
         finalUrl:response.finalUrl, redirects:response.redirects, mediaType:response.mediaType, fetchedAt:new Date().toISOString(), body:Buffer.concat(chunks).toString('base64') })));
     } finally { response.close(); }

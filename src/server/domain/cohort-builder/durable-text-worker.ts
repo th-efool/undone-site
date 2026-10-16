@@ -44,6 +44,7 @@ export function runDurableTextJobTick(input: {
   discoveryDeps?: DiscoveryExecutorDeps;
   discoveryAdapter?: DiscoveryAdapter;
   guideAuthor?: any;
+  beforeModelCall?: (params: { kind: 'video' | 'guide'; id: string; workspaceId: string }) => Promise<void | (() => Promise<void>)>;
 }): Promise<TextJobTickResult> {
   const source = createTextSourceProcessor({
     sql: input.sql,
@@ -53,6 +54,7 @@ export function runDurableTextJobTick(input: {
     videoObservationProvider: input.videoObservationProvider,
     githubSourceProvider: input.githubSourceProvider,
     guideAuthor: input.guideAuthor,
+    beforeModelCall: input.beforeModelCall,
   });
   const assembly = createTextAssemblyProcessor({ sql: input.sql, loadWorkspace: input.loadWorkspace });
   const journey = createJourneyJobProcessor({
@@ -68,12 +70,12 @@ export function runDurableTextJobTick(input: {
   });
   return runTextJobTick({
     sql: input.sql, workerId: input.workerId, leaseMs: input.leaseMs, now: input.now, renewLease: true,
-    process: (job: ClaimedTextJob) =>
+    process: (job: ClaimedTextJob, signal?: AbortSignal) =>
       job.stage === 'recommendations' || job.stage === 'discovery'
-        ? journey(job)
+        ? journey(job, signal)
         : job.stage === 'assembly'
-        ? assembly(job)
-        : source(job),
+        ? assembly(job, signal)
+        : source(job, signal),
     fail: (job, code, at) =>
       job.stage === 'recommendations' || job.stage === 'discovery'
         ? input.transaction.transaction(tx => failJourneyJob(tx, job, code, at))

@@ -171,3 +171,51 @@ export function settleModelTurnBudget(params: {
     retainedAt: now.toISOString(),
   };
 }
+
+import type { TextArtifactSql } from './text-artifacts';
+
+/**
+ * Atomically reserves a model turn in creation_budgets using direct TextArtifactSql.
+ * Returns reservation and a release function to be called on completion.
+ */
+export async function reserveModelTurnBudgetSql(
+  sql: TextArtifactSql,
+  params: { userId: string; workspaceId: string; now?: Date; limit?: number }
+): Promise<{ reservation: ModelTurnReservation; release: () => Promise<void> }> {
+  const now = params.now ?? new Date();
+  const nowMs = now.getTime();
+  const hour = Math.floor(nowMs / 3_600_000);
+  const key = `user:${params.userId}:model_turn:${hour}`;
+  const expiresAt = new Date((hour + 2) * 3_600_000);
+  const limit = params.limit ?? hourlyUserModelTurns();
+
+  const rows = await sql.query(
+    `INSERT INTO "creation_budgets" ("key", "used", "expiresAt")
+     VALUES ($1, 1, $2)
+     ON CONFLICT ("key") DO UPDATE SET "used" = "creation_budgets"."used" + 1
+     WHERE "creation_budgets"."used" < $3
+     RETURNING "used"`,
+    [key, expiresAt, limit]
+  );
+
+  if (!rows.rows || rows.rows.length === 0) {
+    throw new UserBudgetExceededError();
+  }
+
+  const reservation: ModelTurnReservation = {
+    resource: 'model_turn',
+    key,
+    units: 1,
+    estimatedTokens: 2000,
+    reservedAt: now.toISOString(),
+  };
+
+  let released = false;
+  return {
+    reservation,
+    release: async () => {
+      if (released) return;
+      released = true;
+    },
+  };
+}

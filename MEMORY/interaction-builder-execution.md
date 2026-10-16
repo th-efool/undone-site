@@ -1,5 +1,27 @@
 # Interaction builder execution checkpoint
 
+CHECKPOINT 3 REPAIRED & VERIFIED (2026-10-16) — Provider Safety, Metadata Fail-Closed, Budget Hooks & Abort Signals:
+- Fail-Closed YouTube Metadata Resolution (`journey-video-adapter.ts`):
+  - In `LiveVideoObservationProvider.observeVideo`, requires trusted metadata directly from `this.reader.read(videoUrl, signal)`.
+  - Fails closed on network or read failure (removed synthetic dummy fallback).
+  - Strictly asserts `u.videoId === parsedUrl.videoId` (throws `VIDEO_NOT_FOUND` if mismatched; removed arbitrary first-element fallback).
+- Budget Policy & Model Turn Reservation (`budget-policy.ts`, `text-source-processor.ts`, `journey-video-adapter.ts`, `journey-goal-adapter.ts`):
+  - Added `reserveModelTurnBudgetSql(sql: TextArtifactSql, params)` supporting direct atomic SQL queries against `creation_budgets`.
+  - `createTextSourceProcessor` queries workspace `ownerId` and invokes budget hook before AI calls in `generated_guide` and `video_observation`, settling `release()` once on completion.
+  - Re-throws `BUDGET_EXHAUSTED` / `UserBudgetExceededError` cleanly without masking.
+  - Unit tests with mock tables without `ownerId` or `creation_budgets` handle missing schemas gracefully.
+- AbortSignal Propagation Across Worker, Processors, and Adapters (`text-job-tick.ts`, `durable-text-worker.ts`, `text-source-processor.ts`, `source-adapters.ts`, `text-assembly-processor.ts`):
+  - `runTextJobTick` instantiates an `AbortController` and aborts downstream signal on lost lease (`LEASE_LOST`) and deadline (`PROCESSOR_DEADLINE`).
+  - Signal passes through `input.process(job, abortController.signal)` into worker and processors.
+  - `fetchRetainedWeb`, `acquireVideoObservation`, `acquireGeneratedGuide`, and `createTextAssemblyProcessor` check signal and abort immediately when cancelled.
+- Verification & Test Suites:
+  - 14/14 tests passing in `src/server/domain/cohort-builder/__tests__/journey-provider-safety.test.ts`.
+  - Full suite: 59 test files, 403 passed vitest tests across cohort-builder.
+  - `npx tsc --noEmit`: 0 TypeScript errors.
+  - `npm run verify:vercel`: 100% passed (pre-verify, submodules, typecheck, prisma, Next.js production build simulation).
+LAST_CHECKPOINT: `COHORT-JOURNEY-CP3-PROVIDER-SAFETY-BUDGETS-ABORTS-2026-10-16`
+NEXT: Checkpoint 4: Database Migration, Schema Readiness, and Honest Visual Evidence.
+
 CHECKPOINT 2 REPAIRED & VERIFIED (2026-10-16) — Durable Discovery Persistence & Correct Journey Controls:
 - Durable Discovery Persistence & Checkpoint Resume (`journey-discovery-adapter.ts`, `durable-text-worker.ts`, `journey-discovery-durability.test.ts`):
   - Enforced fail-closed storage in production: throws DATA_UNAVAILABLE unless SQL storage is provided or explicit test flag `__allowInMemoryStorage` is set.
