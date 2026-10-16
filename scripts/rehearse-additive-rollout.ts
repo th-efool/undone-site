@@ -249,6 +249,21 @@ async function main() {
       await assertS6OperationalSchema(sqlAdapter);
       console.log('[Phase 5b] PASS: Migration 5 applied. 5 operational tables and indexes verified.\n');
 
+      // Phase 5c: Apply Migration 6 - prisma/interaction-workflow-dispatch.sql and prisma/interaction-journey-stages.sql
+      console.log('[Phase 5c] Applying Migration 6: interaction-workflow-dispatch.sql and interaction-journey-stages.sql...');
+      const migrationWorkflow = readFileSync(
+        resolve(root, 'prisma/interaction-workflow-dispatch.sql'),
+        'utf8'
+      );
+      await client.query(migrationWorkflow);
+
+      const migrationJourney = readFileSync(
+        resolve(root, 'prisma/interaction-journey-stages.sql'),
+        'utf8'
+      );
+      await client.query(migrationJourney);
+      console.log('[Phase 5c] PASS: Migration 6 applied. Workflow dispatch and journey stage constraints verified.\n');
+
       // Phase 6: Automated Schema & Readiness Validation
       console.log('[Phase 6] Validating comprehensive readiness via probe tools...');
       process.env.DATABASE_URL = connectionString;

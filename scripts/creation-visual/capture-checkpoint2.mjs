@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import { spawn, execSync } from 'node:child_process';
 import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -78,17 +78,32 @@ try {
     await page.evaluate(() => Promise.all([...document.images].map(img => img.decode().catch(() => {}))));
     await page.waitForTimeout(600);
 
+    let headCommit = 'unknown';
+    try {
+      headCommit = execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim();
+    } catch {}
+    const commitDir = resolve(outputDir, 'captures', headCommit);
+    mkdirSync(commitDir, { recursive: true });
+
+    const commitDesktopPath = resolve(commitDir, `after-${scr.number}.png`);
+    const commitDesktopFullPath = resolve(commitDir, `after-${scr.number}-full.png`);
     const desktopPath = resolve(outputDir, `after-${scr.number}.png`);
     const desktopFullPath = resolve(outputDir, `after-${scr.number}-full.png`);
+    await page.screenshot({ path: commitDesktopPath, fullPage: false });
+    await page.screenshot({ path: commitDesktopFullPath, fullPage: true });
     await page.screenshot({ path: desktopPath, fullPage: false });
     await page.screenshot({ path: desktopFullPath, fullPage: true });
+    console.log(`-> Saved commit-scoped desktop: ${commitDesktopPath}`);
     console.log(`-> Saved desktop: ${desktopPath}`);
 
     // 2. Mobile (390 x 844)
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(400);
+    const commitMobilePath = resolve(commitDir, `mobile-${scr.number}.png`);
     const mobilePath = resolve(outputDir, `mobile-${scr.number}.png`);
+    await page.screenshot({ path: commitMobilePath, fullPage: true });
     await page.screenshot({ path: mobilePath, fullPage: true });
+    console.log(`-> Saved commit-scoped mobile: ${commitMobilePath}`);
     console.log(`-> Saved mobile: ${mobilePath}`);
   }
 } finally {

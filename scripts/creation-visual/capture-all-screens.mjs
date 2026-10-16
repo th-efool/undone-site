@@ -152,17 +152,29 @@ try {
     await page.evaluate(() => Promise.all([...document.images].map(img => img.decode().catch(() => {}))));
     await page.waitForTimeout(600);
 
+    const commitDir = resolve(outputDir, 'captures', headCommit);
+    mkdirSync(commitDir, { recursive: true });
+
+    // 1. Desktop reference size (commit-scoped and latest output)
+    const commitDesktopPath = resolve(commitDir, `after-${scr.number}.png`);
+    const commitDesktopFullPath = resolve(commitDir, `after-${scr.number}-full.png`);
     const desktopPath = resolve(outputDir, `after-${scr.number}.png`);
     const desktopFullPath = resolve(outputDir, `after-${scr.number}-full.png`);
+    await page.screenshot({ path: commitDesktopPath, fullPage: false });
+    await page.screenshot({ path: commitDesktopFullPath, fullPage: true });
     await page.screenshot({ path: desktopPath, fullPage: false });
     await page.screenshot({ path: desktopFullPath, fullPage: true });
+    console.log(`-> Saved commit-scoped desktop: ${commitDesktopPath}`);
     console.log(`-> Saved desktop: ${desktopPath}`);
 
     // 2. Mobile (390 x 844)
     await page.setViewportSize({ width: 390, height: 844 });
     await page.waitForTimeout(400);
+    const commitMobilePath = resolve(commitDir, `mobile-${scr.number}.png`);
     const mobilePath = resolve(outputDir, `mobile-${scr.number}.png`);
+    await page.screenshot({ path: commitMobilePath, fullPage: true });
     await page.screenshot({ path: mobilePath, fullPage: true });
+    console.log(`-> Saved commit-scoped mobile: ${commitMobilePath}`);
     console.log(`-> Saved mobile: ${mobilePath}`);
   }
 
@@ -192,6 +204,12 @@ try {
       mobileStale: false,
       captureViewport: { width: scr.desktopWidth, height: scr.desktopHeight },
       captureRaster: { width: scr.desktopWidth, height: scr.desktopHeight },
+      commitScoped: {
+        dir: `captures/${headCommit}`,
+        desktop: `captures/${headCommit}/after-${scr.number}.png`,
+        desktopFull: `captures/${headCommit}/after-${scr.number}-full.png`,
+        mobile: `captures/${headCommit}/mobile-${scr.number}.png`,
+      },
       fixture: `Canonical interaction builder; verified Checkpoint 6 ${scr.name.toLowerCase()} presentation`,
     });
   }

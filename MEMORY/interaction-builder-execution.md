@@ -1,5 +1,25 @@
 # Interaction builder execution checkpoint
 
+CHECKPOINT 4 REPAIRED & VERIFIED (2026-10-16) — Schema Readiness, Rollout Scripts, and Commit-Scoped Visual Captures:
+- Additive Deploy Migration Files (`scripts/interaction-deploy.ts`):
+  - Added `prisma/interaction-journey-stages.sql` to `files` array so deployment migrations apply journey stages.
+- Rehearsal Pipeline Validation (`scripts/rehearse-additive-rollout.ts`):
+  - Added Phase 5c executing `interaction-workflow-dispatch.sql` and `interaction-journey-stages.sql` to rehearsal steps.
+- Schema Readiness Assertion (`src/server/domain/cohort-builder/text-schema-readiness.ts`):
+  - Queries `pg_constraint` on `cohort_text_artifacts_kind_ck` and `cohort_text_jobs_stage_ck`.
+  - Asserts constraints contain `'recommendations'` and `'discovery'`, throwing `JOURNEY_STAGE_SCHEMA_NOT_INSTALLED` if missing.
+  - Verified in `text-driver.test.ts`: rejects prior to migration and resolves after.
+- Parameter Handling (`cohort-intake.ts`):
+  - Handled `values = []` default in proxy query adapter so queries without parameter arrays don't spread undefined.
+- Commit-Scoped Visual Captures (`capture-all-screens.mjs`, `capture-checkpoint2.mjs`, `capture-checkpoint3.mjs`):
+  - Captures write to `plans/before-after/captures/${headCommit}/` with metadata in `manifest.json`, keeping canonical `after-*.png` design references intact.
+- Verification & Test Suites:
+  - Vitest: `text-driver.test.ts` and `journey-checkpoint4-integration.test.ts` passed 100%.
+  - `npx tsc --noEmit`: 0 TypeScript errors.
+  - `npm run verify:vercel`: 100% passed (submodules, build simulation, prisma, next.js production build).
+LAST_CHECKPOINT: `COHORT-JOURNEY-CP4-SCHEMA-READINESS-ROLLOUT-2026-10-16`
+NEXT: Checkpoint 5: Real Integrated Acceptance.
+
 CHECKPOINT 3 REPAIRED & VERIFIED (2026-10-16) — Provider Safety, Metadata Fail-Closed, Budget Hooks & Abort Signals:
 - Fail-Closed YouTube Metadata Resolution (`journey-video-adapter.ts`):
   - In `LiveVideoObservationProvider.observeVideo`, requires trusted metadata directly from `this.reader.read(videoUrl, signal)`.

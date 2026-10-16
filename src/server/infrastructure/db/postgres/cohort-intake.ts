@@ -23,7 +23,7 @@ export async function acceptCohortIntake(ownerId: string, input: unknown, prisma
       return prior.response as { workspaceId: string };
     }
     if (textDriver() !== 'durable') throw new Error('DURABLE_DRIVER_REQUIRED');
-    await assertTextJobSchema({ query: async (sql, values) => ({ rows: await tx.$queryRawUnsafe(sql, ...values) }) });
+    await assertTextJobSchema({ query: async (sql, values = []) => ({ rows: await tx.$queryRawUnsafe(sql, ...values) }) });
     // Methods retain their canonical implementations; nested transaction callbacks share this transaction.
     const scoped = new Proxy(tx, { get(target, property) {
       if (property === '$transaction') return async (work: (client: typeof tx) => unknown) => work(tx);
