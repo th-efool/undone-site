@@ -23,10 +23,6 @@ generated/
 credentials.json
 token.json
 
-# Large video media — served from CDN, not bundled in deployment
-public/videos/undone-investor-film.mp4
-public/videos/hls/
-
 # Generated package build artifacts — rebuilt from source during CI/deploy
 packages/notes-board/dist/
 
