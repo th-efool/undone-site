@@ -88,7 +88,3 @@ packages/notes-board/dist/
 # duplicate or unused binary assets kept out of git
 /assets/fonts/
 /public/icons/512/
-
-# large video assets — serve via CDN (set NEXT_PUBLIC_EXPLAINER_VIDEO_HLS_URL + NEXT_PUBLIC_EXPLAINER_VIDEO_MP4_URL)
-/public/videos/undone-investor-film.mp4
-/public/videos/hls/
