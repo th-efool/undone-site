@@ -73,6 +73,10 @@ phasewise.md
 /.claude/
 /.windsurf/
 /.neon
+/.idea/
+
+# package build outputs
+packages/notes-board/dist/
 
 # scratch and generated
 /generated/
