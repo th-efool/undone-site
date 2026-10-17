@@ -29,7 +29,7 @@ export interface UseHlsVideoReturn {
 
 export function useHlsVideo({
   videoRef,
-  hlsSrc = '/videos/hls/explainer.m3u8',
+  hlsSrc = process.env.NEXT_PUBLIC_EXPLAINER_VIDEO_HLS_URL || '/videos/hls/explainer.m3u8',
   defaultPlaybackRate = 1.2,
 }: UseHlsVideoOptions): UseHlsVideoReturn {
   const [isPlaying, setIsPlaying] = useState(false);

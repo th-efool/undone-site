@@ -18,7 +18,7 @@ export interface VideoPlayerProps {
 export function VideoPlayer({
   videoRef,
   hlsSupported,
-  fallbackSrc = '/videos/undone-investor-film.mp4',
+  fallbackSrc = process.env.NEXT_PUBLIC_EXPLAINER_VIDEO_MP4_URL || '/videos/undone-investor-film.mp4',
   onWaiting,
   onCanPlay,
   onPlaying,
