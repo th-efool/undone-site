@@ -91,31 +91,52 @@ export function CentralInterface() {
     setIntakeError('');
     try {
       let ownerId: string | null = session?.user?.id ?? null;
+      let enabled = false;
       try {
         const response = await fetch('/api/cohort-builder/intake', { cache: 'no-store' });
         if (response.ok) {
           const policy = await response.json();
-          ownerId = policy.ownerId ?? ownerId;
+          ownerId = policy?.ownerId ?? ownerId;
+          enabled = Boolean(policy?.enabled);
         }
       } catch {
         // Proceed on server/network error with session ownerId if available
       }
 
+      const draftPayload = {
+        requestId: crypto.randomUUID(),
+        prompt: textToSearch.trim(),
+        ...(sourceText.trim() ? { source: { label: 'Pasted text', text: sourceText } } : {}),
+      };
+
       sessionStorage.setItem('undone:landing-query', textToSearch.trim());
-      saveIntakeDraft(
-        {
-          requestId: crypto.randomUUID(),
-          prompt: textToSearch.trim(),
-          ...(sourceText.trim() ? { source: { label: 'Pasted text', text: sourceText } } : {}),
-        },
-        ownerId
-      );
+      saveIntakeDraft(draftPayload, ownerId);
 
       // If user is unauthenticated, redirect to auth and return straight back to landing page with query preserved
       if (!ownerId && status === 'unauthenticated') {
         const returnUrl = `/?q=${encodeURIComponent(textToSearch.trim())}`;
         window.location.href = `/auth?returnTo=${encodeURIComponent(returnUrl)}`;
         return;
+      }
+
+      // If authenticated and intake is enabled, create/resume workspace immediately and enter the AI Builder Workspace
+      if (ownerId && enabled) {
+        try {
+          const createRes = await fetch('/api/cohort-builder/intake', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...draftPayload, expectedOwnerId: ownerId }),
+          });
+          if (createRes?.ok) {
+            const created = await createRes.json();
+            if (created?.workspaceId) {
+              window.location.href = `/quest/build/${created.workspaceId}`;
+              return;
+            }
+          }
+        } catch {
+          // Fall back to /quest/start handoff where draft is retained
+        }
       }
 
       window.location.href = '/quest/start';

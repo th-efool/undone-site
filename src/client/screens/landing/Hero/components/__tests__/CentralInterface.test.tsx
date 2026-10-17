@@ -38,7 +38,43 @@ describe('CentralInterface homepage handoff', () => {
     sessionStorage.clear();
   });
 
-  it('navigates to /quest/start and saves draft to sessionStorage when policy is enabled', async () => {
+  it('navigates directly to /quest/build/[workspaceId] and saves draft to sessionStorage when intake POST succeeds', async () => {
+    global.fetch = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
+      if (init?.method === 'POST') {
+        return {
+          ok: true,
+          json: async () => ({ workspaceId: 'ws-direct-123' }),
+        };
+      }
+      return {
+        ok: true,
+        json: async () => ({ enabled: true, ownerId: 'owner-test-1' }),
+      };
+    });
+
+    render(<CentralInterface />);
+
+    const input = screen.getByRole('textbox', { name: /what do you want to learn about/i });
+    fireEvent.change(input, { target: { value: 'Learn machine learning' } });
+
+    const beginBtn = screen.getByRole('button', { name: /begin journey/i });
+    fireEvent.click(beginBtn);
+
+    await waitFor(() => {
+      expect(locationMock.href).toBe('/quest/build/ws-direct-123');
+      expect(locationMock.href).not.toContain('/quest/new');
+    });
+
+    const rawDraft = sessionStorage.getItem('undone:cohort-intake');
+    expect(rawDraft).toBeTruthy();
+    const saved = JSON.parse(rawDraft!);
+    expect(saved.ownerId).toBe('owner-test-1');
+    expect(saved.body.prompt).toBe('Learn machine learning');
+    expect(saved.body.source).toBeUndefined();
+    expect(saved.body.requestId).toMatch(/^[0-9a-f-]{36}$/i);
+  });
+
+  it('falls back to /quest/start and saves draft to sessionStorage when policy is enabled and POST is deferred', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ enabled: true, ownerId: 'owner-test-1' }),

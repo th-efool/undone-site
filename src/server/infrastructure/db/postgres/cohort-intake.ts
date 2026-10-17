@@ -4,7 +4,7 @@ import { createPostgresInteractionRepository } from './repositories/interaction.
 import { computePayloadHash, deterministicUuid } from 'interaction-builder/runtime';
 import { cohortIntakeSchema, initialCohort } from '@/src/shared/cohort-builder/intake';
 import { cohortDomain } from '@/src/server/domain/cohort-builder/domain';
-import { assertTextJobSchema } from '@/src/server/domain/cohort-builder/text-schema-readiness';
+import { assertTextJobSchema, ensureJourneyStageSchema } from '@/src/server/domain/cohort-builder/text-schema-readiness';
 import { textDriver } from '@/src/server/domain/cohort-builder/text-driver';
 import { enqueueJourneyJobPlanInTransaction } from '@/src/server/domain/cohort-builder/journey-job-scheduler';
 
@@ -23,15 +23,17 @@ export async function acceptCohortIntake(ownerId: string, input: unknown, prisma
       return prior.response as { workspaceId: string };
     }
     if (textDriver() !== 'durable') throw new Error('DURABLE_DRIVER_REQUIRED');
-    await assertTextJobSchema({ query: async (sql, values = []) => ({ rows: await tx.$queryRawUnsafe(sql, ...values) }) });
+    const sqlAdapter = { query: async (sql: string, values: unknown[] = []) => ({ rows: await tx.$queryRawUnsafe(sql, ...values) as Record<string, unknown>[] }) };
+    await ensureJourneyStageSchema(sqlAdapter);
+    await assertTextJobSchema(sqlAdapter);
     // Methods retain their canonical implementations; nested transaction callbacks share this transaction.
     const scoped = new Proxy(tx, { get(target, property) {
       if (property === '$transaction') return async (work: (client: typeof tx) => unknown) => work(tx);
       return Reflect.get(target, property);
     } }) as typeof prisma;
     const repo = createPostgresInteractionRepository(scoped);
-    // Partial journey implementation is opt-in until the mounted screens are ready.
-    const journeyEnabled = process.env.INTERACTION_COHORT_JOURNEY_ENABLED === '1';
+    // Canonical 10-screen journey is enabled by default unless explicitly opted out ('0').
+    const journeyEnabled = process.env.INTERACTION_COHORT_JOURNEY_ENABLED !== '0';
     const initial = initialCohort(body.prompt);
     if (!journeyEnabled) delete initial.journey;
     await repo.createWorkspace({ id: workspaceId, ownerId, domainId: 'cohort', domainVersion: 1,
