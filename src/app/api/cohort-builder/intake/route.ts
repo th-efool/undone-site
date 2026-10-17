@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   catch (error) {
     const code = error instanceof Error ? error.message : '';
     if (code === 'IDEMPOTENCY_MISMATCH') return reply({ code }, 409);
-    if (['DURABLE_DRIVER_REQUIRED', 'S3_SCHEMA_NOT_INSTALLED', 'S3_HANDLER_VERSION_UNSUPPORTED'].includes(code)) return reply({ code }, 503);
+    if (['DURABLE_DRIVER_REQUIRED', 'S3_SCHEMA_NOT_INSTALLED', 'JOURNEY_STAGE_SCHEMA_NOT_INSTALLED', 'S3_HANDLER_VERSION_UNSUPPORTED'].includes(code)) return reply({ code }, 503);
     if (error instanceof Error && (error.name === 'ZodError' || error instanceof SyntaxError)) return reply({ code: 'INVALID_INPUT' }, 400);
     return reply({ code: 'INTAKE_UNAVAILABLE' }, 503);
   }

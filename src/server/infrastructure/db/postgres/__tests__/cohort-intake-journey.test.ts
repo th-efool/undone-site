@@ -448,7 +448,6 @@ describe('Cohort Intake and Worker Journey Integration', () => {
   const ownerId = 'user-journey-tester';
 
   beforeEach(async () => {
-    vi.stubEnv('INTERACTION_COHORT_JOURNEY_ENABLED', '1');
     vi.stubEnv('INTERACTION_TEXT_DRIVER', 'durable');
     state.db = await createTestDb();
     state.prisma = createPrismaBridge(state.db);

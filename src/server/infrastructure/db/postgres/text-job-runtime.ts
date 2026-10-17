@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import type { TextArtifactSql } from '@/src/server/domain/cohort-builder/text-artifacts';
-import { assertTextJobSchema } from '@/src/server/domain/cohort-builder/text-schema-readiness';
+import { assertTextJobSchema, ensureJourneyStageSchema } from '@/src/server/domain/cohort-builder/text-schema-readiness';
 import { runDurableTextJobTick } from '@/src/server/domain/cohort-builder/durable-text-worker';
 import { recoverTextWorkspace } from '@/src/server/domain/cohort-builder/text-job-recovery';
 import type { TextJobTransactionPort } from '@/src/server/domain/cohort-builder/text-job-scheduler';
@@ -35,6 +35,7 @@ export async function createTextJobRuntime(
   const sql: TextArtifactSql = { query: (statement, parameters) => pool.query(statement, parameters) };
   const webTransport=localSourceFixture();
   try {
+    await ensureJourneyStageSchema(sql);
     await assertTextJobSchema(sql);
     const external=await sql.query(`SELECT "id" FROM "interaction_workspaces" WHERE "domainId"='cohort' AND "lifecycle"='active'
       AND EXISTS(SELECT 1 FROM jsonb_array_elements("snapshot"->'sources') source WHERE source ? 'input') LIMIT 1`,[]);
