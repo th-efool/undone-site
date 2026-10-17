@@ -8,6 +8,9 @@ import { VideoPlayer } from './components/VideoPlayer';
 import { VideoControls } from './components/VideoControls';
 import styles from './VideoExplainer.module.css';
 
+const DEFAULT_HLS_SRC = process.env.NEXT_PUBLIC_EXPLAINER_VIDEO_HLS_URL || '/videos/hls/explainer.m3u8';
+const DEFAULT_FALLBACK_SRC = process.env.NEXT_PUBLIC_EXPLAINER_VIDEO_MP4_URL || '/videos/undone-investor-film.mp4';
+
 export interface VideoExplainerProps {
   id?: string;
   hlsSrc?: string;
@@ -16,8 +19,8 @@ export interface VideoExplainerProps {
 
 export function VideoExplainer({
   id = 'video-explainer',
-  hlsSrc = '/videos/hls/explainer.m3u8',
-  fallbackSrc = '/videos/undone-investor-film.mp4',
+  hlsSrc = DEFAULT_HLS_SRC,
+  fallbackSrc = DEFAULT_FALLBACK_SRC,
 }: VideoExplainerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);

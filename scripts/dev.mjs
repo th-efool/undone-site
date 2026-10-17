@@ -1,4 +1,4 @@
-import { spawn } from "node:child_process";
+import { spawn, execSync } from "node:child_process";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,6 +7,12 @@ import './register-root-environment.mjs';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
 const isWin = process.platform === "win32";
+
+// Ensure local packages are built before dev server starts
+if (!fs.existsSync(path.resolve(projectRoot, "packages/notes-board/dist/index.js"))) {
+  console.log("[dev] Building @undone/notes-board distribution...");
+  execSync("npm --prefix packages/notes-board run build", { cwd: projectRoot, stdio: "inherit" });
+}
 
 // 1. Start Next.js dev server
 const nextCmd = isWin ? "npx.cmd" : "npx";

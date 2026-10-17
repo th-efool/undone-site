@@ -4,6 +4,15 @@ import { execSync } from 'node:child_process';
 
 fs.mkdirSync('dist', { recursive: true });
 
+const enableSourcemap = process.env.SOURCEMAP === 'true';
+if (!enableSourcemap) {
+  for (const f of ['dist/index.js.map', 'dist/index.css.map', 'dist/index.d.ts.map', 'dist/types.d.ts.map']) {
+    if (fs.existsSync(f)) {
+      try { fs.unlinkSync(f); } catch {}
+    }
+  }
+}
+
 console.log('Bundling @undone/notes-board with esbuild...');
 
 await esbuild.build({
@@ -26,7 +35,7 @@ await esbuild.build({
     '.png': 'dataurl',
   },
   jsx: 'automatic',
-  sourcemap: true,
+  sourcemap: process.env.SOURCEMAP === 'true',
 });
 
 // Generate types

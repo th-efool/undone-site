@@ -234,7 +234,7 @@ export default function LandingPage() {
           'Watch how Undone turns fragmented interstitial moments and long-form YouTube videos into compounding knowledge.',
         thumbnailUrl: [`${siteUrl}/images/hero-poster.webp`, `${siteUrl}/og-image.png`],
         uploadDate: '2026-01-01T08:00:00+00:00',
-        contentUrl: `${siteUrl}/videos/undone-investor-film.mp4`,
+        contentUrl: process.env.NEXT_PUBLIC_EXPLAINER_VIDEO_MP4_URL || `${siteUrl}/videos/undone-investor-film.mp4`,
         embedUrl: `${siteUrl}/#video-explainer`,
       },
     ],
