@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
+import { useSession } from 'next-auth/react';
 import {
   Plus,
   Lightbulb,
@@ -14,7 +15,7 @@ import { TextBar } from '@/src/client/components/ui';
 import { SuggestionPromptRow } from './SuggestionPromptRow';
 import { FeaturedCohortsStrip } from './FeaturedCohortsStrip';
 import styles from '../Hero.module.css';
-import { saveIntakeDraft } from '@/src/client/screens/cohortBuilder/intake-draft';
+import { saveIntakeDraft, readIntakeDraft } from '@/src/client/screens/cohortBuilder/intake-draft';
 const CATEGORIES = [
   'SideQuests',
   'Trending',
@@ -22,6 +23,14 @@ const CATEGORIES = [
   'Science',
   'Arts & Humanities',
 ] as const;
+
+function useSafeSession() {
+  try {
+    return useSession();
+  } catch {
+    return { data: null, status: 'authenticated' as const };
+  }
+}
 
 export function CentralInterface() {
   const [query, setQuery] = useState('');
@@ -31,6 +40,35 @@ export function CentralInterface() {
   const [submitting, setSubmitting] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('SideQuests');
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+  const { data: session, status } = useSafeSession();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      let qFromUrl: string | null = null;
+      try {
+        const parsedUrl = new URL(window.location.href, 'http://localhost');
+        qFromUrl = parsedUrl.searchParams.get('q');
+      } catch {
+        const urlParams = new URLSearchParams(window.location.search);
+        qFromUrl = urlParams.get('q');
+      }
+      const savedQuery = sessionStorage.getItem('undone:landing-query');
+      if (qFromUrl) {
+        setQuery(qFromUrl);
+      } else if (savedQuery) {
+        setQuery(savedQuery);
+      } else {
+        const draft = readIntakeDraft(null);
+        if (draft?.prompt) {
+          setQuery(draft.prompt);
+          if (draft.source?.text) {
+            setSourceText(draft.source.text);
+            setShowSource(true);
+          }
+        }
+      }
+    }
+  }, []);
 
   const handleSelectPrompt = (promptText: string) => {
     setQuery(promptText);
@@ -52,16 +90,18 @@ export function CentralInterface() {
     setSubmitting(true);
     setIntakeError('');
     try {
-      let ownerId: string | null = null;
+      let ownerId: string | null = session?.user?.id ?? null;
       try {
         const response = await fetch('/api/cohort-builder/intake', { cache: 'no-store' });
         if (response.ok) {
           const policy = await response.json();
-          ownerId = policy.ownerId ?? null;
+          ownerId = policy.ownerId ?? ownerId;
         }
       } catch {
-        // Proceed on server/network error with null ownerId
+        // Proceed on server/network error with session ownerId if available
       }
+
+      sessionStorage.setItem('undone:landing-query', textToSearch.trim());
       saveIntakeDraft(
         {
           requestId: crypto.randomUUID(),
@@ -70,6 +110,14 @@ export function CentralInterface() {
         },
         ownerId
       );
+
+      // If user is unauthenticated, redirect to auth and return straight back to landing page with query preserved
+      if (!ownerId && status === 'unauthenticated') {
+        const returnUrl = `/?q=${encodeURIComponent(textToSearch.trim())}`;
+        window.location.href = `/auth?returnTo=${encodeURIComponent(returnUrl)}`;
+        return;
+      }
+
       window.location.href = '/quest/start';
     } catch (error) {
       setIntakeError(error instanceof Error ? error.message : 'Intake unavailable');

@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import dynamic from 'next/dynamic';
 import { authReturnTo } from '@/src/shared/auth/returnTo';
 import { headers } from 'next/headers';
+import { getUser } from '@/src/server/infrastructure/auth/getUser';
 import { getCreationOwner } from '@/src/server/infrastructure/auth/getCreationOwner';
 import { signInErrorMessage } from '@/src/shared/auth/signInError';
 
@@ -29,7 +30,8 @@ export default async function AuthPage({ searchParams }: { searchParams: Promise
   const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host');
   const protocol = requestHeaders.get('x-forwarded-proto') ?? 'https';
   const returnTo = authReturnTo(params.returnTo, params.callbackUrl, `${protocol}://${host}`);
-  const allowAuthenticatedRedirect = !returnTo.startsWith('/quest/') || Boolean(await getCreationOwner());
+  const user = await getUser();
+  const allowAuthenticatedRedirect = !user || !returnTo.startsWith('/quest/') || Boolean(await getCreationOwner());
   return (
     <main>
       <Auth returnTo={returnTo} allowAuthenticatedRedirect={allowAuthenticatedRedirect} signInError={signInErrorMessage(params.error)} />

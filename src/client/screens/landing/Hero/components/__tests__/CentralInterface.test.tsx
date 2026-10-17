@@ -6,7 +6,7 @@ import { CentralInterface } from '../CentralInterface';
 
 describe('CentralInterface homepage handoff', () => {
   let currentHref: string;
-  let locationMock: { href: string; assign: ReturnType<typeof vi.fn> };
+  let locationMock: { href: string; search: string; assign: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     sessionStorage.clear();
@@ -18,6 +18,9 @@ describe('CentralInterface homepage handoff', () => {
       },
       set href(val: string) {
         currentHref = val;
+      },
+      get search() {
+        return currentHref.includes('?') ? currentHref.slice(currentHref.indexOf('?')) : '';
       },
       assign: vi.fn((val: string) => {
         currentHref = val;
@@ -175,5 +178,19 @@ describe('CentralInterface homepage handoff', () => {
     const saved = JSON.parse(rawDraft!);
     expect(saved.ownerId).toBeNull();
     expect(saved.body.prompt).toBe('Study distributed consensus');
+  });
+
+  it('restores query from search parameter ?q= on mount', async () => {
+    currentHref = 'http://localhost:3000/?q=Learn%20Rust%20Programming';
+    render(<CentralInterface />);
+    const input = screen.getByRole('textbox', { name: /what do you want to learn about/i }) as HTMLInputElement;
+    expect(input.value).toBe('Learn Rust Programming');
+  });
+
+  it('restores query from sessionStorage on mount', async () => {
+    sessionStorage.setItem('undone:landing-query', 'Mastering TypeScript');
+    render(<CentralInterface />);
+    const input = screen.getByRole('textbox', { name: /what do you want to learn about/i }) as HTMLInputElement;
+    expect(input.value).toBe('Mastering TypeScript');
   });
 });

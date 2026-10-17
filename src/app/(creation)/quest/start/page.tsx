@@ -6,6 +6,6 @@ import { CohortIntakeScreen } from '@/src/client/screens/cohortBuilder/CohortInt
 export const dynamic = 'force-dynamic';
 export default async function StartCohortPage() {
   const ownerId = await getCreationOwner();
-  if (!ownerId) redirect(creationSignInUrl('/quest/start'));
+  if (!ownerId) redirect(creationSignInUrl('/'));
   return <CohortIntakeScreen key={ownerId} ownerId={ownerId} enabled={cohortIntakeEnabled(ownerId, process.env)} />;
 }

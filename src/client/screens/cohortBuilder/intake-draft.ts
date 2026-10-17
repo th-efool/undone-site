@@ -9,10 +9,10 @@ export function saveIntakeDraft(body: CohortIntake, ownerId: string | null) {
   } catch { /* Corrupt local drafts are replaced by validated input. */ }
   sessionStorage.setItem(key, JSON.stringify({ body: validated, ownerId, createdAt: Date.now() }));
 }
-export function readIntakeDraft(ownerId: string) {
+export function readIntakeDraft(ownerId?: string | null) {
   try {
     const saved = JSON.parse(sessionStorage.getItem(key) ?? 'null');
-    if (!saved || Date.now() - saved.createdAt > 3_600_000 || (saved.ownerId !== null && saved.ownerId !== ownerId)) {
+    if (!saved || Date.now() - saved.createdAt > 3_600_000 || (saved.ownerId !== null && ownerId !== undefined && ownerId !== null && saved.ownerId !== ownerId)) {
       sessionStorage.removeItem(key); return null;
     }
     return cohortIntakeSchema.parse(saved.body);
