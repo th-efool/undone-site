@@ -6,7 +6,6 @@ import { homeRepository } from '@/src/client/repositories/homeRepository';
 import { homeStorageAdapter } from '@/src/client/repositories/homeStorageAdapter';
 import type { Weekday, ActiveCohort, PausedCohort, CompletedCourse } from '../models';
 import {
-  addDays,
   getActiveCohorts,
   pauseCohort,
   reorderCohorts,
@@ -126,7 +125,7 @@ export function useHome(props?: {
   const debouncedSyncCohort = useCallback(
     (
       cohortId: string,
-      config: Partial<ActiveCohort> & {
+      config: Omit<Partial<ActiveCohort>, 'pausedUntil' | 'pausedReason'> & {
         isPaused?: boolean;
         pausedUntil?: string | Date;
         pausedReason?: string;
@@ -288,8 +287,8 @@ export function useHome(props?: {
     if (cohort) debouncedSyncCohort(cleanId, cohort, snapshot);
   }
 
-  function pauseActiveCohort(cohortId: string, days: number, pausedReason?: string) {
-    const pausedUntil = addDays(new Date(), days);
+  function pauseActiveCohort(cohortId: string, pausedUntil: Date, pausedReason?: string) {
+    if (pausedUntil <= new Date()) return;
     const snapshot = { activeCohorts, continueLater };
 
     const activeCohort = activeCohorts.find((c) => (c.cohortId || c.id) === cohortId || c.id === cohortId);

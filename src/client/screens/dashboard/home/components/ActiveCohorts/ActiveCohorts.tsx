@@ -1,147 +1,36 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
-import Link from 'next/link';
-import { Users, ChevronUp, ChevronDown, ArrowRight, Compass } from 'lucide-react';
-import type { ActiveCohort, HomeSectionContent, PauseOption, Weekday } from '../../models';
+import React, { useMemo, useState } from 'react';
+import { Pause, X } from 'lucide-react';
+import type { ActiveCohort, HomeSectionContent } from '../../models';
 import { SubscribedCohortCard } from './SubscribedCohortCard';
-import { InspectorPanel } from './InspectorPanel';
 import styles from './ActiveCohorts.module.css';
 
-export interface ActiveCohortsProps {
-  heading: HomeSectionContent;
-  items: ActiveCohort[];
-  pauseOptions: PauseOption[];
-  onReorder(draggedId: string, targetId: string): void;
-  onUpdateDailyGoal(cohortId: string, minutes: number): void;
-  onUpdateSchedule(cohortId: string, days: Weekday[]): void;
-  onPause(cohortId: string, days: number, pausedReason?: string): void;
-  onUpdateOrderStyle?(cohortId: string, style: string): void;
-  onUpdateFrequency?(cohortId: string, frequency: string): void;
-}
+export interface ActiveCohortsProps { heading: HomeSectionContent; items: ActiveCohort[]; onPause(cohortId: string, pausedUntil: Date, pausedReason?: string): void; onResume(cohortId: string): void; }
+const PRESETS = [{ label: 'Tomorrow', hours: 24 }, { label: '1 week', hours: 168 }, { label: '1 month', hours: 720 }];
 
-export const ActiveCohorts = React.memo(function ActiveCohorts({
-  heading,
-  items,
-  pauseOptions,
-  onPause,
-  onReorder,
-  onUpdateDailyGoal,
-  onUpdateSchedule,
-  onUpdateOrderStyle,
-  onUpdateFrequency,
-}: ActiveCohortsProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [isInspectorOpen, setIsInspectorOpen] = useState(false);
-  const [isSectionOpen, setIsSectionOpen] = useState(true);
-
-  const selectedCohort = useMemo(
-    () => items.find((item) => item.id === selectedId) || null,
-    [items, selectedId],
-  );
-
-  const handleCardSelect = useCallback((cohort: ActiveCohort) => {
-    setSelectedId(cohort.id);
-    setIsInspectorOpen(true);
-  }, []);
-
-  const handleMenuClick = useCallback((_e: React.MouseEvent, cohort: ActiveCohort) => {
-    setSelectedId(cohort.id);
-    setIsInspectorOpen(true);
-  }, []);
-
-  const handleCloseInspector = useCallback(() => {
-    setIsInspectorOpen(false);
-    setSelectedId(null);
-  }, []);
-
-  const formattedMembers = useMemo(() => {
-    const totalMembers = items.reduce(
-      (acc, curr) => acc + (curr.memberCount || 64 + ((curr.title.length * 37) % 240)),
-      0,
-    );
-    return totalMembers > 0 ? totalMembers.toLocaleString('en-US') : '2,340+';
-  }, [items]);
-
-  return (
-    <section className={styles.section} aria-label={heading.title || 'Subscribed Cohorts'}>
-      {/* Editorial Section Header matching reference */}
-      <div className={styles.sectionHeader}>
-        <div className={styles.headerLeft}>
-          <div className={styles.iconBadge} aria-hidden="true">
-            <Users size={16} strokeWidth={2.4} />
-          </div>
-          <div className={styles.titleGroup}>
-            <h2 className={styles.title}>{heading.title || 'Subscribed Cohorts'}</h2>
-            <p className={styles.subtitle}>
-              {items.length > 0
-                ? `Learning alongside ${formattedMembers} curious minds.`
-                : `Join ${formattedMembers} curious minds learning together.`}
-            </p>
-          </div>
-        </div>
-
-        <div className={styles.headerRight}>
-          <button
-            type="button"
-            className={styles.collapseBtn}
-            onClick={() => setIsSectionOpen((prev) => !prev)}
-            aria-label={isSectionOpen ? 'Collapse section' : 'Expand section'}
-            aria-expanded={isSectionOpen}
-          >
-            {isSectionOpen ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
-          </button>
-        </div>
-      </div>
-
-      {/* Grid Content */}
-      {isSectionOpen && (
-        <div className={styles.contentLayout}>
-          <div className={`${styles.grid} ${isInspectorOpen ? styles.gridWithInspector : ''}`}>
-            {items.length === 0 ? (
-              <div className={styles.emptyContainer} role="region" aria-label="No subscribed cohorts">
-                <div className={styles.emptyCard}>
-                  <div className={styles.emptyIconBadge} aria-hidden="true">
-                    <Compass size={24} strokeWidth={2} />
-                  </div>
-                  <h3 className={styles.emptyTitle}>No active cohorts yet</h3>
-                  <p className={styles.emptySubtitle}>
-                    Start your learning journey by exploring curated tracks, community spaces, and focused courses.
-                  </p>
-                  <Link href="/explore" className={styles.emptyCta}>
-                    <span>Discover cohorts</span>
-                    <ArrowRight size={14} />
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              items.map((cohort) => (
-                <SubscribedCohortCard
-                  key={cohort.id}
-                  cohort={cohort}
-                  onSelect={handleCardSelect}
-                  onMenuClick={handleMenuClick}
-                />
-              ))
-            )}
-          </div>
-
-          {/* Slide-in / Drawer Inspector Panel */}
-          {isInspectorOpen && selectedCohort && (
-            <div className={styles.inspectorWrapper}>
-              <InspectorPanel
-                cohort={selectedCohort}
-                onUpdateSchedule={onUpdateSchedule}
-                onUpdateDailyGoal={onUpdateDailyGoal}
-                onUpdateOrderStyle={onUpdateOrderStyle}
-                onUpdateFrequency={onUpdateFrequency}
-                onClose={handleCloseInspector}
-                onPause={onPause}
-              />
-            </div>
-          )}
-        </div>
-      )}
-    </section>
-  );
+export const ActiveCohorts = React.memo(function ActiveCohorts({ heading, items, onPause, onResume }: ActiveCohortsProps) {
+  const [pauseTarget, setPauseTarget] = useState<ActiveCohort | null>(null);
+  const [until, setUntil] = useState('');
+  const [error, setError] = useState('');
+  const visibleItems = useMemo(() => items.filter((item) => !item.pausedUntil || new Date(item.pausedUntil) > new Date()), [items]);
+  const pauseFor = (hours: number) => { if (!pauseTarget) return; onPause(pauseTarget.cohortId || pauseTarget.id, new Date(Date.now() + hours * 3_600_000)); setPauseTarget(null); };
+  const submitCustomPause = (event: React.FormEvent) => {
+    event.preventDefault(); const date = new Date(until);
+    if (!until || Number.isNaN(date.getTime()) || date <= new Date()) { setError('Choose a future date and time.'); return; }
+    if (pauseTarget) onPause(pauseTarget.cohortId || pauseTarget.id, date); setPauseTarget(null);
+  };
+  return <section className={styles.section} aria-label={heading.title || 'Subscribed Cohorts'}>
+    <div className={styles.sectionHeader}><h2 className={styles.title}>{heading.title || 'Subscribed Cohorts'}</h2></div>
+    <div className={styles.grid}>{visibleItems.map((cohort) => <SubscribedCohortCard key={cohort.id} cohort={cohort} onPause={() => { setPauseTarget(cohort); setUntil(''); setError(''); }} onResume={() => onResume(cohort.cohortId || cohort.id)} />)}</div>
+    {pauseTarget && <div className={styles.pauseDialogBackdrop} role="presentation" onMouseDown={() => setPauseTarget(null)}>
+      <form className={styles.pauseDialog} onSubmit={submitCustomPause} onMouseDown={(event) => event.stopPropagation()} aria-labelledby="pause-cohort-title">
+        <button className={styles.closeDialog} type="button" aria-label="Close pause dialog" onClick={() => setPauseTarget(null)}><X size={18} /></button><Pause size={20} aria-hidden="true" />
+        <h3 id="pause-cohort-title">Pause {pauseTarget.title}</h3><p>Choose when it should return to your learning plan.</p>
+        <div className={styles.pausePresets}>{PRESETS.map((preset) => <button type="button" key={preset.label} onClick={() => pauseFor(preset.hours)}>{preset.label}</button>)}</div>
+        <label htmlFor="pause-until">Custom date and time</label><input id="pause-until" type="datetime-local" value={until} onChange={(event) => { setUntil(event.target.value); setError(''); }} />
+        {error && <p className={styles.pauseError} role="alert">{error}</p>}<button className={styles.confirmPause} type="submit">Pause until this time</button>
+      </form>
+    </div>}
+  </section>;
 });
