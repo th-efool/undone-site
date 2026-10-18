@@ -2,7 +2,7 @@
 import { useRef, useState } from 'react';
 import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 import styles from './TextMaterial.module.css';
-import { CircleCheck, FileText, Globe, Link as LinkIcon, Plus, Upload } from 'lucide-react';
+import { CircleCheck, FileText, Globe, Link as LinkIcon, Plus, Replace, Trash2, Upload } from 'lucide-react';
 import { InkUnderline } from './InkUnderline';
 import { YoutubeUnits } from './YoutubeUnits';
 
@@ -188,12 +188,12 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
             else if (source.kind === 'notion') await onNotion?.(source.input.url, source.id);
             else await onWeb(source.input.url, source.id); } finally { setQueuing(false); }
         }}>Retry source {index + 1}</button>}
-      {!selectionOnly && <button type="button" disabled={busy} onClick={() => { setReplacementId(source.id); setError(null); }}>Replace source {index + 1}</button>}
-      <button type="button" disabled={busy} onClick={async () => {
+      {!selectionOnly && <button type="button" className={styles.iconAction} aria-label={`Replace source ${index + 1}`} title="Replace source" disabled={busy} onClick={() => { setReplacementId(source.id); setError(null); }}><Replace size={17} strokeWidth={1.75} aria-hidden="true" /></button>}
+      <button type="button" className={`${styles.iconAction} ${styles.removeAction}`} aria-label={`Remove source ${index + 1}`} title="Remove source" disabled={busy} onClick={async () => {
         setRemoving(true);
         try { if (await onRemove(source.id) && replacementId === source.id) setReplacementId(null); }
         finally { setRemoving(false); }
-      }}>Remove source {index + 1}</button></div>
+      }}><Trash2 size={17} strokeWidth={1.75} aria-hidden="true" /></button></div>
     </li>)}</ul>
     {!!snapshot.extractions.length && <p className={styles.saved}>Sources are saved. Continue below to understand your material.</p>}
   </section>;
