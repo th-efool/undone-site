@@ -89,7 +89,7 @@ export class VercelMaterialObservation implements MaterialObservation {
     let correction: string | undefined;
     for (let attempt = 0; attempt < 2; attempt++) {
       callerSignal.throwIfAborted();
-      const signal = AbortSignal.any([callerSignal, AbortSignal.timeout(90_000)]);
+      const signal = AbortSignal.any([callerSignal, AbortSignal.timeout(150_000)]);
       signal.throwIfAborted();
       devLogger.info('VideoObservation', `Calling model (${this.model.modelId}) for video ${video.videoId} "${video.title}" (attempt ${attempt + 1}/2, duration: ${video.durationSeconds}s)`);
       // Reservation errors retain their original lease/budget meaning for the durable worker.
@@ -107,7 +107,7 @@ export class VercelMaterialObservation implements MaterialObservation {
               title: video.title, ...(correction ? { correction } : {}) }) },
             { type: 'file', data: new URL(video.url), mediaType: 'video/mp4' },
           ] }], output: Output.object({ schema: creationOutputSchema(schema, this.model) }),
-          maxOutputTokens: 12_000, maxRetries: 0, abortSignal: signal, timeout: { totalMs: 90_000 },
+          maxOutputTokens: 12_000, maxRetries: 0, abortSignal: signal, timeout: { totalMs: 150_000 },
           telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },
         });
         const elapsed = Date.now() - t0;
@@ -161,6 +161,11 @@ export class VercelMaterialObservation implements MaterialObservation {
         }
         if (invalid && attempt === 0) {
           correction = 'Previous output failed schema validation. Return only the requested structured fields, with valid ordered nonoverlapping intervals in numeric seconds.';
+          continue;
+        }
+        if (attempt === 0) {
+          devLogger.info('VideoObservation', `Observation attempt 1 failed with transient error; retrying in 3s for video ${video.videoId}...`);
+          await new Promise(r => setTimeout(r, 3_000));
           continue;
         }
         if (invalid) throw creationFailure('AI_INVALID_OUTPUT', 'Video observations could not be validated. Retry or supply text.');

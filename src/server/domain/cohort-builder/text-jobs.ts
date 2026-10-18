@@ -103,7 +103,8 @@ export async function acceptTextJob(sql: TextArtifactSql, job: ClaimedTextJob, a
 
 export async function failTextJob(sql: TextArtifactSql, job: ClaimedTextJob, errorCode: string, now: Date): Promise<boolean> {
   if (!Number.isFinite(now.getTime())) throw new Error('INVALID_FAILURE_TIME');
-  if (errorCode === 'RATE_LIMITED' && (job.attempts ?? 0) < 5) {
+  const isTransient = errorCode === 'RATE_LIMITED' || errorCode === 'AI_UNAVAILABLE' || errorCode === 'VIDEO_OBSERVATION_DEADLINE';
+  if (isTransient && (job.attempts ?? 0) < 5) {
     const delayMs = Math.min(30_000 * Math.max(1, job.attempts ?? 1), 120_000);
     const dueAt = new Date(now.getTime() + delayMs);
     const result = await sql.query(`UPDATE "cohort_text_jobs"
