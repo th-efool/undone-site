@@ -28,7 +28,7 @@ export async function POST(
     const cohort = await prisma.cohort.findFirst({ where: { id: cohortId, ...accessibleCohortWhere(userId) }, select: { id: true } });
     if (!cohort) return NextResponse.json({ error: 'Cohort not found' }, { status: 404 });
     await connectToMongoDB();
-    await UserCohortConfig.updateOne({ userId, cohortId }, { $set: { isHidden: false } }).exec();
+    await UserCohortConfig.updateOne({ userId, cohortId }, { $set: { isHidden: false, isPaused: false }, $unset: { pausedUntil: 1 } }).exec();
     // Repeating join is safe, including a lost successful response.
     await prisma.cohortMember.upsert({
       where: { cohortId_userId: { cohortId, userId } }, update: {}, create: {
@@ -60,7 +60,7 @@ export async function DELETE(
     // independently of membership, and keeps stale device caches from restoring them.
     await UserCohortConfig.updateOne(
       { userId, cohortId },
-      { $set: { isHidden: true, isPaused: false }, $unset: { pausedUntil: 1 } },
+      { $set: { isHidden: true } },
       { upsert: true },
     ).exec();
     try {
