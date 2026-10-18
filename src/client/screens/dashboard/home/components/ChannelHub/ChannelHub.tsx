@@ -1,294 +1,225 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Compass, Hammer, Headphones, Search, Rabbit, Coffee, Info, Tv, Clock, Zap, Map, Footprints, BookOpen, Layers, Focus, Brain, Target, Briefcase, MonitorOff, Car, Star, Lightbulb, PlayCircle, Activity } from 'lucide-react';
+import {
+  Mountain,
+  FileText,
+  Headphones,
+  Pencil,
+  Compass,
+  Box,
+  Clock,
+  BarChart2,
+  Bell,
+  ChevronUp,
+  ChevronDown,
+  RotateCcw,
+  HelpCircle,
+  SlidersHorizontal,
+} from 'lucide-react';
 import styles from './ChannelHub.module.css';
 
-// ─── Data ────────────────────────────────────────────────────────────────────
+// ─── Data & Types ────────────────────────────────────────────────────────────
 
-type ChannelId = 'spark' | 'explore' | 'build' | 'listen' | 'deep_dive' | 'quick';
+export type ChannelId = 'spark' | 'explore' | 'build' | 'listen' | 'deep_dive' | 'quick';
 
-interface Option { id: string; label: string }
-interface Control { id: string; label: string; options: Option[]; defaultId: string }
-interface BestFor { text: string; Icon: React.ElementType }
-interface Channel {
+export interface LearningStyle {
   id: ChannelId;
   name: string;
   Icon: React.ElementType;
   tagline: string;
-  about: string;
-  bestFor: BestFor[];
-  controls: Control[];
 }
 
-export const CHANNELS: Channel[] = [
-  {
-    id: 'spark',
-    name: 'Spark',
-    Icon: Coffee,
-    tagline: 'Fresh ideas to ignite your curiosity.',
-    about: 'Perfect for moments when you want something interesting to think about without committing to a particular topic or direction.',
-    bestFor: [{ text: 'Idle moments', Icon: Clock }, { text: 'New interests', Icon: Lightbulb }, { text: 'Inspiration', Icon: Zap }],
-    controls: [
-      { id: 'novelty', label: 'Novelty', defaultId: 'familiar', options: [{ id: 'familiar', label: 'Familiar' }, { id: 'esoteric', label: 'Esoteric' }] },
-      { id: 'connectivity', label: 'Connectivity', defaultId: 'singular', options: [{ id: 'singular', label: 'Singular' }, { id: 'cross_domain', label: 'Cross-Domain' }] },
-      { id: 'abstraction', label: 'Abstraction', defaultId: 'concrete', options: [{ id: 'concrete', label: 'Concrete Fact' }, { id: 'philosophical', label: 'Philosophical Mystery' }] },
-    ],
-  },
-  {
-    id: 'explore',
-    name: 'Explore',
-    Icon: Compass,
-    tagline: 'Discover new topics and perspectives.',
-    about: 'Perfect for when you want to follow your curiosity, make unexpected connections, or see where an idea takes you.',
-    bestFor: [{ text: 'Curious moods', Icon: Brain }, { text: 'Cross-domain', Icon: Layers }, { text: 'Open time', Icon: Map }],
-    controls: [
-      { id: 'novelty', label: 'Novelty', defaultId: 'adjacent', options: [{ id: 'adjacent', label: 'Adjacent' }, { id: 'uncharted', label: 'Uncharted' }] },
-      { id: 'scope', label: 'Scope', defaultId: 'deep', options: [{ id: 'deep', label: 'Deep' }, { id: 'wide', label: 'Wide' }] },
-      { id: 'serendipity', label: 'Serendipity', defaultId: 'curated', options: [{ id: 'curated', label: 'Curated' }, { id: 'random', label: 'Random' }] },
-    ],
-  },
-  {
-    id: 'build',
-    name: 'Build',
-    Icon: Hammer,
-    tagline: 'Hands-on learning. Projects & practice.',
-    about: 'Perfect for when you want to turn what you know into something you can actually make, solve, or do.',
-    bestFor: [{ text: 'Skill building', Icon: Target }, { text: 'Projects', Icon: Briefcase }, { text: 'Practice', Icon: Activity }],
-    controls: [
-      { id: 'guidance', label: 'Guidance', defaultId: 'step_by_step', options: [{ id: 'step_by_step', label: 'Step-by-Step Tutorial' }, { id: 'independent', label: 'Independent Build' }] },
-      { id: 'scope', label: 'Scope', defaultId: 'micro', options: [{ id: 'micro', label: 'Micro-Feature' }, { id: 'full_app', label: 'Full-Scale App' }] },
-      { id: 'constraint', label: 'Constraint', defaultId: 'blueprint', options: [{ id: 'blueprint', label: 'Strict Blueprint' }, { id: 'sandbox', label: 'Open Sandbox' }] },
-    ],
-  },
-  {
-    id: 'listen',
-    name: 'Listen',
-    Icon: Headphones,
-    tagline: 'Learn on the go with audio sessions.',
-    about: 'Perfect for walks, commutes, or whenever you want to keep learning without needing to stay in front of a screen.',
-    bestFor: [{ text: 'Commutes', Icon: Car }, { text: 'Walks', Icon: Footprints }, { text: 'Screen-free', Icon: MonitorOff }],
-    controls: [
-      { id: 'format', label: 'Format', defaultId: 'story', options: [{ id: 'story', label: 'Story' }, { id: 'interview', label: 'Interview' }] },
-      { id: 'density', label: 'Density', defaultId: 'casual', options: [{ id: 'casual', label: 'Casual Overview' }, { id: 'technical', label: 'Technical Deep Dive' }] },
-      { id: 'length', label: 'Length', defaultId: 'short', options: [{ id: 'short', label: 'Short' }, { id: 'extended', label: 'Extended' }] },
-    ],
-  },
-  {
-    id: 'deep_dive',
-    name: 'Deep Dive',
-    Icon: Search,
-    tagline: 'In-depth lessons for deep understanding.',
-    about: 'Perfect for when you want to slow down, follow an idea further, and really understand how it works.',
-    bestFor: [{ text: 'Focused time', Icon: Focus }, { text: 'Complex topics', Icon: BookOpen }, { text: 'Deep work', Icon: Brain }],
-    controls: [
-      { id: 'depth', label: 'Depth', defaultId: 'high_level', options: [{ id: 'high_level', label: 'High-level' }, { id: 'first_principles', label: 'First Principles' }] },
-      { id: 'rigor', label: 'Rigor', defaultId: 'intuitive', options: [{ id: 'intuitive', label: 'Intuitive' }, { id: 'formal', label: 'Formal' }] },
-      { id: 'scaffolding', label: 'Scaffolding', defaultId: 'guided', options: [{ id: 'guided', label: 'Guided' }, { id: 'independent', label: 'Independent' }] },
-    ],
-  },
-  {
-    id: 'quick',
-    name: 'Quick',
-    Icon: Rabbit,
-    tagline: 'Small pieces for small windows of time.',
-    about: 'Quick delivers crisp, focused bites of learning you can finish in just a few minutes. Perfect for breaks, commutes, or whenever you need a quick win.',
-    bestFor: [{ text: 'Busy days', Icon: Briefcase }, { text: 'Short breaks', Icon: Clock }, { text: 'On the go', Icon: PlayCircle }],
-    controls: [
-      { id: 'length', label: 'Length', defaultId: 'micro', options: [{ id: 'micro', label: 'Micro' }, { id: 'brief', label: 'Brief' }] },
-      { id: 'continuity', label: 'Continuity', defaultId: 'standalone', options: [{ id: 'standalone', label: 'Standalone' }, { id: 'sequence', label: 'Sequence' }] },
-      { id: 'density', label: 'Density', defaultId: 'light', options: [{ id: 'light', label: 'Light' }, { id: 'dense', label: 'Dense' }] },
-    ],
-  },
+export const CHANNELS: LearningStyle[] = [
+  { id: 'spark', name: 'Visual & Conceptual', Icon: Mountain, tagline: 'Visual diagrams, spatial analogies, and imagery' },
+  { id: 'deep_dive', name: 'Deep Reading & Text', Icon: FileText, tagline: 'Structured text, deep rigor, and detailed prose' },
+  { id: 'listen', name: 'Audio & Conversations', Icon: Headphones, tagline: 'Narrated walkthroughs, dialogues, and audio sessions' },
+  { id: 'build', name: 'Hands-on & Practice', Icon: Pencil, tagline: 'Interactive exercises, code, and active practice' },
+  { id: 'explore', name: 'Broad Exploration', Icon: Compass, tagline: 'Interdisciplinary links and wandering curiosities' },
+  { id: 'quick', name: 'Mental Models & Systems', Icon: Box, tagline: 'System architectures, 3D structures, and fast takeaways' },
 ];
 
-import { Slider } from '@/src/client/components/ui/Slider/Slider';
+const DEFAULT_SLIDERS = {
+  depth: 3.74,
+  rigor: 2.48,
+  scaffolding: 1.0,
+};
 
-function FloatSliderControl({ 
-  ctrl, 
-  currentVal, 
-  onChange 
-}: { 
-  ctrl: Control; 
-  currentVal: string | number | undefined; 
-  onChange: (val: number, optionId: string) => void;
-}) {
-  const getInitialVal = () => {
-    const parsed = typeof currentVal === 'number' ? currentVal : parseFloat(String(currentVal ?? ''));
-    if (!isNaN(parsed) && parsed >= 0 && parsed <= ctrl.options.length - 1) {
-      return parsed;
-    }
-    const idx = ctrl.options.findIndex(o => o.id === currentVal);
-    return idx !== -1 ? idx : 0;
-  };
+const DEFAULT_PREFS = {
+  weeklyGoal: '8 hours',
+  learningAllocation: 'Balanced',
+  reminderWindow: 'Evening',
+};
 
-  const [floatVal, setFloatVal] = useState(getInitialVal);
-  const [inputValue, setInputValue] = useState(getInitialVal().toFixed(2));
+interface TuningSliderProps {
+  label: string;
+  tooltip: string;
+  value: number;
+  min?: number;
+  max?: number;
+  step?: number;
+  onChange: (val: number) => void;
+}
 
-  // Sync state whenever ctrl or currentVal changes (e.g. channel switch or remote hydration)
-  useEffect(() => {
-    const val = getInitialVal();
-    setFloatVal(val);
-    setInputValue(val.toFixed(2));
-  }, [ctrl.id, currentVal]);
-  
-  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseFloat(e.target.value);
-    setFloatVal(val);
-    setInputValue(val.toFixed(2));
-    const closestIndex = Math.max(0, Math.min(ctrl.options.length - 1, Math.round(val)));
-    const optId = ctrl.options[closestIndex]?.id || ctrl.defaultId;
-    onChange(val, optId);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value;
-    setInputValue(rawValue);
-
-    const parsed = parseFloat(rawValue);
-    if (!isNaN(parsed) && parsed >= 0 && parsed <= ctrl.options.length - 1) {
-      setFloatVal(parsed);
-      const closestIndex = Math.max(0, Math.min(ctrl.options.length - 1, Math.round(parsed)));
-      const optId = ctrl.options[closestIndex]?.id || ctrl.defaultId;
-      onChange(parsed, optId);
-    }
-  };
-
-  const handleInputBlur = () => {
-    let val = parseFloat(inputValue);
-    if (isNaN(val) || val < 0 || val > ctrl.options.length - 1) {
-      setInputValue(floatVal.toFixed(2));
-      return;
-    }
-    setFloatVal(val);
-    setInputValue(val.toFixed(2));
-    const closestIndex = Math.max(0, Math.min(ctrl.options.length - 1, Math.round(val)));
-    const optId = ctrl.options[closestIndex]?.id || ctrl.defaultId;
-    onChange(val, optId);
-  };
+function TuningSlider({
+  label,
+  tooltip,
+  value,
+  min = 0,
+  max = 5,
+  step = 0.01,
+  onChange,
+}: TuningSliderProps) {
+  const percentage = Math.max(0, Math.min(100, Math.round(((value - min) / (max - min)) * 100)));
 
   return (
     <div className={styles.sliderRow}>
-      <span className={styles.sliderRowTitle}>{ctrl.label}</span>
-      <div className={styles.sliderRowTrack}>
-        <span 
-          className={`${styles.sliderLabel} ${Math.round(floatVal) === 0 ? styles.sliderLabelActive : ''}`}
-          onClick={() => {
-            setFloatVal(0);
-            setInputValue((0).toFixed(2));
-            onChange(0, ctrl.options[0].id);
-          }}
-        >
-          {ctrl.options[0].label}
-        </span>
-        
-        <div className={styles.sliderInputWrapper}>
-          <Slider 
-            min={0} 
-            max={ctrl.options.length - 1} 
-            step={0.01} 
-            value={floatVal}
-            onChange={handleSliderChange}
-            className={styles.floatSlider}
-          />
-        </div>
-
-        <span 
-          className={`${styles.sliderLabel} ${Math.round(floatVal) === 1 ? styles.sliderLabelActive : ''}`}
-          onClick={() => {
-            setFloatVal(1);
-            setInputValue((1).toFixed(2));
-            if (ctrl.options[1]) onChange(1, ctrl.options[1].id);
-          }}
-        >
-          {ctrl.options[1]?.label}
+      <div className={styles.sliderLabelGroup}>
+        <span className={styles.sliderName}>{label}</span>
+        <span className={styles.sliderHelp} title={tooltip} aria-label={tooltip}>
+          <HelpCircle size={13} strokeWidth={2} />
         </span>
       </div>
-      <input 
-        type="text"
-        className={styles.sliderFloatInput}
-        value={inputValue}
-        onChange={handleInputChange}
-        onBlur={handleInputBlur}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter') e.currentTarget.blur();
-        }}
-      />
+
+      <div className={styles.sliderTrackWrapper}>
+        <div
+          className={styles.sliderProgressFill}
+          style={{ width: `${percentage}%` }}
+        />
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={(e) => onChange(parseFloat(e.target.value))}
+          className={styles.sliderInput}
+          aria-label={label}
+        />
+      </div>
+
+      <div className={styles.sliderValueBadge}>
+        <span className={styles.plusSign}>+</span>
+        <span className={styles.valueNumber}>{value.toFixed(2)}</span>
+      </div>
     </div>
   );
 }
 
-const INTRO_COPY = [
-  {
-    headline: "Learning that adapts to your life.",
-    body: "Don't wait for the perfect hour. Pick a channel that fits your current energy, and we'll surface the exact piece of content you need right now."
-  },
-  {
-    headline: "Tune in to the channel that matches your moment.",
-    body: "Whether you have 10 minutes, you're commuting, or you're just exhausted—select a channel and customize your feed to keep your progress moving."
-  },
-  {
-    headline: "Turn empty moments into finished courses.",
-    body: "Stop procrastinating. Our feed algorithm breaks your materials down and serves you the perfect segment for whatever situation you're in."
-  },
-  {
-    headline: "Flip the channel. Change your pace.",
-    body: "Just like TV, pick a channel that suits your mood. Tweak the algorithm to pull exactly what you need from your learning queue, right when you need it."
-  },
-  {
-    headline: "The smartest way to chip away at your goals.",
-    body: "We break your learning into meaningful segments. Just tell us your context, and we'll seamlessly fit your courses into the cracks of your day."
-  }
-];
-
 export function ChannelHub() {
-  const [selectedId, setSelectedId] = useState<ChannelId>(() => {
-    if (typeof window === 'undefined') return 'quick';
+  const [isExpanded, setIsExpanded] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      const saved = localStorage.getItem('sidequest_finetune_expanded');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const [selectedChannel, setSelectedChannel] = useState<ChannelId>(() => {
+    if (typeof window === 'undefined') return 'spark';
     try {
       const saved = localStorage.getItem('sidequest_active_channel') as ChannelId;
-      return saved && CHANNELS.some(c => c.id === saved) ? saved : 'quick';
-    } catch { return 'quick'; }
+      return saved && CHANNELS.some((c) => c.id === saved) ? saved : 'spark';
+    } catch {
+      return 'spark';
+    }
   });
-  const [prefs, setPrefs] = useState<Record<string, string>>(() => {
-    if (typeof window === 'undefined') return {};
+
+  const [depth, setDepth] = useState<number>(() => {
+    if (typeof window === 'undefined') return DEFAULT_SLIDERS.depth;
     try {
-      const savedPrefs = localStorage.getItem('sidequest_channel_prefs');
-      return savedPrefs ? JSON.parse(savedPrefs) : {};
-    } catch { return {}; }
+      const raw = localStorage.getItem('sidequest_pref_depth');
+      const parsed = raw ? parseFloat(raw) : NaN;
+      return !isNaN(parsed) ? parsed : DEFAULT_SLIDERS.depth;
+    } catch {
+      return DEFAULT_SLIDERS.depth;
+    }
   });
-  const [introIndex, setIntroIndex] = useState(0);
+
+  const [rigor, setRigor] = useState<number>(() => {
+    if (typeof window === 'undefined') return DEFAULT_SLIDERS.rigor;
+    try {
+      const raw = localStorage.getItem('sidequest_pref_rigor');
+      const parsed = raw ? parseFloat(raw) : NaN;
+      return !isNaN(parsed) ? parsed : DEFAULT_SLIDERS.rigor;
+    } catch {
+      return DEFAULT_SLIDERS.rigor;
+    }
+  });
+
+  const [scaffolding, setScaffolding] = useState<number>(() => {
+    if (typeof window === 'undefined') return DEFAULT_SLIDERS.scaffolding;
+    try {
+      const raw = localStorage.getItem('sidequest_pref_scaffolding');
+      const parsed = raw ? parseFloat(raw) : NaN;
+      return !isNaN(parsed) ? parsed : DEFAULT_SLIDERS.scaffolding;
+    } catch {
+      return DEFAULT_SLIDERS.scaffolding;
+    }
+  });
+
+  const [weeklyGoal, setWeeklyGoal] = useState<string>(() => {
+    if (typeof window === 'undefined') return DEFAULT_PREFS.weeklyGoal;
+    try {
+      return localStorage.getItem('sidequest_pref_weekly_goal') || DEFAULT_PREFS.weeklyGoal;
+    } catch {
+      return DEFAULT_PREFS.weeklyGoal;
+    }
+  });
+
+  const [learningAllocation, setLearningAllocation] = useState<string>(() => {
+    if (typeof window === 'undefined') return DEFAULT_PREFS.learningAllocation;
+    try {
+      return localStorage.getItem('sidequest_pref_learning_allocation') || DEFAULT_PREFS.learningAllocation;
+    } catch {
+      return DEFAULT_PREFS.learningAllocation;
+    }
+  });
+
+  const [reminderWindow, setReminderWindow] = useState<string>(() => {
+    if (typeof window === 'undefined') return DEFAULT_PREFS.reminderWindow;
+    try {
+      return localStorage.getItem('sidequest_pref_reminder_window') || DEFAULT_PREFS.reminderWindow;
+    } catch {
+      return DEFAULT_PREFS.reminderWindow;
+    }
+  });
 
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function debouncedSyncChannel(channelId: string, updatedPrefs: Record<string, string>) {
+  const debouncedSyncConfig = (
+    channelId: ChannelId,
+    prefsMap: Record<string, string>,
+  ) => {
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
     syncTimerRef.current = setTimeout(() => {
       fetch('/api/user/channel-config', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activeChannel: channelId, prefs: updatedPrefs }),
+        body: JSON.stringify({ activeChannel: channelId, prefs: prefsMap }),
       }).catch(() => {});
     }, 800);
-  }
+  };
 
-  // Load preferences from database on mount
+  // Hydrate preferences from remote database on mount
   useEffect(() => {
     async function loadRemoteConfig() {
       try {
         const res = await fetch('/api/user/channel-config');
         if (res.ok) {
           const data = await res.json();
-          if (data.activeChannel && CHANNELS.some(c => c.id === data.activeChannel)) {
-            setSelectedId(data.activeChannel);
-            try { localStorage.setItem('sidequest_active_channel', data.activeChannel); } catch {}
+          if (data.activeChannel && CHANNELS.some((c) => c.id === data.activeChannel)) {
+            setSelectedChannel(data.activeChannel);
           }
-          if (data.prefs && typeof data.prefs === 'object' && Object.keys(data.prefs).length > 0) {
-            setPrefs(prev => {
-              const merged = { ...prev, ...data.prefs };
-              try { localStorage.setItem('sidequest_channel_prefs', JSON.stringify(merged)); } catch {}
-              return merged;
-            });
+          if (data.prefs && typeof data.prefs === 'object') {
+            if (data.prefs.depth) setDepth(parseFloat(data.prefs.depth));
+            if (data.prefs.rigor) setRigor(parseFloat(data.prefs.rigor));
+            if (data.prefs.scaffolding) setScaffolding(parseFloat(data.prefs.scaffolding));
+            if (data.prefs.weekly_goal) setWeeklyGoal(data.prefs.weekly_goal);
+            if (data.prefs.learning_allocation) setLearningAllocation(data.prefs.learning_allocation);
+            if (data.prefs.reminder_window) setReminderWindow(data.prefs.reminder_window);
           }
         }
       } catch (err) {
@@ -298,206 +229,291 @@ export function ChannelHub() {
     loadRemoteConfig();
   }, []);
 
-  useEffect(() => {
-    setIntroIndex(Math.floor(Math.random() * INTRO_COPY.length));
-  }, []);
+  const savePreferences = (
+    channelId: ChannelId,
+    d: number,
+    r: number,
+    s: number,
+    wg: string,
+    la: string,
+    rw: string,
+  ) => {
+    const prefsMap: Record<string, string> = {
+      depth: d.toFixed(2),
+      rigor: r.toFixed(2),
+      scaffolding: s.toFixed(2),
+      weekly_goal: wg,
+      learning_allocation: la,
+      reminder_window: rw,
+    };
 
-  const handleChannelSelect = (id: ChannelId) => {
-    setSelectedId(id);
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('sidequest_active_channel', id);
-      } catch {}
-    }
-    debouncedSyncChannel(id, prefs);
+    try {
+      localStorage.setItem('sidequest_active_channel', channelId);
+      localStorage.setItem('sidequest_pref_depth', d.toFixed(2));
+      localStorage.setItem('sidequest_pref_rigor', r.toFixed(2));
+      localStorage.setItem('sidequest_pref_scaffolding', s.toFixed(2));
+      localStorage.setItem('sidequest_pref_weekly_goal', wg);
+      localStorage.setItem('sidequest_pref_learning_allocation', la);
+      localStorage.setItem('sidequest_pref_reminder_window', rw);
+      localStorage.setItem('sidequest_channel_prefs', JSON.stringify(prefsMap));
+    } catch {}
+
+    debouncedSyncConfig(channelId, prefsMap);
   };
 
-  const channel = CHANNELS.find(c => c.id === selectedId)!;
+  const handleChannelSelect = (id: ChannelId) => {
+    setSelectedChannel(id);
+    savePreferences(id, depth, rigor, scaffolding, weeklyGoal, learningAllocation, reminderWindow);
+  };
 
-  function getPref(channelId: ChannelId, controlId: string, defaultId: string) {
-    return prefs[`${channelId}_${controlId}`] ?? defaultId;
-  }
+  const handleDepthChange = (val: number) => {
+    setDepth(val);
+    savePreferences(selectedChannel, val, rigor, scaffolding, weeklyGoal, learningAllocation, reminderWindow);
+  };
 
-  function setPref(channelId: ChannelId, controlId: string, floatVal: number, optionId: string) {
-    setPrefs(p => {
-      const updated = {
-        ...p,
-        [`${channelId}_${controlId}`]: floatVal.toFixed(2),
-        [`${channelId}_${controlId}_opt`]: optionId,
-      };
-      debouncedSyncChannel(channelId, updated);
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('sidequest_channel_prefs', JSON.stringify(updated));
-        } catch {}
-      }
-      return updated;
+  const handleRigorChange = (val: number) => {
+    setRigor(val);
+    savePreferences(selectedChannel, depth, val, scaffolding, weeklyGoal, learningAllocation, reminderWindow);
+  };
+
+  const handleScaffoldingChange = (val: number) => {
+    setScaffolding(val);
+    savePreferences(selectedChannel, depth, rigor, val, weeklyGoal, learningAllocation, reminderWindow);
+  };
+
+  const handleWeeklyGoalChange = (val: string) => {
+    setWeeklyGoal(val);
+    savePreferences(selectedChannel, depth, rigor, scaffolding, val, learningAllocation, reminderWindow);
+  };
+
+  const handleAllocationChange = (val: string) => {
+    setLearningAllocation(val);
+    savePreferences(selectedChannel, depth, rigor, scaffolding, weeklyGoal, val, reminderWindow);
+  };
+
+  const handleReminderChange = (val: string) => {
+    setReminderWindow(val);
+    savePreferences(selectedChannel, depth, rigor, scaffolding, weeklyGoal, learningAllocation, val);
+  };
+
+  const handleReset = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedChannel('spark');
+    setDepth(DEFAULT_SLIDERS.depth);
+    setRigor(DEFAULT_SLIDERS.rigor);
+    setScaffolding(DEFAULT_SLIDERS.scaffolding);
+    setWeeklyGoal(DEFAULT_PREFS.weeklyGoal);
+    setLearningAllocation(DEFAULT_PREFS.learningAllocation);
+    setReminderWindow(DEFAULT_PREFS.reminderWindow);
+
+    savePreferences(
+      'spark',
+      DEFAULT_SLIDERS.depth,
+      DEFAULT_SLIDERS.rigor,
+      DEFAULT_SLIDERS.scaffolding,
+      DEFAULT_PREFS.weeklyGoal,
+      DEFAULT_PREFS.learningAllocation,
+      DEFAULT_PREFS.reminderWindow,
+    );
+  };
+
+  const toggleExpand = () => {
+    setIsExpanded((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('sidequest_finetune_expanded', String(next));
+      } catch {}
+      return next;
     });
-  }
+  };
 
   return (
-    <section className={styles.section} aria-label="Your Channels">
-      {/* Header bar */}
-      <div className={styles.headerBar}>
-        <div className={styles.tabTrapezium}>
-          <h2 className={styles.tabTitle}>Your Channels</h2>
+    <section className={styles.card} aria-label="Fine-tune your feed">
+      {/* Collapsible Card Header */}
+      <div
+        className={styles.header}
+        onClick={toggleExpand}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggleExpand();
+          }
+        }}
+        aria-expanded={isExpanded}
+      >
+        <div className={styles.headerLeft}>
+          <div className={styles.iconBadge}>
+            <SlidersHorizontal size={15} strokeWidth={2.4} />
+          </div>
+          <div className={styles.headerTitles}>
+            <div className={styles.headerTitleRow}>
+              <h2 className={styles.title}>Fine-tune your feed</h2>
+              <span className={styles.chevronIcon} aria-hidden="true">
+                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </span>
+            </div>
+            <p className={styles.subtitle}>
+              Adjust how the feed curates and adapts to you. You can change this anytime.
+            </p>
+          </div>
         </div>
-        <div className={styles.indigoBar}>
-          <button className={styles.learnBtn} aria-label="Learn how channels work">
-            <Info size={13} />
-            Learn how it works
+
+        <div className={styles.headerRight}>
+          <button
+            type="button"
+            className={styles.resetBtn}
+            onClick={handleReset}
+            title="Reset feed adjustments to defaults"
+            aria-label="Reset adjustments to defaults"
+          >
+            <RotateCcw size={13} strokeWidth={2.2} />
+            <span>Reset</span>
           </button>
         </div>
       </div>
 
-      {/* 4-column flush layout (desktop app style) */}
-      <div className={styles.body}>
+      {/* Expanded Tuning Body */}
+      {isExpanded && (
+        <div className={styles.bodyGrid}>
+          {/* Left Column: Learning Style & Sliders */}
+          <div className={styles.colSection}>
+            <div className={styles.sectionHeadingRow}>
+              <span className={styles.sectionHeading}>Learning style</span>
+            </div>
 
-        {/* COL 1: Intro text */}
-        <div className={styles.introCol}>
-          <p className={styles.introHeadline}>{INTRO_COPY[introIndex].headline}</p>
-          <p className={styles.introBody}>
-            {INTRO_COPY[introIndex].body}
-          </p>
-        </div>
-
-        {/* COL 2: Wheel */}
-        <div className={styles.wheelCol}>
-          <div className={styles.wheelOuter}>
-            {/* SVG pie segments */}
-            <svg className={styles.wheelSvg} viewBox="-1 -1 2 2" aria-hidden>
-              {CHANNELS.map((ch, i) => {
-                const startAngle = (i / 6) * 2 * Math.PI - Math.PI / 2;
-                const endAngle = ((i + 1) / 6) * 2 * Math.PI - Math.PI / 2;
-                const isActive = ch.id === selectedId;
-                const x1 = Math.cos(startAngle) * 0.95;
-                const y1 = Math.sin(startAngle) * 0.95;
-                const x2 = Math.cos(endAngle) * 0.95;
-                const y2 = Math.sin(endAngle) * 0.95;
+            {/* 6 Icon Tabs */}
+            <div className={styles.iconTabsRow} role="tablist" aria-label="Learning Styles">
+              {CHANNELS.map((ch) => {
+                const isActive = ch.id === selectedChannel;
+                const IconComponent = ch.Icon;
                 return (
-                  <path
+                  <button
                     key={ch.id}
-                    d={`M 0 0 L ${x1} ${y1} A 0.95 0.95 0 0 1 ${x2} ${y2} Z`}
-                    className={`${styles.segment} ${isActive ? styles.segmentActive : ''}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    className={`${styles.iconTab} ${isActive ? styles.iconTabActive : ''}`}
                     onClick={() => handleChannelSelect(ch.id)}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={ch.name}
-                    onKeyDown={e => e.key === 'Enter' && handleChannelSelect(ch.id)}
+                    title={`${ch.name} — ${ch.tagline}`}
                   >
-                    <title>{ch.name}</title>
-                  </path>
+                    <IconComponent size={20} strokeWidth={isActive ? 2.4 : 1.8} />
+                  </button>
                 );
               })}
-            </svg>
+            </div>
 
-            {/* Icon labels around the wheel */}
-            {CHANNELS.map((ch, i) => {
-              const angle = ((i + 0.5) / 6) * 2 * Math.PI - Math.PI / 2;
-              const r = 0.63;
-              const isActive = ch.id === selectedId;
-              const Icon = ch.Icon;
-              return (
-                <button
-                  key={ch.id}
-                  className={`${styles.wheelLabelBtn} ${isActive ? styles.wheelLabelBtnActive : ''}`}
-                  style={{
-                    left: `${50 + r * 50 * Math.cos(angle)}%`,
-                    top: `${50 + r * 50 * Math.sin(angle)}%`,
-                  }}
-                  onClick={() => handleChannelSelect(ch.id)}
-                  aria-label={ch.name}
-                  title={ch.name}
-                >
-                  <Icon size={32} strokeWidth={isActive ? 2.5 : 1.8} />
-                </button>
-              );
-            })}
+            {/* 3 Parameter Sliders */}
+            <div className={styles.slidersList}>
+              <TuningSlider
+                label="Depth"
+                tooltip="Adjust conceptual depth from practical overview to first principles"
+                value={depth}
+                onChange={handleDepthChange}
+              />
+              <TuningSlider
+                label="Rigor"
+                tooltip="Adjust pedagogical rigor from intuitive analogies to formal explanations"
+                value={rigor}
+                onChange={handleRigorChange}
+              />
+              <TuningSlider
+                label="Scaffolding"
+                tooltip="Adjust guidance level from step-by-step handholding to independent challenges"
+                value={scaffolding}
+                onChange={handleScaffoldingChange}
+              />
+            </div>
+          </div>
 
-            {/* Divider lines */}
-            <svg className={styles.wheelSvg} viewBox="-1 -1 2 2" style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} aria-hidden>
-              {CHANNELS.map((_, i) => {
-                const angle = (i / 6) * 2 * Math.PI - Math.PI / 2;
-                return (
-                  <line
-                    key={i}
-                    x1={0} y1={0}
-                    x2={Math.cos(angle) * 0.95}
-                    y2={Math.sin(angle) * 0.95}
-                    stroke="white"
-                    strokeWidth="0.015"
-                  />
-                );
-              })}
-            </svg>
+          {/* Right Column: Daily Preferences */}
+          <div className={styles.colSection}>
+            <div className={styles.sectionHeadingRow}>
+              <span className={styles.sectionHeading}>Daily preferences</span>
+            </div>
 
-            {/* Center icon */}
-            <div className={styles.center}>
-              <Tv size={36} color="white" strokeWidth={1.5} />
+            <div className={styles.prefList}>
+              {/* Row 1: Weekly learning goal */}
+              <div className={styles.prefRow}>
+                <div className={styles.prefIconWrapper}>
+                  <Clock size={16} strokeWidth={2} />
+                </div>
+                <div className={styles.prefTextGroup}>
+                  <span className={styles.prefTitle}>Weekly learning goal</span>
+                  <span className={styles.prefDesc}>Measure progress against your commitment</span>
+                </div>
+                <div className={styles.selectWrapper}>
+                  <select
+                    value={weeklyGoal}
+                    onChange={(e) => handleWeeklyGoalChange(e.target.value)}
+                    className={styles.selectInput}
+                    aria-label="Weekly learning goal"
+                  >
+                    <option value="4 hours">⏱ 4 hours</option>
+                    <option value="6 hours">⏱ 6 hours</option>
+                    <option value="8 hours">⏱ 8 hours</option>
+                    <option value="10 hours">⏱ 10 hours</option>
+                    <option value="12 hours">⏱ 12 hours</option>
+                    <option value="15 hours">⏱ 15 hours</option>
+                  </select>
+                  <ChevronDown size={13} className={styles.selectChevron} aria-hidden="true" />
+                </div>
+              </div>
+
+              {/* Row 2: Learning allocation */}
+              <div className={styles.prefRow}>
+                <div className={styles.prefIconWrapper}>
+                  <BarChart2 size={16} strokeWidth={2} />
+                </div>
+                <div className={styles.prefTextGroup}>
+                  <span className={styles.prefTitle}>Learning allocation</span>
+                  <span className={styles.prefDesc}>Balance backlog, exploration, and depth</span>
+                </div>
+                <div className={styles.selectWrapper}>
+                  <select
+                    value={learningAllocation}
+                    onChange={(e) => handleAllocationChange(e.target.value)}
+                    className={styles.selectInput}
+                    aria-label="Learning allocation"
+                  >
+                    <option value="Balanced">⚖ Balanced</option>
+                    <option value="Deep Dive">🎯 Deep Dive</option>
+                    <option value="Exploratory">🧭 Exploratory</option>
+                    <option value="Sprint">⚡ Speed Sprint</option>
+                  </select>
+                  <ChevronDown size={13} className={styles.selectChevron} aria-hidden="true" />
+                </div>
+              </div>
+
+              {/* Row 3: Reminder window */}
+              <div className={styles.prefRow}>
+                <div className={styles.prefIconWrapper}>
+                  <Bell size={16} strokeWidth={2} />
+                </div>
+                <div className={styles.prefTextGroup}>
+                  <span className={styles.prefTitle}>Reminder window</span>
+                  <span className={styles.prefDesc}>Choose when reminders arrive</span>
+                </div>
+                <div className={styles.selectWrapper}>
+                  <select
+                    value={reminderWindow}
+                    onChange={(e) => handleReminderChange(e.target.value)}
+                    className={styles.selectInput}
+                    aria-label="Reminder window"
+                  >
+                    <option value="Morning">🌅 Morning</option>
+                    <option value="Afternoon">☀️ Afternoon</option>
+                    <option value="Evening">🌙 Evening</option>
+                    <option value="Night">✨ Late Night</option>
+                  </select>
+                  <ChevronDown size={13} className={styles.selectChevron} aria-hidden="true" />
+                </div>
+              </div>
             </div>
           </div>
         </div>
-
-
-        {/* COL 4: Detail panel */}
-        <div className={styles.detailCol}>
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={selectedId}
-              className={styles.detailPanel}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.08, ease: 'easeOut' }}
-            >
-              {/* Header */}
-              <div className={styles.detailHeader}>
-                <channel.Icon size={40} strokeWidth={1.5} className={styles.detailBigIcon} />
-                <div>
-                  <h3 className={styles.detailName}>{channel.name}</h3>
-                  <p className={styles.detailTagline}>{channel.tagline}</p>
-                </div>
-              </div>
-
-              {/* About */}
-              <div className={styles.detailSection}>
-                <span className={styles.detailSectionLabel}>About this channel</span>
-                <p className={styles.detailAbout}>{channel.about}</p>
-              </div>
-
-              {/* Best for */}
-              <div className={styles.detailSection}>
-                <span className={styles.detailSectionLabel}>Best for</span>
-                <div className={styles.pills}>
-                  {channel.bestFor.map(item => (
-                    <span key={item.text} className={styles.bestForPill}>
-                      <item.Icon size={14} strokeWidth={2.5} />
-                      {item.text}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Controls (Sliders) */}
-              <div className={styles.controlsGrid}>
-                {channel.controls.map(ctrl => {
-                  const selected = getPref(channel.id, ctrl.id, ctrl.defaultId);
-                  
-                  return (
-                    <FloatSliderControl 
-                      key={`${channel.id}_${ctrl.id}`}
-                      ctrl={ctrl} 
-                      currentVal={selected} 
-                      onChange={(val, optId) => setPref(channel.id, ctrl.id, val, optId)} 
-                    />
-                  );
-                })}
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-      </div>
+      )}
     </section>
   );
 }
