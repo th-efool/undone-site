@@ -85,7 +85,7 @@ export function buildPrismaCohortCreateInput(
     primaryTopic: delivery.cohort.primaryTopic,
     language: delivery.cohort.language,
     learningOutcomes: delivery.cohort.learningOutcomes,
-    tags: [delivery.cohort.primaryTopic],
+    tags: [...new Set([delivery.cohort.primaryTopic, ...(delivery.cohort.seo?.keywords ?? [])])].slice(0, 16),
     requirements: delivery.cohort.requirements,
     categories: delivery.cohort.categories,
     estimatedCompletionTime: `${delivery.metadata.totalEstimatedMinutes} mins`,
@@ -97,6 +97,7 @@ export function buildPrismaCohortCreateInput(
       totalLessons: delivery.metadata.totalLessons,
       totalEstimatedMinutes: delivery.metadata.totalEstimatedMinutes,
       deliveryVersion: 1,
+      seo: delivery.cohort.seo ?? null,
     } as Prisma.InputJsonValue,
     members: {
       create: [
@@ -210,6 +211,7 @@ export async function materializeLearnerCohort(
             ...(existing.creationSettings as Record<string, unknown>),
             mode: 'public_publish',
             promotedAt: now.toISOString(),
+            seo: delivery.cohort.seo ?? null,
           } as Prisma.InputJsonValue,
         },
       });

@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { type CohortWorkspace, cohortWorkspaceSchema, cohortSourceProvenanceSchema } from './contracts';
 import { computeDeterministicChunkVector } from '@/src/shared/curriculum/pedagogicalVector.engine';
 import { deriveChunkVideoInterval, deriveChunkTitleAndSummary, deriveCohortTitle, deriveCohortDescription } from './cohort-metadata';
+import { buildCohortSeo, cohortSeoSchema } from './seo';
 
 export const deliveryChunkSchema = z.strictObject({
   chunkId: z.string().min(1),
@@ -79,6 +80,7 @@ export const deliveryCohortSchema = z.strictObject({
   categories: z.array(z.string().trim().min(1).max(80)).max(12).default([]),
   requirements: z.array(z.string().trim().min(1).max(500)).max(20).default([]),
   visibility: z.enum(['PUBLIC', 'PRIVATE']),
+  seo: cohortSeoSchema.optional(),
 });
 export type DeliveryCohort = z.infer<typeof deliveryCohortSchema>;
 
@@ -348,6 +350,8 @@ export function projectCohortToLearnerDelivery(
   const recommendedCover = workspace.recommendations?.items?.find(i => i.coverImage)?.coverImage;
   const coverImage = workspace.presentation?.coverImage || recommendedCover || firstVideoThumbnail || getTopicCoverImage(primaryTopic);
 
+  const seo = buildCohortSeo({ ...workspace, lessons: workspace.lessons });
+
   const cohort: DeliveryCohort = {
     id: options.cohortId,
     title: deriveCohortTitle(workspace),
@@ -366,6 +370,7 @@ export function projectCohortToLearnerDelivery(
     categories: workspace.presentation?.categories ?? [],
     requirements: workspace.presentation?.requirements ?? [],
     visibility: options.mode === 'public_publish' ? 'PUBLIC' : 'PRIVATE',
+    seo,
   };
 
   return learnerDeliveryPayloadSchema.parse({

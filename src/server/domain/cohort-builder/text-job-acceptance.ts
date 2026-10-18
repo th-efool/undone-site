@@ -8,6 +8,7 @@ import { commitTextProjection } from './text-projection-commit';
 import { createTextSourceProcessor } from './text-source-processor';
 import type { SourceExtraction } from './source-adapters';
 import { deriveCohortTitle, deriveCohortDescription } from '@/src/shared/cohort-builder/cohort-metadata';
+import { buildCohortSeo } from '@/src/shared/cohort-builder/seo';
 
 /** Prepared cutover boundary: lock canonical workspace state before fenced result acceptance. */
 export async function acceptCurrentTextJob(
@@ -121,6 +122,9 @@ export async function acceptCurrentTextJob(
         const sourceChunkIds = new Set(state.chunks.filter(item => item.sourceId === source.id).map(item => item.id));
         next = { ...state, analyses: [...state.analyses.filter(item => !sourceChunkIds.has(item.chunkId)), ...analyses] };
       }
+    }
+    if (state.journey && ['understanding', 'chunking', 'analysis'].includes(job.stage)) {
+      next = { ...next, seo: buildCohortSeo(next) };
     }
     if (!await acceptTextJob(tx, job, artifact, now)) return false;
     await commitTextProjection(tx, job.workspaceId, state, await textJobStatus(tx, job.workspaceId, next),

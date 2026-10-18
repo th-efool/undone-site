@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { entityRefSchema, type DomainActionPlan } from 'interaction-builder/core';
 import { youtubeVideoUrlSchema, youtubeTrackSchema, youtubeTimeScopeSchema } from './youtube-transcript';
 import { githubRepoUrlSchema, githubRefSchema, githubPathsSchema } from './github-source';
+import { cohortSeoSchema } from './seo';
 
 const text = z.string().trim().min(1).max(4_000);
 const id = z.string().min(1).max(200);
@@ -201,6 +202,7 @@ export const cohortWorkspaceSchema = z.strictObject({
   journey: cohortJourneySchema.optional(),
   recommendations: cohortRecommendationsSchema.optional(),
   discovery: cohortDiscoverySchema.optional(),
+  seo: cohortSeoSchema.optional(),
 });
 export type CohortWorkspace = z.infer<typeof cohortWorkspaceSchema>;
 

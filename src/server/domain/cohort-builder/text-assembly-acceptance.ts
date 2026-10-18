@@ -10,6 +10,7 @@ import { commitTextProjection } from './text-projection-commit';
 import { textJobStatus } from './text-job-status';
 import { validateRetainedSourceEvidence } from './source-evidence';
 import { deriveCohortTitle, deriveCohortDescription } from '@/src/shared/cohort-builder/cohort-metadata';
+import { buildCohortSeo } from '@/src/shared/cohort-builder/seo';
 
 /** Atomically accepts assembly and projects only validated generated lessons. */
 export async function acceptAssemblyProjection(
@@ -51,14 +52,19 @@ export async function acceptAssemblyProjection(
     const analyses = cohortWorkspaceSchema.shape.analyses.parse(computeTextStage({ ...state, chunks, analyses: [], processing: { ...state.processing, stage: 'analysis' } }).result);
     const understanding = cohortWorkspaceSchema.shape.understanding.parse(computeTextStage({ ...state, understanding: [], processing: { ...state.processing, stage: 'understanding' } }).result);
     const acquired = computeTextStage({ ...state, processing: { ...state.processing, stage: 'acquisition' } }).result as Array<{ id: string; checksum: string }>;
+    const derivedTitle = deriveCohortTitle({ ...state, understanding });
+    const derivedDescription = deriveCohortDescription({ ...state, understanding });
+    const lessonsOut = projectGeneratedLessons(state.lessons, generated, new Set(chunks.map(chunk => chunk.id)));
+    const seo = buildCohortSeo({ ...state, understanding, chunks, analyses, lessons: lessonsOut, title: derivedTitle });
     const next = cohortWorkspaceSchema.parse({
       ...state,
       ...(state.journey?.step === 'processing' ? { journey: { ...state.journey, step: 'ready' } } : {}),
       chunks, analyses, understanding,
-      title: deriveCohortTitle({ ...state, understanding }),
-      description: deriveCohortDescription({ ...state, understanding }),
+      title: derivedTitle,
+      description: derivedDescription,
       sources: state.sources.map(source => ({ ...source, state: 'ready', checksum: acquired.find(item => item.id === source.id)!.checksum })),
-      lessons: projectGeneratedLessons(state.lessons, generated, new Set(chunks.map(chunk => chunk.id))),
+      lessons: lessonsOut,
+      seo,
       processing: { ...state.processing, status: 'ready', stage: 'done', sourceFingerprint: sourceFingerprint(state), error: null },
     });
     if (!await acceptTextJob(tx, job, artifact, now)) return false;

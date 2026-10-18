@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import type { DomainActionPlan } from 'interaction-builder/core';
 import type { CohortWorkspace, CohortChunk, CohortLesson } from '@/src/shared/cohort-builder/contracts';
 import { extractSourceConceptTopics, deriveCohortTitle, deriveCohortDescription } from '@/src/shared/cohort-builder/cohort-metadata';
+import { buildCohortSeo } from '@/src/shared/cohort-builder/seo';
 import { projectGeneratedLessons } from './lesson-projection';
 
 export type TextStage = 'acquisition' | 'understanding' | 'chunking' | 'analysis' | 'assembly';
@@ -232,6 +233,9 @@ export function planTextStage(state: CohortWorkspace, input: unknown, context: {
     const expected = computeTextStage({ ...state, processing: { ...state.processing, stage: 'assembly' } }).result;
     if (JSON.stringify(lessons) !== JSON.stringify(expected)) throw new Error('INVALID_ASSEMBLY');
     next.lessons = projectGeneratedLessons(next.lessons, lessons, new Set(next.chunks.map(chunk => chunk.id)));
+  }
+  if (action.stage !== 'acquisition') {
+    next.seo = buildCohortSeo(next);
   }
   next.processing = {
     status: nextStage[action.stage] === 'done' ? 'ready' : 'queued',

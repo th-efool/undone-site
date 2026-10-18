@@ -20,6 +20,8 @@ node_modules/
 # production
 /build
 packages/notes-board/dist/
+/ai-context
+/directives
 
 # misc
 .DS_Store
