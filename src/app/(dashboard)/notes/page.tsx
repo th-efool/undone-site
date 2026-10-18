@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import { NotesSkeleton } from '@/src/client/components/global/Skeleton';
 
 const Notes = dynamic(
   () => import('@/src/client/screens/dashboard/notes').then((mod) => mod.Notes)
@@ -35,7 +36,7 @@ export default function NotesPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<NotesSkeleton />}>
         <Notes />
       </Suspense>
     </>
