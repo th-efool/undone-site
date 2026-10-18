@@ -3,6 +3,15 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 // Channel IDs matching the client ChannelHub CHANNELS array
 export type ChannelId = 'spark' | 'explore' | 'build' | 'listen' | 'deep_dive' | 'quick';
 
+export const VALID_CHANNEL_IDS: readonly ChannelId[] = [
+  'spark',
+  'explore',
+  'build',
+  'listen',
+  'deep_dive',
+  'quick',
+] as const;
+
 export interface IUserChannelConfig extends Document {
   userId: string;
   activeChannel: ChannelId;
@@ -16,7 +25,7 @@ const UserChannelConfigSchema: Schema = new Schema({
   userId: { type: String, required: true, unique: true, index: true },
   activeChannel: {
     type: String,
-    enum: ['spark', 'explore', 'build', 'listen', 'deep_dive', 'quick'],
+    enum: VALID_CHANNEL_IDS,
     default: 'quick',
   },
   // Map type in Mongoose stores key-value pairs efficiently
