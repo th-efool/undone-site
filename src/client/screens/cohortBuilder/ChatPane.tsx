@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { ArrowUp, BookOpen, Lightbulb, X } from 'lucide-react';
+import { ArrowUp, BookOpen, Lightbulb, Square, X } from 'lucide-react';
 import { useWorkspaceMessages, useSendMessage, useInteractionState } from '@/src/client/interaction/hooks';
 import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import { useAssistantActivity } from './useAssistantActivity';
@@ -10,6 +10,7 @@ import { useTheme } from '@/src/client/hooks/useTheme';
 import type { EntityRef } from 'interaction-builder/core';
 import styles from './CohortBuilder.module.css';
 import { ProcessingChecklist } from './stages/ProcessingChecklist';
+import { ChatMarkdown } from './components/ChatMarkdown';
 
 interface AttachedEntity {
   entity: EntityRef;
@@ -264,7 +265,11 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
                   <span className={styles.sender}>{isUser ? 'You' : 'Undone'}</span>
                   {m.parts.map((p, idx) => {
                     if (p.type === 'text') {
-                      return <p key={idx}>{p.text}</p>;
+                      return isUser ? (
+                        <p key={idx} className={styles.userText}>{p.text}</p>
+                      ) : (
+                        <ChatMarkdown key={idx} content={p.text} />
+                      );
                     }
                     if (p.type === 'entity_ref' && p.entity) {
                       const fullTitle = p.label ?? p.entity.id;
@@ -307,25 +312,57 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
         )}
 
         {activeTurn && (
-          <div className={styles.turnStatusNotice} role="status">
-            <p>
-              Assistant {activeTurn.status}. {activity.turns.filter(turn => turn.status === 'pending').length} messages waiting.
-            </p>
-            <button type="button" onClick={() => void stopAssistant()}>
-              Stop assistant turn
-            </button>
+          <div className={`${styles.messageRow} ${styles.messageAssistant}`} role="status">
+            <Image
+              className={styles.assistantAvatar}
+              src={logoSrc}
+              width={34}
+              height={34}
+              alt=""
+            />
+            <div className={styles.assistantBubble}>
+              <span className={styles.sender}>Undone</span>
+              <div className={styles.thinkingContainer}>
+                <div className={styles.thinkingDots} aria-label="Thinking">
+                  <span className={styles.dot} />
+                  <span className={styles.dot} />
+                  <span className={styles.dot} />
+                </div>
+                <span className={styles.thinkingLabel}>
+                  {activeTurn.status === 'queued' ? 'Queued in line…' : 'Thinking…'}
+                </span>
+                <button
+                  type="button"
+                  className={styles.stopButton}
+                  onClick={() => void stopAssistant()}
+                  aria-label="Stop assistant turn"
+                  title="Stop assistant turn"
+                >
+                  <Square size={11} fill="currentColor" aria-hidden="true" /> Stop
+                </button>
+              </div>
+              {activity.turns.filter(turn => turn.status === 'pending').length > 0 && (
+                <span className={styles.queuedBadge}>
+                  {activity.turns.filter(turn => turn.status === 'pending').length} follow-up queued
+                </span>
+              )}
+            </div>
           </div>
         )}
 
         {activity.turns.some(turn => turn.status === 'failed' || turn.status === 'canceled') && (
-          <p>Stopped or failed turns remain saved. Send a follow-up to retry the intended change.</p>
+          <p className={styles.chatAlertRow}>Stopped or failed turns remain saved. Send a follow-up to retry the intended change.</p>
         )}
 
-        {cancelError && <p role="alert">{cancelError}</p>}
+        {cancelError && (
+          <div className={styles.chatAlertRow} role="alert">
+            <span>{cancelError}</span>
+          </div>
+        )}
         {staleSelection && (
-          <p role="alert">
-            Selected lesson changed or was removed. Clear the selection, then select its current version.
-          </p>
+          <div className={styles.chatAlertRow} role="alert">
+            <span>Selected lesson changed or was removed. Clear the selection, then select its current version.</span>
+          </div>
         )}
 
         <div className={styles.hint}>
