@@ -2,7 +2,6 @@
 
 import { ReadingSurface } from './components/ReadingSurface';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useToast } from '@/src/client/hooks/useToast';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Play as PlayIcon, Layers } from 'lucide-react';
@@ -25,7 +24,6 @@ interface PlayDesktopProps {
 }
 
 export function PlayDesktop({ playback }: PlayDesktopProps) {
-  const toast = useToast();
   const [isIdle, setIsIdle] = useState(false);
   const playContainerRef = useRef<HTMLDivElement | null>(null);
   const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -62,13 +60,8 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
   }, [playback]);
 
   const handleIndexChange = useCallback((newIndex: number) => {
-    if (newIndex > playback.currentIndex) {
-      playback.nextChunk();
-
-    } else if (newIndex < playback.currentIndex) {
-      playback.previousChunk();
-    }
-  }, [playback, toast]);
+    playback.goToIndex(newIndex);
+  }, [playback]);
 
   const desktopOverlays = (
     <>
@@ -178,6 +171,9 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
                 containerRef={playback.playerContainerRef}
                 activeItem={item}
                 ytApiError={playback.ytApiError}
+                mediaError={playback.mediaError}
+                onVideoMount={playback.registerVideoElement}
+                onRetry={playback.togglePlayback}
                 onCompleteChunk={() => { triggerHaptic('success'); void playback.completeActiveChunk(); }}
               >
                 {desktopOverlays}
@@ -194,6 +190,9 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
                 containerRef={playback.playerContainerRef}
                 activeItem={item}
                 ytApiError={playback.ytApiError}
+                mediaError={playback.mediaError}
+                onVideoMount={playback.registerVideoElement}
+                onRetry={playback.togglePlayback}
                 onCompleteChunk={() => { triggerHaptic('success'); void playback.completeActiveChunk(); }}
               >
                 {desktopOverlays}
@@ -233,7 +232,16 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
         </div>
       );
     },
-    [playback.feedItems, playback.playerContainerRef, desktopOverlays]
+    [
+      playback.feedItems,
+      playback.playerContainerRef,
+      playback.ytApiError,
+      playback.mediaError,
+      playback.registerVideoElement,
+      playback.completionPending,
+      playback.completionError,
+      desktopOverlays,
+    ]
   );
 
   return (
@@ -246,7 +254,8 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
         currentIndex={playback.currentIndex}
         totalItems={playback.feedItems.length || 1}
         isPlaying={playback.isPlaying}
-        itemStatuses={playback.feedItems.map(() => 'not-started')}
+        playbackSpeed={playback.playbackSpeed}
+        itemStatuses={playback.itemStatuses}
         onIndexChange={handleIndexChange}
         onSeek={playback.skipSeconds}
         onSpeedChange={playback.setPlaybackSpeed}

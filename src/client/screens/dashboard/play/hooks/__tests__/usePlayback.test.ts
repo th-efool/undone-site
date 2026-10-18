@@ -547,3 +547,126 @@ describe('persisted player notes and bookmarks (ISSUE-4)', () => {
   });
 });
 
+describe('playback foundations: exact navigation, media controls, and completion invariants', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    nav.searchParams = new URLSearchParams();
+  });
+
+  const testItems = [
+    { chunkId: 'c0', lessonId: 'l1', lessonTitle: 'L1', chunkTitle: 'C0', startSeconds: 0, endSeconds: 60, lessonType: 'video', lessonVideoUrl: 'https://cdn.example.com/v0.mp4' },
+    { chunkId: 'c1', lessonId: 'l1', lessonTitle: 'L1', chunkTitle: 'C1', startSeconds: 60, endSeconds: 120, lessonType: 'video', lessonVideoUrl: 'https://cdn.example.com/v1.mp4' },
+    { chunkId: 'c2', lessonId: 'l2', lessonTitle: 'L2', chunkTitle: 'C2', startSeconds: 0, endSeconds: 60, lessonType: 'video', lessonVideoUrl: 'https://cdn.example.com/v2.mp4' },
+    { chunkId: 'c3', lessonId: 'l2', lessonTitle: 'L2', chunkTitle: 'C3', startSeconds: 60, endSeconds: 120, lessonType: 'video', lessonVideoUrl: 'https://cdn.example.com/v3.mp4' },
+  ];
+
+  it('navigates directly to exact index without intermediate stepping and does not mark items completed', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ items: testItems }),
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('c0'));
+    expect(result.current.currentIndex).toBe(0);
+
+    // Exact jump from 0 to 3
+    act(() => {
+      result.current.goToIndex(3);
+    });
+
+    expect(result.current.currentIndex).toBe(3);
+    expect(result.current.activeItem?.chunkId).toBe('c3');
+    expect(result.current.activeItem?.chunkTitle).toBe('C3');
+
+    // Preceding items must NOT be marked completed merely because they precede active item
+    expect(result.current.itemStatuses).toEqual(['not-started', 'not-started', 'not-started', 'not-started']);
+    expect(result.current.isChunkCompleted('c0')).toBe(false);
+    expect(result.current.isChunkCompleted('c1')).toBe(false);
+
+    // No progress calls were dispatched
+    const progressCalls = fetchMock.mock.calls.filter((c: any[]) => typeof c[0] === 'string' && c[0].includes('/api/progress'));
+    expect(progressCalls).toHaveLength(0);
+  });
+
+  it('binds direct HTML5 video element controls, speed, volume, and seeking', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ items: testItems }),
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('c0'));
+
+    const mockVideo = document.createElement('video');
+    mockVideo.play = vi.fn().mockImplementation(() => Promise.resolve());
+    mockVideo.pause = vi.fn().mockImplementation(() => {});
+
+    act(() => {
+      result.current.registerVideoElement(mockVideo);
+    });
+
+    // Test volume
+    act(() => {
+      result.current.setVolume(70);
+    });
+    expect(mockVideo.volume).toBeCloseTo(0.7);
+    expect(mockVideo.muted).toBe(false);
+
+    // Test playback speed
+    act(() => {
+      result.current.setPlaybackSpeed(1.5);
+    });
+    expect(mockVideo.playbackRate).toBe(1.5);
+
+    // Test seeking (relative percent to chunk duration: startSeconds=0, endSeconds=60 -> 30s)
+    act(() => {
+      result.current.seekToPercent(50);
+    });
+    expect(mockVideo.currentTime).toBe(30);
+
+    // Test play/pause toggle
+    await act(async () => {
+      result.current.togglePlayback();
+    });
+    expect(mockVideo.play).toHaveBeenCalled();
+
+    // Directly simulate playback failure
+    mockVideo.play = vi.fn().mockRejectedValueOnce(new Error('Playback failed'));
+    act(() => {
+      mockVideo.dispatchEvent(new Event('pause'));
+    });
+
+    await act(async () => {
+      result.current.togglePlayback();
+    });
+    expect(result.current.mediaError).toBe('Playback could not be started.');
+  });
+
+  it('does not advance feed on completion failure and exposes error', async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/api/progress/chunk')) {
+        return { ok: false, status: 500 };
+      }
+      return { ok: true, json: async () => ({ items: testItems }) };
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('c0'));
+
+    let success = true;
+    await act(async () => {
+      success = await result.current.completeActiveChunk();
+    });
+
+    expect(success).toBe(false);
+    expect(result.current.completionError).toBeTruthy();
+    // Invariant: feed must not advance or discard chunk when completion fails
+    expect(result.current.currentIndex).toBe(0);
+    expect(result.current.activeItem?.chunkId).toBe('c0');
+    expect(result.current.feedItems).toHaveLength(4);
+  });
+});
+
+
