@@ -6,6 +6,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { InteractionProvider } from '@/src/client/interaction/provider';
+import { createInteractionStore } from 'interaction-builder/client';
+import { devLogger } from '@/src/shared/lib/dev-logger';
 import {
   useWorkspaceConnection,
   useInteractionState,
@@ -28,6 +30,7 @@ interface CohortInteractionScreenProps {
   workspaceId: string;
   ownerId?: string;
   initialView: CohortWorkspace;
+  initialRevision?: number;
 }
 
 interface InnerBuilderScreenProps {
@@ -143,26 +146,41 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
 export function CohortInteractionScreen({
   workspaceId,
   initialView,
+  initialRevision,
   ownerId,
 }: CohortInteractionScreenProps) {
+  const logger = useMemo(() => devLogger.scoped('CohortInteractionScreen'), []);
   const { data: session, status } = useSession();
   const transport = useMemo(() => createCohortTransport(workspaceId), [workspaceId, ownerId]);
+
+  const store = useMemo(() => {
+    logger.info(`Initializing interaction store for workspace ${workspaceId} at Rev #${initialRevision ?? 0}`);
+    return createInteractionStore({
+      workspaceId,
+      initialView,
+      initialRevision,
+      transport,
+      conflictResolution: 'rebase',
+    });
+  }, [workspaceId, initialView, initialRevision, transport, logger]);
+
   const identityLost =
     status === 'unauthenticated' ||
     (status === 'authenticated' && ownerId && session?.user?.id !== ownerId);
 
   useEffect(() => {
-    if (identityLost) sessionStorage.removeItem('undone:cohort-intake');
-  }, [identityLost]);
+    if (identityLost) {
+      logger.warn(`Identity lost or changed for workspace ${workspaceId}`);
+      sessionStorage.removeItem('undone:cohort-intake');
+    }
+  }, [identityLost, workspaceId, logger]);
 
   if (identityLost) return <p>Session changed. Sign in again to resume this workspace.</p>;
 
   return (
     <InteractionProvider
       key={`${ownerId}:${workspaceId}`}
-      workspaceId={workspaceId}
-      initialView={initialView}
-      transport={transport}
+      store={store}
     >
       <InnerBuilderScreen workspaceId={workspaceId} ownerId={ownerId} />
     </InteractionProvider>

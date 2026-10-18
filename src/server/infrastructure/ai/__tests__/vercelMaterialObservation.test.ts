@@ -100,4 +100,21 @@ describe('bounded Vercel video observation', () => {
     expect(model.doGenerateCalls).toHaveLength(0);
     await expect(new VercelMaterialObservation(model, { beforeCall: async () => {} }).observeVideo(video, new AbortController().signal)).rejects.toMatchObject({ detail: { code: 'AI_UNAVAILABLE', message: 'Video observation is unavailable. Retry or supply authorized transcript/text material.' } });
   });
+  it('extracts author chapters from description for long videos without calling model generateText', async () => {
+    const longVideo = {
+      ...video,
+      durationSeconds: 14500,
+      description: '00:00 - Intro\n01:00 - Chapter 1\n02:00 - Chapter 2\n03:00 - Conclusion',
+    };
+    const model = new MockLanguageModelV4({ supportedUrls, doGenerate: modelOutput(proposal) });
+    const release = vi.fn(async () => {});
+    const beforeCall = vi.fn(async () => release);
+    const result = await new VercelMaterialObservation(model, { beforeCall }).observeVideo(longVideo, new AbortController().signal);
+    expect(result.canObserve).toBe(true);
+    expect(result.observations).toHaveLength(4);
+    expect(result.observations[0]).toEqual({ startSeconds: 0, endSeconds: 60, text: 'Intro' });
+    expect(model.doGenerateCalls).toHaveLength(0);
+    expect(beforeCall).toHaveBeenCalledWith(longVideo.videoId);
+    expect(release).toHaveBeenCalledOnce();
+  });
 });

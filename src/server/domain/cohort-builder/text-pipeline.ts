@@ -98,7 +98,7 @@ export function computeTextStage(state: CohortWorkspace): TextStageAction {
       const expected = splitSource(source);
       return retained.length === expected.length && retained.every((item, index) => JSON.stringify(item) === JSON.stringify(expected[index])) ? retained : expected;
     });
-    if ((result as CohortChunk[]).length > 100) throw new Error('TOO_MANY_CHUNKS');
+    if ((result as CohortChunk[]).length > 1_000) throw new Error('TOO_MANY_CHUNKS');
   } else if (stage === 'analysis') {
     result = state.chunks.map(chunk => state.analyses.find(item => item.chunkId === chunk.id) ?? ({
       chunkId: chunk.id, summary: chunk.text.slice(0, 300),
@@ -144,7 +144,7 @@ export function planTextStage(state: CohortWorkspace, input: unknown, context: {
     next.understanding = action.result as CohortWorkspace['understanding'];
   } else if (action.stage === 'chunking') {
     const chunks = action.result as CohortChunk[];
-    if (!Array.isArray(chunks) || chunks.length === 0 || chunks.length > 100) throw new Error('INVALID_CHUNKS');
+    if (!Array.isArray(chunks) || chunks.length === 0 || chunks.length > 1_000) throw new Error('INVALID_CHUNKS');
     chunks.forEach(chunk => validateChunk(next, chunk));
     for (const source of next.sources) validateCoverage(source.text, chunks.filter(chunk => chunk.sourceId === source.id));
     if (JSON.stringify(chunks) !== JSON.stringify(next.sources.flatMap(splitSource))) throw new Error('FABRICATED_SOURCE_ANCHOR');
@@ -155,7 +155,7 @@ export function planTextStage(state: CohortWorkspace, input: unknown, context: {
     next.analyses = action.result as CohortWorkspace['analyses'];
   } else {
     const lessons = action.result as CohortLesson[];
-    if (!Array.isArray(lessons) || lessons.length !== next.chunks.length || lessons.length > 100) throw new Error('INVALID_ASSEMBLY');
+    if (!Array.isArray(lessons) || lessons.length !== next.chunks.length || lessons.length > 1_000) throw new Error('INVALID_ASSEMBLY');
     for (const lesson of lessons) {
       if (!lesson.sourceChunkIds.length || lesson.sourceChunkIds.some(id => !next.chunks.some(chunk => chunk.id === id))) throw new Error('FABRICATED_LESSON_EVIDENCE');
     }

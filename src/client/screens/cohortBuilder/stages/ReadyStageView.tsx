@@ -6,7 +6,7 @@ import {
   Brain,
   CheckCircle2,
   FileText,
-  Infinity as InfinityIcon,
+  InfinityIcon,
   MessageSquare,
   Network,
   ShieldCheck,

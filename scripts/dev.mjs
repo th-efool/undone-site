@@ -16,7 +16,7 @@ if (!fs.existsSync(path.resolve(projectRoot, "packages/notes-board/dist/index.js
 
 // 1. Start Next.js dev server
 const nextCmd = isWin ? "npx.cmd" : "npx";
-const nextProcess = spawn(nextCmd, ["next", "dev"], {
+const nextProcess = spawn(nextCmd, ["next", "dev", "--webpack"], {
   cwd: projectRoot,
   stdio: "inherit",
   shell: true,

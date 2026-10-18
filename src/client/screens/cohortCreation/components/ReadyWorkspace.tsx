@@ -1,6 +1,6 @@
 'use client';
 import { useRef, useState } from 'react';
-import { ArrowRight, Brain, CheckCircle2, FileText, Infinity as InfinityIcon, MessageSquare, Network, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, Brain, CheckCircle2, FileText, InfinityIcon, MessageSquare, Network, ShieldCheck, Sparkles } from 'lucide-react';
 import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 import { BuildingArt } from './BuildingArt';
 import { ProcessingSteps } from './ProcessingSteps';

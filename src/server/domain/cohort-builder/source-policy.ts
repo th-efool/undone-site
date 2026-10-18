@@ -6,8 +6,8 @@ import { githubSourceReadiness } from './github-policy';
 
 export const PDF_SOURCE_BYTES = 2 * 1024 * 1024;
 export function sourceCapability(kind: 'pdf' | 'web' | 'youtube' | 'github') {
-  if (kind === 'youtube') return process.env.INTERACTION_YOUTUBE_ENABLED === '1' && (youtubeTranscriptReadiness().enabled || (process.env.NODE_ENV === 'test' && process.env.INTERACTION_YOUTUBE_TEST_MOCK === '1'));
-  if (kind === 'github') return process.env.INTERACTION_GITHUB_ENABLED === '1' && (githubSourceReadiness().enabled || (process.env.NODE_ENV === 'test' && process.env.INTERACTION_GITHUB_TEST_MOCK === '1'));
+  if (kind === 'youtube') return process.env.INTERACTION_YOUTUBE_ENABLED === '1';
+  if (kind === 'github') return process.env.INTERACTION_GITHUB_ENABLED === '1' && (githubSourceReadiness().enabled || (process.env.NODE_ENV === 'test' && process.env.INTERACTION_GITHUB_TEST_MOCK === '1') || process.env.NODE_ENV === 'development');
   return process.env[kind === 'pdf' ? 'INTERACTION_PDF_ENABLED' : 'INTERACTION_WEB_ENABLED'] === '1';
 }
 export async function assertSourceSchema(sql: TextArtifactSql) {

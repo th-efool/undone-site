@@ -180,7 +180,7 @@ export async function releaseWorkspace(
 
   // If already in a transaction client, reuse it; otherwise create interactive transaction
   if ('$transaction' in prisma && typeof prisma.$transaction === 'function') {
-    return (prisma as PrismaClient).$transaction(executeInTransaction, { timeout: 15_000 });
+    return (prisma as PrismaClient).$transaction(executeInTransaction, { timeout: 60_000, maxWait: 15_000 });
   }
   return executeInTransaction(prisma as Prisma.TransactionClient);
 }

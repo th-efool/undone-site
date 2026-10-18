@@ -77,7 +77,7 @@ export function createTextAssemblyProcessor(input: {
     }
     if (seen.size !== expected.size) throw new Error('MISSING_ASSEMBLY_PREREQUISITE');
     const chunks = state.sources.flatMap(source => bySource.get(source.id) ?? []);
-    if (chunks.length === 0 || chunks.length > 100) throw new Error('INVALID_ASSEMBLY_SCOPE');
+    if (chunks.length === 0 || chunks.length > 1_000) throw new Error('INVALID_ASSEMBLY_SCOPE');
     const lessons = cohortLessonSchema.array().parse(computeTextStage({
       ...state, chunks, processing: { ...state.processing, stage: 'assembly' },
     }).result);

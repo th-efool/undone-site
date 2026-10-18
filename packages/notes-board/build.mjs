@@ -25,6 +25,10 @@ await esbuild.build({
     'react',
     'react-dom',
     'react/jsx-runtime',
+    '@excalidraw/excalidraw',
+    '@svar-ui/react-kanban',
+    'clsx',
+    'lucide-react',
   ],
   loader: {
     '.css': 'css',

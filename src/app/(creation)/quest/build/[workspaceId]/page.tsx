@@ -35,6 +35,7 @@ export default async function QuestBuildPage({
       workspaceId={workspaceId}
       ownerId={owner}
       initialView={ws.snapshot}
+      initialRevision={ws.revision}
     />
   );
 }

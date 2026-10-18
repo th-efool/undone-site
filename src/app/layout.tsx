@@ -5,6 +5,7 @@ import { CapacitorBridge } from '@/src/client/components/global/CapacitorBridge/
 import { ReactQueryProvider } from '@/src/client/providers/ReactQueryProvider';
 import { SliderProgressEngine } from '@/src/client/components/ui/Slider/SliderProgressEngine';
 import { SessionProvider } from 'next-auth/react';
+import { DevLoggerInit } from '@/src/client/providers/DevLoggerInit';
 import './globals.css';
 
 const geistSans = Geist({
@@ -171,6 +172,7 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
     >
       <body className="min-h-screen bg-background text-text font-sans antialiased">
         <SessionProvider>
+          <DevLoggerInit />
           <a
             href="#main-content"
             className="absolute left-[-9999px] top-4 z-50 rounded-md bg-background p-4 text-text focus:left-4 focus:outline-none focus:ring-2 focus:ring-primary"

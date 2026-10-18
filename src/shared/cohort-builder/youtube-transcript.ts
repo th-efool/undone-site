@@ -16,10 +16,8 @@ export function singleYoutubeVideo(input: string): { videoId: string; url: strin
   if (url.hostname === 'youtu.be' && /^\/[A-Za-z0-9_-]{11}\/?$/.test(url.pathname)) candidate = url.pathname.split('/')[1];
   else if (url.hostname !== 'youtu.be' && url.pathname === '/watch' && url.searchParams.getAll('v').length === 1) candidate = url.searchParams.get('v');
   else if (url.hostname !== 'youtu.be' && /^\/(shorts|embed)\/[A-Za-z0-9_-]{11}\/?$/.test(url.pathname)) candidate = url.pathname.split('/')[2];
-  const permitted = url.pathname === '/watch' && url.hostname !== 'youtu.be' ? ['v','si'] : ['si'];
-  if ([...url.searchParams.keys()].some(key => !permitted.includes(key)) ||
-    [...url.searchParams.keys()].some(key => url.searchParams.getAll(key).length !== 1) || !videoId.safeParse(candidate).success) return invalid();
-  return {videoId:candidate!,url:`https://www.youtube.com/watch?v=${candidate}`};
+  if (!candidate || !videoId.safeParse(candidate).success) return invalid();
+  return { videoId: candidate, url: `https://www.youtube.com/watch?v=${candidate}` };
 }
 export const youtubeVideoUrlSchema = z.string().max(2048).transform((input,ctx) => {
   try {return singleYoutubeVideo(input).url;} catch {ctx.addIssue({code:'custom',message:'Use a single public HTTPS YouTube video URL without playlist/time scope'});return z.NEVER;}

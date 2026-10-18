@@ -1,9 +1,11 @@
 import { withWorkflow } from 'workflow/next';
 import type { NextConfig } from 'next';
 import path from 'path';
-import { initialEnv, loadEnvConfig, processEnv, updateInitialEnv } from '@next/env';
+import * as nextEnvModule from '@next/env';
 import { loadRootEnvironment, rootPublicEnvironment } from './scripts/root-environment.mjs';
 
+const nextEnv = (nextEnvModule as any).default ?? nextEnvModule;
+const { loadEnvConfig, processEnv, updateInitialEnv, initialEnv } = nextEnv;
 const loaded = loadEnvConfig(process.cwd(), process.env.NODE_ENV !== 'production');
 loadRootEnvironment({ initialEnv: initialEnv ?? process.env, loadedEnvFiles: loaded.loadedEnvFiles });
 updateInitialEnv(process.env);

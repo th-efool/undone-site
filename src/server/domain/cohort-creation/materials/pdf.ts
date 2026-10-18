@@ -21,7 +21,8 @@ export async function extractRetainedPdf(bytes: Uint8Array, sourceRef: CreationO
   if (sourceRef.kind !== 'upload' || bytes.byteLength !== sourceRef.byteLength ||
     createHash('sha256').update(bytes).digest('hex') !== sourceRef.checksum) throw new CreationStorageError('INTEGRITY', 'Retained PDF does not match its reference.');
   if (Buffer.from(bytes.subarray(0, 5)).toString('ascii') !== '%PDF-') throw new CreationStorageError('INVALID_INPUT', 'Provide a valid PDF document.');
-  const moduleUrl = pathToFileURL(createRequire(import.meta.url).resolve('pdfjs-dist/legacy/build/pdf.mjs')).href;
+  const pdfPath = path.resolve(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.mjs');
+  const moduleUrl = pathToFileURL(pdfPath).href;
   const pages = await new Promise<string[]>((resolve, reject) => {
     const worker = new Worker(path.join(process.cwd(), 'src/server/domain/cohort-creation/materials/pdf-parser.worker.mjs'), {
       workerData: { bytes, moduleUrl, maxPages: PDF_LIMITS.pages, maxTextBytes: MATERIAL_LIMITS.extractedTextBytes },

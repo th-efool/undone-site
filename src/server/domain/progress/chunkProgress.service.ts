@@ -57,52 +57,66 @@ export class ChunkProgressService {
       forceStatus,
     } = input;
 
-    await connectToMongoDB();
+    if (!process.env.MONGODB_URI) {
+      return null;
+    }
 
-    const existing = await UserChunkProgress.findOne({ userId, chunkId });
+    try {
+      await connectToMongoDB();
 
-    const nextStatus = this.computeStatus(
-      (existing?.status as ChunkStatus) || null,
-      watchedSeconds,
-      totalSeconds,
-      forceStatus
-    );
-    
-    const isNewlyCompleted =
-      nextStatus === 'COMPLETED' &&
-      existing?.status !== 'COMPLETED';
+      const existing = await UserChunkProgress.findOne({ userId, chunkId });
 
-    const updatedProgress = await UserChunkProgress.findOneAndUpdate(
-      { userId, chunkId },
-      {
-        $set: {
-          userId,
-          chunkId,
-          lessonId,
-          cohortId,
-          status: nextStatus,
-          watchedSeconds: Math.max(existing?.watchedSeconds || 0, watchedSeconds),
-          totalSeconds: totalSeconds > 0 ? totalSeconds : existing?.totalSeconds || 0,
-          lastWatchedAt: new Date(),
-          ...(isNewlyCompleted ? { completedAt: new Date() } : {})
+      const nextStatus = this.computeStatus(
+        (existing?.status as ChunkStatus) || null,
+        watchedSeconds,
+        totalSeconds,
+        forceStatus
+      );
+      
+      const isNewlyCompleted =
+        nextStatus === 'COMPLETED' &&
+        existing?.status !== 'COMPLETED';
+
+      const updatedProgress = await UserChunkProgress.findOneAndUpdate(
+        { userId, chunkId },
+        {
+          $set: {
+            userId,
+            chunkId,
+            lessonId,
+            cohortId,
+            status: nextStatus,
+            watchedSeconds: Math.max(existing?.watchedSeconds || 0, watchedSeconds),
+            totalSeconds: totalSeconds > 0 ? totalSeconds : existing?.totalSeconds || 0,
+            lastWatchedAt: new Date(),
+            ...(isNewlyCompleted ? { completedAt: new Date() } : {})
+          },
         },
-      },
-      { upsert: true, returnDocument: 'after' }
-    );
+        { upsert: true, returnDocument: 'after' }
+      );
 
-    // TODO: LessonProgress roll-up could be handled in Postgres if Lesson metadata is there,
-    // or moved entirely to Mongo. For now, since user progress is purely in Mongo,
-    // we omit the LessonProgress sync for brevity, focusing on Vector Search metadata filtering.
+      // TODO: LessonProgress roll-up could be handled in Postgres if Lesson metadata is there,
+      // or moved entirely to Mongo. For now, since user progress is purely in Mongo,
+      // we omit the LessonProgress sync for brevity, focusing on Vector Search metadata filtering.
 
-    return updatedProgress;
+      return updatedProgress;
+    } catch (err) {
+      console.warn('[ChunkProgressService] Failed to record progress:', (err as Error).message);
+      return null;
+    }
   }
 
   static async getUserProgressMap(userId: string, chunkIds?: string[]) {
     if (!process.env.MONGODB_URI) {
       return new Map();
     }
-    await connectToMongoDB();
-    const list = await UserChunkProgress.find({ userId, ...(chunkIds ? { chunkId: { $in: chunkIds } } : {}) });
-    return new Map(list.map((p) => [p.chunkId, p]));
+    try {
+      await connectToMongoDB();
+      const list = await UserChunkProgress.find({ userId, ...(chunkIds ? { chunkId: { $in: chunkIds } } : {}) });
+      return new Map(list.map((p) => [p.chunkId, p]));
+    } catch (err) {
+      console.warn('[ChunkProgressService] Failed to get user progress map:', (err as Error).message);
+      return new Map();
+    }
   }
 }

@@ -264,13 +264,66 @@ export function MaterialStageView({
       const isYouTube = /youtube\.com|youtu\.be/i.test(trimmedUrl);
       let ok = false;
       if (isYouTube) {
-        ok = await dispatchAction({
-          type: 'add_youtube_source',
-          url: trimmedUrl,
-          label: trimmedUrl,
-          mode: 'video_observation',
-          sourceId: replacingSourceId ?? undefined,
-        });
+        // Fetch metadata to check if playlist and get clean title
+        let metadata: {
+          title?: string;
+          isPlaylist?: boolean;
+          videos?: Array<{ videoId: string; title: string }>;
+        } | null = null;
+        try {
+          const metaRes = await fetch(
+            `/api/import/youtube/metadata?url=${encodeURIComponent(trimmedUrl)}`
+          );
+          if (metaRes.ok) {
+            metadata = await metaRes.json();
+          }
+        } catch {
+          // Metadata fetch failure is non-fatal
+        }
+
+        if (metadata?.isPlaylist && metadata.videos && metadata.videos.length > 0) {
+          // For playlists, add videos from the playlist (up to remaining capacity, max 5)
+          const remainingSlots = Math.max(1, 20 - (workspace.sources?.length ?? 0));
+          const videosToAdd = metadata.videos.slice(0, Math.min(5, remainingSlots));
+          let anySuccess = false;
+          for (const v of videosToAdd) {
+            const canonicalVideoUrl = `https://www.youtube.com/watch?v=${v.videoId}`;
+            const added = await dispatchAction({
+              type: 'add_youtube_source',
+              url: canonicalVideoUrl,
+              label: v.title || `Video ${v.videoId}`,
+              mode: 'video_observation',
+            });
+            if (added) anySuccess = true;
+          }
+          ok = anySuccess;
+        } else {
+          // Normalize video URL
+          let normalizedUrl = trimmedUrl;
+          try {
+            const parsed = new URL(trimmedUrl);
+            let vid: string | null = null;
+            if (parsed.hostname === 'youtu.be') {
+              vid = parsed.pathname.split('/')[1];
+            } else if (parsed.pathname === '/watch') {
+              vid = parsed.searchParams.get('v');
+            } else if (/^\/(shorts|embed)\//.test(parsed.pathname)) {
+              vid = parsed.pathname.split('/')[2];
+            }
+            if (vid && /^[A-Za-z0-9_-]{11}$/.test(vid)) {
+              normalizedUrl = `https://www.youtube.com/watch?v=${vid}`;
+            }
+          } catch {}
+
+          const label = metadata?.title || trimmedUrl;
+          ok = await dispatchAction({
+            type: 'add_youtube_source',
+            url: normalizedUrl,
+            label,
+            mode: 'video_observation',
+            sourceId: replacingSourceId ?? undefined,
+          });
+        }
       } else {
         ok = await dispatchAction({
           type: 'add_web_source',
