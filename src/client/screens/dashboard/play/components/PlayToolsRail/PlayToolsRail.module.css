@@ -116,3 +116,13 @@
     height: 32px;
   }
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .rail {
+    transition: none !important;
+    transform: translateY(-50%) !important;
+  }
+  .toolButton {
+    transition: none !important;
+  }
+}

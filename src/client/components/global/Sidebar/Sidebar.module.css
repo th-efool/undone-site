@@ -122,4 +122,11 @@
   background: rgba(99, 102, 241, 0.2) !important;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .playSidebar {
+    transition: none !important;
+    transform: translateY(-50%) !important;
+  }
+}
+
 

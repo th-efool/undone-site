@@ -104,7 +104,14 @@ describe('use1DGesture keyboard interaction', () => {
   it('triggers onToggleMute on m key and onToggleShortcutsHelp on ? key', () => {
     const onToggleMute = vi.fn();
     const onToggleShortcutsHelp = vi.fn();
-    renderHook(() => use1DGesture({ onToggleMute, onToggleShortcutsHelp }));
+    renderHook(() =>
+      use1DGesture({
+        onNext: vi.fn(),
+        onPrev: vi.fn(),
+        onToggleMute,
+        onToggleShortcutsHelp,
+      })
+    );
 
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'm', bubbles: true }));
     expect(onToggleMute).toHaveBeenCalledTimes(1);

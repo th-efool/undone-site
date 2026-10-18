@@ -55,7 +55,7 @@ export function PlayHeader({ playback, onOpenChannelSelector }: PlayHeaderProps)
   const episodeCode = hasEpisode ? `S${seasonNum}:E${currentVideo}` : `S${seasonNum}`;
   const episodeLabel = hasEpisode
     ? `Episode ${currentVideo} of ${totalVideos}`
-    : (activeItem?.cohortTitle || lesson.topic || 'Lesson Unit');
+    : (activeItem?.cohortTitle || (lesson as any).topic || 'Lesson Unit');
 
   // Top capsule window
   const totalCapsules = Math.max(feedItems.length, 1);

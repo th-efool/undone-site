@@ -3,34 +3,44 @@
   --color-text-primary: #f1f5f9;
   --color-text-secondary: #cbd5e1;
   color: var(--color-text-primary);
-  background: #111827;
+  background: #000000;
   color-scheme: dark;
   overflow-y: auto;
   max-height: 100%;
   width: 100%;
-  padding: clamp(1rem, 3vw, 2.5rem);
+  padding: clamp(1.25rem, 4vw, 3rem);
   overflow-wrap: anywhere;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .reader > * {
   max-width: 72ch;
   margin-inline: auto;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 .reader h1 {
   font-size: clamp(1.75rem, 3vw, 2.75rem);
   margin-block: 1rem;
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .reader h2 {
   font-size: 1.25rem;
   margin-block: 1.5rem 0.5rem;
+  color: #e2e8f0;
+  font-weight: 600;
 }
 
 .reader p,
 .reader li {
   color: var(--color-text-secondary);
-  line-height: 1.7;
+  line-height: 1.75;
+  font-size: 1.05rem;
 }
 
 .reader ul {
@@ -40,20 +50,43 @@
 
 .reader button {
   display: block;
-  margin-block: 1.5rem;
+  margin-block: 2rem;
   min-height: 44px;
-  padding: 0.75rem 1.25rem;
-  border-radius: 0.75rem;
-  background: #c7d2fe;
-  color: #111827;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  background: #5430FF;
+  color: #ffffff;
   font-weight: 600;
+  font-size: 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 14px rgba(84, 48, 255, 0.4);
+}
+
+.reader button:hover:not(:disabled) {
+  background: #6a49ff;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(84, 48, 255, 0.6);
+}
+
+.reader button:active:not(:disabled) {
+  transform: scale(0.98);
 }
 
 .reader button:disabled {
   opacity: 0.65;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .reader button:focus-visible {
-  outline: 2px solid #f1f5f9;
+  outline: 2px solid #5430FF;
   outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reader button {
+    transition: none !important;
+  }
 }
