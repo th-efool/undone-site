@@ -14,7 +14,7 @@ const typeConfig = {
     className: styles.video,
   },
   [LessonType.Reading]: {
-    label: 'Blog',
+    label: 'Guide',
     icon: 'book',
     className: styles.reading,
   },

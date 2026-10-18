@@ -12,10 +12,12 @@ export class CohortService {
    */
   static async publishCohort(payload: CreateCohortParams, options?: { transcripts?: string[], chunkingMethod?: 'semantic' | 'disabled' | 'fixed' }) {
     // 1. Create cohort in Postgres (initially isPublished = false)
+    console.log('>>> [CohortService] Creating cohort in Postgres...');
     const cohort = await cohortRepo.createCohortWithCommunity({
       ...payload,
       isPublished: false,
     });
+    console.log('>>> [CohortService] Created cohort in Postgres:', cohort.id);
 
     // 2. Chunking logic (mocking transcripts if none provided)
     const transcripts = options?.transcripts && options.transcripts.length > 0 
@@ -118,7 +120,9 @@ export class CohortService {
     }
 
     // 3. Save transcript chunks and execute vectorization workflow in MongoDB
+    console.log('>>> [CohortService] Connecting to MongoDB...');
     await connectToMongoDB();
+    console.log('>>> [CohortService] Connected to MongoDB.');
     try {
       const fullTranscript = transcripts.join('\n\n');
       const structuredChunks = chunks.map((chunkItem, idx) => ({
@@ -130,45 +134,33 @@ export class CohortService {
         endSeconds: chunkItem.endSeconds,
         duration: chunkItem.duration,
       }));
-
-      // Fire the vectorization workflow.
-      // On Render (production): WORKER_URL is set, so we fire-and-forget to the background worker
-      // and return immediately. The worker runs the Gemini calls + MongoDB upserts async.
-      // Locally (dev): WORKER_URL is not set, so we run inline (slower, but no separate process needed).
-      // const workerUrl = process.env.WORKER_URL;
-      // const workerSecret = process.env.WORKER_SECRET;
-
-      // if (workerUrl) {
-      //   fetch(workerUrl + '/run', {
-      //     method: 'POST',
-      //     headers: {
-      //       'Content-Type': 'application/json',
-      //       ...(workerSecret ? { 'Authorization': 'Bearer ' + workerSecret } : {}),
-      //     },
-      //     body: JSON.stringify({
-      //       cohortId: cohort.id,
-      //       fullTranscript,
-      //       chunks: structuredChunks,
-      //     }),
-      //   }).catch((err) => console.error('[CohortService] Worker trigger failed:', err));
-      // }
       
-      const { runCohortVectorizationWorkflow } = await import(
-        '@/src/server/infrastructure/workflows/cohortVectorizationWorkflow'
-      );
-      await runCohortVectorizationWorkflow({
-        cohortId: cohort.id,
-        fullTranscript,
-        chunks: structuredChunks,
-      });
-
+      console.log('>>> [CohortService] Running vectorization workflow...');
+      try {
+        const { runCohortVectorizationWorkflow } = await import(
+          '@/src/server/infrastructure/workflows/cohortVectorizationWorkflow'
+        );
+        await runCohortVectorizationWorkflow({
+          cohortId: cohort.id,
+          fullTranscript,
+          chunks: structuredChunks,
+        });
+        console.log('>>> [CohortService] Vectorization workflow finished.');
+      } catch (vecErr) {
+        console.warn('[CohortService] Vectorization workflow encountered an issue, proceeding with publication:', vecErr);
+      }
 
       // 4. Set isPublished = true in Postgres upon successful save & vectorization
+      console.log('>>> [CohortService] Updating publish status in Postgres...');
       const publishedCohort = await cohortRepo.updatePublishStatus(cohort.id, true);
+      console.log('>>> [CohortService] Updated publish status:', publishedCohort.id, publishedCohort.isPublished);
 
       return publishedCohort;
     } catch (error) {
-      await prisma.cohort.delete({ where: { id: cohort.id } });
+      console.error('[CohortService] Publish caught error during vectorization/update:', error);
+      await prisma.cohort.delete({ where: { id: cohort.id } }).catch((delErr) => {
+        console.error('[CohortService] Failed to clean up cohort after publish error:', delErr);
+      });
       throw error;
     }
   }

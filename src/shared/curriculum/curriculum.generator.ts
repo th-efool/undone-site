@@ -133,17 +133,38 @@ function buildChunks(lesson: CurriculumLesson) {
       title: 'Full Document',
       duration: formatDuration(totalMinutes),
       order: 1,
+      startSeconds: 0,
+      endSeconds: totalMinutes * 60,
+      timeRangeLabel: 'Full Document',
+      timestampUrl: lesson.sourceUrl,
     }] satisfies CurriculumChunk[];
   }
 
   const chunkDurations = buildChunkDurations(totalMinutes, lesson.id);
 
-  return chunkDurations.map((duration, index) => ({
-    id: makeId('chunk', lesson.id, index + 1),
-    title: `Part ${index + 1}`,
-    duration: formatDuration(duration),
-    order: index + 1,
-  })) satisfies CurriculumChunk[];
+  let currentSeconds = 0;
+  return chunkDurations.map((duration, index) => {
+    const startSec = currentSeconds;
+    const endSec = startSec + duration * 60;
+    currentSeconds = endSec;
+
+    const formatTs = (sec: number) => {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    };
+
+    return {
+      id: makeId('chunk', lesson.id, index + 1),
+      title: `Part ${index + 1}`,
+      duration: formatDuration(duration),
+      order: index + 1,
+      startSeconds: startSec,
+      endSeconds: endSec,
+      timeRangeLabel: `${formatTs(startSec)} – ${formatTs(endSec)}`,
+      timestampUrl: lesson.videoId ? `https://www.youtube.com/watch?v=${lesson.videoId}&t=${startSec}s` : lesson.sourceUrl,
+    };
+  }) satisfies CurriculumChunk[];
 }
 
 function convertImportedLesson(
@@ -159,8 +180,9 @@ function convertImportedLesson(
     title: lesson.title,
     description: lesson.description,
     thumbnail:
-      lesson.thumbnail ||
-      (lesson.videoId ? `https://i.ytimg.com/vi/${lesson.videoId}/hqdefault.jpg` : '/mock/thumbnails/docker.avif'),
+      (lesson.thumbnail && lesson.thumbnail !== '/mock/thumbnails/docker.avif')
+        ? lesson.thumbnail
+        : (lesson.videoId ? `https://i.ytimg.com/vi/${lesson.videoId}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop'),
     videoId: lesson.videoId,
     duration: lesson.duration,
     chunkCount: 0,
@@ -199,7 +221,7 @@ function createSeasonFromLessons(index: number, lessons: CurriculumLesson[], exi
         ? `Lessons ${first.playlistPosition} - ${last.playlistPosition}`
         : 'Empty season placeholder.'
     ),
-    thumbnail: existingSeason?.thumbnail || first?.thumbnail || '/mock/thumbnails/docker.avif',
+    thumbnail: existingSeason?.thumbnail || first?.thumbnail || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop',
     estimatedDuration: formatDuration(minutes),
     lessonCount: lessons.length,
     lessons,
@@ -237,7 +259,7 @@ function recalculateSeason(season: CurriculumSeason, index: number) {
     id: season.id || makeId('season', index + 1),
     title: season.title || `Season ${index + 1}`,
     description: season.description || 'Generated season.',
-    thumbnail: lessons[0]?.thumbnail ?? season.thumbnail ?? '/mock/thumbnails/docker.avif',
+    thumbnail: lessons[0]?.thumbnail ?? season.thumbnail ?? 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop',
     estimatedDuration: formatDuration(minutes),
     lessonCount: lessons.length,
     lessons,
@@ -514,7 +536,7 @@ export function createSeason(curriculum: GeneratedCurriculum, title?: string) {
       id: makeId('season', curriculum.seasons.length + 1, Date.now()),
       title: title || `Season ${curriculum.seasons.length + 1}`,
       description: 'New season placeholder.',
-      thumbnail: '/mock/thumbnails/docker.avif',
+      thumbnail: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop',
       estimatedDuration: '0m',
       lessonCount: 0,
       lessons: [],

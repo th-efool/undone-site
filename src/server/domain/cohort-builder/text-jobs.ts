@@ -16,6 +16,7 @@ export interface ClaimedTextJob {
   fence: number;
   leaseToken: string;
   leaseUntil: Date;
+  attempts?: number;
 }
 
 const leaseBounds = (now: Date, leaseMs: number) => {

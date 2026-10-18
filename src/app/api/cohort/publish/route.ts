@@ -4,6 +4,8 @@ import { auth } from '@/src/server/infrastructure/auth/auth.config';
 import { CohortService } from '@/src/server/domain/cohort/cohort.service';
 import { userRepo } from '@/src/server/infrastructure/db/postgres/repositories/user.repo';
 import { Difficulty, Visibility, LessonType, SourceType } from '@/generated/prisma/client';
+import { extractVideoId } from '@/src/server/imports/youtube/youtube-url';
+import { getTopicCoverImage } from '@/src/shared/cohort-builder/delivery';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -105,6 +107,7 @@ function parseDurationToSeconds(duration: string | number | undefined): number {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('>>> [Publish Route] POST invoked <<<');
   try {
     const jsonBody = await request.json().catch(() => null);
 
@@ -129,18 +132,6 @@ export async function POST(request: NextRequest) {
 
     const { draft, curriculum, qualityScore, forcePublishWithWeights } = parseResult.data;
 
-    if (!forcePublishWithWeights) {
-      return Response.json(
-        {
-          code: 'WEIGHTS_REQUIRED',
-          title: 'Weights Required',
-          message: 'WEIGHTS_REQUIRED',
-        },
-        { status: 400 },
-      );
-    }
-
-
     // 1. Get creator from session, or default to test user
     const session = await auth();
     let creator = null;
@@ -163,21 +154,42 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Map curriculum to seasons and lessons
+    let firstVideoThumbnail: string | undefined;
+
     const seasons = (curriculum?.seasons ?? []).map((s, sIdx) => ({
       title: s.title,
       order: sIdx + 1,
-      lessons: (s.lessons ?? []).map((l, lIdx) => ({
-        title: l.title,
-        description: l.description,
-        duration: parseDurationToSeconds(l.duration),
-        order: lIdx + 1,
-        lessonType: (l.sourceUrl || !l.videoId) ? 'ARTICLE' as LessonType : 'VIDEO' as LessonType,
-        thumbnailUrl: l.thumbnail,
-        videoId: l.videoId,
-        videoUrl: l.videoUrl,
-        sourceUrl: l.sourceUrl,
-        chunks: l.chunks || [],
-      })),
+      lessons: (s.lessons ?? []).map((l, lIdx) => {
+        const videoId = l.videoId || extractVideoId(l.videoUrl || l.sourceUrl || '') || undefined;
+        const isVideo = Boolean(videoId || (l.sourceUrl && (l.sourceUrl.includes('youtube.com') || l.sourceUrl.includes('youtu.be'))));
+        const videoUrl = l.videoUrl || (videoId ? `https://www.youtube.com/watch?v=${videoId}` : undefined);
+        const thumbnailUrl = l.thumbnail || (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : undefined);
+        const sourceUrl = videoUrl || l.sourceUrl;
+
+        if (thumbnailUrl && !firstVideoThumbnail) {
+          firstVideoThumbnail = thumbnailUrl;
+        }
+
+        return {
+          title: l.title,
+          description: l.description,
+          duration: parseDurationToSeconds(l.duration),
+          order: lIdx + 1,
+          lessonType: isVideo ? ('VIDEO' as LessonType) : ('ARTICLE' as LessonType),
+          thumbnailUrl,
+          videoId,
+          videoUrl,
+          sourceUrl,
+          chunks: (l.chunks || []).map((c: any, cIdx: number) => ({
+            ...c,
+            order: c.order || cIdx + 1,
+            startSeconds: c.startSeconds || 0,
+            endSeconds: c.endSeconds || 0,
+            timeRangeLabel: c.timeRangeLabel || '',
+            timestampUrl: c.timestampUrl || (videoId ? `https://www.youtube.com/watch?v=${videoId}&t=${c.startSeconds || 0}s` : sourceUrl),
+          })),
+        };
+      }),
     }));
 
     // 3. Map sources
@@ -191,13 +203,17 @@ export async function POST(request: NextRequest) {
       chunkingMethod: source?.chunkingMethod,
     }));
 
+    const primaryTopic = draft.primaryTopic || draft.title || 'General Knowledge';
+    const resolvedCover = draft.coverImage?.trim() || firstVideoThumbnail || getTopicCoverImage(primaryTopic);
+
     // 4. Publish the cohort using Domain Service
+    console.log('>>> [Publish Route] Calling CohortService.publishCohort...');
     const dbCohort = await CohortService.publishCohort({
       creatorId: creator.id,
       title: (typeof draft.title === 'string' && draft.title.trim()) || 'Untitled Cohort',
       subtitle: draft.subtitle,
       description: draft.description,
-      coverImage: draft.coverImage,
+      coverImage: resolvedCover,
       difficulty: draft.difficulty ? (draft.difficulty.toUpperCase() as Difficulty) : 'INTERMEDIATE',
       visibility: draft.visibility === 'Private' ? 'PRIVATE' : draft.visibility === 'Unlisted' ? 'INVITE_ONLY' : 'PUBLIC',
       categories: draft.categories || [],
@@ -211,6 +227,7 @@ export async function POST(request: NextRequest) {
       seasons,
       forcePublishWithWeights,
     });
+    console.log('>>> [Publish Route] CohortService.publishCohort returned successfully:', dbCohort?.id);
 
     if (!dbCohort || !dbCohort.id) {
       return Response.json(
@@ -223,6 +240,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('>>> [Publish Route] Sending Response.json for cohort:', dbCohort.id);
     return Response.json({
       cohortId: dbCohort.id,
       cohortTitle: dbCohort.title || draft.title || 'Untitled Cohort',
@@ -237,6 +255,18 @@ export async function POST(request: NextRequest) {
       coverImage: dbCohort.coverImage || '/images/landing/screen.webp',
     });
   } catch (error) {
+    console.error('>>> [Publish Route] ERROR CAUGHT:', error);
+    console.error('[Publish Route] Caught error during cohort publication:', error);
+    if (error instanceof Error && error.message === 'WEIGHTS_REQUIRED') {
+      return Response.json(
+        {
+          code: 'WEIGHTS_REQUIRED',
+          title: 'Weights Required',
+          message: 'WEIGHTS_REQUIRED',
+        },
+        { status: 400 },
+      );
+    }
     const message = error instanceof Error ? error.message : 'Publishing failed';
     return Response.json(
       {

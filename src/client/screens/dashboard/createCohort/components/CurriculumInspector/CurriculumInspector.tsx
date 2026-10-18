@@ -209,10 +209,14 @@ export function CurriculumInspector() {
               <Image
                 width={400}
                 height={300}
-                src={selectedLesson.thumbnail || '/mock/thumbnails/docker.avif'}
+                src={
+                  (selectedLesson.thumbnail && selectedLesson.thumbnail !== '/mock/thumbnails/docker.avif' ? selectedLesson.thumbnail : undefined) ||
+                  (selectedLesson.videoId ? `https://i.ytimg.com/vi/${selectedLesson.videoId}/hqdefault.jpg` : undefined) ||
+                  'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop'
+                }
                 alt={selectedLesson.title}
                 className={styles.imagePreview}
-                onError={(e) => { (e.target as HTMLImageElement).src = '/mock/thumbnails/docker.avif'; }}
+                onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop'; }}
               />
 
               <section className={styles.section}>

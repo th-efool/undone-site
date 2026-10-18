@@ -21,7 +21,9 @@ export function CohortHero({ cohort, isEnrolled = true, isLoggedIn = true }: Coh
       .flatMap((season) => season.lessons)
       .find((lesson) => lesson.status === 'inStream') ?? cohort.questline.seasons[0]?.lessons[0];
   
-  const coverImage = cohort.coverImage || '/mock/thumbnails/docker.avif';
+  const coverImage = (cohort.coverImage && cohort.coverImage !== '/mock/thumbnails/docker.avif')
+    ? cohort.coverImage
+    : 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop';
 
   return (
     <section

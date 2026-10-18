@@ -105,14 +105,33 @@ export function computeTextStage(state: CohortWorkspace): TextStageAction {
       question: `How would you apply this passage: ${chunk.text.slice(0, 160)}?`,
     }));
   } else {
-    result = state.chunks.map((chunk, index) => ({
-      id: `grounded:${chunk.id}`,
-      version: 0,
-      title: `Source study ${index + 1}: ${chunk.text.slice(0, 72).replace(/\s+/g, ' ')}`,
-      objective: `For ${state.audience.slice(0, 80)}, apply this evidence toward ${state.intent.slice(0, 100)} in a ${state.dailyMinutes}-minute study session: ${chunk.text.slice(0, 120)}`,
-      sourceChunkIds: [chunk.id],
-      pinned: false,
-    }));
+    result = state.chunks.map((chunk, index) => {
+      const source = state.sources.find(item => item.id === chunk.sourceId);
+      const cleanChunk = chunk.text
+        .replace(/^[#*\-•\s\d.)]+/, '')
+        .replace(/[\r\n\t]+/g, ' ')
+        .trim();
+
+      const firstSentence = cleanChunk.split(/(?<=[.!?])\s+/)[0]?.trim() || cleanChunk;
+      const coreTitle = firstSentence.length > 68
+        ? firstSentence.slice(0, 65).replace(/\s+\S*$/, '') + '...'
+        : firstSentence;
+
+      const title = coreTitle
+        ? (source?.label && state.sources.length > 1 && !coreTitle.toLowerCase().includes(source.label.toLowerCase())
+            ? `${source.label}: ${coreTitle}`
+            : coreTitle)
+        : (source?.label ? `${source.label} (Part ${index + 1})` : `Part ${index + 1}: Key Concept`);
+
+      return {
+        id: `grounded:${chunk.id}`,
+        version: 0,
+        title,
+        objective: `For ${state.audience.slice(0, 80)}, apply this evidence toward ${state.intent.slice(0, 100)} in a ${state.dailyMinutes}-minute study session: ${cleanChunk.slice(0, 120)}`,
+        sourceChunkIds: [chunk.id],
+        pinned: false,
+      };
+    });
   }
   return { type: 'accept_text_stage', stage, generation: state.processing.generation, fingerprint, result };
 }

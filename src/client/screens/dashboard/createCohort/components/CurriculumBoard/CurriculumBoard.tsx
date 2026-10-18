@@ -272,9 +272,9 @@ export function CurriculumBoard() {
                             width={112}
                             height={72}
                             src={
-                              lesson.thumbnail ||
+                              (lesson.thumbnail && lesson.thumbnail !== '/mock/thumbnails/docker.avif' ? lesson.thumbnail : undefined) ||
                               (lesson.videoId ? `https://i.ytimg.com/vi/${lesson.videoId}/hqdefault.jpg` : undefined) ||
-                              '/mock/thumbnails/docker.avif'
+                              'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop'
                             }
                             alt={lesson.title}
                             className={styles.lessonThumbnail}
@@ -283,7 +283,7 @@ export function CurriculumBoard() {
                               if (lesson.videoId && !target.src.includes(lesson.videoId)) {
                                 target.src = `https://i.ytimg.com/vi/${lesson.videoId}/hqdefault.jpg`;
                               } else {
-                                target.src = '/mock/thumbnails/docker.avif';
+                                target.src = 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop';
                               }
                             }}
                           />

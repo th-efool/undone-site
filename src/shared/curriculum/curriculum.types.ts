@@ -56,6 +56,10 @@ export interface CurriculumChunk {
   title: string;
   duration: string;
   order: number;
+  startSeconds?: number;
+  endSeconds?: number;
+  timeRangeLabel?: string;
+  timestampUrl?: string;
 }
 
 export interface CurriculumLesson {

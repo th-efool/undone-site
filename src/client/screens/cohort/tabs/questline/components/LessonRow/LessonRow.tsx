@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { ExternalLink, Play, Layers, Clock, ChevronDown, ChevronUp, Lock } from 'lucide-react';
 
-import { LessonStatus, type Lesson } from '../../../../models';
+import { LessonStatus, LessonType, type Lesson } from '../../../../models';
 
 import { LessonTypeBadge } from '../LessonTypeBadge/LessonTypeBadge';
 import { QuestlineIcon } from '../QuestlineIcon/QuestlineIcon';
@@ -25,9 +25,14 @@ export function LessonRow({ lesson, index, onToggleStatus }: LessonRowProps) {
     lesson.videoUrl ||
     (lesson.videoId ? `https://www.youtube.com/watch?v=${lesson.videoId}` : undefined);
 
-  const linkUrl = lesson.sourceUrl || videoUrl;
-  const isVideo = !!videoUrl;
+  const cleanSourceUrl = (lesson.sourceUrl && !lesson.sourceUrl.startsWith('/cohort/')) ? lesson.sourceUrl : undefined;
+  const linkUrl = videoUrl || cleanSourceUrl;
+  const isVideo = Boolean(videoUrl || lesson.type === LessonType.Video || lesson.videoId);
   const linkTooltip = isVideo ? "Watch video on YouTube" : "Open source link";
+
+  const thumbnailSrc = (!lesson.thumbnail || lesson.thumbnail === '/mock/thumbnails/docker.avif')
+    ? (lesson.videoId ? `https://i.ytimg.com/vi/${lesson.videoId}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop')
+    : lesson.thumbnail;
 
   const chunks = lesson.chunks ?? [];
 
@@ -35,7 +40,7 @@ export function LessonRow({ lesson, index, onToggleStatus }: LessonRowProps) {
     <div className={styles.wrapper}>
       <article className={`${styles.row} ${isLocked ? styles.locked : ''}`}>
         <Image
-          src={lesson.thumbnail || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop'}
+          src={thumbnailSrc}
           alt=""
           width={96}
           height={56}
@@ -110,11 +115,13 @@ export function LessonRow({ lesson, index, onToggleStatus }: LessonRowProps) {
           <div className={styles.chunkList}>
             {chunks.length > 0 ? (
               chunks.map((chunk) => {
+                const cleanLinkUrl = (linkUrl && !linkUrl.startsWith('/cohort/')) ? linkUrl : undefined;
                 const timestampUrl =
-                  chunk.timestampUrl ||
-                  (lesson.videoId
-                    ? `https://www.youtube.com/watch?v=${lesson.videoId}&t=${chunk.startSeconds || 0}s`
-                    : linkUrl);
+                  (chunk.timestampUrl && !chunk.timestampUrl.startsWith('/cohort/'))
+                    ? chunk.timestampUrl
+                    : (lesson.videoId
+                      ? `https://www.youtube.com/watch?v=${lesson.videoId}&t=${chunk.startSeconds || 0}s`
+                      : cleanLinkUrl);
 
                 return (
                   <div key={chunk.id} className={styles.chunkRow}>
@@ -136,11 +143,11 @@ export function LessonRow({ lesson, index, onToggleStatus }: LessonRowProps) {
                           target="_blank"
                           rel="noopener noreferrer"
                           className={styles.chunkJumpBtn}
-                          title={isVideo ? "Jump to timestamp on YouTube" : "Open link"}
+                          title={isVideo ? "Jump to timestamp on YouTube" : "Open resource"}
                         >
                           {isVideo ? <Play size={11} fill="currentColor" /> : <ExternalLink size={11} />}
                           <span>
-                            {isVideo ? `Jump to ${chunk.timeRangeLabel?.split('–')[0]?.trim() || 'timestamp'}` : 'Open part'}
+                            {isVideo ? `Jump to ${chunk.timeRangeLabel?.split('–')[0]?.split('-')[0]?.trim() || 'timestamp'}` : 'Open resource'}
                           </span>
                           <ExternalLink size={11} />
                         </a>

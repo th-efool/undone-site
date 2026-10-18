@@ -1,5 +1,7 @@
 import type { Cohort as DbCohort, Season, Lesson } from '@/generated/prisma';
 import { SeasonStatus, LessonStatus, LessonType, type Cohort as UiCohort } from '@/src/client/screens/cohort/models';
+import { getTopicCoverImage } from '@/src/shared/cohort-builder/delivery';
+import { extractVideoId } from '@/src/server/imports/youtube/youtube-url';
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -40,12 +42,30 @@ export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
     { id: 'es-4', icon: 'brain' as const, label: 'Language', value: dbCohort.language || 'English' },
   ];
 
+  let firstVideoThumbnail: string | undefined;
+  for (const s of (dbCohort.seasons || [])) {
+    for (const l of (s.lessons || [])) {
+      if (l.thumbnailUrl) {
+        firstVideoThumbnail = l.thumbnailUrl;
+        break;
+      }
+      if (l.videoId) {
+        firstVideoThumbnail = `https://i.ytimg.com/vi/${l.videoId}/hqdefault.jpg`;
+        break;
+      }
+    }
+    if (firstVideoThumbnail) break;
+  }
+
+  const primaryTopic = dbCohort.primaryTopic || dbCohort.title || 'General Knowledge';
+  const coverImage = dbCohort.coverImage || firstVideoThumbnail || getTopicCoverImage(primaryTopic);
+
   return {
     id: dbCohort.id,
     title: dbCohort.title || 'Untitled Cohort',
     subtitle: dbCohort.subtitle || '',
     description: dbCohort.description || '',
-    coverImage: dbCohort.coverImage || '/images/landing/screen.webp',
+    coverImage,
     difficulty: dbCohort.difficulty || 'BEGINNER',
     categories,
     creator: {
@@ -122,26 +142,40 @@ export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
                 ...c,
                 startSeconds: c.startSeconds || 0,
                 endSeconds: c.endSeconds || 0,
-                timeRangeLabel: c.timeRangeLabel || '',
+                timeRangeLabel: c.timeRangeLabel || (c.startSeconds !== undefined && c.endSeconds !== undefined && c.endSeconds > 0 ? `${formatTime(c.startSeconds)} – ${formatTime(c.endSeconds)}` : ''),
                 isCompleted: false,
                 completionDate: null,
              }));
           }
 
-          const isArticle = (l as any).lessonType === 'ARTICLE';
+          const videoId = l.videoId || extractVideoId(l.videoUrl || (l as any).sourceUrl || '') || undefined;
+          const isVideo = (l as any).lessonType === 'VIDEO' || Boolean(videoId) || Boolean(l.videoUrl);
+          const videoUrl = l.videoUrl || (videoId ? `https://www.youtube.com/watch?v=${videoId}` : undefined);
+          const defaultThumbnail = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : getTopicCoverImage(primaryTopic);
+          const thumbnail = l.thumbnailUrl || defaultThumbnail;
+          const sourceUrl = (l as any).sourceUrl || videoUrl || undefined;
+
+          // Attach timestampUrl to chunks
+          chunks = chunks.map((c: any) => ({
+            ...c,
+            timestampUrl: c.timestampUrl || (videoId ? `https://www.youtube.com/watch?v=${videoId}&t=${c.startSeconds || 0}s` : sourceUrl),
+          }));
+
+          const rawTitle = l.title || `Lesson ${lIdx + 1}`;
+          const title = rawTitle.replace(/^Source study \d+:\s*/i, '').trim();
 
           return {
             id: l.id,
-            title: l.title || `Lesson ${lIdx + 1}`,
-            type: isArticle ? LessonType.Reading : LessonType.Video,
+            title,
+            type: isVideo ? LessonType.Video : LessonType.Reading,
             duration: l.duration ? `${Math.ceil(l.duration / 60)}m` : '0m',
             status: sIdx === 0 && lIdx === 0 ? LessonStatus.InStream : LessonStatus.Ready,
             totalChunks: chunks.length || 1,
             completedChunks: 0,
-            thumbnail: l.thumbnailUrl || '/mock/thumbnails/docker.avif',
-            videoId: isArticle ? undefined : (l.videoId || l.videoUrl || ''),
-            videoUrl: isArticle ? undefined : (l.videoUrl || ''),
-            sourceUrl: (l as any).sourceUrl || (isArticle ? l.videoUrl : undefined),
+            thumbnail,
+            videoId: isVideo ? videoId : undefined,
+            videoUrl: isVideo ? videoUrl : undefined,
+            sourceUrl,
             chunks,
           };
         }),

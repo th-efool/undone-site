@@ -10,6 +10,10 @@ export const deliveryChunkSchema = z.strictObject({
   start: z.number().int().nonnegative(),
   end: z.number().int().positive(),
   page: z.number().int().positive().optional(),
+  startSeconds: z.number().int().nonnegative().optional(),
+  endSeconds: z.number().int().nonnegative().optional(),
+  timeRangeLabel: z.string().optional(),
+  timestampUrl: z.string().optional(),
   checksum: z.string().regex(/^[a-f0-9]{64}$/),
 });
 export type DeliveryChunk = z.infer<typeof deliveryChunkSchema>;
@@ -23,6 +27,10 @@ export const deliveryLessonSchema = z.strictObject({
   order: z.number().int().nonnegative(),
   durationSeconds: z.number().int().positive(),
   lessonType: z.enum(['ARTICLE', 'VIDEO']),
+  videoId: z.string().optional(),
+  videoUrl: z.string().optional(),
+  thumbnailUrl: z.string().optional(),
+  sourceUrl: z.string().optional(),
   pinned: z.boolean(),
   manualOverride: z.boolean().optional(),
   evidenceStatus: z.enum(['valid', 'orphaned']),
@@ -55,6 +63,7 @@ export const deliveryCohortSchema = z.strictObject({
   id: z.string().min(1),
   title: z.string().trim().min(1).max(300),
   description: z.string().trim().min(1).max(4_000),
+  coverImage: z.string().optional(),
   audience: z.string().trim().max(500),
   dailyMinutes: z.number().int().min(1).max(1_440),
   difficulty: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']),
@@ -108,6 +117,47 @@ export const deliveryLessonId = (cohortId: string, lessonId: string): string =>
 export const deliverySourceId = (cohortId: string, sourceId: string): string =>
   `${cohortId}_src_${sourceId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
 
+function extractYoutubeVideoId(input?: string | null): string | null {
+  const trimmed = input?.trim() || '';
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    const vParam = parsed.searchParams.get('v');
+    if (vParam) return vParam;
+    if (parsed.hostname?.includes('youtu.be')) {
+      const pathname = parsed.pathname?.slice(1);
+      if (pathname) return pathname.split('?')[0];
+    }
+  } catch {
+    const match = trimmed.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+export function getTopicCoverImage(topicOrTitle: string): string {
+  const lower = topicOrTitle.toLowerCase();
+  if (lower.includes('rust')) {
+    return 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1200&auto=format&fit=crop';
+  }
+  if (lower.includes('python')) {
+    return 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?q=80&w=1200&auto=format&fit=crop';
+  }
+  if (lower.includes('react') || lower.includes('javascript') || lower.includes('typescript') || lower.includes('web') || lower.includes('frontend')) {
+    return 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=1200&auto=format&fit=crop';
+  }
+  if (lower.includes('ai') || lower.includes('machine learning') || lower.includes('deep learning') || lower.includes('llm')) {
+    return 'https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=1200&auto=format&fit=crop';
+  }
+  if (lower.includes('go') || lower.includes('golang')) {
+    return 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=1200&auto=format&fit=crop';
+  }
+  if (lower.includes('devops') || lower.includes('docker') || lower.includes('kubernetes') || lower.includes('cloud')) {
+    return 'https://images.unsplash.com/photo-1607799279861-4dd421887fb3?q=80&w=1200&auto=format&fit=crop';
+  }
+  return 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop';
+}
+
 /**
  * Pure projection from CohortWorkspace into a validated LearnerDeliveryPayload.
  */
@@ -153,13 +203,44 @@ export function projectCohortToLearnerDelivery(
   // Map each lesson to delivery representation
   const projectedLessons: DeliveryLesson[] = workspace.lessons.map((lesson, lessonIndex) => {
     const deliveryChunks: DeliveryChunk[] = [];
+    let detectedVideoId: string | undefined;
+    let fallbackSourceUrl: string | undefined;
 
     for (const [chunkOrder, chunkId] of lesson.sourceChunkIds.entries()) {
       const chunk = chunkMap.get(chunkId);
       if (chunk) {
         const source = sourceMap.get(chunk.sourceId);
-        // Find matching location page if available
         const location = source?.locations?.find(loc => loc.start <= chunk.start && loc.end >= chunk.end);
+
+        const isYoutube = source?.input?.kind === 'youtube' || Boolean(source?.provenance?.videoId);
+        const videoId = source?.provenance?.videoId || (source?.input?.kind === 'youtube' ? extractYoutubeVideoId(source.input.url) : null) || extractYoutubeVideoId(source?.label);
+
+        if (videoId && !detectedVideoId) {
+          detectedVideoId = videoId;
+        }
+        if (source && !fallbackSourceUrl) {
+          fallbackSourceUrl = source.input?.kind === 'youtube' ? source.input.url : source.provenance?.finalUrl;
+        }
+
+        let startSeconds = 0;
+        let endSeconds = 0;
+        if (location?.startMs !== undefined) {
+          startSeconds = Math.max(0, Math.floor(location.startMs / 1000));
+          endSeconds = Math.max(startSeconds, Math.floor((location.endMs ?? location.startMs) / 1000));
+        } else {
+          startSeconds = chunkOrder * 300;
+          endSeconds = (chunkOrder + 1) * 300;
+        }
+
+        const formatTs = (sec: number) => {
+          const m = Math.floor(sec / 60);
+          const s = sec % 60;
+          return `${m}:${s.toString().padStart(2, '0')}`;
+        };
+        const timeRangeLabel = `${formatTs(startSeconds)} – ${formatTs(endSeconds)}`;
+        const timestampUrl = detectedVideoId || videoId
+          ? `https://www.youtube.com/watch?v=${detectedVideoId || videoId}&t=${startSeconds}s`
+          : undefined;
 
         deliveryChunks.push({
           chunkId: chunk.id,
@@ -170,10 +251,19 @@ export function projectCohortToLearnerDelivery(
           start: chunk.start,
           end: chunk.end,
           page: location?.page,
+          startSeconds,
+          endSeconds,
+          timeRangeLabel,
+          timestampUrl,
           checksum: chunk.checksum,
         });
       }
     }
+
+    const isVideo = Boolean(detectedVideoId);
+    const videoUrl = detectedVideoId ? `https://www.youtube.com/watch?v=${detectedVideoId}` : undefined;
+    const thumbnailUrl = detectedVideoId ? `https://i.ytimg.com/vi/${detectedVideoId}/hqdefault.jpg` : undefined;
+    const sourceUrl = videoUrl || fallbackSourceUrl;
 
     const isOrphaned = lesson.evidenceStatus === 'orphaned' ||
       (lesson.sourceChunkIds.length > 0 && deliveryChunks.length < lesson.sourceChunkIds.length);
@@ -186,7 +276,11 @@ export function projectCohortToLearnerDelivery(
       objective: lesson.objective,
       order: lessonIndex,
       durationSeconds: estimatedLessonSeconds,
-      lessonType: 'ARTICLE',
+      lessonType: isVideo ? 'VIDEO' : 'ARTICLE',
+      videoId: detectedVideoId,
+      videoUrl,
+      thumbnailUrl,
+      sourceUrl,
       pinned: lesson.pinned,
       manualOverride: lesson.manualOverride,
       evidenceStatus: isOrphaned ? 'orphaned' : 'valid',
@@ -195,7 +289,6 @@ export function projectCohortToLearnerDelivery(
   });
 
   // Group lessons into seasons deterministically
-  // If multiple sources exist, group by first chunk's source; otherwise single season
   const seasonGroups = new Map<string, { title: string; lessons: DeliveryLesson[] }>();
 
   if (workspace.sources.length > 1) {
@@ -247,10 +340,16 @@ export function projectCohortToLearnerDelivery(
     hasOrphanedEvidence: projectedLessons.some(l => l.evidenceStatus === 'orphaned'),
   };
 
+  const primaryTopic = workspace.title || 'General Knowledge';
+  const firstVideoThumbnail = projectedLessons.find(l => l.thumbnailUrl)?.thumbnailUrl;
+  const recommendedCover = workspace.recommendations?.items?.find(i => i.coverImage)?.coverImage;
+  const coverImage = recommendedCover || firstVideoThumbnail || getTopicCoverImage(primaryTopic);
+
   const cohort: DeliveryCohort = {
     id: options.cohortId,
     title: workspace.title.trim() || workspace.intent.slice(0, 100),
     description: workspace.intent,
+    coverImage,
     audience: workspace.audience || 'Curious learners',
     dailyMinutes: workspace.dailyMinutes,
     difficulty: options.difficulty ?? 'BEGINNER',
@@ -258,7 +357,7 @@ export function projectCohortToLearnerDelivery(
       `Master core concepts of ${workspace.title || workspace.intent.slice(0, 50)}`,
       `Complete ${projectedLessons.length} targeted learning sessions`,
     ],
-    primaryTopic: workspace.title || 'General Knowledge',
+    primaryTopic,
     language: options.language ?? 'en',
     visibility: options.mode === 'public_publish' ? 'PUBLIC' : 'PRIVATE',
   };

@@ -320,7 +320,7 @@ export function NotesSidebar({
                     <div className={styles.pinIcon} style={{ display: 'flex', gap: '4px' }}>
                       <Star 
                         size={16}
-                        onClick={(e) => {
+                        onClick={(e: React.MouseEvent) => {
                           e.stopPropagation();
                           if ('favorite' in nb) {
                             notes.actions.patchNotebook(nb.id, { favorite: !nb.favorite });
@@ -331,7 +331,7 @@ export function NotesSidebar({
                       <div style={{ position: 'relative' }} className="popover-container">
                         <MoreHorizontal 
                           size={16} 
-                          onClick={(e) => {
+                          onClick={(e: React.MouseEvent) => {
                             e.stopPropagation();
                             setActivePopoverId(activePopoverId === nb.id ? null : nb.id);
                           }}

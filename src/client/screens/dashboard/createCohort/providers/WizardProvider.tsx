@@ -1711,7 +1711,7 @@ export function WizardProvider({ children }: PropsWithChildren) {
     setLaunchState((current) => ({ ...current, previewTab: tab }));
   }, []);
 
-  const publishCohort = useCallback(async (forcePublishWithWeights?: boolean) => {
+  const publishCohort = useCallback(async (forcePublishWithWeights: boolean = true) => {
     const draftValidation = validateCohortDraftSecurity(stateRef.current.draft);
     if (!draftValidation.valid) {
       setLaunchState((current) => ({
