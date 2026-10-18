@@ -22,16 +22,17 @@ type ChannelCache = {
   hasError: boolean;
   exhausted?: boolean;
   prefs?: string;
+  query?: string;
 };
 
 const INITIAL_CACHES: Record<ChannelId, ChannelCache> = {
-  default: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined },
-  spark: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined },
-  explore: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined },
-  build: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined },
-  listen: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined },
-  deep_dive: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined },
-  quick: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined },
+  default: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
+  spark: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
+  explore: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
+  build: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
+  listen: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
+  deep_dive: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
+  quick: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
 };
 
 function parseDurationToSeconds(val: string): number {
@@ -55,9 +56,11 @@ export function usePlayback() {
   const requestedCohortId = searchParams.get('cohort') || undefined;
   const requestedLessonId = searchParams.get('lesson') || undefined;
   const requestedChunkId = searchParams.get('chunk') || undefined;
+  const initialQuery = searchParams.get('q') || '';
 
   // New Client Memory Cache architecture
   const [channelCaches, setChannelCaches] = useState<Record<ChannelId, ChannelCache>>(INITIAL_CACHES);
+  const [searchQuery, setSearchQueryState] = useState<string>(initialQuery);
   
   // 6. Wasted Fetch on Initial Load - Lazy init for activeChannel
   const [activeChannel, setActiveChannel] = useState<ChannelId>(() => {
@@ -96,19 +99,21 @@ export function usePlayback() {
   const syncTimerRef = useRef<any>(null);
   const isPlayingRef = useRef(isPlaying);
   const activeChannelRef = useRef(activeChannel);
+  const searchQueryRef = useRef(searchQuery);
   
   // 3. Duplicate Progress Reporting - Set to track reported chunks
   const reportedChunksRef = useRef<Set<string>>(new Set());
   
   isPlayingRef.current = isPlaying;
   activeChannelRef.current = activeChannel;
+  searchQueryRef.current = searchQuery;
 
   const activeItem = feedItems[currentIndex] || null;
 
   // Fetch feed items via API (Prefetch Engine)
   const fetchAbortControllerRef = useRef<AbortController | null>(null);
 
-  const fetchChannelFeed = useCallback(async (channelId: ChannelId, pageIndex: number) => {
+  const fetchChannelFeed = useCallback(async (channelId: ChannelId, pageIndex: number, overrideQuery?: string) => {
     if (fetchAbortControllerRef.current) {
       fetchAbortControllerRef.current.abort();
     }
@@ -130,10 +135,12 @@ export function usePlayback() {
         }
       }
       
+      const qVal = overrideQuery !== undefined ? overrideQuery : searchQueryRef.current;
       const selection = new URLSearchParams();
       if (requestedCohortId) selection.set('cohort', requestedCohortId);
       if (requestedLessonId) selection.set('lesson', requestedLessonId);
       if (requestedChunkId) selection.set('chunk', requestedChunkId);
+      if (qVal.trim()) selection.set('q', qVal.trim());
       const res = await fetch(`/api/feed?channel=${channelId}&pageIndex=${pageIndex}${prefsQuery}&${selection}`, {
         signal: abortController.signal
       });
@@ -148,10 +155,12 @@ export function usePlayback() {
             ...prev[channelId],
             items: [...existingItems, ...data.items],
             pageIndex: pageIndex,
+            currentIndex: pageIndex === 0 ? 0 : prev[channelId].currentIndex,
             isFetching: false,
             hasError: false,
             exhausted: data.items.length === 0,
-            prefs: rawPrefs
+            prefs: rawPrefs,
+            query: qVal
           }
         };
       });
@@ -539,6 +548,12 @@ export function usePlayback() {
     setActiveChannel: (ch: ChannelId) => {
       setActiveChannel(ch);
       if (typeof window !== 'undefined') localStorage.setItem('sidequest_active_channel', ch);
+    },
+    searchQuery,
+    setSearchQuery: (q: string) => {
+      setSearchQueryState(q);
+      searchQueryRef.current = q;
+      void fetchChannelFeed(activeChannelRef.current, 0, q);
     },
     fetchChannelFeed,
   };

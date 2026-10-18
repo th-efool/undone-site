@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { type CohortWorkspace, cohortWorkspaceSchema, cohortSourceProvenanceSchema } from './contracts';
+import { computeDeterministicChunkVector } from '@/src/shared/curriculum/pedagogicalVector.engine';
 
 export const deliveryChunkSchema = z.strictObject({
   chunkId: z.string().min(1),
@@ -15,6 +16,9 @@ export const deliveryChunkSchema = z.strictObject({
   timeRangeLabel: z.string().optional(),
   timestampUrl: z.string().optional(),
   checksum: z.string().regex(/^[a-f0-9]{64}$/),
+  vector: z.array(z.number().min(0).max(1)).length(12).optional(),
+  isStrictlyLinear: z.boolean().optional(),
+  isKeyConcept: z.boolean().optional(),
 });
 export type DeliveryChunk = z.infer<typeof deliveryChunkSchema>;
 
@@ -242,6 +246,16 @@ export function projectCohortToLearnerDelivery(
           ? `https://www.youtube.com/watch?v=${detectedVideoId || videoId}&t=${startSeconds}s`
           : undefined;
 
+        const chunkDurationSec = Math.max(30, endSeconds - startSeconds || 180);
+        const scored = computeDeterministicChunkVector(chunk.text, {
+          title: `${lesson.title} — ${source?.label ?? 'Source Material'}`,
+          duration: chunkDurationSec,
+          chunkIndex: chunkOrder,
+          totalChunks: lesson.sourceChunkIds.length,
+          lessonOrder: lessonIndex,
+          totalLessons: workspace.lessons.length,
+        });
+
         deliveryChunks.push({
           chunkId: chunk.id,
           sourceId: chunk.sourceId,
@@ -256,6 +270,9 @@ export function projectCohortToLearnerDelivery(
           timeRangeLabel,
           timestampUrl,
           checksum: chunk.checksum,
+          vector: scored.vector,
+          isStrictlyLinear: scored.isStrictlyLinear,
+          isKeyConcept: scored.isKeyConcept,
         });
       }
     }

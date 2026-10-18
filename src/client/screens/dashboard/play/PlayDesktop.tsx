@@ -74,7 +74,10 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
     <>
       <ChannelSelector 
         activeChannel={playback.activeChannel} 
-        onChannelSelect={playback.setActiveChannel} 
+        onChannelSelect={playback.setActiveChannel}
+        searchQuery={playback.searchQuery}
+        onSearchQueryChange={playback.setSearchQuery}
+        onPrefsUpdated={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
       />
 
       {!playback.isPlaying && (
@@ -109,7 +112,12 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
         </button>
       )}
 
-      <div className={styles.lessonCardDesktop} style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease' }}>
+      <div className={styles.lessonCardDesktop} style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease', top: 64 }}>
+        {playback.activeItem?.matchReason && (
+          <div className={styles.reasonBadge} data-testid="feed-match-reason">
+            <span>✦ {playback.activeItem.matchReason}</span>
+          </div>
+        )}
         <LessonCard lesson={playback.lesson} />
       </div>
 

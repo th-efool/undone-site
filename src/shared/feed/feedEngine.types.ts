@@ -68,8 +68,10 @@ export interface FeedEngineInput {
   dailyGoalMinutes: number;
   completedTodayMinutes: number;
   feedSize?: number;              // default 20
-  activeChannel?: string;         // 'spark' | 'explore' | 'build' | 'listen' | 'deep_dive' | 'quick'
+  activeChannel?: string;         // 'spark' | 'explore' | 'build' | 'listen' | 'deep_dive' | 'quick' | 'default'
   channelSliderValues?: Record<string, number>;
+  rawStringPrefs?: Record<string, string>;
+  searchQuery?: string;
   targetQueryVector?: number[];   // 12D target vector
   cohortVectorMap?: Record<string, { fullVector: number[]; isStrictlyLinear: boolean }>;
   chunkVectorMap?: Record<string, number[]>;
@@ -95,6 +97,7 @@ export interface FeedItem {
   content?: FeedReadingContent;
   totalChunksInLesson?: number;   // total chunks in this lesson, for "Chunk X / Y" display
   matchScore: number;
+  matchReason?: string;
   // Lesson/season position metadata for UI display (S{seasonOrder} V{lessonOrder}/{totalLessonsInSeason})
   lessonOrder?: number;
   seasonOrder?: number;
