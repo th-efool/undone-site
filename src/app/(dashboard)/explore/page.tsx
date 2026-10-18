@@ -1,5 +1,7 @@
 import { Metadata } from 'next';
+import React, { Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import { ExploreSkeleton } from '@/src/client/components/global/Skeleton';
 
 const Explore = dynamic(() => import('@/src/client/screens/dashboard/explore').then((mod) => mod.Explore));
 
@@ -20,7 +22,7 @@ export const metadata: Metadata = {
   },
 };
 
-export default function explore() {
+export default function ExplorePage() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -35,7 +37,9 @@ export default function explore() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <h1 className="sr-only">Explore Undone</h1>
-      <Explore />
+      <Suspense fallback={<ExploreSkeleton />}>
+        <Explore />
+      </Suspense>
     </>
   );
 }
