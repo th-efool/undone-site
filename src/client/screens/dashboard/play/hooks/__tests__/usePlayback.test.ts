@@ -406,3 +406,108 @@ describe('dynamic player stats and daily goal (ISSUE-3)', () => {
   });
 });
 
+describe('persisted player notes and bookmarks (ISSUE-4)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  const chunkA = {
+    chunkId: 'chunk-A',
+    lessonId: 'lesson-1',
+    lessonTitle: 'Rust Ownership',
+    cohortId: 'cohort-1',
+    startSeconds: 0,
+    endSeconds: 120,
+  };
+  const chunkB = {
+    chunkId: 'chunk-B',
+    lessonId: 'lesson-1',
+    lessonTitle: 'Rust Borrowing',
+    cohortId: 'cohort-1',
+    startSeconds: 120,
+    endSeconds: 240,
+  };
+
+  it('persists notes across chunk navigation and syncs to workspace notes API', async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/api/workspace/notes')) {
+        return { ok: true, json: async () => ({ success: true }) };
+      }
+      if (typeof url === 'string' && url.includes('pageIndex=0')) {
+        return { ok: true, json: async () => ({ items: [chunkA, chunkB] }) };
+      }
+      return { ok: true, json: async () => ({ items: [] }) };
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-A'));
+
+    // Save note on chunk A
+    await act(async () => {
+      await result.current.saveNotes('Notes on chunk A');
+    });
+
+    expect(result.current.notesText).toBe('Notes on chunk A');
+    expect(localStorage.getItem('sidequest_note_chunk-A')).toBe('Notes on chunk A');
+
+    // Verify background workspace notes PATCH API call
+    const notesPatchCalls = fetchMock.mock.calls.filter((c: any[]) => typeof c[0] === 'string' && c[0].includes('/api/workspace/notes'));
+    expect(notesPatchCalls).toHaveLength(1);
+
+    // Navigate to chunk B
+    await act(async () => {
+      result.current.goToIndex(1);
+    });
+
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-B'));
+    expect(result.current.notesText).toBe('');
+
+    // Navigate back to chunk A
+    await act(async () => {
+      result.current.goToIndex(0);
+    });
+
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-A'));
+    expect(result.current.notesText).toBe('Notes on chunk A');
+  });
+
+  it('persists bookmarks across chunk navigation', async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('pageIndex=0')) {
+        return { ok: true, json: async () => ({ items: [chunkA, chunkB] }) };
+      }
+      return { ok: true, json: async () => ({ items: [] }) };
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-A'));
+
+    expect(result.current.bookmarked).toBe(false);
+
+    // Toggle bookmark on chunk A
+    act(() => {
+      result.current.toggleBookmark();
+    });
+
+    expect(result.current.bookmarked).toBe(true);
+    expect(localStorage.getItem('sidequest_bookmark_chunk-A')).toBe('true');
+
+    // Navigate to chunk B
+    await act(async () => {
+      result.current.goToIndex(1);
+    });
+
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-B'));
+    expect(result.current.bookmarked).toBe(false);
+
+    // Navigate back to chunk A
+    await act(async () => {
+      result.current.goToIndex(0);
+    });
+
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-A'));
+    expect(result.current.bookmarked).toBe(true);
+  });
+});
+

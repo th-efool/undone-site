@@ -109,6 +109,7 @@ export function usePlayback() {
   searchQueryRef.current = searchQuery;
 
   const activeItem = feedItems[currentIndex] || null;
+  const activeChunkId = activeItem?.chunkId;
 
   // Fetch feed items via API (Prefetch Engine)
   const fetchAbortControllerRef = useRef<AbortController | null>(null);
@@ -322,13 +323,26 @@ export function usePlayback() {
 
   // Sync state when active item changes
   useEffect(() => {
-    if (!activeItem) return;
+    if (!activeItem) {
+      setNotesText('');
+      setBookmarkedState(false);
+      return;
+    }
     const dur = activeItem.endSeconds - activeItem.startSeconds || parseDurationToSeconds(activeItem.chunkDuration);
     setChunkDurationSeconds(dur);
-    setBookmarkedState(false);
-    setNotesText('');
     setCurrentTimeSeconds(0);
-  }, [activeItem]);
+
+    if (typeof window !== 'undefined' && activeChunkId) {
+      const savedNote = localStorage.getItem(`sidequest_note_${activeChunkId}`);
+      setNotesText(savedNote !== null ? savedNote : '');
+
+      const savedBookmark = localStorage.getItem(`sidequest_bookmark_${activeChunkId}`);
+      setBookmarkedState(savedBookmark === 'true');
+    } else {
+      setNotesText('');
+      setBookmarkedState(false);
+    }
+  }, [activeItem, activeChunkId]);
 
   // Handle YouTube player creation & video switching
   const isPlayerReadyRef = useRef(false);
@@ -538,8 +552,44 @@ export function usePlayback() {
     if (playerRef.current) try { playerRef.current.setPlaybackRate(speed); } catch {}
   }, []);
 
-  const toggleBookmark = useCallback(() => setBookmarkedState(p => !p), []);
-  const saveNotes = useCallback((notes: string) => setNotesText(notes), []);
+  const toggleBookmark = useCallback(() => {
+    if (!activeChunkId) {
+      setBookmarkedState(p => !p);
+      return;
+    }
+    setBookmarkedState(prev => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(`sidequest_bookmark_${activeChunkId}`, String(next));
+      }
+      return next;
+    });
+  }, [activeChunkId]);
+
+  const saveNotes = useCallback(async (notes: string) => {
+    if (!activeChunkId) return;
+    setNotesText(notes);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(`sidequest_note_${activeChunkId}`, notes);
+    }
+
+    // Sync to workspace notes API in background
+    try {
+      await fetch('/api/workspace/notes', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chunkId: activeChunkId,
+          lessonTitle: activeItem?.lessonTitle,
+          content: notes,
+          updatedAt: new Date().toISOString(),
+        }),
+      });
+    } catch (err) {
+      // Graceful offline fallback
+      console.warn('Notes saved locally; cloud sync failed', err);
+    }
+  }, [activeChunkId, activeItem?.lessonTitle]);
 
   const timelineProgress = Math.min(100, Math.max(0, (currentTimeSeconds / Math.max(1, chunkDurationSeconds)) * 100));
   const hasNext = currentIndex < feedItems.length - 1;
