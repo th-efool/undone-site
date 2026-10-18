@@ -8,11 +8,30 @@ export const communityRepo = {
         channels: {
           include: {
             messages: {
+              take: 25,
+              orderBy: { createdAt: 'desc' },
               include: {
-                author: true,
+                author: {
+                  select: { id: true, name: true, image: true, username: true },
+                },
               },
             },
           },
+        },
+      },
+    });
+  },
+
+  getChannelMessages: async (channelId: string, limit = 50, beforeCursor?: string) => {
+    const take = Math.min(100, Math.max(1, limit));
+    return prisma.message.findMany({
+      where: { channelId },
+      take,
+      ...(beforeCursor ? { skip: 1, cursor: { id: beforeCursor } } : {}),
+      orderBy: { createdAt: 'desc' },
+      include: {
+        author: {
+          select: { id: true, name: true, image: true, username: true },
         },
       },
     });
@@ -25,6 +44,12 @@ export const communityRepo = {
         channelId,
         authorId,
       },
+      include: {
+        author: {
+          select: { id: true, name: true, image: true, username: true },
+        },
+      },
     });
   },
 };
+
