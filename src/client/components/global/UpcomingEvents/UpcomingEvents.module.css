@@ -9,8 +9,8 @@
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
+  align-items: center;
+  margin-bottom: 14px;
   flex-shrink: 0;
 }
 
@@ -22,14 +22,47 @@
 .header h2 {
   margin: 0;
   color: var(--message-text-primary, #f8fafc);
-  font-size: 1.1rem;
+  font-size: 1.15rem;
   font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .monthLabel {
   color: var(--message-text-muted, #94a3b8);
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
+}
+
+.calendarNavRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.monthNavButtons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.navBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--message-text-muted, #94a3b8);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.navBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--message-text-primary, #f8fafc);
 }
 
 .providerSelector {
@@ -39,12 +72,12 @@
   background: #1e2230;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 8px;
-  padding: 4px 8px;
+  padding: 5px 9px;
   color: var(--message-text-secondary, #cbd5e1);
   font-size: 0.72rem;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
 .providerSelector:hover {
@@ -54,6 +87,11 @@
 
 .providerIcon {
   color: var(--message-brand, #818cf8);
+  flex-shrink: 0;
+}
+
+.googleIcon {
+  flex-shrink: 0;
 }
 
 .providerChevron {
@@ -63,7 +101,7 @@
 .calendar {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   flex-shrink: 0;
 }
 
@@ -80,11 +118,7 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-}
-
-.emptyCell {
-  height: 34px;
+  gap: 3px;
 }
 
 .dayCell {
@@ -93,23 +127,40 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 34px;
+  height: 32px;
   border-radius: 8px;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: var(--message-text-primary, #f8fafc);
   cursor: default;
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition: background 0.15s ease, transform 0.15s ease, color 0.15s ease;
+  user-select: none;
 }
 
 .dayCell:hover {
   background: rgba(255, 255, 255, 0.06);
 }
 
+.outsideDay {
+  color: var(--message-text-muted, #475569) !important;
+  opacity: 0.45;
+  cursor: default;
+}
+
+.outsideDay:hover {
+  background: transparent !important;
+}
+
 .today {
   background: rgba(99, 102, 241, 0.2);
   color: var(--message-brand, #818cf8);
   font-weight: 800;
+}
+
+.selectedDay {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--message-brand, #818cf8);
+  font-weight: 700;
 }
 
 .hasEvent {
@@ -148,55 +199,47 @@
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.6);
-  z-index: 50;
+  font-size: 0.75rem;
   pointer-events: none;
-  animation: fadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.tooltip::after {
-  content: '';
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border-width: 6px;
-  border-style: solid;
-  border-color: #141620 transparent transparent transparent;
+  z-index: 100;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  animation: fadeIn 0.15s ease-out forwards;
 }
 
 .tooltipContent {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-start;
-  text-align: left;
+}
+
+.tooltipContent + .tooltipContent {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .toneBar {
   width: 3px;
-  height: 100%;
-  min-height: 38px;
+  align-self: stretch;
   border-radius: 999px;
   flex-shrink: 0;
 }
 
 .eventTitle {
   display: block;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  color: #fff;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .eventSub {
-  margin: 2px 0 4px;
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.75);
+  margin: 2px 0 4px 0;
+  font-size: 0.7rem;
+  color: #cbd5e1;
 }
 
 .eventTime {
-  display: inline-block;
+  display: block;
   font-size: 0.72rem;
   font-weight: 700;
   color: #a78bfa;
@@ -245,9 +288,9 @@
 .timelineItem {
   display: flex;
   align-items: stretch;
-  gap: 16px;
+  gap: 14px;
   position: relative;
-  min-height: 56px;
+  min-height: 52px;
   flex-shrink: 0;
 }
 
@@ -256,13 +299,30 @@
   flex-direction: column;
   align-items: flex-end;
   justify-content: flex-start;
-  width: 72px;
+  width: 64px;
   flex-shrink: 0;
   padding-top: 2px;
 }
 
+.startTime {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--message-text-primary, #f8fafc);
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.endTime {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--message-text-muted, #94a3b8);
+  line-height: 1.15;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+
 .heroTime {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 800;
   color: var(--message-text-primary, #f8fafc);
   line-height: 1.1;
@@ -285,12 +345,12 @@
 }
 
 .dot {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 999px;
   margin-top: 5px;
   flex-shrink: 0;
-  box-shadow: 0 0 0 3px var(--message-bg-secondary, #0a0b0e); /* to separate dot from line */
+  box-shadow: 0 0 0 3px var(--message-bg-secondary, #0a0b0e);
   z-index: 1;
 }
 
@@ -299,7 +359,7 @@
   background: var(--message-border, rgba(255, 255, 255, 0.08));
   flex-grow: 1;
   margin-top: 4px;
-  margin-bottom: -4px; /* overlap with next dot */
+  margin-bottom: -4px;
 }
 
 .purpleBg { background: var(--message-brand, #6366f1); }
@@ -311,23 +371,56 @@
   flex-direction: column;
   flex-grow: 1;
   padding-top: 2px;
-  padding-bottom: 24px;
+  padding-bottom: 20px;
+  min-width: 0;
 }
 
 .secondaryTitle {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 700;
   color: var(--message-text-primary, #f8fafc);
   margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .secondarySub {
   font-size: 0.72rem;
   font-weight: 500;
   color: var(--message-text-secondary, #cbd5e1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-@media (max-width: 768px) { .panel { padding: var(--space-2); } }
+.kebabBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: auto;
+  align-self: flex-start;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.kebabBtn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #0f172a;
+}
+
+@media (max-width: 768px) {
+  .panel {
+    padding: var(--space-2);
+  }
+}
 
 /* ==========================================================================
    Light Variant (for Home & light dashboards)
@@ -339,21 +432,30 @@
 
 .lightVariant .header h2 {
   color: #0f172a;
-  font-size: 1.25rem;
+  font-size: 1.15rem;
   font-weight: 800;
 }
 
 .lightVariant .monthLabel {
   color: #64748b;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight: 600;
+}
+
+.lightVariant .navBtn {
+  color: #64748b;
+}
+
+.lightVariant .navBtn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
 .lightVariant .providerSelector {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   color: #334155;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .lightVariant .providerSelector:hover {
@@ -374,11 +476,22 @@
   background: #f1f5f9;
 }
 
+.lightVariant .outsideDay {
+  color: #cbd5e1 !important;
+  opacity: 1;
+}
+
 .lightVariant .today {
-  background: #1b268a !important;
+  background: #1e293b !important;
   color: #ffffff !important;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(27, 38, 138, 0.3);
+  box-shadow: 0 2px 6px rgba(30, 41, 59, 0.2);
+}
+
+.lightVariant .selectedDay {
+  background: #e2e8f0;
+  color: #0f172a;
+  border-radius: 8px;
 }
 
 .lightVariant .upNext {
@@ -397,9 +510,21 @@
 }
 
 .lightVariant .upNextSubLabel {
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 500;
   color: #94a3b8;
+}
+
+.lightVariant .startTime {
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.lightVariant .endTime {
+  color: #94a3b8;
+  font-size: 0.7rem;
+  font-weight: 500;
 }
 
 .lightVariant .heroTime {
@@ -421,6 +546,15 @@
   background: #e2e8f0;
 }
 
+.lightVariant .timelineItem {
+  min-height: 48px;
+  gap: 12px;
+}
+
+.lightVariant .eventContent {
+  padding-bottom: 14px;
+}
+
 .lightVariant .secondaryTitle {
   color: #1e293b;
   font-size: 0.82rem;
@@ -429,7 +563,16 @@
 
 .lightVariant .secondarySub {
   color: #64748b;
-  font-size: 0.75rem;
+  font-size: 0.74rem;
+}
+
+.lightVariant .kebabBtn {
+  color: #94a3b8;
+}
+
+.lightVariant .kebabBtn:hover {
+  background: #f1f5f9;
+  color: #334155;
 }
 
 .lightVariant .addTaskBtn {
@@ -443,7 +586,7 @@
   border-radius: 12px;
   border: 1px solid #e2e8f0;
   background: #ffffff;
-  color: #1b268a;
+  color: #1e293b;
   font-size: 0.85rem;
   font-weight: 700;
   cursor: pointer;
@@ -456,4 +599,3 @@
   border-color: #cbd5e1;
   transform: translateY(-1px);
 }
-

@@ -140,7 +140,17 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
         </main>
 
         <aside className={styles.rightRail}>
-          <UpcomingEvents variant="light" showAddTask />
+          <UpcomingEvents
+            variant="light"
+            showAddTask
+            onAddTask={() => {
+              const input = document.querySelector('textarea, input[placeholder*="learn"]') as HTMLElement;
+              if (input) {
+                input.focus();
+                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }
+            }}
+          />
           <HomeStreakWidget />
         </aside>
       </div>
