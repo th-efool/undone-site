@@ -169,27 +169,45 @@
   color: #0f172a;
 }
 
+.navButtonsCompact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.navBtnCompact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 50%;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.navBtnCompact:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
 .scrollerWrapperCompact {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
   width: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
   box-sizing: border-box;
 }
 
-@media (max-width: 1200px) {
-  .scrollerWrapperCompact {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .scrollerWrapperCompact {
-    display: flex;
-    overflow-x: auto;
-    scrollbar-width: none;
-    padding-bottom: 8px;
-  }
+.infiniteScrollerCompact {
+  display: flex;
+  gap: 14px;
 }
 
 :global([data-theme='dark']) .titleCompact,

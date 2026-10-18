@@ -53,6 +53,25 @@ export const StudyRooms = React.memo(function StudyRooms({
               </Link>
             )}
 
+            <div className={styles.navButtonsCompact}>
+              <button
+                type="button"
+                className={styles.navBtnCompact}
+                onClick={() => scrollerRef.current?.scrollLeft()}
+                aria-label="Scroll study rooms left"
+              >
+                <ChevronLeft size={15} strokeWidth={2.2} />
+              </button>
+              <button
+                type="button"
+                className={styles.navBtnCompact}
+                onClick={() => scrollerRef.current?.scrollRight()}
+                aria-label="Scroll study rooms right"
+              >
+                <ChevronRight size={15} strokeWidth={2.2} />
+              </button>
+            </div>
+
             <button
               type="button"
               className={styles.toggleBtnCompact}
@@ -67,13 +86,24 @@ export const StudyRooms = React.memo(function StudyRooms({
 
         {isOpen && (
           <div className={styles.scrollerWrapperCompact}>
-            {items.slice(0, 6).map((item) => (
-              <StudyRoomCard
-                key={item.id}
-                session={item}
-                variant="compact"
-              />
-            ))}
+            <InfiniteScroller
+              ref={scrollerRef}
+              scrollAmount={380}
+              loop={true}
+              panable={true}
+              showArrows={false}
+              autoScroll={true}
+              autoScrollSpeed={0.35}
+              className={styles.infiniteScrollerCompact}
+            >
+              {items.map((item) => (
+                <StudyRoomCard
+                  key={item.id}
+                  session={item}
+                  variant="compact"
+                />
+              ))}
+            </InfiniteScroller>
           </div>
         )}
       </section>

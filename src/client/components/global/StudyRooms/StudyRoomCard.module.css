@@ -87,7 +87,8 @@
 
 .cardCompact {
   position: relative;
-  width: 100%;
+  flex: 0 0 186px;
+  width: 186px;
   height: 204px;
   border-radius: 16px;
   overflow: hidden;
