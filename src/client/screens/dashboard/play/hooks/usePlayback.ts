@@ -91,8 +91,8 @@ export function usePlayback() {
   const [completionPending, setCompletionPending] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
   const completing = useRef(false);
-  const [dailyGoalPercent, setDailyGoalPercent] = useState(68);
-  const [stats, setStats] = useState({ cohortsCovered: 3, chunksRemaining: 20, estimatedMinutes: 90 });
+  const [dailyGoalPercent, setDailyGoalPercent] = useState(0);
+  const [stats, setStats] = useState({ cohortsCovered: 0, chunksRemaining: 0, estimatedMinutes: 0 });
 
   const playerRef = useRef<any>(null);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -268,6 +268,37 @@ export function usePlayback() {
       fetchChannelFeed(activeChannel, channelCaches[activeChannel].pageIndex + 1);
     }
   }, [currentIndex, feedItems.length, activeChannel, channelCaches, fetchChannelFeed, activeItem]);
+
+  // Dynamic Player Stats & Daily Goal Calculation
+  useEffect(() => {
+    const items = currentCache.items;
+    if (!items.length) {
+      setStats({ cohortsCovered: 0, chunksRemaining: 0, estimatedMinutes: 0 });
+      setDailyGoalPercent(0);
+      return;
+    }
+
+    const distinctCohorts = new Set(items.map(it => it.cohortId).filter(Boolean)).size;
+    const remaining = Math.max(0, items.length - currentIndex);
+    const remainingSeconds = items.slice(currentIndex).reduce((acc, it) => {
+      const dur = (it.endSeconds !== undefined && it.startSeconds !== undefined && it.endSeconds > it.startSeconds)
+        ? (it.endSeconds - it.startSeconds)
+        : (it.chunkDuration ? parseDurationToSeconds(it.chunkDuration) : 180);
+      return acc + dur;
+    }, 0);
+
+    const completedTodayCount = reportedChunksRef.current.size;
+    const targetGoalMinutes = 20; // 20 mins standard daily goal
+    const completedMinutes = Math.round(completedTodayCount * 3); // ~3 mins per chunk
+    const calculatedGoalPercent = Math.min(100, Math.round((completedMinutes / targetGoalMinutes) * 100));
+
+    setDailyGoalPercent(calculatedGoalPercent);
+    setStats({
+      cohortsCovered: distinctCohorts,
+      chunksRemaining: remaining,
+      estimatedMinutes: Math.ceil(remainingSeconds / 60),
+    });
+  }, [currentCache.items, currentIndex]);
 
   // Handle YouTube IFrame API Load
   useEffect(() => {

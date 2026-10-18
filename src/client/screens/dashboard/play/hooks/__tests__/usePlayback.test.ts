@@ -316,3 +316,93 @@ describe('completeActiveChunk feed advance (ISSUE-2)', () => {
   });
 });
 
+describe('dynamic player stats and daily goal (ISSUE-3)', () => {
+  beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); });
+
+  it('initializes with 0 safe defaults when feed is empty', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ items: [] }) });
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.feedLoading).toBe(false));
+    expect(result.current.dailyGoalPercent).toBe(0);
+    expect(result.current.stats).toEqual({
+      cohortsCovered: 0,
+      chunksRemaining: 0,
+      estimatedMinutes: 0,
+    });
+  });
+
+  it('dynamically computes cohortsCovered, chunksRemaining, and estimatedMinutes from feed items', async () => {
+    const chunk1 = {
+      chunkId: 'c1',
+      lessonId: 'l1',
+      cohortId: 'cohort-alpha',
+      startSeconds: 0,
+      endSeconds: 120,
+    };
+    const chunk2 = {
+      chunkId: 'c2',
+      lessonId: 'l1',
+      cohortId: 'cohort-alpha',
+      startSeconds: 120,
+      endSeconds: 300,
+    };
+    const chunk3 = {
+      chunkId: 'c3',
+      lessonId: 'l2',
+      cohortId: 'cohort-beta',
+      startSeconds: 0,
+      endSeconds: 180,
+    };
+
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ items: [chunk1, chunk2, chunk3] }) });
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.feedItems).toHaveLength(3));
+
+    expect(result.current.stats.cohortsCovered).toBe(2);
+    expect(result.current.stats.chunksRemaining).toBe(3);
+    expect(result.current.stats.estimatedMinutes).toBe(8);
+    expect(result.current.dailyGoalPercent).toBe(0);
+  });
+
+  it('updates dailyGoalPercent and decrements remaining stats when chunks are completed', async () => {
+    const chunk1 = {
+      chunkId: 'c1',
+      lessonId: 'l1',
+      cohortId: 'cohort-alpha',
+      startSeconds: 0,
+      endSeconds: 120,
+    };
+    const chunk2 = {
+      chunkId: 'c2',
+      lessonId: 'l1',
+      cohortId: 'cohort-alpha',
+      startSeconds: 120,
+      endSeconds: 240,
+    };
+
+    fetchMock.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/api/progress/chunk')) {
+        return { ok: true, json: async () => ({ success: true }) };
+      }
+      if (typeof url === 'string' && url.includes('pageIndex=0')) {
+        return { ok: true, json: async () => ({ items: [chunk1, chunk2] }) };
+      }
+      return { ok: true, json: async () => ({ items: [] }) };
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.feedItems).toHaveLength(2));
+
+    expect(result.current.stats.chunksRemaining).toBe(2);
+    expect(result.current.dailyGoalPercent).toBe(0);
+
+    await act(async () => {
+      await result.current.completeActiveChunk();
+    });
+
+    expect(result.current.dailyGoalPercent).toBe(15);
+    expect(result.current.stats.chunksRemaining).toBe(1);
+    expect(result.current.stats.estimatedMinutes).toBe(2);
+  });
+});
+
