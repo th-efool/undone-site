@@ -39,6 +39,7 @@ export interface CreateCohortParams {
       videoUrl?: string;
       sourceUrl?: string;
       chunks?: any;
+      isPublished?: boolean;
     }[];
   }[];
   isPublished?: boolean;
@@ -47,10 +48,28 @@ export interface CreateCohortParams {
 
 export const cohortRepo = {
   async updatePublishStatus(cohortId: string, isPublished: boolean) {
-    return prisma.cohort.update({
+    const updated = await prisma.cohort.update({
       where: { id: cohortId },
       data: { isPublished, publishedAt: isPublished ? new Date() : null },
     });
+
+    const seasons = await prisma.season.findMany({
+      where: { cohortId },
+      select: { id: true },
+    });
+
+    if (seasons.length > 0) {
+      await prisma.lesson.updateMany({
+        where: {
+          seasonId: { in: seasons.map(s => s.id) },
+        },
+        data: {
+          isPublished,
+        },
+      });
+    }
+
+    return updated;
   },
 
   async createCohortWithCommunity(data: CreateCohortParams) {
@@ -117,6 +136,7 @@ export const cohortRepo = {
               videoUrl: lesson.videoUrl,
               sourceUrl: lesson.sourceUrl,
               chunks: lesson.chunks || [],
+              isPublished: lesson.isPublished ?? Boolean(data.isPublished ?? true),
             })),
           });
         }
