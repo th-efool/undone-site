@@ -17,7 +17,7 @@ export interface StudyRoomsProps {
   variant?: 'standard' | 'compact';
 }
 
-export function StudyRooms({
+export const StudyRooms = React.memo(function StudyRooms({
   items,
   title,
   subtitle,
@@ -132,4 +132,4 @@ export function StudyRooms({
       </div>
     </section>
   );
-}
+});

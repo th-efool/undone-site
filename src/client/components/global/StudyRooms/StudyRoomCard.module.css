@@ -136,10 +136,14 @@
   pointer-events: none;
 }
 
-.kebabBtnCompact {
+.kebabWrapperCompact {
   position: absolute;
   top: 8px;
   right: 8px;
+  z-index: 10;
+}
+
+.kebabBtnCompact {
   width: 24px;
   height: 24px;
   border-radius: 50%;
@@ -151,14 +155,207 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 5;
   transition: background 0.15s ease, transform 0.1s ease;
   padding: 0;
 }
 
-.kebabBtnCompact:hover {
-  background: rgba(0, 0, 0, 0.65);
+.kebabBtnCompact:hover,
+.kebabActive {
+  background: rgba(0, 0, 0, 0.75) !important;
   transform: scale(1.08);
+}
+
+.actionMenuCompact {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 148px;
+  background: #181a24;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px -2px rgba(0, 0, 0, 0.5);
+  padding: 4px;
+  z-index: 30;
+  animation: menuDrop 0.14s ease-out;
+}
+
+@keyframes menuDrop {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.menuItemCompact {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #f1f5f9;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  font-family: inherit;
+  text-align: left;
+}
+
+.menuItemCompact:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.pinnedBadgeCompact {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.95);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.feedbackToastCompact {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(4px);
+  color: #4ade80;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  z-index: 20;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: menuDrop 0.15s ease-out;
+}
+
+/* Standard Card Menu Styles */
+.kebabWrapper {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 10;
+}
+
+.kebabBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(6px);
+  border: none;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+  padding: 0;
+}
+
+.kebabBtn:hover {
+  background: rgba(0, 0, 0, 0.7);
+  transform: scale(1.06);
+}
+
+.actionMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 164px;
+  background: #181a24;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  padding: 5px;
+  z-index: 30;
+  animation: menuDrop 0.15s ease-out;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #f1f5f9;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  font-family: inherit;
+  text-align: left;
+}
+
+.menuItem:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.pinnedBadge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(99, 102, 241, 0.95);
+  color: #ffffff;
+  font-size: 0.74rem;
+  font-weight: 700;
+  z-index: 5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.feedbackToast {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(4px);
+  color: #4ade80;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  z-index: 20;
+  white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  animation: menuDrop 0.15s ease-out;
+}
+
+.cardPinned {
+  box-shadow: 0 0 0 2px #6366f1, 0 8px 24px -4px rgba(99, 102, 241, 0.3) !important;
 }
 
 .overlayBarCompact {
@@ -243,7 +440,8 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
-:global([data-theme='dark']) .cardCompact {
+:global([data-theme='dark']) .cardCompact,
+:global(.dark) .cardCompact {
   border-color: rgba(255, 255, 255, 0.08);
 }
 

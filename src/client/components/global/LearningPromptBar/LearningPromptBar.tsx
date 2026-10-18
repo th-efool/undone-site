@@ -39,8 +39,52 @@ export interface LearningPromptBarProps {
   autoFocus?: boolean;
 }
 
-export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPromptBarProps>(
-  function LearningPromptBar(
+export interface LearningTemplate {
+  id: string;
+  title: string;
+  category: string;
+  tagline: string;
+  prompt: string;
+}
+
+export const HIGH_VALUE_TEMPLATES: LearningTemplate[] = [
+  {
+    id: 'fullstack',
+    title: 'Full-Stack Web Architect',
+    category: 'Engineering',
+    tagline: 'Next.js 15, React 19, TypeScript, PostgreSQL & distributed systems',
+    prompt:
+      'Full-Stack Web Architect: Master modern Next.js 15, React Server Components, high-performance TypeScript patterns, relational schema design with PostgreSQL, and cloud deployments.',
+  },
+  {
+    id: 'ml-research',
+    title: 'Deep Machine Learning Research',
+    category: 'AI & Data',
+    tagline: 'Transformer architectures, diffusion models & PyTorch implementations',
+    prompt:
+      'Deep Machine Learning Research: Rigorous exploration of transformer architectures, attention mechanisms, fine-tuning pipelines (LoRA/PEFT), diffusion models, and scalable PyTorch training.',
+  },
+  {
+    id: 'system-design',
+    title: 'System Design Mastery',
+    category: 'Architecture',
+    tagline: 'High-throughput microservices, fault tolerance, Kafka & caching',
+    prompt:
+      'System Design Mastery: Build resilient distributed systems, event-driven streaming with Apache Kafka, consensus protocols, horizontal sharding, and high-concurrency caching tiers.',
+  },
+  {
+    id: 'language',
+    title: 'Accelerated Language Immersion',
+    category: 'Language',
+    tagline: 'High-frequency idiomatic speech, contextual vocabulary & listening',
+    prompt:
+      'Accelerated Language Immersion: Conversational fluency through contextual roleplays, high-frequency core vocabulary, auditory comprehension drills, and real-world idiomatic mastery.',
+  },
+];
+
+export const LearningPromptBar = React.memo(
+  forwardRef<LearningPromptBarHandle, LearningPromptBarProps>(
+    function LearningPromptBar(
     {
       value: controlledValue,
       onChange: controlledOnChange,
@@ -59,8 +103,93 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
     const [sourceText, setSourceText] = useState('');
     const [intakeError, setIntakeError] = useState('');
     const [submitting, setSubmitting] = useState(false);
+    const [showTemplates, setShowTemplates] = useState(false);
     const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const templateMenuRef = useRef<HTMLDivElement>(null);
     const { data: session, status } = useSafeSession();
+
+    useEffect(() => {
+      if (!showTemplates && !showSource) return;
+      const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+        if (showTemplates && templateMenuRef.current && !templateMenuRef.current.contains(e.target as Node)) {
+          setShowTemplates(false);
+        }
+      };
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          if (showTemplates) {
+            setShowTemplates(false);
+          } else if (showSource) {
+            setShowSource(false);
+          }
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }, [showTemplates, showSource]);
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      const reader = new FileReader();
+
+      if (ext === 'pdf') {
+        reader.onload = (event) => {
+          try {
+            const buffer = event.target?.result as ArrayBuffer;
+            const uint8 = new Uint8Array(buffer);
+            const raw = new TextDecoder('latin1').decode(uint8);
+            const matches = raw.match(/\(([^()]+)\)Tj/g);
+            let extractedText = '';
+            if (matches && matches.length > 0) {
+              extractedText = matches.map((m) => m.slice(1, -3)).join(' ');
+            }
+            const textContent = extractedText.trim()
+              ? `[Document: ${file.name}]\n${extractedText.trim()}`
+              : `[Attached Document: ${file.name} (${Math.round(file.size / 1024)} KB)]\nReference source material loaded from document.`;
+            setSourceText((prev) => (prev ? `${prev}\n\n---\n${textContent}` : textContent));
+            setShowSource(true);
+          } catch {
+            const fallbackText = `[Attached Document: ${file.name} (${Math.round(file.size / 1024)} KB)]`;
+            setSourceText((prev) => (prev ? `${prev}\n\n---\n${fallbackText}` : fallbackText));
+            setShowSource(true);
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      } else {
+        reader.onload = (event) => {
+          const text = event.target?.result as string;
+          if (typeof text === 'string') {
+            const fileContent = `[Source: ${file.name}]\n${text.trim()}`;
+            setSourceText((prev) => (prev ? `${prev}\n\n---\n${fileContent}` : fileContent));
+            setShowSource(true);
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      // Reset file input value
+      e.target.value = '';
+    };
+
+    const handleSelectTemplate = (template: LearningTemplate) => {
+      handleQueryChange(template.prompt);
+      setShowTemplates(false);
+      if (inputRef.current) {
+        inputRef.current.focus();
+        if ('setSelectionRange' in inputRef.current) {
+          const len = template.prompt.length;
+          inputRef.current.setSelectionRange(len, len);
+        }
+      }
+    };
 
     useImperativeHandle(ref, () => ({
       setPrompt: (text: string) => {
@@ -83,7 +212,7 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
     }));
 
     useEffect(() => {
-      if (typeof window !== 'undefined' && controlledValue === undefined) {
+      if (typeof window !== 'undefined') {
         let qFromUrl: string | null = null;
         try {
           const parsedUrl = new URL(window.location.href, 'http://localhost');
@@ -92,23 +221,96 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
           const urlParams = new URLSearchParams(window.location.search);
           qFromUrl = urlParams.get('q');
         }
-        const savedQuery = sessionStorage.getItem('undone:landing-query');
-        if (qFromUrl) {
-          setInternalQuery(qFromUrl);
-        } else if (savedQuery) {
-          setInternalQuery(savedQuery);
-        } else {
-          const draft = readIntakeDraft(null);
-          if (draft?.prompt) {
-            setInternalQuery(draft.prompt);
-            if (draft.source?.text) {
-              setSourceText(draft.source.text);
-              setShowSource(true);
-            }
+
+        const storedQ =
+          sessionStorage.getItem('sidequest_prompt_query_draft') ||
+          localStorage.getItem('sidequest_prompt_query_draft') ||
+          sessionStorage.getItem('undone:landing-query');
+
+        const storedSrc =
+          sessionStorage.getItem('sidequest_prompt_source_draft') ||
+          localStorage.getItem('sidequest_prompt_source_draft');
+
+        const storedShow =
+          sessionStorage.getItem('sidequest_prompt_source_visible') ||
+          localStorage.getItem('sidequest_prompt_source_visible');
+
+        const intakeDraft = readIntakeDraft(null);
+
+        // Restore prompt query if uncontrolled
+        if (controlledValue === undefined) {
+          if (qFromUrl) {
+            setInternalQuery(qFromUrl);
+          } else if (storedQ) {
+            setInternalQuery(storedQ);
+          } else if (intakeDraft?.prompt) {
+            setInternalQuery(intakeDraft.prompt);
           }
+        }
+
+        // Restore pasted source text and visibility
+        if (storedSrc) {
+          setSourceText(storedSrc);
+          setShowSource(true);
+        } else if (intakeDraft?.source?.text) {
+          setSourceText(intakeDraft.source.text);
+          setShowSource(true);
+        } else if (storedShow === 'true') {
+          setShowSource(true);
         }
       }
     }, [controlledValue]);
+
+    // Continuously auto-persist unsubmitted prompt queries and pasted sources
+    useEffect(() => {
+      const timer = window.setTimeout(() => {
+        if (typeof window === 'undefined') return;
+        try {
+          if (query) {
+            sessionStorage.setItem('sidequest_prompt_query_draft', query);
+            localStorage.setItem('sidequest_prompt_query_draft', query);
+            sessionStorage.setItem('undone:landing-query', query);
+          } else {
+            sessionStorage.removeItem('sidequest_prompt_query_draft');
+            localStorage.removeItem('sidequest_prompt_query_draft');
+          }
+
+          if (sourceText) {
+            sessionStorage.setItem('sidequest_prompt_source_draft', sourceText);
+            localStorage.setItem('sidequest_prompt_source_draft', sourceText);
+          } else {
+            sessionStorage.removeItem('sidequest_prompt_source_draft');
+            localStorage.removeItem('sidequest_prompt_source_draft');
+          }
+
+          sessionStorage.setItem('sidequest_prompt_source_visible', String(showSource));
+          localStorage.setItem('sidequest_prompt_source_visible', String(showSource));
+        } catch {}
+      }, 200);
+
+      return () => window.clearTimeout(timer);
+    }, [query, sourceText, showSource]);
+
+    // Flush immediately on accidental navigation or refresh before unload
+    useEffect(() => {
+      const handleBeforeUnload = () => {
+        try {
+          if (query) {
+            sessionStorage.setItem('sidequest_prompt_query_draft', query);
+            localStorage.setItem('sidequest_prompt_query_draft', query);
+          }
+          if (sourceText) {
+            sessionStorage.setItem('sidequest_prompt_source_draft', sourceText);
+            localStorage.setItem('sidequest_prompt_source_draft', sourceText);
+          }
+          sessionStorage.setItem('sidequest_prompt_source_visible', String(showSource));
+          localStorage.setItem('sidequest_prompt_source_visible', String(showSource));
+        } catch {}
+      };
+
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [query, sourceText, showSource]);
 
     const handleQueryChange = (val: string) => {
       if (controlledOnChange) {
@@ -155,6 +357,16 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
         sessionStorage.setItem('undone:landing-query', textToSearch.trim());
         saveIntakeDraft(draftPayload, ownerId);
 
+        // Ensure drafts survive unauthenticated auth redirects
+        try {
+          sessionStorage.setItem('sidequest_prompt_query_draft', textToSearch.trim());
+          localStorage.setItem('sidequest_prompt_query_draft', textToSearch.trim());
+          if (sourceText.trim()) {
+            sessionStorage.setItem('sidequest_prompt_source_draft', sourceText.trim());
+            localStorage.setItem('sidequest_prompt_source_draft', sourceText.trim());
+          }
+        } catch {}
+
         if (!ownerId && status === 'unauthenticated') {
           const returnUrl = `/?q=${encodeURIComponent(textToSearch.trim())}`;
           window.location.href = `/auth?returnTo=${encodeURIComponent(returnUrl)}`;
@@ -171,6 +383,13 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
             if (createRes?.ok) {
               const created = await createRes.json();
               if (created?.workspaceId) {
+                // Clear draft on successful transition
+                try {
+                  sessionStorage.removeItem('sidequest_prompt_query_draft');
+                  localStorage.removeItem('sidequest_prompt_query_draft');
+                  sessionStorage.removeItem('sidequest_prompt_source_draft');
+                  localStorage.removeItem('sidequest_prompt_source_draft');
+                } catch {}
                 window.location.href = `/quest/build/${created.workspaceId}`;
                 return;
               }
@@ -179,6 +398,14 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
             // Fall back
           }
         }
+
+        // Clear draft on successful transition
+        try {
+          sessionStorage.removeItem('sidequest_prompt_query_draft');
+          localStorage.removeItem('sidequest_prompt_query_draft');
+          sessionStorage.removeItem('sidequest_prompt_source_draft');
+          localStorage.removeItem('sidequest_prompt_source_draft');
+        } catch {}
 
         window.location.href = '/quest/start';
       } catch (error) {
@@ -214,6 +441,7 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
                   type="button"
                   className={styles.promptPlusPill}
                   aria-label="Add pasted text source"
+                  aria-expanded={showSource}
                   onClick={() => setShowSource((prev) => !prev)}
                 >
                   <Plus size={16} strokeWidth={2.0} />
@@ -229,25 +457,72 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
                   <span>Add sources</span>
                 </button>
 
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".txt,.md,.json,.pdf,text/plain,text/markdown,application/json,application/pdf"
+                  style={{ display: 'none' }}
+                  onChange={handleFileUpload}
+                  aria-hidden="true"
+                  tabIndex={-1}
+                />
+
                 <button
                   type="button"
                   className={styles.promptPill}
-                  disabled
-                  title="File uploads are not available in this intake yet"
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Upload reference files (.txt, .md, .json, .pdf)"
+                  aria-label="Upload reference material"
                 >
                   <Paperclip size={15} strokeWidth={1.8} />
                   <span>Upload</span>
                 </button>
 
-                <button
-                  type="button"
-                  className={styles.promptPill}
-                  disabled
-                  title="Templates are not available in this intake yet"
-                >
-                  <Sparkles size={15} strokeWidth={1.8} />
-                  <span>Use a template</span>
-                </button>
+                <div className={styles.templateWrapper} ref={templateMenuRef}>
+                  <button
+                    type="button"
+                    className={`${styles.promptPill} ${showTemplates ? styles.promptPillActive : ''}`}
+                    onClick={() => setShowTemplates((prev) => !prev)}
+                    aria-expanded={showTemplates}
+                    aria-haspopup="dialog"
+                    title="Choose a curated learning template"
+                  >
+                    <Sparkles size={15} strokeWidth={1.8} />
+                    <span>Use a template</span>
+                  </button>
+
+                  {showTemplates && (
+                    <div
+                      className={styles.templateMenu}
+                      role="menu"
+                      aria-label="Curated learning templates"
+                    >
+                      <div className={styles.templateMenuHeader}>
+                        <span className={styles.templateMenuTitle}>Curated Pathways</span>
+                        <span className={styles.templateMenuSubtitle}>
+                          Select a pathway to pre-fill your prompt
+                        </span>
+                      </div>
+                      <div className={styles.templateList}>
+                        {HIGH_VALUE_TEMPLATES.map((tmpl) => (
+                          <button
+                            key={tmpl.id}
+                            type="button"
+                            className={styles.templateItem}
+                            onClick={() => handleSelectTemplate(tmpl)}
+                            role="menuitem"
+                          >
+                            <div className={styles.templateItemTop}>
+                              <span className={styles.templateBadge}>{tmpl.category}</span>
+                              <span className={styles.templateItemTitle}>{tmpl.title}</span>
+                            </div>
+                            <p className={styles.templateItemDesc}>{tmpl.tagline}</p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className={styles.promptRightActions}>
@@ -277,7 +552,7 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
         />
 
         {showSource && (
-          <div className={styles.sourceTextWrapper}>
+          <div className={styles.sourceTextWrapper} role="region" aria-label="Reference material drawer">
             <div className={styles.sourceTextHeader}>
               <span className={styles.sourceTextLabel}>Paste reference material or syllabus</span>
               <div className={styles.sourceTextActions}>
@@ -294,6 +569,15 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
                     Clear
                   </button>
                 )}
+                <button
+                  type="button"
+                  className={styles.sourceTextClear}
+                  onClick={() => setShowSource(false)}
+                  aria-label="Close source material drawer"
+                  title="Close (Esc)"
+                >
+                  <X size={14} />
+                </button>
               </div>
             </div>
             <textarea
@@ -303,6 +587,12 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
               placeholder="Paste articles, code snippets, notes, or lecture outlines to ground your cohort..."
               value={sourceText}
               onChange={(event) => setSourceText(event.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Escape') {
+                  e.stopPropagation();
+                  setShowSource(false);
+                }
+              }}
               rows={4}
             />
           </div>
@@ -325,4 +615,4 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
       </div>
     );
   },
-);
+));

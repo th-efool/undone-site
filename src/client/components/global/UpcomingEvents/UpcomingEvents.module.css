@@ -618,3 +618,569 @@
   border-color: #cbd5e1;
   transform: translateY(-1px);
 }
+
+/* Toast Notice */
+.toastNotice {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 8px 14px;
+  border-radius: 9999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.25);
+  z-index: 100;
+  animation: toastSlideDown 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+@keyframes toastSlideDown {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -10px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.toastIcon {
+  color: #4ade80;
+}
+
+/* Provider Selector Dropdown */
+.providerWrapper {
+  position: relative;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.providerDropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 195px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.06);
+  padding: 6px;
+  z-index: 60;
+  animation: dropdownFade 0.15s ease-out;
+}
+
+@keyframes dropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.providerDropdownHeader {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #94a3b8;
+  padding: 6px 8px 4px 8px;
+  letter-spacing: 0.04em;
+}
+
+.providerOption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 7px 8px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #334155;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-family: inherit;
+}
+
+.providerOption:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.providerOptionActive {
+  background: #eef2ff !important;
+  color: #4338ca !important;
+}
+
+.providerOptionLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.providerCheck {
+  color: #4338ca;
+  flex-shrink: 0;
+}
+
+.providerIconOutlook {
+  color: #0284c7;
+}
+
+.providerIconApple {
+  color: #475569;
+}
+
+.providerIconSidequest {
+  color: #6366f1;
+}
+
+/* Event Kebab Action Menu */
+.kebabWrapper {
+  position: relative;
+  display: inline-flex;
+}
+
+.kebabBtnActive {
+  background: rgba(0, 0, 0, 0.08) !important;
+  color: #0f172a !important;
+}
+
+.kebabMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  width: 160px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.14);
+  padding: 5px;
+  z-index: 50;
+  animation: dropdownFade 0.14s ease-out;
+}
+
+.kebabMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #334155;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  font-family: inherit;
+  text-align: left;
+}
+
+.kebabMenuItem:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.kebabMenuItemDanger {
+  color: #dc2626;
+}
+
+.kebabMenuItemDanger:hover {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+/* Completed Event Visuals */
+.timelineItemCompleted {
+  opacity: 0.6;
+}
+
+.timelineItemCompleted .secondaryTitle {
+  text-decoration: line-through;
+}
+
+.completedBadge {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #16a34a;
+  background: #dcfce7;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-top: 4px;
+  width: fit-content;
+}
+
+.dotCompleted {
+  background: #16a34a !important;
+}
+
+/* Empty Day State Feedback */
+.emptyDayNotice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px 16px;
+  margin-top: 10px;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 14px;
+}
+
+.emptyNoticeIcon {
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.emptyNoticeTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 4px 0;
+}
+
+.emptyNoticeSub {
+  font-size: 0.74rem;
+  color: #64748b;
+  margin: 0 0 14px 0;
+  max-width: 240px;
+  line-height: 1.4;
+}
+
+.quickAddSessionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: #1c2468;
+  color: #ffffff;
+  border: none;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.quickAddSessionBtn:hover {
+  background: #25338a;
+  transform: translateY(-1px);
+}
+
+/* Event Details Modal */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: fadeIn 0.15s ease;
+}
+
+.modalContent {
+  width: 100%;
+  max-width: 400px;
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.modalHeaderTitleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modalCategoryBadge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #4338ca;
+  background: #e0e7ff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.modalTitle {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.modalCloseBtn {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+}
+
+.modalCloseBtn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.modalSubtitle {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin: 0;
+}
+
+.modalDetailRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #334155;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.modalDetailIcon {
+  color: #6366f1;
+}
+
+.modalActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.modalPrimaryBtn {
+  padding: 8px 16px;
+  background: #1c2468;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.modalSecondaryBtn {
+  padding: 8px 14px;
+  background: transparent;
+  color: #64748b;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+/* Dark Theme Overrides */
+:global([data-theme='dark']) .providerDropdown,
+:global(.dark) .providerDropdown,
+:global([data-theme='dark']) .kebabMenu,
+:global(.dark) .kebabMenu,
+:global([data-theme='dark']) .modalContent,
+:global(.dark) .modalContent {
+  background: #1a1c26;
+  border-color: #2e3244;
+}
+
+:global([data-theme='dark']) .providerOption,
+:global(.dark) .providerOption,
+:global([data-theme='dark']) .kebabMenuItem,
+:global(.dark) .kebabMenuItem {
+  color: #cbd5e1;
+}
+
+:global([data-theme='dark']) .providerOption:hover,
+:global(.dark) .providerOption:hover,
+:global([data-theme='dark']) .kebabMenuItem:hover,
+:global(.dark) .kebabMenuItem:hover {
+  background: #252838;
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .emptyDayNotice,
+:global(.dark) .emptyDayNotice {
+  background: #161822;
+  border-color: #2e3244;
+}
+
+:global([data-theme='dark']) .emptyNoticeTitle,
+:global(.dark) .emptyNoticeTitle,
+:global([data-theme='dark']) .modalTitle,
+:global(.dark) .modalTitle {
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .modalDetailRow,
+:global(.dark) .modalDetailRow {
+  background: #12141c;
+  color: #cbd5e1;
+}
+
+/* Light Variant Adaptations for Dark Theme */
+:global([data-theme='dark']) .lightVariant.panel,
+:global(.dark) .lightVariant.panel {
+  background: #141522;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .lightVariant .header h2,
+:global(.dark) .lightVariant .header h2 {
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .lightVariant .monthLabel,
+:global(.dark) .lightVariant .monthLabel {
+  color: #94a3b8;
+}
+
+:global([data-theme='dark']) .lightVariant .providerSelector,
+:global(.dark) .lightVariant .providerSelector {
+  background: #1c1e2b;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+}
+
+:global([data-theme='dark']) .lightVariant .providerSelector:hover,
+:global(.dark) .lightVariant .providerSelector:hover {
+  background: #252838;
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .lightVariant .navBtn,
+:global(.dark) .lightVariant .navBtn {
+  color: #94a3b8;
+}
+
+:global([data-theme='dark']) .lightVariant .navBtn:hover,
+:global(.dark) .lightVariant .navBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .lightVariant .dayCell,
+:global(.dark) .lightVariant .dayCell {
+  color: #cbd5e1;
+}
+
+:global([data-theme='dark']) .lightVariant .dayCell:hover,
+:global(.dark) .lightVariant .dayCell:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+:global([data-theme='dark']) .lightVariant .outsideDay,
+:global(.dark) .lightVariant .outsideDay {
+  color: rgba(255, 255, 255, 0.2) !important;
+}
+
+:global([data-theme='dark']) .lightVariant .selectedDay,
+:global(.dark) .lightVariant .selectedDay {
+  background: #282c40;
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .lightVariant .today,
+:global(.dark) .lightVariant .today {
+  background: #3b49df !important;
+  color: #ffffff !important;
+}
+
+:global([data-theme='dark']) .lightVariant .upNext,
+:global(.dark) .lightVariant .upNext {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+:global([data-theme='dark']) .lightVariant .upNextLabel,
+:global(.dark) .lightVariant .upNextLabel {
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .lightVariant .secondaryTitle,
+:global(.dark) .lightVariant .secondaryTitle {
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .lightVariant .secondarySub,
+:global(.dark) .lightVariant .secondarySub {
+  color: #94a3b8;
+}
+
+:global([data-theme='dark']) .lightVariant .startTime,
+:global(.dark) .lightVariant .startTime {
+  color: #818cf8;
+}
+
+:global([data-theme='dark']) .lightVariant .dot,
+:global(.dark) .lightVariant .dot {
+  box-shadow: 0 0 0 3px #141522;
+}
+
+:global([data-theme='dark']) .lightVariant .line,
+:global(.dark) .lightVariant .line {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:global([data-theme='dark']) .lightVariant .kebabBtn,
+:global(.dark) .lightVariant .kebabBtn {
+  color: #94a3b8;
+}
+
+:global([data-theme='dark']) .lightVariant .kebabBtn:hover,
+:global(.dark) .lightVariant .kebabBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .lightVariant .addTaskBtn,
+:global(.dark) .lightVariant .addTaskBtn {
+  background: #1c1e2b;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .lightVariant .addTaskBtn:hover,
+:global(.dark) .lightVariant .addTaskBtn:hover {
+  background: #252838;
+  border-color: rgba(255, 255, 255, 0.22);
+}
+

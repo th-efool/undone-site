@@ -192,21 +192,23 @@
   }
 }
 
-/* ─── Dark Mode Overrides ────────────────────────────────────────────────── */
-
-:global([data-theme='dark']) .titleCompact {
+:global([data-theme='dark']) .titleCompact,
+:global(.dark) .titleCompact {
   color: #f8fafc;
 }
 
-:global([data-theme='dark']) .subtitleCompact {
+:global([data-theme='dark']) .subtitleCompact,
+:global(.dark) .subtitleCompact {
   color: #94a3b8;
 }
 
-:global([data-theme='dark']) .viewAllLinkCompact {
+:global([data-theme='dark']) .viewAllLinkCompact,
+:global(.dark) .viewAllLinkCompact {
   color: #818cf8;
 }
 
-:global([data-theme='dark']) .toggleBtnCompact:hover {
+:global([data-theme='dark']) .toggleBtnCompact:hover,
+:global(.dark) .toggleBtnCompact:hover {
   background: rgba(255, 255, 255, 0.08);
   color: #f8fafc;
 }
