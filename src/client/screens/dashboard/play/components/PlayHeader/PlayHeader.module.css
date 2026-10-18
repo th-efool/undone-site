@@ -21,6 +21,7 @@
 }
 
 .capsule {
+  position: relative;
   width: 26px;
   height: 4px;
   border-radius: 9999px;
@@ -28,7 +29,27 @@
   border: none;
   padding: 0;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Expand touch target to 44px x 44px without altering visible size */
+.capsule::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+}
+
+.capsule:focus-visible {
+  outline: 2px solid #5430FF;
+  outline-offset: 4px;
 }
 
 .capsule:hover {
@@ -42,6 +63,12 @@
 
 .capsuleCompleted {
   background: rgba(84, 48, 255, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .capsule {
+    transition: none !important;
+  }
 }
 
 /* Header Content: Left Metadata + Divider + Right Episode Block */
