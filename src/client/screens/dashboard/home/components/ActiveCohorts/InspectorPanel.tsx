@@ -43,6 +43,12 @@ export function ChartNetwork({ size = 15, className }: { size?: number; classNam
 const FREQUENCIES = ['Very Rarely', 'Rarely', 'Sometimes', 'Often', 'Very Often'] as const;
 const WEEKDAYS: Weekday[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const STANDARD_GOALS = [10, 15, 20, 30, 45, 60];
+const PAUSE_DURATIONS = [
+  { label: '1d', days: 1 },
+  { label: '3d', days: 3 },
+  { label: '1w', days: 7 },
+  { label: '1m', days: 30 },
+] as const;
 
 export function InspectorPanel({
   cohort,
@@ -53,6 +59,7 @@ export function InspectorPanel({
   onClose,
   onPause,
 }: InspectorPanelProps) {
+  const [pauseDuration, setPauseDuration] = useState<number>(7);
   const [isEditingCustomGoal, setIsEditingCustomGoal] = useState(false);
   const [customGoalVal, setCustomGoalVal] = useState(String(cohort.dailyGoalMinutes));
   const cohortKey = cohort.cohortId || cohort.id;
@@ -280,14 +287,33 @@ export function InspectorPanel({
         </motion.div>
       </AnimatePresence>
       {onPause && (
-        <button
-          className={styles.pauseBtn}
-          onClick={() => onPause(cohortKey, 7)}
-          aria-label="Pause cohort"
-        >
-          <PauseCircle size={14} />
-          <span>Pause</span>
-        </button>
+        <div className={styles.pauseSection}>
+          <div className={styles.pauseDurationRow}>
+            <span className={styles.pauseDurationLabel}>Pause for:</span>
+            <div className={styles.pausePills}>
+              {PAUSE_DURATIONS.map((opt) => (
+                <button
+                  key={opt.days}
+                  type="button"
+                  className={`${styles.pauseDurationPill} ${pauseDuration === opt.days ? styles.pauseDurationPillActive : ''}`}
+                  onClick={() => setPauseDuration(opt.days)}
+                  aria-pressed={pauseDuration === opt.days}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            type="button"
+            className={styles.pauseBtn}
+            onClick={() => onPause(cohortKey, pauseDuration)}
+            aria-label={`Pause cohort for ${pauseDuration} days`}
+          >
+            <PauseCircle size={14} />
+            <span>Pause cohort</span>
+          </button>
+        </div>
       )}
     </aside>
   );

@@ -54,7 +54,7 @@ export const ContinueLaterCard = React.memo(function ContinueLaterCard({
       <div className={styles.topBadgeWrapper}>
         <span className={styles.pausedBadge}>
           <Pause size={11} fill="currentColor" />
-          <span>{item.resumeLabel || 'Paused'}</span>
+          <span>Paused</span>
         </span>
       </div>
 
