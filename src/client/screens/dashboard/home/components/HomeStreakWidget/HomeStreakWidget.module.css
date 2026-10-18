@@ -1,7 +1,7 @@
 .card {
   position: relative;
-  background: linear-gradient(135deg, #eff2fe 0%, #e6ebfd 100%);
-  border: 1px solid rgba(99, 102, 241, 0.18);
+  background: linear-gradient(135deg, #eff3fe 0%, #e6ebff 100%);
+  border: 1px solid rgba(99, 102, 241, 0.16);
   border-radius: 18px;
   padding: 16px 18px 14px 18px;
   overflow: hidden;
@@ -9,13 +9,13 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  min-height: 140px;
+  min-height: 142px;
 }
 
 .leftContent {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   z-index: 2;
   flex: 1;
 }
@@ -24,14 +24,14 @@
   margin: 0;
   font-size: 1.05rem;
   font-weight: 800;
-  color: #1e1b4b;
+  color: #1e293b;
   letter-spacing: -0.01em;
 }
 
 .progressLabel {
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 600;
-  color: #4f46e5;
+  color: #64748b;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -40,9 +40,9 @@
 .chartContainer {
   display: flex;
   align-items: flex-end;
-  gap: 6px;
-  margin-top: 8px;
-  height: 48px;
+  gap: 8px;
+  margin-top: 10px;
+  height: 52px;
   padding-bottom: 2px;
 }
 
@@ -54,8 +54,8 @@
 }
 
 .barTrack {
-  width: 7px;
-  height: 38px;
+  width: 8px;
+  height: 40px;
   background: rgba(99, 102, 241, 0.12);
   border-radius: 999px;
   display: flex;
@@ -66,7 +66,7 @@
 .barFill {
   width: 100%;
   border-radius: 999px;
-  background: #a5b4fc;
+  background: #b4c6fc;
   transition: height 0.3s ease;
 }
 
@@ -88,15 +88,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #4f46e5;
+  background: #1e293b;
   color: #ffffff;
 }
 
-.checkDot {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: #cbd5e1;
+.checkPlaceholder {
+  width: 12px;
+  height: 12px;
 }
 
 .rightContent {
@@ -110,32 +108,61 @@
   margin-left: 8px;
 }
 
-.calloutText {
+.calloutWrapper {
   position: absolute;
-  top: -10px;
+  top: -12px;
   right: 0;
-  font-size: 0.76rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.calloutText {
+  font-size: 0.78rem;
   font-style: italic;
   font-weight: 700;
-  color: #4338ca;
+  color: #3b49df;
   white-space: nowrap;
   font-family: var(--font-playfair-display), serif;
 }
 
+.curvedArrow {
+  margin-top: -2px;
+  margin-right: 18px;
+}
+
 .mascotWrapper {
-  width: 82px;
-  height: 82px;
+  width: 86px;
+  height: 86px;
   position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: center;
 }
 
+.sparkle1 {
+  position: absolute;
+  left: -4px;
+  top: 14px;
+  font-size: 0.8rem;
+  color: #818cf8;
+  opacity: 0.85;
+}
+
+.sparkle2 {
+  position: absolute;
+  left: 10px;
+  top: 4px;
+  font-size: 0.65rem;
+  color: #a5b4fc;
+  opacity: 0.75;
+}
+
 .mascotImage {
   width: 100%;
   height: 100%;
   object-fit: contain;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.08));
 }
 
 :global([data-theme='dark']) .card {
@@ -149,13 +176,18 @@
 }
 
 :global([data-theme='dark']) .progressLabel {
-  color: #818cf8;
+  color: #94a3b8;
 }
 
 :global([data-theme='dark']) .calloutText {
-  color: #a5b4fc;
+  color: #818cf8;
 }
 
 :global([data-theme='dark']) .barTrack {
   background: rgba(255, 255, 255, 0.08);
+}
+
+:global([data-theme='dark']) .checkIndicator {
+  background: #3b49df;
+  color: #ffffff;
 }
