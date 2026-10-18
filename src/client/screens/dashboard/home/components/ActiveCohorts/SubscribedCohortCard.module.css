@@ -1,0 +1,191 @@
+.card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: 16px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #1e1e2d;
+  box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  user-select: none;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.16);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+.card:hover .image {
+  transform: scale(1.05);
+}
+
+.imageWrapper {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.image {
+  object-fit: cover;
+  transition: transform 0.35s ease;
+}
+
+.overlayGradient {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(15, 23, 42, 0.35) 0%,
+    rgba(15, 23, 42, 0.1) 40%,
+    rgba(15, 23, 42, 0.75) 80%,
+    rgba(15, 23, 42, 0.95) 100%
+  );
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* ─── Kebab Menu Button ─────────────────────────────────────────────────── */
+
+.kebabBtn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+  border: none;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  transition: background 0.15s ease, transform 0.1s ease;
+  padding: 0;
+}
+
+.kebabBtn:hover {
+  background: rgba(0, 0, 0, 0.6);
+  transform: scale(1.08);
+}
+
+/* ─── Bottom Overlay Content ────────────────────────────────────────────── */
+
+.bottomContent {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 12px 14px 10px 14px;
+  box-sizing: border-box;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* ─── Member Avatar Stack ────────────────────────────────────────────────── */
+
+.memberStack {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.avatars {
+  display: flex;
+  align-items: center;
+}
+
+.avatarCircle {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  margin-left: -5px;
+  background: #334155;
+}
+
+.avatarCircle:first-child {
+  margin-left: 0;
+}
+
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.memberCountText {
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* ─── Progress Bar ──────────────────────────────────────────────────────── */
+
+.progressGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.progressBarTrack {
+  width: 50px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: #6366f1;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.progressText {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #ffffff;
+  min-width: 24px;
+  text-align: right;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+:global([data-theme='dark']) .card {
+  border-color: rgba(255, 255, 255, 0.08);
+}

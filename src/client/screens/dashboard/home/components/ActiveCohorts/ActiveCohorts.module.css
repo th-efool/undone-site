@@ -1,132 +1,175 @@
+/* ==========================================================================
+   ActiveCohorts — Subscribed Cohorts Section & Grid
+   ========================================================================== */
+
 .section {
   display: flex;
   flex-direction: column;
+  gap: 14px;
+  width: 100%;
 }
 
-.dragHint {
-  font-size: 0.8rem;
-  color: #9ca3af;
-  margin-top: 4px;
-}
+/* ─── Section Header ─────────────────────────────────────────────────────── */
 
-.layout {
-  display: grid;
-  overflow: hidden;
-  align-items: stretch;
-}
-
-.list {
-  display: flex;
-  flex-direction: column;
-  background: #faf9ff; /* slightly indigoish */
-}
-
-.listWithInspector {
-  border-right: 1px solid #e5e7eb;
-}
-
-.listHeader {
-  padding: 0;
-  background: #faf9ff;
-  border-bottom: 1px solid #e5e7eb;
-  border-radius: 12px 12px 0 0;
-  overflow: hidden;
-}
-
-.headerBar {
-  display: flex;
-  align-items: stretch;
-  height: 42px;
-  position: relative;
-  overflow: hidden;
-  border-radius: 12px 12px 0 0;
-}
-
-/* 1. Left Trapezium Browser Tab for Feed Policy */
-.tabTrapezium {
-  background: white;
-  padding: 0 32px 0 16px;
-  display: flex;
-  align-items: center;
-  position: relative;
-  z-index: 2;
-  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 100%, 0 100%);
-  border-top-left-radius: 12px;
-}
-
-.tabTitle {
-  font-family: var(--font-manrope);
-  font-size: 1rem;
-  font-weight: 800;
-  color: #111827;
-  margin: 0;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
-/* 2. Right Dark Indigo Bar for See All & Drag Hint */
-.indigoBar {
-  flex: 1;
-  background: #3730a3; /* Rich dark indigo/purple shade */
+.sectionHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 18px 0 14px;
-  margin-left: -8px; /* Seamless overlap with trapezium slant */
-  position: relative;
-  z-index: 1;
-  border-top-right-radius: 12px;
+  width: 100%;
+  gap: 16px;
 }
 
-.seeAllBtn {
-  display: inline-flex;
+.headerLeft {
+  display: flex;
   align-items: center;
-  gap: 2px;
-  background: transparent;
-  border: none;
-  color: #ffffff;
-  font-size: 0.82rem;
-  font-weight: 600;
-  padding: 0;
-  cursor: pointer;
-  transition: opacity 0.15s ease;
+  gap: 10px;
 }
 
-.seeAllBtn:hover {
-  opacity: 0.85;
-  text-decoration: underline;
+.iconBadge {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.dragHintText {
-  font-size: 0.78rem;
-  color: #ffffff; /* Pure white text */
-  font-weight: 500;
-  letter-spacing: 0.01em;
-}
-
-.itemsWrapper {
+.titleGroup {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  gap: 2px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.015em;
+}
+
+.subtitle {
+  margin: 0;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.viewAllLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #3b49df;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.viewAllLink:hover {
+  color: #2563eb;
+  transform: translateX(2px);
+}
+
+.toggleBtn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.toggleBtn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* ─── Grid & Layout ──────────────────────────────────────────────────────── */
+
+.contentLayout {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.gridWithInspector {
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .inspectorWrapper {
   position: relative;
-  background: #faf9ff;
-  border-left: 1px solid #e5e7eb;
-  display: flex;
+  width: 100%;
 }
 
-@media (max-width: 1024px) {
-  .layout {
-    grid-template-columns: 1fr !important;
+/* ─── Dark Mode Overrides ────────────────────────────────────────────────── */
+
+:global([data-theme='dark']) .title {
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .subtitle {
+  color: #94a3b8;
+}
+
+:global([data-theme='dark']) .viewAllLink {
+  color: #818cf8;
+}
+
+:global([data-theme='dark']) .toggleBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 1200px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
   }
-  .listWithInspector {
-    border-right: none;
-    border-bottom: 1px solid #e5e7eb;
+
+  .gridWithInspector {
+    grid-template-columns: repeat(2, 1fr);
   }
-  .inspectorWrapper {
-    border-left: none;
-    border-top: 1px solid #e5e7eb;
+}
+
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gridWithInspector {
+    grid-template-columns: 1fr;
+  }
+
+  .subtitle {
+    display: none;
   }
 }
