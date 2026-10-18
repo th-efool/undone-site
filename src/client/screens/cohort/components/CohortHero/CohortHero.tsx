@@ -80,7 +80,10 @@ export function CohortHero({ cohort, isEnrolled = true, isLoggedIn = true }: Coh
             <Users size={16} /> {cohort.stats.explorerCount.toLocaleString()} learners
           </span>
           <span>
-            <Star size={16} /> {cohort.stats.rating.toFixed(1)}
+            <Star size={16} />{' '}
+            {cohort.stats.rating && cohort.stats.rating > 0
+              ? cohort.stats.rating.toFixed(1)
+              : 'New'}
           </span>
         </div>
 

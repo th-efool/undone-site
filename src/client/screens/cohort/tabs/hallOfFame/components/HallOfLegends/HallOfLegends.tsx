@@ -21,12 +21,18 @@ export function HallOfLegends({ hall }: { hall: CohortHallOfFame }) {
         </button>
       </div>
       <div className={styles.legendRows}>
-        {hall.legends.map((item) => (
-          <LegendsRow
-            key={item.id}
-            item={item}
-          />
-        ))}
+        {hall.legends.length === 0 ? (
+          <p className={styles.emptySubtitle} style={{ margin: '12px 0' }}>
+            No legends recorded yet. Complete all seasons to join the Hall of Legends!
+          </p>
+        ) : (
+          hall.legends.map((item) => (
+            <LegendsRow
+              key={item.id}
+              item={item}
+            />
+          ))
+        )}
       </div>
     </section>
   );

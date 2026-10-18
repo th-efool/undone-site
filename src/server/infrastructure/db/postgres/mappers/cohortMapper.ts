@@ -60,6 +60,31 @@ export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
   const primaryTopic = dbCohort.primaryTopic || dbCohort.title || 'General Knowledge';
   const coverImage = dbCohort.coverImage || firstVideoThumbnail || getTopicCoverImage(primaryTopic);
 
+  const totalDurationSecs = (dbCohort.seasons || [])
+    .flatMap((s: any) => s.lessons || [])
+    .reduce((acc: number, l: any) => acc + (l.duration || 300), 0);
+  const estimatedDays = 14;
+  const dailyMins = Math.max(10, Math.ceil((totalDurationSecs / 60) / estimatedDays));
+  const dailyGoal = dbCohort.estimatedCompletionTime?.includes('day')
+    ? dbCohort.estimatedCompletionTime
+    : `${dailyMins} mins/day`;
+
+  const explorerCount =
+    typeof dbCohort._count?.members === 'number'
+      ? dbCohort._count.members
+      : Array.isArray(dbCohort.members)
+        ? dbCohort.members.length
+        : typeof dbCohort.memberCount === 'number'
+          ? dbCohort.memberCount
+          : 0;
+
+  const rating =
+    typeof dbCohort.rating === 'number'
+      ? dbCohort.rating
+      : explorerCount > 0
+        ? 4.9
+        : null;
+
   return {
     id: dbCohort.id,
     title: dbCohort.title || 'Untitled Cohort',
@@ -76,12 +101,12 @@ export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
       bio: dbCohort.creator?.bio || 'Cohort Creator & Community Guide',
       ctaLabel: 'View Profile',
     },
-    stats: { rating: 5, explorerCount: 0, completionRate: 0 },
+    stats: { rating, explorerCount, completionRate: dbCohort.completionRate ?? 0 },
     progress: {
       journeyProgress: 0,
       completedQuests: 0,
       totalQuests,
-      dailyGoal: '30 mins/day',
+      dailyGoal,
       joinedDate: 'Joined recently',
     },
     overview: {
@@ -211,10 +236,10 @@ export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
       subtitle: 'Celebrating the top explorers in this cohort.',
       filters: [{ id: 'all', label: 'All Categories', active: true }],
       timeRanges: [{ id: 'all-time', label: 'All Time', active: true }],
-      categories: [{ id: 'cat-1', title: 'Top Contributors', subtitle: 'Most helpful members', rank: 1, winner: { name: 'Sia', avatarUrl: '/mock/avatars/sia.avif' }, primaryMetric: '100 XP', growthMetric: '+10%', badge: 'top-contributor', accent: 'amber' }],
-      legends: [],
-      userHighlights: [],
-      recentAchievements: [],
+      categories: Array.isArray(dbCohort.hallOfFame?.categories) ? dbCohort.hallOfFame.categories : [],
+      legends: Array.isArray(dbCohort.hallOfFame?.legends) ? dbCohort.hallOfFame.legends : [],
+      userHighlights: Array.isArray(dbCohort.hallOfFame?.userHighlights) ? dbCohort.hallOfFame.userHighlights : [],
+      recentAchievements: Array.isArray(dbCohort.hallOfFame?.recentAchievements) ? dbCohort.hallOfFame.recentAchievements : [],
     },
   };
 }
