@@ -19,6 +19,7 @@ export interface InfiniteScrollerProps extends PropsWithChildren {
   showArrows?: boolean;
   autoScroll?: boolean;
   autoScrollSpeed?: number;
+  align?: 'start' | 'center';
 }
 
 export interface InfiniteScrollerHandle {
@@ -40,6 +41,7 @@ export const InfiniteScroller = React.forwardRef<
     showArrows = true,
     autoScroll = false,
     autoScrollSpeed = 1,
+    align = 'start',
   }: InfiniteScrollerProps,
   ref,
 ) {
@@ -172,10 +174,22 @@ export const InfiniteScroller = React.forwardRef<
     scrollPosRef.current = viewport.scrollLeft;
 
     const step = () => {
+      const maxScroll = viewport.scrollWidth - viewport.clientWidth;
+      if (maxScroll <= 0) return; // No overflow, do not scroll
+
       if (scrollPosRef.current === null) {
         scrollPosRef.current = viewport.scrollLeft;
       }
       scrollPosRef.current += autoScrollSpeed;
+
+      if (!loop) {
+        if (scrollPosRef.current >= maxScroll) {
+          scrollPosRef.current = maxScroll;
+          viewport.scrollLeft = maxScroll;
+          return;
+        }
+      }
+
       viewport.scrollLeft = scrollPosRef.current;
       autoScrollFrameRef.current = requestAnimationFrame(step);
     };
@@ -186,14 +200,19 @@ export const InfiniteScroller = React.forwardRef<
       if (autoScrollFrameRef.current) cancelAnimationFrame(autoScrollFrameRef.current);
       scrollPosRef.current = null;
     };
-  }, [autoScroll, autoScrollSpeed, isHovered, isDragging]);
+  }, [autoScroll, autoScrollSpeed, isHovered, isDragging, loop]);
 
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!panable) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    if (!loop && viewport.scrollWidth <= viewport.clientWidth + 2) {
+      return;
+    }
     setIsDragging(true);
     startX.current = e.clientX;
-    scrollLeftRef.current = viewportRef.current?.scrollLeft || 0;
+    scrollLeftRef.current = viewport.scrollLeft || 0;
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {}
@@ -213,8 +232,14 @@ export const InfiniteScroller = React.forwardRef<
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!panable || !isDragging || !viewportRef.current) return;
+    const viewport = viewportRef.current;
     const walk = (e.clientX - startX.current) * velocityWalkFactor;
-    viewportRef.current.scrollLeft = scrollLeftRef.current - walk;
+    let target = scrollLeftRef.current - walk;
+    if (!loop) {
+      const maxScroll = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+      target = Math.max(0, Math.min(target, maxScroll));
+    }
+    viewport.scrollLeft = target;
   };
 
   return (
@@ -244,7 +269,7 @@ export const InfiniteScroller = React.forwardRef<
           onPointerCancel={handlePointerCancel}
           onPointerMove={handlePointerMove}
         >
-          <div className={styles.track}>
+          <div className={`${styles.track} ${align === 'start' ? styles.trackStart : ''}`}>
             {loop ? (
               <>
                 {React.Children.map(children, (child, i) =>

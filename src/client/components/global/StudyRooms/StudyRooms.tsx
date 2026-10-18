@@ -46,13 +46,6 @@ export const StudyRooms = React.memo(function StudyRooms({
           </div>
 
           <div className={styles.headerRightCompact}>
-            {viewAllHref && (
-              <Link href={viewAllHref} className={styles.viewAllLinkCompact}>
-                <span>View all</span>
-                <ArrowRight size={14} strokeWidth={2.2} />
-              </Link>
-            )}
-
             <div className={styles.navButtonsCompact}>
               <button
                 type="button"
@@ -89,11 +82,11 @@ export const StudyRooms = React.memo(function StudyRooms({
             <InfiniteScroller
               ref={scrollerRef}
               scrollAmount={380}
-              loop={true}
+              loop={false}
               panable={true}
               showArrows={false}
               autoScroll={true}
-              autoScrollSpeed={0.35}
+              autoScrollSpeed={0.1}
               className={styles.infiniteScrollerCompact}
             >
               {items.map((item) => (

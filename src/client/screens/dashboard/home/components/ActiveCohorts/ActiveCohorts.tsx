@@ -82,14 +82,9 @@ export const ActiveCohorts = React.memo(function ActiveCohorts({
         </div>
 
         <div className={styles.headerRight}>
-          <Link href="/explore" className={styles.viewAllLink} aria-label="View all cohorts">
-            <span>View all</span>
-            <ArrowRight size={14} strokeWidth={2.2} />
-          </Link>
-
           <button
             type="button"
-            className={styles.toggleBtn}
+            className={styles.collapseBtn}
             onClick={() => setIsSectionOpen((prev) => !prev)}
             aria-label={isSectionOpen ? 'Collapse section' : 'Expand section'}
             aria-expanded={isSectionOpen}
