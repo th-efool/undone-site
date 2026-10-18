@@ -112,6 +112,9 @@ export interface FeedItem {
   seasonOrder?: number;
   totalLessonsInSeason?: number;
   totalVideos?: number;
+  cohortProvider?: string;
+  channelFitScore?: number;       // 0-100 percentage fit to active channel
+  overallFitScore?: number;       // 0-100 percentage fit overall (curriculum & learner profile)
 }
 
 /** Inert retained text and explicit provenance; never rendered as model-generated HTML. */
