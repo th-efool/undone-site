@@ -614,6 +614,21 @@ describe('playback foundations: exact navigation, media controls, and completion
     expect(mockVideo.volume).toBeCloseTo(0.7);
     expect(mockVideo.muted).toBe(false);
 
+    // Test toggleMute: muting sets volume to 0 and muted to true
+    act(() => {
+      result.current.toggleMute();
+    });
+    expect(result.current.muted).toBe(true);
+    expect(result.current.volume).toBe(0);
+
+    // Test toggleMute: unmuting restores prior audible volume (70)
+    act(() => {
+      result.current.toggleMute();
+    });
+    expect(result.current.muted).toBe(false);
+    expect(result.current.volume).toBe(70);
+    expect(mockVideo.volume).toBeCloseTo(0.7);
+
     // Test playback speed
     act(() => {
       result.current.setPlaybackSpeed(1.5);

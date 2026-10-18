@@ -107,6 +107,7 @@ export function usePlayback() {
   
   // 3. Duplicate Progress Reporting - Set to track reported chunks
   const reportedChunksRef = useRef<Set<string>>(new Set());
+  const lastAudibleVolumeRef = useRef<number>(90);
   
   isPlayingRef.current = isPlaying;
   activeChannelRef.current = activeChannel;
@@ -713,21 +714,34 @@ export function usePlayback() {
   }, [activeItem, chunkDurationSeconds, currentTimeSeconds, activeMediaSource.isDirectVideo, isPlayerReady]);
 
   const setVolume = useCallback((newVolume: number) => {
-    setVolumeState(newVolume);
-    setMuted(newVolume === 0);
-    if (playerRef.current) try { playerRef.current.setVolume(newVolume); } catch {}
+    const clamped = Math.max(0, Math.min(100, newVolume));
+    setVolumeState(clamped);
+    if (clamped > 0) {
+      lastAudibleVolumeRef.current = clamped;
+      setMuted(false);
+    } else {
+      setMuted(true);
+    }
+    if (playerRef.current) try { playerRef.current.setVolume(clamped); } catch {}
     if (videoRef.current) {
       try {
-        videoRef.current.volume = newVolume / 100;
-        videoRef.current.muted = newVolume === 0;
+        videoRef.current.volume = clamped / 100;
+        videoRef.current.muted = clamped === 0;
       } catch {}
     }
   }, []);
 
   const toggleMute = useCallback(() => {
-    if (muted) { setMuted(false); setVolume(90); }
-    else { setMuted(true); setVolume(0); }
-  }, [muted, setVolume]);
+    if (muted) {
+      const restoreVol = lastAudibleVolumeRef.current > 0 ? lastAudibleVolumeRef.current : 90;
+      setVolume(restoreVol);
+    } else {
+      if (volume > 0) {
+        lastAudibleVolumeRef.current = volume;
+      }
+      setVolume(0);
+    }
+  }, [muted, volume, setVolume]);
 
   const setPlaybackSpeed = useCallback((speed: number) => {
     setPlaybackSpeedState(speed);

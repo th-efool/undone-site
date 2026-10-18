@@ -100,4 +100,16 @@ describe('use1DGesture keyboard interaction', () => {
     expect(onNext).not.toHaveBeenCalled();
     document.body.removeChild(dialog);
   });
+
+  it('triggers onToggleMute on m key and onToggleShortcutsHelp on ? key', () => {
+    const onToggleMute = vi.fn();
+    const onToggleShortcutsHelp = vi.fn();
+    renderHook(() => use1DGesture({ onToggleMute, onToggleShortcutsHelp }));
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'm', bubbles: true }));
+    expect(onToggleMute).toHaveBeenCalledTimes(1);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
+    expect(onToggleShortcutsHelp).toHaveBeenCalledTimes(1);
+  });
 });

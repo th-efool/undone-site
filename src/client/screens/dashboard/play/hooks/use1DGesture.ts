@@ -14,6 +14,8 @@ export interface GestureOptions {
   onLongPressEnd?: () => void;
   onTogglePlay?: () => void;
   onToggleFullscreen?: () => void;
+  onToggleMute?: () => void;
+  onToggleShortcutsHelp?: () => void;
   disabled?: boolean;
 }
 
@@ -28,6 +30,8 @@ export function use1DGesture({
   onLongPressEnd,
   onTogglePlay,
   onToggleFullscreen,
+  onToggleMute,
+  onToggleShortcutsHelp,
   disabled = false,
 }: GestureOptions) {
   const [dragDeltaX, setDragDeltaX] = useState(0);
@@ -63,7 +67,7 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
   if (!target) return false;
   return Boolean(
     target.closest(
-      'button, a, input, textarea, select, [role="button"], [class*="toolbar"], [class*="controls"], [class*="timeline"], [class*="dot"], [class*="mobileControls"]'
+      'button, a, input, textarea, select, [role="button"], [role="slider"], [role="toolbar"], [role="menu"], [role="dialog"], [class*="toolbar"], [class*="controls"], [class*="timeline"], [class*="dock"], [class*="rail"], [class*="header"], [class*="dot"], [class*="capsule"], [class*="mobileControls"]'
     )
   );
 };
@@ -316,12 +320,21 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
           e.preventDefault();
           onToggleFullscreen?.();
           break;
+        case 'm':
+        case 'M':
+          e.preventDefault();
+          onToggleMute?.();
+          break;
+        case '?':
+          e.preventDefault();
+          onToggleShortcutsHelp?.();
+          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [disabled, onNext, onPrev, onToggleFullscreen, onTogglePlay]);
+  }, [disabled, onNext, onPrev, onToggleFullscreen, onToggleMute, onTogglePlay, onToggleShortcutsHelp]);
 
   return {
     isDragging,
