@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { ExternalLink, Play, Layers, Clock, ChevronDown, ChevronUp, Lock } from 'lucide-react';
 
 import { LessonStatus, LessonType, type Lesson } from '../../../../models';
@@ -14,12 +16,23 @@ import styles from './LessonRow.module.css';
 interface LessonRowProps {
   lesson: Lesson;
   index: number;
+  cohortId?: string;
   onToggleStatus(lessonId: string): void;
 }
 
-export function LessonRow({ lesson, index, onToggleStatus }: LessonRowProps) {
+export function LessonRow({ lesson, index, cohortId: propCohortId, onToggleStatus }: LessonRowProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const isLocked = lesson.status === LessonStatus.Locked;
+
+  let routeCohortId: string | undefined;
+  try {
+    const params = useParams();
+    if (typeof params?.cohortId === 'string') routeCohortId = params.cohortId;
+  } catch {}
+  const cohortId = propCohortId || routeCohortId;
+
+  const playHref = cohortId ? `/play?cohort=${cohortId}&lessonId=${lesson.id}` : undefined;
+  const displayOrder = lesson.order ?? (index + 1);
 
   const videoUrl =
     lesson.videoUrl ||
@@ -39,17 +52,38 @@ export function LessonRow({ lesson, index, onToggleStatus }: LessonRowProps) {
   return (
     <div className={styles.wrapper}>
       <article className={`${styles.row} ${isLocked ? styles.locked : ''}`}>
-        <Image
-          src={thumbnailSrc}
-          alt=""
-          width={96}
-          height={56}
-          className={styles.thumbnail}
-        />
+        {playHref && !isLocked ? (
+          <Link href={playHref} tabIndex={-1} aria-hidden="true">
+            <Image
+              src={thumbnailSrc}
+              alt=""
+              width={96}
+              height={56}
+              className={styles.thumbnail}
+            />
+          </Link>
+        ) : (
+          <Image
+            src={thumbnailSrc}
+            alt=""
+            width={96}
+            height={56}
+            className={styles.thumbnail}
+          />
+        )}
 
         <div className={styles.content}>
           <h3 className={styles.title}>
-            {linkUrl ? (
+            {playHref && !isLocked ? (
+              <Link
+                href={playHref}
+                className={styles.titleLink}
+                title="Play lesson in Undone player"
+              >
+                <span>{displayOrder}. {lesson.title}</span>
+                <Play size={12} className={styles.titleExtIcon} />
+              </Link>
+            ) : linkUrl ? (
               <a
                 href={linkUrl}
                 target="_blank"
@@ -57,11 +91,11 @@ export function LessonRow({ lesson, index, onToggleStatus }: LessonRowProps) {
                 className={styles.titleLink}
                 title={linkTooltip}
               >
-                <span>{index + 1}. {lesson.title}</span>
+                <span>{displayOrder}. {lesson.title}</span>
                 <ExternalLink size={13} className={styles.titleExtIcon} />
               </a>
             ) : (
-              <span>{index + 1}. {lesson.title}</span>
+              <span>{displayOrder}. {lesson.title}</span>
             )}
           </h3>
           <div className={styles.meta}>
@@ -100,7 +134,14 @@ export function LessonRow({ lesson, index, onToggleStatus }: LessonRowProps) {
               <span>Lesson Chunks & Timestamps</span>
               <span className={styles.chunksBadge}>{chunks.length} parts</span>
             </div>
-            {linkUrl && (
+            {playHref && !isLocked ? (
+              <Link
+                href={playHref}
+                className={styles.fullVideoLink}
+              >
+                <Play size={12} /> Play in Undone
+              </Link>
+            ) : linkUrl && (
               <a
                 href={linkUrl}
                 target="_blank"
@@ -137,7 +178,18 @@ export function LessonRow({ lesson, index, onToggleStatus }: LessonRowProps) {
                       </span>
                       <span className={styles.chunkDuration}>{chunk.duration}</span>
 
-                      {timestampUrl && (
+                      {cohortId && !isLocked ? (
+                        <Link
+                          href={`/play?cohort=${cohortId}&lessonId=${lesson.id}&chunk=${chunk.id}`}
+                          className={styles.chunkJumpBtn}
+                          title="Jump to chunk in Undone player"
+                        >
+                          <Play size={11} fill="currentColor" />
+                          <span>
+                            {`Play ${chunk.timeRangeLabel?.split('–')[0]?.split('-')[0]?.trim() || 'chunk'}`}
+                          </span>
+                        </Link>
+                      ) : timestampUrl && (
                         <a
                           href={timestampUrl}
                           target="_blank"

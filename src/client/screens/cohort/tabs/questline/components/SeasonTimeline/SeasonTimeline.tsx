@@ -7,9 +7,10 @@ import styles from './SeasonTimeline.module.css';
 
 interface SeasonTimelineProps {
   seasons: Season[];
+  cohortId?: string;
 }
 
-export function SeasonTimeline({ seasons }: SeasonTimelineProps) {
+export function SeasonTimeline({ seasons, cohortId }: SeasonTimelineProps) {
   return (
     <div className={styles.timeline}>
       {seasons.map((season) => (
@@ -19,7 +20,7 @@ export function SeasonTimeline({ seasons }: SeasonTimelineProps) {
         >
           <SeasonCard season={season} />
           <div className={styles.lessonsColumn}>
-            <LessonList lessons={season.lessons} />
+            <LessonList lessons={season.lessons} cohortId={cohortId} />
             <SeasonSummary
               label={season.summaryLabel}
               lockedMessage={season.lockedMessage}

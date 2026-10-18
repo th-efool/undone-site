@@ -117,4 +117,39 @@ describe('mapDbCohortToUiCohort (cohortMapper.ts)', () => {
     expect(ui.hallOfFame.categories).toHaveLength(1);
     expect(ui.hallOfFame.categories[0].winner.name).toBe('Ada Lovelace');
   });
+
+  it('normalizes 0-based and 1-based lesson orders to consistent 1-indexed numbers', () => {
+    const rawDbCohort = {
+      id: 'cohort-indexing',
+      title: 'Indexing Test',
+      seasons: [
+        {
+          id: 'season-0-based',
+          title: 'Season 1 (0-based)',
+          order: 0,
+          lessons: [
+            { id: 'l0', title: 'Lesson 0', order: 0, chunks: [] },
+            { id: 'l1', title: 'Lesson 1', order: 1, chunks: [] },
+            { id: 'l2', title: 'Lesson 2', order: 2, chunks: [] },
+          ],
+        },
+        {
+          id: 'season-1-based',
+          title: 'Season 2 (1-based)',
+          order: 1,
+          lessons: [
+            { id: 'l3', title: 'Lesson 3', order: 1, chunks: [] },
+            { id: 'l4', title: 'Lesson 4', order: 2, chunks: [] },
+          ],
+        },
+      ],
+    };
+
+    const ui = mapDbCohortToUiCohort(rawDbCohort);
+    const s0Lessons = ui.questline.seasons[0].lessons;
+    expect(s0Lessons.map(l => l.order)).toEqual([1, 2, 3]);
+
+    const s1Lessons = ui.questline.seasons[1].lessons;
+    expect(s1Lessons.map(l => l.order)).toEqual([1, 2]);
+  });
 });

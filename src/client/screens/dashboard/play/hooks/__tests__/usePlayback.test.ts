@@ -3,8 +3,9 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { usePlayback } from '../usePlayback';
 
+const nav = vi.hoisted(() => ({ searchParams: new URLSearchParams() }));
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => nav.searchParams,
 }));
 
 const fetchMock = vi.fn();
@@ -14,6 +15,7 @@ describe('usePlayback fetch abort behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    nav.searchParams = new URLSearchParams();
   });
 
   it('does not get permanently stuck on isFetching=true when fetchChannelFeed is aborted', async () => {
@@ -508,6 +510,40 @@ describe('persisted player notes and bookmarks (ISSUE-4)', () => {
 
     await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-A'));
     expect(result.current.bookmarked).toBe(true);
+  });
+
+  it('resolves target lesson matching requested lessonId and 0/1-based lesson order', async () => {
+    nav.searchParams = new URLSearchParams('cohort=test&lessonId=lesson-target');
+    fetchMock.mockImplementation(async () => ({
+      ok: true,
+      json: async () => ({
+        items: [
+          { chunkId: 'c1', lessonId: 'lesson-1', lessonOrder: 1, endSeconds: 60, startSeconds: 0 },
+          { chunkId: 'c2', lessonId: 'lesson-target', lessonOrder: 2, endSeconds: 120, startSeconds: 60 },
+        ],
+      }),
+    }));
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('c2'));
+    expect(result.current.currentIndex).toBe(1);
+  });
+
+  it('resolves target lesson using 0-indexed fallback lesson order', async () => {
+    nav.searchParams = new URLSearchParams('cohort=test&lesson=1');
+    fetchMock.mockImplementation(async () => ({
+      ok: true,
+      json: async () => ({
+        items: [
+          { chunkId: 'c0', lessonId: 'l0', lessonOrder: 0, endSeconds: 60, startSeconds: 0 },
+          { chunkId: 'c1', lessonId: 'l1', lessonOrder: 1, endSeconds: 120, startSeconds: 60 },
+        ],
+      }),
+    }));
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('c0'));
+    expect(result.current.currentIndex).toBe(0);
   });
 });
 

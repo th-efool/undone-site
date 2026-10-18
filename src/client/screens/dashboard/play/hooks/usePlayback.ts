@@ -54,7 +54,7 @@ function formatSecs(seconds: number): string {
 export function usePlayback() {
   const searchParams = useSearchParams();
   const requestedCohortId = searchParams.get('cohort') || undefined;
-  const requestedLessonId = searchParams.get('lesson') || undefined;
+  const requestedLessonId = searchParams.get('lessonId') || searchParams.get('lesson') || undefined;
   const requestedChunkId = searchParams.get('chunk') || undefined;
   const initialQuery = searchParams.get('q') || '';
 
@@ -151,13 +151,32 @@ export function usePlayback() {
       
       setChannelCaches(prev => {
         const existingItems = pageIndex === 0 ? [] : prev[channelId].items;
+        const allItems = [...existingItems, ...data.items];
+        let nextIndex = prev[channelId].currentIndex;
+        if (pageIndex === 0) {
+          if ((requestedLessonId || requestedChunkId) && allItems.length > 0) {
+            const matched = allItems.findIndex(item =>
+              (requestedChunkId && item.chunkId === requestedChunkId) ||
+              (requestedLessonId && (
+                item.lessonId === requestedLessonId ||
+                (item.lessonOrder !== undefined && (
+                  String(item.lessonOrder) === requestedLessonId ||
+                  String(item.lessonOrder + 1) === requestedLessonId
+                ))
+              ))
+            );
+            nextIndex = matched !== -1 ? matched : 0;
+          } else {
+            nextIndex = 0;
+          }
+        }
         return {
           ...prev,
           [channelId]: {
             ...prev[channelId],
-            items: [...existingItems, ...data.items],
+            items: allItems,
             pageIndex: pageIndex,
-            currentIndex: pageIndex === 0 ? 0 : prev[channelId].currentIndex,
+            currentIndex: nextIndex,
             isFetching: false,
             hasError: false,
             exhausted: data.items.length === 0,
@@ -253,6 +272,34 @@ export function usePlayback() {
       fetchChannelFeed(activeChannel, 0);
     }
   }, [activeChannel, channelCaches, fetchChannelFeed]);
+
+  // Synchronize playback position with requested URL params (?lessonId=, ?lesson=, ?chunk=)
+  useEffect(() => {
+    if (!requestedLessonId && !requestedChunkId) return;
+    const items = channelCaches[activeChannel].items;
+    if (!items.length) return;
+
+    const matchedIndex = items.findIndex(item =>
+      (requestedChunkId && item.chunkId === requestedChunkId) ||
+      (requestedLessonId && (
+        item.lessonId === requestedLessonId ||
+        (item.lessonOrder !== undefined && (
+          String(item.lessonOrder) === requestedLessonId ||
+          String(item.lessonOrder + 1) === requestedLessonId
+        ))
+      ))
+    );
+
+    if (matchedIndex !== -1 && matchedIndex !== channelCaches[activeChannel].currentIndex) {
+      setChannelCaches(prev => ({
+        ...prev,
+        [activeChannel]: {
+          ...prev[activeChannel],
+          currentIndex: matchedIndex
+        }
+      }));
+    }
+  }, [requestedLessonId, requestedChunkId, activeChannel, feedItems]);
 
   // 80% Threshold Prefetch Logic
   useEffect(() => {

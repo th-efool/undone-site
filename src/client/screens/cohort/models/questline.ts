@@ -52,6 +52,7 @@ export interface Lesson {
   videoUrl?: string;
   sourceUrl?: string;
   chunks?: LessonChunk[];
+  order?: number;
 }
 
 export interface Season {

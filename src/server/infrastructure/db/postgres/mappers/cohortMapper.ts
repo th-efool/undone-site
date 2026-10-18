@@ -128,83 +128,87 @@ export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
       description: dbCohort.subtitle || 'Explore all seasons and quests in this cohort.',
       filters: [],
       skipSeasonLabel: 'Skip Season',
-      seasons: (dbCohort.seasons || []).map((s: any, sIdx: number) => ({
-        id: s.id,
-        title: s.title || `Season ${sIdx + 1}`,
-        badge: `Season ${s.order || sIdx + 1}`,
-        status: sIdx === 0 ? SeasonStatus.InProgress : SeasonStatus.Locked,
-        progress: 0,
-        estimatedDuration: '',
-        questCount: s.lessons?.length || 0,
-        summaryLabel: `${s.lessons?.length || 0} Lessons`,
-        lessons: (s.lessons || []).map((l: any, lIdx: number) => {
-          let chunks = Array.isArray(l.chunks) && l.chunks.length > 0 ? l.chunks : [];
-          
-          if (chunks.length === 0) {
-            const durationSecs = l.duration || 0;
-            const chunkInterval = 300; // 5 mins
-            if (durationSecs > 0) {
-              for (let i = 0; i < durationSecs; i += chunkInterval) {
-                const start = i;
-                const end = Math.min(i + chunkInterval, durationSecs);
-                const partDurationSecs = end - start;
-                chunks.push({
-                  id: `chunk-${l.id}-${i}`,
-                  title: `Part ${chunks.length + 1}`,
-                  duration: `${Math.ceil(partDurationSecs / 60)}m`,
-                  order: chunks.length + 1,
-                  startSeconds: start,
-                  endSeconds: end,
-                  timeRangeLabel: `${formatTime(start)} - ${formatTime(end)}`,
+      seasons: (dbCohort.seasons || []).map((s: any, sIdx: number) => {
+        const isZeroIndexed = (s.lessons || []).some((l: any) => l.order === 0);
+        return {
+          id: s.id,
+          title: s.title || `Season ${sIdx + 1}`,
+          badge: `Season ${s.order || sIdx + 1}`,
+          status: sIdx === 0 ? SeasonStatus.InProgress : SeasonStatus.Locked,
+          progress: 0,
+          estimatedDuration: '',
+          questCount: s.lessons?.length || 0,
+          summaryLabel: `${s.lessons?.length || 0} Lessons`,
+          lessons: (s.lessons || []).map((l: any, lIdx: number) => {
+            let chunks = Array.isArray(l.chunks) && l.chunks.length > 0 ? l.chunks : [];
+            
+            if (chunks.length === 0) {
+              const durationSecs = l.duration || 0;
+              const chunkInterval = 300; // 5 mins
+              if (durationSecs > 0) {
+                for (let i = 0; i < durationSecs; i += chunkInterval) {
+                  const start = i;
+                  const end = Math.min(i + chunkInterval, durationSecs);
+                  const partDurationSecs = end - start;
+                  chunks.push({
+                    id: `chunk-${l.id}-${i}`,
+                    title: `Part ${chunks.length + 1}`,
+                    duration: `${Math.ceil(partDurationSecs / 60)}m`,
+                    order: chunks.length + 1,
+                    startSeconds: start,
+                    endSeconds: end,
+                    timeRangeLabel: `${formatTime(start)} - ${formatTime(end)}`,
+                    isCompleted: false,
+                    completionDate: null,
+                  });
+                }
+              }
+            } else {
+               // Map DB chunks to UI chunks
+               chunks = chunks.map((c: any) => ({
+                  ...c,
+                  startSeconds: c.startSeconds || 0,
+                  endSeconds: c.endSeconds || 0,
+                  timeRangeLabel: c.timeRangeLabel || (c.startSeconds !== undefined && c.endSeconds !== undefined && c.endSeconds > 0 ? `${formatTime(c.startSeconds)} – ${formatTime(c.endSeconds)}` : ''),
                   isCompleted: false,
                   completionDate: null,
-                });
-              }
+               }));
             }
-          } else {
-             // Map DB chunks to UI chunks
-             chunks = chunks.map((c: any) => ({
-                ...c,
-                startSeconds: c.startSeconds || 0,
-                endSeconds: c.endSeconds || 0,
-                timeRangeLabel: c.timeRangeLabel || (c.startSeconds !== undefined && c.endSeconds !== undefined && c.endSeconds > 0 ? `${formatTime(c.startSeconds)} – ${formatTime(c.endSeconds)}` : ''),
-                isCompleted: false,
-                completionDate: null,
-             }));
-          }
 
-          const videoId = l.videoId || extractVideoId(l.videoUrl || (l as any).sourceUrl || '') || undefined;
-          const isVideo = (l as any).lessonType === 'VIDEO' || Boolean(videoId) || Boolean(l.videoUrl);
-          const videoUrl = l.videoUrl || (videoId ? `https://www.youtube.com/watch?v=${videoId}` : undefined);
-          const defaultThumbnail = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : getTopicCoverImage(primaryTopic);
-          const thumbnail = l.thumbnailUrl || defaultThumbnail;
-          const sourceUrl = (l as any).sourceUrl || videoUrl || undefined;
+            const videoId = l.videoId || extractVideoId(l.videoUrl || (l as any).sourceUrl || '') || undefined;
+            const isVideo = (l as any).lessonType === 'VIDEO' || Boolean(videoId) || Boolean(l.videoUrl);
+            const videoUrl = l.videoUrl || (videoId ? `https://www.youtube.com/watch?v=${videoId}` : undefined);
+            const defaultThumbnail = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : getTopicCoverImage(primaryTopic);
+            const thumbnail = l.thumbnailUrl || defaultThumbnail;
+            const sourceUrl = (l as any).sourceUrl || videoUrl || undefined;
 
-          // Attach timestampUrl to chunks
-          chunks = chunks.map((c: any) => ({
-            ...c,
-            timestampUrl: c.timestampUrl || (videoId ? `https://www.youtube.com/watch?v=${videoId}&t=${c.startSeconds || 0}s` : sourceUrl),
-          }));
+            // Attach timestampUrl to chunks
+            chunks = chunks.map((c: any) => ({
+              ...c,
+              timestampUrl: c.timestampUrl || (videoId ? `https://www.youtube.com/watch?v=${videoId}&t=${c.startSeconds || 0}s` : sourceUrl),
+            }));
 
-          const rawTitle = l.title || `Lesson ${lIdx + 1}`;
-          const title = rawTitle.replace(/^Source study \d+:\s*/i, '').trim();
+            const rawTitle = l.title || `Lesson ${lIdx + 1}`;
+            const title = rawTitle.replace(/^Source study \d+:\s*/i, '').trim();
 
-          return {
-            id: l.id,
-            title,
-            type: isVideo ? LessonType.Video : LessonType.Reading,
-            duration: l.duration ? `${Math.ceil(l.duration / 60)}m` : '0m',
-            status: sIdx === 0 && lIdx === 0 ? LessonStatus.InStream : LessonStatus.Ready,
-            totalChunks: chunks.length || 1,
-            completedChunks: 0,
-            thumbnail,
-            videoId: isVideo ? videoId : undefined,
-            videoUrl: isVideo ? videoUrl : undefined,
-            sourceUrl,
-            chunks,
-          };
-        }),
-      })),
+            return {
+              id: l.id,
+              title,
+              type: isVideo ? LessonType.Video : LessonType.Reading,
+              duration: l.duration ? `${Math.ceil(l.duration / 60)}m` : '0m',
+              status: sIdx === 0 && lIdx === 0 ? LessonStatus.InStream : LessonStatus.Ready,
+              totalChunks: chunks.length || 1,
+              completedChunks: 0,
+              thumbnail,
+              videoId: isVideo ? videoId : undefined,
+              videoUrl: isVideo ? videoUrl : undefined,
+              sourceUrl,
+              chunks,
+              order: typeof l.order === 'number' ? (isZeroIndexed ? l.order + 1 : (l.order || 1)) : (lIdx + 1),
+            };
+          }),
+        };
+      }),
       feedTitle: 'Cohort Assignments',
       feedDescription: 'Complete these assignments to gain XP and unlock the next seasons.',
       feedSeasonLabel: 'Current Season',

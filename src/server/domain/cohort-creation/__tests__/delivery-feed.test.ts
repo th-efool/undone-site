@@ -109,4 +109,11 @@ describe('retained delivery projection', () => {
     expect(output2[0].totalLessonsInSeason).toBe(1);
     expect(output2[0].totalVideos).toBe(1);
   });
+  it('normalizes 0-indexed lesson orders to 1-indexed for feed display consistency', () => {
+    const l0 = { ...lesson([chunk]), id: 'l0', order: 0 };
+    const l1 = { ...lesson([chunk]), id: 'l1', order: 1 };
+    const output = deliveryFeedChunks([l0, l1]);
+    expect(output[0].lessonOrder).toBe(1);
+    expect(output[1].lessonOrder).toBe(2);
+  });
 });

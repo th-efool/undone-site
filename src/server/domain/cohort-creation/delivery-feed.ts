@@ -29,6 +29,7 @@ function seconds(duration: string | undefined) {
 }
 /** Caller must authorize published SQL lessons first. Invalid delivery data is never fabricated. */
 export function deliveryFeedChunks(lessons: Lesson[], onRejected?: (failure: DeliveryRejection) => void): FeedChunkInput[] {
+  const isZeroIndexed = lessons.some(l => l.order === 0);
   return lessons.flatMap(lesson => {
     const reject = (reason: DeliveryRejection['reason']): FeedChunkInput[] => {
       onRejected?.({ lessonId: lesson.id, cohortId: lesson.season.cohortId, reason }); return [];
@@ -65,7 +66,7 @@ export function deliveryFeedChunks(lessons: Lesson[], onRejected?: (failure: Del
       return { chunkId: chunk.id, chunkTitle: chunk.title ?? lesson.title, chunkOrder: chunk.order ?? index,
         chunkDuration: chunk.duration ?? `${actualDurationSec}s`, startSeconds: start, endSeconds: end,
         lessonId: lesson.id, lessonTitle: lesson.title, lessonVideoId: lesson.videoId ?? undefined, lessonThumbnail: lesson.thumbnailUrl ?? '',
-        lessonOrder: lesson.order, lessonType: reading ? lesson.lessonType === 'ASSIGNMENT' ? 'assignment' : 'reading' : 'video',
+        lessonOrder: typeof lesson.order === 'number' ? (isZeroIndexed ? lesson.order + 1 : (lesson.order || 1)) : 1, lessonType: reading ? lesson.lessonType === 'ASSIGNMENT' ? 'assignment' : 'reading' : 'video',
         seasonId: lesson.seasonId, seasonTitle: lesson.season.title, seasonOrder: lesson.season.order,
         cohortId: lesson.season.cohortId, cohortTitle: lesson.season.cohort.title, cohortCoverImage: lesson.season.cohort.coverImage ?? '', cohortProvider: '',
         totalChunksInLesson: chunks.length,

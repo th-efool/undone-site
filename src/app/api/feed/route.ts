@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
     if (!Number.isFinite(timezoneOffset) || Math.abs(timezoneOffset) > 840) {
       return NextResponse.json({ error: 'Invalid timezone offset.' }, { status: 400 });
     }
-    const cohortId = params.get('cohort'); const lessonId = params.get('lesson'); const chunkId = params.get('chunk');
+    const cohortId = params.get('cohort'); const lessonId = params.get('lessonId') || params.get('lesson'); const chunkId = params.get('chunk');
     if ([cohortId, lessonId, chunkId].some(id => id !== null && (!id.length || id.length > 128))) {
       return NextResponse.json({ error: 'Invalid lesson selection.' }, { status: 400 });
     }
