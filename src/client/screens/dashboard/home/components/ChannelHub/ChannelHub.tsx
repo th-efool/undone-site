@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Mountain,
-  FileText,
-  Headphones,
-  Pencil,
+  Coffee,
   Compass,
-  Box,
+  Hammer,
+  Headphones,
+  Search,
+  Zap,
   Clock,
   BarChart2,
   Bell,
@@ -16,6 +16,7 @@ import {
   RotateCcw,
   HelpCircle,
   SlidersHorizontal,
+  Check,
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import {
@@ -23,6 +24,7 @@ import {
   DEFAULT_CHANNEL_PREFERENCES,
   type ChannelId,
 } from '@/src/client/repositories/homeStorageAdapter';
+import styles from './ChannelHub.module.css';
 
 function useSafeSession() {
   try {
@@ -36,27 +38,217 @@ function useSafeSession() {
 
 export type { ChannelId } from '@/src/client/repositories/homeStorageAdapter';
 
-export interface LearningStyle {
+export interface ChannelParamConfig {
+  id: string;
+  label: string;
+  minLabel: string;
+  maxLabel: string;
+  defaultVal: number; // 0.00 to 1.00
+  tooltip: string;
+}
+
+export interface LearningChannel {
   id: ChannelId;
   name: string;
   Icon: React.ElementType;
   tagline: string;
+  params: [ChannelParamConfig, ChannelParamConfig, ChannelParamConfig];
 }
 
-export const CHANNELS: LearningStyle[] = [
-  { id: 'spark', name: 'Visual & Conceptual', Icon: Mountain, tagline: 'Visual diagrams, spatial analogies, and imagery' },
-  { id: 'deep_dive', name: 'Deep Reading & Text', Icon: FileText, tagline: 'Structured text, deep rigor, and detailed prose' },
-  { id: 'listen', name: 'Audio & Conversations', Icon: Headphones, tagline: 'Narrated walkthroughs, dialogues, and audio sessions' },
-  { id: 'build', name: 'Hands-on & Practice', Icon: Pencil, tagline: 'Interactive exercises, code, and active practice' },
-  { id: 'explore', name: 'Broad Exploration', Icon: Compass, tagline: 'Interdisciplinary links and wandering curiosities' },
-  { id: 'quick', name: 'Mental Models & Systems', Icon: Box, tagline: 'System architectures, 3D structures, and fast takeaways' },
+export const CHANNELS: LearningChannel[] = [
+  {
+    id: 'spark',
+    name: 'Spark',
+    Icon: Coffee,
+    tagline: 'Fresh ideas to ignite your curiosity across distant domains.',
+    params: [
+      {
+        id: 'novelty',
+        label: 'Novelty',
+        minLabel: 'Familiar',
+        maxLabel: 'Esoteric',
+        defaultVal: 0.65,
+        tooltip: 'Balance between familiar fundamentals and esoteric discoveries',
+      },
+      {
+        id: 'connectivity',
+        label: 'Connectivity',
+        minLabel: 'Singular',
+        maxLabel: 'Cross-Domain',
+        defaultVal: 0.50,
+        tooltip: 'Focus on a single domain vs. bridging unexpected disciplines',
+      },
+      {
+        id: 'abstraction',
+        label: 'Abstraction',
+        minLabel: 'Concrete Fact',
+        maxLabel: 'Philosophical',
+        defaultVal: 0.45,
+        tooltip: 'Ground in tangible facts vs. theoretical, philosophical concepts',
+      },
+    ],
+  },
+  {
+    id: 'explore',
+    name: 'Explore',
+    Icon: Compass,
+    tagline: 'Discover new topics, adjacent perspectives, and uncharted ideas.',
+    params: [
+      {
+        id: 'novelty',
+        label: 'Novelty',
+        minLabel: 'Adjacent',
+        maxLabel: 'Uncharted',
+        defaultVal: 0.60,
+        tooltip: 'Stay near known topics vs venturing into uncharted waters',
+      },
+      {
+        id: 'scope',
+        label: 'Scope',
+        minLabel: 'Deep Focus',
+        maxLabel: 'Wide Horizon',
+        defaultVal: 0.70,
+        tooltip: 'Narrow specialist concentration vs panoramic interdisciplinary view',
+      },
+      {
+        id: 'serendipity',
+        label: 'Serendipity',
+        minLabel: 'Curated',
+        maxLabel: 'Random',
+        defaultVal: 0.55,
+        tooltip: 'Algorithmic curation vs spontaneous unexpected surprises',
+      },
+    ],
+  },
+  {
+    id: 'build',
+    name: 'Build',
+    Icon: Hammer,
+    tagline: 'Hands-on learning with active exercises, projects, and sandboxes.',
+    params: [
+      {
+        id: 'guidance',
+        label: 'Guidance',
+        minLabel: 'Step-by-Step',
+        maxLabel: 'Independent',
+        defaultVal: 0.40,
+        tooltip: 'Step-by-step walkthroughs vs self-directed open engineering',
+      },
+      {
+        id: 'scope',
+        label: 'Project Scope',
+        minLabel: 'Micro-Feature',
+        maxLabel: 'Full-Scale App',
+        defaultVal: 0.50,
+        tooltip: 'Targeted single components vs complete end-to-end architectures',
+      },
+      {
+        id: 'constraint',
+        label: 'Constraint',
+        minLabel: 'Strict Blueprint',
+        maxLabel: 'Open Sandbox',
+        defaultVal: 0.60,
+        tooltip: 'Rigid rubric guidelines vs unbounded creative exploration',
+      },
+    ],
+  },
+  {
+    id: 'listen',
+    name: 'Listen',
+    Icon: Headphones,
+    tagline: 'Learn on the go with narrated audio sessions and dialogs.',
+    params: [
+      {
+        id: 'format',
+        label: 'Format',
+        minLabel: 'Story',
+        maxLabel: 'Interview',
+        defaultVal: 0.50,
+        tooltip: 'Narrative storytelling vs in-depth dialog and interviews',
+      },
+      {
+        id: 'density',
+        label: 'Density',
+        minLabel: 'Casual Overview',
+        maxLabel: 'Technical Deep',
+        defaultVal: 0.55,
+        tooltip: 'Conversational overview vs mathematically rigorous breakdown',
+      },
+      {
+        id: 'length',
+        label: 'Session Length',
+        minLabel: 'Short Audio',
+        maxLabel: 'Extended Audio',
+        defaultVal: 0.45,
+        tooltip: 'Quick 5-minute clips vs comprehensive 45-minute deep dives',
+      },
+    ],
+  },
+  {
+    id: 'deep_dive',
+    name: 'Deep Dive',
+    Icon: Search,
+    tagline: 'First-principles analysis, mathematical rigor, and structured depth.',
+    params: [
+      {
+        id: 'depth',
+        label: 'Depth',
+        minLabel: 'High-Level',
+        maxLabel: 'First Principles',
+        defaultVal: 0.75,
+        tooltip: 'Intuitive mental models vs foundational ground-truth theorems',
+      },
+      {
+        id: 'rigor',
+        label: 'Rigor',
+        minLabel: 'Intuitive',
+        maxLabel: 'Formal Proof',
+        defaultVal: 0.70,
+        tooltip: 'Heuristic explanations vs formal proofs and edge cases',
+      },
+      {
+        id: 'scaffolding',
+        label: 'Scaffolding',
+        minLabel: 'Guided Hints',
+        maxLabel: 'Independent',
+        defaultVal: 0.35,
+        tooltip: 'Explanatory hints along the way vs solitary problem solving',
+      },
+    ],
+  },
+  {
+    id: 'quick',
+    name: 'Quick',
+    Icon: Zap,
+    tagline: 'Bite-sized micro-lessons engineered for busy 5-minute windows.',
+    params: [
+      {
+        id: 'length',
+        label: 'Length',
+        minLabel: 'Micro (2m)',
+        maxLabel: 'Brief (10m)',
+        defaultVal: 0.30,
+        tooltip: 'Ultra-condensed flashes vs 10-minute targeted exercises',
+      },
+      {
+        id: 'continuity',
+        label: 'Continuity',
+        minLabel: 'Standalone',
+        maxLabel: 'Sequence',
+        defaultVal: 0.50,
+        tooltip: 'Self-contained discrete cards vs progressive linked sequences',
+      },
+      {
+        id: 'density',
+        label: 'Information Density',
+        minLabel: 'Light',
+        maxLabel: 'Dense',
+        defaultVal: 0.65,
+        tooltip: 'Single high-impact takeaway vs packed reference cheat-sheet',
+      },
+    ],
+  },
 ];
-
-const DEFAULT_SLIDERS = {
-  depth: 3.74,
-  rigor: 2.48,
-  scaffolding: 1.0,
-};
 
 const DEFAULT_PREFS = {
   weeklyGoal: '8 hours',
@@ -64,26 +256,89 @@ const DEFAULT_PREFS = {
   reminderWindow: 'Evening',
 };
 
-interface TuningSliderProps {
+// ─── Custom Pointer-Captured Slider (Zero Native Text-Select Bug) ────────────
+
+interface CustomTrackSliderProps {
   label: string;
   tooltip: string;
-  value: number;
-  min?: number;
-  max?: number;
-  step?: number;
+  minLabel?: string;
+  maxLabel?: string;
+  value: number; // Strictly 0.00 to 1.00
   onChange: (val: number) => void;
 }
 
-const TuningSlider = React.memo(function TuningSlider({
+const CustomTrackSlider = React.memo(function CustomTrackSlider({
   label,
   tooltip,
+  minLabel,
+  maxLabel,
   value,
-  min = 0,
-  max = 5,
-  step = 0.01,
   onChange,
-}: TuningSliderProps) {
-  const percentage = Math.max(0, Math.min(100, Math.round(((value - min) / (max - min)) * 100)));
+}: CustomTrackSliderProps) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Strictly clamp value between 0.00 and 1.00
+  const clampedValue = Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0.5));
+  const percent = Math.round(clampedValue * 100);
+
+  const updateFromPointer = useCallback(
+    (clientX: number) => {
+      if (!trackRef.current) return;
+      const rect = trackRef.current.getBoundingClientRect();
+      if (rect.width <= 0) return;
+      const rawRatio = (clientX - rect.left) / rect.width;
+      const clampedRatio = Math.max(0, Math.min(1, rawRatio));
+      const rounded = Math.round(clampedRatio * 100) / 100;
+      onChange(rounded);
+    },
+    [onChange],
+  );
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {}
+    setIsDragging(true);
+    updateFromPointer(e.clientX);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!isDragging) return;
+    e.preventDefault();
+    updateFromPointer(e.clientX);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isDragging) {
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {}
+      setIsDragging(false);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    let next = clampedValue;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') {
+      next = Math.min(1, Math.round((clampedValue + 0.05) * 100) / 100);
+      e.preventDefault();
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') {
+      next = Math.max(0, Math.round((clampedValue - 0.05) * 100) / 100);
+      e.preventDefault();
+    } else if (e.key === 'Home') {
+      next = 0;
+      e.preventDefault();
+    } else if (e.key === 'End') {
+      next = 1;
+      e.preventDefault();
+    }
+    if (next !== clampedValue) {
+      onChange(next);
+    }
+  };
 
   return (
     <div className={styles.sliderRow}>
@@ -94,36 +349,135 @@ const TuningSlider = React.memo(function TuningSlider({
         </span>
       </div>
 
-      <div
-        className={styles.sliderTrackWrapper}
-        style={{ '--slider-fill': `${percentage}%` } as React.CSSProperties}
-      >
-        <div className={styles.sliderProgressFill} />
-        <input
-          type="range"
-          min={min}
-          max={max}
-          step={step}
-          value={value}
-          onChange={(e) => onChange(parseFloat(e.target.value))}
-          className={styles.sliderInput}
+      <div className={styles.sliderCenterCol}>
+        <div
+          ref={trackRef}
+          className={`${styles.sliderTrackWrapper} ${isDragging ? styles.trackDragging : ''}`}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          role="slider"
+          tabIndex={0}
           aria-label={label}
-          aria-valuemin={min}
-          aria-valuemax={max}
-          aria-valuenow={value}
-          aria-valuetext={`${label}: ${value.toFixed(2)}`}
-        />
+          aria-valuemin={0}
+          aria-valuemax={1}
+          aria-valuenow={clampedValue}
+          aria-valuetext={`${label}: ${clampedValue.toFixed(2)}`}
+          onKeyDown={handleKeyDown}
+        >
+          {/* Progress fill */}
+          <div
+            className={styles.sliderProgressFill}
+            style={{ width: `${percent}%` }}
+          />
+          {/* Custom thumb */}
+          <div
+            className={styles.sliderThumb}
+            style={{ left: `${percent}%` }}
+          />
+        </div>
+
+        {(minLabel || maxLabel) && (
+          <div className={styles.dichotomyLabels}>
+            <span className={styles.minDichotomyLabel}>{minLabel}</span>
+            <span className={styles.maxDichotomyLabel}>{maxLabel}</span>
+          </div>
+        )}
       </div>
 
       <div className={styles.sliderValueBadge}>
         <span className={styles.plusBox}>
           <span className={styles.plusSign}>+</span>
         </span>
-        <span className={styles.valueNumber}>{value.toFixed(2)}</span>
+        <span className={styles.valueNumber}>{clampedValue.toFixed(2)}</span>
       </div>
     </div>
   );
 });
+
+// ─── Custom Animated Dropdown Popover ────────────────────────────────────────
+
+interface CustomDropdownProps {
+  label: string;
+  icon: React.ReactNode;
+  value: string;
+  options: string[];
+  onChange: (val: string) => void;
+}
+
+function CustomDropdown({ label, icon, value, options, onChange }: CustomDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className={styles.dailyPrefRow} ref={containerRef}>
+      <div className={styles.dailyPrefLabel}>
+        {icon}
+        <span>{label}</span>
+      </div>
+
+      <div className={styles.dropdownContainer}>
+        <button
+          type="button"
+          className={`${styles.customDropdownBtn} ${isOpen ? styles.dropdownBtnActive : ''}`}
+          onClick={() => setIsOpen((prev) => !prev)}
+          aria-haspopup="listbox"
+          aria-expanded={isOpen}
+        >
+          <span className={styles.dropdownValueText}>{value}</span>
+          <ChevronDown
+            size={14}
+            className={`${styles.dropdownChevron} ${isOpen ? styles.chevronOpen : ''}`}
+          />
+        </button>
+
+        {isOpen && (
+          <ul className={styles.dropdownPopover} role="listbox">
+            {options.map((opt) => {
+              const isSelected = opt === value;
+              return (
+                <li
+                  key={opt}
+                  className={`${styles.dropdownItem} ${isSelected ? styles.dropdownItemSelected : ''}`}
+                  onClick={() => {
+                    onChange(opt);
+                    setIsOpen(false);
+                  }}
+                  role="option"
+                  aria-selected={isSelected}
+                >
+                  <span>{opt}</span>
+                  {isSelected && <Check size={13} strokeWidth={2.5} className={styles.checkIcon} />}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getInitialChannelFromUrl(): ChannelId | null {
   if (typeof window === 'undefined') return null;
@@ -148,291 +502,120 @@ function syncChannelUrlParam(channelId: ChannelId) {
   } catch {}
 }
 
+// ─── ChannelHub Main Component ───────────────────────────────────────────────
+
 export function ChannelHub() {
   const { data: session, status: authStatus } = useSafeSession();
   const isAuthenticated = authStatus === 'authenticated' && !!session?.user?.id;
 
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
   const [selectedChannel, setSelectedChannel] = useState<ChannelId>('spark');
-  const [depth, setDepth] = useState<number>(DEFAULT_SLIDERS.depth);
-  const [rigor, setRigor] = useState<number>(DEFAULT_SLIDERS.rigor);
-  const [scaffolding, setScaffolding] = useState<number>(DEFAULT_SLIDERS.scaffolding);
+
+  // Channel parameter storage map: key is `${channelId}_${paramId}` -> value (number 0..1)
+  const [channelParams, setChannelParams] = useState<Record<string, number>>(() => {
+    const initial: Record<string, number> = {};
+    for (const ch of CHANNELS) {
+      for (const p of ch.params) {
+        initial[`${ch.id}_${p.id}`] = p.defaultVal;
+      }
+    }
+    return initial;
+  });
+
   const [weeklyGoal, setWeeklyGoal] = useState<string>(DEFAULT_PREFS.weeklyGoal);
-  const [learningAllocation, setLearningAllocation] = useState<string>(DEFAULT_PREFS.learningAllocation);
-  const [reminderWindow, setReminderWindow] = useState<string>(DEFAULT_PREFS.reminderWindow);
+  const [learningAllocation, setLearningAllocation] = useState<string>(
+    DEFAULT_PREFS.learningAllocation,
+  );
+  const [reminderWindow, setReminderWindow] = useState<string>(
+    DEFAULT_PREFS.reminderWindow,
+  );
 
-  const stateRef = useRef({
-    selectedChannel,
-    depth,
-    rigor,
-    scaffolding,
-    weeklyGoal,
-    learningAllocation,
-    reminderWindow,
-  });
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Hydrate state from localStorage on mount
   useEffect(() => {
-    stateRef.current = {
-      selectedChannel,
-      depth,
-      rigor,
-      scaffolding,
-      weeklyGoal,
-      learningAllocation,
-      reminderWindow,
+    setIsExpanded(homeStorageAdapter.getChannelHubExpanded());
+
+    const urlChannel = getInitialChannelFromUrl();
+    const storedChannel = urlChannel || homeStorageAdapter.getSelectedChannel();
+    setSelectedChannel(storedChannel);
+
+    const storedPrefs = homeStorageAdapter.getChannelPreferences();
+    if (storedPrefs.weeklyGoal) setWeeklyGoal(storedPrefs.weeklyGoal);
+    if (storedPrefs.learningAllocation) setLearningAllocation(storedPrefs.learningAllocation);
+    if (storedPrefs.reminderWindow) setReminderWindow(storedPrefs.reminderWindow);
+
+    // Hydrate each channel's dedicated parameters
+    const nextParams: Record<string, number> = {};
+    for (const ch of CHANNELS) {
+      for (const p of ch.params) {
+        const val = homeStorageAdapter.getChannelParam(ch.id, p.id, p.defaultVal);
+        nextParams[`${ch.id}_${p.id}`] = val;
+      }
+    }
+    setChannelParams(nextParams);
+
+    // Sync with backend if authenticated
+    if (isAuthenticated) {
+      homeStorageAdapter.syncChannelWithBackend(true).then((res) => {
+        if (res?.prefs) {
+          if (res.prefs.weeklyGoal) setWeeklyGoal(res.prefs.weeklyGoal);
+          if (res.prefs.learningAllocation) setLearningAllocation(res.prefs.learningAllocation);
+          if (res.prefs.reminderWindow) setReminderWindow(res.prefs.reminderWindow);
+        }
+      });
+    }
+
+    const onPopState = () => {
+      const popped = getInitialChannelFromUrl();
+      if (popped) {
+        setSelectedChannel(popped);
+      }
     };
-  });
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [isAuthenticated]);
 
-  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Debounced persistence for localStorage and backend sync
-  const schedulePersistence = useCallback(
+  // Debounced backend sync
+  const scheduleBackendSync = useCallback(
     (
       channelId: ChannelId,
-      d: number,
-      r: number,
-      s: number,
-      wg: string,
-      la: string,
-      rw: string,
-      immediate = false,
+      allParams: Record<string, number>,
+      goal: string,
+      alloc: string,
+      reminder: string,
     ) => {
-      if (persistTimerRef.current) {
-        clearTimeout(persistTimerRef.current);
-        persistTimerRef.current = null;
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
       }
-
-      const commit = () => {
-        homeStorageAdapter.saveSelectedChannel(channelId);
-        homeStorageAdapter.saveChannelPreferences({
-          depth: d,
-          rigor: r,
-          scaffolding: s,
-          weeklyGoal: wg,
-          learningAllocation: la,
-          reminderWindow: rw,
-        });
-
-        // Only sync to remote backend if authenticated
-        if (isAuthenticated) {
-          const prefsMap: Record<string, string> = {
-            depth: d.toFixed(2),
-            rigor: r.toFixed(2),
-            scaffolding: s.toFixed(2),
-            weekly_goal: wg,
-            learning_allocation: la,
-            reminder_window: rw,
+      debounceTimerRef.current = setTimeout(async () => {
+        if (!isAuthenticated) return;
+        try {
+          const prefsPayload: Record<string, string> = {
+            weekly_goal: goal,
+            learning_allocation: alloc,
+            reminder_window: reminder,
           };
-
-          fetch('/api/user/channel-config', {
+          for (const [k, v] of Object.entries(allParams)) {
+            prefsPayload[k] = v.toFixed(2);
+          }
+          await fetch('/api/user/channel-config', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ activeChannel: channelId, prefs: prefsMap }),
-          }).catch((err) => {
-            console.warn('[ChannelHub] Network error syncing channel config:', err);
+            body: JSON.stringify({
+              activeChannel: channelId,
+              prefs: prefsPayload,
+            }),
           });
+        } catch (err) {
+          console.warn('ChannelHub backend sync failure:', err);
         }
-      };
-
-      if (immediate) {
-        commit();
-      } else {
-        persistTimerRef.current = setTimeout(commit, 400);
-      }
+      }, 500);
     },
     [isAuthenticated],
   );
 
-  useEffect(() => {
-    return () => {
-      if (persistTimerRef.current) {
-        clearTimeout(persistTimerRef.current);
-      }
-    };
-  }, []);
-
-  // Hydrate preferences from localStorage and remote database on mount (SSR-safe)
-  useEffect(() => {
-    try {
-      setIsExpanded(homeStorageAdapter.getChannelHubExpanded());
-
-      const urlChannel = getInitialChannelFromUrl();
-      if (urlChannel) {
-        setSelectedChannel(urlChannel);
-        homeStorageAdapter.saveSelectedChannel(urlChannel);
-      } else {
-        const storedChannel = homeStorageAdapter.getSelectedChannel();
-        if (storedChannel && CHANNELS.some((c) => c.id === storedChannel)) {
-          setSelectedChannel(storedChannel);
-        }
-      }
-
-      const storedPrefs = homeStorageAdapter.getChannelPreferences();
-      setDepth(storedPrefs.depth);
-      setRigor(storedPrefs.rigor);
-      setScaffolding(storedPrefs.scaffolding);
-      setWeeklyGoal(storedPrefs.weeklyGoal);
-      setLearningAllocation(storedPrefs.learningAllocation);
-      setReminderWindow(storedPrefs.reminderWindow);
-    } catch {}
-
-    const onPopState = () => {
-      const poppedChannel = getInitialChannelFromUrl();
-      if (poppedChannel) {
-        setSelectedChannel(poppedChannel);
-        homeStorageAdapter.saveSelectedChannel(poppedChannel);
-      }
-    };
-    window.addEventListener('popstate', onPopState);
-
-    async function loadRemoteConfig() {
-      try {
-        const res = await fetch('/api/user/channel-config');
-        if (res.ok) {
-          const data = await res.json();
-          const currentUrlChannel = getInitialChannelFromUrl();
-          if (!currentUrlChannel && data.activeChannel && CHANNELS.some((c) => c.id === data.activeChannel)) {
-            setSelectedChannel(data.activeChannel);
-            homeStorageAdapter.saveSelectedChannel(data.activeChannel);
-          }
-          if (data.prefs && typeof data.prefs === 'object') {
-            const nextPrefs: Partial<import('@/src/client/repositories/homeStorageAdapter').ChannelPreferences> = {};
-            if (data.prefs.depth && !isNaN(parseFloat(data.prefs.depth))) {
-              const d = parseFloat(data.prefs.depth);
-              setDepth(d);
-              nextPrefs.depth = d;
-            }
-            if (data.prefs.rigor && !isNaN(parseFloat(data.prefs.rigor))) {
-              const r = parseFloat(data.prefs.rigor);
-              setRigor(r);
-              nextPrefs.rigor = r;
-            }
-            if (data.prefs.scaffolding && !isNaN(parseFloat(data.prefs.scaffolding))) {
-              const s = parseFloat(data.prefs.scaffolding);
-              setScaffolding(s);
-              nextPrefs.scaffolding = s;
-            }
-            if (data.prefs.weekly_goal) {
-              setWeeklyGoal(data.prefs.weekly_goal);
-              nextPrefs.weeklyGoal = data.prefs.weekly_goal;
-            }
-            if (data.prefs.learning_allocation) {
-              setLearningAllocation(data.prefs.learning_allocation);
-              nextPrefs.learningAllocation = data.prefs.learning_allocation;
-            }
-            if (data.prefs.reminder_window) {
-              setReminderWindow(data.prefs.reminder_window);
-              nextPrefs.reminderWindow = data.prefs.reminder_window;
-            }
-            homeStorageAdapter.saveChannelPreferences(nextPrefs);
-          }
-        }
-      } catch (err) {
-        console.warn('Failed to load remote channel config:', err);
-      }
-    }
-
-    if (isAuthenticated) {
-      loadRemoteConfig();
-    }
-
-    return () => {
-      window.removeEventListener('popstate', onPopState);
-    };
-  }, [isAuthenticated]);
-
-  const handleChannelSelect = useCallback((id: ChannelId) => {
-    setSelectedChannel(id);
-    syncChannelUrlParam(id);
-    const s = stateRef.current;
-    schedulePersistence(id, s.depth, s.rigor, s.scaffolding, s.weeklyGoal, s.learningAllocation, s.reminderWindow, true);
-  }, [schedulePersistence]);
-
-  const handleDepthChange = useCallback((val: number) => {
-    setDepth(val);
-    const s = stateRef.current;
-    schedulePersistence(s.selectedChannel, val, s.rigor, s.scaffolding, s.weeklyGoal, s.learningAllocation, s.reminderWindow, false);
-  }, [schedulePersistence]);
-
-  const handleRigorChange = useCallback((val: number) => {
-    setRigor(val);
-    const s = stateRef.current;
-    schedulePersistence(s.selectedChannel, s.depth, val, s.scaffolding, s.weeklyGoal, s.learningAllocation, s.reminderWindow, false);
-  }, [schedulePersistence]);
-
-  const handleScaffoldingChange = useCallback((val: number) => {
-    setScaffolding(val);
-    const s = stateRef.current;
-    schedulePersistence(s.selectedChannel, s.depth, s.rigor, val, s.weeklyGoal, s.learningAllocation, s.reminderWindow, false);
-  }, [schedulePersistence]);
-
-  const handleWeeklyGoalChange = useCallback((val: string) => {
-    setWeeklyGoal(val);
-    const s = stateRef.current;
-    schedulePersistence(s.selectedChannel, s.depth, s.rigor, s.scaffolding, val, s.learningAllocation, s.reminderWindow, true);
-  }, [schedulePersistence]);
-
-  const handleAllocationChange = useCallback((val: string) => {
-    setLearningAllocation(val);
-    const s = stateRef.current;
-    schedulePersistence(s.selectedChannel, s.depth, s.rigor, s.scaffolding, s.weeklyGoal, val, s.reminderWindow, true);
-  }, [schedulePersistence]);
-
-  const handleReminderChange = useCallback((val: string) => {
-    setReminderWindow(val);
-    const s = stateRef.current;
-    schedulePersistence(s.selectedChannel, s.depth, s.rigor, s.scaffolding, s.weeklyGoal, s.learningAllocation, val, true);
-  }, [schedulePersistence]);
-
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-
-  const handleTabKeyDown = useCallback((e: React.KeyboardEvent, index: number) => {
-    let targetIndex = -1;
-    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
-      e.preventDefault();
-      targetIndex = (index + 1) % CHANNELS.length;
-    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      targetIndex = (index - 1 + CHANNELS.length) % CHANNELS.length;
-    } else if (e.key === 'Home') {
-      e.preventDefault();
-      targetIndex = 0;
-    } else if (e.key === 'End') {
-      e.preventDefault();
-      targetIndex = CHANNELS.length - 1;
-    }
-
-    if (targetIndex !== -1) {
-      const nextChannel = CHANNELS[targetIndex];
-      handleChannelSelect(nextChannel.id);
-      tabRefs.current[targetIndex]?.focus();
-    }
-  }, [handleChannelSelect]);
-
-  const handleReset = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setSelectedChannel('spark');
-    syncChannelUrlParam('spark');
-    setDepth(DEFAULT_SLIDERS.depth);
-    setRigor(DEFAULT_SLIDERS.rigor);
-    setScaffolding(DEFAULT_SLIDERS.scaffolding);
-    setWeeklyGoal(DEFAULT_PREFS.weeklyGoal);
-    setLearningAllocation(DEFAULT_PREFS.learningAllocation);
-    setReminderWindow(DEFAULT_PREFS.reminderWindow);
-
-    schedulePersistence(
-      'spark',
-      DEFAULT_SLIDERS.depth,
-      DEFAULT_SLIDERS.rigor,
-      DEFAULT_SLIDERS.scaffolding,
-      DEFAULT_PREFS.weeklyGoal,
-      DEFAULT_PREFS.learningAllocation,
-      DEFAULT_PREFS.reminderWindow,
-      true,
-    );
-  }, [schedulePersistence]);
-
-  const toggleExpand = () => {
+  const handleToggleExpand = () => {
     setIsExpanded((prev) => {
       const next = !prev;
       homeStorageAdapter.saveChannelHubExpanded(next);
@@ -440,210 +623,209 @@ export function ChannelHub() {
     });
   };
 
+  const handleChannelSelect = (channelId: ChannelId) => {
+    setSelectedChannel(channelId);
+    homeStorageAdapter.saveSelectedChannel(channelId);
+    syncChannelUrlParam(channelId);
+    scheduleBackendSync(channelId, channelParams, weeklyGoal, learningAllocation, reminderWindow);
+  };
+
+  const handleParamChange = (channelId: ChannelId, paramId: string, val: number) => {
+    const clamped = Math.max(0, Math.min(1, val));
+    const key = `${channelId}_${paramId}`;
+    setChannelParams((prev) => {
+      const next = { ...prev, [key]: clamped };
+      homeStorageAdapter.saveChannelParam(channelId, paramId, clamped);
+      scheduleBackendSync(selectedChannel, next, weeklyGoal, learningAllocation, reminderWindow);
+      return next;
+    });
+  };
+
+  const handleWeeklyGoalChange = (newGoal: string) => {
+    setWeeklyGoal(newGoal);
+    homeStorageAdapter.saveChannelPreferences({ weeklyGoal: newGoal });
+    scheduleBackendSync(selectedChannel, channelParams, newGoal, learningAllocation, reminderWindow);
+  };
+
+  const handleAllocationChange = (newAlloc: string) => {
+    setLearningAllocation(newAlloc);
+    homeStorageAdapter.saveChannelPreferences({ learningAllocation: newAlloc });
+    scheduleBackendSync(selectedChannel, channelParams, weeklyGoal, newAlloc, reminderWindow);
+  };
+
+  const handleReminderChange = (newReminder: string) => {
+    setReminderWindow(newReminder);
+    homeStorageAdapter.saveChannelPreferences({ reminderWindow: newReminder });
+    scheduleBackendSync(selectedChannel, channelParams, weeklyGoal, learningAllocation, newReminder);
+  };
+
+  const handleReset = () => {
+    const activeCh = CHANNELS.find((c) => c.id === selectedChannel) || CHANNELS[0];
+    setChannelParams((prev) => {
+      const next = { ...prev };
+      for (const p of activeCh.params) {
+        next[`${activeCh.id}_${p.id}`] = p.defaultVal;
+        homeStorageAdapter.saveChannelParam(activeCh.id, p.id, p.defaultVal);
+      }
+      return next;
+    });
+    setWeeklyGoal(DEFAULT_PREFS.weeklyGoal);
+    setLearningAllocation(DEFAULT_PREFS.learningAllocation);
+    setReminderWindow(DEFAULT_PREFS.reminderWindow);
+
+    homeStorageAdapter.saveChannelPreferences({
+      weeklyGoal: DEFAULT_PREFS.weeklyGoal,
+      learningAllocation: DEFAULT_PREFS.learningAllocation,
+      reminderWindow: DEFAULT_PREFS.reminderWindow,
+    });
+  };
+
+  const activeChannelConfig =
+    CHANNELS.find((c) => c.id === selectedChannel) || CHANNELS[0];
+
   return (
     <section className={styles.card} aria-label="Fine-tune your feed">
-      {/* Collapsible Card Header */}
-      <div
-        className={styles.header}
-        onClick={toggleExpand}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            toggleExpand();
-          }
-        }}
-        aria-expanded={isExpanded}
-      >
+      {/* ─── Header ──────────────────────────────────────────────────────── */}
+      <div className={styles.header}>
         <div className={styles.headerLeft}>
-          <div className={styles.iconBadge}>
-            <SlidersHorizontal size={15} strokeWidth={2.4} />
+          <div className={styles.iconBadge} aria-hidden="true">
+            <SlidersHorizontal size={15} strokeWidth={2.5} />
           </div>
-          <div className={styles.headerTitles}>
-            <div className={styles.headerTitleRow}>
-              <h2 className={styles.title}>Fine-tune your feed</h2>
-              <span className={styles.chevronIcon} aria-hidden="true">
-                {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </span>
-            </div>
+          <div className={styles.titleGroup}>
+            <h2 className={styles.title}>Fine-tune your feed</h2>
             <p className={styles.subtitle}>
-              Adjust how the feed curates and adapts to you. You can change this anytime.
+              Adjust your learning channels and algorithmic weights to match your cognitive style.
             </p>
           </div>
         </div>
 
-        <div className={styles.headerRight}>
+        <div className={styles.headerActions}>
           <button
             type="button"
             className={styles.resetBtn}
             onClick={handleReset}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.stopPropagation();
-              }
-            }}
-            title="Reset feed adjustments to defaults"
-            aria-label="Reset adjustments to defaults"
+            aria-label="Reset tuning parameters to defaults"
           >
-            <RotateCcw size={13} strokeWidth={2.2} />
+            <RotateCcw size={12} strokeWidth={2.4} />
             <span>Reset</span>
+          </button>
+
+          <button
+            type="button"
+            className={styles.collapseBtn}
+            onClick={handleToggleExpand}
+            aria-label={isExpanded ? 'Collapse feed tuning' : 'Expand feed tuning'}
+            aria-expanded={isExpanded}
+          >
+            {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
         </div>
       </div>
 
-      {/* Expanded Tuning Body */}
+      {/* ─── Body ────────────────────────────────────────────────────────── */}
       {isExpanded && (
         <div className={styles.bodyGrid}>
-          {/* Left Column: Learning Style & Sliders */}
-          <div className={styles.colSection}>
-            <div className={styles.sectionHeadingRow}>
-              <span className={styles.sectionHeading}>Learning style</span>
+          {/* Left Column: Learning Style Tabs & Sliders */}
+          <div className={styles.leftCol}>
+            <div className={styles.subheadRow}>
+              <span className={styles.subhead}>Learning style</span>
             </div>
 
-            {/* 6 Icon Tabs */}
-            <div className={styles.iconTabsRow} role="tablist" aria-label="Learning Styles">
-              {CHANNELS.map((ch, idx) => {
+            {/* Compact 38px button boxes with larger 20px icons & hover tooltips */}
+            <div
+              className={styles.iconTabsRow}
+              role="tablist"
+              aria-label="Select learning style"
+            >
+              {CHANNELS.map((ch) => {
                 const isActive = ch.id === selectedChannel;
                 const IconComponent = ch.Icon;
                 return (
                   <button
                     key={ch.id}
-                    ref={(el) => { tabRefs.current[idx] = el; }}
                     type="button"
                     role="tab"
                     aria-selected={isActive}
-                    tabIndex={isActive ? 0 : -1}
+                    title={`${ch.name} — ${ch.tagline}`}
                     className={`${styles.iconTab} ${isActive ? styles.iconTabActive : ''}`}
                     onClick={() => handleChannelSelect(ch.id)}
-                    onKeyDown={(e) => handleTabKeyDown(e, idx)}
-                    title={`${ch.name} — ${ch.tagline}`}
-                    aria-label={`${ch.name}: ${ch.tagline}`}
                   >
-                    <IconComponent size={20} strokeWidth={isActive ? 2.4 : 1.8} />
+                    <IconComponent
+                      size={20}
+                      strokeWidth={2.1}
+                      className={styles.iconSvg}
+                    />
                   </button>
                 );
               })}
             </div>
 
-            {/* 3 Parameter Sliders */}
+            {/* Active Channel Identity Banner */}
+            <div className={styles.activeChannelBanner}>
+              <div className={styles.activeChannelBadge} aria-hidden="true">
+                <activeChannelConfig.Icon size={14} strokeWidth={2.4} />
+              </div>
+              <div className={styles.activeChannelText}>
+                <span className={styles.activeChannelName}>
+                  {activeChannelConfig.name}
+                </span>
+                <span className={styles.activeChannelDivider}>•</span>
+                <span className={styles.activeChannelTagline}>
+                  {activeChannelConfig.tagline}
+                </span>
+              </div>
+            </div>
+
+            {/* Sliders list: strictly 0.00 to 1.00 with custom pointer engine */}
             <div className={styles.slidersList}>
-              <TuningSlider
-                label="Depth"
-                tooltip="Adjust conceptual depth from practical overview to first principles"
-                value={depth}
-                onChange={handleDepthChange}
-              />
-              <TuningSlider
-                label="Rigor"
-                tooltip="Adjust pedagogical rigor from intuitive analogies to formal explanations"
-                value={rigor}
-                onChange={handleRigorChange}
-              />
-              <TuningSlider
-                label="Scaffolding"
-                tooltip="Adjust guidance level from step-by-step handholding to independent challenges"
-                value={scaffolding}
-                onChange={handleScaffoldingChange}
-              />
+              {activeChannelConfig.params.map((param) => {
+                const key = `${selectedChannel}_${param.id}`;
+                const val = channelParams[key] ?? param.defaultVal;
+                return (
+                  <CustomTrackSlider
+                    key={key}
+                    label={param.label}
+                    tooltip={param.tooltip}
+                    minLabel={param.minLabel}
+                    maxLabel={param.maxLabel}
+                    value={val}
+                    onChange={(newVal) => handleParamChange(selectedChannel, param.id, newVal)}
+                  />
+                );
+              })}
             </div>
           </div>
 
-          {/* Right Column: Daily Preferences */}
-          <div className={styles.colSection}>
-            <div className={styles.sectionHeadingRow}>
-              <span className={styles.sectionHeading}>Daily preferences</span>
+          {/* Right Column: Daily Preferences with Bespoke Popovers */}
+          <div className={styles.rightCol}>
+            <div className={styles.subheadRow}>
+              <span className={styles.subhead}>Daily preferences</span>
             </div>
 
-            <div className={styles.prefList}>
-              {/* Row 1: Weekly learning goal */}
-              <div className={styles.prefRow}>
-                <div className={styles.prefIconWrapper}>
-                  <Clock size={16} strokeWidth={2} />
-                </div>
-                <div className={styles.prefTextGroup}>
-                  <span className={styles.prefTitle}>Weekly learning goal</span>
-                  <span className={styles.prefDesc}>Measure progress against your commitment</span>
-                </div>
-                <div className={styles.selectWrapper}>
-                  <div className={styles.customSelectTrigger}>
-                    <Clock size={13} strokeWidth={2} className={styles.selectIcon} />
-                    <span className={styles.selectLabel}>{weeklyGoal}</span>
-                    <ChevronDown size={13} className={styles.selectChevron} aria-hidden="true" />
-                  </div>
-                  <select
-                    value={weeklyGoal}
-                    onChange={(e) => handleWeeklyGoalChange(e.target.value)}
-                    className={styles.hiddenSelectInput}
-                    aria-label="Weekly learning goal"
-                  >
-                    <option value="4 hours">4 hours</option>
-                    <option value="6 hours">6 hours</option>
-                    <option value="8 hours">8 hours</option>
-                    <option value="10 hours">10 hours</option>
-                    <option value="12 hours">12 hours</option>
-                    <option value="15 hours">15 hours</option>
-                  </select>
-                </div>
-              </div>
+            <div className={styles.dailyPrefsList}>
+              <CustomDropdown
+                label="Weekly learning goal"
+                icon={<Clock size={15} className={styles.prefIcon} />}
+                value={weeklyGoal}
+                options={['4 hours', '6 hours', '8 hours', '12 hours', '16 hours']}
+                onChange={handleWeeklyGoalChange}
+              />
 
-              {/* Row 2: Learning allocation */}
-              <div className={styles.prefRow}>
-                <div className={styles.prefIconWrapper}>
-                  <BarChart2 size={16} strokeWidth={2} />
-                </div>
-                <div className={styles.prefTextGroup}>
-                  <span className={styles.prefTitle}>Learning allocation</span>
-                  <span className={styles.prefDesc}>Balance backlog, exploration, and depth</span>
-                </div>
-                <div className={styles.selectWrapper}>
-                  <div className={styles.customSelectTrigger}>
-                    <BarChart2 size={13} strokeWidth={2} className={styles.selectIcon} />
-                    <span className={styles.selectLabel}>{learningAllocation}</span>
-                    <ChevronDown size={13} className={styles.selectChevron} aria-hidden="true" />
-                  </div>
-                  <select
-                    value={learningAllocation}
-                    onChange={(e) => handleAllocationChange(e.target.value)}
-                    className={styles.hiddenSelectInput}
-                    aria-label="Learning allocation"
-                  >
-                    <option value="Balanced">Balanced</option>
-                    <option value="Deep Dive">Deep Dive</option>
-                    <option value="Exploratory">Exploratory</option>
-                    <option value="Sprint">Sprint</option>
-                  </select>
-                </div>
-              </div>
+              <CustomDropdown
+                label="Learning allocation"
+                icon={<BarChart2 size={15} className={styles.prefIcon} />}
+                value={learningAllocation}
+                options={['Focused', 'Balanced', 'Exploratory', 'Intense']}
+                onChange={handleAllocationChange}
+              />
 
-              {/* Row 3: Reminder window */}
-              <div className={styles.prefRow}>
-                <div className={styles.prefIconWrapper}>
-                  <Bell size={16} strokeWidth={2} />
-                </div>
-                <div className={styles.prefTextGroup}>
-                  <span className={styles.prefTitle}>Reminder window</span>
-                  <span className={styles.prefDesc}>Choose when reminders arrive</span>
-                </div>
-                <div className={styles.selectWrapper}>
-                  <div className={styles.customSelectTrigger}>
-                    <Bell size={13} strokeWidth={2} className={styles.selectIcon} />
-                    <span className={styles.selectLabel}>{reminderWindow}</span>
-                    <ChevronDown size={13} className={styles.selectChevron} aria-hidden="true" />
-                  </div>
-                  <select
-                    value={reminderWindow}
-                    onChange={(e) => handleReminderChange(e.target.value)}
-                    className={styles.hiddenSelectInput}
-                    aria-label="Reminder window"
-                  >
-                    <option value="Morning">Morning</option>
-                    <option value="Afternoon">Afternoon</option>
-                    <option value="Evening">Evening</option>
-                    <option value="Night">Night</option>
-                  </select>
-                </div>
-              </div>
+              <CustomDropdown
+                label="Reminder window"
+                icon={<Bell size={15} className={styles.prefIcon} />}
+                value={reminderWindow}
+                options={['Morning', 'Afternoon', 'Evening', 'Night', 'None']}
+                onChange={handleReminderChange}
+              />
             </div>
           </div>
         </div>

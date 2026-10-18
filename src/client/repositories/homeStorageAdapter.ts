@@ -21,9 +21,9 @@ export const VALID_CHANNEL_IDS: ChannelId[] = [
 ];
 
 export const DEFAULT_CHANNEL_PREFERENCES: ChannelPreferences = {
-  depth: 3.74,
-  rigor: 2.48,
-  scaffolding: 1.0,
+  depth: 0.74,
+  rigor: 0.50,
+  scaffolding: 0.35,
   weeklyGoal: '8 hours',
   learningAllocation: 'Balanced',
   reminderWindow: 'Evening',
@@ -378,16 +378,19 @@ export const homeStorageAdapter = {
           const parsed = JSON.parse(compositeRaw);
           if (parsed && typeof parsed === 'object') {
             if (parsed.depth !== undefined && !isNaN(parseFloat(parsed.depth))) {
-              const d = parseFloat(parsed.depth);
-              if (d >= 0 && d <= 5) prefs.depth = d;
+              let d = parseFloat(parsed.depth);
+              if (d > 1) d = d / 5;
+              prefs.depth = Math.max(0, Math.min(1, d));
             }
             if (parsed.rigor !== undefined && !isNaN(parseFloat(parsed.rigor))) {
-              const r = parseFloat(parsed.rigor);
-              if (r >= 0 && r <= 5) prefs.rigor = r;
+              let r = parseFloat(parsed.rigor);
+              if (r > 1) r = r / 5;
+              prefs.rigor = Math.max(0, Math.min(1, r));
             }
             if (parsed.scaffolding !== undefined && !isNaN(parseFloat(parsed.scaffolding))) {
-              const s = parseFloat(parsed.scaffolding);
-              if (s >= 0 && s <= 5) prefs.scaffolding = s;
+              let s = parseFloat(parsed.scaffolding);
+              if (s > 1) s = s / 5;
+              prefs.scaffolding = Math.max(0, Math.min(1, s));
             }
             if (typeof parsed.weekly_goal === 'string' && parsed.weekly_goal.trim()) {
               prefs.weeklyGoal = parsed.weekly_goal.trim();
@@ -405,20 +408,29 @@ export const homeStorageAdapter = {
       // 2. Individual key overrides (matching legacy / external writers)
       const rawDepth = localStorage.getItem(PREF_DEPTH_KEY);
       if (rawDepth) {
-        const val = parseFloat(rawDepth);
-        if (!isNaN(val) && val >= 0 && val <= 5) prefs.depth = val;
+        let val = parseFloat(rawDepth);
+        if (!isNaN(val)) {
+          if (val > 1) val = val / 5;
+          prefs.depth = Math.max(0, Math.min(1, val));
+        }
       }
 
       const rawRigor = localStorage.getItem(PREF_RIGOR_KEY);
       if (rawRigor) {
-        const val = parseFloat(rawRigor);
-        if (!isNaN(val) && val >= 0 && val <= 5) prefs.rigor = val;
+        let val = parseFloat(rawRigor);
+        if (!isNaN(val)) {
+          if (val > 1) val = val / 5;
+          prefs.rigor = Math.max(0, Math.min(1, val));
+        }
       }
 
       const rawScaffolding = localStorage.getItem(PREF_SCAFFOLDING_KEY);
       if (rawScaffolding) {
-        const val = parseFloat(rawScaffolding);
-        if (!isNaN(val) && val >= 0 && val <= 5) prefs.scaffolding = val;
+        let val = parseFloat(rawScaffolding);
+        if (!isNaN(val)) {
+          if (val > 1) val = val / 5;
+          prefs.scaffolding = Math.max(0, Math.min(1, val));
+        }
       }
 
       const rawWeeklyGoal = localStorage.getItem(PREF_WEEKLY_GOAL_KEY);
@@ -440,6 +452,62 @@ export const homeStorageAdapter = {
     }
 
     return prefs;
+  },
+
+  getChannelParam(channelId: ChannelId, paramId: string, defaultValue = 0.5): number {
+    if (typeof window === 'undefined') return defaultValue;
+    try {
+      const key = `${channelId}_${paramId}`;
+      const compositeRaw = localStorage.getItem(CHANNEL_PREFS_KEY);
+      if (compositeRaw) {
+        const parsed = JSON.parse(compositeRaw);
+        if (parsed && parsed[key] !== undefined) {
+          let val = parseFloat(parsed[key]);
+          if (!isNaN(val)) {
+            if (val > 1) val = val / 5;
+            return Math.max(0, Math.min(1, val));
+          }
+        }
+      }
+      const direct = localStorage.getItem(`sidequest_pref_${key}`);
+      if (direct) {
+        let val = parseFloat(direct);
+        if (!isNaN(val)) {
+          if (val > 1) val = val / 5;
+          return Math.max(0, Math.min(1, val));
+        }
+      }
+    } catch {}
+    return defaultValue;
+  },
+
+  saveChannelParam(channelId: ChannelId, paramId: string, value: number): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const clamped = Math.max(0, Math.min(1, value));
+      const key = `${channelId}_${paramId}`;
+      let composite: Record<string, string> = {};
+      const compositeRaw = localStorage.getItem(CHANNEL_PREFS_KEY);
+      if (compositeRaw) {
+        try {
+          composite = JSON.parse(compositeRaw) || {};
+        } catch {}
+      }
+      composite[key] = clamped.toFixed(2);
+      localStorage.setItem(CHANNEL_PREFS_KEY, JSON.stringify(composite));
+      localStorage.setItem(`sidequest_pref_${key}`, clamped.toFixed(2));
+    } catch {}
+  },
+
+  getAllChannelPrefs(): Record<string, string> {
+    if (typeof window === 'undefined') return {};
+    try {
+      const compositeRaw = localStorage.getItem(CHANNEL_PREFS_KEY);
+      if (compositeRaw) {
+        return JSON.parse(compositeRaw) || {};
+      }
+    } catch {}
+    return {};
   },
 
   saveChannelPreferences(partial: Partial<ChannelPreferences>): void {

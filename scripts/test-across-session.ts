@@ -77,13 +77,13 @@ async function runTests() {
   assert.strictEqual(homeStorageAdapter.getSelectedChannel(), 'spark', 'Default channel should be spark');
   assert.strictEqual(homeStorageAdapter.getChannelHubExpanded(), true, 'Default expanded should be true');
 
-  // Save new values
+  // Save new values (strictly 0.00 to 1.00)
   homeStorageAdapter.saveSelectedChannel('deep_dive');
   homeStorageAdapter.saveChannelHubExpanded(false);
   homeStorageAdapter.saveChannelPreferences({
-    depth: 4.5,
-    rigor: 3.8,
-    scaffolding: 2.2,
+    depth: 0.85,
+    rigor: 0.65,
+    scaffolding: 0.40,
     weeklyGoal: '12 hours',
     learningAllocation: 'Deep Dive',
     reminderWindow: 'Morning',
@@ -94,9 +94,9 @@ async function runTests() {
   assert.strictEqual(homeStorageAdapter.getChannelHubExpanded(), false, 'Channel hub should be collapsed');
 
   const updatedPrefs = homeStorageAdapter.getChannelPreferences();
-  assert.strictEqual(updatedPrefs.depth, 4.5, 'Depth should be 4.5');
-  assert.strictEqual(updatedPrefs.rigor, 3.8, 'Rigor should be 3.8');
-  assert.strictEqual(updatedPrefs.scaffolding, 2.2, 'Scaffolding should be 2.2');
+  assert.strictEqual(updatedPrefs.depth, 0.85, 'Depth should be 0.85');
+  assert.strictEqual(updatedPrefs.rigor, 0.65, 'Rigor should be 0.65');
+  assert.strictEqual(updatedPrefs.scaffolding, 0.40, 'Scaffolding should be 0.40');
   assert.strictEqual(updatedPrefs.weeklyGoal, '12 hours', 'Weekly goal should be 12 hours');
   assert.strictEqual(updatedPrefs.learningAllocation, 'Deep Dive', 'Learning allocation should be Deep Dive');
   assert.strictEqual(updatedPrefs.reminderWindow, 'Morning', 'Reminder window should be Morning');
@@ -104,7 +104,7 @@ async function runTests() {
   // Verify backward compatible keys are populated in localStorage
   assert.strictEqual(mockLocalStorage.getItem('sidequest_active_channel'), 'deep_dive');
   assert.strictEqual(mockLocalStorage.getItem('sidequest_finetune_expanded'), 'false');
-  assert.strictEqual(mockLocalStorage.getItem('sidequest_pref_depth'), '4.50');
+  assert.strictEqual(mockLocalStorage.getItem('sidequest_pref_depth'), '0.85');
   assert.strictEqual(mockLocalStorage.getItem('sidequest_pref_weekly_goal'), '12 hours');
 
   // Verify composite JSON is saved
@@ -113,13 +113,19 @@ async function runTests() {
   const composite = JSON.parse(compositeRaw!);
   assert.strictEqual(composite.learning_allocation, 'Deep Dive');
 
-  // Test 1b: Corrupt storage recovery & boundaries
+  // Test 1b: Channel-scoped parameter methods (getChannelParam & saveChannelParam)
+  homeStorageAdapter.saveChannelParam('spark', 'novelty', 0.92);
+  homeStorageAdapter.saveChannelParam('build', 'guidance', 0.25);
+  assert.strictEqual(homeStorageAdapter.getChannelParam('spark', 'novelty'), 0.92, 'Spark novelty should be 0.92');
+  assert.strictEqual(homeStorageAdapter.getChannelParam('build', 'guidance'), 0.25, 'Build guidance should be 0.25');
+
+  // Test 1c: Corrupt storage recovery & boundaries
   mockLocalStorage.setItem('sidequest_pref_depth', 'invalid_number');
   mockLocalStorage.setItem('sidequest_active_channel', 'invalid_channel');
   const recoveredPrefs = homeStorageAdapter.getChannelPreferences();
-  assert.strictEqual(recoveredPrefs.depth, 4.5, 'Depth should retain valid parsed fallback');
+  assert.strictEqual(recoveredPrefs.depth, 0.85, 'Depth should retain valid parsed fallback');
   assert.strictEqual(homeStorageAdapter.getSelectedChannel(), 'spark', 'Invalid channel should safely fall back to spark');
-  console.log('✔ Test 1 Passed: ChannelHub choices properly persist, recover, and namespace');
+  console.log('✔ Test 1 Passed: ChannelHub choices properly persist, recover, and namespace (0.0 to 1.0 bounded)');
 
   // Test 2: HomeDesktop Section States (isPausedOpen, isCompletedOpen, searchQuery)
   console.log('Test 2: HomeDesktop Section States Persistence');
