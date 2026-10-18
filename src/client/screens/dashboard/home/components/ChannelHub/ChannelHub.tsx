@@ -136,7 +136,7 @@ export const CHANNELS: LearningChannel[] = [
       },
       {
         id: 'scope',
-        label: 'Project Scope',
+        label: 'Scope',
         minLabel: 'Micro-Feature',
         maxLabel: 'Full-Scale App',
         defaultVal: 0.50,
@@ -176,7 +176,7 @@ export const CHANNELS: LearningChannel[] = [
       },
       {
         id: 'length',
-        label: 'Session Length',
+        label: 'Duration',
         minLabel: 'Short Audio',
         maxLabel: 'Extended Audio',
         defaultVal: 0.45,
@@ -240,7 +240,7 @@ export const CHANNELS: LearningChannel[] = [
       },
       {
         id: 'density',
-        label: 'Information Density',
+        label: 'Density',
         minLabel: 'Light',
         maxLabel: 'Dense',
         defaultVal: 0.65,
