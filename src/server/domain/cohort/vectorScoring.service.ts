@@ -9,6 +9,7 @@ import {
   arrayToVector,
   computeDeterministicChunkVector,
 } from '@/src/shared/curriculum/pedagogicalVector.engine';
+import { DEFAULT_COHORT_MODEL } from '@/src/server/infrastructure/ai/modelRegistry';
 
 export interface VectorScoringResult {
   vector: VectorArray12D;
@@ -25,6 +26,22 @@ export class VectorScoringService {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return null;
     return new GoogleGenerativeAI(apiKey);
+  }
+
+  /**
+   * Evaluates a single chunk transcript segment across the 12 pedagogical dimensions.
+   * Alias for scoreTranscript.
+   */
+  static async evaluateChunk(
+    text: string,
+    metadata?: {
+      title?: string;
+      chunkIndex?: number;
+      totalChunks?: number;
+      duration?: number;
+    }
+  ): Promise<VectorScoringResult> {
+    return this.scoreTranscript(text, metadata);
   }
 
   /**
@@ -47,8 +64,10 @@ export class VectorScoringService {
     }
 
     try {
+      const configuredModel =
+        process.env.COHORT_AI_MODEL?.trim() || DEFAULT_COHORT_MODEL || 'gemini-2.5-flash';
       const model = client.getGenerativeModel({
-        model: 'gemini-3.8-flash',
+        model: configuredModel,
         generationConfig: {
           responseMimeType: 'application/json',
           temperature: 0.1,
