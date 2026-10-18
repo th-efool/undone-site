@@ -452,15 +452,20 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
     return grid;
   }, [currentYear, currentMonth]);
 
-  // Filter events for selected day & month (memoized to keep stable reference during day cell hovering)
-  const activeEvents = useMemo<CalendarEvent[]>(() => {
-    const getEvents = (day: number) =>
-      eventsList.filter(
+  const getDayEvents = useCallback(
+    (day: number, isCurrentMonth = true) => {
+      if (!isCurrentMonth) return [];
+      return eventsList.filter(
         (ev) => ev.year === currentYear && ev.month === currentMonth && ev.day === day,
       );
+    },
+    [eventsList, currentYear, currentMonth],
+  );
 
+  // Filter events for selected day & month (memoized to keep stable reference during day cell hovering)
+  const activeEvents = useMemo<CalendarEvent[]>(() => {
     if (isLight) {
-      return getEvents(selectedDay);
+      return getDayEvents(selectedDay, true);
     }
     if (items && items.length > 0) {
       return items.map((it, idx) => ({
@@ -475,8 +480,8 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
         tone: it.tone,
       }));
     }
-    return getEvents(selectedDay);
-  }, [isLight, items, currentYear, currentMonth, selectedDay, eventsList]);
+    return getDayEvents(selectedDay, true);
+  }, [isLight, items, currentYear, currentMonth, selectedDay, getDayEvents]);
 
   // Actions
   const handleQuickAddSession = () => {
