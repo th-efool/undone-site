@@ -10,12 +10,33 @@ export function sourceCapability(kind: 'pdf' | 'web' | 'youtube' | 'github') {
   if (kind === 'github') return process.env.INTERACTION_GITHUB_ENABLED === '1' && (githubSourceReadiness().enabled || (process.env.NODE_ENV === 'test' && process.env.INTERACTION_GITHUB_TEST_MOCK === '1') || process.env.NODE_ENV === 'development');
   return process.env[kind === 'pdf' ? 'INTERACTION_PDF_ENABLED' : 'INTERACTION_WEB_ENABLED'] === '1';
 }
-export async function assertSourceSchema(sql: TextArtifactSql) {
-  const rows = await sql.query(`SELECT pg_get_constraintdef(oid) AS definition FROM pg_constraint
+let sourceSchemaVerified = false;
+let verificationPromise: Promise<void> | null = null;
+
+export function resetSourceSchemaVerificationForTest(): void {
+  sourceSchemaVerified = false;
+  verificationPromise = null;
+}
+
+export async function assertSourceSchema(sql: TextArtifactSql): Promise<void> {
+  if (sourceSchemaVerified) return;
+  if (verificationPromise) return verificationPromise;
+
+  verificationPromise = (async () => {
+    try {
+      const rows = await sql.query(`SELECT pg_get_constraintdef(oid) AS definition FROM pg_constraint
     WHERE conrelid IN ('cohort_text_jobs'::regclass,'cohort_text_artifacts'::regclass)
       AND conname IN ('cohort_text_jobs_stage_ck','cohort_text_artifacts_kind_ck')`,[]);
-  if (rows.rows.length !== 2 || rows.rows.some(row => !String(row.definition).includes('extraction')) ||
-    !rows.rows.some(row => String(row.definition).includes('source_input'))) throw new Error('S4B_SCHEMA_NOT_INSTALLED');
+      if (rows.rows.length !== 2 || rows.rows.some(row => !String(row.definition).includes('extraction')) ||
+        !rows.rows.some(row => String(row.definition).includes('source_input'))) throw new Error('S4B_SCHEMA_NOT_INSTALLED');
+
+      sourceSchemaVerified = true;
+    } finally {
+      verificationPromise = null;
+    }
+  })();
+
+  return verificationPromise;
 }
 export async function validateSourceAction(sql: TextArtifactSql, workspaceId: string, input: unknown) {
   if (!['add_pdf_source','add_web_source','set_pdf_pages','refresh_web_source','add_youtube_source','set_youtube_scope','add_github_source','set_github_scope'].includes((input as { type?: string })?.type ?? '')) return;
