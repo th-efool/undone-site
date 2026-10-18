@@ -56,7 +56,6 @@ export function PlayDock({
   onToggleFullscreen,
 }: PlayDockProps) {
   const [speedMenuOpen, setSpeedMenuOpen] = useState(false);
-  const [captionsActive, setCaptionsActive] = useState(false);
   const speedRef = useRef<HTMLDivElement>(null);
 
   // Close speed menu on outside click
@@ -200,18 +199,25 @@ export function PlayDock({
         )}
       </div>
 
-      {/* Capsule 6: Captions / CC */}
+      {/* Capsule 6: Captions / CC (Visibly deferred placeholder without fake toggle) */}
       <div className={styles.capsule}>
-        <button
-          type="button"
-          className={styles.dockButton}
-          onClick={() => setCaptionsActive((p) => !p)}
-          aria-label={captionsActive ? 'Disable captions' : 'Enable captions'}
-          title="Captions / Subtitles"
-          style={{ color: captionsActive ? '#5430FF' : 'inherit' }}
+        <div
+          tabIndex={0}
+          className={styles.tooltipAnchor}
+          data-tooltip="Captions coming later"
+          aria-label="Captions coming later"
         >
-          <Subtitles size={18} />
-        </button>
+          <button
+            type="button"
+            className={`${styles.dockButton} ${styles.dockButtonDisabled}`}
+            disabled
+            aria-disabled="true"
+            aria-label="Captions and subtitles coming later"
+            title="Captions coming later"
+          >
+            <Subtitles size={18} />
+          </button>
+        </div>
       </div>
 
       {/* Capsule 7: Report Issue (Visibly deferred placeholder without fake modal) */}

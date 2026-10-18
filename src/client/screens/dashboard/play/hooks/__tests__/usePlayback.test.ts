@@ -682,6 +682,80 @@ describe('playback foundations: exact navigation, media controls, and completion
     expect(result.current.activeItem?.chunkId).toBe('c0');
     expect(result.current.feedItems).toHaveLength(4);
   });
+
+  it('preserves user focused chunk when completion resolves asynchronously after navigation', async () => {
+    let resolveCompletion: (val: any) => void = () => {};
+    const completionPromise = new Promise((resolve) => {
+      resolveCompletion = resolve;
+    });
+
+    fetchMock.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/api/progress/chunk')) {
+        await completionPromise;
+        return { ok: true, json: async () => ({ ok: true }) };
+      }
+      if (typeof url === 'string' && url.includes('pageIndex=0')) {
+        return { ok: true, json: async () => ({ items: testItems }) };
+      }
+      return { ok: true, json: async () => ({ items: [] }) };
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('c0'));
+
+    // Start completion for c0
+    let completePromise: Promise<boolean>;
+    act(() => {
+      completePromise = result.current.completeActiveChunk();
+    });
+
+    // While completion is in-flight, navigate to c2 (index 2)
+    act(() => {
+      result.current.goToIndex(2);
+    });
+    expect(result.current.activeItem?.chunkId).toBe('c2');
+
+    // Resolve the completion for c0
+    await act(async () => {
+      resolveCompletion({ ok: true });
+      await completePromise;
+    });
+
+    // c0 was removed from feedItems, so c2 is now at index 1!
+    // The activeItem MUST remain c2 and NOT snap back to index 0 (which would be c1)!
+    expect(result.current.activeItem?.chunkId).toBe('c2');
+    expect(result.current.currentIndex).toBe(1);
+    expect(result.current.feedItems.map((it: any) => it.chunkId)).toEqual(['c1', 'c2', 'c3']);
+  });
+
+  it('pauses direct HTML5 video when reaching chunk endSecs', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      fetchMock.mockImplementation(async () => ({ ok: true, json: async () => ({ items: testItems }) }));
+      const { result } = renderHook(() => usePlayback());
+      await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('c0'));
+
+      const mockVideo = document.createElement('video');
+      mockVideo.pause = vi.fn();
+      mockVideo.play = vi.fn().mockResolvedValue(undefined);
+      mockVideo.currentTime = 50;
+
+      act(() => {
+        result.current.registerVideoElement(mockVideo);
+      });
+
+      // Active item c0 has endSeconds: 60. Simulate video reaching endSeconds (60)
+      mockVideo.currentTime = 60;
+      act(() => {
+        vi.advanceTimersByTime(260);
+      });
+
+      expect(mockVideo.pause).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
+
 
 

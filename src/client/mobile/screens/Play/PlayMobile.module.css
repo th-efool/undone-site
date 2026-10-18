@@ -617,7 +617,7 @@
 }
 
 /* ── Landscape mode adaptations ─────────────────────────────────────────── */
-@media (orientation: landscape) and (max-height: 500px) {
+@media (orientation: landscape) and (max-height: 650px) {
   .mobilePlay {
     flex-direction: row;
     padding: 6px 12px;

@@ -225,13 +225,24 @@ export function usePlayback() {
       setChannelCaches(previous => {
         const ch = previous[activeChannel];
         if (!ch) return previous;
+        const currentItem = ch.items[ch.currentIndex];
+        const currentChunkId = currentItem?.chunkId;
         const itemIndex = ch.items.findIndex(it => it.chunkId === activeItem.chunkId);
         const nextItems = ch.items.filter(item => item.chunkId !== activeItem.chunkId);
-        const nextIndex = itemIndex === -1
-          ? Math.min(ch.currentIndex, Math.max(0, nextItems.length - 1))
-          : itemIndex >= nextItems.length
-          ? Math.max(0, nextItems.length - 1)
-          : Math.max(0, itemIndex);
+
+        let nextIndex: number;
+        // If user was viewing a different item when completion resolved, preserve that item's index
+        if (currentChunkId && currentChunkId !== activeItem.chunkId) {
+          const preservedIdx = nextItems.findIndex(it => it.chunkId === currentChunkId);
+          nextIndex = preservedIdx !== -1 ? preservedIdx : Math.min(ch.currentIndex, Math.max(0, nextItems.length - 1));
+        } else {
+          // User was viewing the item that just completed; advance smoothly to the next item
+          nextIndex = itemIndex === -1
+            ? Math.min(ch.currentIndex, Math.max(0, nextItems.length - 1))
+            : itemIndex >= nextItems.length
+            ? Math.max(0, nextItems.length - 1)
+            : Math.max(0, itemIndex);
+        }
 
         if (nextItems.length < 3 && !ch.isFetching && !ch.exhausted && !ch.hasError) {
           shouldPrefetch = true;
@@ -586,6 +597,11 @@ export function usePlayback() {
         const rawCurrent = videoRef.current.currentTime;
         const relCurrent = Math.max(0, rawCurrent - startSecs);
         setCurrentTimeSeconds(Math.min(relCurrent, totalChunkDur));
+
+        if (rawCurrent >= endSecs) {
+          try { videoRef.current.pause(); } catch {}
+          setIsPlaying(false);
+        }
 
         if (rawCurrent >= endSecs - 0.5 && isPlayingRef.current) {
           if (!reportedChunksRef.current.has(activeItem.chunkId) && !completionError) {
