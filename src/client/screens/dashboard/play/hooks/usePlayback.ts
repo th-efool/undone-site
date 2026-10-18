@@ -153,7 +153,9 @@ export function usePlayback() {
         signal: abortController.signal
       });
       if (!res.ok) throw new Error('Failed to fetch feed');
+      if (abortController.signal.aborted) return;
       const data = await res.json();
+      if (abortController.signal.aborted) return;
       
       setChannelCaches(prev => {
         const existingItems = pageIndex === 0 ? [] : prev[channelId].items;
@@ -560,6 +562,11 @@ export function usePlayback() {
     }
     videoRef.current = node;
     if (node && activeItem) {
+      // Ensure any lingering YouTube playback is silenced immediately
+      if (playerRef.current && typeof playerRef.current.pauseVideo === 'function') {
+        try { playerRef.current.pauseVideo(); } catch {}
+      }
+
       node.volume = volume / 100;
       node.muted = muted;
       node.playbackRate = playbackSpeed;
@@ -671,6 +678,9 @@ export function usePlayback() {
         videoRef.current.pause();
         setIsPlaying(false);
       } else {
+        if (mediaError && typeof videoRef.current.load === 'function') {
+          try { videoRef.current.load(); } catch {}
+        }
         setMediaError(null);
         videoRef.current.play().then(() => {
           setIsPlaying(true);
@@ -695,7 +705,7 @@ export function usePlayback() {
     } catch {
       setIsPlaying(p => !p);
     }
-  }, [isPlaying, isPlayerReady, activeMediaSource.isDirectVideo]);
+  }, [isPlaying, isPlayerReady, activeMediaSource.isDirectVideo, mediaError]);
 
   const seekToPercent = useCallback((percent: number) => {
     if (!activeItem) return;

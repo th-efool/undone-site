@@ -131,4 +131,43 @@ describe('PlayerSurface component', () => {
     expect(container.querySelector('video')).toBeNull();
     expect(screen.getByTestId('children')).toBeTruthy();
   });
+
+  it('invokes onVideoMount with HTMLVideoElement when direct video is mounted', () => {
+    const onVideoMount = vi.fn();
+    const mp4Item: FeedItem = {
+      ...baseItem,
+      sourceUrl: 'https://cdn.example.com/lessons/lesson1.mp4',
+      lessonType: 'video',
+    };
+
+    render(
+      <PlayerSurface activeItem={mp4Item} onVideoMount={onVideoMount} />
+    );
+
+    expect(onVideoMount).toHaveBeenCalledWith(expect.any(HTMLVideoElement));
+  });
+
+  it('renders mediaError notice and triggers onRetry when retry button is clicked', () => {
+    const onRetry = vi.fn();
+    const mp4Item: FeedItem = {
+      ...baseItem,
+      sourceUrl: 'https://cdn.example.com/lessons/lesson1.mp4',
+      lessonType: 'video',
+    };
+
+    render(
+      <PlayerSurface
+        activeItem={mp4Item}
+        mediaError="Playback could not be started."
+        onRetry={onRetry}
+      />
+    );
+
+    expect(screen.getByText('Playback Error')).toBeTruthy();
+    expect(screen.getByText('Playback could not be started.')).toBeTruthy();
+
+    const retryBtn = screen.getByRole('button', { name: /retry playback/i });
+    fireEvent.click(retryBtn);
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
 });

@@ -47,6 +47,21 @@ export function PlayerSurface({
       const hls = new Hls({ enableWorker: true });
       hls.loadSource(mediaSource.videoUrl);
       hls.attachMedia(video);
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
+            default:
+              hls.destroy();
+              break;
+          }
+        }
+      });
       return () => {
         hls.destroy();
       };
