@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 
 import type { Creator } from '../../../../models';
 
@@ -6,9 +7,10 @@ import styles from './QuestGuideCard.module.css';
 
 interface QuestGuideCardProps {
   creator: Creator;
+  cohortId?: string;
 }
 
-export function QuestGuideCard({ creator }: QuestGuideCardProps) {
+export function QuestGuideCard({ creator, cohortId }: QuestGuideCardProps) {
   return (
     <aside className={styles.card}>
       <h2 className={styles.title}>Quest Guide</h2>
@@ -29,12 +31,12 @@ export function QuestGuideCard({ creator }: QuestGuideCardProps) {
 
       <p className={styles.bio}>{creator.bio}</p>
 
-      <button
+      <Link
+        href={cohortId ? `/message?community=${cohortId}` : '/message'}
         className={styles.button}
-        type="button"
       >
-        {creator.ctaLabel}
-      </button>
+        {creator.ctaLabel || 'Message Guide'}
+      </Link>
     </aside>
   );
 }
