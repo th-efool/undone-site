@@ -103,6 +103,18 @@ export async function acceptTextJob(sql: TextArtifactSql, job: ClaimedTextJob, a
 
 export async function failTextJob(sql: TextArtifactSql, job: ClaimedTextJob, errorCode: string, now: Date): Promise<boolean> {
   if (!Number.isFinite(now.getTime())) throw new Error('INVALID_FAILURE_TIME');
+  if (errorCode === 'RATE_LIMITED' && (job.attempts ?? 0) < 5) {
+    const delayMs = Math.min(30_000 * Math.max(1, job.attempts ?? 1), 120_000);
+    const dueAt = new Date(now.getTime() + delayMs);
+    const result = await sql.query(`UPDATE "cohort_text_jobs"
+      SET "status" = 'queued', "dueAt" = $1::timestamp, "errorCode" = $2,
+          "attempts" = "attempts" + 1, "leaseOwner" = NULL, "leaseToken" = NULL, "leaseUntil" = NULL,
+          "updatedAt" = $6::timestamp
+      WHERE "id" = $3 AND "workspaceId" = $4 AND "status" = 'running'
+        AND "leaseToken" = $5 AND "fence" = $7 AND "leaseUntil" > $6::timestamp RETURNING "id"`,
+      [dueAt.toISOString(), errorCode.slice(0, 100), job.id, job.workspaceId, job.leaseToken, now.toISOString(), job.fence]);
+    return result.rows.length === 1;
+  }
   const result = await sql.query(`UPDATE "cohort_text_jobs"
     SET "status" = 'failed', "errorCode" = $1, "leaseOwner" = NULL,
         "leaseToken" = NULL, "leaseUntil" = NULL, "updatedAt" = $6::timestamp
