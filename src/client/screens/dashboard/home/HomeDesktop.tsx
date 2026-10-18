@@ -14,6 +14,8 @@ import { RecentlyCompleted } from './components/RecentlyCompleted/RecentlyComple
 import { UpcomingEvents } from '@/src/client/components/global/UpcomingEvents';
 import { HomeStreakWidget } from './components/HomeStreakWidget';
 import { LearningPromptBar } from '@/src/client/components/global/LearningPromptBar';
+import { StudyRooms } from '@/src/client/components/global/StudyRooms';
+import { messageMock } from '@/src/client/screens/dashboard/message/mock/message.mock';
 import type { UseHomeResult } from './hooks/useHome';
 
 import styles from './Home.module.css';
@@ -127,6 +129,14 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
               items={recentlyCompleted}
             />
           )}
+
+          <StudyRooms
+            items={messageMock.liveSessions}
+            variant="compact"
+            title="Active studyrooms"
+            subtitle="Join focused rooms and learn together in real time."
+            viewAllHref="/explore"
+          />
         </main>
 
         <aside className={styles.rightRail}>

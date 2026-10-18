@@ -7,7 +7,7 @@
   background: #05060d;
   box-shadow: 0 28px 60px rgba(15, 23, 42, 0.16);
   cursor: pointer;
-  transition: transform 0.25s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.25s ease;
+  transition: transform 0.25s cubic-bezier(0.2, 0, 1), box-shadow 0.25s ease;
   z-index: 1;
   user-select: none;
   -webkit-user-select: none;
@@ -81,6 +81,172 @@
   border-radius: 999px;
   object-fit: cover;
   display: block;
+}
+
+/* ─── Compact Card Variant (Home Page) ──────────────────────────────────── */
+
+.cardCompact {
+  position: relative;
+  flex: 0 0 168px;
+  height: 198px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #11131f;
+  box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  user-select: none;
+  -webkit-user-drag: none;
+  display: block;
+  text-decoration: none;
+  margin-right: 12px;
+}
+
+.cardCompact:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.2);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+.cardCompact:hover .bgCompact {
+  transform: scale(1.05);
+}
+
+.bgCompact {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.35s ease;
+  pointer-events: none;
+}
+
+.overlayGradientCompact {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(15, 23, 42, 0.35) 0%,
+    rgba(15, 23, 42, 0.05) 40%,
+    rgba(15, 23, 42, 0.75) 75%,
+    rgba(15, 23, 42, 0.95) 100%
+  );
+  z-index: 2;
+  pointer-events: none;
+}
+
+.kebabBtnCompact {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(4px);
+  border: none;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  transition: background 0.15s ease, transform 0.1s ease;
+  padding: 0;
+}
+
+.kebabBtnCompact:hover {
+  background: rgba(0, 0, 0, 0.65);
+  transform: scale(1.08);
+}
+
+.overlayBarCompact {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 10px 12px;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  box-sizing: border-box;
+}
+
+.roomNameCompact {
+  margin: 0;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.bottomRowCompact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.subtextCompact {
+  margin: 0;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 86px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.avatarsCompact {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.avatarWrapperCompact {
+  position: relative;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  margin-left: -5px;
+  background: #334155;
+  display: inline-block;
+}
+
+.avatarWrapperCompact:first-child {
+  margin-left: 0;
+}
+
+.avatarCompact {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.memberCountBadgeCompact {
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  margin-left: 4px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+:global([data-theme='dark']) .cardCompact {
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 @media (max-width: 768px) { 
