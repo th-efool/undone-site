@@ -2178,6 +2178,21 @@ fieldset.formField button:hover:not(:disabled) {
   flex-shrink: 0;
 }
 
+.savedDraftStatus { display: inline-flex; align-items: center; gap: 6px; color: var(--creation-muted); font-size: 13px; }
+.editableHeading { display: flex; align-items: flex-start; gap: 8px; }
+.editableHeading > :first-child { flex: 1; }
+.coverEdit { position: absolute; right: 22px; top: 18px; display: inline-flex; align-items: center; gap: 8px; color: white; }
+.previewList { margin: 12px 0 0; padding-left: 20px; display: grid; gap: 10px; color: var(--creation-text); }
+.previewPacing { margin-top: 24px; color: var(--creation-muted); font-size: 14px; }
+.previewSeason { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--creation-line); }
+.previewSeason h3 { margin: 0; font-family: var(--font-playfair), Georgia, serif; font-size: 23px; }
+.previewSeason ol { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 8px; }
+.previewLesson { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid var(--creation-line); border-radius: 10px; }
+.previewLesson > span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--creation-blue-soft); color: var(--creation-blue); font-weight: 700; }
+.previewLesson > div { flex: 1; min-width: 0; }
+.previewLesson p { margin: 3px 0 0; color: var(--creation-muted); font-size: 13px; }
+.publishDialog { max-width: 760px; }
+
 .reviewToolbarActions button {
   display: flex;
   align-items: center;

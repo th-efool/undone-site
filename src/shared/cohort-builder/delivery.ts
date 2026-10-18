@@ -75,6 +75,9 @@ export const deliveryCohortSchema = z.strictObject({
   learningOutcomes: z.array(z.string().trim().min(1).max(500)),
   primaryTopic: z.string().trim().min(1).max(300),
   language: z.string().trim().default('en'),
+  subtitle: z.string().trim().max(500).optional(),
+  categories: z.array(z.string().trim().min(1).max(80)).max(12).default([]),
+  requirements: z.array(z.string().trim().min(1).max(500)).max(20).default([]),
   visibility: z.enum(['PUBLIC', 'PRIVATE']),
 });
 export type DeliveryCohort = z.infer<typeof deliveryCohortSchema>;
@@ -121,6 +124,22 @@ export const deliveryLessonId = (cohortId: string, lessonId: string): string =>
   `${cohortId}_l_${lessonId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
 export const deliverySourceId = (cohortId: string, sourceId: string): string =>
   `${cohortId}_src_${sourceId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+
+/** Stable source grouping shared by the editable preview and delivery. */
+export function getCohortSeasonGroups(workspace: CohortWorkspace, lessons = workspace.lessons) {
+  const sourceMap = new Map(workspace.sources.map(source => [source.id, source]));
+  if (workspace.sources.length <= 1) return [{ key: 'main', title: 'Season 1: Core Curriculum', lessons }];
+  const groups = new Map<string, { key: string; title: string; lessons: typeof lessons }>();
+  const chunkMap = new Map(workspace.chunks.map(chunk => [chunk.id, chunk]));
+  for (const lesson of lessons) {
+    const sourceId = lesson.sourceChunkIds.map(id => chunkMap.get(id)?.sourceId).find(Boolean) ?? 'general';
+    const source = sourceMap.get(sourceId);
+    const group = groups.get(sourceId) ?? { key: sourceId, title: source ? `Part: ${source.label}` : 'Core Questline', lessons: [] };
+    group.lessons.push(lesson);
+    groups.set(sourceId, group);
+  }
+  return [...groups.values()];
+}
 
 function extractYoutubeVideoId(input?: string | null): string | null {
   const trimmed = input?.trim() || '';
@@ -300,40 +319,13 @@ export function projectCohortToLearnerDelivery(
   });
 
   // Group lessons into seasons deterministically
-  const seasonGroups = new Map<string, { title: string; lessons: DeliveryLesson[] }>();
-
-  if (workspace.sources.length > 1) {
-    for (const lesson of projectedLessons) {
-      const firstChunk = lesson.chunks[0];
-      const sourceId = firstChunk?.sourceId ?? 'general';
-      const source = sourceMap.get(sourceId);
-      const groupKey = sourceId;
-      const groupTitle = source ? `Part: ${source.label}` : 'Core Questline';
-
-      const existing = seasonGroups.get(groupKey);
-      if (existing) {
-        existing.lessons.push(lesson);
-      } else {
-        seasonGroups.set(groupKey, { title: groupTitle, lessons: [lesson] });
-      }
-    }
-  }
-
-  // Fallback: If 1 source or all lessons fell in 1 group, keep single coherent season
-  if (seasonGroups.size <= 1) {
-    seasonGroups.clear();
-    seasonGroups.set('main', {
-      title: 'Season 1: Core Curriculum',
-      lessons: projectedLessons,
-    });
-  }
-
-  const seasons: DeliverySeason[] = [...seasonGroups.values()].map((group, seasonIndex) => ({
+  const projectedByLessonId = new Map(projectedLessons.map(lesson => [lesson.lessonId, lesson]));
+  const seasons: DeliverySeason[] = getCohortSeasonGroups(workspace).map((group, seasonIndex) => ({
     id: deliverySeasonId(options.cohortId, seasonIndex),
-    title: group.title,
+    title: workspace.presentation?.seasonTitles?.[group.key] ?? group.title,
     order: seasonIndex,
-    lessons: group.lessons.map((lesson, orderInSeason) => ({
-      ...lesson,
+    lessons: group.lessons.map((sourceLesson, orderInSeason) => ({
+      ...projectedByLessonId.get(sourceLesson.id)!,
       order: orderInSeason,
     })),
   }));
@@ -354,7 +346,7 @@ export function projectCohortToLearnerDelivery(
   const primaryTopic = workspace.title || 'General Knowledge';
   const firstVideoThumbnail = projectedLessons.find(l => l.thumbnailUrl)?.thumbnailUrl;
   const recommendedCover = workspace.recommendations?.items?.find(i => i.coverImage)?.coverImage;
-  const coverImage = recommendedCover || firstVideoThumbnail || getTopicCoverImage(primaryTopic);
+  const coverImage = workspace.presentation?.coverImage || recommendedCover || firstVideoThumbnail || getTopicCoverImage(primaryTopic);
 
   const cohort: DeliveryCohort = {
     id: options.cohortId,
@@ -370,6 +362,9 @@ export function projectCohortToLearnerDelivery(
     ],
     primaryTopic,
     language: options.language ?? 'en',
+    subtitle: workspace.presentation?.subtitle,
+    categories: workspace.presentation?.categories ?? [],
+    requirements: workspace.presentation?.requirements ?? [],
     visibility: options.mode === 'public_publish' ? 'PUBLIC' : 'PRIVATE',
   };
 

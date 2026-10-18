@@ -23,6 +23,7 @@ export interface ReleasePanelProps {
   workspaceId: string;
   revision?: number;
   onNavigateToDestination?: (url: string) => void;
+  initialMode?: 'private_activation' | 'public_publish';
 }
 
 export function ReleasePanel({
@@ -30,6 +31,7 @@ export function ReleasePanel({
   workspaceId,
   revision,
   onNavigateToDestination,
+  initialMode,
 }: ReleasePanelProps) {
   const dispatchAction = useDispatchAction<CohortAction>();
 
@@ -38,7 +40,7 @@ export function ReleasePanel({
     workspace.release?.mode === 'public_publish';
 
   const [selectedMode, setSelectedMode] = useState<'private_activation' | 'public_publish'>(
-    isPubliclyPublished ? 'public_publish' : 'private_activation'
+    isPubliclyPublished ? 'public_publish' : (initialMode ?? 'private_activation')
   );
   const [isReleasing, setIsReleasing] = useState(false);
   const [releaseError, setReleaseError] = useState<string | null>(null);

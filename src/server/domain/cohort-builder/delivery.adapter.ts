@@ -75,6 +75,7 @@ export function buildPrismaCohortCreateInput(
     id: delivery.cohort.id,
     creator: { connect: { id: creatorId } },
     title: delivery.cohort.title,
+    subtitle: delivery.cohort.subtitle,
     description: delivery.cohort.description,
     coverImage: delivery.cohort.coverImage,
     difficulty: delivery.cohort.difficulty,
@@ -85,8 +86,8 @@ export function buildPrismaCohortCreateInput(
     language: delivery.cohort.language,
     learningOutcomes: delivery.cohort.learningOutcomes,
     tags: [delivery.cohort.primaryTopic],
-    requirements: [],
-    categories: [],
+    requirements: delivery.cohort.requirements,
+    categories: delivery.cohort.categories,
     estimatedCompletionTime: `${delivery.metadata.totalEstimatedMinutes} mins`,
     creationSettings: {
       workspaceId: delivery.workspaceId,

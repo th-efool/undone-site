@@ -171,6 +171,15 @@ export const cohortWorkspaceSchema = z.strictObject({
   schemaVersion: z.literal(1),
   title: z.string().max(300),
   description: z.string().max(4_000).optional(),
+  presentation: z.strictObject({
+    coverImage: publicSourceUrlSchema.optional(),
+    subtitle: z.string().trim().max(500).optional(),
+    difficulty: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']).optional(),
+    categories: z.array(z.string().trim().min(1).max(80)).max(12).optional(),
+    learningOutcomes: z.array(z.string().trim().min(1).max(500)).max(20).optional(),
+    requirements: z.array(z.string().trim().min(1).max(500)).max(20).optional(),
+    seasonTitles: z.record(z.string().min(1).max(200), z.string().trim().min(1).max(300)).optional(),
+  }).optional(),
   intent: text,
   audience: z.string().max(500),
   dailyMinutes: z.number().int().min(1).max(1_440),
@@ -238,6 +247,8 @@ export const cohortActionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('set_intent'), intent: text }),
   z.strictObject({ type: z.literal('set_audience'), audience: z.string().trim().max(500) }),
   z.strictObject({ type: z.literal('set_daily_minutes'), dailyMinutes: z.number().int().min(1).max(1_440) }),
+  z.strictObject({ type: z.literal('edit_presentation'), title: text.optional(), description: z.string().trim().max(4_000).optional(), coverImage: publicSourceUrlSchema.nullable().optional(), subtitle: z.string().trim().max(500).optional(), difficulty: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']).optional(), categories: z.array(z.string().trim().min(1).max(80)).max(12).optional(), learningOutcomes: z.array(z.string().trim().min(1).max(500)).max(20).optional(), requirements: z.array(z.string().trim().min(1).max(500)).max(20).optional() }).refine(value => Object.keys(value).length > 1, 'Presentation edit needs a field'),
+  z.strictObject({ type: z.literal('set_season_title'), seasonKey: z.string().min(1).max(200), title: z.string().trim().min(1).max(300) }),
   z.strictObject({ type: z.literal('edit_lesson'), lessonId: id, title: text.optional(), objective: text.optional() }).refine(value => value.title !== undefined || value.objective !== undefined, 'Lesson edit needs title or objective'),
   z.strictObject({ type: z.literal('add_lesson'), lessonId: id.optional(), title: text, objective: text }),
   z.strictObject({ type: z.literal('remove_lesson'), lessonId: id }),
@@ -438,6 +449,20 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   if (action.type === 'set_intent') { invalidateRelease(); if (next.intent !== action.intent && next.journey) { next.journey.intentVersion++; delete next.recommendations; delete next.discovery; } next.intent = action.intent; invalidated.push('curriculum'); queueAfterPreferenceChange('assembly'); return { nextState: next, changed: [], invalidated, summary: 'Learning intent updated.', undoable: true }; }
   if (action.type === 'set_audience') { invalidateRelease(); next.audience = action.audience; invalidated.push('analysis', 'curriculum'); queueAfterPreferenceChange('analysis'); return { nextState: next, changed: [], invalidated, summary: 'Audience updated.', undoable: true }; }
   if (action.type === 'set_daily_minutes') { invalidateRelease(); next.dailyMinutes = action.dailyMinutes; invalidated.push('curriculum'); queueAfterPreferenceChange('assembly'); return { nextState: next, changed: [], invalidated, summary: 'Daily learning time updated.', undoable: true }; }
+  if (action.type === 'edit_presentation') {
+    invalidateRelease();
+    const { title, description, coverImage, ...presentation } = action;
+    if (title !== undefined) next.title = title;
+    if (description !== undefined) next.description = description;
+    const current = next.presentation ?? {};
+    next.presentation = { ...current, ...presentation, ...(coverImage === null ? { coverImage: undefined } : coverImage !== undefined ? { coverImage } : {}) };
+    return { nextState: next, changed: [], invalidated: ['release'], summary: 'Cohort presentation updated.', undoable: true };
+  }
+  if (action.type === 'set_season_title') {
+    invalidateRelease();
+    next.presentation = { ...(next.presentation ?? {}), seasonTitles: { ...(next.presentation?.seasonTitles ?? {}), [action.seasonKey]: action.title } };
+    return { nextState: next, changed: [], invalidated: ['release'], summary: 'Season title updated.', undoable: true };
+  }
 
   const queueProcessing = () => {
     if (next.journey && !next.journey.processingStarted) {
@@ -676,7 +701,6 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   }
   if (action.type === 'edit_lesson' && lesson) {
     invalidateRelease();
-    if (action.title !== undefined && lesson.pinned) throw new Error('PINNED_LESSON_TITLE');
     if (action.title !== undefined) lesson.title = action.title;
     if (action.objective !== undefined) lesson.objective = action.objective;
     lesson.manualOverride = true;

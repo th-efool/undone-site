@@ -78,6 +78,7 @@ export function deriveCandidateSnapshotHash(
     workspaceId: options.workspaceId,
     title: deriveCohortTitle(workspace),
     description: deriveCohortDescription(workspace),
+    presentation: workspace.presentation ?? null,
     intent: workspace.intent.trim(),
     audience: workspace.audience.trim(),
     dailyMinutes: workspace.dailyMinutes,

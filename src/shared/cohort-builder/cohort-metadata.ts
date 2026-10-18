@@ -186,7 +186,8 @@ export function deriveCohortTitle(workspace: Pick<CohortWorkspace, 'title' | 'in
 /**
  * Derives a clean cohort description summarizing the understood concepts and sources.
  */
-export function deriveCohortDescription(workspace: Pick<CohortWorkspace, 'title' | 'intent' | 'sources' | 'understanding' | 'dailyMinutes' | 'audience'>): string {
+export function deriveCohortDescription(workspace: Pick<CohortWorkspace, 'title' | 'description' | 'intent' | 'sources' | 'understanding' | 'dailyMinutes' | 'audience'>): string {
+  if (workspace.description?.trim()) return workspace.description.trim();
   const concepts = Array.from(new Set(currentConcepts(workspace))).slice(0, 6);
   const sourceLabels = workspace.sources
     .map(s => s.label?.trim())
