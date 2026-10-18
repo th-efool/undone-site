@@ -1,8 +1,7 @@
-import Image from 'next/image';
-import { ArrowRight, Clock, Pause, Sparkles } from 'lucide-react';
+'use client';
 
+import { ArrowRight, Clock, Pause } from 'lucide-react';
 import type { CompletedCourse, PausedCohort } from '../../models';
-
 import styles from './HomeSummaryBar.module.css';
 
 export interface HomeSummaryBarProps {
@@ -25,124 +24,57 @@ export function HomeSummaryBar({
   const pausedCount = pausedItems.length;
   const completedCount = completedItems.length;
 
-  const pausedAvatars = pausedItems.slice(0, 3);
-  const pausedRemaining = Math.max(0, pausedCount - 3);
-
-  const completedAvatars = completedItems.slice(0, 3);
-  const completedRemaining = Math.max(0, completedCount - 3);
-
   return (
-    <section className={styles.cardContainer}>
-      <div className={styles.summaryGroup}>
-        {/* Paused Section */}
-        <div 
-          className={styles.summarySection}
+    <div className={styles.container}>
+      {/* Paused Pill Row */}
+      <div className={styles.pillRow}>
+        <button
+          type="button"
+          className={styles.pillBadge}
           onClick={onTogglePaused}
-          style={{ cursor: 'pointer' }}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onTogglePaused?.(); }}
+          aria-expanded={isPausedOpen}
         >
-          <div className={styles.badgeGroup}>
-            <div className={styles.iconCircle}>
-              <Pause size={16} className={styles.iconPurple} fill="currentColor" />
-            </div>
-
-            <span className={styles.sectionLabel}>Paused</span>
-            <span className={styles.sectionCount}>{pausedCount}</span>
-
-            <div className={styles.avatarStack}>
-              {pausedAvatars.map((item, idx) => (
-                <div key={item.id || idx} className={styles.avatarWrapper} style={{ zIndex: 10 - idx }}>
-                  <Image
-                    src={item.thumbnail || '/mock/thumbnails/javascript.jpeg'}
-                    alt={item.title}
-                    className={styles.avatarImg}
-                   width={400} height={300}/>
-                </div>
-              ))}
-              {pausedRemaining > 0 && (
-                <div className={styles.avatarMore}>+{pausedRemaining}</div>
-              )}
-            </div>
+          <div className={styles.iconBox}>
+            <Pause size={14} className={styles.iconPurple} fill="currentColor" />
           </div>
+          <span className={styles.label}>Paused</span>
+          <span className={styles.count}>{pausedCount}</span>
+        </button>
 
-          <button
-            type="button"
-            className={`${styles.arrowButton} ${isPausedOpen ? styles.arrowActive : ''}`}
-            aria-label="Toggle paused cohorts"
-            tabIndex={-1}
-          >
-            <ArrowRight size={16} />
-          </button>
-        </div>
+        <button
+          type="button"
+          className={`${styles.arrowBtn} ${isPausedOpen ? styles.arrowActive : ''}`}
+          onClick={onTogglePaused}
+          aria-label="Toggle paused cohorts"
+        >
+          <ArrowRight size={15} />
+        </button>
+      </div>
 
-        {/* Divider */}
-        <div className={styles.divider} />
-
-        {/* Recently Finished Section */}
-        <div 
-          className={styles.summarySection}
+      {/* Recently Finished Pill Row */}
+      <div className={styles.pillRow}>
+        <button
+          type="button"
+          className={styles.pillBadge}
           onClick={onToggleCompleted}
-          style={{ cursor: 'pointer' }}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onToggleCompleted?.(); }}
+          aria-expanded={isCompletedOpen}
         >
-          <div className={styles.badgeGroup}>
-            <div className={styles.iconCircle}>
-              <Clock size={16} className={styles.iconPurple} />
-            </div>
-
-            <span className={styles.sectionLabel}>Recently finished</span>
-            <span className={styles.sectionCount}>{completedCount}</span>
-
-            <div className={styles.avatarStack}>
-              {completedAvatars.map((item, idx) => (
-                <div key={item.id || idx} className={styles.avatarWrapper} style={{ zIndex: 10 - idx }}>
-                  <Image
-                    src={item.thumbnail || '/images/landing/coffee-break.webp'}
-                    alt={item.title}
-                    className={styles.avatarImg}
-                   width={400} height={300}/>
-                </div>
-              ))}
-              {completedRemaining > 0 && (
-                <div className={styles.avatarMore}>+{completedRemaining}</div>
-              )}
-            </div>
+          <div className={styles.iconBox}>
+            <Clock size={14} className={styles.iconPurple} />
           </div>
+          <span className={styles.label}>Recently finished</span>
+          <span className={styles.count}>{completedCount}</span>
+        </button>
 
-          <button
-            type="button"
-            className={`${styles.arrowButton} ${isCompletedOpen ? styles.arrowActive : ''}`}
-            aria-label="Toggle recently finished cohorts"
-            tabIndex={-1}
-          >
-            <ArrowRight size={16} />
-          </button>
-        </div>
+        <button
+          type="button"
+          className={`${styles.arrowBtn} ${isCompletedOpen ? styles.arrowActive : ''}`}
+          onClick={onToggleCompleted}
+          aria-label="Toggle recently finished cohorts"
+        >
+          <ArrowRight size={15} />
+        </button>
       </div>
-
-      {/* Motivational Crow Section */}
-      <div className={styles.motivationSection}>
-        <div className={styles.mottoText}>
-          <span className={styles.mottoMain}>Small steps in the right direction create</span>
-          <span className={styles.mottoScript}>
-            extraordinary journeys. <Sparkles size={18} className={styles.sparkle} />
-          </span>
-
-        </div>
-
-        <div className={styles.crowWrapper}>
-          <Image
-            src="/images/home/crow.webp"
-            alt="Crow illustration"
-            className={styles.crowImage}
-           width={400} height={300}/>
-        </div>
-      </div>
-    </section>
+    </div>
   );
 }
-

@@ -45,6 +45,8 @@ const lora = Lora({
 const playfairDisplay = Playfair_Display({
   variable: '--font-playfair-display',
   subsets: ['latin'],
+  style: ['normal', 'italic'],
+  weight: ['400', '600', '700'],
 });
 
 

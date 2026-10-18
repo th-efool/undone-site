@@ -12,11 +12,21 @@ export interface StudyRoomCardProps {
   variant?: 'standard' | 'compact';
 }
 
+const ROOM_MEMBER_COUNTS: Record<string, number> = {
+  fireplace: 324,
+  library: 412,
+  seaside: 298,
+  shrine: 176,
+  canal: 253,
+  ruins: 198,
+};
+
 export function StudyRoomCard({ session, variant = 'standard' }: StudyRoomCardProps) {
   const isCompact = variant === 'compact';
-  const memberCount = session.onlineCount
-    ? session.onlineCount * 70 + 84
-    : 120 + ((session.title.length * 43) % 300);
+  const memberCount =
+    ROOM_MEMBER_COUNTS[session.id.toLowerCase()] ||
+    ROOM_MEMBER_COUNTS[session.title.toLowerCase()] ||
+    (session.onlineCount ? session.onlineCount * 70 + 84 : 250);
 
   if (isCompact) {
     return (

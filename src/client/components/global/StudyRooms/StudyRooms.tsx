@@ -67,22 +67,13 @@ export function StudyRooms({
 
         {isOpen && (
           <div className={styles.scrollerWrapperCompact}>
-            <InfiniteScroller
-              ref={scrollerRef}
-              scrollAmount={360}
-              loop={true}
-              panable={true}
-              showArrows={false}
-              autoScroll={false}
-            >
-              {items.map((item) => (
-                <StudyRoomCard
-                  key={item.id}
-                  session={item}
-                  variant="compact"
-                />
-              ))}
-            </InfiniteScroller>
+            {items.slice(0, 6).map((item) => (
+              <StudyRoomCard
+                key={item.id}
+                session={item}
+                variant="compact"
+              />
+            ))}
           </div>
         )}
       </section>

@@ -151,18 +151,6 @@ const mockCalendarEvents: Record<number, CalendarEvent[]> = {
       tone: 'blue',
     },
   ],
-  31: [
-    {
-      id: 'e11',
-      day: 31,
-      title: 'Monthly Townhall',
-      subtitle: 'Roadmap Updates',
-      dateStr: 'Aug 31',
-      timeStr: '11:00 AM',
-      endTimeStr: '12:00 PM',
-      tone: 'purple',
-    },
-  ],
 };
 
 const allUpcomingEvents = Object.values(mockCalendarEvents).flat().sort((a, b) => a.day - b.day);
@@ -320,6 +308,7 @@ export function UpcomingEvents({
                 onMouseLeave={() => setHoveredDay(null)}
               >
                 <span className={styles.dayNum}>{day}</span>
+                {isToday && <span className={styles.todayEventDot} />}
                 {hasEvent && isCurrentMonth && !isToday && (
                   <span
                     className={`${styles.eventDot} ${styles[events[0].tone]}`}

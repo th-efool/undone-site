@@ -1,7 +1,7 @@
 .hero {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   width: 100%;
   background: transparent;
   padding: 4px 0 0 0;
@@ -16,9 +16,9 @@
 
 .greetingText {
   font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
-  font-size: 0.92rem;
-  font-weight: 600;
-  color: #475569;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: #5d6072;
   letter-spacing: -0.01em;
 }
 
@@ -27,24 +27,24 @@
   font-family: var(--font-playfair-display), var(--font-lora), 'Georgia', 'Times New Roman', serif;
   font-size: clamp(2.2rem, 3.8vw, 3.25rem);
   font-weight: 700;
-  line-height: 1.14;
-  color: #0f172a;
+  line-height: 1.15;
+  color: #07081f;
   letter-spacing: -0.025em;
-  word-spacing: 0.05em;
+  word-spacing: 0.02em;
 }
 
 .headlineItalic {
   font-style: italic;
   font-weight: 700;
-  color: #3b49df;
-  margin: 0 0.14em;
+  color: #0a0af6;
+  margin: 0 0.02em;
 }
 
 .subtitle {
   margin: 2px 0 0 0;
   font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
-  font-size: 1.02rem;
-  font-weight: 500;
+  font-size: 0.94rem;
+  font-weight: 400;
   color: #64748b;
   line-height: 1.45;
 }
@@ -73,6 +73,6 @@
   }
 
   .subtitle {
-    font-size: 0.95rem;
+    font-size: 0.92rem;
   }
 }

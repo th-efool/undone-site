@@ -216,7 +216,7 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
                   aria-label="Add pasted text source"
                   onClick={() => setShowSource((prev) => !prev)}
                 >
-                  <Plus size={18} strokeWidth={2.2} />
+                  <Plus size={16} strokeWidth={2.0} />
                 </button>
 
                 <button
@@ -225,7 +225,7 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
                   onClick={() => setShowSource((prev) => !prev)}
                   aria-expanded={showSource}
                 >
-                  <FileText size={17} strokeWidth={1.8} />
+                  <FileText size={15} strokeWidth={1.8} />
                   <span>Add sources</span>
                 </button>
 
@@ -235,7 +235,7 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
                   disabled
                   title="File uploads are not available in this intake yet"
                 >
-                  <Paperclip size={17} strokeWidth={1.8} />
+                  <Paperclip size={15} strokeWidth={1.8} />
                   <span>Upload</span>
                 </button>
 
@@ -245,7 +245,7 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
                   disabled
                   title="Templates are not available in this intake yet"
                 >
-                  <Sparkles size={17} strokeWidth={1.8} />
+                  <Sparkles size={15} strokeWidth={1.8} />
                   <span>Use a template</span>
                 </button>
               </div>
@@ -257,7 +257,7 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
                   disabled={submitting}
                   onClick={() => void handleSubmit()}
                 >
-                  <Lightbulb size={18} strokeWidth={1.8} />
+                  <Lightbulb size={16} strokeWidth={1.8} />
                   <span>Plan</span>
                 </button>
 
@@ -269,7 +269,7 @@ export const LearningPromptBar = forwardRef<LearningPromptBarHandle, LearningPro
                   disabled={submitting}
                 >
                   <span>Begin journey</span>
-                  <ArrowRight size={17} strokeWidth={2.2} />
+                  <ArrowRight size={16} strokeWidth={2.0} />
                 </button>
               </div>
             </div>

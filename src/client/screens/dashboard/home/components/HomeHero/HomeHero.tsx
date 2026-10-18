@@ -24,7 +24,7 @@ export function HomeHero({ userName }: HomeHeroProps) {
       return { greeting: 'Good morning', emoji: '☀️' };
     }
     if (hour < 17) {
-      return { greeting: 'Good afternoon', emoji: '☀️' };
+      return { greeting: 'Good afternoon', emoji: '🌤️' };
     }
     return { greeting: 'Good evening', emoji: '🌙' };
   }, []);

@@ -14,9 +14,9 @@ export interface SubscribedCohortCardProps {
 }
 
 const DEFAULT_AVATARS = [
-  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=64&h=64&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop&crop=face',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=64&h=64&fit=crop&crop=face',
+  '/mock/avatars/b.webp',
+  '/mock/avatars/c.webp',
+  '/mock/avatars/d.webp',
 ];
 
 const FALLBACK_COVERS: Record<string, string> = {

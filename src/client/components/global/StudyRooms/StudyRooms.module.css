@@ -170,8 +170,26 @@
 }
 
 .scrollerWrapperCompact {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
   width: 100%;
-  overflow: hidden;
+  box-sizing: border-box;
+}
+
+@media (max-width: 1200px) {
+  .scrollerWrapperCompact {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .scrollerWrapperCompact {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 8px;
+  }
 }
 
 /* ─── Dark Mode Overrides ────────────────────────────────────────────────── */

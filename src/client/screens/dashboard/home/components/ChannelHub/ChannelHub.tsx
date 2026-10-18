@@ -99,7 +99,9 @@ function TuningSlider({
       </div>
 
       <div className={styles.sliderValueBadge}>
-        <span className={styles.plusSign}>+</span>
+        <span className={styles.plusBox}>
+          <span className={styles.plusSign}>+</span>
+        </span>
         <span className={styles.valueNumber}>{value.toFixed(2)}</span>
       </div>
     </div>
@@ -444,20 +446,24 @@ export function ChannelHub() {
                   <span className={styles.prefDesc}>Measure progress against your commitment</span>
                 </div>
                 <div className={styles.selectWrapper}>
+                  <div className={styles.customSelectTrigger}>
+                    <Clock size={13} strokeWidth={2} className={styles.selectIcon} />
+                    <span className={styles.selectLabel}>{weeklyGoal}</span>
+                    <ChevronDown size={13} className={styles.selectChevron} aria-hidden="true" />
+                  </div>
                   <select
                     value={weeklyGoal}
                     onChange={(e) => handleWeeklyGoalChange(e.target.value)}
-                    className={styles.selectInput}
+                    className={styles.hiddenSelectInput}
                     aria-label="Weekly learning goal"
                   >
-                    <option value="4 hours">⏱ 4 hours</option>
-                    <option value="6 hours">⏱ 6 hours</option>
-                    <option value="8 hours">⏱ 8 hours</option>
-                    <option value="10 hours">⏱ 10 hours</option>
-                    <option value="12 hours">⏱ 12 hours</option>
-                    <option value="15 hours">⏱ 15 hours</option>
+                    <option value="4 hours">4 hours</option>
+                    <option value="6 hours">6 hours</option>
+                    <option value="8 hours">8 hours</option>
+                    <option value="10 hours">10 hours</option>
+                    <option value="12 hours">12 hours</option>
+                    <option value="15 hours">15 hours</option>
                   </select>
-                  <ChevronDown size={13} className={styles.selectChevron} aria-hidden="true" />
                 </div>
               </div>
 
@@ -471,18 +477,22 @@ export function ChannelHub() {
                   <span className={styles.prefDesc}>Balance backlog, exploration, and depth</span>
                 </div>
                 <div className={styles.selectWrapper}>
+                  <div className={styles.customSelectTrigger}>
+                    <BarChart2 size={13} strokeWidth={2} className={styles.selectIcon} />
+                    <span className={styles.selectLabel}>{learningAllocation}</span>
+                    <ChevronDown size={13} className={styles.selectChevron} aria-hidden="true" />
+                  </div>
                   <select
                     value={learningAllocation}
                     onChange={(e) => handleAllocationChange(e.target.value)}
-                    className={styles.selectInput}
+                    className={styles.hiddenSelectInput}
                     aria-label="Learning allocation"
                   >
-                    <option value="Balanced">⚖ Balanced</option>
-                    <option value="Deep Dive">🎯 Deep Dive</option>
-                    <option value="Exploratory">🧭 Exploratory</option>
-                    <option value="Sprint">⚡ Speed Sprint</option>
+                    <option value="Balanced">Balanced</option>
+                    <option value="Deep Dive">Deep Dive</option>
+                    <option value="Exploratory">Exploratory</option>
+                    <option value="Sprint">Sprint</option>
                   </select>
-                  <ChevronDown size={13} className={styles.selectChevron} aria-hidden="true" />
                 </div>
               </div>
 
@@ -496,18 +506,22 @@ export function ChannelHub() {
                   <span className={styles.prefDesc}>Choose when reminders arrive</span>
                 </div>
                 <div className={styles.selectWrapper}>
+                  <div className={styles.customSelectTrigger}>
+                    <Bell size={13} strokeWidth={2} className={styles.selectIcon} />
+                    <span className={styles.selectLabel}>{reminderWindow}</span>
+                    <ChevronDown size={13} className={styles.selectChevron} aria-hidden="true" />
+                  </div>
                   <select
                     value={reminderWindow}
                     onChange={(e) => handleReminderChange(e.target.value)}
-                    className={styles.selectInput}
+                    className={styles.hiddenSelectInput}
                     aria-label="Reminder window"
                   >
-                    <option value="Morning">🌅 Morning</option>
-                    <option value="Afternoon">☀️ Afternoon</option>
-                    <option value="Evening">🌙 Evening</option>
-                    <option value="Night">✨ Late Night</option>
+                    <option value="Morning">Morning</option>
+                    <option value="Afternoon">Afternoon</option>
+                    <option value="Evening">Evening</option>
+                    <option value="Night">Night</option>
                   </select>
-                  <ChevronDown size={13} className={styles.selectChevron} aria-hidden="true" />
                 </div>
               </div>
             </div>

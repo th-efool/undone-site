@@ -16,29 +16,29 @@
   position: relative;
   width: 100%;
   background-color: #ffffff;
-  border: 1px solid #dcdfe8;
-  border-radius: 22px;
-  padding: 14px 20px 12px 20px;
+  border: 1px solid #eaecf0;
+  border-radius: 20px;
+  padding: 15px 18px 12px 18px;
   box-shadow:
-    0 4px 20px -2px rgba(99, 102, 241, 0.05),
-    0 1px 4px -1px rgba(0, 0, 0, 0.04);
+    0 1px 3px 0 rgba(16, 24, 40, 0.04),
+    0 1px 2px -1px rgba(16, 24, 40, 0.02);
   box-sizing: border-box;
   transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 .inputCard:focus-within {
-  border-color: #c7cbdb !important;
+  border-color: #d0d5dd !important;
   box-shadow:
-    0 6px 24px -2px rgba(0, 0, 0, 0.07),
-    0 1px 4px -1px rgba(0, 0, 0, 0.04);
+    0 4px 14px -2px rgba(16, 24, 40, 0.06),
+    0 1px 3px -1px rgba(16, 24, 40, 0.03);
 }
 
 .textInput {
   font-family: var(--font-manrope-next), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 16px;
+  font-size: 15.5px;
   line-height: 1.5;
   color: #1e293b;
-  caret-color: #1b268a;
+  caret-color: #2524a4;
   background: transparent !important;
   border: none !important;
   outline: none !important;
@@ -46,7 +46,7 @@
 }
 
 .textInput::placeholder {
-  color: #8c93a8;
+  color: #83869d;
   opacity: 1;
 }
 
@@ -56,9 +56,9 @@
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: nowrap;
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .promptPillGroup {
@@ -79,52 +79,46 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background-color: #f1f3fd;
-  color: #2e384d;
+  background-color: #f3f4f8;
+  color: #344054;
   border: none;
   cursor: pointer;
-  transition:
-    background-color 150ms ease,
-    transform 100ms ease;
+  transition: background-color 150ms ease, transform 100ms ease;
   flex-shrink: 0;
 }
 
 .promptPlusPill:hover {
-  background-color: #e5e8fa;
-  transform: scale(1.05);
+  background-color: #e9ebf2;
 }
 
 .promptPill {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  height: 36px;
-  padding: 0 13px;
+  gap: 6px;
+  height: 32px;
+  padding: 0 12px;
   border-radius: 9999px;
-  background-color: #f1f3fd;
-  color: #2e384d;
+  background-color: #f3f4f8;
+  color: #344054;
   border: none;
-  font-size: 14.5px;
+  font-size: 13.5px;
   font-weight: 500;
   cursor: pointer;
-  transition:
-    background-color 150ms ease,
-    transform 100ms ease;
+  transition: background-color 150ms ease, transform 100ms ease;
   font-family: var(--font-manrope-next), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   flex-shrink: 0;
   white-space: nowrap;
 }
 
 .promptPill:hover:not(:disabled) {
-  background-color: #e5e8fa;
-  transform: translateY(-0.5px);
+  background-color: #e9ebf2;
 }
 
 .promptPill:disabled {
-  opacity: 0.65;
+  opacity: 0.75;
   cursor: not-allowed;
 }
 
@@ -136,7 +130,7 @@
 .promptRightActions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-left: auto;
   flex-shrink: 0;
 }
@@ -145,12 +139,12 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 36px;
+  height: 32px;
   padding: 0 6px;
   background: transparent;
   border: none;
-  color: #2e384d;
-  font-size: 15px;
+  color: #344054;
+  font-size: 14px;
   font-weight: 500;
   cursor: pointer;
   transition: color 150ms ease;
@@ -159,44 +153,42 @@
 }
 
 .promptPlanBtn:hover:not(:disabled) {
-  color: #1b268a;
+  color: #2524a4;
 }
 
 .promptDivider {
+  display: block;
   width: 1px;
-  height: 20px;
-  background-color: #e2e8f0;
+  height: 18px;
+  background-color: #eaecf0;
   flex-shrink: 0;
+  margin: 0 2px;
 }
 
 .promptBeginBtn {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  height: 38px;
-  padding: 0 20px;
+  height: 35px;
+  padding: 0 18px;
   border-radius: 9999px;
-  background-color: #1b268a;
+  background-color: #2524a4;
   color: #ffffff;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-size: 14px;
+  font-weight: 550;
+  letter-spacing: -0.01em;
   border: none;
   cursor: pointer;
   white-space: nowrap;
-  box-shadow: 0 2px 10px rgba(27, 38, 138, 0.28);
-  transition:
-    background-color 150ms ease,
-    box-shadow 150ms ease,
-    transform 100ms ease;
+  box-shadow: 0 1px 2px rgba(37, 36, 164, 0.16);
+  transition: background-color 150ms ease, box-shadow 150ms ease, transform 100ms ease;
   font-family: var(--font-manrope-next), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   flex-shrink: 0;
 }
 
 .promptBeginBtn:hover:not(:disabled) {
-  background-color: #141c6d;
-  box-shadow: 0 4px 14px rgba(27, 38, 138, 0.38);
-  transform: translateY(-0.5px);
+  background-color: #1c1a8e;
+  box-shadow: 0 2px 6px rgba(37, 36, 164, 0.28);
 }
 
 .promptBeginBtn:active:not(:disabled) {

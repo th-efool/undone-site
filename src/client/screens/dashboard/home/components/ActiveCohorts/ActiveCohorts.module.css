@@ -26,11 +26,7 @@
 }
 
 .iconBadge {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: rgba(99, 102, 241, 0.1);
-  color: #4f46e5;
+  color: #2563eb;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -23,7 +23,7 @@
 .leftCol {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 20px;
   min-width: 0;
   width: 100%;
 }
