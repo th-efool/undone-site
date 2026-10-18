@@ -3,13 +3,13 @@
   background: linear-gradient(135deg, #eff3fe 0%, #e6ebff 100%);
   border: 1px solid rgba(99, 102, 241, 0.16);
   border-radius: 20px;
-  padding: 16px 20px 14px 20px;
+  padding: 22px 24px 20px 24px;
   overflow: hidden;
   box-shadow: 0 4px 16px -2px rgba(67, 97, 238, 0.08);
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  min-height: 142px;
+  min-height: 198px;
 }
 
 .leftContent {
@@ -22,14 +22,14 @@
 
 .title {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: #1e293b;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
 .progressLabel {
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
   color: #64748b;
   display: flex;
@@ -40,9 +40,9 @@
 .chartContainer {
   display: flex;
   align-items: flex-end;
-  gap: 8px;
-  margin-top: 10px;
-  height: 52px;
+  gap: 9px;
+  margin-top: 14px;
+  height: 72px;
   padding-bottom: 2px;
 }
 
@@ -80,8 +80,8 @@
 }
 
 .barTrack {
-  width: 9px;
-  height: 42px;
+  width: 10px;
+  height: 58px;
   background: rgba(99, 102, 241, 0.08);
   border-radius: 999px;
   display: flex;
@@ -137,15 +137,15 @@
 
 .calloutWrapper {
   position: absolute;
-  top: -14px;
-  right: 6px;
+  top: -18px;
+  right: 8px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
 }
 
 .calloutText {
-  font-size: 0.85rem;
+  font-size: 0.88rem;
   font-style: italic;
   font-weight: 700;
   color: #2535a5;
@@ -160,8 +160,8 @@
 }
 
 .mascotWrapper {
-  width: 96px;
-  height: 96px;
+  width: 128px;
+  height: 128px;
   position: relative;
   display: flex;
   align-items: flex-end;

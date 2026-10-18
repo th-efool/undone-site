@@ -129,9 +129,9 @@ export const HomeStreakWidget = React.memo(function HomeStreakWidget({
           <Image
             src="/images/home/streak-mascot.png"
             alt="Study mascot"
-            width={96}
-            height={96}
-            sizes="96px"
+            width={128}
+            height={128}
+            sizes="128px"
             className={styles.mascotImage}
             priority
           />
