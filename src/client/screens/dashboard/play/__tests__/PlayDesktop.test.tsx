@@ -360,4 +360,43 @@ describe('PlayDesktop visual redesign composition', () => {
     fireEvent.keyDown(scrubber, { key: 'End' });
     expect(seekToPercent).toHaveBeenCalledWith(100);
   });
+
+  it('toggles ChannelSelector popover with c key and dismisses on Escape', () => {
+    const playback = createMockPlayback();
+    render(<PlayDesktop playback={playback} />);
+
+    expect(screen.queryByRole('region', { name: /channel and search preferences/i })).toBeNull();
+
+    // 1. Press 'c' to open
+    fireEvent.keyDown(window, { key: 'c' });
+    expect(screen.getByRole('region', { name: /channel and search preferences/i })).toBeDefined();
+
+    // 2. Press 'Escape' to dismiss
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('region', { name: /channel and search preferences/i })).toBeNull();
+  });
+
+  it('renders polite empty state with refresh action when activeItem is null or undefined', () => {
+    const fetchChannelFeed = vi.fn().mockResolvedValue(undefined);
+    const playback = createMockPlayback({
+      activeItem: undefined,
+      fetchChannelFeed,
+    });
+
+    render(<PlayDesktop playback={playback} />);
+
+    const statusEl = screen.getByRole('status');
+    expect(statusEl).toBeDefined();
+    expect(screen.getByText('All Caught Up')).toBeDefined();
+    expect(
+      screen.getByText("You're caught up with this selection. Choose another channel or return home.")
+    ).toBeDefined();
+
+    const refreshBtn = screen.getByRole('button', { name: /refresh channel/i });
+    fireEvent.click(refreshBtn);
+    expect(fetchChannelFeed).toHaveBeenCalledWith('default', 0);
+
+    const homeLink = screen.getByRole('link', { name: /back home/i });
+    expect(homeLink.getAttribute('href')).toBe('/home');
+  });
 });
