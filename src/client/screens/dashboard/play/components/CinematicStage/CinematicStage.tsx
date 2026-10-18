@@ -9,6 +9,7 @@ export interface CinematicStageProps {
   currentIndex: number;
   totalItems: number;
   isPlaying: boolean;
+  playbackSpeed?: number;
   itemStatuses?: ('completed' | 'skipped' | 'not-started' | 'in-progress')[];
   onIndexChange: (newIndex: number) => void;
   onSeek: (secondsDelta: number) => void;
@@ -22,6 +23,7 @@ export function CinematicStage({
   currentIndex,
   totalItems,
   isPlaying,
+  playbackSpeed = 1.0,
   itemStatuses,
   onIndexChange,
   onSeek,
@@ -33,6 +35,11 @@ export function CinematicStage({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [doubleTapBadge, setDoubleTapBadge] = useState<'left' | 'right' | null>(null);
   const [badgeTimer, setBadgeTimer] = useState<NodeJS.Timeout | null>(null);
+  const preLongPressSpeedRef = useRef<number>(playbackSpeed);
+
+  useEffect(() => {
+    preLongPressSpeedRef.current = playbackSpeed;
+  }, [playbackSpeed]);
   
   // Scope-In Mode state: false = Feed Browse Mode (vid Vid vid), true = Immersive Focus Mode
   // Default is FALSE (Scope Out Mode)
@@ -67,61 +74,47 @@ export function CinematicStage({
   }, [onSeek, badgeTimer]);
 
   const handleLongPressStart = useCallback(() => {
+    preLongPressSpeedRef.current = playbackSpeed;
     onSpeedChange(2.0);
-  }, [onSpeedChange]);
+  }, [playbackSpeed, onSpeedChange]);
 
   const handleLongPressEnd = useCallback(() => {
-    onSpeedChange(1.0);
+    onSpeedChange(preLongPressSpeedRef.current || 1.0);
   }, [onSpeedChange]);
 
   const [visualIndex, setVisualIndex] = useState(currentIndex);
   const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const visualChangeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     setVisualIndex(currentIndex);
   }, [currentIndex]);
 
   const handleNext = useCallback(() => {
-    if (visualIndex < totalItems - 1) {
-      const nextIdx = visualIndex + 1;
-      setVisualIndex(nextIdx);
+    if (currentIndex < totalItems - 1) {
+      onIndexChange(currentIndex + 1);
       if (isScopedIn) {
         setIsScopedIn(false);
         setTimeout(() => setIsScopedIn(true), 350);
       }
     }
-  }, [visualIndex, totalItems, isScopedIn]);
+  }, [currentIndex, totalItems, isScopedIn, onIndexChange]);
 
   const handlePrev = useCallback(() => {
-    if (visualIndex > 0) {
-      const prevIdx = visualIndex - 1;
-      setVisualIndex(prevIdx);
+    if (currentIndex > 0) {
+      onIndexChange(currentIndex - 1);
       if (isScopedIn) {
         setIsScopedIn(false);
         setTimeout(() => setIsScopedIn(true), 350);
       }
     }
-  }, [visualIndex, isScopedIn]);
+  }, [currentIndex, isScopedIn, onIndexChange]);
 
   useEffect(() => {
-    if (visualIndex !== currentIndex) {
-      if ('onscrollend' in window) {
-        // If the browser supports scrollend natively, we can use it.
-        // Wait, if we use a native scroll container, the event fires there.
-        // If we simulate it without native scrolling, we can't fire the native event easily.
-      }
-      
-      // Fallback or main logic if no native scrolling:
-      if (visualChangeTimeoutRef.current) clearTimeout(visualChangeTimeoutRef.current);
-      visualChangeTimeoutRef.current = setTimeout(() => {
-        onIndexChange(visualIndex);
-      }, 400); // Wait for gesture/animation to finish
-    }
     return () => {
-      if (visualChangeTimeoutRef.current) clearTimeout(visualChangeTimeoutRef.current);
+      if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+      if (badgeTimer) clearTimeout(badgeTimer);
     };
-  }, [visualIndex, currentIndex, onIndexChange]);
+  }, [badgeTimer]);
 
   const preFullscreenScopedRef = useRef<boolean>(false);
 
@@ -257,12 +250,12 @@ export function CinematicStage({
         >
           {visibleDotIndices.map((k) => {
             const isActive = k === visualIndex;
-            const status = itemStatuses?.[k] || (k < visualIndex ? 'completed' : 'not-started');
+            const status = itemStatuses?.[k] || 'not-started';
 
             let dotClass = styles.dot;
             if (isActive) {
               dotClass = `${styles.dot} ${styles.dotActive}`;
-            } else if (status === 'completed' || k < visualIndex) {
+            } else if (status === 'completed') {
               dotClass = `${styles.dot} ${styles.dotCompleted}`;
             } else if (status === 'skipped') {
               dotClass = `${styles.dot} ${styles.dotSkipped}`;
@@ -277,7 +270,7 @@ export function CinematicStage({
                   e.stopPropagation();
                   onIndexChange(k);
                   setVisualIndex(k);
-                  if (containerRef.current) {
+                  if (containerRef.current && typeof containerRef.current.scrollTo === 'function') {
                     containerRef.current.scrollTo({ left: k * containerRef.current.clientWidth, behavior: 'smooth' });
                   }
                 }}

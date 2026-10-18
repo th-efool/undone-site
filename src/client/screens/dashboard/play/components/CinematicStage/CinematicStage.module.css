@@ -179,12 +179,11 @@
   }
 }
 
-/* Reduced Motion Override */
+/* Reduced Motion Override: eliminate motion transitions without removing spatial layout transforms */
 @media (prefers-reduced-motion: reduce) {
   .sceneNode {
-    transition: opacity 0.15s ease !important;
-    transform: none !important;
-    filter: none !important;
+    transition: none !important;
+    animation: none !important;
   }
 }
 
