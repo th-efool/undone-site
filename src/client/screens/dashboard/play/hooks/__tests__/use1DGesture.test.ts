@@ -136,4 +136,21 @@ describe('use1DGesture keyboard interaction', () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: '?', bubbles: true }));
     expect(onToggleShortcutsHelp).toHaveBeenCalledTimes(1);
   });
+
+  it('triggers onToggleChannelSelector on c and C keys', () => {
+    const onToggleChannelSelector = vi.fn();
+    renderHook(() =>
+      use1DGesture({
+        onNext: vi.fn(),
+        onPrev: vi.fn(),
+        onToggleChannelSelector,
+      })
+    );
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', bubbles: true }));
+    expect(onToggleChannelSelector).toHaveBeenCalledTimes(1);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'C', bubbles: true }));
+    expect(onToggleChannelSelector).toHaveBeenCalledTimes(2);
+  });
 });

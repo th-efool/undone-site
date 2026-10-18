@@ -102,9 +102,11 @@ export function PlayMobile({ playback }: PlayMobileProps) {
   if (!playback.activeItem) {
     return (
       <PlaySkeleton
-        isError
+        isEmpty
+        errorTitle="All Caught Up"
         errorMessage="You're caught up with this selection. Choose another channel or return home."
         onRetry={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
+        retryLabel="Refresh Channel"
       />
     );
   }
