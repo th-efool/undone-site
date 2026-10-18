@@ -40,5 +40,5 @@ export const YOUTUBE_VIDEO_LIMITS = {
   durationSeconds: 43_200, // 12 hours maximum
   maxObservations: 200,
   maxExtractedBytes: 200_000,
-  timeoutMs: 150_000,
+  timeoutMs: 300_000,
 } as const;

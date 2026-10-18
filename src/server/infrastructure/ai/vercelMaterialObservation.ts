@@ -89,7 +89,7 @@ export class VercelMaterialObservation implements MaterialObservation {
     let correction: string | undefined;
     for (let attempt = 0; attempt < 2; attempt++) {
       callerSignal.throwIfAborted();
-      const signal = AbortSignal.any([callerSignal, AbortSignal.timeout(150_000)]);
+      const signal = AbortSignal.any([callerSignal, AbortSignal.timeout(120_000)]);
       signal.throwIfAborted();
       devLogger.info('VideoObservation', `Calling model (${this.model.modelId}) for video ${video.videoId} "${video.title}" (attempt ${attempt + 1}/2, duration: ${video.durationSeconds}s)`);
       // Reservation errors retain their original lease/budget meaning for the durable worker.
@@ -107,7 +107,7 @@ export class VercelMaterialObservation implements MaterialObservation {
               title: video.title, ...(correction ? { correction } : {}) }) },
             { type: 'file', data: new URL(video.url), mediaType: 'video/mp4' },
           ] }], output: Output.object({ schema: creationOutputSchema(schema, this.model) }),
-          maxOutputTokens: 12_000, maxRetries: 0, abortSignal: signal, timeout: { totalMs: 150_000 },
+          maxOutputTokens: 12_000, maxRetries: 0, abortSignal: signal, timeout: { totalMs: 120_000 },
           telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },
         });
         const elapsed = Date.now() - t0;
