@@ -175,3 +175,144 @@ describe('lesson model labelling', () => {
     expect(result.current.lesson.totalVideos).toBe(10);
   });
 });
+
+describe('completeActiveChunk feed advance (ISSUE-2)', () => {
+  beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); });
+
+  it('smoothly advances to the next chunk without rewinding or refetching page 0', async () => {
+    const chunkA = {
+      chunkId: 'chunk-A',
+      lessonId: 'lesson-1',
+      lessonTitle: 'Lesson 1',
+      chunkTitle: 'Chunk A',
+      seasonOrder: 1,
+      lessonOrder: 1,
+      totalLessonsInSeason: 5,
+      totalVideos: 5,
+      startSeconds: 0,
+      endSeconds: 60,
+    };
+    const chunkB = {
+      chunkId: 'chunk-B',
+      lessonId: 'lesson-1',
+      lessonTitle: 'Lesson 1',
+      chunkTitle: 'Chunk B',
+      seasonOrder: 1,
+      lessonOrder: 1,
+      totalLessonsInSeason: 5,
+      totalVideos: 5,
+      startSeconds: 60,
+      endSeconds: 120,
+    };
+    const chunkC = {
+      chunkId: 'chunk-C',
+      lessonId: 'lesson-2',
+      lessonTitle: 'Lesson 2',
+      chunkTitle: 'Chunk C',
+      seasonOrder: 1,
+      lessonOrder: 2,
+      totalLessonsInSeason: 5,
+      totalVideos: 5,
+      startSeconds: 0,
+      endSeconds: 180,
+    };
+    const chunkD = {
+      chunkId: 'chunk-D',
+      lessonId: 'lesson-2',
+      lessonTitle: 'Lesson 2',
+      chunkTitle: 'Chunk D',
+      seasonOrder: 1,
+      lessonOrder: 2,
+      totalLessonsInSeason: 5,
+      totalVideos: 5,
+      startSeconds: 180,
+      endSeconds: 300,
+    };
+
+    fetchMock.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/api/progress/chunk')) {
+        return { ok: true, json: async () => ({ success: true }) };
+      }
+      if (typeof url === 'string' && url.includes('/api/feed')) {
+        return { ok: true, json: async () => ({ items: [chunkA, chunkB, chunkC, chunkD] }) };
+      }
+      return { ok: true, json: async () => ({}) };
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-A'));
+
+    let success = false;
+    await act(async () => {
+      success = await result.current.completeActiveChunk();
+    });
+
+    expect(success).toBe(true);
+    expect(result.current.activeItem?.chunkId).toBe('chunk-B');
+    expect(result.current.feedItems.map(it => it.chunkId)).toEqual(['chunk-B', 'chunk-C', 'chunk-D']);
+
+    const progressCalls = fetchMock.mock.calls.filter((c: any[]) => c[0] === '/api/progress/chunk');
+    expect(progressCalls).toHaveLength(1);
+
+    const feedCalls = fetchMock.mock.calls.filter((c: any[]) => typeof c[0] === 'string' && c[0].includes('/api/feed'));
+    expect(feedCalls).toHaveLength(1);
+  });
+
+  it('triggers next page prefetch and clamps index when remaining items become low', async () => {
+    const chunkLast = {
+      chunkId: 'chunk-solo',
+      lessonId: 'lesson-1',
+      lessonTitle: 'Lesson 1',
+      chunkTitle: 'Chunk Solo',
+      seasonOrder: 1,
+      lessonOrder: 1,
+      totalLessonsInSeason: 1,
+      totalVideos: 1,
+      startSeconds: 0,
+      endSeconds: 60,
+    };
+    const chunkNextPage = {
+      chunkId: 'chunk-next-page',
+      lessonId: 'lesson-2',
+      lessonTitle: 'Lesson 2',
+      chunkTitle: 'Next Page Chunk',
+      seasonOrder: 1,
+      lessonOrder: 2,
+      totalLessonsInSeason: 1,
+      totalVideos: 1,
+      startSeconds: 0,
+      endSeconds: 60,
+    };
+
+    fetchMock.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/api/progress/chunk')) {
+        return { ok: true, json: async () => ({ success: true }) };
+      }
+      if (typeof url === 'string' && url.includes('pageIndex=0')) {
+        return { ok: true, json: async () => ({ items: [chunkLast] }) };
+      }
+      if (typeof url === 'string' && url.includes('pageIndex=1')) {
+        return { ok: true, json: async () => ({ items: [chunkNextPage] }) };
+      }
+      return { ok: true, json: async () => ({ items: [] }) };
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-solo'));
+
+    let success = false;
+    await act(async () => {
+      success = await result.current.completeActiveChunk();
+    });
+
+    expect(success).toBe(true);
+
+    // Wait for the background prefetch of page 1 to resolve and append
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-next-page'));
+    expect(result.current.feedItems.map(it => it.chunkId)).toContain('chunk-next-page');
+
+    const feedCalls = fetchMock.mock.calls.filter((c: any[]) => typeof c[0] === 'string' && c[0].includes('/api/feed'));
+    expect(feedCalls.some((c: any[]) => c[0].includes('pageIndex=1'))).toBe(true);
+  });
+});
+

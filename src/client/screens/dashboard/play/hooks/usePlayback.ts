@@ -191,9 +191,39 @@ export function usePlayback() {
           watchedSeconds: duration, totalSeconds: duration, forceStatus: 'COMPLETED' }) });
       if (!response.ok) throw new Error(response.status === 401 ? 'Sign in to save completion.' : 'Completion could not be saved. Retry.');
       reportedChunksRef.current.add(activeItem.chunkId);
-      setChannelCaches(previous => ({ ...previous, [activeChannel]: { ...previous[activeChannel], currentIndex: 0,
-        items: previous[activeChannel].items.filter(item => item.chunkId !== activeItem.chunkId) } }));
-      await fetchChannelFeed(activeChannel, 0);
+
+      let shouldPrefetch = false;
+      let nextPage = 0;
+
+      setChannelCaches(previous => {
+        const ch = previous[activeChannel];
+        if (!ch) return previous;
+        const itemIndex = ch.items.findIndex(it => it.chunkId === activeItem.chunkId);
+        const nextItems = ch.items.filter(item => item.chunkId !== activeItem.chunkId);
+        const nextIndex = itemIndex === -1
+          ? Math.min(ch.currentIndex, Math.max(0, nextItems.length - 1))
+          : itemIndex >= nextItems.length
+          ? Math.max(0, nextItems.length - 1)
+          : Math.max(0, itemIndex);
+
+        if (nextItems.length < 3 && !ch.isFetching && !ch.exhausted && !ch.hasError) {
+          shouldPrefetch = true;
+          nextPage = ch.pageIndex + 1;
+        }
+
+        return {
+          ...previous,
+          [activeChannel]: {
+            ...ch,
+            currentIndex: nextIndex,
+            items: nextItems,
+          }
+        };
+      });
+
+      if (shouldPrefetch) {
+        void fetchChannelFeed(activeChannel, nextPage);
+      }
       return true;
     } catch (error) { setCompletionError(error instanceof Error ? error.message : 'Completion could not be saved.'); return false; }
     finally { completing.current = false; setCompletionPending(false); }
