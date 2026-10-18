@@ -10,6 +10,8 @@ import {
   FileText,
   Paperclip,
   Sparkles,
+  AlertCircle,
+  X,
 } from 'lucide-react';
 import { TextBar } from '@/src/client/components/ui';
 import { SuggestionPromptRow } from './SuggestionPromptRow';
@@ -233,11 +235,52 @@ export function CentralInterface() {
           </div>
         }
       />
-      {showSource && <label>Paste source text
-        <textarea aria-label="Paste source text" maxLength={200_000} value={sourceText}
-          onChange={event => setSourceText(event.target.value)} style={{ width: '100%', minHeight: 120 }} />
-      </label>}
-      {intakeError && <p role="alert">{intakeError}</p>}
+      {showSource && (
+        <div className={styles.sourceTextWrapper}>
+          <div className={styles.sourceTextHeader}>
+            <span className={styles.sourceTextLabel}>Paste reference material or syllabus</span>
+            <div className={styles.sourceTextActions}>
+              <span className={styles.sourceTextCounter}>
+                {sourceText.length.toLocaleString()} / 200,000
+              </span>
+              {sourceText.length > 0 && (
+                <button
+                  type="button"
+                  className={styles.sourceTextClear}
+                  onClick={() => setSourceText('')}
+                  aria-label="Clear source text"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+          <textarea
+            className={styles.sourceTextarea}
+            aria-label="Paste source text"
+            maxLength={200_000}
+            placeholder="Paste articles, code snippets, notes, or lecture outlines to ground your cohort..."
+            value={sourceText}
+            onChange={event => setSourceText(event.target.value)}
+            rows={4}
+          />
+        </div>
+      )}
+
+      {intakeError && (
+        <div className={styles.intakeErrorBanner} role="alert">
+          <AlertCircle size={18} className={styles.intakeErrorIcon} aria-hidden="true" />
+          <span className={styles.intakeErrorText}>{intakeError}</span>
+          <button
+            type="button"
+            className={styles.intakeErrorDismiss}
+            onClick={() => setIntakeError('')}
+            aria-label="Dismiss error"
+          >
+            <X size={15} />
+          </button>
+        </div>
+      )}
 
       {/* Suggestion Prompt Cards Row (Unfinished pursuits) */}
       <SuggestionPromptRow onSelectPrompt={handleSelectPrompt} />
