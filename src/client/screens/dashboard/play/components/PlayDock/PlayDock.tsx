@@ -13,7 +13,7 @@ import {
   Subtitles,
   Flag,
   Loader2,
-  AlertTriangle,
+  AlertCircle,
 } from 'lucide-react';
 import { triggerHaptic } from '@/src/client/utils/haptics';
 import styles from './PlayDock.module.css';
@@ -24,6 +24,9 @@ interface PlayDockProps {
   playbackSpeed: number;
   hasNext: boolean;
   completionPending: boolean;
+  completionError?: string | null;
+  isCompleted?: boolean;
+  speedSupported?: boolean;
   isFullscreen: boolean;
   onVolumeChange: (vol: number) => void;
   onToggleMute: () => void;
@@ -41,6 +44,9 @@ export function PlayDock({
   playbackSpeed,
   hasNext,
   completionPending,
+  completionError,
+  isCompleted,
+  speedSupported = true,
   isFullscreen,
   onVolumeChange,
   onToggleMute,
@@ -50,7 +56,6 @@ export function PlayDock({
   onToggleFullscreen,
 }: PlayDockProps) {
   const [speedMenuOpen, setSpeedMenuOpen] = useState(false);
-  const [reportModalOpen, setReportModalOpen] = useState(false);
   const [captionsActive, setCaptionsActive] = useState(false);
   const speedRef = useRef<HTMLDivElement>(null);
 
@@ -82,167 +87,153 @@ export function PlayDock({
   };
 
   return (
-    <>
-      <div className={styles.dockContainer} role="toolbar" aria-label="Playback controls dock">
-        {/* Capsule 1: Fullscreen */}
-        <div className={styles.capsule}>
-          <button
-            type="button"
-            className={styles.dockButton}
-            onClick={onToggleFullscreen}
-            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-            title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-          >
-            {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-          </button>
-        </div>
+    <div className={styles.dockContainer} role="toolbar" aria-label="Playback controls dock">
+      {/* Capsule 1: Fullscreen */}
+      <div className={styles.capsule}>
+        <button
+          type="button"
+          className={styles.dockButton}
+          onClick={onToggleFullscreen}
+          aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+        >
+          {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+        </button>
+      </div>
 
-        {/* Capsule 2: Volume & Audio Slider */}
-        <div className={`${styles.capsule} ${styles.volumeCapsule}`}>
-          <button
-            type="button"
-            className={styles.dockButton}
-            onClick={onToggleMute}
-            aria-label={muted ? 'Unmute' : 'Mute'}
-            title={muted ? 'Unmute' : 'Mute'}
-          >
-            {muted || effectiveVol === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
-          </button>
-          <input
-            type="range"
-            className={styles.volumeSlider}
-            min={0}
-            max={100}
-            value={effectiveVol}
-            onChange={(e) => onVolumeChange(Number(e.target.value))}
-            style={{
-              background: `linear-gradient(to right, #5430FF ${effectiveVol}%, rgba(255, 255, 255, 0.2) ${effectiveVol}%)`,
-            }}
-            aria-label="Volume level"
-          />
-        </div>
+      {/* Capsule 2: Volume & Audio Slider */}
+      <div className={`${styles.capsule} ${styles.volumeCapsule}`}>
+        <button
+          type="button"
+          className={styles.dockButton}
+          onClick={onToggleMute}
+          aria-label={muted || effectiveVol === 0 ? 'Unmute' : 'Mute'}
+          title={muted || effectiveVol === 0 ? 'Unmute' : 'Mute'}
+        >
+          {muted || effectiveVol === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
+        </button>
+        <input
+          type="range"
+          className={styles.volumeSlider}
+          min={0}
+          max={100}
+          value={effectiveVol}
+          onChange={(e) => onVolumeChange(Number(e.target.value))}
+          style={{
+            background: `linear-gradient(to right, #5430FF ${effectiveVol}%, rgba(255, 255, 255, 0.2) ${effectiveVol}%)`,
+          }}
+          aria-label="Volume level"
+        />
+      </div>
 
-        {/* Capsule 3: Mark Chunk Complete */}
-        <div className={styles.capsule}>
-          <button
-            type="button"
-            className={styles.dockButton}
-            onClick={handleComplete}
-            disabled={completionPending}
-            aria-label="Mark chunk as complete"
-            title="Complete chunk"
-          >
-            {completionPending ? (
-              <Loader2 size={18} className={styles.spinner} />
-            ) : (
-              <CheckCircle size={18} />
-            )}
-          </button>
-        </div>
-
-        {/* Capsule 4: Skip Forward / Next Chunk */}
-        <div className={styles.capsule}>
-          <button
-            type="button"
-            className={styles.dockButton}
-            onClick={handleNext}
-            disabled={!hasNext}
-            aria-label="Next chunk"
-            title="Next chunk"
-          >
-            <SkipForward size={18} />
-          </button>
-        </div>
-
-        {/* Capsule 5: Playback Speed */}
-        <div className={styles.speedWrapper} ref={speedRef}>
-          <div className={styles.capsule}>
-            <button
-              type="button"
-              className={styles.dockButton}
-              onClick={() => setSpeedMenuOpen((prev) => !prev)}
-              aria-label={`Playback speed: ${playbackSpeed}x`}
-              aria-haspopup="menu"
-              aria-expanded={speedMenuOpen}
-              title="Change playback speed"
-            >
-              <Timer size={16} />
-              <span>{playbackSpeed}x</span>
-              <ChevronDown size={14} />
-            </button>
-          </div>
-
-          {speedMenuOpen && (
-            <div className={styles.speedMenu} role="menu" aria-label="Playback speed options">
-              {SPEED_OPTIONS.map((speed) => (
-                <button
-                  key={speed}
-                  type="button"
-                  className={`${styles.speedOption} ${speed === playbackSpeed ? styles.speedOptionActive : ''}`}
-                  role="menuitem"
-                  onClick={() => {
-                    onSpeedChange(speed);
-                    setSpeedMenuOpen(false);
-                  }}
-                >
-                  {speed}x
-                </button>
-              ))}
-            </div>
+      {/* Capsule 3: Mark Chunk Complete */}
+      <div className={styles.capsule}>
+        <button
+          type="button"
+          className={`${styles.dockButton} ${completionError ? styles.dockButtonError : isCompleted ? styles.dockButtonCompleted : ''}`}
+          onClick={handleComplete}
+          disabled={completionPending}
+          aria-label={completionError ? 'Retry chunk completion' : isCompleted ? 'Chunk completed' : 'Mark chunk as complete'}
+          title={completionError ? 'Completion failed. Click to retry.' : isCompleted ? 'Completed (click to re-mark)' : 'Complete chunk'}
+        >
+          {completionPending ? (
+            <Loader2 size={18} className={styles.spinner} />
+          ) : completionError ? (
+            <AlertCircle size={18} />
+          ) : (
+            <CheckCircle size={18} fill={isCompleted ? 'rgba(84, 48, 255, 0.3)' : 'none'} />
           )}
-        </div>
+        </button>
+      </div>
 
-        {/* Capsule 6: Captions / CC */}
+      {/* Capsule 4: Skip Forward / Next Chunk */}
+      <div className={styles.capsule}>
+        <button
+          type="button"
+          className={styles.dockButton}
+          onClick={handleNext}
+          disabled={!hasNext}
+          aria-label="Next chunk"
+          title="Next chunk"
+        >
+          <SkipForward size={18} />
+        </button>
+      </div>
+
+      {/* Capsule 5: Playback Speed */}
+      <div className={styles.speedWrapper} ref={speedRef}>
         <div className={styles.capsule}>
           <button
             type="button"
-            className={styles.dockButton}
-            onClick={() => setCaptionsActive((p) => !p)}
-            aria-label={captionsActive ? 'Disable captions' : 'Enable captions'}
-            title="Captions / Subtitles"
-            style={{ color: captionsActive ? '#5430FF' : 'inherit' }}
+            className={`${styles.dockButton} ${!speedSupported ? styles.dockButtonDisabled : ''}`}
+            onClick={() => speedSupported && setSpeedMenuOpen((prev) => !prev)}
+            disabled={!speedSupported}
+            aria-disabled={!speedSupported}
+            aria-label={speedSupported ? `Playback speed: ${playbackSpeed}x` : 'Playback speed unavailable for this lesson'}
+            aria-haspopup={speedSupported ? 'menu' : undefined}
+            aria-expanded={speedSupported ? speedMenuOpen : undefined}
+            title={speedSupported ? 'Change playback speed' : 'Playback speed unavailable for this lesson'}
           >
-            <Subtitles size={18} />
+            <Timer size={16} />
+            <span>{speedSupported ? `${playbackSpeed}x` : '1x'}</span>
+            {speedSupported && <ChevronDown size={14} />}
           </button>
         </div>
 
-        {/* Capsule 7: Report Issue */}
-        <div className={styles.capsule}>
+        {speedSupported && speedMenuOpen && (
+          <div className={styles.speedMenu} role="menu" aria-label="Playback speed options">
+            {SPEED_OPTIONS.map((speed) => (
+              <button
+                key={speed}
+                type="button"
+                className={`${styles.speedOption} ${speed === playbackSpeed ? styles.speedOptionActive : ''}`}
+                role="menuitem"
+                onClick={() => {
+                  onSpeedChange(speed);
+                  setSpeedMenuOpen(false);
+                }}
+              >
+                {speed}x
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Capsule 6: Captions / CC */}
+      <div className={styles.capsule}>
+        <button
+          type="button"
+          className={styles.dockButton}
+          onClick={() => setCaptionsActive((p) => !p)}
+          aria-label={captionsActive ? 'Disable captions' : 'Enable captions'}
+          title="Captions / Subtitles"
+          style={{ color: captionsActive ? '#5430FF' : 'inherit' }}
+        >
+          <Subtitles size={18} />
+        </button>
+      </div>
+
+      {/* Capsule 7: Report Issue (Visibly deferred placeholder without fake modal) */}
+      <div className={styles.capsule}>
+        <div
+          tabIndex={0}
+          className={styles.tooltipAnchor}
+          data-tooltip="Reporting coming later"
+          aria-label="Reporting coming later"
+        >
           <button
             type="button"
-            className={styles.dockButton}
-            onClick={() => setReportModalOpen(true)}
+            className={`${styles.dockButton} ${styles.dockButtonDisabled}`}
+            disabled
+            aria-disabled="true"
             aria-label="Report an issue with this chunk"
-            title="Report issue"
+            title="Reporting coming later"
           >
             <Flag size={18} />
           </button>
         </div>
       </div>
-
-      {/* Report Modal Notice (Deferred per scope boundary) */}
-      {reportModalOpen && (
-        <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="report-modal-title">
-          <div className={styles.modalContent}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-              <AlertTriangle size={24} color="#F59E0B" />
-              <h2 id="report-modal-title" className={styles.modalTitle}>Report Content</h2>
-            </div>
-            <p className={styles.modalDesc}>
-              Report submission is currently deferred in this release. If a video fails to play or load, use the retry button or choose another lesson in the channel selector.
-            </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button
-                type="button"
-                className={styles.modalCloseBtn}
-                onClick={() => setReportModalOpen(false)}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 }

@@ -11,4 +11,5 @@ export { PlayDock } from './PlayDock/PlayDock';
 export { PlayToolsRail } from './PlayToolsRail/PlayToolsRail';
 export { PlaySkeleton } from './PlaySkeleton/PlaySkeleton';
 export { ReadingSurface } from './ReadingSurface';
+export { ShortcutsDialog } from './ShortcutsDialog/ShortcutsDialog';
 

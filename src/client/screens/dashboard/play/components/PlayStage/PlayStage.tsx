@@ -144,9 +144,23 @@ export function PlayStage({ playback }: PlayStageProps) {
           tabIndex={0}
           onKeyDown={(e) => {
             if (e.key === 'ArrowRight') {
+              e.preventDefault();
               playback.skipSeconds(10);
             } else if (e.key === 'ArrowLeft') {
+              e.preventDefault();
               playback.skipSeconds(-10);
+            } else if (e.key === 'PageUp') {
+              e.preventDefault();
+              playback.skipSeconds(30);
+            } else if (e.key === 'PageDown') {
+              e.preventDefault();
+              playback.skipSeconds(-30);
+            } else if (e.key === 'Home') {
+              e.preventDefault();
+              playback.seekToPercent(0);
+            } else if (e.key === 'End') {
+              e.preventDefault();
+              playback.seekToPercent(100);
             }
           }}
         >

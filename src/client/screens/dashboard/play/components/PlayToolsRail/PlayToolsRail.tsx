@@ -19,40 +19,61 @@ export function PlayToolsRail({ bookmarked, onToggleBookmark }: PlayToolsRailPro
   return (
     <aside className={styles.rail} aria-label="Learning Tools Rail">
       {/* 1. Camera / Capture - Deferred Placeholder */}
-      <button
-        type="button"
-        className={`${styles.toolButton} ${styles.toolButtonDisabled}`}
-        aria-label="Capture screen or visual snapshot (coming soon)"
-        aria-disabled="true"
-        title="Screen capture is coming soon"
-        disabled
+      <div
+        tabIndex={0}
+        className={styles.tooltipAnchor}
+        data-tooltip="Capture coming later"
+        aria-label="Screen capture coming later"
       >
-        <Camera size={20} strokeWidth={1.8} />
-      </button>
+        <button
+          type="button"
+          className={`${styles.toolButton} ${styles.toolButtonDisabled}`}
+          aria-label="Capture screen or visual snapshot (coming soon)"
+          aria-disabled="true"
+          title="Capture coming later"
+          disabled
+        >
+          <Camera size={20} strokeWidth={1.8} />
+        </button>
+      </div>
 
       {/* 2. Pen / Annotations - Deferred Placeholder */}
-      <button
-        type="button"
-        className={`${styles.toolButton} ${styles.toolButtonDisabled}`}
-        aria-label="Annotate lesson (coming soon)"
-        aria-disabled="true"
-        title="Annotation tools are coming soon"
-        disabled
+      <div
+        tabIndex={0}
+        className={styles.tooltipAnchor}
+        data-tooltip="Notes coming later"
+        aria-label="Notes and annotations coming later"
       >
-        <Edit3 size={20} strokeWidth={1.8} />
-      </button>
+        <button
+          type="button"
+          className={`${styles.toolButton} ${styles.toolButtonDisabled}`}
+          aria-label="Annotate lesson (coming soon)"
+          aria-disabled="true"
+          title="Notes coming later"
+          disabled
+        >
+          <Edit3 size={20} strokeWidth={1.8} />
+        </button>
+      </div>
 
       {/* 3. Mic / Voice Notes - Deferred Placeholder */}
-      <button
-        type="button"
-        className={`${styles.toolButton} ${styles.toolButtonDisabled}`}
-        aria-label="Record voice note (coming soon)"
-        aria-disabled="true"
-        title="Microphone voice notes are coming soon"
-        disabled
+      <div
+        tabIndex={0}
+        className={styles.tooltipAnchor}
+        data-tooltip="Voice notes coming later"
+        aria-label="Voice notes coming later"
       >
-        <Mic size={20} strokeWidth={1.8} />
-      </button>
+        <button
+          type="button"
+          className={`${styles.toolButton} ${styles.toolButtonDisabled}`}
+          aria-label="Record voice note (coming soon)"
+          aria-disabled="true"
+          title="Voice notes coming later"
+          disabled
+        >
+          <Mic size={20} strokeWidth={1.8} />
+        </button>
+      </div>
 
       {/* 4. Bookmark - Working Toggle */}
       <button
