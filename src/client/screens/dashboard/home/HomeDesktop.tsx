@@ -11,6 +11,8 @@ import { ChannelHub } from './components/ChannelHub/ChannelHub';
 import { HomeHero } from './components/HomeHero/HomeHero';
 import { HomeSummaryBar } from './components/HomeSummaryBar/HomeSummaryBar';
 import { RecentlyCompleted } from './components/RecentlyCompleted/RecentlyCompleted';
+import { UpcomingEvents } from '@/src/client/components/global/UpcomingEvents';
+import { HomeStreakWidget } from './components/HomeStreakWidget';
 import type { UseHomeResult } from './hooks/useHome';
 
 import styles from './Home.module.css';
@@ -61,78 +63,88 @@ export function HomeDesktop({ model: home }: HomeDesktopProps) {
   const showCompletedList = isCompletedOpen || Boolean(debouncedQuery);
 
   return (
-    <main className={styles.home}>
-      <HomeHero
-        content={home.hero}
-        summaries={home.summaries}
-        searchValue={query}
-        onSearchChange={setQuery}
-        searchPlaceholder={home.searchPlaceholder}
-        weeklyMinutes={84}
-        activeDays={4}
-        pace={pace}
-        onPaceClick={() => {
-          const opts = [10, 20, 30, 45, 60];
-          const next = opts[(opts.indexOf(pace) + 1) % opts.length];
-          setPace(next);
-        }}
-      />
+    <div className={styles.home}>
+      <div className={styles.pageGrid}>
+        <main className={styles.leftCol}>
+          <HomeHero
+            content={home.hero}
+            summaries={home.summaries}
+            searchValue={query}
+            onSearchChange={setQuery}
+            searchPlaceholder={home.searchPlaceholder}
+            weeklyMinutes={84}
+            activeDays={4}
+            pace={pace}
+            onPaceClick={() => {
+              const opts = [10, 20, 30, 45, 60];
+              const next = opts[(opts.indexOf(pace) + 1) % opts.length];
+              setPace(next);
+            }}
+          />
 
-      <ChannelHub />
+          <ChannelHub />
 
-      {debouncedQuery && !hasResults && (
-        <EmptyState
-          query={query}
-          title={`No results for "${query}"`}
-          description="Try searching with different keywords or browse all your cohorts."
-          ctaLabel="Browse all cohorts"
-          ctaHref="/explore"
-        />
-      )}
+          {debouncedQuery && !hasResults && (
+            <EmptyState
+              query={query}
+              title={`No results for "${query}"`}
+              description="Try searching with different keywords or browse all your cohorts."
+              ctaLabel="Browse all cohorts"
+              ctaHref="/explore"
+            />
+          )}
 
-      <ActiveCohorts
-        heading={home.sections.activeCohorts}
-        items={activeCohorts}
-        pauseOptions={home.pauseOptions}
-        onReorder={home.actions.moveCohort}
-        onUpdateDailyGoal={home.actions.saveDailyGoal}
-        onUpdateSchedule={home.actions.saveSchedule}
-        onPause={(cohortId, days, reason) => {
-          home.actions.pauseActiveCohort(cohortId, days, reason);
-          setIsPausedOpen(true);
-          homeStorageAdapter.savePausedOpen(true);
-        }}
-        onUpdateOrderStyle={home.actions.saveOrderStyle}
-        onUpdateFrequency={home.actions.saveFrequency}
-      />
+          <ActiveCohorts
+            heading={home.sections.activeCohorts}
+            items={activeCohorts}
+            pauseOptions={home.pauseOptions}
+            onReorder={home.actions.moveCohort}
+            onUpdateDailyGoal={home.actions.saveDailyGoal}
+            onUpdateSchedule={home.actions.saveSchedule}
+            onPause={(cohortId, days, reason) => {
+              home.actions.pauseActiveCohort(cohortId, days, reason);
+              setIsPausedOpen(true);
+              homeStorageAdapter.savePausedOpen(true);
+            }}
+            onUpdateOrderStyle={home.actions.saveOrderStyle}
+            onUpdateFrequency={home.actions.saveFrequency}
+          />
 
-      <HomeSummaryBar
-        pausedItems={home.continueLater}
-        completedItems={home.recentlyCompleted}
-        isPausedOpen={showPausedList}
-        isCompletedOpen={showCompletedList}
-        onTogglePaused={() => setIsPausedOpen((prev) => {
-          const next = !prev;
-          homeStorageAdapter.savePausedOpen(next);
-          return next;
-        })}
-        onToggleCompleted={() => setIsCompletedOpen((prev) => !prev)}
-      />
+          <HomeSummaryBar
+            pausedItems={home.continueLater}
+            completedItems={home.recentlyCompleted}
+            isPausedOpen={showPausedList}
+            isCompletedOpen={showCompletedList}
+            onTogglePaused={() => setIsPausedOpen((prev) => {
+              const next = !prev;
+              homeStorageAdapter.savePausedOpen(next);
+              return next;
+            })}
+            onToggleCompleted={() => setIsCompletedOpen((prev) => !prev)}
+          />
 
-      {showPausedList && (
-        <ContinueLater
-          heading={home.sections.continueLater}
-          items={continueLater}
-          onResume={home.actions.resumePausedCohort}
-        />
-      )}
+          {showPausedList && (
+            <ContinueLater
+              heading={home.sections.continueLater}
+              items={continueLater}
+              onResume={home.actions.resumePausedCohort}
+            />
+          )}
 
-      {showCompletedList && (
-        <RecentlyCompleted
-          heading={home.sections.recentlyCompleted}
-          items={recentlyCompleted}
-        />
-      )}
-    </main>
+          {showCompletedList && (
+            <RecentlyCompleted
+              heading={home.sections.recentlyCompleted}
+              items={recentlyCompleted}
+            />
+          )}
+        </main>
+
+        <aside className={styles.rightRail}>
+          <UpcomingEvents variant="light" showAddTask />
+          <HomeStreakWidget />
+        </aside>
+      </div>
+    </div>
   );
 }
+
