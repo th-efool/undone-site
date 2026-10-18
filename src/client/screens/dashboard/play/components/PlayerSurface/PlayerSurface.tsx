@@ -1,16 +1,21 @@
 'use client';
 
-import { JSX, PropsWithChildren, RefObject, useRef } from 'react';
+import { JSX, PropsWithChildren, RefObject, useEffect, useRef } from 'react';
 import type { FeedItem } from '@/src/shared/feed/feedEngine.types';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, RefreshCw } from 'lucide-react';
+import Hls from 'hls.js';
+import { resolveMediaSource } from '../../utils/mediaSource';
 import styles from './PlayerSurface.module.css';
 
 export interface PlayerSurfaceProps extends PropsWithChildren {
   containerRef?: RefObject<HTMLDivElement | null>;
   activeItem?: FeedItem | null;
   ytApiError?: string | null;
+  mediaError?: string | null;
   onTimeUpdate?: (seconds: number) => void;
   onCompleteChunk?: () => void;
+  onVideoMount?: (el: HTMLVideoElement | null) => void;
+  onRetry?: () => void;
 }
 
 export function PlayerSurface({
@@ -18,36 +23,84 @@ export function PlayerSurface({
   containerRef,
   activeItem,
   ytApiError,
+  mediaError,
   onTimeUpdate,
   onCompleteChunk,
+  onVideoMount,
+  onRetry,
 }: PlayerSurfaceProps): JSX.Element {
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
+  const mediaSource = resolveMediaSource(activeItem);
 
-  const isYouTube = Boolean(
-    activeItem?.lessonVideoId && /^[A-Za-z0-9_-]{11}$/.test(activeItem.lessonVideoId),
-  );
+  // Setup HLS when required on browsers without native HLS support
+  useEffect(() => {
+    if (!mediaSource.isDirectVideo || !mediaSource.isHls || !mediaSource.videoUrl) return;
+    const video = videoElementRef.current;
+    if (!video) return;
 
-  const rawUrl =
-    activeItem?.sourceUrl ||
-    activeItem?.lessonVideoUrl ||
-    (activeItem?.lessonVideoId && !isYouTube ? activeItem.lessonVideoId : undefined);
+    // Native HLS (Safari, iOS WebKit)
+    if (typeof video.canPlayType === 'function' && video.canPlayType('application/vnd.apple.mpegurl')) {
+      return;
+    }
 
-  const isDirectVideo = Boolean(
-    rawUrl &&
-      (rawUrl.endsWith('.mp4') ||
-        rawUrl.includes('.m3u8') ||
-        rawUrl.endsWith('.webm') ||
-        rawUrl.includes('.mp4?')),
-  );
+    if (typeof window !== 'undefined' && Hls.isSupported()) {
+      const hls = new Hls({ enableWorker: true });
+      hls.loadSource(mediaSource.videoUrl);
+      hls.attachMedia(video);
+      return () => {
+        hls.destroy();
+      };
+    }
+  }, [mediaSource.isDirectVideo, mediaSource.isHls, mediaSource.videoUrl]);
+
+  // Handle HTML5 video mount ref callback
+  const handleVideoRef = (node: HTMLVideoElement | null) => {
+    videoElementRef.current = node;
+    onVideoMount?.(node);
+  };
 
   // 1. Direct HTML5 / HLS Video Branch
-  if (!isYouTube && isDirectVideo && rawUrl) {
+  if (mediaSource.isDirectVideo && mediaSource.videoUrl) {
+    if (mediaError) {
+      return (
+        <div className={styles.surface}>
+          <div className={styles.blockedNotice} role="alert">
+            <AlertCircle size={36} className={styles.blockedIcon} />
+            <h3 className={styles.blockedTitle}>Playback Error</h3>
+            <p className={styles.blockedDesc}>{mediaError}</p>
+            {onRetry && (
+              <button
+                type="button"
+                onClick={onRetry}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 16px',
+                  borderRadius: 9999,
+                  background: '#6366f1',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  marginTop: 12,
+                }}
+              >
+                <RefreshCw size={16} />
+                Retry playback
+              </button>
+            )}
+          </div>
+          <div className={styles.contentWrapper}>{children}</div>
+        </div>
+      );
+    }
+
     return (
       <div className={styles.surface}>
         <video
-          ref={videoElementRef}
-          src={rawUrl}
-          controls
+          ref={handleVideoRef}
+          src={mediaSource.videoUrl}
           playsInline
           className={styles.nativeVideo}
           onTimeUpdate={(e) => onTimeUpdate?.(e.currentTarget.currentTime)}
@@ -59,19 +112,19 @@ export function PlayerSurface({
   }
 
   // 2. YouTube IFrame API Script Load Failure Notice
-  if (isYouTube && ytApiError) {
+  if (mediaSource.isYouTube && ytApiError) {
     return (
       <div className={styles.surface}>
-        <div className={styles.blockedNotice}>
+        <div className={styles.blockedNotice} role="alert">
           <AlertCircle size={36} className={styles.blockedIcon} />
           <h3 className={styles.blockedTitle}>Video Player Blocked</h3>
           <p className={styles.blockedDesc}>
             {ytApiError ||
               'The YouTube player could not load. An adblocker or privacy extension may be blocking youtube.com.'}
           </p>
-          {activeItem?.lessonVideoId && (
+          {mediaSource.videoId && (
             <a
-              href={`https://www.youtube.com/watch?v=${activeItem.lessonVideoId}`}
+              href={`https://www.youtube.com/watch?v=${mediaSource.videoId}`}
               target="_blank"
               rel="noopener noreferrer"
               className={styles.externalLink}
@@ -85,7 +138,7 @@ export function PlayerSurface({
     );
   }
 
-  // 3. Default YouTube IFrame Surface Container
+  // 3. Default YouTube IFrame Surface Container (or backwards compatibility fallback)
   return (
     <div className={styles.surface}>
       <div className={styles.videoWrapper} ref={containerRef} />

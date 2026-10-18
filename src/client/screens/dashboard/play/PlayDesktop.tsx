@@ -1,23 +1,19 @@
 'use client';
 
-import { ReadingSurface } from './components/ReadingSurface';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useToast } from '@/src/client/hooks/useToast';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Play as PlayIcon, Layers } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  LessonCard,
-  LearningTimeline,
-  PlaybackControls,
-  PlayerSurface,
-  PlayerToolbar,
-  CinematicStage,
+  PlayHeader,
+  PlayStage,
+  PlayDock,
+  PlayToolsRail,
+  PlaySkeleton,
   ChannelSelector,
+  ShortcutsDialog,
 } from './components';
-
 import type { UsePlaybackResult } from './hooks/usePlayback';
-import { triggerHaptic } from '@/src/client/utils/haptics';
+import { use1DGesture } from './hooks/use1DGesture';
+import { resolveMediaSource } from './utils/mediaSource';
+import { AlertCircle } from 'lucide-react';
 import styles from './Play.module.css';
 
 interface PlayDesktopProps {
@@ -25,235 +21,176 @@ interface PlayDesktopProps {
 }
 
 export function PlayDesktop({ playback }: PlayDesktopProps) {
-  const toast = useToast();
-  const [isIdle, setIsIdle] = useState(false);
   const playContainerRef = useRef<HTMLDivElement | null>(null);
-  const idleTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fullscreenFeedback, setFullscreenFeedback] = useState<string | null>(null);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const preLongPressSpeedRef = useRef<number>(playback.playbackSpeed);
+
+  useEffect(() => {
+    preLongPressSpeedRef.current = playback.playbackSpeed;
+  }, [playback.playbackSpeed]);
 
   const handleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
-      playContainerRef.current?.requestFullscreen().catch(() => {});
+      playContainerRef.current?.requestFullscreen().catch(() => {
+        setFullscreenFeedback('Fullscreen mode was blocked by your browser settings.');
+        setTimeout(() => setFullscreenFeedback(null), 3500);
+      });
     } else {
       document.exitFullscreen().catch(() => {});
     }
   }, []);
 
-  const resetIdle = useCallback(() => {
-    setIsIdle(false);
-    if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    idleTimerRef.current = setTimeout(() => setIsIdle(true), 2000);
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, []);
 
-  useEffect(() => {
-    resetIdle();
-    const evts = ['mousemove', 'mousedown', 'touchstart', 'keydown', 'wheel'];
-    evts.forEach((e) => window.addEventListener(e, resetIdle));
-    return () => {
-      evts.forEach((e) => window.removeEventListener(e, resetIdle));
-      if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
-    };
-  }, [resetIdle]);
-
-  const handleSpeedCycle = useCallback(() => {
-    const speeds = [1, 1.25, 1.5, 2];
-    const currIdx = speeds.indexOf(playback.playbackSpeed);
-    const nextSpeed = speeds[(currIdx + 1) % speeds.length];
-    playback.setPlaybackSpeed(nextSpeed);
+  const handleLongPressStart = useCallback(() => {
+    preLongPressSpeedRef.current = playback.playbackSpeed;
+    playback.setPlaybackSpeed(2.0);
   }, [playback]);
 
-  const handleIndexChange = useCallback((newIndex: number) => {
-    if (newIndex > playback.currentIndex) {
-      playback.nextChunk();
+  const handleLongPressEnd = useCallback(() => {
+    playback.setPlaybackSpeed(preLongPressSpeedRef.current || 1.0);
+  }, [playback]);
 
-    } else if (newIndex < playback.currentIndex) {
-      playback.previousChunk();
-    }
-  }, [playback, toast]);
+  const { gestureProps } = use1DGesture({
+    onNext: playback.nextChunk,
+    onPrev: playback.previousChunk,
+    onTogglePlay: playback.togglePlayback,
+    onToggleFullscreen: handleFullscreen,
+    onToggleMute: playback.toggleMute,
+    onToggleShortcutsHelp: () => setShortcutsOpen((prev) => !prev),
+    onLongPressStart: handleLongPressStart,
+    onLongPressEnd: handleLongPressEnd,
+  });
 
-  const desktopOverlays = (
-    <>
-      <ChannelSelector 
-        activeChannel={playback.activeChannel} 
-        onChannelSelect={playback.setActiveChannel}
-        searchQuery={playback.searchQuery}
-        onSearchQueryChange={playback.setSearchQuery}
-        onPrefsUpdated={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
+  // Loading, error, or empty feed states
+  if (playback.feedLoading) {
+    return <PlaySkeleton />;
+  }
+
+  if (playback.feedError) {
+    return (
+      <PlaySkeleton
+        isError
+        errorMessage="Lessons could not be loaded. Please check your connection and try reloading."
+        onRetry={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
       />
+    );
+  }
 
-      {!playback.isPlaying && (
-        <button
-          type="button"
-          aria-label="Play video"
-          style={{
-            position: 'absolute',
-            left: '50%',
-            top: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 80,
-            height: 80,
-            borderRadius: '50%',
-            background: 'rgba(0,0,0,0.65)',
-            backdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
-            border: '1px solid rgba(255,255,255,0.15)',
-            zIndex: 10,
-            cursor: 'pointer',
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            playback.togglePlayback();
-          }}
-        >
-          <PlayIcon size={36} fill="currentColor" style={{ marginLeft: 6 }} />
-        </button>
-      )}
+  if (!playback.activeItem) {
+    return (
+      <PlaySkeleton
+        isError
+        errorMessage="You're caught up with this selection. Choose another channel or return home."
+        onRetry={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
+      />
+    );
+  }
 
-      <div className={styles.lessonCardDesktop} style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease', top: 64 }}>
-        {playback.activeItem?.matchReason && (
-          <div className={styles.reasonBadge} data-testid="feed-match-reason">
-            <span>✦ {playback.activeItem.matchReason}</span>
-          </div>
-        )}
-        <LessonCard lesson={playback.lesson} />
-      </div>
-
-      <div className={styles.toolbarDesktop} style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease' }}>
-        <PlayerToolbar
-          playbackSpeed={playback.playbackSpeed}
-          bookmarked={playback.bookmarked}
-          onBookmark={playback.toggleBookmark}
-          onSpeed={handleSpeedCycle}
-          onComplete={() => { triggerHaptic('success'); void playback.completeActiveChunk(); }}
-        />
-      </div>
-
-      <div className={styles.timelineDesktop} style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease' }}>
-        <LearningTimeline
-          progress={playback.timelineProgress}
-          markers={playback.timelineMarkers}
-          onSeek={playback.seekToPercent}
-        />
-      </div>
-
-      <div
-        className={styles.controlsDesktop}
-        style={{ opacity: isIdle ? 0 : 1, transition: 'opacity 0.6s ease', pointerEvents: isIdle ? 'none' : 'auto' }}
-      >
-        <PlaybackControls
-          currentTime={playback.lesson.currentTime}
-          totalDuration={playback.lesson.totalDuration}
-          volume={playback.volume}
-          isPlaying={playback.isPlaying}
-          onPlayPause={playback.togglePlayback}
-          onSkipBack={() => playback.skipSeconds(-10)}
-          onSkipForward={() => playback.skipSeconds(10)}
-          onVolumeChange={playback.setVolume}
-          onFullscreen={handleFullscreen}
-          onCompleteChunk={() => { triggerHaptic('success'); void playback.completeActiveChunk(); }}
-          onNextChunk={playback.nextChunk}
-          onPreviousChunk={playback.previousChunk}
-          hasNext={playback.hasNext}
-          hasPrevious={playback.hasPrevious}
-        />
-      </div>
-    </>
-  );
-
-  const renderScene = useCallback(
-    (index: number, isActive: boolean) => {
-      const item = playback.feedItems[index];
-      const isVideo =
-        item?.lessonType === 'video' &&
-        Boolean(item?.lessonVideoId || item?.lessonVideoUrl || item?.sourceUrl);
-
-      if (isActive) {
-        return (
-          <div className={styles.surfaceContainer}>
-            {isVideo ? (
-              <PlayerSurface
-                containerRef={playback.playerContainerRef}
-                activeItem={item}
-                ytApiError={playback.ytApiError}
-                onCompleteChunk={() => { triggerHaptic('success'); void playback.completeActiveChunk(); }}
-              >
-                {desktopOverlays}
-              </PlayerSurface>
-            ) : item?.content ? (
-              <ReadingSurface
-                item={item}
-                pending={playback.completionPending}
-                error={playback.completionError}
-                onComplete={() => void playback.completeActiveChunk()}
-              />
-            ) : (
-              <PlayerSurface
-                containerRef={playback.playerContainerRef}
-                activeItem={item}
-                ytApiError={playback.ytApiError}
-                onCompleteChunk={() => { triggerHaptic('success'); void playback.completeActiveChunk(); }}
-              >
-                {desktopOverlays}
-              </PlayerSurface>
-            )}
-          </div>
-        );
-      }
-
-      const poster = item?.lessonThumbnail || undefined;
-      const title = item?.chunkTitle || item?.lessonTitle || 'Upcoming Lesson';
-
-      return (
-        <div className={styles.inactiveSceneCard}>
-          {poster ? (
-            <div style={{ position: "relative", width: "100%", height: "100%" }}>
-              <Image
-                src={poster}
-                alt={title}
-                fill
-                className={styles.scenePoster}
-              />
-            </div>
-          ) : (
-            <div className={styles.scenePosterFallback}>
-              <Layers size={48} opacity={0.4} />
-            </div>
-          )}
-
-          <div className={styles.sceneCardOverlay}>
-            <div className={styles.sceneCardBadge}>
-              <PlayIcon size={14} fill="currentColor" />
-              <span>Next Lesson</span>
-            </div>
-            <h3 className={styles.sceneCardTitle}>{title}</h3>
-          </div>
-        </div>
-      );
-    },
-    [playback.feedItems, playback.playerContainerRef, desktopOverlays]
-  );
+  const mediaSource = resolveMediaSource(playback.activeItem);
+  const speedSupported = mediaSource.isYouTube || mediaSource.isDirectVideo;
+  const isChunkCompleted = playback.isChunkCompleted
+    ? playback.isChunkCompleted(playback.activeItem.chunkId)
+    : false;
 
   return (
-    <div ref={playContainerRef} className={styles.play}>
-      {!playback.activeItem ? <section role={playback.feedError ? "alert" : "status"} style={{ margin: "auto", padding: "2rem", color: "#f1f5f9", textAlign: "center" }}>
-        <h1 style={{ color: "inherit" }}>{playback.feedLoading ? "Loading your lessons..." : playback.feedError ? "Lessons could not be loaded" : "No remaining lessons"}</h1>
-        {!playback.feedLoading && <><p style={{ color: "#cbd5e1" }}>{playback.feedError ? "Try loading this feed again." : "You're caught up with this selection. Choose another channel or return home."}</p>
-          <button onClick={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}>Reload lessons</button> <Link href="/home" style={{ color: "#c7d2fe" }}>Back home</Link></>}
-      </section> : <CinematicStage
-        currentIndex={playback.currentIndex}
-        totalItems={playback.feedItems.length || 1}
-        isPlaying={playback.isPlaying}
-        itemStatuses={playback.feedItems.map(() => 'not-started')}
-        onIndexChange={handleIndexChange}
-        onSeek={playback.skipSeconds}
+    <div
+      ref={playContainerRef}
+      className={styles.play}
+      {...gestureProps}
+      tabIndex={-1}
+    >
+      {/* Compact Secondary Surface: Channel, Search & Shortcuts Help */}
+      <div className={styles.channelFloatingAnchor}>
+        <ChannelSelector
+          activeChannel={playback.activeChannel}
+          onChannelSelect={playback.setActiveChannel}
+          searchQuery={playback.searchQuery}
+          onSearchQueryChange={playback.setSearchQuery}
+          onPrefsUpdated={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
+        />
+        <button
+          type="button"
+          className={styles.shortcutsTriggerBtn}
+          onClick={() => setShortcutsOpen(true)}
+          aria-label="Keyboard shortcuts (?)"
+          title="Keyboard shortcuts (?)"
+        >
+          ?
+        </button>
+      </div>
+
+      {/* 1. Header: Position Capsules, Lesson Title, Provider Badge, Chunk & Episode Info */}
+      <PlayHeader playback={playback} />
+
+      {/* 2. Central Stage: Edge previews, 16:9 Video surface with timeline scrubber */}
+      <PlayStage playback={playback} />
+
+      {/* Feedback toast for fullscreen rejection or completion error */}
+      {(fullscreenFeedback || playback.completionError) && (
+        <div className={styles.feedbackToast} role="alert">
+          <AlertCircle size={16} />
+          <span>{fullscreenFeedback || playback.completionError}</span>
+          {playback.completionError && (
+            <button
+              type="button"
+              onClick={() => void playback.completeActiveChunk()}
+              style={{
+                background: 'rgba(255, 255, 255, 0.25)',
+                border: 'none',
+                borderRadius: 9999,
+                color: '#fff',
+                padding: '2px 8px',
+                fontSize: 12,
+                cursor: 'pointer',
+                fontWeight: 600,
+                marginLeft: 4,
+              }}
+            >
+              Retry
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* 3. Bottom Dock: Fullscreen, Volume slider, Complete, Next, Speed menu, Captions, Report */}
+      <PlayDock
+        volume={playback.volume}
+        muted={playback.muted}
+        playbackSpeed={playback.playbackSpeed}
+        hasNext={playback.hasNext}
+        completionPending={playback.completionPending}
+        completionError={playback.completionError}
+        isCompleted={isChunkCompleted}
+        speedSupported={speedSupported}
+        isFullscreen={isFullscreen}
+        onVolumeChange={playback.setVolume}
+        onToggleMute={playback.toggleMute}
         onSpeedChange={playback.setPlaybackSpeed}
-        onTogglePlay={playback.togglePlayback}
+        onCompleteChunk={() => void playback.completeActiveChunk()}
+        onNextChunk={playback.nextChunk}
         onToggleFullscreen={handleFullscreen}
-        renderScene={renderScene}
-      />}
+      />
+
+      {/* 4. Floating Right Rail: Learning tools (Capture, Annotate, Mic placeholders, Bookmark toggle) */}
+      <PlayToolsRail
+        bookmarked={playback.bookmarked}
+        onToggleBookmark={playback.toggleBookmark}
+      />
+
+      {/* 5. Shortcuts Help Modal */}
+      <ShortcutsDialog
+        isOpen={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+      />
     </div>
   );
 }

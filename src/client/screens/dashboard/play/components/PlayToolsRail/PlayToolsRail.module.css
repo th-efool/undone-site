@@ -1,0 +1,118 @@
+.rail {
+  position: fixed;
+  right: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+
+  width: 52px;
+  padding: 16px 8px;
+  border-radius: 9999px;
+
+  background: rgba(18, 18, 24, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+
+  user-select: none;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.toolButton {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #94A3B8;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+}
+
+.toolButton:hover:not(:disabled) {
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.08);
+  transform: scale(1.08);
+}
+
+.toolButton:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.toolButtonDisabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  color: #64748B;
+}
+
+.toolButtonDisabled:hover {
+  background: transparent;
+  transform: none;
+}
+
+.toolButtonBookmarked {
+  color: #5430FF !important;
+}
+
+.toolButtonBookmarked svg {
+  fill: #5430FF;
+  stroke: #5430FF;
+}
+
+.tooltipAnchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+
+.tooltipAnchor[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  right: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(18, 18, 24, 0.95);
+  color: #f1f5f9;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 100;
+}
+
+.tooltipAnchor[data-tooltip]:hover::after,
+.tooltipAnchor[data-tooltip]:focus-visible::after {
+  opacity: 1;
+}
+
+@media (max-width: 900px) {
+  .rail {
+    right: 12px;
+    width: 44px;
+    padding: 12px 6px;
+    gap: 12px;
+  }
+  .toolButton {
+    width: 32px;
+    height: 32px;
+  }
+}

@@ -1,11 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { feedRepository } from '@/src/client/repositories/feedRepository';
 import type { FeedItem } from '@/src/shared/feed/feedEngine.types';
 import type { PlayerTool, TimelineMarker } from '../types/play';
 import { ChannelId } from '@/src/shared/curriculum/pedagogicalVector.types';
+import { resolveMediaSource } from '../utils/mediaSource';
 
 declare global {
   interface Window {
@@ -88,6 +89,7 @@ export function usePlayback() {
   const [notesText, setNotesText] = useState('');
   const [ytApiReady, setYtApiReady] = useState(false);
   const [ytApiError, setYtApiError] = useState<string | null>(null);
+  const [mediaError, setMediaError] = useState<string | null>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [completionPending, setCompletionPending] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
@@ -98,12 +100,14 @@ export function usePlayback() {
   const playerRef = useRef<any>(null);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const syncTimerRef = useRef<any>(null);
+  const videoCleanupRef = useRef<(() => void) | null>(null);
   const isPlayingRef = useRef(isPlaying);
   const activeChannelRef = useRef(activeChannel);
   const searchQueryRef = useRef(searchQuery);
   
   // 3. Duplicate Progress Reporting - Set to track reported chunks
   const reportedChunksRef = useRef<Set<string>>(new Set());
+  const lastAudibleVolumeRef = useRef<number>(90);
   
   isPlayingRef.current = isPlaying;
   activeChannelRef.current = activeChannel;
@@ -111,6 +115,8 @@ export function usePlayback() {
 
   const activeItem = feedItems[currentIndex] || null;
   const activeChunkId = activeItem?.chunkId;
+  const activeMediaSource = resolveMediaSource(activeItem);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   // Fetch feed items via API (Prefetch Engine)
   const fetchAbortControllerRef = useRef<AbortController | null>(null);
@@ -351,13 +357,7 @@ export function usePlayback() {
 
   // Handle YouTube IFrame API Load
   useEffect(() => {
-    if (typeof window === 'undefined' || !activeItem?.lessonVideoId || activeItem.lessonType === 'reading' || activeItem.lessonType === 'assignment') return;
-
-    // Direct MP4 or HLS video URLs should bypass YouTube iframe API
-    const isYouTubeId = /^[A-Za-z0-9_-]{11}$/.test(activeItem.lessonVideoId);
-    if (!isYouTubeId && (activeItem.lessonVideoId.includes('.mp4') || activeItem.lessonVideoId.includes('.m3u8') || activeItem.lessonVideoUrl || activeItem.sourceUrl)) {
-      return;
-    }
+    if (typeof window === 'undefined' || !activeMediaSource.isYouTube) return;
 
     if (window.YT && window.YT.Player) {
       setYtApiReady(true);
@@ -389,18 +389,29 @@ export function usePlayback() {
         setYtApiError('YouTube player unavailable (blocked by adblocker or network).');
       });
     }
-  }, [activeItem?.lessonVideoId, activeItem?.lessonType, activeItem?.lessonVideoUrl, activeItem?.sourceUrl]);
+  }, [activeMediaSource.isYouTube]);
 
   // Sync state when active item changes
   useEffect(() => {
     if (!activeItem) {
       setNotesText('');
       setBookmarkedState(false);
+      setMediaError(null);
       return;
     }
     const dur = activeItem.endSeconds - activeItem.startSeconds || parseDurationToSeconds(activeItem.chunkDuration);
     setChunkDurationSeconds(dur);
     setCurrentTimeSeconds(0);
+    setMediaError(null);
+
+    if (activeMediaSource.isDirectVideo && videoRef.current) {
+      if (activeItem.startSeconds && activeItem.startSeconds > 0) {
+        try { videoRef.current.currentTime = activeItem.startSeconds; } catch {}
+      } else {
+        try { videoRef.current.currentTime = 0; } catch {}
+      }
+      try { videoRef.current.playbackRate = playbackSpeed; } catch {}
+    }
 
     if (typeof window !== 'undefined' && activeChunkId) {
       const savedNote = localStorage.getItem(`sidequest_note_${activeChunkId}`);
@@ -412,20 +423,27 @@ export function usePlayback() {
       setNotesText('');
       setBookmarkedState(false);
     }
-  }, [activeItem, activeChunkId]);
+  }, [activeItem, activeChunkId, activeMediaSource.isDirectVideo, playbackSpeed]);
 
   // Handle YouTube player creation & video switching
   const isPlayerReadyRef = useRef(false);
 
   useEffect(() => {
-    if (!activeItem?.lessonVideoId || activeItem.lessonType === 'reading' || activeItem.lessonType === 'assignment') {
+    if (!activeMediaSource.isYouTube || !activeMediaSource.videoId) {
       if (playerRef.current) { try { playerRef.current.destroy(); } catch {} playerRef.current = null; }
       isPlayerReadyRef.current = false;
       return;
     }
+
+    // Stop and pause any direct video instance when playing YouTube
+    if (videoRef.current) {
+      try { videoRef.current.pause(); } catch {}
+      videoRef.current = null;
+    }
+
     if (!ytApiReady || !playerContainerRef.current || !activeItem) return;
     const container = playerContainerRef.current;
-    const videoId = activeItem.lessonVideoId;
+    const videoId = activeMediaSource.videoId;
     const startSecs = activeItem.startSeconds || 0;
     const endSecs = activeItem.endSeconds || startSecs + 180;
     const hasMount = container.querySelector('#yt-player-mount');
@@ -497,6 +515,11 @@ export function usePlayback() {
             if (evt.data === window.YT.PlayerState.PLAYING) setIsPlaying(true);
             else if (evt.data === window.YT.PlayerState.PAUSED || evt.data === window.YT.PlayerState.ENDED) setIsPlaying(false);
           },
+          onError: (evt: any) => {
+            console.warn('YouTube Player error event:', evt.data);
+            setIsPlaying(false);
+            setYtApiError(`YouTube video unavailable (code ${evt.data}).`);
+          },
         },
       });
     } catch (err) {
@@ -504,10 +527,14 @@ export function usePlayback() {
     }
   }, [ytApiReady, activeItem?.chunkId, currentIndex]);
 
-  // Destroy player only on component unmount, not on every dep change
+  // Destroy player and cleanup video listeners on component unmount
   useEffect(() => {
     return () => {
       isPlayerReadyRef.current = false;
+      if (videoCleanupRef.current) {
+        videoCleanupRef.current();
+        videoCleanupRef.current = null;
+      }
       if (playerRef.current && typeof playerRef.current.destroy === 'function') {
         try { playerRef.current.destroy(); } catch {}
         playerRef.current = null;
@@ -515,23 +542,70 @@ export function usePlayback() {
     };
   }, []);
 
-  // Real-time polling timer for playback progress
+  const registerVideoElement = useCallback((node: HTMLVideoElement | null) => {
+    if (videoCleanupRef.current) {
+      videoCleanupRef.current();
+      videoCleanupRef.current = null;
+    }
+    videoRef.current = node;
+    if (node && activeItem) {
+      node.volume = volume / 100;
+      node.muted = muted;
+      node.playbackRate = playbackSpeed;
+      if (activeItem.startSeconds && activeItem.startSeconds > 0) {
+        try { node.currentTime = activeItem.startSeconds; } catch {}
+      }
+      const handlePlay = () => setIsPlaying(true);
+      const handlePause = () => setIsPlaying(false);
+      const handleError = () => {
+        setIsPlaying(false);
+        setMediaError('Video playback failed to load.');
+      };
+      node.addEventListener('play', handlePlay);
+      node.addEventListener('pause', handlePause);
+      node.addEventListener('error', handleError);
+      videoCleanupRef.current = () => {
+        node.removeEventListener('play', handlePlay);
+        node.removeEventListener('pause', handlePause);
+        node.removeEventListener('error', handleError);
+      };
+      setIsPlayerReady(true);
+    }
+  }, [volume, muted, playbackSpeed, activeItem]);
+
+  // Real-time polling timer for playback progress (unified for YouTube and HTML5 video)
   useEffect(() => {
     if (syncTimerRef.current) clearInterval(syncTimerRef.current);
     syncTimerRef.current = setInterval(() => {
-      if (!playerRef.current || !isPlayerReady || !activeItem) return;
+      if (!activeItem) return;
+      const startSecs = activeItem.startSeconds || 0;
+      const endSecs = activeItem.endSeconds || startSecs + chunkDurationSeconds;
+      const totalChunkDur = endSecs - startSecs;
+
+      if (activeMediaSource.isDirectVideo && videoRef.current) {
+        const rawCurrent = videoRef.current.currentTime;
+        const relCurrent = Math.max(0, rawCurrent - startSecs);
+        setCurrentTimeSeconds(Math.min(relCurrent, totalChunkDur));
+
+        if (rawCurrent >= endSecs - 0.5 && isPlayingRef.current) {
+          if (!reportedChunksRef.current.has(activeItem.chunkId) && !completionError) {
+            void completeActiveChunk();
+          }
+        }
+        return;
+      }
+
+      if (!playerRef.current || !isPlayerReady) return;
       try {
         if (typeof playerRef.current.getCurrentTime === 'function') {
           const rawCurrent = playerRef.current.getCurrentTime();
-          const startSecs = activeItem.startSeconds || 0;
-          const endSecs = activeItem.endSeconds || startSecs + chunkDurationSeconds;
           const relCurrent = Math.max(0, rawCurrent - startSecs);
-          const totalChunkDur = endSecs - startSecs;
-
           setCurrentTimeSeconds(Math.min(relCurrent, totalChunkDur));
 
           if (rawCurrent >= endSecs - 0.5 && isPlayingRef.current) {
-            if (!reportedChunksRef.current.has(activeItem.chunkId) && !completionError) void completeActiveChunk();
+            if (!reportedChunksRef.current.has(activeItem.chunkId) && !completionError) {
+              void completeActiveChunk();
+            }
           }
         }
       } catch {}
@@ -540,7 +614,7 @@ export function usePlayback() {
     return () => {
       if (syncTimerRef.current) clearInterval(syncTimerRef.current);
     };
-  }, [activeItem, chunkDurationSeconds, isPlayerReady, completeActiveChunk, completionError]);
+  }, [activeItem, chunkDurationSeconds, activeMediaSource.isDirectVideo, isPlayerReady, completeActiveChunk, completionError]);
 
   // Backward compatibility wrapper for setting index
   const setCurrentIndex = useCallback((updater: number | ((prev: number) => number)) => {
@@ -576,6 +650,23 @@ export function usePlayback() {
   const previousChunk = useCallback(() => goToIndex(currentIndex - 1), [goToIndex, currentIndex]);
 
   const togglePlayback = useCallback(() => {
+    if (activeMediaSource.isDirectVideo && videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        setMediaError(null);
+        videoRef.current.play().then(() => {
+          setIsPlaying(true);
+        }).catch((err) => {
+          console.warn('Direct video playback failed:', err);
+          setIsPlaying(false);
+          setMediaError('Playback could not be started.');
+        });
+      }
+      return;
+    }
+
     if (!playerRef.current || !isPlayerReady) return;
     try {
       if (isPlaying) {
@@ -588,38 +679,76 @@ export function usePlayback() {
     } catch {
       setIsPlaying(p => !p);
     }
-  }, [isPlaying, isPlayerReady]);
+  }, [isPlaying, isPlayerReady, activeMediaSource.isDirectVideo]);
 
   const seekToPercent = useCallback((percent: number) => {
-    if (!activeItem || !playerRef.current || !isPlayerReady) return;
+    if (!activeItem) return;
     const targetRelSecs = (percent / 100) * chunkDurationSeconds;
     const targetAbsSecs = (activeItem.startSeconds || 0) + targetRelSecs;
     setCurrentTimeSeconds(targetRelSecs);
-    try { playerRef.current.seekTo(targetAbsSecs, true); } catch {}
-  }, [activeItem, chunkDurationSeconds, isPlayerReady, completeActiveChunk, completionError]);
+
+    if (activeMediaSource.isDirectVideo && videoRef.current) {
+      try { videoRef.current.currentTime = targetAbsSecs; } catch {}
+      return;
+    }
+
+    if (playerRef.current && isPlayerReady) {
+      try { playerRef.current.seekTo(targetAbsSecs, true); } catch {}
+    }
+  }, [activeItem, chunkDurationSeconds, activeMediaSource.isDirectVideo, isPlayerReady]);
 
   const skipSeconds = useCallback((deltaSecs: number) => {
-    if (!activeItem || !playerRef.current || !isPlayerReady) return;
+    if (!activeItem) return;
     const newRel = Math.max(0, Math.min(chunkDurationSeconds, currentTimeSeconds + deltaSecs));
     const targetAbsSecs = (activeItem.startSeconds || 0) + newRel;
     setCurrentTimeSeconds(newRel);
-    try { playerRef.current.seekTo(targetAbsSecs, true); } catch {}
-  }, [activeItem, chunkDurationSeconds, currentTimeSeconds, isPlayerReady]);
+
+    if (activeMediaSource.isDirectVideo && videoRef.current) {
+      try { videoRef.current.currentTime = targetAbsSecs; } catch {}
+      return;
+    }
+
+    if (playerRef.current && isPlayerReady) {
+      try { playerRef.current.seekTo(targetAbsSecs, true); } catch {}
+    }
+  }, [activeItem, chunkDurationSeconds, currentTimeSeconds, activeMediaSource.isDirectVideo, isPlayerReady]);
 
   const setVolume = useCallback((newVolume: number) => {
-    setVolumeState(newVolume);
-    setMuted(newVolume === 0);
-    if (playerRef.current) try { playerRef.current.setVolume(newVolume); } catch {}
+    const clamped = Math.max(0, Math.min(100, newVolume));
+    setVolumeState(clamped);
+    if (clamped > 0) {
+      lastAudibleVolumeRef.current = clamped;
+      setMuted(false);
+    } else {
+      setMuted(true);
+    }
+    if (playerRef.current) try { playerRef.current.setVolume(clamped); } catch {}
+    if (videoRef.current) {
+      try {
+        videoRef.current.volume = clamped / 100;
+        videoRef.current.muted = clamped === 0;
+      } catch {}
+    }
   }, []);
 
   const toggleMute = useCallback(() => {
-    if (muted) { setMuted(false); setVolume(90); }
-    else { setMuted(true); setVolume(0); }
-  }, [muted, setVolume]);
+    if (muted) {
+      const restoreVol = lastAudibleVolumeRef.current > 0 ? lastAudibleVolumeRef.current : 90;
+      setVolume(restoreVol);
+    } else {
+      if (volume > 0) {
+        lastAudibleVolumeRef.current = volume;
+      }
+      setVolume(0);
+    }
+  }, [muted, volume, setVolume]);
 
   const setPlaybackSpeed = useCallback((speed: number) => {
     setPlaybackSpeedState(speed);
     if (playerRef.current) try { playerRef.current.setPlaybackRate(speed); } catch {}
+    if (videoRef.current) {
+      try { videoRef.current.playbackRate = speed; } catch {}
+    }
   }, []);
 
   const toggleBookmark = useCallback(() => {
@@ -688,6 +817,19 @@ export function usePlayback() {
     videoId: activeItem?.lessonVideoId,
   };
 
+  const isChunkCompleted = useCallback((chunkId: string) => {
+    return reportedChunksRef.current.has(chunkId);
+  }, []);
+
+  const itemStatuses = useMemo(() => {
+    return feedItems.map(item => {
+      if (reportedChunksRef.current.has(item.chunkId)) {
+        return 'completed' as const;
+      }
+      return 'not-started' as const;
+    });
+  }, [feedItems, currentIndex]);
+
   return {
     activeItem,
     feedLoading: currentCache.isFetching || (currentCache.prefs === undefined && !currentCache.hasError),
@@ -727,6 +869,12 @@ export function usePlayback() {
     setActiveTool,
     ytApiReady,
     ytApiError,
+    mediaError,
+    setMediaError,
+    registerVideoElement,
+    videoRef,
+    itemStatuses,
+    isChunkCompleted,
     
     activeChannel,
     setActiveChannel: (ch: ChannelId) => {
