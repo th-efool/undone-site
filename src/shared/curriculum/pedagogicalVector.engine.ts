@@ -480,7 +480,14 @@ export function computeTargetVector(context: ChunkScoringContext): PedagogicalVe
   for (const ctrl of sliderDefs) {
     let userVal = ctrl.defaultNormalized;
 
-    if (context.rawStringPrefs) {
+    // Direct numeric float from channelSliderValues takes highest precedence
+    const directNum = channelSliderValues
+      ? (channelSliderValues[`${activeChannel}_${ctrl.controlId}`] ?? channelSliderValues[ctrl.controlId])
+      : undefined;
+
+    if (directNum !== undefined && typeof directNum === 'number' && !Number.isNaN(directNum) && directNum >= 0 && directNum <= 1) {
+      userVal = directNum;
+    } else if (context.rawStringPrefs) {
       const prefStr = context.rawStringPrefs[`${activeChannel}_${ctrl.controlId}`] ?? context.rawStringPrefs[ctrl.controlId];
       if (prefStr !== undefined && prefStr !== '') {
         const parsedFloat = Number(prefStr);
@@ -491,8 +498,6 @@ export function computeTargetVector(context: ChunkScoringContext): PedagogicalVe
           userVal = (prefStr === ctrl.defaultOptionId) ? 0.0 : 1.0;
         }
       }
-    } else if (channelSliderValues && channelSliderValues[ctrl.controlId] !== undefined) {
-      userVal = channelSliderValues[ctrl.controlId];
     }
 
     const diff = userVal - ctrl.defaultNormalized;

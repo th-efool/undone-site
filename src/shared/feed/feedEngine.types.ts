@@ -60,6 +60,11 @@ export interface CohortLearnerState {
   dailyGoalMinutes: number;
   scheduleDays: string[];        // ['Mon', 'Wed', 'Fri']
   priority: number;              // 1 = highest
+  frequency?: 'Very Rarely' | 'Rarely' | 'Sometimes' | 'Often' | 'Very Often';
+  orderStyle?: 'Sequential' | 'Semantic Randomize' | 'Randomize';
+  isPaused?: boolean;
+  pausedUntil?: string;
+  pausedReason?: string;
 }
 
 export interface FeedEngineInput {

@@ -29,8 +29,8 @@ export function reorderCohorts(
     return items;
   }
 
-  const draggedIndex = items.findIndex((item) => item.id === draggedId);
-  const targetIndex = items.findIndex((item) => item.id === targetId);
+  const draggedIndex = items.findIndex((item) => (item.cohortId || item.id) === draggedId || item.id === draggedId);
+  const targetIndex = items.findIndex((item) => (item.cohortId || item.id) === targetId || item.id === targetId);
 
   if (draggedIndex < 0 || targetIndex < 0) {
     return items;
@@ -50,7 +50,7 @@ export function updateSchedule(
 ): ActiveCohort[] {
   const schedule = formatSchedule(days);
 
-  return items.map((item) => (item.id === cohortId ? { ...item, schedule } : item));
+  return items.map((item) => ((item.cohortId || item.id) === cohortId || item.id === cohortId ? { ...item, schedule } : item));
 }
 
 export function updateDailyGoal(
@@ -61,7 +61,7 @@ export function updateDailyGoal(
   const safeGoal = Math.min(180, Math.max(5, dailyGoalMinutes));
 
   return items.map((item) =>
-    item.id === cohortId ? { ...item, dailyGoalMinutes: safeGoal } : item,
+    (item.cohortId || item.id) === cohortId || item.id === cohortId ? { ...item, dailyGoalMinutes: safeGoal } : item,
   );
 }
 
@@ -71,7 +71,7 @@ export function updateOrderStyle(
   orderStyle: 'Sequential' | 'Semantic Randomize' | 'Randomize',
 ): ActiveCohort[] {
   return items.map((item) =>
-    item.id === cohortId ? { ...item, orderStyle } : item,
+    (item.cohortId || item.id) === cohortId || item.id === cohortId ? { ...item, orderStyle } : item,
   );
 }
 
@@ -81,7 +81,7 @@ export function updateFrequency(
   frequency: 'Very Often' | 'Often' | 'Sometimes' | 'Rarely' | 'Very Rarely',
 ): ActiveCohort[] {
   return items.map((item) =>
-    item.id === cohortId ? { ...item, frequency } : item,
+    (item.cohortId || item.id) === cohortId || item.id === cohortId ? { ...item, frequency } : item,
   );
 }
 
@@ -92,17 +92,24 @@ export function pauseCohort(
   pausedUntil: Date,
   pausedReason?: string,
 ): { activeCohorts: ActiveCohort[]; continueLater: PausedCohort[] } {
-  const cohort = activeItems.find((item) => item.id === cohortId);
+  const cohort = activeItems.find(
+    (item) => (item.cohortId || item.id) === cohortId || item.id === cohortId
+  );
 
   if (!cohort) {
     return { activeCohorts: activeItems, continueLater: pausedItems };
   }
 
+  const cleanId = cohort.cohortId || cohort.id;
+
   return {
-    activeCohorts: calculatePriority(activeItems.filter((item) => item.id !== cohortId)),
+    activeCohorts: calculatePriority(
+      activeItems.filter((item) => (item.cohortId || item.id) !== cleanId)
+    ),
     continueLater: [
       {
-        id: cohort.id,
+        id: cleanId,
+        cohortId: cleanId,
         title: cohort.title,
         provider: cohort.provider,
         thumbnail: cohort.thumbnail,
@@ -111,11 +118,13 @@ export function pauseCohort(
         progressPercent: cohort.progressPercent,
         schedule: cohort.schedule,
         featured: cohort.featured,
+        frequency: cohort.frequency,
+        orderStyle: cohort.orderStyle,
         pausedUntil: pausedUntil.toISOString(),
         pausedReason,
         resumeLabel: getResumeLabel(pausedUntil),
       },
-      ...pausedItems,
+      ...pausedItems.filter((item) => (item.cohortId || item.id) !== cleanId),
     ],
   };
 }
@@ -125,15 +134,22 @@ export function resumeCohort(
   pausedItems: PausedCohort[],
   cohortId: string,
 ): { activeCohorts: ActiveCohort[]; continueLater: PausedCohort[] } {
-  const cohort = pausedItems.find((item) => item.id === cohortId);
+  const cohort = pausedItems.find(
+    (item) => (item.cohortId || item.id) === cohortId || item.id === cohortId
+  );
 
   if (!cohort) {
     return { activeCohorts: activeItems, continueLater: pausedItems };
   }
 
+  const cleanId = cohort.cohortId || cohort.id;
+
   return {
-    activeCohorts: calculatePriority([...activeItems, toActiveCohort(cohort)]),
-    continueLater: pausedItems.filter((item) => item.id !== cohortId),
+    activeCohorts: calculatePriority([
+      ...activeItems.filter((item) => (item.cohortId || item.id) !== cleanId),
+      toActiveCohort(cohort),
+    ]),
+    continueLater: pausedItems.filter((item) => (item.cohortId || item.id) !== cleanId),
   };
 }
 
@@ -153,9 +169,11 @@ export function getActiveCohorts(
   };
 }
 
-function toActiveCohort(cohort: PausedCohort): Omit<ActiveCohort, 'rank'> {
+function toActiveCohort(cohort: PausedCohort): ActiveCohort {
   return {
     id: cohort.id,
+    cohortId: cohort.cohortId ?? cohort.id,
+    rank: 999,
     title: cohort.title,
     provider: cohort.provider,
     thumbnail: cohort.thumbnail,
@@ -164,6 +182,8 @@ function toActiveCohort(cohort: PausedCohort): Omit<ActiveCohort, 'rank'> {
     progressPercent: cohort.progressPercent,
     schedule: cohort.schedule,
     featured: cohort.featured,
+    frequency: cohort.frequency,
+    orderStyle: cohort.orderStyle,
   };
 }
 

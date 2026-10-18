@@ -2,7 +2,7 @@ import { HorizontalScroller } from '@/src/client/components/global/HorizontalScr
 
 import type { CompletedCourse, HomeSectionContent } from '../../models';
 import { CompletedCourseCard } from '../CompletedCourseCard/CompletedCourseCard';
-import { SectionHeader } from '../SectionHeader/SectionHeader';
+import { SectionHeader } from '@/src/client/components/global/DashboardSectionHeader';
 
 import styles from './RecentlyCompleted.module.css';
 

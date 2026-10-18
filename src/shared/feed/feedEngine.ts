@@ -228,12 +228,18 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
 
     const firstChunk = lessonChunks[0];
     const cohortMeta = cohortVectorMap[firstChunk.cohortId];
-    const lessonIsLinear =
-      firstChunk.isStrictlyLinear !== undefined
-        ? firstChunk.isStrictlyLinear
-        : cohortMeta?.isStrictlyLinear ?? false;
+    const cohortState = cohortStateMap.get(firstChunk.cohortId);
+    const orderStyle = cohortState?.orderStyle || 'Sequential';
+    const isLinearByOrderStyle = orderStyle === 'Sequential';
 
-    if (enforceStrictFrontier && lessonIsLinear) {
+    const lessonIsLinear =
+      orderStyle === 'Randomize'
+        ? false
+        : firstChunk.isStrictlyLinear !== undefined
+        ? firstChunk.isStrictlyLinear
+        : cohortMeta?.isStrictlyLinear ?? isLinearByOrderStyle;
+
+    if (enforceStrictFrontier && lessonIsLinear && orderStyle !== 'Randomize') {
       const frontierChunk = lessonChunks.find((c) => {
         const prog = chunkProgress[c.chunkId];
         return !prog || prog.status !== 'completed';
@@ -305,6 +311,13 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
     // Progression & positional bonuses
     let bonus = channelEval.bonus + ragEval.score;
 
+    if (cohortState?.orderStyle === 'Randomize') {
+      const hash = chunk.chunkId.split('').reduce((acc, char) => (acc * 31 + char.charCodeAt(0)) % 1000, 0);
+      bonus += (hash / 1000 - 0.5) * 1.5;
+    } else if (cohortState?.orderStyle === 'Semantic Randomize') {
+      bonus += (macroSim * 0.4);
+    }
+
     if (progress.status === 'in-progress') {
       const completionRatio = Math.min(1, progress.watchedSeconds / Math.max(1, progress.totalSeconds));
       bonus += 1.2 + 0.5 * completionRatio;
@@ -313,7 +326,7 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
     }
 
     // Slight sequential tie-breaker for default/deep_dive so Lesson 1 precedes Lesson 10 when scores are close
-    if (resolvedChannel === 'default' || resolvedChannel === 'deep_dive') {
+    if ((resolvedChannel === 'default' || resolvedChannel === 'deep_dive') && cohortState?.orderStyle !== 'Randomize') {
       const orderPenalty = Math.min(1.2, (chunk.seasonOrder * 10 + chunk.lessonOrder) * 0.02 + chunk.chunkOrder * 0.01);
       bonus -= orderPenalty;
     }

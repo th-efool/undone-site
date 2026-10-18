@@ -328,3 +328,132 @@
 }
 
 @media (max-width: 768px) { .panel { padding: var(--space-2); } }
+
+/* ==========================================================================
+   Light Variant (for Home & light dashboards)
+   ========================================================================== */
+.lightVariant {
+  background: transparent;
+  color: #1e293b;
+}
+
+.lightVariant .header h2 {
+  color: #0f172a;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.lightVariant .monthLabel {
+  color: #64748b;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.lightVariant .providerSelector {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.lightVariant .providerSelector:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.lightVariant .weekHeader {
+  color: #94a3b8;
+}
+
+.lightVariant .dayCell {
+  color: #334155;
+}
+
+.lightVariant .dayCell:hover {
+  background: #f1f5f9;
+}
+
+.lightVariant .today {
+  background: #1b268a !important;
+  color: #ffffff !important;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(27, 38, 138, 0.3);
+}
+
+.lightVariant .upNext {
+  border-top: 1px solid #f1f5f9;
+}
+
+.lightVariant .upNextLabel {
+  color: #0f172a;
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-transform: none;
+  letter-spacing: normal;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.lightVariant .upNextSubLabel {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.lightVariant .heroTime {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.lightVariant .heroDate {
+  color: #94a3b8;
+  font-size: 0.7rem;
+}
+
+.lightVariant .dot {
+  box-shadow: 0 0 0 3px #ffffff;
+}
+
+.lightVariant .line {
+  background: #e2e8f0;
+}
+
+.lightVariant .secondaryTitle {
+  color: #1e293b;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.lightVariant .secondarySub {
+  color: #64748b;
+  font-size: 0.75rem;
+}
+
+.lightVariant .addTaskBtn {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #1b268a;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
+}
+
+.lightVariant .addTaskBtn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  transform: translateY(-1px);
+}
+

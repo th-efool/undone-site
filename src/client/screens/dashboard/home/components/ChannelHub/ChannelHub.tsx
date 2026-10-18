@@ -107,28 +107,39 @@ import { Slider } from '@/src/client/components/ui/Slider/Slider';
 
 function FloatSliderControl({ 
   ctrl, 
-  selectedId, 
+  currentVal, 
   onChange 
 }: { 
   ctrl: Control; 
-  selectedId: string; 
-  onChange: (id: string) => void 
+  currentVal: string | number | undefined; 
+  onChange: (val: number, optionId: string) => void;
 }) {
-  const selectedIndex = Math.max(0, ctrl.options.findIndex(o => o.id === selectedId));
-  const [floatVal, setFloatVal] = useState(selectedIndex);
-  const [inputValue, setInputValue] = useState(floatVal.toFixed(2));
+  const getInitialVal = () => {
+    const parsed = typeof currentVal === 'number' ? currentVal : parseFloat(String(currentVal ?? ''));
+    if (!isNaN(parsed) && parsed >= 0 && parsed <= ctrl.options.length - 1) {
+      return parsed;
+    }
+    const idx = ctrl.options.findIndex(o => o.id === currentVal);
+    return idx !== -1 ? idx : 0;
+  };
 
+  const [floatVal, setFloatVal] = useState(getInitialVal);
+  const [inputValue, setInputValue] = useState(getInitialVal().toFixed(2));
+
+  // Sync state whenever ctrl or currentVal changes (e.g. channel switch or remote hydration)
   useEffect(() => {
-    setInputValue(floatVal.toFixed(2));
-  }, [floatVal]);
+    const val = getInitialVal();
+    setFloatVal(val);
+    setInputValue(val.toFixed(2));
+  }, [ctrl.id, currentVal]);
   
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     setFloatVal(val);
-    const closestIndex = Math.round(val);
-    if (closestIndex !== selectedIndex && ctrl.options[closestIndex]) {
-      onChange(ctrl.options[closestIndex].id);
-    }
+    setInputValue(val.toFixed(2));
+    const closestIndex = Math.max(0, Math.min(ctrl.options.length - 1, Math.round(val)));
+    const optId = ctrl.options[closestIndex]?.id || ctrl.defaultId;
+    onChange(val, optId);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,6 +149,9 @@ function FloatSliderControl({
     const parsed = parseFloat(rawValue);
     if (!isNaN(parsed) && parsed >= 0 && parsed <= ctrl.options.length - 1) {
       setFloatVal(parsed);
+      const closestIndex = Math.max(0, Math.min(ctrl.options.length - 1, Math.round(parsed)));
+      const optId = ctrl.options[closestIndex]?.id || ctrl.defaultId;
+      onChange(parsed, optId);
     }
   };
 
@@ -149,10 +163,9 @@ function FloatSliderControl({
     }
     setFloatVal(val);
     setInputValue(val.toFixed(2));
-    const closestIndex = Math.round(val);
-    if (closestIndex !== selectedIndex && ctrl.options[closestIndex]) {
-      onChange(ctrl.options[closestIndex].id);
-    }
+    const closestIndex = Math.max(0, Math.min(ctrl.options.length - 1, Math.round(val)));
+    const optId = ctrl.options[closestIndex]?.id || ctrl.defaultId;
+    onChange(val, optId);
   };
 
   return (
@@ -163,7 +176,8 @@ function FloatSliderControl({
           className={`${styles.sliderLabel} ${Math.round(floatVal) === 0 ? styles.sliderLabelActive : ''}`}
           onClick={() => {
             setFloatVal(0);
-            onChange(ctrl.options[0].id);
+            setInputValue((0).toFixed(2));
+            onChange(0, ctrl.options[0].id);
           }}
         >
           {ctrl.options[0].label}
@@ -175,7 +189,7 @@ function FloatSliderControl({
             max={ctrl.options.length - 1} 
             step={0.01} 
             value={floatVal}
-            onChange={handleChange}
+            onChange={handleSliderChange}
             className={styles.floatSlider}
           />
         </div>
@@ -184,7 +198,8 @@ function FloatSliderControl({
           className={`${styles.sliderLabel} ${Math.round(floatVal) === 1 ? styles.sliderLabelActive : ''}`}
           onClick={() => {
             setFloatVal(1);
-            if(ctrl.options[1]) onChange(ctrl.options[1].id);
+            setInputValue((1).toFixed(2));
+            if (ctrl.options[1]) onChange(1, ctrl.options[1].id);
           }}
         >
           {ctrl.options[1]?.label}
@@ -254,8 +269,34 @@ export function ChannelHub() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ activeChannel: channelId, prefs: updatedPrefs }),
       }).catch(() => {});
-    }, 1500);
+    }, 800);
   }
+
+  // Load preferences from database on mount
+  useEffect(() => {
+    async function loadRemoteConfig() {
+      try {
+        const res = await fetch('/api/user/channel-config');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.activeChannel && CHANNELS.some(c => c.id === data.activeChannel)) {
+            setSelectedId(data.activeChannel);
+            try { localStorage.setItem('sidequest_active_channel', data.activeChannel); } catch {}
+          }
+          if (data.prefs && typeof data.prefs === 'object' && Object.keys(data.prefs).length > 0) {
+            setPrefs(prev => {
+              const merged = { ...prev, ...data.prefs };
+              try { localStorage.setItem('sidequest_channel_prefs', JSON.stringify(merged)); } catch {}
+              return merged;
+            });
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load remote channel config:', err);
+      }
+    }
+    loadRemoteConfig();
+  }, []);
 
   useEffect(() => {
     setIntroIndex(Math.floor(Math.random() * INTRO_COPY.length));
@@ -277,21 +318,18 @@ export function ChannelHub() {
     return prefs[`${channelId}_${controlId}`] ?? defaultId;
   }
 
-  function setPref(channelId: ChannelId, controlId: string, optionId: string) {
+  function setPref(channelId: ChannelId, controlId: string, floatVal: number, optionId: string) {
     setPrefs(p => {
-      const updated = { ...p, [`${channelId}_${controlId}`]: optionId };
+      const updated = {
+        ...p,
+        [`${channelId}_${controlId}`]: floatVal.toFixed(2),
+        [`${channelId}_${controlId}_opt`]: optionId,
+      };
       debouncedSyncChannel(channelId, updated);
       if (typeof window !== 'undefined') {
-        const persist = () => {
-          try {
-            localStorage.setItem('sidequest_channel_prefs', JSON.stringify(updated));
-          } catch {}
-        };
-        if ('requestIdleCallback' in window) {
-          requestIdleCallback(persist);
-        } else {
-          setTimeout(persist, 0);
-        }
+        try {
+          localStorage.setItem('sidequest_channel_prefs', JSON.stringify(updated));
+        } catch {}
       }
       return updated;
     });
@@ -447,10 +485,10 @@ export function ChannelHub() {
                   
                   return (
                     <FloatSliderControl 
-                      key={ctrl.id}
+                      key={`${channel.id}_${ctrl.id}`}
                       ctrl={ctrl} 
-                      selectedId={selected} 
-                      onChange={(id) => setPref(channel.id, ctrl.id, id)} 
+                      currentVal={selected} 
+                      onChange={(val, optId) => setPref(channel.id, ctrl.id, val, optId)} 
                     />
                   );
                 })}

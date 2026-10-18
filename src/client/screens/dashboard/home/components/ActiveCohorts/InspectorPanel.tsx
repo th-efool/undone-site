@@ -55,13 +55,14 @@ export function InspectorPanel({
 }: InspectorPanelProps) {
   const [isEditingCustomGoal, setIsEditingCustomGoal] = useState(false);
   const [customGoalVal, setCustomGoalVal] = useState(String(cohort.dailyGoalMinutes));
+  const cohortKey = cohort.cohortId || cohort.id;
 
   function toggleDay(day: Weekday) {
     const current = cohort.schedule.days;
     const next = current.includes(day)
       ? current.filter((d) => d !== day)
       : [...current, day];
-    onUpdateSchedule(cohort.id, next.length > 0 ? next : [day]);
+    onUpdateSchedule(cohortKey, next.length > 0 ? next : [day]);
   }
 
   const isStandardGoal = STANDARD_GOALS.includes(cohort.dailyGoalMinutes);
@@ -93,7 +94,7 @@ export function InspectorPanel({
           <div className={styles.frequencySliderRow}>
             <span 
               className={`${styles.sliderEdgeLabel} ${cohort.frequency === 'Very Rarely' ? styles.sliderEdgeActive : ''}`}
-              onClick={() => onUpdateFrequency?.(cohort.id, 'Very Rarely')}
+              onClick={() => onUpdateFrequency?.(cohortKey, 'Very Rarely')}
             >
               Less
             </span>
@@ -104,7 +105,7 @@ export function InspectorPanel({
                 step={1}
                 value={Math.max(0, FREQUENCIES.indexOf((cohort.frequency || 'Often') as typeof FREQUENCIES[number]))}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  onUpdateFrequency?.(cohort.id, FREQUENCIES[parseInt(e.target.value, 10)])
+                  onUpdateFrequency?.(cohortKey, FREQUENCIES[parseInt(e.target.value, 10)])
                 }
                 className={styles.rangeSlider}
                 aria-label="Frequency"
@@ -112,7 +113,7 @@ export function InspectorPanel({
             </div>
             <span 
               className={`${styles.sliderEdgeLabel} ${cohort.frequency === 'Very Often' ? styles.sliderEdgeActive : ''}`}
-              onClick={() => onUpdateFrequency?.(cohort.id, 'Very Often')}
+              onClick={() => onUpdateFrequency?.(cohortKey, 'Very Often')}
             >
               More
             </span>
@@ -162,13 +163,13 @@ export function InspectorPanel({
                 onChange={(e) => setCustomGoalVal(e.target.value)}
                 onBlur={() => {
                   const num = parseInt(customGoalVal, 10);
-                  if (num > 0) onUpdateDailyGoal(cohort.id, num);
+                  if (num > 0) onUpdateDailyGoal(cohortKey, num);
                   setIsEditingCustomGoal(false);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     const num = parseInt(customGoalVal, 10);
-                    if (num > 0) onUpdateDailyGoal(cohort.id, num);
+                    if (num > 0) onUpdateDailyGoal(cohortKey, num);
                     setIsEditingCustomGoal(false);
                   }
                   if (e.key === 'Escape') setIsEditingCustomGoal(false);
@@ -183,7 +184,7 @@ export function InspectorPanel({
                   key={g}
                   type="button"
                   className={`${styles.pill} ${cohort.dailyGoalMinutes === g ? styles.pillActive : styles.pillIdle}`}
-                  onClick={() => onUpdateDailyGoal(cohort.id, g)}
+                  onClick={() => onUpdateDailyGoal(cohortKey, g)}
                 >
                   {g} min
                 </button>
@@ -230,7 +231,7 @@ export function InspectorPanel({
                 key={value}
                 type="button"
                 className={`${styles.pill} ${cohort.orderStyle === value ? styles.pillActive : styles.pillIdle}`}
-                onClick={() => onUpdateOrderStyle?.(cohort.id, value)}
+                onClick={() => onUpdateOrderStyle?.(cohortKey, value)}
               >
                 <Icon size={12} />
                 {label}
@@ -244,7 +245,7 @@ export function InspectorPanel({
       {onPause && (
         <button
           className={styles.pauseBtn}
-          onClick={() => onPause(cohort.id, 7)}
+          onClick={() => onPause(cohortKey, 7)}
           aria-label="Pause cohort"
         >
           <PauseCircle size={14} />

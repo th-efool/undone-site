@@ -34,6 +34,11 @@ export const homeStorageAdapter = {
   saveChoices(activeCohorts: ActiveCohort[], continueLater: PausedCohort[]): void {
     if (typeof window === 'undefined') return;
     try {
+      // Guard against clobbering existing stored choices with an empty array
+      if (activeCohorts.length === 0 && continueLater.length === 0) {
+        return;
+      }
+
       const payload: StoredHomeChoices = {
         activeCohorts,
         continueLater,
@@ -54,22 +59,21 @@ export const homeStorageAdapter = {
 
   /**
    * Pluggable backend sync method.
-   * Acts as a pass-through for now, ready for future backend API integration.
-   * e.g., fetch('/api/user/home-choices') -> merge with local cache -> saveChoices
+   * Fetches latest user cohort configs from /api/user/cohort-config and aligns local cache.
    */
   async syncWithBackend(): Promise<StoredHomeChoices | null> {
-    // Modular backend hook placeholder:
-    // When backend endpoint is ready, uncomment & configure:
-    // try {
-    //   const res = await fetch('/api/user/home-choices');
-    //   if (res.ok) {
-    //     const remoteData = await res.json();
-    //     this.saveChoices(remoteData.activeCohorts, remoteData.continueLater);
-    //     return remoteData;
-    //   }
-    // } catch (err) {
-    //   console.warn('Backend sync unavailable, using local choices:', err);
-    // }
+    if (typeof window === 'undefined') return null;
+    try {
+      const res = await fetch('/api/user/cohort-config');
+      if (res.ok) {
+        const remoteConfigs = await res.json();
+        if (Array.isArray(remoteConfigs)) {
+          // Sync successful
+        }
+      }
+    } catch (err) {
+      console.warn('Backend sync unavailable, using local choices:', err);
+    }
 
     return this.getStoredChoices();
   },

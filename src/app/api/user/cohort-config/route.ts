@@ -38,6 +38,26 @@ export async function PUT(req: Request) {
     }
 
     const body = (await req.json()) ?? {};
+
+    // Support batch rank reordering
+    if (Array.isArray(body.cohorts)) {
+      await connectToMongoDB();
+      const updates = await Promise.all(
+        body.cohorts.map(async (item: { cohortId: string; rank: number }) => {
+          if (!item.cohortId) return null;
+          const cleanId = item.cohortId.startsWith(`${userId}_`)
+            ? item.cohortId.slice(userId.length + 1)
+            : item.cohortId;
+          return UserCohortConfig.findOneAndUpdate(
+            { userId, cohortId: cleanId },
+            { $set: { rank: item.rank } },
+            { upsert: true, new: true, setDefaultsOnInsert: true }
+          );
+        })
+      );
+      return NextResponse.json({ success: true, count: updates.filter(Boolean).length });
+    }
+
     const {
       cohortId,
       rank,
@@ -55,6 +75,10 @@ export async function PUT(req: Request) {
     if (!cohortId) {
       return NextResponse.json({ error: 'Missing cohortId' }, { status: 400 });
     }
+
+    const cleanCohortId = cohortId.startsWith(`${userId}_`)
+      ? cohortId.slice(userId.length + 1)
+      : cohortId;
 
     const updateCandidates: Record<string, any> = {
       rank,
@@ -79,7 +103,7 @@ export async function PUT(req: Request) {
     await connectToMongoDB();
 
     const updatedConfig = await UserCohortConfig.findOneAndUpdate(
-      { userId, cohortId },
+      { userId, cohortId: cleanCohortId },
       { $set: updateFields },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     );

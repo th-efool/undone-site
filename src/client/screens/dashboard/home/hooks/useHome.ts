@@ -37,14 +37,21 @@ export function useHome(props?: {
     homeStorageAdapter.syncWithBackend().catch(() => {});
   }, []);
 
-  const initialCohorts = useMemo(
-    () => getActiveCohorts(home.activeCohorts, home.continueLater),
-    [home.activeCohorts, home.continueLater],
-  );
+  const initialCohorts = useMemo(() => {
+    if (props?.activeCohorts || props?.continueLater) {
+      return {
+        activeCohorts: props.activeCohorts ?? [],
+        continueLater: props.continueLater ?? [],
+      };
+    }
+    return getActiveCohorts(home.activeCohorts, home.continueLater);
+  }, [props?.activeCohorts, props?.continueLater, home.activeCohorts, home.continueLater]);
+
   const [activeCohorts, setActiveCohorts] = useState(initialCohorts.activeCohorts);
   const [continueLater, setContinueLater] = useState(initialCohorts.continueLater);
 
   const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reorderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   function debouncedSyncCohort(
     cohortId: string,
@@ -71,14 +78,14 @@ export function useHome(props?: {
           pausedUntil: config.pausedUntil,
           pausedReason: config.pausedReason,
         }),
-      }).catch(() => {}); // best-effort, no error throwing
-    }, 1500);
+      }).catch(() => {});
+    }, 800);
   }
 
   // Sync state if server props change
   useEffect(() => {
-    if (props?.activeCohorts) setActiveCohorts(props.activeCohorts);
-    if (props?.continueLater) setContinueLater(props.continueLater);
+    if (props?.activeCohorts !== undefined) setActiveCohorts(props.activeCohorts);
+    if (props?.continueLater !== undefined) setContinueLater(props.continueLater);
   }, [props?.activeCohorts, props?.continueLater]);
 
   // Automatically persist user choice mutations to local storage
@@ -101,14 +108,31 @@ export function useHome(props?: {
   );
 
   function moveCohort(draggedId: string, targetId: string) {
-    setActiveCohorts((items) => reorderCohorts(items, draggedId, targetId));
+    setActiveCohorts((items) => {
+      const reordered = reorderCohorts(items, draggedId, targetId);
+      if (reorderTimerRef.current) clearTimeout(reorderTimerRef.current);
+      reorderTimerRef.current = setTimeout(() => {
+        fetch('/api/user/cohort-config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cohorts: reordered.map((c, idx) => ({
+              cohortId: c.cohortId || c.id,
+              rank: idx + 1,
+            })),
+          }),
+        }).catch(() => {});
+      }, 500);
+      return reordered;
+    });
   }
 
   function saveSchedule(cohortId: string, days: Weekday[]) {
     setActiveCohorts((items) => {
       const updated = updateSchedule(items, cohortId, days);
-      const cohort = updated.find(c => c.id === cohortId);
-      if (cohort) debouncedSyncCohort(cohortId, cohort);
+      const cohort = updated.find(c => (c.cohortId || c.id) === cohortId || c.id === cohortId);
+      const cleanId = cohort?.cohortId || cohort?.id || cohortId;
+      if (cohort) debouncedSyncCohort(cleanId, cohort);
       return updated;
     });
   }
@@ -116,8 +140,9 @@ export function useHome(props?: {
   function saveDailyGoal(cohortId: string, minutes: number) {
     setActiveCohorts((items) => {
       const updated = updateDailyGoal(items, cohortId, minutes);
-      const cohort = updated.find(c => c.id === cohortId);
-      if (cohort) debouncedSyncCohort(cohortId, cohort);
+      const cohort = updated.find(c => (c.cohortId || c.id) === cohortId || c.id === cohortId);
+      const cleanId = cohort?.cohortId || cohort?.id || cohortId;
+      if (cohort) debouncedSyncCohort(cleanId, cohort);
       return updated;
     });
   }
@@ -125,8 +150,9 @@ export function useHome(props?: {
   function saveOrderStyle(cohortId: string, style: 'Sequential' | 'Semantic Randomize' | 'Randomize') {
     setActiveCohorts((items) => {
       const updated = updateOrderStyle(items, cohortId, style);
-      const cohort = updated.find(c => c.id === cohortId);
-      if (cohort) debouncedSyncCohort(cohortId, cohort);
+      const cohort = updated.find(c => (c.cohortId || c.id) === cohortId || c.id === cohortId);
+      const cleanId = cohort?.cohortId || cohort?.id || cohortId;
+      if (cohort) debouncedSyncCohort(cleanId, cohort);
       return updated;
     });
   }
@@ -134,8 +160,9 @@ export function useHome(props?: {
   function saveFrequency(cohortId: string, frequency: 'Very Often' | 'Often' | 'Sometimes' | 'Rarely' | 'Very Rarely') {
     setActiveCohorts((items) => {
       const updated = updateFrequency(items, cohortId, frequency);
-      const cohort = updated.find(c => c.id === cohortId);
-      if (cohort) debouncedSyncCohort(cohortId, cohort);
+      const cohort = updated.find(c => (c.cohortId || c.id) === cohortId || c.id === cohortId);
+      const cleanId = cohort?.cohortId || cohort?.id || cohortId;
+      if (cohort) debouncedSyncCohort(cleanId, cohort);
       return updated;
     });
   }
@@ -144,16 +171,17 @@ export function useHome(props?: {
     const pausedUntil = addDays(new Date(), days);
 
     setActiveCohorts((currentActive) => {
-      const activeCohort = currentActive.find((c) => c.id === cohortId);
-      const result = pauseCohort(currentActive, continueLater, cohortId, pausedUntil, pausedReason);
+      const activeCohort = currentActive.find((c) => (c.cohortId || c.id) === cohortId || c.id === cohortId);
+      const cleanId = activeCohort?.cohortId || activeCohort?.id || cohortId;
+      const result = pauseCohort(currentActive, continueLater, cleanId, pausedUntil, pausedReason);
       setContinueLater(result.continueLater);
-      const paused = result.continueLater.find((c) => c.id === cohortId);
-      debouncedSyncCohort(cohortId, {
+      const paused = result.continueLater.find((c) => (c.cohortId || c.id) === cleanId || c.id === cleanId);
+      debouncedSyncCohort(cleanId, {
         rank: activeCohort?.rank,
-        dailyGoalMinutes: paused?.dailyGoalMinutes,
-        schedule: paused?.schedule,
-        frequency: paused?.frequency,
-        orderStyle: paused?.orderStyle,
+        dailyGoalMinutes: paused?.dailyGoalMinutes ?? activeCohort?.dailyGoalMinutes,
+        schedule: paused?.schedule ?? activeCohort?.schedule,
+        frequency: paused?.frequency ?? activeCohort?.frequency,
+        orderStyle: paused?.orderStyle ?? activeCohort?.orderStyle,
         isPaused: true,
         pausedUntil,
         pausedReason,
@@ -164,11 +192,13 @@ export function useHome(props?: {
 
   function resumePausedCohort(cohortId: string) {
     setContinueLater((currentPaused) => {
-      const result = resumeCohort(activeCohorts, currentPaused, cohortId);
+      const pausedCohort = currentPaused.find(c => (c.cohortId || c.id) === cohortId || c.id === cohortId);
+      const cleanId = pausedCohort?.cohortId || pausedCohort?.id || cohortId;
+      const result = resumeCohort(activeCohorts, currentPaused, cleanId);
       setActiveCohorts(result.activeCohorts);
-      const resumed = result.activeCohorts.find(c => c.id === cohortId);
+      const resumed = result.activeCohorts.find(c => (c.cohortId || c.id) === cleanId || c.id === cleanId);
       if (resumed) {
-        debouncedSyncCohort(cohortId, {
+        debouncedSyncCohort(cleanId, {
           ...resumed,
           isPaused: false,
           pausedUntil: undefined,

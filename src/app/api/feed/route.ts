@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
         const [transcripts, mongoChunks, userCohortConfigs, userChannelDoc] = await Promise.all([
           CohortTranscript.find({ cohortId: { $in: uniqueCohortIds } }).lean().exec(),
           Chunk.find({ chunkId: { $in: allChunkIds } }, { chunkId: 1, vector: 1 }).lean().exec(),
-          userId ? UserCohortConfig.find({ userId, isPaused: { $ne: true } }).lean().exec() : Promise.resolve([]),
+          userId ? UserCohortConfig.find({ userId }).lean().exec() : Promise.resolve([]),
           userId && !params.get('prefs') ? UserChannelConfig.findOne({ userId }).lean().exec() : Promise.resolve(null),
         ]);
 
@@ -128,15 +128,36 @@ export async function GET(request: NextRequest) {
           }
         }
 
+        const pausedCohortIds = new Set<string>();
+        const now = new Date();
+
         if (Array.isArray(userCohortConfigs) && userCohortConfigs.length > 0) {
-          cohortStates = userCohortConfigs.map((cfg: any, idx: number) => ({
-            cohortId: cfg.cohortId,
-            subscribedAt: cfg.createdAt ? new Date(cfg.createdAt).toISOString() : new Date().toISOString(),
-            lastActiveAt: cfg.updatedAt ? new Date(cfg.updatedAt).toISOString() : new Date().toISOString(),
-            dailyGoalMinutes: cfg.dailyGoalMinutes || 20,
-            scheduleDays: Array.isArray(cfg.scheduleDays) ? cfg.scheduleDays : ['Mon', 'Wed', 'Fri'],
-            priority: (cfg.rank ?? idx) + 1,
-          }));
+          cohortStates = userCohortConfigs.map((cfg: any, idx: number) => {
+            const rawId = cfg.cohortId;
+            const cleanId = rawId?.includes('_') ? rawId.split('_').pop()! : rawId;
+            const isPaused = Boolean(cfg.isPaused);
+            const pausedUntil = cfg.pausedUntil ? new Date(cfg.pausedUntil) : null;
+            const isStillPaused = isPaused && (!pausedUntil || pausedUntil > now);
+
+            if (isStillPaused) {
+              pausedCohortIds.add(cleanId);
+              if (rawId) pausedCohortIds.add(rawId);
+            }
+
+            return {
+              cohortId: cleanId,
+              subscribedAt: cfg.createdAt ? new Date(cfg.createdAt).toISOString() : new Date().toISOString(),
+              lastActiveAt: cfg.updatedAt ? new Date(cfg.updatedAt).toISOString() : new Date().toISOString(),
+              dailyGoalMinutes: cfg.dailyGoalMinutes || 20,
+              scheduleDays: Array.isArray(cfg.scheduleDays) && cfg.scheduleDays.length > 0 ? cfg.scheduleDays : ['Mon', 'Wed', 'Fri'],
+              priority: (cfg.rank ?? idx) + 1,
+              frequency: cfg.frequency || 'Often',
+              orderStyle: cfg.orderStyle || 'Sequential',
+              isPaused: isStillPaused,
+              pausedUntil: pausedUntil ? pausedUntil.toISOString() : undefined,
+              pausedReason: cfg.pausedReason,
+            };
+          });
         }
 
         if (userChannelDoc?.prefs) {
@@ -152,7 +173,22 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const candidates = chunkId ? chunks : chunks.filter(chunk => chunkProgress[chunk.chunkId]?.status !== 'completed');
+    const pausedSet = new Set<string>();
+    for (const state of cohortStates) {
+      if (state.isPaused) {
+        pausedSet.add(state.cohortId);
+      }
+    }
+
+    const candidates = chunkId
+      ? chunks
+      : chunks.filter(chunk => {
+          if (chunkProgress[chunk.chunkId]?.status === 'completed') return false;
+          // Filter out chunks belonging to paused cohorts unless specifically requested
+          if (!cohortId && pausedSet.has(chunk.cohortId)) return false;
+          return true;
+        });
+
     const output = generateFeed({ allChunks: candidates, chunkProgress, cohortStates, currentTime: new Date(Date.now() - timezoneOffset * 60_000),
       dailyGoalMinutes: 30, completedTodayMinutes: 0, feedSize: (page + 1) * limit, activeChannel: channel,
       ...(Object.keys(channelSliderValues).length ? { channelSliderValues } : {}),

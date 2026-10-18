@@ -1,12 +1,7 @@
+export type { PersonPreview, LiveSession, UpcomingEvent } from '@/src/client/types/dashboard';
+
 export type SidebarTab = 'community' | 'dm';
 export type ConversationFilter = 'all' | 'unread' | 'mentions' | 'pinned';
-
-export interface PersonPreview {
-  id: string;
-  name: string;
-  avatar: string;
-  online?: boolean;
-}
 
 export interface ConversationPreview {
   id: string;
@@ -25,18 +20,6 @@ export interface ConversationPreview {
   mutedUntil?: number | null; // Batch A
 }
 
-export interface LiveSession {
-  id: string;
-  title: string;
-  thumbnail: string;
-  avatars: PersonPreview[];
-  status: string;
-  onlineCount: number;
-  speakingCount?: number;
-  live?: boolean;
-  primary?: boolean;
-}
-
 export interface RecentMessage {
   id: string;
   sender: PersonPreview;
@@ -46,14 +29,6 @@ export interface RecentMessage {
   unreadCount?: number;
   attachment?: string;
   live?: boolean;
-}
-
-export interface UpcomingEvent {
-  id: string;
-  title: string;
-  subtitle: string;
-  startsIn: string;
-  tone: 'purple' | 'orange' | 'blue';
 }
 
 export interface ChallengeCard {

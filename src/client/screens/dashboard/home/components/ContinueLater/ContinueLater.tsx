@@ -2,7 +2,7 @@ import { HorizontalScroller } from '@/src/client/components/global/HorizontalScr
 
 import type { HomeSectionContent, PausedCohort } from '../../models';
 import { ContinueLaterCard } from '../ContinueLaterCard/ContinueLaterCard';
-import { SectionHeader } from '../SectionHeader/SectionHeader';
+import { SectionHeader } from '@/src/client/components/global/DashboardSectionHeader';
 
 import styles from './ContinueLater.module.css';
 

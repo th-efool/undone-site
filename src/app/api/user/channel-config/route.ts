@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { auth } from '@/src/server/infrastructure/auth/auth.config';
 import { connectToMongoDB } from '@/src/server/infrastructure/db/mongodb/client';
 import { UserChannelConfig } from '@/src/server/database/mongo/models/UserChannelConfig';
@@ -13,9 +13,21 @@ export async function GET(req: Request) {
     }
 
     await connectToMongoDB();
-    const config = await UserChannelConfig.findOne({ userId });
+    const config = await UserChannelConfig.findOne({ userId }).lean().exec();
 
-    return NextResponse.json(config || {});
+    let prefsObj: Record<string, string> = {};
+    if (config?.prefs) {
+      if (config.prefs instanceof Map) {
+        prefsObj = Object.fromEntries(config.prefs);
+      } else if (typeof config.prefs === 'object') {
+        prefsObj = { ...config.prefs };
+      }
+    }
+
+    return NextResponse.json({
+      activeChannel: config?.activeChannel || 'quick',
+      prefs: prefsObj,
+    });
   } catch (error: any) {
     console.error('[API User Channel Config GET Error]:', error);
     const errorMessage = error instanceof Error ? error.message : 'Internal Server Error';

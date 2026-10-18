@@ -97,7 +97,11 @@ export function HomeDesktop({ model: home }: HomeDesktopProps) {
         onReorder={home.actions.moveCohort}
         onUpdateDailyGoal={home.actions.saveDailyGoal}
         onUpdateSchedule={home.actions.saveSchedule}
-        onPause={home.actions.pauseActiveCohort}
+        onPause={(cohortId, days, reason) => {
+          home.actions.pauseActiveCohort(cohortId, days, reason);
+          setIsPausedOpen(true);
+          homeStorageAdapter.savePausedOpen(true);
+        }}
         onUpdateOrderStyle={home.actions.saveOrderStyle}
         onUpdateFrequency={home.actions.saveFrequency}
       />
