@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Pause, ChevronUp, ChevronDown } from 'lucide-react';
-import { HorizontalScroller } from '@/src/client/components/global/HorizontalScroller';
+import { InfiniteScroller } from '@/src/client/components/global/InfiniteScroller';
 import type { HomeSectionContent, PausedCohort } from '../../models';
 import { ContinueLaterCard } from '../ContinueLaterCard/ContinueLaterCard';
 import styles from './ContinueLater.module.css';
@@ -22,7 +22,7 @@ export function ContinueLater({
   isOpen: controlledIsOpen,
   onToggle,
 }: ContinueLaterProps) {
-  const [internalIsOpen, setInternalIsOpen] = useState(true);
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
   const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
   const toggle = onToggle || (() => setInternalIsOpen((prev) => !prev));
 
@@ -61,7 +61,14 @@ export function ContinueLater({
 
       {isOpen && (
         <div className={styles.scrollerWrapper}>
-          <HorizontalScroller scrollAmount={520}>
+          <InfiniteScroller
+            scrollAmount={480}
+            loop={false}
+            panable={true}
+            showArrows={false}
+            autoScroll={false}
+            align="start"
+          >
             {items.map((item) => (
               <ContinueLaterCard
                 key={item.id}
@@ -69,7 +76,7 @@ export function ContinueLater({
                 onResume={onResume}
               />
             ))}
-          </HorizontalScroller>
+          </InfiniteScroller>
         </div>
       )}
     </section>

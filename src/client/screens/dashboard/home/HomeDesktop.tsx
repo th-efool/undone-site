@@ -9,7 +9,6 @@ import { ActiveCohorts } from './components/ActiveCohorts/ActiveCohorts';
 import { ContinueLater } from './components/ContinueLater/ContinueLater';
 import { ChannelHub } from './components/ChannelHub/ChannelHub';
 import { HomeHero } from './components/HomeHero/HomeHero';
-import { HomeSummaryBar } from './components/HomeSummaryBar/HomeSummaryBar';
 import { RecentlyCompleted } from './components/RecentlyCompleted/RecentlyCompleted';
 import { UpcomingEvents } from '@/src/client/components/global/UpcomingEvents';
 import { HomeStreakWidget } from './components/HomeStreakWidget';
@@ -193,30 +192,21 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
             onUpdateFrequency={home.actions.saveFrequency}
           />
 
-          <HomeSummaryBar
-            pausedItems={home.continueLater}
-            completedItems={home.recentlyCompleted}
-            isPausedOpen={showPausedList}
-            isCompletedOpen={showCompletedList}
-            onTogglePaused={handleTogglePaused}
-            onToggleCompleted={handleToggleCompleted}
-          />
-
-          {showPausedList && (
+          {continueLater.length > 0 && (
             <ContinueLater
               heading={home.sections.continueLater}
               items={continueLater}
               onResume={home.actions.resumePausedCohort}
-              isOpen={showPausedList}
+              isOpen={isPausedOpen}
               onToggle={handleTogglePaused}
             />
           )}
 
-          {showCompletedList && (
+          {recentlyCompleted.length > 0 && (
             <RecentlyCompleted
               heading={home.sections.recentlyCompleted}
               items={recentlyCompleted}
-              isOpen={showCompletedList}
+              isOpen={isCompletedOpen}
               onToggle={handleToggleCompleted}
             />
           )}
@@ -226,7 +216,6 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
             variant="compact"
             title="Active studyrooms"
             subtitle="Join focused rooms and learn together in real time."
-            viewAllHref="/explore"
           />
         </main>
 
