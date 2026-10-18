@@ -94,14 +94,14 @@ export class MaterialBlobStore {
     return publicRef(await this.record(scope, id));
   }
 
-  async readStream(scope: StorageScope, id: string, signal?: AbortSignal) {
+  async readStream(scope: StorageScope, id: string, signal?: AbortSignal, existingRow?: CreationStorageRecord) {
     signal?.throwIfAborted();
     scopeSchema.parse(scope);
     // Reads protect bytes temporarily; only accepted artifact references create durable pins.
     const deadline = Date.now() + 60_000;
     signal = AbortSignal.any([signal ?? new AbortController().signal, AbortSignal.timeout(60_000)]);
     if (!await this.metadata.protectRead(scope, id, new Date(deadline + 30_000))) fail('NOT_FOUND', 'Stored content was not found.');
-    const row = await this.record(scope, id);
+    const row = existingRow ?? await this.record(scope, id);
     const ref = publicRef(row);
     const bytes = await this.blobs.read(row);
     async function* verified() {
@@ -164,16 +164,19 @@ export class CreationArtifactRepository extends MaterialBlobStore {
       fail('INTEGRITY', 'The artifact contract does not match.');
     }
     if (row.byteLength > budget(options.maxBytes)) fail('LIMIT_EXCEEDED', 'The artifact exceeds the read limit.');
-    const { stream } = await this.readStream(scope, id, options.signal);
+    const { stream } = await this.readStream(scope, id, options.signal, row);
     const pieces: Uint8Array[] = [];
     for await (const piece of stream) pieces.push(piece);
     const bytes = Buffer.concat(pieces);
-    if (sha256(bytes) !== row.checksum) fail('INTEGRITY', 'Stored content failed its integrity check.');
     try {
       const envelope = envelopeSchema.parse(JSON.parse(bytes.toString('utf8')));
       if (envelope.artifactType !== expected.artifactType || envelope.schemaVersion !== expected.schemaVersion || envelope.inputFingerprint !== expected.inputFingerprint) fail('INTEGRITY', 'The artifact envelope does not match.');
       return options.schema.parse(envelope.value);
     } catch { fail('INTEGRITY', 'Stored artifact failed schema validation.'); }
+  }
+
+  async getBatchJSON<T extends z.ZodType>(scope: StorageScope, ids: string[], options: ArtifactOptions<T>): Promise<Array<z.output<T>>> {
+    return Promise.all(ids.map(id => this.getJSON(scope, id, options)));
   }
 }
 
