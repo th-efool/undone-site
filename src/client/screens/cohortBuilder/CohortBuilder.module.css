@@ -1797,58 +1797,117 @@ fieldset.formField button:hover:not(:disabled) {
 
 .modeSelector {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  width: 100%;
 }
 
-.modeOption {
+.modeCard {
+  position: relative;
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px 18px;
-  border: 1px solid var(--creation-line);
-  border-radius: 14px;
-  background: var(--creation-surface);
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1.5px solid var(--creation-line, #e2e8f0);
+  background: var(--creation-surface, #ffffff);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
-.modeOption:hover:not(.modeDisabled) {
-  border-color: var(--creation-blue);
+.modeCard:hover:not(.modeDisabled) {
+  border-color: rgba(59, 73, 223, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -4px rgba(59, 73, 223, 0.1);
 }
 
-.modeOptionActive {
-  border-color: var(--creation-blue);
-  background: color-mix(in srgb, var(--creation-blue) 4%, var(--creation-surface));
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--creation-blue) 20%, transparent);
+.modeCardActive {
+  border-color: #3b49df !important;
+  background: color-mix(in srgb, #3b49df 5%, var(--creation-surface, #ffffff)) !important;
+  box-shadow: 0 0 0 2px rgba(59, 73, 223, 0.22), 0 8px 24px -4px rgba(59, 73, 223, 0.15) !important;
+}
+
+.modeCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 2px;
+}
+
+.modeIconBadge {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(59, 73, 223, 0.08);
+  color: #3b49df;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.modeCardActive .modeIconBadge {
+  background: #3b49df;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(59, 73, 223, 0.35);
+}
+
+.modeRadioRing {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.modeCardActive .modeRadioRing {
+  border-color: #3b49df;
+  background: #ffffff;
+}
+
+.modeRadioDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3b49df;
+  animation: dotScale 0.15s ease-out;
+}
+
+@keyframes dotScale {
+  from {
+    transform: scale(0);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.modeTitle {
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--creation-ink, #0f172a);
+  letter-spacing: -0.015em;
+}
+
+.modeDescription {
+  margin: 0;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--creation-muted, #64748b);
+  font-weight: 500;
 }
 
 .modeDisabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-.modeOption input[type="radio"] {
-  margin-top: 3px;
-  accent-color: var(--creation-blue);
-}
-
-.modeText {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.modeLabel {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--creation-ink);
-}
-
-.modeDescription {
-  font-size: 12px;
-  color: var(--creation-muted);
-  line-height: 1.45;
 }
 
 .releaseSubnote {
