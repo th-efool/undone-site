@@ -4,7 +4,7 @@ import { cohortStore } from './cohortStore';
 import { homeStorageAdapter } from './homeStorageAdapter';
 
 export const homeRepository = {
-  getHome(): HomeModel {
+  getHome(options?: { loadStored?: boolean }): HomeModel {
     const userPublishedIds = new Set(cohortStore.getUserCohorts().map((c) => c.id));
 
     // Filter all cohorts down to active feed cohorts + user-published cohorts
@@ -99,15 +99,18 @@ export const homeRepository = {
 
     let continueLaterList: PausedCohort[] = [];
 
-    // 2. Hydrate from local storage choices if available
-    const stored = homeStorageAdapter.getStoredChoices();
+    // 2. Hydrate from local storage choices if explicitly requested (client post-mount)
+    const stored = options?.loadStored ? homeStorageAdapter.getStoredChoices() : null;
     if (stored) {
       if (Array.isArray(stored.activeCohorts) && stored.activeCohorts.length > 0) {
         const storedMap = new Map(stored.activeCohorts.map((c) => [c.id, c]));
         
         const reorderedActive: ActiveCohort[] = [];
         stored.activeCohorts.forEach((storedCohort) => {
-          const base = activeCohortsMap.get(storedCohort.id) || DEFAULT_COHORTS.find((c) => c.id === storedCohort.id);
+          const base =
+            activeCohortsMap.get(storedCohort.id) ||
+            DEFAULT_COHORTS.find((c) => c.id === storedCohort.id) ||
+            storedCohort;
           if (base) {
             reorderedActive.push({
               ...base,

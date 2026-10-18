@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import styles from './HomeHero.module.css';
 
 export interface HomeHeroProps {
@@ -18,7 +18,17 @@ export interface HomeHeroProps {
 }
 
 export function HomeHero({ userName }: HomeHeroProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const { greeting, emoji } = useMemo(() => {
+    // Before mount, use a server-safe default so SSR and initial client hydration match 100%
+    if (!mounted) {
+      return { greeting: 'Good morning', emoji: '☀️' };
+    }
     const hour = new Date().getHours();
     if (hour < 12) {
       return { greeting: 'Good morning', emoji: '☀️' };
@@ -27,7 +37,7 @@ export function HomeHero({ userName }: HomeHeroProps) {
       return { greeting: 'Good afternoon', emoji: '🌤️' };
     }
     return { greeting: 'Good evening', emoji: '🌙' };
-  }, []);
+  }, [mounted]);
 
   const firstName = useMemo(() => {
     if (!userName || !userName.trim()) return '';
