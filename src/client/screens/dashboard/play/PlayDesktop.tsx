@@ -60,7 +60,7 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
     playback.setPlaybackSpeed(preLongPressSpeedRef.current || 1.0);
   }, [playback]);
 
-  const { gestureProps } = use1DGesture({
+  const { gestureProps, dragDeltaX, isDragging } = use1DGesture({
     onNext: playback.nextChunk,
     onPrev: playback.previousChunk,
     onTogglePlay: playback.togglePlayback,
@@ -112,8 +112,8 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
       {...gestureProps}
       tabIndex={-1}
     >
-      {/* Compact Secondary Surface: Channel, Search & Shortcuts Help */}
-      <div className={styles.channelFloatingAnchor}>
+      {/* Top-Left Channel & Topic Preferences (unclipped layout) */}
+      <div className={styles.channelContainer}>
         <ChannelSelector
           activeChannel={playback.activeChannel}
           onChannelSelect={(ch) => {
@@ -126,22 +126,17 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
           isOpen={channelSelectorOpen}
           onOpenChange={setChannelSelectorOpen}
         />
-        <button
-          type="button"
-          className={styles.shortcutsTriggerBtn}
-          onClick={() => setShortcutsOpen(true)}
-          aria-label="Keyboard shortcuts (?)"
-          title="Keyboard shortcuts (?)"
-        >
-          ?
-        </button>
       </div>
 
       {/* 1. Header: Position Capsules, Lesson Title, Provider Badge, Chunk & Episode Info */}
       <PlayHeader playback={playback} />
 
       {/* 2. Central Stage: Edge previews, 16:9 Video surface with timeline scrubber */}
-      <PlayStage playback={playback} />
+      <PlayStage
+        playback={playback}
+        dragDeltaX={dragDeltaX}
+        isDragging={isDragging}
+      />
 
       {/* Feedback toast for fullscreen rejection or completion error */}
       {(fullscreenFeedback || playback.completionError) && (
@@ -187,6 +182,7 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
         onCompleteChunk={() => void playback.completeActiveChunk()}
         onNextChunk={playback.nextChunk}
         onToggleFullscreen={handleFullscreen}
+        onToggleShortcuts={() => setShortcutsOpen((prev) => !prev)}
       />
 
       {/* 4. Floating Right Rail: Learning tools (Capture, Annotate, Mic placeholders, Bookmark toggle) */}

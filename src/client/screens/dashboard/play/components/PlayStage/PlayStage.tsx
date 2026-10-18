@@ -6,14 +6,17 @@ import { Play as PlayIcon, Layers } from 'lucide-react';
 import type { UsePlaybackResult } from '../../hooks/usePlayback';
 import { PlayerSurface } from '../PlayerSurface/PlayerSurface';
 import { ReadingSurface } from '../ReadingSurface';
+import { resolveItemThumbnail } from '../../utils/thumbnailResolver';
 import { triggerHaptic } from '@/src/client/utils/haptics';
 import styles from './PlayStage.module.css';
 
 interface PlayStageProps {
   playback: UsePlaybackResult;
+  dragDeltaX?: number;
+  isDragging?: boolean;
 }
 
-export function PlayStage({ playback }: PlayStageProps) {
+export function PlayStage({ playback, dragDeltaX = 0, isDragging = false }: PlayStageProps) {
   const {
     activeItem,
     currentIndex,
@@ -53,12 +56,30 @@ export function PlayStage({ playback }: PlayStageProps) {
   const prevItem = hasPrevious ? feedItems[currentIndex - 1] : null;
   const nextItem = hasNext ? feedItems[currentIndex + 1] : null;
 
+  // Resolve distinct thumbnails preventing duplicate images across left, center, right
+  const activeThumbnail = activeItem?.lessonThumbnail;
+  const prevThumbnail = prevItem ? resolveItemThumbnail(prevItem, currentIndex - 1, activeThumbnail) : undefined;
+  const nextThumbnail = nextItem ? resolveItemThumbnail(nextItem, currentIndex + 1, activeThumbnail) : undefined;
+
+  // Real-time drag displacement
+  const deltaX = isDragging ? dragDeltaX : 0;
+  // Center card moves smoothly with drag
+  const centerShiftX = deltaX * 0.75;
+  // Left card shifts into view when dragging right (deltaX > 0)
+  const leftShiftX = deltaX > 0 ? Math.min(deltaX * 0.9, 140) : 0;
+  // Right card shifts into view when dragging left (deltaX < 0)
+  const rightShiftX = deltaX < 0 ? Math.max(deltaX * 0.9, -140) : 0;
+
+  const centerTransform = centerShiftX !== 0 ? `translate3d(${centerShiftX}px, 0, 0)` : undefined;
+  const leftTransform = `translateY(-50%) translate3d(${leftShiftX}px, 0, 0) scale(${1 + (leftShiftX > 0 ? Math.min(0.08, leftShiftX / 800) : 0)})`;
+  const rightTransform = `translateY(-50%) translate3d(${rightShiftX}px, 0, 0) scale(${1 + (rightShiftX < 0 ? Math.min(0.08, Math.abs(rightShiftX) / 800) : 0)})`;
+
   const isVideo =
     activeItem?.lessonType === 'video' &&
     Boolean(activeItem?.lessonVideoId || activeItem?.lessonVideoUrl || activeItem?.sourceUrl);
 
   return (
-    <main className={styles.stageContainer} aria-label="Media Playback Area">
+    <main className={`${styles.stageContainer} ${isDragging ? styles.isDragging : ''}`} aria-label="Media Playback Area">
       {/* 1. Left Edge Preview (Previous Lesson Thumbnail) */}
       {prevItem && (
         <aside
@@ -66,10 +87,15 @@ export function PlayStage({ playback }: PlayStageProps) {
           onClick={previousChunk}
           aria-label={`Previous lesson: ${prevItem.chunkTitle || prevItem.lessonTitle || 'Previous'}`}
           title={`Previous: ${prevItem.chunkTitle || prevItem.lessonTitle || 'Previous'}`}
+          style={{
+            transform: leftTransform,
+            opacity: leftShiftX > 0 ? Math.min(0.9, 0.42 + (leftShiftX / 200)) : undefined,
+            transition: isDragging ? 'none' : undefined,
+          }}
         >
-          {prevItem.lessonThumbnail ? (
+          {prevThumbnail ? (
             <Image
-              src={prevItem.lessonThumbnail}
+              src={prevThumbnail}
               alt={prevItem.chunkTitle || 'Previous lesson'}
               fill
               sizes="120px"
@@ -84,8 +110,18 @@ export function PlayStage({ playback }: PlayStageProps) {
       )}
 
       {/* 2. Central 16:9 Media Surface */}
-      <section className={styles.centralSurface} aria-label="Current video stage">
-        <div className={styles.videoWrapper}>
+      <section
+        className={styles.centralSurface}
+        aria-label="Current video stage"
+        style={{
+          transform: centerTransform,
+          transition: isDragging ? 'none' : undefined,
+        }}
+      >
+        <div
+          className={styles.videoWrapper}
+          style={{ pointerEvents: isDragging ? 'none' : 'auto' }}
+        >
           {isVideo ? (
             <PlayerSurface
               containerRef={playerContainerRef}
@@ -182,10 +218,15 @@ export function PlayStage({ playback }: PlayStageProps) {
           onClick={nextChunk}
           aria-label={`Next lesson: ${nextItem.chunkTitle || nextItem.lessonTitle || 'Next'}`}
           title={`Next: ${nextItem.chunkTitle || nextItem.lessonTitle || 'Next'}`}
+          style={{
+            transform: rightTransform,
+            opacity: rightShiftX < 0 ? Math.min(0.9, 0.42 + (Math.abs(rightShiftX) / 200)) : undefined,
+            transition: isDragging ? 'none' : undefined,
+          }}
         >
-          {nextItem.lessonThumbnail ? (
+          {nextThumbnail ? (
             <Image
-              src={nextItem.lessonThumbnail}
+              src={nextThumbnail}
               alt={nextItem.chunkTitle || 'Next lesson'}
               fill
               sizes="120px"

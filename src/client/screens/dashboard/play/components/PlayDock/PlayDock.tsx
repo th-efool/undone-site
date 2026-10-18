@@ -10,7 +10,7 @@ import {
   SkipForward,
   Timer,
   ChevronDown,
-  Subtitles,
+  Keyboard,
   Flag,
   Loader2,
   AlertCircle,
@@ -34,6 +34,7 @@ interface PlayDockProps {
   onCompleteChunk: () => void;
   onNextChunk: () => void;
   onToggleFullscreen: () => void;
+  onToggleShortcuts?: () => void;
 }
 
 const SPEED_OPTIONS = [0.75, 1.0, 1.25, 1.5, 2.0];
@@ -54,6 +55,7 @@ export function PlayDock({
   onCompleteChunk,
   onNextChunk,
   onToggleFullscreen,
+  onToggleShortcuts,
 }: PlayDockProps) {
   const [speedMenuOpen, setSpeedMenuOpen] = useState(false);
   const speedRef = useRef<HTMLDivElement>(null);
@@ -208,25 +210,17 @@ export function PlayDock({
         )}
       </div>
 
-      {/* Capsule 6: Captions / CC (Visibly deferred placeholder without fake toggle) */}
+      {/* Capsule 6: Keyboard Shortcuts */}
       <div className={styles.capsule}>
-        <div
-          tabIndex={0}
-          className={styles.tooltipAnchor}
-          data-tooltip="Captions coming later"
-          aria-label="Captions coming later"
+        <button
+          type="button"
+          className={styles.dockButton}
+          onClick={onToggleShortcuts}
+          aria-label="Keyboard shortcuts (?)"
+          title="Keyboard shortcuts (?)"
         >
-          <button
-            type="button"
-            className={`${styles.dockButton} ${styles.dockButtonDisabled}`}
-            disabled
-            aria-disabled="true"
-            aria-label="Captions and subtitles coming later"
-            title="Captions coming later"
-          >
-            <Subtitles size={18} />
-          </button>
-        </div>
+          <Keyboard size={18} />
+        </button>
       </div>
 
       {/* Capsule 7: Report Issue (Visibly deferred placeholder without fake modal) */}

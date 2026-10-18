@@ -146,6 +146,7 @@ export default async function home() {
     const progressPercent = totalLessons === 0 ? 0 : Math.round((completedLessons / totalLessons) * 100);
     const cohortId = ec.cohortId;
     const cfg = configMap.get(cohortId);
+    if (cfg?.isHidden) return;
 
     const cohortData = {
       id: cohortId,
@@ -182,6 +183,7 @@ export default async function home() {
     if (isStillPaused) {
       continueLater.push({
         ...cohortData,
+        rank,
         minutesToday: 0,
         dailyGoalMinutes,
         schedule: { days: scheduleDays, label: scheduleLabel },
@@ -206,9 +208,6 @@ export default async function home() {
 
   // Sort active cohorts by rank ASC, normalizing ranks to 1, 2, 3...
   activeCohorts.sort((a, b) => a.rank - b.rank);
-  activeCohorts.forEach((c, idx) => {
-    c.rank = idx + 1;
-  });
 
   return <Home activeCohorts={activeCohorts} recentlyCompleted={recentlyCompleted} continueLater={continueLater} userName={session?.user?.name || undefined} />;
 }

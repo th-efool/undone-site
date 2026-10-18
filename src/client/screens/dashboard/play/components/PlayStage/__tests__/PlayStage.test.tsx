@@ -180,4 +180,42 @@ describe('PlayStage component', () => {
     fireEvent.keyDown(scrubber, { key: 'End' });
     expect(seekToPercent).toHaveBeenCalledWith(100);
   });
+
+  it('applies real-time drag transforms when isDragging is true', () => {
+    const playback = createMockPlayback({ hasNext: true });
+
+    const { rerender } = render(<PlayStage playback={playback} dragDeltaX={-60} isDragging={true} />);
+
+    const centralSurface = screen.getByRole('region', { name: /current video stage/i });
+    expect(centralSurface.style.transform).toContain('translate3d(-45px, 0, 0)');
+    expect(centralSurface.style.transition).toBe('none');
+
+    // Right edge slides into view when dragging left
+    const rightEdge = screen.getByRole('complementary', { name: /next lesson/i });
+    expect(rightEdge.style.transform).toContain('translate3d(-54px, 0, 0)');
+
+    // Snapping back when drag ends
+    rerender(<PlayStage playback={playback} dragDeltaX={0} isDragging={false} />);
+    expect(centralSurface.style.transform).toBe('');
+  });
+
+  it('deduplicates thumbnails so edge preview does not clone active video thumbnail', () => {
+    // Both active and next item share identical lessonThumbnail
+    const duplicatedPlayback = createMockPlayback({
+      activeItem: { ...videoItem, lessonThumbnail: 'https://cdn.example.com/identical.jpg' },
+      feedItems: [
+        { ...videoItem, lessonThumbnail: 'https://cdn.example.com/identical.jpg' },
+        { ...nextVideoItem, lessonThumbnail: 'https://cdn.example.com/identical.jpg' },
+      ],
+      hasNext: true,
+    });
+
+    render(<PlayStage playback={duplicatedPlayback} />);
+
+    const rightEdge = screen.getByRole('complementary', { name: /next lesson/i });
+    const img = rightEdge.querySelector('img');
+    expect(img).toBeDefined();
+    // Image src must NOT be the duplicated active thumbnail
+    expect(img?.getAttribute('src')).not.toBe('https://cdn.example.com/identical.jpg');
+  });
 });

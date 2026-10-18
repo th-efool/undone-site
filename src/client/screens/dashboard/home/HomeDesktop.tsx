@@ -31,8 +31,8 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
   if (home.loading) return <HomeSkeleton />;
   const subscribedCohorts = [
     ...home.activeCohorts,
-    ...home.continueLater.map((cohort, index) => ({ ...cohort, rank: home.activeCohorts.length + index + 1 })),
-  ];
+    ...home.continueLater.map((cohort, index) => ({ ...cohort, rank: cohort.rank ?? home.activeCohorts.length + index + 1 })),
+  ].sort((a, b) => a.rank - b.rank);
 
   return (
     <div className={styles.home}>
@@ -41,7 +41,9 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
           <HomeHero userName={userName} />
           <LearningPromptBar />
           <ChannelHub />
-          <ActiveCohorts heading={home.sections.activeCohorts} items={subscribedCohorts} onPause={handlePause} onResume={home.actions.resumePausedCohort} />
+          {home.syncError && <p role="alert">{home.syncError}</p>}
+          <ActiveCohorts heading={home.sections.activeCohorts} items={subscribedCohorts} onPause={handlePause} onResume={home.actions.resumePausedCohort}
+            onSave={home.actions.saveLearningSettings} onDelete={home.actions.removeSubscribedCohort} />
           {home.recentlyCompleted.length > 0 && (
             <RecentlyCompleted heading={home.sections.recentlyCompleted} items={home.recentlyCompleted} isOpen={isCompletedOpen} onToggle={() => setIsCompletedOpen((open) => !open)} />
           )}

@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
             const cleanId = rawId?.includes('_') ? rawId.split('_').pop()! : rawId;
             const isPaused = Boolean(cfg.isPaused);
             const pausedUntil = cfg.pausedUntil ? new Date(cfg.pausedUntil) : null;
-            const isStillPaused = isPaused && (!pausedUntil || pausedUntil > now);
+            const isStillPaused = Boolean(cfg.isHidden) || (isPaused && (!pausedUntil || pausedUntil > now));
 
             if (isStillPaused) {
               pausedCohortIds.add(cleanId);

@@ -252,6 +252,24 @@ describe('PlayDesktop visual redesign composition', () => {
     expect(screen.queryByRole('dialog', { name: /keyboard shortcuts/i })).toBeNull();
   });
 
+  it('opens ShortcutsDialog via bottom dock keyboard button', () => {
+    const playback = createMockPlayback();
+    render(<PlayDesktop playback={playback} />);
+
+    expect(screen.queryByRole('dialog', { name: /keyboard shortcuts/i })).toBeNull();
+
+    // Trigger dock keyboard button
+    const dockKeyboardBtn = screen.getByRole('button', { name: /keyboard shortcuts/i });
+    fireEvent.click(dockKeyboardBtn);
+
+    const dialog = screen.getByRole('dialog', { name: /keyboard shortcuts/i });
+    expect(dialog).toBeDefined();
+
+    // Dismiss via Escape
+    fireEvent.keyDown(window, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: /keyboard shortcuts/i })).toBeNull();
+  });
+
   it('disables speed menu for reading items', () => {
     const playback = createMockPlayback({
       activeItem: {

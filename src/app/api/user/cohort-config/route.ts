@@ -38,6 +38,7 @@ export async function GET() {
       frequency: c.frequency ?? 'Often',
       orderStyle: c.orderStyle ?? 'Sequential',
       isPaused: !!c.isPaused,
+      isHidden: !!c.isHidden,
       pausedUntil: c.pausedUntil ? new Date(c.pausedUntil).toISOString() : null,
       pausedReason: c.pausedReason || '',
       updatedAt: c.updatedAt,

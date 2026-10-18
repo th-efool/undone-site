@@ -81,6 +81,10 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (isInteractiveElement(e.target as HTMLElement)) return;
 
+      try {
+        (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      } catch {}
+
       startXRef.current = e.clientX;
       startYRef.current = e.clientY;
       lastXRef.current = e.clientX;
@@ -149,6 +153,9 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
   const handlePointerUp = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       clearLongPress();
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+      } catch {}
 
       if (isInteractiveElement(e.target as HTMLElement)) {
         startXRef.current = null;
@@ -173,8 +180,9 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
 
       // Handle horizontal swipe completion or snap back
       if (wasHorizontal) {
-        const distanceThreshold = containerWidth * 0.30;
-        const velocityThreshold = 0.45; // px/ms
+        // Responsive threshold: 70px or 12% width (min 45px) or fling velocity (0.40 px/ms)
+        const distanceThreshold = Math.max(45, Math.min(70, containerWidth * 0.12));
+        const velocityThreshold = 0.40; // px/ms
 
         if (finalDeltaX < -distanceThreshold || velocity < -velocityThreshold) {
           // Swipe left -> advance to next
@@ -222,6 +230,7 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
     [
       clearLongPress,
       dragDeltaX,
+      onDoubleTap,
       onDoubleTapLeft,
       onDoubleTapRight,
       onNext,
@@ -231,33 +240,10 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
     ]
   );
 
-  // Wheel Handler for Touchpad horizontal swipe
-  const handleWheel = useCallback(
-    (e: React.WheelEvent<HTMLDivElement>) => {
-      if (disabled || wheelCooldownRef.current) return;
-
-      // Track horizontal trackpad delta
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 15) {
-        wheelAccumulatorRef.current += e.deltaX;
-
-        if (Math.abs(wheelAccumulatorRef.current) > 60) {
-          wheelCooldownRef.current = true;
-          if (wheelAccumulatorRef.current > 0) {
-            triggerHaptic('light');
-            onNext();
-          } else {
-            triggerHaptic('light');
-            onPrev();
-          }
-          wheelAccumulatorRef.current = 0;
-          setTimeout(() => {
-            wheelCooldownRef.current = false;
-          }, 400);
-        }
-      }
-    },
-    [disabled, onNext, onPrev]
-  );
+  // Wheel Handler disabled for feed navigation - feed is DRAG SCROLLABLE ONLY per specification
+  const handleWheel = useCallback((_e: React.WheelEvent<HTMLDivElement>) => {
+    // Explicitly no-op: scrolling mouse wheel does NOT navigate feed chunks
+  }, []);
 
   // Keyboard Shortcuts Listener
   useEffect(() => {

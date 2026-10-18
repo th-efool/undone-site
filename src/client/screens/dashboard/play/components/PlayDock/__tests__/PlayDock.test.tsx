@@ -120,13 +120,14 @@ describe('PlayDock component', () => {
     expect(screen.queryByRole('menu')).toBeNull();
   });
 
-  it('renders closed captions and flag report as disabled placeholders with clear tooltips', () => {
-    render(<PlayDock {...defaultProps} />);
+  it('triggers onToggleShortcuts when keyboard shortcuts button is clicked and keeps flag report as disabled placeholder', () => {
+    const onToggleShortcuts = vi.fn();
+    render(<PlayDock {...defaultProps} onToggleShortcuts={onToggleShortcuts} />);
 
-    const captionsBtn = screen.getByRole('button', { name: /captions and subtitles coming later/i });
-    expect(captionsBtn.hasAttribute('disabled')).toBe(true);
-    expect(captionsBtn.getAttribute('aria-disabled')).toBe('true');
-    expect(captionsBtn.getAttribute('title')).toBe('Captions coming later');
+    const keyboardBtn = screen.getByRole('button', { name: /keyboard shortcuts/i });
+    expect(keyboardBtn).toBeDefined();
+    fireEvent.click(keyboardBtn);
+    expect(onToggleShortcuts).toHaveBeenCalledTimes(1);
 
     const flagBtn = screen.getByRole('button', { name: /report an issue with this chunk/i });
     expect(flagBtn.hasAttribute('disabled')).toBe(true);

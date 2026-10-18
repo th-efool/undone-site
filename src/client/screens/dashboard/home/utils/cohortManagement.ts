@@ -103,13 +103,12 @@ export function pauseCohort(
   const cleanId = cohort.cohortId || cohort.id;
 
   return {
-    activeCohorts: calculatePriority(
-      activeItems.filter((item) => (item.cohortId || item.id) !== cleanId)
-    ),
+    activeCohorts: activeItems.filter((item) => (item.cohortId || item.id) !== cleanId),
     continueLater: [
       {
         id: cleanId,
         cohortId: cleanId,
+        rank: cohort.rank,
         title: cohort.title,
         provider: cohort.provider,
         thumbnail: cohort.thumbnail,
@@ -145,10 +144,10 @@ export function resumeCohort(
   const cleanId = cohort.cohortId || cohort.id;
 
   return {
-    activeCohorts: calculatePriority([
+    activeCohorts: [
       ...activeItems.filter((item) => (item.cohortId || item.id) !== cleanId),
       toActiveCohort(cohort),
-    ]),
+    ].sort((a, b) => a.rank - b.rank),
     continueLater: pausedItems.filter((item) => (item.cohortId || item.id) !== cleanId),
   };
 }
@@ -164,7 +163,7 @@ export function getActiveCohorts(
   const restored = readyToResume.map(toActiveCohort);
 
   return {
-    activeCohorts: calculatePriority([...activeItems, ...restored]),
+    activeCohorts: [...activeItems, ...restored].sort((a, b) => a.rank - b.rank),
     continueLater: stillPaused,
   };
 }
@@ -173,7 +172,7 @@ function toActiveCohort(cohort: PausedCohort): ActiveCohort {
   return {
     id: cohort.id,
     cohortId: cohort.cohortId ?? cohort.id,
-    rank: 999,
+    rank: cohort.rank ?? 999,
     title: cohort.title,
     provider: cohort.provider,
     thumbnail: cohort.thumbnail,

@@ -48,6 +48,7 @@ export interface ActiveCohort {
 }
 
 export interface PausedCohort extends Omit<ActiveCohort, 'rank'> {
+  rank?: number;
   pausedUntil: string;
   pausedReason?: string;
   resumeLabel: string;

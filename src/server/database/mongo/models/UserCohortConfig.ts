@@ -37,6 +37,7 @@ export interface IUserCohortConfig extends Document {
   frequency: CohortFrequency;
   orderStyle: CohortOrderStyle;
   isPaused: boolean;
+  isHidden: boolean;
   pausedUntil?: Date;
   pausedReason?: string;
   updatedAt: Date;
@@ -69,6 +70,7 @@ const UserCohortConfigSchema: Schema = new Schema({
     default: 'Sequential',
   },
   isPaused: { type: Boolean, default: false },
+  isHidden: { type: Boolean, default: false },
   pausedUntil: { type: Date },
   pausedReason: { type: String, maxlength: 500, trim: true },
 }, {

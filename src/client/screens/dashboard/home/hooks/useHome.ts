@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { homeRepository } from '@/src/client/repositories/homeRepository';
 import { homeStorageAdapter } from '@/src/client/repositories/homeStorageAdapter';
 import type { Weekday, ActiveCohort, PausedCohort, CompletedCourse } from '../models';
+import type { CohortLearningSettings } from '../components/ActiveCohorts/ActiveCohorts';
 import {
   getActiveCohorts,
   pauseCohort,
@@ -30,7 +31,7 @@ async function syncWithRetry(
   retries = 2,
   delayMs = 500
 ): Promise<Response> {
-  let lastError: any;
+  let lastError: unknown;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const res = await fetch(url, options);
@@ -61,21 +62,19 @@ export function useHome(props?: {
     queryFn: async () => homeRepository.getHome({ loadStored: true }),
   });
 
-  const home = homeData ?? homeRepository.getHome();
-  
-  if (props?.activeCohorts) home.activeCohorts = props.activeCohorts;
-  if (props?.continueLater) home.continueLater = props.continueLater;
-  if (props?.recentlyCompleted) home.recentlyCompleted = props.recentlyCompleted;
+  const source = homeData ?? homeRepository.getHome();
+  const home = {
+    ...source,
+    activeCohorts: props?.activeCohorts ?? source.activeCohorts,
+    continueLater: props?.continueLater ?? source.continueLater,
+    recentlyCompleted: props?.recentlyCompleted ?? source.recentlyCompleted,
+  };
 
   const initialCohorts = useMemo(() => {
     const hasServerData =
-      (props?.activeCohorts && props.activeCohorts.length > 0) ||
-      (props?.continueLater && props.continueLater.length > 0);
+      props?.activeCohorts !== undefined || props?.continueLater !== undefined;
     if (hasServerData) {
-      return {
-        activeCohorts: props?.activeCohorts ?? [],
-        continueLater: props?.continueLater ?? [],
-      };
+      return getActiveCohorts(props?.activeCohorts ?? [], props?.continueLater ?? []);
     }
     return getActiveCohorts(home.activeCohorts, home.continueLater);
   }, [props?.activeCohorts, props?.continueLater, home.activeCohorts, home.continueLater]);
@@ -85,15 +84,14 @@ export function useHome(props?: {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
-  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cohortTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const reorderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Background pluggable backend sync and local choice hydration
   useEffect(() => {
     // 1. Hydrate from local storage first if no server cohorts were passed
     const hasServerCohorts =
-      (props?.activeCohorts && props.activeCohorts.length > 0) ||
-      (props?.continueLater && props.continueLater.length > 0);
+      props?.activeCohorts !== undefined || props?.continueLater !== undefined;
     if (!hasServerCohorts) {
       const stored = homeStorageAdapter.getStoredChoices();
       if (stored) {
@@ -107,11 +105,11 @@ export function useHome(props?: {
     }
 
     // 2. Only perform remote backend sync if authenticated to prevent 401 console spam
-    if (isAuthenticated) {
+    if (isAuthenticated && !hasServerCohorts) {
       homeStorageAdapter
         .syncWithBackend(true)
         .then((synced) => {
-          if (synced?.activeCohorts && synced.activeCohorts.length > 0) {
+          if (synced?.activeCohorts) {
             setActiveCohorts(synced.activeCohorts);
           }
           if (synced?.continueLater) {
@@ -132,13 +130,15 @@ export function useHome(props?: {
       },
       rollbackSnapshot?: { activeCohorts: ActiveCohort[]; continueLater: PausedCohort[] }
     ) => {
-      if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
+      const existingTimer = cohortTimers.current.get(cohortId);
+      if (existingTimer) clearTimeout(existingTimer);
 
       // Unauthenticated users don't make remote calls — localStorage handles persistence cleanly
       if (!isAuthenticated) return;
 
       setIsSyncing(true);
-      syncTimerRef.current = setTimeout(async () => {
+      const timer = setTimeout(async () => {
+        cohortTimers.current.delete(cohortId);
         try {
           const res = await syncWithRetry('/api/user/cohort-config', {
             method: 'PUT',
@@ -181,21 +181,35 @@ export function useHome(props?: {
           setIsSyncing(false);
         }
       }, 800);
+      cohortTimers.current.set(cohortId, timer);
     },
     [isAuthenticated]
   );
 
   // Sync state if non-empty server props change
   useEffect(() => {
-    if (props?.activeCohorts && props.activeCohorts.length > 0) setActiveCohorts(props.activeCohorts);
-    if (props?.continueLater && props.continueLater.length > 0) setContinueLater(props.continueLater);
+    if (props?.activeCohorts !== undefined || props?.continueLater !== undefined) {
+      const normalized = getActiveCohorts(props.activeCohorts ?? [], props.continueLater ?? []);
+      setActiveCohorts(normalized.activeCohorts);
+      setContinueLater(normalized.continueLater);
+    }
   }, [props?.activeCohorts, props?.continueLater]);
 
   // Automatically persist user choice mutations to local storage
   useEffect(() => {
-    if (activeCohorts.length > 0 || continueLater.length > 0) {
-      homeStorageAdapter.saveChoices(activeCohorts, continueLater);
-    }
+    homeStorageAdapter.saveChoices(activeCohorts, continueLater);
+  }, [activeCohorts, continueLater]);
+
+  useEffect(() => {
+    if (!continueLater.length) return;
+    const expiry = Math.min(...continueLater.map((cohort) => new Date(cohort.pausedUntil).getTime()));
+    if (!Number.isFinite(expiry)) return;
+    const timer = setTimeout(() => {
+      const normalized = getActiveCohorts(activeCohorts, continueLater);
+      setActiveCohorts(normalized.activeCohorts);
+      setContinueLater(normalized.continueLater);
+    }, Math.min(2_147_483_647, Math.max(0, expiry - Date.now()) + 10));
+    return () => clearTimeout(timer);
   }, [activeCohorts, continueLater]);
 
   const summaries = useMemo(
@@ -338,18 +352,52 @@ export function useHome(props?: {
     }
   }
 
+  async function saveLearningSettings(cohortId: string, settings: CohortLearningSettings) {
+    if (settings.dailyGoalMinutes < 5 || settings.dailyGoalMinutes > 180 || !settings.schedule.days.length) {
+      throw new Error('Invalid learning settings');
+    }
+    if (isAuthenticated) {
+      const response = await syncWithRetry('/api/user/cohort-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cohortId, dailyGoalMinutes: settings.dailyGoalMinutes,
+          scheduleDays: settings.schedule.days, scheduleLabel: settings.schedule.label, orderStyle: settings.orderStyle }),
+      });
+      if (!response.ok) throw new Error('Could not save learning settings');
+    }
+    const apply = <T extends ActiveCohort | PausedCohort>(cohort: T): T =>
+      (cohort.cohortId || cohort.id) === cohortId ? { ...cohort, ...settings } : cohort;
+    setActiveCohorts((cohorts) => cohorts.map(apply));
+    setContinueLater((cohorts) => cohorts.map(apply));
+  }
+
+  async function removeSubscribedCohort(cohortId: string) {
+    const timer = cohortTimers.current.get(cohortId);
+    if (timer) clearTimeout(timer);
+    cohortTimers.current.delete(cohortId);
+    if (isAuthenticated) {
+      const response = await syncWithRetry('/api/cohort/' + encodeURIComponent(cohortId) + '/join', { method: 'DELETE' });
+      if (!response.ok) throw new Error('Could not remove subscription');
+    }
+    setActiveCohorts((cohorts) => cohorts.filter((cohort) => (cohort.cohortId || cohort.id) !== cohortId));
+    setContinueLater((cohorts) => cohorts.filter((cohort) => (cohort.cohortId || cohort.id) !== cohortId));
+  }
+
   return {
     loading: isLoading,
     isSyncing,
     syncError,
     isAuthenticated,
     ...home,
+    summaries,
     activeCohorts,
     continueLater,
     actions: {
       moveCohort,
       pauseActiveCohort,
       resumePausedCohort,
+      saveLearningSettings,
+      removeSubscribedCohort,
       saveDailyGoal,
       saveSchedule,
       saveOrderStyle,

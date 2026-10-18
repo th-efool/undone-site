@@ -76,11 +76,6 @@ export const homeStorageAdapter = {
   saveChoices(activeCohorts: ActiveCohort[], continueLater: PausedCohort[]): void {
     if (typeof window === 'undefined') return;
     try {
-      // Guard against clobbering existing stored choices with an empty array
-      if (activeCohorts.length === 0 && continueLater.length === 0) {
-        return;
-      }
-
       const payload: StoredHomeChoices = {
         activeCohorts,
         continueLater,
@@ -136,6 +131,7 @@ export const homeStorageAdapter = {
           for (const cohort of currentActive) {
             const cleanId = cohort.cohortId || cohort.id;
             const remote = remoteMap.get(cleanId);
+            if (remote?.isHidden) continue;
             if (remote) {
               remoteMap.delete(cleanId);
               if (remote.isPaused) {
@@ -167,6 +163,7 @@ export const homeStorageAdapter = {
           for (const cohort of currentPaused) {
             const cleanId = cohort.cohortId || cohort.id;
             const remote = remoteMap.get(cleanId);
+            if (remote?.isHidden) continue;
             if (remote) {
               remoteMap.delete(cleanId);
               if (!remote.isPaused) {
@@ -202,7 +199,7 @@ export const homeStorageAdapter = {
           // Sort active cohorts by rank
           updatedActive.sort((a, b) => (a.rank || 0) - (b.rank || 0));
 
-          if (updatedActive.length > 0 || updatedPaused.length > 0) {
+          {
             this.saveChoices(updatedActive, updatedPaused);
             return {
               activeCohorts: updatedActive,
