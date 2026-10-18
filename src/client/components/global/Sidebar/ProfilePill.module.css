@@ -60,17 +60,29 @@
 }
 
 /* Dark mode handling since dark sidebar forces specific colors */
-:global(.darkSidebar) .dropdown {
-  background: #111;
-  border-color: #333;
+:global(.darkSidebar) .dropdown,
+:global(.playSidebar) .dropdown,
+:global([data-theme="dark"]) .dropdown {
+  background: rgba(18, 18, 24, 0.95);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
+  z-index: 1000;
 }
-:global(.darkSidebar) .divider {
-  background: #333;
+:global(.darkSidebar) .divider,
+:global(.playSidebar) .divider,
+:global([data-theme="dark"]) .divider {
+  background: rgba(255, 255, 255, 0.1);
 }
-:global(.darkSidebar) .name {
+:global(.darkSidebar) .name,
+:global(.playSidebar) .name,
+:global([data-theme="dark"]) .name {
   color: #fff;
 }
-:global(.darkSidebar) .email {
+:global(.darkSidebar) .email,
+:global(.playSidebar) .email,
+:global([data-theme="dark"]) .email {
   color: #94a3b8;
 }
 
