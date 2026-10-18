@@ -272,7 +272,8 @@ export function deriveChunkVideoInterval(
   source: CohortWorkspace['sources'][number] | undefined,
   chunkIndexInSource: number,
   totalChunksInSource: number,
-  overlapSeconds = 15
+  overlapSeconds = 15,
+  sourceChunks?: CohortChunk[],
 ): { startSeconds: number; endSeconds: number; durationSeconds: number; isVideo: boolean; hasTiming: boolean; overlapSeconds: number } {
   const locations = source?.locations ?? [];
   const isVideo = source?.input?.kind === 'youtube' || Boolean(source?.provenance?.videoId) || locations.some(loc => loc.startMs !== undefined);
@@ -283,12 +284,25 @@ export function deriveChunkVideoInterval(
     // Interpolation is an estimate; retained source evidence itself is never extended.
     const starts = matching.map(loc => loc.startMs! + Math.max(0, chunk.start - loc.start) / (loc.end - loc.start) * (loc.endMs! - loc.startMs!));
     const ends = matching.map(loc => loc.startMs! + Math.min(loc.end - loc.start, chunk.end - loc.start) / (loc.end - loc.start) * (loc.endMs! - loc.startMs!));
-    const startSeconds = Math.max(0, Math.floor(Math.min(...starts) / 1000));
+    const rawStart = Math.max(0, Math.floor(Math.min(...starts) / 1000));
     const rawEnd = Math.ceil(Math.max(...ends) / 1000);
-    const knownEnd = Math.max(...timed.map(loc => Math.ceil(loc.endMs! / 1000)));
-    const extra = chunkIndexInSource < totalChunksInSource - 1 ? Math.max(0, overlapSeconds) : 0;
-    const endSeconds = Math.min(knownEnd, rawEnd + extra);
-    return { startSeconds, endSeconds, durationSeconds: Math.max(1, endSeconds - startSeconds), isVideo: true, hasTiming: true, overlapSeconds: endSeconds - rawEnd };
+    const knownEnd = Math.max(
+      Math.ceil((source?.provenance?.videoDurationMs ?? 0) / 1000),
+      ...timed.map(loc => Math.ceil(loc.endMs! / 1000)),
+    );
+    const ordered = sourceChunks?.slice().sort((a, b) => a.start - b.start);
+    const next = ordered?.[chunkIndexInSource + 1];
+    const nextLocation = next ? timed.filter(loc => loc.end > next.start && loc.start < next.end) : [];
+    const nextStart = next && nextLocation.length
+      ? Math.floor(Math.min(...nextLocation.map(loc => loc.startMs! + Math.max(0, next.start - loc.start) / (loc.end - loc.start) * (loc.endMs! - loc.startMs!))) / 1000)
+      : undefined;
+    // A source-level plan assigns an observation gap to the preceding part. That keeps
+    // the playable timeline continuous without pretending the gap has transcript evidence.
+    const coreStart = chunkIndexInSource === 0 ? 0 : rawStart;
+    const coreEnd = nextStart ?? (chunkIndexInSource === totalChunksInSource - 1 ? knownEnd : rawEnd);
+    const extra = nextStart !== undefined || chunkIndexInSource < totalChunksInSource - 1 ? Math.max(0, overlapSeconds) : 0;
+    const endSeconds = Math.min(knownEnd, Math.max(coreStart + 1, coreEnd + extra));
+    return { startSeconds: coreStart, endSeconds, durationSeconds: endSeconds - coreStart, isVideo: true, hasTiming: true, overlapSeconds: Math.max(0, endSeconds - coreEnd) };
   }
   if (isVideo) {
     // Never manufacture playback timestamps for unanchored material.

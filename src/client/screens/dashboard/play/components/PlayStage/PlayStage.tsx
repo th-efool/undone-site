@@ -116,7 +116,7 @@ export function PlayStage({ playback }: PlayStageProps) {
           )}
 
           {/* Centered Play overlay when paused */}
-          {!isPlaying && (
+          {!isPlaying && isVideo && (
             <button
               type="button"
               className={styles.playOverlayButton}
@@ -132,45 +132,47 @@ export function PlayStage({ playback }: PlayStageProps) {
         </div>
 
         {/* Integrated Timeline Scrubber along the bottom of the video */}
-        <div
-          ref={scrubberRef}
-          className={styles.timelineScrubber}
-          onClick={handleScrubberClick}
-          role="slider"
-          aria-label="Timeline seek scrubber"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(timelineProgress)}
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'ArrowRight') {
-              e.preventDefault();
-              playback.skipSeconds(10);
-            } else if (e.key === 'ArrowLeft') {
-              e.preventDefault();
-              playback.skipSeconds(-10);
-            } else if (e.key === 'PageUp') {
-              e.preventDefault();
-              playback.skipSeconds(30);
-            } else if (e.key === 'PageDown') {
-              e.preventDefault();
-              playback.skipSeconds(-30);
-            } else if (e.key === 'Home') {
-              e.preventDefault();
-              playback.seekToPercent(0);
-            } else if (e.key === 'End') {
-              e.preventDefault();
-              playback.seekToPercent(100);
-            }
-          }}
-        >
+        {isVideo && (
           <div
-            className={styles.timelineProgress}
-            style={{ width: `${timelineProgress}%` }}
+            ref={scrubberRef}
+            className={styles.timelineScrubber}
+            onClick={handleScrubberClick}
+            role="slider"
+            aria-label="Timeline seek scrubber"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(timelineProgress)}
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                playback.skipSeconds(10);
+              } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                playback.skipSeconds(-10);
+              } else if (e.key === 'PageUp') {
+                e.preventDefault();
+                playback.skipSeconds(30);
+              } else if (e.key === 'PageDown') {
+                e.preventDefault();
+                playback.skipSeconds(-30);
+              } else if (e.key === 'Home') {
+                e.preventDefault();
+                playback.seekToPercent(0);
+              } else if (e.key === 'End') {
+                e.preventDefault();
+                playback.seekToPercent(100);
+              }
+            }}
           >
-            <div className={styles.timelineThumb} />
+            <div
+              className={styles.timelineProgress}
+              style={{ width: `${timelineProgress}%` }}
+            >
+              <div className={styles.timelineThumb} />
+            </div>
           </div>
-        </div>
+        )}
       </section>
 
       {/* 3. Right Edge Preview (Next Lesson Thumbnail) */}

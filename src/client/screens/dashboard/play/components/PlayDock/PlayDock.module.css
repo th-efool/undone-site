@@ -236,3 +236,31 @@
     width: 50px;
   }
 }
+
+@media (max-height: 800px) {
+  .dockContainer {
+    padding: 6px 16px 12px 16px;
+    gap: 8px;
+  }
+  .capsule {
+    height: 38px;
+    padding: 0 10px;
+  }
+  .volumeSlider {
+    width: 60px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .speedMenu {
+    animation: none !important;
+  }
+  .spinner {
+    animation: none !important;
+  }
+  .capsule,
+  .dockButton,
+  .speedOption {
+    transition: none !important;
+  }
+}

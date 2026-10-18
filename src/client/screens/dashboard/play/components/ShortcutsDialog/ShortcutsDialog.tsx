@@ -35,22 +35,50 @@ const GENERAL_SHORTCUTS: ShortcutItem[] = [
 
 export function ShortcutsDialog({ isOpen, onClose }: ShortcutsDialogProps) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousActiveElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
 
-    // Focus the close button when opened
+    previousActiveElementRef.current = document.activeElement as HTMLElement | null;
     closeButtonRef.current?.focus();
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
         onClose();
+        return;
+      }
+
+      if (e.key === 'Tab') {
+        if (!dialogRef.current) return;
+        const focusableElements = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusableElements.length === 0) {
+          e.preventDefault();
+          return;
+        }
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey && document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement.focus();
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement.focus();
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      previousActiveElementRef.current?.focus();
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -65,7 +93,7 @@ export function ShortcutsDialog({ isOpen, onClose }: ShortcutsDialogProps) {
       aria-modal="true"
       aria-labelledby="shortcuts-dialog-title"
     >
-      <div className={styles.dialog}>
+      <div ref={dialogRef} className={styles.dialog}>
         <div className={styles.header}>
           <h2 id="shortcuts-dialog-title" className={styles.title}>
             <Keyboard size={20} color="#818CF8" />

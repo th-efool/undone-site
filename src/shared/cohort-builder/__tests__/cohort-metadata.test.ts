@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createHash } from 'node:crypto';
 import { cohortWorkspaceSchema } from '../contracts';
 import { deriveCohortTitle, deriveCohortDescription, deriveChunkVideoInterval, extractSourceConceptTopics } from '../cohort-metadata';
-import { splitSource } from '@/src/server/domain/cohort-builder/text-pipeline';
+import { buildGeneratedLessons, splitSource } from '@/src/server/domain/cohort-builder/text-pipeline';
 import { projectCohortToLearnerDelivery } from '../delivery';
 
 function videoSource(texts = ['Replication copies data. Quorums overlap.', 'Leader election selects a coordinator.', 'Retries recover failures.', 'Partitions interrupt requests.', 'Recovery restores availability.']) {
@@ -64,5 +64,34 @@ describe('cohort metadata and timestamped chunk projection', () => {
     const state = videoSource();
     const chunks = splitSource(state.sources[0]);
     expect(deriveChunkVideoInterval(chunks[0], { ...state.sources[0], locations: [] }, 0, chunks.length)).toMatchObject({ startSeconds: 0, endSeconds: 0, hasTiming: false });
+  });
+
+  it('fills observed timestamp gaps and still supplies real overlap between successive parts', () => {
+    const state = videoSource(['Intro.', 'Main idea.']);
+    const source = { ...state.sources[0], locations: [
+      { start: 0, end: 6, startMs: 0, endMs: 4_000 },
+      { start: 8, end: 18, startMs: 11_000, endMs: 20_000 },
+    ], provenance: { parserVersion: 'test', rawChecksum: 'a'.repeat(64), scope: 'video_observation' as const, videoDurationMs: 30_000 } };
+    const chunks = [
+      { id: 'one', sourceId: source.id, sourceVersion: 0, start: 0, end: 6, text: 'Intro.', checksum: createHash('sha256').update('Intro.').digest('hex') },
+      { id: 'two', sourceId: source.id, sourceVersion: 0, start: 8, end: 18, text: 'Main idea.', checksum: createHash('sha256').update('Main idea.').digest('hex') },
+    ];
+    const intervals = chunks.map((chunk, index) => deriveChunkVideoInterval(chunk, source, index, chunks.length, 15, chunks));
+    expect(intervals.map(item => [item.startSeconds, item.endSeconds])).toEqual([[0, 26], [11, 30]]);
+    expect(intervals[0].endSeconds - intervals[1].startSeconds).toBe(15);
+  });
+
+  it('publishes one video lesson with ordered parts and its full source duration', () => {
+    const state = videoSource();
+    const source = { ...state.sources[0], provenance: { parserVersion: 'test', rawChecksum: 'b'.repeat(64), scope: 'video_observation' as const, videoTitle: 'Math for Everyone', videoDurationMs: 180_000 } };
+    const chunks = splitSource(source);
+    const lessons = buildGeneratedLessons({ ...state, sources: [source], chunks });
+    expect(lessons).toHaveLength(1);
+    expect(lessons[0]).toMatchObject({ title: 'Math for Everyone', sourceChunkIds: chunks.map(chunk => chunk.id) });
+    const delivery = projectCohortToLearnerDelivery({ ...state, sources: [source], chunks, lessons }, { workspaceId: 'workspace', workspaceRevision: 1, cohortId: 'cohort', contentHash: 'a'.repeat(64), mode: 'public_publish' });
+    const published = delivery.seasons[0].lessons[0];
+    expect(published.durationSeconds).toBe(180);
+    expect(published.chunks.map(chunk => chunk.title)).toEqual(['Part 1', 'Part 2', 'Part 3']);
+    expect(published.chunks.map(chunk => [chunk.startSeconds, chunk.endSeconds])).toEqual([[0, 75], [60, 135], [120, 180]]);
   });
 });

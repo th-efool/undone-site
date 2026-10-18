@@ -241,3 +241,16 @@
     display: none;
   }
 }
+
+@media (max-height: 800px) {
+  .headerContainer {
+    padding: 6px 16px 4px 16px;
+  }
+  .capsulesRow {
+    margin-bottom: 8px;
+  }
+  .lessonTitle {
+    font-size: clamp(16px, 1.5vw, 20px);
+    margin: 0 0 2px 0;
+  }
+}

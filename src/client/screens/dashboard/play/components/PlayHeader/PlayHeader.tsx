@@ -55,11 +55,19 @@ export function PlayHeader({ playback, onOpenChannelSelector }: PlayHeaderProps)
   const episodeCode = hasEpisode ? `S${seasonNum}:E${currentVideo}` : `S${seasonNum}`;
   const episodeLabel = hasEpisode
     ? `Episode ${currentVideo} of ${totalVideos}`
-    : (activeItem?.cohortTitle || lesson.topic || 'Lesson Unit');
+    : (activeItem?.cohortTitle || (lesson as any).topic || 'Lesson Unit');
 
-  // Top capsule window
+  // Top capsule window (calibrated sliding window of up to 8 capsules to prevent layout overflow)
   const totalCapsules = Math.max(feedItems.length, 1);
-  const capsuleIndices = Array.from({ length: totalCapsules }, (_, i) => i);
+  const maxVisibleCapsules = 8;
+  let startIdx = 0;
+  let endIdx = totalCapsules;
+  if (totalCapsules > maxVisibleCapsules) {
+    const half = Math.floor(maxVisibleCapsules / 2);
+    startIdx = Math.max(0, Math.min(currentIndex - half, totalCapsules - maxVisibleCapsules));
+    endIdx = startIdx + maxVisibleCapsules;
+  }
+  const capsuleIndices = Array.from({ length: endIdx - startIdx }, (_, i) => startIdx + i);
 
   return (
     <header className={styles.headerContainer} aria-label="Playback Header">

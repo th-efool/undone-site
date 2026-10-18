@@ -153,7 +153,9 @@ export function usePlayback() {
         signal: abortController.signal
       });
       if (!res.ok) throw new Error('Failed to fetch feed');
+      if (abortController.signal.aborted) return;
       const data = await res.json();
+      if (abortController.signal.aborted) return;
       
       setChannelCaches(prev => {
         const existingItems = pageIndex === 0 ? [] : prev[channelId].items;
@@ -225,13 +227,24 @@ export function usePlayback() {
       setChannelCaches(previous => {
         const ch = previous[activeChannel];
         if (!ch) return previous;
+        const currentItem = ch.items[ch.currentIndex];
+        const currentChunkId = currentItem?.chunkId;
         const itemIndex = ch.items.findIndex(it => it.chunkId === activeItem.chunkId);
         const nextItems = ch.items.filter(item => item.chunkId !== activeItem.chunkId);
-        const nextIndex = itemIndex === -1
-          ? Math.min(ch.currentIndex, Math.max(0, nextItems.length - 1))
-          : itemIndex >= nextItems.length
-          ? Math.max(0, nextItems.length - 1)
-          : Math.max(0, itemIndex);
+
+        let nextIndex: number;
+        // If user was viewing a different item when completion resolved, preserve that item's index
+        if (currentChunkId && currentChunkId !== activeItem.chunkId) {
+          const preservedIdx = nextItems.findIndex(it => it.chunkId === currentChunkId);
+          nextIndex = preservedIdx !== -1 ? preservedIdx : Math.min(ch.currentIndex, Math.max(0, nextItems.length - 1));
+        } else {
+          // User was viewing the item that just completed; advance smoothly to the next item
+          nextIndex = itemIndex === -1
+            ? Math.min(ch.currentIndex, Math.max(0, nextItems.length - 1))
+            : itemIndex >= nextItems.length
+            ? Math.max(0, nextItems.length - 1)
+            : Math.max(0, itemIndex);
+        }
 
         if (nextItems.length < 3 && !ch.isFetching && !ch.exhausted && !ch.hasError) {
           shouldPrefetch = true;
@@ -549,6 +562,11 @@ export function usePlayback() {
     }
     videoRef.current = node;
     if (node && activeItem) {
+      // Ensure any lingering YouTube playback is silenced immediately
+      if (playerRef.current && typeof playerRef.current.pauseVideo === 'function') {
+        try { playerRef.current.pauseVideo(); } catch {}
+      }
+
       node.volume = volume / 100;
       node.muted = muted;
       node.playbackRate = playbackSpeed;
@@ -586,6 +604,11 @@ export function usePlayback() {
         const rawCurrent = videoRef.current.currentTime;
         const relCurrent = Math.max(0, rawCurrent - startSecs);
         setCurrentTimeSeconds(Math.min(relCurrent, totalChunkDur));
+
+        if (rawCurrent >= endSecs) {
+          try { videoRef.current.pause(); } catch {}
+          setIsPlaying(false);
+        }
 
         if (rawCurrent >= endSecs - 0.5 && isPlayingRef.current) {
           if (!reportedChunksRef.current.has(activeItem.chunkId) && !completionError) {
@@ -655,6 +678,9 @@ export function usePlayback() {
         videoRef.current.pause();
         setIsPlaying(false);
       } else {
+        if (mediaError && typeof videoRef.current.load === 'function') {
+          try { videoRef.current.load(); } catch {}
+        }
         setMediaError(null);
         videoRef.current.play().then(() => {
           setIsPlaying(true);
@@ -679,7 +705,7 @@ export function usePlayback() {
     } catch {
       setIsPlaying(p => !p);
     }
-  }, [isPlaying, isPlayerReady, activeMediaSource.isDirectVideo]);
+  }, [isPlaying, isPlayerReady, activeMediaSource.isDirectVideo, mediaError]);
 
   const seekToPercent = useCallback((percent: number) => {
     if (!activeItem) return;

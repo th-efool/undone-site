@@ -151,3 +151,11 @@
 .closeButton:hover {
   opacity: 0.9;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .dialog {
+    animation: none !important;
+    transition: none !important;
+  }
+}
