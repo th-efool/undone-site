@@ -1,4 +1,5 @@
-export type { PersonPreview, LiveSession, UpcomingEvent } from '@/src/client/types/dashboard';
+import type { PersonPreview, LiveSession, UpcomingEvent } from '@/src/client/types/dashboard';
+export type { PersonPreview, LiveSession, UpcomingEvent };
 
 export type SidebarTab = 'community' | 'dm';
 export type ConversationFilter = 'all' | 'unread' | 'mentions' | 'pinned';

@@ -7,6 +7,7 @@ import type { UsePlaybackResult } from '../../hooks/usePlayback';
 import { PlayerSurface } from '../PlayerSurface/PlayerSurface';
 import { ReadingSurface } from '../ReadingSurface';
 import { resolveItemThumbnail } from '../../utils/thumbnailResolver';
+import { resolveMediaSource } from '../../utils/mediaSource';
 import { triggerHaptic } from '@/src/client/utils/haptics';
 import styles from './PlayStage.module.css';
 
@@ -61,18 +62,23 @@ export function PlayStage({ playback, dragDeltaX = 0, isDragging = false }: Play
   const prevThumbnail = prevItem ? resolveItemThumbnail(prevItem, currentIndex - 1, activeThumbnail) : undefined;
   const nextThumbnail = nextItem ? resolveItemThumbnail(nextItem, currentIndex + 1, activeThumbnail) : undefined;
 
-  // Real-time drag displacement
-  const deltaX = isDragging ? dragDeltaX : 0;
-  // Center card moves smoothly with drag
-  const centerShiftX = deltaX * 0.75;
-  // Left card shifts into view when dragging right (deltaX > 0)
-  const leftShiftX = deltaX > 0 ? Math.min(deltaX * 0.9, 140) : 0;
-  // Right card shifts into view when dragging left (deltaX < 0)
-  const rightShiftX = deltaX < 0 ? Math.max(deltaX * 0.9, -140) : 0;
+  const prevMedia = prevItem ? resolveMediaSource(prevItem) : null;
+  const nextMedia = nextItem ? resolveMediaSource(nextItem) : null;
 
-  const centerTransform = centerShiftX !== 0 ? `translate3d(${centerShiftX}px, 0, 0)` : undefined;
-  const leftTransform = `translateY(-50%) translate3d(${leftShiftX}px, 0, 0) scale(${1 + (leftShiftX > 0 ? Math.min(0.08, leftShiftX / 800) : 0)})`;
-  const rightTransform = `translateY(-50%) translate3d(${rightShiftX}px, 0, 0) scale(${1 + (rightShiftX < 0 ? Math.min(0.08, Math.abs(rightShiftX) / 800) : 0)})`;
+  // Step distance between cards: 84vw
+  const stepXPercent = 84;
+  const deltaX = isDragging ? dragDeltaX : 0;
+
+  // Center card moves 1:1 with drag
+  const centerTransform = `translate3d(calc(-50% + ${deltaX}px), -50%, 0) scale(${1 - Math.min(0.06, Math.abs(deltaX) / 2000)})`;
+
+  // Left card sits at -stepXPercent and moves 1:1 with drag
+  const leftTransform = `translate3d(calc(-50% - ${stepXPercent}vw + ${deltaX}px), -50%, 0) scale(${0.94 + (deltaX > 0 ? Math.min(0.06, deltaX / 1000) : 0)})`;
+  const leftOpacity = 0.65 + (deltaX > 0 ? Math.min(0.35, deltaX / 400) : 0);
+
+  // Right card sits at +stepXPercent and moves 1:1 with drag
+  const rightTransform = `translate3d(calc(-50% + ${stepXPercent}vw + ${deltaX}px), -50%, 0) scale(${0.94 + (deltaX < 0 ? Math.min(0.06, Math.abs(deltaX) / 1000) : 0)})`;
+  const rightOpacity = 0.65 + (deltaX < 0 ? Math.min(0.35, Math.abs(deltaX) / 400) : 0);
 
   const isVideo =
     activeItem?.lessonType === 'video' &&
@@ -80,32 +86,52 @@ export function PlayStage({ playback, dragDeltaX = 0, isDragging = false }: Play
 
   return (
     <main className={`${styles.stageContainer} ${isDragging ? styles.isDragging : ''}`} aria-label="Media Playback Area">
-      {/* 1. Left Edge Preview (Previous Lesson Thumbnail) */}
+      {/* 1. Left Preview Card (Previous Lesson Preloaded in DOM) */}
       {prevItem && (
         <aside
-          className={`${styles.edgePreview} ${styles.leftEdge}`}
+          className={`${styles.previewCard} ${styles.leftEdge}`}
           onClick={previousChunk}
           aria-label={`Previous lesson: ${prevItem.chunkTitle || prevItem.lessonTitle || 'Previous'}`}
           title={`Previous: ${prevItem.chunkTitle || prevItem.lessonTitle || 'Previous'}`}
           style={{
             transform: leftTransform,
-            opacity: leftShiftX > 0 ? Math.min(0.9, 0.42 + (leftShiftX / 200)) : undefined,
+            opacity: leftOpacity,
             transition: isDragging ? 'none' : undefined,
           }}
         >
-          {prevThumbnail ? (
+          {prevMedia?.isDirectVideo && prevMedia.videoUrl ? (
+            <video
+              src={prevMedia.videoUrl}
+              preload="metadata"
+              muted
+              playsInline
+              poster={prevThumbnail}
+              className={styles.preloadedVideo}
+            />
+          ) : prevThumbnail ? (
             <Image
               src={prevThumbnail}
               alt={prevItem.chunkTitle || 'Previous lesson'}
               fill
-              sizes="120px"
+              sizes="80vw"
               style={{ objectFit: 'cover' }}
+              priority={true}
             />
           ) : (
             <div className={styles.edgeFallback}>
-              <Layers size={28} />
+              <Layers size={36} />
             </div>
           )}
+
+          <div className={styles.cardOverlay}>
+            <div className={styles.cardBadge}>
+              <PlayIcon size={12} fill="currentColor" />
+              <span>Previous</span>
+            </div>
+            <h3 className={styles.cardTitle}>
+              {prevItem.chunkTitle || prevItem.lessonTitle || 'Previous Lesson'}
+            </h3>
+          </div>
         </aside>
       )}
 
@@ -211,32 +237,52 @@ export function PlayStage({ playback, dragDeltaX = 0, isDragging = false }: Play
         )}
       </section>
 
-      {/* 3. Right Edge Preview (Next Lesson Thumbnail) */}
+      {/* 3. Right Preview Card (Next Lesson Preloaded in DOM) */}
       {nextItem && (
         <aside
-          className={`${styles.edgePreview} ${styles.rightEdge}`}
+          className={`${styles.previewCard} ${styles.rightEdge}`}
           onClick={nextChunk}
           aria-label={`Next lesson: ${nextItem.chunkTitle || nextItem.lessonTitle || 'Next'}`}
           title={`Next: ${nextItem.chunkTitle || nextItem.lessonTitle || 'Next'}`}
           style={{
             transform: rightTransform,
-            opacity: rightShiftX < 0 ? Math.min(0.9, 0.42 + (Math.abs(rightShiftX) / 200)) : undefined,
+            opacity: rightOpacity,
             transition: isDragging ? 'none' : undefined,
           }}
         >
-          {nextThumbnail ? (
+          {nextMedia?.isDirectVideo && nextMedia.videoUrl ? (
+            <video
+              src={nextMedia.videoUrl}
+              preload="metadata"
+              muted
+              playsInline
+              poster={nextThumbnail}
+              className={styles.preloadedVideo}
+            />
+          ) : nextThumbnail ? (
             <Image
               src={nextThumbnail}
               alt={nextItem.chunkTitle || 'Next lesson'}
               fill
-              sizes="120px"
+              sizes="80vw"
               style={{ objectFit: 'cover' }}
+              priority={true}
             />
           ) : (
             <div className={styles.edgeFallback}>
-              <Layers size={28} />
+              <Layers size={36} />
             </div>
           )}
+
+          <div className={styles.cardOverlay}>
+            <div className={styles.cardBadge}>
+              <PlayIcon size={12} fill="currentColor" />
+              <span>Next</span>
+            </div>
+            <h3 className={styles.cardTitle}>
+              {nextItem.chunkTitle || nextItem.lessonTitle || 'Next Lesson'}
+            </h3>
+          </div>
         </aside>
       )}
     </main>

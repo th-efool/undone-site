@@ -20,8 +20,10 @@
 
 /* Center Media Surface */
 .centralSurface {
-  position: relative;
-  width: 83vw;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 80vw;
   max-width: calc((100dvh - 210px) * (16 / 9));
   max-height: calc(100dvh - 210px);
   aspect-ratio: 16 / 9;
@@ -121,48 +123,89 @@
   opacity: 1;
 }
 
-/* Flanking Previous / Next Edge Previews */
-.edgePreview {
+/* Flanking Previous / Next Preview Cards */
+.previewCard {
   position: absolute;
   top: 50%;
-  transform: translateY(-50%);
-  width: clamp(50px, 6.5vw, 110px);
-  height: min(72%, calc(100dvh - 240px));
-  aspect-ratio: 9 / 16;
-  max-height: calc(100dvh - 240px);
+  left: 50%;
+  width: 80vw;
+  max-width: calc((100dvh - 210px) * (16 / 9));
+  max-height: calc(100dvh - 210px);
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
   overflow: hidden;
+  background: #09090c;
   cursor: pointer;
-  opacity: 0.42;
-  filter: brightness(0.65) saturate(0.85);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  opacity: 0.65;
+  filter: brightness(0.68) saturate(0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7);
   z-index: 5;
-  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.35s ease,
               filter 0.25s ease;
+  will-change: transform, opacity;
+  box-sizing: border-box;
 }
 
-.edgePreview:hover {
-  opacity: 0.85;
+.previewCard:hover {
+  opacity: 0.9;
   filter: brightness(0.9) saturate(1);
 }
 
-.leftEdge {
-  left: 0;
-  border-radius: 0 16px 16px 0;
+.preloadedVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
 }
 
-.leftEdge:hover {
-  transform: translateY(-50%) translateX(6px);
+.cardOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 32px 24px 20px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.cardBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  border-radius: 999px;
+  color: #a5b4fc;
+  font-size: 0.76rem;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.cardTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.leftEdge {
+  /* Positioned dynamically via style transform */
 }
 
 .rightEdge {
-  right: 0;
-  border-radius: 16px 0 0 16px;
-}
-
-.rightEdge:hover {
-  transform: translateY(-50%) translateX(-6px);
+  /* Positioned dynamically via style transform */
 }
 
 .edgeFallback {
@@ -176,9 +219,7 @@
 }
 
 @media (max-width: 1024px) {
-  .edgePreview {
-    width: clamp(36px, 4.5vw, 60px);
-  }
+  .previewCard,
   .centralSurface {
     width: 88vw;
   }
@@ -189,7 +230,7 @@
 }
 
 @media (max-width: 900px) {
-  .edgePreview {
+  .previewCard {
     display: none;
   }
   .centralSurface {
@@ -199,13 +240,10 @@
 }
 
 @media (max-height: 800px) {
+  .previewCard,
   .centralSurface {
     max-width: calc((100dvh - 165px) * (16 / 9));
     max-height: calc(100dvh - 165px);
-  }
-  .edgePreview {
-    height: min(70%, calc(100dvh - 190px));
-    max-height: calc(100dvh - 190px);
   }
   .playOverlayButton {
     width: 64px;

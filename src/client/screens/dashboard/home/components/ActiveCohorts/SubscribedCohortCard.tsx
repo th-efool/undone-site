@@ -12,15 +12,15 @@ import styles from './SubscribedCohortCard.module.css';
 
 export interface SubscribedCohortCardProps {
   cohort: ActiveCohort;
-  onPause(until: Date): void;
-  onResume(): void;
+  onPause(until: Date): void | Promise<void>;
+  onResume(): void | Promise<void>;
   onSave(settings: CohortLearningSettings): Promise<void>;
   onDelete(): Promise<void>;
 }
 
 const FALLBACK_COVER = 'https://images.unsplash.com/photo-1507413245164-6160d8298b31?w=800&auto=format&fit=crop&q=80';
 const WEEKDAYS: Weekday[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-type Panel = 'pause' | 'custom' | 'menu' | 'edit' | 'delete';
+type Panel = 'pause' | 'custom' | 'menu' | 'edit' | 'delete' | 'resume';
 
 function localDateValue(date: Date) {
   return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
@@ -114,8 +114,7 @@ export const SubscribedCohortCard = React.memo(function SubscribedCohortCard({
   const pauseForDays = (count: number) => {
     const until = new Date();
     until.setDate(until.getDate() + count);
-    onPause(until);
-    close();
+    void persist(() => onPause(until));
   };
   const submitCustom = (event: React.FormEvent) => {
     event.preventDefault();
@@ -127,14 +126,16 @@ export const SubscribedCohortCard = React.memo(function SubscribedCohortCard({
     const [year, month, day] = selectedDate.split('-').map(Number);
     // Resume at the start of the following local day, covering the selected date.
     const until = new Date(year, month - 1, day + 1);
-    onPause(until);
-    close();
+    void persist(() => onPause(until));
   };
-  const persist = async (operation: () => Promise<void>) => {
+  const persist = async (operation: () => void | Promise<void>) => {
     setPending(true);
     setError('');
     try { await operation(); close(); }
-    catch { setError('Could not save this change. Please try again.'); }
+    catch {
+      setError('Could not save this change. Please try again.');
+      if (!panel) setPanel('resume');
+    }
     finally { setPending(false); }
   };
 
@@ -151,7 +152,13 @@ export const SubscribedCohortCard = React.memo(function SubscribedCohortCard({
         <button ref={pauseButton} type="button" className={styles.iconButton}
           aria-label={`${paused ? 'Resume' : 'Pause'} ${cohort.title}`}
           title={paused ? 'Resume' : 'Pause'} aria-expanded={!paused && (panel === 'pause' || panel === 'custom')}
-          onClick={() => paused ? onResume() : panel === 'pause' || panel === 'custom' ? close() : open('pause', pauseButton.current)}>
+          disabled={pending} onClick={() => {
+            if (paused) {
+              anchor.current = pauseButton.current;
+              void persist(onResume);
+            } else if (panel === 'pause' || panel === 'custom') close();
+            else open('pause', pauseButton.current);
+          }}>
           {paused ? <Play size={14} fill="currentColor" /> : <Pause size={14} fill="currentColor" />}
         </button>
         {paused && <span className={styles.pausedBadge}>Paused</span>}
@@ -179,20 +186,20 @@ export const SubscribedCohortCard = React.memo(function SubscribedCohortCard({
             <button type="button" role="menuitem" className={styles.danger} onClick={() => open('delete', menuButton.current)}><Trash2 size={14} /> Delete</button>
           </> : <>
             <header className={styles.popoverHeader}>
-              <strong>{panel === 'edit' ? 'Learning settings' : panel === 'delete' ? 'Remove subscription?' : 'Pause for'}</strong>
+              <strong>{panel === 'edit' ? 'Learning settings' : panel === 'delete' ? 'Remove subscription?' : panel === 'resume' ? 'Resume cohort' : 'Pause for'}</strong>
               <button type="button" className={styles.dismiss} aria-label="Close options" onClick={close}><X size={14} /></button>
             </header>
             {panel === 'pause' && <>
-              <button type="button" onClick={() => pauseForDays(1)}>1 day</button>
-              <button type="button" onClick={() => pauseForDays(7)}>1 week</button>
-              <button type="button" onClick={() => setPanel('custom')}><CalendarDays size={14} /> Custom date</button>
+              <button type="button" disabled={pending} onClick={() => pauseForDays(1)}>1 day</button>
+              <button type="button" disabled={pending} onClick={() => pauseForDays(7)}>1 week</button>
+              <button type="button" disabled={pending} onClick={() => setPanel('custom')}><CalendarDays size={14} /> Custom date</button>
             </>}
             {panel === 'custom' && <form onSubmit={submitCustom} className={styles.form}>
               <label htmlFor={`pause-date-${cohort.id}`}>Pause through</label>
               <input ref={dateInput} id={`pause-date-${cohort.id}`} type="date" min={localDateValue(tomorrow)} value={customDate} required
                 onClick={() => dateInput.current?.showPicker?.()} onInput={(event) => { setCustomDate(event.currentTarget.value); setError(''); }}
                 onChange={(event) => { setCustomDate(event.target.value); setError(''); }} />
-              <button type="submit" className={styles.primary}>Pause</button>
+              <button type="submit" className={styles.primary} disabled={pending}>{pending ? 'Saving…' : 'Pause'}</button>
             </form>}
             {panel === 'edit' && <form className={styles.form} onSubmit={(event) => {
               event.preventDefault();

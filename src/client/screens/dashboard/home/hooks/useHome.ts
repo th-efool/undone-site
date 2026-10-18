@@ -301,58 +301,41 @@ export function useHome(props?: {
     if (cohort) debouncedSyncCohort(cleanId, cohort, snapshot);
   }
 
-  function pauseActiveCohort(cohortId: string, pausedUntil: Date, pausedReason?: string) {
-    if (pausedUntil <= new Date()) return;
-    const snapshot = { activeCohorts, continueLater };
-
+  async function pauseActiveCohort(cohortId: string, pausedUntil: Date, pausedReason?: string) {
+    if (!isAuthenticated) throw new Error('Sign in to pause a cohort');
+    if (!Number.isFinite(pausedUntil.getTime()) || pausedUntil <= new Date()) throw new Error('Choose a future pause date');
     const activeCohort = activeCohorts.find((c) => (c.cohortId || c.id) === cohortId || c.id === cohortId);
+    if (!activeCohort) throw new Error('Cohort not found');
     const cleanId = activeCohort?.cohortId || activeCohort?.id || cohortId;
-    const result = pauseCohort(activeCohorts, continueLater, cleanId, pausedUntil, pausedReason);
-
-    setActiveCohorts(result.activeCohorts);
-    setContinueLater(result.continueLater);
-
-    const paused = result.continueLater.find((c) => (c.cohortId || c.id) === cleanId || c.id === cleanId);
-    debouncedSyncCohort(
-      cleanId,
-      {
-        rank: activeCohort?.rank,
-        dailyGoalMinutes: paused?.dailyGoalMinutes ?? activeCohort?.dailyGoalMinutes,
-        schedule: paused?.schedule ?? activeCohort?.schedule,
-        frequency: paused?.frequency ?? activeCohort?.frequency,
-        orderStyle: paused?.orderStyle ?? activeCohort?.orderStyle,
-        isPaused: true,
-        pausedUntil,
-        pausedReason,
-      },
-      snapshot
-    );
+    const response = await syncWithRetry('/api/user/cohort-config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cohortId: cleanId, rank: activeCohort.rank, isPaused: true, pausedUntil: pausedUntil.toISOString(), pausedReason }),
+    });
+    if (!response.ok) throw new Error('Could not save cohort pause');
+    const result = pauseCohort([activeCohort], [], cleanId, pausedUntil, pausedReason);
+    setActiveCohorts((cohorts) => cohorts.filter((cohort) => (cohort.cohortId || cohort.id) !== cleanId));
+    setContinueLater((cohorts) => [...result.continueLater, ...cohorts.filter((cohort) => (cohort.cohortId || cohort.id) !== cleanId)]);
   }
 
-  function resumePausedCohort(cohortId: string) {
-    const snapshot = { activeCohorts, continueLater };
+  async function resumePausedCohort(cohortId: string) {
+    if (!isAuthenticated) throw new Error('Sign in to resume a cohort');
     const pausedCohort = continueLater.find(c => (c.cohortId || c.id) === cohortId || c.id === cohortId);
+    if (!pausedCohort) throw new Error('Cohort not found');
     const cleanId = pausedCohort?.cohortId || pausedCohort?.id || cohortId;
-    const result = resumeCohort(activeCohorts, continueLater, cleanId);
-
-    setActiveCohorts(result.activeCohorts);
-    setContinueLater(result.continueLater);
-
-    const resumed = result.activeCohorts.find(c => (c.cohortId || c.id) === cleanId || c.id === cleanId);
-    if (resumed) {
-      debouncedSyncCohort(
-        cleanId,
-        {
-          ...resumed,
-          isPaused: false,
-          pausedUntil: undefined,
-        },
-        snapshot
-      );
-    }
+    const response = await syncWithRetry('/api/user/cohort-config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cohortId: cleanId, isPaused: false, pausedUntil: null }),
+    });
+    if (!response.ok) throw new Error('Could not save cohort resume');
+    const result = resumeCohort([], [pausedCohort], cleanId);
+    setActiveCohorts((cohorts) => [...cohorts.filter((cohort) => (cohort.cohortId || cohort.id) !== cleanId), ...result.activeCohorts].sort((a, b) => a.rank - b.rank));
+    setContinueLater((cohorts) => cohorts.filter((cohort) => (cohort.cohortId || cohort.id) !== cleanId));
   }
 
   async function saveLearningSettings(cohortId: string, settings: CohortLearningSettings) {
+    if (!isAuthenticated) throw new Error('Sign in to save learning settings');
     if (settings.dailyGoalMinutes < 5 || settings.dailyGoalMinutes > 180 || !settings.schedule.days.length) {
       throw new Error('Invalid learning settings');
     }
@@ -372,6 +355,7 @@ export function useHome(props?: {
   }
 
   async function removeSubscribedCohort(cohortId: string) {
+    if (!isAuthenticated) throw new Error('Sign in to remove a subscription');
     const timer = cohortTimers.current.get(cohortId);
     if (timer) clearTimeout(timer);
     cohortTimers.current.delete(cohortId);

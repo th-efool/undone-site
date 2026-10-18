@@ -187,16 +187,34 @@ describe('PlayStage component', () => {
     const { rerender } = render(<PlayStage playback={playback} dragDeltaX={-60} isDragging={true} />);
 
     const centralSurface = screen.getByRole('region', { name: /current video stage/i });
-    expect(centralSurface.style.transform).toContain('translate3d(-45px, 0, 0)');
+    expect(centralSurface.style.transform).toContain('-60px');
     expect(centralSurface.style.transition).toBe('none');
 
     // Right edge slides into view when dragging left
     const rightEdge = screen.getByRole('complementary', { name: /next lesson/i });
-    expect(rightEdge.style.transform).toContain('translate3d(-54px, 0, 0)');
+    expect(rightEdge.style.transform).toContain('-60px');
 
     // Snapping back when drag ends
     rerender(<PlayStage playback={playback} dragDeltaX={0} isDragging={false} />);
-    expect(centralSurface.style.transform).toBe('');
+    expect(centralSurface.style.transform).toContain('0px');
+  });
+
+  it('preloads video in DOM when next item has a direct video URL', () => {
+    const playbackWithDirectVideo = createMockPlayback({
+      hasNext: true,
+      feedItems: [
+        videoItem,
+        { ...nextVideoItem, lessonVideoId: undefined, lessonVideoUrl: 'https://cdn.example.com/video2.mp4' },
+      ],
+    });
+
+    render(<PlayStage playback={playbackWithDirectVideo} />);
+
+    const rightEdge = screen.getByRole('complementary', { name: /next lesson/i });
+    const video = rightEdge.querySelector('video');
+    expect(video).not.toBeNull();
+    expect(video?.getAttribute('preload')).toBe('metadata');
+    expect(video?.getAttribute('src')).toBe('https://cdn.example.com/video2.mp4');
   });
 
   it('deduplicates thumbnails so edge preview does not clone active video thumbnail', () => {

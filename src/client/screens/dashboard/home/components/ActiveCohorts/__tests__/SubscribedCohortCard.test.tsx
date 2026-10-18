@@ -17,7 +17,7 @@ beforeEach(() => vi.stubGlobal('ResizeObserver', class { observe() {} disconnect
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe('cohort card controls', () => {
-  it('uses a separate link and a nonblocking pause picker with two presets', () => {
+  it('uses a separate link and a nonblocking pause picker with two presets', async () => {
     const { pause } = setup();
     expect(screen.getByRole('link', { name: 'Open Systems' }).getAttribute('href')).toBe('/cohort/c1');
     fireEvent.click(screen.getByRole('button', { name: 'Pause Systems' }));
@@ -26,9 +26,9 @@ describe('cohort card controls', () => {
     fireEvent.click(screen.getByRole('button', { name: '1 week' }));
     expect(pause).toHaveBeenCalledOnce();
     expect(pause.mock.calls[0][0].getTime() - Date.now()).toBeGreaterThan(6 * 86400000);
-    expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
-  it('accepts a calendar date without a time field and covers the selected local day', () => {
+  it('accepts a calendar date without a time field and covers the selected local day', async () => {
     const { pause } = setup();
     fireEvent.click(screen.getByRole('button', { name: 'Pause Systems' }));
     fireEvent.click(screen.getByRole('button', { name: 'Custom date' }));
@@ -41,13 +41,15 @@ describe('cohort card controls', () => {
     const until: Date = pause.mock.calls[0][0];
     expect(until.getHours()).toBe(0);
     expect(until.getDate()).toBe(new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1).getDate());
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
   });
-  it('resumes from the play icon without opening a picker', () => {
+  it('resumes from the play icon without opening a picker', async () => {
     const { resume } = setup({ ...cohort, pausedUntil: new Date(Date.now() + 86400000).toISOString() });
     expect(screen.getByText('Paused')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Resume Systems' }));
     expect(resume).toHaveBeenCalledOnce();
     expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Resume Systems' }) as HTMLButtonElement).disabled).toBe(false));
   });
   it('shows Edit and Delete, saves settings, and requires confirmation before removal', async () => {
     const { save, remove } = setup();
