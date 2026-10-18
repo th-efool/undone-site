@@ -1,0 +1,176 @@
+.stageContainer {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Center Media Surface */
+.centralSurface {
+  position: relative;
+  width: 83vw;
+  max-width: calc((100dvh - 210px) * (16 / 9));
+  max-height: calc(100dvh - 210px);
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #000000;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Video Mount Inner Wrapper */
+.videoWrapper {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  background: #000000;
+  overflow: hidden;
+}
+
+/* Large Center Play Overlay Button when Paused */
+.playOverlayButton {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(14, 14, 20, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  cursor: pointer;
+  z-index: 15;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+}
+
+.playOverlayButton:hover {
+  transform: translate(-50%, -50%) scale(1.08);
+  background: rgba(24, 24, 34, 0.85);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.playOverlayButton:active {
+  transform: translate(-50%, -50%) scale(0.96);
+}
+
+/* Bottom Integrated Timeline Scrubber */
+.timelineScrubber {
+  position: relative;
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  z-index: 20;
+  transition: height 0.15s ease;
+}
+
+.timelineScrubber:hover {
+  height: 9px;
+}
+
+.timelineProgress {
+  height: 100%;
+  background: #5430FF;
+  position: relative;
+  transition: width 0.1s linear;
+}
+
+.timelineThumb {
+  position: absolute;
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 0 6px rgba(84, 48, 255, 0.8);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.timelineScrubber:hover .timelineThumb {
+  opacity: 1;
+}
+
+/* Flanking Previous / Next Edge Previews */
+.edgePreview {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: clamp(50px, 6.5vw, 110px);
+  height: min(72%, calc(100dvh - 240px));
+  aspect-ratio: 9 / 16;
+  max-height: calc(100dvh - 240px);
+  overflow: hidden;
+  cursor: pointer;
+  opacity: 0.42;
+  filter: brightness(0.65) saturate(0.85);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  z-index: 5;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.25s ease;
+}
+
+.edgePreview:hover {
+  opacity: 0.85;
+  filter: brightness(0.9) saturate(1);
+}
+
+.leftEdge {
+  left: 0;
+  border-radius: 0 16px 16px 0;
+}
+
+.leftEdge:hover {
+  transform: translateY(-50%) translateX(6px);
+}
+
+.rightEdge {
+  right: 0;
+  border-radius: 16px 0 0 16px;
+}
+
+.rightEdge:hover {
+  transform: translateY(-50%) translateX(-6px);
+}
+
+.edgeFallback {
+  width: 100%;
+  height: 100%;
+  background: #0E0E16;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+@media (max-width: 900px) {
+  .edgePreview {
+    display: none;
+  }
+  .centralSurface {
+    width: 96vw;
+    border-radius: 12px;
+  }
+}

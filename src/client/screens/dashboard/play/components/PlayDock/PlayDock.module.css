@@ -1,0 +1,231 @@
+.dockContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 24px 20px 24px;
+  user-select: none;
+  z-index: 30;
+  flex-wrap: wrap;
+}
+
+/* Individual Detached Rounded Capsules */
+.capsule {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 9999px;
+  background: rgba(18, 18, 24, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  color: #CBD5E1;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.capsule:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(26, 26, 36, 0.9);
+  color: #FFFFFF;
+}
+
+/* Button inside capsule */
+.dockButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  height: 100%;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 6px;
+  transition: transform 0.15s ease;
+}
+
+.dockButton:active {
+  transform: scale(0.94);
+}
+
+.dockButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Volume Capsule with Slider */
+.volumeCapsule {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+}
+
+.volumeSlider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 72px;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.2);
+  outline: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.volumeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  cursor: pointer;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+  transition: transform 0.15s ease;
+}
+
+.volumeSlider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+}
+
+.volumeSlider:hover::-webkit-slider-thumb {
+  transform: scale(1.2);
+}
+
+/* Speed Dropdown Menu */
+.speedWrapper {
+  position: relative;
+}
+
+.speedMenu {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #14141E;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.7);
+  z-index: 100;
+  min-width: 80px;
+}
+
+.speedOption {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.speedOption:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+}
+
+.speedOptionActive {
+  background: #5430FF !important;
+  color: #FFFFFF !important;
+}
+
+/* Spinner */
+.spinner {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Report Modal Backdrop */
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modalContent {
+  background: #0E0E16;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 24px;
+  max-width: 420px;
+  width: 100%;
+  color: #F1F5F9;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #FFFFFF;
+}
+
+.modalDesc {
+  font-size: 14px;
+  color: #94A3B8;
+  line-height: 1.5;
+  margin: 0 0 20px 0;
+}
+
+.modalCloseBtn {
+  background: #5430FF;
+  border: none;
+  border-radius: 9999px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #FFFFFF;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.modalCloseBtn:hover {
+  opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+  .dockContainer {
+    gap: 6px;
+    padding: 8px 12px 16px 12px;
+  }
+  .capsule {
+    height: 38px;
+    padding: 0 10px;
+  }
+  .volumeSlider {
+    width: 50px;
+  }
+}
