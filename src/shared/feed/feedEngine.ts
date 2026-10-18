@@ -349,6 +349,8 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
       lessonTitle: chunk.lessonTitle,
       cohortTitle: chunk.cohortTitle,
       lessonVideoId: chunk.lessonVideoId,
+      lessonVideoUrl: chunk.lessonVideoUrl,
+      sourceUrl: chunk.lessonVideoUrl ?? (chunk as any).sourceUrl,
       lessonType: chunk.lessonType,
       content: chunk.content,
       lessonThumbnail: chunk.lessonThumbnail,

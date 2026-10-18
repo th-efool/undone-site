@@ -95,6 +95,8 @@ export interface FeedItem {
   cohortTitle: string;
   lessonThumbnail?: string;
   lessonVideoId?: string;
+  lessonVideoUrl?: string;
+  sourceUrl?: string;
   lessonType?: string;
   content?: FeedReadingContent;
   totalChunksInLesson?: number;   // total chunks in this lesson, for "Chunk X / Y" display

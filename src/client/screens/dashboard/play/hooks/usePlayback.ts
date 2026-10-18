@@ -87,6 +87,7 @@ export function usePlayback() {
   const [activeTool, setActiveTool] = useState<PlayerTool | null>('scribe');
   const [notesText, setNotesText] = useState('');
   const [ytApiReady, setYtApiReady] = useState(false);
+  const [ytApiError, setYtApiError] = useState<string | null>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [completionPending, setCompletionPending] = useState(false);
   const [completionError, setCompletionError] = useState<string | null>(null);
@@ -304,22 +305,44 @@ export function usePlayback() {
   // Handle YouTube IFrame API Load
   useEffect(() => {
     if (typeof window === 'undefined' || !activeItem?.lessonVideoId || activeItem.lessonType === 'reading' || activeItem.lessonType === 'assignment') return;
+
+    // Direct MP4 or HLS video URLs should bypass YouTube iframe API
+    const isYouTubeId = /^[A-Za-z0-9_-]{11}$/.test(activeItem.lessonVideoId);
+    if (!isYouTubeId && (activeItem.lessonVideoId.includes('.mp4') || activeItem.lessonVideoId.includes('.m3u8') || activeItem.lessonVideoUrl || activeItem.sourceUrl)) {
+      return;
+    }
+
     if (window.YT && window.YT.Player) {
       setYtApiReady(true);
+      setYtApiError(null);
       return;
     }
     const prevCallback = window.onYouTubeIframeAPIReady;
     window.onYouTubeIframeAPIReady = () => {
       prevCallback?.();
       setYtApiReady(true);
+      setYtApiError(null);
     };
-    if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
-      const tag = document.createElement('script');
+
+    let tag = document.querySelector('script[src*="youtube.com/iframe_api"]') as HTMLScriptElement | null;
+    if (!tag) {
+      tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
       tag.async = true;
+      tag.onerror = () => {
+        console.warn('YouTube IFrame API failed to load (adblocker or network error)');
+        setYtApiReady(false);
+        setYtApiError('YouTube player unavailable (blocked by adblocker or network).');
+      };
       document.head.appendChild(tag);
+    } else {
+      tag.addEventListener('error', () => {
+        console.warn('YouTube IFrame API failed to load (adblocker or network error)');
+        setYtApiReady(false);
+        setYtApiError('YouTube player unavailable (blocked by adblocker or network).');
+      });
     }
-  }, [activeItem?.lessonVideoId, activeItem?.lessonType]);
+  }, [activeItem?.lessonVideoId, activeItem?.lessonType, activeItem?.lessonVideoUrl, activeItem?.sourceUrl]);
 
   // Sync state when active item changes
   useEffect(() => {
@@ -655,6 +678,8 @@ export function usePlayback() {
     completionError,
     saveNotes,
     setActiveTool,
+    ytApiReady,
+    ytApiError,
     
     activeChannel,
     setActiveChannel: (ch: ChannelId) => {

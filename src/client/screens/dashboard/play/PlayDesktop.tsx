@@ -166,13 +166,20 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
   const renderScene = useCallback(
     (index: number, isActive: boolean) => {
       const item = playback.feedItems[index];
-      const isVideo = item?.lessonType === 'video' && Boolean(item?.lessonVideoId);
+      const isVideo =
+        item?.lessonType === 'video' &&
+        Boolean(item?.lessonVideoId || item?.lessonVideoUrl || item?.sourceUrl);
 
       if (isActive) {
         return (
           <div className={styles.surfaceContainer}>
             {isVideo ? (
-              <PlayerSurface containerRef={playback.playerContainerRef}>
+              <PlayerSurface
+                containerRef={playback.playerContainerRef}
+                activeItem={item}
+                ytApiError={playback.ytApiError}
+                onCompleteChunk={() => { triggerHaptic('success'); void playback.completeActiveChunk(); }}
+              >
                 {desktopOverlays}
               </PlayerSurface>
             ) : item?.content ? (
@@ -183,7 +190,12 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
                 onComplete={() => void playback.completeActiveChunk()}
               />
             ) : (
-              <PlayerSurface containerRef={playback.playerContainerRef}>
+              <PlayerSurface
+                containerRef={playback.playerContainerRef}
+                activeItem={item}
+                ytApiError={playback.ytApiError}
+                onCompleteChunk={() => { triggerHaptic('success'); void playback.completeActiveChunk(); }}
+              >
                 {desktopOverlays}
               </PlayerSurface>
             )}

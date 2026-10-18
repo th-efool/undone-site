@@ -11,7 +11,13 @@ interface PlayMobileProps {
 }
 
 export function PlayMobile({ playback }: PlayMobileProps) {
-  const isVideo = playback.activeItem?.lessonType === 'video' && Boolean(playback.activeItem?.lessonVideoId);
+  const isVideo =
+    playback.activeItem?.lessonType === 'video' &&
+    Boolean(
+      playback.activeItem?.lessonVideoId ||
+        playback.activeItem?.lessonVideoUrl ||
+        playback.activeItem?.sourceUrl,
+    );
   if (!isVideo && playback.activeItem?.content) return <main className={styles.mobilePlay}>
     <ReadingSurface item={playback.activeItem} pending={playback.completionPending} error={playback.completionError}
       onComplete={() => void playback.completeActiveChunk()} />
