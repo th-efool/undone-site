@@ -258,10 +258,38 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
     if (disabled) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is typing in input/textarea
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      // Never intercept modifier key combinations (e.g. Cmd+K, Ctrl+R, Alt+Tab)
+      if (e.metaKey || e.ctrlKey || e.altKey) {
         return;
+      }
+
+      // Ignore if user is typing or interacting with form elements
+      const target = e.target instanceof Element ? (e.target as HTMLElement) : null;
+      if (target) {
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+          return;
+        }
+
+        // Ignore if focus is in an interactive button, slider, select, menu, or dialog
+        const isButton = target.tagName === 'BUTTON' || (typeof target.closest === 'function' && target.closest('button') !== null);
+        const isSlider = target.getAttribute?.('role') === 'slider' || (typeof target.closest === 'function' && target.closest('[role="slider"]') !== null);
+        const isSelect = target.tagName === 'SELECT' || (typeof target.closest === 'function' && target.closest('select') !== null);
+        const isInDialog = typeof target.closest === 'function' && target.closest('[role="dialog"]') !== null;
+        const isInMenu = typeof target.closest === 'function' && (target.closest('[role="menu"]') !== null || target.closest('[role="listbox"]') !== null);
+
+        if (isInDialog || isInMenu || isSelect) {
+          return;
+        }
+
+        // If focused on a button, spacebar activates the button natively; don't hijack it
+        if (isButton && (e.key === ' ' || e.key === 'Enter')) {
+          return;
+        }
+
+        // If focused on a slider (e.g. volume or seek), arrow keys adjust the slider; don't hijack them
+        if (isSlider && (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+          return;
+        }
       }
 
       switch (e.key) {
