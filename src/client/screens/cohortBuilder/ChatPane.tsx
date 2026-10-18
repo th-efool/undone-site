@@ -9,6 +9,7 @@ import { useAssistantActivity } from './useAssistantActivity';
 import { useTheme } from '@/src/client/hooks/useTheme';
 import type { EntityRef } from 'interaction-builder/core';
 import styles from './CohortBuilder.module.css';
+import { ProcessingChecklist } from './stages/ProcessingChecklist';
 
 interface AttachedEntity {
   entity: EntityRef;
@@ -36,19 +37,20 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
   const scrollRef = useRef<HTMLDivElement>(null);
   const nearBottom = useRef(true);
   const isInitialMount = useRef(true);
+  const showsProcessing = state.view?.journey?.step === 'processing' || state.view?.journey?.step === 'ready';
 
   useEffect(() => {
     if (isInitialMount.current) {
       isInitialMount.current = false;
       if (scrollRef.current) {
-        scrollRef.current.scrollTop = 0;
+        scrollRef.current.scrollTop = showsProcessing ? scrollRef.current.scrollHeight : 0;
       }
       return;
     }
     if (scrollRef.current && nearBottom.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages.length]);
+  }, [messages.length, showsProcessing]);
 
   const handleSend = async (customText?: string) => {
     const textToSend = customText ?? input;
@@ -298,6 +300,10 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
               </div>
             );
           })
+        )}
+
+        {(step === 'processing' || step === 'ready') && state.view && (
+          <ProcessingChecklist workspace={state.view} />
         )}
 
         {activeTurn && (

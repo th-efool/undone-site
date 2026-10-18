@@ -72,10 +72,12 @@ describe('atomic assembly acceptance and projection', () => {
   it('rejects expired acceptance without changing the workspace or accepting the job', async () => {
     const { db, port, job, assembly } = await setup();
     try {
+      const before = (await db.query<{ snapshot: CohortWorkspace }>(`SELECT "snapshot" FROM "interaction_workspaces" WHERE "id"=$1`, [workspaceId])).rows[0].snapshot;
       expect(await acceptAssemblyProjection(port, job, assembly, new Date(now.getTime() + 2_001))).toBe(false);
       const row = (await db.query<{ revision: number; snapshot: CohortWorkspace }>(`SELECT "revision", "snapshot" FROM "interaction_workspaces" WHERE "id" = $1`, [workspaceId])).rows[0];
       expect(row.revision).toBe(4);
-      expect(row.snapshot.chunks).toHaveLength(0);
+      // Earlier accepted stages are already visible; rejected assembly must leave them intact.
+      expect(row.snapshot).toEqual(before);
       expect((await db.query<{ status: string }>(`SELECT "status" FROM "cohort_text_jobs" WHERE "id" = $1`, [job.id])).rows[0].status).toBe('running');
     } finally { await db.close(); }
   }, 30_000);

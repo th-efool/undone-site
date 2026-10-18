@@ -2,6 +2,7 @@ import 'server-only';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import { type CohortWorkspace, cohortWorkspaceSchema, cohortReleaseReceiptSchema } from '@/src/shared/cohort-builder/contracts';
+import { deriveCohortTitle, deriveCohortDescription } from '@/src/shared/cohort-builder/cohort-metadata';
 import {
   type LearnerDeliveryPayload,
   projectCohortToLearnerDelivery,
@@ -75,7 +76,8 @@ export function deriveCandidateSnapshotHash(
   const normalized = {
     schemaVersion: 1,
     workspaceId: options.workspaceId,
-    title: workspace.title.trim(),
+    title: deriveCohortTitle(workspace),
+    description: deriveCohortDescription(workspace),
     intent: workspace.intent.trim(),
     audience: workspace.audience.trim(),
     dailyMinutes: workspace.dailyMinutes,

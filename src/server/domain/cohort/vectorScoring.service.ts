@@ -149,13 +149,13 @@ Return ONLY valid JSON matching this schema:
     text: string,
     metadata?: { title?: string; duration?: number; chunkIndex?: number; totalChunks?: number }
   ): VectorScoringResult {
-    const computed = computeDeterministicChunkVector(text, metadata);
+    const computed = computeDeterministicChunkVector(text, { ...metadata, durationSeconds: metadata?.duration });
 
     return {
       vector: computed.vector,
       vectorMap: computed.vectorMap,
       isStrictlyLinear: computed.isStrictlyLinear,
-      linearityDependencyScore: computed.linearityDependencyScore,
+      linearityDependencyScore: computed.vectorMap.linearity_dependency,
       isKeyConcept: computed.isKeyConcept,
       summary: metadata?.title || 'Heuristic evaluated chunk',
       confidenceScore: 0.75,

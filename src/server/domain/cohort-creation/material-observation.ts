@@ -26,23 +26,13 @@ export function validateVideoObservation(input: unknown, metadata: YoutubeVideoM
     throw creationFailure('DATA_UNAVAILABLE', 'The model could not observe this public video. Supply authorized transcript/text material or retry after checking provider support.', false);
   }
   if (!proposal.observations.length) throw creationFailure('AI_INVALID_OUTPUT', 'No usable video observations were returned.');
-  const sorted = [...proposal.observations].sort((a, b) => a.startSeconds - b.startSeconds || a.endSeconds - b.endSeconds);
-  const sanitized: typeof proposal.observations = [];
   let cursor = 0;
-  for (const item of sorted) {
-    const start = Math.max(item.startSeconds, cursor);
-    const end = Math.min(item.endSeconds, video.durationSeconds);
-    if (end > start) {
-      sanitized.push({
-        ...item,
-        startSeconds: start,
-        endSeconds: end,
-      });
-      cursor = end;
+  for (const item of proposal.observations) {
+    if (item.startSeconds < cursor || item.endSeconds <= item.startSeconds || item.endSeconds > video.durationSeconds) {
+      throw creationFailure('AI_INVALID_OUTPUT', 'Return ordered, nonoverlapping observations in numeric seconds within the video duration.');
     }
+    cursor = item.endSeconds;
   }
-  if (!sanitized.length) throw creationFailure('AI_INVALID_OUTPUT', 'No usable video observations were returned.');
-  proposal.observations = sanitized;
   if (Buffer.byteLength(proposal.observations.map(item => item.text).join('\n\n'), 'utf8') > MATERIAL_LIMITS.extractedTextBytes) {
     throw creationFailure('AI_INVALID_OUTPUT', 'Video observations exceed 1 MiB. Narrow the source scope; nothing was truncated.', false);
   }

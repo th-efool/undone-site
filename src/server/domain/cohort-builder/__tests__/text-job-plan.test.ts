@@ -16,6 +16,13 @@ function state(): CohortWorkspace {
 const keys = (workspace: CohortWorkspace, sourceId: string | null) => planTextJobs(workspace).filter(job => job.sourceId === sourceId).map(job => job.jobKey);
 
 describe('cohort text job dependency planning', () => {
+  it('does not change the graph when intermediate display data is projected', () => {
+    const before = state();
+    const projected = { ...before, title: 'Distributed Systems', description: 'A generated summary',
+      understanding: [{ sourceId: 'source-a', sourceVersion: 0, topics: ['Quorums'] }] };
+    expect(planTextJobs(projected)).toEqual(planTextJobs(before));
+  });
+
   it('is stable and orders each source chain before global assembly', () => {
     const original = state();
     const jobs = planTextJobs(original);

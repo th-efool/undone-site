@@ -7,6 +7,8 @@ import { acceptCurrentTextJob } from '../text-job-acceptance';
 import { runTextJobTick } from '../text-job-tick';
 import { enqueueTextJobPlan, type TextJobTransactionPort } from '../text-job-scheduler';
 import { claimTextJob } from '../text-jobs';
+import { runDurableTextJobTick } from '../durable-text-worker';
+import { createTextSourceProcessor } from '../text-source-processor';
 
 const migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
 const workspaceId = '7d4e49d0-bad0-4aba-a777-122326020002';
@@ -37,6 +39,45 @@ async function setup(claim = true) {
 }
 
 describe('workspace-fenced text job acceptance', () => {
+  it('projects every accepted intermediate stage before assembly and persists its canonical progress', async () => {
+    const { db, sql, port } = await setup(false);
+    try {
+      const loadWorkspace = async () => (await sql.query(`SELECT "snapshot" FROM "interaction_workspaces" WHERE "id"=$1`, [workspaceId])).rows[0].snapshot;
+      const tick = () => runDurableTextJobTick({ sql, transaction: port, workerId: 'worker', leaseMs: 2_000, now: () => now, loadWorkspace });
+      expect((await tick()).status).toBe('accepted');
+      expect((await tick()).status).toBe('accepted');
+      const understood = cohortWorkspaceSchema.parse(await loadWorkspace());
+      expect(understood.understanding).toHaveLength(1);
+      expect(understood.description).toBeTruthy();
+      expect(understood.lessons).toHaveLength(0);
+      expect((await tick()).status).toBe('accepted');
+      const chunked = cohortWorkspaceSchema.parse(await loadWorkspace());
+      expect(chunked.chunks).toHaveLength(1);
+      expect(chunked.analyses).toHaveLength(0);
+      expect((await tick()).status).toBe('accepted');
+      const analyzed = cohortWorkspaceSchema.parse(await loadWorkspace());
+      expect(analyzed.analyses.map(item => item.chunkId)).toEqual(chunked.chunks.map(item => item.id));
+      expect(analyzed.lessons).toHaveLength(0);
+      expect(analyzed.processing.jobs?.filter(job => job.status === 'accepted')).toHaveLength(4);
+    } finally { await db.close(); }
+  }, 30_000);
+
+  it('rejects fabricated intermediate concepts without committing them', async () => {
+    const { db, sql, port, job, artifact } = await setup();
+    try {
+      expect(await acceptCurrentTextJob(port, job!, artifact!, now)).toBe(true);
+      const understandingJob = (await claimTextJob(sql, 'worker', now, 2_000))!;
+      const loadWorkspace = async () => (await sql.query(`SELECT "snapshot" FROM "interaction_workspaces" WHERE "id"=$1`, [workspaceId])).rows[0].snapshot;
+      const real = await createTextSourceProcessor({ sql, loadWorkspace })(understandingJob);
+      const value = JSON.parse(Buffer.from(real).toString());
+      value[0].topics = ['Fabricated concepts'];
+      const forged = await putTextArtifact(sql, { workspaceId, sourceId: 'source-a', sourceVersion: 0,
+        kind: 'understanding', inputFingerprint: understandingJob.dependencyFingerprint, bytes: Buffer.from(JSON.stringify(value)) });
+      await expect(acceptCurrentTextJob(port, understandingJob, forged, now)).rejects.toThrow('FABRICATED_SOURCE_PROJECTION');
+      expect(cohortWorkspaceSchema.parse(await loadWorkspace()).understanding).toHaveLength(0);
+    } finally { await db.close(); }
+  }, 30_000);
+
   it('rejects an edit committed after processing but before acceptance', async () => {
     const { db, port, state, job, artifact } = await setup();
     try {

@@ -51,10 +51,10 @@ export function deliveryFeedChunks(lessons: Lesson[], onRejected?: (failure: Del
       const fallbackScored = !vector || chunk.isStrictlyLinear === undefined
         ? computeDeterministicChunkVector(chunk.text || `${lesson.title} ${chunk.title || ''}`, {
             title: `${lesson.title} ${chunk.title || ''}`,
-            duration: actualDurationSec,
+            durationSeconds: actualDurationSec,
             chunkIndex: chunk.order ?? index,
             totalChunks: chunks.length,
-            lessonOrder: lesson.order,
+            lessonIndex: lesson.order,
           })
         : undefined;
       const resolvedVector = Array.isArray(vector)

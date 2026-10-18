@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { type CohortWorkspace, cohortWorkspaceSchema, cohortSourceProvenanceSchema } from './contracts';
 import { computeDeterministicChunkVector } from '@/src/shared/curriculum/pedagogicalVector.engine';
+import { deriveChunkVideoInterval, deriveChunkTitleAndSummary, deriveCohortTitle, deriveCohortDescription } from './cohort-metadata';
 
 export const deliveryChunkSchema = z.strictObject({
   chunkId: z.string().min(1),
@@ -216,7 +217,6 @@ export function projectCohortToLearnerDelivery(
         const source = sourceMap.get(chunk.sourceId);
         const location = source?.locations?.find(loc => loc.start <= chunk.start && loc.end >= chunk.end);
 
-        const isYoutube = source?.input?.kind === 'youtube' || Boolean(source?.provenance?.videoId);
         const videoId = source?.provenance?.videoId || (source?.input?.kind === 'youtube' ? extractYoutubeVideoId(source.input.url) : null) || extractYoutubeVideoId(source?.label);
 
         if (videoId && !detectedVideoId) {
@@ -226,34 +226,28 @@ export function projectCohortToLearnerDelivery(
           fallbackSourceUrl = source.input?.kind === 'youtube' ? source.input.url : source.provenance?.finalUrl;
         }
 
-        let startSeconds = 0;
-        let endSeconds = 0;
-        if (location?.startMs !== undefined) {
-          startSeconds = Math.max(0, Math.floor(location.startMs / 1000));
-          endSeconds = Math.max(startSeconds, Math.floor((location.endMs ?? location.startMs) / 1000));
-        } else {
-          startSeconds = chunkOrder * 300;
-          endSeconds = (chunkOrder + 1) * 300;
-        }
+        const sourceChunks = workspace.chunks.filter(item => item.sourceId === chunk.sourceId && item.sourceVersion === chunk.sourceVersion)
+          .sort((a, b) => a.start - b.start);
+        const sourceChunkIndex = sourceChunks.findIndex(item => item.id === chunk.id);
+        const interval = deriveChunkVideoInterval(chunk, source, sourceChunkIndex, sourceChunks.length);
+        const { startSeconds, endSeconds } = interval;
 
         const formatTs = (sec: number) => {
           const m = Math.floor(sec / 60);
           const s = sec % 60;
           return `${m}:${s.toString().padStart(2, '0')}`;
         };
-        const timeRangeLabel = `${formatTs(startSeconds)} – ${formatTs(endSeconds)}`;
-        const timestampUrl = detectedVideoId || videoId
-          ? `https://www.youtube.com/watch?v=${detectedVideoId || videoId}&t=${startSeconds}s`
+        const timeRangeLabel = interval.isVideo && !interval.hasTiming ? 'Timing unavailable' : `${formatTs(startSeconds)} – ${formatTs(endSeconds)}`;
+        const timestampUrl = videoId && interval.hasTiming
+          ? `https://www.youtube.com/watch?v=${videoId}&t=${startSeconds}s`
           : undefined;
 
-        const chunkDurationSec = Math.max(30, endSeconds - startSeconds || 180);
+        const copy = deriveChunkTitleAndSummary(chunk, source, sourceChunkIndex);
         const scored = computeDeterministicChunkVector(chunk.text, {
-          title: `${lesson.title} — ${source?.label ?? 'Source Material'}`,
-          duration: chunkDurationSec,
-          chunkIndex: chunkOrder,
-          totalChunks: lesson.sourceChunkIds.length,
-          lessonOrder: lessonIndex,
-          totalLessons: workspace.lessons.length,
+          title: `${copy.title} - ${source?.label ?? ''}`,
+          durationSeconds: interval.durationSeconds,
+          chunkIndex: sourceChunkIndex,
+          totalChunks: sourceChunks.length,
         });
 
         deliveryChunks.push({
@@ -292,7 +286,7 @@ export function projectCohortToLearnerDelivery(
       title: lesson.title,
       objective: lesson.objective,
       order: lessonIndex,
-      durationSeconds: estimatedLessonSeconds,
+      durationSeconds: isVideo ? Math.max(1, deliveryChunks.reduce((sum, chunk) => sum + (chunk.endSeconds ?? 0) - (chunk.startSeconds ?? 0), 0)) : estimatedLessonSeconds,
       lessonType: isVideo ? 'VIDEO' : 'ARTICLE',
       videoId: detectedVideoId,
       videoUrl,
@@ -364,8 +358,8 @@ export function projectCohortToLearnerDelivery(
 
   const cohort: DeliveryCohort = {
     id: options.cohortId,
-    title: workspace.title.trim() || workspace.intent.slice(0, 100),
-    description: workspace.intent,
+    title: deriveCohortTitle(workspace),
+    description: deriveCohortDescription(workspace),
     coverImage,
     audience: workspace.audience || 'Curious learners',
     dailyMinutes: workspace.dailyMinutes,

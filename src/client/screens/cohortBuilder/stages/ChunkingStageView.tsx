@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import { ProcessingFailures, processingFailureMessage } from './ProcessingFailures';
+import React from 'react';
 import { ChevronRight, FileText, Lightbulb } from 'lucide-react';
 import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
 import { InkUnderline } from '@/src/client/screens/cohortCreation/components/InkUnderline';
@@ -12,6 +13,8 @@ import {
 import shared from '@/src/client/screens/cohortCreation/components/UnderstandingProgress.module.css';
 import styles from '@/src/client/screens/cohortCreation/components/ChunkingWorkspace.module.css';
 import { useCohortDrafts } from '../draft-context';
+import { deriveChunkTitleAndSummary, deriveChunkVideoInterval, formatDurationClock, sourceVideoId, sourceDurationSeconds } from '@/src/shared/cohort-builder/cohort-metadata';
+import { YoutubeThumbnail } from '@/src/client/screens/cohortCreation/components/YoutubeThumbnail';
 
 interface ChunkingStageViewProps {
   workspace: CohortWorkspace;
@@ -19,18 +22,9 @@ interface ChunkingStageViewProps {
 }
 
 export function ChunkingStageView({ workspace, dispatchAction }: ChunkingStageViewProps) {
-  let inspection: any = { chunkingSelectedSourceId: null, chunkingExpandedChunkId: null };
-  let setInspectionState: any = () => {};
-  try {
-    const drafts = useCohortDrafts();
-    inspection = drafts.inspection;
-    setInspectionState = drafts.setInspectionState;
-  } catch {
-    // Graceful fallback when rendered outside CohortDraftProvider
-  }
+  const { inspection, setInspectionState } = useCohortDrafts();
   const sources = workspace.sources ?? [];
   const validChunks = getValidChunks(workspace);
-  const status = workspace.processing.status;
 
   const stageProgress = getStageProgressDetails(workspace);
   const isComplete = isStageComplete(workspace, 'chunking');
@@ -45,7 +39,8 @@ export function ChunkingStageView({ workspace, dispatchAction }: ChunkingStageVi
 
   const currentSource = sources.find(s => s.id === effectiveSelectedSourceId) ?? sources[0];
   const currentSourceIndex = sources.findIndex(s => s.id === currentSource?.id);
-  const selectedChunks = validChunks.filter(c => c.sourceId === currentSource?.id);
+  const selectedChunks = validChunks.filter(c => c.sourceId === currentSource?.id).sort((a, b) => a.start - b.start);
+  const videoId = sourceVideoId(currentSource);
 
   return (
     <section aria-label="Chunking material" className={`${shared.workspace} ${styles.workspace}`}>
@@ -89,8 +84,10 @@ export function ChunkingStageView({ workspace, dispatchAction }: ChunkingStageVi
                       onChange={() => setInspectionState({ chunkingSelectedSourceId: item.id })}
                     />
                     <span className={styles.number}>{String(index + 1).padStart(2, '0')}</span>
+                    {sourceVideoId(item) && <YoutubeThumbnail videoId={sourceVideoId(item)!} />}
                     <span className={styles.sourceTitle}>
                       <span className={styles.sourceName} title={item.label}>{item.label}</span>
+                      {sourceDurationSeconds(item) > 0 && <small>{formatDurationClock(sourceDurationSeconds(item))}</small>}
                     </span>
                     <small>{count} chunks</small>
                     <ChevronRight size={16} aria-hidden="true" />
@@ -105,25 +102,7 @@ export function ChunkingStageView({ workspace, dispatchAction }: ChunkingStageVi
             </div>
 
             <div className={shared.controls}>
-              {workspace.processing.jobs?.length ? (
-                <section aria-label="Source processing jobs" aria-live="polite">
-                  {workspace.processing.jobs.map(job => (
-                    <p key={job.id}>
-                      {sources.find(s => s.id === job.sourceId)?.label ?? 'Curriculum'} · {job.stage} · {job.status}
-                      {job.error && <span> · {job.error}</span>}
-                      {job.status === 'failed' && (
-                        job.retryable ? (
-                          <button type="button" onClick={() => void dispatchAction({ type: 'retry_text_job', jobId: job.id })}>
-                            Retry {job.stage}
-                          </button>
-                        ) : (
-                          <span> · Retry limit reached; edit or remove affected source.</span>
-                        )
-                      )}
-                    </p>
-                  ))}
-                </section>
-              ) : null}
+              <ProcessingFailures workspace={workspace} dispatchAction={dispatchAction} />
 
               {workspace.lessons.some(l => l.evidenceStatus === 'orphaned') && (
                 <p role="alert">This lesson references changed or removed source text.</p>
@@ -141,7 +120,7 @@ export function ChunkingStageView({ workspace, dispatchAction }: ChunkingStageVi
                 <>
                   {isFailed && (
                     <>
-                      {workspace.processing.error && <p role="alert">{workspace.processing.error}</p>}
+                      {workspace.processing.error && !workspace.processing.jobs?.some(job => job.status === 'failed') && <p role="alert">{processingFailureMessage(workspace.processing.error)}</p>}
                       <button type="button" onClick={() => void dispatchAction({ type: 'retry_processing' })}>
                         Retry processing
                       </button>
@@ -162,6 +141,7 @@ export function ChunkingStageView({ workspace, dispatchAction }: ChunkingStageVi
           <div className={styles.detailMeta}>
             <span>{currentSource ? `Source ${String(currentSourceIndex + 1).padStart(2, '0')}` : 'Selected source'}</span>
             <span>{selectedChunks.length} accepted chunks</span>
+            {sourceDurationSeconds(currentSource) > 0 && <time>{formatDurationClock(sourceDurationSeconds(currentSource))}</time>}
           </div>
 
           <div className={styles.detailHeader}>
@@ -180,33 +160,38 @@ export function ChunkingStageView({ workspace, dispatchAction }: ChunkingStageVi
             </p>
           ) : (
             <ol className={styles.chunks}>
-              {selectedChunks.map((chunk, index) => (
+              {selectedChunks.map((chunk, index) => {
+                const interval = deriveChunkVideoInterval(chunk, currentSource, index, selectedChunks.length);
+                const copy = deriveChunkTitleAndSummary(chunk, currentSource, index);
+                return (
                 <li key={chunk.id}>
                   <details
                     open={inspection.chunkingExpandedChunkId === chunk.id}
                     onToggle={e => {
                       const isOpen = (e.currentTarget as HTMLDetailsElement).open;
-                      setInspectionState({ chunkingExpandedChunkId: isOpen ? chunk.id : null });
+                      if (isOpen || inspection.chunkingExpandedChunkId === chunk.id) setInspectionState({ chunkingExpandedChunkId: isOpen ? chunk.id : null });
                     }}
                   >
                     <summary>
-                      <span className={styles.chunkNumber}>{String(index + 1).padStart(2, '0')}</span>
+                      {videoId ? <YoutubeThumbnail videoId={videoId} /> : <span className={styles.chunkNumber}>{String(index + 1).padStart(2, '0')}</span>}
                       <span>
                         <span className={styles.duration}>
-                          characters {chunk.start}–{chunk.end}
+                          <time>{formatDurationClock(interval.durationSeconds)}</time>
+                          <small>{interval.isVideo ? interval.hasTiming ? 'estimated source interval' : 'video timing unavailable' : 'reading estimate'}</small>
                         </span>
-                        <strong>Chunk {index + 1}</strong>
-                        <span className={styles.teaser}>{chunk.text.slice(0, 100)}…</span>
+                        <strong>{copy.title}</strong>
+                        <span className={styles.teaser}>{copy.summary}</span>
                       </span>
                       <ChevronRight size={17} aria-hidden="true" />
                     </summary>
                     <div className={styles.evidence}>
+                      {interval.hasTiming && <p>{formatDurationClock(interval.startSeconds)} - {formatDurationClock(interval.endSeconds)} (estimated source interval{interval.overlapSeconds > 0 ? `; includes +${interval.overlapSeconds}s overlap context` : ''})</p>}
                       <p>{chunk.text}</p>
                       <small>Source: {currentSource?.label} · Checksum: {chunk.checksum.slice(0, 12)}</small>
                     </div>
                   </details>
                 </li>
-              ))}
+              ); })}
             </ol>
           )}
 

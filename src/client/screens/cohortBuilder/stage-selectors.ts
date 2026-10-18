@@ -414,7 +414,7 @@ export function getStageProgressDetails(workspace: CohortWorkspace): StageProgre
     }).length;
     const uRetryable = jobs.some(j => ['acquisition', 'extraction', 'understanding'].includes(j.stage) && j.status === 'failed' && j.retryable);
     const uHasCanceled = jobs.some(j => ['acquisition', 'extraction', 'understanding'].includes(j.stage) && j.status === 'canceled');
-    const uHasRunning = jobs.some(j => ['acquisition', 'extraction', 'understanding'].includes(j.stage) && j.status === 'running');
+    const uHasRunning = jobs.some(j => ['acquisition', 'extraction', 'understanding'].includes(j.stage) && (j.status === 'running' || (j.status === 'queued' && getActiveStage(workspace) === 'understanding')));
     const uComplete = isStageComplete(workspace, 'understanding');
     const uCanceled = !uComplete && (uHasCanceled || isServerCanceled);
 
@@ -442,7 +442,7 @@ export function getStageProgressDetails(workspace: CohortWorkspace): StageProgre
     }).length;
     const cRetryable = jobs.some(j => j.stage === 'chunking' && j.status === 'failed' && j.retryable);
     const cHasCanceled = jobs.some(j => j.stage === 'chunking' && j.status === 'canceled');
-    const cHasRunning = jobs.some(j => j.stage === 'chunking' && j.status === 'running');
+    const cHasRunning = jobs.some(j => j.stage === 'chunking' && (j.status === 'running' || (j.status === 'queued' && getActiveStage(workspace) === 'chunking')));
     const cComplete = isStageComplete(workspace, 'chunking');
     const cCanceled = !cComplete && (cHasCanceled || (isServerCanceled && uComplete));
 
@@ -470,7 +470,7 @@ export function getStageProgressDetails(workspace: CohortWorkspace): StageProgre
     }).length;
     const aRetryable = jobs.some(j => j.stage === 'analysis' && j.status === 'failed' && j.retryable);
     const aHasCanceled = jobs.some(j => j.stage === 'analysis' && j.status === 'canceled');
-    const aHasRunning = jobs.some(j => j.stage === 'analysis' && j.status === 'running');
+    const aHasRunning = jobs.some(j => j.stage === 'analysis' && (j.status === 'running' || (j.status === 'queued' && getActiveStage(workspace) === 'analysis')));
     const aComplete = isStageComplete(workspace, 'analysis');
     const aCanceled = !aComplete && (aHasCanceled || (isServerCanceled && cComplete));
 
@@ -496,7 +496,7 @@ export function getStageProgressDetails(workspace: CohortWorkspace): StageProgre
     const asFailed = assemblyJob?.status === 'failed' ? 1 : 0;
     const asRetryable = Boolean(assemblyJob?.status === 'failed' && assemblyJob?.retryable);
     const asHasCanceled = assemblyJob?.status === 'canceled';
-    const asHasRunning = assemblyJob?.status === 'running';
+    const asHasRunning = assemblyJob?.status === 'running' || (assemblyJob?.status === 'queued' && getActiveStage(workspace) === 'assembly');
     const asComplete = isStageComplete(workspace, 'assembly');
     const asCanceled = !asComplete && (asHasCanceled || (isServerCanceled && aComplete));
 

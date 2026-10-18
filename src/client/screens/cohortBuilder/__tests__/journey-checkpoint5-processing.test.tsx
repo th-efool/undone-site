@@ -312,6 +312,15 @@ describe('Journey Checkpoint 5: Processing and Ready Stages UI', () => {
   });
 
   describe('Ready Stage: ReadyStageView Presentation & Actions', () => {
+    it('keeps accepted stages inspectable after a fast build without restarting processing', () => {
+      fake.state = createReadyWorkspace();
+      render(<CohortWorkspacePane onSelectLessonForChat={() => {}} />);
+      expect(screen.getByLabelText('Curriculum ready')).toBeTruthy();
+      fireEvent.click(screen.getByText('Chunking').closest('li')!);
+      expect(screen.getByLabelText('Accepted chunks')).toBeTruthy();
+      expect(fake.actions).toHaveLength(0);
+    });
+
     it('renders exact Screen 8 presentation matching AFTER specifications', () => {
       const ws = createReadyWorkspace();
       fake.state = ws;
@@ -334,7 +343,7 @@ describe('Journey Checkpoint 5: Processing and Ready Stages UI', () => {
       ).toBeTruthy();
 
       // Material summary card
-      expect(screen.getByText('Master Distributed Consensus')).toBeTruthy();
+      expect(screen.getByRole('heading', { level: 2, name: 'Distributed Systems Cohort' })).toBeTruthy();
       expect(screen.getByText(/1 source · 1 learning pieces · 2 lessons/i)).toBeTruthy();
       expect(screen.getByText('Processed')).toBeTruthy();
 

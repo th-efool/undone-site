@@ -7,6 +7,7 @@ import { textJobStatus } from './text-job-status';
 import { commitTextProjection } from './text-projection-commit';
 import { createTextSourceProcessor } from './text-source-processor';
 import type { SourceExtraction } from './source-adapters';
+import { deriveCohortTitle, deriveCohortDescription } from '@/src/shared/cohort-builder/cohort-metadata';
 
 /** Prepared cutover boundary: lock canonical workspace state before fenced result acceptance. */
 export async function acceptCurrentTextJob(
@@ -88,7 +89,38 @@ export async function acceptCurrentTextJob(
       next={...state,sources:state.sources.map(item=>item.id===source.id?{...item,retainedInputId:artifact.id}:item)};
     } else if (extracted && source?.input) {
       next={...state,sources:state.sources.map(item=>item.id===source.id?{...item,text:extracted.text,
+        label: /^https?:\/\//i.test(item.label) && extracted.provenance.videoTitle ? extracted.provenance.videoTitle.slice(0, 300) : item.label,
         checksum:extracted.provenance.rawChecksum,extractionId:artifact.id,locations:extracted.locations,provenance:extracted.provenance}:item)};
+    } else if (source && ['understanding', 'chunking', 'analysis'].includes(job.stage)) {
+      const kind = job.stage === 'understanding' ? 'understanding' : job.stage === 'chunking' ? 'chunks' : 'analysis';
+      const retained = await readTextArtifact(tx, job.workspaceId, artifact.id, {
+        kind, inputFingerprint: job.dependencyFingerprint, checksum: artifact.checksum,
+      });
+      if (retained.ref.sourceId !== source.id || retained.ref.sourceVersion !== source.version) {
+        throw new Error('FOREIGN_SOURCE_PREREQUISITE');
+      }
+      const expected = await createTextSourceProcessor({ sql: tx, loadWorkspace: async () => state })(job);
+      if (!retained.bytes.equals(Buffer.from(expected))) throw new Error('FABRICATED_SOURCE_PROJECTION');
+      const value: unknown = JSON.parse(retained.bytes.toString('utf8'));
+      if (job.stage === 'understanding') {
+        const understanding = [
+          ...state.understanding.filter(item => item.sourceId !== source.id),
+          ...cohortWorkspaceSchema.shape.understanding.parse(value),
+        ];
+        const understood = { ...state, understanding };
+        next = { ...understood, title: deriveCohortTitle(understood), description: deriveCohortDescription(understood) };
+      } else if (job.stage === 'chunking') {
+        const chunks = [
+          ...state.chunks.filter(item => item.sourceId !== source.id),
+          ...cohortWorkspaceSchema.shape.chunks.parse(value),
+        ];
+        const currentIds = new Set(chunks.map(item => item.id));
+        next = { ...state, chunks, analyses: state.analyses.filter(item => currentIds.has(item.chunkId)) };
+      } else {
+        const analyses = cohortWorkspaceSchema.shape.analyses.parse(value);
+        const sourceChunkIds = new Set(state.chunks.filter(item => item.sourceId === source.id).map(item => item.id));
+        next = { ...state, analyses: [...state.analyses.filter(item => !sourceChunkIds.has(item.chunkId)), ...analyses] };
+      }
     }
     if (!await acceptTextJob(tx, job, artifact, now)) return false;
     await commitTextProjection(tx, job.workspaceId, state, await textJobStatus(tx, job.workspaceId, next),

@@ -32,6 +32,7 @@ import { ExternalSources, ExternalSourceScope } from '../ExternalSources';
 import { formatYoutubeTimestamp } from '@/src/shared/cohort-builder/youtube-transcript';
 import { ReleasePanel } from '../components/ReleasePanel';
 import { useCohortDrafts } from '../draft-context';
+import { deriveCohortTitle, deriveCohortDescription } from '@/src/shared/cohort-builder/cohort-metadata';
 
 function YoutubeIcon({ size = 20, ...props }: React.SVGProps<SVGSVGElement> & { size?: number }) {
   return (
@@ -265,8 +266,8 @@ export function CurriculumStageView({
             <span>{workspace.title || 'Your learning journey'}</span>
             {needsRebuild && <span className={styles.statusPill}>rebuild needed</span>}
           </div>
-          <h1>{workspace.title || 'Cohort Blueprint'}</h1>
-          <p>{workspace.intent || 'Your learning journey'}</p>
+          <h1>{deriveCohortTitle(workspace)}</h1>
+          <p>{deriveCohortDescription(workspace)}</p>
           <div className={styles.reviewCreator}>
             <span>
               <UserRound size={24} aria-hidden="true" />
@@ -330,7 +331,7 @@ export function CurriculumStageView({
           {activeTab === 'overview' && (
             <section className={styles.reviewPanel} id="creation-review-overview">
               <h2>About this cohort</h2>
-              <p className={styles.reviewCopy}>{workspace.intent}</p>
+              <p className={styles.reviewCopy}>{deriveCohortDescription(workspace)}</p>
               <div style={{ marginTop: 14 }}>
                 <button type="button" className={styles.editActionBtn} onClick={handleOpenOverview}>
                   <Edit3 size={14} /> Edit details

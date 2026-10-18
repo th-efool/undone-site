@@ -35,6 +35,7 @@
 .chunks summary > svg { flex-shrink: 0; margin-top: 15px; color: var(--creation-muted, #657085); }
 .chunks summary strong { display: block; font: 600 18px/1.2 var(--font-playfair-display), Georgia, serif; margin: 4px 0; overflow-wrap: anywhere; }
 .chunks summary small { font-size: 10px; color: var(--creation-muted, #657085); }
+.chunks summary .duration small { font-size: 10px; }
 .duration { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
 .duration time { font-size: 12px; font-weight: 700; color: var(--creation-ink, #08143d); font-variant-numeric: tabular-nums; }
 .teaser { display: block; font-size: 12px; color: var(--creation-muted, #657085); line-height: 1.4; }
@@ -49,3 +50,8 @@
 @media(max-width:1100px) { .columns { grid-template-columns: 1fr; } .detail { min-height: 450px; } }
 @media(min-width:1101px) and (max-width:1300px), (max-width:600px) { .detailHeader { grid-template-columns: 1fr; gap: 10px; margin-bottom: 20px; } .annotation { transform: none; padding-top: 0; } }
 @media(max-width:820px) { .detail { padding: 20px 12px; } .detail h2 { font-size: 24px; } .chunks { padding-left: 10px; } .chunks > li { padding: 13px 10px; } .chunkNumber { width: 28px; height: 42px; } .source { gap: 7px; padding-inline: 4px; } .sourceTitle { font-size: 14px; } }
+@media (min-width: 1101px) and (max-width: 1450px) {
+  .workspace .heading h1 { font-size: 38px; line-height: 1.1; }
+  .source { flex-wrap: wrap; }
+  .source > small { margin-left: auto; }
+}

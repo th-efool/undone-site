@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { DomainActionPlan } from 'interaction-builder/core';
 import type { CohortWorkspace, CohortChunk, CohortLesson } from '@/src/shared/cohort-builder/contracts';
+import { extractSourceConceptTopics, deriveCohortTitle, deriveCohortDescription } from '@/src/shared/cohort-builder/cohort-metadata';
 import { projectGeneratedLessons } from './lesson-projection';
 
 export type TextStage = 'acquisition' | 'understanding' | 'chunking' | 'analysis' | 'assembly';
@@ -15,44 +16,92 @@ export interface TextStageAction {
 
 const digest = (value: string) => createHash('sha256').update(value).digest('hex');
 const MAX_UNIT_BYTES = 24 * 1024;
+const MIN_VIDEO_CHUNK_MS = 60_000; // Minimum 1 minute target for video chunks
 
 /** Includes retained content, so even a versioning bug cannot accept changed bytes. */
 export function sourceFingerprint(state: CohortWorkspace): string {
   return digest(JSON.stringify(state.sources.map(source => [source.id, source.version, source.text])));
 }
 
-function splitSource(source: CohortWorkspace['sources'][number]): CohortChunk[] {
+function pushBoundedTextChunks(
+  chunks: CohortChunk[],
+  source: CohortWorkspace['sources'][number],
+  fullText: string,
+  spanStart: number,
+  spanEnd: number
+): void {
+  const raw = fullText.slice(spanStart, spanEnd);
+  const leading = raw.length - raw.trimStart().length;
+  const value = raw.trim();
+  if (!value) return;
+  const start = spanStart + leading;
+  for (let offset = 0; offset < value.length;) {
+    let end = offset;
+    let bytes = 0;
+    for (const codePoint of value.slice(offset)) {
+      const nextBytes = Buffer.byteLength(codePoint, 'utf8');
+      if (end > offset && bytes + nextBytes > MAX_UNIT_BYTES) break;
+      end += codePoint.length;
+      bytes += nextBytes;
+    }
+    const text = value.slice(offset, end);
+    const anchor = start + offset;
+    chunks.push({
+      id: `${source.id}:v${source.version}:${anchor}`,
+      sourceId: source.id,
+      sourceVersion: source.version,
+      start: anchor,
+      end: anchor + text.length,
+      text,
+      checksum: digest(text),
+    });
+    if (chunks.length > 100) throw new Error('TOO_MANY_CHUNKS');
+    offset = end;
+  }
+}
+
+export function splitSource(source: CohortWorkspace['sources'][number]): CohortChunk[] {
   const chunks: CohortChunk[] = [];
+  const timedLocations = (source.locations ?? []).filter(
+    loc => loc.startMs !== undefined && loc.endMs !== undefined && loc.end > loc.start
+  );
+
+  // Video sources with timestamped locations: merge consecutive segments to reach >= 60s (1 minute)
+  // while guaranteeing 100% source text coverage and zero dropped segments.
+  if (timedLocations.length > 0) {
+    const sorted = [...timedLocations].sort((a, b) => a.start - b.start);
+    let groupStartChar = 0;
+    let groupStartMs = sorted[0].startMs!;
+    let groupEndMs = sorted[0].endMs!;
+
+    for (let i = 1; i < sorted.length; i++) {
+      const loc = sorted[i];
+      const currentDurationMs = groupEndMs - groupStartMs;
+      const combinedBytes = Buffer.byteLength(source.text.slice(groupStartChar, loc.end), 'utf8');
+
+      if (currentDurationMs < MIN_VIDEO_CHUNK_MS && combinedBytes <= MAX_UNIT_BYTES) {
+        groupEndMs = Math.max(groupEndMs, loc.endMs!);
+      } else {
+        // Include separators and any untimed retained text between observations.
+        pushBoundedTextChunks(chunks, source, source.text, groupStartChar, loc.start);
+        groupStartChar = loc.start;
+        groupStartMs = loc.startMs!;
+        groupEndMs = loc.endMs!;
+      }
+    }
+    pushBoundedTextChunks(chunks, source, source.text, groupStartChar, source.text.length);
+    validateCoverage(source.text, chunks);
+    return chunks;
+  }
+
+  // Standard text / article / markdown sources:
   const matches = source.text.matchAll(/[^.!?\n]*(?:[.!?]+|(?=\n)|$)/g);
   for (const match of matches) {
     const raw = match[0];
-    const leading = raw.length - raw.trimStart().length;
-    const value = raw.trim();
-    if (!value) continue;
-    const start = (match.index ?? 0) + leading;
-    for (let offset = 0; offset < value.length;) {
-      let end = offset;
-      let bytes = 0;
-      for (const codePoint of value.slice(offset)) {
-        const nextBytes = Buffer.byteLength(codePoint, 'utf8');
-        if (end > offset && bytes + nextBytes > MAX_UNIT_BYTES) break;
-        end += codePoint.length;
-        bytes += nextBytes;
-      }
-      const text = value.slice(offset, end);
-      const anchor = start + offset;
-      chunks.push({
-        id: `${source.id}:v${source.version}:${anchor}`,
-        sourceId: source.id,
-        sourceVersion: source.version,
-        start: anchor,
-        end: anchor + text.length,
-        text,
-        checksum: digest(text),
-      });
-      if (chunks.length > 100) throw new Error('TOO_MANY_CHUNKS');
-      offset = end;
-    }
+    if (!raw.trim()) continue;
+    const spanStart = match.index ?? 0;
+    const spanEnd = spanStart + raw.length;
+    pushBoundedTextChunks(chunks, source, source.text, spanStart, spanEnd);
   }
   validateCoverage(source.text, chunks);
   return chunks;
@@ -90,7 +139,7 @@ export function computeTextStage(state: CohortWorkspace): TextStageAction {
   } else if (stage === 'understanding') {
     result = state.sources.map(source => state.understanding.find(item => item.sourceId === source.id && item.sourceVersion === source.version) ?? ({
       sourceId: source.id, sourceVersion: source.version,
-      topics: source.text.split(/\n\s*\n|(?<=[.!?])\s+/).map(item => item.trim().slice(0, 120)).filter(Boolean).slice(0, 40),
+      topics: extractSourceConceptTopics(source),
     }));
   } else if (stage === 'chunking') {
     result = state.sources.flatMap(source => {
@@ -161,6 +210,8 @@ export function planTextStage(state: CohortWorkspace, input: unknown, context: {
     const expected = computeTextStage({ ...state, processing: { ...state.processing, stage: 'understanding' } }).result;
     if (JSON.stringify(action.result) !== JSON.stringify(expected)) throw new Error('INVALID_UNDERSTANDING');
     next.understanding = action.result as CohortWorkspace['understanding'];
+    next.title = deriveCohortTitle(next);
+    next.description = deriveCohortDescription(next);
   } else if (action.stage === 'chunking') {
     const chunks = action.result as CohortChunk[];
     if (!Array.isArray(chunks) || chunks.length === 0 || chunks.length > 1_000) throw new Error('INVALID_CHUNKS');

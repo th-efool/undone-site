@@ -1,5 +1,6 @@
 'use client';
 
+import { ProcessingFailures, processingFailureMessage } from './ProcessingFailures';
 import React from 'react';
 import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
 import { BuildingArt } from '@/src/client/screens/cohortCreation/components/BuildingArt';
@@ -63,27 +64,9 @@ export function AssemblyStageView({ workspace, dispatchAction }: AssemblyStageVi
                     ? 'Building complete. Curriculum lessons are saved.'
                     : `Building ${status}.`}
                 </p>
-                {workspace.processing.jobs?.length ? (
-                  <section aria-label="Source processing jobs" aria-live="polite">
-                    {workspace.processing.jobs.map(job => (
-                      <p key={job.id}>
-                        {workspace.sources.find(s => s.id === job.sourceId)?.label ?? 'Curriculum'} · {job.stage} · {job.status}
-                        {job.error && <span> · {job.error}</span>}
-                        {job.status === 'failed' && (
-                          job.retryable ? (
-                            <button type="button" onClick={() => void dispatchAction({ type: 'retry_text_job', jobId: job.id })}>
-                              Retry {job.stage}
-                            </button>
-                          ) : (
-                            <span> · Retry limit reached; edit or remove affected source.</span>
-                          )
-                        )}
-                      </p>
-                    ))}
-                  </section>
-                ) : null}
+                <ProcessingFailures workspace={workspace} dispatchAction={dispatchAction} />
 
-                {workspace.processing.error && <p role="alert">{workspace.processing.error}</p>}
+                {workspace.processing.error && !workspace.processing.jobs?.some(job => job.status === 'failed') && <p role="alert">{processingFailureMessage(workspace.processing.error)}</p>}
                 {isFailed && (
                   <button type="button" onClick={() => void dispatchAction({ type: 'retry_processing' })}>
                     Retry building

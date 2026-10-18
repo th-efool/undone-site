@@ -15,7 +15,7 @@ Each observation must describe what was actually observed in its interval. Use n
 export function extractChaptersFromDescription(description: string, durationSeconds: number) {
   const lines = description.split('\n');
   const chapters: Array<{ seconds: number; title: string }> = [];
-  const regex = /(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\s*[-–:]?\s*(.+)/;
+  const regex = /^(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\s*[-–:]?\s*(.+)/;
   for (const line of lines) {
     const match = line.trim().match(regex);
     if (match) {
@@ -24,18 +24,25 @@ export function extractChaptersFromDescription(description: string, durationSeco
       const s = parseInt(match[3], 10);
       const seconds = h * 3600 + m * 60 + s;
       const title = match[4].trim();
-      if (title.length > 0 && seconds < durationSeconds) {
+      if (title.length > 0 && s < 60 && (!match[1] || m < 60) && seconds < durationSeconds && !chapters.some(chapter => chapter.seconds === seconds)) {
         chapters.push({ seconds, title });
       }
     }
   }
   chapters.sort((a, b) => a.seconds - b.seconds);
+  if (chapters.length && chapters[0].seconds > 0) {
+    chapters.unshift({ seconds: 0, title: 'Opening (no chapter title provided)' });
+  }
   const observations: Array<{ startSeconds: number; endSeconds: number; text: string }> = [];
   for (let i = 0; i < chapters.length; i++) {
     const startSeconds = chapters[i].seconds;
     const endSeconds = i + 1 < chapters.length ? Math.min(chapters[i + 1].seconds, durationSeconds) : durationSeconds;
     if (endSeconds > startSeconds) {
-      observations.push({
+      const previous = observations.at(-1);
+      if (previous && previous.endSeconds - previous.startSeconds < 60) {
+        previous.endSeconds = endSeconds;
+        previous.text = `${previous.text}; ${chapters[i].title}`.slice(0, 10_000);
+      } else observations.push({
         startSeconds,
         endSeconds,
         text: chapters[i].title,
@@ -111,16 +118,16 @@ export class VercelMaterialObservation implements MaterialObservation {
           telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },
         });
         const elapsed = Date.now() - t0;
-        const u = (result as any)?.usage ?? {};
-        const promptTokens = u.inputTokens ?? u.promptTokens ?? 0;
-        const completionTokens = u.outputTokens ?? u.completionTokens ?? 0;
+        const u = result.usage;
+        const promptTokens = u.inputTokens ?? 0;
+        const completionTokens = u.outputTokens ?? 0;
         const totalTokens = u.totalTokens ?? (promptTokens + completionTokens);
         settlement = {
           actualUsage: {
             promptTokens,
             completionTokens,
             totalTokens,
-            stepsCount: Array.isArray((result as any)?.steps) ? (result as any).steps.length || 1 : 1,
+            stepsCount: Array.isArray(result.steps) ? result.steps.length || 1 : 1,
           },
         };
         signal.throwIfAborted();

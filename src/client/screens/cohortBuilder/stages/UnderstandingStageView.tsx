@@ -1,9 +1,11 @@
 'use client';
 
+import { ProcessingFailures, processingFailureMessage } from './ProcessingFailures';
 import React from 'react';
 import { FileText, Check, Brain, Lightbulb, LoaderCircle } from 'lucide-react';
 import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
 import { InkUnderline } from '@/src/client/screens/cohortCreation/components/InkUnderline';
+import { deriveCohortTitle, deriveCohortDescription } from '@/src/shared/cohort-builder/cohort-metadata';
 import {
   isStageComplete,
   getStageProgressDetails,
@@ -17,7 +19,6 @@ interface UnderstandingStageViewProps {
 
 export function UnderstandingStageView({ workspace, dispatchAction }: UnderstandingStageViewProps) {
   const sources = workspace.sources ?? [];
-  const status = workspace.processing.status;
 
   const stageProgress = getStageProgressDetails(workspace);
   const isComplete = isStageComplete(workspace, 'understanding');
@@ -30,16 +31,24 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
   const sourceVersionMap = new Map(sources.map(s => [s.id, s.version]));
   const validUnderstanding = (workspace.understanding ?? []).filter(u => {
     const v = sourceVersionMap.get(u.sourceId);
-    return v === undefined || u.sourceVersion === undefined || u.sourceVersion === v;
+    return v !== undefined && u.sourceVersion === v;
   });
 
-  const allTopics = validUnderstanding.flatMap((u, uIdx) =>
-    u.topics.map((topic, tIdx) => ({
-      key: `${u.sourceId}:${uIdx}:${tIdx}`,
-      sourceId: u.sourceId,
-      topic,
-    }))
-  );
+  const topicMap = new Map<string, { topic: string; summary: string; sourceLabels: string[] }>();
+  for (const understood of validUnderstanding) {
+    const source = sources.find(item => item.id === understood.sourceId)!;
+    for (const topic of understood.topics) {
+      const key = topic.toLocaleLowerCase();
+      const existing = topicMap.get(key);
+      if (existing) {
+        if (!existing.sourceLabels.includes(source.label)) existing.sourceLabels.push(source.label);
+      } else {
+        const evidence = source.text.split(/\n\s*\n|(?<=[.!?])\s+/).find(sentence => sentence.toLowerCase().includes(key)) ?? source.text;
+        topicMap.set(key, { topic, summary: evidence.slice(0, 350), sourceLabels: [source.label] });
+      }
+    }
+  }
+  const allTopics = [...topicMap.values()];
 
   return (
     <section aria-label="Understanding material" className={styles.workspace}>
@@ -64,6 +73,10 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
           </header>
 
           <div className={styles.inventory}>
+            <div className={styles.cohortSummary}>
+              <h3>{deriveCohortTitle(workspace)}</h3>
+              <p>{deriveCohortDescription(workspace)}</p>
+            </div>
             <h2>
               <FileText size={22} aria-hidden="true" />
               Selected material
@@ -103,25 +116,7 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
             </div>
 
             <div className={styles.controls}>
-              {workspace.processing.jobs?.length ? (
-                <section aria-label="Source processing jobs" aria-live="polite">
-                  {workspace.processing.jobs.map(job => (
-                    <p key={job.id}>
-                      {sources.find(s => s.id === job.sourceId)?.label ?? 'Curriculum'} · {job.stage} · {job.status}
-                      {job.error && <span> · {job.error}</span>}
-                      {job.status === 'failed' && (
-                        job.retryable ? (
-                          <button type="button" onClick={() => void dispatchAction({ type: 'retry_text_job', jobId: job.id })}>
-                            Retry {job.stage}
-                          </button>
-                        ) : (
-                          <span> · Retry limit reached; edit or remove affected source.</span>
-                        )
-                      )}
-                    </p>
-                  ))}
-                </section>
-              ) : null}
+              <ProcessingFailures workspace={workspace} dispatchAction={dispatchAction} />
 
               {isRunning ? (
                 <div role="status">
@@ -135,7 +130,7 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
                 <>
                   {isFailed && (
                     <>
-                      {workspace.processing.error && <p role="alert">{workspace.processing.error}</p>}
+                      {workspace.processing.error && !workspace.processing.jobs?.some(job => job.status === 'failed') && <p role="alert">{processingFailureMessage(workspace.processing.error)}</p>}
                       <button type="button" onClick={() => void dispatchAction({ type: 'retry_processing' })}>
                         Retry processing
                       </button>
@@ -172,12 +167,26 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
           ) : (
             <ul className={styles.conceptCloud}>
               {allTopics.map(item => (
-                <li key={item.key}>
-                  <span>{item.topic}</span>
+                <li key={item.topic}>
+                  <details>
+                    <summary>{item.topic}</summary>
+                    <p>{item.summary}</p>
+                    <small>{item.sourceLabels.join(' · ')}</small>
+                  </details>
                 </li>
               ))}
             </ul>
           )}
+
+          <details className={styles.limitations}>
+            <summary>Source summaries and limitations ({sources.length})</summary>
+            {sources.map(source => <div key={source.id}>
+              <strong>{source.label}</strong>
+              <p>{source.text ? source.text.slice(0, 350) : 'Reading retained material. Concepts will appear after it is understood.'}</p>
+              {source.provenance?.scope === 'video_observation' && <p>Video observations are non-exhaustive interpretations with estimated timestamps.</p>}
+              {source.provenance?.limitations?.map((limitation, index) => <p key={index}>{limitation}</p>)}
+            </div>)}
+          </details>
 
           <div className={styles.insight}>
             <Lightbulb size={28} aria-hidden="true" />

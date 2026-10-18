@@ -34,6 +34,8 @@ export const cohortSourceProvenanceSchema = z.strictObject({
   finalUrl: z.string().max(2048).optional(),
   pageCount: z.number().int().positive().max(200).optional(),
   videoId: z.string().optional(),
+  videoTitle: z.string().max(500).optional(),
+  videoDurationMs: z.number().int().positive().optional(),
   track: youtubeTrackSchema.optional(),
   timeScope: youtubeTimeScopeSchema.optional(),
   repoUrl: z.string().max(2048).optional(),
@@ -168,6 +170,7 @@ export type CohortDiscoveryItem = z.infer<typeof cohortDiscoveryItemSchema>;
 export const cohortWorkspaceSchema = z.strictObject({
   schemaVersion: z.literal(1),
   title: z.string().max(300),
+  description: z.string().max(4_000).optional(),
   intent: text,
   audience: z.string().max(500),
   dailyMinutes: z.number().int().min(1).max(1_440),

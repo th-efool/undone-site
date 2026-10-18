@@ -9,6 +9,7 @@ import { computeTextStage, sourceFingerprint } from './text-pipeline';
 import { commitTextProjection } from './text-projection-commit';
 import { textJobStatus } from './text-job-status';
 import { validateRetainedSourceEvidence } from './source-evidence';
+import { deriveCohortTitle, deriveCohortDescription } from '@/src/shared/cohort-builder/cohort-metadata';
 
 /** Atomically accepts assembly and projects only validated generated lessons. */
 export async function acceptAssemblyProjection(
@@ -54,6 +55,8 @@ export async function acceptAssemblyProjection(
       ...state,
       ...(state.journey?.step === 'processing' ? { journey: { ...state.journey, step: 'ready' } } : {}),
       chunks, analyses, understanding,
+      title: deriveCohortTitle({ ...state, understanding }),
+      description: deriveCohortDescription({ ...state, understanding }),
       sources: state.sources.map(source => ({ ...source, state: 'ready', checksum: acquired.find(item => item.id === source.id)!.checksum })),
       lessons: projectGeneratedLessons(state.lessons, generated, new Set(chunks.map(chunk => chunk.id))),
       processing: { ...state.processing, status: 'ready', stage: 'done', sourceFingerprint: sourceFingerprint(state), error: null },

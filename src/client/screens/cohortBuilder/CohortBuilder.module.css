@@ -5,6 +5,7 @@
   --creation-muted: #536788;
   --creation-blue: #303cff;
   --creation-line: #e9e0d5;
+  --creation-border: var(--creation-line);
   display: grid;
   grid-template-columns: clamp(300px, 26.1vw, 420px) minmax(0, 1fr);
   min-height: 100dvh;
