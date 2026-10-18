@@ -207,6 +207,8 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
               heading={home.sections.continueLater}
               items={continueLater}
               onResume={home.actions.resumePausedCohort}
+              isOpen={showPausedList}
+              onToggle={handleTogglePaused}
             />
           )}
 
@@ -214,6 +216,8 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
             <RecentlyCompleted
               heading={home.sections.recentlyCompleted}
               items={recentlyCompleted}
+              isOpen={showCompletedList}
+              onToggle={handleToggleCompleted}
             />
           )}
 
