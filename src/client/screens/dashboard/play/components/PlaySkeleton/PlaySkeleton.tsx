@@ -2,30 +2,55 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { RefreshCw, AlertCircle } from 'lucide-react';
+import { RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import styles from './PlaySkeleton.module.css';
 
 interface PlaySkeletonProps {
   isError?: boolean;
+  isEmpty?: boolean;
+  errorTitle?: string;
   errorMessage?: string;
   onRetry?: () => void;
+  retryLabel?: string;
 }
 
-export function PlaySkeleton({ isError = false, errorMessage, onRetry }: PlaySkeletonProps) {
-  if (isError) {
+export function PlaySkeleton({
+  isError = false,
+  isEmpty = false,
+  errorTitle,
+  errorMessage,
+  onRetry,
+  retryLabel,
+}: PlaySkeletonProps) {
+  if (isError || isEmpty) {
+    const isAlert = isError && !isEmpty;
+    const title = errorTitle || (isEmpty ? 'All Caught Up' : 'Lessons Could Not Be Loaded');
+    const desc =
+      errorMessage ||
+      (isEmpty
+        ? "You've caught up with this channel. Explore another channel or head back home."
+        : 'We encountered an issue fetching your feed items. Please check your connection and try reloading.');
+    const defaultRetryText = isEmpty ? 'Refresh Channel' : 'Reload Lessons';
+
     return (
       <div className={styles.skeletonContainer}>
-        <div className={styles.errorContainer} role="alert">
-          <AlertCircle size={40} color="#EF4444" style={{ marginBottom: 16 }} />
-          <h2 className={styles.errorTitle}>Lessons Could Not Be Loaded</h2>
-          <p className={styles.errorDesc}>
-            {errorMessage || "We encountered an issue fetching your feed items. Please check your connection and try reloading."}
-          </p>
+        <div
+          className={styles.errorContainer}
+          role={isAlert ? 'alert' : 'status'}
+          aria-live="polite"
+        >
+          {isEmpty ? (
+            <CheckCircle2 size={40} color="#818CF8" style={{ marginBottom: 16 }} />
+          ) : (
+            <AlertCircle size={40} color="#EF4444" style={{ marginBottom: 16 }} />
+          )}
+          <h2 className={styles.errorTitle}>{title}</h2>
+          <p className={styles.errorDesc}>{desc}</p>
           <div className={styles.actionButtons}>
             {onRetry && (
               <button type="button" className={styles.retryBtn} onClick={onRetry}>
                 <RefreshCw size={14} style={{ marginRight: 6, display: 'inline' }} />
-                Reload Lessons
+                {retryLabel || defaultRetryText}
               </button>
             )}
             <Link href="/home" className={styles.homeLink}>

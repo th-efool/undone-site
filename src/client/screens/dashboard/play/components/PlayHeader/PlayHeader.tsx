@@ -5,6 +5,7 @@ import type { FeedItem } from '@/src/shared/feed/feedEngine.types';
 import type { UsePlaybackResult } from '../../hooks/usePlayback';
 import { Tv, Sparkles, Video, BookOpen } from 'lucide-react';
 import { resolveMediaSource } from '../../utils/mediaSource';
+import { extractFitScores } from '../../utils/fitScore';
 import styles from './PlayHeader.module.css';
 
 interface PlayHeaderProps {
@@ -27,6 +28,7 @@ export function PlayHeader({ playback, onOpenChannelSelector }: PlayHeaderProps)
     else provider = 'Course Media';
   }
   const isYouTube = mediaSource.isYouTube;
+  const fitScores = extractFitScores(activeItem);
 
   // Calculate circular course progress percentage from actually completed chunks
   // Feed position is NOT course completion; distinguish playback/cursor progress from true completion
@@ -111,6 +113,16 @@ export function PlayHeader({ playback, onOpenChannelSelector }: PlayHeaderProps)
                 <Sparkles size={13} aria-hidden="true" style={{ color: '#5430FF' }} />
               )}
               <span>{provider}</span>
+            </span>
+            <span className={styles.dotSeparator}>•</span>
+            <span
+              className={styles.fitScoreBadge}
+              title={`Recommendation Fit: ${fitScores.channelFit}% channel match, ${fitScores.overallFit}% overall curriculum match`}
+              data-testid="fit-score-badge"
+            >
+              <span className={styles.fitScoreChannel}>{fitScores.channelFit}% Channel</span>
+              <span className={styles.fitScoreSlash}>/</span>
+              <span className={styles.fitScoreOverall}>{fitScores.overallFit}% Overall</span>
             </span>
             <span className={styles.dotSeparator}>•</span>
             <span>{chunkInfo}</span>

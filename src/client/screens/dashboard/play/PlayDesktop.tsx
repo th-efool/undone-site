@@ -25,6 +25,7 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenFeedback, setFullscreenFeedback] = useState<string | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [channelSelectorOpen, setChannelSelectorOpen] = useState(false);
   const preLongPressSpeedRef = useRef<number>(playback.playbackSpeed);
 
   useEffect(() => {
@@ -66,6 +67,7 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
     onToggleFullscreen: handleFullscreen,
     onToggleMute: playback.toggleMute,
     onToggleShortcutsHelp: () => setShortcutsOpen((prev) => !prev),
+    onToggleChannelSelector: () => setChannelSelectorOpen((prev) => !prev),
     onLongPressStart: handleLongPressStart,
     onLongPressEnd: handleLongPressEnd,
   });
@@ -88,9 +90,11 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
   if (!playback.activeItem) {
     return (
       <PlaySkeleton
-        isError
+        isEmpty
+        errorTitle="All Caught Up"
         errorMessage="You're caught up with this selection. Choose another channel or return home."
         onRetry={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
+        retryLabel="Refresh Channel"
       />
     );
   }
@@ -112,10 +116,15 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
       <div className={styles.channelFloatingAnchor}>
         <ChannelSelector
           activeChannel={playback.activeChannel}
-          onChannelSelect={playback.setActiveChannel}
+          onChannelSelect={(ch) => {
+            playback.setActiveChannel(ch);
+            setChannelSelectorOpen(false);
+          }}
           searchQuery={playback.searchQuery}
           onSearchQueryChange={playback.setSearchQuery}
           onPrefsUpdated={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
+          isOpen={channelSelectorOpen}
+          onOpenChange={setChannelSelectorOpen}
         />
         <button
           type="button"

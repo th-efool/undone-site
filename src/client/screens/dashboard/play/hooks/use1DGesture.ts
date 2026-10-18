@@ -16,6 +16,7 @@ export interface GestureOptions {
   onToggleFullscreen?: () => void;
   onToggleMute?: () => void;
   onToggleShortcutsHelp?: () => void;
+  onToggleChannelSelector?: () => void;
   disabled?: boolean;
 }
 
@@ -32,6 +33,7 @@ export function use1DGesture({
   onToggleFullscreen,
   onToggleMute,
   onToggleShortcutsHelp,
+  onToggleChannelSelector,
   disabled = false,
 }: GestureOptions) {
   const [dragDeltaX, setDragDeltaX] = useState(0);
@@ -330,12 +332,17 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
           e.preventDefault();
           onToggleShortcutsHelp?.();
           break;
+        case 'c':
+        case 'C':
+          e.preventDefault();
+          onToggleChannelSelector?.();
+          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [disabled, onNext, onPrev, onToggleFullscreen, onToggleMute, onTogglePlay, onToggleShortcutsHelp]);
+  }, [disabled, onNext, onPrev, onToggleFullscreen, onToggleMute, onTogglePlay, onToggleShortcutsHelp, onToggleChannelSelector]);
 
   return {
     isDragging,

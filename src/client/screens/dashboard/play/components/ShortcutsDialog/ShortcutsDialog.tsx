@@ -30,6 +30,7 @@ const TIMELINE_SHORTCUTS: ShortcutItem[] = [
 
 const GENERAL_SHORTCUTS: ShortcutItem[] = [
   { action: 'Keyboard shortcuts help', keys: ['?'] },
+  { action: 'Toggle channel selector', keys: ['C'] },
   { action: 'Close dialogs & menus', keys: ['Esc'] },
 ];
 

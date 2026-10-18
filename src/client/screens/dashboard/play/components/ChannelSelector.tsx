@@ -10,6 +10,8 @@ interface ChannelSelectorProps {
   onSearchQueryChange?: (query: string) => void;
   onPrefsUpdated?: () => void;
   isInline?: boolean;
+  isOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const CHANNELS: { id: ChannelId; label: string; desc: string }[] = [
@@ -65,11 +67,24 @@ export function ChannelSelector({
   onSearchQueryChange,
   onPrefsUpdated,
   isInline,
+  isOpen: controlledIsOpen,
+  onOpenChange,
 }: ChannelSelectorProps) {
-  const [isOpen, setIsOpen] = React.useState(false);
+  const [internalIsOpen, setInternalIsOpen] = React.useState(false);
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+
+  const setIsOpen = React.useCallback(
+    (open: boolean) => {
+      setInternalIsOpen(open);
+      onOpenChange?.(open);
+    },
+    [onOpenChange]
+  );
+
   const [draftQuery, setDraftQuery] = React.useState(searchQuery);
   const [prefsMap, setPrefsMap] = React.useState<Record<string, string>>({});
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
 
   React.useEffect(() => {
     setDraftQuery(searchQuery);
@@ -85,14 +100,29 @@ export function ChannelSelector({
   }, [isOpen]);
 
   React.useEffect(() => {
+    if (!isOpen) return;
+
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setIsOpen(false);
+        triggerRef.current?.focus();
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, setIsOpen]);
 
   const handlePrefSelect = (prefKey: string, optionId: string) => {
     const updated = { ...prefsMap, [prefKey]: optionId };
@@ -108,9 +138,13 @@ export function ChannelSelector({
   return (
     <div className={isInline ? styles.channelSelectorInline : styles.channelSelectorWrapper} ref={containerRef}>
       <button 
+        ref={triggerRef}
         className={styles.channelSelectorTrigger} 
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Select Channel"
+        aria-haspopup="dialog"
+        aria-expanded={isOpen}
+        aria-controls="channel-selector-popover"
       >
         <Settings2 size={16} />
         <span>{CHANNELS.find(c => c.id === activeChannel)?.label || 'Channel'}</span>
@@ -118,7 +152,13 @@ export function ChannelSelector({
       </button>
 
       {isOpen && (
-        <div className={styles.channelSelectorDropdown} style={{ minWidth: 250 }}>
+        <div
+          id="channel-selector-popover"
+          role="region"
+          aria-label="Channel and search preferences"
+          className={styles.channelSelectorDropdown}
+          style={{ minWidth: 250 }}
+        >
           {onSearchQueryChange && (
             <form
               onSubmit={(e) => {

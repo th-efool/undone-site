@@ -123,12 +123,20 @@ describe('PlayHeader component', () => {
     expect(goToIndex).toHaveBeenCalledWith(2);
   });
 
-  it('renders lesson title, YouTube provider badge, chunk order, and time range', () => {
-    const playback = createMockPlayback();
+  it('renders lesson title, YouTube provider badge, fit scores, chunk order, and time range', () => {
+    const playback = createMockPlayback({
+      activeItem: {
+        ...mockItem,
+        channelFitScore: 92,
+        overallFitScore: 88,
+      },
+    });
     render(<PlayHeader playback={playback} />);
 
     expect(screen.getByRole('heading', { level: 1, name: 'Mastering AI Orchestration' })).toBeDefined();
     expect(screen.getByText('YouTube')).toBeDefined();
+    expect(screen.getByText('92% Channel')).toBeDefined();
+    expect(screen.getByText('88% Overall')).toBeDefined();
     expect(screen.getByText('Chunk 2 of 4')).toBeDefined();
     expect(screen.getByText('00:00 - 04:00')).toBeDefined();
   });

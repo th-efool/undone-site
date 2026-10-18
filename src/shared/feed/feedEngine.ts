@@ -342,6 +342,11 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
 
     const compositeScore = hybridVectorScore * 12 + heuristic.score + bonus;
     const matchPct = Math.max(55, Math.min(99, Math.round((hybridVectorScore * 0.75 + 0.22) * 100)));
+    const channelFitScore = matchPct;
+
+    // Overall fit: balanced combination of channel vector fit (60%) and learner continuity/schedule heuristics (40%)
+    const normalizedComposite = Math.min(1, Math.max(0, (compositeScore - 2) / 16));
+    const overallFitScore = Math.max(50, Math.min(99, Math.round(normalizedComposite * 40 + channelFitScore * 0.6)));
 
     let matchReason = `${channelEval.reasonTag} · ${matchPct}% Fit`;
     if (ragEval.matchedTerms.length > 0) {
@@ -361,6 +366,7 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
       cohortId: chunk.cohortId,
       lessonTitle: chunk.lessonTitle,
       cohortTitle: chunk.cohortTitle,
+      cohortProvider: chunk.cohortProvider,
       lessonVideoId: chunk.lessonVideoId,
       lessonVideoUrl: chunk.lessonVideoUrl,
       sourceUrl: chunk.lessonVideoUrl ?? (chunk as any).sourceUrl,
@@ -370,6 +376,8 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
       totalChunksInLesson: chunk.totalChunksInLesson,
       matchScore: Math.round(compositeScore * 100) / 100,
       matchReason,
+      channelFitScore,
+      overallFitScore,
       lessonOrder: chunk.lessonOrder,
       seasonOrder: chunk.seasonOrder,
       totalLessonsInSeason: chunk.totalLessonsInSeason,

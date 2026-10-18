@@ -34,6 +34,7 @@ import { PlayerSurface } from '@/src/client/screens/dashboard/play/components/Pl
 import { ReadingSurface } from '@/src/client/screens/dashboard/play/components/ReadingSurface';
 import { PlaySkeleton } from '@/src/client/screens/dashboard/play/components/PlaySkeleton/PlaySkeleton';
 import { resolveMediaSource } from '@/src/client/screens/dashboard/play/utils/mediaSource';
+import { extractFitScores } from '@/src/client/screens/dashboard/play/utils/fitScore';
 import { triggerHaptic } from '@/src/client/utils/haptics';
 import styles from './PlayMobile.module.css';
 
@@ -102,9 +103,11 @@ export function PlayMobile({ playback }: PlayMobileProps) {
   if (!playback.activeItem) {
     return (
       <PlaySkeleton
-        isError
+        isEmpty
+        errorTitle="All Caught Up"
         errorMessage="You're caught up with this selection. Choose another channel or return home."
         onRetry={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
+        retryLabel="Refresh Channel"
       />
     );
   }
@@ -125,6 +128,7 @@ export function PlayMobile({ playback }: PlayMobileProps) {
     else if (mediaSource.isReading) providerName = 'Reading';
     else providerName = 'Course Media';
   }
+  const fitScores = extractFitScores(playback.activeItem);
 
   const renderProviderIcon = () => {
     if (mediaSource.isYouTube) return <Tv size={12} color="#EF4444" />;
@@ -176,6 +180,15 @@ export function PlayMobile({ playback }: PlayMobileProps) {
                 <span className={styles.providerBadge}>
                   {renderProviderIcon()}
                   <span>{providerName}</span>
+                </span>
+                <span className={styles.dotSeparator}>•</span>
+                <span
+                  className={styles.fitScoreBadge}
+                  title={`Recommendation Fit: ${fitScores.channelFit}% channel match, ${fitScores.overallFit}% overall curriculum match`}
+                >
+                  <span className={styles.fitScoreChannel}>{fitScores.channelFit}%</span>
+                  <span className={styles.fitScoreSlash}>/</span>
+                  <span className={styles.fitScoreOverall}>{fitScores.overallFit}%</span>
                 </span>
                 <span className={styles.dotSeparator}>•</span>
                 <span>
@@ -273,6 +286,15 @@ export function PlayMobile({ playback }: PlayMobileProps) {
             <span className={styles.providerBadge}>
               {renderProviderIcon()}
               <span>{providerName}</span>
+            </span>
+            <span className={styles.dotSeparator}>•</span>
+            <span
+              className={styles.fitScoreBadge}
+              title={`Recommendation Fit: ${fitScores.channelFit}% channel match, ${fitScores.overallFit}% overall curriculum match`}
+            >
+              <span className={styles.fitScoreChannel}>{fitScores.channelFit}%</span>
+              <span className={styles.fitScoreSlash}>/</span>
+              <span className={styles.fitScoreOverall}>{fitScores.overallFit}%</span>
             </span>
             <span className={styles.dotSeparator}>•</span>
             <span>

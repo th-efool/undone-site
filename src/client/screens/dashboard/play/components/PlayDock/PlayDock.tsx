@@ -58,16 +58,25 @@ export function PlayDock({
   const [speedMenuOpen, setSpeedMenuOpen] = useState(false);
   const speedRef = useRef<HTMLDivElement>(null);
 
-  // Close speed menu on outside click
+  // Close speed menu on outside click or Escape key
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (speedRef.current && !speedRef.current.contains(e.target as Node)) {
         setSpeedMenuOpen(false);
       }
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setSpeedMenuOpen(false);
+      }
+    }
     if (speedMenuOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+        document.removeEventListener('keydown', handleKeyDown);
+      };
     }
   }, [speedMenuOpen]);
 

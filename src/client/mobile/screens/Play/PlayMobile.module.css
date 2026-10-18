@@ -129,6 +129,36 @@
   font-weight: 500;
 }
 
+.fitScoreBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(129, 140, 248, 0.28);
+  border-radius: 9999px;
+  font-size: 10px;
+  font-weight: 500;
+  color: #C7D2FE;
+  line-height: 1.2;
+}
+
+.fitScoreChannel {
+  color: #A5B4FC;
+  font-weight: 600;
+}
+
+.fitScoreSlash {
+  opacity: 0.45;
+  font-size: 9px;
+  color: #94A3B8;
+}
+
+.fitScoreOverall {
+  color: #E2E8F0;
+  font-weight: 500;
+}
+
 .dotSeparator {
   opacity: 0.4;
 }
