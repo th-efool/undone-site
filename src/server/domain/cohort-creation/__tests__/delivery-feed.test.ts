@@ -85,4 +85,28 @@ describe('retained delivery projection', () => {
     expect(output[0].chunkId).toBe('chunk-1');
     expect(output[0].content?.text).toContain('Generics');
   });
+  it('projects totalLessonsInSeason and totalVideos from season _count or lessons list', () => {
+    const l1 = {
+      ...lesson([chunk]),
+      id: 'lesson-counted',
+      season: {
+        order: 1,
+        title: 'Season 1',
+        cohortId: 'cohort-1',
+        cohort: { title: 'Cohort 1', coverImage: null },
+        _count: { lessons: 8 },
+      },
+    };
+    const output1 = deliveryFeedChunks([l1]);
+    expect(output1[0].totalLessonsInSeason).toBe(8);
+    expect(output1[0].totalVideos).toBe(8);
+
+    const l2 = {
+      ...lesson([chunk]),
+      id: 'lesson-uncounted',
+    };
+    const output2 = deliveryFeedChunks([l2]);
+    expect(output2[0].totalLessonsInSeason).toBe(1);
+    expect(output2[0].totalVideos).toBe(1);
+  });
 });

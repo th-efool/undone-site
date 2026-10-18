@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     const lessons = await prisma.lesson.findMany({ where: { isPublished: true, chunks: { not: Prisma.AnyNull },
       ...(lessonId ? { id: lessonId } : {}), season: { ...(cohortId ? { cohortId } : {}),
         cohort: { is: { AND: [{ isPublished: true }, accessibleCohortWhere(userId)] } } } },
-      include: { season: { include: { cohort: true } } }, orderBy: [{ season: { order: 'asc' } }, { order: 'asc' }, { id: 'asc' }], take: 100 });
+      include: { season: { include: { cohort: true, _count: { select: { lessons: true } } } } }, orderBy: [{ season: { order: 'asc' } }, { order: 'asc' }, { id: 'asc' }], take: 100 });
     const rejected: DeliveryRejection[] = [];
     const chunks = deliveryFeedChunks(lessons, failure => rejected.push(failure));
     if (rejected.length) console.warn('[feed] Unavailable retained deliveries', rejected);

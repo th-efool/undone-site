@@ -146,3 +146,32 @@ describe('feed terminal states', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('lesson model labelling', () => {
+  beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); });
+  it('correctly models seasonOrder, currentVideo, and totalVideos from feed data', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        items: [{
+          chunkId: 'chunk-1',
+          lessonId: 'lesson-1',
+          lessonTitle: 'Introduction to Rust',
+          chunkTitle: 'Ownership Model',
+          seasonOrder: 2,
+          lessonOrder: 3,
+          totalLessonsInSeason: 10,
+          totalVideos: 10,
+          startSeconds: 0,
+          endSeconds: 120,
+        }],
+      }),
+    });
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem).not.toBeNull());
+    expect(result.current.lesson.seasonOrder).toBe(2);
+    expect(result.current.lesson.seasonNumber).toBe(2);
+    expect(result.current.lesson.currentVideo).toBe(3);
+    expect(result.current.lesson.totalVideos).toBe(10);
+  });
+});

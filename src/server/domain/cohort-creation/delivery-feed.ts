@@ -19,7 +19,7 @@ const chunkSchema = z.preprocess(
     coverage: z.object({ limitations: z.array(z.string().max(2000)).max(100) }).optional() }).passthrough()
 );
 type Lesson = { id: string; title: string; videoId: string | null; lessonType: string; thumbnailUrl: string | null; order: number;
-  seasonId: string; chunks: unknown; season: { order: number; title: string; cohortId: string; cohort: { title: string; coverImage: string | null } } };
+  seasonId: string; chunks: unknown; season: { order: number; title: string; cohortId: string; cohort: { title: string; coverImage: string | null }; _count?: { lessons: number }; lessons?: unknown[] } };
 export type DeliveryRejection = { lessonId: string; cohortId: string;
   reason: 'INVALID_CHUNKS' | 'UNSUPPORTED_LESSON_TYPE' | 'DUPLICATE_CHUNKS' | 'INVALID_TIMING' | 'MISSING_TEXT' | 'MISSING_VIDEO' };
 function seconds(duration: string | undefined) {
@@ -68,7 +68,10 @@ export function deliveryFeedChunks(lessons: Lesson[], onRejected?: (failure: Del
         lessonOrder: lesson.order, lessonType: reading ? lesson.lessonType === 'ASSIGNMENT' ? 'assignment' : 'reading' : 'video',
         seasonId: lesson.seasonId, seasonTitle: lesson.season.title, seasonOrder: lesson.season.order,
         cohortId: lesson.season.cohortId, cohortTitle: lesson.season.cohort.title, cohortCoverImage: lesson.season.cohort.coverImage ?? '', cohortProvider: '',
-        totalChunksInLesson: chunks.length, isStrictlyLinear: chunk.isStrictlyLinear ?? fallbackScored?.isStrictlyLinear,
+        totalChunksInLesson: chunks.length,
+        totalLessonsInSeason: lesson.season._count?.lessons ?? lesson.season.lessons?.length ?? 1,
+        totalVideos: lesson.season._count?.lessons ?? lesson.season.lessons?.length ?? 1,
+        isStrictlyLinear: chunk.isStrictlyLinear ?? fallbackScored?.isStrictlyLinear,
         chunkVector: resolvedVector,
         ...(chunk.text ? { content: { text: chunk.text, contentOrigin: chunk.contentOrigin, limitations: chunk.coverage?.limitations ?? [], durationMethod: chunk.durationMethod } } : {}) };
     });

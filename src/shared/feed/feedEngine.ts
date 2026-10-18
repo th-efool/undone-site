@@ -357,7 +357,8 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
       matchReason,
       lessonOrder: chunk.lessonOrder,
       seasonOrder: chunk.seasonOrder,
-      totalLessonsInSeason: (chunk as any).totalLessonsInSeason,
+      totalLessonsInSeason: chunk.totalLessonsInSeason,
+      totalVideos: chunk.totalVideos ?? chunk.totalLessonsInSeason,
     });
   }
 

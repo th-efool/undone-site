@@ -18,6 +18,8 @@ export interface FeedChunkInput {
   lessonVideoId?: string;
   lessonVideoUrl?: string;
   totalChunksInLesson?: number;
+  totalLessonsInSeason?: number;
+  totalVideos?: number;
   lessonOrder: number;
   lessonType: string;           // 'video' | 'reading' | 'assignment'
   content?: FeedReadingContent;
@@ -102,6 +104,7 @@ export interface FeedItem {
   lessonOrder?: number;
   seasonOrder?: number;
   totalLessonsInSeason?: number;
+  totalVideos?: number;
 }
 
 /** Inert retained text and explicit provenance; never rendered as model-generated HTML. */

@@ -7,6 +7,7 @@ export interface Lesson {
   cohortTitle?: string;
   cohortId?: string;
   seasonOrder: number;
+  seasonNumber?: number;
   currentVideo: number;
   totalVideos: number;
   currentChunk: number;
