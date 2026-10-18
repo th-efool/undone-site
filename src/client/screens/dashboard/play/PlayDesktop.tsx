@@ -158,18 +158,32 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
   const renderScene = useCallback(
     (index: number, isActive: boolean) => {
       const item = playback.feedItems[index];
+      const isVideo = item?.lessonType === 'video' && Boolean(item?.lessonVideoId);
 
       if (isActive) {
         return (
           <div className={styles.surfaceContainer}>
-            {item?.content ? <ReadingSurface item={item} pending={playback.completionPending} error={playback.completionError} onComplete={() => void playback.completeActiveChunk()} /> : <PlayerSurface containerRef={playback.playerContainerRef}>
-              {desktopOverlays}
-            </PlayerSurface>}
+            {isVideo ? (
+              <PlayerSurface containerRef={playback.playerContainerRef}>
+                {desktopOverlays}
+              </PlayerSurface>
+            ) : item?.content ? (
+              <ReadingSurface
+                item={item}
+                pending={playback.completionPending}
+                error={playback.completionError}
+                onComplete={() => void playback.completeActiveChunk()}
+              />
+            ) : (
+              <PlayerSurface containerRef={playback.playerContainerRef}>
+                {desktopOverlays}
+              </PlayerSurface>
+            )}
           </div>
         );
       }
 
-      const poster = undefined;
+      const poster = item?.lessonThumbnail || undefined;
       const title = item?.chunkTitle || item?.lessonTitle || 'Upcoming Lesson';
 
       return (
