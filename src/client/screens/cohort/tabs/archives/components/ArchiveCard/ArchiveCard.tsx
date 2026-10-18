@@ -19,7 +19,7 @@ export function ArchiveCard({ item }: { item: ArchiveItem }) {
         <p>{item.description}</p>
         <div className={styles.author}>
           <Image
-            src={item.author.avatarUrl}
+            src={item.author?.avatarUrl || '/mock/avatars/a.webp'}
             alt=""
             width={24}
             height={24}
