@@ -46,7 +46,7 @@ describe('cohort subscription removal', () => {
   });
   it('allows joining again to restore the removed cohort', async () => {
     expect((await POST(new Request('http://localhost'), params())).status).toBe(200);
-    expect(mocks.config).toHaveBeenCalledWith({ userId: 'learner', cohortId: 'systems' }, { $set: { isHidden: false, isPaused: false }, $unset: { pausedUntil: 1 } });
+    expect(mocks.config).toHaveBeenCalledWith({ userId: 'learner', cohortId: 'systems', isHidden: true }, { $set: { isHidden: false, isPaused: false }, $unset: { pausedUntil: 1 } });
     expect(mocks.join).toHaveBeenCalledOnce();
   });
 });
