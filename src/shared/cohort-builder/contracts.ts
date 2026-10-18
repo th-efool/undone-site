@@ -291,11 +291,39 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     if (!steps.includes(current.step)) throw new Error('INVALID_JOURNEY_TRANSITION');
     return current;
   };
-  if (action.type === 'create_own_cohort') { requireStep('recommendations').step = 'starting_point'; return navigationResult('Starting point opened.'); }
+  if (action.type === 'create_own_cohort') {
+    const current = journey();
+    if (current.step === 'recommendations') {
+      current.step = 'starting_point';
+      return navigationResult('Starting point opened.');
+    }
+    if (['starting_point', 'material_input', 'discovery', 'goal_setup', 'ready', 'review'].includes(current.step)) {
+      return navigationResult('Starting point already active.');
+    }
+    throw new Error('INVALID_JOURNEY_TRANSITION');
+  }
   if (action.type === 'choose_starting_point') {
-    const current = requireStep('starting_point'); current.branch = action.choice;
-    current.step = action.choice === 'have_material' ? 'material_input' : action.choice === 'find_material' ? 'discovery' : 'goal_setup';
-    return navigationResult('Starting point selected.');
+    const current = journey();
+    if (current.step === 'starting_point') {
+      current.branch = action.choice;
+      current.step = action.choice === 'have_material' ? 'material_input' : action.choice === 'find_material' ? 'discovery' : 'goal_setup';
+      return navigationResult('Starting point selected.');
+    }
+    if (current.step === 'material_input' && action.choice === 'have_material') {
+      return navigationResult('Material input already active.');
+    }
+    if (current.step === 'discovery' && action.choice === 'find_material') {
+      return navigationResult('Discovery already active.');
+    }
+    if (current.step === 'goal_setup' && action.choice === 'have_goal') {
+      return navigationResult('Goal setup already active.');
+    }
+    if (['material_input', 'discovery', 'goal_setup'].includes(current.step)) {
+      current.branch = action.choice;
+      current.step = action.choice === 'have_material' ? 'material_input' : action.choice === 'find_material' ? 'discovery' : 'goal_setup';
+      return navigationResult('Starting point switched.');
+    }
+    throw new Error('INVALID_JOURNEY_TRANSITION');
   }
   if (action.type === 'back_to_recommendations' || action.type === 'back_to_starting_point') {
     const current = journey(); if (current.step === 'published') throw new Error('INVALID_JOURNEY_TRANSITION');
