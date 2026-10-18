@@ -66,6 +66,23 @@ describe('use1DGesture keyboard interaction', () => {
     document.body.removeChild(button);
   });
 
+  it('does not hijack spacebar or enter when focused on an anchor link', () => {
+    const onTogglePlay = vi.fn();
+    renderHook(() => use1DGesture({ onNext: vi.fn(), onPrev: vi.fn(), onTogglePlay }));
+
+    const link = document.createElement('a');
+    link.href = '#';
+    document.body.appendChild(link);
+    link.focus();
+
+    const spaceEvent = new KeyboardEvent('keydown', { key: ' ', bubbles: true });
+    Object.defineProperty(spaceEvent, 'target', { value: link, writable: false });
+    window.dispatchEvent(spaceEvent);
+
+    expect(onTogglePlay).not.toHaveBeenCalled();
+    document.body.removeChild(link);
+  });
+
   it('does not hijack arrow keys when focused on a slider element', () => {
     const onNext = vi.fn();
     const onPrev = vi.fn();

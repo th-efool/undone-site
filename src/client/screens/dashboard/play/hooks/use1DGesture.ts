@@ -274,8 +274,9 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
           return;
         }
 
-        // Ignore if focus is in an interactive button, slider, select, menu, or dialog
+        // Ignore if focus is in an interactive button, link, slider, select, menu, or dialog
         const isButton = target.tagName === 'BUTTON' || (typeof target.closest === 'function' && target.closest('button') !== null);
+        const isLink = target.tagName === 'A' || (typeof target.closest === 'function' && target.closest('a') !== null);
         const isSlider = target.getAttribute?.('role') === 'slider' || (typeof target.closest === 'function' && target.closest('[role="slider"]') !== null);
         const isSelect = target.tagName === 'SELECT' || (typeof target.closest === 'function' && target.closest('select') !== null);
         const isInDialog = typeof target.closest === 'function' && target.closest('[role="dialog"]') !== null;
@@ -285,8 +286,8 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
           return;
         }
 
-        // If focused on a button, spacebar activates the button natively; don't hijack it
-        if (isButton && (e.key === ' ' || e.key === 'Enter')) {
+        // If focused on a button or link, spacebar or enter activates it natively; don't hijack it
+        if ((isButton || isLink) && (e.key === ' ' || e.key === 'Enter')) {
           return;
         }
 
