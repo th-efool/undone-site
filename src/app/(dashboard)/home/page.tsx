@@ -122,7 +122,7 @@ export default async function home() {
   ];
 
   if (allUserCohorts.length === 0) {
-    return <Home activeCohorts={[]} recentlyCompleted={[]} continueLater={[]} />;
+    return <Home activeCohorts={[]} recentlyCompleted={[]} continueLater={[]} userName={session?.user?.name || undefined} />;
   }
 
   const activeCohorts: any[] = [];
@@ -210,5 +210,5 @@ export default async function home() {
     c.rank = idx + 1;
   });
 
-  return <Home activeCohorts={activeCohorts} recentlyCompleted={recentlyCompleted} continueLater={continueLater} />;
+  return <Home activeCohorts={activeCohorts} recentlyCompleted={recentlyCompleted} continueLater={continueLater} userName={session?.user?.name || undefined} />;
 }

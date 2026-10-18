@@ -13,15 +13,17 @@ import { HomeSummaryBar } from './components/HomeSummaryBar/HomeSummaryBar';
 import { RecentlyCompleted } from './components/RecentlyCompleted/RecentlyCompleted';
 import { UpcomingEvents } from '@/src/client/components/global/UpcomingEvents';
 import { HomeStreakWidget } from './components/HomeStreakWidget';
+import { LearningPromptBar } from '@/src/client/components/global/LearningPromptBar';
 import type { UseHomeResult } from './hooks/useHome';
 
 import styles from './Home.module.css';
 
 interface HomeDesktopProps {
   model: UseHomeResult;
+  userName?: string;
 }
 
-export function HomeDesktop({ model: home }: HomeDesktopProps) {
+export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isPausedOpen, setIsPausedOpen] = useState(() => homeStorageAdapter.getStoredPausedOpen());
@@ -66,21 +68,9 @@ export function HomeDesktop({ model: home }: HomeDesktopProps) {
     <div className={styles.home}>
       <div className={styles.pageGrid}>
         <main className={styles.leftCol}>
-          <HomeHero
-            content={home.hero}
-            summaries={home.summaries}
-            searchValue={query}
-            onSearchChange={setQuery}
-            searchPlaceholder={home.searchPlaceholder}
-            weeklyMinutes={84}
-            activeDays={4}
-            pace={pace}
-            onPaceClick={() => {
-              const opts = [10, 20, 30, 45, 60];
-              const next = opts[(opts.indexOf(pace) + 1) % opts.length];
-              setPace(next);
-            }}
-          />
+          <HomeHero userName={userName} />
+
+          <LearningPromptBar />
 
           <ChannelHub />
 
