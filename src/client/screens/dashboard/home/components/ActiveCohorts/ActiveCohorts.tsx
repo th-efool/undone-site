@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
-import { Users, ChevronUp, ChevronDown, ArrowRight } from 'lucide-react';
+import { Users, ChevronUp, ChevronDown, ArrowRight, Compass } from 'lucide-react';
 import type { ActiveCohort, HomeSectionContent, PauseOption, Weekday } from '../../models';
 import { SubscribedCohortCard } from './SubscribedCohortCard';
 import { InspectorPanel } from './InspectorPanel';
@@ -20,7 +20,7 @@ export interface ActiveCohortsProps {
   onUpdateFrequency?(cohortId: string, frequency: string): void;
 }
 
-export function ActiveCohorts({
+export const ActiveCohorts = React.memo(function ActiveCohorts({
   heading,
   items,
   pauseOptions,
@@ -35,23 +35,33 @@ export function ActiveCohorts({
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [isSectionOpen, setIsSectionOpen] = useState(true);
 
-  const selectedCohort = items.find((item) => item.id === selectedId) || null;
+  const selectedCohort = useMemo(
+    () => items.find((item) => item.id === selectedId) || null,
+    [items, selectedId],
+  );
 
-  const handleCardSelect = (cohort: ActiveCohort) => {
+  const handleCardSelect = useCallback((cohort: ActiveCohort) => {
     setSelectedId(cohort.id);
     setIsInspectorOpen(true);
-  };
+  }, []);
 
-  const handleCloseInspector = () => {
+  const handleMenuClick = useCallback((_e: React.MouseEvent, cohort: ActiveCohort) => {
+    setSelectedId(cohort.id);
+    setIsInspectorOpen(true);
+  }, []);
+
+  const handleCloseInspector = useCallback(() => {
     setIsInspectorOpen(false);
     setSelectedId(null);
-  };
+  }, []);
 
-  const totalMembers = items.reduce(
-    (acc, curr) => acc + (curr.memberCount || 64 + ((curr.title.length * 37) % 240)),
-    0,
-  );
-  const formattedMembers = (totalMembers || 2341).toLocaleString();
+  const formattedMembers = useMemo(() => {
+    const totalMembers = items.reduce(
+      (acc, curr) => acc + (curr.memberCount || 64 + ((curr.title.length * 37) % 240)),
+      0,
+    );
+    return totalMembers > 0 ? totalMembers.toLocaleString('en-US') : '2,340+';
+  }, [items]);
 
   return (
     <section className={styles.section} aria-label={heading.title || 'Subscribed Cohorts'}>
@@ -64,13 +74,15 @@ export function ActiveCohorts({
           <div className={styles.titleGroup}>
             <h2 className={styles.title}>{heading.title || 'Subscribed Cohorts'}</h2>
             <p className={styles.subtitle}>
-              Learning alongside {formattedMembers} curious minds.
+              {items.length > 0
+                ? `Learning alongside ${formattedMembers} curious minds.`
+                : `Join ${formattedMembers} curious minds learning together.`}
             </p>
           </div>
         </div>
 
         <div className={styles.headerRight}>
-          <Link href="/explore" className={styles.viewAllLink}>
+          <Link href="/explore" className={styles.viewAllLink} aria-label="View all cohorts">
             <span>View all</span>
             <ArrowRight size={14} strokeWidth={2.2} />
           </Link>
@@ -91,14 +103,32 @@ export function ActiveCohorts({
       {isSectionOpen && (
         <div className={styles.contentLayout}>
           <div className={`${styles.grid} ${isInspectorOpen ? styles.gridWithInspector : ''}`}>
-            {items.map((cohort) => (
-              <SubscribedCohortCard
-                key={cohort.id}
-                cohort={cohort}
-                onSelect={handleCardSelect}
-                onMenuClick={(_, c) => handleCardSelect(c)}
-              />
-            ))}
+            {items.length === 0 ? (
+              <div className={styles.emptyContainer} role="region" aria-label="No subscribed cohorts">
+                <div className={styles.emptyCard}>
+                  <div className={styles.emptyIconBadge} aria-hidden="true">
+                    <Compass size={24} strokeWidth={2} />
+                  </div>
+                  <h3 className={styles.emptyTitle}>No active cohorts yet</h3>
+                  <p className={styles.emptySubtitle}>
+                    Start your learning journey by exploring curated tracks, community spaces, and focused courses.
+                  </p>
+                  <Link href="/explore" className={styles.emptyCta}>
+                    <span>Discover cohorts</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              items.map((cohort) => (
+                <SubscribedCohortCard
+                  key={cohort.id}
+                  cohort={cohort}
+                  onSelect={handleCardSelect}
+                  onMenuClick={handleMenuClick}
+                />
+              ))
+            )}
           </div>
 
           {/* Slide-in / Drawer Inspector Panel */}
@@ -119,4 +149,4 @@ export function ActiveCohorts({
       )}
     </section>
   );
-}
+});

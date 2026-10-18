@@ -14,6 +14,7 @@ import { RecentlyCompleted } from './components/RecentlyCompleted/RecentlyComple
 import { UpcomingEvents } from '@/src/client/components/global/UpcomingEvents';
 import { HomeStreakWidget } from './components/HomeStreakWidget';
 import { LearningPromptBar } from '@/src/client/components/global/LearningPromptBar';
+import { SearchBar } from '@/src/client/components/global/SearchBar';
 import { StudyRooms } from '@/src/client/components/global/StudyRooms';
 import { messageMock } from '@/src/client/screens/dashboard/message/mock/message.mock';
 import type { UseHomeResult } from './hooks/useHome';
@@ -28,36 +29,122 @@ interface HomeDesktopProps {
 export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [isPausedOpen, setIsPausedOpen] = useState(() => homeStorageAdapter.getStoredPausedOpen());
+  const [isPausedOpen, setIsPausedOpen] = useState(false);
   const [isCompletedOpen, setIsCompletedOpen] = useState(false);
-  const [pace, setPace] = useState(20);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setDebouncedQuery(query.trim().toLowerCase()), 180);
+    setIsPausedOpen(homeStorageAdapter.getStoredPausedOpen());
+    setIsCompletedOpen(homeStorageAdapter.getStoredCompletedOpen());
+
+    let initialQ = '';
+    if (typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const q = params.get('q');
+        if (q && q.trim()) initialQ = q.trim();
+      } catch {}
+    }
+    if (!initialQ) {
+      initialQ = homeStorageAdapter.getStoredSearchQuery();
+    }
+    if (initialQ) {
+      setQuery(initialQ);
+      setDebouncedQuery(initialQ.trim().toLowerCase());
+    }
+
+    const onPopState = () => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const q = params.get('q') || '';
+        setQuery(q);
+      } catch {}
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  useEffect(() => {
+    const normalized = query.trim().toLowerCase();
+    const timer = window.setTimeout(() => {
+      setDebouncedQuery((prev) => (prev === normalized ? prev : normalized));
+      homeStorageAdapter.saveSearchQuery(query);
+      if (typeof window !== 'undefined') {
+        try {
+          const url = new URL(window.location.href);
+          if (query.trim()) {
+            url.searchParams.set('q', query.trim());
+          } else {
+            url.searchParams.delete('q');
+          }
+          window.history.replaceState(null, '', url.toString());
+        } catch {}
+      }
+    }, 180);
     return () => window.clearTimeout(timer);
   }, [query]);
 
-  const matches = useCallback(
-    (values: string[]) =>
-      !debouncedQuery || values.some((value) => value.toLowerCase().includes(debouncedQuery)),
-    [debouncedQuery],
-  );
-  const activeCohorts = useMemo(
-    () => home.activeCohorts.filter((item) => matches([item.title, item.provider])),
-    [home.activeCohorts, matches],
-  );
-  const continueLater = useMemo(
-    () =>
-      home.continueLater.filter((item) =>
-        matches([item.title, item.provider, item.pausedReason ?? '']),
-      ),
-    [home.continueLater, matches],
-  );
-  const recentlyCompleted = useMemo(
-    () => home.recentlyCompleted.filter((item) => matches([item.title])),
-    [home.recentlyCompleted, matches],
-  );
+  // Clean memoized filtering: when debouncedQuery is empty, preserves exact source references
+  // avoiding any array reallocation or downstream component re-renders
+  const activeCohorts = useMemo(() => {
+    if (!debouncedQuery) return home.activeCohorts;
+    return home.activeCohorts.filter(
+      (item) =>
+        item.title.toLowerCase().includes(debouncedQuery) ||
+        (item.provider && item.provider.toLowerCase().includes(debouncedQuery)),
+    );
+  }, [home.activeCohorts, debouncedQuery]);
+
+  const continueLater = useMemo(() => {
+    if (!debouncedQuery) return home.continueLater;
+    return home.continueLater.filter(
+      (item) =>
+        item.title.toLowerCase().includes(debouncedQuery) ||
+        (item.provider && item.provider.toLowerCase().includes(debouncedQuery)) ||
+        (item.pausedReason && item.pausedReason.toLowerCase().includes(debouncedQuery)),
+    );
+  }, [home.continueLater, debouncedQuery]);
+
+  const recentlyCompleted = useMemo(() => {
+    if (!debouncedQuery) return home.recentlyCompleted;
+    return home.recentlyCompleted.filter((item) =>
+      item.title.toLowerCase().includes(debouncedQuery),
+    );
+  }, [home.recentlyCompleted, debouncedQuery]);
+
   const hasResults = activeCohorts.length + continueLater.length + recentlyCompleted.length > 0;
+
+  const handlePause = useCallback(
+    (cohortId: string, days: number, reason?: string) => {
+      home.actions.pauseActiveCohort(cohortId, days, reason);
+      setIsPausedOpen(true);
+      homeStorageAdapter.savePausedOpen(true);
+    },
+    [home.actions],
+  );
+
+  const handleTogglePaused = useCallback(() => {
+    setIsPausedOpen((prev) => {
+      const next = !prev;
+      homeStorageAdapter.savePausedOpen(next);
+      return next;
+    });
+  }, []);
+
+  const handleToggleCompleted = useCallback(() => {
+    setIsCompletedOpen((prev) => {
+      const next = !prev;
+      homeStorageAdapter.saveCompletedOpen(next);
+      return next;
+    });
+  }, []);
+
+  const handleAddTask = useCallback(() => {
+    const input = document.querySelector('textarea, input[placeholder*="learn"]') as HTMLElement;
+    if (input) {
+      input.focus();
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
 
   if (home.loading) {
     return <HomeSkeleton />;
@@ -76,6 +163,14 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
 
           <ChannelHub />
 
+          <SearchBar
+            className={styles.searchBar}
+            value={query}
+            onChange={setQuery}
+            onClear={() => setQuery('')}
+            placeholder="Search subscribed cohorts, providers, topics..."
+          />
+
           {debouncedQuery && !hasResults && (
             <EmptyState
               query={query}
@@ -93,11 +188,7 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
             onReorder={home.actions.moveCohort}
             onUpdateDailyGoal={home.actions.saveDailyGoal}
             onUpdateSchedule={home.actions.saveSchedule}
-            onPause={(cohortId, days, reason) => {
-              home.actions.pauseActiveCohort(cohortId, days, reason);
-              setIsPausedOpen(true);
-              homeStorageAdapter.savePausedOpen(true);
-            }}
+            onPause={handlePause}
             onUpdateOrderStyle={home.actions.saveOrderStyle}
             onUpdateFrequency={home.actions.saveFrequency}
           />
@@ -107,12 +198,8 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
             completedItems={home.recentlyCompleted}
             isPausedOpen={showPausedList}
             isCompletedOpen={showCompletedList}
-            onTogglePaused={() => setIsPausedOpen((prev) => {
-              const next = !prev;
-              homeStorageAdapter.savePausedOpen(next);
-              return next;
-            })}
-            onToggleCompleted={() => setIsCompletedOpen((prev) => !prev)}
+            onTogglePaused={handleTogglePaused}
+            onToggleCompleted={handleToggleCompleted}
           />
 
           {showPausedList && (
@@ -143,13 +230,7 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
           <UpcomingEvents
             variant="light"
             showAddTask
-            onAddTask={() => {
-              const input = document.querySelector('textarea, input[placeholder*="learn"]') as HTMLElement;
-              if (input) {
-                input.focus();
-                input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              }
-            }}
+            onAddTask={handleAddTask}
           />
           <HomeStreakWidget />
         </aside>

@@ -1,8 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
-import { Check } from 'lucide-react';
+import { Check, Sparkles } from 'lucide-react';
 import styles from './HomeStreakWidget.module.css';
 
 export interface HomeStreakWidgetProps {
@@ -15,10 +15,19 @@ export interface HomeStreakWidgetProps {
 }
 
 const DEFAULT_DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const DEFAULT_HEIGHTS = [0.45, 0.65, 0.88, 0.72, 0.95, 0.25, 0.18];
 const DEFAULT_ACTIVITY = [true, true, true, true, true, false, false];
 
-export function HomeStreakWidget({
+const ENCOURAGEMENTS = [
+  'Keep exploring!',
+  'Unstoppable! 🔥',
+  '12 days strong! ⚡',
+  'Leveling up! 🚀',
+  'Brain on fire! ✨',
+];
+
+export const HomeStreakWidget = React.memo(function HomeStreakWidget({
   todayMinutes = 18,
   dailyGoalMinutes = 30,
   streakDays = 12,
@@ -26,6 +35,16 @@ export function HomeStreakWidget({
   weekBarHeights = DEFAULT_HEIGHTS,
   className,
 }: HomeStreakWidgetProps) {
+  const [hoveredDayIdx, setHoveredDayIdx] = useState<number | null>(null);
+  const [cheerIdx, setCheerIdx] = useState(0);
+  const [mascotBouncing, setMascotBouncing] = useState(false);
+
+  const handleMascotClick = () => {
+    setCheerIdx((prev) => (prev + 1) % ENCOURAGEMENTS.length);
+    setMascotBouncing(true);
+    setTimeout(() => setMascotBouncing(false), 500);
+  };
+
   return (
     <div className={`${styles.card} ${className || ''}`.trim()}>
       <div className={styles.leftContent}>
@@ -38,9 +57,25 @@ export function HomeStreakWidget({
           {DEFAULT_DAYS.map((day, idx) => {
             const isCompleted = weekActivity[idx];
             const heightPct = Math.round((weekBarHeights[idx] || 0.3) * 100);
+            const estMinutes = Math.round(dailyGoalMinutes * (weekBarHeights[idx] || 0.3));
 
             return (
-              <div key={idx} className={styles.dayColumn}>
+              <div
+                key={idx}
+                className={styles.dayColumn}
+                onMouseEnter={() => setHoveredDayIdx(idx)}
+                onMouseLeave={() => setHoveredDayIdx(null)}
+                tabIndex={0}
+                role="button"
+                aria-label={`${DAY_NAMES[idx]}: ${estMinutes} minutes studied${isCompleted ? ', goal completed' : ''}`}
+              >
+                {hoveredDayIdx === idx && (
+                  <div className={styles.barTooltip}>
+                    <span>{DAY_NAMES[idx]}</span>
+                    <strong>{estMinutes}m</strong>
+                  </div>
+                )}
+
                 <div className={styles.barTrack}>
                   <div
                     className={`${styles.barFill} ${isCompleted ? styles.barFillCompleted : ''}`}
@@ -63,7 +98,7 @@ export function HomeStreakWidget({
 
       <div className={styles.rightContent}>
         <div className={styles.calloutWrapper}>
-          <span className={styles.calloutText}>Keep exploring!</span>
+          <span className={styles.calloutText}>{ENCOURAGEMENTS[cheerIdx]}</span>
           <svg
             width="18"
             height="16"
@@ -82,7 +117,13 @@ export function HomeStreakWidget({
           </svg>
         </div>
 
-        <div className={styles.mascotWrapper}>
+        <button
+          type="button"
+          className={`${styles.mascotWrapper} ${mascotBouncing ? styles.mascotBouncing : ''}`}
+          onClick={handleMascotClick}
+          title="Click your study buddy for a boost!"
+          aria-label="Click study mascot for encouragement"
+        >
           <span className={styles.sparkle1} aria-hidden="true">✦</span>
           <span className={styles.sparkle2} aria-hidden="true">✦</span>
           <Image
@@ -90,11 +131,12 @@ export function HomeStreakWidget({
             alt="Study mascot"
             width={96}
             height={96}
+            sizes="96px"
             className={styles.mascotImage}
             priority
           />
-        </div>
+        </button>
       </div>
     </div>
   );
-}
+});

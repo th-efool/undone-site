@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Mountain,
   FileText,
@@ -17,11 +17,24 @@ import {
   HelpCircle,
   SlidersHorizontal,
 } from 'lucide-react';
-import styles from './ChannelHub.module.css';
+import { useSession } from 'next-auth/react';
+import {
+  homeStorageAdapter,
+  DEFAULT_CHANNEL_PREFERENCES,
+  type ChannelId,
+} from '@/src/client/repositories/homeStorageAdapter';
+
+function useSafeSession() {
+  try {
+    return useSession();
+  } catch {
+    return { data: null, status: 'unauthenticated' as const };
+  }
+}
 
 // ─── Data & Types ────────────────────────────────────────────────────────────
 
-export type ChannelId = 'spark' | 'explore' | 'build' | 'listen' | 'deep_dive' | 'quick';
+export type { ChannelId } from '@/src/client/repositories/homeStorageAdapter';
 
 export interface LearningStyle {
   id: ChannelId;
@@ -61,7 +74,7 @@ interface TuningSliderProps {
   onChange: (val: number) => void;
 }
 
-function TuningSlider({
+const TuningSlider = React.memo(function TuningSlider({
   label,
   tooltip,
   value,
@@ -81,11 +94,11 @@ function TuningSlider({
         </span>
       </div>
 
-      <div className={styles.sliderTrackWrapper}>
-        <div
-          className={styles.sliderProgressFill}
-          style={{ width: `${percentage}%` }}
-        />
+      <div
+        className={styles.sliderTrackWrapper}
+        style={{ '--slider-fill': `${percentage}%` } as React.CSSProperties}
+      >
+        <div className={styles.sliderProgressFill} />
         <input
           type="range"
           min={min}
@@ -95,6 +108,10 @@ function TuningSlider({
           onChange={(e) => onChange(parseFloat(e.target.value))}
           className={styles.sliderInput}
           aria-label={label}
+          aria-valuemin={min}
+          aria-valuemax={max}
+          aria-valuenow={value}
+          aria-valuetext={`${label}: ${value.toFixed(2)}`}
         />
       </div>
 
@@ -106,201 +123,296 @@ function TuningSlider({
       </div>
     </div>
   );
+});
+
+function getInitialChannelFromUrl(): ChannelId | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const param = params.get('channel') as ChannelId | null;
+    if (param && CHANNELS.some((c) => c.id === param)) {
+      return param;
+    }
+  } catch {}
+  return null;
+}
+
+function syncChannelUrlParam(channelId: ChannelId) {
+  if (typeof window === 'undefined') return;
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('channel') !== channelId) {
+      url.searchParams.set('channel', channelId);
+      window.history.replaceState(null, '', url.toString());
+    }
+  } catch {}
 }
 
 export function ChannelHub() {
-  const [isExpanded, setIsExpanded] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    try {
-      const saved = localStorage.getItem('sidequest_finetune_expanded');
-      return saved !== null ? saved === 'true' : true;
-    } catch {
-      return true;
-    }
+  const { data: session, status: authStatus } = useSafeSession();
+  const isAuthenticated = authStatus === 'authenticated' && !!session?.user?.id;
+
+  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  const [selectedChannel, setSelectedChannel] = useState<ChannelId>('spark');
+  const [depth, setDepth] = useState<number>(DEFAULT_SLIDERS.depth);
+  const [rigor, setRigor] = useState<number>(DEFAULT_SLIDERS.rigor);
+  const [scaffolding, setScaffolding] = useState<number>(DEFAULT_SLIDERS.scaffolding);
+  const [weeklyGoal, setWeeklyGoal] = useState<string>(DEFAULT_PREFS.weeklyGoal);
+  const [learningAllocation, setLearningAllocation] = useState<string>(DEFAULT_PREFS.learningAllocation);
+  const [reminderWindow, setReminderWindow] = useState<string>(DEFAULT_PREFS.reminderWindow);
+
+  const stateRef = useRef({
+    selectedChannel,
+    depth,
+    rigor,
+    scaffolding,
+    weeklyGoal,
+    learningAllocation,
+    reminderWindow,
   });
 
-  const [selectedChannel, setSelectedChannel] = useState<ChannelId>(() => {
-    if (typeof window === 'undefined') return 'spark';
-    try {
-      const saved = localStorage.getItem('sidequest_active_channel') as ChannelId;
-      return saved && CHANNELS.some((c) => c.id === saved) ? saved : 'spark';
-    } catch {
-      return 'spark';
-    }
-  });
-
-  const [depth, setDepth] = useState<number>(() => {
-    if (typeof window === 'undefined') return DEFAULT_SLIDERS.depth;
-    try {
-      const raw = localStorage.getItem('sidequest_pref_depth');
-      const parsed = raw ? parseFloat(raw) : NaN;
-      return !isNaN(parsed) ? parsed : DEFAULT_SLIDERS.depth;
-    } catch {
-      return DEFAULT_SLIDERS.depth;
-    }
-  });
-
-  const [rigor, setRigor] = useState<number>(() => {
-    if (typeof window === 'undefined') return DEFAULT_SLIDERS.rigor;
-    try {
-      const raw = localStorage.getItem('sidequest_pref_rigor');
-      const parsed = raw ? parseFloat(raw) : NaN;
-      return !isNaN(parsed) ? parsed : DEFAULT_SLIDERS.rigor;
-    } catch {
-      return DEFAULT_SLIDERS.rigor;
-    }
-  });
-
-  const [scaffolding, setScaffolding] = useState<number>(() => {
-    if (typeof window === 'undefined') return DEFAULT_SLIDERS.scaffolding;
-    try {
-      const raw = localStorage.getItem('sidequest_pref_scaffolding');
-      const parsed = raw ? parseFloat(raw) : NaN;
-      return !isNaN(parsed) ? parsed : DEFAULT_SLIDERS.scaffolding;
-    } catch {
-      return DEFAULT_SLIDERS.scaffolding;
-    }
-  });
-
-  const [weeklyGoal, setWeeklyGoal] = useState<string>(() => {
-    if (typeof window === 'undefined') return DEFAULT_PREFS.weeklyGoal;
-    try {
-      return localStorage.getItem('sidequest_pref_weekly_goal') || DEFAULT_PREFS.weeklyGoal;
-    } catch {
-      return DEFAULT_PREFS.weeklyGoal;
-    }
-  });
-
-  const [learningAllocation, setLearningAllocation] = useState<string>(() => {
-    if (typeof window === 'undefined') return DEFAULT_PREFS.learningAllocation;
-    try {
-      return localStorage.getItem('sidequest_pref_learning_allocation') || DEFAULT_PREFS.learningAllocation;
-    } catch {
-      return DEFAULT_PREFS.learningAllocation;
-    }
-  });
-
-  const [reminderWindow, setReminderWindow] = useState<string>(() => {
-    if (typeof window === 'undefined') return DEFAULT_PREFS.reminderWindow;
-    try {
-      return localStorage.getItem('sidequest_pref_reminder_window') || DEFAULT_PREFS.reminderWindow;
-    } catch {
-      return DEFAULT_PREFS.reminderWindow;
-    }
-  });
-
-  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const debouncedSyncConfig = (
-    channelId: ChannelId,
-    prefsMap: Record<string, string>,
-  ) => {
-    if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
-    syncTimerRef.current = setTimeout(() => {
-      fetch('/api/user/channel-config', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ activeChannel: channelId, prefs: prefsMap }),
-      }).catch(() => {});
-    }, 800);
-  };
-
-  // Hydrate preferences from remote database on mount
   useEffect(() => {
+    stateRef.current = {
+      selectedChannel,
+      depth,
+      rigor,
+      scaffolding,
+      weeklyGoal,
+      learningAllocation,
+      reminderWindow,
+    };
+  });
+
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced persistence for localStorage and backend sync
+  const schedulePersistence = useCallback(
+    (
+      channelId: ChannelId,
+      d: number,
+      r: number,
+      s: number,
+      wg: string,
+      la: string,
+      rw: string,
+      immediate = false,
+    ) => {
+      if (persistTimerRef.current) {
+        clearTimeout(persistTimerRef.current);
+        persistTimerRef.current = null;
+      }
+
+      const commit = () => {
+        homeStorageAdapter.saveSelectedChannel(channelId);
+        homeStorageAdapter.saveChannelPreferences({
+          depth: d,
+          rigor: r,
+          scaffolding: s,
+          weeklyGoal: wg,
+          learningAllocation: la,
+          reminderWindow: rw,
+        });
+
+        // Only sync to remote backend if authenticated
+        if (isAuthenticated) {
+          const prefsMap: Record<string, string> = {
+            depth: d.toFixed(2),
+            rigor: r.toFixed(2),
+            scaffolding: s.toFixed(2),
+            weekly_goal: wg,
+            learning_allocation: la,
+            reminder_window: rw,
+          };
+
+          fetch('/api/user/channel-config', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ activeChannel: channelId, prefs: prefsMap }),
+          }).catch((err) => {
+            console.warn('[ChannelHub] Network error syncing channel config:', err);
+          });
+        }
+      };
+
+      if (immediate) {
+        commit();
+      } else {
+        persistTimerRef.current = setTimeout(commit, 400);
+      }
+    },
+    [isAuthenticated],
+  );
+
+  useEffect(() => {
+    return () => {
+      if (persistTimerRef.current) {
+        clearTimeout(persistTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Hydrate preferences from localStorage and remote database on mount (SSR-safe)
+  useEffect(() => {
+    try {
+      setIsExpanded(homeStorageAdapter.getChannelHubExpanded());
+
+      const urlChannel = getInitialChannelFromUrl();
+      if (urlChannel) {
+        setSelectedChannel(urlChannel);
+        homeStorageAdapter.saveSelectedChannel(urlChannel);
+      } else {
+        const storedChannel = homeStorageAdapter.getSelectedChannel();
+        if (storedChannel && CHANNELS.some((c) => c.id === storedChannel)) {
+          setSelectedChannel(storedChannel);
+        }
+      }
+
+      const storedPrefs = homeStorageAdapter.getChannelPreferences();
+      setDepth(storedPrefs.depth);
+      setRigor(storedPrefs.rigor);
+      setScaffolding(storedPrefs.scaffolding);
+      setWeeklyGoal(storedPrefs.weeklyGoal);
+      setLearningAllocation(storedPrefs.learningAllocation);
+      setReminderWindow(storedPrefs.reminderWindow);
+    } catch {}
+
+    const onPopState = () => {
+      const poppedChannel = getInitialChannelFromUrl();
+      if (poppedChannel) {
+        setSelectedChannel(poppedChannel);
+        homeStorageAdapter.saveSelectedChannel(poppedChannel);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+
     async function loadRemoteConfig() {
       try {
         const res = await fetch('/api/user/channel-config');
         if (res.ok) {
           const data = await res.json();
-          if (data.activeChannel && CHANNELS.some((c) => c.id === data.activeChannel)) {
+          const currentUrlChannel = getInitialChannelFromUrl();
+          if (!currentUrlChannel && data.activeChannel && CHANNELS.some((c) => c.id === data.activeChannel)) {
             setSelectedChannel(data.activeChannel);
+            homeStorageAdapter.saveSelectedChannel(data.activeChannel);
           }
           if (data.prefs && typeof data.prefs === 'object') {
-            if (data.prefs.depth) setDepth(parseFloat(data.prefs.depth));
-            if (data.prefs.rigor) setRigor(parseFloat(data.prefs.rigor));
-            if (data.prefs.scaffolding) setScaffolding(parseFloat(data.prefs.scaffolding));
-            if (data.prefs.weekly_goal) setWeeklyGoal(data.prefs.weekly_goal);
-            if (data.prefs.learning_allocation) setLearningAllocation(data.prefs.learning_allocation);
-            if (data.prefs.reminder_window) setReminderWindow(data.prefs.reminder_window);
+            const nextPrefs: Partial<import('@/src/client/repositories/homeStorageAdapter').ChannelPreferences> = {};
+            if (data.prefs.depth && !isNaN(parseFloat(data.prefs.depth))) {
+              const d = parseFloat(data.prefs.depth);
+              setDepth(d);
+              nextPrefs.depth = d;
+            }
+            if (data.prefs.rigor && !isNaN(parseFloat(data.prefs.rigor))) {
+              const r = parseFloat(data.prefs.rigor);
+              setRigor(r);
+              nextPrefs.rigor = r;
+            }
+            if (data.prefs.scaffolding && !isNaN(parseFloat(data.prefs.scaffolding))) {
+              const s = parseFloat(data.prefs.scaffolding);
+              setScaffolding(s);
+              nextPrefs.scaffolding = s;
+            }
+            if (data.prefs.weekly_goal) {
+              setWeeklyGoal(data.prefs.weekly_goal);
+              nextPrefs.weeklyGoal = data.prefs.weekly_goal;
+            }
+            if (data.prefs.learning_allocation) {
+              setLearningAllocation(data.prefs.learning_allocation);
+              nextPrefs.learningAllocation = data.prefs.learning_allocation;
+            }
+            if (data.prefs.reminder_window) {
+              setReminderWindow(data.prefs.reminder_window);
+              nextPrefs.reminderWindow = data.prefs.reminder_window;
+            }
+            homeStorageAdapter.saveChannelPreferences(nextPrefs);
           }
         }
       } catch (err) {
         console.warn('Failed to load remote channel config:', err);
       }
     }
-    loadRemoteConfig();
-  }, []);
 
-  const savePreferences = (
-    channelId: ChannelId,
-    d: number,
-    r: number,
-    s: number,
-    wg: string,
-    la: string,
-    rw: string,
-  ) => {
-    const prefsMap: Record<string, string> = {
-      depth: d.toFixed(2),
-      rigor: r.toFixed(2),
-      scaffolding: s.toFixed(2),
-      weekly_goal: wg,
-      learning_allocation: la,
-      reminder_window: rw,
+    if (isAuthenticated) {
+      loadRemoteConfig();
+    }
+
+    return () => {
+      window.removeEventListener('popstate', onPopState);
     };
+  }, [isAuthenticated]);
 
-    try {
-      localStorage.setItem('sidequest_active_channel', channelId);
-      localStorage.setItem('sidequest_pref_depth', d.toFixed(2));
-      localStorage.setItem('sidequest_pref_rigor', r.toFixed(2));
-      localStorage.setItem('sidequest_pref_scaffolding', s.toFixed(2));
-      localStorage.setItem('sidequest_pref_weekly_goal', wg);
-      localStorage.setItem('sidequest_pref_learning_allocation', la);
-      localStorage.setItem('sidequest_pref_reminder_window', rw);
-      localStorage.setItem('sidequest_channel_prefs', JSON.stringify(prefsMap));
-    } catch {}
-
-    debouncedSyncConfig(channelId, prefsMap);
-  };
-
-  const handleChannelSelect = (id: ChannelId) => {
+  const handleChannelSelect = useCallback((id: ChannelId) => {
     setSelectedChannel(id);
-    savePreferences(id, depth, rigor, scaffolding, weeklyGoal, learningAllocation, reminderWindow);
-  };
+    syncChannelUrlParam(id);
+    const s = stateRef.current;
+    schedulePersistence(id, s.depth, s.rigor, s.scaffolding, s.weeklyGoal, s.learningAllocation, s.reminderWindow, true);
+  }, [schedulePersistence]);
 
-  const handleDepthChange = (val: number) => {
+  const handleDepthChange = useCallback((val: number) => {
     setDepth(val);
-    savePreferences(selectedChannel, val, rigor, scaffolding, weeklyGoal, learningAllocation, reminderWindow);
-  };
+    const s = stateRef.current;
+    schedulePersistence(s.selectedChannel, val, s.rigor, s.scaffolding, s.weeklyGoal, s.learningAllocation, s.reminderWindow, false);
+  }, [schedulePersistence]);
 
-  const handleRigorChange = (val: number) => {
+  const handleRigorChange = useCallback((val: number) => {
     setRigor(val);
-    savePreferences(selectedChannel, depth, val, scaffolding, weeklyGoal, learningAllocation, reminderWindow);
-  };
+    const s = stateRef.current;
+    schedulePersistence(s.selectedChannel, s.depth, val, s.scaffolding, s.weeklyGoal, s.learningAllocation, s.reminderWindow, false);
+  }, [schedulePersistence]);
 
-  const handleScaffoldingChange = (val: number) => {
+  const handleScaffoldingChange = useCallback((val: number) => {
     setScaffolding(val);
-    savePreferences(selectedChannel, depth, rigor, val, weeklyGoal, learningAllocation, reminderWindow);
-  };
+    const s = stateRef.current;
+    schedulePersistence(s.selectedChannel, s.depth, s.rigor, val, s.weeklyGoal, s.learningAllocation, s.reminderWindow, false);
+  }, [schedulePersistence]);
 
-  const handleWeeklyGoalChange = (val: string) => {
+  const handleWeeklyGoalChange = useCallback((val: string) => {
     setWeeklyGoal(val);
-    savePreferences(selectedChannel, depth, rigor, scaffolding, val, learningAllocation, reminderWindow);
-  };
+    const s = stateRef.current;
+    schedulePersistence(s.selectedChannel, s.depth, s.rigor, s.scaffolding, val, s.learningAllocation, s.reminderWindow, true);
+  }, [schedulePersistence]);
 
-  const handleAllocationChange = (val: string) => {
+  const handleAllocationChange = useCallback((val: string) => {
     setLearningAllocation(val);
-    savePreferences(selectedChannel, depth, rigor, scaffolding, weeklyGoal, val, reminderWindow);
-  };
+    const s = stateRef.current;
+    schedulePersistence(s.selectedChannel, s.depth, s.rigor, s.scaffolding, s.weeklyGoal, val, s.reminderWindow, true);
+  }, [schedulePersistence]);
 
-  const handleReminderChange = (val: string) => {
+  const handleReminderChange = useCallback((val: string) => {
     setReminderWindow(val);
-    savePreferences(selectedChannel, depth, rigor, scaffolding, weeklyGoal, learningAllocation, val);
-  };
+    const s = stateRef.current;
+    schedulePersistence(s.selectedChannel, s.depth, s.rigor, s.scaffolding, s.weeklyGoal, s.learningAllocation, val, true);
+  }, [schedulePersistence]);
 
-  const handleReset = (e: React.MouseEvent) => {
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const handleTabKeyDown = useCallback((e: React.KeyboardEvent, index: number) => {
+    let targetIndex = -1;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      targetIndex = (index + 1) % CHANNELS.length;
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      targetIndex = (index - 1 + CHANNELS.length) % CHANNELS.length;
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      targetIndex = 0;
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      targetIndex = CHANNELS.length - 1;
+    }
+
+    if (targetIndex !== -1) {
+      const nextChannel = CHANNELS[targetIndex];
+      handleChannelSelect(nextChannel.id);
+      tabRefs.current[targetIndex]?.focus();
+    }
+  }, [handleChannelSelect]);
+
+  const handleReset = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setSelectedChannel('spark');
+    syncChannelUrlParam('spark');
     setDepth(DEFAULT_SLIDERS.depth);
     setRigor(DEFAULT_SLIDERS.rigor);
     setScaffolding(DEFAULT_SLIDERS.scaffolding);
@@ -308,7 +420,7 @@ export function ChannelHub() {
     setLearningAllocation(DEFAULT_PREFS.learningAllocation);
     setReminderWindow(DEFAULT_PREFS.reminderWindow);
 
-    savePreferences(
+    schedulePersistence(
       'spark',
       DEFAULT_SLIDERS.depth,
       DEFAULT_SLIDERS.rigor,
@@ -316,15 +428,14 @@ export function ChannelHub() {
       DEFAULT_PREFS.weeklyGoal,
       DEFAULT_PREFS.learningAllocation,
       DEFAULT_PREFS.reminderWindow,
+      true,
     );
-  };
+  }, [schedulePersistence]);
 
   const toggleExpand = () => {
     setIsExpanded((prev) => {
       const next = !prev;
-      try {
-        localStorage.setItem('sidequest_finetune_expanded', String(next));
-      } catch {}
+      homeStorageAdapter.saveChannelHubExpanded(next);
       return next;
     });
   };
@@ -367,6 +478,11 @@ export function ChannelHub() {
             type="button"
             className={styles.resetBtn}
             onClick={handleReset}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.stopPropagation();
+              }
+            }}
             title="Reset feed adjustments to defaults"
             aria-label="Reset adjustments to defaults"
           >
@@ -387,18 +503,22 @@ export function ChannelHub() {
 
             {/* 6 Icon Tabs */}
             <div className={styles.iconTabsRow} role="tablist" aria-label="Learning Styles">
-              {CHANNELS.map((ch) => {
+              {CHANNELS.map((ch, idx) => {
                 const isActive = ch.id === selectedChannel;
                 const IconComponent = ch.Icon;
                 return (
                   <button
                     key={ch.id}
+                    ref={(el) => { tabRefs.current[idx] = el; }}
                     type="button"
                     role="tab"
                     aria-selected={isActive}
+                    tabIndex={isActive ? 0 : -1}
                     className={`${styles.iconTab} ${isActive ? styles.iconTabActive : ''}`}
                     onClick={() => handleChannelSelect(ch.id)}
+                    onKeyDown={(e) => handleTabKeyDown(e, idx)}
                     title={`${ch.name} — ${ch.tagline}`}
+                    aria-label={`${ch.name}: ${ch.tagline}`}
                   >
                     <IconComponent size={20} strokeWidth={isActive ? 2.4 : 1.8} />
                   </button>

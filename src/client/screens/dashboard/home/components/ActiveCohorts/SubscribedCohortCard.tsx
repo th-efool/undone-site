@@ -23,13 +23,14 @@ const FALLBACK_COVERS: Record<string, string> = {
   default: 'https://images.unsplash.com/photo-1507413245164-6160d8298b31?w=800&auto=format&fit=crop&q=80',
 };
 
-export function SubscribedCohortCard({
+export const SubscribedCohortCard = React.memo(function SubscribedCohortCard({
   cohort,
   onSelect,
   onMenuClick,
   className,
 }: SubscribedCohortCardProps) {
-  const [imgSrc, setImgSrc] = useState(cohort.thumbnail || FALLBACK_COVERS.default);
+  const [imgError, setImgError] = useState(false);
+  const imgSrc = imgError || !cohort.thumbnail ? FALLBACK_COVERS.default : cohort.thumbnail;
 
   // Compute a stable member count badge if not explicitly provided
   const memberCount = cohort.memberCount || (64 + ((cohort.title.length * 37) % 240));
@@ -49,15 +50,15 @@ export function SubscribedCohortCard({
       }}
       aria-label={`${cohort.title}, ${progress}% completed, ${memberCount} members`}
     >
-      {/* Full-bleed cover thumbnail */}
+      {/* Full-bleed cover thumbnail with aspect-ratio prevention of CLS */}
       <div className={styles.imageWrapper}>
         <Image
           src={imgSrc}
           alt={cohort.title}
           fill
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+          sizes="(max-width: 640px) calc(100vw - 32px), (max-width: 1200px) 50vw, 260px"
           className={styles.image}
-          onError={() => setImgSrc(FALLBACK_COVERS.default)}
+          onError={() => setImgError(true)}
         />
         <div className={styles.overlayGradient} />
       </div>
@@ -74,9 +75,10 @@ export function SubscribedCohortCard({
             onSelect?.(cohort);
           }
         }}
-        aria-label={`Options for ${cohort.title}`}
+        aria-label={`Configure settings for ${cohort.title}`}
+        aria-haspopup="dialog"
       >
-        <MoreVertical size={16} strokeWidth={2.4} />
+        <MoreVertical size={16} strokeWidth={2.4} aria-hidden="true" />
       </button>
 
       {/* Bottom overlay content */}
@@ -88,15 +90,21 @@ export function SubscribedCohortCard({
         <div className={styles.metaRow}>
           {/* Avatar stack + count */}
           <div className={styles.memberStack}>
-            <div className={styles.avatars}>
+            <div className={styles.avatars} aria-label={`${memberCount} active members`}>
               {DEFAULT_AVATARS.map((src, i) => (
                 <div key={i} className={styles.avatarCircle} style={{ zIndex: 3 - i }}>
                   <Image
                     src={src}
-                    alt="Member"
+                    alt=""
                     width={18}
                     height={18}
+                    sizes="18px"
+                    loading="lazy"
                     className={styles.avatarImg}
+                    onError={(e) => {
+                      // Graceful fallback to avoid broken image glyph
+                      (e.currentTarget as HTMLImageElement).style.visibility = 'hidden';
+                    }}
                   />
                 </div>
               ))}
@@ -106,7 +114,14 @@ export function SubscribedCohortCard({
 
           {/* Progress bar + percent */}
           <div className={styles.progressGroup}>
-            <div className={styles.progressBarTrack}>
+            <div
+              className={styles.progressBarTrack}
+              role="progressbar"
+              aria-valuenow={progress}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label={`Progress: ${progress}%`}
+            >
               <div
                 className={styles.progressBarFill}
                 style={{ width: `${progress}%` }}
@@ -118,4 +133,4 @@ export function SubscribedCohortCard({
       </div>
     </article>
   );
-}
+});

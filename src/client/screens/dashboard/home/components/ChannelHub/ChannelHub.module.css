@@ -232,6 +232,8 @@
   border-radius: 999px;
   pointer-events: none;
   z-index: 1;
+  width: var(--slider-fill, 0%);
+  will-change: width;
 }
 
 .sliderInput {
