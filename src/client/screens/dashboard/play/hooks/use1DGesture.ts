@@ -43,6 +43,7 @@ export function use1DGesture({
   const startXRef = useRef<number | null>(null);
   const startYRef = useRef<number | null>(null);
   const lastXRef = useRef<number>(0);
+  const lastDeltaXRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
   const velocityXRef = useRef<number>(0);
   const isHorizontalGestureRef = useRef<boolean | null>(null);
@@ -50,8 +51,6 @@ export function use1DGesture({
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const singleTapTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastTapRef = useRef<{ time: number; x: number }>({ time: 0, x: 0 });
-  const wheelAccumulatorRef = useRef<number>(0);
-  const wheelCooldownRef = useRef<boolean>(false);
 
   // Clear long press timer
   const clearLongPress = useCallback(() => {
@@ -66,7 +65,7 @@ export function use1DGesture({
   }, [isLongPressing, onLongPressEnd]);
 
 const isInteractiveElement = (target: HTMLElement | null): boolean => {
-  if (!target) return false;
+  if (!target || typeof target.closest !== 'function') return false;
   return Boolean(
     target.closest(
       'button, a, input, textarea, select, [role="button"], [role="slider"], [role="toolbar"], [role="menu"], [role="dialog"], [class*="toolbar"], [class*="controls"], [class*="timeline"], [class*="dock"], [class*="rail"], [class*="header"], [class*="dot"], [class*="capsule"], [class*="mobileControls"]'
@@ -88,6 +87,7 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
       startXRef.current = e.clientX;
       startYRef.current = e.clientY;
       lastXRef.current = e.clientX;
+      lastDeltaXRef.current = 0;
       lastTimeRef.current = performance.now();
       velocityXRef.current = 0;
       isHorizontalGestureRef.current = null;
@@ -143,6 +143,7 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
           lastTimeRef.current = now;
         }
 
+        lastDeltaXRef.current = deltaX;
         setDragDeltaX(deltaX);
       }
     },
@@ -157,32 +158,24 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
         (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
       } catch {}
 
-      if (isInteractiveElement(e.target as HTMLElement)) {
-        startXRef.current = null;
-        startYRef.current = null;
-        isHorizontalGestureRef.current = null;
-        setIsDragging(false);
-        setDragDeltaX(0);
-        return;
-      }
-
       if (startXRef.current === null) return;
       const containerWidth = e.currentTarget.clientWidth || window.innerWidth;
-      const finalDeltaX = dragDeltaX;
+      const finalDeltaX = lastDeltaXRef.current !== 0 ? lastDeltaXRef.current : dragDeltaX;
       const velocity = velocityXRef.current;
 
       const wasHorizontal = isHorizontalGestureRef.current;
       startXRef.current = null;
       startYRef.current = null;
+      lastDeltaXRef.current = 0;
       isHorizontalGestureRef.current = null;
       setIsDragging(false);
       setDragDeltaX(0);
 
       // Handle horizontal swipe completion or snap back
       if (wasHorizontal) {
-        // Responsive threshold: 70px or 12% width (min 45px) or fling velocity (0.40 px/ms)
-        const distanceThreshold = Math.max(45, Math.min(70, containerWidth * 0.12));
-        const velocityThreshold = 0.40; // px/ms
+        // Responsive threshold: 60px or 12% width (min 40px) or fling velocity (0.30 px/ms)
+        const distanceThreshold = Math.max(40, Math.min(70, containerWidth * 0.12));
+        const velocityThreshold = 0.30; // px/ms
 
         if (finalDeltaX < -distanceThreshold || velocity < -velocityThreshold) {
           // Swipe left -> advance to next
@@ -193,6 +186,11 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
           triggerHaptic('medium');
           onPrev();
         }
+        return;
+      }
+
+      // Guard tap if released over an interactive control
+      if (isInteractiveElement(e.target as HTMLElement)) {
         return;
       }
 

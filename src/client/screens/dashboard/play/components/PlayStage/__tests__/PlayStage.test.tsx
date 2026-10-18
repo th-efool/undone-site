@@ -187,16 +187,16 @@ describe('PlayStage component', () => {
     const { rerender } = render(<PlayStage playback={playback} dragDeltaX={-60} isDragging={true} />);
 
     const centralSurface = screen.getByRole('region', { name: /current video stage/i });
-    expect(centralSurface.style.transform).toContain('-60px');
+    expect(centralSurface.style.transform).toContain('translate3d(-60px');
     expect(centralSurface.style.transition).toBe('none');
 
-    // Right edge slides into view when dragging left
+    // Right edge slides into view when dragging left (stepX - 60)
     const rightEdge = screen.getByRole('complementary', { name: /next lesson/i });
-    expect(rightEdge.style.transform).toContain('-60px');
+    expect(rightEdge.style.transform).toContain('translate3d(779.68px');
 
     // Snapping back when drag ends
     rerender(<PlayStage playback={playback} dragDeltaX={0} isDragging={false} />);
-    expect(centralSurface.style.transform).toContain('0px');
+    expect(centralSurface.style.transform).toContain('translate3d(0px');
   });
 
   it('preloads video in DOM when next item has a direct video URL', () => {
