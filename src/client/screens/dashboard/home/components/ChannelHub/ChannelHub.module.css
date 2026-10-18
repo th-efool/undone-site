@@ -114,8 +114,8 @@
 
 .bodyGrid {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr;
-  gap: 24px;
+  grid-template-columns: minmax(0, 1.7fr) minmax(240px, 280px);
+  gap: 28px;
   margin-top: 14px;
   padding-top: 14px;
   border-top: 1px solid rgba(0, 0, 0, 0.06);
@@ -257,10 +257,11 @@
 }
 
 .sliderLabelGroup {
-  width: 95px;
+  width: 110px;
+  min-width: 104px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   flex-shrink: 0;
 }
 
@@ -270,8 +271,6 @@
   font-weight: 700;
   color: #1e293b;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .sliderHelp {
