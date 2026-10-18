@@ -285,7 +285,15 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
                             title={`Lesson: ${fullTitle}`}
                             aria-label={`Lesson: ${fullTitle}`}
                             onClick={() => {
-                              const target = document.getElementById(`lesson-${entityId}`);
+                              const targetId = entityId.startsWith('lesson-') ? entityId : `lesson-${entityId}`;
+                              if (typeof window !== 'undefined') {
+                                window.dispatchEvent(
+                                  new CustomEvent('cohort:highlight-entity', {
+                                    detail: { entityId, targetId, kind: p.entity?.kind ?? 'lesson' },
+                                  })
+                                );
+                              }
+                              const target = document.getElementById(targetId) || document.getElementById(entityId);
                               if (target) {
                                 target.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                 target.focus?.();
@@ -329,7 +337,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
                   <span className={styles.dot} />
                 </div>
                 <span className={styles.thinkingLabel}>
-                  {activeTurn.status === 'queued' ? 'Queued in line…' : 'Thinking…'}
+                  {activeTurn.status === 'queued' ? 'Queued in line…' : 'Undone is drafting updates…'}
                 </span>
                 <button
                   type="button"

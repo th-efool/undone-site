@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Edit3, Globe2, Image as ImageIcon, X } from 'lucide-react';
 import type { EntityRef } from 'interaction-builder/core';
 import type { CohortAction, CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
@@ -36,6 +36,28 @@ export function CurriculumStageView({ workspace, workspaceId = '', revision, dis
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [publishOpen, setPublishOpen] = useState(false);
+
+  useEffect(() => {
+    const handleHighlight = (event: Event) => {
+      const customEvent = event as CustomEvent<{ entityId?: string; targetId?: string; kind?: string }>;
+      const targetId = customEvent.detail?.targetId || (customEvent.detail?.entityId ? (customEvent.detail.entityId.startsWith('lesson-') ? customEvent.detail.entityId : `lesson-${customEvent.detail.entityId}`) : undefined);
+      if (!targetId) return;
+
+      setTab('questline');
+      requestAnimationFrame(() => {
+        const el = document.getElementById(targetId) || (customEvent.detail?.entityId ? document.getElementById(customEvent.detail.entityId) : null);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.focus?.();
+        }
+      });
+    };
+
+    window.addEventListener('cohort:highlight-entity', handleHighlight);
+    return () => {
+      window.removeEventListener('cohort:highlight-entity', handleHighlight);
+    };
+  }, []);
 
   const title = deriveCohortTitle(workspace);
   const description = deriveCohortDescription(workspace);
@@ -99,7 +121,21 @@ export function CurriculumStageView({ workspace, workspaceId = '', revision, dis
     </div> : <section className={styles.reviewPanel} id="creation-review-questline">
       <div className={styles.editableHeading}><div><h2>{workspace.presentation?.subtitle || `${title} Questline`}</h2><p className={styles.reviewCopy}>Work through each season at your own pace.</p></div></div>
       {seasons.map((season, seasonIndex) => <section key={season.key} className={styles.previewSeason}><div className={styles.editableHeading}><h3>{workspace.presentation?.seasonTitles?.[season.key] ?? season.title}</h3><EditButton label={`season ${seasonIndex + 1} title`} onClick={() => open('season', workspace.presentation?.seasonTitles?.[season.key] ?? season.title, { seasonKey: season.key })} /></div>
-        <ol>{season.lessons.map((lesson, lessonIndex) => <li key={lesson.id} className={styles.previewLesson}><span>{lessonIndex + 1}</span><div><strong>{lesson.title}</strong><p>{lesson.objective}</p></div><EditButton label={`lesson ${lessonIndex + 1} title`} onClick={() => open('lesson', lesson.title, { lessonId: lesson.id })} /></li>)}</ol>
+        <ol>{season.lessons.map((lesson, lessonIndex) => {
+          const lessonElementId = lesson.id.startsWith('lesson-') ? lesson.id : `lesson-${lesson.id}`;
+          return (
+            <li
+              key={lesson.id}
+              id={lessonElementId}
+              tabIndex={-1}
+              className={styles.previewLesson}
+            >
+              <span>{lessonIndex + 1}</span>
+              <div><strong>{lesson.title}</strong><p>{lesson.objective}</p></div>
+              <EditButton label={`lesson ${lessonIndex + 1} title`} onClick={() => open('lesson', lesson.title, { lessonId: lesson.id })} />
+            </li>
+          );
+        })}</ol>
       </section>)}
     </section>}
 

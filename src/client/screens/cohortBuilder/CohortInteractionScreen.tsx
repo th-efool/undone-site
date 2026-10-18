@@ -46,6 +46,16 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
   const [collapsed, setCollapsed] = useState(false);
   const { theme, isDark } = useTheme();
 
+  useEffect(() => {
+    const handleHighlight = () => {
+      setPane('workspace');
+    };
+    window.addEventListener('cohort:highlight-entity', handleHighlight);
+    return () => {
+      window.removeEventListener('cohort:highlight-entity', handleHighlight);
+    };
+  }, []);
+
   const stage = state.view
     ? state.view.processing.status === 'processing' ||
       state.view.processing.status === 'queued' ||
