@@ -29,29 +29,36 @@ export function ProfilePill() {
     };
   }, [isOpen]);
 
-  if (!session?.user) return null;
-
-  const user = session.user;
-  const initial = user.name ? user.name.charAt(0).toUpperCase() : 'U';
+  const user = session?.user;
+  const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'G';
 
   return (
     <div className={styles.container} ref={pillRef}>
       {isOpen && (
         <div className={styles.dropdown} role="menu" aria-label="User account menu">
-          <div className={styles.userInfo}>
-            <span className={styles.name}>{user.name || 'User'}</span>
-            <span className={styles.email}>{user.email}</span>
-          </div>
-          <div className={styles.divider} />
-          <button
-            type="button"
-            onClick={() => { sessionStorage.removeItem('undone:cohort-intake'); void signOut({ callbackUrl: '/' }); }}
-            className={styles.logoutButton}
-            role="menuitem"
-          >
-            <LogOut size={16} />
-            <span>Log out</span>
-          </button>
+          {user ? (
+            <>
+              <div className={styles.userInfo}>
+                <span className={styles.name}>{user.name || 'User'}</span>
+                <span className={styles.email}>{user.email}</span>
+              </div>
+              <div className={styles.divider} />
+              <button
+                type="button"
+                onClick={() => { sessionStorage.removeItem('undone:cohort-intake'); void signOut({ callbackUrl: '/' }); }}
+                className={styles.logoutButton}
+                role="menuitem"
+              >
+                <LogOut size={16} />
+                <span>Log out</span>
+              </button>
+            </>
+          ) : (
+            <div className={styles.userInfo}>
+              <span className={styles.name}>Guest Mode</span>
+              <span className={styles.email}>Active learning session</span>
+            </div>
+          )}
         </div>
       )}
       
@@ -63,10 +70,10 @@ export function ProfilePill() {
         aria-haspopup="menu"
         aria-expanded={isOpen}
       >
-        {user.image && !imgError ? (
+        {user?.image && !imgError ? (
           <Image 
             src={user.image} 
-            alt={user.name || 'User'} 
+            alt={user?.name || 'User'} 
             width={44} 
             height={44} 
             className={styles.avatar}
