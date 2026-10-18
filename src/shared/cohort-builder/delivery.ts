@@ -17,6 +17,8 @@ export const deliveryChunkSchema = z.strictObject({
   endSeconds: z.number().int().nonnegative().optional(),
   timeRangeLabel: z.string().optional(),
   timestampUrl: z.string().optional(),
+  title: z.string().min(1),
+  duration: z.string().min(1),
   checksum: z.string().regex(/^[a-f0-9]{64}$/),
   vector: z.array(z.number().min(0).max(1)).length(12).optional(),
   isStrictlyLinear: z.boolean().optional(),
@@ -250,7 +252,7 @@ export function projectCohortToLearnerDelivery(
         const sourceChunks = workspace.chunks.filter(item => item.sourceId === chunk.sourceId && item.sourceVersion === chunk.sourceVersion)
           .sort((a, b) => a.start - b.start);
         const sourceChunkIndex = sourceChunks.findIndex(item => item.id === chunk.id);
-        const interval = deriveChunkVideoInterval(chunk, source, sourceChunkIndex, sourceChunks.length);
+        const interval = deriveChunkVideoInterval(chunk, source, sourceChunkIndex, sourceChunks.length, 15, sourceChunks);
         const { startSeconds, endSeconds } = interval;
 
         const formatTs = (sec: number) => {
@@ -284,6 +286,8 @@ export function projectCohortToLearnerDelivery(
           endSeconds,
           timeRangeLabel,
           timestampUrl,
+          title: `Part ${chunkOrder + 1}`,
+          duration: formatTs(interval.durationSeconds),
           checksum: chunk.checksum,
           vector: scored.vector,
           isStrictlyLinear: scored.isStrictlyLinear,
@@ -307,7 +311,7 @@ export function projectCohortToLearnerDelivery(
       title: lesson.title,
       objective: lesson.objective,
       order: lessonIndex,
-      durationSeconds: isVideo ? Math.max(1, deliveryChunks.reduce((sum, chunk) => sum + (chunk.endSeconds ?? 0) - (chunk.startSeconds ?? 0), 0)) : estimatedLessonSeconds,
+      durationSeconds: isVideo ? Math.max(1, ...deliveryChunks.map(chunk => chunk.endSeconds ?? 0)) : estimatedLessonSeconds,
       lessonType: isVideo ? 'VIDEO' : 'ARTICLE',
       videoId: detectedVideoId,
       videoUrl,

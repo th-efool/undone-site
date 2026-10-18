@@ -167,7 +167,7 @@ export function LessonRow({ lesson, index, cohortId: propCohortId, onToggleStatu
                 return (
                   <div key={chunk.id} className={styles.chunkRow}>
                     <div className={styles.chunkLeft}>
-                      <span className={styles.chunkPartBadge}>Part {chunk.order}</span>
+                      <span className={styles.chunkPartBadge}>Part {chunk.order + 1}</span>
                       <span className={styles.chunkTitle}>{chunk.title}</span>
                     </div>
 

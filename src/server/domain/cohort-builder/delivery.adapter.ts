@@ -145,9 +145,8 @@ export function buildPrismaCohortCreateInput(
             sourceUrl: lesson.sourceUrl || (lesson.videoId ? `https://www.youtube.com/watch?v=${lesson.videoId}` : `/cohort/${delivery.cohort.id}?lesson=${lesson.lessonId}`),
             chunks: lesson.chunks.map(chunk => ({
               id: chunk.chunkId,
-              title: chunk.sourceLabel,
               contentOrigin: 'user' as const,
-              durationMethod: 'reading_estimate' as const,
+              durationMethod: lesson.lessonType === 'VIDEO' ? 'source' as const : 'reading_estimate' as const,
               startSeconds: chunk.startSeconds || 0,
               endSeconds: chunk.endSeconds || 0,
               timeRangeLabel: chunk.timeRangeLabel || '',

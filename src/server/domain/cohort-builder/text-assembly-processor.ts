@@ -2,7 +2,7 @@ import { cohortChunkSchema, cohortLessonSchema, cohortWorkspaceSchema, type Coho
 import { readTextArtifact, type TextArtifactSql } from './text-artifacts';
 import { planTextJobs } from './text-job-plan';
 import type { ClaimedTextJob } from './text-jobs';
-import { computeTextStage } from './text-pipeline';
+import { computeTextStage, validateGeneratedLessonCoverage } from './text-pipeline';
 import { validateRetainedSourceEvidence } from './source-evidence';
 
 /** Prepared host processor. Emits validated bytes; it never projects lessons into canonical state. */
@@ -81,7 +81,7 @@ export function createTextAssemblyProcessor(input: {
     const lessons = cohortLessonSchema.array().parse(computeTextStage({
       ...state, chunks, processing: { ...state.processing, stage: 'assembly' },
     }).result);
-    if (lessons.length !== chunks.length || lessons.some(lesson => lesson.sourceChunkIds.some(id => !chunks.some(chunk => chunk.id === id)))) {
+    if (!validateGeneratedLessonCoverage(lessons, chunks)) {
       throw new Error('FABRICATED_ASSEMBLY_EVIDENCE');
     }
     return Buffer.from(JSON.stringify(lessons));
