@@ -166,6 +166,10 @@
 }
 
 .sliderEdgeLabel {
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  font-family: var(--font-manrope);
   font-size: 0.65rem;
   font-weight: 700;
   color: #9ca3af;
@@ -173,11 +177,18 @@
   letter-spacing: 0.05em;
   text-align: center;
   cursor: pointer;
+  border-radius: 4px;
   transition: all 0.2s;
+}
+
+.sliderEdgeLabel:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 1px;
 }
 
 .sliderEdgeActive {
   color: #4f46e5;
+  font-weight: 800;
 }
 
 .sliderInputWrapper {
@@ -276,3 +287,115 @@
   border-color: #4f46e5;
   color: #4f46e5;
 }
+
+/* ─── Dark Mode Support ──────────────────────────────────────────────────── */
+
+:global([data-theme='dark']) .inspector,
+:global(.dark) .inspector {
+  background: #141522;
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .closeBtn,
+:global(.dark) .closeBtn {
+  color: #94a3b8;
+}
+
+:global([data-theme='dark']) .closeBtn:hover,
+:global(.dark) .closeBtn:hover {
+  background: rgba(99, 102, 241, 0.2);
+  color: #c7d2fe;
+}
+
+:global([data-theme='dark']) .section,
+:global(.dark) .section {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+:global([data-theme='dark']) .icon,
+:global(.dark) .icon {
+  color: #818cf8;
+}
+
+:global([data-theme='dark']) .sectionLabel,
+:global(.dark) .sectionLabel {
+  color: #94a3b8;
+}
+
+:global([data-theme='dark']) .pillIdle,
+:global(.dark) .pillIdle {
+  background: #1c1e2b;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+:global([data-theme='dark']) .pillIdle:hover,
+:global(.dark) .pillIdle:hover {
+  background: #242738;
+  border-color: rgba(99, 102, 241, 0.4);
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .pillActive,
+:global(.dark) .pillActive {
+  background: #3730a3;
+  border-color: #4f46e5;
+  color: #ffffff;
+}
+
+:global([data-theme='dark']) .dayBtn.pillIdle,
+:global(.dark) .dayBtn.pillIdle {
+  background: #1c1e2b;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+}
+
+:global([data-theme='dark']) .dayBtn.pillIdle:hover,
+:global(.dark) .dayBtn.pillIdle:hover {
+  background: #242738;
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .dayBtn.pillActive,
+:global(.dark) .dayBtn.pillActive {
+  background: #3730a3;
+  border-color: #4f46e5;
+  color: #ffffff;
+}
+
+:global([data-theme='dark']) .sliderEdgeLabel,
+:global(.dark) .sliderEdgeLabel {
+  color: #64748b;
+}
+
+:global([data-theme='dark']) .sliderEdgeActive,
+:global(.dark) .sliderEdgeActive {
+  color: #818cf8;
+}
+
+:global([data-theme='dark']) .rangeSlider,
+:global(.dark) .rangeSlider {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+:global([data-theme='dark']) .customGoalInput,
+:global(.dark) .customGoalInput {
+  background: #1c1e2b;
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .pauseBtn,
+:global(.dark) .pauseBtn {
+  background: #1c1e2b;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+}
+
+:global([data-theme='dark']) .pauseBtn:hover,
+:global(.dark) .pauseBtn:hover {
+  border-color: #818cf8;
+  color: #818cf8;
+  background: #242738;
+}
+

@@ -107,3 +107,23 @@
     display: none;
   }
 }
+
+:global([data-theme='dark']) .arrow,
+:global(.dark) .arrow {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(26, 28, 45, 0.92);
+  color: #f8fafc;
+  box-shadow:
+    0 10px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+:global([data-theme='dark']) .arrow:hover,
+:global(.dark) .arrow:hover {
+  background: #222538;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.5),
+    0 6px 16px rgba(0, 0, 0, 0.3);
+}
+

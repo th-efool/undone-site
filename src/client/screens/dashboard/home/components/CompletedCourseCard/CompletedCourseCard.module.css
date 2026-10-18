@@ -156,3 +156,46 @@
     font-size: 13px;
   }
 }
+
+:global([data-theme='dark']) .card,
+:global(.dark) .card {
+  background: #141522;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+}
+
+:global([data-theme='dark']) .title,
+:global(.dark) .title {
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .meta,
+:global(.dark) .meta {
+  color: #a5b4fc;
+}
+
+:global([data-theme='dark']) .progress,
+:global(.dark) .progress {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+:global([data-theme='dark']) .review,
+:global(.dark) .review {
+  background: #1a1b2d;
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #818cf8;
+}
+
+:global([data-theme='dark']) .review:hover,
+:global(.dark) .review:hover {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: #818cf8;
+}
+
+:global([data-theme='dark']) .celebrate,
+:global(.dark) .celebrate {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #a5b4fc;
+}
+
