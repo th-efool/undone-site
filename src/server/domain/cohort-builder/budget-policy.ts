@@ -36,7 +36,7 @@ export function hourlyUserModelTurns(): number {
     const parsed = parseInt(envVal, 10);
     if (Number.isSafeInteger(parsed) && parsed > 0) return parsed;
   }
-  return 50;
+  return 500;
 }
 
 export interface ModelTurnReservation {
