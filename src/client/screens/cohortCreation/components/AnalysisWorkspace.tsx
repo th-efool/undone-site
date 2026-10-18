@@ -19,7 +19,7 @@ const labels: Record<PedagogicalDimension, string> = {
 };
 const summaryDimensions: PedagogicalDimension[] = ['cognitive_load', 'practicality_actionability', 'visual_dependence', 'abstraction_depth', 'interactivity_agency'];
 
-export function AnalysisWorkspace({ snapshot, children }: { snapshot: CreationSnapshot; children: ReactNode }) {
+export function AnalysisWorkspace({ snapshot, children, onContinue }: { snapshot: CreationSnapshot; children?: ReactNode; onContinue?: () => void }) {
   const [loaded, setLoaded] = useState<AnalysisPreview | null>(null);
   const [error, setError] = useState<{ revision: number; message: string } | null>(null);
   const [retry, setRetry] = useState(0); const [selected, setSelected] = useState<string | null>(null);
@@ -59,7 +59,7 @@ export function AnalysisWorkspace({ snapshot, children }: { snapshot: CreationSn
         </label>)}
       </fieldset>
       <div className={shared.progress}>{checkpoint ? <><progress max={checkpoint.total} value={accepted} aria-label="Content partitions analyzed" /><span>{accepted}/{checkpoint.total} partitions</span></> : <span>Validating retained chunks…</span>}</div>
-      <div className={shared.controls}>{children}</div>
+      <div className={shared.controls}>{children ?? (onContinue && <button type="button" onClick={onContinue}>Continue to review →</button>)}</div>
     </div></div>
     <aside className={chunks.detail} id="creation-accepted-analysis" aria-label="Accepted analysis">
       <div className={chunks.detailMeta}><span>Selected source</span><span>{preview ? `${selectedChunks.filter(chunk => analyses.has(chunk.id)).length} chunk analyses loaded` : 'Waiting for preview'}</span></div>

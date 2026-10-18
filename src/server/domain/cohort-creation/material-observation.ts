@@ -29,7 +29,7 @@ export function validateVideoObservation(input: unknown, metadata: YoutubeVideoM
   let cursor = 0;
   for (const item of proposal.observations) {
     if (item.startSeconds < cursor || item.endSeconds <= item.startSeconds || item.endSeconds > video.durationSeconds) {
-      throw creationFailure('AI_INVALID_OUTPUT', 'Return ordered, nonoverlapping observations in numeric seconds within the video duration.');
+      throw creationFailure('AI_INVALID_OUTPUT', 'Return ordered, nonoverlapping observations in numeric seconds within the video duration (out-of-duration or overlapping ranges rejected).');
     }
     cursor = item.endSeconds;
   }

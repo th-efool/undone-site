@@ -7,15 +7,22 @@ import { UnderstandingConcepts } from './UnderstandingConcepts';
 import { ProcessingSteps } from './ProcessingSteps';
 import styles from './UnderstandingProgress.module.css';
 
-export function UnderstandingProgress({ snapshot, disabled, onStart, onCancel, onBack, onChunk }: {
+function getMilestoneText(completed: number, total: number) {
+  if (total <= 0 || completed === 0) return 'Reading source material…';
+  if (completed < total) return 'Identifying core pedagogical concepts…';
+  return 'Synthesizing cohort title & learning objectives…';
+}
+
+export function UnderstandingProgress({ snapshot, disabled, onStart, onCancel, onBack, onChunk, onComplete }: {
   snapshot: CreationSnapshot; disabled: boolean; onStart: () => Promise<boolean>; onCancel: () => void; onBack: () => Promise<boolean>;
-  onChunk?: () => Promise<boolean>;
+  onChunk?: () => Promise<boolean>; onComplete?: () => void;
 }) {
   const checkpoint = snapshot.processing?.checkpoint; const running = snapshot.stage === 'processing' && snapshot.status === 'running';
   const { pending, error, run } = useProcessingAction(disabled || running);
   const start = () => run(onStart, 'Understanding request');
   const ready = !!snapshot.materials.length && snapshot.materials.every(source => source.status === 'ready') && snapshot.extractions.length === snapshot.materials.length;
   const controls = <div className={styles.controls}>{running ? <div role="status">
+      <p><strong>{checkpoint ? getMilestoneText(checkpoint.completed.length, checkpoint.total) : 'Reading source material…'}</strong></p>
       <p>{checkpoint ? `${checkpoint.completed.length} of ${checkpoint.total} retained content partitions understood.` : 'Validating retained content; partition total is not known yet.'}</p>
       <p>Work is saved to your account. You can close this page and return.</p>
       <button onClick={onCancel}>Cancel understanding</button>
@@ -26,7 +33,10 @@ export function UnderstandingProgress({ snapshot, disabled, onStart, onCancel, o
       {error && <p role="alert">{error}</p>}
       {snapshot.processing && !snapshot.processing.complete && <p>A fresh request starts understanding again. Automatic worker retries reuse saved partitions.</p>}
       <button disabled={disabled || pending || !ready} onClick={start}>{snapshot.processing ? 'Start fresh understanding' : 'Understand selected material'}</button>
-      {snapshot.processing?.complete && onChunk && <button disabled={disabled || pending} onClick={() => void run(onChunk, 'Chunking request')}>Chunk selected material</button>}
+      {snapshot.processing?.complete && (onChunk || onComplete) && <button disabled={disabled || pending} onClick={() => {
+        if (onComplete) onComplete();
+        else if (onChunk) void run(onChunk, 'Chunking request');
+      }}>Chunk selected material</button>}
       {!ready && <p>Acquire all selected sources before continuing.</p>}
       {snapshot.stage === 'processing' && <button disabled={disabled || pending} onClick={() => void run(onBack, 'Return to material')}>Back to material</button>}
     </>}</div>;
@@ -56,7 +66,7 @@ export function UnderstandingProgress({ snapshot, disabled, onStart, onCancel, o
         {!!videos.length && <ol className={styles.videos}>{videos.map(unit => <li key={unit.unitId}><span>{unit.title}</span><small>{Math.ceil(unit.durationSeconds / 60)} min</small></li>)}</ol>}
         </li>;
       })}</ul>
-      <div className={styles.progress}>{checkpoint ? <><progress max={checkpoint.total} value={checkpoint.completed.length} aria-label="Content partitions understood" /><span>{checkpoint.completed.length}/{checkpoint.total} partitions</span></> : <><LoaderCircle size={18} aria-hidden="true" /><span>Reading source inventory…</span></>}</div>
+      <div className={styles.progress}>{checkpoint ? <><progress max={checkpoint.total} value={checkpoint.completed.length} aria-label="Content partitions understood" /><span>{getMilestoneText(checkpoint.completed.length, checkpoint.total)} ({checkpoint.completed.length}/{checkpoint.total} partitions)</span></> : <><LoaderCircle size={18} aria-hidden="true" /><span>Reading source material…</span></>}</div>
       {controls}
     </div></div><UnderstandingConcepts snapshot={snapshot} /></div>
   </section>;

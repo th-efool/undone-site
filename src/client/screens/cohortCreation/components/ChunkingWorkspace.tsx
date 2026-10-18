@@ -17,7 +17,7 @@ function sourceTime(seconds: number) {
   return `${hours ? `${hours}:` : ''}${String(minutes).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;
 }
 
-export function ChunkingWorkspace({ snapshot, children }: { snapshot: CreationSnapshot; children: ReactNode }) {
+export function ChunkingWorkspace({ snapshot, children, onContinue }: { snapshot: CreationSnapshot; children?: ReactNode; onContinue?: () => void }) {
   const [loaded, setLoaded] = useState<ChunkingPreview | null>(null);
   const [error, setError] = useState<{ revision: number; message: string } | null>(null);
   const [retry, setRetry] = useState(0); const [selected, setSelected] = useState<string | null>(null);
@@ -59,7 +59,7 @@ export function ChunkingWorkspace({ snapshot, children }: { snapshot: CreationSn
         </label>)}
       </fieldset>
       <div className={shared.progress}>{checkpoint ? <><progress max={checkpoint.total} value={accepted} aria-label="Content partitions chunked" /><span>{accepted}/{checkpoint.total} partitions</span></> : <span>Reading retained understanding…</span>}</div>
-      <div className={shared.controls}>{children}</div>
+      <div className={shared.controls}>{children ?? (onContinue && <button type="button" onClick={onContinue}>Continue to piece scoring →</button>)}</div>
     </div></div>
     <aside className={styles.detail} id="creation-accepted-chunks" aria-label="Accepted chunks">
       <div className={styles.detailMeta}><span>{source ? `${source.unitId ? 'Lecture' : 'Source'} ${String(sourceIndex + 1).padStart(2, '0')}` : 'Selected source'}</span>{source?.duration !== null && source?.duration !== undefined && <time>{sourceTime(source.duration)}</time>}<span>{loaded?.revision === snapshot.revision ? `${selectedChunks.length} accepted chunks loaded` : 'Waiting for preview'}</span></div>

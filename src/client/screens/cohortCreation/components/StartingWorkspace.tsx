@@ -5,6 +5,8 @@ import { TextMaterial } from './TextMaterial';
 import { DiscoveryMaterials } from './DiscoveryMaterials';
 import { GeneratedGuideOption } from './GeneratedGuideOption';
 import { UnderstandingProgress } from './UnderstandingProgress';
+import { ChunkingProgress } from './ChunkingProgress';
+import { AnalysisProgress } from './AnalysisProgress';
 import Image from 'next/image';
 import styles from './MaterialWorkspace.module.css';
 
@@ -30,8 +32,21 @@ export function StartingWorkspace({ creation, draftId }: { creation: ReturnType<
         {!!snapshot.materials.length && <TextMaterial snapshot={snapshot} uploading={false} pending={creation.materialPending} selectionOnly
           onUpload={creation.uploadText} onCancelUpload={creation.cancelUpload} onCancel={creation.cancel} onRetry={creation.retryMaterial}
           onRemove={creation.removeMaterial} onWeb={creation.acquireWeb} onSelectUnits={creation.selectYoutubeUnits} onObserve={creation.observeYoutube} onGithub={creation.acquireGithub} />}</>}
-    {!!snapshot.materials.length && <UnderstandingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending || snapshot.status === 'running'}
-      onChunk={creation.chunkMaterial} onStart={creation.understandMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials} />}
+    {!!snapshot.materials.length && (
+      snapshot.processing?.phase === 'analysis' ? (
+        <AnalysisProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
+          onBuild={creation.buildCurriculum} onStart={creation.analyzeMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials}
+          onContinue={() => void creation.goToStep('review')} />
+      ) : snapshot.processing?.phase === 'chunking' ? (
+        <ChunkingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending}
+          onAnalyze={creation.analyzeMaterial} onStart={creation.chunkMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials}
+          onContinue={() => void creation.goToStep('scoring')} />
+      ) : (
+        <UnderstandingProgress snapshot={snapshot} disabled={!creation.saved || creation.materialPending || snapshot.status === 'running'}
+          onChunk={creation.chunkMaterial} onStart={creation.understandMaterial} onCancel={creation.cancel} onBack={creation.backToMaterials}
+          onComplete={() => void creation.goToStep('chunking')} />
+      )
+    )}
     </div>}
   </>;
 }

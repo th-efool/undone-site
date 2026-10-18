@@ -225,5 +225,13 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     retryMaterial: (materialId: string, assetId: string) => edit({ type: current.current.materials.find(source => source.id === materialId)?.kind === 'pdf' ? 'acquire_pdf' : 'acquire_text', materialId, assetId, requestId: crypto.randomUUID() }),
     runQuery, cancel, createOwn: () => edit({ type: 'create_own' }),
     chooseStartingPoint: (startingPoint: StartingPoint) => edit({ type: 'choose_starting_point', startingPoint }),
+    goToStep: (step: 'understanding' | 'chunking' | 'scoring' | 'analysis' | 'review' | 'ready') => {
+      if (step === 'understanding') return edit({ type: 'understand_material', requestId: crypto.randomUUID() });
+      if (step === 'chunking') return edit({ type: 'chunk_material', requestId: crypto.randomUUID() });
+      if (step === 'scoring' || step === 'analysis') return edit({ type: 'analyze_material', requestId: crypto.randomUUID() });
+      if (step === 'review' || step === 'ready') return edit({ type: 'build_curriculum', requestId: crypto.randomUUID() });
+      return Promise.resolve(false);
+    },
+    publish: () => edit({ type: 'finalize_creation', mode: 'public_publish', requestId: crypto.randomUUID() }),
     back: () => edit({ type: 'back_to_recommendations' }) };
 }

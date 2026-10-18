@@ -3,8 +3,8 @@ import { useProcessingAction } from '../hooks/useProcessingAction';
 import type { CreationSnapshot } from '@/src/shared/cohort-creation/contracts';
 import { ChunkingWorkspace } from './ChunkingWorkspace';
 
-export function ChunkingProgress({ snapshot, disabled, onStart, onCancel, onBack, onAnalyze }: {
-  onAnalyze?: () => Promise<boolean>; snapshot: CreationSnapshot; disabled: boolean; onStart: () => Promise<boolean>; onCancel: () => void; onBack: () => Promise<boolean>;
+export function ChunkingProgress({ snapshot, disabled, onStart, onCancel, onBack, onAnalyze, onContinue }: {
+  onAnalyze?: () => Promise<boolean>; onContinue?: () => void; snapshot: CreationSnapshot; disabled: boolean; onStart: () => Promise<boolean>; onCancel: () => void; onBack: () => Promise<boolean>;
 }) {
   const operation = snapshot.processing?.chunking; const checkpoint = operation?.checkpoint; const running = snapshot.status === 'running';
   const { pending, error, run } = useProcessingAction(disabled || running);
@@ -22,7 +22,10 @@ export function ChunkingProgress({ snapshot, disabled, onStart, onCancel, onBack
       {snapshot.error && <p role="alert">{snapshot.error.message}</p>}
       {error && <p role="alert">{error}</p>}
       <p>A fresh chunk request reuses understanding and starts chunking again. Automatic worker retries reuse accepted chunks.</p>
-      {operation?.complete && onAnalyze && <button disabled={disabled || pending} onClick={() => void start(onAnalyze, 'Analysis request')}>Analyze grounded chunks</button>}
+      {operation?.complete && (onAnalyze || onContinue) && <button disabled={disabled || pending} onClick={() => {
+        if (onContinue) onContinue();
+        else if (onAnalyze) void start(onAnalyze, 'Analysis request');
+      }}>Analyze grounded chunks</button>}
       <button disabled={disabled || pending} onClick={() => void start()}>Start fresh chunking</button>
       <button disabled={disabled || pending} onClick={() => void start(onBack, 'Return to material')}>Back to material</button>
     </>}

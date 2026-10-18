@@ -32,6 +32,9 @@ export function validateChunkBoundaries(value: unknown, partition: ProcessingPar
   return proposal;
 }
 
+const MIN_CHUNK_DURATION_SECONDS = 60;
+const CHUNK_OVERLAP_SECONDS = 15;
+
 /** Pure application projection. Retained source bodies/anchors are never taken from AI output. */
 export function groundChunkBoundaries(value: unknown, partition: ProcessingPartition, understanding: UnderstandingProposal,
   inputRevision: number, signal?: AbortSignal): GroundedChunk[] {
@@ -42,9 +45,19 @@ export function groundChunkBoundaries(value: unknown, partition: ProcessingParti
     const sourceRefs = segments.map(segment => segment.location); const video = sourceRefs.filter(ref => ref.anchor.kind === 'video');
     if (video.length && video.length !== sourceRefs.length) invalid();
     // Reading estimates use a fixed 200 words/minute; video spans retain their existing estimated/source label.
-    const durationSeconds = video.length ? Math.max(...video.map(ref => ref.anchor.kind === 'video' ? ref.anchor.endSeconds : 0)) -
-      Math.min(...video.map(ref => ref.anchor.kind === 'video' ? ref.anchor.startSeconds : 0))
-      : Math.ceil(segments.map(segment => segment.text).join('').trim().split(/\s+/u).length * 60 / 200);
+    let durationSeconds = 0;
+    if (video.length) {
+      const rawStart = Math.min(...video.map(ref => ref.anchor.kind === 'video' ? ref.anchor.startSeconds : 0));
+      const rawEnd = Math.max(...video.map(ref => ref.anchor.kind === 'video' ? ref.anchor.endSeconds : 0));
+      const adjustedStart = position > 0 ? Math.max(0, rawStart - CHUNK_OVERLAP_SECONDS) : rawStart;
+      const isNaturalEnd = chunk.endSegmentId === partition.segments.at(-1)?.id;
+      const rawDuration = Math.max(0, rawEnd - adjustedStart);
+      durationSeconds = isNaturalEnd && rawDuration < MIN_CHUNK_DURATION_SECONDS
+        ? rawDuration
+        : Math.max(MIN_CHUNK_DURATION_SECONDS, rawDuration);
+    } else {
+      durationSeconds = Math.ceil(segments.map(segment => segment.text).join('').trim().split(/\s+/u).length * 60 / 200);
+    }
     const id = chunkId(partition.id, chunk.startSegmentId, chunk.endSegmentId);
     return groundedChunkSchema.parse({ id, materialId: partition.materialId, unitId: partition.unitId, partitionId: partition.id,
       extractionVersion: partition.extractionVersion, artifactRef: partition.artifactId, position,
