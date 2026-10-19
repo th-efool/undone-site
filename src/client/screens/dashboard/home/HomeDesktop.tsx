@@ -29,10 +29,12 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
   }, []);
 
   if (home.loading) return <HomeSkeleton />;
+  const sortedActive = [...home.activeCohorts].sort((a, b) => a.rank - b.rank);
+  const sortedPaused = [...home.continueLater].sort((a, b) => a.rank - b.rank);
   const subscribedCohorts = [
-    ...home.activeCohorts,
-    ...home.continueLater.map((cohort, index) => ({ ...cohort, rank: cohort.rank ?? home.activeCohorts.length + index + 1 })),
-  ].sort((a, b) => a.rank - b.rank);
+    ...sortedActive.map((cohort, index) => ({ ...cohort, rank: index + 1 })),
+    ...sortedPaused.map((cohort, index) => ({ ...cohort, rank: sortedActive.length + index + 1 })),
+  ];
 
   return (
     <div className={styles.home}>

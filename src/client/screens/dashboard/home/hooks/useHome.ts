@@ -339,9 +339,9 @@ export function useHome(props?: {
       }),
     });
     if (!response.ok) throw new Error('Could not save cohort pause');
-    const result = pauseCohort([activeCohort], [], cleanId, pausedUntil, pausedReason);
-    setActiveCohorts((cohorts) => cohorts.filter((cohort) => (cohort.cohortId || cohort.id) !== cleanId));
-    setContinueLater((cohorts) => [...result.continueLater, ...cohorts.filter((cohort) => (cohort.cohortId || cohort.id) !== cleanId)]);
+    const result = pauseCohort(activeCohorts, continueLater, cleanId, pausedUntil, pausedReason);
+    setActiveCohorts(result.activeCohorts);
+    setContinueLater(result.continueLater);
   }
 
   async function resumePausedCohort(cohortId: string) {
@@ -355,9 +355,9 @@ export function useHome(props?: {
       body: JSON.stringify({ cohortId: cleanId, isPaused: false, pausedUntil: null }),
     });
     if (!response.ok) throw new Error('Could not save cohort resume');
-    const result = resumeCohort([], [pausedCohort], cleanId);
-    setActiveCohorts((cohorts) => [...cohorts.filter((cohort) => (cohort.cohortId || cohort.id) !== cleanId), ...result.activeCohorts].sort((a, b) => a.rank - b.rank));
-    setContinueLater((cohorts) => cohorts.filter((cohort) => (cohort.cohortId || cohort.id) !== cleanId));
+    const result = resumeCohort(activeCohorts, continueLater, cleanId);
+    setActiveCohorts(result.activeCohorts);
+    setContinueLater(result.continueLater);
   }
 
   async function saveLearningSettings(cohortId: string, settings: CohortLearningSettings) {

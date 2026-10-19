@@ -101,31 +101,43 @@ export function pauseCohort(
   }
 
   const cleanId = cohort.cohortId || cohort.id;
+  const remainingActive = activeItems
+    .filter((item) => (item.cohortId || item.id) !== cleanId)
+    .sort((a, b) => a.rank - b.rank)
+    .map((item, index) => ({ ...item, rank: index + 1 }));
+
+  const remainingPaused = pausedItems
+    .filter((item) => (item.cohortId || item.id) !== cleanId)
+    .sort((a, b) => a.rank - b.rank);
+
+  const pausedCohortItem: PausedCohort = {
+    id: cleanId,
+    cohortId: cleanId,
+    rank: remainingActive.length + remainingPaused.length + 1,
+    title: cohort.title,
+    provider: cohort.provider,
+    thumbnail: cohort.thumbnail,
+    minutesToday: cohort.minutesToday,
+    dailyGoalMinutes: cohort.dailyGoalMinutes,
+    progressPercent: cohort.progressPercent,
+    schedule: cohort.schedule,
+    featured: cohort.featured,
+    frequency: cohort.frequency,
+    orderStyle: cohort.orderStyle,
+    isPaused: true,
+    pausedUntil: pausedUntil ? pausedUntil.toISOString() : '',
+    pausedReason,
+    resumeLabel: pausedUntil ? getResumeLabel(pausedUntil) : 'Paused',
+  };
+
+  const updatedPaused = [...remainingPaused, pausedCohortItem].map((item, index) => ({
+    ...item,
+    rank: remainingActive.length + index + 1,
+  }));
 
   return {
-    activeCohorts: activeItems.filter((item) => (item.cohortId || item.id) !== cleanId),
-    continueLater: [
-      {
-        id: cleanId,
-        cohortId: cleanId,
-        rank: cohort.rank,
-        title: cohort.title,
-        provider: cohort.provider,
-        thumbnail: cohort.thumbnail,
-        minutesToday: cohort.minutesToday,
-        dailyGoalMinutes: cohort.dailyGoalMinutes,
-        progressPercent: cohort.progressPercent,
-        schedule: cohort.schedule,
-        featured: cohort.featured,
-        frequency: cohort.frequency,
-        orderStyle: cohort.orderStyle,
-        isPaused: true,
-        pausedUntil: pausedUntil ? pausedUntil.toISOString() : '',
-        pausedReason,
-        resumeLabel: pausedUntil ? getResumeLabel(pausedUntil) : 'Paused',
-      },
-      ...pausedItems.filter((item) => (item.cohortId || item.id) !== cleanId),
-    ],
+    activeCohorts: remainingActive,
+    continueLater: updatedPaused,
   };
 }
 
@@ -143,13 +155,31 @@ export function resumeCohort(
   }
 
   const cleanId = cohort.cohortId || cohort.id;
+  const sortedActive = activeItems
+    .filter((item) => (item.cohortId || item.id) !== cleanId)
+    .sort((a, b) => a.rank - b.rank);
+
+  const resumedActiveItem = {
+    ...toActiveCohort(cohort),
+    rank: sortedActive.length + 1,
+  };
+
+  const nextActive = [...sortedActive, resumedActiveItem].map((item, index) => ({
+    ...item,
+    rank: index + 1,
+  }));
+
+  const remainingPaused = pausedItems
+    .filter((item) => (item.cohortId || item.id) !== cleanId)
+    .sort((a, b) => a.rank - b.rank)
+    .map((item, index) => ({
+      ...item,
+      rank: nextActive.length + index + 1,
+    }));
 
   return {
-    activeCohorts: [
-      ...activeItems.filter((item) => (item.cohortId || item.id) !== cleanId),
-      toActiveCohort(cohort),
-    ].sort((a, b) => a.rank - b.rank),
-    continueLater: pausedItems.filter((item) => (item.cohortId || item.id) !== cleanId),
+    activeCohorts: nextActive,
+    continueLater: remainingPaused,
   };
 }
 
@@ -162,10 +192,16 @@ export function getActiveCohorts(
   const stillPaused = pausedItems.filter((item) => !item.pausedUntil || today < new Date(item.pausedUntil));
 
   const restored = readyToResume.map(toActiveCohort);
+  const nextActive = [...activeItems, ...restored]
+    .sort((a, b) => a.rank - b.rank)
+    .map((item, index) => ({ ...item, rank: index + 1 }));
 
   return {
-    activeCohorts: [...activeItems, ...restored].sort((a, b) => a.rank - b.rank),
-    continueLater: stillPaused,
+    activeCohorts: nextActive,
+    continueLater: stillPaused.map((item, index) => ({
+      ...item,
+      rank: nextActive.length + index + 1,
+    })),
   };
 }
 
