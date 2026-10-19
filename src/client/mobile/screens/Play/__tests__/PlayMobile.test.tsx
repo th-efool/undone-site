@@ -25,6 +25,7 @@ const createMockPlayback = (overrides?: Partial<UsePlaybackResult>): UsePlayback
       channelId: 'default',
     } as any,
     feedLoading: false,
+    isRefreshing: false,
     feedError: false,
     feedItems: [
       {

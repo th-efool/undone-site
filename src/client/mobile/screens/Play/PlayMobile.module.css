@@ -292,13 +292,24 @@
   height: 44px;
   padding: 0 12px;
   border-radius: 9999px;
-  background: rgba(18, 18, 24, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
-  color: #CBD5E1;
+  background: #000000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
   gap: 10px;
+  box-shadow: none !important;
+  transform-origin: center center;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.2s ease,
+              border-color 0.2s ease,
+              color 0.2s ease;
+}
+
+.controlCapsule:hover {
+  background: #5430FF !important;
+  border-color: #5430FF !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+  z-index: 10;
 }
 
 .iconButton {
@@ -312,7 +323,7 @@
   padding: 0;
   min-width: 44px;
   min-height: 44px;
-  transition: transform 0.15s ease, color 0.15s ease;
+  transition: color 0.15s ease;
 }
 
 .iconButton:hover:not(:disabled) {
@@ -320,7 +331,7 @@
 }
 
 .iconButton:active:not(:disabled) {
-  transform: scale(0.92);
+  transform: none;
 }
 
 .iconButton:disabled {
@@ -332,21 +343,30 @@
   width: 52px;
   height: 52px;
   border-radius: 50%;
-  background: #5430FF;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #000000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.22);
   color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(84, 48, 255, 0.5);
-  transition: transform 0.15s ease, background 0.15s ease;
+  box-shadow: none !important;
+  transform-origin: center center;
+  transition: background-color 0.2s ease,
+              border-color 0.2s ease;
   padding: 0;
 }
 
+.playToggleBtn:hover {
+  background: #5430FF !important;
+  border-color: #5430FF !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+  z-index: 10;
+}
+
 .playToggleBtn:active {
-  transform: scale(0.94);
-  background: #4625e6;
+  transform: none;
 }
 
 /* Secondary Action Row */
@@ -354,7 +374,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 12px;
   width: 100%;
 }
 
@@ -365,30 +385,45 @@
   height: 40px;
   padding: 0 16px;
   border-radius: 9999px;
-  background: rgba(18, 18, 24, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #000000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   color: #FFFFFF;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  box-shadow: none !important;
+  transform-origin: center center;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.2s ease,
+              border-color 0.2s ease,
+              color 0.2s ease;
+}
+
+.completeButton:hover:not(:disabled) {
+  background: #5430FF !important;
+  border-color: #5430FF !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+  z-index: 10;
+}
+
+.completeButton:active:not(:disabled) {
+  transform: none;
 }
 
 .completeButtonCompleted {
-  color: #5430FF !important;
-  border-color: rgba(84, 48, 255, 0.4) !important;
+  color: #FFFFFF !important;
 }
 
 .completeButtonError {
   color: #EF4444 !important;
-  border-color: rgba(239, 68, 68, 0.4) !important;
+  border-color: #EF4444 !important;
 }
 
 .completeButton:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
+  transform: none !important;
 }
 
 .utilityButton {
@@ -398,22 +433,28 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(18, 18, 24, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #94A3B8;
+  background: #000000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
   cursor: pointer;
-  transition: color 0.15s ease, transform 0.15s ease;
+  box-shadow: none !important;
+  transform-origin: center center;
+  transition: background-color 0.2s ease,
+              border-color 0.2s ease,
+              color 0.2s ease;
   padding: 0;
 }
 
 .utilityButton:hover {
-  color: #FFFFFF;
+  background: #5430FF !important;
+  border-color: #5430FF !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+  z-index: 10;
 }
 
 .utilityButton:active {
-  transform: scale(0.92);
+  transform: none;
 }
 
 .spinner {
@@ -549,29 +590,36 @@
   flex: 1;
   height: 38px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #000000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.18);
   color: #CBD5E1;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transform-origin: center center;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .speedBtn:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.12);
+  background: #000000 !important;
+  border-color: rgba(165, 180, 252, 0.65);
   color: #FFFFFF;
+  box-shadow: 0 0 12px rgba(129, 140, 248, 0.35);
+  z-index: 2;
 }
 
 .speedBtnActive {
-  background: #5430FF !important;
-  color: #FFFFFF !important;
-  border-color: #5430FF !important;
+  background: #000000 !important;
+  color: #C7D2FE !important;
+  border-color: #818CF8 !important;
+  box-shadow: 0 0 14px rgba(129, 140, 248, 0.45);
+  z-index: 2;
 }
 
 .speedBtn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  transform: none !important;
 }
 
 /* Tool list inside drawer */

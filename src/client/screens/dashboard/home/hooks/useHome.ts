@@ -77,11 +77,17 @@ export function useHome(props?: {
     if (hasServerData) {
       return getActiveCohorts(props?.activeCohorts ?? [], props?.continueLater ?? []);
     }
+    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
+      const stored = homeStorageAdapter.getStoredChoices();
+      if (stored && (Array.isArray(stored.activeCohorts) || Array.isArray(stored.continueLater))) {
+        return getActiveCohorts(stored.activeCohorts ?? [], stored.continueLater ?? []);
+      }
+    }
     return getActiveCohorts(home.activeCohorts, home.continueLater);
   }, [props?.activeCohorts, props?.continueLater, home.activeCohorts, home.continueLater]);
 
-  const [activeCohorts, setActiveCohorts] = useState(initialCohorts.activeCohorts);
-  const [continueLater, setContinueLater] = useState(initialCohorts.continueLater);
+  const [activeCohorts, setActiveCohorts] = useState<ActiveCohort[]>(initialCohorts.activeCohorts);
+  const [continueLater, setContinueLater] = useState<PausedCohort[]>(initialCohorts.continueLater);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 

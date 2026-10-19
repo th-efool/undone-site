@@ -5,9 +5,11 @@ import type { ArticlePreview } from '../models';
 import type { ExploreModel } from '../models';
 
 export function useExplore() {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isFetching } = useQuery({
     queryKey: ['explore'],
     queryFn: async () => exploreRepository.getExplore(),
+    initialData: () => exploreRepository.getInitialExplore(),
+    staleTime: 60_000,
   });
 
   const emptyExplore: ExploreModel = {
@@ -65,7 +67,7 @@ export function useExplore() {
     loadMoreFreshDiscoveries,
     hasMoreFreshDiscoveries,
     isLoadingMoreFreshDiscoveries: isLoadingMore,
-    loading: isLoading,
+    loading: isLoading as boolean,
   };
 }
 

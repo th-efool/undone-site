@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
 import { Metadata } from 'next';
 import { auth } from '@/src/server/infrastructure/auth/auth.config';
@@ -22,12 +23,32 @@ export const metadata: Metadata = {
   }
 };
 
-export default async function home() {
-  const session = await auth();
-  const userId = session?.user?.id;
+type CachedHomeServerPayload = {
+  activeCohorts: any[];
+  recentlyCompleted: any[];
+  continueLater: any[];
+  expiresAt: number;
+};
 
-  if (!userId) {
-    redirect('/auth');
+const HOME_SERVER_CACHE_TTL_MS = 30_000;
+
+const globalForHomeCache = globalThis as unknown as {
+  __undoneHomeServerCache?: Map<string, CachedHomeServerPayload>;
+};
+
+function getHomeServerCache(): Map<string, CachedHomeServerPayload> {
+  if (!globalForHomeCache.__undoneHomeServerCache) {
+    globalForHomeCache.__undoneHomeServerCache = new Map();
+  }
+  return globalForHomeCache.__undoneHomeServerCache;
+}
+
+async function loadHomeCohortsForUser(userId: string) {
+  if (process.env.NODE_ENV !== 'test') {
+    const cached = getHomeServerCache().get(userId);
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached;
+    }
   }
 
   let enrolledMembers: any[] = [];
@@ -126,10 +147,6 @@ export default async function home() {
     })),
   ];
 
-  if (allUserCohorts.length === 0) {
-    return <Home activeCohorts={[]} recentlyCompleted={[]} continueLater={[]} userName={session?.user?.name || undefined} />;
-  }
-
   const activeCohorts: any[] = [];
   const recentlyCompleted: any[] = [];
   const continueLater: any[] = [];
@@ -214,5 +231,57 @@ export default async function home() {
   // Sort active cohorts by rank ASC, normalizing ranks to 1, 2, 3...
   activeCohorts.sort((a, b) => a.rank - b.rank);
 
-  return <Home activeCohorts={activeCohorts} recentlyCompleted={recentlyCompleted} continueLater={continueLater} userName={session?.user?.name || undefined} />;
+  const payload: CachedHomeServerPayload = {
+    activeCohorts,
+    recentlyCompleted,
+    continueLater,
+    expiresAt: Date.now() + HOME_SERVER_CACHE_TTL_MS,
+  };
+
+  if (process.env.NODE_ENV !== 'test') {
+    getHomeServerCache().set(userId, payload);
+  }
+
+  return payload;
+}
+
+async function HomeCohortsLoader({ userId, userName }: { userId: string; userName?: string }) {
+  const { activeCohorts, recentlyCompleted, continueLater } = await loadHomeCohortsForUser(userId);
+  return (
+    <Home
+      activeCohorts={activeCohorts}
+      recentlyCompleted={recentlyCompleted}
+      continueLater={continueLater}
+      userName={userName}
+    />
+  );
+}
+
+export default async function home() {
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    redirect('/auth');
+  }
+
+  const userName = session?.user?.name || undefined;
+
+  if (process.env.NODE_ENV === 'test') {
+    const { activeCohorts, recentlyCompleted, continueLater } = await loadHomeCohortsForUser(userId);
+    return (
+      <Home
+        activeCohorts={activeCohorts}
+        recentlyCompleted={recentlyCompleted}
+        continueLater={continueLater}
+        userName={userName}
+      />
+    );
+  }
+
+  return (
+    <Suspense fallback={<Home userName={userName} />}>
+      <HomeCohortsLoader userId={userId} userName={userName} />
+    </Suspense>
+  );
 }

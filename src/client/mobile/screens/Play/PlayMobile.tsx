@@ -85,41 +85,15 @@ export function PlayMobile({ playback }: PlayMobileProps) {
     [playback]
   );
 
-  // 1. Loading, error, or empty feed states
-  if (playback.feedLoading) {
-    return <PlaySkeleton />;
-  }
-
-  if (playback.feedError) {
-    return (
-      <PlaySkeleton
-        isError
-        errorMessage="Lessons could not be loaded. Please check your connection and try reloading."
-        onRetry={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
-      />
-    );
-  }
-
-  if (!playback.activeItem) {
-    return (
-      <PlaySkeleton
-        isEmpty
-        errorTitle="All Caught Up"
-        errorMessage="You're caught up with this selection. Choose another channel or return home."
-        onRetry={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
-        retryLabel="Refresh Channel"
-      />
-    );
-  }
-
   const mediaSource = resolveMediaSource(playback.activeItem);
   const isVideo =
-    playback.activeItem.lessonType === 'video' &&
+    playback.activeItem?.lessonType === 'video' &&
     (mediaSource.isYouTube || mediaSource.isDirectVideo);
-  const isChunkCompleted = playback.isChunkCompleted
-    ? playback.isChunkCompleted(playback.activeItem.chunkId)
-    : false;
-  const speedSupported = mediaSource.isYouTube || mediaSource.isDirectVideo;
+  const isChunkCompleted =
+    playback.activeItem && playback.isChunkCompleted
+      ? playback.isChunkCompleted(playback.activeItem.chunkId)
+      : false;
+  const speedSupported = !playback.activeItem || mediaSource.isYouTube || mediaSource.isDirectVideo;
 
   let providerName = (playback.activeItem as any)?.cohortProvider as string | undefined;
   if (!providerName) {
@@ -137,8 +111,8 @@ export function PlayMobile({ playback }: PlayMobileProps) {
     return <Layers size={12} color="#94A3B8" />;
   };
 
-  // 2. Reading Lesson Layout
-  if (!isVideo && playback.activeItem.content) {
+  // 2. Reading Lesson Layout (only when an active reading item is loaded)
+  if (!playback.feedLoading && !playback.feedError && playback.activeItem && !isVideo && playback.activeItem.content) {
     return (
       <main ref={mobileContainerRef} className={styles.mobilePlay}>
         <div className={styles.readingContainer}>
@@ -210,7 +184,7 @@ export function PlayMobile({ playback }: PlayMobileProps) {
           <div className={styles.readingDock}>
             <button
               type="button"
-              className={styles.iconButton}
+              className={styles.utilityButton}
               onClick={playback.previousChunk}
               disabled={!playback.hasPrevious}
               aria-label="Previous chunk"
@@ -227,7 +201,7 @@ export function PlayMobile({ playback }: PlayMobileProps) {
             </button>
             <button
               type="button"
-              className={styles.iconButton}
+              className={styles.utilityButton}
               onClick={playback.nextChunk}
               disabled={!playback.hasNext}
               aria-label="Next chunk"
@@ -243,7 +217,7 @@ export function PlayMobile({ playback }: PlayMobileProps) {
     );
   }
 
-  // 3. Video Playback Layout
+  // 3. Video Playback Layout (always renders top header, channel selector, and bottom dock immediately)
   return (
     <main ref={mobileContainerRef} className={styles.mobilePlay}>
       {/* ── Top Header ──────────────────────────────────────────────────────── */}
@@ -281,7 +255,11 @@ export function PlayMobile({ playback }: PlayMobileProps) {
         </div>
 
         <div className={styles.metadataBlock}>
-          <h1 className={styles.lessonTitle}>{playback.lesson.title}</h1>
+          <h1 className={styles.lessonTitle}>
+            {playback.feedLoading && (!playback.lesson.title || playback.lesson.title === 'Loading...')
+              ? 'Syncing channel feed…'
+              : playback.lesson.title}
+          </h1>
           <div className={styles.subtitleRow}>
             <span className={styles.providerBadge}>
               {renderProviderIcon()}
@@ -304,67 +282,87 @@ export function PlayMobile({ playback }: PlayMobileProps) {
         </div>
       </header>
 
-      {/* ── Central Stage (16:9 Media surface) ──────────────────────────────── */}
-      <section className={styles.stageContainer} aria-label="Video playback area">
-        <div className={styles.surfaceWrapper}>
-          <div className={styles.videoMountArea}>
-            <PlayerSurface
-              containerRef={playback.playerContainerRef}
-              activeItem={playback.activeItem}
-              ytApiError={playback.ytApiError}
-              mediaError={playback.mediaError}
-              onVideoMount={playback.registerVideoElement}
-              onRetry={playback.togglePlayback}
-              onCompleteChunk={() => void playback.completeActiveChunk()}
-            />
+      {/* ── Central Stage (16:9 Media surface or non-blocking stage status) ── */}
+      {playback.feedLoading ? (
+        <PlaySkeleton stageOnly />
+      ) : playback.feedError ? (
+        <PlaySkeleton
+          stageOnly
+          isError
+          errorMessage="Lessons could not be loaded. Please check your connection and try reloading."
+          onRetry={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
+        />
+      ) : !playback.activeItem ? (
+        <PlaySkeleton
+          stageOnly
+          isEmpty
+          errorTitle="All Caught Up"
+          errorMessage="You're caught up with this selection. Choose another channel or return home."
+          onRetry={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
+          retryLabel="Refresh Channel"
+        />
+      ) : (
+        <section className={styles.stageContainer} aria-label="Video playback area">
+          <div className={styles.surfaceWrapper}>
+            <div className={styles.videoMountArea}>
+              <PlayerSurface
+                containerRef={playback.playerContainerRef}
+                activeItem={playback.activeItem}
+                ytApiError={playback.ytApiError}
+                mediaError={playback.mediaError}
+                onVideoMount={playback.registerVideoElement}
+                onRetry={playback.togglePlayback}
+                onCompleteChunk={() => void playback.completeActiveChunk()}
+              />
 
-            {!playback.isPlaying && (
-              <button
-                type="button"
-                className={styles.playOverlayButton}
-                onClick={playback.togglePlayback}
-                aria-label="Play video"
-              >
-                <PlayIcon size={28} fill="currentColor" style={{ marginLeft: 3 }} />
-              </button>
-            )}
-          </div>
+              {!playback.isPlaying && (
+                <button
+                  type="button"
+                  className={styles.playOverlayButton}
+                  onClick={playback.togglePlayback}
+                  aria-label="Play video"
+                >
+                  <PlayIcon size={28} fill="currentColor" style={{ marginLeft: 3 }} />
+                </button>
+              )}
+            </div>
 
-          {/* Integrated timeline scrubber */}
-          <div
-            ref={scrubberRef}
-            className={styles.timelineScrubber}
-            onClick={handleScrubberClick}
-            role="slider"
-            aria-label="Timeline seek scrubber"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(playback.timelineProgress)}
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'ArrowRight') {
-                e.preventDefault();
-                playback.skipSeconds(10);
-              } else if (e.key === 'ArrowLeft') {
-                e.preventDefault();
-                playback.skipSeconds(-10);
-              }
-            }}
-          >
+            {/* Integrated timeline scrubber */}
             <div
-              className={styles.timelineProgress}
-              style={{ width: `${playback.timelineProgress}%` }}
+              ref={scrubberRef}
+              className={styles.timelineScrubber}
+              onClick={handleScrubberClick}
+              role="slider"
+              aria-label="Timeline seek scrubber"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(playback.timelineProgress)}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowRight') {
+                  e.preventDefault();
+                  playback.skipSeconds(10);
+                } else if (e.key === 'ArrowLeft') {
+                  e.preventDefault();
+                  playback.skipSeconds(-10);
+                }
+              }}
             >
-              <div className={styles.timelineThumb} />
+              <div
+                className={styles.timelineProgress}
+                style={{ width: `${playback.timelineProgress}%` }}
+              >
+                <div className={styles.timelineThumb} />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className={styles.timeBar}>
-          <span>{playback.lesson.currentTime}</span>
-          <span>{playback.lesson.totalDuration}</span>
-        </div>
-      </section>
+          <div className={styles.timeBar}>
+            <span>{playback.lesson.currentTime}</span>
+            <span>{playback.lesson.totalDuration}</span>
+          </div>
+        </section>
+      )}
 
       {/* ── Primary Dock Controls ───────────────────────────────────────────── */}
       <footer className={styles.dock}>

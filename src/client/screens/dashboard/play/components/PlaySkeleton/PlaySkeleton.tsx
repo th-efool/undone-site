@@ -8,6 +8,7 @@ import styles from './PlaySkeleton.module.css';
 interface PlaySkeletonProps {
   isError?: boolean;
   isEmpty?: boolean;
+  stageOnly?: boolean;
   errorTitle?: string;
   errorMessage?: string;
   onRetry?: () => void;
@@ -17,6 +18,7 @@ interface PlaySkeletonProps {
 export function PlaySkeleton({
   isError = false,
   isEmpty = false,
+  stageOnly = false,
   errorTitle,
   errorMessage,
   onRetry,
@@ -33,7 +35,7 @@ export function PlaySkeleton({
     const defaultRetryText = isEmpty ? 'Refresh Channel' : 'Reload Lessons';
 
     return (
-      <div className={styles.skeletonContainer}>
+      <div className={stageOnly ? styles.stageOnlyContainer : styles.skeletonContainer}>
         <div
           className={styles.errorContainer}
           role={isAlert ? 'alert' : 'status'}
@@ -57,6 +59,22 @@ export function PlaySkeleton({
               Back Home
             </Link>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (stageOnly) {
+    return (
+      <div
+        className={styles.stageOnlyContainer}
+        role="status"
+        aria-label="Loading lessons"
+      >
+        <div className={styles.stageArea}>
+          <div className={`${styles.edgeCard} ${styles.leftEdge} ${styles.shimmer}`} />
+          <div className={`${styles.centralSurface} ${styles.shimmer}`} />
+          <div className={`${styles.edgeCard} ${styles.rightEdge} ${styles.shimmer}`} />
         </div>
       </div>
     );

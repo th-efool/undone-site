@@ -56,7 +56,65 @@ const realPeopleFinishing: TrendingCourse[] = [
   },
 ];
 
+const EXPLORE_CACHE_KEY = 'sidequest_explore_cache_v1';
+
+const FALLBACK_EXPLORE: ExploreModel = {
+  searchSuggestions: [
+    { id: '1', label: 'DSA' },
+    { id: '2', label: 'Operating Systems' },
+    { id: '3', label: 'Networking' },
+    { id: '4', label: 'Dynasties of India' },
+    { id: '5', label: 'Celtic Mythology' },
+  ],
+  peopleFinishing: realPeopleFinishing,
+  topics: [
+    { id: 'cs-core', name: 'Computer Science Core', icon: 'cpu', color: '#6366f1' },
+    { id: 'history', name: 'World & Indian History', icon: 'globe', color: '#ec4899' },
+    { id: 'systems', name: 'Systems & Networking', icon: 'layers', color: '#3b82f6' },
+    { id: 'mythology', name: 'Mythology & Culture', icon: 'sparkles', color: '#f59e0b' },
+  ],
+  trendingSideQuests: realPeopleFinishing.map((item) => ({
+    id: item.id,
+    cohortId: item.id,
+    title: item.title,
+    subtitle: `${item.durationLabel} • ${item.learnerCount}`,
+    dailyGoal: '20 min/day',
+    thumbnail: item.thumbnail,
+    featuredParticipants: item.featuredLearners,
+    participantCount: item.learnerCount,
+  })),
+  recentlyPublished: realPeopleFinishing.map((item) => ({
+    id: item.id,
+    cohortId: item.id,
+    title: item.title,
+    author: 'SideQuest Guide',
+    thumbnail: item.thumbnail,
+    learnerCount: item.learnerCount,
+    publishedLabel: 'Featured',
+    bookmarked: false,
+  })),
+};
+
+let memoryExploreCache: ExploreModel | null = null;
+
 export const exploreRepository = {
+  getInitialExplore(): ExploreModel {
+    if (memoryExploreCache) return memoryExploreCache;
+    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
+      try {
+        const raw = localStorage.getItem(EXPLORE_CACHE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw) as ExploreModel;
+          if (parsed && Array.isArray(parsed.trendingSideQuests)) {
+            memoryExploreCache = parsed;
+            return parsed;
+          }
+        }
+      } catch {}
+    }
+    return FALLBACK_EXPLORE;
+  },
+
   async getExplore(): Promise<ExploreModel> {
     const res = await fetch('/api/explore');
     if (!res.ok) {
@@ -76,17 +134,23 @@ export const exploreRepository = {
       bookmarked: false,
     }));
 
-    if (isNativeApp()) {
-      return {
-        ...base,
-        peopleFinishing: realPeopleFinishing,
-        recentlyPublished: userPublished.length > 0 ? userPublished : base.recentlyPublished.slice(0, 2),
-      };
-    }
+    const result: ExploreModel = isNativeApp()
+      ? {
+          ...base,
+          peopleFinishing: realPeopleFinishing,
+          recentlyPublished: userPublished.length > 0 ? userPublished : base.recentlyPublished.slice(0, 2),
+        }
+      : {
+          ...base,
+          recentlyPublished: [...userPublished, ...base.recentlyPublished],
+        };
 
-    return {
-      ...base,
-      recentlyPublished: [...userPublished, ...base.recentlyPublished],
-    };
+    memoryExploreCache = result;
+    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
+      try {
+        localStorage.setItem(EXPLORE_CACHE_KEY, JSON.stringify(result));
+      } catch {}
+    }
+    return result;
   },
 };

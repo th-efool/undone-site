@@ -72,38 +72,12 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
     onLongPressEnd: handleLongPressEnd,
   });
 
-  // Loading, error, or empty feed states
-  if (playback.feedLoading) {
-    return <PlaySkeleton />;
-  }
-
-  if (playback.feedError) {
-    return (
-      <PlaySkeleton
-        isError
-        errorMessage="Lessons could not be loaded. Please check your connection and try reloading."
-        onRetry={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
-      />
-    );
-  }
-
-  if (!playback.activeItem) {
-    return (
-      <PlaySkeleton
-        isEmpty
-        errorTitle="All Caught Up"
-        errorMessage="You're caught up with this selection. Choose another channel or return home."
-        onRetry={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
-        retryLabel="Refresh Channel"
-      />
-    );
-  }
-
   const mediaSource = resolveMediaSource(playback.activeItem);
-  const speedSupported = mediaSource.isYouTube || mediaSource.isDirectVideo;
-  const isChunkCompleted = playback.isChunkCompleted
-    ? playback.isChunkCompleted(playback.activeItem.chunkId)
-    : false;
+  const speedSupported = !playback.activeItem || mediaSource.isYouTube || mediaSource.isDirectVideo;
+  const isChunkCompleted =
+    playback.activeItem && playback.isChunkCompleted
+      ? playback.isChunkCompleted(playback.activeItem.chunkId)
+      : false;
 
   return (
     <div
@@ -131,12 +105,32 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
       {/* 1. Header: Position Capsules, Lesson Title, Provider Badge, Chunk & Episode Info */}
       <PlayHeader playback={playback} />
 
-      {/* 2. Central Stage: Edge previews, 16:9 Video surface with timeline scrubber */}
-      <PlayStage
-        playback={playback}
-        dragDeltaX={dragDeltaX}
-        isDragging={isDragging}
-      />
+      {/* 2. Central Stage: Edge previews, 16:9 Video surface, or non-blocking stage status */}
+      {playback.feedLoading ? (
+        <PlaySkeleton stageOnly />
+      ) : playback.feedError ? (
+        <PlaySkeleton
+          stageOnly
+          isError
+          errorMessage="Lessons could not be loaded. Please check your connection and try reloading."
+          onRetry={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
+        />
+      ) : !playback.activeItem ? (
+        <PlaySkeleton
+          stageOnly
+          isEmpty
+          errorTitle="All Caught Up"
+          errorMessage="You're caught up with this selection. Choose another channel or return home."
+          onRetry={() => void playback.fetchChannelFeed(playback.activeChannel, 0)}
+          retryLabel="Refresh Channel"
+        />
+      ) : (
+        <PlayStage
+          playback={playback}
+          dragDeltaX={dragDeltaX}
+          isDragging={isDragging}
+        />
+      )}
 
       {/* Feedback toast for fullscreen rejection or completion error */}
       {(fullscreenFeedback || playback.completionError) && (

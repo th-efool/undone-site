@@ -15,7 +15,8 @@ const stamp = () => new Date().toISOString();
 const id = (p: string) => `${p}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
 export function useNotes() {
-  const [state, setState] = useState<NotesStateEntity | null>(null);
+  const [state, setState] = useState<NotesStateEntity | null>(() => notesRepository.getInitialState());
+  const [hasLoadedRemote, setHasLoadedRemote] = useState(false);
   const [notebookQuery, setNotebookQuery] = useState('');
   const [noteQuery, setNoteQuery] = useState('');
   const [toast, setToast] = useState('');
@@ -24,15 +25,18 @@ export function useNotes() {
     notebooks: NotesStateEntity['notebooks'];
   } | null>(null);
   useEffect(() => {
-    notesRepository.load().then(setState);
+    notesRepository.load().then((loaded) => {
+      setState(loaded);
+      setHasLoadedRemote(true);
+    });
   }, []);
   useEffect(() => {
-    if (!state) return;
+    if (!state || !hasLoadedRemote) return;
     const t = setTimeout(() => {
       void notesRepository.save(state);
     }, 1000);
     return () => clearTimeout(t);
-  }, [state]);
+  }, [state, hasLoadedRemote]);
   useEffect(() => {
     if (toast) {
       const t = setTimeout(() => setToast(''), 2800);

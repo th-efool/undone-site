@@ -108,7 +108,7 @@ export function pauseCohort(
 
   const remainingPaused = pausedItems
     .filter((item) => (item.cohortId || item.id) !== cleanId)
-    .sort((a, b) => a.rank - b.rank);
+    .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
 
   const pausedCohortItem: PausedCohort = {
     id: cleanId,
@@ -171,7 +171,7 @@ export function resumeCohort(
 
   const remainingPaused = pausedItems
     .filter((item) => (item.cohortId || item.id) !== cleanId)
-    .sort((a, b) => a.rank - b.rank)
+    .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
     .map((item, index) => ({
       ...item,
       rank: nextActive.length + index + 1,
@@ -187,13 +187,13 @@ export function getActiveCohorts(
   activeItems: ActiveCohort[],
   pausedItems: PausedCohort[],
   today = new Date(),
-) {
+): { activeCohorts: ActiveCohort[]; continueLater: PausedCohort[] } {
   const readyToResume = pausedItems.filter((item) => item.pausedUntil && today >= new Date(item.pausedUntil));
   const stillPaused = pausedItems.filter((item) => !item.pausedUntil || today < new Date(item.pausedUntil));
 
   const restored = readyToResume.map(toActiveCohort);
   const nextActive = [...activeItems, ...restored]
-    .sort((a, b) => a.rank - b.rank)
+    .sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0))
     .map((item, index) => ({ ...item, rank: index + 1 }));
 
   return {

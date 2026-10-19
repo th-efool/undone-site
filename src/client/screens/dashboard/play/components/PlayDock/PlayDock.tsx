@@ -15,6 +15,7 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react';
+import { ConeSlider } from './ConeSlider';
 import { triggerHaptic } from '@/src/client/utils/haptics';
 import styles from './PlayDock.module.css';
 
@@ -111,7 +112,7 @@ export function PlayDock({
         </button>
       </div>
 
-      {/* Capsule 2: Volume & Audio Slider */}
+      {/* Capsule 2: Volume & Audio Slider (Expanded by default with Cone `<` shape) */}
       <div className={`${styles.capsule} ${styles.volumeCapsule}`}>
         <button
           type="button"
@@ -122,22 +123,15 @@ export function PlayDock({
         >
           {muted || effectiveVol === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
         </button>
-        <input
-          type="range"
-          className={styles.volumeSlider}
-          min={0}
-          max={100}
+        <ConeSlider
           value={effectiveVol}
-          onChange={(e) => onVolumeChange(Number(e.target.value))}
-          style={{
-            background: `linear-gradient(to right, #5430FF ${effectiveVol}%, rgba(255, 255, 255, 0.2) ${effectiveVol}%)`,
-          }}
-          aria-label="Volume level"
+          onChange={onVolumeChange}
+          ariaLabel="Volume level"
         />
       </div>
 
       {/* Capsule 3: Mark Chunk Complete */}
-      <div className={styles.capsule}>
+      <div className={`${styles.capsule} ${completionError ? styles.capsuleError : ''}`}>
         <button
           type="button"
           className={`${styles.dockButton} ${completionError ? styles.dockButtonError : isCompleted ? styles.dockButtonCompleted : ''}`}
@@ -151,13 +145,13 @@ export function PlayDock({
           ) : completionError ? (
             <AlertCircle size={18} />
           ) : (
-            <CheckCircle size={18} fill={isCompleted ? 'rgba(84, 48, 255, 0.3)' : 'none'} />
+            <CheckCircle size={18} fill={isCompleted ? 'currentColor' : 'none'} />
           )}
         </button>
       </div>
 
       {/* Capsule 4: Skip Forward / Next Chunk */}
-      <div className={styles.capsule}>
+      <div className={`${styles.capsule} ${!hasNext ? styles.capsuleDisabled : ''}`}>
         <button
           type="button"
           className={styles.dockButton}
@@ -172,7 +166,7 @@ export function PlayDock({
 
       {/* Capsule 5: Playback Speed */}
       <div className={styles.speedWrapper} ref={speedRef}>
-        <div className={styles.capsule}>
+        <div className={`${styles.capsule} ${speedMenuOpen ? styles.capsuleOpen : ''} ${!speedSupported ? styles.capsuleDisabled : ''}`}>
           <button
             type="button"
             className={`${styles.dockButton} ${!speedSupported ? styles.dockButtonDisabled : ''}`}
@@ -224,7 +218,7 @@ export function PlayDock({
       </div>
 
       {/* Capsule 7: Report Issue (Visibly deferred placeholder without fake modal) */}
-      <div className={styles.capsule}>
+      <div className={`${styles.capsule} ${styles.capsuleDisabled}`}>
         <div
           tabIndex={0}
           className={styles.tooltipAnchor}

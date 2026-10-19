@@ -24,6 +24,8 @@ type ChannelCache = {
   exhausted?: boolean;
   prefs?: string;
   query?: string;
+  stale?: boolean;
+  updatedAt?: number;
 };
 
 const INITIAL_CACHES: Record<ChannelId, ChannelCache> = {
@@ -36,7 +38,130 @@ const INITIAL_CACHES: Record<ChannelId, ChannelCache> = {
   quick: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
 };
 
+const FEED_CACHE_STORAGE_PREFIX = 'sidequest_feed_cache_v1:';
+const FEED_CACHE_MAX_AGE_MS = 1000 * 60 * 60 * 24; // 24h persistent cache with background revalidation
+const FEED_CACHE_FRESH_TTL_MS = 45_000; // 45s fresh TTL before silent background revalidation
+
 let persistedCachesBySelection: { key: string; caches: Record<ChannelId, ChannelCache> } | null = null;
+
+function loadStoredChannelCaches(selectionKey: string): Record<ChannelId, ChannelCache> | null {
+  if (typeof window === 'undefined' || process.env.NODE_ENV === 'test') return null;
+  try {
+    const raw = localStorage.getItem(`${FEED_CACHE_STORAGE_PREFIX}${selectionKey}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { updatedAt?: number; caches?: Partial<Record<ChannelId, ChannelCache>> };
+    if (!parsed || typeof parsed !== 'object' || !parsed.caches) return null;
+    if (parsed.updatedAt && Date.now() - parsed.updatedAt > FEED_CACHE_MAX_AGE_MS) {
+      return null;
+    }
+    const hydrated = {} as Record<ChannelId, ChannelCache>;
+    let hasAnyItems = false;
+    for (const k of Object.keys(INITIAL_CACHES) as ChannelId[]) {
+      const entry = parsed.caches[k];
+      if (entry && Array.isArray(entry.items) && entry.items.length > 0) {
+        hasAnyItems = true;
+        hydrated[k] = {
+          items: entry.items,
+          pageIndex: typeof entry.pageIndex === 'number' ? entry.pageIndex : 0,
+          isFetching: false,
+          currentIndex:
+            typeof entry.currentIndex === 'number' && entry.currentIndex >= 0 && entry.currentIndex < entry.items.length
+              ? entry.currentIndex
+              : 0,
+          hasError: false,
+          exhausted: false,
+          prefs: entry.prefs,
+          query: entry.query,
+          stale: true,
+          updatedAt: entry.updatedAt || parsed.updatedAt || 0,
+        };
+      } else {
+        hydrated[k] = { ...INITIAL_CACHES[k] };
+      }
+    }
+    return hasAnyItems ? hydrated : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveStoredChannelCaches(selectionKey: string, caches: Record<ChannelId, ChannelCache>): void {
+  if (typeof window === 'undefined' || process.env.NODE_ENV === 'test') return;
+  try {
+    const compact = {} as Partial<Record<ChannelId, Partial<ChannelCache>>>;
+    let hasItems = false;
+    for (const k of Object.keys(INITIAL_CACHES) as ChannelId[]) {
+      const ch = caches[k];
+      if (ch && Array.isArray(ch.items) && ch.items.length > 0) {
+        hasItems = true;
+        compact[k] = {
+          items: ch.items.slice(0, 15),
+          pageIndex: ch.pageIndex,
+          currentIndex: Math.min(ch.currentIndex, Math.max(0, Math.min(ch.items.length, 15) - 1)),
+          prefs: ch.prefs,
+          query: ch.query,
+          updatedAt: ch.updatedAt || Date.now(),
+        };
+      }
+    }
+    if (!hasItems) return;
+    localStorage.setItem(
+      `${FEED_CACHE_STORAGE_PREFIX}${selectionKey}`,
+      JSON.stringify({ updatedAt: Date.now(), caches: compact }),
+    );
+  } catch {
+    // Ignore storage quota errors
+  }
+}
+
+export async function prefetchDefaultFeed(): Promise<void> {
+  if (typeof window === 'undefined' || process.env.NODE_ENV === 'test') return;
+  const selectionKey = '||';
+  const storedChannel = (localStorage.getItem('sidequest_active_channel') as ChannelId) || 'default';
+  const channel: ChannelId = INITIAL_CACHES[storedChannel] ? storedChannel : 'default';
+
+  if (persistedCachesBySelection?.key === selectionKey) {
+    const existing = persistedCachesBySelection.caches[channel];
+    if (existing && existing.items.length > 0 && existing.updatedAt && Date.now() - existing.updatedAt < FEED_CACHE_FRESH_TTL_MS) {
+      return;
+    }
+  }
+
+  try {
+    const rawPrefs = localStorage.getItem('sidequest_channel_prefs') || '';
+    const prefsQuery = rawPrefs ? `&prefs=${encodeURIComponent(rawPrefs)}` : '';
+    const res = await fetch(`/api/feed?channel=${channel}&pageIndex=0${prefsQuery}`);
+    if (!res.ok) return;
+    const data = await res.json();
+    const items: FeedItem[] = Array.isArray(data?.items) ? data.items : [];
+    if (!items.length) return;
+
+    const baseCaches =
+      (persistedCachesBySelection?.key === selectionKey ? persistedCachesBySelection.caches : null) ||
+      loadStoredChannelCaches(selectionKey) ||
+      { ...INITIAL_CACHES };
+
+    const nextCaches: Record<ChannelId, ChannelCache> = {
+      ...baseCaches,
+      [channel]: {
+        items,
+        pageIndex: 0,
+        currentIndex: 0,
+        isFetching: false,
+        hasError: false,
+        exhausted: items.length === 0,
+        prefs: rawPrefs,
+        query: '',
+        stale: false,
+        updatedAt: Date.now(),
+      },
+    };
+    persistedCachesBySelection = { key: selectionKey, caches: nextCaches };
+    saveStoredChannelCaches(selectionKey, nextCaches);
+  } catch {
+    // Silent background warm-up failure
+  }
+}
 
 function parseDurationToSeconds(val: string): number {
   if (!val || typeof val !== 'string') return 180;
@@ -62,14 +187,29 @@ export function usePlayback() {
   const initialQuery = searchParams.get('q') || '';
   const selectionCacheKey = `${requestedCohortId ?? ''}|${requestedLessonId ?? ''}|${requestedChunkId ?? ''}`;
 
-  // Client Memory Cache architecture preserved across SPA route switches
+  // Client Memory + Persistent LocalStorage Cache architecture preserved across SPA route switches & reloads
   const [channelCaches, setChannelCachesState] = useState<Record<ChannelId, ChannelCache>>(() => {
     if (
       process.env.NODE_ENV !== 'test' &&
       persistedCachesBySelection &&
       persistedCachesBySelection.key === selectionCacheKey
     ) {
-      return persistedCachesBySelection.caches;
+      const sanitized = {} as Record<ChannelId, ChannelCache>;
+      for (const k of Object.keys(INITIAL_CACHES) as ChannelId[]) {
+        const cached = persistedCachesBySelection.caches[k] || INITIAL_CACHES[k];
+        const isAged = Boolean(cached.updatedAt && Date.now() - cached.updatedAt > FEED_CACHE_FRESH_TTL_MS);
+        sanitized[k] = {
+          ...cached,
+          isFetching: false,
+          stale: cached.stale || isAged,
+        };
+      }
+      return sanitized;
+    }
+    const stored = loadStoredChannelCaches(selectionCacheKey);
+    if (stored) {
+      persistedCachesBySelection = { key: selectionCacheKey, caches: stored };
+      return stored;
     }
     return INITIAL_CACHES;
   });
@@ -78,8 +218,10 @@ export function usePlayback() {
     (updater: React.SetStateAction<Record<ChannelId, ChannelCache>>) => {
       setChannelCachesState((prev) => {
         const next = typeof updater === 'function' ? updater(prev) : updater;
+        if (next === prev) return prev;
         if (process.env.NODE_ENV !== 'test') {
           persistedCachesBySelection = { key: selectionCacheKey, caches: next };
+          saveStoredChannelCaches(selectionCacheKey, next);
         }
         return next;
       });
@@ -156,8 +298,29 @@ export function usePlayback() {
   const activeMediaSource = resolveMediaSource(activeItem);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
+  const activeItemRef = useRef(activeItem);
+  const volumeRef = useRef(volume);
+  const mutedRef = useRef(muted);
+  const playbackSpeedRef = useRef(playbackSpeed);
+  activeItemRef.current = activeItem;
+  volumeRef.current = volume;
+  mutedRef.current = muted;
+  playbackSpeedRef.current = playbackSpeed;
+
   // Fetch feed items via API (Prefetch Engine)
   const fetchChannelFeed = useCallback(async (channelId: ChannelId, pageIndex: number, overrideQuery?: string) => {
+    if (!Number.isInteger(pageIndex) || pageIndex < 0 || pageIndex > 50) {
+      setChannelCaches(prev => {
+        const cur = prev[channelId];
+        if (!cur || (cur.exhausted && !cur.isFetching)) return prev;
+        return {
+          ...prev,
+          [channelId]: { ...cur, isFetching: false, exhausted: true }
+        };
+      });
+      return;
+    }
+
     const prevController = controllersRef.current[channelId];
     if (prevController) {
       prevController.abort();
@@ -165,10 +328,14 @@ export function usePlayback() {
     const abortController = new AbortController();
     controllersRef.current[channelId] = abortController;
 
-    setChannelCaches(prev => ({
-      ...prev,
-      [channelId]: { ...prev[channelId], isFetching: true }
-    }));
+    setChannelCaches(prev => {
+      const cur = prev[channelId];
+      if (!cur || (cur.isFetching && pageIndex !== 0)) return prev;
+      return {
+        ...prev,
+        [channelId]: { ...cur, isFetching: true, ...(pageIndex === 0 ? { hasError: false } : {}) }
+      };
+    });
 
     try {
       let rawPrefs = '';
@@ -197,10 +364,19 @@ export function usePlayback() {
       if (controllersRef.current[channelId] !== abortController) return;
 
       controllersRef.current[channelId] = null;
+      const incomingItems: FeedItem[] = Array.isArray(data?.items) ? data.items : [];
       
       setChannelCaches(prev => {
         const existingItems = pageIndex === 0 ? [] : prev[channelId].items;
-        const allItems = [...existingItems, ...data.items];
+        const existingIds = new Set(existingItems.map(it => it.chunkId).filter(Boolean));
+        const uniqueNewItems = pageIndex === 0
+          ? incomingItems
+          : incomingItems.filter(it => !it.chunkId || !existingIds.has(it.chunkId));
+        const allItems = pageIndex === 0 ? incomingItems : [...existingItems, ...uniqueNewItems];
+        const isExhausted =
+          incomingItems.length === 0 ||
+          (pageIndex > 0 && uniqueNewItems.length === 0);
+
         let nextIndex = prev[channelId].currentIndex;
         if (pageIndex === 0) {
           if ((requestedLessonId || requestedChunkId) && allItems.length > 0) {
@@ -216,7 +392,13 @@ export function usePlayback() {
             );
             nextIndex = matched !== -1 ? matched : 0;
           } else {
-            nextIndex = 0;
+            const prevActiveChunkId = prev[channelId].items[prev[channelId].currentIndex]?.chunkId;
+            if (prevActiveChunkId && allItems.length > 0) {
+              const preserved = allItems.findIndex(item => item.chunkId === prevActiveChunkId);
+              nextIndex = preserved !== -1 ? preserved : 0;
+            } else {
+              nextIndex = 0;
+            }
           }
         }
         return {
@@ -228,9 +410,11 @@ export function usePlayback() {
             currentIndex: nextIndex,
             isFetching: false,
             hasError: false,
-            exhausted: data.items.length === 0,
+            exhausted: isExhausted,
             prefs: rawPrefs,
-            query: qVal
+            query: qVal,
+            stale: false,
+            updatedAt: Date.now(),
           }
         };
       });
@@ -242,21 +426,29 @@ export function usePlayback() {
       }
       controllersRef.current[channelId] = null;
 
-      if (error.name === 'AbortError') {
-        setChannelCaches(prev => ({
-          ...prev,
-          [channelId]: { ...prev[channelId], isFetching: false }
-        }));
+      if (error.name === 'AbortError' || abortController.signal.aborted) {
+        setChannelCaches(prev => {
+          const cur = prev[channelId];
+          if (!cur || !cur.isFetching) return prev;
+          return {
+            ...prev,
+            [channelId]: { ...cur, isFetching: false }
+          };
+        });
         return;
       }
       console.error('Prefetch error:', error);
       // 2. Infinite API Loop on Prefetch Failure - setting hasError true
-      setChannelCaches(prev => ({
-        ...prev,
-        [channelId]: { ...prev[channelId], isFetching: false, hasError: true }
-      }));
+      setChannelCaches(prev => {
+        const cur = prev[channelId];
+        if (!cur || (!cur.isFetching && cur.hasError)) return prev;
+        return {
+          ...prev,
+          [channelId]: { ...cur, isFetching: false, hasError: true }
+        };
+      });
     }
-  }, [requestedCohortId, requestedLessonId, requestedChunkId]);
+  }, [requestedCohortId, requestedLessonId, requestedChunkId, setChannelCaches]);
 
   const completeActiveChunk = useCallback(async () => {
     if (!activeItem || completing.current) return false;
@@ -315,7 +507,7 @@ export function usePlayback() {
       return true;
     } catch (error) { setCompletionError(error instanceof Error ? error.message : 'Completion could not be saved.'); return false; }
     finally { completing.current = false; setCompletionPending(false); }
-  }, [activeItem, activeChannel, fetchChannelFeed]);
+  }, [activeItem, activeChannel, fetchChannelFeed, setChannelCaches]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -324,6 +516,7 @@ export function usePlayback() {
       Object.values(controllersRef.current).forEach(ctrl => {
         try { ctrl?.abort(); } catch {}
       });
+      controllersRef.current = {};
     };
   }, []);
 
@@ -334,21 +527,20 @@ export function usePlayback() {
   const activeHasError = activeCache?.hasError ?? false;
   const activeIsExhausted = activeCache?.exhausted ?? false;
   const activePageIndex = activeCache?.pageIndex ?? 0;
+  const activeIsStale = activeCache?.stale ?? false;
 
-  // Initial Load & Channel Switch Logic
+  // Initial Load & Channel Switch Logic (with stale-while-revalidate background refresh)
   useEffect(() => {
     let currentPrefs = '';
     if (typeof window !== 'undefined') {
       currentPrefs = localStorage.getItem('sidequest_channel_prefs') || '';
     }
-    const cache = channelCaches[activeChannel];
-    const isCacheStale = cache.prefs !== undefined && cache.prefs !== currentPrefs;
+    const isCacheStale = activeIsStale || (activePrefs !== undefined && activePrefs !== currentPrefs);
     
-    if (((cache.items.length === 0 && cache.prefs === undefined) || isCacheStale) && !cache.isFetching && !cache.hasError) {
-      // If stale, invalidate first? fetchChannelFeed sets isFetching to true and overrides everything when done for pageIndex 0
-      fetchChannelFeed(activeChannel, 0);
+    if (((activeItemsCount === 0 && activePrefs === undefined) || isCacheStale) && !activeIsFetching && !activeHasError) {
+      void fetchChannelFeed(activeChannel, 0);
     }
-  }, [activeChannel, activeItemsCount, activePrefs, activeIsFetching, activeHasError, fetchChannelFeed]);
+  }, [activeChannel, activeItemsCount, activePrefs, activeIsFetching, activeHasError, activeIsStale, fetchChannelFeed]);
 
   // Synchronize playback position with requested URL params (?lessonId=, ?lesson=, ?chunk=)
   useEffect(() => {
@@ -368,39 +560,47 @@ export function usePlayback() {
     );
 
     if (matchedIndex !== -1 && matchedIndex !== channelCaches[activeChannel].currentIndex) {
-      setChannelCaches(prev => ({
-        ...prev,
-        [activeChannel]: {
-          ...prev[activeChannel],
-          currentIndex: matchedIndex
-        }
-      }));
+      setChannelCaches(prev => {
+        const cur = prev[activeChannel];
+        if (!cur || cur.currentIndex === matchedIndex) return prev;
+        return {
+          ...prev,
+          [activeChannel]: {
+            ...cur,
+            currentIndex: matchedIndex
+          }
+        };
+      });
     }
-  }, [requestedLessonId, requestedChunkId, activeChannel, feedItems]);
+  }, [requestedLessonId, requestedChunkId, activeChannel, feedItems, setChannelCaches]);
 
   // 80% Threshold Prefetch Logic
   useEffect(() => {
-    if (!activeItem) return;
+    if (!activeChunkId && feedItems.length === 0) return;
     
-    // We fetch 6 items at a time. If we are on index 4 (5th item out of 6), prefetch next.
-    // Generally: if currentIndex >= length - 2
+    // We fetch 5 items at a time. If we are near the end of loaded items, prefetch next page once.
     if (
       currentIndex >= feedItems.length - 2 && 
       !activeIsFetching &&
       !activeIsExhausted &&
       !activeHasError && // 2. Infinite API Loop on Prefetch Failure
-      feedItems.length > 0
+      feedItems.length > 0 &&
+      activePageIndex < 50
     ) {
-      fetchChannelFeed(activeChannel, activePageIndex + 1);
+      void fetchChannelFeed(activeChannel, activePageIndex + 1);
     }
-  }, [currentIndex, feedItems.length, activeChannel, activeIsFetching, activeIsExhausted, activeHasError, activePageIndex, fetchChannelFeed, activeItem]);
+  }, [currentIndex, feedItems.length, activeChannel, activeIsFetching, activeIsExhausted, activeHasError, activePageIndex, fetchChannelFeed, activeChunkId]);
 
   // Dynamic Player Stats & Daily Goal Calculation
   useEffect(() => {
     const items = currentCache.items;
     if (!items.length) {
-      setStats({ cohortsCovered: 0, chunksRemaining: 0, estimatedMinutes: 0 });
-      setDailyGoalPercent(0);
+      setStats(prev => (
+        prev.cohortsCovered === 0 && prev.chunksRemaining === 0 && prev.estimatedMinutes === 0
+          ? prev
+          : { cohortsCovered: 0, chunksRemaining: 0, estimatedMinutes: 0 }
+      ));
+      setDailyGoalPercent(prev => (prev === 0 ? prev : 0));
       return;
     }
 
@@ -417,13 +617,20 @@ export function usePlayback() {
     const targetGoalMinutes = 20; // 20 mins standard daily goal
     const completedMinutes = Math.round(completedTodayCount * 3); // ~3 mins per chunk
     const calculatedGoalPercent = Math.min(100, Math.round((completedMinutes / targetGoalMinutes) * 100));
+    const nextEstimatedMinutes = Math.ceil(remainingSeconds / 60);
 
-    setDailyGoalPercent(calculatedGoalPercent);
-    setStats({
-      cohortsCovered: distinctCohorts,
-      chunksRemaining: remaining,
-      estimatedMinutes: Math.ceil(remainingSeconds / 60),
-    });
+    setDailyGoalPercent(prev => (prev === calculatedGoalPercent ? prev : calculatedGoalPercent));
+    setStats(prev => (
+      prev.cohortsCovered === distinctCohorts &&
+      prev.chunksRemaining === remaining &&
+      prev.estimatedMinutes === nextEstimatedMinutes
+        ? prev
+        : {
+            cohortsCovered: distinctCohorts,
+            chunksRemaining: remaining,
+            estimatedMinutes: nextEstimatedMinutes,
+          }
+    ));
   }, [currentCache.items, currentIndex]);
 
   // Handle YouTube IFrame API Load
@@ -464,20 +671,21 @@ export function usePlayback() {
 
   // Sync state when active item changes
   useEffect(() => {
-    if (!activeItem) {
-      setNotesText('');
-      setBookmarkedState(false);
-      setMediaError(null);
+    const curItem = activeItemRef.current;
+    if (!curItem) {
+      setNotesText(prev => (prev === '' ? prev : ''));
+      setBookmarkedState(prev => (prev === false ? prev : false));
+      setMediaError(prev => (prev === null ? prev : null));
       return;
     }
-    const dur = activeItem.endSeconds - activeItem.startSeconds || parseDurationToSeconds(activeItem.chunkDuration);
-    setChunkDurationSeconds(dur);
-    setCurrentTimeSeconds(0);
-    setMediaError(null);
+    const dur = curItem.endSeconds - curItem.startSeconds || parseDurationToSeconds(curItem.chunkDuration);
+    setChunkDurationSeconds(prev => (prev === dur ? prev : dur));
+    setCurrentTimeSeconds(prev => (prev === 0 ? prev : 0));
+    setMediaError(prev => (prev === null ? prev : null));
 
     if (activeMediaSource.isDirectVideo && videoRef.current) {
-      if (activeItem.startSeconds && activeItem.startSeconds > 0) {
-        try { videoRef.current.currentTime = activeItem.startSeconds; } catch {}
+      if (curItem.startSeconds && curItem.startSeconds > 0) {
+        try { videoRef.current.currentTime = curItem.startSeconds; } catch {}
       } else {
         try { videoRef.current.currentTime = 0; } catch {}
       }
@@ -486,15 +694,16 @@ export function usePlayback() {
 
     if (typeof window !== 'undefined' && activeChunkId) {
       const savedNote = localStorage.getItem(`sidequest_note_${activeChunkId}`);
-      setNotesText(savedNote !== null ? savedNote : '');
+      const nextNote = savedNote !== null ? savedNote : '';
+      setNotesText(prev => (prev === nextNote ? prev : nextNote));
 
-      const savedBookmark = localStorage.getItem(`sidequest_bookmark_${activeChunkId}`);
-      setBookmarkedState(savedBookmark === 'true');
+      const savedBookmark = localStorage.getItem(`sidequest_bookmark_${activeChunkId}`) === 'true';
+      setBookmarkedState(prev => (prev === savedBookmark ? prev : savedBookmark));
     } else {
-      setNotesText('');
-      setBookmarkedState(false);
+      setNotesText(prev => (prev === '' ? prev : ''));
+      setBookmarkedState(prev => (prev === false ? prev : false));
     }
-  }, [activeItem, activeChunkId, activeMediaSource.isDirectVideo, playbackSpeed]);
+  }, [activeChunkId, activeMediaSource.isDirectVideo, playbackSpeed]);
 
   // Handle YouTube player creation & video switching
   const isPlayerReadyRef = useRef(false);
@@ -624,17 +833,18 @@ export function usePlayback() {
       videoCleanupRef.current = null;
     }
     videoRef.current = node;
-    if (node && activeItem) {
+    const curItem = activeItemRef.current;
+    if (node && curItem) {
       // Ensure any lingering YouTube playback is silenced immediately
       if (playerRef.current && typeof playerRef.current.pauseVideo === 'function') {
         try { playerRef.current.pauseVideo(); } catch {}
       }
 
-      node.volume = volume / 100;
-      node.muted = muted;
-      node.playbackRate = playbackSpeed;
-      if (activeItem.startSeconds && activeItem.startSeconds > 0) {
-        try { node.currentTime = activeItem.startSeconds; } catch {}
+      node.volume = volumeRef.current / 100;
+      node.muted = mutedRef.current;
+      node.playbackRate = playbackSpeedRef.current;
+      if (curItem.startSeconds && curItem.startSeconds > 0) {
+        try { node.currentTime = curItem.startSeconds; } catch {}
       }
       const handlePlay = () => setIsPlaying(true);
       const handlePause = () => setIsPlaying(false);
@@ -650,9 +860,9 @@ export function usePlayback() {
         node.removeEventListener('pause', handlePause);
         node.removeEventListener('error', handleError);
       };
-      setIsPlayerReady(true);
+      setIsPlayerReady(prev => (prev ? prev : true));
     }
-  }, [volume, muted, playbackSpeed, activeItem]);
+  }, []);
 
   // Real-time polling timer for playback progress (unified for YouTube and HTML5 video)
   useEffect(() => {
@@ -709,21 +919,22 @@ export function usePlayback() {
     setChannelCaches(prev => {
       const ch = prev[activeChannel];
       const newIndex = typeof updater === 'function' ? updater(ch.currentIndex) : updater;
-      if (newIndex < 0 || newIndex >= ch.items.length) return prev;
+      if (newIndex < 0 || newIndex >= ch.items.length || newIndex === ch.currentIndex) return prev;
       return { ...prev, [activeChannel]: { ...ch, currentIndex: newIndex } };
     });
-  }, [activeChannel]);
+  }, [activeChannel, setChannelCaches]);
 
   const goToIndex = useCallback((targetIndex: number) => {
     if (targetIndex < 0) return;
     setChannelCaches(prev => {
       const ch = prev[activeChannel];
       if (targetIndex >= ch.items.length) {
-        if (!ch.isFetching && !ch.hasError) {
-          setTimeout(() => fetchChannelFeed(activeChannel, ch.pageIndex + 1), 0);
+        if (!ch.isFetching && !ch.hasError && !ch.exhausted) {
+          setTimeout(() => void fetchChannelFeed(activeChannel, ch.pageIndex + 1), 0);
         }
         return prev;
       }
+      if (ch.currentIndex === targetIndex) return prev;
       return {
         ...prev,
         [activeChannel]: {
@@ -732,7 +943,7 @@ export function usePlayback() {
         }
       };
     });
-  }, [activeChannel, fetchChannelFeed]);
+  }, [activeChannel, fetchChannelFeed, setChannelCaches]);
 
   const nextChunk = useCallback(() => goToIndex(currentIndex + 1), [goToIndex, currentIndex]);
   const previousChunk = useCallback(() => goToIndex(currentIndex - 1), [goToIndex, currentIndex]);
@@ -924,6 +1135,7 @@ export function usePlayback() {
   return {
     activeItem,
     feedLoading: currentCache.items.length === 0 && (currentCache.isFetching || (currentCache.prefs === undefined && !currentCache.hasError)),
+    isRefreshing: currentCache.items.length > 0 && currentCache.isFetching,
     feedError: currentCache.hasError,
     feedItems,
     currentIndex,

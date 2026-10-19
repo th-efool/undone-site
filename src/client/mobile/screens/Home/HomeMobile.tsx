@@ -15,10 +15,6 @@ interface HomeMobileProps {
 export function HomeMobile({ model: home }: HomeMobileProps) {
   const [query, setQuery] = useState('');
 
-  if (home.loading) {
-    return <HomeSkeleton />;
-  }
-
   const activeCohorts = home.activeCohorts.filter((item) =>
     !query || item.title.toLowerCase().includes(query.toLowerCase()) || item.provider.toLowerCase().includes(query.toLowerCase())
   );

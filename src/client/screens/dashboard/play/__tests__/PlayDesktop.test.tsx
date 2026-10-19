@@ -25,6 +25,7 @@ const createMockPlayback = (overrides?: Partial<UsePlaybackResult>): UsePlayback
       channelId: 'default',
     } as any,
     feedLoading: false,
+    isRefreshing: false,
     feedError: false,
     feedItems: [
       {
@@ -379,19 +380,19 @@ describe('PlayDesktop visual redesign composition', () => {
     expect(seekToPercent).toHaveBeenCalledWith(100);
   });
 
-  it('toggles ChannelSelector popover with c key and dismisses on Escape', () => {
+  it('toggles ChannelSelector radial menu with c key and dismisses on Escape', () => {
     const playback = createMockPlayback();
     render(<PlayDesktop playback={playback} />);
 
-    expect(screen.queryByRole('region', { name: /channel and search preferences/i })).toBeNull();
+    expect(screen.queryByRole('menu', { name: /channel switcher/i })).toBeNull();
 
     // 1. Press 'c' to open
     fireEvent.keyDown(window, { key: 'c' });
-    expect(screen.getByRole('region', { name: /channel and search preferences/i })).toBeDefined();
+    expect(screen.getByRole('menu', { name: /channel switcher/i })).toBeDefined();
 
     // 2. Press 'Escape' to dismiss
     fireEvent.keyDown(window, { key: 'Escape' });
-    expect(screen.queryByRole('region', { name: /channel and search preferences/i })).toBeNull();
+    expect(screen.queryByRole('menu', { name: /channel switcher/i })).toBeNull();
   });
 
   it('renders polite empty state with refresh action when activeItem is null or undefined', () => {
