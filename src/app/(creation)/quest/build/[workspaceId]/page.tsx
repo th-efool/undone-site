@@ -33,7 +33,9 @@ export default async function QuestBuildPage({
   if (!ws) notFound();
 
   // Recover a missed wake-up after a lost acknowledgement or hosting interruption.
-  await dispatchInteractionExecution();
+  await dispatchInteractionExecution().catch((err) => {
+    console.warn('[quest/build] interaction dispatch skipped:', err);
+  });
 
   return (
     <CohortInteractionScreen

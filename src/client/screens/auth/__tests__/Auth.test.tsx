@@ -14,10 +14,10 @@ beforeEach(() => { vi.clearAllMocks(); mocks.status = 'authenticated'; });
 afterEach(cleanup);
 
 describe('authentication continuation', () => {
-  it('continues an authenticated user to the learning query and refreshes server authorization', async () => {
+  it('continues an authenticated user to the learning query without redundant server refresh', async () => {
     render(<Auth returnTo="/quest/new?q=rendering" />);
     await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith('/quest/new?q=rendering'));
-    expect(mocks.refresh).toHaveBeenCalledOnce();
+    expect(mocks.refresh).not.toHaveBeenCalled();
     expect(screen.queryByText('Sign-in actions')).toBeNull();
   });
   it('offers session reset instead of looping a missing database owner', () => {

@@ -66,7 +66,8 @@ const nextConfig: NextConfig = {
 const workflowConfig = withWorkflow(nextConfig);
 const rootEnvironment = { ...process.env };
 export default async function configure(phase: string, context: { defaultConfig: NextConfig }) {
-  const configured = isMobileBuild ? nextConfig : await workflowConfig(phase, context);
+  const isLocalDevServer = phase === 'phase-development-server' && process.env.VERCEL !== '1';
+  const configured = (isMobileBuild || isLocalDevServer) ? nextConfig : await workflowConfig(phase, context);
   // Workflow compilation may reload Next environment files. Reapply root-only policy
   // after that async boundary, before Next captures public build configuration.
   const current = loadEnvConfig(process.cwd(), process.env.NODE_ENV !== 'production');

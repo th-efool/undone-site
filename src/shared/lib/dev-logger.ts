@@ -54,7 +54,7 @@ function shouldEnableLogsByDefault(): { enabled: boolean; level: UndoneLogLevel 
     process.env.NEXT_PUBLIC_ENABLE_LOGS === 'true' ||
     process.env.NEXT_PUBLIC_FORCE_DEV_LOGS === 'true';
 
-  let defaultLevel: UndoneLogLevel = (process.env.NEXT_PUBLIC_DEV_LOG_LEVEL as UndoneLogLevel) || (isDev ? 'DEBUG' : 'WARN');
+  let defaultLevel: UndoneLogLevel = (process.env.NEXT_PUBLIC_DEV_LOG_LEVEL as UndoneLogLevel) || (isDev ? 'INFO' : 'WARN');
 
   if (typeof window !== 'undefined') {
     // Check browser query params & localStorage
@@ -85,8 +85,9 @@ class UndoneDevLogger {
   private ringBuffer: StoredLogEntry[] = [];
   private maxBufferSize = 1000;
   private issueRegistry: RecordedIssue[] = [];
+  private maxIssueRegistrySize = 200;
   private activeTimers = new Map<string, number>();
-  private currentLevel: UndoneLogLevel = 'DEBUG';
+  private currentLevel: UndoneLogLevel = 'INFO';
   private isEnabled = true;
   private runtime: 'browser' | 'node-server' | 'worker';
 
@@ -235,6 +236,9 @@ class UndoneDevLogger {
       timestamp: new Date().toISOString(),
     };
     this.issueRegistry.push(fullIssue);
+    if (this.issueRegistry.length > this.maxIssueRegistrySize) {
+      this.issueRegistry.shift();
+    }
 
     const logFn = {
       FATAL: this.fatal,

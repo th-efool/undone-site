@@ -1,23 +1,11 @@
-import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
 import React from 'react';
 import { Questline } from '@/src/client/screens/cohort';
-import { auth } from '@/src/server/infrastructure/auth/auth.config';
-import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { notFound } from 'next/navigation';
 import { mapDbCohortToUiCohort } from '@/src/server/infrastructure/db/postgres/mappers/cohortMapper';
+import { getPrivateCohortContext } from '../privateCohortCache';
 
 export async function PrivateQuestline({ cohortId }: { cohortId: string }) {
-  const dbCohort = await prisma.cohort.findFirst({
-    where: { id: cohortId, ...accessibleCohortWhere((await auth())?.user?.id ?? null) },
-    include: {
-      creator: true,
-      seasons: {
-        include: {
-          lessons: true,
-        },
-      },
-    },
-  });
+  const { dbCohort } = await getPrivateCohortContext(cohortId);
 
   if (!dbCohort) {
     notFound();

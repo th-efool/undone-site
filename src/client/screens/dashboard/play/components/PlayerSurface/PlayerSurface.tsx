@@ -1,6 +1,6 @@
 'use client';
 
-import { JSX, PropsWithChildren, RefObject, useEffect, useRef } from 'react';
+import { JSX, PropsWithChildren, Ref, useEffect, useRef } from 'react';
 import type { FeedItem } from '@/src/shared/feed/feedEngine.types';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import Hls from 'hls.js';
@@ -8,7 +8,7 @@ import { resolveMediaSource } from '../../utils/mediaSource';
 import styles from './PlayerSurface.module.css';
 
 export interface PlayerSurfaceProps extends PropsWithChildren {
-  containerRef?: RefObject<HTMLDivElement | null>;
+  containerRef?: Ref<HTMLDivElement>;
   activeItem?: FeedItem | null;
   ytApiError?: string | null;
   mediaError?: string | null;
