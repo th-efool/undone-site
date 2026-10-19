@@ -10,6 +10,7 @@ import { useExperience } from '@/src/client/hooks/useExperience';
 import { MobileNav } from '@/src/client/mobile/components/navigation/MobileNav/MobileNav';
 import { prefetchDefaultFeed } from '@/src/client/screens/dashboard/play/hooks/usePlayback';
 import { exploreRepository } from '@/src/client/repositories/exploreRepository';
+import { useSession } from 'next-auth/react';
 import { Sidebar } from '../Sidebar';
 import { NetworkOfflineIndicator } from '../NetworkOfflineIndicator/NetworkOfflineIndicator';
 import { CommandPalette, CommandTriggerProvider, useCommandContext } from '../CommandPalette';
@@ -17,26 +18,39 @@ import { RoutePreserver } from './RoutePreserver';
 
 import styles from './DashboardShell.module.css';
 
+function useSafeSession() {
+  try {
+    return useSession();
+  } catch {
+    return { data: null, status: 'unauthenticated' as const };
+  }
+}
+
 function DashboardInner({ children }: PropsWithChildren) {
   const pathname = usePathname();
   const experience = useExperience();
   const isPlayPage = pathname === '/play';
   const isDark = getRouteTheme(pathname) === 'dark';
   const { open, onOpenChange } = useCommandContext();
+  const { data: session } = useSafeSession();
+  const userId = session?.user?.id ?? null;
 
-  // Warm up feed and explore caches on idle so clicking /play or /explore renders cached items at 0ms
+  // Warm up feed and explore caches ONCE on initial idle mount (not on every route change)
   useEffect(() => {
     if (typeof window === 'undefined' || process.env.NODE_ENV === 'test') return;
-    const timer = window.setTimeout(() => {
-      if (pathname !== '/play') {
-        void prefetchDefaultFeed();
-      }
-      if (pathname !== '/explore') {
-        void exploreRepository.getExplore().catch(() => {});
-      }
-    }, 150);
-    return () => window.clearTimeout(timer);
-  }, [pathname]);
+    const runPrefetch = () => {
+      void prefetchDefaultFeed(userId);
+      void exploreRepository.getExplore().catch(() => {});
+    };
+
+    if ('requestIdleCallback' in window) {
+      const handle = (window as any).requestIdleCallback(runPrefetch, { timeout: 3000 });
+      return () => (window as any).cancelIdleCallback(handle);
+    } else {
+      const timer = setTimeout(runPrefetch, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [userId]);
 
   // ⌘K / Ctrl+K global shortcut
   useEffect(() => {

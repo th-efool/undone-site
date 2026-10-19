@@ -97,6 +97,7 @@ const FALLBACK_EXPLORE: ExploreModel = {
 
 let memoryExploreCache: ExploreModel | null = null;
 let lastExploreFetchTime = 0;
+let inFlightExplorePromise: Promise<ExploreModel> | null = null;
 const EXPLORE_TTL_MS = 60_000;
 
 export const exploreRepository = {
@@ -126,42 +127,54 @@ export const exploreRepository = {
       return memoryExploreCache;
     }
 
-    const res = await fetch('/api/explore');
-    if (!res.ok) {
-      throw new Error('Failed to fetch explore data');
+    if (inFlightExplorePromise) {
+      return inFlightExplorePromise;
     }
-    const base: ExploreModel = await res.json();
 
-    const userCohorts = cohortRepository.list();
-
-    const userPublished = userCohorts.map((c) => ({
-      id: c.id,
-      title: c.title,
-      author: c.creator?.name || 'Shaqun',
-      thumbnail: c.coverImage || 'https://i.ytimg.com/vi/rZ41y93P2Qo/maxresdefault.jpg',
-      learnerCount: '1 learner',
-      publishedLabel: 'Just now',
-      bookmarked: false,
-    }));
-
-    const result: ExploreModel = isNativeApp()
-      ? {
-          ...base,
-          peopleFinishing: realPeopleFinishing,
-          recentlyPublished: userPublished.length > 0 ? userPublished : base.recentlyPublished.slice(0, 2),
-        }
-      : {
-          ...base,
-          recentlyPublished: [...userPublished, ...base.recentlyPublished],
-        };
-
-    memoryExploreCache = result;
-    lastExploreFetchTime = Date.now();
-    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
+    inFlightExplorePromise = (async () => {
       try {
-        localStorage.setItem(EXPLORE_CACHE_KEY, JSON.stringify(result));
-      } catch {}
-    }
-    return result;
+        const res = await fetch('/api/explore');
+        if (!res.ok) {
+          throw new Error('Failed to fetch explore data');
+        }
+        const base: ExploreModel = await res.json();
+
+        const userCohorts = cohortRepository.list();
+
+        const userPublished = userCohorts.map((c) => ({
+          id: c.id,
+          title: c.title,
+          author: c.creator?.name || 'Shaqun',
+          thumbnail: c.coverImage || 'https://i.ytimg.com/vi/rZ41y93P2Qo/maxresdefault.jpg',
+          learnerCount: '1 learner',
+          publishedLabel: 'Just now',
+          bookmarked: false,
+        }));
+
+        const result: ExploreModel = isNativeApp()
+          ? {
+              ...base,
+              peopleFinishing: realPeopleFinishing,
+              recentlyPublished: userPublished.length > 0 ? userPublished : base.recentlyPublished.slice(0, 2),
+            }
+          : {
+              ...base,
+              recentlyPublished: [...userPublished, ...base.recentlyPublished],
+            };
+
+        memoryExploreCache = result;
+        lastExploreFetchTime = Date.now();
+        if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
+          try {
+            localStorage.setItem(EXPLORE_CACHE_KEY, JSON.stringify(result));
+          } catch {}
+        }
+        return result;
+      } finally {
+        inFlightExplorePromise = null;
+      }
+    })();
+
+    return inFlightExplorePromise;
   },
 };

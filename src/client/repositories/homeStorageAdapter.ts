@@ -55,14 +55,19 @@ let lastChannelSyncAt = 0;
 let cachedChannelSyncResult: { activeChannel: ChannelId; prefs: ChannelPreferences } | null = null;
 const SYNC_TTL_MS = 30_000;
 
+function getStorageKey(userId?: string | null): string {
+  return userId ? `${STORAGE_KEY}:${userId}` : STORAGE_KEY;
+}
+
 export const homeStorageAdapter = {
   /**
    * Load locally persisted choices synchronously from localStorage / cache
    */
-  getStoredChoices(): StoredHomeChoices | null {
+  getStoredChoices(userId?: string | null): StoredHomeChoices | null {
     if (typeof window === 'undefined') return null;
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const key = getStorageKey(userId);
+      const raw = localStorage.getItem(key) || (!userId ? localStorage.getItem(STORAGE_KEY) : null);
       if (!raw) return null;
       const parsed = JSON.parse(raw) as StoredHomeChoices;
       if (Array.isArray(parsed?.activeCohorts)) {
@@ -78,7 +83,7 @@ export const homeStorageAdapter = {
   /**
    * Save choices locally to localStorage & Capacitor Preferences
    */
-  saveChoices(activeCohorts: ActiveCohort[], continueLater: PausedCohort[]): void {
+  saveChoices(activeCohorts: ActiveCohort[], continueLater: PausedCohort[], userId?: string | null): void {
     if (typeof window === 'undefined') return;
     try {
       const payload: StoredHomeChoices = {
@@ -87,12 +92,13 @@ export const homeStorageAdapter = {
         updatedAt: new Date().toISOString(),
       };
       const jsonStr = JSON.stringify(payload);
-      localStorage.setItem(STORAGE_KEY, jsonStr);
+      const key = getStorageKey(userId);
+      localStorage.setItem(key, jsonStr);
 
       // Capacitor Preferences plugin fallback for native mobile
       const preferencesPlugin = (window as any).Capacitor?.Plugins?.Preferences;
       if (preferencesPlugin?.set) {
-        preferencesPlugin.set({ key: STORAGE_KEY, value: jsonStr }).catch(() => {});
+        preferencesPlugin.set({ key, value: jsonStr }).catch(() => {});
       }
     } catch (err) {
       console.error('Failed to save local home choices:', err);
@@ -100,19 +106,32 @@ export const homeStorageAdapter = {
   },
 
   /**
+   * Invalidate or remove stored choices on logout
+   */
+  clearUserChoices(userId?: string | null): void {
+    if (typeof window === 'undefined') return;
+    try {
+      if (userId) {
+        localStorage.removeItem(getStorageKey(userId));
+      }
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {}
+  },
+
+  /**
    * Pluggable backend sync method.
    * Checks authentication before sending to prevent 401 spam.
    * Fetches latest user cohort configs from /api/user/cohort-config and aligns local cache.
    */
-  async syncWithBackend(isAuthenticated = true): Promise<StoredHomeChoices | null> {
+  async syncWithBackend(isAuthenticated = true, userId?: string | null): Promise<StoredHomeChoices | null> {
     if (typeof window === 'undefined') return null;
     if (!isAuthenticated) {
       // Unauthenticated users rely purely on offline local storage without console 401s
-      return this.getStoredChoices();
+      return this.getStoredChoices(userId);
     }
 
     if (process.env.NODE_ENV !== 'test' && Date.now() - lastCohortSyncAt < SYNC_TTL_MS) {
-      const cached = this.getStoredChoices();
+      const cached = this.getStoredChoices(userId);
       if (cached) return cached;
     }
 
@@ -121,13 +140,13 @@ export const homeStorageAdapter = {
       lastCohortSyncAt = Date.now();
       if (res.status === 401) {
         // Session expired or unauthenticated; return local choices quietly
-        return this.getStoredChoices();
+        return this.getStoredChoices(userId);
       }
 
       if (res.ok) {
         const remoteConfigs = await res.json();
         if (Array.isArray(remoteConfigs) && remoteConfigs.length > 0) {
-          const current = this.getStoredChoices();
+          const current = this.getStoredChoices(userId);
           const currentActive = current?.activeCohorts ? [...current.activeCohorts] : [];
           const currentPaused = current?.continueLater ? [...current.continueLater] : [];
 
@@ -211,7 +230,7 @@ export const homeStorageAdapter = {
           updatedActive.sort((a, b) => (a.rank || 0) - (b.rank || 0));
 
           {
-            this.saveChoices(updatedActive, updatedPaused);
+            this.saveChoices(updatedActive, updatedPaused, userId);
             return {
               activeCohorts: updatedActive,
               continueLater: updatedPaused,
@@ -224,7 +243,7 @@ export const homeStorageAdapter = {
       console.warn('Backend cohort config sync unavailable, using local choices:', err);
     }
 
-    return this.getStoredChoices();
+    return this.getStoredChoices(userId);
   },
 
   /**

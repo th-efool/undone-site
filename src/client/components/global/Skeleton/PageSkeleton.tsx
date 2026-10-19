@@ -5,44 +5,61 @@ import { getRouteTheme } from '@/src/client/config/routeThemeConfig';
 import { Skeleton } from './Skeleton';
 import styles from './PageSkeleton.module.css';
 
+import homeStyles from '@/src/client/screens/dashboard/home/Home.module.css';
+
 /**
- * Home page skeleton — greeting bar, 4 summary cards, cohort rows.
+ * Home page skeleton — mirrors HomeDesktop 2-column grid to eliminate layout shift.
  */
 export function HomeSkeleton() {
-  const pathname = usePathname();
-  const isDark = getRouteTheme(pathname) === 'dark';
-  const containerClass = isDark ? styles.darkSkeletonContainer : styles.skeletonContainer;
-
   return (
-    <div className={containerClass}>
-      {/* Greeting bar */}
-      <div className={styles.greetingBar}>
-        <Skeleton className="h-8 w-56 rounded-lg" />
-      </div>
-
-      {/* Summary cards */}
-      <div className={styles.cardGrid}>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className={styles.summaryCard}>
-            <Skeleton className="h-5 w-20 rounded-md" />
-            <Skeleton className="h-6 w-32 rounded-md mt-2" />
-            {i === 1 && <Skeleton className="h-8 w-full rounded-md mt-3" />}
+    <div className={homeStyles.home}>
+      <div className={homeStyles.pageGrid}>
+        <main className={homeStyles.leftCol}>
+          {/* Hero greeting skeleton */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 8 }}>
+            <Skeleton className="h-8 w-64 rounded-lg" />
+            <Skeleton className="h-4 w-96 rounded-md" />
           </div>
-        ))}
-      </div>
 
-      {/* Cohort rows */}
-      <div className={styles.cohortRows}>
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Skeleton key={i} className="h-16 w-full rounded-xl mb-3" />
-        ))}
-      </div>
+          {/* Prompt bar skeleton */}
+          <Skeleton className="h-14 w-full rounded-2xl" />
 
-      {/* Continue Later */}
-      <Skeleton className="h-6 w-40 rounded-md mb-2" />
-      {Array.from({ length: 2 }).map((_, i) => (
-        <Skeleton key={i} className="h-14 w-full rounded-xl mb-3" />
-      ))}
+          {/* Channel hub capsules */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, overflow: 'hidden', padding: '4px 0' }}>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-9 w-24 rounded-full flex-shrink-0" />
+            ))}
+          </div>
+
+          {/* Active cohorts section header & table rows */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+            <Skeleton className="h-6 w-48 rounded-md" />
+            <Skeleton className="h-8 w-32 rounded-xl" />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-24 w-full rounded-2xl" />
+            ))}
+          </div>
+
+          {/* Study rooms skeleton */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
+            <Skeleton className="h-6 w-40 rounded-md" />
+          </div>
+          <div style={{ display: 'flex', gap: 16 }}>
+            {Array.from({ length: 2 }).map((_, i) => (
+              <Skeleton key={i} className="h-28 w-1/2 rounded-2xl" />
+            ))}
+          </div>
+        </main>
+
+        <aside className={homeStyles.rightRail}>
+          {/* Upcoming events / Calendar widget */}
+          <Skeleton className="h-64 w-full rounded-2xl" />
+          {/* Streak widget */}
+          <Skeleton className="h-48 w-full rounded-2xl" />
+        </aside>
+      </div>
     </div>
   );
 }

@@ -2,11 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { feedRepository } from '@/src/client/repositories/feedRepository';
 import type { FeedItem } from '@/src/shared/feed/feedEngine.types';
 import type { PlayerTool, TimelineMarker } from '../types/play';
 import { ChannelId } from '@/src/shared/curriculum/pedagogicalVector.types';
 import { resolveMediaSource } from '../utils/mediaSource';
+
+function useSafeSession() {
+  try {
+    return useSession();
+  } catch {
+    return { data: null, status: 'unauthenticated' as const };
+  }
+}
 
 declare global {
   interface Window {
@@ -85,6 +94,34 @@ function loadStoredChannelCaches(selectionKey: string): Record<ChannelId, Channe
   }
 }
 
+function pruneStoredChannelCaches(): void {
+  if (typeof window === 'undefined' || process.env.NODE_ENV === 'test') return;
+  try {
+    const keys: { key: string; updatedAt: number }[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(FEED_CACHE_STORAGE_PREFIX)) {
+        try {
+          const raw = localStorage.getItem(k);
+          const parsed = raw ? JSON.parse(raw) : null;
+          keys.push({ key: k, updatedAt: parsed?.updatedAt || 0 });
+        } catch {
+          keys.push({ key: k, updatedAt: 0 });
+        }
+      }
+    }
+    if (keys.length > 10) {
+      keys.sort((a, b) => a.updatedAt - b.updatedAt);
+      const toRemove = keys.slice(0, keys.length - 10);
+      for (const item of toRemove) {
+        localStorage.removeItem(item.key);
+      }
+    }
+  } catch {
+    // Ignore storage quota or access errors
+  }
+}
+
 function saveStoredChannelCaches(selectionKey: string, caches: Record<ChannelId, ChannelCache>): void {
   if (typeof window === 'undefined' || process.env.NODE_ENV === 'test') return;
   try {
@@ -109,14 +146,15 @@ function saveStoredChannelCaches(selectionKey: string, caches: Record<ChannelId,
       `${FEED_CACHE_STORAGE_PREFIX}${selectionKey}`,
       JSON.stringify({ updatedAt: Date.now(), caches: compact }),
     );
+    pruneStoredChannelCaches();
   } catch {
     // Ignore storage quota errors
   }
 }
 
-export async function prefetchDefaultFeed(): Promise<void> {
+export async function prefetchDefaultFeed(userId?: string | null): Promise<void> {
   if (typeof window === 'undefined' || process.env.NODE_ENV === 'test') return;
-  const selectionKey = '||';
+  const selectionKey = `${userId || 'anon'}:||`;
   const storedChannel = (localStorage.getItem('sidequest_active_channel') as ChannelId) || 'default';
   const channel: ChannelId = INITIAL_CACHES[storedChannel] ? storedChannel : 'default';
 
@@ -180,12 +218,14 @@ function formatSecs(seconds: number): string {
 }
 
 export function usePlayback() {
+  const { data: session } = useSafeSession();
+  const userId = session?.user?.id ?? null;
   const searchParams = useSearchParams();
   const requestedCohortId = searchParams.get('cohort') || undefined;
   const requestedLessonId = searchParams.get('lessonId') || searchParams.get('lesson') || undefined;
   const requestedChunkId = searchParams.get('chunk') || undefined;
   const initialQuery = searchParams.get('q') || '';
-  const selectionCacheKey = `${requestedCohortId ?? ''}|${requestedLessonId ?? ''}|${requestedChunkId ?? ''}`;
+  const selectionCacheKey = `${userId || 'anon'}:${requestedCohortId ?? ''}|${requestedLessonId ?? ''}|${requestedChunkId ?? ''}`;
 
   // Client Memory + Persistent LocalStorage Cache architecture preserved across SPA route switches & reloads
   const [channelCaches, setChannelCachesState] = useState<Record<ChannelId, ChannelCache>>(() => {
@@ -213,6 +253,16 @@ export function usePlayback() {
     }
     return INITIAL_CACHES;
   });
+
+  useEffect(() => {
+    const stored = loadStoredChannelCaches(selectionCacheKey);
+    if (stored) {
+      persistedCachesBySelection = { key: selectionCacheKey, caches: stored };
+      setChannelCachesState(stored);
+    } else if (persistedCachesBySelection && persistedCachesBySelection.key === selectionCacheKey) {
+      setChannelCachesState(persistedCachesBySelection.caches);
+    }
+  }, [selectionCacheKey]);
 
   const setChannelCaches = useCallback(
     (updater: React.SetStateAction<Record<ChannelId, ChannelCache>>) => {

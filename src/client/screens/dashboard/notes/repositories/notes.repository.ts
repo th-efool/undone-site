@@ -10,19 +10,25 @@ const EMPTY_NOTES_STATE: NotesStateEntity = {
   filter: 'all',
 };
 
-const NOTES_CACHE_KEY = 'sidequest_notes_state_v1';
-let memoryNotesState: NotesStateEntity | null = null;
+const NOTES_CACHE_PREFIX = 'sidequest_notes_state_v1:';
+const memoryNotesStateByUser = new Map<string, NotesStateEntity>();
 
 export class NotesRepository {
-  getInitialState(): NotesStateEntity {
-    if (memoryNotesState) return structuredClone(memoryNotesState);
+  private getCacheKey(userId?: string | null): string {
+    return `${NOTES_CACHE_PREFIX}${userId || 'anon'}`;
+  }
+
+  getInitialState(userId?: string | null): NotesStateEntity {
+    const memoryKey = userId || 'anon';
+    const memory = memoryNotesStateByUser.get(memoryKey);
+    if (memory) return structuredClone(memory);
     if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
       try {
-        const raw = localStorage.getItem(NOTES_CACHE_KEY);
+        const raw = localStorage.getItem(this.getCacheKey(userId));
         if (raw) {
           const parsed = JSON.parse(raw) as NotesStateEntity;
           if (parsed && Array.isArray(parsed.notebooks) && Array.isArray(parsed.notes)) {
-            memoryNotesState = parsed;
+            memoryNotesStateByUser.set(memoryKey, parsed);
             return structuredClone(parsed);
           }
         }
@@ -31,32 +37,33 @@ export class NotesRepository {
     return structuredClone(EMPTY_NOTES_STATE);
   }
 
-  async load(): Promise<NotesStateEntity> {
+  async load(userId?: string | null): Promise<NotesStateEntity> {
     if (typeof window === 'undefined') return structuredClone(EMPTY_NOTES_STATE);
-    
+    const memoryKey = userId || 'anon';
     try {
       const response = await fetch('/api/workspace/notes');
       if (!response.ok) throw new Error('Failed to fetch notes');
       const loaded = (await response.json()) as NotesStateEntity;
-      memoryNotesState = loaded;
+      memoryNotesStateByUser.set(memoryKey, loaded);
       if (process.env.NODE_ENV !== 'test') {
         try {
-          localStorage.setItem(NOTES_CACHE_KEY, JSON.stringify(loaded));
+          localStorage.setItem(this.getCacheKey(userId), JSON.stringify(loaded));
         } catch {}
       }
       return loaded;
     } catch (e) {
       console.error('Failed to load notes from API', e);
-      return this.getInitialState();
+      return this.getInitialState(userId);
     }
   }
 
-  async save(state: NotesStateEntity): Promise<NotesStateEntity> {
-    memoryNotesState = state;
+  async save(state: NotesStateEntity, userId?: string | null): Promise<NotesStateEntity> {
+    const memoryKey = userId || 'anon';
+    memoryNotesStateByUser.set(memoryKey, state);
     if (typeof window !== 'undefined') {
       if (process.env.NODE_ENV !== 'test') {
         try {
-          localStorage.setItem(NOTES_CACHE_KEY, JSON.stringify(state));
+          localStorage.setItem(this.getCacheKey(userId), JSON.stringify(state));
         } catch {}
       }
       try {
@@ -73,7 +80,7 @@ export class NotesRepository {
         }
         
         const saved = (await response.json()) as NotesStateEntity;
-        memoryNotesState = saved;
+        memoryNotesStateByUser.set(memoryKey, saved);
         return saved;
       } catch (error) {
         console.error('Failed to save notes to API', error);
