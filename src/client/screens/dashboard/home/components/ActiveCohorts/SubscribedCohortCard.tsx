@@ -12,7 +12,7 @@ import styles from './SubscribedCohortCard.module.css';
 
 export interface SubscribedCohortCardProps {
   cohort: ActiveCohort;
-  onPause(until: Date): void | Promise<void>;
+  onPause(until?: Date): void | Promise<void>;
   onResume(): void | Promise<void>;
   onSave(settings: CohortLearningSettings): Promise<void>;
   onDelete(): Promise<void>;
@@ -43,7 +43,11 @@ export const SubscribedCohortCard = React.memo(function SubscribedCohortCard({
   const popover = useRef<HTMLDivElement>(null);
   const anchor = useRef<HTMLButtonElement | null>(null);
   const dateInput = useRef<HTMLInputElement>(null);
-  const paused = Boolean(cohort.pausedUntil && new Date(cohort.pausedUntil) > new Date());
+  const paused = Boolean(
+    cohort.isPaused ||
+    (cohort.pausedUntil && new Date(cohort.pausedUntil) > new Date()) ||
+    cohort.resumeLabel === 'Paused'
+  );
   const progress = Math.max(0, Math.min(100, cohort.progressPercent || 0));
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
@@ -149,19 +153,20 @@ export const SubscribedCohortCard = React.memo(function SubscribedCohortCard({
       </div>
       <Link href={getCohortHref(cohort.cohortId || cohort.id)} className={styles.cardLink} aria-label={`Open ${cohort.title}`} />
       <div className={styles.statusControls}>
-        <button ref={pauseButton} type="button" className={styles.iconButton}
+        <button ref={pauseButton} type="button" className={`${styles.iconButton} ${paused ? styles.pausedBtn : ''}`}
+          data-paused={paused || undefined}
           aria-label={`${paused ? 'Resume' : 'Pause'} ${cohort.title}`}
-          title={paused ? 'Resume' : 'Pause'} aria-expanded={!paused && (panel === 'pause' || panel === 'custom')}
+          title={paused ? 'Resume' : 'Pause'}
           disabled={pending} onClick={() => {
+            anchor.current = pauseButton.current;
             if (paused) {
-              anchor.current = pauseButton.current;
               void persist(onResume);
-            } else if (panel === 'pause' || panel === 'custom') close();
-            else open('pause', pauseButton.current);
+            } else {
+              void persist(() => onPause());
+            }
           }}>
-          {paused ? <Play size={14} fill="currentColor" /> : <Pause size={14} fill="currentColor" />}
+          {paused ? <Pause size={14} fill="currentColor" /> : <Play size={14} fill="currentColor" />}
         </button>
-        {paused && <span className={styles.pausedBadge}>Paused</span>}
       </div>
       <button ref={menuButton} type="button" className={styles.kebabBtn} aria-label={`Cohort actions for ${cohort.title}`}
         aria-expanded={panel === 'menu' || panel === 'edit' || panel === 'delete'} aria-haspopup="menu"
@@ -183,6 +188,7 @@ export const SubscribedCohortCard = React.memo(function SubscribedCohortCard({
           role={panel === 'menu' ? 'menu' : 'dialog'} aria-label={`${panel === 'menu' ? 'Actions' : panel === 'edit' ? 'Learning settings' : panel === 'delete' ? 'Remove subscription' : 'Pause options'} for ${cohort.title}`}>
           {panel === 'menu' ? <>
             <button type="button" role="menuitem" onClick={() => open('edit', menuButton.current)}><Pencil size={14} /> Edit</button>
+            <button type="button" role="menuitem" onClick={() => open('pause', menuButton.current)}><CalendarDays size={14} /> Pause options…</button>
             <button type="button" role="menuitem" className={styles.danger} onClick={() => open('delete', menuButton.current)}><Trash2 size={14} /> Delete</button>
           </> : <>
             <header className={styles.popoverHeader}>

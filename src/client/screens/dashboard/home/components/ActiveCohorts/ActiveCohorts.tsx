@@ -15,7 +15,7 @@ export interface CohortLearningSettings {
 export interface ActiveCohortsProps {
   heading: HomeSectionContent;
   items: ActiveCohort[];
-  onPause(cohortId: string, pausedUntil: Date): void | Promise<void>;
+  onPause(cohortId: string, pausedUntil?: Date): void | Promise<void>;
   onResume(cohortId: string): void | Promise<void>;
   onSave(cohortId: string, settings: CohortLearningSettings): Promise<void>;
   onDelete(cohortId: string): Promise<void>;

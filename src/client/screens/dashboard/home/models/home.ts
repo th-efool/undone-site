@@ -40,6 +40,7 @@ export interface ActiveCohort {
   progressPercent: number;
   schedule: LearningSchedule;
   featured?: boolean;
+  isPaused?: boolean;
   pausedUntil?: string;
   pausedReason?: string;
   resumeLabel?: string;
@@ -49,6 +50,7 @@ export interface ActiveCohort {
 
 export interface PausedCohort extends Omit<ActiveCohort, 'rank'> {
   rank?: number;
+  isPaused?: boolean;
   pausedUntil: string;
   pausedReason?: string;
   resumeLabel: string;
