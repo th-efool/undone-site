@@ -10,14 +10,27 @@ afterEach(() => {
 });
 
 describe('PlaySkeleton component', () => {
-  it('renders loading skeleton with status role and shimmering components', () => {
+  it('renders loading state with status role and restrained spinner without shimmer or fake blocks', () => {
     const { container } = render(<PlaySkeleton />);
 
     const statusEl = screen.getByRole('status', { name: /loading lessons/i });
     expect(statusEl).toBeDefined();
 
     const shimmers = container.querySelectorAll('[class*="shimmer"]');
-    expect(shimmers.length).toBeGreaterThan(5);
+    expect(shimmers.length).toBe(0);
+    expect(container.querySelectorAll('[class*="capsulesRow"]').length).toBe(0);
+    expect(container.querySelectorAll('[class*="dockRow"]').length).toBe(0);
+  });
+
+  it('renders stageOnly loading state with stable container and restrained spinner without shimmer', () => {
+    const { container } = render(<PlaySkeleton stageOnly />);
+
+    const statusEl = screen.getByRole('status', { name: /loading lessons/i });
+    expect(statusEl).toBeDefined();
+
+    const shimmers = container.querySelectorAll('[class*="shimmer"]');
+    expect(shimmers.length).toBe(0);
+    expect(container.querySelectorAll('[class*="stageSpinner"]').length).toBe(1);
   });
 
   it('renders error state with alert role, error title, and reload action', () => {

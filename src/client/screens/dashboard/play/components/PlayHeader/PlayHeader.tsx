@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import type { FeedItem } from '@/src/shared/feed/feedEngine.types';
 import type { UsePlaybackResult } from '../../hooks/usePlayback';
 import { Tv, Sparkles, Video, BookOpen } from 'lucide-react';
 import { resolveMediaSource } from '../../utils/mediaSource';
@@ -13,14 +12,14 @@ interface PlayHeaderProps {
   onOpenChannelSelector?: () => void;
 }
 
-export function PlayHeader({ playback, onOpenChannelSelector }: PlayHeaderProps) {
+export function PlayHeader({ playback }: PlayHeaderProps) {
   const { currentIndex, feedItems, lesson, activeItem, goToIndex } = playback;
   const isFieldLoading = Boolean(playback.feedLoading);
-  const isRefreshing = Boolean((playback as any).isRefreshing);
+  const isRefreshing = Boolean(playback.isRefreshing);
 
   // Resolve media source accurately - never label all sources YouTube
   const mediaSource = resolveMediaSource(activeItem);
-  const cohortProvider = (activeItem as any)?.cohortProvider as string | undefined;
+  const cohortProvider = activeItem?.cohortProvider;
 
   let provider = cohortProvider;
   if (!provider) {
@@ -48,18 +47,18 @@ export function PlayHeader({ playback, onOpenChannelSelector }: PlayHeaderProps)
   const strokeDashoffset = circumference - (courseProgressPercent / 100) * circumference;
 
   // Time range string: chunk-relative "00:00 - 04:00"
-  const timeRange = `${lesson.startTime || '00:00'} - ${lesson.endTime || '03:00'}`;
-  const chunkInfo = `Chunk ${lesson.currentChunk || 1} of ${lesson.totalChunks || 1}`;
+  const timeRange = `${lesson?.startTime || '00:00'} - ${lesson?.endTime || '03:00'}`;
+  const chunkInfo = `Chunk ${lesson?.currentChunk || 1} of ${lesson?.totalChunks || 1}`;
 
   // Season and Episode labels (honest metadata - omit unsupported counts rather than inventing them)
-  const currentVideo = lesson.currentVideo;
-  const totalVideos = lesson.totalVideos;
-  const seasonNum = lesson.seasonOrder || 1;
+  const currentVideo = lesson?.currentVideo;
+  const totalVideos = lesson?.totalVideos;
+  const seasonNum = lesson?.seasonOrder || 1;
   const hasEpisode = Boolean(currentVideo && totalVideos && totalVideos > 0);
   const episodeCode = hasEpisode ? `S${seasonNum}:E${currentVideo}` : `S${seasonNum}`;
   const episodeLabel = hasEpisode
     ? `Episode ${currentVideo} of ${totalVideos}`
-    : (activeItem?.cohortTitle || (lesson as any).topic || 'Lesson Unit');
+    : (activeItem?.cohortTitle || (lesson as { topic?: string })?.topic || 'Lesson Unit');
 
   // Top capsule window (calibrated sliding window of up to 8 capsules to prevent layout overflow)
   const totalCapsules = Math.max(feedItems.length, isFieldLoading ? 4 : 1);

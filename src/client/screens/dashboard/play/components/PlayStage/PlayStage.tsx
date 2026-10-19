@@ -38,6 +38,7 @@ export function PlayStage({ playback, dragDeltaX = 0, isDragging = false }: Play
     completeActiveChunk,
     completionPending,
     completionError,
+    isPlayerReady,
   } = playback;
 
   const stageRef = useRef<HTMLElement>(null);
@@ -86,7 +87,7 @@ export function PlayStage({ playback, dragDeltaX = 0, isDragging = false }: Play
   }
 
   const activeThumbnail = centerItem?.lessonThumbnail;
-  const stageWidth = stageRef.current?.clientWidth || viewportWidth || 1000;
+  const stageWidth = viewportWidth || 1000;
   const deltaX = isDragging ? dragDeltaX : 0;
   const normProgress = Math.max(-1, Math.min(1, deltaX / stageWidth));
   const stepX = stageWidth * 0.82;
@@ -191,6 +192,7 @@ export function PlayStage({ playback, dragDeltaX = 0, isDragging = false }: Play
                         onVideoMount={registerVideoElement}
                         onRetry={togglePlayback}
                         onCompleteChunk={() => void completeActiveChunk()}
+                        isLoading={isVideo && !isPlayerReady && !ytApiError && !mediaError}
                       />
                     ) : item.content ? (
                       <ReadingSurface
@@ -208,6 +210,7 @@ export function PlayStage({ playback, dragDeltaX = 0, isDragging = false }: Play
                         onVideoMount={registerVideoElement}
                         onRetry={togglePlayback}
                         onCompleteChunk={() => void completeActiveChunk()}
+                        isLoading={!isPlayerReady && !ytApiError && !mediaError}
                       />
                     )}
 

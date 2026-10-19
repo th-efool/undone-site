@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import React, { Suspense } from 'react';
-import { Play } from '@/src/client/screens/dashboard/play';
-import { PlaySkeleton } from '@/src/client/components/global/Skeleton';
+import { Play, PlayFallback } from '@/src/client/screens/dashboard/play';
 
 export const metadata: Metadata = {
   title: 'Play',
@@ -32,7 +31,7 @@ export default function PlayPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Suspense fallback={<PlaySkeleton />}>
+      <Suspense fallback={<PlayFallback />}>
         <Play />
       </Suspense>
     </>
