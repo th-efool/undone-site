@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 import type { ArticlePreview } from '../../models';
 
-import { ArticleCard, ArticleCardSkeleton } from './ArticleCard';
+import { ArticleCard } from './ArticleCard';
 import { InfiniteScroller, type InfiniteScrollerHandle } from '@/src/client/components/global/InfiniteScroller';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
@@ -111,7 +111,15 @@ export function RecentlyPublished({
             />
           ))}
 
-          {isLoadingMore && <ArticleCardSkeleton count={3} />}
+          {isLoadingMore && (
+            <div
+              className={styles.paginationLoader}
+              role="status"
+              aria-label="Loading more discoveries"
+            >
+              <div className={styles.paginationSpinner} />
+            </div>
+          )}
 
           {/* Invisible sentinel for automated infinite horizontal discovery */}
           <div ref={sentinelRef} className={styles.sentinel} aria-hidden="true" />

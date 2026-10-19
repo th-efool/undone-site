@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { 
   Play, 
@@ -13,7 +13,6 @@ import {
   Volume2, 
   VolumeX, 
   Clock, 
-  MessageSquare,
   Sparkles,
   Zap,
   ArrowRight,
@@ -57,10 +56,36 @@ const PRESETS = [
   { label: 'Long Break', minutes: 15, icon: Clock },
 ];
 
+const DEFAULT_ROOMS: Room[] = [
+  {
+    id: 'default-fireplace',
+    title: 'Fireplace',
+    thumbnail: '/rooms/fireplace.jpg',
+    status: 'ACTIVE',
+    onlineCount: 0,
+    participants: [],
+  },
+  {
+    id: 'default-library',
+    title: 'Library',
+    thumbnail: '/rooms/library.jpg',
+    status: 'ACTIVE',
+    onlineCount: 0,
+    participants: [],
+  },
+  {
+    id: 'default-dev-den',
+    title: 'Developer Den',
+    thumbnail: '/rooms/dev-den.jpg',
+    status: 'ACTIVE',
+    onlineCount: 0,
+    participants: [],
+  },
+];
+
 export default function StudyRoomScreen() {
   const { data: session } = useSession();
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [rooms, setRooms] = useState<Room[]>(DEFAULT_ROOMS);
   const [joiningId, setJoiningId] = useState<string | null>(null);
   
   // Timer States
@@ -75,56 +100,38 @@ export default function StudyRoomScreen() {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load Rooms
-  const fetchRooms = async () => {
+  const fetchRooms = useCallback(async () => {
     try {
       const res = await fetch(apiUrl('/api/studyroom'));
       if (res.ok) {
         const data = await res.json();
-        setRooms(data);
+        if (Array.isArray(data)) {
+          setRooms(data);
+        }
       }
     } catch (e) {
       console.error('Failed to fetch rooms', e);
-    } finally {
-      setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    fetchRooms();
-    // Poll for updates every 10 seconds to keep rooms fresh
-    const poll = setInterval(fetchRooms, 10000);
-    return () => clearInterval(poll);
   }, []);
 
-  // Timer Countdown Logic
   useEffect(() => {
-    if (isRunning) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            setIsRunning(false);
-            if (timerRef.current) clearInterval(timerRef.current);
-            playChime();
-            addToast('✨ Focus session completed! Great job.', 'success');
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    } else {
-      if (timerRef.current) clearInterval(timerRef.current);
-    }
-
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
+    const init = async () => {
+      await fetchRooms();
     };
-  }, [isRunning]);
+    void init();
+    // Poll for updates every 10 seconds to keep rooms fresh
+    const poll = setInterval(() => {
+      void fetchRooms();
+    }, 10000);
+    return () => clearInterval(poll);
+  }, [fetchRooms]);
 
   // Audio synthesis chime using Web Audio API (no external asset dependencies)
-  const playChime = () => {
+  const playChime = useCallback(() => {
     if (!soundEnabled) return;
     try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new AudioCtx();
       
       // Warm synth chord
       const playNote = (freq: number, start: number, duration: number) => {
@@ -149,16 +156,40 @@ export default function StudyRoomScreen() {
     } catch (e) {
       console.error('Audio Synthesis Failed', e);
     }
-  };
+  }, [soundEnabled]);
 
   // Add Toast Notification Helper
-  const addToast = (text: string, type: ToastMessage['type'] = 'info') => {
+  const addToast = useCallback((text: string, type: ToastMessage['type'] = 'info') => {
     const id = Math.random().toString(36).substr(2, 9);
     setToasts((prev) => [...prev, { id, text, type }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4500);
-  };
+  }, []);
+
+  // Timer Countdown Logic
+  useEffect(() => {
+    if (isRunning) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            setIsRunning(false);
+            if (timerRef.current) clearInterval(timerRef.current);
+            playChime();
+            addToast('✨ Focus session completed! Great job.', 'success');
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [isRunning, playChime, addToast]);
 
   // Simulated activity simulation loop
   useEffect(() => {
@@ -179,7 +210,7 @@ export default function StudyRoomScreen() {
 
     const interval = setInterval(triggerSimulation, 15000);
     return () => clearInterval(interval);
-  }, []);
+  }, [addToast]);
 
   // Format Seconds to MM:SS
   const formatTime = (seconds: number) => {
@@ -203,12 +234,40 @@ export default function StudyRoomScreen() {
       return;
     }
 
-    setJoiningId(roomId);
+    let targetRoomId = roomId;
+    if (targetRoomId.startsWith('default-')) {
+      try {
+        const res = await fetch(apiUrl('/api/studyroom'));
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setRooms(data);
+            const normalizedTarget = targetRoomId.replace('default-', '').toLowerCase();
+            const matched = data.find((r: Room) => 
+              r.title.toLowerCase().replace(/\s+/g, '-') === normalizedTarget ||
+              r.title.toLowerCase() === normalizedTarget
+            );
+            if (matched) {
+              targetRoomId = matched.id;
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    if (targetRoomId.startsWith('default-')) {
+      addToast('Unable to connect to space. Please refresh the page.', 'alert');
+      return;
+    }
+
+    setJoiningId(targetRoomId);
     try {
       const res = await fetch(apiUrl('/api/studyroom'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'join', roomId }),
+        body: JSON.stringify({ action: 'join', roomId: targetRoomId }),
       });
 
       if (res.ok) {
@@ -313,15 +372,11 @@ export default function StudyRoomScreen() {
             )}
           </div>
 
-          {loading ? (
-            <div className={styles.skeletonGrid}>
-              {[1, 2, 3].map((i) => (
-                <div key={i} className={styles.skeletonCard}></div>
-              ))}
-            </div>
-          ) : (
-            <div className={styles.roomsGrid}>
-              {rooms.map((room) => {
+          <div className={styles.roomsGrid}>
+            {rooms.length === 0 ? (
+              <p className={styles.emptyRoomsMsg}>No active study spaces found.</p>
+            ) : (
+              rooms.map((room) => {
                 const IconComponent = getRoomIcon(room.title);
                 const isCurrent = isUserInRoom(room);
                 const gradientClass = getRoomGradient(room.title);
@@ -396,9 +451,9 @@ export default function StudyRoomScreen() {
                     </div>
                   </div>
                 );
-              })}
-            </div>
-          )}
+              })
+            )}
+          </div>
         </section>
 
         {/* Right Side: Focus Timer Card & Simulation log */}

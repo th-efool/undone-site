@@ -4,6 +4,7 @@ import { render, screen, fireEvent, cleanup, within } from '@testing-library/rea
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { PlayDesktop } from '../PlayDesktop';
 import type { UsePlaybackResult } from '../hooks/usePlayback';
+import type { FeedItem } from '@/src/shared/feed/feedEngine.types';
 
 afterEach(() => {
   cleanup();
@@ -23,7 +24,7 @@ const createMockPlayback = (overrides?: Partial<UsePlaybackResult>): UsePlayback
       totalChunks: 10,
       cohortProvider: 'YouTube',
       channelId: 'default',
-    } as any,
+    } as unknown as FeedItem,
     feedLoading: false,
     isRefreshing: false,
     feedError: false,
@@ -35,7 +36,7 @@ const createMockPlayback = (overrides?: Partial<UsePlaybackResult>): UsePlayback
         chunkTitle: 'Introduction to Neural Attention',
         lessonType: 'video',
         lessonVideoId: 'dQw4w9WgXcQ',
-      } as any,
+      } as unknown as FeedItem,
       {
         chunkId: 'chunk-2',
         lessonId: 'lesson-1',
@@ -43,7 +44,7 @@ const createMockPlayback = (overrides?: Partial<UsePlaybackResult>): UsePlayback
         chunkTitle: 'Feed Forward Layers',
         lessonType: 'video',
         lessonVideoId: 'dQw4w9WgXcQ',
-      } as any,
+      } as unknown as FeedItem,
     ],
     currentIndex: 0,
     lesson: {
@@ -100,6 +101,7 @@ const createMockPlayback = (overrides?: Partial<UsePlaybackResult>): UsePlayback
     setMediaError: vi.fn(),
     registerVideoElement: vi.fn(),
     videoRef: { current: null },
+    isPlayerReady: true,
     itemStatuses: ['not-started', 'not-started'],
     isChunkCompleted: vi.fn().mockReturnValue(false),
     activeChannel: 'default',
@@ -112,11 +114,18 @@ const createMockPlayback = (overrides?: Partial<UsePlaybackResult>): UsePlayback
 };
 
 describe('PlayDesktop visual redesign composition', () => {
-  it('renders loading skeleton when feedLoading is true', () => {
+  it('renders loading status in stage without shimmer and preserves player shell when feedLoading is true', () => {
     const playback = createMockPlayback({ feedLoading: true });
-    render(<PlayDesktop playback={playback} />);
+    const { container } = render(<PlayDesktop playback={playback} />);
 
+    // Stage shows status loader
     expect(screen.getByRole('status', { name: /loading lessons/i })).toBeDefined();
+
+    // Player shell is preserved
+    expect(screen.getByRole('banner', { name: /playback header/i })).toBeDefined();
+
+    // Zero shimmer elements
+    expect(container.querySelectorAll('[class*="shimmer"]').length).toBe(0);
   });
 
   it('renders error notice and retry button when feedError occurs', () => {
@@ -279,7 +288,7 @@ describe('PlayDesktop visual redesign composition', () => {
         lessonTitle: 'System Design Principles',
         lessonType: 'article',
         content: { text: 'Reading content', contentOrigin: 'ai', limitations: [] },
-      } as any,
+      } as unknown as FeedItem,
     });
 
     render(<PlayDesktop playback={playback} />);
@@ -300,7 +309,7 @@ describe('PlayDesktop visual redesign composition', () => {
         lessonType: 'article',
         cohortProvider: 'OpenAI Reading',
         content: { text: 'Reading text', contentOrigin: 'ai', limitations: [] },
-      } as any,
+      } as unknown as FeedItem,
     });
 
     const { unmount } = render(<PlayDesktop playback={readingPlayback} />);
@@ -316,7 +325,7 @@ describe('PlayDesktop visual redesign composition', () => {
         lessonTitle: 'Direct Video Lesson',
         lessonType: 'video',
         lessonVideoUrl: 'https://cdn.example.com/video.mp4',
-      } as any,
+      } as unknown as FeedItem,
     });
 
     render(<PlayDesktop playback={directVideoPlayback} />);

@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import React, { Suspense } from 'react';
 import { Notes } from '@/src/client/screens/dashboard/notes';
-import { NotesSkeleton } from '@/src/client/components/global/Skeleton';
 
 export const metadata: Metadata = {
   title: 'Notes',
@@ -32,7 +31,7 @@ export default function NotesPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Suspense fallback={<NotesSkeleton />}>
+      <Suspense fallback={<Notes />}>
         <Notes />
       </Suspense>
     </>

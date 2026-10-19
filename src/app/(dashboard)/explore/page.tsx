@@ -1,7 +1,6 @@
 import { Metadata } from 'next';
 import React, { Suspense } from 'react';
 import { Explore } from '@/src/client/screens/dashboard/explore';
-import { ExploreSkeleton } from '@/src/client/components/global/Skeleton';
 
 export const metadata: Metadata = {
   title: 'Explore',
@@ -35,7 +34,7 @@ export default function ExplorePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <h1 className="sr-only">Explore Undone</h1>
-      <Suspense fallback={<ExploreSkeleton />}>
+      <Suspense fallback={<Explore />}>
         <Explore />
       </Suspense>
     </>

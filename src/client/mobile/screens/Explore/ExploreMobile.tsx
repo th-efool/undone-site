@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ExploreSkeleton } from '@/src/client/components/global/Skeleton';
 import type { UseExploreResult } from '@/src/client/screens/dashboard/explore/hooks/useExplore';
 import { getCohortHref } from '@/src/client/navigation/cohortLinks';
 
@@ -55,10 +54,6 @@ export function ExploreMobile({ model: explore }: ExploreMobileProps) {
     );
   }, [explore.freshDiscoveries, explore.recentlyPublished, trimmedQuery]);
 
-  if (explore.loading) {
-    return <ExploreSkeleton />;
-  }
-
   return (
     <main className={styles.mobileExplore}>
       <ExploreHero />
@@ -98,6 +93,7 @@ export function ExploreMobile({ model: explore }: ExploreMobileProps) {
                       fill
                       className={styles.articleThumbnail}
                       sizes="160px"
+                      unoptimized
                     />
                   </div>
                   <div className={styles.articleInfo}>

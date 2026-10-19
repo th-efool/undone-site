@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { Play } from 'lucide-react';
-import { HomeSkeleton } from '@/src/client/components/global/Skeleton';
 import type { UseHomeResult } from '@/src/client/screens/dashboard/home/hooks/useHome';
 
 import styles from './HomeMobile.module.css';

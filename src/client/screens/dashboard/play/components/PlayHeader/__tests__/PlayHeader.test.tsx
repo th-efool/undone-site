@@ -94,6 +94,7 @@ const createMockPlayback = (overrides?: Partial<UsePlaybackResult>): UsePlayback
     setMediaError: vi.fn(),
     registerVideoElement: vi.fn(),
     videoRef: { current: null },
+    isPlayerReady: true,
     itemStatuses: ['completed', 'not-started', 'not-started', 'not-started'],
     isChunkCompleted: vi.fn((chunkId) => chunkId === 'chunk-1'),
     activeChannel: 'default',

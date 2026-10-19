@@ -170,4 +170,21 @@ describe('PlayerSurface component', () => {
     fireEvent.click(retryBtn);
     expect(onRetry).toHaveBeenCalledTimes(1);
   });
+
+  it('renders localized video stream loading overlay with status role and spinner when isLoading is true', () => {
+    const youtubeItem: FeedItem = {
+      ...baseItem,
+      lessonVideoId: 'dQw4w9WgXcQ',
+      lessonType: 'video',
+    };
+
+    const { container } = render(
+      <PlayerSurface activeItem={youtubeItem} isLoading={true} />
+    );
+
+    const loader = screen.getByRole('status', { name: /loading video stream/i });
+    expect(loader).toBeTruthy();
+    expect(container.querySelector('[class*="videoSpinner"]')).toBeTruthy();
+    expect(container.querySelectorAll('[class*="shimmer"]').length).toBe(0);
+  });
 });

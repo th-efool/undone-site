@@ -50,9 +50,6 @@
 .queryForm { display: grid; gap: 14px; max-width: 680px; margin: 35px 0; padding: 24px; border: 1px solid var(--creation-line); background: var(--creation-surface); border-radius: 20px; }
 .queryForm textarea { border: 1px solid #d8dcee; border-radius: 14px; padding: 16px; font: inherit; color: var(--creation-ink); background: var(--creation-paper); resize: vertical; width: 100%; }
 .retry { border: 1px solid #d1d3fd; background: #edeeff; color: #192bff; border-radius: 14px; padding: 9px 20px; justify-self: start; margin-top: 8px; }
-.skeleton { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
-.skeleton > div { height: 190px; border-radius: 16px; background: color-mix(in srgb, var(--creation-line) 55%, var(--creation-surface)); }
-.skeleton > div:first-child { grid-column: 1 / -1; height: 318px; }
 @media (max-width: 1300px) { .heading { padding-left: 0; } .cardBody { padding-inline: 12px; } .card h2 { font-size: 19px; } .card[data-featured='true'] .cardBody { padding-inline: 24px; } .card[data-featured='true'] h2 { font-size: 31px; } .metrics { gap: 8px; } .card[data-featured='true'] .metrics { gap: 16px; } .create { gap: 12px; padding-inline: 12px; } }
 @media (max-width: 1100px) { .cards { grid-template-columns: 1fr; } .card[data-featured='true'] { grid-template-columns: 56% minmax(0,1fr); margin-right: 0; } .annotation { display: none; } .heading { padding-right: 0; padding-top: 38px; } .cardBody { padding: 15px 20px; } .create { flex-wrap: wrap; } .create button { margin-left: 60px; } }
 @media (max-width: 820px) { .heading { padding-top: 0; } .heading h1 { font-size: 48px; } .eyebrow { font-size: 10px; } .subtitle { font-size: 20px; margin-bottom: 8px; } .cards { gap: 14px; } }

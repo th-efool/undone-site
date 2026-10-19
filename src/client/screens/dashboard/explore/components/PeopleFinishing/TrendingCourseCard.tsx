@@ -26,6 +26,7 @@ export function TrendingCourseCard({ item }: TrendingCourseCardProps) {
         className={styles.thumbnail}
         width={400}
         height={300}
+        unoptimized
       />
 
       <div className={styles.overlay} />

@@ -1,5 +1,6 @@
-import { HomeSkeleton } from '@/src/client/components/global/Skeleton';
+import { Home } from '@/src/client/screens/dashboard/home';
 
 export default function Loading() {
-  return <HomeSkeleton />;
+  return <Home />;
 }
+

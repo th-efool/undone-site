@@ -16,6 +16,7 @@ export interface PlayerSurfaceProps extends PropsWithChildren {
   onCompleteChunk?: () => void;
   onVideoMount?: (el: HTMLVideoElement | null) => void;
   onRetry?: () => void;
+  isLoading?: boolean;
 }
 
 export function PlayerSurface({
@@ -28,6 +29,7 @@ export function PlayerSurface({
   onCompleteChunk,
   onVideoMount,
   onRetry,
+  isLoading = false,
 }: PlayerSurfaceProps): JSX.Element {
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
   const mediaSource = resolveMediaSource(activeItem);
@@ -121,6 +123,11 @@ export function PlayerSurface({
           onTimeUpdate={(e) => onTimeUpdate?.(e.currentTarget.currentTime)}
           onEnded={() => onCompleteChunk?.()}
         />
+        {isLoading && !mediaError && (
+          <div className={styles.videoLoadingOverlay} role="status" aria-label="Loading video stream">
+            <div className={styles.videoSpinner} />
+          </div>
+        )}
         <div className={styles.contentWrapper}>{children}</div>
       </div>
     );
@@ -158,6 +165,11 @@ export function PlayerSurface({
     <div className={styles.surface}>
       <div className={styles.videoWrapper} ref={containerRef} />
       <div className={styles.surfaceOverlay} />
+      {isLoading && !ytApiError && (
+        <div className={styles.videoLoadingOverlay} role="status" aria-label="Loading video stream">
+          <div className={styles.videoSpinner} />
+        </div>
+      )}
       <div className={styles.contentWrapper}>{children}</div>
     </div>
   );

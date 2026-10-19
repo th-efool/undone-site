@@ -4,6 +4,8 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { PlayMobile } from '../PlayMobile';
 import type { UsePlaybackResult } from '@/src/client/screens/dashboard/play/hooks/usePlayback';
+import type { FeedItem } from '@/src/shared/feed/feedEngine.types';
+import type { ChannelId } from '@/src/shared/curriculum/pedagogicalVector.types';
 
 afterEach(() => {
   cleanup();
@@ -23,7 +25,7 @@ const createMockPlayback = (overrides?: Partial<UsePlaybackResult>): UsePlayback
       totalChunks: 5,
       cohortProvider: 'YouTube',
       channelId: 'default',
-    } as any,
+    } as unknown as FeedItem,
     feedLoading: false,
     isRefreshing: false,
     feedError: false,
@@ -35,7 +37,7 @@ const createMockPlayback = (overrides?: Partial<UsePlaybackResult>): UsePlayback
         chunkTitle: 'Quantization & Pruning',
         lessonType: 'video',
         lessonVideoId: 'dQw4w9WgXcQ',
-      } as any,
+      } as unknown as FeedItem,
       {
         chunkId: 'chunk-2',
         lessonId: 'lesson-1',
@@ -43,7 +45,7 @@ const createMockPlayback = (overrides?: Partial<UsePlaybackResult>): UsePlayback
         chunkTitle: 'Hardware Acceleration',
         lessonType: 'video',
         lessonVideoId: 'oHg5SJYRHA0',
-      } as any,
+      } as unknown as FeedItem,
     ],
     currentIndex: 0,
     lesson: {
@@ -100,9 +102,10 @@ const createMockPlayback = (overrides?: Partial<UsePlaybackResult>): UsePlayback
     setMediaError: vi.fn(),
     registerVideoElement: vi.fn(),
     videoRef: { current: null },
+    isPlayerReady: true,
     itemStatuses: ['not-started', 'not-started'],
     isChunkCompleted: vi.fn().mockReturnValue(false),
-    activeChannel: 'default' as any,
+    activeChannel: 'default' as unknown as ChannelId,
     setActiveChannel: vi.fn(),
     searchQuery: '',
     setSearchQuery: vi.fn(),
@@ -112,10 +115,12 @@ const createMockPlayback = (overrides?: Partial<UsePlaybackResult>): UsePlayback
 };
 
 describe('PlayMobile Screen', () => {
-  it('renders loading skeleton when feedLoading is true', () => {
+  it('renders loading status in stage without shimmer and preserves player shell when feedLoading is true', () => {
     const playback = createMockPlayback({ feedLoading: true });
-    render(<PlayMobile playback={playback} />);
+    const { container } = render(<PlayMobile playback={playback} />);
     expect(screen.getByRole('status', { name: /loading lessons/i })).toBeDefined();
+    expect(screen.getByRole('banner', { name: /playback header/i })).toBeDefined();
+    expect(container.querySelectorAll('[class*="shimmer"]').length).toBe(0);
   });
 
   it('renders feed error and triggers retry when feedError is true', () => {
@@ -132,7 +137,7 @@ describe('PlayMobile Screen', () => {
   });
 
   it('renders caught-up state when activeItem is null', () => {
-    const playback = createMockPlayback({ activeItem: null as any });
+    const playback = createMockPlayback({ activeItem: null as unknown as FeedItem });
     render(<PlayMobile playback={playback} />);
     expect(screen.getByText(/caught up with this selection/i)).toBeDefined();
   });
@@ -256,7 +261,7 @@ describe('PlayMobile Screen', () => {
           limitations: [],
           contentOrigin: 'human',
         },
-      } as any,
+      } as unknown as FeedItem,
       completeActiveChunk: completeMock,
     });
 

@@ -663,28 +663,3 @@
   background: rgba(127, 29, 29, 0.95);
   color: #fecaca;
 }
-
-/* Skeletons */
-.skeletonGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-}
-
-.skeletonCard {
-  border-radius: 20px;
-  min-height: 260px;
-  background: linear-gradient(90deg, rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.02) 75%);
-  background-size: 200% 100%;
-  animation: loadingShimmer 1.5s infinite;
-  border: 1px solid rgba(255,255,255,0.04);
-}
-
-@keyframes loadingShimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
-}

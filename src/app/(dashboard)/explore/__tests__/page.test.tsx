@@ -7,10 +7,6 @@ vi.mock('next/navigation', () => ({
   usePathname: () => '/explore',
 }));
 
-vi.mock('@/src/client/components/global/Skeleton', () => ({
-  ExploreSkeleton: () => <div data-testid="explore-skeleton">Loading skeleton...</div>,
-}));
-
 vi.mock('@/src/client/screens/dashboard/explore', () => ({
   Explore: () => <div data-testid="explore-content">Explore Main Content</div>,
 }));

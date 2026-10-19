@@ -1,5 +1,7 @@
-import { PlaySkeleton } from '@/src/client/screens/dashboard/play/components/PlaySkeleton/PlaySkeleton';
+import { PlayFallback } from '@/src/client/screens/dashboard/play';
 
 export default function Loading() {
-  return <PlaySkeleton />;
+  return <PlayFallback />;
 }
+
+

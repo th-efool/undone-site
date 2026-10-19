@@ -10,8 +10,6 @@ import { NotesWorkspace } from './components/NotesWorkspace';
 import { useCanvasScene } from './hooks/useCanvasScene';
 import { useCanvasPersistence } from './hooks/useCanvasPersistence';
 
-import { NotesSkeleton } from '@/src/client/components/global/Skeleton';
-
 import styles from './Notes.module.css';
 
 interface NotesDesktopProps {
@@ -47,7 +45,7 @@ export function NotesDesktop({ model: notes }: NotesDesktopProps) {
 
   const handleSaveNote = useCallback(() => {
     if (selected) notes.actions.patchNote(selected.id, {});
-  }, [selected?.id, notes.actions]);
+  }, [selected, notes.actions]);
 
   useCanvasPersistence(
     selected?.id ?? null,
@@ -57,8 +55,6 @@ export function NotesDesktop({ model: notes }: NotesDesktopProps) {
     saveTrigger,
     handleSaveNote
   );
-
-  if (!notes.state || !notes.data) return <NotesSkeleton />;
 
   return (
     <main

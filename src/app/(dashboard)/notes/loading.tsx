@@ -1,5 +1,5 @@
-import { NotesSkeleton } from '@/src/client/components/global/Skeleton';
+import { Notes } from '@/src/client/screens/dashboard/notes';
 
 export default function Loading() {
-  return <NotesSkeleton />;
+  return <Notes />;
 }

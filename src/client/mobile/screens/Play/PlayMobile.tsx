@@ -95,7 +95,7 @@ export function PlayMobile({ playback }: PlayMobileProps) {
       : false;
   const speedSupported = !playback.activeItem || mediaSource.isYouTube || mediaSource.isDirectVideo;
 
-  let providerName = (playback.activeItem as any)?.cohortProvider as string | undefined;
+  let providerName = playback.activeItem?.cohortProvider;
   if (!providerName) {
     if (mediaSource.isYouTube) providerName = 'YouTube';
     else if (mediaSource.isDirectVideo) providerName = 'Video';
@@ -221,7 +221,7 @@ export function PlayMobile({ playback }: PlayMobileProps) {
   return (
     <main ref={mobileContainerRef} className={styles.mobilePlay}>
       {/* ── Top Header ──────────────────────────────────────────────────────── */}
-      <header className={styles.header}>
+      <header className={styles.header} aria-label="Playback Header">
         <div className={styles.topBarRow}>
           <div className={styles.capsulesRow} role="tablist" aria-label="Lesson progression">
             {playback.feedItems.map((item, idx) => {
@@ -313,6 +313,7 @@ export function PlayMobile({ playback }: PlayMobileProps) {
                 onVideoMount={playback.registerVideoElement}
                 onRetry={playback.togglePlayback}
                 onCompleteChunk={() => void playback.completeActiveChunk()}
+                isLoading={!playback.isPlayerReady && !playback.ytApiError && !playback.mediaError}
               />
 
               {!playback.isPlaying && (
