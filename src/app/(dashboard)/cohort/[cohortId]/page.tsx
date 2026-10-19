@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: { params: Promise<{ cohortId:
   const title = dbCohort?.title ? dbCohort.title : `Cohort ${cohortId}`;
   const description = dbCohort?.description || `Explore this learning cohort on Undone.`;
   const image = dbCohort?.coverImage || undefined;
-  const socialTitle = `Undone - ${title}`;
+  const socialTitle = `Undone > ${title}`;
 
   return {
     title,

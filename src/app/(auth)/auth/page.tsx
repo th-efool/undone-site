@@ -12,14 +12,14 @@ export const metadata: Metadata = {
   title: 'Sign In',
   description: 'Sign in or create an account to start tracking and completing your learning journey.',
   openGraph: {
-    title: 'Undone - Sign In',
+    title: 'Undone > Sign In',
     description: 'Sign in or create an account to start tracking and completing your learning journey.',
     url: '/auth',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Undone - Sign In',
+    title: 'Undone > Sign In',
     description: 'Sign in or create an account to start tracking and completing your learning journey.',
   }
 };

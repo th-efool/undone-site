@@ -29,7 +29,7 @@ describe('cohort API access boundaries', () => {
     f.cohort.mockResolvedValue({ title: 'Owned title', description: 'Owned description', coverImage: null });
     const meta = await generateMetadata({ params: Promise.resolve({ cohortId: 'private' }) });
     expect(meta.title).toBe('Owned title');
-    expect(meta.openGraph?.title).toBe('Undone - Owned title');
+    expect(meta.openGraph?.title).toBe('Undone > Owned title');
     f.auth.mockRejectedValueOnce(new Error('Authentication failed')); f.cohort.mockClear();
     await expect(generateMetadata({ params: Promise.resolve({ cohortId: 'private' }) })).rejects.toThrow('Authentication failed');
     expect(f.cohort).not.toHaveBeenCalled();

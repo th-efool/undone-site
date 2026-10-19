@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: siteUrl,
     siteName: 'Undone',
-    title: 'Undone - Turn Any Rabbit Hole & Video into Bite-Sized Learning Quests',
+    title: 'Undone > Turn Any Rabbit Hole & Video into Bite-Sized Learning Quests',
     description:
       'Master any skill in 5 minutes a day. Undone converts long YouTube playlists, courses, and articles into interactive microlearning quests with AI guidance, distraction-free playback, and habit streaks.',
     images: [
@@ -51,14 +51,14 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Undone - Turn Any Rabbit Hole & Video into Bite-Sized Learning Quests',
+        alt: 'Undone > Turn Any Rabbit Hole & Video into Bite-Sized Learning Quests',
         type: 'image/png',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Undone - Turn Any Rabbit Hole & Video into Bite-Sized Learning Quests',
+    title: 'Undone > Turn Any Rabbit Hole & Video into Bite-Sized Learning Quests',
     description:
       'Master any skill in 5 minutes a day. Undone converts long YouTube playlists, courses, and articles into interactive microlearning quests with AI guidance and habit streaks.',
     images: ['/twitter-image.png'],

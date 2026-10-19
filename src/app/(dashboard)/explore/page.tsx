@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: 'Explore',
   description: 'Discover new cohorts, quests, and events on Undone. Join the community and start your journey.',
   openGraph: {
-    title: 'Undone - Explore',
+    title: 'Undone > Explore',
     description: 'Discover new cohorts, quests, and events on Undone. Join the community and start your journey.',
     url: 'https://undone.in/explore',
     siteName: 'Undone',
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Undone - Explore',
+    title: 'Undone > Explore',
     description: 'Discover new cohorts, quests, and events on Undone. Join the community and start your journey.',
   },
 };
@@ -26,7 +26,7 @@ export default function ExplorePage() {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebPage",
-    "name": "Undone - Explore",
+    "name": "Undone > Explore",
     "description": "Discover new cohorts, quests, and events on Undone. Join the community and start your journey."
   };
 

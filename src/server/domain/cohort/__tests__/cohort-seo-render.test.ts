@@ -59,7 +59,7 @@ describe('Cohort SEO render utilities', () => {
       `https://undone.in/cohort/${mockDbRow.id}/overview`
     );
     expect(meta.robots).toMatchObject({ index: true, follow: true });
-    expect(meta.openGraph?.title).toBe('Undone - Master Systems Programming in Rust');
+    expect(meta.openGraph?.title).toBe('Undone > Master Systems Programming in Rust');
     expect((meta.twitter as any)?.card).toBe('summary_large_image');
   });
 
