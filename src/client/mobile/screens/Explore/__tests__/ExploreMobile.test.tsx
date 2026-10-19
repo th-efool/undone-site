@@ -112,14 +112,17 @@ describe('ExploreMobile screen', () => {
     loading: false,
   };
 
-  it('renders skeleton when explore.loading is true', () => {
+  it('renders real mobile explore shell without skeleton or shimmer when explore.loading is true', () => {
     const loadingModel: UseExploreResult = {
       ...baseMockModel,
       loading: true,
     };
 
     const { container } = render(<ExploreMobile model={loadingModel} />);
-    expect(container.querySelector('[class*="skeleton"]')).toBeTruthy();
+    expect(screen.getByRole('main')).toBeTruthy();
+    expect(screen.getByRole('heading', { name: /explore by topic/i })).toBeTruthy();
+    expect(container.querySelectorAll('[class*="skeleton"]').length).toBe(0);
+    expect(container.querySelectorAll('[class*="shimmer"]').length).toBe(0);
   });
 
   it('renders dynamic trending quests and fresh discoveries', () => {

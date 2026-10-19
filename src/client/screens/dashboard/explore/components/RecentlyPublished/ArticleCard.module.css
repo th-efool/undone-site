@@ -152,79 +152,8 @@
   color: var(--color-border);
 }
 
-/* Skeleton Loader */
-.skeletonCard {
-  display: flex;
-  flex-direction: column;
-  flex: 0 0 320px;
-  width: 320px;
-  min-width: 320px;
-  gap: var(--space-3);
-  opacity: 0.6;
-}
-
-.skeletonImage {
-  width: 100%;
-  aspect-ratio: 16 / 10;
-  border-radius: var(--radius-xl);
-  background: linear-gradient(
-    90deg,
-    var(--color-surface-secondary) 25%,
-    var(--color-surface-tertiary) 50%,
-    var(--color-surface-secondary) 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-.skeletonBody {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 0 4px;
-}
-
-.skeletonTitle {
-  width: 85%;
-  height: 16px;
-  border-radius: var(--radius-sm);
-  background: var(--color-surface-secondary);
-}
-
-.skeletonFooter {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.skeletonAuthor {
-  width: 45%;
-  height: 12px;
-  border-radius: var(--radius-xs);
-  background: var(--color-surface-secondary);
-}
-
-.skeletonMeta {
-  width: 40%;
-  height: 12px;
-  border-radius: var(--radius-xs);
-  background: var(--color-surface-secondary);
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
 @media (max-width: 768px) {
-  .card,
-  .skeletonCard {
+  .card {
     flex: 0 0 176px;
     width: 176px;
     min-width: 176px;
@@ -232,8 +161,8 @@
   .title {
     font-size: 14px;
   }
-  .imageContainer,
-  .skeletonImage {
+  .imageContainer {
     border-radius: var(--radius-lg);
   }
 }
+

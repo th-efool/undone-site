@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Loader } from 'lucide-react';
 import { SearchBar } from '@/src/client/components/global/SearchBar';
-import { ExploreSkeleton } from '@/src/client/components/global/Skeleton';
 import { EmptyState } from '@/src/client/components/global/EmptyState';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
 

@@ -1,5 +1,6 @@
-import { ExploreSkeleton } from '@/src/client/components/global/Skeleton';
+import { Explore } from '@/src/client/screens/dashboard/explore';
 
 export default function Loading() {
-  return <ExploreSkeleton />;
+  return <Explore />;
 }
+

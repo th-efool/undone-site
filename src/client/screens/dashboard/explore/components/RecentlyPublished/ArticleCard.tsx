@@ -27,6 +27,7 @@ export function ArticleCard({ item }: ArticleCardProps) {
             width={360}
             height={480}
             draggable={false}
+            unoptimized
           />
           <button
             type="button"
@@ -68,21 +69,3 @@ export function ArticleCard({ item }: ArticleCardProps) {
   );
 }
 
-export function ArticleCardSkeleton({ count = 3 }: { count?: number }) {
-  return (
-    <>
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={`skeleton-${i}`} className={styles.skeletonCard} aria-hidden="true">
-          <div className={styles.skeletonImage} />
-          <div className={styles.skeletonBody}>
-            <div className={styles.skeletonTitle} />
-            <div className={styles.skeletonFooter}>
-              <div className={styles.skeletonAuthor} />
-              <div className={styles.skeletonMeta} />
-            </div>
-          </div>
-        </div>
-      ))}
-    </>
-  );
-}

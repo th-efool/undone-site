@@ -70,6 +70,7 @@ export function TrendingContentCard({ item, showPullTab = true }: TrendingConten
             alt={title}
             fill
             className={styles.image}
+            unoptimized
           />
           <div className={styles.gradientOverlay}></div>
         </div>
@@ -122,6 +123,7 @@ export function TrendingContentCard({ item, showPullTab = true }: TrendingConten
                       height={40}
                       className={styles.avatarSmall}
                       style={{ zIndex: 3 - idx }}
+                      unoptimized
                     />
                   ))
                 ) : (
