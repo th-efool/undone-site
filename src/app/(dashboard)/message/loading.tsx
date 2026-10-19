@@ -1,5 +1,5 @@
-import { MessageSkeleton } from '@/src/client/components/global/Skeleton';
+import { Message } from '@/src/client/screens/dashboard/message';
 
 export default function Loading() {
-  return <MessageSkeleton />;
+  return <Message />;
 }
