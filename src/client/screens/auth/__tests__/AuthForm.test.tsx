@@ -36,7 +36,7 @@ describe('honest authentication actions', () => {
     expect(mocks.signIn).toHaveBeenCalledWith('credentials', { email: 'guest@undone.com', redirect: false, redirectTo: '/quest/new?q=rendering' });
     finish({ ok: true });
     await waitFor(() => expect(mocks.replace).toHaveBeenCalledWith('/quest/new?q=rendering'));
-    expect(mocks.refresh).toHaveBeenCalledOnce();
+    expect(mocks.refresh).not.toHaveBeenCalled();
   });
   it('shows network failures without navigating', async () => {
     mocks.signIn.mockRejectedValue(new Error('network'));

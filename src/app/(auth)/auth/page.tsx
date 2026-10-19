@@ -26,7 +26,8 @@ export default async function AuthPage({ searchParams }: { searchParams: Promise
   const params = await searchParams;
   const requestHeaders = await headers();
   const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host');
-  const protocol = requestHeaders.get('x-forwarded-proto') ?? 'https';
+  const isLocalHost = Boolean(host && /^(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.test(host));
+  const protocol = requestHeaders.get('x-forwarded-proto') ?? (isLocalHost ? 'http' : 'https');
   const returnTo = authReturnTo(params.returnTo, params.callbackUrl, `${protocol}://${host}`);
   const user = await getUser();
   const allowAuthenticatedRedirect = !user || !returnTo.startsWith('/quest/') || Boolean(await getCreationOwner());

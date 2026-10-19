@@ -596,19 +596,24 @@ export function usePlayback() {
     } catch (err) {
       console.error('Failed to mount YouTube player', err);
     }
-  }, [ytApiReady, activeItem?.chunkId, currentIndex]);
 
-  // Destroy player and cleanup video listeners on component unmount
-  useEffect(() => {
     return () => {
+      // If component is unmounting (or StrictMode simulated unmount), destroy player
+      // so the subsequent StrictMode remount effect re-initializes cleanly.
       isPlayerReadyRef.current = false;
-      if (videoCleanupRef.current) {
-        videoCleanupRef.current();
-        videoCleanupRef.current = null;
-      }
       if (playerRef.current && typeof playerRef.current.destroy === 'function') {
         try { playerRef.current.destroy(); } catch {}
         playerRef.current = null;
+      }
+    };
+  }, [ytApiReady, activeItem?.chunkId, currentIndex]);
+
+  // Cleanup video listeners on component unmount
+  useEffect(() => {
+    return () => {
+      if (videoCleanupRef.current) {
+        videoCleanupRef.current();
+        videoCleanupRef.current = null;
       }
     };
   }, []);

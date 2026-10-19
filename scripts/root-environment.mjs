@@ -12,6 +12,13 @@ export function loadRootEnvironment({ cwd = process.cwd(), env = process.env, in
   loadedEnvFiles = [] } = {}) {
   const file = path.join(cwd, '.env');
   const root = existsSync(file) ? parseEnv(readFileSync(file, 'utf8')) : {};
+  // Prevent `vercel env pull` artifacts in .env from spoofing a live Vercel runtime locally.
+  if (initialEnv.VERCEL === undefined) {
+    for (const key of ['VERCEL', 'VERCEL_ENV', 'VERCEL_TARGET_ENV', 'VERCEL_URL', 'VERCEL_OIDC_TOKEN']) {
+      delete root[key];
+      if (env[key] !== undefined) delete env[key];
+    }
+  }
   // Next loads variants before evaluating next.config. Discard their contributions,
   // but preserve values that already came from the shell/deployment environment.
   for (const loaded of loadedEnvFiles) {

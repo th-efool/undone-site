@@ -95,6 +95,13 @@ describe('root-only local environment', () => {
     ] });
     expect(env).toEqual({ DATABASE_URL: 'hosted-sql' });
   });
+  it('strips pulled VERCEL runtime keys from local .env when not running on Vercel', () => {
+    const cwd = directory();
+    writeFileSync(path.join(cwd, '.env'), 'DATABASE_URL=root-sql\nVERCEL=1\nVERCEL_ENV=production\nVERCEL_OIDC_TOKEN=expired\n');
+    const env: Record<string, string | undefined> = { VERCEL: '1' };
+    loadRootEnvironment({ cwd, env, initialEnv: {} });
+    expect(env).toEqual({ DATABASE_URL: 'root-sql' });
+  });
 });
 
 

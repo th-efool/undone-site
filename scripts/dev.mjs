@@ -13,6 +13,10 @@ if (!fs.existsSync(path.resolve(projectRoot, "packages/notes-board/dist/index.js
   console.log("[dev] Building @undone/notes-board distribution...");
   execSync("npm --prefix packages/notes-board run build", { cwd: projectRoot, stdio: "inherit" });
 }
+if (!fs.existsSync(path.resolve(projectRoot, "packages/interaction-builder/dist/index.js"))) {
+  console.log("[dev] Building @undone/interaction-builder distribution...");
+  execSync("npm --prefix packages/interaction-builder run build", { cwd: projectRoot, stdio: "inherit" });
+}
 
 // 1. Start Next.js dev server
 const nextCmd = isWin ? "npx.cmd" : "npx";
@@ -96,16 +100,25 @@ let domshiftProcess = null;
   });
 })();
 
+function killProcessTree(proc) {
+  if (!proc || !proc.pid) return;
+  try {
+    if (isWin) {
+      execSync(`taskkill /pid ${proc.pid} /T /F`, { stdio: "ignore" });
+    } else {
+      proc.kill("SIGTERM");
+    }
+  } catch {
+    try { proc.kill("SIGTERM"); } catch {}
+  }
+}
+
 // 4. Handle clean termination
 function cleanup() {
-  creationWorker.kill("SIGTERM");
-  interactionWorker.kill("SIGTERM");
-  if (domshiftProcess) {
-    try { domshiftProcess.kill("SIGTERM"); } catch {}
-  }
-  if (nextProcess) {
-    try { nextProcess.kill("SIGTERM"); } catch {}
-  }
+  killProcessTree(creationWorker);
+  killProcessTree(interactionWorker);
+  killProcessTree(domshiftProcess);
+  killProcessTree(nextProcess);
   process.exit(0);
 }
 
@@ -113,10 +126,8 @@ process.on("SIGINT", cleanup);
 process.on("SIGTERM", cleanup);
 
 nextProcess.on("exit", (code) => {
-  creationWorker.kill("SIGTERM");
-  interactionWorker.kill("SIGTERM");
-  if (domshiftProcess) {
-    try { domshiftProcess.kill("SIGTERM"); } catch {}
-  }
+  killProcessTree(creationWorker);
+  killProcessTree(interactionWorker);
+  killProcessTree(domshiftProcess);
   process.exit(code ?? 0);
 });
