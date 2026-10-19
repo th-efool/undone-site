@@ -287,7 +287,9 @@ const CustomTrackSlider = React.memo(function CustomTrackSlider({
       if (!trackRef.current) return;
       const rect = trackRef.current.getBoundingClientRect();
       if (rect.width <= 0) return;
-      const rawRatio = (clientX - rect.left) / rect.width;
+      const thumbRadius = 9;
+      const usableWidth = rect.width - thumbRadius * 2;
+      const rawRatio = usableWidth > 0 ? (clientX - rect.left - thumbRadius) / usableWidth : (clientX - rect.left) / rect.width;
       const clampedRatio = Math.max(0, Math.min(1, rawRatio));
       const rounded = Math.round(clampedRatio * 100) / 100;
       onChange(rounded);
@@ -369,12 +371,12 @@ const CustomTrackSlider = React.memo(function CustomTrackSlider({
           {/* Progress fill */}
           <div
             className={styles.sliderProgressFill}
-            style={{ width: `${percent}%` }}
+            style={{ width: clampedValue === 0 ? '0%' : `calc(9px + (100% - 18px) * ${clampedValue})` }}
           />
           {/* Custom thumb */}
           <div
             className={styles.sliderThumb}
-            style={{ left: `${percent}%` }}
+            style={{ left: `calc(9px + (100% - 18px) * ${clampedValue})` }}
           />
         </div>
 
