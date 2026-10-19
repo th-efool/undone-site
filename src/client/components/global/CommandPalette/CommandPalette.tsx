@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   BookOpen,
   Compass,
@@ -23,51 +24,74 @@ export interface CommandResult {
   action: () => void;
 }
 
-const quickActions: CommandResult[] = [
-  {
-    id: 'go-home',
-    title: 'Go to Home',
-    subtitle: 'Dashboard overview',
-    icon: <Home size={16} />,
-    category: 'action',
-    action: () => (window.location.href = '/home'),
-  },
-  {
-    id: 'go-play',
-    title: 'Continue Learning',
-    subtitle: 'Jump to active cohort',
-    icon: <Play size={16} />,
-    category: 'action',
-    action: () => (window.location.href = '/home'),
-  },
-  {
-    id: 'go-explore',
-    title: 'Explore Undone',
-    subtitle: 'Browse new learning paths',
-    icon: <Compass size={16} />,
-    category: 'action',
-    action: () => (window.location.href = '/explore'),
-  },
-  {
-    id: 'go-notes',
-    title: 'Open Notes',
-    subtitle: 'Your saved thoughts and ideas',
-    icon: <FileText size={16} />,
-    category: 'action',
-    action: () => (window.location.href = '/notes'),
-  },
-  {
-    id: 'create-cohort',
-    title: 'Create New Cohort',
-    subtitle: 'Start a new learning journey',
-    icon: <BookOpen size={16} />,
-    category: 'action',
-    action: () => (window.location.href = '/create-cohort'),
-  },
-];
+function useSafeRouter() {
+  try {
+    return useRouter();
+  } catch {
+    return null;
+  }
+}
 
 export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [query, setQuery] = useState('');
+  const router = useSafeRouter();
+
+  const navigate = useCallback(
+    (href: string) => {
+      if (router) {
+        router.push(href);
+      } else {
+        window.location.href = href;
+      }
+    },
+    [router]
+  );
+
+  const quickActions: CommandResult[] = useMemo(
+    () => [
+      {
+        id: 'go-home',
+        title: 'Go to Home',
+        subtitle: 'Dashboard overview',
+        icon: <Home size={16} />,
+        category: 'action',
+        action: () => navigate('/home'),
+      },
+      {
+        id: 'go-play',
+        title: 'Continue Learning',
+        subtitle: 'Jump to active cohort',
+        icon: <Play size={16} />,
+        category: 'action',
+        action: () => navigate('/play'),
+      },
+      {
+        id: 'go-explore',
+        title: 'Explore Undone',
+        subtitle: 'Browse new learning paths',
+        icon: <Compass size={16} />,
+        category: 'action',
+        action: () => navigate('/explore'),
+      },
+      {
+        id: 'go-notes',
+        title: 'Open Notes',
+        subtitle: 'Your saved thoughts and ideas',
+        icon: <FileText size={16} />,
+        category: 'action',
+        action: () => navigate('/notes'),
+      },
+      {
+        id: 'create-cohort',
+        title: 'Create New Cohort',
+        subtitle: 'Start a new learning journey',
+        icon: <BookOpen size={16} />,
+        category: 'action',
+        action: () => navigate('/create-cohort'),
+      },
+    ],
+    [navigate]
+  );
 
   const cohorts = useMemo(() => cohortRepository.list(), []);
 
@@ -93,13 +117,13 @@ export function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenCh
           subtitle: c.creator?.name || 'Undone',
           icon: <BookOpen size={16} />,
           category: 'cohort',
-          action: () => (window.location.href = `/cohort/${c.id}`),
+          action: () => navigate(`/cohort/${c.id}`),
         });
       }
     });
 
     return filtered.slice(0, 20);
-  }, [query, cohorts]);
+  }, [query, cohorts, quickActions, navigate]);
 
   // Close on escape — let Radix handle it, but also clear query
   useEffect(() => {

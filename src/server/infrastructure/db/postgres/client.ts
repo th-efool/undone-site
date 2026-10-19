@@ -24,13 +24,11 @@ const createPrismaClient = () => {
             maxWait: 15000,
             timeout: 30000,
         },
-        log: process.env.NODE_ENV === 'development' && process.env.INTERACTION_LOCAL_MODEL_FIXTURE !== '1' ? ['query', 'error', 'warn'] : ['error'],
+        log: process.env.PRISMA_LOG_QUERIES === '1' ? ['query', 'error', 'warn'] : ['error'],
     });
 };
 
 export const prisma = globalForPrisma.prisma || createPrismaClient();
 
-if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma.prisma = prisma;
-}
+globalForPrisma.prisma = prisma;
 

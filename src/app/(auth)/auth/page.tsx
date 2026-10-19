@@ -1,12 +1,10 @@
 import { Metadata } from 'next';
-import dynamic from 'next/dynamic';
+import { Auth } from '@/src/client/screens/auth';
 import { authReturnTo } from '@/src/shared/auth/returnTo';
 import { headers } from 'next/headers';
 import { getUser } from '@/src/server/infrastructure/auth/getUser';
 import { getCreationOwner } from '@/src/server/infrastructure/auth/getCreationOwner';
 import { signInErrorMessage } from '@/src/shared/auth/signInError';
-
-const Auth = dynamic(() => import('@/src/client/screens/auth/').then((mod) => mod.Auth));
 
 export const metadata: Metadata = {
   title: 'Sign In',

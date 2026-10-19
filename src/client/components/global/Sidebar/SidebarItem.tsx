@@ -45,6 +45,7 @@ export function SidebarItem({ href, label, icon: Icon, disabled = false }: Sideb
     <Tooltip content={disabled ? `${label} (Disabled)` : label} placement="right">
       <Link
         href={disabled ? '#' : href}
+        prefetch={!disabled}
         aria-label={label}
         aria-disabled={disabled}
         onClick={handleClick}

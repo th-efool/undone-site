@@ -33,6 +33,10 @@ const nextConfig: NextConfig = {
   },
   transpilePackages: ['es-toolkit'],
   experimental: {
+    staleTimes: {
+      dynamic: 60,
+      static: 300,
+    },
     optimizePackageImports: ['lucide-react', 'framer-motion', '@reduxjs/toolkit'],
   },
   images: {

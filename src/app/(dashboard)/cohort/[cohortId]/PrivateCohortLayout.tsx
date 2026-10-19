@@ -13,34 +13,34 @@ export async function PrivateCohortLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
+  const userId = session?.user?.id ?? null;
   const isLoggedIn = !!session?.user;
 
-  let isEnrolled = false;
-  if (isLoggedIn && session?.user?.id) {
-    const member = await prisma.cohortMember.findUnique({
-      where: {
-        cohortId_userId: {
-          cohortId,
-          userId: session.user.id,
+  const [member, dbCohort] = await Promise.all([
+    isLoggedIn && userId
+      ? prisma.cohortMember.findUnique({
+          where: {
+            cohortId_userId: {
+              cohortId,
+              userId,
+            },
+          },
+        })
+      : Promise.resolve(null),
+    prisma.cohort.findFirst({
+      where: { id: cohortId, ...accessibleCohortWhere(userId) },
+      include: {
+        creator: true,
+        seasons: {
+          include: {
+            lessons: true,
+          },
         },
       },
-    });
-    if (member) {
-      isEnrolled = true;
-    }
-  }
+    }),
+  ]);
 
-  const dbCohort = await prisma.cohort.findFirst({
-    where: { id: cohortId, ...accessibleCohortWhere((await auth())?.user?.id ?? null) },
-    include: {
-      creator: true,
-      seasons: {
-        include: {
-          lessons: true,
-        },
-      },
-    },
-  });
+  const isEnrolled = Boolean(member);
 
   if (!dbCohort) {
     notFound();

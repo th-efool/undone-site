@@ -114,6 +114,44 @@ describe('usePlayback fetch abort behavior', () => {
     console.log(fetchMock.mock.calls.map((c) => c[0]));
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
+
+  it('does not trigger infinite abort recursion or exceed maximum update depth when superseded', async () => {
+    let callCount = 0;
+    fetchMock.mockImplementation((_url: string, options: { signal?: AbortSignal }) => {
+      callCount++;
+      return new Promise((resolve, reject) => {
+        if (options?.signal) {
+          options.signal.addEventListener('abort', () => {
+            const error = new Error('The user aborted a request.');
+            error.name = 'AbortError';
+            reject(error);
+          });
+        }
+        if (callCount === 2) {
+          setTimeout(() => {
+            resolve({ ok: true, json: async () => ({ items: [{ chunkId: 'c1' }] }) });
+          }, 20);
+        } else if (callCount > 2) {
+          resolve({ ok: true, json: async () => ({ items: [] }) });
+        }
+      });
+    });
+
+    const { result } = renderHook(() => usePlayback());
+
+    // Trigger rapid superseding fetch for the same channel
+    await act(async () => {
+      void result.current.fetchChannelFeed('default', 0);
+    });
+
+    // Wait for resolution
+    await waitFor(() => {
+      expect(result.current.feedLoading).toBe(false);
+    });
+
+    expect(result.current.feedItems).toHaveLength(1);
+    expect(callCount).toBeLessThan(5);
+  });
 });
 
 

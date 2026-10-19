@@ -50,6 +50,11 @@ export interface StoredHomeChoices {
   updatedAt: string;
 }
 
+let lastCohortSyncAt = 0;
+let lastChannelSyncAt = 0;
+let cachedChannelSyncResult: { activeChannel: ChannelId; prefs: ChannelPreferences } | null = null;
+const SYNC_TTL_MS = 30_000;
+
 export const homeStorageAdapter = {
   /**
    * Load locally persisted choices synchronously from localStorage / cache
@@ -106,8 +111,14 @@ export const homeStorageAdapter = {
       return this.getStoredChoices();
     }
 
+    if (process.env.NODE_ENV !== 'test' && Date.now() - lastCohortSyncAt < SYNC_TTL_MS) {
+      const cached = this.getStoredChoices();
+      if (cached) return cached;
+    }
+
     try {
       const res = await fetch('/api/user/cohort-config');
+      lastCohortSyncAt = Date.now();
       if (res.status === 401) {
         // Session expired or unauthenticated; return local choices quietly
         return this.getStoredChoices();
@@ -231,8 +242,16 @@ export const homeStorageAdapter = {
       };
     }
 
+    if (process.env.NODE_ENV !== 'test' && cachedChannelSyncResult && Date.now() - lastChannelSyncAt < SYNC_TTL_MS) {
+      return {
+        activeChannel: this.getSelectedChannel(),
+        prefs: this.getChannelPreferences(),
+      };
+    }
+
     try {
       const res = await fetch('/api/user/channel-config');
+      lastChannelSyncAt = Date.now();
       if (res.status === 401) {
         return {
           activeChannel: this.getSelectedChannel(),
@@ -257,10 +276,11 @@ export const homeStorageAdapter = {
           this.saveChannelPreferences(partial);
         }
 
-        return {
+        cachedChannelSyncResult = {
           activeChannel: this.getSelectedChannel(),
           prefs: this.getChannelPreferences(),
         };
+        return cachedChannelSyncResult;
       }
     } catch (err) {
       console.warn('Backend channel config sync unavailable, using local choices:', err);
