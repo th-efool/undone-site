@@ -96,6 +96,8 @@ const FALLBACK_EXPLORE: ExploreModel = {
 };
 
 let memoryExploreCache: ExploreModel | null = null;
+let lastExploreFetchTime = 0;
+const EXPLORE_TTL_MS = 60_000;
 
 export const exploreRepository = {
   getInitialExplore(): ExploreModel {
@@ -116,6 +118,14 @@ export const exploreRepository = {
   },
 
   async getExplore(): Promise<ExploreModel> {
+    if (
+      memoryExploreCache &&
+      Date.now() - lastExploreFetchTime < EXPLORE_TTL_MS &&
+      process.env.NODE_ENV !== 'test'
+    ) {
+      return memoryExploreCache;
+    }
+
     const res = await fetch('/api/explore');
     if (!res.ok) {
       throw new Error('Failed to fetch explore data');
@@ -146,6 +156,7 @@ export const exploreRepository = {
         };
 
     memoryExploreCache = result;
+    lastExploreFetchTime = Date.now();
     if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
       try {
         localStorage.setItem(EXPLORE_CACHE_KEY, JSON.stringify(result));
