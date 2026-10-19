@@ -23,11 +23,14 @@ function useSafeSession() {
   }
 }
 
+export type NotesSyncStatus = 'saved' | 'saving' | 'offline' | 'error';
+
 export function useNotes() {
   const { data: session } = useSafeSession();
   const userId = session?.user?.id ?? null;
   const [state, setState] = useState<NotesStateEntity | null>(() => notesRepository.getInitialState(userId));
   const [hasLoadedRemote, setHasLoadedRemote] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<NotesSyncStatus>('saved');
   const [notebookQuery, setNotebookQuery] = useState('');
   const [noteQuery, setNoteQuery] = useState('');
   const [toast, setToast] = useState('');
@@ -35,20 +38,39 @@ export function useNotes() {
     notes: NoteDocument[];
     notebooks: NotesStateEntity['notebooks'];
   } | null>(null);
-  useEffect(() => {
+  const [prevUserId, setPrevUserId] = useState(userId);
+  if (prevUserId !== userId) {
+    setPrevUserId(userId);
     setState(notesRepository.getInitialState(userId));
+    setHasLoadedRemote(false);
+  }
+
+  useEffect(() => {
+    let active = true;
     notesRepository.load(userId).then((loaded) => {
+      if (!active) return;
       setState(loaded);
       setHasLoadedRemote(true);
+      setSyncStatus('saved');
     });
+    return () => {
+      active = false;
+    };
   }, [userId]);
+
   useEffect(() => {
     if (!state || !hasLoadedRemote) return;
-    const t = setTimeout(() => {
-      void notesRepository.save(state, userId);
+    const t = setTimeout(async () => {
+      try {
+        const res = await notesRepository.save(state, userId);
+        setSyncStatus(res.ok ? 'saved' : 'offline');
+      } catch {
+        setSyncStatus('offline');
+      }
     }, 1000);
     return () => clearTimeout(t);
   }, [state, hasLoadedRemote, userId]);
+
   useEffect(() => {
     if (toast) {
       const t = setTimeout(() => setToast(''), 2800);
@@ -57,7 +79,10 @@ export function useNotes() {
   }, [toast]);
 
   const update = useCallback(
-    (fn: (s: NotesStateEntity) => NotesStateEntity) => setState((s) => (s ? fn(s) : s)),
+    (fn: (s: NotesStateEntity) => NotesStateEntity) => {
+      setSyncStatus('saving');
+      setState((s) => (s ? fn(s) : s));
+    },
     [],
   );
   const data = useMemo(
@@ -339,6 +364,7 @@ export function useNotes() {
     setNoteQuery,
     toast,
     undo,
+    syncStatus,
     actions,
   };
 }

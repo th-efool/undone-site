@@ -57,7 +57,10 @@ export class NotesRepository {
     }
   }
 
-  async save(state: NotesStateEntity, userId?: string | null): Promise<NotesStateEntity> {
+  async save(
+    state: NotesStateEntity,
+    userId?: string | null,
+  ): Promise<{ ok: boolean; data: NotesStateEntity }> {
     const memoryKey = userId || 'anon';
     memoryNotesStateByUser.set(memoryKey, state);
     if (typeof window !== 'undefined') {
@@ -74,19 +77,20 @@ export class NotesRepository {
           },
           body: JSON.stringify(state),
         });
-        
+
         if (!response.ok) {
           throw new Error('Failed to save notes');
         }
-        
+
         const saved = (await response.json()) as NotesStateEntity;
         memoryNotesStateByUser.set(memoryKey, saved);
-        return saved;
+        return { ok: true, data: saved };
       } catch (error) {
         console.error('Failed to save notes to API', error);
+        return { ok: false, data: state };
       }
     }
-    return state;
+    return { ok: true, data: state };
   }
 }
 

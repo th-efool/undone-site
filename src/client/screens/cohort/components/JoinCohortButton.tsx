@@ -13,6 +13,7 @@ interface JoinCohortButtonProps {
 
 export function JoinCohortButton({ cohortId, isLoggedIn }: JoinCohortButtonProps) {
   const router = useRouter();
+  const [isJoined, setIsJoined] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const pending = React.useRef(false);
@@ -24,19 +25,33 @@ export function JoinCohortButton({ cohortId, isLoggedIn }: JoinCohortButtonProps
     }
 
     if (pending.current) return;
-    pending.current = true; setIsLoading(true); setError(null);
+    pending.current = true;
+    setIsLoading(true);
+    setIsJoined(true);
+    setError(null);
+
     try {
       const response = await fetch(apiUrl(`/api/cohort/${encodeURIComponent(cohortId)}/join`), {
-        method: 'POST', credentials: 'include', signal: AbortSignal.timeout(30_000),
+        method: 'POST',
+        credentials: 'include',
+        signal: AbortSignal.timeout(30_000),
       });
       if (response.ok) {
         router.refresh();
-      } else if (response.status === 401) {
-        router.push(creationSignInUrl(`/cohort/${encodeURIComponent(cohortId)}`));
       } else {
-        setError(response.status === 404 || response.status === 403 ? 'This cohort is no longer available to join.' : 'Joining failed. Try again.');
+        setIsJoined(false);
+        if (response.status === 401) {
+          router.push(creationSignInUrl(`/cohort/${encodeURIComponent(cohortId)}`));
+        } else {
+          setError(
+            response.status === 404 || response.status === 403
+              ? 'This cohort is no longer available to join.'
+              : 'Joining failed. Try again.',
+          );
+        }
       }
     } catch {
+      setIsJoined(false);
       setError('Joining could not be confirmed. Reload the cohort to check your membership before retrying.');
     } finally {
       setIsLoading(false);
@@ -44,13 +59,18 @@ export function JoinCohortButton({ cohortId, isLoggedIn }: JoinCohortButtonProps
     }
   };
 
+  const buttonText = isJoined ? 'Joined ✓' : isLoading ? 'Joining...' : 'Join Cohort';
+
   return (
-    <><button
-      onClick={handleJoin}
-      disabled={isLoading}
-      className={styles.button}
-    >
-      {isLoading ? 'Joining...' : 'Join Cohort'}
-    </button>{error && <p role="alert">{error}</p>}</>
+    <>
+      <button
+        onClick={handleJoin}
+        disabled={isJoined || isLoading}
+        className={`${styles.button} ${isJoined ? styles.buttonJoined : ''}`}
+      >
+        {buttonText}
+      </button>
+      {error && <p role="alert">{error}</p>}
+    </>
   );
 }

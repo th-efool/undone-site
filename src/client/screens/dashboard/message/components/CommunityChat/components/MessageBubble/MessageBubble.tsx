@@ -1,5 +1,4 @@
 import Image from 'next/image';
-/* eslint-disable @next/next/no-img-element */
 import { useEffect, useState } from 'react';
 import { Copy, MoreHorizontal, Reply, SmilePlus } from 'lucide-react';
 import { CommunityMessage } from '../../../../models';
@@ -98,6 +97,12 @@ export function MessageBubble({ message, isAdjacentReply = false, hasAdjacentRep
           <strong>{message.author.name}</strong>
           {message.badge && <span>{message.badge}</span>}
           <time>{message.timestamp}</time>
+          {message.status === 'sending' && (
+            <span className={styles.statusSending} title="Sending..." aria-label="Sending">⏳</span>
+          )}
+          {message.status === 'failed' && (
+            <span className={styles.statusFailed} title="Failed to send" aria-label="Failed to send">⚠️ Failed</span>
+          )}
         </div>
 
         {message.body && <p>{message.body}</p>}

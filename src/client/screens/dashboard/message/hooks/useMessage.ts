@@ -19,8 +19,6 @@ import {
   getMessageCohorts,
   mapCohortToCommunity,
   mapCohortToConversation,
-  mapCohortToLiveSession,
-  mapCohortToRecentMessage,
   mapCohortToUpcomingEvent,
 } from '../utils';
 
@@ -424,7 +422,18 @@ export function useMessage() {
             setActiveChannelId(mainChannel.id);
             
             if (mainChannel.messages) {
-              const mappedMessages: CommunityMessage[] = mainChannel.messages.map((msg: any) => ({
+              interface ChannelApiMessage {
+                id: string;
+                content?: string;
+                createdAt?: string;
+                author?: {
+                  id?: string;
+                  name?: string;
+                  image?: string;
+                  role?: string;
+                };
+              }
+              const mappedMessages: CommunityMessage[] = mainChannel.messages.map((msg: ChannelApiMessage) => ({
                 id: msg.id,
                 author: {
                   id: msg.author?.id || 'unknown',
@@ -436,7 +445,7 @@ export function useMessage() {
                 timestamp: new Intl.DateTimeFormat('en', {
                   hour: 'numeric',
                   minute: '2-digit',
-                }).format(new Date(msg.createdAt)),
+                }).format(new Date(msg.createdAt || Date.now())),
                 body: msg.content,
               }));
 
@@ -597,12 +606,14 @@ export function useMessage() {
       if (!draft) return;
 
       const base = mapCohortToCommunity(conversationId).messages;
+      const messageId = `${conversationId}-${Date.now()}`;
       const message: CommunityMessage = {
-        id: `${conversationId}-${Date.now()}`,
+        id: messageId,
         author: me,
         badge: 'You',
         timestamp: `Today at ${nowLabel()}`,
         body: draft,
+        status: 'sending',
         ...(replyCtx ? {
           replyTo: {
             messageId: replyCtx.messageId,
@@ -627,10 +638,99 @@ export function useMessage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ content: draft }),
-        }).catch((err) => console.error('Failed to send community message:', err));
+        })
+          .then((res) => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            setCommunityMessages((current) => {
+              const list = current[conversationId];
+              if (!list) return current;
+              return {
+                ...current,
+                [conversationId]: list.map((msg) =>
+                  msg.id === messageId ? { ...msg, status: 'sent' } : msg,
+                ),
+              };
+            });
+          })
+          .catch((err) => {
+            console.error('Failed to send community message:', err);
+            setCommunityMessages((current) => {
+              const list = current[conversationId];
+              if (!list) return current;
+              return {
+                ...current,
+                [conversationId]: list.map((msg) =>
+                  msg.id === messageId ? { ...msg, status: 'failed' } : msg,
+                ),
+              };
+            });
+          });
+      } else {
+        setCommunityMessages((current) => {
+          const list = current[conversationId];
+          if (!list) return current;
+          return {
+            ...current,
+            [conversationId]: list.map((msg) =>
+              msg.id === messageId ? { ...msg, status: 'sent' } : msg,
+            ),
+          };
+        });
       }
     },
     [drafts, clearReply, activeChannelId],
+  );
+
+  const retryCommunityMessage = useCallback(
+    (conversationId: string, messageId: string) => {
+      setCommunityMessages((current) => {
+        const list = current[conversationId];
+        const msg = list?.find((m) => m.id === messageId);
+        if (!msg || !activeChannelId) return current;
+
+        fetch(`/api/community/channels/${activeChannelId}/messages`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ content: msg.body ?? '' }),
+        })
+          .then((res) => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            setCommunityMessages((curr) => {
+              const l = curr[conversationId];
+              if (!l) return curr;
+              return {
+                ...curr,
+                [conversationId]: l.map((m) =>
+                  m.id === messageId ? { ...m, status: 'sent' } : m,
+                ),
+              };
+            });
+          })
+          .catch((err) => {
+            console.error('Failed to retry community message:', err);
+            setCommunityMessages((curr) => {
+              const l = curr[conversationId];
+              if (!l) return curr;
+              return {
+                ...curr,
+                [conversationId]: l.map((m) =>
+                  m.id === messageId ? { ...m, status: 'failed' } : m,
+                ),
+              };
+            });
+          });
+
+        return {
+          ...current,
+          [conversationId]: list.map((m) =>
+            m.id === messageId ? { ...m, status: 'sending' } : m,
+          ),
+        };
+      });
+    },
+    [activeChannelId],
   );
 
   const toggleCommunityReaction = useCallback(
@@ -832,6 +932,7 @@ export function useMessage() {
       setConversationScroll,
       setDraft,
       sendCommunityMessage,
+      retryCommunityMessage,
       sendDMMessage,
       uploadCommunityAttachment,
       toggleCommunityReaction,
@@ -845,6 +946,7 @@ export function useMessage() {
       // Batch C: Reply + typing actions
       setReplyContext,
       clearReply,
+      setIsTyping,
     },
   };
 }

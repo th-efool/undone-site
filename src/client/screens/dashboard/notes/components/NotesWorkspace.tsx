@@ -131,7 +131,11 @@ export function NotesWorkspace({
               }
             }}
           />
-          {selected && <NotesSaveStatus state={canvasState} />}
+          {selected ? (
+            <NotesSaveStatus state={canvasState} />
+          ) : (
+            <NotesSaveStatus syncStatus={notes.syncStatus} />
+          )}
         </div>
         <div className={styles.actions}>
           <Tooltip content={<>Share <kbd className={styles.kbd}>O</kbd></>} placement="bottom">
