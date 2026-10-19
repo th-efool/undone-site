@@ -2,8 +2,6 @@
   padding: 0 0 24px 0;
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
 }
 
 .header {
@@ -262,8 +260,6 @@
   border-top: 1px dashed var(--message-border, rgba(255, 255, 255, 0.12));
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
 }
 
 .upNextLabel {
@@ -281,8 +277,9 @@
   flex-direction: column;
   gap: 0;
   padding-top: 4px;
-  flex: 1;
-  overflow-y: hidden;
+  overflow-y: visible;
+  height: auto;
+  min-height: fit-content;
 }
 
 .timelineItem {
@@ -514,6 +511,12 @@
 
 .lightVariant .upNext {
   border-top: 1px solid #f1f5f9;
+}
+
+.lightVariant .timeline {
+  overflow: visible;
+  height: auto;
+  min-height: fit-content;
 }
 
 .lightVariant .upNextLabel {

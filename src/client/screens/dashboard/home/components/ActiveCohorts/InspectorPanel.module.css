@@ -182,12 +182,12 @@
 }
 
 .sliderEdgeLabel:focus-visible {
-  outline: 2px solid #4f46e5;
+  outline: 2px solid #0580f1;
   outline-offset: 1px;
 }
 
 .sliderEdgeActive {
-  color: #4f46e5;
+  color: #0580f1;
   font-weight: 800;
 }
 
@@ -199,31 +199,31 @@
 .rangeSlider {
   -webkit-appearance: none;
   width: 100%;
-  height: 3px;
-  background: #e5e7eb;
-  border-radius: 999px;
+  height: 5px;
+  background: #e5e5e7;
+  border-radius: 9999px;
   outline: none;
   cursor: pointer;
 }
 .rangeSlider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: #4f46e5;
+  background: #ffffff;
   cursor: pointer;
-  border: 2px solid white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-  margin-top: -5.5px;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.16), 0 1px 2px rgba(0,0,0,0.08);
+  margin-top: -6.5px;
 }
 .rangeSlider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  background: #4f46e5;
+  background: #ffffff;
   cursor: pointer;
-  border: 2px solid white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+  border: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.16), 0 1px 2px rgba(0,0,0,0.08);
 }
 
 /* ─── Custom goal input ───────────────────────────────────────────────────── */
@@ -422,12 +422,12 @@
 
 :global([data-theme='dark']) .sliderEdgeActive,
 :global(.dark) .sliderEdgeActive {
-  color: #818cf8;
+  color: #0580f1;
 }
 
 :global([data-theme='dark']) .rangeSlider,
 :global(.dark) .rangeSlider {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 :global([data-theme='dark']) .customGoalInput,

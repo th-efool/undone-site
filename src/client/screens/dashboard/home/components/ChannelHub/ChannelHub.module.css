@@ -296,17 +296,17 @@
 .sliderTrackWrapper {
   position: relative;
   width: 100%;
-  height: 6px;
-  border-radius: 999px;
-  background: #e2e8f0;
+  height: 5px;
+  border-radius: 9999px;
+  background: #e5e5e7;
   cursor: pointer;
   touch-action: none;
-  transition: height 0.1s ease;
+  outline: none;
 }
 
-.sliderTrackWrapper:hover,
-.trackDragging {
-  height: 7px;
+.sliderTrackWrapper:focus,
+.sliderTrackWrapper:focus-visible {
+  outline: none;
 }
 
 .sliderProgressFill {
@@ -314,30 +314,31 @@
   left: 0;
   top: 0;
   bottom: 0;
-  background: #3b49df;
-  border-radius: 999px;
+  background: #0580f1;
+  border-radius: 9999px;
   pointer-events: none;
 }
 
 .sliderThumb {
   position: absolute;
   top: 50%;
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #ffffff;
-  border: 2px solid #3b49df;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.16), 0 1px 2px rgba(0, 0, 0, 0.08);
   transform: translate(-50%, -50%);
   pointer-events: none;
-  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.12s ease;
+  user-select: none;
 }
 
 .sliderTrackWrapper:hover .sliderThumb,
 .trackDragging .sliderThumb {
-  transform: translate(-50%, -50%) scale(1.15);
-  box-shadow: 0 0 0 3px rgba(59, 73, 223, 0.25);
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1);
 }
+
 
 .dichotomyLabels {
   display: flex;
@@ -605,13 +606,19 @@
 
 :global([data-theme='dark']) .sliderTrackWrapper,
 :global(.dark) .sliderTrackWrapper {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+:global([data-theme='dark']) .sliderProgressFill,
+:global(.dark) .sliderProgressFill {
+  background: #0580f1;
 }
 
 :global([data-theme='dark']) .sliderThumb,
 :global(.dark) .sliderThumb {
-  background: #f8fafc;
-  border-color: #6366f1;
+  background: #ffffff;
+  border: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
 :global([data-theme='dark']) .sliderValueBadge,

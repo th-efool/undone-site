@@ -27,8 +27,8 @@
 .agy-slider-track {
   position: relative;
   width: 100%;
-  height: 4px;
-  background: var(--color-slider-track-unfill, rgba(255, 255, 255, 0.25));
+  height: 5px;
+  background: var(--color-slider-track-unfill, #e5e5e7);
   border-radius: 9999px;
   overflow: hidden;
   pointer-events: none;
@@ -40,7 +40,7 @@
   top: 0;
   left: 0;
   height: 100%;
-  background: var(--color-slider-track-fill, var(--color-brand, #5430FF));
+  background: var(--color-slider-track-fill, #0580f1);
   border-radius: 9999px;
   pointer-events: none;
 }
@@ -52,22 +52,21 @@
 .agy-slider-thumb {
   position: absolute;
   top: 50%;
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: var(--color-slider-thumb, #ffffff);
-  border: 2px solid var(--color-slider-thumb-border, var(--color-brand, #5430FF));
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
-  transition: box-shadow 0.15s ease;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.16), 0 1px 2px rgba(0, 0, 0, 0.08);
   pointer-events: none;
   z-index: 2;
 }
 
-/* Halo states on hover, focus, active */
+/* Steady physical knob states on hover, focus, active - no size increase or halo */
 .agy-slider-track-wrap:hover .agy-slider-thumb,
 .agy-slider-track-wrap:focus-within .agy-slider-thumb,
 .agy-slider-thumb-active {
-  box-shadow: 0 0 0 6px rgba(124, 77, 255, 0.35);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* Native Accessible Overlay (for Vitest tests, screen readers, keyboard navigation) */

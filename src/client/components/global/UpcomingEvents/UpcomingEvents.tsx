@@ -549,8 +549,10 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
     setToastMessage(`Active sync: ${prov}`);
   };
 
+  const isSelectedToday = isCurrentActiveMonth && selectedDay === currentDay;
+
   const formattedSelectedDate = (() => {
-    if (isCurrentActiveMonth && selectedDay === currentDay) {
+    if (isSelectedToday) {
       return 'Thu, Aug 6, 2026';
     }
     const d = new Date(currentYear, currentMonth, selectedDay);
@@ -779,7 +781,7 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
       {/* Up Next / Timeline Section */}
       <div className={styles.upNext}>
         <div className={styles.upNextLabel}>
-          <span>{isLight ? 'Today' : 'Up Next'}</span>
+          <span>{isLight ? (isSelectedToday ? 'Today' : 'Schedule') : 'Up Next'}</span>
           {isLight && <span className={styles.upNextSubLabel}>{formattedSelectedDate}</span>}
         </div>
 
