@@ -15,6 +15,7 @@ export interface CohortLearningSettings {
 export interface ActiveCohortsProps {
   heading: HomeSectionContent;
   items: ActiveCohort[];
+  isLoading?: boolean;
   onPause(cohortId: string, pausedUntil?: Date): void | Promise<void>;
   onResume(cohortId: string): void | Promise<void>;
   onSave(cohortId: string, settings: CohortLearningSettings): Promise<void>;
@@ -22,7 +23,7 @@ export interface ActiveCohortsProps {
 }
 
 export const ActiveCohorts = React.memo(function ActiveCohorts({
-  heading, items, onPause, onResume, onSave, onDelete,
+  heading, items, isLoading, onPause, onResume, onSave, onDelete,
 }: ActiveCohortsProps) {
   return (
     <section className={styles.section} aria-label={heading.title || 'Subscribed Cohorts'}>
@@ -41,7 +42,15 @@ export const ActiveCohorts = React.memo(function ActiveCohorts({
           />
         ))}
       </div>
-      {items.length === 0 && <Link href="/explore">Discover cohorts</Link>}
+      {items.length === 0 && (
+        isLoading ? (
+          <div className={styles.loadingContainer} role="status" aria-label="Loading cohorts">
+            <span className={styles.spinner} aria-hidden="true" />
+          </div>
+        ) : (
+          <Link href="/explore">Discover cohorts</Link>
+        )
+      )}
     </section>
   );
 });

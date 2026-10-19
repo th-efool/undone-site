@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { HomeSkeleton } from '@/src/client/components/global/Skeleton';
 import { ActiveCohorts } from './components/ActiveCohorts/ActiveCohorts';
 import { ChannelHub } from './components/ChannelHub/ChannelHub';
 import { HomeHero } from './components/HomeHero/HomeHero';
@@ -43,7 +42,7 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
           <LearningPromptBar />
           <ChannelHub />
           {home.syncError && <p role="alert">{home.syncError}</p>}
-          <ActiveCohorts heading={home.sections.activeCohorts} items={subscribedCohorts} onPause={handlePause} onResume={home.actions.resumePausedCohort}
+          <ActiveCohorts heading={home.sections.activeCohorts} items={subscribedCohorts} isLoading={home.loading && subscribedCohorts.length === 0} onPause={handlePause} onResume={home.actions.resumePausedCohort}
             onSave={home.actions.saveLearningSettings} onDelete={home.actions.removeSubscribedCohort} />
           {home.recentlyCompleted.length > 0 && (
             <RecentlyCompleted heading={home.sections.recentlyCompleted} items={home.recentlyCompleted} isOpen={isCompletedOpen} onToggle={() => setIsCompletedOpen((open) => !open)} />
