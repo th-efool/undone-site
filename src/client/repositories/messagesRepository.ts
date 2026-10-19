@@ -10,7 +10,7 @@ export const messagesRepository = {
     return dmConversationMock;
   },
   getEnrolledCohorts() {
-    const home = homeRepository.getHome();
+    const home = homeRepository.getHome({ loadStored: typeof window !== 'undefined' });
     return [...home.activeCohorts, ...home.continueLater];
   },
 };

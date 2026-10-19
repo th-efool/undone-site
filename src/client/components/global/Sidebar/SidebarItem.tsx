@@ -23,7 +23,7 @@ export function SidebarItem({ href, label, icon: Icon, disabled = false }: Sideb
   const pathname = usePathname();
   const lastClickRef = useRef<number>(0);
 
-  const isActive = pathname === href;
+  const isActive = pathname === href || (href !== '/home' && pathname.startsWith(href));
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (disabled) {

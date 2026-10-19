@@ -4,6 +4,7 @@ import { auth } from '@/src/server/infrastructure/auth/auth.config';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { connectToMongoDB } from '@/src/server/infrastructure/db/mongodb/client';
 import { UserCohortConfig } from '@/src/server/database/mongo/models/UserCohortConfig';
+import { invalidateHomeServerCache } from '@/src/server/infrastructure/cache/homeServerCache';
 
 export async function POST(
   request: Request,
@@ -40,6 +41,8 @@ export async function POST(
       },
     });
 
+    invalidateHomeServerCache(userId);
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to join cohort', error);
@@ -72,6 +75,9 @@ export async function DELETE(
       await UserCohortConfig.updateOne({ userId, cohortId }, { $set: { isHidden: false } }).exec();
       throw error;
     }
+
+    invalidateHomeServerCache(userId);
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Failed to remove cohort subscription', error);
