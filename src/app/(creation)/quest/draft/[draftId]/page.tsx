@@ -5,6 +5,11 @@ import { getCreationOwner } from '@/src/server/infrastructure/auth/getCreationOw
 import { creationDraftRepo } from '@/src/server/infrastructure/db/postgres/repositories/creationDraft.repo';
 import { creationSignInUrl } from '@/src/shared/auth/returnTo';
 import { querySchema } from '@/src/shared/cohort-creation/contracts';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Quest Draft',
+};
 
 export default async function QuestDraftPage({ params, searchParams }: { params: Promise<{ draftId: string }>; searchParams: Promise<{ q?: string | string[] }> }) {
   const { draftId } = await params;

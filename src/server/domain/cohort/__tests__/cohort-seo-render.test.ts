@@ -51,21 +51,21 @@ describe('Cohort SEO render utilities', () => {
     ogAlt: 'Systems Programming in Rust - cover image',
   };
 
-  it('builds absolute metadata with canonical url without double | Undone', () => {
+  it('builds metadata with canonical url without double brand name', () => {
     const meta = buildCohortMetadata(mockDbRow, mockSeo, 'overview');
-    expect(meta.title).toEqual({ absolute: 'Master Systems Programming in Rust | Undone' });
+    expect(meta.title).toBe('Master Systems Programming in Rust');
     expect(meta.description).toBe(mockSeo.metaDescription);
     expect(meta.alternates?.canonical).toBe(
       `https://undone.in/cohort/${mockDbRow.id}/overview`
     );
     expect(meta.robots).toMatchObject({ index: true, follow: true });
-    expect(meta.openGraph?.title).toBe('Master Systems Programming in Rust');
+    expect(meta.openGraph?.title).toBe('Undone - Master Systems Programming in Rust');
     expect((meta.twitter as any)?.card).toBe('summary_large_image');
   });
 
   it('builds questline metadata with Curriculum suffix', () => {
     const meta = buildCohortMetadata(mockDbRow, mockSeo, 'questline');
-    expect(meta.title).toEqual({ absolute: 'Master Systems Programming in Rust - Curriculum | Undone' });
+    expect(meta.title).toBe('Master Systems Programming in Rust - Curriculum');
     expect(meta.alternates?.canonical).toBe(
       `https://undone.in/cohort/${mockDbRow.id}/questline`
     );

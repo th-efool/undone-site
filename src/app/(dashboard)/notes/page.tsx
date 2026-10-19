@@ -8,16 +8,16 @@ const Notes = dynamic(
 );
 
 export const metadata: Metadata = {
-  title: 'Notes | Undone',
+  title: 'Notes',
   description: 'Manage and review your study notes on Undone. Keep your thoughts organized and accessible.',
   openGraph: {
-    title: 'Notes | Undone',
+    title: 'Undone - Notes',
     description: 'Manage and review your study notes on Undone. Keep your thoughts organized and accessible.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Notes | Undone',
+    title: 'Undone - Notes',
     description: 'Manage and review your study notes on Undone. Keep your thoughts organized and accessible.',
   },
 };
@@ -26,7 +26,7 @@ export default function NotesPage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'Notes | Undone',
+    name: 'Undone - Notes',
     description: 'Manage and review your study notes on Undone. Keep your thoughts organized and accessible.',
   };
 

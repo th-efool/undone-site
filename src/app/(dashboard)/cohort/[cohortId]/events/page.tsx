@@ -7,9 +7,14 @@ import { mapDbCohortToUiCohort } from '@/src/server/infrastructure/db/postgres/m
 import { notFound } from 'next/navigation';
 import { NOINDEX_METADATA } from '@/src/server/domain/cohort/cohort-seo-render';
 
+import type { Metadata } from 'next';
+
 const Events = dynamic(() => import('@/src/client/screens/cohort').then((mod) => mod.Events));
 
-export const metadata = NOINDEX_METADATA;
+export const metadata: Metadata = {
+  ...NOINDEX_METADATA,
+  title: 'Events',
+};
 
 export default async function EventsPage({ params }: { params: Promise<{ cohortId: string }> }) {
   const { cohortId } = await params;

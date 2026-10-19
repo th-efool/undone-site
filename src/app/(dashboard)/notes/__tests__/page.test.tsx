@@ -19,6 +19,6 @@ describe('NotesPage', () => {
     const json = JSON.parse(script?.innerHTML ?? '{}');
     expect(json['@context']).toBe('https://schema.org');
     expect(json['@type']).toBe('WebPage');
-    expect(json.name).toBe('Notes | Undone');
+    expect(json.name).toBe('Undone - Notes');
   });
 });

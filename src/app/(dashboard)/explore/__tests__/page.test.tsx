@@ -23,15 +23,15 @@ describe('ExplorePage (src/app/(dashboard)/explore/page.tsx)', () => {
   });
 
   it('exports correct metadata with title, description, openGraph, and twitter', () => {
-    expect(metadata.title).toBe('Explore | Undone');
+    expect(metadata.title).toBe('Explore');
     expect(metadata.description).toContain('Discover new cohorts');
     expect(metadata.openGraph).toMatchObject({
-      title: 'Explore | Undone',
+      title: 'Undone - Explore',
       url: 'https://undone.in/explore',
     });
     expect(metadata.twitter).toMatchObject({
       card: 'summary_large_image',
-      title: 'Explore | Undone',
+      title: 'Undone - Explore',
     });
   });
 
@@ -47,7 +47,7 @@ describe('ExplorePage (src/app/(dashboard)/explore/page.tsx)', () => {
     const jsonLd = JSON.parse(script?.innerHTML ?? '{}');
     expect(jsonLd['@context']).toBe('https://schema.org');
     expect(jsonLd['@type']).toBe('WebPage');
-    expect(jsonLd.name).toBe('Explore | Undone');
+    expect(jsonLd.name).toBe('Undone - Explore');
   });
 
   it('renders the Explore content wrapped in Suspense with fallback', async () => {

@@ -9,17 +9,17 @@ import { redirect } from 'next/navigation';
 const Home = dynamic(() => import('@/src/client/screens/dashboard/home').then((mod) => mod.Home));
 
 export const metadata: Metadata = {
-  title: 'Dashboard | Undone',
+  title: 'Dashboard',
   description: 'View your progress, active quests, and stats on your Undone dashboard.',
   openGraph: {
-    title: 'Dashboard | Undone',
+    title: 'Undone - Dashboard',
     description: 'View your progress, active quests, and stats on your Undone dashboard.',
     url: 'https://undone.in/home',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Dashboard | Undone',
+    title: 'Undone - Dashboard',
     description: 'View your progress, active quests, and stats on your Undone dashboard.',
   }
 };

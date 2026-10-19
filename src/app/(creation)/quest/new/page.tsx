@@ -5,6 +5,11 @@ import { redirect } from 'next/navigation';
 import { getCreationOwner } from '@/src/server/infrastructure/auth/getCreationOwner';
 import { creationSignInUrl } from '@/src/shared/auth/returnTo';
 import { LegacyLandingHandoff } from '@/src/client/screens/cohortCreation/LegacyLandingHandoff';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'New Quest',
+};
 
 export const dynamic = 'force-dynamic';
 export default async function NewQuestPage({ searchParams }: { searchParams: Promise<{ q?: string | string[]; handoff?: string }> }) {

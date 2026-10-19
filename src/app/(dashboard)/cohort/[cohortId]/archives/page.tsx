@@ -7,9 +7,14 @@ import { notFound } from 'next/navigation';
 import { mapDbCohortToUiCohort } from '@/src/server/infrastructure/db/postgres/mappers/cohortMapper';
 import { NOINDEX_METADATA } from '@/src/server/domain/cohort/cohort-seo-render';
 
+import type { Metadata } from 'next';
+
 const Archives = dynamic(() => import('@/src/client/screens/cohort').then((mod) => mod.Archives));
 
-export const metadata = NOINDEX_METADATA;
+export const metadata: Metadata = {
+  ...NOINDEX_METADATA,
+  title: 'Archives',
+};
 
 export default async function ArchivesPage({ params }: { params: Promise<{ cohortId: string }> }) {
   const { cohortId } = await params;

@@ -12,22 +12,23 @@ export async function generateMetadata({ params }: { params: Promise<{ cohortId:
     select: { title: true, description: true, coverImage: true },
   });
 
-  const title = dbCohort?.title ? `${dbCohort.title} | Undone` : `Cohort ${cohortId} | Undone`;
+  const title = dbCohort?.title ? dbCohort.title : `Cohort ${cohortId}`;
   const description = dbCohort?.description || `Explore this learning cohort on Undone.`;
   const image = dbCohort?.coverImage || undefined;
+  const socialTitle = `Undone - ${title}`;
 
   return {
     title,
     description,
     openGraph: {
-      title,
+      title: socialTitle,
       description,
       type: 'website',
       images: image ? [{ url: image }] : undefined,
     },
     twitter: {
       card: 'summary_large_image',
-      title,
+      title: socialTitle,
       description,
       images: image ? [image] : undefined,
     },

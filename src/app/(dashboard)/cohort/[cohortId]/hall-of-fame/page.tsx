@@ -7,9 +7,14 @@ import { notFound } from 'next/navigation';
 import { mapDbCohortToUiCohort } from '@/src/server/infrastructure/db/postgres/mappers/cohortMapper';
 import { NOINDEX_METADATA } from '@/src/server/domain/cohort/cohort-seo-render';
 
+import type { Metadata } from 'next';
+
 const HallOfFame = dynamic(() => import('@/src/client/screens/cohort').then((mod) => mod.HallOfFame));
 
-export const metadata = NOINDEX_METADATA;
+export const metadata: Metadata = {
+  ...NOINDEX_METADATA,
+  title: 'Hall of Fame',
+};
 
 export default async function HallOfFamePage({
   params,

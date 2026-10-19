@@ -20,9 +20,11 @@ export function buildCohortMetadata(row: any, seo: CohortSeo | null, tab: 'overv
   const r = resolveSeo(row, seo);
   const url = cohortUrl(row.id, tab);
   const suffix = tab === 'questline' ? ' - Curriculum' : '';
+  const cleanTitle = r.title.replace(/^Undone\s*[-—–]\s*/i, '').replace(/\s*\|\s*Undone$/i, '');
+  const pageTitle = `${cleanTitle}${suffix}`;
   const image = row.coverImage ? [{ url: row.coverImage, width: 1200, height: 630, alt: r.ogAlt }] : undefined;
   return {
-    title: { absolute: `${r.title}${suffix} | Undone` }, // absolute => avoids duplicate "| Undone"
+    title: pageTitle,
     description: r.description,
     keywords: r.keywords,
     alternates: { canonical: url },
@@ -41,14 +43,14 @@ export function buildCohortMetadata(row: any, seo: CohortSeo | null, tab: 'overv
       type: 'website',
       url,
       siteName: 'Undone',
-      title: `${r.title}${suffix}`,
+      title: `Undone - ${pageTitle}`,
       description: r.description,
       images: image,
       locale: 'en_US',
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${r.title}${suffix}`,
+      title: `Undone - ${pageTitle}`,
       description: r.description,
       images: row.coverImage ? [row.coverImage] : undefined,
     },

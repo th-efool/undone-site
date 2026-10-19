@@ -12,16 +12,16 @@ import CohortIndexPage, { metadata } from '../page';
 
 describe('CohortIndexPage (src/app/(dashboard)/cohort/page.tsx)', () => {
   it('exports correct metadata for SEO crawlers', () => {
-    expect(metadata.title).toBe('Cohorts | Undone');
+    expect(metadata.title).toBe('Cohorts');
     expect(metadata.description).toBe('View and manage your Undone cohorts.');
     expect(metadata.openGraph).toMatchObject({
-      title: 'Cohorts | Undone',
+      title: 'Undone - Cohorts',
       description: 'View and manage your Undone cohorts.',
       type: 'website',
     });
     expect(metadata.twitter).toMatchObject({
       card: 'summary_large_image',
-      title: 'Cohorts | Undone',
+      title: 'Undone - Cohorts',
       description: 'View and manage your Undone cohorts.',
     });
   });
