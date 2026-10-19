@@ -118,6 +118,7 @@ export const SubscribedCohortCard = React.memo(function SubscribedCohortCard({
   const pauseForDays = (count: number) => {
     const until = new Date();
     until.setDate(until.getDate() + count);
+    close();
     void persist(() => onPause(until));
   };
   const submitCustom = (event: React.FormEvent) => {
@@ -130,6 +131,7 @@ export const SubscribedCohortCard = React.memo(function SubscribedCohortCard({
     const [year, month, day] = selectedDate.split('-').map(Number);
     // Resume at the start of the following local day, covering the selected date.
     const until = new Date(year, month - 1, day + 1);
+    close();
     void persist(() => onPause(until));
   };
   const persist = async (operation: () => void | Promise<void>) => {
