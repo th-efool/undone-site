@@ -5,6 +5,7 @@ import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { connectToMongoDB } from '@/src/server/infrastructure/db/mongodb/client';
 import { UserCohortConfig } from '@/src/server/database/mongo/models/UserCohortConfig';
 import { invalidateHomeServerCache } from '@/src/server/infrastructure/cache/homeServerCache';
+import { invalidateFeedCatalogCache } from '@/src/server/infrastructure/cache/feedServerCache';
 
 export async function POST(
   request: Request,
@@ -42,6 +43,7 @@ export async function POST(
     });
 
     invalidateHomeServerCache(userId);
+    invalidateFeedCatalogCache(userId);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -77,6 +79,7 @@ export async function DELETE(
     }
 
     invalidateHomeServerCache(userId);
+    invalidateFeedCatalogCache(userId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

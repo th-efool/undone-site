@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { LogOut } from 'lucide-react';
 import { useSession, signOut } from 'next-auth/react';
+import { homeStorageAdapter } from '@/src/client/repositories/homeStorageAdapter';
 import styles from './ProfilePill.module.css';
 
 export function ProfilePill() {
@@ -45,7 +46,11 @@ export function ProfilePill() {
               <div className={styles.divider} />
               <button
                 type="button"
-                onClick={() => { sessionStorage.removeItem('undone:cohort-intake'); void signOut({ callbackUrl: '/' }); }}
+                onClick={() => {
+                  sessionStorage.removeItem('undone:cohort-intake');
+                  homeStorageAdapter.clearUserChoices(user?.id);
+                  void signOut({ callbackUrl: '/' });
+                }}
                 className={styles.logoutButton}
                 role="menuitem"
               >

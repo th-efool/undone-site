@@ -23,7 +23,7 @@ describe('home subscription actions', () => {
     await act(async () => result.current.actions.removeSubscribedCohort('one'));
     expect(fetch).toHaveBeenCalledWith('/api/cohort/one/join', { method: 'DELETE' });
     expect(result.current.activeCohorts).toEqual([]);
-    expect(mocks.saveChoices).toHaveBeenLastCalledWith([], []);
+    expect(mocks.saveChoices).toHaveBeenLastCalledWith([], [], 'learner');
     expect(mocks.getStoredChoices).not.toHaveBeenCalled();
     const empty = { activeCohorts: [], continueLater: [] };
     const { result: emptyResult } = renderHook(() => useHome(empty));

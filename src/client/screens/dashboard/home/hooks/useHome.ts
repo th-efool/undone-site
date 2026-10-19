@@ -56,14 +56,15 @@ export function useHome(props?: {
 }) {
   const { data: session, status: authStatus } = useSafeSession();
   const isAuthenticated = authStatus === 'authenticated' && !!session?.user?.id;
+  const userId = session?.user?.id ?? null;
 
   const { data: homeData, isLoading } = useQuery({
-    queryKey: ['home'],
-    queryFn: async () => homeRepository.getHome({ loadStored: true }),
-    initialData: () => homeRepository.getHome({ loadStored: typeof window !== 'undefined' }),
+    queryKey: ['home', userId ?? 'anon'],
+    queryFn: async () => homeRepository.getHome({ loadStored: true, userId }),
+    initialData: () => homeRepository.getHome({ loadStored: typeof window !== 'undefined', userId }),
   });
 
-  const source = homeData ?? homeRepository.getHome();
+  const source = homeData ?? homeRepository.getHome({ userId });
   const home = {
     ...source,
     activeCohorts: props?.activeCohorts ?? source.activeCohorts,
@@ -78,13 +79,13 @@ export function useHome(props?: {
       return getActiveCohorts(props?.activeCohorts ?? [], props?.continueLater ?? []);
     }
     if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
-      const stored = homeStorageAdapter.getStoredChoices();
+      const stored = homeStorageAdapter.getStoredChoices(userId);
       if (stored && (Array.isArray(stored.activeCohorts) || Array.isArray(stored.continueLater))) {
         return getActiveCohorts(stored.activeCohorts ?? [], stored.continueLater ?? []);
       }
     }
     return getActiveCohorts(home.activeCohorts, home.continueLater);
-  }, [props?.activeCohorts, props?.continueLater, home.activeCohorts, home.continueLater]);
+  }, [props?.activeCohorts, props?.continueLater, home.activeCohorts, home.continueLater, userId]);
 
   const [activeCohorts, setActiveCohorts] = useState<ActiveCohort[]>(initialCohorts.activeCohorts);
   const [continueLater, setContinueLater] = useState<PausedCohort[]>(initialCohorts.continueLater);
@@ -100,7 +101,7 @@ export function useHome(props?: {
     const hasServerCohorts =
       props?.activeCohorts !== undefined || props?.continueLater !== undefined;
     if (!hasServerCohorts) {
-      const stored = homeStorageAdapter.getStoredChoices();
+      const stored = homeStorageAdapter.getStoredChoices(userId);
       if (stored) {
         if (Array.isArray(stored.activeCohorts) && stored.activeCohorts.length > 0) {
           setActiveCohorts(stored.activeCohorts);
@@ -114,7 +115,7 @@ export function useHome(props?: {
     // 2. Only perform remote backend sync if authenticated to prevent 401 console spam
     if (isAuthenticated && !hasServerCohorts) {
       homeStorageAdapter
-        .syncWithBackend(true)
+        .syncWithBackend(true, userId)
         .then((synced) => {
           if (synced?.activeCohorts) {
             setActiveCohorts(synced.activeCohorts);
@@ -125,7 +126,7 @@ export function useHome(props?: {
         })
         .catch(() => {});
     }
-  }, [props?.activeCohorts, props?.continueLater, isAuthenticated]);
+  }, [props?.activeCohorts, props?.continueLater, isAuthenticated, userId]);
 
   const debouncedSyncCohort = useCallback(
     (
@@ -170,7 +171,7 @@ export function useHome(props?: {
             if (rollbackSnapshot) {
               setActiveCohorts(rollbackSnapshot.activeCohorts);
               setContinueLater(rollbackSnapshot.continueLater);
-              homeStorageAdapter.saveChoices(rollbackSnapshot.activeCohorts, rollbackSnapshot.continueLater);
+              homeStorageAdapter.saveChoices(rollbackSnapshot.activeCohorts, rollbackSnapshot.continueLater, userId);
             }
             setSyncError(`Failed to save changes (${res.statusText})`);
           } else {
@@ -181,7 +182,7 @@ export function useHome(props?: {
           if (rollbackSnapshot) {
             setActiveCohorts(rollbackSnapshot.activeCohorts);
             setContinueLater(rollbackSnapshot.continueLater);
-            homeStorageAdapter.saveChoices(rollbackSnapshot.activeCohorts, rollbackSnapshot.continueLater);
+            homeStorageAdapter.saveChoices(rollbackSnapshot.activeCohorts, rollbackSnapshot.continueLater, userId);
           }
           setSyncError('Connection issue: changes rolled back.');
         } finally {
@@ -204,8 +205,8 @@ export function useHome(props?: {
 
   // Automatically persist user choice mutations to local storage
   useEffect(() => {
-    homeStorageAdapter.saveChoices(activeCohorts, continueLater);
-  }, [activeCohorts, continueLater]);
+    homeStorageAdapter.saveChoices(activeCohorts, continueLater, userId);
+  }, [activeCohorts, continueLater, userId]);
 
   useEffect(() => {
     if (!continueLater.length) return;
@@ -273,7 +274,7 @@ export function useHome(props?: {
         if (!res.ok && res.status !== 401) {
           console.warn('[useHome] Persistent error syncing cohort order:', res.statusText);
           setActiveCohorts(previousActive);
-          homeStorageAdapter.saveChoices(previousActive, continueLater);
+          homeStorageAdapter.saveChoices(previousActive, continueLater, userId);
           setSyncError('Could not save cohort order to server.');
         } else {
           setSyncError(null);
@@ -281,7 +282,7 @@ export function useHome(props?: {
       } catch (err) {
         console.warn('[useHome] Persistent network failure reordering cohorts:', err);
         setActiveCohorts(previousActive);
-        homeStorageAdapter.saveChoices(previousActive, continueLater);
+        homeStorageAdapter.saveChoices(previousActive, continueLater, userId);
         setSyncError('Network issue: cohort order was rolled back.');
       } finally {
         setIsSyncing(false);

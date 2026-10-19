@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { filterNotes, toNotebookItems } from '../adapters/notes.adapter';
 import type {
   NoteDocument,
@@ -14,8 +15,18 @@ import { notesRepository } from '../repositories/notes.repository';
 const stamp = () => new Date().toISOString();
 const id = (p: string) => `${p}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+function useSafeSession() {
+  try {
+    return useSession();
+  } catch {
+    return { data: null, status: 'unauthenticated' as const };
+  }
+}
+
 export function useNotes() {
-  const [state, setState] = useState<NotesStateEntity | null>(() => notesRepository.getInitialState());
+  const { data: session } = useSafeSession();
+  const userId = session?.user?.id ?? null;
+  const [state, setState] = useState<NotesStateEntity | null>(() => notesRepository.getInitialState(userId));
   const [hasLoadedRemote, setHasLoadedRemote] = useState(false);
   const [notebookQuery, setNotebookQuery] = useState('');
   const [noteQuery, setNoteQuery] = useState('');
@@ -25,18 +36,19 @@ export function useNotes() {
     notebooks: NotesStateEntity['notebooks'];
   } | null>(null);
   useEffect(() => {
-    notesRepository.load().then((loaded) => {
+    setState(notesRepository.getInitialState(userId));
+    notesRepository.load(userId).then((loaded) => {
       setState(loaded);
       setHasLoadedRemote(true);
     });
-  }, []);
+  }, [userId]);
   useEffect(() => {
     if (!state || !hasLoadedRemote) return;
     const t = setTimeout(() => {
-      void notesRepository.save(state);
+      void notesRepository.save(state, userId);
     }, 1000);
     return () => clearTimeout(t);
-  }, [state, hasLoadedRemote]);
+  }, [state, hasLoadedRemote, userId]);
   useEffect(() => {
     if (toast) {
       const t = setTimeout(() => setToast(''), 2800);

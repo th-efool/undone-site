@@ -39,38 +39,12 @@ function parseChannelPrefs(rawPrefs: string | null, channel: ChannelId): {
   return { rawStringPrefs, channelSliderValues };
 }
 
-type CachedFeedCatalogEntry = {
-  lessons: any[];
-  expiresAt: number;
-};
-
-type CachedMongoVectorsEntry = {
-  transcripts: any[];
-  mongoChunks: any[];
-  expiresAt: number;
-};
-
-const FEED_CATALOG_TTL_MS = 60_000;
-const MONGO_VECTORS_TTL_MS = 120_000;
-
-const globalForFeedCache = globalThis as unknown as {
-  __undoneFeedCatalogCache?: Map<string, CachedFeedCatalogEntry>;
-  __undoneFeedVectorsCache?: Map<string, CachedMongoVectorsEntry>;
-};
-
-function getFeedCatalogCache(): Map<string, CachedFeedCatalogEntry> {
-  if (!globalForFeedCache.__undoneFeedCatalogCache) {
-    globalForFeedCache.__undoneFeedCatalogCache = new Map();
-  }
-  return globalForFeedCache.__undoneFeedCatalogCache;
-}
-
-function getFeedVectorsCache(): Map<string, CachedMongoVectorsEntry> {
-  if (!globalForFeedCache.__undoneFeedVectorsCache) {
-    globalForFeedCache.__undoneFeedVectorsCache = new Map();
-  }
-  return globalForFeedCache.__undoneFeedVectorsCache;
-}
+import {
+  getFeedCatalogCache,
+  getFeedVectorsCache,
+  FEED_CATALOG_TTL_MS,
+  MONGO_VECTORS_TTL_MS,
+} from '@/src/server/infrastructure/cache/feedServerCache';
 
 export async function GET(request: NextRequest) {
   try {
