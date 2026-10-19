@@ -20,10 +20,6 @@ export async function enqueueTextJobPlanInTransaction(
   planned = planTextJobs(state)
 ): Promise<{ jobIds: string[]; inserted: number; superseded: number }> {
   const intents = planned;
-  if (intents.length === 0) {
-    return { jobIds: [], inserted: 0, superseded: 0 };
-  }
-
   // 1. Mark obsolete jobs as superseded in one query
   const obsolete = await tx.query(
     `UPDATE "cohort_text_jobs"
@@ -34,6 +30,10 @@ export async function enqueueTextJobPlanInTransaction(
         AND NOT ("jobKey" = ANY($2::text[])) RETURNING "id"`,
     [workspaceId, intents.map(intent => intent.jobKey)]
   );
+
+  if (intents.length === 0) {
+    return { jobIds: [], inserted: 0, superseded: obsolete.rows.length };
+  }
 
   // 2. Fetch all existing jobs for these jobKeys in one query
   const existingRes = await tx.query(

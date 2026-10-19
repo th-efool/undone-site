@@ -129,8 +129,8 @@ export async function failTextJob(sql: TextArtifactSql, job: ClaimedTextJob, err
 export async function retryTextJob(sql: TextArtifactSql, workspaceId: string, jobId: string, now: Date): Promise<boolean> {
   if (!Number.isFinite(now.getTime())) throw new Error('INVALID_RETRY_TIME');
   const result = await sql.query(`UPDATE "cohort_text_jobs"
-    SET "status" = 'queued', "dueAt" = $1::timestamp, "errorCode" = NULL, "attempts" = 0, "updatedAt" = $1::timestamp
-    WHERE "workspaceId" = $2 AND "id" = $3 AND "status" = 'failed'
+    SET "status" = 'queued', "dueAt" = $1::timestamp, "errorCode" = NULL, "updatedAt" = $1::timestamp
+    WHERE "workspaceId" = $2 AND "id" = $3 AND "status" = 'failed' AND "attempts" < 3
     RETURNING "id"`, [now.toISOString(), workspaceId, jobId]);
   return result.rows.length === 1;
 }

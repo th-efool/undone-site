@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
 const f = vi.hoisted(() => ({ auth: vi.fn(), getUser: vi.fn(), cohort: vi.fn(), lesson: vi.fn(), channel: vi.fn(),
-  join: vi.fn(), channels: vi.fn(), message: vi.fn(), messages: vi.fn(), progress: vi.fn() }));
+  join: vi.fn(), channels: vi.fn(), message: vi.fn(), messages: vi.fn(), progress: vi.fn(), updateOne: vi.fn() }));
 vi.mock('@/src/server/infrastructure/auth/auth.config', () => ({ auth: f.auth }));
 vi.mock('@/src/server/infrastructure/auth/getUser', () => ({ getUser: f.getUser }));
 vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({ prisma: {
@@ -9,6 +9,14 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({ prisma: {
 } }));
 vi.mock('@/src/server/infrastructure/db/postgres/repositories/community.repo', () => ({
   communityRepo: { getCommunityChannels: f.channels, addMessage: f.message, getChannelMessages: f.messages },
+}));
+vi.mock('@/src/server/infrastructure/db/mongodb/client', () => ({
+  connectToMongoDB: vi.fn().mockResolvedValue(undefined),
+}));
+vi.mock('@/src/server/database/mongo/models/UserCohortConfig', () => ({
+  UserCohortConfig: {
+    updateOne: (...args: unknown[]) => f.updateOne(...args),
+  },
 }));
 vi.mock('@/src/server/domain/progress/chunkProgress.service', () => ({ ChunkProgressService: { recordProgress: f.progress } }));
 import { POST as join } from '@/src/app/api/cohort/[id]/join/route';
@@ -18,7 +26,12 @@ import { POST as progress } from '@/src/app/api/progress/chunk/route';
 import { accessibleCohortWhere } from '../cohortAccessPolicy';
 import { generateMetadata } from '@/src/app/(dashboard)/cohort/[cohortId]/page';
 const request = (body: unknown = {}) => new Request('http://localhost/api', { method: 'POST', body: JSON.stringify(body) });
-beforeEach(() => { vi.resetAllMocks(); f.auth.mockResolvedValue({ user: { id: 'user' } }); f.getUser.mockResolvedValue({ id: 'user' }); });
+beforeEach(() => {
+  vi.resetAllMocks();
+  f.auth.mockResolvedValue({ user: { id: 'user' } });
+  f.getUser.mockResolvedValue({ id: 'user' });
+  f.updateOne.mockReturnValue({ exec: vi.fn().mockResolvedValue({}) });
+});
 
 describe('cohort API access boundaries', () => {
   it('protects metadata independently of the layout and fails closed on authentication failure', async () => {

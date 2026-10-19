@@ -1,4 +1,4 @@
-﻿import { readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi, afterEach } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 
@@ -15,6 +15,7 @@ import {
 import {
   reserveModelTurnBudgetSql,
   UserBudgetExceededError,
+  hourlyUserModelTurns,
 } from '../budget-policy';
 import { runTextJobTick } from '../text-job-tick';
 import { createTextSourceProcessor } from '../text-source-processor';
@@ -282,15 +283,16 @@ describe('Checkpoint 3: Provider Safety, Metadata Fail-Closed, Budgets & Aborts'
         VALUES ($1, $2, 'cohort', '{}')
       `, [workspaceId, ownerId]);
 
-      // Seed budget as already exhausted (used = 50, limit = 50)
+      // Seed budget as already exhausted (used = limit)
       const nowMs = Date.now();
       const hour = Math.floor(nowMs / 3_600_000);
       const budgetKey = `user:${ownerId}:model_turn:${hour}`;
       const expiresAt = new Date((hour + 2) * 3_600_000);
+      const limit = hourlyUserModelTurns();
       await db.query(`
         INSERT INTO "creation_budgets" ("key", "used", "expiresAt")
-        VALUES ($1, 50, $2)
-      `, [budgetKey, expiresAt]);
+        VALUES ($1, $2, $3)
+      `, [budgetKey, limit, expiresAt]);
 
       const mockAuthor = {
         identity: { provider: 'test', modelId: 'test', adapterVersion: '1' },
@@ -367,10 +369,11 @@ describe('Checkpoint 3: Provider Safety, Metadata Fail-Closed, Budgets & Aborts'
       const hour = Math.floor(nowMs / 3_600_000);
       const budgetKey = `user:${ownerId}:model_turn:${hour}`;
       const expiresAt = new Date((hour + 2) * 3_600_000);
+      const limit = hourlyUserModelTurns();
       await db.query(`
         INSERT INTO "creation_budgets" ("key", "used", "expiresAt")
-        VALUES ($1, 50, $2)
-      `, [budgetKey, expiresAt]);
+        VALUES ($1, $2, $3)
+      `, [budgetKey, limit, expiresAt]);
 
       const mockProvider = {
         observeVideo: vi.fn(),
@@ -1116,18 +1119,22 @@ describe('Checkpoint 3: Provider Safety, Metadata Fail-Closed, Budgets & Aborts'
 
   describe('4. Real Isolated PostgreSQL Multi-Connection Concurrency & Atomic Deduplication', () => {
     it('atomically deduplicates simultaneous reservations for the same invocationKey across separate PostgreSQL pool connections', async () => {
-      const { mkdtempSync, rmSync } = await import('node:fs');
+      const { mkdtempSync, rmSync, existsSync } = await import('node:fs');
       const { resolve } = await import('node:path');
       const { pathToFileURL } = await import('node:url');
       const { Pool } = await import('pg');
 
       const root = process.cwd();
       const port = 15449;
-      const tempDir = mkdtempSync(resolve(root, '.tmp/pg-acct-concurrency-'));
       const embeddedPostgresModule = resolve(
         root,
-        '.tmp/s3-postgres-runtime/node_modules/embedded-postgres/dist/index.js'
+        process.env.S3_EMBEDDED_POSTGRES_MODULE ??
+          '.tmp/s3-postgres-runtime/node_modules/embedded-postgres/dist/index.js'
       );
+      if (!existsSync(embeddedPostgresModule)) {
+        return;
+      }
+      const tempDir = mkdtempSync(resolve(root, '.tmp/pg-acct-concurrency-'));
       const { default: EmbeddedPostgres } = await import(pathToFileURL(embeddedPostgresModule).href);
 
       const database = new EmbeddedPostgres({
