@@ -229,39 +229,60 @@ export default function StudyRoomScreen() {
 
   // Join Room Operation
   const handleJoinRoom = async (roomId: string) => {
-    if (!session) {
+    if (!session || !session.user || !session.user.id) {
       addToast('🔒 You must be logged in to join study rooms!', 'alert');
       return;
     }
 
     let targetRoomId = roomId;
     if (targetRoomId.startsWith('default-')) {
-      try {
-        const res = await fetch(apiUrl('/api/studyroom'));
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            setRooms(data);
-            const normalizedTarget = targetRoomId.replace('default-', '').toLowerCase();
-            const matched = data.find((r: Room) => 
-              r.title.toLowerCase().replace(/\s+/g, '-') === normalizedTarget ||
-              r.title.toLowerCase() === normalizedTarget
-            );
-            if (matched) {
-              targetRoomId = matched.id;
-            }
-          }
-        }
-      } catch (e) {
-        console.error(e);
+      const normalizedTarget = targetRoomId.replace('default-', '').toLowerCase();
+      const matched = rooms.find((r: Room) => 
+        r.title.toLowerCase().replace(/\s+/g, '-') === normalizedTarget ||
+        r.title.toLowerCase() === normalizedTarget
+      );
+      if (matched && !matched.id.startsWith('default-')) {
+        targetRoomId = matched.id;
       }
     }
 
-    if (targetRoomId.startsWith('default-')) {
-      addToast('Unable to connect to space. Please refresh the page.', 'alert');
-      return;
-    }
+    // 1. Snapshot for rollback
+    const rollbackRooms = rooms;
 
+    // 2. Optimistic UI update (<16ms)
+    const currentUserId = session.user.id;
+    const currentParticipant: Participant = {
+      id: `temp-${currentUserId}`,
+      userId: currentUserId,
+      user: {
+        id: currentUserId,
+        name: session.user.name ?? null,
+        image: session.user.image ?? null,
+        username: (session.user as { username?: string | null }).username ?? null,
+      },
+    };
+
+    const nextRooms = rooms.map((r) => {
+      const isTarget = r.id === roomId || r.id === targetRoomId;
+      const filtered = r.participants.filter((p) => p.userId !== currentUserId);
+      if (isTarget) {
+        return {
+          ...r,
+          onlineCount: filtered.length + 1,
+          participants: [...filtered, currentParticipant],
+        };
+      }
+      return {
+        ...r,
+        onlineCount: filtered.length,
+        participants: filtered,
+      };
+    });
+
+    setRooms(nextRooms);
+    addToast('✨ Successfully joined the room!', 'success');
+
+    // 3. Background server sync
     setJoiningId(targetRoomId);
     try {
       const res = await fetch(apiUrl('/api/studyroom'), {
@@ -271,15 +292,16 @@ export default function StudyRoomScreen() {
       });
 
       if (res.ok) {
-        addToast('✨ Successfully joined the room!', 'success');
-        fetchRooms();
+        void fetchRooms();
       } else {
-        const err = await res.json();
-        addToast(err.error || 'Failed to join room', 'alert');
+        const err = await res.json().catch(() => ({}));
+        setRooms(rollbackRooms);
+        addToast(err.error || 'Failed to join room. Changes restored.', 'alert');
       }
     } catch (e) {
       console.error(e);
-      addToast('Network error while joining room', 'alert');
+      setRooms(rollbackRooms);
+      addToast('Network error while joining room. Changes restored.', 'alert');
     } finally {
       setJoiningId(null);
     }
@@ -287,7 +309,22 @@ export default function StudyRoomScreen() {
 
   // Leave Room Operation
   const handleLeaveRoom = async () => {
-    if (!session) return;
+    if (!session || !session.user || !session.user.id) return;
+
+    // 1. Snapshot for rollback
+    const rollbackRooms = rooms;
+    const currentUserId = session.user.id;
+
+    // 2. Optimistic UI update (<16ms)
+    const nextRooms = rooms.map((r) => ({
+      ...r,
+      onlineCount: Math.max(0, r.participants.filter((p) => p.userId !== currentUserId).length),
+      participants: r.participants.filter((p) => p.userId !== currentUserId),
+    }));
+    setRooms(nextRooms);
+    addToast('👋 Left the room successfully', 'info');
+
+    // 3. Background sync
     try {
       const res = await fetch(apiUrl('/api/studyroom'), {
         method: 'POST',
@@ -296,11 +333,16 @@ export default function StudyRoomScreen() {
       });
 
       if (res.ok) {
-        addToast('👋 Left the room successfully', 'info');
-        fetchRooms();
+        void fetchRooms();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setRooms(rollbackRooms);
+        addToast(err.error || 'Failed to leave room. Changes restored.', 'alert');
       }
     } catch (e) {
       console.error(e);
+      setRooms(rollbackRooms);
+      addToast('Network error while leaving room. Changes restored.', 'alert');
     }
   };
 
