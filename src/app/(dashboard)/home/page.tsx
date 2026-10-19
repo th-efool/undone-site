@@ -12,14 +12,14 @@ export const metadata: Metadata = {
   title: 'Dashboard',
   description: 'View your progress, active quests, and stats on your Undone dashboard.',
   openGraph: {
-    title: 'Undone - Dashboard',
+    title: 'Undone > Dashboard',
     description: 'View your progress, active quests, and stats on your Undone dashboard.',
     url: 'https://undone.in/home',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Undone - Dashboard',
+    title: 'Undone > Dashboard',
     description: 'View your progress, active quests, and stats on your Undone dashboard.',
   }
 };

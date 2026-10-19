@@ -11,13 +11,13 @@ export const metadata: Metadata = {
   title: 'Play',
   description: 'Engage in interactive learning and play games to boost your knowledge on Undone.',
   openGraph: {
-    title: 'Undone - Play',
+    title: 'Undone > Play',
     description: 'Engage in interactive learning and play games to boost your knowledge on Undone.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Undone - Play',
+    title: 'Undone > Play',
     description: 'Engage in interactive learning and play games to boost your knowledge on Undone.',
   },
 };
@@ -26,7 +26,7 @@ export default function PlayPage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'Undone - Play',
+    name: 'Undone > Play',
     description: 'Engage in interactive learning and play games to boost your knowledge on Undone.',
   };
 

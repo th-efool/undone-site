@@ -58,7 +58,7 @@ export const metadata: Metadata = {
 
   title: {
     default: 'Undone',
-    template: 'Undone - %s',
+    template: 'Undone > %s',
   },
 
   description: 'Turn existing curiosity into lasting understanding. Seamlessly learn from YouTube, articles, and podcasts in the spare moments of everyday life — without managing courses or schedules.',
@@ -93,7 +93,7 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: siteUrl,
     siteName: 'Undone',
-    title: 'Undone - For a more curious you',
+    title: 'Undone > For a more curious you',
     description: 'Turn existing curiosity into lasting understanding. Seamlessly learn from YouTube, articles, and podcasts in the spare moments of everyday life — without managing courses or schedules.',
     images: [
       {
@@ -108,7 +108,7 @@ export const metadata: Metadata = {
 
   twitter: {
     card: 'summary_large_image',
-    title: 'Undone - For a more curious you',
+    title: 'Undone > For a more curious you',
     description: 'Turn existing curiosity into lasting understanding. Seamlessly learn from YouTube, articles, and podcasts in the spare moments of everyday life.',
     images: ['/twitter-image.png'],
     creator: '@Undone',

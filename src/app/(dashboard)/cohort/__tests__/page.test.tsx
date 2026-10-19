@@ -15,13 +15,13 @@ describe('CohortIndexPage (src/app/(dashboard)/cohort/page.tsx)', () => {
     expect(metadata.title).toBe('Cohorts');
     expect(metadata.description).toBe('View and manage your Undone cohorts.');
     expect(metadata.openGraph).toMatchObject({
-      title: 'Undone - Cohorts',
+      title: 'Undone > Cohorts',
       description: 'View and manage your Undone cohorts.',
       type: 'website',
     });
     expect(metadata.twitter).toMatchObject({
       card: 'summary_large_image',
-      title: 'Undone - Cohorts',
+      title: 'Undone > Cohorts',
       description: 'View and manage your Undone cohorts.',
     });
   });

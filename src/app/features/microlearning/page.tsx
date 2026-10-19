@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     canonical: 'https://undone.in/features/microlearning',
   },
   openGraph: {
-    title: 'Undone - Microlearning App — Learn Anything in 5 Minutes a Day',
+    title: 'Undone > Microlearning App — Learn Anything in 5 Minutes a Day',
     description: 'Master any topic in 5 minutes a day with Undone. Convert long courses, videos, and articles into bite-sized daily lessons and build permanent knowledge.',
     url: 'https://undone.in/features/microlearning',
     type: 'website',
@@ -24,13 +24,13 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'Undone - Microlearning App',
+        alt: 'Undone > Microlearning App',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Undone - Microlearning App — Learn Anything in 5 Minutes a Day',
+    title: 'Undone > Microlearning App — Learn Anything in 5 Minutes a Day',
     description: 'Master any topic in 5 minutes a day with Undone. Convert long courses and videos into bite-sized daily lessons.',
     images: ['/twitter-image.png'],
   },
@@ -40,7 +40,7 @@ export default function MicrolearningFeature() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'Undone - Microlearning App',
+    name: 'Undone > Microlearning App',
     description: 'Master any topic in 5 minutes a day with Undone. Convert long courses, videos, and articles into bite-sized daily lessons.',
     url: 'https://undone.in/features/microlearning',
   };
