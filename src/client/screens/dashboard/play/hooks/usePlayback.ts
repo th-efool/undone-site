@@ -502,61 +502,113 @@ export function usePlayback() {
 
   const completeActiveChunk = useCallback(async () => {
     if (!activeItem || completing.current) return false;
-    completing.current = true; setCompletionPending(true); setCompletionError(null);
+    completing.current = true;
+    setCompletionError(null);
+
+    const targetItem = activeItem;
+    const targetChunkId = targetItem.chunkId;
+    const targetChannel = activeChannel;
+    const duration = Math.max(1, targetItem.endSeconds - targetItem.startSeconds);
+
+    // 1. Optimistic transition: mark reported and advance queue immediately (<16ms)
+    reportedChunksRef.current.add(targetChunkId);
+
+    let shouldPrefetch = false;
+    let nextPage = 0;
+    let autoAdvancedChunkId: string | null = null;
+    const currentChannelCache = channelCaches[targetChannel];
+    const rollbackSnapshot = currentChannelCache
+      ? { items: [...currentChannelCache.items], currentIndex: currentChannelCache.currentIndex }
+      : null;
+
+    setChannelCaches(previous => {
+      const ch = previous[targetChannel];
+      if (!ch) return previous;
+
+      const itemIndex = ch.items.findIndex(it => it.chunkId === targetChunkId);
+      const nextItems = ch.items.filter(item => item.chunkId !== targetChunkId);
+
+      const nextIndex =
+        itemIndex === -1
+          ? Math.min(ch.currentIndex, Math.max(0, nextItems.length - 1))
+          : itemIndex >= nextItems.length
+          ? Math.max(0, nextItems.length - 1)
+          : Math.max(0, itemIndex);
+
+      autoAdvancedChunkId = nextItems[nextIndex]?.chunkId ?? null;
+
+      if (nextItems.length < 3 && !ch.isFetching && !ch.exhausted && !ch.hasError) {
+        shouldPrefetch = true;
+        nextPage = ch.pageIndex + 1;
+      }
+
+      return {
+        ...previous,
+        [targetChannel]: {
+          ...ch,
+          currentIndex: nextIndex,
+          items: nextItems,
+        }
+      };
+    });
+
+    if (shouldPrefetch) {
+      void fetchChannelFeed(targetChannel, nextPage);
+    }
+
+    // 2. Background sync
     try {
-      const duration = Math.max(1, activeItem.endSeconds - activeItem.startSeconds);
-      const response = await fetch('/api/progress/chunk', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chunkId: activeItem.chunkId, lessonId: activeItem.lessonId, cohortId: activeItem.cohortId,
-          watchedSeconds: duration, totalSeconds: duration, forceStatus: 'COMPLETED' }) });
-      if (!response.ok) throw new Error(response.status === 401 ? 'Sign in to save completion.' : 'Completion could not be saved. Retry.');
-      reportedChunksRef.current.add(activeItem.chunkId);
-
-      let shouldPrefetch = false;
-      let nextPage = 0;
-
-      setChannelCaches(previous => {
-        const ch = previous[activeChannel];
-        if (!ch) return previous;
-        const currentItem = ch.items[ch.currentIndex];
-        const currentChunkId = currentItem?.chunkId;
-        const itemIndex = ch.items.findIndex(it => it.chunkId === activeItem.chunkId);
-        const nextItems = ch.items.filter(item => item.chunkId !== activeItem.chunkId);
-
-        let nextIndex: number;
-        // If user was viewing a different item when completion resolved, preserve that item's index
-        if (currentChunkId && currentChunkId !== activeItem.chunkId) {
-          const preservedIdx = nextItems.findIndex(it => it.chunkId === currentChunkId);
-          nextIndex = preservedIdx !== -1 ? preservedIdx : Math.min(ch.currentIndex, Math.max(0, nextItems.length - 1));
-        } else {
-          // User was viewing the item that just completed; advance smoothly to the next item
-          nextIndex = itemIndex === -1
-            ? Math.min(ch.currentIndex, Math.max(0, nextItems.length - 1))
-            : itemIndex >= nextItems.length
-            ? Math.max(0, nextItems.length - 1)
-            : Math.max(0, itemIndex);
-        }
-
-        if (nextItems.length < 3 && !ch.isFetching && !ch.exhausted && !ch.hasError) {
-          shouldPrefetch = true;
-          nextPage = ch.pageIndex + 1;
-        }
-
-        return {
-          ...previous,
-          [activeChannel]: {
-            ...ch,
-            currentIndex: nextIndex,
-            items: nextItems,
-          }
-        };
+      const response = await fetch('/api/progress/chunk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chunkId: targetChunkId,
+          lessonId: targetItem.lessonId,
+          cohortId: targetItem.cohortId,
+          watchedSeconds: duration,
+          totalSeconds: duration,
+          forceStatus: 'COMPLETED',
+        }),
       });
 
-      if (shouldPrefetch) {
-        void fetchChannelFeed(activeChannel, nextPage);
+      if (!response.ok) {
+        throw new Error(response.status === 401 ? 'Sign in to save completion.' : 'Completion could not be saved. Retry.');
       }
       return true;
-    } catch (error) { setCompletionError(error instanceof Error ? error.message : 'Completion could not be saved.'); return false; }
-    finally { completing.current = false; setCompletionPending(false); }
+    } catch (error) {
+      // 3. Rollback on failure
+      reportedChunksRef.current.delete(targetChunkId);
+      if (rollbackSnapshot) {
+        const snap = rollbackSnapshot;
+        setChannelCaches(previous => {
+          const ch = previous[targetChannel];
+          if (!ch) return previous;
+          const currentItem = ch.items[ch.currentIndex];
+          const currentChunkId = currentItem?.chunkId;
+
+          const restoredItems = [...snap.items];
+          let restoredIndex = snap.currentIndex;
+          if (currentChunkId && currentChunkId !== targetChunkId && currentChunkId !== autoAdvancedChunkId) {
+            const preservedIdx = restoredItems.findIndex(it => it.chunkId === currentChunkId);
+            if (preservedIdx !== -1) restoredIndex = preservedIdx;
+          }
+
+          return {
+            ...previous,
+            [targetChannel]: {
+              ...ch,
+              currentIndex: restoredIndex,
+              items: restoredItems,
+            }
+          };
+        });
+      }
+      setCompletionError(error instanceof Error ? error.message : 'Completion could not be saved.');
+      return false;
+    } finally {
+      completing.current = false;
+      setCompletionPending(false);
+    }
   }, [activeItem, activeChannel, fetchChannelFeed, setChannelCaches]);
 
   useEffect(() => {

@@ -772,9 +772,13 @@ describe('playback foundations: exact navigation, media controls, and completion
       completePromise = result.current.completeActiveChunk();
     });
 
-    // While completion is in-flight, navigate to c2 (index 2)
+    // c0 was optimistically completed and removed immediately, advancing activeItem to c1
+    expect(result.current.activeItem?.chunkId).toBe('c1');
+    expect(result.current.feedItems.map((it: any) => it.chunkId)).toEqual(['c1', 'c2', 'c3']);
+
+    // While background completion sync is in-flight, navigate to c2 (index 1)
     act(() => {
-      result.current.goToIndex(2);
+      result.current.goToIndex(1);
     });
     expect(result.current.activeItem?.chunkId).toBe('c2');
 
@@ -784,8 +788,7 @@ describe('playback foundations: exact navigation, media controls, and completion
       await completePromise;
     });
 
-    // c0 was removed from feedItems, so c2 is now at index 1!
-    // The activeItem MUST remain c2 and NOT snap back to index 0 (which would be c1)!
+    // The activeItem MUST remain c2 and NOT snap back to index 0 (c1)
     expect(result.current.activeItem?.chunkId).toBe('c2');
     expect(result.current.currentIndex).toBe(1);
     expect(result.current.feedItems.map((it: any) => it.chunkId)).toEqual(['c1', 'c2', 'c3']);
