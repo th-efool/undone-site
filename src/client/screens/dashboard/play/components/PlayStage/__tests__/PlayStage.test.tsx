@@ -236,4 +236,42 @@ describe('PlayStage component', () => {
     // Image src must NOT be the duplicated active thumbnail
     expect(img?.getAttribute('src')).not.toBe('https://cdn.example.com/identical.jpg');
   });
+
+  it('maintains absolute 3D track positioning for all 3 nodes when scrolled to middle index', () => {
+    const thirdVideoItem: FeedItem = {
+      ...videoItem,
+      chunkId: 'chunk-3',
+      chunkTitle: 'Feed-Forward Layer',
+      chunkOrder: 3,
+      lessonThumbnail: 'https://cdn.example.com/thumb3.jpg',
+    };
+
+    const playback = createMockPlayback({
+      activeItem: nextVideoItem,
+      feedItems: [videoItem, nextVideoItem, thirdVideoItem],
+      currentIndex: 1,
+      hasPrevious: true,
+      hasNext: true,
+    });
+
+    render(<PlayStage playback={playback} />);
+
+    const leftEdge = screen.getByRole('complementary', { name: /previous lesson: self-attention math/i });
+    const centerStage = screen.getByRole('region', { name: /current video stage/i });
+    const rightEdge = screen.getByRole('complementary', { name: /next lesson: feed-forward layer/i });
+
+    // All three outer nodes must be persistent <div> elements with sceneNode + feedMode
+    // and must NOT have inactiveSceneCard on the outer node (which would override position: absolute)
+    expect(leftEdge.tagName).toBe('DIV');
+    expect(centerStage.tagName).toBe('DIV');
+    expect(rightEdge.tagName).toBe('DIV');
+    expect(leftEdge.className).not.toContain('inactiveSceneCard');
+    expect(rightEdge.className).not.toContain('inactiveSceneCard');
+
+    // Exact symmetric 3D transforms
+    expect(leftEdge.style.transform).toContain('translate3d(-839.68px');
+    expect(centerStage.style.transform).toContain('translate3d(0px');
+    expect(rightEdge.style.transform).toContain('translate3d(839.68px');
+  });
 });
+
