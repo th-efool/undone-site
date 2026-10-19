@@ -2,7 +2,7 @@ import StudyRoomScreen from '@/src/client/screens/dashboard/studyroom/StudyRoomS
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Study Rooms | Undone',
+  title: 'Study Rooms',
   description: 'Join virtual study rooms on Undone to collaborate and learn with peers in real-time.',
 };
 

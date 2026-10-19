@@ -14,6 +14,9 @@ export interface GestureOptions {
   onLongPressEnd?: () => void;
   onTogglePlay?: () => void;
   onToggleFullscreen?: () => void;
+  onToggleMute?: () => void;
+  onToggleShortcutsHelp?: () => void;
+  onToggleChannelSelector?: () => void;
   disabled?: boolean;
 }
 
@@ -28,6 +31,9 @@ export function use1DGesture({
   onLongPressEnd,
   onTogglePlay,
   onToggleFullscreen,
+  onToggleMute,
+  onToggleShortcutsHelp,
+  onToggleChannelSelector,
   disabled = false,
 }: GestureOptions) {
   const [dragDeltaX, setDragDeltaX] = useState(0);
@@ -37,6 +43,7 @@ export function use1DGesture({
   const startXRef = useRef<number | null>(null);
   const startYRef = useRef<number | null>(null);
   const lastXRef = useRef<number>(0);
+  const lastDeltaXRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
   const velocityXRef = useRef<number>(0);
   const isHorizontalGestureRef = useRef<boolean | null>(null);
@@ -44,8 +51,6 @@ export function use1DGesture({
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const singleTapTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastTapRef = useRef<{ time: number; x: number }>({ time: 0, x: 0 });
-  const wheelAccumulatorRef = useRef<number>(0);
-  const wheelCooldownRef = useRef<boolean>(false);
 
   // Clear long press timer
   const clearLongPress = useCallback(() => {
@@ -60,10 +65,10 @@ export function use1DGesture({
   }, [isLongPressing, onLongPressEnd]);
 
 const isInteractiveElement = (target: HTMLElement | null): boolean => {
-  if (!target) return false;
+  if (!target || typeof target.closest !== 'function') return false;
   return Boolean(
     target.closest(
-      'button, a, input, textarea, select, [role="button"], [class*="toolbar"], [class*="controls"], [class*="timeline"], [class*="dot"], [class*="mobileControls"]'
+      'button, a, input, textarea, select, [role="button"], [role="slider"], [role="toolbar"], [role="menu"], [role="dialog"], [class*="toolbar"], [class*="controls"], [class*="timeline"], [class*="dock"], [class*="rail"], [class*="header"], [class*="dot"], [class*="capsule"], [class*="mobileControls"]'
     )
   );
 };
@@ -75,9 +80,14 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
       if (e.pointerType === 'mouse' && e.button !== 0) return;
       if (isInteractiveElement(e.target as HTMLElement)) return;
 
+      try {
+        (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      } catch {}
+
       startXRef.current = e.clientX;
       startYRef.current = e.clientY;
       lastXRef.current = e.clientX;
+      lastDeltaXRef.current = 0;
       lastTimeRef.current = performance.now();
       velocityXRef.current = 0;
       isHorizontalGestureRef.current = null;
@@ -133,6 +143,7 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
           lastTimeRef.current = now;
         }
 
+        lastDeltaXRef.current = deltaX;
         setDragDeltaX(deltaX);
       }
     },
@@ -143,32 +154,28 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
   const handlePointerUp = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       clearLongPress();
-
-      if (isInteractiveElement(e.target as HTMLElement)) {
-        startXRef.current = null;
-        startYRef.current = null;
-        isHorizontalGestureRef.current = null;
-        setIsDragging(false);
-        setDragDeltaX(0);
-        return;
-      }
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
+      } catch {}
 
       if (startXRef.current === null) return;
       const containerWidth = e.currentTarget.clientWidth || window.innerWidth;
-      const finalDeltaX = dragDeltaX;
+      const finalDeltaX = lastDeltaXRef.current !== 0 ? lastDeltaXRef.current : dragDeltaX;
       const velocity = velocityXRef.current;
 
       const wasHorizontal = isHorizontalGestureRef.current;
       startXRef.current = null;
       startYRef.current = null;
+      lastDeltaXRef.current = 0;
       isHorizontalGestureRef.current = null;
       setIsDragging(false);
       setDragDeltaX(0);
 
       // Handle horizontal swipe completion or snap back
       if (wasHorizontal) {
-        const distanceThreshold = containerWidth * 0.30;
-        const velocityThreshold = 0.45; // px/ms
+        // Responsive threshold: 60px or 12% width (min 40px) or fling velocity (0.30 px/ms)
+        const distanceThreshold = Math.max(40, Math.min(70, containerWidth * 0.12));
+        const velocityThreshold = 0.30; // px/ms
 
         if (finalDeltaX < -distanceThreshold || velocity < -velocityThreshold) {
           // Swipe left -> advance to next
@@ -179,6 +186,11 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
           triggerHaptic('medium');
           onPrev();
         }
+        return;
+      }
+
+      // Guard tap if released over an interactive control
+      if (isInteractiveElement(e.target as HTMLElement)) {
         return;
       }
 
@@ -216,6 +228,7 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
     [
       clearLongPress,
       dragDeltaX,
+      onDoubleTap,
       onDoubleTapLeft,
       onDoubleTapRight,
       onNext,
@@ -225,43 +238,49 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
     ]
   );
 
-  // Wheel Handler for Touchpad horizontal swipe
-  const handleWheel = useCallback(
-    (e: React.WheelEvent<HTMLDivElement>) => {
-      if (disabled || wheelCooldownRef.current) return;
-
-      // Track horizontal trackpad delta
-      if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 15) {
-        wheelAccumulatorRef.current += e.deltaX;
-
-        if (Math.abs(wheelAccumulatorRef.current) > 60) {
-          wheelCooldownRef.current = true;
-          if (wheelAccumulatorRef.current > 0) {
-            triggerHaptic('light');
-            onNext();
-          } else {
-            triggerHaptic('light');
-            onPrev();
-          }
-          wheelAccumulatorRef.current = 0;
-          setTimeout(() => {
-            wheelCooldownRef.current = false;
-          }, 400);
-        }
-      }
-    },
-    [disabled, onNext, onPrev]
-  );
+  // Wheel Handler disabled for feed navigation - feed is DRAG SCROLLABLE ONLY per specification
+  const handleWheel = useCallback((_e: React.WheelEvent<HTMLDivElement>) => {
+    // Explicitly no-op: scrolling mouse wheel does NOT navigate feed chunks
+  }, []);
 
   // Keyboard Shortcuts Listener
   useEffect(() => {
     if (disabled) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is typing in input/textarea
-      const target = e.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      // Never intercept modifier key combinations (e.g. Cmd+K, Ctrl+R, Alt+Tab)
+      if (e.metaKey || e.ctrlKey || e.altKey) {
         return;
+      }
+
+      // Ignore if user is typing or interacting with form elements
+      const target = e.target instanceof Element ? (e.target as HTMLElement) : null;
+      if (target) {
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+          return;
+        }
+
+        // Ignore if focus is in an interactive button, link, slider, select, menu, or dialog
+        const isButton = target.tagName === 'BUTTON' || (typeof target.closest === 'function' && target.closest('button') !== null);
+        const isLink = target.tagName === 'A' || (typeof target.closest === 'function' && target.closest('a') !== null);
+        const isSlider = target.getAttribute?.('role') === 'slider' || (typeof target.closest === 'function' && target.closest('[role="slider"]') !== null);
+        const isSelect = target.tagName === 'SELECT' || (typeof target.closest === 'function' && target.closest('select') !== null);
+        const isInDialog = typeof target.closest === 'function' && target.closest('[role="dialog"]') !== null;
+        const isInMenu = typeof target.closest === 'function' && (target.closest('[role="menu"]') !== null || target.closest('[role="listbox"]') !== null);
+
+        if (isInDialog || isInMenu || isSelect) {
+          return;
+        }
+
+        // If focused on a button or link, spacebar or enter activates it natively; don't hijack it
+        if ((isButton || isLink) && (e.key === ' ' || e.key === 'Enter')) {
+          return;
+        }
+
+        // If focused on a slider (e.g. volume or seek), arrow keys adjust the slider; don't hijack them
+        if (isSlider && (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+          return;
+        }
       }
 
       switch (e.key) {
@@ -288,12 +307,26 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
           e.preventDefault();
           onToggleFullscreen?.();
           break;
+        case 'm':
+        case 'M':
+          e.preventDefault();
+          onToggleMute?.();
+          break;
+        case '?':
+          e.preventDefault();
+          onToggleShortcutsHelp?.();
+          break;
+        case 'c':
+        case 'C':
+          e.preventDefault();
+          onToggleChannelSelector?.();
+          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [disabled, onNext, onPrev, onToggleFullscreen, onTogglePlay]);
+  }, [disabled, onNext, onPrev, onToggleFullscreen, onToggleMute, onTogglePlay, onToggleShortcutsHelp, onToggleChannelSelector]);
 
   return {
     isDragging,

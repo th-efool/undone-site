@@ -37,7 +37,7 @@ export function LearnerPreview() {
       cohortId: 'preview-cohort',
       title: state.draft.title || 'Untitled Cohort',
       description: state.draft.description || 'Cohort description placeholder.',
-      coverImage: state.draft.coverImage || '/mock/thumbnails/docker.avif',
+      coverImage: state.draft.coverImage || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop',
       difficulty: state.draft.difficulty,
       visibility: state.draft.visibility,
       curriculum,

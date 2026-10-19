@@ -43,6 +43,7 @@ class PublishService {
     const body = await response.json().catch(() => null);
 
     if (!response.ok) {
+      console.error('[publishService] Server responded with error status:', response.status, 'body:', body);
       if (body?.code === 'WEIGHTS_REQUIRED' || body?.message === 'WEIGHTS_REQUIRED') {
         const error = new Error('WEIGHTS_REQUIRED');
         (error as any).code = 'WEIGHTS_REQUIRED';

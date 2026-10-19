@@ -64,7 +64,8 @@ describe('grounded cohort workspace UI', () => {
       processing: { status: 'failed', stage: 'chunking', generation: 2, sourceFingerprint: null, error: 'TOO_MANY_CHUNKS' },
     });
     render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
-    expect(screen.getByText('TOO_MANY_CHUNKS')).toBeTruthy();
+    expect(screen.getByText('This material produces too many learning pieces. Narrow the source scope and retry.')).toBeTruthy();
+    expect(screen.queryByText('TOO_MANY_CHUNKS')).toBeNull();
     expect(screen.getByText(/references changed or removed source text/)).toBeTruthy();
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Retry processing' })); });
     expect(fake.actions).toContainEqual({ type: 'retry_processing' });

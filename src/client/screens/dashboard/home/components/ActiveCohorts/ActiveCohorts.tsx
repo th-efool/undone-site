@@ -1,105 +1,47 @@
-import { useState } from 'react';
-import { ChevronRight } from 'lucide-react';
-import type { ActiveCohort, HomeSectionContent, PauseOption, Weekday } from '../../models';
-import { ActiveCohortRow } from '../ActiveCohortRow/ActiveCohortRow';
-import { InspectorPanel } from './InspectorPanel';
+'use client';
 
+import React from 'react';
+import Link from 'next/link';
+import type { ActiveCohort, HomeSectionContent, LearningSchedule } from '../../models';
+import { SubscribedCohortCard } from './SubscribedCohortCard';
 import styles from './ActiveCohorts.module.css';
+
+export interface CohortLearningSettings {
+  dailyGoalMinutes: number;
+  schedule: LearningSchedule;
+  orderStyle: NonNullable<ActiveCohort['orderStyle']>;
+}
 
 export interface ActiveCohortsProps {
   heading: HomeSectionContent;
   items: ActiveCohort[];
-  pauseOptions: PauseOption[];
-  onReorder(draggedId: string, targetId: string): void;
-  onUpdateDailyGoal(cohortId: string, minutes: number): void;
-  onUpdateSchedule(cohortId: string, days: Weekday[]): void;
-  onPause(cohortId: string, days: number, pausedReason?: string): void;
-  onUpdateOrderStyle?(cohortId: string, style: string): void;
-  onUpdateFrequency?(cohortId: string, frequency: string): void;
+  onPause(cohortId: string, pausedUntil: Date): void | Promise<void>;
+  onResume(cohortId: string): void | Promise<void>;
+  onSave(cohortId: string, settings: CohortLearningSettings): Promise<void>;
+  onDelete(cohortId: string): Promise<void>;
 }
 
-export function ActiveCohorts({
-  heading,
-  items,
-  pauseOptions,
-  onPause,
-  onReorder,
-  onUpdateDailyGoal,
-  onUpdateSchedule,
-  onUpdateOrderStyle,
-  onUpdateFrequency,
+export const ActiveCohorts = React.memo(function ActiveCohorts({
+  heading, items, onPause, onResume, onSave, onDelete,
 }: ActiveCohortsProps) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState(true);
-  
-  const selectedCohort = isOpen 
-    ? (items.find(item => item.id === selectedId) || items[0]) 
-    : null;
-
   return (
-    <section
-      className={styles.section}
-      aria-labelledby="active-cohorts-heading"
-    >
-      <div className={styles.layout} style={{ gridTemplateColumns: selectedCohort ? '1fr 300px' : '1fr' }}>
-        {/* Left: Master List */}
-        <div className={`${styles.list} ${selectedCohort ? styles.listWithInspector : ''}`}>
-          <div className={styles.listHeader}>
-            <div className={styles.headerBar}>
-              {/* Left Browser Tab Trapezium for Feed Policy */}
-              <div className={styles.tabTrapezium}>
-                <h2 className={styles.tabTitle}>{heading.title}</h2>
-              </div>
-
-              {/* Right Dark Indigo Bar for See All & Drag Hint */}
-              <div className={styles.indigoBar}>
-                <button type="button" className={styles.seeAllBtn}>
-                  See all
-                  <ChevronRight size={15} strokeWidth={2.5} />
-                </button>
-                <span className={styles.dragHintText}>
-                  Drag to change what appears more often
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div className={styles.itemsWrapper}>
-            {items.map((item) => (
-            <ActiveCohortRow
-              key={item.id}
-              item={item}
-              isSelected={item.id === (selectedCohort?.id || '')}
-              onSelect={() => {
-                setSelectedId(item.id);
-                setIsOpen(true);
-              }}
-              onReorder={onReorder}
-              onUpdateSchedule={onUpdateSchedule}
-              onUpdateDailyGoal={onUpdateDailyGoal}
-              onUpdateOrderStyle={onUpdateOrderStyle}
-              onUpdateFrequency={onUpdateFrequency}
-              onPause={onPause}
-            />
-          ))}
-          </div>
-        </div>
-
-        {/* Right: Inspector Panel */}
-        {selectedCohort && (
-          <div className={styles.inspectorWrapper}>
-            <InspectorPanel 
-              cohort={selectedCohort}
-              onUpdateSchedule={onUpdateSchedule}
-              onUpdateDailyGoal={onUpdateDailyGoal}
-              onUpdateOrderStyle={onUpdateOrderStyle}
-              onUpdateFrequency={onUpdateFrequency}
-              onClose={() => setIsOpen(false)}
-              onPause={onPause}
-            />
-          </div>
-        )}
+    <section className={styles.section} aria-label={heading.title || 'Subscribed Cohorts'}>
+      <div className={styles.sectionHeader}>
+        <h2 className={styles.title}>{heading.title || 'Subscribed Cohorts'}</h2>
       </div>
+      <div className={styles.grid}>
+        {items.map((cohort) => (
+          <SubscribedCohortCard
+            key={cohort.cohortId || cohort.id}
+            cohort={cohort}
+            onPause={(until) => onPause(cohort.cohortId || cohort.id, until)}
+            onResume={() => onResume(cohort.cohortId || cohort.id)}
+            onSave={(settings) => onSave(cohort.cohortId || cohort.id, settings)}
+            onDelete={() => onDelete(cohort.cohortId || cohort.id)}
+          />
+        ))}
+      </div>
+      {items.length === 0 && <Link href="/explore">Discover cohorts</Link>}
     </section>
   );
-}
+});

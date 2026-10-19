@@ -159,4 +159,23 @@ describe('immutable typed artifacts', () => {
     row.byteLength = wrong.length; row.checksum = createHash('sha256').update(wrong).digest('hex'); f.bytes.set(row.blobId, wrong);
     await expect(f.store.getJSON(scope, ref.id, artifact)).rejects.toMatchObject({ code: 'INTEGRITY' });
   });
+  it('fetches multiple artifacts concurrently via getBatchJSON and reuses row in readStream', async () => {
+    const f = fixture();
+    const ref1 = await f.store.putJSON(scope, { text: 'part 1' }, artifact);
+    const ref2 = await f.store.putJSON(scope, { text: 'part 2' }, artifact);
+
+    const findSpy = vi.spyOn(f.metadata, 'find');
+    const results = await f.store.getBatchJSON(scope, [ref1.id, ref2.id], artifact);
+
+    expect(results).toEqual([{ text: 'part 1' }, { text: 'part 2' }]);
+    // Exactly 1 find per artifact (row fetched once in record, reused in readStream)
+    expect(findSpy).toHaveBeenCalledTimes(2);
+  });
+  it('rejects tampered blob data in getJSON via streaming verification', async () => {
+    const f = fixture();
+    const ref = await f.store.putJSON(scope, { text: 'content' }, artifact);
+    const row = f.rows.get(ref.id)!;
+    f.bytes.set(row.blobId, Buffer.from('tampered bytes'));
+    await expect(f.store.getJSON(scope, ref.id, artifact)).rejects.toMatchObject({ code: 'INTEGRITY' });
+  });
 });

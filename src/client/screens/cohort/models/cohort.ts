@@ -36,7 +36,7 @@ export interface Creator {
 }
 
 export interface CohortStats {
-  rating: number;
+  rating: number | null;
   explorerCount: number;
   completionRate: number;
 }

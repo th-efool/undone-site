@@ -20,6 +20,14 @@ export const DEFAULT_WEIGHTS: ScoreWeights = {
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+export const FREQUENCY_MULTIPLIERS: Record<string, number> = {
+  'Very Often': 1.45,
+  'Often': 1.15,
+  'Sometimes': 1.0,
+  'Rarely': 0.65,
+  'Very Rarely': 0.30,
+};
+
 export function calculateChunkScore(
   chunk: FeedChunkInput,
   progress: ChunkProgress | undefined,
@@ -72,6 +80,8 @@ export function calculateChunkScore(
     const todayName = WEEKDAYS[now.getDay()];
     if (cohortState.scheduleDays.includes(todayName)) {
       scheduleScore = 1.0;
+    } else {
+      scheduleScore = 0.2;
     }
   }
 
@@ -91,6 +101,10 @@ export function calculateChunkScore(
     varietyScore * weights.variety +
     scheduleScore * weights.scheduleMatch +
     freshnessScore * weights.freshness;
+
+  // Apply user-configured frequency multiplier ("SHOWS UP" slider)
+  const freqMult = cohortState?.frequency ? FREQUENCY_MULTIPLIERS[cohortState.frequency] ?? 1.0 : 1.0;
+  score = score * freqMult;
 
   return { score: Math.round(score * 100) / 100, reason: primaryReason };
 }

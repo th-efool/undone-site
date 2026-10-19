@@ -3,8 +3,9 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { usePlayback } from '../usePlayback';
 
+const nav = vi.hoisted(() => ({ searchParams: new URLSearchParams() }));
 vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(),
+  useSearchParams: () => nav.searchParams,
 }));
 
 const fetchMock = vi.fn();
@@ -14,6 +15,7 @@ describe('usePlayback fetch abort behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    nav.searchParams = new URLSearchParams();
   });
 
   it('does not get permanently stuck on isFetching=true when fetchChannelFeed is aborted', async () => {
@@ -146,3 +148,614 @@ describe('feed terminal states', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('lesson model labelling', () => {
+  beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); });
+  it('correctly models seasonOrder, currentVideo, and totalVideos from feed data', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        items: [{
+          chunkId: 'chunk-1',
+          lessonId: 'lesson-1',
+          lessonTitle: 'Introduction to Rust',
+          chunkTitle: 'Ownership Model',
+          seasonOrder: 2,
+          lessonOrder: 3,
+          totalLessonsInSeason: 10,
+          totalVideos: 10,
+          startSeconds: 0,
+          endSeconds: 120,
+        }],
+      }),
+    });
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem).not.toBeNull());
+    expect(result.current.lesson.seasonOrder).toBe(2);
+    expect(result.current.lesson.seasonNumber).toBe(2);
+    expect(result.current.lesson.currentVideo).toBe(3);
+    expect(result.current.lesson.totalVideos).toBe(10);
+  });
+});
+
+describe('completeActiveChunk feed advance (ISSUE-2)', () => {
+  beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); });
+
+  it('smoothly advances to the next chunk without rewinding or refetching page 0', async () => {
+    const chunkA = {
+      chunkId: 'chunk-A',
+      lessonId: 'lesson-1',
+      lessonTitle: 'Lesson 1',
+      chunkTitle: 'Chunk A',
+      seasonOrder: 1,
+      lessonOrder: 1,
+      totalLessonsInSeason: 5,
+      totalVideos: 5,
+      startSeconds: 0,
+      endSeconds: 60,
+    };
+    const chunkB = {
+      chunkId: 'chunk-B',
+      lessonId: 'lesson-1',
+      lessonTitle: 'Lesson 1',
+      chunkTitle: 'Chunk B',
+      seasonOrder: 1,
+      lessonOrder: 1,
+      totalLessonsInSeason: 5,
+      totalVideos: 5,
+      startSeconds: 60,
+      endSeconds: 120,
+    };
+    const chunkC = {
+      chunkId: 'chunk-C',
+      lessonId: 'lesson-2',
+      lessonTitle: 'Lesson 2',
+      chunkTitle: 'Chunk C',
+      seasonOrder: 1,
+      lessonOrder: 2,
+      totalLessonsInSeason: 5,
+      totalVideos: 5,
+      startSeconds: 0,
+      endSeconds: 180,
+    };
+    const chunkD = {
+      chunkId: 'chunk-D',
+      lessonId: 'lesson-2',
+      lessonTitle: 'Lesson 2',
+      chunkTitle: 'Chunk D',
+      seasonOrder: 1,
+      lessonOrder: 2,
+      totalLessonsInSeason: 5,
+      totalVideos: 5,
+      startSeconds: 180,
+      endSeconds: 300,
+    };
+
+    fetchMock.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/api/progress/chunk')) {
+        return { ok: true, json: async () => ({ success: true }) };
+      }
+      if (typeof url === 'string' && url.includes('/api/feed')) {
+        return { ok: true, json: async () => ({ items: [chunkA, chunkB, chunkC, chunkD] }) };
+      }
+      return { ok: true, json: async () => ({}) };
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-A'));
+
+    let success = false;
+    await act(async () => {
+      success = await result.current.completeActiveChunk();
+    });
+
+    expect(success).toBe(true);
+    expect(result.current.activeItem?.chunkId).toBe('chunk-B');
+    expect(result.current.feedItems.map(it => it.chunkId)).toEqual(['chunk-B', 'chunk-C', 'chunk-D']);
+
+    const progressCalls = fetchMock.mock.calls.filter((c: any[]) => c[0] === '/api/progress/chunk');
+    expect(progressCalls).toHaveLength(1);
+
+    const feedCalls = fetchMock.mock.calls.filter((c: any[]) => typeof c[0] === 'string' && c[0].includes('/api/feed'));
+    expect(feedCalls).toHaveLength(1);
+  });
+
+  it('triggers next page prefetch and clamps index when remaining items become low', async () => {
+    const chunkLast = {
+      chunkId: 'chunk-solo',
+      lessonId: 'lesson-1',
+      lessonTitle: 'Lesson 1',
+      chunkTitle: 'Chunk Solo',
+      seasonOrder: 1,
+      lessonOrder: 1,
+      totalLessonsInSeason: 1,
+      totalVideos: 1,
+      startSeconds: 0,
+      endSeconds: 60,
+    };
+    const chunkNextPage = {
+      chunkId: 'chunk-next-page',
+      lessonId: 'lesson-2',
+      lessonTitle: 'Lesson 2',
+      chunkTitle: 'Next Page Chunk',
+      seasonOrder: 1,
+      lessonOrder: 2,
+      totalLessonsInSeason: 1,
+      totalVideos: 1,
+      startSeconds: 0,
+      endSeconds: 60,
+    };
+
+    fetchMock.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/api/progress/chunk')) {
+        return { ok: true, json: async () => ({ success: true }) };
+      }
+      if (typeof url === 'string' && url.includes('pageIndex=0')) {
+        return { ok: true, json: async () => ({ items: [chunkLast] }) };
+      }
+      if (typeof url === 'string' && url.includes('pageIndex=1')) {
+        return { ok: true, json: async () => ({ items: [chunkNextPage] }) };
+      }
+      return { ok: true, json: async () => ({ items: [] }) };
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-solo'));
+
+    let success = false;
+    await act(async () => {
+      success = await result.current.completeActiveChunk();
+    });
+
+    expect(success).toBe(true);
+
+    // Wait for the background prefetch of page 1 to resolve and append
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-next-page'));
+    expect(result.current.feedItems.map(it => it.chunkId)).toContain('chunk-next-page');
+
+    const feedCalls = fetchMock.mock.calls.filter((c: any[]) => typeof c[0] === 'string' && c[0].includes('/api/feed'));
+    expect(feedCalls.some((c: any[]) => c[0].includes('pageIndex=1'))).toBe(true);
+  });
+});
+
+describe('dynamic player stats and daily goal (ISSUE-3)', () => {
+  beforeEach(() => { vi.clearAllMocks(); localStorage.clear(); });
+
+  it('initializes with 0 safe defaults when feed is empty', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ items: [] }) });
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.feedLoading).toBe(false));
+    expect(result.current.dailyGoalPercent).toBe(0);
+    expect(result.current.stats).toEqual({
+      cohortsCovered: 0,
+      chunksRemaining: 0,
+      estimatedMinutes: 0,
+    });
+  });
+
+  it('dynamically computes cohortsCovered, chunksRemaining, and estimatedMinutes from feed items', async () => {
+    const chunk1 = {
+      chunkId: 'c1',
+      lessonId: 'l1',
+      cohortId: 'cohort-alpha',
+      startSeconds: 0,
+      endSeconds: 120,
+    };
+    const chunk2 = {
+      chunkId: 'c2',
+      lessonId: 'l1',
+      cohortId: 'cohort-alpha',
+      startSeconds: 120,
+      endSeconds: 300,
+    };
+    const chunk3 = {
+      chunkId: 'c3',
+      lessonId: 'l2',
+      cohortId: 'cohort-beta',
+      startSeconds: 0,
+      endSeconds: 180,
+    };
+
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ items: [chunk1, chunk2, chunk3] }) });
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.feedItems).toHaveLength(3));
+
+    expect(result.current.stats.cohortsCovered).toBe(2);
+    expect(result.current.stats.chunksRemaining).toBe(3);
+    expect(result.current.stats.estimatedMinutes).toBe(8);
+    expect(result.current.dailyGoalPercent).toBe(0);
+  });
+
+  it('updates dailyGoalPercent and decrements remaining stats when chunks are completed', async () => {
+    const chunk1 = {
+      chunkId: 'c1',
+      lessonId: 'l1',
+      cohortId: 'cohort-alpha',
+      startSeconds: 0,
+      endSeconds: 120,
+    };
+    const chunk2 = {
+      chunkId: 'c2',
+      lessonId: 'l1',
+      cohortId: 'cohort-alpha',
+      startSeconds: 120,
+      endSeconds: 240,
+    };
+
+    fetchMock.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/api/progress/chunk')) {
+        return { ok: true, json: async () => ({ success: true }) };
+      }
+      if (typeof url === 'string' && url.includes('pageIndex=0')) {
+        return { ok: true, json: async () => ({ items: [chunk1, chunk2] }) };
+      }
+      return { ok: true, json: async () => ({ items: [] }) };
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.feedItems).toHaveLength(2));
+
+    expect(result.current.stats.chunksRemaining).toBe(2);
+    expect(result.current.dailyGoalPercent).toBe(0);
+
+    await act(async () => {
+      await result.current.completeActiveChunk();
+    });
+
+    expect(result.current.dailyGoalPercent).toBe(15);
+    expect(result.current.stats.chunksRemaining).toBe(1);
+    expect(result.current.stats.estimatedMinutes).toBe(2);
+  });
+});
+
+describe('persisted player notes and bookmarks (ISSUE-4)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+  });
+
+  const chunkA = {
+    chunkId: 'chunk-A',
+    lessonId: 'lesson-1',
+    lessonTitle: 'Rust Ownership',
+    cohortId: 'cohort-1',
+    startSeconds: 0,
+    endSeconds: 120,
+  };
+  const chunkB = {
+    chunkId: 'chunk-B',
+    lessonId: 'lesson-1',
+    lessonTitle: 'Rust Borrowing',
+    cohortId: 'cohort-1',
+    startSeconds: 120,
+    endSeconds: 240,
+  };
+
+  it('persists notes across chunk navigation and syncs to workspace notes API', async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/api/workspace/notes')) {
+        return { ok: true, json: async () => ({ success: true }) };
+      }
+      if (typeof url === 'string' && url.includes('pageIndex=0')) {
+        return { ok: true, json: async () => ({ items: [chunkA, chunkB] }) };
+      }
+      return { ok: true, json: async () => ({ items: [] }) };
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-A'));
+
+    // Save note on chunk A
+    await act(async () => {
+      await result.current.saveNotes('Notes on chunk A');
+    });
+
+    expect(result.current.notesText).toBe('Notes on chunk A');
+    expect(localStorage.getItem('sidequest_note_chunk-A')).toBe('Notes on chunk A');
+
+    // Verify background workspace notes PATCH API call
+    const notesPatchCalls = fetchMock.mock.calls.filter((c: any[]) => typeof c[0] === 'string' && c[0].includes('/api/workspace/notes'));
+    expect(notesPatchCalls).toHaveLength(1);
+
+    // Navigate to chunk B
+    await act(async () => {
+      result.current.goToIndex(1);
+    });
+
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-B'));
+    expect(result.current.notesText).toBe('');
+
+    // Navigate back to chunk A
+    await act(async () => {
+      result.current.goToIndex(0);
+    });
+
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-A'));
+    expect(result.current.notesText).toBe('Notes on chunk A');
+  });
+
+  it('persists bookmarks across chunk navigation', async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('pageIndex=0')) {
+        return { ok: true, json: async () => ({ items: [chunkA, chunkB] }) };
+      }
+      return { ok: true, json: async () => ({ items: [] }) };
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-A'));
+
+    expect(result.current.bookmarked).toBe(false);
+
+    // Toggle bookmark on chunk A
+    act(() => {
+      result.current.toggleBookmark();
+    });
+
+    expect(result.current.bookmarked).toBe(true);
+    expect(localStorage.getItem('sidequest_bookmark_chunk-A')).toBe('true');
+
+    // Navigate to chunk B
+    await act(async () => {
+      result.current.goToIndex(1);
+    });
+
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-B'));
+    expect(result.current.bookmarked).toBe(false);
+
+    // Navigate back to chunk A
+    await act(async () => {
+      result.current.goToIndex(0);
+    });
+
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('chunk-A'));
+    expect(result.current.bookmarked).toBe(true);
+  });
+
+  it('resolves target lesson matching requested lessonId and 0/1-based lesson order', async () => {
+    nav.searchParams = new URLSearchParams('cohort=test&lessonId=lesson-target');
+    fetchMock.mockImplementation(async () => ({
+      ok: true,
+      json: async () => ({
+        items: [
+          { chunkId: 'c1', lessonId: 'lesson-1', lessonOrder: 1, endSeconds: 60, startSeconds: 0 },
+          { chunkId: 'c2', lessonId: 'lesson-target', lessonOrder: 2, endSeconds: 120, startSeconds: 60 },
+        ],
+      }),
+    }));
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('c2'));
+    expect(result.current.currentIndex).toBe(1);
+  });
+
+  it('resolves target lesson using 0-indexed fallback lesson order', async () => {
+    nav.searchParams = new URLSearchParams('cohort=test&lesson=1');
+    fetchMock.mockImplementation(async () => ({
+      ok: true,
+      json: async () => ({
+        items: [
+          { chunkId: 'c0', lessonId: 'l0', lessonOrder: 0, endSeconds: 60, startSeconds: 0 },
+          { chunkId: 'c1', lessonId: 'l1', lessonOrder: 1, endSeconds: 120, startSeconds: 60 },
+        ],
+      }),
+    }));
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('c0'));
+    expect(result.current.currentIndex).toBe(0);
+  });
+});
+
+describe('playback foundations: exact navigation, media controls, and completion invariants', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    localStorage.clear();
+    nav.searchParams = new URLSearchParams();
+  });
+
+  const testItems = [
+    { chunkId: 'c0', lessonId: 'l1', lessonTitle: 'L1', chunkTitle: 'C0', startSeconds: 0, endSeconds: 60, lessonType: 'video', lessonVideoUrl: 'https://cdn.example.com/v0.mp4' },
+    { chunkId: 'c1', lessonId: 'l1', lessonTitle: 'L1', chunkTitle: 'C1', startSeconds: 60, endSeconds: 120, lessonType: 'video', lessonVideoUrl: 'https://cdn.example.com/v1.mp4' },
+    { chunkId: 'c2', lessonId: 'l2', lessonTitle: 'L2', chunkTitle: 'C2', startSeconds: 0, endSeconds: 60, lessonType: 'video', lessonVideoUrl: 'https://cdn.example.com/v2.mp4' },
+    { chunkId: 'c3', lessonId: 'l2', lessonTitle: 'L2', chunkTitle: 'C3', startSeconds: 60, endSeconds: 120, lessonType: 'video', lessonVideoUrl: 'https://cdn.example.com/v3.mp4' },
+  ];
+
+  it('navigates directly to exact index without intermediate stepping and does not mark items completed', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ items: testItems }),
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('c0'));
+    expect(result.current.currentIndex).toBe(0);
+
+    // Exact jump from 0 to 3
+    act(() => {
+      result.current.goToIndex(3);
+    });
+
+    expect(result.current.currentIndex).toBe(3);
+    expect(result.current.activeItem?.chunkId).toBe('c3');
+    expect(result.current.activeItem?.chunkTitle).toBe('C3');
+
+    // Preceding items must NOT be marked completed merely because they precede active item
+    expect(result.current.itemStatuses).toEqual(['not-started', 'not-started', 'not-started', 'not-started']);
+    expect(result.current.isChunkCompleted('c0')).toBe(false);
+    expect(result.current.isChunkCompleted('c1')).toBe(false);
+
+    // No progress calls were dispatched
+    const progressCalls = fetchMock.mock.calls.filter((c: any[]) => typeof c[0] === 'string' && c[0].includes('/api/progress'));
+    expect(progressCalls).toHaveLength(0);
+  });
+
+  it('binds direct HTML5 video element controls, speed, volume, and seeking', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ items: testItems }),
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('c0'));
+
+    const mockVideo = document.createElement('video');
+    mockVideo.play = vi.fn().mockImplementation(() => Promise.resolve());
+    mockVideo.pause = vi.fn().mockImplementation(() => {});
+
+    act(() => {
+      result.current.registerVideoElement(mockVideo);
+    });
+
+    // Test volume
+    act(() => {
+      result.current.setVolume(70);
+    });
+    expect(mockVideo.volume).toBeCloseTo(0.7);
+    expect(mockVideo.muted).toBe(false);
+
+    // Test toggleMute: muting sets volume to 0 and muted to true
+    act(() => {
+      result.current.toggleMute();
+    });
+    expect(result.current.muted).toBe(true);
+    expect(result.current.volume).toBe(0);
+
+    // Test toggleMute: unmuting restores prior audible volume (70)
+    act(() => {
+      result.current.toggleMute();
+    });
+    expect(result.current.muted).toBe(false);
+    expect(result.current.volume).toBe(70);
+    expect(mockVideo.volume).toBeCloseTo(0.7);
+
+    // Test playback speed
+    act(() => {
+      result.current.setPlaybackSpeed(1.5);
+    });
+    expect(mockVideo.playbackRate).toBe(1.5);
+
+    // Test seeking (relative percent to chunk duration: startSeconds=0, endSeconds=60 -> 30s)
+    act(() => {
+      result.current.seekToPercent(50);
+    });
+    expect(mockVideo.currentTime).toBe(30);
+
+    // Test play/pause toggle
+    await act(async () => {
+      result.current.togglePlayback();
+    });
+    expect(mockVideo.play).toHaveBeenCalled();
+
+    // Directly simulate playback failure
+    mockVideo.play = vi.fn().mockRejectedValueOnce(new Error('Playback failed'));
+    act(() => {
+      mockVideo.dispatchEvent(new Event('pause'));
+    });
+
+    await act(async () => {
+      result.current.togglePlayback();
+    });
+    expect(result.current.mediaError).toBe('Playback could not be started.');
+  });
+
+  it('does not advance feed on completion failure and exposes error', async () => {
+    fetchMock.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/api/progress/chunk')) {
+        return { ok: false, status: 500 };
+      }
+      return { ok: true, json: async () => ({ items: testItems }) };
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('c0'));
+
+    let success = true;
+    await act(async () => {
+      success = await result.current.completeActiveChunk();
+    });
+
+    expect(success).toBe(false);
+    expect(result.current.completionError).toBeTruthy();
+    // Invariant: feed must not advance or discard chunk when completion fails
+    expect(result.current.currentIndex).toBe(0);
+    expect(result.current.activeItem?.chunkId).toBe('c0');
+    expect(result.current.feedItems).toHaveLength(4);
+  });
+
+  it('preserves user focused chunk when completion resolves asynchronously after navigation', async () => {
+    let resolveCompletion: (val: any) => void = () => {};
+    const completionPromise = new Promise((resolve) => {
+      resolveCompletion = resolve;
+    });
+
+    fetchMock.mockImplementation(async (url: string) => {
+      if (typeof url === 'string' && url.includes('/api/progress/chunk')) {
+        await completionPromise;
+        return { ok: true, json: async () => ({ ok: true }) };
+      }
+      if (typeof url === 'string' && url.includes('pageIndex=0')) {
+        return { ok: true, json: async () => ({ items: testItems }) };
+      }
+      return { ok: true, json: async () => ({ items: [] }) };
+    });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('c0'));
+
+    // Start completion for c0
+    let completePromise: Promise<boolean>;
+    act(() => {
+      completePromise = result.current.completeActiveChunk();
+    });
+
+    // While completion is in-flight, navigate to c2 (index 2)
+    act(() => {
+      result.current.goToIndex(2);
+    });
+    expect(result.current.activeItem?.chunkId).toBe('c2');
+
+    // Resolve the completion for c0
+    await act(async () => {
+      resolveCompletion({ ok: true });
+      await completePromise;
+    });
+
+    // c0 was removed from feedItems, so c2 is now at index 1!
+    // The activeItem MUST remain c2 and NOT snap back to index 0 (which would be c1)!
+    expect(result.current.activeItem?.chunkId).toBe('c2');
+    expect(result.current.currentIndex).toBe(1);
+    expect(result.current.feedItems.map((it: any) => it.chunkId)).toEqual(['c1', 'c2', 'c3']);
+  });
+
+  it('pauses direct HTML5 video when reaching chunk endSecs', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      fetchMock.mockImplementation(async () => ({ ok: true, json: async () => ({ items: testItems }) }));
+      const { result } = renderHook(() => usePlayback());
+      await waitFor(() => expect(result.current.activeItem?.chunkId).toBe('c0'));
+
+      const mockVideo = document.createElement('video');
+      mockVideo.pause = vi.fn();
+      mockVideo.play = vi.fn().mockResolvedValue(undefined);
+      mockVideo.currentTime = 50;
+
+      act(() => {
+        result.current.registerVideoElement(mockVideo);
+      });
+
+      // Active item c0 has endSeconds: 60. Simulate video reaching endSeconds (60)
+      mockVideo.currentTime = 60;
+      act(() => {
+        vi.advanceTimersByTime(260);
+      });
+
+      expect(mockVideo.pause).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+
+

@@ -24,7 +24,7 @@ export function LessonCard({ lesson, compact = false }: LessonCardProps) {
           <h3 className={styles.title}>{lesson.title}</h3>
 
           <p className={styles.subtitle}>
-            S{lesson.seasonOrder} V{lesson.currentVideo}/{lesson.totalVideos}
+            S{lesson.seasonNumber ?? lesson.seasonOrder ?? 1} V{lesson.currentVideo}/{lesson.totalVideos}
             <span className={styles.separator}>•</span>
             Chunk {lesson.currentChunk}/{lesson.totalChunks}
             <span className={styles.separator}>•</span>

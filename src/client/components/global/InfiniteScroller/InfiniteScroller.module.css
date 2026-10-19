@@ -64,6 +64,10 @@
   -webkit-user-drag: none;
 }
 
+.trackStart {
+  justify-content: flex-start !important;
+}
+
 .arrow {
   position: absolute;
 

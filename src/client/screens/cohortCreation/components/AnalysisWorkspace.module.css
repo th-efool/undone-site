@@ -1,9 +1,10 @@
-.legend { color: var(--creation-muted, #657085); font-size: 11px; line-height: 1.5; margin: -10px 0 20px; }
-.rows summary { align-items: center; }
+.legend { color: var(--creation-muted, #657085); font-size: 11px; line-height: 1.5; margin: 12px 0 20px; }
+.rows summary { align-items: center; position: relative; padding-right: 18px; }
+.rows summary > svg:last-child { position: absolute; right: 0; top: 15px; margin: 0; }
 .rows summary > span:nth-child(2) { flex: 1; }
 .scores { display: flex; flex-direction: column; gap: 5px; border-left: 1px solid var(--creation-border, #e6ded1); padding-left: 10px; flex: 0 0 170px; }
 .score { display: flex; align-items: center; justify-content: space-between; gap: 5px; color: var(--creation-muted, #657085); font-size: 9px; }
-.dots { display: flex; gap: 3px; --tone: #3037ff; }
+.dots { display: flex; gap: 3px; --tone: var(--creation-blue, #3037ff); }
 .dots[data-tone='1'] { --tone: #f28b22; }.dots[data-tone='2'] { --tone: #a54bff; }.dots[data-tone='3'] { --tone: #009975; }.dots[data-tone='4'] { --tone: #fa5262; }
 .dots i { width: 6px; height: 6px; border-radius: 50%; background: color-mix(in srgb, var(--tone) 15%, transparent); }
 .dots i[data-filled='true'] { background: var(--tone); }

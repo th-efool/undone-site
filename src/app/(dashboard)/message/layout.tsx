@@ -1,16 +1,16 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Messages | Undone',
+  title: 'Messages',
   description: 'Connect and chat with your cohort members on Undone. Stay updated with your study groups.',
   openGraph: {
-    title: 'Messages | Undone',
+    title: 'Undone - Messages',
     description: 'Connect and chat with your cohort members on Undone. Stay updated with your study groups.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Messages | Undone',
+    title: 'Undone - Messages',
     description: 'Connect and chat with your cohort members on Undone. Stay updated with your study groups.',
   },
 };

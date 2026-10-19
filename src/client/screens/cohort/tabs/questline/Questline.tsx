@@ -26,7 +26,7 @@ export function Questline({ cohortId, cohort }: QuestlineProps) {
           <QuestlineFilters questline={questline} />
         </header>
 
-        <SeasonTimeline seasons={questline.seasons} />
+        <SeasonTimeline seasons={questline.seasons} cohortId={cohortId} />
       </section>
 
       <AssignmentsProjectsFeed questline={questline} />

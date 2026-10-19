@@ -37,11 +37,11 @@ export function LaunchSuccess() {
 
       <div className={styles.card}>
         <Image width={400} height={300}
-          src={result.coverImage || state.draft.coverImage || '/mock/thumbnails/docker.avif'}
+          src={result.coverImage || state.draft.coverImage || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop'}
           alt={result.cohortTitle}
           className={styles.artwork}
           onError={(e) => {
-            (e.target as HTMLImageElement).src = '/mock/thumbnails/docker.avif';
+            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop';
           }}
         />
 

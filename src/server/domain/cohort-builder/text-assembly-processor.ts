@@ -2,7 +2,7 @@ import { cohortChunkSchema, cohortLessonSchema, cohortWorkspaceSchema, type Coho
 import { readTextArtifact, type TextArtifactSql } from './text-artifacts';
 import { planTextJobs } from './text-job-plan';
 import type { ClaimedTextJob } from './text-jobs';
-import { computeTextStage } from './text-pipeline';
+import { computeTextStage, validateGeneratedLessonCoverage } from './text-pipeline';
 import { validateRetainedSourceEvidence } from './source-evidence';
 
 /** Prepared host processor. Emits validated bytes; it never projects lessons into canonical state. */
@@ -77,11 +77,11 @@ export function createTextAssemblyProcessor(input: {
     }
     if (seen.size !== expected.size) throw new Error('MISSING_ASSEMBLY_PREREQUISITE');
     const chunks = state.sources.flatMap(source => bySource.get(source.id) ?? []);
-    if (chunks.length === 0 || chunks.length > 100) throw new Error('INVALID_ASSEMBLY_SCOPE');
+    if (chunks.length === 0 || chunks.length > 1_000) throw new Error('INVALID_ASSEMBLY_SCOPE');
     const lessons = cohortLessonSchema.array().parse(computeTextStage({
       ...state, chunks, processing: { ...state.processing, stage: 'assembly' },
     }).result);
-    if (lessons.length !== chunks.length || lessons.some(lesson => lesson.sourceChunkIds.some(id => !chunks.some(chunk => chunk.id === id)))) {
+    if (!validateGeneratedLessonCoverage(lessons, chunks)) {
       throw new Error('FABRICATED_ASSEMBLY_EVIDENCE');
     }
     return Buffer.from(JSON.stringify(lessons));

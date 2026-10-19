@@ -248,6 +248,8 @@ export function extractVideoObservation(
   text: string;
   locations: NonNullable<CohortSource['locations']>;
   videoId: string;
+  videoTitle: string;
+  videoDurationMs: number;
   model: VideoObservationModel;
   limitations: string[];
 } {
@@ -300,6 +302,8 @@ export function extractVideoObservation(
     text,
     locations,
     videoId: observation.video.id,
+    videoTitle: observation.video.title,
+    videoDurationMs: observation.video.durationSeconds * 1000,
     model: observation.model,
     limitations: observation.limitations,
   };

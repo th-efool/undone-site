@@ -1,0 +1,258 @@
+.stageContainer {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  perspective: 1200px;
+  perspective-origin: 50% 50%;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.stageContainer:active,
+.isDragging,
+.isDragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+}
+
+.track {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sceneNode {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 78vw;
+  height: calc(100dvh - 190px);
+  margin-top: calc((100dvh - 190px) / -2);
+  margin-left: -39vw;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #000000;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  will-change: transform, opacity, filter;
+  backface-visibility: hidden;
+  contain: layout paint style;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              filter 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+}
+
+.isDragging .sceneNode {
+  transition: none !important;
+}
+
+.sceneNode img,
+.sceneNode video {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -webkit-user-drag: none !important;
+}
+
+/* Video Mount Inner Wrapper */
+.videoWrapper {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  background: #000000;
+  overflow: hidden;
+}
+
+/* Large Center Play Overlay Button when Paused */
+.playOverlayButton {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: rgba(14, 14, 20, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  cursor: pointer;
+  z-index: 15;
+  pointer-events: auto;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
+}
+
+.playOverlayButton:hover {
+  transform: translate(-50%, -50%) scale(1.08);
+  background: rgba(24, 24, 34, 0.85);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.playOverlayButton:active {
+  transform: translate(-50%, -50%) scale(0.96);
+}
+
+/* Bottom Integrated Timeline Scrubber */
+.timelineScrubber {
+  position: relative;
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.12);
+  cursor: pointer;
+  z-index: 20;
+  pointer-events: auto;
+  transition: height 0.15s ease;
+}
+
+.timelineScrubber:hover {
+  height: 9px;
+}
+
+.timelineProgress {
+  height: 100%;
+  background: #5430FF;
+  position: relative;
+  transition: width 0.1s linear;
+}
+
+.timelineThumb {
+  position: absolute;
+  right: -5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 0 6px rgba(84, 48, 255, 0.8);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.timelineScrubber:hover .timelineThumb {
+  opacity: 1;
+}
+
+/* Inactive Scene Card (Flanking Left / Right Nodes) */
+.inactiveSceneCard {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #09090c;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.preloadedVideo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none !important;
+}
+
+.cardOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 32px 24px 20px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85) 0%, rgba(0, 0, 0, 0.4) 60%, transparent 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.cardBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  border-radius: 999px;
+  color: #a5b4fc;
+  font-size: 0.76rem;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.cardTitle {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.edgeFallback {
+  width: 100%;
+  height: 100%;
+  background: #0E0E16;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.25);
+  pointer-events: none;
+}
+
+@media (max-width: 900px) {
+  .sceneNode {
+    width: 92vw;
+    margin-left: -46vw;
+    border-radius: 16px;
+  }
+}
+
+@media (max-height: 800px) {
+  .sceneNode {
+    height: calc(100dvh - 155px);
+    margin-top: calc((100dvh - 155px) / -2);
+  }
+  .playOverlayButton {
+    width: 64px;
+    height: 64px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sceneNode {
+    transition: opacity 0.15s ease !important;
+  }
+  .playOverlayButton {
+    transition: none !important;
+    animation: none !important;
+    transform: translate(-50%, -50%) !important;
+  }
+  .playOverlayButton:hover,
+  .playOverlayButton:active {
+    transform: translate(-50%, -50%) !important;
+  }
+  .timelineScrubber,
+  .timelineProgress,
+  .timelineThumb {
+    transition: none !important;
+  }
+}

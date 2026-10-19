@@ -5,10 +5,11 @@ import type { ArchiveItem } from '../../../../models';
 import styles from '../../Archives.module.css';
 
 export function ArchiveThumbnail({ item }: { item: ArchiveItem }) {
+  const src = item.thumbnail || '/mock/covers/cohort-cover.webp';
   return (
     <Image
       className={styles.thumb}
-      src={item.thumbnail}
+      src={src}
       alt=""
       width={168}
       height={78}

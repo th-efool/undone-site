@@ -49,25 +49,27 @@
 /* Special /play page floating overlay pill navbar */
 .playSidebar {
   position: fixed !important;
-  left: 20px !important;
+  left: 28px !important;
   top: 50% !important;
   transform: translateY(-50%) !important;
-  z-index: 200 !important;
+  z-index: 50 !important;
 
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
 
-  width: 54px !important;
+  width: 52px !important;
   height: auto !important;
-  max-height: 320px !important;
-  padding: 16px 8px !important;
+  max-height: 280px !important;
+  padding: 16px 6px !important;
 
-  background: #000000 !important;
+  background: rgba(18, 18, 24, 0.85) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
   border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  border-radius: 32px !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45) !important;
   gap: 16px !important;
 
   transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
@@ -86,9 +88,9 @@
 }
 
 .playSidebar :global(.active) {
-  color: #818cf8 !important;
-  background: rgba(79, 70, 229, 0.22) !important;
-  border-radius: 999px !important;
+  color: #FFFFFF !important;
+  background: rgba(84, 48, 255, 0.35) !important;
+  border-radius: 9999px !important;
 }
 
 /* Hide floating pill when in Immersive Focus Mode */
@@ -118,6 +120,13 @@
 .darkSidebar :global(.active) {
   color: #818cf8 !important;
   background: rgba(99, 102, 241, 0.2) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .playSidebar {
+    transition: none !important;
+    transform: translateY(-50%) !important;
+  }
 }
 
 

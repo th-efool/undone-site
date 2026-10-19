@@ -9,6 +9,8 @@ import { SortingControls } from '../SortingControls/SortingControls';
 import styles from '../../Archives.module.css';
 
 export function ArchivesPage({ archives }: { archives: CohortArchives }) {
+  const items = archives?.items || [];
+
   return (
     <div className={styles.page}>
       <section className={styles.main}>
@@ -18,8 +20,12 @@ export function ArchivesPage({ archives }: { archives: CohortArchives }) {
           <ArchiveSearch />
           <SortingControls archives={archives} />
         </div>
-        <ArchiveFeed items={archives.items} />
-        <button className={styles.load}>Load More⌄</button>
+        <ArchiveFeed items={items} />
+        {items.length >= 10 && (
+          <button className={styles.load} type="button">
+            Load More⌄
+          </button>
+        )}
       </section>
       <ArchivesSidebar archives={archives} />
     </div>

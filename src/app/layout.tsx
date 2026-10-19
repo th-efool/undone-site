@@ -5,6 +5,7 @@ import { CapacitorBridge } from '@/src/client/components/global/CapacitorBridge/
 import { ReactQueryProvider } from '@/src/client/providers/ReactQueryProvider';
 import { SliderProgressEngine } from '@/src/client/components/ui/Slider/SliderProgressEngine';
 import { SessionProvider } from 'next-auth/react';
+import { DevLoggerInit } from '@/src/client/providers/DevLoggerInit';
 import './globals.css';
 
 const geistSans = Geist({
@@ -44,6 +45,8 @@ const lora = Lora({
 const playfairDisplay = Playfair_Display({
   variable: '--font-playfair-display',
   subsets: ['latin'],
+  style: ['normal', 'italic'],
+  weight: ['400', '600', '700'],
 });
 
 
@@ -54,8 +57,8 @@ export const metadata: Metadata = {
   metadataBase,
 
   title: {
-    default: 'Undone — For a more curious you',
-    template: '%s | Undone',
+    default: 'Undone',
+    template: 'Undone - %s',
   },
 
   description: 'Turn existing curiosity into lasting understanding. Seamlessly learn from YouTube, articles, and podcasts in the spare moments of everyday life — without managing courses or schedules.',
@@ -90,7 +93,7 @@ export const metadata: Metadata = {
     locale: 'en_US',
     url: siteUrl,
     siteName: 'Undone',
-    title: 'Undone — For a more curious you',
+    title: 'Undone - For a more curious you',
     description: 'Turn existing curiosity into lasting understanding. Seamlessly learn from YouTube, articles, and podcasts in the spare moments of everyday life — without managing courses or schedules.',
     images: [
       {
@@ -105,7 +108,7 @@ export const metadata: Metadata = {
 
   twitter: {
     card: 'summary_large_image',
-    title: 'Undone — For a more curious you',
+    title: 'Undone - For a more curious you',
     description: 'Turn existing curiosity into lasting understanding. Seamlessly learn from YouTube, articles, and podcasts in the spare moments of everyday life.',
     images: ['/twitter-image.png'],
     creator: '@Undone',
@@ -171,6 +174,7 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
     >
       <body className="min-h-screen bg-background text-text font-sans antialiased">
         <SessionProvider>
+          <DevLoggerInit />
           <a
             href="#main-content"
             className="absolute left-[-9999px] top-4 z-50 rounded-md bg-background p-4 text-text focus:left-4 focus:outline-none focus:ring-2 focus:ring-primary"

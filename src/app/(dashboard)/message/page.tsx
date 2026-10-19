@@ -11,7 +11,7 @@ export default function MessagePage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'Messages | Undone',
+    name: 'Undone - Messages',
     description: 'Connect and chat with your cohort members on Undone. Stay updated with your study groups.',
   };
 

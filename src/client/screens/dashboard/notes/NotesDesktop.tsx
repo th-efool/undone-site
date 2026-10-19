@@ -10,6 +10,8 @@ import { NotesWorkspace } from './components/NotesWorkspace';
 import { useCanvasScene } from './hooks/useCanvasScene';
 import { useCanvasPersistence } from './hooks/useCanvasPersistence';
 
+import { NotesSkeleton } from '@/src/client/components/global/Skeleton';
+
 import styles from './Notes.module.css';
 
 interface NotesDesktopProps {
@@ -56,7 +58,7 @@ export function NotesDesktop({ model: notes }: NotesDesktopProps) {
     handleSaveNote
   );
 
-  if (!notes.state || !notes.data) return <main className={styles.loading}>Loading notes…</main>;
+  if (!notes.state || !notes.data) return <NotesSkeleton />;
 
   return (
     <main

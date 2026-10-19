@@ -16,6 +16,7 @@ export interface ClaimedTextJob {
   fence: number;
   leaseToken: string;
   leaseUntil: Date;
+  attempts?: number;
 }
 
 const leaseBounds = (now: Date, leaseMs: number) => {
@@ -103,6 +104,19 @@ export async function acceptTextJob(sql: TextArtifactSql, job: ClaimedTextJob, a
 
 export async function failTextJob(sql: TextArtifactSql, job: ClaimedTextJob, errorCode: string, now: Date): Promise<boolean> {
   if (!Number.isFinite(now.getTime())) throw new Error('INVALID_FAILURE_TIME');
+  const isTransient = errorCode === 'RATE_LIMITED' || errorCode === 'AI_UNAVAILABLE' || errorCode === 'VIDEO_OBSERVATION_DEADLINE';
+  if (isTransient && (job.attempts ?? 0) < 5) {
+    const delayMs = Math.min(30_000 * Math.max(1, job.attempts ?? 1), 120_000);
+    const dueAt = new Date(now.getTime() + delayMs);
+    const result = await sql.query(`UPDATE "cohort_text_jobs"
+      SET "status" = 'queued', "dueAt" = $1::timestamp, "errorCode" = $2,
+          "attempts" = "attempts" + 1, "leaseOwner" = NULL, "leaseToken" = NULL, "leaseUntil" = NULL,
+          "updatedAt" = $6::timestamp
+      WHERE "id" = $3 AND "workspaceId" = $4 AND "status" = 'running'
+        AND "leaseToken" = $5 AND "fence" = $7 AND "leaseUntil" > $6::timestamp RETURNING "id"`,
+      [dueAt.toISOString(), errorCode.slice(0, 100), job.id, job.workspaceId, job.leaseToken, now.toISOString(), job.fence]);
+    return result.rows.length === 1;
+  }
   const result = await sql.query(`UPDATE "cohort_text_jobs"
     SET "status" = 'failed', "errorCode" = $1, "leaseOwner" = NULL,
         "leaseToken" = NULL, "leaseUntil" = NULL, "updatedAt" = $6::timestamp
@@ -115,8 +129,8 @@ export async function failTextJob(sql: TextArtifactSql, job: ClaimedTextJob, err
 export async function retryTextJob(sql: TextArtifactSql, workspaceId: string, jobId: string, now: Date): Promise<boolean> {
   if (!Number.isFinite(now.getTime())) throw new Error('INVALID_RETRY_TIME');
   const result = await sql.query(`UPDATE "cohort_text_jobs"
-    SET "status" = 'queued', "dueAt" = $1::timestamp, "errorCode" = NULL, "updatedAt" = $1::timestamp
-    WHERE "workspaceId" = $2 AND "id" = $3 AND "status" = 'failed' AND "attempts" < 3
+    SET "status" = 'queued', "dueAt" = $1::timestamp, "errorCode" = NULL, "attempts" = 0, "updatedAt" = $1::timestamp
+    WHERE "workspaceId" = $2 AND "id" = $3 AND "status" = 'failed'
     RETURNING "id"`, [now.toISOString(), workspaceId, jobId]);
   return result.rows.length === 1;
 }

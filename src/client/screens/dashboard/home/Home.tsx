@@ -10,6 +10,7 @@ export function Home(props: {
   activeCohorts?: ActiveCohort[];
   continueLater?: PausedCohort[];
   recentlyCompleted?: CompletedCourse[];
+  userName?: string;
 }) {
   const experience = useExperience();
   const home = useHome(props);
@@ -18,5 +19,5 @@ export function Home(props: {
     return <HomeMobile model={home} />;
   }
 
-  return <HomeDesktop model={home} />;
+  return <HomeDesktop model={home} userName={props.userName} />;
 }

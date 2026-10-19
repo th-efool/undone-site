@@ -1,6 +1,14 @@
 import type { TextArtifactSql } from './text-artifacts';
 
+let schemaReadinessVerified = false;
+
+export function resetSchemaReadinessCacheForTest(): void {
+  schemaReadinessVerified = false;
+}
+
 export async function assertTextJobSchema(sql: TextArtifactSql): Promise<void> {
+  if (schemaReadinessVerified) return;
+
   const tables = await sql.query(`SELECT count(*)::int AS count FROM information_schema.tables
     WHERE table_schema = 'public' AND table_name = ANY($1::text[])`,
   [['cohort_text_jobs', 'cohort_text_job_edges', 'cohort_text_artifacts']]);
@@ -29,9 +37,13 @@ export async function assertTextJobSchema(sql: TextArtifactSql): Promise<void> {
   if (!hasJourneyArtifactStages || !hasJourneyJobStages || !hasModelInvocationsTable) {
     throw new Error('JOURNEY_STAGE_SCHEMA_NOT_INSTALLED');
   }
+
+  schemaReadinessVerified = true;
 }
 
 export async function ensureJourneyStageSchema(sql: TextArtifactSql): Promise<void> {
+  if (schemaReadinessVerified) return;
+
   const tables = await sql.query(`SELECT count(*)::int AS count FROM information_schema.tables
     WHERE table_schema = 'public' AND table_name = ANY($1::text[])`,
   [['cohort_text_jobs', 'cohort_text_job_edges', 'cohort_text_artifacts']]);
@@ -100,6 +112,8 @@ export async function ensureJourneyStageSchema(sql: TextArtifactSql): Promise<vo
       []
     );
   }
+
+  schemaReadinessVerified = true;
 }
 
 

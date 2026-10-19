@@ -37,7 +37,7 @@ const INITIAL_CARDS: any[] = [
   { id: 6, column: 'done',       label: 'Setup project structure', description: 'Scaffold Next.js app with TypeScript, ESLint, and Prettier.',   type: 'DevOps',   priority: 'low',    updatedAt: daysAgo(6) },
 ];
 
-interface Column { id: string; label: string }
+export interface Column { id: string; label: string }
 
 export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
   const note = notes?.state?.notes?.find((n: any) => n.id === noteId);
@@ -304,35 +304,54 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
  * Injects `data-col-id` attributes onto SVAR column DOM nodes
  * and a custom Add button to bypass SVAR native card addition.
  */
-function ColIdInjector({ columns, onAddCard }: { columns: Column[], onAddCard: (colId: string) => void }) {
+export function ColIdInjector({ columns, onAddCard }: { columns: Column[]; onAddCard: (colId: string) => void }) {
   useEffect(() => {
+    const cleanups: Array<() => void> = [];
     const colEls = document.querySelectorAll<HTMLElement>('.sqhq-kanban-wrapper .wx-column');
+
     colEls.forEach((el, idx) => {
       const col = columns[idx];
-      if (col) {
-        el.dataset.colId = col.id;
-        
-        const header = el.querySelector('.wx-column-header');
-        if (header && !header.querySelector('.sqhq-custom-add-btn')) {
-          const addBtn = document.createElement('button');
-          addBtn.className = 'sqhq-custom-add-btn';
-          addBtn.innerHTML = '+';
-          addBtn.title = 'Add Card';
-          
-          const handleAdd = (e: Event) => {
-            e.stopPropagation();
+      if (!col) return;
+      el.dataset.colId = col.id;
+
+      const header = el.querySelector('.wx-column-header');
+      if (header && !header.querySelector('.sqhq-custom-add-btn')) {
+        const addBtn = document.createElement('button');
+        addBtn.className = 'sqhq-custom-add-btn';
+        addBtn.innerHTML = '+';
+        addBtn.title = 'Add Card';
+
+        let lastTouchTime = 0;
+        const handleAdd = (e: Event) => {
+          e.stopPropagation();
+          // Prevent synthetic click from firing after touchend
+          if (e.type === 'click' && Date.now() - lastTouchTime < 500) {
             e.preventDefault();
-            onAddCard(col.id);
-          };
+            return;
+          }
+          if (e.type === 'touchend') {
+            lastTouchTime = Date.now();
+          }
+          onAddCard(col.id);
+        };
 
-          // Attach both click and touchend for robust mobile/desktop support
-          addBtn.addEventListener('click', handleAdd);
-          addBtn.addEventListener('touchend', handleAdd);
+        addBtn.addEventListener('click', handleAdd);
+        addBtn.addEventListener('touchend', handleAdd);
+        header.appendChild(addBtn);
 
-          header.appendChild(addBtn);
-        }
+        cleanups.push(() => {
+          addBtn.removeEventListener('click', handleAdd);
+          addBtn.removeEventListener('touchend', handleAdd);
+          addBtn.remove();
+        });
       }
     });
-  });
+
+    return () => {
+      cleanups.forEach((cleanup) => cleanup());
+    };
+  }, [columns, onAddCard]);
+
   return null;
 }
+

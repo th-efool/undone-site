@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { LandingClient } from '@/src/app/_archived_pages/landing/page.client';
 
 export const metadata: Metadata = {
-  title: 'AI Study Planner & Tracker | Undone',
+  title: 'AI Study Planner & Tracker',
   description: 'Let AI build your personalized study quest. Undone uses artificial intelligence to schedule, track, and adapt your microlearning journey for maximum consistency.',
   keywords: [
     'AI study planner',
@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     canonical: 'https://undone.in/features/ai-study-planner',
   },
   openGraph: {
-    title: 'AI Study Planner & Tracker | Undone',
+    title: 'Undone - AI Study Planner & Tracker',
     description: 'Let AI build your personalized study quest. Undone uses artificial intelligence to schedule, track, and adapt your microlearning journey for maximum consistency.',
     url: 'https://undone.in/features/ai-study-planner',
     type: 'website',
@@ -24,13 +24,13 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'AI Study Planner & Tracker | Undone',
+        alt: 'Undone - AI Study Planner & Tracker',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'AI Study Planner & Tracker | Undone',
+    title: 'Undone - AI Study Planner & Tracker',
     description: 'Let AI build your personalized study quest. Undone uses artificial intelligence to schedule, track, and adapt your microlearning journey.',
     images: ['/twitter-image.png'],
   },
@@ -40,7 +40,7 @@ export default function AiStudyPlannerFeature() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'AI Study Planner & Tracker — Undone',
+    name: 'Undone - AI Study Planner & Tracker',
     description: 'Let AI build your personalized study quest. Undone uses artificial intelligence to schedule, track, and adapt your microlearning journey for maximum consistency.',
     url: 'https://undone.in/features/ai-study-planner',
   };

@@ -33,17 +33,22 @@ export interface ActiveCohort {
   rank: number;
   title: string;
   provider: string;
+  memberCount?: number;
   thumbnail: string;
   minutesToday: number;
   dailyGoalMinutes: number;
   progressPercent: number;
   schedule: LearningSchedule;
   featured?: boolean;
+  pausedUntil?: string;
+  pausedReason?: string;
+  resumeLabel?: string;
   frequency?: 'Very Often' | 'Often' | 'Sometimes' | 'Rarely' | 'Very Rarely';
   orderStyle?: 'Sequential' | 'Semantic Randomize' | 'Randomize';
 }
 
 export interface PausedCohort extends Omit<ActiveCohort, 'rank'> {
+  rank?: number;
   pausedUntil: string;
   pausedReason?: string;
   resumeLabel: string;

@@ -1,5 +1,2 @@
-import styles from './SectionHeader.module.css';
-
-export function SectionHeader() {
-  return <header className={styles.root} />;
-}
+export { SectionHeader } from '@/src/client/components/global/DashboardSectionHeader';
+export type { SectionHeaderProps } from '@/src/client/components/global/DashboardSectionHeader';

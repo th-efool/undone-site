@@ -36,9 +36,9 @@ export function Overview({ cohortId, cohort, isEnrolled = true, isLoggedIn = tru
       />
 
       <div className={styles.rightColumn}>
-        <QuestGuideCard creator={cohort.creator} />
+        <QuestGuideCard creator={cohort.creator} cohortId={cohortId} />
         {isEnrolled ? (
-          <ExpeditionProgressCard items={overview.expeditionProgress} />
+          <ExpeditionProgressCard items={overview.expeditionProgress} cohortId={cohortId} />
         ) : (
           <div className={styles.joinContainer}>
             <h3 className={styles.joinTitle}>Ready to start?</h3>

@@ -7,7 +7,9 @@ import {
 import {
   vectorToArray,
   arrayToVector,
+  computeDeterministicChunkVector,
 } from '@/src/shared/curriculum/pedagogicalVector.engine';
+import { DEFAULT_COHORT_MODEL } from '@/src/server/infrastructure/ai/modelRegistry';
 
 export interface VectorScoringResult {
   vector: VectorArray12D;
@@ -24,6 +26,22 @@ export class VectorScoringService {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) return null;
     return new GoogleGenerativeAI(apiKey);
+  }
+
+  /**
+   * Evaluates a single chunk transcript segment across the 12 pedagogical dimensions.
+   * Alias for scoreTranscript.
+   */
+  static async evaluateChunk(
+    text: string,
+    metadata?: {
+      title?: string;
+      chunkIndex?: number;
+      totalChunks?: number;
+      duration?: number;
+    }
+  ): Promise<VectorScoringResult> {
+    return this.scoreTranscript(text, metadata);
   }
 
   /**
@@ -46,8 +64,10 @@ export class VectorScoringService {
     }
 
     try {
+      const configuredModel =
+        process.env.COHORT_AI_MODEL?.trim() || DEFAULT_COHORT_MODEL || 'gemini-2.5-flash';
       const model = client.getGenerativeModel({
-        model: 'gemini-1.5-flash',
+        model: configuredModel,
         generationConfig: {
           responseMimeType: 'application/json',
           temperature: 0.1,
@@ -146,56 +166,18 @@ Return ONLY valid JSON matching this schema:
    */
   private static heuristicFallback(
     text: string,
-    metadata?: { title?: string; duration?: number; chunkIndex?: number }
+    metadata?: { title?: string; duration?: number; chunkIndex?: number; totalChunks?: number }
   ): VectorScoringResult {
-    const lower = (text || '').toLowerCase();
-    const words = lower.split(/\s+/).filter(Boolean);
-    const wordCount = words.length;
-
-    // Fast heuristic keyword scoring
-    const hasCode = /const |function |import |return |class |<div|npm |git |def |def /i.test(lower);
-    const hasMath = /theorem|formula|equation|derivative|integral|matrix|proof|algorithm/i.test(lower);
-    const hasPodcast = /interview|welcome back|today we are discussing|let's talk about|in this episode/i.test(lower);
-    const hasSequentialWords = /first|second|then|next|finally|step 1|step 2|previously|as we saw/i.test(lower);
-
-    const cognitiveLoad = hasMath ? 0.85 : hasCode ? 0.70 : Math.min(0.8, Math.max(0.2, wordCount / 400));
-    const practicality = hasCode ? 0.90 : hasMath ? 0.50 : 0.30;
-    const visualDependence = hasCode ? 0.85 : hasPodcast ? 0.15 : 0.50;
-    const scaffolding = hasSequentialWords ? 0.75 : 0.45;
-    const linearity = hasSequentialWords || hasCode ? 0.70 : 0.35;
-    const novelty = 0.50;
-    const abstraction = hasMath ? 0.85 : hasCode ? 0.35 : 0.50;
-    const pacing = Math.min(1.0, Math.max(0.2, wordCount / ((metadata?.duration || 180) / 60 * 150)));
-    const rigor = hasMath ? 0.90 : hasCode ? 0.75 : 0.40;
-    const interactivity = hasCode ? 0.80 : 0.30;
-    const breadth = hasPodcast ? 0.75 : 0.40;
-    const energy = 0.60;
-
-    const vectorArray: VectorArray12D = [
-      cognitiveLoad,
-      practicality,
-      visualDependence,
-      scaffolding,
-      linearity,
-      novelty,
-      abstraction,
-      pacing,
-      rigor,
-      interactivity,
-      breadth,
-      energy,
-    ];
-
-    const vectorMap = arrayToVector(vectorArray);
+    const computed = computeDeterministicChunkVector(text, { ...metadata, durationSeconds: metadata?.duration });
 
     return {
-      vector: vectorArray,
-      vectorMap,
-      isStrictlyLinear: linearity >= 0.60,
-      linearityDependencyScore: linearity,
-      isKeyConcept: false,
+      vector: computed.vector,
+      vectorMap: computed.vectorMap,
+      isStrictlyLinear: computed.isStrictlyLinear,
+      linearityDependencyScore: computed.vectorMap.linearity_dependency,
+      isKeyConcept: computed.isKeyConcept,
       summary: metadata?.title || 'Heuristic evaluated chunk',
-      confidenceScore: 0.6,
+      confidenceScore: 0.75,
     };
   }
 }

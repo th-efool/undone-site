@@ -1,9 +1,11 @@
 import { z } from 'zod';
+import { revalidateTag, revalidatePath } from 'next/cache';
 import { getCreationOwner } from '@/src/server/infrastructure/auth/getCreationOwner';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
 import { validateCohortReadiness, CohortReadinessError } from '@/src/shared/cohort-builder/readiness';
 import { releaseWorkspace } from '@/src/server/domain/cohort-builder/release-service';
+import { cohortTag } from '@/src/server/domain/cohort/public-cohort';
 
 export const dynamic = 'force-dynamic';
 
@@ -117,6 +119,17 @@ export async function POST(
       operationId,
       expectedRevision,
     });
+
+    if (result.receipt.mode === 'public_publish') {
+      try {
+        revalidateTag(cohortTag(result.receipt.cohortId), 'max');
+        revalidatePath(`/cohort/${result.receipt.cohortId}/overview`);
+        revalidatePath(`/cohort/${result.receipt.cohortId}/questline`);
+        revalidatePath('/sitemap.xml');
+      } catch (cacheError) {
+        console.error('Failed to revalidate cache after public publish:', cacheError);
+      }
+    }
 
     return Response.json(
       {

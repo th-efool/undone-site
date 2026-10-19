@@ -6,7 +6,7 @@ import {
   Brain,
   CheckCircle2,
   FileText,
-  Infinity as InfinityIcon,
+  InfinityIcon,
   MessageSquare,
   Network,
   ShieldCheck,
@@ -15,6 +15,7 @@ import {
 import type { CohortWorkspace, CohortAction } from '@/src/shared/cohort-builder/contracts';
 import { BuildingArt } from '@/src/client/screens/cohortCreation/components/BuildingArt';
 import styles from '@/src/client/screens/cohortCreation/components/ReadyWorkspace.module.css';
+import { deriveCohortTitle, deriveCohortDescription } from '@/src/shared/cohort-builder/cohort-metadata';
 
 export interface ReadyStageViewProps {
   workspace: CohortWorkspace;
@@ -87,7 +88,8 @@ export function ReadyStageView({
               <FileText size={46} strokeWidth={1.2} aria-hidden="true" />
             </span>
             <div>
-              <h2>{workspace.intent || workspace.title || 'Your learning material'}</h2>
+              <h2>{deriveCohortTitle(workspace)}</h2>
+              <p>{deriveCohortDescription(workspace)}</p>
               <p>
                 {sources.length} {sources.length === 1 ? 'source' : 'sources'} · {chunkCount} learning pieces · {lessonCount} {lessonCount === 1 ? 'lesson' : 'lessons'}
               </p>

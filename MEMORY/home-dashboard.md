@@ -1,0 +1,9 @@
+# Home dashboard
+
+- Composition: `src/app/(dashboard)/home/page.tsx` supplies authoritative active/paused/completed arrays, including empty arrays. Hidden user subscriptions are excluded before projection.
+- UI: `src/client/screens/dashboard/home/HomeDesktop.tsx` combines active and paused cohorts by rank in one permanently expanded section. `components/ActiveCohorts/SubscribedCohortCard.tsx` uses a real navigation link, separate top-left pause/play control, and top-right Edit/Delete menu.
+- Card popovers portal into document.body, clamp to the viewport, and dismiss on outside pointer/Escape. Pause presets are 1 day/1 week. Custom dates cover the selected local calendar day; resume timestamp is local midnight on the following day. No time input.
+- User settings: `hooks/useHome.ts` saves goal, schedule, and lesson order through `/api/user/cohort-config`. Pause/resume write immediately and await server success before changing card state; resume explicitly clears pausedUntil. Subscription and learning-setting mutations reject unauthenticated sessions rather than accepting local-only changes. Expired pauses restore on a timer; paused rank is retained.
+- Removal: DELETE `/api/cohort/[id]/join` persists user-scoped Mongo `UserCohortConfig.isHidden` and removes only that user's Postgres membership. Cohort content and progress are retained. Home/feed exclude hidden subscriptions; POST join clears the marker. Mongo visibility is rolled back if membership deletion fails.
+- Storage: `src/client/repositories/homeStorageAdapter.ts` must persist empty choices and honor hidden markers, including removal of the final cohort. Server-supplied lists take precedence over stale browser choices.
+- Focused checks: `npx vitest run src/client/screens/dashboard/home/components/ActiveCohorts/__tests__/SubscribedCohortCard.test.tsx src/app/api/cohort/[id]/join/route.test.ts`.

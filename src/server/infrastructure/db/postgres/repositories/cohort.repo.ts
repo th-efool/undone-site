@@ -39,6 +39,7 @@ export interface CreateCohortParams {
       videoUrl?: string;
       sourceUrl?: string;
       chunks?: any;
+      isPublished?: boolean;
     }[];
   }[];
   isPublished?: boolean;
@@ -47,14 +48,33 @@ export interface CreateCohortParams {
 
 export const cohortRepo = {
   async updatePublishStatus(cohortId: string, isPublished: boolean) {
-    return prisma.cohort.update({
+    const updated = await prisma.cohort.update({
       where: { id: cohortId },
       data: { isPublished, publishedAt: isPublished ? new Date() : null },
     });
+
+    const seasons = await prisma.season.findMany({
+      where: { cohortId },
+      select: { id: true },
+    });
+
+    if (seasons.length > 0) {
+      await prisma.lesson.updateMany({
+        where: {
+          seasonId: { in: seasons.map(s => s.id) },
+        },
+        data: {
+          isPublished,
+        },
+      });
+    }
+
+    return updated;
   },
 
   async createCohortWithCommunity(data: CreateCohortParams) {
-    return prisma.cohort.create({
+    // 1. Create main cohort
+    const cohort = await prisma.cohort.create({
       data: {
         creatorId: data.creatorId,
         title: data.title,
@@ -63,80 +83,92 @@ export const cohortRepo = {
         coverImage: data.coverImage,
         difficulty: data.difficulty ?? 'BEGINNER',
         visibility: data.visibility ?? 'PUBLIC',
-        categories: data.categories,
+        categories: data.categories || [],
         estimatedCompletionTime: data.estimatedCompletionTime,
         language: data.language,
         primaryTopic: data.primaryTopic,
-        tags: data.tags,
-        requirements: data.requirements,
-        learningOutcomes: data.learningOutcomes,
+        tags: data.tags || [],
+        requirements: data.requirements || [],
+        learningOutcomes: data.learningOutcomes || [],
         isPublished: data.isPublished ?? false,
         publishedAt: data.isPublished ? new Date() : null,
-        
-        sources: {
-          create: data.sources.map(source => ({
-            type: source.type,
-            title: source.title,
-            url: source.url,
-            thumbnailUrl: source.thumbnailUrl,
-            domain: source.domain,
-            metaTitle: source.metaTitle,
-            chunkingMethod: source.chunkingMethod,
-          })),
-        },
-        
-        // Nested create for seasons and lessons
-        seasons: {
-          create: data.seasons.map((season) => ({
+      },
+    });
+
+    // 2. Create sources
+    if (data.sources && data.sources.length > 0) {
+      await prisma.cohortSource.createMany({
+        data: data.sources.map(source => ({
+          cohortId: cohort.id,
+          type: source.type,
+          title: source.title,
+          url: source.url,
+          thumbnailUrl: source.thumbnailUrl,
+          domain: source.domain,
+          metaTitle: source.metaTitle,
+          chunkingMethod: source.chunkingMethod,
+        })),
+      });
+    }
+
+    // 3. Create seasons and lessons
+    if (data.seasons && data.seasons.length > 0) {
+      for (const season of data.seasons) {
+        const createdSeason = await prisma.season.create({
+          data: {
+            cohortId: cohort.id,
             title: season.title,
             order: season.order,
-            lessons: {
-              create: season.lessons.map((lesson) => ({
-                title: lesson.title,
-                description: lesson.description,
-                duration: lesson.duration,
-                order: lesson.order,
-                lessonType: lesson.lessonType ?? 'VIDEO',
-                thumbnailUrl: lesson.thumbnailUrl,
-                videoId: lesson.videoId,
-                videoUrl: lesson.videoUrl,
-                sourceUrl: lesson.sourceUrl,
-                chunks: lesson.chunks || [],
-              })),
-            },
-          })),
-        },
-        
-        // Nested create for community and channels
-        community: {
-          create: {
-            chatEnabled: true,
-            eventsEnabled: true,
-            channels: {
-              create: [
-                { name: 'general' },
-                { name: 'resources' },
-              ],
-            },
           },
-        },
+        });
 
-        // Nested create for creator membership
-        members: {
-          create: [
-            {
-              userId: data.creatorId,
-              role: 'CREATOR',
-            },
-          ],
-        },
-      },
-      include: {
-        community: true,
-        seasons: true,
-        members: true,
+        if (season.lessons && season.lessons.length > 0) {
+          await prisma.lesson.createMany({
+            data: season.lessons.map(lesson => ({
+              seasonId: createdSeason.id,
+              title: lesson.title,
+              description: lesson.description,
+              duration: lesson.duration,
+              order: lesson.order,
+              lessonType: lesson.lessonType ?? 'VIDEO',
+              thumbnailUrl: lesson.thumbnailUrl,
+              videoId: lesson.videoId,
+              videoUrl: lesson.videoUrl,
+              sourceUrl: lesson.sourceUrl,
+              chunks: lesson.chunks || [],
+              isPublished: lesson.isPublished ?? Boolean(data.isPublished ?? true),
+            })),
+          });
+        }
       }
+    }
+
+    // 4. Create community and default channels
+    const community = await prisma.community.create({
+      data: {
+        cohortId: cohort.id,
+        chatEnabled: true,
+        eventsEnabled: true,
+      },
     });
+
+    await prisma.channel.createMany({
+      data: [
+        { name: 'general', communityId: community.id },
+        { name: 'resources', communityId: community.id },
+      ],
+    });
+
+    // 5. Add creator as first member
+    await prisma.cohortMember.create({
+      data: {
+        cohortId: cohort.id,
+        userId: data.creatorId,
+        role: 'CREATOR',
+      },
+    });
+
+    return cohort;
   },
 
   async getFullCohort(id: string) {

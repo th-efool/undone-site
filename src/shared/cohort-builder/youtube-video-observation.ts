@@ -24,7 +24,7 @@ export const retainedVideoObservationSchema = z.strictObject({
   video: z.strictObject({
     id: z.string().min(1).max(100),
     title: z.string().min(1).max(500),
-    durationSeconds: z.number().int().positive().max(14_400),
+    durationSeconds: z.number().int().positive().max(43_200),
     url: youtubeVideoUrlSchema,
   }),
   model: videoObservationModelSchema,
@@ -37,8 +37,8 @@ export type RetainedVideoObservation = z.infer<typeof retainedVideoObservationSc
 
 export const YOUTUBE_VIDEO_LIMITS = {
   bytes: 1024 * 1024,
-  durationSeconds: 14_400, // 4 hours maximum
+  durationSeconds: 43_200, // 12 hours maximum
   maxObservations: 200,
   maxExtractedBytes: 200_000,
-  timeoutMs: 90_000,
+  timeoutMs: 300_000,
 } as const;

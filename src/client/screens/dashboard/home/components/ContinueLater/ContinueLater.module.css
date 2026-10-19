@@ -1,11 +1,116 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  width: 100%;
+  margin: 6px 0 0 0;
 }
 
-@media (max-width: 768px) {
-  .section {
-    gap: var(--mobile-section-gap);
-  }
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 16px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.iconBadge {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.titleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.015em;
+}
+
+.countBadge {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #64748b;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.subtitle {
+  margin: 0;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.toggleBtn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.toggleBtn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.scrollerWrapper {
+  width: 100%;
+}
+
+:global([data-theme='dark']) .title,
+:global(.dark) .title {
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .subtitle,
+:global(.dark) .subtitle {
+  color: #94a3b8;
+}
+
+:global([data-theme='dark']) .countBadge,
+:global(.dark) .countBadge {
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+
+:global([data-theme='dark']) .toggleBtn:hover,
+:global(.dark) .toggleBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
 }

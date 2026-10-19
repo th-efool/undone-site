@@ -1,456 +1,672 @@
-/* ─── Section shell ──────────────────────────────────────────────────────── */
-.section {
-  display: flex;
-  flex-direction: column;
-}
+/* ─── ChannelHub ("Fine-tune your feed") Styles ──────────────────────────── */
 
-/* ─── Header bar ─────────────────────────────────────────────────────────── */
-.headerBar {
-  display: flex;
-  align-items: stretch;
-  height: 42px;
-  overflow: hidden;
-  border-radius: 12px 12px 0 0;
-}
-
-.tabTrapezium {
-  background: white;
-  padding: 0 32px 0 16px;
-  display: flex;
-  align-items: center;
-  position: relative;
-  z-index: 2;
-  clip-path: polygon(0 0, calc(100% - 20px) 0, 100% 100%, 0 100%);
-  border-top-left-radius: 12px;
-}
-
-.tabTitle {
-  font-family: var(--font-manrope);
-  font-size: 1rem;
-  font-weight: 800;
-  color: #111827;
-  margin: 0;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-}
-
-.indigoBar {
-  flex: 1;
-  background: #3730a3;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: 0 18px 0 14px;
-  margin-left: -8px;
-  position: relative;
-  z-index: 1;
-  border-top-right-radius: 12px;
-}
-
-.learnBtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.78rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: color 0.15s;
-}
-.learnBtn:hover { color: #fff; }
-
-/* ─── 4-Column Flush Body Layout ────────────────────────────────────────── */
-.body {
-  display: grid;
-  grid-template-columns: minmax(240px, 0.8fr) auto minmax(420px, 1.2fr);
+.card {
+  width: 100%;
   background: #ffffff;
-  padding: 16px 40px 24px;
-  min-height: 380px;
-  gap: 40px;
-  border-bottom: 1px solid #e5e7eb;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03), 0 4px 12px -2px rgba(0, 0, 0, 0.04);
+  padding: 16px 20px;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-/* ─── COL 1: Intro text ─────────────────────────────────────────────────── */
-.introCol {
+/* ─── Header ─────────────────────────────────────────────────────────────── */
+
+.header {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding-right: 40px;
-}
-
-.introHeadline {
-  font-family: var(--font-manrope);
-  font-size: 1.9rem;
-  font-weight: 800;
-  color: #111827;
-  line-height: 1.25;
-  margin: 0 0 16px;
-  letter-spacing: -0.02em;
-}
-
-.introBody {
-  font-size: 0.9rem;
-  color: #6b7280;
-  line-height: 1.6;
-  margin: 0;
-}
-
-/* ─── COL 2: Wheel ──────────────────────────────────────────────────────── */
-.wheelCol {
-  display: flex;
-  justify-content: center;
   align-items: center;
-  padding: 0 40px;
+  justify-content: space-between;
+  width: 100%;
+  gap: 16px;
 }
 
-.wheelOuter {
-  position: relative;
-  width: 380px;
-  height: 380px;
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.iconBadge {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(59, 73, 223, 0.1);
+  color: #3b49df;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
-.wheelSvg {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
-.segment {
-  fill: #f5f3ff;
-  transition: fill 0.2s, transform 0.2s;
-  cursor: pointer;
-  transform-origin: 0 0;
-}
-.segment:hover {
-  fill: #ede9fe;
-}
-.segmentActive {
-  fill: #4f46e5;
-  transform: scale(1.02);
-}
-.segmentActive:hover {
-  fill: #4338ca;
-}
-
-/* Icon + label buttons floating over the wheel */
-.wheelLabelBtn {
-  position: absolute;
-  transform: translate(-50%, -50%);
+.titleGroup {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.015em;
+}
+
+.subtitle {
+  margin: 0;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.headerActions {
+  display: flex;
   align-items: center;
   gap: 8px;
-  color: #4b5563;
-  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.resetBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.resetBtn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.collapseBtn {
   background: transparent;
   border: none;
+  color: #64748b;
   cursor: pointer;
-  transition: color 0.2s;
-  z-index: 20;
-}
-.wheelLabelBtn:hover {
-  color: #111827;
-}
-.wheelLabelBtnActive {
-  color: #ffffff;
-}
-.wheelLabelBtnActive:hover {
-  color: #ffffff;
-}
-
-.center {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 88px;
-  height: 88px;
-  background: #1e1b4b;
-  border-radius: 50%;
   display: flex;
-  justify-content: center;
   align-items: center;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-  pointer-events: none;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
-/* ─── COL 3: Detail panel ──────────────────────────────────────────── */
-.detailCol {
-  display: flex;
-  flex-direction: column;
-  background: #ffffff;
+.collapseBtn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
-.detailPanel {
-  padding: 16px 24px;
+/* ─── Body Grid ──────────────────────────────────────────────────────────── */
+
+.bodyGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(240px, 280px);
+  gap: 28px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+@media (max-width: 900px) {
+  .bodyGrid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+.leftCol,
+.rightCol {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  height: 100%;
-  overflow-y: auto;
 }
 
-.detailHeader {
+.subheadRow {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e5e7eb;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.detailBigIcon {
-  color: var(--color-brand);
+.subhead {
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #334155;
+  letter-spacing: -0.01em;
+}
+
+/* ─── Learning Style Tabs (Compact 38px boxes, 20px icons) ───────────────── */
+
+.iconTabsRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.iconTab {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 0;
   flex-shrink: 0;
+}
+
+.iconTab:hover:not(.iconTabActive) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+.iconTabActive {
+  background: #3b49df !important;
+  border-color: #3b49df !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(59, 73, 223, 0.32);
+  transform: translateY(-1px);
+}
+
+.iconSvg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+/* ─── Active Channel Identity Banner ─────────────────────────────────────── */
+
+.activeChannelBanner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(59, 73, 223, 0.05);
+  border: 1px solid rgba(59, 73, 223, 0.12);
   margin-top: 2px;
 }
 
-.detailName {
-  font-family: var(--font-manrope);
-  font-size: 1.25rem;
-  font-weight: 800;
-  color: #111827;
-  margin: 0 0 3px;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-.detailTagline {
-  font-size: 0.85rem;
-  color: #6b7280;
-  margin: 0;
-  line-height: 1.4;
-}
-
-/* Each sub-section */
-.detailSection {
+.activeChannelBadge {
+  color: #3b49df;
   display: flex;
-  flex-direction: column;
-  gap: 7px;
+  align-items: center;
+  justify-content: center;
 }
 
-.detailSectionLabel {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #4f46e5;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-}
-
-.detailAbout {
-  font-size: 0.9rem;
-  color: #374151;
-  line-height: 1.6;
-  margin: 0;
-}
-
-/* ─── Pills ──────────────────────────────────────────────────────────────── */
-.pills {
+.activeChannelText {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.bestForPill {
-  display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
-  border-radius: 9999px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  background: var(--color-brand-subtle);
-  color: var(--color-brand-hover);
-  border: 1px solid var(--color-brand-soft);
-  line-height: 1;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.78rem;
+  line-height: 1.3;
 }
 
-/* ─── Sliders ─────────────────────────────────────────────────────────────── */
+.activeChannelName {
+  font-weight: 800;
+  color: #1e293b;
+}
 
-.controlsGrid {
+.activeChannelDivider {
+  color: #94a3b8;
+  font-size: 0.7rem;
+}
+
+.activeChannelTagline {
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ─── Sliders List (Custom Pointer Track, 0-1) ───────────────────────────── */
+
+.slidersList {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  margin-top: 8px;
+  margin-top: 4px;
 }
 
 .sliderRow {
-  display: grid;
-  grid-template-columns: 80px 1fr 40px;
-  align-items: center;
-  gap: 12px;
-}
-
-.sliderRowTitle {
-  font-family: var(--font-manrope);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 800;
-  color: #9ca3af;
-  text-align: right;
-  user-select: none;
-}
-
-.sliderRowTrack {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 10px;
-  user-select: none;
-}
-
-.sliderInputWrapper {
-  position: relative;
-  height: 24px;
   display: flex;
   align-items: center;
-  width: 100%;
+  gap: 12px;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-.sliderFloatInput {
-  width: 40px;
-  background: #ffffff;
-  border: 1px solid #d1d5db;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  color: #111827;
-  padding: 0 4px;
-  height: 20px;
-  text-align: center;
-  outline: none !important;
-  box-shadow: none !important;
+.sliderLabelGroup {
+  width: 110px;
+  min-width: 104px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
 }
 
-.floatSlider {
-  width: 100%;
-}
-
-.sliderLabel {
-  font-family: var(--font-manrope);
-  font-size: 0.75rem;
+.sliderName {
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.8rem;
   font-weight: 700;
-  color: #6b7280;
-  opacity: 0.7;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  line-height: 1.2;
-  text-align: center;
+  color: #1e293b;
   white-space: nowrap;
 }
 
-.sliderLabel:hover {
-  opacity: 0.9;
-  color: #111827;
+.sliderHelp {
+  display: inline-flex;
+  align-items: center;
+  color: #94a3b8;
+  cursor: help;
+  transition: color 0.12s ease;
 }
 
-.sliderLabel:first-child {
-  text-align: right;
+.sliderHelp:hover {
+  color: #3b49df;
 }
 
-.sliderLabel:last-child {
-  text-align: left;
+.sliderCenterCol {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
 }
 
-.sliderLabelActive {
-  color: var(--color-brand);
-  opacity: 1;
-}
-
-.pill {
-  padding: 5px 12px;
-  border-radius: 9999px;
-  font-size: 0.8rem;
-  font-weight: 600;
+.sliderTrackWrapper {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: #e2e8f0;
   cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.12s ease;
-  line-height: 1;
+  touch-action: none;
+  transition: height 0.1s ease;
 }
 
-.pillIdle {
-  background: white;
-  border-color: #e5e7eb;
-  color: #374151;
-}
-.pillIdle:hover {
-  border-color: #a5b4fc;
-  color: #4f46e5;
+.sliderTrackWrapper:hover,
+.trackDragging {
+  height: 7px;
 }
 
-.pillActive {
-  background: #eef2ff;
-  color: #4f46e5;
-  border-color: #c7d2fe;
+.sliderProgressFill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: #3b49df;
+  border-radius: 999px;
+  pointer-events: none;
+}
+
+.sliderThumb {
+  position: absolute;
+  top: 50%;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid #3b49df;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  transition: transform 0.12s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.12s ease;
+}
+
+.sliderTrackWrapper:hover .sliderThumb,
+.trackDragging .sliderThumb {
+  transform: translate(-50%, -50%) scale(1.15);
+  box-shadow: 0 0 0 3px rgba(59, 73, 223, 0.25);
+}
+
+.dichotomyLabels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.68rem;
+  color: #94a3b8;
+  font-weight: 600;
+  padding: 0 1px;
+}
+
+.minDichotomyLabel,
+.maxDichotomyLabel {
+  letter-spacing: -0.01em;
+}
+
+.sliderValueBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 2px 6px;
+  min-width: 48px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.plusBox {
+  color: #64748b;
+  font-size: 0.72rem;
   font-weight: 700;
 }
-.pillActive:hover {
-  background: #e0e7ff;
+
+.plusSign {
+  display: inline-block;
 }
 
-/* ─── Responsive ─────────────────────────────────────────────────────────── */
-@media (max-width: 1400px) {
-  .body {
-    grid-template-columns: minmax(240px, 1fr) auto minmax(320px, 1fr);
-    padding: 40px 24px;
+.valueNumber {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* ─── Daily Preferences with Custom Dropdown Popover ──────────────────────── */
+
+.dailyPrefsList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.dailyPrefRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+.dailyPrefRow:last-child {
+  border-bottom: none;
+}
+
+.dailyPrefLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.prefIcon {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.dropdownContainer {
+  position: relative;
+}
+
+.customDropdownBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  min-width: 110px;
+  transition: all 0.15s ease;
+}
+
+.customDropdownBtn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.dropdownBtnActive {
+  border-color: #3b49df;
+  box-shadow: 0 0 0 2px rgba(59, 73, 223, 0.15);
+}
+
+.dropdownValueText {
+  white-space: nowrap;
+}
+
+.dropdownChevron {
+  color: #64748b;
+  transition: transform 0.15s ease;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+.dropdownPopover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.12), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  padding: 4px;
+  list-style: none;
+  margin: 0;
+  min-width: 130px;
+  z-index: 60;
+  animation: dropdownDrop 0.14s ease-out;
+}
+
+@keyframes dropdownDrop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
   }
-  .wheelOuter {
-    width: 320px;
-    height: 320px;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-@media (max-width: 1100px) {
-  .body {
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
-    gap: 32px;
-  }
-  .introCol {
-    grid-column: 1 / -1;
-    grid-row: 1;
-    padding-right: 0;
-  }
-  .wheelCol {
-    grid-column: 1;
-    grid-row: 2;
-    padding: 0;
-  }
-  .detailCol {
-    grid-column: 2;
-    grid-row: 2;
-    border-left: none;
-    padding-left: 0;
-  }
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #334155;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
 }
 
-@media (max-width: 800px) {
-  .body {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
-    padding: 24px 16px;
-  }
-  .introCol {
-    grid-column: 1;
-    grid-row: 1;
-  }
-  .wheelCol {
-    grid-column: 1;
-    grid-row: 2;
-  }
-  .detailCol {
-    grid-column: 1;
-    grid-row: 3;
-    padding-top: 24px;
-    border-top: 1px solid #f3f4f6;
-  }
-  .wheelOuter {
-    width: 280px;
-    height: 280px;
-  }
+.dropdownItem:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.dropdownItemSelected {
+  background: rgba(59, 73, 223, 0.08) !important;
+  color: #3b49df !important;
+  font-weight: 700;
+}
+
+.checkIcon {
+  color: #3b49df;
+}
+
+/* ─── Dark Theme Overrides ────────────────────────────────────────────────── */
+
+:global([data-theme='dark']) .card,
+:global(.dark) .card {
+  background: #11131f;
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 14px -2px rgba(0, 0, 0, 0.35);
+}
+
+:global([data-theme='dark']) .title,
+:global(.dark) .title {
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .subtitle,
+:global(.dark) .subtitle {
+  color: #94a3b8;
+}
+
+:global([data-theme='dark']) .subhead,
+:global(.dark) .subhead {
+  color: #e2e8f0;
+}
+
+:global([data-theme='dark']) .resetBtn,
+:global(.dark) .resetBtn {
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+}
+
+:global([data-theme='dark']) .resetBtn:hover,
+:global(.dark) .resetBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .collapseBtn:hover,
+:global(.dark) .collapseBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .bodyGrid,
+:global(.dark) .bodyGrid {
+  border-top-color: rgba(255, 255, 255, 0.06);
+}
+
+:global([data-theme='dark']) .iconTab,
+:global(.dark) .iconTab {
+  background: #181a28;
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+
+:global([data-theme='dark']) .iconTab:hover:not(.iconTabActive),
+:global(.dark) .iconTab:hover:not(.iconTabActive) {
+  background: #202334;
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .activeChannelBanner,
+:global(.dark) .activeChannelBanner {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.2);
+}
+
+:global([data-theme='dark']) .activeChannelName,
+:global(.dark) .activeChannelName {
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .activeChannelTagline,
+:global(.dark) .activeChannelTagline {
+  color: #94a3b8;
+}
+
+:global([data-theme='dark']) .sliderName,
+:global(.dark) .sliderName {
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .sliderTrackWrapper,
+:global(.dark) .sliderTrackWrapper {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+:global([data-theme='dark']) .sliderThumb,
+:global(.dark) .sliderThumb {
+  background: #f8fafc;
+  border-color: #6366f1;
+}
+
+:global([data-theme='dark']) .sliderValueBadge,
+:global(.dark) .sliderValueBadge {
+  background: #181a28;
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:global([data-theme='dark']) .valueNumber,
+:global(.dark) .valueNumber {
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .dailyPrefRow,
+:global(.dark) .dailyPrefRow {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+:global([data-theme='dark']) .dailyPrefLabel,
+:global(.dark) .dailyPrefLabel {
+  color: #cbd5e1;
+}
+
+:global([data-theme='dark']) .customDropdownBtn,
+:global(.dark) .customDropdownBtn {
+  background: #181a28;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .customDropdownBtn:hover,
+:global(.dark) .customDropdownBtn:hover {
+  background: #202334;
+}
+
+:global([data-theme='dark']) .dropdownPopover,
+:global(.dark) .dropdownPopover {
+  background: #181a28;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+:global([data-theme='dark']) .dropdownItem,
+:global(.dark) .dropdownItem {
+  color: #e2e8f0;
+}
+
+:global([data-theme='dark']) .dropdownItem:hover,
+:global(.dark) .dropdownItem:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .dropdownItemSelected,
+:global(.dark) .dropdownItemSelected {
+  background: rgba(99, 102, 241, 0.18) !important;
+  color: #818cf8 !important;
 }

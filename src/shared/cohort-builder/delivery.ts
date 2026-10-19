@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { type CohortWorkspace, cohortWorkspaceSchema } from './contracts';
+import { type CohortWorkspace, cohortWorkspaceSchema, cohortSourceProvenanceSchema } from './contracts';
+import { computeDeterministicChunkVector } from '@/src/shared/curriculum/pedagogicalVector.engine';
+import { deriveChunkVideoInterval, deriveChunkTitleAndSummary, deriveCohortTitle, deriveCohortDescription } from './cohort-metadata';
+import { buildCohortSeo, cohortSeoSchema } from './seo';
 
 export const deliveryChunkSchema = z.strictObject({
   chunkId: z.string().min(1),
@@ -10,7 +13,16 @@ export const deliveryChunkSchema = z.strictObject({
   start: z.number().int().nonnegative(),
   end: z.number().int().positive(),
   page: z.number().int().positive().optional(),
+  startSeconds: z.number().int().nonnegative().optional(),
+  endSeconds: z.number().int().nonnegative().optional(),
+  timeRangeLabel: z.string().optional(),
+  timestampUrl: z.string().optional(),
+  title: z.string().min(1),
+  duration: z.string().min(1),
   checksum: z.string().regex(/^[a-f0-9]{64}$/),
+  vector: z.array(z.number().min(0).max(1)).length(12).optional(),
+  isStrictlyLinear: z.boolean().optional(),
+  isKeyConcept: z.boolean().optional(),
 });
 export type DeliveryChunk = z.infer<typeof deliveryChunkSchema>;
 
@@ -23,6 +35,10 @@ export const deliveryLessonSchema = z.strictObject({
   order: z.number().int().nonnegative(),
   durationSeconds: z.number().int().positive(),
   lessonType: z.enum(['ARTICLE', 'VIDEO']),
+  videoId: z.string().optional(),
+  videoUrl: z.string().optional(),
+  thumbnailUrl: z.string().optional(),
+  sourceUrl: z.string().optional(),
   pinned: z.boolean(),
   manualOverride: z.boolean().optional(),
   evidenceStatus: z.enum(['valid', 'orphaned']),
@@ -47,20 +63,7 @@ export const deliverySourceSchema = z.strictObject({
   url: z.string().optional(),
   checksum: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
   isRestricted: z.boolean().default(false),
-  provenance: z.strictObject({
-    parserVersion: z.string().max(128),
-    rawChecksum: z.string().regex(/^[a-f0-9]{64}$/),
-    scope: z.enum(['selected_pages', 'main_article', 'full_text_response', 'transcript_only', 'selected_files']),
-    finalUrl: z.string().optional(),
-    pageCount: z.number().int().positive().max(200).optional(),
-    videoId: z.string().optional(),
-    track: z.any().optional(),
-    timeScope: z.any().optional(),
-    repoUrl: z.string().optional(),
-    ref: z.string().optional(),
-    commitSha: z.string().optional(),
-    fileCount: z.number().int().optional(),
-  }).optional(),
+  provenance: cohortSourceProvenanceSchema.optional(),
 });
 export type DeliverySource = z.infer<typeof deliverySourceSchema>;
 
@@ -68,13 +71,18 @@ export const deliveryCohortSchema = z.strictObject({
   id: z.string().min(1),
   title: z.string().trim().min(1).max(300),
   description: z.string().trim().min(1).max(4_000),
+  coverImage: z.string().optional(),
   audience: z.string().trim().max(500),
   dailyMinutes: z.number().int().min(1).max(1_440),
   difficulty: z.enum(['BEGINNER', 'INTERMEDIATE', 'ADVANCED']),
   learningOutcomes: z.array(z.string().trim().min(1).max(500)),
   primaryTopic: z.string().trim().min(1).max(300),
   language: z.string().trim().default('en'),
+  subtitle: z.string().trim().max(500).optional(),
+  categories: z.array(z.string().trim().min(1).max(80)).max(12).default([]),
+  requirements: z.array(z.string().trim().min(1).max(500)).max(20).default([]),
   visibility: z.enum(['PUBLIC', 'PRIVATE']),
+  seo: cohortSeoSchema.optional(),
 });
 export type DeliveryCohort = z.infer<typeof deliveryCohortSchema>;
 
@@ -121,6 +129,63 @@ export const deliveryLessonId = (cohortId: string, lessonId: string): string =>
 export const deliverySourceId = (cohortId: string, sourceId: string): string =>
   `${cohortId}_src_${sourceId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
 
+/** Stable source grouping shared by the editable preview and delivery. */
+export function getCohortSeasonGroups(workspace: CohortWorkspace, lessons = workspace.lessons) {
+  const sourceMap = new Map(workspace.sources.map(source => [source.id, source]));
+  if (workspace.sources.length <= 1) return [{ key: 'main', title: 'Season 1: Core Curriculum', lessons }];
+  const groups = new Map<string, { key: string; title: string; lessons: typeof lessons }>();
+  const chunkMap = new Map(workspace.chunks.map(chunk => [chunk.id, chunk]));
+  for (const lesson of lessons) {
+    const sourceId = lesson.sourceChunkIds.map(id => chunkMap.get(id)?.sourceId).find(Boolean) ?? 'general';
+    const source = sourceMap.get(sourceId);
+    const group = groups.get(sourceId) ?? { key: sourceId, title: source ? `Part: ${source.label}` : 'Core Questline', lessons: [] };
+    group.lessons.push(lesson);
+    groups.set(sourceId, group);
+  }
+  return [...groups.values()];
+}
+
+function extractYoutubeVideoId(input?: string | null): string | null {
+  const trimmed = input?.trim() || '';
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    const vParam = parsed.searchParams.get('v');
+    if (vParam) return vParam;
+    if (parsed.hostname?.includes('youtu.be')) {
+      const pathname = parsed.pathname?.slice(1);
+      if (pathname) return pathname.split('?')[0];
+    }
+  } catch {
+    const match = trimmed.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+    if (match) return match[1];
+  }
+  return null;
+}
+
+export function getTopicCoverImage(topicOrTitle: string): string {
+  const lower = topicOrTitle.toLowerCase();
+  if (lower.includes('rust')) {
+    return 'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=1200&auto=format&fit=crop';
+  }
+  if (lower.includes('python')) {
+    return 'https://images.unsplash.com/photo-1526379095098-d400fd0bf935?q=80&w=1200&auto=format&fit=crop';
+  }
+  if (lower.includes('react') || lower.includes('javascript') || lower.includes('typescript') || lower.includes('web') || lower.includes('frontend')) {
+    return 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?q=80&w=1200&auto=format&fit=crop';
+  }
+  if (lower.includes('ai') || lower.includes('machine learning') || lower.includes('deep learning') || lower.includes('llm')) {
+    return 'https://images.unsplash.com/photo-1677442136019-21780ecad995?q=80&w=1200&auto=format&fit=crop';
+  }
+  if (lower.includes('go') || lower.includes('golang')) {
+    return 'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?q=80&w=1200&auto=format&fit=crop';
+  }
+  if (lower.includes('devops') || lower.includes('docker') || lower.includes('kubernetes') || lower.includes('cloud')) {
+    return 'https://images.unsplash.com/photo-1607799279861-4dd421887fb3?q=80&w=1200&auto=format&fit=crop';
+  }
+  return 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop';
+}
+
 /**
  * Pure projection from CohortWorkspace into a validated LearnerDeliveryPayload.
  */
@@ -138,7 +203,7 @@ export function projectCohortToLearnerDelivery(
 
   // Build projected delivery sources
   const sources: DeliverySource[] = workspace.sources.map(source => {
-    const kind = source.input?.kind ?? 'text';
+    const kind = source.input?.kind === 'generated_guide' ? 'text' : (source.input?.kind ?? 'text');
     const url = source.input?.kind === 'web'
       ? source.input.url
       : source.input?.kind === 'youtube'
@@ -166,13 +231,47 @@ export function projectCohortToLearnerDelivery(
   // Map each lesson to delivery representation
   const projectedLessons: DeliveryLesson[] = workspace.lessons.map((lesson, lessonIndex) => {
     const deliveryChunks: DeliveryChunk[] = [];
+    let detectedVideoId: string | undefined;
+    let fallbackSourceUrl: string | undefined;
 
     for (const [chunkOrder, chunkId] of lesson.sourceChunkIds.entries()) {
       const chunk = chunkMap.get(chunkId);
       if (chunk) {
         const source = sourceMap.get(chunk.sourceId);
-        // Find matching location page if available
         const location = source?.locations?.find(loc => loc.start <= chunk.start && loc.end >= chunk.end);
+
+        const videoId = source?.provenance?.videoId || (source?.input?.kind === 'youtube' ? extractYoutubeVideoId(source.input.url) : null) || extractYoutubeVideoId(source?.label);
+
+        if (videoId && !detectedVideoId) {
+          detectedVideoId = videoId;
+        }
+        if (source && !fallbackSourceUrl) {
+          fallbackSourceUrl = source.input?.kind === 'youtube' ? source.input.url : source.provenance?.finalUrl;
+        }
+
+        const sourceChunks = workspace.chunks.filter(item => item.sourceId === chunk.sourceId && item.sourceVersion === chunk.sourceVersion)
+          .sort((a, b) => a.start - b.start);
+        const sourceChunkIndex = sourceChunks.findIndex(item => item.id === chunk.id);
+        const interval = deriveChunkVideoInterval(chunk, source, sourceChunkIndex, sourceChunks.length, 15, sourceChunks);
+        const { startSeconds, endSeconds } = interval;
+
+        const formatTs = (sec: number) => {
+          const m = Math.floor(sec / 60);
+          const s = sec % 60;
+          return `${m}:${s.toString().padStart(2, '0')}`;
+        };
+        const timeRangeLabel = interval.isVideo && !interval.hasTiming ? 'Timing unavailable' : `${formatTs(startSeconds)} – ${formatTs(endSeconds)}`;
+        const timestampUrl = videoId && interval.hasTiming
+          ? `https://www.youtube.com/watch?v=${videoId}&t=${startSeconds}s`
+          : undefined;
+
+        const copy = deriveChunkTitleAndSummary(chunk, source, sourceChunkIndex);
+        const scored = computeDeterministicChunkVector(chunk.text, {
+          title: `${copy.title} - ${source?.label ?? ''}`,
+          durationSeconds: interval.durationSeconds,
+          chunkIndex: sourceChunkIndex,
+          totalChunks: sourceChunks.length,
+        });
 
         deliveryChunks.push({
           chunkId: chunk.id,
@@ -183,10 +282,24 @@ export function projectCohortToLearnerDelivery(
           start: chunk.start,
           end: chunk.end,
           page: location?.page,
+          startSeconds,
+          endSeconds,
+          timeRangeLabel,
+          timestampUrl,
+          title: `Part ${chunkOrder + 1}`,
+          duration: formatTs(interval.durationSeconds),
           checksum: chunk.checksum,
+          vector: scored.vector,
+          isStrictlyLinear: scored.isStrictlyLinear,
+          isKeyConcept: scored.isKeyConcept,
         });
       }
     }
+
+    const isVideo = Boolean(detectedVideoId);
+    const videoUrl = detectedVideoId ? `https://www.youtube.com/watch?v=${detectedVideoId}` : undefined;
+    const thumbnailUrl = detectedVideoId ? `https://i.ytimg.com/vi/${detectedVideoId}/hqdefault.jpg` : undefined;
+    const sourceUrl = videoUrl || fallbackSourceUrl;
 
     const isOrphaned = lesson.evidenceStatus === 'orphaned' ||
       (lesson.sourceChunkIds.length > 0 && deliveryChunks.length < lesson.sourceChunkIds.length);
@@ -198,8 +311,12 @@ export function projectCohortToLearnerDelivery(
       title: lesson.title,
       objective: lesson.objective,
       order: lessonIndex,
-      durationSeconds: estimatedLessonSeconds,
-      lessonType: 'ARTICLE',
+      durationSeconds: isVideo ? Math.max(1, ...deliveryChunks.map(chunk => chunk.endSeconds ?? 0)) : estimatedLessonSeconds,
+      lessonType: isVideo ? 'VIDEO' : 'ARTICLE',
+      videoId: detectedVideoId,
+      videoUrl,
+      thumbnailUrl,
+      sourceUrl,
       pinned: lesson.pinned,
       manualOverride: lesson.manualOverride,
       evidenceStatus: isOrphaned ? 'orphaned' : 'valid',
@@ -208,41 +325,13 @@ export function projectCohortToLearnerDelivery(
   });
 
   // Group lessons into seasons deterministically
-  // If multiple sources exist, group by first chunk's source; otherwise single season
-  const seasonGroups = new Map<string, { title: string; lessons: DeliveryLesson[] }>();
-
-  if (workspace.sources.length > 1) {
-    for (const lesson of projectedLessons) {
-      const firstChunk = lesson.chunks[0];
-      const sourceId = firstChunk?.sourceId ?? 'general';
-      const source = sourceMap.get(sourceId);
-      const groupKey = sourceId;
-      const groupTitle = source ? `Part: ${source.label}` : 'Core Questline';
-
-      const existing = seasonGroups.get(groupKey);
-      if (existing) {
-        existing.lessons.push(lesson);
-      } else {
-        seasonGroups.set(groupKey, { title: groupTitle, lessons: [lesson] });
-      }
-    }
-  }
-
-  // Fallback: If 1 source or all lessons fell in 1 group, keep single coherent season
-  if (seasonGroups.size <= 1) {
-    seasonGroups.clear();
-    seasonGroups.set('main', {
-      title: 'Season 1: Core Curriculum',
-      lessons: projectedLessons,
-    });
-  }
-
-  const seasons: DeliverySeason[] = [...seasonGroups.values()].map((group, seasonIndex) => ({
+  const projectedByLessonId = new Map(projectedLessons.map(lesson => [lesson.lessonId, lesson]));
+  const seasons: DeliverySeason[] = getCohortSeasonGroups(workspace).map((group, seasonIndex) => ({
     id: deliverySeasonId(options.cohortId, seasonIndex),
-    title: group.title,
+    title: workspace.presentation?.seasonTitles?.[group.key] ?? group.title,
     order: seasonIndex,
-    lessons: group.lessons.map((lesson, orderInSeason) => ({
-      ...lesson,
+    lessons: group.lessons.map((sourceLesson, orderInSeason) => ({
+      ...projectedByLessonId.get(sourceLesson.id)!,
       order: orderInSeason,
     })),
   }));
@@ -260,10 +349,18 @@ export function projectCohortToLearnerDelivery(
     hasOrphanedEvidence: projectedLessons.some(l => l.evidenceStatus === 'orphaned'),
   };
 
+  const primaryTopic = workspace.title || 'General Knowledge';
+  const firstVideoThumbnail = projectedLessons.find(l => l.thumbnailUrl)?.thumbnailUrl;
+  const recommendedCover = workspace.recommendations?.items?.find(i => i.coverImage)?.coverImage;
+  const coverImage = workspace.presentation?.coverImage || recommendedCover || firstVideoThumbnail || getTopicCoverImage(primaryTopic);
+
+  const seo = buildCohortSeo({ ...workspace, lessons: workspace.lessons });
+
   const cohort: DeliveryCohort = {
     id: options.cohortId,
-    title: workspace.title.trim() || workspace.intent.slice(0, 100),
-    description: workspace.intent,
+    title: deriveCohortTitle(workspace),
+    description: deriveCohortDescription(workspace),
+    coverImage,
     audience: workspace.audience || 'Curious learners',
     dailyMinutes: workspace.dailyMinutes,
     difficulty: options.difficulty ?? 'BEGINNER',
@@ -271,9 +368,13 @@ export function projectCohortToLearnerDelivery(
       `Master core concepts of ${workspace.title || workspace.intent.slice(0, 50)}`,
       `Complete ${projectedLessons.length} targeted learning sessions`,
     ],
-    primaryTopic: workspace.title || 'General Knowledge',
+    primaryTopic,
     language: options.language ?? 'en',
+    subtitle: workspace.presentation?.subtitle,
+    categories: workspace.presentation?.categories ?? [],
+    requirements: workspace.presentation?.requirements ?? [],
     visibility: options.mode === 'public_publish' ? 'PUBLIC' : 'PRIVATE',
+    seo,
   };
 
   return learnerDeliveryPayloadSchema.parse({

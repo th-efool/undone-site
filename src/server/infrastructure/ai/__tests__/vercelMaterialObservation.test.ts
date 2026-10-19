@@ -4,7 +4,7 @@ import { MockLanguageModelV4 } from 'ai/test';
 import { modelOutput } from '@/src/shared/cohort-creation/__tests__/fixtures';
 import { youtubeVideoMetadataSchema } from '@/src/shared/cohort-creation/youtube';
 import { validateVideoObservation, videoObservationCoverage } from '@/src/server/domain/cohort-creation/material-observation';
-import { VercelMaterialObservation } from '../vercelMaterialObservation';
+import { VercelMaterialObservation, extractChaptersFromDescription } from '../vercelMaterialObservation';
 
 const video = youtubeVideoMetadataSchema.parse({ videoId: 'dQw4w9WgXcQ', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
   title: 'Lighting lesson', description: 'Provider metadata', channelId: 'channel', channelTitle: 'Teacher',
@@ -14,6 +14,15 @@ const proposal = { canObserve: true, observations: [{ startSeconds: 10, endSecon
 const supportedUrls = { 'video/*': [/^https:\/\/www\.youtube\.com\/watch\?v=/] };
 afterEach(() => vi.unstubAllGlobals());
 describe('bounded Vercel video observation', () => {
+  it('keeps an untitled opening and merges short chapters without losing the tail', () => {
+    const chapters = extractChaptersFromDescription('00:20 - Setup\n00:45 - First example\n01:30 - Practice\n01:50 - Wrap up', 125);
+    expect(chapters).toEqual([
+      { startSeconds: 0, endSeconds: 90, text: 'Opening (no chapter title provided); Setup; First example' },
+      { startSeconds: 90, endSeconds: 125, text: 'Practice; Wrap up' },
+    ]);
+    expect(extractChaptersFromDescription('No chapters supplied', 100)).toEqual([]);
+  });
+
   it('sends one native file URL through the SDK without application downloads or tool loops', async () => {
     const fetch = vi.fn(() => { throw new Error('Unexpected download'); }); vi.stubGlobal('fetch', fetch);
     const model = new MockLanguageModelV4({ provider: 'google.generative-ai', supportedUrls, doGenerate: modelOutput(proposal) });
@@ -99,5 +108,22 @@ describe('bounded Vercel video observation', () => {
     await expect(new VercelMaterialObservation(model, { beforeCall: async () => {} }).observeVideo(video, stopped.signal)).rejects.toThrow('stop');
     expect(model.doGenerateCalls).toHaveLength(0);
     await expect(new VercelMaterialObservation(model, { beforeCall: async () => {} }).observeVideo(video, new AbortController().signal)).rejects.toMatchObject({ detail: { code: 'AI_UNAVAILABLE', message: 'Video observation is unavailable. Retry or supply authorized transcript/text material.' } });
+  });
+  it('extracts author chapters from description for long videos without calling model generateText', async () => {
+    const longVideo = {
+      ...video,
+      durationSeconds: 14500,
+      description: '00:00 - Intro\n01:00 - Chapter 1\n02:00 - Chapter 2\n03:00 - Conclusion',
+    };
+    const model = new MockLanguageModelV4({ supportedUrls, doGenerate: modelOutput(proposal) });
+    const release = vi.fn(async () => {});
+    const beforeCall = vi.fn(async () => release);
+    const result = await new VercelMaterialObservation(model, { beforeCall }).observeVideo(longVideo, new AbortController().signal);
+    expect(result.canObserve).toBe(true);
+    expect(result.observations).toHaveLength(4);
+    expect(result.observations[0]).toEqual({ startSeconds: 0, endSeconds: 60, text: 'Intro' });
+    expect(model.doGenerateCalls).toHaveLength(0);
+    expect(beforeCall).toHaveBeenCalledWith(longVideo.videoId);
+    expect(release).toHaveBeenCalledOnce();
   });
 });

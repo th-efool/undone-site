@@ -1,45 +1,20 @@
 import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
-import { Metadata } from 'next';
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { auth } from '@/src/server/infrastructure/auth/auth.config';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
-import { redirect } from 'next/navigation';
+import { mapDbCohortToUiCohort } from '@/src/server/infrastructure/db/postgres/mappers/cohortMapper';
+import { notFound } from 'next/navigation';
+import { NOINDEX_METADATA } from '@/src/server/domain/cohort/cohort-seo-render';
+
+import type { Metadata } from 'next';
 
 const Events = dynamic(() => import('@/src/client/screens/cohort').then((mod) => mod.Events));
 
-export async function generateMetadata({ params }: { params: Promise<{ cohortId: string }> }): Promise<Metadata> {
-  const { cohortId } = await params;
-  
-  const dbCohort = await prisma.cohort.findFirst({
-    where: { id: cohortId, ...accessibleCohortWhere((await auth())?.user?.id ?? null) },
-    select: { title: true, description: true, coverImage: true },
-  });
-
-  const title = dbCohort?.title ? `${dbCohort.title} | Undone` : `Cohort ${cohortId} | Undone`;
-  const description = dbCohort?.description || `Explore this learning cohort on Undone.`;
-  const image = dbCohort?.coverImage || undefined;
-
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: 'website',
-      images: image ? [{ url: image }] : undefined,
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-      images: image ? [image] : undefined,
-    },
-  };
-}
-
-import { mapDbCohortToUiCohort } from '@/src/server/infrastructure/db/postgres/mappers/cohortMapper';
-import { notFound } from 'next/navigation';
+export const metadata: Metadata = {
+  ...NOINDEX_METADATA,
+  title: 'Events',
+};
 
 export default async function EventsPage({ params }: { params: Promise<{ cohortId: string }> }) {
   const { cohortId } = await params;
@@ -51,9 +26,9 @@ export default async function EventsPage({ params }: { params: Promise<{ cohortI
       seasons: {
         include: {
           lessons: true,
-        }
-      }
-    }
+        },
+      },
+    },
   });
 
   if (!dbCohort) {
@@ -62,20 +37,5 @@ export default async function EventsPage({ params }: { params: Promise<{ cohortI
 
   const uiCohort = mapDbCohortToUiCohort(dbCohort);
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "EventSeries",
-    "name": `Events - Cohort ${cohortId}`,
-    "description": `Upcoming and past events for cohort ${cohortId} on Undone.`
-  };
-
-  return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <Events cohortId={cohortId} cohort={uiCohort} />
-    </>
-  );
+  return <Events cohortId={cohortId} cohort={uiCohort} />;
 }

@@ -783,15 +783,24 @@ export function createPostgresInteractionRepository(prisma = defaultPrisma): Int
       const leaseUntil = new Date(now.getTime() + params.leaseDurationMs);
 
       return prisma.$transaction(async tx => {
-        const candidates = await tx.$queryRaw<Array<{ id: string; workspaceId: string; status: string }>>`
-          SELECT r."id", r."workspaceId", r."status" FROM "interaction_runs" r
-          JOIN interaction_workspaces w ON w.id=r."workspaceId"
-          WHERE w.lifecycle='active' AND (r."status" = 'queued' OR (r."status" = 'running' AND r."leaseUntil" < ${now}))
-          ${params.workspaceId ? Prisma.sql`AND r."workspaceId" = ${params.workspaceId}` : Prisma.empty}
-          ORDER BY r."createdAt" ASC
-          LIMIT 1
-          FOR UPDATE OF w SKIP LOCKED
-        `;
+        const candidates = params.workspaceId
+          ? await tx.$queryRaw<Array<{ id: string; workspaceId: string; status: string }>>`
+              SELECT r."id", r."workspaceId", r."status" FROM "interaction_runs" r
+              JOIN interaction_workspaces w ON w.id=r."workspaceId"
+              WHERE w.lifecycle='active' AND (r."status" = 'queued' OR (r."status" = 'running' AND r."leaseUntil" < ${now}))
+              AND r."workspaceId" = ${params.workspaceId}
+              ORDER BY r."createdAt" ASC
+              LIMIT 1
+              FOR UPDATE OF w SKIP LOCKED
+            `
+          : await tx.$queryRaw<Array<{ id: string; workspaceId: string; status: string }>>`
+              SELECT r."id", r."workspaceId", r."status" FROM "interaction_runs" r
+              JOIN interaction_workspaces w ON w.id=r."workspaceId"
+              WHERE w.lifecycle='active' AND (r."status" = 'queued' OR (r."status" = 'running' AND r."leaseUntil" < ${now}))
+              ORDER BY r."createdAt" ASC
+              LIMIT 1
+              FOR UPDATE OF w SKIP LOCKED
+            `;
 
         if (candidates.length === 0) return null;
         const candidateId = candidates[0].id;

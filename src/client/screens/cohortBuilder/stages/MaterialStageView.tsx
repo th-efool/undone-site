@@ -6,10 +6,13 @@ import { useSession } from 'next-auth/react';
 import {
   AlertCircle,
   CircleCheck,
+  ChevronDown,
   FileText,
   Globe,
   Link as LinkIcon,
   Plus,
+  Replace,
+  Trash2,
   Upload,
 } from 'lucide-react';
 import type {
@@ -20,6 +23,7 @@ import type {
 import type { EntityRef } from 'interaction-builder/core';
 import { useInteractionState } from '@/src/client/interaction/hooks';
 import { InkUnderline } from '@/src/client/screens/cohortCreation/components/InkUnderline';
+import { singleYoutubeVideo } from '@/src/shared/cohort-builder/youtube-transcript';
 import styles from './MaterialStageView.module.css';
 
 export interface MaterialStageViewProps {
@@ -128,6 +132,35 @@ function getSourceErrorMessage(
     return 'Service is currently busy. Please retry shortly.';
   if (code) return `Preparation failed (${code}).`;
   return 'Preparation failed. Please retry or replace this source.';
+}
+
+function extractYoutubeVideoId(source: CohortSource): string | null {
+  if (source.input?.kind !== 'youtube') return null;
+  if (source.provenance?.videoId && /^[A-Za-z0-9_-]{11}$/.test(source.provenance.videoId)) {
+    return source.provenance.videoId;
+  }
+  try {
+    return singleYoutubeVideo(source.input.url).videoId;
+  } catch {
+    return null;
+  }
+}
+
+function getSourceTypeBadge(source: CohortSource): string {
+  switch (source.input?.kind) {
+    case 'youtube':
+      return 'YouTube Video';
+    case 'pdf':
+      return 'PDF Document';
+    case 'web':
+      return 'Web Article';
+    case 'github':
+      return 'GitHub Repo';
+    case 'generated_guide':
+      return 'AI Guide';
+    default:
+      return 'Text / Notes';
+  }
 }
 
 export function MaterialStageView({
@@ -264,13 +297,66 @@ export function MaterialStageView({
       const isYouTube = /youtube\.com|youtu\.be/i.test(trimmedUrl);
       let ok = false;
       if (isYouTube) {
-        ok = await dispatchAction({
-          type: 'add_youtube_source',
-          url: trimmedUrl,
-          label: trimmedUrl,
-          mode: 'video_observation',
-          sourceId: replacingSourceId ?? undefined,
-        });
+        // Fetch metadata to check if playlist and get clean title
+        let metadata: {
+          title?: string;
+          isPlaylist?: boolean;
+          videos?: Array<{ videoId: string; title: string }>;
+        } | null = null;
+        try {
+          const metaRes = await fetch(
+            `/api/import/youtube/metadata?url=${encodeURIComponent(trimmedUrl)}`
+          );
+          if (metaRes.ok) {
+            metadata = await metaRes.json();
+          }
+        } catch {
+          // Metadata fetch failure is non-fatal
+        }
+
+        if (metadata?.isPlaylist && metadata.videos && metadata.videos.length > 0) {
+          // For playlists, add videos from the playlist (up to remaining capacity, max 5)
+          const remainingSlots = Math.max(1, 20 - (workspace.sources?.length ?? 0));
+          const videosToAdd = metadata.videos.slice(0, Math.min(5, remainingSlots));
+          let anySuccess = false;
+          for (const v of videosToAdd) {
+            const canonicalVideoUrl = `https://www.youtube.com/watch?v=${v.videoId}`;
+            const added = await dispatchAction({
+              type: 'add_youtube_source',
+              url: canonicalVideoUrl,
+              label: v.title || `Video ${v.videoId}`,
+              mode: 'video_observation',
+            });
+            if (added) anySuccess = true;
+          }
+          ok = anySuccess;
+        } else {
+          // Normalize video URL
+          let normalizedUrl = trimmedUrl;
+          try {
+            const parsed = new URL(trimmedUrl);
+            let vid: string | null = null;
+            if (parsed.hostname === 'youtu.be') {
+              vid = parsed.pathname.split('/')[1];
+            } else if (parsed.pathname === '/watch') {
+              vid = parsed.searchParams.get('v');
+            } else if (/^\/(shorts|embed)\//.test(parsed.pathname)) {
+              vid = parsed.pathname.split('/')[2];
+            }
+            if (vid && /^[A-Za-z0-9_-]{11}$/.test(vid)) {
+              normalizedUrl = `https://www.youtube.com/watch?v=${vid}`;
+            }
+          } catch {}
+
+          const label = metadata?.title || trimmedUrl;
+          ok = await dispatchAction({
+            type: 'add_youtube_source',
+            url: normalizedUrl,
+            label,
+            mode: 'video_observation',
+            sourceId: replacingSourceId ?? undefined,
+          });
+        }
       } else {
         ok = await dispatchAction({
           type: 'add_web_source',
@@ -641,44 +727,59 @@ export function MaterialStageView({
       {/* Added Material Section */}
       {workspace.sources.length > 0 && (
         <section className={styles.addedMaterialSection} aria-label="Added material">
-          <h2 className={styles.sourceHeading}>Added material</h2>
-          <ul className={styles.sources}>
+          <div className={styles.sourceHeaderBar}>
+            <h2 className={styles.sourceHeading}>Added material</h2>
+            <span className={styles.sourceCountBadge}>
+              {workspace.sources.length} {workspace.sources.length === 1 ? 'source' : 'sources'}
+            </span>
+          </div>
+          <ul
+            className={styles.sources}
+            data-count={workspace.sources.length}
+          >
             {workspace.sources.map((source, index) => {
               const isFailed = source.state === 'failed';
               const errorMessage = isFailed
                 ? getSourceErrorMessage(source, workspace.processing?.jobs)
                 : null;
+              const videoId = extractYoutubeVideoId(source);
+              const badgeLabel = getSourceTypeBadge(source);
 
               return (
                 <li
                   key={source.id}
                   id={`creation-material-${source.id}`}
                   className={styles.sourceItem}
+                  data-kind={source.input?.kind ?? 'text'}
+                  data-failed={isFailed ? 'true' : undefined}
                 >
-                  <div className={styles.sourceIconCol}>
-                    {isFailed ? (
-                      <AlertCircle
-                        className={styles.sourceAlertIcon}
-                        size={24}
-                        aria-label="Failed"
+                  {videoId && (
+                    <div className={styles.sourceMediaPreview} aria-hidden="true">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`}
+                        alt=""
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
+                        className={styles.sourceMediaImg}
                       />
-                    ) : (
-                      <CircleCheck
-                        className={styles.sourceReadyIcon}
-                        data-ready
-                        size={24}
-                        aria-label="Ready"
-                      />
-                    )}
+                    </div>
+                  )}
+
+                  <div className={styles.sourceCardTop}>
+                    <span className={styles.sourceTypeBadge}>
+                      {badgeLabel}
+                    </span>
                   </div>
 
                   <div className={styles.sourceDetails}>
                     <h3 className={styles.sourceTitle}>
                       {source.label || `Source ${index + 1}`}
                     </h3>
-                    <div className={styles.sourceProvenance}>
-                      {getSourceProvenanceSummary(source)}
-                    </div>
+                    <details className={styles.sourceProvenance}>
+                      <summary>Source details <ChevronDown size={14} aria-hidden="true" /></summary>
+                      <div>{getSourceProvenanceSummary(source)}</div>
+                    </details>
                     {isFailed && (
                       <div className={styles.failedErrorRow} role="alert">
                         <span>{errorMessage}</span>
@@ -695,28 +796,43 @@ export function MaterialStageView({
                   </div>
 
                   <div className={styles.sourceActions}>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() => {
-                        setReplacingSourceId(source.id);
-                        setError(null);
-                      }}
-                    >
-                      Replace source {index + 1}
-                    </button>
-                    <button
-                      type="button"
-                      disabled={busy}
-                      onClick={() =>
-                        void dispatchAction({
-                          type: 'remove_source',
-                          sourceId: source.id,
-                        })
-                      }
-                    >
-                      Remove source {index + 1}
-                    </button>
+                    <div className={styles.sourceIconCol}>
+                      {isFailed ? (
+                        <AlertCircle className={styles.sourceAlertIcon} size={18} aria-label="Failed" />
+                      ) : (
+                        <CircleCheck className={styles.sourceReadyIcon} data-ready size={18} aria-label="Ready" />
+                      )}
+                      <span>{isFailed ? 'Needs attention' : 'Ready'}</span>
+                    </div>
+                    <div className={styles.sourceActionButtons}>
+                      <button
+                        type="button"
+                        aria-label={`Replace source ${index + 1}`}
+                        title="Replace source"
+                        disabled={busy}
+                        onClick={() => {
+                          setReplacingSourceId(source.id);
+                          setError(null);
+                        }}
+                      >
+                        <Replace size={17} strokeWidth={1.75} aria-hidden="true" />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.removeBtn}
+                        aria-label={`Remove source ${index + 1}`}
+                        title="Remove source"
+                        disabled={busy}
+                        onClick={() =>
+                          void dispatchAction({
+                            type: 'remove_source',
+                            sourceId: source.id,
+                          })
+                        }
+                      >
+                        <Trash2 size={17} strokeWidth={1.75} aria-hidden="true" />
+                      </button>
+                      </div>
                   </div>
                 </li>
               );

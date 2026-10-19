@@ -1,76 +1,52 @@
 .play {
-  width: 100%;
-  height: 100vh;
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
   padding: 0;
   background: #000000 !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  overflow: hidden;
   box-sizing: border-box;
 }
 
-/* ── Desktop overlay elements (inside PlayerSurface) ─────────────── */
-.lessonCardDesktop {
+.channelContainer {
   position: absolute;
-  top: 36px;
-  left: 36px;
-  z-index: 20;
+  top: max(16px, env(safe-area-inset-top, 16px));
+  left: max(24px, env(safe-area-inset-left, 24px));
+  z-index: 70;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
 }
 
-.reasonBadge {
+.feedbackToast {
+  position: absolute;
+  bottom: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(239, 68, 68, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  font-size: 0.76rem;
-  font-weight: 600;
-  color: #818cf8;
-  background: rgba(15, 23, 42, 0.75);
-  border: 1px solid rgba(129, 140, 248, 0.3);
-  border-radius: 999px;
-  backdrop-filter: blur(8px);
-  width: fit-content;
+  gap: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 80;
+  animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.toolbarDesktop {
-  position: absolute;
-  top: 50%;
-  right: 32px;
-  transform: translateY(-50%);
-  z-index: 20;
+@keyframes slideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-.timelineDesktop {
-  position: absolute;
-  right: 32px;
-  bottom: 68px;
-  left: 32px;
-  z-index: 15;
-}
-
-.controlsDesktop {
-  position: absolute;
-  right: 32px;
-  bottom: 20px;
-  left: 32px;
-  z-index: 15;
-}
-
-/* Hide these — kept for backward compat with queue/notes */
-.notesPanel, .queueDrawer {
-  position: absolute;
-  display: none;
-}
-
-.closeBtn {
-  background: transparent;
-  border: none;
-  color: rgba(255, 255, 255, 0.6);
-  cursor: pointer;
-}
-.closeBtn:hover {
-  color: #fff;
-}
 
 /* ── Mobile portrait overlay stack (below video) ─────────────────── */
 .mobileControlsOverlay {
@@ -747,10 +723,8 @@
   line-height: 1.3;
 }/* Channel Selector Widget */
 .channelSelectorWrapper {
-  position: absolute;
-  top: max(16px, env(safe-area-inset-top, 16px));
-  left: max(16px, env(safe-area-inset-left, 16px));
-  z-index: 1000;
+  position: relative;
+  z-index: 70;
 }
 
 .channelSelectorTrigger {
@@ -781,17 +755,21 @@
   position: absolute;
   top: calc(100% + 8px);
   left: 0;
+  right: auto;
   background: rgba(15, 23, 42, 0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 12px;
   padding: 8px;
-  min-width: 180px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  min-width: 260px;
+  max-height: min(480px, calc(100dvh - 90px));
+  overflow-y: auto;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
   gap: 4px;
+  z-index: 1000;
 }
 
 .channelSelectorHeader {

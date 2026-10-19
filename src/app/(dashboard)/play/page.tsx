@@ -8,16 +8,16 @@ const Play = dynamic(
 );
 
 export const metadata: Metadata = {
-  title: 'Play | Undone',
+  title: 'Play',
   description: 'Engage in interactive learning and play games to boost your knowledge on Undone.',
   openGraph: {
-    title: 'Play | Undone',
+    title: 'Undone - Play',
     description: 'Engage in interactive learning and play games to boost your knowledge on Undone.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Play | Undone',
+    title: 'Undone - Play',
     description: 'Engage in interactive learning and play games to boost your knowledge on Undone.',
   },
 };
@@ -26,7 +26,7 @@ export default function PlayPage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'Play | Undone',
+    name: 'Undone - Play',
     description: 'Engage in interactive learning and play games to boost your knowledge on Undone.',
   };
 

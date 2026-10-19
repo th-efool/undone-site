@@ -5,7 +5,12 @@ import { creationSignInUrl } from '@/src/shared/auth/returnTo';
 import { postgresInteractionRepo } from '@/src/server/infrastructure/db/postgres/repositories/interaction.repo';
 import { CohortInteractionScreen } from '@/src/client/screens/cohortBuilder/CohortInteractionScreen';
 import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
+import type { Metadata } from 'next';
 import { dispatchInteractionExecution } from '@/src/server/interaction-dispatch.runtime';
+
+export const metadata: Metadata = {
+  title: 'Quest Builder',
+};
 
 export default async function QuestBuildPage({
   params,
@@ -35,6 +40,7 @@ export default async function QuestBuildPage({
       workspaceId={workspaceId}
       ownerId={owner}
       initialView={ws.snapshot}
+      initialRevision={ws.revision}
     />
   );
 }

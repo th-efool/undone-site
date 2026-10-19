@@ -9,6 +9,7 @@ interface ArchivesProps {
 }
 
 export function Archives({ cohortId, cohort }: ArchivesProps) {
-  const archives = cohort?.archives || [];
+  const archives = cohort?.archives;
+  if (!archives) return null;
   return <ArchivesPage archives={archives} />;
 }

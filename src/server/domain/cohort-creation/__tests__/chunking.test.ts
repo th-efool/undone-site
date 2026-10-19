@@ -99,4 +99,42 @@ describe('grounded chunk boundaries', () => {
     expect(() => assembleGroundedChunks(f.partitions, [], controller.signal)).toThrow();
     expect(() => validateChunkBoundaries(f.proposal, { ...f.partition, id: 'f'.repeat(64) }, f.understanding)).toThrow();
   });
+  it('enforces 60-second minimum duration and 15-second overlap for consecutive video chunks', () => {
+    const f = fixture(4);
+    const unit: ProcessingUnit = {
+      ...f.unit,
+      contentOrigin: 'ai',
+      coverage: { scope: 'video_observation', exhaustive: true, limitations: [] },
+      segments: [
+        { id: 'seg-0', text: 'Intro', location: { ...f.unit.segments[0].location, segmentId: 'seg-0', anchor: { kind: 'video' as const, startSeconds: 0, endSeconds: 40, estimated: false } } },
+        { id: 'seg-1', text: 'Part 1', location: { ...f.unit.segments[0].location, segmentId: 'seg-1', anchor: { kind: 'video' as const, startSeconds: 40, endSeconds: 80, estimated: false } } },
+        { id: 'seg-2', text: 'Part 2', location: { ...f.unit.segments[0].location, segmentId: 'seg-2', anchor: { kind: 'video' as const, startSeconds: 80, endSeconds: 150, estimated: false } } },
+        { id: 'seg-3', text: 'Conclusion', location: { ...f.unit.segments[0].location, segmentId: 'seg-3', anchor: { kind: 'video' as const, startSeconds: 150, endSeconds: 170, estimated: false } } },
+      ],
+    };
+    const partition = partitionProcessingInput([unit])[0];
+    const understanding = {
+      summary: 'Video.',
+      concepts: [
+        { label: 'C1', summary: 'Intro', segmentIds: ['seg-0'] },
+        { label: 'C2', summary: 'Part 1', segmentIds: ['seg-1'] },
+        { label: 'C3', summary: 'Part 2', segmentIds: ['seg-2'] },
+        { label: 'C4', summary: 'Conclusion', segmentIds: ['seg-3'] },
+      ],
+      limitations: [],
+    };
+    const proposal = {
+      chunks: [
+        { title: 'Chunk 1', summary: 'Intro', startSegmentId: 'seg-0', endSegmentId: 'seg-0', conceptIndices: [0] },
+        { title: 'Chunk 2', summary: 'Main', startSegmentId: 'seg-1', endSegmentId: 'seg-2', conceptIndices: [1, 2] },
+        { title: 'Chunk 3', summary: 'End', startSegmentId: 'seg-3', endSegmentId: 'seg-3', conceptIndices: [3] },
+      ],
+    };
+    const chunks = groundChunkBoundaries(proposal, partition, understanding, 1);
+    expect(chunks).toHaveLength(3);
+    expect(chunks[0].durationSeconds).toBe(60);
+    expect(chunks[1].durationSeconds).toBe(125);
+    expect(chunks[2].durationSeconds).toBe(35);
+  });
 });
+

@@ -20,9 +20,15 @@ describe('cohort builder action plan', () => {
     expect(result.changed[0]).toMatchObject({ kind: 'lesson', id: 'l1', version: 1 });
     expect(result.undoable).toBe(true);
   });
-  it('keeps pinned title protected', () => {
+  it('allows an explicit title edit for a pinned lesson while retaining its pin', () => {
     const pinned = base(); pinned.lessons[0].pinned = true;
-    expect(() => planCohortAction(pinned, { type: 'edit_lesson', lessonId: 'l1', title: 'Unsafe rewrite' }, context)).toThrow('PINNED_LESSON_TITLE');
+    const result = planCohortAction(pinned, { type: 'edit_lesson', lessonId: 'l1', title: 'Deliberate rewrite' }, context);
+    expect(result.nextState.lessons[0]).toMatchObject({ title: 'Deliberate rewrite', pinned: true, manualOverride: true });
+  });
+  it('updates presentation without queuing source processing', () => {
+    const ready = base(); ready.processing = { status: 'ready', stage: 'done', generation: 2, sourceFingerprint: 'a'.repeat(64), error: null };
+    const result = planCohortAction(ready, { type: 'edit_presentation', title: 'My course', description: 'My public description' }, context);
+    expect(result.nextState).toMatchObject({ title: 'My course', description: 'My public description', processing: ready.processing });
   });
   it('rejects stale revision and malformed order', () => {
     expect(() => planCohortAction(base(), { type: 'set_intent', intent: 'New' }, { ...context, expectedRevision: 1 })).toThrow('STALE_WORKSPACE');

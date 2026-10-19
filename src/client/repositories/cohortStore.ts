@@ -157,7 +157,9 @@ class CohortStore {
       };
     });
 
-    const coverArt = data.coverImage || '/mock/thumbnails/docker.avif';
+    const coverArt = (data.coverImage && data.coverImage !== '/mock/thumbnails/docker.avif')
+      ? data.coverImage
+      : 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop';
 
     const newCohort: Cohort = {
       id: targetId,

@@ -9,9 +9,10 @@ import styles from './LessonList.module.css';
 
 interface LessonListProps {
   lessons: Lesson[];
+  cohortId?: string;
 }
 
-export function LessonList({ lessons }: LessonListProps) {
+export function LessonList({ lessons, cohortId }: LessonListProps) {
   const [items, setItems] = useState(lessons);
 
   function toggleStatus(lessonId: string) {
@@ -45,6 +46,7 @@ export function LessonList({ lessons }: LessonListProps) {
           key={lesson.id}
           lesson={lesson}
           index={index}
+          cohortId={cohortId}
           onToggleStatus={toggleStatus}
         />
       ))}

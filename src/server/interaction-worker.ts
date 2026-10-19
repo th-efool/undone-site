@@ -19,6 +19,7 @@ import {
   initWorkerSupervisionTables,
   type SupervisionSql,
 } from './domain/cohort-builder/worker-supervision';
+import { devLogger } from '@/src/shared/lib/dev-logger';
 
 export interface InteractionWorkerOptions {
   repo?: InteractionRepository;
@@ -107,6 +108,9 @@ export async function runInteractionWorkerLoop(
         // No pending interactive runs; execute background text processing DAG tick
         if (durable) await durable.tick();
         const candidates = durable ? [] : await textWorkspaceCandidates();
+        if (candidates.length > 0) {
+          devLogger.debug('InteractionWorker', `Processing ${candidates.length} text workspace candidate(s)`);
+        }
         for (const candidate of candidates) {
           if (signal.aborted) break;
           await advanceTextWorkspace(repo, candidate.ownerId, candidate.id);
@@ -114,6 +118,8 @@ export async function runInteractionWorkerLoop(
         await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
         continue;
       }
+
+      devLogger.info('InteractionWorker', `Claimed assistant run ${run.id} for workspace ${run.workspaceId}`);
 
       // Start heartbeat timer
       let heartbeatTimer: NodeJS.Timeout | null = setInterval(async () => {
@@ -172,6 +178,7 @@ export async function runInteractionWorkerLoop(
           assistantMessageId: res.assistantMessageId,
           budgetActual,
         });
+        devLogger.info('InteractionWorker', `Assistant run ${run.id} completed. Steps: ${res.stepsCount ?? 0}`);
       } catch (err: any) {
         if (heartbeatTimer) {
           clearInterval(heartbeatTimer);
@@ -183,6 +190,16 @@ export async function runInteractionWorkerLoop(
           error: err.message ?? String(err),
         });
 
+        devLogger.error('InteractionWorker', `Assistant run ${run.id} failed:`, err);
+        devLogger.recordIssue({
+          severity: 'ERROR',
+          component: 'InteractionWorker',
+          title: `Assistant run ${run.id} failed`,
+          details: err?.message,
+          error: String(err),
+          context: { runId: run.id, workspaceId: run.workspaceId },
+        });
+
         await repo.failRun({
           runId: run.id,
           leaseToken,
@@ -192,7 +209,13 @@ export async function runInteractionWorkerLoop(
       }
     } catch (loopErr) {
       if (signal.aborted) break;
-      console.error('[interaction-worker] Worker loop error:', loopErr);
+      devLogger.error('InteractionWorker', 'Worker loop error:', loopErr);
+      devLogger.recordIssue({
+        severity: 'WARN',
+        component: 'InteractionWorker',
+        title: 'Worker loop iteration error',
+        error: String(loopErr),
+      });
       await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
     }
   }

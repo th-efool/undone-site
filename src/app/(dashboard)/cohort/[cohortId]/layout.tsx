@@ -1,12 +1,18 @@
-import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
-import { Cohort } from '@/src/client/screens/cohort';
-
-import { auth } from '@/src/server/infrastructure/auth/auth.config';
-import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { mapDbCohortToUiCohort } from '@/src/server/infrastructure/db/postgres/mappers/cohortMapper';
-import { notFound } from 'next/navigation';
+import { getPublicCohort, PUBLIC_COHORT_REVALIDATE, listPublicCohortsForSitemap } from '@/src/server/domain/cohort/public-cohort';
+import { CohortViewerBoundary } from '@/src/client/screens/cohort/CohortViewerBoundary';
+import { PrivateCohortLayout } from './PrivateCohortLayout';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 3600;
+export const dynamicParams = true; // unknown ids render on demand, then are cached
+
+export async function generateStaticParams() {
+  try {
+    return (await listPublicCohortsForSitemap(200)).map(c => ({ cohortId: c.id }));
+  } catch {
+    return [];
+  }
+}
 
 export default async function CohortRouteLayout({
   children,
@@ -16,46 +22,10 @@ export default async function CohortRouteLayout({
   params: Promise<{ cohortId: string }>;
 }) {
   const { cohortId } = await params;
-
-  const session = await auth();
-  const isLoggedIn = !!session?.user;
-
-  let isEnrolled = false;
-  if (isLoggedIn && session?.user?.id) {
-    const member = await prisma.cohortMember.findUnique({
-      where: {
-        cohortId_userId: {
-          cohortId: cohortId,
-          userId: session.user.id,
-        },
-      },
-    });
-    if (member) {
-      isEnrolled = true;
-    }
+  const pub = await getPublicCohort(cohortId);
+  if (!pub) {
+    return <PrivateCohortLayout cohortId={cohortId}>{children}</PrivateCohortLayout>;
   }
-
-  const dbCohort = await prisma.cohort.findFirst({
-    where: { id: cohortId, ...accessibleCohortWhere((await auth())?.user?.id ?? null) },
-    include: {
-      creator: true,
-      seasons: {
-        include: {
-          lessons: true,
-        }
-      }
-    }
-  });
-
-  if (!dbCohort) {
-    notFound();
-  }
-
-  const uiCohort = mapDbCohortToUiCohort(dbCohort);
-
-  return (
-    <Cohort cohort={uiCohort} isEnrolled={isEnrolled} isLoggedIn={isLoggedIn}>
-      {children}
-    </Cohort>
-  );
+  const ui = mapDbCohortToUiCohort(pub.row);
+  return <CohortViewerBoundary cohort={ui}>{children}</CohortViewerBoundary>;
 }

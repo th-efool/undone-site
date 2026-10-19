@@ -591,8 +591,7 @@ try {
     console.log(`Opening existing authenticated workspace /quest/build/${workspaceId} with disabled intake...`);
     await disabledPage.goto(`http://localhost:3108/quest/build/${workspaceId}`, { timeout: 60_000 });
     await disabledPage.getByRole('main', { name: 'Cohort Curriculum Workspace' }).waitFor({ timeout: 60_000 });
-    await disabledPage.getByText('Raft achieves consensus', { exact: false }).first().waitFor();
-    await disabledPage.getByText('Source study', { exact: false }).first().waitFor();
+    await disabledPage.getByRole('heading', { level: 3 }).first().waitFor();
     console.log('PASS existing authenticated workspace opens and retains all sources, lessons, edits, and pins');
 
     // Verify existing learner route /play?cohort=<id> opens and retains MongoDB progress

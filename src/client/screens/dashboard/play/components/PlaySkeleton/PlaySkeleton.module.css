@@ -1,0 +1,243 @@
+.skeletonContainer {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  background: #000000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px 20px 24px;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer {
+    animation: none;
+    background: rgba(255, 255, 255, 0.06);
+  }
+}
+
+/* Top Capsules Skeleton */
+.capsulesRow {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.capsule {
+  width: 26px;
+  height: 4px;
+  border-radius: 9999px;
+}
+
+/* Header Skeleton */
+.headerContent {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.metadataSection {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.titleLine {
+  width: 280px;
+  height: 22px;
+  border-radius: 6px;
+}
+
+.subLine {
+  width: 180px;
+  height: 14px;
+  border-radius: 4px;
+}
+
+.divider {
+  width: 1px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.episodeBlock {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.ringSkeleton {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+
+.episodeText {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.codeLine {
+  width: 48px;
+  height: 16px;
+  border-radius: 4px;
+}
+
+.labelLine {
+  width: 80px;
+  height: 12px;
+  border-radius: 4px;
+}
+
+/* Stage Skeleton */
+.stageArea {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.centralSurface {
+  width: 83vw;
+  max-width: calc((100dvh - 210px) * (16 / 9));
+  max-height: calc(100dvh - 210px);
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.edgeCard {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: clamp(50px, 6.5vw, 110px);
+  height: min(72%, calc(100dvh - 240px));
+  aspect-ratio: 9 / 16;
+  opacity: 0.25;
+}
+
+.leftEdge {
+  left: 0;
+  border-radius: 0 16px 16px 0;
+}
+
+.rightEdge {
+  right: 0;
+  border-radius: 16px 0 0 16px;
+}
+
+/* Bottom Dock Skeleton */
+.dockRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dockCapsule {
+  height: 44px;
+  width: 54px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.volumeCapsule {
+  width: 120px;
+}
+
+.speedCapsule {
+  width: 84px;
+}
+
+/* Error State Container */
+.errorContainer {
+  margin: auto;
+  padding: 32px;
+  max-width: 480px;
+  background: #0E0E16;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  text-align: center;
+  color: #F1F5F9;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.8);
+}
+
+.errorTitle {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #FFFFFF;
+}
+
+.errorDesc {
+  font-size: 14px;
+  color: #94A3B8;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+}
+
+.actionButtons {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.retryBtn {
+  background: #5430FF;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 9999px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.retryBtn:hover {
+  opacity: 0.9;
+}
+
+.homeLink {
+  color: #C7D2FE;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  transition: all 0.2s ease;
+}
+
+.homeLink:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+}

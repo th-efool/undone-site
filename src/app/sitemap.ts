@@ -1,17 +1,9 @@
 import type { MetadataRoute } from 'next';
+import { listPublicCohortsForSitemap } from '@/src/server/domain/cohort/public-cohort';
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://undone.in';
+const BASE_URL = (process.env.NEXT_PUBLIC_APP_URL || 'https://undone.in').replace(/\/$/, '');
 
-const FEATURED_COHORT_SLUGS = [
-  'deep-work',
-  'reader',
-  'body-double',
-  'content-bottle',
-  '100-days',
-  'journaling',
-];
-
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const currentDate = new Date();
 
   // Core static marketing and informational pages
@@ -48,13 +40,31 @@ export default function sitemap(): MetadataRoute.Sitemap {
     },
   ];
 
-  // Public Cohort exploration pages
-  const cohortRoutes: MetadataRoute.Sitemap = FEATURED_COHORT_SLUGS.map((slug) => ({
-    url: `${BASE_URL}/cohort/${slug}`,
-    lastModified: currentDate,
-    changeFrequency: 'weekly',
-    priority: 0.8,
-  }));
+  let publicCohorts: Array<{ id: string; updatedAt: Date; publishedAt: Date | null }> = [];
+  try {
+    publicCohorts = await listPublicCohortsForSitemap(5000);
+  } catch (error) {
+    console.error('Failed to list public cohorts for sitemap:', error);
+  }
+
+  const cohortRoutes: MetadataRoute.Sitemap = publicCohorts.flatMap((cohort) => {
+    const lastModified = cohort.updatedAt || cohort.publishedAt || currentDate;
+    return [
+      {
+        url: `${BASE_URL}/cohort/${cohort.id}/overview`,
+        lastModified,
+        changeFrequency: 'weekly',
+        priority: 0.8,
+      },
+      {
+        url: `${BASE_URL}/cohort/${cohort.id}/questline`,
+        lastModified,
+        changeFrequency: 'weekly',
+        priority: 0.6,
+      },
+    ];
+  });
 
   return [...staticRoutes, ...cohortRoutes];
 }
+

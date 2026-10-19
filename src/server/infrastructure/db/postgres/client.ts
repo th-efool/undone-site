@@ -2,15 +2,28 @@
 
 import { PrismaClient } from '@/generated/prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
 
 // Prevent multiple Prisma instances in development (Next.js hot reload problem)
 // Without this, every hot reload would open a new DB connection = connection pool exhaustion
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient };
+const globalForPrisma = globalThis as unknown as { prisma: PrismaClient; pool: pg.Pool };
 
 const createPrismaClient = () => {
-    const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
+    const pool = globalForPrisma.pool || new pg.Pool({
+        connectionString: process.env.DATABASE_URL!,
+        max: 10,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+    });
+    globalForPrisma.pool = pool;
+
+    const adapter = new PrismaPg(pool);
     return new PrismaClient({
         adapter,
+        transactionOptions: {
+            maxWait: 15000,
+            timeout: 30000,
+        },
         log: process.env.NODE_ENV === 'development' && process.env.INTERACTION_LOCAL_MODEL_FIXTURE !== '1' ? ['query', 'error', 'warn'] : ['error'],
     });
 };
@@ -20,3 +33,4 @@ export const prisma = globalForPrisma.prisma || createPrismaClient();
 if (process.env.NODE_ENV !== 'production') {
     globalForPrisma.prisma = prisma;
 }
+

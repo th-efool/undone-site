@@ -22,6 +22,10 @@ export default function robots(): MetadataRoute.Robots {
           '/notes/',
           '/message/',
           '/create-cohort',
+          '/quest/',
+          '/home',
+          '/play',
+          '/explore',
         ],
       },
       {

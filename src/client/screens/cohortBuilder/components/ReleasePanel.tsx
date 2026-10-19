@@ -23,6 +23,7 @@ export interface ReleasePanelProps {
   workspaceId: string;
   revision?: number;
   onNavigateToDestination?: (url: string) => void;
+  initialMode?: 'private_activation' | 'public_publish';
 }
 
 export function ReleasePanel({
@@ -30,6 +31,7 @@ export function ReleasePanel({
   workspaceId,
   revision,
   onNavigateToDestination,
+  initialMode,
 }: ReleasePanelProps) {
   const dispatchAction = useDispatchAction<CohortAction>();
 
@@ -38,7 +40,7 @@ export function ReleasePanel({
     workspace.release?.mode === 'public_publish';
 
   const [selectedMode, setSelectedMode] = useState<'private_activation' | 'public_publish'>(
-    isPubliclyPublished ? 'public_publish' : 'private_activation'
+    isPubliclyPublished ? 'public_publish' : (initialMode ?? 'private_activation')
   );
   const [isReleasing, setIsReleasing] = useState(false);
   const [releaseError, setReleaseError] = useState<string | null>(null);
@@ -150,46 +152,59 @@ export function ReleasePanel({
 
       {/* Mode Selector */}
       <div className={styles.modeSelector} role="radiogroup" aria-label="Release mode">
-        <label
-          className={`${styles.modeOption} ${selectedMode === 'private_activation' ? styles.modeOptionActive : ''} ${isPubliclyPublished ? styles.modeDisabled : ''}`}
+        <div
+          role="radio"
+          aria-checked={selectedMode === 'private_activation'}
+          tabIndex={isPubliclyPublished ? -1 : 0}
+          className={`${styles.modeCard} ${selectedMode === 'private_activation' ? styles.modeCardActive : ''} ${isPubliclyPublished ? styles.modeDisabled : ''}`}
+          onClick={() => !isPubliclyPublished && handleModeChange('private_activation')}
+          onKeyDown={(e) => {
+            if ((e.key === ' ' || e.key === 'Enter') && !isPubliclyPublished) {
+              e.preventDefault();
+              handleModeChange('private_activation');
+            }
+          }}
         >
-          <input
-            type="radio"
-            name="releaseMode"
-            value="private_activation"
-            checked={selectedMode === 'private_activation'}
-            disabled={isPubliclyPublished}
-            onChange={() => handleModeChange('private_activation')}
-          />
-          <div className={styles.modeText}>
-            <div className={styles.modeLabel} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Lock size={14} /> Start as Learner (Private)
+          <div className={styles.modeCardHeader}>
+            <div className={styles.modeIconBadge}>
+              <Lock size={16} strokeWidth={2.4} />
             </div>
-            <div className={styles.modeDescription}>
-              Activate this cohort privately in your personal account to test and complete quests immediately.
+            <div className={styles.modeRadioRing}>
+              {selectedMode === 'private_activation' && <div className={styles.modeRadioDot} />}
             </div>
           </div>
-        </label>
+          <div className={styles.modeTitle}>Start as Learner (Private)</div>
+          <p className={styles.modeDescription}>
+            Activate this cohort privately in your personal account to test and complete quests immediately.
+          </p>
+        </div>
 
-        <label
-          className={`${styles.modeOption} ${selectedMode === 'public_publish' ? styles.modeOptionActive : ''}`}
+        <div
+          role="radio"
+          aria-checked={selectedMode === 'public_publish'}
+          tabIndex={0}
+          className={`${styles.modeCard} ${selectedMode === 'public_publish' ? styles.modeCardActive : ''}`}
+          onClick={() => handleModeChange('public_publish')}
+          onKeyDown={(e) => {
+            if (e.key === ' ' || e.key === 'Enter') {
+              e.preventDefault();
+              handleModeChange('public_publish');
+            }
+          }}
         >
-          <input
-            type="radio"
-            name="releaseMode"
-            value="public_publish"
-            checked={selectedMode === 'public_publish'}
-            onChange={() => handleModeChange('public_publish')}
-          />
-          <div className={styles.modeText}>
-            <div className={styles.modeLabel} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Globe size={14} /> Publish to Directory (Public)
+          <div className={styles.modeCardHeader}>
+            <div className={styles.modeIconBadge}>
+              <Globe size={16} strokeWidth={2.4} />
             </div>
-            <div className={styles.modeDescription}>
-              Publish publicly to the Undone discovery directory with community features and open enrollment.
+            <div className={styles.modeRadioRing}>
+              {selectedMode === 'public_publish' && <div className={styles.modeRadioDot} />}
             </div>
           </div>
-        </label>
+          <div className={styles.modeTitle}>Publish to Directory (Public)</div>
+          <p className={styles.modeDescription}>
+            Publish publicly to the Undone discovery directory with community features and open enrollment.
+          </p>
+        </div>
       </div>
 
       {isPubliclyPublished && (

@@ -65,6 +65,7 @@ export function ActiveCohortRow({
   const [isDraggable, setIsDraggable] = useState(false);
   const [isEditingCustomGoal, setIsEditingCustomGoal] = useState(false);
   const [customGoalVal, setCustomGoalVal] = useState(String(item.dailyGoalMinutes));
+  const cohortKey = item.cohortId || item.id;
 
   function toggleDay(day: Weekday) {
     const currentDays = item.schedule.days;
@@ -72,7 +73,7 @@ export function ActiveCohortRow({
       ? currentDays.filter((d) => d !== day)
       : [...currentDays, day];
     const safeDays = nextDays.length > 0 ? nextDays : [day];
-    onUpdateSchedule?.(item.id, safeDays);
+    onUpdateSchedule?.(cohortKey, safeDays);
     onSelect(); // ensure selection when interacting
   }
 
@@ -156,7 +157,7 @@ export function ActiveCohortRow({
             aria-label="Pause cohort"
             onClick={(e) => {
               e.stopPropagation();
-              onPause?.(item.id, 7, 'Paused from row');
+              onPause?.(cohortKey, 7, 'Paused from row');
             }}
           >
             <PauseCircle size={16} strokeWidth={2} />
@@ -172,7 +173,7 @@ export function ActiveCohortRow({
             className={`${styles.sliderEdgeLabel} ${item.frequency === 'Very Rarely' ? styles.sliderEdgeActive : ''}`}
             onClick={(e) => {
               e.stopPropagation();
-              onUpdateFrequency?.(item.id, 'Very Rarely');
+              onUpdateFrequency?.(cohortKey, 'Very Rarely');
               onSelect();
             }}
           >
@@ -188,7 +189,7 @@ export function ActiveCohortRow({
               onClick={(e) => e.stopPropagation()}
               onChange={(e) => {
                 const val = parseInt(e.target.value, 10);
-                onUpdateFrequency?.(item.id, FREQUENCIES[val]);
+                onUpdateFrequency?.(cohortKey, FREQUENCIES[val]);
                 onSelect();
               }}
               className={styles.rangeSlider}
@@ -200,7 +201,7 @@ export function ActiveCohortRow({
             className={`${styles.sliderEdgeLabel} ${item.frequency === 'Very Often' ? styles.sliderEdgeActive : ''}`}
             onClick={(e) => {
               e.stopPropagation();
-              onUpdateFrequency?.(item.id, 'Very Often');
+              onUpdateFrequency?.(cohortKey, 'Very Often');
               onSelect();
             }}
           >
@@ -262,13 +263,13 @@ export function ActiveCohortRow({
                 onChange={(e) => setCustomGoalVal(e.target.value)}
                 onBlur={() => {
                   const num = parseInt(customGoalVal, 10);
-                  if (num > 0) onUpdateDailyGoal?.(item.id, num);
+                  if (num > 0) onUpdateDailyGoal?.(cohortKey, num);
                   setIsEditingCustomGoal(false);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     const num = parseInt(customGoalVal, 10);
-                    if (num > 0) onUpdateDailyGoal?.(item.id, num);
+                    if (num > 0) onUpdateDailyGoal?.(cohortKey, num);
                     setIsEditingCustomGoal(false);
                   }
                 }}
@@ -283,7 +284,7 @@ export function ActiveCohortRow({
                   setCustomGoalVal(String(item.dailyGoalMinutes));
                   setIsEditingCustomGoal(true);
                 } else {
-                  onUpdateDailyGoal?.(item.id, Number(e.target.value));
+                  onUpdateDailyGoal?.(cohortKey, Number(e.target.value));
                   onSelect();
                 }
               }}
@@ -315,7 +316,7 @@ export function ActiveCohortRow({
               className={styles.realSelectIconOnly}
               value={orderStyle}
               onChange={(e) => {
-                onUpdateOrderStyle?.(item.id, e.target.value);
+                onUpdateOrderStyle?.(cohortKey, e.target.value);
                 onSelect();
               }}
             >

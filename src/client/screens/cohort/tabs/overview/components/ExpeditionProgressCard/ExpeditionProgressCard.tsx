@@ -1,3 +1,6 @@
+'use client';
+
+import { useRouter } from 'next/navigation';
 import type { StatItem } from '../../../../models';
 import { OverviewIcon } from '../OverviewIcon/OverviewIcon';
 
@@ -5,9 +8,12 @@ import styles from './ExpeditionProgressCard.module.css';
 
 interface ExpeditionProgressCardProps {
   items: StatItem[];
+  cohortId?: string;
 }
 
-export function ExpeditionProgressCard({ items }: ExpeditionProgressCardProps) {
+export function ExpeditionProgressCard({ items, cohortId }: ExpeditionProgressCardProps) {
+  const router = useRouter();
+
   return (
     <aside className={styles.card}>
       <h2 className={styles.title}>Your Expedition</h2>
@@ -33,6 +39,7 @@ export function ExpeditionProgressCard({ items }: ExpeditionProgressCardProps) {
       <button
         className={styles.button}
         type="button"
+        onClick={() => router.push(cohortId ? `/cohort/${cohortId}/questline` : '/home')}
       >
         View My Activity
       </button>

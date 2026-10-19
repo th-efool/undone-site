@@ -13,12 +13,18 @@ export function AchievementsCard({ hall }: { hall: CohortHallOfFame }) {
       desc="Your latest badges and milestones."
     >
       <div className={styles.achievements}>
-        {hall.recentAchievements.map((item) => (
-          <AchievementRow
-            key={item.id}
-            item={item}
-          />
-        ))}
+        {hall.recentAchievements.length === 0 ? (
+          <p className={styles.emptySubtitle} style={{ margin: '8px 0' }}>
+            No recent badges yet. Complete milestones to earn achievements!
+          </p>
+        ) : (
+          hall.recentAchievements.map((item) => (
+            <AchievementRow
+              key={item.id}
+              item={item}
+            />
+          ))
+        )}
       </div>
       <button className={styles.allButton}>
         View All Achievements <ArrowRight size={16} />

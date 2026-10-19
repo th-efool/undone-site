@@ -45,9 +45,10 @@ export function planTextJobs(state: CohortWorkspace): TextJobIntent[] {
       : source.input?.kind === 'youtube'
         ? (source.input.mode === 'video_observation' ? VIDEO_OBSERVATION_PARSER_VERSION : YOUTUBE_TRANSCRIPT_VERSION)
       : GITHUB_SOURCE_VERSION;
-    const retained = source.input ? stage('extraction', ['cohort-extraction-v1', parserVersion, acquisition.jobKey], [acquisition.jobKey]) : acquisition;
-    const understanding = stage('understanding', [retained.jobKey], [retained.jobKey]);
-    const chunking = stage('chunking', [understanding.jobKey, 'complete-line-coverage-v2'], [understanding.jobKey]);
+    const extractionVersion = source.input?.kind === 'youtube' ? 'cohort-extraction-video-metadata-v2' : 'cohort-extraction-v1';
+    const retained = source.input ? stage('extraction', [extractionVersion, parserVersion, acquisition.jobKey], [acquisition.jobKey]) : acquisition;
+    const understanding = stage('understanding', [retained.jobKey, 'concept-topics-v2'], [retained.jobKey]);
+    const chunking = stage('chunking', [understanding.jobKey, 'timed-complete-coverage-v4'], [understanding.jobKey]);
     const analysis = stage('analysis', [chunking.jobKey, state.audience], [chunking.jobKey]);
     analysisKeys.push(analysis.jobKey);
   }
@@ -56,7 +57,7 @@ export function planTextJobs(state: CohortWorkspace): TextJobIntent[] {
     const overrides = state.lessons.filter(lesson => lesson.manualOverride || lesson.pinned || !lesson.id.startsWith('grounded:'))
       .map(lesson => [lesson.id, lesson.version, lesson.title, lesson.objective, lesson.pinned, lesson.sourceChunkIds]);
     // A new explicit processing generation must receive a new projection even if an old content scope returns.
-    const dependencyFingerprint = digest(['assembly', algorithmVersion, state.processing.generation, analysisKeys, state.intent, state.dailyMinutes, overrides]);
+    const dependencyFingerprint = digest(['assembly', algorithmVersion, 'video-source-lessons-v2', state.processing.generation, analysisKeys, state.intent, state.dailyMinutes, overrides]);
     jobs.push({
       jobKey: `text:assembly:${dependencyFingerprint}`,
       stage: 'assembly', sourceId: null, sourceVersion: null,

@@ -53,10 +53,32 @@ export class BuildingContentService {
       if (partition.contentOrigin === 'ai') warnings.add('AI-authored material is not verified external evidence or exhaustive source coverage.');
       if (season.lessons.length > 100 || seasons.length > 100) throw new CreationStorageError('LIMIT_EXCEEDED', 'Curriculum exceeds 100 units or 100 lessons per unit; narrow the source scope.');
     }
-    if (warnings.size > 100) throw new CreationStorageError('LIMIT_EXCEEDED', 'Source limitations exceed the review scope; narrow the selected material.');
-    const curriculum = generatedCurriculumSchema.parse({ version: checkpoint.inputFingerprint, inputRevision: state.inputRevision,
-      title: state.result.intent.topic, description: { value: state.result.intent.rawQuery, origin: 'user', acceptedRevision: state.inputRevision },
-      seasons, warnings: [...warnings] });
+    const rawTopic = typeof state.result.intent.topic === 'string' ? state.result.intent.topic : state.result.intent.topic?.value ?? '';
+    const topic = rawTopic.trim() || 'Curriculum';
+    const synthesizedTitle = topic
+      .split(/\s+/)
+      .map(w => w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : '')
+      .filter(Boolean)
+      .join(' ') || topic;
+
+    const synthesizedDescription = `A comprehensive learning journey covering ${topic}. Built from curated source material to guide learners from core foundations to advanced concepts.`;
+
+    const curriculum = generatedCurriculumSchema.parse({
+      version: checkpoint.inputFingerprint,
+      inputRevision: state.inputRevision,
+      title: {
+        value: synthesizedTitle,
+        origin: 'ai',
+        acceptedRevision: state.inputRevision,
+      },
+      description: {
+        value: synthesizedDescription,
+        origin: 'ai',
+        acceptedRevision: state.inputRevision,
+      },
+      seasons,
+      warnings: [...warnings],
+    });
     if (!curriculum.seasons.length || !curriculum.seasons.every(season => season.lessons.length)) invalid();
     signal.throwIfAborted(); return { ...loaded, analysisCheckpoint: loaded.checkpoint, checkpoint, curriculum };
   }

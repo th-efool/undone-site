@@ -1,5 +1,7 @@
 import type { Cohort as DbCohort, Season, Lesson } from '@/generated/prisma';
 import { SeasonStatus, LessonStatus, LessonType, type Cohort as UiCohort } from '@/src/client/screens/cohort/models';
+import { getTopicCoverImage } from '@/src/shared/cohort-builder/delivery';
+import { extractVideoId } from '@/src/server/imports/youtube/youtube-url';
 
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -40,12 +42,55 @@ export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
     { id: 'es-4', icon: 'brain' as const, label: 'Language', value: dbCohort.language || 'English' },
   ];
 
+  let firstVideoThumbnail: string | undefined;
+  for (const s of (dbCohort.seasons || [])) {
+    for (const l of (s.lessons || [])) {
+      if (l.thumbnailUrl) {
+        firstVideoThumbnail = l.thumbnailUrl;
+        break;
+      }
+      if (l.videoId) {
+        firstVideoThumbnail = `https://i.ytimg.com/vi/${l.videoId}/hqdefault.jpg`;
+        break;
+      }
+    }
+    if (firstVideoThumbnail) break;
+  }
+
+  const primaryTopic = dbCohort.primaryTopic || dbCohort.title || 'General Knowledge';
+  const coverImage = dbCohort.coverImage || firstVideoThumbnail || getTopicCoverImage(primaryTopic);
+
+  const totalDurationSecs = (dbCohort.seasons || [])
+    .flatMap((s: any) => s.lessons || [])
+    .reduce((acc: number, l: any) => acc + (l.duration || 300), 0);
+  const estimatedDays = 14;
+  const dailyMins = Math.max(10, Math.ceil((totalDurationSecs / 60) / estimatedDays));
+  const dailyGoal = dbCohort.estimatedCompletionTime?.includes('day')
+    ? dbCohort.estimatedCompletionTime
+    : `${dailyMins} mins/day`;
+
+  const explorerCount =
+    typeof dbCohort._count?.members === 'number'
+      ? dbCohort._count.members
+      : Array.isArray(dbCohort.members)
+        ? dbCohort.members.length
+        : typeof dbCohort.memberCount === 'number'
+          ? dbCohort.memberCount
+          : 0;
+
+  const rating =
+    typeof dbCohort.rating === 'number'
+      ? dbCohort.rating
+      : explorerCount > 0
+        ? 4.9
+        : null;
+
   return {
     id: dbCohort.id,
     title: dbCohort.title || 'Untitled Cohort',
     subtitle: dbCohort.subtitle || '',
     description: dbCohort.description || '',
-    coverImage: dbCohort.coverImage || '/images/landing/screen.webp',
+    coverImage,
     difficulty: dbCohort.difficulty || 'BEGINNER',
     categories,
     creator: {
@@ -56,12 +101,12 @@ export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
       bio: dbCohort.creator?.bio || 'Cohort Creator & Community Guide',
       ctaLabel: 'View Profile',
     },
-    stats: { rating: 5, explorerCount: 0, completionRate: 0 },
+    stats: { rating, explorerCount, completionRate: dbCohort.completionRate ?? 0 },
     progress: {
       journeyProgress: 0,
       completedQuests: 0,
       totalQuests,
-      dailyGoal: '30 mins/day',
+      dailyGoal,
       joinedDate: 'Joined recently',
     },
     overview: {
@@ -83,69 +128,87 @@ export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
       description: dbCohort.subtitle || 'Explore all seasons and quests in this cohort.',
       filters: [],
       skipSeasonLabel: 'Skip Season',
-      seasons: (dbCohort.seasons || []).map((s: any, sIdx: number) => ({
-        id: s.id,
-        title: s.title || `Season ${sIdx + 1}`,
-        badge: `Season ${s.order || sIdx + 1}`,
-        status: sIdx === 0 ? SeasonStatus.InProgress : SeasonStatus.Locked,
-        progress: 0,
-        estimatedDuration: '',
-        questCount: s.lessons?.length || 0,
-        summaryLabel: `${s.lessons?.length || 0} Lessons`,
-        lessons: (s.lessons || []).map((l: any, lIdx: number) => {
-          let chunks = Array.isArray(l.chunks) && l.chunks.length > 0 ? l.chunks : [];
-          
-          if (chunks.length === 0) {
-            const durationSecs = l.duration || 0;
-            const chunkInterval = 300; // 5 mins
-            if (durationSecs > 0) {
-              for (let i = 0; i < durationSecs; i += chunkInterval) {
-                const start = i;
-                const end = Math.min(i + chunkInterval, durationSecs);
-                const partDurationSecs = end - start;
-                chunks.push({
-                  id: `chunk-${l.id}-${i}`,
-                  title: `Part ${chunks.length + 1}`,
-                  duration: `${Math.ceil(partDurationSecs / 60)}m`,
-                  order: chunks.length + 1,
-                  startSeconds: start,
-                  endSeconds: end,
-                  timeRangeLabel: `${formatTime(start)} - ${formatTime(end)}`,
+      seasons: (dbCohort.seasons || []).map((s: any, sIdx: number) => {
+        const isZeroIndexed = (s.lessons || []).some((l: any) => l.order === 0);
+        return {
+          id: s.id,
+          title: s.title || `Season ${sIdx + 1}`,
+          badge: `Season ${s.order || sIdx + 1}`,
+          status: sIdx === 0 ? SeasonStatus.InProgress : SeasonStatus.Locked,
+          progress: 0,
+          estimatedDuration: '',
+          questCount: s.lessons?.length || 0,
+          summaryLabel: `${s.lessons?.length || 0} Lessons`,
+          lessons: (s.lessons || []).map((l: any, lIdx: number) => {
+            let chunks = Array.isArray(l.chunks) && l.chunks.length > 0 ? l.chunks : [];
+            
+            if (chunks.length === 0) {
+              const durationSecs = l.duration || 0;
+              const chunkInterval = 300; // 5 mins
+              if (durationSecs > 0) {
+                for (let i = 0; i < durationSecs; i += chunkInterval) {
+                  const start = i;
+                  const end = Math.min(i + chunkInterval, durationSecs);
+                  const partDurationSecs = end - start;
+                  chunks.push({
+                    id: `chunk-${l.id}-${i}`,
+                    title: `Part ${chunks.length + 1}`,
+                    duration: `${Math.ceil(partDurationSecs / 60)}m`,
+                    order: chunks.length + 1,
+                    startSeconds: start,
+                    endSeconds: end,
+                    timeRangeLabel: `${formatTime(start)} - ${formatTime(end)}`,
+                    isCompleted: false,
+                    completionDate: null,
+                  });
+                }
+              }
+            } else {
+               // Map DB chunks to UI chunks
+               chunks = chunks.map((c: any) => ({
+                  ...c,
+                  startSeconds: c.startSeconds || 0,
+                  endSeconds: c.endSeconds || 0,
+                  timeRangeLabel: c.timeRangeLabel || (c.startSeconds !== undefined && c.endSeconds !== undefined && c.endSeconds > 0 ? `${formatTime(c.startSeconds)} – ${formatTime(c.endSeconds)}` : ''),
                   isCompleted: false,
                   completionDate: null,
-                });
-              }
+               }));
             }
-          } else {
-             // Map DB chunks to UI chunks
-             chunks = chunks.map((c: any) => ({
-                ...c,
-                startSeconds: c.startSeconds || 0,
-                endSeconds: c.endSeconds || 0,
-                timeRangeLabel: c.timeRangeLabel || '',
-                isCompleted: false,
-                completionDate: null,
-             }));
-          }
 
-          const isArticle = (l as any).lessonType === 'ARTICLE';
+            const videoId = l.videoId || extractVideoId(l.videoUrl || (l as any).sourceUrl || '') || undefined;
+            const isVideo = (l as any).lessonType === 'VIDEO' || Boolean(videoId) || Boolean(l.videoUrl);
+            const videoUrl = l.videoUrl || (videoId ? `https://www.youtube.com/watch?v=${videoId}` : undefined);
+            const defaultThumbnail = videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : getTopicCoverImage(primaryTopic);
+            const thumbnail = l.thumbnailUrl || defaultThumbnail;
+            const sourceUrl = (l as any).sourceUrl || videoUrl || undefined;
 
-          return {
-            id: l.id,
-            title: l.title || `Lesson ${lIdx + 1}`,
-            type: isArticle ? LessonType.Reading : LessonType.Video,
-            duration: l.duration ? `${Math.ceil(l.duration / 60)}m` : '0m',
-            status: sIdx === 0 && lIdx === 0 ? LessonStatus.InStream : LessonStatus.Ready,
-            totalChunks: chunks.length || 1,
-            completedChunks: 0,
-            thumbnail: l.thumbnailUrl || '/mock/thumbnails/docker.avif',
-            videoId: isArticle ? undefined : (l.videoId || l.videoUrl || ''),
-            videoUrl: isArticle ? undefined : (l.videoUrl || ''),
-            sourceUrl: (l as any).sourceUrl || (isArticle ? l.videoUrl : undefined),
-            chunks,
-          };
-        }),
-      })),
+            // Attach timestampUrl to chunks
+            chunks = chunks.map((c: any) => ({
+              ...c,
+              timestampUrl: c.timestampUrl || (videoId ? `https://www.youtube.com/watch?v=${videoId}&t=${c.startSeconds || 0}s` : sourceUrl),
+            }));
+
+            const rawTitle = l.title || `Lesson ${lIdx + 1}`;
+            const title = rawTitle.replace(/^Source study \d+:\s*/i, '').trim();
+
+            return {
+              id: l.id,
+              title,
+              type: isVideo ? LessonType.Video : LessonType.Reading,
+              duration: l.duration ? `${Math.ceil(l.duration / 60)}m` : '0m',
+              status: sIdx === 0 && lIdx === 0 ? LessonStatus.InStream : LessonStatus.Ready,
+              totalChunks: chunks.length || 1,
+              completedChunks: 0,
+              thumbnail,
+              videoId: isVideo ? videoId : undefined,
+              videoUrl: isVideo ? videoUrl : undefined,
+              sourceUrl,
+              chunks,
+              order: typeof l.order === 'number' ? (isZeroIndexed ? l.order + 1 : (l.order || 1)) : (lIdx + 1),
+            };
+          }),
+        };
+      }),
       feedTitle: 'Cohort Assignments',
       feedDescription: 'Complete these assignments to gain XP and unlock the next seasons.',
       feedSeasonLabel: 'Current Season',
@@ -177,10 +240,10 @@ export function mapDbCohortToUiCohort(dbCohort: any): UiCohort {
       subtitle: 'Celebrating the top explorers in this cohort.',
       filters: [{ id: 'all', label: 'All Categories', active: true }],
       timeRanges: [{ id: 'all-time', label: 'All Time', active: true }],
-      categories: [{ id: 'cat-1', title: 'Top Contributors', subtitle: 'Most helpful members', rank: 1, winner: { name: 'Sia', avatarUrl: '/mock/avatars/sia.avif' }, primaryMetric: '100 XP', growthMetric: '+10%', badge: 'top-contributor', accent: 'amber' }],
-      legends: [],
-      userHighlights: [],
-      recentAchievements: [],
+      categories: Array.isArray(dbCohort.hallOfFame?.categories) ? dbCohort.hallOfFame.categories : [],
+      legends: Array.isArray(dbCohort.hallOfFame?.legends) ? dbCohort.hallOfFame.legends : [],
+      userHighlights: Array.isArray(dbCohort.hallOfFame?.userHighlights) ? dbCohort.hallOfFame.userHighlights : [],
+      recentAchievements: Array.isArray(dbCohort.hallOfFame?.recentAchievements) ? dbCohort.hallOfFame.recentAchievements : [],
     },
   };
 }

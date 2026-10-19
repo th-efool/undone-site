@@ -6,6 +6,7 @@ import { MobileStepShell } from './MobileStepShell';
 import { NotebooksScreen } from './screens/NotebooksScreen';
 import { WorkspaceScreen } from './screens/WorkspaceScreen';
 import { CanvasScreen } from './screens/CanvasScreen';
+import { NotesSkeleton } from '@/src/client/components/global/Skeleton';
 import styles from './NotesMobile.module.css';
 
 type MobileStep = 'notebooks' | 'workspace' | 'canvas';
@@ -54,7 +55,7 @@ export function NotesMobile({ model: notes }: NotesMobileProps) {
   }, []);
 
   if (!notes.state || !notes.data) {
-    return <div className={styles.loading}>Loading notes…</div>;
+    return <NotesSkeleton />;
   }
 
   return (

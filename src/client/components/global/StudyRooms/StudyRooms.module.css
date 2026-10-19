@@ -1,0 +1,245 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+  margin: 36px auto 16px;
+}
+
+.header {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.headerControls {
+  position: absolute;
+  right: 0;
+  bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+.navBtn:hover {
+  background: var(--color-surface-secondary);
+  border-color: var(--color-text-secondary);
+  color: var(--color-text-primary);
+  transform: translateY(-1px);
+}
+
+.navBtn:active {
+  transform: scale(0.94);
+}
+
+.scrollerWrapper {
+  width: 100%;
+}
+
+/* ─── Compact Editorial Section (Home Page) ──────────────────────────────── */
+
+.sectionCompact {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 100%;
+  margin: 4px 0 0 0;
+}
+
+.headerCompact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 16px;
+}
+
+.headerLeftCompact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.iconBadgeCompact {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(99, 102, 241, 0.1);
+  color: #4f46e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.titleGroupCompact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.titleCompact {
+  margin: 0;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.015em;
+}
+
+.subtitleCompact {
+  margin: 0;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.8rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.headerRightCompact {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.viewAllLinkCompact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #3b49df;
+  font-family: var(--font-manrope, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.viewAllLinkCompact:hover {
+  color: #2563eb;
+  transform: translateX(2px);
+}
+
+.toggleBtnCompact {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.toggleBtnCompact:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.navButtonsCompact {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.navBtnCompact {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 50%;
+  background: #ffffff;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.navBtnCompact:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+  transform: translateY(-1px);
+}
+
+.scrollerWrapperCompact {
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  box-sizing: border-box;
+}
+
+.infiniteScrollerCompact {
+  display: flex;
+  gap: 14px;
+}
+
+:global([data-theme='dark']) .titleCompact,
+:global(.dark) .titleCompact {
+  color: #f8fafc;
+}
+
+:global([data-theme='dark']) .subtitleCompact,
+:global(.dark) .subtitleCompact {
+  color: #94a3b8;
+}
+
+:global([data-theme='dark']) .viewAllLinkCompact,
+:global(.dark) .viewAllLinkCompact {
+  color: #818cf8;
+}
+
+:global([data-theme='dark']) .toggleBtnCompact:hover,
+:global(.dark) .toggleBtnCompact:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #f8fafc;
+}
+
+@media (max-width: 768px) {
+  .section {
+    gap: var(--mobile-section-gap);
+    margin: 20px auto 12px;
+  }
+  .title {
+    font-size: 1.65rem;
+  }
+  .subtitleCompact {
+    display: none;
+  }
+}

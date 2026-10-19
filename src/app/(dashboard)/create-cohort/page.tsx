@@ -7,16 +7,16 @@ const CreateCohort = dynamic(
 );
 
 export const metadata: Metadata = {
-  title: 'Create a Cohort | Undone',
+  title: 'Create a Cohort',
   description: 'Create and organize a new cohort on Undone. Bring your community together to learn and grow.',
   openGraph: {
-    title: 'Create a Cohort | Undone',
+    title: 'Undone - Create a Cohort',
     description: 'Create and organize a new cohort on Undone. Bring your community together to learn and grow.',
     type: 'website',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Create a Cohort | Undone',
+    title: 'Undone - Create a Cohort',
     description: 'Create and organize a new cohort on Undone. Bring your community together to learn and grow.',
   },
 };
@@ -25,7 +25,7 @@ export default function CreateCohortPage() {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebPage',
-    name: 'Create a Cohort | Undone',
+    name: 'Undone - Create a Cohort',
     description: 'Create and organize a new cohort on Undone. Bring your community together to learn and grow.',
   };
 

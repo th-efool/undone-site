@@ -26,6 +26,7 @@ import {
   createJourneyDiscoveryAdapter,
   type DiscoveryAdapter,
 } from './journey-discovery-adapter';
+import { devLogger } from '@/src/shared/lib/dev-logger';
 
 /** Durable S3 driver composition. It is injectable and remains opt-in until migration rollout. */
 export function runDurableTextJobTick(input: {
@@ -70,21 +71,46 @@ export function runDurableTextJobTick(input: {
   });
   return runTextJobTick({
     sql: input.sql, workerId: input.workerId, leaseMs: input.leaseMs, now: input.now, renewLease: true,
-    process: (job: ClaimedTextJob, signal?: AbortSignal) =>
-      job.stage === 'recommendations' || job.stage === 'discovery'
-        ? journey(job, signal)
-        : job.stage === 'assembly'
-        ? assembly(job, signal)
-        : source(job, signal),
-    fail: (job, code, at) =>
-      job.stage === 'recommendations' || job.stage === 'discovery'
+    processTimeoutMs: 180_000,
+    process: async (job: ClaimedTextJob, signal?: AbortSignal) => {
+      devLogger.info('DurableTextWorker', `▶️ Starting text job ${job.id} [${job.stage}] (workspace ${job.workspaceId}${job.sourceId ? `, source ${job.sourceId}` : ''})`);
+      const startTime = Date.now();
+      try {
+        const result = await (job.stage === 'recommendations' || job.stage === 'discovery'
+          ? journey(job, signal)
+          : job.stage === 'assembly'
+          ? assembly(job, signal)
+          : source(job, signal));
+        const elapsed = Date.now() - startTime;
+        devLogger.info('DurableTextWorker', `✅ Text job ${job.id} [${job.stage}] processed successfully in ${elapsed}ms`);
+        return result;
+      } catch (err) {
+        const elapsed = Date.now() - startTime;
+        devLogger.error('DurableTextWorker', `❌ Text job ${job.id} [${job.stage}] failed after ${elapsed}ms:`, err);
+        throw err;
+      }
+    },
+    fail: async (job, code, at) => {
+      devLogger.warn('DurableTextWorker', `⚠️ Failing text job ${job.id} [${job.stage}] with error code: "${code}"`);
+      devLogger.recordIssue({
+        severity: 'WARN',
+        component: 'DurableTextWorker',
+        title: `Text job failed: ${job.stage} (${code})`,
+        details: `Job ${job.id} in stage "${job.stage}" failed with error "${code}"`,
+        context: { jobId: job.id, workspaceId: job.workspaceId, stage: job.stage, code },
+      });
+      return job.stage === 'recommendations' || job.stage === 'discovery'
         ? input.transaction.transaction(tx => failJourneyJob(tx, job, code, at))
-        : failCurrentTextJob(input.transaction, job, code, at),
-    accept: (job, artifact, at) =>
-      job.stage === 'recommendations' || job.stage === 'discovery'
+        : failCurrentTextJob(input.transaction, job, code, at);
+    },
+    accept: async (job, artifact, at) => {
+      devLogger.info('DurableTextWorker', `🎉 Accepted text job ${job.id} [${job.stage}] (artifact: ${artifact.kind})`);
+      return job.stage === 'recommendations' || job.stage === 'discovery'
         ? input.transaction.transaction(tx => acceptJourneyJob(tx, job, artifact, at))
         : job.stage === 'assembly'
         ? acceptAssemblyProjection(input.transaction, job, artifact, at)
-        : acceptCurrentTextJob(input.transaction, job, artifact, at),
+        : acceptCurrentTextJob(input.transaction, job, artifact, at);
+    },
   });
 }
+

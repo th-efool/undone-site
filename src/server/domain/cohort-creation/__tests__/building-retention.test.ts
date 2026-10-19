@@ -52,7 +52,9 @@ describe('retained educational building and owned curriculum reads', () => {
     expect(lessons.flatMap(lesson => lesson.chunkIds)).toEqual(loaded.chunks.flat().map(chunk => chunk.id));
     expect(lessons.every(lesson => lesson.type === 'ARTICLE')).toBe(true);
     expect(loaded.partitions).toEqual(f.partitions);
-    expect(loaded.partitions.flatMap(partition => partition.segments).map(segment => segment.text).join('')).toBe('a'.repeat(5000));
+    expect(loaded.curriculum.title.origin).toBe('ai');
+    expect(loaded.curriculum.description.origin).toBe('ai');
+    expect(loaded.curriculum.description.value).toContain('A comprehensive learning journey covering');
     expect((await reader.load(f.scope, accepted, new AbortController().signal)).curriculum).toEqual(loaded.curriculum);
   });
   it('stops after denied checkpoint acceptance and only generates unfinished partitions on restart', async () => {

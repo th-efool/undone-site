@@ -16,4 +16,5 @@ export interface ExploreModel {
   topics: Topic[];
   trendingSideQuests: SideQuest[];
   recentlyPublished: ArticlePreview[];
+  trendingQuests?: SideQuest[];
 }

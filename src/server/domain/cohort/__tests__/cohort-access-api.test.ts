@@ -1,17 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
 const f = vi.hoisted(() => ({ auth: vi.fn(), getUser: vi.fn(), cohort: vi.fn(), lesson: vi.fn(), channel: vi.fn(),
-  join: vi.fn(), channels: vi.fn(), message: vi.fn(), progress: vi.fn() }));
+  join: vi.fn(), channels: vi.fn(), message: vi.fn(), messages: vi.fn(), progress: vi.fn() }));
 vi.mock('@/src/server/infrastructure/auth/auth.config', () => ({ auth: f.auth }));
 vi.mock('@/src/server/infrastructure/auth/getUser', () => ({ getUser: f.getUser }));
 vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({ prisma: {
   cohort: { findFirst: f.cohort }, lesson: { findFirst: f.lesson }, channel: { findFirst: f.channel }, cohortMember: { upsert: f.join },
 } }));
-vi.mock('@/src/server/infrastructure/db/postgres/repositories/community.repo', () => ({ communityRepo: { getCommunityChannels: f.channels, addMessage: f.message } }));
+vi.mock('@/src/server/infrastructure/db/postgres/repositories/community.repo', () => ({
+  communityRepo: { getCommunityChannels: f.channels, addMessage: f.message, getChannelMessages: f.messages },
+}));
 vi.mock('@/src/server/domain/progress/chunkProgress.service', () => ({ ChunkProgressService: { recordProgress: f.progress } }));
 import { POST as join } from '@/src/app/api/cohort/[id]/join/route';
 import { GET as channels } from '@/src/app/api/community/[cohortId]/channels/route';
-import { POST as message } from '@/src/app/api/community/channels/[channelId]/messages/route';
+import { POST as message, GET as getMessages } from '@/src/app/api/community/channels/[channelId]/messages/route';
 import { POST as progress } from '@/src/app/api/progress/chunk/route';
 import { accessibleCohortWhere } from '../cohortAccessPolicy';
 import { generateMetadata } from '@/src/app/(dashboard)/cohort/[cohortId]/page';
@@ -25,7 +27,9 @@ describe('cohort API access boundaries', () => {
     expect(hidden.title).not.toContain('Secret title');
     expect(f.cohort).toHaveBeenCalledWith({ where: { id: 'private', isPublished: true, visibility: 'PUBLIC' }, select: { title: true, description: true, coverImage: true } });
     f.cohort.mockResolvedValue({ title: 'Owned title', description: 'Owned description', coverImage: null });
-    expect((await generateMetadata({ params: Promise.resolve({ cohortId: 'private' }) })).title).toBe('Owned title | Undone');
+    const meta = await generateMetadata({ params: Promise.resolve({ cohortId: 'private' }) });
+    expect(meta.title).toBe('Owned title');
+    expect(meta.openGraph?.title).toBe('Undone - Owned title');
     f.auth.mockRejectedValueOnce(new Error('Authentication failed')); f.cohort.mockClear();
     await expect(generateMetadata({ params: Promise.resolve({ cohortId: 'private' }) })).rejects.toThrow('Authentication failed');
     expect(f.cohort).not.toHaveBeenCalled();
@@ -59,6 +63,26 @@ describe('cohort API access boundaries', () => {
     expect(f.message).not.toHaveBeenCalled();
     f.getUser.mockResolvedValue(null);
     expect((await message(request({ content: 'Hello' }), { params: Promise.resolve({ channelId: 'private' }) })).status).toBe(401);
+  });
+  it('guards channel message reads and returns chronological messages with author projection', async () => {
+    f.getUser.mockResolvedValueOnce(null);
+    expect((await getMessages(new Request('http://localhost/api'), { params: Promise.resolve({ channelId: 'private' }) })).status).toBe(401);
+
+    f.getUser.mockResolvedValue({ id: 'user' });
+    f.channel.mockResolvedValueOnce(null);
+    expect((await getMessages(new Request('http://localhost/api'), { params: Promise.resolve({ channelId: 'private' }) })).status).toBe(404);
+
+    f.channel.mockResolvedValueOnce({ id: 'chan-1' });
+    f.messages.mockResolvedValueOnce([
+      { id: 'm2', content: 'Second', createdAt: new Date(2000), author: { id: 'u2', name: 'Alice' } },
+      { id: 'm1', content: 'First', createdAt: new Date(1000), author: { id: 'u1', name: 'Bob' } },
+    ]);
+    const res = await getMessages(new Request('http://localhost/api?limit=10&before=m3'), { params: Promise.resolve({ channelId: 'chan-1' }) });
+    expect(res.status).toBe(200);
+    expect(f.messages).toHaveBeenCalledWith('chan-1', 10, 'm3');
+    const data = await res.json();
+    expect(data[0].id).toBe('m1');
+    expect(data[1].id).toBe('m2');
   });
   it('requires an accessible cohort and an actual chunk belonging to the supplied lesson before progress writes', async () => {
     const body = { cohortId: 'private', lessonId: 'lesson', chunkId: 'chunk', watchedSeconds: 12, totalSeconds: 60 };

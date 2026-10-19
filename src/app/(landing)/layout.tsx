@@ -3,10 +3,10 @@ import { Metadata } from 'next';
 const siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://undone.in';
 
 export const metadata: Metadata = {
-  title: 'Undone — For a more curious you',
+  title: 'For a more curious you',
   description: 'Turn existing curiosity into lasting understanding. Seamlessly learn from YouTube, articles, and podcasts in the spare moments of everyday life — without managing courses or schedules.',
   openGraph: {
-    title: 'Undone — For a more curious you',
+    title: 'Undone - For a more curious you',
     description: 'Turn existing curiosity into lasting understanding. Seamlessly learn from YouTube, articles, and podcasts in the spare moments of everyday life without managing courses or schedules.',
     url: siteUrl,
     type: 'website',
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Undone — For a more curious you',
+    title: 'Undone - For a more curious you',
     description: 'Turn existing curiosity into lasting understanding. Seamlessly learn from YouTube, articles, and podcasts in everyday moments.',
     images: ['/twitter-image.png'],
   },

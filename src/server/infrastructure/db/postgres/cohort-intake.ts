@@ -13,6 +13,18 @@ export async function acceptCohortIntake(ownerId: string, input: unknown, prisma
   const body = cohortIntakeSchema.parse(input);
   const workspaceId = deterministicUuid(`cohort-intake:${ownerId}:${body.requestId}`);
   const payloadHash = computePayloadHash(body);
+
+  if (textDriver() !== 'durable') throw new Error('DURABLE_DRIVER_REQUIRED');
+
+  // Verify schema readiness ONCE per process outside of transactional advisory locks
+  const outerSqlAdapter = {
+    query: async (sql: string, values: unknown[] = []) => ({
+      rows: (await prisma.$queryRawUnsafe(sql, ...values)) as Record<string, unknown>[],
+    }),
+  };
+  await ensureJourneyStageSchema(outerSqlAdapter);
+  await assertTextJobSchema(outerSqlAdapter);
+
   return prisma.$transaction(async tx => {
     // The workspace does not exist yet: serialize creation on its deterministic identity.
     await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${workspaceId}, 0))::text`;
@@ -22,10 +34,6 @@ export async function acceptCohortIntake(ownerId: string, input: unknown, prisma
       if (prior.payloadHash !== payloadHash) throw new Error('IDEMPOTENCY_MISMATCH');
       return prior.response as { workspaceId: string };
     }
-    if (textDriver() !== 'durable') throw new Error('DURABLE_DRIVER_REQUIRED');
-    const sqlAdapter = { query: async (sql: string, values: unknown[] = []) => ({ rows: await tx.$queryRawUnsafe(sql, ...values) as Record<string, unknown>[] }) };
-    await ensureJourneyStageSchema(sqlAdapter);
-    await assertTextJobSchema(sqlAdapter);
     // Methods retain their canonical implementations; nested transaction callbacks share this transaction.
     const scoped = new Proxy(tx, { get(target, property) {
       if (property === '$transaction') return async (work: (client: typeof tx) => unknown) => work(tx);

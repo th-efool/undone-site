@@ -480,14 +480,24 @@ export function computeTargetVector(context: ChunkScoringContext): PedagogicalVe
   for (const ctrl of sliderDefs) {
     let userVal = ctrl.defaultNormalized;
 
-    if (context.rawStringPrefs) {
-      const prefStr = context.rawStringPrefs[`${activeChannel}_${ctrl.controlId}`];
-      if (prefStr) {
-        // If it matches defaultOptionId, it's 0.0, else 1.0
-        userVal = (prefStr === ctrl.defaultOptionId) ? 0.0 : 1.0;
+    // Direct numeric float from channelSliderValues takes highest precedence
+    const directNum = channelSliderValues
+      ? (channelSliderValues[`${activeChannel}_${ctrl.controlId}`] ?? channelSliderValues[ctrl.controlId])
+      : undefined;
+
+    if (directNum !== undefined && typeof directNum === 'number' && !Number.isNaN(directNum) && directNum >= 0 && directNum <= 1) {
+      userVal = directNum;
+    } else if (context.rawStringPrefs) {
+      const prefStr = context.rawStringPrefs[`${activeChannel}_${ctrl.controlId}`] ?? context.rawStringPrefs[ctrl.controlId];
+      if (prefStr !== undefined && prefStr !== '') {
+        const parsedFloat = Number(prefStr);
+        if (!Number.isNaN(parsedFloat) && parsedFloat >= 0 && parsedFloat <= 1) {
+          userVal = parsedFloat;
+        } else {
+          // If it matches defaultOptionId, it's 0.0, else 1.0
+          userVal = (prefStr === ctrl.defaultOptionId) ? 0.0 : 1.0;
+        }
       }
-    } else if (channelSliderValues && channelSliderValues[ctrl.controlId] !== undefined) {
-      userVal = channelSliderValues[ctrl.controlId];
     }
 
     const diff = userVal - ctrl.defaultNormalized;
@@ -534,6 +544,38 @@ export function calculateWeightedSimilarity(
 }
 
 /**
+ * Channel-aware match score combining weighted coordinate proximity (65%)
+ * and weighted cosine similarity (35%). Properly rewards low-target dimensions
+ * (e.g. visual_dependence = 0.05 on 'listen', linearity_dependency = 0.10 on 'quick')
+ * as well as high-target dimensions (e.g. practicality_actionability = 0.95 on 'build').
+ */
+export function calculateChannelMatchScore(
+  targetInput: PedagogicalVector12D | number[],
+  chunkInput: PedagogicalVector12D | number[],
+  activeChannel: ChannelId = 'default'
+): number {
+  const target = Array.isArray(targetInput) ? arrayToVector(targetInput) : targetInput;
+  const chunkVec = Array.isArray(chunkInput) ? arrayToVector(chunkInput) : chunkInput;
+  const weights = CHANNEL_DIMENSION_WEIGHTS[activeChannel] || CHANNEL_DIMENSION_WEIGHTS.default;
+
+  let weightedSqDiff = 0;
+  let weightSum = 0;
+
+  for (const dim of PEDAGOGICAL_DIMENSIONS) {
+    const w = weights[dim] ?? 1.0;
+    const diff = (target[dim] ?? 0.5) - (chunkVec[dim] ?? 0.5);
+    weightedSqDiff += w * diff * diff;
+    weightSum += w;
+  }
+
+  const rmsDistance = weightSum > 0 ? Math.sqrt(weightedSqDiff / weightSum) : 0.5;
+  const proximity = Math.max(0, Math.min(1, 1 - rmsDistance));
+  const weightedCosine = calculateWeightedSimilarity(target, chunkVec, weights);
+
+  return 0.65 * proximity + 0.35 * weightedCosine;
+}
+
+/**
  * Standard unweighted cosine similarity for raw float arrays.
  */
 export function rawCosineSimilarity(vecA: number[], vecB: number[]): number {
@@ -546,3 +588,148 @@ export function rawCosineSimilarity(vecA: number[], vecB: number[]): number {
   }
   return normA && normB ? dot / (Math.sqrt(normA) * Math.sqrt(normB)) : 0;
 }
+
+export interface DeterministicVectorMetadata {
+  title?: string;
+  lessonTitle?: string;
+  durationSeconds?: number;
+  chunkIndex?: number;
+  totalChunks?: number;
+  lessonIndex?: number;
+}
+
+export interface DeterministicChunkVectorResult {
+  vector: VectorArray12D;
+  vectorMap: PedagogicalVector12D;
+  isStrictlyLinear: boolean;
+  isKeyConcept: boolean;
+}
+
+function countPatternMatches(text: string, regex: RegExp): number {
+  const matches = text.match(regex);
+  return matches ? matches.length : 0;
+}
+
+function clamp01(val: number): number {
+  return Math.round(Math.max(0.05, Math.min(0.98, val)) * 100) / 100;
+}
+
+/**
+ * Computes a rich, differentiated 12D Pedagogical Vector from transcript text, title, and timing metadata.
+ * Works deterministically in both client/shared and server contexts with zero external network latency.
+ */
+export function computeDeterministicChunkVector(
+  text: string,
+  metadata?: DeterministicVectorMetadata
+): DeterministicChunkVectorResult {
+  const combined = `${metadata?.title || ''} ${metadata?.lessonTitle || ''} ${text || ''}`.toLowerCase();
+  const words = combined.split(/\s+/).filter(Boolean);
+  const wordCount = Math.max(1, words.length);
+  const duration = Math.max(15, metadata?.durationSeconds || 180);
+  const chunkIdx = metadata?.chunkIndex ?? 0;
+  const totalChunks = Math.max(1, metadata?.totalChunks ?? 1);
+
+  // Semantic signal counts
+  const buildHits = countPatternMatches(
+    combined,
+    /\b(cargo|rustc|rustup|npm|git|install|terminal|command|cli|code|coding|implement|implementation|build|building|project|function|fn|let|mut|struct|enum|impl|match|compile|compiler|run|running|debug|editor|vscode|studio|analyzer|create|file|directory|setup|configure|write|writing|program|demonstrate|demonstrates|hands-on|exercise|practice|tutorial|syntax|main\.rs|toml|package|binary|executable)\b/g
+  );
+  const visualHits = countPatternMatches(
+    combined,
+    /\b(screen|editor|browser|diagram|slide|watch|look|see|terminal|code|visual|ui|interface|line|folder|window|shows|demonstrates|display|open|click|file|vscode|ide|highlight|cursor|output)\b/g
+  );
+  const listenHits = countPatternMatches(
+    combined,
+    /\b(introduces|introduction|overview|discusses|discussion|explains|motivation|history|philosophy|story|journey|background|podcast|interview|talk|concept|idea|summary|reflection|mindset|approach|welcome|thought|series|audience|resources|learning|why|understand|high-level|perspective)\b/g
+  );
+  const deepHits = countPatternMatches(
+    combined,
+    /\b(ownership|borrowing|borrow|lifetime|lifetimes|memory|stack|heap|pointer|reference|references|concurrency|concurrent|thread|threads|async|await|trait|traits|generic|generics|type|types|safety|guarantee|architecture|invariant|algorithm|complexity|formal|specification|deep|mechanism|principle|semantics|zero-cost|abstraction|polymorphism|allocation|deallocation|mutex|arc|box|rc|unsafe|data race)\b/g
+  );
+  const sparkHits = countPatternMatches(
+    combined,
+    /\b(why|power|powerful|future|revolutionary|unique|secret|different|surprising|insight|paradigm|compare|vs|versus|advantage|fast|blazingly|modern|new|exciting|journey|curiosity|spark|discover|world|most loved|loved|performance|reliable)\b/g
+  );
+  const exploreHits = countPatternMatches(
+    combined,
+    /\b(ecosystem|crates|crate|webassembly|wasm|embedded|networking|systems|survey|landscape|alternatives|comparison|cross|domain|resources|community|documentation|book|tools|toolchains|library|libraries|framework|web|cli|game|os|operating system)\b/g
+  );
+  const sequentialHits = countPatternMatches(
+    combined,
+    /\b(next|previous|previously|continuing|continue|part 2|part 3|part 4|step 2|step 3|then|after|building on|earlier|last time|follow along|now that we)\b/g
+  );
+  const scaffoldingHits = countPatternMatches(
+    combined,
+    /\b(step|steps|guide|guided|walkthrough|how to|first|second|third|begin|getting started|basics|beginner|setup|install|hello world|example|chapter 1|chapter 2)\b/g
+  );
+
+  // Normalized signal intensities
+  const buildScore = Math.min(1, buildHits / 4);
+  const visualScore = Math.min(1, (visualHits + buildHits * 0.5) / 4);
+  const listenScore = Math.min(1, listenHits / 3);
+  const deepScore = Math.min(1, deepHits / 3);
+  const sparkScore = Math.min(1, sparkHits / 2.5);
+  const exploreScore = Math.min(1, exploreHits / 2.5);
+  const seqScore = Math.min(1, sequentialHits / 2);
+  const scaffScore = Math.min(1, scaffoldingHits / 3);
+
+  // Duration factors
+  const isShort = duration <= 110;
+  const isLong = duration >= 210;
+  const durationNorm = Math.min(1, Math.max(0, (duration - 45) / 360));
+
+  // 12 Pedagogical Dimensions
+  const cognitive_load = clamp01(0.25 + deepScore * 0.50 + buildScore * 0.15 + durationNorm * 0.15 - listenScore * 0.10);
+  const practicality_actionability = clamp01(0.15 + buildScore * 0.75 + scaffScore * 0.15 - listenScore * 0.15);
+  const visual_dependence = clamp01(
+    listenScore > 0.4 && buildHits <= 1
+      ? 0.08 + visualScore * 0.20
+      : 0.25 + visualScore * 0.65 + buildScore * 0.15 - listenScore * 0.25
+  );
+  const scaffolding_guidance = clamp01(0.30 + scaffScore * 0.50 + buildScore * 0.20 - deepScore * 0.10);
+  const linearity_dependency = clamp01(
+    (chunkIdx === 0 && sequentialHits === 0 ? 0.12 : 0.25) +
+      seqScore * 0.45 +
+      deepScore * 0.25 +
+      (chunkIdx > 0 ? Math.min(0.25, (chunkIdx / totalChunks) * 0.30) : 0) -
+      (isShort ? 0.15 : 0)
+  );
+  const novelty_divergence = clamp01(0.30 + sparkScore * 0.45 + exploreScore * 0.30 - seqScore * 0.15);
+  const abstraction_depth = clamp01(0.20 + deepScore * 0.60 + sparkScore * 0.20 - buildScore * 0.20);
+  const pacing_density = clamp01(
+    (isShort ? 0.78 : 0.35) +
+      Math.min(0.30, (wordCount / Math.max(30, duration)) * 0.45) -
+      (isLong ? 0.15 : 0)
+  );
+  const rigor_formality = clamp01(0.25 + deepScore * 0.60 + (buildScore * 0.15) - (listenScore * 0.15));
+  const interactivity_agency = clamp01(0.15 + buildScore * 0.75 + scaffScore * 0.15 - listenScore * 0.20);
+  const breadth_scope = clamp01(0.25 + exploreScore * 0.55 + listenScore * 0.20 + sparkScore * 0.15 - buildScore * 0.15);
+  const emotional_energy = clamp01(0.35 + sparkScore * 0.45 + (isShort ? 0.20 : 0) + buildScore * 0.10 - deepScore * 0.10);
+
+  const vectorMap: PedagogicalVector12D = {
+    cognitive_load,
+    practicality_actionability,
+    visual_dependence,
+    scaffolding_guidance,
+    linearity_dependency,
+    novelty_divergence,
+    abstraction_depth,
+    pacing_density,
+    rigor_formality,
+    interactivity_agency,
+    breadth_scope,
+    emotional_energy,
+  };
+
+  const vector = vectorToArray(vectorMap);
+  const isStrictlyLinear = linearity_dependency >= 0.68 && chunkIdx > 0;
+  const isKeyConcept = deepScore >= 0.5 || sparkScore >= 0.6 || chunkIdx === 0;
+
+  return {
+    vector,
+    vectorMap,
+    isStrictlyLinear,
+    isKeyConcept,
+  };
+}
+

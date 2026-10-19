@@ -149,14 +149,14 @@ function formatPublishedLabel(publishedAt?: string) {
   }
 }
 
-function pickThumbnail(thumbnails?: Record<string, { url?: string } | undefined>) {
+function pickThumbnail(thumbnails?: Record<string, { url?: string } | undefined>, videoId?: string) {
   return (
     thumbnails?.maxres?.url ||
     thumbnails?.standard?.url ||
     thumbnails?.high?.url ||
     thumbnails?.medium?.url ||
     thumbnails?.default?.url ||
-    '/images/landing/screen.webp'
+    (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop')
   );
 }
 
@@ -472,7 +472,7 @@ export async function importYouTubePlaylist(
       const lesson = {
         id: `${request.sourceId}-${videoId}`,
         title: rawTitle || `Video ${item.snippet?.position ?? lessons.length + 1}`,
-        thumbnail: pickThumbnail(video?.snippet?.thumbnails ?? item.snippet?.thumbnails),
+        thumbnail: pickThumbnail(video?.snippet?.thumbnails ?? item.snippet?.thumbnails, videoId),
         description: video?.snippet?.description ?? item.snippet?.description ?? '',
         duration: toIsoDuration(videoDuration),
         position: lessons.length + 1,

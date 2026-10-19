@@ -45,7 +45,7 @@ export function extractYoutubeTranscript(bytes:Uint8Array,proposal:YoutubeTransc
   });
   if(Buffer.byteLength(text)>YOUTUBE_TRANSCRIPT_LIMITS.extractedBytes) throw new Error('TRANSCRIPT_OUTPUT_LIMIT');
   return {format:`${YOUTUBE_TRANSCRIPT_VERSION}-extraction` as const,videoId:retained.video.id,
-    provider:retained.provider,track:retained.track,rawChecksum,offsetUnit:'utf16' as const,text,locations,
+    provider:retained.provider,track:retained.track,videoDurationMs:retained.video.durationMs,rawChecksum,offsetUnit:'utf16' as const,text,locations,
     coverage:{kind:'transcript_only' as const,exhaustiveVideo:false as const,timestamps:'provider_reported' as const,
       selectedSegments:selected.length,totalSegments:retained.segments.length,scope:input.scope??null}};
 }

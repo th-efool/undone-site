@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CalendarDays, Clock, Shuffle, ListOrdered, Signal, X, PauseCircle } from 'lucide-react';
 import { Slider } from '@/src/client/components/ui/Slider/Slider';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -43,6 +43,12 @@ export function ChartNetwork({ size = 15, className }: { size?: number; classNam
 const FREQUENCIES = ['Very Rarely', 'Rarely', 'Sometimes', 'Often', 'Very Often'] as const;
 const WEEKDAYS: Weekday[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const STANDARD_GOALS = [10, 15, 20, 30, 45, 60];
+const PAUSE_DURATIONS = [
+  { label: '1d', days: 1 },
+  { label: '3d', days: 3 },
+  { label: '1w', days: 7 },
+  { label: '1m', days: 30 },
+] as const;
 
 export function InspectorPanel({
   cohort,
@@ -53,23 +59,49 @@ export function InspectorPanel({
   onClose,
   onPause,
 }: InspectorPanelProps) {
+  const [pauseDuration, setPauseDuration] = useState<number>(7);
   const [isEditingCustomGoal, setIsEditingCustomGoal] = useState(false);
   const [customGoalVal, setCustomGoalVal] = useState(String(cohort.dailyGoalMinutes));
+  const cohortKey = cohort.cohortId || cohort.id;
+
+  // Escape key handler to close drawer or dismiss custom goal input
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        if (isEditingCustomGoal) {
+          setIsEditingCustomGoal(false);
+        } else {
+          onClose?.();
+        }
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isEditingCustomGoal, onClose]);
 
   function toggleDay(day: Weekday) {
     const current = cohort.schedule.days;
     const next = current.includes(day)
       ? current.filter((d) => d !== day)
       : [...current, day];
-    onUpdateSchedule(cohort.id, next.length > 0 ? next : [day]);
+    onUpdateSchedule(cohortKey, next.length > 0 ? next : [day]);
   }
 
   const isStandardGoal = STANDARD_GOALS.includes(cohort.dailyGoalMinutes);
 
   return (
-    <aside className={styles.inspector} aria-label={`Inspector for ${cohort.title}`}>
+    <aside
+      className={styles.inspector}
+      role="region"
+      aria-label={`Settings for ${cohort.title}`}
+    >
       {onClose && (
-        <button className={styles.closeBtn} onClick={onClose} aria-label="Close">
+        <button
+          type="button"
+          className={styles.closeBtn}
+          onClick={onClose}
+          aria-label="Close inspector panel"
+        >
           <X size={15} />
         </button>
       )}
@@ -85,18 +117,20 @@ export function InspectorPanel({
         >
 
         {/* ── Frequency ── */}
-        <section className={styles.section}>
+        <section className={styles.section} aria-label="Appearance frequency">
           <div className={styles.sectionHeader}>
-            <Signal size={14} className={styles.icon} />
+            <Signal size={14} className={styles.icon} aria-hidden="true" />
             <span className={styles.sectionLabel}>Shows up</span>
           </div>
           <div className={styles.frequencySliderRow}>
-            <span 
+            <button 
+              type="button"
               className={`${styles.sliderEdgeLabel} ${cohort.frequency === 'Very Rarely' ? styles.sliderEdgeActive : ''}`}
-              onClick={() => onUpdateFrequency?.(cohort.id, 'Very Rarely')}
+              onClick={() => onUpdateFrequency?.(cohortKey, 'Very Rarely')}
+              aria-label="Set frequency to Very Rarely"
             >
               Less
-            </span>
+            </button>
             <div className={styles.sliderInputWrapper}>
               <Slider
                 min={0}
@@ -104,28 +138,34 @@ export function InspectorPanel({
                 step={1}
                 value={Math.max(0, FREQUENCIES.indexOf((cohort.frequency || 'Often') as typeof FREQUENCIES[number]))}
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  onUpdateFrequency?.(cohort.id, FREQUENCIES[parseInt(e.target.value, 10)])
+                  onUpdateFrequency?.(cohortKey, FREQUENCIES[parseInt(e.target.value, 10)])
                 }
                 className={styles.rangeSlider}
-                aria-label="Frequency"
+                aria-label="Appearance frequency"
+                aria-valuemin={0}
+                aria-valuemax={4}
+                aria-valuenow={Math.max(0, FREQUENCIES.indexOf((cohort.frequency || 'Often') as typeof FREQUENCIES[number]))}
+                aria-valuetext={cohort.frequency || 'Often'}
               />
             </div>
-            <span 
+            <button 
+              type="button"
               className={`${styles.sliderEdgeLabel} ${cohort.frequency === 'Very Often' ? styles.sliderEdgeActive : ''}`}
-              onClick={() => onUpdateFrequency?.(cohort.id, 'Very Often')}
+              onClick={() => onUpdateFrequency?.(cohortKey, 'Very Often')}
+              aria-label="Set frequency to Very Often"
             >
               More
-            </span>
+            </button>
           </div>
         </section>
 
         {/* ── Schedule ── */}
-        <section className={styles.section}>
+        <section className={styles.section} aria-label="Weekly schedule">
           <div className={styles.sectionHeader}>
-            <CalendarDays size={14} className={styles.icon} />
+            <CalendarDays size={14} className={styles.icon} aria-hidden="true" />
             <span className={styles.sectionLabel}>Schedule</span>
           </div>
-          <div className={styles.dayGrid}>
+          <div className={styles.dayGrid} role="group" aria-label="Schedule days">
             {WEEKDAYS.map((day) => {
               const active = cohort.schedule.days.includes(day);
               return (
@@ -134,6 +174,7 @@ export function InspectorPanel({
                   type="button"
                   className={`${styles.dayBtn} ${active ? styles.pillActive : styles.pillIdle}`}
                   aria-pressed={active}
+                  aria-label={`Toggle ${day}`}
                   onClick={() => toggleDay(day)}
                 >
                   {day}
@@ -162,13 +203,13 @@ export function InspectorPanel({
                 onChange={(e) => setCustomGoalVal(e.target.value)}
                 onBlur={() => {
                   const num = parseInt(customGoalVal, 10);
-                  if (num > 0) onUpdateDailyGoal(cohort.id, num);
+                  if (num > 0) onUpdateDailyGoal(cohortKey, num);
                   setIsEditingCustomGoal(false);
                 }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
                     const num = parseInt(customGoalVal, 10);
-                    if (num > 0) onUpdateDailyGoal(cohort.id, num);
+                    if (num > 0) onUpdateDailyGoal(cohortKey, num);
                     setIsEditingCustomGoal(false);
                   }
                   if (e.key === 'Escape') setIsEditingCustomGoal(false);
@@ -177,13 +218,14 @@ export function InspectorPanel({
               <span className={styles.unitText}>min</span>
             </div>
           ) : (
-            <div className={styles.pills}>
+            <div className={styles.pills} role="group" aria-label="Daily goal presets">
               {STANDARD_GOALS.map((g) => (
                 <button
                   key={g}
                   type="button"
                   className={`${styles.pill} ${cohort.dailyGoalMinutes === g ? styles.pillActive : styles.pillIdle}`}
-                  onClick={() => onUpdateDailyGoal(cohort.id, g)}
+                  aria-pressed={cohort.dailyGoalMinutes === g}
+                  onClick={() => onUpdateDailyGoal(cohortKey, g)}
                 >
                   {g} min
                 </button>
@@ -192,6 +234,7 @@ export function InspectorPanel({
                 <button
                   type="button"
                   className={`${styles.pill} ${styles.pillActive}`}
+                  aria-pressed={true}
                   onClick={() => {
                     setCustomGoalVal(String(cohort.dailyGoalMinutes));
                     setIsEditingCustomGoal(true);
@@ -203,6 +246,7 @@ export function InspectorPanel({
               <button
                 type="button"
                 className={`${styles.pill} ${styles.pillIdle}`}
+                aria-label="Set custom daily goal in minutes"
                 onClick={() => {
                   setCustomGoalVal(String(cohort.dailyGoalMinutes));
                   setIsEditingCustomGoal(true);
@@ -215,12 +259,12 @@ export function InspectorPanel({
         </section>
 
         {/* ── Order Preference ── */}
-        <section className={styles.section}>
+        <section className={styles.section} aria-label="Order preference">
           <div className={styles.sectionHeader}>
-            <ListOrdered size={14} className={styles.icon} />
+            <ListOrdered size={14} className={styles.icon} aria-hidden="true" />
             <span className={styles.sectionLabel}>Order</span>
           </div>
-          <div className={styles.pills}>
+          <div className={styles.pills} role="group" aria-label="Learning order">
             {[
               { value: 'Sequential', Icon: ListOrdered, label: 'Sequential' },
               { value: 'Semantic Randomize', Icon: ChartNetwork, label: 'Semantic Shuffle' },
@@ -230,10 +274,11 @@ export function InspectorPanel({
                 key={value}
                 type="button"
                 className={`${styles.pill} ${cohort.orderStyle === value ? styles.pillActive : styles.pillIdle}`}
-                onClick={() => onUpdateOrderStyle?.(cohort.id, value)}
+                aria-pressed={cohort.orderStyle === value}
+                onClick={() => onUpdateOrderStyle?.(cohortKey, value)}
               >
-                <Icon size={12} />
-                {label}
+                <Icon size={12} aria-hidden="true" />
+                <span>{label}</span>
               </button>
             ))}
           </div>
@@ -242,14 +287,33 @@ export function InspectorPanel({
         </motion.div>
       </AnimatePresence>
       {onPause && (
-        <button
-          className={styles.pauseBtn}
-          onClick={() => onPause(cohort.id, 7)}
-          aria-label="Pause cohort"
-        >
-          <PauseCircle size={14} />
-          <span>Pause</span>
-        </button>
+        <div className={styles.pauseSection}>
+          <div className={styles.pauseDurationRow}>
+            <span className={styles.pauseDurationLabel}>Pause for:</span>
+            <div className={styles.pausePills}>
+              {PAUSE_DURATIONS.map((opt) => (
+                <button
+                  key={opt.days}
+                  type="button"
+                  className={`${styles.pauseDurationPill} ${pauseDuration === opt.days ? styles.pauseDurationPillActive : ''}`}
+                  onClick={() => setPauseDuration(opt.days)}
+                  aria-pressed={pauseDuration === opt.days}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            type="button"
+            className={styles.pauseBtn}
+            onClick={() => onPause(cohortKey, pauseDuration)}
+            aria-label={`Pause cohort for ${pauseDuration} days`}
+          >
+            <PauseCircle size={14} />
+            <span>Pause cohort</span>
+          </button>
+        </div>
       )}
     </aside>
   );

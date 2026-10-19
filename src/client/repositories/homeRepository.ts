@@ -4,7 +4,7 @@ import { cohortStore } from './cohortStore';
 import { homeStorageAdapter } from './homeStorageAdapter';
 
 export const homeRepository = {
-  getHome(): HomeModel {
+  getHome(options?: { loadStored?: boolean }): HomeModel {
     const userPublishedIds = new Set(cohortStore.getUserCohorts().map((c) => c.id));
 
     // Filter all cohorts down to active feed cohorts + user-published cohorts
@@ -32,22 +32,85 @@ export const homeRepository = {
       });
     });
 
+    const DEFAULT_COHORTS: ActiveCohort[] = [
+      {
+        id: 'neuroscience-101',
+        cohortId: 'neuroscience-101',
+        rank: 1,
+        title: 'Neuroscience 101',
+        provider: 'Cognitive Science Dept',
+        thumbnail: '/images/cohorts/neuroscience.webp',
+        minutesToday: 15,
+        dailyGoalMinutes: 20,
+        progressPercent: 62,
+        memberCount: 247,
+        schedule: { days: ['Mon', 'Wed', 'Fri'], label: 'Mon, Wed, Fri' },
+        featured: true,
+      },
+      {
+        id: 'cities-urban-systems',
+        cohortId: 'cities-urban-systems',
+        rank: 2,
+        title: 'Cities & Urban Systems',
+        provider: 'Urban Dynamics',
+        thumbnail: '/images/cohorts/cities.webp',
+        minutesToday: 10,
+        dailyGoalMinutes: 20,
+        progressPercent: 28,
+        memberCount: 124,
+        schedule: { days: ['Tue', 'Thu'], label: 'Tue, Thu' },
+      },
+      {
+        id: 'ai-for-creators',
+        cohortId: 'ai-for-creators',
+        rank: 3,
+        title: 'AI for Creators',
+        provider: 'Studio Lab',
+        thumbnail: '/images/cohorts/ai-creators.webp',
+        minutesToday: 12,
+        dailyGoalMinutes: 20,
+        progressPercent: 41,
+        memberCount: 89,
+        schedule: { days: ['Mon', 'Wed', 'Fri'], label: 'Mon, Wed, Fri' },
+      },
+      {
+        id: 'game-design-basics',
+        cohortId: 'game-design-basics',
+        rank: 4,
+        title: 'Game Design Basics',
+        provider: 'Play Architecture',
+        thumbnail: '/images/cohorts/game-design.webp',
+        minutesToday: 8,
+        dailyGoalMinutes: 15,
+        progressPercent: 19,
+        memberCount: 56,
+        schedule: { days: ['Sat', 'Sun'], label: 'Weekends' },
+      },
+    ];
+
     let activeList = Array.from(activeCohortsMap.values()).map((item, idx) => ({
       ...item,
       rank: idx + 1,
     }));
 
+    if (activeList.length === 0) {
+      activeList = DEFAULT_COHORTS;
+    }
+
     let continueLaterList: PausedCohort[] = [];
 
-    // 2. Hydrate from local storage choices if available
-    const stored = homeStorageAdapter.getStoredChoices();
+    // 2. Hydrate from local storage choices if explicitly requested (client post-mount)
+    const stored = options?.loadStored ? homeStorageAdapter.getStoredChoices() : null;
     if (stored) {
       if (Array.isArray(stored.activeCohorts) && stored.activeCohorts.length > 0) {
         const storedMap = new Map(stored.activeCohorts.map((c) => [c.id, c]));
         
         const reorderedActive: ActiveCohort[] = [];
         stored.activeCohorts.forEach((storedCohort) => {
-          const base = activeCohortsMap.get(storedCohort.id);
+          const base =
+            activeCohortsMap.get(storedCohort.id) ||
+            DEFAULT_COHORTS.find((c) => c.id === storedCohort.id) ||
+            storedCohort;
           if (base) {
             reorderedActive.push({
               ...base,
@@ -63,7 +126,9 @@ export const homeRepository = {
           }
         });
 
-        activeList = reorderedActive.map((item, idx) => ({ ...item, rank: idx + 1 }));
+        if (reorderedActive.length > 0) {
+          activeList = reorderedActive.map((item, idx) => ({ ...item, rank: idx + 1 }));
+        }
       }
 
       if (Array.isArray(stored.continueLater)) {
@@ -78,7 +143,7 @@ export const homeRepository = {
         actionLabel: 'Explore Quests',
       },
       sections: {
-        activeCohorts: { title: 'Active Cohorts' },
+        activeCohorts: { title: 'Subscribed Cohorts' },
         continueLater: { title: 'Continue Later' },
         recentlyCompleted: { title: 'Recently Completed' },
       },
