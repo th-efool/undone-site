@@ -1,11 +1,16 @@
 import { Suspense } from 'react';
 import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
 import { Metadata } from 'next';
-import { auth } from '@/src/server/infrastructure/auth/auth.config';
+import { getUser } from '@/src/server/infrastructure/auth/getUser';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { Home } from '@/src/client/screens/dashboard/home';
 import { getResumeLabel } from '@/src/client/screens/dashboard/home/utils';
 import { redirect } from 'next/navigation';
+import {
+  getHomeServerCache,
+  HOME_SERVER_CACHE_TTL_MS,
+  type CachedHomeServerPayload,
+} from '@/src/server/infrastructure/cache/homeServerCache';
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -22,26 +27,6 @@ export const metadata: Metadata = {
     description: 'View your progress, active quests, and stats on your Undone dashboard.',
   }
 };
-
-type CachedHomeServerPayload = {
-  activeCohorts: any[];
-  recentlyCompleted: any[];
-  continueLater: any[];
-  expiresAt: number;
-};
-
-const HOME_SERVER_CACHE_TTL_MS = 30_000;
-
-const globalForHomeCache = globalThis as unknown as {
-  __undoneHomeServerCache?: Map<string, CachedHomeServerPayload>;
-};
-
-function getHomeServerCache(): Map<string, CachedHomeServerPayload> {
-  if (!globalForHomeCache.__undoneHomeServerCache) {
-    globalForHomeCache.__undoneHomeServerCache = new Map();
-  }
-  return globalForHomeCache.__undoneHomeServerCache;
-}
 
 async function loadHomeCohortsForUser(userId: string) {
   if (process.env.NODE_ENV !== 'test') {
@@ -258,14 +243,14 @@ async function HomeCohortsLoader({ userId, userName }: { userId: string; userNam
 }
 
 export default async function home() {
-  const session = await auth();
-  const userId = session?.user?.id;
+  const user = await getUser();
+  const userId = user?.id;
 
   if (!userId) {
     redirect('/auth');
   }
 
-  const userName = session?.user?.name || undefined;
+  const userName = user?.name || undefined;
 
   if (process.env.NODE_ENV === 'test') {
     const { activeCohorts, recentlyCompleted, continueLater } = await loadHomeCohortsForUser(userId);

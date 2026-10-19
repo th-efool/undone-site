@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/src/server/infrastructure/auth/auth.config';
 import { connectToMongoDB } from '@/src/server/infrastructure/db/mongodb/client';
+import { invalidateHomeServerCache } from '@/src/server/infrastructure/cache/homeServerCache';
 import {
   UserCohortConfig,
   VALID_FREQUENCIES,
@@ -225,6 +226,8 @@ export async function PUT(req: Request) {
       { $set: updateFields },
       { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
     ).lean().exec();
+
+    invalidateHomeServerCache(userId);
 
     return NextResponse.json(updatedConfig);
   } catch (error: any) {
