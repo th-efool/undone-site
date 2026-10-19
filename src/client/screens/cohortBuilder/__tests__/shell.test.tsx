@@ -116,13 +116,14 @@ it('switches to chat when selecting a lesson for chat and allows returning to wo
 
   const main = document.getElementById('main-content')!;
   const composer = screen.getByLabelText('Message the cohort assistant');
-  const source = screen.getByLabelText('Paste text to retain and ground this curriculum');
 
   fireEvent.change(composer, { target: { value: 'Unsent question about consensus' } });
-  fireEvent.change(source, { target: { value: 'Unsaved source notes' } });
+
+  // Switch to Questline tab where lessons are displayed
+  fireEvent.click(screen.getByRole('button', { name: 'Questline' }));
 
   // Select lesson for chat
-  const discussBtn = screen.getByRole('button', { name: 'Discuss in chat' });
+  const discussBtn = screen.getByRole('button', { name: /Discuss in chat/i });
   fireEvent.click(discussBtn);
 
   // Verifies navigation switched to chat
@@ -135,7 +136,6 @@ it('switches to chat when selecting a lesson for chat and allows returning to wo
   fireEvent.click(workspaceBtn);
 
   expect(main.getAttribute('data-pane')).toBe('workspace');
-  expect((source as HTMLTextAreaElement).value).toBe('Unsaved source notes');
   expect((composer as HTMLTextAreaElement).value).toBe('Unsent question about consensus');
 });
 

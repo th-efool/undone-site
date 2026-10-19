@@ -179,7 +179,7 @@ describe('ReleasePanel UI Component', () => {
 
     expect(screen.getByText('Published Publicly')).toBeDefined();
     const privateRadio = screen.getByRole('radio', { name: /Start as Learner \(Private\)/ });
-    expect((privateRadio as HTMLInputElement).disabled).toBe(true);
+    expect(privateRadio.getAttribute('aria-disabled')).toBe('true');
     expect(screen.getByText(/Downgrading public cohorts to private activation is not permitted/)).toBeDefined();
   });
 

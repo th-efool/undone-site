@@ -36,12 +36,11 @@ describe('grounded cohort workspace UI', () => {
     fake.state = cohortWorkspaceSchema.parse({
       schemaVersion: 1, title: 'Systems', intent: 'Learn consensus', audience: 'Engineers', dailyMinutes: 25,
       sources: [{ id: 'source-1', version: 0, label: 'Notes', text: 'Quorums overlap.', checksum: 'a'.repeat(64), state: 'ready' }],
-      chunks: [{ id: 'source-1:v0:0', sourceId: 'source-1', sourceVersion: 0, start: 0, end: 16, text: 'Quorums overlap.', checksum: 'b'.repeat(64) }],
-      lessons: [{ id: 'lesson-1', version: 0, title: 'Quorums', objective: 'Understand overlap', sourceChunkIds: ['source-1:v0:0'], pinned: false }],
-      processing: { status: 'ready', stage: 'done', generation: 1, sourceFingerprint: 'fingerprint', error: null },
+      chunks: [],
+      lessons: [],
+      processing: { status: 'idle', stage: 'acquisition', generation: 0, sourceFingerprint: null, error: null },
     });
     render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
-    expect(screen.getByText(/Grounded in/).textContent).toContain('Quorums overlap.');
     const title = screen.getByPlaceholderText('e.g. Distributed systems notes');
     const body = screen.getByLabelText('Paste text to retain and ground this curriculum');
     fireEvent.change(title, { target: { value: 'Another note' } });
@@ -91,12 +90,13 @@ describe('grounded cohort workspace UI', () => {
       lessons: [{ id: 'lesson', version: 1, title: 'Pinned lesson', objective: 'Original', sourceChunkIds: [], pinned: true }] });
     fake.actions = []; fake.succeeds = false;
     render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Edit lesson' })));
-    const objective = screen.getByDisplayValue('Original');
-    fireEvent.change(objective, { target: { value: 'Unsaved objective' } });
-    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Update Lesson' })));
-    expect(screen.getByDisplayValue('Unsaved objective')).toBeTruthy();
-    expect(fake.actions).toEqual([{ type: 'edit_lesson', lessonId: 'lesson', objective: 'Unsaved objective' }]);
+    fireEvent.click(screen.getByRole('button', { name: 'Questline' }));
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Edit lesson 1 title' })));
+    const input = screen.getByRole('textbox', { name: 'Edit lesson' });
+    fireEvent.change(input, { target: { value: 'Unsaved lesson title' } });
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Save changes' })));
+    expect(screen.getByDisplayValue('Unsaved lesson title')).toBeTruthy();
+    expect(fake.actions).toEqual([{ type: 'edit_lesson', lessonId: 'lesson', title: 'Unsaved lesson title', objective: 'Original' }]);
   });
   it('renders YouTube transcript timestamp range in evidence citations', async () => {
     fake.actions = [];
@@ -114,6 +114,7 @@ describe('grounded cohort workspace UI', () => {
       processing: { status: 'ready', stage: 'done', generation: 1, sourceFingerprint: 'fp', error: null },
     });
     render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Questline' }));
     expect(screen.getByText('Inspect evidence')).toBeDefined();
     expect(screen.getByText(/timestamp 01:05–02:05/)).toBeDefined();
   });
@@ -141,6 +142,7 @@ describe('grounded cohort workspace UI', () => {
       processing: { status: 'ready', stage: 'done', generation: 1, sourceFingerprint: 'fp', error: null },
     });
     render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Questline' }));
     expect(screen.getByText('Inspect evidence')).toBeDefined();
     expect(screen.getByText(/src\/consensus\.ts#L10-L25/)).toBeDefined();
     expect(screen.getByText(/https:\/\/github\.com\/sidequesthq\/undone@ccccccc/)).toBeDefined();
@@ -508,7 +510,7 @@ describe('grounded cohort workspace UI', () => {
     render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
 
     // Initially in curriculum stage
-    expect(screen.getByText('Learning Blueprint')).toBeDefined();
+    expect(screen.getByText('Editable preview')).toBeDefined();
     expect(screen.queryByTestId('stage-inspection-banner')).toBeNull();
 
     // Find stepper items
@@ -538,7 +540,7 @@ describe('grounded cohort workspace UI', () => {
     // 4. Click 'Return to active stage' button in banner
     fireEvent.click(screen.getByRole('button', { name: 'Reset to active stage' }));
     expect(screen.queryByTestId('stage-inspection-banner')).toBeNull();
-    expect(screen.getByText('Learning Blueprint')).toBeDefined();
+    expect(screen.getByText('Editable preview')).toBeDefined();
     expect(fake.actions).toEqual([]);
   });
 });

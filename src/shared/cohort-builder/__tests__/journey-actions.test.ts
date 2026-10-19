@@ -219,16 +219,19 @@ describe('Cohort Journey: Step transitions & prerequisites', () => {
     expect(plan.summary).toBe('Starting point opened.');
   });
 
-  it('rejects create_own_cohort if called from any step other than recommendations', () => {
+  it('handles create_own_cohort idempotently or rejects if in invalid step', () => {
     const ws = initialCohort('Learn Python');
     ws.journey!.step = 'starting_point';
     const ctx = createActionContext();
 
-    expect(() => planCohortAction(ws, { type: 'create_own_cohort' }, ctx)).toThrow('INVALID_JOURNEY_TRANSITION');
+    // Idempotent when starting_point is already active
+    expect(planCohortAction(ws, { type: 'create_own_cohort' }, ctx).summary).toBe('Starting point already active.');
 
+    // Idempotent when material_input is active
     ws.journey!.step = 'material_input';
-    expect(() => planCohortAction(ws, { type: 'create_own_cohort' }, ctx)).toThrow('INVALID_JOURNEY_TRANSITION');
+    expect(planCohortAction(ws, { type: 'create_own_cohort' }, ctx).summary).toBe('Starting point already active.');
 
+    // Rejects if processing or published
     ws.journey!.step = 'processing';
     expect(() => planCohortAction(ws, { type: 'create_own_cohort' }, ctx)).toThrow('INVALID_JOURNEY_TRANSITION');
   });
@@ -264,8 +267,8 @@ describe('Cohort Journey: Step transitions & prerequisites', () => {
     // In recommendations step
     expect(() => planCohortAction(ws, { type: 'choose_starting_point', choice: 'have_material' }, ctx)).toThrow('INVALID_JOURNEY_TRANSITION');
 
-    // In material_input step
-    ws.journey!.step = 'material_input';
+    // In processing step
+    ws.journey!.step = 'processing';
     expect(() => planCohortAction(ws, { type: 'choose_starting_point', choice: 'have_material' }, ctx)).toThrow('INVALID_JOURNEY_TRANSITION');
   });
 
