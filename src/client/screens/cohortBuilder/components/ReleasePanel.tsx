@@ -155,6 +155,7 @@ export function ReleasePanel({
         <div
           role="radio"
           aria-checked={selectedMode === 'private_activation'}
+          aria-disabled={isPubliclyPublished}
           tabIndex={isPubliclyPublished ? -1 : 0}
           className={`${styles.modeCard} ${selectedMode === 'private_activation' ? styles.modeCardActive : ''} ${isPubliclyPublished ? styles.modeDisabled : ''}`}
           onClick={() => !isPubliclyPublished && handleModeChange('private_activation')}

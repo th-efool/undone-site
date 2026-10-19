@@ -6,6 +6,7 @@ import type { EntityRef } from 'interaction-builder/core';
 import type { CohortAction, CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import { deriveCohortDescription, deriveCohortTitle } from '@/src/shared/cohort-builder/cohort-metadata';
 import { getCohortSeasonGroups } from '@/src/shared/cohort-builder/delivery';
+import { formatYoutubeTimestamp } from '@/src/shared/cohort-builder/youtube-transcript';
 import { ReleasePanel } from '../components/ReleasePanel';
 import styles from '../CohortBuilder.module.css';
 
@@ -27,7 +28,15 @@ function EditButton({ label, onClick }: { label: string; onClick: () => void }) 
 
 function listValue(values: string[] | undefined, fallback: string[]) { return values?.length ? values : fallback; }
 
-export function CurriculumStageView({ workspace, workspaceId = '', revision, dispatchAction, onNavigateToDestination }: CurriculumStageViewProps) {
+export function CurriculumStageView({
+  workspace,
+  workspaceId = '',
+  revision,
+  needsRebuild,
+  dispatchAction,
+  onSelectLessonForChat,
+  onNavigateToDestination,
+}: CurriculumStageViewProps) {
   const [tab, setTab] = useState<'overview' | 'questline'>('overview');
   const [editing, setEditing] = useState<EditField | null>(null);
   const [value, setValue] = useState('');
@@ -93,6 +102,7 @@ export function CurriculumStageView({ workspace, workspaceId = '', revision, dis
     <header className={styles.reviewToolbar}>
       <div><h2>Editable preview</h2><p>These are the two pages learners will see after publication.</p></div>
       <div className={styles.reviewToolbarActions}>
+        {needsRebuild && <span className={styles.statusPill}>rebuild needed</span>}
         <span className={styles.savedDraftStatus}><Check size={15} aria-hidden="true" /> Confirmed edits save immediately</span>
         <button type="button" className={styles.primaryAction} onClick={() => setPublishOpen(true)}><Globe2 size={17} aria-hidden="true" /> Publish cohort</button>
       </div>
@@ -131,8 +141,68 @@ export function CurriculumStageView({ workspace, workspaceId = '', revision, dis
               className={styles.previewLesson}
             >
               <span>{lessonIndex + 1}</span>
-              <div><strong>{lesson.title}</strong><p>{lesson.objective}</p></div>
+              <div>
+                <strong>{lesson.title}</strong>
+                <p>{lesson.objective}</p>
+                {lesson.evidenceStatus === 'orphaned' && (
+                  <p role="alert" className={styles.alertBox}>
+                    This retained lesson references changed or removed source text. Review its evidence before relying on it.
+                  </p>
+                )}
+                {lesson.sourceChunkIds.length > 0 && (
+                  <p className={styles.intentText}>
+                    Grounded in {lesson.sourceChunkIds.map(chunkId => {
+                      const chunk = workspace.chunks.find(item => item.id === chunkId);
+                      return chunk ? `“${chunk.text.slice(0, 160)}”` : 'unavailable retained passage';
+                    }).join(' ')}
+                  </p>
+                )}
+                {lesson.sourceChunkIds.length > 0 && (
+                  <details className={styles.evidenceDrawer}>
+                    <summary>Inspect evidence</summary>
+                    {lesson.sourceChunkIds.map(chunkId => {
+                      const chunk = workspace.chunks.find(item => item.id === chunkId);
+                      const source = workspace.sources.find(item => item.id === chunk?.sourceId);
+                      const pages = source?.locations?.filter(location => location.page && location.start < (chunk?.end ?? 0) && location.end > (chunk?.start ?? 0)).map(location => location.page!);
+                      const timeLoc = source?.locations?.filter(location => location.startMs !== undefined && location.endMs !== undefined && location.start < (chunk?.end ?? 0) && location.end > (chunk?.start ?? 0));
+                      const timestamps = timeLoc?.length ? ` · timestamp ${formatYoutubeTimestamp(Math.min(...timeLoc.map(l => l.startMs!)))}–${formatYoutubeTimestamp(Math.max(...timeLoc.map(l => l.endMs!)))}` : '';
+                      const fileLoc = source?.locations?.filter(location => location.filePath && location.start < (chunk?.end ?? 0) && location.end > (chunk?.start ?? 0));
+                      const fileCitations = fileLoc?.length ? ` · ${Array.from(new Set(fileLoc.map(l => l.startLine && l.endLine ? `${l.filePath}#L${l.startLine}-L${l.endLine}` : l.filePath).filter(Boolean))).join(', ')}` : '';
+                      return (
+                        <blockquote key={chunkId} className={styles.evidenceBlockquote}>
+                          {chunk ? (
+                            <>
+                              <cite className={styles.evidenceCite}>
+                                {source?.label ?? 'Retained source'} · version {chunk.sourceVersion}
+                                {pages?.length ? ` · physical page ${pages.join(', ')}` : ''}
+                                {timestamps}
+                                {fileCitations} · characters {chunk.start}–{chunk.end}
+                                {source?.provenance ? ` · ${source.provenance.scope} · ${source.provenance.parserVersion}` : ''}
+                              </cite>
+                              {(source?.provenance?.finalUrl || source?.provenance?.repoUrl) && (
+                                <p>
+                                  {source.provenance.finalUrl ?? `${source.provenance.repoUrl}@${source.provenance.commitSha ? source.provenance.commitSha.slice(0, 7) : (source.provenance.ref ?? '')}`}
+                                </p>
+                              )}
+                              <p>{chunk.text}</p>
+                            </>
+                          ) : 'Retained passage unavailable; review orphan warning.'}
+                        </blockquote>
+                      );
+                    })}
+                  </details>
+                )}
+              </div>
               <EditButton label={`lesson ${lessonIndex + 1} title`} onClick={() => open('lesson', lesson.title, { lessonId: lesson.id })} />
+              <button
+                type="button"
+                className={styles.editActionBtn}
+                aria-label="Discuss in chat"
+                title={`Discuss ${lesson.title} in chat`}
+                onClick={() => onSelectLessonForChat?.({ entity: { kind: 'lesson', id: lesson.id, version: lesson.version }, label: lesson.title })}
+              >
+                Discuss in chat
+              </button>
             </li>
           );
         })}</ol>

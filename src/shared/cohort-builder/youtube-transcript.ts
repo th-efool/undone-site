@@ -12,6 +12,8 @@ export function singleYoutubeVideo(input: string): { videoId: string; url: strin
   let url: URL; try { url = new URL(input); } catch { return invalid(); }
   if (url.protocol !== 'https:' || url.username || url.password || url.port || url.hash ||
     !['youtube.com','www.youtube.com','m.youtube.com','youtu.be'].includes(url.hostname)) return invalid();
+  if (url.searchParams.has('list') || url.searchParams.has('t') || url.searchParams.has('start')) return invalid();
+  if (url.hostname === 'youtu.be' && url.searchParams.has('v')) return invalid();
   let candidate: string | null = null;
   if (url.hostname === 'youtu.be' && /^\/[A-Za-z0-9_-]{11}\/?$/.test(url.pathname)) candidate = url.pathname.split('/')[1];
   else if (url.hostname !== 'youtu.be' && url.pathname === '/watch' && url.searchParams.getAll('v').length === 1) candidate = url.searchParams.get('v');

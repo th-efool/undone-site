@@ -10,9 +10,20 @@ const draft = {
   prompt: 'Learn distributed systems',
 };
 
+let assignMock = vi.fn();
+
 beforeEach(() => {
   sessionStorage.clear();
   vi.restoreAllMocks();
+  assignMock = vi.fn();
+  Object.defineProperty(window, 'location', {
+    configurable: true,
+    value: {
+      href: 'http://localhost:3000/',
+      assign: assignMock,
+    },
+    writable: true,
+  });
 });
 
 afterEach(() => {
@@ -27,12 +38,6 @@ it('submits valid intake and assigns location on success', async () => {
     json: async () => ({ workspaceId: 'ws-12345' }),
   });
   global.fetch = fetchMock;
-
-  const assignMock = vi.fn();
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    value: { assign: assignMock },
-  });
 
   render(<CohortIntakeScreen ownerId="owner-1" enabled={true} />);
 
@@ -95,7 +100,7 @@ it('displays disabled notice and preserved prompt without a legacy detour', () =
   expect(
     screen.getByText('New builder intake is unavailable. Existing workspaces remain accessible.')
   ).toBeTruthy();
-  expect(screen.getByText('Learn distributed systems').closest('blockquote')).not.toBeNull();
+  expect(screen.getAllByText('Learn distributed systems').some(el => el.closest('blockquote'))).toBe(true);
   expect(screen.queryByRole('link', { name: /existing creator/i })).toBeNull();
   expect(screen.getByRole('button', { name: 'Discard' })).toBeTruthy();
   expect(screen.getByRole('link', { name: 'Return to landing' }).getAttribute('href')).toBe('/#explore');
@@ -116,7 +121,7 @@ it('retains and displays pasted text label and character count, explains incompa
   expect(
     screen.getByText('New builder intake is unavailable. Existing workspaces remain accessible.')
   ).toBeTruthy();
-  expect(screen.getByText('Learn distributed systems').closest('blockquote')).not.toBeNull();
+  expect(screen.getAllByText('Learn distributed systems').some(el => el.closest('blockquote'))).toBe(true);
   expect(screen.getByText(/Retained text: Pasted text \(32 characters\)/)).toBeTruthy();
   expect(
     screen.getByText('Your input is retained for the new builder. Please retry when creation is available.')

@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { resolve, relative, normalize } from 'node:path';
 import { createHash } from 'node:crypto';
 
@@ -7,6 +7,7 @@ export const BEFORE_AFTER_DIR = resolve('plans/before-after');
 
 export function computeReferenceHashes() {
   const hashes = new Map();
+  if (!existsSync(REFERENCE_DIR)) return hashes;
   const files = readdirSync(REFERENCE_DIR);
   for (const file of files) {
     if (file === 'reference-manifest.json') continue;

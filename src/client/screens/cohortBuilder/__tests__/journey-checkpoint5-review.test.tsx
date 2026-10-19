@@ -50,6 +50,6 @@ describe('Journey Checkpoint 5: editable final preview', () => {
     await waitFor(() => expect(dispatchAction).toHaveBeenCalledWith(expect.objectContaining({ type: 'edit_lesson', lessonId: 'lesson-1', title: 'Quorum reasoning' }), [{ kind: 'lesson', id: 'lesson-1', version: 0 }]));
     fireEvent.click(screen.getByRole('button', { name: /Publish cohort/i }));
     expect(screen.getByRole('dialog', { name: 'Publish cohort' })).toBeTruthy();
-    expect((screen.getByRole('radio', { name: /Publish to Directory/i }) as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByRole('radio', { name: /Publish to Directory/i }).getAttribute('aria-checked')).toBe('true');
   });
 });
