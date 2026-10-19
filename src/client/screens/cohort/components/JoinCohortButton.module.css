@@ -22,3 +22,10 @@
 .button:hover:not(:disabled) {
   background-color: var(--brand-primary-dark, #059669);
 }
+
+.buttonJoined {
+  background-color: var(--brand-primary, #10B981);
+  color: white;
+  cursor: default;
+  opacity: 0.95;
+}

@@ -88,6 +88,8 @@ export interface CommunityMessage {
   dateLabel?: string;
   /** Reply-to context: the message this is a reply to */
   replyTo?: { messageId?: string; authorName: string; authorAvatar: string; previewText: string };
+  /** Delivery status for optimistic sending */
+  status?: 'sending' | 'sent' | 'failed';
 }
 
 export type ChannelTab = { id: string; label: string; unreadCount?: number };
@@ -131,7 +133,7 @@ export interface CommunityChatModel {
 }
 
 export type DMMessageType = 'incoming' | 'outgoing';
-export type DMMessageStatus = 'sent' | 'delivered' | 'read';
+export type DMMessageStatus = 'sending' | 'sent' | 'delivered' | 'read' | 'failed';
 
 export interface DMUser {
   id: string;

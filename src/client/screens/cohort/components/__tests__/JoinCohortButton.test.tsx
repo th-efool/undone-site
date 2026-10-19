@@ -31,4 +31,13 @@ describe('cohort join recovery', () => {
     render(<JoinCohortButton cohortId="cohort-a" isLoggedIn />); fireEvent.click(screen.getByRole('button', { name: 'Join Cohort' }));
     expect((await screen.findByRole('alert')).textContent).toContain('Reload the cohort to check your membership');
   });
+  it('immediately transitions to Joined state with disabled styling upon clicking', () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})));
+    render(<JoinCohortButton cohortId="cohort-a" isLoggedIn />);
+    const button = screen.getByRole('button', { name: 'Join Cohort' });
+    fireEvent.click(button);
+    const joinedButton = screen.getByRole('button', { name: 'Joined ✓' }) as HTMLButtonElement;
+    expect(joinedButton).toBeTruthy();
+    expect(joinedButton.disabled).toBe(true);
+  });
 });

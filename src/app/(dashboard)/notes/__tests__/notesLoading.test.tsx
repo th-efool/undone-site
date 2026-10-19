@@ -74,6 +74,7 @@ function createMockNotesModel(overrides?: Partial<UseNotesResult>): UseNotesResu
     setNoteQuery: vi.fn(),
     toast: '',
     undo: vi.fn(),
+    syncStatus: 'saved' as const,
     actions: {
       selectNotebook: vi.fn(),
       createNotebook: vi.fn(),
