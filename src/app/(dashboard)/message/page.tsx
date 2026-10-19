@@ -2,6 +2,7 @@
 
 import React, { Suspense } from 'react';
 import { Message } from '@/src/client/screens/dashboard/message';
+import { MessageSkeleton } from '@/src/client/components/global/Skeleton';
 
 export default function MessagePage() {
   const jsonLd = {
@@ -17,7 +18,7 @@ export default function MessagePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<MessageSkeleton />}>
         <Message />
       </Suspense>
     </>
