@@ -1,8 +1,9 @@
 import 'server-only';
+import { cache } from 'react';
 import { getUser } from './getUser';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 
-export async function getCreationOwner(): Promise<string | null> {
+export const getCreationOwner = cache(async function getCreationOwner(): Promise<string | null> {
   const user = await getUser();
   if (!user?.id) return null;
   try {
@@ -27,4 +28,4 @@ export async function getCreationOwner(): Promise<string | null> {
     console.warn('[getCreationOwner] Database check failed:', error);
     return null;
   }
-}
+});

@@ -38,11 +38,9 @@ export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
     signingIn.current = true; setPending(true); setError(null);
     try {
       const result = await signIn('credentials', { email: 'guest@undone.com', redirect: false, redirectTo: safeReturnTo(returnTo) });
-      if (!result?.ok || result.error) { setError('Guest sign-in could not create a saved account. Try again or use GitHub or Slack.'); return; }
+      if (!result?.ok || result.error) { setError('Guest sign-in could not create a saved account. Try again or use GitHub or Slack.'); setPending(false); signingIn.current = false; return; }
       router.replace(safeReturnTo(returnTo));
-      router.refresh();
-    } catch { setError('Sign-in is unavailable. Please retry.'); }
-    finally { signingIn.current = false; setPending(false); }
+    } catch { setError('Sign-in is unavailable. Please retry.'); setPending(false); signingIn.current = false; }
   };
 
   return (

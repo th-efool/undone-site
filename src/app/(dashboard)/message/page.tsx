@@ -1,11 +1,7 @@
 'use client';
 
 import React, { Suspense } from 'react';
-import dynamic from 'next/dynamic';
-
-const Message = dynamic(
-  () => import('@/src/client/screens/dashboard/message').then((mod) => mod.Message)
-);
+import { Message } from '@/src/client/screens/dashboard/message';
 
 export default function MessagePage() {
   const jsonLd = {

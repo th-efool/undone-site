@@ -1,9 +1,7 @@
 import { Metadata } from 'next';
 import React, { Suspense } from 'react';
-import dynamic from 'next/dynamic';
+import { Explore } from '@/src/client/screens/dashboard/explore';
 import { ExploreSkeleton } from '@/src/client/components/global/Skeleton';
-
-const Explore = dynamic(() => import('@/src/client/screens/dashboard/explore').then((mod) => mod.Explore));
 
 export const metadata: Metadata = {
   title: 'Explore',

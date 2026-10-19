@@ -74,7 +74,50 @@ export async function GET(request: NextRequest) {
     if (chunkId && !chunks.some(chunk => chunk.chunkId === chunkId)) {
       return NextResponse.json({ error: 'Chunk not found.' }, { status: 404 });
     }
-    const progress = userId && chunks.length ? await ChunkProgressService.getUserProgressMap(userId, chunks.map(chunk => chunk.chunkId)) : new Map();
+    const allChunkIds = chunks.map(chunk => chunk.chunkId);
+    const canUseMongoEnrichment = chunks.length > 0 && Boolean(process.env.MONGODB_URI) && process.env.NODE_ENV !== 'test';
+
+    const [progress, mongoEnrichment] = await Promise.all([
+      userId && chunks.length
+        ? ChunkProgressService.getUserProgressMap(userId, allChunkIds)
+        : Promise.resolve(new Map()),
+      (async () => {
+        if (!canUseMongoEnrichment) return null;
+        try {
+          const { connectToMongoDB } = await import('@/src/server/infrastructure/db/mongodb/client');
+          await connectToMongoDB();
+          const [
+            { CohortTranscript },
+            { Chunk },
+            { UserCohortConfig },
+            { UserChannelConfig },
+          ] = await Promise.all([
+            import('@/src/server/database/mongo/models/CohortTranscript'),
+            import('@/src/server/database/mongo/models/Chunk'),
+            import('@/src/server/database/mongo/models/UserCohortConfig'),
+            import('@/src/server/database/mongo/models/UserChannelConfig'),
+          ]);
+
+          const uniqueCohortIds = [...new Set(chunks.map(c => c.cohortId))];
+
+          const [transcripts, mongoChunks, userCohortConfigs, userChannelDoc] = await Promise.all([
+            CohortTranscript.find(
+              { cohortId: { $in: uniqueCohortIds } },
+              { cohortId: 1, fullVector: 1, isStrictlyLinear: 1 }
+            ).lean().exec(),
+            Chunk.find({ chunkId: { $in: allChunkIds } }, { chunkId: 1, vector: 1 }).lean().exec(),
+            userId ? UserCohortConfig.find({ userId }).lean().exec() : Promise.resolve([]),
+            userId && !params.get('prefs') ? UserChannelConfig.findOne({ userId }).lean().exec() : Promise.resolve(null),
+          ]);
+
+          return { transcripts, mongoChunks, userCohortConfigs, userChannelDoc };
+        } catch (mongoErr) {
+          console.warn('[feed] Non-fatal MongoDB enrichment fallback:', mongoErr);
+          return null;
+        }
+      })(),
+    ]);
+
     const chunkProgress: Record<string, ChunkProgress> = {};
     for (const chunk of chunks) {
       const saved = progress.get(chunk.chunkId);
@@ -87,32 +130,9 @@ export async function GET(request: NextRequest) {
     const cohortVectorMap: Record<string, { fullVector: number[]; isStrictlyLinear: boolean }> = {};
     const chunkVectorMap: Record<string, number[]> = {};
 
-    if (chunks.length > 0 && process.env.MONGODB_URI && process.env.NODE_ENV !== 'test') {
+    if (mongoEnrichment) {
+      const { transcripts, mongoChunks, userCohortConfigs, userChannelDoc } = mongoEnrichment;
       try {
-        const { connectToMongoDB } = await import('@/src/server/infrastructure/db/mongodb/client');
-        await connectToMongoDB();
-        const [
-          { CohortTranscript },
-          { Chunk },
-          { UserCohortConfig },
-          { UserChannelConfig },
-        ] = await Promise.all([
-          import('@/src/server/database/mongo/models/CohortTranscript'),
-          import('@/src/server/database/mongo/models/Chunk'),
-          import('@/src/server/database/mongo/models/UserCohortConfig'),
-          import('@/src/server/database/mongo/models/UserChannelConfig'),
-        ]);
-
-        const uniqueCohortIds = [...new Set(chunks.map(c => c.cohortId))];
-        const allChunkIds = chunks.map(c => c.chunkId);
-
-        const [transcripts, mongoChunks, userCohortConfigs, userChannelDoc] = await Promise.all([
-          CohortTranscript.find({ cohortId: { $in: uniqueCohortIds } }).lean().exec(),
-          Chunk.find({ chunkId: { $in: allChunkIds } }, { chunkId: 1, vector: 1 }).lean().exec(),
-          userId ? UserCohortConfig.find({ userId }).lean().exec() : Promise.resolve([]),
-          userId && !params.get('prefs') ? UserChannelConfig.findOne({ userId }).lean().exec() : Promise.resolve(null),
-        ]);
-
         for (const t of transcripts) {
           if (Array.isArray(t.fullVector) && t.fullVector.length === 12) {
             cohortVectorMap[t.cohortId] = {

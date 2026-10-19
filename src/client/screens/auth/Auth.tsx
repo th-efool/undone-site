@@ -16,7 +16,6 @@ export function Auth({ returnTo = '/home', allowAuthenticatedRedirect = true, si
   useEffect(() => {
     if (status === 'authenticated' && allowAuthenticatedRedirect) {
       router.replace(destination);
-      router.refresh();
     }
   }, [status, router, destination, allowAuthenticatedRedirect]);
 

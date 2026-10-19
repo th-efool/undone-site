@@ -80,6 +80,7 @@ export function MobileNav() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={true}
               className={clsx(styles.navItem, isActive && styles.active)}
             >
               <Icon size={20} />

@@ -36,6 +36,8 @@ const INITIAL_CACHES: Record<ChannelId, ChannelCache> = {
   quick: { items: [], pageIndex: 0, isFetching: false, currentIndex: 0, hasError: false, prefs: undefined, query: undefined },
 };
 
+let persistedCachesBySelection: { key: string; caches: Record<ChannelId, ChannelCache> } | null = null;
+
 function parseDurationToSeconds(val: string): number {
   if (!val || typeof val !== 'string') return 180;
   const parsed = Number(val);
@@ -58,19 +60,55 @@ export function usePlayback() {
   const requestedLessonId = searchParams.get('lessonId') || searchParams.get('lesson') || undefined;
   const requestedChunkId = searchParams.get('chunk') || undefined;
   const initialQuery = searchParams.get('q') || '';
+  const selectionCacheKey = `${requestedCohortId ?? ''}|${requestedLessonId ?? ''}|${requestedChunkId ?? ''}`;
 
-  // New Client Memory Cache architecture
-  const [channelCaches, setChannelCaches] = useState<Record<ChannelId, ChannelCache>>(INITIAL_CACHES);
+  // Client Memory Cache architecture preserved across SPA route switches
+  const [channelCaches, setChannelCachesState] = useState<Record<ChannelId, ChannelCache>>(() => {
+    if (
+      process.env.NODE_ENV !== 'test' &&
+      persistedCachesBySelection &&
+      persistedCachesBySelection.key === selectionCacheKey
+    ) {
+      return persistedCachesBySelection.caches;
+    }
+    return INITIAL_CACHES;
+  });
+
+  const setChannelCaches = useCallback(
+    (updater: React.SetStateAction<Record<ChannelId, ChannelCache>>) => {
+      setChannelCachesState((prev) => {
+        const next = typeof updater === 'function' ? updater(prev) : updater;
+        if (process.env.NODE_ENV !== 'test') {
+          persistedCachesBySelection = { key: selectionCacheKey, caches: next };
+        }
+        return next;
+      });
+    },
+    [selectionCacheKey]
+  );
   const [searchQuery, setSearchQueryState] = useState<string>(initialQuery);
   
   // 6. Wasted Fetch on Initial Load - Lazy init for activeChannel
-  const [activeChannel, setActiveChannel] = useState<ChannelId>(() => {
+  const [activeChannel, setActiveChannelState] = useState<ChannelId>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('sidequest_active_channel') as ChannelId;
       return stored && INITIAL_CACHES[stored] ? stored : 'default';
     }
     return 'default';
   });
+
+  const isMountedRef = useRef(true);
+  const controllersRef = useRef<Partial<Record<ChannelId, AbortController | null>>>({});
+
+  const setActiveChannel = useCallback((ch: ChannelId) => {
+    setActiveChannelState(prevCh => {
+      if (prevCh !== ch && controllersRef.current[prevCh]) {
+        controllersRef.current[prevCh]?.abort();
+      }
+      return ch;
+    });
+    if (typeof window !== 'undefined') localStorage.setItem('sidequest_active_channel', ch);
+  }, []);
   
   const currentCache = channelCaches[activeChannel];
   const feedItems = currentCache.items;
@@ -119,14 +157,13 @@ export function usePlayback() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   // Fetch feed items via API (Prefetch Engine)
-  const fetchAbortControllerRef = useRef<AbortController | null>(null);
-
   const fetchChannelFeed = useCallback(async (channelId: ChannelId, pageIndex: number, overrideQuery?: string) => {
-    if (fetchAbortControllerRef.current) {
-      fetchAbortControllerRef.current.abort();
+    const prevController = controllersRef.current[channelId];
+    if (prevController) {
+      prevController.abort();
     }
     const abortController = new AbortController();
-    fetchAbortControllerRef.current = abortController;
+    controllersRef.current[channelId] = abortController;
 
     setChannelCaches(prev => ({
       ...prev,
@@ -153,9 +190,13 @@ export function usePlayback() {
         signal: abortController.signal
       });
       if (!res.ok) throw new Error('Failed to fetch feed');
-      if (abortController.signal.aborted) return;
+      if (abortController.signal.aborted || !isMountedRef.current) return;
+      if (controllersRef.current[channelId] !== abortController) return;
       const data = await res.json();
-      if (abortController.signal.aborted) return;
+      if (abortController.signal.aborted || !isMountedRef.current) return;
+      if (controllersRef.current[channelId] !== abortController) return;
+
+      controllersRef.current[channelId] = null;
       
       setChannelCaches(prev => {
         const existingItems = pageIndex === 0 ? [] : prev[channelId].items;
@@ -194,6 +235,13 @@ export function usePlayback() {
         };
       });
     } catch (error: any) {
+      if (!isMountedRef.current) return;
+      // If superseded by a newer request for this channel, do not touch state
+      if (controllersRef.current[channelId] !== abortController) {
+        return;
+      }
+      controllersRef.current[channelId] = null;
+
       if (error.name === 'AbortError') {
         setChannelCaches(prev => ({
           ...prev,
@@ -270,12 +318,22 @@ export function usePlayback() {
   }, [activeItem, activeChannel, fetchChannelFeed]);
 
   useEffect(() => {
+    isMountedRef.current = true;
     return () => {
-      if (fetchAbortControllerRef.current) {
-        fetchAbortControllerRef.current.abort();
-      }
+      isMountedRef.current = false;
+      Object.values(controllersRef.current).forEach(ctrl => {
+        try { ctrl?.abort(); } catch {}
+      });
     };
   }, []);
+
+  const activeCache = channelCaches[activeChannel];
+  const activeItemsCount = activeCache?.items.length ?? 0;
+  const activePrefs = activeCache?.prefs;
+  const activeIsFetching = activeCache?.isFetching ?? false;
+  const activeHasError = activeCache?.hasError ?? false;
+  const activeIsExhausted = activeCache?.exhausted ?? false;
+  const activePageIndex = activeCache?.pageIndex ?? 0;
 
   // Initial Load & Channel Switch Logic
   useEffect(() => {
@@ -290,7 +348,7 @@ export function usePlayback() {
       // If stale, invalidate first? fetchChannelFeed sets isFetching to true and overrides everything when done for pageIndex 0
       fetchChannelFeed(activeChannel, 0);
     }
-  }, [activeChannel, channelCaches, fetchChannelFeed]);
+  }, [activeChannel, activeItemsCount, activePrefs, activeIsFetching, activeHasError, fetchChannelFeed]);
 
   // Synchronize playback position with requested URL params (?lessonId=, ?lesson=, ?chunk=)
   useEffect(() => {
@@ -328,14 +386,14 @@ export function usePlayback() {
     // Generally: if currentIndex >= length - 2
     if (
       currentIndex >= feedItems.length - 2 && 
-      !channelCaches[activeChannel].isFetching &&
-      !channelCaches[activeChannel].exhausted &&
-      !channelCaches[activeChannel].hasError && // 2. Infinite API Loop on Prefetch Failure
+      !activeIsFetching &&
+      !activeIsExhausted &&
+      !activeHasError && // 2. Infinite API Loop on Prefetch Failure
       feedItems.length > 0
     ) {
-      fetchChannelFeed(activeChannel, channelCaches[activeChannel].pageIndex + 1);
+      fetchChannelFeed(activeChannel, activePageIndex + 1);
     }
-  }, [currentIndex, feedItems.length, activeChannel, channelCaches, fetchChannelFeed, activeItem]);
+  }, [currentIndex, feedItems.length, activeChannel, activeIsFetching, activeIsExhausted, activeHasError, activePageIndex, fetchChannelFeed, activeItem]);
 
   // Dynamic Player Stats & Daily Goal Calculation
   useEffect(() => {
@@ -603,7 +661,8 @@ export function usePlayback() {
       if (activeMediaSource.isDirectVideo && videoRef.current) {
         const rawCurrent = videoRef.current.currentTime;
         const relCurrent = Math.max(0, rawCurrent - startSecs);
-        setCurrentTimeSeconds(Math.min(relCurrent, totalChunkDur));
+        const clamped = Math.min(relCurrent, totalChunkDur);
+        setCurrentTimeSeconds(prev => (Math.abs(prev - clamped) >= 0.2 ? clamped : prev));
 
         if (rawCurrent >= endSecs) {
           try { videoRef.current.pause(); } catch {}
@@ -623,7 +682,8 @@ export function usePlayback() {
         if (typeof playerRef.current.getCurrentTime === 'function') {
           const rawCurrent = playerRef.current.getCurrentTime();
           const relCurrent = Math.max(0, rawCurrent - startSecs);
-          setCurrentTimeSeconds(Math.min(relCurrent, totalChunkDur));
+          const clamped = Math.min(relCurrent, totalChunkDur);
+          setCurrentTimeSeconds(prev => (Math.abs(prev - clamped) >= 0.2 ? clamped : prev));
 
           if (rawCurrent >= endSecs - 0.5 && isPlayingRef.current) {
             if (!reportedChunksRef.current.has(activeItem.chunkId) && !completionError) {
@@ -858,7 +918,7 @@ export function usePlayback() {
 
   return {
     activeItem,
-    feedLoading: currentCache.isFetching || (currentCache.prefs === undefined && !currentCache.hasError),
+    feedLoading: currentCache.items.length === 0 && (currentCache.isFetching || (currentCache.prefs === undefined && !currentCache.hasError)),
     feedError: currentCache.hasError,
     feedItems,
     currentIndex,
@@ -903,10 +963,7 @@ export function usePlayback() {
     isChunkCompleted,
     
     activeChannel,
-    setActiveChannel: (ch: ChannelId) => {
-      setActiveChannel(ch);
-      if (typeof window !== 'undefined') localStorage.setItem('sidequest_active_channel', ch);
-    },
+    setActiveChannel,
     searchQuery,
     setSearchQuery: (q: string) => {
       setSearchQueryState(q);

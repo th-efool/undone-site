@@ -1,11 +1,7 @@
 import { Metadata } from 'next';
 import React, { Suspense } from 'react';
-import dynamic from 'next/dynamic';
+import { Notes } from '@/src/client/screens/dashboard/notes';
 import { NotesSkeleton } from '@/src/client/components/global/Skeleton';
-
-const Notes = dynamic(
-  () => import('@/src/client/screens/dashboard/notes').then((mod) => mod.Notes)
-);
 
 export const metadata: Metadata = {
   title: 'Notes',

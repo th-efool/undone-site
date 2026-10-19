@@ -1,11 +1,7 @@
 import { Metadata } from 'next';
 import React, { Suspense } from 'react';
-import dynamic from 'next/dynamic';
+import { Play } from '@/src/client/screens/dashboard/play';
 import { PlaySkeleton } from '@/src/client/components/global/Skeleton';
-
-const Play = dynamic(
-  () => import('@/src/client/screens/dashboard/play').then((mod) => mod.Play)
-);
 
 export const metadata: Metadata = {
   title: 'Play',

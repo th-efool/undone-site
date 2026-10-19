@@ -173,7 +173,7 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background text-text font-sans antialiased">
-        <SessionProvider>
+        <SessionProvider refetchOnWindowFocus={false}>
           <DevLoggerInit />
           <a
             href="#main-content"

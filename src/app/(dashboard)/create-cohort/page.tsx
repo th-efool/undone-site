@@ -1,10 +1,6 @@
 import { Metadata } from 'next';
-import dynamic from 'next/dynamic';
 import React, { Suspense } from 'react';
-
-const CreateCohort = dynamic(
-  () => import('@/src/client/screens/dashboard/createCohort').then((mod) => mod.CreateCohort)
-);
+import { CreateCohort } from '@/src/client/screens/dashboard/createCohort';
 
 export const metadata: Metadata = {
   title: 'Create a Cohort',

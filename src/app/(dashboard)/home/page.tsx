@@ -1,12 +1,10 @@
 import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
 import { Metadata } from 'next';
-import dynamic from 'next/dynamic';
 import { auth } from '@/src/server/infrastructure/auth/auth.config';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
+import { Home } from '@/src/client/screens/dashboard/home';
 import { getResumeLabel } from '@/src/client/screens/dashboard/home/utils';
 import { redirect } from 'next/navigation';
-
-const Home = dynamic(() => import('@/src/client/screens/dashboard/home').then((mod) => mod.Home));
 
 export const metadata: Metadata = {
   title: 'Dashboard',
@@ -36,65 +34,72 @@ export default async function home() {
   let createdCohorts: any[] = [];
   let userCohortConfigs: any[] = [];
 
-  try {
-    const [membersRes, cohortsRes] = await Promise.all([
+  const cohortSummarySelect = {
+    id: true,
+    title: true,
+    coverImage: true,
+    creator: {
+      select: {
+        name: true,
+      },
+    },
+    seasons: {
+      select: {
+        lessons: {
+          select: {
+            progress: {
+              where: { userId },
+              select: { status: true },
+            },
+          },
+        },
+      },
+    },
+  } as const;
+
+  const [pgResult, mongoResult] = await Promise.all([
+    Promise.all([
       prisma.cohortMember.findMany({
         where: { userId, cohort: accessibleCohortWhere(userId) },
-        include: { 
-          cohort: { 
-            include: { 
-              creator: true,
-              seasons: {
-                include: {
-                  lessons: {
-                    include: {
-                      progress: {
-                        where: { userId }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          } 
+        select: {
+          userId: true,
+          cohortId: true,
+          cohort: {
+            select: cohortSummarySelect,
+          },
         },
       }),
       prisma.cohort.findMany({
         where: {
           creatorId: userId,
         },
-        include: {
-          creator: true,
-          seasons: {
-            include: {
-              lessons: {
-                include: {
-                  progress: {
-                    where: { userId }
-                  }
-                }
-              }
-            }
-          }
-        }
+        select: cohortSummarySelect,
       }),
-    ]);
+    ]).catch((error) => {
+      console.warn('[home] Failed to load cohorts from Postgres:', error);
+      return [[], []] as [any[], any[]];
+    }),
+    (async () => {
+      if (!process.env.MONGODB_URI || process.env.NODE_ENV === 'test') return [];
+      try {
+        const [{ connectToMongoDB }, { UserCohortConfig }] = await Promise.all([
+          import('@/src/server/infrastructure/db/mongodb/client'),
+          import('@/src/server/database/mongo/models/UserCohortConfig'),
+        ]);
+        await connectToMongoDB();
+        return await UserCohortConfig.find({ userId }).lean().exec();
+      } catch (mongoError) {
+        console.warn('[home] Failed to load cohort configs from MongoDB:', mongoError);
+        return [];
+      }
+    })(),
+  ]);
 
-    enrolledMembers = membersRes;
-    const enrolledCohortIds = new Set(enrolledMembers.map((em) => em.cohortId));
-    createdCohorts = cohortsRes.filter((c) => !enrolledCohortIds.has(c.id));
-  } catch (error) {
-    console.warn('[home] Failed to load cohorts from Postgres:', error);
-  }
-
-  try {
-    const { connectToMongoDB } = await import('@/src/server/infrastructure/db/mongodb/client');
-    await connectToMongoDB();
-    const { UserCohortConfig } = await import('@/src/server/database/mongo/models/UserCohortConfig');
-    userCohortConfigs = await UserCohortConfig.find({ userId }).lean().exec();
-  } catch (mongoError) {
-    console.warn('[home] Failed to load cohort configs from MongoDB:', mongoError);
-  }
+  const [membersRes, cohortsRes] = pgResult;
+  enrolledMembers = membersRes;
+  const enrolledCohortIds = new Set(enrolledMembers.map((em) => em.cohortId));
+  createdCohorts = cohortsRes.filter((c) => !enrolledCohortIds.has(c.id));
+  userCohortConfigs = mongoResult;
 
   const configMap = new Map<string, any>();
   for (const cfg of userCohortConfigs) {

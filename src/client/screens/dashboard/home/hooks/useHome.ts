@@ -60,6 +60,7 @@ export function useHome(props?: {
   const { data: homeData, isLoading } = useQuery({
     queryKey: ['home'],
     queryFn: async () => homeRepository.getHome({ loadStored: true }),
+    initialData: () => homeRepository.getHome({ loadStored: typeof window !== 'undefined' }),
   });
 
   const source = homeData ?? homeRepository.getHome();
@@ -202,16 +203,30 @@ export function useHome(props?: {
 
   useEffect(() => {
     if (!continueLater.length) return;
+    const now = Date.now();
+    const hasExpired = continueLater.some((cohort) => {
+      if (!cohort.pausedUntil) return false;
+      const t = new Date(cohort.pausedUntil).getTime();
+      return Number.isFinite(t) && t <= now;
+    });
+
+    if (hasExpired) {
+      const normalized = getActiveCohorts(activeCohorts, continueLater);
+      setActiveCohorts(normalized.activeCohorts);
+      setContinueLater(normalized.continueLater);
+      return;
+    }
+
     const validExpiries = continueLater
       .map((cohort) => cohort.pausedUntil ? new Date(cohort.pausedUntil).getTime() : NaN)
-      .filter((time) => Number.isFinite(time) && time > Date.now());
+      .filter((time) => Number.isFinite(time) && time > now);
     if (!validExpiries.length) return;
     const expiry = Math.min(...validExpiries);
     const timer = setTimeout(() => {
       const normalized = getActiveCohorts(activeCohorts, continueLater);
       setActiveCohorts(normalized.activeCohorts);
       setContinueLater(normalized.continueLater);
-    }, Math.min(2_147_483_647, Math.max(0, expiry - Date.now()) + 10));
+    }, Math.min(2_147_483_647, Math.max(0, expiry - now) + 10));
     return () => clearTimeout(timer);
   }, [activeCohorts, continueLater]);
 
