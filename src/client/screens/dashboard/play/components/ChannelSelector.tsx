@@ -11,6 +11,7 @@ import {
   Hammer,
   Headphones,
   Search,
+  Circle,
 } from 'lucide-react';
 import { triggerHaptic } from '@/src/client/utils/haptics';
 
@@ -50,13 +51,13 @@ export const CHANNELS: ChannelDefinition[] = [
  * - Quick -> Explicitly unassigned (null) & configurable until an icon is supplied
  */
 export const DEFAULT_CHANNEL_ICON_MAP: Record<ChannelId, RadialIconComponent | null> = {
-  default: Coffee,
-  spark: Zap,
+  default: Circle,
+  spark: Coffee,
   explore: Compass,
   build: Hammer,
   listen: Headphones,
   deep_dive: Search,
-  quick: null,
+  quick: Zap,
 };
 
 export type RadialSwitcherState = 'idle' | 'pressed' | 'open' | 'targeting' | 'committing';
@@ -669,28 +670,14 @@ export function ChannelSelector({
   );
 
   const isMenuOpen = machineState === 'open' || machineState === 'targeting';
-  const activeChannelDef =
-    CHANNELS.find((c) => c.id === activeChannel) || CHANNELS[0];
-  const ActiveIcon = resolvedIcons[activeChannelDef.id];
   const DefaultIcon = resolvedIcons.default;
   const targetedNode = targetedChannel
     ? radialNodes.find((n) => n.id === targetedChannel) || null
     : null;
-  const targetedDef = targetedChannel
-    ? CHANNELS.find((c) => c.id === targetedChannel) || null
-    : null;
-
   const portalTarget =
     typeof document !== 'undefined'
       ? (document.fullscreenElement as HTMLElement | null) || document.body
       : null;
-
-  // Preview pill: sits beyond the arc, away from the viewport edge the trigger hugs.
-  const pillStyle: React.CSSProperties = origin.full
-    ? { top: `${origin.radius + 34}px` }
-    : origin.dirX > 0
-    ? { top: `${origin.dirY > 0 ? origin.radius + 34 : -(origin.radius + 52)}px`, left: '-18px', transform: 'none' }
-    : { top: `${origin.dirY >= 0 ? origin.radius + 34 : -(origin.radius + 52)}px` };
 
   const orbitPath = (() => {
     const r = origin.radius;
@@ -750,7 +737,6 @@ export function ChannelSelector({
           role="menuitemradio"
           aria-checked={activeChannel === 'default'}
           aria-label="Default"
-          title={`Default — ${CHANNELS[0].desc}`}
           data-channel-id="default"
           data-targeted={targetedChannel === 'default' ? 'true' : 'false'}
           data-active={activeChannel === 'default' ? 'true' : 'false'}
@@ -758,7 +744,7 @@ export function ChannelSelector({
             optionRefs.current.default = el;
           }}
           className={`${styles.radialCenterHub} ${
-            activeChannel === 'default' ? styles.radialOptionCurrent : ''
+            activeChannel === 'default' && !targetedChannel ? styles.radialOptionCurrent : ''
           } ${targetedChannel === 'default' ? styles.radialHubTargeted : ''}`}
           onPointerEnter={() => {
             if (keyboardModeRef.current) {
@@ -814,12 +800,11 @@ export function ChannelSelector({
               role="menuitemradio"
               aria-checked={isCurrent}
               aria-label={node.label}
-              title={`${node.label} — ${node.desc}`}
               data-channel-id={node.id}
               data-targeted={isTargeted ? 'true' : 'false'}
               data-active={isCurrent ? 'true' : 'false'}
               className={`${styles.radialOption} ${
-                isCurrent ? styles.radialOptionCurrent : ''
+                isCurrent && !targetedChannel ? styles.radialOptionCurrent : ''
               } ${isTargeted ? styles.radialOptionTargeted : ''}`}
               style={{
                 left: `${node.dx}px`,
@@ -883,18 +868,6 @@ export function ChannelSelector({
             </button>
           );
         })}
-
-        {/* Restrained preview badge showing targeted channel name */}
-        {targetedDef && (
-          <div
-            className={styles.radialPreviewPill}
-            style={pillStyle}
-            aria-live="polite"
-          >
-            <span>{targetedDef.label}</span>
-            <span className={styles.radialPreviewDesc}>{targetedDef.desc}</span>
-          </div>
-        )}
       </div>
     </div>
   ) : null;
@@ -913,7 +886,6 @@ export function ChannelSelector({
         aria-haspopup="menu"
         aria-expanded={isMenuOpen}
         aria-controls={isMenuOpen ? 'radial-channel-menu' : undefined}
-        title={`Channel: ${activeChannelDef.label} — click to switch (or hold and drag)`}
         data-state={machineState}
         data-active-channel={activeChannel}
         onPointerDown={handleTriggerPointerDown}
@@ -923,13 +895,7 @@ export function ChannelSelector({
         onKeyDown={handleTriggerKeyDown}
         onContextMenu={(e) => e.preventDefault()}
       >
-        {ActiveIcon ? (
-          <ActiveIcon size={18} strokeWidth={2} aria-hidden="true" />
-        ) : (
-          <span className={styles.radialFallbackGlyph} aria-hidden="true">
-            {activeChannelDef.label.charAt(0)}
-          </span>
-        )}
+        <Circle size={18} strokeWidth={2} aria-hidden="true" />
       </button>
 
       {portalTarget && constellationContent

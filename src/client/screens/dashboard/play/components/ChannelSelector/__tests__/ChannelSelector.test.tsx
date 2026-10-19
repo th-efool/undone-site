@@ -7,7 +7,7 @@ import {
   CHANNELS,
   DEFAULT_CHANNEL_ICON_MAP,
 } from '../../ChannelSelector';
-import { Coffee, Zap, Compass, Hammer, Headphones, Search } from 'lucide-react';
+import { Coffee, Zap, Compass, Hammer, Headphones, Search, Circle } from 'lucide-react';
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -62,13 +62,13 @@ describe('ChannelSelector radial switcher component', () => {
       { id: 'quick', label: 'Quick', desc: 'Fast bite-sized micro-chunks' },
     ]);
 
-    expect(DEFAULT_CHANNEL_ICON_MAP.default).toBe(Coffee);
-    expect(DEFAULT_CHANNEL_ICON_MAP.spark).toBe(Zap);
+    expect(DEFAULT_CHANNEL_ICON_MAP.default).toBe(Circle);
+    expect(DEFAULT_CHANNEL_ICON_MAP.spark).toBe(Coffee);
     expect(DEFAULT_CHANNEL_ICON_MAP.explore).toBe(Compass);
     expect(DEFAULT_CHANNEL_ICON_MAP.build).toBe(Hammer);
     expect(DEFAULT_CHANNEL_ICON_MAP.listen).toBe(Headphones);
     expect(DEFAULT_CHANNEL_ICON_MAP.deep_dive).toBe(Search);
-    expect(DEFAULT_CHANNEL_ICON_MAP.quick).toBeNull();
+    expect(DEFAULT_CHANNEL_ICON_MAP.quick).toBe(Zap);
   });
 
   it('opens on a quick click without switching, then switches when a channel is clicked', () => {
