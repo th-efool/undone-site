@@ -153,4 +153,44 @@ describe('use1DGesture keyboard interaction', () => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'C', bubbles: true }));
     expect(onToggleChannelSelector).toHaveBeenCalledTimes(2);
   });
+
+  it('completes horizontal drag even when pointerup occurs over an interactive UI element', () => {
+    const onNext = vi.fn();
+    const onPrev = vi.fn();
+    const { result } = renderHook(() => use1DGesture({ onNext, onPrev }));
+
+    const stageEl = document.createElement('div');
+    Object.defineProperty(stageEl, 'clientWidth', { value: 1000 });
+    const dockButton = document.createElement('button');
+    stageEl.appendChild(dockButton);
+
+    // Start drag on stage, move left 120px, release over dockButton in the same tick
+    result.current.gestureProps.onPointerDown({
+      pointerType: 'mouse',
+      button: 0,
+      pointerId: 1,
+      clientX: 500,
+      clientY: 300,
+      target: stageEl,
+      currentTarget: stageEl,
+    } as any);
+
+    result.current.gestureProps.onPointerMove({
+      clientX: 380,
+      clientY: 302,
+      target: stageEl,
+      currentTarget: stageEl,
+    } as any);
+
+    result.current.gestureProps.onPointerUp({
+      pointerId: 1,
+      clientX: 380,
+      clientY: 302,
+      target: dockButton,
+      currentTarget: stageEl,
+    } as any);
+
+    expect(onNext).toHaveBeenCalledTimes(1);
+    expect(onPrev).not.toHaveBeenCalled();
+  });
 });
