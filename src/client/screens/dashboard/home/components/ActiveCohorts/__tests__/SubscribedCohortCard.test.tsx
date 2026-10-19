@@ -17,12 +17,31 @@ beforeEach(() => vi.stubGlobal('ResizeObserver', class { observe() {} disconnect
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 
 describe('cohort card controls', () => {
-  it('uses a separate link and a nonblocking pause picker with two presets', async () => {
+  it('toggles pause directly from the play icon and never displays Paused as text', async () => {
     const { pause } = setup();
     expect(screen.getByRole('link', { name: 'Open Systems' }).getAttribute('href')).toBe('/cohort/c1');
-    fireEvent.click(screen.getByRole('button', { name: 'Pause Systems' }));
+    expect(screen.queryByText('Paused')).toBeNull();
+    const btn = screen.getByRole('button', { name: 'Pause Systems' });
+    expect(btn.getAttribute('data-paused')).toBeNull();
+    fireEvent.click(btn);
+    expect(pause).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+  it('shows pause button in orange when paused, never displays Paused as text, and resumes directly on click', async () => {
+    const { resume } = setup({ ...cohort, pausedUntil: new Date(Date.now() + 86400000).toISOString() });
+    expect(screen.queryByText('Paused')).toBeNull();
+    const resumeBtn = screen.getByRole('button', { name: 'Resume Systems' });
+    expect(resumeBtn.getAttribute('data-paused')).toBe('true');
+    fireEvent.click(resumeBtn);
+    expect(resume).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('dialog')).toBeNull();
+    await waitFor(() => expect((screen.getByRole('button', { name: 'Resume Systems' }) as HTMLButtonElement).disabled).toBe(false));
+  });
+  it('supports scheduled pause options from the actions menu', async () => {
+    const { pause } = setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Cohort actions for Systems' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Pause options…' }));
     expect(screen.getByRole('dialog', { name: 'Pause options for Systems' })).toBeTruthy();
-    expect(pause).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: '1 week' }));
     expect(pause).toHaveBeenCalledOnce();
     expect(pause.mock.calls[0][0].getTime() - Date.now()).toBeGreaterThan(6 * 86400000);
@@ -30,7 +49,8 @@ describe('cohort card controls', () => {
   });
   it('accepts a calendar date without a time field and covers the selected local day', async () => {
     const { pause } = setup();
-    fireEvent.click(screen.getByRole('button', { name: 'Pause Systems' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cohort actions for Systems' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Pause options…' }));
     fireEvent.click(screen.getByRole('button', { name: 'Custom date' }));
     const date = new Date(); date.setDate(date.getDate() + 3);
     const value = [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
@@ -42,14 +62,6 @@ describe('cohort card controls', () => {
     expect(until.getHours()).toBe(0);
     expect(until.getDate()).toBe(new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1).getDate());
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
-  });
-  it('resumes from the play icon without opening a picker', async () => {
-    const { resume } = setup({ ...cohort, pausedUntil: new Date(Date.now() + 86400000).toISOString() });
-    expect(screen.getByText('Paused')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Resume Systems' }));
-    expect(resume).toHaveBeenCalledOnce();
-    expect(screen.queryByRole('dialog')).toBeNull();
-    await waitFor(() => expect((screen.getByRole('button', { name: 'Resume Systems' }) as HTMLButtonElement).disabled).toBe(false));
   });
   it('shows Edit and Delete, saves settings, and requires confirmation before removal', async () => {
     const { save, remove } = setup();

@@ -19,7 +19,7 @@ interface HomeDesktopProps { model: UseHomeResult; userName?: string; }
 export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
   const [isCompletedOpen, setIsCompletedOpen] = useState(false);
   const handlePause = useCallback(
-    (cohortId: string, pausedUntil: Date, reason?: string) => home.actions.pauseActiveCohort(cohortId, pausedUntil, reason),
+    (cohortId: string, pausedUntil?: Date, reason?: string) => home.actions.pauseActiveCohort(cohortId, pausedUntil, reason),
     [home.actions],
   );
   const handleAddTask = useCallback(() => {

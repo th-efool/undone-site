@@ -202,8 +202,11 @@ export function useHome(props?: {
 
   useEffect(() => {
     if (!continueLater.length) return;
-    const expiry = Math.min(...continueLater.map((cohort) => new Date(cohort.pausedUntil).getTime()));
-    if (!Number.isFinite(expiry)) return;
+    const validExpiries = continueLater
+      .map((cohort) => cohort.pausedUntil ? new Date(cohort.pausedUntil).getTime() : NaN)
+      .filter((time) => Number.isFinite(time) && time > Date.now());
+    if (!validExpiries.length) return;
+    const expiry = Math.min(...validExpiries);
     const timer = setTimeout(() => {
       const normalized = getActiveCohorts(activeCohorts, continueLater);
       setActiveCohorts(normalized.activeCohorts);
@@ -301,16 +304,24 @@ export function useHome(props?: {
     if (cohort) debouncedSyncCohort(cleanId, cohort, snapshot);
   }
 
-  async function pauseActiveCohort(cohortId: string, pausedUntil: Date, pausedReason?: string) {
+  async function pauseActiveCohort(cohortId: string, pausedUntil?: Date, pausedReason?: string) {
     if (!isAuthenticated) throw new Error('Sign in to pause a cohort');
-    if (!Number.isFinite(pausedUntil.getTime()) || pausedUntil <= new Date()) throw new Error('Choose a future pause date');
+    if (pausedUntil && (!Number.isFinite(pausedUntil.getTime()) || pausedUntil <= new Date())) {
+      throw new Error('Choose a future pause date');
+    }
     const activeCohort = activeCohorts.find((c) => (c.cohortId || c.id) === cohortId || c.id === cohortId);
     if (!activeCohort) throw new Error('Cohort not found');
     const cleanId = activeCohort?.cohortId || activeCohort?.id || cohortId;
     const response = await syncWithRetry('/api/user/cohort-config', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cohortId: cleanId, rank: activeCohort.rank, isPaused: true, pausedUntil: pausedUntil.toISOString(), pausedReason }),
+      body: JSON.stringify({
+        cohortId: cleanId,
+        rank: activeCohort.rank,
+        isPaused: true,
+        pausedUntil: pausedUntil ? pausedUntil.toISOString() : null,
+        pausedReason,
+      }),
     });
     if (!response.ok) throw new Error('Could not save cohort pause');
     const result = pauseCohort([activeCohort], [], cleanId, pausedUntil, pausedReason);

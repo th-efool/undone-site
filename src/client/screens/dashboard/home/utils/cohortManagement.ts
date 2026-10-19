@@ -89,7 +89,7 @@ export function pauseCohort(
   activeItems: ActiveCohort[],
   pausedItems: PausedCohort[],
   cohortId: string,
-  pausedUntil: Date,
+  pausedUntil?: Date,
   pausedReason?: string,
 ): { activeCohorts: ActiveCohort[]; continueLater: PausedCohort[] } {
   const cohort = activeItems.find(
@@ -119,9 +119,10 @@ export function pauseCohort(
         featured: cohort.featured,
         frequency: cohort.frequency,
         orderStyle: cohort.orderStyle,
-        pausedUntil: pausedUntil.toISOString(),
+        isPaused: true,
+        pausedUntil: pausedUntil ? pausedUntil.toISOString() : '',
         pausedReason,
-        resumeLabel: getResumeLabel(pausedUntil),
+        resumeLabel: pausedUntil ? getResumeLabel(pausedUntil) : 'Paused',
       },
       ...pausedItems.filter((item) => (item.cohortId || item.id) !== cleanId),
     ],
@@ -157,8 +158,8 @@ export function getActiveCohorts(
   pausedItems: PausedCohort[],
   today = new Date(),
 ) {
-  const readyToResume = pausedItems.filter((item) => today >= new Date(item.pausedUntil));
-  const stillPaused = pausedItems.filter((item) => today < new Date(item.pausedUntil));
+  const readyToResume = pausedItems.filter((item) => item.pausedUntil && today >= new Date(item.pausedUntil));
+  const stillPaused = pausedItems.filter((item) => !item.pausedUntil || today < new Date(item.pausedUntil));
 
   const restored = readyToResume.map(toActiveCohort);
 
@@ -183,11 +184,13 @@ function toActiveCohort(cohort: PausedCohort): ActiveCohort {
     featured: cohort.featured,
     frequency: cohort.frequency,
     orderStyle: cohort.orderStyle,
+    isPaused: false,
+    pausedUntil: undefined,
   };
 }
 
 export function getPausedCohorts(pausedItems: PausedCohort[], today = new Date()) {
-  return pausedItems.filter((item) => today < new Date(item.pausedUntil));
+  return pausedItems.filter((item) => !item.pausedUntil || today < new Date(item.pausedUntil));
 }
 
 export function addDays(date: Date, days: number) {
