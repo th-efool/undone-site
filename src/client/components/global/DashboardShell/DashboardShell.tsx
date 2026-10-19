@@ -8,6 +8,8 @@ import clsx from 'clsx';
 import { getRouteTheme } from '@/src/client/config/routeThemeConfig';
 import { useExperience } from '@/src/client/hooks/useExperience';
 import { MobileNav } from '@/src/client/mobile/components/navigation/MobileNav/MobileNav';
+import { prefetchDefaultFeed } from '@/src/client/screens/dashboard/play/hooks/usePlayback';
+import { exploreRepository } from '@/src/client/repositories/exploreRepository';
 import { Sidebar } from '../Sidebar';
 import { NetworkOfflineIndicator } from '../NetworkOfflineIndicator/NetworkOfflineIndicator';
 import { CommandPalette, CommandTriggerProvider, useCommandContext } from '../CommandPalette';
@@ -21,6 +23,20 @@ function DashboardInner({ children }: PropsWithChildren) {
   const isPlayPage = pathname === '/play';
   const isDark = getRouteTheme(pathname) === 'dark';
   const { open, onOpenChange } = useCommandContext();
+
+  // Warm up feed and explore caches on idle so clicking /play or /explore renders cached items at 0ms
+  useEffect(() => {
+    if (typeof window === 'undefined' || process.env.NODE_ENV === 'test') return;
+    const timer = window.setTimeout(() => {
+      if (pathname !== '/play') {
+        void prefetchDefaultFeed();
+      }
+      if (pathname !== '/explore') {
+        void exploreRepository.getExplore().catch(() => {});
+      }
+    }, 150);
+    return () => window.clearTimeout(timer);
+  }, [pathname]);
 
   // ⌘K / Ctrl+K global shortcut
   useEffect(() => {

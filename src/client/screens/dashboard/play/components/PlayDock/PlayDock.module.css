@@ -2,7 +2,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 14px;
   width: 100%;
   padding: 10px 24px 20px 24px;
   user-select: none;
@@ -18,19 +18,50 @@
   height: 44px;
   padding: 0 14px;
   border-radius: 9999px;
-  background: rgba(18, 18, 24, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  color: #CBD5E1;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  background: #000000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  box-shadow: none !important;
+  transform-origin: center center;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.2s ease,
+              border-color 0.2s ease,
+              color 0.2s ease;
 }
 
-.capsule:hover {
-  border-color: rgba(255, 255, 255, 0.22);
-  background: rgba(26, 26, 36, 0.9);
-  color: #FFFFFF;
+/* Hover state: only when cursor is above it, flip fill color to purple with white icon */
+/* Outer border matches fill #5430FF so there is NO white circle border */
+.capsule:hover:not(.capsuleDisabled):not(.volumeCapsule) {
+  background: #5430FF !important;
+  border-color: #5430FF !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+  z-index: 10;
+}
+
+.capsule:active:not(.capsuleDisabled):not(.volumeCapsule) {
+  transform: none;
+}
+
+.capsuleOpen {
+  background: #5430FF !important;
+  border-color: #5430FF !important;
+  color: #FFFFFF !important;
+  box-shadow: none !important;
+  z-index: 10;
+}
+
+.capsuleError {
+  border-color: #EF4444 !important;
+  color: #EF4444 !important;
+}
+
+.capsuleDisabled {
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  box-shadow: none !important;
 }
 
 /* Button inside capsule */
@@ -48,20 +79,20 @@
   font-size: 13px;
   font-weight: 500;
   gap: 6px;
-  transition: transform 0.15s ease;
+  transition: color 0.15s ease;
 }
 
 .dockButton:active:not(:disabled) {
-  transform: scale(0.94);
+  transform: none;
 }
 
 .dockButton:disabled {
-  opacity: 0.4;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
 .dockButtonDisabled {
-  opacity: 0.45 !important;
+  opacity: 0.5 !important;
   cursor: not-allowed !important;
   color: #64748B !important;
 }
@@ -75,49 +106,34 @@
 }
 
 .dockButtonCompleted {
-  color: #5430FF !important;
+  color: #FFFFFF !important;
 }
 
-/* Volume Capsule with Slider */
+/* Volume Capsule with Cone Slider */
 .volumeCapsule {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 14px;
+  gap: 12px;
+  padding: 0 16px;
+  background: #000000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+  transform: none !important;
 }
 
-.volumeSlider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 72px;
-  height: 4px;
-  border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.2);
-  outline: none;
-  cursor: pointer;
-  transition: background 0.2s ease;
+.volumeCapsule:hover,
+.volumeCapsule:focus-within {
+  background: #000000 !important;
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: none !important;
 }
 
-.volumeSlider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #FFFFFF;
-  cursor: pointer;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
-  transition: transform 0.15s ease;
+.volumeCapsule .dockButton {
+  transition: color 0.2s ease;
 }
 
-.volumeSlider::-moz-range-thumb {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #FFFFFF;
-  cursor: pointer;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
-  border: none;
+.volumeCapsule .dockButton:hover {
+  color: #A78BFA;
 }
 
 /* Speed Dropdown Menu */
@@ -127,20 +143,18 @@
 
 .speedMenu {
   position: absolute;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 14px);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(18, 18, 24, 0.95);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #000000 !important;
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 12px;
   padding: 6px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  min-width: 80px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6);
+  gap: 4px;
+  min-width: 84px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.9);
   z-index: 50;
   animation: popIn 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
@@ -157,27 +171,29 @@
 }
 
 .speedOption {
-  background: transparent;
-  border: none;
-  border-radius: 6px;
+  background: #000000;
+  border: 1px solid transparent;
+  border-radius: 8px;
   padding: 6px 10px;
-  color: #94A3B8;
+  color: #FFFFFF;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   text-align: center;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
 }
 
 .speedOption:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #FFFFFF;
+  background: #5430FF !important;
+  border-color: #5430FF !important;
+  color: #FFFFFF !important;
 }
 
 .speedOptionActive {
-  background: rgba(84, 48, 255, 0.25) !important;
+  background: #5430FF !important;
+  border-color: #5430FF !important;
   color: #FFFFFF !important;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .spinner {
@@ -232,7 +248,7 @@
     height: 38px;
     padding: 0 10px;
   }
-  .volumeSlider {
+  .volumeSliderContainer {
     width: 50px;
   }
 }
@@ -246,7 +262,7 @@
     height: 38px;
     padding: 0 10px;
   }
-  .volumeSlider {
+  .volumeSliderContainer {
     width: 60px;
   }
 }

@@ -6,8 +6,22 @@ import type { ArticlePreview, ExploreModel, SideQuest } from '@/src/client/scree
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+const EXPLORE_SERVER_TTL_MS = 60_000;
+
+const globalForExploreCache = globalThis as unknown as {
+  __undoneExploreCache?: { payload: any; expiresAt: number };
+};
+
 export async function GET() {
   try {
+    if (
+      process.env.NODE_ENV !== 'test' &&
+      globalForExploreCache.__undoneExploreCache &&
+      globalForExploreCache.__undoneExploreCache.expiresAt > Date.now()
+    ) {
+      return NextResponse.json(globalForExploreCache.__undoneExploreCache.payload);
+    }
+
     const baseMock = exploreRepo?.getExplore?.() ?? {
       searchSuggestions: [],
       peopleFinishing: [],
@@ -32,6 +46,12 @@ export async function GET() {
     });
 
     if (!dbCohorts || dbCohorts.length === 0) {
+      if (process.env.NODE_ENV !== 'test') {
+        globalForExploreCache.__undoneExploreCache = {
+          payload: baseMock,
+          expiresAt: Date.now() + EXPLORE_SERVER_TTL_MS,
+        };
+      }
       return NextResponse.json(baseMock);
     }
 
@@ -82,6 +102,13 @@ export async function GET() {
       recentlyPublished: blendedRecentlyPublished,
       trendingQuests: blendedTrendingSideQuests,
     };
+
+    if (process.env.NODE_ENV !== 'test') {
+      globalForExploreCache.__undoneExploreCache = {
+        payload,
+        expiresAt: Date.now() + EXPLORE_SERVER_TTL_MS,
+      };
+    }
 
     return NextResponse.json(payload);
   } catch (error) {

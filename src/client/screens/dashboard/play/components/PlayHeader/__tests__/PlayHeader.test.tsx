@@ -31,6 +31,7 @@ const createMockPlayback = (overrides?: Partial<UsePlaybackResult>): UsePlayback
   return {
     activeItem: mockItem,
     feedLoading: false,
+    isRefreshing: false,
     feedError: false,
     feedItems: [
       mockItem,

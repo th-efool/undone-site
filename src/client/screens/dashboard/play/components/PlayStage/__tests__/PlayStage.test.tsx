@@ -40,6 +40,7 @@ const createMockPlayback = (overrides?: Partial<UsePlaybackResult>): UsePlayback
   return {
     activeItem: videoItem,
     feedLoading: false,
+    isRefreshing: false,
     feedError: false,
     feedItems: [videoItem, nextVideoItem],
     currentIndex: 0,

@@ -185,6 +185,31 @@ describe('feed terminal states', () => {
     expect(result.current.feedError).toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+  it('handles network TypeError (Failed to fetch) on initial or prefetch without infinite loops', async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(result.current.feedError).toBe(true));
+    expect(result.current.feedLoading).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+  it('stops prefetching if subsequent pages return only duplicate chunkIds', async () => {
+    fetchMock
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ items: [{ chunkId: 'only-one', lessonId: 'l1', startSeconds: 0, endSeconds: 60 }] }),
+      })
+      .mockResolvedValue({
+        ok: true,
+        json: async () => ({ items: [{ chunkId: 'only-one', lessonId: 'l1', startSeconds: 0, endSeconds: 60 }] }),
+      });
+
+    const { result } = renderHook(() => usePlayback());
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.feedLoading).toBe(false));
+    expect(result.current.feedItems).toHaveLength(1);
+    // Must not keep fetching page 2, 3, ... 100 in a loop
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('lesson model labelling', () => {

@@ -39,6 +39,39 @@ function parseChannelPrefs(rawPrefs: string | null, channel: ChannelId): {
   return { rawStringPrefs, channelSliderValues };
 }
 
+type CachedFeedCatalogEntry = {
+  lessons: any[];
+  expiresAt: number;
+};
+
+type CachedMongoVectorsEntry = {
+  transcripts: any[];
+  mongoChunks: any[];
+  expiresAt: number;
+};
+
+const FEED_CATALOG_TTL_MS = 60_000;
+const MONGO_VECTORS_TTL_MS = 120_000;
+
+const globalForFeedCache = globalThis as unknown as {
+  __undoneFeedCatalogCache?: Map<string, CachedFeedCatalogEntry>;
+  __undoneFeedVectorsCache?: Map<string, CachedMongoVectorsEntry>;
+};
+
+function getFeedCatalogCache(): Map<string, CachedFeedCatalogEntry> {
+  if (!globalForFeedCache.__undoneFeedCatalogCache) {
+    globalForFeedCache.__undoneFeedCatalogCache = new Map();
+  }
+  return globalForFeedCache.__undoneFeedCatalogCache;
+}
+
+function getFeedVectorsCache(): Map<string, CachedMongoVectorsEntry> {
+  if (!globalForFeedCache.__undoneFeedVectorsCache) {
+    globalForFeedCache.__undoneFeedVectorsCache = new Map();
+  }
+  return globalForFeedCache.__undoneFeedVectorsCache;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth(); const userId = session?.user?.id ?? null;
@@ -60,11 +93,28 @@ export async function GET(request: NextRequest) {
     const searchQuery = params.get('q')?.trim().slice(0, 200) || undefined;
     const { rawStringPrefs, channelSliderValues } = parseChannelPrefs(params.get('prefs'), channel);
 
-    // One fail-closed query: empty memberships and storage failures cannot expose private cohorts.
-    const lessons = await prisma.lesson.findMany({ where: { isPublished: true, chunks: { not: Prisma.AnyNull },
-      ...(lessonId ? { id: lessonId } : {}), season: { ...(cohortId ? { cohortId } : {}),
-        cohort: { is: { AND: [{ isPublished: true }, accessibleCohortWhere(userId)] } } } },
-      include: { season: { include: { cohort: true, _count: { select: { lessons: true } } } } }, orderBy: [{ season: { order: 'asc' } }, { order: 'asc' }, { id: 'asc' }], take: 100 });
+    const canUseCatalogCache = process.env.NODE_ENV !== 'test';
+    const catalogKey = `${userId ?? 'anon'}|${cohortId ?? ''}|${lessonId ?? ''}`;
+    let lessons: any[] | undefined;
+
+    if (canUseCatalogCache) {
+      const cached = getFeedCatalogCache().get(catalogKey);
+      if (cached && cached.expiresAt > Date.now()) {
+        lessons = cached.lessons;
+      }
+    }
+
+    if (!lessons) {
+      // One fail-closed query: empty memberships and storage failures cannot expose private cohorts.
+      lessons = await prisma.lesson.findMany({ where: { isPublished: true, chunks: { not: Prisma.AnyNull },
+        ...(lessonId ? { id: lessonId } : {}), season: { ...(cohortId ? { cohortId } : {}),
+          cohort: { is: { AND: [{ isPublished: true }, accessibleCohortWhere(userId)] } } } },
+        include: { season: { include: { cohort: true, _count: { select: { lessons: true } } } } }, orderBy: [{ season: { order: 'asc' } }, { order: 'asc' }, { id: 'asc' }], take: 100 });
+      if (canUseCatalogCache) {
+        getFeedCatalogCache().set(catalogKey, { lessons, expiresAt: Date.now() + FEED_CATALOG_TTL_MS });
+      }
+    }
+
     const rejected: DeliveryRejection[] = [];
     const chunks = deliveryFeedChunks(lessons, failure => rejected.push(failure));
     if (rejected.length) console.warn('[feed] Unavailable retained deliveries', rejected);
@@ -99,16 +149,31 @@ export async function GET(request: NextRequest) {
           ]);
 
           const uniqueCohortIds = [...new Set(chunks.map(c => c.cohortId))];
+          const vectorsKey = `${uniqueCohortIds.join(',')}|${allChunkIds.length}`;
+          const cachedVectors = getFeedVectorsCache().get(vectorsKey);
+          const hasFreshVectors = Boolean(cachedVectors && cachedVectors.expiresAt > Date.now());
 
           const [transcripts, mongoChunks, userCohortConfigs, userChannelDoc] = await Promise.all([
-            CohortTranscript.find(
-              { cohortId: { $in: uniqueCohortIds } },
-              { cohortId: 1, fullVector: 1, isStrictlyLinear: 1 }
-            ).lean().exec(),
-            Chunk.find({ chunkId: { $in: allChunkIds } }, { chunkId: 1, vector: 1 }).lean().exec(),
+            hasFreshVectors
+              ? Promise.resolve(cachedVectors!.transcripts)
+              : CohortTranscript.find(
+                  { cohortId: { $in: uniqueCohortIds } },
+                  { cohortId: 1, fullVector: 1, isStrictlyLinear: 1 }
+                ).lean().exec(),
+            hasFreshVectors
+              ? Promise.resolve(cachedVectors!.mongoChunks)
+              : Chunk.find({ chunkId: { $in: allChunkIds } }, { chunkId: 1, vector: 1 }).lean().exec(),
             userId ? UserCohortConfig.find({ userId }).lean().exec() : Promise.resolve([]),
             userId && !params.get('prefs') ? UserChannelConfig.findOne({ userId }).lean().exec() : Promise.resolve(null),
           ]);
+
+          if (!hasFreshVectors) {
+            getFeedVectorsCache().set(vectorsKey, {
+              transcripts,
+              mongoChunks,
+              expiresAt: Date.now() + MONGO_VECTORS_TTL_MS,
+            });
+          }
 
           return { transcripts, mongoChunks, userCohortConfigs, userChannelDoc };
         } catch (mongoErr) {

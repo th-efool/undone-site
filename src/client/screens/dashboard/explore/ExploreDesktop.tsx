@@ -77,10 +77,6 @@ export function ExploreDesktop({ model: explore }: ExploreDesktopProps) {
     peopleFinishing.length + topics.length + trendingSideQuests.length + freshDiscoveries.length >
     0;
 
-  if (explore.loading) {
-    return <ExploreSkeleton />;
-  }
-
   return (
     <main className={clsx(styles.explore, isDark && styles.darkTheme)}>
       <div className={styles.topControlBar}>

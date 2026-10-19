@@ -59,8 +59,15 @@
 .root:hover .slider,
 .slider:hover {
   width: 120px;
-
   opacity: 1;
+}
+
+.slider :global(.agy-slider-container) {
+  width: 92px;
+}
+
+.slider :global(.agy-slider-labels) {
+  display: none !important;
 }
 
 .slider input {

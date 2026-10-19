@@ -15,6 +15,8 @@ interface PlayHeaderProps {
 
 export function PlayHeader({ playback, onOpenChannelSelector }: PlayHeaderProps) {
   const { currentIndex, feedItems, lesson, activeItem, goToIndex } = playback;
+  const isFieldLoading = Boolean(playback.feedLoading);
+  const isRefreshing = Boolean((playback as any).isRefreshing);
 
   // Resolve media source accurately - never label all sources YouTube
   const mediaSource = resolveMediaSource(activeItem);
@@ -60,7 +62,7 @@ export function PlayHeader({ playback, onOpenChannelSelector }: PlayHeaderProps)
     : (activeItem?.cohortTitle || (lesson as any).topic || 'Lesson Unit');
 
   // Top capsule window (calibrated sliding window of up to 8 capsules to prevent layout overflow)
-  const totalCapsules = Math.max(feedItems.length, 1);
+  const totalCapsules = Math.max(feedItems.length, isFieldLoading ? 4 : 1);
   const maxVisibleCapsules = 8;
   let startIdx = 0;
   let endIdx = totalCapsules;
@@ -97,9 +99,37 @@ export function PlayHeader({ playback, onOpenChannelSelector }: PlayHeaderProps)
         {/* Left Section: Lesson Title, Provider, Chunk order & relative duration */}
         <div className={styles.metadataSection}>
           <h1 className={styles.lessonTitle} title={lesson.title}>
-            {lesson.title || 'Untitled Lesson'}
+            {isFieldLoading && (!lesson.title || lesson.title === 'Loading...')
+              ? 'Syncing channel feed…'
+              : (lesson.title || 'Untitled Lesson')}
           </h1>
           <div className={styles.subtitleRow}>
+            {(isFieldLoading || isRefreshing) && (
+              <>
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    color: '#A5B4FC',
+                    fontSize: 11,
+                    fontWeight: 600,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 6,
+                      height: 6,
+                      borderRadius: '50%',
+                      background: '#818CF8',
+                      boxShadow: '0 0 8px #818CF8',
+                    }}
+                  />
+                  {isFieldLoading ? 'Loading feed…' : 'Updating…'}
+                </span>
+                <span className={styles.dotSeparator}>•</span>
+              </>
+            )}
             <span className={styles.providerBadge}>
               {isYouTube ? (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style={{ color: '#EF4444' }}>

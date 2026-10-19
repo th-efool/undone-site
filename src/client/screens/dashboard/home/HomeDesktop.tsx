@@ -28,9 +28,8 @@ export function HomeDesktop({ model: home, userName }: HomeDesktopProps) {
     input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }, []);
 
-  if (home.loading) return <HomeSkeleton />;
   const sortedActive = [...home.activeCohorts].sort((a, b) => a.rank - b.rank);
-  const sortedPaused = [...home.continueLater].sort((a, b) => a.rank - b.rank);
+  const sortedPaused = [...home.continueLater].sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
   const subscribedCohorts = [
     ...sortedActive.map((cohort, index) => ({ ...cohort, rank: index + 1 })),
     ...sortedPaused.map((cohort, index) => ({ ...cohort, rank: sortedActive.length + index + 1 })),
