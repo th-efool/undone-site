@@ -43,6 +43,8 @@ export interface LearningPromptBarProps {
   onChange?: (val: string) => void;
   onSubmit?: (val: string) => void;
   placeholder?: string;
+  'aria-label'?: string;
+  ariaLabel?: string;
   className?: string;
   maxWidth?: string | number;
   autoFocus?: boolean;
@@ -102,6 +104,8 @@ export const LearningPromptBar = React.memo(
       className,
       maxWidth,
       autoFocus = false,
+      'aria-label': ariaLabel,
+      ariaLabel: ariaLabelAlt,
     },
     ref,
   ) {
@@ -448,7 +452,7 @@ export const LearningPromptBar = React.memo(
           placeholder={placeholder}
           className={styles.inputCard}
           inputClassName={styles.textInput}
-          aria-label={placeholder}
+          aria-label={ariaLabel || ariaLabelAlt || 'What do you want to learn about?'}
           bottomBar={
             <div className={styles.promptToolbar}>
               <div className={styles.promptPillGroup}>
