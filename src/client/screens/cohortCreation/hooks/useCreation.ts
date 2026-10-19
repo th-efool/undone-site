@@ -194,8 +194,50 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
   return { ...view, queryPending, queueNotice: view.snapshot.status === 'running' ? queueNotice : null, reload, uploading, materialPending, activatingReady, activateReady, uploadText, cancelUpload: () => uploadController.current?.abort(),
     finalize: (mode: 'private_activation' | 'public_publish') => edit({ type: 'finalize_creation', mode, requestId: crypto.randomUUID() }),
     openReview: () => edit({ type: 'open_review' }),
-    editReview: (patch: z.infer<typeof reviewPatchSchema>) => edit({ type: 'edit_review', patch }),
-    editLesson: (lessonId: string, patch: Omit<z.infer<typeof lessonEditSchema>, 'lessonId'>) => edit({ type: 'edit_lesson', lessonId, ...patch }),
+    editReview: async (patch: z.infer<typeof reviewPatchSchema>) => {
+      const base = current.current;
+      if (base.review) {
+        const optimisticSnapshot: CreationSnapshot = {
+          ...base,
+          review: {
+            ...base.review,
+            ...patch,
+          },
+        };
+        display(optimisticSnapshot, false);
+      }
+      const success = await edit({ type: 'edit_review', patch });
+      if (!success) {
+        display(base, true, 'Could not save review changes. Restored.');
+      }
+      return success;
+    },
+    editLesson: async (lessonId: string, patch: Omit<z.infer<typeof lessonEditSchema>, 'lessonId'>) => {
+      const base = current.current;
+      if (base.review) {
+        const existingIndex = base.review.lessonEdits.findIndex((e) => e.lessonId === lessonId);
+        const newLessonEdits =
+          existingIndex >= 0
+            ? base.review.lessonEdits.map((e, i) =>
+                i === existingIndex ? { ...e, ...patch } : e,
+              )
+            : [...base.review.lessonEdits, { lessonId, ...patch }];
+
+        const optimisticSnapshot: CreationSnapshot = {
+          ...base,
+          review: {
+            ...base.review,
+            lessonEdits: newLessonEdits,
+          },
+        };
+        display(optimisticSnapshot, false);
+      }
+      const success = await edit({ type: 'edit_lesson', lessonId, ...patch });
+      if (!success) {
+        display(base, true, 'Could not save lesson edit. Restored.');
+      }
+      return success;
+    },
     requestRefinement: (prompt: string) => edit({ type: 'refine_curriculum', prompt, requestId: crypto.randomUUID() }),
     applyRefinement: (requestId: string) => edit({ type: 'apply_refinement', requestId }),
     discardRefinement: (requestId: string) => edit({ type: 'discard_refinement', requestId }),
@@ -212,11 +254,38 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
       return edit({ type: candidate.kind === 'web' ? 'acquire_web' : 'inspect_youtube',
         materialId: crypto.randomUUID(), requestId: crypto.randomUUID(), url: candidate.url });
     },
-    selectYoutubeUnits: (materialId: string, unitIds: string[]) => edit({ type: 'select_youtube_units', materialId, unitIds }),
+    selectYoutubeUnits: async (materialId: string, unitIds: string[]) => {
+      const base = current.current;
+      const optimisticSnapshot: CreationSnapshot = {
+        ...base,
+        materials: base.materials.map((m) =>
+          m.id === materialId ? { ...m, selectedUnitIds: unitIds } : m,
+        ),
+      };
+      display(optimisticSnapshot, false);
+      const success = await edit({ type: 'select_youtube_units', materialId, unitIds });
+      if (!success) {
+        display(base, true, 'Could not save video selection. Restored.');
+      }
+      return success;
+    },
     observeYoutube: (materialId: string) => edit({ type: 'observe_youtube', materialId, requestId: crypto.randomUUID() }),
     acquireGithub: (selection: GithubSelection, materialId?: string) => edit({ type: 'acquire_github', materialId: materialId ?? crypto.randomUUID(), requestId: crypto.randomUUID(), selection }),
     acquireNotion: (url: string, materialId?: string) => edit({ type: 'acquire_notion', materialId: materialId ?? crypto.randomUUID(), requestId: crypto.randomUUID(), url }),
-    removeMaterial: (materialId: string) => edit({ type: 'remove_material', materialId }),
+    removeMaterial: async (materialId: string) => {
+      const base = current.current;
+      const optimisticSnapshot: CreationSnapshot = {
+        ...base,
+        materials: base.materials.filter((m) => m.id !== materialId),
+        extractions: base.extractions.filter((e) => e.materialId !== materialId),
+      };
+      display(optimisticSnapshot, false);
+      const success = await edit({ type: 'remove_material', materialId });
+      if (!success) {
+        display(base, true, 'Could not remove material. Restored.');
+      }
+      return success;
+    },
     acquireWeb: (url: string, materialId?: string) => {
       let youtube = false;
       try { youtube = ['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be'].includes(new URL(url).hostname); } catch { /* Server validation supplies the canonical error. */ }
@@ -224,7 +293,19 @@ export function useCreation(draftId: string, initialQuery: string, resume: boole
     },
     retryMaterial: (materialId: string, assetId: string) => edit({ type: current.current.materials.find(source => source.id === materialId)?.kind === 'pdf' ? 'acquire_pdf' : 'acquire_text', materialId, assetId, requestId: crypto.randomUUID() }),
     runQuery, cancel, createOwn: () => edit({ type: 'create_own' }),
-    chooseStartingPoint: (startingPoint: StartingPoint) => edit({ type: 'choose_starting_point', startingPoint }),
+    chooseStartingPoint: async (startingPoint: StartingPoint) => {
+      const base = current.current;
+      const optimisticSnapshot: CreationSnapshot = {
+        ...base,
+        startingPoint,
+      };
+      display(optimisticSnapshot, false);
+      const success = await edit({ type: 'choose_starting_point', startingPoint });
+      if (!success) {
+        display(base, true, 'Could not select starting point. Restored.');
+      }
+      return success;
+    },
     goToStep: (step: 'understanding' | 'chunking' | 'scoring' | 'analysis' | 'review' | 'ready') => {
       if (step === 'understanding') return edit({ type: 'understand_material', requestId: crypto.randomUUID() });
       if (step === 'chunking') return edit({ type: 'chunk_material', requestId: crypto.randomUUID() });
