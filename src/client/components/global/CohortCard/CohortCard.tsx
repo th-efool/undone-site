@@ -90,6 +90,7 @@ export function CohortCard({
         className={styles.thumbnail}
         priority={priority}
         loading={priority ? undefined : 'lazy'}
+        unoptimized
       />
 
       <div className={styles.overlay} />
@@ -119,6 +120,7 @@ export function CohortCard({
                 width={27}
                 height={27}
                 className={styles.avatar}
+                unoptimized
               />
             ))}
           </div>

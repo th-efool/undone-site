@@ -82,6 +82,7 @@ export function ProfilePill() {
             width={44} 
             height={44} 
             className={styles.avatar}
+            unoptimized
             onError={() => setImgError(true)}
           />
         ) : (
