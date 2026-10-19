@@ -334,21 +334,39 @@ export function useHome(props?: {
     const activeCohort = activeCohorts.find((c) => (c.cohortId || c.id) === cohortId || c.id === cohortId);
     if (!activeCohort) throw new Error('Cohort not found');
     const cleanId = activeCohort?.cohortId || activeCohort?.id || cohortId;
-    const response = await syncWithRetry('/api/user/cohort-config', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        cohortId: cleanId,
-        rank: activeCohort.rank,
-        isPaused: true,
-        pausedUntil: pausedUntil ? pausedUntil.toISOString() : null,
-        pausedReason,
-      }),
-    });
-    if (!response.ok) throw new Error('Could not save cohort pause');
+
+    // 1. Optimistic snapshot & immediate state update
+    const rollbackSnapshot = { activeCohorts, continueLater };
     const result = pauseCohort(activeCohorts, continueLater, cleanId, pausedUntil, pausedReason);
     setActiveCohorts(result.activeCohorts);
     setContinueLater(result.continueLater);
+    homeStorageAdapter.saveChoices(result.activeCohorts, result.continueLater, userId);
+
+    // 2. Background sync
+    setIsSyncing(true);
+    try {
+      const response = await syncWithRetry('/api/user/cohort-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cohortId: cleanId,
+          rank: activeCohort.rank,
+          isPaused: true,
+          pausedUntil: pausedUntil ? pausedUntil.toISOString() : null,
+          pausedReason,
+        }),
+      });
+      if (!response.ok) throw new Error('Could not save cohort pause');
+      setSyncError(null);
+    } catch (err) {
+      setActiveCohorts(rollbackSnapshot.activeCohorts);
+      setContinueLater(rollbackSnapshot.continueLater);
+      homeStorageAdapter.saveChoices(rollbackSnapshot.activeCohorts, rollbackSnapshot.continueLater, userId);
+      setSyncError('Could not save cohort pause. Reverted.');
+      throw err;
+    } finally {
+      setIsSyncing(false);
+    }
   }
 
   async function resumePausedCohort(cohortId: string) {
@@ -356,15 +374,33 @@ export function useHome(props?: {
     const pausedCohort = continueLater.find(c => (c.cohortId || c.id) === cohortId || c.id === cohortId);
     if (!pausedCohort) throw new Error('Cohort not found');
     const cleanId = pausedCohort?.cohortId || pausedCohort?.id || cohortId;
-    const response = await syncWithRetry('/api/user/cohort-config', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cohortId: cleanId, isPaused: false, pausedUntil: null }),
-    });
-    if (!response.ok) throw new Error('Could not save cohort resume');
+
+    // 1. Optimistic snapshot & immediate state update
+    const rollbackSnapshot = { activeCohorts, continueLater };
     const result = resumeCohort(activeCohorts, continueLater, cleanId);
     setActiveCohorts(result.activeCohorts);
     setContinueLater(result.continueLater);
+    homeStorageAdapter.saveChoices(result.activeCohorts, result.continueLater, userId);
+
+    // 2. Background sync
+    setIsSyncing(true);
+    try {
+      const response = await syncWithRetry('/api/user/cohort-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cohortId: cleanId, isPaused: false, pausedUntil: null }),
+      });
+      if (!response.ok) throw new Error('Could not save cohort resume');
+      setSyncError(null);
+    } catch (err) {
+      setActiveCohorts(rollbackSnapshot.activeCohorts);
+      setContinueLater(rollbackSnapshot.continueLater);
+      homeStorageAdapter.saveChoices(rollbackSnapshot.activeCohorts, rollbackSnapshot.continueLater, userId);
+      setSyncError('Could not save cohort resume. Reverted.');
+      throw err;
+    } finally {
+      setIsSyncing(false);
+    }
   }
 
   async function saveLearningSettings(cohortId: string, settings: CohortLearningSettings) {
@@ -372,19 +408,44 @@ export function useHome(props?: {
     if (settings.dailyGoalMinutes < 5 || settings.dailyGoalMinutes > 180 || !settings.schedule.days.length) {
       throw new Error('Invalid learning settings');
     }
-    if (isAuthenticated) {
-      const response = await syncWithRetry('/api/user/cohort-config', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cohortId, dailyGoalMinutes: settings.dailyGoalMinutes,
-          scheduleDays: settings.schedule.days, scheduleLabel: settings.schedule.label, orderStyle: settings.orderStyle }),
-      });
-      if (!response.ok) throw new Error('Could not save learning settings');
-    }
     const apply = <T extends ActiveCohort | PausedCohort>(cohort: T): T =>
       (cohort.cohortId || cohort.id) === cohortId ? { ...cohort, ...settings } : cohort;
-    setActiveCohorts((cohorts) => cohorts.map(apply));
-    setContinueLater((cohorts) => cohorts.map(apply));
+
+    // 1. Optimistic snapshot & immediate state update
+    const rollbackSnapshot = { activeCohorts, continueLater };
+    const nextActive = activeCohorts.map(apply);
+    const nextContinue = continueLater.map(apply);
+    setActiveCohorts(nextActive);
+    setContinueLater(nextContinue);
+    homeStorageAdapter.saveChoices(nextActive, nextContinue, userId);
+
+    // 2. Background sync
+    if (isAuthenticated) {
+      setIsSyncing(true);
+      try {
+        const response = await syncWithRetry('/api/user/cohort-config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            cohortId,
+            dailyGoalMinutes: settings.dailyGoalMinutes,
+            scheduleDays: settings.schedule.days,
+            scheduleLabel: settings.schedule.label,
+            orderStyle: settings.orderStyle,
+          }),
+        });
+        if (!response.ok) throw new Error('Could not save learning settings');
+        setSyncError(null);
+      } catch (err) {
+        setActiveCohorts(rollbackSnapshot.activeCohorts);
+        setContinueLater(rollbackSnapshot.continueLater);
+        homeStorageAdapter.saveChoices(rollbackSnapshot.activeCohorts, rollbackSnapshot.continueLater, userId);
+        setSyncError('Could not save learning settings. Reverted.');
+        throw err;
+      } finally {
+        setIsSyncing(false);
+      }
+    }
   }
 
   async function removeSubscribedCohort(cohortId: string) {
@@ -392,12 +453,32 @@ export function useHome(props?: {
     const timer = cohortTimers.current.get(cohortId);
     if (timer) clearTimeout(timer);
     cohortTimers.current.delete(cohortId);
+
+    // 1. Optimistic snapshot & immediate state update
+    const rollbackSnapshot = { activeCohorts, continueLater };
+    const nextActive = activeCohorts.filter((cohort) => (cohort.cohortId || cohort.id) !== cohortId);
+    const nextContinue = continueLater.filter((cohort) => (cohort.cohortId || cohort.id) !== cohortId);
+    setActiveCohorts(nextActive);
+    setContinueLater(nextContinue);
+    homeStorageAdapter.saveChoices(nextActive, nextContinue, userId);
+
+    // 2. Background sync
     if (isAuthenticated) {
-      const response = await syncWithRetry('/api/cohort/' + encodeURIComponent(cohortId) + '/join', { method: 'DELETE' });
-      if (!response.ok) throw new Error('Could not remove subscription');
+      setIsSyncing(true);
+      try {
+        const response = await syncWithRetry('/api/cohort/' + encodeURIComponent(cohortId) + '/join', { method: 'DELETE' });
+        if (!response.ok) throw new Error('Could not remove subscription');
+        setSyncError(null);
+      } catch (err) {
+        setActiveCohorts(rollbackSnapshot.activeCohorts);
+        setContinueLater(rollbackSnapshot.continueLater);
+        homeStorageAdapter.saveChoices(rollbackSnapshot.activeCohorts, rollbackSnapshot.continueLater, userId);
+        setSyncError('Could not remove subscription. Reverted.');
+        throw err;
+      } finally {
+        setIsSyncing(false);
+      }
     }
-    setActiveCohorts((cohorts) => cohorts.filter((cohort) => (cohort.cohortId || cohort.id) !== cohortId));
-    setContinueLater((cohorts) => cohorts.filter((cohort) => (cohort.cohortId || cohort.id) !== cohortId));
   }
 
   return {

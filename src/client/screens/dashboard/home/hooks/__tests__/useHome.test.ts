@@ -60,7 +60,7 @@ describe('home subscription actions', () => {
     expect(result.current.continueLater).toEqual([]);
     expect(result.current.activeCohorts.map((item) => item.id)).toEqual(['one', 'two']);
   });
-  it('waits for a successful server pause before changing the card state', async () => {
+  it('optimistically pauses the cohort immediately before server responds and keeps it paused on success', async () => {
     let resolve!: (response: Response) => void;
     vi.mocked(fetch).mockReturnValue(new Promise<Response>((done) => { resolve = done; }));
     const props = { activeCohorts: [cohort], continueLater: [] };
@@ -68,8 +68,8 @@ describe('home subscription actions', () => {
     const until = new Date(Date.now() + 86400000);
     let pending!: Promise<void>;
     act(() => { pending = result.current.actions.pauseActiveCohort('one', until); });
-    expect(result.current.continueLater).toEqual([]);
-    expect(result.current.activeCohorts).toEqual([cohort]);
+    expect(result.current.activeCohorts).toEqual([]);
+    expect(result.current.continueLater[0].pausedUntil).toBe(until.toISOString());
     expect(JSON.parse(vi.mocked(fetch).mock.calls[0][1]!.body as string)).toMatchObject({ cohortId: 'one', isPaused: true, pausedUntil: until.toISOString() });
     await act(async () => { resolve({ ok: true } as Response); await pending; });
     expect(result.current.activeCohorts).toEqual([]);
