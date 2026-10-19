@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import {
   Plus,
@@ -21,6 +22,14 @@ function useSafeSession() {
     return useSession();
   } catch {
     return { data: null, status: 'authenticated' as const };
+  }
+}
+
+function useSafeRouter() {
+  try {
+    return useRouter();
+  } catch {
+    return null;
   }
 }
 
@@ -108,6 +117,7 @@ export const LearningPromptBar = React.memo(
     const fileInputRef = useRef<HTMLInputElement>(null);
     const templateMenuRef = useRef<HTMLDivElement>(null);
     const { data: session, status } = useSafeSession();
+    const router = useSafeRouter();
 
     useEffect(() => {
       if (!showTemplates && !showSource) return;
@@ -369,7 +379,9 @@ export const LearningPromptBar = React.memo(
 
         if (!ownerId && status === 'unauthenticated') {
           const returnUrl = `/?q=${encodeURIComponent(textToSearch.trim())}`;
-          window.location.href = `/auth?returnTo=${encodeURIComponent(returnUrl)}`;
+          const authHref = `/auth?returnTo=${encodeURIComponent(returnUrl)}`;
+          if (router) router.push(authHref);
+          else window.location.href = authHref;
           return;
         }
 
@@ -390,7 +402,9 @@ export const LearningPromptBar = React.memo(
                   sessionStorage.removeItem('sidequest_prompt_source_draft');
                   localStorage.removeItem('sidequest_prompt_source_draft');
                 } catch {}
-                window.location.href = `/quest/build/${created.workspaceId}`;
+                const buildHref = `/quest/build/${created.workspaceId}`;
+                if (router) router.push(buildHref);
+                else window.location.href = buildHref;
                 return;
               }
             }
@@ -407,7 +421,8 @@ export const LearningPromptBar = React.memo(
           localStorage.removeItem('sidequest_prompt_source_draft');
         } catch {}
 
-        window.location.href = '/quest/start';
+        if (router) router.push('/quest/start');
+        else window.location.href = '/quest/start';
       } catch (error) {
         setIntakeError(error instanceof Error ? error.message : 'Intake unavailable');
         setSubmitting(false);
