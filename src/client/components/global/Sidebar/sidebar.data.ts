@@ -45,5 +45,20 @@ export const SIDEBAR_ITEMS: readonly SidebarItemConfig[] = [
     label: 'Home',
     icon: House,
   },
+  {
+    href: '/explore',
+    label: 'Explore',
+    icon: Compass,
+  },
+  {
+    href: '/message',
+    label: 'Messages',
+    icon: MessageCircle,
+  },
+  {
+    href: '/notes',
+    label: 'Notes',
+    icon: NotebookPen,
+  },
 ] as const;
 
