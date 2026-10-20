@@ -1,0 +1,68 @@
+.backgroundContainer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.layer {
+  position: absolute;
+  inset: 0;
+  transition: opacity 0.4s ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layer,
+  .image,
+  .extraScrim {
+    transition: none;
+  }
+}
+
+.layerActive {
+  opacity: 1;
+}
+
+.layerFadingOut {
+  opacity: 0;
+}
+
+.gradientBase {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transition: opacity 0.3s ease-out;
+}
+
+.imageHidden {
+  display: none !important;
+}
+
+.baseScrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.55) 0%,
+    rgba(0, 0, 0, 0.12) 28%,
+    rgba(0, 0, 0, 0.12) 58%,
+    rgba(0, 0, 0, 0.62) 100%
+  );
+  pointer-events: none;
+}
+
+.extraScrim {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  transition: background-color 0.4s ease-in-out;
+}
