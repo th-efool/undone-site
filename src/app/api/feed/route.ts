@@ -8,6 +8,7 @@ import { deliveryFeedChunks, type DeliveryRejection } from '@/src/server/domain/
 import type { ChannelId } from '@/src/shared/curriculum/pedagogicalVector.types';
 import { ChunkProgressService } from '@/src/server/domain/progress/chunkProgress.service';
 import type { ChunkProgress, CohortLearnerState } from '@/src/shared/feed/feedEngine.types';
+import { compactPayload } from '@/src/shared/lib/compactPayload';
 
 function parseChannelPrefs(rawPrefs: string | null, channel: ChannelId): {
   rawStringPrefs: Record<string, string>;
@@ -80,10 +81,43 @@ export async function GET(request: NextRequest) {
 
     if (!lessons) {
       // One fail-closed query: empty memberships and storage failures cannot expose private cohorts.
-      lessons = await prisma.lesson.findMany({ where: { isPublished: true, chunks: { not: Prisma.AnyNull },
-        ...(lessonId ? { id: lessonId } : {}), season: { ...(cohortId ? { cohortId } : {}),
-          cohort: { is: { AND: [{ isPublished: true }, accessibleCohortWhere(userId)] } } } },
-        include: { season: { include: { cohort: true, _count: { select: { lessons: true } } } } }, orderBy: [{ season: { order: 'asc' } }, { order: 'asc' }, { id: 'asc' }], take: 100 });
+      lessons = await prisma.lesson.findMany({
+        where: {
+          isPublished: true,
+          chunks: { not: Prisma.AnyNull },
+          ...(lessonId ? { id: lessonId } : {}),
+          season: {
+            ...(cohortId ? { cohortId } : {}),
+            cohort: { is: { AND: [{ isPublished: true }, accessibleCohortWhere(userId)] } },
+          },
+        },
+        select: {
+          id: true,
+          title: true,
+          videoId: true,
+          lessonType: true,
+          thumbnailUrl: true,
+          order: true,
+          seasonId: true,
+          chunks: true,
+          season: {
+            select: {
+              order: true,
+              title: true,
+              cohortId: true,
+              _count: { select: { lessons: true } },
+              cohort: {
+                select: {
+                  title: true,
+                  coverImage: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: [{ season: { order: 'asc' } }, { order: 'asc' }, { id: 'asc' }],
+        take: 100,
+      });
       if (canUseCatalogCache) {
         getFeedCatalogCache().set(catalogKey, { lessons, expiresAt: Date.now() + FEED_CATALOG_TTL_MS });
       }
@@ -256,8 +290,21 @@ export async function GET(request: NextRequest) {
       ...(Object.keys(cohortVectorMap).length ? { cohortVectorMap } : {}),
       ...(Object.keys(chunkVectorMap).length ? { chunkVectorMap } : {}),
       requestedCohortId: cohortId ?? undefined, requestedLessonId: lessonId ?? undefined, requestedChunkId: chunkId ?? undefined });
-    return NextResponse.json({ items: output.items.slice(page * limit, (page + 1) * limit),
-      ...(rejected.length ? { delivery: { unavailableLessons: rejected.length } } : {}) }, { headers: { 'Cache-Control': 'no-store' } });
+    const cacheControl = userId ? 'no-store' : 'public, s-maxage=60, stale-while-revalidate=300';
+    const rawItems = output.items.slice(page * limit, (page + 1) * limit);
+    const items = compactPayload(rawItems);
+    return NextResponse.json(
+      {
+        items,
+        ...(rejected.length ? { delivery: { unavailableLessons: rejected.length } } : {}),
+      },
+      {
+        headers: {
+          'Cache-Control': cacheControl,
+          ...(!userId ? { Vary: 'Cookie, Authorization' } : {}),
+        },
+      },
+    );
   } catch (err) {
     console.error('[feed error]', err);
     return NextResponse.json({ error: 'Feed is unavailable. Try again.' }, { status: 503 });
