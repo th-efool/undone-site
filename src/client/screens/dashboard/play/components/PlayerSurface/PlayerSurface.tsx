@@ -32,11 +32,18 @@ export function PlayerSurface({
   isLoading = false,
 }: PlayerSurfaceProps): JSX.Element {
   const videoElementRef = useRef<HTMLVideoElement | null>(null);
+  const hlsRef = useRef<Hls | null>(null);
   const mediaSource = resolveMediaSource(activeItem);
 
   // Setup HLS when required on browsers without native HLS support
   useEffect(() => {
-    if (!mediaSource.isDirectVideo || !mediaSource.isHls || !mediaSource.videoUrl) return;
+    if (!mediaSource.isDirectVideo || !mediaSource.isHls || !mediaSource.videoUrl || mediaError) {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+      return;
+    }
     const video = videoElementRef.current;
     if (!video) return;
 
@@ -46,7 +53,26 @@ export function PlayerSurface({
     }
 
     if (typeof window !== 'undefined' && Hls.isSupported()) {
-      const hls = new Hls({ enableWorker: true });
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+
+      const hls = new Hls({
+        enableWorker: true,
+        maxBufferLength: 10, // Buffer 10s ahead instead of default 30s
+        maxMaxBufferLength: 20, // Strict 20s forward clamp
+        backBufferLength: 15, // Free memory behind playback after 15s
+        maxBufferSize: 25 * 1000 * 1000, // 25MB buffer cap
+        startLevel: -1, // Auto start quality based on bandwidth
+        abrEwmaFastLive: 2.0, // Responsive bandwidth measurement
+        abrEwmaSlowLive: 5.0,
+        fragLoadingTimeOut: 15000,
+        manifestLoadingTimeOut: 15000,
+      });
+
+      hlsRef.current = hls;
+
       hls.loadSource(mediaSource.videoUrl);
       hls.attachMedia(video);
       hls.on(Hls.Events.ERROR, (_event, data) => {
@@ -60,19 +86,40 @@ export function PlayerSurface({
               break;
             default:
               hls.destroy();
+              if (hlsRef.current === hls) {
+                hlsRef.current = null;
+              }
               break;
           }
         }
       });
+
       return () => {
         hls.destroy();
+        if (hlsRef.current === hls) {
+          hlsRef.current = null;
+        }
       };
     }
-  }, [mediaSource.isDirectVideo, mediaSource.isHls, mediaSource.videoUrl]);
+  }, [mediaSource.isDirectVideo, mediaSource.isHls, mediaSource.videoUrl, mediaError]);
+
+  // Clean up any remaining HLS instance on component unmount
+  useEffect(() => {
+    return () => {
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+    };
+  }, []);
 
   // Handle HTML5 video mount ref callback
   const handleVideoRef = (node: HTMLVideoElement | null) => {
     videoElementRef.current = node;
+    if (!node && hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
     onVideoMount?.(node);
   };
 

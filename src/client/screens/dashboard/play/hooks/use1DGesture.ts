@@ -47,6 +47,7 @@ export function use1DGesture({
   const lastTimeRef = useRef<number>(0);
   const velocityXRef = useRef<number>(0);
   const isHorizontalGestureRef = useRef<boolean | null>(null);
+  const containerWidthRef = useRef<number>(0);
 
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const singleTapTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -84,6 +85,11 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
         (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       } catch {}
 
+      // Cache container dimensions once on pointer down to eliminate layout recalculations/reflows during pointer move
+      containerWidthRef.current =
+        (e.currentTarget as HTMLElement)?.clientWidth ||
+        (typeof window !== 'undefined' ? window.innerWidth : 0);
+
       startXRef.current = e.clientX;
       startYRef.current = e.clientY;
       lastXRef.current = e.clientX;
@@ -105,6 +111,8 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
   );
 
   // Pointer Move
+  // Performance invariant: strictly ZERO layout queries (no getBoundingClientRect, clientWidth, offsetWidth)
+  // are executed on pointer move to prevent synchronous forced reflows and preserve 120fps/sub-16ms INP response.
   const handlePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (startXRef.current === null || startYRef.current === null) return;
@@ -159,7 +167,10 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
       } catch {}
 
       if (startXRef.current === null) return;
-      const containerWidth = e.currentTarget.clientWidth || window.innerWidth;
+      const containerWidth =
+        containerWidthRef.current ||
+        (e.currentTarget as HTMLElement)?.clientWidth ||
+        (typeof window !== 'undefined' ? window.innerWidth : 1000);
       const finalDeltaX = lastDeltaXRef.current !== 0 ? lastDeltaXRef.current : dragDeltaX;
       const velocity = velocityXRef.current;
 
@@ -167,6 +178,7 @@ const isInteractiveElement = (target: HTMLElement | null): boolean => {
       startXRef.current = null;
       startYRef.current = null;
       lastDeltaXRef.current = 0;
+      containerWidthRef.current = 0;
       isHorizontalGestureRef.current = null;
       setIsDragging(false);
       setDragDeltaX(0);

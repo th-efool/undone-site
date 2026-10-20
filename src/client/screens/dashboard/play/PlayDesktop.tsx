@@ -106,7 +106,7 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
       <PlayHeader playback={playback} />
 
       {/* 2. Central Stage: Edge previews, 16:9 Video surface, or non-blocking stage status */}
-      {playback.feedLoading ? (
+      {!playback.activeItem && playback.feedLoading ? (
         <PlaySkeleton stageOnly />
       ) : playback.feedError ? (
         <PlaySkeleton
@@ -125,11 +125,30 @@ export function PlayDesktop({ playback }: PlayDesktopProps) {
           retryLabel="Refresh Channel"
         />
       ) : (
-        <PlayStage
-          playback={playback}
-          dragDeltaX={dragDeltaX}
-          isDragging={isDragging}
-        />
+        <>
+          <PlayStage
+            playback={playback}
+            dragDeltaX={dragDeltaX}
+            isDragging={isDragging}
+          />
+          {playback.feedLoading && (
+            <div
+              role="status"
+              aria-label="Loading lessons"
+              style={{
+                position: 'absolute',
+                width: 1,
+                height: 1,
+                padding: 0,
+                margin: -1,
+                overflow: 'hidden',
+                clip: 'rect(0, 0, 0, 0)',
+                whiteSpace: 'nowrap',
+                border: 0,
+              }}
+            />
+          )}
+        </>
       )}
 
       {/* Feedback toast for fullscreen rejection or completion error */}

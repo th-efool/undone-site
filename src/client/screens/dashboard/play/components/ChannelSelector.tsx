@@ -155,7 +155,7 @@ function computeNodes(o: OriginPoint) {
   });
 }
 
-export function ChannelSelector({
+export const ChannelSelector = React.memo(function ChannelSelector({
   activeChannel,
   onChannelSelect,
   isInline = false,
@@ -163,6 +163,9 @@ export function ChannelSelector({
   onOpenChange,
   channelIcons,
   holdThresholdMs = DEFAULT_HOLD_THRESHOLD_MS,
+  searchQuery,
+  onSearchQueryChange,
+  onPrefsUpdated,
 }: ChannelSelectorProps) {
   const [machineState, setMachineState] = useState<RadialSwitcherState>('idle');
   const [targetedChannel, setTargetedChannel] = useState<ChannelId | null>(null);
@@ -903,4 +906,6 @@ export function ChannelSelector({
         : constellationContent}
     </div>
   );
-}
+});
+
+ChannelSelector.displayName = 'ChannelSelector';
