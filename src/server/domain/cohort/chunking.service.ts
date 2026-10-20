@@ -1,4 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getCachedAiResult, setCachedAiResult } from '@/src/server/domain/cohort-creation/aiCache.repo';
+import { DEFAULT_COHORT_MODEL } from '@/src/server/infrastructure/ai/modelRegistry';
 
 export type ChunkInterval = { start: number; end: number };
 
@@ -30,13 +32,21 @@ export class ChunkingService {
       return [{ start: 0, end: Math.max(0, duration), text: '', title: metadata?.title || 'Part 1' }];
     }
 
+    const configuredModel =
+      process.env.COHORT_AI_MODEL?.trim() || DEFAULT_COHORT_MODEL || 'gemini-3.1-flash-lite';
     const validDuration = Math.max(0, duration);
+    const cacheKeyPayload = { text, duration: validDuration, title: metadata?.title || 'Educational Lesson' };
+    const cached = await getCachedAiResult<SemanticChunkResult[]>('semantic_chunking', cacheKeyPayload, configuredModel);
+    if (cached && Array.isArray(cached) && cached.length > 0) {
+      return cached;
+    }
+
     const client = this.getClient();
 
     if (client && text.length > 80) {
       try {
         const model = client.getGenerativeModel({
-          model: 'gemini-1.5-flash',
+          model: configuredModel,
           generationConfig: {
             responseMimeType: 'application/json',
             temperature: 0.2,
@@ -74,7 +84,7 @@ Return ONLY a valid JSON array of chunks matching this schema:
         const parsed = JSON.parse(response.response.text());
 
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed.map((item, idx) => {
+          const formattedChunks: SemanticChunkResult[] = parsed.map((item, idx) => {
             const pStart = typeof item.approximatePercentageStart === 'number' 
               ? Math.max(0, Math.min(100, item.approximatePercentageStart)) 
               : (idx / parsed.length) * 100;
@@ -93,6 +103,9 @@ Return ONLY a valid JSON array of chunks matching this schema:
               text: item.text || text,
             };
           });
+
+          await setCachedAiResult('semantic_chunking', cacheKeyPayload, formattedChunks, configuredModel);
+          return formattedChunks;
         }
       } catch (err) {
         console.warn('[ChunkingService] Gemini semantic chunking failed, falling back to heuristic:', err);
@@ -219,4 +232,3 @@ Return ONLY a valid JSON array of chunks matching this schema:
 }
 
 export const chunkingService = new ChunkingService();
-

@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('server-only', () => ({}));
 import { VectorScoringService } from '../vectorScoring.service';
 import { DEFAULT_COHORT_MODEL } from '@/src/server/infrastructure/ai/modelRegistry';
+import { clearAiMemoryCache } from '@/src/server/domain/cohort-creation/aiCache.repo';
 
 const mockGenerateContent = vi.fn();
 const mockGetGenerativeModel = vi.fn(() => ({
@@ -19,11 +20,14 @@ describe('VectorScoringService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    clearAiMemoryCache();
     process.env = { ...originalEnv };
+    delete process.env.MONGODB_URI;
   });
 
   afterEach(() => {
     process.env = originalEnv;
+    clearAiMemoryCache();
   });
 
   it('uses DEFAULT_COHORT_MODEL when COHORT_AI_MODEL is not set', async () => {
@@ -126,5 +130,54 @@ describe('VectorScoringService', () => {
     expect(mockGetGenerativeModel).toHaveBeenCalled();
     expect(result.confidenceScore).toBe(0.75);
     expect(result.vector).toHaveLength(12);
+  });
+
+  it('prunes transcript, limits transcript slice to 24,000 chars, and includes all 12 dimensions in compressed prompt', async () => {
+    process.env.GEMINI_API_KEY = 'test-key';
+
+    mockGenerateContent.mockResolvedValueOnce({
+      response: {
+        text: () =>
+          JSON.stringify({
+            vector: {},
+            is_strictly_linear: true,
+            confidence_score: 0.9,
+            summary: 'Prompt verification summary.',
+          }),
+      },
+    });
+
+    const excessText = '1\n00:00:01,000 --> 00:00:02,000\n' + 'A'.repeat(25000);
+    await VectorScoringService.scoreTranscript(excessText, { title: 'Long Lesson' });
+
+    expect(mockGenerateContent).toHaveBeenCalledTimes(1);
+    const sentPrompt = mockGenerateContent.mock.calls[0][0];
+
+    // Assert that SRT timing was stripped
+    expect(sentPrompt).not.toContain('00:00:01,000 --> 00:00:02,000');
+
+    // Assert sliced to at most 24,000 chars of transcript
+    expect(sentPrompt).toContain('A'.repeat(24000));
+    expect(sentPrompt).not.toContain('A'.repeat(24001));
+
+    // Assert all 12 dimensions are present in rubric and JSON schema
+    const dimensions = [
+      'cognitive_load',
+      'practicality_actionability',
+      'visual_dependence',
+      'scaffolding_guidance',
+      'linearity_dependency',
+      'novelty_divergence',
+      'abstraction_depth',
+      'pacing_density',
+      'rigor_formality',
+      'interactivity_agency',
+      'breadth_scope',
+      'emotional_energy',
+    ];
+    for (const dim of dimensions) {
+      expect(sentPrompt).toContain(dim);
+    }
+    expect(sentPrompt).toContain('is_strictly_linear');
   });
 });

@@ -10,6 +10,8 @@ import {
   computeDeterministicChunkVector,
 } from '@/src/shared/curriculum/pedagogicalVector.engine';
 import { DEFAULT_COHORT_MODEL } from '@/src/server/infrastructure/ai/modelRegistry';
+import { getCachedAiResult, setCachedAiResult } from '@/src/server/domain/cohort-creation/aiCache.repo';
+import { pruneTranscriptWhitespace } from '@/src/shared/lib/aiPromptUtils';
 
 export interface VectorScoringResult {
   vector: VectorArray12D;
@@ -57,15 +59,36 @@ export class VectorScoringService {
       duration?: number;
     }
   ): Promise<VectorScoringResult> {
-    const client = this.getClient();
-
-    if (!client || !text || text.trim().length === 0) {
+    if (!text || text.trim().length === 0) {
       return this.heuristicFallback(text, metadata);
     }
 
+    const cleanedText = pruneTranscriptWhitespace(text);
+    if (!cleanedText || cleanedText.length === 0) {
+      return this.heuristicFallback(cleanedText, metadata);
+    }
+
+    const configuredModel =
+      process.env.COHORT_AI_MODEL?.trim() || DEFAULT_COHORT_MODEL || 'gemini-2.5-flash';
+    const cacheKeyPayload = {
+      text: cleanedText,
+      title: metadata?.title,
+      chunkIndex: metadata?.chunkIndex,
+      totalChunks: metadata?.totalChunks,
+      duration: metadata?.duration,
+    };
+    const cached = await getCachedAiResult<VectorScoringResult>('vector_scoring', cacheKeyPayload, configuredModel);
+    if (cached && cached.vector && Array.isArray(cached.vector)) {
+      return cached;
+    }
+
+    const client = this.getClient();
+
+    if (!client) {
+      return this.heuristicFallback(cleanedText, metadata);
+    }
+
     try {
-      const configuredModel =
-        process.env.COHORT_AI_MODEL?.trim() || DEFAULT_COHORT_MODEL || 'gemini-2.5-flash';
       const model = client.getGenerativeModel({
         model: configuredModel,
         generationConfig: {
@@ -74,39 +97,34 @@ export class VectorScoringService {
         },
       });
 
-      const prompt = `
-You are an expert pedagogical psychometrician and curriculum engineer for Undone.
-Analyze the following educational video transcript segment and output an accurate 12-Dimensional Pedagogical Vector and linearity classification.
+      const prompt = `Pedagogical psychometrician for Undone. Analyze transcript segment. Output 12D Pedagogical Vector and linearity.
 
 METADATA:
-Title: ${metadata?.title || 'Unknown Lesson'}
-Chunk: ${metadata?.chunkIndex !== undefined ? `#${metadata.chunkIndex + 1} of ${metadata.totalChunks || 1}` : 'Full Video'}
-Duration: ${metadata?.duration || 180}s
+Title: ${metadata?.title || 'Unknown Lesson'} | Chunk: ${metadata?.chunkIndex !== undefined ? `#${metadata.chunkIndex + 1}/${metadata.totalChunks || 1}` : 'Full'} | Duration: ${metadata?.duration || 180}s
 
 TRANSCRIPT:
 """
-${text.slice(0, 30000)}
+${cleanedText.slice(0, 24000)}
 """
 
-EVALUATION RUBRIC (Score each continuous dimension strictly between 0.00 and 1.00):
-1. cognitive_load (0.0 = Light/Breezy/Low strain -> 1.0 = Dense/Heavy working memory/Complex theory)
-2. practicality_actionability (0.0 = Pure theory/Observation -> 1.0 = Direct code/Hands-on terminal/Build)
-3. visual_dependence (0.0 = Pure audio/Podcast/Screen-free -> 1.0 = Screen-critical/Visual diagrams/IDE)
-4. scaffolding_guidance (0.0 = Open sandbox/Socratic -> 1.0 = Step-by-step guided blueprint)
-5. linearity_dependency (0.0 = Standalone atom/Context-free -> 1.0 = Strict sequential prerequisite)
-6. novelty_divergence (0.0 = Common baseline/Familiar -> 1.0 = Esoteric/Uncharted/Serendipitous)
-7. abstraction_depth (0.0 = Concrete syntax/Fact -> 1.0 = Meta-frameworks/Philosophy/Abstract theory)
-8. pacing_density (0.0 = Spacious/Deliberate -> 1.0 = Rapid-fire information density)
-9. rigor_formality (0.0 = Intuitive/Conversational -> 1.0 = Mathematical proofs/Formal technical spec)
-10. interactivity_agency (0.0 = Passive lecture -> 1.0 = Active exercise/Think-along challenge)
-11. breadth_scope (0.0 = Micro single-topic focus -> 1.0 = Broad cross-domain synthesis)
-12. emotional_energy (0.0 = Calming/Contemplative -> 1.0 = High energy/Inspiring spark/Fast paced)
+RUBRIC (0.00-1.00):
+1. cognitive_load (0=Light/Breezy -> 1=Dense/Complex theory)
+2. practicality_actionability (0=Pure theory -> 1=Hands-on code/build)
+3. visual_dependence (0=Audio-only -> 1=Screen-critical/diagrams)
+4. scaffolding_guidance (0=Open sandbox -> 1=Step-by-step guided)
+5. linearity_dependency (0=Standalone -> 1=Strict sequential prerequisite)
+6. novelty_divergence (0=Common baseline -> 1=Esoteric/Uncharted)
+7. abstraction_depth (0=Concrete syntax/fact -> 1=Meta-frameworks/Philosophy)
+8. pacing_density (0=Spacious/Deliberate -> 1=Rapid-fire density)
+9. rigor_formality (0=Conversational -> 1=Mathematical proofs/Formal spec)
+10. interactivity_agency (0=Passive lecture -> 1=Active challenge/exercise)
+11. breadth_scope (0=Micro-topic -> 1=Broad cross-domain)
+12. emotional_energy (0=Calm/Contemplative -> 1=High energy/Inspiring)
 
-LINEARITY CLASSIFICATION:
-- is_strictly_linear (boolean): Set to true ONLY IF a learner cannot understand this chunk without watching preceding chunks (e.g. step-by-step code tutorial, mathematical derivation). Set to false if it is modular, tips, standalone Q&A, or self-contained.
+LINEARITY:
+- is_strictly_linear: true ONLY IF incomprehensible without preceding chunks (e.g. sequential derivation/tutorial); false if modular/standalone.
 
-OUTPUT FORMAT:
-Return ONLY valid JSON matching this schema:
+JSON SCHEMA:
 {
   "vector": {
     "cognitive_load": 0.00,
@@ -146,7 +164,7 @@ Return ONLY valid JSON matching this schema:
           ? parsed.is_strictly_linear
           : vectorMap.linearity_dependency >= 0.60;
 
-      return {
+      const finalResult: VectorScoringResult = {
         vector: vectorArray,
         vectorMap,
         isStrictlyLinear,
@@ -155,9 +173,12 @@ Return ONLY valid JSON matching this schema:
         summary: parsed.summary || '',
         confidenceScore: parsed.confidence_score ?? 0.9,
       };
+
+      await setCachedAiResult('vector_scoring', cacheKeyPayload, finalResult, configuredModel);
+      return finalResult;
     } catch (error) {
       console.warn('[VectorScoringService] Gemini evaluation failed, using fallback:', error);
-      return this.heuristicFallback(text, metadata);
+      return this.heuristicFallback(cleanedText, metadata);
     }
   }
 
