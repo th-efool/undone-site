@@ -1,116 +1,91 @@
 'use client';
 
-import React from 'react';
-import { Users, ArrowRight } from 'lucide-react';
-import styles from '../StudyRoomScreen.module.css';
-
-export interface Participant {
-  id: string;
-  userId: string;
-  user: {
-    id: string;
-    name: string | null;
-    image: string | null;
-    username: string | null;
-  };
-}
-
-export interface Room {
-  id: string;
-  title: string;
-  thumbnail: string;
-  status: string;
-  onlineCount: number;
-  participants: Participant[];
-}
+import React, { useState } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { ArrowRight } from 'lucide-react';
+import type { MockPeer, RoomDefinition } from '../types';
+import { getBackground } from '../data/backgroundCatalog';
+import { ParticipantAvatar } from './ParticipantAvatar';
+import styles from './RoomCard.module.css';
 
 export interface RoomCardProps {
-  room: Room;
-  isCurrent: boolean;
-  isJoining: boolean;
-  onJoin: (roomId: string) => void;
-  onLeave: () => void;
-  IconComponent: React.ElementType;
-  gradientClass: string;
+  room: RoomDefinition;
+  sampleCount: number;
+  previewPeers: readonly MockPeer[] | MockPeer[];
 }
 
 export const RoomCard = React.memo(function RoomCard({
   room,
-  isCurrent,
-  isJoining,
-  onJoin,
-  onLeave,
-  IconComponent,
-  gradientClass,
+  sampleCount,
+  previewPeers,
 }: RoomCardProps) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const background = getBackground(room.defaultEnvironment.backgroundId);
+  const previewPeersSlice = previewPeers.slice(0, 3);
+
   return (
-    <div 
-      className={`${styles.roomCard} ${gradientClass} ${isCurrent ? styles.activeRoomCard : ''}`}
+    <article
+      className={styles.card}
+      style={{ background: background.gradient }}
+      data-testid={`room-card-${room.slug}`}
     >
-      {isCurrent && <div className={styles.roomGlow} />}
-      <div className={styles.roomHeader}>
-        <div className={styles.roomIconWrapper}>
-          <IconComponent className={styles.roomIcon} size={22} />
-        </div>
-        {isCurrent && (
-          <span className={styles.currentBadge}>
-            <span className={styles.pulseGreen}></span> YOU ARE HERE
-          </span>
+      {/* Background illustration if available and not failed */}
+      <div className={styles.imageWrapper}>
+        {room.previewImage && !imageFailed && (
+          <Image
+            src={room.previewImage}
+            alt=""
+            fill
+            sizes="(max-width: 768px) 100vw, 360px"
+            onError={() => setImageFailed(true)}
+            className={styles.image}
+          />
         )}
       </div>
 
-      <div className={styles.roomMeta}>
-        <h3>{room.title}</h3>
-        <p className={styles.roomStatus}>
-          {room.title === 'Fireplace' ? 'Warm and cozy chats' : 
-           room.title === 'Library' ? 'Silent study & focus' : 
-           'Co-working & code reviews'}
-        </p>
-      </div>
+      {/* Scrim for text readability */}
+      <div className={styles.scrim} aria-hidden="true" />
 
-      {/* Participant Avatars */}
-      <div className={styles.participantsSection}>
-        <span className={styles.participantsLabel}>
-          <Users size={14} /> {room.participants.length} Active
-        </span>
-        <div className={styles.avatarStack}>
-          {room.participants.length > 0 ? (
-            room.participants.map((p) => {
-              const name = p.user.name || p.user.username || 'Explorer';
-              const image = p.user.image || `https://api.dicebear.com/7.x/initials/svg?seed=${name}`;
-              return (
-                <div key={p.id} className={styles.avatarWrapper} title={name}>
-                  <img src={image} alt={name} className={styles.avatar} />
+      {/* Text and meta content */}
+      <div className={styles.content}>
+        <div>
+          <h2 className={styles.roomName}>{room.title}</h2>
+          <p className={styles.atmosphere}>{room.atmosphere}</p>
+        </div>
+
+        <div className={styles.metaRow}>
+          <div className={styles.presenceInfo}>
+            <span className={styles.pulseDot} aria-hidden="true" />
+            <span>{sampleCount} studying now · demo</span>
+          </div>
+
+          {previewPeersSlice.length > 0 && (
+            <div
+              className={styles.avatarStack}
+              aria-label={`${previewPeers.length} sample peers`}
+            >
+              {previewPeersSlice.map((peer) => (
+                <div key={peer.userId} className={styles.avatarItem}>
+                  <ParticipantAvatar name={peer.displayName} size={24} />
                 </div>
-              );
-            })
-          ) : (
-            <span className={styles.emptyRoomsMsg}>No peers currently inside</span>
+              ))}
+            </div>
           )}
         </div>
-      </div>
 
-      {/* Join / Leave Card Button */}
-      <div className={styles.cardActions}>
-        {isCurrent ? (
-          <button 
-            onClick={onLeave} 
-            className={`${styles.actionBtn} ${styles.leaveBtn}`}
+        <div className={styles.actionRow}>
+          <Link
+            href={`/studyroom/${room.slug}`}
+            prefetch={false}
+            className={styles.enterLink}
           >
-            Leave Room
-          </button>
-        ) : (
-          <button 
-            onClick={() => onJoin(room.id)} 
-            disabled={isJoining}
-            className={`${styles.actionBtn} ${styles.joinBtn}`}
-          >
-            {isJoining ? 'Connecting...' : 'Join Space'}
-            <ArrowRight size={15} style={{ marginLeft: 8 }} />
-          </button>
-        )}
+            <span>Enter room</span>
+            <ArrowRight size={16} aria-hidden="true" />
+          </Link>
+        </div>
       </div>
-    </div>
+    </article>
   );
 });
 
