@@ -193,4 +193,56 @@ describe('use1DGesture keyboard interaction', () => {
     expect(onNext).toHaveBeenCalledTimes(1);
     expect(onPrev).not.toHaveBeenCalled();
   });
+
+  it('does not trigger layout recalculations (getBoundingClientRect or clientWidth) during pointer move', () => {
+    const onNext = vi.fn();
+    const onPrev = vi.fn();
+    const { result } = renderHook(() => use1DGesture({ onNext, onPrev }));
+
+    const stageEl = document.createElement('div');
+    const clientWidthSpy = vi.fn().mockReturnValue(800);
+    Object.defineProperty(stageEl, 'clientWidth', { get: clientWidthSpy, configurable: true });
+    const getBoundingClientRectSpy = vi.spyOn(stageEl, 'getBoundingClientRect');
+
+    result.current.gestureProps.onPointerDown({
+      pointerType: 'touch',
+      pointerId: 1,
+      clientX: 200,
+      clientY: 200,
+      target: stageEl,
+      currentTarget: stageEl,
+    } as any);
+
+    // Initial pointer down reads clientWidth once to cache it
+    expect(clientWidthSpy).toHaveBeenCalledTimes(1);
+    expect(getBoundingClientRectSpy).not.toHaveBeenCalled();
+
+    // Reset spy call count before move events
+    clientWidthSpy.mockClear();
+
+    // Simulate rapid pointer move sequence (touch drag)
+    for (let x = 205; x <= 260; x += 5) {
+      result.current.gestureProps.onPointerMove({
+        clientX: x,
+        clientY: 200,
+        target: stageEl,
+        currentTarget: stageEl,
+      } as any);
+    }
+
+    // Must be strictly ZERO during all pointer moves to avoid forced synchronous layouts / INP degradation
+    expect(clientWidthSpy).not.toHaveBeenCalled();
+    expect(getBoundingClientRectSpy).not.toHaveBeenCalled();
+
+    // Release drag
+    result.current.gestureProps.onPointerUp({
+      pointerId: 1,
+      clientX: 350,
+      clientY: 200,
+      target: stageEl,
+      currentTarget: stageEl,
+    } as any);
+
+    expect(onPrev).toHaveBeenCalledTimes(1);
+  });
 });

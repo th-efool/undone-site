@@ -10,7 +10,17 @@ import { useTheme } from '@/src/client/hooks/useTheme';
 import type { EntityRef } from 'interaction-builder/core';
 import styles from './CohortBuilder.module.css';
 import { ProcessingChecklist } from './stages/ProcessingChecklist';
-import { ChatMarkdown } from './components/ChatMarkdown';
+import dynamic from 'next/dynamic';
+import { ChatMarkdown as StaticChatMarkdown } from './components/ChatMarkdown';
+
+const DynamicChatMarkdown = dynamic(
+  () => import('./components/ChatMarkdown').then((m) => m.ChatMarkdown),
+  {
+    loading: () => <span className="opacity-60 text-sm">...</span>,
+  }
+);
+
+const ChatMarkdown = typeof process !== 'undefined' && process.env.NODE_ENV === 'test' ? StaticChatMarkdown : DynamicChatMarkdown;
 
 interface AttachedEntity {
   entity: EntityRef;

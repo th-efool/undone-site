@@ -14,6 +14,8 @@ const createPrismaClient = () => {
         max: 10,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 10000,
+        keepAlive: true,
+        statement_timeout: 15000,
     });
     globalForPrisma.pool = pool;
 

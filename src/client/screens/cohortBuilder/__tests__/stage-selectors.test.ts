@@ -14,6 +14,7 @@ import {
   getStageProgressDetails,
   getValidChunks,
   getValidAnalyses,
+  clearStageSelectorsCache,
 } from '../stage-selectors';
 import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 
@@ -879,6 +880,125 @@ describe('stage-selectors', () => {
       expect(validAnalyses[0].chunkId).toBe('c-new');
     });
   });
+  describe('Selector Memoization (WeakMap caching)', () => {
+    afterEach(() => {
+      clearStageSelectorsCache();
+    });
+
+    it('returns strictly identical reference for getValidChunks when workspace reference is identical', () => {
+      const workspace = createMinimalWorkspace({
+        sources: [{ id: 's1', version: 0, label: 'S1', text: 'txt', checksum: null, state: 'ready' }],
+        chunks: [{ id: 'c1', sourceId: 's1', sourceVersion: 0, start: 0, end: 10, text: 'txt', checksum: 'a'.repeat(64) }],
+      });
+      const res1 = getValidChunks(workspace);
+      const res2 = getValidChunks(workspace);
+      expect(res1).toBe(res2);
+
+      const cloned = { ...workspace };
+      const resCloned = getValidChunks(cloned);
+      expect(resCloned).not.toBe(res1);
+      expect(resCloned).toEqual(res1);
+    });
+
+    it('returns strictly identical reference for getValidAnalyses when workspace reference is identical', () => {
+      const workspace = createMinimalWorkspace({
+        sources: [{ id: 's1', version: 0, label: 'S1', text: 'txt', checksum: null, state: 'ready' }],
+        chunks: [{ id: 'c1', sourceId: 's1', sourceVersion: 0, start: 0, end: 10, text: 'txt', checksum: 'a'.repeat(64) }],
+        analyses: [{ chunkId: 'c1', summary: 'summary', question: 'question' }],
+      });
+      const res1 = getValidAnalyses(workspace);
+      const res2 = getValidAnalyses(workspace);
+      expect(res1).toBe(res2);
+    });
+
+    it('returns strictly identical reference for getStageProgressDetails when workspace reference is identical', () => {
+      const workspace = createMinimalWorkspace({
+        sources: [{ id: 's1', version: 0, label: 'S1', text: 'txt', checksum: null, state: 'ready' }],
+      });
+      const res1 = getStageProgressDetails(workspace);
+      const res2 = getStageProgressDetails(workspace);
+      expect(res1).toBe(res2);
+    });
+
+    it('returns strictly identical reference for getUnderstandingData when workspace reference is identical', () => {
+      const workspace = createMinimalWorkspace({
+        sources: [{ id: 's1', version: 0, label: 'S1', text: 'txt', checksum: null, state: 'ready' }],
+      });
+      const res1 = getUnderstandingData(workspace);
+      const res2 = getUnderstandingData(workspace);
+      expect(res1).toBe(res2);
+    });
+
+    it('caches getChunkingData by selectedSourceId and returns identical reference', () => {
+      const workspace = createMinimalWorkspace({
+        sources: [
+          { id: 's1', version: 0, label: 'S1', text: 'txt', checksum: null, state: 'ready' },
+          { id: 's2', version: 0, label: 'S2', text: 'txt2', checksum: null, state: 'ready' },
+        ],
+        chunks: [
+          { id: 'c1', sourceId: 's1', sourceVersion: 0, start: 0, end: 10, text: 'txt', checksum: 'a'.repeat(64) },
+          { id: 'c2', sourceId: 's2', sourceVersion: 0, start: 0, end: 10, text: 'txt2', checksum: 'b'.repeat(64) },
+        ],
+      });
+      const resDefault1 = getChunkingData(workspace);
+      const resDefault2 = getChunkingData(workspace);
+      expect(resDefault1).toBe(resDefault2);
+
+      const resS2_1 = getChunkingData(workspace, 's2');
+      const resS2_2 = getChunkingData(workspace, 's2');
+      expect(resS2_1).toBe(resS2_2);
+      expect(resS2_1).not.toBe(resDefault1);
+    });
+
+    it('caches getAnalysisData by selectedSourceId and returns identical reference', () => {
+      const workspace = createMinimalWorkspace({
+        sources: [
+          { id: 's1', version: 0, label: 'S1', text: 'txt', checksum: null, state: 'ready' },
+          { id: 's2', version: 0, label: 'S2', text: 'txt2', checksum: null, state: 'ready' },
+        ],
+        chunks: [
+          { id: 'c1', sourceId: 's1', sourceVersion: 0, start: 0, end: 10, text: 'txt', checksum: 'a'.repeat(64) },
+        ],
+      });
+      const resDefault1 = getAnalysisData(workspace);
+      const resDefault2 = getAnalysisData(workspace);
+      expect(resDefault1).toBe(resDefault2);
+
+      const resS2_1 = getAnalysisData(workspace, 's2');
+      const resS2_2 = getAnalysisData(workspace, 's2');
+      expect(resS2_1).toBe(resS2_2);
+    });
+
+    it('returns strictly identical reference for getAssemblyData when workspace reference is identical', () => {
+      const workspace = createMinimalWorkspace({
+        sources: [{ id: 's1', version: 0, label: 'S1', text: 'txt', checksum: null, state: 'ready' }],
+      });
+      const res1 = getAssemblyData(workspace);
+      const res2 = getAssemblyData(workspace);
+      expect(res1).toBe(res2);
+    });
+
+    it('memoizes getActiveStage and getEffectiveStage results', () => {
+      const workspace = createMinimalWorkspace({
+        sources: [{ id: 's1', version: 0, label: 'S1', text: 'txt', checksum: null, state: 'ready' }],
+        processing: { status: 'ready', stage: 'done', generation: 1, sourceFingerprint: 'fp', error: null },
+      });
+      expect(getActiveStage(workspace)).toBe('curriculum');
+      expect(getActiveStage(workspace)).toBe('curriculum');
+      expect(getEffectiveStage(workspace, null)).toBe('curriculum');
+      expect(getEffectiveStage(workspace, 'chunking')).toBe('chunking');
+      expect(getEffectiveStage(workspace, 'chunking')).toBe('chunking');
+    });
+
+    it('clearStageSelectorsCache invalidates cached references', () => {
+      const workspace = createMinimalWorkspace({
+        sources: [{ id: 's1', version: 0, label: 'S1', text: 'txt', checksum: null, state: 'ready' }],
+      });
+      const res1 = getUnderstandingData(workspace);
+      clearStageSelectorsCache();
+      const res2 = getUnderstandingData(workspace);
+      expect(res1).not.toBe(res2);
+      expect(res1).toEqual(res2);
+    });
+  });
 });
-
-

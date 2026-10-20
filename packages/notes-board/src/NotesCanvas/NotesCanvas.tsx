@@ -12,7 +12,7 @@ import '../excalidraw.css';
 interface NotesCanvasProps {
   noteId: string;
   initialScene: CanvasSceneData | null;
-  onSceneChange: (scene: CanvasSceneData) => void;
+  onSceneChange: (scene: any) => void;
   isReadOnly?: boolean;
   canvasStatus?: CanvasState;
 }
@@ -48,6 +48,49 @@ export function NotesCanvas({
   const [currentBg, setCurrentBg] = useState<string>(initialRealBg);
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isLayoutReady, setIsLayoutReady] = useState<boolean>(false);
+
+  // Defer Excalidraw initialization until container layout geometry has settled (width > 0 && height > 0)
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const checkLayout = () => {
+      const rect = container.getBoundingClientRect();
+      if (rect && rect.width > 0 && rect.height > 0) {
+        setIsLayoutReady(true);
+        return true;
+      }
+      return false;
+    };
+
+    if (checkLayout()) return;
+
+    if (typeof ResizeObserver === 'undefined') {
+      setIsLayoutReady(true);
+      return;
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        if (width > 0 && height > 0) {
+          setIsLayoutReady(true);
+          observer.disconnect();
+          return;
+        }
+      }
+      if (checkLayout()) {
+        observer.disconnect();
+      }
+    });
+
+    observer.observe(container);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
   const lastMousePos = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
 
   // Track which file IDs Excalidraw already knows about to detect new uploads
@@ -414,29 +457,42 @@ export function NotesCanvas({
           pointerEvents: 'none',
         }}
       />
-      <ExcalidrawWrapper
-        excalidrawAPI={setExcalidrawAPI}
-        initialData={initialData}
-        onChange={handleChange}
-        viewModeEnabled={isReadOnly}
-        theme="dark"
-        UIOptions={useMemo(() => ({
-          canvasActions: {
-            changeViewBackgroundColor: false,
-            clearCanvas: true,
-            loadScene: false,
-            saveToActiveFile: false,
-            toggleTheme: false,
-            saveAsImage: true,
-          },
-        }), [])}
-        hamburgerProps={useMemo(() => ({
-          config: gridConfig,
-          onChange: handleGridConfigChange,
-          viewBackgroundColor: currentBg,
-          onBgChange: handleBgChange,
-        }), [gridConfig, handleGridConfigChange, currentBg, handleBgChange])}
-      />
+      {!isLayoutReady ? (
+        <div
+          className={styles.loadingScene}
+          style={{
+            flex: 1,
+            width: '100%',
+            height: '100%',
+            backgroundColor: currentBg,
+          }}
+          aria-hidden="true"
+        />
+      ) : (
+        <ExcalidrawWrapper
+          excalidrawAPI={setExcalidrawAPI}
+          initialData={initialData}
+          onChange={handleChange}
+          viewModeEnabled={isReadOnly}
+          theme="dark"
+          UIOptions={useMemo(() => ({
+            canvasActions: {
+              changeViewBackgroundColor: false,
+              clearCanvas: true,
+              loadScene: false,
+              saveToActiveFile: false,
+              toggleTheme: false,
+              saveAsImage: true,
+            },
+          }), [])}
+          hamburgerProps={useMemo(() => ({
+            config: gridConfig,
+            onChange: handleGridConfigChange,
+            viewBackgroundColor: currentBg,
+            onBgChange: handleBgChange,
+          }), [gridConfig, handleGridConfigChange, currentBg, handleBgChange])}
+        />
+      )}
     </div>
   );
 }

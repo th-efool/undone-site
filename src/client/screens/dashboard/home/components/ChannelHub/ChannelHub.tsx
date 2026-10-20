@@ -256,6 +256,44 @@ const DEFAULT_PREFS = {
   reminderWindow: 'Evening',
 };
 
+// ─── Channel Tabs Component (Memoized) ───────────────────────────────────────
+
+export interface ChannelTabsProps {
+  selectedChannel: ChannelId;
+  onSelect: (id: ChannelId) => void;
+}
+
+export const ChannelTabs = React.memo(function ChannelTabs({
+  selectedChannel,
+  onSelect,
+}: ChannelTabsProps) {
+  return (
+    <div className={styles.iconTabsRow} role="tablist" aria-label="Select learning style">
+      {CHANNELS.map((ch) => {
+        const isActive = ch.id === selectedChannel;
+        const IconComponent = ch.Icon;
+        return (
+          <button
+            key={ch.id}
+            type="button"
+            role="tab"
+            aria-selected={isActive}
+            title={`${ch.name} — ${ch.tagline}`}
+            className={`${styles.iconTab} ${isActive ? styles.iconTabActive : ''}`}
+            onClick={() => onSelect(ch.id)}
+          >
+            <IconComponent
+              size={20}
+              strokeWidth={2.1}
+              className={styles.iconSvg}
+            />
+          </button>
+        );
+      })}
+    </div>
+  );
+});
+
 // ─── Custom Pointer-Captured Slider (Zero Native Text-Select Bug) ────────────
 
 interface CustomTrackSliderProps {
@@ -408,7 +446,13 @@ interface CustomDropdownProps {
   onChange: (val: string) => void;
 }
 
-function CustomDropdown({ label, icon, value, options, onChange }: CustomDropdownProps) {
+const CustomDropdown = React.memo(function CustomDropdown({
+  label,
+  icon,
+  value,
+  options,
+  onChange,
+}: CustomDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -477,7 +521,65 @@ function CustomDropdown({ label, icon, value, options, onChange }: CustomDropdow
       </div>
     </div>
   );
+});
+
+// ─── Goal Preferences Component (Memoized) ───────────────────────────────────
+
+export interface GoalPreferencesProps {
+  weeklyGoal: string;
+  learningAllocation: string;
+  reminderWindow: string;
+  onWeeklyGoalChange: (val: string) => void;
+  onAllocationChange: (val: string) => void;
+  onReminderChange: (val: string) => void;
 }
+
+const WEEKLY_GOAL_OPTIONS = ['4 hours', '6 hours', '8 hours', '12 hours', '16 hours'];
+const ALLOCATION_OPTIONS = ['Focused', 'Balanced', 'Exploratory', 'Intense'];
+const REMINDER_OPTIONS = ['Morning', 'Afternoon', 'Evening', 'Night', 'None'];
+
+export const GoalPreferences = React.memo(function GoalPreferences({
+  weeklyGoal,
+  learningAllocation,
+  reminderWindow,
+  onWeeklyGoalChange,
+  onAllocationChange,
+  onReminderChange,
+}: GoalPreferencesProps) {
+  return (
+    <div className={styles.rightCol}>
+      <div className={styles.subheadRow}>
+        <span className={styles.subhead}>Daily preferences</span>
+      </div>
+
+      <div className={styles.dailyPrefsList}>
+        <CustomDropdown
+          label="Weekly learning goal"
+          icon={<Clock size={15} className={styles.prefIcon} />}
+          value={weeklyGoal}
+          options={WEEKLY_GOAL_OPTIONS}
+          onChange={onWeeklyGoalChange}
+        />
+
+        <CustomDropdown
+          label="Learning allocation"
+          icon={<BarChart2 size={15} className={styles.prefIcon} />}
+          value={learningAllocation}
+          options={ALLOCATION_OPTIONS}
+          onChange={onAllocationChange}
+        />
+
+        <CustomDropdown
+          label="Reminder window"
+          icon={<Bell size={15} className={styles.prefIcon} />}
+          value={reminderWindow}
+          options={REMINDER_OPTIONS}
+          onChange={onReminderChange}
+        />
+      </div>
+    </div>
+  );
+});
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -534,6 +636,34 @@ export function ChannelHub() {
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Synchronous refs to prevent stale closures and avoid recreating callbacks on slider changes
+  const isAuthenticatedRef = useRef(isAuthenticated);
+  isAuthenticatedRef.current = isAuthenticated;
+
+  const selectedChannelRef = useRef(selectedChannel);
+  selectedChannelRef.current = selectedChannel;
+
+  const channelParamsRef = useRef(channelParams);
+  channelParamsRef.current = channelParams;
+
+  const weeklyGoalRef = useRef(weeklyGoal);
+  weeklyGoalRef.current = weeklyGoal;
+
+  const learningAllocationRef = useRef(learningAllocation);
+  learningAllocationRef.current = learningAllocation;
+
+  const reminderWindowRef = useRef(reminderWindow);
+  reminderWindowRef.current = reminderWindow;
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
   // Hydrate state from localStorage on mount
   useEffect(() => {
     setIsExpanded(homeStorageAdapter.getChannelHubExpanded());
@@ -541,11 +671,21 @@ export function ChannelHub() {
     const urlChannel = getInitialChannelFromUrl();
     const storedChannel = urlChannel || homeStorageAdapter.getSelectedChannel();
     setSelectedChannel(storedChannel);
+    selectedChannelRef.current = storedChannel;
 
     const storedPrefs = homeStorageAdapter.getChannelPreferences();
-    if (storedPrefs.weeklyGoal) setWeeklyGoal(storedPrefs.weeklyGoal);
-    if (storedPrefs.learningAllocation) setLearningAllocation(storedPrefs.learningAllocation);
-    if (storedPrefs.reminderWindow) setReminderWindow(storedPrefs.reminderWindow);
+    if (storedPrefs.weeklyGoal) {
+      setWeeklyGoal(storedPrefs.weeklyGoal);
+      weeklyGoalRef.current = storedPrefs.weeklyGoal;
+    }
+    if (storedPrefs.learningAllocation) {
+      setLearningAllocation(storedPrefs.learningAllocation);
+      learningAllocationRef.current = storedPrefs.learningAllocation;
+    }
+    if (storedPrefs.reminderWindow) {
+      setReminderWindow(storedPrefs.reminderWindow);
+      reminderWindowRef.current = storedPrefs.reminderWindow;
+    }
 
     // Hydrate each channel's dedicated parameters
     const nextParams: Record<string, number> = {};
@@ -556,14 +696,24 @@ export function ChannelHub() {
       }
     }
     setChannelParams(nextParams);
+    channelParamsRef.current = nextParams;
 
     // Sync with backend if authenticated
     if (isAuthenticated) {
       homeStorageAdapter.syncChannelWithBackend(true).then((res) => {
         if (res?.prefs) {
-          if (res.prefs.weeklyGoal) setWeeklyGoal(res.prefs.weeklyGoal);
-          if (res.prefs.learningAllocation) setLearningAllocation(res.prefs.learningAllocation);
-          if (res.prefs.reminderWindow) setReminderWindow(res.prefs.reminderWindow);
+          if (res.prefs.weeklyGoal) {
+            setWeeklyGoal(res.prefs.weeklyGoal);
+            weeklyGoalRef.current = res.prefs.weeklyGoal;
+          }
+          if (res.prefs.learningAllocation) {
+            setLearningAllocation(res.prefs.learningAllocation);
+            learningAllocationRef.current = res.prefs.learningAllocation;
+          }
+          if (res.prefs.reminderWindow) {
+            setReminderWindow(res.prefs.reminderWindow);
+            reminderWindowRef.current = res.prefs.reminderWindow;
+          }
         }
       });
     }
@@ -572,6 +722,7 @@ export function ChannelHub() {
       const popped = getInitialChannelFromUrl();
       if (popped) {
         setSelectedChannel(popped);
+        selectedChannelRef.current = popped;
       }
     };
     window.addEventListener('popstate', onPopState);
@@ -591,7 +742,7 @@ export function ChannelHub() {
         clearTimeout(debounceTimerRef.current);
       }
       debounceTimerRef.current = setTimeout(async () => {
-        if (!isAuthenticated) return;
+        if (!isAuthenticatedRef.current) return;
         try {
           const prefsPayload: Record<string, string> = {
             weekly_goal: goal,
@@ -614,73 +765,127 @@ export function ChannelHub() {
         }
       }, 500);
     },
-    [isAuthenticated],
+    [],
   );
 
-  const handleToggleExpand = () => {
+  const handleToggleExpand = useCallback(() => {
     setIsExpanded((prev) => {
       const next = !prev;
       homeStorageAdapter.saveChannelHubExpanded(next);
       return next;
     });
-  };
+  }, []);
 
-  const handleChannelSelect = (channelId: ChannelId) => {
-    setSelectedChannel(channelId);
-    homeStorageAdapter.saveSelectedChannel(channelId);
-    syncChannelUrlParam(channelId);
-    scheduleBackendSync(channelId, channelParams, weeklyGoal, learningAllocation, reminderWindow);
-  };
+  const handleChannelSelect = useCallback(
+    (channelId: ChannelId) => {
+      setSelectedChannel(channelId);
+      selectedChannelRef.current = channelId;
+      homeStorageAdapter.saveSelectedChannel(channelId);
+      syncChannelUrlParam(channelId);
+      scheduleBackendSync(
+        channelId,
+        channelParamsRef.current,
+        weeklyGoalRef.current,
+        learningAllocationRef.current,
+        reminderWindowRef.current,
+      );
+    },
+    [scheduleBackendSync],
+  );
 
-  const handleParamChange = (channelId: ChannelId, paramId: string, val: number) => {
-    const clamped = Math.max(0, Math.min(1, val));
-    const key = `${channelId}_${paramId}`;
-    setChannelParams((prev) => {
-      const next = { ...prev, [key]: clamped };
-      homeStorageAdapter.saveChannelParam(channelId, paramId, clamped);
-      scheduleBackendSync(selectedChannel, next, weeklyGoal, learningAllocation, reminderWindow);
-      return next;
-    });
-  };
+  const handleParamChange = useCallback(
+    (channelId: ChannelId, paramId: string, val: number) => {
+      const clamped = Math.max(0, Math.min(1, val));
+      const key = `${channelId}_${paramId}`;
+      setChannelParams((prev) => {
+        const next = { ...prev, [key]: clamped };
+        channelParamsRef.current = next;
+        homeStorageAdapter.saveChannelParam(channelId, paramId, clamped);
+        scheduleBackendSync(
+          selectedChannelRef.current,
+          next,
+          weeklyGoalRef.current,
+          learningAllocationRef.current,
+          reminderWindowRef.current,
+        );
+        return next;
+      });
+    },
+    [scheduleBackendSync],
+  );
 
-  const handleWeeklyGoalChange = (newGoal: string) => {
-    setWeeklyGoal(newGoal);
-    homeStorageAdapter.saveChannelPreferences({ weeklyGoal: newGoal });
-    scheduleBackendSync(selectedChannel, channelParams, newGoal, learningAllocation, reminderWindow);
-  };
+  const handleWeeklyGoalChange = useCallback(
+    (newGoal: string) => {
+      setWeeklyGoal(newGoal);
+      weeklyGoalRef.current = newGoal;
+      homeStorageAdapter.saveChannelPreferences({ weeklyGoal: newGoal });
+      scheduleBackendSync(
+        selectedChannelRef.current,
+        channelParamsRef.current,
+        newGoal,
+        learningAllocationRef.current,
+        reminderWindowRef.current,
+      );
+    },
+    [scheduleBackendSync],
+  );
 
-  const handleAllocationChange = (newAlloc: string) => {
-    setLearningAllocation(newAlloc);
-    homeStorageAdapter.saveChannelPreferences({ learningAllocation: newAlloc });
-    scheduleBackendSync(selectedChannel, channelParams, weeklyGoal, newAlloc, reminderWindow);
-  };
+  const handleAllocationChange = useCallback(
+    (newAlloc: string) => {
+      setLearningAllocation(newAlloc);
+      learningAllocationRef.current = newAlloc;
+      homeStorageAdapter.saveChannelPreferences({ learningAllocation: newAlloc });
+      scheduleBackendSync(
+        selectedChannelRef.current,
+        channelParamsRef.current,
+        weeklyGoalRef.current,
+        newAlloc,
+        reminderWindowRef.current,
+      );
+    },
+    [scheduleBackendSync],
+  );
 
-  const handleReminderChange = (newReminder: string) => {
-    setReminderWindow(newReminder);
-    homeStorageAdapter.saveChannelPreferences({ reminderWindow: newReminder });
-    scheduleBackendSync(selectedChannel, channelParams, weeklyGoal, learningAllocation, newReminder);
-  };
+  const handleReminderChange = useCallback(
+    (newReminder: string) => {
+      setReminderWindow(newReminder);
+      reminderWindowRef.current = newReminder;
+      homeStorageAdapter.saveChannelPreferences({ reminderWindow: newReminder });
+      scheduleBackendSync(
+        selectedChannelRef.current,
+        channelParamsRef.current,
+        weeklyGoalRef.current,
+        learningAllocationRef.current,
+        newReminder,
+      );
+    },
+    [scheduleBackendSync],
+  );
 
-  const handleReset = () => {
-    const activeCh = CHANNELS.find((c) => c.id === selectedChannel) || CHANNELS[0];
+  const handleReset = useCallback(() => {
+    const activeCh = CHANNELS.find((c) => c.id === selectedChannelRef.current) || CHANNELS[0];
     setChannelParams((prev) => {
       const next = { ...prev };
       for (const p of activeCh.params) {
         next[`${activeCh.id}_${p.id}`] = p.defaultVal;
         homeStorageAdapter.saveChannelParam(activeCh.id, p.id, p.defaultVal);
       }
+      channelParamsRef.current = next;
       return next;
     });
     setWeeklyGoal(DEFAULT_PREFS.weeklyGoal);
+    weeklyGoalRef.current = DEFAULT_PREFS.weeklyGoal;
     setLearningAllocation(DEFAULT_PREFS.learningAllocation);
+    learningAllocationRef.current = DEFAULT_PREFS.learningAllocation;
     setReminderWindow(DEFAULT_PREFS.reminderWindow);
+    reminderWindowRef.current = DEFAULT_PREFS.reminderWindow;
 
     homeStorageAdapter.saveChannelPreferences({
       weeklyGoal: DEFAULT_PREFS.weeklyGoal,
       learningAllocation: DEFAULT_PREFS.learningAllocation,
       reminderWindow: DEFAULT_PREFS.reminderWindow,
     });
-  };
+  }, []);
 
   const activeChannelConfig =
     CHANNELS.find((c) => c.id === selectedChannel) || CHANNELS[0];
@@ -734,33 +939,10 @@ export function ChannelHub() {
             </div>
 
             {/* Compact 38px button boxes with larger 20px icons & hover tooltips */}
-            <div
-              className={styles.iconTabsRow}
-              role="tablist"
-              aria-label="Select learning style"
-            >
-              {CHANNELS.map((ch) => {
-                const isActive = ch.id === selectedChannel;
-                const IconComponent = ch.Icon;
-                return (
-                  <button
-                    key={ch.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    title={`${ch.name} — ${ch.tagline}`}
-                    className={`${styles.iconTab} ${isActive ? styles.iconTabActive : ''}`}
-                    onClick={() => handleChannelSelect(ch.id)}
-                  >
-                    <IconComponent
-                      size={20}
-                      strokeWidth={2.1}
-                      className={styles.iconSvg}
-                    />
-                  </button>
-                );
-              })}
-            </div>
+            <ChannelTabs
+              selectedChannel={selectedChannel}
+              onSelect={handleChannelSelect}
+            />
 
             {/* Active Channel Identity Banner */}
             <div className={styles.activeChannelBanner}>
@@ -799,37 +981,14 @@ export function ChannelHub() {
           </div>
 
           {/* Right Column: Daily Preferences with Bespoke Popovers */}
-          <div className={styles.rightCol}>
-            <div className={styles.subheadRow}>
-              <span className={styles.subhead}>Daily preferences</span>
-            </div>
-
-            <div className={styles.dailyPrefsList}>
-              <CustomDropdown
-                label="Weekly learning goal"
-                icon={<Clock size={15} className={styles.prefIcon} />}
-                value={weeklyGoal}
-                options={['4 hours', '6 hours', '8 hours', '12 hours', '16 hours']}
-                onChange={handleWeeklyGoalChange}
-              />
-
-              <CustomDropdown
-                label="Learning allocation"
-                icon={<BarChart2 size={15} className={styles.prefIcon} />}
-                value={learningAllocation}
-                options={['Focused', 'Balanced', 'Exploratory', 'Intense']}
-                onChange={handleAllocationChange}
-              />
-
-              <CustomDropdown
-                label="Reminder window"
-                icon={<Bell size={15} className={styles.prefIcon} />}
-                value={reminderWindow}
-                options={['Morning', 'Afternoon', 'Evening', 'Night', 'None']}
-                onChange={handleReminderChange}
-              />
-            </div>
-          </div>
+          <GoalPreferences
+            weeklyGoal={weeklyGoal}
+            learningAllocation={learningAllocation}
+            reminderWindow={reminderWindow}
+            onWeeklyGoalChange={handleWeeklyGoalChange}
+            onAllocationChange={handleAllocationChange}
+            onReminderChange={handleReminderChange}
+          />
         </div>
       )}
     </section>

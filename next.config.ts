@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
     // Dedicated verification runs separately via npx tsc --noEmit and npm run verify:vercel
     ignoreBuildErrors: true,
   },
+  compress: true,
+  poweredByHeader: false,
   env: rootPublicEnvironment(),
   turbopack: {
     root: path.resolve('.'),
@@ -37,7 +39,59 @@ const nextConfig: NextConfig = {
       dynamic: 60,
       static: 300,
     },
-    optimizePackageImports: ['lucide-react', 'framer-motion', '@reduxjs/toolkit'],
+    optimizePackageImports: [
+      'lucide-react',
+      'framer-motion',
+      '@reduxjs/toolkit',
+      'lodash-es',
+      'remeda',
+      'cmdk',
+      '@tanstack/react-query',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-tooltip',
+    ],
+  },
+  async headers() {
+    if (isMobileBuild) {
+      return [];
+    }
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
+          },
+        ],
+      },
+      {
+        source: '/(fonts|icons)/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/(videos|images)/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
+    ];
   },
   images: {
     unoptimized: isMobileBuild,

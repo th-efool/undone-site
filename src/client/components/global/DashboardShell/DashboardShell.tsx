@@ -13,8 +13,15 @@ import { exploreRepository } from '@/src/client/repositories/exploreRepository';
 import { useSession } from 'next-auth/react';
 import { Sidebar } from '../Sidebar';
 import { NetworkOfflineIndicator } from '../NetworkOfflineIndicator/NetworkOfflineIndicator';
-import { CommandPalette, CommandTriggerProvider, useCommandContext } from '../CommandPalette';
 import { RoutePreserver } from './RoutePreserver';
+import dynamic from 'next/dynamic';
+import { CommandTriggerProvider, useCommandContext } from '../CommandPalette';
+
+const CommandPalette = dynamic(
+  () => import('../CommandPalette').then((mod) => mod.CommandPalette),
+  { ssr: false }
+);
+
 
 import styles from './DashboardShell.module.css';
 
@@ -87,7 +94,7 @@ function DashboardInner({ children }: PropsWithChildren) {
           <RoutePreserver>{children}</RoutePreserver>
         </div>
       </div>
-      <CommandPalette open={open} onOpenChange={onOpenChange} />
+      {open && <CommandPalette open={open} onOpenChange={onOpenChange} />}
     </>
   );
 }

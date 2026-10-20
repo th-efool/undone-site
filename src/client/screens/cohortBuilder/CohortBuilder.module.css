@@ -1378,6 +1378,8 @@
   display: flex;
   gap: 16px;
   transition: box-shadow 0.15s, border-color 0.15s;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 120px;
 }
 
 .lessonCard:hover {
@@ -1517,6 +1519,8 @@
   font-size: 12.5px;
   line-height: 1.55;
   color: var(--creation-ink);
+  content-visibility: auto;
+  contain-intrinsic-size: 0 80px;
 }
 
 .evidenceCite {

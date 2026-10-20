@@ -9,12 +9,12 @@ import dynamic from 'next/dynamic';
 import { NotesSaveStatus } from '@/src/client/screens/dashboard/notes/components/NotesSaveStatus/NotesSaveStatus';
 
 const NotesCanvas = dynamic(
-  () => import('@undone/notes-board').then((module) => module.NotesCanvas),
+  () => import('@/src/client/screens/dashboard/notes/components/CanvasEditorWrapper'),
   { ssr: false, loading: () => <div style={{ color: '#a1a1aa', padding: 20 }}>Loading canvas…</div> },
 );
 
 const NotesKanban = dynamic(
-  () => import('@undone/notes-board').then((module) => module.NotesKanban),
+  () => import('@/src/client/screens/dashboard/notes/components/KanbanEditorWrapper'),
   { ssr: false, loading: () => <div style={{ color: '#a1a1aa', padding: 20 }}>Loading kanban…</div> },
 );
 import type { NoteDocument } from '@/src/client/screens/dashboard/notes/models/notes.models';

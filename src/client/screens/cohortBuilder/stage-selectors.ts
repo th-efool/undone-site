@@ -41,6 +41,141 @@ export type BuilderStage =
   | 'ready'
   | 'published';
 
+export interface UnderstandingSourceItem {
+  id: string;
+  sourceId: string;
+  label: string;
+  kind: string;
+  status: CohortSource['state'];
+  segmentCount: number;
+  topics: string[];
+}
+
+export interface UnderstandingStageData extends Array<UnderstandingSourceItem> {
+  sources: UnderstandingSourceItem[];
+  totalTopics: number;
+  totalSegments: number;
+}
+
+export interface ChunkingSourceItem {
+  id: string;
+  sourceId: string;
+  label: string;
+  status: CohortSource['state'];
+  chunkCount: number;
+}
+
+export interface ChunkItemView {
+  id: string;
+  sourceId: string;
+  sourceVersion: number;
+  start: number;
+  end: number;
+  offset: number;
+  length: number;
+  text: string;
+  snippet: string;
+  textSnippet: string;
+}
+
+export interface ChunkingStageData {
+  sources: ChunkingSourceItem[];
+  selectedSourceId: string | null;
+  chunks: ChunkItemView[];
+  totalChunks: number;
+  allChunks: ChunkItemView[];
+}
+
+export interface AnalysisSourceItem {
+  id: string;
+  sourceId: string;
+  label: string;
+  status: CohortSource['state'];
+  chunkCount: number;
+  analyzedCount: number;
+}
+
+export interface AnalyzedChunkView {
+  id: string;
+  chunkId: string;
+  sourceId: string;
+  sourceVersion: number;
+  start: number;
+  end: number;
+  offset: number;
+  length: number;
+  text: string;
+  snippet: string;
+  summary: string | null;
+  question: string | null;
+  hasAnalysis: boolean;
+  analysis: { summary: string; question: string } | null;
+}
+
+export interface AnalysisStageData {
+  sources: AnalysisSourceItem[];
+  selectedSourceId: string | null;
+  chunks: AnalyzedChunkView[];
+  totalAnalyses: number;
+  totalChunks: number;
+  allChunks: AnalyzedChunkView[];
+}
+
+export interface AssemblyProgressCounts {
+  totalLessons: number;
+  totalSources: number;
+  readySources: number;
+  totalChunks: number;
+  totalAnalyses: number;
+  totalJobs: number;
+  completedJobs: number;
+  failedJobs: number;
+  runningJobs: number;
+  queuedJobs: number;
+}
+
+export interface AssemblyStageData {
+  status: string;
+  stage: string;
+  job: CohortTextJobView | null;
+  progress: AssemblyProgressCounts;
+  progressCounts: AssemblyProgressCounts;
+  totalLessons: number;
+  totalChunks: number;
+  totalAnalyses: number;
+}
+
+// ---------------------------------------------------------------------------
+// Selector Memoization Caches (WeakMap keyed by workspace reference)
+// ---------------------------------------------------------------------------
+
+let activeStageCache = new WeakMap<CohortWorkspace, BuilderStage>();
+let effectiveStageCache = new WeakMap<CohortWorkspace, Map<BuilderStage | undefined, BuilderStage>>();
+let validChunksCache = new WeakMap<CohortWorkspace, CohortChunk[]>();
+let validAnalysesCache = new WeakMap<CohortWorkspace, CohortWorkspace['analyses']>();
+let stageProgressDetailsCache = new WeakMap<CohortWorkspace, StageProgressDetails>();
+let understandingDataCache = new WeakMap<CohortWorkspace, UnderstandingStageData>();
+let chunkingDataCache = new WeakMap<CohortWorkspace, Map<string | undefined, ChunkingStageData>>();
+let analysisDataCache = new WeakMap<CohortWorkspace, Map<string | undefined, AnalysisStageData>>();
+let assemblyDataCache = new WeakMap<CohortWorkspace, AssemblyStageData>();
+let stageCompleteCache = new WeakMap<CohortWorkspace, Map<CanonicalStage, boolean>>();
+
+/**
+ * Reset all selector caches. Primarily used in test isolation.
+ */
+export function clearStageSelectorsCache(): void {
+  activeStageCache = new WeakMap();
+  effectiveStageCache = new WeakMap();
+  validChunksCache = new WeakMap();
+  validAnalysesCache = new WeakMap();
+  stageProgressDetailsCache = new WeakMap();
+  understandingDataCache = new WeakMap();
+  chunkingDataCache = new WeakMap();
+  analysisDataCache = new WeakMap();
+  assemblyDataCache = new WeakMap();
+  stageCompleteCache = new WeakMap();
+}
+
 /**
  * Pure presentation selector to derive the current active stage of a cohort workspace.
  *
@@ -64,7 +199,7 @@ export type BuilderStage =
  *      - 'done' -> 'curriculum'
  * 4. Default: 'curriculum' if lessons exist, else 'intake'
  */
-export function getActiveStage(workspace: CohortWorkspace): BuilderStage {
+function computeActiveStage(workspace: CohortWorkspace): BuilderStage {
   if (workspace.journey) {
     if (workspace.journey.step === 'recommendations') {
       return 'recommendations';
@@ -224,11 +359,24 @@ export function getActiveStage(workspace: CohortWorkspace): BuilderStage {
   return lessons.length > 0 ? 'curriculum' : 'intake';
 }
 
+export function getActiveStage(workspace: CohortWorkspace): BuilderStage {
+  if (!workspace || typeof workspace !== 'object') {
+    return computeActiveStage(workspace);
+  }
+  const cached = activeStageCache.get(workspace);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const result = computeActiveStage(workspace);
+  activeStageCache.set(workspace, result);
+  return result;
+}
+
 /**
  * Pure selector returning the effective stage for navigation/inspection.
  * If inspectedStage is set, it overrides active stage without any side-effects.
  */
-export function getEffectiveStage(
+function computeEffectiveStage(
   workspace: CohortWorkspace,
   inspectedStage: BuilderStage | null
 ): BuilderStage {
@@ -243,6 +391,28 @@ export function getEffectiveStage(
     return active;
   }
   return inspectedStage ?? active;
+}
+
+export function getEffectiveStage(
+  workspace: CohortWorkspace,
+  inspectedStage: BuilderStage | null
+): BuilderStage {
+  if (!workspace || typeof workspace !== 'object') {
+    return computeEffectiveStage(workspace, inspectedStage);
+  }
+  let innerMap = effectiveStageCache.get(workspace);
+  if (!innerMap) {
+    innerMap = new Map();
+    effectiveStageCache.set(workspace, innerMap);
+  }
+  const key: BuilderStage | undefined = inspectedStage ?? undefined;
+  const cached = innerMap.get(key);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const result = computeEffectiveStage(workspace, inspectedStage);
+  innerMap.set(key, result);
+  return result;
 }
 
 // ---------------------------------------------------------------------------
@@ -321,7 +491,7 @@ function isAssemblyAccepted(jobs: CohortTextJob[]): boolean {
  * Filter valid current chunks matching chunk.sourceVersion === source.version.
  * Chunks from older versions are historical/retained.
  */
-export function getValidChunks(workspace: CohortWorkspace): CohortChunk[] {
+function computeValidChunks(workspace: CohortWorkspace): CohortChunk[] {
   const sources = workspace.sources ?? [];
   const sourceVersionMap = new Map(sources.map(s => [s.id, s.version]));
   return (workspace.chunks ?? []).filter(chunk => {
@@ -330,22 +500,48 @@ export function getValidChunks(workspace: CohortWorkspace): CohortChunk[] {
   });
 }
 
+export function getValidChunks(workspace: CohortWorkspace): CohortChunk[] {
+  if (!workspace || typeof workspace !== 'object') {
+    return computeValidChunks(workspace);
+  }
+  const cached = validChunksCache.get(workspace);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const result = computeValidChunks(workspace);
+  validChunksCache.set(workspace, result);
+  return result;
+}
+
 /**
  * Filter valid analyses belonging to valid current chunks.
  */
-export function getValidAnalyses(workspace: CohortWorkspace): CohortWorkspace['analyses'] {
+function computeValidAnalyses(workspace: CohortWorkspace): CohortWorkspace['analyses'] {
   const validChunks = getValidChunks(workspace);
   const validChunkIds = new Set(validChunks.map(c => c.id));
   return (workspace.analyses ?? []).filter(a => validChunkIds.has(a.chunkId));
+}
+
+export function getValidAnalyses(workspace: CohortWorkspace): CohortWorkspace['analyses'] {
+  if (!workspace || typeof workspace !== 'object') {
+    return computeValidAnalyses(workspace);
+  }
+  const cached = validAnalysesCache.get(workspace);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const result = computeValidAnalyses(workspace);
+  validAnalysesCache.set(workspace, result);
+  return result;
 }
 
 /**
  * Robust pure selector verifying if a specific stage has completed canonically.
  * Does not rely on array presence (chunks.length > 0, lessons.length > 0).
  */
-export function isStageComplete(
+function computeIsStageComplete(
   workspace: CohortWorkspace,
-  stage: 'understanding' | 'chunking' | 'analysis' | 'assembly'
+  stage: CanonicalStage
 ): boolean {
   const sources = workspace.sources ?? [];
   if (sources.length === 0) return false;
@@ -376,11 +572,32 @@ export function isStageComplete(
   return targetIdx < currentIdx;
 }
 
+export function isStageComplete(
+  workspace: CohortWorkspace,
+  stage: CanonicalStage
+): boolean {
+  if (!workspace || typeof workspace !== 'object') {
+    return computeIsStageComplete(workspace, stage);
+  }
+  let innerMap = stageCompleteCache.get(workspace);
+  if (!innerMap) {
+    innerMap = new Map();
+    stageCompleteCache.set(workspace, innerMap);
+  }
+  const cached = innerMap.get(stage);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const result = computeIsStageComplete(workspace, stage);
+  innerMap.set(stage, result);
+  return result;
+}
+
 /**
  * Returns detailed per-stage status based strictly on canonical job evidence
  * or conservative legacy fallback.
  */
-export function getStageProgressDetails(workspace: CohortWorkspace): StageProgressDetails {
+function computeStageProgressDetails(workspace: CohortWorkspace): StageProgressDetails {
   const sources = workspace.sources ?? [];
   const jobs = workspace.processing?.jobs ?? [];
   const error = workspace.processing?.error;
@@ -579,31 +796,28 @@ export function getStageProgressDetails(workspace: CohortWorkspace): StageProgre
   };
 }
 
+export function getStageProgressDetails(workspace: CohortWorkspace): StageProgressDetails {
+  if (!workspace || typeof workspace !== 'object') {
+    return computeStageProgressDetails(workspace);
+  }
+  const cached = stageProgressDetailsCache.get(workspace);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const result = computeStageProgressDetails(workspace);
+  stageProgressDetailsCache.set(workspace, result);
+  return result;
+}
+
 // ---------------------------------------------------------------------------
 // Stage Data View Models & Selectors
 // ---------------------------------------------------------------------------
-
-export interface UnderstandingSourceItem {
-  id: string;
-  sourceId: string;
-  label: string;
-  kind: string;
-  status: CohortSource['state'];
-  segmentCount: number;
-  topics: string[];
-}
-
-export interface UnderstandingStageData extends Array<UnderstandingSourceItem> {
-  sources: UnderstandingSourceItem[];
-  totalTopics: number;
-  totalSegments: number;
-}
 
 /**
  * Returns list of sources with their topics from workspace.understanding and acquired segment count/status.
  * Supports being used directly as an array or via .sources property.
  */
-export function getUnderstandingData(workspace: CohortWorkspace): UnderstandingStageData {
+function computeUnderstandingData(workspace: CohortWorkspace): UnderstandingStageData {
   const sources = workspace.sources ?? [];
   const sourceVersionMap = new Map(sources.map(s => [s.id, s.version]));
   const understandingMap = new Map<string, string[]>();
@@ -638,40 +852,24 @@ export function getUnderstandingData(workspace: CohortWorkspace): UnderstandingS
   return result;
 }
 
-export interface ChunkingSourceItem {
-  id: string;
-  sourceId: string;
-  label: string;
-  status: CohortSource['state'];
-  chunkCount: number;
-}
-
-export interface ChunkItemView {
-  id: string;
-  sourceId: string;
-  sourceVersion: number;
-  start: number;
-  end: number;
-  offset: number;
-  length: number;
-  text: string;
-  snippet: string;
-  textSnippet: string;
-}
-
-export interface ChunkingStageData {
-  sources: ChunkingSourceItem[];
-  selectedSourceId: string | null;
-  chunks: ChunkItemView[];
-  totalChunks: number;
-  allChunks: ChunkItemView[];
+export function getUnderstandingData(workspace: CohortWorkspace): UnderstandingStageData {
+  if (!workspace || typeof workspace !== 'object') {
+    return computeUnderstandingData(workspace);
+  }
+  const cached = understandingDataCache.get(workspace);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const result = computeUnderstandingData(workspace);
+  understandingDataCache.set(workspace, result);
+  return result;
 }
 
 /**
  * Returns sources list with chunk counts, and for the selected source, the array of chunks
  * from valid current workspace.chunks with offsets, length, and text snippets.
  */
-export function getChunkingData(
+function computeChunkingData(
   workspace: CohortWorkspace,
   selectedSourceId?: string
 ): ChunkingStageData {
@@ -727,45 +925,31 @@ export function getChunkingData(
   };
 }
 
-export interface AnalysisSourceItem {
-  id: string;
-  sourceId: string;
-  label: string;
-  status: CohortSource['state'];
-  chunkCount: number;
-  analyzedCount: number;
-}
-
-export interface AnalyzedChunkView {
-  id: string;
-  chunkId: string;
-  sourceId: string;
-  sourceVersion: number;
-  start: number;
-  end: number;
-  offset: number;
-  length: number;
-  text: string;
-  snippet: string;
-  summary: string | null;
-  question: string | null;
-  hasAnalysis: boolean;
-  analysis: { summary: string; question: string } | null;
-}
-
-export interface AnalysisStageData {
-  sources: AnalysisSourceItem[];
-  selectedSourceId: string | null;
-  chunks: AnalyzedChunkView[];
-  totalAnalyses: number;
-  totalChunks: number;
-  allChunks: AnalyzedChunkView[];
+export function getChunkingData(
+  workspace: CohortWorkspace,
+  selectedSourceId?: string
+): ChunkingStageData {
+  if (!workspace || typeof workspace !== 'object') {
+    return computeChunkingData(workspace, selectedSourceId);
+  }
+  let innerMap = chunkingDataCache.get(workspace);
+  if (!innerMap) {
+    innerMap = new Map();
+    chunkingDataCache.set(workspace, innerMap);
+  }
+  const cached = innerMap.get(selectedSourceId);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const result = computeChunkingData(workspace, selectedSourceId);
+  innerMap.set(selectedSourceId, result);
+  return result;
 }
 
 /**
  * Returns sources and valid current chunks joined with valid current workspace.analyses (summary, pedagogical question).
  */
-export function getAnalysisData(
+function computeAnalysisData(
   workspace: CohortWorkspace,
   selectedSourceId?: string
 ): AnalysisStageData {
@@ -844,34 +1028,31 @@ export function getAnalysisData(
   };
 }
 
-export interface AssemblyProgressCounts {
-  totalLessons: number;
-  totalSources: number;
-  readySources: number;
-  totalChunks: number;
-  totalAnalyses: number;
-  totalJobs: number;
-  completedJobs: number;
-  failedJobs: number;
-  runningJobs: number;
-  queuedJobs: number;
-}
-
-export interface AssemblyStageData {
-  status: string;
-  stage: string;
-  job: CohortTextJobView | null;
-  progress: AssemblyProgressCounts;
-  progressCounts: AssemblyProgressCounts;
-  totalLessons: number;
-  totalChunks: number;
-  totalAnalyses: number;
+export function getAnalysisData(
+  workspace: CohortWorkspace,
+  selectedSourceId?: string
+): AnalysisStageData {
+  if (!workspace || typeof workspace !== 'object') {
+    return computeAnalysisData(workspace, selectedSourceId);
+  }
+  let innerMap = analysisDataCache.get(workspace);
+  if (!innerMap) {
+    innerMap = new Map();
+    analysisDataCache.set(workspace, innerMap);
+  }
+  const cached = innerMap.get(selectedSourceId);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const result = computeAnalysisData(workspace, selectedSourceId);
+  innerMap.set(selectedSourceId, result);
+  return result;
 }
 
 /**
  * Returns assembly job status, progress counts.
  */
-export function getAssemblyData(workspace: CohortWorkspace): AssemblyStageData {
+function computeAssemblyData(workspace: CohortWorkspace): AssemblyStageData {
   const sources = workspace.sources ?? [];
   const lessons = workspace.lessons ?? [];
   const chunks = workspace.chunks ?? [];
@@ -916,4 +1097,17 @@ export function getAssemblyData(workspace: CohortWorkspace): AssemblyStageData {
     totalChunks: chunks.length,
     totalAnalyses: analyses.length,
   };
+}
+
+export function getAssemblyData(workspace: CohortWorkspace): AssemblyStageData {
+  if (!workspace || typeof workspace !== 'object') {
+    return computeAssemblyData(workspace);
+  }
+  const cached = assemblyDataCache.get(workspace);
+  if (cached !== undefined) {
+    return cached;
+  }
+  const result = computeAssemblyData(workspace);
+  assemblyDataCache.set(workspace, result);
+  return result;
 }

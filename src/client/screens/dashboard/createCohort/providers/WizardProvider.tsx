@@ -75,7 +75,7 @@ import {
   type GeneratedCurriculum,
 } from '@/src/shared/curriculum';
 
-interface WizardImportState {
+export interface WizardImportState {
   status: 'idle' | 'running' | 'completed' | 'failed' | 'canceled';
   overallProgress: number;
   currentOperation: string;
@@ -89,7 +89,7 @@ interface WizardImportState {
   error: ImportErrorModel | null;
 }
 
-interface WizardCurriculumState {
+export interface WizardCurriculumState {
   curriculum: GeneratedCurriculum | null;
   status: 'idle' | 'generating' | 'ready' | 'failed';
   error: CurriculumGenerationError | null;
@@ -102,7 +102,7 @@ interface WizardCurriculumState {
   history: CurriculumHistoryState;
 }
 
-interface WizardLaunchState {
+export interface WizardLaunchState {
   onboarding: OnboardingConfigModel;
   community: CommunityConfigModel;
   journeySettings: JourneySettingsModel;
@@ -114,7 +114,119 @@ interface WizardLaunchState {
   isWeightsModalOpen: boolean;
 }
 
-interface WizardContextValue {
+export type CreateCohortState = CreateCohortWizardState;
+export type ImportPipelineStateModel = WizardImportState;
+export type CurriculumStateModel = WizardCurriculumState;
+export type LaunchStateModel = WizardLaunchState;
+
+export interface WizardValidationState {
+  details: boolean;
+  topic: boolean;
+  sources: boolean;
+  curriculum: boolean;
+  identity: boolean;
+  launch: boolean;
+  [key: string]: boolean;
+}
+
+export interface WizardStateContextValue {
+  state: CreateCohortState;
+  validation: Record<string, boolean>;
+  importState: ImportPipelineStateModel;
+  curriculumState: CurriculumStateModel;
+  launchState: LaunchStateModel;
+}
+
+export interface WizardActions {
+  setStep: (step: CreateCohortStepId) => void;
+  goPrevious: () => void;
+  goNext: () => void;
+  startImport: () => Promise<void>;
+  cancelImport: () => void;
+  retryImport: () => Promise<void>;
+  updateDraftField: <K extends keyof CreateCohortDraft>(
+    key: K,
+    value: CreateCohortDraft[K],
+  ) => void;
+  toggleCategory: (category: string) => void;
+  addTag: (tag: string) => void;
+  removeTag: (tag: string) => void;
+  addRequirement: (value: string) => void;
+  updateRequirement: (index: number, value: string) => void;
+  removeRequirement: (index: number) => void;
+  addLearningOutcome: (value: string) => void;
+  updateLearningOutcome: (index: number, value: string) => void;
+  removeLearningOutcome: (index: number) => void;
+  addSource: (urlInput?: string) => void;
+  removeSource: (sourceId: string) => void;
+  duplicateSource: (sourceId: string) => void;
+  toggleSourceCollapse: (sourceId: string) => void;
+  updateSourceField: <K extends keyof CreateCohortSourceDraft>(
+    sourceId: string,
+    key: K,
+    value: CreateCohortSourceDraft[K],
+  ) => void;
+  moveSource: (sourceId: string, targetId: string) => void;
+
+  // Curriculum actions
+  generateCurriculum: () => Promise<void>;
+  selectSeason: (seasonId: string | null) => void;
+  selectLesson: (lessonId: string | null) => void;
+  toggleSeasonCollapse: (seasonId: string) => void;
+  toggleLessonCollapse: (seasonId: string, lessonId: string) => void;
+  updateCurriculumMeta: (patch: Partial<GeneratedCurriculum>) => void;
+  addSeason: (title?: string) => void;
+  updateSeason: (seasonId: string, patch: Partial<CurriculumSeason>) => void;
+  deleteSeason: (seasonId: string) => void;
+  duplicateSeason: (seasonId: string) => void;
+  splitSeason: (seasonId: string) => void;
+  mergeSeasons: (seasonId: string, targetSeasonId: string) => void;
+  moveSeason: (seasonId: string, targetId: string) => void;
+  updateLesson: (lessonId: string, patch: Partial<CurriculumLesson>) => void;
+  deleteLesson: (lessonId: string) => void;
+  duplicateLesson: (lessonId: string) => void;
+  moveLesson: (lessonId: string, targetSeasonId: string, targetLessonId?: string) => void;
+  autoBalance: () => void;
+  regenerateChunks: () => void;
+  restorePlaylistOrder: () => void;
+  setSearchQuery: (query: string) => void;
+  setFilterWarningOnly: (filter: boolean) => void;
+
+  // Prompt 4 additions
+  toggleSelectLesson: (lessonId: string, isMulti?: boolean) => void;
+  toggleSelectSeason: (seasonId: string, isMulti?: boolean) => void;
+  clearMultiSelection: () => void;
+  selectAllLessons: () => void;
+  undo: () => void;
+  redo: () => void;
+  autoRenameSeasons: () => void;
+  autoRenameLessons: () => void;
+  regenerateChunkTitles: () => void;
+  normalizeDurations: () => void;
+  mergeEmptySeasons: () => void;
+  deleteEmptyLessons: () => void;
+  bulkTag: (tag: string) => void;
+  bulkDifficulty: (difficulty: string) => void;
+  bulkXP: (xp: number) => void;
+  bulkVisibility: (visibility: string) => void;
+  bulkDeleteSelected: () => void;
+  expandAllSeasons: () => void;
+  collapseAllSeasons: () => void;
+
+  // Prompt 5 Launch actions
+  updateOnboarding: (patch: Partial<OnboardingConfigModel>) => void;
+  toggleCommunityFeature: (key: keyof CommunityConfigModel) => void;
+  updateJourneySettings: (patch: Partial<JourneySettingsModel>) => void;
+  setDeviceViewport: (viewport: DeviceViewport) => void;
+  setPreviewTab: (tab: LearnerPreviewTab) => void;
+  publishCohort: (forcePublishWithWeights?: boolean) => Promise<void>;
+  resetLaunch: () => void;
+  closeWeightsModal: () => void;
+}
+
+export type WizardActionsContextValue = WizardActions;
+
+export interface WizardContextValue {
   state: CreateCohortWizardState;
   validation: {
     details: boolean;
@@ -123,99 +235,17 @@ interface WizardContextValue {
     curriculum: boolean;
     identity: boolean;
     launch: boolean;
+    [key: string]: boolean;
   };
   importState: WizardImportState;
   curriculumState: WizardCurriculumState;
   launchState: WizardLaunchState;
-  actions: {
-    setStep: (step: CreateCohortStepId) => void;
-    goPrevious: () => void;
-    goNext: () => void;
-    startImport: () => Promise<void>;
-    cancelImport: () => void;
-    retryImport: () => Promise<void>;
-    updateDraftField: <K extends keyof CreateCohortDraft>(
-      key: K,
-      value: CreateCohortDraft[K],
-    ) => void;
-    toggleCategory: (category: string) => void;
-    addTag: (tag: string) => void;
-    removeTag: (tag: string) => void;
-    addRequirement: (value: string) => void;
-    updateRequirement: (index: number, value: string) => void;
-    removeRequirement: (index: number) => void;
-    addLearningOutcome: (value: string) => void;
-    updateLearningOutcome: (index: number, value: string) => void;
-    removeLearningOutcome: (index: number) => void;
-    addSource: (urlInput?: string) => void;
-    removeSource: (sourceId: string) => void;
-    duplicateSource: (sourceId: string) => void;
-    toggleSourceCollapse: (sourceId: string) => void;
-    updateSourceField: <K extends keyof CreateCohortSourceDraft>(
-      sourceId: string,
-      key: K,
-      value: CreateCohortSourceDraft[K],
-    ) => void;
-    moveSource: (sourceId: string, targetId: string) => void;
-
-    // Curriculum actions
-    generateCurriculum: () => Promise<void>;
-    selectSeason: (seasonId: string | null) => void;
-    selectLesson: (lessonId: string | null) => void;
-    toggleSeasonCollapse: (seasonId: string) => void;
-    toggleLessonCollapse: (seasonId: string, lessonId: string) => void;
-    updateCurriculumMeta: (patch: Partial<GeneratedCurriculum>) => void;
-    addSeason: (title?: string) => void;
-    updateSeason: (seasonId: string, patch: Partial<CurriculumSeason>) => void;
-    deleteSeason: (seasonId: string) => void;
-    duplicateSeason: (seasonId: string) => void;
-    splitSeason: (seasonId: string) => void;
-    mergeSeasons: (seasonId: string, targetSeasonId: string) => void;
-    moveSeason: (seasonId: string, targetId: string) => void;
-    updateLesson: (lessonId: string, patch: Partial<CurriculumLesson>) => void;
-    deleteLesson: (lessonId: string) => void;
-    duplicateLesson: (lessonId: string) => void;
-    moveLesson: (lessonId: string, targetSeasonId: string, targetLessonId?: string) => void;
-    autoBalance: () => void;
-    regenerateChunks: () => void;
-    restorePlaylistOrder: () => void;
-    setSearchQuery: (query: string) => void;
-    setFilterWarningOnly: (filter: boolean) => void;
-
-    // Prompt 4 additions
-    toggleSelectLesson: (lessonId: string, isMulti?: boolean) => void;
-    toggleSelectSeason: (seasonId: string, isMulti?: boolean) => void;
-    clearMultiSelection: () => void;
-    selectAllLessons: () => void;
-    undo: () => void;
-    redo: () => void;
-    autoRenameSeasons: () => void;
-    autoRenameLessons: () => void;
-    regenerateChunkTitles: () => void;
-    normalizeDurations: () => void;
-    mergeEmptySeasons: () => void;
-    deleteEmptyLessons: () => void;
-    bulkTag: (tag: string) => void;
-    bulkDifficulty: (difficulty: string) => void;
-    bulkXP: (xp: number) => void;
-    bulkVisibility: (visibility: string) => void;
-    bulkDeleteSelected: () => void;
-    expandAllSeasons: () => void;
-    collapseAllSeasons: () => void;
-
-    // Prompt 5 Launch actions
-    updateOnboarding: (patch: Partial<OnboardingConfigModel>) => void;
-    toggleCommunityFeature: (key: keyof CommunityConfigModel) => void;
-    updateJourneySettings: (patch: Partial<JourneySettingsModel>) => void;
-    setDeviceViewport: (viewport: DeviceViewport) => void;
-    setPreviewTab: (tab: LearnerPreviewTab) => void;
-    publishCohort: (forcePublishWithWeights?: boolean) => Promise<void>;
-    resetLaunch: () => void;
-    closeWeightsModal: () => void;
-  };
+  actions: WizardActions;
 }
 
-const WizardContext = createContext<WizardContextValue | null>(null);
+export const WizardStateContext = createContext<WizardStateContextValue | null>(null);
+export const WizardActionsContext = createContext<WizardActionsContextValue | null>(null);
+export const WizardContext = createContext<WizardContextValue | null>(null);
 
 const importStages: ImportPipelineStageModel[] = [
   { id: 'queued', title: 'Queued', description: 'Waiting for import.', status: 'pending', progress: 0 },
@@ -1787,93 +1817,81 @@ export function WizardProvider({ children }: PropsWithChildren) {
     }));
   }, []);
 
-  const value = useMemo<WizardContextValue>(
+  const actions = useMemo<WizardActionsContextValue>(
     () => ({
-      state,
-      validation,
-      importState,
-      curriculumState,
-      launchState,
-      actions: {
-        setStep,
-        goPrevious,
-        goNext,
-        startImport,
-        cancelImport,
-        retryImport,
-        updateDraftField,
-        toggleCategory,
-        addTag,
-        removeTag,
-        addRequirement,
-        updateRequirement,
-        removeRequirement,
-        addLearningOutcome,
-        updateLearningOutcome,
-        removeLearningOutcome,
-        addSource,
-        removeSource,
-        duplicateSource,
-        toggleSourceCollapse,
-        updateSourceField,
-        moveSource,
-        generateCurriculum: generateCurriculumAction,
-        selectSeason,
-        selectLesson,
-        toggleSeasonCollapse,
-        toggleLessonCollapse,
-        updateCurriculumMeta,
-        addSeason,
-        updateSeason,
-        deleteSeason,
-        duplicateSeason,
-        splitSeason,
-        mergeSeasons,
-        moveSeason,
-        updateLesson,
-        deleteLesson,
-        duplicateLesson,
-        moveLesson,
-        autoBalance,
-        regenerateChunks: regenerateChunksAction,
-        restorePlaylistOrder: restorePlaylistOrderAction,
-        setSearchQuery,
-        setFilterWarningOnly,
-        toggleSelectLesson,
-        toggleSelectSeason,
-        clearMultiSelection,
-        selectAllLessons,
-        undo,
-        redo,
-        autoRenameSeasons,
-        autoRenameLessons,
-        regenerateChunkTitles,
-        normalizeDurations,
-        mergeEmptySeasons,
-        deleteEmptyLessons,
-        bulkTag,
-        bulkDifficulty,
-        bulkXP,
-        bulkVisibility,
-        bulkDeleteSelected,
-        expandAllSeasons,
-        collapseAllSeasons,
-        updateOnboarding,
-        toggleCommunityFeature,
-        updateJourneySettings,
-        setDeviceViewport,
-        setPreviewTab,
-        publishCohort,
-        resetLaunch,
-        closeWeightsModal,
-      },
+      setStep,
+      goPrevious,
+      goNext,
+      startImport,
+      cancelImport,
+      retryImport,
+      updateDraftField,
+      toggleCategory,
+      addTag,
+      removeTag,
+      addRequirement,
+      updateRequirement,
+      removeRequirement,
+      addLearningOutcome,
+      updateLearningOutcome,
+      removeLearningOutcome,
+      addSource,
+      removeSource,
+      duplicateSource,
+      toggleSourceCollapse,
+      updateSourceField,
+      moveSource,
+      generateCurriculum: generateCurriculumAction,
+      selectSeason,
+      selectLesson,
+      toggleSeasonCollapse,
+      toggleLessonCollapse,
+      updateCurriculumMeta,
+      addSeason,
+      updateSeason,
+      deleteSeason,
+      duplicateSeason,
+      splitSeason,
+      mergeSeasons,
+      moveSeason,
+      updateLesson,
+      deleteLesson,
+      duplicateLesson,
+      moveLesson,
+      autoBalance,
+      regenerateChunks: regenerateChunksAction,
+      restorePlaylistOrder: restorePlaylistOrderAction,
+      setSearchQuery,
+      setFilterWarningOnly,
+      toggleSelectLesson,
+      toggleSelectSeason,
+      clearMultiSelection,
+      selectAllLessons,
+      undo,
+      redo,
+      autoRenameSeasons,
+      autoRenameLessons,
+      regenerateChunkTitles,
+      normalizeDurations,
+      mergeEmptySeasons,
+      deleteEmptyLessons,
+      bulkTag,
+      bulkDifficulty,
+      bulkXP,
+      bulkVisibility,
+      bulkDeleteSelected,
+      expandAllSeasons,
+      collapseAllSeasons,
+      updateOnboarding,
+      toggleCommunityFeature,
+      updateJourneySettings,
+      setDeviceViewport,
+      setPreviewTab,
+      publishCohort,
+      resetLaunch,
+      closeWeightsModal,
     }),
     [
-      state,
-      validation,
-      importState,
-      curriculumState,
-      launchState,
       setStep,
       goPrevious,
       goNext,
@@ -1944,17 +1962,66 @@ export function WizardProvider({ children }: PropsWithChildren) {
       setPreviewTab,
       publishCohort,
       resetLaunch,
+      closeWeightsModal,
     ],
   );
 
-  return <WizardContext.Provider value={value}>{children}</WizardContext.Provider>;
+  const stateValue = useMemo<WizardStateContextValue>(
+    () => ({
+      state,
+      validation,
+      importState,
+      curriculumState,
+      launchState,
+    }),
+    [state, validation, importState, curriculumState, launchState],
+  );
+
+  const combinedValue = useMemo<WizardContextValue>(
+    () => ({
+      ...stateValue,
+      validation,
+      actions,
+    }),
+    [stateValue, validation, actions],
+  );
+
+  return (
+    <WizardActionsContext.Provider value={actions}>
+      <WizardStateContext.Provider value={stateValue}>
+        <WizardContext.Provider value={combinedValue}>
+          {children}
+        </WizardContext.Provider>
+      </WizardStateContext.Provider>
+    </WizardActionsContext.Provider>
+  );
 }
 
-export function useWizardContext() {
+export function useWizardContext(): WizardContextValue {
   const context = useContext(WizardContext);
 
   if (!context) {
     throw new Error('useWizardContext must be used within a WizardProvider');
+  }
+
+  return context;
+}
+
+export function useWizardState(): WizardStateContextValue {
+  const context = useContext(WizardStateContext);
+
+  if (!context) {
+    throw new Error('useWizardState must be used within a WizardProvider');
+  }
+
+  return context;
+}
+
+export function useWizardActions(): WizardActionsContextValue {
+  const context = useContext(WizardActionsContext);
+
+  if (!context) {
+    throw new Error('useWizardActions must be used within a WizardProvider');
   }
 
   return context;

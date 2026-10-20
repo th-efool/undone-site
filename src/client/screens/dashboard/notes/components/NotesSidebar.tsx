@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Search, Plus, LayoutGrid, Menu, Pin, Star, Share, Trash2, PanelLeft, PanelLeftOpen, CheckSquare, Calendar as CalendarIcon, MoreHorizontal } from 'lucide-react';
 
 import { SpaceHeader } from './RightColumn/SpaceHeader';
@@ -14,8 +14,318 @@ import rightColStyles from './RightColumn/RightColumn.module.css';
 
 import type { useNotes } from '../hooks/useNotes';
 import { useRecentlyClosedNotes } from '../hooks/useRecentlyClosedNotes';
+import type { NotebookEntity, NotebookListItem } from '../models/notes.models';
 
 type NotesContextType = ReturnType<typeof useNotes>;
+
+const COLORS = ['#4f46e5', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'];
+
+export interface NotebookRowProps {
+  notebook: NotebookListItem | NotebookEntity;
+  index: number;
+  isSelected: boolean;
+  onSelect: (id: string) => void;
+  onRename: (id: string, updates: { title: string; icon?: string; color?: string }) => void;
+  onDelete: (id: string) => void;
+  onToggleFavorite: (id: string, currentFavorite: boolean) => void;
+}
+
+export const NotebookRow = React.memo(function NotebookRow({
+  notebook,
+  index,
+  isSelected,
+  onSelect,
+  onRename,
+  onDelete,
+  onToggleFavorite,
+}: NotebookRowProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(notebook.title);
+  const [editingIcon, setEditingIcon] = useState(notebook.icon || '');
+  const [editingColor, setEditingColor] = useState<string | null>(notebook.color || null);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing) {
+      inputRef.current?.focus();
+    }
+  }, [isEditing]);
+
+  useEffect(() => {
+    if (!isPopoverOpen) return;
+    const handleClickOutside = () => setIsPopoverOpen(false);
+    window.addEventListener('click', handleClickOutside);
+    return () => window.removeEventListener('click', handleClickOutside);
+  }, [isPopoverOpen]);
+
+  const handleStartEdit = () => {
+    setEditingTitle(notebook.title);
+    setEditingIcon(notebook.icon || '');
+    setEditingColor(notebook.color || null);
+    setIsPopoverOpen(false);
+    setIsEditing(true);
+  };
+
+  const handleSave = () => {
+    onRename(notebook.id, {
+      title: editingTitle,
+      icon: editingIcon,
+      color: editingColor || undefined,
+    });
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+  };
+
+  return (
+    <div 
+      className={`${styles.channelItem} ${isSelected ? styles.selected : ''} ${isEditing ? styles.editingItem : ''}`}
+      onClick={() => onSelect(notebook.id)}
+      onDoubleClick={handleStartEdit}
+    >
+      {isEditing ? (
+        <div className={styles.inlineEditor} onClick={(e) => e.stopPropagation()}>
+          <div className={styles.editorRow}>
+            <input 
+              className={styles.iconInput}
+              value={editingIcon}
+              onChange={(e) => setEditingIcon(e.target.value)}
+              placeholder="😀"
+              maxLength={2}
+            />
+            <input
+              className={styles.titleInput}
+              ref={inputRef}
+              value={editingTitle}
+              onChange={(e) => setEditingTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSave();
+                }
+                if (e.key === 'Escape') {
+                  handleCancel();
+                }
+              }}
+              placeholder="Notebook title..."
+            />
+          </div>
+          <div className={styles.colorPickerRow}>
+            {COLORS.map((c) => (
+              <div 
+                key={c} 
+                className={`${styles.colorCircle} ${editingColor === c ? styles.selectedColor : ''}`}
+                style={{ backgroundColor: c }}
+                onClick={() => setEditingColor(c)}
+              />
+            ))}
+          </div>
+          <div className={styles.editorActions}>
+            <button className={styles.editorCancel} onClick={handleCancel}>Cancel</button>
+            <button className={styles.editorSave} onClick={handleSave}>Save</button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className={styles.avatar} style={{ backgroundColor: notebook.color || `hsl(${index * 30}, 60%, 50%)` }}>
+            {notebook.icon || notebook.title.charAt(0).toUpperCase()}
+          </div>
+          <span className={styles.channelName}>{notebook.title}</span>
+          <div className={styles.pinIcon} style={{ display: 'flex', gap: '4px' }}>
+            <Star 
+              size={16}
+              onClick={(e: React.MouseEvent) => {
+                e.stopPropagation();
+                if ('favorite' in notebook) {
+                  onToggleFavorite(notebook.id, !notebook.favorite);
+                }
+                console.log('Star toggled for', notebook.title);
+              }}
+            />
+            <div style={{ position: 'relative' }} className="popover-container">
+              <MoreHorizontal 
+                size={16} 
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  setIsPopoverOpen((prev) => !prev);
+                }}
+              />
+              {isPopoverOpen && (
+                <div 
+                  className={styles.popoverMenu}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button className={styles.popoverItem} onClick={(e) => { 
+                    e.stopPropagation(); 
+                    handleStartEdit();
+                  }}>Edit Notebook</button>
+                  <button className={styles.popoverItem} onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(notebook.id);
+                    setIsPopoverOpen(false);
+                  }}>Delete</button>
+                  <button className={styles.popoverItem} onClick={(e) => {
+                    e.stopPropagation();
+                    alert('Copied');
+                    setIsPopoverOpen(false);
+                  }}>Copy</button>
+                  <button className={styles.popoverItem} onClick={(e) => {
+                    e.stopPropagation();
+                    alert('Cut');
+                    setIsPopoverOpen(false);
+                  }}>Cut</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}, (prevProps, nextProps) => {
+  return (
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.index === nextProps.index &&
+    prevProps.notebook.id === nextProps.notebook.id &&
+    prevProps.notebook.title === nextProps.notebook.title &&
+    prevProps.notebook.icon === nextProps.notebook.icon &&
+    prevProps.notebook.color === nextProps.notebook.color &&
+    (prevProps.notebook as any).favorite === (nextProps.notebook as any).favorite &&
+    prevProps.onSelect === nextProps.onSelect &&
+    prevProps.onRename === nextProps.onRename &&
+    prevProps.onDelete === nextProps.onDelete &&
+    prevProps.onToggleFavorite === nextProps.onToggleFavorite
+  );
+});
+
+interface NavigationColumnProps {
+  isNavigationExpanded: boolean;
+  onCollapseNav: () => void;
+  isNavIconsOnly: boolean;
+  navWidth: number;
+  isDraggingNav: boolean;
+  searchQuery: string;
+  onSearchChange: (q: string) => void;
+  filteredNotebooks: (NotebookListItem | NotebookEntity)[];
+  selectedNotebookId: string | null;
+  onCreateNotebook: () => void;
+  onSelectNotebook: (id: string) => void;
+  onRenameNotebook: (id: string, updates: { title: string; icon?: string; color?: string }) => void;
+  onDeleteNotebook: (id: string) => void;
+  onToggleFavorite: (id: string, currentFavorite: boolean) => void;
+  onStartNavDrag: (e: React.MouseEvent) => void;
+  onNavResizeHandleClick: () => void;
+}
+
+export const NavigationColumn = React.memo(function NavigationColumn({
+  isNavigationExpanded,
+  onCollapseNav,
+  isNavIconsOnly,
+  navWidth,
+  isDraggingNav,
+  searchQuery,
+  onSearchChange,
+  filteredNotebooks,
+  selectedNotebookId,
+  onCreateNotebook,
+  onSelectNotebook,
+  onRenameNotebook,
+  onDeleteNotebook,
+  onToggleFavorite,
+  onStartNavDrag,
+  onNavResizeHandleClick,
+}: NavigationColumnProps) {
+  const navInlineStyle = isNavigationExpanded 
+    ? { width: `${navWidth}px`, transition: isDraggingNav ? 'none' : undefined }
+    : undefined;
+
+  return (
+    <div 
+      className={`${styles.navigationColumn} ${!isNavigationExpanded ? styles.collapsed : ''} ${isNavIconsOnly ? styles.iconsOnly : ''}`}
+      style={navInlineStyle}
+    >
+      <div className={styles.navigationInner} style={isNavigationExpanded ? { width: `${navWidth}px` } : undefined}>
+        {/* 1. Top Section */}
+        <div className={styles.topBar}>
+          <div className={styles.topBarActions}>
+            {!isNavIconsOnly && (
+              <>
+                <button className={styles.iconButton} onClick={onCreateNotebook}>
+                  <Plus size={18} />
+                </button>
+                <button className={styles.iconButton}>
+                  <LayoutGrid size={18} />
+                </button>
+                <div style={{ flex: 1 }} />
+              </>
+            )}
+            <button 
+              className={styles.iconButton} 
+              onClick={onCollapseNav}
+              aria-label="Collapse navigation panel"
+              title="Collapse navigation"
+              aria-expanded="true"
+            >
+              <PanelLeft size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* 2. Search */}
+        <div className={styles.searchContainer}>
+          <SearchBar 
+            value={searchQuery}
+            onChange={onSearchChange}
+            placeholder="Filter notebooks..." 
+          />
+        </div>
+
+        {/* 3 & 4. Channel List */}
+        <div className={styles.channelList}>
+          {filteredNotebooks.map((nb, idx) => (
+            <NotebookRow 
+              key={nb.id}
+              notebook={nb}
+              index={idx}
+              isSelected={selectedNotebookId === nb.id}
+              onSelect={onSelectNotebook}
+              onRename={onRenameNotebook}
+              onDelete={onDeleteNotebook}
+              onToggleFavorite={onToggleFavorite}
+            />
+          ))}
+        </div>
+
+        {/* 6. Bottom Pinned Items */}
+        <div className={styles.bottomSection}>
+          <div className={styles.bottomItem}>
+            <Star className={styles.bottomIcon} fill="#fbbf24" color="#fbbf24" />
+            <span>Favorites</span>
+            <span className={styles.bottomCount}>8</span>
+          </div>
+          <div className={styles.bottomItem}>
+            <Share className={styles.bottomIcon} />
+            <span>Shared with me</span>
+            <span className={styles.bottomCount}>⇧ 7</span>
+          </div>
+          <div className={styles.bottomItem}>
+            <Trash2 className={styles.bottomIcon} />
+            <span>Trash</span>
+          </div>
+        </div>
+      </div>
+      {isNavigationExpanded && (
+        <div 
+          className={styles.resizeHandle} 
+          onMouseDown={onStartNavDrag} 
+          onClick={onNavResizeHandleClick}
+        />
+      )}
+    </div>
+  );
+});
 
 export function NotesSidebar({
   notes,
@@ -37,26 +347,45 @@ export function NotesSidebar({
   const { closedNotes: allClosedNotes, removeClosedNote } = useRecentlyClosedNotes(selectedNoteId, selectedNoteTitle, selectedNotebookId);
   
   // Only show recently closed notes that belong to the current notebook
-  const closedNotes = allClosedNotes.filter(note => note.notebookId === selectedNotebookId);
+  const closedNotes = useMemo(() => {
+    return allClosedNotes.filter((note) => note.notebookId === selectedNotebookId);
+  }, [allClosedNotes, selectedNotebookId]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [workspaceSearch, setWorkspaceSearch] = useState('');
   const [isSearchingWorkspace, setIsSearchingWorkspace] = useState(false);
   const [foldersByNotebook, setFoldersByNotebook] = useState<Record<string, { id: string, title: string, isOpen: boolean }[]>>({});
   const [noteFolderMap, setNoteFolderMap] = useState<Record<string, string>>({});
-  const [activePopoverId, setActivePopoverId] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingTitle, setEditingTitle] = useState('');
-  const [editingIcon, setEditingIcon] = useState('');
-  const [editingColor, setEditingColor] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const COLORS = ['#4f46e5', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6'];
 
   const notebooks = notes.data?.notebooks || [];
-  const filteredNotebooks = notebooks.filter(nb => 
-    nb.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const prevNotebooksRef = useRef(notebooks);
+  const stableNotebooks = useMemo(() => {
+    const prev = prevNotebooksRef.current;
+    if (
+      prev.length === notebooks.length &&
+      prev.every((nb, i) => {
+        const next = notebooks[i];
+        return (
+          nb.id === next.id &&
+          nb.title === next.title &&
+          nb.color === next.color &&
+          nb.icon === next.icon &&
+          (nb as any).favorite === (next as any).favorite
+        );
+      })
+    ) {
+      return prev;
+    }
+    prevNotebooksRef.current = notebooks;
+    return notebooks;
+  }, [notebooks]);
+
+  const filteredNotebooks = useMemo(() => {
+    const q = searchQuery.toLowerCase();
+    return stableNotebooks.filter((nb) => 
+      nb.title.toLowerCase().includes(q)
+    );
+  }, [stableNotebooks, searchQuery]);
 
   const shouldCollapseWorkspace = !isWorkspaceExpanded || !selectedNotebookId;
   
@@ -76,7 +405,7 @@ export function NotesSidebar({
     if (!selectedNotebookId) return [];
     
     // Aggregate from notes in this notebook
-    const notebookNotes = notes.state?.notes?.filter(n => n.notebookId === selectedNotebookId && !n.archived && n.contentType === 'kanban') || [];
+    const notebookNotes = notes.state?.notes?.filter((n) => n.notebookId === selectedNotebookId && !n.archived && n.contentType === 'kanban') || [];
     
     const now = new Date();
     // Calculate start and end of the current week (assuming Sunday start)
@@ -90,9 +419,9 @@ export function NotesSidebar({
     weekEnd.setHours(23, 59, 59, 999);
 
     const aggregated: Task[] = [];
-    notebookNotes.forEach(note => {
+    notebookNotes.forEach((note) => {
       if (note.kanbanCards) {
-        note.kanbanCards.forEach(card => {
+        note.kanbanCards.forEach((card) => {
           const dateStr = card.dueDate || card.deadline;
           if (dateStr) {
             const date = new Date(dateStr);
@@ -122,14 +451,14 @@ export function NotesSidebar({
     return aggregated.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [selectedNotebookId, notes.state?.notes]);
 
-  const setCurrentTasks = (newTasks: Task[]) => {
+  const setCurrentTasks = useCallback((newTasks: Task[]) => {
     if (selectedNotebookId) {
-      setTasksByNotebook(prev => ({ ...prev, [selectedNotebookId]: newTasks }));
+      setTasksByNotebook((prev) => ({ ...prev, [selectedNotebookId]: newTasks }));
     }
-  };
+  }, [selectedNotebookId]);
 
   const calendarEvents: CalendarEvent[] = React.useMemo(() => {
-    return currentTasks.map(t => {
+    return currentTasks.map((t) => {
       const match = t.date.match(/\d+/);
       return {
         day: match ? parseInt(match[0], 10) : 1,
@@ -194,16 +523,58 @@ export function NotesSidebar({
     };
   }, [isDraggingWorkspace, setIsWorkspaceExpanded]);
 
-  const navInlineStyle = isNavigationExpanded 
-    ? { width: `${navWidth}px`, transition: isDraggingNav ? 'none' : undefined }
-    : undefined;
+  const isNavIconsOnly = isNavigationExpanded && navWidth === 64;
+
+  const handleCreateNotebook = useCallback(() => {
+    notes.actions.createNotebook();
+  }, [notes.actions]);
+
+  const handleSelectNotebook = useCallback((id: string) => {
+    notes.actions.selectNotebook(id);
+  }, [notes.actions]);
+
+  const handleRenameNotebook = useCallback((id: string, updates: { title: string; icon?: string; color?: string }) => {
+    notes.actions.patchNotebook(id, updates);
+  }, [notes.actions]);
+
+  const handleDeleteNotebook = useCallback((id: string) => {
+    notes.actions.deleteNotebook(id);
+  }, [notes.actions]);
+
+  const handleToggleFavorite = useCallback((id: string, currentFavorite: boolean) => {
+    notes.actions.patchNotebook(id, { favorite: !currentFavorite });
+  }, [notes.actions]);
+
+  const handleCollapseNav = useCallback(() => {
+    setIsNavigationExpanded(false);
+  }, [setIsNavigationExpanded]);
+
+  const handleStartNavDrag = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDraggingNav(true);
+    navDragFlag.current = false;
+  }, []);
+
+  const handleNavResizeHandleClick = useCallback(() => {
+    if (!navDragFlag.current) {
+      setIsNavigationExpanded(false);
+    }
+  }, [setIsNavigationExpanded]);
+
+  const handleTaskClick = useCallback((task: Task) => {
+    if (task.noteId) {
+      notes.actions.selectNote(task.noteId);
+    }
+  }, [notes.actions]);
+
+  const selectedNotebook = useMemo(() => {
+    return notes.data?.notebooks?.find((n) => n.id === selectedNotebookId);
+  }, [notes.data?.notebooks, selectedNotebookId]);
 
   const workspaceInlineStyle = isWorkspaceExpanded
     ? { width: `${workspaceWidth}px`, transition: isDraggingWorkspace ? 'none' : undefined }
     : undefined;
 
-  const isNavIconsOnly = isNavigationExpanded && navWidth === 64;
-  
   return (
     <aside className={styles.sidebar}>
       {!isNavigationExpanded && (
@@ -212,182 +583,24 @@ export function NotesSidebar({
           onClick={() => setIsNavigationExpanded(true)}
         />
       )}
-      <div 
-        className={`${styles.navigationColumn} ${!isNavigationExpanded ? styles.collapsed : ''} ${isNavIconsOnly ? styles.iconsOnly : ''}`}
-        style={navInlineStyle}
-      >
-        <div className={styles.navigationInner} style={isNavigationExpanded ? { width: `${navWidth}px` } : undefined}>
-          {/* 1. Top Section */}
-          <div className={styles.topBar}>
-            <div className={styles.topBarActions}>
-              {!isNavIconsOnly && (
-                <>
-                  <button className={styles.iconButton} onClick={() => notes.actions.createNotebook()}>
-                    <Plus size={18} />
-                  </button>
-                  <button className={styles.iconButton}>
-                    <LayoutGrid size={18} />
-                  </button>
-                  <div style={{ flex: 1 }} />
-                </>
-              )}
-              <button 
-                className={styles.iconButton} 
-                onClick={() => setIsNavigationExpanded(false)}
-                aria-label="Collapse navigation panel"
-                title="Collapse navigation"
-                aria-expanded="true"
-              >
-                <PanelLeft size={18} />
-              </button>
-            </div>
-          </div>
-
-          {/* 2. Search */}
-          <div className={styles.searchContainer}>
-            <SearchBar 
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Filter notebooks..." 
-            />
-          </div>
-
-          {/* 3 & 4. Channel List */}
-          <div className={styles.channelList}>
-            {filteredNotebooks.map((nb, idx) => (
-              <div 
-                key={nb.id} 
-                className={`${styles.channelItem} ${selectedNotebookId === nb.id ? styles.selected : ''} ${editingId === nb.id ? styles.editingItem : ''}`}
-                onClick={() => notes.actions.selectNotebook(nb.id)}
-                onDoubleClick={() => {
-                  setEditingId(nb.id);
-                  setEditingTitle(nb.title);
-                  setEditingIcon(nb.icon || '');
-                  setEditingColor(nb.color || null);
-                }}
-              >
-                {editingId === nb.id ? (
-                  <div className={styles.inlineEditor} onClick={e => e.stopPropagation()}>
-                    <div className={styles.editorRow}>
-                      <input 
-                        className={styles.iconInput}
-                        value={editingIcon}
-                        onChange={e => setEditingIcon(e.target.value)}
-                        placeholder="😀"
-                        maxLength={2}
-                      />
-                      <input
-                        className={styles.titleInput}
-                        ref={inputRef}
-                        value={editingTitle}
-                        onChange={(e) => setEditingTitle(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            notes.actions.patchNotebook(nb.id, { title: editingTitle, icon: editingIcon, color: editingColor || undefined });
-                            setEditingId(null);
-                          }
-                          if (e.key === 'Escape') {
-                            setEditingId(null);
-                          }
-                        }}
-                        placeholder="Notebook title..."
-                      />
-                    </div>
-                    <div className={styles.colorPickerRow}>
-                      {COLORS.map(c => (
-                        <div 
-                          key={c} 
-                          className={`${styles.colorCircle} ${editingColor === c ? styles.selectedColor : ''}`}
-                          style={{ backgroundColor: c }}
-                          onClick={() => setEditingColor(c)}
-                        />
-                      ))}
-                    </div>
-                    <div className={styles.editorActions}>
-                      <button className={styles.editorCancel} onClick={() => setEditingId(null)}>Cancel</button>
-                      <button className={styles.editorSave} onClick={() => {
-                        notes.actions.patchNotebook(nb.id, { title: editingTitle, icon: editingIcon, color: editingColor || undefined });
-                        setEditingId(null);
-                      }}>Save</button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className={styles.avatar} style={{ backgroundColor: nb.color || `hsl(${idx * 30}, 60%, 50%)` }}>
-                      {nb.icon || nb.title.charAt(0).toUpperCase()}
-                    </div>
-                    <span className={styles.channelName}>{nb.title}</span>
-                    <div className={styles.pinIcon} style={{ display: 'flex', gap: '4px' }}>
-                      <Star 
-                        size={16}
-                        onClick={(e: React.MouseEvent) => {
-                          e.stopPropagation();
-                          if ('favorite' in nb) {
-                            notes.actions.patchNotebook(nb.id, { favorite: !nb.favorite });
-                          }
-                          console.log('Star toggled for', nb.title);
-                        }}
-                      />
-                      <div style={{ position: 'relative' }} className="popover-container">
-                        <MoreHorizontal 
-                          size={16} 
-                          onClick={(e: React.MouseEvent) => {
-                            e.stopPropagation();
-                            setActivePopoverId(activePopoverId === nb.id ? null : nb.id);
-                          }}
-                        />
-                        {activePopoverId === nb.id && (
-                          <div 
-                            className={styles.popoverMenu}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <button className={styles.popoverItem} onClick={(e) => { 
-                              e.stopPropagation(); 
-                              setEditingId(nb.id); 
-                              setEditingTitle(nb.title); 
-                              setEditingIcon(nb.icon || '');
-                              setEditingColor(nb.color || null);
-                              setActivePopoverId(null); 
-                            }}>Edit Notebook</button>
-                            <button className={styles.popoverItem} onClick={(e) => { e.stopPropagation(); notes.actions.deleteNotebook(nb.id); setActivePopoverId(null); }}>Delete</button>
-                            <button className={styles.popoverItem} onClick={(e) => { e.stopPropagation(); alert('Copied'); setActivePopoverId(null); }}>Copy</button>
-                            <button className={styles.popoverItem} onClick={(e) => { e.stopPropagation(); alert('Cut'); setActivePopoverId(null); }}>Cut</button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-
-          {/* 6. Bottom Pinned Items */}
-          <div className={styles.bottomSection}>
-            <div className={styles.bottomItem}>
-              <Star className={styles.bottomIcon} fill="#fbbf24" color="#fbbf24" />
-              <span>Favorites</span>
-              <span className={styles.bottomCount}>8</span>
-            </div>
-            <div className={styles.bottomItem}>
-              <Share className={styles.bottomIcon} />
-              <span>Shared with me</span>
-              <span className={styles.bottomCount}>⇧ 7</span>
-            </div>
-            <div className={styles.bottomItem}>
-              <Trash2 className={styles.bottomIcon} />
-              <span>Trash</span>
-            </div>
-          </div>
-        </div>
-        {isNavigationExpanded && (
-          <div 
-            className={styles.resizeHandle} 
-            onMouseDown={(e) => { e.preventDefault(); setIsDraggingNav(true); navDragFlag.current = false; }} 
-            onClick={() => { if (!navDragFlag.current) setIsNavigationExpanded(false); }}
-          />
-        )}
-      </div>
+      <NavigationColumn
+        isNavigationExpanded={isNavigationExpanded}
+        onCollapseNav={handleCollapseNav}
+        isNavIconsOnly={isNavIconsOnly}
+        navWidth={navWidth}
+        isDraggingNav={isDraggingNav}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        filteredNotebooks={filteredNotebooks}
+        selectedNotebookId={selectedNotebookId}
+        onCreateNotebook={handleCreateNotebook}
+        onSelectNotebook={handleSelectNotebook}
+        onRenameNotebook={handleRenameNotebook}
+        onDeleteNotebook={handleDeleteNotebook}
+        onToggleFavorite={handleToggleFavorite}
+        onStartNavDrag={handleStartNavDrag}
+        onNavResizeHandleClick={handleNavResizeHandleClick}
+      />
       
       <div 
         className={`${styles.workspaceColumn} ${shouldCollapseWorkspace ? styles.collapsed : ''}`}
@@ -420,7 +633,7 @@ export function NotesSidebar({
           </div>
 
           <SpaceHeader 
-            notebook={notes.data?.notebooks?.find(n => n.id === selectedNotebookId)} 
+            notebook={selectedNotebook} 
             notes={notes}
             isSearchingWorkspace={isSearchingWorkspace}
             setIsSearchingWorkspace={setIsSearchingWorkspace}
@@ -464,11 +677,7 @@ export function NotesSidebar({
             <TasksSection 
               tasks={currentTasks} 
               setTasks={setCurrentTasks} 
-              onTaskClick={(task) => {
-                if (task.noteId) {
-                  notes.actions.selectNote(task.noteId);
-                }
-              }}
+              onTaskClick={handleTaskClick}
             />
           ) : (
             <div className={rightColStyles.sectionContainer}>

@@ -3,6 +3,7 @@ import { resolveMetadataBase } from '@/src/shared/lib/metadataBase';
 import { Caveat, Dancing_Script, Geist, Geist_Mono, Manrope, Lora, Playfair_Display } from 'next/font/google';
 import { CapacitorBridge } from '@/src/client/components/global/CapacitorBridge/CapacitorBridge';
 import { ReactQueryProvider } from '@/src/client/providers/ReactQueryProvider';
+import { MotionProvider } from '@/src/client/providers/MotionProvider';
 import { SliderProgressEngine } from '@/src/client/components/ui/Slider/SliderProgressEngine';
 import { SessionProvider } from 'next-auth/react';
 import { DevLoggerInit } from '@/src/client/providers/DevLoggerInit';
@@ -11,35 +12,44 @@ import './globals.css';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
+  display: 'swap',
 });
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
+  display: 'swap',
 });
 
 const manrope = Manrope({
   variable: '--font-manrope-next',
   subsets: ['latin'],
   weight: ['500', '600', '700'],
+  display: 'swap',
 });
 
 const caveat = Caveat({
   variable: '--font-caveat-next',
   subsets: ['latin'],
   weight: ['700'],
+  display: 'swap',
+  preload: false,
 });
 
 const dancingScript = Dancing_Script({
   variable: '--font-dancing-script-next',
   subsets: ['latin'],
   weight: ['700'],
+  display: 'swap',
+  preload: false,
 });
 
 const lora = Lora({
   variable: '--font-lora',
   subsets: ['latin'],
   style: ['italic'],
+  display: 'swap',
+  preload: false,
 });
 
 const playfairDisplay = Playfair_Display({
@@ -47,6 +57,8 @@ const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
   style: ['normal', 'italic'],
   weight: ['400', '600', '700'],
+  display: 'swap',
+  preload: false,
 });
 
 
@@ -172,6 +184,12 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
       className={`${geistSans.variable} ${geistMono.variable} ${manrope.variable} ${caveat.variable} ${dancingScript.variable} ${lora.variable} ${playfairDisplay.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        <link rel="preconnect" href="https://i.ytimg.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://i.ytimg.com" />
+        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
+      </head>
       <body className="min-h-screen bg-background text-text font-sans antialiased">
         <SessionProvider refetchOnWindowFocus={false}>
           <DevLoggerInit />
@@ -183,7 +201,9 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
           </a>
           <SliderProgressEngine />
           <CapacitorBridge />
-          <ReactQueryProvider>{children}</ReactQueryProvider>
+          <ReactQueryProvider>
+            <MotionProvider>{children}</MotionProvider>
+          </ReactQueryProvider>
         </SessionProvider>
       </body>
     </html>

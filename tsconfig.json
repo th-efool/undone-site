@@ -22,6 +22,8 @@
     "paths": {
       "@/*": ["./*"],
       "@undone/notes-board": ["./packages/notes-board/dist/index.js"],
+      "@undone/notes-board/canvas": ["./packages/notes-board/dist/canvas.js"],
+      "@undone/notes-board/kanban": ["./packages/notes-board/dist/kanban.js"],
       "@undone/notes-board/*": ["./packages/notes-board/*"]
     }
   },
