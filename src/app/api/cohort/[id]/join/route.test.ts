@@ -91,7 +91,7 @@ describe('cohort subscription removal and join', () => {
     expect((await POST(new Request('http://localhost'), params())).status).toBe(200);
     expect(mocks.config).toHaveBeenCalledWith(
       { userId: 'learner', cohortId: 'systems' },
-      { $set: { isHidden: false, isPaused: false }, $unset: { pausedUntil: 1 } },
+      { $set: { isHidden: false, isPaused: false }, $unset: { pausedUntil: 1, pausedReason: 1 } },
       { upsert: true }
     );
     expect(mocks.join).toHaveBeenCalledOnce();
