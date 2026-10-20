@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import { cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
@@ -71,7 +71,7 @@ describe('ChatPane & Interactive Linking (ISSUE-24)', () => {
     ],
   });
 
-  it('renders assistant markdown content with headings, lists, and formatted code blocks', () => {
+  it('renders assistant markdown content with headings, lists, and formatted code blocks', async () => {
     fakeState.view = baseWorkspace;
     fakeState.messages = [
       {
@@ -88,7 +88,9 @@ describe('ChatPane & Interactive Linking (ISSUE-24)', () => {
 
     render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
 
-    expect(screen.getByText('Key Principles').tagName).toBe('H4');
+    await waitFor(() => {
+      expect(screen.getByText('Key Principles').tagName).toBe('H4');
+    }, { timeout: 4000 });
     expect(screen.getByText('Safety over liveness').tagName).toBe('LI');
     expect(screen.getByText('Quorum overlap').tagName).toBe('LI');
     expect(screen.getByText('init_raft()').tagName).toBe('CODE');

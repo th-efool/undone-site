@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { Check, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useWorkspaceView, useDispatchAction, useInteractionState } from '@/src/client/interaction/hooks';
 import { cohortWorkspaceSchema, type CohortWorkspace, type CohortAction } from '@/src/shared/cohort-builder/contracts';
@@ -19,10 +20,15 @@ import { StartingPointStageView } from './stages/StartingPointStageView';
 import { MaterialStageView } from './stages/MaterialStageView';
 import { DiscoveryStageView } from './stages/DiscoveryStageView';
 import { GoalStageView } from './stages/GoalStageView';
-import { ReadyStageView } from './stages/ReadyStageView';
-import { PublicationStageView } from './stages/PublicationStageView';
 import { CohortDraftProvider, useCohortDrafts } from './draft-context';
 import { getActiveStage as selectActiveStage, type BuilderStage } from './stage-selectors';
+
+import { ReadyStageView } from './stages/ReadyStageView';
+
+const PublicationStageView = dynamic(
+  () => import('./stages/PublicationStageView').then((m) => m.PublicationStageView),
+  { ssr: false }
+);
 
 export type Stage = BuilderStage;
 
