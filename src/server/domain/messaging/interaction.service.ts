@@ -319,7 +319,7 @@ export const interactionService = {
           generation: stream.generation,
           entityId: messageId,
           entityRevision: updatedMessage.revision,
-          payload: eventPayload,
+          payload: eventPayload as any,
         },
       });
 

@@ -101,7 +101,7 @@ describe('Phase 9: Notification Domain Service', () => {
         actorId: 'user-actor',
         scopeType: 'channel',
         scopeId: 'ch-muted',
-        type: 'message',
+        type: 'group_message',
         title: 'Muted channel message',
         body: 'Hello',
       });

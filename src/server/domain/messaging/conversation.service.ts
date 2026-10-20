@@ -384,6 +384,384 @@ export const conversationService = {
     return { success: true };
   },
 
+  /**
+   * Invites a user to a group conversation with privacy and block checks.
+   */
+  async createGroupInvitation(
+    inviterId: string,
+    conversationId: string,
+    inviteeId: string
+  ): Promise<{ id: string; status: string }> {
+    if (inviterId === inviteeId) {
+      throw new Error('Cannot invite yourself');
+    }
+
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      include: {
+        participants: {
+          where: { leftAt: null },
+        },
+      },
+    });
+
+    if (!conversation) {
+      throw new Error('Conversation not found');
+    }
+
+    if (conversation.kind !== 'GROUP') {
+      throw new Error('Can only invite members to a group conversation');
+    }
+
+    const inviter = conversation.participants.find((p) => p.userId === inviterId);
+    if (!inviter) {
+      throw new Error('You must be an active participant to invite members');
+    }
+
+    const alreadyMember = conversation.participants.some((p) => p.userId === inviteeId);
+    if (alreadyMember) {
+      throw new Error('User is already an active member of this group');
+    }
+
+    // Check blocks between inviter and invitee
+    const block = await prisma.userBlock.findFirst({
+      where: {
+        OR: [
+          { blockerId: inviterId, blockedId: inviteeId },
+          { blockerId: inviteeId, blockedId: inviterId },
+        ],
+      },
+    });
+
+    if (block) {
+      throw new Error('Cannot invite a blocked user or be invited by a blocked user');
+    }
+
+    // Create or update invitation (7-day expiry)
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    const invitation = await prisma.conversationInvitation.upsert({
+      where: {
+        conversationId_inviteeId_status: {
+          conversationId,
+          inviteeId,
+          status: 'PENDING',
+        },
+      },
+      create: {
+        conversationId,
+        inviterId,
+        inviteeId,
+        status: 'PENDING',
+        expiresAt,
+      },
+      update: {
+        inviterId,
+        expiresAt,
+      },
+    });
+
+    return { id: invitation.id, status: invitation.status };
+  },
+
+  /**
+   * Retrieves pending invitations for a user.
+   */
+  async getPendingInvitations(userId: string) {
+    const invitations = await prisma.conversationInvitation.findMany({
+      where: {
+        inviteeId: userId,
+        status: 'PENDING',
+        expiresAt: { gt: new Date() },
+      },
+      include: {
+        conversation: {
+          select: {
+            id: true,
+            title: true,
+            creator: { select: { id: true, name: true, username: true } },
+          },
+        },
+        inviter: {
+          select: { id: true, name: true, username: true, image: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return invitations.map((inv) => ({
+      id: inv.id,
+      conversationId: inv.conversation.id,
+      conversationTitle: inv.conversation.title || 'Group Chat',
+      inviter: inv.inviter,
+      expiresAt: inv.expiresAt ? inv.expiresAt.toISOString() : null,
+      createdAt: inv.createdAt.toISOString(),
+    }));
+  },
+
+  /**
+   * Accepts a group invitation, joining the group with join-forward sequence visibility.
+   */
+  async acceptGroupInvitation(inviteeId: string, invitationId: string): Promise<{ success: boolean; conversationId: string }> {
+    const invitation = await prisma.conversationInvitation.findUnique({
+      where: { id: invitationId },
+      include: {
+        conversation: {
+          include: {
+            channel: { select: { id: true, messageCounter: true } },
+          },
+        },
+      },
+    });
+
+    if (!invitation || invitation.inviteeId !== inviteeId) {
+      throw new Error('Invitation not found or unauthorized');
+    }
+
+    if (invitation.status !== 'PENDING') {
+      throw new Error(`Invitation is already ${invitation.status.toLowerCase()}`);
+    }
+
+    if (invitation.expiresAt && invitation.expiresAt <= new Date()) {
+      throw new Error('Invitation has expired');
+    }
+
+    const currentCounter = invitation.conversation.channel?.messageCounter ?? 0;
+
+    await prisma.$transaction(async (tx) => {
+      await tx.conversationInvitation.update({
+        where: { id: invitationId },
+        data: { status: 'ACCEPTED' },
+      });
+
+      await tx.conversationParticipant.upsert({
+        where: {
+          conversationId_userId: {
+            conversationId: invitation.conversationId,
+            userId: inviteeId,
+          },
+        },
+        create: {
+          conversationId: invitation.conversationId,
+          userId: inviteeId,
+          role: 'MEMBER',
+          joinedAt: new Date(),
+          historyVisibleFromSequence: currentCounter,
+        },
+        update: {
+          leftAt: null,
+          joinedAt: new Date(),
+          historyVisibleFromSequence: currentCounter,
+        },
+      });
+
+      await tx.conversation.update({
+        where: { id: invitation.conversationId },
+        data: { accessGeneration: { increment: 1 } },
+      });
+    });
+
+    return { success: true, conversationId: invitation.conversationId };
+  },
+
+  /**
+   * Declines a group invitation.
+   */
+  async declineGroupInvitation(inviteeId: string, invitationId: string): Promise<{ success: boolean }> {
+    const invitation = await prisma.conversationInvitation.findUnique({
+      where: { id: invitationId },
+    });
+
+    if (!invitation || invitation.inviteeId !== inviteeId) {
+      throw new Error('Invitation not found or unauthorized');
+    }
+
+    if (invitation.status !== 'PENDING') {
+      throw new Error(`Invitation is already ${invitation.status.toLowerCase()}`);
+    }
+
+    await prisma.conversationInvitation.update({
+      where: { id: invitationId },
+      data: { status: 'DECLINED' },
+    });
+
+    return { success: true };
+  },
+
+  /**
+   * Revokes a group invitation by group owner or admin.
+   */
+  async revokeGroupInvitation(callerId: string, invitationId: string): Promise<{ success: boolean }> {
+    const invitation = await prisma.conversationInvitation.findUnique({
+      where: { id: invitationId },
+      include: {
+        conversation: {
+          include: {
+            participants: {
+              where: { leftAt: null },
+            },
+          },
+        },
+      },
+    });
+
+    if (!invitation) {
+      throw new Error('Invitation not found');
+    }
+
+    const caller = invitation.conversation.participants.find((p) => p.userId === callerId);
+    if (!caller || !['OWNER', 'ADMIN'].includes(caller.role)) {
+      throw new Error('Only group owners or admins can revoke invitations');
+    }
+
+    await prisma.conversationInvitation.update({
+      where: { id: invitationId },
+      data: { status: 'REVOKED' },
+    });
+
+    return { success: true };
+  },
+
+  /**
+   * Transfers ownership of a group to another active member.
+   */
+  async transferGroupOwnership(
+    currentOwnerId: string,
+    conversationId: string,
+    newOwnerId: string
+  ): Promise<{ success: boolean }> {
+    if (currentOwnerId === newOwnerId) {
+      throw new Error('Cannot transfer ownership to yourself');
+    }
+
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      include: {
+        participants: {
+          where: { leftAt: null },
+        },
+      },
+    });
+
+    if (!conversation || conversation.kind !== 'GROUP') {
+      throw new Error('Group conversation not found');
+    }
+
+    const currentOwner = conversation.participants.find((p) => p.userId === currentOwnerId);
+    if (!currentOwner || currentOwner.role !== 'OWNER') {
+      throw new Error('Only the current group owner can transfer ownership');
+    }
+
+    const targetParticipant = conversation.participants.find((p) => p.userId === newOwnerId);
+    if (!targetParticipant) {
+      throw new Error('Target user must be an active participant in this group');
+    }
+
+    await prisma.$transaction([
+      prisma.conversationParticipant.update({
+        where: { conversationId_userId: { conversationId, userId: currentOwnerId } },
+        data: { role: 'ADMIN' },
+      }),
+      prisma.conversationParticipant.update({
+        where: { conversationId_userId: { conversationId, userId: newOwnerId } },
+        data: { role: 'OWNER' },
+      }),
+      prisma.conversation.update({
+        where: { id: conversationId },
+        data: { creatorId: newOwnerId },
+      }),
+    ]);
+
+    return { success: true };
+  },
+
+  /**
+   * Updates participant role (e.g. promoting to ADMIN or demoting to MEMBER).
+   */
+  async updateParticipantRole(
+    ownerId: string,
+    conversationId: string,
+    targetUserId: string,
+    newRole: 'ADMIN' | 'MEMBER'
+  ): Promise<{ success: boolean }> {
+    const owner = await prisma.conversationParticipant.findUnique({
+      where: { conversationId_userId: { conversationId, userId: ownerId } },
+    });
+
+    if (!owner || owner.role !== 'OWNER' || owner.leftAt !== null) {
+      throw new Error('Only group owners can update member roles');
+    }
+
+    const target = await prisma.conversationParticipant.findUnique({
+      where: { conversationId_userId: { conversationId, userId: targetUserId } },
+    });
+
+    if (!target || target.leftAt !== null) {
+      throw new Error('Target user is not an active participant in this group');
+    }
+
+    if (target.role === 'OWNER') {
+      throw new Error('Cannot change owner role directly; use transferGroupOwnership');
+    }
+
+    await prisma.conversationParticipant.update({
+      where: { conversationId_userId: { conversationId, userId: targetUserId } },
+      data: { role: newRole },
+    });
+
+    return { success: true };
+  },
+
+  /**
+   * Removes a member from a group by owner or admin, advancing access generation.
+   */
+  async removeGroupMember(
+    callerId: string,
+    conversationId: string,
+    targetUserId: string
+  ): Promise<{ success: boolean }> {
+    if (callerId === targetUserId) {
+      throw new Error('Use leaveGroup to remove yourself');
+    }
+
+    const caller = await prisma.conversationParticipant.findUnique({
+      where: { conversationId_userId: { conversationId, userId: callerId } },
+    });
+
+    if (!caller || !['OWNER', 'ADMIN'].includes(caller.role) || caller.leftAt !== null) {
+      throw new Error('Only owners and admins can remove members');
+    }
+
+    const target = await prisma.conversationParticipant.findUnique({
+      where: { conversationId_userId: { conversationId, userId: targetUserId } },
+    });
+
+    if (!target || target.leftAt !== null) {
+      throw new Error('Target user is not an active participant in this group');
+    }
+
+    if (target.role === 'OWNER') {
+      throw new Error('Cannot remove the group owner');
+    }
+
+    if (caller.role === 'ADMIN' && target.role === 'ADMIN') {
+      throw new Error('Admins cannot remove other admins');
+    }
+
+    await prisma.$transaction([
+      prisma.conversationParticipant.update({
+        where: { conversationId_userId: { conversationId, userId: targetUserId } },
+        data: { leftAt: new Date() },
+      }),
+      prisma.conversation.update({
+        where: { id: conversationId },
+        data: { accessGeneration: { increment: 1 } },
+      }),
+    ]);
+
+    return { success: true };
+  },
+
   async searchPeople(
     currentUserId: string,
     query: string,

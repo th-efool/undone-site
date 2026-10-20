@@ -108,7 +108,7 @@ describe('Phase 8: Durable StudySession Domain Service', () => {
         version: 1,
       } as any);
 
-      vi.mocked(prisma.studySession.update).mockImplementationOnce(({ data }: any) => {
+      (prisma.studySession.update as any).mockImplementationOnce(({ data }: any) => {
         return Promise.resolve({
           id: 'sess-pause',
           userId: 'user-1',
@@ -166,7 +166,7 @@ describe('Phase 8: Durable StudySession Domain Service', () => {
         version: 2,
       } as any);
 
-      vi.mocked(prisma.studySession.update).mockImplementationOnce(({ data }: any) => {
+      (prisma.studySession.update as any).mockImplementationOnce(({ data }: any) => {
         return Promise.resolve({
           id: 'sess-resume',
           userId: 'user-1',

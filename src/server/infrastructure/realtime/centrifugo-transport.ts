@@ -166,3 +166,6 @@ export class CentrifugoRealtimeTransport implements RealtimeTransport {
     // No persistent connection pool required for HTTP server API
   }
 }
+
+export const centrifugoTransport = new CentrifugoRealtimeTransport();
+

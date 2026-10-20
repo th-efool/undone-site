@@ -18,7 +18,7 @@ export function clearStudyRoomCacheForTest(): void {
   cachedRoomsEtag = '';
 }
 
-export async function GET(req?: Request) {
+export async function GET(req: Request = new Request('http://localhost/api/studyroom')) {
   try {
     const ifNoneMatch = req?.headers?.get('if-none-match');
 

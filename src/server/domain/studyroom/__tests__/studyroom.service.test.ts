@@ -227,7 +227,7 @@ describe('Phase 8: Study Room Membership & Lease Domain Service', () => {
       // Old room has 0 remaining users
       vi.mocked(prisma.roomLease.groupBy)
         .mockResolvedValueOnce([]) // old room after leave
-        .mockResolvedValueOnce([{ userId: 'user-1' }]); // new room after join
+        .mockResolvedValueOnce([{ userId: 'user-1' } as any]); // new room after join
 
       const expiresAt = new Date(Date.now() + 90000);
       vi.mocked(prisma.roomLease.upsert).mockResolvedValueOnce({
@@ -347,7 +347,7 @@ describe('Phase 8: Study Room Membership & Lease Domain Service', () => {
 
       // 1 other active lease remains
       vi.mocked(prisma.roomLease.count).mockResolvedValueOnce(1);
-      vi.mocked(prisma.roomLease.groupBy).mockResolvedValueOnce([{ userId: 'user-1' }]);
+      vi.mocked(prisma.roomLease.groupBy).mockResolvedValueOnce([{ userId: 'user-1' } as any]);
 
       const result = await studyRoomService.leaveRoom({
         userId: 'user-1',
@@ -382,7 +382,7 @@ describe('Phase 8: Study Room Membership & Lease Domain Service', () => {
       ] as any);
 
       vi.mocked(prisma.studyRoom.findMany).mockResolvedValueOnce([{ id: 'room-1' }] as any);
-      vi.mocked(prisma.roomLease.groupBy).mockResolvedValueOnce([{ userId: 'user-active' }]);
+      vi.mocked(prisma.roomLease.groupBy).mockResolvedValueOnce([{ userId: 'user-active' } as any]);
 
       const result = await studyRoomService.reconcileExpiredLeases();
 

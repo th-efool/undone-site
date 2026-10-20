@@ -647,6 +647,21 @@ export function useMessage() {
     [selectedCommunityId]
   );
 
+  const lastTypingSignalTime = useRef<number>(0);
+  const sendTypingSignal = useCallback(
+    (isTypingState: boolean) => {
+      if (!currentActiveChannelId) return;
+      const now = Date.now();
+      if (isTypingState && now - lastTypingSignalTime.current < 2000) return;
+      lastTypingSignalTime.current = now;
+
+      messagesRepository.sendTypingSignal(currentActiveChannelId, isTypingState).catch((err) => {
+        console.warn('Failed to send typing signal:', err);
+      });
+    },
+    [currentActiveChannelId]
+  );
+
   const setConversationScroll = useCallback((conversationId: string, scrollTop: number) => {
     setScrollPositions((current) => ({
       ...current,
@@ -916,21 +931,6 @@ export function useMessage() {
       } catch (err) {
         console.error('Failed to delete message:', err);
       }
-    },
-    [currentActiveChannelId]
-  );
-
-  const lastTypingSignalTime = useRef<number>(0);
-  const sendTypingSignal = useCallback(
-    (isTypingState: boolean) => {
-      if (!currentActiveChannelId) return;
-      const now = Date.now();
-      if (isTypingState && now - lastTypingSignalTime.current < 2000) return;
-      lastTypingSignalTime.current = now;
-
-      messagesRepository.sendTypingSignal(currentActiveChannelId, isTypingState).catch((err) => {
-        console.warn('Failed to send typing signal:', err);
-      });
     },
     [currentActiveChannelId]
   );

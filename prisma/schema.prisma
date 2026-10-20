@@ -52,6 +52,12 @@ model User {
   actedNotifications Notification[] @relation("ActorNotifications")
   notificationPreference NotificationPreference?
   pushSubscriptions PushSubscription[]
+  sprintsCreated    RoomSprint[]   @relation("SprintCreator")
+  sprintParticipations RoomSprintParticipant[]
+  roomControllerships RoomController[]
+  roomEnvironmentsUpdated RoomEnvironment[] @relation("EnvironmentUpdater")
+  pinnedMessages    Message[]      @relation("PinnedMessages")
+  moderatorAudits   MessageModerationAudit[] @relation("ModeratorAudits")
 
   @@map("users")
 }
@@ -647,6 +653,12 @@ model Message {
   editedAt        DateTime?
   deletedAt       DateTime?
   deletionReason  String?
+  isPinned        Boolean            @default(false)
+  pinnedAt        DateTime?
+  pinnedById      String?
+  pinnedBy        User?              @relation("PinnedMessages", fields: [pinnedById], references: [id], onDelete: SetNull)
+  isAnnouncement  Boolean            @default(false)
+  moderatorAudits MessageModerationAudit[]
 
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -656,6 +668,7 @@ model Message {
   @@index([channelId])
   @@index([authorId])
   @@index([replyToId])
+  @@index([channelId, isPinned])
   @@index([channelId, createdAt(sort: Desc)])
   @@map("messages")
 }
@@ -780,6 +793,9 @@ model StudyRoom {
   realtimeStream RealtimeStream?
   leases         RoomLease[]
   studySessions  StudySession[]
+  sprints        RoomSprint[]
+  environment    RoomEnvironment?
+  controllers    RoomController[]
 
   @@map("study_rooms")
 }
@@ -1097,4 +1113,97 @@ model PushSubscription {
   @@index([userId])
   @@map("push_subscriptions")
 }
+
+// ─────────────────────────────────────────────────────────────────
+//  PHASE 10 — ADVANCED ROOM SPRINTS, ENVIRONMENT & MESSAGE MODERATION
+// ─────────────────────────────────────────────────────────────────
+model RoomSprint {
+  id                    String                   @id @default(cuid())
+  studyRoomId           String
+  creatorId             String
+  title                 String?
+  targetDurationSeconds Int
+  elapsedSeconds        Int                      @default(0)
+  status                String                   @default("ACTIVE")
+  startedAt             DateTime                 @default(now())
+  resumedAt             DateTime?
+  pausedAt              DateTime?
+  deadline              DateTime?
+  endedAt               DateTime?
+  version               Int                      @default(1)
+  revision              Int                      @default(1)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  room                  StudyRoom                @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+  creator               User                     @relation("SprintCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  participants          RoomSprintParticipant[]
+
+  @@index([studyRoomId, status])
+  @@map("room_sprints")
+}
+
+model RoomSprintParticipant {
+  sprintId    String
+  userId      String
+  status      String                   @default("JOINED")
+  joinedAt    DateTime                 @default(now())
+  completedAt DateTime?
+  leftAt      DateTime?
+
+  sprint      RoomSprint               @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  user        User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([sprintId, userId])
+  @@index([userId])
+  @@map("room_sprint_participants")
+}
+
+model RoomEnvironment {
+  studyRoomId     String    @id
+  sceneId         String    @default("lofi-cafe")
+  soundscapeId    String?
+  musicPresetId   String?
+  musicStreamUrl  String?
+  revision        Int       @default(1)
+  updatedByUserId String?
+  updatedAt       DateTime  @updatedAt
+
+  room            StudyRoom @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+  updatedBy       User?     @relation("EnvironmentUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@map("room_environments")
+}
+
+model RoomController {
+  studyRoomId String
+  userId      String
+  role        String    @default("MODERATOR")
+  createdAt   DateTime  @default(now())
+
+  room        StudyRoom @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([studyRoomId, userId])
+  @@index([userId])
+  @@map("room_controllers")
+}
+
+model MessageModerationAudit {
+  id          String   @id @default(cuid())
+  channelId   String
+  messageId   String
+  moderatorId String
+  action      String
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  moderator   User     @relation("ModeratorAudits", fields: [moderatorId], references: [id], onDelete: Cascade)
+  message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
+  @@index([moderatorId])
+  @@map("message_moderation_audits")
+}
+
 
