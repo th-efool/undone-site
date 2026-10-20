@@ -15,7 +15,7 @@ export async function GET() {
     }
 
     if (isSharedGuestAccount(session.user)) {
-      return NextResponse.json({ communities: [] }, {
+      return NextResponse.json([], {
         headers: { 'Cache-Control': 'private, no-store' },
       });
     }

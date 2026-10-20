@@ -1,376 +1,80 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { conversationFilters, sidebarTabs } from '../constants';
-import { messagesRepository } from '@/src/client/repositories/messagesRepository';
 import {
-  ChatAttachmentKind,
-  CommunityMessage,
-  ConversationFilter,
-  ConversationPreview,
-  DMConversationModel,
-  DMMessage,
-  MessageView,
-  ReplyContext,
-  SidebarTab,
+  messagesRepository,
+  type EnrolledCommunityDTO,
+  type CanonicalMessagePayload,
+} from '@/src/client/repositories/messagesRepository';
+import {
+  type ChatAttachmentKind,
+  type CommunityMessage,
+  type ConversationFilter,
+  type ConversationPreview,
+  type DMConversationModel,
+  type DMMessage,
+  type MessageView,
+  type ReplyContext,
+  type SidebarTab,
 } from '../models';
 import {
-  getMessageCohorts,
-  mapCohortToCommunity,
-  mapCohortToConversation,
-  mapCohortToUpcomingEvent,
-} from '../utils';
+  formatMessageTime,
+  mapCanonicalMessageToCommunityMessage,
+  mapCommunityDtoToCommunityChat,
+  mapCommunityDtoToConversationPreview,
+} from '../utils/communityMapping';
+import { useRealtime } from '@/src/client/realtime';
 
-const me = {
-  id: 'me',
-  name: 'You',
-  avatar: '/undone-logo.svg',
-  online: true,
-};
-const storageKeys = {
-  drafts: 'sidequest-message-drafts',
-  community: 'sidequest-community-messages',
-  dm: 'sidequest-dm-messages',
-};
+const DRAFTS_STORAGE_KEY = 'sidequest-message-drafts';
 
-function matchesSearch(conversation: ConversationPreview, query: string) {
+function safeUseSession() {
+  try {
+    return useSession();
+  } catch {
+    return { data: null, status: 'unauthenticated' };
+  }
+}
+
+function safeUseRealtime() {
+  try {
+    return useRealtime();
+  } catch {
+    return null;
+  }
+}
+
+function matchesSearch(conversation: ConversationPreview, query: string): boolean {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return true;
 
   return [conversation.name, conversation.sender, conversation.preview].some((value) =>
-    value.toLowerCase().includes(normalized),
+    value?.toLowerCase().includes(normalized)
   );
 }
 
-function nowLabel() {
-  return new Intl.DateTimeFormat('en', {
-    hour: 'numeric',
-    minute: '2-digit',
-  }).format(new Date());
-}
-
-function readRecord<T>(key: string): Record<string, T> {
+function readDrafts(): Record<string, string> {
   if (typeof window === 'undefined') return {};
-
   try {
-    return JSON.parse(window.localStorage.getItem(key) ?? '{}') as Record<string, T>;
+    return JSON.parse(window.localStorage.getItem(DRAFTS_STORAGE_KEY) ?? '{}');
   } catch {
     return {};
   }
 }
 
-function mockAttachment(id: string, fileName: string, kind: ChatAttachmentKind) {
-  return {
-    id,
-    kind,
-    title: fileName,
-    url: kind === 'image' ? '/images/landing/screen.webp' : undefined,
-    meta:
-      kind === 'image'
-        ? 'Mock upload · image'
-        : `Mock upload · ${fileName.split('.').pop()?.toUpperCase() ?? 'FILE'}`,
-  };
-}
-
-const dmScripts: Record<string, Partial<DMConversationModel> & { messages: DMMessage[] }> = {
-  'aarav-mehta': {
-    messages: [
-      {
-        id: 'aarav-1',
-        type: 'incoming',
-        text: 'Still pairing on the eval harness tonight?',
-        timestamp: 'Mon 7:42 PM',
-        showAvatar: true,
-        tail: true,
-        dateLabel: 'Monday',
-      },
-      {
-        id: 'aarav-2',
-        type: 'outgoing',
-        text: 'Yes. I cleaned up the fixtures and added two edge cases.',
-        timestamp: 'Mon 7:49 PM',
-        status: 'read',
-        tail: true,
-      },
-      {
-        id: 'aarav-3',
-        type: 'incoming',
-        text: 'Perfect. I’ll bring the failing trace. It only breaks when the prompt has a table.',
-        timestamp: 'Mon 8:03 PM',
-        showAvatar: true,
-        tail: true,
-        reactions: [{ emoji: '👀', count: 1 }],
-      },
-      {
-        id: 'aarav-4',
-        type: 'outgoing',
-        text: 'Drop it here when you can.',
-        timestamp: 'Today 10:18 AM',
-        status: 'read',
-        dateLabel: 'Today',
-        tail: true,
-      },
-      {
-        id: 'aarav-5',
-        type: 'incoming',
-        text: 'Here you go — tiny but annoying bug.',
-        timestamp: '10:22 AM',
-        showAvatar: true,
-        tail: true,
-        attachment: mockAttachment('aarav-pdf', 'eval_trace_notes.pdf', 'pdf'),
-      },
-    ],
-  },
-  'vanshika-iyer': {
-    messages: [
-      {
-        id: 'v-1',
-        type: 'incoming',
-        text: 'Your dashboard critique was SO helpful 🙌',
-        timestamp: 'Yesterday 4:13 PM',
-        showAvatar: true,
-        tail: true,
-        dateLabel: 'Yesterday',
-        reactions: [{ emoji: '🙌', count: 2 }],
-      },
-      {
-        id: 'v-2',
-        type: 'outgoing',
-        text: 'The story was already there. You just needed fewer colors.',
-        timestamp: '4:16 PM',
-        status: 'read',
-        tail: true,
-      },
-      {
-        id: 'v-3',
-        type: 'incoming',
-        text: 'I tried your annotation idea. Screenshot attached.',
-        timestamp: '4:22 PM',
-        showAvatar: true,
-        tail: true,
-        attachment: mockAttachment('v-shot', 'retention_dashboard_v2.png', 'image'),
-      },
-    ],
-  },
-  'rohan-gupta': {
-    messages: [
-      {
-        id: 'r-1',
-        type: 'incoming',
-        text: 'I made a one-pager for fanout tradeoffs.',
-        timestamp: 'Fri 3:04 PM',
-        showAvatar: true,
-        tail: true,
-        dateLabel: 'Friday',
-      },
-      {
-        id: 'r-2',
-        type: 'incoming',
-        text: 'Would you sanity-check the capacity math?',
-        timestamp: '3:05 PM',
-        tail: true,
-        attachment: mockAttachment('r-pdf', 'chat_system_capacity.pdf', 'pdf'),
-      },
-      {
-        id: 'r-3',
-        type: 'outgoing',
-        text: 'Reading now. First note: call out hot celebrity accounts separately.',
-        timestamp: '3:18 PM',
-        status: 'delivered',
-        tail: true,
-        replyTo: { authorName: 'Ritika Nair', authorAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&auto=format&fit=crop&q=80', previewText: 'capacity math' },
-      },
-      {
-        id: 'r-4',
-        type: 'incoming',
-        text: 'Good catch. Added a separate write-amplification section.',
-        timestamp: '3:45 PM',
-        showAvatar: true,
-        tail: true,
-      },
-    ],
-  },
-  'samiksha-sharma': {
-    messages: [
-      {
-        id: 's-1',
-        type: 'incoming',
-        text: 'Tomorrow still works for the short film prompt jam?',
-        timestamp: 'Today 1:12 PM',
-        showAvatar: true,
-        tail: true,
-        dateLabel: 'Today',
-      },
-      {
-        id: 's-2',
-        type: 'outgoing',
-        text: 'Yep. I can do 11:30. Bring the rain-city concept.',
-        timestamp: '1:15 PM',
-        status: 'sent',
-        tail: true,
-      },
-    ],
-  },
-  'arjun-nair': {
-    messages: [
-      {
-        id: 'a-1',
-        type: 'incoming',
-        text: 'Fixed the broken link in the JS sandbox.',
-        timestamp: '11:58 AM',
-        showAvatar: true,
-        tail: true,
-        dateLabel: 'Today',
-      },
-      {
-        id: 'a-2',
-        type: 'outgoing',
-        text: 'Got it, thanks!',
-        timestamp: '12:05 PM',
-        status: 'read',
-        tail: true,
-        reactions: [{ emoji: '✅', count: 1 }],
-      },
-    ],
-  },
-  'ai-filmmaking-team': {
-    messages: [
-      {
-        id: 'film-1',
-        type: 'incoming',
-        text: 'Team drop: three reference frames for tonight.',
-        timestamp: 'Yesterday 6:10 PM',
-        showAvatar: true,
-        dateLabel: 'Yesterday',
-        tail: true,
-        attachment: mockAttachment('film-img', 'neon_alley_reference.jpg', 'image'),
-      },
-      {
-        id: 'film-2',
-        type: 'incoming',
-        text: 'Also uploading the temp VO.',
-        timestamp: '6:12 PM',
-        tail: true,
-        attachment: mockAttachment('film-audio', 'scratch_voiceover.mp3', 'audio'),
-      },
-      {
-        id: 'film-3',
-        type: 'outgoing',
-        text: 'The second frame has the best mood. Use that palette.',
-        timestamp: '6:40 PM',
-        status: 'read',
-        tail: true,
-      },
-      {
-        id: 'film-4',
-        type: 'incoming',
-        text: 'Agreed. Rendering a 5 sec motion test now 🔥',
-        timestamp: '7:02 PM',
-        showAvatar: true,
-        tail: true,
-      },
-    ],
-  },
-  'yash-patil': {
-    messages: [
-      {
-        id: 'y-1',
-        type: 'incoming',
-        text: 'Booked the study room for Saturday.',
-        timestamp: 'Yesterday 9:02 AM',
-        showAvatar: true,
-        tail: true,
-        dateLabel: 'Yesterday',
-      },
-      {
-        id: 'y-2',
-        type: 'outgoing',
-        text: 'Nice. Send location?',
-        timestamp: '9:07 AM',
-        status: 'read',
-        tail: true,
-      },
-      {
-        id: 'y-3',
-        type: 'incoming',
-        text: 'https://maps.example.com/sidequest-room-b',
-        timestamp: '9:08 AM',
-        showAvatar: true,
-        tail: true,
-      },
-      {
-        id: 'y-4',
-        type: 'incoming',
-        text: 'See you there',
-        timestamp: '9:09 AM',
-        tail: true,
-      },
-    ],
-  },
-  'design-thinkers': {
-    messages: [
-      {
-        id: 'dt-1',
-        type: 'incoming',
-        text: 'Ananya: Uploaded the interview notes from all five users.',
-        timestamp: 'Wed 5:14 PM',
-        showAvatar: true,
-        tail: true,
-        dateLabel: 'Wednesday',
-        attachment: mockAttachment('dt-file', 'user_interview_notes.docx', 'file'),
-      },
-      {
-        id: 'dt-2',
-        type: 'outgoing',
-        text: 'Skimmed them. Pattern is clear: onboarding asks too much too soon.',
-        timestamp: '5:48 PM',
-        status: 'delivered',
-        tail: true,
-      },
-      {
-        id: 'dt-3',
-        type: 'incoming',
-        text: 'Maya: I’ll prototype a shorter first-run flow.',
-        timestamp: '6:02 PM',
-        showAvatar: true,
-        tail: true,
-        reactions: [{ emoji: '💡', count: 3 }],
-      },
-    ],
-  },
-};
-
-function makeDMConversation(conversation?: ConversationPreview): DMConversationModel {
-  const base = messagesRepository.getDMConversation();
-  if (!conversation) return { ...base, ...dmScripts[base.id] };
-  const scripted = dmScripts[conversation.id];
-
-  return {
-    ...base,
-    ...scripted,
-    id: conversation.id,
-    user: {
-      ...base.user,
-      id: conversation.id,
-      name: conversation.name,
-      avatar: conversation.avatar,
-      role: conversation.sender || 'Undone learner',
-      company:
-        conversation.id.includes('team') || conversation.id.includes('thinkers')
-          ? 'Group DM'
-          : 'Learning Circle',
-      bio: `Learning partner. Last note: ${conversation.preview.toLowerCase()}`,
-    },
-    messages: scripted?.messages ?? base.messages,
-    resources: base.resources.map((resource, index) => ({
-      ...resource,
-      count: resource.count + (conversation.id.length % (index + 3)),
-    })),
-  };
+function generateRequestId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `req-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 export function useMessage() {
+  const { data: session } = safeUseSession();
+  const currentUserId = session?.user?.id ?? null;
+  const realtime = safeUseRealtime();
+
   const [selectedView, setSelectedView] = useState<MessageView>('landing');
   const [selectedSidebarTab, setSelectedSidebarTab] = useState<SidebarTab>('community');
   const [conversationFilter, setConversationFilter] = useState<ConversationFilter>('all');
@@ -378,88 +82,90 @@ export function useMessage() {
   const [selectedCommunityId, setSelectedCommunityId] = useState<string | null>(null);
   const [selectedDMId, setSelectedDMId] = useState<string | null>(null);
   const [scrollPositions, setScrollPositions] = useState<Record<string, number>>({});
-  // Batch A: Pinned & muted conversations (localStorage)
+
+  // Communities loaded from real SQL-backed API
+  const [communities, setCommunities] = useState<EnrolledCommunityDTO[]>([]);
+  const [isLoadingCommunities, setIsLoadingCommunities] = useState<boolean>(true);
+  const [communityError, setCommunityError] = useState<string | null>(null);
+
+  // Selected channel per community ID: Record<communityId, channelId>
+  const [selectedChannels, setSelectedChannels] = useState<Record<string, string>>({});
+
+  // Messages by channel ID: Record<channelId, CommunityMessage[]>
+  const [messagesByChannel, setMessagesByChannel] = useState<Record<string, CommunityMessage[]>>({});
+  const [loadingChannels, setLoadingChannels] = useState<Record<string, boolean>>({});
+
+  // Drafts stored per conversation/community ID (Drafts only, never accepted history)
+  const [drafts, setDrafts] = useState<Record<string, string>>(() => readDrafts());
+
+  // In-memory DM messages for DM tab (Phase 6 will connect to SQL)
+  const [dmMessages, setDmMessages] = useState<Record<string, DMMessage[]>>({});
+
+  // Pin & Mute state
   const [pinnedConversations, setPinnedConversations] = useState<Set<string>>(() => {
     if (typeof window === 'undefined') return new Set();
     try {
       return new Set(JSON.parse(localStorage.getItem('sidequest-pinned') ?? '[]'));
-    } catch { return new Set(); }
+    } catch {
+      return new Set();
+    }
   });
+
   const [mutedConversations, setMutedConversations] = useState<Record<string, number>>(() => {
     if (typeof window === 'undefined') return {};
-    try { return JSON.parse(localStorage.getItem('sidequest-muted') ?? '{}'); }
-    catch { return {}; }
+    try {
+      return JSON.parse(localStorage.getItem('sidequest-muted') ?? '{}');
+    } catch {
+      return {};
+    }
   });
 
-  // Batch A: Track which conversations have been manually marked read
   const [markedAsRead, setMarkedAsRead] = useState<Set<string>>(new Set());
-
-  // Batch C: Reply-to-message flow
   const [replyContext, setReplyContext] = useState<ReplyContext | null>(null);
-  const clearReply = useCallback(() => setReplyContext(null), []);
-
-  // Batch C: Simulated typing indicator (mock — no backend)
   const [isTyping, setIsTyping] = useState(false);
-  const [drafts, setDrafts] = useState<Record<string, string>>(() =>
-    readRecord<string>(storageKeys.drafts),
-  );
-  const [communityMessages, setCommunityMessages] = useState<Record<string, CommunityMessage[]>>(
-    () => readRecord<CommunityMessage[]>(storageKeys.community),
-  );
-  const [dmMessages, setDMMessages] = useState<Record<string, DMMessage[]>>(() =>
-    readRecord<DMMessage[]>(storageKeys.dm),
+
+  // Active community & channel derivation
+  const currentCommunity = useMemo(
+    () => communities.find((c) => c.cohortId === selectedCommunityId) ?? null,
+    [communities, selectedCommunityId]
   );
 
-  const [activeChannelId, setActiveChannelId] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (selectedCommunityId) {
-      fetch(`/api/community/${selectedCommunityId}/channels`)
-        .then((res) => res.json())
-        .then((channels) => {
-          if (channels && channels.length > 0) {
-            const mainChannel = channels[0];
-            setActiveChannelId(mainChannel.id);
-            
-            if (mainChannel.messages) {
-              interface ChannelApiMessage {
-                id: string;
-                content?: string;
-                createdAt?: string;
-                author?: {
-                  id?: string;
-                  name?: string;
-                  image?: string;
-                  role?: string;
-                };
-              }
-              const mappedMessages: CommunityMessage[] = mainChannel.messages.map((msg: ChannelApiMessage) => ({
-                id: msg.id,
-                author: {
-                  id: msg.author?.id || 'unknown',
-                  name: msg.author?.name || 'Unknown',
-                  avatar: msg.author?.image || '/undone-logo.svg',
-                  online: true,
-                },
-                badge: msg.author?.role === 'ADMIN' ? 'Admin' : 'Explorer',
-                timestamp: new Intl.DateTimeFormat('en', {
-                  hour: 'numeric',
-                  minute: '2-digit',
-                }).format(new Date(msg.createdAt || Date.now())),
-                body: msg.content,
-              }));
-
-              setCommunityMessages((current) => ({
-                ...current,
-                [selectedCommunityId]: mappedMessages,
-              }));
-            }
-          }
-        })
-        .catch((err) => console.error('Failed to fetch community channels:', err));
+  const activeChannelId = useMemo(() => {
+    if (!currentCommunity) return null;
+    const explicit = selectedChannels[currentCommunity.cohortId];
+    if (explicit && currentCommunity.channels.some((c) => c.id === explicit)) {
+      return explicit;
     }
-  }, [selectedCommunityId]);
+    return currentCommunity.channels[0]?.id ?? null;
+  }, [currentCommunity, selectedChannels]);
 
+  // Load real enrolled communities on mount or session change
+  useEffect(() => {
+    let active = true;
+    setIsLoadingCommunities(true);
+    setCommunityError(null);
+
+    messagesRepository
+      .fetchEnrolledCommunities()
+      .then((data) => {
+        if (!active) return;
+        setCommunities(data);
+        setIsLoadingCommunities(false);
+      })
+      .catch((err) => {
+        if (!active) return;
+        console.error('Failed to load communities:', err);
+        setCommunityError(err instanceof Error ? err.message : 'Failed to load communities');
+        setCommunities([]);
+        setIsLoadingCommunities(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [currentUserId]);
+
+  // URL query parameter synchronization
   useEffect(() => {
     const syncCommunityFromUrl = () => {
       const communityId = new URLSearchParams(window.location.search).get('community');
@@ -472,46 +178,140 @@ export function useMessage() {
 
     syncCommunityFromUrl();
     window.addEventListener('popstate', syncCommunityFromUrl);
-
     return () => window.removeEventListener('popstate', syncCommunityFromUrl);
   }, []);
 
+  // Save drafts to localStorage
   useEffect(() => {
-    window.localStorage.setItem(storageKeys.drafts, JSON.stringify(drafts));
+    if (typeof window !== 'undefined') {
+      try {
+        window.localStorage.setItem(DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+      } catch (e) {
+        console.warn('Could not save drafts to localStorage:', e);
+      }
+    }
   }, [drafts]);
 
+  // Save pin & mute state
   useEffect(() => {
-    window.localStorage.setItem(storageKeys.community, JSON.stringify(communityMessages));
-  }, [communityMessages]);
-
-  useEffect(() => {
-    window.localStorage.setItem(storageKeys.dm, JSON.stringify(dmMessages));
-  }, [dmMessages]);
-
-  // Batch A: persist pinned & muted state
-  useEffect(() => {
-    localStorage.setItem('sidequest-pinned', JSON.stringify([...pinnedConversations]));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidequest-pinned', JSON.stringify([...pinnedConversations]));
+    }
   }, [pinnedConversations]);
 
   useEffect(() => {
-    localStorage.setItem('sidequest-muted', JSON.stringify(mutedConversations));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidequest-muted', JSON.stringify(mutedConversations));
+    }
   }, [mutedConversations]);
 
-  const messageCohorts = useMemo(() => getMessageCohorts(), []);
+  // Fetch channel messages when activeChannelId changes
+  useEffect(() => {
+    if (!activeChannelId) return;
+    if (messagesByChannel[activeChannelId] !== undefined) return; // Already cached/loaded
 
-  const communityConversations = useMemo(() => {
-    return messageCohorts.map(mapCohortToConversation);
-  }, [messageCohorts]);
+    let active = true;
+    setLoadingChannels((prev) => ({ ...prev, [activeChannelId]: true }));
 
-  const dmConversations = useMemo(() => {
-    return messagesRepository.getMessageBase().conversations.filter((item) => item.kind === 'dm');
+    messagesRepository
+      .fetchChannelMessages(activeChannelId, 50)
+      .then((rawMessages) => {
+        if (!active) return;
+        const mapped = rawMessages.map((m) =>
+          mapCanonicalMessageToCommunityMessage(m, currentUserId, 'sent')
+        );
+        setMessagesByChannel((prev) => ({
+          ...prev,
+          [activeChannelId]: mapped,
+        }));
+      })
+      .catch((err) => {
+        console.error(`Failed to load messages for channel ${activeChannelId}:`, err);
+        if (active) {
+          setMessagesByChannel((prev) => ({
+            ...prev,
+            [activeChannelId]: [],
+          }));
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoadingChannels((prev) => ({ ...prev, [activeChannelId]: false }));
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [activeChannelId, currentUserId, messagesByChannel]);
+
+  // Realtime subscription via Centrifugo for active channel
+  useEffect(() => {
+    if (!realtime || !activeChannelId) return;
+
+    // Use default generation g1 or manifest mapping
+    const topic = `community:${activeChannelId}:g1`;
+
+    const unsubscribe = realtime.subscribe(topic, (publication: any) => {
+      const payload = publication?.payload ?? publication?.data ?? publication;
+      if (!payload || !payload.id) return;
+
+      const canonicalMsg = payload as CanonicalMessagePayload;
+      const targetChannelId = canonicalMsg.channelId || activeChannelId;
+      const clientReqId = canonicalMsg.clientRequestId;
+
+      setMessagesByChannel((prev) => {
+        const currentList = prev[targetChannelId] ?? [];
+
+        // 1. Reconcile optimistic message by clientRequestId
+        if (clientReqId && currentList.some((m) => m.id === clientReqId)) {
+          return {
+            ...prev,
+            [targetChannelId]: currentList.map((m) =>
+              m.id === clientReqId
+                ? mapCanonicalMessageToCommunityMessage(canonicalMsg, currentUserId, 'sent')
+                : m
+            ),
+          };
+        }
+
+        // 2. Reconcile / deduplicate by canonical id
+        if (currentList.some((m) => m.id === canonicalMsg.id)) {
+          return prev;
+        }
+
+        // 3. Append new publication
+        const newMsg = mapCanonicalMessageToCommunityMessage(canonicalMsg, currentUserId, 'sent');
+        return {
+          ...prev,
+          [targetChannelId]: [...currentList, newMsg],
+        };
+      });
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [realtime, activeChannelId, currentUserId]);
+
+  // Conversations list
+  const communityConversations = useMemo<ConversationPreview[]>(() => {
+    return communities.map((c) =>
+      mapCommunityDtoToConversationPreview(c, c.cohortId === selectedCommunityId)
+    );
+  }, [communities, selectedCommunityId]);
+
+  const dmConversations = useMemo<ConversationPreview[]>(() => {
+    return [];
   }, []);
 
   const conversations = useMemo(() => {
     const source = selectedSidebarTab === 'community' ? communityConversations : dmConversations;
+    const now = Date.now();
 
-    // Filter out expired mutes (computed inside map for purity)
-    let activeMuted: Record<string, number> | null = null;
+    const activeMuted = Object.fromEntries(
+      Object.entries(mutedConversations).filter(([, until]) => typeof until === 'number' && until > now)
+    );
 
     return source
       .filter((item) => {
@@ -521,23 +321,13 @@ export function useMessage() {
         return true;
       })
       .filter((item) => matchesSearch(item, searchQuery))
-      // Sort: pinned first, then by timestamp
       .sort((a, b) => {
         const aPinned = pinnedConversations.has(a.id) ? 0 : 1;
         const bPinned = pinnedConversations.has(b.id) ? 0 : 1;
         if (aPinned !== bPinned) return aPinned - bPinned;
-        // Keep original order for non-pinned
         return source.indexOf(a) - source.indexOf(b);
       })
       .map((item) => {
-        // eslint-disable-next-line react-hooks/purity
-        const now = Date.now();
-        if (!activeMuted) {
-          // eslint-disable-next-line react-hooks/immutability
-          activeMuted = Object.fromEntries(
-            Object.entries(mutedConversations).filter(([, until]) => typeof until === 'number' && until > now),
-          );
-        }
         const isMarkedRead = markedAsRead.has(item.id);
         return {
           ...item,
@@ -546,41 +336,76 @@ export function useMessage() {
           mutedUntil: activeMuted[item.id] ?? null,
           unreadCount: isMarkedRead ? 0 : item.unreadCount,
         };
-      }) as (typeof source)[0][];
+      });
   }, [
-    communityConversations,
-    conversationFilter,
-    dmConversations,
-    searchQuery,
-    selectedCommunityId,
-    selectedDMId,
     selectedSidebarTab,
+    communityConversations,
+    dmConversations,
+    conversationFilter,
     pinnedConversations,
+    searchQuery,
     mutedConversations,
     markedAsRead,
+    selectedCommunityId,
+    selectedDMId,
   ]);
 
+  // View models
   const communityChat = useMemo(() => {
-    const community = mapCohortToCommunity(selectedCommunityId);
+    if (!currentCommunity) {
+      return {
+        id: selectedCommunityId ?? '',
+        name: 'Select a Community',
+        avatar: '/undone-logo.svg',
+        description: 'Choose a community from the sidebar to view channels.',
+        onlineCount: 0,
+        createdBy: '',
+        createdAt: '',
+        members: [],
+        channels: [],
+        selectedChannel: '',
+        pinnedAnnouncement: { author: '', title: '', actionLabel: '' },
+        messages: [],
+        pinnedMessages: [],
+        media: [],
+        events: [],
+      };
+    }
+
+    const baseChat = mapCommunityDtoToCommunityChat(currentCommunity, activeChannelId ?? undefined);
+    const channelMsgs = activeChannelId ? (messagesByChannel[activeChannelId] ?? []) : [];
+
     return {
-      ...community,
-      messages: communityMessages[community.id] ?? community.messages,
+      ...baseChat,
+      messages: channelMsgs,
     };
-  }, [communityMessages, selectedCommunityId]);
+  }, [currentCommunity, activeChannelId, messagesByChannel, selectedCommunityId]);
 
-  const dmConversation = useMemo(() => {
-    const conversation = dmConversations.find((item) => item.id === selectedDMId);
-    const dm = makeDMConversation(conversation);
-    return { ...dm, messages: dmMessages[dm.id] ?? dm.messages };
-  }, [dmConversations, dmMessages, selectedDMId]);
+  const dmConversation = useMemo<DMConversationModel>(() => {
+    return {
+      id: selectedDMId ?? '',
+      user: {
+        id: selectedDMId ?? '',
+        name: 'Direct Message',
+        avatar: '/undone-logo.svg',
+        online: false,
+        role: 'Learner',
+        company: 'SideQuest',
+        bio: '',
+      },
+      messages: selectedDMId ? (dmMessages[selectedDMId] ?? []) : [],
+      resources: [],
+      notifications: { enabled: true },
+    };
+  }, [selectedDMId, dmMessages]);
 
+  // Navigation & Actions
   const selectConversation = useCallback((conversation: ConversationPreview) => {
     if (conversation.kind === 'community') {
       setSelectedCommunityId(conversation.id);
       setSelectedView('community');
       return;
     }
-
     setSelectedDMId(conversation.id);
     setSelectedView('dm');
   }, []);
@@ -588,6 +413,17 @@ export function useMessage() {
   const backToLanding = useCallback(() => {
     setSelectedView('landing');
   }, []);
+
+  const setSelectedChannel = useCallback(
+    (channelId: string) => {
+      if (!selectedCommunityId) return;
+      setSelectedChannels((prev) => ({
+        ...prev,
+        [selectedCommunityId]: channelId,
+      }));
+    },
+    [selectedCommunityId]
+  );
 
   const setConversationScroll = useCallback((conversationId: string, scrollTop: number) => {
     setScrollPositions((current) => ({
@@ -600,257 +436,228 @@ export function useMessage() {
     setDrafts((current) => ({ ...current, [conversationId]: draft }));
   }, []);
 
+  const clearReply = useCallback(() => setReplyContext(null), []);
+
+  // Send message through durable backend API with clientRequestId and optimistic UI
   const sendCommunityMessage = useCallback(
-    (conversationId: string, replyCtx?: ReplyContext | null) => {
-      const draft = drafts[conversationId]?.trim();
+    async (communityId: string, replyCtx?: ReplyContext | null) => {
+      const draft = drafts[communityId]?.trim();
       if (!draft) return;
 
-      const base = mapCohortToCommunity(conversationId).messages;
-      const messageId = `${conversationId}-${Date.now()}`;
-      const message: CommunityMessage = {
-        id: messageId,
-        author: me,
-        badge: 'You',
-        timestamp: `Today at ${nowLabel()}`,
+      const comm = communities.find((c) => c.cohortId === communityId);
+      const channelId = selectedChannels[communityId] ?? comm?.channels[0]?.id;
+
+      // Requirement 5.10: Remove "sent when no channel" behavior.
+      if (!channelId) {
+        console.warn('Cannot send message: no active channel in community', communityId);
+        return;
+      }
+
+      const clientRequestId = generateRequestId();
+
+      const optimisticMessage: CommunityMessage = {
+        id: clientRequestId,
         body: draft,
+        timestamp: formatMessageTime(new Date().toISOString()),
+        dateLabel: 'Today',
+        author: {
+          id: currentUserId || 'me',
+          name: session?.user?.name || 'You',
+          avatar: session?.user?.image || '/undone-logo.svg',
+          online: true,
+        },
         status: 'sending',
-        ...(replyCtx ? {
-          replyTo: {
-            messageId: replyCtx.messageId,
-            authorName: replyCtx.senderName,
-            authorAvatar: replyCtx.senderAvatar || '/undone-logo.svg',
-            previewText: replyCtx.previewText,
-          }
-        } : {}),
+        replyTo: replyCtx
+          ? {
+              messageId: replyCtx.messageId,
+              authorName: replyCtx.senderName,
+              authorAvatar: replyCtx.senderAvatar || '/undone-logo.svg',
+              previewText: replyCtx.previewText,
+            }
+          : undefined,
       };
 
-      setCommunityMessages((current) => ({
-        ...current,
-        [conversationId]: [...(current[conversationId] ?? base), message],
+      // Add to local state immediately
+      setMessagesByChannel((prev) => ({
+        ...prev,
+        [channelId]: [...(prev[channelId] ?? []), optimisticMessage],
       }));
-      setDrafts((current) => ({ ...current, [conversationId]: '' }));
+
+      // Clear draft
+      setDrafts((prev) => ({ ...prev, [communityId]: '' }));
       clearReply();
 
-      if (activeChannelId) {
-        fetch(`/api/community/channels/${activeChannelId}/messages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ content: draft }),
-        })
-          .then((res) => {
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            setCommunityMessages((current) => {
-              const list = current[conversationId];
-              if (!list) return current;
-              return {
-                ...current,
-                [conversationId]: list.map((msg) =>
-                  msg.id === messageId ? { ...msg, status: 'sent' } : msg,
-                ),
-              };
-            });
-          })
-          .catch((err) => {
-            console.error('Failed to send community message:', err);
-            setCommunityMessages((current) => {
-              const list = current[conversationId];
-              if (!list) return current;
-              return {
-                ...current,
-                [conversationId]: list.map((msg) =>
-                  msg.id === messageId ? { ...msg, status: 'failed' } : msg,
-                ),
-              };
-            });
-          });
-      } else {
-        setCommunityMessages((current) => {
-          const list = current[conversationId];
-          if (!list) return current;
+      try {
+        const canonical = await messagesRepository.sendChannelMessage(channelId, {
+          content: draft,
+          clientRequestId,
+          replyToId: replyCtx?.messageId,
+        });
+
+        // Reconcile response: replace optimistic placeholder with canonical message
+        setMessagesByChannel((prev) => {
+          const list = prev[channelId] ?? [];
+          const canonicalUi = mapCanonicalMessageToCommunityMessage(
+            canonical,
+            currentUserId,
+            'sent'
+          );
+          const idx = list.findIndex(
+            (m) => m.id === clientRequestId || m.id === canonical.id
+          );
+          if (idx === -1) {
+            return {
+              ...prev,
+              [channelId]: [...list, canonicalUi],
+            };
+          }
+          const updated = [...list];
+          updated[idx] = canonicalUi;
           return {
-            ...current,
-            [conversationId]: list.map((msg) =>
-              msg.id === messageId ? { ...msg, status: 'sent' } : msg,
+            ...prev,
+            [channelId]: updated,
+          };
+        });
+      } catch (err) {
+        console.error('Failed to send message:', err);
+        // Mark optimistic message as failed
+        setMessagesByChannel((prev) => {
+          const list = prev[channelId] ?? [];
+          return {
+            ...prev,
+            [channelId]: list.map((m) =>
+              m.id === clientRequestId ? { ...m, status: 'failed' } : m
             ),
           };
         });
       }
     },
-    [drafts, clearReply, activeChannelId],
+    [drafts, communities, selectedChannels, currentUserId, session, clearReply]
   );
 
+  // Retry sending a failed message
   const retryCommunityMessage = useCallback(
-    (conversationId: string, messageId: string) => {
-      setCommunityMessages((current) => {
-        const list = current[conversationId];
-        const msg = list?.find((m) => m.id === messageId);
-        if (!msg || !activeChannelId) return current;
+    async (communityId: string, messageId: string) => {
+      const comm = communities.find((c) => c.cohortId === communityId);
+      const channelId = selectedChannels[communityId] ?? comm?.channels[0]?.id;
+      if (!channelId) return;
 
-        fetch(`/api/community/channels/${activeChannelId}/messages`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ content: msg.body ?? '' }),
-        })
-          .then((res) => {
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            setCommunityMessages((curr) => {
-              const l = curr[conversationId];
-              if (!l) return curr;
-              return {
-                ...curr,
-                [conversationId]: l.map((m) =>
-                  m.id === messageId ? { ...m, status: 'sent' } : m,
-                ),
-              };
-            });
-          })
-          .catch((err) => {
-            console.error('Failed to retry community message:', err);
-            setCommunityMessages((curr) => {
-              const l = curr[conversationId];
-              if (!l) return curr;
-              return {
-                ...curr,
-                [conversationId]: l.map((m) =>
-                  m.id === messageId ? { ...m, status: 'failed' } : m,
-                ),
-              };
-            });
-          });
+      const list = messagesByChannel[channelId] ?? [];
+      const failedMsg = list.find((m) => m.id === messageId);
+      if (!failedMsg || !failedMsg.body) return;
 
-        return {
-          ...current,
-          [conversationId]: list.map((m) =>
-            m.id === messageId ? { ...m, status: 'sending' } : m,
+      // Requirement 5.9: Retry uses the same request ID, original channel and original payload.
+      const clientRequestId = messageId;
+
+      setMessagesByChannel((prev) => ({
+        ...prev,
+        [channelId]: (prev[channelId] ?? []).map((m) =>
+          m.id === messageId ? { ...m, status: 'sending' } : m
+        ),
+      }));
+
+      try {
+        const canonical = await messagesRepository.sendChannelMessage(channelId, {
+          content: failedMsg.body,
+          clientRequestId,
+          replyToId: failedMsg.replyTo?.messageId,
+        });
+
+        setMessagesByChannel((prev) => {
+          const currentList = prev[channelId] ?? [];
+          const canonicalUi = mapCanonicalMessageToCommunityMessage(
+            canonical,
+            currentUserId,
+            'sent'
+          );
+          const idx = currentList.findIndex(
+            (m) => m.id === clientRequestId || m.id === canonical.id
+          );
+          if (idx === -1) {
+            return {
+              ...prev,
+              [channelId]: [...currentList, canonicalUi],
+            };
+          }
+          const updated = [...currentList];
+          updated[idx] = canonicalUi;
+          return {
+            ...prev,
+            [channelId]: updated,
+          };
+        });
+      } catch (err) {
+        console.error('Failed to retry message:', err);
+        setMessagesByChannel((prev) => ({
+          ...prev,
+          [channelId]: (prev[channelId] ?? []).map((m) =>
+            m.id === messageId ? { ...m, status: 'failed' } : m
           ),
-        };
-      });
+        }));
+      }
     },
-    [activeChannelId],
+    [communities, selectedChannels, messagesByChannel, currentUserId]
   );
 
   const toggleCommunityReaction = useCallback(
-    (conversationId: string, messageId: string, emoji: string) => {
-      const base = mapCohortToCommunity(conversationId).messages;
-      setCommunityMessages((current) => ({
-        ...current,
-        [conversationId]: (current[conversationId] ?? base).map((message) => {
-          if (message.id !== messageId) return message;
-          const reactions = message.reactions ?? [];
-          const existing = reactions.find((reaction) => reaction.emoji === emoji);
-          if (!existing)
-            return {
-              ...message,
-              reactions: [...reactions, { emoji, count: 1, reactedByMe: true }],
-            };
-          const next = existing.reactedByMe
-            ? {
-                ...existing,
-                count: Math.max(0, existing.count - 1),
-                reactedByMe: false,
-              }
-            : { ...existing, count: existing.count + 1, reactedByMe: true };
-          return {
-            ...message,
-            reactions: reactions
-              .map((reaction) => (reaction.emoji === emoji ? next : reaction))
-              .filter((reaction) => reaction.count > 0),
-          };
-        }),
-      }));
+    (_communityId: string, _messageId: string, _emoji: string) => {
+      // Future Phase reaction endpoint
     },
-    [],
+    []
   );
 
   const uploadCommunityAttachment = useCallback(
-    (conversationId: string, file: File, kind: ChatAttachmentKind) => {
-      const base = mapCohortToCommunity(conversationId).messages;
-      const message: CommunityMessage = {
-        id: `${conversationId}-upload-${Date.now()}`,
-        author: me,
-        badge: 'You',
-        timestamp: `Today at ${nowLabel()}`,
-        body: kind === 'image' ? 'Uploaded an image.' : `Uploaded ${file.name}.`,
-        attachment: mockAttachment(`${conversationId}-${file.name}`, file.name, kind),
-      };
-      setCommunityMessages((current) => ({
-        ...current,
-        [conversationId]: [...(current[conversationId] ?? base), message],
-      }));
+    (_communityId: string, _file: File, _kind: ChatAttachmentKind) => {
+      // Future Phase private attachment upload
     },
-    [],
+    []
   );
 
   const sendDMMessage = useCallback(
-    (conversationId: string, replyCtx?: ReplyContext | null) => {
-      const draft = drafts[conversationId]?.trim();
+    (dmId: string, replyCtx?: ReplyContext | null) => {
+      const draft = drafts[dmId]?.trim();
       if (!draft) return;
 
-      const base = makeDMConversation(
-        dmConversations.find((item) => item.id === conversationId),
-      ).messages;
-      const message: DMMessage = {
-        id: `${conversationId}-${Date.now()}`,
+      const newMsg: DMMessage = {
+        id: generateRequestId(),
         type: 'outgoing',
         text: draft,
-        timestamp: nowLabel(),
+        timestamp: formatMessageTime(new Date().toISOString()),
         status: 'sent',
-        tail: true,
-        ...(replyCtx ? {
-          replyTo: {
-            messageId: replyCtx.messageId,
-            authorName: replyCtx.senderName,
-            authorAvatar: replyCtx.senderAvatar || '/undone-logo.svg',
-            previewText: replyCtx.previewText,
-          }
-        } : {}),
+        replyTo: replyCtx
+          ? {
+              messageId: replyCtx.messageId,
+              authorName: replyCtx.senderName,
+              authorAvatar: replyCtx.senderAvatar || '/undone-logo.svg',
+              previewText: replyCtx.previewText,
+            }
+          : undefined,
       };
 
-      setDMMessages((current) => ({
-        ...current,
-        [conversationId]: [...(current[conversationId] ?? base), message],
+      setDmMessages((prev) => ({
+        ...prev,
+        [dmId]: [...(prev[dmId] ?? []), newMsg],
       }));
-      setDrafts((current) => ({ ...current, [conversationId]: '' }));
+      setDrafts((prev) => ({ ...prev, [dmId]: '' }));
       clearReply();
     },
-    [dmConversations, drafts, clearReply],
+    [drafts, clearReply]
   );
 
   const uploadDMAttachment = useCallback(
-    (conversationId: string, file: File, kind: ChatAttachmentKind) => {
-      const base = makeDMConversation(
-        dmConversations.find((item) => item.id === conversationId),
-      ).messages;
-      const message: DMMessage = {
-        id: `${conversationId}-upload-${Date.now()}`,
-        type: 'outgoing',
-        text: kind === 'image' ? '' : `Uploaded ${file.name}.`,
-        timestamp: nowLabel(),
-        status: 'sent',
-        tail: true,
-        attachment: mockAttachment(`${conversationId}-${file.name}`, file.name, kind),
-      };
-      setDMMessages((current) => ({
-        ...current,
-        [conversationId]: [...(current[conversationId] ?? base), message],
-      }));
+    (_dmId: string, _file: File, _kind: ChatAttachmentKind) => {
+      // Future Phase DM attachment upload
     },
-    [dmConversations],
+    []
   );
 
-  // Batch E3: Delete DM message (outgoing only)
-  const deleteDMMessage = useCallback((conversationId: string, messageId: string) => {
-    setDMMessages((current) => ({
-      ...current,
-      [conversationId]: (current[conversationId] ?? []).filter((msg) => msg.id !== messageId),
+  const deleteDMMessage = useCallback((dmId: string, messageId: string) => {
+    setDmMessages((prev) => ({
+      ...prev,
+      [dmId]: (prev[dmId] ?? []).filter((m) => m.id !== messageId),
     }));
   }, []);
 
-  // Batch A: Pin/Unpin conversation
   const togglePinConversation = useCallback((id: string) => {
     setPinnedConversations((prev) => {
       const next = new Set(prev);
@@ -860,12 +667,13 @@ export function useMessage() {
     });
   }, []);
 
-  // Batch A: Mute conversation for duration (ms)
   const muteConversation = useCallback((id: string, hours: number) => {
-    setMutedConversations((prev) => ({ ...prev, [id]: Date.now() + hours * 60 * 60 * 1000 }));
+    setMutedConversations((prev) => ({
+      ...prev,
+      [id]: Date.now() + hours * 60 * 60 * 1000,
+    }));
   }, []);
 
-  // Batch A: Mark all conversations as read (zero unread counts)
   const markAllRead = useCallback(() => {
     setMarkedAsRead((prev) => new Set([...prev, ...conversations.map((c) => c.id)]));
   }, [conversations]);
@@ -886,49 +694,29 @@ export function useMessage() {
     dmScrollTop: scrollPositions[selectedDMId ?? ''] ?? 0,
     communityDraft: drafts[selectedCommunityId ?? ''] ?? '',
     dmDraft: drafts[selectedDMId ?? ''] ?? '',
-    liveSessions: messagesRepository.getMessageBase().liveSessions,
-    recentMessages: dmConversations
-      .map((dm) => ({
-        id: `recent-${dm.id}`,
-        sender: {
-          id: dm.id,
-          name: dm.name,
-          avatar: dm.avatar,
-          online: true,
-        },
-        community: '',
-        message: dm.preview,
-        timestamp: dm.timestamp,
-        unreadCount: dm.unreadCount,
-      }))
-      .filter((item) =>
-        matchesSearch(
-          {
-            id: item.id,
-            kind: 'dm',
-            name: item.sender.name,
-            avatar: item.sender.avatar,
-            sender: item.sender.name,
-            preview: item.message,
-            timestamp: item.timestamp,
-          },
-          searchQuery,
-        ),
-      ),
-    upcomingEvents: messageCohorts.slice(0, 3).map(mapCohortToUpcomingEvent),
-    challenge: messagesRepository.getMessageBase().challenge,
-    friendsOnline: messagesRepository.getMessageBase().friendsOnline,
-
-    // Batch C: Reply-to-message + typing indicator
+    isLoadingCommunities,
+    communityError,
+    // Zero fake items for empty / unconfigured entities
+    liveSessions: [],
+    recentMessages: [],
+    upcomingEvents: [],
+    challenge: {
+      tag: '',
+      title: '',
+      description: '',
+      participants: [],
+      participantCount: 0,
+    },
+    friendsOnline: [],
     replyContext,
     isTyping,
-
     actions: {
       setSelectedSidebarTab,
       setConversationFilter,
       setSearchQuery,
       selectConversation,
       backToLanding,
+      setSelectedChannel,
       setConversationScroll,
       setDraft,
       sendCommunityMessage,
@@ -937,13 +725,10 @@ export function useMessage() {
       uploadCommunityAttachment,
       toggleCommunityReaction,
       uploadDMAttachment,
-      // Batch E3: Delete DM message
       deleteDMMessage,
-      // Batch A: New actions
       togglePinConversation,
       muteConversation,
       markAllRead,
-      // Batch C: Reply + typing actions
       setReplyContext,
       clearReply,
       setIsTyping,
@@ -952,4 +737,3 @@ export function useMessage() {
 }
 
 export type UseMessageResult = ReturnType<typeof useMessage>;
-

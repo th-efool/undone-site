@@ -5,7 +5,6 @@ import { CommunityChat } from '../CommunityChat/CommunityChat';
 import { DMConversation } from '../DMConversation/DMConversation';
 import { LeftSidebar } from '../LeftSidebar/LeftSidebar';
 import { RightSidebar } from '../RightSidebar/RightSidebar';
-import { TypingIndicator } from '../shared/TypingIndicator/TypingIndicator';
 import { useMessage } from '../../hooks';
 import { useIsMobile } from '@/src/client/hooks/useIsMobile';
 import styles from './SocialLanding.module.css';
@@ -67,6 +66,7 @@ export function SocialLanding({ message }: Props) {
           onUpload={(file, kind) =>
             message.actions.uploadCommunityAttachment(message.communityChat.id, file, kind)
           }
+          onSelectChannel={message.actions.setSelectedChannel}
           replyBanner={communityReply}
           onReplyDismiss={() => setCommunityReply(null)}
           onReply={(messageId, senderName, previewText, senderAvatar) =>
@@ -102,9 +102,8 @@ export function SocialLanding({ message }: Props) {
           onReply={(messageId, senderName, previewText, senderAvatar) =>
             setDmReply({ messageId, senderName, senderAvatar: senderAvatar || '/undone-logo.svg', previewText })
           }
-          onDeleteMessage={(messageId) => message.actions.deleteDMMessage(message.dmConversation.id, messageId)}
           isTyping={message.isTyping}
-          typingUsernames={message.isTyping ? [message.dmConversation.user.name] : []}
+          typingUsernames={message.isTyping ? ['Aarav'] : []}
         />
       )}
 

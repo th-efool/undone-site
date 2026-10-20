@@ -8,6 +8,8 @@ interface MessageMobileProps {
 }
 
 export function MessageMobile({ model: message }: MessageMobileProps) {
+  const hasConversations = message.conversations.length > 0;
+
   return (
     <main className={styles.mobileMessage}>
       <header className={styles.header}>
@@ -16,15 +18,32 @@ export function MessageMobile({ model: message }: MessageMobileProps) {
       </header>
 
       <div className={styles.chatList}>
-        {message.conversations.map((conv) => (
-          <div key={conv.id} className={styles.chatItem} onClick={() => message.actions.selectConversation(conv)}>
-            <div className={styles.avatar}>{conv.name.slice(0, 1).toUpperCase()}</div>
-            <div className={styles.chatMeta}>
-              <span className={styles.chatName}>{conv.name}</span>
-              <span className={styles.chatMessage}>{conv.preview || 'Active study group'}</span>
+        {hasConversations ? (
+          message.conversations.map((conv) => (
+            <div
+              key={conv.id}
+              className={styles.chatItem}
+              onClick={() => message.actions.selectConversation(conv)}
+            >
+              <div className={styles.avatar}>
+                {conv.name ? conv.name.slice(0, 1).toUpperCase() : '#'}
+              </div>
+              <div className={styles.chatMeta}>
+                <span className={styles.chatName}>{conv.name}</span>
+                <span className={styles.chatMessage}>
+                  {conv.preview || 'Community chat'}
+                </span>
+              </div>
             </div>
+          ))
+        ) : (
+          <div style={{ padding: '32px 16px', textAlign: 'center', color: '#888' }}>
+            <p>No enrolled communities yet.</p>
+            <p style={{ fontSize: '13px', marginTop: '6px' }}>
+              Join a cohort to access community discussions.
+            </p>
           </div>
-        ))}
+        )}
       </div>
     </main>
   );
