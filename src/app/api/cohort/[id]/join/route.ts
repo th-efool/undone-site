@@ -9,6 +9,7 @@ import { setCachedCohortMember } from '@/src/server/infrastructure/auth/permissi
 import { canEnrollCohort } from '@/src/server/domain/cohort/cohortAccessPolicy';
 import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
 import { acceptCohortInvitation } from '@/src/server/domain/cohort/cohortInvitation.service';
+import { syncEnrollmentMongoPreferences } from '@/src/server/domain/messaging/enrollment-effects.service';
 
 export async function POST(
   request: Request,
@@ -77,7 +78,7 @@ export async function POST(
         await acceptCohortInvitation({
           rawToken: invitationToken,
           userId,
-          userEmail: session.user.email,
+          userEmail: session?.user?.email ?? undefined,
         });
       } else {
         return NextResponse.json(
@@ -106,16 +107,7 @@ export async function POST(
     });
 
     // Secondary effect: update MongoDB learner preferences (non-fatal if Mongo fails)
-    try {
-      await connectToMongoDB();
-      await UserCohortConfig.updateOne(
-        { userId, cohortId },
-        { $set: { isHidden: false, isPaused: false }, $unset: { pausedUntil: 1 } },
-        { upsert: true }
-      ).exec();
-    } catch (mongoError) {
-      console.warn('Failed to update learner config in MongoDB during join:', mongoError);
-    }
+    await syncEnrollmentMongoPreferences({ userId, cohortId, action: 'enroll' });
 
     invalidateHomeServerCache(userId);
     invalidateFeedCatalogCache(userId);
@@ -159,16 +151,7 @@ export async function DELETE(
     const isCreator = cohort.creatorId === userId;
 
     // Secondary effect: mark hidden in MongoDB preferences
-    try {
-      await connectToMongoDB();
-      await UserCohortConfig.updateOne(
-        { userId, cohortId },
-        { $set: { isHidden: true } },
-        { upsert: true },
-      ).exec();
-    } catch (mongoError) {
-      console.warn('Failed to update learner config in MongoDB during leave:', mongoError);
-    }
+    await syncEnrollmentMongoPreferences({ userId, cohortId, action: 'hide' });
 
     if (!isCreator) {
       // Ordinary members lose SQL membership

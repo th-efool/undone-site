@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     const result = await acceptCohortInvitation({
       rawToken: token,
       userId,
-      userEmail: session.user.email,
+      userEmail: session?.user?.email ?? undefined,
     });
 
     setCachedCohortMember(result.cohortId, userId, {

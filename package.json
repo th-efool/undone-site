@@ -27,6 +27,8 @@
     "creation:readiness": "node --import tsx --import ./scripts/register-root-environment.mjs scripts/creation-readiness.ts",
     "interaction:worker": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs src/server/interaction-worker.ts",
     "interaction:worker:check": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs src/server/interaction-worker.ts --check",
+    "messaging:worker": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs src/server/messaging-worker.ts",
+    "messaging:worker:check": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs src/server/messaging-worker.ts --check",
     "interaction:worker:diagnostics": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs scripts/worker-diagnostics.ts",
     "interaction:load:measure": "node --import tsx scripts/load/measured-load-harness.ts",
     "interaction:readiness": "node --import tsx --import ./scripts/register-root-environment.mjs scripts/interaction-readiness.ts",

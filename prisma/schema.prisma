@@ -34,6 +34,11 @@ model User {
   invitedCohorts    CohortInvitation[] @relation("InvitedCohorts")
   acceptedInvitations CohortInvitation[] @relation("AcceptedInvitations")
   restriction       UserRestriction?
+  createdConversations Conversation[] @relation("CreatedConversations")
+  conversationMemberships ConversationParticipant[]
+  channelStates     ChannelUserState[]
+  realtimeStream    RealtimeStream?
+  messagingRequests MessagingRequest[]
 
   @@map("users")
 }
@@ -529,6 +534,7 @@ model Community {
   id            String  @id @default(cuid())
   chatEnabled   Boolean @default(true)
   eventsEnabled Boolean @default(true)
+  accessGeneration Int   @default(1)
 
   cohortId String    @unique
   cohort   Cohort    @relation(fields: [cohortId], references: [id], onDelete: Cascade)
@@ -540,36 +546,203 @@ model Community {
   @@map("communities")
 }
 
-model Channel {
-  id          String    @id @default(cuid())
-  name        String
-  communityId String
-  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  messages    Message[]
+enum ConversationKind {
+  DIRECT
+  GROUP
+}
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Conversation {
+  id               String                    @id @default(cuid())
+  kind             ConversationKind          @default(DIRECT)
+  title            String?
+  creatorId        String
+  directKey        String?                   @unique
+  accessGeneration Int                       @default(1)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+
+  creator          User                      @relation("CreatedConversations", fields: [creatorId], references: [id], onDelete: Restrict)
+  participants     ConversationParticipant[]
+  channel          Channel?
+
+  @@index([creatorId])
+  @@map("conversations")
+}
+
+model ConversationParticipant {
+  conversationId             String
+  userId                     String
+  role                       String                   @default("MEMBER")
+  joinedAt                   DateTime                 @default(now())
+  leftAt                     DateTime?
+  historyVisibleFromSequence Int                      @default(0)
+
+  conversation               Conversation             @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user                       User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([conversationId, userId])
+  @@index([userId, leftAt, conversationId])
+  @@map("conversation_participants")
+}
+
+model Channel {
+  id             String             @id @default(cuid())
+  name           String
+  communityId    String?
+  community      Community?         @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  conversationId String?            @unique
+  conversation   Conversation?      @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  studyRoomId    String?            @unique
+  studyRoom      StudyRoom?         @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+  slug           String?
+  messageCounter Int                @default(0)
+
+  messages       Message[]
+  userStates     ChannelUserState[]
+  realtimeStream RealtimeStream?
+
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 
   @@index([communityId])
+  @@index([conversationId])
+  @@index([studyRoomId])
   @@map("channels")
 }
 
 model Message {
-  id        String  @id @default(cuid())
-  content   String  @db.Text
-  channelId String
-  channel   Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  id              String             @id @default(cuid())
+  content         String             @db.Text
+  channelId       String
+  channel         Channel            @relation(fields: [channelId], references: [id], onDelete: Cascade)
 
-  authorId String
-  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId        String
+  author          User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  messageSequence Int                @default(0)
+  clientRequestId String?
+  payloadHash     String?
+  replyToId       String?
+  replyTo         Message?           @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies         Message[]          @relation("MessageReplies")
+  revision        Int                @default(1)
+  editedAt        DateTime?
+  deletedAt       DateTime?
+  deletionReason  String?
 
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@unique([channelId, messageSequence])
+  @@unique([channelId, authorId, clientRequestId])
   @@index([channelId])
   @@index([authorId])
+  @@index([replyToId])
   @@index([channelId, createdAt(sort: Desc)])
   @@map("messages")
+}
+
+model ChannelUserState {
+  channelId             String
+  userId                String
+  lastReadSequence      Int       @default(0)
+  lastDeliveredSequence Int       @default(0)
+  isPinned              Boolean   @default(false)
+  mutedUntil            DateTime?
+  updatedAt             DateTime  @updatedAt
+
+  channel               Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([channelId, userId])
+  @@index([userId])
+  @@map("channel_user_states")
+}
+
+model RealtimeStream {
+  id           String             @id @default(cuid())
+  channelId    String?            @unique
+  studyRoomId  String?            @unique
+  userId       String?            @unique
+  generation   Int                @default(1)
+  eventCounter Int                @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  channel      Channel?           @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  studyRoom    StudyRoom?         @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+  user         User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events       RealtimeEvent[]
+
+  @@map("realtime_streams")
+}
+
+model RealtimeEvent {
+  id              String             @id @default(cuid())
+  streamId        String
+  sequence        Int
+  eventId         String             @unique
+  schemaVersion   Int                @default(1)
+  type            String
+  generation      Int                @default(1)
+  entityId        String?
+  entityRevision  Int?
+  clientRequestId String?
+  payload         Json
+  occurredAt      DateTime           @default(now())
+
+  stream          RealtimeStream     @relation(fields: [streamId], references: [id], onDelete: Cascade)
+  deliveries      RealtimeDelivery[]
+
+  @@unique([streamId, sequence])
+  @@index([streamId, occurredAt])
+  @@index([occurredAt])
+  @@map("realtime_events")
+}
+
+enum RealtimeDeliveryStatus {
+  PENDING
+  DELIVERED
+  DEAD_LETTER
+}
+
+model RealtimeDelivery {
+  id          String                 @id @default(cuid())
+  eventId     String
+  destination String
+  status      RealtimeDeliveryStatus @default(PENDING)
+  attempts    Int                    @default(0)
+  dueAt       DateTime               @default(now())
+  leaseOwner  String?
+  leaseToken  String?
+  leaseUntil  DateTime?
+  deliveredAt DateTime?
+  lastError   String?
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  event       RealtimeEvent          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, destination])
+  @@index([status, dueAt, leaseUntil])
+  @@map("realtime_deliveries")
+}
+
+model MessagingRequest {
+  id          String   @id @default(cuid())
+  actorId     String
+  operation   String
+  scope       String
+  requestId   String
+  payloadHash String
+  response    Json
+  createdAt   DateTime @default(now())
+
+  actor       User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@unique([actorId, operation, scope, requestId])
+  @@index([createdAt])
+  @@map("messaging_requests")
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -585,6 +758,8 @@ model StudyRoom {
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
   participants RoomParticipant[]
+  channel      Channel?
+  realtimeStream RealtimeStream?
 
   @@map("study_rooms")
 }
