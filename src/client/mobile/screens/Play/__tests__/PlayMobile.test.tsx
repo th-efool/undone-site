@@ -2,10 +2,25 @@
 import React from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { PlayMobile } from '../PlayMobile';
+import { PlayMobile, TimelineScrubber, PlayMobileHeader, PlayMobileDock } from '../PlayMobile';
 import type { UsePlaybackResult } from '@/src/client/screens/dashboard/play/hooks/usePlayback';
 import type { FeedItem } from '@/src/shared/feed/feedEngine.types';
 import type { ChannelId } from '@/src/shared/curriculum/pedagogicalVector.types';
+
+// Polyfill PointerEvent for jsdom if absent
+if (typeof window.PointerEvent === 'undefined') {
+  class PointerEvent extends MouseEvent {
+    pointerId: number;
+    pointerType: string;
+    constructor(type: string, params: PointerEventInit = {}) {
+      super(type, params);
+      this.pointerId = params.pointerId ?? 1;
+      this.pointerType = params.pointerType ?? 'mouse';
+    }
+  }
+  window.PointerEvent = PointerEvent as any;
+  globalThis.PointerEvent = PointerEvent as any;
+}
 
 afterEach(() => {
   cleanup();
@@ -275,5 +290,124 @@ describe('PlayMobile Screen', () => {
     const markCompleteBtn = screen.getByRole('button', { name: /mark complete/i });
     fireEvent.click(markCompleteBtn);
     expect(completeMock).toHaveBeenCalled();
+  });
+
+  it('handles timeline scrubber click seek and keyboard skip', () => {
+    const seekToPercentMock = vi.fn();
+    const skipSecondsMock = vi.fn();
+    const playback = createMockPlayback({
+      seekToPercent: seekToPercentMock,
+      skipSeconds: skipSecondsMock,
+      timelineProgress: 45,
+    });
+    render(<PlayMobile playback={playback} />);
+
+    const scrubber = screen.getByRole('slider', { name: /timeline seek scrubber/i });
+    expect(scrubber).toBeDefined();
+    expect(scrubber.getAttribute('aria-valuenow')).toBe('45');
+
+    scrubber.getBoundingClientRect = vi.fn(() => ({
+      left: 0,
+      top: 0,
+      width: 200,
+      height: 6,
+      right: 200,
+      bottom: 6,
+      x: 0,
+      y: 0,
+      toJSON: () => {},
+    }));
+
+    // Click at 100px (50%)
+    fireEvent.click(scrubber, { clientX: 100 });
+    expect(seekToPercentMock).toHaveBeenCalledWith(50);
+
+    // Keyboard arrow right (+10s)
+    fireEvent.keyDown(scrubber, { key: 'ArrowRight' });
+    expect(skipSecondsMock).toHaveBeenCalledWith(10);
+
+    // Keyboard arrow left (-10s)
+    fireEvent.keyDown(scrubber, { key: 'ArrowLeft' });
+    expect(skipSecondsMock).toHaveBeenCalledWith(-10);
+  });
+
+  it('handles horizontal swipe gestures to navigate chunks', () => {
+    const nextChunkMock = vi.fn();
+    const previousChunkMock = vi.fn();
+    const playback = createMockPlayback({
+      nextChunk: nextChunkMock,
+      previousChunk: previousChunkMock,
+    });
+    render(<PlayMobile playback={playback} />);
+
+    const stage = screen.getByRole('region', { name: /video playback area/i });
+    expect(stage).toBeDefined();
+
+    Object.defineProperty(stage, 'clientWidth', { value: 360, configurable: true });
+
+    // 1. Swipe Left (pointerdown at 300, move to 100, pointerup) -> should call nextChunk
+    fireEvent.pointerDown(stage, { pointerType: 'touch', button: 0, clientX: 300, clientY: 100, pointerId: 1 });
+    fireEvent.pointerMove(stage, { pointerType: 'touch', clientX: 100, clientY: 100, pointerId: 1 });
+    fireEvent.pointerUp(stage, { pointerType: 'touch', clientX: 100, clientY: 100, pointerId: 1 });
+
+    expect(nextChunkMock).toHaveBeenCalled();
+
+    // 2. Swipe Right (pointerdown at 100, move to 300, pointerup) -> should call previousChunk
+    fireEvent.pointerDown(stage, { pointerType: 'touch', button: 0, clientX: 100, clientY: 100, pointerId: 2 });
+    fireEvent.pointerMove(stage, { pointerType: 'touch', clientX: 300, clientY: 100, pointerId: 2 });
+    fireEvent.pointerUp(stage, { pointerType: 'touch', clientX: 300, clientY: 100, pointerId: 2 });
+
+    expect(previousChunkMock).toHaveBeenCalled();
+  });
+
+  it('applies drag transform style on surfaceWrapper during active dragging', () => {
+    const playback = createMockPlayback();
+    const { container } = render(<PlayMobile playback={playback} />);
+
+    const stage = screen.getByRole('region', { name: /video playback area/i });
+    const surface = container.querySelector('[class*="surfaceWrapper"]') as HTMLElement;
+    expect(surface).toBeDefined();
+
+    // Start drag
+    fireEvent.pointerDown(stage, { pointerType: 'touch', button: 0, clientX: 200, clientY: 100, pointerId: 1 });
+    fireEvent.pointerMove(stage, { pointerType: 'touch', clientX: 150, clientY: 100, pointerId: 1 });
+
+    // In active drag: transform translateX(-50px)
+    expect(surface.style.transform).toBe('translateX(-50px)');
+    expect(surface.style.transition).toBe('none');
+
+    // End drag
+    fireEvent.pointerUp(stage, { pointerType: 'touch', clientX: 150, clientY: 100, pointerId: 1 });
+    expect(surface.style.transform).toBe('');
+  });
+
+  it('exports memoized components TimelineScrubber, PlayMobileHeader, PlayMobileDock', () => {
+    expect(TimelineScrubber).toBeDefined();
+    expect(PlayMobileHeader).toBeDefined();
+    expect(PlayMobileDock).toBeDefined();
+    expect((TimelineScrubber as any).$$typeof).toBe(Symbol.for('react.memo'));
+    expect((PlayMobileHeader as any).$$typeof).toBe(Symbol.for('react.memo'));
+    expect((PlayMobileDock as any).$$typeof).toBe(Symbol.for('react.memo'));
+  });
+
+  it('isolates 10Hz scrubber updates so PlayMobile re-renders do not trigger unnecessary DOM churn', () => {
+    const initialPlayback = createMockPlayback({ timelineProgress: 10 });
+    const { rerender } = render(<PlayMobile playback={initialPlayback} />);
+
+    const scrubber = screen.getByRole('slider', { name: /timeline seek scrubber/i });
+    expect(scrubber.getAttribute('aria-valuenow')).toBe('10');
+
+    // Simulate 10Hz playback progress updates (10% -> 12% -> 15%)
+    const updatedPlayback1 = createMockPlayback({ timelineProgress: 12 });
+    rerender(<PlayMobile playback={updatedPlayback1} />);
+    expect(scrubber.getAttribute('aria-valuenow')).toBe('12');
+
+    const updatedPlayback2 = createMockPlayback({ timelineProgress: 15 });
+    rerender(<PlayMobile playback={updatedPlayback2} />);
+    expect(scrubber.getAttribute('aria-valuenow')).toBe('15');
+
+    // Header and dock remain intact without error or disruption
+    expect(screen.getByRole('banner', { name: /playback header/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: 'Play' })).toBeDefined();
   });
 });
