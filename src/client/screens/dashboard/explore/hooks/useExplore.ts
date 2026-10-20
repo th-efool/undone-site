@@ -9,7 +9,9 @@ export function useExplore() {
     queryKey: ['explore'],
     queryFn: async () => exploreRepository.getExplore(),
     initialData: () => exploreRepository.getInitialExplore(),
-    staleTime: 60_000,
+    staleTime: 300_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const emptyExplore: ExploreModel = {

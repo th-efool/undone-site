@@ -62,6 +62,9 @@ export function useHome(props?: {
     queryKey: ['home', userId ?? 'anon'],
     queryFn: async () => homeRepository.getHome({ loadStored: true, userId }),
     initialData: () => homeRepository.getHome({ loadStored: typeof window !== 'undefined', userId }),
+    staleTime: 300_000, // 5 minutes
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   const source = homeData ?? homeRepository.getHome({ userId });
@@ -94,6 +97,16 @@ export function useHome(props?: {
 
   const cohortTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const reorderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (reorderTimerRef.current) clearTimeout(reorderTimerRef.current);
+      for (const timer of cohortTimers.current.values()) {
+        clearTimeout(timer);
+      }
+      cohortTimers.current.clear();
+    };
+  }, []);
 
   // Background pluggable backend sync
   useEffect(() => {

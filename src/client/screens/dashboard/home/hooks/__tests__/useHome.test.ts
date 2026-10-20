@@ -6,14 +6,21 @@ const mocks = vi.hoisted(() => ({
   authenticated: true,
   saveChoices: vi.fn(), getStoredChoices: vi.fn(), syncWithBackend: vi.fn(),
   data: { activeCohorts: [], continueLater: [], recentlyCompleted: [], summaries: [] },
+  useQuery: vi.fn(),
 }));
-vi.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: mocks.data, isLoading: false }) }));
+vi.mock('@tanstack/react-query', () => ({ useQuery: (options: unknown) => mocks.useQuery(options) }));
 vi.mock('next-auth/react', () => ({ useSession: () => ({ status: mocks.authenticated ? 'authenticated' : 'unauthenticated', data: mocks.authenticated ? { user: { id: 'learner' } } : null }) }));
 vi.mock('@/src/client/repositories/homeRepository', () => ({ homeRepository: { getHome: () => mocks.data } }));
 vi.mock('@/src/client/repositories/homeStorageAdapter', () => ({ homeStorageAdapter: mocks }));
 import { useHome } from '../useHome';
 const cohort: ActiveCohort = { id: 'one', rank: 1, title: 'One', provider: 'Undone', thumbnail: '/cover.jpg', minutesToday: 0, dailyGoalMinutes: 20, progressPercent: 42, schedule: { days: ['Mon'], label: 'Mon' } };
-beforeEach(() => { vi.clearAllMocks(); mocks.authenticated = true; vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true })); });
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.authenticated = true;
+  mocks.useQuery.mockImplementation(() => ({ data: mocks.data, isLoading: false }));
+  mocks.syncWithBackend.mockResolvedValue(null);
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+});
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('home subscription actions', () => {
@@ -102,5 +109,35 @@ describe('home subscription actions', () => {
     await expect(result.current.actions.saveLearningSettings('one', { dailyGoalMinutes: 30, schedule: cohort.schedule, orderStyle: 'Sequential' })).rejects.toThrow('Sign in');
     expect(fetch).not.toHaveBeenCalled();
     expect(result.current.activeCohorts).toEqual([cohort]);
+  });
+  it('invokes useQuery with 5m staleTime and refetchOnWindowFocus/refetchOnMount disabled', () => {
+    renderHook(() => useHome());
+    expect(mocks.useQuery).toHaveBeenCalledWith(
+      expect.objectContaining({
+        queryKey: ['home', 'learner'],
+        staleTime: 300_000,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+      }),
+    );
+  });
+  it('cleans up pending reorder and debounce timers on unmount', async () => {
+    vi.useFakeTimers();
+    const second = { ...cohort, id: 'two', rank: 2 };
+    const props = { activeCohorts: [cohort, second], continueLater: [] };
+    const { result, unmount } = renderHook(() => useHome(props));
+
+    act(() => {
+      result.current.actions.moveCohort('one', 'two');
+      result.current.actions.saveSchedule('one', ['Tue']);
+    });
+
+    unmount();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(2000);
+    });
+
+    expect(fetch).not.toHaveBeenCalled();
   });
 });
