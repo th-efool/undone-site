@@ -27,27 +27,34 @@ export function JoinCohortButton({ cohortId, isLoggedIn }: JoinCohortButtonProps
     if (pending.current) return;
     pending.current = true;
     setIsLoading(true);
-    setIsJoined(true);
     setError(null);
 
     try {
       const response = await fetch(apiUrl(`/api/cohort/${encodeURIComponent(cohortId)}/join`), {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         signal: AbortSignal.timeout(30_000),
       });
+
       if (response.ok) {
+        setIsJoined(true);
         router.refresh();
       } else {
         setIsJoined(false);
         if (response.status === 401) {
           router.push(creationSignInUrl(`/cohort/${encodeURIComponent(cohortId)}`));
         } else {
-          setError(
-            response.status === 404 || response.status === 403
-              ? 'This cohort is no longer available to join.'
-              : 'Joining failed. Try again.',
-          );
+          let errorMessage = 'Joining failed. Try again.';
+          try {
+            const data = await response.json();
+            if (data?.error) errorMessage = data.error;
+          } catch {
+            if (response.status === 404 || response.status === 403) {
+              errorMessage = 'This cohort is no longer available to join.';
+            }
+          }
+          setError(errorMessage);
         }
       }
     } catch {

@@ -11,7 +11,14 @@ configureRequestOriginAuth();
 export const { auth } = NextAuth({
   basePath: '/api/auth',
   trustHost: true,
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || 'sidequest-hq-dev-secret-key-32-chars-minimum-12345',
+  secret: (() => {
+    const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+    if (secret) return secret;
+    if (process.env.NODE_ENV === 'production' || process.env.VERCEL === '1') {
+      throw new Error('[auth] Production auth secret (AUTH_SECRET or NEXTAUTH_SECRET) is required.');
+    }
+    return 'sidequest-hq-dev-secret-key-32-chars-minimum-12345';
+  })(),
   providers: [
     GitHub({
       clientId: process.env.AUTH_GITHUB_ID || 'placeholder_github_id',

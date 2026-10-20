@@ -4,7 +4,8 @@ vi.mock('server-only', () => ({}));
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
-  findFirst: vi.fn(),
+  cohortFindUnique: vi.fn(),
+  cohortMemberFindUnique: vi.fn(),
   getCommunityChannels: vi.fn(),
 }));
 
@@ -15,7 +16,10 @@ vi.mock('@/src/server/infrastructure/auth/auth.config', () => ({
 vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({
   prisma: {
     cohort: {
-      findFirst: mocks.findFirst,
+      findUnique: mocks.cohortFindUnique,
+    },
+    cohortMember: {
+      findUnique: mocks.cohortMemberFindUnique,
     },
   },
 }));
@@ -28,7 +32,7 @@ vi.mock('@/src/server/infrastructure/db/postgres/repositories/community.repo', (
 
 import { GET } from '../route';
 
-describe('GET /api/community/[cohortId]/channels - Caching & Auth Boundary', () => {
+describe('GET /api/community/[cohortId]/channels - Member-only Authorization & Caching', () => {
   const createParams = (cohortId: string) => ({
     params: Promise.resolve({ cohortId }),
   });
@@ -41,121 +45,121 @@ describe('GET /api/community/[cohortId]/channels - Caching & Auth Boundary', () 
     vi.restoreAllMocks();
   });
 
-  it('a) returns community channels with public micro-cache and vary headers for public cohorts', async () => {
+  it('a) returns 401 Unauthorized for unauthenticated requests', async () => {
     mocks.auth.mockResolvedValue(null);
-    mocks.findFirst.mockResolvedValue({
-      id: 'cohort-public',
-      visibility: 'PUBLIC',
+
+    const response = await GET(
+      new Request('http://localhost/api/community/cohort-1/channels'),
+      createParams('cohort-1')
+    );
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({ error: 'Unauthorized' });
+    expect(mocks.getCommunityChannels).not.toHaveBeenCalled();
+  });
+
+  it('b) returns 403 Forbidden for shared guest accounts', async () => {
+    mocks.auth.mockResolvedValue({
+      user: { id: 'guest-user', email: 'guest@undone.com' },
     });
+
+    const response = await GET(
+      new Request('http://localhost/api/community/cohort-1/channels'),
+      createParams('cohort-1')
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: 'Guest accounts cannot access community channels',
+    });
+    expect(mocks.getCommunityChannels).not.toHaveBeenCalled();
+  });
+
+  it('c) returns 403 Forbidden for non-member authenticated users', async () => {
+    mocks.auth.mockResolvedValue({ user: { id: 'user-nonmember' } });
+    mocks.cohortFindUnique.mockResolvedValue({
+      id: 'cohort-1',
+      creatorId: 'user-creator',
+      isPublished: true,
+      community: { id: 'comm-1', chatEnabled: true },
+    });
+    mocks.cohortMemberFindUnique.mockResolvedValue(null);
+
+    const response = await GET(
+      new Request('http://localhost/api/community/cohort-1/channels'),
+      createParams('cohort-1')
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: 'Active cohort membership is required to access community channels',
+    });
+    expect(mocks.getCommunityChannels).not.toHaveBeenCalled();
+  });
+
+  it('d) returns 403 Forbidden when chat is disabled for the community', async () => {
+    mocks.auth.mockResolvedValue({ user: { id: 'user-member' } });
+    mocks.cohortFindUnique.mockResolvedValue({
+      id: 'cohort-1',
+      creatorId: 'user-creator',
+      isPublished: true,
+      community: { id: 'comm-1', chatEnabled: false },
+    });
+
+    const response = await GET(
+      new Request('http://localhost/api/community/cohort-1/channels'),
+      createParams('cohort-1')
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: 'Chat is disabled for this community',
+    });
+  });
+
+  it('e) returns 200 OK with channels and private no-store headers for enrolled member', async () => {
+    mocks.auth.mockResolvedValue({ user: { id: 'user-member' } });
+    mocks.cohortFindUnique.mockResolvedValue({
+      id: 'cohort-1',
+      creatorId: 'user-creator',
+      isPublished: true,
+      community: { id: 'comm-1', chatEnabled: true },
+    });
+    mocks.cohortMemberFindUnique.mockResolvedValue({ role: 'EXPLORER' });
     const channels = [
-      { id: 'chan-1', name: 'general', messages: [] },
-      { id: 'chan-2', name: 'announcements', messages: [] },
+      { id: 'chan-1', name: 'general', communityId: 'comm-1' },
+      { id: 'chan-2', name: 'resources', communityId: 'comm-1' },
     ];
-    mocks.getCommunityChannels.mockResolvedValue({
-      channels,
-    });
+    mocks.getCommunityChannels.mockResolvedValue({ channels });
 
     const response = await GET(
-      new Request('http://localhost/api/community/cohort-public/channels'),
-      createParams('cohort-public')
+      new Request('http://localhost/api/community/cohort-1/channels'),
+      createParams('cohort-1')
     );
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(channels);
-    expect(response.headers.get('Cache-Control')).toBe('public, s-maxage=15, stale-while-revalidate=60');
-    expect(response.headers.get('Vary')).toBe('Cookie, Authorization');
-    expect(mocks.findFirst).toHaveBeenCalledWith({
-      where: expect.objectContaining({ id: 'cohort-public' }),
-      select: { id: true, visibility: true },
-    });
-    expect(mocks.getCommunityChannels).toHaveBeenCalledWith('cohort-public');
+    expect(response.headers.get('Cache-Control')).toBe('private, no-store');
   });
 
-  it('b) returns private no-cache headers without Vary header for private cohort with member session', async () => {
-    mocks.auth.mockResolvedValue({ user: { id: 'member-1' } });
-    mocks.findFirst.mockResolvedValue({
-      id: 'cohort-private',
-      visibility: 'PRIVATE',
+  it('f) returns 200 OK for cohort creator without explicit member row', async () => {
+    mocks.auth.mockResolvedValue({ user: { id: 'user-creator' } });
+    mocks.cohortFindUnique.mockResolvedValue({
+      id: 'cohort-1',
+      creatorId: 'user-creator',
+      isPublished: true,
+      community: { id: 'comm-1', chatEnabled: true },
     });
-    const channels = [{ id: 'chan-priv', name: 'private-discussion', messages: [] }];
-    mocks.getCommunityChannels.mockResolvedValue({
-      channels,
-    });
+    const channels = [{ id: 'chan-1', name: 'general', communityId: 'comm-1' }];
+    mocks.getCommunityChannels.mockResolvedValue({ channels });
 
     const response = await GET(
-      new Request('http://localhost/api/community/cohort-private/channels'),
-      createParams('cohort-private')
+      new Request('http://localhost/api/community/cohort-1/channels'),
+      createParams('cohort-1')
     );
 
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual(channels);
-    expect(response.headers.get('Cache-Control')).toBe('private, no-cache, no-store');
-    expect(response.headers.get('Vary')).toBeNull();
-    expect(mocks.getCommunityChannels).toHaveBeenCalledWith('cohort-private');
-  });
-
-  it('c) returns 404 if cohort is inaccessible or does not exist', async () => {
-    mocks.auth.mockResolvedValue(null);
-    mocks.findFirst.mockResolvedValue(null);
-
-    const response = await GET(
-      new Request('http://localhost/api/community/cohort-missing/channels'),
-      createParams('cohort-missing')
-    );
-
-    expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: 'Community not found' });
-    expect(mocks.getCommunityChannels).not.toHaveBeenCalled();
-  });
-
-  it('d) returns 404 if community channels entity is missing', async () => {
-    mocks.auth.mockResolvedValue({ user: { id: 'member-1' } });
-    mocks.findFirst.mockResolvedValue({
-      id: 'cohort-empty',
-      visibility: 'PUBLIC',
-    });
-    mocks.getCommunityChannels.mockResolvedValue(null);
-
-    const response = await GET(
-      new Request('http://localhost/api/community/cohort-empty/channels'),
-      createParams('cohort-empty')
-    );
-
-    expect(response.status).toBe(404);
-    expect(await response.json()).toEqual({ error: 'Community not found' });
-    expect(mocks.getCommunityChannels).toHaveBeenCalledWith('cohort-empty');
-  });
-
-  it('e) handles database error and returns 500 when cohort lookup fails', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    mocks.auth.mockResolvedValue(null);
-    mocks.findFirst.mockRejectedValue(new Error('Postgres connection failure'));
-
-    const response = await GET(
-      new Request('http://localhost/api/community/cohort-err/channels'),
-      createParams('cohort-err')
-    );
-
-    expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({ error: 'Internal server error' });
-    expect(mocks.getCommunityChannels).not.toHaveBeenCalled();
-  });
-
-  it('e2) handles database error and returns 500 when channel lookup fails', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    mocks.auth.mockResolvedValue(null);
-    mocks.findFirst.mockResolvedValue({
-      id: 'cohort-err2',
-      visibility: 'PUBLIC',
-    });
-    mocks.getCommunityChannels.mockRejectedValue(new Error('Postgres query timeout'));
-
-    const response = await GET(
-      new Request('http://localhost/api/community/cohort-err2/channels'),
-      createParams('cohort-err2')
-    );
-
-    expect(response.status).toBe(500);
-    expect(await response.json()).toEqual({ error: 'Internal server error' });
+    expect(mocks.cohortMemberFindUnique).not.toHaveBeenCalled();
   });
 });

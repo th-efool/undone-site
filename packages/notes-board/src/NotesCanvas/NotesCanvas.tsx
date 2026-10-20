@@ -444,6 +444,24 @@ export function NotesCanvas({
     });
   }, [onSceneChange, currentBg, excalidrawAPI]);
 
+  const UIOptions = useMemo(() => ({
+    canvasActions: {
+      changeViewBackgroundColor: false,
+      clearCanvas: true,
+      loadScene: false,
+      saveToActiveFile: false,
+      toggleTheme: false,
+      saveAsImage: true,
+    },
+  }), []);
+
+  const hamburgerProps = useMemo(() => ({
+    config: gridConfig,
+    onChange: handleGridConfigChange,
+    viewBackgroundColor: currentBg,
+    onBgChange: handleBgChange,
+  }), [gridConfig, handleGridConfigChange, currentBg, handleBgChange]);
+
   return (
     <div ref={containerRef} className={styles.container} style={{ backgroundColor: currentBg }}>
       <div 
@@ -475,22 +493,8 @@ export function NotesCanvas({
           onChange={handleChange}
           viewModeEnabled={isReadOnly}
           theme="dark"
-          UIOptions={useMemo(() => ({
-            canvasActions: {
-              changeViewBackgroundColor: false,
-              clearCanvas: true,
-              loadScene: false,
-              saveToActiveFile: false,
-              toggleTheme: false,
-              saveAsImage: true,
-            },
-          }), [])}
-          hamburgerProps={useMemo(() => ({
-            config: gridConfig,
-            onChange: handleGridConfigChange,
-            viewBackgroundColor: currentBg,
-            onBgChange: handleBgChange,
-          }), [gridConfig, handleGridConfigChange, currentBg, handleBgChange])}
+          UIOptions={UIOptions}
+          hamburgerProps={hamburgerProps}
         />
       )}
     </div>

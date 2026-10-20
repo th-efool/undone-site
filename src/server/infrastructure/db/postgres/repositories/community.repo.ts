@@ -6,13 +6,38 @@ export const communityRepo = {
       where: { cohortId },
       include: {
         channels: {
-          include: {
-            messages: {
-              take: 25,
-              orderBy: { createdAt: 'desc' },
-              include: {
-                author: {
-                  select: { id: true, name: true, image: true },
+          select: {
+            id: true,
+            name: true,
+            communityId: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+    });
+  },
+
+  getUserEnrolledCommunities: async (userId: string) => {
+    return prisma.cohortMember.findMany({
+      where: { userId },
+      select: {
+        role: true,
+        cohort: {
+          select: {
+            id: true,
+            title: true,
+            coverImage: true,
+            isPublished: true,
+            community: {
+              select: {
+                id: true,
+                chatEnabled: true,
+                channels: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
                 },
               },
             },
@@ -31,7 +56,7 @@ export const communityRepo = {
       orderBy: { createdAt: 'desc' },
       include: {
         author: {
-          select: { id: true, name: true, image: true },
+          select: { id: true, name: true, image: true, username: true },
         },
       },
     });
@@ -46,10 +71,9 @@ export const communityRepo = {
       },
       include: {
         author: {
-          select: { id: true, name: true, image: true },
+          select: { id: true, name: true, image: true, username: true },
         },
       },
     });
   },
 };
-

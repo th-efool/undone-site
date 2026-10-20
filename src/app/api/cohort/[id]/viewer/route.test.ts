@@ -3,7 +3,8 @@ import { clearPermissionsCache, getCachedCohortMember } from '@/src/server/infra
 
 const mocks = vi.hoisted(() => ({
   auth: vi.fn(),
-  findUnique: vi.fn(),
+  cohortMemberFindUnique: vi.fn(),
+  cohortFindUnique: vi.fn(),
 }));
 
 vi.mock('@/src/server/infrastructure/auth/auth.config', () => ({
@@ -12,8 +13,11 @@ vi.mock('@/src/server/infrastructure/auth/auth.config', () => ({
 
 vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({
   prisma: {
+    cohort: {
+      findUnique: mocks.cohortFindUnique,
+    },
     cohortMember: {
-      findUnique: mocks.findUnique,
+      findUnique: mocks.cohortMemberFindUnique,
     },
   },
 }));
@@ -25,6 +29,7 @@ describe('Cohort Viewer Route (GET /api/cohort/[id]/viewer)', () => {
     vi.resetAllMocks();
     clearPermissionsCache();
     mocks.auth.mockResolvedValue({ user: { id: 'user-1' } });
+    mocks.cohortFindUnique.mockResolvedValue({ creatorId: 'user-creator' });
   });
 
   const makeParams = (id = 'cohort-1') => ({
@@ -38,77 +43,81 @@ describe('Cohort Viewer Route (GET /api/cohort/[id]/viewer)', () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data).toEqual({ enrolled: false });
-    expect(mocks.findUnique).not.toHaveBeenCalled();
+    expect(data).toEqual({ enrolled: false, isCreator: false });
+    expect(mocks.cohortMemberFindUnique).not.toHaveBeenCalled();
     expect(getCachedCohortMember('cohort-1', 'user-1')).toBeNull();
   });
 
+  it('creator is automatically recognized as enrolled with CREATOR role', async () => {
+    mocks.auth.mockResolvedValue({ user: { id: 'user-creator' } });
+    mocks.cohortFindUnique.mockResolvedValue({ creatorId: 'user-creator' });
+
+    const response = await GET(new Request('http://localhost'), makeParams('cohort-1'));
+    const data = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(data).toEqual({ enrolled: true, role: 'CREATOR', isCreator: true });
+    expect(mocks.cohortMemberFindUnique).not.toHaveBeenCalled();
+    expect(getCachedCohortMember('cohort-1', 'user-creator')).toEqual({ isMember: true, role: 'CREATOR' });
+  });
+
   it('queries database on cache miss and caches member result', async () => {
-    mocks.findUnique.mockResolvedValueOnce({ role: 'EXPLORER' });
+    mocks.cohortMemberFindUnique.mockResolvedValueOnce({ role: 'EXPLORER' });
 
     const response = await GET(new Request('http://localhost'), makeParams('cohort-100'));
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data).toEqual({ enrolled: true });
-    expect(mocks.findUnique).toHaveBeenCalledTimes(1);
-    expect(mocks.findUnique).toHaveBeenCalledWith({
-      where: {
-        cohortId_userId: {
-          cohortId: 'cohort-100',
-          userId: 'user-1',
-        },
-      },
-      select: { role: true },
-    });
+    expect(data).toEqual({ enrolled: true, role: 'EXPLORER', isCreator: false });
+    expect(mocks.cohortMemberFindUnique).toHaveBeenCalledTimes(1);
 
     // Cache should now have the entry
     const cached = getCachedCohortMember('cohort-100', 'user-1');
     expect(cached).toEqual({ isMember: true, role: 'EXPLORER' });
 
-    // Second call should HIT the cache and NOT query DB
-    mocks.findUnique.mockClear();
+    // Second call should HIT the cache and NOT query member DB
+    mocks.cohortMemberFindUnique.mockClear();
     const secondResponse = await GET(new Request('http://localhost'), makeParams('cohort-100'));
     const secondData = await secondResponse.json();
 
     expect(secondResponse.status).toBe(200);
-    expect(secondData).toEqual({ enrolled: true });
-    expect(mocks.findUnique).not.toHaveBeenCalled();
+    expect(secondData).toEqual({ enrolled: true, role: 'EXPLORER', isCreator: false });
+    expect(mocks.cohortMemberFindUnique).not.toHaveBeenCalled();
   });
 
   it('caches negative result (enrolled: false) when user is not a member', async () => {
-    mocks.findUnique.mockResolvedValueOnce(null);
+    mocks.cohortMemberFindUnique.mockResolvedValueOnce(null);
 
     const response = await GET(new Request('http://localhost'), makeParams('cohort-200'));
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data).toEqual({ enrolled: false });
-    expect(mocks.findUnique).toHaveBeenCalledTimes(1);
+    expect(data).toEqual({ enrolled: false, role: undefined, isCreator: false });
+    expect(mocks.cohortMemberFindUnique).toHaveBeenCalledTimes(1);
 
     // Verify negative cache entry
     const cached = getCachedCohortMember('cohort-200', 'user-1');
     expect(cached).toEqual({ isMember: false });
 
-    // Second call should return enrolled: false from cache without DB hit
-    mocks.findUnique.mockClear();
+    // Second call should return enrolled: false from cache without member DB hit
+    mocks.cohortMemberFindUnique.mockClear();
     const secondResponse = await GET(new Request('http://localhost'), makeParams('cohort-200'));
     const secondData = await secondResponse.json();
 
     expect(secondResponse.status).toBe(200);
-    expect(secondData).toEqual({ enrolled: false });
-    expect(mocks.findUnique).not.toHaveBeenCalled();
+    expect(secondData).toEqual({ enrolled: false, role: undefined, isCreator: false });
+    expect(mocks.cohortMemberFindUnique).not.toHaveBeenCalled();
   });
 
   it('returns 500 when database lookup throws an error', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mocks.findUnique.mockRejectedValueOnce(new Error('Postgres connection failed'));
+    mocks.cohortFindUnique.mockRejectedValueOnce(new Error('Postgres connection failed'));
 
     const response = await GET(new Request('http://localhost'), makeParams('cohort-err'));
     const data = await response.json();
 
     expect(response.status).toBe(500);
-    expect(data).toEqual({ enrolled: false });
+    expect(data).toEqual({ enrolled: false, isCreator: false });
     consoleSpy.mockRestore();
   });
 });

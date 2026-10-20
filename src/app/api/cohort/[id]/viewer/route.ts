@@ -20,12 +20,30 @@ export async function GET(
     const userId = session?.user?.id;
 
     if (!userId) {
-      return NextResponse.json({ enrolled: false }, { headers });
+      return NextResponse.json({ enrolled: false, isCreator: false }, { headers });
+    }
+
+    const cohort = await prisma.cohort.findUnique({
+      where: { id: cohortId },
+      select: { creatorId: true },
+    });
+
+    if (!cohort) {
+      return NextResponse.json({ enrolled: false, isCreator: false }, { status: 404, headers });
+    }
+
+    const isCreator = cohort.creatorId === userId;
+    if (isCreator) {
+      setCachedCohortMember(cohortId, userId, { isMember: true, role: 'CREATOR' });
+      return NextResponse.json({ enrolled: true, role: 'CREATOR', isCreator: true }, { headers });
     }
 
     const cached = getCachedCohortMember(cohortId, userId);
     if (cached !== null) {
-      return NextResponse.json({ enrolled: cached.isMember }, { headers });
+      return NextResponse.json(
+        { enrolled: cached.isMember, role: cached.role, isCreator: false },
+        { headers }
+      );
     }
 
     const member = await prisma.cohortMember.findUnique({
@@ -43,9 +61,12 @@ export async function GET(
       role: member?.role,
     });
 
-    return NextResponse.json({ enrolled: Boolean(member) }, { headers });
+    return NextResponse.json(
+      { enrolled: Boolean(member), role: member?.role, isCreator: false },
+      { headers }
+    );
   } catch (error) {
     console.error('Failed to resolve cohort viewer state:', error);
-    return NextResponse.json({ enrolled: false }, { status: 500, headers });
+    return NextResponse.json({ enrolled: false, isCreator: false }, { status: 500, headers });
   }
 }
