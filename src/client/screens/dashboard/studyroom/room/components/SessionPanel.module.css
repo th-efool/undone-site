@@ -1,0 +1,426 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: #ffffff;
+}
+
+/* ───────── Goal Section (Upper Half) ───────── */
+
+.goalSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.goalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.goalTitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+}
+
+.committedGoalBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 3px 8px;
+  border-radius: 6px;
+  max-width: 200px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.goalInputRow {
+  display: flex;
+  gap: 8px;
+  min-width: 0;
+}
+
+.goalInputWrapper {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+.goalInput {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 48px 8px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.goalInput:focus {
+  border-color: #3b82f6;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.charCounter {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.6875rem;
+  color: rgba(255, 255, 255, 0.65);
+  pointer-events: none;
+}
+
+.saveGoalBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: #3b82f6;
+  border: 1px solid #3b82f6;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.saveGoalBtn:hover {
+  background: #2563eb;
+}
+
+.visibilityControls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.segmentedGroup {
+  display: flex;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 3px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 4px;
+}
+
+.segmentBtn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.segmentBtn:hover {
+  color: #ffffff;
+}
+
+.segmentBtnActive {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.visibilityHint {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+  padding-left: 2px;
+}
+
+/* ───────── Task List Section (Lower Half) ───────── */
+
+.tasksSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tasksHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tasksTitle {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+}
+
+.privacyLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.tasksStats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.65);
+  padding: 0 2px;
+}
+
+.clearCompletedBtn {
+  background: transparent;
+  border: none;
+  color: #f87171;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.clearCompletedBtn:hover {
+  color: #ef4444;
+  text-decoration: underline;
+}
+
+.emptyTasks {
+  padding: 32px 16px;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.5;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.taskList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.taskItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 8px;
+  transition: background-color 0.15s ease;
+}
+
+.taskItem:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.taskItemDone {
+  opacity: 0.7;
+}
+
+.taskItemDone .taskText {
+  text-decoration: line-through;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.taskCheckbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.taskText {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.9);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  cursor: pointer;
+  user-select: none;
+}
+
+.taskActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.taskActionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+@media (max-width: 768px) {
+  .taskActionBtn {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+.taskActionBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.taskActionBtn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.taskDeleteBtn:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.editRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.editInput {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.inlineError {
+  font-size: 0.75rem;
+  color: #f87171;
+  margin: 2px 0 0 0;
+}
+
+/* ───────── Pinned Add Row (Sticky Bottom) ───────── */
+
+.stickyAddRow {
+  position: sticky;
+  bottom: 0;
+  padding-top: 10px;
+  background: rgba(18, 24, 38, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.addForm {
+  display: flex;
+  gap: 8px;
+}
+
+.addInput {
+  flex: 1;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.addInput:focus {
+  border-color: #3b82f6;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 14px;
+  background: #3b82f6;
+  border: 1px solid #3b82f6;
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.addBtn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.addBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saveGoalBtn,
+  .segmentBtn,
+  .clearCompletedBtn,
+  .taskItem,
+  .taskActionBtn,
+  .addBtn,
+  .goalInput,
+  .addInput {
+    transition: none;
+  }
+}
