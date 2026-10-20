@@ -47,6 +47,11 @@ model User {
   receivedConversationInvites ConversationInvitation[] @relation("ConversationInvitedTo")
   roomLeases        RoomLease[]
   studySessions     StudySession[]
+  attachments       ChatAttachment[]
+  notifications     Notification[] @relation("UserNotifications")
+  actedNotifications Notification[] @relation("ActorNotifications")
+  notificationPreference NotificationPreference?
+  pushSubscriptions PushSubscription[]
 
   @@map("users")
 }
@@ -607,6 +612,7 @@ model Channel {
   messageCounter Int                @default(0)
 
   messages       Message[]
+  attachments    ChatAttachment[]
   userStates     ChannelUserState[]
   realtimeStream RealtimeStream?
 
@@ -636,6 +642,7 @@ model Message {
   replies         Message[]          @relation("MessageReplies")
   reports         MessageReport[]
   reactions       MessageReaction[]
+  attachments     ChatAttachment[]
   revision        Int                @default(1)
   editedAt        DateTime?
   deletedAt       DateTime?
@@ -1011,5 +1018,83 @@ model MessageReaction {
   @@index([messageId])
   @@index([userId])
   @@map("message_reactions")
+}
+
+model ChatAttachment {
+  id               String    @id @default(cuid())
+  uploaderId       String
+  channelId        String
+  messageId        String?
+  storageKey       String    @unique
+  filename         String
+  mediaType        String
+  byteLength       Int
+  checksum         String
+  status           String    @default("RESERVED")
+  quarantinedUntil DateTime?
+  failureReason    String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  uploader         User      @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  channel          Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  message          Message?  @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([channelId, status])
+  @@index([uploaderId, createdAt])
+  @@index([messageId])
+  @@map("chat_attachments")
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  actorId   String?
+  scopeType String
+  scopeId   String
+  entityId  String?
+  type      String
+  title     String
+  body      String
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user      User      @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  actor     User?     @relation("ActorNotifications", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRead, createdAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  userId             String   @id
+  emailNotifications Boolean  @default(true)
+  pushNotifications  Boolean  @default(true)
+  mentionOnly        Boolean  @default(false)
+  mutedScopes        Json     @default("[]")
+  updatedAt          DateTime @updatedAt
+
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 
