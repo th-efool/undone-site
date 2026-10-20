@@ -60,6 +60,7 @@ export function LessonRow({ lesson, index, cohortId: propCohortId, onToggleStatu
               width={96}
               height={56}
               className={styles.thumbnail}
+              unoptimized
             />
           </Link>
         ) : (
@@ -69,6 +70,7 @@ export function LessonRow({ lesson, index, cohortId: propCohortId, onToggleStatu
             width={96}
             height={56}
             className={styles.thumbnail}
+            unoptimized
           />
         )}
 
