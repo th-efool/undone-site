@@ -26,7 +26,9 @@ describe('owned and public feed boundary', () => {
     expect(f.generate.mock.calls[0][0].allChunks[0].content.text).toBe('Retained text one.');
   });
   it('uses public-only filtering for anonymous requests without progress lookups', async () => {
-    f.auth.mockResolvedValue(null); await GET(request());
+    f.auth.mockResolvedValue(null); const response = await GET(request());
+    expect(response.headers.get('Cache-Control')).toBe('public, s-maxage=60, stale-while-revalidate=300');
+    expect(response.headers.get('Vary')).toBe('Cookie, Authorization');
     expect(f.lessons.mock.calls[0][0].where.season.cohort.is.AND).toEqual([{ isPublished: true }, { isPublished: true, visibility: 'PUBLIC' }]);
     expect(f.progress).not.toHaveBeenCalled();
   });

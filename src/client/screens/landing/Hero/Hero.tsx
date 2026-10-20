@@ -41,6 +41,8 @@ export function Hero() {
         >
           <Image
             src="/images/hero-collage/parchment-edge-corner-left.svg"
+            priority
+            fetchPriority="high"
             alt=""
             fill
             className={styles.tornPaperImage}
@@ -54,6 +56,8 @@ export function Hero() {
         >
           <Image
             src="/images/hero-collage/parchment-edge-corner-right.svg"
+            priority
+            fetchPriority="high"
             alt=""
             fill
             className={styles.tornPaperImage}
@@ -69,6 +73,8 @@ export function Hero() {
         >
           <Image
             src="/images/hero-collage/parchment-edge-corner-left.svg"
+            priority
+            fetchPriority="high"
             alt=""
             fill
             className={styles.tornPaperImage}

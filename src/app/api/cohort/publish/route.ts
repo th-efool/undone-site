@@ -109,6 +109,18 @@ function parseDurationToSeconds(duration: string | number | undefined): number {
 export async function POST(request: NextRequest) {
   console.log('>>> [Publish Route] POST invoked <<<');
   try {
+    const session = await auth();
+    if (!session?.user?.id && !session?.user?.email) {
+      return Response.json(
+        {
+          code: 'unauthorized',
+          title: 'Unauthorized',
+          message: 'You must be logged in to publish a cohort.',
+        },
+        { status: 401 },
+      );
+    }
+
     const jsonBody = await request.json().catch(() => null);
 
     if (!jsonBody) {
@@ -133,12 +145,11 @@ export async function POST(request: NextRequest) {
     const { draft, curriculum, qualityScore, forcePublishWithWeights } = parseResult.data;
 
     // 1. Get creator from session, or default to test user
-    const session = await auth();
     let creator = null;
 
-    if (session?.user?.id) {
+    if (session.user.id) {
       creator = await userRepo.findById(session.user.id);
-    } else if (session?.user?.email) {
+    } else if (session.user.email) {
       creator = await userRepo.findByEmail(session.user.email);
     }
 

@@ -6,6 +6,7 @@ import { connectToMongoDB } from '@/src/server/infrastructure/db/mongodb/client'
 import { UserCohortConfig } from '@/src/server/database/mongo/models/UserCohortConfig';
 import { invalidateHomeServerCache } from '@/src/server/infrastructure/cache/homeServerCache';
 import { invalidateFeedCatalogCache } from '@/src/server/infrastructure/cache/feedServerCache';
+import { setCachedCohortMember } from '@/src/server/infrastructure/auth/permissionsCache';
 
 export async function POST(
   request: Request,
@@ -42,6 +43,8 @@ export async function POST(
       },
     });
 
+    setCachedCohortMember(cohortId, userId, { isMember: true, role: 'EXPLORER' });
+
     invalidateHomeServerCache(userId);
     invalidateFeedCatalogCache(userId);
 
@@ -77,6 +80,8 @@ export async function DELETE(
       await UserCohortConfig.updateOne({ userId, cohortId }, { $set: { isHidden: false } }).exec();
       throw error;
     }
+
+    setCachedCohortMember(cohortId, userId, { isMember: false });
 
     invalidateHomeServerCache(userId);
     invalidateFeedCatalogCache(userId);

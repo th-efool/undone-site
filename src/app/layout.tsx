@@ -13,12 +13,14 @@ const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
   display: 'swap',
+  preload: true,
 });
 
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
   display: 'swap',
+  preload: true,
 });
 
 const manrope = Manrope({
@@ -26,6 +28,7 @@ const manrope = Manrope({
   subsets: ['latin'],
   weight: ['500', '600', '700'],
   display: 'swap',
+  preload: true,
 });
 
 const caveat = Caveat({
@@ -185,6 +188,10 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
       suppressHydrationWarning
     >
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+        <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
         <link rel="preconnect" href="https://i.ytimg.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://i.ytimg.com" />
         <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />

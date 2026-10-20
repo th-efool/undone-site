@@ -155,4 +155,7 @@ const UserWorkspaceSchema = new Schema<IUserWorkspace>({
 });
 
 // 3. The "Next.js Hot Reload" Model Registration
+UserWorkspaceSchema.index({ userId: 1, 'canvases.id': 1 });
+UserWorkspaceSchema.index({ userId: 1, 'notes.id': 1 });
+
 export const UserWorkspace = mongoose.models.UserWorkspace || mongoose.model<IUserWorkspace>('UserWorkspace', UserWorkspaceSchema);

@@ -102,7 +102,7 @@ export async function PUT(req: Request) {
             { userId, cohortId: cleanId },
             { $set: { rank: Math.round(item.rank) } },
             { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
-          );
+          ).lean().exec();
         })
       );
 

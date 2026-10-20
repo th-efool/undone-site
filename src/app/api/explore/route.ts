@@ -19,7 +19,9 @@ export async function GET() {
       globalForExploreCache.__undoneExploreCache &&
       globalForExploreCache.__undoneExploreCache.expiresAt > Date.now()
     ) {
-      return NextResponse.json(globalForExploreCache.__undoneExploreCache.payload);
+      return NextResponse.json(globalForExploreCache.__undoneExploreCache.payload, {
+        headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+      });
     }
 
     const baseMock = exploreRepo?.getExplore?.() ?? {
@@ -38,10 +40,16 @@ export async function GET() {
       },
       take: 12,
       orderBy: { updatedAt: 'desc' },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        subtitle: true,
+        description: true,
+        estimatedCompletionTime: true,
+        coverImage: true,
+        publishedAt: true,
         creator: { select: { id: true, name: true, image: true } },
         _count: { select: { members: true } },
-        seasons: { include: { _count: { select: { lessons: true } } } },
       },
     });
 
@@ -52,7 +60,9 @@ export async function GET() {
           expiresAt: Date.now() + EXPLORE_SERVER_TTL_MS,
         };
       }
-      return NextResponse.json(baseMock);
+      return NextResponse.json(baseMock, {
+        headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+      });
     }
 
     const mappedSideQuests: SideQuest[] = dbCohorts.map((cohort) => ({
@@ -110,7 +120,9 @@ export async function GET() {
       };
     }
 
-    return NextResponse.json(payload);
+    return NextResponse.json(payload, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' },
+    });
   } catch (error) {
     console.error('[API Explore Error]:', error);
     try {

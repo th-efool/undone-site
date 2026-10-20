@@ -1,5 +1,6 @@
 // src/server/infrastructure/auth/auth.config.ts
 import NextAuth from 'next-auth';
+import { decode as defaultDecode } from 'next-auth/jwt';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import GitHub from 'next-auth/providers/github';
 import Slack from 'next-auth/providers/slack';
@@ -7,6 +8,7 @@ import Credentials from 'next-auth/providers/credentials';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { configureRequestOriginAuth } from './auth.environment';
 import { getGuestAccount } from './guestAccount';
+import { getCachedJwt, setCachedJwt } from './jwtCache';
 
 configureRequestOriginAuth();
 
@@ -40,6 +42,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   session: {
     strategy: 'jwt',  // Required for Credentials provider
+  },
+  jwt: {
+    async decode(params) {
+      if (!params.token) return null;
+      const cached = getCachedJwt(params.token);
+      if (cached) return cached;
+      const decoded = await defaultDecode(params);
+      if (decoded) {
+        setCachedJwt(params.token, decoded);
+      }
+      return decoded;
+    },
   },
   callbacks: {
     async jwt({ token, user }) {

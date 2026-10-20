@@ -1,5 +1,9 @@
 import { auth } from '@/src/server/infrastructure/auth/auth.config';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
+import {
+  getCachedCohortMember,
+  setCachedCohortMember,
+} from '@/src/server/infrastructure/auth/permissionsCache';
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +23,11 @@ export async function GET(
       return NextResponse.json({ enrolled: false }, { headers });
     }
 
+    const cached = getCachedCohortMember(cohortId, userId);
+    if (cached !== null) {
+      return NextResponse.json({ enrolled: cached.isMember }, { headers });
+    }
+
     const member = await prisma.cohortMember.findUnique({
       where: {
         cohortId_userId: {
@@ -27,6 +36,11 @@ export async function GET(
         },
       },
       select: { role: true },
+    });
+
+    setCachedCohortMember(cohortId, userId, {
+      isMember: Boolean(member),
+      role: member?.role,
     });
 
     return NextResponse.json({ enrolled: Boolean(member) }, { headers });

@@ -99,6 +99,7 @@ describe('GET /api/explore', () => {
 
     const response = await GET();
     expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('public, s-maxage=60, stale-while-revalidate=300');
 
     expect(hoisted.findMany).toHaveBeenCalledWith({
       where: {
@@ -107,10 +108,16 @@ describe('GET /api/explore', () => {
       },
       take: 12,
       orderBy: { updatedAt: 'desc' },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        subtitle: true,
+        description: true,
+        estimatedCompletionTime: true,
+        coverImage: true,
+        publishedAt: true,
         creator: { select: { id: true, name: true, image: true } },
         _count: { select: { members: true } },
-        seasons: { include: { _count: { select: { lessons: true } } } },
       },
     });
 
@@ -160,6 +167,7 @@ describe('GET /api/explore', () => {
 
     const response = await GET();
     expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBe('public, s-maxage=60, stale-while-revalidate=300');
 
     const data = await response.json();
     expect(data).toEqual(sampleMockData);
@@ -170,6 +178,7 @@ describe('GET /api/explore', () => {
 
     const response = await GET();
     expect(response.status).toBe(200);
+    expect(response.headers.get('Cache-Control')).toBeNull();
 
     const data = await response.json();
     expect(data).toEqual(sampleMockData);

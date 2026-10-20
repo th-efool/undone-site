@@ -45,6 +45,7 @@ export function LearningSearchBox() {
             height={24}
             className={styles.underlineFlourish}
             priority
+            fetchPriority="high"
           />
         </span>
       </h1>

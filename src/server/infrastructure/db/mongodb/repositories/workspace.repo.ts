@@ -16,7 +16,7 @@ export class WorkspaceRepository {
       { userId }, // The query
       { $setOnInsert: { userId } }, // What to do if creating new
       { new: true, upsert: true } // Options: return the new doc, allow insert
-    );
+    ).lean().exec();
   }
 
   /**
@@ -55,7 +55,7 @@ export class WorkspaceRepository {
 
     // The second argument is the "Projection". 
     // { notes: 1 } means "ONLY return the notes field, exclude everything else"
-    const workspace = await UserWorkspace.findOne({ userId }, { notes: 1 }).lean();
+    const workspace = await UserWorkspace.findOne({ userId }, { notes: 1 }).lean().exec();
     return workspace?.notes || [];
   }
 
@@ -109,7 +109,7 @@ export class WorkspaceRepository {
 
   static async getNotesState(userId: string) {
     await connectToMongoDB();
-    const workspace = await UserWorkspace.findOne({ userId }).lean();
+    const workspace = await UserWorkspace.findOne({ userId }, { notebooks: 1, notes: 1, tasks: 1 }).lean().exec();
     if (!workspace) return null;
     return {
       notebooks: workspace.notebooks || [],

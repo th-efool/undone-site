@@ -37,6 +37,8 @@ export function Logo({
       alt="Undone logo"
       width={imageSize}
       height={imageSize}
+      loading={priority ? 'eager' : 'lazy'}
+      fetchPriority={priority ? 'high' : undefined}
       style={{ display: 'block', objectFit: 'contain' }}
     />
   );
