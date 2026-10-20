@@ -12,7 +12,7 @@ export const communityRepo = {
               orderBy: { createdAt: 'desc' },
               include: {
                 author: {
-                  select: { id: true, name: true, image: true, username: true },
+                  select: { id: true, name: true, image: true },
                 },
               },
             },
@@ -31,7 +31,7 @@ export const communityRepo = {
       orderBy: { createdAt: 'desc' },
       include: {
         author: {
-          select: { id: true, name: true, image: true, username: true },
+          select: { id: true, name: true, image: true },
         },
       },
     });
@@ -46,7 +46,7 @@ export const communityRepo = {
       },
       include: {
         author: {
-          select: { id: true, name: true, image: true, username: true },
+          select: { id: true, name: true, image: true },
         },
       },
     });
