@@ -2,7 +2,7 @@
 
 import { useRef } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { triggerHaptic } from '@/src/client/utils/haptics';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
 
@@ -21,6 +21,7 @@ type SidebarItemProps = {
 
 export function SidebarItem({ href, label, icon: Icon, disabled = false }: SidebarItemProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const lastClickRef = useRef<number>(0);
 
   const isActive = pathname === href || (href !== '/home' && pathname.startsWith(href));
@@ -41,11 +42,19 @@ export function SidebarItem({ href, label, icon: Icon, disabled = false }: Sideb
     lastClickRef.current = now;
   };
 
+  const handlePrefetch = () => {
+    if (!disabled && href && href !== '#') {
+      router.prefetch(href);
+    }
+  };
+
   return (
     <Tooltip content={disabled ? `${label} (Disabled)` : label} placement="right">
       <Link
         href={disabled ? '#' : href}
-        prefetch={!disabled}
+        prefetch={false}
+        onMouseEnter={handlePrefetch}
+        onFocus={handlePrefetch}
         aria-label={label}
         aria-disabled={disabled}
         onClick={handleClick}
