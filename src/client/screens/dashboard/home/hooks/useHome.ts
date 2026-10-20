@@ -95,24 +95,12 @@ export function useHome(props?: {
   const cohortTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
   const reorderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Background pluggable backend sync and local choice hydration
+  // Background pluggable backend sync
   useEffect(() => {
-    // 1. Hydrate from local storage first if no server cohorts were passed
     const hasServerCohorts =
       props?.activeCohorts !== undefined || props?.continueLater !== undefined;
-    if (!hasServerCohorts) {
-      const stored = homeStorageAdapter.getStoredChoices(userId);
-      if (stored) {
-        if (Array.isArray(stored.activeCohorts) && stored.activeCohorts.length > 0) {
-          setActiveCohorts(stored.activeCohorts);
-        }
-        if (Array.isArray(stored.continueLater)) {
-          setContinueLater(stored.continueLater);
-        }
-      }
-    }
 
-    // 2. Only perform remote backend sync if authenticated to prevent 401 console spam
+    // Only perform remote backend sync if authenticated to prevent 401 console spam
     if (isAuthenticated && !hasServerCohorts) {
       homeStorageAdapter
         .syncWithBackend(true, userId)
@@ -191,7 +179,7 @@ export function useHome(props?: {
       }, 800);
       cohortTimers.current.set(cohortId, timer);
     },
-    [isAuthenticated]
+    [isAuthenticated, userId]
   );
 
   // Sync state if non-empty server props change
