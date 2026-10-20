@@ -65,7 +65,7 @@ describe('cohort API access boundaries', () => {
     f.auth.mockResolvedValue(null); f.cohort.mockResolvedValue(null);
     expect((await channels(request(), { params: Promise.resolve({ cohortId: 'private' }) })).status).toBe(404);
     expect(f.channels).not.toHaveBeenCalled();
-    expect(f.cohort).toHaveBeenCalledWith({ where: { id: 'private', isPublished: true, visibility: 'PUBLIC' }, select: { id: true } });
+    expect(f.cohort).toHaveBeenCalledWith({ where: { id: 'private', isPublished: true, visibility: 'PUBLIC' }, select: { id: true, visibility: true } });
     f.cohort.mockResolvedValue({ id: 'public' }); f.channels.mockResolvedValue({ channels: [{ id: 'channel' }] });
     expect(await (await channels(request(), { params: Promise.resolve({ cohortId: 'public' }) })).json()).toEqual([{ id: 'channel' }]);
   });
