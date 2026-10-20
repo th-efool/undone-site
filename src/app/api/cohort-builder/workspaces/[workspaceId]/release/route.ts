@@ -123,8 +123,13 @@ export async function POST(
     if (result.receipt.mode === 'public_publish') {
       try {
         revalidateTag(cohortTag(result.receipt.cohortId), 'max');
+        revalidatePath(`/cohort/${result.receipt.cohortId}`);
         revalidatePath(`/cohort/${result.receipt.cohortId}/overview`);
         revalidatePath(`/cohort/${result.receipt.cohortId}/questline`);
+        revalidatePath(`/cohort/${result.receipt.cohortId}/archives`);
+        revalidatePath(`/cohort/${result.receipt.cohortId}/events`);
+        revalidatePath(`/cohort/${result.receipt.cohortId}/hall-of-fame`);
+        revalidatePath('/explore');
         revalidatePath('/sitemap.xml');
       } catch (cacheError) {
         console.error('Failed to revalidate cache after public publish:', cacheError);

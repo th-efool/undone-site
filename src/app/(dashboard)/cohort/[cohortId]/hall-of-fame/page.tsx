@@ -1,11 +1,9 @@
-import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
 import React from 'react';
 import dynamic from 'next/dynamic';
-import { auth } from '@/src/server/infrastructure/auth/auth.config';
-import { prisma } from '@/src/server/infrastructure/db/postgres/client';
-import { notFound } from 'next/navigation';
 import { mapDbCohortToUiCohort } from '@/src/server/infrastructure/db/postgres/mappers/cohortMapper';
 import { NOINDEX_METADATA } from '@/src/server/domain/cohort/cohort-seo-render';
+import { getPublicCohort } from '@/src/server/domain/cohort/public-cohort';
+import { PrivateHallOfFame } from './PrivateHallOfFame';
 
 import type { Metadata } from 'next';
 
@@ -22,24 +20,11 @@ export default async function HallOfFamePage({
   params: Promise<{ cohortId: string }>;
 }) {
   const { cohortId } = await params;
-  
-  const dbCohort = await prisma.cohort.findFirst({
-    where: { id: cohortId, ...accessibleCohortWhere((await auth())?.user?.id ?? null) },
-    include: {
-      creator: true,
-      seasons: {
-        include: {
-          lessons: true,
-        },
-      },
-    },
-  });
+  const pub = await getPublicCohort(cohortId);
 
-  if (!dbCohort) {
-    notFound();
+  if (!pub) {
+    return <PrivateHallOfFame cohortId={cohortId} />;
   }
 
-  const uiCohort = mapDbCohortToUiCohort(dbCohort);
-
-  return <HallOfFame cohortId={cohortId} cohort={uiCohort} />;
+  return <HallOfFame cohortId={cohortId} cohort={mapDbCohortToUiCohort(pub.row)} />;
 }

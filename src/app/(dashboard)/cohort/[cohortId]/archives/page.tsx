@@ -1,15 +1,10 @@
-import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
 import React from 'react';
-import dynamic from 'next/dynamic';
-import { auth } from '@/src/server/infrastructure/auth/auth.config';
-import { prisma } from '@/src/server/infrastructure/db/postgres/client';
-import { notFound } from 'next/navigation';
+import type { Metadata } from 'next';
+import { getPublicCohort } from '@/src/server/domain/cohort/public-cohort';
 import { mapDbCohortToUiCohort } from '@/src/server/infrastructure/db/postgres/mappers/cohortMapper';
 import { NOINDEX_METADATA } from '@/src/server/domain/cohort/cohort-seo-render';
-
-import type { Metadata } from 'next';
-
-const Archives = dynamic(() => import('@/src/client/screens/cohort').then((mod) => mod.Archives));
+import { Archives } from '@/src/client/screens/cohort';
+import { PrivateArchives } from './PrivateArchives';
 
 export const metadata: Metadata = {
   ...NOINDEX_METADATA,
@@ -18,24 +13,11 @@ export const metadata: Metadata = {
 
 export default async function ArchivesPage({ params }: { params: Promise<{ cohortId: string }> }) {
   const { cohortId } = await params;
-  
-  const dbCohort = await prisma.cohort.findFirst({
-    where: { id: cohortId, ...accessibleCohortWhere((await auth())?.user?.id ?? null) },
-    include: {
-      creator: true,
-      seasons: {
-        include: {
-          lessons: true,
-        },
-      },
-    },
-  });
+  const pub = await getPublicCohort(cohortId);
 
-  if (!dbCohort) {
-    notFound();
+  if (!pub) {
+    return <PrivateArchives cohortId={cohortId} />;
   }
 
-  const uiCohort = mapDbCohortToUiCohort(dbCohort);
-
-  return <Archives cohortId={cohortId} cohort={uiCohort} />;
+  return <Archives cohortId={cohortId} cohort={mapDbCohortToUiCohort(pub.row)} />;
 }

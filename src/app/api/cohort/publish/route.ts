@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
 import { auth } from '@/src/server/infrastructure/auth/auth.config';
 import { CohortService } from '@/src/server/domain/cohort/cohort.service';
@@ -6,6 +7,7 @@ import { userRepo } from '@/src/server/infrastructure/db/postgres/repositories/u
 import { Difficulty, Visibility, LessonType, SourceType } from '@/generated/prisma/client';
 import { extractVideoId } from '@/src/server/imports/youtube/youtube-url';
 import { getTopicCoverImage } from '@/src/shared/cohort-builder/delivery';
+import { cohortTag } from '@/src/server/domain/cohort/public-cohort';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -249,6 +251,22 @@ export async function POST(request: NextRequest) {
         },
         { status: 500 },
       );
+    }
+
+    if (dbCohort.visibility === 'PUBLIC') {
+      try {
+        revalidateTag(cohortTag(dbCohort.id), 'max');
+        revalidatePath(`/cohort/${dbCohort.id}`);
+        revalidatePath(`/cohort/${dbCohort.id}/overview`);
+        revalidatePath(`/cohort/${dbCohort.id}/questline`);
+        revalidatePath(`/cohort/${dbCohort.id}/archives`);
+        revalidatePath(`/cohort/${dbCohort.id}/events`);
+        revalidatePath(`/cohort/${dbCohort.id}/hall-of-fame`);
+        revalidatePath('/explore');
+        revalidatePath('/sitemap.xml');
+      } catch (err) {
+        console.error('Failed to revalidate cache on publish:', err);
+      }
     }
 
     console.log('>>> [Publish Route] Sending Response.json for cohort:', dbCohort.id);

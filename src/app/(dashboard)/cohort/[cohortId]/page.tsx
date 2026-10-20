@@ -1,20 +1,14 @@
-import { auth } from '@/src/server/infrastructure/auth/auth.config';
-import { accessibleCohortWhere } from '@/src/server/domain/cohort/cohortAccessPolicy';
-import { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { prisma } from '@/src/server/infrastructure/db/postgres/client';
+import { getPublicCohort } from '@/src/server/domain/cohort/public-cohort';
 
 export async function generateMetadata({ params }: { params: Promise<{ cohortId: string }> }): Promise<Metadata> {
   const { cohortId } = await params;
-  
-  const dbCohort = await prisma.cohort.findFirst({
-    where: { id: cohortId, ...accessibleCohortWhere((await auth())?.user?.id ?? null) },
-    select: { title: true, description: true, coverImage: true },
-  });
+  const pub = await getPublicCohort(cohortId);
 
-  const title = dbCohort?.title ? dbCohort.title : `Cohort ${cohortId}`;
-  const description = dbCohort?.description || `Explore this learning cohort on Undone.`;
-  const image = dbCohort?.coverImage || undefined;
+  const title = pub?.row.title || `Cohort ${cohortId}`;
+  const description = pub?.row.description || 'Explore this learning cohort on Undone.';
+  const image = pub?.row.coverImage || undefined;
   const socialTitle = `Undone > ${title}`;
 
   return {
@@ -39,4 +33,3 @@ export default async function CohortPage({ params }: { params: Promise<{ cohortI
   const { cohortId } = await params;
   redirect(`/cohort/${cohortId}/overview`);
 }
-
