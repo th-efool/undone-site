@@ -12,6 +12,16 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./canvas": {
+      "types": "./dist/canvas.d.ts",
+      "import": "./dist/canvas.js",
+      "default": "./dist/canvas.js"
+    },
+    "./kanban": {
+      "types": "./dist/kanban.d.ts",
+      "import": "./dist/kanban.js",
+      "default": "./dist/kanban.js"
+    },
     "./index.css": "./dist/index.css"
   },
   "scripts": {

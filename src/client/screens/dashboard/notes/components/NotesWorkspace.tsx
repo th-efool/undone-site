@@ -12,17 +12,17 @@ import type { CanvasSceneData, CanvasState } from '../models/canvas.models';
 
 const EditorLoading = () => <div className={styles.loadingScene}>Loading editor...</div>;
 
-import '@/packages/notes-board/dist/index.css';
+// index.css deferred to dynamic editor imports
 
 // These editors pull in large third-party libraries and their CSS. Segregated into
 // @undone/notes-board so the root site stays light and avoids heavy recompilations.
 const NotesCanvas = dynamic(
-  () => import('@undone/notes-board').then((module) => module.NotesCanvas),
+  () => import('./CanvasEditorWrapper'),
   { ssr: false, loading: EditorLoading },
 );
 
 const NotesKanban = dynamic(
-  () => import('@undone/notes-board').then((module) => module.NotesKanban),
+  () => import('./KanbanEditorWrapper'),
   { ssr: false, loading: EditorLoading },
 );
 

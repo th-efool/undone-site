@@ -1,5 +1,4 @@
-export { NotesCanvas } from './NotesCanvas/NotesCanvas';
-export { NotesKanban, ColIdInjector } from './NotesKanban/NotesKanban';
-export type { Column } from './NotesKanban/NotesKanban';
-export type { CanvasSceneData, CanvasState, CanvasDocument, CanvasStatus } from './types';
-export type { GridSettingsConfig } from './NotesCanvas/HamburgerGridControls';
+export { NotesCanvas } from './canvas';
+export { NotesKanban, ColIdInjector } from './kanban';
+export type { Column } from './kanban';
+export type { CanvasSceneData, CanvasState, CanvasDocument, CanvasStatus, GridSettingsConfig } from './canvas';
