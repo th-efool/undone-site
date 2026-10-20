@@ -126,6 +126,7 @@ export function buildDestinationChannel(params: {
   generation: number;
   communityId?: string | null;
   conversationId?: string | null;
+  conversationKind?: 'DIRECT' | 'GROUP' | null;
   studyRoomId?: string | null;
 }): string {
   const gen = params.generation || 1;
@@ -133,7 +134,8 @@ export function buildDestinationChannel(params: {
     return `community:${params.channelId}:g${gen}`;
   }
   if (params.conversationId) {
-    return `dm:${params.conversationId}:g${gen}`;
+    const prefix = params.conversationKind === 'GROUP' ? 'group' : 'dm';
+    return `${prefix}:${params.conversationId}:g${gen}`;
   }
   if (params.studyRoomId) {
     return `roomchat:${params.channelId}:g${gen}`;

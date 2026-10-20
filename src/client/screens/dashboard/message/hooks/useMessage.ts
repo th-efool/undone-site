@@ -6,6 +6,7 @@ import { conversationFilters, sidebarTabs } from '../constants';
 import {
   messagesRepository,
   type EnrolledCommunityDTO,
+  type ConversationSummaryDTO,
   type CanonicalMessagePayload,
 } from '@/src/client/repositories/messagesRepository';
 import {
@@ -88,6 +89,10 @@ export function useMessage() {
   const [isLoadingCommunities, setIsLoadingCommunities] = useState<boolean>(true);
   const [communityError, setCommunityError] = useState<string | null>(null);
 
+  // Conversations (Direct / Group) loaded from real SQL-backed API
+  const [conversationsList, setConversationsList] = useState<ConversationSummaryDTO[]>([]);
+  const [isLoadingConversations, setIsLoadingConversations] = useState<boolean>(true);
+
   // Selected channel per community ID: Record<communityId, channelId>
   const [selectedChannels, setSelectedChannels] = useState<Record<string, string>>({});
 
@@ -98,7 +103,7 @@ export function useMessage() {
   // Drafts stored per conversation/community ID (Drafts only, never accepted history)
   const [drafts, setDrafts] = useState<Record<string, string>>(() => readDrafts());
 
-  // In-memory DM messages for DM tab (Phase 6 will connect to SQL)
+  // In-memory DM messages for DM tab (Phase 6 connects to SQL via messagesByChannel)
   const [dmMessages, setDmMessages] = useState<Record<string, DMMessage[]>>({});
 
   // Pin & Mute state
@@ -139,6 +144,15 @@ export function useMessage() {
     return currentCommunity.channels[0]?.id ?? null;
   }, [currentCommunity, selectedChannels]);
 
+  // Active conversation derivation
+  const activeConversation = useMemo(() => {
+    return conversationsList.find((c) => c.id === selectedDMId) ?? null;
+  }, [conversationsList, selectedDMId]);
+
+  const activeDMChannelId = useMemo(() => {
+    return activeConversation?.channelId ?? null;
+  }, [activeConversation]);
+
   // Load real enrolled communities on mount or session change
   useEffect(() => {
     let active = true;
@@ -164,6 +178,24 @@ export function useMessage() {
       active = false;
     };
   }, [currentUserId]);
+
+  // Load real conversations on mount or session change
+  const loadConversations = useCallback(async () => {
+    setIsLoadingConversations(true);
+    try {
+      const data = await messagesRepository.fetchConversations();
+      setConversationsList(data);
+    } catch (err) {
+      console.error('Failed to load conversations:', err);
+      setConversationsList([]);
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadConversations();
+  }, [currentUserId, loadConversations]);
 
   // URL query parameter synchronization
   useEffect(() => {
@@ -205,16 +237,23 @@ export function useMessage() {
     }
   }, [mutedConversations]);
 
-  // Fetch channel messages when activeChannelId changes
+  // Active channel based on current view/selection
+  const currentActiveChannelId = useMemo(() => {
+    if (selectedSidebarTab === 'community') return activeChannelId;
+    if (selectedSidebarTab === 'dm') return activeDMChannelId;
+    return null;
+  }, [selectedSidebarTab, activeChannelId, activeDMChannelId]);
+
+  // Fetch channel messages when currentActiveChannelId changes
   useEffect(() => {
-    if (!activeChannelId) return;
-    if (messagesByChannel[activeChannelId] !== undefined) return; // Already cached/loaded
+    if (!currentActiveChannelId) return;
+    if (messagesByChannel[currentActiveChannelId] !== undefined) return; // Already cached/loaded
 
     let active = true;
-    setLoadingChannels((prev) => ({ ...prev, [activeChannelId]: true }));
+    setLoadingChannels((prev) => ({ ...prev, [currentActiveChannelId]: true }));
 
     messagesRepository
-      .fetchChannelMessages(activeChannelId, 50)
+      .fetchChannelMessages(currentActiveChannelId, 50)
       .then((rawMessages) => {
         if (!active) return;
         const mapped = rawMessages.map((m) =>
@@ -222,42 +261,50 @@ export function useMessage() {
         );
         setMessagesByChannel((prev) => ({
           ...prev,
-          [activeChannelId]: mapped,
+          [currentActiveChannelId]: mapped,
         }));
       })
       .catch((err) => {
-        console.error(`Failed to load messages for channel ${activeChannelId}:`, err);
+        console.error(`Failed to load messages for channel ${currentActiveChannelId}:`, err);
         if (active) {
           setMessagesByChannel((prev) => ({
             ...prev,
-            [activeChannelId]: [],
+            [currentActiveChannelId]: [],
           }));
         }
       })
       .finally(() => {
         if (active) {
-          setLoadingChannels((prev) => ({ ...prev, [activeChannelId]: false }));
+          setLoadingChannels((prev) => ({ ...prev, [currentActiveChannelId]: false }));
         }
       });
 
     return () => {
       active = false;
     };
-  }, [activeChannelId, currentUserId, messagesByChannel]);
+  }, [currentActiveChannelId, currentUserId, messagesByChannel]);
 
-  // Realtime subscription via Centrifugo for active channel
+  // Realtime subscription via Centrifugo for active channel / conversation
   useEffect(() => {
-    if (!realtime || !activeChannelId) return;
+    if (!realtime) return;
 
-    // Use default generation g1 or manifest mapping
-    const topic = `community:${activeChannelId}:g1`;
+    let topic: string | null = null;
+    if (selectedSidebarTab === 'community' && activeChannelId) {
+      topic = `community:${activeChannelId}:g1`;
+    } else if (selectedSidebarTab === 'dm' && activeConversation) {
+      const prefix = activeConversation.kind === 'GROUP' ? 'group' : 'dm';
+      topic = `${prefix}:${activeConversation.id}:g${activeConversation.accessGeneration || 1}`;
+    }
+
+    if (!topic) return;
 
     const unsubscribe = realtime.subscribe(topic, (publication: any) => {
       const payload = publication?.payload ?? publication?.data ?? publication;
       if (!payload || !payload.id) return;
 
       const canonicalMsg = payload as CanonicalMessagePayload;
-      const targetChannelId = canonicalMsg.channelId || activeChannelId;
+      const targetChannelId = canonicalMsg.channelId || currentActiveChannelId;
+      if (!targetChannelId) return;
       const clientReqId = canonicalMsg.clientRequestId;
 
       setMessagesByChannel((prev) => {
@@ -292,7 +339,7 @@ export function useMessage() {
     return () => {
       unsubscribe();
     };
-  }, [realtime, activeChannelId, currentUserId]);
+  }, [realtime, selectedSidebarTab, activeChannelId, activeConversation, currentActiveChannelId, currentUserId]);
 
   // Conversations list
   const communityConversations = useMemo<ConversationPreview[]>(() => {
@@ -302,8 +349,28 @@ export function useMessage() {
   }, [communities, selectedCommunityId]);
 
   const dmConversations = useMemo<ConversationPreview[]>(() => {
-    return [];
-  }, []);
+    return conversationsList.map((conv) => {
+      const otherUser = conv.otherParticipant;
+      const title =
+        conv.kind === 'DIRECT'
+          ? (otherUser?.name || otherUser?.username || 'Direct Message')
+          : conv.title;
+      const avatar = otherUser?.image || '/undone-logo.svg';
+
+      return {
+        id: conv.id,
+        kind: 'dm',
+        name: title,
+        avatar,
+        sender: conv.lastMessage?.authorName || '',
+        preview:
+          conv.lastMessage?.content ||
+          (conv.kind === 'GROUP' ? `${conv.participantCount} members` : 'No messages yet'),
+        timestamp: conv.lastMessage ? formatMessageTime(conv.lastMessage.createdAt) : '',
+        statusLabel: conv.kind === 'GROUP' ? `${conv.participantCount} members` : undefined,
+      };
+    });
+  }, [conversationsList]);
 
   const conversations = useMemo(() => {
     const source = selectedSidebarTab === 'community' ? communityConversations : dmConversations;
@@ -382,22 +449,63 @@ export function useMessage() {
   }, [currentCommunity, activeChannelId, messagesByChannel, selectedCommunityId]);
 
   const dmConversation = useMemo<DMConversationModel>(() => {
-    return {
-      id: selectedDMId ?? '',
-      user: {
+    if (!activeConversation) {
+      return {
         id: selectedDMId ?? '',
-        name: 'Direct Message',
-        avatar: '/undone-logo.svg',
+        user: {
+          id: selectedDMId ?? '',
+          name: 'Direct Message',
+          avatar: '/undone-logo.svg',
+          online: false,
+          role: 'Learner',
+          company: 'SideQuest',
+          bio: '',
+        },
+        messages: [],
+        resources: [],
+        notifications: { enabled: true },
+      };
+    }
+
+    const channelMsgs = activeConversation.channelId
+      ? (messagesByChannel[activeConversation.channelId] ?? [])
+      : [];
+
+    const mappedMessages: DMMessage[] = channelMsgs.map((m) => ({
+      id: m.id,
+      type: m.author.id === currentUserId ? 'outgoing' : 'incoming',
+      text: m.body || '',
+      timestamp: m.timestamp,
+      status: m.status === 'failed' ? 'failed' : m.status === 'sending' ? 'sending' : 'sent',
+      replyTo: m.replyTo,
+      dateLabel: m.dateLabel,
+    }));
+
+    const otherUser = activeConversation.otherParticipant;
+    const title =
+      activeConversation.kind === 'DIRECT'
+        ? (otherUser?.name || otherUser?.username || 'Direct Message')
+        : activeConversation.title;
+
+    return {
+      id: activeConversation.id,
+      user: {
+        id: otherUser?.id || activeConversation.id,
+        name: title,
+        avatar: otherUser?.image || '/undone-logo.svg',
         online: false,
-        role: 'Learner',
-        company: 'SideQuest',
-        bio: '',
+        role: activeConversation.kind === 'GROUP' ? 'Group DM' : 'Direct Message',
+        company:
+          activeConversation.kind === 'GROUP'
+            ? `${activeConversation.participantCount} members`
+            : 'SideQuest',
+        bio: otherUser?.username ? `@${otherUser.username}` : '',
       },
-      messages: selectedDMId ? (dmMessages[selectedDMId] ?? []) : [],
+      messages: mappedMessages,
       resources: [],
       notifications: { enabled: true },
     };
-  }, [selectedDMId, dmMessages]);
+  }, [activeConversation, selectedDMId, messagesByChannel, currentUserId]);
 
   // Navigation & Actions
   const selectConversation = useCallback((conversation: ConversationPreview) => {
@@ -614,16 +722,31 @@ export function useMessage() {
   );
 
   const sendDMMessage = useCallback(
-    (dmId: string, replyCtx?: ReplyContext | null) => {
+    async (dmId: string, replyCtx?: ReplyContext | null) => {
       const draft = drafts[dmId]?.trim();
       if (!draft) return;
 
-      const newMsg: DMMessage = {
-        id: generateRequestId(),
-        type: 'outgoing',
-        text: draft,
+      const conv = conversationsList.find((c) => c.id === dmId);
+      const channelId = conv?.channelId;
+      if (!channelId) {
+        console.warn('Cannot send DM message: no active channel for conversation', dmId);
+        return;
+      }
+
+      const clientRequestId = generateRequestId();
+
+      const optimisticMessage: CommunityMessage = {
+        id: clientRequestId,
+        body: draft,
         timestamp: formatMessageTime(new Date().toISOString()),
-        status: 'sent',
+        dateLabel: 'Today',
+        author: {
+          id: currentUserId || 'me',
+          name: session?.user?.name || 'You',
+          avatar: session?.user?.image || '/undone-logo.svg',
+          online: true,
+        },
+        status: 'sending',
         replyTo: replyCtx
           ? {
               messageId: replyCtx.messageId,
@@ -634,14 +757,111 @@ export function useMessage() {
           : undefined,
       };
 
-      setDmMessages((prev) => ({
+      setMessagesByChannel((prev) => ({
         ...prev,
-        [dmId]: [...(prev[dmId] ?? []), newMsg],
+        [channelId]: [...(prev[channelId] ?? []), optimisticMessage],
       }));
+
       setDrafts((prev) => ({ ...prev, [dmId]: '' }));
       clearReply();
+
+      try {
+        const canonical = await messagesRepository.sendChannelMessage(channelId, {
+          content: draft,
+          clientRequestId,
+          replyToId: replyCtx?.messageId,
+        });
+
+        setMessagesByChannel((prev) => {
+          const list = prev[channelId] ?? [];
+          const canonicalUi = mapCanonicalMessageToCommunityMessage(
+            canonical,
+            currentUserId,
+            'sent'
+          );
+          const idx = list.findIndex(
+            (m) => m.id === clientRequestId || m.id === canonical.id
+          );
+          if (idx === -1) {
+            return {
+              ...prev,
+              [channelId]: [...list, canonicalUi],
+            };
+          }
+          const updated = [...list];
+          updated[idx] = canonicalUi;
+          return {
+            ...prev,
+            [channelId]: updated,
+          };
+        });
+
+        setConversationsList((prev) =>
+          prev.map((c) =>
+            c.id === dmId
+              ? {
+                  ...c,
+                  lastMessage: {
+                    id: canonical.id,
+                    content: canonical.content,
+                    createdAt: canonical.createdAt,
+                    authorName: canonical.author.name,
+                  },
+                  updatedAt: canonical.createdAt,
+                }
+              : c
+          )
+        );
+      } catch (err) {
+        console.error('Failed to send DM message:', err);
+        setMessagesByChannel((prev) => {
+          const list = prev[channelId] ?? [];
+          return {
+            ...prev,
+            [channelId]: list.map((m) =>
+              m.id === clientRequestId ? { ...m, status: 'failed' } : m
+            ),
+          };
+        });
+      }
     },
-    [drafts, clearReply]
+    [drafts, conversationsList, currentUserId, session, clearReply]
+  );
+
+  const createDirectConversation = useCallback(
+    async (recipientId: string): Promise<string> => {
+      const result = await messagesRepository.createDirectConversation(recipientId);
+      await loadConversations();
+      setSelectedSidebarTab('dm');
+      setSelectedDMId(result.conversationId);
+      setSelectedView('dm');
+      return result.conversationId;
+    },
+    [loadConversations]
+  );
+
+  const createGroupConversation = useCallback(
+    async (title: string, participantIds: string[]): Promise<string> => {
+      const result = await messagesRepository.createGroupConversation(title, participantIds);
+      await loadConversations();
+      setSelectedSidebarTab('dm');
+      setSelectedDMId(result.conversationId);
+      setSelectedView('dm');
+      return result.conversationId;
+    },
+    [loadConversations]
+  );
+
+  const leaveGroupConversation = useCallback(
+    async (conversationId: string): Promise<void> => {
+      await messagesRepository.leaveGroupConversation(conversationId);
+      setConversationsList((prev) => prev.filter((c) => c.id !== conversationId));
+      if (selectedDMId === conversationId) {
+        setSelectedDMId(null);
+        setSelectedView('landing');
+      }
+    },
+    [selectedDMId]
   );
 
   const uploadDMAttachment = useCallback(
@@ -722,6 +942,9 @@ export function useMessage() {
       sendCommunityMessage,
       retryCommunityMessage,
       sendDMMessage,
+      createDirectConversation,
+      createGroupConversation,
+      leaveGroupConversation,
       uploadCommunityAttachment,
       toggleCommunityReaction,
       uploadDMAttachment,

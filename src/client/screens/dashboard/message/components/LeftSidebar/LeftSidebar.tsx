@@ -16,6 +16,8 @@ interface Props {
   onTabChange(tab: SidebarTab): void;
   onFilterChange(filter: ConversationFilter): void;
   onSelectConversation(conversation: ConversationPreview): void;
+  onCreateDirectConversation?(recipientId: string): Promise<string>;
+  onCreateGroupConversation?(title: string, participantIds: string[]): Promise<string>;
   onSearchClear?(): void;
   onMarkAllRead?(): void;
   onGoHome?(): void;
@@ -33,6 +35,8 @@ export function LeftSidebar({
   onTabChange,
   onFilterChange,
   onSelectConversation,
+  onCreateDirectConversation,
+  onCreateGroupConversation,
   onSearchClear,
   onMarkAllRead,
   onGoHome,
@@ -67,10 +71,23 @@ export function LeftSidebar({
       {/* A1: Compose modal */}
       {showCompose && (
         <ComposeModal
-          dmUsers={dmConversations}
+          onCreateDirect={onCreateDirectConversation}
+          onCreateGroup={onCreateGroupConversation}
           onSelect={(id) => {
-            const user = dmConversations.find((u) => u.id === id);
-            if (user) onSelectConversation(user);
+            const user = conversations.find((u) => u.id === id);
+            if (user) {
+              onSelectConversation(user);
+            } else {
+              onSelectConversation({
+                id,
+                kind: 'dm',
+                name: 'Direct Message',
+                avatar: '/undone-logo.svg',
+                sender: '',
+                preview: '',
+                timestamp: '',
+              });
+            }
           }}
           onClose={() => setShowCompose(false)}
         />

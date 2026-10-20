@@ -37,6 +37,8 @@ export function SocialLanding({ message }: Props) {
           message.actions.selectConversation(conv);
           if (isMobile) setMobileView('chat');
         }}
+        onCreateDirectConversation={message.actions.createDirectConversation}
+        onCreateGroupConversation={message.actions.createGroupConversation}
         onSearchClear={() => message.actions.setSearchQuery('')}
         onMarkAllRead={message.actions.markAllRead}
         onGoHome={message.actions.backToLanding}

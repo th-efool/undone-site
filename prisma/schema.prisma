@@ -39,6 +39,11 @@ model User {
   channelStates     ChannelUserState[]
   realtimeStream    RealtimeStream?
   messagingRequests MessagingRequest[]
+  blockedUsers      UserBlock[] @relation("UserBlocker")
+  blockedByUsers    UserBlock[] @relation("UserBlocked")
+  messageReports    MessageReport[]
+  sentConversationInvites ConversationInvitation[] @relation("ConversationInvitedBy")
+  receivedConversationInvites ConversationInvitation[] @relation("ConversationInvitedTo")
 
   @@map("users")
 }
@@ -563,6 +568,7 @@ model Conversation {
 
   creator          User                      @relation("CreatedConversations", fields: [creatorId], references: [id], onDelete: Restrict)
   participants     ConversationParticipant[]
+  invitations      ConversationInvitation[]
   channel          Channel?
 
   @@index([creatorId])
@@ -625,6 +631,7 @@ model Message {
   replyToId       String?
   replyTo         Message?           @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
   replies         Message[]          @relation("MessageReplies")
+  reports         MessageReport[]
   revision        Int                @default(1)
   editedAt        DateTime?
   deletedAt       DateTime?
@@ -888,4 +895,53 @@ model UserRestriction {
 
   @@index([userId])
   @@map("user_restrictions")
+}
+
+model UserBlock {
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker   User     @relation("UserBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("UserBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("user_blocks")
+}
+
+model MessageReport {
+  id         String   @id @default(cuid())
+  reporterId String
+  messageId  String
+  reason     String
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([reporterId])
+  @@map("message_reports")
+}
+
+model ConversationInvitation {
+  id             String    @id @default(cuid())
+  conversationId String
+  inviterId      String
+  inviteeId      String
+  status         String    @default("PENDING")
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  inviter        User         @relation("ConversationInvitedBy", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee        User         @relation("ConversationInvitedTo", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, inviteeId, status])
+  @@index([inviteeId, status])
+  @@map("conversation_invitations")
 }

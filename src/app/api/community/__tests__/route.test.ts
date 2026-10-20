@@ -25,7 +25,7 @@ describe('GET /api/community', () => {
   });
 
   it('returns 401 Unauthorized when unauthenticated', async () => {
-    vi.mocked(auth).mockResolvedValue(null);
+    (auth as any).mockResolvedValue(null);
 
     const res = await GET();
     expect(res.status).toBe(401);
@@ -34,7 +34,7 @@ describe('GET /api/community', () => {
   });
 
   it('returns empty array [] with private no-store header for guest accounts', async () => {
-    vi.mocked(auth).mockResolvedValue({
+    (auth as any).mockResolvedValue({
       user: { id: 'guest-1', email: 'guest@undone.local' },
     } as any);
     vi.mocked(isSharedGuestAccount).mockReturnValue(true);
@@ -48,7 +48,7 @@ describe('GET /api/community', () => {
   });
 
   it('returns enrolled and created communities for authenticated user', async () => {
-    vi.mocked(auth).mockResolvedValue({
+    (auth as any).mockResolvedValue({
       user: { id: 'user-123' },
     } as any);
     vi.mocked(isSharedGuestAccount).mockReturnValue(false);

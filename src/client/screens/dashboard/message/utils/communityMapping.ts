@@ -168,12 +168,12 @@ export function mapCohortToCommunity(cohortId: string | null): CommunityChatMode
   };
 }
 
-export function mapCohortToUpcomingEvent(cohort: unknown, _offset: number): UpcomingEvent {
+export function mapCohortToUpcomingEvent(_cohort: unknown, _offset: number): UpcomingEvent {
   return {
     id: '',
     title: '',
-    time: '',
-    cohort: '',
+    subtitle: '',
+    startsIn: '',
     tone: 'blue',
   };
 }

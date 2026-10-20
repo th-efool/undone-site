@@ -134,6 +134,9 @@ export const messagingRepo = {
             communityId: true,
             conversationId: true,
             studyRoomId: true,
+            conversation: {
+              select: { kind: true },
+            },
           },
         });
 
@@ -203,6 +206,7 @@ export const messagingRepo = {
           generation: stream.generation,
           communityId: updatedChannel.communityId,
           conversationId: updatedChannel.conversationId,
+          conversationKind: updatedChannel.conversation?.kind,
           studyRoomId: updatedChannel.studyRoomId,
         });
 
