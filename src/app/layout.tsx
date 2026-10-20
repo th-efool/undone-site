@@ -201,7 +201,9 @@ export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
           </a>
           <SliderProgressEngine />
           <CapacitorBridge />
-          <ReactQueryProvider>{children}</ReactQueryProvider>
+          <ReactQueryProvider>
+            <MotionProvider>{children}</MotionProvider>
+          </ReactQueryProvider>
         </SessionProvider>
       </body>
     </html>

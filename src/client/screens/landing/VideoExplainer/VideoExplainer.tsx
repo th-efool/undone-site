@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { motion, useScroll, useTransform, useMotionValueEvent } from 'framer-motion';
+import { m, useScroll, useTransform, useMotionValueEvent } from 'framer-motion';
 import { useHlsVideo } from './hooks/useHlsVideo';
 import { useVideoKeyboardControls } from './hooks/useVideoKeyboardControls';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -144,7 +144,7 @@ export function VideoExplainer({
   return (
     <section id={id} ref={containerRef} className={styles.sectionContainer}>
       <div className={styles.stickyViewport}>
-        <motion.div
+        <m.div
           style={{ clipPath, opacity }}
           className={styles.motionContainer}
         >
@@ -174,7 +174,7 @@ export function VideoExplainer({
             onExit={handleExit}
             closeOpacity={closeOpacity}
           />
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );

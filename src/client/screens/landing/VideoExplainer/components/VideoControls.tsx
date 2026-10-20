@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { motion, MotionValue } from 'framer-motion';
+import { m, MotionValue } from 'framer-motion';
 import { Play, Loader2, X, Volume2, VolumeX, RotateCcw } from 'lucide-react';
 import styles from '../VideoExplainer.module.css';
 
@@ -98,7 +98,7 @@ export function VideoControls({
       )}
 
       {/* Audio Mute/Unmute Toggle Button */}
-      <motion.button
+      <m.button
         style={{ opacity: closeOpacity }}
         type="button"
         onClick={toggleMute}
@@ -111,10 +111,10 @@ export function VideoControls({
         ) : (
           <Volume2 className={styles.soundIcon} />
         )}
-      </motion.button>
+      </m.button>
 
       {/* Exit Section Button */}
-      <motion.button
+      <m.button
         style={{ opacity: closeOpacity }}
         onClick={onExit}
         className={styles.exitButton}
@@ -122,7 +122,7 @@ export function VideoControls({
         type="button"
       >
         <X className={styles.exitIcon} />
-      </motion.button>
+      </m.button>
     </>
   );
 }
