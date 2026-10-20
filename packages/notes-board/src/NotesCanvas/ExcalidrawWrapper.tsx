@@ -13,6 +13,18 @@ const ExcalidrawWrapper = React.memo(function ExcalidrawWrapper({
   UIOptions,
   hamburgerProps,
 }: any) {
+  const mainMenu = React.useMemo(
+    () => (
+      <MainMenu>
+        <MainMenu.DefaultItems.SaveAsImage />
+        <MainMenu.DefaultItems.ClearCanvas />
+        <MainMenu.Separator />
+        <HamburgerGridControls {...hamburgerProps} />
+      </MainMenu>
+    ),
+    [hamburgerProps],
+  );
+
   return (
     <Excalidraw
       excalidrawAPI={excalidrawAPI}
@@ -22,17 +34,7 @@ const ExcalidrawWrapper = React.memo(function ExcalidrawWrapper({
       theme={theme}
       UIOptions={UIOptions}
     >
-      {React.useMemo(
-        () => (
-          <MainMenu>
-            <MainMenu.DefaultItems.SaveAsImage />
-            <MainMenu.DefaultItems.ClearCanvas />
-            <MainMenu.Separator />
-            <HamburgerGridControls {...hamburgerProps} />
-          </MainMenu>
-        ),
-        [hamburgerProps],
-      )}
+      {mainMenu}
     </Excalidraw>
   );
 });
