@@ -31,6 +31,9 @@ model User {
   lessonProgress    LessonProgress[]
   creationDrafts    CreationDraft[]
   interactionWorkspaces InteractionWorkspace[]
+  invitedCohorts    CohortInvitation[] @relation("InvitedCohorts")
+  acceptedInvitations CohortInvitation[] @relation("AcceptedInvitations")
+  restriction       UserRestriction?
 
   @@map("users")
 }
@@ -444,6 +447,7 @@ model Cohort {
   seasons   Season[]
   community Community?
   sources   CohortSource[]
+  invitations CohortInvitation[]
 
   @@index([creatorId])
   @@index([isPublished, visibility, publishedAt])
@@ -674,4 +678,39 @@ model LessonProgress {
   @@id([userId, lessonId])
   @@index([lessonId])
   @@map("lesson_progress")
+}
+
+model CohortInvitation {
+  id           String    @id @default(cuid())
+  cohortId     String
+  inviterId    String
+  email        String?
+  tokenHash    String    @unique
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  acceptedById String?
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  cohort     Cohort @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  inviter    User   @relation("InvitedCohorts", fields: [inviterId], references: [id], onDelete: Cascade)
+  acceptedBy User?  @relation("AcceptedInvitations", fields: [acceptedById], references: [id], onDelete: SetNull)
+
+  @@index([cohortId])
+  @@index([tokenHash])
+  @@index([email])
+  @@map("cohort_invitations")
+}
+
+model UserRestriction {
+  id        String    @id @default(cuid())
+  userId    String    @unique
+  reason    String?
+  bannedAt  DateTime  @default(now())
+  expiresAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_restrictions")
 }

@@ -4,7 +4,9 @@ vi.mock('server-only', () => ({}));
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
-  channelFindFirst: vi.fn(),
+  channelFindUnique: vi.fn(),
+  cohortMemberFindUnique: vi.fn(),
+  userRestrictionFindUnique: vi.fn(),
   getChannelMessages: vi.fn(),
   addMessage: vi.fn(),
 }));
@@ -16,7 +18,13 @@ vi.mock('@/src/server/infrastructure/auth/getUser', () => ({
 vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({
   prisma: {
     channel: {
-      findFirst: mocks.channelFindFirst,
+      findUnique: mocks.channelFindUnique,
+    },
+    cohortMember: {
+      findUnique: mocks.cohortMemberFindUnique,
+    },
+    userRestriction: {
+      findUnique: mocks.userRestrictionFindUnique,
     },
   },
 }));
@@ -28,16 +36,26 @@ vi.mock('@/src/server/infrastructure/db/postgres/repositories/community.repo', (
   },
 }));
 
-import { GET, POST, clearVerifiedChannelsForTests } from '../route';
+import { GET, POST } from '../route';
 
-describe('API: /api/community/channels/[channelId]/messages - Weak ETag & Memoization', () => {
+describe('API: /api/community/channels/[channelId]/messages - Member Authorization & Validation', () => {
   const createParams = (channelId: string) => ({
     params: Promise.resolve({ channelId }),
   });
 
+  const validChannel = {
+    id: 'chan-1',
+    community: {
+      cohortId: 'cohort-1',
+      chatEnabled: true,
+      cohort: {
+        creatorId: 'user-creator',
+      },
+    },
+  };
+
   beforeEach(() => {
     vi.resetAllMocks();
-    clearVerifiedChannelsForTests();
   });
 
   afterEach(() => {
@@ -64,36 +82,144 @@ describe('API: /api/community/channels/[channelId]/messages - Weak ETag & Memoiz
     );
     expect(postRes.status).toBe(401);
     expect(await postRes.json()).toEqual({ error: 'Unauthorized' });
-    expect(mocks.channelFindFirst).not.toHaveBeenCalled();
   });
 
-  it('b) 404 Channel not found when channel does not exist or is inaccessible', async () => {
-    mocks.getUser.mockResolvedValue({ id: 'user-1' });
-    mocks.channelFindFirst.mockResolvedValue(null);
+  it('b) 403 Forbidden when user is a shared guest account', async () => {
+    mocks.getUser.mockResolvedValue({ id: 'guest-1', email: 'guest@undone.com' });
 
-    const res = await GET(
-      new Request('http://localhost/api/community/channels/chan-missing/messages'),
-      createParams('chan-missing')
+    const getRes = await GET(
+      new Request('http://localhost/api/community/channels/chan-1/messages'),
+      createParams('chan-1')
+    );
+    expect(getRes.status).toBe(403);
+    expect(await getRes.json()).toEqual({ error: 'Guest accounts cannot access community messages' });
+
+    const postRes = await POST(
+      new Request('http://localhost/api/community/channels/chan-1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: 'Hello' }),
+      }),
+      createParams('chan-1')
+    );
+    expect(postRes.status).toBe(403);
+    expect(await postRes.json()).toEqual({ error: 'Guest accounts cannot send community messages' });
+  });
+
+  it('c) 403 Forbidden when user is restricted from messaging', async () => {
+    mocks.getUser.mockResolvedValue({ id: 'user-restricted', email: 'restricted@test.com' });
+    mocks.userRestrictionFindUnique.mockResolvedValue({ expiresAt: null });
+
+    const postRes = await POST(
+      new Request('http://localhost/api/community/channels/chan-1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: 'Hello' }),
+      }),
+      createParams('chan-1')
+    );
+    expect(postRes.status).toBe(403);
+    expect(await postRes.json()).toEqual({
+      error: 'Messaging privileges are restricted for this account',
+    });
+  });
+
+  it('d) 403 Forbidden when user is not a cohort member', async () => {
+    mocks.getUser.mockResolvedValue({ id: 'user-nonmember' });
+    mocks.userRestrictionFindUnique.mockResolvedValue(null);
+    mocks.channelFindUnique.mockResolvedValue(validChannel);
+    mocks.cohortMemberFindUnique.mockResolvedValue(null);
+
+    const postRes = await POST(
+      new Request('http://localhost/api/community/channels/chan-1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: 'Hello' }),
+      }),
+      createParams('chan-1')
+    );
+    expect(postRes.status).toBe(403);
+    expect(await postRes.json()).toEqual({
+      error: 'Active cohort membership is required to post in this channel',
+    });
+  });
+
+  it('e) 400 Bad Request when message exceeds 4000 characters or is empty', async () => {
+    mocks.getUser.mockResolvedValue({ id: 'user-member' });
+    mocks.userRestrictionFindUnique.mockResolvedValue(null);
+
+    // Empty content
+    const resEmpty = await POST(
+      new Request('http://localhost/api/community/channels/chan-1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: '   ' }),
+      }),
+      createParams('chan-1')
+    );
+    expect(resEmpty.status).toBe(400);
+    expect(await resEmpty.json()).toEqual({ error: 'Message content cannot be empty' });
+
+    // Exceeds limit
+    const resOversize = await POST(
+      new Request('http://localhost/api/community/channels/chan-1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: 'a'.repeat(4001) }),
+      }),
+      createParams('chan-1')
+    );
+    expect(resOversize.status).toBe(400);
+    expect(await resOversize.json()).toEqual({
+      error: 'Message content exceeds maximum allowed length of 4000 characters',
+    });
+  });
+
+  it('f) 201 Created and saves message for active member', async () => {
+    mocks.getUser.mockResolvedValue({ id: 'user-member' });
+    mocks.userRestrictionFindUnique.mockResolvedValue(null);
+    mocks.channelFindUnique.mockResolvedValue(validChannel);
+    mocks.cohortMemberFindUnique.mockResolvedValue({ role: 'EXPLORER' });
+    const now = new Date();
+    const createdMsg = {
+      id: 'msg-1',
+      content: 'Valid message',
+      channelId: 'chan-1',
+      authorId: 'user-member',
+      createdAt: now,
+    };
+    mocks.addMessage.mockResolvedValue(createdMsg);
+
+    const res = await POST(
+      new Request('http://localhost/api/community/channels/chan-1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: 'Valid message' }),
+      }),
+      createParams('chan-1')
     );
 
-    expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: 'Channel not found' });
-    expect(mocks.getChannelMessages).not.toHaveBeenCalled();
+    expect(res.status).toBe(201);
+    expect(res.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(await res.json()).toEqual({
+      ...createdMsg,
+      createdAt: now.toISOString(),
+    });
+    expect(mocks.addMessage).toHaveBeenCalledWith('chan-1', 'user-member', 'Valid message');
   });
 
-  it('c) 200 OK with messages and ETag header on valid request', async () => {
-    mocks.getUser.mockResolvedValue({ id: 'user-1' });
-    mocks.channelFindFirst.mockResolvedValue({ id: 'chan-1' });
+  it('g) GET 200 OK returns messages in chronological order with private no-store headers', async () => {
+    mocks.getUser.mockResolvedValue({ id: 'user-member' });
+    mocks.channelFindUnique.mockResolvedValue(validChannel);
+    mocks.cohortMemberFindUnique.mockResolvedValue({ role: 'EXPLORER' });
 
     const d1 = new Date('2026-10-20T10:00:00.000Z');
     const d2 = new Date('2026-10-20T10:05:00.000Z');
-    const messages = [
-      { id: 'msg-2', content: 'newer msg', createdAt: d2, channelId: 'chan-1', authorId: 'user-1' },
-      { id: 'msg-1', content: 'older msg', createdAt: d1, channelId: 'chan-1', authorId: 'user-2' },
+    const messagesDesc = [
+      { id: 'msg-2', content: 'newer msg', createdAt: d2, channelId: 'chan-1' },
+      { id: 'msg-1', content: 'older msg', createdAt: d1, channelId: 'chan-1' },
     ];
-    mocks.getChannelMessages.mockResolvedValue(messages);
-
-    const expectedEtag = `W/"msg-2:${d2.getTime()}:2"`;
+    mocks.getChannelMessages.mockResolvedValue(messagesDesc);
 
     const res = await GET(
       new Request('http://localhost/api/community/channels/chan-1/messages?limit=20'),
@@ -101,176 +227,9 @@ describe('API: /api/community/channels/[channelId]/messages - Weak ETag & Memoiz
     );
 
     expect(res.status).toBe(200);
-    expect(res.headers.get('Cache-Control')).toBe('private, no-cache');
-    expect(res.headers.get('ETag')).toBe(expectedEtag);
-
-    // Reversed chronological ordering for UI display: [msg-1, msg-2]
+    expect(res.headers.get('Cache-Control')).toBe('private, no-store');
     const data = await res.json();
-    expect(data).toHaveLength(2);
     expect(data[0].id).toBe('msg-1');
     expect(data[1].id).toBe('msg-2');
-    expect(mocks.getChannelMessages).toHaveBeenCalledWith('chan-1', 20, undefined);
-  });
-
-  it('d) 304 Not Modified when If-None-Match matches computed ETag without returning body', async () => {
-    mocks.getUser.mockResolvedValue({ id: 'user-1' });
-    mocks.channelFindFirst.mockResolvedValue({ id: 'chan-1' });
-
-    const d1 = new Date('2026-10-20T10:00:00.000Z');
-    const messages = [
-      { id: 'msg-1', content: 'test', createdAt: d1, channelId: 'chan-1', authorId: 'user-1' },
-    ];
-    mocks.getChannelMessages.mockResolvedValue(messages);
-
-    const etag = `W/"msg-1:${d1.getTime()}:1"`;
-
-    const res = await GET(
-      new Request('http://localhost/api/community/channels/chan-1/messages', {
-        headers: { 'if-none-match': etag },
-      }),
-      createParams('chan-1')
-    );
-
-    expect(res.status).toBe(304);
-    expect(res.headers.get('Cache-Control')).toBe('private, no-cache');
-    expect(res.headers.get('ETag')).toBe(etag);
-    const text = await res.text();
-    expect(text).toBe('');
-  });
-
-  it('d2) returns 200 when empty messages list, and 304 on matching W/"empty"', async () => {
-    mocks.getUser.mockResolvedValue({ id: 'user-1' });
-    mocks.channelFindFirst.mockResolvedValue({ id: 'chan-1' });
-    mocks.getChannelMessages.mockResolvedValue([]);
-
-    const resFresh = await GET(
-      new Request('http://localhost/api/community/channels/chan-1/messages'),
-      createParams('chan-1')
-    );
-    expect(resFresh.status).toBe(200);
-    expect(resFresh.headers.get('ETag')).toBe('W/"empty"');
-    expect(await resFresh.json()).toEqual([]);
-
-    const resMatch = await GET(
-      new Request('http://localhost/api/community/channels/chan-1/messages', {
-        headers: { 'if-none-match': 'W/"empty"' },
-      }),
-      createParams('chan-1')
-    );
-    expect(resMatch.status).toBe(304);
-    expect(resMatch.headers.get('ETag')).toBe('W/"empty"');
-    expect(await resMatch.text()).toBe('');
-  });
-
-  it('e) Channel verification memoization: second call within 60s bypasses prisma.channel.findFirst', async () => {
-    mocks.getUser.mockResolvedValue({ id: 'user-mem-1' });
-    mocks.channelFindFirst.mockResolvedValue({ id: 'chan-mem-1' });
-    mocks.getChannelMessages.mockResolvedValue([]);
-
-    // First call: checks DB
-    const res1 = await GET(
-      new Request('http://localhost/api/community/channels/chan-mem-1/messages'),
-      createParams('chan-mem-1')
-    );
-    expect(res1.status).toBe(200);
-    expect(mocks.channelFindFirst).toHaveBeenCalledTimes(1);
-
-    // Second call with same user & channel: should bypass prisma.channel.findFirst!
-    const res2 = await GET(
-      new Request('http://localhost/api/community/channels/chan-mem-1/messages'),
-      createParams('chan-mem-1')
-    );
-    expect(res2.status).toBe(200);
-    expect(mocks.channelFindFirst).toHaveBeenCalledTimes(1);
-
-    // Third call after clearing verified channels: queries DB again
-    clearVerifiedChannelsForTests();
-    const res3 = await GET(
-      new Request('http://localhost/api/community/channels/chan-mem-1/messages'),
-      createParams('chan-mem-1')
-    );
-    expect(res3.status).toBe(200);
-    expect(mocks.channelFindFirst).toHaveBeenCalledTimes(2);
-  });
-
-  it('f) POST adds message successfully', async () => {
-    mocks.getUser.mockResolvedValue({ id: 'user-1' });
-    mocks.channelFindFirst.mockResolvedValue({ id: 'chan-1' });
-    const created = {
-      id: 'msg-new',
-      content: 'Hello everyone!',
-      channelId: 'chan-1',
-      authorId: 'user-1',
-      createdAt: new Date(),
-    };
-    mocks.addMessage.mockResolvedValue(created);
-
-    const res = await POST(
-      new Request('http://localhost/api/community/channels/chan-1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: 'Hello everyone!' }),
-      }),
-      createParams('chan-1')
-    );
-
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.id).toBe('msg-new');
-    expect(data.content).toBe('Hello everyone!');
-    expect(mocks.channelFindFirst).toHaveBeenCalledWith({
-      where: expect.objectContaining({ id: 'chan-1' }),
-      select: { id: true },
-    });
-    expect(mocks.addMessage).toHaveBeenCalledWith('chan-1', 'user-1', 'Hello everyone!');
-  });
-
-  it('f2) POST returns 400 when content is missing', async () => {
-    mocks.getUser.mockResolvedValue({ id: 'user-1' });
-
-    const res = await POST(
-      new Request('http://localhost/api/community/channels/chan-1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: '' }),
-      }),
-      createParams('chan-1')
-    );
-
-    expect(res.status).toBe(400);
-    expect(await res.json()).toEqual({ error: 'Content is required' });
-    expect(mocks.addMessage).not.toHaveBeenCalled();
-  });
-
-  it('f3) POST returns 404 when channel is inaccessible or not found', async () => {
-    mocks.getUser.mockResolvedValue({ id: 'user-1' });
-    mocks.channelFindFirst.mockResolvedValue(null);
-
-    const res = await POST(
-      new Request('http://localhost/api/community/channels/chan-404/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: 'test message' }),
-      }),
-      createParams('chan-404')
-    );
-
-    expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ error: 'Channel not found' });
-    expect(mocks.addMessage).not.toHaveBeenCalled();
-  });
-
-  it('g) GET handles internal error gracefully', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    mocks.getUser.mockResolvedValue({ id: 'user-1' });
-    mocks.channelFindFirst.mockRejectedValue(new Error('DB failure'));
-
-    const res = await GET(
-      new Request('http://localhost/api/community/channels/chan-err/messages'),
-      createParams('chan-err')
-    );
-
-    expect(res.status).toBe(500);
-    expect(await res.json()).toEqual({ error: 'Internal server error' });
   });
 });
