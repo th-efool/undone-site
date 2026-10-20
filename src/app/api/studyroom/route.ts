@@ -3,11 +3,51 @@ import { getUser } from '@/src/server/infrastructure/auth/getUser';
 import { studyRoomRepo } from '@/src/server/infrastructure/db/postgres/repositories/studyRoom.repo';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 
-export async function GET() {
+let roomsSeeded = false;
+let cachedRooms: any[] | null = null;
+let cachedRoomsExpiresAt = 0;
+let cachedRoomsEtag = '';
+
+export function resetRoomsSeededForTest(): void {
+  roomsSeeded = false;
+}
+
+export function clearStudyRoomCacheForTest(): void {
+  cachedRooms = null;
+  cachedRoomsExpiresAt = 0;
+  cachedRoomsEtag = '';
+}
+
+export async function GET(req?: Request) {
   try {
-    const roomCount = await prisma.studyRoom.count();
-    if (roomCount === 0) {
-      await studyRoomRepo.seedRooms();
+    const ifNoneMatch = req?.headers?.get('if-none-match');
+
+    // 1. In-memory 5-second micro-cache check
+    if (Date.now() < cachedRoomsExpiresAt && cachedRooms !== null) {
+      const cacheHeaders = {
+        'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=15',
+        ETag: cachedRoomsEtag,
+      };
+
+      if (ifNoneMatch && ifNoneMatch === cachedRoomsEtag) {
+        return new Response(null, {
+          status: 304,
+          headers: cacheHeaders,
+        });
+      }
+
+      return Response.json(cachedRooms, {
+        headers: cacheHeaders,
+      });
+    }
+
+    // 2. Cache miss: check and seed rooms once per worker lifecycle
+    if (!roomsSeeded) {
+      const roomCount = await prisma.studyRoom.count();
+      if (roomCount === 0) {
+        await studyRoomRepo.seedRooms();
+      }
+      roomsSeeded = true;
     }
 
     // Fetch rooms including participants and their user profiles (for avatars)
@@ -31,7 +71,30 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json(rooms ?? []);
+    const etagPayload = (rooms ?? [])
+      .map((r: any) => `${r.id}:${r.onlineCount}:${(r.participants ?? []).map((p: any) => p.userId).join(',')}`)
+      .join('|');
+    const etag = 'W/"' + Buffer.from(etagPayload).toString('base64').slice(0, 24) + '"';
+
+    cachedRooms = rooms ?? [];
+    cachedRoomsExpiresAt = Date.now() + 5000;
+    cachedRoomsEtag = etag;
+
+    const responseHeaders = {
+      'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=15',
+      ETag: etag,
+    };
+
+    if (ifNoneMatch && ifNoneMatch === etag) {
+      return new Response(null, {
+        status: 304,
+        headers: responseHeaders,
+      });
+    }
+
+    return Response.json(cachedRooms, {
+      headers: responseHeaders,
+    });
   } catch (error) {
     console.error('Failed to fetch study rooms:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
@@ -106,6 +169,11 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: result.error }, { status: result.status });
       }
 
+      // Invalidate micro-cache on room state update (join)
+      cachedRooms = null;
+      cachedRoomsExpiresAt = 0;
+      cachedRoomsEtag = '';
+
       return NextResponse.json(result);
     } else if (cleanAction === 'leave') {
       const result = await prisma.$transaction(async (tx) => {
@@ -132,6 +200,11 @@ export async function POST(req: Request) {
       if ('error' in result && result.error) {
         return NextResponse.json({ error: result.error }, { status: result.status });
       }
+
+      // Invalidate micro-cache on room state update (leave)
+      cachedRooms = null;
+      cachedRoomsExpiresAt = 0;
+      cachedRoomsEtag = '';
 
       return NextResponse.json(result);
     }

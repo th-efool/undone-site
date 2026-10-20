@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { 
   Flame, 
@@ -52,15 +52,35 @@ export default function StudyRoomScreen() {
   const { data: session } = useSession();
   const [rooms, setRooms] = useState<Room[]>(DEFAULT_ROOMS);
   const [joiningId, setJoiningId] = useState<string | null>(null);
+  const etagRef = useRef<string | null>(null);
 
   // Simulated activity state
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   // Load Rooms
   const fetchRooms = useCallback(async () => {
+    // Skip network polling if tab is in the background
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+      return;
+    }
+
     try {
-      const res = await fetch(apiUrl('/api/studyroom'));
+      const res = await fetch(apiUrl('/api/studyroom'), {
+        headers: {
+          ...(etagRef.current ? { 'If-None-Match': etagRef.current } : {}),
+        },
+      });
+
+      // HTTP 304 Not Modified: fast exit without re-rendering or re-parsing JSON
+      if (res.status === 304) {
+        return;
+      }
+
       if (res.ok) {
+        const etag = res.headers?.get ? (res.headers.get('ETag') || res.headers.get('etag')) : null;
+        if (etag) {
+          etagRef.current = etag;
+        }
         const data = await res.json();
         if (Array.isArray(data)) {
           setRooms(data);
@@ -72,15 +92,53 @@ export default function StudyRoomScreen() {
   }, []);
 
   useEffect(() => {
-    const init = async () => {
-      await fetchRooms();
+    let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+    const startPolling = () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
+      pollInterval = setInterval(() => {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+          return;
+        }
+        void fetchRooms();
+      }, 10000);
     };
-    void init();
-    // Poll for updates every 10 seconds to keep rooms fresh
-    const poll = setInterval(() => {
+
+    const stopPolling = () => {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (typeof document === 'undefined') return;
+      if (document.visibilityState === 'visible') {
+        void fetchRooms();
+        startPolling();
+      } else if (document.visibilityState === 'hidden') {
+        stopPolling();
+      }
+    };
+
+    // Initial fetch and start polling if visible
+    if (typeof document === 'undefined' || document.visibilityState === 'visible') {
       void fetchRooms();
-    }, 10000);
-    return () => clearInterval(poll);
+      startPolling();
+    }
+
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibilityChange);
+    }
+
+    return () => {
+      stopPolling();
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      }
+    };
   }, [fetchRooms]);
 
   // Add Toast Notification Helper

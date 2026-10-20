@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { UserCohortConfig } from '../UserCohortConfig';
 import { UserChunkProgress } from '../UserChunkProgress';
+import { AiContentCache } from '../AiContentCache';
 import { UserWorkspace } from '@/src/server/infrastructure/db/mongodb/models/UserWorkspace';
 
 describe('MongoDB Schema Compound Indexes Coverage', () => {
@@ -41,5 +42,16 @@ describe('MongoDB Schema Compound Indexes Coverage', () => {
     const userIdPath = UserWorkspace.schema.path('userId') as any;
     expect(userIdPath.options.unique).toBe(true);
     expect(userIdPath.options.index).toBe(true);
+  });
+
+  it('AiContentCache declares unique contentHash, operationType compound, and 90-day TTL indexes', () => {
+    const indexes = AiContentCache.schema.indexes();
+    expect(indexes).toEqual(
+      expect.arrayContaining([
+        [{ contentHash: 1 }, expect.objectContaining({ unique: true })],
+        [{ operationType: 1, createdAt: -1 }, expect.anything()],
+        [{ createdAt: 1 }, expect.objectContaining({ expireAfterSeconds: 90 * 24 * 3600 })],
+      ])
+    );
   });
 });

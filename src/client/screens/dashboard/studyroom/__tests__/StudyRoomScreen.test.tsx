@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import React from 'react';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import StudyRoomScreen from '../StudyRoomScreen';
 
@@ -182,5 +182,142 @@ describe('StudyRoomScreen Optimistic UI', () => {
       expect(screen.getByText('3 Active')).toBeTruthy();
       expect(screen.getByText('YOU ARE HERE')).toBeTruthy();
     });
+  });
+
+  it('pauses polling when tab is hidden and resumes immediately when visible', async () => {
+    vi.useFakeTimers();
+
+    try {
+      global.fetch = vi.fn().mockImplementation(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: new Headers({ ETag: 'W/"test-etag"' }),
+          json: async () => mockRooms,
+        } as unknown as Response)
+      );
+
+      // Start visible
+      Object.defineProperty(document, 'visibilityState', {
+        value: 'visible',
+        writable: true,
+        configurable: true,
+      });
+
+      render(<StudyRoomScreen />);
+
+      // Initial mount triggers 1 fetch
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(global.fetch).toHaveBeenCalledTimes(1);
+
+      // Advance 10s -> polling fires (2nd fetch)
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10000);
+      });
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+
+      // Hide tab -> visibilitychange event fired
+      await act(async () => {
+        Object.defineProperty(document, 'visibilityState', {
+          value: 'hidden',
+          writable: true,
+          configurable: true,
+        });
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+
+      // Advance 30s while hidden -> polling MUST be paused, no fetch triggered
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(30000);
+      });
+      expect(global.fetch).toHaveBeenCalledTimes(2);
+
+      // Unhide tab -> immediately triggers fetch
+      await act(async () => {
+        Object.defineProperty(document, 'visibilityState', {
+          value: 'visible',
+          writable: true,
+          configurable: true,
+        });
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      expect(global.fetch).toHaveBeenCalledTimes(3);
+
+      // Advance another 10s while visible -> polling resumes
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10000);
+      });
+      expect(global.fetch).toHaveBeenCalledTimes(4);
+    } finally {
+      vi.useRealTimers();
+      Object.defineProperty(document, 'visibilityState', {
+        value: 'visible',
+        writable: true,
+        configurable: true,
+      });
+    }
+  });
+
+  it('sends If-None-Match header on subsequent polls and preserves room state on 304 response', async () => {
+    let callCount = 0;
+    const initialETag = 'W/"cm9vbS0xOjI6dXNlcg=="';
+
+    global.fetch = vi.fn().mockImplementation((_url: string, options?: RequestInit) => {
+      callCount++;
+      if (callCount === 1) {
+        // First call: 200 OK with ETag
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: new Headers({ ETag: initialETag }),
+          json: async () => mockRooms,
+        } as unknown as Response);
+      }
+
+      // Subsequent call: check If-None-Match header
+      const reqHeaders = options?.headers as Record<string, string> | undefined;
+      if (reqHeaders && reqHeaders['If-None-Match'] === initialETag) {
+        return Promise.resolve({
+          ok: false,
+          status: 304,
+          headers: new Headers({ ETag: initialETag }),
+          json: async () => {
+            throw new Error('304 response should not call json()');
+          },
+        } as unknown as Response);
+      }
+
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: new Headers({ ETag: initialETag }),
+        json: async () => mockRooms,
+      } as unknown as Response);
+    });
+
+    render(<StudyRoomScreen />);
+
+    // 1. Initial load
+    await waitFor(() => {
+      expect(screen.getByText('Fireplace')).toBeTruthy();
+      expect(screen.getByText('2 Active')).toBeTruthy();
+    });
+
+    // 2. Trigger a second fetch via visibility change
+    await act(async () => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    // Verify second fetch sent If-None-Match header
+    expect(callCount).toBe(2);
+    const lastFetchOptions = (global.fetch as any).mock.calls[1][1];
+    expect(lastFetchOptions?.headers?.['If-None-Match']).toBe(initialETag);
+
+    // 3. Verify room state was preserved on 304 without crashing or clearing state
+    expect(screen.getByText('Fireplace')).toBeTruthy();
+    expect(screen.getByText('2 Active')).toBeTruthy();
+    expect(screen.getByText('Library')).toBeTruthy();
   });
 });

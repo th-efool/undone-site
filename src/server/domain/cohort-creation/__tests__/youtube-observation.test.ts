@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { z } from 'zod';
 vi.mock('server-only', () => ({}));
 import { youtubeMetadataSchema } from '@/src/shared/cohort-creation/youtube';
@@ -9,6 +9,7 @@ import { youtubeObservationArtifactSchema } from '../materials/youtube-artifacts
 import { YoutubeAcquisitionService } from '../materials/youtube-acquisition.service';
 import { youtubeObservationRequestSchema } from '@/src/shared/cohort-creation/jobs';
 import type { YoutubeObservationCheckpoint } from '@/src/shared/cohort-creation/youtube';
+import { clearAiMemoryCache } from '../aiCache.repo';
 
 function fixture(videoIds = ['dQw4w9WgXcQ']) {
   const scope = { ownerId: 'owner', draftId: randomUUID() }; const playlist = videoIds.length > 1;
@@ -50,6 +51,19 @@ async function acquisitionFixture(videoIds?: string[]) {
 }
 
 describe('selected video acquisition', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    clearAiMemoryCache();
+    process.env = { ...originalEnv };
+    delete process.env.MONGODB_URI;
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    clearAiMemoryCache();
+  });
+
   it('reuses a non-prefix saved unit, preserving selected order without another metadata fetch', async () => {
     const f = await acquisitionFixture(['dQw4w9WgXcQ', 'AAAAAAAAAAA']); let checkpoint: YoutubeObservationCheckpoint | undefined;
     const secondOnly = { ...f.input, source: { ...f.input.source, selectedUnitIds: ['AAAAAAAAAAA'] } };
@@ -109,7 +123,21 @@ describe('selected video acquisition', () => {
     expect(f.observeVideo).not.toHaveBeenCalled(); expect(save).not.toHaveBeenCalled();
   });
 });
+
 describe('owned retained YouTube observations', () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    clearAiMemoryCache();
+    process.env = { ...originalEnv };
+    delete process.env.MONGODB_URI;
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    clearAiMemoryCache();
+  });
+
   it('retains actual metadata and AI interpretation with immutable model/source/page-independent video provenance', async () => {
     const f = fixture(); const retained = await f.service.retainMetadata(f.scope, f.source, 5);
     expect(retained.receipt.metadata).toEqual(f.metadata); expect(f.source.status).toBe('acquiring');
@@ -151,5 +179,21 @@ describe('owned retained YouTube observations', () => {
     expect(youtubeObservationArtifactSchema.safeParse(altered).success).toBe(false);
     await expect(f.service.resumeUnit(f.scope, output.artifact, output.inputFingerprint, retained.artifact, retained.inputFingerprint, f.source.id, 5, 'AAAAAAAAAAA')).rejects.toThrow('does not match');
     await expect(f.service.resumeUnit({ ...f.scope, ownerId: 'other' }, output.artifact, output.inputFingerprint, retained.artifact, retained.inputFingerprint, f.source.id, 5, f.metadata.units[0].videoId)).rejects.toMatchObject({ code: 'NOT_FOUND' });
+  });
+
+  it('memoizes video observation in AI cache to prevent duplicate model calls for identical videoId and duration', async () => {
+    const f = fixture();
+    const retained = await f.service.retainMetadata(f.scope, f.source, 5);
+    const first = await f.service.observeUnit(f.scope, retained.artifact, retained.inputFingerprint, f.source.id, 5, f.metadata.units[0].videoId, new AbortController().signal);
+    expect(f.observeVideo).toHaveBeenCalledTimes(1);
+
+    // Second call for the same video unit within a new scope/draft
+    const secondScope = { ownerId: 'owner', draftId: randomUUID() };
+    const secondRetained = await f.service.retainMetadata(secondScope, f.source, 5);
+    const second = await f.service.observeUnit(secondScope, secondRetained.artifact, secondRetained.inputFingerprint, f.source.id, 5, f.metadata.units[0].videoId, new AbortController().signal);
+
+    // observeVideo should NOT be called again because proposal was returned from SHA-256 AI cache!
+    expect(f.observeVideo).toHaveBeenCalledTimes(1);
+    expect(second.observation.proposal).toEqual(first.observation.proposal);
   });
 });

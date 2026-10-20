@@ -16,6 +16,8 @@ export function useCohortViewer(cohortId: string) {
     },
     enabled: isLoggedIn,
     staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
   });
 
   return {

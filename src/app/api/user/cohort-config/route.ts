@@ -92,21 +92,34 @@ export async function PUT(req: Request) {
         return NextResponse.json({ error: 'Database service unavailable' }, { status: 503 });
       }
 
-      const updates = await Promise.all(
-        body.cohorts.map(async (item: { cohortId: string; rank: number }) => {
-          const cleanId = item.cohortId.startsWith(`${userId}_`)
-            ? item.cohortId.slice(userId.length + 1)
-            : item.cohortId;
+      const bulkOps = body.cohorts.map((item: { cohortId: string; rank: number }) => {
+        const cleanId = item.cohortId.startsWith(`${userId}_`)
+          ? item.cohortId.slice(userId.length + 1)
+          : item.cohortId;
 
-          return UserCohortConfig.findOneAndUpdate(
-            { userId, cohortId: cleanId },
-            { $set: { rank: Math.round(item.rank) } },
-            { upsert: true, new: true, setDefaultsOnInsert: true, runValidators: true }
-          ).lean().exec();
-        })
-      );
+        return {
+          updateOne: {
+            filter: { userId, cohortId: cleanId },
+            update: {
+              $set: { rank: Math.round(item.rank) },
+              $setOnInsert: {
+                dailyGoalMinutes: 20,
+                scheduleDays: ['Mon', 'Wed', 'Fri'],
+                scheduleLabel: 'Mon, Wed, Fri',
+                frequency: 'Often',
+                orderStyle: 'Sequential',
+                isPaused: false,
+                isHidden: false,
+              },
+            },
+            upsert: true,
+          },
+        };
+      });
 
-      return NextResponse.json({ success: true, count: updates.filter(Boolean).length });
+      const bulkResult = await UserCohortConfig.bulkWrite(bulkOps, { ordered: false });
+      const count = (bulkResult.modifiedCount || 0) + (bulkResult.upsertedCount || 0) + (bulkResult.matchedCount || 0);
+      return NextResponse.json({ success: true, count });
     }
 
     const {

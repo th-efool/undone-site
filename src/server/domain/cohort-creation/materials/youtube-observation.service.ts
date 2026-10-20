@@ -4,7 +4,8 @@ import { retainedObjectRefSchema } from '@/src/shared/cohort-creation/materials'
 import { retainedYoutubeMetadataSchema } from '@/src/shared/cohort-creation/youtube';
 import { CreationStorageError, type CreationObjectRef, type StorageScope } from '@/src/server/infrastructure/storage/creation.contracts';
 import type { CreationArtifactRepository } from '@/src/server/infrastructure/storage/creation.store';
-import { observationModelIdentitySchema, validateVideoObservation, videoObservationCoverage, type MaterialObservation } from '../material-observation';
+import { observationModelIdentitySchema, validateVideoObservation, videoObservationCoverage, type MaterialObservation, type VideoObservationProposal } from '../material-observation';
+import { getCachedAiResult, setCachedAiResult } from '../aiCache.repo';
 import type { YoutubeMetadataReader } from './youtube-metadata';
 import { youtubeSourceUrl } from './youtube-url';
 import { YOUTUBE_METADATA_VERSION, youtubeMetadataFingerprint, youtubeMetadataReceiptSchema,
@@ -50,7 +51,12 @@ export class YoutubeObservationService extends YoutubeMetadataRetentionService {
     const video = receipt.metadata.units.find(unit => unit.videoId === unitId);
     if (!video) throw new CreationStorageError('INVALID_INPUT', 'Select a video from the retained metadata.');
     const model = observationModelIdentitySchema.parse(this.observer.identity);
-    const proposal = validateVideoObservation(await this.observer.observeVideo(video, signal), video);
+    const obsKey = { videoId: video.videoId, durationSeconds: video.durationSeconds };
+    let proposal = await getCachedAiResult<VideoObservationProposal>('youtube_video_observation', obsKey, model.modelId);
+    if (!proposal) {
+      proposal = validateVideoObservation(await this.observer.observeVideo(video, signal), video);
+      await setCachedAiResult('youtube_video_observation', obsKey, proposal, model.modelId);
+    }
     signal.throwIfAborted();
     const identity = { materialId, unitId, inputRevision, metadataFingerprint: fingerprint, metadataArtifact: metadataRef, video, model, proposal };
     const version = youtubeObservationVersion(identity);

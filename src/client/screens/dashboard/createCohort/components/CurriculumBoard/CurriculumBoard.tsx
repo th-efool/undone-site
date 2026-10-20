@@ -278,6 +278,7 @@ export function CurriculumBoard() {
                             }
                             alt={lesson.title}
                             className={styles.lessonThumbnail}
+                            unoptimized
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               if (lesson.videoId && !target.src.includes(lesson.videoId)) {

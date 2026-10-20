@@ -216,6 +216,7 @@ export function CurriculumInspector() {
                 }
                 alt={selectedLesson.title}
                 className={styles.imagePreview}
+                unoptimized
                 onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=1200&auto=format&fit=crop'; }}
               />
 

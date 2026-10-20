@@ -1,8 +1,7 @@
-import mongoose from 'mongoose';
+import mongoose, { ConnectOptions } from 'mongoose';
 
 // 1. Get the connection string from environment variables
 const getMongoUri = () => process.env.MONGODB_URI;
-
 
 // 2. Define the shape of our global mongoose cache
 interface MongooseCache {
@@ -23,7 +22,35 @@ if (!cached) {
   cached = global.mongooseCache = { conn: null, promise: null };
 }
 
+/**
+ * Returns connection options configured for MongoDB Atlas connection hygiene
+ * and serverless execution environments (Vercel, AWS Lambda, production).
+ */
+export function getMongoConnectionOptions(): ConnectOptions {
+  const isServerless =
+    process.env.VERCEL === '1' ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME !== undefined ||
+    process.env.NODE_ENV === 'production';
+
+  const maxPoolSize =
+    Number(process.env.MONGODB_MAX_POOL_SIZE) || (isServerless ? 2 : 10);
+
+  return {
+    maxPoolSize,
+    minPoolSize: 0,
+    maxIdleTimeMS: 10000,
+    serverSelectionTimeoutMS: 5000,
+    socketTimeoutMS: 30000,
+    bufferCommands: false,
+  };
+}
+
 export async function connectToMongoDB() {
+  if (!global.mongooseCache) {
+    global.mongooseCache = { conn: null, promise: null };
+  }
+  cached = global.mongooseCache;
+
   // 4. If we already have a connection, return it immediately
   if (cached.conn) {
     return cached.conn;
@@ -36,16 +63,11 @@ export async function connectToMongoDB() {
       throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
     }
 
-    const opts = {
-      // bufferCommands: false means Mongoose will throw an error immediately 
-      // if you try to query before the connection is established, 
-      // rather than queuing the query indefinitely.
-      bufferCommands: false, 
-    };
+    const opts = getMongoConnectionOptions();
 
-    cached.promise = mongoose.connect(uri, opts).then((mongoose) => {
+    cached.promise = mongoose.connect(uri, opts).then((mongooseInstance) => {
       console.log('✅ Connected to MongoDB via Mongoose');
-      return mongoose;
+      return mongooseInstance;
     });
   }
 
