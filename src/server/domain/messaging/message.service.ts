@@ -1,6 +1,7 @@
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { messagingRepo } from '@/src/server/infrastructure/db/postgres/repositories/messaging.repo';
 import { notificationService } from '../notifications/notification.service';
+import { sanitizeMessageContent } from './sanitizer';
 import {
   type SendMessageInput,
   type SendMessageResult,
@@ -15,17 +16,8 @@ export const messageService = {
   async sendMessage(input: SendMessageInput): Promise<SendMessageResult> {
     const { channelId, authorId, content, clientRequestId, replyToId } = input;
 
-    // 1. Validate payload
-    if (!content || typeof content !== 'string' || !content.trim()) {
-      throw new MessagingValidationError('Message content cannot be empty');
-    }
-
-    const trimmedContent = content.trim();
-    if (trimmedContent.length > MAX_MESSAGE_CONTENT_LENGTH) {
-      throw new MessagingValidationError(
-        `Message content exceeds maximum allowed length of ${MAX_MESSAGE_CONTENT_LENGTH} characters`
-      );
-    }
+    // 1. Validate payload and strip dangerous control characters / enforce length
+    const sanitizedContent = sanitizeMessageContent(content);
 
     // 2. Check user restrictions (bans/mutes)
     const restriction = await prisma.userRestriction.findUnique({
@@ -98,14 +90,14 @@ export const messageService = {
     const result = await messagingRepo.createMessageTransaction({
       channelId,
       authorId,
-      content: trimmedContent,
+      content: sanitizedContent,
       clientRequestId,
       replyToId,
     });
 
     // 6. If not an idempotent replay, process mentions and dispatch notifications
     if (!result.isIdempotentReplay) {
-      const mentionMatches = Array.from(trimmedContent.matchAll(/(?:^|\s)@([a-zA-Z0-9_-]+)/g)).map(
+      const mentionMatches = Array.from(sanitizedContent.matchAll(/(?:^|\s)@([a-zA-Z0-9_-]+)/g)).map(
         (m) => m[1]
       );
 
@@ -162,7 +154,7 @@ export const messageService = {
               entityId: result.message.id,
               type: 'mention',
               title: 'New Mention',
-              body: `${result.message.author.name || result.message.author.username || 'Someone'} mentioned you: "${trimmedContent.slice(0, 100)}"`,
+              body: `${result.message.author.name || result.message.author.username || 'Someone'} mentioned you: "${sanitizedContent.slice(0, 100)}"`,
             }).catch(() => {
               // Notification dispatch failures should not roll back completed message write
             });

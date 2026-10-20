@@ -153,6 +153,15 @@ export class MessagingValidationError extends Error {
   }
 }
 
+export class MessagingRateLimitError extends Error {
+  public retryAfterSeconds: number;
+  constructor(message = 'Rate limit exceeded; please wait before retrying', retryAfterSeconds = 60) {
+    super(message);
+    this.name = 'MessagingRateLimitError';
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
 /**
  * Deterministically hash message input payload for idempotency conflict detection.
  */

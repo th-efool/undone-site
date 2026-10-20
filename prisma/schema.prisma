@@ -1206,4 +1206,17 @@ model MessageModerationAudit {
   @@map("message_moderation_audits")
 }
 
+// ─────────────────────────────────────────────────────────────────
+//  PHASE 11 — DISTRIBUTED ATOMIC RATE LIMITING & HARDENING
+// ─────────────────────────────────────────────────────────────────
+model RateLimitBucket {
+  key       String   @id
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("rate_limit_buckets")
+}
+
+
 
