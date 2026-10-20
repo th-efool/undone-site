@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import {
@@ -162,6 +162,119 @@ function getSourceTypeBadge(source: CohortSource): string {
       return 'Text / Notes';
   }
 }
+
+const SOURCE_ROW_CONTAINMENT_STYLE: React.CSSProperties = {
+  contentVisibility: 'auto',
+  containIntrinsicSize: '0 96px',
+};
+
+export interface SourceItemRowProps {
+  source: CohortSource;
+  index: number;
+  errorMessage: string | null;
+  busy: boolean;
+  onRetry: (source: CohortSource) => void;
+  onReplace: (sourceId: string) => void;
+  onRemove: (sourceId: string) => void;
+}
+
+export const SourceItemRow = React.memo(function SourceItemRow({
+  source,
+  index,
+  errorMessage,
+  busy,
+  onRetry,
+  onReplace,
+  onRemove,
+}: SourceItemRowProps) {
+  const isFailed = source.state === 'failed';
+  const videoId = extractYoutubeVideoId(source);
+  const badgeLabel = getSourceTypeBadge(source);
+
+  return (
+    <li
+      id={`creation-material-${source.id}`}
+      className={styles.sourceItem}
+      data-kind={source.input?.kind ?? 'text'}
+      data-failed={isFailed ? 'true' : undefined}
+      style={SOURCE_ROW_CONTAINMENT_STYLE}
+    >
+      {videoId && (
+        <div className={styles.sourceMediaPreview} aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`}
+            alt=""
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            className={styles.sourceMediaImg}
+          />
+        </div>
+      )}
+
+      <div className={styles.sourceCardTop}>
+        <span className={styles.sourceTypeBadge}>
+          {badgeLabel}
+        </span>
+      </div>
+
+      <div className={styles.sourceDetails}>
+        <h3 className={styles.sourceTitle}>
+          {source.label || `Source ${index + 1}`}
+        </h3>
+        <details className={styles.sourceProvenance}>
+          <summary>Source details <ChevronDown size={14} aria-hidden="true" /></summary>
+          <div>{getSourceProvenanceSummary(source)}</div>
+        </details>
+        {isFailed && (
+          <div className={styles.failedErrorRow} role="alert">
+            <span>{errorMessage}</span>
+            <button
+              type="button"
+              className={styles.retryBtn}
+              disabled={busy}
+              onClick={() => onRetry(source)}
+            >
+              Retry
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className={styles.sourceActions}>
+        <div className={styles.sourceIconCol}>
+          {isFailed ? (
+            <AlertCircle className={styles.sourceAlertIcon} size={18} aria-label="Failed" />
+          ) : (
+            <CircleCheck className={styles.sourceReadyIcon} data-ready size={18} aria-label="Ready" />
+          )}
+          <span>{isFailed ? 'Needs attention' : 'Ready'}</span>
+        </div>
+        <div className={styles.sourceActionButtons}>
+          <button
+            type="button"
+            aria-label={`Replace source ${index + 1}`}
+            title="Replace source"
+            disabled={busy}
+            onClick={() => onReplace(source.id)}
+          >
+            <Replace size={17} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className={styles.removeBtn}
+            aria-label={`Remove source ${index + 1}`}
+            title="Remove source"
+            disabled={busy}
+            onClick={() => onRemove(source.id)}
+          >
+            <Trash2 size={17} strokeWidth={1.75} aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+    </li>
+  );
+});
 
 export function MaterialStageView({
   workspace,
@@ -420,41 +533,59 @@ export function MaterialStageView({
     }
   };
 
-  const handleRetrySource = async (source: CohortSource) => {
-    setBusy(true);
-    setError(null);
-    try {
-      const failedJob = workspace.processing?.jobs?.find(
-        j => j.sourceId === source.id && j.status === 'failed'
-      );
-      if (failedJob) {
-        await dispatchAction({ type: 'retry_text_job', jobId: failedJob.id });
-        return;
-      }
+  const handleRetrySource = useCallback(
+    async (source: CohortSource) => {
+      setBusy(true);
+      setError(null);
+      try {
+        const failedJob = workspace.processing?.jobs?.find(
+          j => j.sourceId === source.id && j.status === 'failed'
+        );
+        if (failedJob) {
+          await dispatchAction({ type: 'retry_text_job', jobId: failedJob.id });
+          return;
+        }
 
-      if (source.input?.kind === 'web') {
-        await dispatchAction({
-          type: 'refresh_web_source',
-          sourceId: source.id,
-          url: source.input.url,
-        });
-      } else if (source.input?.kind === 'youtube') {
-        await dispatchAction({
-          type: 'add_youtube_source',
-          sourceId: source.id,
-          url: source.input.url,
-          label: source.label,
-          mode: source.input.mode ?? 'video_observation',
-        });
-      } else {
-        await dispatchAction({ type: 'retry_processing' });
+        if (source.input?.kind === 'web') {
+          await dispatchAction({
+            type: 'refresh_web_source',
+            sourceId: source.id,
+            url: source.input.url,
+          });
+        } else if (source.input?.kind === 'youtube') {
+          await dispatchAction({
+            type: 'add_youtube_source',
+            sourceId: source.id,
+            url: source.input.url,
+            label: source.label,
+            mode: source.input.mode ?? 'video_observation',
+          });
+        } else {
+          await dispatchAction({ type: 'retry_processing' });
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Retry failed.');
+      } finally {
+        setBusy(false);
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Retry failed.');
-    } finally {
-      setBusy(false);
-    }
-  };
+    },
+    [dispatchAction, workspace.processing?.jobs]
+  );
+
+  const handleReplaceSource = useCallback((sourceId: string) => {
+    setReplacingSourceId(sourceId);
+    setError(null);
+  }, []);
+
+  const handleRemoveSource = useCallback(
+    (sourceId: string) => {
+      void dispatchAction({
+        type: 'remove_source',
+        sourceId,
+      });
+    },
+    [dispatchAction]
+  );
 
   const handleContinue = async () => {
     if (workspace.sources.length === 0 || busy) return;
@@ -742,99 +873,18 @@ export function MaterialStageView({
               const errorMessage = isFailed
                 ? getSourceErrorMessage(source, workspace.processing?.jobs)
                 : null;
-              const videoId = extractYoutubeVideoId(source);
-              const badgeLabel = getSourceTypeBadge(source);
 
               return (
-                <li
+                <SourceItemRow
                   key={source.id}
-                  id={`creation-material-${source.id}`}
-                  className={styles.sourceItem}
-                  data-kind={source.input?.kind ?? 'text'}
-                  data-failed={isFailed ? 'true' : undefined}
-                >
-                  {videoId && (
-                    <div className={styles.sourceMediaPreview} aria-hidden="true">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={`https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`}
-                        alt=""
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                        className={styles.sourceMediaImg}
-                      />
-                    </div>
-                  )}
-
-                  <div className={styles.sourceCardTop}>
-                    <span className={styles.sourceTypeBadge}>
-                      {badgeLabel}
-                    </span>
-                  </div>
-
-                  <div className={styles.sourceDetails}>
-                    <h3 className={styles.sourceTitle}>
-                      {source.label || `Source ${index + 1}`}
-                    </h3>
-                    <details className={styles.sourceProvenance}>
-                      <summary>Source details <ChevronDown size={14} aria-hidden="true" /></summary>
-                      <div>{getSourceProvenanceSummary(source)}</div>
-                    </details>
-                    {isFailed && (
-                      <div className={styles.failedErrorRow} role="alert">
-                        <span>{errorMessage}</span>
-                        <button
-                          type="button"
-                          className={styles.retryBtn}
-                          disabled={busy}
-                          onClick={() => void handleRetrySource(source)}
-                        >
-                          Retry
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className={styles.sourceActions}>
-                    <div className={styles.sourceIconCol}>
-                      {isFailed ? (
-                        <AlertCircle className={styles.sourceAlertIcon} size={18} aria-label="Failed" />
-                      ) : (
-                        <CircleCheck className={styles.sourceReadyIcon} data-ready size={18} aria-label="Ready" />
-                      )}
-                      <span>{isFailed ? 'Needs attention' : 'Ready'}</span>
-                    </div>
-                    <div className={styles.sourceActionButtons}>
-                      <button
-                        type="button"
-                        aria-label={`Replace source ${index + 1}`}
-                        title="Replace source"
-                        disabled={busy}
-                        onClick={() => {
-                          setReplacingSourceId(source.id);
-                          setError(null);
-                        }}
-                      >
-                        <Replace size={17} strokeWidth={1.75} aria-hidden="true" />
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.removeBtn}
-                        aria-label={`Remove source ${index + 1}`}
-                        title="Remove source"
-                        disabled={busy}
-                        onClick={() =>
-                          void dispatchAction({
-                            type: 'remove_source',
-                            sourceId: source.id,
-                          })
-                        }
-                      >
-                        <Trash2 size={17} strokeWidth={1.75} aria-hidden="true" />
-                      </button>
-                      </div>
-                  </div>
-                </li>
+                  source={source}
+                  index={index}
+                  errorMessage={errorMessage}
+                  busy={busy}
+                  onRetry={handleRetrySource}
+                  onReplace={handleReplaceSource}
+                  onRemove={handleRemoveSource}
+                />
               );
             })}
           </ul>

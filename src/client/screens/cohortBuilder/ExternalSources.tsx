@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useDispatchAction, useInteractionState } from '@/src/client/interaction/hooks';
 import type { CohortAction, CohortSource, CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
@@ -7,84 +7,39 @@ import { formatYoutubeTimestamp } from '@/src/shared/cohort-builder/youtube-tran
 import styles from './CohortBuilder.module.css';
 import { CohortDraftProvider, useCohortDrafts } from './draft-context';
 
-export function ExternalSources() {
-  const state = useInteractionState<CohortWorkspace>();
-  return (
-    <CohortDraftProvider workspaceId={state?.workspaceId ?? 'default'}>
-      <InnerExternalSources />
-    </CohortDraftProvider>
-  );
+export interface PdfConnectorCardProps {
+  workspaceId: string;
+  revision: number;
+  ownerId?: string;
 }
 
-function InnerExternalSources() {
-  const state = useInteractionState<CohortWorkspace>();
-  const { data: session } = useSession();
-  const dispatch = useDispatchAction<CohortAction>();
-  const { externalDraft, updateExternalDraft } = useCohortDrafts();
-
-  const [capabilities, setCapabilities] = useState<{
-    pdf: boolean;
-    web: boolean;
-    youtube?: boolean;
-    youtubeUnavailableReason?: string;
-    github?: boolean;
-    githubUnavailableReason?: string;
-  }>({ pdf: false, web: false, youtube: false, github: false });
-
+export const PdfConnectorCard = memo(function PdfConnectorCard({
+  workspaceId,
+  revision,
+  ownerId,
+}: PdfConnectorCardProps) {
   const [file, setFile] = useState<File | null>(null);
   const [label, setLabel] = useState('');
-  const url = externalDraft.webUrl;
-  const setUrl = (value: string) => updateExternalDraft({ webUrl: value });
-
-  const ytUrl = externalDraft.youtubeUrl;
-  const setYtUrl = (value: string) => updateExternalDraft({ youtubeUrl: value });
-  const [ytLabel, setYtLabel] = useState('');
-  const [ytTrackLang, setYtTrackLang] = useState('en');
-  const [ytTrackKind, setYtTrackKind] = useState<'manual' | 'automatic'>('manual');
-
-  const ghUrl = externalDraft.githubUrl;
-  const setGhUrl = (value: string) => updateExternalDraft({ githubUrl: value });
-  const [ghLabel, setGhLabel] = useState('');
-  const [ghRef, setGhRef] = useState('main');
-  const [ghPaths, setGhPaths] = useState('');
-
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const ticket = useRef<{ requestId: string; revision: number; ownerId: string } | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    const controller = new AbortController();
-    void fetch(`/api/cohort-builder/workspaces/${state.workspaceId}/sources`, {
-      signal: controller.signal,
-      cache: 'no-store',
-    })
-      .then(async response => {
-        if (response.ok && active) setCapabilities(await response.json());
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [state.workspaceId]);
-
   async function upload() {
-    if (!file || !session?.user?.id || busy) return;
+    if (!file || !ownerId || busy) return;
     if (file.size > 2 * 1024 * 1024) {
       setError('PDF exceeds 2 MiB. Choose a smaller document.');
       return;
     }
     const attempt = ticket.current ?? {
       requestId: crypto.randomUUID(),
-      revision: state.revision,
-      ownerId: session.user.id,
+      revision,
+      ownerId,
     };
     ticket.current = attempt;
     setBusy(true);
     setError('');
     try {
-      const response = await fetch(`/api/cohort-builder/workspaces/${state.workspaceId}/pdf`, {
+      const response = await fetch(`/api/cohort-builder/workspaces/${workspaceId}/pdf`, {
         method: 'POST',
         body: file,
         headers: {
@@ -110,232 +65,38 @@ function InnerExternalSources() {
   }
 
   return (
-    <div aria-label="PDF and web sources">
-      {capabilities.pdf && (
-        <fieldset disabled={busy} className={styles.formField}>
-          <legend>Retain PDF</legend>
-          <label htmlFor="builder-pdf-label">PDF title</label>
-          <input
-            id="builder-pdf-label"
-            value={label}
-            onChange={event => {
-              setLabel(event.target.value);
-              ticket.current = null;
-            }}
-            maxLength={300}
-          />
-          <label htmlFor="builder-pdf">PDF file (2 MiB maximum)</label>
-          <input
-            id="builder-pdf"
-            type="file"
-            accept="application/pdf,.pdf"
-            onChange={event => {
-              setFile(event.target.files?.[0] ?? null);
-              ticket.current = null;
-              setError('');
-            }}
-          />
-          <p>
-            Readable text only, up to 200 pages. No OCR. Scanned, encrypted, or partly unreadable
-            documents are rejected. Unacknowledged files stay here until you leave this page.
-          </p>
-          <button disabled={!file} onClick={() => void upload()}>
-            {busy ? 'Uploading PDF…' : 'Add PDF source'}
-          </button>
-        </fieldset>
-      )}
-
-      {capabilities.web && (
-        <fieldset disabled={busy} className={styles.formField}>
-          <legend>Retain public web page</legend>
-          <label htmlFor="builder-web-url">Public HTTPS URL</label>
-          <input
-            id="builder-web-url"
-            type="url"
-            value={url}
-            onChange={event => setUrl(event.target.value)}
-            maxLength={2048}
-          />
-          <p>
-            Public HTTPS, UTF-8 HTML or text, at most 1 MiB. No logins, scripts, compressed
-            responses, or exhaustive article-coverage guarantee.
-          </p>
-          <button
-            disabled={!url.trim()}
-            onClick={() => {
-              setBusy(true);
-              void dispatch({
-                type: 'add_web_source',
-                label: url.trim().slice(0, 300),
-                url: url.trim(),
-              })
-                .then(saved => {
-                  if (saved) setUrl('');
-                })
-                .finally(() => setBusy(false));
-            }}
-          >
-            Add web source
-          </button>
-        </fieldset>
-      )}
-
-      {capabilities.youtube ? (
-        <fieldset disabled={busy} className={styles.formField}>
-          <legend>Retain YouTube video transcript</legend>
-          <label htmlFor="builder-yt-label">Video title</label>
-          <input
-            id="builder-yt-label"
-            value={ytLabel}
-            onChange={event => setYtLabel(event.target.value)}
-            maxLength={300}
-            placeholder="e.g. Consensus Lecture"
-          />
-          <label htmlFor="builder-yt-url">Public YouTube video URL</label>
-          <input
-            id="builder-yt-url"
-            type="url"
-            value={ytUrl}
-            onChange={event => setYtUrl(event.target.value)}
-            maxLength={2048}
-            placeholder="https://www.youtube.com/watch?v=..."
-          />
-          <label htmlFor="builder-yt-track-lang">Caption language</label>
-          <input
-            id="builder-yt-track-lang"
-            value={ytTrackLang}
-            onChange={event => setYtTrackLang(event.target.value)}
-            maxLength={30}
-            placeholder="en"
-          />
-          <label htmlFor="builder-yt-track-kind">Caption track type</label>
-          <select
-            id="builder-yt-track-kind"
-            value={ytTrackKind}
-            onChange={event => setYtTrackKind(event.target.value as 'manual' | 'automatic')}
-          >
-            <option value="manual">Creator uploaded (manual)</option>
-            <option value="automatic">Auto-generated (automatic)</option>
-          </select>
-          <p>
-            Public individual YouTube videos with accessible caption tracks only, up to 4 hours.
-            No playlists, livestreams, or private videos.
-          </p>
-          <button
-            disabled={!ytUrl.trim()}
-            onClick={() => {
-              setBusy(true);
-              const track = {
-                id: ytTrackLang.trim() || 'en',
-                language: ytTrackLang.trim() || 'en',
-                kind: ytTrackKind,
-                translated: false as const,
-              };
-              void dispatch({
-                type: 'add_youtube_source',
-                label: ytLabel.trim() || ytUrl.trim(),
-                url: ytUrl.trim(),
-                track,
-              })
-                .then(saved => {
-                  if (saved) {
-                    setYtUrl('');
-                    setYtLabel('');
-                  }
-                })
-                .finally(() => setBusy(false));
-            }}
-          >
-            Add YouTube source
-          </button>
-        </fieldset>
-      ) : capabilities.youtubeUnavailableReason ? (
-        <div role="note" aria-label="YouTube unavailable">
-          <p>
-            YouTube transcript ingestion is currently unavailable ({capabilities.youtubeUnavailableReason}).
-          </p>
-        </div>
-      ) : null}
-
-      {capabilities.github ? (
-        <fieldset disabled={busy} className={styles.formField}>
-          <legend>Retain GitHub repository files</legend>
-          <label htmlFor="builder-gh-label">Repository title</label>
-          <input
-            id="builder-gh-label"
-            value={ghLabel}
-            onChange={event => setGhLabel(event.target.value)}
-            maxLength={300}
-            placeholder="e.g. Core Protocols"
-          />
-          <label htmlFor="builder-gh-url">Public GitHub repository URL</label>
-          <input
-            id="builder-gh-url"
-            type="url"
-            value={ghUrl}
-            onChange={event => setGhUrl(event.target.value)}
-            maxLength={2048}
-            placeholder="https://github.com/owner/repo"
-          />
-          <label htmlFor="builder-gh-ref">Branch, tag, or commit</label>
-          <input
-            id="builder-gh-ref"
-            value={ghRef}
-            onChange={event => setGhRef(event.target.value)}
-            maxLength={100}
-            placeholder="main"
-          />
-          <label htmlFor="builder-gh-paths">
-            Selected files (optional, comma or newline separated, up to 25 files)
-          </label>
-          <textarea
-            id="builder-gh-paths"
-            rows={3}
-            value={ghPaths}
-            onChange={event => setGhPaths(event.target.value)}
-            placeholder="README.md&#10;src/index.ts"
-          />
-          <p>
-            Public HTTPS GitHub repositories only, up to 25 text/code files (max 500 KB per file, 2
-            MiB total). No binary files, archives, lockfiles, or private repositories.
-          </p>
-          <button
-            disabled={!ghUrl.trim()}
-            onClick={() => {
-              setBusy(true);
-              const parsedPaths = ghPaths
-                .split(/[\r\n,]+/)
-                .map(p => p.trim())
-                .filter(Boolean);
-              const action: CohortAction = {
-                type: 'add_github_source',
-                label: ghLabel.trim() || ghUrl.trim(),
-                repoUrl: ghUrl.trim(),
-                ref: ghRef.trim() || 'main',
-                ...(parsedPaths.length > 0 ? { paths: parsedPaths } : {}),
-              };
-              void dispatch(action)
-                .then(saved => {
-                  if (saved) {
-                    setGhUrl('');
-                    setGhLabel('');
-                    setGhRef('main');
-                    setGhPaths('');
-                  }
-                })
-                .finally(() => setBusy(false));
-            }}
-          >
-            Add GitHub source
-          </button>
-        </fieldset>
-      ) : capabilities.githubUnavailableReason ? (
-        <div role="note" aria-label="GitHub unavailable">
-          <p>
-            GitHub repository ingestion is currently unavailable ({capabilities.githubUnavailableReason}).
-          </p>
-        </div>
-      ) : null}
+    <>
+      <fieldset disabled={busy} className={styles.formField}>
+        <legend>Retain PDF</legend>
+        <label htmlFor="builder-pdf-label">PDF title</label>
+        <input
+          id="builder-pdf-label"
+          value={label}
+          onChange={event => {
+            setLabel(event.target.value);
+            ticket.current = null;
+          }}
+          maxLength={300}
+        />
+        <label htmlFor="builder-pdf">PDF file (2 MiB maximum)</label>
+        <input
+          id="builder-pdf"
+          type="file"
+          accept="application/pdf,.pdf"
+          onChange={event => {
+            setFile(event.target.files?.[0] ?? null);
+            ticket.current = null;
+            setError('');
+          }}
+        />
+        <p>
+          Readable text only, up to 200 pages. No OCR. Scanned, encrypted, or partly unreadable
+          documents are rejected. Unacknowledged files stay here until you leave this page.
+        </p>
+        <button disabled={!file} onClick={() => void upload()}>
+          {busy ? 'Uploading PDF…' : 'Add PDF source'}
+        </button>
+      </fieldset>
 
       {error && (
         <div role="alert">
@@ -352,6 +113,350 @@ function InnerExternalSources() {
           )}
         </div>
       )}
+    </>
+  );
+});
+
+export interface WebConnectorCardProps {
+  url: string;
+  onUrlChange: (value: string) => void;
+  dispatch?: (action: CohortAction) => Promise<boolean>;
+}
+
+export const WebConnectorCard = memo(function WebConnectorCard({
+  url,
+  onUrlChange,
+  dispatch,
+}: WebConnectorCardProps) {
+  const hookDispatch = useDispatchAction<CohortAction>();
+  const activeDispatch = dispatch ?? hookDispatch;
+  const [busy, setBusy] = useState(false);
+
+  const handleAcquire = useCallback(() => {
+    const trimmed = url.trim();
+    if (!trimmed || busy) return;
+    setBusy(true);
+    void activeDispatch({
+      type: 'add_web_source',
+      label: trimmed.slice(0, 300),
+      url: trimmed,
+    })
+      .then(saved => {
+        if (saved) onUrlChange('');
+      })
+      .finally(() => setBusy(false));
+  }, [url, busy, activeDispatch, onUrlChange]);
+
+  return (
+    <fieldset disabled={busy} className={styles.formField}>
+      <legend>Retain public web page</legend>
+      <label htmlFor="builder-web-url">Public HTTPS URL</label>
+      <input
+        id="builder-web-url"
+        type="url"
+        value={url}
+        onChange={event => onUrlChange(event.target.value)}
+        maxLength={2048}
+      />
+      <p>
+        Public HTTPS, UTF-8 HTML or text, at most 1 MiB. No logins, scripts, compressed
+        responses, or exhaustive article-coverage guarantee.
+      </p>
+      <button disabled={!url.trim()} onClick={handleAcquire}>
+        Add web source
+      </button>
+    </fieldset>
+  );
+});
+
+export interface YoutubeConnectorCardProps {
+  url: string;
+  onUrlChange: (value: string) => void;
+  dispatch?: (action: CohortAction) => Promise<boolean>;
+}
+
+export const YoutubeConnectorCard = memo(function YoutubeConnectorCard({
+  url,
+  onUrlChange,
+  dispatch,
+}: YoutubeConnectorCardProps) {
+  const hookDispatch = useDispatchAction<CohortAction>();
+  const activeDispatch = dispatch ?? hookDispatch;
+
+  const [ytLabel, setYtLabel] = useState('');
+  const [ytTrackLang, setYtTrackLang] = useState('en');
+  const [ytTrackKind, setYtTrackKind] = useState<'manual' | 'automatic'>('manual');
+  const [busy, setBusy] = useState(false);
+
+  const handleAcquire = useCallback(() => {
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl || busy) return;
+    setBusy(true);
+    const track = {
+      id: ytTrackLang.trim() || 'en',
+      language: ytTrackLang.trim() || 'en',
+      kind: ytTrackKind,
+      translated: false as const,
+    };
+    void activeDispatch({
+      type: 'add_youtube_source',
+      label: ytLabel.trim() || trimmedUrl,
+      url: trimmedUrl,
+      track,
+    })
+      .then(saved => {
+        if (saved) {
+          onUrlChange('');
+          setYtLabel('');
+        }
+      })
+      .finally(() => setBusy(false));
+  }, [url, busy, ytTrackLang, ytTrackKind, activeDispatch, ytLabel, onUrlChange]);
+
+  return (
+    <fieldset disabled={busy} className={styles.formField}>
+      <legend>Retain YouTube video transcript</legend>
+      <label htmlFor="builder-yt-label">Video title</label>
+      <input
+        id="builder-yt-label"
+        value={ytLabel}
+        onChange={event => setYtLabel(event.target.value)}
+        maxLength={300}
+        placeholder="e.g. Consensus Lecture"
+      />
+      <label htmlFor="builder-yt-url">Public YouTube video URL</label>
+      <input
+        id="builder-yt-url"
+        type="url"
+        value={url}
+        onChange={event => onUrlChange(event.target.value)}
+        maxLength={2048}
+        placeholder="https://www.youtube.com/watch?v=..."
+      />
+      <label htmlFor="builder-yt-track-lang">Caption language</label>
+      <input
+        id="builder-yt-track-lang"
+        value={ytTrackLang}
+        onChange={event => setYtTrackLang(event.target.value)}
+        maxLength={30}
+        placeholder="en"
+      />
+      <label htmlFor="builder-yt-track-kind">Caption track type</label>
+      <select
+        id="builder-yt-track-kind"
+        value={ytTrackKind}
+        onChange={event => setYtTrackKind(event.target.value as 'manual' | 'automatic')}
+      >
+        <option value="manual">Creator uploaded (manual)</option>
+        <option value="automatic">Auto-generated (automatic)</option>
+      </select>
+      <p>
+        Public individual YouTube videos with accessible caption tracks only, up to 4 hours.
+        No playlists, livestreams, or private videos.
+      </p>
+      <button disabled={!url.trim()} onClick={handleAcquire}>
+        Add YouTube source
+      </button>
+    </fieldset>
+  );
+});
+
+export interface GithubConnectorCardProps {
+  url: string;
+  onUrlChange: (value: string) => void;
+  dispatch?: (action: CohortAction) => Promise<boolean>;
+}
+
+export const GithubConnectorCard = memo(function GithubConnectorCard({
+  url,
+  onUrlChange,
+  dispatch,
+}: GithubConnectorCardProps) {
+  const hookDispatch = useDispatchAction<CohortAction>();
+  const activeDispatch = dispatch ?? hookDispatch;
+
+  const [ghLabel, setGhLabel] = useState('');
+  const [ghRef, setGhRef] = useState('main');
+  const [ghPaths, setGhPaths] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const handleAcquire = useCallback(() => {
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl || busy) return;
+    setBusy(true);
+    const parsedPaths = ghPaths
+      .split(/[\r\n,]+/)
+      .map(p => p.trim())
+      .filter(Boolean);
+    const action: CohortAction = {
+      type: 'add_github_source',
+      label: ghLabel.trim() || trimmedUrl,
+      repoUrl: trimmedUrl,
+      ref: ghRef.trim() || 'main',
+      ...(parsedPaths.length > 0 ? { paths: parsedPaths } : {}),
+    };
+    void activeDispatch(action)
+      .then(saved => {
+        if (saved) {
+          onUrlChange('');
+          setGhLabel('');
+          setGhRef('main');
+          setGhPaths('');
+        }
+      })
+      .finally(() => setBusy(false));
+  }, [url, busy, ghPaths, ghLabel, ghRef, activeDispatch, onUrlChange]);
+
+  return (
+    <fieldset disabled={busy} className={styles.formField}>
+      <legend>Retain GitHub repository files</legend>
+      <label htmlFor="builder-gh-label">Repository title</label>
+      <input
+        id="builder-gh-label"
+        value={ghLabel}
+        onChange={event => setGhLabel(event.target.value)}
+        maxLength={300}
+        placeholder="e.g. Core Protocols"
+      />
+      <label htmlFor="builder-gh-url">Public GitHub repository URL</label>
+      <input
+        id="builder-gh-url"
+        type="url"
+        value={url}
+        onChange={event => onUrlChange(event.target.value)}
+        maxLength={2048}
+        placeholder="https://github.com/owner/repo"
+      />
+      <label htmlFor="builder-gh-ref">Branch, tag, or commit</label>
+      <input
+        id="builder-gh-ref"
+        value={ghRef}
+        onChange={event => setGhRef(event.target.value)}
+        maxLength={100}
+        placeholder="main"
+      />
+      <label htmlFor="builder-gh-paths">
+        Selected files (optional, comma or newline separated, up to 25 files)
+      </label>
+      <textarea
+        id="builder-gh-paths"
+        rows={3}
+        value={ghPaths}
+        onChange={event => setGhPaths(event.target.value)}
+        placeholder="README.md&#10;src/index.ts"
+      />
+      <p>
+        Public HTTPS GitHub repositories only, up to 25 text/code files (max 500 KB per file, 2
+        MiB total). No binary files, archives, lockfiles, or private repositories.
+      </p>
+      <button disabled={!url.trim()} onClick={handleAcquire}>
+        Add GitHub source
+      </button>
+    </fieldset>
+  );
+});
+
+export function ExternalSources() {
+  const state = useInteractionState<CohortWorkspace>();
+  return (
+    <CohortDraftProvider workspaceId={state?.workspaceId ?? 'default'}>
+      <InnerExternalSources />
+    </CohortDraftProvider>
+  );
+}
+
+function InnerExternalSources() {
+  const state = useInteractionState<CohortWorkspace>();
+  const { data: session } = useSession();
+  const dispatch = useDispatchAction<CohortAction>();
+  const { externalDraft, updateExternalDraft } = useCohortDrafts();
+
+  const [capabilities, setCapabilities] = useState<{
+    pdf: boolean;
+    web: boolean;
+    youtube?: boolean;
+    youtubeUnavailableReason?: string;
+    github?: boolean;
+    githubUnavailableReason?: string;
+  }>({ pdf: false, web: false, youtube: false, github: false });
+
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    void fetch(`/api/cohort-builder/workspaces/${state.workspaceId}/sources`, {
+      signal: controller.signal,
+      cache: 'no-store',
+    })
+      .then(async response => {
+        if (response.ok && active) setCapabilities(await response.json());
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [state.workspaceId]);
+
+  const handleWebUrlChange = useCallback(
+    (value: string) => updateExternalDraft({ webUrl: value }),
+    [updateExternalDraft]
+  );
+
+  const handleYoutubeUrlChange = useCallback(
+    (value: string) => updateExternalDraft({ youtubeUrl: value }),
+    [updateExternalDraft]
+  );
+
+  const handleGithubUrlChange = useCallback(
+    (value: string) => updateExternalDraft({ githubUrl: value }),
+    [updateExternalDraft]
+  );
+
+  return (
+    <div aria-label="PDF and web sources">
+      {capabilities.pdf && (
+        <PdfConnectorCard
+          workspaceId={state.workspaceId}
+          revision={state.revision}
+          ownerId={session?.user?.id}
+        />
+      )}
+
+      {capabilities.web && (
+        <WebConnectorCard
+          url={externalDraft.webUrl}
+          onUrlChange={handleWebUrlChange}
+          dispatch={dispatch}
+        />
+      )}
+
+      {capabilities.youtube ? (
+        <YoutubeConnectorCard
+          url={externalDraft.youtubeUrl}
+          onUrlChange={handleYoutubeUrlChange}
+          dispatch={dispatch}
+        />
+      ) : capabilities.youtubeUnavailableReason ? (
+        <div role="note" aria-label="YouTube unavailable">
+          <p>
+            YouTube transcript ingestion is currently unavailable ({capabilities.youtubeUnavailableReason}).
+          </p>
+        </div>
+      ) : null}
+
+      {capabilities.github ? (
+        <GithubConnectorCard
+          url={externalDraft.githubUrl}
+          onUrlChange={handleGithubUrlChange}
+          dispatch={dispatch}
+        />
+      ) : capabilities.githubUnavailableReason ? (
+        <div role="note" aria-label="GitHub unavailable">
+          <p>
+            GitHub repository ingestion is currently unavailable ({capabilities.githubUnavailableReason}).
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }
