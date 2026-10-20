@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { LiveSession } from '@/src/client/types/dashboard';
 import styles from './StudyRoomCard.module.css';
 
@@ -29,11 +30,19 @@ export const StudyRoomCard = React.memo(function StudyRoomCard({ session, varian
     ROOM_MEMBER_COUNTS[session.title.toLowerCase()] ||
     (session.onlineCount ? session.onlineCount * 70 + 84 : 250);
 
+  const router = useRouter();
   const [thumbSrc, setThumbSrc] = useState(session.thumbnail || FALLBACK_THUMBNAIL);
+
+  const handlePrefetch = () => {
+    router.prefetch('/message');
+  };
   if (isCompact) {
     return (
       <Link
         href="/message"
+        prefetch={false}
+        onMouseEnter={handlePrefetch}
+        onFocus={handlePrefetch}
         className={styles.cardCompact}
         onDragStart={(e) => e.preventDefault()}
         draggable={false}
@@ -87,6 +96,9 @@ export const StudyRoomCard = React.memo(function StudyRoomCard({ session, varian
   return (
     <Link
       href="/message"
+      prefetch={false}
+      onMouseEnter={handlePrefetch}
+      onFocus={handlePrefetch}
       className={styles.card}
       onDragStart={(e) => e.preventDefault()}
       draggable={false}

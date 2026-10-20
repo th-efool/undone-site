@@ -3,6 +3,7 @@
 import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { getCohortHref } from '@/src/client/navigation/cohortLinks';
 import styles from './CohortCard.module.css';
 
@@ -37,6 +38,7 @@ export function CohortCard({
   className,
   priority = false,
 }: CohortCardProps) {
+  const router = useRouter();
   const subtitleLength = item.subtitle.length;
 
   const rawSubtitleWidth =
@@ -76,8 +78,17 @@ export function CohortCard({
 
   const href = item.href || getCohortHref(item.cohortId ?? item.id);
 
+  const handlePrefetch = () => {
+    if (href) {
+      router.prefetch(href);
+    }
+  };
+
   return (
     <Link
+      prefetch={false}
+      onMouseEnter={handlePrefetch}
+      onFocus={handlePrefetch}
       href={href}
       className={cardClasses}
       aria-label={`${item.title}${item.dailyGoal ? ` - ${item.dailyGoal}` : ''}`}

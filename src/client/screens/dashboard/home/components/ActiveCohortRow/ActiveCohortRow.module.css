@@ -7,6 +7,8 @@
   background: transparent;
   border: 1px solid transparent;
   border-bottom: 1px solid #f3f4f6;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 48px;
   transition: all 0.2s ease;
   cursor: pointer;
 }
