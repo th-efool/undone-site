@@ -41,6 +41,8 @@ export function CohortHero({ cohort, isEnrolled = true, isLoggedIn = true }: Coh
           width={210}
           height={150}
           className={styles.artImage}
+          priority
+          fetchPriority="high"
         />
       </div>
 

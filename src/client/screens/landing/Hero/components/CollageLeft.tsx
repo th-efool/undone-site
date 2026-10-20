@@ -98,6 +98,7 @@ export function CollageLeft() {
           className={styles.windowPhotoImage} data-editable-id="windowPhotoImage"
           sizes="320px"
           priority
+          fetchPriority="high"
         />
         {/* White handwritten cursive annotation placed on the left side */}
         <p className={styles.windowPhotoAnnotation} data-editable-id="windowPhotoAnnotation">

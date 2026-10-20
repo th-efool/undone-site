@@ -74,6 +74,7 @@ export function CollageRight() {
             className={styles.galaxyImage} data-editable-id="galaxyImage"
             sizes="360px"
             priority
+            fetchPriority="high"
           />
         </div>
       </div>
