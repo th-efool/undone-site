@@ -80,6 +80,8 @@ const UserCohortConfigSchema: Schema = new Schema({
 
 // Primary read key: all configs for a user in one query
 UserCohortConfigSchema.index({ userId: 1, cohortId: 1 }, { unique: true });
+UserCohortConfigSchema.index({ userId: 1, rank: 1 });
+UserCohortConfigSchema.index({ userId: 1, isHidden: 1 });
 
 export const UserCohortConfig: Model<IUserCohortConfig> =
   mongoose.models.UserCohortConfig ||

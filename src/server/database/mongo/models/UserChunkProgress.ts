@@ -41,6 +41,9 @@ const UserChunkProgressSchema: Schema = new Schema({
 UserChunkProgressSchema.index({ userId: 1, chunkId: 1 }, { unique: true });
 // Compound index to quickly find all completed chunks for a user
 UserChunkProgressSchema.index({ userId: 1, status: 1 });
+UserChunkProgressSchema.index({ userId: 1, cohortId: 1, status: 1 });
+UserChunkProgressSchema.index({ userId: 1, cohortId: 1 });
+UserChunkProgressSchema.index({ cohortId: 1, status: 1 });
 
 export const UserChunkProgress: Model<IUserChunkProgress> = 
   mongoose.models.UserChunkProgress || mongoose.model<IUserChunkProgress>('UserChunkProgress', UserChunkProgressSchema);
