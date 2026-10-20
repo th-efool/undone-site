@@ -11,7 +11,10 @@ export async function GET(
   try {
     const { cohortId } = await params;
     const session = await auth();
-    const cohort = await prisma.cohort.findFirst({ where: { id: cohortId, ...accessibleCohortWhere(session?.user?.id ?? null) }, select: { id: true } });
+    const cohort = await prisma.cohort.findFirst({
+      where: { id: cohortId, ...accessibleCohortWhere(session?.user?.id ?? null) },
+      select: { id: true, visibility: true },
+    });
     if (!cohort) return NextResponse.json({ error: 'Community not found' }, { status: 404 });
     const community = await communityRepo.getCommunityChannels(cohortId);
     
@@ -19,7 +22,17 @@ export async function GET(
       return NextResponse.json({ error: 'Community not found' }, { status: 404 });
     }
 
-    return NextResponse.json(community.channels);
+    const isPublic = cohort.visibility === 'PUBLIC';
+    const cacheControl = isPublic
+      ? 'public, s-maxage=15, stale-while-revalidate=60'
+      : 'private, no-cache, no-store';
+
+    return NextResponse.json(community.channels, {
+      headers: {
+        'Cache-Control': cacheControl,
+        ...(isPublic ? { 'Vary': 'Cookie, Authorization' } : {}),
+      },
+    });
   } catch (error) {
     console.error('Failed to fetch community channels:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
