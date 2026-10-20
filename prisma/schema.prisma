@@ -446,6 +446,8 @@ model Cohort {
   sources   CohortSource[]
 
   @@index([creatorId])
+  @@index([isPublished, visibility, publishedAt])
+  @@index([isPublished, visibility, qualityScore])
   @@map("cohorts")
 }
 
@@ -511,6 +513,8 @@ model Lesson {
   progress LessonProgress[]
 
   @@index([seasonId])
+  @@index([seasonId, order])
+  @@index([isPublished, seasonId])
   @@map("lessons")
 }
 
@@ -560,6 +564,7 @@ model Message {
 
   @@index([channelId])
   @@index([authorId])
+  @@index([channelId, createdAt(sort: Desc)])
   @@map("messages")
 }
 
@@ -590,6 +595,8 @@ model RoomParticipant {
   joinedAt DateTime  @default(now())
 
   @@index([studyRoomId])
+  @@index([userId])
+  @@index([userId, studyRoomId])
   @@map("room_participants")
 }
 
