@@ -288,4 +288,134 @@ export const messagesRepository = {
 
     return await res.json();
   },
+
+  async updateReadWatermark(
+    channelId: string,
+    sequence: number
+  ): Promise<{ channelId: string; userId: string; lastReadSequence: number; unreadCount: number }> {
+    const res = await fetch(apiUrl(`/api/community/channels/${channelId}/read`), {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ sequence }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to update read watermark' }));
+      throw new Error(err.error || `Read watermark update failed with HTTP ${res.status}`);
+    }
+
+    return await res.json();
+  },
+
+  async updateChannelPreferences(
+    channelId: string,
+    prefs: { isPinned?: boolean; mutedUntil?: Date | string | null }
+  ): Promise<{ channelId: string; userId: string; isPinned: boolean; mutedUntil: string | null }> {
+    const res = await fetch(apiUrl(`/api/community/channels/${channelId}/preferences`), {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify(prefs),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to update preferences' }));
+      throw new Error(err.error || `Preferences update failed with HTTP ${res.status}`);
+    }
+
+    return await res.json();
+  },
+
+  async toggleReaction(
+    messageId: string,
+    emoji: string
+  ): Promise<{ messageId: string; channelId: string; emoji: string; added: boolean; reactions: any[]; revision: number }> {
+    const res = await fetch(apiUrl(`/api/messages/${messageId}/reactions`), {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ emoji }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to update reaction' }));
+      throw new Error(err.error || `Reaction update failed with HTTP ${res.status}`);
+    }
+
+    return await res.json();
+  },
+
+  async editMessage(
+    messageId: string,
+    content: string,
+    expectedRevision?: number
+  ): Promise<CanonicalMessagePayload> {
+    const res = await fetch(apiUrl(`/api/messages/${messageId}`), {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ content, expectedRevision }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to edit message' }));
+      throw new Error(err.error || `Edit message failed with HTTP ${res.status}`);
+    }
+
+    return await res.json();
+  },
+
+  async deleteMessage(messageId: string, reason?: string): Promise<CanonicalMessagePayload> {
+    const res = await fetch(apiUrl(`/api/messages/${messageId}`), {
+      method: 'DELETE',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({ reason }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to delete message' }));
+      throw new Error(err.error || `Delete message failed with HTTP ${res.status}`);
+    }
+
+    return await res.json();
+  },
+
+  async sendTypingSignal(
+    channelId: string,
+    isTyping = true
+  ): Promise<{ success: boolean; throttled: boolean }> {
+    try {
+      const res = await fetch(apiUrl(`/api/community/channels/${channelId}/typing`), {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({ isTyping }),
+      });
+
+      if (!res.ok) return { success: false, throttled: false };
+      return await res.json();
+    } catch (e) {
+      return { success: false, throttled: false };
+    }
+  },
 };

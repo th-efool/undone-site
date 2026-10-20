@@ -128,6 +128,7 @@ export function useMessage() {
   const [markedAsRead, setMarkedAsRead] = useState<Set<string>>(new Set());
   const [replyContext, setReplyContext] = useState<ReplyContext | null>(null);
   const [isTyping, setIsTyping] = useState(false);
+  const [typingUsernames, setTypingUsernames] = useState<string[]>([]);
 
   // Active community & channel derivation
   const currentCommunity = useMemo(
@@ -284,6 +285,24 @@ export function useMessage() {
     };
   }, [currentActiveChannelId, currentUserId, messagesByChannel]);
 
+  // Read watermark synchronization: monotonically advances when active channel messages are visible
+  const lastWatermarkRef = useRef<Record<string, number>>({});
+  useEffect(() => {
+    if (!currentActiveChannelId) return;
+    const msgs = messagesByChannel[currentActiveChannelId];
+    if (!msgs || msgs.length === 0) return;
+
+    const maxSeq = msgs.reduce((max, m) => Math.max(max, m.messageSequence ?? 0), 0);
+    const prevSynced = lastWatermarkRef.current[currentActiveChannelId] ?? 0;
+
+    if (maxSeq > prevSynced) {
+      lastWatermarkRef.current[currentActiveChannelId] = maxSeq;
+      messagesRepository.updateReadWatermark(currentActiveChannelId, maxSeq).catch((err) => {
+        console.warn('Failed to sync read watermark:', err);
+      });
+    }
+  }, [currentActiveChannelId, messagesByChannel]);
+
   // Realtime subscription via Centrifugo for active channel / conversation
   useEffect(() => {
     if (!realtime) return;
@@ -299,10 +318,105 @@ export function useMessage() {
     if (!topic) return;
 
     const unsubscribe = realtime.subscribe(topic, (publication: any) => {
-      const payload = publication?.payload ?? publication?.data ?? publication;
-      if (!payload || !payload.id) return;
+      const raw = publication?.data ?? publication?.payload ?? publication;
+      if (!raw) return;
 
-      const canonicalMsg = payload as CanonicalMessagePayload;
+      // 1. Ephemeral typing signals
+      if (raw.type === 'typing.signal' || raw.payload?.type === 'typing.signal') {
+        const signal = raw.payload?.payload || raw.payload || raw;
+        if (signal.userId && signal.userId !== currentUserId) {
+          const userName = signal.userName || 'Someone';
+          if (signal.isTyping) {
+            setTypingUsernames((prev) => (prev.includes(userName) ? prev : [...prev, userName]));
+            setTimeout(() => {
+              setTypingUsernames((prev) => prev.filter((u) => u !== userName));
+            }, signal.expiresInMs || 5000);
+          } else {
+            setTypingUsernames((prev) => prev.filter((u) => u !== userName));
+          }
+        }
+        return;
+      }
+
+      // 2. Realtime reaction update
+      if (raw.type === 'message.reaction_updated') {
+        const reactData = raw.payload;
+        if (!reactData || !reactData.messageId) return;
+        const targetChannel = currentActiveChannelId;
+        if (!targetChannel) return;
+
+        setMessagesByChannel((prev) => {
+          const currentList = prev[targetChannel] ?? [];
+          return {
+            ...prev,
+            [targetChannel]: currentList.map((m) => {
+              if (m.id !== reactData.messageId) return m;
+              return {
+                ...m,
+                reactions: reactData.reactions?.map((r: any) => ({
+                  emoji: r.emoji,
+                  count: r.count,
+                  reactedByMe: r.reactedByMe ?? (r.userIds ? r.userIds.includes(currentUserId) : false),
+                })) ?? [],
+              };
+            }),
+          };
+        });
+        return;
+      }
+
+      // 3. Realtime message edited
+      if (raw.type === 'message.edited') {
+        const editedMsg = raw.payload as CanonicalMessagePayload;
+        if (!editedMsg || !editedMsg.id) return;
+        const targetChannel = editedMsg.channelId || currentActiveChannelId;
+        if (!targetChannel) return;
+
+        setMessagesByChannel((prev) => {
+          const currentList = prev[targetChannel] ?? [];
+          return {
+            ...prev,
+            [targetChannel]: currentList.map((m) => {
+              if (m.id !== editedMsg.id) return m;
+              return {
+                ...m,
+                body: editedMsg.content,
+                badge: 'edited',
+              };
+            }),
+          };
+        });
+        return;
+      }
+
+      // 4. Realtime message deleted
+      if (raw.type === 'message.deleted') {
+        const deletedMsg = raw.payload as CanonicalMessagePayload;
+        if (!deletedMsg || !deletedMsg.id) return;
+        const targetChannel = deletedMsg.channelId || currentActiveChannelId;
+        if (!targetChannel) return;
+
+        setMessagesByChannel((prev) => {
+          const currentList = prev[targetChannel] ?? [];
+          return {
+            ...prev,
+            [targetChannel]: currentList.map((m) => {
+              if (m.id !== deletedMsg.id) return m;
+              return {
+                ...m,
+                body: '[This message was deleted]',
+                badge: 'deleted',
+              };
+            }),
+          };
+        });
+        return;
+      }
+
+      // 5. Default / message.created
+      const canonicalMsg = (raw.payload && raw.type === 'message.created' ? raw.payload : raw) as CanonicalMessagePayload;
+      if (!canonicalMsg || !canonicalMsg.id) return;
+
       const targetChannelId = canonicalMsg.channelId || currentActiveChannelId;
       if (!targetChannelId) return;
       const clientReqId = canonicalMsg.clientRequestId;
@@ -542,7 +656,10 @@ export function useMessage() {
 
   const setDraft = useCallback((conversationId: string, draft: string) => {
     setDrafts((current) => ({ ...current, [conversationId]: draft }));
-  }, []);
+    if (draft.trim().length > 0) {
+      sendTypingSignal(true);
+    }
+  }, [sendTypingSignal]);
 
   const clearReply = useCallback(() => setReplyContext(null), []);
 
@@ -708,10 +825,114 @@ export function useMessage() {
   );
 
   const toggleCommunityReaction = useCallback(
-    (_communityId: string, _messageId: string, _emoji: string) => {
-      // Future Phase reaction endpoint
+    async (_communityId: string, messageId: string, emoji: string) => {
+      if (!currentActiveChannelId) return;
+
+      // Optimistic reaction update
+      setMessagesByChannel((prev) => {
+        const list = prev[currentActiveChannelId] ?? [];
+        return {
+          ...prev,
+          [currentActiveChannelId]: list.map((m) => {
+            if (m.id !== messageId) return m;
+            const currentReactions = m.reactions ?? [];
+            const existing = currentReactions.find((r) => r.emoji === emoji);
+            let nextReactions;
+            if (existing) {
+              if (existing.reactedByMe) {
+                nextReactions = currentReactions
+                  .map((r) => (r.emoji === emoji ? { ...r, count: r.count - 1, reactedByMe: false } : r))
+                  .filter((r) => r.count > 0);
+              } else {
+                nextReactions = currentReactions.map((r) =>
+                  r.emoji === emoji ? { ...r, count: r.count + 1, reactedByMe: true } : r
+                );
+              }
+            } else {
+              nextReactions = [...currentReactions, { emoji, count: 1, reactedByMe: true }];
+            }
+            return { ...m, reactions: nextReactions };
+          }),
+        };
+      });
+
+      try {
+        await messagesRepository.toggleReaction(messageId, emoji);
+      } catch (err) {
+        console.error('Failed to toggle reaction:', err);
+      }
     },
-    []
+    [currentActiveChannelId]
+  );
+
+  const editCommunityMessage = useCallback(
+    async (messageId: string, content: string, expectedRevision?: number) => {
+      if (!currentActiveChannelId) return;
+
+      setMessagesByChannel((prev) => {
+        const list = prev[currentActiveChannelId] ?? [];
+        return {
+          ...prev,
+          [currentActiveChannelId]: list.map((m) =>
+            m.id === messageId ? { ...m, body: content, badge: 'edited' } : m
+          ),
+        };
+      });
+
+      try {
+        const updated = await messagesRepository.editMessage(messageId, content, expectedRevision);
+        setMessagesByChannel((prev) => {
+          const list = prev[currentActiveChannelId] ?? [];
+          return {
+            ...prev,
+            [currentActiveChannelId]: list.map((m) =>
+              m.id === messageId ? mapCanonicalMessageToCommunityMessage(updated, currentUserId, 'sent') : m
+            ),
+          };
+        });
+      } catch (err) {
+        console.error('Failed to edit message:', err);
+      }
+    },
+    [currentActiveChannelId, currentUserId]
+  );
+
+  const deleteCommunityMessage = useCallback(
+    async (messageId: string, reason?: string) => {
+      if (!currentActiveChannelId) return;
+
+      setMessagesByChannel((prev) => {
+        const list = prev[currentActiveChannelId] ?? [];
+        return {
+          ...prev,
+          [currentActiveChannelId]: list.map((m) =>
+            m.id === messageId ? { ...m, body: '[This message was deleted]', badge: 'deleted' } : m
+          ),
+        };
+      });
+
+      try {
+        await messagesRepository.deleteMessage(messageId, reason);
+      } catch (err) {
+        console.error('Failed to delete message:', err);
+      }
+    },
+    [currentActiveChannelId]
+  );
+
+  const lastTypingSignalTime = useRef<number>(0);
+  const sendTypingSignal = useCallback(
+    (isTypingState: boolean) => {
+      if (!currentActiveChannelId) return;
+      const now = Date.now();
+      if (isTypingState && now - lastTypingSignalTime.current < 2000) return;
+      lastTypingSignalTime.current = now;
+
+      messagesRepository.sendTypingSignal(currentActiveChannelId, isTypingState).catch((err) => {
+        console.warn('Failed to send typing signal:', err);
+      });
+    },
+    [currentActiveChannelId]
   );
 
   const uploadCommunityAttachment = useCallback(
@@ -878,21 +1099,65 @@ export function useMessage() {
     }));
   }, []);
 
-  const togglePinConversation = useCallback((id: string) => {
-    setPinnedConversations((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
+  const togglePinConversation = useCallback(
+    (id: string) => {
+      let nextPinned = false;
+      setPinnedConversations((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) {
+          next.delete(id);
+          nextPinned = false;
+        } else {
+          next.add(id);
+          nextPinned = true;
+        }
+        return next;
+      });
 
-  const muteConversation = useCallback((id: string, hours: number) => {
-    setMutedConversations((prev) => ({
-      ...prev,
-      [id]: Date.now() + hours * 60 * 60 * 1000,
-    }));
-  }, []);
+      let channelId: string | null = null;
+      const conv = conversationsList.find((c) => c.id === id);
+      if (conv?.channelId) {
+        channelId = conv.channelId;
+      } else {
+        const comm = communities.find((c) => c.cohortId === id);
+        channelId = comm?.channels[0]?.id ?? null;
+      }
+
+      if (channelId) {
+        messagesRepository.updateChannelPreferences(channelId, { isPinned: nextPinned }).catch((err) => {
+          console.warn('Failed to persist pin preference:', err);
+        });
+      }
+    },
+    [conversationsList, communities]
+  );
+
+  const muteConversation = useCallback(
+    (id: string, hours: number) => {
+      const mutedUntilMs = Date.now() + hours * 60 * 60 * 1000;
+      const mutedUntilIso = new Date(mutedUntilMs).toISOString();
+      setMutedConversations((prev) => ({
+        ...prev,
+        [id]: mutedUntilMs,
+      }));
+
+      let channelId: string | null = null;
+      const conv = conversationsList.find((c) => c.id === id);
+      if (conv?.channelId) {
+        channelId = conv.channelId;
+      } else {
+        const comm = communities.find((c) => c.cohortId === id);
+        channelId = comm?.channels[0]?.id ?? null;
+      }
+
+      if (channelId) {
+        messagesRepository.updateChannelPreferences(channelId, { mutedUntil: mutedUntilIso }).catch((err) => {
+          console.warn('Failed to persist mute preference:', err);
+        });
+      }
+    },
+    [conversationsList, communities]
+  );
 
   const markAllRead = useCallback(() => {
     setMarkedAsRead((prev) => new Set([...prev, ...conversations.map((c) => c.id)]));
@@ -930,6 +1195,7 @@ export function useMessage() {
     friendsOnline: [],
     replyContext,
     isTyping,
+    typingUsernames,
     actions: {
       setSelectedSidebarTab,
       setConversationFilter,
@@ -947,6 +1213,9 @@ export function useMessage() {
       leaveGroupConversation,
       uploadCommunityAttachment,
       toggleCommunityReaction,
+      editCommunityMessage,
+      deleteCommunityMessage,
+      sendTypingSignal,
       uploadDMAttachment,
       deleteDMMessage,
       togglePinConversation,

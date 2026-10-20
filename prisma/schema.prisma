@@ -42,6 +42,7 @@ model User {
   blockedUsers      UserBlock[] @relation("UserBlocker")
   blockedByUsers    UserBlock[] @relation("UserBlocked")
   messageReports    MessageReport[]
+  reactions         MessageReaction[]
   sentConversationInvites ConversationInvitation[] @relation("ConversationInvitedBy")
   receivedConversationInvites ConversationInvitation[] @relation("ConversationInvitedTo")
 
@@ -632,6 +633,7 @@ model Message {
   replyTo         Message?           @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
   replies         Message[]          @relation("MessageReplies")
   reports         MessageReport[]
+  reactions       MessageReaction[]
   revision        Int                @default(1)
   editedAt        DateTime?
   deletedAt       DateTime?
@@ -945,3 +947,20 @@ model ConversationInvitation {
   @@index([inviteeId, status])
   @@map("conversation_invitations")
 }
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@index([userId])
+  @@map("message_reactions")
+}
+

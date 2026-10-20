@@ -74,8 +74,8 @@ export function SocialLanding({ message }: Props) {
           onReply={(messageId, senderName, previewText, senderAvatar) =>
             setCommunityReply({ messageId, senderName, senderAvatar: senderAvatar || '/undone-logo.svg', previewText })
           }
-          isTyping={message.isTyping}
-          typingUsernames={message.isTyping ? ['Aarav'] : []}
+          isTyping={message.typingUsernames.length > 0}
+          typingUsernames={message.typingUsernames}
         />
       )}
 
@@ -104,8 +104,8 @@ export function SocialLanding({ message }: Props) {
           onReply={(messageId, senderName, previewText, senderAvatar) =>
             setDmReply({ messageId, senderName, senderAvatar: senderAvatar || '/undone-logo.svg', previewText })
           }
-          isTyping={message.isTyping}
-          typingUsernames={message.isTyping ? ['Aarav'] : []}
+          isTyping={message.typingUsernames.length > 0}
+          typingUsernames={message.typingUsernames}
         />
       )}
 

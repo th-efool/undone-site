@@ -116,6 +116,9 @@ export const communityRepo = {
         author: {
           select: { id: true, name: true, image: true, username: true },
         },
+        reactions: {
+          select: { emoji: true, userId: true },
+        },
       },
     });
   },
@@ -130,6 +133,9 @@ export const communityRepo = {
       include: {
         author: {
           select: { id: true, name: true, image: true, username: true },
+        },
+        reactions: {
+          select: { emoji: true, userId: true },
         },
       },
     });

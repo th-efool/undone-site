@@ -58,9 +58,13 @@ export function mapCanonicalMessageToCommunityMessage(
   status: 'sending' | 'sent' | 'failed' = 'sent'
 ): CommunityMessage {
   const isMe = Boolean(currentUserId && msg.author.id === currentUserId);
+  const isDeleted = Boolean(msg.deletedAt);
+  const isEdited = Boolean(msg.editedAt && !isDeleted);
+
   return {
     id: msg.id,
     body: msg.content,
+    badge: isDeleted ? 'deleted' : isEdited ? 'edited' : undefined,
     timestamp: formatMessageTime(msg.createdAt),
     dateLabel: formatMessageDateLabel(msg.createdAt),
     author: {
@@ -70,8 +74,20 @@ export function mapCanonicalMessageToCommunityMessage(
       online: false,
     },
     status,
-    reactions: [],
-    replyTo: msg.replyToId
+    messageSequence: msg.messageSequence,
+    reactions: msg.reactions?.map((r) => ({
+      emoji: r.emoji,
+      count: r.count,
+      reactedByMe: r.reactedByMe,
+    })) || [],
+    replyTo: msg.replyTo
+      ? {
+          messageId: msg.replyTo.id,
+          authorName: msg.replyTo.authorName || 'Replied message',
+          authorAvatar: msg.replyTo.authorAvatar || '/undone-logo.svg',
+          previewText: msg.replyTo.content,
+        }
+      : msg.replyToId
       ? {
           messageId: msg.replyToId,
           authorName: 'Replied message',
