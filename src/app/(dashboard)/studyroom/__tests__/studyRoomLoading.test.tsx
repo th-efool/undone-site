@@ -1,58 +1,11 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, cleanup } from '@testing-library/react';
+import { describe, it, expect, afterEach } from 'vitest';
 import StudyRoomLoading from '../loading';
 import StudyRoomScreen from '@/src/client/screens/dashboard/studyroom/StudyRoomScreen';
 
-// Mock next-auth safely
-vi.mock('next-auth/react', () => ({
-  useSession: () => ({
-    data: { user: { id: 'test-user', name: 'Tester' } },
-    status: 'authenticated',
-  }),
-}));
-
-describe('Study Room Route Loading Boundary & Anti-Skeleton Verification (Issue 6)', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => [
-        {
-          id: 'room-1',
-          title: 'Fireplace',
-          thumbnail: '/rooms/fireplace.jpg',
-          status: 'ACTIVE',
-          onlineCount: 2,
-          participants: [
-            {
-              id: 'p-1',
-              userId: 'u-1',
-              user: { id: 'u-1', name: 'Alice', image: null, username: 'alice' },
-            },
-          ],
-        },
-        {
-          id: 'room-2',
-          title: 'Library',
-          thumbnail: '/rooms/library.jpg',
-          status: 'ACTIVE',
-          onlineCount: 0,
-          participants: [],
-        },
-        {
-          id: 'room-3',
-          title: 'Developer Den',
-          thumbnail: '/rooms/dev-den.jpg',
-          status: 'ACTIVE',
-          onlineCount: 0,
-          participants: [],
-        },
-      ],
-    });
-  });
-
+describe('Study Room Route Loading Boundary & Anti-Skeleton Verification', () => {
   afterEach(() => {
     cleanup();
   });
@@ -60,15 +13,11 @@ describe('Study Room Route Loading Boundary & Anti-Skeleton Verification (Issue 
   it('renders the real Study Room workspace composition during loading instead of fake skeleton cards', () => {
     const { container } = render(<StudyRoomLoading />);
 
-    // Must render the real header and workspace titles
-    expect(screen.getByText('Focus Cohorts & Study Rooms')).toBeTruthy();
-    expect(screen.getByText(/Active Spaces/i)).toBeTruthy();
-    expect(screen.getByText('Timer Widget')).toBeTruthy();
-
-    // Must render canonical room cards immediately
-    expect(screen.getByText('Fireplace')).toBeTruthy();
-    expect(screen.getByText('Library')).toBeTruthy();
-    expect(screen.getByText('Developer Den')).toBeTruthy();
+    // Must render the real header and room titles
+    expect(screen.getByRole('heading', { level: 1, name: 'Study Rooms' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Fireplace' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Library' })).toBeTruthy();
+    expect(screen.getByRole('heading', { level: 2, name: 'Developer Den' })).toBeTruthy();
 
     // Must NOT contain any fake skeleton cards or grid
     expect(container.querySelector('[class*="skeletonGrid"]')).toBeNull();
@@ -77,28 +26,13 @@ describe('Study Room Route Loading Boundary & Anti-Skeleton Verification (Issue 
     expect(container.querySelectorAll('[class*="skeleton"]').length).toBe(0);
   });
 
-  it('retains legitimate live-status indicator animations', () => {
+  it('contains zero skeleton or shimmer classes when rendering StudyRoomScreen directly', () => {
     const { container } = render(<StudyRoomScreen />);
 
-    // Legitimate live workspace badge and pulsing indicator dot must be present
-    expect(screen.getByText('LIVE WORKSPACE')).toBeTruthy();
-    const livePulse = container.querySelector('[class*="livePulse"]');
-    expect(livePulse).toBeTruthy();
-  });
-
-  it('updates room participant data seamlessly when API returns', async () => {
-    render(<StudyRoomScreen />);
-
-    // Wait for the mock API data to populate
-    await waitFor(() => {
-      expect(screen.getByText('1 Active')).toBeTruthy();
-    });
-
-    // Alice should be rendered in the avatar stack
-    expect(screen.getByTitle('Alice')).toBeTruthy();
-
-    // Still zero skeletons or shimmer
-    expect(document.querySelector('[class*="skeletonGrid"]')).toBeNull();
-    expect(document.querySelector('[class*="skeletonCard"]')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1, name: 'Study Rooms' })).toBeTruthy();
+    expect(container.querySelector('[class*="skeletonGrid"]')).toBeNull();
+    expect(container.querySelector('[class*="skeletonCard"]')).toBeNull();
+    expect(container.querySelectorAll('[class*="shimmer"]').length).toBe(0);
+    expect(container.querySelectorAll('[class*="skeleton"]').length).toBe(0);
   });
 });

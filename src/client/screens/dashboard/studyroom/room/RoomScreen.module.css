@@ -1,0 +1,78 @@
+.stage {
+  position: relative;
+  isolation: isolate;
+  overflow: clip;
+  min-height: 100dvh;
+  width: 100%;
+  color: #ffffff;
+  background-color: #0c0e12;
+}
+
+@media (max-width: 768px) {
+  .stage {
+    min-height: calc(100dvh - var(--bottom-nav-height, 56px) - var(--safe-area-bottom, 0px));
+  }
+}
+
+.glass {
+  background: rgba(12, 14, 18, 0.66);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  backdrop-filter: blur(14px) saturate(1.15);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  color: #ffffff;
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass {
+    background: rgba(12, 14, 18, 0.88);
+  }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.bottomRow {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  max-width: calc(100% - 48px);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.bottomRow > * {
+  pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+  .bottomRow {
+    left: 12px;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom, 12px));
+    flex-direction: column-reverse;
+    align-items: stretch;
+    max-width: none;
+  }
+}
+
+.placeholderCard {
+  padding: 24px 16px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
