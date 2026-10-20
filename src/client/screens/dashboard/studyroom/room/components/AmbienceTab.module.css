@@ -1,0 +1,149 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  color: #ffffff;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.presetBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  min-height: 44px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.presetBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+.presetBtn:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+.presetBtnSelected {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: #3b82f6;
+  color: #ffffff;
+  box-shadow: 0 0 0 1px #3b82f6;
+}
+
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #93c5fd;
+  flex-shrink: 0;
+}
+
+.presetLabel {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checkIcon {
+  color: #3b82f6;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.controlsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.playPauseBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.playPauseBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.playPauseBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.volumeField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.volumeHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.volumeSlider {
+  width: 100%;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.volumeSlider:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.helperText {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.65);
+  margin: 0;
+}
+
+.unsupportedWarning {
+  padding: 10px 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 8px;
+  color: #fca5a5;
+  font-size: 0.75rem;
+  margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .presetBtn,
+  .playPauseBtn {
+    transition: none;
+  }
+}
