@@ -1,4 +1,5 @@
 import { type RealtimeEventEnvelope } from '@/src/server/domain/messaging/contracts';
+import { CentrifugoRealtimeTransport } from './centrifugo-transport';
 
 export interface RealtimeTransport {
   publish(destination: string, event: RealtimeEventEnvelope): Promise<void>;
@@ -41,3 +42,10 @@ export class InMemoryRealtimeTransport implements RealtimeTransport {
 }
 
 export const defaultRealtimeTransport: RealtimeTransport = new InMemoryRealtimeTransport();
+
+export function getRealtimeTransport(): RealtimeTransport {
+  if (process.env.CENTRIFUGO_API_KEY && process.env.CENTRIFUGO_API_URL) {
+    return new CentrifugoRealtimeTransport();
+  }
+  return defaultRealtimeTransport;
+}
