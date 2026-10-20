@@ -187,7 +187,7 @@ export const proxyAuthService = {
           },
         });
 
-        if (!room || room.status !== 'active') {
+        if (!room || room.status?.toLowerCase() !== 'active') {
           return { allowed: false, code: 103, message: 'Study room is not active' };
         }
 
@@ -216,7 +216,7 @@ export const proxyAuthService = {
           },
         });
 
-        if (!channelRecord || !channelRecord.studyRoom || channelRecord.studyRoom.status !== 'active') {
+        if (!channelRecord || !channelRecord.studyRoom || channelRecord.studyRoom.status?.toLowerCase() !== 'active') {
           return { allowed: false, code: 103, message: 'Study room chat is not active' };
         }
 

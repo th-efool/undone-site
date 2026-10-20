@@ -45,6 +45,8 @@ model User {
   reactions         MessageReaction[]
   sentConversationInvites ConversationInvitation[] @relation("ConversationInvitedBy")
   receivedConversationInvites ConversationInvitation[] @relation("ConversationInvitedTo")
+  roomLeases        RoomLease[]
+  studySessions     StudySession[]
 
   @@map("users")
 }
@@ -764,28 +766,75 @@ model StudyRoom {
   status      String
   onlineCount Int    @default(0)
 
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  participants RoomParticipant[]
-  channel      Channel?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  participants   RoomParticipant[]
+  channel        Channel?
   realtimeStream RealtimeStream?
+  leases         RoomLease[]
+  studySessions  StudySession[]
 
   @@map("study_rooms")
 }
 
 model RoomParticipant {
-  id          String @id @default(cuid())
-  userId      String @unique
+  id          String    @id @default(cuid())
+  userId      String    @unique
   studyRoomId String
+  generation  Int       @default(1)
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  room     StudyRoom @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
-  joinedAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room      StudyRoom @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+  joinedAt  DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@index([studyRoomId])
   @@index([userId])
   @@index([userId, studyRoomId])
   @@map("room_participants")
+}
+
+model RoomLease {
+  id          String    @id @default(cuid())
+  userId      String
+  studyRoomId String
+  generation  Int       @default(1)
+  tabId       String
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room StudyRoom @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tabId])
+  @@index([studyRoomId, expiresAt])
+  @@index([expiresAt])
+  @@map("room_leases")
+}
+
+model StudySession {
+  id                    String    @id @default(cuid())
+  userId                String
+  studyRoomId           String?
+  status                String    @default("ACTIVE")
+  targetDurationSeconds Int
+  elapsedSeconds        Int       @default(0)
+  startedAt             DateTime  @default(now())
+  resumedAt             DateTime?
+  pausedAt              DateTime?
+  deadline              DateTime?
+  endedAt               DateTime?
+  version               Int       @default(1)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room StudyRoom? @relation(fields: [studyRoomId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@map("study_sessions")
 }
 
 // ─────────────────────────────────────────────────────────────────

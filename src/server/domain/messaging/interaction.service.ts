@@ -94,6 +94,13 @@ export const interactionService = {
       if (!isParticipant) {
         throw new MessagingForbiddenError('Not an active participant in this conversation');
       }
+    } else if (channel.studyRoom) {
+      const participant = await prisma.roomParticipant.findUnique({
+        where: { userId },
+      });
+      if (!participant || participant.studyRoomId !== channel.studyRoom.id) {
+        throw new MessagingForbiddenError('Not an active participant in this study room');
+      }
     }
 
     return channel;
