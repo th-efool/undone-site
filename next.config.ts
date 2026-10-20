@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
     // Dedicated verification runs separately via npx tsc --noEmit and npm run verify:vercel
     ignoreBuildErrors: true,
   },
+  compress: true,
+  poweredByHeader: false,
   env: rootPublicEnvironment(),
   turbopack: {
     root: path.resolve('.'),
@@ -37,7 +39,17 @@ const nextConfig: NextConfig = {
       dynamic: 60,
       static: 300,
     },
-    optimizePackageImports: ['lucide-react', 'framer-motion', '@reduxjs/toolkit'],
+    optimizePackageImports: [
+      'lucide-react',
+      'framer-motion',
+      '@reduxjs/toolkit',
+      'lodash-es',
+      'remeda',
+      'cmdk',
+      '@tanstack/react-query',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-tooltip',
+    ],
   },
   images: {
     unoptimized: isMobileBuild,
