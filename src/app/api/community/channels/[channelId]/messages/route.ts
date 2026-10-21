@@ -136,6 +136,13 @@ export async function GET(
             },
           },
         },
+        studyRoom: {
+          select: {
+            id: true,
+            status: true,
+            cohortId: true,
+          },
+        },
       },
     });
 
@@ -175,6 +182,50 @@ export async function GET(
           { error: 'Not an active participant in this conversation' },
           { status: 403 }
         );
+      }
+    } else if (channel.studyRoom) {
+      if (!['active', 'open'].includes(channel.studyRoom.status?.toLowerCase())) {
+        return NextResponse.json({ error: 'Study room is not active' }, { status: 403 });
+      }
+
+      if (channel.studyRoom.cohortId && prisma.cohortMember?.findUnique) {
+        const membership = await prisma.cohortMember.findUnique({
+          where: {
+            cohortId_userId: {
+              cohortId: channel.studyRoom.cohortId,
+              userId: user.id,
+            },
+          },
+        });
+        if (!membership) {
+          return NextResponse.json(
+            { error: 'Cohort enrollment required to view messages' },
+            { status: 403 }
+          );
+        }
+      }
+
+      const activeLease = await prisma.roomLease.findFirst({
+        where: {
+          studyRoomId: channel.studyRoom.id,
+          userId: user.id,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (!activeLease) {
+        const participant = await prisma.roomParticipant.findFirst({
+          where: {
+            studyRoomId: channel.studyRoom.id,
+            userId: user.id,
+          },
+        });
+        if (!participant) {
+          return NextResponse.json(
+            { error: 'Not an active participant in this study room' },
+            { status: 403 }
+          );
+        }
       }
     } else {
       return NextResponse.json({ error: 'Channel not found' }, { status: 404 });

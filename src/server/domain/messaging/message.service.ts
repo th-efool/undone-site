@@ -1,4 +1,5 @@
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
+import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
 import { messagingRepo } from '@/src/server/infrastructure/db/postgres/repositories/messaging.repo';
 import { notificationService } from '../notifications/notification.service';
 import { sanitizeMessageContent } from './sanitizer';
@@ -9,8 +10,6 @@ import {
   MessagingNotFoundError,
   MessagingValidationError,
 } from './contracts';
-
-const MAX_MESSAGE_CONTENT_LENGTH = 4000;
 
 export const messageService = {
   async sendMessage(input: SendMessageInput): Promise<SendMessageResult> {
@@ -68,8 +67,52 @@ export const messageService = {
       }
     } else if (channel.studyRoom) {
       // Study Room Channel Authorization
-      if (channel.studyRoom.status !== 'active') {
+      if (!['active', 'open'].includes(channel.studyRoom.status?.toLowerCase())) {
         throw new MessagingForbiddenError('Study room is not active');
+      }
+
+      if (prisma.user?.findUnique) {
+        const authorUser = await prisma.user.findUnique({
+          where: { id: authorId },
+          select: { email: true, username: true },
+        });
+        if (isSharedGuestAccount(authorUser)) {
+          throw new MessagingForbiddenError('Guest accounts cannot send messages in study rooms');
+        }
+      }
+
+      if (channel.studyRoom.cohortId && prisma.cohortMember?.findUnique) {
+        const membership = await prisma.cohortMember.findUnique({
+          where: {
+            cohortId_userId: {
+              cohortId: channel.studyRoom.cohortId,
+              userId: authorId,
+            },
+          },
+        });
+        if (!membership) {
+          throw new MessagingForbiddenError('Cohort enrollment required to chat in this room');
+        }
+      }
+
+      const activeLease = await prisma.roomLease.findFirst({
+        where: {
+          studyRoomId: channel.studyRoom.id,
+          userId: authorId,
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (!activeLease) {
+        const participant = await prisma.roomParticipant.findFirst({
+          where: {
+            studyRoomId: channel.studyRoom.id,
+            userId: authorId,
+          },
+        });
+        if (!participant) {
+          throw new MessagingForbiddenError('Not an active participant in this study room');
+        }
       }
     } else {
       throw new MessagingForbiddenError('Channel does not have a valid parent context');
