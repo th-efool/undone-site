@@ -30,17 +30,23 @@ interface Props {
   hasAdjacentReplyBelow?: boolean;
   onReaction(messageId: string, emoji: string): void;
   onReply?(messageId: string, senderName: string, previewText: string, senderAvatar?: string): void;
+  onRetry?(messageId: string): void;
 }
 
-export function MessageBubble({ message, isAdjacentReply = false, hasAdjacentReplyBelow = false, onReaction, onReply }: Props) {
+export function MessageBubble({ message, isAdjacentReply = false, hasAdjacentReplyBelow = false, onReaction, onReply, onRetry }: Props) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [cardHovered, setCardHovered] = useState(false);
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
-    setPickerOpen(false);
     setContextMenu({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleCopy = () => {
+    if (message.body) {
+      navigator.clipboard.writeText(message.body);
+    }
   };
 
   const react = (emoji: string) => {
@@ -48,24 +54,25 @@ export function MessageBubble({ message, isAdjacentReply = false, hasAdjacentRep
     setPickerOpen(false);
   };
 
-  const handleCopy = () => {
-    if (message.body) navigator.clipboard?.writeText(message.body);
-  };
-
   useEffect(() => {
-    const closeAll = () => { setContextMenu(null); setPickerOpen(false); };
-    document.addEventListener('click', closeAll);
-    return () => document.removeEventListener('click', closeAll);
-  }, []);
+    if (!pickerOpen) return;
+    const handleGlobalClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(`.${styles.reactWrap}`)) {
+        setPickerOpen(false);
+      }
+    };
+    document.addEventListener('click', handleGlobalClick);
+    return () => document.removeEventListener('click', handleGlobalClick);
+  }, [pickerOpen]);
 
   return (
     <article
       id={`msg-${message.id}`}
-      className={`${styles.bubble} ${isAdjacentReply ? styles.adjacentReply : ''}`}
+      className={`${styles.message} ${isAdjacentReply ? styles.adjacentReply : ''}`}
       onContextMenu={handleContextMenu}
     >
-      {/* Avatar column with relative positioning for connector lines */}
-      <div className={styles.avatarColumn}>
+      <div className={styles.avatarWrap}>
         {isAdjacentReply && <AvatarConnector type="top" />}
         {message.replyTo && !isAdjacentReply && (
           <>
@@ -101,7 +108,23 @@ export function MessageBubble({ message, isAdjacentReply = false, hasAdjacentRep
             <span className={styles.statusSending} title="Sending..." aria-label="Sending">⏳</span>
           )}
           {message.status === 'failed' && (
-            <span className={styles.statusFailed} title="Failed to send" aria-label="Failed to send">⚠️ Failed</span>
+            <button
+              type="button"
+              className={styles.statusFailed}
+              title="Failed to send. Click to retry."
+              aria-label="Retry message"
+              onClick={onRetry ? () => onRetry(message.id) : undefined}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: onRetry ? 'pointer' : 'default',
+                padding: 0,
+                font: 'inherit',
+                color: 'inherit',
+              }}
+            >
+              ⚠️ Failed {onRetry ? '(retry)' : ''}
+            </button>
           )}
         </div>
 

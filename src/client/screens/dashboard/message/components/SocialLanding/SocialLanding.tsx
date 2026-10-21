@@ -76,6 +76,9 @@ export function SocialLanding({ message }: Props) {
           }
           isTyping={message.typingUsernames.length > 0}
           typingUsernames={message.typingUsernames}
+          onRetry={(messageId) =>
+            message.actions.retryCommunityMessage(message.communityChat.id, messageId)
+          }
         />
       )}
 
@@ -106,6 +109,15 @@ export function SocialLanding({ message }: Props) {
           }
           isTyping={message.typingUsernames.length > 0}
           typingUsernames={message.typingUsernames}
+          onRetry={(messageId) =>
+            message.actions.retryDMMessage(message.dmConversation.id, messageId)
+          }
+          onReaction={(messageId, emoji) =>
+            message.actions.toggleCommunityReaction(message.dmConversation.id, messageId, emoji)
+          }
+          onDeleteMessage={(messageId) =>
+            message.actions.deleteDMMessage(message.dmConversation.id, messageId)
+          }
         />
       )}
 

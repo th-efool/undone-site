@@ -14,9 +14,21 @@ interface Props {
   onReply?(messageId: string, senderName: string, previewText: string, senderAvatar?: string): void;
   /** Batch E3: Delete message */
   onDeleteMessage?(messageId: string): void;
+  /** Retry failed message */
+  onRetry?(messageId: string): void;
+  /** Quick reaction */
+  onReaction?(messageId: string, emoji: string): void;
 }
 
-export function MessageTimeline({ conversation, scrollTop, onScrollChange, onReply, onDeleteMessage }: Props) {
+export function MessageTimeline({
+  conversation,
+  scrollTop,
+  onScrollChange,
+  onReply,
+  onDeleteMessage,
+  onRetry,
+  onReaction,
+}: Props) {
   const viewportRef = useRef<HTMLElement>(null);
   const previousCountRef = useRef(0);
 
@@ -25,7 +37,7 @@ export function MessageTimeline({ conversation, scrollTop, onScrollChange, onRep
     const viewport = viewportRef.current;
     if (!viewport) return;
     viewport.scrollTop = scrollTop;
-  }, [conversation.id]);
+  }, [conversation.id, scrollTop]);
 
   // Auto-scroll to bottom when new messages arrive or sent
   useEffect(() => {
@@ -64,9 +76,14 @@ export function MessageTimeline({ conversation, scrollTop, onScrollChange, onRep
             nextMessage.replyTo.messageId === message.id
           );
 
+          const showDateDivider = Boolean(
+            message.dateLabel &&
+            (!previousMessage || previousMessage.dateLabel !== message.dateLabel)
+          );
+
           return (
             <div key={message.id}>
-              {message.dateLabel && <DateDivider label={message.dateLabel} />}
+              {showDateDivider && <DateDivider label={message.dateLabel!} />}
               <DMBubble
                 message={message}
                 user={conversation.user}
@@ -74,6 +91,8 @@ export function MessageTimeline({ conversation, scrollTop, onScrollChange, onRep
                 hasAdjacentReplyBelow={hasAdjacentReplyBelow}
                 onReply={onReply}
                 onDeleteMessage={onDeleteMessage}
+                onRetry={onRetry}
+                onReaction={onReaction}
               />
             </div>
           );
