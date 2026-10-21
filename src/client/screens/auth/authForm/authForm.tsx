@@ -29,6 +29,7 @@ const GENDER_OPTIONS = [
 export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
   const [activeTab, setActiveTab] = useState<'signup' | 'login'>('signup');
   const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const signingIn = useRef(false);
@@ -62,18 +63,19 @@ export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
 
   const handleCredentialsSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (signingIn.current || !identifier.trim()) return;
+    if (signingIn.current || !identifier.trim() || !password) return;
     signingIn.current = true;
     setPending(true);
     setError(null);
     try {
       const result = await signIn('credentials', {
         email: identifier.trim(),
+        password,
         redirect: false,
         redirectTo: safeReturnTo(returnTo),
       });
       if (!result?.ok || result.error) {
-        setError('Could not sign in with this email or username. Please check your credentials and try again.');
+        setError('Invalid email/username or password. Please check your credentials and try again.');
         setPending(false);
         signingIn.current = false;
         return;
@@ -94,7 +96,10 @@ export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
             type="button"
             className={`${styles.tabButton} ${isSignUp ? styles.active : ''}`}
             aria-pressed={isSignUp}
-            onClick={() => setActiveTab('signup')}
+            onClick={() => {
+              setActiveTab('signup');
+              setError(null);
+            }}
           >
             Sign Up
           </button>
@@ -102,7 +107,10 @@ export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
             type="button"
             className={`${styles.tabButton} ${!isSignUp ? styles.active : ''}`}
             aria-pressed={!isSignUp}
-            onClick={() => setActiveTab('login')}
+            onClick={() => {
+              setActiveTab('login');
+              setError(null);
+            }}
           >
             Log In
           </button>
@@ -179,10 +187,21 @@ export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
               onChange={(e) => setIdentifier(e.target.value)}
               disabled={pending}
             />
+            <AuthInput
+              label="Password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              disabled={pending}
+            />
           </div>
 
           <section className={styles.cta}>
-            <AuthButton disabled={pending || !identifier.trim()} loading={pending}>
+            <AuthButton
+              disabled={pending || !identifier.trim() || !password}
+              loading={pending}
+            >
               Log In
             </AuthButton>
             <AuthButton
@@ -209,7 +228,10 @@ export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
           <button
             type="button"
             className={styles.footerLink}
-            onClick={() => setActiveTab(isSignUp ? 'login' : 'signup')}
+            onClick={() => {
+              setActiveTab(isSignUp ? 'login' : 'signup');
+              setError(null);
+            }}
           >
             {isSignUp ? 'Log in instead →' : 'Create an account →'}
           </button>

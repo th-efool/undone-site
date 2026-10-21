@@ -3930,10 +3930,10 @@
     "semantic_hash": "49fcb1b8b0213de72165d026a695affb"
   },
   "src/client/screens/auth/__tests__/AuthForm.test.tsx": {
-    "mtime": 1792374620.5618153,
-    "seen": 1792556795.8303165,
-    "ast_hash": "caf4abea44025fb91cfeb32e6f83051a",
-    "semantic_hash": "caf4abea44025fb91cfeb32e6f83051a"
+    "mtime": 1792584635.4631667,
+    "seen": 1792585529.574282,
+    "ast_hash": "c29c93282cc46fe0aec7aa6d62c301d4",
+    "semantic_hash": ""
   },
   "src/client/screens/auth/authForm/authButton.tsx": {
     "mtime": 1792231932.2256365,
@@ -3948,9 +3948,9 @@
     "semantic_hash": "0062b2642bfa286eeca2557f030f351e"
   },
   "src/client/screens/auth/authForm/authForm.tsx": {
-    "mtime": 1792573394.8411906,
-    "seen": 1792581594.3587482,
-    "ast_hash": "097a9d2f798d3e5a88cfc1be046d4640",
+    "mtime": 1792584573.5798004,
+    "seen": 1792585529.5751708,
+    "ast_hash": "b3a94fa527cd7514366eca077194bd67",
     "semantic_hash": ""
   },
   "src/client/screens/auth/authForm/authInput.tsx": {
@@ -10014,9 +10014,9 @@
     "semantic_hash": "f8cf3dd03215ef45a51c29125441a05c"
   },
   "src/server/infrastructure/auth/auth.config.ts": {
-    "mtime": 1792573182.426462,
-    "seen": 1792581594.7149045,
-    "ast_hash": "93cc4f9eb23f2d2565bc2bb27bcc7ce1",
+    "mtime": 1792585036.213512,
+    "seen": 1792585530.0487626,
+    "ast_hash": "181c9730b82bb5abadf1e30221a33968",
     "semantic_hash": ""
   },
   "src/server/infrastructure/auth/auth.edge.ts": {
@@ -10320,9 +10320,9 @@
     "semantic_hash": "c770c8075094f018e24614519987b4ab"
   },
   "src/server/infrastructure/db/postgres/repositories/user.repo.ts": {
-    "mtime": 1792571275.904378,
-    "seen": 1792572201.2261112,
-    "ast_hash": "13d59bea05e2caa870ded3a8a160ab4e",
+    "mtime": 1792584486.9457338,
+    "seen": 1792585530.066963,
+    "ast_hash": "49e4c43b7bfbe9d69da292194ad79b49",
     "semantic_hash": ""
   },
   "src/server/infrastructure/db/postgres/text-job-runtime.ts": {
@@ -15135,6 +15135,42 @@
     "mtime": 1792575974.277368,
     "seen": 1792581594.2142987,
     "ast_hash": "7f58d2cfe84f3f142f3bffcd1c82f83c",
+    "semantic_hash": ""
+  },
+  "scripts/purge-and-seed-db.ts": {
+    "mtime": 1792584859.0743783,
+    "seen": 1792585529.239818,
+    "ast_hash": "cdaf2d8f5c225a66fa60e87ed9c12ace",
+    "semantic_hash": ""
+  },
+  "src/app/api/auth/register/__tests__/register-route.test.ts": {
+    "mtime": 1792584499.8172464,
+    "seen": 1792585529.308316,
+    "ast_hash": "5022779584ad4af3a2dea651d03c933e",
+    "semantic_hash": ""
+  },
+  "src/app/api/auth/register/route.ts": {
+    "mtime": 1792584493.3181646,
+    "seen": 1792585529.3083193,
+    "ast_hash": "3a54a283b3376c54a5b8fb39e8387766",
+    "semantic_hash": ""
+  },
+  "src/server/infrastructure/auth/__tests__/credentials-provider.test.ts": {
+    "mtime": 1792584700.989829,
+    "seen": 1792585530.0481582,
+    "ast_hash": "d5bfc0e2ec35519ba509ccbad9079c89",
+    "semantic_hash": ""
+  },
+  "src/server/infrastructure/auth/__tests__/password.test.ts": {
+    "mtime": 1792584427.3591452,
+    "seen": 1792585530.0484328,
+    "ast_hash": "f9db8c90858a6d22065d7bbb3c9b7c45",
+    "semantic_hash": ""
+  },
+  "src/server/infrastructure/auth/password.ts": {
+    "mtime": 1792584445.025118,
+    "seen": 1792585530.0522897,
+    "ast_hash": "d94d68247dd24b12a3cca6675f9d9bd7",
     "semantic_hash": ""
   }
 }

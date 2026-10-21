@@ -34,6 +34,7 @@ export const userRepo = {
     username?: string;
     name?: string;
     image?: string;
+    passwordHash?: string;
   }): Promise<User> {
     return prisma.user.create({ data });
   },
