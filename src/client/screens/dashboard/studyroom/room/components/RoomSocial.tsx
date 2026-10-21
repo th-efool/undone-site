@@ -87,7 +87,7 @@ export default function RoomSocial({
       {showPeople && (
         <section className={styles.peopleCard} aria-label="People in room">
           <header className={styles.cardHeader}>
-            <span className={styles.cardTitle}>People · {participants.length || 3}</span>
+            <span className={styles.cardTitle}>People · {participants.length}</span>
             <button
               type="button"
               className={styles.moreBtn}
