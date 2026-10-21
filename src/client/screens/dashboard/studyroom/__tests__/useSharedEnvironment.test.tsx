@@ -2,7 +2,21 @@
 import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { useSharedEnvironment } from '../hooks/useSharedEnvironment';
+import { studyRoomRepository } from '@/src/client/repositories/studyRoomRepository';
 import type { SharedRoomEnvironment } from '../types';
+
+vi.mock('@/src/client/realtime', () => ({
+  useRealtime: vi.fn(() => ({
+    subscribe: vi.fn(),
+  })),
+}));
+
+vi.mock('@/src/client/repositories/studyRoomRepository', () => ({
+  studyRoomRepository: {
+    getRoomEnvironment: vi.fn(),
+    updateRoomEnvironment: vi.fn(),
+  },
+}));
 
 const mockInitialEnvironment: SharedRoomEnvironment = {
   backgroundId: 'library',
@@ -183,5 +197,43 @@ describe('useSharedEnvironment hook', () => {
       result.current.actions.setAmbienceVolume(NaN);
     });
     expect(result.current.environment.ambience.volume).toBe(0);
+  });
+
+  it('reloads authoritative environment upon 409 revision conflict', async () => {
+    const error409 = Object.assign(new Error('Environment revision conflict'), { status: 409 });
+    vi.mocked(studyRoomRepository.updateRoomEnvironment).mockRejectedValueOnce(error409);
+    vi.mocked(studyRoomRepository.getRoomEnvironment).mockResolvedValueOnce({
+      studyRoomId: 'room-1',
+      sceneId: 'rainy-window',
+      soundscapeId: 'rain',
+      musicPresetId: null,
+      musicStreamUrl: null,
+      revision: 5,
+      updatedByUserId: 'other-controller',
+      updatedAt: '2026-10-21T10:00:00.000Z',
+    });
+
+    const { result } = renderHook(() =>
+      useSharedEnvironment(mockInitialEnvironment, 'host-1', {
+        roomSlug: 'fireplace',
+        canControlEnvironment: true,
+      })
+    );
+
+    await act(async () => {
+      result.current.actions.setBackground('cozy-fireplace');
+      // allow microtasks to flush
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(studyRoomRepository.updateRoomEnvironment).toHaveBeenCalledWith(
+      'fireplace',
+      expect.objectContaining({ sceneId: 'cozy-fireplace' })
+    );
+
+    expect(studyRoomRepository.getRoomEnvironment).toHaveBeenCalledWith('fireplace');
+    expect(result.current.environment.backgroundId).toBe('rainy-window');
+    expect(result.current.revision).toBe(5);
   });
 });
