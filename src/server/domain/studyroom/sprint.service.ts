@@ -47,38 +47,54 @@ export const sprintService = {
       },
     });
 
-    if (controller && ['OWNER', 'MODERATOR'].includes(controller.role)) {
+    if (controller && ['OWNER', 'MODERATOR', 'HOST'].includes(controller.role)) {
       return true;
     }
 
-    // 2. Check if user is creator of any linked cohort/community
-    const channel = await prisma.channel.findFirst({
-      where: { studyRoomId: roomId },
-      include: {
-        community: {
-          include: {
-            cohort: { select: { creatorId: true } },
+    // 2. Direct room owner check
+    const room = await prisma.studyRoom.findUnique({
+      where: { id: roomId },
+      select: { ownerId: true, cohortId: true },
+    });
+
+    if (room?.ownerId && room.ownerId === userId) {
+      return true;
+    }
+
+    // 3. Cohort governance check
+    if (room?.cohortId) {
+      const cohort = await prisma.cohort.findUnique({
+        where: { id: room.cohortId },
+        select: { creatorId: true },
+      });
+      if (cohort?.creatorId === userId) {
+        return true;
+      }
+      const membership = await prisma.cohortMember.findUnique({
+        where: { cohortId_userId: { cohortId: room.cohortId, userId } },
+        select: { role: true },
+      });
+      if (membership && (membership.role === 'CREATOR' || membership.role === 'MODERATOR')) {
+        return true;
+      }
+    } else {
+      const channel = await prisma.channel.findFirst({
+        where: { studyRoomId: roomId },
+        include: {
+          community: {
+            include: {
+              cohort: { select: { creatorId: true } },
+            },
           },
         },
-      },
-    });
-
-    if (channel?.community?.cohort?.creatorId === userId) {
-      return true;
-    }
-
-    // 3. Fallback: if room has zero controllers designated, the first participant or any active participant can initiate
-    const controllerCount = await prisma.roomController.count({
-      where: { studyRoomId: roomId },
-    });
-
-    if (controllerCount === 0) {
-      const isParticipant = await prisma.roomParticipant.findFirst({
-        where: { studyRoomId: roomId, userId },
       });
-      return Boolean(isParticipant);
+
+      if (channel?.community?.cohort?.creatorId === userId) {
+        return true;
+      }
     }
 
+    // Insecure fallback to any participant when 0 controllers exist is explicitly REMOVED.
     return false;
   },
 

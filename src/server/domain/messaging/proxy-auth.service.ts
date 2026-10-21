@@ -187,17 +187,20 @@ export const proxyAuthService = {
           },
         });
 
-        if (!room || room.status?.toLowerCase() !== 'active') {
+        if (!room || !['active', 'open'].includes(room.status?.toLowerCase())) {
           return { allowed: false, code: 103, message: 'Study room is not active' };
         }
 
-        const participant = await prisma.roomParticipant.findUnique({
-          where: { userId },
-          select: { studyRoomId: true },
+        const activeLease = await prisma.roomLease.findFirst({
+          where: {
+            studyRoomId: parsed.entityId,
+            userId,
+            expiresAt: { gt: new Date() },
+          },
         });
 
-        if (!participant || participant.studyRoomId !== parsed.entityId) {
-          return { allowed: false, code: 103, message: 'User is not in this study room' };
+        if (!activeLease) {
+          return { allowed: false, code: 103, message: 'User does not have an active room lease' };
         }
 
         return { allowed: true, expireAt };
@@ -216,17 +219,22 @@ export const proxyAuthService = {
           },
         });
 
-        if (!channelRecord || !channelRecord.studyRoom || channelRecord.studyRoom.status?.toLowerCase() !== 'active') {
+        if (!channelRecord || !channelRecord.studyRoom || !['active', 'open'].includes(channelRecord.studyRoom.status?.toLowerCase())) {
           return { allowed: false, code: 103, message: 'Study room chat is not active' };
         }
 
-        const participant = await prisma.roomParticipant.findUnique({
-          where: { userId },
-          select: { studyRoomId: true },
-        });
+        if (channelRecord.studyRoomId) {
+          const activeLease = await prisma.roomLease.findFirst({
+            where: {
+              studyRoomId: channelRecord.studyRoomId,
+              userId,
+              expiresAt: { gt: new Date() },
+            },
+          });
 
-        if (!participant || participant.studyRoomId !== channelRecord.studyRoomId) {
-          return { allowed: false, code: 103, message: 'User is not in this study room' };
+          if (!activeLease) {
+            return { allowed: false, code: 103, message: 'User does not have an active room lease' };
+          }
         }
 
         return { allowed: true, expireAt };
