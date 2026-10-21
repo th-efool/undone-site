@@ -3930,9 +3930,9 @@
     "semantic_hash": "49fcb1b8b0213de72165d026a695affb"
   },
   "src/client/screens/auth/__tests__/AuthForm.test.tsx": {
-    "mtime": 1792584635.4631667,
-    "seen": 1792585529.574282,
-    "ast_hash": "c29c93282cc46fe0aec7aa6d62c301d4",
+    "mtime": 1792590003.7258909,
+    "seen": 1792590360.458868,
+    "ast_hash": "1125345b533babaa7e389c6f3ae9d0e8",
     "semantic_hash": ""
   },
   "src/client/screens/auth/authForm/authButton.tsx": {
@@ -3948,15 +3948,15 @@
     "semantic_hash": "0062b2642bfa286eeca2557f030f351e"
   },
   "src/client/screens/auth/authForm/authForm.tsx": {
-    "mtime": 1792584573.5798004,
-    "seen": 1792585529.5751708,
-    "ast_hash": "b3a94fa527cd7514366eca077194bd67",
+    "mtime": 1792589990.78533,
+    "seen": 1792590360.4591894,
+    "ast_hash": "7e64d37778e0bd9cdc62af99257c5d00",
     "semantic_hash": ""
   },
   "src/client/screens/auth/authForm/authInput.tsx": {
-    "mtime": 1792573196.532186,
-    "seen": 1792581594.3587513,
-    "ast_hash": "b08405bf2be6c885b3d276360081defc",
+    "mtime": 1792590037.2988346,
+    "seen": 1792590360.4591913,
+    "ast_hash": "fded5804e6eb9ddbe65c72e83c8b2a15",
     "semantic_hash": ""
   },
   "src/client/screens/auth/authForm/authLegal.tsx": {
