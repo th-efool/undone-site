@@ -1,5 +1,21 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
+
+vi.mock('server-only', () => ({}));
+
+vi.mock('@/src/server/domain/messaging/rate-limiter.service', () => ({
+  rateLimiterService: {
+    checkRoomControlRateLimit: vi.fn().mockResolvedValue({
+      allowed: true,
+      limit: 30,
+      remaining: 29,
+      resetSeconds: 60,
+    }),
+    createHeaders: vi.fn(() => ({})),
+  },
+}));
+
 import { GET as getSprint, POST as startSprint } from '../[roomSlug]/sprint/route';
 import { POST as pauseSprint } from '../[roomSlug]/sprint/pause/route';
 import { POST as resumeSprint } from '../[roomSlug]/sprint/resume/route';

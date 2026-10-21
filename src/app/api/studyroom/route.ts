@@ -7,6 +7,9 @@ import { roomDiscoveryService } from '@/src/server/domain/studyroom/room-discove
 import { studyRoomService } from '@/src/server/domain/studyroom/studyroom.service';
 import { type DiscoveryTab, StudyRoomError } from '@/src/shared/studyroom/contracts';
 import { studyRoomCache } from './cache';
+import { rateLimiterService } from '@/src/server/domain/messaging/rate-limiter.service';
+import { studyRoomMetricsService } from '@/src/server/domain/studyroom/studyroom-metrics.service';
+import { validateMutationOrigin, parseJsonWithLimit, validateBoundedString } from './security';
 
 export async function GET(req: Request): Promise<Response>;
 export async function GET(): Promise<Response>;
@@ -96,15 +99,9 @@ export async function GET(req?: Request): Promise<Response> {
       },
       include: {
         participants: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                image: true,
-                username: true,
-              },
-            },
+          select: {
+            id: true,
+            userId: true,
           },
         },
       },
@@ -145,12 +142,25 @@ export async function GET(req?: Request): Promise<Response> {
 
 export async function POST(req: Request) {
   try {
+    const originCheck = validateMutationOrigin(req);
+    if (!originCheck.valid) {
+      return originCheck.errorResponse!;
+    }
+
+    const bodyParsed = await parseJsonWithLimit<Record<string, unknown>>(req);
+    if (bodyParsed.errorResponse) {
+      return bodyParsed.errorResponse;
+    }
+    const body = bodyParsed.data ?? {};
+
     const user = await getUser();
     if (!user || !user.id) {
+      studyRoomMetricsService.recordAuthorizationFailure('unauthorized');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if (isSharedGuestAccount(user)) {
+      studyRoomMetricsService.recordAuthorizationFailure('guest_restricted');
       return NextResponse.json(
         { error: 'Guest accounts cannot join or manage study rooms', code: 'GUEST_RESTRICTED' },
         { status: 403 }
@@ -158,7 +168,6 @@ export async function POST(req: Request) {
     }
 
     const userId = user.id;
-    const body = await req.json().catch(() => ({}));
     const { action, roomId } = body ?? {};
 
     const cleanAction = typeof action === 'string' ? action.trim().toLowerCase() : '';
@@ -169,14 +178,37 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Room ID is required' }, { status: 400 });
       }
 
+      const roomCheck = validateBoundedString(cleanRoomId, 'roomId', 128);
+      if (!roomCheck.valid) return roomCheck.errorResponse!;
+
+      const tabCheck = validateBoundedString(body.tabId, 'tabId', 128, false);
+      if (!tabCheck.valid) return tabCheck.errorResponse!;
+
+      const reqCheck = validateBoundedString(body.requestId, 'requestId', 128, false);
+      if (!reqCheck.valid) return reqCheck.errorResponse!;
+
+      const goalCheck = validateBoundedString(body.publicGoal, 'publicGoal', 280, false);
+      if (!goalCheck.valid) return goalCheck.errorResponse!;
+
+      const rateLimit = await rateLimiterService.checkRoomJoinRateLimit(userId);
+      if (!rateLimit.allowed) {
+        studyRoomMetricsService.recordRenewalFailure('rate_limited');
+        return NextResponse.json(
+          { error: 'Too many join attempts. Please wait.', code: 'RATE_LIMIT_EXCEEDED' },
+          { status: 429, headers: rateLimiterService.createHeaders(rateLimit) }
+        );
+      }
+
       try {
+        const startJoin = Date.now();
         const joinResult = await studyRoomService.joinRoom({
           userId,
           roomId: cleanRoomId,
-          tabId: body.tabId,
-          requestId: body.requestId,
-          publicGoal: body.publicGoal,
+          tabId: body.tabId as string | undefined,
+          requestId: body.requestId as string | undefined,
+          publicGoal: body.publicGoal as string | undefined,
         });
+        studyRoomMetricsService.recordJoinLatency(Date.now() - startJoin);
 
         studyRoomCache.cachedRooms = null;
         studyRoomCache.cachedRoomsExpiresAt = 0;
@@ -198,13 +230,24 @@ export async function POST(req: Request) {
         );
       }
 
+      const goalCheck = validateBoundedString(publicGoal, 'publicGoal', 280, false);
+      if (!goalCheck.valid) return goalCheck.errorResponse!;
+
+      const rateLimit = await rateLimiterService.checkRoomGoalRateLimit(userId, cleanRoomId);
+      if (!rateLimit.allowed) {
+        return NextResponse.json(
+          { error: 'Too many goal update attempts. Please wait.', code: 'RATE_LIMIT_EXCEEDED' },
+          { status: 429, headers: rateLimiterService.createHeaders(rateLimit) }
+        );
+      }
+
       try {
         const goalResult = await studyRoomService.updateParticipantGoal({
           userId,
           roomId: cleanRoomId,
-          tabId,
+          tabId: String(tabId),
           generation,
-          publicGoal,
+          publicGoal: publicGoal as string | null | undefined,
         });
         return NextResponse.json(goalResult);
       } catch (err: unknown) {
@@ -219,14 +262,24 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'tabId, roomId, and generation are required for renewal' }, { status: 400 });
       }
 
+      const rateLimit = await rateLimiterService.checkRoomRenewRateLimit(userId, String(tabId));
+      if (!rateLimit.allowed) {
+        studyRoomMetricsService.recordRenewalFailure('rate_limited');
+        return NextResponse.json(
+          { error: 'Too many renewal attempts. Please wait.', code: 'RATE_LIMIT_EXCEEDED' },
+          { status: 429, headers: rateLimiterService.createHeaders(rateLimit) }
+        );
+      }
+
       const renewResult = await studyRoomService.renewLease({
         userId,
         roomId: cleanRoomId,
-        tabId,
+        tabId: String(tabId),
         generation,
       });
 
       if (!renewResult.success) {
+        studyRoomMetricsService.recordRenewalFailure('stale_generation');
         return NextResponse.json(renewResult, { status: 409 });
       }
 
@@ -236,7 +289,7 @@ export async function POST(req: Request) {
         const leaveResult = await studyRoomService.leaveRoom({
           userId,
           roomId: cleanRoomId || undefined,
-          tabId: body.tabId,
+          tabId: body.tabId as string | undefined,
           generation: typeof body.generation === 'number' ? body.generation : undefined,
           global: body.global === true || !body.tabId,
         });

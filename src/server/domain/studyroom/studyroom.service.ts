@@ -8,6 +8,7 @@ import {
   RoomForbiddenError,
   RoomQuotaExceededError,
 } from '@/src/shared/studyroom/contracts';
+import { studyRoomMetricsService } from './studyroom-metrics.service';
 
 interface RoomFinderModel {
   findUnique: (args: { where: { id: string } }) => Promise<RoomEntity | null>;
@@ -1105,11 +1106,14 @@ export const studyRoomService = {
         }
       }
 
+      const durationMs = Date.now() - startTime;
+      studyRoomMetricsService.recordReconciliation(deleteResult.count, durationMs);
+
       return {
         evictedLeasesCount: deleteResult.count,
         evictedParticipantsCount: ghostParticipants.length,
         updatedRoomsCount,
-        durationMs: Date.now() - startTime,
+        durationMs,
       };
     });
   },
