@@ -8,6 +8,7 @@ import {
   Info,
   LogOut,
   Users,
+  Settings,
 } from 'lucide-react';
 import type {
   RoomDefinition,
@@ -28,6 +29,7 @@ export interface RoomTopBarProps {
   soundChip?: React.ReactNode;
   customizeOpen?: boolean;
   onToggleCustomize?: () => void;
+  onOpenSettings?: () => void;
 }
 
 export function RoomTopBar({
@@ -39,6 +41,7 @@ export function RoomTopBar({
   onLeave,
   customizeOpen,
   onToggleCustomize,
+  onOpenSettings,
 }: RoomTopBarProps) {
   const isAdmin = viewer.role === 'admin';
   const previewParticipants = participants.slice(0, 3);
@@ -146,6 +149,20 @@ export function RoomTopBar({
             </>
           )}
         </button>
+
+        {/* Settings / Governance Button */}
+        {Boolean(onOpenSettings) && (viewer.capabilities?.canEditRoom ?? (isAdmin || viewer.roomRole === 'OWNER')) && (
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            aria-label="Manage room settings and governance"
+            title="Manage room"
+            className={styles.toolBtn}
+          >
+            <Settings size={16} aria-hidden="true" />
+            <span className={styles.btnLabel}>Settings</span>
+          </button>
+        )}
 
         {/* Leave Button */}
         <button

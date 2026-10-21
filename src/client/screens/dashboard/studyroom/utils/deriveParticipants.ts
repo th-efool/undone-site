@@ -6,6 +6,13 @@ import type {
   Viewer,
   ViewerRole,
 } from '../types';
+import type { RoomRosterMemberDTO, RoomRole, RoomCapabilities } from '@/src/shared/studyroom/contracts';
+
+export type RosterItem = MockPeer | RoomRosterMemberDTO;
+
+function isRosterMemberDTO(item: RosterItem): item is RoomRosterMemberDTO {
+  return 'joinedAt' in item && typeof item.joinedAt === 'string';
+}
 
 export interface DeriveViewerParams {
   session?: {
@@ -17,12 +24,16 @@ export interface DeriveViewerParams {
   } | null;
   room: RoomDefinition;
   viewAsOverride?: ViewerRole;
+  roomRole?: RoomRole;
+  capabilities?: RoomCapabilities;
 }
 
 export function deriveViewer({
   session,
   room,
   viewAsOverride,
+  roomRole,
+  capabilities,
 }: DeriveViewerParams): Viewer {
   const userId = session?.user?.id || 'demo-viewer';
   const displayName = session?.user?.name || 'You';
@@ -32,6 +43,9 @@ export function deriveViewer({
   if (viewAsOverride === 'admin' || viewAsOverride === 'member') {
     role = viewAsOverride;
   } else if (
+    roomRole === 'OWNER' ||
+    roomRole === 'HOST' ||
+    roomRole === 'MODERATOR' ||
     room.adminUserId === 'viewer' ||
     (session?.user?.id && room.adminUserId === session.user.id)
   ) {
@@ -45,11 +59,13 @@ export function deriveViewer({
     displayName,
     avatarUrl,
     role,
+    roomRole: roomRole || (role === 'admin' ? 'OWNER' : 'PARTICIPANT'),
+    capabilities,
   };
 }
 
 export interface DeriveParticipantsParams {
-  roster: readonly MockPeer[];
+  roster: readonly RosterItem[];
   viewer: Viewer;
   goal: SessionGoal;
   adminUserId: string;
@@ -84,19 +100,44 @@ export function deriveParticipants({
     publicGoal: viewerPublicGoal,
     isCurrentUser: true,
     isAdmin: viewer.role === 'admin',
+    role: viewer.roomRole || (viewer.role === 'admin' ? 'OWNER' : 'PARTICIPANT'),
   };
 
-  const peerViews: RoomParticipantView[] = roster.map((peer) => {
-    return {
-      userId: peer.userId,
-      displayName: peer.displayName,
-      avatarUrl: peer.avatarUrl,
-      joinedAt: mountedAt - peer.joinedMinutesAgo * 60_000,
-      publicGoal: peer.publicGoal,
-      isCurrentUser: false,
-      isAdmin: viewer.role === 'admin' ? false : peer.userId === adminUserId,
-    };
-  });
+  const peerViews: RoomParticipantView[] = [];
+  const safeRoster = Array.isArray(roster) ? roster : [];
+
+  for (const peer of safeRoster) {
+    if (peer.userId === viewer.userId) continue;
+
+    if (isRosterMemberDTO(peer)) {
+      const peerRole = peer.role;
+      peerViews.push({
+        userId: peer.userId,
+        displayName: peer.name || peer.username || 'Peer',
+        avatarUrl: peer.image || null,
+        joinedAt: new Date(peer.joinedAt).getTime(),
+        publicGoal: peer.publicGoal,
+        isCurrentUser: false,
+        isAdmin:
+          viewer.role === 'admin'
+            ? false
+            : peerRole === 'OWNER' || peerRole === 'HOST' || peer.userId === adminUserId,
+        role: peerRole,
+      });
+    } else {
+      const peerRole = peer.role || (peer.userId === adminUserId ? 'OWNER' : 'PARTICIPANT');
+      peerViews.push({
+        userId: peer.userId,
+        displayName: peer.displayName,
+        avatarUrl: peer.avatarUrl,
+        joinedAt: mountedAt - peer.joinedMinutesAgo * 60_000,
+        publicGoal: peer.publicGoal,
+        isCurrentUser: false,
+        isAdmin: viewer.role === 'admin' ? false : peerRole === 'OWNER' || peer.userId === adminUserId,
+        role: peerRole,
+      });
+    }
+  }
 
   return [currentUserView, ...peerViews];
 }
