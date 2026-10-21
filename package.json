@@ -50,7 +50,9 @@
     "mobile:release:aab": "npm --prefix packages/mobile run release:aab",
     "git:sync": "node scripts/sync-planning.mjs",
     "git:push": "node scripts/sync-planning.mjs --push",
-    "domshift": "npx @agrimsinghx/domshift 3000"
+    "domshift": "npx @agrimsinghx/domshift 3000",
+    "gamma:agent": "node --import tsx --import ./scripts/register-root-environment.mjs scripts/gamma-agent.ts",
+    "gamma:agent:watch": "node --import tsx --import ./scripts/register-root-environment.mjs scripts/gamma-agent.ts --watch"
   },
   "dependencies": {
     "@ai-sdk/google": "4.0.92",
