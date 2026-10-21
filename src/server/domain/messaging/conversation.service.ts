@@ -769,6 +769,8 @@ export const conversationService = {
   ): Promise<PersonSearchResult[]> {
     const trimmed = query.trim();
     if (!trimmed) return [];
+    const cleanHandle = trimmed.replace(/^@+/, '');
+    if (!cleanHandle) return [];
 
     const take = Math.min(50, Math.max(1, limit));
 
@@ -790,8 +792,8 @@ export const conversationService = {
       where: {
         id: { notIn: Array.from(excludedIds) },
         OR: [
-          { name: { contains: trimmed, mode: 'insensitive' } },
-          { username: { contains: trimmed, mode: 'insensitive' } },
+          { name: { contains: cleanHandle, mode: 'insensitive' } },
+          { username: { contains: cleanHandle, mode: 'insensitive' } },
         ],
       },
       take,
@@ -801,6 +803,20 @@ export const conversationService = {
         image: true,
         username: true,
       },
+    });
+
+    // Rank exact username match and prefix matches at the top
+    const lowerQuery = cleanHandle.toLowerCase();
+    users.sort((a, b) => {
+      const aExact = a.username?.toLowerCase() === lowerQuery;
+      const bExact = b.username?.toLowerCase() === lowerQuery;
+      if (aExact && !bExact) return -1;
+      if (!aExact && bExact) return 1;
+      const aStarts = a.username?.toLowerCase().startsWith(lowerQuery);
+      const bStarts = b.username?.toLowerCase().startsWith(lowerQuery);
+      if (aStarts && !bStarts) return -1;
+      if (!aStarts && bStarts) return 1;
+      return 0;
     });
 
     return users;

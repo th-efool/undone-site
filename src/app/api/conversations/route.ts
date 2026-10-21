@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/src/server/infrastructure/auth/getUser';
 import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
 import { conversationService } from '@/src/server/domain/messaging/conversation.service';
+import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,17 +45,40 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { kind, recipientId, title, participantIds } = body || {};
+    const { kind, recipientId, recipientUsername, title, participantIds } = body || {};
 
     if (kind === 'DIRECT') {
-      if (!recipientId || typeof recipientId !== 'string') {
+      let targetRecipientId = typeof recipientId === 'string' ? recipientId.trim() : '';
+
+      if (!targetRecipientId && typeof recipientUsername === 'string' && recipientUsername.trim()) {
+        const cleanHandle = recipientUsername.trim().replace(/^@+/, '');
+        const recipientUser = await prisma.user.findFirst({
+          where: {
+            username: {
+              equals: cleanHandle,
+              mode: 'insensitive',
+            },
+          },
+          select: { id: true },
+        });
+
+        if (!recipientUser) {
+          return NextResponse.json(
+            { error: `User with username '@${cleanHandle}' not found` },
+            { status: 404 }
+          );
+        }
+        targetRecipientId = recipientUser.id;
+      }
+
+      if (!targetRecipientId) {
         return NextResponse.json(
-          { error: 'recipientId is required for direct conversations' },
+          { error: 'recipientId or recipientUsername is required for direct conversations' },
           { status: 400 }
         );
       }
 
-      const result = await conversationService.createDirectConversation(user.id, recipientId);
+      const result = await conversationService.createDirectConversation(user.id, targetRecipientId);
       return NextResponse.json(result, {
         status: result.isExisting ? 200 : 201,
         headers: { 'Cache-Control': 'private, no-store' },

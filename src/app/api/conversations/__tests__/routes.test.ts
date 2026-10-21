@@ -9,7 +9,17 @@ import { getUser } from '@/src/server/infrastructure/auth/getUser';
 import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
 import { conversationService } from '@/src/server/domain/messaging/conversation.service';
 
+import { prisma } from '@/src/server/infrastructure/db/postgres/client';
+
 vi.mock('server-only', () => ({}));
+
+vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({
+  prisma: {
+    user: {
+      findFirst: vi.fn(),
+    },
+  },
+}));
 
 vi.mock('@/src/server/infrastructure/auth/getUser', () => ({
   getUser: vi.fn(),
@@ -115,6 +125,54 @@ describe('Phase 6 Conversations & People API Routes', () => {
       expect(res.status).toBe(201);
       const data = await res.json();
       expect(data.conversationId).toBe('conv-1');
+    });
+
+    it('creates direct conversation resolving recipientUsername', async () => {
+      vi.mocked(getUser).mockResolvedValueOnce({ id: 'user-1' } as any);
+      vi.mocked(isSharedGuestAccount).mockReturnValueOnce(false);
+      vi.mocked(prisma.user.findFirst).mockResolvedValueOnce({ id: 'user-2' } as any);
+      vi.mocked(conversationService.createDirectConversation).mockResolvedValueOnce({
+        conversationId: 'conv-1',
+        channelId: 'chan-1',
+        kind: 'DIRECT',
+        directKey: 'user-1:user-2',
+        recipient: { id: 'user-2', name: 'Bob', image: null, username: 'bob' },
+        isExisting: false,
+      });
+
+      const req = new NextRequest('http://localhost/api/conversations', {
+        method: 'POST',
+        body: JSON.stringify({ kind: 'DIRECT', recipientUsername: '@bob' }),
+      });
+
+      const res = await postConversations(req);
+      expect(res.status).toBe(201);
+      expect(prisma.user.findFirst).toHaveBeenCalledWith({
+        where: {
+          username: {
+            equals: 'bob',
+            mode: 'insensitive',
+          },
+        },
+        select: { id: true },
+      });
+      expect(conversationService.createDirectConversation).toHaveBeenCalledWith('user-1', 'user-2');
+    });
+
+    it('returns 404 when recipientUsername is not found', async () => {
+      vi.mocked(getUser).mockResolvedValueOnce({ id: 'user-1' } as any);
+      vi.mocked(isSharedGuestAccount).mockReturnValueOnce(false);
+      vi.mocked(prisma.user.findFirst).mockResolvedValueOnce(null);
+
+      const req = new NextRequest('http://localhost/api/conversations', {
+        method: 'POST',
+        body: JSON.stringify({ kind: 'DIRECT', recipientUsername: '@nonexistent' }),
+      });
+
+      const res = await postConversations(req);
+      expect(res.status).toBe(404);
+      const data = await res.json();
+      expect(data.error).toMatch(/not found/);
     });
 
     it('creates group conversation and returns 201', async () => {

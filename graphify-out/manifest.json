@@ -2502,10 +2502,10 @@
     "semantic_hash": "383cb25515b065d0ea5d11e5ae78f6ce"
   },
   "src/app/api/conversations/__tests__/routes.test.ts": {
-    "mtime": 1792533879.392003,
-    "seen": 1792556795.8299594,
-    "ast_hash": "6542e1c33abcffac5be8acbf13557a15",
-    "semantic_hash": "6542e1c33abcffac5be8acbf13557a15"
+    "mtime": 1792571722.4262903,
+    "seen": 1792572200.7835948,
+    "ast_hash": "b39cae4450cf64324e9a264525a27b73",
+    "semantic_hash": ""
   },
   "src/app/api/conversations/invitations/[id]/accept/route.ts": {
     "mtime": 1792538169.2957282,
@@ -2532,10 +2532,10 @@
     "semantic_hash": "bcfbb3fac72d28784316445701fb5d94"
   },
   "src/app/api/conversations/route.ts": {
-    "mtime": 1792531511.9288414,
-    "seen": 1792556795.8299665,
-    "ast_hash": "0e8369a0d28df82e10ed39a7af3f2e16",
-    "semantic_hash": "0e8369a0d28df82e10ed39a7af3f2e16"
+    "mtime": 1792571331.397456,
+    "seen": 1792572200.785211,
+    "ast_hash": "74180ec4a5a3f16af29c18fceb74694f",
+    "semantic_hash": ""
   },
   "src/app/api/corsair/[[...path]]/route.ts": {
     "mtime": 1792231928.9865184,
@@ -3888,10 +3888,10 @@
     "semantic_hash": "a169931551565580220b4b365eaf39f5"
   },
   "src/client/repositories/messagesRepository.ts": {
-    "mtime": 1792534358.2272353,
-    "seen": 1792556795.8303058,
-    "ast_hash": "07685787e5a654e1f1cdb989669cee72",
-    "semantic_hash": "07685787e5a654e1f1cdb989669cee72"
+    "mtime": 1792571347.2565923,
+    "seen": 1792572200.875318,
+    "ast_hash": "ff95850a91691b884d08c0e1f01f7b8a",
+    "semantic_hash": ""
   },
   "src/client/repositories/pomodoroStorageAdapter.ts": {
     "mtime": 1792541229.820976,
@@ -9552,10 +9552,10 @@
     "semantic_hash": "eb46e5f735abe4eef20af0634a7dd56e"
   },
   "src/server/domain/messaging/conversation.service.ts": {
-    "mtime": 1792538001.4307876,
-    "seen": 1792556795.8317916,
-    "ast_hash": "b7472830799184a579eefff5b8d79cf4",
-    "semantic_hash": "b7472830799184a579eefff5b8d79cf4"
+    "mtime": 1792571305.465984,
+    "seen": 1792572201.193082,
+    "ast_hash": "f594880be6fed95e8c5704980ec5bfef",
+    "semantic_hash": ""
   },
   "src/server/domain/messaging/enrollment-effects.service.ts": {
     "mtime": 1792504460.0005262,
@@ -10320,10 +10320,10 @@
     "semantic_hash": "c770c8075094f018e24614519987b4ab"
   },
   "src/server/infrastructure/db/postgres/repositories/user.repo.ts": {
-    "mtime": 1792231951.0398176,
-    "seen": 1792556795.8319867,
-    "ast_hash": "557bdd35bcaac3fde731bb4b770915f3",
-    "semantic_hash": "557bdd35bcaac3fde731bb4b770915f3"
+    "mtime": 1792571275.904378,
+    "seen": 1792572201.2261112,
+    "ast_hash": "13d59bea05e2caa870ded3a8a160ab4e",
+    "semantic_hash": ""
   },
   "src/server/infrastructure/db/postgres/text-job-runtime.ts": {
     "mtime": 1792245975.9051645,
@@ -15075,6 +15075,48 @@
     "mtime": 1792568897.7017174,
     "seen": 1792569068.5372467,
     "ast_hash": "efd1cedecaeaf00cdae897298b23ccab",
+    "semantic_hash": ""
+  },
+  "src/app/api/user/__tests__/username-route.test.ts": {
+    "mtime": 1792571400.9201021,
+    "seen": 1792572200.8119588,
+    "ast_hash": "a6eb22578d3f2c65ffe48f45f8e685cc",
+    "semantic_hash": ""
+  },
+  "src/app/api/user/profile/route.ts": {
+    "mtime": 1792571291.7579465,
+    "seen": 1792572200.8154998,
+    "ast_hash": "feb21e07fee65ff70f41de028522da6b",
+    "semantic_hash": ""
+  },
+  "src/app/api/user/username/route.ts": {
+    "mtime": 1792571282.0985284,
+    "seen": 1792572200.8155036,
+    "ast_hash": "ad39a08f2688b3de2206f217794ac99b",
+    "semantic_hash": ""
+  },
+  "src/client/repositories/userProfileRepository.ts": {
+    "mtime": 1792571356.9110422,
+    "seen": 1792572200.876127,
+    "ast_hash": "2cdac8ca33af4406f8f73266e05da2ae",
+    "semantic_hash": ""
+  },
+  "src/server/domain/messaging/__tests__/username-dm-studyroom.e2e.test.ts": {
+    "mtime": 1792571928.0556996,
+    "seen": 1792572201.1928818,
+    "ast_hash": "c403f735fdafcebfcf8019dad25beb12",
+    "semantic_hash": ""
+  },
+  "src/server/domain/user/__tests__/username.service.test.ts": {
+    "mtime": 1792571385.3860514,
+    "seen": 1792572201.2064,
+    "ast_hash": "54f20670c78078b4cec7208fc7262b83",
+    "semantic_hash": ""
+  },
+  "src/server/domain/user/username.service.ts": {
+    "mtime": 1792571251.6360633,
+    "seen": 1792572201.2064054,
+    "ast_hash": "13556e382504775b1e081b7a3c90e5b1",
     "semantic_hash": ""
   }
 }
