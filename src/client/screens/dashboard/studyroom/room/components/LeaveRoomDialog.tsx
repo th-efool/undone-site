@@ -8,9 +8,10 @@ export interface LeaveRoomDialogProps {
   open: boolean;
   onStay: () => void;
   onLeave: () => void;
+  onLeaveAll?: () => void;
 }
 
-export function LeaveRoomDialog({ open, onStay, onLeave }: LeaveRoomDialogProps) {
+export function LeaveRoomDialog({ open, onStay, onLeave, onLeaveAll }: LeaveRoomDialogProps) {
   return (
     <Dialog.Root open={open} onOpenChange={(isOpen) => { if (!isOpen) onStay(); }}>
       <Dialog.Portal>
@@ -47,6 +48,16 @@ export function LeaveRoomDialog({ open, onStay, onLeave }: LeaveRoomDialogProps)
             >
               Leave room
             </button>
+            {onLeaveAll && (
+              <button
+                type="button"
+                onClick={onLeaveAll}
+                className={styles.leaveAllBtn}
+                title="Disconnect all your tabs and devices from this room"
+              >
+                Leave all devices
+              </button>
+            )}
           </div>
         </Dialog.Content>
       </Dialog.Portal>

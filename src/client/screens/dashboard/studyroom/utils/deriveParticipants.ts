@@ -40,12 +40,18 @@ export function deriveViewer({
   const avatarUrl = session?.user?.image || null;
 
   let role: ViewerRole;
-  if (viewAsOverride === 'admin' || viewAsOverride === 'member') {
+  // Authoritative server capabilities take strict precedence over client-side overrides
+  if (capabilities) {
+    if (capabilities.canControlEnvironment || capabilities.canEditRoom || capabilities.canManageParticipants) {
+      role = 'admin';
+    } else {
+      role = 'member';
+    }
+  } else if (roomRole) {
+    role = (roomRole === 'OWNER' || roomRole === 'HOST' || roomRole === 'MODERATOR') ? 'admin' : 'member';
+  } else if (viewAsOverride === 'admin' || viewAsOverride === 'member') {
     role = viewAsOverride;
   } else if (
-    roomRole === 'OWNER' ||
-    roomRole === 'HOST' ||
-    roomRole === 'MODERATOR' ||
     room.adminUserId === 'viewer' ||
     (session?.user?.id && room.adminUserId === session.user.id)
   ) {

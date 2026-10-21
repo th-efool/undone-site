@@ -173,7 +173,15 @@ export type PomodoroAction =
   | { type: 'SELECT_PHASE'; phase: PomodoroPhase }
   | { type: 'SKIP' }
   | { type: 'TICK'; now: number }
-  | { type: 'UPDATE_SETTINGS'; patch: Partial<PomodoroSettings> };
+  | { type: 'UPDATE_SETTINGS'; patch: Partial<PomodoroSettings> }
+  | {
+      type: 'SYNC_SERVER_SESSION';
+      status: PomodoroStatus;
+      phase: PomodoroPhase;
+      phaseDurationMs: number;
+      remainingMs: number;
+      endsAt: number | null;
+    };
 
 export interface PersonalTask {
   id: string; // `task-${n}`

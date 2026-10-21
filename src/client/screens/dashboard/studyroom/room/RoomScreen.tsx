@@ -2,33 +2,26 @@
 
 import React, {
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
   useSyncExternalStore,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
 import { Users, Lock, ShieldAlert, Clock } from 'lucide-react';
 import type {
   RoomPanelId,
   RoomSlug,
-  Viewer,
   ViewerRole,
-  RoomDefinition,
-  BackgroundId,
 } from '../types';
-import type { RoomBootstrapResponse } from '@/src/shared/studyroom/contracts';
-import { getRoomBySlug } from '../data/roomCatalog';
-import { deriveParticipants, deriveViewer } from '../utils/deriveParticipants';
+import { deriveParticipants } from '../utils/deriveParticipants';
 import { useNow } from '../hooks/useNow';
 import { usePomodoro } from '../hooks/usePomodoro';
 import { usePersonalTasks } from '../hooks/usePersonalTasks';
 import { useSessionGoal } from '../hooks/useSessionGoal';
 import { useSharedEnvironment } from '../hooks/useSharedEnvironment';
 import { useAmbientPlayback } from '../hooks/useAmbientPlayback';
-import { useRoomLifecycle } from '../hooks/useRoomLifecycle';
+import { useRoomOrchestration } from '../hooks/useRoomOrchestration';
 import { useRoomRoster } from '../hooks/useRoomRoster';
 
 import RoomBackground from './components/RoomBackground';
@@ -55,38 +48,6 @@ export interface RoomScreenProps {
   viewAsOverride?: ViewerRole;
 }
 
-function createDynamicRoomDefinition(
-  slug: string,
-  bootstrap?: RoomBootstrapResponse['room'] | null
-): RoomDefinition {
-  const title =
-    bootstrap?.title ||
-    slug
-      .split('-')
-      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-      .join(' ');
-  const visualPresetId = (bootstrap?.visualPresetId as BackgroundId) || 'library';
-  return {
-    slug: slug as RoomSlug,
-    title,
-    atmosphere: bootstrap?.description || 'Focus and quiet company',
-    previewImage: bootstrap?.thumbnail || null,
-    adminUserId: bootstrap?.ownerId || 'admin',
-    adminDisplayName: bootstrap?.ownerName || 'Host',
-    defaultEnvironment: {
-      backgroundId: visualPresetId,
-      music: null,
-      ambience: {
-        presetId: 'rain',
-        volume: 40,
-        isPlaying: false,
-      },
-      updatedAt: 0,
-      updatedByUserId: bootstrap?.ownerId || 'admin',
-    },
-  };
-}
-
 function subscribeToMobile(callback: () => void) {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
     return () => {};
@@ -108,81 +69,33 @@ function getMobileServerSnapshot(): boolean {
 
 export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
   const router = useRouter();
-  const catalogRoom = getRoomBySlug(roomSlug);
-
-  const [roomBootstrap, setRoomBootstrap] = useState<RoomBootstrapResponse | null>(null);
-  const [bootstrapLoading, setBootstrapLoading] = useState(false);
-
-  useEffect(() => {
-    let ignore = false;
-    if (typeof fetch !== 'function') return;
-
-    void Promise.resolve().then(() => {
-      if (!ignore) {
-        setBootstrapLoading(true);
-      }
-    });
-    fetch(`/api/studyroom/${roomSlug}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: RoomBootstrapResponse | null) => {
-        if (!ignore && data) {
-          setRoomBootstrap(data);
-        }
-      })
-      .catch(() => {
-        // Fallback gracefully in offline / mock environments
-      })
-      .finally(() => {
-        if (!ignore) {
-          setBootstrapLoading(false);
-        }
-      });
-
-    return () => {
-      ignore = true;
-    };
-  }, [roomSlug]);
-
-  const room = useMemo(() => {
-    if (catalogRoom) return catalogRoom;
-    return createDynamicRoomDefinition(roomSlug, roomBootstrap?.room);
-  }, [catalogRoom, roomSlug, roomBootstrap]);
-
-  const { data: session } = useSession();
-  const viewer: Viewer = useMemo(
-    () =>
-      deriveViewer({
-        session,
-        room,
-        viewAsOverride,
-        roomRole: roomBootstrap?.viewer?.role,
-        capabilities: roomBootstrap?.capabilities,
-      }),
-    [session, room, viewAsOverride, roomBootstrap?.viewer?.role, roomBootstrap?.capabilities]
-  );
+  const {
+    state: orchestrationState,
+    bootstrap: roomBootstrap,
+    roomDefinition: room,
+    viewer,
+    error: orchestrationError,
+    leave: orchestrateLeave,
+    rejoin,
+    refreshBootstrap,
+  } = useRoomOrchestration({ roomSlug, viewAsOverride });
 
   // Eligibility evaluation for honest full/closed/denied states
   const eligibilityReason = roomBootstrap?.capabilities?.eligibilityReason;
   const isDenied =
-    Boolean(roomBootstrap) &&
-    !roomBootstrap?.capabilities?.canJoin &&
-    !roomBootstrap?.viewer?.isJoined;
+    orchestrationState === 'denied' ||
+    (Boolean(roomBootstrap) &&
+      !roomBootstrap?.capabilities?.canJoin &&
+      !roomBootstrap?.viewer?.isJoined);
 
-  const canParticipate = !isDenied && !bootstrapLoading;
+  const canParticipate =
+    orchestrationState === 'joined' ||
+    orchestrationState === 'reconnecting' ||
+    orchestrationState === 'joining';
 
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [isAcceptingTransfer, setIsAcceptingTransfer] = useState(false);
-
-  const fetchRoomBootstrap = useCallback(() => {
-    if (typeof fetch !== 'function') return;
-    fetch(`/api/studyroom/${roomSlug}`)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: RoomBootstrapResponse | null) => {
-        if (data) setRoomBootstrap(data);
-      })
-      .catch(() => {});
-  }, [roomSlug]);
 
   const handleAcceptTransfer = async (transferId: string) => {
     setIsAcceptingTransfer(true);
@@ -194,7 +107,7 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
       if (!res.ok) throw new Error(data.error || 'Failed to accept ownership transfer');
 
       setToast({ id: Date.now(), text: 'Ownership transfer accepted! You are now the room owner.' });
-      fetchRoomBootstrap();
+      await refreshBootstrap();
     } catch (err: unknown) {
       setToast({ id: Date.now(), text: err instanceof Error ? err.message : 'Transfer acceptance failed' });
     } finally {
@@ -202,29 +115,25 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
     }
   };
 
-  // Lease-fenced HTTP participation lifecycle
-  const lifecycle = useRoomLifecycle({
-    roomId: roomSlug,
+  // Real roster polling (15s interval with realtime event trigger)
+  const { roster: liveRoster, refresh: refreshRoster } = useRoomRoster({
+    roomId: roomBootstrap?.room?.id || roomSlug,
     enabled: canParticipate,
-    onEvicted: (reason) => {
-      setToast({ id: Date.now(), text: `Disconnected: ${reason}` });
-    },
+    streamGeneration: roomBootstrap?.room?.streamGeneration,
   });
 
-  // Real roster polling (15s interval)
-  const { roster: liveRoster, refresh: refreshRoster } = useRoomRoster({
-    roomId: roomSlug,
-    enabled: canParticipate,
-  });
+  const canControlEnv = viewer.capabilities?.canControlEnvironment ?? (viewer.role === 'admin');
 
   // Shared room state (admin/controller controls mutations, persisted to environment service)
   const env = useSharedEnvironment(room.defaultEnvironment, viewer.userId, {
     roomSlug,
-    canControlEnvironment: viewer.capabilities?.canControlEnvironment ?? (viewer.role === 'admin'),
+    canControlEnvironment: canControlEnv,
+    roomId: roomBootstrap?.room?.id || roomSlug,
+    streamGeneration: roomBootstrap?.room?.streamGeneration,
   });
 
   // Personal session tools
-  const pomodoro = usePomodoro(room.title);
+  const pomodoro = usePomodoro(room.title, undefined, roomBootstrap?.room?.id ?? null);
   const tasks = usePersonalTasks();
   const goal = useSessionGoal();
 
@@ -306,16 +215,22 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
       setActivePanel(null);
       setLeaveOpen(true);
     } else {
-      void lifecycle.leave(false);
+      void orchestrateLeave(false);
       router.push('/studyroom');
     }
-  }, [hasPersonalSessionState, lifecycle, router]);
+  }, [hasPersonalSessionState, orchestrateLeave, router]);
 
   const handleConfirmLeave = useCallback(() => {
-    void lifecycle.leave(true);
+    void orchestrateLeave(false);
     setLeaveOpen(false);
     router.push('/studyroom');
-  }, [lifecycle, router]);
+  }, [orchestrateLeave, router]);
+
+  const handleConfirmLeaveAll = useCallback(() => {
+    void orchestrateLeave(true);
+    setLeaveOpen(false);
+    router.push('/studyroom');
+  }, [orchestrateLeave, router]);
 
   const handleBackgroundError = useCallback(() => {
     setToast({
@@ -380,6 +295,77 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
     }
   };
 
+  if (orchestrationState === 'loading') {
+    return (
+      <main className={styles.deniedContainer} aria-busy="true" data-testid="room-loading-stage">
+        <div className={styles.deniedCard}>
+          <div className={`${styles.deniedIconWrap} ${styles.deniedIconWrapWarning}`}>
+            <Clock size={28} />
+          </div>
+          <h2 className={styles.deniedTitle}>Connecting to Study Room...</h2>
+          <p className={styles.deniedText}>Verifying seat allocation and setting up your workspace.</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (orchestrationState === 'switched_elsewhere') {
+    return (
+      <main className={styles.deniedContainer}>
+        <div className={styles.deniedCard} role="alert" data-testid="room-switched-stage">
+          <div className={`${styles.deniedIconWrap} ${styles.deniedIconWrapWarning}`}>
+            <ShieldAlert size={28} />
+          </div>
+          <h2 className={styles.deniedTitle}>Active Room Changed</h2>
+          <p className={styles.deniedText}>
+            You connected to a different study room or tab on another device.
+          </p>
+          <div className={styles.deniedActions}>
+            <button
+              type="button"
+              className={styles.primaryBtn}
+              onClick={() => void rejoin()}
+            >
+              Rejoin This Room
+            </button>
+            <button
+              type="button"
+              className={styles.secondaryBtn}
+              onClick={() => router.push('/studyroom')}
+            >
+              Browse Study Rooms
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  if (orchestrationState === 'unavailable') {
+    return (
+      <main className={styles.deniedContainer}>
+        <div className={styles.deniedCard} role="alert" data-testid="room-unavailable-stage">
+          <div className={styles.deniedIconWrap}>
+            <Lock size={28} />
+          </div>
+          <h2 className={styles.deniedTitle}>Room Unavailable</h2>
+          <p className={styles.deniedText}>
+            {orchestrationError || 'This study room is currently unavailable or could not be found.'}
+          </p>
+          <div className={styles.deniedActions}>
+            <button
+              type="button"
+              className={styles.primaryBtn}
+              onClick={() => router.push('/studyroom')}
+            >
+              Browse Study Rooms
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   if (isDenied && eligibilityReason && eligibilityReason !== 'ELIGIBLE') {
     let title = 'Access Restricted';
     let text = 'You do not currently have access to this study room.';
@@ -408,6 +394,10 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
       text = 'You were recently removed from this room. Please wait a short cooldown period before rejoining.';
       icon = <Clock size={28} />;
       isWarning = true;
+    } else if (eligibilityReason === 'GUEST_RESTRICTED') {
+      title = 'Account Required';
+      text = 'Guest accounts cannot join study rooms. Please sign in with an account to participate.';
+      icon = <Lock size={28} />;
     }
 
     return (
@@ -517,6 +507,8 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
             canManageParticipants={viewer.capabilities?.canManageParticipants ?? (viewer.role === 'admin')}
             onRosterMutated={() => void refreshRoster()}
             cohortTitle={roomBootstrap?.room?.cohortId ? 'Cohort' : null}
+            channelId={roomBootstrap?.channelId}
+            streamGeneration={roomBootstrap?.room?.streamGeneration}
           />
         </div>
       </div>
@@ -526,7 +518,7 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
         <footer id="room-background-dock" className={styles.dockContainer}>
           <SceneDock
             environment={env.environment}
-            actions={viewer.role === 'admin' ? env.actions : undefined}
+            actions={canControlEnv ? env.actions : undefined}
             status={ambience.status}
             muted={mutedForMe}
             onMute={() => setMutedForMe((prev) => !prev)}
@@ -578,6 +570,7 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
         open={leaveOpen}
         onStay={() => setLeaveOpen(false)}
         onLeave={handleConfirmLeave}
+        onLeaveAll={handleConfirmLeaveAll}
       />
 
       {/* 6. Music Settings Modal */}
@@ -586,7 +579,7 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
         onClose={() => setMusicModalOpen(false)}
         music={env.environment.music}
         onSetMusic={(source) => {
-          if (viewer.role === 'admin') {
+          if (canControlEnv) {
             env.actions.setMusic(source);
           }
         }}
@@ -601,14 +594,14 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
           if (activePanel === 'ambience') closePanel();
         }}
         environment={env.environment}
-        actions={viewer.role === 'admin' ? env.actions : undefined}
+        actions={canControlEnv ? env.actions : undefined}
         onSelectPreset={(presetId) => {
-          if (viewer.role === 'admin') {
+          if (canControlEnv) {
             env.actions.setAmbiencePreset(presetId);
           }
         }}
         onVolumeChange={(vol) => {
-          if (viewer.role === 'admin') {
+          if (canControlEnv) {
             env.actions.setAmbienceVolume(vol);
           }
         }}
@@ -634,7 +627,7 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
           }}
           isOwner={viewer.capabilities?.canEditRoom ?? (viewer.role === 'admin')}
           onUpdated={() => {
-            fetchRoomBootstrap();
+            void refreshBootstrap();
           }}
         />
       )}
