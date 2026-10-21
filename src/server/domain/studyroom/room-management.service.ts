@@ -1,4 +1,5 @@
 import 'server-only';
+import { randomUUID } from 'crypto';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { studyroomPolicy, type RoomEntity } from './studyroom.policy';
 import {
@@ -466,6 +467,51 @@ export const roomManagementService = {
         },
       });
 
+      // Emit outbox event & increment generation if closing/archiving
+      if (tx.realtimeStream?.findUnique && tx.realtimeEvent?.create && tx.realtimeDelivery?.create) {
+        let stream = await tx.realtimeStream.findUnique({
+          where: { studyRoomId: room.id },
+        });
+        if (stream) {
+          const shouldAdvanceGen = action === 'CLOSE' || action === 'ARCHIVE';
+          if (tx.realtimeStream?.update) {
+            stream = await tx.realtimeStream.update({
+              where: { id: stream.id },
+              data: {
+                eventCounter: { increment: 1 },
+                generation: shouldAdvanceGen ? { increment: 1 } : undefined,
+              },
+            });
+          }
+          const lifecycleEventId = randomUUID();
+          await tx.realtimeEvent.create({
+            data: {
+              streamId: stream.id,
+              sequence: stream.eventCounter,
+              eventId: lifecycleEventId,
+              schemaVersion: 1,
+              type: 'room.lifecycle.changed',
+              generation: stream.generation,
+              entityId: room.id,
+              payload: {
+                roomId: room.id,
+                status: nextStatus,
+                action,
+                revision: updated.revision,
+                occurredAt: now.toISOString(),
+              },
+            },
+          });
+          await tx.realtimeDelivery.create({
+            data: {
+              eventId: lifecycleEventId,
+              destination: `room:${room.id}:g${stream.generation}`,
+              status: 'PENDING',
+            },
+          });
+        }
+      }
+
       return updated;
     });
 
@@ -492,6 +538,18 @@ export const roomManagementService = {
         },
         cohort: {
           select: { id: true, title: true, visibility: true },
+        },
+        channel: {
+          select: { id: true },
+        },
+        realtimeStream: {
+          select: { generation: true },
+        },
+        environment: true,
+        sprints: {
+          where: { status: { in: ['ACTIVE', 'PAUSED'] } },
+          orderBy: { startedAt: 'desc' },
+          take: 1,
         },
       },
     });
@@ -521,10 +579,10 @@ export const roomManagementService = {
       Boolean(activeLease)
     );
 
-    // Unlisted room isolation check: if unlisted and user is not owner/controller, throw 404
+    // Unlisted room isolation check: if unlisted and user is not owner/controller/active participant, throw 404
     if (room.listing === 'UNLISTED') {
       const isManager = roleRes.isOwner || roleRes.isPlatformAdmin || roleRes.role === 'MODERATOR';
-      if (!isManager && !activeLease && !userId) {
+      if (!isManager && !activeLease) {
         throw new RoomNotFoundError();
       }
     }
@@ -558,6 +616,27 @@ export const roomManagementService = {
       }
     }
 
+    interface BootstrapRelations {
+      channel?: { id: string } | null;
+      environment?: {
+        sceneId?: string | null;
+        soundscapeId?: string | null;
+        musicPresetId?: string | null;
+        musicStreamUrl?: string | null;
+        revision?: number | null;
+        updatedAt?: Date | string | null;
+      } | null;
+      sprints?: Array<{
+        id: string;
+        status: string;
+        targetDurationSeconds: number;
+        elapsedSeconds: number;
+        revision: number;
+        deadline?: Date | string | null;
+      }>;
+    }
+    const related = room as unknown as BootstrapRelations;
+
     return {
       room: {
         id: room.id,
@@ -577,6 +656,7 @@ export const roomManagementService = {
         tags: room.tags,
         language: room.language,
         revision: room.revision,
+        streamGeneration: (room as unknown as { realtimeStream?: { generation?: number } | null })?.realtimeStream?.generation ?? 1,
         ownerId: room.ownerId || '',
         ownerName: room.owner?.name || null,
         ownerUsername: room.owner?.username || null,
@@ -591,6 +671,43 @@ export const roomManagementService = {
       },
       capabilities,
       pendingTransfer,
+      channelId: capabilities.canJoin ? related.channel?.id ?? null : null,
+      environment: related.environment
+        ? {
+            sceneId: related.environment.sceneId || 'lofi-cafe',
+            soundscapeId: related.environment.soundscapeId || null,
+            musicPresetId: related.environment.musicPresetId || null,
+            musicStreamUrl: related.environment.musicStreamUrl || null,
+            revision: related.environment.revision || 1,
+            updatedAt: related.environment.updatedAt
+              ? new Date(related.environment.updatedAt).toISOString()
+              : new Date().toISOString(),
+          }
+        : {
+            sceneId: room.visualPresetId || 'lofi-cafe',
+            soundscapeId: null,
+            musicPresetId: null,
+            musicStreamUrl: null,
+            revision: 1,
+            updatedAt: room.createdAt ? new Date(room.createdAt).toISOString() : new Date().toISOString(),
+          },
+      sprint: related.sprints?.[0]
+        ? {
+            id: related.sprints[0].id,
+            status: related.sprints[0].status,
+            targetDurationSeconds: related.sprints[0].targetDurationSeconds,
+            elapsedSeconds: related.sprints[0].elapsedSeconds,
+            remainingSeconds: Math.max(
+              0,
+              related.sprints[0].targetDurationSeconds - related.sprints[0].elapsedSeconds
+            ),
+            revision: related.sprints[0].revision,
+            deadline: related.sprints[0].deadline
+              ? new Date(related.sprints[0].deadline).toISOString()
+              : null,
+          }
+        : null,
+      serverTime: new Date().toISOString(),
     };
   },
 };

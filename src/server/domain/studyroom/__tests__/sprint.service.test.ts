@@ -35,6 +35,16 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({
     channel: {
       findFirst: vi.fn(),
     },
+    realtimeStream: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+    },
+    realtimeEvent: {
+      create: vi.fn(),
+    },
+    realtimeDelivery: {
+      create: vi.fn(),
+    },
     $transaction: vi.fn((callback) => callback(prisma)),
   },
 }));
@@ -375,6 +385,156 @@ describe('sprintService', () => {
         where: { sprintId: 'sprint-expired', status: 'JOINED' },
         data: expect.objectContaining({ status: 'COMPLETED' }),
       });
+    });
+
+    it('emits room.sprint.updated outbox event on startSprint', async () => {
+      vi.mocked(prisma.roomController.findUnique).mockResolvedValueOnce({
+        studyRoomId: 'room-1',
+        userId: 'controller-1',
+        role: 'HOST',
+      } as any);
+
+      vi.mocked(prisma.studyRoom.findUnique).mockResolvedValueOnce({ id: 'room-1' } as any);
+      vi.mocked(prisma.roomSprint.findFirst).mockResolvedValueOnce(null);
+
+      const now = new Date();
+      vi.mocked(prisma.roomSprint.create).mockResolvedValueOnce({
+        id: 'sprint-outbox',
+        studyRoomId: 'room-1',
+        creatorId: 'controller-1',
+        title: 'Deep Session',
+        targetDurationSeconds: 1500,
+        elapsedSeconds: 0,
+        status: 'ACTIVE',
+        startedAt: now,
+        deadline: new Date(now.getTime() + 1500000),
+        version: 1,
+        revision: 1,
+      } as any);
+
+      vi.mocked(prisma.roomSprint.findUnique).mockResolvedValueOnce({
+        id: 'sprint-outbox',
+        studyRoomId: 'room-1',
+        creatorId: 'controller-1',
+        title: 'Deep Session',
+        targetDurationSeconds: 1500,
+        elapsedSeconds: 0,
+        status: 'ACTIVE',
+        startedAt: now,
+        deadline: new Date(now.getTime() + 1500000),
+        pausedAt: null,
+        endedAt: null,
+        version: 1,
+        revision: 1,
+        participants: [],
+      } as any);
+
+      vi.mocked(prisma.realtimeStream.findUnique).mockResolvedValueOnce({
+        id: 'stream-1',
+        studyRoomId: 'room-1',
+        generation: 3,
+        eventCounter: 25,
+      } as any);
+
+      vi.mocked(prisma.realtimeStream.update).mockResolvedValueOnce({
+        id: 'stream-1',
+        eventCounter: 26,
+        generation: 3,
+      } as any);
+
+      await sprintService.startSprint({
+        userId: 'controller-1',
+        roomId: 'room-1',
+      });
+
+      expect(prisma.realtimeEvent.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            streamId: 'stream-1',
+            type: 'room.sprint.updated',
+            generation: 3,
+            entityId: 'sprint-outbox',
+            entityRevision: 1,
+            payload: expect.objectContaining({
+              id: 'sprint-outbox',
+              status: 'ACTIVE',
+            }),
+          }),
+        })
+      );
+
+      expect(prisma.realtimeDelivery.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            destination: 'room:room-1:g3',
+            status: 'PENDING',
+          }),
+        })
+      );
+    });
+
+    it('auto-completes expired sprint within transaction when starting new sprint', async () => {
+      vi.mocked(prisma.roomController.findUnique).mockResolvedValueOnce({
+        studyRoomId: 'room-1',
+        userId: 'controller-1',
+        role: 'OWNER',
+      } as any);
+      vi.mocked(prisma.studyRoom.findUnique).mockResolvedValueOnce({ id: 'room-1' } as any);
+
+      const expiredDeadline = new Date(Date.now() - 60000); // 1 min ago
+      vi.mocked(prisma.roomSprint.findFirst).mockResolvedValueOnce({
+        id: 'sprint-old',
+        status: 'ACTIVE',
+        deadline: expiredDeadline,
+        targetDurationSeconds: 1500,
+      } as any);
+
+      const now = new Date();
+      vi.mocked(prisma.roomSprint.create).mockResolvedValueOnce({
+        id: 'sprint-fresh',
+        studyRoomId: 'room-1',
+        creatorId: 'controller-1',
+        title: 'Fresh Sprint',
+        targetDurationSeconds: 1500,
+        elapsedSeconds: 0,
+        status: 'ACTIVE',
+        startedAt: now,
+        deadline: new Date(now.getTime() + 1500000),
+        version: 1,
+        revision: 1,
+      } as any);
+
+      vi.mocked(prisma.roomSprint.findUnique).mockResolvedValueOnce({
+        id: 'sprint-fresh',
+        studyRoomId: 'room-1',
+        creatorId: 'controller-1',
+        title: 'Fresh Sprint',
+        targetDurationSeconds: 1500,
+        elapsedSeconds: 0,
+        status: 'ACTIVE',
+        startedAt: now,
+        deadline: new Date(now.getTime() + 1500000),
+        version: 1,
+        revision: 1,
+        participants: [],
+      } as any);
+
+      const result = await sprintService.startSprint({
+        userId: 'controller-1',
+        roomId: 'room-1',
+        title: 'Fresh Sprint',
+      });
+
+      expect(result.id).toBe('sprint-fresh');
+      // Verifies old sprint was marked completed inside the transaction
+      expect(prisma.roomSprint.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'sprint-old' },
+          data: expect.objectContaining({
+            status: 'COMPLETED',
+          }),
+        })
+      );
     });
   });
 });

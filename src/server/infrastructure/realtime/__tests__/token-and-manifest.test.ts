@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('server-only', () => ({}));
 import * as jose from 'jose';
@@ -118,6 +119,9 @@ describe('manifestService', () => {
         status: 'active',
         channel: { id: 'chan_room_123' },
       },
+    } as any);
+    vi.spyOn(prisma.roomLease, 'findFirst').mockResolvedValue({
+      id: 'lease_123',
     } as any);
 
     const manifest = await manifestService.getAuthorizedSubscriptionManifest(userId);

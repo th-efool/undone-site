@@ -1,4 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  RoomNotFoundError,
+  RoomForbiddenError,
+} from '@/src/shared/studyroom/contracts';
 
 vi.mock('server-only', () => ({}));
 
@@ -7,13 +11,9 @@ const hoisted = vi.hoisted(() => ({
   seedRooms: vi.fn(),
   studyRoomCount: vi.fn(),
   studyRoomFindMany: vi.fn(),
-  studyRoomFindUnique: vi.fn(),
-  studyRoomUpdate: vi.fn(),
-  roomParticipantFindFirst: vi.fn(),
-  roomParticipantCreate: vi.fn(),
-  roomParticipantDelete: vi.fn(),
-  roomRestrictionFindUnique: vi.fn(),
-  cohortMemberFindUnique: vi.fn(),
+  joinRoom: vi.fn(),
+  renewLease: vi.fn(),
+  leaveRoom: vi.fn(),
 }));
 
 vi.mock('@/src/server/infrastructure/auth/getUser', () => ({
@@ -26,31 +26,21 @@ vi.mock('@/src/server/infrastructure/db/postgres/repositories/studyRoom.repo', (
   },
 }));
 
-vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
-  const txMock = {
-    studyRoom: {
-      count: hoisted.studyRoomCount,
-      findMany: hoisted.studyRoomFindMany,
-      findUnique: hoisted.studyRoomFindUnique,
-      update: hoisted.studyRoomUpdate,
-    },
-    roomParticipant: {
-      findFirst: hoisted.roomParticipantFindFirst,
-      create: hoisted.roomParticipantCreate,
-      delete: hoisted.roomParticipantDelete,
-    },
-    roomRestriction: {
-      findUnique: hoisted.roomRestrictionFindUnique,
-    },
-    cohortMember: {
-      findUnique: hoisted.cohortMemberFindUnique,
-    },
-  };
+vi.mock('@/src/server/domain/studyroom/studyroom.service', () => ({
+  studyRoomService: {
+    joinRoom: hoisted.joinRoom,
+    renewLease: hoisted.renewLease,
+    leaveRoom: hoisted.leaveRoom,
+  },
+}));
 
+vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
   return {
     prisma: {
-      ...txMock,
-      $transaction: vi.fn(async (cb: (tx: typeof txMock) => Promise<any>) => cb(txMock)),
+      studyRoom: {
+        count: hoisted.studyRoomCount,
+        findMany: hoisted.studyRoomFindMany,
+      },
     },
   };
 });
@@ -217,6 +207,21 @@ describe('/api/studyroom route', () => {
       expect(data.error).toBe('Unauthorized');
     });
 
+    it('returns 403 when user is guest account', async () => {
+      hoisted.getUser.mockResolvedValue({ id: 'guest-1', email: 'guest@undone.com', isGuest: true });
+
+      const req = new Request('http://localhost/api/studyroom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'join', roomId: 'room-1' }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(403);
+      const data = await res.json();
+      expect(data.code).toBe('GUEST_RESTRICTED');
+    });
+
     it('returns 400 when action is invalid', async () => {
       hoisted.getUser.mockResolvedValue({ id: 'user-1' });
 
@@ -249,7 +254,7 @@ describe('/api/studyroom route', () => {
 
     it('returns 404 when target room does not exist', async () => {
       hoisted.getUser.mockResolvedValue({ id: 'user-1' });
-      hoisted.studyRoomFindUnique.mockResolvedValue(null);
+      hoisted.joinRoom.mockRejectedValue(new RoomNotFoundError('Study room not found'));
 
       const req = new Request('http://localhost/api/studyroom', {
         method: 'POST',
@@ -260,16 +265,12 @@ describe('/api/studyroom route', () => {
       const res = await POST(req);
       expect(res.status).toBe(404);
       const data = await res.json();
-      expect(data.error).toBe('Room not found');
+      expect(data.error).toBe('Study room not found');
     });
 
     it('denies join with 403 when target room is CLOSED', async () => {
       hoisted.getUser.mockResolvedValue({ id: 'user-1' });
-      hoisted.studyRoomFindUnique.mockResolvedValue({
-        id: 'room-closed',
-        title: 'Archived Den',
-        status: 'CLOSED',
-      });
+      hoisted.joinRoom.mockRejectedValue(new RoomForbiddenError('Room is closed'));
 
       const req = new Request('http://localhost/api/studyroom', {
         method: 'POST',
@@ -285,15 +286,7 @@ describe('/api/studyroom route', () => {
 
     it('denies join with 403 when user is actively banned from room', async () => {
       hoisted.getUser.mockResolvedValue({ id: 'banned-user' });
-      hoisted.studyRoomFindUnique.mockResolvedValue({
-        id: 'room-1',
-        title: 'Fireplace',
-        status: 'OPEN',
-      });
-      hoisted.roomRestrictionFindUnique.mockResolvedValue({
-        action: 'BAN',
-        expiresAt: null,
-      });
+      hoisted.joinRoom.mockRejectedValue(new RoomForbiddenError('User is banned from this room'));
 
       const req = new Request('http://localhost/api/studyroom', {
         method: 'POST',
@@ -304,19 +297,12 @@ describe('/api/studyroom route', () => {
       const res = await POST(req);
       expect(res.status).toBe(403);
       const data = await res.json();
-      expect(data.error).toBe('User is restricted from this room');
+      expect(data.error).toBe('User is banned from this room');
     });
 
     it('denies join with 403 for cohort-scoped room when user is not enrolled in cohort', async () => {
       hoisted.getUser.mockResolvedValue({ id: 'unenrolled-user' });
-      hoisted.studyRoomFindUnique.mockResolvedValue({
-        id: 'room-cohort',
-        title: 'Cohort Private Study',
-        status: 'OPEN',
-        cohortId: 'cohort-123',
-      });
-      hoisted.roomRestrictionFindUnique.mockResolvedValue(null);
-      hoisted.cohortMemberFindUnique.mockResolvedValue(null);
+      hoisted.joinRoom.mockRejectedValue(new RoomForbiddenError('Cohort enrollment required'));
 
       const req = new Request('http://localhost/api/studyroom', {
         method: 'POST',
@@ -330,12 +316,15 @@ describe('/api/studyroom route', () => {
       expect(data.error).toBe('Cohort enrollment required');
     });
 
-    it('joins a room when user is not currently in any room', async () => {
+    it('joins a room through studyRoomService.joinRoom', async () => {
       hoisted.getUser.mockResolvedValue({ id: 'user-1' });
-      hoisted.studyRoomFindUnique.mockResolvedValue({ id: 'room-1', title: 'Fireplace' });
-      hoisted.roomParticipantFindFirst.mockResolvedValue(null);
-      hoisted.roomParticipantCreate.mockResolvedValue({ id: 'part-1', userId: 'user-1', studyRoomId: 'room-1' });
-      hoisted.studyRoomUpdate.mockResolvedValue({ id: 'room-1', onlineCount: 1 });
+      hoisted.joinRoom.mockResolvedValue({
+        success: true,
+        roomId: 'room-1',
+        generation: 1,
+        isSwitch: false,
+        lease: { leaseId: 'lease-1', tabId: 'tab-1', expiresAt: '2026-10-21T10:00:00.000Z' },
+      });
 
       const req = new Request('http://localhost/api/studyroom', {
         method: 'POST',
@@ -348,19 +337,24 @@ describe('/api/studyroom route', () => {
       const data = await res.json();
       expect(data.success).toBe(true);
 
-      expect(hoisted.roomParticipantCreate).toHaveBeenCalledWith({
-        data: { userId: 'user-1', studyRoomId: 'room-1' },
-      });
-      expect(hoisted.studyRoomUpdate).toHaveBeenCalledWith({
-        where: { id: 'room-1' },
-        data: { onlineCount: { increment: 1 } },
+      expect(hoisted.joinRoom).toHaveBeenCalledWith({
+        userId: 'user-1',
+        roomId: 'room-1',
+        tabId: undefined,
+        requestId: undefined,
       });
     });
 
     it('returns already in room idempotently if already in target room', async () => {
       hoisted.getUser.mockResolvedValue({ id: 'user-1' });
-      hoisted.studyRoomFindUnique.mockResolvedValue({ id: 'room-1', title: 'Fireplace' });
-      hoisted.roomParticipantFindFirst.mockResolvedValue({ id: 'part-1', userId: 'user-1', studyRoomId: 'room-1' });
+      hoisted.joinRoom.mockResolvedValue({
+        success: true,
+        roomId: 'room-1',
+        generation: 1,
+        isSwitch: false,
+        message: 'Already in room',
+        lease: { leaseId: 'lease-1', tabId: 'tab-1', expiresAt: '2026-10-21T10:00:00.000Z' },
+      });
 
       const req = new Request('http://localhost/api/studyroom', {
         method: 'POST',
@@ -373,19 +367,17 @@ describe('/api/studyroom route', () => {
       const data = await res.json();
       expect(data.success).toBe(true);
       expect(data.message).toBe('Already in room');
-
-      expect(hoisted.roomParticipantCreate).not.toHaveBeenCalled();
-      expect(hoisted.roomParticipantDelete).not.toHaveBeenCalled();
-      expect(hoisted.studyRoomUpdate).not.toHaveBeenCalled();
     });
 
-    it('switches rooms atomically: decrements old room and increments new room', async () => {
+    it('switches rooms through studyRoomService.joinRoom', async () => {
       hoisted.getUser.mockResolvedValue({ id: 'user-1' });
-      hoisted.studyRoomFindUnique.mockResolvedValue({ id: 'room-2', title: 'Library' });
-      hoisted.roomParticipantFindFirst.mockResolvedValue({ id: 'part-old', userId: 'user-1', studyRoomId: 'room-1' });
-      hoisted.roomParticipantDelete.mockResolvedValue({ id: 'part-old' });
-      hoisted.roomParticipantCreate.mockResolvedValue({ id: 'part-new', userId: 'user-1', studyRoomId: 'room-2' });
-      hoisted.studyRoomUpdate.mockResolvedValue({});
+      hoisted.joinRoom.mockResolvedValue({
+        success: true,
+        roomId: 'room-2',
+        generation: 2,
+        isSwitch: true,
+        lease: { leaseId: 'lease-2', tabId: 'tab-1', expiresAt: '2026-10-21T10:00:00.000Z' },
+      });
 
       const req = new Request('http://localhost/api/studyroom', {
         method: 'POST',
@@ -397,31 +389,78 @@ describe('/api/studyroom route', () => {
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data.success).toBe(true);
+      expect(data.isSwitch).toBe(true);
 
-      // Verify old room cleaned up
-      expect(hoisted.roomParticipantDelete).toHaveBeenCalledWith({
-        where: { id: 'part-old' },
-      });
-      expect(hoisted.studyRoomUpdate).toHaveBeenCalledWith({
-        where: { id: 'room-1' },
-        data: { onlineCount: { decrement: 1 } },
-      });
-
-      // Verify new room joined
-      expect(hoisted.roomParticipantCreate).toHaveBeenCalledWith({
-        data: { userId: 'user-1', studyRoomId: 'room-2' },
-      });
-      expect(hoisted.studyRoomUpdate).toHaveBeenCalledWith({
-        where: { id: 'room-2' },
-        data: { onlineCount: { increment: 1 } },
+      expect(hoisted.joinRoom).toHaveBeenCalledWith({
+        userId: 'user-1',
+        roomId: 'room-2',
+        tabId: undefined,
+        requestId: undefined,
       });
     });
 
-    it('leaves room atomically and decrements online count', async () => {
+    it('renews lease through studyRoomService.renewLease', async () => {
       hoisted.getUser.mockResolvedValue({ id: 'user-1' });
-      hoisted.roomParticipantFindFirst.mockResolvedValue({ id: 'part-1', userId: 'user-1', studyRoomId: 'room-1' });
-      hoisted.roomParticipantDelete.mockResolvedValue({ id: 'part-1' });
-      hoisted.studyRoomUpdate.mockResolvedValue({ id: 'room-1' });
+      hoisted.renewLease.mockResolvedValue({
+        success: true,
+        expiresAt: '2026-10-21T10:05:00.000Z',
+      });
+
+      const req = new Request('http://localhost/api/studyroom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'renew',
+          roomId: 'room-1',
+          tabId: 'tab-1',
+          generation: 1,
+        }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(hoisted.renewLease).toHaveBeenCalledWith({
+        userId: 'user-1',
+        roomId: 'room-1',
+        tabId: 'tab-1',
+        generation: 1,
+      });
+    });
+
+    it('returns 409 when lease renewal fails with stale generation or not in room', async () => {
+      hoisted.getUser.mockResolvedValue({ id: 'user-1' });
+      hoisted.renewLease.mockResolvedValue({
+        success: false,
+        reason: 'stale_generation',
+      });
+
+      const req = new Request('http://localhost/api/studyroom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'renew',
+          roomId: 'room-1',
+          tabId: 'tab-1',
+          generation: 1,
+        }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(409);
+      const data = await res.json();
+      expect(data.success).toBe(false);
+      expect(data.reason).toBe('stale_generation');
+    });
+
+    it('leaves room through studyRoomService.leaveRoom', async () => {
+      hoisted.getUser.mockResolvedValue({ id: 'user-1' });
+      hoisted.leaveRoom.mockResolvedValue({
+        success: true,
+        left: true,
+        remainingLeases: 0,
+      });
 
       const req = new Request('http://localhost/api/studyroom', {
         method: 'POST',
@@ -434,34 +473,18 @@ describe('/api/studyroom route', () => {
       const data = await res.json();
       expect(data.success).toBe(true);
 
-      expect(hoisted.roomParticipantDelete).toHaveBeenCalledWith({
-        where: { id: 'part-1' },
+      expect(hoisted.leaveRoom).toHaveBeenCalledWith({
+        userId: 'user-1',
+        roomId: undefined,
+        tabId: undefined,
+        generation: undefined,
+        global: true,
       });
-      expect(hoisted.studyRoomUpdate).toHaveBeenCalledWith({
-        where: { id: 'room-1' },
-        data: { onlineCount: { decrement: 1 } },
-      });
-    });
-
-    it('returns 400 when attempting to leave but user is not in any room', async () => {
-      hoisted.getUser.mockResolvedValue({ id: 'user-1' });
-      hoisted.roomParticipantFindFirst.mockResolvedValue(null);
-
-      const req = new Request('http://localhost/api/studyroom', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'leave' }),
-      });
-
-      const res = await POST(req);
-      expect(res.status).toBe(400);
-      const data = await res.json();
-      expect(data.error).toBe('Not in a room');
     });
 
     it('returns 500 when transaction throws an unexpected error', async () => {
       hoisted.getUser.mockResolvedValue({ id: 'user-1' });
-      hoisted.studyRoomFindUnique.mockRejectedValue(new Error('Unexpected DB crash'));
+      hoisted.joinRoom.mockRejectedValue(new Error('Unexpected DB crash'));
 
       const req = new Request('http://localhost/api/studyroom', {
         method: 'POST',
@@ -491,10 +514,7 @@ describe('/api/studyroom route', () => {
 
       // Perform successful join
       hoisted.getUser.mockResolvedValue({ id: 'user-1' });
-      hoisted.studyRoomFindUnique.mockResolvedValue({ id: 'room-1', title: 'Fireplace' });
-      hoisted.roomParticipantFindFirst.mockResolvedValue(null);
-      hoisted.roomParticipantCreate.mockResolvedValue({ id: 'part-1', userId: 'user-1', studyRoomId: 'room-1' });
-      hoisted.studyRoomUpdate.mockResolvedValue({ id: 'room-1', onlineCount: 1 });
+      hoisted.joinRoom.mockResolvedValue({ success: true, roomId: 'room-1' });
 
       const postReq = new Request('http://localhost/api/studyroom', {
         method: 'POST',
@@ -525,9 +545,7 @@ describe('/api/studyroom route', () => {
 
       // Perform successful leave
       hoisted.getUser.mockResolvedValue({ id: 'user-1' });
-      hoisted.roomParticipantFindFirst.mockResolvedValue({ id: 'part-1', userId: 'user-1', studyRoomId: 'room-1' });
-      hoisted.roomParticipantDelete.mockResolvedValue({ id: 'part-1' });
-      hoisted.studyRoomUpdate.mockResolvedValue({ id: 'room-1' });
+      hoisted.leaveRoom.mockResolvedValue({ success: true, left: true, remainingLeases: 0 });
 
       const postReq = new Request('http://localhost/api/studyroom', {
         method: 'POST',

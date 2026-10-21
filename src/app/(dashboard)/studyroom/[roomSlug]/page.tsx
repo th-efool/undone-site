@@ -3,7 +3,6 @@ import type { Metadata } from 'next';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import RoomScreen from '@/src/client/screens/dashboard/studyroom/room/RoomScreen';
 import { getRoomBySlug } from '@/src/client/screens/dashboard/studyroom/data/roomCatalog';
-import type { ViewerRole } from '@/src/client/screens/dashboard/studyroom/types';
 
 export async function generateMetadata({
   params,
@@ -25,10 +24,8 @@ export async function generateMetadata({
 
 export default async function StudyRoomPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ roomSlug: string }>;
-  searchParams: Promise<{ viewAs?: string | string[] }>;
 }) {
   const { roomSlug } = await params;
 
@@ -50,14 +47,9 @@ export default async function StudyRoomPage({
 
   const canonicalSlug = dbRoom?.slug || catalogRoom?.slug || roomSlug;
 
-  const { viewAs } = await searchParams;
-  const viewAsStr = Array.isArray(viewAs) ? viewAs[0] : viewAs;
-  const override: ViewerRole | undefined =
-    viewAsStr === 'admin' || viewAsStr === 'member' ? viewAsStr : undefined;
-
   return (
     <main>
-      <RoomScreen roomSlug={canonicalSlug} viewAsOverride={override} />
+      <RoomScreen roomSlug={canonicalSlug} />
     </main>
   );
 }

@@ -44,6 +44,7 @@ export function RoomTopBar({
   onOpenSettings,
 }: RoomTopBarProps) {
   const isAdmin = viewer.role === 'admin';
+  const canCustomize = viewer.capabilities?.canControlEnvironment ?? isAdmin;
   const previewParticipants = participants.slice(0, 3);
 
   return (
@@ -122,22 +123,22 @@ export function RoomTopBar({
         <button
           type="button"
           onClick={(e) => {
-            if (isAdmin && onToggleCustomize) {
+            if (canCustomize && onToggleCustomize) {
               onToggleCustomize();
             } else {
               onTogglePanel('room', e.currentTarget);
             }
           }}
-          aria-expanded={isAdmin ? Boolean(customizeOpen) : activePanel === 'room'}
-          aria-controls={isAdmin ? 'room-background-dock' : 'room-panel'}
-          aria-haspopup={isAdmin ? undefined : 'dialog'}
-          aria-label={isAdmin ? 'Customize room environment' : 'Room information'}
-          title={isAdmin ? 'Customize room' : 'Room info'}
+          aria-expanded={canCustomize ? Boolean(customizeOpen) : activePanel === 'room'}
+          aria-controls={canCustomize ? 'room-background-dock' : 'room-panel'}
+          aria-haspopup={canCustomize ? undefined : 'dialog'}
+          aria-label={canCustomize ? 'Customize room environment' : 'Room information'}
+          title={canCustomize ? 'Customize room' : 'Room info'}
           className={`${styles.toolBtn} ${
-            (isAdmin ? customizeOpen : activePanel === 'room') ? styles.toolBtnActive : ''
+            (canCustomize ? customizeOpen : activePanel === 'room') ? styles.toolBtnActive : ''
           }`}
         >
-          {isAdmin ? (
+          {canCustomize ? (
             <>
               <SlidersHorizontal size={16} aria-hidden="true" />
               <span className={styles.btnLabel}>Customize room</span>

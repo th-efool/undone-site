@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/src/server/infrastructure/auth/getUser';
 import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
-import { sessionService } from '@/src/server/domain/studyroom/session.service';
+import { sessionService, SessionConflictError } from '@/src/server/domain/studyroom/session.service';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,9 +53,10 @@ export async function POST(req: NextRequest) {
       status: 201,
       headers: { 'Cache-Control': 'private, no-store' },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Failed to start study session:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 400 });
+    const errMsg = error instanceof Error ? error.message : 'Internal server error';
+    return NextResponse.json({ error: errMsg }, { status: 400 });
   }
 }
 
@@ -72,6 +73,7 @@ export async function PATCH(req: NextRequest) {
 
     const body = await req.json().catch(() => ({}));
     const { action, sessionId } = body ?? {};
+    const expectedVersion = typeof body?.expectedVersion === 'number' ? body.expectedVersion : undefined;
 
     if (!sessionId || typeof sessionId !== 'string') {
       return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
@@ -82,16 +84,16 @@ export async function PATCH(req: NextRequest) {
     let updatedSession;
     switch (cleanAction) {
       case 'pause':
-        updatedSession = await sessionService.pauseSession({ userId: user.id, sessionId });
+        updatedSession = await sessionService.pauseSession({ userId: user.id, sessionId, expectedVersion });
         break;
       case 'resume':
-        updatedSession = await sessionService.resumeSession({ userId: user.id, sessionId });
+        updatedSession = await sessionService.resumeSession({ userId: user.id, sessionId, expectedVersion });
         break;
       case 'complete':
-        updatedSession = await sessionService.completeSession({ userId: user.id, sessionId });
+        updatedSession = await sessionService.completeSession({ userId: user.id, sessionId, expectedVersion });
         break;
       case 'interrupt':
-        updatedSession = await sessionService.interruptSession({ userId: user.id, sessionId });
+        updatedSession = await sessionService.interruptSession({ userId: user.id, sessionId, expectedVersion });
         break;
       default:
         return NextResponse.json({ error: 'Invalid action. Supported: pause, resume, complete, interrupt' }, { status: 400 });
@@ -101,8 +103,18 @@ export async function PATCH(req: NextRequest) {
       status: 200,
       headers: { 'Cache-Control': 'private, no-store' },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    if (
+      error instanceof SessionConflictError ||
+      (error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 409)
+    ) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : 'Version conflict' },
+        { status: 409, headers: { 'Cache-Control': 'private, no-store' } }
+      );
+    }
     console.error('Failed to update study session:', error);
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 400 });
+    const errMsg = error instanceof Error ? error.message : 'Internal server error';
+    return NextResponse.json({ error: errMsg }, { status: 400 });
   }
 }

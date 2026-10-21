@@ -1,4 +1,5 @@
 import 'server-only';
+import { randomUUID } from 'crypto';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import {
   type RoomEnvironmentSnapshot,
@@ -18,14 +19,34 @@ const ALLOWED_URL_HOSTS = new Set([
   'w.soundcloud.com',
   'youtube.com',
   'www.youtube.com',
+  'm.youtube.com',
+  'music.youtube.com',
   'youtu.be',
+  'open.spotify.com',
+  'spotify.com',
   'cdn.sidequesthq.com',
   'assets.sidequesthq.com',
   'stream.undone.site',
   'lofi.cafe',
 ]);
 
-const ALLOWED_SCENES = new Set([
+export const ALLOWED_SCENES = new Set([
+  // Frontend illustration scenes
+  'cozy-fireplace',
+  'rainy-window',
+  'quiet-cafe',
+  'library',
+  'seaside',
+  'forest',
+  'night-sky',
+  // Frontend solid color scenes
+  'minimal-workspace',
+  'solid-midnight',
+  'solid-forest',
+  'solid-plum',
+  'solid-clay',
+  'solid-slate',
+  // Legacy / catalog preset aliases
   'lofi-cafe',
   'cyberpunk-rain',
   'library-dawn',
@@ -106,19 +127,22 @@ export const environmentService = {
       throw new MessagingNotFoundError('Study room not found');
     }
 
-    let env = await prisma.roomEnvironment.findUnique({
+    const env = await prisma.roomEnvironment.findUnique({
       where: { studyRoomId: roomId },
     });
 
     if (!env) {
-      // Lazy initialize default environment
-      env = await prisma.roomEnvironment.create({
-        data: {
-          studyRoomId: roomId,
-          sceneId: 'lofi-cafe',
-          revision: 1,
-        },
-      });
+      // Return default snapshot without performing lazy database writes during GET reads
+      return {
+        studyRoomId: roomId,
+        sceneId: room.visualPresetId || 'lofi-cafe',
+        soundscapeId: null,
+        musicPresetId: null,
+        musicStreamUrl: null,
+        revision: 1,
+        updatedByUserId: room.ownerId || null,
+        updatedAt: room.createdAt.toISOString(),
+      };
     }
 
     return {
@@ -144,12 +168,6 @@ export const environmentService = {
       throw new MessagingForbiddenError('Only room controllers can change the shared environment');
     }
 
-    const current = await this.getRoomEnvironment(roomId);
-
-    if (expectedRevision !== undefined && current.revision !== expectedRevision) {
-      throw new MessagingConflictError('Environment revision conflict; please refresh room settings');
-    }
-
     let validatedStreamUrl: string | null | undefined = undefined;
     if (musicStreamUrl !== undefined) {
       if (musicStreamUrl === null || musicStreamUrl.trim() === '') {
@@ -165,30 +183,103 @@ export const environmentService = {
       if (!trimmed || trimmed.length > 64) {
         throw new MessagingValidationError('Invalid scene identifier');
       }
+      if (!ALLOWED_SCENES.has(trimmed)) {
+        throw new MessagingValidationError(`Scene '${trimmed}' is not authorized.`);
+      }
       validatedSceneId = trimmed;
     }
 
-    const updated = await prisma.roomEnvironment.update({
-      where: { studyRoomId: roomId },
-      data: {
-        ...(validatedSceneId !== undefined && { sceneId: validatedSceneId }),
-        ...(soundscapeId !== undefined && { soundscapeId: soundscapeId?.trim() || null }),
-        ...(musicPresetId !== undefined && { musicPresetId: musicPresetId?.trim() || null }),
-        ...(validatedStreamUrl !== undefined && { musicStreamUrl: validatedStreamUrl }),
-        updatedByUserId: userId,
-        revision: { increment: 1 },
-      },
-    });
+    return await prisma.$transaction(async (tx) => {
+      const room = await tx.studyRoom.findUnique({
+        where: { id: roomId },
+      });
+      if (!room) {
+        throw new MessagingNotFoundError('Study room not found');
+      }
 
-    return {
-      studyRoomId: updated.studyRoomId,
-      sceneId: updated.sceneId,
-      soundscapeId: updated.soundscapeId,
-      musicPresetId: updated.musicPresetId,
-      musicStreamUrl: updated.musicStreamUrl,
-      revision: updated.revision,
-      updatedByUserId: updated.updatedByUserId,
-      updatedAt: updated.updatedAt.toISOString(),
-    };
+      const current = await tx.roomEnvironment.findUnique({
+        where: { studyRoomId: roomId },
+      });
+
+      const currentRevision = current?.revision ?? 1;
+      if (expectedRevision !== undefined && currentRevision !== expectedRevision) {
+        throw new MessagingConflictError('Environment revision conflict; please refresh room settings');
+      }
+
+      let updated;
+      if (current) {
+        updated = await tx.roomEnvironment.update({
+          where: { studyRoomId: roomId },
+          data: {
+            ...(validatedSceneId !== undefined && { sceneId: validatedSceneId }),
+            ...(soundscapeId !== undefined && { soundscapeId: soundscapeId?.trim() || null }),
+            ...(musicPresetId !== undefined && { musicPresetId: musicPresetId?.trim() || null }),
+            ...(validatedStreamUrl !== undefined && { musicStreamUrl: validatedStreamUrl }),
+            updatedByUserId: userId,
+            revision: { increment: 1 },
+          },
+        });
+      } else {
+        updated = await tx.roomEnvironment.create({
+          data: {
+            studyRoomId: roomId,
+            sceneId: validatedSceneId || room.visualPresetId || 'lofi-cafe',
+            soundscapeId: soundscapeId?.trim() || null,
+            musicPresetId: musicPresetId?.trim() || null,
+            musicStreamUrl: validatedStreamUrl || null,
+            updatedByUserId: userId,
+            revision: 1,
+          },
+        });
+      }
+
+      const snapshot: RoomEnvironmentSnapshot = {
+        studyRoomId: updated.studyRoomId,
+        sceneId: updated.sceneId,
+        soundscapeId: updated.soundscapeId,
+        musicPresetId: updated.musicPresetId,
+        musicStreamUrl: updated.musicStreamUrl,
+        revision: updated.revision,
+        updatedByUserId: updated.updatedByUserId,
+        updatedAt: updated.updatedAt.toISOString(),
+      };
+
+      if (tx.realtimeStream?.findUnique && tx.realtimeEvent?.create && tx.realtimeDelivery?.create) {
+        let stream = await tx.realtimeStream.findUnique({
+          where: { studyRoomId: roomId },
+        });
+        if (stream) {
+          if (tx.realtimeStream?.update) {
+            stream = await tx.realtimeStream.update({
+              where: { id: stream.id },
+              data: { eventCounter: { increment: 1 } },
+            });
+          }
+          const eventId = randomUUID();
+          await tx.realtimeEvent.create({
+            data: {
+              streamId: stream.id,
+              sequence: stream.eventCounter,
+              eventId,
+              schemaVersion: 1,
+              type: 'room.environment.updated',
+              generation: stream.generation,
+              entityId: roomId,
+              entityRevision: updated.revision,
+              payload: snapshot as any,
+            },
+          });
+          await tx.realtimeDelivery.create({
+            data: {
+              eventId,
+              destination: `room:${roomId}:g${stream.generation}`,
+              status: 'PENDING',
+            },
+          });
+        }
+      }
+
+      return snapshot;
+    });
   },
 };

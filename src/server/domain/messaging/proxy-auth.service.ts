@@ -1,5 +1,6 @@
 import 'server-only';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
+import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
 
 export interface ProxyAuthDecision {
   allowed: boolean;
@@ -180,15 +181,53 @@ export const proxyAuthService = {
       }
 
       case 'room': {
+        if (prisma.user?.findUnique) {
+          const userRecord = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true, username: true },
+          });
+          if (isSharedGuestAccount(userRecord)) {
+            return { allowed: false, code: 103, message: 'Guest accounts cannot subscribe to study rooms' };
+          }
+        }
+
         const room = await prisma.studyRoom.findUnique({
           where: { id: parsed.entityId },
           select: {
+            id: true,
             status: true,
+            cohortId: true,
+            realtimeStream: {
+              select: { generation: true },
+            },
           },
         });
 
         if (!room || !['active', 'open'].includes(room.status?.toLowerCase())) {
           return { allowed: false, code: 103, message: 'Study room is not active' };
+        }
+
+        const streamGen = room.realtimeStream?.generation ?? 1;
+        if (streamGen !== parsed.generation) {
+          return {
+            allowed: false,
+            code: 103,
+            message: `Invalid access generation: room stream is at g${streamGen}, requested g${parsed.generation}`,
+          };
+        }
+
+        if (room.cohortId && prisma.cohortMember?.findUnique) {
+          const membership = await prisma.cohortMember.findUnique({
+            where: {
+              cohortId_userId: {
+                cohortId: room.cohortId,
+                userId,
+              },
+            },
+          });
+          if (!membership) {
+            return { allowed: false, code: 103, message: 'Cohort enrollment required for this room' };
+          }
         }
 
         const activeLease = await prisma.roomLease.findFirst({
@@ -207,13 +246,31 @@ export const proxyAuthService = {
       }
 
       case 'roomchat': {
+        if (prisma.user?.findUnique) {
+          const userRecord = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { email: true, username: true },
+          });
+          if (isSharedGuestAccount(userRecord)) {
+            return { allowed: false, code: 103, message: 'Guest accounts cannot subscribe to study room chat' };
+          }
+        }
+
         const channelRecord = await prisma.channel.findUnique({
           where: { id: parsed.entityId },
           select: {
             studyRoomId: true,
+            realtimeStream: {
+              select: { generation: true },
+            },
             studyRoom: {
               select: {
+                id: true,
                 status: true,
+                cohortId: true,
+                realtimeStream: {
+                  select: { generation: true },
+                },
               },
             },
           },
@@ -221,6 +278,29 @@ export const proxyAuthService = {
 
         if (!channelRecord || !channelRecord.studyRoom || !['active', 'open'].includes(channelRecord.studyRoom.status?.toLowerCase())) {
           return { allowed: false, code: 103, message: 'Study room chat is not active' };
+        }
+
+        const chatGen = channelRecord.realtimeStream?.generation ?? channelRecord.studyRoom?.realtimeStream?.generation ?? 1;
+        if (chatGen !== parsed.generation) {
+          return {
+            allowed: false,
+            code: 103,
+            message: `Invalid access generation: room chat stream is at g${chatGen}, requested g${parsed.generation}`,
+          };
+        }
+
+        if (channelRecord.studyRoom.cohortId && prisma.cohortMember?.findUnique) {
+          const membership = await prisma.cohortMember.findUnique({
+            where: {
+              cohortId_userId: {
+                cohortId: channelRecord.studyRoom.cohortId,
+                userId,
+              },
+            },
+          });
+          if (!membership) {
+            return { allowed: false, code: 103, message: 'Cohort enrollment required for this room chat' };
+          }
         }
 
         if (channelRecord.studyRoomId) {

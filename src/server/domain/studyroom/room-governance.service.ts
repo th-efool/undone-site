@@ -1,4 +1,5 @@
 import 'server-only';
+import { randomUUID } from 'crypto';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { studyroomPolicy, type RoomEntity } from './studyroom.policy';
 import {
@@ -254,6 +255,47 @@ export const roomGovernanceService = {
           details: { reason, cooldownMinutes: 2 },
         },
       });
+
+      // 5. Emit outbox event
+      if (tx.realtimeStream?.findUnique && tx.realtimeEvent?.create && tx.realtimeDelivery?.create) {
+        let stream = await tx.realtimeStream.findUnique({
+          where: { studyRoomId: roomId },
+        });
+        if (stream) {
+          if (tx.realtimeStream?.update) {
+            stream = await tx.realtimeStream.update({
+              where: { id: stream.id },
+              data: { eventCounter: { increment: 1 } },
+            });
+          }
+          const leftEventId = randomUUID();
+          await tx.realtimeEvent.create({
+            data: {
+              streamId: stream.id,
+              sequence: stream.eventCounter,
+              eventId: leftEventId,
+              schemaVersion: 1,
+              type: 'room.participant.left',
+              generation: stream.generation,
+              entityId: targetUserId,
+              payload: {
+                userId: targetUserId,
+                roomId,
+                reason: 'KICKED',
+                onlineCount: activeUsers.length,
+                occurredAt: now.toISOString(),
+              },
+            },
+          });
+          await tx.realtimeDelivery.create({
+            data: {
+              eventId: leftEventId,
+              destination: `room:${roomId}:g${stream.generation}`,
+              status: 'PENDING',
+            },
+          });
+        }
+      }
     });
   },
 
@@ -340,6 +382,47 @@ export const roomGovernanceService = {
           details: { reason, durationMinutes: durationMinutes || 'indefinite' },
         },
       });
+
+      // 5. Emit outbox event
+      if (tx.realtimeStream?.findUnique && tx.realtimeEvent?.create && tx.realtimeDelivery?.create) {
+        let stream = await tx.realtimeStream.findUnique({
+          where: { studyRoomId: roomId },
+        });
+        if (stream) {
+          if (tx.realtimeStream?.update) {
+            stream = await tx.realtimeStream.update({
+              where: { id: stream.id },
+              data: { eventCounter: { increment: 1 } },
+            });
+          }
+          const leftEventId = randomUUID();
+          await tx.realtimeEvent.create({
+            data: {
+              streamId: stream.id,
+              sequence: stream.eventCounter,
+              eventId: leftEventId,
+              schemaVersion: 1,
+              type: 'room.participant.left',
+              generation: stream.generation,
+              entityId: targetUserId,
+              payload: {
+                userId: targetUserId,
+                roomId,
+                reason: 'BANNED',
+                onlineCount: activeUsers.length,
+                occurredAt: now.toISOString(),
+              },
+            },
+          });
+          await tx.realtimeDelivery.create({
+            data: {
+              eventId: leftEventId,
+              destination: `room:${roomId}:g${stream.generation}`,
+              status: 'PENDING',
+            },
+          });
+        }
+      }
     });
   },
 

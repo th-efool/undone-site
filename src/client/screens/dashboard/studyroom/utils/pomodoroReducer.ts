@@ -241,6 +241,17 @@ export function pomodoroReducer(
       };
     }
 
+    case 'SYNC_SERVER_SESSION': {
+      return {
+        ...state,
+        status: action.status,
+        phase: action.phase,
+        phaseDurationMs: action.phaseDurationMs,
+        remainingMs: action.remainingMs,
+        endsAt: action.endsAt,
+      };
+    }
+
     case 'UPDATE_SETTINGS': {
       const validPatch: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(action.patch)) {

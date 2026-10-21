@@ -89,6 +89,7 @@ export const messagingRepo = {
           select: {
             id: true,
             status: true,
+            cohortId: true,
           },
         },
       },

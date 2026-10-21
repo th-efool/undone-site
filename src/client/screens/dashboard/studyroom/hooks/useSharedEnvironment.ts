@@ -1,4 +1,9 @@
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { useRealtime } from '@/src/client/realtime';
+import {
+  studyRoomRepository,
+  type RoomEnvironmentSnapshotDTO,
+} from '@/src/client/repositories/studyRoomRepository';
 import { parseMusicUrl } from '../utils/parseMusicUrl';
 import type {
   AmbientPresetId,
@@ -11,11 +16,23 @@ import type {
 export interface UseSharedEnvironmentOptions {
   roomSlug?: string;
   canControlEnvironment?: boolean;
+  roomId?: string;
+  streamGeneration?: number;
 }
 
 export interface UseSharedEnvironmentReturn {
   environment: SharedRoomEnvironment;
   actions: SharedEnvironmentActions;
+  revision: number;
+  reloadEnvironment: () => Promise<void>;
+}
+
+function useSafeRealtime() {
+  try {
+    return useRealtime();
+  } catch {
+    return null;
+  }
 }
 
 export function useSharedEnvironment(
@@ -24,11 +41,45 @@ export function useSharedEnvironment(
   options?: UseSharedEnvironmentOptions
 ): UseSharedEnvironmentReturn {
   const [environment, setEnvironment] = useState<SharedRoomEnvironment>(initialEnvironment);
+  const [revision, setRevision] = useState<number>(1);
+  const revisionRef = useRef<number>(1);
   const optionsRef = useRef(options);
+  const realtime = useSafeRealtime();
 
   useEffect(() => {
     optionsRef.current = options;
   }, [options]);
+
+  const applyServerSnapshot = useCallback((data: RoomEnvironmentSnapshotDTO) => {
+    setRevision(data.revision);
+    revisionRef.current = data.revision;
+
+    const parsedMusic = data.musicStreamUrl ? parseMusicUrl(data.musicStreamUrl) : null;
+    const nextMusic = parsedMusic && parsedMusic.ok ? parsedMusic.source : null;
+
+    setEnvironment((prev) => ({
+      ...prev,
+      backgroundId: (data.sceneId as BackgroundId) || prev.backgroundId,
+      music: nextMusic !== undefined ? nextMusic : prev.music,
+      ambience: {
+        ...prev.ambience,
+        presetId: (data.soundscapeId as AmbientPresetId) || prev.ambience.presetId,
+      },
+      updatedAt: data.updatedAt ? new Date(data.updatedAt).getTime() : prev.updatedAt,
+      updatedByUserId: data.updatedByUserId || prev.updatedByUserId,
+    }));
+  }, []);
+
+  const reloadEnvironment = useCallback(async () => {
+    const slug = optionsRef.current?.roomSlug;
+    if (!slug) return;
+    try {
+      const data = await studyRoomRepository.getRoomEnvironment(slug);
+      applyServerSnapshot(data);
+    } catch {
+      // Fall back gracefully to local state
+    }
+  }, [applyServerSnapshot]);
 
   // Initial load from server environment service if roomSlug provided
   useEffect(() => {
@@ -36,23 +87,11 @@ export function useSharedEnvironment(
     if (!slug) return;
 
     let ignore = false;
-    void fetch(`/api/studyroom/${slug}/environment`)
-      .then((res) => (res.ok ? res.json() : null))
+    void studyRoomRepository
+      .getRoomEnvironment(slug)
       .then((data) => {
         if (!ignore && data) {
-          const parsedMusic = data.musicStreamUrl ? parseMusicUrl(data.musicStreamUrl) : null;
-          const nextMusic = parsedMusic && parsedMusic.ok ? parsedMusic.source : null;
-          setEnvironment((prev) => ({
-            ...prev,
-            backgroundId: (data.sceneId as BackgroundId) || prev.backgroundId,
-            music: nextMusic || prev.music,
-            ambience: {
-              ...prev.ambience,
-              presetId: (data.soundscapeId as AmbientPresetId) || prev.ambience.presetId,
-            },
-            updatedAt: data.updatedAt ? new Date(data.updatedAt).getTime() : prev.updatedAt,
-            updatedByUserId: data.updatedByUserId || prev.updatedByUserId,
-          }));
+          applyServerSnapshot(data);
         }
       })
       .catch(() => {
@@ -62,25 +101,53 @@ export function useSharedEnvironment(
     return () => {
       ignore = true;
     };
-  }, [options?.roomSlug]);
+  }, [options?.roomSlug, applyServerSnapshot]);
 
-  const persistServerEnvironment = (patch: {
-    sceneId?: string;
-    soundscapeId?: string | null;
-    musicStreamUrl?: string | null;
-  }) => {
-    const slug = optionsRef.current?.roomSlug;
-    const canControl = optionsRef.current?.canControlEnvironment;
-    if (!slug || !canControl) return;
+  // Realtime subscription for room.environment.updated events
+  useEffect(() => {
+    const roomId = options?.roomId;
+    const streamGeneration = options?.streamGeneration ?? 1;
+    if (!roomId || typeof realtime?.subscribe !== 'function') return;
 
-    void fetch(`/api/studyroom/${slug}/environment`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(patch),
-    }).catch(() => {
-      // Local state remains responsive
+    const channel = `room:${roomId}:g${streamGeneration}`;
+    const unsubscribe = realtime.subscribe(channel, (data: unknown) => {
+      const envelope = data as { type?: string; payload?: RoomEnvironmentSnapshotDTO };
+      if (envelope?.type === 'room.environment.updated' && envelope.payload) {
+        applyServerSnapshot(envelope.payload);
+      }
     });
-  };
+
+    return () => {
+      unsubscribe();
+    };
+  }, [options?.roomId, options?.streamGeneration, realtime, applyServerSnapshot]);
+
+  const persistServerEnvironment = useCallback(
+    async (patch: {
+      sceneId?: string;
+      soundscapeId?: string | null;
+      musicStreamUrl?: string | null;
+    }) => {
+      const slug = optionsRef.current?.roomSlug;
+      const canControl = optionsRef.current?.canControlEnvironment;
+      if (!slug || !canControl) return;
+
+      try {
+        const updated = await studyRoomRepository.updateRoomEnvironment(slug, {
+          ...patch,
+          expectedRevision: revisionRef.current,
+        });
+        setRevision(updated.revision);
+        revisionRef.current = updated.revision;
+      } catch (err: any) {
+        if (err?.status === 409) {
+          // 409 Conflict: Reload authoritative environment from server to realign local state
+          await reloadEnvironment();
+        }
+      }
+    },
+    [reloadEnvironment]
+  );
 
   const actions: SharedEnvironmentActions = useMemo(
     () => ({
@@ -94,7 +161,7 @@ export function useSharedEnvironment(
             updatedByUserId: adminUserId,
           };
         });
-        persistServerEnvironment({ sceneId: id });
+        void persistServerEnvironment({ sceneId: id });
       },
 
       setMusic(source: MusicSource | null) {
@@ -104,7 +171,7 @@ export function useSharedEnvironment(
           updatedAt: Date.now(),
           updatedByUserId: adminUserId,
         }));
-        persistServerEnvironment({ musicStreamUrl: source ? source.originalUrl : null });
+        void persistServerEnvironment({ musicStreamUrl: source ? source.originalUrl : null });
       },
 
       setAmbiencePreset(id: AmbientPresetId | null) {
@@ -118,7 +185,7 @@ export function useSharedEnvironment(
           updatedAt: Date.now(),
           updatedByUserId: adminUserId,
         }));
-        persistServerEnvironment({ soundscapeId: id });
+        void persistServerEnvironment({ soundscapeId: id });
       },
 
       setAmbiencePlaying(isPlaying: boolean) {
@@ -150,11 +217,13 @@ export function useSharedEnvironment(
         }));
       },
     }),
-    [adminUserId]
+    [adminUserId, persistServerEnvironment]
   );
 
   return {
     environment,
     actions,
+    revision,
+    reloadEnvironment,
   };
 }

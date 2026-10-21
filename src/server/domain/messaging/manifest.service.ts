@@ -141,8 +141,16 @@ export const manifestService = {
           select: {
             id: true,
             status: true,
+            realtimeStream: {
+              select: { generation: true },
+            },
             channel: {
-              select: { id: true },
+              select: {
+                id: true,
+                realtimeStream: {
+                  select: { generation: true },
+                },
+              },
             },
           },
         },
@@ -160,19 +168,20 @@ export const manifestService = {
 
       if (activeLease) {
         const room = roomParticipant.room;
-        const gen = activeLease.generation || roomParticipant.generation || 1;
+        const roomGen = room.realtimeStream?.generation ?? 1;
         addChannel({
-          channel: `room:${room.id}:g${gen}`,
+          channel: `room:${room.id}:g${roomGen}`,
           scopeType: 'room',
           entityId: room.id,
-          generation: gen,
+          generation: roomGen,
         });
         if (room.channel) {
+          const chatGen = room.channel.realtimeStream?.generation ?? roomGen;
           addChannel({
-            channel: `roomchat:${room.channel.id}:g${gen}`,
+            channel: `roomchat:${room.channel.id}:g${chatGen}`,
             scopeType: 'roomchat',
             entityId: room.channel.id,
-            generation: gen,
+            generation: chatGen,
           });
         }
       }

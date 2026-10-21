@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getUser } from '@/src/server/infrastructure/auth/getUser';
+import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
 import { studyRoomRepo } from '@/src/server/infrastructure/db/postgres/repositories/studyRoom.repo';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { roomDiscoveryService } from '@/src/server/domain/studyroom/room-discovery.service';
@@ -149,6 +150,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (isSharedGuestAccount(user)) {
+      return NextResponse.json(
+        { error: 'Guest accounts cannot join or manage study rooms', code: 'GUEST_RESTRICTED' },
+        { status: 403 }
+      );
+    }
+
     const userId = user.id;
     const body = await req.json().catch(() => ({}));
     const { action, roomId } = body ?? {};
@@ -161,119 +169,26 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Room ID is required' }, { status: 400 });
       }
 
-      if (body.tabId) {
-        try {
-          const joinResult = await studyRoomService.joinRoom({
-            userId,
-            roomId: cleanRoomId,
-            tabId: body.tabId,
-            requestId: body.requestId,
-          });
+      try {
+        const joinResult = await studyRoomService.joinRoom({
+          userId,
+          roomId: cleanRoomId,
+          tabId: body.tabId,
+          requestId: body.requestId,
+        });
 
-          studyRoomCache.cachedRooms = null;
-          studyRoomCache.cachedRoomsExpiresAt = 0;
-          studyRoomCache.cachedRoomsEtag = '';
+        studyRoomCache.cachedRooms = null;
+        studyRoomCache.cachedRoomsExpiresAt = 0;
+        studyRoomCache.cachedRoomsEtag = '';
 
-          return NextResponse.json(joinResult);
-        } catch (err: unknown) {
-          if (err instanceof StudyRoomError) {
-            return NextResponse.json(err.toJSON(), { status: err.status });
-          }
-          return NextResponse.json({ error: (err as Error).message || 'Failed to join room' }, { status: 400 });
+        return NextResponse.json(joinResult);
+      } catch (err: unknown) {
+        if (err instanceof StudyRoomError) {
+          return NextResponse.json(err.toJSON(), { status: err.status });
         }
+        throw err;
       }
-
-      const result = await prisma.$transaction(async (tx) => {
-        const targetRoom = await tx.studyRoom.findUnique({
-          where: { id: cleanRoomId },
-        });
-        if (!targetRoom) {
-          return { error: 'Room not found', status: 404 };
-        }
-
-        // Authoritative eligibility check: closed/draft rooms reject joiners
-        if (targetRoom.status && !['active', 'open'].includes(targetRoom.status.toLowerCase())) {
-          return { error: 'Room is closed', status: 403 };
-        }
-
-        // Restriction check (kicks and bans)
-        if (tx.roomRestriction?.findUnique) {
-          const restriction = await tx.roomRestriction.findUnique({
-            where: {
-              studyRoomId_userId: {
-                studyRoomId: cleanRoomId,
-                userId,
-              },
-            },
-          });
-          if (restriction && restriction.action === 'BAN' && (!restriction.expiresAt || restriction.expiresAt > new Date())) {
-            return { error: 'User is restricted from this room', status: 403 };
-          }
-        }
-
-        // Cohort enrollment check
-        if (targetRoom.cohortId && tx.cohortMember?.findUnique) {
-          const membership = await tx.cohortMember.findUnique({
-            where: {
-              cohortId_userId: {
-                cohortId: targetRoom.cohortId,
-                userId,
-              },
-            },
-          });
-          if (!membership) {
-            return { error: 'Cohort enrollment required', status: 403 };
-          }
-        }
-
-        const prev = await tx.roomParticipant.findFirst({
-          where: { userId },
-        });
-
-        // User is already in this exact room
-        if (prev?.studyRoomId === cleanRoomId) {
-          return { success: true, message: 'Already in room' };
-        }
-
-        // Leave any previous room
-        if (prev) {
-          await tx.roomParticipant.delete({
-            where: { id: prev.id },
-          });
-          if (prev.studyRoomId) {
-            await tx.studyRoom.update({
-              where: { id: prev.studyRoomId },
-              data: { onlineCount: { decrement: 1 } },
-            });
-          }
-        }
-
-        // Join the new room
-        await tx.roomParticipant.create({
-          data: {
-            userId,
-            studyRoomId: cleanRoomId,
-          },
-        });
-        await tx.studyRoom.update({
-          where: { id: cleanRoomId },
-          data: { onlineCount: { increment: 1 } },
-        });
-
-        return { success: true };
-      });
-
-      if ('error' in result && result.error) {
-        return NextResponse.json({ error: result.error }, { status: result.status });
-      }
-
-      // Invalidate micro-cache on room state update (join)
-      studyRoomCache.cachedRooms = null;
-      studyRoomCache.cachedRoomsExpiresAt = 0;
-      studyRoomCache.cachedRoomsEtag = '';
-
-      return NextResponse.json(result);
-    } else if (cleanAction === 'renew') {
+    } else if (cleanAction === 'renew' || cleanAction === 'renew_lease') {
       const { generation, tabId } = body;
       if (typeof generation !== 'number' || !tabId || !cleanRoomId) {
         return NextResponse.json({ error: 'tabId, roomId, and generation are required for renewal' }, { status: 400 });
@@ -292,12 +207,13 @@ export async function POST(req: Request) {
 
       return NextResponse.json(renewResult);
     } else if (cleanAction === 'leave') {
-      if (body.tabId) {
+      try {
         const leaveResult = await studyRoomService.leaveRoom({
           userId,
           roomId: cleanRoomId || undefined,
           tabId: body.tabId,
-          global: body.global === true,
+          generation: typeof body.generation === 'number' ? body.generation : undefined,
+          global: body.global === true || !body.tabId,
         });
 
         studyRoomCache.cachedRooms = null;
@@ -305,39 +221,12 @@ export async function POST(req: Request) {
         studyRoomCache.cachedRoomsEtag = '';
 
         return NextResponse.json(leaveResult);
-      }
-
-      const result = await prisma.$transaction(async (tx) => {
-        const existing = await tx.roomParticipant.findFirst({
-          where: { userId },
-        });
-        if (!existing) {
-          return { error: 'Not in a room', status: 400 };
+      } catch (err: unknown) {
+        if (err instanceof StudyRoomError) {
+          return NextResponse.json(err.toJSON(), { status: err.status });
         }
-
-        await tx.roomParticipant.delete({
-          where: { id: existing.id },
-        });
-        if (existing.studyRoomId) {
-          await tx.studyRoom.update({
-            where: { id: existing.studyRoomId },
-            data: { onlineCount: { decrement: 1 } },
-          });
-        }
-
-        return { success: true };
-      });
-
-      if ('error' in result && result.error) {
-        return NextResponse.json({ error: result.error }, { status: result.status });
+        throw err;
       }
-
-      // Invalidate micro-cache on room state update (leave)
-      studyRoomCache.cachedRooms = null;
-      studyRoomCache.cachedRoomsExpiresAt = 0;
-      studyRoomCache.cachedRoomsEtag = '';
-
-      return NextResponse.json(result);
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });

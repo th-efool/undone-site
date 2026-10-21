@@ -76,6 +76,14 @@ export interface LeaveRoomResult {
   remainingLeases?: number;
 }
 
+export interface LeaveRoomParams {
+  userId: string;
+  roomId?: string;
+  tabId?: string;
+  generation?: number;
+  global?: boolean;
+}
+
 export const LEASE_DURATION_MS = 90 * 1000; // 90 seconds
 export const LEASE_RENEWAL_INTERVAL_MS = 30 * 1000; // 30 seconds
 
@@ -174,11 +182,24 @@ export const studyRoomService = {
    * Does not expose public cache headers.
    */
   async getRoomRoster(roomId: string, _userId?: string): Promise<RoomRosterMember[]> {
-    void _userId;
     const now = new Date();
 
     const room = await findRoomByIdOrSlug(prisma.studyRoom, roomId);
-    const actualRoomId = room?.id || roomId;
+    if (!room) {
+      throw new RoomNotFoundError('Study room not found');
+    }
+    const actualRoomId = room.id;
+
+    if (_userId && studyroomPolicy && typeof studyroomPolicy.resolveRoomEligibility === 'function') {
+      const eligibility = await studyroomPolicy.resolveRoomEligibility(
+        room as unknown as RoomEntity,
+        _userId,
+        false
+      );
+      if (!eligibility.eligible && eligibility.reason !== 'ROOM_FULL') {
+        throw new RoomForbiddenError('Not authorized to view room roster');
+      }
+    }
 
     // Query active participants who have at least one non-expired lease
     const participants = await prisma.roomParticipant.findMany({
@@ -271,6 +292,43 @@ export const studyRoomService = {
     const { userId, roomId } = params;
     const tabId = params.tabId || `tab-${randomUUID()}`;
 
+    // 0. Idempotency Check: if requestId provided, check if ROOM_JOIN/ROOM_SWITCH was already recorded
+    if (params.requestId && prisma.roomAuditLog?.findFirst) {
+      const existingAudit = await prisma.roomAuditLog.findFirst({
+        where: {
+          clientRequestId: params.requestId,
+          actorId: userId,
+          action: { in: ['ROOM_JOIN', 'ROOM_SWITCH'] },
+        },
+      });
+
+      if (existingAudit && existingAudit.details) {
+        const details = existingAudit.details as Record<string, unknown>;
+        const targetRoomId = (details.roomId as string) || existingAudit.studyRoomId;
+
+        const currentPart = await prisma.roomParticipant.findUnique({
+          where: { userId },
+        });
+
+        if (currentPart && currentPart.studyRoomId === targetRoomId) {
+          return {
+            success: true,
+            roomId: targetRoomId,
+            slug: (details.slug as string) || targetRoomId,
+            generation: currentPart.generation,
+            isSwitch: false,
+            lease: {
+              leaseId: (details.leaseId as string) || `lease-${tabId}`,
+              tabId: (details.tabId as string) || tabId,
+              expiresAt:
+                (details.expiresAt as string) ||
+                new Date(Date.now() + LEASE_DURATION_MS).toISOString(),
+            },
+          };
+        }
+      }
+    }
+
     return prisma.$transaction(async (tx) => {
       // 1. Verify target room exists
       const targetRoom = await findRoomByIdOrSlug(tx.studyRoom, roomId);
@@ -314,9 +372,47 @@ export const studyRoomService = {
           if (eligibility.reason === 'DRAFT_RESTRICTED') {
             throw new RoomForbiddenError('Room is currently in draft');
           }
+          if (eligibility.reason === 'GUEST_RESTRICTED') {
+            throw new RoomForbiddenError('Guest accounts cannot join study rooms');
+          }
           throw new RoomForbiddenError(`Cannot join room: ${eligibility.reason}`);
         }
       }
+
+      // Query historical highest generation to guarantee monotonically increasing assignment epochs
+      let maxAuditGen = 0;
+      if (tx.roomAuditLog?.findFirst) {
+        const lastAudit = await tx.roomAuditLog.findFirst({
+          where: {
+            actorId: userId,
+            action: { in: ['ROOM_JOIN', 'ROOM_SWITCH'] },
+          },
+          orderBy: { createdAt: 'desc' },
+          select: { details: true },
+        });
+        if (
+          lastAudit?.details &&
+          typeof lastAudit.details === 'object' &&
+          'generation' in lastAudit.details &&
+          typeof (lastAudit.details as Record<string, unknown>).generation === 'number'
+        ) {
+          maxAuditGen = (lastAudit.details as Record<string, unknown>).generation as number;
+        }
+      }
+
+      const lastLease = tx.roomLease?.findFirst
+        ? await tx.roomLease.findFirst({
+            where: { userId },
+            orderBy: { generation: 'desc' },
+            select: { generation: true },
+          })
+        : null;
+
+      const maxHistoricalGen = Math.max(
+        lastLease?.generation ?? 0,
+        currentParticipant?.generation ?? 0,
+        maxAuditGen
+      );
 
       let isSwitch = false;
       let generation = 1;
@@ -328,7 +424,7 @@ export const studyRoomService = {
         } else {
           // Different room: switch rooms! Increment generation and evict old room
           isSwitch = true;
-          generation = currentParticipant.generation + 1;
+          generation = Math.max(currentParticipant.generation, maxHistoricalGen) + 1;
           const oldRoomId = currentParticipant.studyRoomId;
 
           // Deterministic lock order on switch: sort room IDs to prevent deadlocks
@@ -358,7 +454,52 @@ export const studyRoomService = {
             where: { id: oldRoomId },
             data: { onlineCount: oldRoomActiveUsers.length },
           });
+
+          // Emit outbox event for old room left
+          if (tx.realtimeStream?.findUnique && tx.realtimeEvent?.create) {
+            let oldStream = await tx.realtimeStream.findUnique({
+              where: { studyRoomId: oldRoomId },
+            });
+            if (oldStream) {
+              if (tx.realtimeStream?.update) {
+                oldStream = await tx.realtimeStream.update({
+                  where: { id: oldStream.id },
+                  data: { eventCounter: { increment: 1 } },
+                });
+              }
+              const leftEventId = randomUUID();
+              await tx.realtimeEvent.create({
+                data: {
+                  streamId: oldStream.id,
+                  sequence: oldStream.eventCounter,
+                  eventId: leftEventId,
+                  schemaVersion: 1,
+                  type: 'room.participant.left',
+                  generation: oldStream.generation,
+                  entityId: userId,
+                  payload: {
+                    userId,
+                    roomId: oldRoomId,
+                    reason: 'SWITCHED_ROOM',
+                    onlineCount: oldRoomActiveUsers.length,
+                    occurredAt: now.toISOString(),
+                  },
+                },
+              });
+              if (tx.realtimeDelivery?.create) {
+                await tx.realtimeDelivery.create({
+                  data: {
+                    eventId: leftEventId,
+                    destination: `room:${oldRoomId}:g${oldStream.generation}`,
+                    status: 'PENDING',
+                  },
+                });
+              }
+            }
+          }
         }
+      } else {
+        generation = maxHistoricalGen > 0 ? maxHistoricalGen + 1 : 1;
       }
 
       // 4. Upsert RoomParticipant with current generation
@@ -413,6 +554,81 @@ export const studyRoomService = {
         where: { id: targetRoom.id },
         data: { onlineCount: activeUsers.length },
       });
+
+      // 7. Emit outbox event for joined / switch
+      if (tx.realtimeStream?.findUnique && tx.realtimeEvent?.create) {
+        let stream = await tx.realtimeStream.findUnique({
+          where: { studyRoomId: targetRoom.id },
+        });
+        if (!stream && tx.realtimeStream?.create) {
+          stream = await tx.realtimeStream.create({
+            data: {
+              studyRoomId: targetRoom.id,
+              generation: 1,
+              eventCounter: 1,
+            },
+          });
+        } else if (stream && tx.realtimeStream?.update) {
+          stream = await tx.realtimeStream.update({
+            where: { id: stream.id },
+            data: { eventCounter: { increment: 1 } },
+          });
+        }
+        if (stream) {
+          const joinEventId = randomUUID();
+          await tx.realtimeEvent.create({
+            data: {
+              streamId: stream.id,
+              sequence: stream.eventCounter,
+              eventId: joinEventId,
+              schemaVersion: 1,
+              type: isSwitch ? 'room.assignment.changed' : 'room.participant.joined',
+              generation: stream.generation,
+              entityId: userId,
+              clientRequestId: params.requestId ?? null,
+              payload: {
+                userId,
+                roomId: targetRoom.id,
+                tabId,
+                generation,
+                isSwitch,
+                onlineCount: activeUsers.length,
+                occurredAt: now.toISOString(),
+              },
+            },
+          });
+          if (tx.realtimeDelivery?.create) {
+            await tx.realtimeDelivery.create({
+              data: {
+                eventId: joinEventId,
+                destination: `room:${targetRoom.id}:g${stream.generation}`,
+                status: 'PENDING',
+              },
+            });
+          }
+        }
+      }
+
+      // 8. Record RoomAuditLog for join / switch
+      if (tx.roomAuditLog?.create) {
+        await tx.roomAuditLog.create({
+          data: {
+            studyRoomId: targetRoom.id,
+            actorId: userId,
+            action: isSwitch ? 'ROOM_SWITCH' : 'ROOM_JOIN',
+            clientRequestId: params.requestId ?? null,
+            details: {
+              roomId: targetRoom.id,
+              slug: targetRoom.slug || targetRoom.id,
+              generation,
+              isSwitch,
+              leaseId: lease.id,
+              tabId,
+              expiresAt: lease.expiresAt.toISOString(),
+            },
+          },
+        });
+      }
 
       return {
         success: true,
@@ -488,17 +704,12 @@ export const studyRoomService = {
   },
 
   /**
-   * Leave room operation.
+   * Leave room operation with epoch and room fencing.
    * If global: removes user from participant list and revokes all leases.
    * If tab close: removes only that tab's lease; if other tabs remain, user stays in room.
    */
-  async leaveRoom(params: {
-    userId: string;
-    roomId?: string;
-    tabId?: string;
-    global?: boolean;
-  }): Promise<LeaveRoomResult> {
-    const { userId, tabId, global = false } = params;
+  async leaveRoom(params: LeaveRoomParams): Promise<LeaveRoomResult> {
+    const { userId, tabId, generation, global = false } = params;
 
     return prisma.$transaction(async (tx) => {
       const participant = await tx.roomParticipant.findUnique({
@@ -509,14 +720,23 @@ export const studyRoomService = {
         return { success: true, left: true, remainingLeases: 0 };
       }
 
-      let actualRoomId = participant.studyRoomId;
-      if (params.roomId) {
-        const room = await findRoomByIdOrSlug(tx.studyRoom, params.roomId);
-        if (room) actualRoomId = room.id;
+      // Generation fencing: if generation passed and doesn't match current participant generation, ignore as stale no-op
+      if (typeof generation === 'number' && participant.generation !== generation) {
+        return { success: true, left: false, remainingLeases: 0 };
       }
 
-      const roomId = actualRoomId;
+      // RoomId fencing: if roomId specified and doesn't match current participant room, ignore as stale no-op
+      if (params.roomId) {
+        const room = await findRoomByIdOrSlug(tx.studyRoom, params.roomId);
+        if (room && room.id !== participant.studyRoomId) {
+          return { success: true, left: false, remainingLeases: 0 };
+        }
+      }
+
+      const roomId = participant.studyRoomId;
       const now = new Date();
+      let left = false;
+      let remainingLeases = 0;
 
       if (global || !tabId) {
         // Explicit global leave: delete all leases and the participant row
@@ -528,42 +748,30 @@ export const studyRoomService = {
           where: { userId },
         });
 
-        // Recalculate room onlineCount
-        const activeUsers = await tx.roomLease.groupBy({
-          by: ['userId'],
+        left = true;
+        remainingLeases = 0;
+      } else {
+        // Single tab closed: remove only that tab's lease
+        await tx.roomLease.deleteMany({
+          where: { userId, tabId },
+        });
+
+        // Count remaining active leases for this user in this room
+        remainingLeases = await tx.roomLease.count({
           where: {
+            userId,
             studyRoomId: roomId,
             expiresAt: { gt: now },
           },
         });
 
-        await tx.studyRoom.update({
-          where: { id: roomId },
-          data: { onlineCount: activeUsers.length },
-        });
-
-        return { success: true, left: true, remainingLeases: 0 };
-      }
-
-      // Single tab closed: remove only that tab's lease
-      await tx.roomLease.deleteMany({
-        where: { userId, tabId },
-      });
-
-      // Count remaining active leases for this user in this room
-      const remainingLeases = await tx.roomLease.count({
-        where: {
-          userId,
-          studyRoomId: roomId,
-          expiresAt: { gt: now },
-        },
-      });
-
-      if (remainingLeases === 0) {
-        // Last tab closed: remove participant row
-        await tx.roomParticipant.delete({
-          where: { userId },
-        });
+        if (remainingLeases === 0) {
+          // Last tab closed: remove participant row
+          await tx.roomParticipant.delete({
+            where: { userId },
+          });
+          left = true;
+        }
       }
 
       // Recalculate room onlineCount
@@ -580,9 +788,52 @@ export const studyRoomService = {
         data: { onlineCount: activeUsers.length },
       });
 
+      // Emit transactional outbox event on participant left
+      if (left && tx.realtimeStream?.findUnique && tx.realtimeEvent?.create) {
+        let stream = await tx.realtimeStream.findUnique({
+          where: { studyRoomId: roomId },
+        });
+        if (stream) {
+          if (tx.realtimeStream?.update) {
+            stream = await tx.realtimeStream.update({
+              where: { id: stream.id },
+              data: { eventCounter: { increment: 1 } },
+            });
+          }
+          const leftEventId = randomUUID();
+          await tx.realtimeEvent.create({
+            data: {
+              streamId: stream.id,
+              sequence: stream.eventCounter,
+              eventId: leftEventId,
+              schemaVersion: 1,
+              type: 'room.participant.left',
+              generation: stream.generation,
+              entityId: userId,
+              payload: {
+                userId,
+                roomId,
+                reason: global ? 'EXPLICIT_LEAVE' : 'TAB_CLOSED',
+                onlineCount: activeUsers.length,
+                occurredAt: now.toISOString(),
+              },
+            },
+          });
+          if (tx.realtimeDelivery?.create) {
+            await tx.realtimeDelivery.create({
+              data: {
+                eventId: leftEventId,
+                destination: `room:${roomId}:g${stream.generation}`,
+                status: 'PENDING',
+              },
+            });
+          }
+        }
+      }
+
       return {
         success: true,
-        left: remainingLeases === 0,
+        left,
         remainingLeases,
       };
     });
@@ -591,33 +842,44 @@ export const studyRoomService = {
   /**
    * Periodic reconciliation worker task.
    * Cleans up expired leases, evicts ghost participants, and repairs online counts.
+   * Uses bounded batches and a grace period buffer to prevent premature eviction during renewals.
    */
-  async reconcileExpiredLeases(): Promise<{
+  async reconcileExpiredLeases(options?: {
+    batchSize?: number;
+    gracePeriodMs?: number;
+  }): Promise<{
     evictedLeasesCount: number;
     evictedParticipantsCount: number;
     updatedRoomsCount: number;
+    durationMs: number;
   }> {
-    const now = new Date();
+    const startTime = Date.now();
+    const gracePeriodMs = options?.gracePeriodMs ?? 5000;
+    const cutoff = new Date(Date.now() - gracePeriodMs);
 
     return prisma.$transaction(async (tx) => {
-      // 1. Delete all expired leases
+      // 1. Delete expired leases past the grace cutoff
       const deleteResult = await tx.roomLease.deleteMany({
         where: {
-          expiresAt: { lte: now },
+          expiresAt: { lte: cutoff },
         },
       });
 
       // 2. Find all participants who now have zero active leases
-      const allParticipants = await tx.roomParticipant.findMany({
-        select: { id: true, userId: true, studyRoomId: true },
-      });
+      const allParticipants =
+        (await tx.roomParticipant.findMany({
+          select: { id: true, userId: true, studyRoomId: true },
+        })) || [];
 
-      const activeLeases = await tx.roomLease.findMany({
-        where: { expiresAt: { gt: now } },
-        select: { userId: true, studyRoomId: true },
-      });
+      const activeLeases =
+        (await tx.roomLease.findMany({
+          where: { expiresAt: { gt: cutoff } },
+          select: { userId: true, studyRoomId: true },
+        })) || [];
 
-      const activeUserRoomSet = new Set(activeLeases.map((l) => `${l.userId}:${l.studyRoomId}`));
+      const activeUserRoomSet = new Set(
+        activeLeases.map((l) => `${l.userId}:${l.studyRoomId}`)
+      );
       const ghostParticipants = allParticipants.filter(
         (p) => !activeUserRoomSet.has(`${p.userId}:${p.studyRoomId}`)
       );
@@ -628,33 +890,245 @@ export const studyRoomService = {
             id: { in: ghostParticipants.map((p) => p.id) },
           },
         });
+
+        // Emit outbox events for ghost participants evicted
+        if (tx.realtimeStream?.findUnique && tx.realtimeEvent?.create && tx.realtimeDelivery?.create) {
+          for (const p of ghostParticipants) {
+            let stream = await tx.realtimeStream.findUnique({
+              where: { studyRoomId: p.studyRoomId },
+            });
+            if (stream) {
+              if (tx.realtimeStream?.update) {
+                stream = await tx.realtimeStream.update({
+                  where: { id: stream.id },
+                  data: { eventCounter: { increment: 1 } },
+                });
+              }
+              const leftEventId = randomUUID();
+              await tx.realtimeEvent.create({
+                data: {
+                  streamId: stream.id,
+                  sequence: stream.eventCounter,
+                  eventId: leftEventId,
+                  schemaVersion: 1,
+                  type: 'room.participant.left',
+                  generation: stream.generation,
+                  entityId: p.userId,
+                  payload: {
+                    userId: p.userId,
+                    roomId: p.studyRoomId,
+                    reason: 'LEASE_EXPIRED',
+                    occurredAt: new Date().toISOString(),
+                  },
+                },
+              });
+              await tx.realtimeDelivery.create({
+                data: {
+                  eventId: leftEventId,
+                  destination: `room:${p.studyRoomId}:g${stream.generation}`,
+                  status: 'PENDING',
+                },
+              });
+            }
+          }
+        }
       }
 
       // 3. Recalculate and repair onlineCount for all rooms
-      const allRooms = await tx.studyRoom.findMany({ select: { id: true } });
+      const allRooms = (await tx.studyRoom.findMany({ select: { id: true } })) || [];
       let updatedRoomsCount = 0;
 
       for (const room of allRooms) {
-        const activeUsers = await tx.roomLease.groupBy({
-          by: ['userId'],
-          where: {
-            studyRoomId: room.id,
-            expiresAt: { gt: now },
-          },
-        });
+        const activeUsers =
+          (await tx.roomLease.groupBy({
+            by: ['userId'],
+            where: {
+              studyRoomId: room.id,
+              expiresAt: { gt: cutoff },
+            },
+          })) || [];
 
         await tx.studyRoom.update({
           where: { id: room.id },
           data: { onlineCount: activeUsers.length },
         });
         updatedRoomsCount++;
+
+        // Emit room.roster.changed
+        if (tx.realtimeStream?.findUnique && tx.realtimeEvent?.create && tx.realtimeDelivery?.create) {
+          let stream = await tx.realtimeStream.findUnique({
+            where: { studyRoomId: room.id },
+          });
+          if (stream) {
+            if (tx.realtimeStream?.update) {
+              stream = await tx.realtimeStream.update({
+                where: { id: stream.id },
+                data: { eventCounter: { increment: 1 } },
+              });
+            }
+            const rosterEventId = randomUUID();
+            await tx.realtimeEvent.create({
+              data: {
+                streamId: stream.id,
+                sequence: stream.eventCounter,
+                eventId: rosterEventId,
+                schemaVersion: 1,
+                type: 'room.roster.changed',
+                generation: stream.generation,
+                entityId: room.id,
+                payload: {
+                  roomId: room.id,
+                  onlineCount: activeUsers.length,
+                  occurredAt: new Date().toISOString(),
+                },
+              },
+            });
+            await tx.realtimeDelivery.create({
+              data: {
+                eventId: rosterEventId,
+                destination: `room:${room.id}:g${stream.generation}`,
+                status: 'PENDING',
+              },
+            });
+          }
+        }
       }
 
       return {
         evictedLeasesCount: deleteResult.count,
         evictedParticipantsCount: ghostParticipants.length,
         updatedRoomsCount,
+        durationMs: Date.now() - startTime,
       };
     });
+  },
+
+  /**
+   * Synchronize room events delta or return snapshot if client cursor has drifted.
+   */
+  async syncRoomEvents(params: {
+    roomIdOrSlug: string;
+    userId: string;
+    clientSequence?: number;
+    limit?: number;
+  }): Promise<{
+    mode: 'SNAPSHOT' | 'DELTA';
+    roomId: string;
+    streamId: string;
+    currentSequence: number;
+    generation: number;
+    roster?: RoomRosterMember[];
+    room?: RoomEntity;
+    events?: Array<{
+      eventId: string;
+      sequence: number;
+      type: string;
+      generation: number;
+      entityId: string | null;
+      payload: Record<string, unknown>;
+      occurredAt: string;
+    }>;
+    serverTime: string;
+  }> {
+    const { roomIdOrSlug, userId, clientSequence, limit } = params;
+    const room = await findRoomByIdOrSlug(prisma.studyRoom, roomIdOrSlug);
+    if (!room) {
+      throw new RoomNotFoundError('Study room not found');
+    }
+
+    // Eligibility check
+    const eligibility = await studyroomPolicy.resolveRoomEligibility(
+      room as unknown as RoomEntity,
+      userId,
+      false
+    );
+    if (!eligibility.eligible && eligibility.reason !== 'ROOM_FULL') {
+      throw new RoomForbiddenError('Not authorized to access room events');
+    }
+
+    // Active lease check: must have active lease or be owner
+    const roleRes = await studyroomPolicy.resolveUserRoomRole(room as unknown as RoomEntity, userId);
+    if (!roleRes.isOwner) {
+      const activeLease = await prisma.roomLease.findFirst({
+        where: {
+          studyRoomId: room.id,
+          userId,
+          expiresAt: { gt: new Date() },
+        },
+      });
+      if (!activeLease) {
+        throw new RoomForbiddenError('Active room lease required to sync room events');
+      }
+    }
+
+    // Locate or create stream for room
+    let stream = await prisma.realtimeStream.findUnique({
+      where: { studyRoomId: room.id },
+    });
+
+    if (!stream) {
+      try {
+        stream = await prisma.realtimeStream.create({
+          data: { studyRoomId: room.id, generation: 1, eventCounter: 0 },
+        });
+      } catch {
+        stream = await prisma.realtimeStream.findUnique({
+          where: { studyRoomId: room.id },
+        });
+      }
+    }
+
+    const currentSequence = stream?.eventCounter ?? 0;
+    const streamGeneration = stream?.generation ?? 1;
+    const maxDeltaGap = 150;
+
+    const isResetRequired =
+      clientSequence === undefined ||
+      clientSequence <= 0 ||
+      clientSequence > currentSequence ||
+      currentSequence - clientSequence > maxDeltaGap;
+
+    if (isResetRequired || !stream) {
+      const roster = await this.getRoomRoster(room.id, userId);
+      return {
+        mode: 'SNAPSHOT',
+        roomId: room.id,
+        streamId: stream?.id || '',
+        currentSequence,
+        generation: streamGeneration,
+        roster,
+        room: room as unknown as RoomEntity,
+        serverTime: new Date().toISOString(),
+      };
+    }
+
+    // Client within catchup window -> return delta events
+    const take = Math.min(200, Math.max(1, limit ?? 100));
+    const events = await prisma.realtimeEvent.findMany({
+      where: {
+        streamId: stream.id,
+        sequence: { gt: clientSequence },
+      },
+      take,
+      orderBy: { sequence: 'asc' },
+    });
+
+    return {
+      mode: 'DELTA',
+      roomId: room.id,
+      streamId: stream.id,
+      currentSequence,
+      generation: streamGeneration,
+      events: events.map((e) => ({
+        eventId: e.eventId,
+        sequence: e.sequence,
+        type: e.type,
+        generation: e.generation,
+        entityId: e.entityId,
+        payload: (e.payload as Record<string, unknown>) ?? {},
+        occurredAt: e.occurredAt.toISOString(),
+      })),
+      serverTime: new Date().toISOString(),
+    };
   },
 };

@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Crown, MicOff, MoreHorizontal, Send, Smile, UserPlus } from 'lucide-react';
+import { Crown, MoreHorizontal, Send, Smile, UserPlus } from 'lucide-react';
 import type { RoomParticipantView, Viewer } from '../../types';
 import { ParticipantAvatar } from '../../components/ParticipantAvatar';
 import ParticipantActionsMenu from './ParticipantActionsMenu';
+import { useRoomChat } from '../../hooks/useRoomChat';
 import styles from './RoomSocial.module.css';
 
 interface Props {
@@ -17,45 +18,9 @@ interface Props {
   canManageParticipants?: boolean;
   onRosterMutated?: () => void;
   cohortTitle?: string | null;
+  channelId?: string | null;
+  streamGeneration?: number;
 }
-
-interface ChatMessage {
-  id: string | number;
-  senderName: string;
-  avatarUrl?: string | null;
-  time: string;
-  text: string;
-  isCurrentUser: boolean;
-  reaction?: {
-    emoji: string;
-    count: number;
-  };
-}
-
-const DEFAULT_MESSAGES: ChatMessage[] = [
-  {
-    id: 1,
-    senderName: 'Aarav',
-    time: '5:12 PM',
-    text: 'just finished the 1st section this was actually fun 🚀',
-    isCurrentUser: false,
-    reaction: { emoji: '👍', count: 2 },
-  },
-  {
-    id: 2,
-    senderName: 'Priya',
-    time: '5:15 PM',
-    text: 'same! on to the next one?',
-    isCurrentUser: false,
-  },
-  {
-    id: 3,
-    senderName: 'You',
-    time: '5:16 PM',
-    text: 'yess 5 min break after this then continue 💪',
-    isCurrentUser: true,
-  },
-];
 
 export default function RoomSocial({
   participants,
@@ -67,9 +32,21 @@ export default function RoomSocial({
   canManageParticipants = false,
   onRosterMutated,
   cohortTitle,
+  channelId,
+  streamGeneration = 1,
 }: Props) {
   const [draft, setDraft] = useState('');
-  const [messages, setMessages] = useState<ChatMessage[]>(DEFAULT_MESSAGES);
+  const {
+    messages,
+    isLoading,
+    sendMessage,
+    retryMessage,
+    refreshMessages,
+  } = useRoomChat({
+    channelId,
+    streamGeneration,
+    enabled: Boolean(channelId),
+  });
 
   const invite = async () => {
     try {
@@ -94,16 +71,7 @@ export default function RoomSocial({
     const text = draft.trim();
     if (!text) return;
 
-    const newMessage: ChatMessage = {
-      id: Date.now(),
-      senderName: 'You',
-      avatarUrl: viewer.avatarUrl,
-      time: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
-      text,
-      isCurrentUser: true,
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
+    void sendMessage(text);
     setDraft('');
   };
 
@@ -181,11 +149,6 @@ export default function RoomSocial({
                       onRosterMutated={onRosterMutated}
                     />
                   )}
-                  {!isCurrent && (
-                    <span className={styles.micMuted} title="Microphone muted">
-                      <MicOff size={14} aria-hidden="true" />
-                    </span>
-                  )}
                 </li>
               );
             })}
@@ -208,36 +171,72 @@ export default function RoomSocial({
           <button
             type="button"
             className={styles.moreBtn}
-            aria-label="Chat options"
-            title="Chat options"
+            aria-label="Refresh messages"
+            title="Refresh messages"
+            onClick={() => void refreshMessages()}
           >
             <MoreHorizontal size={18} />
           </button>
         </header>
 
         <div className={styles.messageFeed} role="log" aria-label="Chat messages">
-          {messages.map((msg) => (
-            <div key={msg.id} className={styles.messageRow}>
-              <ParticipantAvatar
-                name={msg.senderName === 'You' ? viewer.displayName : msg.senderName}
-                src={msg.avatarUrl ?? (msg.isCurrentUser ? viewer.avatarUrl : null)}
-                size={32}
-              />
-              <div className={styles.messageContent}>
-                <div className={styles.messageMeta}>
-                  <strong className={styles.senderName}>{msg.senderName}</strong>
-                  <time className={styles.messageTime}>{msg.time}</time>
-                </div>
-                <p className={styles.messageBody}>{msg.text}</p>
-                {msg.reaction && (
-                  <div className={styles.reactionChip}>
-                    <span>{msg.reaction.emoji}</span>
-                    <span>{msg.reaction.count}</span>
-                  </div>
-                )}
-              </div>
+          {messages.length === 0 ? (
+            <div className={styles.emptyChat}>
+              {isLoading ? 'Loading chat...' : 'No messages yet. Say hello!'}
             </div>
-          ))}
+          ) : (
+            messages.map((msg) => {
+              const isCurrentUser =
+                Boolean(viewer.userId) &&
+                (msg.authorId === viewer.userId || msg.author?.id === viewer.userId);
+              const senderName = isCurrentUser
+                ? 'You'
+                : msg.author?.name || msg.author?.username || 'Participant';
+              const avatarSrc = isCurrentUser
+                ? viewer.avatarUrl || msg.author?.image
+                : msg.author?.image;
+              const timeDisplay = msg.createdAt
+                ? new Date(msg.createdAt).toLocaleTimeString([], {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  })
+                : '';
+
+              return (
+                <div key={msg.id} className={styles.messageRow}>
+                  <ParticipantAvatar
+                    name={senderName === 'You' ? viewer.displayName : senderName}
+                    src={avatarSrc}
+                    size={32}
+                  />
+                  <div className={styles.messageContent}>
+                    <div className={styles.messageMeta}>
+                      <strong className={styles.senderName}>{senderName}</strong>
+                      <time className={styles.messageTime}>{timeDisplay}</time>
+                      {msg.deliveryStatus === 'pending' && (
+                        <span className={styles.statusPending}>(sending...)</span>
+                      )}
+                    </div>
+                    <p className={styles.messageBody}>{msg.content}</p>
+                    {msg.deliveryStatus === 'failed' && (
+                      <div className={styles.statusFailed}>
+                        <span>Failed to send</span>
+                        {msg.clientRequestId && (
+                          <button
+                            type="button"
+                            className={styles.retryBtn}
+                            onClick={() => void retryMessage(msg.clientRequestId!)}
+                          >
+                            Retry
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
 
         <form className={styles.composerForm} onSubmit={handleSendMessage}>

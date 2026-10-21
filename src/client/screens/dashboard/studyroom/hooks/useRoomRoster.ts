@@ -3,10 +3,20 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { RoomRosterMemberDTO } from '@/src/shared/studyroom/contracts';
 import { STUDY_ROOM_LIMITS } from '@/src/shared/studyroom/contracts';
+import { useRealtime } from '@/src/client/realtime';
 
 export interface UseRoomRosterOptions {
   roomId: string;
   enabled?: boolean;
+  streamGeneration?: number;
+}
+
+function useSafeRealtime() {
+  try {
+    return useRealtime();
+  } catch {
+    return null;
+  }
 }
 
 export interface UseRoomRosterResult {
@@ -19,12 +29,14 @@ export interface UseRoomRosterResult {
 export function useRoomRoster({
   roomId,
   enabled = true,
+  streamGeneration = 1,
 }: UseRoomRosterOptions): UseRoomRosterResult {
   const [roster, setRoster] = useState<RoomRosterMemberDTO[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isMountedRef = useRef(true);
+  const realtime = useSafeRealtime();
 
   const fetchRoster = useCallback(async () => {
     if (!roomId || !enabled) return;
@@ -85,6 +97,27 @@ export function useRoomRoster({
       window.removeEventListener('focus', onFocus);
     };
   }, [enabled, roomId, fetchRoster]);
+
+  // Realtime subscription for immediate roster changes
+  useEffect(() => {
+    if (!enabled || !roomId || typeof realtime?.subscribe !== 'function') return;
+
+    const roomChannel = `room:${roomId}:g${streamGeneration}`;
+    const unsubscribe = realtime.subscribe(roomChannel, (data: unknown) => {
+      const envelope = data as { type?: string };
+      if (
+        envelope?.type === 'room.roster.changed' ||
+        envelope?.type === 'room.participant.joined' ||
+        envelope?.type === 'room.participant.left'
+      ) {
+        void fetchRoster();
+      }
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [enabled, roomId, streamGeneration, realtime, fetchRoster]);
 
   return {
     roster,
