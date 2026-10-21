@@ -57,8 +57,7 @@ export function AuthInput({
         {isSelect ? (
           <select
             className={`${styles.input} ${styles.select}`}
-            defaultValue=""
-            value={value}
+            value={value ?? ''}
             onChange={onChange}
             disabled={disabled}
             name={name}

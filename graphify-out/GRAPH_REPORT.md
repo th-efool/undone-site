@@ -1,7 +1,7 @@
 # Graph Report - undone-site  (2026-10-21)
 
 ## Corpus Check
-- 2362 files · ~2,115,139 words
+- 2362 files · ~2,115,674 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 357 file(s) not represented in the graph (top: .css 309, (none) 14, .xml 12)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `dae1fbe5`
+- Built from commit: `d237abee`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -3893,16 +3893,16 @@ Nodes (3): isStopEvent(), main(), readStdin()
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `next` connect `isSharedGuestAccount` to `cohort-creation/contracts.ts`, `postgres/client.ts`, `messaging/contracts.ts`, `createCohort.ts`, `[platform]/route.ts`, `public-cohort.ts`, `release.ts`, `QuestlineIcon`, `CurriculumStageView.tsx`, `WizardProvider.tsx`, `SourcesStep.tsx`, `CohortInteractionScreen.tsx`, `ExploreMobile.tsx`, `cohort-creation/contracts.ts`, `username-dm-studyroom.e2e.test.ts`, `SceneDock.tsx`, `ref_react`, `Explore`, `@testing-library/react`, `explore/models/index.ts`, `package.json`, `cohort/models/index.ts`, `message.ts`, `Footer/Footer.tsx`, `ExploreDesktop.tsx`, `import.ts`, `connectToMongoDB`, `feed/route.ts`, `HomeDesktop.tsx`, `auth`, `CommunityChat.tsx`, `cohort/models/index.ts`, `home/models/index.ts`, `message/models/index.ts`, `authForm.tsx`, `DMProfileSidebar.tsx`, `ChannelHub.tsx`, `Tooltip`, `EventsPage.tsx`, `useTheme`, `ConversationPreview`, `useMessage.ts`, `CreationExperience.tsx`, `youtube-import.service.ts`, `CohortWorkspace`, `02-ikigai/Ikigai.tsx`, `CommunitySidebar.tsx`, `DetailsStep.tsx`, `Overview.tsx`, `NotesMobile.tsx`, `message/models/index.ts`, `app/layout.tsx`, `github-import.service.ts`, `ref_lucide_react`, `returnTo.ts`, `usePlayback.ts`, `useRoomOrchestration.ts`, `NotesWorkspace.tsx`, `next-auth`, `landing/page.tsx`, `tab-titles.test.ts`, `ReviewWorkspace.tsx`, `getCreationOwner`, `@testing-library/react`, `ref_lucide_react`, `useExperience`, `CohortIntakeScreen.tsx`, `authShowcase.tsx`, `s3-browser-verification.mjs`, `metadata/route.ts`, `Cohort`, `landing/layout.tsx`, `(landing)/layout.tsx`, `heroFloatingContentIcons.tsx`, `NotesWorkspace.tsx`, `notion/route.ts`, `(landing)/page.tsx`, `DashboardShell.tsx`, `MessageBubble.tsx`, `PublicationSuccess.tsx`, `studyroom/route.ts`, `sitemap.ts`, `authData.ts`, `RecommendationResults.tsx`?**
-  _High betweenness centrality (0.054) - this node is a cross-community bridge._
+  _High betweenness centrality (0.048) - this node is a cross-community bridge._
 - **What connects `@babel/runtime`, `@excalidraw/excalidraw`, `@prisma/client` to the rest of the system?**
   _93 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `artifacts.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.06009615384615385 - nodes in this community are weakly interconnected._
 - **Why does `artifact()` connect `cohort-creation/contracts.ts` to `doctor.md`?**
-  _High betweenness centrality (0.039) - this node is a cross-community bridge._
+  _High betweenness centrality (0.044) - this node is a cross-community bridge._
 - **Should `cohort-creation/contracts.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.029428591861546165 - nodes in this community are weakly interconnected._
 - **Why does `Step 1: Run the pass` connect `doctor.md` to `cohort-creation/contracts.ts`?**
-  _High betweenness centrality (0.039) - this node is a cross-community bridge._
+  _High betweenness centrality (0.044) - this node is a cross-community bridge._
 - **Should `journey-goal-adapter.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.08525506638714186 - nodes in this community are weakly interconnected._
