@@ -120,6 +120,23 @@ export const rateLimiterService = {
     return this.checkRateLimit(`ratelimit:rep:${userId}`, 10, 3600);
   },
 
+  // Study room rate limiters (Phase 11)
+  async checkRoomJoinRateLimit(userId: string): Promise<RateLimitResult> {
+    return this.checkRateLimit(`ratelimit:room:join:${userId}`, 15, 60);
+  },
+
+  async checkRoomRenewRateLimit(userId: string, tabId: string): Promise<RateLimitResult> {
+    return this.checkRateLimit(`ratelimit:room:renew:${userId}:${tabId}`, 20, 60);
+  },
+
+  async checkRoomControlRateLimit(userId: string, roomId: string): Promise<RateLimitResult> {
+    return this.checkRateLimit(`ratelimit:room:ctrl:${userId}:${roomId}`, 30, 60);
+  },
+
+  async checkRoomGoalRateLimit(userId: string, roomId: string): Promise<RateLimitResult> {
+    return this.checkRateLimit(`ratelimit:room:goal:${userId}:${roomId}`, 20, 60);
+  },
+
   /**
    * Formats HTTP standard rate limit headers.
    */

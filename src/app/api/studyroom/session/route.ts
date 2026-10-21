@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/src/server/infrastructure/auth/getUser';
 import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
 import { sessionService, SessionConflictError } from '@/src/server/domain/studyroom/session.service';
+import { studyRoomMetricsService } from '@/src/server/domain/studyroom/studyroom-metrics.service';
+import { validateMutationOrigin, parseJsonWithLimit } from '@/src/app/api/studyroom/security';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,16 +32,37 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
+    const originCheck = validateMutationOrigin(req);
+    if (!originCheck.valid) {
+      return originCheck.errorResponse!;
+    }
+
     const user = await getUser();
-    if (!user?.id) {
+    if (!user || !user.id) {
+      studyRoomMetricsService.recordAuthorizationFailure('unauthorized');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if (isSharedGuestAccount(user)) {
+      studyRoomMetricsService.recordAuthorizationFailure('guest_restricted');
       return NextResponse.json({ error: 'Guest accounts cannot create study sessions' }, { status: 403 });
     }
 
-    const body = await req.json().catch(() => ({}));
+    const bodyParsed = await parseJsonWithLimit<Record<string, unknown>>(req);
+    if (bodyParsed.errorResponse) {
+      return bodyParsed.errorResponse;
+    }
+    const body = bodyParsed.data ?? {};
+
+    if (typeof body?.targetDurationSeconds === 'number') {
+      if (body.targetDurationSeconds < 60 || body.targetDurationSeconds > 14400) {
+        return NextResponse.json(
+          { error: 'targetDurationSeconds must be between 60 (1 min) and 14400 (4 hours)', code: 'INVALID_DURATION' },
+          { status: 400, headers: { 'Cache-Control': 'private, no-store' } }
+        );
+      }
+    }
+
     const targetDurationSeconds = typeof body?.targetDurationSeconds === 'number' ? body.targetDurationSeconds : 1500; // 25 min default
     const roomId = typeof body?.roomId === 'string' ? body.roomId : null;
 
@@ -62,16 +85,27 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
+    const originCheck = validateMutationOrigin(req);
+    if (!originCheck.valid) {
+      return originCheck.errorResponse!;
+    }
+
     const user = await getUser();
     if (!user?.id) {
+      studyRoomMetricsService.recordAuthorizationFailure('unauthorized');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     if (isSharedGuestAccount(user)) {
+      studyRoomMetricsService.recordAuthorizationFailure('guest_restricted');
       return NextResponse.json({ error: 'Guest accounts cannot modify study sessions' }, { status: 403 });
     }
 
-    const body = await req.json().catch(() => ({}));
+    const bodyParsed = await parseJsonWithLimit<Record<string, unknown>>(req);
+    if (bodyParsed.errorResponse) {
+      return bodyParsed.errorResponse;
+    }
+    const body = bodyParsed.data ?? {};
     const { action, sessionId } = body ?? {};
     const expectedVersion = typeof body?.expectedVersion === 'number' ? body.expectedVersion : undefined;
 
@@ -108,6 +142,7 @@ export async function PATCH(req: NextRequest) {
       error instanceof SessionConflictError ||
       (error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 409)
     ) {
+      studyRoomMetricsService.recordVersionConflict('session');
       return NextResponse.json(
         { error: error instanceof Error ? error.message : 'Version conflict' },
         { status: 409, headers: { 'Cache-Control': 'private, no-store' } }

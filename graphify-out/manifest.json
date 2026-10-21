@@ -2784,10 +2784,10 @@
     "semantic_hash": "8c4390a9f4eb93cabf00b42e89df09ad"
   },
   "src/app/api/studyroom/[roomSlug]/environment/route.ts": {
-    "mtime": 1792538116.4418676,
-    "seen": 1792556795.8300278,
-    "ast_hash": "4a2422f53a3cc04c3200d4b2e24bae8e",
-    "semantic_hash": "4a2422f53a3cc04c3200d4b2e24bae8e"
+    "mtime": 1792566903.8893273,
+    "seen": 1792567441.4700835,
+    "ast_hash": "855d3c838f85b5b8c45dc5b778ccfabd",
+    "semantic_hash": ""
   },
   "src/app/api/studyroom/[roomSlug]/lifecycle/route.ts": {
     "mtime": 1792544806.1382103,
@@ -2880,9 +2880,9 @@
     "semantic_hash": "b9d9595fb2136127e4daf046decc0442"
   },
   "src/app/api/studyroom/__tests__/route.test.ts": {
-    "mtime": 1792565997.1760497,
-    "seen": 1792566554.17585,
-    "ast_hash": "0d27a7c4e115d3a4196fb3fa6a97d232",
+    "mtime": 1792567125.8252711,
+    "seen": 1792567441.4750137,
+    "ast_hash": "91057c94ce390706c9a6707ec6919806",
     "semantic_hash": ""
   },
   "src/app/api/studyroom/__tests__/session-and-roster-routes.test.ts": {
@@ -2892,10 +2892,10 @@
     "semantic_hash": ""
   },
   "src/app/api/studyroom/__tests__/sprint-and-environment-routes.test.ts": {
-    "mtime": 1792538535.051576,
-    "seen": 1792556795.830056,
-    "ast_hash": "031d8779ea25d18fb301893d8399b9a4",
-    "semantic_hash": "031d8779ea25d18fb301893d8399b9a4"
+    "mtime": 1792567218.5688307,
+    "seen": 1792567441.4753559,
+    "ast_hash": "af15fd6c2c824cac735132e9d07f404c",
+    "semantic_hash": ""
   },
   "src/app/api/studyroom/cache.ts": {
     "mtime": 1792547061.4371903,
@@ -2922,15 +2922,15 @@
     "semantic_hash": "682af492bdeb0c6718fe922e392e9fbb"
   },
   "src/app/api/studyroom/route.ts": {
-    "mtime": 1792565669.036543,
-    "seen": 1792566554.1778557,
-    "ast_hash": "e5006a4ff0aa7320d09e2ebb60951f3a",
+    "mtime": 1792566875.3644302,
+    "seen": 1792567441.476867,
+    "ast_hash": "c72b16be7df448c90dd6a2e67c31463d",
     "semantic_hash": ""
   },
   "src/app/api/studyroom/session/route.ts": {
-    "mtime": 1792560685.3276668,
-    "seen": 1792561432.7840543,
-    "ast_hash": "d8ad4142068031630866ec254250b91f",
+    "mtime": 1792566952.8911023,
+    "seen": 1792567441.4771771,
+    "ast_hash": "6df0d419e8ac5a354e0ed7e143bff443",
     "semantic_hash": ""
   },
   "src/app/api/user/activity/__tests__/route.test.ts": {
@@ -9630,10 +9630,10 @@
     "semantic_hash": ""
   },
   "src/server/domain/messaging/rate-limiter.service.ts": {
-    "mtime": 1792538816.2226243,
-    "seen": 1792556795.8318117,
-    "ast_hash": "4f432fc434e88c51276d052c524cd6a6",
-    "semantic_hash": "4f432fc434e88c51276d052c524cd6a6"
+    "mtime": 1792566809.4069521,
+    "seen": 1792567441.895555,
+    "ast_hash": "6027a6e96ac110463bd406670e13fc93",
+    "semantic_hash": ""
   },
   "src/server/domain/messaging/sanitizer.ts": {
     "mtime": 1792538879.1694787,
@@ -9816,9 +9816,9 @@
     "semantic_hash": "5c9c42f8ee7740e5ad3e72aae6680af2"
   },
   "src/server/domain/studyroom/studyroom.service.ts": {
-    "mtime": 1792565636.4323502,
-    "seen": 1792566554.5559494,
-    "ast_hash": "1fcb92fe58626760ff704fdb6b26b0c1",
+    "mtime": 1792567011.7242835,
+    "seen": 1792567441.907044,
+    "ast_hash": "547d1ee071240dc3f076b6ec0dbf7428",
     "semantic_hash": ""
   },
   "src/server/imports/github/github-import.service.ts": {
@@ -14997,6 +14997,42 @@
     "mtime": 1792562962.1351943,
     "seen": 1792564249.1843674,
     "ast_hash": "c56f9ea03731c0cdc16f73ff65ee2981",
+    "semantic_hash": ""
+  },
+  "scripts/studyroom-readiness.ts": {
+    "mtime": 1792567023.2697823,
+    "seen": 1792567441.4128356,
+    "ast_hash": "021c20d044476be36d3bee2654e45080",
+    "semantic_hash": ""
+  },
+  "src/app/api/internal/studyroom/metrics/route.ts": {
+    "mtime": 1792566964.5429804,
+    "seen": 1792567441.4632983,
+    "ast_hash": "3d6544aace542aa338f7eda82c188268",
+    "semantic_hash": ""
+  },
+  "src/app/api/studyroom/[roomSlug]/status/route.ts": {
+    "mtime": 1792566882.572675,
+    "seen": 1792567441.4741616,
+    "ast_hash": "507855e6ca20f16c0789089e03bad831",
+    "semantic_hash": ""
+  },
+  "src/app/api/studyroom/security.ts": {
+    "mtime": 1792566825.3700044,
+    "seen": 1792567441.4768722,
+    "ast_hash": "76defa1842a3bd54b9f15bd0f6cc8006",
+    "semantic_hash": ""
+  },
+  "src/server/domain/studyroom/__tests__/phase11-security-and-readiness.test.ts": {
+    "mtime": 1792567236.1527004,
+    "seen": 1792567441.899646,
+    "ast_hash": "0a26c8e43738f3e3d9224e070008563a",
+    "semantic_hash": ""
+  },
+  "src/server/domain/studyroom/studyroom-metrics.service.ts": {
+    "mtime": 1792566817.8384745,
+    "seen": 1792567441.9067721,
+    "ast_hash": "aaf3a83e474fc768a04e9179f1cbb2b8",
     "semantic_hash": ""
   }
 }

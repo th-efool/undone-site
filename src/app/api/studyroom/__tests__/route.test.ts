@@ -27,6 +27,16 @@ vi.mock('@/src/server/infrastructure/db/postgres/repositories/studyRoom.repo', (
   },
 }));
 
+vi.mock('@/src/server/domain/messaging/rate-limiter.service', () => ({
+  rateLimiterService: {
+    checkRoomJoinRateLimit: vi.fn().mockResolvedValue({ allowed: true, limit: 15, remaining: 14, resetSeconds: 60 }),
+    checkRoomRenewRateLimit: vi.fn().mockResolvedValue({ allowed: true, limit: 20, remaining: 19, resetSeconds: 60 }),
+    checkRoomControlRateLimit: vi.fn().mockResolvedValue({ allowed: true, limit: 30, remaining: 29, resetSeconds: 60 }),
+    checkRoomGoalRateLimit: vi.fn().mockResolvedValue({ allowed: true, limit: 20, remaining: 19, resetSeconds: 60 }),
+    createHeaders: vi.fn(() => ({})),
+  },
+}));
+
 vi.mock('@/src/server/domain/studyroom/studyroom.service', () => ({
   studyRoomService: {
     joinRoom: hoisted.joinRoom,
