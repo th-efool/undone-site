@@ -35,7 +35,7 @@ export function deriveViewer({
   roomRole,
   capabilities,
 }: DeriveViewerParams): Viewer {
-  const userId = session?.user?.id || 'demo-viewer';
+  const userId = session?.user?.id || 'anonymous';
   const displayName = session?.user?.name || 'You';
   const avatarUrl = session?.user?.image || null;
 

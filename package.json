@@ -32,6 +32,7 @@
     "messaging:load": "node --import tsx scripts/load/messaging-load-harness.ts",
     "messaging:readiness": "node --import tsx --import ./scripts/register-root-environment.mjs scripts/messaging-readiness.ts",
     "studyroom:load": "node --import tsx scripts/load/studyroom-load-harness.ts",
+    "studyroom:gate": "node --conditions=react-server --import tsx scripts/verify-studyroom-release-gate.ts",
     "interaction:worker:diagnostics": "node --conditions=react-server --import tsx --import ./scripts/register-root-environment.mjs scripts/worker-diagnostics.ts",
     "interaction:load:measure": "node --import tsx scripts/load/measured-load-harness.ts",
     "interaction:readiness": "node --import tsx --import ./scripts/register-root-environment.mjs scripts/interaction-readiness.ts",

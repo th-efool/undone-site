@@ -726,9 +726,9 @@
     "semantic_hash": "b0c35b9ea02fcd27593ca6b4f3e06ff1"
   },
   "package.json": {
-    "mtime": 1792567643.5302649,
-    "seen": 1792568362.0078502,
-    "ast_hash": "4c2febee0416ccf454fd57802cbfdb8a",
+    "mtime": 1792568547.5494888,
+    "seen": 1792569067.7736127,
+    "ast_hash": "c91287fa5954d9481951e715e488938f",
     "semantic_hash": ""
   },
   "packages/interaction-builder/__tests__/action.service.test.ts": {
@@ -7398,9 +7398,9 @@
     "semantic_hash": "842d44a314277e1785f8abd3175cbd18"
   },
   "src/client/screens/dashboard/studyroom/room/components/RoomSocial.tsx": {
-    "mtime": 1792565734.8777325,
-    "seen": 1792566554.439121,
-    "ast_hash": "e41b1aeb2391bcc5a693b46475479ab8",
+    "mtime": 1792568657.761528,
+    "seen": 1792569068.2391565,
+    "ast_hash": "b90080c3c1a8f6e7febae9ae2ff5e288",
     "semantic_hash": ""
   },
   "src/client/screens/dashboard/studyroom/room/components/RoomSoundChip.tsx": {
@@ -7470,10 +7470,10 @@
     "semantic_hash": "3c07caebf733f9a51371db70ce8911c6"
   },
   "src/client/screens/dashboard/studyroom/utils/deriveParticipants.ts": {
-    "mtime": 1792554191.8204496,
-    "seen": 1792556795.8312168,
-    "ast_hash": "5572ec2deb393f09e7a3abb58c267eca",
-    "semantic_hash": "5572ec2deb393f09e7a3abb58c267eca"
+    "mtime": 1792568697.0146637,
+    "seen": 1792569068.2475605,
+    "ast_hash": "a286820f5cfdb54eb0b1583b7b97f022",
+    "semantic_hash": ""
   },
   "src/client/screens/dashboard/studyroom/utils/formatTime.ts": {
     "mtime": 1792489830.7724476,
@@ -15057,6 +15057,24 @@
     "mtime": 1792568142.8052938,
     "seen": 1792568362.8093517,
     "ast_hash": "b9b84b385a084c1a4385d9c72fdc2653",
+    "semantic_hash": ""
+  },
+  "scripts/verify-studyroom-release-gate.ts": {
+    "mtime": 1792568780.7481616,
+    "seen": 1792569067.8386059,
+    "ast_hash": "2894c8022b159b4463045e9f7599a703",
+    "semantic_hash": ""
+  },
+  "src/server/domain/studyroom/__tests__/phase13-rollout-and-release-gate.test.ts": {
+    "mtime": 1792568717.8913307,
+    "seen": 1792569068.5270865,
+    "ast_hash": "4f3632bdd516daaeb6ba28a8fe0898f4",
+    "semantic_hash": ""
+  },
+  "src/server/domain/studyroom/studyroom-rollout.service.ts": {
+    "mtime": 1792568897.7017174,
+    "seen": 1792569068.5372467,
+    "ast_hash": "efd1cedecaeaf00cdae897298b23ccab",
     "semantic_hash": ""
   }
 }
