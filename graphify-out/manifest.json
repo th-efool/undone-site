@@ -2880,10 +2880,10 @@
     "semantic_hash": "b9d9595fb2136127e4daf046decc0442"
   },
   "src/app/api/studyroom/__tests__/route.test.ts": {
-    "mtime": 1792555344.4955492,
-    "seen": 1792556795.8300521,
-    "ast_hash": "44950043fb1008fcd23cac7c05b16dc0",
-    "semantic_hash": "44950043fb1008fcd23cac7c05b16dc0"
+    "mtime": 1792565997.1760497,
+    "seen": 1792566554.17585,
+    "ast_hash": "0d27a7c4e115d3a4196fb3fa6a97d232",
+    "semantic_hash": ""
   },
   "src/app/api/studyroom/__tests__/session-and-roster-routes.test.ts": {
     "mtime": 1792561168.5477674,
@@ -2922,10 +2922,10 @@
     "semantic_hash": "682af492bdeb0c6718fe922e392e9fbb"
   },
   "src/app/api/studyroom/route.ts": {
-    "mtime": 1792555169.2664914,
-    "seen": 1792556795.8300638,
-    "ast_hash": "cc688787c09135627d0e187e7e0ba353",
-    "semantic_hash": "cc688787c09135627d0e187e7e0ba353"
+    "mtime": 1792565669.036543,
+    "seen": 1792566554.1778557,
+    "ast_hash": "e5006a4ff0aa7320d09e2ebb60951f3a",
+    "semantic_hash": ""
   },
   "src/app/api/studyroom/session/route.ts": {
     "mtime": 1792560685.3276668,
@@ -3630,10 +3630,10 @@
     "semantic_hash": "ccb930fbfc9aabc7716cdd734dc9dbd7"
   },
   "src/client/hooks/useUnifiedTasks.ts": {
-    "mtime": 1792539192.278027,
-    "seen": 1792556795.8302414,
-    "ast_hash": "8bec61ec0c2b3d6efdf56aeb810655a5",
-    "semantic_hash": "8bec61ec0c2b3d6efdf56aeb810655a5"
+    "mtime": 1792565816.2364566,
+    "seen": 1792566554.2119884,
+    "ast_hash": "dedb6539f97cc7f9b7e3265c1dccae0f",
+    "semantic_hash": ""
   },
   "src/client/interaction/hooks.ts": {
     "mtime": 1792231930.207424,
@@ -3846,10 +3846,10 @@
     "semantic_hash": "019a3da819fa4e0314e9b1da24e6d7aa"
   },
   "src/client/repositories/__tests__/tasksStorageAdapter.test.ts": {
-    "mtime": 1792539202.4955292,
-    "seen": 1792556795.8302953,
-    "ast_hash": "71c3a9caace67db3ce5dad452780a7fe",
-    "semantic_hash": "71c3a9caace67db3ce5dad452780a7fe"
+    "mtime": 1792565923.7438424,
+    "seen": 1792566554.225575,
+    "ast_hash": "75c9105739d204aab4c3c752bd7cc29a",
+    "semantic_hash": ""
   },
   "src/client/repositories/cohortRepository.ts": {
     "mtime": 1792231932.0424309,
@@ -3906,16 +3906,16 @@
     "semantic_hash": "f37fd5c55d85048aad9fd3705d525423"
   },
   "src/client/repositories/studyRoomRepository.ts": {
-    "mtime": 1792562847.9633036,
-    "seen": 1792564249.0378165,
-    "ast_hash": "911e5156ac409c48222e5ceb119d8e4d",
+    "mtime": 1792565681.4580228,
+    "seen": 1792566554.228184,
+    "ast_hash": "16659338de1150c437f2a11ebba39908",
     "semantic_hash": ""
   },
   "src/client/repositories/tasksStorageAdapter.ts": {
-    "mtime": 1792539182.6017778,
-    "seen": 1792556795.8303123,
-    "ast_hash": "fb9c00b2b8f4fe8e4334e4ce917351f4",
-    "semantic_hash": "fb9c00b2b8f4fe8e4334e4ce917351f4"
+    "mtime": 1792565793.520398,
+    "seen": 1792566554.2281883,
+    "ast_hash": "ee9271ca1f18cb15058b946a6e200e67",
+    "semantic_hash": ""
   },
   "src/client/screens/auth/Auth.tsx": {
     "mtime": 1792372725.4937477,
@@ -7062,15 +7062,15 @@
     "semantic_hash": "8b08e87e2807136a350e23a546fdac77"
   },
   "src/client/screens/dashboard/studyroom/__tests__/RoomScreen.shell.test.tsx": {
-    "mtime": 1792540655.2129176,
-    "seen": 1792556795.8311145,
-    "ast_hash": "5c052b187a8028f2f125f598e5c7d0c9",
-    "semantic_hash": "5c052b187a8028f2f125f598e5c7d0c9"
+    "mtime": 1792566111.4732308,
+    "seen": 1792566554.422739,
+    "ast_hash": "3a4fb6c6d45d85ed4f8771316d75ae28",
+    "semantic_hash": ""
   },
   "src/client/screens/dashboard/studyroom/__tests__/RoomSocial.test.tsx": {
-    "mtime": 1792559881.3866594,
-    "seen": 1792559956.0311315,
-    "ast_hash": "c750543d5e5a419721913e20996f8dcc",
+    "mtime": 1792566011.8287582,
+    "seen": 1792566554.42275,
+    "ast_hash": "44878ee67821352e69b7761f020bb03e",
     "semantic_hash": ""
   },
   "src/client/screens/dashboard/studyroom/__tests__/RoomToast.test.tsx": {
@@ -7176,10 +7176,10 @@
     "semantic_hash": "1a28621f3a65b7eb04d3e3305a3f566e"
   },
   "src/client/screens/dashboard/studyroom/__tests__/useSessionGoal.test.tsx": {
-    "mtime": 1792490208.3650026,
-    "seen": 1792556795.8311427,
-    "ast_hash": "f5b57e9e6f6c307f51f65b4933ae164b",
-    "semantic_hash": "f5b57e9e6f6c307f51f65b4933ae164b"
+    "mtime": 1792566162.1805665,
+    "seen": 1792566554.428296,
+    "ast_hash": "e7baec5a86662ed2a74a104fbc89304d",
+    "semantic_hash": ""
   },
   "src/client/screens/dashboard/studyroom/__tests__/useSharedEnvironment.test.tsx": {
     "mtime": 1792563196.8463347,
@@ -7272,16 +7272,16 @@
     "semantic_hash": ""
   },
   "src/client/screens/dashboard/studyroom/hooks/useRoomRoster.ts": {
-    "mtime": 1792558956.8686678,
-    "seen": 1792559403.9527209,
-    "ast_hash": "36336d896370b6fed00e90b9ea9fe7cb",
+    "mtime": 1792565700.263388,
+    "seen": 1792566554.43294,
+    "ast_hash": "2600bfa772333db2c14d740c41d2ab09",
     "semantic_hash": ""
   },
   "src/client/screens/dashboard/studyroom/hooks/useSessionGoal.ts": {
-    "mtime": 1792490166.780085,
-    "seen": 1792556795.8311684,
-    "ast_hash": "d0d9cef72da18b95915ca6bf5bf0b90f",
-    "semantic_hash": "d0d9cef72da18b95915ca6bf5bf0b90f"
+    "mtime": 1792565717.9393647,
+    "seen": 1792566554.4332454,
+    "ast_hash": "7cd3b795cb7513f4e1f95ed391bb183a",
+    "semantic_hash": ""
   },
   "src/client/screens/dashboard/studyroom/hooks/useSharedEnvironment.ts": {
     "mtime": 1792563591.7521856,
@@ -7296,9 +7296,9 @@
     "semantic_hash": "c63503121ef55f834544fff0361855be"
   },
   "src/client/screens/dashboard/studyroom/room/RoomScreen.tsx": {
-    "mtime": 1792563130.4695418,
-    "seen": 1792564249.1801765,
-    "ast_hash": "5889856b3b41c46e06f6f4c4984f1067",
+    "mtime": 1792565887.2904794,
+    "seen": 1792566554.4338734,
+    "ast_hash": "691ecf995908f4457c8dd7577c2fe36c",
     "semantic_hash": ""
   },
   "src/client/screens/dashboard/studyroom/room/components/AmbienceTab.tsx": {
@@ -7398,9 +7398,9 @@
     "semantic_hash": "842d44a314277e1785f8abd3175cbd18"
   },
   "src/client/screens/dashboard/studyroom/room/components/RoomSocial.tsx": {
-    "mtime": 1792559764.0078588,
-    "seen": 1792559956.0475557,
-    "ast_hash": "a221b09bcabc64614be156f7d4c0dcf4",
+    "mtime": 1792565734.8777325,
+    "seen": 1792566554.439121,
+    "ast_hash": "e41b1aeb2391bcc5a693b46475479ab8",
     "semantic_hash": ""
   },
   "src/client/screens/dashboard/studyroom/room/components/RoomSoundChip.tsx": {
@@ -9504,10 +9504,10 @@
     "semantic_hash": "fbf2d8bf98fb3c3e32d6cd712bbe4278"
   },
   "src/server/domain/messaging/__tests__/load-harness.test.ts": {
-    "mtime": 1792539576.3145616,
-    "seen": 1792556795.8317788,
-    "ast_hash": "c7410b12ba52c0016a21202e976582dd",
-    "semantic_hash": "c7410b12ba52c0016a21202e976582dd"
+    "mtime": 1792566352.2645252,
+    "seen": 1792566554.5437195,
+    "ast_hash": "a2e4b3f4b65ddf2825ee123191f697f5",
+    "semantic_hash": ""
   },
   "src/server/domain/messaging/__tests__/message-durability.test.ts": {
     "mtime": 1792510804.4920146,
@@ -9528,10 +9528,10 @@
     "semantic_hash": "fe5dd99b5fa42efcc9d3797b2c301a1e"
   },
   "src/server/domain/messaging/__tests__/readiness-probe.test.ts": {
-    "mtime": 1792539750.526586,
-    "seen": 1792556795.8317852,
-    "ast_hash": "7de94d7bec822580d4ec1d3e193b56cc",
-    "semantic_hash": "7de94d7bec822580d4ec1d3e193b56cc"
+    "mtime": 1792566379.6004264,
+    "seen": 1792566554.5444124,
+    "ast_hash": "7a55173e3aae185033c158ce408dc60a",
+    "semantic_hash": ""
   },
   "src/server/domain/messaging/__tests__/search.service.test.ts": {
     "mtime": 1792538587.4766352,
@@ -9762,10 +9762,10 @@
     "semantic_hash": "6a762954e200b126a69a29c19415a830"
   },
   "src/server/domain/studyroom/__tests__/studyroom.service.test.ts": {
-    "mtime": 1792555863.9411058,
-    "seen": 1792556795.8318443,
-    "ast_hash": "b8ca83cf4aba0ad5be9bca789d1e74d6",
-    "semantic_hash": "b8ca83cf4aba0ad5be9bca789d1e74d6"
+    "mtime": 1792566240.8211572,
+    "seen": 1792566554.5538967,
+    "ast_hash": "6738d5f2ffd4eb4a622aa6c8245c1708",
+    "semantic_hash": ""
   },
   "src/server/domain/studyroom/environment.service.ts": {
     "mtime": 1792563800.6608982,
@@ -9816,9 +9816,9 @@
     "semantic_hash": "5c9c42f8ee7740e5ad3e72aae6680af2"
   },
   "src/server/domain/studyroom/studyroom.service.ts": {
-    "mtime": 1792559201.8630135,
-    "seen": 1792559404.0588422,
-    "ast_hash": "55a7e905edb06462ea902648151f1436",
+    "mtime": 1792565636.4323502,
+    "seen": 1792566554.5559494,
+    "ast_hash": "1fcb92fe58626760ff704fdb6b26b0c1",
     "semantic_hash": ""
   },
   "src/server/imports/github/github-import.service.ts": {

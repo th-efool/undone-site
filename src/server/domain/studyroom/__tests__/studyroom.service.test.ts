@@ -40,6 +40,8 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
 
   const mockRoomLease = {
     findMany: vi.fn(),
+    findFirst: vi.fn(),
+    findUnique: vi.fn(),
     upsert: vi.fn(),
     deleteMany: vi.fn(),
     count: vi.fn(),
@@ -418,6 +420,106 @@ describe('Phase 8: Study Room Membership & Lease Domain Service', () => {
           data: { onlineCount: 1 },
         })
       );
+    });
+  });
+
+  describe('updateParticipantGoal & Roster Projection (Phase 10)', () => {
+    it('successfully updates publicGoal for an active lease and projects it in roster', async () => {
+      vi.mocked(prisma.studyRoom.findUnique).mockResolvedValueOnce({
+        id: 'room-1',
+        slug: 'fireplace',
+        ownerId: 'owner-1',
+      } as any);
+
+      vi.mocked(prisma.roomLease.findFirst).mockResolvedValueOnce({
+        id: 'lease-1',
+        userId: 'user-1',
+        studyRoomId: 'room-1',
+        tabId: 'tab-1',
+        generation: 1,
+        expiresAt: new Date(Date.now() + 60_000),
+      } as any);
+
+      const updateResult = await studyRoomService.updateParticipantGoal({
+        userId: 'user-1',
+        roomId: 'room-1',
+        tabId: 'tab-1',
+        generation: 1,
+        publicGoal: '  Finish LeetCode Problem 42  ',
+      });
+
+      expect(updateResult.success).toBe(true);
+      expect(updateResult.publicGoal).toBe('Finish LeetCode Problem 42');
+
+      // Now query roster -> user-1 should have the publicGoal populated
+      vi.mocked(prisma.studyRoom.findUnique).mockResolvedValueOnce({
+        id: 'room-1',
+        ownerId: 'owner-1',
+      } as any);
+
+      vi.mocked(prisma.roomLease.findMany).mockResolvedValueOnce([
+        { userId: 'user-1' },
+      ] as any);
+
+      vi.mocked(prisma.roomParticipant.findMany).mockResolvedValueOnce([
+        {
+          id: 'p-1',
+          userId: 'user-1',
+          joinedAt: new Date(),
+          user: { id: 'user-1', name: 'User 1', username: 'u1', image: null },
+        },
+      ] as any);
+
+      const roster = await studyRoomService.getRoomRoster('room-1');
+      expect(roster.length).toBe(1);
+      expect(roster[0].publicGoal).toBe('Finish LeetCode Problem 42');
+    });
+
+    it('clears publicGoal when empty or null is passed', async () => {
+      vi.mocked(prisma.studyRoom.findUnique).mockResolvedValueOnce({
+        id: 'room-1',
+        slug: 'fireplace',
+        ownerId: 'owner-1',
+      } as any);
+
+      vi.mocked(prisma.roomLease.findFirst).mockResolvedValueOnce({
+        id: 'lease-1',
+        userId: 'user-1',
+        studyRoomId: 'room-1',
+        tabId: 'tab-1',
+        generation: 1,
+        expiresAt: new Date(Date.now() + 60_000),
+      } as any);
+
+      const updateResult = await studyRoomService.updateParticipantGoal({
+        userId: 'user-1',
+        roomId: 'room-1',
+        tabId: 'tab-1',
+        generation: 1,
+        publicGoal: null,
+      });
+
+      expect(updateResult.success).toBe(true);
+      expect(updateResult.publicGoal).toBeNull();
+    });
+
+    it('rejects goal update when no active lease matches', async () => {
+      vi.mocked(prisma.studyRoom.findUnique).mockResolvedValueOnce({
+        id: 'room-1',
+      } as any);
+
+      // No lease found
+      vi.mocked(prisma.roomLease.findFirst).mockResolvedValueOnce(null);
+
+      await expect(
+        studyRoomService.updateParticipantGoal({
+          userId: 'user-imposter',
+          roomId: 'room-1',
+          tabId: 'tab-1',
+          generation: 1,
+          publicGoal: 'Unauthorized Goal',
+        })
+      ).rejects.toThrow();
     });
   });
 });

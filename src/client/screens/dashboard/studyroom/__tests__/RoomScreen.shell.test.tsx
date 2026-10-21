@@ -103,6 +103,9 @@ describe('RoomScreen shell component', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.clear();
+    }
     window.AudioContext = MockAudioContext as unknown as typeof AudioContext;
   });
 
@@ -257,7 +260,7 @@ describe('RoomScreen shell component', () => {
 
     // 4. Open People panel: "Secret plan" MUST appear in DOM
     fireEvent.click(peopleBtn);
-    expect(screen.getByText('Secret plan')).toBeTruthy();
+    expect(screen.getAllByText('Secret plan').length).toBeGreaterThanOrEqual(1);
 
     // 5. Switch back to Session panel and select "Private" again
     fireEvent.click(sessionBtn);

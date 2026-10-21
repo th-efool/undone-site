@@ -8,7 +8,7 @@ import {
 
 describe('Phase 13: Messaging Readiness Probe', () => {
   it('blocks when required secrets or DATABASE_URL are missing', () => {
-    const emptyEnv: NodeJS.ProcessEnv = {};
+    const emptyEnv = {} as unknown as NodeJS.ProcessEnv;
     const checks = evaluateEnvironmentConfig(emptyEnv);
 
     const dbCheck = checks.find(c => c.name.includes('DATABASE_URL'));
@@ -25,13 +25,14 @@ describe('Phase 13: Messaging Readiness Probe', () => {
   });
 
   it('rejects trivial or short placeholder secrets', () => {
-    const weakEnv: NodeJS.ProcessEnv = {
+    const weakEnv = {
+      NODE_ENV: 'test',
       DATABASE_URL: 'postgresql://localhost:5432/test',
       CENTRIFUGO_HMAC_SECRET_KEY: 'secret-placeholder-changeme-too-weak',
       CENTRIFUGO_API_KEY: '12345',
       CENTRIFUGO_PROXY_KEY: 'short',
       INTERNAL_API_SECRET: 'test',
-    };
+    } as unknown as NodeJS.ProcessEnv;
 
     const checks = evaluateEnvironmentConfig(weakEnv);
     const hmacCheck = checks.find(c => c.name.includes('CENTRIFUGO_HMAC_SECRET_KEY'));
@@ -42,7 +43,8 @@ describe('Phase 13: Messaging Readiness Probe', () => {
   });
 
   it('marks all checks ready when valid environment is configured', () => {
-    const validEnv: NodeJS.ProcessEnv = {
+    const validEnv = {
+      NODE_ENV: 'test',
       DATABASE_URL: 'postgresql://localhost:5432/test',
       CENTRIFUGO_HMAC_SECRET_KEY: 'c7d8e9f0a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c',
       CENTRIFUGO_API_KEY: 'api-key-32-chars-long-secure-token-1234',
@@ -50,7 +52,7 @@ describe('Phase 13: Messaging Readiness Probe', () => {
       INTERNAL_API_SECRET: 'internal-secret-valid-token-9012',
       CENTRIFUGO_WS_URL: 'ws://localhost:8000/connection/websocket',
       CENTRIFUGO_API_URL: 'http://localhost:8000/api',
-    };
+    } as unknown as NodeJS.ProcessEnv;
 
     const checks = evaluateEnvironmentConfig(validEnv);
     expect(checks.every(c => c.status === 'ready')).toBe(true);
@@ -85,7 +87,8 @@ describe('Phase 13: Messaging Readiness Probe', () => {
   });
 
   it('runs probe with skipDb flag and reports overall status', async () => {
-    const validEnv: NodeJS.ProcessEnv = {
+    const validEnv = {
+      NODE_ENV: 'test',
       DATABASE_URL: 'postgresql://localhost:5432/test',
       CENTRIFUGO_HMAC_SECRET_KEY: 'c7d8e9f0a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c',
       CENTRIFUGO_API_KEY: 'api-key-32-chars-long-secure-token-1234',
@@ -93,7 +96,7 @@ describe('Phase 13: Messaging Readiness Probe', () => {
       INTERNAL_API_SECRET: 'internal-secret-valid-token-9012',
       CENTRIFUGO_WS_URL: 'ws://localhost:8000/connection/websocket',
       CENTRIFUGO_API_URL: 'http://localhost:8000/api',
-    };
+    } as unknown as NodeJS.ProcessEnv;
 
     const report = await runMessagingReadinessProbe({ env: validEnv, skipDb: true });
     expect(report.allRequiredReady).toBe(true);

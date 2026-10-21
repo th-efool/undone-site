@@ -21,14 +21,14 @@ describe('Phase 12: Load Harness & Safety Guardrails', () => {
   const originalDbUrl = process.env.DATABASE_URL;
 
   beforeEach(() => {
-    process.env.NODE_ENV = 'test';
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'test';
   });
 
   afterEach(() => {
     if (originalEnv !== undefined) {
-      process.env.NODE_ENV = originalEnv;
+      (process.env as Record<string, string | undefined>).NODE_ENV = originalEnv;
     } else {
-      delete process.env.NODE_ENV;
+      delete (process.env as Record<string, string | undefined>).NODE_ENV;
     }
     if (originalDbUrl !== undefined) {
       process.env.DATABASE_URL = originalDbUrl;
@@ -39,7 +39,7 @@ describe('Phase 12: Load Harness & Safety Guardrails', () => {
 
   describe('assertSafeLoadEnvironment', () => {
     it('throws if NODE_ENV is production', () => {
-      process.env.NODE_ENV = 'production';
+      (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
       expect(() => assertSafeLoadEnvironment()).toThrow(LoadEnvironmentSafetyError);
       expect(() => assertSafeLoadEnvironment()).toThrow(/NODE_ENV is set to "production"/);
     });

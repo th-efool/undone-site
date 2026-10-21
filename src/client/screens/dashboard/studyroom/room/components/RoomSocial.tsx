@@ -134,7 +134,7 @@ export default function RoomSocial({
                       )}
                     </div>
                     <p className={styles.personGoal}>
-                      {isCurrent ? 'Studying · System Design' : (person.publicGoal || 'Focusing')}
+                      {person.publicGoal || 'Focusing'}
                     </p>
                   </div>
                   {canManageParticipants && roomSlug && !isCurrent && !isOwner && (
