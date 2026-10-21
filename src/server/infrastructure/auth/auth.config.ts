@@ -9,6 +9,7 @@ import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { configureRequestOriginAuth } from './auth.environment';
 import { getGuestAccount } from './guestAccount';
 import { getCachedJwt, setCachedJwt } from './jwtCache';
+import { verifyPassword } from './password';
 
 configureRequestOriginAuth();
 
@@ -37,10 +38,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       name: 'Credentials',
       credentials: {
         email: { label: "Email or Username", type: "text" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         try {
-          const emailInput = credentials?.email;
+          const creds = credentials as Record<string, unknown> | undefined;
+          const emailInput = (creds?.email ?? creds?.identifier) as string | undefined;
+          const passwordInput = creds?.password as string | undefined;
+
           if (emailInput === 'guest@undone.com' || emailInput === 'guest@sidequesthq.com') {
             return await getGuestAccount(emailInput, prisma.user);
           }
@@ -56,6 +61,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               },
             });
             if (foundUser) {
+              if (foundUser.passwordHash) {
+                if (!passwordInput || !verifyPassword(passwordInput, foundUser.passwordHash)) {
+                  return null;
+                }
+              } else {
+                return null;
+              }
+
               return {
                 id: foundUser.id,
                 name: foundUser.name,
