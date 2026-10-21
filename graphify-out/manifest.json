@@ -726,10 +726,10 @@
     "semantic_hash": "b0c35b9ea02fcd27593ca6b4f3e06ff1"
   },
   "package.json": {
-    "mtime": 1792539739.1545947,
-    "seen": 1792556795.8294866,
-    "ast_hash": "c7d206d4f4cf3570b3c25a24a596424f",
-    "semantic_hash": "c7d206d4f4cf3570b3c25a24a596424f"
+    "mtime": 1792567643.5302649,
+    "seen": 1792568362.0078502,
+    "ast_hash": "4c2febee0416ccf454fd57802cbfdb8a",
+    "semantic_hash": ""
   },
   "packages/interaction-builder/__tests__/action.service.test.ts": {
     "mtime": 1792232069.0083783,
@@ -15033,6 +15033,30 @@
     "mtime": 1792566817.8384745,
     "seen": 1792567441.9067721,
     "ast_hash": "aaf3a83e474fc768a04e9179f1cbb2b8",
+    "semantic_hash": ""
+  },
+  "scripts/load/studyroom-load-harness.ts": {
+    "mtime": 1792567617.996076,
+    "seen": 1792568362.1043005,
+    "ast_hash": "358c346ebadb782b86c3db900cbe1738",
+    "semantic_hash": ""
+  },
+  "src/server/domain/studyroom/__tests__/phase12-e2e-scenarios.test.ts": {
+    "mtime": 1792568119.1568878,
+    "seen": 1792568362.7943773,
+    "ast_hash": "048d979b742fa410c7efd3f3a108b84a",
+    "semantic_hash": ""
+  },
+  "src/server/domain/studyroom/__tests__/phase12-multi-user-load.test.ts": {
+    "mtime": 1792567652.466364,
+    "seen": 1792568362.7943802,
+    "ast_hash": "5eb27d0e7aa7ecb1f71b9d838c1827d0",
+    "semantic_hash": ""
+  },
+  "src/server/domain/studyroom/load/studyroom-benchmark-engine.ts": {
+    "mtime": 1792568142.8052938,
+    "seen": 1792568362.8093517,
+    "ast_hash": "b9b84b385a084c1a4385d9c72fdc2653",
     "semantic_hash": ""
   }
 }
