@@ -245,7 +245,7 @@ describe('useRoomSprint hook', () => {
 
   it('subscribes to realtime channel and applies room.sprint.updated payload', () => {
     let subscriberCallback: ((data: unknown) => void) | undefined;
-    mockSubscribe.mockImplementation((channel: string, cb: any) => {
+    mockSubscribe.mockImplementation((_channel: string, cb: (data: unknown) => void) => {
       subscriberCallback = cb;
       return vi.fn();
     });

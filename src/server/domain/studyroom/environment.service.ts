@@ -1,5 +1,6 @@
 import 'server-only';
 import { randomUUID } from 'crypto';
+import type { Prisma } from '@/generated/prisma/client';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import {
   type RoomEnvironmentSnapshot,
@@ -266,7 +267,7 @@ export const environmentService = {
               generation: stream.generation,
               entityId: roomId,
               entityRevision: updated.revision,
-              payload: snapshot as any,
+              payload: snapshot as unknown as Prisma.InputJsonValue,
             },
           });
           await tx.realtimeDelivery.create({
