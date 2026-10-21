@@ -8,16 +8,12 @@ interface Props {
   selectedTab: SidebarTab;
   selectedFilter: ConversationFilter;
   searchQuery: string;
+  counts?: Partial<Record<ConversationFilter, number>>;
   onTabChange(tab: SidebarTab): void;
   onFilterChange(filter: ConversationFilter): void;
   onSearchClear?(): void;
   onMarkAllRead?(): void;
 }
-
-const counts: Partial<Record<ConversationFilter, number>> = {
-  unread: 59,
-  mentions: 7,
-};
 
 export function SidebarFilters({
   tabs,
@@ -25,6 +21,7 @@ export function SidebarFilters({
   selectedTab,
   selectedFilter,
   searchQuery,
+  counts = {},
   onTabChange,
   onFilterChange,
   onSearchClear,
@@ -55,7 +52,7 @@ export function SidebarFilters({
               onClick={() => onFilterChange(filter.id)}
             >
               {filter.label}
-              {counts[filter.id] && <span>{counts[filter.id]}</span>}
+              {counts[filter.id] ? <span>{counts[filter.id]}</span> : null}
             </button>
           ))}
         </div>
