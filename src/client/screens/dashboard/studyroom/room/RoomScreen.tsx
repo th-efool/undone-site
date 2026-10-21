@@ -20,6 +20,7 @@ import { usePomodoro } from '../hooks/usePomodoro';
 import { usePersonalTasks } from '../hooks/usePersonalTasks';
 import { useSessionGoal } from '../hooks/useSessionGoal';
 import { useSharedEnvironment } from '../hooks/useSharedEnvironment';
+import { useRoomSprint } from '../hooks/useRoomSprint';
 import { useAmbientPlayback } from '../hooks/useAmbientPlayback';
 import { useRoomOrchestration } from '../hooks/useRoomOrchestration';
 import { useRoomRoster } from '../hooks/useRoomRoster';
@@ -30,6 +31,7 @@ import PanelShell from './components/PanelShell';
 import RoomToast from './components/RoomToast';
 import LeaveRoomDialog from './components/LeaveRoomDialog';
 import FocusBar from './components/FocusBar';
+import SharedSprintWidget from './components/SharedSprintWidget';
 import TimerSettingsPanel from './components/TimerSettingsPanel';
 import SessionPanel from './components/SessionPanel';
 import ParticipantPanel from './components/ParticipantPanel';
@@ -130,6 +132,17 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
     canControlEnvironment: canControlEnv,
     roomId: roomBootstrap?.room?.id || roomSlug,
     streamGeneration: roomBootstrap?.room?.streamGeneration,
+  });
+
+  // Shared room sprint (active group sprint distinct from personal pomodoro)
+  const canControlSprint = viewer.capabilities?.canControlEnvironment ?? (viewer.role === 'admin');
+  const roomSprint = useRoomSprint({
+    roomSlug,
+    roomId: roomBootstrap?.room?.id || roomSlug,
+    streamGeneration: roomBootstrap?.room?.streamGeneration,
+    enabled: canParticipate,
+    canControlSprint,
+    initialSprint: roomBootstrap?.sprint,
   });
 
   // Personal session tools
@@ -492,6 +505,8 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
             onToggleAmbience={() => setSoundRemixOpen((prev) => !prev)}
             ambienceOpen={soundRemixOpen || activePanel === 'ambience'}
           />
+
+          <SharedSprintWidget sprintHook={roomSprint} />
         </div>
 
         <div className={styles.centerSpace} aria-hidden="true" />
