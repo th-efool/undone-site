@@ -46,6 +46,16 @@ async function main() {
 
     DO $$
     BEGIN
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'conversations' AND column_name = 'type') THEN
+        ALTER TABLE "conversations" ALTER COLUMN "type" DROP NOT NULL;
+      END IF;
+      IF EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'conversations' AND column_name = 'communityId') THEN
+        ALTER TABLE "conversations" ALTER COLUMN "communityId" DROP NOT NULL;
+      END IF;
+    END $$;
+
+    DO $$
+    BEGIN
       IF NOT EXISTS (
         SELECT 1 FROM pg_constraint WHERE conname = 'conversations_creatorId_fkey'
       ) THEN
