@@ -175,6 +175,7 @@ export async function POST(req: Request) {
           roomId: cleanRoomId,
           tabId: body.tabId,
           requestId: body.requestId,
+          publicGoal: body.publicGoal,
         });
 
         studyRoomCache.cachedRooms = null;
@@ -182,6 +183,30 @@ export async function POST(req: Request) {
         studyRoomCache.cachedRoomsEtag = '';
 
         return NextResponse.json(joinResult);
+      } catch (err: unknown) {
+        if (err instanceof StudyRoomError) {
+          return NextResponse.json(err.toJSON(), { status: err.status });
+        }
+        throw err;
+      }
+    } else if (cleanAction === 'update_goal') {
+      const { generation, tabId, publicGoal } = body;
+      if (typeof generation !== 'number' || !tabId || !cleanRoomId) {
+        return NextResponse.json(
+          { error: 'tabId, roomId, and generation are required for goal update' },
+          { status: 400 }
+        );
+      }
+
+      try {
+        const goalResult = await studyRoomService.updateParticipantGoal({
+          userId,
+          roomId: cleanRoomId,
+          tabId,
+          generation,
+          publicGoal,
+        });
+        return NextResponse.json(goalResult);
       } catch (err: unknown) {
         if (err instanceof StudyRoomError) {
           return NextResponse.json(err.toJSON(), { status: err.status });

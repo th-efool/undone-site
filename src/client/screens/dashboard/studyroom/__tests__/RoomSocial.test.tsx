@@ -86,6 +86,27 @@ describe('RoomSocial component (Phase 7 Persistent Chat)', () => {
     expect(screen.queryByTitle('Microphone muted')).toBeNull();
   });
 
+  it('renders real public goals and defaults to Focusing without fabricated study labels', () => {
+    vi.spyOn(studyRoomRepository, 'getChannelMessages').mockResolvedValue([]);
+
+    render(
+      <RoomSocial
+        participants={mockParticipants}
+        viewer={mockViewer}
+        onOpenPeople={vi.fn()}
+        onNotify={vi.fn()}
+        showPeople={true}
+      />
+    );
+
+    // Aarav has public goal 'Reading · Chapter 4'
+    expect(screen.getByText('Reading · Chapter 4')).toBeTruthy();
+    // Viewer has null public goal -> should show 'Focusing'
+    expect(screen.getByText('Focusing')).toBeTruthy();
+    // Must NOT have fabricated 'Studying · System Design'
+    expect(screen.queryByText(/Studying · System Design/)).toBeNull();
+  });
+
   it('renders empty chat state for an empty room without fabricated default messages', async () => {
     vi.spyOn(studyRoomRepository, 'getChannelMessages').mockResolvedValue([]);
 

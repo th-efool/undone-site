@@ -104,13 +104,23 @@ export function useRoomRoster({
 
     const roomChannel = `room:${roomId}:g${streamGeneration}`;
     const unsubscribe = realtime.subscribe(roomChannel, (data: unknown) => {
-      const envelope = data as { type?: string };
+      const envelope = data as {
+        type?: string;
+        payload?: { userId?: string; publicGoal?: string | null };
+      };
       if (
         envelope?.type === 'room.roster.changed' ||
         envelope?.type === 'room.participant.joined' ||
         envelope?.type === 'room.participant.left'
       ) {
         void fetchRoster();
+      } else if (envelope?.type === 'room.participant.updated' && envelope.payload?.userId) {
+        const { userId, publicGoal } = envelope.payload;
+        setRoster((prev) =>
+          prev.map((m) =>
+            m.userId === userId ? { ...m, publicGoal: publicGoal ?? null } : m
+          )
+        );
       }
     });
 

@@ -573,4 +573,30 @@ export const studyRoomRepository = {
     }
     return res.json();
   },
+
+  async updateRoomGoal(params: {
+    roomId: string;
+    tabId: string;
+    generation: number;
+    publicGoal: string | null;
+  }): Promise<{ success: boolean; publicGoal: string | null }> {
+    const res = await fetch('/api/studyroom', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update_goal',
+        roomId: params.roomId,
+        tabId: params.tabId,
+        generation: params.generation,
+        publicGoal: params.publicGoal,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      const error: ApiHttpError = new Error(err.error || `Failed to update room goal: ${res.statusText}`);
+      error.status = res.status;
+      throw error;
+    }
+    return res.json();
+  },
 };

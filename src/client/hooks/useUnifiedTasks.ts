@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useMemo, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
+import { useSession } from 'next-auth/react';
 import {
   tasksStorageAdapter,
   UnifiedTask,
@@ -11,7 +12,22 @@ import {
 export type { UnifiedTask };
 export { TONE_TO_HEX, HEX_TO_TONE };
 
+function useSafeSession() {
+  try {
+    return useSession();
+  } catch {
+    return { data: null, status: 'unauthenticated' as const };
+  }
+}
+
 export function useUnifiedTasks() {
+  const { data: session } = useSafeSession();
+  const userId = session?.user?.id ?? null;
+
+  useEffect(() => {
+    tasksStorageAdapter.setUserId(userId);
+  }, [userId]);
+
   const tasks = useSyncExternalStore(
     tasksStorageAdapter.subscribe,
     tasksStorageAdapter.getTasks,
@@ -64,6 +80,16 @@ export function useUnifiedTasks() {
     tasksStorageAdapter.resetToDefault();
   }, []);
 
+  const importLocalTasks = useCallback(
+    (confirmed: boolean) => {
+      if (!userId) {
+        throw new Error('Must be logged in to import local tasks');
+      }
+      return tasksStorageAdapter.importLocalTasks(userId, confirmed);
+    },
+    [userId]
+  );
+
   return useMemo(
     () => ({
       tasks,
@@ -74,6 +100,7 @@ export function useUnifiedTasks() {
       toggleTask,
       removeTask,
       resetToDefault,
+      importLocalTasks,
     }),
     [
       tasks,
@@ -84,6 +111,7 @@ export function useUnifiedTasks() {
       toggleTask,
       removeTask,
       resetToDefault,
+      importLocalTasks,
     ]
   );
 }

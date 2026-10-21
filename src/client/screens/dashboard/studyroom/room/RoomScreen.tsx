@@ -2,6 +2,7 @@
 
 import React, {
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -14,6 +15,7 @@ import type {
   RoomSlug,
   ViewerRole,
 } from '../types';
+import { studyRoomRepository } from '@/src/client/repositories/studyRoomRepository';
 import { deriveParticipants } from '../utils/deriveParticipants';
 import { useNow } from '../hooks/useNow';
 import { usePomodoro } from '../hooks/usePomodoro';
@@ -76,6 +78,8 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
     bootstrap: roomBootstrap,
     roomDefinition: room,
     viewer,
+    generation,
+    tabId,
     error: orchestrationError,
     leave: orchestrateLeave,
     rejoin,
@@ -148,7 +152,33 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
   // Personal session tools
   const pomodoro = usePomodoro(room.title, undefined, roomBootstrap?.room?.id ?? null);
   const tasks = usePersonalTasks();
-  const goal = useSessionGoal();
+  const goal = useSessionGoal(undefined, viewer.userId);
+
+  // Sync explicitly shared public goal to room roster
+  useEffect(() => {
+    if (orchestrationState !== 'joined' || !generation || !roomBootstrap?.room?.id) return;
+
+    const publicGoal =
+      goal.committed.visibility === 'room' && goal.committed.text.trim().length > 0
+        ? goal.committed.text.trim().slice(0, 80)
+        : null;
+
+    void studyRoomRepository
+      .updateRoomGoal({
+        roomId: roomBootstrap.room.id,
+        tabId,
+        generation,
+        publicGoal,
+      })
+      .catch(() => {});
+  }, [
+    goal.committed.visibility,
+    goal.committed.text,
+    orchestrationState,
+    tabId,
+    generation,
+    roomBootstrap?.room?.id,
+  ]);
 
   // Local UI state
   const [activePanel, setActivePanel] = useState<RoomPanelId | null>(null);

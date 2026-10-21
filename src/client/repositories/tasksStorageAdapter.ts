@@ -477,11 +477,16 @@ const INITIAL_UNIFIED_TASKS: UnifiedTask[] = [
   },
 ];
 
-const STORAGE_KEY = 'sidequest_unified_tasks_v1';
+const DEFAULT_STORAGE_KEY = 'sidequest_unified_tasks_v1';
 const EVENT_NAME = 'sidequest:tasks-updated';
 
-let inMemoryTasks: UnifiedTask[] | null = null;
+let activeUserId: string | null = null;
+const inMemoryTasksByUser = new Map<string, UnifiedTask[]>();
 const subscribers = new Set<() => void>();
+
+function getCacheKey(userId: string | null = activeUserId): string {
+  return userId ? `${DEFAULT_STORAGE_KEY}:${userId}` : DEFAULT_STORAGE_KEY;
+}
 
 function notifySubscribers() {
   subscribers.forEach((cb) => {
@@ -497,9 +502,10 @@ function initWindowListeners() {
   if (typeof window === 'undefined') return;
 
   const handleStorage = (e: StorageEvent) => {
-    if (e.key === STORAGE_KEY && e.newValue) {
+    if (e.key === getCacheKey() && e.newValue) {
       try {
-        inMemoryTasks = JSON.parse(e.newValue);
+        const parsed = JSON.parse(e.newValue);
+        inMemoryTasksByUser.set(getCacheKey(), parsed);
         notifySubscribers();
       } catch {}
     }
@@ -519,42 +525,57 @@ if (typeof window !== 'undefined') {
 }
 
 export const tasksStorageAdapter = {
-  getTasks(): UnifiedTask[] {
-    if (inMemoryTasks) {
-      return inMemoryTasks;
+  getUserId(): string | null {
+    return activeUserId;
+  },
+
+  setUserId(userId: string | null): void {
+    if (activeUserId !== userId) {
+      activeUserId = userId;
+      notifySubscribers();
+    }
+  },
+
+  getTasks(userId: string | null = activeUserId): UnifiedTask[] {
+    const key = getCacheKey(userId);
+    const cached = inMemoryTasksByUser.get(key);
+    if (cached) {
+      return cached;
     }
 
     if (typeof window !== 'undefined') {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY);
+        const raw = localStorage.getItem(key);
         if (raw) {
           const parsed = JSON.parse(raw);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            inMemoryTasks = parsed;
+            inMemoryTasksByUser.set(key, parsed);
             return parsed;
           }
         }
       } catch {}
     }
 
-    inMemoryTasks = structuredClone(INITIAL_UNIFIED_TASKS);
+    const initial = userId ? [] : structuredClone(INITIAL_UNIFIED_TASKS);
+    inMemoryTasksByUser.set(key, initial);
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(inMemoryTasks));
+        localStorage.setItem(key, JSON.stringify(initial));
       } catch {}
     }
-    return inMemoryTasks;
+    return initial;
   },
 
   getServerSnapshot(): UnifiedTask[] {
     return INITIAL_UNIFIED_TASKS;
   },
 
-  saveTasks(tasks: UnifiedTask[]): void {
-    inMemoryTasks = [...tasks];
+  saveTasks(tasks: UnifiedTask[], userId: string | null = activeUserId): void {
+    const key = getCacheKey(userId);
+    inMemoryTasksByUser.set(key, [...tasks]);
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        localStorage.setItem(key, JSON.stringify(tasks));
         window.dispatchEvent(new CustomEvent(EVENT_NAME));
       } catch (e) {
         console.error('Failed to save unified tasks to localStorage:', e);
@@ -563,8 +584,11 @@ export const tasksStorageAdapter = {
     notifySubscribers();
   },
 
-  addTask(partial: Omit<UnifiedTask, 'id' | 'createdAt'> & { id?: string; createdAt?: number }): UnifiedTask {
-    const current = this.getTasks();
+  addTask(
+    partial: Omit<UnifiedTask, 'id' | 'createdAt'> & { id?: string; createdAt?: number },
+    userId: string | null = activeUserId
+  ): UnifiedTask {
+    const current = this.getTasks(userId);
     const id = partial.id || `task-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const createdAt = partial.createdAt || Date.now();
     const color = partial.color || (partial.tone ? TONE_TO_HEX[partial.tone] : '#3b82f6');
@@ -579,12 +603,12 @@ export const tasksStorageAdapter = {
     };
 
     const updated = [newTask, ...current];
-    this.saveTasks(updated);
+    this.saveTasks(updated, userId);
     return newTask;
   },
 
-  updateTask(id: string, updates: Partial<UnifiedTask>): void {
-    const current = this.getTasks();
+  updateTask(id: string, updates: Partial<UnifiedTask>, userId: string | null = activeUserId): void {
+    const current = this.getTasks(userId);
     const index = current.findIndex((t) => t.id === id);
     if (index === -1) return;
 
@@ -601,21 +625,21 @@ export const tasksStorageAdapter = {
 
     const updated = [...current];
     updated[index] = merged;
-    this.saveTasks(updated);
+    this.saveTasks(updated, userId);
   },
 
-  toggleTask(id: string): void {
-    const current = this.getTasks();
+  toggleTask(id: string, userId: string | null = activeUserId): void {
+    const current = this.getTasks(userId);
     const task = current.find((t) => t.id === id);
     if (!task) return;
     const nextStatus = task.status === 'completed' ? 'pending' : 'completed';
-    this.updateTask(id, { status: nextStatus });
+    this.updateTask(id, { status: nextStatus }, userId);
   },
 
-  removeTask(id: string): void {
-    const current = this.getTasks();
+  removeTask(id: string, userId: string | null = activeUserId): void {
+    const current = this.getTasks(userId);
     const updated = current.filter((t) => t.id !== id);
-    this.saveTasks(updated);
+    this.saveTasks(updated, userId);
   },
 
   subscribe(callback: () => void): () => void {
@@ -625,14 +649,63 @@ export const tasksStorageAdapter = {
     };
   },
 
-  resetToDefault(): void {
-    inMemoryTasks = structuredClone(INITIAL_UNIFIED_TASKS);
+  resetToDefault(userId: string | null = activeUserId): void {
+    const key = getCacheKey(userId);
+    const initial = userId ? [] : structuredClone(INITIAL_UNIFIED_TASKS);
+    inMemoryTasksByUser.set(key, initial);
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(inMemoryTasks));
+        localStorage.setItem(key, JSON.stringify(initial));
         window.dispatchEvent(new CustomEvent(EVENT_NAME));
       } catch {}
     }
     notifySubscribers();
+  },
+
+  clearUserCache(userId: string | null): void {
+    const key = getCacheKey(userId);
+    inMemoryTasksByUser.delete(key);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(key);
+      } catch {}
+    }
+    notifySubscribers();
+  },
+
+  /**
+   * Idempotently imports local anonymous tasks into a user's account.
+   * Requires explicit user confirmation; never silently uploads shared-browser data.
+   */
+  importLocalTasks(userId: string, confirmed: boolean): { importedCount: number } {
+    if (!confirmed) {
+      throw new Error('Explicit confirmation required to import local tasks into account.');
+    }
+    if (!userId) {
+      throw new Error('Target user account required for import.');
+    }
+
+    const anonTasks = this.getTasks(null);
+    if (anonTasks.length === 0) {
+      return { importedCount: 0 };
+    }
+
+    const userTasks = this.getTasks(userId);
+    const existingTitles = new Set(userTasks.map((t) => t.title.toLowerCase().trim()));
+    const existingIds = new Set(userTasks.map((t) => t.id));
+
+    const toImport = anonTasks.filter((t) => {
+      return !existingIds.has(t.id) && !existingTitles.has(t.title.toLowerCase().trim());
+    });
+
+    if (toImport.length > 0) {
+      const merged = [...toImport, ...userTasks];
+      this.saveTasks(merged, userId);
+    }
+
+    // Clear anonymous local tasks after successful import
+    this.saveTasks([], null);
+
+    return { importedCount: toImport.length };
   },
 };

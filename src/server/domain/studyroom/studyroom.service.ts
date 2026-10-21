@@ -39,6 +39,8 @@ export interface RoomCatalogItem {
   slug?: string;
 }
 
+export const participantGoalsRegistry = new Map<string, string>();
+
 export interface RoomRosterMember {
   id: string;
   userId: string;
@@ -273,7 +275,7 @@ export const studyRoomService = {
           role,
           joinedAt: p.joinedAt.toISOString(),
           tabCount: leaseCountMap.get(p.userId) ?? 1,
-          publicGoal: null,
+          publicGoal: participantGoalsRegistry.get(`${actualRoomId}:${p.user.id}`) ?? null,
         };
       });
   },
@@ -288,6 +290,7 @@ export const studyRoomService = {
     roomId: string;
     tabId?: string;
     requestId?: string;
+    publicGoal?: string | null;
   }): Promise<JoinRoomResult> {
     const { userId, roomId } = params;
     const tabId = params.tabId || `tab-${randomUUID()}`;
@@ -630,6 +633,10 @@ export const studyRoomService = {
         });
       }
 
+      if (typeof params.publicGoal === 'string' && params.publicGoal.trim().length > 0) {
+        participantGoalsRegistry.set(`${targetRoom.id}:${userId}`, params.publicGoal.trim().slice(0, 80));
+      }
+
       return {
         success: true,
         roomId: targetRoom.id,
@@ -831,12 +838,112 @@ export const studyRoomService = {
         }
       }
 
+      if (left) {
+        participantGoalsRegistry.delete(`${roomId}:${userId}`);
+      }
+
       return {
         success: true,
         left,
         remainingLeases,
       };
     });
+  },
+
+  /**
+   * Updates or removes an active participant's shared public goal.
+   * If publicGoal is empty/null, removes the goal projection.
+   * Emits room.participant.updated outbox event.
+   */
+  async updateParticipantGoal(params: {
+    userId: string;
+    roomId: string;
+    tabId: string;
+    generation: number;
+    publicGoal?: string | null;
+  }): Promise<{ success: boolean; publicGoal: string | null }> {
+    const { userId, roomId, tabId, generation, publicGoal } = params;
+
+    const room = await findRoomByIdOrSlug(prisma.studyRoom, roomId);
+    if (!room) {
+      throw new RoomNotFoundError('Study room not found');
+    }
+    const actualRoomId = room.id;
+
+    // Verify active lease and matching generation
+    const now = new Date();
+    const activeLease = await prisma.roomLease.findFirst({
+      where: {
+        userId,
+        studyRoomId: actualRoomId,
+        tabId,
+        generation,
+        expiresAt: { gt: now },
+      },
+    });
+
+    if (!activeLease) {
+      throw new RoomForbiddenError('Must have an active lease in this room to update public goal');
+    }
+
+    const cleanedGoal =
+      typeof publicGoal === 'string' && publicGoal.trim().length > 0
+        ? publicGoal.trim().slice(0, 80)
+        : null;
+
+    const registryKey = `${actualRoomId}:${userId}`;
+    if (cleanedGoal) {
+      participantGoalsRegistry.set(registryKey, cleanedGoal);
+    } else {
+      participantGoalsRegistry.delete(registryKey);
+    }
+
+    // Emit outbox event: room.participant.updated
+    await prisma.$transaction(async (tx) => {
+      if (tx.realtimeStream?.findUnique && tx.realtimeEvent?.create) {
+        let stream = await tx.realtimeStream.findUnique({
+          where: { studyRoomId: actualRoomId },
+        });
+        if (stream) {
+          if (tx.realtimeStream?.update) {
+            stream = await tx.realtimeStream.update({
+              where: { id: stream.id },
+              data: { eventCounter: { increment: 1 } },
+            });
+          }
+          const eventId = randomUUID();
+          await tx.realtimeEvent.create({
+            data: {
+              streamId: stream.id,
+              sequence: stream.eventCounter,
+              eventId,
+              schemaVersion: 1,
+              type: 'room.participant.updated',
+              generation: stream.generation,
+              entityId: userId,
+              entityRevision: generation,
+              payload: {
+                userId,
+                roomId: actualRoomId,
+                publicGoal: cleanedGoal,
+                updatedAt: new Date().toISOString(),
+              },
+            },
+          });
+          if (tx.realtimeDelivery?.create) {
+            await tx.realtimeDelivery.create({
+              data: {
+                eventId,
+                destination: `room:${actualRoomId}:g${stream.generation}`,
+                status: 'PENDING',
+              },
+            });
+          }
+        }
+      }
+    });
+
+    return { success: true, publicGoal: cleanedGoal };
   },
 
   /**
@@ -885,6 +992,10 @@ export const studyRoomService = {
       );
 
       if (ghostParticipants.length > 0) {
+        for (const p of ghostParticipants) {
+          participantGoalsRegistry.delete(`${p.studyRoomId}:${p.userId}`);
+        }
+
         await tx.roomParticipant.deleteMany({
           where: {
             id: { in: ghostParticipants.map((p) => p.id) },

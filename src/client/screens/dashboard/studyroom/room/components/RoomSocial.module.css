@@ -117,14 +117,6 @@
   white-space: nowrap;
 }
 
-.micMuted {
-  display: grid;
-  place-items: center;
-  color: #f87171;
-  flex-shrink: 0;
-  padding: 4px;
-}
-
 .inviteBtn {
   width: 100%;
   display: flex;

@@ -14,6 +14,7 @@ const hoisted = vi.hoisted(() => ({
   joinRoom: vi.fn(),
   renewLease: vi.fn(),
   leaveRoom: vi.fn(),
+  updateParticipantGoal: vi.fn(),
 }));
 
 vi.mock('@/src/server/infrastructure/auth/getUser', () => ({
@@ -31,6 +32,7 @@ vi.mock('@/src/server/domain/studyroom/studyroom.service', () => ({
     joinRoom: hoisted.joinRoom,
     renewLease: hoisted.renewLease,
     leaveRoom: hoisted.leaveRoom,
+    updateParticipantGoal: hoisted.updateParticipantGoal,
   },
 }));
 
@@ -558,6 +560,57 @@ describe('/api/studyroom route', () => {
       // Next GET should miss cache and query prisma
       await GET();
       expect(hoisted.studyRoomFindMany).toHaveBeenCalledTimes(2);
+    });
+
+    it('updates participant goal via action: update_goal', async () => {
+      hoisted.getUser.mockResolvedValue({ id: 'user-1' });
+      hoisted.updateParticipantGoal.mockResolvedValue({
+        success: true,
+        publicGoal: 'Learn Rust Concurrency',
+      });
+
+      const postReq = new Request('http://localhost/api/studyroom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_goal',
+          roomId: 'room-1',
+          tabId: 'tab-1',
+          generation: 1,
+          publicGoal: 'Learn Rust Concurrency',
+        }),
+      });
+
+      const postRes = await POST(postReq);
+      expect(postRes.status).toBe(200);
+      const data = await postRes.json();
+      expect(data.success).toBe(true);
+      expect(data.publicGoal).toBe('Learn Rust Concurrency');
+
+      expect(hoisted.updateParticipantGoal).toHaveBeenCalledWith({
+        userId: 'user-1',
+        roomId: 'room-1',
+        tabId: 'tab-1',
+        generation: 1,
+        publicGoal: 'Learn Rust Concurrency',
+      });
+    });
+
+    it('returns 400 when update_goal is missing generation, tabId, or roomId', async () => {
+      hoisted.getUser.mockResolvedValue({ id: 'user-1' });
+
+      const postReq = new Request('http://localhost/api/studyroom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_goal',
+          roomId: 'room-1',
+          // missing tabId and generation
+        }),
+      });
+
+      const postRes = await POST(postReq);
+      expect(postRes.status).toBe(400);
     });
   });
 });
