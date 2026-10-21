@@ -16,6 +16,7 @@ model User {
   emailVerified DateTime?
   image         String?
   username      String?        @unique
+  passwordHash  String?        @map("password_hash")
   bio           String?
   role          UserRole       @default(EXPLORER)
   createdAt     DateTime       @default(now())
