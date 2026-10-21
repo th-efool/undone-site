@@ -1,1 +1,3 @@
-export { GET, POST, dynamic } from '@/src/app/api/community/channels/[channelId]/messages/route';
+export const dynamic = 'force-dynamic';
+export { GET, POST } from '@/src/app/api/community/channels/[channelId]/messages/route';
+

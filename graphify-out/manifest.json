@@ -1914,10 +1914,10 @@
     "semantic_hash": "ba682c74a279a5c97ddd91926bfa1607"
   },
   "src/app/(dashboard)/cohort/[cohortId]/layout.tsx": {
-    "mtime": 1792330945.9928124,
-    "seen": 1792556795.8298104,
-    "ast_hash": "3832c74e582ec27b08e2c8ee03e29a45",
-    "semantic_hash": "3832c74e582ec27b08e2c8ee03e29a45"
+    "mtime": 1792569785.476923,
+    "seen": 1792569982.6578093,
+    "ast_hash": "4c065d7b8b811ffaf1853240fe6e8c31",
+    "semantic_hash": ""
   },
   "src/app/(dashboard)/cohort/[cohortId]/overview/PrivateOverview.tsx": {
     "mtime": 1792374290.745335,
@@ -14946,9 +14946,9 @@
     "semantic_hash": ""
   },
   "src/app/api/channels/[channelId]/messages/route.ts": {
-    "mtime": 1792559617.807828,
-    "seen": 1792559955.7748895,
-    "ast_hash": "bc3a21c8cd8ec6a75727cb381a241073",
+    "mtime": 1792569353.87586,
+    "seen": 1792569982.6685376,
+    "ast_hash": "b623741c45691994ebe7f0cd4c1e109d",
     "semantic_hash": ""
   },
   "src/client/screens/dashboard/studyroom/hooks/useRoomChat.ts": {
