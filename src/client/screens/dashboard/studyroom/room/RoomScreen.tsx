@@ -27,7 +27,6 @@ import { useAmbientPlayback } from '../hooks/useAmbientPlayback';
 
 import RoomBackground from './components/RoomBackground';
 import RoomTopBar from './components/RoomTopBar';
-import RoomSoundChip from './components/RoomSoundChip';
 import PanelShell from './components/PanelShell';
 import RoomToast from './components/RoomToast';
 import LeaveRoomDialog from './components/LeaveRoomDialog';
@@ -35,9 +34,12 @@ import FocusBar from './components/FocusBar';
 import TimerSettingsPanel from './components/TimerSettingsPanel';
 import SessionPanel from './components/SessionPanel';
 import ParticipantPanel from './components/ParticipantPanel';
-import EnvironmentPanel from './components/EnvironmentPanel';
 import RoomInfoPanel from './components/RoomInfoPanel';
 import MusicPlayerDock from './components/MusicPlayerDock';
+import SceneDock from './components/SceneDock';
+import RoomSocial from './components/RoomSocial';
+import MusicSettingsModal from './components/MusicSettingsModal';
+import SoundRemixModal from './components/SoundRemixModal';
 
 import styles from './RoomScreen.module.css';
 
@@ -100,6 +102,9 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
 
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
   const [leaveOpen, setLeaveOpen] = useState<boolean>(false);
+  const [musicModalOpen, setMusicModalOpen] = useState<boolean>(false);
+  const [soundRemixOpen, setSoundRemixOpen] = useState<boolean>(false);
+  const [customizeDockOpen, setCustomizeDockOpen] = useState<boolean>(false);
 
   const lastTriggerRef = useRef<HTMLElement | null>(null);
   // Stored in state initializer to ensure purity and avoid ref-access during render
@@ -182,21 +187,11 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
   const renderPanelContent = () => {
     switch (activePanel) {
       case 'session':
-        return <SessionPanel goal={goal} tasks={tasks} />;
+        return <SessionPanel goal={goal} tasks={tasks} onClose={closePanel} />;
       case 'people':
         return <ParticipantPanel participants={participants} now={now} />;
       case 'room':
-        return viewer.role === 'admin' ? (
-          <EnvironmentPanel
-            environment={env.environment}
-            actions={env.actions}
-            ambienceStatus={ambience.status}
-            mutedForMe={mutedForMe}
-            onToggleMute={() => setMutedForMe((prev) => !prev)}
-            onUnlock={ambience.unlock}
-            onNotify={(text) => setToast({ id: Date.now(), text })}
-          />
-        ) : (
+        return (
           <RoomInfoPanel
             room={room}
             environment={env.environment}
@@ -228,7 +223,7 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
       case 'people':
         return `People · ${participants.length}`;
       case 'room':
-        return viewer.role === 'admin' ? 'Customize Room' : 'Room Info';
+        return 'Room Info';
       case 'timer':
         return 'Timer Settings';
       default:
@@ -257,55 +252,92 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
         activePanel={activePanel}
         onTogglePanel={togglePanel}
         onLeave={handleRequestLeave}
-        soundChip={
-          <RoomSoundChip
-            environment={env.environment}
-            ambienceStatus={ambience.status}
-            mutedForMe={mutedForMe}
-            onToggleMute={() => setMutedForMe((prev) => !prev)}
-            onUnlock={ambience.unlock}
-            controls={
-              viewer.role === 'admin'
-                ? { setAmbiencePlaying: env.actions.setAmbiencePlaying }
-                : undefined
-            }
-            onOpenRoomPanel={(trigger) => togglePanel('room', trigger)}
-          />
-        }
+        customizeOpen={customizeDockOpen}
+        onToggleCustomize={() => setCustomizeDockOpen((prev) => !prev)}
       />
 
-      {/* 3. Bottom Row: FocusBar and MusicPlayerDock */}
-      <div className={styles.bottomRow}>
-        <FocusBar
-          state={pomodoro.state}
-          onStart={pomodoro.start}
-          onPause={pomodoro.pause}
-          onResume={pomodoro.resume}
-          onReset={pomodoro.reset}
-          onSkip={pomodoro.skip}
-          onSelectPhase={pomodoro.selectPhase}
-          onOpenSettings={(trigger) => togglePanel('timer', trigger)}
-          settingsOpen={activePanel === 'timer'}
-          announcement={pomodoro.announcement}
-        />
-        {env.environment.music && (
+      {/* 3. Main Cockpit: Floating Focus Timer, Open Center Scene, Floating Social Column */}
+      <div className={styles.cockpit}>
+        <div className={styles.focusContainer}>
+          <FocusBar
+            state={pomodoro.state}
+            onStart={pomodoro.start}
+            onPause={pomodoro.pause}
+            onResume={pomodoro.resume}
+            onReset={pomodoro.reset}
+            onSkip={pomodoro.skip}
+            onSelectPhase={pomodoro.selectPhase}
+            onOpenSettings={(trigger) => togglePanel('timer', trigger)}
+            settingsOpen={activePanel === 'timer'}
+            announcement={pomodoro.announcement}
+            onOpenMusic={() => setMusicModalOpen(true)}
+            onToggleAmbience={() => setSoundRemixOpen((prev) => !prev)}
+            ambienceOpen={soundRemixOpen || activePanel === 'ambience'}
+          />
+        </div>
+
+        <div className={styles.centerSpace} aria-hidden="true" />
+
+        <div className={styles.socialContainer}>
+          <RoomSocial
+            participants={participants}
+            viewer={viewer}
+            onOpenPeople={(trigger) => togglePanel('people', trigger)}
+            onNotify={(text) => setToast({ id: Date.now(), text })}
+            showPeople={true}
+          />
+        </div>
+      </div>
+
+      {/* 4. Bottom Dock: Ambience Audio Player & Scene / Color Picker (shown when admin toggles Customize room) */}
+      {customizeDockOpen && (
+        <footer id="room-background-dock" className={styles.dockContainer}>
+          <SceneDock
+            environment={env.environment}
+            actions={viewer.role === 'admin' ? env.actions : undefined}
+            status={ambience.status}
+            muted={mutedForMe}
+            onMute={() => setMutedForMe((prev) => !prev)}
+            onUnlock={ambience.unlock}
+            onCustomize={(trigger) => togglePanel('room', trigger)}
+            onClose={() => setCustomizeDockOpen(false)}
+          />
+        </footer>
+      )}
+
+      {/* 5. Persistent Music Player Dock if background room music is active */}
+      {env.environment.music && (
+        <div className={styles.musicDockAnchor}>
           <MusicPlayerDock
             music={env.environment.music}
             hidden={playerHidden}
             onToggleHidden={() => setUserHiddenOverride(!playerHidden)}
           />
-        )}
-      </div>
+        </div>
+      )}
 
       {/* 4. Panel Layer: at most ONE drawer/bottom sheet active */}
-      {activePanel && (
+      {activePanel && activePanel !== 'timer' && activePanel !== 'ambience' && (
         <PanelShell
           id="room-panel"
           title={getPanelTitle()}
           onClose={closePanel}
+          variant={activePanel === 'session' ? 'modal' : 'drawer'}
         >
           {renderPanelContent()}
         </PanelShell>
+      )}
+
+      {/* Floating Timer Settings Modal */}
+      {activePanel === 'timer' && (
+        <TimerSettingsPanel
+          settings={pomodoro.state.settings}
+          status={pomodoro.state.status}
+          phaseDurationMs={pomodoro.state.phaseDurationMs}
+          onChange={pomodoro.updateSettings}
+          onRestoreDefaults={pomodoro.restoreDefaults}
+          onClose={closePanel}
+        />
       )}
 
       {/* 5. Notifications & Leave confirmation dialog */}
@@ -314,6 +346,40 @@ export function RoomScreen({ roomSlug, viewAsOverride }: RoomScreenProps) {
         open={leaveOpen}
         onStay={() => setLeaveOpen(false)}
         onLeave={handleConfirmLeave}
+      />
+
+      {/* 6. Music Settings Modal */}
+      <MusicSettingsModal
+        isOpen={musicModalOpen}
+        onClose={() => setMusicModalOpen(false)}
+        music={env.environment.music}
+        onSetMusic={(source) => {
+          if (viewer.role === 'admin') {
+            env.actions.setMusic(source);
+          }
+        }}
+        onNotify={(text) => setToast({ id: Date.now(), text })}
+      />
+
+      {/* 7. Sound Remix Modal */}
+      <SoundRemixModal
+        isOpen={soundRemixOpen || activePanel === 'ambience'}
+        onClose={() => {
+          setSoundRemixOpen(false);
+          if (activePanel === 'ambience') closePanel();
+        }}
+        environment={env.environment}
+        actions={viewer.role === 'admin' ? env.actions : undefined}
+        onSelectPreset={(presetId) => {
+          if (viewer.role === 'admin') {
+            env.actions.setAmbiencePreset(presetId);
+          }
+        }}
+        onVolumeChange={(vol) => {
+          if (viewer.role === 'admin') {
+            env.actions.setAmbienceVolume(vol);
+          }
+        }}
       />
     </section>
   );

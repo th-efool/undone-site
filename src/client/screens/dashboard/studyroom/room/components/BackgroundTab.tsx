@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { Check } from 'lucide-react';
 import type { BackgroundId } from '../../types';
-import { BACKGROUND_OPTIONS } from '../../data/backgroundCatalog';
+import { SCENE_BACKGROUNDS, SOLID_BACKGROUNDS } from '../../data/backgroundCatalog';
 import styles from './BackgroundTab.module.css';
 
 export interface BackgroundTabProps {
@@ -13,15 +13,21 @@ export interface BackgroundTabProps {
 }
 
 export function BackgroundTab({ selectedId, onSelect }: BackgroundTabProps) {
+  const [showColors, setShowColors] = useState(() => SOLID_BACKGROUNDS.some((bg) => bg.id === selectedId));
   return (
+    <div>
+      <div className={styles.modeSwitch} aria-label="Background style">
+        <button type="button" aria-pressed={!showColors} onClick={() => setShowColors(false)}>Scenes</button>
+        <button type="button" aria-pressed={showColors} onClick={() => setShowColors(true)}>Solid colors</button>
+      </div>
     <div
       role="radiogroup"
       aria-label="Room background"
       className={styles.grid}
     >
-      {BACKGROUND_OPTIONS.map((opt) => {
+      {(showColors ? SOLID_BACKGROUNDS : SCENE_BACKGROUNDS).map((opt) => {
         const isSelected = selectedId === opt.id;
-        const titleText = opt.image ? opt.label : 'Illustration coming soon';
+        const titleText = opt.label;
 
         return (
           <button
@@ -57,6 +63,7 @@ export function BackgroundTab({ selectedId, onSelect }: BackgroundTabProps) {
           </button>
         );
       })}
+    </div>
     </div>
   );
 }

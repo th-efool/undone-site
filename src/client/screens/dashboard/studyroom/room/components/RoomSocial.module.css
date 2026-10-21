@@ -1,0 +1,305 @@
+.social {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  width: 300px;
+  max-height: calc(100vh - 180px);
+  pointer-events: auto;
+}
+
+.peopleCard,
+.chatCard {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  background: rgba(16, 17, 25, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  padding: 16px 18px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  color: #f1f1f6;
+}
+
+.peopleCard {
+  flex: 0 0 auto;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cardTitle {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.2px;
+  color: #ffffff;
+}
+
+.moreBtn {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.moreBtn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.roster {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0;
+  margin: 0 0 14px;
+  list-style: none;
+}
+
+.rosterItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.personDetails {
+  min-width: 0;
+  flex: 1;
+}
+
+.personHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 550;
+  color: #ffffff;
+}
+
+.personName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hostBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: #f5c451;
+  font-size: 11px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.crownIcon {
+  color: #f5c451;
+  fill: #f5c451;
+}
+
+.personGoal {
+  color: #94a3b8;
+  font-size: 11px;
+  margin: 2px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.micMuted {
+  display: grid;
+  place-items: center;
+  color: #f87171;
+  flex-shrink: 0;
+  padding: 4px;
+}
+
+.inviteBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f1f1f6;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.inviteBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.chatCard {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 250px;
+  max-height: 380px;
+  overflow: hidden;
+}
+
+.messageFeed {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 0 12px;
+}
+
+.messageRow {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  align-items: flex-start;
+}
+
+.messageContent {
+  min-width: 0;
+  flex: 1;
+}
+
+.messageMeta {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+.senderName {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.messageTime {
+  color: #94a3b8;
+  font-size: 10px;
+}
+
+.messageBody {
+  color: #cbd5e1;
+  line-height: 1.5;
+  margin: 0;
+  word-break: break-word;
+  font-size: 12px;
+}
+
+.reactionChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 11px;
+  color: #f1f1f6;
+  width: fit-content;
+}
+
+.composerForm {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: auto;
+}
+
+.composerInput {
+  min-width: 0;
+  flex: 1;
+  height: 38px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #ffffff;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.composerInput:focus {
+  border-color: #3b82f6;
+}
+
+.composerInput::placeholder {
+  color: #64748b;
+}
+
+.emojiBtn {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.emojiBtn:hover {
+  color: #ffffff;
+}
+
+.sendBtn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sendBtn:hover:not(:disabled) {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.sendBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.social :is(button, input):focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+@media (max-width: 1100px) {
+  .social {
+    display: none;
+  }
+}

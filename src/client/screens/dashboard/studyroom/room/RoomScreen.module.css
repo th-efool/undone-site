@@ -2,31 +2,75 @@
   position: relative;
   isolation: isolate;
   overflow: clip;
-  min-height: 100dvh;
+  height: 100dvh;
   width: 100%;
   color: #ffffff;
   background-color: #0c0e12;
+  display: flex;
+  flex-direction: column;
 }
 
 @media (max-width: 768px) {
   .stage {
+    height: auto;
     min-height: calc(100dvh - var(--bottom-nav-height, 56px) - var(--safe-area-bottom, 0px));
+    overflow-y: auto;
   }
 }
 
-.glass {
-  background: rgba(12, 14, 18, 0.66);
-  -webkit-backdrop-filter: blur(14px) saturate(1.15);
-  backdrop-filter: blur(14px) saturate(1.15);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  color: #ffffff;
+.cockpit {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex: 1;
+  padding: 14px 24px 0;
+  min-height: 0;
+  pointer-events: none;
 }
 
-@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass {
-    background: rgba(12, 14, 18, 0.88);
+.focusContainer {
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+
+.centerSpace {
+  flex: 1;
+  min-width: 24px;
+}
+
+.socialContainer {
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+
+.dockContainer {
+  position: relative;
+  z-index: 15;
+  padding: 10px 24px 16px;
+  width: 100%;
+  pointer-events: none;
+  animation: slideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
   }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.musicDockAnchor {
+  position: fixed;
+  left: 24px;
+  bottom: 120px;
+  z-index: 25;
+  pointer-events: auto;
 }
 
 .srOnly {
@@ -41,38 +85,39 @@
   border-width: 0;
 }
 
-.bottomRow {
-  position: absolute;
-  left: 24px;
-  bottom: 24px;
-  display: flex;
-  gap: 16px;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  max-width: calc(100% - 48px);
-  z-index: 10;
-  pointer-events: none;
-}
-
-.bottomRow > * {
-  pointer-events: auto;
-}
-
-@media (max-width: 768px) {
-  .bottomRow {
-    left: 12px;
-    right: 12px;
-    bottom: max(12px, env(safe-area-inset-bottom, 12px));
-    flex-direction: column-reverse;
-    align-items: stretch;
-    max-width: none;
+@media (max-width: 1100px) {
+  .cockpit {
+    padding: 12px 16px 0;
+  }
+  .socialContainer {
+    display: none;
+  }
+  .dockContainer {
+    padding: 10px 16px 14px;
   }
 }
 
-.placeholderCard {
-  padding: 24px 16px;
-  text-align: center;
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.875rem;
-  line-height: 1.5;
+@media (max-width: 768px) {
+  .cockpit {
+    flex-direction: column;
+    align-items: center;
+    padding: 10px 12px 0;
+    gap: 16px;
+  }
+  .centerSpace {
+    display: none;
+  }
+  .focusContainer {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+  .dockContainer {
+    padding: 8px 12px 12px;
+  }
+  .musicDockAnchor {
+    left: 12px;
+    right: 12px;
+    bottom: 90px;
+  }
 }

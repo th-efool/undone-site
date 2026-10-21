@@ -10,6 +10,7 @@ export interface PanelShellProps {
   onClose: () => void;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  variant?: 'drawer' | 'modal';
 }
 
 export function PanelShell({
@@ -18,6 +19,7 @@ export function PanelShell({
   onClose,
   children,
   footer,
+  variant = 'drawer',
 }: PanelShellProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
 
@@ -27,12 +29,13 @@ export function PanelShell({
   }, []);
 
   const headingId = `${id}-title`;
+  const isModal = variant === 'modal';
 
   return (
     <>
       <button
         type="button"
-        className={styles.scrim}
+        className={isModal ? styles.modalScrim : styles.scrim}
         aria-label="Close panel"
         tabIndex={-1}
         onClick={onClose}
@@ -40,30 +43,43 @@ export function PanelShell({
       <aside
         id={id}
         role="dialog"
-        aria-modal="false"
+        aria-modal={isModal ? 'true' : 'false'}
         aria-labelledby={headingId}
-        className={styles.panel}
+        className={isModal ? styles.modalPanel : styles.panel}
       >
-        <div className={styles.header}>
+        {isModal ? (
           <h2
             id={headingId}
             ref={headingRef}
             tabIndex={-1}
-            className={styles.title}
+            className={styles.srOnly}
           >
             {title}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={`Close ${title}`}
-            className={styles.closeBtn}
-          >
-            <X size={18} aria-hidden="true" />
-          </button>
-        </div>
+        ) : (
+          <div className={styles.header}>
+            <h2
+              id={headingId}
+              ref={headingRef}
+              tabIndex={-1}
+              className={styles.title}
+            >
+              {title}
+            </h2>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label={`Close ${title}`}
+              className={styles.closeBtn}
+            >
+              <X size={18} aria-hidden="true" />
+            </button>
+          </div>
+        )}
 
-        <div className={styles.body}>{children}</div>
+        <div className={isModal ? styles.modalBody : styles.body}>
+          {children}
+        </div>
 
         {footer && <div className={styles.footer}>{footer}</div>}
       </aside>
