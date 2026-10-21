@@ -4,6 +4,13 @@ import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 
 vi.mock('server-only', () => ({}));
 
+vi.mock('@/src/server/domain/studyroom/studyroom.policy', () => ({
+  studyroomPolicy: {
+    resolveRoomEligibility: vi.fn().mockResolvedValue({ eligible: true, reason: 'ELIGIBLE' }),
+    validateRoomSlug: vi.fn((slug: string) => slug),
+  },
+}));
+
 vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
   const mockStudyRoom = {
     count: vi.fn(),
@@ -38,6 +45,15 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
     groupBy: vi.fn(),
   };
 
+  const mockRoomRestriction = {
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+  };
+
+  const mockCohortMember = {
+    findUnique: vi.fn(),
+  };
+
   const mockTransaction = vi.fn(async (callback) => {
     if (typeof callback === 'function') {
       return callback({
@@ -46,6 +62,8 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
         realtimeStream: mockRealtimeStream,
         roomParticipant: mockRoomParticipant,
         roomLease: mockRoomLease,
+        roomRestriction: mockRoomRestriction,
+        cohortMember: mockCohortMember,
       });
     }
     return Promise.all(callback);
@@ -58,6 +76,8 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
       realtimeStream: mockRealtimeStream,
       roomParticipant: mockRoomParticipant,
       roomLease: mockRoomLease,
+      roomRestriction: mockRoomRestriction,
+      cohortMember: mockCohortMember,
       $transaction: mockTransaction,
     },
   };

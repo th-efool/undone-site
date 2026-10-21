@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Crown, MicOff, MoreHorizontal, Send, Smile, UserPlus } from 'lucide-react';
 import type { RoomParticipantView, Viewer } from '../../types';
 import { ParticipantAvatar } from '../../components/ParticipantAvatar';
+import ParticipantActionsMenu from './ParticipantActionsMenu';
 import styles from './RoomSocial.module.css';
 
 interface Props {
@@ -12,6 +13,10 @@ interface Props {
   onOpenPeople: (trigger: HTMLElement) => void;
   onNotify: (text: string) => void;
   showPeople?: boolean;
+  roomSlug?: string;
+  canManageParticipants?: boolean;
+  onRosterMutated?: () => void;
+  cohortTitle?: string | null;
 }
 
 interface ChatMessage {
@@ -58,6 +63,10 @@ export default function RoomSocial({
   onOpenPeople,
   onNotify,
   showPeople = true,
+  roomSlug,
+  canManageParticipants = false,
+  onRosterMutated,
+  cohortTitle,
 }: Props) {
   const [draft, setDraft] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>(DEFAULT_MESSAGES);
@@ -65,8 +74,15 @@ export default function RoomSocial({
   const invite = async () => {
     try {
       if (typeof window !== 'undefined') {
-        await navigator.clipboard.writeText(window.location.href);
-        onNotify('Room link copied to clipboard.');
+        const canonicalUrl = roomSlug
+          ? `${window.location.origin}/studyroom/${roomSlug}`
+          : window.location.href;
+        await navigator.clipboard.writeText(canonicalUrl);
+        if (cohortTitle) {
+          onNotify(`Room link copied. Enrolled members of ${cohortTitle} can join.`);
+        } else {
+          onNotify('Room link copied to clipboard.');
+        }
       }
     } catch {
       onNotify('Copy the URL from your browser address bar to share.');
@@ -117,7 +133,9 @@ export default function RoomSocial({
 
           <ul className={styles.roster}>
             {sortedParticipants.slice(0, 3).map((person) => {
-              const isHost = person.isAdmin;
+              const isOwner = person.role === 'OWNER';
+              const isMod = person.role === 'MODERATOR';
+              const isHost = person.role === 'HOST' || (person.isAdmin && !person.role && !isOwner);
               const isCurrent = person.isCurrentUser;
               const nameDisplay = isCurrent ? 'You' : person.displayName;
 
@@ -131,8 +149,18 @@ export default function RoomSocial({
                   <div className={styles.personDetails}>
                     <div className={styles.personHeader}>
                       <span className={styles.personName}>{nameDisplay}</span>
+                      {isOwner && (
+                        <span className={styles.hostBadge} title="Room owner">
+                          (Owner) <Crown size={12} className={styles.crownIcon} />
+                        </span>
+                      )}
+                      {isMod && (
+                        <span className={styles.hostBadge} style={{ color: '#38bdf8' }} title="Room moderator">
+                          (Mod)
+                        </span>
+                      )}
                       {isHost && (
-                        <span className={styles.hostBadge}>
+                        <span className={styles.hostBadge} title="Room host">
                           (Host) <Crown size={12} className={styles.crownIcon} />
                         </span>
                       )}
@@ -141,6 +169,18 @@ export default function RoomSocial({
                       {isCurrent ? 'Studying · System Design' : (person.publicGoal || 'Focusing')}
                     </p>
                   </div>
+                  {canManageParticipants && roomSlug && !isCurrent && !isOwner && (
+                    <ParticipantActionsMenu
+                      roomSlug={roomSlug}
+                      targetUserId={person.userId}
+                      targetName={person.displayName}
+                      targetRole={person.role}
+                      canManageParticipants={canManageParticipants}
+                      onActionSuccess={(msg) => onNotify(msg)}
+                      onActionError={(err) => onNotify(`Error: ${err}`)}
+                      onRosterMutated={onRosterMutated}
+                    />
+                  )}
                   {!isCurrent && (
                     <span className={styles.micMuted} title="Microphone muted">
                       <MicOff size={14} aria-hidden="true" />

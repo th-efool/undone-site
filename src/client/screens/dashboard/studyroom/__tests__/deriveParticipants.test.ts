@@ -239,5 +239,52 @@ describe('deriveParticipants & deriveViewer utilities', () => {
         expect((p as unknown as Record<string, unknown>).timer).toBeUndefined();
       }
     });
+
+    it('projects authoritative room roles (Phase 5)', () => {
+      const viewer: Viewer = {
+        userId: 'usr-1',
+        displayName: 'Alex',
+        avatarUrl: null,
+        role: 'admin',
+        roomRole: 'OWNER',
+      };
+
+      const dtoRoster = [
+        {
+          id: 'p-1',
+          userId: 'user-mod',
+          name: 'Mod User',
+          username: 'moduser',
+          image: '',
+          role: 'MODERATOR' as const,
+          joinedAt: '2026-10-21T00:00:00.000Z',
+          tabCount: 1,
+          publicGoal: null,
+        },
+        {
+          id: 'p-2',
+          userId: 'user-host',
+          name: 'Host User',
+          username: 'hostuser',
+          image: '',
+          role: 'HOST' as const,
+          joinedAt: '2026-10-21T00:05:00.000Z',
+          tabCount: 1,
+          publicGoal: null,
+        },
+      ];
+
+      const participants = deriveParticipants({
+        roster: dtoRoster,
+        viewer,
+        goal: { text: '', visibility: 'private' },
+        adminUserId: 'usr-1',
+        mountedAt,
+      });
+
+      expect(participants[0].role).toBe('OWNER');
+      expect(participants[1].role).toBe('MODERATOR');
+      expect(participants[2].role).toBe('HOST');
+    });
   });
 });

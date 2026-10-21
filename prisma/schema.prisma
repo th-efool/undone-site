@@ -58,6 +58,14 @@ model User {
   roomEnvironmentsUpdated RoomEnvironment[] @relation("EnvironmentUpdater")
   pinnedMessages    Message[]      @relation("PinnedMessages")
   moderatorAudits   MessageModerationAudit[] @relation("ModeratorAudits")
+  ownedStudyRooms   StudyRoom[]    @relation("StudyRoomOwner")
+  assignedRoomControllers RoomController[] @relation("ControllerAssigner")
+  roomRestrictions  RoomRestriction[]
+  issuedRoomRestrictions RoomRestriction[] @relation("RestrictionIssuer")
+  sentOwnershipTransfers RoomOwnershipTransfer[] @relation("SentOwnershipTransfers")
+  receivedOwnershipTransfers RoomOwnershipTransfer[] @relation("ReceivedOwnershipTransfers")
+  roomAuditsActed   RoomAuditLog[] @relation("AuditActor")
+  roomAuditsTargeted RoomAuditLog[] @relation("AuditTarget")
 
   @@map("users")
 }
@@ -472,6 +480,7 @@ model Cohort {
   community Community?
   sources   CohortSource[]
   invitations CohortInvitation[]
+  studyRooms StudyRoom[]
 
   @@index([creatorId])
   @@index([isPublished, visibility, publishedAt])
@@ -780,14 +789,31 @@ model MessagingRequest {
 //  STUDY ROOM — Global Standalone Voice Spaces
 // ─────────────────────────────────────────────────────────────────
 model StudyRoom {
-  id          String @id @default(cuid())
-  title       String
-  thumbnail   String
-  status      String
-  onlineCount Int    @default(0)
+  id             String    @id @default(cuid())
+  slug           String?   @unique
+  title          String
+  description    String?   @db.Text
+  thumbnail      String
+  ownerId        String?
+  cohortId       String?
+  listing        String    @default("LISTED")
+  status         String    @default("OPEN")
+  capacity       Int       @default(25)
+  rules          String?   @db.Text
+  tags           String[]  @default([])
+  language       String    @default("en")
+  visualPresetId String?
+  revision       Int       @default(1)
+  publishedAt    DateTime?
+  closedAt       DateTime?
+  archivedAt     DateTime?
+  onlineCount    Int       @default(0)
 
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  owner          User?                   @relation("StudyRoomOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  cohort         Cohort?                 @relation(fields: [cohortId], references: [id], onDelete: SetNull)
   participants   RoomParticipant[]
   channel        Channel?
   realtimeStream RealtimeStream?
@@ -796,7 +822,13 @@ model StudyRoom {
   sprints        RoomSprint[]
   environment    RoomEnvironment?
   controllers    RoomController[]
+  restrictions   RoomRestriction[]
+  transfers      RoomOwnershipTransfer[]
+  auditLogs      RoomAuditLog[]
 
+  @@index([ownerId, status])
+  @@index([cohortId, status, listing])
+  @@index([listing, status, createdAt])
   @@map("study_rooms")
 }
 
@@ -1176,17 +1208,80 @@ model RoomEnvironment {
 }
 
 model RoomController {
-  studyRoomId String
-  userId      String
-  role        String    @default("MODERATOR")
-  createdAt   DateTime  @default(now())
+  studyRoomId      String
+  userId           String
+  role             String    @default("MODERATOR")
+  assignedByUserId String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
 
-  room        StudyRoom @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room             StudyRoom @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignedBy       User?     @relation("ControllerAssigner", fields: [assignedByUserId], references: [id], onDelete: SetNull)
 
   @@id([studyRoomId, userId])
   @@index([userId])
   @@map("room_controllers")
+}
+
+model RoomRestriction {
+  id             String    @id @default(cuid())
+  studyRoomId    String
+  userId         String
+  action         String
+  reason         String?
+  issuedByUserId String?
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+
+  room           StudyRoom @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issuedBy       User?     @relation("RestrictionIssuer", fields: [issuedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([studyRoomId, userId])
+  @@index([userId])
+  @@index([studyRoomId, expiresAt])
+  @@map("room_restrictions")
+}
+
+model RoomOwnershipTransfer {
+  id               String    @id @default(cuid())
+  studyRoomId      String
+  senderId         String
+  recipientId      String
+  status           String    @default("PENDING")
+  expectedRevision Int
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
+
+  room             StudyRoom @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+  sender           User      @relation("SentOwnershipTransfers", fields: [senderId], references: [id], onDelete: Cascade)
+  recipient        User      @relation("ReceivedOwnershipTransfers", fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([studyRoomId, status])
+  @@index([recipientId, status])
+  @@map("room_ownership_transfers")
+}
+
+model RoomAuditLog {
+  id              String    @id @default(cuid())
+  studyRoomId     String
+  actorId         String?
+  action          String
+  targetUserId    String?
+  clientRequestId String?
+  details         Json?
+  createdAt       DateTime  @default(now())
+
+  room            StudyRoom @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+  actor           User?     @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  targetUser      User?     @relation("AuditTarget", fields: [targetUserId], references: [id], onDelete: SetNull)
+
+  @@index([studyRoomId, createdAt])
+  @@index([actorId])
+  @@map("room_audit_logs")
 }
 
 model MessageModerationAudit {

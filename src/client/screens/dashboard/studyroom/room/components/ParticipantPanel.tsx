@@ -9,9 +9,20 @@ import styles from './ParticipantPanel.module.css';
 export interface ParticipantPanelProps {
   participants: RoomParticipantView[];
   now: number;
+  roomSlug?: string;
+  canManageParticipants?: boolean;
+  onNotify?: (text: string) => void;
+  onRosterMutated?: () => void;
 }
 
-export function ParticipantPanel({ participants, now }: ParticipantPanelProps) {
+export function ParticipantPanel({
+  participants,
+  now,
+  roomSlug,
+  canManageParticipants = false,
+  onNotify,
+  onRosterMutated,
+}: ParticipantPanelProps) {
   const sortedParticipants = useMemo(() => {
     return [...participants].sort((a, b) => {
       // 1. Current user first
@@ -37,6 +48,10 @@ export function ParticipantPanel({ participants, now }: ParticipantPanelProps) {
             key={participant.userId}
             participant={participant}
             now={now}
+            roomSlug={roomSlug}
+            canManageParticipants={canManageParticipants}
+            onNotify={onNotify}
+            onRosterMutated={onRosterMutated}
           />
         ))}
       </ul>

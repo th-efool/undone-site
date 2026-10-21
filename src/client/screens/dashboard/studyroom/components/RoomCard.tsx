@@ -3,25 +3,53 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Users, Lock } from 'lucide-react';
 import type { MockPeer, RoomDefinition } from '../types';
+import type { StudyRoomCardDTO } from '@/src/shared/studyroom/contracts';
 import { getBackground } from '../data/backgroundCatalog';
 import { ParticipantAvatar } from './ParticipantAvatar';
 import styles from './RoomCard.module.css';
 
 export interface RoomCardProps {
-  room: RoomDefinition;
-  sampleCount: number;
-  previewPeers: readonly MockPeer[] | MockPeer[];
+  room: RoomDefinition | StudyRoomCardDTO;
+  sampleCount?: number;
+  previewPeers?: readonly MockPeer[] | MockPeer[];
+}
+
+function isStudyRoomCardDTO(room: RoomDefinition | StudyRoomCardDTO): room is StudyRoomCardDTO {
+  return 'onlineCount' in room && 'capacity' in room;
 }
 
 export const RoomCard = React.memo(function RoomCard({
   room,
   sampleCount,
-  previewPeers,
+  previewPeers = [],
 }: RoomCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
-  const background = getBackground(room.defaultEnvironment.backgroundId);
+
+  const isDTO = isStudyRoomCardDTO(room);
+
+  // Background and cover image resolution
+  const backgroundId = isDTO
+    ? room.visualPresetId || 'library'
+    : room.defaultEnvironment.backgroundId;
+  const background = getBackground(backgroundId);
+
+  const previewImage = isDTO
+    ? room.thumbnail || background.image
+    : room.previewImage;
+
+  const title = room.title;
+  const description = isDTO
+    ? room.description || 'Focus and quiet company'
+    : room.atmosphere;
+
+  const onlineCount = isDTO ? room.onlineCount : sampleCount ?? 0;
+  const capacity = isDTO ? room.capacity : null;
+  const isFull = isDTO ? room.onlineCount >= room.capacity : false;
+  const isClosed = isDTO && room.status === 'CLOSED';
+  const isDraft = isDTO && room.status === 'DRAFT';
+
   const previewPeersSlice = previewPeers.slice(0, 3);
 
   return (
@@ -30,11 +58,40 @@ export const RoomCard = React.memo(function RoomCard({
       style={{ background: background.gradient }}
       data-testid={`room-card-${room.slug}`}
     >
+      {/* Scope and Status Badges */}
+      {isDTO && (
+        <div className={styles.badgeRow}>
+          <span className={styles.scopeBadge}>
+            {room.scopeKind === 'COHORT' ? (
+              <>
+                <Users size={12} aria-hidden="true" />
+                <span>{room.cohortTitle || 'Cohort'}</span>
+              </>
+            ) : (
+              <span>Public</span>
+            )}
+          </span>
+
+          {isClosed ? (
+            <span className={styles.statusBadge}>Closed</span>
+          ) : isDraft ? (
+            <span className={styles.statusBadge} style={{ color: '#fef08a', borderColor: '#fef08a' }}>Draft</span>
+          ) : isFull ? (
+            <span className={styles.statusBadge} style={{ color: '#fdba74', borderColor: '#fdba74' }}>Full</span>
+          ) : room.listing === 'UNLISTED' ? (
+            <span className={styles.scopeBadge} style={{ color: '#cbd5e1' }}>
+              <Lock size={11} aria-hidden="true" />
+              <span>Unlisted</span>
+            </span>
+          ) : null}
+        </div>
+      )}
+
       {/* Background illustration if available and not failed */}
       <div className={styles.imageWrapper}>
-        {room.previewImage && !imageFailed && (
+        {previewImage && !imageFailed && (
           <Image
-            src={room.previewImage}
+            src={previewImage}
             alt=""
             fill
             sizes="(max-width: 768px) 100vw, 360px"
@@ -50,14 +107,36 @@ export const RoomCard = React.memo(function RoomCard({
       {/* Text and meta content */}
       <div className={styles.content}>
         <div>
-          <h2 className={styles.roomName}>{room.title}</h2>
-          <p className={styles.atmosphere}>{room.atmosphere}</p>
+          <h2 className={styles.roomName}>{title}</h2>
+          <p className={styles.atmosphere}>{description}</p>
         </div>
+
+        {isDTO && room.tags && room.tags.length > 0 && (
+          <div className={styles.tagRow}>
+            {room.tags.slice(0, 3).map((tag) => (
+              <span key={tag} className={styles.tagPill}>
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
 
         <div className={styles.metaRow}>
           <div className={styles.presenceInfo}>
-            <span className={styles.pulseDot} aria-hidden="true" />
-            <span>{sampleCount} studying now · demo</span>
+            <span
+              className={styles.pulseDot}
+              style={{
+                background: isClosed ? '#94a3b8' : isFull ? '#f97316' : '#22c55e',
+              }}
+              aria-hidden="true"
+            />
+            {isDTO ? (
+              <span>
+                {onlineCount} / {capacity} studying now
+              </span>
+            ) : (
+              <span>{onlineCount} studying now · demo</span>
+            )}
           </div>
 
           {previewPeersSlice.length > 0 && (
@@ -80,7 +159,7 @@ export const RoomCard = React.memo(function RoomCard({
             prefetch={false}
             className={styles.enterLink}
           >
-            <span>Enter room</span>
+            <span>{isClosed ? 'View room' : 'Enter room'}</span>
             <ArrowRight size={16} aria-hidden="true" />
           </Link>
         </div>

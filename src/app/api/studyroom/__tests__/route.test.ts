@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+vi.mock('server-only', () => ({}));
+
 const hoisted = vi.hoisted(() => ({
   getUser: vi.fn(),
   seedRooms: vi.fn(),
@@ -10,6 +12,8 @@ const hoisted = vi.hoisted(() => ({
   roomParticipantFindFirst: vi.fn(),
   roomParticipantCreate: vi.fn(),
   roomParticipantDelete: vi.fn(),
+  roomRestrictionFindUnique: vi.fn(),
+  cohortMemberFindUnique: vi.fn(),
 }));
 
 vi.mock('@/src/server/infrastructure/auth/getUser', () => ({
@@ -35,6 +39,12 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
       create: hoisted.roomParticipantCreate,
       delete: hoisted.roomParticipantDelete,
     },
+    roomRestriction: {
+      findUnique: hoisted.roomRestrictionFindUnique,
+    },
+    cohortMember: {
+      findUnique: hoisted.cohortMemberFindUnique,
+    },
   };
 
   return {
@@ -45,7 +55,8 @@ vi.mock('@/src/server/infrastructure/db/postgres/client', () => {
   };
 });
 
-import { GET, POST, resetRoomsSeededForTest, clearStudyRoomCacheForTest } from '../route';
+import { GET, POST } from '../route';
+import { resetRoomsSeededForTest, clearStudyRoomCacheForTest } from '../cache';
 
 describe('/api/studyroom route', () => {
   beforeEach(() => {
@@ -250,6 +261,73 @@ describe('/api/studyroom route', () => {
       expect(res.status).toBe(404);
       const data = await res.json();
       expect(data.error).toBe('Room not found');
+    });
+
+    it('denies join with 403 when target room is CLOSED', async () => {
+      hoisted.getUser.mockResolvedValue({ id: 'user-1' });
+      hoisted.studyRoomFindUnique.mockResolvedValue({
+        id: 'room-closed',
+        title: 'Archived Den',
+        status: 'CLOSED',
+      });
+
+      const req = new Request('http://localhost/api/studyroom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'join', roomId: 'room-closed' }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(403);
+      const data = await res.json();
+      expect(data.error).toBe('Room is closed');
+    });
+
+    it('denies join with 403 when user is actively banned from room', async () => {
+      hoisted.getUser.mockResolvedValue({ id: 'banned-user' });
+      hoisted.studyRoomFindUnique.mockResolvedValue({
+        id: 'room-1',
+        title: 'Fireplace',
+        status: 'OPEN',
+      });
+      hoisted.roomRestrictionFindUnique.mockResolvedValue({
+        action: 'BAN',
+        expiresAt: null,
+      });
+
+      const req = new Request('http://localhost/api/studyroom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'join', roomId: 'room-1' }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(403);
+      const data = await res.json();
+      expect(data.error).toBe('User is restricted from this room');
+    });
+
+    it('denies join with 403 for cohort-scoped room when user is not enrolled in cohort', async () => {
+      hoisted.getUser.mockResolvedValue({ id: 'unenrolled-user' });
+      hoisted.studyRoomFindUnique.mockResolvedValue({
+        id: 'room-cohort',
+        title: 'Cohort Private Study',
+        status: 'OPEN',
+        cohortId: 'cohort-123',
+      });
+      hoisted.roomRestrictionFindUnique.mockResolvedValue(null);
+      hoisted.cohortMemberFindUnique.mockResolvedValue(null);
+
+      const req = new Request('http://localhost/api/studyroom', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'join', roomId: 'room-cohort' }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(403);
+      const data = await res.json();
+      expect(data.error).toBe('Cohort enrollment required');
     });
 
     it('joins a room when user is not currently in any room', async () => {

@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
+import { parseMusicUrl } from '../utils/parseMusicUrl';
 import type {
   AmbientPresetId,
   BackgroundId,
@@ -7,6 +8,11 @@ import type {
   SharedRoomEnvironment,
 } from '../types';
 
+export interface UseSharedEnvironmentOptions {
+  roomSlug?: string;
+  canControlEnvironment?: boolean;
+}
+
 export interface UseSharedEnvironmentReturn {
   environment: SharedRoomEnvironment;
   actions: SharedEnvironmentActions;
@@ -14,9 +20,67 @@ export interface UseSharedEnvironmentReturn {
 
 export function useSharedEnvironment(
   initialEnvironment: SharedRoomEnvironment,
-  adminUserId: string
+  adminUserId: string,
+  options?: UseSharedEnvironmentOptions
 ): UseSharedEnvironmentReturn {
   const [environment, setEnvironment] = useState<SharedRoomEnvironment>(initialEnvironment);
+  const optionsRef = useRef(options);
+
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+
+  // Initial load from server environment service if roomSlug provided
+  useEffect(() => {
+    const slug = options?.roomSlug;
+    if (!slug) return;
+
+    let ignore = false;
+    void fetch(`/api/studyroom/${slug}/environment`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!ignore && data) {
+          const parsedMusic = data.musicStreamUrl ? parseMusicUrl(data.musicStreamUrl) : null;
+          const nextMusic = parsedMusic && parsedMusic.ok ? parsedMusic.source : null;
+          setEnvironment((prev) => ({
+            ...prev,
+            backgroundId: (data.sceneId as BackgroundId) || prev.backgroundId,
+            music: nextMusic || prev.music,
+            ambience: {
+              ...prev.ambience,
+              presetId: (data.soundscapeId as AmbientPresetId) || prev.ambience.presetId,
+            },
+            updatedAt: data.updatedAt ? new Date(data.updatedAt).getTime() : prev.updatedAt,
+            updatedByUserId: data.updatedByUserId || prev.updatedByUserId,
+          }));
+        }
+      })
+      .catch(() => {
+        // Fall back gracefully to catalog preset
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [options?.roomSlug]);
+
+  const persistServerEnvironment = (patch: {
+    sceneId?: string;
+    soundscapeId?: string | null;
+    musicStreamUrl?: string | null;
+  }) => {
+    const slug = optionsRef.current?.roomSlug;
+    const canControl = optionsRef.current?.canControlEnvironment;
+    if (!slug || !canControl) return;
+
+    void fetch(`/api/studyroom/${slug}/environment`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    }).catch(() => {
+      // Local state remains responsive
+    });
+  };
 
   const actions: SharedEnvironmentActions = useMemo(
     () => ({
@@ -30,6 +94,7 @@ export function useSharedEnvironment(
             updatedByUserId: adminUserId,
           };
         });
+        persistServerEnvironment({ sceneId: id });
       },
 
       setMusic(source: MusicSource | null) {
@@ -39,6 +104,7 @@ export function useSharedEnvironment(
           updatedAt: Date.now(),
           updatedByUserId: adminUserId,
         }));
+        persistServerEnvironment({ musicStreamUrl: source ? source.originalUrl : null });
       },
 
       setAmbiencePreset(id: AmbientPresetId | null) {
@@ -52,6 +118,7 @@ export function useSharedEnvironment(
           updatedAt: Date.now(),
           updatedByUserId: adminUserId,
         }));
+        persistServerEnvironment({ soundscapeId: id });
       },
 
       setAmbiencePlaying(isPlaying: boolean) {

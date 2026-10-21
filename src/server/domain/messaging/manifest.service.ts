@@ -136,6 +136,7 @@ export const manifestService = {
     const roomParticipant = await prisma.roomParticipant.findUnique({
       where: { userId },
       select: {
+        generation: true,
         room: {
           select: {
             id: true,
@@ -148,21 +149,32 @@ export const manifestService = {
       },
     });
 
-    if (roomParticipant && roomParticipant.room.status === 'active') {
-      const room = roomParticipant.room;
-      addChannel({
-        channel: `room:${room.id}:g1`,
-        scopeType: 'room',
-        entityId: room.id,
-        generation: 1,
+    if (roomParticipant && ['active', 'open'].includes(roomParticipant.room.status?.toLowerCase())) {
+      const activeLease = await prisma.roomLease.findFirst({
+        where: {
+          studyRoomId: roomParticipant.room.id,
+          userId,
+          expiresAt: { gt: new Date() },
+        },
       });
-      if (room.channel) {
+
+      if (activeLease) {
+        const room = roomParticipant.room;
+        const gen = activeLease.generation || roomParticipant.generation || 1;
         addChannel({
-          channel: `roomchat:${room.channel.id}:g1`,
-          scopeType: 'roomchat',
-          entityId: room.channel.id,
-          generation: 1,
+          channel: `room:${room.id}:g${gen}`,
+          scopeType: 'room',
+          entityId: room.id,
+          generation: gen,
         });
+        if (room.channel) {
+          addChannel({
+            channel: `roomchat:${room.channel.id}:g${gen}`,
+            scopeType: 'roomchat',
+            entityId: room.channel.id,
+            generation: gen,
+          });
+        }
       }
     }
 

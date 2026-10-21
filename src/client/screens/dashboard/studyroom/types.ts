@@ -1,3 +1,5 @@
+import type { RoomRole, RoomCapabilities } from '@/src/shared/studyroom/contracts';
+
 /* ───────── Rooms (static catalog, shared definition) ───────── */
 export type RoomSlug = 'library' | 'fireplace' | 'developer-den';
 
@@ -111,6 +113,8 @@ export interface Viewer {
   displayName: string; // session.user.name ?? 'You'
   avatarUrl: string | null; // session.user.image ?? null
   role: ViewerRole;
+  roomRole?: RoomRole;
+  capabilities?: RoomCapabilities;
 }
 
 /* ───────── Participants (what is visible to OTHER people) ───────── */
@@ -120,6 +124,7 @@ export interface MockPeer {
   avatarUrl: null; // initials only in the prototype
   joinedMinutesAgo: number; // static, converted to absolute once at mount
   publicGoal: string | null; // the ONLY goal field a peer can expose
+  role?: RoomRole;
 }
 
 export interface RoomParticipantView {
@@ -130,6 +135,7 @@ export interface RoomParticipantView {
   publicGoal: string | null; // NEVER a private goal (no field exists for one)
   isCurrentUser: boolean;
   isAdmin: boolean;
+  role?: RoomRole;
 }
 
 /* ───────── PERSONAL session state (owner-only) ───────── */
