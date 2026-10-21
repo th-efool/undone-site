@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
+
 import type { CommunityChatModel, ReplyContext } from '../../models';
-import { TypingIndicator } from '../shared/TypingIndicator/TypingIndicator';
 import { ChannelTabs } from './components/ChannelTabs/ChannelTabs';
 import { CommunityHeader } from './components/CommunityHeader/CommunityHeader';
 import { CommunitySidebar } from './components/CommunitySidebar/CommunitySidebar';
 import { MessageComposer } from './components/MessageComposer/MessageComposer';
 import { MessageTimeline } from './components/MessageTimeline/MessageTimeline';
 import { PinnedBanner } from './components/PinnedBanner/PinnedBanner';
+import { TypingIndicator } from '../shared/TypingIndicator/TypingIndicator';
 import styles from './CommunityChat.module.css';
 
 interface Props {
@@ -26,6 +27,7 @@ interface Props {
   onReply?(messageId: string, senderName: string, previewText: string, senderAvatar?: string): void;
   isTyping?: boolean;
   typingUsernames?: string[];
+  onRetry?(messageId: string): void;
 }
 
 export function CommunityChat({
@@ -44,6 +46,7 @@ export function CommunityChat({
   onReply,
   isTyping = false,
   typingUsernames = [],
+  onRetry,
 }: Props) {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [dismissedPinned, setDismissedPinned] = useState(false);
@@ -68,26 +71,31 @@ export function CommunityChat({
     };
   }, [aboutOpen]);
 
-  const handleDismissPinned = () => setDismissedPinned(true);
-
-  const handleToggleMute = (channelId: string, muted: boolean) => {
-    if (muted) {
-      setMutedChannels((prev) => new Set([...prev, channelId]));
-    } else {
-      setMutedChannels((prev) => {
-        const next = new Set(prev);
-        next.delete(channelId);
-        return next;
-      });
-    }
+  const handleDismissPinned = () => {
+    setDismissedPinned(true);
   };
 
-  const effectiveChannels = community.channels.map((ch) =>
+  const handleToggleMute = (channelId: string) => {
+    setMutedChannels((prev) => {
+      const next = new Set(prev);
+      if (next.has(channelId)) {
+        next.delete(channelId);
+      } else {
+        next.add(channelId);
+      }
+      return next;
+    });
+  };
+
+  const processedChannels = community.channels.map((ch) =>
     mutedChannels.has(ch.id) ? { ...ch, unreadCount: undefined } : ch
   );
 
   return (
-    <div className={styles.chat} ref={shellRef}>
+    <div
+      className={styles.community}
+      ref={shellRef}
+    >
       <main className={styles.main}>
         <CommunityHeader
           community={community}
@@ -96,7 +104,7 @@ export function CommunityChat({
           onToggleAbout={() => setAboutOpen((open) => !open)}
         />
         <ChannelTabs
-          channels={effectiveChannels}
+          channels={processedChannels}
           selectedChannel={community.selectedChannel}
           onSelectChannel={onSelectChannel}
         />
@@ -112,6 +120,7 @@ export function CommunityChat({
           onScrollChange={onScrollChange}
           onReaction={onReaction}
           onReply={onReply}
+          onRetry={onRetry}
         />
         <MessageComposer
           value={draft}

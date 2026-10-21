@@ -1,8 +1,6 @@
-import Image from 'next/image';
-import { useEffect, useRef, useState } from 'react';
-import { Bell, Settings, UserCircle, UsersRound, MessageCircle, House, CheckCheck, SlidersHorizontal, ArrowUpDown, SquarePen } from 'lucide-react';
+import { useState } from 'react';
+import { UsersRound, MessageCircle, House, CheckCheck, SlidersHorizontal, ArrowUpDown, SquarePen } from 'lucide-react';
 import type { SidebarTab } from '../../../models';
-import { getAvatar } from '@/src/client/mock/avatars';
 import { Tooltip } from '@/src/client/components/ui';
 import styles from './SidebarHeader.module.css';
 
@@ -14,31 +12,11 @@ interface Props {
   isHome?: boolean;
   onCompose?(): void;
   onMarkAllRead?(): void;
-  showUserMenu: boolean;
-  onToggleUserMenu(): void;
 }
 
-const menuItems = [
-  { label: 'Your Profile', icon: <UserCircle size={18} />, action: () => {} },
-  { label: 'Settings', icon: <Settings size={18} />, action: () => {} },
-  { label: 'Notifications', icon: <Bell size={18} />, action: () => {} },
-];
-
-export function SidebarHeader({ tabs, selectedTab, onTabChange, onGoHome, isHome, onCompose, onMarkAllRead, showUserMenu, onToggleUserMenu }: Props) {
-  const menuRef = useRef<HTMLDivElement>(null);
+export function SidebarHeader({ tabs, selectedTab, onTabChange, onGoHome, isHome, onCompose, onMarkAllRead }: Props) {
   const [filterActive, setFilterActive] = useState(false);
   const [sortActive, setSortActive] = useState(false);
-
-  useEffect(() => {
-    if (!showUserMenu) return;
-    const handleOutsideClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onToggleUserMenu();
-      }
-    };
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [showUserMenu, onToggleUserMenu]);
 
   return (
     <header className={styles.header}>
@@ -126,24 +104,6 @@ export function SidebarHeader({ tabs, selectedTab, onTabChange, onGoHome, isHome
           >
             <ArrowUpDown size={16} />
           </button>
-        </div>
-
-        {/* Avatar */}
-        <div className={styles.userWrap} ref={menuRef}>
-          <button type="button" className={`${styles.avatarBtn}${showUserMenu ? ' ' + styles.active : ''}`} onClick={onToggleUserMenu} aria-label="User menu">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <Image width={36} height={36} src={getAvatar('shaqun')} alt="" />
-          </button>
-          {showUserMenu && (
-            <div className={styles.dropdown}>
-              {menuItems.map((item) => (
-                <button key={item.label} type="button" className={styles.dropItem} onClick={() => { item.action(); onToggleUserMenu(); }}>
-                  <span>{item.icon}</span>
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
       </div>

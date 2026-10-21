@@ -75,6 +75,7 @@ describe('Phase 6 Conversations & People API Routes', () => {
           kind: 'DIRECT',
           title: 'Bob',
           channelId: 'chan-1',
+          unreadCount: 0,
           participantCount: 2,
           accessGeneration: 1,
           updatedAt: new Date().toISOString(),

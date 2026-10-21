@@ -13,17 +13,18 @@ interface Props {
   onReaction(messageId: string, emoji: string): void;
   /** Batch C/D: Reply trigger */
   onReply?(messageId: string, senderName: string, previewText: string, senderAvatar?: string): void;
+  /** Retry failed message */
+  onRetry?(messageId: string): void;
 }
 
 /** Extract a date label from the timestamp string for fallback grouping. */
 function extractDateLabel(msg: CommunityMessage): string {
   if (msg.dateLabel) return msg.dateLabel;
-  // Parse "Today at 5:28 PM" → "Today"; otherwise use first word before "at" or first space
   const match = msg.timestamp.match(/^(\w+)\s+at/i);
   return match ? match[1] : msg.timestamp.split(/\s/)[0];
 }
 
-export function MessageTimeline({ messages, scrollTop, onScrollChange, onReaction, onReply }: Props) {
+export function MessageTimeline({ messages, scrollTop, onScrollChange, onReaction, onReply, onRetry }: Props) {
   const viewportRef = useRef<HTMLElement>(null);
   const previousCountRef = useRef(0);
   const wasNearBottomRef = useRef(true);
@@ -33,7 +34,7 @@ export function MessageTimeline({ messages, scrollTop, onScrollChange, onReactio
     const viewport = viewportRef.current;
     if (!viewport) return;
     viewport.scrollTop = scrollTop;
-  }, [messages]);
+  }, [messages, scrollTop]);
 
   // Auto-scroll to bottom when new messages arrive or sent
   useEffect(() => {
@@ -54,19 +55,6 @@ export function MessageTimeline({ messages, scrollTop, onScrollChange, onReactio
     previousCountRef.current = messages.length;
   }, [messages.length]);
 
-  // Batch D1: Group messages by date label for sticky dividers
-  const groupedMessages: Array<{ dateLabel: string; messages: CommunityMessage[] }> = [];
-  let currentDateLabel = '';
-  for (const msg of messages) {
-    const label = extractDateLabel(msg);
-    if (label !== currentDateLabel) {
-      currentDateLabel = label;
-      groupedMessages.push({ dateLabel: label, messages: [msg] });
-    } else {
-      groupedMessages[groupedMessages.length - 1].messages.push(msg);
-    }
-  }
-
   return (
     <section
       ref={viewportRef}
@@ -78,40 +66,40 @@ export function MessageTimeline({ messages, scrollTop, onScrollChange, onReactio
       }}
     >
       {messages.length ? (
-        <>
-          {/* Batch D1: Date dividers between date groups */}
-          {groupedMessages.map((group, gi) => (
-            gi > 0 && <DateDivider key={`div-${gi}`} dateLabel={group.dateLabel} />
-          ))}
-          {messages.map((message, index) => {
-            const previousMessage = index > 0 ? messages[index - 1] : undefined;
-            const nextMessage = index < messages.length - 1 ? messages[index + 1] : undefined;
+        messages.map((message, index) => {
+          const previousMessage = index > 0 ? messages[index - 1] : undefined;
+          const nextMessage = index < messages.length - 1 ? messages[index + 1] : undefined;
 
-            const isAdjacentReply = Boolean(
-              message.replyTo?.messageId &&
-              previousMessage &&
-              message.replyTo.messageId === previousMessage.id
-            );
+          const currentLabel = extractDateLabel(message);
+          const prevLabel = previousMessage ? extractDateLabel(previousMessage) : null;
+          const showDateDivider = currentLabel !== prevLabel;
 
-            const hasAdjacentReplyBelow = Boolean(
-              nextMessage?.replyTo?.messageId &&
-              nextMessage.replyTo.messageId === message.id
-            );
+          const isAdjacentReply = Boolean(
+            message.replyTo?.messageId &&
+            previousMessage &&
+            message.replyTo.messageId === previousMessage.id
+          );
 
-            return (
+          const hasAdjacentReplyBelow = Boolean(
+            nextMessage?.replyTo?.messageId &&
+            nextMessage.replyTo.messageId === message.id
+          );
+
+          return (
+            <div key={message.id}>
+              {showDateDivider && <DateDivider dateLabel={currentLabel} />}
               <MessageBubble
-                key={message.id}
                 message={message}
                 isAdjacentReply={isAdjacentReply}
                 hasAdjacentReplyBelow={hasAdjacentReplyBelow}
                 onReaction={onReaction}
                 onReply={onReply}
+                onRetry={onRetry}
               />
-            );
-          })}
-        </>
+            </div>
+          );
+        })
       ) : (
-        /* Batch D2: Empty state for community with no messages */
         <EmptyState
           title="No messages yet"
           message="Start the first Undone learning checkpoint here."

@@ -348,6 +348,84 @@ describe('Phase 6 Conversation Lifecycle & Moderation Service', () => {
     });
   });
 
+  describe('getUserConversations', () => {
+    it('calculates unreadCount correctly and sorts newest conversations to the top', async () => {
+      const now = new Date();
+      const earlier = new Date(now.getTime() - 60000);
+
+      vi.mocked(prisma.conversationParticipant.findMany).mockResolvedValueOnce([
+        {
+          userId: 'user-1',
+          historyVisibleFromSequence: 0,
+          conversation: {
+            id: 'conv-older',
+            kind: 'DIRECT',
+            title: null,
+            accessGeneration: 1,
+            updatedAt: earlier,
+            channel: {
+              id: 'chan-older',
+              messageCounter: 10,
+              userStates: [{ lastReadSequence: 10 }],
+              messages: [
+                {
+                  id: 'msg-older',
+                  content: 'Old message',
+                  createdAt: earlier,
+                  author: { name: 'Bob' },
+                },
+              ],
+            },
+            participants: [
+              { userId: 'user-1', user: { id: 'user-1', name: 'Alice', image: null, username: 'alice' } },
+              { userId: 'user-2', user: { id: 'user-2', name: 'Bob', image: null, username: 'bob' } },
+            ],
+          },
+        },
+        {
+          userId: 'user-1',
+          historyVisibleFromSequence: 0,
+          conversation: {
+            id: 'conv-newer',
+            kind: 'DIRECT',
+            title: null,
+            accessGeneration: 1,
+            updatedAt: now,
+            channel: {
+              id: 'chan-newer',
+              messageCounter: 5,
+              userStates: [{ lastReadSequence: 2 }],
+              messages: [
+                {
+                  id: 'msg-newer',
+                  content: 'New unread message',
+                  createdAt: now,
+                  author: { name: 'Charlie' },
+                },
+              ],
+            },
+            participants: [
+              { userId: 'user-1', user: { id: 'user-1', name: 'Alice', image: null, username: 'alice' } },
+              { userId: 'user-3', user: { id: 'user-3', name: 'Charlie', image: null, username: 'charlie' } },
+            ],
+          },
+        },
+      ] as any);
+
+      const convs = await conversationService.getUserConversations('user-1');
+
+      expect(convs).toHaveLength(2);
+      // Newest conversation is first
+      expect(convs[0].id).toBe('conv-newer');
+      expect(convs[0].unreadCount).toBe(3); // 5 - 2 = 3
+      expect(convs[0].title).toBe('Charlie');
+
+      // Older conversation has 0 unread
+      expect(convs[1].id).toBe('conv-older');
+      expect(convs[1].unreadCount).toBe(0); // 10 - 10 = 0
+    });
+  });
+
   describe('blockUser & unblockUser', () => {
     it('rejects self-block', async () => {
       await expect(

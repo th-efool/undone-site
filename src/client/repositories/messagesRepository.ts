@@ -16,6 +16,7 @@ export interface ConversationSummaryDTO {
   kind: 'DIRECT' | 'GROUP';
   title: string;
   channelId: string;
+  unreadCount?: number;
   lastMessage?: {
     id: string;
     content: string;

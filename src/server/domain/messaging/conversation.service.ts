@@ -29,6 +29,7 @@ export interface ConversationSummaryDTO {
   kind: 'DIRECT' | 'GROUP';
   title: string;
   channelId: string;
+  unreadCount: number;
   lastMessage?: {
     id: string;
     content: string;
@@ -262,6 +263,10 @@ export const conversationService = {
                     },
                   },
                 },
+                userStates: {
+                  where: { userId },
+                  select: { lastReadSequence: true },
+                },
               },
             },
             participants: {
@@ -295,11 +300,18 @@ export const conversationService = {
           ? (otherParticipant?.name || otherParticipant?.username || 'Direct Message')
           : (conv.title || 'Group Chat');
 
+      const userState = conv.channel.userStates?.[0];
+      const messageCounter = conv.channel.messageCounter ?? 0;
+      const lastReadSequence = userState?.lastReadSequence ?? 0;
+      const effectiveRead = Math.max(lastReadSequence, m.historyVisibleFromSequence ?? 0);
+      const unreadCount = Math.max(0, messageCounter - effectiveRead);
+
       results.push({
         id: conv.id,
         kind: conv.kind as 'DIRECT' | 'GROUP',
         title,
         channelId: conv.channel.id,
+        unreadCount,
         lastMessage: latestMsg
           ? {
               id: latestMsg.id,
@@ -321,6 +333,12 @@ export const conversationService = {
         updatedAt: conv.updatedAt.toISOString(),
       });
     }
+
+    results.sort((a, b) => {
+      const timeA = a.lastMessage?.createdAt || a.updatedAt;
+      const timeB = b.lastMessage?.createdAt || b.updatedAt;
+      return new Date(timeB).getTime() - new Date(timeA).getTime();
+    });
 
     return results;
   },

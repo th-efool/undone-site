@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { ConversationFilter, ConversationPreview, SidebarTab } from '../../models';
 import { ComposeModal } from './ComposeModal/ComposeModal';
 import { ConversationList } from './ConversationList/ConversationList';
@@ -26,27 +26,17 @@ interface Props {
 
 export function LeftSidebar({
   tabs,
-  filters,
   selectedTab,
-  selectedFilter,
   conversations,
-  dmConversations = [],
-  searchQuery,
   onTabChange,
-  onFilterChange,
   onSelectConversation,
   onCreateDirectConversation,
   onCreateGroupConversation,
-  onSearchClear,
   onMarkAllRead,
   onGoHome,
   isHome,
 }: Props) {
-  // Batch A: Compose modal + user menu state
   const [showCompose, setShowCompose] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-
-  const toggleUserMenu = useCallback(() => setShowUserMenu((p) => !p), []);
 
   return (
     <aside className={styles.sidebar}>
@@ -58,8 +48,6 @@ export function LeftSidebar({
         onMarkAllRead={onMarkAllRead}
         onGoHome={onGoHome}
         isHome={isHome}
-        showUserMenu={showUserMenu}
-        onToggleUserMenu={toggleUserMenu}
       />
 
       <ConversationList

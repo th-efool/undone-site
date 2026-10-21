@@ -20,6 +20,9 @@ vi.mock('@/src/client/repositories/messagesRepository', () => ({
     fetchEnrolledCommunities: vi.fn(),
     fetchChannelMessages: vi.fn(),
     sendChannelMessage: vi.fn(),
+    fetchConversations: vi.fn(),
+    sendTypingSignal: vi.fn(),
+    updateReadWatermark: vi.fn(),
   },
 }));
 
@@ -43,6 +46,9 @@ describe('useMessage Hook - Phase 5 Community Realtime Integration', () => {
     vi.resetAllMocks();
     vi.mocked(messagesRepository.fetchEnrolledCommunities).mockResolvedValue(sampleCommunities);
     vi.mocked(messagesRepository.fetchChannelMessages).mockResolvedValue([]);
+    vi.mocked(messagesRepository.fetchConversations).mockResolvedValue([]);
+    vi.mocked(messagesRepository.sendTypingSignal).mockResolvedValue({} as any);
+    vi.mocked(messagesRepository.updateReadWatermark).mockResolvedValue({} as any);
   });
 
   it('loads real enrolled communities on mount without mock fallback', async () => {

@@ -20,9 +20,22 @@ interface Props {
   onReply?(messageId: string, senderName: string, previewText: string, senderAvatar?: string): void;
   /** Batch E3: Delete message (outgoing only) */
   onDeleteMessage?(messageId: string): void;
+  /** Retry failed message */
+  onRetry?(messageId: string): void;
+  /** Quick reaction */
+  onReaction?(messageId: string, emoji: string): void;
 }
 
-export function DMBubble({ message, user, isAdjacentReply = false, hasAdjacentReplyBelow = false, onReply, onDeleteMessage }: Props) {
+export function DMBubble({
+  message,
+  user,
+  isAdjacentReply = false,
+  hasAdjacentReplyBelow = false,
+  onReply,
+  onDeleteMessage,
+  onRetry,
+  onReaction,
+}: Props) {
   const [showReactions, setShowReactions] = useState(false);
   const [hovered, setHovered] = useState(false);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
@@ -142,7 +155,10 @@ export function DMBubble({ message, user, isAdjacentReply = false, hasAdjacentRe
           </div>
           <div className={styles.meta}>
             {message.timestamp}
-            <MessageStatus status={message.status} />
+            <MessageStatus
+              status={message.status}
+              onRetry={onRetry ? () => onRetry(message.id) : undefined}
+            />
           </div>
           <MessageReaction
             reactions={message.reactions}
@@ -155,7 +171,10 @@ export function DMBubble({ message, user, isAdjacentReply = false, hasAdjacentRe
                   key={emoji}
                   type="button"
                   aria-label={`React with ${emoji}`}
-                  onClick={() => setShowReactions(false)}
+                  onClick={() => {
+                    setShowReactions(false);
+                    onReaction?.(message.id, emoji);
+                  }}
                 >
                   {emoji}
                 </button>
