@@ -1,8 +1,18 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { render, screen, cleanup } from '@testing-library/react';
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import StudyRoomPage, { metadata } from '../page';
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  usePathname: () => '/studyroom',
+  useSearchParams: () => new URLSearchParams(),
+}));
 
 describe('StudyRoomPage Component', () => {
   afterEach(() => {

@@ -1,5 +1,6 @@
 import 'server-only';
 import { randomUUID } from 'crypto';
+import type { Prisma } from '@/generated/prisma/client';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
 import {
@@ -15,7 +16,7 @@ const MAX_SPRINT_DURATION_SEC = 7200; // 2 hours
 const DEFAULT_SPRINT_DURATION_SEC = 1500; // 25 minutes
 
 async function emitSprintOutboxEvent(
-  tx: any,
+  tx: Prisma.TransactionClient,
   roomId: string,
   snapshot: RoomSprintSnapshot
 ) {
@@ -41,7 +42,7 @@ async function emitSprintOutboxEvent(
           generation: stream.generation,
           entityId: snapshot.id,
           entityRevision: snapshot.revision,
-          payload: snapshot as any,
+          payload: snapshot as unknown as Prisma.InputJsonValue,
         },
       });
       await tx.realtimeDelivery.create({
@@ -493,9 +494,9 @@ export const sprintService = {
   /**
    * Atomically completes a sprint once and marks participants completed.
    */
-  async completeSprint(sprintId: string, client?: any): Promise<RoomSprintSnapshot> {
+  async completeSprint(sprintId: string, client?: Prisma.TransactionClient | typeof prisma): Promise<RoomSprintSnapshot> {
     const now = new Date();
-    const execute = async (tx: any) => {
+    const execute = async (tx: Prisma.TransactionClient) => {
       const sprint = await tx.roomSprint.findUnique({
         where: { id: sprintId },
       });
@@ -531,8 +532,8 @@ export const sprintService = {
       return snapshot;
     };
 
-    if (client) {
-      return execute(client);
+    if (client && '$transaction' in client === false) {
+      return execute(client as Prisma.TransactionClient);
     }
     return prisma.$transaction(execute);
   },
@@ -540,7 +541,10 @@ export const sprintService = {
   /**
    * Retrieves the authoritative sprint snapshot by sprintId.
    */
-  async getSprintSnapshot(sprintId: string, client: any = prisma): Promise<RoomSprintSnapshot> {
+  async getSprintSnapshot(
+    sprintId: string,
+    client: Prisma.TransactionClient | typeof prisma = prisma
+  ): Promise<RoomSprintSnapshot> {
     const sprint = await client.roomSprint.findUnique({
       where: { id: sprintId },
       include: {
@@ -578,7 +582,19 @@ export const sprintService = {
       remainingSeconds = Math.max(0, sprint.targetDurationSeconds - sprint.elapsedSeconds);
     }
 
-    const participants = (sprint.participants || []).map((p: any) => ({
+    type ParticipantRow = {
+      userId: string;
+      status: string;
+      joinedAt: Date | string | null;
+      user?: {
+        id: string;
+        name: string | null;
+        username: string | null;
+        image: string | null;
+      } | null;
+    };
+
+    const participants = ((sprint.participants || []) as ParticipantRow[]).map((p) => ({
       userId: p.user?.id || p.userId,
       name: p.user?.name || p.user?.username || 'Peer',
       username: p.user?.username || '',
@@ -602,7 +618,7 @@ export const sprintService = {
       endedAt: sprint.endedAt ? (typeof sprint.endedAt === 'string' ? sprint.endedAt : sprint.endedAt.toISOString()) : null,
       version: sprint.version,
       revision: sprint.revision,
-      participantCount: participants.filter((p: any) => p.status === 'JOINED' || p.status === 'COMPLETED').length,
+      participantCount: participants.filter((p) => p.status === 'JOINED' || p.status === 'COMPLETED').length,
       participants,
     };
   },

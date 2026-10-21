@@ -139,8 +139,8 @@ export function useSharedEnvironment(
         });
         setRevision(updated.revision);
         revisionRef.current = updated.revision;
-      } catch (err: any) {
-        if (err?.status === 409) {
+      } catch (err: unknown) {
+        if ((err as { status?: number })?.status === 409) {
           // 409 Conflict: Reload authoritative environment from server to realign local state
           await reloadEnvironment();
         }

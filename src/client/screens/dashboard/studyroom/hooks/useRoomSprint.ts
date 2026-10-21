@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRealtime } from '@/src/client/realtime';
+import type { RoomSprintBootstrapDTO } from '@/src/shared/studyroom/contracts';
 import {
   studyRoomRepository,
   type RoomSprintSnapshotDTO,
@@ -14,7 +15,7 @@ export interface UseRoomSprintOptions {
   streamGeneration?: number;
   enabled?: boolean;
   canControlSprint?: boolean;
-  initialSprint?: RoomSprintSnapshotDTO | null;
+  initialSprint?: RoomSprintSnapshotDTO | RoomSprintBootstrapDTO | null;
 }
 
 export interface UseRoomSprintReturn {
@@ -42,14 +43,51 @@ function useSafeRealtime() {
   }
 }
 
+function toSprintSnapshot(
+  initial?: RoomSprintSnapshotDTO | RoomSprintBootstrapDTO | null
+): RoomSprintSnapshotDTO | null {
+  if (!initial) return null;
+  if ('participants' in initial && Array.isArray(initial.participants)) {
+    return initial as RoomSprintSnapshotDTO;
+  }
+  return {
+    id: initial.id,
+    studyRoomId: '',
+    creatorId: '',
+    title: '',
+    targetDurationSeconds: initial.targetDurationSeconds,
+    elapsedSeconds: initial.elapsedSeconds,
+    remainingSeconds: initial.remainingSeconds,
+    status: initial.status as RoomSprintSnapshotDTO['status'],
+    startedAt: new Date().toISOString(),
+    deadline: initial.deadline,
+    pausedAt: null,
+    endedAt: null,
+    version: 1,
+    revision: initial.revision,
+    participantCount: 0,
+    participants: [],
+  };
+}
+
 export function useRoomSprint(options?: UseRoomSprintOptions): UseRoomSprintReturn {
   const { data: session } = useSession();
   const currentUserId = session?.user?.id;
   const realtime = useSafeRealtime();
 
-  const [sprint, setSprint] = useState<RoomSprintSnapshotDTO | null>(
-    options?.initialSprint ?? null
+  const [sprint, setSprint] = useState<RoomSprintSnapshotDTO | null>(() =>
+    toSprintSnapshot(options?.initialSprint)
   );
+  const [prevInitialSprint, setPrevInitialSprint] = useState<
+    RoomSprintSnapshotDTO | RoomSprintBootstrapDTO | null | undefined
+  >(options?.initialSprint);
+  if (options?.initialSprint !== prevInitialSprint) {
+    setPrevInitialSprint(options?.initialSprint);
+    if (options?.initialSprint) {
+      setSprint(toSprintSnapshot(options.initialSprint));
+    }
+  }
+
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -58,21 +96,15 @@ export function useRoomSprint(options?: UseRoomSprintOptions): UseRoomSprintRetu
   });
 
   const sprintRef = useRef<RoomSprintSnapshotDTO | null>(sprint);
-  sprintRef.current = sprint;
+  useEffect(() => {
+    sprintRef.current = sprint;
+  }, [sprint]);
 
   const roomSlug = options?.roomSlug;
   const roomId = options?.roomId;
   const streamGeneration = options?.streamGeneration ?? 1;
   const enabled = options?.enabled !== false && Boolean(roomSlug);
   const canControl = Boolean(options?.canControlSprint);
-
-  // Sync initial sprint if provided
-  useEffect(() => {
-    if (options?.initialSprint) {
-      setSprint(options.initialSprint);
-      setRemainingSeconds(options.initialSprint.remainingSeconds);
-    }
-  }, [options?.initialSprint]);
 
   // Fetch current sprint from server
   const fetchSprint = useCallback(async () => {
@@ -85,8 +117,9 @@ export function useRoomSprint(options?: UseRoomSprintOptions): UseRoomSprintRetu
       if (res.sprint) {
         setRemainingSeconds(res.sprint.remainingSeconds);
       }
-    } catch (err: any) {
-      setError(err?.message || 'Failed to load group sprint');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(msg || 'Failed to load group sprint');
     } finally {
       setIsLoading(false);
     }
@@ -94,6 +127,7 @@ export function useRoomSprint(options?: UseRoomSprintOptions): UseRoomSprintRetu
 
   // Initial load
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void fetchSprint();
   }, [fetchSprint]);
 
@@ -119,9 +153,6 @@ export function useRoomSprint(options?: UseRoomSprintOptions): UseRoomSprintRetu
   // Live countdown timer for ACTIVE sprints
   useEffect(() => {
     if (!sprint || sprint.status !== 'ACTIVE' || !sprint.deadline) {
-      if (sprint?.status === 'PAUSED') {
-        setRemainingSeconds(sprint.remainingSeconds);
-      }
       return;
     }
 
@@ -144,7 +175,7 @@ export function useRoomSprint(options?: UseRoomSprintOptions): UseRoomSprintRetu
     return () => {
       clearInterval(interval);
     };
-  }, [sprint?.status, sprint?.deadline, sprint?.remainingSeconds, fetchSprint]);
+  }, [sprint, fetchSprint]);
 
   // Start sprint
   const startSprint = useCallback(
@@ -159,12 +190,13 @@ export function useRoomSprint(options?: UseRoomSprintOptions): UseRoomSprintRetu
         );
         setSprint(started);
         setRemainingSeconds(started.remainingSeconds);
-      } catch (err: any) {
-        if (err?.status === 409) {
+      } catch (err: unknown) {
+        const errorObj = err as { status?: number; message?: string };
+        if (errorObj?.status === 409) {
           // Sprint already active; sync state
           await fetchSprint();
         }
-        setActionError(err?.message || 'Failed to start group sprint');
+        setActionError(errorObj?.message || 'Failed to start group sprint');
       }
     },
     [roomSlug, fetchSprint]
@@ -183,11 +215,12 @@ export function useRoomSprint(options?: UseRoomSprintOptions): UseRoomSprintRetu
       );
       setSprint(paused);
       setRemainingSeconds(paused.remainingSeconds);
-    } catch (err: any) {
-      if (err?.status === 409) {
+    } catch (err: unknown) {
+      const errorObj = err as { status?: number; message?: string };
+      if (errorObj?.status === 409) {
         await fetchSprint();
       }
-      setActionError(err?.message || 'Failed to pause sprint');
+      setActionError(errorObj?.message || 'Failed to pause sprint');
     }
   }, [roomSlug, fetchSprint]);
 
@@ -204,11 +237,12 @@ export function useRoomSprint(options?: UseRoomSprintOptions): UseRoomSprintRetu
       );
       setSprint(resumed);
       setRemainingSeconds(resumed.remainingSeconds);
-    } catch (err: any) {
-      if (err?.status === 409) {
+    } catch (err: unknown) {
+      const errorObj = err as { status?: number; message?: string };
+      if (errorObj?.status === 409) {
         await fetchSprint();
       }
-      setActionError(err?.message || 'Failed to resume sprint');
+      setActionError(errorObj?.message || 'Failed to resume sprint');
     }
   }, [roomSlug, fetchSprint]);
 
@@ -225,11 +259,12 @@ export function useRoomSprint(options?: UseRoomSprintOptions): UseRoomSprintRetu
       );
       setSprint(stopped);
       setRemainingSeconds(stopped.remainingSeconds);
-    } catch (err: any) {
-      if (err?.status === 409) {
+    } catch (err: unknown) {
+      const errorObj = err as { status?: number; message?: string };
+      if (errorObj?.status === 409) {
         await fetchSprint();
       }
-      setActionError(err?.message || 'Failed to stop sprint');
+      setActionError(errorObj?.message || 'Failed to stop sprint');
     }
   }, [roomSlug, fetchSprint]);
 
@@ -243,11 +278,12 @@ export function useRoomSprint(options?: UseRoomSprintOptions): UseRoomSprintRetu
         sprintRef.current.id
       );
       setSprint(updated);
-    } catch (err: any) {
-      if (err?.status === 409) {
+    } catch (err: unknown) {
+      const errorObj = err as { status?: number; message?: string };
+      if (errorObj?.status === 409) {
         await fetchSprint();
       }
-      setActionError(err?.message || 'Failed to join group sprint');
+      setActionError(errorObj?.message || 'Failed to join group sprint');
     }
   }, [roomSlug, fetchSprint]);
 
@@ -262,8 +298,9 @@ export function useRoomSprint(options?: UseRoomSprintOptions): UseRoomSprintRetu
       );
       // Refresh to update participant list
       await fetchSprint();
-    } catch (err: any) {
-      setActionError(err?.message || 'Failed to leave group sprint');
+    } catch (err: unknown) {
+      const errorObj = err as { message?: string };
+      setActionError(errorObj?.message || 'Failed to leave group sprint');
     }
   }, [roomSlug, fetchSprint]);
 
