@@ -152,7 +152,14 @@ export const messagesRepository = {
     }
   },
 
-  async createDirectConversation(recipientId: string): Promise<DirectConversationResult> {
+  async createDirectConversation(
+    target: string | { recipientId?: string; recipientUsername?: string }
+  ): Promise<DirectConversationResult> {
+    const payload =
+      typeof target === 'string'
+        ? { kind: 'DIRECT', recipientId: target }
+        : { kind: 'DIRECT', ...target };
+
     const res = await fetch(apiUrl('/api/conversations'), {
       method: 'POST',
       credentials: 'include',
@@ -160,7 +167,7 @@ export const messagesRepository = {
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
-      body: JSON.stringify({ kind: 'DIRECT', recipientId }),
+      body: JSON.stringify(payload),
     });
 
     if (!res.ok) {
