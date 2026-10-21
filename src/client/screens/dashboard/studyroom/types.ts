@@ -9,7 +9,12 @@ export type BackgroundId =
   | 'forest'
   | 'seaside'
   | 'night-sky'
-  | 'minimal-workspace';
+  | 'minimal-workspace'
+  | 'solid-midnight'
+  | 'solid-forest'
+  | 'solid-plum'
+  | 'solid-clay'
+  | 'solid-slate';
 
 export type AmbientPresetId =
   | 'rain'
@@ -148,6 +153,8 @@ export interface PomodoroState {
   remainingMs: number;
   endsAt: number | null;
   completedFocusSessions: number;
+  completedShortBreaks: number;
+  completedLongBreaks: number;
   completionSeq: number;
   lastCompletedPhase: PomodoroPhase | null;
 }
@@ -176,4 +183,4 @@ export interface SessionGoal {
 }
 
 /* ───────── Panels ───────── */
-export type RoomPanelId = 'session' | 'people' | 'room' | 'timer';
+export type RoomPanelId = 'session' | 'people' | 'room' | 'timer' | 'music' | 'ambience';

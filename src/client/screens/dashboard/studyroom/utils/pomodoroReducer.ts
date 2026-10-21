@@ -62,13 +62,22 @@ export function nextPhaseAfterCompletion(
   longBreakEvery: number
 ): PomodoroPhase {
   if (currentPhase === 'focus') {
-    return completedFocusSessions % longBreakEvery === 0 ? 'longBreak' : 'shortBreak';
+    return completedFocusSessions > 0 && completedFocusSessions % longBreakEvery === 0
+      ? 'longBreak'
+      : 'shortBreak';
   }
   return 'focus';
 }
 
+export interface PomodoroStreakStatsInput {
+  completedFocusSessions?: number;
+  completedShortBreaks?: number;
+  completedLongBreaks?: number;
+}
+
 export function createInitialPomodoroState(
-  settingsOverrides?: Partial<PomodoroSettings>
+  settingsOverrides?: Partial<PomodoroSettings>,
+  statsOverrides?: PomodoroStreakStatsInput
 ): PomodoroState {
   const settings: PomodoroSettings = {
     ...DEFAULT_POMODORO_SETTINGS,
@@ -83,7 +92,9 @@ export function createInitialPomodoroState(
     phaseDurationMs: durationMs,
     remainingMs: durationMs,
     endsAt: null,
-    completedFocusSessions: 0,
+    completedFocusSessions: statsOverrides?.completedFocusSessions ?? 0,
+    completedShortBreaks: statsOverrides?.completedShortBreaks ?? 0,
+    completedLongBreaks: statsOverrides?.completedLongBreaks ?? 0,
     completionSeq: 0,
     lastCompletedPhase: null,
   };
@@ -151,7 +162,11 @@ export function pomodoroReducer(
 
     case 'SKIP': {
       const nextPhase: PomodoroPhase =
-        state.phase === 'focus' ? 'shortBreak' : 'focus';
+        state.phase === 'focus'
+          ? (state.completedFocusSessions + 1) % state.settings.longBreakEvery === 0
+            ? 'longBreak'
+            : 'shortBreak'
+          : 'focus';
       const durationMs = phaseMinutes(nextPhase, state.settings) * 60_000;
       return {
         ...state,
@@ -176,14 +191,21 @@ export function pomodoroReducer(
       }
 
       // Natural completion! Exactly one phase transition per TICK.
-      const newCompleted =
-        state.phase === 'focus'
-          ? state.completedFocusSessions + 1
-          : state.completedFocusSessions;
+      let newCompletedFocus = state.completedFocusSessions;
+      let newCompletedShort = state.completedShortBreaks ?? 0;
+      let newCompletedLong = state.completedLongBreaks ?? 0;
+
+      if (state.phase === 'focus') {
+        newCompletedFocus += 1;
+      } else if (state.phase === 'shortBreak') {
+        newCompletedShort += 1;
+      } else if (state.phase === 'longBreak') {
+        newCompletedLong += 1;
+      }
 
       const nextPhase = nextPhaseAfterCompletion(
         state.phase,
-        newCompleted,
+        newCompletedFocus,
         state.settings.longBreakEvery
       );
       const nextDurationMs = phaseMinutes(nextPhase, state.settings) * 60_000;
@@ -196,7 +218,9 @@ export function pomodoroReducer(
           phaseDurationMs: nextDurationMs,
           remainingMs: nextDurationMs,
           endsAt: action.now + nextDurationMs,
-          completedFocusSessions: newCompleted,
+          completedFocusSessions: newCompletedFocus,
+          completedShortBreaks: newCompletedShort,
+          completedLongBreaks: newCompletedLong,
           completionSeq: state.completionSeq + 1,
           lastCompletedPhase: state.phase,
         };
@@ -209,7 +233,9 @@ export function pomodoroReducer(
         phaseDurationMs: nextDurationMs,
         remainingMs: nextDurationMs,
         endsAt: null,
-        completedFocusSessions: newCompleted,
+        completedFocusSessions: newCompletedFocus,
+        completedShortBreaks: newCompletedShort,
+        completedLongBreaks: newCompletedLong,
         completionSeq: state.completionSeq + 1,
         lastCompletedPhase: state.phase,
       };
