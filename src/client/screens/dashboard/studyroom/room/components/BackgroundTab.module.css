@@ -4,6 +4,11 @@
   gap: 12px;
 }
 
+.modeSwitch { display: flex; gap: 6px; margin-bottom: 18px; padding: 4px; background: #ffffff08; border-radius: 10px; }
+.modeSwitch button { flex: 1; min-height: 38px; border: 0; border-radius: 7px; background: transparent; color: #b8b8c5; cursor: pointer; font: inherit; font-size: 13px; }
+.modeSwitch button[aria-pressed='true'] { background: #ffffff12; color: white; }
+.modeSwitch button:focus-visible { outline: 2px solid #708cff; outline-offset: 2px; }
+
 @media (min-width: 480px) {
   .grid {
     grid-template-columns: repeat(2, 1fr);

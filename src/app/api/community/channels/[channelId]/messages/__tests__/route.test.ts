@@ -9,10 +9,19 @@ const mocks = vi.hoisted(() => ({
   userRestrictionFindUnique: vi.fn(),
   getChannelMessages: vi.fn(),
   addMessage: vi.fn(),
+  getChannelWithParent: vi.fn(),
+  createMessageTransaction: vi.fn(),
 }));
 
 vi.mock('@/src/server/infrastructure/auth/getUser', () => ({
   getUser: mocks.getUser,
+}));
+
+vi.mock('@/src/server/infrastructure/db/postgres/repositories/messaging.repo', () => ({
+  messagingRepo: {
+    getChannelWithParent: mocks.getChannelWithParent,
+    createMessageTransaction: mocks.createMessageTransaction,
+  },
 }));
 
 vi.mock('@/src/server/infrastructure/db/postgres/client', () => ({
@@ -56,6 +65,9 @@ describe('API: /api/community/channels/[channelId]/messages - Member Authorizati
 
   beforeEach(() => {
     vi.resetAllMocks();
+    mocks.getChannelWithParent.mockImplementation(async (id: string) => {
+      return mocks.channelFindUnique({ where: { id } });
+    });
   });
 
   afterEach(() => {
@@ -188,7 +200,11 @@ describe('API: /api/community/channels/[channelId]/messages - Member Authorizati
       authorId: 'user-member',
       createdAt: now,
     };
-    mocks.addMessage.mockResolvedValue(createdMsg);
+    mocks.createMessageTransaction.mockResolvedValue({
+      message: createdMsg,
+      deliveryId: 'del-1',
+      isIdempotentReplay: false,
+    });
 
     const res = await POST(
       new Request('http://localhost/api/community/channels/chan-1/messages', {
@@ -205,7 +221,13 @@ describe('API: /api/community/channels/[channelId]/messages - Member Authorizati
       ...createdMsg,
       createdAt: now.toISOString(),
     });
-    expect(mocks.addMessage).toHaveBeenCalledWith('chan-1', 'user-member', 'Valid message');
+    expect(mocks.createMessageTransaction).toHaveBeenCalledWith({
+      channelId: 'chan-1',
+      authorId: 'user-member',
+      content: 'Valid message',
+      clientRequestId: undefined,
+      replyToId: undefined,
+    });
   });
 
   it('g) GET 200 OK returns messages in chronological order with private no-store headers', async () => {

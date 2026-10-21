@@ -90,6 +90,8 @@ export interface CommunityMessage {
   replyTo?: { messageId?: string; authorName: string; authorAvatar: string; previewText: string };
   /** Delivery status for optimistic sending */
   status?: 'sending' | 'sent' | 'failed';
+  /** Authoritative message sequence number */
+  messageSequence?: number;
 }
 
 export type ChannelTab = { id: string; label: string; unreadCount?: number };

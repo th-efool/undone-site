@@ -93,7 +93,7 @@ export function RoomBackground({ backgroundId, onImageError }: RoomBackgroundPro
       {previousId && renderLayer(previousId, true)}
       {renderLayer(backgroundId, false)}
 
-      <div className={styles.baseScrim} />
+      {currentBg.image && <div className={styles.baseScrim} />}
       {currentBg.extraScrim > 0 && (
         <div
           className={styles.extraScrim}

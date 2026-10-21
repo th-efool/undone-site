@@ -4,8 +4,10 @@ import styles from './ChannelTabs.module.css';
 interface Props {
   channels: ChannelTab[];
   selectedChannel: string;
+  onSelectChannel?: (channelId: string) => void;
 }
-export function ChannelTabs({ channels, selectedChannel }: Props) {
+
+export function ChannelTabs({ channels, selectedChannel, onSelectChannel }: Props) {
   return (
     <nav className={styles.tabs}>
       {channels.map((channel) => (
@@ -13,6 +15,7 @@ export function ChannelTabs({ channels, selectedChannel }: Props) {
           key={channel.id}
           type="button"
           className={channel.id === selectedChannel ? styles.active : ''}
+          onClick={() => onSelectChannel?.(channel.id)}
         >
           {channel.label}
           {channel.unreadCount !== undefined && channel.unreadCount > 0 && (

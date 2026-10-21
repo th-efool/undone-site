@@ -25,7 +25,9 @@ export interface RoomTopBarProps {
   activePanel: RoomPanelId | null;
   onTogglePanel: (id: RoomPanelId, trigger: HTMLElement) => void;
   onLeave: () => void;
-  soundChip: React.ReactNode;
+  soundChip?: React.ReactNode;
+  customizeOpen?: boolean;
+  onToggleCustomize?: () => void;
 }
 
 export function RoomTopBar({
@@ -35,7 +37,8 @@ export function RoomTopBar({
   activePanel,
   onTogglePanel,
   onLeave,
-  soundChip,
+  customizeOpen,
+  onToggleCustomize,
 }: RoomTopBarProps) {
   const isAdmin = viewer.role === 'admin';
   const previewParticipants = participants.slice(0, 3);
@@ -44,7 +47,9 @@ export function RoomTopBar({
     <header className={styles.topBar}>
       <div className={styles.leftCol}>
         <div className={styles.titleRow}>
-          <h1 className={styles.roomTitle}>{room.title}</h1>
+          <div className={styles.titleBadge}>
+            <h1 className={styles.roomTitle}>{room.title}</h1>
+          </div>
           {isAdmin ? (
             <span className={styles.hostBadge} title="You created this room">
               <Crown size={13} aria-hidden="true" />
@@ -57,9 +62,12 @@ export function RoomTopBar({
           )}
         </div>
 
-        <p className={styles.atmosphere}>{room.atmosphere}</p>
-
-        <div>{soundChip}</div>
+        <p className={styles.atmosphere}>
+          <span className={styles.statusDot} aria-hidden="true" />
+          <span>{room.atmosphere}</span>
+          <span className={styles.separator} aria-hidden="true">|</span>
+          <span>Pomodoro</span>
+        </p>
       </div>
 
       <nav className={styles.toolbar} aria-label="Room controls">
@@ -72,7 +80,7 @@ export function RoomTopBar({
           aria-haspopup="dialog"
           aria-label={`People, ${participants.length} studying now`}
           title={`People · ${participants.length}`}
-          className={`${styles.toolBtn} ${activePanel === 'people' ? styles.toolBtnActive : ''}`}
+          className={`${styles.toolBtn} ${styles.peopleButton} ${activePanel === 'people' ? styles.toolBtnActive : ''}`}
         >
           {previewParticipants.length > 0 ? (
             <div className={styles.avatarStack} aria-hidden="true">
@@ -110,13 +118,21 @@ export function RoomTopBar({
         {/* Room / Environment Button */}
         <button
           type="button"
-          onClick={(e) => onTogglePanel('room', e.currentTarget)}
-          aria-expanded={activePanel === 'room'}
-          aria-controls="room-panel"
-          aria-haspopup="dialog"
+          onClick={(e) => {
+            if (isAdmin && onToggleCustomize) {
+              onToggleCustomize();
+            } else {
+              onTogglePanel('room', e.currentTarget);
+            }
+          }}
+          aria-expanded={isAdmin ? Boolean(customizeOpen) : activePanel === 'room'}
+          aria-controls={isAdmin ? 'room-background-dock' : 'room-panel'}
+          aria-haspopup={isAdmin ? undefined : 'dialog'}
           aria-label={isAdmin ? 'Customize room environment' : 'Room information'}
           title={isAdmin ? 'Customize room' : 'Room info'}
-          className={`${styles.toolBtn} ${activePanel === 'room' ? styles.toolBtnActive : ''}`}
+          className={`${styles.toolBtn} ${
+            (isAdmin ? customizeOpen : activePanel === 'room') ? styles.toolBtnActive : ''
+          }`}
         >
           {isAdmin ? (
             <>

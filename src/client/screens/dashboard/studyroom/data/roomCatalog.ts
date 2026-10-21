@@ -5,7 +5,7 @@ export const ROOM_CATALOG: readonly RoomDefinition[] = [
     slug: 'library',
     title: 'Library',
     atmosphere: 'Silent study & focus',
-    previewImage: '/images/studyrooms/library.webp',
+    previewImage: '/images/studyrooms/scenes/library.webp',
     adminUserId: 'demo-mira',
     adminDisplayName: 'Mira',
     defaultEnvironment: {
@@ -24,7 +24,7 @@ export const ROOM_CATALOG: readonly RoomDefinition[] = [
     slug: 'fireplace',
     title: 'Fireplace',
     atmosphere: 'Warm and cozy chats',
-    previewImage: '/images/studyrooms/fireplace.webp',
+    previewImage: '/images/studyrooms/scenes/fireplace.webp',
     adminUserId: 'viewer',
     adminDisplayName: 'You',
     defaultEnvironment: {
@@ -43,11 +43,11 @@ export const ROOM_CATALOG: readonly RoomDefinition[] = [
     slug: 'developer-den',
     title: 'Developer Den',
     atmosphere: 'Co-working & code reviews',
-    previewImage: null,
+    previewImage: '/images/studyrooms/scenes/night-sky.webp',
     adminUserId: 'demo-kai',
     adminDisplayName: 'Kai',
     defaultEnvironment: {
-      backgroundId: 'minimal-workspace',
+      backgroundId: 'night-sky',
       music: null,
       ambience: {
         presetId: 'brown-noise',

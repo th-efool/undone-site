@@ -1,5 +1,4 @@
 import Image from 'next/image';
-/* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Bell, Check, MoreHorizontal, Phone, Video } from 'lucide-react';
 import { DMUser } from '../../../../models';
@@ -49,11 +48,11 @@ export function DMHeader({ user, aboutOpen, onBack, onToggleAbout }: Props) {
       </Tooltip>
       <span className={styles.avatar}>
         <Image width={40} height={40} src={user.avatar} alt={user.name} className={styles.avatar} />
-        <i />
+        {user.online && <i />}
       </span>
       <div className={styles.info}>
         <h1>{user.name}</h1>
-        <p>Online</p>
+        <p>{user.role === 'Group DM' ? (user.company || 'Group Chat') : (user.bio || 'Direct Message')}</p>
       </div>
       <div
         className={styles.actions}

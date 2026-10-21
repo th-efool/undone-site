@@ -1,77 +1,27 @@
 import type { BackgroundOption } from '../types';
 
-export const BACKGROUND_OPTIONS: readonly BackgroundOption[] = [
-  {
-    id: 'library',
-    label: 'Library',
-    image: '/images/studyrooms/library.webp',
-    gradient: 'linear-gradient(160deg,#4a3418 0%,#1a120a 100%)',
-    focal: '50% 35%',
-    extraScrim: 0,
-  },
-  {
-    id: 'rainy-window',
-    label: 'Rainy window',
-    image: null,
-    gradient: 'linear-gradient(160deg,#1b2a3a 0%,#2e4157 45%,#16212c 100%)',
-    focal: '50% 50%',
-    extraScrim: 0,
-  },
-  {
-    id: 'cozy-fireplace',
-    label: 'Cozy fireplace',
-    image: '/images/studyrooms/fireplace.webp',
-    gradient: 'linear-gradient(160deg,#5a2410 0%,#140806 100%)',
-    focal: '60% 40%',
-    extraScrim: 0,
-  },
-  {
-    id: 'quiet-cafe',
-    label: 'Quiet café',
-    image: null,
-    gradient: 'linear-gradient(155deg,#3b2a20 0%,#6b4a34 50%,#2a1d16 100%)',
-    focal: '50% 50%',
-    extraScrim: 0,
-  },
-  {
-    id: 'forest',
-    label: 'Forest',
-    image: '/images/studyrooms/campside.webp',
-    gradient: 'linear-gradient(160deg,#1f3d2b 0%,#0b1a12 100%)',
-    focal: '50% 45%',
-    extraScrim: 0.12,
-  },
-  {
-    id: 'seaside',
-    label: 'Ocean / seaside',
-    image: '/images/studyrooms/seaside.webp',
-    gradient: 'linear-gradient(160deg,#1e5a8a 0%,#0b2740 100%)',
-    focal: '50% 50%',
-    extraScrim: 0.22,
-  },
-  {
-    id: 'night-sky',
-    label: 'Night sky',
-    image: null,
-    gradient: 'radial-gradient(ellipse at 70% 15%,#2b3a67 0%,#0e1430 55%,#05070f 100%)',
-    focal: '50% 50%',
-    extraScrim: 0,
-  },
-  {
-    id: 'minimal-workspace',
-    label: 'Minimal workspace',
-    image: null,
-    gradient: 'linear-gradient(160deg,#20242b 0%,#2c323b 55%,#14171c 100%)',
-    focal: '50% 50%',
-    extraScrim: 0,
-  },
-] as const;
+/** User-supplied illustrations from ai-context/Studyroom Backgrounds. */
+export const SCENE_BACKGROUNDS: readonly BackgroundOption[] = [
+  { id: 'cozy-fireplace', label: 'Cozy fireplace', image: '/images/studyrooms/scenes/fireplace.webp', gradient: '#29170f', focal: '50% 50%', extraScrim: 0 },
+  { id: 'rainy-window', label: 'Rain', image: '/images/studyrooms/scenes/rain.webp', gradient: '#152535', focal: '50% 50%', extraScrim: 0 },
+  { id: 'quiet-cafe', label: 'Café', image: '/images/studyrooms/scenes/cafe.webp', gradient: '#352319', focal: '50% 50%', extraScrim: 0 },
+  { id: 'library', label: 'Library', image: '/images/studyrooms/scenes/library.webp', gradient: '#261b12', focal: '50% 50%', extraScrim: 0 },
+  { id: 'seaside', label: 'Seaside', image: '/images/studyrooms/scenes/seaside.webp', gradient: '#423044', focal: '50% 50%', extraScrim: 0 },
+  { id: 'forest', label: 'Forest', image: '/images/studyrooms/scenes/forest.webp', gradient: '#102927', focal: '50% 50%', extraScrim: 0 },
+  { id: 'night-sky', label: 'Night sky', image: '/images/studyrooms/scenes/night-sky.webp', gradient: '#121b35', focal: '50% 50%', extraScrim: 0 },
+];
+
+export const SOLID_BACKGROUNDS: readonly BackgroundOption[] = [
+  { id: 'minimal-workspace', label: 'Charcoal', image: null, gradient: '#202126', focal: 'center', extraScrim: 0 },
+  { id: 'solid-midnight', label: 'Midnight', image: null, gradient: '#18243e', focal: 'center', extraScrim: 0 },
+  { id: 'solid-forest', label: 'Sage', image: null, gradient: '#29443c', focal: 'center', extraScrim: 0 },
+  { id: 'solid-plum', label: 'Plum', image: null, gradient: '#44304c', focal: 'center', extraScrim: 0 },
+  { id: 'solid-clay', label: 'Clay', image: null, gradient: '#704b40', focal: 'center', extraScrim: 0 },
+  { id: 'solid-slate', label: 'Slate', image: null, gradient: '#465266', focal: 'center', extraScrim: 0 },
+];
+
+export const BACKGROUND_OPTIONS: readonly BackgroundOption[] = [...SCENE_BACKGROUNDS, ...SOLID_BACKGROUNDS];
 
 export function getBackground(id: string): BackgroundOption {
-  const found = BACKGROUND_OPTIONS.find((bg) => bg.id === id);
-  if (found) {
-    return found;
-  }
-  // Defensive fallback: minimal-workspace (index 7)
-  return BACKGROUND_OPTIONS[7];
+  return BACKGROUND_OPTIONS.find((bg) => bg.id === id) ?? SOLID_BACKGROUNDS[0];
 }

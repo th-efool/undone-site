@@ -117,11 +117,14 @@ describe('RoomScreen shell component', () => {
 
   it('renders room title, atmosphere, and default sound chip', async () => {
     await act(async () => {
-      render(<RoomScreen roomSlug="library" />);
+      render(<RoomScreen roomSlug="library" viewAsOverride="admin" />);
     });
 
     expect(screen.getByRole('heading', { level: 1, name: 'Library' })).toBeTruthy();
     expect(screen.getByText('Silent study & focus')).toBeTruthy();
+
+    // Clicking customize room opens the dock with current sound preset
+    fireEvent.click(screen.getByRole('button', { name: 'Customize room environment' }));
     expect(screen.getByText('Rain · playing')).toBeTruthy();
   });
 

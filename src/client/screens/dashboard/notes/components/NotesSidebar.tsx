@@ -15,6 +15,7 @@ import rightColStyles from './RightColumn/RightColumn.module.css';
 import type { useNotes } from '../hooks/useNotes';
 import { useRecentlyClosedNotes } from '../hooks/useRecentlyClosedNotes';
 import type { NotebookEntity, NotebookListItem } from '../models/notes.models';
+import { useUnifiedTasks } from '@/src/client/hooks/useUnifiedTasks';
 
 type NotesContextType = ReturnType<typeof useNotes>;
 
@@ -399,57 +400,27 @@ export function NotesSidebar({
   useEffect(() => { isNavigationExpandedRef.current = isNavigationExpanded; }, [isNavigationExpanded]);
   const [activeTab, setActiveTab] = useState<'tasks' | 'calendar'>('tasks');
 
+  const {
+    tasks: unifiedTasks,
+    addTask: addUnifiedTask,
+    updateTask: updateUnifiedTask,
+    toggleTask: toggleUnifiedTask,
+    removeTask: removeUnifiedTask,
+  } = useUnifiedTasks();
+
   const [tasksByNotebook, setTasksByNotebook] = useState<Record<string, Task[]>>({});
 
-  const currentTasks = React.useMemo(() => {
-    if (!selectedNotebookId) return [];
-    
-    // Aggregate from notes in this notebook
-    const notebookNotes = notes.state?.notes?.filter((n) => n.notebookId === selectedNotebookId && !n.archived && n.contentType === 'kanban') || [];
-    
-    const now = new Date();
-    // Calculate start and end of the current week (assuming Sunday start)
-    const currentDay = now.getDay();
-    const weekStart = new Date(now);
-    weekStart.setDate(now.getDate() - currentDay);
-    weekStart.setHours(0, 0, 0, 0);
-    
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
-    weekEnd.setHours(23, 59, 59, 999);
-
-    const aggregated: Task[] = [];
-    notebookNotes.forEach((note) => {
-      if (note.kanbanCards) {
-        note.kanbanCards.forEach((card) => {
-          const dateStr = card.dueDate || card.deadline;
-          if (dateStr) {
-            const date = new Date(dateStr);
-            if (!isNaN(date.getTime())) {
-              // Check if date is within current week
-              if (date >= weekStart && date <= weekEnd) {
-                // Format date nicely like "Jun 5"
-                const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                
-                // Status could be derived from column (e.g. done -> completed)
-                const isCompleted = card.column === 'done' || card.column?.toLowerCase().includes('done');
-                
-                aggregated.push({
-                  id: card.id,
-                  title: card.label || 'Untitled Card',
-                  date: formattedDate,
-                  status: isCompleted ? 'completed' : 'pending',
-                  noteId: note.id,
-                });
-              }
-            }
-          }
-        });
-      }
-    });
-
-    return aggregated.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  }, [selectedNotebookId, notes.state?.notes]);
+  const currentTasks: Task[] = React.useMemo(() => {
+    return unifiedTasks.map((t) => ({
+      id: t.id,
+      title: t.title,
+      date: t.dateStr || `${t.month + 1}/${t.day}`,
+      status: t.status,
+      noteId: t.noteId,
+      category: t.category,
+      color: t.color,
+    }));
+  }, [unifiedTasks]);
 
   const setCurrentTasks = useCallback((newTasks: Task[]) => {
     if (selectedNotebookId) {
@@ -458,14 +429,12 @@ export function NotesSidebar({
   }, [selectedNotebookId]);
 
   const calendarEvents: CalendarEvent[] = React.useMemo(() => {
-    return currentTasks.map((t) => {
-      const match = t.date.match(/\d+/);
-      return {
-        day: match ? parseInt(match[0], 10) : 1,
-        tone: t.status === 'completed' ? 'green' : 'orange'
-      };
-    });
-  }, [currentTasks]);
+    return unifiedTasks.map((t) => ({
+      day: t.day,
+      tone: t.status === 'completed' ? 'green' : (t.tone as any) || 'orange',
+      title: t.title,
+    }));
+  }, [unifiedTasks]);
 
   const [isDraggingNav, setIsDraggingNav] = useState(false);
   const [isDraggingWorkspace, setIsDraggingWorkspace] = useState(false);
@@ -677,6 +646,22 @@ export function NotesSidebar({
             <TasksSection 
               tasks={currentTasks} 
               setTasks={setCurrentTasks} 
+              onToggleStatus={(id) => toggleUnifiedTask(String(id))}
+              onDeleteTask={(id) => removeUnifiedTask(String(id))}
+              onEditTask={(id, newTitle) => updateUnifiedTask(String(id), { title: newTitle })}
+              onAddTask={(title) => {
+                const now = new Date();
+                addUnifiedTask({
+                  title,
+                  year: now.getFullYear(),
+                  month: now.getMonth(),
+                  day: now.getDate(),
+                  category: 'Notes',
+                  status: 'pending',
+                  color: '#3b82f6',
+                  tone: 'blue',
+                });
+              }}
               onTaskClick={handleTaskClick}
             />
           ) : (

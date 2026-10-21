@@ -1,5 +1,7 @@
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { messagingRepo } from '@/src/server/infrastructure/db/postgres/repositories/messaging.repo';
+import { notificationService } from '../notifications/notification.service';
+import { sanitizeMessageContent } from './sanitizer';
 import {
   type SendMessageInput,
   type SendMessageResult,
@@ -14,17 +16,8 @@ export const messageService = {
   async sendMessage(input: SendMessageInput): Promise<SendMessageResult> {
     const { channelId, authorId, content, clientRequestId, replyToId } = input;
 
-    // 1. Validate payload
-    if (!content || typeof content !== 'string' || !content.trim()) {
-      throw new MessagingValidationError('Message content cannot be empty');
-    }
-
-    const trimmedContent = content.trim();
-    if (trimmedContent.length > MAX_MESSAGE_CONTENT_LENGTH) {
-      throw new MessagingValidationError(
-        `Message content exceeds maximum allowed length of ${MAX_MESSAGE_CONTENT_LENGTH} characters`
-      );
-    }
+    // 1. Validate payload and strip dangerous control characters / enforce length
+    const sanitizedContent = sanitizeMessageContent(content);
 
     // 2. Check user restrictions (bans/mutes)
     const restriction = await prisma.userRestriction.findUnique({
@@ -94,12 +87,82 @@ export const messageService = {
     }
 
     // 5. Execute transactional durable message write with idempotency
-    return messagingRepo.createMessageTransaction({
+    const result = await messagingRepo.createMessageTransaction({
       channelId,
       authorId,
-      content: trimmedContent,
+      content: sanitizedContent,
       clientRequestId,
       replyToId,
     });
+
+    // 6. If not an idempotent replay, process mentions and dispatch notifications
+    if (!result.isIdempotentReplay) {
+      const mentionMatches = Array.from(sanitizedContent.matchAll(/(?:^|\s)@([a-zA-Z0-9_-]+)/g)).map(
+        (m) => m[1]
+      );
+
+      if (mentionMatches.length > 0) {
+        const uniqueHandles = Array.from(new Set(mentionMatches));
+        const mentionedUsers = await prisma.user.findMany({
+          where: {
+            username: { in: uniqueHandles, mode: 'insensitive' },
+            id: { not: authorId },
+          },
+          select: { id: true, username: true },
+        });
+
+        for (const u of mentionedUsers) {
+          let hasAccess = false;
+          if (channel.community) {
+            const isCreator = channel.community.cohort.creatorId === u.id;
+            if (isCreator) {
+              hasAccess = true;
+            } else {
+              const m = await prisma.cohortMember.findUnique({
+                where: {
+                  cohortId_userId: {
+                    cohortId: channel.community.cohortId,
+                    userId: u.id,
+                  },
+                },
+              });
+              hasAccess = Boolean(m);
+            }
+          } else if (channel.conversation) {
+            hasAccess = channel.conversation.participants.some(
+              (p) => p.userId === u.id && p.leftAt === null
+            );
+          } else if (channel.studyRoom) {
+            const p = await prisma.roomParticipant.findFirst({
+              where: { studyRoomId: channel.studyRoom.id, userId: u.id },
+            });
+            hasAccess = Boolean(p);
+          }
+
+          if (hasAccess) {
+            const scopeType: 'channel' | 'conversation' | 'studyroom' = channel.community
+              ? 'channel'
+              : channel.conversation
+              ? 'conversation'
+              : 'studyroom';
+
+            await notificationService.createNotification({
+              userId: u.id,
+              actorId: authorId,
+              scopeType,
+              scopeId: channelId,
+              entityId: result.message.id,
+              type: 'mention',
+              title: 'New Mention',
+              body: `${result.message.author.name || result.message.author.username || 'Someone'} mentioned you: "${sanitizedContent.slice(0, 100)}"`,
+            }).catch(() => {
+              // Notification dispatch failures should not roll back completed message write
+            });
+          }
+        }
+      }
+    }
+
+    return result;
   },
 };

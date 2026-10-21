@@ -18,6 +18,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { UpcomingEvent } from '@/src/client/types/dashboard';
+import { useUnifiedTasks } from '@/src/client/hooks/useUnifiedTasks';
 import styles from './UpcomingEvents.module.css';
 
 export interface UpcomingEventsProps {
@@ -365,7 +366,13 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
 
   // Events List State
-  const [eventsList, setEventsList] = useState<CalendarEvent[]>(INITIAL_EVENTS);
+  const {
+    tasks: unifiedTasks,
+    addTask: addUnifiedTask,
+    updateTask: updateUnifiedTask,
+    toggleTask: toggleUnifiedTask,
+    removeTask: removeUnifiedTask,
+  } = useUnifiedTasks();
 
   // Provider State
   const [selectedProvider, setSelectedProvider] = useState<CalendarProvider>('Google Calendar');
@@ -453,13 +460,25 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
   }, [currentYear, currentMonth]);
 
   const getDayEvents = useCallback(
-    (day: number, isCurrentMonth = true) => {
+    (day: number, isCurrentMonth = true): CalendarEvent[] => {
       if (!isCurrentMonth) return [];
-      return eventsList.filter(
-        (ev) => ev.year === currentYear && ev.month === currentMonth && ev.day === day,
-      );
+      return unifiedTasks
+        .filter((ev) => ev.year === currentYear && ev.month === currentMonth && ev.day === day)
+        .map((ev) => ({
+          id: ev.id,
+          year: ev.year,
+          month: ev.month,
+          day: ev.day,
+          title: ev.title,
+          subtitle: ev.subtitle || ev.category || 'General',
+          dateStr: ev.dateStr || `${activeDate.toLocaleDateString('en-US', { month: 'short' })} ${ev.day}`,
+          timeStr: ev.timeStr || '9:00 AM',
+          endTimeStr: ev.endTimeStr || '10:00 AM',
+          tone: (ev.tone as any) || 'blue',
+          completed: ev.status === 'completed',
+        }));
     },
-    [eventsList, currentYear, currentMonth],
+    [unifiedTasks, currentYear, currentMonth, activeDate],
   );
 
   // Filter events for selected day & month (memoized to keep stable reference during day cell hovering)
@@ -486,19 +505,20 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
   // Actions
   const handleQuickAddSession = () => {
     const shortMonth = activeDate.toLocaleDateString('en-US', { month: 'short' });
-    const newEvent: CalendarEvent = {
-      id: `ev-${Date.now()}`,
+    addUnifiedTask({
       year: currentYear,
       month: currentMonth,
       day: selectedDay,
       title: 'Sprint Focus Session',
       subtitle: 'Cohort Deep Work',
+      category: 'Deep Work',
       dateStr: `${shortMonth} ${selectedDay}`,
       timeStr: '3:00 PM',
       endTimeStr: '4:00 PM',
       tone: 'blue',
-    };
-    setEventsList((prev) => [...prev, newEvent]);
+      color: '#3b82f6',
+      status: 'pending',
+    });
     setToastMessage(`Scheduled session for ${shortMonth} ${selectedDay}`);
     onAddTask?.();
   };
@@ -513,35 +533,37 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
     setActiveMenuEventId(null);
   }, []);
 
-  const handleToggleComplete = useCallback((ev: CalendarEvent) => {
-    setEventsList((prev) =>
-      prev.map((it) => (it.id === ev.id ? { ...it, completed: !it.completed } : it)),
-    );
-    setActiveMenuEventId(null);
-    setToastMessage(ev.completed ? `Re-opened "${ev.title}"` : `Completed "${ev.title}"! 🚀`);
-  }, []);
+  const handleToggleComplete = useCallback(
+    (ev: CalendarEvent) => {
+      toggleUnifiedTask(ev.id);
+      setActiveMenuEventId(null);
+      setToastMessage(ev.completed ? `Re-opened "${ev.title}"` : `Completed "${ev.title}"! 🚀`);
+    },
+    [toggleUnifiedTask],
+  );
 
-  const handleReschedule = useCallback((ev: CalendarEvent) => {
-    setEventsList((prev) =>
-      prev.map((it) =>
-        it.id === ev.id
-          ? {
-              ...it,
-              timeStr: it.timeStr === '5:30 PM' ? '7:00 PM' : '5:30 PM',
-              endTimeStr: it.endTimeStr === '6:30 PM' ? '8:00 PM' : '6:30 PM',
-            }
-          : it,
-      ),
-    );
-    setActiveMenuEventId(null);
-    setToastMessage(`Rescheduled "${ev.title}" to evening slot`);
-  }, []);
+  const handleReschedule = useCallback(
+    (ev: CalendarEvent) => {
+      const newTime = ev.timeStr === '5:30 PM' ? '7:00 PM' : '5:30 PM';
+      const newEndTime = ev.endTimeStr === '6:30 PM' ? '8:00 PM' : '6:30 PM';
+      updateUnifiedTask(ev.id, {
+        timeStr: newTime,
+        endTimeStr: newEndTime,
+      });
+      setActiveMenuEventId(null);
+      setToastMessage(`Rescheduled "${ev.title}" to evening slot`);
+    },
+    [updateUnifiedTask],
+  );
 
-  const handleRemoveEvent = useCallback((ev: CalendarEvent) => {
-    setEventsList((prev) => prev.filter((it) => it.id !== ev.id));
-    setActiveMenuEventId(null);
-    setToastMessage(`Removed "${ev.title}" from schedule`);
-  }, []);
+  const handleRemoveEvent = useCallback(
+    (ev: CalendarEvent) => {
+      removeUnifiedTask(ev.id);
+      setActiveMenuEventId(null);
+      setToastMessage(`Removed "${ev.title}" from schedule`);
+    },
+    [removeUnifiedTask],
+  );
 
   const handleSelectProvider = (prov: CalendarProvider) => {
     setSelectedProvider(prov);

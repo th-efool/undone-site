@@ -136,28 +136,28 @@ describe('RoomScreen role-dependent environment controls and dock persistence', 
     expect(screen.queryByRole('slider')).toBeNull();
   });
 
-  it('renders EnvironmentPanel for admin with full customization controls', async () => {
+  it('toggles bottom background customization dock when admin clicks Customize room', async () => {
     await act(async () => {
       render(<RoomScreen roomSlug="library" viewAsOverride="admin" />);
     });
 
-    // 1. Top bar button shows "Customize room environment"
+    // 1. Initially bottom dock is closed
+    expect(screen.queryByLabelText('Room backgrounds')).toBeNull();
+
+    // 2. Top bar button shows "Customize room environment"
     const customizeBtn = screen.getByRole('button', { name: 'Customize room environment' });
     expect(customizeBtn).toBeTruthy();
 
-    // 2. Open room panel
+    // 3. Click to open customization dock
     fireEvent.click(customizeBtn);
 
-    // 3. Panel header is "Customize Room"
-    expect(screen.getByRole('heading', { name: 'Customize Room' })).toBeTruthy();
-    expect(screen.getByText('Host controls · changes apply to everyone')).toBeTruthy();
+    // 4. Bottom background dock is now rendered
+    expect(screen.getByLabelText('Room backgrounds')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Close background picker' })).toBeTruthy();
 
-    // 4. Switch to Music tab and check for "Set room music"
-    const musicTab = screen.getByRole('tab', { name: 'Music' });
-    fireEvent.click(musicTab);
-
-    expect(screen.getByRole('button', { name: 'Set room music' })).toBeTruthy();
-    expect(screen.getByLabelText('YouTube or Spotify link')).toBeTruthy();
+    // 5. Clicking close button hides the dock again
+    fireEvent.click(screen.getByRole('button', { name: 'Close background picker' }));
+    expect(screen.queryByLabelText('Room backgrounds')).toBeNull();
   });
 
   it('persists the music player dock iframe across panel open/close transitions', async () => {
@@ -165,25 +165,21 @@ describe('RoomScreen role-dependent environment controls and dock persistence', 
       render(<RoomScreen roomSlug="library" viewAsOverride="admin" />);
     });
 
-    // 1. Open Customize Room panel and set a music source
-    const customizeBtn = screen.getByRole('button', { name: 'Customize room environment' });
-    fireEvent.click(customizeBtn);
+    // 1. Open Music modal from the timer widget and set a music source
+    const musicBtn = screen.getByRole('button', { name: 'Room music' });
+    fireEvent.click(musicBtn);
 
-    const musicTab = screen.getByRole('tab', { name: 'Music' });
-    fireEvent.click(musicTab);
-
-    const musicInput = screen.getByLabelText('YouTube or Spotify link');
+    const musicInput = screen.getByPlaceholderText('Paste a YouTube, Spotify, or playlist link');
     fireEvent.change(musicInput, { target: { value: 'https://www.youtube.com/watch?v=jfKfPfyJRdk' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Set room music' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add to room' }));
 
     // 2. Iframe is mounted in bottom row
     const iframeNodeBefore = screen.getByTitle('Room music (YouTube)');
     expect(iframeNodeBefore).toBeTruthy();
 
-    // 3. Close the panel
-    const closeBtn = screen.getByRole('button', { name: 'Close Customize Room' });
-    fireEvent.click(closeBtn);
-    expect(screen.queryByRole('dialog')).toBeNull();
+    // 3. Close the music modal
+    const closeMusicBtn = screen.getByRole('button', { name: 'Close' });
+    fireEvent.click(closeMusicBtn);
 
     // 4. Query the iframe again: must be the EXACT SAME DOM NODE (persists, didn't remount)
     const iframeNodeAfterClose = screen.getByTitle('Room music (YouTube)');

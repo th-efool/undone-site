@@ -99,6 +99,43 @@ describe('pomodoroReducer utility', () => {
     expect(state.phase).toBe('focus');
   });
 
+  it('tracks completedShortBreaks and completedLongBreaks on break completions and alternates properly', () => {
+    let state = createInitialPomodoroState(
+      { focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15, longBreakEvery: 2 },
+      { completedFocusSessions: 0, completedShortBreaks: 0, completedLongBreaks: 0 }
+    );
+    let now = 1_000_000;
+
+    // 1. Focus session 1
+    state = pomodoroReducer(state, { type: 'START', now });
+    now += 25 * 60 * 1000;
+    state = pomodoroReducer(state, { type: 'TICK', now });
+    expect(state.phase).toBe('shortBreak');
+    expect(state.completedFocusSessions).toBe(1);
+    expect(state.completedShortBreaks).toBe(0);
+
+    // 2. Short break 1 completes -> increments short breaks, returns to focus
+    state = pomodoroReducer(state, { type: 'START', now });
+    now += 5 * 60 * 1000;
+    state = pomodoroReducer(state, { type: 'TICK', now });
+    expect(state.phase).toBe('focus');
+    expect(state.completedShortBreaks).toBe(1);
+
+    // 3. Focus session 2 (2 % 2 === 0, longBreak triggered)
+    state = pomodoroReducer(state, { type: 'START', now });
+    now += 25 * 60 * 1000;
+    state = pomodoroReducer(state, { type: 'TICK', now });
+    expect(state.phase).toBe('longBreak');
+    expect(state.completedFocusSessions).toBe(2);
+
+    // 4. Long break completes -> increments long breaks, returns to focus
+    state = pomodoroReducer(state, { type: 'START', now });
+    now += 15 * 60 * 1000;
+    state = pomodoroReducer(state, { type: 'TICK', now });
+    expect(state.phase).toBe('focus');
+    expect(state.completedLongBreaks).toBe(1);
+  });
+
   it('respects autoStartNext setting on completion', () => {
     let state = createInitialPomodoroState({ autoStartNext: true });
     const t0 = 1_000_000;

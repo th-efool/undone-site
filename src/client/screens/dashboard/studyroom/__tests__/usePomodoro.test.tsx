@@ -3,6 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { usePomodoro } from '../hooks/usePomodoro';
 import * as chimeModule from '../utils/chime';
+import { pomodoroStorageAdapter } from '@/src/client/repositories/pomodoroStorageAdapter';
 
 vi.mock('../utils/chime', () => ({
   playChime: vi.fn(),
@@ -10,8 +11,10 @@ vi.mock('../utils/chime', () => ({
 
 describe('usePomodoro hook', () => {
   beforeEach(() => {
+    pomodoroStorageAdapter.resetToDefault();
     vi.useFakeTimers();
     vi.clearAllMocks();
+    vi.clearAllTimers();
     document.title = 'Initial Title';
   });
 

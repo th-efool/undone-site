@@ -127,6 +127,68 @@
   flex-shrink: 0;
 }
 
+.modalScrim {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 55;
+  border: none;
+  cursor: pointer;
+  display: block;
+}
+
+.modalPanel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 720px;
+  max-width: min(720px, calc(100vw - 32px));
+  max-height: min(90vh, 900px);
+  background: rgba(16, 18, 26, 0.94);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  outline: none;
+}
+
+@media (max-width: 768px) {
+  .modalPanel {
+    width: calc(100vw - 24px);
+    max-height: calc(100dvh - 32px);
+    border-radius: 16px;
+  }
+}
+
+.modalBody {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .closeBtn {
     transition: none;

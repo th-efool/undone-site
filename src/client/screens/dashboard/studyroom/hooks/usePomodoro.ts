@@ -11,6 +11,7 @@ import {
 } from '../utils/pomodoroReducer';
 import { formatClock } from '../utils/formatTime';
 import { playChime } from '../utils/chime';
+import { pomodoroStorageAdapter } from '@/src/client/repositories/pomodoroStorageAdapter';
 
 const PHASE_LABELS: Record<PomodoroPhase, string> = {
   focus: 'Focus',
@@ -37,8 +38,14 @@ export function usePomodoro(
 ): UsePomodoroReturn {
   const [state, dispatch] = useReducer(
     pomodoroReducer,
-    initialSettings,
-    createInitialPomodoroState
+    undefined,
+    () => {
+      const data = pomodoroStorageAdapter.getPomodoroData();
+      return createInitialPomodoroState(
+        { ...data.settings, ...initialSettings },
+        data.stats
+      );
+    }
   );
 
   const lastCompletionSeqRef = useRef<number>(state.completionSeq);
@@ -57,17 +64,30 @@ export function usePomodoro(
     };
   }, [state.status]);
 
-  // Completion watcher: trigger audio chime on natural phase completion
+  // Completion watcher: trigger audio chime & save streaks to storage on natural completion
   useEffect(() => {
     if (state.completionSeq === lastCompletionSeqRef.current) {
       return;
     }
     lastCompletionSeqRef.current = state.completionSeq;
 
+    pomodoroStorageAdapter.savePomodoroStats({
+      completedFocusSessions: state.completedFocusSessions,
+      completedShortBreaks: state.completedShortBreaks,
+      completedLongBreaks: state.completedLongBreaks,
+      lastCompletedAt: Date.now(),
+    });
+
     if (state.settings.chimeEnabled) {
       playChime();
     }
-  }, [state.completionSeq, state.settings.chimeEnabled]);
+  }, [
+    state.completionSeq,
+    state.settings.chimeEnabled,
+    state.completedFocusSessions,
+    state.completedShortBreaks,
+    state.completedLongBreaks,
+  ]);
 
   // Screen-reader announcement derived purely from state
   const announcement = useMemo(() => {
@@ -140,10 +160,12 @@ export function usePomodoro(
 
   const updateSettings = useCallback((patch: Partial<PomodoroSettings>) => {
     dispatch({ type: 'UPDATE_SETTINGS', patch });
+    pomodoroStorageAdapter.savePomodoroSettings(patch);
   }, []);
 
   const restoreDefaults = useCallback(() => {
     dispatch({ type: 'UPDATE_SETTINGS', patch: DEFAULT_POMODORO_SETTINGS });
+    pomodoroStorageAdapter.savePomodoroSettings(DEFAULT_POMODORO_SETTINGS);
   }, []);
 
   return {

@@ -7,6 +7,12 @@ export interface AuthorSummary {
   username: string | null;
 }
 
+export interface ReactionSummary {
+  emoji: string;
+  count: number;
+  reactedByMe?: boolean;
+}
+
 export interface CanonicalMessagePayload {
   id: string;
   content: string;
@@ -15,10 +21,17 @@ export interface CanonicalMessagePayload {
   messageSequence: number;
   clientRequestId?: string | null;
   replyToId?: string | null;
+  replyTo?: {
+    id: string;
+    content: string;
+    authorName: string | null;
+    authorAvatar: string | null;
+  } | null;
   revision: number;
   editedAt?: string | null;
   deletedAt?: string | null;
   deletionReason?: string | null;
+  reactions?: ReactionSummary[];
   createdAt: string;
   updatedAt: string;
   author: AuthorSummary;
@@ -55,6 +68,44 @@ export interface KeysetPaginationParams {
   channelId: string;
   beforeSequence?: number;
   limit?: number;
+}
+
+export interface UpdateReadWatermarkInput {
+  channelId: string;
+  userId: string;
+  sequence: number;
+}
+
+export interface UpdateChannelPreferencesInput {
+  channelId: string;
+  userId: string;
+  isPinned?: boolean;
+  mutedUntil?: Date | string | null;
+}
+
+export interface ToggleReactionInput {
+  messageId: string;
+  userId: string;
+  emoji: string;
+}
+
+export interface EditMessageInput {
+  messageId: string;
+  userId: string;
+  content: string;
+  expectedRevision?: number;
+}
+
+export interface DeleteMessageInput {
+  messageId: string;
+  userId: string;
+  reason?: string;
+}
+
+export interface TypingSignalInput {
+  channelId: string;
+  userId: string;
+  isTyping: boolean;
 }
 
 export interface ChannelSyncParams {
@@ -102,6 +153,15 @@ export class MessagingValidationError extends Error {
   }
 }
 
+export class MessagingRateLimitError extends Error {
+  public retryAfterSeconds: number;
+  constructor(message = 'Rate limit exceeded; please wait before retrying', retryAfterSeconds = 60) {
+    super(message);
+    this.name = 'MessagingRateLimitError';
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
 /**
  * Deterministically hash message input payload for idempotency conflict detection.
  */
@@ -126,6 +186,7 @@ export function buildDestinationChannel(params: {
   generation: number;
   communityId?: string | null;
   conversationId?: string | null;
+  conversationKind?: 'DIRECT' | 'GROUP' | null;
   studyRoomId?: string | null;
 }): string {
   const gen = params.generation || 1;
@@ -133,7 +194,8 @@ export function buildDestinationChannel(params: {
     return `community:${params.channelId}:g${gen}`;
   }
   if (params.conversationId) {
-    return `dm:${params.conversationId}:g${gen}`;
+    const prefix = params.conversationKind === 'GROUP' ? 'group' : 'dm';
+    return `${prefix}:${params.conversationId}:g${gen}`;
   }
   if (params.studyRoomId) {
     return `roomchat:${params.channelId}:g${gen}`;

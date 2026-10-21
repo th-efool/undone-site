@@ -39,6 +39,25 @@ model User {
   channelStates     ChannelUserState[]
   realtimeStream    RealtimeStream?
   messagingRequests MessagingRequest[]
+  blockedUsers      UserBlock[] @relation("UserBlocker")
+  blockedByUsers    UserBlock[] @relation("UserBlocked")
+  messageReports    MessageReport[]
+  reactions         MessageReaction[]
+  sentConversationInvites ConversationInvitation[] @relation("ConversationInvitedBy")
+  receivedConversationInvites ConversationInvitation[] @relation("ConversationInvitedTo")
+  roomLeases        RoomLease[]
+  studySessions     StudySession[]
+  attachments       ChatAttachment[]
+  notifications     Notification[] @relation("UserNotifications")
+  actedNotifications Notification[] @relation("ActorNotifications")
+  notificationPreference NotificationPreference?
+  pushSubscriptions PushSubscription[]
+  sprintsCreated    RoomSprint[]   @relation("SprintCreator")
+  sprintParticipations RoomSprintParticipant[]
+  roomControllerships RoomController[]
+  roomEnvironmentsUpdated RoomEnvironment[] @relation("EnvironmentUpdater")
+  pinnedMessages    Message[]      @relation("PinnedMessages")
+  moderatorAudits   MessageModerationAudit[] @relation("ModeratorAudits")
 
   @@map("users")
 }
@@ -563,6 +582,7 @@ model Conversation {
 
   creator          User                      @relation("CreatedConversations", fields: [creatorId], references: [id], onDelete: Restrict)
   participants     ConversationParticipant[]
+  invitations      ConversationInvitation[]
   channel          Channel?
 
   @@index([creatorId])
@@ -598,6 +618,7 @@ model Channel {
   messageCounter Int                @default(0)
 
   messages       Message[]
+  attachments    ChatAttachment[]
   userStates     ChannelUserState[]
   realtimeStream RealtimeStream?
 
@@ -625,10 +646,19 @@ model Message {
   replyToId       String?
   replyTo         Message?           @relation("MessageReplies", fields: [replyToId], references: [id], onDelete: SetNull)
   replies         Message[]          @relation("MessageReplies")
+  reports         MessageReport[]
+  reactions       MessageReaction[]
+  attachments     ChatAttachment[]
   revision        Int                @default(1)
   editedAt        DateTime?
   deletedAt       DateTime?
   deletionReason  String?
+  isPinned        Boolean            @default(false)
+  pinnedAt        DateTime?
+  pinnedById      String?
+  pinnedBy        User?              @relation("PinnedMessages", fields: [pinnedById], references: [id], onDelete: SetNull)
+  isAnnouncement  Boolean            @default(false)
+  moderatorAudits MessageModerationAudit[]
 
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
@@ -638,6 +668,7 @@ model Message {
   @@index([channelId])
   @@index([authorId])
   @@index([replyToId])
+  @@index([channelId, isPinned])
   @@index([channelId, createdAt(sort: Desc)])
   @@map("messages")
 }
@@ -755,28 +786,78 @@ model StudyRoom {
   status      String
   onlineCount Int    @default(0)
 
-  createdAt    DateTime          @default(now())
-  updatedAt    DateTime          @updatedAt
-  participants RoomParticipant[]
-  channel      Channel?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  participants   RoomParticipant[]
+  channel        Channel?
   realtimeStream RealtimeStream?
+  leases         RoomLease[]
+  studySessions  StudySession[]
+  sprints        RoomSprint[]
+  environment    RoomEnvironment?
+  controllers    RoomController[]
 
   @@map("study_rooms")
 }
 
 model RoomParticipant {
-  id          String @id @default(cuid())
-  userId      String @unique
+  id          String    @id @default(cuid())
+  userId      String    @unique
   studyRoomId String
+  generation  Int       @default(1)
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  room     StudyRoom @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
-  joinedAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room      StudyRoom @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+  joinedAt  DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 
   @@index([studyRoomId])
   @@index([userId])
   @@index([userId, studyRoomId])
   @@map("room_participants")
+}
+
+model RoomLease {
+  id          String    @id @default(cuid())
+  userId      String
+  studyRoomId String
+  generation  Int       @default(1)
+  tabId       String
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room StudyRoom @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, tabId])
+  @@index([studyRoomId, expiresAt])
+  @@index([expiresAt])
+  @@map("room_leases")
+}
+
+model StudySession {
+  id                    String    @id @default(cuid())
+  userId                String
+  studyRoomId           String?
+  status                String    @default("ACTIVE")
+  targetDurationSeconds Int
+  elapsedSeconds        Int       @default(0)
+  startedAt             DateTime  @default(now())
+  resumedAt             DateTime?
+  pausedAt              DateTime?
+  deadline              DateTime?
+  endedAt               DateTime?
+  version               Int       @default(1)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room StudyRoom? @relation(fields: [studyRoomId], references: [id], onDelete: SetNull)
+
+  @@index([userId, status])
+  @@index([userId, createdAt])
+  @@map("study_sessions")
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -889,3 +970,253 @@ model UserRestriction {
   @@index([userId])
   @@map("user_restrictions")
 }
+
+model UserBlock {
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+
+  blocker   User     @relation("UserBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("UserBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("user_blocks")
+}
+
+model MessageReport {
+  id         String   @id @default(cuid())
+  reporterId String
+  messageId  String
+  reason     String
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  reporter   User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  message    Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([reporterId])
+  @@map("message_reports")
+}
+
+model ConversationInvitation {
+  id             String    @id @default(cuid())
+  conversationId String
+  inviterId      String
+  inviteeId      String
+  status         String    @default("PENDING")
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  inviter        User         @relation("ConversationInvitedBy", fields: [inviterId], references: [id], onDelete: Cascade)
+  invitee        User         @relation("ConversationInvitedTo", fields: [inviteeId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, inviteeId, status])
+  @@index([inviteeId, status])
+  @@map("conversation_invitations")
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
+  @@index([userId])
+  @@map("message_reactions")
+}
+
+model ChatAttachment {
+  id               String    @id @default(cuid())
+  uploaderId       String
+  channelId        String
+  messageId        String?
+  storageKey       String    @unique
+  filename         String
+  mediaType        String
+  byteLength       Int
+  checksum         String
+  status           String    @default("RESERVED")
+  quarantinedUntil DateTime?
+  failureReason    String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  uploader         User      @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  channel          Channel   @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  message          Message?  @relation(fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([channelId, status])
+  @@index([uploaderId, createdAt])
+  @@index([messageId])
+  @@map("chat_attachments")
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  actorId   String?
+  scopeType String
+  scopeId   String
+  entityId  String?
+  type      String
+  title     String
+  body      String
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user      User      @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+  actor     User?     @relation("ActorNotifications", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([userId, isRead, createdAt])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  userId             String   @id
+  emailNotifications Boolean  @default(true)
+  pushNotifications  Boolean  @default(true)
+  mentionOnly        Boolean  @default(false)
+  mutedScopes        Json     @default("[]")
+  updatedAt          DateTime @updatedAt
+
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  PHASE 10 — ADVANCED ROOM SPRINTS, ENVIRONMENT & MESSAGE MODERATION
+// ─────────────────────────────────────────────────────────────────
+model RoomSprint {
+  id                    String                   @id @default(cuid())
+  studyRoomId           String
+  creatorId             String
+  title                 String?
+  targetDurationSeconds Int
+  elapsedSeconds        Int                      @default(0)
+  status                String                   @default("ACTIVE")
+  startedAt             DateTime                 @default(now())
+  resumedAt             DateTime?
+  pausedAt              DateTime?
+  deadline              DateTime?
+  endedAt               DateTime?
+  version               Int                      @default(1)
+  revision              Int                      @default(1)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  room                  StudyRoom                @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+  creator               User                     @relation("SprintCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  participants          RoomSprintParticipant[]
+
+  @@index([studyRoomId, status])
+  @@map("room_sprints")
+}
+
+model RoomSprintParticipant {
+  sprintId    String
+  userId      String
+  status      String                   @default("JOINED")
+  joinedAt    DateTime                 @default(now())
+  completedAt DateTime?
+  leftAt      DateTime?
+
+  sprint      RoomSprint               @relation(fields: [sprintId], references: [id], onDelete: Cascade)
+  user        User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([sprintId, userId])
+  @@index([userId])
+  @@map("room_sprint_participants")
+}
+
+model RoomEnvironment {
+  studyRoomId     String    @id
+  sceneId         String    @default("lofi-cafe")
+  soundscapeId    String?
+  musicPresetId   String?
+  musicStreamUrl  String?
+  revision        Int       @default(1)
+  updatedByUserId String?
+  updatedAt       DateTime  @updatedAt
+
+  room            StudyRoom @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+  updatedBy       User?     @relation("EnvironmentUpdater", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@map("room_environments")
+}
+
+model RoomController {
+  studyRoomId String
+  userId      String
+  role        String    @default("MODERATOR")
+  createdAt   DateTime  @default(now())
+
+  room        StudyRoom @relation(fields: [studyRoomId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([studyRoomId, userId])
+  @@index([userId])
+  @@map("room_controllers")
+}
+
+model MessageModerationAudit {
+  id          String   @id @default(cuid())
+  channelId   String
+  messageId   String
+  moderatorId String
+  action      String
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  moderator   User     @relation("ModeratorAudits", fields: [moderatorId], references: [id], onDelete: Cascade)
+  message     Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([channelId, createdAt])
+  @@index([moderatorId])
+  @@map("message_moderation_audits")
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  PHASE 11 — DISTRIBUTED ATOMIC RATE LIMITING & HARDENING
+// ─────────────────────────────────────────────────────────────────
+model RateLimitBucket {
+  key       String   @id
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("rate_limit_buckets")
+}
+
+
+

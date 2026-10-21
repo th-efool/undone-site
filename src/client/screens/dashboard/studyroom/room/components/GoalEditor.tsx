@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Eye, Lock } from 'lucide-react';
+import { Eye, Lock, Target } from 'lucide-react';
 import type { useSessionGoal } from '../../hooks/useSessionGoal';
 import styles from './SessionPanel.module.css';
 
@@ -22,7 +22,10 @@ export function GoalEditor({ goal }: GoalEditorProps) {
   return (
     <div className={styles.goalSection}>
       <div className={styles.goalHeader}>
-        <h3 className={styles.goalTitle}>Session Goal</h3>
+        <div className={styles.goalTitleGroup}>
+          <Target size={14} className={styles.goalTargetIcon} aria-hidden="true" />
+          <h3 className={styles.goalTitle}>Session Goal</h3>
+        </div>
         {committed.text.trim().length > 0 && (
           <div
             className={styles.committedGoalBadge}
@@ -79,7 +82,7 @@ export function GoalEditor({ goal }: GoalEditorProps) {
             }`}
             onClick={() => setVisibility('private')}
           >
-            <Lock size={14} aria-hidden="true" />
+            <Lock size={12} aria-hidden="true" />
             <span>Private</span>
           </button>
           <button
@@ -91,7 +94,7 @@ export function GoalEditor({ goal }: GoalEditorProps) {
             }`}
             onClick={() => setVisibility('room')}
           >
-            <Eye size={14} aria-hidden="true" />
+            <Eye size={12} aria-hidden="true" />
             <span>Visible to room</span>
           </button>
         </div>

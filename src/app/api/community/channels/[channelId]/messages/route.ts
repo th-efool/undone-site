@@ -128,34 +128,56 @@ export async function GET(
             },
           },
         },
+        conversation: {
+          select: {
+            participants: {
+              where: { leftAt: null },
+              select: { userId: true },
+            },
+          },
+        },
       },
     });
 
-    if (!channel || !channel.community) {
+    if (!channel) {
       return NextResponse.json({ error: 'Channel not found' }, { status: 404 });
     }
 
-    if (!channel.community.chatEnabled) {
-      return NextResponse.json({ error: 'Chat is disabled for this community' }, { status: 403 });
-    }
+    if (channel.community) {
+      if (!channel.community.chatEnabled) {
+        return NextResponse.json({ error: 'Chat is disabled for this community' }, { status: 403 });
+      }
 
-    const { cohortId, cohort } = channel.community;
-    const isCreator = cohort.creatorId === user.id;
-    let isMember = isCreator;
+      const { cohortId, cohort } = channel.community;
+      const isCreator = cohort.creatorId === user.id;
+      let isMember = isCreator;
 
-    if (!isMember) {
-      const membership = await prisma.cohortMember.findUnique({
-        where: { cohortId_userId: { cohortId, userId: user.id } },
-        select: { role: true },
-      });
-      isMember = Boolean(membership);
-    }
+      if (!isMember) {
+        const membership = await prisma.cohortMember.findUnique({
+          where: { cohortId_userId: { cohortId, userId: user.id } },
+          select: { role: true },
+        });
+        isMember = Boolean(membership);
+      }
 
-    if (!isMember) {
-      return NextResponse.json(
-        { error: 'Active cohort membership is required to view messages' },
-        { status: 403 }
+      if (!isMember) {
+        return NextResponse.json(
+          { error: 'Active cohort membership is required to view messages' },
+          { status: 403 }
+        );
+      }
+    } else if (channel.conversation) {
+      const isParticipant = channel.conversation.participants.some(
+        (p) => p.userId === user.id
       );
+      if (!isParticipant) {
+        return NextResponse.json(
+          { error: 'Not an active participant in this conversation' },
+          { status: 403 }
+        );
+      }
+    } else {
+      return NextResponse.json({ error: 'Channel not found' }, { status: 404 });
     }
 
     const url = new URL(req.url);

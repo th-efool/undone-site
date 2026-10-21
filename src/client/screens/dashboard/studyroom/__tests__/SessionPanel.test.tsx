@@ -209,4 +209,48 @@ describe('SessionPanel integration', () => {
       ).toBeTruthy();
     });
   });
+
+  describe('Mini Calendar & Daily Tasks', () => {
+    it('renders October 2026 mini calendar and selects interactive days', () => {
+      render(<SessionPanelTestWrapper />);
+
+      expect(screen.getByText('October 2026')).toBeTruthy();
+      expect(screen.getByRole('button', { name: /20 October 2026, selected/ })).toBeTruthy();
+      expect(screen.getByText('20th October Tasks')).toBeTruthy();
+
+      const day21 = screen.getByRole('button', { name: '21 October 2026' });
+      fireEvent.click(day21);
+
+      expect(screen.getByText('21st October Tasks')).toBeTruthy();
+    });
+
+    it('adds daily task to session when + button on daily task item is clicked', () => {
+      render(<SessionPanelTestWrapper />);
+
+      expect(screen.getByText('Review system design fundamentals')).toBeTruthy();
+      const addDailyBtn = screen.getByRole('button', {
+        name: 'Add "Review system design fundamentals" to session',
+      });
+      fireEvent.click(addDailyBtn);
+
+      expect(
+        screen.queryByText("No tasks yet. Add the first thing you'll do this session.")
+      ).toBeNull();
+      expect(screen.queryByText('1 of 1 done')).toBeNull();
+      expect(screen.getByText('0 of 1 done')).toBeTruthy();
+      expect(screen.getAllByText('Review system design fundamentals')).toHaveLength(2);
+    });
+
+    it('adds next daily task when "+ Add from 20th October Tasks" button is clicked', () => {
+      render(<SessionPanelTestWrapper />);
+
+      const addFromDailyBtn = screen.getByRole('button', {
+        name: /\+ Add from 20th October Tasks/,
+      });
+      fireEvent.click(addFromDailyBtn);
+
+      expect(screen.getAllByText('Review system design fundamentals')).toHaveLength(2);
+      expect(screen.getByText('0 of 1 done')).toBeTruthy();
+    });
+  });
 });
