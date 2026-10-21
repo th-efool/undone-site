@@ -1,6 +1,34 @@
 import 'server-only';
 import { createHash, randomUUID } from 'node:crypto';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
+import { studyroomPolicy, type RoomEntity } from './studyroom.policy';
+import {
+  type RoomRole,
+  RoomNotFoundError,
+  RoomForbiddenError,
+  RoomQuotaExceededError,
+} from '@/src/shared/studyroom/contracts';
+
+interface RoomFinderModel {
+  findUnique: (args: { where: { id: string } }) => Promise<RoomEntity | null>;
+  findFirst?: (args: { where: { OR: Array<{ id: string } | { slug: string }> } }) => Promise<RoomEntity | null>;
+}
+
+async function findRoomByIdOrSlug(
+  model: unknown,
+  idOrSlug: string
+): Promise<RoomEntity | null> {
+  const m = model as RoomFinderModel;
+  let room = await m.findUnique({ where: { id: idOrSlug } });
+  if (!room && typeof m.findFirst === 'function') {
+    room = await m.findFirst({
+      where: {
+        OR: [{ id: idOrSlug }, { slug: idOrSlug }],
+      },
+    });
+  }
+  return room;
+}
 
 export interface RoomCatalogItem {
   id: string;
@@ -17,13 +45,16 @@ export interface RoomRosterMember {
   name: string;
   username: string;
   image: string;
+  role?: RoomRole;
   joinedAt: string;
   tabCount: number;
+  publicGoal?: string | null;
 }
 
 export interface JoinRoomResult {
   success: boolean;
   roomId: string;
+  slug?: string;
   generation: number;
   isSwitch: boolean;
   lease: {
@@ -142,12 +173,16 @@ export const studyRoomService = {
    * Authenticated participant roster for a specific study room.
    * Does not expose public cache headers.
    */
-  async getRoomRoster(roomId: string, _userId: string): Promise<RoomRosterMember[]> {
+  async getRoomRoster(roomId: string, _userId?: string): Promise<RoomRosterMember[]> {
+    void _userId;
     const now = new Date();
+
+    const room = await findRoomByIdOrSlug(prisma.studyRoom, roomId);
+    const actualRoomId = room?.id || roomId;
 
     // Query active participants who have at least one non-expired lease
     const participants = await prisma.roomParticipant.findMany({
-      where: { studyRoomId: roomId },
+      where: { studyRoomId: actualRoomId },
       include: {
         user: {
           select: {
@@ -164,7 +199,7 @@ export const studyRoomService = {
     const userIds = participants.map((p) => p.userId);
     const activeLeases = await prisma.roomLease.findMany({
       where: {
-        studyRoomId: roomId,
+        studyRoomId: actualRoomId,
         userId: { in: userIds },
         expiresAt: { gt: now },
       },
@@ -176,18 +211,50 @@ export const studyRoomService = {
       leaseCountMap.set(lease.userId, (leaseCountMap.get(lease.userId) ?? 0) + 1);
     }
 
+    interface ControllerModel {
+      roomController?: {
+        findMany: (args: {
+          where: { studyRoomId: string };
+          select: { userId: boolean; role: boolean };
+        }) => Promise<Array<{ userId: string; role: string }>>;
+      };
+    }
+    const prismaWithController = prisma as unknown as ControllerModel;
+
+    let controllers: Array<{ userId: string; role: string }> = [];
+    if (prismaWithController.roomController?.findMany) {
+      controllers = await prismaWithController.roomController.findMany({
+        where: { studyRoomId: actualRoomId },
+        select: { userId: true, role: true },
+      });
+    }
+    const controllerMap = new Map<string, RoomRole>(
+      controllers.map((c) => [c.userId, c.role as RoomRole])
+    );
+
     // Only return participants with active leases or recently joined
     return participants
       .filter((p) => (leaseCountMap.get(p.userId) ?? 0) > 0)
-      .map((p) => ({
-        id: p.id,
-        userId: p.user.id,
-        name: p.user.name || p.user.username || 'Peer',
-        username: p.user.username || '',
-        image: p.user.image || '/undone-logo.svg',
-        joinedAt: p.joinedAt.toISOString(),
-        tabCount: leaseCountMap.get(p.userId) ?? 1,
-      }));
+      .map((p) => {
+        let role: RoomRole = 'PARTICIPANT';
+        if (room?.ownerId && p.user.id === room.ownerId) {
+          role = 'OWNER';
+        } else if (controllerMap.has(p.user.id)) {
+          role = controllerMap.get(p.user.id)!;
+        }
+
+        return {
+          id: p.id,
+          userId: p.user.id,
+          name: p.user.name || p.user.username || 'Peer',
+          username: p.user.username || '',
+          image: p.user.image || '/undone-logo.svg',
+          role,
+          joinedAt: p.joinedAt.toISOString(),
+          tabCount: leaseCountMap.get(p.userId) ?? 1,
+          publicGoal: null,
+        };
+      });
   },
 
   /**
@@ -199,17 +266,16 @@ export const studyRoomService = {
     userId: string;
     roomId: string;
     tabId?: string;
+    requestId?: string;
   }): Promise<JoinRoomResult> {
     const { userId, roomId } = params;
     const tabId = params.tabId || `tab-${randomUUID()}`;
 
     return prisma.$transaction(async (tx) => {
       // 1. Verify target room exists
-      const targetRoom = await tx.studyRoom.findUnique({
-        where: { id: roomId },
-      });
+      const targetRoom = await findRoomByIdOrSlug(tx.studyRoom, roomId);
       if (!targetRoom) {
-        throw new Error('Study room not found');
+        throw new RoomNotFoundError('Study room not found');
       }
 
       const now = new Date();
@@ -220,11 +286,43 @@ export const studyRoomService = {
         where: { userId },
       });
 
+      const isAlreadyInTarget = currentParticipant?.studyRoomId === targetRoom.id;
+
+      // 3. Eligibility & Capacity Check
+      if (studyroomPolicy && typeof studyroomPolicy.resolveRoomEligibility === 'function') {
+        const eligibility = await studyroomPolicy.resolveRoomEligibility(
+          targetRoom as unknown as RoomEntity,
+          userId,
+          isAlreadyInTarget
+        );
+        if (!eligibility.eligible) {
+          if (eligibility.reason === 'ROOM_FULL') {
+            throw new RoomQuotaExceededError('Room is at full capacity');
+          }
+          if (eligibility.reason === 'ROOM_CLOSED') {
+            throw new RoomForbiddenError('Room is closed');
+          }
+          if (eligibility.reason === 'USER_BANNED') {
+            throw new RoomForbiddenError('User is banned from this room');
+          }
+          if (eligibility.reason === 'USER_KICKED_COOLDOWN') {
+            throw new RoomForbiddenError('User is temporarily restricted from this room');
+          }
+          if (eligibility.reason === 'ENROLLMENT_REQUIRED') {
+            throw new RoomForbiddenError('Cohort enrollment required');
+          }
+          if (eligibility.reason === 'DRAFT_RESTRICTED') {
+            throw new RoomForbiddenError('Room is currently in draft');
+          }
+          throw new RoomForbiddenError(`Cannot join room: ${eligibility.reason}`);
+        }
+      }
+
       let isSwitch = false;
       let generation = 1;
 
       if (currentParticipant) {
-        if (currentParticipant.studyRoomId === roomId) {
+        if (currentParticipant.studyRoomId === targetRoom.id) {
           // Same room: retain generation, record new/renewed tab lease
           generation = currentParticipant.generation;
         } else {
@@ -232,6 +330,11 @@ export const studyRoomService = {
           isSwitch = true;
           generation = currentParticipant.generation + 1;
           const oldRoomId = currentParticipant.studyRoomId;
+
+          // Deterministic lock order on switch: sort room IDs to prevent deadlocks
+          const [firstRoomId, secondRoomId] = [targetRoom.id, oldRoomId].sort();
+          await tx.studyRoom.findUnique({ where: { id: firstRoomId } });
+          await tx.studyRoom.findUnique({ where: { id: secondRoomId } });
 
           // Delete leases for the old room
           await tx.roomLease.deleteMany({
@@ -258,23 +361,23 @@ export const studyRoomService = {
         }
       }
 
-      // 3. Upsert RoomParticipant with current generation
+      // 4. Upsert RoomParticipant with current generation
       await tx.roomParticipant.upsert({
         where: { userId },
         create: {
           userId,
-          studyRoomId: roomId,
+          studyRoomId: targetRoom.id,
           generation,
           joinedAt: now,
         },
         update: {
-          studyRoomId: roomId,
+          studyRoomId: targetRoom.id,
           generation,
           updatedAt: now,
         },
       });
 
-      // 4. Upsert RoomLease for this tab
+      // 5. Upsert RoomLease for this tab
       const lease = await tx.roomLease.upsert({
         where: {
           userId_tabId: {
@@ -284,36 +387,37 @@ export const studyRoomService = {
         },
         create: {
           userId,
-          studyRoomId: roomId,
+          studyRoomId: targetRoom.id,
           generation,
           tabId,
           expiresAt,
         },
         update: {
-          studyRoomId: roomId,
+          studyRoomId: targetRoom.id,
           generation,
           expiresAt,
           updatedAt: now,
         },
       });
 
-      // 5. Recalculate new room onlineCount based on distinct users with active leases
+      // 6. Recalculate new room onlineCount based on distinct users with active leases
       const activeUsers = await tx.roomLease.groupBy({
         by: ['userId'],
         where: {
-          studyRoomId: roomId,
+          studyRoomId: targetRoom.id,
           expiresAt: { gt: now },
         },
       });
 
       await tx.studyRoom.update({
-        where: { id: roomId },
+        where: { id: targetRoom.id },
         data: { onlineCount: activeUsers.length },
       });
 
       return {
         success: true,
-        roomId,
+        roomId: targetRoom.id,
+        slug: targetRoom.slug || targetRoom.id,
         generation,
         isSwitch,
         lease: {
@@ -337,11 +441,14 @@ export const studyRoomService = {
     const { userId, roomId, tabId, generation } = params;
 
     return prisma.$transaction(async (tx) => {
+      const targetRoom = await findRoomByIdOrSlug(tx.studyRoom, roomId);
+      const actualRoomId = targetRoom?.id || roomId;
+
       const participant = await tx.roomParticipant.findUnique({
         where: { userId },
       });
 
-      if (!participant || participant.studyRoomId !== roomId) {
+      if (!participant || participant.studyRoomId !== actualRoomId) {
         return { success: false, reason: 'not_in_room' };
       }
 
@@ -362,7 +469,7 @@ export const studyRoomService = {
         },
         create: {
           userId,
-          studyRoomId: roomId,
+          studyRoomId: actualRoomId,
           generation,
           tabId,
           expiresAt,
@@ -375,7 +482,7 @@ export const studyRoomService = {
 
       return {
         success: true,
-        expiresAt: lease.expiresAt.toISOString(),
+        expiresAt: (lease?.expiresAt ? new Date(lease.expiresAt) : expiresAt).toISOString(),
       };
     });
   },
@@ -402,7 +509,13 @@ export const studyRoomService = {
         return { success: true, left: true, remainingLeases: 0 };
       }
 
-      const roomId = params.roomId || participant.studyRoomId;
+      let actualRoomId = participant.studyRoomId;
+      if (params.roomId) {
+        const room = await findRoomByIdOrSlug(tx.studyRoom, params.roomId);
+        if (room) actualRoomId = room.id;
+      }
+
+      const roomId = actualRoomId;
       const now = new Date();
 
       if (global || !tabId) {
