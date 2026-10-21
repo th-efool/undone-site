@@ -242,4 +242,64 @@ describe('FocusBar component', () => {
     expect(screen.getByText('3 focus sessions this visit')).toBeTruthy();
     expect(screen.getByText('Focus complete')).toBeTruthy();
   });
+
+  it('renders data-phase and phase-specific streak icon and counter for shortBreak and longBreak', () => {
+    // 1. Short break phase
+    const shortBreakState = createMockPomodoroState({
+      phase: 'shortBreak',
+      completedFocusSessions: 3,
+      completedShortBreaks: 2,
+      completedLongBreaks: 1,
+    });
+
+    const { unmount } = render(
+      <FocusBar
+        state={shortBreakState}
+        onStart={vi.fn()}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onReset={vi.fn()}
+        onSkip={vi.fn()}
+        onSelectPhase={vi.fn()}
+        onOpenSettings={vi.fn()}
+        settingsOpen={false}
+        announcement=""
+      />
+    );
+
+    const aside = screen.getByRole('complementary', { name: 'Personal Pomodoro Timer' });
+    expect(aside.getAttribute('data-phase')).toBe('shortBreak');
+    expect(screen.getByLabelText('2 completed short breaks')).toBeTruthy();
+    expect(screen.getByText('2 short breaks this visit')).toBeTruthy();
+
+    unmount();
+
+    // 2. Long break phase
+    const longBreakState = createMockPomodoroState({
+      phase: 'longBreak',
+      completedFocusSessions: 4,
+      completedShortBreaks: 3,
+      completedLongBreaks: 2,
+    });
+
+    render(
+      <FocusBar
+        state={longBreakState}
+        onStart={vi.fn()}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onReset={vi.fn()}
+        onSkip={vi.fn()}
+        onSelectPhase={vi.fn()}
+        onOpenSettings={vi.fn()}
+        settingsOpen={false}
+        announcement=""
+      />
+    );
+
+    const longAside = screen.getByRole('complementary', { name: 'Personal Pomodoro Timer' });
+    expect(longAside.getAttribute('data-phase')).toBe('longBreak');
+    expect(screen.getByLabelText('2 completed long breaks')).toBeTruthy();
+    expect(screen.getByText('2 long breaks this visit')).toBeTruthy();
+  });
 });
