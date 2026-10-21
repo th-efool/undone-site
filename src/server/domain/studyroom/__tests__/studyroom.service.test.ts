@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { studyRoomService } from '../studyroom.service';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';

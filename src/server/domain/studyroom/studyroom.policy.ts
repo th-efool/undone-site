@@ -1,5 +1,6 @@
 import 'server-only';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
+import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
 import {
   type RoomRole,
   type RoomCapabilities,
@@ -73,6 +74,21 @@ export const studyroomPolicy = {
         isPlatformAdmin: false,
         isCohortGovernor: false,
       };
+    }
+
+    if (prisma.user?.findUnique) {
+      const userRecord = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, username: true },
+      });
+      if (isSharedGuestAccount(userRecord)) {
+        return {
+          role: 'VIEWER',
+          isOwner: false,
+          isPlatformAdmin: false,
+          isCohortGovernor: false,
+        };
+      }
     }
 
     // 1. Direct Owner Check
@@ -182,6 +198,17 @@ export const studyroomPolicy = {
   }> {
     if (!userId) {
       return { eligible: false, reason: 'NOT_AUTHENTICATED' };
+    }
+
+    // Deny shared guest accounts
+    if (prisma.user?.findUnique) {
+      const userRecord = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, username: true },
+      });
+      if (isSharedGuestAccount(userRecord)) {
+        return { eligible: false, reason: 'GUEST_RESTRICTED' };
+      }
     }
 
     // 1. Room Lifecycle State
@@ -328,6 +355,16 @@ export const studyroomPolicy = {
    * Throws appropriate typed errors on failure.
    */
   async assertCanControlEnvironment(roomId: string, userId: string): Promise<void> {
+    if (prisma.user?.findUnique) {
+      const userRecord = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, username: true },
+      });
+      if (isSharedGuestAccount(userRecord)) {
+        throw new RoomForbiddenError('Guest accounts cannot control room environment');
+      }
+    }
+
     const room = await prisma.studyRoom.findUnique({
       where: { id: roomId },
     });
@@ -388,6 +425,16 @@ export const studyroomPolicy = {
    * Enforces room creation quotas.
    */
   async assertCreationQuota(userId: string): Promise<void> {
+    if (prisma.user?.findUnique) {
+      const userRecord = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, username: true },
+      });
+      if (isSharedGuestAccount(userRecord)) {
+        throw new RoomForbiddenError('Guest accounts cannot create study rooms');
+      }
+    }
+
     // 1. Max open standalone rooms limit
     const openStandaloneCount = await prisma.studyRoom.count({
       where: {

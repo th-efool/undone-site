@@ -1,5 +1,7 @@
 import 'server-only';
+import { randomUUID } from 'crypto';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
+import { isSharedGuestAccount } from '@/src/server/infrastructure/auth/guestAccount';
 import {
   type RoomSprintSnapshot,
   type StartSprintInput,
@@ -11,6 +13,47 @@ import { MessagingConflictError, MessagingForbiddenError, MessagingNotFoundError
 const MIN_SPRINT_DURATION_SEC = 60; // 1 minute
 const MAX_SPRINT_DURATION_SEC = 7200; // 2 hours
 const DEFAULT_SPRINT_DURATION_SEC = 1500; // 25 minutes
+
+async function emitSprintOutboxEvent(
+  tx: any,
+  roomId: string,
+  snapshot: RoomSprintSnapshot
+) {
+  if (tx.realtimeStream?.findUnique && tx.realtimeEvent?.create && tx.realtimeDelivery?.create) {
+    let stream = await tx.realtimeStream.findUnique({
+      where: { studyRoomId: roomId },
+    });
+    if (stream) {
+      if (tx.realtimeStream?.update) {
+        stream = await tx.realtimeStream.update({
+          where: { id: stream.id },
+          data: { eventCounter: { increment: 1 } },
+        });
+      }
+      const eventId = randomUUID();
+      await tx.realtimeEvent.create({
+        data: {
+          streamId: stream.id,
+          sequence: stream.eventCounter,
+          eventId,
+          schemaVersion: 1,
+          type: 'room.sprint.updated',
+          generation: stream.generation,
+          entityId: snapshot.id,
+          entityRevision: snapshot.revision,
+          payload: snapshot as any,
+        },
+      });
+      await tx.realtimeDelivery.create({
+        data: {
+          eventId,
+          destination: `room:${roomId}:g${stream.generation}`,
+          status: 'PENDING',
+        },
+      });
+    }
+  }
+}
 
 export const sprintService = {
   /**
@@ -37,6 +80,16 @@ export const sprintService = {
    * Evaluates if a user has controller/moderator authority in a study room.
    */
   async isRoomController(roomId: string, userId: string): Promise<boolean> {
+    if (prisma.user?.findUnique) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { email: true, username: true },
+      });
+      if (isSharedGuestAccount(user)) {
+        return false;
+      }
+    }
+
     // 1. Direct RoomController role check
     const controller = await prisma.roomController.findUnique({
       where: {
@@ -99,7 +152,7 @@ export const sprintService = {
   },
 
   /**
-   * Starts a shared room sprint.
+   * Starts a shared room sprint atomically.
    */
   async startSprint(input: StartSprintInput): Promise<RoomSprintSnapshot> {
     const { userId, roomId, title } = input;
@@ -120,29 +173,47 @@ export const sprintService = {
       throw new MessagingNotFoundError('Study room not found');
     }
 
-    // Check if an ACTIVE or PAUSED sprint already exists
-    const existing = await prisma.roomSprint.findFirst({
-      where: {
-        studyRoomId: roomId,
-        status: { in: ['ACTIVE', 'PAUSED'] },
-      },
-    });
-
     const now = new Date();
-
-    if (existing) {
-      // Check if existing sprint has already expired past its deadline
-      if (existing.status === 'ACTIVE' && existing.deadline && existing.deadline <= now) {
-        // Complete it automatically
-        await this.completeSprint(existing.id);
-      } else {
-        throw new MessagingConflictError('A shared sprint is already in progress in this room');
-      }
-    }
-
     const deadline = new Date(now.getTime() + targetDurationSeconds * 1000);
 
-    const sprint = await prisma.$transaction(async (tx) => {
+    return await prisma.$transaction(async (tx) => {
+      // Check if an ACTIVE or PAUSED sprint already exists INSIDE transaction
+      const existing = await tx.roomSprint.findFirst({
+        where: {
+          studyRoomId: roomId,
+          status: { in: ['ACTIVE', 'PAUSED'] },
+        },
+      });
+
+      if (existing) {
+        // Check if existing sprint has already expired past its deadline
+        if (existing.status === 'ACTIVE' && existing.deadline && existing.deadline <= now) {
+          // Complete it automatically inside transaction
+          await tx.roomSprint.update({
+            where: { id: existing.id },
+            data: {
+              status: 'COMPLETED',
+              endedAt: now,
+              deadline: null,
+              elapsedSeconds: existing.targetDurationSeconds,
+              revision: { increment: 1 },
+            },
+          });
+          await tx.roomSprintParticipant.updateMany({
+            where: {
+              sprintId: existing.id,
+              status: 'JOINED',
+            },
+            data: {
+              status: 'COMPLETED',
+              completedAt: now,
+            },
+          });
+        } else {
+          throw new MessagingConflictError('A shared sprint is already in progress in this room');
+        }
+      }
+
       const created = await tx.roomSprint.create({
         data: {
           studyRoomId: roomId,
@@ -169,10 +240,10 @@ export const sprintService = {
         },
       });
 
-      return created;
+      const snapshot = await this.getSprintSnapshot(created.id, tx);
+      await emitSprintOutboxEvent(tx, roomId, snapshot);
+      return snapshot;
     });
-
-    return this.getSprintSnapshot(sprint.id);
   },
 
   /**
@@ -200,32 +271,41 @@ export const sprintService = {
       throw new MessagingForbiddenError('You must join the study room before participating in its sprint');
     }
 
-    await prisma.roomSprintParticipant.upsert({
-      where: {
-        sprintId_userId: {
+    return await prisma.$transaction(async (tx) => {
+      await tx.roomSprintParticipant.upsert({
+        where: {
+          sprintId_userId: {
+            sprintId,
+            userId,
+          },
+        },
+        create: {
           sprintId,
           userId,
+          status: 'JOINED',
+          joinedAt: new Date(),
         },
-      },
-      create: {
-        sprintId,
-        userId,
-        status: 'JOINED',
-        joinedAt: new Date(),
-      },
-      update: {
-        status: 'JOINED',
-        leftAt: null,
-      },
-    });
+        update: {
+          status: 'JOINED',
+          leftAt: null,
+        },
+      });
 
-    return this.getSprintSnapshot(sprintId);
+      const snapshot = await this.getSprintSnapshot(sprintId, tx);
+      await emitSprintOutboxEvent(tx, sprint.studyRoomId, snapshot);
+      return snapshot;
+    });
   },
 
   /**
    * Leaves a room sprint.
    */
   async leaveSprint(userId: string, sprintId: string): Promise<{ success: boolean }> {
+    const sprint = await prisma.roomSprint.findUnique({
+      where: { id: sprintId },
+    });
+    if (!sprint) return { success: true };
+
     const participant = await prisma.roomSprintParticipant.findUnique({
       where: {
         sprintId_userId: {
@@ -239,17 +319,22 @@ export const sprintService = {
       return { success: true };
     }
 
-    await prisma.roomSprintParticipant.update({
-      where: {
-        sprintId_userId: {
-          sprintId,
-          userId,
+    await prisma.$transaction(async (tx) => {
+      await tx.roomSprintParticipant.update({
+        where: {
+          sprintId_userId: {
+            sprintId,
+            userId,
+          },
         },
-      },
-      data: {
-        status: 'LEFT',
-        leftAt: new Date(),
-      },
+        data: {
+          status: 'LEFT',
+          leftAt: new Date(),
+        },
+      });
+
+      const snapshot = await this.getSprintSnapshot(sprintId, tx);
+      await emitSprintOutboxEvent(tx, sprint.studyRoomId, snapshot);
     });
 
     return { success: true };
@@ -261,44 +346,48 @@ export const sprintService = {
   async pauseSprint(input: ControlSprintInput): Promise<RoomSprintSnapshot> {
     const { userId, sprintId, expectedRevision } = input;
 
-    const sprint = await prisma.roomSprint.findUnique({
-      where: { id: sprintId },
+    return await prisma.$transaction(async (tx) => {
+      const sprint = await tx.roomSprint.findUnique({
+        where: { id: sprintId },
+      });
+
+      if (!sprint) {
+        throw new MessagingNotFoundError('Sprint not found');
+      }
+
+      const isController = await this.isRoomController(sprint.studyRoomId, userId);
+      if (!isController) {
+        throw new MessagingForbiddenError('Only room controllers can pause the sprint');
+      }
+
+      if (sprint.revision !== expectedRevision) {
+        throw new MessagingConflictError('Sprint revision conflict; please refresh sprint status');
+      }
+
+      if (sprint.status !== 'ACTIVE') {
+        throw new MessagingConflictError(`Cannot pause sprint in status ${sprint.status}`);
+      }
+
+      const now = new Date();
+      const lastActiveStart = sprint.resumedAt || sprint.startedAt;
+      const additionalElapsed = Math.max(0, Math.floor((now.getTime() - lastActiveStart.getTime()) / 1000));
+      const newElapsedSeconds = sprint.elapsedSeconds + additionalElapsed;
+
+      await tx.roomSprint.update({
+        where: { id: sprintId },
+        data: {
+          status: 'PAUSED',
+          pausedAt: now,
+          deadline: null,
+          elapsedSeconds: newElapsedSeconds,
+          revision: { increment: 1 },
+        },
+      });
+
+      const snapshot = await this.getSprintSnapshot(sprintId, tx);
+      await emitSprintOutboxEvent(tx, sprint.studyRoomId, snapshot);
+      return snapshot;
     });
-
-    if (!sprint) {
-      throw new MessagingNotFoundError('Sprint not found');
-    }
-
-    const isController = await this.isRoomController(sprint.studyRoomId, userId);
-    if (!isController) {
-      throw new MessagingForbiddenError('Only room controllers can pause the sprint');
-    }
-
-    if (sprint.revision !== expectedRevision) {
-      throw new MessagingConflictError('Sprint revision conflict; please refresh sprint status');
-    }
-
-    if (sprint.status !== 'ACTIVE') {
-      throw new MessagingConflictError(`Cannot pause sprint in status ${sprint.status}`);
-    }
-
-    const now = new Date();
-    const lastActiveStart = sprint.resumedAt || sprint.startedAt;
-    const additionalElapsed = Math.max(0, Math.floor((now.getTime() - lastActiveStart.getTime()) / 1000));
-    const newElapsedSeconds = sprint.elapsedSeconds + additionalElapsed;
-
-    await prisma.roomSprint.update({
-      where: { id: sprintId },
-      data: {
-        status: 'PAUSED',
-        pausedAt: now,
-        deadline: null,
-        elapsedSeconds: newElapsedSeconds,
-        revision: { increment: 1 },
-      },
-    });
-
-    return this.getSprintSnapshot(sprintId);
   },
 
   /**
@@ -307,49 +396,52 @@ export const sprintService = {
   async resumeSprint(input: ControlSprintInput): Promise<RoomSprintSnapshot> {
     const { userId, sprintId, expectedRevision } = input;
 
-    const sprint = await prisma.roomSprint.findUnique({
-      where: { id: sprintId },
+    return await prisma.$transaction(async (tx) => {
+      const sprint = await tx.roomSprint.findUnique({
+        where: { id: sprintId },
+      });
+
+      if (!sprint) {
+        throw new MessagingNotFoundError('Sprint not found');
+      }
+
+      const isController = await this.isRoomController(sprint.studyRoomId, userId);
+      if (!isController) {
+        throw new MessagingForbiddenError('Only room controllers can resume the sprint');
+      }
+
+      if (sprint.revision !== expectedRevision) {
+        throw new MessagingConflictError('Sprint revision conflict; please refresh sprint status');
+      }
+
+      if (sprint.status !== 'PAUSED') {
+        throw new MessagingConflictError(`Cannot resume sprint in status ${sprint.status}`);
+      }
+
+      const now = new Date();
+      const remainingSeconds = Math.max(0, sprint.targetDurationSeconds - sprint.elapsedSeconds);
+
+      if (remainingSeconds <= 0) {
+        return this.completeSprint(sprintId, tx);
+      }
+
+      const newDeadline = new Date(now.getTime() + remainingSeconds * 1000);
+
+      await tx.roomSprint.update({
+        where: { id: sprintId },
+        data: {
+          status: 'ACTIVE',
+          resumedAt: now,
+          pausedAt: null,
+          deadline: newDeadline,
+          revision: { increment: 1 },
+        },
+      });
+
+      const snapshot = await this.getSprintSnapshot(sprintId, tx);
+      await emitSprintOutboxEvent(tx, sprint.studyRoomId, snapshot);
+      return snapshot;
     });
-
-    if (!sprint) {
-      throw new MessagingNotFoundError('Sprint not found');
-    }
-
-    const isController = await this.isRoomController(sprint.studyRoomId, userId);
-    if (!isController) {
-      throw new MessagingForbiddenError('Only room controllers can resume the sprint');
-    }
-
-    if (sprint.revision !== expectedRevision) {
-      throw new MessagingConflictError('Sprint revision conflict; please refresh sprint status');
-    }
-
-    if (sprint.status !== 'PAUSED') {
-      throw new MessagingConflictError(`Cannot resume sprint in status ${sprint.status}`);
-    }
-
-    const now = new Date();
-    const remainingSeconds = Math.max(0, sprint.targetDurationSeconds - sprint.elapsedSeconds);
-
-    if (remainingSeconds <= 0) {
-      await this.completeSprint(sprintId);
-      return this.getSprintSnapshot(sprintId);
-    }
-
-    const newDeadline = new Date(now.getTime() + remainingSeconds * 1000);
-
-    await prisma.roomSprint.update({
-      where: { id: sprintId },
-      data: {
-        status: 'ACTIVE',
-        resumedAt: now,
-        pausedAt: null,
-        deadline: newDeadline,
-        revision: { increment: 1 },
-      },
-    });
-
-    return this.getSprintSnapshot(sprintId);
   },
 
   /**
@@ -358,55 +450,58 @@ export const sprintService = {
   async stopSprint(input: ControlSprintInput): Promise<RoomSprintSnapshot> {
     const { userId, sprintId, expectedRevision } = input;
 
-    const sprint = await prisma.roomSprint.findUnique({
-      where: { id: sprintId },
+    return await prisma.$transaction(async (tx) => {
+      const sprint = await tx.roomSprint.findUnique({
+        where: { id: sprintId },
+      });
+
+      if (!sprint) {
+        throw new MessagingNotFoundError('Sprint not found');
+      }
+
+      const isController = await this.isRoomController(sprint.studyRoomId, userId);
+      if (!isController) {
+        throw new MessagingForbiddenError('Only room controllers can stop the sprint');
+      }
+
+      if (sprint.revision !== expectedRevision) {
+        throw new MessagingConflictError('Sprint revision conflict; please refresh sprint status');
+      }
+
+      if (!['ACTIVE', 'PAUSED'].includes(sprint.status)) {
+        throw new MessagingConflictError('Sprint has already ended');
+      }
+
+      const now = new Date();
+
+      await tx.roomSprint.update({
+        where: { id: sprintId },
+        data: {
+          status: 'CANCELLED',
+          endedAt: now,
+          deadline: null,
+          revision: { increment: 1 },
+        },
+      });
+
+      const snapshot = await this.getSprintSnapshot(sprintId, tx);
+      await emitSprintOutboxEvent(tx, sprint.studyRoomId, snapshot);
+      return snapshot;
     });
-
-    if (!sprint) {
-      throw new MessagingNotFoundError('Sprint not found');
-    }
-
-    const isController = await this.isRoomController(sprint.studyRoomId, userId);
-    if (!isController) {
-      throw new MessagingForbiddenError('Only room controllers can stop the sprint');
-    }
-
-    if (sprint.revision !== expectedRevision) {
-      throw new MessagingConflictError('Sprint revision conflict; please refresh sprint status');
-    }
-
-    if (!['ACTIVE', 'PAUSED'].includes(sprint.status)) {
-      throw new MessagingConflictError('Sprint has already ended');
-    }
-
-    const now = new Date();
-
-    await prisma.roomSprint.update({
-      where: { id: sprintId },
-      data: {
-        status: 'CANCELLED',
-        endedAt: now,
-        deadline: null,
-        revision: { increment: 1 },
-      },
-    });
-
-    return this.getSprintSnapshot(sprintId);
   },
 
   /**
    * Atomically completes a sprint once and marks participants completed.
    */
-  async completeSprint(sprintId: string): Promise<RoomSprintSnapshot> {
+  async completeSprint(sprintId: string, client?: any): Promise<RoomSprintSnapshot> {
     const now = new Date();
-
-    await prisma.$transaction(async (tx) => {
+    const execute = async (tx: any) => {
       const sprint = await tx.roomSprint.findUnique({
         where: { id: sprintId },
       });
 
       if (!sprint || ['COMPLETED', 'CANCELLED'].includes(sprint.status)) {
-        return;
+        return this.getSprintSnapshot(sprintId, tx);
       }
 
       await tx.roomSprint.update({
@@ -430,16 +525,23 @@ export const sprintService = {
           completedAt: now,
         },
       });
-    });
 
-    return this.getSprintSnapshot(sprintId);
+      const snapshot = await this.getSprintSnapshot(sprintId, tx);
+      await emitSprintOutboxEvent(tx, sprint.studyRoomId, snapshot);
+      return snapshot;
+    };
+
+    if (client) {
+      return execute(client);
+    }
+    return prisma.$transaction(execute);
   },
 
   /**
    * Retrieves the authoritative sprint snapshot by sprintId.
    */
-  async getSprintSnapshot(sprintId: string): Promise<RoomSprintSnapshot> {
-    const sprint = await prisma.roomSprint.findUnique({
+  async getSprintSnapshot(sprintId: string, client: any = prisma): Promise<RoomSprintSnapshot> {
+    const sprint = await client.roomSprint.findUnique({
       where: { id: sprintId },
       include: {
         participants: {
@@ -466,7 +568,7 @@ export const sprintService = {
 
     // Check if ACTIVE sprint has passed its deadline
     if (sprint.status === 'ACTIVE' && sprint.deadline && now >= sprint.deadline) {
-      return this.completeSprint(sprintId);
+      return this.completeSprint(sprintId, client);
     }
 
     let remainingSeconds = 0;
@@ -476,13 +578,13 @@ export const sprintService = {
       remainingSeconds = Math.max(0, sprint.targetDurationSeconds - sprint.elapsedSeconds);
     }
 
-    const participants = sprint.participants.map((p) => ({
-      userId: p.user.id,
-      name: p.user.name || p.user.username || 'Peer',
-      username: p.user.username || '',
-      image: p.user.image || '/undone-logo.svg',
+    const participants = (sprint.participants || []).map((p: any) => ({
+      userId: p.user?.id || p.userId,
+      name: p.user?.name || p.user?.username || 'Peer',
+      username: p.user?.username || '',
+      image: p.user?.image || '/undone-logo.svg',
       status: p.status,
-      joinedAt: p.joinedAt.toISOString(),
+      joinedAt: p.joinedAt ? (typeof p.joinedAt === 'string' ? p.joinedAt : p.joinedAt.toISOString()) : now.toISOString(),
     }));
 
     return {
@@ -494,13 +596,13 @@ export const sprintService = {
       elapsedSeconds: sprint.elapsedSeconds,
       remainingSeconds,
       status: sprint.status as SprintStatus,
-      startedAt: sprint.startedAt.toISOString(),
-      deadline: sprint.deadline ? sprint.deadline.toISOString() : null,
-      pausedAt: sprint.pausedAt ? sprint.pausedAt.toISOString() : null,
-      endedAt: sprint.endedAt ? sprint.endedAt.toISOString() : null,
+      startedAt: typeof sprint.startedAt === 'string' ? sprint.startedAt : sprint.startedAt.toISOString(),
+      deadline: sprint.deadline ? (typeof sprint.deadline === 'string' ? sprint.deadline : sprint.deadline.toISOString()) : null,
+      pausedAt: sprint.pausedAt ? (typeof sprint.pausedAt === 'string' ? sprint.pausedAt : sprint.pausedAt.toISOString()) : null,
+      endedAt: sprint.endedAt ? (typeof sprint.endedAt === 'string' ? sprint.endedAt : sprint.endedAt.toISOString()) : null,
       version: sprint.version,
       revision: sprint.revision,
-      participantCount: participants.filter((p) => p.status === 'JOINED' || p.status === 'COMPLETED').length,
+      participantCount: participants.filter((p: any) => p.status === 'JOINED' || p.status === 'COMPLETED').length,
       participants,
     };
   },

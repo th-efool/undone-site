@@ -22,7 +22,8 @@ export type RoomEligibilityReason =
   | 'USER_BANNED'
   | 'USER_KICKED_COOLDOWN'
   | 'NOT_AUTHENTICATED'
-  | 'DRAFT_RESTRICTED';
+  | 'DRAFT_RESTRICTED'
+  | 'GUEST_RESTRICTED';
 
 export type RestrictionAction = 'REMOVE' | 'BAN';
 export type TransferStatus = 'PENDING' | 'ACCEPTED' | 'CANCELLED' | 'EXPIRED';
@@ -205,6 +206,25 @@ export interface RoomLifecycleResponse {
  * 6. ROOM PREVIEW & BOOTSTRAP (GET /api/studyroom/[roomSlug])
  * ───────────────────────────────────────────────────────────────── */
 
+export interface RoomEnvironmentBootstrapDTO {
+  sceneId: string;
+  soundscapeId: string | null;
+  musicPresetId: string | null;
+  musicStreamUrl: string | null;
+  revision: number;
+  updatedAt: string;
+}
+
+export interface RoomSprintBootstrapDTO {
+  id: string;
+  status: string;
+  targetDurationSeconds: number;
+  elapsedSeconds: number;
+  remainingSeconds: number;
+  revision: number;
+  deadline: string | null;
+}
+
 export interface RoomBootstrapResponse {
   room: {
     id: string;
@@ -224,6 +244,7 @@ export interface RoomBootstrapResponse {
     tags: string[];
     language: string;
     revision: number;
+    streamGeneration?: number;
     ownerId: string;
     ownerName: string | null;
     ownerUsername: string | null;
@@ -238,6 +259,10 @@ export interface RoomBootstrapResponse {
   };
   capabilities: RoomCapabilities;
   pendingTransfer?: OwnershipTransferDTO | null;
+  channelId?: string | null;
+  environment?: RoomEnvironmentBootstrapDTO | null;
+  sprint?: RoomSprintBootstrapDTO | null;
+  serverTime?: string;
 }
 
 /* ─────────────────────────────────────────────────────────────────

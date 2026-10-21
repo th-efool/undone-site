@@ -168,6 +168,36 @@ async function main() {
     }
   }
 
+  // 3. Seed Standard Study Rooms
+  console.log('📚 Seeding study rooms...');
+  const defaultRooms = [
+    { title: 'Fireplace', slug: 'fireplace', thumbnail: '/rooms/fireplace.jpg', status: 'OPEN', listing: 'PUBLIC', visualPresetId: 'cozy-fireplace' },
+    { title: 'Library', slug: 'library', thumbnail: '/rooms/library.jpg', status: 'OPEN', listing: 'PUBLIC', visualPresetId: 'library' },
+    { title: 'Developer Den', slug: 'developer-den', thumbnail: '/rooms/dev-den.jpg', status: 'OPEN', listing: 'PUBLIC', visualPresetId: 'night-sky' },
+  ];
+
+  for (const r of defaultRooms) {
+    const existing = await prisma.studyRoom.findFirst({
+      where: { OR: [{ slug: r.slug }, { title: r.title }] },
+    });
+    if (!existing) {
+      await prisma.studyRoom.create({
+        data: {
+          title: r.title,
+          slug: r.slug,
+          thumbnail: r.thumbnail,
+          status: r.status,
+          listing: r.listing,
+          visualPresetId: r.visualPresetId,
+          ownerId: guestUser.id,
+        },
+      });
+      console.log(`✅ Created study room: ${r.title} (${r.slug})`);
+    } else {
+      console.log(`⏭️  Study room already exists: ${r.title}`);
+    }
+  }
+
   console.log('✅ Seeding complete!');
 }
 

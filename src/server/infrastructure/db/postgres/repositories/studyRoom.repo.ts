@@ -26,9 +26,9 @@ export const studyRoomRepo = {
     if (count === 0) {
       await prisma.studyRoom.createMany({
         data: [
-          { title: 'Fireplace', thumbnail: '/rooms/fireplace.jpg', status: 'ACTIVE' },
-          { title: 'Library', thumbnail: '/rooms/library.jpg', status: 'ACTIVE' },
-          { title: 'Developer Den', thumbnail: '/rooms/dev-den.jpg', status: 'ACTIVE' },
+          { title: 'Fireplace', slug: 'fireplace', thumbnail: '/rooms/fireplace.jpg', status: 'OPEN', listing: 'PUBLIC', visualPresetId: 'cozy-fireplace' },
+          { title: 'Library', slug: 'library', thumbnail: '/rooms/library.jpg', status: 'OPEN', listing: 'PUBLIC', visualPresetId: 'library' },
+          { title: 'Developer Den', slug: 'developer-den', thumbnail: '/rooms/dev-den.jpg', status: 'OPEN', listing: 'PUBLIC', visualPresetId: 'night-sky' },
         ],
       });
     }
