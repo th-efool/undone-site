@@ -184,7 +184,10 @@ export function useMessage() {
   const loadConversations = useCallback(async () => {
     setIsLoadingConversations(true);
     try {
-      const data = await messagesRepository.fetchConversations();
+      const data =
+        typeof messagesRepository.fetchConversations === 'function'
+          ? await messagesRepository.fetchConversations()
+          : [];
       setConversationsList(data);
     } catch (err) {
       console.error('Failed to load conversations:', err);
@@ -194,9 +197,49 @@ export function useMessage() {
     }
   }, []);
 
+  const refreshConversations = useCallback(async () => {
+    if (!currentUserId || typeof messagesRepository.fetchConversations !== 'function') return;
+    try {
+      const data = await messagesRepository.fetchConversations();
+      setConversationsList((prev) => {
+        if (prev.length !== data.length) return data;
+        let changed = false;
+        for (let i = 0; i < data.length; i++) {
+          const a = prev[i];
+          const b = data[i];
+          if (
+            !a ||
+            a.id !== b.id ||
+            a.unreadCount !== b.unreadCount ||
+            a.lastMessage?.id !== b.lastMessage?.id ||
+            a.updatedAt !== b.updatedAt
+          ) {
+            changed = true;
+            break;
+          }
+        }
+        return changed ? data : prev;
+      });
+    } catch (err) {
+      console.warn('Failed to refresh conversations:', err);
+    }
+  }, [currentUserId]);
+
   useEffect(() => {
     loadConversations();
-  }, [currentUserId, loadConversations]);
+
+    const interval = setInterval(() => {
+      refreshConversations();
+    }, 3500);
+
+    const onFocus = () => refreshConversations();
+    window.addEventListener('focus', onFocus);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [loadConversations, refreshConversations]);
 
   // URL query parameter synchronization
   useEffect(() => {
@@ -245,45 +288,95 @@ export function useMessage() {
     return null;
   }, [selectedSidebarTab, activeChannelId, activeDMChannelId]);
 
-  // Fetch channel messages when currentActiveChannelId changes
+  // Fetch channel messages on selection and poll in background for live peer updates
   useEffect(() => {
     if (!currentActiveChannelId) return;
-    if (messagesByChannel[currentActiveChannelId] !== undefined) return; // Already cached/loaded
 
     let active = true;
-    setLoadingChannels((prev) => ({ ...prev, [currentActiveChannelId]: true }));
 
-    messagesRepository
-      .fetchChannelMessages(currentActiveChannelId, 50)
-      .then((rawMessages) => {
-        if (!active) return;
-        const mapped = rawMessages.map((m) =>
-          mapCanonicalMessageToCommunityMessage(m, currentUserId, 'sent')
-        );
-        setMessagesByChannel((prev) => ({
-          ...prev,
-          [currentActiveChannelId]: mapped,
-        }));
-      })
-      .catch((err) => {
-        console.error(`Failed to load messages for channel ${currentActiveChannelId}:`, err);
-        if (active) {
+    // Initial fetch if channel messages not yet cached
+    if (messagesByChannel[currentActiveChannelId] === undefined) {
+      setLoadingChannels((prev) => ({ ...prev, [currentActiveChannelId]: true }));
+      messagesRepository
+        .fetchChannelMessages(currentActiveChannelId, 50)
+        .then((rawMessages) => {
+          if (!active) return;
+          const mapped = rawMessages.map((m) =>
+            mapCanonicalMessageToCommunityMessage(m, currentUserId, 'sent')
+          );
           setMessagesByChannel((prev) => ({
             ...prev,
-            [currentActiveChannelId]: [],
+            [currentActiveChannelId]: mapped,
           }));
-        }
-      })
-      .finally(() => {
-        if (active) {
-          setLoadingChannels((prev) => ({ ...prev, [currentActiveChannelId]: false }));
-        }
-      });
+        })
+        .catch((err) => {
+          console.error(`Failed to load messages for channel ${currentActiveChannelId}:`, err);
+          if (active) {
+            setMessagesByChannel((prev) => ({
+              ...prev,
+              [currentActiveChannelId]: [],
+            }));
+          }
+        })
+        .finally(() => {
+          if (active) {
+            setLoadingChannels((prev) => ({ ...prev, [currentActiveChannelId]: false }));
+          }
+        });
+    }
+
+    // Background poll for newly arrived messages every 2500ms
+    const pollMessages = async () => {
+      if (!active) return;
+      try {
+        const rawMessages = await messagesRepository.fetchChannelMessages(currentActiveChannelId, 50);
+        if (!active) return;
+
+        setMessagesByChannel((prev) => {
+          const existing = prev[currentActiveChannelId] ?? [];
+          const pendingOptimistic = existing.filter(
+            (m) => m.status === 'sending' || m.status === 'failed'
+          );
+
+          const existingIds = new Set(existing.map((m) => m.id));
+          const confirmedClientReqIds = new Set(
+            rawMessages.map((r) => r.clientRequestId).filter(Boolean)
+          );
+
+          const hasNewMessages = rawMessages.some((r) => !existingIds.has(r.id));
+          const optimisticResolved = pendingOptimistic.some((p) => confirmedClientReqIds.has(p.id));
+
+          if (!hasNewMessages && !optimisticResolved) {
+            return prev;
+          }
+
+          const mapped = rawMessages.map((m) =>
+            mapCanonicalMessageToCommunityMessage(m, currentUserId, 'sent')
+          );
+          const remainingPending = pendingOptimistic.filter(
+            (p) => !confirmedClientReqIds.has(p.id)
+          );
+
+          return {
+            ...prev,
+            [currentActiveChannelId]: [...mapped, ...remainingPending],
+          };
+        });
+      } catch (err) {
+        console.warn(`Background poll failed for channel ${currentActiveChannelId}:`, err);
+      }
+    };
+
+    const interval = setInterval(pollMessages, 2500);
+    const onFocus = () => pollMessages();
+    window.addEventListener('focus', onFocus);
 
     return () => {
       active = false;
+      clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
     };
-  }, [currentActiveChannelId, currentUserId, messagesByChannel]);
+  }, [currentActiveChannelId, currentUserId]);
 
   // Read watermark synchronization: monotonically advances when active channel messages are visible
   const lastWatermarkRef = useRef<Record<string, number>>({});
@@ -481,6 +574,7 @@ export function useMessage() {
           conv.lastMessage?.content ||
           (conv.kind === 'GROUP' ? `${conv.participantCount} members` : 'No messages yet'),
         timestamp: conv.lastMessage ? formatMessageTime(conv.lastMessage.createdAt) : '',
+        unreadCount: conv.unreadCount ?? 0,
         statusLabel: conv.kind === 'GROUP' ? `${conv.participantCount} members` : undefined,
       };
     });
@@ -630,6 +724,9 @@ export function useMessage() {
     }
     setSelectedDMId(conversation.id);
     setSelectedView('dm');
+    setConversationsList((prev) =>
+      prev.map((c) => (c.id === conversation.id ? { ...c, unreadCount: 0 } : c))
+    );
   }, []);
 
   const backToLanding = useCallback(() => {
@@ -655,9 +752,11 @@ export function useMessage() {
       if (isTypingState && now - lastTypingSignalTime.current < 2000) return;
       lastTypingSignalTime.current = now;
 
-      messagesRepository.sendTypingSignal(currentActiveChannelId, isTypingState).catch((err) => {
-        console.warn('Failed to send typing signal:', err);
-      });
+      if (typeof messagesRepository.sendTypingSignal === 'function') {
+        messagesRepository.sendTypingSignal(currentActiveChannelId, isTypingState).catch((err) => {
+          console.warn('Failed to send typing signal:', err);
+        });
+      }
     },
     [currentActiveChannelId]
   );
@@ -1092,12 +1191,84 @@ export function useMessage() {
     []
   );
 
-  const deleteDMMessage = useCallback((dmId: string, messageId: string) => {
-    setDmMessages((prev) => ({
-      ...prev,
-      [dmId]: (prev[dmId] ?? []).filter((m) => m.id !== messageId),
-    }));
-  }, []);
+  const retryDMMessage = useCallback(
+    async (conversationId: string, messageId: string) => {
+      const conv = conversationsList.find((c) => c.id === conversationId);
+      const channelId = conv?.channelId;
+      if (!channelId) return;
+
+      const list = messagesByChannel[channelId] ?? [];
+      const failedMsg = list.find((m) => m.id === messageId);
+      if (!failedMsg || !failedMsg.body) return;
+
+      const clientRequestId = messageId;
+
+      setMessagesByChannel((prev) => ({
+        ...prev,
+        [channelId]: (prev[channelId] ?? []).map((m) =>
+          m.id === messageId ? { ...m, status: 'sending' } : m
+        ),
+      }));
+
+      try {
+        const canonical = await messagesRepository.sendChannelMessage(channelId, {
+          content: failedMsg.body,
+          clientRequestId,
+          replyToId: failedMsg.replyTo?.messageId,
+        });
+
+        setMessagesByChannel((prev) => {
+          const currentList = prev[channelId] ?? [];
+          const canonicalUi = mapCanonicalMessageToCommunityMessage(
+            canonical,
+            currentUserId,
+            'sent'
+          );
+          const idx = currentList.findIndex(
+            (m) => m.id === clientRequestId || m.id === canonical.id
+          );
+          if (idx === -1) {
+            return {
+              ...prev,
+              [channelId]: [...currentList, canonicalUi],
+            };
+          }
+          const updated = [...currentList];
+          updated[idx] = canonicalUi;
+          return {
+            ...prev,
+            [channelId]: updated,
+          };
+        });
+      } catch (err) {
+        console.error('Failed to retry DM message:', err);
+        setMessagesByChannel((prev) => ({
+          ...prev,
+          [channelId]: (prev[channelId] ?? []).map((m) =>
+            m.id === messageId ? { ...m, status: 'failed' } : m
+          ),
+        }));
+      }
+    },
+    [conversationsList, messagesByChannel, currentUserId]
+  );
+
+  const deleteDMMessage = useCallback(
+    (dmId: string, messageId: string) => {
+      const conv = conversationsList.find((c) => c.id === dmId);
+      const channelId = conv?.channelId;
+      if (channelId) {
+        setMessagesByChannel((prev) => ({
+          ...prev,
+          [channelId]: (prev[channelId] ?? []).filter((m) => m.id !== messageId),
+        }));
+        messagesRepository.deleteMessage(channelId, messageId).catch((err) => {
+          console.error('Failed to delete DM message on server:', err);
+        });
+      }
+    },
+    [conversationsList]
+  );
 
   const togglePinConversation = useCallback(
     (id: string) => {
@@ -1208,6 +1379,7 @@ export function useMessage() {
       sendCommunityMessage,
       retryCommunityMessage,
       sendDMMessage,
+      retryDMMessage,
       createDirectConversation,
       createGroupConversation,
       leaveGroupConversation,

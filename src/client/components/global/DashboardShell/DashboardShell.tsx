@@ -16,12 +16,12 @@ import { NetworkOfflineIndicator } from '../NetworkOfflineIndicator/NetworkOffli
 import { RoutePreserver } from './RoutePreserver';
 import dynamic from 'next/dynamic';
 import { CommandTriggerProvider, useCommandContext } from '../CommandPalette';
+import { RealtimeProvider } from '@/src/client/realtime';
 
 const CommandPalette = dynamic(
   () => import('../CommandPalette').then((mod) => mod.CommandPalette),
   { ssr: false }
 );
-
 
 import styles from './DashboardShell.module.css';
 
@@ -73,7 +73,7 @@ function DashboardInner({ children }: PropsWithChildren) {
   }, [onOpenChange]);
 
   return (
-    <>
+    <RealtimeProvider userId={userId}>
       <div
         data-theme={isDark ? "dark" : "light"}
         className={clsx(
@@ -95,7 +95,7 @@ function DashboardInner({ children }: PropsWithChildren) {
         </div>
       </div>
       {open && <CommandPalette open={open} onOpenChange={onOpenChange} />}
-    </>
+    </RealtimeProvider>
   );
 }
 
@@ -106,4 +106,3 @@ export function DashboardShell({ children }: PropsWithChildren) {
     </CommandTriggerProvider>
   );
 }
-
