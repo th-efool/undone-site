@@ -30,6 +30,15 @@ export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
   const [activeTab, setActiveTab] = useState<'signup' | 'login'>('signup');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
+
+  // Sign Up form state
+  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
+  const [signUpPassword, setSignUpPassword] = useState('');
+  const [age, setAge] = useState('');
+  const [gender, setGender] = useState('');
+
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const signingIn = useRef(false);
@@ -88,33 +97,88 @@ export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
     }
   };
 
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (signingIn.current) return;
+
+    const cleanEmail = email.trim();
+    if (!cleanEmail) {
+      setError('A valid email address is required.');
+      return;
+    }
+
+    if (!signUpPassword || signUpPassword.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    signingIn.current = true;
+    setPending(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim() || undefined,
+          username: username.trim() || undefined,
+          email: cleanEmail,
+          password: signUpPassword,
+        }),
+      });
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        setError(data?.error || 'Failed to create account. Please check your information and try again.');
+        setPending(false);
+        signingIn.current = false;
+        return;
+      }
+
+      // Automatically sign in with credentials upon registration
+      const authIdentifier = data?.user?.username || cleanEmail;
+      const signInResult = await signIn('credentials', {
+        email: authIdentifier,
+        password: signUpPassword,
+        redirect: false,
+        redirectTo: safeReturnTo(returnTo),
+      });
+
+      if (!signInResult?.ok || signInResult.error) {
+        setActiveTab('login');
+        setIdentifier(authIdentifier);
+        setError('Account created! Please log in with your password.');
+        setPending(false);
+        signingIn.current = false;
+        return;
+      }
+
+      router.replace(safeReturnTo(returnTo));
+    } catch {
+      setError('Registration failed due to a network error. Please try again.');
+      setPending(false);
+      signingIn.current = false;
+    }
+  };
+
   return (
     <aside className={styles.form}>
       <header className={styles.header}>
-        <div className={styles.tabSwitcher}>
+        <p className={styles.login}>
+          {isSignUp ? 'Already have an account?' : "Don't have an account?"}{' '}
           <button
             type="button"
-            className={`${styles.tabButton} ${isSignUp ? styles.active : ''}`}
-            aria-pressed={isSignUp}
+            className={styles.loginButton}
             onClick={() => {
-              setActiveTab('signup');
+              setActiveTab(isSignUp ? 'login' : 'signup');
               setError(null);
             }}
           >
-            Sign Up
+            {isSignUp ? 'Log in' : 'Sign up'}
           </button>
-          <button
-            type="button"
-            className={`${styles.tabButton} ${!isSignUp ? styles.active : ''}`}
-            aria-pressed={!isSignUp}
-            onClick={() => {
-              setActiveTab('login');
-              setError(null);
-            }}
-          >
-            Log In
-          </button>
-        </div>
+        </p>
 
         <h1 className={styles.title}>
           {isSignUp ? (
@@ -152,20 +216,71 @@ export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
       </section>
 
       {isSignUp ? (
-        <>
-          <p>Email/password sign-in is not available yet. Use GitHub, Slack, or continue as Guest.</p>
-          <fieldset disabled className={styles.inputs} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
-            <AuthInput label="Full Name" type="text" placeholder="Alex Rivers" />
-            <AuthInput label="Email" type="email" placeholder="you@email.com" />
-            <AuthInput label="Password" type="password" placeholder="Password" />
+        <form onSubmit={handleSignUp} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div className={styles.inputs}>
             <div className={styles.rowInputs}>
-              <AuthInput label="Age Range" type="select" placeholder="Select Age" options={AGE_OPTIONS} />
-              <AuthInput label="Gender" type="select" placeholder="Select Gender" options={GENDER_OPTIONS} />
+              <AuthInput
+                label="Full Name"
+                type="text"
+                placeholder="Alex Rivers"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={pending}
+              />
+              <AuthInput
+                label="Username"
+                type="text"
+                placeholder="alex_rivers"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                disabled={pending}
+              />
             </div>
-          </fieldset>
+            <AuthInput
+              label="Email"
+              type="email"
+              placeholder="you@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={pending}
+            />
+            <AuthInput
+              label="Password"
+              type="password"
+              placeholder="At least 6 characters"
+              value={signUpPassword}
+              onChange={(e) => setSignUpPassword(e.target.value)}
+              disabled={pending}
+            />
+            <div className={styles.rowInputs}>
+              <AuthInput
+                label="Age Range"
+                type="select"
+                placeholder="Select Age"
+                options={AGE_OPTIONS}
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                disabled={pending}
+              />
+              <AuthInput
+                label="Gender"
+                type="select"
+                placeholder="Select Gender"
+                options={GENDER_OPTIONS}
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                disabled={pending}
+              />
+            </div>
+          </div>
 
           <section className={styles.cta}>
-            <AuthButton disabled>Create Account</AuthButton>
+            <AuthButton
+              disabled={pending || !email.trim() || !signUpPassword || signUpPassword.length < 6}
+              loading={pending}
+            >
+              Create Account
+            </AuthButton>
             <AuthButton
               variant="secondary"
               loading={pending}
@@ -175,7 +290,7 @@ export function AuthForm({ returnTo = '/home' }: { returnTo?: string }) {
               Continue as Guest
             </AuthButton>
           </section>
-        </>
+        </form>
       ) : (
         <form onSubmit={handleCredentialsSignIn} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div className={styles.inputs}>
