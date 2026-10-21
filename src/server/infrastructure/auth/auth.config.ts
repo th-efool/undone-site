@@ -34,17 +34,43 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.AUTH_SLACK_SECRET || 'placeholder_slack_secret',
     }),
     Credentials({
-      name: 'Guest',
+      name: 'Credentials',
       credentials: {
-        email: { label: "Email", type: "text" }
+        email: { label: "Email or Username", type: "text" },
       },
       async authorize(credentials) {
-        try { return await getGuestAccount(credentials?.email, prisma.user); }
-        catch {
-          console.warn('[auth] Guest sign-in could not resolve a database account.');
+        try {
+          const emailInput = credentials?.email;
+          if (emailInput === 'guest@undone.com' || emailInput === 'guest@sidequesthq.com') {
+            return await getGuestAccount(emailInput, prisma.user);
+          }
+          if (typeof emailInput === 'string' && emailInput.trim()) {
+            const clean = emailInput.trim().toLowerCase();
+            const cleanHandle = clean.replace(/^@+/, '');
+            const foundUser = await prisma.user.findFirst({
+              where: {
+                OR: [
+                  { email: clean },
+                  { username: { equals: cleanHandle, mode: 'insensitive' } },
+                ],
+              },
+            });
+            if (foundUser) {
+              return {
+                id: foundUser.id,
+                name: foundUser.name,
+                email: foundUser.email,
+                image: foundUser.image,
+                username: foundUser.username ?? undefined,
+              };
+            }
+          }
+          return null;
+        } catch {
+          console.warn('[auth] Credentials sign-in could not resolve a database account.');
           return null;
         }
-      }
+      },
     }),
   ],
   session: {

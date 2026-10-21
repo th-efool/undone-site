@@ -15,19 +15,33 @@ type AuthInputProps = {
   placeholder?: string;
   options?: Option[];
   icon?: React.ReactNode;
+  value?: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
+  disabled?: boolean;
+  name?: string;
 };
 
 function getDefaultIcon(label?: string, type?: string) {
   const l = (label || '').toLowerCase();
   if (l.includes('name')) return <User size={15} />;
-  if (l.includes('email') || type === 'email') return <Mail size={15} />;
+  if (l.includes('email') || l.includes('username') || type === 'email') return <Mail size={15} />;
   if (l.includes('password') || type === 'password') return <Lock size={15} />;
   if (l.includes('age')) return <Calendar size={15} />;
   if (l.includes('gender')) return <Users size={15} />;
   return null;
 }
 
-export function AuthInput({ label, type = 'text', placeholder, options = [], icon }: AuthInputProps) {
+export function AuthInput({
+  label,
+  type = 'text',
+  placeholder,
+  options = [],
+  icon,
+  value,
+  onChange,
+  disabled,
+  name,
+}: AuthInputProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
@@ -44,6 +58,10 @@ export function AuthInput({ label, type = 'text', placeholder, options = [], ico
           <select
             className={`${styles.input} ${styles.select}`}
             defaultValue=""
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            name={name}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
           >
@@ -61,6 +79,10 @@ export function AuthInput({ label, type = 'text', placeholder, options = [], ico
             className={styles.input}
             type={isPassword ? (showPassword ? 'text' : 'password') : type}
             placeholder={placeholder}
+            value={value}
+            onChange={onChange}
+            disabled={disabled}
+            name={name}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
           />
