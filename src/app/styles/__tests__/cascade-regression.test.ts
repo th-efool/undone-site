@@ -129,6 +129,14 @@ describe('Cascade Regression Test Suite & Failure Reproduction (Phase 1, Task 1.
     rootDir,
     'src/client/screens/dashboard/notes/components/NotesComponents.tsx',
   );
+  const shareDialogPath = path.resolve(
+    rootDir,
+    'src/client/screens/dashboard/notes/components/ShareDialog/ShareDialog.tsx',
+  );
+  const shareDialogCssPath = path.resolve(
+    rootDir,
+    'src/client/screens/dashboard/notes/components/ShareDialog/ShareDialog.module.css',
+  );
   const connectGithubModalPath = path.resolve(rootDir, 'src/client/personal-workspace/ui/connect-github-modal.tsx');
   const workspaceSyncControlPath = path.resolve(
     rootDir,
@@ -238,81 +246,77 @@ describe('Cascade Regression Test Suite & Failure Reproduction (Phase 1, Task 1.
   // ─── SECTION 2: SCENARIO 1 — NOTES SHARE DIALOG ─────────────────────────────
 
   describe('Section 2: Scenario 1 — Notes Share Dialog Regression Verification', () => {
-    it('verifies Defect 1.1 Resolution: bare h2 is neutralized to 1.5rem (24px) in typography.css', () => {
-      const notesComponentsSource = fs.readFileSync(notesComponentsPath, 'utf8');
+    it('verifies Defect 1.1 Resolution: modal headers use calm <Heading uiRole="ui-title"> (1.25rem) rather than clamp heroes', () => {
+      const shareDialogSource = fs.readFileSync(shareDialogPath, 'utf8');
       const typographyCssSource = fs.readFileSync(typographyCssPath, 'utf8');
       const tokensCssSource = fs.readFileSync(tokensCssPath, 'utf8');
 
-      // 1. Bare h2 in NotesComponents.tsx lacks any class name
-      expect(notesComponentsSource).toMatch(/<h2>Share\s+[^\n]*<\/h2>/);
-      expect(notesComponentsSource).not.toMatch(/<h2\s+className=/);
+      // 1. ShareDialog uses explicit Heading with uiRole="ui-title"
+      expect(shareDialogSource).toContain('Heading');
+      expect(shareDialogSource).toContain('uiRole="ui-title"');
 
-      // 2. typography.css now neutralizes bare h2 to 1.5rem (24px) in @layer base
+      // 2. typography.css neutralizes bare h2 to 1.5rem (24px) in @layer base
       expect(typographyCssSource).toMatch(/h2\s*\{[^}]*font-size:\s*1\.5rem;/);
 
-      // 3. .ud-display-section preserves the 36px-48px clamp for explicit marketing headers
-      expect(typographyCssSource).toMatch(/\.ud-display-section\s*\{[^}]*font-size:\s*var\(--font-section-title-size\);/);
-      expect(tokensCssSource).toMatch(/--font-section-title-size:\s*clamp\(var\(--text-4xl\),\s*5vw,\s*var\(--text-5xl\)\);/);
+      // 3. tokens.css defines calm dialog title token (1.25rem)
+      expect(tokensCssSource).toContain('--ud-type-dialog-title-size: 1.25rem;');
     });
 
-    it('reproduces Defect 1.2: flexbox squeeze of email input vs permission dropdown', () => {
-      const notesModuleSource = fs.readFileSync(notesModuleCssPath, 'utf8');
-      const formsCssSource = fs.readFileSync(formsCssPath, 'utf8');
-      const resetCssSource = fs.readFileSync(resetCssPath, 'utf8');
+    it('verifies Defect 1.2 Resolution: shareLine flexbox is bounded and permission select does not squeeze', () => {
+      const shareDialogCssSource = fs.readFileSync(shareDialogCssPath, 'utf8');
+      const shareDialogSource = fs.readFileSync(shareDialogPath, 'utf8');
 
-      // 1. Notes.module.css: .shareLine is flex with input having flex: 1
-      expect(notesModuleSource).toMatch(/\.shareLine\s*\{[^}]*display:\s*flex;/);
-      expect(notesModuleSource).toMatch(/\.shareLine\s+input\s*\{[^}]*flex:\s*1;/);
+      // 1. ShareDialog.module.css: .shareLine is flex with input having flex: 1 and min-width: 0
+      expect(shareDialogCssSource).toMatch(/\.shareLine\s*\{[^}]*display:\s*flex;/);
+      expect(shareDialogCssSource).toMatch(/\.emailField\s*\{[^}]*flex:\s*1;/);
+      expect(shareDialogCssSource).toMatch(/\.emailField\s*\{[^}]*min-width:\s*0;/);
 
-      // 2. forms.css forces text input, textarea, select to width: 100% and height: 2.75rem
-      expect(formsCssSource).toMatch(/input:not\(\[type="checkbox"\]\)[^{]*\{[^}]*width:\s*100%;/);
-      expect(formsCssSource).toMatch(/input:not\(\[type="checkbox"\]\)[^{]*\{[^}]*height:\s*2\.75rem;/);
+      // 2. Permission select has bounded width and flex-shrink: 0
+      expect(shareDialogCssSource).toMatch(/\.permissionSelect\s*\{[^}]*width:\s*130px;/);
+      expect(shareDialogCssSource).toMatch(/\.permissionSelect\s*\{[^}]*flex-shrink:\s*0;/);
 
-      // 3. select has padding-right: 3rem
-      expect(formsCssSource).toMatch(/select\s*\{[^}]*padding-right:\s*3rem;/);
-
-      // 4. reset.css has * { min-width: 0 }
-      expect(resetCssSource).toMatch(/\*\s*\{[^}]*min-width:\s*0;/);
-
-      // 5. Fixed dialog width is 420px
-      expect(notesModuleSource).toMatch(/\.modal\s*\{[^}]*width:\s*420px;/);
+      // 3. Structure uses TextField and SelectField
+      expect(shareDialogSource).toContain('TextField');
+      expect(shareDialogSource).toContain('SelectField');
     });
 
-    it('reproduces Defect 1.3: lack of action button hierarchy in .modal button', () => {
-      const notesModuleSource = fs.readFileSync(notesModuleCssPath, 'utf8');
+    it('verifies Defect 1.3 Resolution: distinct button variant hierarchy in ShareDialog (primary, secondary)', () => {
+      const shareDialogSource = fs.readFileSync(shareDialogPath, 'utf8');
+
+      // 1. All action buttons are rendered as distinct variants
+      expect(shareDialogSource).toContain('variant="secondary"');
+      expect(shareDialogSource).toContain('variant="primary"');
+
+      // 2. Share with user and Copy Link are secondary actions
+      expect(shareDialogSource).toContain('variant="secondary"');
+      expect(shareDialogSource).toContain('Share with user');
+      expect(shareDialogSource).toContain('Copy Link');
+
+      // 3. Done is the primary action
+      expect(shareDialogSource).toMatch(/<Button[^>]*variant="primary"[^>]*>[\s\S]*Done[\s\S]*<\/Button>/);
+    });
+
+    it('verifies Defect 1.4 Resolution: clean UTF-8 quotes and symbols without mojibake', () => {
+      const shareDialogSource = fs.readFileSync(shareDialogPath, 'utf8');
       const notesComponentsSource = fs.readFileSync(notesComponentsPath, 'utf8');
 
-      // Notes.module.css applies uniform background: var(--color-brand) to all buttons in modal
-      expect(notesModuleSource).toMatch(/\.modal\s+button[^{]*\{[^}]*background:\s*var\(--color-brand\);/);
-
-      // All 3 buttons in ShareModal lack distinct variant classes
-      const shareModalSlice = notesComponentsSource.slice(
-        notesComponentsSource.indexOf('function ShareModal'),
-        notesComponentsSource.indexOf('function ShareModal') + 2000,
-      );
-      expect(shareModalSlice).toContain('Share with user');
-      expect(shareModalSlice).toContain('Copy Link');
-      expect(shareModalSlice).toContain('Done');
-
-      // Confirms all 3 buttons receive identical primary button style
-      expect(shareModalSlice).not.toContain('variant="secondary"');
-      expect(shareModalSlice).not.toContain('variant="ghost"');
-    });
-
-    it('reproduces Defect 1.4: quotation mojibake in NotesComponents.tsx:308', () => {
-      const notesComponentsSource = fs.readFileSync(notesComponentsPath, 'utf8');
-
-      // Look for the literal mojibake bytes â€œ (\u00e2\u20ac\u0153) and â€ (\u00e2\u20ac\u009d)
-      const hasMojibake =
+      // 1. No mojibake in ShareDialog or NotesComponents
+      const hasMojibakeInDialog =
+        shareDialogSource.includes('â€œ') ||
+        shareDialogSource.includes('\u00e2\u20ac\u0153') ||
+        shareDialogSource.includes('â€');
+      const hasMojibakeInNotesComponents =
         notesComponentsSource.includes('â€œ') ||
-        notesComponentsSource.includes('\u00e2\u20ac\u0153') ||
-        notesComponentsSource.includes('â€');
+        notesComponentsSource.includes('â‡§');
 
-      expect(hasMojibake).toBe(true);
+      expect(hasMojibakeInDialog).toBe(false);
+      expect(hasMojibakeInNotesComponents).toBe(false);
 
-      // Target contract is clean UTF-8 quotes: Share “{note.title}”
-      const cleanQuoteString = 'Share “{note.title}”';
-      expect(cleanQuoteString).toBeDefined();
+      // 2. Clean UTF-8 quotes and shortcut symbols
+      expect(shareDialogSource).toContain('Share “{displayTitle}”');
+      expect(notesComponentsSource).toContain('⇧E');
+      expect(notesComponentsSource).toContain('⇧B');
+      expect(notesComponentsSource).toContain('⇧N');
     });
   });
 
@@ -474,24 +478,16 @@ describe('Cascade Regression Test Suite & Failure Reproduction (Phase 1, Task 1.
       expect(portalEscapesNestedShell).toBe(true);
     });
 
-    it('reproduces Defect 3.2: unsupported animation class slide-in-from-bottom-2 generates 0 CSS rules', () => {
+    it('verifies Defect 3.2 Resolution: phantom animation classes removed from WorkspaceSyncControl', () => {
       const syncControlSource = fs.readFileSync(workspaceSyncControlPath, 'utf8');
 
-      // 1. WorkspaceSyncControl specifies slide-in-from-bottom-2 on error toast
-      expect(syncControlSource).toContain('slide-in-from-bottom-2');
-      expect(syncControlSource).toContain('animate-in');
-      expect(syncControlSource).toContain('fade-in');
+      // 1. WorkspaceSyncControl removes phantom tailwindcss-animate utilities
+      expect(syncControlSource).not.toContain('slide-in-from-bottom-2');
+      expect(syncControlSource).not.toContain('animate-in');
+      expect(syncControlSource).not.toContain('fade-in');
 
-      // 2. In compiled Tailwind v4 CSS, tailwindcss-animate utilities do not exist
-      let foundSlideInClass = false;
-      postcssAst.walkRules((rule) => {
-        if (rule.selector.includes('slide-in-from-bottom-2') || rule.selector.includes('animate-in')) {
-          foundSlideInClass = true;
-        }
-      });
-
-      // Confirms 0 rules are generated for these phantom classes
-      expect(foundSlideInClass).toBe(false);
+      // 2. Standard CSS transition is used instead
+      expect(syncControlSource).toContain('transition-opacity duration-200');
     });
 
     it('verifies Defect 3.3 Resolution: --radius-full maps to canonical --ud-radius-pill in tokens.css', () => {
@@ -499,7 +495,7 @@ describe('Cascade Regression Test Suite & Failure Reproduction (Phase 1, Task 1.
       const tokensCssSource = fs.readFileSync(tokensCssPath, 'utf8');
 
       // 1. NotesSaveStatus.module.css:53 uses --radius-full
-      expect(notesSaveStatusSource).toMatch(/border-radius:\s*var\(--radius-full\);/);
+      expect(notesSaveStatusSource).toMatch(/border-radius:\s*var\(--(ud-radius-pill|radius-full)/);
 
       // 2. tokens.css defines --radius-full mapping to canonical --ud-radius-pill (Phase 3 resolution)
       expect(tokensCssSource).toContain('--radius-full: var(--ud-radius-pill);');
