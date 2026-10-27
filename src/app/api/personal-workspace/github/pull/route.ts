@@ -4,6 +4,7 @@ import {
   NotebookRecord,
   NoteRecord,
   AssetRecord,
+  ScheduleTaskRecord,
   WorkspaceManifest,
 } from '@/src/shared/personal-workspace/contracts';
 import { computeSha256 } from '@/src/shared/personal-workspace/serialization';
@@ -166,6 +167,19 @@ async function handlePull(req: NextRequest): Promise<NextResponse> {
     });
     const assets: AssetRecord[] = assetsRaw.filter((a): a is AssetRecord => a !== null);
 
+    // 5. Fetch schedules if present
+    const scheduleItem = treeItems.find((item) => item.path === 'undone/schedules/tasks.json');
+    let schedules: ScheduleTaskRecord[] = [];
+    if (scheduleItem) {
+      const schedBlob = await client.getBlob(scheduleItem.sha);
+      if (schedBlob?.contentBase64) {
+        try {
+          const schedText = Buffer.from(schedBlob.contentBase64, 'base64').toString('utf-8');
+          schedules = JSON.parse(schedText) as ScheduleTaskRecord[];
+        } catch {}
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       commitSha: headCommitSha,
@@ -173,6 +187,7 @@ async function handlePull(req: NextRequest): Promise<NextResponse> {
       notebooks,
       notes,
       assets,
+      schedules,
     });
   } catch (err) {
     return NextResponse.json(

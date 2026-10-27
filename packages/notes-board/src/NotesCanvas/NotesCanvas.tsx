@@ -112,26 +112,26 @@ export function NotesCanvas({
         elements: [],
         appState: {
           viewBackgroundColor: "transparent",
-          gridSize: gridConfigRef.current.layout === 'grid' ? gridConfigRef.current.size : null,
-          gridModeEnabled: gridConfigRef.current.layout === 'grid',
+          gridSize: gridConfig.layout === 'grid' ? gridConfig.size : null,
+          gridModeEnabled: gridConfig.layout === 'grid',
           currentItemTextAlign: "left",
         },
       };
     }
 
-    const { collaborators, ...restAppState } = (initialScene.appState as any) || {};
+    const { collaborators: _collaborators, ...restAppState } = (initialScene.appState as any) || {};
     return {
       elements: initialScene.elements as any,
       appState: {
         ...restAppState,
         viewBackgroundColor: "transparent",
-        gridSize: gridConfigRef.current.layout === 'grid' ? gridConfigRef.current.size : null,
-        gridModeEnabled: gridConfigRef.current.layout === 'grid',
+        gridSize: gridConfig.layout === 'grid' ? gridConfig.size : null,
+        gridModeEnabled: gridConfig.layout === 'grid',
         currentItemTextAlign: "left",
       },
       files: initialScene.files as any,
     };
-  }, [initialScene, initialRealBg]);
+  }, [initialScene, gridConfig]);
 
   // Apply grid config to Excalidraw API
   const handleGridConfigChange = useCallback((newConfig: GridSettingsConfig) => {
@@ -483,7 +483,7 @@ export function NotesCanvas({
       }
     }
 
-    const { collaborators, ...restAppState } = appState;
+    const { collaborators: _collaborators, ...restAppState } = appState;
 
     setOverlayElements(elements);
     if (files) setOverlayFiles(files);

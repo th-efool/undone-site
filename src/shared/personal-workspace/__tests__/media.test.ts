@@ -104,7 +104,8 @@ describe('Excalidraw Scene Asset Extraction (#5301 & #8776)', () => {
     expect(extractedAssets.length).toBe(1);
     const asset = extractedAssets[0];
     expect(asset.mimeType).toBe('image/gif');
-    expect((sanitizedScene.files as any)['file-123'].dataURL).toBe(`asset://${asset.hash}`);
+    const filesMap = sanitizedScene.files as Record<string, { dataURL?: string }>;
+    expect(filesMap['file-123']?.dataURL).toBe(`asset://${asset.hash}`);
   });
 });
 

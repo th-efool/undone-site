@@ -17,6 +17,7 @@ import type {
   NotebookRecord,
   NoteRecord,
   AssetRecord,
+  ScheduleTaskRecord,
   OutboxMutation,
   OutboxEntry,
 } from '@/src/shared/personal-workspace/contracts';
@@ -41,6 +42,7 @@ export interface RemotePullState {
   notebooks?: NotebookRecord[];
   notes?: NoteRecord[];
   assets?: AssetRecord[];
+  schedules?: ScheduleTaskRecord[];
 }
 
 export interface RemotePullResponse {
@@ -51,6 +53,7 @@ export interface RemotePullResponse {
   notes?: NoteRecord[];
   notebooks?: NotebookRecord[];
   assets?: AssetRecord[];
+  schedules?: ScheduleTaskRecord[];
   error?: string;
 }
 
@@ -310,10 +313,14 @@ export class SyncCoordinator {
       this.errorMessage = undefined;
       await this.broadcastUpdate();
 
-      const [notebooks, notes, assets] = await Promise.all([
+      const repoWithSchedules = this.repo as unknown as { getAllScheduleTasks?: () => Promise<ScheduleTaskRecord[]> };
+      const [notebooks, notes, assets, schedules] = await Promise.all([
         this.repo.getAllNotebooks(),
         this.repo.getAllNotes(),
         this.repo.getAllAssets(),
+        typeof repoWithSchedules.getAllScheduleTasks === 'function'
+          ? repoWithSchedules.getAllScheduleTasks()
+          : Promise.resolve([]),
       ]);
 
       const publishUrl = `${this.baseUrl}/api/personal-workspace/github/publish`;
@@ -324,6 +331,7 @@ export class SyncCoordinator {
           notebooks,
           notes,
           assets,
+          schedules,
         },
       };
 

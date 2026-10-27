@@ -192,6 +192,7 @@ export const MediaOverlay = React.memo(function MediaOverlay({
                   />
                 </div>
               ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
                 <img
                   src={mediaUrl}
                   alt=""

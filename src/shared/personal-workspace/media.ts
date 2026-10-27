@@ -199,7 +199,7 @@ export function extractAssetsFromKanbanCards(cards: KanbanCard[]): {
 
   const cleanCards = cards.map((card) => {
     let cover = card.cover;
-    let assetFileIds = card.assetFileIds ? [...card.assetFileIds] : [];
+    const assetFileIds = card.assetFileIds ? [...card.assetFileIds] : [];
 
     if (typeof cover === 'string' && cover.startsWith('data:')) {
       const asset = createAssetRecord(cover);
@@ -211,8 +211,9 @@ export function extractAssetsFromKanbanCards(cards: KanbanCard[]): {
       if (!assetFileIds.includes(asset.hash)) {
         assetFileIds.push(asset.hash);
       }
-    } else if (cover && typeof cover === 'object' && (cover as any).dataUrl) {
-      const asset = createAssetRecord((cover as any).dataUrl);
+    } else if (cover && typeof cover === 'object' && typeof (cover as Record<string, unknown>).dataUrl === 'string') {
+      const rawDataUrl = (cover as Record<string, unknown>).dataUrl as string;
+      const asset = createAssetRecord(rawDataUrl);
       if (!assetHashMap.has(asset.hash)) {
         assetHashMap.set(asset.hash, asset);
         extractedAssets.push(asset);

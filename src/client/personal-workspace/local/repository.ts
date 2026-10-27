@@ -242,23 +242,24 @@ export class PersonalWorkspaceRepository {
     const effectiveAssets: TAsset[] = [...assets];
     let noteToSave = note;
 
-    const rawNote = note as Record<string, any>;
-    if (rawNote?.canvasData && (rawNote.canvasData.elements || rawNote.canvasData.files)) {
+    const rawNote = note as Record<string, unknown>;
+    const rawCanvasData = rawNote?.canvasData as { elements?: Array<Record<string, unknown>>; files?: Record<string, unknown> } | undefined;
+    if (rawCanvasData && (rawCanvasData.elements || rawCanvasData.files)) {
       const { sanitizedScene, extractedAssets } = extractAssetsFromCanvasScene({
-        elements: rawNote.canvasData.elements,
-        files: rawNote.canvasData.files,
+        elements: rawCanvasData.elements,
+        files: rawCanvasData.files,
       });
 
       if (extractedAssets.length > 0) {
         for (const ea of extractedAssets) {
-          if (!effectiveAssets.some((a) => a.id === ea.id || (a as any).hash === ea.hash)) {
+          if (!effectiveAssets.some((a) => a.id === ea.id || ('hash' in a && (a as { hash?: string }).hash === ea.hash))) {
             effectiveAssets.push(ea as unknown as TAsset);
           }
         }
         noteToSave = {
           ...note,
           canvasData: {
-            ...rawNote.canvasData,
+            ...rawCanvasData,
             elements: sanitizedScene.elements,
             files: sanitizedScene.files,
           },
@@ -367,18 +368,19 @@ export class PersonalWorkspaceRepository {
     const timestamp = new Date().toISOString();
     const outboxId = `outbox-kanban-${note.id}-${Date.now()}`;
 
-    const rawNote = note as Record<string, any>;
+    const rawNote = note as Record<string, unknown>;
     let noteToSave = note;
     const extractedAssetsToSave: AssetRecord[] = [];
+    const rawKanbanData = rawNote?.kanbanData as { cards?: KanbanCard[]; [k: string]: unknown } | undefined;
 
-    if (rawNote?.kanbanData?.cards && Array.isArray(rawNote.kanbanData.cards)) {
-      const { cleanCards, extractedAssets } = extractAssetsFromKanbanCards(rawNote.kanbanData.cards);
+    if (rawKanbanData?.cards && Array.isArray(rawKanbanData.cards)) {
+      const { cleanCards, extractedAssets } = extractAssetsFromKanbanCards(rawKanbanData.cards);
       if (extractedAssets.length > 0) {
         extractedAssetsToSave.push(...extractedAssets);
         noteToSave = {
           ...note,
           kanbanData: {
-            ...rawNote.kanbanData,
+            ...rawKanbanData,
             cards: cleanCards,
           },
         };
@@ -897,8 +899,8 @@ export class PersonalWorkspaceRepository {
         for (const asset of committedState.assets || []) {
           ctx.put('assets', (asset as { id: string }).id, asset);
         }
-        for (const sched of (committedState as any).schedules || []) {
-          ctx.put('schedules', (sched as { id: string }).id, sched);
+        for (const sched of (committedState.schedules || []) as ScheduleTaskRecord[]) {
+          ctx.put('schedules', sched.id, sched);
         }
         for (const entry of committedState.outbox || []) {
           ctx.put('outbox', (entry as { id: string }).id, entry);
@@ -930,7 +932,7 @@ export class PersonalWorkspaceRepository {
         notebooks: committedState.notebooks?.length ?? 0,
         notes: committedState.notes?.length ?? 0,
         assets: committedState.assets?.length ?? 0,
-        schedules: (committedState as any).schedules?.length ?? 0,
+        schedules: committedState.schedules?.length ?? 0,
         outbox: committedState.outbox?.length ?? 0,
         buffers: options.restoreBuffers ? (unsavedBuffers?.length ?? 0) : 0,
         conflicts: committedState.conflicts?.length ?? 0,

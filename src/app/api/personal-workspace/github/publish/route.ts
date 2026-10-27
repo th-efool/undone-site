@@ -7,17 +7,20 @@ import {
   NotebookRecord,
   NoteRecord,
   AssetRecord,
+  ScheduleTaskRecord,
   OutboxMutation,
   WorkspaceManifest,
   ManifestNotebookEntry,
   ManifestNoteEntry,
   ManifestCanvasEntry,
   ManifestAssetEntry,
+  ManifestScheduleEntry,
 } from '@/src/shared/personal-workspace/contracts';
 import {
   canonicalJsonStringify,
   computeSha256,
 } from '@/src/shared/personal-workspace/serialization';
+import { getExtensionForMimeType } from '@/src/shared/personal-workspace/media';
 import { resolveAuthUser, resolveCredentials } from '../vault';
 
 interface PublishRequestBody {
@@ -27,17 +30,8 @@ interface PublishRequestBody {
     notebooks?: NotebookRecord[];
     notes?: NoteRecord[];
     assets?: AssetRecord[];
+    schedules?: ScheduleTaskRecord[];
   };
-}
-
-function getExtensionForMimeType(mimeType?: string): string {
-  if (!mimeType) return 'bin';
-  if (mimeType.includes('png')) return 'png';
-  if (mimeType.includes('jpeg') || mimeType.includes('jpg')) return 'jpg';
-  if (mimeType.includes('svg')) return 'svg';
-  if (mimeType.includes('webp')) return 'webp';
-  if (mimeType.includes('gif')) return 'gif';
-  return 'bin';
 }
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -86,6 +80,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     const manifestNotes: ManifestNoteEntry[] = [];
     const manifestCanvases: ManifestCanvasEntry[] = [];
     const manifestAssets: ManifestAssetEntry[] = [];
+    const manifestSchedules: ManifestScheduleEntry[] = [];
 
     // 1. Upload new asset blobs
     for (const asset of assets) {
@@ -162,7 +157,29 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
     }
 
-    // 4. Build manifest.json blob
+    // 4. Build schedule tasks JSON blob
+    const schedules = body.state.schedules || [];
+    if (schedules.length > 0) {
+      const schedContent = canonicalJsonStringify(schedules);
+      const base64Data = Buffer.from(schedContent, 'utf-8').toString('base64');
+      const sha = await client.createBlob(base64Data);
+      const path = 'undone/schedules/tasks.json';
+
+      treeEntries.push({
+        path,
+        mode: '100644',
+        type: 'blob',
+        sha,
+      });
+
+      manifestSchedules.push({
+        id: 'tasks',
+        path,
+        hash: computeSha256(schedContent),
+      });
+    }
+
+    // 5. Build manifest.json blob
     const manifest: WorkspaceManifest = {
       manifestVersion: 1,
       workspaceId: user.id,
@@ -170,6 +187,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       notes: manifestNotes,
       canvases: manifestCanvases.length > 0 ? manifestCanvases : undefined,
       assets: manifestAssets,
+      schedules: manifestSchedules.length > 0 ? manifestSchedules : undefined,
     };
     const manifestContent = canonicalJsonStringify(manifest);
     const manifestSha = await client.createBlob(
