@@ -135,13 +135,15 @@ export const NotebookRow = React.memo(function NotebookRow({
           <span className={styles.channelName}>{notebook.title}</span>
           <div className={styles.pinIcon} style={{ display: 'flex', gap: '4px' }}>
             <Star 
-              size={16}
+              size={15}
+              fill={notebook.favorite ? '#fbbf24' : 'none'}
+              color={notebook.favorite ? '#fbbf24' : '#71717a'}
+              style={{ cursor: 'pointer' }}
               onClick={(e: React.MouseEvent) => {
                 e.stopPropagation();
                 if ('favorite' in notebook) {
-                  onToggleFavorite(notebook.id, !notebook.favorite);
+                  onToggleFavorite(notebook.id, Boolean(notebook.favorite));
                 }
-                console.log('Star toggled for', notebook.title);
               }}
             />
             <div style={{ position: 'relative' }} className="popover-container">
@@ -217,6 +219,11 @@ interface NavigationColumnProps {
   onToggleFavorite: (id: string, currentFavorite: boolean) => void;
   onStartNavDrag: (e: React.MouseEvent) => void;
   onNavResizeHandleClick: () => void;
+  activeFilter: 'all' | 'favorites' | 'shared' | 'archived';
+  favoritesCount: number;
+  sharedCount: number;
+  trashCount: number;
+  onSelectFilter: (filter: 'favorites' | 'shared' | 'archived') => void;
 }
 
 export const NavigationColumn = React.memo(function NavigationColumn({
@@ -236,6 +243,11 @@ export const NavigationColumn = React.memo(function NavigationColumn({
   onToggleFavorite,
   onStartNavDrag,
   onNavResizeHandleClick,
+  activeFilter,
+  favoritesCount,
+  sharedCount,
+  trashCount,
+  onSelectFilter,
 }: NavigationColumnProps) {
   const navInlineStyle = isNavigationExpanded 
     ? { width: `${navWidth}px`, transition: isDraggingNav ? 'none' : undefined }
@@ -300,19 +312,42 @@ export const NavigationColumn = React.memo(function NavigationColumn({
 
         {/* 6. Bottom Pinned Items */}
         <div className={styles.bottomSection}>
-          <div className={styles.bottomItem}>
-            <Star className={styles.bottomIcon} fill="#fbbf24" color="#fbbf24" />
+          <div
+            className={`${styles.bottomItem} ${activeFilter === 'favorites' ? styles.selected : ''}`}
+            onClick={() => onSelectFilter('favorites')}
+            role="button"
+            tabIndex={0}
+            aria-label="Favorites"
+          >
+            <Star
+              className={styles.bottomIcon}
+              fill={activeFilter === 'favorites' ? '#fbbf24' : 'none'}
+              color="#fbbf24"
+            />
             <span>Favorites</span>
-            <span className={styles.bottomCount}>8</span>
+            {favoritesCount > 0 && <span className={styles.bottomCount}>{favoritesCount}</span>}
           </div>
-          <div className={styles.bottomItem}>
+          <div
+            className={`${styles.bottomItem} ${activeFilter === 'shared' ? styles.selected : ''}`}
+            onClick={() => onSelectFilter('shared')}
+            role="button"
+            tabIndex={0}
+            aria-label="Shared with me"
+          >
             <Share className={styles.bottomIcon} />
             <span>Shared with me</span>
-            <span className={styles.bottomCount}>⇧ 7</span>
+            {sharedCount > 0 && <span className={styles.bottomCount}>{sharedCount}</span>}
           </div>
-          <div className={styles.bottomItem}>
+          <div
+            className={`${styles.bottomItem} ${activeFilter === 'archived' ? styles.selected : ''}`}
+            onClick={() => onSelectFilter('archived')}
+            role="button"
+            tabIndex={0}
+            aria-label="Trash"
+          >
             <Trash2 className={styles.bottomIcon} />
             <span>Trash</span>
+            {trashCount > 0 && <span className={styles.bottomCount}>{trashCount}</span>}
           </div>
         </div>
       </div>
@@ -387,7 +422,8 @@ export function NotesSidebar({
     );
   }, [stableNotebooks, searchQuery]);
 
-  const shouldCollapseWorkspace = !isWorkspaceExpanded || !selectedNotebookId;
+  const activeFilter = (notes.state?.filter as 'all' | 'favorites' | 'shared' | 'archived') || 'all';
+  const shouldCollapseWorkspace = !isWorkspaceExpanded || (!selectedNotebookId && activeFilter === 'all');
   
   const [navWidth, setNavWidth] = useState(290);
   const navWidthRef = useRef(navWidth);
@@ -563,6 +599,36 @@ export function NotesSidebar({
           onClick={() => setIsNavigationExpanded(true)}
         />
       )}
+  const allNotebooks = notes.state?.notebooks || [];
+  const allNotes = notes.state?.notes || [];
+
+  const favoritesCount = useMemo(() => {
+    const nbFav = allNotebooks.filter((n: any) => n.favorite && !n.archived).length;
+    const noteFav = allNotes.filter((n: any) => n.favorite && !n.archived).length;
+    return nbFav + noteFav;
+  }, [allNotebooks, allNotes]);
+
+  const sharedCount = useMemo(() => {
+    const nbShared = allNotebooks.filter((n: any) => n.shared && !n.archived).length;
+    const noteShared = allNotes.filter((n: any) => (n.shared || n.publicLink || (n.sharedWith?.length ?? 0) > 0) && !n.archived).length;
+    return nbShared + noteShared;
+  }, [allNotebooks, allNotes]);
+
+  const trashCount = useMemo(() => {
+    const nbArchived = allNotebooks.filter((n: any) => n.archived).length;
+    const noteArchived = allNotes.filter((n: any) => n.archived).length;
+    return nbArchived + noteArchived;
+  }, [allNotebooks, allNotes]);
+
+  const handleSelectFilter = useCallback((filter: 'favorites' | 'shared' | 'archived') => {
+    if (activeFilter === filter) {
+      notes.actions.setFilter('all');
+    } else {
+      notes.actions.setFilter(filter);
+      setIsWorkspaceExpanded(true);
+    }
+  }, [activeFilter, notes.actions, setIsWorkspaceExpanded]);
+
       <NavigationColumn
         isNavigationExpanded={isNavigationExpanded}
         onCollapseNav={handleCollapseNav}
@@ -580,6 +646,11 @@ export function NotesSidebar({
         onToggleFavorite={handleToggleFavorite}
         onStartNavDrag={handleStartNavDrag}
         onNavResizeHandleClick={handleNavResizeHandleClick}
+        activeFilter={activeFilter}
+        favoritesCount={favoritesCount}
+        sharedCount={sharedCount}
+        trashCount={trashCount}
+        onSelectFilter={handleSelectFilter}
       />
       
       <div 
@@ -683,7 +754,7 @@ export function NotesSidebar({
             </div>
           )}
         </div>
-        {isWorkspaceExpanded && selectedNotebookId && (
+        {isWorkspaceExpanded && (selectedNotebookId || activeFilter !== 'all') && (
           <div 
             className={styles.resizeHandle} 
             onMouseDown={(e) => { e.preventDefault(); setIsDraggingWorkspace(true); workspaceDragFlag.current = false; }} 

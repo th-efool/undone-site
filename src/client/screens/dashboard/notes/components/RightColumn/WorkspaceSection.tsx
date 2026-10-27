@@ -38,7 +38,10 @@ export function WorkspaceSection(props: WorkspaceSectionProps) {
   const selectedNotebookId = state?.selectedNotebookId;
   const currentFolders = (selectedNotebookId && foldersByNotebook?.[selectedNotebookId]) || [];
   
-  let notes = data?.notes.filter((n: any) => n.notebookId === selectedNotebookId) || [];
+  const isFilteredView = state?.filter && state.filter !== 'all';
+  let notes = isFilteredView
+    ? (data?.notes || [])
+    : (data?.notes.filter((n: any) => n.notebookId === selectedNotebookId) || []);
   
   if (workspaceSearch && workspaceSearch.trim() !== '') {
     notes = notes.filter((n: any) => n.title.toLowerCase().includes(workspaceSearch.toLowerCase()));
@@ -87,6 +90,7 @@ export function WorkspaceSection(props: WorkspaceSectionProps) {
           />
         ) : (
           <span className={styles.nodeLabel}>{note.title}</span>
+        {note.favorite && <Star size={12} fill="#fbbf24" color="#fbbf24" style={{ marginLeft: 4, flexShrink: 0 }} />}
         )}
 
         <div className={styles.popoverContainer}>
@@ -100,6 +104,26 @@ export function WorkspaceSection(props: WorkspaceSectionProps) {
               </button>
               <button className={styles.popoverItem} onClick={() => { alert('Copy Note'); setActiveMenuId(null); }}>Copy</button>
               <button className={styles.popoverItem} onClick={() => { alert('Cut Note'); setActiveMenuId(null); }}>Cut</button>
+              <button
+                className={styles.popoverItem}
+                onClick={() => {
+                  actions.patchNote(note.id, { favorite: !note.favorite });
+                  setActiveMenuId(null);
+                }}
+              >
+                {note.favorite ? 'Unfavorite' : 'Favorite'}
+              </button>
+              {note.archived && (
+                <button
+                  className={styles.popoverItem}
+                  onClick={() => {
+                    actions.patchNote(note.id, { archived: false });
+                    setActiveMenuId(null);
+                  }}
+                >
+                  Restore
+                </button>
+              )}
               <button className={`${styles.popoverItem} ${styles.danger}`} onClick={() => { actions.deleteNote(note.id); setActiveMenuId(null); }}>
                 Delete
               </button>
