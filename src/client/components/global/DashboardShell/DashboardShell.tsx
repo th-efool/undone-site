@@ -5,7 +5,7 @@ import type { PropsWithChildren } from 'react';
 import { usePathname } from 'next/navigation';
 
 import clsx from 'clsx';
-import { getRouteTheme } from '@/src/client/config/routeThemeConfig';
+import { resolveEffectiveTheme, applyThemeToDocument, getRouteTheme } from '@/src/client/config/routeThemeConfig';
 import { useExperience } from '@/src/client/hooks/useExperience';
 import { MobileNav } from '@/src/client/mobile/components/navigation/MobileNav/MobileNav';
 import { prefetchDefaultFeed } from '@/src/client/screens/dashboard/play/hooks/usePlayback';
@@ -37,10 +37,17 @@ function DashboardInner({ children }: PropsWithChildren) {
   const pathname = usePathname();
   const experience = useExperience();
   const isPlayPage = pathname === '/play';
-  const isDark = getRouteTheme(pathname) === 'dark';
+  const effectiveTheme = resolveEffectiveTheme(pathname);
+  const isDark = effectiveTheme === 'dark';
   const { open, onOpenChange } = useCommandContext();
   const { data: session } = useSafeSession();
   const userId = session?.user?.id ?? null;
+
+  // Synchronize document.documentElement (<html>) and color-scheme with effective theme
+  // Resolves Defect 3.1: ensures body portals and dialogs inherit route theme
+  useEffect(() => {
+    applyThemeToDocument(effectiveTheme);
+  }, [pathname, effectiveTheme]);
 
   // Warm up feed and explore caches ONCE on initial idle mount (not on every route change)
   useEffect(() => {

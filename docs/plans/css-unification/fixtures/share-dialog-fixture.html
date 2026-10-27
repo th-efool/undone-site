@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <title>Scenario 1: Share Dialog Regression Fixture</title>
+  <style>
+    /* Baseline styles reflecting unlayered global defaults vs Notes.module.css */
+    * {
+      min-width: 0;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    :root {
+      --color-brand: #4f46e5;
+      --font-section-title-size: clamp(2.25rem, 5vw, 3rem);
+      --space-4: 1rem;
+    }
+    /* Unlayered typography escalation */
+    h2 {
+      font-size: var(--font-section-title-size);
+      font-family: sans-serif;
+      font-weight: 700;
+    }
+    /* Unlayered form defaults */
+    input, select {
+      width: 100%;
+      height: 2.75rem;
+      padding-inline: var(--space-4);
+      font: inherit;
+    }
+    select {
+      padding-right: 3rem;
+    }
+    /* Notes.module.css styles */
+    .scrim {
+      display: grid;
+      place-items: center;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 20px;
+    }
+    .modal {
+      width: 420px;
+      background: #000000;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+      display: grid;
+      gap: 12px;
+      color: #fff;
+    }
+    .modal button {
+      border: 0;
+      border-radius: 8px;
+      background: var(--color-brand);
+      color: #fff;
+      font-weight: 600;
+      font-size: 13px;
+      padding: 8px 14px;
+      cursor: pointer;
+    }
+    .shareLine {
+      display: flex;
+      gap: 8px;
+    }
+    .shareLine input {
+      flex: 1;
+      height: 35px;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 0 10px;
+      font-size: 13px;
+    }
+    .shareLine select {
+      height: 35px;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 0 10px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Scenario 1: Notes Share Dialog Fixture -->
+  <div class="scrim" data-testid="share-dialog-scrim">
+    <div class="modal" data-testid="share-dialog">
+      <!-- Defect 1 & 4: Bare h2 heading escalates to section title (48px) + literal quotation mojibake -->
+      <h2 data-testid="share-dialog-title">Share â€œQuarterly Architecture Reviewâ€ </h2>
+
+      <label>
+        <input
+          type="checkbox"
+          data-testid="share-dialog-checkbox"
+        />
+        Public link
+      </label>
+
+      <!-- Defect 2: Flexbox squeeze between email input and select dropdown -->
+      <div class="shareLine" data-testid="share-dialog-form">
+        <input
+          data-testid="share-dialog-email"
+          value=""
+          placeholder="teammate@example.com"
+        />
+        <select data-testid="share-dialog-permission">
+          <option>viewer</option>
+          <option>editor</option>
+          <option>owner</option>
+        </select>
+      </div>
+
+      <!-- Defect 3: All buttons receive identical primary brand background -->
+      <button data-testid="share-dialog-action-user">Share with user</button>
+      <button data-testid="share-dialog-action-link">Copy Link</button>
+      <button data-testid="share-dialog-action-done">Done</button>
+    </div>
+  </div>
+</body>
+</html>

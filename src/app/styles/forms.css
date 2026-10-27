@@ -1,7 +1,9 @@
 /* Forms */
-input,
-textarea,
-select {
+
+/* ── Text-Like Form Controls (Scoped to prevent bleeding into checkboxes/radios) ── */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([data-bare-input]):not([data-textbar-input]),
+select,
+textarea {
   width: 100%;
   appearance: none;
   background: var(--color-surface);
@@ -18,7 +20,7 @@ select {
     background-color var(--duration-fast) var(--ease-standard);
 }
 
-input,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([data-bare-input]):not([data-textbar-input]),
 select {
   height: 2.75rem;
   padding-inline: var(--space-4);
@@ -30,18 +32,18 @@ textarea {
   resize: vertical;
 }
 
-input::placeholder,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([data-bare-input]):not([data-textbar-input])::placeholder,
 textarea::placeholder {
   color: var(--color-text-muted);
 }
 
-input:hover,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([data-bare-input]):not([data-textbar-input]):hover,
 textarea:hover,
 select:hover {
   border-color: var(--color-border-hover);
 }
 
-input:not([data-bare-input]):not([data-textbar-input]):focus,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([data-bare-input]):not([data-textbar-input]):focus,
 textarea:not([data-bare-input]):not([data-textbar-input]):focus,
 select:focus {
   border-color: var(--color-border-focus);
@@ -79,7 +81,8 @@ textarea[data-textbar-input]:focus-visible {
   background: transparent !important;
 }
 
-input:disabled,
+/* ── States: Disabled, Invalid, Autofill ── */
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):disabled,
 textarea:disabled,
 select:disabled {
   cursor: not-allowed;
@@ -88,7 +91,7 @@ select:disabled {
   opacity: 0.75;
 }
 
-input:invalid,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):invalid,
 textarea:invalid,
 select:invalid {
   border-color: var(--color-error);
@@ -101,6 +104,7 @@ input:-webkit-autofill:focus {
   -webkit-box-shadow: 0 0 0 1000px var(--color-surface) inset;
 }
 
+/* ── Select Dropdown ── */
 select {
   cursor: pointer;
   padding-right: 3rem;
@@ -114,18 +118,7 @@ select {
   background-size: 5px 5px;
 }
 
-input[type='checkbox'],
-input[type='radio'] {
-  width: 1.1rem;
-  height: 1.1rem;
-  cursor: pointer;
-  accent-color: var(--color-brand);
-}
-
-input[type='checkbox'] {
-  border-radius: 0.35rem;
-}
-
+/* ── Form Labels & Fieldsets ── */
 label {
   display: inline-flex;
   align-items: center;
@@ -147,48 +140,24 @@ legend {
   font-weight: var(--font-semibold);
 }
 
-/* Scrollbars */
-* {
-  scrollbar-color: var(--color-border-hover) transparent;
-  scrollbar-width: thin;
-}
-
-::-webkit-scrollbar {
-  width: 12px;
-  height: 12px;
-}
-
-::-webkit-scrollbar-track,
-::-webkit-scrollbar-corner {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: var(--color-border-hover);
-  background-clip: content-box;
-  border: 3px solid transparent;
-  border-radius: var(--radius-pill);
-  transition: background-color var(--duration-fast) var(--ease-standard);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-border-focus);
-  background-clip: content-box;
-}
-
+/* ── Checkbox and Radio Controls (Unified Implementation) ── */
 input[type='checkbox'],
 input[type='radio'] {
   appearance: none;
   display: inline-grid;
   place-content: center;
   flex: 0 0 auto;
-  width: 1.15rem;
-  height: 1.15rem;
+  box-sizing: border-box;
+  width: 1.125rem;
+  height: 1.125rem;
+  padding: 0;
+  padding-inline: 0;
   margin: 0;
   border: 2px solid var(--color-border-hover, #9ca3af);
   background: var(--color-surface, #fff);
   color: white;
   cursor: pointer;
+  accent-color: var(--color-brand);
   transition:
     background-color 140ms ease,
     border-color 140ms ease,
@@ -199,6 +168,7 @@ input[type='radio'] {
 input[type='checkbox'] {
   border-radius: 0.35rem;
 }
+
 input[type='radio'] {
   border-radius: 999px;
 }
@@ -247,20 +217,28 @@ input[type='radio']:checked {
 input[type='checkbox']:checked::before {
   transform: rotate(-45deg) scale(1);
 }
+
 input[type='radio']:checked::before {
   transform: scale(1);
 }
 
 input[type='checkbox']:focus-visible,
 input[type='radio']:focus-visible {
+  outline: none;
   box-shadow:
     0 0 0 3px rgb(var(--color-surface-rgb) / 0.95),
     0 0 0 6px rgb(var(--color-brand-rgb) / 0.38);
 }
 
+input[type='checkbox']:disabled,
+input[type='radio']:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 /* ── Mobile Form Adjustments ── */
 @media (max-width: 768px) {
-  input,
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([data-bare-input]):not([data-textbar-input]),
   select {
     height: var(--touch-target-min);
     font-size: 16px;
@@ -273,10 +251,5 @@ input[type='radio']:focus-visible {
 
   fieldset {
     gap: var(--space-3);
-  }
-
-  ::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
   }
 }

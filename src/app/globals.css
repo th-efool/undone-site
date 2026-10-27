@@ -1,104 +1,104 @@
-@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Caveat:wght@700&family=Kalam:wght@700&family=Manrope:wght@500;600;700&display=swap');
+/* ── Cascade Layer Declaration (Frozen in theme-and-cascade-contract.md) ── */
+@layer theme, base, vendor, components, utilities, overrides;
+
 @import 'tailwindcss';
+@variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 @source "../";
 
 /* Design System Tokens */
-@import './styles/tokens.css';
-@import './styles/reset.css';
-@import './styles/typography.css';
-@import './styles/forms.css';
-@import './styles/layout.css';
-@import './styles/buttons.css';
-@import './styles/accessibility.css';
+@import './styles/tokens.css' layer(theme);
+@import './styles/reset.css' layer(base);
+@import './styles/typography.css' layer(base);
+@import './styles/forms.css' layer(base);
+@import './styles/layout.css' layer(base);
+@import './styles/buttons.css' layer(components);
+@import './styles/accessibility.css' layer(overrides);
+@import './styles/print.css' layer(overrides);
 
+@layer base {
+  @supports (padding: max(0px)) {
+    body {
+      padding-left: env(safe-area-inset-left);
+      padding-right: env(safe-area-inset-right);
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+  }
 
-@supports (padding: max(0px)) {
+  /* ── Mobile touch & overscroll ── */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html,
   body {
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-    padding-top: env(safe-area-inset-top, 0px);
+    overscroll-behavior-y: none;
+    touch-action: manipulation;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"] {
+    user-select: text;
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+  }
+
+  ::selection {
+    background: rgba(79, 70, 229, 0.2); /* Soft brand indigo highlight */
+    color: inherit;
+  }
+
+  ::-moz-selection {
+    background: rgba(79, 70, 229, 0.2);
+    color: inherit;
   }
 }
 
-/* ── Mobile touch & overscroll ── */
-* {
-  -webkit-tap-highlight-color: transparent;
-  
+@layer overrides {
+  /* ── App-Exclusive Micro-Springs & Active Feedback ── */
+  [data-platform="app"] button:active,
+  [data-platform="app"] a:active,
+  [data-platform="app"] [class*="Card"]:active,
+  [data-platform="app"] [class*="Row"]:active {
+    transform: scale(0.975);
+    transition: transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  /* ── App-Exclusive Selection & Drag Locking ── */
+  [data-platform="app"] button,
+  [data-platform="app"] a,
+  [data-platform="app"] [class*="sidebar"],
+  [data-platform="app"] [class*="toolbar"],
+  [data-platform="app"] [class*="controls"],
+  [data-platform="app"] [class*="mobileHeader"] {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  [data-platform="app"] img,
+  [data-platform="app"] svg {
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+
+  /* ── Global Hidden Scrollbars (preserves scrolling capability) ── */
+  ::-webkit-scrollbar {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+  }
+
+  * {
+    -ms-overflow-style: none !important;  /* IE and Edge */
+    scrollbar-width: none !important;  /* Firefox */
+  }
+
+  /* ── Advert Mode ── */
+  body.advert-mode-active nextjs-portal,
+  body.advert-mode-active #__next-build-watcher,
+  body.advert-mode-active [data-nextjs-toast] {
+    display: none !important;
+  }
 }
-
-html,
-body {
-  overscroll-behavior-y: none;
-  touch-action: manipulation;
-}
-
-input,
-textarea,
-[contenteditable="true"] {
-  user-select: text;
-  -webkit-user-select: text;
-  -moz-user-select: text;
-  -ms-user-select: text;
-}
-
-::selection {
-  background: rgba(79, 70, 229, 0.2); /* Soft brand indigo highlight */
-  color: inherit;
-}
-
-::-moz-selection {
-  background: rgba(79, 70, 229, 0.2);
-  color: inherit;
-}
-
-
-/* ── App-Exclusive Micro-Springs & Active Feedback ── */
-[data-platform="app"] button:active,
-[data-platform="app"] a:active,
-[data-platform="app"] [class*="Card"]:active,
-[data-platform="app"] [class*="Row"]:active {
-  transform: scale(0.975);
-  transition: transform 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-/* ── App-Exclusive Selection & Drag Locking ── */
-[data-platform="app"] button,
-[data-platform="app"] a,
-[data-platform="app"] [class*="sidebar"],
-[data-platform="app"] [class*="toolbar"],
-[data-platform="app"] [class*="controls"],
-[data-platform="app"] [class*="mobileHeader"] {
-  user-select: none;
-  -webkit-user-select: none;
-  -webkit-touch-callout: none;
-}
-
-[data-platform="app"] img,
-[data-platform="app"] svg {
-  -webkit-user-drag: none;
-  user-select: none;
-}
-
-
-/* ── Global Hidden Scrollbars (preserves scrolling capability) ── */
-::-webkit-scrollbar {
-  display: none !important;
-  width: 0 !important;
-  height: 0 !important;
-}
-
-* {
-  -ms-overflow-style: none !important;  /* IE and Edge */
-  scrollbar-width: none !important;  /* Firefox */
-}
-
-@import './styles/print.css';
-
-/* ── Advert Mode ── */
-body.advert-mode-active nextjs-portal,
-body.advert-mode-active #__next-build-watcher,
-body.advert-mode-active [data-nextjs-toast] {
-  display: none !important;
-}
-
-/* trigger css rebuild */

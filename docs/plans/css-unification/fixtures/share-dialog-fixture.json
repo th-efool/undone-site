@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "id": "scenario-1-share-dialog",
+  "name": "Scenario 1: Notes Share Dialog Regression Fixture",
+  "phase": "Phase 1 - Task 1.4",
+  "status": "baseline-reproduced",
+  "component": {
+    "sourceFile": "src/client/screens/dashboard/notes/components/NotesComponents.tsx",
+    "moduleCss": "src/client/screens/dashboard/notes/Notes.module.css",
+    "globalStyles": [
+      "src/app/styles/typography.css",
+      "src/app/styles/forms.css",
+      "src/app/styles/tokens.css",
+      "src/app/styles/reset.css"
+    ]
+  },
+  "selectors": {
+    "scrim": "[data-testid=\"share-dialog-scrim\"]",
+    "dialog": "[data-testid=\"share-dialog\"]",
+    "title": "[data-testid=\"share-dialog-title\"]",
+    "publicLinkCheckbox": "[data-testid=\"share-dialog-checkbox\"]",
+    "formRow": "[data-testid=\"share-dialog-form\"]",
+    "emailInput": "[data-testid=\"share-dialog-email\"]",
+    "permissionSelect": "[data-testid=\"share-dialog-permission\"]",
+    "actionShare": "[data-testid=\"share-dialog-action-user\"]",
+    "actionCopy": "[data-testid=\"share-dialog-action-link\"]",
+    "actionDone": "[data-testid=\"share-dialog-action-done\"]"
+  },
+  "mockData": {
+    "note": {
+      "id": "fixture-note-test-01",
+      "title": "Quarterly Architecture Review",
+      "publicLink": false,
+      "permission": "viewer",
+      "shared": false,
+      "sharedWith": []
+    },
+    "isolationGuarantee": "Deterministic offline mock. No HTTP requests, no emails sent, no mutation of persistent storage."
+  },
+  "reproducedDefects": {
+    "bareHeadingEscalation": {
+      "element": "h2",
+      "defect": "Bare h2 element without class in NotesComponents.tsx:308 receives global section title typography rule from typography.css:52 (font-size: var(--font-section-title-size)), expanding font-size to 48px clamp instead of dialog title ~20px.",
+      "baselineCssRule": "h2 { font-size: var(--font-section-title-size); }",
+      "tokenSource": "--font-section-title-size: clamp(var(--text-4xl), 5vw, var(--text-5xl));",
+      "baselineFontSizePx": 48,
+      "targetContractFontSizePx": 20,
+      "targetToken": "--ud-type-dialog-title"
+    },
+    "flexboxFieldSqueeze": {
+      "element": ".shareLine input, .shareLine select",
+      "defect": "In Notes.module.css:655, .shareLine is display: flex; gap: 8px. The input has flex: 1. forms.css unlayered rules set input, select { width: 100%; height: 2.75rem; padding-inline: var(--space-4); } while reset.css sets * { min-width: 0; }. Inside the 420px fixed dialog, select padding-right: 3rem and unconstrained flex cause email field and select dropdown to compete and squeeze.",
+      "dialogWidthPx": 420,
+      "formsInputHeightRem": 2.75,
+      "baselineStatus": "flex-squeeze-active",
+      "targetContract": "Proper flex-basis or explicit width contract (e.g. flex-shrink: 0 for select or grid-based layout) without unlayered forms.css inflation."
+    },
+    "actionButtonHierarchy": {
+      "element": ".modal button",
+      "defect": "Notes.module.css:623 applies .modal button { background: var(--color-brand); color: #fff; font-weight: 600; ... } uniformly across all 3 dialog buttons (Share with user, Copy Link, Done), destroying visual hierarchy between primary, secondary, and dismissal actions.",
+      "buttonsAffected": [
+        { "name": "Share with user", "intendedRole": "primary" },
+        { "name": "Copy Link", "intendedRole": "secondary" },
+        { "name": "Done", "intendedRole": "ghost/tertiary" }
+      ],
+      "baselineStyling": "All 3 buttons render with identical primary brand background",
+      "targetContract": "Visual hierarchy: primary accent for Share, subtle/outline for Copy Link, ghost/tertiary for Done."
+    },
+    "quotationMojibake": {
+      "element": "h2",
+      "defect": "NotesComponents.tsx:308 contains literal mojibake in source code: 'Share â€œ{note.title}â€ '. UTF-8 left/right double quotes (U+201C, U+201D) were decoded as Windows-1252/Latin-1 bytes (0xE2 0x80 0x9C / 0xE2 0x80 0x9D).",
+      "baselineLiteralString": "Share â€œ{note.title}â€ ",
+      "corruptedBytes": ["\\u00e2\\u20ac\\u0153", "\\u00e2\\u20ac\\u009d"],
+      "targetCleanString": "Share “Quarterly Architecture Review”"
+    }
+  }
+}
