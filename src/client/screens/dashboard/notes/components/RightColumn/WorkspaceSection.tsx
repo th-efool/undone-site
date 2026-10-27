@@ -89,8 +89,10 @@ export function WorkspaceSection(props: WorkspaceSectionProps) {
             onClick={(e) => e.stopPropagation()}
           />
         ) : (
-          <span className={styles.nodeLabel}>{note.title}</span>
-        {note.favorite && <Star size={12} fill="#fbbf24" color="#fbbf24" style={{ marginLeft: 4, flexShrink: 0 }} />}
+          <>
+            <span className={styles.nodeLabel}>{note.title}</span>
+            {note.favorite && <Star size={12} fill="#fbbf24" color="#fbbf24" style={{ marginLeft: 4, flexShrink: 0 }} />}
+          </>
         )}
 
         <div className={styles.popoverContainer}>

@@ -591,14 +591,6 @@ export function NotesSidebar({
     ? { width: `${workspaceWidth}px`, transition: isDraggingWorkspace ? 'none' : undefined }
     : undefined;
 
-  return (
-    <aside className={styles.sidebar}>
-      {!isNavigationExpanded && (
-        <div 
-          className={styles.reopenHandle}
-          onClick={() => setIsNavigationExpanded(true)}
-        />
-      )}
   const allNotebooks = notes.state?.notebooks || [];
   const allNotes = notes.state?.notes || [];
 
@@ -628,6 +620,15 @@ export function NotesSidebar({
       setIsWorkspaceExpanded(true);
     }
   }, [activeFilter, notes.actions, setIsWorkspaceExpanded]);
+
+  return (
+    <aside className={styles.sidebar}>
+      {!isNavigationExpanded && (
+        <div 
+          className={styles.reopenHandle}
+          onClick={() => setIsNavigationExpanded(true)}
+        />
+      )}
 
       <NavigationColumn
         isNavigationExpanded={isNavigationExpanded}
