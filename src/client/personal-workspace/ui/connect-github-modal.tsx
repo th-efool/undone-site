@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Download,
   ShieldCheck,
+  Settings,
 } from 'lucide-react';
 
 export interface ConnectGitHubModalProps {
@@ -28,6 +29,9 @@ export interface ConnectGitHubModalProps {
   isSyncing?: boolean;
   lastSyncedAt?: number | null;
   manageUrl?: string | null;
+  installationId?: string | null;
+  authType?: 'github_app' | 'pat' | 'oauth';
+  onCheckAccess?: () => Promise<void> | void;
 }
 
 /**
@@ -66,6 +70,9 @@ export function ConnectGitHubModal({
   isSyncing = false,
   lastSyncedAt,
   manageUrl,
+  installationId,
+  authType,
+  onCheckAccess,
 }: ConnectGitHubModalProps) {
   const [repoFullName, setRepoFullName] = useState(initialRepo);
   const [token, setToken] = useState('');
@@ -78,6 +85,12 @@ export function ConnectGitHubModal({
     isConnected ? initialRepo || null : null,
   );
   const [touched, setTouched] = useState({ repo: false, token: false });
+  const [isConfirmingDisconnect, setIsConfirmingDisconnect] = useState(false);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(false);
+
+  const effectiveManageUrl =
+    manageUrl ||
+    (installationId ? `https://github.com/settings/installations/${installationId}` : null);
 
   const [prevProps, setPrevProps] = useState({ initialRepo, isConnected });
   if (prevProps.initialRepo !== initialRepo || prevProps.isConnected !== isConnected) {
@@ -346,26 +359,51 @@ export function ConnectGitHubModal({
                   <a
                     href={`https://github.com/${connectedRepo || repoFullName}`}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noreferrer noopener"
                     className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline"
                   >
                     <span>View</span>
                     <ExternalLink className="w-3 h-3" />
                   </a>
-                  {manageUrl ? (
-                    <a
-                      href={manageUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-zinc-500 dark:text-zinc-400 hover:underline"
-                      title="Manage GitHub App repository access"
-                    >
-                      <span>Manage Access</span>
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
-                  ) : null}
                 </div>
               </div>
+
+              {/* Distinct "Manage Repository Access on GitHub" Action Card */}
+              {effectiveManageUrl ? (
+                <div className="p-3 rounded-lg bg-zinc-100/70 dark:bg-zinc-800/50 border border-zinc-200/70 dark:border-zinc-700/60 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-1.5">
+                      <Settings className="w-3.5 h-3.5 text-zinc-500" />
+                      GitHub App Access
+                    </span>
+                    <a
+                      href={effectiveManageUrl}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                      data-testid="link-manage-access"
+                    >
+                      <span>Configure on GitHub</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 leading-snug">
+                    Add or remove repositories granted to Undone in your GitHub App installation settings.
+                  </p>
+                </div>
+              ) : authType === 'pat' ? (
+                <div className="p-2.5 rounded-lg bg-zinc-100/60 dark:bg-zinc-800/40 border border-zinc-200/60 dark:border-zinc-700/40 text-[11px] text-zinc-600 dark:text-zinc-400">
+                  Connected via Personal Access Token.{' '}
+                  <a
+                    href="https://github.com/settings/tokens"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-0.5"
+                  >
+                    Manage PATs <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </div>
+              ) : null}
 
               {lastSyncedAt ? (
                 <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
@@ -429,28 +467,74 @@ export function ConnectGitHubModal({
               <span>Tokens and session data are encrypted at rest with AES-GCM.</span>
             </div>
 
-            {/* Bottom Actions */}
+            {/* Bottom Actions with Disconnect Confirmation */}
             <div className="flex items-center justify-between pt-3 border-t border-zinc-100 dark:border-zinc-800">
-              <button
-                type="button"
-                onClick={handleDisconnect}
-                disabled={isLoading}
-                data-testid="btn-disconnect"
-                className="px-3.5 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-100 dark:hover:bg-rose-900/50 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
-              >
-                {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
-                Disconnect
-              </button>
+              {isConfirmingDisconnect ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-rose-600 dark:text-rose-400 font-medium">
+                    Disconnect sync?
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleDisconnect}
+                    disabled={isLoading}
+                    data-testid="btn-disconnect-confirm"
+                    className="px-2.5 py-1 text-xs font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-md transition-colors cursor-pointer"
+                  >
+                    Yes, Disconnect
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsConfirmingDisconnect(false)}
+                    className="px-2 py-1 text-xs text-zinc-600 dark:text-zinc-400 hover:underline cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setIsConfirmingDisconnect(true)}
+                  disabled={isLoading}
+                  data-testid="btn-disconnect"
+                  className="px-3.5 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-100 dark:hover:bg-rose-900/50 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                  Disconnect
+                </button>
+              )}
 
-              <button
-                type="button"
-                onClick={onClose}
-                disabled={isLoading}
-                data-testid="btn-close"
-                className="px-4 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors cursor-pointer"
-              >
-                Close
-              </button>
+              <div className="flex items-center gap-2">
+                {onCheckAccess ? (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      setIsCheckingAccess(true);
+                      try {
+                        await onCheckAccess();
+                      } finally {
+                        setIsCheckingAccess(false);
+                      }
+                    }}
+                    disabled={isLoading || isCheckingAccess}
+                    data-testid="btn-check-access"
+                    className="px-3 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isCheckingAccess ? 'animate-spin' : ''}`} />
+                    Check Access
+                  </button>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={isLoading}
+                  data-testid="btn-close"
+                  className="px-4 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         ) : (

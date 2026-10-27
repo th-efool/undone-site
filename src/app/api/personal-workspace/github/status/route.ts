@@ -25,6 +25,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     const responseData: Record<string, unknown> = {
       connected: true,
+      authType: credentials.installationId ? 'github_app' : 'pat',
       repoFullName: repoInfo.fullName,
       defaultBranch: repoInfo.defaultBranch,
       isPrivate: repoInfo.isPrivate,
@@ -49,6 +50,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     // Temporary network error or rate limit: return cached info
     const cachedData: Record<string, unknown> = {
       connected: true,
+      authType: credentials.installationId ? 'github_app' : 'pat',
       repoFullName: credentials.repoFullName,
       defaultBranch: credentials.defaultBranch,
       isPrivate: credentials.isPrivate,

@@ -402,4 +402,73 @@ describe('SyncStatusBadge - Interactive Popover and Details', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByTestId('sync-status-popover')).toBeNull();
   });
+
+  it('renders repository info and manage access link inside popover', () => {
+    const summary: SyncSummary = {
+      status: 'synced',
+      pendingMutations: 0,
+      lastSyncedAt: null,
+      conflictCount: 0,
+    };
+
+    const { rerender } = render(
+      <SyncStatusBadge
+        summary={summary}
+        repoFullName="octocat/undone-notes"
+        manageUrl="https://github.com/settings/installations/54321"
+      />,
+    );
+
+    const badge = screen.getByRole('button', { name: /Sync status:/i });
+    fireEvent.click(badge);
+
+    expect(screen.getByTestId('popover-repo-info')).toBeDefined();
+    expect(screen.getByText('octocat/undone-notes')).toBeDefined();
+    const repoLink = screen.getByTestId('popover-repo-link') as HTMLAnchorElement;
+    expect(repoLink.href).toBe('https://github.com/octocat/undone-notes');
+
+    const manageLink = screen.getByTestId('popover-manage-link') as HTMLAnchorElement;
+    expect(manageLink.href).toBe('https://github.com/settings/installations/54321');
+
+    // Test PAT fallback
+    rerender(
+      <SyncStatusBadge
+        summary={summary}
+        repoFullName="octocat/undone-notes"
+        authType="pat"
+      />,
+    );
+
+    const patLink = screen.getByTestId('popover-pat-link') as HTMLAnchorElement;
+    expect(patLink).toBeDefined();
+    expect(patLink.href).toBe('https://github.com/settings/tokens');
+  });
+
+  it('renders and handles "Sync with GitHub now" button in popover', async () => {
+    const onSyncNow = vi.fn().mockResolvedValue(undefined);
+    const summary: SyncSummary = {
+      status: 'synced',
+      pendingMutations: 0,
+      lastSyncedAt: null,
+      conflictCount: 0,
+    };
+
+    render(
+      <SyncStatusBadge
+        summary={summary}
+        onSyncNow={onSyncNow}
+      />,
+    );
+
+    const badge = screen.getByRole('button', { name: /Sync status:/i });
+    fireEvent.click(badge);
+
+    const syncNowBtn = screen.getByTestId('popover-sync-now-btn');
+    expect(syncNowBtn).toBeDefined();
+
+    fireEvent.click(syncNowBtn);
+    expect(onSyncNow).toHaveBeenCalledTimes(1);
+    // Should close popover on click
+    expect(screen.queryByTestId('sync-status-popover')).toBeNull();
+  });
 });

@@ -159,7 +159,7 @@ describe('ConnectGitHubModal', () => {
     });
   });
 
-  it('handles disconnect action and calls onDisconnected', async () => {
+  it('handles disconnect action with confirmation prompt and calls onDisconnected', async () => {
     const onDisconnected = vi.fn();
     const mockFetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -182,8 +182,16 @@ describe('ConnectGitHubModal', () => {
     expect(screen.getByTestId('connected-banner')).toBeDefined();
     expect(screen.getByText('octocat/connected-repo')).toBeDefined();
 
+    // Clicking initial Disconnect button shows confirmation
     const disconnectBtn = screen.getByTestId('btn-disconnect');
     fireEvent.click(disconnectBtn);
+
+    expect(screen.getByText('Disconnect sync?')).toBeDefined();
+    const confirmBtn = screen.getByTestId('btn-disconnect-confirm');
+    expect(confirmBtn).toBeDefined();
+
+    // Confirm disconnect
+    fireEvent.click(confirmBtn);
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith('/api/personal-workspace/github/disconnect', {
@@ -192,6 +200,105 @@ describe('ConnectGitHubModal', () => {
       });
       expect(onDisconnected).toHaveBeenCalled();
       expect(screen.queryByTestId('connected-banner')).toBeNull();
+    });
+  });
+
+  it('allows canceling disconnect confirmation', () => {
+    const mockFetch = vi.fn();
+
+    render(
+      <ConnectGitHubModal
+        isOpen={true}
+        onClose={vi.fn()}
+        isConnected={true}
+        initialRepo="octocat/connected-repo"
+        fetchFn={mockFetch}
+      />,
+    );
+
+    const disconnectBtn = screen.getByTestId('btn-disconnect');
+    fireEvent.click(disconnectBtn);
+
+    expect(screen.getByText('Disconnect sync?')).toBeDefined();
+    const cancelBtn = screen.getByText('Cancel');
+    fireEvent.click(cancelBtn);
+
+    // Confirmation dismissed, initial Disconnect button restored
+    expect(screen.queryByText('Disconnect sync?')).toBeNull();
+    expect(screen.getByTestId('btn-disconnect')).toBeDefined();
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it('renders Manage Access link when manageUrl or installationId is provided', () => {
+    const { rerender } = render(
+      <ConnectGitHubModal
+        isOpen={true}
+        onClose={vi.fn()}
+        isConnected={true}
+        initialRepo="octocat/connected-repo"
+        manageUrl="https://github.com/settings/installations/12345"
+      />,
+    );
+
+    const manageLink = screen.getByTestId('link-manage-access') as HTMLAnchorElement;
+    expect(manageLink).toBeDefined();
+    expect(manageLink.href).toBe('https://github.com/settings/installations/12345');
+    expect(manageLink.target).toBe('_blank');
+    expect(manageLink.rel).toContain('noreferrer');
+
+    // Test fallback when only installationId is provided
+    rerender(
+      <ConnectGitHubModal
+        isOpen={true}
+        onClose={vi.fn()}
+        isConnected={true}
+        initialRepo="octocat/connected-repo"
+        installationId="987654"
+      />,
+    );
+
+    const fallbackManageLink = screen.getByTestId('link-manage-access') as HTMLAnchorElement;
+    expect(fallbackManageLink).toBeDefined();
+    expect(fallbackManageLink.href).toBe('https://github.com/settings/installations/987654');
+  });
+
+  it('renders PAT guidance when authType is pat', () => {
+    render(
+      <ConnectGitHubModal
+        isOpen={true}
+        onClose={vi.fn()}
+        isConnected={true}
+        initialRepo="octocat/connected-repo"
+        authType="pat"
+      />,
+    );
+
+    expect(screen.getByText(/Connected via Personal Access Token/i)).toBeDefined();
+    const patLink = screen.getByText('Manage PATs') as HTMLAnchorElement;
+    expect(patLink).toBeDefined();
+    expect(patLink.href).toBe('https://github.com/settings/tokens');
+  });
+
+  it('triggers onCheckAccess when Check Access button is clicked', async () => {
+    const onCheckAccess = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <ConnectGitHubModal
+        isOpen={true}
+        onClose={vi.fn()}
+        isConnected={true}
+        initialRepo="octocat/connected-repo"
+        onCheckAccess={onCheckAccess}
+      />,
+    );
+
+    const checkAccessBtn = screen.getByTestId('btn-check-access');
+    expect(checkAccessBtn).toBeDefined();
+
+    fireEvent.click(checkAccessBtn);
+
+    await waitFor(() => {
+      expect(onCheckAccess).toHaveBeenCalledTimes(1);
     });
   });
 

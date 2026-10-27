@@ -142,6 +142,7 @@ describe('Personal Workspace GitHub API Routes', () => {
 
       expect(data).toEqual({
         connected: true,
+        authType: 'pat',
         repoFullName: testRepo,
         defaultBranch: 'main',
         isPrivate: true,
