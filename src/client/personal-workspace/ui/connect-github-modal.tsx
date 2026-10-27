@@ -58,6 +58,7 @@ export function ConnectGitHubModal({
   const [token, setToken] = useState('');
   const [allowPublic, setAllowPublic] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(isConnected);
   const [connectedRepo, setConnectedRepo] = useState<string | null>(
@@ -78,6 +79,71 @@ export function ConnectGitHubModal({
   }
 
   const effectiveFetch = fetchFn ?? ((...args) => globalThis.fetch(...args));
+
+  const handleOAuthConnect = () => {
+    setIsOAuthLoading(true);
+    setError(null);
+
+    const width = 600;
+    const height = 700;
+    const left = typeof window !== 'undefined' ? window.screenX + (window.outerWidth - width) / 2 : 0;
+    const top = typeof window !== 'undefined' ? window.screenY + (window.outerHeight - height) / 2 : 0;
+
+    const authUrl = `${baseUrl}/api/personal-workspace/github/oauth/authorize`;
+    const popup =
+      typeof window !== 'undefined' && window.open
+        ? window.open(
+            authUrl,
+            'UndoneGitHubOAuth',
+            `width=${width},height=${height},left=${left},top=${top},status=no,toolbar=no,menubar=no`,
+          )
+        : null;
+
+    if (!popup) {
+      if (typeof window !== 'undefined') {
+        window.location.href = authUrl;
+      }
+      return;
+    }
+
+    const handleMessage = (event: MessageEvent) => {
+      if (typeof window !== 'undefined' && event.origin !== window.location.origin) return;
+      if (event.data?.type === 'UNDONE_GITHUB_AUTH_SUCCESS') {
+        const resolvedRepo = event.data.repoFullName || 'undone-notes';
+        setConnected(true);
+        setConnectedRepo(resolvedRepo);
+        setIsOAuthLoading(false);
+        setError(null);
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('message', handleMessage);
+        }
+        onConnected?.({
+          repoFullName: resolvedRepo,
+          defaultBranch: event.data.defaultBranch || 'main',
+        });
+      } else if (event.data?.type === 'UNDONE_GITHUB_AUTH_ERROR') {
+        setError(event.data.description || event.data.error || 'GitHub authorization failed');
+        setIsOAuthLoading(false);
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('message', handleMessage);
+        }
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('message', handleMessage);
+    }
+
+    const checkClosed = setInterval(() => {
+      if (popup?.closed) {
+        clearInterval(checkClosed);
+        if (typeof window !== 'undefined') {
+          window.removeEventListener('message', handleMessage);
+        }
+        setIsOAuthLoading(false);
+      }
+    }, 1000);
+  };
 
   // Handle escape key
   const handleKeyDown = useCallback(
@@ -261,6 +327,56 @@ export function ConnectGitHubModal({
             >
               <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
               <p className="flex-1 leading-relaxed">{error}</p>
+            </div>
+          ) : null}
+
+          {/* 1-Click GitHub Authorization Card */}
+          {!connected ? (
+            <div className="p-4 rounded-xl bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-800/60 dark:to-zinc-800/30 border border-zinc-200 dark:border-zinc-700/80 space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shrink-0">
+                  <Github className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
+                    1-Click GitHub Authorization
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                    Authorize once to automatically synchronize your notes with a private repository (<span className="font-mono text-zinc-700 dark:text-zinc-300">undone-notes</span>). No manual token creation needed.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleOAuthConnect}
+                disabled={isLoading || isOAuthLoading}
+                data-testid="btn-oauth-connect"
+                className="w-full py-2.5 px-4 text-xs font-semibold text-white bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+              >
+                {isOAuthLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" data-testid="spinner-oauth" />
+                    <span>Connecting with GitHub...</span>
+                  </>
+                ) : (
+                  <>
+                    <Github className="w-4 h-4" />
+                    <span>Connect with GitHub (1-Click)</span>
+                  </>
+                )}
+              </button>
+
+              <div className="relative my-2">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-zinc-200 dark:border-zinc-700/60" />
+                </div>
+                <div className="relative flex justify-center text-[10px] uppercase font-medium">
+                  <span className="bg-zinc-100 dark:bg-zinc-800 px-2 text-zinc-400">
+                    or custom repository &amp; token
+                  </span>
+                </div>
+              </div>
             </div>
           ) : null}
 

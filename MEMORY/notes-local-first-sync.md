@@ -35,10 +35,13 @@
   - `disconnect/route.ts`: Session vault clearing.
   - `publish/route.ts`: 4-step Git Data API push with Compare-And-Swap (CAS) 422 conflict detection.
   - `pull/route.ts`: Remote snapshot manifest and object hydration.
-  - `vault.ts`: HTTP-only encrypted cookie parser and environment fallback.
+  - `oauth/authorize/route.ts`: 1-Click OAuth authorization initiation with encrypted state nonce cookie.
+  - `oauth/callback/route.ts`: OAuth code exchange, auto-creation of private repository (`undone-notes`), and postMessage HTML response.
+  - `oauth/config.ts`: OAuth client credentials resolution, redirect URI helper, and HTML templates.
+  - `vault.ts`: HTTP-only encrypted cookie parser, PostgreSQL database bridge (`prisma.account`), and environment fallback.
 
 ## Testing & Verification
-- Unit & Integration Test Suites: 11 files, 169 tests passing (`npx vitest run src/shared/personal-workspace src/client/personal-workspace src/server/infrastructure/github/personal-workspace src/app/api/personal-workspace/github`).
+- Unit & Integration Test Suites: 12 files, 180 tests passing (`npx vitest run src/shared/personal-workspace src/client/personal-workspace src/server/infrastructure/github/personal-workspace src/app/api/personal-workspace`).
 - Live GitHub Sync Runner: `scripts/test-live-github-sync.ts` verified against live repository `suyanamoly/undone-notestest`.
   - Live commit link: https://github.com/suyanamoly/undone-notestest/commit/c2fa6c08891760640b8f3f3d86e354d18c4bc865
   - Cross-device restore verified with 100% SHA-256 payload parity.

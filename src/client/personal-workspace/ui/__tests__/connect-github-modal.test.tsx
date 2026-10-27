@@ -19,7 +19,7 @@ describe('ConnectGitHubModal', () => {
 
     expect(screen.getByRole('dialog')).toBeDefined();
     expect(screen.getByText('Connect GitHub')).toBeDefined();
-    expect(screen.getByTestId('icon-github')).toBeDefined();
+    expect(screen.getAllByTestId('icon-github').length).toBeGreaterThan(0);
 
     // Form inputs
     expect(screen.getByLabelText(/Repository Name/i)).toBeDefined();
@@ -217,5 +217,54 @@ describe('ConnectGitHubModal', () => {
     // 4. Escape key press
     fireEvent.keyDown(window, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(4);
+  });
+
+  it('triggers 1-Click OAuth authorization popup when Connect with GitHub is clicked', () => {
+    const mockOpen = vi.fn().mockReturnValue({ closed: false });
+    window.open = mockOpen;
+
+    render(<ConnectGitHubModal isOpen={true} onClose={vi.fn()} />);
+
+    const oauthBtn = screen.getByTestId('btn-oauth-connect');
+    expect(oauthBtn).toBeDefined();
+
+    fireEvent.click(oauthBtn);
+    expect(mockOpen).toHaveBeenCalled();
+    const [openedUrl, targetName] = mockOpen.mock.calls[0];
+    expect(openedUrl).toContain('/api/personal-workspace/github/oauth/authorize');
+    expect(targetName).toBe('UndoneGitHubOAuth');
+  });
+
+  it('handles successful OAuth postMessage event and transitions to connected state', async () => {
+    const onConnected = vi.fn();
+    const mockOpen = vi.fn().mockReturnValue({ closed: false });
+    window.open = mockOpen;
+
+    render(<ConnectGitHubModal isOpen={true} onClose={vi.fn()} onConnected={onConnected} />);
+
+    const oauthBtn = screen.getByTestId('btn-oauth-connect');
+    fireEvent.click(oauthBtn);
+
+    // Simulate popup sending postMessage event
+    fireEvent(
+      window,
+      new MessageEvent('message', {
+        origin: window.location.origin,
+        data: {
+          type: 'UNDONE_GITHUB_AUTH_SUCCESS',
+          repoFullName: 'octocat/undone-notes',
+          defaultBranch: 'main',
+        },
+      })
+    );
+
+    await waitFor(() => {
+      expect(onConnected).toHaveBeenCalledWith({
+        repoFullName: 'octocat/undone-notes',
+        defaultBranch: 'main',
+      });
+      expect(screen.getByTestId('connected-banner')).toBeDefined();
+      expect(screen.getByText('octocat/undone-notes')).toBeDefined();
+    });
   });
 });
