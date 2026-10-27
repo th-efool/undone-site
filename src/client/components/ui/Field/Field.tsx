@@ -66,6 +66,7 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(func
         <input
           ref={ref}
           id={id}
+          data-composite-input=""
           disabled={disabled}
           required={required}
           aria-invalid={Boolean(error) || undefined}

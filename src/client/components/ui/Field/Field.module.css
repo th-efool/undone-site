@@ -54,6 +54,14 @@
   outline: none;
 }
 
+.input:focus,
+.input:focus-visible {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
 .input::placeholder {
   color: var(--ud-color-text-muted, #71717a);
 }

@@ -37,6 +37,14 @@
   outline: none;
 }
 
+.input:focus,
+.input:focus-visible {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
 .actionList {
   display: flex;
   flex-direction: column;
