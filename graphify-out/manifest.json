@@ -6564,8 +6564,8 @@
     "semantic_hash": "6b2b2f75b370fc0ff8460c3a23eb83ee"
   },
   "src/client/screens/dashboard/notes/components/NotesComponents.tsx": {
-    "mtime": 1793089600.7188656,
-    "seen": 1793090765.1272757,
+    "mtime": 1793093591.2566433,
+    "seen": 1793094857.285098,
     "ast_hash": "e56225e5e6ff64b16ed6231192f51abe",
     "semantic_hash": ""
   },
@@ -15468,9 +15468,9 @@
     "semantic_hash": ""
   },
   "src/app/api/personal-workspace/github/vault.ts": {
-    "mtime": 1793089576.9795065,
-    "seen": 1793090764.7278333,
-    "ast_hash": "4f3f53925f5ef7c77af19f6999a6fe38",
+    "mtime": 1793092863.0414329,
+    "seen": 1793094856.8514874,
+    "ast_hash": "8912de43f0c6289b49f2c4293b71ade8",
     "semantic_hash": ""
   },
   "src/client/personal-workspace/hooks/__tests__/useLocalWorkspace.test.ts": {
@@ -15516,9 +15516,9 @@
     "semantic_hash": ""
   },
   "src/client/personal-workspace/ui/connect-github-modal.tsx": {
-    "mtime": 1793084132.797142,
-    "seen": 1793084425.74895,
-    "ast_hash": "b88ecd698271b081a0f5fe147282cc21",
+    "mtime": 1793094394.7790318,
+    "seen": 1793094857.0266693,
+    "ast_hash": "e655b58e01d66168b064756e21e3c6f0",
     "semantic_hash": ""
   },
   "src/server/infrastructure/github/personal-workspace/__tests__/client.test.ts": {
@@ -15600,9 +15600,57 @@
     "semantic_hash": ""
   },
   "src/client/screens/dashboard/notes/components/WorkspaceSyncControl.tsx": {
-    "mtime": 1793089902.4196584,
-    "seen": 1793090765.133207,
-    "ast_hash": "51f955f64e166ef4bddd34d3931a4cd6",
+    "mtime": 1793094501.2881887,
+    "seen": 1793094857.288728,
+    "ast_hash": "ac967b0c2008394309ad609fcb187b67",
+    "semantic_hash": ""
+  },
+  "src/app/api/personal-workspace/github/app/callback/route.ts": {
+    "mtime": 1793094245.0787046,
+    "seen": 1793094856.8491845,
+    "ast_hash": "7203cc71ef50af4eae3b5bbdb2398a30",
+    "semantic_hash": ""
+  },
+  "src/app/api/personal-workspace/github/app/config.ts": {
+    "mtime": 1793094654.5774364,
+    "seen": 1793094856.849189,
+    "ast_hash": "4766f7a2727f565b9d6939b29b35ab85",
+    "semantic_hash": ""
+  },
+  "src/app/api/personal-workspace/github/app/install/route.ts": {
+    "mtime": 1793094219.4912703,
+    "seen": 1793094856.8491921,
+    "ast_hash": "4d1f2267fc878c188980f66089e47581",
+    "semantic_hash": ""
+  },
+  "docs/plans/css-investigation-and-unification.md": {
+    "mtime": 1793094578.9235032,
+    "seen": 1793094858.3373506,
+    "ast_hash": "7fa0a6be5abb11ef6a0f68bec9d0e6b6",
+    "semantic_hash": ""
+  },
+  "docs/plans/css-unification/README.md": {
+    "mtime": 1793094374.2779613,
+    "seen": 1793094858.3373532,
+    "ast_hash": "6c9eaf1e6911df5fcb277d471aba4b29",
+    "semantic_hash": ""
+  },
+  "docs/plans/css-unification/foundations.md": {
+    "mtime": 1793094374.3101654,
+    "seen": 1793094858.3373566,
+    "ast_hash": "664fc62416e19564d3e1aa20688a3c24",
+    "semantic_hash": ""
+  },
+  "docs/plans/css-unification/migration.md": {
+    "mtime": 1793094578.89924,
+    "seen": 1793094858.3373592,
+    "ast_hash": "b559a1b2fab626bd6d18b30ade19910d",
+    "semantic_hash": ""
+  },
+  "docs/plans/css-unification/verification.md": {
+    "mtime": 1793094578.915211,
+    "seen": 1793094858.3373618,
+    "ast_hash": "661824c91805838101371d2388db02f6",
     "semantic_hash": ""
   }
 }
