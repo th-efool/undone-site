@@ -28,12 +28,12 @@ export class CanvasRepository {
     return `sidequesthq.canvas.backup.${noteId}`;
   }
 
-  private getEffectiveUserId(): string | null {
+  private getEffectiveUserId(): string {
     if (this.activeUserId) return this.activeUserId;
     if (typeof window !== 'undefined' && (window as any).__UNDONE_ACTIVE_USER_ID__) {
       return (window as any).__UNDONE_ACTIVE_USER_ID__;
     }
-    return null;
+    return 'local-user';
   }
 
   async load(noteId: string): Promise<CanvasDocument | null> {

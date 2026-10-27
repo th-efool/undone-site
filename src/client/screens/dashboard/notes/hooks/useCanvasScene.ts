@@ -4,7 +4,11 @@ import { canvasAdapter, CANVAS_SCHEMA_VERSION } from '../adapters/canvas.adapter
 import { canvasRepository } from '../repositories/canvas.repository';
 import type { CanvasSceneData, CanvasState } from '../models/canvas.models';
 
-export function useCanvasScene(noteId: string | null) {
+export function useCanvasScene(noteId: string | null, userId?: string | null) {
+  useEffect(() => {
+    const activeId = userId || 'local-user';
+    canvasRepository.setActiveUserId(activeId);
+  }, [userId]);
   const [initialScene, setInitialScene] = useState<CanvasSceneData | null>(null);
   const [loading, setLoading] = useState(true);
   const [canvasState, setCanvasState] = useState<CanvasState>({
