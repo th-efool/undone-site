@@ -1,20 +1,21 @@
 import React from 'react';
 import clsx from 'clsx';
-
 import styles from './Text.module.css';
 
-type Variant = 'body' | 'lead' | 'small' | 'muted';
+export type TextVariant = 'body' | 'lead' | 'small' | 'muted' | 'error' | 'hint' | 'caption';
 
-const variantClasses: Record<Variant, string> = {
+const variantClasses: Record<TextVariant, string> = {
   body: styles.body,
   lead: styles.lead,
   small: styles.small,
   muted: styles.muted,
+  error: styles.error,
+  hint: styles.hint,
+  caption: styles.caption,
 };
 
-export interface TextProps extends React.HTMLAttributes<HTMLParagraphElement> {
-  variant?: Variant;
-
+export interface TextProps extends React.HTMLAttributes<HTMLElement> {
+  variant?: TextVariant;
   as?: React.ElementType;
 }
 
@@ -36,3 +37,5 @@ export function Text({
     </Component>
   );
 }
+
+export default Text;

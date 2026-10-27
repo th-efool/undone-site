@@ -35,13 +35,15 @@ export function Tooltip({
           {children}
         </TooltipPrimitive.Trigger>
         <TooltipPrimitive.Portal>
-          <TooltipPrimitive.Content
-            side={placement}
-            sideOffset={4}
-            className={clsx(styles.tooltip, className)}
-          >
-            {content}
-          </TooltipPrimitive.Content>
+          <div className="ud-tooltip-portal">
+            <TooltipPrimitive.Content
+              side={placement}
+              sideOffset={4}
+              className={clsx(styles.tooltip, className)}
+            >
+              {content}
+            </TooltipPrimitive.Content>
+          </div>
         </TooltipPrimitive.Portal>
       </TooltipPrimitive.Root>
     </TooltipPrimitive.Provider>

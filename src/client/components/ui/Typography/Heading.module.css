@@ -1,9 +1,40 @@
 .heading {
   margin: 0;
   color: inherit;
-  font-family: var(--font-display);
+  font-family: var(--ud-font-display, var(--ud-font-sans, system-ui, sans-serif));
 }
 
+/* Explicit Application vs Display Roles */
+.uiTitle {
+  font-family: var(--ud-font-sans, system-ui, sans-serif);
+  font-size: var(--ud-type-dialog-title-size, 1.25rem);
+  font-weight: var(--ud-type-dialog-title-weight, 600);
+  line-height: var(--ud-type-dialog-title-line-height, 1.35);
+  letter-spacing: -0.01em;
+}
+
+.cardTitle {
+  font-family: var(--ud-font-sans, system-ui, sans-serif);
+  font-size: var(--font-card-title-size, 1.25rem);
+  font-weight: var(--font-card-title-weight, 600);
+  line-height: var(--font-card-title-line-height, 1.25);
+}
+
+.sectionTitle {
+  font-size: var(--font-section-title-size, clamp(2.25rem, 5vw, 3rem));
+  font-weight: var(--font-section-title-weight, 700);
+  line-height: var(--font-section-title-line-height, 1.1);
+  letter-spacing: var(--font-section-title-tracking, -0.04em);
+}
+
+.displayTitle {
+  font-size: var(--font-hero-size, clamp(3.5rem, 8vw, 4.5rem));
+  font-weight: var(--font-hero-weight, 800);
+  line-height: var(--font-hero-line-height, 1);
+  letter-spacing: var(--font-hero-tracking, -0.06em);
+}
+
+/* Semantic Levels */
 .level1 {
   font-size: var(--font-hero-size);
   font-weight: var(--font-hero-weight);
