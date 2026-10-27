@@ -1,29 +1,29 @@
 # Graph Report - undone-site  (2026-10-27)
 
 ## Corpus Check
-- 2425 files · ~2,198,622 words
+- 2429 files · ~2,201,822 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 357 file(s) not represented in the graph (top: .css 309, (none) 14, .xml 12)
 
 ## Summary
-- 17519 nodes · 40915 edges · 850 communities (778 shown, 72 thin omitted)
-- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 1158 edges (avg confidence: 0.91)
+- 17536 nodes · 40986 edges · 841 communities (772 shown, 69 thin omitted)
+- Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 1159 edges (avg confidence: 0.91)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `a6bdfe24`
+- Built from commit: `44bbab2b`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
 ## Community Hubs (Navigation)
 - api-routes.test.ts
 - cohort-creation/contracts.ts
-- ref_vitest
+- CohortWorkspace
 - job-completion.ts
 - impeccable-paths.mjs
 - isSharedGuestAccount
 - text-artifacts.ts
-- creationJob.repo.ts
+- ref_node_crypto
 - cohort-builder/contracts.ts
 - postgres/client.ts
 - checks.mjs
@@ -47,7 +47,7 @@
 - index.mjs
 - live-server.mjs
 - SourcesStep.tsx
-- ExploreDesktop.tsx
+- global/StudyRooms/StudyRooms.tsx
 - ISSUE 5 — `GET /api/explore` 100% Hardcoded to Mock Repository
 - PersonalWorkspaceRepository
 - connectSSE
@@ -56,7 +56,7 @@
 - HamburgerGridControls.tsx
 - MemoryInteractionRepository
 - s6-integrated-acceptance.ts
-- useExperience
+- useRoomOrchestration.ts
 - cohort-creation/contracts.ts
 - username-dm-studyroom.e2e.test.ts
 - SceneDock.tsx
@@ -65,9 +65,9 @@
 - notes-board/package.json
 - server.ts
 - detect-antipatterns-browser.js
-- play/components/index.ts
+- PlayMobile.tsx
 - detect-html.mjs
-- ExploreMobile.tsx
+- cohort-creation/chunking.service.ts
 - SessionPanel.tsx
 - initPageChat
 - hook-lib.mjs
@@ -86,7 +86,7 @@
 - createCohort.ts
 - ref_clsx
 - core/contracts.ts
-- CohortIntakeScreen.tsx
+- intake-draft.ts
 - import.ts
 - connectToMongoDB
 - corsair.ts
@@ -94,12 +94,12 @@
 - live-accept.mjs
 - scripts
 - benchmark-engine.ts
-- draft-context.tsx
+- MusicSettingsModal.tsx
 - HomeDesktop.tsx
 - live-wrap.mjs
 - feed/route.ts
 - critique-storage.mjs
-- message/models/index.ts
+- CommunityChat.tsx
 - compress.py
 - coordinator.ts
 - json
@@ -112,16 +112,16 @@
 - message/models/index.ts
 - pedagogicalVector.types.ts
 - brandkit/SKILL.md
-- ref_node_crypto
+- CreationSnapshot
 - journey-checkpoint6-acceptance.test.ts
-- PlayMobile.tsx
+- LearningPromptBar.tsx
 - exports
 - authForm.tsx
 - DMProfileSidebar.tsx
 - studyRoomRepository.ts
-- usePlayback.ts
+- ReviewWorkspace.tsx
 - ChannelHub.tsx
-- ActiveCohortRow.tsx
+- InspectorPanel.tsx
 - EventsPage.tsx
 - impeccable/SKILL.md
 - hook-before-edit.mjs
@@ -131,11 +131,11 @@
 - useHome
 - aiCache.repo.ts
 - LocalWorkspaceRepository
-- cohortVectorizationWorkflow.ts
+- useReviewWorkspace.ts
 - mobile/package.json
 - source-adapters.ts
 - useMessage.ts
-- NotesMobile.tsx
+- creation-dispatch.runtime.ts
 - interaction-builder
 - youtube-import.service.ts
 - message/components/MessageComposer/MessageComposer.tsx
@@ -143,25 +143,25 @@
 - live-poll.mjs
 - live-copy-edit-agent.mjs
 - verify-s6-release-gate.ts
-- CohortWorkspace
+- stage-selectors.ts
 - NotesSidebar.tsx
 - runHook
 - 02-ikigai/Ikigai.tsx
-- ActiveCohort
+- clamp
 - ArchivesPage.tsx
 - resolveVarRefs
 - DetailsStep.tsx
 - agenda.domain.ts
-- DMConversation/components/MessageTimeline/MessageTimeline.tsx
+- returnTo.ts
 - validate_website_capture.py
 - Overview.tsx
 - reducer.ts
 - Prisma Client API Reference
-- message/models/index.ts
+- message.ts
 - message/models/index.ts
 - .plan
 - app/layout.tsx
-- permissionsCache.ts
+- components/ui/index.ts
 - creation-source-access.ts
 - ref_node_path
 - collectBrowserFindings
@@ -173,8 +173,8 @@
 - validate_delivery_gate.py
 - useCanvasScene.ts
 - attachment.service.ts
-- feedRepository.ts
-- CohortOverview
+- 8. Sequential implementation roadmap — 13 phases
+- ISSUE 10 — Hardcoded Fake Rating (5.0), Fake Hall of Fame Champion ("Sia"), and Static Daily Goal
 - MEMORY/README.md
 - FeaturedCohortsStrip.tsx
 - prepare_ui_job.py
@@ -212,7 +212,7 @@
 - jwtCache.ts
 - useExperience
 - StaticElement
-- useNotes.ts
+- global/SuggestionPromptRow/SuggestionPromptRow.tsx
 - Undone messaging, study rooms, and Centrifugo: implementation instructions
 - docs/README.md
 - createLiveBrowserSessionState
@@ -222,14 +222,14 @@
 - live.md
 - checkHeadingRhythmDOM
 - generate-image.mjs
-- youtube.ts
-- next-auth
+- youtube-observation.service.ts
+- CohortIntakeScreen.tsx
 - verify-standalone-agenda-example.mjs
 - 8. Sequential implementation roadmap — 13 phases
 - Model Queries
 - ToastProvider.tsx
 - Appendix: Glossary definitions
-- auth/page.tsx
+- authShowcase.tsx
 - Driver Adapters
 - 4.3 Ambient sound (admin controls; everyone hears)
 - createLiveBrowserDomHelpers
@@ -255,7 +255,7 @@
 - creation-readiness.ts
 - detect-csp.mjs
 - checkTextOcclusionDOM
-- InteractionStore
+- s3-browser-verification.mjs
 - template-extensions.mjs
 - devDependencies
 - S6 Operator Release Package & Production Handoff
@@ -263,7 +263,7 @@
 - verify-version-and-upgrade-contracts.mjs
 - notion/route.ts
 - Relation Queries
-- cohort-intake.ts
+- draft-context.tsx
 - Removed Features
 - Agent Army
 - validate_capture_protocol.py
@@ -272,8 +272,8 @@
 - Canvas UI Change Plan
 - messaging-readiness.ts
 - [draftId]/route.ts
-- github-import.service.ts
-- ChannelSelector.tsx
+- (landing)/page.tsx
+- avatars.ts
 - The `task()` function
 - Defining Workflow Tasks — Specify units of work to run on Render.
 - interaction-builder/package.json
@@ -305,13 +305,13 @@
 - Methods
 - prisma generate
 - prisma studio
-- journey-scheduler.test.ts
+- components/SuggestionPromptRow/SuggestionPromptRow.tsx
 - Prisma Config
 - logger.ts
 - app.js
 - Design Audit
 - checkElementRadialSpotlightDOM
-- embed-prompt.mjs
+- creationRetention.repo.ts
 - pathlib
 - 3. The 12 Mandatory Operational Runbooks
 - captureElementToBlob
@@ -368,7 +368,7 @@
 - Codex-driven website capture and reconstruction
 - Undone — Detailed Product Description
 - S6A Additive Rollout & Safe Rollback Runbook
-- TabLockCoordinator
+- heroFloatingContentIcons.tsx
 - Undone
 - Analysis & Synthesis Instructions
 - Workflow
@@ -408,7 +408,7 @@
 - caveman/SKILL.md
 - Codebase Ingestion Reference
 - Simplify the Design
-- Navbar/Navbar.tsx
+- Footer/Footer.tsx
 - Scan mode (approach C: auto-extract, then confirm descriptive language)
 - prisma migrate diff
 - prisma migrate reset
@@ -443,7 +443,7 @@
 - Reconnaissance Command Catalog
 - Implementation sequence
 - 3. Structural & Component Comparison
-- 02-ikigai/Ikigai.tsx
+- PublicationSuccess.tsx
 - Study-room product foundation prerequisite plan
 - Team 1: Runaway Polling Tamer & HTTP 304 Fast-Exit
 - Wave 13: Worker Process Session JWT & Permissions Caching
@@ -496,7 +496,7 @@
 - Prisma Compute
 - migrations-mapping
 - schema-contract-mapping
-- authCommunityGrid.tsx
+- Shape
 - endpoints
 - 1. The Core Chunk Parameters
 - Supported properties
@@ -527,7 +527,7 @@
 - 12. THE COMBINATORIAL VARIATION ENGINE
 - 8. ANTI-AI-SLOP RULES
 - Persona-Based Design Testing
-- iOS platform
+- doctor.md
 - RoomScreen.tsx
 - MockAudioContext
 - Quality Standards and Adaptation
@@ -549,7 +549,7 @@
 - Building from a `Dockerfile`
 - Root-level fields
 - MockAudioContext
-- server.mjs
+- 12. Deployment, rollback, and operational runbooks
 - Agent Instructions
 - ISSUE2.md
 - capture_project_menu_snapshot.mjs
@@ -560,12 +560,12 @@
 - Backend Concepts in Frontend Terms
 - ISSUE 7 — Hardcoded Mock Content & Missing Discovery Sections in Mobile Explore
 - 8. Edge cases
-- Props
+- mobile-build.mjs
 - ISSUE 13 — Questline Season & Lesson Indexing Desynchronization (0-based vs 1-based)
 - ISSUE 18 — Unstyled Plain-Text Loading State in Notes Workspace
 - mobile-release-aab.mjs
 - Team 3: Edge ISR Cohort Subpages & Catalog Revalidation (ISR-Converter-Lead)
-- NotesStateEntity
+- notes.seed.ts
 - Output Formats and Final Summary
 - Error Handling
 - Communication Patterns
@@ -585,7 +585,7 @@
 - 4. HERO MINIMALISM RULES
 - staleness-notice.mjs
 - Cognitive Load Assessment
-- Impeccable Finish Reviewer
+- dev.mjs
 - Impeccable Manual Edit Applier
 - Landing Page Copywriter
 - Multi-Agent Client Onboarding System
@@ -604,8 +604,8 @@
 - Setting environment variables
 - Checkpoint auto-resume
 - argparse
-- 2. File-by-File Changes
-- ref_lucide_react
+- OverviewViewer.tsx
+- ref_react
 - ISSUE 22 — Unbounded Channel Messages Fetch Without Pagination
 - Explore
 - ISSUE 25 — AI Intake Error Transparency & Unstyled Source Text Input
@@ -613,7 +613,7 @@
 - ISSUE 8 — Unhandled YouTube IFrame API Script Load Failure & Missing Non-YouTube / HLS Video Fallback
 - 11. Performance, scalability, and cost estimates
 - /impeccable hooks
-- 12. Deployment, rollback, and operational runbooks
+- live-setup.md
 - Automated Testing
 - Agent Brief Template and Data Distribution
 - Swarm Configurations for Common Tasks
@@ -675,12 +675,12 @@
 - S4A intake and workspace verification
 - S4B PDF and public web sources
 - artifacts.ts
-- 5. Phase 1 — Real identity, enrollment, and chat authorization
-- NotesWorkspace.tsx
+- renderGroupedTemplate
+- useNotes.ts
 - ISSUE 16 — Kanban Board Event Listener Memory Leak & Mobile Double Execution
 - Team 4: 2-Tier SHA-256 Content-Hash AI Cache (Ai-Cache-Lead)
 - Evidence Artifact E4: Frozen Local-First & GitHub Sync Contracts
-- verify-packed-consumer.mjs
+- 1.1 Competitor Landscape Breakdown
 - Agent Swarm Deployer
 - Agent Team Builder
 - Handoff Protocol
@@ -739,7 +739,7 @@
 - ISSUE 14 — Messaging Subsystem Disconnected from Live Database
 - Evidence Artifact E5: Release Gates & Capability Matrix
 - [workspaceId]/activity/route.ts
-- live-discard-manual-edits.mjs
+- Visual Parity Verification & Rendering Evidence
 - 3. Freeze these contracts before feature work
 - PlayerToolbar/components/index.ts
 - Prisma MongoDB Upgrade Path
@@ -815,50 +815,41 @@
 - tech-due-diligence/references/output-template.md
 - technical-writer/references/output-format.md
 - ISSUE 9 — Completely Blank `/cohort` Index Page
-- Getting Started
+- @tanstack/react-query
 - Core Capabilities
 - chunkingService
 - MockAudioContext
 - HyperFrames Local Promo
-- 7. Who is Undone for?
+- ReplyBanner.tsx
 - UI analysis evidence map
 - StudyRoom
-- devDependencies
+- useRoomLifecycle.ts
 - 2. How Undone works
-- expandScanTargets
+- 4. Phase 0 — Baseline and decisions
 - studyroom/route.ts
 - Additional types
-- Calendar.tsx
+- dependencies
 - Latest-project menu scan and Studio drilldown
 - delivery-feed.ts
 - Team 5: PostgreSQL Database Indexing & Sources Schema Memoization (Db-Index-Architect)
-- [platform]/route.ts
-- Generate Report
-- landing/layout.tsx
-- (landing)/layout.tsx
-- ShortcutsDialog.tsx
-- 13. Phase 9 — Actual attachments and notification delivery
-- notification.service.ts
-- UI generation spec
+- DailyChallenge.tsx
+- middleware.ts
 - ComposeModal
-- cohort-builder/__tests__/sse.test.ts
 - Error types
 - aiPromptUtils.ts
 - ISSUE 26 — Incoherent Intermediate Logs & Pipeline Premature Jumps in Cohort Creation (4-Step Pipeline)
-- sitemap.ts
-- schema-indexes.test.ts
 - .retry
 - stateOf
 
 ## God Nodes (most connected - your core abstractions)
-1. `next` - 286 edges
+1. `next` - 290 edges
 2. `getUser` - 168 edges
 3. `CreationStorageError` - 137 edges
 4. `@testing-library/react` - 129 edges
 5. `isSharedGuestAccount()` - 126 edges
 6. `server-only` - 117 edges
-7. `CohortWorkspace` - 117 edges
-8. `prisma` - 115 edges
+7. `prisma` - 117 edges
+8. `CohortWorkspace` - 117 edges
 9. `initialSnapshot()` - 104 edges
 10. `StorageScope` - 91 edges
 
@@ -877,47 +868,47 @@
 ## Import Cycles
 - None detected.
 
-## Communities (850 total, 72 thin omitted)
+## Communities (841 total, 69 thin omitted)
 
 ### Community 0 - "api-routes.test.ts"
-Cohesion: 0.06
-Nodes (48): ConnectRequestBody, POST(), POST(), getExtensionForMimeType(), POST(), GET(), handlePull(), pMap() (+40 more)
+Cohesion: 0.05
+Nodes (67): Authoritative Contracts & Evidence, Personal Workspace: Local-First Durability & GitHub Sync, Production Subsystem Layout, Testing & Verification, ConnectRequestBody, POST(), POST(), GET() (+59 more)
 
 ### Community 1 - "cohort-creation/contracts.ts"
 Cohesion: 0.03
-Nodes (145): 2. Preservation & Invariant Rules, @ai-sdk/google, server-only, main(), started, maxDuration, POST, runtime (+137 more)
+Nodes (158): 2. Preservation & Invariant Rules, @ai-sdk/google, server-only, main(), started, maxDuration, POST, runtime (+150 more)
 
-### Community 2 - "ref_vitest"
+### Community 2 - "CohortWorkspace"
 Cohesion: 0.03
-Nodes (44): @testing-library/react, StudyRoomLoading(), metadata, StudyRoomPage(), mockRooms, LearningSearchBox(), mockCohort, { push, refresh } (+36 more)
+Nodes (105): UI and chat parity (Checkpoint 4), Checkpoint 4 — UI and Chat Parity, interaction-builder, BuilderDialog(), AttachedEntity, ChatPane(), ChatPaneProps, AttachedEntity (+97 more)
 
 ### Community 3 - "job-completion.ts"
-Cohesion: 0.06
-Nodes (48): DiscoveryMaterials(), GithubMaterial(), NotionMaterial(), GithubIcon(), TextMaterial(), YoutubeIcon(), candidate, ref (+40 more)
+Cohesion: 0.05
+Nodes (57): fail(), GithubAcquisitionService, commitSchema, contentSchema, extractGithubReceipt(), githubExtractionVersion(), githubReceiptFingerprint(), githubUnitId() (+49 more)
 
 ### Community 4 - "impeccable-paths.mjs"
-Cohesion: 0.14
-Nodes (25): resolveProjectRoot(), CRITIQUE_DIR, firstExisting(), getDesignSidecarCandidates(), getDesignSidecarPath(), getImpeccableDir(), getLegacyLiveAnnotationsDir(), getLegacyLiveConfigPath() (+17 more)
+Cohesion: 0.10
+Nodes (33): resolveProjectRoot(), CRITIQUE_DIR, firstExisting(), getDesignSidecarCandidates(), getDesignSidecarPath(), getImpeccableDir(), getLegacyLiveAnnotationsDir(), getLegacyLiveConfigPath() (+25 more)
 
 ### Community 5 - "isSharedGuestAccount"
-Cohesion: 0.04
-Nodes (104): next, dynamic, GET(), dynamic, PUT(), dynamic, POST(), DELETE() (+96 more)
+Cohesion: 0.03
+Nodes (92): next, dynamic, GET(), dynamic, PUT(), dynamic, POST(), DELETE() (+84 more)
 
 ### Community 6 - "text-artifacts.ts"
-Cohesion: 0.04
-Nodes (112): migration, sha, phase1Migration, phase2Migration, migration, @electric-sql/pglite, manifest, Check (+104 more)
+Cohesion: 0.03
+Nodes (139): Checkpoint 1 — Canonical Actions, Domain Planning, and AI Tools, migration, @electric-sql/pglite, manifest, main(), runDurableTextJobTick(), createJourneyDiscoveryAdapter(), DiscoveryAdapter (+131 more)
 
-### Community 7 - "creationJob.repo.ts"
-Cohesion: 0.02
-Nodes (167): @prisma/adapter-pg, main(), main(), runPublicationSmoke(), prepare(), setupPublicationSmokeSchema(), dynamic, GET() (+159 more)
+### Community 7 - "ref_node_crypto"
+Cohesion: 0.03
+Nodes (188): @prisma/adapter-pg, main(), main(), readyFixture(), setupPublicationSmokeSchema(), main(), analysisInputFingerprint(), validateAnalysisCheckpoint() (+180 more)
 
 ### Community 8 - "cohort-builder/contracts.ts"
 Cohesion: 0.03
-Nodes (41): MockInteractionContext, MockInteractionState, cohortDomain, createJourneyRecommendationAdapter(), boot, cohort, boot, domain (+33 more)
+Nodes (42): MockInteractionContext, MockInteractionState, fake, cohortDomain, SelectedLesson, boot, cohort, boot (+34 more)
 
 ### Community 9 - "postgres/client.ts"
 Cohesion: 0.03
-Nodes (110): POST(), dynamic, GET(), dynamic, GET(), DELETE(), dynamic, PUT() (+102 more)
+Nodes (108): dynamic, GET(), POST(), dynamic, GET(), dynamic, GET(), DELETE() (+100 more)
 
 ### Community 10 - "checks.mjs"
 Cohesion: 0.03
@@ -928,28 +919,28 @@ Cohesion: 0.03
 Nodes (145): addManualContextText(), applyGlobalBarLabelState(), bindEditBadgeProxy(), bufferToBase64(), buildCollapsible(), buildColorModels(), buildDesignHeader(), buildInsertPlaceholderSnapshotFromDom() (+137 more)
 
 ### Community 12 - "ref_node_child_process"
-Cohesion: 0.09
-Nodes (13): browserOpenCommand(), openSystemBrowser(), entryPoints, apiDir, apiHiddenDir, __dirname, mobileDir, rootDir (+5 more)
+Cohesion: 0.06
+Nodes (20): browserOpenCommand(), openSystemBrowser(), entryPoints, commonOptions, manifest, outputDir, server, targets (+12 more)
 
 ### Community 13 - "runner.ts"
-Cohesion: 0.06
-Nodes (31): 1. [Quickstart Guide](./quickstart.md), 2. [Architecture & Durability Engine](./architecture.md), 4. [Runtime Orchestration & Execution](./runtime-guide.md), 5. [React & Client Store](./react-and-client.md), 6. [Adapters Guide](./adapters-guide.md), 7. [Custom Domain Walkthrough](./custom-domain-example.md), 8. [Testing Guide](./testing-guide.md), 9. [Versioning, Upgrades & Clean-Host Installation](./versioning-and-upgrades.md) (+23 more)
+Cohesion: 0.07
+Nodes (28): 1. [Quickstart Guide](./quickstart.md), 2. [Architecture & Durability Engine](./architecture.md), 4. [Runtime Orchestration & Execution](./runtime-guide.md), 5. [React & Client Store](./react-and-client.md), 6. [Adapters Guide](./adapters-guide.md), 7. [Custom Domain Walkthrough](./custom-domain-example.md), 8. [Testing Guide](./testing-guide.md), 9. [Versioning, Upgrades & Clean-Host Installation](./versioning-and-upgrades.md) (+20 more)
 
 ### Community 14 - "messaging/contracts.ts"
-Cohesion: 0.05
-Nodes (69): A. Sub-2A: PostgreSQL Serverless Pool Capping, Domain & Services (`src/server/domain/messaging/`), findDirectConversation(), getParticipants(), main(), sendReply(), dynamic, dynamic (+61 more)
+Cohesion: 0.04
+Nodes (86): Domain & Services (`src/server/domain/messaging/`), findDirectConversation(), getParticipants(), main(), sendReply(), dynamic, dynamic, GET() (+78 more)
 
 ### Community 15 - "text-job-runtime.ts"
-Cohesion: 0.05
-Nodes (56): Baseline and Boundary, Checkpoint 1 — Contracts, Bounded Scope, and Policy, Checkpoint 2 — Retention and Line-Anchored Extraction, Checkpoint 3 — Durable DAG and Canonical Acceptance, Checkpoint 4 — UI and Chat Parity, Checkpoint 5 — Integrated Acceptance and Verification, Outstanding Gates (Still Open), S4D Grounded GitHub Repository and File Ingestion Verification (+48 more)
+Cohesion: 0.06
+Nodes (52): Baseline and Boundary, Checkpoint 1 — Contracts, Bounded Scope, and Policy, Checkpoint 2 — Retention and Line-Anchored Extraction, Checkpoint 3 — Durable DAG and Canonical Acceptance, Checkpoint 5 — Integrated Acceptance and Verification, Outstanding Gates (Still Open), S4D Grounded GitHub Repository and File Ingestion Verification, 7. GitHub Repository Sources (+44 more)
 
 ### Community 16 - "delivery.ts"
-Cohesion: 0.05
-Nodes (68): Inspection findings, interaction-builder, CohortDraftContextValue, LessonItemProps, buildPrismaCohortCreateInput(), DeliveryRightsValidationResult, MaterializedCohortResult, materializeLearnerCohort() (+60 more)
+Cohesion: 0.06
+Nodes (62): Inspection findings, buildPrismaCohortCreateInput(), DeliveryRightsValidationResult, MaterializedCohortResult, materializeLearnerCohort(), SOURCE_TYPE_MAP, validateDeliveryRights(), projectGeneratedLessons() (+54 more)
 
 ### Community 17 - "interaction.repo.ts"
-Cohesion: 0.04
-Nodes (65): 4. S6 Checkpoint 2: Budgets, Quotas & Admission Control, Automated Evidence for Checkpoint 2:, consola, workflow, dynamic, runtime, Ctx, dynamic (+57 more)
+Cohesion: 0.02
+Nodes (127): 2. Dependency Gate Ledger, 3. Automated Verification Evidence, 4. S6 Checkpoint 2: Budgets, Quotas & Admission Control, 6. S6 Checkpoint 4: Supervision, Controls, Metrics & Measured Load, 7. Integrated Production Release Gate & Operator Package, Authoritative Final Decision, Automated Evidence for Checkpoint 2:, Automated Evidence for Checkpoint 4: (+119 more)
 
 ### Community 18 - "next"
 Cohesion: 0.14
@@ -957,23 +948,23 @@ Nodes (22): dynamic, GET(), isAuthorizedInternal(), dynamic, GET(), isAuthorized
 
 ### Community 19 - "context.mjs"
 Cohesion: 0.05
-Nodes (91): appendAutonomyCounterDirective(), appendDetectorFallback(), appendImageGenDirective(), appendImageToolsDirective(), appendSubagentAuthorizationDirective(), appendSurfaceBriefContext(), automaticHookMode(), buildMissingTargetDirective() (+83 more)
+Nodes (88): appendAutonomyCounterDirective(), appendDetectorFallback(), appendImageGenDirective(), appendImageToolsDirective(), appendSubagentAuthorizationDirective(), appendSurfaceBriefContext(), automaticHookMode(), buildMissingTargetDirective() (+80 more)
 
 ### Community 20 - "public-cohort.ts"
-Cohesion: 0.08
-Nodes (51): ArchivesPage(), metadata, PrivateArchives(), EventsPage(), metadata, PrivateEvents(), HallOfFame, HallOfFamePage() (+43 more)
+Cohesion: 0.07
+Nodes (57): Cache boundaries and edge directives, POST(), mocks, validPayload, ArchivesPage(), metadata, PrivateArchives(), EventsPage() (+49 more)
 
 ### Community 21 - "getCreationOwner"
 Cohesion: 0.04
-Nodes (75): corsair, main(), GET(), handle, runtime, GET(), handle, runtime (+67 more)
+Nodes (68): main(), GET(), handle, runtime, GET(), handle, runtime, Context (+60 more)
 
 ### Community 22 - "release.ts"
 Cohesion: 0.06
-Nodes (39): 1. Separate PostgreSQL Lifecycle Verification, 2. Full Test Suite & Build Verification, Baseline and Invariants, Checkpoint 1 — Canonical Actions, Domain Planning, and AI Tools, Checkpoint 2 — PostgreSQL Release Store & Relational Transaction Adapter, Checkpoint 3 — UI ReleasePanel & Learner Activation Flow, Checkpoint 4 — Integrated Verification & Verification Suite Evidence, S5 End-to-End Learner Delivery and Workspace Release Verification (+31 more)
+Nodes (41): 1. Separate PostgreSQL Lifecycle Verification, 2. Full Test Suite & Build Verification, Baseline and Invariants, Checkpoint 2 — PostgreSQL Release Store & Relational Transaction Adapter, Checkpoint 3 — UI ReleasePanel & Learner Activation Flow, Checkpoint 4 — Integrated Verification & Verification Suite Evidence, S5 End-to-End Learner Delivery and Workspace Release Verification, 1. Overview & Verification Status (+33 more)
 
 ### Community 23 - "QuestlineIcon"
-Cohesion: 0.04
-Nodes (53): AssignmentFeedItem, CohortQuestline, Lesson, LessonStatus, Completed, InStream, Locked, Ready (+45 more)
+Cohesion: 0.05
+Nodes (50): AssignmentFeedItem, Lesson, LessonStatus, Completed, InStream, Locked, Ready, LessonType (+42 more)
 
 ### Community 24 - "setLiveState"
 Cohesion: 0.11
@@ -1000,20 +991,20 @@ Cohesion: 0.06
 Nodes (62): assembleLiveBrowserScript(), assertLiveBrowserScriptParts(), LIVE_BROWSER_SCRIPT_PARTS, readLiveBrowserScriptParts(), resolveLiveBrowserScriptParts(), acknowledgePendingEvent(), activeSessionSummaries(), agentPollingConnected() (+54 more)
 
 ### Community 30 - "SourcesStep.tsx"
-Cohesion: 0.06
-Nodes (45): CreateCohortPage(), metadata, companyLinks, currentYear, Footer(), FooterLink, FooterProps, learnLinks (+37 more)
+Cohesion: 0.07
+Nodes (46): CreateCohortPage(), metadata, Cluster, Container, ContainerProps, ContainerSize, widths, Align (+38 more)
 
-### Community 31 - "ExploreDesktop.tsx"
-Cohesion: 0.08
-Nodes (22): defaultIcons, EmptyState(), EmptyStateProps, InfiniteScroller, InfiniteScrollerHandle, InfiniteScrollerProps, ROOM_MEMBER_COUNTS, StudyRoomCard (+14 more)
+### Community 31 - "global/StudyRooms/StudyRooms.tsx"
+Cohesion: 0.31
+Nodes (4): ROOM_MEMBER_COUNTS, StudyRoomCard, StudyRoomCardProps, StudyRooms
 
 ### Community 32 - "ISSUE 5 — `GET /api/explore` 100% Hardcoded to Mock Repository"
-Cohesion: 0.25
-Nodes (8): 1. Problem & Root Cause, 2. Preservation & Invariant Rules, 3. Architecture & Solution Instructions, 4. Exact File Edits & Code Guidance, 5. Verification Steps, File: `src/app/api/explore/route.ts`, ISSUE 5 — `GET /api/explore` 100% Hardcoded to Mock Repository, TrendingCourseCardItem
+Cohesion: 0.33
+Nodes (6): 1. Problem & Root Cause, 2. Preservation & Invariant Rules, 4. Exact File Edits & Code Guidance, 5. Verification Steps, File: `src/app/api/explore/route.ts`, ISSUE 5 — `GET /api/explore` 100% Hardcoded to Mock Repository
 
 ### Community 33 - "PersonalWorkspaceRepository"
 Cohesion: 0.05
-Nodes (24): ALL_STORE_NAMES, calculateObjectBytes(), CommittedWorkspaceState, EntityType, FROZEN_OFFLINE_CAPABILITY_PROMISES, LocalStateExportBundle, LockAcquisitionTimeoutError, LockNotification (+16 more)
+Nodes (23): ALL_STORE_NAMES, calculateObjectBytes(), CommittedWorkspaceState, EntityType, FROZEN_OFFLINE_CAPABILITY_PROMISES, LocalStateExportBundle, LockAcquisitionTimeoutError, LockNotification (+15 more)
 
 ### Community 34 - "connectSSE"
 Cohesion: 0.06
@@ -1021,7 +1012,7 @@ Nodes (83): applyParamDefaults(), applyParamValue(), applyPlaceholderDimensions(
 
 ### Community 35 - "CreationStorageError"
 Cohesion: 0.02
-Nodes (179): 3. Architecture & Solution Instructions, File: `src/server/infrastructure/storage/creation.store.ts`, jsdom, main(), createInMemoryArtifactStore(), validateScope(), createJourneyDiscoveryAdapter(), deterministicUuid() (+171 more)
+Nodes (130): 1. Problem & Root Cause, 2. Preservation & Invariant Rules, 3. Architecture & Solution Instructions, 4. Exact File Edits & Code Guidance, 5. Verification Steps, File: `src/server/infrastructure/storage/creation.store.ts`, ISSUE 21 — N+1 Storage Cascades Across PostgreSQL & MongoDB GridFS, jsdom (+122 more)
 
 ### Community 36 - "design-system.mjs"
 Cohesion: 0.07
@@ -1032,32 +1023,32 @@ Cohesion: 0.18
 Nodes (13): ExcalidrawWrapper, BG_PRESETS, HamburgerGridControls(), HamburgerGridControlsProps, IconBlank(), IconDashed(), IconDotted(), IconGrid() (+5 more)
 
 ### Community 38 - "MemoryInteractionRepository"
-Cohesion: 0.05
-Nodes (33): 1. Action Service (`planActionCommit`), Batch Action Commit (`planBatchActionCommit`), Telemetry & Observability (`InteractionTelemetryPort`), 2. Division of Responsibilities Matrix, createPgInteractionRepository(), PgAdapterOptions, createSqliteInteractionRepository(), SQLITE_INIT_DDL (+25 more)
+Cohesion: 0.06
+Nodes (24): 2. Division of Responsibilities Matrix, createPgInteractionRepository(), PgAdapterOptions, createSqliteInteractionRepository(), SQLITE_INIT_DDL, SqliteDriver, DomainActionPlan, planActionCommit() (+16 more)
 
 ### Community 39 - "s6-integrated-acceptance.ts"
-Cohesion: 0.09
-Nodes (52): 5. S6 Checkpoint 3: Retention, Safe Cleanup & Backup/Restore Integrity, Automated Evidence for Checkpoint 3:, embeddedPostgresModule, main(), mongoBin, mongoClientModule, mongoModule, port (+44 more)
+Cohesion: 0.08
+Nodes (53): 5. S6 Checkpoint 3: Retention, Safe Cleanup & Backup/Restore Integrity, Automated Evidence for Checkpoint 3:, embeddedPostgresModule, main(), mongoBin, mongoClientModule, mongoModule, port (+45 more)
 
-### Community 40 - "useExperience"
-Cohesion: 0.26
-Nodes (9): Loading(), metadata, PlayPage(), Experience, useExperience(), useIsMobile(), INITIAL_PLAYBACK_STATE, Play() (+1 more)
+### Community 40 - "useRoomOrchestration.ts"
+Cohesion: 0.08
+Nodes (32): generateMetadata(), StudyRoomPage(), ApiHttpError, JoinRoomResponse, RoomEnvironmentSnapshotDTO, RoomEventDTO, RoomParticipantDTO, RoomSprintParticipantDTO (+24 more)
 
 ### Community 41 - "cohort-creation/contracts.ts"
 Cohesion: 0.02
-Nodes (155): analysisPreview, checkpoint, chunkPreview, chunkTitles, conceptPreview, curriculum, images, partitionIds (+147 more)
+Nodes (147): 1. Executive Summary & Design Foundations, analysisPreview, checkpoint, chunkPreview, chunkTitles, conceptPreview, curriculum, images (+139 more)
 
 ### Community 42 - "username-dm-studyroom.e2e.test.ts"
 Cohesion: 0.07
-Nodes (33): BASELINE_STUDY_ROOMS, purgeAndSeed(), dynamic, isValidEmail(), isValidUsername(), POST(), dynamic, GET() (+25 more)
+Nodes (34): BASELINE_STUDY_ROOMS, purgeAndSeed(), dynamic, isValidEmail(), isValidUsername(), POST(), dynamic, GET() (+26 more)
 
 ### Community 43 - "SceneDock.tsx"
 Cohesion: 0.04
-Nodes (75): Repository-snapshot detection, 3.9 Visibility matrix (admin vs member) **[decision — do not alter]**, 8.5 Missing background or audio assets, 9.2 Admin-only environment controls, Stage 3 — Personal-state and environment hooks (depends on 1–2), Stage 9 — Shared environment: admin panel, member panel, music dock (depends on 2, 4, 6), start(), isStudyRoomCardDTO() (+67 more)
+Nodes (63): Repository-snapshot detection, 1.1 Working Tree & Redesign Preservation, 8.5 Missing background or audio assets, Stage 3 — Personal-state and environment hooks (depends on 1–2), start(), AMBIENT_PRESETS, getAmbientPreset(), BACKGROUND_OPTIONS (+55 more)
 
 ### Community 44 - "doctor.mjs"
 Cohesion: 0.07
-Nodes (58): applyFixes(), cli(), collect(), parseArgs(), readProjectRootPatterns(), rel(), renderText(), safeRead() (+50 more)
+Nodes (57): applyFixes(), cli(), collect(), parseArgs(), readProjectRootPatterns(), rel(), renderText(), safeRead() (+49 more)
 
 ### Community 45 - "cohortRepository.ts"
 Cohesion: 0.58
@@ -1065,31 +1056,31 @@ Nodes (4): useArchives(), useCohort(), useEvents(), useQuestline()
 
 ### Community 46 - "notes-board/package.json"
 Cohesion: 0.07
-Nodes (26): dependencies, clsx, @excalidraw/excalidraw, lucide-react, @svar-ui/react-kanban, clsx, esbuild, @excalidraw/excalidraw (+18 more)
+Nodes (26): devDependencies, esbuild, @types/react, @types/react-dom, typescript, clsx, esbuild, @excalidraw/excalidraw (+18 more)
 
 ### Community 47 - "server.ts"
-Cohesion: 0.08
-Nodes (35): agendaDomain, HostAgendaCommand, hostAgendaCommandSchema, HostAgendaItem, hostAgendaItemSchema, HostAgendaMeeting, hostAgendaMeetingSchema, HostBoundActionContext (+27 more)
+Cohesion: 0.09
+Nodes (34): HostAgendaCommand, hostAgendaCommandSchema, HostAgendaItem, hostAgendaItemSchema, HostAgendaMeeting, hostAgendaMeetingSchema, HostBoundActionContext, HostBoundAgendaAction (+26 more)
 
 ### Community 48 - "detect-antipatterns-browser.js"
 Cohesion: 0.06
 Nodes (53): browserColorsClose(), browserDesignSystemConfig(), browserHasDirectText(), browserPrimaryFont(), browserRadiusTokens(), browserSampleText(), buildSelectorSegment(), checkBrowserDesignSystemSources() (+45 more)
 
-### Community 49 - "play/components/index.ts"
-Cohesion: 0.10
-Nodes (25): PlayerSurface(), PlayerSurfaceProps, PlayHeader(), PlayHeaderProps, mockItem, PlaySkeleton(), PlaySkeletonProps, PlayStage() (+17 more)
+### Community 49 - "PlayMobile.tsx"
+Cohesion: 0.03
+Nodes (116): ISSUE 13: Questline Season & Lesson Indexing Desynchronization (0-based vs 1-based), ISSUE 1: Feed S1 VX/X Labelling Bug (Shows `V1/1, V2/2, V3/3` instead of `SX (Current Index)/(Total In Season)`), ISSUE 13: Questline Season & Lesson Indexing Desynchronization (0-based vs 1-based), ISSUE 1: Feed S1 VX/X Labelling Bug (Shows `V1/1, V2/2, V3/3` instead of `SX (Current Index)/(Total In Season)`), Loading(), metadata, PlayPage(), usePullToRefresh() (+108 more)
 
 ### Community 50 - "detect-html.mjs"
 Cohesion: 0.07
 Nodes (37): Step 2b: Stage the frontmatter, applyStaticDeclaration(), buildBorderOverrideMap(), parseShorthand(), resolveVar(), buildStaticStyleMap(), buildStaticWindow(), collectStaticCssRules() (+29 more)
 
-### Community 51 - "ExploreMobile.tsx"
-Cohesion: 0.10
-Nodes (19): ISSUE 7: Hardcoded Mock Content & Missing Discovery Sections in Mobile Explore, ISSUE 7: Hardcoded Mock Content & Missing Discovery Sections in Mobile Explore, ExploreHero(), ExploreSearch(), ExploreSearchProps, ExploreTopics(), ExploreTopicsProps, Topic (+11 more)
+### Community 51 - "cohort-creation/chunking.service.ts"
+Cohesion: 0.15
+Nodes (14): UnderstandingConcepts(), loadUnderstandingPreview(), state(), chunkingArtifactFingerprint(), fixture(), understandingPreviewHandler(), pinChunking(), preserveChunking() (+6 more)
 
 ### Community 52 - "SessionPanel.tsx"
-Cohesion: 0.08
-Nodes (43): 1.2 Two state categories (never mix them), 3.8 Panel model (competing panels) **[decision]**, 4.6 Personal task list — `SessionPanel` (lower half), 5.4 Components (new unless noted) — responsibilities, props, state, callbacks, Background / chrome, Discovery, Personal, Room orchestration (+35 more)
+Cohesion: 0.07
+Nodes (43): 1.1 Concept, 1.2 Two state categories (never mix them), 1.3 The single permitted member-side audio control, 1.4 User journey, 1.5 Admin vs member — what each sees, 1.6 Non-goals (do not build), 1. Product specification, 3.8 Panel model (competing panels) **[decision]** (+35 more)
 
 ### Community 53 - "initPageChat"
 Cohesion: 0.10
@@ -1097,15 +1088,15 @@ Nodes (42): armPageChatForTyping(), attachSteerFocusDebug(), attachSteerFocusGua
 
 ### Community 54 - "hook-lib.mjs"
 Cohesion: 0.06
-Nodes (55): ACK_EXTS, ADVISORY_RULES, ALLOWED_EXTS, applyConfigSource(), applyDetectorConfigSource(), applyPatchText(), canonicalPathCache, clampByte() (+47 more)
+Nodes (54): ACK_EXTS, ADVISORY_RULES, applyConfigSource(), applyDetectorConfigSource(), applyPatchText(), canonicalPathCache, clampByte(), cloneDefaultConfig() (+46 more)
 
 ### Community 55 - "el"
 Cohesion: 0.09
 Nodes (41): applyConfigureBarChrome(), bindConfigureCountPillTooltip(), buildConfigureCountControl(), buildConfigureRow(), buildConfigureSubmitButton(), buildConfigureTrailingCluster(), buildConfigureVoiceButton(), buildConfirmedRow() (+33 more)
 
 ### Community 56 - "explore/models/index.ts"
-Cohesion: 0.07
-Nodes (34): dynamic, GET(), globalForExploreCache, runtime, hoisted, ProviderBadge(), ProviderBadgeProps, providers (+26 more)
+Cohesion: 0.04
+Nodes (58): 3. Architecture & Solution Instructions, dynamic, GET(), globalForExploreCache, runtime, hoisted, defaultIcons, EmptyState() (+50 more)
 
 ### Community 57 - "detect-antipatterns.mjs"
 Cohesion: 0.10
@@ -1113,19 +1104,19 @@ Nodes (36): confirm(), detectCli(), dim(), fileUrlToLocalPath(), formatAdvisoryS
 
 ### Community 58 - "package.json"
 Cohesion: 0.04
-Nodes (49): eslintConfig, engines, node, ai, clsx, @excalidraw/excalidraw, lucide-react, pg (+41 more)
+Nodes (54): eslintConfig, engines, node, ai, clsx, @excalidraw/excalidraw, lucide-react, pg (+46 more)
 
 ### Community 59 - "cohort/models/index.ts"
 Cohesion: 0.12
 Nodes (23): CohortHallOfFame, HallAccent, HallCategory, LegendEntry, AchievementBadge(), AchievementRow(), AchievementsCard(), CategoryFilter() (+15 more)
 
 ### Community 60 - "message.ts"
-Cohesion: 0.06
-Nodes (27): FriendAvatarGroup(), Props, StudyRoomsProps, CalendarCell, CalendarEvent, CalendarProvider, INITIAL_EVENTS, PROVIDERS (+19 more)
+Cohesion: 0.08
+Nodes (23): FriendAvatarGroup(), Props, CalendarCell, CalendarEvent, CalendarProvider, INITIAL_EVENTS, PROVIDERS, TimelineItem (+15 more)
 
 ### Community 61 - "presence.service.ts"
 Cohesion: 0.07
-Nodes (20): RealtimeEventEnvelope, CentrifugoApiError, CentrifugoAuthError, CentrifugoError, CentrifugoNetworkError, CentrifugoRealtimeTransport, CentrifugoTimeoutError, ClaimedDelivery (+12 more)
+Nodes (21): RealtimeEventEnvelope, CentrifugoApiError, CentrifugoAuthError, CentrifugoError, CentrifugoNetworkError, CentrifugoRealtimeTransport, CentrifugoTimeoutError, CentrifugoTransportOptions (+13 more)
 
 ### Community 62 - "dependencies"
 Cohesion: 0.04
@@ -1133,51 +1124,51 @@ Nodes (50): dependencies, ai, @ai-sdk/google, @auth/prisma-adapter, @babel/runti
 
 ### Community 63 - "handlers.ts"
 Cohesion: 0.07
-Nodes (34): 1. Overview & Verification Status, dispatchInteraction(), err(), Handlers, HEADERS, json(), actionEnvelopeSchema, entityRefSchema (+26 more)
+Nodes (34): dispatchInteraction(), err(), Handlers, HEADERS, json(), actionEnvelopeSchema, entityRefSchema, cancelRunSchema (+26 more)
 
 ### Community 64 - "live-commit-manual-edits.mjs"
 Cohesion: 0.11
 Nodes (48): allEntryIds(), argVal(), buildRepairBatch(), candidatesForEntry(), changedFilesSinceSnapshot(), clearAppliedEntries(), collectApplyOwnedFiles(), collectRollbackFiles() (+40 more)
 
 ### Community 65 - "usePomodoro.ts"
-Cohesion: 0.05
-Nodes (54): 5.5 Hooks, utilities, data (non-visual), DEFAULT_POMODORO_STATS, inMemoryData, PomodoroPersistedData, pomodoroStorageAdapter, PomodoroStreakStats, subscribers, ApiHttpError (+46 more)
+Cohesion: 0.08
+Nodes (36): 5.5 Hooks, utilities, data (non-visual), Stage 2 — Pure utilities with unit tests (depends on 1), DEFAULT_POMODORO_STATS, inMemoryData, PomodoroPersistedData, pomodoroStorageAdapter, PomodoroStreakStats, subscribers (+28 more)
 
 ### Community 66 - "impeccable-config.mjs"
 Cohesion: 0.10
 Nodes (47): applyDetectionConfigSource(), clampByte(), cleanIgnoreValueDisplay(), cloneDetectionConfig(), cloneRawDetectionConfig(), colorIgnoreKey(), DEFAULT_DETECTION_CONFIG, DETECTOR_CONFIG_KEYS (+39 more)
 
 ### Community 67 - "createCohort.ts"
-Cohesion: 0.09
-Nodes (32): SourceCardProps, SourcesStepProps, stepIcons, WizardStepperProps, buildImportedTotals(), buildSelectOptions(), buildSourceCards(), buildStepModels() (+24 more)
+Cohesion: 0.08
+Nodes (34): ImportWorkspaceProps, SourceCardProps, SourcesStepProps, stepIcons, WizardStepperProps, buildImportedTotals(), buildSelectOptions(), buildSourceCards() (+26 more)
 
 ### Community 68 - "ref_clsx"
-Cohesion: 0.12
-Nodes (24): Card(), CardProps, ClusterProps, Align, alignMap, Gap, gapMap, Justify (+16 more)
+Cohesion: 0.13
+Nodes (23): Card(), CardProps, ClusterProps, Align, alignMap, Gap, gapMap, Justify (+15 more)
 
 ### Community 69 - "core/contracts.ts"
-Cohesion: 0.07
-Nodes (28): 1. Entity References (`EntityRef`), 2. Action Envelope (`ActionEnvelope`), 3. Change Receipt (`ChangeReceipt`), 4. Message Parts (`MessagePart`), 5. Interaction Events (`InteractionEvent`), Core Contracts & Schemas Reference, Data Contracts, Domain Definition (+20 more)
+Cohesion: 0.05
+Nodes (45): 1. Entity References (`EntityRef`), 2. Action Envelope (`ActionEnvelope`), 3. Change Receipt (`ChangeReceipt`), 4. Message Parts (`MessagePart`), 5. Interaction Events (`InteractionEvent`), Core Contracts & Schemas Reference, Data Contracts, Domain Definition (+37 more)
 
-### Community 70 - "CohortIntakeScreen.tsx"
-Cohesion: 0.06
-Nodes (38): 1. Executive Summary, 2. Screenshot Parity Matrix, 3. Stage-Specific Screen Compositions Parity Resolution, 4. Acceptance Verification Summary, Visual Parity Verification & Rendering Evidence, HIGH_VALUE_TEMPLATES, LearningPromptBar, LearningPromptBarHandle (+30 more)
+### Community 70 - "intake-draft.ts"
+Cohesion: 0.27
+Nodes (9): readIntakeDraft(), saveIntakeDraft(), assignMock, draft, LegacyLandingHandoff(), fake, CohortIntake, cohortIntakeSchema (+1 more)
 
 ### Community 71 - "import.ts"
 Cohesion: 0.07
-Nodes (35): CANONICAL_STAGE_NAMES, cardStatusLabel(), ImportWorkspace(), ImportWorkspaceProps, LiveAssetGrid(), PipelineMatrix(), SourceJobs(), TelemetryTerminal() (+27 more)
+Nodes (33): CANONICAL_STAGE_NAMES, cardStatusLabel(), ImportWorkspace(), LiveAssetGrid(), PipelineMatrix(), SourceJobs(), TelemetryTerminal(), CreateCohortSourceDraft (+25 more)
 
 ### Community 72 - "connectToMongoDB"
 Cohesion: 0.03
-Nodes (76): 1. Executive Summary, 2. Code Review Pro - Deliverables, 3. Verification & Quality Gates, B. Sub-2B: MongoDB Atlas Connection Hygiene, Team 2: Serverless Database Pool Capping & Timeout Hygiene (Pool-Optimizer-Lead), 6. Migration & Reverse-Mapping Rules (Addressing E1 Findings), 1. Executive Summary & Critical Architectural Findings, 2. Complete Source & Data Class Catalog (Inventory Matrix) (+68 more)
+Nodes (76): 1. Executive Summary, 2. Code Review Pro - Deliverables, 3. Verification & Quality Gates, A. Sub-2A: PostgreSQL Serverless Pool Capping, B. Sub-2B: MongoDB Atlas Connection Hygiene, Team 2: Serverless Database Pool Capping & Timeout Hygiene (Pool-Optimizer-Lead), 6. Migration & Reverse-Mapping Rules (Addressing E1 Findings), 2. Complete Source & Data Class Catalog (Inventory Matrix) (+68 more)
 
 ### Community 73 - "corsair.ts"
-Cohesion: 0.12
-Nodes (21): GET, handler(), OPTIONS, POST, runtime, readCorsairConfig(), base, createRuntime() (+13 more)
+Cohesion: 0.10
+Nodes (27): corsair, runTest(), GET, handler(), OPTIONS, POST, runtime, dynamic (+19 more)
 
 ### Community 74 - "hook-admin.mjs"
-Cohesion: 0.12
-Nodes (42): ACTIONS, addIgnoreFile(), addIgnoreRule(), addIgnoreValue(), DETECTOR_CONFIG_KEYS, detectorSection(), fileHasImpeccableHookMarker(), HOOK_MANIFEST_TARGETS (+34 more)
+Cohesion: 0.11
+Nodes (44): ACTIONS, addIgnoreFile(), addIgnoreRule(), addIgnoreValue(), DETECTOR_CONFIG_KEYS, detectorSection(), fileHasImpeccableHookMarker(), HOOK_MANIFEST_TARGETS (+36 more)
 
 ### Community 75 - "live-accept.mjs"
 Cohesion: 0.10
@@ -1191,29 +1182,29 @@ Nodes (48): scripts, build, build:interaction, build:interaction:force, build:no
 Cohesion: 0.10
 Nodes (23): formatMessagingLoadReportMarkdown(), main(), calculateDistribution(), getHardwareProfile(), HardwareProfile, LoadRunConfig, LoadRunResults, MessagingBenchmarkRunner (+15 more)
 
-### Community 78 - "draft-context.tsx"
-Cohesion: 0.07
-Nodes (37): UI and chat parity (Checkpoint 4), BuilderDialog(), BuilderStage, clearWorkspaceDrafts(), CohortDraftContext, CohortDraftProvider(), createInitialBucket(), defaultFallbackBucket (+29 more)
+### Community 78 - "MusicSettingsModal.tsx"
+Cohesion: 0.13
+Nodes (15): MusicPlayerDockProps, DEFAULT_QUEUE, MusicSettingsModal(), MusicSettingsModalProps, QueueItem, MusicTab(), MusicTabProps, spotifySource (+7 more)
 
 ### Community 79 - "HomeDesktop.tsx"
-Cohesion: 0.11
-Nodes (16): Loading(), HomeMobile(), HomeMobileProps, HomeHero(), HomeHeroProps, DAY_NAMES, DEFAULT_ACTIVITY, DEFAULT_DAYS (+8 more)
+Cohesion: 0.05
+Nodes (34): 1. Page Identification, 2. Tooltip Inventory, 3. Visual Requirements, 4. Interaction Requirements, 5. Accessibility Requirements, 6. Implementation Notes, 7. Acceptance Criteria, Tooltip Implementation Specification: Home Page (+26 more)
 
 ### Community 80 - "live-wrap.mjs"
-Cohesion: 0.12
+Cohesion: 0.11
 Nodes (36): hasGeneratedHeader(), HEADER_MARKERS, isGeneratedFile(), isGitIgnored(), scanRollbackDir(), argVal(), buildInsertWrapperLines(), computeInsertLine() (+28 more)
 
 ### Community 81 - "feed/route.ts"
 Cohesion: 0.04
-Nodes (70): DELETE(), POST(), mocks, POST(), POST(), dynamic, GET(), mocks (+62 more)
+Nodes (77): DELETE(), POST(), mocks, dynamic, GET(), mocks, POST(), POST() (+69 more)
 
 ### Community 82 - "critique-storage.mjs"
 Cohesion: 0.18
 Nodes (20): coerceSlug(), listSnapshotsForSlug(), main(), nowFilenameStamp(), parseFrontmatter(), readLatestSnapshot(), readTrend(), serializeFrontmatter() (+12 more)
 
-### Community 83 - "message/models/index.ts"
-Cohesion: 0.07
-Nodes (19): CommunityChat(), ChannelTabs(), Props, CommunityHeader(), Props, settings, DateDivider(), Props (+11 more)
+### Community 83 - "CommunityChat.tsx"
+Cohesion: 0.06
+Nodes (22): CommunityChat(), Props, ChannelTabs(), Props, CommunityHeader(), Props, settings, CommunitySidebar() (+14 more)
 
 ### Community 84 - "compress.py"
 Cohesion: 0.09
@@ -1221,7 +1212,7 @@ Nodes (18): main(), print_usage(), backup_dir_for(), build_compress_prompt(), bu
 
 ### Community 85 - "coordinator.ts"
 Cohesion: 0.11
-Nodes (18): PublishRequestBody, WorkspaceSnapshot, generateUuid(), IWorkspaceSyncRepository, RemotePublishResponse, RemotePullResponse, RemotePullState, RemoteStatusResponse (+10 more)
+Nodes (17): PublishRequestBody, WorkspaceSnapshot, generateUuid(), IWorkspaceSyncRepository, RemotePublishResponse, RemotePullResponse, RemotePullState, RemoteStatusResponse (+9 more)
 
 ### Community 86 - "json"
 Cohesion: 0.13
@@ -1232,8 +1223,8 @@ Cohesion: 0.07
 Nodes (41): ProgressSidebarProps, ArchiveAuthor, ArchiveCategory, ArchiveContributor, ArchiveCta, ArchiveSortControl, ArchiveType, CheatSheet (+33 more)
 
 ### Community 88 - "home/models/index.ts"
-Cohesion: 0.11
-Nodes (20): homeRepository, CompletedCourseCard, CompletedCourseCardProps, ContinueLater(), ContinueLaterProps, ContinueLaterCard, ContinueLaterCardProps, DEFAULT_AVATARS (+12 more)
+Cohesion: 0.07
+Nodes (32): StoredHomeChoices, ActiveCohorts, ActiveCohortsProps, CohortLearningSettings, localDateValue(), Panel, SubscribedCohortCard, SubscribedCohortCardProps (+24 more)
 
 ### Community 89 - "design-parser.mjs"
 Cohesion: 0.13
@@ -1249,11 +1240,11 @@ Nodes (27): parseCliOptions(), resolveTargetSelection(), parseTargetOptions(), p
 
 ### Community 92 - "personal-workspace/contracts.ts"
 Cohesion: 0.04
-Nodes (78): extractAssetsFromSceneFiles(), exportRecoveryBundle(), importRecoveryBundle(), RecoveryImportOptions, RecoveryImportResult, SYNTHETIC_ASSET_BYTES, SYNTHETIC_PNG_BASE64, AssetMimeType (+70 more)
+Nodes (79): extractAssetsFromSceneFiles(), exportRecoveryBundle(), importRecoveryBundle(), RecoveryImportOptions, RecoveryImportResult, SYNTHETIC_ASSET_BYTES, SYNTHETIC_PNG_BASE64, AssetMimeType (+71 more)
 
 ### Community 93 - "message/models/index.ts"
-Cohesion: 0.11
-Nodes (17): Center(), Props, LiveCard(), LiveNow(), getAttachmentIcon(), Props, RecentMessageItem(), Props (+9 more)
+Cohesion: 0.08
+Nodes (20): StudyRoomsProps, Center(), Props, LiveCard(), Props, LiveNow(), Props, getAttachmentIcon() (+12 more)
 
 ### Community 94 - "pedagogicalVector.types.ts"
 Cohesion: 0.15
@@ -1263,85 +1254,85 @@ Nodes (23): VectorScoringResult, arrayToVector(), calculateChannelMatchScore(), 
 Cohesion: 0.05
 Nodes (43): 1. Logo Cover, 1. Monogram + Meaning, 2 × 3 REFERENCE-STYLE LAYOUT, 2. Logo Construction, 2. Product Action, 3. Digital Application, 3. Metaphor Fusion, 4. Brand Essence (+35 more)
 
-### Community 96 - "ref_node_crypto"
+### Community 96 - "CreationSnapshot"
 Cohesion: 0.04
-Nodes (122): readyFixture(), main(), fixture(), { api, push, observer, upload }, failedMaterial(), materialDraft(), saved, fixture() (+114 more)
+Nodes (101): runPublicationSmoke(), prepare(), { api, push, observer, upload }, failedMaterial(), materialDraft(), saved, executeDurableCreationJob(), main() (+93 more)
 
 ### Community 97 - "journey-checkpoint6-acceptance.test.ts"
-Cohesion: 0.05
-Nodes (50): acquireGeneratedGuide(), CohortSourceInput, createLearningIntent(), defaultCreationGuideAuthor, DefaultCreationGuideAuthorHelper, extractGeneratedGuide(), GoalAdapterDeps, LiveCreationGuideAuthor (+42 more)
+Cohesion: 0.04
+Nodes (60): fake, acquireGeneratedGuide(), CohortSourceInput, createLearningIntent(), defaultCreationGuideAuthor, DefaultCreationGuideAuthorHelper, extractGeneratedGuide(), GoalAdapterDeps (+52 more)
 
-### Community 98 - "PlayMobile.tsx"
-Cohesion: 0.09
-Nodes (25): usePullToRefresh(), PLAYBACK_SPEEDS, PlayMobile(), PlayMobileDock, PlayMobileDockProps, PlayMobileHeader, PlayMobileHeaderProps, PlayMobileProps (+17 more)
+### Community 98 - "LearningPromptBar.tsx"
+Cohesion: 0.14
+Nodes (10): HIGH_VALUE_TEMPLATES, LearningPromptBar, LearningPromptBarHandle, LearningPromptBarProps, LearningTemplate, useSafeRouter(), useSafeSession(), CATEGORIES (+2 more)
 
 ### Community 99 - "exports"
 Cohesion: 0.15
 Nodes (13): default, import, types, default, import, types, exports, ./adapters/ai (+5 more)
 
 ### Community 100 - "authForm.tsx"
-Cohesion: 0.10
-Nodes (15): AuthButton(), AuthButtonProps, AuthDivider(), AGE_OPTIONS, AuthForm(), GENDER_OPTIONS, AuthInput(), AuthInputProps (+7 more)
+Cohesion: 0.09
+Nodes (14): AuthButton(), AuthButtonProps, AuthDivider(), AGE_OPTIONS, GENDER_OPTIONS, AuthInput(), AuthInputProps, getDefaultIcon() (+6 more)
 
 ### Community 101 - "DMProfileSidebar.tsx"
-Cohesion: 0.09
-Nodes (17): AboutCard(), Props, Props, settings, DMProfileSidebar(), NotificationCard(), Props, actions (+9 more)
+Cohesion: 0.05
+Nodes (26): AboutCard(), Props, DMHeader(), Props, settings, DMProfileSidebar(), Props, MessageTimeline() (+18 more)
 
 ### Community 102 - "studyRoomRepository.ts"
-Cohesion: 0.07
-Nodes (30): centrifuge, RealtimeContext, RealtimeProviderProps, useRealtime(), MAX_ACTIVE_SUBSCRIPTION_CAP, SubscriptionEntry, SubscriptionRegistry, SubscriptionRegistryOptions (+22 more)
-
-### Community 103 - "usePlayback.ts"
 Cohesion: 0.09
-Nodes (26): ISSUE 1: Feed S1 VX/X Labelling Bug (Shows `V1/1, V2/2, V3/3` instead of `SX (Current Index)/(Total In Season)`), ISSUE 1: Feed S1 VX/X Labelling Bug (Shows `V1/1, V2/2, V3/3` instead of `SX (Current Index)/(Total In Season)`), LearningTimeline(), LearningTimelineProps, LessonCard(), LessonCardProps, fetchMock, nav (+18 more)
+Nodes (24): centrifuge, RealtimeContext, RealtimeProviderProps, useRealtime(), MAX_ACTIVE_SUBSCRIPTION_CAP, SubscriptionEntry, SubscriptionRegistry, SubscriptionRegistryOptions (+16 more)
+
+### Community 103 - "ReviewWorkspace.tsx"
+Cohesion: 0.23
+Nodes (12): CohortPreviewHero(), CreationShell(), PublicationStatus(), ReviewConversation(), LessonEditor(), MetadataEditor(), ReviewPreview(), sections (+4 more)
 
 ### Community 104 - "ChannelHub.tsx"
-Cohesion: 0.07
-Nodes (28): mockLocalStorage, mockSessionStorage, MockStorage, runTests(), ChannelId, ChannelPreferences, DEFAULT_CHANNEL_PREFERENCES, homeStorageAdapter (+20 more)
+Cohesion: 0.05
+Nodes (38): 1. Overview, 2. File-by-File Changes, 3. Verification & Testing, A. `src/client/repositories/homeStorageAdapter.ts`, B. `src/client/screens/dashboard/home/components/ChannelHub/ChannelHub.tsx`, C. `src/client/screens/dashboard/home/HomeDesktop.tsx`, D. `src/client/components/global/LearningPromptBar/LearningPromptBar.tsx`, E. `src/client/repositories/homeRepository.ts` & `src/client/screens/dashboard/home/hooks/useHome.ts` (+30 more)
 
-### Community 105 - "ActiveCohortRow.tsx"
-Cohesion: 0.08
-Nodes (18): Slider, SliderProps, ActiveCohortRow(), toggleDay(), ActiveCohortRowProps, ALL_WEEKDAYS, ChartNetwork(), FREQUENCIES (+10 more)
+### Community 105 - "InspectorPanel.tsx"
+Cohesion: 0.17
+Nodes (9): ChartNetwork(), FREQUENCIES, InspectorPanel(), handleKeyDown(), toggleDay(), InspectorPanelProps, PAUSE_DURATIONS, STANDARD_GOALS (+1 more)
 
 ### Community 106 - "EventsPage.tsx"
-Cohesion: 0.15
+Cohesion: 0.16
 Nodes (19): CohortEvents, EventItem, CalendarSync(), CalendarSyncProps, Card(), EventActions(), EventAttendance(), EventCard() (+11 more)
 
 ### Community 107 - "impeccable/SKILL.md"
-Cohesion: 0.05
-Nodes (33): Before you finish, Scope is sovereign, The amplification, The skeleton test, Why it reads flat, Craft (deprecated alias), Craft floor, Refuse (+25 more)
+Cohesion: 0.07
+Nodes (23): Before you finish, Scope is sovereign, The amplification, The skeleton test, Why it reads flat, Craft (deprecated alias), Craft floor, Refuse (+15 more)
 
 ### Community 108 - "hook-before-edit.mjs"
-Cohesion: 0.11
-Nodes (38): allow(), bumpCursorDenial(), deny(), detectProposedHtml(), done(), escapeRegExp(), findingSignature(), firstMatch() (+30 more)
+Cohesion: 0.10
+Nodes (40): allow(), bumpCursorDenial(), deny(), detectProposedHtml(), done(), escapeRegExp(), findingSignature(), firstMatch() (+32 more)
 
 ### Community 109 - "live-manual-edit-evidence.mjs"
-Cohesion: 0.15
-Nodes (26): analyzeSourceHint(), buildCandidatesForOp(), buildContextHintsByRef(), buildManualEditEvidence(), collectSearchFiles(), countOps(), decodeBasicHtml(), escapeRegExp() (+18 more)
+Cohesion: 0.10
+Nodes (31): args, buffer, cwd, pageUrlFilter, remaining, analyzeSourceHint(), buildCandidatesForOp(), buildContextHintsByRef() (+23 more)
 
 ### Community 110 - "MEMORY/MEMORY-ChatnCentrifugo.md"
-Cohesion: 0.08
-Nodes (25): 10. Test matrix and acceptance criteria, 13. Major risks, trade-offs, and unresolved questions, 14. Final production-readiness checklist, 1. Executive summary and recommended architecture, 3. Current functionality versus missing functionality matrix, 4. Target system architecture and sequence diagrams, 7. Channel names and event contracts, 8. Feature-by-feature implementation requirements (+17 more)
+Cohesion: 0.06
+Nodes (34): 10. Test matrix and acceptance criteria, 12. Deployment, rollback, and operational runbooks, 13. Major risks, trade-offs, and unresolved questions, 14. Final production-readiness checklist, 1. Executive summary and recommended architecture, 3. Current functionality versus missing functionality matrix, 4. Target system architecture and sequence diagrams, 7. Channel names and event contracts (+26 more)
 
 ### Community 111 - "ConversationPreview"
-Cohesion: 0.07
-Nodes (16): ConversationItem(), Props, ConversationList(), Props, LeftSidebar(), Props, Props, SidebarFilters() (+8 more)
+Cohesion: 0.08
+Nodes (13): ConversationItem(), Props, ConversationList(), Props, LeftSidebar(), Props, Props, SidebarFilters() (+5 more)
 
 ### Community 112 - "useHome"
 Cohesion: 0.12
 Nodes (33): cohort, mocks, syncWithRetry(), useHome(), moveCohort(), pauseActiveCohort(), removeSubscribedCohort(), resumePausedCohort() (+25 more)
 
 ### Community 113 - "aiCache.repo.ts"
-Cohesion: 0.15
-Nodes (21): Cache boundaries and edge directives, @google/generative-ai, AiContentCache, AiContentCacheSchema, IAiContentCache, ChunkInterval, SemanticChunkResult, CacheEntry (+13 more)
+Cohesion: 0.22
+Nodes (14): AiContentCache, AiContentCacheSchema, IAiContentCache, CacheEntry, clearAiMemoryCache(), computeAiCacheKey(), getAiMemoryCacheSize(), getCachedAiResult() (+6 more)
 
 ### Community 114 - "LocalWorkspaceRepository"
 Cohesion: 0.05
-Nodes (28): 1. Test Environment & Tested Revision, 2. Architecture of the Vertical Slice Harness, 3. Detailed Results for All 9 Validation Scenarios, 4. Failure Injection Summary Matrix, 5. Test Suite Verification Table, Evidence Artifact E3: Vertical Slice & Concurrency Failure Injection Report, Key Protocol Invariants Enforced, Scenario 1: Authorize, Select Repository, Preview, and Confirm Bind (with Cancel Safety) (+20 more)
+Nodes (34): 1. Executive Summary & Evidence Deliverables, 2. Prototype Code Disposition Matrix, 3. Formal Handoff Verdict, 4. Production Boundaries & Transition to Build Phase, Evidence Artifact E6: Engineering Handoff & Prototype Disposition Report, **VERDICT: FULL BUILD READY**, 1. Test Environment & Tested Revision, 2. Architecture of the Vertical Slice Harness (+26 more)
 
-### Community 115 - "cohortVectorizationWorkflow.ts"
-Cohesion: 0.07
-Nodes (32): p-limit, dynamic, maxDuration, parseDurationToSeconds(), POST(), publishSchema, runtime, sourceTypeMap (+24 more)
+### Community 115 - "useReviewWorkspace.ts"
+Cohesion: 0.26
+Nodes (13): LessonFields, useReviewWorkspace(), loadReview(), ReviewResponse, reviewResponseSchema, key(), metadataSchema, readReviewRecovery() (+5 more)
 
 ### Community 116 - "mobile/package.json"
 Cohesion: 0.06
@@ -1349,15 +1340,15 @@ Nodes (32): config, dependencies, @capacitor/app, @capacitor-community/keep-awak
 
 ### Community 117 - "source-adapters.ts"
 Cohesion: 0.04
-Nodes (71): Baseline and boundary, Durable DAG and canonical acceptance, Independent contracts, Independent retention adapter, Integrated acceptance and disability proof (Checkpoint 5), Live transcript acquisition resolution, Outstanding gates (remaining), S4C YouTube transcript feasibility and verification (+63 more)
+Nodes (69): Baseline and boundary, Durable DAG and canonical acceptance, Independent contracts, Independent retention adapter, Integrated acceptance and disability proof (Checkpoint 5), Live transcript acquisition resolution, Outstanding gates (remaining), S4C YouTube transcript feasibility and verification (+61 more)
 
 ### Community 118 - "useMessage.ts"
-Cohesion: 0.11
-Nodes (23): ConversationSummaryDTO, DirectConversationResult, EnrolledCommunityDTO, GroupConversationResult, messagesRepository, PersonSearchResult, conversationFilters, sidebarTabs (+15 more)
+Cohesion: 0.12
+Nodes (22): ConversationSummaryDTO, DirectConversationResult, EnrolledCommunityDTO, GroupConversationResult, messagesRepository, PersonSearchResult, conversationFilters, sidebarTabs (+14 more)
 
-### Community 119 - "NotesMobile.tsx"
-Cohesion: 0.13
-Nodes (19): Loading(), metadata, NotesPage(), MobileStepShell(), MobileStepShellProps, STEP_ORDER, MobileStep, NotesMobile() (+11 more)
+### Community 119 - "creation-dispatch.runtime.ts"
+Cohesion: 0.20
+Nodes (11): dispatchCreationExecution(), executeCreationSlice(), runDurableCreation(), dispatchRecommendation, createCreationExecutionRepository(), creationExecutionRepo, ExecutionScope, mocks (+3 more)
 
 ### Community 120 - "interaction-builder"
 Cohesion: 0.10
@@ -1365,11 +1356,11 @@ Nodes (20): 8. S7 Checkpoint 5: Final Clean-Host Acceptance, Security Repairs & 
 
 ### Community 121 - "youtube-import.service.ts"
 Cohesion: 0.14
-Nodes (27): dynamic, POST(), runtime, SourceImportRequest, createYoutubeImportError(), mapYoutubeApiError(), YoutubeImportError, YoutubeImportErrorCode (+19 more)
+Nodes (26): dynamic, POST(), runtime, SourceImportRequest, createYoutubeImportError(), mapYoutubeApiError(), YoutubeImportError, YoutubeImportErrorCode (+18 more)
 
 ### Community 122 - "message/components/MessageComposer/MessageComposer.tsx"
-Cohesion: 0.07
-Nodes (18): BaseProps, InputProps, PillInput, PillInputProps, PillStyle, TextareaProps, DMHeader(), DMConversation() (+10 more)
+Cohesion: 0.11
+Nodes (10): CommunityComposer(), Props, DMComposer(), Props, emojis, HiddenUploadKind, MessageComposer(), MessageComposerProps (+2 more)
 
 ### Community 123 - "parseRgb"
 Cohesion: 0.13
@@ -1380,96 +1371,96 @@ Cohesion: 0.14
 Nodes (29): completionAckForAcceptResult(), completionTypeForAcceptResult(), PREVIEW_MODES_WITHOUT_SOURCE_MARKERS, augmentEventWithAcceptHandling(), buildAcceptScriptArgs(), buildPollReplyPayload(), completeAcceptHandling(), DEFAULT_EVENT_LEASE_MS (+21 more)
 
 ### Community 125 - "live-copy-edit-agent.mjs"
-Cohesion: 0.13
+Cohesion: 0.14
 Nodes (31): applyMockWrites(), buildCopyEditBatchPrompt(), checkFrameworkSourceSyntax(), chooseCopyEditAgent(), COMMAND_AUTH_CACHE, commandAuthed(), commandExists(), compactBatchForPrompt() (+23 more)
 
 ### Community 126 - "verify-s6-release-gate.ts"
 Cohesion: 0.12
 Nodes (27): calculateDistribution(), formatLoadReportMarkdown(), getHardwareProfile(), HardwareProfile, LoadHarnessOptions, LoadRunConfig, LoadRunResults, MetricDistribution (+19 more)
 
-### Community 127 - "CohortWorkspace"
-Cohesion: 0.03
-Nodes (124): CohortWorkspacePane(), CohortWorkspacePaneProps, getActiveStage(), getEffectiveStage(), getProcessingProgress(), InnerCohortWorkspacePane(), ProcessingProgress, ProcessingStep (+116 more)
+### Community 127 - "stage-selectors.ts"
+Cohesion: 0.05
+Nodes (72): activeStageCache, analysisDataCache, AnalysisStageData, AnalyzedChunkView, assemblyDataCache, AssemblyProgressCounts, AssemblyStageData, BuilderStage (+64 more)
 
 ### Community 128 - "NotesSidebar.tsx"
-Cohesion: 0.11
-Nodes (19): SearchBar(), SearchBarProps, Props, COLORS, NavigationColumn, NotebookRow, NotesContextType, NotesSidebar() (+11 more)
+Cohesion: 0.06
+Nodes (36): BaseProps, InputProps, PillInput, PillInputProps, PillStyle, TextareaProps, SearchBar(), SearchBarProps (+28 more)
 
 ### Community 129 - "runHook"
-Cohesion: 0.13
-Nodes (28): cursorBlockMessage(), bumpEditCount(), clampGroupedToBudget(), clampToBudget(), dedupeAgainstCache(), depthIsSet(), designSystemOptions(), directiveFooter() (+20 more)
+Cohesion: 0.15
+Nodes (25): appendDesignSystemNote(), bumpEditCount(), dedupeAgainstCache(), depthIsSet(), designSystemOptions(), ensureFile(), ensureSession(), findingCacheKey() (+17 more)
 
 ### Community 130 - "02-ikigai/Ikigai.tsx"
-Cohesion: 0.16
-Nodes (12): julyDays, juneDays, mayDays, CalendarMonth(), renderBars(), CalendarMonthProps, DayProgress, WEEKDAYS (+4 more)
+Cohesion: 0.11
+Nodes (17): julyDays, juneDays, mayDays, CalendarMonth(), renderBars(), CalendarMonthProps, DayProgress, WEEKDAYS (+9 more)
 
-### Community 131 - "ActiveCohort"
-Cohesion: 0.13
-Nodes (13): StoredHomeChoices, ActiveCohorts, ActiveCohortsProps, CohortLearningSettings, localDateValue(), Panel, SubscribedCohortCard, SubscribedCohortCardProps (+5 more)
+### Community 131 - "clamp"
+Cohesion: 0.12
+Nodes (14): 7. Responsive Rules, 7. Define Responsive Rules, Quick Commands, Rules, Typography Scale Builder, Workflow, Completion rubric, Framework selection (+6 more)
 
 ### Community 132 - "ArchivesPage.tsx"
-Cohesion: 0.14
-Nodes (19): ArchiveItem, CohortArchives, ArchivesProps, ArchiveCard(), ArchiveFeed(), ArchiveFilters(), ArchiveSearch(), ArchivesHeader() (+11 more)
+Cohesion: 0.15
+Nodes (18): ArchiveItem, CohortArchives, ArchiveCard(), ArchiveFeed(), ArchiveFilters(), ArchiveSearch(), ArchivesHeader(), ArchivesPage() (+10 more)
 
 ### Community 133 - "resolveVarRefs"
 Cohesion: 0.11
 Nodes (35): buildHtmlPatternCorpora(), checkColors(), checkElementAIPaletteDOM(), checkGlow(), checkHoverContrast(), checkHtmlPatterns(), collectCssCustomProps(), collectMarqueeKeyframes() (+27 more)
 
 ### Community 134 - "DetailsStep.tsx"
-Cohesion: 0.08
-Nodes (34): Button(), ButtonOwnProps, ButtonProps, ButtonSize, ButtonVariant, ClassificationSection, ClassificationSectionProps, CohortCoverImageField (+26 more)
+Cohesion: 0.10
+Nodes (27): ClassificationSection, ClassificationSectionProps, CohortCoverImageField, CohortCoverImageFieldProps, CohortDescriptionField, CohortDescriptionFieldProps, CohortPrimaryTopicField, CohortPrimaryTopicFieldProps (+19 more)
 
 ### Community 135 - "agenda.domain.ts"
-Cohesion: 0.15
-Nodes (16): AgendaAction, agendaActionSchema, AgendaItem, agendaItemSchema, AgendaWorkspace, agendaWorkspaceSchema, createAgendaAiTools(), AgendaApp() (+8 more)
+Cohesion: 0.16
+Nodes (16): AgendaAction, agendaActionSchema, agendaDomain, AgendaItem, agendaItemSchema, AgendaWorkspace, agendaWorkspaceSchema, createAgendaAiTools() (+8 more)
 
-### Community 136 - "DMConversation/components/MessageTimeline/MessageTimeline.tsx"
-Cohesion: 0.08
-Nodes (8): 2. Preservation & Invariant Rules, DateDivider(), Props, Props, MessageTimeline(), Props, Props, DMConversationModel
+### Community 136 - "returnTo.ts"
+Cohesion: 0.28
+Nodes (8): AuthPage(), Auth(), AuthForm(), mocks, router, authReturnTo(), safeReturnTo(), signInErrorMessage()
 
 ### Community 137 - "validate_website_capture.py"
 Cohesion: 0.15
 Nodes (14): compile_spec(), default_output(), issue_list(), main(), project_relative_manifest(), expect_invalid(), main(), fail() (+6 more)
 
 ### Community 138 - "Overview.tsx"
-Cohesion: 0.11
-Nodes (19): CohortIcon, LearningObjective, LearningPillar, StatItem, AboutSection(), ExpeditionProgressCard(), ExpeditionProgressCardProps, ExpeditionStatsCard() (+11 more)
+Cohesion: 0.08
+Nodes (29): JoinCohortButton(), JoinCohortButtonProps, { push, refresh }, CohortIcon, CohortOverview, Creator, LearningObjective, LearningPillar (+21 more)
 
 ### Community 139 - "reducer.ts"
-Cohesion: 0.24
-Nodes (13): RFC-6902, applyJsonPatch(), escapeJsonPointer(), generateJsonPatch(), getValueByPointer(), invertJsonPatch(), JsonPatch, JsonPatchOperation (+5 more)
+Cohesion: 0.20
+Nodes (16): RFC-6902, Direct messages and groups, Direct messages and groups, InteractionMessage, applyJsonPatch(), escapeJsonPointer(), generateJsonPatch(), getValueByPointer() (+8 more)
 
 ### Community 140 - "Prisma Client API Reference"
 Cohesion: 0.05
 Nodes (39): cursor, distinct, Filtered include, include, Include relation count, Multiple distinct fields, Negative take (reverse), Nested include (+31 more)
 
-### Community 141 - "message/models/index.ts"
-Cohesion: 0.12
-Nodes (12): CommunitySidebar(), Props, MediaGallery(), Props, MembersStrip(), Props, Props, PinnedMessages() (+4 more)
+### Community 141 - "message.ts"
+Cohesion: 0.08
+Nodes (22): Subsequent feature models, Subsequent feature models, Props, MessageAttachment(), Props, DMBubble(), Props, MessageReaction() (+14 more)
 
 ### Community 142 - "message/models/index.ts"
-Cohesion: 0.06
-Nodes (28): Subsequent feature models, Subsequent feature models, AvatarConnector(), Props, InReplyTo(), Props, MessageAttachment(), fullEmojiRepository (+20 more)
+Cohesion: 0.07
+Nodes (20): AvatarConnector(), Props, DateDivider(), Props, InReplyTo(), Props, fullEmojiRepository, MessageBubble() (+12 more)
 
 ### Community 143 - ".plan"
 Cohesion: 0.04
 Nodes (49): `connectionPool`, `diskSizeGB`, Essential fields, `ipAllowList`, `name`, `plan`, `plan`, `previewDiskSizeGB` (+41 more)
 
 ### Community 144 - "app/layout.tsx"
-Cohesion: 0.09
-Nodes (22): @tanstack/react-query, caveat, dancingScript, geistMono, geistSans, lora, manrope, metadataBase (+14 more)
+Cohesion: 0.11
+Nodes (19): caveat, dancingScript, geistMono, geistSans, lora, manrope, metadata, metadataBase (+11 more)
 
-### Community 145 - "permissionsCache.ts"
+### Community 145 - "components/ui/index.ts"
 Cohesion: 0.14
-Nodes (16): dynamic, GET(), mocks, CachedCohortMember, clearPermissionsCache(), CohortMemberCacheEntry, DEFAULT_PERMISSIONS_TTL_MS, getCachedCohortMember() (+8 more)
+Nodes (8): ResponsiveMaxRows, TextBarProps, TextBarSize, TextBarVariant, HeadingElement, HeadingProps, Level, levelClasses
 
 ### Community 146 - "creation-source-access.ts"
-Cohesion: 0.05
-Nodes (46): ClaimedNotionJob, ProviderBackoff, validateNotionRetention(), NotionAcquisitionService, NotionApi, retryAfter(), extractNotionReceipt(), notionExtractionVersion() (+38 more)
+Cohesion: 0.08
+Nodes (29): ProviderBackoff, NotionApi, retryAfter(), fail(), limit(), listSchema, NotionMaterialReader, NotionPageProvider (+21 more)
 
 ### Community 147 - "ref_node_path"
-Cohesion: 0.05
-Nodes (28): candidates, detectorPath, __dirname, getAllSourceFiles(), manifest, outputDir, server, targets (+20 more)
+Cohesion: 0.07
+Nodes (19): candidates, detectorPath, __dirname, __dirname, __filename, interactionPkg, rootDir, appDir (+11 more)
 
 ### Community 148 - "collectBrowserFindings"
 Cohesion: 0.11
@@ -1479,17 +1470,13 @@ Nodes (26): browserFindingsFromMap(), checkBorders(), checkEdgeFlushCardsDOM(), 
 Cohesion: 0.14
 Nodes (26): buildHtmlPatternCorpora(), checkHtmlPatterns(), collectCssCustomProps(), collectMarqueeKeyframes(), collectPulseKeyframes(), cssLengthToPx(), cssTextHasDarkRootBg(), extractShadowLengths() (+18 more)
 
-### Community 150 - "InteractionRepository"
-Cohesion: 0.06
-Nodes (7): 2. Interaction Repository (`InteractionRepository`), 3. Assistant Runner Loop (`runAssistantTurn`), 4. Deterministic UUID Generation (`deterministicUuid`), Runtime Orchestration & Execution, Turn Lifecycle:, PgInteractionRepository, InteractionRepository
-
 ### Community 151 - "typeset.md"
-Cohesion: 0.05
-Nodes (38): Adaptation Strategies, Assess Adaptation Challenge, Implement & Verify, Orientation & foldables, Phone → Tablet (iPad / large screens), Platform → platform (iOS ↔ Android), Web → native (porting a website or web app), Android platform (+30 more)
+Cohesion: 0.09
+Nodes (20): Adaptation Strategies, Assess Adaptation Challenge, Implement & Verify, Orientation & foldables, Phone → Tablet (iPad / large screens), Platform → platform (iOS ↔ Android), Web → native (porting a website or web app), Android platform (+12 more)
 
 ### Community 152 - "capture-all-screens.mjs"
-Cohesion: 0.15
-Nodes (18): capturedAt, outputDir, refHashesBefore, screens, server, outputDir, refHashesBefore, screens (+10 more)
+Cohesion: 0.12
+Nodes (20): capturedAt, outputDir, refHashesBefore, screens, server, outputDir, refHashesBefore, screens (+12 more)
 
 ### Community 153 - "showToast"
 Cohesion: 0.15
@@ -1500,44 +1487,44 @@ Cohesion: 0.28
 Nodes (20): main(), ready_contract(), collect_capture_coverage(), hash_path(), main(), now(), read_json(), require_file() (+12 more)
 
 ### Community 155 - "useCanvasScene.ts"
-Cohesion: 0.16
-Nodes (16): 3.2 Canvas Repository & Hooks (`canvas.repository.ts`, `useCanvasScene.ts`, `useCanvasPersistence.ts`), Critical Finding 3: Silent Canvas Image Trimming & Rollback Impossibility, The Critical Rollback Barrier: Canvas Image Trimming, lodash.debounce, CANVAS_SCHEMA_VERSION, canvasAdapter, NotesWorkspaceProps, seedCanvasData (+8 more)
+Cohesion: 0.08
+Nodes (32): 1. Executive Summary & Critical Architectural Findings, 3.2 Canvas Repository & Hooks (`canvas.repository.ts`, `useCanvasScene.ts`, `useCanvasPersistence.ts`), 3.4 Mobile Parity (`NotesMobile.tsx`, `CanvasScreen.tsx`), 3. Subsystem Technical Deep Dives, 4. Data Field-by-Field Mapping & Representability, 5. Cryptographic Validation & Synthetic Fixtures (V0 Baseline), 6. Per-User Inventory Reconciliation Contract (Phase 3B Specification), 8. Exit Gate E1 Sign-Off (+24 more)
 
 ### Community 156 - "attachment.service.ts"
 Cohesion: 0.18
 Nodes (14): MessagingConflictError, ALLOWED_MIME_TYPES, AllowedMimeType, AttachmentSummaryDTO, containsActiveExecutableContent(), DAILY_UPLOAD_QUOTA_BYTES, MAX_ATTACHMENTS_PER_MESSAGE, MAX_FILE_SIZE_BYTES (+6 more)
 
-### Community 157 - "feedRepository.ts"
-Cohesion: 0.13
-Nodes (20): feedRepository, CHANNEL_LABELS, computeRagContextScore(), evaluateChannelModalityAndDuration(), generateFeed(), parseDurationToSeconds(), scoreChannelMatchFallback(), ChunkProgress (+12 more)
+### Community 157 - "8. Sequential implementation roadmap — 13 phases"
+Cohesion: 0.14
+Nodes (14): 8. Sequential implementation roadmap — 13 phases, Phase 10 — Real goals, tasks, status, and activity, Phase 11 — Security, errors, and operational completion, Phase 12 — Integrated multi-user and load validation, Phase 13 — Controlled rollout and handoff, Phase 1 — Baseline, contracts, and preservation, Phase 2 — Stable room identity and safe catalog, Phase 3 — Unified room authorization and bootstrap (+6 more)
 
-### Community 158 - "CohortOverview"
-Cohesion: 0.10
-Nodes (22): 1. Problem & Root Cause, 2. Preservation & Invariant Rules, 3. Architecture & Solution Instructions, 4. Exact File Edits & Code Guidance, 5. Verification Steps, File: `src/server/infrastructure/db/postgres/mappers/cohortMapper.ts`, ISSUE 10 — Hardcoded Fake Rating (5.0), Fake Hall of Fame Champion ("Sia"), and Static Daily Goal, ISSUE 10: Hardcoded Fake Rating (5.0), Fake Hall of Fame Champion ("Sia"), and Static Daily Goal (+14 more)
+### Community 158 - "ISSUE 10 — Hardcoded Fake Rating (5.0), Fake Hall of Fame Champion ("Sia"), and Static Daily Goal"
+Cohesion: 0.29
+Nodes (7): 1. Problem & Root Cause, 2. Preservation & Invariant Rules, 3. Architecture & Solution Instructions, 4. Exact File Edits & Code Guidance, 5. Verification Steps, File: `src/server/infrastructure/db/postgres/mappers/cohortMapper.ts`, ISSUE 10 — Hardcoded Fake Rating (5.0), Fake Hall of Fame Champion ("Sia"), and Static Daily Goal
 
 ### Community 159 - "MEMORY/README.md"
-Cohesion: 0.08
-Nodes (16): Cohort builder processing, Home dashboard, 1. Authoritative Architecture & Boundaries, 2. Key Paths & Source Files, 3. Verification & Test Commands, 4. Measured Capacity Limits & SLOs, 5. Operational Release Package & Runbooks, Internal & Realtime Routes (`src/app/api/`) (+8 more)
+Cohesion: 0.11
+Nodes (12): Cohort builder processing, Home dashboard, 1. Authoritative Architecture & Boundaries, 2. Key Paths & Source Files, 3. Verification & Test Commands, 4. Measured Capacity Limits & SLOs, 5. Operational Release Package & Runbooks, Internal & Realtime Routes (`src/app/api/`) (+4 more)
 
 ### Community 160 - "FeaturedCohortsStrip.tsx"
-Cohesion: 0.15
-Nodes (14): CohortCard(), CohortCardItem, CohortCardProps, CohortParticipantPreview, ALL_MOCK_AVATARS, getAvatar(), hashString(), MockAvatarUrl (+6 more)
+Cohesion: 0.29
+Nodes (8): CohortCard(), CohortCardItem, CohortCardProps, CohortParticipantPreview, FEATURED_COHORTS, FeaturedCohortsStrip(), FeaturedCohortsStripProps, FeaturedCohortWithCategories
 
 ### Community 161 - "prepare_ui_job.py"
 Cohesion: 0.16
 Nodes (13): main(), png_chunk(), run(), studio_source_hash(), write_png(), image_dimensions(), jpeg_dimensions(), main() (+5 more)
 
 ### Community 162 - "next-auth"
-Cohesion: 0.13
-Nodes (15): Hero(), HeroContent(), buildPath(), HeroFloatingContentIcons(), IconId, icons, PointId, Ribbon() (+7 more)
+Cohesion: 0.19
+Nodes (9): next-auth, Hero(), HeroContent(), HeroFloatingContentIcons(), HeroNavbar(), navigationItems, HeroScene(), ProtectedVideo() (+1 more)
 
 ### Community 163 - "CORE DIRECTIVE: IMAGE-FIRST WEBSITE DESIGN TO CODE"
 Cohesion: 0.06
 Nodes (34): 10. IMAGE-FIRST CODEX WEBSITE WORKFLOW, 11. WHEN TO TRIGGER IMAGE GENERATION FIRST, 13. WEBSITE REFERENCE RULE, 15. RESPONSIVE FIRST-VIEW RULE, 16. ANTI-NESTED-BOX RULE, 17. REDUCE MICRO-UI CLUTTER RULE, 18. SECTION IMAGE GENERATION RULE, 19. WEBSITE IMAGE SYSTEM RULE (+26 more)
 
 ### Community 164 - "landing/page.tsx"
-Cohesion: 0.11
-Nodes (21): Footer, Ikigai, isCapacitorNative(), LandingClient(), Landing(), metadata, DEFAULT_LANDING_JSON_LD, DEFAULT_LANDING_METADATA (+13 more)
+Cohesion: 0.12
+Nodes (20): Footer, Ikigai, isCapacitorNative(), LandingClient(), Landing(), metadata, DEFAULT_LANDING_JSON_LD, DEFAULT_LANDING_METADATA (+12 more)
 
 ### Community 165 - "CORE DIRECTIVE: IMAGE-FIRST WEBSITE DESIGN TO CODE"
 Cohesion: 0.06
@@ -1552,8 +1539,8 @@ Cohesion: 0.13
 Nodes (22): checkCreamPalette(), checkElementQualityDOM(), checkQuality(), colorsNearlyMatch(), creamFromClassList(), cssColorAlpha(), cssColorIsTransparent(), getComputedStyleFor() (+14 more)
 
 ### Community 168 - "compile_ui_spec.py"
-Cohesion: 0.15
-Nodes (18): Pitfalls, The frontmatter: token schema, average(), bands(), compile_spec(), visit(), default_output(), edge_gaps() (+10 more)
+Cohesion: 0.10
+Nodes (26): Pitfalls, Seed mode, Step 1: Route through new-work's workshop, Step 2: Write seed DESIGN.md, Step 3: Confirm, Style guidelines, The frontmatter: token schema, The markdown body: eight sections (canonical order) (+18 more)
 
 ### Community 169 - "finalize_ui_to_studio.py"
 Cohesion: 0.13
@@ -1573,31 +1560,31 @@ Nodes (12): cleanIgnoreValueDisplay(), extractFindingIgnoreValue(), extractFindi
 
 ### Community 173 - "tab-titles.test.ts"
 Cohesion: 0.11
-Nodes (12): metadata, metadata, metadata, metadata, CohortIndexPage(), metadata, redirectMock, metadata (+4 more)
+Nodes (11): metadata, metadata, metadata, metadata, CohortIndexPage(), metadata, redirectMock, metadata (+3 more)
 
 ### Community 174 - ".scoped"
-Cohesion: 0.24
-Nodes (4): log, Log levels, Log to events, Action edge
+Cohesion: 0.31
+Nodes (3): log, Log levels, Log to events
 
 ### Community 175 - "resolveLengthPx"
 Cohesion: 0.13
 Nodes (21): checkElementHeroEyebrow(), checkElementHeroEyebrowDOM(), checkHeroEyebrow(), checkKickerAboveHeading(), checkKickerAboveHeadingDOM(), checkKickerAboveHeadingFromDoc(), checkNumberedSectionLabels(), checkNumberedSectionLabelsDOM() (+13 more)
 
 ### Community 176 - "dev.mjs"
-Cohesion: 0.12
-Nodes (15): configure(), loaded, nextConfig, rootEnvironment, workflowConfig, cleanup(), creationWorker, __dirname (+7 more)
+Cohesion: 0.10
+Nodes (15): .., configure(), loaded, nextConfig, rootEnvironment, workflowConfig, loadRootEnvironment(), rootPublicEnvironment() (+7 more)
 
 ### Community 177 - "score_visual_fidelity.py"
-Cohesion: 0.24
-Nodes (7): heatmap(), main(), normalized_mae(), score(), similarity(), main(), optimize_asset()
+Cohesion: 0.46
+Nodes (5): heatmap(), main(), normalized_mae(), score(), similarity()
 
 ### Community 178 - "CORE DIRECTIVE: PREMIUM MOBILE APP IMAGE DIRECTION"
 Cohesion: 0.06
 Nodes (34): 10. DEVICE MOCKUP FRAME RULE, 11. ONBOARDING FLOW RULE, 12. FIRST SCREEN CLEANLINESS RULE, 13. SAFE AREA AND SYSTEM REGION RULE, 14. NAVIGATION RULE, 15. CLEAN LAYOUT RULE, 16. CREATIVE IMAGE DIRECTION RULE, 17. BACKGROUND TEXTURE AND SURFACE RULE (+26 more)
 
 ### Community 179 - "context-signals.mjs"
-Cohesion: 0.22
-Nodes (12): cli(), COMMON_DEV_PORTS, devServerSignals(), gatherSignals(), gitSignals(), hasCode(), isVendoredPath(), latestCritique() (+4 more)
+Cohesion: 0.19
+Nodes (15): extractPlatform(), hasVisualImplementation(), loadContext(), cli(), COMMON_DEV_PORTS, devServerSignals(), gatherSignals(), gitSignals() (+7 more)
 
 ### Community 180 - "accept-css.mjs"
 Cohesion: 0.23
@@ -1620,16 +1607,16 @@ Cohesion: 0.06
 Nodes (31): 1. Executive Summary & Exit Gate E2 Conformance, 2.1 Rejection of Personal Access Tokens (PATs), 2.2 GitHub App Authorization Flow with PKCE in Next.js Server Runtime, 2.3 Verification of Identity, Installation, and Permission Intersection, 2.4 Credential Retention, Encryption & Refresh Serialization, 2.5 Replay Protection, Invalid State Handling & Credential Leakage Prevention, 2. Authorization Feasibility Analysis, 3.1 Hosting Path Constraints: Vercel Serverless Function Limits (+23 more)
 
 ### Community 185 - "LocalWorkspace"
-Cohesion: 0.13
-Nodes (16): activeWorkspaceRefCounts, DEFAULT_SYNC_SUMMARY, useLocalWorkspace(), UseLocalWorkspaceResult, getLocalWorkspace(), LocalWorkspace, LocalWorkspaceOptions, WorkspaceCommand (+8 more)
+Cohesion: 0.10
+Nodes (20): 3.1 Metadata Repository & Hooks (`notes.repository.ts`, `useNotes.ts`), activeWorkspaceRefCounts, DEFAULT_SYNC_SUMMARY, useLocalWorkspace(), UseLocalWorkspaceResult, getLocalWorkspace(), LocalWorkspace, LocalWorkspaceOptions (+12 more)
 
 ### Community 187 - "devDependencies"
 Cohesion: 0.11
 Nodes (19): devDependencies, @agrimsinghx/domshift, @electric-sql/pglite, eslint, eslint-config-next, prettier, prisma, tailwindcss (+11 more)
 
 ### Community 188 - "WizardFooter.tsx"
-Cohesion: 0.18
-Nodes (10): CurriculumChecklist(), CurriculumQuality(), WizardFooterProps, useCurriculumQuality(), WizardFooterModel, ChecklistItem, PublishingChecklistModel, QualityDeduction (+2 more)
+Cohesion: 0.31
+Nodes (7): CurriculumQuality(), useCurriculumQuality(), ChecklistItem, PublishingChecklistModel, QualityDeduction, QualityGrade, QualityScoreModel
 
 ### Community 189 - "onAnnotDown"
 Cohesion: 0.20
@@ -1644,8 +1631,8 @@ Cohesion: 0.14
 Nodes (18): addBrowserFindings(), addVisualContrastFindings(), addVisualContrastResult(), analyzeVisualContrast(), analyzeVisualContrastCandidate(), blendRgba(), clampByte(), clearOverlays() (+10 more)
 
 ### Community 192 - ".scoreTranscript"
-Cohesion: 0.19
-Nodes (11): 1. Executive Summary, 1. Problem & Root Cause, 2. Preservation & Invariant Rules, 3. Architecture & Solution Instructions, 4. Exact File Edits & Code Guidance, 5. Verification Steps, File: `src/server/domain/cohort/vectorScoring.service.ts`, ISSUE 20 — Non-Existent Gemini Model ID & Latency Degradation in Vector Scoring (+3 more)
+Cohesion: 0.18
+Nodes (12): 1. Executive Summary, 1. Problem & Root Cause, 2. Preservation & Invariant Rules, 3. Architecture & Solution Instructions, 4. Exact File Edits & Code Guidance, 5. Verification Steps, File: `src/server/domain/cohort/vectorScoring.service.ts`, ISSUE 20 — Non-Existent Gemini Model ID & Latency Degradation in Vector Scoring (+4 more)
 
 ### Community 193 - "jwtCache.ts"
 Cohesion: 0.24
@@ -1653,19 +1640,19 @@ Nodes (14): clearJwtCache(), DEFAULT_JWT_CACHE_TTL_MS, DEFAULT_MAX_JWT_CACHE_ENT
 
 ### Community 194 - "useExperience"
 Cohesion: 0.09
-Nodes (24): 6. Phase 2 — Durable messaging foundation and dispatcher, Parallel assignments, Required constraints, Sequential steps, Verification, 6. Database and API change plan, Core modeling decision, HTTP API inventory (+16 more)
+Nodes (25): 6. Phase 2 — Durable messaging foundation and dispatcher, Parallel assignments, Required constraints, Sequential steps, Verification, 6. Database and API change plan, Core modeling decision, HTTP API inventory (+17 more)
 
 ### Community 195 - "StaticElement"
 Cohesion: 0.14
 Nodes (3): collectStaticCssText(), StaticElement, Filter Operators
 
-### Community 196 - "useNotes.ts"
-Cohesion: 0.13
-Nodes (24): byDate(), filterLabels, filterNotes(), isRecent(), matchesFilter(), notebookFor(), sortItems(), toNotebookItems() (+16 more)
+### Community 196 - "global/SuggestionPromptRow/SuggestionPromptRow.tsx"
+Cohesion: 0.23
+Nodes (8): COLOR_CLASSES, PromptColorScheme, SuggestionPromptCard(), SuggestionPromptCardProps, SuggestionPromptItem, SuggestionPromptRow(), SuggestionPromptRowProps, SUGGESTIONS
 
 ### Community 197 - "Undone messaging, study rooms, and Centrifugo: implementation instructions"
-Cohesion: 0.04
-Nodes (53): 10. Phase 6 — Persistent direct messages and actual group conversations, 11. Phase 7 — Read state, receipts, presence and message interactions, 14. Phase 10 — Shared focus and advanced group/community features, 15. Phase 11 — Failure hardening, abuse prevention and observability, 16. Phase 12 — Load, capacity and cost validation, 18.1 Existing repository commands to verify during implementation, 18.2 New scripts to create during authorized implementation, 18.3 Required test IDs (+45 more)
+Cohesion: 0.03
+Nodes (60): 10. Phase 6 — Persistent direct messages and actual group conversations, 11. Phase 7 — Read state, receipts, presence and message interactions, 13. Phase 9 — Actual attachments and notification delivery, 14. Phase 10 — Shared focus and advanced group/community features, 15. Phase 11 — Failure hardening, abuse prevention and observability, 16. Phase 12 — Load, capacity and cost validation, 18.1 Existing repository commands to verify during implementation, 18.2 New scripts to create during authorized implementation (+52 more)
 
 ### Community 198 - "docs/README.md"
 Cohesion: 0.10
@@ -1689,31 +1676,31 @@ Nodes (11): Accessibility Resilience, Assess Hardening Needs, Edge Cases & Bound
 
 ### Community 203 - "live.md"
 Cohesion: 0.07
-Nodes (27): Apply at system scale, Audit before choosing, Choose a strategy, Contrast and perception, Live-mode signature params, Verify, Visitor mode, Cleanup (+19 more)
+Nodes (26): Apply at system scale, Audit before choosing, Choose a strategy, Contrast and perception, Live-mode signature params, Verify, Visitor mode, Cleanup (+18 more)
 
 ### Community 204 - "checkHeadingRhythmDOM"
 Cohesion: 0.18
 Nodes (16): checkHeadingRhythmDOM(), clusterTop(), edgeAbove(), edgeBelow(), hasOwnTopBoundary(), insideSmallCard(), isVisibleFlow(), overlapsX() (+8 more)
 
 ### Community 205 - "generate-image.mjs"
-Cohesion: 0.18
-Nodes (12): crc32(), hash32(), hslToRgb(), out, palette(), pngChunk(), pngFake(), promptFile (+4 more)
+Cohesion: 0.09
+Nodes (19): args, buf, crc32(), crcTable, file, pngChunk(), readMode, crc32() (+11 more)
 
-### Community 206 - "youtube.ts"
-Cohesion: 0.08
-Nodes (39): MaterialObservation, observationModelIdentitySchema, validateVideoObservation(), videoObservationCoverage(), VideoObservationProposal, videoObservationProposalSchema, YoutubeAcquisitionService, checksum (+31 more)
+### Community 206 - "youtube-observation.service.ts"
+Cohesion: 0.09
+Nodes (31): main(), VideoObservationProviderOptions, MaterialObservation, observationModelIdentitySchema, validateVideoObservation(), videoObservationCoverage(), VideoObservationProposal, videoObservationProposalSchema (+23 more)
 
-### Community 207 - "next-auth"
-Cohesion: 0.05
-Nodes (40): next-auth, react-markdown, remark-gfm, Ikigai, LandingPage(), metadata, VideoExplainer, navigationItems (+32 more)
+### Community 207 - "CohortIntakeScreen.tsx"
+Cohesion: 0.15
+Nodes (13): Theme, useTheme(), CohortIntakeScreen(), clearIntakeDraft(), CreationShellProps, RecommendationPending(), props, CollageLeft() (+5 more)
 
 ### Community 208 - "verify-standalone-agenda-example.mjs"
 Cohesion: 0.13
 Nodes (15): agendaExampleSrcDir, cleanup(), embeddedPgModule, exampleFiles, forbiddenPatterns, hostSchemaSrcPath, killProcessTree(), migrationSrcPath (+7 more)
 
 ### Community 209 - "8. Sequential implementation roadmap — 13 phases"
-Cohesion: 0.06
-Nodes (36): 10. Release gate, 1. Outcome and scope, 2. Verified gaps in the current implementation, 3. Architecture and authoritative state, 4. Core contracts and lifecycle, 5. API and database work, 6. Event contracts and reconciliation, 7. Existing UI: required behavior for every control (+28 more)
+Cohesion: 0.10
+Nodes (19): 10. Release gate, 1. Outcome and scope, 2. Verified gaps in the current implementation, 3. Architecture and authoritative state, 4. Core contracts and lifecycle, 6. Event contracts and reconciliation, 7. Existing UI: required behavior for every control, 9. Test and verification plan (+11 more)
 
 ### Community 210 - "Model Queries"
 Cohesion: 0.07
@@ -1727,9 +1714,9 @@ Nodes (10): icons, Toast(), ToastProps, generateId(), ToastContext, ToastContext
 Cohesion: 0.33
 Nodes (6): Appendix: Glossary definitions, instance, instance type, run chaining, task, task run
 
-### Community 213 - "auth/page.tsx"
-Cohesion: 0.15
-Nodes (10): AuthPage(), Auth(), AuthHighlights(), Highlight, HIGHLIGHTS, AuthPhone(), AuthShowcase(), mocks (+2 more)
+### Community 213 - "authShowcase.tsx"
+Cohesion: 0.13
+Nodes (10): AuthCommunityGrid(), renderCard(), FEATURED_CONTENT, FeaturedCard, STUDY_ROOMS, AuthHighlights(), Highlight, HIGHLIGHTS (+2 more)
 
 ### Community 214 - "Driver Adapters"
 Cohesion: 0.07
@@ -1748,20 +1735,20 @@ Cohesion: 0.13
 Nodes (14): compilerOptions, declaration, declarationMap, emitDeclarationOnly, esModuleInterop, jsx, lib, module (+6 more)
 
 ### Community 218 - "s3-browser-verification.mjs"
-Cohesion: 0.05
-Nodes (25): Handle `steer`, Poll loop, database, environment, errors, hostDirectory, pool, s4bOnly (+17 more)
+Cohesion: 0.08
+Nodes (17): Handle `steer`, Poll loop, database, environment, errors, hostDirectory, pool, userId (+9 more)
 
 ### Community 219 - "ui-image-to-code/SKILL.md"
-Cohesion: 0.19
-Nodes (6): Position evidence map, Requirements, Production boundary, Requirements, Source mapping, Versioned UI document
+Cohesion: 0.20
+Nodes (6): Position evidence map, Requirements, Fact versus implementation guidance, Source-generation rules, UI generation spec, What it contains
 
 ### Community 220 - "metadata/route.ts"
-Cohesion: 0.22
-Nodes (14): CACHE_HEADERS, CachedMetadata, clearYouTubeMetadataCacheForTests(), dynamic, GET(), getYouTubeMetadataCacheSize(), MAX_CACHE_ENTRIES, pruneYouTubeMetadataCache() (+6 more)
+Cohesion: 0.23
+Nodes (13): CACHE_HEADERS, CachedMetadata, clearYouTubeMetadataCacheForTests(), dynamic, GET(), getYouTubeMetadataCacheSize(), MAX_CACHE_ENTRIES, pruneYouTubeMetadataCache() (+5 more)
 
 ### Community 221 - "Cohort"
-Cohesion: 0.05
-Nodes (35): CommandPalette(), CommandResult, useSafeRouter(), NetworkOfflineIndicator(), CohortMobile(), CohortMobileProps, getAvatarSlice(), cohortNavigationItems (+27 more)
+Cohesion: 0.06
+Nodes (34): NetworkOfflineIndicator(), Experience, useExperience(), CohortMobile(), CohortMobileProps, getAvatarSlice(), cohortNavigationItems, cohortRepository (+26 more)
 
 ### Community 222 - "ActivityBufferService"
 Cohesion: 0.19
@@ -1800,24 +1787,24 @@ Cohesion: 0.08
 Nodes (25): 1. Update package.json for ESM-first projects, 2. Update tsconfig.json, 3. Update schema.prisma, 4. Create prisma.config.ts, 5. Install a driver adapter (SQL providers only), 6. Update client instantiation, 7. Replace Prisma.validator with satisfies, 8. Run migrations and generate (+17 more)
 
 ### Community 231 - "ISSUE 21 — N+1 Storage Cascades Across PostgreSQL & MongoDB GridFS"
-Cohesion: 0.07
-Nodes (26): 1. Problem & Root Cause, 2. Preservation & Invariant Rules, 4. Exact File Edits & Code Guidance, 5. Verification Steps, ISSUE 21 — N+1 Storage Cascades Across PostgreSQL & MongoDB GridFS, ISSUE 14: Messaging Subsystem Disconnected from Database (Relies on `localStorage` & Mocks), ISSUE 15: Dead Action Buttons in Messaging Screen, ISSUE 17: Study Room Seed-On-Read & Concurrency Race Condition in Join Logic (+18 more)
+Cohesion: 0.10
+Nodes (20): ISSUE 10: Hardcoded Fake Rating (5.0), Fake Hall of Fame Champion ("Sia"), and Static Daily Goal, ISSUE 11: Dead UI Buttons & Broken Interactions in Cohort Overview & Events Tabs, ISSUE 12: Empty State Deficiency & Phantom "Load More" in Cohort Archives, ISSUE 14: Messaging Subsystem Disconnected from Database (Relies on `localStorage` & Mocks), ISSUE 15: Dead Action Buttons in Messaging Screen, ISSUE 17: Study Room Seed-On-Read & Concurrency Race Condition in Join Logic, ISSUE 18: Unstyled Plain-Text Loading State in Notes Workspace, ISSUE 20: Non-Existent Gemini Model ID & Latency Degradation in Vector Scoring (+12 more)
 
 ### Community 232 - "UndoneDevLogger"
 Cohesion: 0.28
 Nodes (3): getRuntimeType(), shouldEnableLogsByDefault(), UndoneDevLogger
 
 ### Community 234 - "SideQuestHQ — Feasibility & Competitor Intelligence Analysis"
-Cohesion: 0.08
-Nodes (25): 1.1 Competitor Landscape Breakdown, 1.2 Comprehensive Feature & UX Comparison Matrix, 1. Direct Competitor Benchmarking & Market Intelligence, 2.1 AI Ingestion Latency & Token Economics, 2.2 Recommender Compute & In-Memory Efficiency, 2.3 Dual-Database Integrity (Transactional Outbox Pattern), 2.4 Mobile Webview & Media Player Constraints (Capacitor), 2. Technical & Architectural Feasibility (+17 more)
+Cohesion: 0.11
+Nodes (18): 2.1 AI Ingestion Latency & Token Economics, 2.2 Recommender Compute & In-Memory Efficiency, 2.3 Dual-Database Integrity (Transactional Outbox Pattern), 2.4 Mobile Webview & Media Player Constraints (Capacitor), 2. Technical & Architectural Feasibility, 3.1 Monetization Streams, 3.2 Customer Acquisition Cost (CAC) vs. Lifetime Value (LTV), 3.3 Sensitivity & Break-Even Thresholds (+10 more)
 
 ### Community 235 - "MEMORY-ChatnCentrifugo.md"
-Cohesion: 0.06
-Nodes (34): 10. Test matrix and acceptance criteria, 12. Deployment, rollback, and operational runbooks, 13. Major risks, trade-offs, and unresolved questions, 14. Final production-readiness checklist, 1. Executive summary and recommended architecture, 3. Current functionality versus missing functionality matrix, 4. Target system architecture and sequence diagrams, 7. Channel names and event contracts (+26 more)
+Cohesion: 0.07
+Nodes (25): 10. Test matrix and acceptance criteria, 13. Major risks, trade-offs, and unresolved questions, 14. Final production-readiness checklist, 1. Executive summary and recommended architecture, 3. Current functionality versus missing functionality matrix, 4. Target system architecture and sequence diagrams, 7. Channel names and event contracts, 8. Feature-by-feature implementation requirements (+17 more)
 
 ### Community 236 - "creation-readiness.ts"
-Cohesion: 0.20
-Nodes (13): Check, configurationChecks(), connectionFailureReason(), FailureReason, httpUrl(), main(), mongoCheck(), secret() (+5 more)
+Cohesion: 0.26
+Nodes (11): Check, configurationChecks(), connectionFailureReason(), FailureReason, httpUrl(), main(), mongoCheck(), secret() (+3 more)
 
 ### Community 237 - "detect-csp.mjs"
 Cohesion: 0.20
@@ -1826,6 +1813,10 @@ Nodes (10): detectCsp(), INLINE_HEADER_SIGNALS, LAYOUT_EXTS, MONOREPO_HELPER_SIG
 ### Community 238 - "checkTextOcclusionDOM"
 Cohesion: 0.22
 Nodes (11): checkTextOcclusionDOM(), clippedByInset(), clippedByRect(), elementDirectText(), expandBoxShorthand(), firstMetricLengthPx(), isLayeredElement(), isOpaqueDecoratedBox() (+3 more)
+
+### Community 239 - "s3-browser-verification.mjs"
+Cohesion: 0.17
+Nodes (8): database, environment, errors, hostDirectory, pool, s4bOnly, userId, worker
 
 ### Community 240 - "template-extensions.mjs"
 Cohesion: 0.25
@@ -1840,8 +1831,8 @@ Cohesion: 0.08
 Nodes (24): 1. Executive Summary & Authoritative Release Decision, 2. Repository & Submodule Baseline, 3. Requirement-to-Evidence Matrix (T01–T31 Across 5 Explicit Tiers), 4. Minimal Configuration Profiles, 5. Ordered Database Migration Sequence, 6. Operator Commands & Diagnostics, 7. Operational Runbooks, 8. Incident Response & Alerting Matrix (+16 more)
 
 ### Community 243 - "live-status.mjs"
-Cohesion: 0.16
-Nodes (20): FORBIDDEN, verifyAcceptedFile(), verifyAcceptedSource(), completeCli(), completeThroughServer(), parseArgs(), readServerInfo(), collectManualApplyFiles() (+12 more)
+Cohesion: 0.28
+Nodes (13): collectManualApplyFiles(), manualApplyReplyCommand(), manualApplyResumeHint(), mountFailureAction(), parseArgs(), renderSummary(), resumeCli(), summarizeManualApplyEvent() (+5 more)
 
 ### Community 244 - "verify-version-and-upgrade-contracts.mjs"
 Cohesion: 0.12
@@ -1855,9 +1846,9 @@ Nodes (5): runTest(), dynamic, POST(), runtime, SourceImportRequest
 Cohesion: 0.08
 Nodes (23): Connect existing, Count Relations, Create or connect, Create with relations, Delete related, Disconnect, every, Filter counted relations (+15 more)
 
-### Community 247 - "cohort-intake.ts"
+### Community 247 - "draft-context.tsx"
 Cohesion: 0.04
-Nodes (70): 2. Dependency Gate Ledger, 3. Automated Verification Evidence, 6. S6 Checkpoint 4: Supervision, Controls, Metrics & Measured Load, 7. Integrated Production Release Gate & Operator Package, Authoritative Final Decision, Automated Evidence for Checkpoint 4:, Automated Evidence for Final Release Gate:, S6 Security and Authority Gate Ledger (+62 more)
+Nodes (49): builderChatMessages, builderIntakeDraft, builderMaterialMessages, builderWorkspaceCurriculum, builderWorkspaceEmpty, builderWorkspaceMaterialInput, builderWorkspaceProcessing, builderWorkspacePublished (+41 more)
 
 ### Community 248 - "Removed Features"
 Cohesion: 0.08
@@ -1891,13 +1882,13 @@ Nodes (8): evaluateEnvironmentConfig(), formatReadinessReportMarkdown(), main(),
 Cohesion: 0.27
 Nodes (8): Context, GET(), maxDuration, PATCH(), runtime, POST(), runtime, handleDraftRequest
 
-### Community 256 - "github-import.service.ts"
-Cohesion: 0.32
-Nodes (5): runTest(), dynamic, POST(), runtime, SourceImportRequest
+### Community 256 - "(landing)/page.tsx"
+Cohesion: 0.26
+Nodes (5): Ikigai, LandingPage(), metadata, VideoExplainer, IkigaiProps
 
-### Community 257 - "ChannelSelector.tsx"
-Cohesion: 0.18
-Nodes (12): ChannelDefinition, CHANNELS, ChannelSelector, ChannelSelectorProps, computeLayout(), computeNodes(), DEFAULT_CHANNEL_ICON_MAP, OriginPoint (+4 more)
+### Community 257 - "avatars.ts"
+Cohesion: 0.24
+Nodes (8): ALL_MOCK_AVATARS, getAvatar(), hashString(), MockAvatarUrl, dmConversationMock, covers, messageMock, MessageMock
 
 ### Community 258 - "The `task()` function"
 Cohesion: 0.10
@@ -1920,8 +1911,8 @@ Cohesion: 0.07
 Nodes (52): API_BASE, API_TIMEOUT_MS, apiBudgetMs(), dealCompositions(), driveSelection(), fetchRoll(), here, loadLocal() (+44 more)
 
 ### Community 263 - "manifest.service.ts"
-Cohesion: 0.24
-Nodes (7): jose, ManifestChannelEntry, manifestService, RealtimeScopeType, SubscriptionManifest, ConnectionTokenResult, tokenService
+Cohesion: 0.15
+Nodes (11): jose, dynamic, GET(), dynamic, POST(), ManifestChannelEntry, manifestService, RealtimeScopeType (+3 more)
 
 ### Community 264 - "studyroom-benchmark-engine.ts"
 Cohesion: 0.23
@@ -1944,8 +1935,8 @@ Cohesion: 0.09
 Nodes (21): AI Agent Architecture, Anthropic / Claude Products, Categories, Claude Cowork, Consulting and Professional Services, Contents, Contributing, Design Systems and UI (+13 more)
 
 ### Community 270 - "DashboardShell.tsx"
-Cohesion: 0.09
-Nodes (24): 2.1 What exists today (verified), DashboardLayout(), CommandContextValue, CommandTriggerContext, CommandTriggerProvider(), useCommandContext(), CommandPalette, DashboardInner() (+16 more)
+Cohesion: 0.07
+Nodes (33): 2.1 What exists today (verified), 2.2 What works today vs. what is mock, 2.3 Decision: detach the discovery page from `/api/studyroom` **[decision]**, 2. Repository audit, 3.7 Mobile (≤ 768 px, matching `useExperience`), 9.9 Responsiveness **[manual]**, DashboardLayout(), CommandPalette() (+25 more)
 
 ### Community 271 - "verify-browser-acceptance.mjs"
 Cohesion: 0.13
@@ -1980,8 +1971,8 @@ Cohesion: 0.12
 Nodes (12): { chromium }, directory, { execFileSync }, fs, path, screens, { chromium }, fs (+4 more)
 
 ### Community 280 - "sync-status-badge.tsx"
-Cohesion: 0.32
-Nodes (9): ConnectGitHubModal(), ConnectGitHubModalProps, Github(), GithubIcon, formatLastSyncedAt(), getStatusConfig(), StatusConfig, SyncStatusBadge() (+1 more)
+Cohesion: 0.24
+Nodes (10): ConnectGitHubModal(), ConnectGitHubModalProps, Github(), GithubIcon, formatLastSyncedAt(), getStatusConfig(), StatusConfig, SyncStatusBadge() (+2 more)
 
 ### Community 281 - "Client Methods"
 Cohesion: 0.10
@@ -2015,9 +2006,9 @@ Nodes (19): After schema changes, Basic generation, Bun Runtime, CI/CD pipeline,
 Cohesion: 0.10
 Nodes (19): Command, Common Workflow, Custom port, Don't open browser, Edit Records, Examples, Features, Filter Data (+11 more)
 
-### Community 289 - "journey-scheduler.test.ts"
-Cohesion: 0.22
-Nodes (11): digest(), JourneyJobIntent, planJourneyJobs(), cancelJourneyDiscovery(), enqueueJourneyJobPlan(), enqueueJourneyJobPlanInTransaction(), journeyMigration, now (+3 more)
+### Community 289 - "components/SuggestionPromptRow/SuggestionPromptRow.tsx"
+Cohesion: 0.27
+Nodes (8): COLOR_CLASSES, PromptColorScheme, SuggestionPromptCard(), SuggestionPromptCardProps, SuggestionPromptItem, SuggestionPromptRow(), SuggestionPromptRowProps, SUGGESTIONS
 
 ### Community 290 - "Prisma Config"
 Cohesion: 0.10
@@ -2039,13 +2030,13 @@ Nodes (19): Code Quality, Color and Surfaces, Component Patterns, Content, Desig
 Cohesion: 0.67
 Nodes (4): checkElementRadialSpotlight(), checkElementRadialSpotlightDOM(), elementGradientValue(), spotlightLabel()
 
-### Community 295 - "embed-prompt.mjs"
-Cohesion: 0.20
-Nodes (7): args, buf, crc32(), crcTable, file, pngChunk(), readMode
+### Community 295 - "creationRetention.repo.ts"
+Cohesion: 0.29
+Nodes (4): CreationRetentionRepository, maintainCreationDrafts(), createCreationRetentionRepository(), creationRetentionRepo
 
 ### Community 297 - "pathlib"
-Cohesion: 0.19
-Nodes (10): digest(), main(), run(), valid_menu_manifest(), format_size(), get_dir_size(), main(), find_references() (+2 more)
+Cohesion: 0.14
+Nodes (12): digest(), main(), run(), valid_menu_manifest(), format_size(), get_dir_size(), main(), find_references() (+4 more)
 
 ### Community 298 - "3. The 12 Mandatory Operational Runbooks"
 Cohesion: 0.10
@@ -2060,8 +2051,8 @@ Cohesion: 0.50
 Nodes (3): @ai-sdk/google, @corsair-dev/github, @corsair-dev/notion
 
 ### Community 302 - "Professional visual editor mode"
-Cohesion: 0.18
-Nodes (11): Auto layout and responsive behavior, Canvas tools, Comparison and diagnostics, Components and tokens, Contents, Inspector, Persistence and source export, Professional visual editor mode (+3 more)
+Cohesion: 0.12
+Nodes (15): Production boundary, Requirements, Source mapping, Versioned UI document, Auto layout and responsive behavior, Canvas tools, Comparison and diagnostics, Components and tokens (+7 more)
 
 ### Community 307 - "Task methods"
 Cohesion: 0.07
@@ -2228,24 +2219,24 @@ Cohesion: 0.13
 Nodes (15): Acquisition profiles, `authorized-semantic`, `blind-visual`, Capture and video preference, Codex-driven website capture and reconstruction, Completion contract, Evidence package, Exploration algorithm (+7 more)
 
 ### Community 361 - "Undone — Detailed Product Description"
-Cohesion: 0.13
-Nodes (15): 1. The problem Undone is solving, 3. The experience: learning without managing learning, 4. Multiple interests, one continuous experience, 5. Cohorts: learning alongside other people, 6. What makes Undone different?, 8. The role of intelligence and automation, 9. What Undone ultimately represents, Collective progress (+7 more)
+Cohesion: 0.10
+Nodes (20): 1. The problem Undone is solving, 3. The experience: learning without managing learning, 4. Multiple interests, one continuous experience, 5. Cohorts: learning alongside other people, 6. What makes Undone different?, 7. Who is Undone for?, 8. The role of intelligence and automation, 9. What Undone ultimately represents (+12 more)
 
 ### Community 362 - "S6A Additive Rollout & Safe Rollback Runbook"
 Cohesion: 0.13
 Nodes (14): 1. Executive Summary & Purpose, 1. Schema & Configuration Readiness Check, 2. Ordered Migration Runbook, 2. Worker Lifecycle & Backlog Diagnostics, 3. Automated Local Rehearsal Script, 3. Post-Migration Verification & Readiness Probes, 4. Safe Rollback / Disable Runbook, 5. Stop Conditions & Failure Scenarios (+6 more)
 
-### Community 363 - "TabLockCoordinator"
-Cohesion: 0.08
-Nodes (8): 1. Executive Summary & Evidence Deliverables, 2. Prototype Code Disposition Matrix, 3. Formal Handoff Verdict, 4. Production Boundaries & Transition to Build Phase, Evidence Artifact E6: Engineering Handoff & Prototype Disposition Report, **VERDICT: FULL BUILD READY**, TabLockCoordinator, TransactionalStoreEngine
+### Community 363 - "heroFloatingContentIcons.tsx"
+Cohesion: 0.24
+Nodes (8): buildPath(), IconId, icons, PointId, Ribbon(), source, streams, svgPoint()
 
 ### Community 364 - "Undone"
-Cohesion: 0.13
-Nodes (15): 1. Build and Sync Mobile Assets, 2. Open in Android Studio, 3. Generate Signed Release AAB, Architecture and Technical Documentation, Backend & Data Infrastructure, Background Worker, Directory Structure, Durable creation execution on Vercel (+7 more)
+Cohesion: 0.09
+Nodes (22): 1. Build and Sync Mobile Assets, 1. Clone Repository, 2. Install Dependencies, 2. Open in Android Studio, 3. Configure Environment Variables, 3. Generate Signed Release AAB, 4. Database Setup, 5. Start Development Server (+14 more)
 
 ### Community 365 - "Analysis & Synthesis Instructions"
-Cohesion: 0.06
-Nodes (31): 7. Responsive Rules, 1. Define the Atmosphere, 2. Map the Color Palette, 3. Establish Typography Rules, 4. Define the Hero Section, 5. Describe Component Stylings, 6. Define Layout Principles, 7. Define Responsive Rules (+23 more)
+Cohesion: 0.11
+Nodes (17): 1. Define the Atmosphere, 2. Map the Color Palette, 3. Establish Typography Rules, 4. Define the Hero Section, 5. Describe Component Stylings, 6. Define Layout Principles, 8. Encode Motion Philosophy, 9. List Anti-Patterns (AI Tells) (+9 more)
 
 ### Community 366 - "Workflow"
 Cohesion: 0.14
@@ -2344,8 +2335,8 @@ Cohesion: 0.15
 Nodes (12): 1. Schema Configuration, 2. Config Configuration, 3. Environment Variable, Common Issues, Connection String Format, Driver Adapter, JSON Support, MySQL Setup (+4 more)
 
 ### Community 390 - "indexeddb-prototype.ts"
-Cohesion: 0.07
-Nodes (36): GitBlob, GitTreeEntry, WorkspaceManifest, FIXTURE_BACKUP_ONLY_CANVAS, FIXTURE_CANVAS_ASSET, FIXTURE_CANVAS_NOTE, FIXTURE_CORRUPT_ASSET, FIXTURE_DIVERGENT_RECORDS (+28 more)
+Cohesion: 0.05
+Nodes (38): GitBlob, GitTreeEntry, WorkspaceManifest, computeSha256(), FIXTURE_BACKUP_ONLY_CANVAS, FIXTURE_CANVAS_ASSET, FIXTURE_CANVAS_NOTE, FIXTURE_CORRUPT_ASSET (+30 more)
 
 ### Community 391 - "management-api"
 Cohesion: 0.15
@@ -2395,9 +2386,9 @@ Nodes (11): Architecture, Codebase Ingestion Reference, Context Budget Managemen
 Cohesion: 0.17
 Nodes (11): Assess Current State, Code Simplification, Content Simplification, Document Removed Complexity, Information Architecture, Interaction Simplification, Layout Simplification, Plan Simplification (+3 more)
 
-### Community 403 - "Navbar/Navbar.tsx"
-Cohesion: 0.27
-Nodes (6): Logo(), LogoProps, defaultLinks, Navbar(), NavbarProps, NavItem
+### Community 403 - "Footer/Footer.tsx"
+Cohesion: 0.14
+Nodes (12): companyLinks, currentYear, Footer(), FooterLink, FooterProps, learnLinks, productLinks, resourceLinks (+4 more)
 
 ### Community 404 - "Scan mode (approach C: auto-extract, then confirm descriptive language)"
 Cohesion: 0.17
@@ -2436,8 +2427,8 @@ Cohesion: 0.21
 Nodes (8): CardEditor(), CardEditorProps, PRIORITY_OPTIONS, TYPE_OPTIONS, FieldOrGroup, FormEditor(), FormEditorProps, FormField
 
 ### Community 413 - "Meta-Issue-List: Master Catalog of Overlooked Issues, Bugs & Performance Traps"
-Cohesion: 0.18
-Nodes (10): ISSUE 14: Messaging Subsystem Disconnected from Database (Relies on `localStorage` & Mocks), ISSUE 15: Dead Action Buttons in Messaging Screen, ISSUE 17: Study Room Seed-On-Read & Concurrency Race Condition in Join Logic, ISSUE 18: Unstyled Plain-Text Loading State in Notes Workspace, ISSUE 24: Unformatted Raw Markdown & Lack of Chat Sanitization in Cohort Builder, ISSUE 25: AI Intake Error Transparency & Unstyled Source Text Input, ISSUE 26: Incoherent Intermediate Logs & Pipeline Premature Jumps in Cohort Creation, Meta-Issue-List: Master Catalog of Overlooked Issues, Bugs & Performance Traps (+2 more)
+Cohesion: 0.10
+Nodes (20): ISSUE 10: Hardcoded Fake Rating (5.0), Fake Hall of Fame Champion ("Sia"), and Static Daily Goal, ISSUE 11: Dead UI Buttons & Broken Interactions in Cohort Overview & Events Tabs, ISSUE 12: Empty State Deficiency & Phantom "Load More" in Cohort Archives, ISSUE 14: Messaging Subsystem Disconnected from Database (Relies on `localStorage` & Mocks), ISSUE 15: Dead Action Buttons in Messaging Screen, ISSUE 17: Study Room Seed-On-Read & Concurrency Race Condition in Join Logic, ISSUE 18: Unstyled Plain-Text Loading State in Notes Workspace, ISSUE 20: Non-Existent Gemini Model ID & Latency Degradation in Vector Scoring (+12 more)
 
 ### Community 414 - "useAmbientPlayback.test.tsx"
 Cohesion: 0.36
@@ -2535,9 +2526,9 @@ Nodes (10): 1. Capture a reproducible affected-cohort fixture, 2. Define a sourc
 Cohesion: 0.18
 Nodes (10): 2. Token & Foundation Comparison Matrix, 3. Structural & Component Comparison, 4. Architectural Boundaries Intentionally Preserved, A. Conversation Rail & Brand Header, B. Chat Pane & Composer, C. Workspace Pane: Journey Progress Stepper, D. Sources List & Cards, E. Evidence Drawer & Ref Buttons (+2 more)
 
-### Community 438 - "02-ikigai/Ikigai.tsx"
-Cohesion: 0.29
-Nodes (5): FeatureSection(), Ikigai(), IkigaiTimeline(), moments, Section
+### Community 438 - "PublicationSuccess.tsx"
+Cohesion: 0.33
+Nodes (7): PublicationStageView(), PublicationStageViewProps, getOrigin(), PublicationSuccess(), serverOrigin(), subscribeOrigin(), PublicationReceipt
 
 ### Community 439 - "Study-room product foundation prerequisite plan"
 Cohesion: 0.06
@@ -2743,9 +2734,9 @@ Nodes (8): Bad, Good, migrations-mapping, Priority, Prisma Next: first-class, co
 Cohesion: 0.22
 Nodes (8): Bad, Environment requirements, Good, Priority, References, schema-contract-mapping, The mapping, Why It Matters
 
-### Community 491 - "authCommunityGrid.tsx"
-Cohesion: 0.24
-Nodes (5): AuthCommunityGrid(), renderCard(), FEATURED_CONTENT, FeaturedCard, STUDY_ROOMS
+### Community 491 - "Shape"
+Cohesion: 0.22
+Nodes (8): Cadence, Confirm and stop, Phase 1: Discovery interview, Phase 2: Resolve the design direction, Phase 3: Write the brief, Round 1: purpose, people, and outcome, Round 2: material, behavior, and boundaries, Shape
 
 ### Community 492 - "endpoints"
 Cohesion: 0.22
@@ -2788,12 +2779,12 @@ Cohesion: 0.22
 Nodes (9): 11. Performance, scalability, and cost estimates, Attachments, Capacity strategy, Deployment comparison, Engineering effort, Load-testing plan, Pricing basis, Push and media (+1 more)
 
 ### Community 502 - "store.ts"
-Cohesion: 0.05
-Nodes (55): Direct messages and groups, Direct messages and groups, Subpath Exports & Profiles, createCrossTabCoordinator(), assumeLeadership(), notifyLeadership(), startHeartbeat(), CrossTabCoordinator (+47 more)
+Cohesion: 0.04
+Nodes (53): Subpath Exports & Profiles, createCrossTabCoordinator(), assumeLeadership(), notifyLeadership(), startHeartbeat(), CrossTabCoordinator, CrossTabEventMessage, CrossTabHeartbeatMessage (+45 more)
 
 ### Community 503 - "PlayDock.tsx"
-Cohesion: 0.22
-Nodes (5): ConeSlider(), ConeSliderProps, PlayDock(), PlayDockProps, SPEED_OPTIONS
+Cohesion: 0.19
+Nodes (6): ConeSlider(), ConeSliderProps, PlayDock(), PlayDockProps, SPEED_OPTIONS, defaultProps
 
 ### Community 504 - "Files to Generate"
 Cohesion: 0.25
@@ -2867,13 +2858,13 @@ Nodes (8): 8. ANTI-AI-SLOP RULES, Carousel / marquee slop (layout), Content slop
 Cohesion: 0.25
 Nodes (8): 1. Impatient Power User: "Alex", 2. Confused First-Timer: "Jordan", 3. Accessibility-Dependent User: "Sam", 4. Deliberate Stress Tester: "Riley", 5. Distracted Mobile User: "Casey", Persona-Based Design Testing, Project-Specific Personas, Selecting Personas
 
-### Community 522 - "iOS platform"
-Cohesion: 0.25
-Nodes (8): Color & materials, Components & controls, iOS platform, Layout & structure, Motion, The iOS slop test, Touch targets, Typography
+### Community 522 - "doctor.md"
+Cohesion: 0.07
+Nodes (27): 1. Accessibility (VoiceOver / TalkBack), 2. Performance, 3. Appearance & Theming, 4. Platform Conformance (CRITICAL), 5. Adaptivity, Audit Health Score, Detailed Findings by Severity, Diagnostic Scan (+19 more)
 
 ### Community 523 - "RoomScreen.tsx"
-Cohesion: 0.02
-Nodes (133): sync(), 1.1 Working Tree & Redesign Preservation, Implementation, Intent and visual contract, Status & Verification, Study room reference redesign, 10. Future Centrifugo boundary, 11. Execution checklist (+125 more)
+Cohesion: 0.03
+Nodes (108): sync(), Implementation, Intent and visual contract, Status & Verification, Study room reference redesign, 10. Future Centrifugo boundary, 11. Execution checklist, 2.4 File inventory and actions (+100 more)
 
 ### Community 525 - "Quality Standards and Adaptation"
 Cohesion: 0.25
@@ -2928,8 +2919,8 @@ Cohesion: 0.25
 Nodes (7): 95/5 fidelity gate, Completion evidence, Convergence loop, Critical caps, Human 5% queue, Meaning of 95%, Weighted score
 
 ### Community 538 - "Interaction and motion evidence V1"
-Cohesion: 0.25
-Nodes (7): Compilation and replay, Contents, Evidence levels, Identity model, Interaction and motion evidence V1, Motion tracks, Recording and video spans
+Cohesion: 0.20
+Nodes (8): Action edge, Compilation and replay, Contents, Evidence levels, Identity model, Interaction and motion evidence V1, Motion tracks, Recording and video spans
 
 ### Community 539 - "Agent Instructions"
 Cohesion: 0.25
@@ -2947,9 +2938,9 @@ Nodes (8): Building from a `Dockerfile`, Docker, `dockerCommand`, `dockerContext
 Cohesion: 0.25
 Nodes (8): `databases`, `envVarGroups`, `previews.expireAfterDays`, `previews.generation`, `projects`, Root-level fields, `services`, `ungrouped`
 
-### Community 544 - "server.mjs"
-Cohesion: 0.18
-Nodes (6): fixture, font, mockInteraction, root, workspace, wrapper
+### Community 544 - "12. Deployment, rollback, and operational runbooks"
+Cohesion: 0.22
+Nodes (9): 12. Deployment, rollback, and operational runbooks, Centrifugo outage, Monitoring, Outbox backlog, PostgreSQL outage, Production rollout, Rollback, Room cleanup failure (+1 more)
 
 ### Community 545 - "Agent Instructions"
 Cohesion: 0.25
@@ -2988,8 +2979,12 @@ Cohesion: 0.25
 Nodes (8): 1. Problem & Root Cause, 2. Preservation & Invariant Rules, 3. Architecture & Solution Instructions, 4. Exact File Edits & Code Guidance, 5. Verification Steps, File 1: `src/client/mobile/screens/Explore/components/TrendingContentCard/TrendingContentCard.tsx`, File 2: `src/client/mobile/screens/Explore/ExploreMobile.tsx`, ISSUE 7 — Hardcoded Mock Content & Missing Discovery Sections in Mobile Explore
 
 ### Community 554 - "8. Edge cases"
-Cohesion: 0.06
-Nodes (30): 1.1 Concept, 1.3 The single permitted member-side audio control, 1.4 User journey, 1.5 Admin vs member — what each sees, 1.6 Non-goals (do not build), 1. Product specification, 2.2 What works today vs. what is mock, 2.3 Decision: detach the discovery page from `/api/studyroom` **[decision]** (+22 more)
+Cohesion: 0.17
+Nodes (12): 8.10 Missing participant data, 8.11 Responsive overflow and conflicting panels, 8.13 Misc, 8.1 Switching the room background, 8.2 Switching shared audio sources, 8.3 Unsupported or invalid media URLs, 8.4 Browser playback restrictions, 8.6 Timer settings changed during an active session (+4 more)
+
+### Community 555 - "mobile-build.mjs"
+Cohesion: 0.22
+Nodes (5): apiDir, apiHiddenDir, __dirname, mobileDir, rootDir
 
 ### Community 556 - "ISSUE 13 — Questline Season & Lesson Indexing Desynchronization (0-based vs 1-based)"
 Cohesion: 0.25
@@ -3007,9 +3002,9 @@ Nodes (7): androidDir, bundlePath, __dirname, keystoreProperties, keystoreProper
 Cohesion: 0.29
 Nodes (6): 1. Executive Summary, 2. Code Review Pro - Deliverables, 3. Verification & Quality Gates, A. Sub-3A: Cohort Archives & Events ISR Caching, B. Sub-3B: Hall of Fame & Cache Revalidation, Team 3: Edge ISR Cohort Subpages & Catalog Revalidation (ISR-Converter-Lead)
 
-### Community 560 - "NotesStateEntity"
-Cohesion: 0.19
-Nodes (11): 3.1 Metadata Repository & Hooks (`notes.repository.ts`, `useNotes.ts`), daysAgo(), notebookNames, now, seedNotebooks, seedNotes, titles, NotesStateEntity (+3 more)
+### Community 560 - "notes.seed.ts"
+Cohesion: 0.32
+Nodes (7): daysAgo(), notebookNames, now, seedNotebooks, seedNotes, seedNotesState, titles
 
 ### Community 561 - "Output Formats and Final Summary"
 Cohesion: 0.29
@@ -3087,9 +3082,9 @@ Nodes (9): appendStalenessDirective(), buildStalenessDirective(), cachePath(), f
 Cohesion: 0.29
 Nodes (7): Cognitive Load Assessment, Cognitive Load Checklist, Extraneous Load: Bad Design, Germane Load: Learning Effort, Intrinsic Load: The Task Itself, The Working Memory Rule, Three Types of Cognitive Load
 
-### Community 580 - "Impeccable Finish Reviewer"
-Cohesion: 0.29
-Nodes (6): Checks, in order, Disposition, Impeccable Finish Reviewer, Input Contract, Output Contract, Verdict Pass
+### Community 580 - "dev.mjs"
+Cohesion: 0.25
+Nodes (7): cleanup(), creationWorker, __dirname, interactionWorker, killProcessTree(), nextProcess, projectRoot
 
 ### Community 581 - "Impeccable Manual Edit Applier"
 Cohesion: 0.29
@@ -3163,13 +3158,13 @@ Nodes (6): Checkpoint auto-resume, Establish the continuation, Execute each chec
 Cohesion: 0.10
 Nodes (21): main(), now(), main(), now(), parse_args(), parse_named(), parse_viewport(), stable_id() (+13 more)
 
-### Community 599 - "2. File-by-File Changes"
-Cohesion: 0.20
-Nodes (9): 1. Overview, 2. File-by-File Changes, 3. Verification & Testing, A. `src/client/repositories/homeStorageAdapter.ts`, B. `src/client/screens/dashboard/home/components/ChannelHub/ChannelHub.tsx`, C. `src/client/screens/dashboard/home/HomeDesktop.tsx`, D. `src/client/components/global/LearningPromptBar/LearningPromptBar.tsx`, E. `src/client/repositories/homeRepository.ts` & `src/client/screens/dashboard/home/hooks/useHome.ts` (+1 more)
+### Community 599 - "OverviewViewer.tsx"
+Cohesion: 0.39
+Nodes (5): CohortViewerBoundary(), mocks, useCohortViewer(), Overview, OverviewViewer()
 
-### Community 600 - "ref_lucide_react"
-Cohesion: 0.05
-Nodes (32): 1. Executive Summary & Design Foundations, HorizontalScroller, HorizontalScrollerHandle, HorizontalScrollerProps, ACTIONS, COLOR_PRESETS, ExcalidrawTool, MobileCanvasToolbarProps (+24 more)
+### Community 600 - "ref_react"
+Cohesion: 0.03
+Nodes (54): 4.8 Participant panel (panel `'people'`) and elapsed time, StudyRoomLoading(), metadata, StudyRoomPage(), mockRooms, HorizontalScroller, HorizontalScrollerHandle, HorizontalScrollerProps (+46 more)
 
 ### Community 601 - "ISSUE 22 — Unbounded Channel Messages Fetch Without Pagination"
 Cohesion: 0.25
@@ -3177,7 +3172,7 @@ Nodes (8): 1. Problem & Root Cause, 2. Preservation & Invariant Rules, 3. Archit
 
 ### Community 602 - "Explore"
 Cohesion: 0.05
-Nodes (38): cavecrew, Example chaining, How to invoke, Model overrides, See also, What it does, Auto-clarity (inherited), Chaining patterns (+30 more)
+Nodes (40): cavecrew, Example chaining, How to invoke, Model overrides, See also, What it does, Auto-clarity (inherited), Chaining patterns (+32 more)
 
 ### Community 603 - "ISSUE 25 — AI Intake Error Transparency & Unstyled Source Text Input"
 Cohesion: 0.25
@@ -3199,9 +3194,9 @@ Nodes (9): 11. Performance, scalability, and cost estimates, Attachments, Capaci
 Cohesion: 0.33
 Nodes (6): Constraints, Failure modes, Flow, /impeccable hooks, Intentional findings, Routing
 
-### Community 608 - "12. Deployment, rollback, and operational runbooks"
-Cohesion: 0.22
-Nodes (9): 12. Deployment, rollback, and operational runbooks, Centrifugo outage, Monitoring, Outbox backlog, PostgreSQL outage, Production rollout, Rollback, Room cleanup failure (+1 more)
+### Community 608 - "live-setup.md"
+Cohesion: 0.25
+Nodes (7): append-arrays, append-string, Config drift, Consent prompt (use this phrasing), CSP detection (first-time only), Troubleshooting, Write the config
 
 ### Community 609 - "Automated Testing"
 Cohesion: 0.33
@@ -3417,7 +3412,7 @@ Nodes (5): Best Practices, Common Use Cases, Instructions, Output Format, Trash 
 
 ### Community 663 - "ref_lucide_react"
 Cohesion: 0.06
-Nodes (34): Badge, BadgeProps, Size, Variant, CommunityConfig(), CHUNK_COLORS, ContextMenuState, CurriculumBoard() (+26 more)
+Nodes (34): BadgeProps, Size, Variant, CommunityConfig(), CHUNK_COLORS, ContextMenuState, CurriculumBoard(), CurriculumBulkBar() (+26 more)
 
 ### Community 664 - "Live cohort builder cutover — 2026-10-15"
 Cohesion: 0.33
@@ -3445,15 +3440,15 @@ Nodes (5): Evidence, Limits and policy, Reproduction, Rollout (not performed), S
 
 ### Community 670 - "artifacts.ts"
 Cohesion: 0.06
-Nodes (42): reviewResponseSchema, fixture(), CreationRefinement, refinementContext(), validateRefinementProposal(), reviewHandler(), projectReview(), curriculum (+34 more)
+Nodes (43): fixture(), CreationRefinement, refinementContext(), RefinementService, validateRefinementProposal(), reviewHandler(), projectReview(), curriculum (+35 more)
 
-### Community 671 - "5. Phase 1 — Real identity, enrollment, and chat authorization"
-Cohesion: 0.33
-Nodes (6): 5. Phase 1 — Real identity, enrollment, and chat authorization, Database and API, Inspect/modify later, Parallel assignments, Sequential steps, Verification
+### Community 671 - "renderGroupedTemplate"
+Cohesion: 0.32
+Nodes (8): cursorBlockMessage(), clampGroupedToBudget(), clampToBudget(), directiveFooter(), formatFindingLine(), quoteCommandArg(), renderGroupedTemplate(), renderTemplate()
 
-### Community 672 - "NotesWorkspace.tsx"
-Cohesion: 0.11
-Nodes (20): CanvasScreen(), NotesCanvas, NotesKanban, CanvasSwitcher(), Menu(), ShareModal(), formatSavedAt(), NotesSaveStatus() (+12 more)
+### Community 672 - "useNotes.ts"
+Cohesion: 0.05
+Nodes (55): Loading(), metadata, NotesPage(), MobileStepShell(), MobileStepShellProps, STEP_ORDER, MobileStep, NotesMobile() (+47 more)
 
 ### Community 673 - "ISSUE 16 — Kanban Board Event Listener Memory Leak & Mobile Double Execution"
 Cohesion: 0.29
@@ -3467,9 +3462,9 @@ Nodes (5): 2. Code Review Pro - Deliverables, 3. Verification & Quality Gates, A
 Cohesion: 0.20
 Nodes (9): 1. Executive Summary & Design Invariants, 2. Invariant Decision & Mechanism Evaluation Table, 3. Schema Definitions & Serialization Rules, 4. Host Envelopes & Measured Physical Limits, 5. Account, Identity & Repository Binding Rules, 7. Versioning & Future Extension Policy (R3 Deferrals), Evidence Artifact E4: Frozen Local-First & GitHub Sync Contracts, Manifest Format (`undone/manifest.json`) (+1 more)
 
-### Community 676 - "verify-packed-consumer.mjs"
-Cohesion: 0.22
-Nodes (7): .., packageDir, packOutput, repoRoot, tarballFilename, tarballPath, tempDirs
+### Community 676 - "1.1 Competitor Landscape Breakdown"
+Cohesion: 0.29
+Nodes (7): 1.1 Competitor Landscape Breakdown, 1.2 Comprehensive Feature & UX Comparison Matrix, 1. Direct Competitor Benchmarking & Market Intelligence, Category 1: Traditional MOOCs & Course Marketplaces (Coursera, Udemy, edX), Category 2: Short-Form Educational & Gamified Apps (Kinnu, Primer, TikTok STEM, Duolingo), Category 3: Cohort-Based Course Platforms (Maven, Section4), Category 4: AI Summarization Tools (Snipd, Shortform, Blinkist, Headway)
 
 ### Community 677 - "Agent Swarm Deployer"
 Cohesion: 0.40
@@ -3692,8 +3687,8 @@ Cohesion: 0.40
 Nodes (4): Isolated services, Regression, S3 local verification, Shared rollout
 
 ### Community 732 - "ISSUE 14 — Messaging Subsystem Disconnected from Live Database"
-Cohesion: 0.29
-Nodes (7): 1. Problem & Root Cause, 3. Architecture & Solution Instructions, 4. Exact File Edits & Code Guidance, 5. Verification Steps, File 1: `src/client/repositories/messagesRepository.ts`, File 2: `src/client/screens/dashboard/message/hooks/useMessage.ts`, ISSUE 14 — Messaging Subsystem Disconnected from Live Database
+Cohesion: 0.25
+Nodes (8): 1. Problem & Root Cause, 2. Preservation & Invariant Rules, 3. Architecture & Solution Instructions, 4. Exact File Edits & Code Guidance, 5. Verification Steps, File 1: `src/client/repositories/messagesRepository.ts`, File 2: `src/client/screens/dashboard/message/hooks/useMessage.ts`, ISSUE 14 — Messaging Subsystem Disconnected from Live Database
 
 ### Community 733 - "Evidence Artifact E5: Release Gates & Capability Matrix"
 Cohesion: 0.22
@@ -3703,17 +3698,17 @@ Nodes (8): 1. Distinct Capability Promises & Phased Release Roadmap, 2. Browser 
 Cohesion: 0.31
 Nodes (6): dynamic, GET(), isOwnerVerified(), recordOwnerVerified(), verifiedOwnerCache, fake
 
-### Community 735 - "live-discard-manual-edits.mjs"
-Cohesion: 0.25
-Nodes (5): args, buffer, cwd, pageUrlFilter, remaining
+### Community 735 - "Visual Parity Verification & Rendering Evidence"
+Cohesion: 0.33
+Nodes (5): 1. Executive Summary, 2. Screenshot Parity Matrix, 3. Stage-Specific Screen Compositions Parity Resolution, 4. Acceptance Verification Summary, Visual Parity Verification & Rendering Evidence
 
 ### Community 736 - "3. Freeze these contracts before feature work"
 Cohesion: 0.29
 Nodes (7): 3.1 Authorization matrix, 3.2 Common HTTP contract, 3.3 Ordering and idempotency, 3.4 Durable event recovery, 3.5 Generation-based access revocation, 3.6 Receipt semantics, 3. Freeze these contracts before feature work
 
 ### Community 737 - "PlayerToolbar/components/index.ts"
-Cohesion: 0.08
-Nodes (27): 1. Page Identification, 2. Tooltip Inventory, 3. Visual Requirements, 4. Interaction Requirements, 5. Accessibility Requirements, 6. Implementation Notes, 7. Acceptance Criteria, Tooltip Implementation Specification: Play Page (+19 more)
+Cohesion: 0.06
+Nodes (38): 1. Page Identification, 2. Tooltip Inventory, 3. Visual Requirements, 4. Interaction Requirements, 5. Accessibility Requirements, 6. Implementation Notes, 7. Acceptance Criteria, Tooltip Implementation Specification: Play Page (+30 more)
 
 ### Community 738 - "Prisma MongoDB Upgrade Path"
 Cohesion: 0.22
@@ -3891,89 +3886,65 @@ Nodes (7): 1. Problem & Root Cause, 2. Preservation & Invariant Rules, 3. Archit
 Cohesion: 0.29
 Nodes (7): 1. Problem & Root Cause, 2. Preservation & Invariant Rules, 3. Architecture & Solution Instructions, 4. Exact File Edits & Code Guidance, 5. Verification Steps, File: `src/app/(dashboard)/cohort/page.tsx`, ISSUE 9 — Completely Blank `/cohort` Index Page
 
-### Community 816 - "Getting Started"
-Cohesion: 0.29
-Nodes (7): 1. Clone Repository, 2. Install Dependencies, 3. Configure Environment Variables, 4. Database Setup, 5. Start Development Server, Getting Started, Prerequisites
+### Community 816 - "@tanstack/react-query"
+Cohesion: 0.60
+Nodes (4): @tanstack/react-query, ReactQueryProvider(), getQueryClient(), makeQueryClient()
 
 ### Community 817 - "Core Capabilities"
 Cohesion: 0.29
 Nodes (7): 1. Multi-Source Ingestion Engine, 2. Adaptive Microlearning Stream (`/play`), 3. Pedagogical Vector Space and Recommendation, 4. Cohorts and Collaborative Learning, 5. Virtual Study Rooms (`/studyroom`), 6. Personal Workspace and Canvas (`/notes`), Core Capabilities
 
+### Community 818 - "chunkingService"
+Cohesion: 0.18
+Nodes (6): @google/generative-ai, chunkingService, ChunkInterval, SemanticChunkResult, mockGenerateContent, mockGetGenerativeModel
+
 ### Community 820 - "HyperFrames Local Promo"
 Cohesion: 0.25
 Nodes (7): HyperFrames Local Promo, Quick Commands, Rules, Step 1 -- Take the brief (fast), Step 2 -- Direct the promo, Step 3 -- Build and deliver, Step 4 -- Make it repeatable
-
-### Community 821 - "7. Who is Undone for?"
-Cohesion: 0.40
-Nodes (5): 7. Who is Undone for?, The curious explorer, The inconsistent learner, The skill builder, The time-constrained learner
 
 ### Community 822 - "UI analysis evidence map"
 Cohesion: 0.20
 Nodes (9): 1. Source inventory, 2. Page frame, 3. Typography, 4. Tokens, 5. Components and content, 6. Assets, 7. Responsive and state evidence, 8. Confidence labels (+1 more)
 
 ### Community 823 - "StudyRoom"
-Cohesion: 0.07
-Nodes (31): 12. Phase 8 — Reliable study-room membership and focus sessions, Inspect/modify later, Parallel assignments, Sequential steps, Verification and gate, 1. Problem & Root Cause, 2. Preservation & Invariant Rules, 3. Architecture & Solution Instructions (+23 more)
+Cohesion: 0.06
+Nodes (35): 12. Phase 8 — Reliable study-room membership and focus sessions, Inspect/modify later, Parallel assignments, Sequential steps, Verification and gate, 1. Problem & Root Cause, 2. Preservation & Invariant Rules, 3. Architecture & Solution Instructions (+27 more)
 
-### Community 824 - "devDependencies"
-Cohesion: 0.40
-Nodes (5): devDependencies, esbuild, @types/react, @types/react-dom, typescript
+### Community 824 - "useRoomLifecycle.ts"
+Cohesion: 0.47
+Nodes (4): getTabId(), useRoomLifecycle(), UseRoomLifecycleOptions, UseRoomLifecycleResult
 
 ### Community 825 - "2. How Undone works"
 Cohesion: 0.40
 Nodes (5): 1. Bring what you want to learn, 2. How Undone works, 2. The material becomes manageable, 3. Learning fits into ordinary life, 4. Progress continues automatically
 
-### Community 826 - "expandScanTargets"
-Cohesion: 0.36
-Nodes (8): coLocatedStylesheets(), expandScanTargets(), hasPathTraversal(), isInsideProject(), looksLikeProjectRoot(), normalizeScanTargets(), parseStaticStyleImports(), resolveCacheCwd()
+### Community 826 - "4. Phase 0 — Baseline and decisions"
+Cohesion: 0.40
+Nodes (5): 4. Phase 0 — Baseline and decisions, Inspect, Parallel assignments, Sequential steps, Tests and gate
 
 ### Community 827 - "studyroom/route.ts"
 Cohesion: 0.06
-Nodes (44): evaluateStudyRoomEnvironment(), formatStudyRoomReadinessMarkdown(), probeStudyRoomBacklog(), probeStudyRoomTables(), ReadinessCheck, runStudyRoomReadinessProbe(), StudyRoomReadinessReport, clearStudyRoomCacheForTest() (+36 more)
+Nodes (47): evaluateStudyRoomEnvironment(), formatStudyRoomReadinessMarkdown(), probeStudyRoomBacklog(), probeStudyRoomTables(), ReadinessCheck, runStudyRoomReadinessProbe(), StudyRoomReadinessReport, clearStudyRoomCacheForTest() (+39 more)
 
 ### Community 828 - "Additional types"
 Cohesion: 0.25
 Nodes (8): Additional types, Properties, Properties, Properties, The `ListTaskRunsParams` type, The `TaskRun` type, The `TaskRunDetails` type, The `TaskRunWithCursor` type
 
-### Community 829 - "Calendar.tsx"
-Cohesion: 0.25
-Nodes (5): Calendar(), CalendarEvent, CalendarProps, MONTHS, WEEKDAYS
+### Community 829 - "dependencies"
+Cohesion: 0.40
+Nodes (5): dependencies, clsx, @excalidraw/excalidraw, lucide-react, @svar-ui/react-kanban
 
 ### Community 830 - "Latest-project menu scan and Studio drilldown"
 Cohesion: 0.33
 Nodes (5): Authorized source-aware scan, Latest-project menu scan and Studio drilldown, Outcome, Source-blind exception, Studio activation contract
 
 ### Community 831 - "delivery-feed.ts"
-Cohesion: 0.32
-Nodes (6): chunkSchema, deliveryFeedChunks(), DeliveryRejection, Lesson, seconds(), chunk
+Cohesion: 0.40
+Nodes (5): chunkSchema, deliveryFeedChunks(), DeliveryRejection, Lesson, seconds()
 
 ### Community 832 - "Team 5: PostgreSQL Database Indexing & Sources Schema Memoization (Db-Index-Architect)"
 Cohesion: 0.29
 Nodes (6): 1. Executive Summary, 2. Code Review Pro - Deliverables, 3. Verification & Quality Gates, A. Sub-5A: High-Traffic PostgreSQL Indexes, B. Sub-5B: Sources Route Capability & Ownership Memoization, Team 5: PostgreSQL Database Indexing & Sources Schema Memoization (Db-Index-Architect)
-
-### Community 834 - "Generate Report"
-Cohesion: 0.29
-Nodes (7): Audit Health Score, Detailed Findings by Severity, Executive Summary, Generate Report, Patterns & Systemic Issues, Platform Conformance Verdict, Positive Findings
-
-### Community 837 - "ShortcutsDialog.tsx"
-Cohesion: 0.29
-Nodes (5): GENERAL_SHORTCUTS, PLAYBACK_SHORTCUTS, ShortcutItem, ShortcutsDialogProps, TIMELINE_SHORTCUTS
-
-### Community 838 - "13. Phase 9 — Actual attachments and notification delivery"
-Cohesion: 0.33
-Nodes (6): 13. Phase 9 — Actual attachments and notification delivery, Parallel assignments, Proposed initial limits, Sequential steps: attachments, Sequential steps: notifications, Verification and gate
-
-### Community 839 - "notification.service.ts"
-Cohesion: 0.60
-Nodes (4): CreateNotificationInput, NotificationDTO, NotificationPreferenceDTO, PushSubscriptionInput
-
-### Community 840 - "UI generation spec"
-Cohesion: 0.40
-Nodes (4): Fact versus implementation guidance, Source-generation rules, UI generation spec, What it contains
-
-### Community 842 - "cohort-builder/__tests__/sse.test.ts"
-Cohesion: 0.40
-Nodes (4): act(), boot, domain, setup()
 
 ### Community 843 - "Error types"
 Cohesion: 0.40
@@ -3987,29 +3958,25 @@ Nodes (3): estimateTokenSavings(), pruneTranscriptWhitespace(), TokenSavingsEsti
 Cohesion: 0.25
 Nodes (8): 1. Problem & Root Cause, 3. Architecture & Solution Instructions, 4. Exact File Edits & Code Guidance, 5. Verification Steps, File 1: `src/server/domain/cohort-creation/chunking.ts`, File 2: `src/server/domain/cohort-creation/building-content.service.ts`, File 3: `src/client/screens/cohortCreation/components/StartingWorkspace.tsx`, ISSUE 26 — Incoherent Intermediate Logs & Pipeline Premature Jumps in Cohort Creation (4-Step Pipeline)
 
-### Community 846 - "sitemap.ts"
-Cohesion: 0.67
-Nodes (3): BASE_URL, sitemap(), listPublicCohortsForSitemap()
-
 ## Knowledge Gaps
 - **93 isolated node(s):** `@babel/runtime`, `@excalidraw/excalidraw`, `@prisma/client`, `@reduxjs/toolkit`, `@swc/helpers` (+88 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 7587 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **72 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 7592 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **69 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `next` connect `isSharedGuestAccount` to `api-routes.test.ts`, `cohort-creation/contracts.ts`, `ref_vitest`, `postgres/client.ts`, `RoomScreen.tsx`, `messaging/contracts.ts`, `next`, `public-cohort.ts`, `getCreationOwner`, `release.ts`, `QuestlineIcon`, `WizardProvider.tsx`, `SourcesStep.tsx`, `ExploreDesktop.tsx`, `useExperience`, `cohort-creation/contracts.ts`, `username-dm-studyroom.e2e.test.ts`, `SceneDock.tsx`, `play/components/index.ts`, `ExploreMobile.tsx`, `explore/models/index.ts`, `package.json`, `cohort/models/index.ts`, `message.ts`, `CohortIntakeScreen.tsx`, `import.ts`, `connectToMongoDB`, `draft-context.tsx`, `HomeDesktop.tsx`, `feed/route.ts`, `message/models/index.ts`, `cohort/models/index.ts`, `ref_lucide_react`, `home/models/index.ts`, `Explore`, `message/models/index.ts`, `authForm.tsx`, `DMProfileSidebar.tsx`, `usePlayback.ts`, `ChannelHub.tsx`, `ActiveCohortRow.tsx`, `EventsPage.tsx`, `ConversationPreview`, `cohortVectorizationWorkflow.ts`, `useMessage.ts`, `NotesMobile.tsx`, `youtube-import.service.ts`, `CohortWorkspace`, `02-ikigai/Ikigai.tsx`, `ActiveCohort`, `ArchivesPage.tsx`, `DetailsStep.tsx`, `Overview.tsx`, `message/models/index.ts`, `message/models/index.ts`, `app/layout.tsx`, `permissionsCache.ts`, `ref_lucide_react`, `FeaturedCohortsStrip.tsx`, `NotesWorkspace.tsx`, `next-auth`, `landing/page.tsx`, `tab-titles.test.ts`, `dev.mjs`, `next-auth`, `auth/page.tsx`, `metadata/route.ts`, `Cohort`, `PlayerToolbar/components/index.ts`, `notion/route.ts`, `github-import.service.ts`, `DashboardShell.tsx`, `studyroom/route.ts`, `[platform]/route.ts`, `landing/layout.tsx`, `(landing)/layout.tsx`, `sitemap.ts`, `Navbar/Navbar.tsx`, `02-ikigai/Ikigai.tsx`, `authCommunityGrid.tsx`?**
+- **Why does `next` connect `isSharedGuestAccount` to `api-routes.test.ts`, `(landing)/page.tsx`, `02-ikigai/Ikigai.tsx`, `CohortWorkspace`, `ArchivesPage.tsx`, `cohort-creation/contracts.ts`, `DetailsStep.tsx`, `manifest.service.ts`, `returnTo.ts`, `postgres/client.ts`, `Overview.tsx`, `RoomScreen.tsx`, `message.ts`, `messaging/contracts.ts`, `DashboardShell.tsx`, `app/layout.tsx`, `interaction.repo.ts`, `next`, `Footer/Footer.tsx`, `public-cohort.ts`, `message/models/index.ts`, `release.ts`, `QuestlineIcon`, `ref_lucide_react`, `WizardProvider.tsx`, `SourcesStep.tsx`, `global/StudyRooms/StudyRooms.tsx`, `useNotes.ts`, `FeaturedCohortsStrip.tsx`, `next-auth`, `landing/page.tsx`, `useRoomOrchestration.ts`, `cohort-creation/contracts.ts`, `username-dm-studyroom.e2e.test.ts`, `SceneDock.tsx`, `tab-titles.test.ts`, `dev.mjs`, `PlayMobile.tsx`, `PublicationSuccess.tsx`, `explore/models/index.ts`, `package.json`, `studyroom/route.ts`, `message.ts`, `cohort/models/index.ts`, `DailyChallenge.tsx`, `useExperience`, `import.ts`, `connectToMongoDB`, `corsair.ts`, `HomeDesktop.tsx`, `CohortIntakeScreen.tsx`, `feed/route.ts`, `CommunityChat.tsx`, `authShowcase.tsx`, `OverviewViewer.tsx`, `ref_react`, `home/models/index.ts`, `Explore`, `metadata/route.ts`, `Cohort`, `message/models/index.ts`, `PlayerToolbar/components/index.ts`, `LearningPromptBar.tsx`, `authForm.tsx`, `DMProfileSidebar.tsx`, `ReviewWorkspace.tsx`, `ChannelHub.tsx`, `EventsPage.tsx`, `heroFloatingContentIcons.tsx`, `ConversationPreview`, `notion/route.ts`, `useMessage.ts`, `youtube-import.service.ts`?**
   _High betweenness centrality (0.061) - this node is a cross-community bridge._
 - **What connects `@babel/runtime`, `@excalidraw/excalidraw`, `@prisma/client` to the rest of the system?**
   _93 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `api-routes.test.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.0590990990990991 - nodes in this community are weakly interconnected._
-- **Why does `clamp()` connect `Analysis & Synthesis Instructions` to `Responsive Design`, `Hardening Dimensions`, `SKILL: Industrial Brutalism & Tactical Telemetry UI`, `explore/models/index.ts`, `ExploreDesktop.tsx`?**
-  _High betweenness centrality (0.038) - this node is a cross-community bridge._
-- **Should `cohort-creation/contracts.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.028435539364501113 - nodes in this community are weakly interconnected._
-- **Why does `artifact()` connect `youtube.ts` to `typeset.md`?**
+  _Cohesion score 0.047619047619047616 - nodes in this community are weakly interconnected._
+- **Why does `Study rooms architecture & operational index` connect `RoomScreen.tsx` to `NotesSidebar.tsx`, `isSharedGuestAccount`, `useRoomOrchestration.ts`, `cohort-creation/contracts.ts`, `hook-admin.mjs`, `SceneDock.tsx`, `studyroom-benchmark-engine.ts`, `postgres/client.ts`, `CommunityChat.tsx`, `SessionPanel.tsx`, `4.3 Ambient sound (admin controls; everyone hears)`, `ref_react`, `studyroom/route.ts`, `presence.service.ts`, `MEMORY/README.md`?**
   _High betweenness centrality (0.037) - this node is a cross-community bridge._
-- **Should `ref_vitest` be split into smaller, more focused modules?**
-  _Cohesion score 0.0319618366129994 - nodes in this community are weakly interconnected._
+- **Should `cohort-creation/contracts.ts` be split into smaller, more focused modules?**
+  _Cohesion score 0.0274203431372549 - nodes in this community are weakly interconnected._
+- **Why does `sync()` connect `RoomScreen.tsx` to `init`?**
+  _High betweenness centrality (0.030) - this node is a cross-community bridge._
+- **Should `CohortWorkspace` be split into smaller, more focused modules?**
+  _Cohesion score 0.028881375035221188 - nodes in this community are weakly interconnected._

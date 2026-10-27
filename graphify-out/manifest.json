@@ -15378,9 +15378,9 @@
     "semantic_hash": ""
   },
   "MEMORY/notes-local-first-sync.md": {
-    "mtime": 1793083566.7280762,
-    "seen": 1793083643.4818754,
-    "ast_hash": "e98b0f675cb6e91fcaffd621e6a1d647",
+    "mtime": 1793084324.0881565,
+    "seen": 1793084426.1642725,
+    "ast_hash": "51f3857d9fab3616544895cd30a6655c",
     "semantic_hash": ""
   },
   "MEMORY/play-playback.md": {
@@ -15468,9 +15468,9 @@
     "semantic_hash": ""
   },
   "src/app/api/personal-workspace/github/vault.ts": {
-    "mtime": 1793082322.604712,
-    "seen": 1793083643.0570984,
-    "ast_hash": "75a075b8ac28a292bde520e71e195f20",
+    "mtime": 1793084054.8967848,
+    "seen": 1793084425.6988966,
+    "ast_hash": "e0e99649b11a14755a79f975cb806b55",
     "semantic_hash": ""
   },
   "src/client/personal-workspace/hooks/__tests__/useLocalWorkspace.test.ts": {
@@ -15510,15 +15510,15 @@
     "semantic_hash": ""
   },
   "src/client/personal-workspace/ui/__tests__/connect-github-modal.test.tsx": {
-    "mtime": 1793082594.4410915,
-    "seen": 1793083643.098742,
-    "ast_hash": "658a2ed0bdfa110e24f90c3815db0cee",
+    "mtime": 1793084280.2891722,
+    "seen": 1793084425.7486832,
+    "ast_hash": "334bf153667821e1206e4a22f126e0ce",
     "semantic_hash": ""
   },
   "src/client/personal-workspace/ui/connect-github-modal.tsx": {
-    "mtime": 1793082695.9453518,
-    "seen": 1793083643.0987458,
-    "ast_hash": "45239c3e11b21d8214dfd54b3812e7a4",
+    "mtime": 1793084132.797142,
+    "seen": 1793084425.74895,
+    "ast_hash": "b88ecd698271b081a0f5fe147282cc21",
     "semantic_hash": ""
   },
   "src/server/infrastructure/github/personal-workspace/__tests__/client.test.ts": {
@@ -15549,6 +15549,30 @@
     "mtime": 1793081648.9189684,
     "seen": 1793083643.3498619,
     "ast_hash": "caefd7496320ca2a6872ebd4776bb38c",
+    "semantic_hash": ""
+  },
+  "src/app/api/personal-workspace/github/__tests__/oauth.test.ts": {
+    "mtime": 1793084217.187611,
+    "seen": 1793084425.6980119,
+    "ast_hash": "2d3fd032ff0a105ebb477f6199800cec",
+    "semantic_hash": ""
+  },
+  "src/app/api/personal-workspace/github/oauth/authorize/route.ts": {
+    "mtime": 1793083995.3798368,
+    "seen": 1793084425.6984174,
+    "ast_hash": "15c61f2de8412c610256019a4fea66cc",
+    "semantic_hash": ""
+  },
+  "src/app/api/personal-workspace/github/oauth/callback/route.ts": {
+    "mtime": 1793084238.5709763,
+    "seen": 1793084425.6984198,
+    "ast_hash": "f0b8d276801cc2eb7de6c378232d6584",
+    "semantic_hash": ""
+  },
+  "src/app/api/personal-workspace/github/oauth/config.ts": {
+    "mtime": 1793083984.8555903,
+    "seen": 1793084425.698421,
+    "ast_hash": "102c3a855786aeb5c86356847198cc57",
     "semantic_hash": ""
   }
 }
