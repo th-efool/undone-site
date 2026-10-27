@@ -16,6 +16,7 @@ import {
   type SaveSuccessEvent,
 } from '../database';
 import { PersonalWorkspaceRepository } from '../repository';
+import type { NoteRecord } from '@/src/shared/personal-workspace/contracts';
 import {
   FIXTURE_NOTEBOOK,
   FIXTURE_CANVAS_NOTE,
@@ -138,6 +139,35 @@ describe('Production Personal Workspace Local Storage Engine & Repository', () =
     expect((await repo1.getNotebook('remote-notebook'))?.title).toBe('Remote title');
     expect(await repo1.getRemoteBaseCommitSha()).toBe('verified-commit-sha');
     expect(await repo1.getPendingOutbox()).toEqual(pendingBefore);
+  });
+
+  it('archives both same-record versions once when local and remote diverge from a common base', async () => {
+    const baseNote = FIXTURE_CANVAS_NOTE as unknown as NoteRecord;
+    await repo1.applyRemoteSnapshot({
+      notebooks: [FIXTURE_NOTEBOOK], notes: [baseNote], assets: [], schedules: [],
+    }, 'shared-base-sha');
+    const localVersion = { ...baseNote, title: 'Local edit' };
+    const remoteVersion = { ...baseNote, title: 'Remote edit' };
+    await repo1.saveNoteAtomic(localVersion, 'update');
+
+    const conflicts = await repo1.applyRemoteSnapshot({
+      notebooks: [FIXTURE_NOTEBOOK], notes: [remoteVersion], assets: [], schedules: [],
+    }, 'remote-diverged-sha');
+    const storedConflicts = await repo1.getDatabase().runTransaction(['conflicts'], 'readonly', (ctx) => ctx.getAll('conflicts'));
+
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0]).toMatchObject({
+      entityType: 'note', entityId: baseNote.id, baseCommitSha: 'shared-base-sha',
+      localVersion, remoteVersion,
+    });
+    expect(await repo1.getNote(baseNote.id)).toEqual(localVersion);
+    expect(storedConflicts).toHaveLength(1);
+
+    const repeated = await repo1.applyRemoteSnapshot({
+      notebooks: [FIXTURE_NOTEBOOK], notes: [remoteVersion], assets: [], schedules: [],
+    }, 'remote-diverged-sha');
+    expect(repeated).toHaveLength(0);
+    expect((await repo1.getDatabase().runTransaction(['conflicts'], 'readonly', (ctx) => ctx.getAll('conflicts')))).toHaveLength(1);
   });
 
   describe('2. Atomic Multi-Store Transactions & Outbox Commit', () => {

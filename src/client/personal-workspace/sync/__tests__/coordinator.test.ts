@@ -77,6 +77,7 @@ describe('SyncCoordinator', () => {
         mockAssets = merge(mockAssets, snapshot.assets, 'asset');
         mockSchedules = merge(mockSchedules, snapshot.schedules, 'schedule');
         mockRemoteBaseSha = sha;
+        return [];
       }),
       getSyncSnapshot: vi.fn(async () => ({
         notebooks: [...mockNotebooks], notes: [...mockNotes], assets: [...mockAssets],
@@ -288,7 +289,12 @@ describe('SyncCoordinator', () => {
         };
       }
       if (url.includes('/pull')) {
-        return { ok: true, status: 200, json: async () => makePullResponse('sha-base-000') };
+        return {
+          ok: true, status: 200,
+          json: async () => makePullResponse('sha-base-000', {
+            notes: [{ ...mockNotes[0], title: 'Prior remote value' }],
+          }),
+        };
       }
       if (url.includes('/publish')) {
         return {
@@ -327,64 +333,29 @@ describe('SyncCoordinator', () => {
     expect(sentBody.state.notes).toHaveLength(1);
   });
 
-  it('detects CAS conflict (422), pulls remote state, and creates branched conflict copy with no lost edits', async () => {
-    // Local has an edit on note-1
-    mockOutbox = [
-      {
-        id: 'outbox-conflict-1',
-        clientTimestamp: new Date().toISOString(),
-        mutationType: 'update',
-        entityType: 'note',
-        entityId: 'note-1',
-        payload: { ...mockNotes[0], title: 'Local Version Title' },
-        status: 'pending',
-        retryCount: 0,
-        generation: 2,
-      },
-    ];
-
-    const remoteNote: NoteRecord = {
-      id: 'note-1',
-      notebookId: 'nb-1',
-      title: 'Remote Edited Title',
-      contentType: 'canvas',
-      order: 0,
-      createdAt: '2026-10-27T10:00:00Z',
-      updatedAt: '2026-10-27T10:15:00Z',
-      canvasData: {
-        elements: [{ id: 'el-remote', type: 'circle' }],
-        appState: {},
-      },
-    };
-
+  it('rebases a stale-head publication and retries without presenting a Git conflict', async () => {
+    const baseNote = { ...mockNotes[0] };
+    mockNotes[0] = { ...mockNotes[0], title: 'Local Version Title' };
+    mockOutbox = [{
+      id: 'outbox-conflict-1', clientTimestamp: new Date().toISOString(), mutationType: 'update',
+      entityType: 'note', entityId: 'note-1', payload: mockNotes[0], status: 'pending', retryCount: 0, generation: 2,
+    }];
+    const remoteNote: NoteRecord = { ...baseNote, title: 'Remote Edited Title' };
+    let pullCount = 0;
+    let publishCount = 0;
     const mockFetch = vi.fn().mockImplementation(async (url: string) => {
-      if (url.includes('/status')) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => ({ ok: true, connected: true }),
-        };
-      }
+      if (url.includes('/status')) return { ok: true, status: 200, json: async () => ({ connected: true }) };
       if (url.includes('/pull')) {
-        return {
-          ok: true,
-          status: 200,
-          json: async () => makePullResponse('sha-remote-diverged-555', { notes: [remoteNote] }),
-        };
-      }
-      if (url.includes('/pull')) {
-        return { ok: true, status: 200, json: async () => makePullResponse() };
+        pullCount += 1;
+        return { ok: true, status: 200, json: async () => pullCount === 1
+          ? makePullResponse('sha-base-000', { notes: [baseNote] })
+          : makePullResponse('sha-remote-diverged-555', { notes: [remoteNote] }) };
       }
       if (url.includes('/publish')) {
-        return {
-          ok: false,
-          status: 422,
-          json: async () => ({
-            ok: false,
-            conflict: true,
-            error: 'CAS conflict: remote ref has diverged',
-          }),
-        };
+        publishCount += 1;
+        return publishCount === 1
+          ? { ok: false, status: 422, json: async () => ({ ok: false, conflict: true }) }
+          : { ok: true, status: 200, json: async () => ({ ok: true, newCommitSha: 'sha-published-after-rebase' }) };
       }
       return { ok: false, status: 404, json: async () => ({}) };
     });
@@ -392,26 +363,32 @@ describe('SyncCoordinator', () => {
     const coordinator = new SyncCoordinator(mockRepo, { fetchFn: mockFetch });
     const result = await coordinator.syncNow();
 
-    expect(result.ok).toBe(false);
-    expect(result.status).toBe('conflict');
-    expect(result.conflict).toBe(true);
-    expect(coordinator.status).toBe('conflict');
-    expect(coordinator.conflictCount).toBe(1);
-    expect(coordinator.lastRemoteCommitSha).toBe('sha-remote-diverged-555');
-
-    // Verify branched conflict copy was created
-    expect(mockRepo.saveNoteAtomic).toHaveBeenCalled();
-    expect(savedConflictNotes).toHaveLength(1);
-
-    const conflictCopy = savedConflictNotes[0];
-    expect(conflictCopy.id).not.toBe('note-1');
-    expect(conflictCopy.title).toContain('Remote Edited Title (Remote Conflict');
-    expect(conflictCopy.contentType).toBe('canvas');
-
-    // Local outbox was NOT deleted because of conflict
-    expect(acknowledgedBatch).toHaveLength(0);
+    expect(result).toMatchObject({ ok: true, status: 'synced', newCommitSha: 'sha-published-after-rebase' });
+    expect(coordinator.status).toBe('synced');
+    expect(coordinator.errorMessage).toBeUndefined();
+    expect(publishCount).toBe(2);
+    expect(acknowledgedBatch).toEqual(['outbox-conflict-1']);
+    expect(mockNotes.find((note) => note.id === 'note-1')?.title).toBe('Local Version Title');
   });
 
+  it('recognizes a publication whose response was lost and acknowledges the exact matching outbox', async () => {
+    mockOutbox = [{
+      id: 'outbox-response-lost', clientTimestamp: new Date().toISOString(), mutationType: 'update',
+      entityType: 'note', entityId: 'note-1', payload: mockNotes[0], status: 'pending', retryCount: 0, generation: 1,
+    }];
+    const mockFetch = vi.fn().mockImplementation(async (url: string) =>
+      url.includes('/status')
+        ? { ok: true, status: 200, json: async () => ({ connected: true }) }
+        : { ok: true, status: 200, json: async () => makePullResponse('sha-already-published') },
+    );
+
+    const coordinator = new SyncCoordinator(mockRepo, { fetchFn: mockFetch });
+    const result = await coordinator.syncNow();
+
+    expect(result).toMatchObject({ ok: true, status: 'synced', newCommitSha: 'sha-already-published' });
+    expect(mockFetch.mock.calls.some((call) => String(call[0]).includes('/publish'))).toBe(false);
+    expect(acknowledgedBatch).toEqual(['outbox-response-lost']);
+  });
   it('handles queued sync requests when sync is already in progress', async () => {
     let resolveFirstPublish: (val: unknown) => void;
     const publishPromise = new Promise((resolve) => {

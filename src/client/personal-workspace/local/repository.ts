@@ -39,6 +39,22 @@ import {
   extractAssetsFromCanvasScene,
   extractAssetsFromKanbanCards,
 } from '@/src/shared/personal-workspace/media';
+import { canonicalJsonStringify } from '@/src/shared/personal-workspace/serialization';
+
+export interface RecoverableRecordConflict {
+  id: string;
+  recoveredAutomatically: true;
+  entityType: EntityType;
+  entityId: string;
+  baseCommitSha: string | null;
+  remoteCommitSha: string | null;
+  baseHash: string | null;
+  localHash: string | null;
+  remoteHash: string | null;
+  localVersion: unknown;
+  remoteVersion: unknown;
+  detectedAt: string;
+}
 
 export type {
   StoreName,
@@ -786,9 +802,9 @@ export class PersonalWorkspaceRepository {
       schedules: ScheduleTaskRecord[];
     },
     remoteCommitSha: string | null,
-  ): Promise<void> {
-    await this.engine.runTransaction(
-      ['notebooks', 'notes', 'assets', 'schedules', 'outbox', 'metadata'],
+  ): Promise<RecoverableRecordConflict[]> {
+    const conflicts = await this.engine.runTransaction(
+      ['notebooks', 'notes', 'assets', 'schedules', 'outbox', 'metadata', 'conflicts'],
       'readwrite',
       (ctx) => {
         const dirtyIds = new Map<EntityType, Set<string>>();
@@ -797,6 +813,51 @@ export class PersonalWorkspaceRepository {
           const ids = dirtyIds.get(mutation.entityType) || new Set<string>();
           ids.add(mutation.entityId);
           dirtyIds.set(mutation.entityType, ids);
+        }
+
+        const previousBase = ctx.get<{ value?: Partial<Record<EntityType, Record<string, string>>> }>(
+          'metadata', 'githubRemoteRecordHashes',
+        )?.value || {};
+        const previousCommit = ctx.get<{ value?: string | null }>('metadata', 'githubRemoteCommitSha')?.value ?? null;
+        const conflictRecords: RecoverableRecordConflict[] = [];
+        const remoteByType: Record<EntityType, Array<{ id: string }>> = {
+          notebook: snapshot.notebooks,
+          note: snapshot.notes,
+          asset: snapshot.assets,
+          schedule: snapshot.schedules,
+        };
+        const storeByType: Record<EntityType, StoreName> = {
+          notebook: 'notebooks', note: 'notes', asset: 'assets', schedule: 'schedules',
+        };
+        const hashRecord = (record: unknown) => computeSha256(canonicalJsonStringify(record));
+        for (const [entityType, ids] of dirtyIds) {
+          const remoteById = new Map(remoteByType[entityType].map((record) => [record.id, record]));
+          for (const entityId of ids) {
+            const baseHash = previousBase[entityType]?.[entityId] ?? null;
+            const localVersion = ctx.get<{ id: string }>(storeByType[entityType], entityId) ?? null;
+            const remoteVersion = remoteById.get(entityId) ?? null;
+            const localHash = localVersion ? hashRecord(localVersion) : null;
+            const remoteHash = remoteVersion ? hashRecord(remoteVersion) : null;
+            if (localHash === remoteHash || localHash === baseHash || remoteHash === baseHash) continue;
+
+            const conflictId = `race-${computeSha256(`${entityType}:${entityId}:${baseHash}:${localHash}:${remoteHash}`)}`;
+            const conflict: RecoverableRecordConflict = {
+              id: conflictId,
+              recoveredAutomatically: true,
+              entityType,
+              entityId,
+              baseCommitSha: previousCommit,
+              remoteCommitSha,
+              baseHash,
+              localHash,
+              remoteHash,
+              localVersion,
+              remoteVersion,
+              detectedAt: new Date().toISOString(),
+            };
+            ctx.put('conflicts', conflictId, conflict);
+            conflictRecords.push(conflict);
+          }
         }
 
         const reconcile = <T extends { id: string }>(
@@ -820,14 +881,23 @@ export class PersonalWorkspaceRepository {
         reconcile('notes', 'note', snapshot.notes);
         reconcile('assets', 'asset', snapshot.assets);
         reconcile('schedules', 'schedule', snapshot.schedules);
+        const hashes: Partial<Record<EntityType, Record<string, string>>> = {};
+        for (const entityType of Object.keys(remoteByType) as EntityType[]) {
+          hashes[entityType] = Object.fromEntries(remoteByType[entityType].map((record) => [record.id, hashRecord(record)]));
+        }
+        ctx.put('metadata', 'githubRemoteRecordHashes', {
+          key: 'githubRemoteRecordHashes', value: hashes, updatedAt: new Date().toISOString(),
+        });
         ctx.put('metadata', 'githubRemoteCommitSha', {
           key: 'githubRemoteCommitSha',
           value: remoteCommitSha,
           updatedAt: new Date().toISOString(),
         });
+        return conflictRecords;
       },
     );
     for (const listener of this.remoteSnapshotListeners) listener();
+    return conflicts;
   }
 
   /**

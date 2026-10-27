@@ -425,6 +425,38 @@ describe('Personal Workspace GitHub API Routes', () => {
       expect(data.error).toContain('missing state');
     });
 
+    it('requires an explicit expected remote head', async () => {
+      const cookie = await createCookieHeader();
+      const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/publish', {
+        method: 'POST', headers: { cookie },
+        body: JSON.stringify({ state: { notebooks: [], notes: [], assets: [] } }),
+      });
+
+      const res = await postPublish(req);
+
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toContain('expectedRemoteCommitSha is required');
+    });
+
+    it('rejects a stale expected head before creating Git objects', async () => {
+      const cookie = await createCookieHeader();
+      const createBlob = vi.spyOn(GitHubGitDataClient.prototype, 'createBlob');
+      vi.spyOn(GitHubGitDataClient.prototype, 'getRef').mockResolvedValue('newer-head');
+      const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/publish', {
+        method: 'POST', headers: { cookie },
+        body: JSON.stringify({
+          expectedRemoteCommitSha: 'stale-head',
+          state: { notebooks: [], notes: [], assets: [] },
+        }),
+      });
+
+      const res = await postPublish(req);
+
+      expect(res.status).toBe(422);
+      expect((await res.json()).currentRemoteCommitSha).toBe('newer-head');
+      expect(createBlob).not.toHaveBeenCalled();
+    });
+
     it('successfully publishes batch mutations, creates tree, creates commit, and updates ref', async () => {
       const cookie = await createCookieHeader();
 
@@ -451,6 +483,7 @@ describe('Personal Workspace GitHub API Routes', () => {
       const refSpy = vi
         .spyOn(GitHubGitDataClient.prototype, 'updateRef')
         .mockResolvedValue({ ok: true, status: 200 });
+      vi.spyOn(GitHubGitDataClient.prototype, 'getRef').mockResolvedValue('parent-sha-000000');
 
       const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/publish', {
         method: 'POST',
@@ -481,7 +514,9 @@ describe('Personal Workspace GitHub API Routes', () => {
         'tree-sha-synthetic-789012',
         ['parent-sha-000000']
       );
-      expect(refSpy).toHaveBeenCalledWith('refs/heads/main', 'commit-sha-synthetic-345678');
+      expect(refSpy).toHaveBeenCalledWith('refs/heads/main', 'commit-sha-synthetic-345678', {
+        expectedSha: 'parent-sha-000000',
+      });
     });
 
     it('handles CAS conflict (HTTP 422) by fetching current remote ref head and returning 422', async () => {
@@ -505,9 +540,9 @@ describe('Personal Workspace GitHub API Routes', () => {
         error: 'Update is not a fast forward',
       });
 
-      vi.spyOn(GitHubGitDataClient.prototype, 'getRef').mockResolvedValue(
-        'remote-diverged-head-sha-999999'
-      );
+      vi.spyOn(GitHubGitDataClient.prototype, 'getRef')
+        .mockResolvedValueOnce('expected-old-sha')
+        .mockResolvedValue('remote-diverged-head-sha-999999');
 
       const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/publish', {
         method: 'POST',
@@ -540,9 +575,13 @@ describe('Personal Workspace GitHub API Routes', () => {
     it('returns error when ref update fails with non-422 status', async () => {
       const cookie = await createCookieHeader();
 
+      vi.spyOn(GitHubGitDataClient.prototype, 'getCommit').mockResolvedValue({
+        sha: 'base-sha', treeSha: 'base-tree', parentShas: [], message: 'base', committedAt: new Date().toISOString(),
+      });
       vi.spyOn(GitHubGitDataClient.prototype, 'createBlob').mockResolvedValue('blob-sha');
       vi.spyOn(GitHubGitDataClient.prototype, 'createTree').mockResolvedValue('tree-sha');
       vi.spyOn(GitHubGitDataClient.prototype, 'createCommit').mockResolvedValue('commit-sha');
+      vi.spyOn(GitHubGitDataClient.prototype, 'getRef').mockResolvedValue('base-sha');
 
       vi.spyOn(GitHubGitDataClient.prototype, 'updateRef').mockResolvedValue({
         ok: false,
@@ -554,6 +593,7 @@ describe('Personal Workspace GitHub API Routes', () => {
         method: 'POST',
         headers: { cookie },
         body: JSON.stringify({
+          expectedRemoteCommitSha: 'base-sha',
           state: { notebooks: [], notes: [], assets: [] },
         }),
       });

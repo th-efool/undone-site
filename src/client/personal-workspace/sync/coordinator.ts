@@ -5,8 +5,8 @@
  * Conforms to Evidence Artifact E4 (Frozen Local-First & GitHub Sync Contracts):
  * - Guarantees offline-first durability: local writes succeed immediately and durably.
  * - Atomic CAS publication: checks expected remote commit SHA before pushing trees.
- * - Conflict branching: on CAS divergence, remote conflicts are branched into explicit local copies
- *   so zero user edits are ever lost.
+ * - Race recovery: a stale branch head is pulled and retried; true same-record divergence is archived
+ *   against the last verified per-record base without blocking the user.
  * - Outbox lifecycle: acknowledges pending outbox batches upon verified remote commit.
  * - Auto-sync coordination: online/offline window listeners and periodic background sync.
  */
@@ -30,7 +30,7 @@ import {
   workspaceManifestSchema,
 } from '@/src/shared/personal-workspace/contracts';
 import { canonicalJsonStringify, computeSha256, validateAssetRecord } from '@/src/shared/personal-workspace/serialization';
-import type { PersonalWorkspaceRepository } from '../local/repository';
+import type { PersonalWorkspaceRepository, RecoverableRecordConflict } from '../local/repository';
 
 export interface SyncCoordinatorOptions {
   autoSyncIntervalMs?: number;
@@ -98,7 +98,7 @@ export interface IWorkspaceSyncRepository {
   applyRemoteSnapshot(
     snapshot: Required<RemotePullState>,
     remoteCommitSha: string | null,
-  ): Promise<void>;
+  ): Promise<RecoverableRecordConflict[]>;
   getSyncSnapshot(): Promise<{
     notebooks: NotebookRecord[];
     notes: NoteRecord[];
@@ -139,21 +139,11 @@ export interface IWorkspaceSyncRepository {
 
 class ReconnectRequiredError extends Error {}
 
-function generateUuid(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
-
 export class SyncCoordinator {
   public status: SyncStatus = 'idle';
   public lastSyncedAt: string | null = null;
   public lastRemoteCommitSha: string | null = null;
+  private lastPulledSnapshot: Required<RemotePullState> | null = null;
   public isSyncing = false;
   public conflictCount = 0;
   public errorMessage?: string;
@@ -200,6 +190,34 @@ export class SyncCoordinator {
 
   private async getLocalSnapshot() {
     return this.repo.getSyncSnapshot();
+  }
+
+  private outboxMatchesPulledSnapshot(snapshot: Awaited<ReturnType<SyncCoordinator['getLocalSnapshot']>>): boolean {
+    if (!this.lastPulledSnapshot || !this.lastRemoteCommitSha || snapshot.outbox.length === 0) return false;
+    const localByType = {
+      notebook: new Map(snapshot.notebooks.map((record) => [record.id, record])),
+      note: new Map(snapshot.notes.map((record) => [record.id, record])),
+      asset: new Map(snapshot.assets.map((record) => [record.id, record])),
+      schedule: new Map(snapshot.schedules.map((record) => [record.id, record])),
+    };
+    const remoteByType = {
+      notebook: new Map(this.lastPulledSnapshot.notebooks.map((record) => [record.id, record])),
+      note: new Map(this.lastPulledSnapshot.notes.map((record) => [record.id, record])),
+      asset: new Map(this.lastPulledSnapshot.assets.map((record) => [record.id, record])),
+      schedule: new Map(this.lastPulledSnapshot.schedules.map((record) => [record.id, record])),
+    };
+    return snapshot.outbox.every((mutation) => {
+      const local = localByType[mutation.entityType].get(mutation.entityId);
+      const remote = remoteByType[mutation.entityType].get(mutation.entityId);
+      if (mutation.mutationType === 'delete') return !local && !remote;
+      if (!local || !remote) return false;
+      if (mutation.entityType === 'asset') {
+        const localAsset = local as AssetRecord;
+        const remoteAsset = remote as AssetRecord;
+        return localAsset.hash === remoteAsset.hash && localAsset.mimeType === remoteAsset.mimeType;
+      }
+      return canonicalJsonStringify(local) === canonicalJsonStringify(remote);
+    });
   }
 
   private verifyRemotePullData(data: RemotePullResponse): {
@@ -311,6 +329,7 @@ export class SyncCoordinator {
     }
 
     await this.repo.applyRemoteSnapshot(verified.snapshot, verified.commitSha);
+    this.lastPulledSnapshot = verified.snapshot;
     this.lastRemoteCommitSha = verified.commitSha;
     return this.lastRemoteCommitSha;
   }
@@ -430,7 +449,7 @@ export class SyncCoordinator {
     }, delay);
   }
 
-  private async executeSync(): Promise<SyncResult> {
+  private async executeSync(casRetry = 0): Promise<SyncResult> {
     try {
       // 2. Check connection status via GET /api/personal-workspace/github/status
       const statusUrl = `${this.baseUrl}/api/personal-workspace/github/status`;
@@ -482,6 +501,15 @@ export class SyncCoordinator {
       await this.pullAndApplyRemoteSnapshot();
       const snapshot = await this.getLocalSnapshot();
       const mutations = snapshot.outbox;
+
+      if (this.outboxMatchesPulledSnapshot(snapshot)) {
+        await this.repo.acknowledgePublishedBatch(mutations.map((mutation) => mutation.id), this.lastRemoteCommitSha!);
+        this.lastSyncedAt = new Date().toISOString();
+        this.status = 'synced';
+        this.errorMessage = undefined;
+        await this.broadcastUpdate();
+        return { ok: true, status: 'synced', newCommitSha: this.lastRemoteCommitSha! };
+      }
 
       if (mutations.length === 0) {
         this.lastSyncedAt = new Date().toISOString();
@@ -539,12 +567,12 @@ export class SyncCoordinator {
         return { ok: true, status: 'synced', newCommitSha: publishData.newCommitSha };
       }
 
-      // 7. If server returns CAS conflict (status 422, 409, or conflict: true)
+      // 7. A stale-head response triggers pull/rebase/retry; it is not a user-facing merge conflict.
       const isConflict =
         publishRes.status === 422 || publishRes.status === 409 || publishData?.conflict === true;
 
       if (isConflict) {
-        return await this.handleCasConflict(snapshot.notes, mutations);
+        return await this.handleCasConflict(casRetry);
       }
 
       if (publishRes.status === 401 || publishRes.status === 403) {
@@ -575,123 +603,24 @@ export class SyncCoordinator {
     }
   }
 
-  /**
-   * Handles CAS Divergence: pulls remote state, detects modified note overlaps,
-   * branches conflicting notes into explicit local copies with human-readable titles,
-   * updates conflictCount, and advances lastRemoteCommitSha.
-   */
-  private async handleCasConflict(
-    localNotes: NoteRecord[],
-    pendingMutations: OutboxMutation[],
-  ): Promise<SyncResult> {
-    const pullUrl = `${this.baseUrl}/api/personal-workspace/github/pull`;
-    let pullRes: Response;
+  /** A branch-head race is retried automatically and never presented as a merge conflict. */
+  private async handleCasConflict(attempt: number): Promise<SyncResult> {
+    if (attempt >= 3) {
+      this.status = 'error';
+      this.errorMessage = 'Remote changes kept arriving; local edits remain queued for retry';
+      await this.broadcastUpdate();
+      return { ok: false, status: 'error', error: this.errorMessage };
+    }
     try {
-      pullRes = await this.fetchFn(pullUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          expectedRemoteCommitSha: this.lastRemoteCommitSha,
-        }),
-      });
-    } catch (pullErr) {
-      this.status = 'error';
-      this.errorMessage =
-        pullErr instanceof Error ? pullErr.message : 'Failed to pull remote state during conflict';
+      await this.pullAndApplyRemoteSnapshot();
+      return await this.executeSync(attempt + 1);
+    } catch (error) {
+      this.status = error instanceof ReconnectRequiredError ? 'reconnect_required' : 'error';
+      this.errorMessage = error instanceof Error ? error.message : String(error);
       await this.broadcastUpdate();
       return { ok: false, status: this.status, error: this.errorMessage };
     }
-
-    if (!pullRes.ok) {
-      if (pullRes.status === 401 || pullRes.status === 403) {
-        this.status = 'reconnect_required';
-        this.errorMessage = 'GitHub authentication expired or was revoked';
-        await this.broadcastUpdate();
-        return { ok: false, status: this.status, error: this.errorMessage };
-      }
-      this.status = 'error';
-      this.errorMessage = `Pull failed with HTTP ${pullRes.status}`;
-      await this.broadcastUpdate();
-      return { ok: false, status: this.status, error: this.errorMessage };
-    }
-
-    const verified = this.verifyRemotePullData((await pullRes.json()) as RemotePullResponse);
-    await this.applyVerifiedRemoteSnapshot(verified);
-    const remoteNotes = verified.snapshot.notes;
-    const currentRemoteCommitSha = verified.commitSha;
-
-    // Detect note IDs locally modified in pending outbox
-    const localModifiedNoteIds = new Set(
-      pendingMutations.filter((m) => m.entityType === 'note').map((m) => m.entityId),
-    );
-
-    let conflictsCreated = 0;
-
-    for (const remoteNote of remoteNotes) {
-      if (localModifiedNoteIds.has(remoteNote.id)) {
-        // Both local and remote have modified this note since last sync:
-        // Create an explicit branched conflict copy locally
-        const conflictNoteId = generateUuid();
-        const conflictTime = new Date().toLocaleTimeString();
-        const conflictTitle = `${remoteNote.title} (Remote Conflict ${conflictTime})`;
-
-        const conflictCopyNote: NoteRecord = {
-          ...remoteNote,
-          id: conflictNoteId,
-          title: conflictTitle,
-          updatedAt: new Date().toISOString(),
-        };
-
-        // Save conflict copy to local repo so zero user edits are ever lost!
-        if (typeof this.repo.saveNoteAtomic === 'function') {
-          await this.repo.saveNoteAtomic(conflictCopyNote, 'create');
-        } else if (
-          conflictCopyNote.contentType === 'canvas' &&
-          typeof this.repo.saveCanvasNoteAtomic === 'function'
-        ) {
-          await this.repo.saveCanvasNoteAtomic(conflictCopyNote, [], 'create');
-        } else if (typeof this.repo.saveKanbanNoteAtomic === 'function') {
-          await this.repo.saveKanbanNoteAtomic(conflictCopyNote, 'create');
-        } else if (typeof this.repo.getDatabase === 'function') {
-          await this.repo.getDatabase()!.runTransaction(['notes'], 'readwrite', (ctx) => {
-            ctx.put('notes', conflictCopyNote.id, conflictCopyNote);
-          });
-        }
-
-        // Record in conflicts store
-        if (typeof this.repo.getDatabase === 'function') {
-          try {
-            await this.repo.getDatabase()!.runTransaction(['conflicts'], 'readwrite', (ctx) => {
-              ctx.put('conflicts', conflictNoteId, {
-                id: conflictNoteId,
-                originalNoteId: remoteNote.id,
-                conflictCopyId: conflictNoteId,
-                detectedAt: new Date().toISOString(),
-                remoteCommitSha: currentRemoteCommitSha,
-              });
-            });
-          } catch {}
-        }
-
-        conflictsCreated++;
-      }
-    }
-
-    this.conflictCount += conflictsCreated;
-    this.status = 'conflict';
-    this.errorMessage = `Sync conflict: ${conflictsCreated} branched conflict ${
-      conflictsCreated === 1 ? 'copy' : 'copies'
-    } created`;
-    await this.broadcastUpdate();
-    return {
-      ok: false,
-      status: 'conflict',
-      conflict: true,
-      conflictCount: this.conflictCount,
-      error: this.errorMessage,
-    };
   }
-
   /**
    * Starts periodic background synchronization and listens to online/offline network changes.
    */

@@ -723,9 +723,9 @@ export class LocalWorkspace {
 
     try {
       const conflicts = await this.repo.getDatabase().runTransaction(['conflicts'], 'readonly', (ctx) => {
-        return ctx.getAll('conflicts');
+        return ctx.getAll<{ needsUserAction?: boolean }>('conflicts');
       });
-      conflictCount = conflicts.length;
+      conflictCount = conflicts.filter((conflict) => conflict.needsUserAction === true).length;
     } catch {
       conflictCount = 0;
     }
