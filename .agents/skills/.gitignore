@@ -1,6 +1,0 @@
-.workflow-*.js
-.army-state.md
-.env
-.env.*
-!.env.example
-.DS_Store

@@ -1,9 +1,0 @@
-.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(160px, 100%), 1fr)); gap: 16px; margin: 16px 0; align-items: start; }
-.card { display: flex; flex-direction: column; gap: 8px; position: relative; min-width: 0; padding: 8px; border: 1px solid var(--creation-line, #e9e0d5); border-radius: 12px; cursor: pointer; background: var(--creation-surface, #fffcf7); }
-.card[data-selected='true'] { border-color: var(--creation-blue, #303cff); background: color-mix(in srgb, var(--creation-blue, #303cff) 5%, var(--creation-surface, #fffcf7)); }
-.card:has(:focus-visible) { outline: 2px solid var(--creation-blue, #303cff); outline-offset: 3px; }
-.card > input { position: absolute; top: 14px; right: 14px; width: 20px; height: 20px; z-index: 1; accent-color: var(--creation-blue, #303cff); }
-.card > span:first-of-type { width: 100%; aspect-ratio: 16 / 9; }
-.card > span:last-child { font-size: 13px; font-weight: 600; line-height: 1.45; overflow-wrap: anywhere; }
-.card small { display: block; color: var(--creation-muted, #536788); font-size: 11px; font-weight: 400; margin-top: 6px; }
-.note { font-size: 11px; color: var(--creation-muted, #536788); line-height: 1.5; margin-top: 12px; }
