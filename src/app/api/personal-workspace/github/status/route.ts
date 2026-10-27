@@ -3,7 +3,7 @@ import {
   GitHubGitDataClient,
   GitHubApiError,
 } from '@/src/server/infrastructure/github/personal-workspace';
-import { resolveAuthUser, resolveCredentials } from '../vault';
+import { resolveAuthUser, resolveCredentials, setVaultCookie, VAULT_COOKIE_NAME } from '../vault';
 
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const user = await resolveAuthUser(req);
@@ -33,7 +33,11 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       responseData.installationId = credentials.installationId;
       responseData.manageUrl = `https://github.com/settings/installations/${credentials.installationId}`;
     }
-    return NextResponse.json(responseData);
+    const response = NextResponse.json(responseData);
+    if (!req.cookies.get(VAULT_COOKIE_NAME)?.value) {
+      await setVaultCookie(response, user.id, credentials);
+    }
+    return response;
   } catch (err) {
     if (err instanceof GitHubApiError && (err.status === 401 || err.status === 404)) {
       return NextResponse.json({
@@ -53,6 +57,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
       cachedData.installationId = credentials.installationId;
       cachedData.manageUrl = `https://github.com/settings/installations/${credentials.installationId}`;
     }
-    return NextResponse.json(cachedData);
+    const response = NextResponse.json(cachedData);
+    if (!req.cookies.get(VAULT_COOKIE_NAME)?.value) {
+      await setVaultCookie(response, user.id, credentials);
+    }
+    return response;
   }
 }

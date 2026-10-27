@@ -9,8 +9,8 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
   try {
     await clearGitHubAppConnection(user.id);
-  } catch {
-    return NextResponse.json({ error: 'Could not disconnect GitHub. Try again.' }, { status: 503 });
+  } catch (err) {
+    console.warn('[GitHubDisconnect] Failed to clear DB connection record (proceeding with cookie wipe):', err);
   }
 
   const response = NextResponse.json({ connected: false });

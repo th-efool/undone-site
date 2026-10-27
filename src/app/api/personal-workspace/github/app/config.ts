@@ -34,6 +34,14 @@ export interface GitHubAppInstallation {
 
 const installationTokenCache = new Map<string, { token: string; expiresAt: number }>();
 
+export function invalidateInstallationToken(installationId?: string): void {
+  if (installationId) {
+    installationTokenCache.delete(installationId);
+  } else {
+    installationTokenCache.clear();
+  }
+}
+
 /**
  * Loads GitHub App credentials from env vars. Returns null if not configured.
  */
