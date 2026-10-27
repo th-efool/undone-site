@@ -1,0 +1,112 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { NextRequest } from 'next/server';
+import crypto from 'node:crypto';
+import {
+  getGitHubAppCredentials,
+  generateAppJWT,
+} from '../app/config';
+import { GET as getAppInstall } from '../app/install/route';
+
+describe('GitHub App & Zero-File Fallback Authentication', () => {
+  // Generate a mock RSA 2048 keypair for testing
+  const { privateKey } = crypto.generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: 'spki', format: 'pem' },
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+  });
+
+  const base64Key = Buffer.from(privateKey).toString('base64');
+
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    process.env = { ...originalEnv };
+    delete process.env.GITHUB_APP_PRIVATE_KEY_PATH;
+    delete process.env.GITHUB_APP_PRIVATE_KEY;
+    delete process.env.GITHUB_APP_PRIVATE_KEY_BASE64;
+  });
+
+  afterEach(() => {
+    process.env = { ...originalEnv };
+  });
+
+  it('loads GitHub App credentials from GITHUB_APP_PRIVATE_KEY_BASE64 with zero .pem file on disk', () => {
+    process.env.GITHUB_APP_ID = '12345';
+    process.env.GITHUB_APP_CLIENT_ID = 'IvTest123';
+    process.env.GITHUB_APP_PRIVATE_KEY_BASE64 = base64Key;
+
+    const creds = getGitHubAppCredentials();
+    expect(creds).not.toBeNull();
+    expect(creds?.appId).toBe('12345');
+    expect(creds?.clientId).toBe('IvTest123');
+    expect(creds?.privateKeyPem).toContain('BEGIN');
+
+    // Verify JWT generation with base64 key works
+    const jwt = generateAppJWT(creds!);
+    expect(jwt).toBeDefined();
+    expect(jwt.split('.')).toHaveLength(3);
+  });
+
+  it('loads GitHub App credentials from raw GITHUB_APP_PRIVATE_KEY string with zero .pem file on disk', () => {
+    process.env.GITHUB_APP_ID = '12345';
+    process.env.GITHUB_APP_CLIENT_ID = 'IvTest123';
+    process.env.GITHUB_APP_PRIVATE_KEY = privateKey.replace(/\n/g, '\\n');
+
+    const creds = getGitHubAppCredentials();
+    expect(creds).not.toBeNull();
+    expect(creds?.privateKeyPem).toContain('BEGIN');
+
+    const jwt = generateAppJWT(creds!);
+    expect(jwt).toBeDefined();
+  });
+
+  it('returns null safely when no private key is configured', () => {
+    process.env.GITHUB_APP_ID = '12345';
+    process.env.GITHUB_APP_CLIENT_ID = 'IvTest123';
+
+    const creds = getGitHubAppCredentials();
+    expect(creds).toBeNull();
+  });
+
+  it('seamlessly falls back to OAuth (/oauth/authorize) when App private key is missing but OAuth is configured', async () => {
+    // No GitHub App private key
+    delete process.env.GITHUB_APP_ID;
+    delete process.env.GITHUB_APP_PRIVATE_KEY;
+    delete process.env.GITHUB_APP_PRIVATE_KEY_BASE64;
+
+    // Standard OAuth configured
+    process.env.AUTH_GITHUB_ID = 'client_123';
+    process.env.AUTH_GITHUB_SECRET = 'secret_456';
+
+    const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/app/install?repo=my-notes', {
+      headers: { 'x-test-user-id': 'user-test-01' },
+    });
+
+    const res = await getAppInstall(req);
+    expect(res.status).toBe(307); // NextResponse.redirect
+    const location = res.headers.get('location') || '';
+    expect(location).toContain('/api/personal-workspace/github/oauth/authorize');
+    expect(location).toContain('repo=my-notes');
+  });
+
+  it('returns 500 with descriptive error only when neither App nor OAuth credentials exist', async () => {
+    delete process.env.GITHUB_APP_ID;
+    delete process.env.GITHUB_APP_CLIENT_ID;
+    delete process.env.GITHUB_APP_PRIVATE_KEY_BASE64;
+    delete process.env.GITHUB_APP_PRIVATE_KEY;
+    delete process.env.GITHUB_CLIENT_ID;
+    delete process.env.GITHUB_CLIENT_SECRET;
+    delete process.env.AUTH_GITHUB_ID;
+    delete process.env.AUTH_GITHUB_SECRET;
+
+    const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/app/install', {
+      headers: { 'x-test-user-id': 'user-test-01' },
+    });
+
+    const res = await getAppInstall(req);
+    expect(res.status).toBe(500);
+    const data = await res.json();
+    expect(data.error).toContain('GitHub credentials not configured');
+  });
+});

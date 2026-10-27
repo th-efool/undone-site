@@ -8,18 +8,16 @@ import {
   GITHUB_APP_INSTALLATION_COOKIE_NAME,
   GITHUB_APP_INSTALLATION_COOKIE_OPTIONS,
 } from '../config';
+import { getOAuthClientCredentials } from '../../oauth/config';
 
 /**
  * GET /api/personal-workspace/github/app/install
  *
- * Redirects the user to GitHub's native App installation UI.
- * GitHub renders:
- *   1. Account selector
- *   2. "Repository access: [x] Only select repositories" with repo dropdown
- *   3. Permissions breakdown (Contents: Read & Write)
- *   4. Green "Install & Authorize" button
- *
- * After the user clicks "Install & Authorize", GitHub redirects to /app/callback.
+ * Connect entry point:
+ *   - If GitHub App is configured (via GITHUB_APP_PRIVATE_KEY_BASE64 env var):
+ *     redirects to GitHub's native App installation & repo picker.
+ *   - If GitHub App is not configured, automatically falls back to standard
+ *     OAuth (/api/personal-workspace/github/oauth/authorize) with ZERO .pem file dependency!
  */
 export async function GET(req: NextRequest): Promise<NextResponse> {
   const user = await resolveAuthUser(req);
@@ -29,8 +27,21 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   const credentials = getGitHubAppCredentials();
   if (!credentials) {
+    // Zero-config fallback: check if standard OAuth is available
+    const oauthCreds = getOAuthClientCredentials();
+    if (oauthCreds) {
+      const redirectUrl = new URL('/api/personal-workspace/github/oauth/authorize', req.url);
+      const search = req.nextUrl.searchParams;
+      if (search.get('repo')) redirectUrl.searchParams.set('repo', search.get('repo')!);
+      if (search.get('format')) redirectUrl.searchParams.set('format', search.get('format')!);
+      return NextResponse.redirect(redirectUrl);
+    }
+
     return NextResponse.json(
-      { error: 'GitHub App credentials not configured (GITHUB_APP_ID / GITHUB_APP_PRIVATE_KEY_PATH missing)' },
+      {
+        error:
+          'GitHub credentials not configured. Please set GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET or GITHUB_APP_PRIVATE_KEY_BASE64 in your environment variables.',
+      },
       { status: 500 },
     );
   }

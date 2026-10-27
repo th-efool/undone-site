@@ -30,17 +30,36 @@ export function getGitHubAppCredentials(): GitHubAppCredentials | null {
   if (!appId || !clientId) return null;
 
   let privateKeyPem = '';
-  if (process.env.GITHUB_APP_PRIVATE_KEY) {
-    privateKeyPem = process.env.GITHUB_APP_PRIVATE_KEY.replace(/\\n/g, '\n');
-  } else if (keyPath) {
+
+  // 1. Direct Base64 env var (gold standard for Vercel, Docker, CI - zero .pem file dependency)
+  if (process.env.GITHUB_APP_PRIVATE_KEY_BASE64) {
     try {
-      privateKeyPem = fs.readFileSync(keyPath, 'utf8');
+      privateKeyPem = Buffer.from(
+        process.env.GITHUB_APP_PRIVATE_KEY_BASE64.trim(),
+        'base64',
+      ).toString('utf8');
     } catch {
-      return null;
+      // ignore decode error
     }
   }
 
-  if (!privateKeyPem) return null;
+  // 2. Direct PEM string env var with escaped or raw newlines
+  if (!privateKeyPem && process.env.GITHUB_APP_PRIVATE_KEY) {
+    privateKeyPem = process.env.GITHUB_APP_PRIVATE_KEY.replace(/\\n/g, '\n').trim();
+  }
+
+  // 3. Optional local file path fallback if explicitly configured and exists on disk
+  if (!privateKeyPem && keyPath) {
+    try {
+      if (fs.existsSync(keyPath)) {
+        privateKeyPem = fs.readFileSync(keyPath, 'utf8');
+      }
+    } catch {
+      // ignore file error
+    }
+  }
+
+  if (!privateKeyPem || !privateKeyPem.includes('BEGIN')) return null;
 
   return {
     appId,
