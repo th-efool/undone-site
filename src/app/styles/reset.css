@@ -1,4 +1,4 @@
-/* Reset */
+/* Reset - Universal normalization defaults suitable for @layer base */
 *,
 *::before,
 *::after {
