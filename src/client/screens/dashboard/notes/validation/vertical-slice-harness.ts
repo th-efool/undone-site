@@ -23,6 +23,7 @@ import {
   ValidationCanvasNote,
   ValidationAsset,
   computeSha256,
+  secureTimingSafeEqual,
 } from './fixtures';
 
 export interface GitBlob {
@@ -186,7 +187,7 @@ export interface WorkspaceManifest {
   notebooks: Array<{ id: string; path: string; hash: string }>;
   notes: Array<{ id: string; path: string; hash: string; contentType: string }>;
   canvases: Array<{ noteId: string; path: string; hash: string }>;
-  assets: Array<{ id: string; path: string; sha256: string; gitSha: string }>;
+  assets: Array<{ id: string; path: string; sha256: string; gitSha: string; mimeType?: string }>;
 }
 
 export type SyncStatusState =
@@ -298,7 +299,7 @@ export class LocalFirstSyncCoordinator {
         const gitSha = this.gitProvider.createBlob(asset.base64Data);
         const path = `undone/assets/${asset.hash}.${asset.mimeType.split('/')[1] || 'bin'}`;
         treeEntries.push({ path, mode: '100644', type: 'blob', sha: gitSha });
-        manifest.assets.push({ id: asset.id, path, sha256: asset.hash, gitSha });
+        manifest.assets.push({ id: asset.id, path, sha256: asset.hash, gitSha, mimeType: asset.mimeType });
       }
 
       // 2. Upload Notebooks
@@ -343,7 +344,7 @@ export class LocalFirstSyncCoordinator {
       }
 
       // Acknowledge generation
-      const highestGen = Math.max(...outbox.map((o) => o.generation), 0);
+      const highestGen = Math.max(...outbox.map((o) => o.generation ?? 0), 0);
       this.lastAcknowledgedGeneration = highestGen;
       await this.localStore.acknowledgeOutboxUpTo(highestGen);
 
@@ -358,7 +359,7 @@ export class LocalFirstSyncCoordinator {
         if (currentRef === this.candidateCommitSha) {
           // Commit actually succeeded on the provider!
           const outbox = await this.localStore.listOutbox();
-          const highestGen = Math.max(...outbox.map((o) => o.generation), 0);
+          const highestGen = Math.max(...outbox.map((o) => o.generation ?? 0), 0);
           this.lastAcknowledgedGeneration = highestGen;
           await this.localStore.acknowledgeOutboxUpTo(highestGen);
           this.lastSyncedCommitSha = currentRef;
@@ -411,7 +412,7 @@ export class LocalFirstSyncCoordinator {
       }
       const rawBytes = Buffer.from(blob.contentBase64, 'base64');
       const actualHash = computeSha256(rawBytes);
-      if (actualHash !== assetMeta.sha256) {
+      if (!secureTimingSafeEqual(actualHash, assetMeta.sha256)) {
         return {
           ok: false,
           notebookCount: 0,
@@ -424,7 +425,7 @@ export class LocalFirstSyncCoordinator {
       await targetStore.saveAsset({
         id: assetMeta.id,
         hash: assetMeta.sha256,
-        mimeType: 'image/png',
+        mimeType: assetMeta.mimeType || 'image/png',
         byteLength: blob.byteLength,
         base64Data: blob.contentBase64,
       });
@@ -496,7 +497,10 @@ export class LocalFirstSyncCoordinator {
           } else {
             await this.localStore.saveKanbanNoteAtomic(remoteNote);
           }
-        } else if (remoteNote.title !== localMatch.title) {
+        } else if (
+          remoteNote.title !== localMatch.title ||
+          computeSha256(JSON.stringify(remoteNote)) !== computeSha256(JSON.stringify(localMatch))
+        ) {
           // Concurrent modification of the same note: preserve both with explicit conflict copy
           const conflictNote: ValidationCanvasNote = {
             ...(localMatch as ValidationCanvasNote),

@@ -14,7 +14,7 @@
  * - Frozen distinct capability promises (Offline Editing vs Offline Reopening vs Cross-Device Recovery)
  */
 
-import { computeSha256 } from './fixtures';
+import { computeSha256, secureTimingSafeEqual } from './fixtures';
 import type {
   ValidationNotebook,
   ValidationCanvasNote,
@@ -434,13 +434,20 @@ export class TabLockCoordinator {
       // Wait in queue for lock to be released
       await new Promise<void>((resolve, reject) => {
         let timer: NodeJS.Timeout | undefined;
+        const queueItem: {
+          tabId: string;
+          resolve: () => void;
+          reject: (err: any) => void;
+          timer?: NodeJS.Timeout;
+        } = { tabId: this.tabId, resolve, reject };
+
         if (timeoutMs > 0) {
           timer = setTimeout(() => {
-            // Remove from queue on timeout
+            // Remove exact queue item on timeout
             const queue = TabLockCoordinator.waitingQueues.get(fullLockName) || [];
             TabLockCoordinator.waitingQueues.set(
               fullLockName,
-              queue.filter((q) => q.tabId !== this.tabId),
+              queue.filter((q) => q !== queueItem),
             );
             reject(
               new LockAcquisitionTimeoutError(
@@ -448,10 +455,11 @@ export class TabLockCoordinator {
               ),
             );
           }, timeoutMs);
+          queueItem.timer = timer;
         }
 
         const queue = TabLockCoordinator.waitingQueues.get(fullLockName) || [];
-        queue.push({ tabId: this.tabId, resolve, reject, timer });
+        queue.push(queueItem);
         TabLockCoordinator.waitingQueues.set(fullLockName, queue);
       });
     }
@@ -1092,7 +1100,7 @@ export class LocalWorkspaceRepository {
     // 1. Verify bundle integrity checksum
     const { checksum, ...payload } = bundle;
     const computed = computeSha256(JSON.stringify(payload));
-    if (computed !== checksum) {
+    if (!secureTimingSafeEqual(computed, checksum)) {
       throw new Error(`Bundle checksum mismatch! Expected ${checksum}, computed ${computed}`);
     }
 

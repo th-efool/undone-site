@@ -103,6 +103,18 @@ export function computeSha256(data: string | Buffer): string {
   return crypto.createHash('sha256').update(data).digest('hex');
 }
 
+/**
+ * Constant-time string comparison preventing side-channel timing attacks
+ * on authentication state tokens and cryptographic checksum verifications.
+ */
+export function secureTimingSafeEqual(a: string, b: string): boolean {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const bufA = Buffer.from(a, 'utf8');
+  const bufB = Buffer.from(b, 'utf8');
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
 export const SYNTHETIC_ASSET_BYTES = Buffer.from(SYNTHETIC_PNG_BASE64, 'base64');
 export const SYNTHETIC_ASSET_HASH = computeSha256(SYNTHETIC_ASSET_BYTES);
 
