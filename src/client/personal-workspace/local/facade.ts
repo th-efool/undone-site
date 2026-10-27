@@ -44,6 +44,7 @@ import type {
 } from '@/src/client/screens/dashboard/notes/models/notes.models';
 import {
   PersonalWorkspaceRepository,
+  sanitizeCanvasAppStateForStorage,
   type PersonalWorkspaceRepoOptions,
   type MutationType,
   type EntityType,
@@ -569,7 +570,7 @@ export class LocalWorkspace {
 
     const canvasData: CanvasNoteData = {
       elements: scene.elements || [],
-      appState: scene.appState || {},
+      appState: sanitizeCanvasAppStateForStorage(scene.appState),
       assetFileIds,
       assetHashes,
       schemaVersion: 1,
