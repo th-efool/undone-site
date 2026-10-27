@@ -24,6 +24,46 @@ export interface NotesSaveResult {
   error?: string;
 }
 
+function isNotebookUnchanged(
+  existing: Record<string, unknown>,
+  incoming: NotesStateEntity['notebooks'][number],
+): boolean {
+  return (
+    existing.title === incoming.title &&
+    (existing.description ?? '') === (incoming.description ?? '') &&
+    existing.color === incoming.color &&
+    existing.icon === incoming.icon &&
+    Boolean(existing.favorite) === Boolean(incoming.favorite) &&
+    Boolean(existing.shared) === Boolean(incoming.shared) &&
+    Boolean(existing.archived) === Boolean(incoming.archived) &&
+    Boolean(existing.collapsed) === Boolean(incoming.collapsed) &&
+    (existing.order ?? 0) === (incoming.order ?? 0)
+  );
+}
+
+function isNoteMetadataUnchanged(
+  existing: Record<string, unknown>,
+  incoming: NotesStateEntity['notes'][number],
+): boolean {
+  return (
+    existing.title === incoming.title &&
+    existing.notebookId === incoming.notebookId &&
+    (existing.order ?? 0) === (incoming.order ?? 0) &&
+    Boolean(existing.favorite) === Boolean(incoming.favorite) &&
+    Boolean(existing.shared) === Boolean(incoming.shared) &&
+    Boolean(existing.archived) === Boolean(incoming.archived) &&
+    canonicalJsonStringify(existing.tags || []) === canonicalJsonStringify(incoming.tags || [])
+  );
+}
+
+function resolveMonotonicUpdatedAt(existingUpdatedAt?: string, incomingUpdatedAt?: string): string {
+  const now = new Date().toISOString();
+  if (!existingUpdatedAt) return incomingUpdatedAt || now;
+  if (!incomingUpdatedAt) return now;
+  // Never allow a stale legacy timestamp to move updatedAt backwards in time
+  return incomingUpdatedAt > existingUpdatedAt ? incomingUpdatedAt : now;
+}
+
 export class NotesRepository {
   private getCacheKey(userId?: string | null): string {
     return `${NOTES_CACHE_PREFIX}${userId || 'anon'}`;
@@ -31,11 +71,11 @@ export class NotesRepository {
 
   getInitialState(userId?: string | null): NotesStateEntity {
     const memoryKey = userId || 'anon';
-    const memory = memoryNotesStateByUser.get(memoryKey) || (userId === 'local-user' ? memoryNotesStateByUser.get('anon') : undefined);
+    const memory = memoryNotesStateByUser.get(memoryKey);
     if (memory) return structuredClone(memory);
     if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
       try {
-        const raw = localStorage.getItem(this.getCacheKey(userId)) || (userId === 'local-user' ? localStorage.getItem(this.getCacheKey(null)) : null);
+        const raw = localStorage.getItem(this.getCacheKey(userId));
         if (raw) {
           const parsed = JSON.parse(raw) as NotesStateEntity;
           if (parsed && Array.isArray(parsed.notebooks) && Array.isArray(parsed.notes)) {
@@ -51,13 +91,12 @@ export class NotesRepository {
   async load(userId?: string | null): Promise<NotesStateEntity> {
     if (typeof window === 'undefined') return structuredClone(EMPTY_NOTES_STATE);
     const memoryKey = userId || 'anon';
-    const targetUserId = userId || 'local-user';
-    canvasRepository.setActiveUserId(targetUserId);
     let localState: NotesStateEntity | null = null;
     try {
+      const targetUserId = userId || 'local-user';
       const snapshot = await LocalWorkspace.getLocalWorkspace(targetUserId).open({ userId: targetUserId });
       localState = snapshot.notesState;
-      if (snapshot.pendingOutbox.length > 0 || localState.notes.length > 0 || localState.notebooks.length > 0) {
+      if (snapshot.pendingOutbox.length > 0) {
         memoryNotesStateByUser.set(memoryKey, localState);
         return localState;
       }
@@ -143,7 +182,6 @@ export class NotesRepository {
   async syncWithLocalWorkspace(state: NotesStateEntity, userId?: string | null): Promise<void> {
     if (typeof window === 'undefined') return;
     const targetUserId = userId || 'local-user';
-    canvasRepository.setActiveUserId(targetUserId);
     const workspace = LocalWorkspace.getLocalWorkspace(targetUserId);
     const repo = workspace.getRepository();
     await repo.initialize();
@@ -151,103 +189,120 @@ export class NotesRepository {
       if (!receipt.ok) throw new Error(receipt.error || 'Local workspace transaction failed');
     };
 
-      // 1. Sync notebooks
-      for (const nb of state.notebooks) {
-        requireSaved(await workspace.saveNotebook({
-          id: nb.id,
-          title: nb.title,
-          description: nb.description,
-          color: nb.color,
-          icon: nb.icon,
-          favorite: nb.favorite ?? false,
-          shared: nb.shared ?? false,
-          archived: nb.archived ?? false,
-          collapsed: nb.collapsed ?? false,
-          order: nb.order ?? 0,
-          createdAt: nb.createdAt,
-          updatedAt: nb.updatedAt,
-        }));
+    // 1. Sync notebooks (only write when new or semantically changed)
+    for (const nb of state.notebooks) {
+      const existingNb = await repo.getNotebook<Record<string, unknown>>(nb.id);
+      if (existingNb && isNotebookUnchanged(existingNb, nb)) {
+        continue;
       }
+      requireSaved(await workspace.saveNotebook({
+        id: nb.id,
+        title: nb.title,
+        description: nb.description,
+        color: nb.color,
+        icon: nb.icon,
+        favorite: nb.favorite ?? false,
+        shared: nb.shared ?? false,
+        archived: nb.archived ?? false,
+        collapsed: nb.collapsed ?? false,
+        order: nb.order ?? 0,
+        createdAt: nb.createdAt,
+        updatedAt: resolveMonotonicUpdatedAt(existingNb?.updatedAt as string | undefined, nb.updatedAt),
+      }));
+    }
 
-      // 2. Sync notes
-      for (const note of state.notes) {
-        if (note.contentType === 'canvas') {
-          const existingNote = await repo.getNote(note.id);
-          if (existingNote && existingNote.contentType === 'canvas') {
-            requireSaved(await workspace.apply({
-              type: 'save_canvas_note',
-              note: {
-                ...existingNote,
-                title: note.title,
-                notebookId: note.notebookId,
-                order: note.order ?? 0,
-                updatedAt: note.updatedAt || new Date().toISOString(),
-                tags: note.tags || [],
-                favorite: note.favorite ?? false,
-                shared: note.shared ?? false,
-                archived: note.archived ?? false,
-              },
-            }));
-          } else {
-            const legacyDoc = await canvasRepository.load(note.id);
-            let sceneObj: { elements: unknown[]; appState: unknown; files: Record<string, unknown> } = {
-              elements: [],
-              appState: {},
-              files: {},
-            };
-            if (legacyDoc?.scene) {
-              try {
-                sceneObj = JSON.parse(legacyDoc.scene);
-              } catch {}
-            }
-            requireSaved(await workspace.saveCanvasScene(note.id, sceneObj, {
-              title: note.title,
-              notebookId: note.notebookId,
-            }));
+    // 2. Sync notes (only write when new or semantically changed)
+    for (const note of state.notes) {
+      if (note.contentType === 'canvas') {
+        const existingNote = await repo.getNote(note.id);
+        if (existingNote && existingNote.contentType === 'canvas') {
+          if (isNoteMetadataUnchanged(existingNote as unknown as Record<string, unknown>, note)) {
+            continue;
           }
-        } else if (note.contentType === 'kanban') {
           requireSaved(await workspace.apply({
-            type: 'save_kanban_note',
+            type: 'save_canvas_note',
             note: {
-              id: note.id,
-              notebookId: note.notebookId,
+              ...existingNote,
               title: note.title,
+              notebookId: note.notebookId,
               order: note.order ?? 0,
-              createdAt: note.createdAt || new Date().toISOString(),
-              updatedAt: note.updatedAt || new Date().toISOString(),
-              ownerId: note.ownerId,
-              permission: note.permission,
+              updatedAt: resolveMonotonicUpdatedAt(existingNote.updatedAt, note.updatedAt),
               tags: note.tags || [],
               favorite: note.favorite ?? false,
               shared: note.shared ?? false,
               archived: note.archived ?? false,
-              contentType: 'kanban',
-              kanbanData: {
-                columns: (note.kanbanColumns || []).map((c, i) => ({ id: c.id, title: c.label, order: i })),
-                cards: note.kanbanCards || [],
-              },
             },
           }));
+        } else {
+          const legacyDoc = await canvasRepository.load(note.id);
+          let sceneObj: { elements: unknown[]; appState: unknown; files: Record<string, unknown> } = {
+            elements: [],
+            appState: {},
+            files: {},
+          };
+          if (legacyDoc?.scene) {
+            try {
+              sceneObj = JSON.parse(legacyDoc.scene);
+            } catch {}
+          }
+          requireSaved(await workspace.saveCanvasScene(note.id, sceneObj, {
+            title: note.title,
+            notebookId: note.notebookId,
+          }));
         }
+      } else if (note.contentType === 'kanban') {
+        const existingNote = await repo.getNote(note.id);
+        const nextKanbanData = {
+          columns: (note.kanbanColumns || []).map((c, i) => ({ id: c.id, title: c.label, order: i })),
+          cards: note.kanbanCards || [],
+        };
+        if (
+          existingNote &&
+          existingNote.contentType === 'kanban' &&
+          isNoteMetadataUnchanged(existingNote as unknown as Record<string, unknown>, note) &&
+          canonicalJsonStringify(existingNote.kanbanData) === canonicalJsonStringify(nextKanbanData)
+        ) {
+          continue;
+        }
+        requireSaved(await workspace.apply({
+          type: 'save_kanban_note',
+          note: {
+            id: note.id,
+            notebookId: note.notebookId,
+            title: note.title,
+            order: note.order ?? 0,
+            createdAt: existingNote?.createdAt || note.createdAt || new Date().toISOString(),
+            updatedAt: resolveMonotonicUpdatedAt(existingNote?.updatedAt, note.updatedAt),
+            ownerId: note.ownerId,
+            permission: note.permission,
+            tags: note.tags || [],
+            favorite: note.favorite ?? false,
+            shared: note.shared ?? false,
+            archived: note.archived ?? false,
+            contentType: 'kanban',
+            kanbanData: nextKanbanData,
+          },
+        }));
       }
+    }
 
-      // 3. Remove deleted notebooks
-      const existingNotebooks = await repo.getAllNotebooks();
-      const stateNotebookIds = new Set(state.notebooks.map((nb) => nb.id));
-      for (const existing of existingNotebooks) {
-        if (!stateNotebookIds.has(existing.id)) {
-          requireSaved(await workspace.deleteEntity('notebook', existing.id));
-        }
+    // 3. Remove deleted notebooks
+    const existingNotebooks = await repo.getAllNotebooks();
+    const stateNotebookIds = new Set(state.notebooks.map((nb) => nb.id));
+    for (const existing of existingNotebooks) {
+      if (!stateNotebookIds.has(existing.id)) {
+        requireSaved(await workspace.deleteEntity('notebook', existing.id));
       }
+    }
 
-      // 4. Remove deleted notes
-      const existingNotes = await repo.getAllNotes();
-      const stateNoteIds = new Set(state.notes.map((n) => n.id));
-      for (const existing of existingNotes) {
-        if (!stateNoteIds.has(existing.id)) {
-          requireSaved(await workspace.deleteEntity('note', existing.id));
-        }
+    // 4. Remove deleted notes
+    const existingNotes = await repo.getAllNotes();
+    const stateNoteIds = new Set(state.notes.map((n) => n.id));
+    for (const existing of existingNotes) {
+      if (!stateNoteIds.has(existing.id)) {
+        requireSaved(await workspace.deleteEntity('note', existing.id));
       }
+    }
   }
 
   async migrateLegacyState(state: NotesStateEntity, userId?: string | null): Promise<void> {
