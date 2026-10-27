@@ -16,7 +16,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import postcss, { Root as PostcssRoot, Rule as PostcssRule, AtRule as PostcssAtRule, Declaration } from 'postcss';
+import postcss, { Root as PostcssRoot, AtRule as PostcssAtRule } from 'postcss';
 import tailwindPostcss from '@tailwindcss/postcss';
 import * as lightningcss from 'lightningcss';
 
@@ -50,7 +50,7 @@ export function calculateSpecificity(selector: string): [number, number, number]
   const pseudoMatches = selector.match(/::?[a-zA-Z0-9_-]+/g) || [];
 
   // Remove IDs, classes, attrs, pseudos to leave element names
-  let cleaned = selector
+  const cleaned = selector
     .replace(/#[a-zA-Z0-9_-]+/g, ' ')
     .replace(/\.[a-zA-Z0-9_\\-]+/g, ' ')
     .replace(/\[[^\]]+\]/g, ' ')
@@ -124,7 +124,6 @@ describe('Cascade Regression Test Suite & Failure Reproduction (Phase 1, Task 1.
   const resetCssPath = path.resolve(rootDir, 'src/app/styles/reset.css');
   const typographyCssPath = path.resolve(rootDir, 'src/app/styles/typography.css');
   const formsCssPath = path.resolve(rootDir, 'src/app/styles/forms.css');
-  const notesModuleCssPath = path.resolve(rootDir, 'src/client/screens/dashboard/notes/Notes.module.css');
   const notesComponentsPath = path.resolve(
     rootDir,
     'src/client/screens/dashboard/notes/components/NotesComponents.tsx',

@@ -11,9 +11,8 @@
  */
 
 import React from 'react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 
 import {
   Button,
@@ -21,7 +20,6 @@ import {
   Text,
   Dialog,
   Popover,
-  Field,
   TextField,
   SelectField,
   CheckboxField,
@@ -178,7 +176,7 @@ describe('Shared UI Primitives Contract (Phase 4, Gate P4)', () => {
     });
 
     it('Dialog.Portal encloses content within .ud-dialog-portal for theme encapsulation', () => {
-      const { container } = render(
+      render(
         <Dialog.Root open={true}>
           <Dialog.Portal>
             <Dialog.Content size="sm">

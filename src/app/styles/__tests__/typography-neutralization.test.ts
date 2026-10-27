@@ -48,7 +48,7 @@ export function calculateSpecificity(selector: string): [number, number, number]
   const attrMatches = selector.match(/\[[^\]]+\]/g) || [];
   const pseudoMatches = selector.match(/::?[a-zA-Z0-9_-]+/g) || [];
 
-  let cleaned = selector
+  const cleaned = selector
     .replace(/#[a-zA-Z0-9_-]+/g, ' ')
     .replace(/\.[a-zA-Z0-9_\\-]+/g, ' ')
     .replace(/\[[^\]]+\]/g, ' ')
@@ -164,7 +164,8 @@ describe('Phase 2, Task 2.2B: Typography Base Neutralization and Roles', () => {
       let h2LineHeight = '';
 
       compiledAst.walkRules('h2', (rule) => {
-        let currentParent: any = rule.parent;
+        let currentParent: { type?: string; name?: string; params?: string; parent?: unknown } | null | undefined =
+          rule.parent as any;
         while (currentParent) {
           if (
             currentParent.type === 'atrule' &&
@@ -218,7 +219,8 @@ describe('Phase 2, Task 2.2B: Typography Base Neutralization and Roles', () => {
       let displaySectionFontSize = '';
 
       compiledAst.walkRules('.ud-display-section', (rule) => {
-        let currentParent: any = rule.parent;
+        let currentParent: { type?: string; name?: string; params?: string; parent?: unknown } | null | undefined =
+          rule.parent as any;
         while (currentParent) {
           if (
             currentParent.type === 'atrule' &&
@@ -255,7 +257,8 @@ describe('Phase 2, Task 2.2B: Typography Base Neutralization and Roles', () => {
       compiledAst.walkRules((rule) => {
         if (rule.selector === 'p') {
           let inBase = false;
-          let currentParent: any = rule.parent;
+          let currentParent: { type?: string; name?: string; params?: string; parent?: unknown } | null | undefined =
+            rule.parent as any;
           while (currentParent) {
             if (
               currentParent.type === 'atrule' &&
@@ -264,7 +267,7 @@ describe('Phase 2, Task 2.2B: Typography Base Neutralization and Roles', () => {
             ) {
               inBase = true;
             }
-            currentParent = currentParent.parent;
+            currentParent = currentParent.parent as any;
           }
           if (inBase) {
             pInBase = {
@@ -280,7 +283,8 @@ describe('Phase 2, Task 2.2B: Typography Base Neutralization and Roles', () => {
 
         if (rule.selector.includes('.text-rose-600')) {
           let inUtilities = false;
-          let currentParent: any = rule.parent;
+          let currentParent: { type?: string; name?: string; params?: string; parent?: unknown } | null | undefined =
+            rule.parent as any;
           while (currentParent) {
             if (
               currentParent.type === 'atrule' &&
@@ -289,7 +293,7 @@ describe('Phase 2, Task 2.2B: Typography Base Neutralization and Roles', () => {
             ) {
               inUtilities = true;
             }
-            currentParent = currentParent.parent;
+            currentParent = currentParent.parent as any;
           }
           if (inUtilities) {
             rule.walkDecls('color', (decl) => {
