@@ -39,6 +39,7 @@ export interface OutboxEntry {
   baseVersion?: number | string | null;
   status: 'pending' | 'in_flight' | 'acknowledged' | 'failed';
   retryCount: number;
+  generation: number;
 }
 
 export interface UnsavedEditorBuffer {
@@ -524,6 +525,7 @@ export class LocalWorkspaceRepository {
   private saveSuccessListeners: Array<(event: SaveSuccessEvent) => void> = [];
   private saveErrorListeners: Array<(event: SaveErrorEvent) => void> = [];
   private memoryEditorBuffers = new Map<string, UnsavedEditorBuffer>();
+  private currentGeneration = 0;
 
   constructor(userId: string, options: LocalWorkspaceRepoOptions = {}) {
     if (!userId || userId.trim() === '') {
@@ -537,6 +539,11 @@ export class LocalWorkspaceRepository {
 
   getLockCoordinator(): TabLockCoordinator {
     return this.lockCoordinator;
+  }
+
+  async initialize(): Promise<void> {
+    // Repository initialization hook for storage bootstrap & readiness verification
+    return Promise.resolve();
   }
 
   onSaveSuccess(callback: (event: SaveSuccessEvent) => void): () => void {
@@ -590,6 +597,7 @@ export class LocalWorkspaceRepository {
       payload: structuredClone(notebook),
       status: 'pending',
       retryCount: 0,
+      generation: ++this.currentGeneration,
     };
 
     try {
@@ -673,6 +681,7 @@ export class LocalWorkspaceRepository {
       payload: structuredClone(note),
       status: 'pending',
       retryCount: 0,
+      generation: ++this.currentGeneration,
     };
 
     try {
@@ -696,6 +705,7 @@ export class LocalWorkspaceRepository {
               payload: structuredClone(asset),
               status: 'pending',
               retryCount: 0,
+              generation: ++this.currentGeneration,
             };
             ctx.put('outbox', assetOutboxId, assetEntry);
           }
@@ -777,6 +787,7 @@ export class LocalWorkspaceRepository {
       payload: structuredClone(note),
       status: 'pending',
       retryCount: 0,
+      generation: ++this.currentGeneration,
     };
 
     try {
@@ -850,6 +861,7 @@ export class LocalWorkspaceRepository {
       payload: null,
       status: 'pending',
       retryCount: 0,
+      generation: ++this.currentGeneration,
     };
 
     try {
@@ -911,6 +923,39 @@ export class LocalWorkspaceRepository {
       return all
         .filter((entry) => entry.status === 'pending' || entry.status === 'in_flight')
         .sort((a, b) => a.clientTimestamp.localeCompare(b.clientTimestamp));
+    });
+  }
+
+  async listNotebooks(): Promise<ValidationNotebook[]> {
+    return this.getAllNotebooks();
+  }
+
+  async listNotes(): Promise<Array<ValidationCanvasNote | ValidationKanbanNote>> {
+    return this.getAllNotes();
+  }
+
+  async listAssets(): Promise<ValidationAsset[]> {
+    return this.getAllAssets();
+  }
+
+  async listOutbox(): Promise<OutboxEntry[]> {
+    return this.getPendingOutbox();
+  }
+
+  async acknowledgeOutboxUpTo(generation: number): Promise<void> {
+    await this.engine.runTransaction(['outbox'], 'readwrite', (ctx) => {
+      const all = ctx.getAll<OutboxEntry>('outbox');
+      for (const entry of all) {
+        if (entry.generation <= generation) {
+          ctx.delete('outbox', entry.id);
+        }
+      }
+    });
+  }
+
+  async saveAsset(asset: ValidationAsset): Promise<void> {
+    await this.engine.runTransaction(['assets'], 'readwrite', (ctx) => {
+      ctx.put('assets', asset.id, asset);
     });
   }
 
