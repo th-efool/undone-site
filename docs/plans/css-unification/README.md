@@ -88,8 +88,8 @@ The lead performs `graphify update .` after integrated code changes at phase che
 | P2 | Reset/forms; typography consumers; independent regression review | Global imports/layers | Utilities work; no unexplained baseline regressions | **COMPLETE (Gate Passed)** |
 | P3 | Theme resolver/portals; font consumers; token mapping audit | Root theme, tokens, font loading | Theme matrix and aliases pass | **COMPLETE (Gate Passed)** |
 | P4 | Buttons/fields; overlays; typography/status primitives | Exports and shared fixture integration | Shared components satisfy state/keyboard/theme contracts | **COMPLETE (Gate Passed)** |
-| P5 | Notes share/layout; sync presentation; editor/mobile boundary | Notes shell/shared stylesheet integration | Three screenshot failures resolved with workflow coverage | Ready to start |
-| P6 | Disjoint feature groups per wave | Shared fixes and cross-route navigation | Each wave passes before next wave | Not started |
+| P5 | Notes share/layout; sync presentation; editor/mobile boundary | Notes shell/shared stylesheet integration | Three screenshot failures resolved with workflow coverage | **COMPLETE (Gate Passed)** |
+| P6 | Disjoint feature groups per wave | Shared fixes and cross-route navigation | Each wave passes before next wave | Ready to start |
 | P7 | Static enforcement; browser acceptance; independent review | Build, memory, release record | Acceptance matrix complete; residual risks explicit | Not started |
 
 ## Non-negotiable scope boundaries
