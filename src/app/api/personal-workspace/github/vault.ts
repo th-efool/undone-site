@@ -5,6 +5,7 @@ import {
   encryptToken,
   decryptToken,
 } from '@/src/server/infrastructure/github/personal-workspace';
+import { getGitHubAppCredentials, getInstallationToken } from './app/config';
 
 export const VAULT_COOKIE_NAME = 'undone_gh_vault';
 
@@ -21,6 +22,10 @@ export interface VaultCookiePayload {
   repoFullName: string;
   defaultBranch: string;
   isPrivate: boolean;
+  installationId?: string;
+  expiresAt?: string;
+  githubAccountId?: string;
+  githubAccountLogin?: string;
 }
 
 export interface WorkspaceCredentials {
@@ -28,6 +33,7 @@ export interface WorkspaceCredentials {
   repoFullName: string;
   defaultBranch: string;
   isPrivate: boolean;
+  installationId?: string;
 }
 
 export interface AuthenticatedUser {
@@ -94,9 +100,37 @@ export async function resolveCredentials(
       }
       const parsed: VaultCookiePayload = JSON.parse(raw);
       if (parsed?.encryptedToken && parsed?.repoFullName) {
-        const decryptedToken = await decryptToken(parsed.encryptedToken, userId);
+        if (parsed.installationId) {
+          if (!prisma?.personalWorkspaceGitHubConnection) return null;
+          let connection: {
+            installationId: string;
+            disconnectedAt: Date | null;
+            repoFullName: string;
+            defaultBranch: string;
+            isPrivate: boolean;
+          } | null;
+          try {
+            connection = await prisma.personalWorkspaceGitHubConnection.findUnique({ where: { userId } });
+          } catch {
+            return null;
+          }
+          if (!connection || connection.disconnectedAt) return null;
+          const appCredentials = getGitHubAppCredentials();
+          const refreshed = appCredentials
+            ? await getInstallationToken(connection.installationId, appCredentials)
+            : null;
+          if (!refreshed) return null;
+          return {
+            token: refreshed.token,
+            repoFullName: connection.repoFullName,
+            defaultBranch: connection.defaultBranch,
+            isPrivate: connection.isPrivate,
+            installationId: connection.installationId,
+          };
+        }
+        const token = await decryptToken(parsed.encryptedToken, userId);
         return {
-          token: decryptedToken,
+          token,
           repoFullName: parsed.repoFullName,
           defaultBranch: parsed.defaultBranch || 'main',
           isPrivate: parsed.isPrivate ?? true,
@@ -104,6 +138,30 @@ export async function resolveCredentials(
       }
     } catch {
       // Corrupt, tampered, or invalid cookie
+    }
+  }
+
+  // The installation ID is durable in PostgreSQL; short-lived tokens are minted on demand.
+  if (prisma?.personalWorkspaceGitHubConnection && userId && !userId.startsWith('user-test-')) {
+    try {
+      const connection = await prisma.personalWorkspaceGitHubConnection.findUnique({ where: { userId } });
+      if (connection) {
+        if (connection.disconnectedAt) return null;
+        const appCredentials = getGitHubAppCredentials();
+        const tokenResult = appCredentials
+          ? await getInstallationToken(connection.installationId, appCredentials)
+          : null;
+        if (!tokenResult) return null;
+        return {
+          token: tokenResult.token,
+          repoFullName: connection.repoFullName,
+          defaultBranch: connection.defaultBranch,
+          isPrivate: connection.isPrivate,
+          installationId: connection.installationId,
+        };
+      }
+    } catch {
+      // Continue to legacy OAuth and test fallbacks if the connection table is unavailable.
     }
   }
 
@@ -172,6 +230,10 @@ export async function setVaultCookie(
     repoFullName: string;
     defaultBranch: string;
     isPrivate: boolean;
+    installationId?: string;
+    expiresAt?: string;
+    githubAccountId?: string;
+    githubAccountLogin?: string;
   }
 ): Promise<void> {
   const encryptedToken = await encryptToken(credentials.token, userId);
@@ -180,6 +242,10 @@ export async function setVaultCookie(
     repoFullName: credentials.repoFullName,
     defaultBranch: credentials.defaultBranch,
     isPrivate: credentials.isPrivate,
+    installationId: credentials.installationId,
+    expiresAt: credentials.expiresAt,
+    githubAccountId: credentials.githubAccountId,
+    githubAccountLogin: credentials.githubAccountLogin,
   };
 
   res.cookies.set(VAULT_COOKIE_NAME, JSON.stringify(payload), VAULT_COOKIE_OPTIONS);
@@ -192,5 +258,13 @@ export function clearVaultCookie(res: NextResponse): void {
   res.cookies.set(VAULT_COOKIE_NAME, '', {
     ...VAULT_COOKIE_OPTIONS,
     maxAge: 0,
+  });
+}
+
+export async function clearGitHubAppConnection(userId: string): Promise<void> {
+  if (!prisma?.personalWorkspaceGitHubConnection || !userId || userId.startsWith('user-test-')) return;
+  await prisma.personalWorkspaceGitHubConnection.updateMany({
+    where: { userId },
+    data: { disconnectedAt: new Date() },
   });
 }

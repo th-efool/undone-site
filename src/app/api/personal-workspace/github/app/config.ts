@@ -1,6 +1,7 @@
 import fs from 'fs';
 import crypto from 'node:crypto';
 import https from 'node:https';
+import { NextRequest } from 'next/server';
 
 export const GITHUB_APP_INSTALLATION_COOKIE_NAME = 'undone_gh_app_state';
 export const GITHUB_APP_INSTALLATION_COOKIE_OPTIONS = {
@@ -17,6 +18,21 @@ export interface GitHubAppCredentials {
   clientSecret: string;
   privateKeyPem: string;
 }
+
+export interface GitHubUserIdentity {
+  id: string;
+  login: string;
+}
+
+export interface GitHubAppInstallation {
+  id: string;
+  appId: string;
+  accountId: string;
+  accountLogin: string;
+  accountType: string;
+}
+
+const installationTokenCache = new Map<string, { token: string; expiresAt: number }>();
 
 /**
  * Loads GitHub App credentials from env vars. Returns null if not configured.
@@ -91,6 +107,117 @@ export function generateAppJWT(credentials: GitHubAppCredentials): string {
   return `${signing}.${signature}`;
 }
 
+export function getAppOAuthRedirectUri(req: NextRequest): string {
+  if (process.env.GITHUB_APP_OAUTH_REDIRECT_URI) {
+    return process.env.GITHUB_APP_OAUTH_REDIRECT_URI.trim();
+  }
+  const proto = req.headers.get('x-forwarded-proto') || req.nextUrl.protocol.replace(':', '');
+  const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || req.nextUrl.host;
+  return `${proto}://${host}/api/personal-workspace/github/app/oauth/callback`;
+}
+
+export function getAppOAuthAuthorizeUrl(state: string, redirectUri: string, clientId: string): string {
+  const url = new URL('https://github.com/login/oauth/authorize');
+  url.searchParams.set('client_id', clientId);
+  url.searchParams.set('redirect_uri', redirectUri);
+  url.searchParams.set('state', state);
+  return url.toString();
+}
+
+export function getInstallationUrl(state: string): string {
+  return `https://github.com/apps/undone-notes/installations/new?state=${encodeURIComponent(state)}`;
+}
+
+export async function exchangeGitHubAppUserCode(
+  code: string,
+  redirectUri: string,
+  credentials: GitHubAppCredentials,
+): Promise<string | null> {
+  if (!credentials.clientSecret) return null;
+  try {
+    const response = await fetch('https://github.com/login/oauth/access_token', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        client_id: credentials.clientId,
+        client_secret: credentials.clientSecret,
+        code,
+        redirect_uri: redirectUri,
+      }),
+    });
+    const data = (await response.json()) as { access_token?: string; error?: string };
+    return response.ok ? data.access_token || null : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getGitHubUserIdentity(userToken: string): Promise<GitHubUserIdentity | null> {
+  try {
+    const { status, data } = await httpsRequest<{ id?: number; login?: string }>({
+      hostname: 'api.github.com',
+      path: '/user',
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${userToken}`,
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'undone-personal-workspace',
+      },
+    });
+    return status === 200 && data?.id && data.login
+      ? { id: String(data.id), login: data.login }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function getUserAppInstallations(
+  userToken: string,
+  appId: string,
+): Promise<GitHubAppInstallation[] | null> {
+  const installations: GitHubAppInstallation[] = [];
+  for (let page = 1; page <= 10; page++) {
+    try {
+      const { status, data } = await httpsRequest<{
+        installations?: Array<{
+          id: number;
+          app_id: number;
+          account?: { id?: number; login?: string; type?: string };
+        }>;
+      }>({
+        hostname: 'api.github.com',
+        path: `/user/installations?per_page=100&page=${page}`,
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${userToken}`,
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'undone-personal-workspace',
+        },
+      });
+      if (status !== 200 || !Array.isArray(data?.installations)) return null;
+      for (const installation of data.installations) {
+        if (
+          String(installation.app_id) === appId &&
+          installation.account?.id && installation.account.login && installation.account.type
+        ) {
+          installations.push({
+            id: String(installation.id),
+            appId: String(installation.app_id),
+            accountId: String(installation.account.id),
+            accountLogin: installation.account.login,
+            accountType: installation.account.type,
+          });
+        }
+      }
+      if (data.installations.length < 100) break;
+    } catch {
+      return null;
+    }
+  }
+  return installations;
+}
+
 function httpsRequest<T>(
   options: https.RequestOptions,
   postData?: string,
@@ -146,7 +273,12 @@ function httpsRequest<T>(
 export async function getInstallationToken(
   installationId: string,
   credentials: GitHubAppCredentials,
+  forceRefresh = false,
 ): Promise<{ token: string; expiresAt: string } | null> {
+  const cached = installationTokenCache.get(installationId);
+  if (!forceRefresh && cached && cached.expiresAt > Date.now() + 5 * 60 * 1000) {
+    return { token: cached.token, expiresAt: new Date(cached.expiresAt).toISOString() };
+  }
   const jwt = generateAppJWT(credentials);
 
   try {
@@ -162,6 +294,10 @@ export async function getInstallationToken(
     });
 
     if (status >= 200 && status < 300 && data?.token && data?.expires_at) {
+      installationTokenCache.set(installationId, {
+        token: data.token,
+        expiresAt: Date.parse(data.expires_at),
+      });
       return { token: data.token, expiresAt: data.expires_at };
     }
   } catch (err) {
@@ -178,48 +314,50 @@ export async function getInstallationRepos(
   installationId: string,
   credentials: GitHubAppCredentials,
 ): Promise<Array<{ fullName: string; isPrivate: boolean; defaultBranch: string }>> {
-  const tokenResult = await getInstallationToken(installationId, credentials);
+  let tokenResult = await getInstallationToken(installationId, credentials);
   if (!tokenResult) return [];
 
-  try {
-    const { status, data } = await httpsRequest<{
-      repositories?: Array<{ full_name: string; private: boolean; default_branch: string }>;
-    }>({
-      hostname: 'api.github.com',
-      path: '/installation/repositories?per_page=100',
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${tokenResult.token}`,
-        Accept: 'application/vnd.github+json',
-        'User-Agent': 'undone-notes-app',
-      },
-    });
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const { status, data } = await httpsRequest<{
+        repositories?: Array<{ full_name: string; private: boolean; default_branch: string }>;
+      }>({
+        hostname: 'api.github.com',
+        path: '/installation/repositories?per_page=100',
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${tokenResult.token}`,
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'undone-notes-app',
+        },
+      });
 
-    if (status >= 200 && status < 300 && Array.isArray(data?.repositories)) {
-      return data.repositories.map((r) => ({
-        fullName: r.full_name,
-        isPrivate: r.private,
-        defaultBranch: r.default_branch,
-      }));
+      if (status === 401 && attempt === 0) {
+        tokenResult = await getInstallationToken(installationId, credentials, true);
+        if (tokenResult) continue;
+      }
+      if (status >= 200 && status < 300 && Array.isArray(data?.repositories)) {
+        return data.repositories.map((r) => ({
+          fullName: r.full_name,
+          isPrivate: r.private,
+          defaultBranch: r.default_branch,
+        }));
+      }
+      break;
+    } catch (err) {
+      console.warn('[GitHubApp] Failed to fetch installation repos:', err);
+      break;
     }
-  } catch (err) {
-    console.warn('[GitHubApp] Failed to fetch installation repos:', err);
   }
 
   return [];
-}
-
-/**
- * Returns the GitHub App installation URL for the user to authorize & select repositories.
- */
-export function getInstallationUrl(state: string): string {
-  return `https://github.com/apps/undone-notes/installations/new?state=${encodeURIComponent(state)}`;
 }
 
 export function renderAppSuccessHtml(data: {
   repoFullName: string;
   defaultBranch: string;
   installationId: string;
+  isPrivate?: boolean;
 }): string {
   const safeRepo = data.repoFullName.replace(/[<>"']/g, '');
   const safeBranch = data.defaultBranch.replace(/[<>"']/g, '');
@@ -255,7 +393,7 @@ export function renderAppSuccessHtml(data: {
           type: 'UNDONE_GITHUB_AUTH_SUCCESS',
           repoFullName: '${safeRepo}',
           defaultBranch: '${safeBranch}',
-          isPrivate: true
+          isPrivate: ${data.isPrivate ?? true}
         };
         if (window.opener && !window.opener.closed) {
           window.opener.postMessage(payload, window.location.origin);

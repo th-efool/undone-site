@@ -45,3 +45,10 @@
 - Live GitHub Sync Runner: `scripts/test-live-github-sync.ts` verified against live repository `suyanamoly/undone-notestest`.
   - Live commit link: https://github.com/suyanamoly/undone-notestest/commit/c2fa6c08891760640b8f3f3d86e354d18c4bc865
   - Cross-device restore verified with 100% SHA-256 payload parity.
+
+## GitHub App reconnect and credential lifecycle (Phase 1)
+- `src/app/api/personal-workspace/github/app/install/route.ts` starts GitHub App user OAuth first; `app/oauth/callback/route.ts` identifies the regular GitHub account and reuses an installation it can access, avoiding repeated install attempts.
+- New installation return uses `app/callback/route.ts`, which requires a fresh user-bound encrypted state and verifies the callback `installation_id` against `GET /user/installations` for that authorized GitHub account before minting a token.
+- `personal_workspace_github_connections` stores non-secret installation/repository/account IDs in PostgreSQL. Do not persist installation access tokens there. `vault.ts` mints short-lived tokens on demand; the in-process token cache avoids minting on every API call.
+- GitHub App registration must list `/api/personal-workspace/github/app/oauth/callback` as an OAuth callback URL and `/api/personal-workspace/github/app/callback` as its Setup URL with Redirect on update enabled. Keep Request user authorization on installation disabled because the app uses its own preceding OAuth step.
+- Apply `prisma/personal-workspace-github-connection.sql` to deployed PostgreSQL before enabling the new build; `prisma generate` updates the client locally.

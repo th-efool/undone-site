@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
-import crypto from 'node:crypto';
 import { encryptToken } from '@/src/server/infrastructure/github/personal-workspace';
 import { resolveAuthUser } from '../../vault';
 import {
+  getAppOAuthAuthorizeUrl,
+  getAppOAuthRedirectUri,
   getGitHubAppCredentials,
-  getInstallationUrl,
   GITHUB_APP_INSTALLATION_COOKIE_NAME,
   GITHUB_APP_INSTALLATION_COOKIE_OPTIONS,
 } from '../config';
 import { getOAuthClientCredentials } from '../../oauth/config';
+import { createFlowStateNonce, createAppFlowState } from '../flow';
 
 /**
  * GET /api/personal-workspace/github/app/install
  *
  * Connect entry point:
- *   - If GitHub App is configured (via GITHUB_APP_PRIVATE_KEY_BASE64 env var):
- *     redirects to GitHub's native App installation & repo picker.
+ *   - If GitHub App is configured: authorizes the user's GitHub identity first, then
+ *     reuses an accessible installation or opens GitHub's install/update screen.
  *   - If GitHub App is not configured, automatically falls back to standard
  *     OAuth (/api/personal-workspace/github/oauth/authorize) with ZERO .pem file dependency!
  */
@@ -47,20 +48,24 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   // CSRF state nonce
-  const stateNonce = crypto.randomBytes(32).toString('base64url');
-  const statePayload = JSON.stringify({
-    stateNonce,
-    userId: user.id,
-    createdAt: Date.now(),
-  });
+  const stateNonce = createFlowStateNonce();
+  const statePayload = JSON.stringify(createAppFlowState(user.id, stateNonce));
 
   const encryptedState = await encryptToken(statePayload, user.id);
 
+  if (!credentials.clientSecret) {
+    return NextResponse.json(
+      { error: 'GitHub App user authorization requires GITHUB_APP_CLIENT_SECRET.' },
+      { status: 500 },
+    );
+  }
+
   const format = req.nextUrl.searchParams.get('format')?.toLowerCase();
-  const installUrl = getInstallationUrl(stateNonce);
+  const redirectUri = getAppOAuthRedirectUri(req);
+  const authorizeUrl = getAppOAuthAuthorizeUrl(stateNonce, redirectUri, credentials.clientId);
 
   if (format === 'json') {
-    const res = NextResponse.json({ installUrl, state: stateNonce });
+    const res = NextResponse.json({ authorizeUrl, state: stateNonce });
     res.cookies.set(
       GITHUB_APP_INSTALLATION_COOKIE_NAME,
       encryptedState,
@@ -69,7 +74,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return res;
   }
 
-  const res = NextResponse.redirect(installUrl);
+  const res = NextResponse.redirect(authorizeUrl);
   res.cookies.set(
     GITHUB_APP_INSTALLATION_COOKIE_NAME,
     encryptedState,

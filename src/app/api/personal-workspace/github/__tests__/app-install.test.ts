@@ -109,4 +109,27 @@ describe('GitHub App & Zero-File Fallback Authentication', () => {
     const data = await res.json();
     expect(data.error).toContain('GitHub credentials not configured');
   });
+
+  it('starts GitHub App user authorization before the installation flow', async () => {
+    process.env.GITHUB_APP_ID = '12345';
+    process.env.GITHUB_APP_CLIENT_ID = 'IvTest123';
+    process.env.GITHUB_APP_CLIENT_SECRET = 'app-secret';
+    process.env.GITHUB_APP_PRIVATE_KEY_BASE64 = base64Key;
+    process.env.GITHUB_APP_OAUTH_REDIRECT_URI = 'https://undone.example/api/personal-workspace/github/app/oauth/callback';
+
+    const req = new NextRequest('https://undone.example/api/personal-workspace/github/app/install?format=json', {
+      headers: { 'x-test-user-id': 'user-test-01' },
+    });
+
+    const res = await getAppInstall(req);
+    expect(res.status).toBe(200);
+    const data = await res.json() as { authorizeUrl: string; state: string };
+    const authorizeUrl = new URL(data.authorizeUrl);
+    expect(authorizeUrl.origin).toBe('https://github.com');
+    expect(authorizeUrl.pathname).toBe('/login/oauth/authorize');
+    expect(authorizeUrl.searchParams.get('client_id')).toBe('IvTest123');
+    expect(authorizeUrl.searchParams.get('redirect_uri')).toBe(process.env.GITHUB_APP_OAUTH_REDIRECT_URI);
+    expect(authorizeUrl.searchParams.get('state')).toBe(data.state);
+    expect(res.cookies.get('undone_gh_app_state')?.httpOnly).toBe(true);
+  });
 });

@@ -7,5 +7,5 @@
 - [cache-boundaries.md](cache-boundaries.md): /api/explore, /api/feed, and /api/community edge SWR and micro-caching rules, tenant boundaries, and focused checks.
 - [study-rooms.md](study-rooms.md): /studyroom discovery and [roomSlug] stage, Web Audio ambient engine, shared environment vs personal tools, Centrifugo boundary, and focused checks.
 - [messaging-and-centrifugo.md](messaging-and-centrifugo.md): durable messaging foundation, outbox dispatcher, Centrifugo v6 transport, rate limiting, and observability.
-- [notes-local-first-sync.md](notes-local-first-sync.md): local-first durability, GitHub sync production architecture, E1-E6 contracts, client storage engine, BFF routes, token crypto, and R1/R2/R3 gates.
+- [notes-local-first-sync.md](notes-local-first-sync.md): local-first durability, GitHub sync production architecture, E1-E6 contracts, client storage engine, BFF routes, GitHub App reconnect/token lifecycle, and R1/R2/R3 gates.
 - [css-styling.md](css-styling.md): unified CSS layer architecture, canonical --ud-* design token contract, shared UI primitives, portal encapsulation, and verification commands.
