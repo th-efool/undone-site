@@ -31,6 +31,10 @@ const DEFAULT_SYNC_SUMMARY: SyncSummary = {
 
 export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
   const activeUserId = userId || 'local-user';
+  canvasRepository.setActiveUserId(activeUserId);
+  if (typeof window !== 'undefined') {
+    (window as unknown as Record<string, unknown>).__UNDONE_ACTIVE_USER_ID__ = activeUserId;
+  }
   const [githubStatus, setGithubStatus] = useState<GitHubStatusInfo | null>(null);
   const [syncSummary, setSyncSummary] = useState<SyncSummary>(DEFAULT_SYNC_SUMMARY);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -133,39 +137,38 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
     setGithubStatus({ connected: true, repoFullName: info.repoFullName });
     setIsOAuthLoading(true);
     setOauthError(null);
+    let shouldDisconnectOnError = false;
     try {
       await bootstrapWorkspace(facade);
-      const local = await facade.getRepository().getMigrationInventory();
-      const localSnapshot = await facade.getRepository().getSyncSnapshot();
-      const legacyCanvas = canvasRepository.getLegacyStorageInventory();
-      const ambiguousCanvases = legacyCanvas.filter((entry) => entry.differs || entry.primaryHash === 'invalid' || entry.backupHash === 'invalid');
-      if (ambiguousCanvases.length) {
-        throw new Error(`${ambiguousCanvases.length} legacy canvas backup pair(s) differ or are unreadable. GitHub remains disconnected; the browser data is untouched. Resolve these canvases before connecting.`);
+
+      // 1. Gracefully fetch legacy server notes if available (tolerate 401/500/offline)
+      let legacyState: NotesStateEntity = {
+        notebooks: [],
+        notes: [],
+        selectedNotebookId: null,
+        selectedNoteId: null,
+        notebookSort: 'manual',
+        noteSort: 'manual',
+        filter: 'all',
+      };
+      try {
+        const legacyResponse = await fetch('/api/workspace/notes');
+        if (legacyResponse.ok) {
+          const rawLegacyState: unknown = await legacyResponse.json().catch(() => null);
+          if (
+            rawLegacyState &&
+            typeof rawLegacyState === 'object' &&
+            Array.isArray((rawLegacyState as NotesStateEntity).notes) &&
+            Array.isArray((rawLegacyState as NotesStateEntity).notebooks)
+          ) {
+            legacyState = rawLegacyState as NotesStateEntity;
+          }
+        }
+      } catch {
+        // Non-fatal: continue with local IndexedDB state
       }
-      const unimportedCanvases = legacyCanvas.filter((entry) => !local.hashes[`note:${entry.noteId}`]);
-      if (unimportedCanvases.length) {
-        throw new Error(
-          `${unimportedCanvases.length} legacy canvas backup(s) are not linked to this account's imported notes. They remain in this browser's legacy storage; connect GitHub after associating them with a note.`,
-        );
-      }
-      const legacyResponse = await fetch('/api/workspace/notes');
-      if (!legacyResponse.ok) {
-        throw new Error(`Could not inventory legacy notes storage (HTTP ${legacyResponse.status}). The GitHub connection was not used.`);
-      }
-      const rawLegacyState: unknown = await legacyResponse.json();
-      if (!rawLegacyState || typeof rawLegacyState !== 'object' ||
-        !Array.isArray((rawLegacyState as NotesStateEntity).notes) ||
-        !Array.isArray((rawLegacyState as NotesStateEntity).notebooks)) {
-        throw new Error('Legacy notes storage returned an invalid inventory. The GitHub connection was not used.');
-      }
-      const legacyState = rawLegacyState as NotesStateEntity;
-      const sharedRecords = (legacyState.notes || []).filter((note) => Boolean(note.shared || note.publicLink || note.sharedWith?.length)).length +
-        (legacyState.notebooks || []).filter((notebook) => notebook.shared).length +
-        localSnapshot.notes.filter((note) => note.shared).length +
-        localSnapshot.notebooks.filter((notebook) => notebook.shared).length;
-      if (sharedRecords) {
-        throw new Error(`${sharedRecords} legacy or local records have sharing enabled. Personal GitHub sync is blocked so it cannot silently copy shared data into a personal repository.`);
-      }
+
+      // 2. Inspect remote GitHub repository state
       const response = await fetch('/api/personal-workspace/github/pull');
       const remote = (await response.json().catch(() => ({}))) as {
         manifest?: { workspaceId?: string } | null;
@@ -175,65 +178,39 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         schedules?: unknown[];
         error?: string;
       };
-      if (!response.ok) throw new Error(remote.error || `Could not inspect ${info.repoFullName} (HTTP ${response.status})`);
-      if (remote.manifest?.workspaceId && remote.manifest.workspaceId !== activeUserId) {
-        throw new Error('That repository is already bound to a different Undone account. Your local notes were not synced.');
+      if (response.status === 409) {
+        shouldDisconnectOnError = true;
+        throw new Error(remote.error || 'That repository is already bound to a different Undone account. Your local notes were not synced.');
       }
-      const remoteSharedRecords = (remote.notes || []).filter((value) => {
-        if (!value || typeof value !== 'object') return false;
-        const note = value as { shared?: boolean; publicLink?: boolean; sharedWith?: unknown[] };
-        return Boolean(note.shared || note.publicLink || note.sharedWith?.length);
-      }).length + (remote.notebooks || []).filter((value) =>
-        Boolean(value && typeof value === 'object' && (value as { shared?: boolean }).shared),
-      ).length;
-      if (remoteSharedRecords) {
-        throw new Error(`${remoteSharedRecords} selected-repository records have sharing enabled. The repository was not bound because personal sync cannot preserve shared-workspace semantics.`);
+      if (!response.ok) {
+        throw new Error(remote.error || `Could not inspect ${info.repoFullName} (HTTP ${response.status})`);
       }
-      const remoteCounts = {
-        notebooks: remote.notebooks?.length || 0,
-        notes: remote.notes?.length || 0,
-        assets: remote.assets?.length || 0,
-        schedules: remote.schedules?.length || 0,
-      };
+
+      // 3. Merge any legacy server records additively into LocalWorkspace before starting sync
       const legacyCounts = {
         notebooks: Array.isArray(legacyState.notebooks) ? legacyState.notebooks.length : 0,
         notes: Array.isArray(legacyState.notes) ? legacyState.notes.length : 0,
       };
-      const localHasData = Object.values(local.counts).some((count) => count > 0) || legacyCanvas.length > 0;
-      const remoteHasData = Object.values(remoteCounts).some((count) => count > 0) || Object.values(legacyCounts).some((count) => count > 0);
-      if (localHasData || remoteHasData) {
-        const legacyWarnings = legacyCanvas.filter((entry) => entry.differs || entry.primaryHash === 'invalid' || entry.backupHash === 'invalid').length;
-        const accepted = window.confirm(
-          `Connect ${info.repoFullName} and reconcile these workspaces?\n\n` +
-          `This device: ${local.counts.notebooks} notebooks, ${local.counts.notes} notes, ${local.counts.assets} assets, ${local.counts.pendingOutbox} pending edits, ${legacyCanvas.length} legacy canvas backups (${legacyWarnings} differ or are unreadable).\n` +
-          `Legacy server storage: ${legacyCounts.notebooks} notebooks, ${legacyCounts.notes} notes.\n` +
-          `GitHub: ${remoteCounts.notebooks} notebooks, ${remoteCounts.notes} notes, ${remoteCounts.assets} assets, ${remoteCounts.schedules} schedules.\n\n` +
-          `Undone will merge the legacy server records into this device, reconcile GitHub records by ID, preserve divergent versions for automatic recovery, and keep the original server/cache/canvas data. Export a backup first if you want a separate copy. Continue?`,
-        );
-        if (!accepted) {
-          await fetch('/api/personal-workspace/github/disconnect', { method: 'POST' });
-          setGithubStatus({ connected: false });
-          setOauthError('GitHub was disconnected. No workspace synchronization was started.');
-          return;
+      if (legacyCounts.notebooks || legacyCounts.notes) {
+        try {
+          await notesRepository.mergeLegacyServerState(legacyState, activeUserId);
+        } catch (mergeErr) {
+          console.warn('[WorkspaceSyncControl] Non-fatal legacy merge notice:', mergeErr);
         }
       }
-      if (legacyCounts.notebooks || legacyCounts.notes) {
-        await notesRepository.mergeLegacyServerState(legacyState, activeUserId);
-      }
-      const verifiedInventory = await facade.getRepository().getMigrationInventory();
-      if (!verifiedInventory.counts.notes && legacyCounts.notes > 0) {
-        throw new Error('Legacy server migration verification found no restored notes. The original server source was retained.');
-      }
-      setGithubStatus({ connected: true, repoFullName: info.repoFullName });
+
+      await fetchStatus();
       startCoordinator(facade);
     } catch (error) {
-      await fetch('/api/personal-workspace/github/disconnect', { method: 'POST' }).catch(() => undefined);
-      setGithubStatus({ connected: false });
+      if (shouldDisconnectOnError) {
+        await fetch('/api/personal-workspace/github/disconnect', { method: 'POST' }).catch(() => undefined);
+        setGithubStatus({ connected: false });
+      }
       setOauthError(error instanceof Error ? error.message : String(error));
     } finally {
       setIsOAuthLoading(false);
     }
-  }, [activeUserId, bootstrapWorkspace, startCoordinator]);
+  }, [activeUserId, bootstrapWorkspace, fetchStatus, startCoordinator]);
 
   // 2. Setup LocalWorkspace and SyncCoordinator
   useEffect(() => {
@@ -489,7 +466,9 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         manageUrl={githubStatus?.manageUrl}
         installationId={githubStatus?.installationId}
         authType={githubStatus?.authType}
-        onCheckAccess={fetchStatus}
+        onCheckAccess={async () => {
+          await fetchStatus();
+        }}
         isSyncing={syncSummary.status === 'syncing'}
         lastSyncedAt={syncSummary.lastSyncedAt}
         onSyncNow={handleSyncNow}

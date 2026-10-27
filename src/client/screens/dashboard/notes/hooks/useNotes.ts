@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { LocalWorkspace } from '@/src/client/personal-workspace/local/facade';
 import { filterNotes, toNotebookItems } from '../adapters/notes.adapter';
 import type {
   NoteDocument,
@@ -10,6 +11,7 @@ import type {
   NotesStateEntity,
   Permission,
 } from '../models/notes.models';
+import { canvasRepository } from '../repositories/canvas.repository';
 import { notesRepository } from '../repositories/notes.repository';
 
 const stamp = () => new Date().toISOString();
@@ -28,6 +30,9 @@ export type NotesSyncStatus = 'saved' | 'saving' | 'offline' | 'error';
 export function useNotes() {
   const { data: session } = useSafeSession();
   const userId = session?.user?.id ?? null;
+  const effectiveUserId = userId || 'local-user';
+  canvasRepository.setActiveUserId(effectiveUserId);
+  const skipSaveRef = useRef(false);
   const [state, setState] = useState<NotesStateEntity | null>(() => notesRepository.getInitialState(userId));
   const [hasLoadedRemote, setHasLoadedRemote] = useState(false);
   const [syncStatus, setSyncStatus] = useState<NotesSyncStatus>('saved');
@@ -53,13 +58,35 @@ export function useNotes() {
       setHasLoadedRemote(true);
       setSyncStatus('saved');
     });
+
+    const workspace = LocalWorkspace.getLocalWorkspace(effectiveUserId);
+    const unsubscribeRemote = workspace.getRepository().onRemoteSnapshotApplied(() => {
+      void workspace.open({ userId: effectiveUserId }).then((snapshot) => {
+        if (!active) return;
+        skipSaveRef.current = true;
+        setState((prev) => ({
+          ...snapshot.notesState,
+          selectedNotebookId: prev?.selectedNotebookId ?? snapshot.notesState.selectedNotebookId,
+          selectedNoteId: prev?.selectedNoteId ?? snapshot.notesState.selectedNoteId,
+          notebookSort: prev?.notebookSort ?? snapshot.notesState.notebookSort,
+          noteSort: prev?.noteSort ?? snapshot.notesState.noteSort,
+          filter: prev?.filter ?? snapshot.notesState.filter,
+        }));
+      });
+    });
+
     return () => {
       active = false;
+      unsubscribeRemote();
     };
-  }, [userId]);
+  }, [userId, effectiveUserId]);
 
   useEffect(() => {
     if (!state || !hasLoadedRemote) return;
+    if (skipSaveRef.current) {
+      skipSaveRef.current = false;
+      return;
+    }
     const t = setTimeout(async () => {
       try {
         const res = await notesRepository.save(state, userId);

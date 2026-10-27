@@ -31,11 +31,11 @@ export class NotesRepository {
 
   getInitialState(userId?: string | null): NotesStateEntity {
     const memoryKey = userId || 'anon';
-    const memory = memoryNotesStateByUser.get(memoryKey);
+    const memory = memoryNotesStateByUser.get(memoryKey) || (userId === 'local-user' ? memoryNotesStateByUser.get('anon') : undefined);
     if (memory) return structuredClone(memory);
     if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'test') {
       try {
-        const raw = localStorage.getItem(this.getCacheKey(userId));
+        const raw = localStorage.getItem(this.getCacheKey(userId)) || (userId === 'local-user' ? localStorage.getItem(this.getCacheKey(null)) : null);
         if (raw) {
           const parsed = JSON.parse(raw) as NotesStateEntity;
           if (parsed && Array.isArray(parsed.notebooks) && Array.isArray(parsed.notes)) {
@@ -51,12 +51,13 @@ export class NotesRepository {
   async load(userId?: string | null): Promise<NotesStateEntity> {
     if (typeof window === 'undefined') return structuredClone(EMPTY_NOTES_STATE);
     const memoryKey = userId || 'anon';
+    const targetUserId = userId || 'local-user';
+    canvasRepository.setActiveUserId(targetUserId);
     let localState: NotesStateEntity | null = null;
     try {
-      const targetUserId = userId || 'local-user';
       const snapshot = await LocalWorkspace.getLocalWorkspace(targetUserId).open({ userId: targetUserId });
       localState = snapshot.notesState;
-      if (snapshot.pendingOutbox.length > 0) {
+      if (snapshot.pendingOutbox.length > 0 || localState.notes.length > 0 || localState.notebooks.length > 0) {
         memoryNotesStateByUser.set(memoryKey, localState);
         return localState;
       }
@@ -142,6 +143,7 @@ export class NotesRepository {
   async syncWithLocalWorkspace(state: NotesStateEntity, userId?: string | null): Promise<void> {
     if (typeof window === 'undefined') return;
     const targetUserId = userId || 'local-user';
+    canvasRepository.setActiveUserId(targetUserId);
     const workspace = LocalWorkspace.getLocalWorkspace(targetUserId);
     const repo = workspace.getRepository();
     await repo.initialize();

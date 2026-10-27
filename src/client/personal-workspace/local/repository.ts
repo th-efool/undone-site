@@ -807,8 +807,8 @@ export class PersonalWorkspaceRepository {
   }
 
   async acknowledgePublishedBatch(batchEntryIds: string[], remoteCommitSha?: string): Promise<void> {
-    if (!batchEntryIds || batchEntryIds.length === 0) return;
-    const idSet = new Set(batchEntryIds);
+    if ((!batchEntryIds || batchEntryIds.length === 0) && remoteCommitSha === undefined) return;
+    const idSet = new Set(batchEntryIds || []);
     const stores: StoreName[] = remoteCommitSha === undefined ? ['outbox'] : ['outbox', 'metadata'];
     await this.engine.runTransaction(stores, 'readwrite', (ctx) => {
       for (const id of idSet) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import {
   GitHubGitDataClient,
+  GitHubApiError,
   TreeEntryInput,
 } from '@/src/server/infrastructure/github/personal-workspace';
 import {
@@ -109,9 +110,10 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         { status: 422 },
       );
     }
+    let effectiveExpectedHead = expectedHead;
     let baseTreeSha: string | null = null;
-    if (expectedHead) {
-      const parentCommit = await client.getCommit(expectedHead);
+    if (effectiveExpectedHead) {
+      const parentCommit = await client.getCommit(effectiveExpectedHead);
       if (!parentCommit?.treeSha) {
         return NextResponse.json(
           { ok: false, conflict: true, currentRemoteCommitSha: currentHead, error: 'Expected remote commit is unavailable' },
@@ -120,6 +122,21 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       }
       baseTreeSha = parentCommit.treeSha;
     }
+
+    const createBlobSafe = async (contentBase64: string): Promise<string> => {
+      try {
+        return await client.createBlob(contentBase64);
+      } catch (err) {
+        if (err instanceof GitHubApiError && err.status === 409 && !effectiveExpectedHead) {
+          const bootstrappedSha = await client.bootstrapEmptyRepo();
+          effectiveExpectedHead = bootstrappedSha;
+          const bootstrappedCommit = await client.getCommit(bootstrappedSha);
+          baseTreeSha = bootstrappedCommit?.treeSha ?? null;
+          return await client.createBlob(contentBase64);
+        }
+        throw err;
+      }
+    };
 
     const treeEntries: TreeEntryInput[] = [];
     const manifestNotebooks: ManifestNotebookEntry[] = [];
@@ -132,7 +149,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     for (const asset of assets) {
       const ext = getExtensionForMimeType(asset.mimeType);
       const path = `undone/assets/${asset.hash}.${ext}`;
-      const sha = await client.createBlob(asset.base64Data);
+      const sha = await createBlobSafe(asset.base64Data);
 
       treeEntries.push({
         path,
@@ -154,7 +171,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     for (const nb of notebooks) {
       const content = canonicalJsonStringify(nb);
       const base64Data = Buffer.from(content, 'utf-8').toString('base64');
-      const sha = await client.createBlob(base64Data);
+      const sha = await createBlobSafe(base64Data);
       const path = `undone/notebooks/${nb.id}.json`;
 
       treeEntries.push({
@@ -175,7 +192,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     for (const note of notes) {
       const content = canonicalJsonStringify(note);
       const base64Data = Buffer.from(content, 'utf-8').toString('base64');
-      const sha = await client.createBlob(base64Data);
+      const sha = await createBlobSafe(base64Data);
       const path = `undone/notes/${note.id}.json`;
 
       treeEntries.push({
@@ -207,7 +224,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     if (schedules.length > 0) {
       const schedContent = canonicalJsonStringify(schedules);
       const base64Data = Buffer.from(schedContent, 'utf-8').toString('base64');
-      const sha = await client.createBlob(base64Data);
+      const sha = await createBlobSafe(base64Data);
       const path = 'undone/schedules/tasks.json';
 
       treeEntries.push({
@@ -235,7 +252,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       schedules: manifestSchedules.length > 0 ? manifestSchedules : undefined,
     };
     const manifestContent = canonicalJsonStringify(manifest);
-    const manifestSha = await client.createBlob(
+    const manifestSha = await createBlobSafe(
       Buffer.from(manifestContent, 'utf-8').toString('base64')
     );
 
@@ -253,7 +270,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
 
     // 6. Create commit
-    const parentShas = expectedHead ? [expectedHead] : [];
+    const parentShas = effectiveExpectedHead ? [effectiveExpectedHead] : [];
     const newCommitSha = await client.createCommit(
       'undone(sync): batch publish',
       treeSha,
@@ -261,7 +278,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
 
     // 7. Update ref
-    const refUpdate = await client.updateRef(refName, newCommitSha, { expectedSha: expectedHead });
+    const refUpdate = await client.updateRef(refName, newCommitSha, { expectedSha: effectiveExpectedHead });
 
     if (!refUpdate.ok) {
       if (refUpdate.status === 422) {
