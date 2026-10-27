@@ -85,7 +85,6 @@ export const NotebookRow = React.memo(function NotebookRow({
     <div 
       className={`${styles.channelItem} ${isSelected ? styles.selected : ''} ${isEditing ? styles.editingItem : ''}`}
       onClick={() => onSelect(notebook.id)}
-      onDoubleClick={handleStartEdit}
     >
       {isEditing ? (
         <div className={styles.inlineEditor} onClick={(e) => e.stopPropagation()}>
@@ -499,8 +498,20 @@ export function NotesSidebar({
   }, [notes.actions]);
 
   const handleSelectNotebook = useCallback((id: string) => {
-    notes.actions.selectNotebook(id);
-  }, [notes.actions]);
+    if (notes.state?.filter && notes.state.filter !== 'all') {
+      notes.actions.setFilter('all');
+    }
+    if (!isWorkspaceExpanded) {
+      notes.actions.selectNotebook(id);
+      setIsWorkspaceExpanded(true);
+    } else {
+      if (id !== selectedNotebookId) {
+        notes.actions.selectNotebook(id);
+      } else {
+        setIsWorkspaceExpanded(false);
+      }
+    }
+  }, [notes.actions, notes.state?.filter, isWorkspaceExpanded, selectedNotebookId, setIsWorkspaceExpanded]);
 
   const handleRenameNotebook = useCallback((id: string, updates: { title: string; icon?: string; color?: string }) => {
     notes.actions.patchNotebook(id, updates);
