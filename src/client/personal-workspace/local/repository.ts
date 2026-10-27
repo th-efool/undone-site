@@ -508,6 +508,13 @@ export class PersonalWorkspaceRepository {
     return this.getPendingOutbox();
   }
 
+  /**
+   * Alias for getPendingOutbox conforming to client sync coordinator interface.
+   */
+  async getPendingOutboxMutations(): Promise<OutboxEntry[]> {
+    return this.getPendingOutbox();
+  }
+
   async acknowledgeOutboxUpTo(generation: number): Promise<void> {
     await this.engine.runTransaction(['outbox'], 'readwrite', (ctx) => {
       const all = ctx.getAll<OutboxEntry>('outbox');
@@ -517,6 +524,39 @@ export class PersonalWorkspaceRepository {
         }
       }
     });
+  }
+
+  /**
+   * Acknowledges and removes an explicit batch of outbox mutation IDs.
+   * Conforms to generational and CAS sync coordinator ACK semantics.
+   */
+  async acknowledgeOutboxBatch(batchEntryIds: string[]): Promise<void> {
+    if (!batchEntryIds || batchEntryIds.length === 0) return;
+    const idSet = new Set(batchEntryIds);
+    await this.engine.runTransaction(['outbox'], 'readwrite', (ctx) => {
+      for (const id of idSet) {
+        ctx.delete('outbox', id);
+      }
+    });
+  }
+
+  /**
+   * Generic atomic note saver routing to canvas or kanban/markdown stores.
+   */
+  async saveNoteAtomic<T extends { id: string; contentType?: string } = NoteRecord>(
+    note: T,
+    mutationType: MutationType = 'create',
+    referencedAssets: Array<{ id: string }> = [],
+  ): Promise<SaveResult> {
+    const rawNote = note as unknown as Record<string, unknown>;
+    if (rawNote.contentType === 'canvas') {
+      return this.saveCanvasNoteAtomic(
+        note as unknown as Parameters<typeof this.saveCanvasNoteAtomic>[0],
+        referencedAssets as unknown as Parameters<typeof this.saveCanvasNoteAtomic>[1],
+        mutationType
+      );
+    }
+    return this.saveKanbanNoteAtomic(note, mutationType);
   }
 
   // ==========================================================================

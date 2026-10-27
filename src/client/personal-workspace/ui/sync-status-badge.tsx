@@ -185,6 +185,20 @@ export function getStatusConfig(summary: SyncSummary): StatusConfig {
           'text-amber-800 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-950/40 dark:border-amber-800/60',
       };
 
+    case 'reconnecting':
+      return {
+        label: 'Reconnecting...',
+        description: 'Attempting to reconnect to GitHub repository...',
+        icon: (
+          <Loader2
+            className="w-3.5 h-3.5 animate-spin text-amber-600 dark:text-amber-400"
+            data-testid="icon-reconnecting"
+          />
+        ),
+        badgeClass:
+          'text-amber-800 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-950/40 dark:border-amber-800/60',
+      };
+
     case 'error':
       return {
         label: 'Local save failed',

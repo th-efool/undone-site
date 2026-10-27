@@ -385,6 +385,7 @@ export type SyncStatus =
   | 'offline'
   | 'conflict'
   | 'reconnect_required'
+  | 'reconnecting'
   | 'error';
 
 export interface SyncSummary {
@@ -406,6 +407,7 @@ export const syncSummarySchema = z.object({
     'offline',
     'conflict',
     'reconnect_required',
+    'reconnecting',
     'error',
   ]),
   pendingMutations: z.number().int().min(0),
