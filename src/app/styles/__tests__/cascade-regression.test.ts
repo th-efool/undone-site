@@ -494,20 +494,16 @@ describe('Cascade Regression Test Suite & Failure Reproduction (Phase 1, Task 1.
       expect(foundSlideInClass).toBe(false);
     });
 
-    it('reproduces Defect 3.3: undefined token --radius-full in NotesSaveStatus.module.css:53', () => {
+    it('verifies Defect 3.3 Resolution: --radius-full maps to canonical --ud-radius-pill in tokens.css', () => {
       const notesSaveStatusSource = fs.readFileSync(notesSaveStatusCssPath, 'utf8');
       const tokensCssSource = fs.readFileSync(tokensCssPath, 'utf8');
 
-      // 1. NotesSaveStatus.module.css:53 uses --radius-full without fallback
+      // 1. NotesSaveStatus.module.css:53 uses --radius-full
       expect(notesSaveStatusSource).toMatch(/border-radius:\s*var\(--radius-full\);/);
 
-      // 2. tokens.css does NOT define --radius-full (defines --radius-pill instead)
-      expect(tokensCssSource).not.toContain('--radius-full:');
-      expect(tokensCssSource).toContain('--radius-pill:');
-
-      // 3. Evaluating var(--radius-full) yields invalid/initial token resolution
-      const isTokenMissingInTokensCss = !tokensCssSource.includes('--radius-full:');
-      expect(isTokenMissingInTokensCss).toBe(true);
+      // 2. tokens.css defines --radius-full mapping to canonical --ud-radius-pill (Phase 3 resolution)
+      expect(tokensCssSource).toContain('--radius-full: var(--ud-radius-pill);');
+      expect(tokensCssSource).toContain('--ud-radius-pill: 999px;');
     });
   });
 
