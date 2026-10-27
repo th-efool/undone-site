@@ -106,12 +106,51 @@ export const kanbanColumnSchema = z.object({
   order: z.number().int(),
 });
 
+export type KanbanPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export interface KanbanChecklistItem {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
+export const kanbanChecklistItemSchema = z.object({
+  id: z.string().min(1),
+  text: z.string(),
+  completed: z.boolean(),
+});
+
+export interface KanbanAttachment {
+  id: string;
+  name: string;
+  size: number;
+  hash: string;
+  mimeType: string;
+}
+
+export const kanbanAttachmentSchema = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  size: z.number().nonnegative(),
+  hash: z.string(),
+  mimeType: z.string(),
+});
+
 export interface KanbanCard {
   id: string;
   columnId: string;
   title: string;
   description?: string;
   order: number;
+  cover?: string;
+  priority?: KanbanPriority;
+  type?: string;
+  deadline?: string;
+  dueDate?: string;
+  assetFileIds?: string[];
+  checklists?: KanbanChecklistItem[];
+  attachments?: KanbanAttachment[];
+  updatedAt?: string;
 }
 
 export const kanbanCardSchema = z.object({
@@ -120,6 +159,15 @@ export const kanbanCardSchema = z.object({
   title: z.string(),
   description: z.string().optional(),
   order: z.number().int(),
+  cover: z.string().optional(),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
+  type: z.string().optional(),
+  deadline: z.string().optional(),
+  dueDate: z.string().optional(),
+  assetFileIds: z.array(z.string()).optional(),
+  checklists: z.array(kanbanChecklistItemSchema).optional(),
+  attachments: z.array(kanbanAttachmentSchema).optional(),
+  updatedAt: z.string().optional(),
 });
 
 export interface KanbanNoteData {
@@ -212,6 +260,44 @@ export const noteRecordSchema = z.discriminatedUnion('contentType', [
 ]);
 
 // ============================================================================
+// 3.5 Schedules & Reminders (Tasks)
+// ============================================================================
+
+export type ScheduleTaskStatus = 'completed' | 'pending';
+
+export interface ScheduleTaskRecord {
+  id: string;
+  title: string;
+  date: string;
+  status: ScheduleTaskStatus;
+  noteId?: string;
+  notebookId?: string;
+  category?: string;
+  color?: string;
+  priority?: KanbanPriority;
+  reminderAt?: string;
+  order?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const scheduleTaskRecordSchema = z.object({
+  id: z.string().min(1, 'Task id is required'),
+  title: z.string().min(1, 'Task title is required'),
+  date: z.string().min(1, 'Task date is required'),
+  status: z.enum(['completed', 'pending']),
+  noteId: z.string().optional(),
+  notebookId: z.string().optional(),
+  category: z.string().optional(),
+  color: z.string().optional(),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
+  reminderAt: z.string().optional(),
+  order: z.number().int().optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+
+// ============================================================================
 // 4. Asset Records & Constraints
 // ============================================================================
 
@@ -221,6 +307,13 @@ export type AssetMimeType =
   | 'image/svg+xml'
   | 'image/webp'
   | 'image/gif'
+  | 'image/apng'
+  | 'audio/mpeg'
+  | 'audio/ogg'
+  | 'audio/wav'
+  | 'video/mp4'
+  | 'video/webm'
+  | 'application/pdf'
   | 'application/octet-stream'
   | (string & {});
 
@@ -245,7 +338,7 @@ export const assetRecordSchema = z.object({
 // ============================================================================
 
 export type OutboxMutationType = 'create' | 'update' | 'delete';
-export type OutboxEntityType = 'notebook' | 'note' | 'asset';
+export type OutboxEntityType = 'notebook' | 'note' | 'asset' | 'schedule';
 export type OutboxMutationStatus = 'pending' | 'in_flight' | 'acknowledged' | 'failed';
 
 export interface OutboxMutation {
@@ -266,7 +359,7 @@ export const outboxMutationSchema = z.object({
   id: z.string().min(1, 'Outbox mutation id is required'),
   clientTimestamp: z.string().min(1, 'clientTimestamp is required'),
   mutationType: z.enum(['create', 'update', 'delete']),
-  entityType: z.enum(['notebook', 'note', 'asset']),
+  entityType: z.enum(['notebook', 'note', 'asset', 'schedule']),
   entityId: z.string().min(1, 'entityId is required'),
   payload: z.unknown(),
   baseVersion: z.union([z.number(), z.string()]).nullable().optional(),
@@ -337,6 +430,18 @@ export const manifestAssetEntrySchema = z.object({
   mimeType: z.string().optional(),
 });
 
+export interface ManifestScheduleEntry {
+  id: string;
+  path: string;
+  hash: string;
+}
+
+export const manifestScheduleEntrySchema = z.object({
+  id: z.string().min(1),
+  path: z.string().min(1),
+  hash: z.string().regex(/^[0-9a-f]{64}$/),
+});
+
 export interface WorkspaceManifest {
   manifestVersion: 1;
   workspaceId: string;
@@ -344,6 +449,7 @@ export interface WorkspaceManifest {
   notes: ManifestNoteEntry[];
   canvases?: ManifestCanvasEntry[];
   assets: ManifestAssetEntry[];
+  schedules?: ManifestScheduleEntry[];
 }
 
 export const workspaceManifestSchema = z.object({
@@ -353,6 +459,7 @@ export const workspaceManifestSchema = z.object({
   notes: z.array(manifestNoteEntrySchema),
   canvases: z.array(manifestCanvasEntrySchema).optional(),
   assets: z.array(manifestAssetEntrySchema),
+  schedules: z.array(manifestScheduleEntrySchema).optional(),
 });
 
 // ============================================================================
@@ -441,6 +548,7 @@ export interface CommittedWorkspaceState {
   notes: NoteRecord[];
   assets: AssetRecord[];
   outbox: OutboxMutation[];
+  schedules?: ScheduleTaskRecord[];
   conflicts?: unknown[];
   metadata?: unknown[];
 }
@@ -450,6 +558,7 @@ export const committedWorkspaceStateSchema = z.object({
   notes: z.array(noteRecordSchema),
   assets: z.array(assetRecordSchema),
   outbox: z.array(outboxMutationSchema),
+  schedules: z.array(scheduleTaskRecordSchema).optional(),
   conflicts: z.array(z.unknown()).optional(),
   metadata: z.array(z.unknown()).optional(),
 });
