@@ -15,8 +15,8 @@
   --message-text-primary: #f8fafc;
   --message-text-secondary: #cbd5e1;
   --message-text-muted: #94a3b8;
-  --message-radius-card: var(--radius-2xl);
-  --message-radius-control: var(--radius-lg);
+  --message-radius-card: var(--ud-radius-2xl, var(--radius-2xl));
+  --message-radius-control: var(--ud-radius-lg, var(--radius-lg));
   --message-shadow-card: 0 8px 32px rgba(0, 0, 0, 0.5);
   --message-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.7);
 
@@ -36,8 +36,8 @@
   --message-text-primary: #09090b;
   --message-text-secondary: #52525b;
   --message-text-muted: #71717a;
-  --message-radius-card: var(--radius-2xl);
-  --message-radius-control: var(--radius-lg);
+  --message-radius-card: var(--ud-radius-2xl, var(--radius-2xl));
+  --message-radius-control: var(--ud-radius-lg, var(--radius-lg));
   --message-shadow-card: 0 8px 32px rgba(0, 0, 0, 0.06);
   --message-shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.1);
 
@@ -55,7 +55,7 @@
 }
 
 .message :global(*::-webkit-scrollbar-thumb) {
-  border-radius: var(--radius-pill);
+  border-radius: var(--ud-radius-pill, var(--radius-pill));
   background: rgb(var(--color-brand-rgb) / 22%);
 }
 
