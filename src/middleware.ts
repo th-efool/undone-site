@@ -14,7 +14,6 @@ export const config = {
     '/message/:path*', 
     '/studyroom/:path*', 
     '/create-cohort/:path*',
-    '/notes/:path*',
     '/explore/:path*',
     '/cohort'
   ]

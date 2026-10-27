@@ -48,8 +48,8 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
   const setColumns = (updater: any) => {
     _setColumns(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
-      if (notes?.actions?.patchNote) {
-        notes.actions.patchNote(noteId, { kanbanColumns: next });
+      if (typeof window !== 'undefined' && notes?.actions?.patchNote) {
+        queueMicrotask(() => { notes.actions.patchNote(noteId, { kanbanColumns: next }); });
       }
       return next;
     });
@@ -58,8 +58,8 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
   const setCards = (updater: any) => {
     _setCards(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
-      if (notes?.actions?.patchNote) {
-        notes.actions.patchNote(noteId, { kanbanCards: next });
+      if (typeof window !== 'undefined' && notes?.actions?.patchNote) {
+        queueMicrotask(() => { notes.actions.patchNote(noteId, { kanbanCards: next }); });
       }
       return next;
     });

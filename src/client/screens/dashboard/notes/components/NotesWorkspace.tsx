@@ -2,6 +2,7 @@ import dynamic from 'next/dynamic';
 import { ArrowLeft, MoreHorizontal, PanelLeftOpen, Menu as MenuIcon, Share } from 'lucide-react';
 import { CanvasSwitcher, Menu } from './NotesComponents';
 import { NotesSaveStatus } from './NotesSaveStatus/NotesSaveStatus';
+import { WorkspaceSyncControl } from './WorkspaceSyncControl';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
 import styles from '../Notes.module.css';
 import sidebarStyles from './NotesSidebar.module.css';
@@ -138,6 +139,7 @@ export function NotesWorkspace({
           )}
         </div>
         <div className={styles.actions}>
+          <WorkspaceSyncControl userId={notes.userId} />
           <Tooltip content={<>Share <kbd className={styles.kbd}>O</kbd></>} placement="bottom">
             <button className={styles.topbarBtn} onClick={() => setShareOpen(true)}>
               <Share size={15} />
