@@ -38,13 +38,14 @@ const notebookFor = (state: NotesStateEntity, note: NoteDocument) =>
   state.notebooks.find((book) => book.id === note.notebookId);
 
 export function matchesFilter(state: NotesStateEntity, item: NoteDocument | NotebookEntity): boolean {
-  if (state.filter === 'archived') return item.archived;
+  if (state.filter === 'archived') return Boolean(item.archived);
   if (item.archived) return false;
   if (state.filter === 'all') return true;
   if (state.filter === 'favorites')
-    return item.favorite || ('notebookId' in item && Boolean(notebookFor(state, item)?.favorite));
+    return Boolean(item.favorite || ('notebookId' in item && Boolean(notebookFor(state, item)?.favorite)));
   if (state.filter === 'recent') return isRecent(item);
-  if (state.filter === 'shared') return item.shared;
+  if (state.filter === 'shared')
+    return Boolean(item.shared || ('publicLink' in item && Boolean(item.publicLink || item.sharedWith?.length)));
   return true;
 }
 

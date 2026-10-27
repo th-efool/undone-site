@@ -382,27 +382,27 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         <button
           type="button"
           onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-1.5 h-[35px] px-3 rounded-lg border border-emerald-900/60 bg-emerald-950/30 hover:bg-emerald-950/50 text-emerald-300 font-mono text-xs transition-colors cursor-pointer shadow-xs"
+          className="inline-flex items-center gap-1.5 h-[30px] px-2 rounded-md border border-transparent hover:border-zinc-800 bg-transparent hover:bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 font-mono text-[11px] transition-colors cursor-pointer"
           title={`Connected to GitHub: ${githubStatus?.repoFullName || 'repository'}. Click to manage settings.`}
           data-testid="github-connected-btn"
         >
-          <Github className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+          <Github className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
           <span className="truncate max-w-[140px]">{githubStatus?.repoFullName}</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 shrink-0" />
         </button>
       ) : (
-        <div className="inline-flex items-center rounded-lg border border-indigo-500/40 bg-indigo-950/40 shadow-xs divide-x divide-indigo-500/30">
+        <div className="inline-flex items-center rounded-md border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/80 transition-all divide-x divide-zinc-800">
           <button
             type="button"
             onClick={handle1ClickConnect}
             disabled={isOAuthLoading}
-            className="inline-flex items-center gap-1.5 h-[35px] px-3 text-indigo-200 hover:text-white hover:bg-indigo-900/50 text-xs font-medium transition-all cursor-pointer disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 h-[30px] px-2.5 text-zinc-400 hover:text-zinc-200 text-xs font-medium transition-all cursor-pointer disabled:opacity-60"
             title="Connect GitHub: 1-click authorize & select repository"
             data-testid="connect-github-btn"
           >
             {isOAuthLoading ? (
               <>
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400 shrink-0" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-400 shrink-0" />
                 <span>Connecting...</span>
               </>
             ) : (
@@ -415,7 +415,7 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
           <button
             type="button"
             onClick={() => setIsModalOpen(true)}
-            className="h-[35px] px-2 text-indigo-300 hover:text-white hover:bg-indigo-900/50 text-xs transition-colors cursor-pointer"
+            className="h-[30px] px-2 text-zinc-400 hover:text-zinc-200 text-xs transition-colors cursor-pointer"
             title="Manual repository settings or personal access token"
             aria-label="GitHub settings & manual token setup"
             data-testid="github-settings-btn"

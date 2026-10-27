@@ -30,7 +30,11 @@ export function SpaceHeader({ notebook, notes, isSearchingWorkspace, setIsSearch
     });
   };
 
-  const title = notebook?.title || 'Any Possibilities';
+  const activeFilter = notes?.state?.filter;
+  let title = notebook?.title || 'Any Possibilities';
+  if (activeFilter === 'favorites') title = 'Favorites';
+  else if (activeFilter === 'shared') title = 'Shared with me';
+  else if (activeFilter === 'archived') title = 'Trash';
   const initial = title.charAt(0).toUpperCase();
   
   // Create a consistent color based on the title (similar to what NotesSidebar does)

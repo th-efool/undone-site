@@ -42,7 +42,7 @@
 }
 
 /* WillowDark child — fill width, full height */
-.kanbanContainer > div:not(:global(.sqhq-editor)) {
+.kanbanContainer > div:first-of-type:not(:global(.sqhq-editor)) {
   width: 100%;
   height: 100%;
 }

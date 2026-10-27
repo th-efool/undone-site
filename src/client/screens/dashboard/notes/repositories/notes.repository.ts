@@ -252,8 +252,17 @@ export class NotesRepository {
         }
       } else if (note.contentType === 'kanban') {
         const existingNote = await repo.getNote(note.id);
+        const defaultKanbanColumns = [
+          { id: 'todo', label: 'To Do' },
+          { id: 'inprogress', label: 'In Progress' },
+          { id: 'review', label: 'Review' },
+          { id: 'done', label: 'Done' },
+        ];
+        const effectiveCols = (note.kanbanColumns && note.kanbanColumns.length > 0)
+          ? note.kanbanColumns
+          : defaultKanbanColumns;
         const nextKanbanData = {
-          columns: (note.kanbanColumns || []).map((c, i) => ({ id: c.id, title: c.label, order: i })),
+          columns: effectiveCols.map((c, i) => ({ id: c.id, title: c.label, order: i })),
           cards: note.kanbanCards || [],
         };
         if (

@@ -9,3 +9,5 @@
 - [messaging-and-centrifugo.md](messaging-and-centrifugo.md): durable messaging foundation, outbox dispatcher, Centrifugo v6 transport, rate limiting, and observability.
 - [notes-local-first-sync.md](notes-local-first-sync.md): local-first durability, GitHub sync production architecture, E1-E6 contracts, client storage engine, BFF routes, GitHub App reconnect/token lifecycle, and R1/R2/R3 gates.
 - [css-styling.md](css-styling.md): unified CSS layer architecture, canonical --ud-* design token contract, shared UI primitives, portal encapsulation, and verification commands.
+- [Meta-Issue-List.md](Meta-Issue-List.md): master catalog of overlooked issues, bugs, and performance traps across subsystems.
+- [Meta-Issue-Directives.md](Meta-Issue-Directives.md): deterministic implementation directives and specifications for resolving cataloged meta-issues.
