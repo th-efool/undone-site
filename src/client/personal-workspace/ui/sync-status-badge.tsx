@@ -15,6 +15,7 @@ import {
   X,
   Download,
   RefreshCw,
+  ExternalLink,
 } from 'lucide-react';
 import type { SyncSummary } from '@/src/shared/personal-workspace/contracts';
 
@@ -26,6 +27,12 @@ export interface SyncStatusBadgeProps {
   isDirty?: boolean;
   hasUnsavedBuffer?: boolean;
   className?: string;
+  repoFullName?: string | null;
+  installationId?: string | null;
+  manageUrl?: string | null;
+  authType?: 'github_app' | 'pat' | 'oauth';
+  onSyncNow?: () => void | Promise<void>;
+  onDisconnect?: () => void | Promise<void>;
 }
 
 export function formatLastSyncedAt(iso: string | null | undefined): string {
@@ -252,6 +259,12 @@ export function SyncStatusBadge({
   isDirty = false,
   hasUnsavedBuffer = false,
   className,
+  repoFullName,
+  installationId,
+  manageUrl,
+  authType,
+  onSyncNow,
+  onDisconnect,
 }: SyncStatusBadgeProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -259,6 +272,9 @@ export function SyncStatusBadge({
 
   const dirty = isDirty || hasUnsavedBuffer;
   const config = getStatusConfig(summary);
+  const effectiveManageUrl =
+    manageUrl ||
+    (installationId ? `https://github.com/settings/installations/${installationId}` : null);
 
   // Close popover on outside click or escape key
   useEffect(() => {
@@ -457,8 +473,75 @@ export function SyncStatusBadge({
             </div>
           )}
 
+          {/* Connected Repo & Manage Access Info */}
+          {(repoFullName || effectiveManageUrl || authType === 'pat') && (
+            <div
+              className="p-2.5 rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/60 dark:border-zinc-700/60 space-y-1.5"
+              data-testid="popover-repo-info"
+            >
+              {repoFullName && (
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-500 dark:text-zinc-400">Repository:</span>
+                  <a
+                    href={`https://github.com/${repoFullName}`}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="font-mono text-[11px] font-medium text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                    data-testid="popover-repo-link"
+                  >
+                    <span className="truncate max-w-[140px]">{repoFullName}</span>
+                    <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                  </a>
+                </div>
+              )}
+              {effectiveManageUrl ? (
+                <div className="flex items-center justify-between pt-1 border-t border-zinc-200/40 dark:border-zinc-700/40">
+                  <span className="text-zinc-500 dark:text-zinc-400">Permissions:</span>
+                  <a
+                    href={effectiveManageUrl}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                    data-testid="popover-manage-link"
+                  >
+                    <span>Configure on GitHub</span>
+                    <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                  </a>
+                </div>
+              ) : authType === 'pat' ? (
+                <div className="flex items-center justify-between pt-1 border-t border-zinc-200/40 dark:border-zinc-700/40">
+                  <span className="text-zinc-500 dark:text-zinc-400">Auth:</span>
+                  <a
+                    href="https://github.com/settings/tokens"
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+                    data-testid="popover-pat-link"
+                  >
+                    <span>Personal Access Token</span>
+                    <ExternalLink className="w-2.5 h-2.5 shrink-0" />
+                  </a>
+                </div>
+              ) : null}
+            </div>
+          )}
+
           {/* Actions in popover */}
           <div className="flex flex-col gap-1.5 pt-1">
+            {onSyncNow && (
+              <button
+                type="button"
+                data-testid="popover-sync-now-btn"
+                onClick={async () => {
+                  setIsOpen(false);
+                  await onSyncNow();
+                }}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-xs bg-indigo-600 hover:bg-indigo-700 text-white transition-colors cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Sync with GitHub now
+              </button>
+            )}
             {onExportRecovery && (
               <button
                 type="button"

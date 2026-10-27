@@ -19,6 +19,7 @@ interface GitHubStatusInfo {
   isPrivate?: boolean;
   installationId?: string | null;
   manageUrl?: string | null;
+  authType?: 'github_app' | 'pat' | 'oauth';
 }
 
 const DEFAULT_SYNC_SUMMARY: SyncSummary = {
@@ -269,6 +270,16 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
       window.history.replaceState({}, '', newUrl);
     }
 
+    // Auto-resume & Focus re-verification when returning from external GitHub tab
+    const handleWindowFocus = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        void fetchStatus();
+      }
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+    window.addEventListener('visibilitychange', handleWindowFocus);
+
     // Subscribe to local mutations
     const unsubscribe = facade.subscribe(async () => {
       if (!isMounted) return;
@@ -282,6 +293,8 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
 
     return () => {
       isMounted = false;
+      window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('visibilitychange', handleWindowFocus);
       unsubscribe();
       if (coordinatorRef.current) {
         stopCoordinator();
@@ -436,6 +449,11 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
       {/* 2. Interactive Status Badge (Shows Synced, Syncing, Offline, Conflicts) */}
       <SyncStatusBadge
         summary={syncSummary}
+        repoFullName={githubStatus?.repoFullName}
+        installationId={githubStatus?.installationId}
+        manageUrl={githubStatus?.manageUrl}
+        authType={githubStatus?.authType}
+        onSyncNow={handleSyncNow}
         onReconnect={() => setIsModalOpen(true)}
         onExportRecovery={handleExportRecovery}
         className="shrink-0"
@@ -469,6 +487,9 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         isConnected={isConnected}
         initialRepo={githubStatus?.repoFullName || ''}
         manageUrl={githubStatus?.manageUrl}
+        installationId={githubStatus?.installationId}
+        authType={githubStatus?.authType}
+        onCheckAccess={fetchStatus}
         isSyncing={syncSummary.status === 'syncing'}
         lastSyncedAt={syncSummary.lastSyncedAt}
         onSyncNow={handleSyncNow}
