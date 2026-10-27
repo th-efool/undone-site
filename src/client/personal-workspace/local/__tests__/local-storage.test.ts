@@ -95,6 +95,25 @@ describe('Production Personal Workspace Local Storage Engine & Repository', () =
     });
   });
 
+  it('serializes concurrent transactions so neither staged snapshot overwrites the other', async () => {
+    const db = new PersonalWorkspaceDatabase(TEST_USER_1, { useMemory: true });
+    await db.clear();
+
+    await Promise.all([
+      db.runTransaction(['metadata'], 'readwrite', async (ctx) => {
+        await Promise.resolve();
+        ctx.put('metadata', 'first', { value: 1 });
+      }),
+      db.runTransaction(['metadata'], 'readwrite', async (ctx) => {
+        await Promise.resolve();
+        ctx.put('metadata', 'second', { value: 2 });
+      }),
+    ]);
+
+    const values = await db.runTransaction(['metadata'], 'readonly', (ctx) => ctx.getAll('metadata'));
+    expect(values).toEqual([{ value: 1 }, { value: 2 }]);
+  });
+
   describe('2. Atomic Multi-Store Transactions & Outbox Commit', () => {
     it('atomically commits notebook and queues outbox mutation with monotonic generation', async () => {
       let eventPayload: SaveSuccessEvent | null = null;

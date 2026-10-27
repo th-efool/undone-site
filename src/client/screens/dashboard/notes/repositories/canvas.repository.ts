@@ -144,7 +144,9 @@ export class CanvasRepository {
    * Also maintains a safe, synchronous localStorage emergency backup without image bloat.
    */
   async save(doc: CanvasDocument): Promise<SaveResult> {
-    if (typeof window === 'undefined') return { ok: true, trimmed: false };
+    if (typeof window === 'undefined') {
+      return { ok: false, error: 'Canvas cannot be persisted during server rendering' };
+    }
 
     const userId = this.getEffectiveUserId();
 
@@ -171,8 +173,12 @@ export class CanvasRepository {
 
           return { ok: true, trimmed: false };
         }
+        return { ok: false, error: receipt.error || 'Canvas could not be committed to local storage' };
       } catch (idbErr) {
-        console.warn('[canvas] IndexedDB save error, using localStorage fallback:', idbErr);
+        return {
+          ok: false,
+          error: idbErr instanceof Error ? idbErr.message : 'IndexedDB save failed',
+        };
       }
     }
 
@@ -191,7 +197,7 @@ export class CanvasRepository {
       }
     }
 
-    return { ok: true, trimmed: false };
+    return { ok: false, error: 'Canvas exceeds the local storage limit and was not saved' };
   }
 
   /**

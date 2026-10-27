@@ -63,9 +63,9 @@ export function useNotes() {
     const t = setTimeout(async () => {
       try {
         const res = await notesRepository.save(state, userId);
-        setSyncStatus(res.ok ? 'saved' : 'offline');
+        setSyncStatus(!res.localSaved ? 'error' : res.remoteSaved ? 'saved' : 'offline');
       } catch {
-        setSyncStatus('offline');
+        setSyncStatus('error');
       }
     }, 1000);
     return () => clearTimeout(t);

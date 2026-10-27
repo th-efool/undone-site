@@ -205,6 +205,7 @@ export interface TransactionContext {
   getAll<T>(storeName: StoreName): T[];
   put<T>(storeName: StoreName, key: string, value: T): void;
   delete(storeName: StoreName, key: string): void;
+  clear(storeName: StoreName): void;
   abort(reason?: string): void;
 }
 
@@ -228,6 +229,7 @@ export class PersonalWorkspaceDatabase {
   private useMemory: boolean;
   private idb: IDBDatabase | null = null;
   private isInitialized = false;
+  private transactionQueue: Promise<void> = Promise.resolve();
 
   constructor(
     userIdOrDbName: string,
@@ -388,6 +390,24 @@ export class PersonalWorkspaceDatabase {
     mode: 'readonly' | 'readwrite',
     fn: (ctx: TransactionContext) => Promise<R> | R,
   ): Promise<R> {
+    const previous = this.transactionQueue;
+    let release!: () => void;
+    this.transactionQueue = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await previous;
+    try {
+      return await this.runTransactionExclusive(storeNames, mode, fn);
+    } finally {
+      release();
+    }
+  }
+
+  private async runTransactionExclusive<R>(
+    storeNames: StoreName[],
+    mode: 'readonly' | 'readwrite',
+    fn: (ctx: TransactionContext) => Promise<R> | R,
+  ): Promise<R> {
     if (!this.isInitialized && !this.useMemory && typeof indexedDB !== 'undefined') {
       await this.initialize();
     }
@@ -455,6 +475,19 @@ export class PersonalWorkspaceDatabase {
         stagedPuts.get(sName)!.delete(key);
         stagedDeletions.get(sName)!.add(key);
       },
+      clear: (sName: StoreName): void => {
+        if (mode !== 'readwrite') {
+          throw new Error('Cannot clear in readonly transaction');
+        }
+        const store = staging.get(sName);
+        if (!store) {
+          throw new Error(`Store ${sName} not in transaction scope`);
+        }
+        const deletions = stagedDeletions.get(sName)!;
+        for (const key of store.keys()) deletions.add(key);
+        store.clear();
+        stagedPuts.get(sName)!.clear();
+      },
       abort: (reason = 'Manual abort') => {
         aborted = true;
         abortReason = reason;
@@ -516,7 +549,7 @@ export class PersonalWorkspaceDatabase {
                 }
               }
             }
-          } catch {
+          } catch (err) {
             reject(err);
           }
         });
@@ -532,24 +565,11 @@ export class PersonalWorkspaceDatabase {
   }
 
   async clear(): Promise<void> {
-    for (const store of this.stores.values()) {
-      store.clear();
-    }
-
-    if (this.idb && !this.useMemory) {
-      await new Promise<void>((resolve, reject) => {
-        try {
-          const tx = this.idb!.transaction(ALL_STORE_NAMES, 'readwrite');
-          tx.oncomplete = () => resolve();
-          tx.onerror = () => reject(tx.error || new Error('Failed to clear IndexedDB'));
-          for (const name of ALL_STORE_NAMES) {
-            tx.objectStore(name).clear();
-          }
-        } catch {
-          reject(err);
-        }
-      });
-    }
+    await this.runTransaction(ALL_STORE_NAMES, 'readwrite', (ctx) => {
+      for (const name of ALL_STORE_NAMES) {
+        ctx.clear(name);
+      }
+    });
   }
 
   async close(): Promise<void> {

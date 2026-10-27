@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { notesRepository } from '../notes.repository';
+import { CanvasRepository } from '../canvas.repository';
 import { LocalWorkspace } from '@/src/client/personal-workspace/local/facade';
 import type { NotesStateEntity } from '../../models/notes.models';
 
@@ -11,6 +12,8 @@ describe('NotesRepository -> LocalWorkspace Bridge', () => {
     LocalWorkspace.resetAllInstances();
     localStorage.clear();
   });
+
+  afterEach(() => vi.unstubAllGlobals());
 
   it('mirrors state into LocalWorkspace and creates outbox mutations', async () => {
     const workspace = LocalWorkspace.getLocalWorkspace(TEST_USER);
@@ -82,6 +85,56 @@ describe('NotesRepository -> LocalWorkspace Bridge', () => {
     const mutationEntities = outbox.map((m) => m.entityId);
     expect(mutationEntities).toContain('nb-monkey');
     expect(mutationEntities).toContain('note-pikachu');
+
+    const staleRemote = { ...state, notebooks: [], notes: [] };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => staleRemote,
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const reloaded = await notesRepository.load(TEST_USER);
+    expect(reloaded.notes.map((note) => note.id)).toContain('note-pikachu');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('reports local quota failure before attempting the legacy API write', async () => {
+    const workspace = LocalWorkspace.getLocalWorkspace(TEST_USER);
+    await workspace.open({ userId: TEST_USER });
+    workspace.getRepository().setSimulateQuotaExceeded(true);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await notesRepository.save({
+      notebooks: [{
+        id: 'nb-quota', title: 'Notebook', description: '', color: '#000000', favorite: false,
+        shared: false, archived: false, collapsed: false, createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(), order: 0,
+      }],
+      notes: [], selectedNotebookId: null, selectedNoteId: null, notebookSort: 'manual',
+      noteSort: 'manual', filter: 'all',
+    }, TEST_USER);
+
+    expect(result.localSaved).toBe(false);
+    expect(result.remoteSaved).toBe(false);
+    expect(result.error).toContain('quota');
+    expect(fetchMock).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it('does not report a canvas save when the atomic local transaction fails', async () => {
+    const workspace = LocalWorkspace.getLocalWorkspace(TEST_USER);
+    await workspace.open({ userId: TEST_USER });
+    workspace.getRepository().setSimulateFailure(true, new Error('disk write failed'));
+    const canvas = new CanvasRepository();
+    canvas.setActiveUserId(TEST_USER);
+
+    const result = await canvas.save({
+      noteId: 'canvas-failure', scene: JSON.stringify({ elements: [], appState: {}, files: {} }),
+      schemaVersion: 1, savedAt: new Date().toISOString(),
+    });
+
+    expect(result).toEqual({ ok: false, error: 'disk write failed' });
   });
 
   it('removes deleted notes from LocalWorkspace and queues outbox deletion', async () => {

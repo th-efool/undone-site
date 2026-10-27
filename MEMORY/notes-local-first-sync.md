@@ -52,3 +52,10 @@
 - `personal_workspace_github_connections` stores non-secret installation/repository/account IDs in PostgreSQL. Do not persist installation access tokens there. `vault.ts` mints short-lived tokens on demand; the in-process token cache avoids minting on every API call.
 - GitHub App registration must list `/api/personal-workspace/github/app/oauth/callback` as an OAuth callback URL and `/api/personal-workspace/github/app/callback` as its Setup URL with Redirect on update enabled. Keep Request user authorization on installation disabled because the app uses its own preceding OAuth step.
 - Apply `prisma/personal-workspace-github-connection.sql` to deployed PostgreSQL before enabling the new build; `prisma generate` updates the client locally.
+
+## Notes sync repair implementation (Phase 2)
+- `PersonalWorkspaceDatabase.runTransaction` serializes transactions per engine instance; `clear()` uses the same atomic transaction path. Do not call `runTransaction` from inside its callback (would wait on the current queue slot).
+- `NotesRepository.save` now awaits every local workspace receipt before calling the legacy notes API. It reports local persistence failure separately from a remote API failure; pending outbox data wins over a stale API snapshot during reload.
+- Canvas IndexedDB commits scene, extracted assets, and outbox together. Canvas Mongo/API writes are compatibility mirrors issued only after that local commit; a failed local commit leaves the canvas dirty/error and cannot be converted into localStorage success.
+- Canvas debounce cleanup flushes committed local persistence on note switch/unmount, and stale saves do not clear a newer dirty generation. Browser unload remains guarded by the unsaved-changes prompt and best-effort recovery buffer.
+- Phase 2 transaction serialization is per `PersonalWorkspaceDatabase` instance. Cross-tab same-record conflict handling and continuous pull/reconciliation remain Phase 3+ work.

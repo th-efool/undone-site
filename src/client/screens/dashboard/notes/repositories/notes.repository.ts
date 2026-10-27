@@ -15,6 +15,14 @@ const EMPTY_NOTES_STATE: NotesStateEntity = {
 const NOTES_CACHE_PREFIX = 'sidequest_notes_state_v1:';
 const memoryNotesStateByUser = new Map<string, NotesStateEntity>();
 
+export interface NotesSaveResult {
+  ok: boolean;
+  localSaved: boolean;
+  remoteSaved: boolean;
+  data: NotesStateEntity;
+  error?: string;
+}
+
 export class NotesRepository {
   private getCacheKey(userId?: string | null): string {
     return `${NOTES_CACHE_PREFIX}${userId || 'anon'}`;
@@ -42,10 +50,21 @@ export class NotesRepository {
   async load(userId?: string | null): Promise<NotesStateEntity> {
     if (typeof window === 'undefined') return structuredClone(EMPTY_NOTES_STATE);
     const memoryKey = userId || 'anon';
+    let localState: NotesStateEntity | null = null;
+    try {
+      const targetUserId = userId || 'local-user';
+      const snapshot = await LocalWorkspace.getLocalWorkspace(targetUserId).open({ userId: targetUserId });
+      localState = snapshot.notesState;
+      if (snapshot.pendingOutbox.length > 0) {
+        memoryNotesStateByUser.set(memoryKey, localState);
+        return localState;
+      }
+    } catch {}
+
     try {
       const response = await fetch('/api/workspace/notes');
       if (response.status === 401) {
-        return this.getInitialState(userId);
+        return localState || this.getInitialState(userId);
       }
       if (!response.ok) throw new Error('Failed to fetch notes');
       const loaded = (await response.json()) as NotesStateEntity;
@@ -57,63 +76,81 @@ export class NotesRepository {
       }
       return loaded;
     } catch {
-      return this.getInitialState(userId);
+      return localState || this.getInitialState(userId);
     }
   }
 
   async save(
     state: NotesStateEntity,
     userId?: string | null,
-  ): Promise<{ ok: boolean; data: NotesStateEntity }> {
+  ): Promise<NotesSaveResult> {
     const memoryKey = userId || 'anon';
-    memoryNotesStateByUser.set(memoryKey, state);
-    if (typeof window !== 'undefined') {
-      this.syncWithLocalWorkspace(state, userId).catch((err) => {
-        console.warn('[notesRepository] LocalWorkspace sync error:', err);
-      });
-      if (process.env.NODE_ENV !== 'test') {
-        try {
-          localStorage.setItem(this.getCacheKey(userId), JSON.stringify(state));
-        } catch {}
-      }
-      try {
-        const response = await fetch('/api/workspace/notes', {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(state),
-        });
-
-        if (response.status === 401) {
-          return { ok: true, data: state };
-        }
-
-        if (!response.ok) {
-          return { ok: false, data: state };
-        }
-
-        const saved = (await response.json()) as NotesStateEntity;
-        memoryNotesStateByUser.set(memoryKey, saved);
-        return { ok: true, data: saved };
-      } catch {
-        return { ok: false, data: state };
-      }
+    if (typeof window === 'undefined') {
+      return {
+        ok: false,
+        localSaved: false,
+        remoteSaved: false,
+        data: state,
+        error: 'Notes cannot be persisted during server rendering',
+      };
     }
-    return { ok: true, data: state };
+
+    try {
+      await this.syncWithLocalWorkspace(state, userId);
+    } catch (err) {
+      return {
+        ok: false,
+        localSaved: false,
+        remoteSaved: false,
+        data: state,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+
+    memoryNotesStateByUser.set(memoryKey, state);
+    if (process.env.NODE_ENV !== 'test') {
+      try {
+        localStorage.setItem(this.getCacheKey(userId), JSON.stringify(state));
+      } catch {}
+    }
+
+    try {
+      const response = await fetch('/api/workspace/notes', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state),
+      });
+      if (!response.ok) {
+        return { ok: false, localSaved: true, remoteSaved: false, data: state };
+      }
+
+      const saved = (await response.json()) as NotesStateEntity;
+      memoryNotesStateByUser.set(memoryKey, saved);
+      return { ok: true, localSaved: true, remoteSaved: true, data: saved };
+    } catch (err) {
+      return {
+        ok: false,
+        localSaved: true,
+        remoteSaved: false,
+        data: state,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
   }
 
   async syncWithLocalWorkspace(state: NotesStateEntity, userId?: string | null): Promise<void> {
     if (typeof window === 'undefined') return;
     const targetUserId = userId || 'local-user';
-    try {
-      const workspace = LocalWorkspace.getLocalWorkspace(targetUserId);
-      const repo = workspace.getRepository();
-      await repo.initialize();
+    const workspace = LocalWorkspace.getLocalWorkspace(targetUserId);
+    const repo = workspace.getRepository();
+    await repo.initialize();
+    const requireSaved = (receipt: { ok: boolean; error?: string }) => {
+      if (!receipt.ok) throw new Error(receipt.error || 'Local workspace transaction failed');
+    };
 
       // 1. Sync notebooks
       for (const nb of state.notebooks) {
-        await workspace.saveNotebook({
+        requireSaved(await workspace.saveNotebook({
           id: nb.id,
           title: nb.title,
           description: nb.description,
@@ -126,7 +163,7 @@ export class NotesRepository {
           order: nb.order ?? 0,
           createdAt: nb.createdAt,
           updatedAt: nb.updatedAt,
-        });
+        }));
       }
 
       // 2. Sync notes
@@ -134,7 +171,7 @@ export class NotesRepository {
         if (note.contentType === 'canvas') {
           const existingNote = await repo.getNote(note.id);
           if (existingNote && existingNote.contentType === 'canvas') {
-            await workspace.apply({
+            requireSaved(await workspace.apply({
               type: 'save_canvas_note',
               note: {
                 ...existingNote,
@@ -147,22 +184,26 @@ export class NotesRepository {
                 shared: note.shared ?? false,
                 archived: note.archived ?? false,
               },
-            });
+            }));
           } else {
             const legacyDoc = await canvasRepository.load(note.id);
-            let sceneObj: any = { elements: [], appState: {}, files: {} };
+            let sceneObj: { elements: unknown[]; appState: unknown; files: Record<string, unknown> } = {
+              elements: [],
+              appState: {},
+              files: {},
+            };
             if (legacyDoc?.scene) {
               try {
                 sceneObj = JSON.parse(legacyDoc.scene);
               } catch {}
             }
-            await workspace.saveCanvasScene(note.id, sceneObj, {
+            requireSaved(await workspace.saveCanvasScene(note.id, sceneObj, {
               title: note.title,
               notebookId: note.notebookId,
-            });
+            }));
           }
         } else if (note.contentType === 'kanban') {
-          await workspace.apply({
+          requireSaved(await workspace.apply({
             type: 'save_kanban_note',
             note: {
               id: note.id,
@@ -183,7 +224,7 @@ export class NotesRepository {
                 cards: note.kanbanCards || [],
               },
             },
-          });
+          }));
         }
       }
 
@@ -192,7 +233,7 @@ export class NotesRepository {
       const stateNotebookIds = new Set(state.notebooks.map((nb) => nb.id));
       for (const existing of existingNotebooks) {
         if (!stateNotebookIds.has(existing.id)) {
-          await workspace.deleteEntity('notebook', existing.id);
+          requireSaved(await workspace.deleteEntity('notebook', existing.id));
         }
       }
 
@@ -201,12 +242,9 @@ export class NotesRepository {
       const stateNoteIds = new Set(state.notes.map((n) => n.id));
       for (const existing of existingNotes) {
         if (!stateNoteIds.has(existing.id)) {
-          await workspace.deleteEntity('note', existing.id);
+          requireSaved(await workspace.deleteEntity('note', existing.id));
         }
       }
-    } catch (err) {
-      console.warn('[notesRepository] syncWithLocalWorkspace error:', err);
-    }
   }
 }
 

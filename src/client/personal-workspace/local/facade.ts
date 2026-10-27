@@ -292,9 +292,7 @@ export class LocalWorkspace {
 
     // Hook repository save events to notify subscribers
     if (!this.unsubscribeSaveSuccess) {
-      this.unsubscribeSaveSuccess = this.repo.onSaveSuccess(() => {
-        this.refreshStateFromRepo().then(() => this.notifySubscribers());
-      });
+      this.unsubscribeSaveSuccess = this.repo.onSaveSuccess(() => this.refreshAndNotify());
     }
     if (!this.unsubscribeSaveError) {
       this.unsubscribeSaveError = this.repo.onSaveError((errEvent) => {
@@ -308,7 +306,7 @@ export class LocalWorkspace {
     if (channel) {
       channel.onmessage = (event) => {
         if (event.data?.type === 'WORKSPACE_MUTATED') {
-          this.refreshStateFromRepo().then(() => this.notifySubscribers());
+          this.refreshAndNotify();
         }
       };
     }
@@ -355,6 +353,15 @@ export class LocalWorkspace {
         console.error('[LocalWorkspace] subscriber listener threw:', err);
       }
     }
+  }
+
+  private refreshAndNotify(): void {
+    void this.refreshStateFromRepo()
+      .then(() => this.notifySubscribers())
+      .catch((err: unknown) => {
+        this.lastError = err instanceof Error ? err : new Error(String(err));
+        this.notifySubscribers();
+      });
   }
 
   /**
