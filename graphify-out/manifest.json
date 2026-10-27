@@ -15172,5 +15172,107 @@
     "seen": 1792585530.0522897,
     "ast_hash": "d94d68247dd24b12a3cca6675f9d9bd7",
     "semantic_hash": ""
+  },
+  "plans/local-first-github-sync-validation/schemas/asset.json": {
+    "mtime": 1793077631.8150642,
+    "seen": 1793077840.816832,
+    "ast_hash": "cb885a0fa1a7291d4e3705c43bb4a91c",
+    "semantic_hash": ""
+  },
+  "plans/local-first-github-sync-validation/schemas/bundle.json": {
+    "mtime": 1793077647.9780602,
+    "seen": 1793077840.8168366,
+    "ast_hash": "644fdc82c61065d607111f6487aea79b",
+    "semantic_hash": ""
+  },
+  "plans/local-first-github-sync-validation/schemas/manifest.json": {
+    "mtime": 1793077641.7274816,
+    "seen": 1793077840.816839,
+    "ast_hash": "f5e897974c4b80c6e2beb558dffdccce",
+    "semantic_hash": ""
+  },
+  "plans/local-first-github-sync-validation/schemas/note.json": {
+    "mtime": 1793077626.3563647,
+    "seen": 1793077840.8168406,
+    "ast_hash": "b5e20637e473983744b6e90e06d3a2b0",
+    "semantic_hash": ""
+  },
+  "plans/local-first-github-sync-validation/schemas/notebook.json": {
+    "mtime": 1793077615.3152628,
+    "seen": 1793077840.8168426,
+    "ast_hash": "a1170f62be7c70a2fd5c79ecb60b3f34",
+    "semantic_hash": ""
+  },
+  "src/client/screens/dashboard/notes/validation/__tests__/fixtures.test.ts": {
+    "mtime": 1793076411.4286125,
+    "seen": 1793077841.0907922,
+    "ast_hash": "63a5366e07eb1b355f1d552954703631",
+    "semantic_hash": ""
+  },
+  "src/client/screens/dashboard/notes/validation/__tests__/indexeddb-prototype.test.ts": {
+    "mtime": 1793076735.7411559,
+    "seen": 1793077841.0907958,
+    "ast_hash": "4914b24981e31b5a870c340e3b92a78a",
+    "semantic_hash": ""
+  },
+  "src/client/screens/dashboard/notes/validation/__tests__/vertical-slice.test.ts": {
+    "mtime": 1793077106.9555888,
+    "seen": 1793077841.0907986,
+    "ast_hash": "0be10dc2ca5903f8b738ac9c30bc5510",
+    "semantic_hash": ""
+  },
+  "src/client/screens/dashboard/notes/validation/fixtures.ts": {
+    "mtime": 1793077498.611881,
+    "seen": 1793077841.090801,
+    "ast_hash": "de1c7d01bcdef02aa910189d2efb2ac6",
+    "semantic_hash": ""
+  },
+  "src/client/screens/dashboard/notes/validation/indexeddb-prototype.ts": {
+    "mtime": 1793077524.565519,
+    "seen": 1793077841.090803,
+    "ast_hash": "3d32e2aeee5d05d2130cede3ebacb8b9",
+    "semantic_hash": ""
+  },
+  "src/client/screens/dashboard/notes/validation/vertical-slice-harness.ts": {
+    "mtime": 1793077577.318934,
+    "seen": 1793077841.0908048,
+    "ast_hash": "f1cf617288e8f690749f9cb272faa144",
+    "semantic_hash": ""
+  },
+  "plans/local-first-github-sync-validation/auth-host-assets.md": {
+    "mtime": 1793076980.3507202,
+    "seen": 1793077841.4440606,
+    "ast_hash": "330f6b5405198dcf683cee83994587ba",
+    "semantic_hash": ""
+  },
+  "plans/local-first-github-sync-validation/contracts.md": {
+    "mtime": 1793077676.0436044,
+    "seen": 1793077841.4440649,
+    "ast_hash": "d8d00819b423f3f3e6edf64c2d7ad8ef",
+    "semantic_hash": ""
+  },
+  "plans/local-first-github-sync-validation/handoff.md": {
+    "mtime": 1793077712.489872,
+    "seen": 1793077841.4440696,
+    "ast_hash": "a314071ba1e0df3f087a1dc72b1a106e",
+    "semantic_hash": ""
+  },
+  "plans/local-first-github-sync-validation/inventory.md": {
+    "mtime": 1793076912.4780428,
+    "seen": 1793077841.4440753,
+    "ast_hash": "86e624aaacaefe480ba935b6f8d24dc6",
+    "semantic_hash": ""
+  },
+  "plans/local-first-github-sync-validation/release-gates.md": {
+    "mtime": 1793077695.5243306,
+    "seen": 1793077841.4440794,
+    "ast_hash": "f09cb516d452f0745471f85777b02ffb",
+    "semantic_hash": ""
+  },
+  "plans/local-first-github-sync-validation/vertical-slice.md": {
+    "mtime": 1793077446.547838,
+    "seen": 1793077841.4440842,
+    "ast_hash": "664fdecea9504c854d4bbbc740ff9fe4",
+    "semantic_hash": ""
   }
 }
