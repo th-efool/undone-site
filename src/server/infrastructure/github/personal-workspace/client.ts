@@ -355,7 +355,7 @@ export class GitHubGitDataClient {
         contentBase64: cleanBase64,
       };
     } catch (err) {
-      if (err instanceof GitHubApiError && err.status === 404) {
+      if (err instanceof GitHubApiError && (err.status === 404 || err.status === 409)) {
         return null;
       }
       throw err;
@@ -410,7 +410,7 @@ export class GitHubGitDataClient {
         ...(typeof entry.size === 'number' ? { size: entry.size } : {}),
       }));
     } catch (err) {
-      if (err instanceof GitHubApiError && err.status === 404) {
+      if (err instanceof GitHubApiError && (err.status === 404 || err.status === 409)) {
         return null;
       }
       throw err;
@@ -461,7 +461,7 @@ export class GitHubGitDataClient {
         committedAt: data.committer?.date || data.author?.date || new Date().toISOString(),
       };
     } catch (err) {
-      if (err instanceof GitHubApiError && err.status === 404) {
+      if (err instanceof GitHubApiError && (err.status === 404 || err.status === 409)) {
         return null;
       }
       throw err;
@@ -491,7 +491,7 @@ export class GitHubGitDataClient {
 
       return data.object?.sha || data.sha || null;
     } catch (err) {
-      if (err instanceof GitHubApiError && err.status === 404) {
+      if (err instanceof GitHubApiError && (err.status === 404 || err.status === 409)) {
         return null;
       }
       throw err;

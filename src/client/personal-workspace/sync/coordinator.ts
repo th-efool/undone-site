@@ -152,6 +152,7 @@ export class SyncCoordinator {
   public lastSyncedAt: string | null = null;
   public lastRemoteCommitSha: string | null = null;
   private lastPulledSnapshot: Required<RemotePullState> | null = null;
+  private lastPulledHasManifest = true;
   public isSyncing = false;
   public conflictCount = 0;
   public errorMessage?: string;
@@ -321,6 +322,7 @@ export class SyncCoordinator {
   }
 
   private async applyVerifiedRemoteSnapshot(verified: ReturnType<SyncCoordinator['verifyRemotePullData']>): Promise<string | null> {
+    this.lastPulledHasManifest = verified.hasManifest;
     const local = await this.getLocalSnapshot();
     const hasCleanRecords = (
       entityType: OutboxMutation['entityType'],
@@ -331,12 +333,18 @@ export class SyncCoordinator {
         .map((mutation) => mutation.entityId));
       return records.some((record) => !dirtyIds.has(record.id));
     };
-    if (
-      !verified.hasManifest &&
-      (hasCleanRecords('notebook', local.notebooks) || hasCleanRecords('note', local.notes) ||
-        hasCleanRecords('asset', local.assets) || hasCleanRecords('schedule', local.schedules))
-    ) {
-      throw new Error('Connected repository has no Undone workspace manifest; local notes were preserved');
+    const localHasCleanRecords =
+      hasCleanRecords('notebook', local.notebooks) ||
+      hasCleanRecords('note', local.notes) ||
+      hasCleanRecords('asset', local.assets) ||
+      hasCleanRecords('schedule', local.schedules);
+
+    if (!verified.hasManifest && localHasCleanRecords) {
+      // Uninitialized remote repository (e.g. newly created repo with only README.md or 0 commits):
+      // Preserve clean local records so they can be published in the initial manifest commit.
+      this.lastPulledSnapshot = verified.snapshot;
+      this.lastRemoteCommitSha = verified.commitSha;
+      return this.lastRemoteCommitSha;
     }
 
     await this.repo.applyRemoteSnapshot(verified.snapshot, verified.commitSha);
@@ -522,7 +530,14 @@ export class SyncCoordinator {
         return { ok: true, status: 'synced', newCommitSha: this.lastRemoteCommitSha! };
       }
 
-      if (mutations.length === 0) {
+      const localHasRecords =
+        snapshot.notebooks.length > 0 ||
+        snapshot.notes.length > 0 ||
+        snapshot.assets.length > 0 ||
+        snapshot.schedules.length > 0;
+      const needsInitialPublish = !this.lastPulledHasManifest && localHasRecords;
+
+      if (mutations.length === 0 && !needsInitialPublish) {
         this.lastSyncedAt = new Date().toISOString();
         this.status = 'synced';
         this.errorMessage = undefined;
@@ -577,6 +592,7 @@ export class SyncCoordinator {
 
         await this.repo.acknowledgePublishedBatch(batchEntryIds, publishData.newCommitSha);
 
+        this.lastPulledHasManifest = true;
         this.lastRemoteCommitSha = publishData.newCommitSha;
         this.lastSyncedAt = new Date().toISOString();
         this.status = 'synced';

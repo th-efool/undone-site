@@ -548,4 +548,62 @@ describe('SyncCoordinator', () => {
     coordinator.stopAutoSync();
     coordinator.dispose();
   });
+
+  it('publishes existing local records to a brand-new repository without an Undone manifest even when outbox is empty', async () => {
+    // mockNotebooks has 1 notebook, mockNotes has 1 note, mockOutbox is empty (clean local records)
+    expect(mockOutbox).toHaveLength(0);
+
+    const mockFetch = vi.fn().mockImplementation(async (url: string) => {
+      if (url.includes('/status')) {
+        return { ok: true, status: 200, json: async () => ({ connected: true }) };
+      }
+      if (url.includes('/pull')) {
+        // Brand-new repository created with auto_init: true (has README commit, but manifest: null and 0 records)
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            ok: true,
+            commitSha: 'sha-readme-init-111',
+            manifest: null,
+            notebooks: [],
+            notes: [],
+            assets: [],
+            schedules: [],
+          }),
+        };
+      }
+      if (url.includes('/publish')) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            ok: true,
+            newCommitSha: 'sha-initial-manifest-222',
+          }),
+        };
+      }
+      return { ok: false, status: 404, json: async () => ({}) };
+    });
+
+    const coordinator = new SyncCoordinator(mockRepo, { fetchFn: mockFetch });
+    const result = await coordinator.syncNow();
+
+    expect(result.ok).toBe(true);
+    expect(result.status).toBe('synced');
+    expect(result.newCommitSha).toBe('sha-initial-manifest-222');
+    expect(coordinator.lastRemoteCommitSha).toBe('sha-initial-manifest-222');
+
+    // Clean local records must NOT be wiped by an uninitialized remote repo
+    expect(mockNotebooks).toHaveLength(1);
+    expect(mockNotes).toHaveLength(1);
+
+    // Must have called /publish with the local notebooks and notes
+    const publishCall = mockFetch.mock.calls.find((call) => String(call[0]).includes('/publish'));
+    expect(publishCall).toBeDefined();
+    const sentBody = JSON.parse(publishCall![1].body);
+    expect(sentBody.expectedRemoteCommitSha).toBe('sha-readme-init-111');
+    expect(sentBody.state.notebooks).toHaveLength(1);
+    expect(sentBody.state.notes).toHaveLength(1);
+  });
 });

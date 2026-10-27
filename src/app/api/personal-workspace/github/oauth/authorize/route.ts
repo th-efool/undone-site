@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'node:crypto';
 import { encryptToken } from '@/src/server/infrastructure/github/personal-workspace';
 import { resolveAuthUser } from '../../vault';
+import { getGitHubAppCredentials } from '../../app/config';
+import { GET as installGet } from '../../app/install/route';
 import {
   getOAuthClientCredentials,
   getOAuthRedirectUri,
@@ -17,6 +19,9 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   const credentials = getOAuthClientCredentials();
   if (!credentials) {
+    if (process.env.GITHUB_APP_CLIENT_ID && getGitHubAppCredentials()) {
+      return installGet(req);
+    }
     return NextResponse.json(
       {
         error:
