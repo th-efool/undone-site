@@ -1,7 +1,7 @@
 /* Forms */
 
 /* ── Text-Like Form Controls (Scoped to prevent bleeding into checkboxes/radios) ── */
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([data-bare-input]):not([data-textbar-input]),
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([data-bare-input]):not([data-textbar-input]):not([data-composite-input]),
 select,
 textarea {
   width: 100%;
@@ -20,7 +20,7 @@ textarea {
     background-color var(--duration-fast) var(--ease-standard);
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([data-bare-input]):not([data-textbar-input]),
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([data-bare-input]):not([data-textbar-input]):not([data-composite-input]),
 select {
   height: 2.75rem;
   padding-inline: var(--space-4);
@@ -32,30 +32,32 @@ textarea {
   resize: vertical;
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([data-bare-input]):not([data-textbar-input])::placeholder,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([data-bare-input]):not([data-textbar-input]):not([data-composite-input])::placeholder,
 textarea::placeholder {
   color: var(--color-text-muted);
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([data-bare-input]):not([data-textbar-input]):hover,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([data-bare-input]):not([data-textbar-input]):not([data-composite-input]):hover,
 textarea:hover,
 select:hover {
   border-color: var(--color-border-hover);
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([data-bare-input]):not([data-textbar-input]):focus,
-textarea:not([data-bare-input]):not([data-textbar-input]):focus,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([data-bare-input]):not([data-textbar-input]):not([data-composite-input]):focus,
+textarea:not([data-bare-input]):not([data-textbar-input]):not([data-composite-input]):focus,
 select:focus {
   border-color: var(--color-border-focus);
   box-shadow: 0 0 0 4px rgb(var(--color-brand-rgb) / 0.12);
   outline: none;
 }
 
-/* ── Bare & Composite Inputs (TextBar, Capsules, Inline) ── */
+/* ── Bare & Composite Inputs (TextBar, Capsules, Inline, Pills) ── */
 input[data-bare-input],
 textarea[data-bare-input],
 input[data-textbar-input],
-textarea[data-textbar-input] {
+textarea[data-textbar-input],
+input[data-composite-input],
+textarea[data-composite-input] {
   width: auto;
   height: auto;
   min-height: 0;
@@ -74,11 +76,22 @@ textarea[data-bare-input]:focus-visible,
 input[data-textbar-input]:focus,
 input[data-textbar-input]:focus-visible,
 textarea[data-textbar-input]:focus,
-textarea[data-textbar-input]:focus-visible {
+textarea[data-textbar-input]:focus-visible,
+input[data-composite-input]:focus,
+input[data-composite-input]:focus-visible,
+textarea[data-composite-input]:focus,
+textarea[data-composite-input]:focus-visible {
   border: none !important;
   outline: none !important;
   box-shadow: none !important;
   background: transparent !important;
+}
+
+/* ── Immersion Protection: Suppress inner focus rings in composite wrappers ── */
+:is([data-composite-container], [class*="inputRoot"], [class*="searchInputWrapper"], [class*="searchWrapper"], [class*="searchWrap"], [class*="canvasSwitchControl"], [class*="inputShell"]):focus-within > input:not([type="checkbox"]):not([type="radio"]) {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
 }
 
 /* ── States: Disabled, Invalid, Autofill ── */

@@ -46,6 +46,14 @@
   padding: var(--space-1) 0;
 }
 
+.input:focus,
+.input:focus-visible {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
 .input::placeholder {
   color: var(--color-text-muted);
 }

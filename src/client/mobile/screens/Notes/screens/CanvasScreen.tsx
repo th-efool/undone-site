@@ -44,7 +44,7 @@ export function CanvasScreen({ notes, selected, onBack }: CanvasScreenProps) {
   } = useCanvasScene(selected.contentType === 'canvas' ? selected.id : null);
 
   const handleSaveNote = useCallback(() => {
-    notes.actions.patchNote(selected.id, {});
+    // Canvas persistence already commits directly to LocalWorkspace IndexedDB & outbox.
   }, [selected.id, notes.actions]);
 
   useCanvasPersistence(

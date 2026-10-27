@@ -18,6 +18,7 @@ export function useCanvasScene(noteId: string | null, userId?: string | null) {
   });
 
   const sceneRef = useRef<CanvasSceneData | null>(null);
+  const lastSavedFingerprintRef = useRef<string>('');
   const isDirtyRef = useRef(false);
   const triggerRef = useRef(0);
   // Track the noteId that sceneRef currently belongs to, for cleanup saves
@@ -29,6 +30,7 @@ export function useCanvasScene(noteId: string | null, userId?: string | null) {
   useEffect(() => {
     if (!noteId) {
       setInitialScene(null);
+      lastSavedFingerprintRef.current = '';
       setLoading(false);
       return;
     }
@@ -61,6 +63,7 @@ export function useCanvasScene(noteId: string | null, userId?: string | null) {
       }
 
       sceneRef.current = data;
+      lastSavedFingerprintRef.current = canvasAdapter.getSceneFingerprint(data);
       isDirtyRef.current = false;
       setInitialScene(data);
       setLoading(false);
@@ -73,6 +76,14 @@ export function useCanvasScene(noteId: string | null, userId?: string | null) {
 
   const handleSceneChange = useCallback((scene: CanvasSceneData) => {
     sceneRef.current = scene;
+
+    // Ignore no-op Excalidraw mount/hover/resize/cursor callbacks where no durable content changed
+    const nextFingerprint = canvasAdapter.getSceneFingerprint(scene);
+    if (nextFingerprint === lastSavedFingerprintRef.current) {
+      return;
+    }
+    lastSavedFingerprintRef.current = nextFingerprint;
+
     triggerRef.current += 1;
 
     // ─── SAFETY NET: write to localStorage immediately, every change ──────────

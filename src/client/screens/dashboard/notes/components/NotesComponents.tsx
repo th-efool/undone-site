@@ -59,6 +59,7 @@ export function CanvasSwitcher({
         {selectedId && onTitleChange ? (
           <input
             type="text"
+            data-composite-input=""
             className={styles.titleInputTop}
             value={displayTitle}
             onChange={(e) => onTitleChange(e.target.value)}

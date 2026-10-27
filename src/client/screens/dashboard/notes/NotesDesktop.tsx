@@ -53,7 +53,7 @@ export function NotesDesktop({ model: notes }: NotesDesktopProps) {
   } = useCanvasScene(selected?.id ?? null, notes.userId);
 
   const handleSaveNote = useCallback(() => {
-    if (selected) notes.actions.patchNote(selected.id, {});
+    // Canvas persistence already commits directly to LocalWorkspace IndexedDB & outbox.
   }, [selected, notes.actions]);
 
   useCanvasPersistence(

@@ -453,16 +453,17 @@
 }
 
 .titleInputTop {
-  height: 32px;
-  padding: 0 8px;
+  height: 28px;
+  padding: 0 4px;
   border-radius: 6px;
-  border: 1px solid transparent;
+  border: 0 !important;
   font-size: 13.5px;
   font-weight: 600;
   color: #f1f5f9;
-  background: transparent;
-  transition: all 0.15s ease;
-  outline: none;
+  background: transparent !important;
+  transition: color 0.15s ease;
+  outline: none !important;
+  box-shadow: none !important;
   min-width: 140px;
   max-width: 280px;
   flex: 0 1 auto;
@@ -474,15 +475,13 @@
   font-weight: 400;
 }
 
-.titleInputTop:hover {
-  background: #27272a;
-  border-color: #27272a;
-}
-
-.titleInputTop:focus {
-  background: #000000;
-  border-color: #818cf8;
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+.titleInputTop:hover,
+.titleInputTop:focus,
+.titleInputTop:focus-visible {
+  background: transparent !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
 }
 
 .legacyViewer {
@@ -891,11 +890,15 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
 }
 
-.canvasSwitchControl:hover,
+.canvasSwitchControl:hover {
+  background: rgba(24, 24, 27, 0.95);
+  border-color: #3f3f46;
+}
+
 .canvasSwitchControl:focus-within {
   background: #000000;
-  border-color: #3f3f46;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-color: #818cf8;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15), 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 .canvasSwitchButton {

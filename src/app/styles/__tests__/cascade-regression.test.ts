@@ -581,5 +581,22 @@ describe('Cascade Regression Test Suite & Failure Reproduction (Phase 1, Task 1.
       expect(resolution.winner.layer).toBe('utilities');
       expect(resolution.reason).toBe('later-layer-beats-earlier');
     });
+
+    it('verifies composite input focus encapsulation in forms.css and Notes.module.css', () => {
+      const formsContent = fs.readFileSync(path.resolve(process.cwd(), 'src/app/styles/forms.css'), 'utf8');
+      expect(formsContent).toContain(':not([data-composite-input])');
+      expect(formsContent).toContain('input[data-composite-input]');
+      expect(formsContent).toContain('textarea[data-composite-input]');
+      expect(formsContent).toContain(':is([data-composite-container]');
+
+      const notesModuleContent = fs.readFileSync(
+        path.resolve(process.cwd(), 'src/client/screens/dashboard/notes/Notes.module.css'),
+        'utf8'
+      );
+      expect(notesModuleContent).toContain('.titleInputTop:focus-visible');
+      expect(notesModuleContent).toContain('border: 0 !important');
+      expect(notesModuleContent).toContain('box-shadow: none !important');
+      expect(notesModuleContent).toContain('.canvasSwitchControl:focus-within');
+    });
   });
 });
