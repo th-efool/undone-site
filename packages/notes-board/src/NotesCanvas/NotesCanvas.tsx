@@ -6,6 +6,7 @@ import { useMemo, useCallback, useState, useEffect, useRef } from 'react';
 import { GridSettingsConfig } from './HamburgerGridControls';
 import { MAX_IMAGE_FILE_BYTES } from '../types';
 import ExcalidrawWrapper from './ExcalidrawWrapper';
+import { MediaOverlay } from './MediaOverlay';
 
 import '../excalidraw.css';
 
@@ -46,6 +47,15 @@ export function NotesCanvas({
   }, [initialScene]);
 
   const [currentBg, setCurrentBg] = useState<string>(initialRealBg);
+
+  const [overlayElements, setOverlayElements] = useState<any[]>(() => (initialScene?.elements as any[]) || []);
+  const [overlayFiles, setOverlayFiles] = useState<Record<string, any>>(() => (initialScene?.files as any) || {});
+  const [overlayTransform, setOverlayTransform] = useState({
+    scrollX: (initialScene?.appState?.scrollX as number) || 0,
+    scrollY: (initialScene?.appState?.scrollY as number) || 0,
+    zoom: ((initialScene?.appState?.zoom as any)?.value as number) || 1,
+    selectedElementIds: {} as Record<string, boolean>,
+  });
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [isLayoutReady, setIsLayoutReady] = useState<boolean>(false);
@@ -244,6 +254,13 @@ export function NotesCanvas({
           },
         });
 
+        setOverlayTransform((prev) => ({
+          ...prev,
+          scrollX: newScrollX,
+          scrollY: newScrollY,
+          zoom,
+        }));
+
         if (gridOverlayRef.current) {
           paintCustomGrid({ ...appState, scrollX: newScrollX, scrollY: newScrollY }, gridConfigRef.current);
         }
@@ -285,7 +302,7 @@ export function NotesCanvas({
       return true;
     };
 
-    const handleGifUpload = (file: File, clientX: number, clientY: number) => {
+    const handleMediaUpload = (file: File, clientX: number, clientY: number) => {
       // ── Validate size at upload time ─────────────────────────────────────────
       if (!validateFileSize(file)) return;
 
@@ -301,9 +318,21 @@ export function NotesCanvas({
         let rect = { left: 0, top: 0 };
         if (container) rect = container.getBoundingClientRect();
         
+        const mime = file.type.toLowerCase();
+        let width = 400;
+        let height = 300;
+
+        if (mime.startsWith('audio/')) {
+          width = 320;
+          height = 60;
+        } else if (mime.startsWith('video/')) {
+          width = 480;
+          height = 270;
+        }
+        
         // Excalidraw coordinate math
-        const x = (clientX - rect.left) / zoom - (appState.scrollX || 0) - (400 / 2);
-        const y = (clientY - rect.top) / zoom - (appState.scrollY || 0) - (300 / 2);
+        const x = (clientX - rect.left) / zoom - (appState.scrollX || 0) - (width / 2);
+        const y = (clientY - rect.top) / zoom - (appState.scrollY || 0) - (height / 2);
         
         const id = Math.random().toString(36).substring(2, 9);
         const newElement = {
@@ -311,9 +340,10 @@ export function NotesCanvas({
           id: id,
           x: x,
           y: y,
-          width: 400,
-          height: 300,
+          width: width,
+          height: height,
           link: dataUrl,
+          assetMimeType: file.type,
           version: 1,
           versionNonce: Math.floor(Math.random() * 1000000),
           isDeleted: false,
@@ -329,23 +359,44 @@ export function NotesCanvas({
           opacity: 100,
         };
         
+        const updatedElements = [...excalidrawAPI.getSceneElements(), newElement];
         excalidrawAPI.updateScene({
-          elements: [...excalidrawAPI.getSceneElements(), newElement]
+          elements: updatedElements,
         });
+
+        setOverlayElements(updatedElements);
       };
       reader.readAsDataURL(file);
+    };
+
+    const isMediaFile = (file: File) => {
+      const mime = file.type.toLowerCase();
+      return (
+        mime.startsWith('image/') ||
+        mime.startsWith('video/') ||
+        mime.startsWith('audio/') ||
+        file.name.endsWith('.gif') ||
+        file.name.endsWith('.apng') ||
+        file.name.endsWith('.svg') ||
+        file.name.endsWith('.webp') ||
+        file.name.endsWith('.mp4') ||
+        file.name.endsWith('.webm') ||
+        file.name.endsWith('.mp3')
+      );
     };
 
     const handlePaste = (e: ClipboardEvent) => {
       const items = e.clipboardData?.items;
       if (!items) return;
       for (const item of Array.from(items)) {
-        if (item.type === 'image/gif') {
-          e.preventDefault();
-          e.stopPropagation();
+        if (item.kind === 'file') {
           const file = item.getAsFile();
-          if (file) handleGifUpload(file, lastMousePos.current.x, lastMousePos.current.y);
-          return;
+          if (file && isMediaFile(file)) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleMediaUpload(file, lastMousePos.current.x, lastMousePos.current.y);
+            return;
+          }
         }
       }
     };
@@ -354,10 +405,10 @@ export function NotesCanvas({
       const files = e.dataTransfer?.files;
       if (!files) return;
       for (const file of Array.from(files)) {
-        if (file.type === 'image/gif') {
+        if (isMediaFile(file)) {
           e.preventDefault();
           e.stopPropagation();
-          handleGifUpload(file, e.clientX, e.clientY);
+          handleMediaUpload(file, e.clientX, e.clientY);
           return;
         }
       }
@@ -433,6 +484,15 @@ export function NotesCanvas({
     }
 
     const { collaborators, ...restAppState } = appState;
+
+    setOverlayElements(elements);
+    if (files) setOverlayFiles(files);
+    setOverlayTransform({
+      scrollX: appState.scrollX || 0,
+      scrollY: appState.scrollY || 0,
+      zoom: appState.zoom?.value || 1,
+      selectedElementIds: appState.selectedElementIds || {},
+    });
     
     onSceneChange({
       elements,
@@ -474,6 +534,15 @@ export function NotesCanvas({
           bottom: 0,
           pointerEvents: 'none',
         }}
+      />
+      <MediaOverlay
+        elements={overlayElements}
+        files={overlayFiles}
+        scrollX={overlayTransform.scrollX}
+        scrollY={overlayTransform.scrollY}
+        zoom={overlayTransform.zoom}
+        selectedElementIds={overlayTransform.selectedElementIds}
+        isReadOnly={isReadOnly}
       />
       {!isLayoutReady ? (
         <div

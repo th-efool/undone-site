@@ -524,6 +524,38 @@ if (typeof window !== 'undefined') {
   initWindowListeners();
 }
 
+function syncTaskToLocalWorkspace(task: UnifiedTask, userId: string | null) {
+  if (!userId || typeof window === 'undefined') return;
+  try {
+    const { LocalWorkspace } = require('@/src/client/personal-workspace/local/facade');
+    const workspace = LocalWorkspace.getLocalWorkspace(userId);
+    const dateStr =
+      task.dateStr ||
+      `${task.year}-${String(task.month + 1).padStart(2, '0')}-${String(task.day).padStart(2, '0')}`;
+    const schedTask = {
+      id: task.id,
+      title: task.title,
+      date: dateStr,
+      status: task.status,
+      noteId: task.noteId,
+      category: task.category,
+      color: task.color,
+      createdAt: new Date(task.createdAt).toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    workspace.saveScheduleTask(schedTask).catch(() => {});
+  } catch {}
+}
+
+function removeTaskFromLocalWorkspace(taskId: string, userId: string | null) {
+  if (!userId || typeof window === 'undefined') return;
+  try {
+    const { LocalWorkspace } = require('@/src/client/personal-workspace/local/facade');
+    const workspace = LocalWorkspace.getLocalWorkspace(userId);
+    workspace.deleteScheduleTask(taskId).catch(() => {});
+  } catch {}
+}
+
 export const tasksStorageAdapter = {
   getUserId(): string | null {
     return activeUserId;
@@ -604,6 +636,7 @@ export const tasksStorageAdapter = {
 
     const updated = [newTask, ...current];
     this.saveTasks(updated, userId);
+    syncTaskToLocalWorkspace(newTask, userId);
     return newTask;
   },
 
@@ -626,6 +659,7 @@ export const tasksStorageAdapter = {
     const updated = [...current];
     updated[index] = merged;
     this.saveTasks(updated, userId);
+    syncTaskToLocalWorkspace(merged, userId);
   },
 
   toggleTask(id: string, userId: string | null = activeUserId): void {
@@ -640,6 +674,7 @@ export const tasksStorageAdapter = {
     const current = this.getTasks(userId);
     const updated = current.filter((t) => t.id !== id);
     this.saveTasks(updated, userId);
+    removeTaskFromLocalWorkspace(id, userId);
   },
 
   subscribe(callback: () => void): () => void {
