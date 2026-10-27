@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { encryptToken } from '@/src/server/infrastructure/github/personal-workspace';
+import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import { resolveAuthUser } from '../../vault';
 import {
   getAppOAuthAuthorizeUrl,
@@ -14,8 +15,10 @@ import {
   GITHUB_APP_INSTALLATION_COOKIE_NAME,
   GITHUB_APP_INSTALLATION_COOKIE_OPTIONS,
 } from '../config';
+import type { GitHubAppInstallation } from '../config';
 import { getOAuthClientCredentials } from '../../oauth/config';
 import { createFlowStateNonce, createAppFlowState, finishGitHubAppConnection } from '../flow';
+import type { AppFlowState } from '../flow';
 
 /**
  * GET /api/personal-workspace/github/app/install
@@ -57,15 +60,43 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
   // CSRF state nonce
   const stateNonce = createFlowStateNonce();
-  const statePayload = JSON.stringify(createAppFlowState(user.id, stateNonce));
-  const encryptedState = await encryptToken(statePayload, user.id);
   const format = req.nextUrl.searchParams.get('format')?.toLowerCase();
 
   // Gap 2 Fix: If GITHUB_APP_CLIENT_SECRET is missing, discover existing installations via App JWT
   if (!credentials.clientSecret) {
     const installations = await listAppInstallations(credentials);
     if (installations.length > 0) {
-      const primaryInstallation = installations[0];
+      // 1. Check if user already has an existing connection record in PostgreSQL
+      let primaryInstallation: GitHubAppInstallation | undefined;
+      if (prisma?.personalWorkspaceGitHubConnection && user.id) {
+        try {
+          const existingConn = await prisma.personalWorkspaceGitHubConnection.findUnique({
+            where: { userId: user.id },
+          });
+          if (existingConn?.installationId) {
+            primaryInstallation = installations.find((i) => i.id === existingConn.installationId);
+          }
+        } catch {
+          // DB lookup failed or offline
+        }
+      }
+
+      // 2. If no DB record matched, check installations for an accessible 'undone-notes' repository
+      if (!primaryInstallation) {
+        for (const inst of installations) {
+          const candidateRepos = await getInstallationRepos(inst.id, credentials);
+          if (candidateRepos.some((r) => r.fullName.endsWith('/undone-notes') || r.fullName.toLowerCase().includes('undone'))) {
+            primaryInstallation = inst;
+            break;
+          }
+        }
+      }
+
+      // 3. Fallback: single installation or first installation
+      if (!primaryInstallation) {
+        primaryInstallation = installations[0];
+      }
+
       const repos = await getInstallationRepos(primaryInstallation.id, credentials);
       if (repos.length > 0) {
         const repo = repos.find((item) => item.fullName.endsWith('/undone-notes')) ||
@@ -119,9 +150,18 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         status: 200,
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
       });
+      const resolverState: AppFlowState = {
+        ...createAppFlowState(user.id, stateNonce),
+        resumeInstallationId: primaryInstallation.id,
+        githubUser: {
+          id: primaryInstallation.accountId,
+          login: primaryInstallation.accountLogin,
+        },
+      };
+      const encryptedResolverState = await encryptToken(JSON.stringify(resolverState), user.id);
       res.cookies.set(
         GITHUB_APP_INSTALLATION_COOKIE_NAME,
-        encryptedState,
+        encryptedResolverState,
         GITHUB_APP_INSTALLATION_COOKIE_OPTIONS,
       );
       return res;
@@ -129,11 +169,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     // No installations exist yet: direct to GitHub install screen
     const installUrl = getInstallationUrl(stateNonce);
+    const initialInstallState = JSON.stringify(createAppFlowState(user.id, stateNonce));
+    const encryptedInitialState = await encryptToken(initialInstallState, user.id);
+
     if (format === 'json') {
       const res = NextResponse.json({ authorizeUrl: installUrl, state: stateNonce });
       res.cookies.set(
         GITHUB_APP_INSTALLATION_COOKIE_NAME,
-        encryptedState,
+        encryptedInitialState,
         GITHUB_APP_INSTALLATION_COOKIE_OPTIONS,
       );
       return res;
@@ -142,12 +185,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     const res = NextResponse.redirect(installUrl);
     res.cookies.set(
       GITHUB_APP_INSTALLATION_COOKIE_NAME,
-      encryptedState,
+      encryptedInitialState,
       GITHUB_APP_INSTALLATION_COOKIE_OPTIONS,
     );
     return res;
   }
 
+  const statePayload = JSON.stringify(createAppFlowState(user.id, stateNonce));
+  const encryptedState = await encryptToken(statePayload, user.id);
   const redirectUri = getAppOAuthRedirectUri(req);
   const authorizeUrl = getAppOAuthAuthorizeUrl(stateNonce, redirectUri, credentials.clientId);
 

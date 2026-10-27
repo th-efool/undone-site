@@ -7,10 +7,12 @@ import {
   getInstallationToken,
   getManageInstallationUrl,
   getUserAppInstallations,
+  listAppInstallations,
   GITHUB_APP_INSTALLATION_COOKIE_NAME,
   renderAppErrorHtml,
   renderAppExistingInstallationAccessHtml,
 } from '../config';
+import type { GitHubAppInstallation, GitHubUserIdentity } from '../config';
 import {
   clearAppFlowCookie,
   finishGitHubAppConnection,
@@ -79,19 +81,34 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     });
   }
 
-  if (
-    !state.githubAccessToken || !state.githubUser ||
-    (setupAction !== 'install' && setupAction !== 'update')
-  ) {
+  if (setupAction !== 'install' && setupAction !== 'update') {
+    return errorResponse('invalid_action', 'Unsupported GitHub installation action.');
+  }
+
+  let installation: GitHubAppInstallation | undefined;
+  let identity: GitHubUserIdentity;
+
+  if (state.githubAccessToken && state.githubUser) {
+    // OAuth mode: verify via authorized user installations
+    const installations = await getUserAppInstallations(state.githubAccessToken, appCredentials.appId);
+    if (!installations) {
+      return errorResponse('installations_lookup_failed', 'GitHub could not verify this account’s Undone App installations. Try again.');
+    }
+    installation = installations.find((item) => item.id === installationId);
+    identity = state.githubUser;
+  } else if (!appCredentials.clientSecret) {
+    // App-JWT mode: verify installation exists for this app
+    const installations = await listAppInstallations(appCredentials);
+    installation = installations.find((item) => item.id === installationId);
+    if (installation) {
+      identity = state.githubUser || { id: installation.accountId, login: installation.accountLogin };
+    } else {
+      return errorResponse('installation_not_authorized', 'The selected GitHub account does not have access to this Undone App installation.');
+    }
+  } else {
     return errorResponse('invalid_state', 'GitHub connection expired or could not be verified. Start Connect GitHub again.');
   }
 
-  // GitHub warns that installation_id is forgeable; accept only IDs visible to this authorized user.
-  const installations = await getUserAppInstallations(state.githubAccessToken, appCredentials.appId);
-  if (!installations) {
-    return errorResponse('installations_lookup_failed', 'GitHub could not verify this account’s Undone App installations. Try again.');
-  }
-  const installation = installations.find((item) => item.id === installationId);
   if (!installation) {
     return errorResponse('installation_not_authorized', 'The selected GitHub account does not have access to this Undone App installation.');
   }
@@ -124,7 +141,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   }
 
   try {
-    return await finishGitHubAppConnection(user.id, state.githubUser, installation, repo, tokenResult);
+    return await finishGitHubAppConnection(user.id, identity, installation, repo, tokenResult);
   } catch {
     return errorResponse('connection_storage_failed', 'GitHub authorized the connection, but Undone could not save it. Try again.');
   }

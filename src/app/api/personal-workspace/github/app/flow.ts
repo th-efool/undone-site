@@ -12,6 +12,7 @@ import {
   getInstallationRepos,
   getInstallationToken,
   getUserAppInstallations,
+  listAppInstallations,
 } from './config';
 import type { GitHubAppCredentials, GitHubAppInstallation, GitHubUserIdentity } from './config';
 
@@ -103,7 +104,34 @@ export async function handleResumeInstallation({
   const isJson = req.nextUrl.searchParams.get('format') === 'json' ||
     req.headers.get('accept')?.includes('application/json');
 
-  if (!state.githubAccessToken || !state.githubUser) {
+  let targetInstallation: GitHubAppInstallation | undefined;
+  let identity: GitHubUserIdentity;
+
+  if (state.githubAccessToken && state.githubUser) {
+    // OAuth mode: user token present
+    const installations = await getUserAppInstallations(state.githubAccessToken, appCredentials.appId);
+    targetInstallation = installations?.find((i) => i.id === installationId);
+    identity = state.githubUser;
+  } else if (!appCredentials.clientSecret) {
+    // App-JWT mode: no clientSecret configured
+    const installations = await listAppInstallations(appCredentials);
+    targetInstallation = installations?.find((i) => i.id === installationId);
+
+    // If a resumeInstallationId was bound in the cookie, verify it matches
+    if (state.resumeInstallationId && state.resumeInstallationId !== installationId) {
+      targetInstallation = undefined;
+    }
+
+    if (targetInstallation) {
+      identity = state.githubUser || {
+        id: targetInstallation.accountId,
+        login: targetInstallation.accountLogin,
+      };
+    } else {
+      identity = { id: '', login: '' };
+    }
+  } else {
+    // Neither valid OAuth session nor App-JWT mode
     if (isJson) {
       return NextResponse.json(
         { success: false, error: 'session_expired', message: 'GitHub session expired. Please connect again.' },
@@ -118,9 +146,6 @@ export async function handleResumeInstallation({
     return response;
   }
 
-  // Verify this installation belongs to the user's authorized account
-  const installations = await getUserAppInstallations(state.githubAccessToken, appCredentials.appId);
-  const targetInstallation = installations?.find((i) => i.id === installationId);
   if (!targetInstallation) {
     if (isJson) {
       return NextResponse.json(
@@ -182,7 +207,7 @@ export async function handleResumeInstallation({
     return response;
   }
 
-  const htmlRes = await finishGitHubAppConnection(user.id, state.githubUser, targetInstallation, repo, tokenResult);
+  const htmlRes = await finishGitHubAppConnection(user.id, identity, targetInstallation, repo, tokenResult);
   if (isJson) {
     const jsonRes = NextResponse.json({
       success: true,

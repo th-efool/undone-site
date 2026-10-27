@@ -399,38 +399,49 @@ export async function listAppInstallations(
   credentials: GitHubAppCredentials,
 ): Promise<GitHubAppInstallation[]> {
   const jwt = generateAppJWT(credentials);
-  try {
-    const { status, data } = await httpsRequest<
-      Array<{
-        id: number;
-        app_id: number;
-        account?: { id?: number; login?: string; type?: string };
-        repository_selection?: string;
-      }>
-    >({
-      hostname: 'api.github.com',
-      path: '/app/installations?per_page=100',
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${jwt}`,
-        Accept: 'application/vnd.github+json',
-        'User-Agent': 'undone-notes-app',
-      },
-    });
+  const installations: GitHubAppInstallation[] = [];
 
-    if (status >= 200 && status < 300 && Array.isArray(data)) {
-      return data.map((item) => ({
-        id: String(item.id),
-        appId: String(item.app_id || credentials.appId),
-        accountId: String(item.account?.id || ''),
-        accountLogin: item.account?.login || '',
-        accountType: item.account?.type || 'User',
-      }));
+  for (let page = 1; page <= 5; page++) {
+    try {
+      const { status, data } = await httpsRequest<
+        Array<{
+          id: number;
+          app_id: number;
+          account?: { id?: number; login?: string; type?: string };
+          repository_selection?: string;
+        }>
+      >({
+        hostname: 'api.github.com',
+        path: `/app/installations?per_page=100&page=${page}`,
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${jwt}`,
+          Accept: 'application/vnd.github+json',
+          'User-Agent': 'undone-notes-app',
+        },
+      });
+
+      if (status >= 200 && status < 300 && Array.isArray(data)) {
+        for (const item of data) {
+          installations.push({
+            id: String(item.id),
+            appId: String(item.app_id || credentials.appId),
+            accountId: String(item.account?.id || ''),
+            accountLogin: item.account?.login || '',
+            accountType: item.account?.type || 'User',
+          });
+        }
+        if (data.length < 100) break;
+      } else {
+        break;
+      }
+    } catch (err) {
+      console.warn('[GitHubApp] Failed to list app installations via JWT:', err);
+      break;
     }
-  } catch (err) {
-    console.warn('[GitHubApp] Failed to list app installations via JWT:', err);
   }
-  return [];
+
+  return installations;
 }
 
 export function renderAppSuccessHtml(data: {

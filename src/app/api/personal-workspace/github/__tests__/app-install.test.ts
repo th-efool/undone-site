@@ -3,11 +3,13 @@ import { NextRequest } from 'next/server';
 import crypto from 'node:crypto';
 import * as configMod from '../app/config';
 import { prisma } from '@/src/server/infrastructure/db/postgres/client';
+import { decryptToken } from '@/src/server/infrastructure/github/personal-workspace';
 import {
   getGitHubAppCredentials,
   generateAppJWT,
 } from '../app/config';
 import { GET as getAppInstall } from '../app/install/route';
+import { GET as callbackRoute } from '../app/callback/route';
 
 describe('GitHub App & Zero-File Fallback Authentication', () => {
   // Generate a mock RSA 2048 keypair for testing
@@ -23,6 +25,8 @@ describe('GitHub App & Zero-File Fallback Authentication', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(prisma.personalWorkspaceGitHubConnection, 'findUnique').mockResolvedValue(null);
+    vi.spyOn(prisma.personalWorkspaceGitHubConnection, 'upsert').mockResolvedValue({} as never);
     process.env = { ...originalEnv };
     delete process.env.GITHUB_APP_PRIVATE_KEY_PATH;
     delete process.env.GITHUB_APP_PRIVATE_KEY;
@@ -162,6 +166,129 @@ describe('GitHub App & Zero-File Fallback Authentication', () => {
     const data = await res.json();
     expect(data).toMatchObject({
       connected: true,
+      repoFullName: 'octocat/undone-notes',
+    });
+
+    listSpy.mockRestore();
+    reposSpy.mockRestore();
+    tokenSpy.mockRestore();
+    upsertSpy.mockRestore();
+  });
+
+  it('renders in-popup resolver and preserves resumeInstallationId in cookie when repos is 0 in App-JWT mode', async () => {
+    process.env.GITHUB_APP_ID = '12345';
+    process.env.GITHUB_APP_CLIENT_ID = 'IvTest123';
+    delete process.env.GITHUB_APP_CLIENT_SECRET;
+    process.env.GITHUB_APP_PRIVATE_KEY_BASE64 = base64Key;
+
+    const listSpy = vi.spyOn(configMod, 'listAppInstallations').mockResolvedValue([
+      { id: '175771206', appId: '12345', accountId: '99', accountLogin: 'octocat', accountType: 'User' },
+    ]);
+    const reposSpy = vi.spyOn(configMod, 'getInstallationRepos').mockResolvedValue([]);
+
+    const req = new NextRequest('https://undone.example/api/personal-workspace/github/app/install', {
+      headers: { 'x-test-user-id': 'user-test-01' },
+    });
+
+    const res = await getAppInstall(req);
+    expect(res.status).toBe(200);
+    const html = await res.text();
+    expect(html).toContain('Existing Installation Detected');
+    expect(html).toContain('@octocat');
+
+    // Cookie must contain resumeInstallationId and githubUser
+    const cookie = res.cookies.get('undone_gh_app_state')?.value;
+    expect(cookie).toBeDefined();
+    const decrypted = JSON.parse(await decryptToken(cookie!, 'user-test-01'));
+    expect(decrypted.resumeInstallationId).toBe('175771206');
+    expect(decrypted.githubUser).toEqual({ id: '99', login: 'octocat' });
+
+    listSpy.mockRestore();
+    reposSpy.mockRestore();
+  });
+
+  it('prioritizes user existing DB connection when multiple installations exist in App-JWT mode', async () => {
+    process.env.GITHUB_APP_ID = '12345';
+    process.env.GITHUB_APP_CLIENT_ID = 'IvTest123';
+    delete process.env.GITHUB_APP_CLIENT_SECRET;
+    process.env.GITHUB_APP_PRIVATE_KEY_BASE64 = base64Key;
+
+    const listSpy = vi.spyOn(configMod, 'listAppInstallations').mockResolvedValue([
+      { id: 'inst-1', appId: '12345', accountId: '101', accountLogin: 'other-org', accountType: 'Organization' },
+      { id: 'inst-2', appId: '12345', accountId: '102', accountLogin: 'user-bound', accountType: 'User' },
+    ]);
+    const dbSpy = vi.spyOn(prisma.personalWorkspaceGitHubConnection, 'findUnique').mockResolvedValue({
+      installationId: 'inst-2',
+    } as never);
+    const reposSpy = vi.spyOn(configMod, 'getInstallationRepos').mockImplementation(async (id) => {
+      if (id === 'inst-2') return [{ fullName: 'user-bound/undone-notes', isPrivate: true, defaultBranch: 'main' }];
+      return [];
+    });
+    const tokenSpy = vi.spyOn(configMod, 'getInstallationToken').mockResolvedValue({
+      token: 'ghs_bound',
+      expiresAt: '2026-10-27T22:00:00Z',
+    });
+    const upsertSpy = vi.spyOn(prisma.personalWorkspaceGitHubConnection, 'upsert').mockResolvedValue({} as never);
+
+    const req = new NextRequest('https://undone.example/api/personal-workspace/github/app/install?format=json', {
+      headers: { 'x-test-user-id': 'user-test-01' },
+    });
+
+    const res = await getAppInstall(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data.repoFullName).toBe('user-bound/undone-notes');
+
+    listSpy.mockRestore();
+    dbSpy.mockRestore();
+    reposSpy.mockRestore();
+    tokenSpy.mockRestore();
+    upsertSpy.mockRestore();
+  });
+
+  it('successfully completes resume in App-JWT mode without 401 session_expired', async () => {
+    process.env.GITHUB_APP_ID = '12345';
+    process.env.GITHUB_APP_CLIENT_ID = 'IvTest123';
+    delete process.env.GITHUB_APP_CLIENT_SECRET;
+    process.env.GITHUB_APP_PRIVATE_KEY_BASE64 = base64Key;
+
+    const state = {
+      stateNonce: 'nonce-jwt',
+      userId: 'user-test-01',
+      createdAt: Date.now(),
+      resumeInstallationId: '175771206',
+      githubUser: { id: '99', login: 'octocat' },
+    };
+    const { encryptToken } = await import('@/src/server/infrastructure/github/personal-workspace');
+    const stateCookie = await encryptToken(JSON.stringify(state), state.userId);
+
+    const listSpy = vi.spyOn(configMod, 'listAppInstallations').mockResolvedValue([
+      { id: '175771206', appId: '12345', accountId: '99', accountLogin: 'octocat', accountType: 'User' },
+    ]);
+    const reposSpy = vi.spyOn(configMod, 'getInstallationRepos').mockResolvedValue([
+      { fullName: 'octocat/undone-notes', isPrivate: true, defaultBranch: 'main' },
+    ]);
+    const tokenSpy = vi.spyOn(configMod, 'getInstallationToken').mockResolvedValue({
+      token: 'ghs_resumed',
+      expiresAt: '2026-10-27T22:00:00Z',
+    });
+    const upsertSpy = vi.spyOn(prisma.personalWorkspaceGitHubConnection, 'upsert').mockResolvedValue({} as never);
+
+    const req = new NextRequest(
+      'https://undone.example/api/personal-workspace/github/app/callback?resume_installation_id=175771206&state=nonce-jwt&format=json',
+      {
+        headers: {
+          'x-test-user-id': 'user-test-01',
+          cookie: `undone_gh_app_state=${encodeURIComponent(stateCookie)}`,
+        },
+      },
+    );
+
+    const res = await callbackRoute(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toMatchObject({
+      success: true,
       repoFullName: 'octocat/undone-notes',
     });
 
