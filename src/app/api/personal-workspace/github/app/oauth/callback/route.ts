@@ -82,9 +82,10 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return errorResponse('invalid_state', 'GitHub connection code was missing. Start Connect GitHub again.');
   }
 
+  const redirectUri = state.redirectUri || getAppOAuthRedirectUri(req);
   const userToken = await exchangeGitHubAppUserCode(
     code,
-    getAppOAuthRedirectUri(req),
+    redirectUri,
     appCredentials,
   );
   if (!userToken) {
@@ -135,6 +136,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     const nextState: AppFlowState = {
       ...state,
+      redirectUri,
       githubAccessToken: userToken,
       githubUser: identity,
       resumeInstallationId: primaryInstallation.id,
@@ -164,6 +166,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   // First-time user with no existing installations: send to GitHub App install flow
   const nextState: AppFlowState = {
     ...state,
+    redirectUri,
     githubAccessToken: userToken,
     githubUser: identity,
   };

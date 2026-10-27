@@ -151,4 +151,28 @@ describe('GitHub App OAuth callback', () => {
     expect(response.status).toBe(307);
     expect(response.headers.get('location')).toBe('https://github.com/apps/undone-notes/installations/new?state=nonce');
   });
+
+  it('preserves and passes state.redirectUri into exchangeGitHubAppUserCode (RFC 6749 §4.1.3 Compliance)', async () => {
+    const customRedirectUri = 'https://custom.undone.site/api/personal-workspace/github/app/callback';
+    const state = {
+      stateNonce: 'nonce',
+      userId: 'user-test-01',
+      createdAt: Date.now(),
+      redirectUri: customRedirectUri,
+    };
+    const stateCookie = await encryptToken(JSON.stringify(state), state.userId);
+    const req = new NextRequest(
+      'https://custom.undone.site/api/personal-workspace/github/app/oauth/callback?code=oauth-code&state=nonce',
+      { headers: { 'x-test-user-id': state.userId, cookie: `undone_gh_app_state=${encodeURIComponent(stateCookie)}` } },
+    );
+
+    const response = await oauthCallback(req);
+
+    expect(response.status).toBe(200);
+    expect(mocks.exchange).toHaveBeenCalledWith(
+      'oauth-code',
+      customRedirectUri,
+      expect.anything(),
+    );
+  });
 });
