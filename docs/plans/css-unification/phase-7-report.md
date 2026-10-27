@@ -34,7 +34,7 @@ Across Phases 0 through 7, the application's styling architecture has been syste
 | **Shared UI Primitives** | Accessible, typed primitives with ARIA attributes & keyboard interactions | All primitives pass contract tests (`primitives.test.tsx`, 16/16 passed) | **PASS** |
 | **Migrated Scope Health** | Wave 6.0-6.3 shell, navigation, home, explore, message, cohort surfaces | All active surfaces consume canonical tokens; zero broken imports | **PASS** |
 | **Static Enforcement** | Automated check for module validity, phantom classes, and token acyclicity | `static-enforcement.test.ts` (10/10 passed) | **PASS** |
-| **Full Test Matrix** | Complete test execution across all styling, UI, and dashboard modules | **81 test files passed, 625/625 tests green** | **PASS** |
+| **Full Test Matrix** | Complete test execution across all styling, UI, and dashboard modules | **82 test files passed, 634/634 tests green** | **PASS** |
 | **Production Build** | Next.js production build compiles successfully with 0 CSS/webpack errors | `npm run build` exited with code 0 (48/48 routes generated) | **PASS** |
 | **Preservation of User Work** | 0 regressions in GitHub sync, vault crypto (AES-256-GCM), or state hooks | `connect-github-modal.tsx`, `WorkspaceSyncControl.tsx`, and `vault.ts` preserved | **PASS** |
 | **Operational Memory** | Authoritative architecture documented in repository memory | `MEMORY/css-styling.md` written and indexed in `MEMORY/README.md` | **PASS** |
@@ -45,14 +45,15 @@ Across Phases 0 through 7, the application's styling architecture has been syste
 
 ### CSS & UI Test Matrix:
 ```text
- Test Files  81 passed (81)
-      Tests  625 passed (625)
-   Start at  17:42:35
-   Duration  88.85s (transform 95.24s, setup 0ms, import 156.41s, tests 175.28s, environment 154.25s)
+ Test Files  82 passed (82)
+      Tests  634 passed (634)
+   Start at  17:56:11
+   Duration  85.34s (transform 77.73s, setup 0ms, import 142.57s, tests 170.24s, environment 145.02s)
 ```
 
 ### Breakdown of Key Test Suites:
-- `src/app/styles/__tests__/` (7 files, 98 tests):
+- `src/app/styles/__tests__/` (8 files, 107 tests):
+  - `built-acceptance.test.ts` (9 tests): Production CSS bundle integrity, canonical token emission, UI primitives scoping, zero phantom classes, mobile viewport & safe areas.
   - `static-enforcement.test.ts` (10 tests): Layer order, token acyclicity, CSS module integrity, analysis self-tests.
   - `token-contract.test.ts` (13 tests): Canonical `--ud-*` tokens, legacy aliases, light/dark theme parity.
   - `forms-and-reset.test.ts` (20 tests): Checkbox geometry, input padding, box-sizing, focus rings.
