@@ -26,7 +26,6 @@ const geistMono = Geist_Mono({
 const manrope = Manrope({
   variable: '--font-manrope-next',
   subsets: ['latin'],
-  weight: ['500', '600', '700'],
   display: 'swap',
   preload: true,
 });
@@ -59,7 +58,6 @@ const playfairDisplay = Playfair_Display({
   variable: '--font-playfair-display',
   subsets: ['latin'],
   style: ['normal', 'italic'],
-  weight: ['400', '600', '700'],
   display: 'swap',
   preload: false,
 });
