@@ -59,3 +59,9 @@
 - Canvas IndexedDB commits scene, extracted assets, and outbox together. Canvas Mongo/API writes are compatibility mirrors issued only after that local commit; a failed local commit leaves the canvas dirty/error and cannot be converted into localStorage success.
 - Canvas debounce cleanup flushes committed local persistence on note switch/unmount, and stale saves do not clear a newer dirty generation. Browser unload remains guarded by the unsaved-changes prompt and best-effort recovery buffer.
 - Phase 2 transaction serialization is per `PersonalWorkspaceDatabase` instance. Cross-tab same-record conflict handling and continuous pull/reconciliation remain Phase 3+ work.
+
+## Continuous pull and live view reconciliation (Phase 3)
+- Pull consumes the server's top-level `{ commitSha, manifest, notebooks, notes, assets, schedules }` response. The status endpoint only reports connection/repository details and must not be treated as a remote head-SHA source.
+- Every sync cycle pulls and validates a complete manifest-backed snapshot, including empty-outbox cycles. Apply is one IndexedDB transaction, preserves entities with pending/in-flight mutations, and advances `githubRemoteCommitSha` only with that verified snapshot; publish acknowledgement deletes only exact batch IDs and records its confirmed commit SHA atomically.
+- Remote snapshot application raises a separate repository event so `LocalWorkspace` refreshes mounted views without making the pull look like a local edit. Local save-success events schedule a debounced sync; online, focus, visibility, and periodic triggers provide catch-up.
+- Transient sync failures retry with bounded exponential delays. Authorization failures surface reconnect-required. Exact cross-device semantic conflict policy and preventing all divergent Git writes remain Phase 4 work; this protocol does not claim zero conflict probability.

@@ -217,6 +217,7 @@ export class LocalWorkspace {
   private cachedNotesState: NotesStateEntity;
   private unsubscribeSaveSuccess: (() => void) | null = null;
   private unsubscribeSaveError: (() => void) | null = null;
+  private unsubscribeRemoteSnapshot: (() => void) | null = null;
 
   private static instances = new Map<string, LocalWorkspace>();
 
@@ -293,6 +294,9 @@ export class LocalWorkspace {
     // Hook repository save events to notify subscribers
     if (!this.unsubscribeSaveSuccess) {
       this.unsubscribeSaveSuccess = this.repo.onSaveSuccess(() => this.refreshAndNotify());
+    }
+    if (!this.unsubscribeRemoteSnapshot) {
+      this.unsubscribeRemoteSnapshot = this.repo.onRemoteSnapshotApplied(() => this.refreshAndNotify());
     }
     if (!this.unsubscribeSaveError) {
       this.unsubscribeSaveError = this.repo.onSaveError((errEvent) => {
@@ -828,6 +832,10 @@ export class LocalWorkspace {
     if (this.unsubscribeSaveError) {
       this.unsubscribeSaveError();
       this.unsubscribeSaveError = null;
+    }
+    if (this.unsubscribeRemoteSnapshot) {
+      this.unsubscribeRemoteSnapshot();
+      this.unsubscribeRemoteSnapshot = null;
     }
     await this.repo.getDatabase().close();
     this.isOpen = false;

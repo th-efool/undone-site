@@ -11,6 +11,7 @@ import { notesRepository } from '../repositories/notes.repository';
 
 interface GitHubStatusInfo {
   connected: boolean;
+  unavailable?: boolean;
   repoFullName?: string;
   defaultBranch?: string;
   isPrivate?: boolean;
@@ -31,6 +32,10 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
   const coordinatorRef = useRef<SyncCoordinator | null>(null);
+  const coordinatorUnsubscribeRef = useRef<(() => void) | null>(null);
+  const localCommitUnsubscribeRef = useRef<(() => void) | null>(null);
+  const commitSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bootstrapPromiseRef = useRef<Promise<void> | null>(null);
 
   // 1. Fetch remote GitHub connection status
   const fetchStatus = useCallback(async () => {
@@ -41,28 +46,21 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         setGithubStatus(data);
         return data;
       } else {
-        const fallback: GitHubStatusInfo = { connected: false };
+        const fallback: GitHubStatusInfo = { connected: false, unavailable: res.status >= 500 };
         setGithubStatus(fallback);
         return fallback;
       }
     } catch {
-      const fallback: GitHubStatusInfo = { connected: false };
+      const fallback: GitHubStatusInfo = { connected: false, unavailable: true };
       setGithubStatus(fallback);
       return fallback;
     }
   }, []);
 
-  // 2. Setup LocalWorkspace and SyncCoordinator
-  useEffect(() => {
-    let isMounted = true;
-    const facade = getLocalWorkspace(activeUserId);
-
-    facade
-      .open({ userId: activeUserId })
-      .then(async () => {
-        if (!isMounted) return;
-
-        // Check if IndexedDB has notes; if empty, seed from notesRepository
+  const bootstrapWorkspace = useCallback((facade: ReturnType<typeof getLocalWorkspace>) => {
+    if (!bootstrapPromiseRef.current) {
+      bootstrapPromiseRef.current = (async () => {
+        await facade.open({ userId: activeUserId });
         const idbNotes = await facade.getRepository().getAllNotes();
         if (idbNotes.length === 0) {
           const initialState = notesRepository.getInitialState(activeUserId);
@@ -70,6 +68,65 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
             await notesRepository.syncWithLocalWorkspace(initialState, activeUserId);
           }
         }
+      })().catch((error) => {
+        bootstrapPromiseRef.current = null;
+        throw error;
+      });
+    }
+    return bootstrapPromiseRef.current;
+  }, [activeUserId]);
+
+  const startCoordinator = useCallback((facade: ReturnType<typeof getLocalWorkspace>) => {
+    if (coordinatorRef.current) return coordinatorRef.current;
+    const coordinator = new SyncCoordinator(facade.getRepository(), { autoSyncIntervalMs: 20000 });
+    coordinatorRef.current = coordinator;
+    coordinatorUnsubscribeRef.current = coordinator.subscribe((summary) => setSyncSummary(summary));
+    localCommitUnsubscribeRef.current = facade.getRepository().onSaveSuccess(() => {
+      if (commitSyncTimerRef.current) clearTimeout(commitSyncTimerRef.current);
+      commitSyncTimerRef.current = setTimeout(() => {
+        commitSyncTimerRef.current = null;
+        void coordinator.syncNow();
+      }, 150);
+    });
+    coordinator.startAutoSync();
+    void coordinator.syncNow();
+    return coordinator;
+  }, []);
+
+  const stopCoordinator = useCallback(() => {
+    coordinatorUnsubscribeRef.current?.();
+    coordinatorUnsubscribeRef.current = null;
+    localCommitUnsubscribeRef.current?.();
+    localCommitUnsubscribeRef.current = null;
+    if (commitSyncTimerRef.current) clearTimeout(commitSyncTimerRef.current);
+    commitSyncTimerRef.current = null;
+    coordinatorRef.current?.dispose();
+    coordinatorRef.current = null;
+  }, []);
+
+  const connectCoordinator = useCallback(async () => {
+    const facade = getLocalWorkspace(activeUserId);
+    await bootstrapWorkspace(facade);
+    const remote = await fetchStatus();
+    if (remote.connected || remote.unavailable) {
+      startCoordinator(facade);
+    } else {
+      const localSummary = await facade.getSyncSummary();
+      setSyncSummary({
+        ...localSummary,
+        status: localSummary.pendingMutations > 0 ? 'queued' : 'offline',
+      });
+    }
+  }, [activeUserId, bootstrapWorkspace, fetchStatus, startCoordinator]);
+
+  // 2. Setup LocalWorkspace and SyncCoordinator
+  useEffect(() => {
+    let isMounted = true;
+    const facade = getLocalWorkspace(activeUserId);
+
+    void bootstrapWorkspace(facade)
+      .then(async () => {
+        if (!isMounted) return;
 
         const localSummary = await facade.getSyncSummary();
         if (isMounted) setSyncSummary(localSummary);
@@ -78,19 +135,8 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         const remote = await fetchStatus();
         if (!isMounted) return;
 
-        if (remote.connected) {
-          const coordinator = new SyncCoordinator(facade.getRepository(), {
-            autoSyncIntervalMs: 20000,
-          });
-          coordinatorRef.current = coordinator;
-
-          coordinator.subscribe((summary) => {
-            if (isMounted) setSyncSummary(summary);
-          });
-
-          coordinator.startAutoSync();
-          // Initial background sync
-          coordinator.syncNow().catch(() => {});
+        if (remote.connected || remote.unavailable) {
+          startCoordinator(facade);
         } else {
           setSyncSummary((prev) => ({
             ...prev,
@@ -106,7 +152,6 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
     if (typeof window !== 'undefined' && window.location.search.includes('github_connected=true')) {
       const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
-      fetchStatus();
     }
 
     // Subscribe to local mutations
@@ -116,10 +161,6 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         const summary = await facade.getSyncSummary();
         if (isMounted) {
           setSyncSummary(summary);
-          // Trigger coordinator sync if connected
-          if (coordinatorRef.current) {
-            coordinatorRef.current.syncNow().catch(() => {});
-          }
         }
       } catch {}
     });
@@ -128,11 +169,11 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
       isMounted = false;
       unsubscribe();
       if (coordinatorRef.current) {
-        coordinatorRef.current.stopAutoSync();
-        coordinatorRef.current = null;
+        stopCoordinator();
       }
+      bootstrapPromiseRef.current = null;
     };
-  }, [activeUserId, fetchStatus]);
+  }, [activeUserId, bootstrapWorkspace, fetchStatus, startCoordinator, stopCoordinator]);
 
   // GitHub App installation flow: opens GitHub's native repo picker popup.
   // GitHub renders: account selector → repo access selector → permission breakdown → "Install & Authorize"
@@ -173,22 +214,7 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
           window.removeEventListener('message', handleMessage);
         }
 
-        const facade = getLocalWorkspace(activeUserId);
-        const coordinator = new SyncCoordinator(facade.getRepository(), {
-          autoSyncIntervalMs: 20000,
-        });
-        coordinatorRef.current = coordinator;
-        coordinator.subscribe(setSyncSummary);
-        coordinator.startAutoSync();
-        facade.getRepository().getAllNotes().then(async (idbNotes) => {
-          if (idbNotes.length === 0) {
-            const initialState = notesRepository.getInitialState(activeUserId);
-            if (initialState.notes.length > 0 || initialState.notebooks.length > 0) {
-              await notesRepository.syncWithLocalWorkspace(initialState, activeUserId);
-            }
-          }
-          coordinator.syncNow().catch(() => {});
-        });
+        void connectCoordinator();
       } else if (event.data?.type === 'UNDONE_GITHUB_AUTH_ERROR') {
         setOauthError(event.data.description || event.data.error || 'GitHub authorization failed');
         setIsOAuthLoading(false);
@@ -212,7 +238,7 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         fetchStatus();
       }
     }, 1000);
-  }, [activeUserId, fetchStatus]);
+  }, [connectCoordinator, fetchStatus]);
 
   // Export recovery backup bundle
   const handleExportRecovery = useCallback(async () => {
@@ -234,11 +260,11 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
   // Trigger manual sync
   const handleSyncNow = useCallback(async () => {
     if (coordinatorRef.current) {
-      const currentState = notesRepository.getInitialState(activeUserId);
-      await notesRepository.syncWithLocalWorkspace(currentState, activeUserId);
       await coordinatorRef.current.syncNow();
+    } else {
+      await connectCoordinator();
     }
-  }, [activeUserId]);
+  }, [connectCoordinator]);
 
   const isConnected = Boolean(githubStatus?.connected);
 
@@ -333,23 +359,11 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         onExportBackup={handleExportRecovery}
         onConnected={({ repoFullName }) => {
           setGithubStatus({ connected: true, repoFullName });
-          fetchStatus();
-          // Initialize coordinator immediately
-          const facade = getLocalWorkspace(activeUserId);
-          const coordinator = new SyncCoordinator(facade.getRepository(), {
-            autoSyncIntervalMs: 20000,
-          });
-          coordinatorRef.current = coordinator;
-          coordinator.subscribe(setSyncSummary);
-          coordinator.startAutoSync();
-          coordinator.syncNow().catch(() => {});
+          void connectCoordinator();
         }}
         onDisconnected={() => {
           setGithubStatus({ connected: false });
-          if (coordinatorRef.current) {
-            coordinatorRef.current.stopAutoSync();
-            coordinatorRef.current = null;
-          }
+          stopCoordinator();
           setSyncSummary((prev) => ({
             ...prev,
             status: 'offline',

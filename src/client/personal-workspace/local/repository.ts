@@ -86,6 +86,7 @@ export class PersonalWorkspaceRepository {
   private engine: PersonalWorkspaceDatabase;
   private lockCoordinator: TabLockCoordinator;
   private saveSuccessListeners: Array<(event: SaveSuccessEvent) => void> = [];
+  private remoteSnapshotListeners: Array<() => void> = [];
   private saveErrorListeners: Array<(event: SaveErrorEvent) => void> = [];
   private memoryEditorBuffers = new Map<string, UnsavedEditorBuffer>();
   private currentGeneration = 0;
@@ -116,6 +117,13 @@ export class PersonalWorkspaceRepository {
     this.saveSuccessListeners.push(callback);
     return () => {
       this.saveSuccessListeners = this.saveSuccessListeners.filter((cb) => cb !== callback);
+    };
+  }
+
+  onRemoteSnapshotApplied(callback: () => void): () => void {
+    this.remoteSnapshotListeners.push(callback);
+    return () => {
+      this.remoteSnapshotListeners = this.remoteSnapshotListeners.filter((listener) => listener !== callback);
     };
   }
 
@@ -703,6 +711,28 @@ export class PersonalWorkspaceRepository {
     return this.getPendingOutbox();
   }
 
+  async getSyncSnapshot(): Promise<{
+    notebooks: NotebookRecord[];
+    notes: NoteRecord[];
+    assets: AssetRecord[];
+    schedules: ScheduleTaskRecord[];
+    outbox: OutboxEntry[];
+  }> {
+    return this.engine.runTransaction(
+      ['notebooks', 'notes', 'assets', 'schedules', 'outbox'],
+      'readonly',
+      (ctx) => ({
+        notebooks: ctx.getAll<NotebookRecord>('notebooks'),
+        notes: ctx.getAll<NoteRecord>('notes'),
+        assets: ctx.getAll<AssetRecord>('assets'),
+        schedules: ctx.getAll<ScheduleTaskRecord>('schedules'),
+        outbox: ctx.getAll<OutboxEntry>('outbox')
+          .filter((entry) => entry.status === 'pending' || entry.status === 'in_flight')
+          .sort((a, b) => a.clientTimestamp.localeCompare(b.clientTimestamp)),
+      }),
+    );
+  }
+
   async acknowledgeOutboxUpTo(generation: number): Promise<void> {
     await this.engine.runTransaction(['outbox'], 'readwrite', (ctx) => {
       const all = ctx.getAll<OutboxEntry>('outbox');
@@ -719,13 +749,85 @@ export class PersonalWorkspaceRepository {
    * Conforms to generational and CAS sync coordinator ACK semantics.
    */
   async acknowledgeOutboxBatch(batchEntryIds: string[]): Promise<void> {
+    return this.acknowledgePublishedBatch(batchEntryIds);
+  }
+
+  async acknowledgePublishedBatch(batchEntryIds: string[], remoteCommitSha?: string): Promise<void> {
     if (!batchEntryIds || batchEntryIds.length === 0) return;
     const idSet = new Set(batchEntryIds);
-    await this.engine.runTransaction(['outbox'], 'readwrite', (ctx) => {
+    const stores: StoreName[] = remoteCommitSha === undefined ? ['outbox'] : ['outbox', 'metadata'];
+    await this.engine.runTransaction(stores, 'readwrite', (ctx) => {
       for (const id of idSet) {
         ctx.delete('outbox', id);
       }
+      if (remoteCommitSha !== undefined) {
+        ctx.put('metadata', 'githubRemoteCommitSha', {
+          key: 'githubRemoteCommitSha',
+          value: remoteCommitSha,
+          updatedAt: new Date().toISOString(),
+        });
+      }
     });
+  }
+
+  async getRemoteBaseCommitSha(): Promise<string | null> {
+    return this.engine.runTransaction(['metadata'], 'readonly', (ctx) => {
+      const value = ctx.get<{ value?: unknown }>('metadata', 'githubRemoteCommitSha')?.value;
+      return typeof value === 'string' ? value : null;
+    });
+  }
+
+  /** Applies a complete verified remote snapshot without creating local outbox writes. */
+  async applyRemoteSnapshot(
+    snapshot: {
+      notebooks: NotebookRecord[];
+      notes: NoteRecord[];
+      assets: AssetRecord[];
+      schedules: ScheduleTaskRecord[];
+    },
+    remoteCommitSha: string | null,
+  ): Promise<void> {
+    await this.engine.runTransaction(
+      ['notebooks', 'notes', 'assets', 'schedules', 'outbox', 'metadata'],
+      'readwrite',
+      (ctx) => {
+        const dirtyIds = new Map<EntityType, Set<string>>();
+        for (const mutation of ctx.getAll<OutboxEntry>('outbox')) {
+          if (mutation.status !== 'pending' && mutation.status !== 'in_flight') continue;
+          const ids = dirtyIds.get(mutation.entityType) || new Set<string>();
+          ids.add(mutation.entityId);
+          dirtyIds.set(mutation.entityType, ids);
+        }
+
+        const reconcile = <T extends { id: string }>(
+          store: StoreName,
+          entityType: EntityType,
+          remoteRecords: T[],
+        ) => {
+          const dirty = dirtyIds.get(entityType) || new Set<string>();
+          const remoteById = new Map(remoteRecords.map((record) => [record.id, record]));
+          for (const local of ctx.getAll<T>(store)) {
+            if (!dirty.has(local.id) && !remoteById.has(local.id)) {
+              ctx.delete(store, local.id);
+            }
+          }
+          for (const remote of remoteRecords) {
+            if (!dirty.has(remote.id)) ctx.put(store, remote.id, remote);
+          }
+        };
+
+        reconcile('notebooks', 'notebook', snapshot.notebooks);
+        reconcile('notes', 'note', snapshot.notes);
+        reconcile('assets', 'asset', snapshot.assets);
+        reconcile('schedules', 'schedule', snapshot.schedules);
+        ctx.put('metadata', 'githubRemoteCommitSha', {
+          key: 'githubRemoteCommitSha',
+          value: remoteCommitSha,
+          updatedAt: new Date().toISOString(),
+        });
+      },
+    );
+    for (const listener of this.remoteSnapshotListeners) listener();
   }
 
   /**

@@ -114,6 +114,32 @@ describe('Production Personal Workspace Local Storage Engine & Repository', () =
     expect(values).toEqual([{ value: 1 }, { value: 2 }]);
   });
 
+  it('applies a verified remote snapshot without overwriting dirty local rows or queuing remote writes', async () => {
+    const localNotebook = { ...FIXTURE_NOTEBOOK, title: 'Pending local title' };
+    await repo1.saveNotebookAtomic(localNotebook, 'create');
+    const pendingBefore = await repo1.getPendingOutbox();
+    const remoteNotebook = { ...FIXTURE_NOTEBOOK, id: 'remote-notebook', title: 'Remote title' };
+    const remoteApplied = vi.fn();
+    const unsubscribe = repo1.onRemoteSnapshotApplied(remoteApplied);
+
+    await repo1.applyRemoteSnapshot(
+      {
+        notebooks: [remoteNotebook, { ...FIXTURE_NOTEBOOK, title: 'Stale remote title' }],
+        notes: [],
+        assets: [],
+        schedules: [],
+      },
+      'verified-commit-sha',
+    );
+    unsubscribe();
+
+    expect(remoteApplied).toHaveBeenCalledOnce();
+    expect((await repo1.getNotebook(FIXTURE_NOTEBOOK.id))?.title).toBe('Pending local title');
+    expect((await repo1.getNotebook('remote-notebook'))?.title).toBe('Remote title');
+    expect(await repo1.getRemoteBaseCommitSha()).toBe('verified-commit-sha');
+    expect(await repo1.getPendingOutbox()).toEqual(pendingBefore);
+  });
+
   describe('2. Atomic Multi-Store Transactions & Outbox Commit', () => {
     it('atomically commits notebook and queues outbox mutation with monotonic generation', async () => {
       let eventPayload: SaveSuccessEvent | null = null;
