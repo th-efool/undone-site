@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Caveat:wght@700&family=Kalam:wght@700&family=Manrope:wght@500;600;700&display=swap');
-
 /* ── Cascade Layer Declaration (Frozen in theme-and-cascade-contract.md) ── */
 @layer theme, base, vendor, components, utilities, overrides;
 
