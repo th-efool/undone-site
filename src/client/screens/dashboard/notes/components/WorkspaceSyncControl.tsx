@@ -7,6 +7,7 @@ import { ConnectGitHubModal, Github } from '@/src/client/personal-workspace/ui/c
 import { getLocalWorkspace } from '@/src/client/personal-workspace/local/facade';
 import { SyncCoordinator } from '@/src/client/personal-workspace/sync/coordinator';
 import type { SyncSummary } from '@/src/shared/personal-workspace/contracts';
+import { notesRepository } from '../repositories/notes.repository';
 
 interface GitHubStatusInfo {
   connected: boolean;
@@ -60,6 +61,16 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
       .open({ userId: activeUserId })
       .then(async () => {
         if (!isMounted) return;
+
+        // Check if IndexedDB has notes; if empty, seed from notesRepository
+        const idbNotes = await facade.getRepository().getAllNotes();
+        if (idbNotes.length === 0) {
+          const initialState = notesRepository.getInitialState(activeUserId);
+          if (initialState.notes.length > 0 || initialState.notebooks.length > 0) {
+            await notesRepository.syncWithLocalWorkspace(initialState, activeUserId);
+          }
+        }
+
         const localSummary = await facade.getSyncSummary();
         if (isMounted) setSyncSummary(localSummary);
 
@@ -169,7 +180,15 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         coordinatorRef.current = coordinator;
         coordinator.subscribe(setSyncSummary);
         coordinator.startAutoSync();
-        coordinator.syncNow().catch(() => {});
+        facade.getRepository().getAllNotes().then(async (idbNotes) => {
+          if (idbNotes.length === 0) {
+            const initialState = notesRepository.getInitialState(activeUserId);
+            if (initialState.notes.length > 0 || initialState.notebooks.length > 0) {
+              await notesRepository.syncWithLocalWorkspace(initialState, activeUserId);
+            }
+          }
+          coordinator.syncNow().catch(() => {});
+        });
       } else if (event.data?.type === 'UNDONE_GITHUB_AUTH_ERROR') {
         setOauthError(event.data.description || event.data.error || 'GitHub authorization failed');
         setIsOAuthLoading(false);
@@ -215,9 +234,11 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
   // Trigger manual sync
   const handleSyncNow = useCallback(async () => {
     if (coordinatorRef.current) {
+      const currentState = notesRepository.getInitialState(activeUserId);
+      await notesRepository.syncWithLocalWorkspace(currentState, activeUserId);
       await coordinatorRef.current.syncNow();
     }
-  }, []);
+  }, [activeUserId]);
 
   const isConnected = Boolean(githubStatus?.connected);
 
@@ -237,26 +258,38 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
         </button>
       ) : (
-        <button
-          type="button"
-          onClick={handle1ClickConnect}
-          disabled={isOAuthLoading}
-          className="inline-flex items-center gap-1.5 h-[35px] px-3.5 rounded-lg border border-indigo-500/40 bg-indigo-950/40 hover:bg-indigo-900/50 text-indigo-200 text-xs font-medium transition-all cursor-pointer shadow-xs hover:border-indigo-400 hover:text-white disabled:opacity-60"
-          title="Connect GitHub: authorize & select your repository"
-          data-testid="connect-github-btn"
-        >
-          {isOAuthLoading ? (
-            <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400 shrink-0" />
-              <span>Connecting...</span>
-            </>
-          ) : (
-            <>
-              <Github className="w-3.5 h-3.5 shrink-0" />
-              <span>Connect GitHub</span>
-            </>
-          )}
-        </button>
+        <div className="inline-flex items-center rounded-lg border border-indigo-500/40 bg-indigo-950/40 shadow-xs divide-x divide-indigo-500/30">
+          <button
+            type="button"
+            onClick={handle1ClickConnect}
+            disabled={isOAuthLoading}
+            className="inline-flex items-center gap-1.5 h-[35px] px-3 text-indigo-200 hover:text-white hover:bg-indigo-900/50 text-xs font-medium transition-all cursor-pointer disabled:opacity-60"
+            title="Connect GitHub: 1-click authorize & select repository"
+            data-testid="connect-github-btn"
+          >
+            {isOAuthLoading ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400 shrink-0" />
+                <span>Connecting...</span>
+              </>
+            ) : (
+              <>
+                <Github className="w-3.5 h-3.5 shrink-0" />
+                <span>Connect GitHub</span>
+              </>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsModalOpen(true)}
+            className="h-[35px] px-2 text-indigo-300 hover:text-white hover:bg-indigo-900/50 text-xs transition-colors cursor-pointer"
+            title="Manual repository settings or personal access token"
+            aria-label="GitHub settings & manual token setup"
+            data-testid="github-settings-btn"
+          >
+            ⚙
+          </button>
+        </div>
       )}
 
       {/* 2. Interactive Status Badge (Shows Synced, Syncing, Offline, Conflicts) */}

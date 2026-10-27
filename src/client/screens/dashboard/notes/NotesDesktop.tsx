@@ -62,7 +62,8 @@ export function NotesDesktop({ model: notes }: NotesDesktopProps) {
     isDirtyRef,
     setCanvasState,
     saveTrigger,
-    handleSaveNote
+    handleSaveNote,
+    notes.userId
   );
 
   return (
