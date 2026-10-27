@@ -33,7 +33,12 @@ import type {
   CanvasNoteRecord,
   KanbanNoteRecord,
   AssetRecord,
+  ScheduleTaskRecord,
 } from '@/src/shared/personal-workspace/contracts';
+import {
+  extractAssetsFromCanvasScene,
+  extractAssetsFromKanbanCards,
+} from '@/src/shared/personal-workspace/media';
 
 export type {
   StoreName,
@@ -68,6 +73,7 @@ export interface ImportBundleResult {
     notebooks: number;
     notes: number;
     assets: number;
+    schedules?: number;
     outbox: number;
     buffers: number;
     conflicts: number;
@@ -232,13 +238,41 @@ export class PersonalWorkspaceRepository {
   ): Promise<SaveResult> {
     const timestamp = new Date().toISOString();
     const outboxId = `outbox-canvas-${note.id}-${Date.now()}`;
+
+    const effectiveAssets: TAsset[] = [...assets];
+    let noteToSave = note;
+
+    const rawNote = note as Record<string, any>;
+    if (rawNote?.canvasData && (rawNote.canvasData.elements || rawNote.canvasData.files)) {
+      const { sanitizedScene, extractedAssets } = extractAssetsFromCanvasScene({
+        elements: rawNote.canvasData.elements,
+        files: rawNote.canvasData.files,
+      });
+
+      if (extractedAssets.length > 0) {
+        for (const ea of extractedAssets) {
+          if (!effectiveAssets.some((a) => a.id === ea.id || (a as any).hash === ea.hash)) {
+            effectiveAssets.push(ea as unknown as TAsset);
+          }
+        }
+        noteToSave = {
+          ...note,
+          canvasData: {
+            ...rawNote.canvasData,
+            elements: sanitizedScene.elements,
+            files: sanitizedScene.files,
+          },
+        };
+      }
+    }
+
     const noteOutboxEntry: OutboxEntry = {
       id: outboxId,
       clientTimestamp: timestamp,
       mutationType,
       entityType: 'note',
-      entityId: note.id,
-      payload: structuredClone(note),
+      entityId: noteToSave.id,
+      payload: structuredClone(noteToSave),
       status: 'pending',
       retryCount: 0,
       generation: ++this.currentGeneration,
@@ -249,9 +283,9 @@ export class PersonalWorkspaceRepository {
         ['notes', 'assets', 'outbox', 'editor_buffers'],
         'readwrite',
         (ctx) => {
-          ctx.put('notes', note.id, note);
+          ctx.put('notes', noteToSave.id, noteToSave);
 
-          for (const asset of assets) {
+          for (const asset of effectiveAssets) {
             ctx.put('assets', asset.id, asset);
             const assetOutboxId = `outbox-asset-${asset.id}-${Date.now()}`;
             const assetEntry: OutboxEntry = {
@@ -269,15 +303,15 @@ export class PersonalWorkspaceRepository {
           }
 
           ctx.put('outbox', outboxId, noteOutboxEntry);
-          ctx.delete('editor_buffers', note.id);
+          ctx.delete('editor_buffers', noteToSave.id);
         },
       );
 
-      this.memoryEditorBuffers.delete(note.id);
+      this.memoryEditorBuffers.delete(noteToSave.id);
 
       const event: SaveSuccessEvent = {
         entityType: 'note',
-        entityId: note.id,
+        entityId: noteToSave.id,
         outboxId,
         timestamp,
       };
@@ -291,7 +325,7 @@ export class PersonalWorkspaceRepository {
         type: 'WORKSPACE_MUTATED',
         tabId: this.lockCoordinator.tabId,
         entityType: 'note',
-        entityId: note.id,
+        entityId: noteToSave.id,
       });
 
       return {
@@ -324,6 +358,7 @@ export class PersonalWorkspaceRepository {
 
   /**
    * Atomically saves a kanban note and queues outbox mutation.
+   * Extracts any embedded card covers/attachments to assets store.
    */
   async saveKanbanNoteAtomic<T extends { id: string } = KanbanNoteRecord>(
     note: T,
@@ -331,13 +366,32 @@ export class PersonalWorkspaceRepository {
   ): Promise<SaveResult> {
     const timestamp = new Date().toISOString();
     const outboxId = `outbox-kanban-${note.id}-${Date.now()}`;
+
+    const rawNote = note as Record<string, any>;
+    let noteToSave = note;
+    const extractedAssetsToSave: AssetRecord[] = [];
+
+    if (rawNote?.kanbanData?.cards && Array.isArray(rawNote.kanbanData.cards)) {
+      const { cleanCards, extractedAssets } = extractAssetsFromKanbanCards(rawNote.kanbanData.cards);
+      if (extractedAssets.length > 0) {
+        extractedAssetsToSave.push(...extractedAssets);
+        noteToSave = {
+          ...note,
+          kanbanData: {
+            ...rawNote.kanbanData,
+            cards: cleanCards,
+          },
+        };
+      }
+    }
+
     const outboxEntry: OutboxEntry = {
       id: outboxId,
       clientTimestamp: timestamp,
       mutationType,
       entityType: 'note',
-      entityId: note.id,
-      payload: structuredClone(note),
+      entityId: noteToSave.id,
+      payload: structuredClone(noteToSave),
       status: 'pending',
       retryCount: 0,
       generation: ++this.currentGeneration,
@@ -345,20 +399,38 @@ export class PersonalWorkspaceRepository {
 
     try {
       await this.engine.runTransaction(
-        ['notes', 'outbox', 'editor_buffers'],
+        ['notes', 'assets', 'outbox', 'editor_buffers'],
         'readwrite',
         (ctx) => {
-          ctx.put('notes', note.id, note);
+          ctx.put('notes', noteToSave.id, noteToSave);
+
+          for (const asset of extractedAssetsToSave) {
+            ctx.put('assets', asset.id, asset);
+            const assetOutboxId = `outbox-asset-${asset.id}-${Date.now()}`;
+            const assetEntry: OutboxEntry = {
+              id: assetOutboxId,
+              clientTimestamp: timestamp,
+              mutationType: 'create',
+              entityType: 'asset',
+              entityId: asset.id,
+              payload: structuredClone(asset),
+              status: 'pending',
+              retryCount: 0,
+              generation: ++this.currentGeneration,
+            };
+            ctx.put('outbox', assetOutboxId, assetEntry);
+          }
+
           ctx.put('outbox', outboxId, outboxEntry);
-          ctx.delete('editor_buffers', note.id);
+          ctx.delete('editor_buffers', noteToSave.id);
         },
       );
 
-      this.memoryEditorBuffers.delete(note.id);
+      this.memoryEditorBuffers.delete(noteToSave.id);
 
       const event: SaveSuccessEvent = {
         entityType: 'note',
-        entityId: note.id,
+        entityId: noteToSave.id,
         outboxId,
         timestamp,
       };
@@ -372,7 +444,7 @@ export class PersonalWorkspaceRepository {
         type: 'WORKSPACE_MUTATED',
         tabId: this.lockCoordinator.tabId,
         entityType: 'note',
-        entityId: note.id,
+        entityId: noteToSave.id,
       });
 
       return {
@@ -404,6 +476,104 @@ export class PersonalWorkspaceRepository {
   }
 
   /**
+   * Atomically saves a schedule/reminder task and records an outbox mutation.
+   */
+  async saveScheduleTaskAtomic(
+    task: ScheduleTaskRecord,
+    mutationType: MutationType = 'create',
+  ): Promise<SaveResult> {
+    const timestamp = new Date().toISOString();
+    const outboxId = `outbox-sched-${task.id}-${Date.now()}`;
+    const outboxEntry: OutboxEntry = {
+      id: outboxId,
+      clientTimestamp: timestamp,
+      mutationType,
+      entityType: 'schedule',
+      entityId: task.id,
+      payload: structuredClone(task),
+      status: 'pending',
+      retryCount: 0,
+      generation: ++this.currentGeneration,
+    };
+
+    try {
+      await this.engine.runTransaction(
+        ['schedules', 'outbox'],
+        'readwrite',
+        (ctx) => {
+          ctx.put('schedules', task.id, task);
+          ctx.put('outbox', outboxId, outboxEntry);
+        },
+      );
+
+      const event: SaveSuccessEvent = {
+        entityType: 'schedule',
+        entityId: task.id,
+        outboxId,
+        timestamp,
+      };
+      for (const listener of this.saveSuccessListeners) {
+        try {
+          listener(event);
+        } catch {}
+      }
+
+      this.lockCoordinator.broadcast({
+        type: 'WORKSPACE_MUTATED',
+        tabId: this.lockCoordinator.tabId,
+        entityType: 'schedule',
+        entityId: task.id,
+      });
+
+      return {
+        ok: true,
+        committedAt: timestamp,
+        outboxEntryId: outboxId,
+      };
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      const errorEvent: SaveErrorEvent = {
+        entityType: 'schedule',
+        entityId: task.id,
+        error,
+        rolledBack: true,
+      };
+      for (const listener of this.saveErrorListeners) {
+        try {
+          listener(errorEvent);
+        } catch {}
+      }
+
+      return {
+        ok: false,
+        committedAt: null,
+        outboxEntryId: null,
+        error: error.message,
+      };
+    }
+  }
+
+  async getScheduleTask(id: string): Promise<ScheduleTaskRecord | null> {
+    return this.engine.runTransaction(['schedules'], 'readonly', (ctx) => {
+      return ctx.get<ScheduleTaskRecord>('schedules', id) || null;
+    });
+  }
+
+  async getAllScheduleTasks(): Promise<ScheduleTaskRecord[]> {
+    return this.engine.runTransaction(['schedules'], 'readonly', (ctx) => {
+      return ctx.getAll<ScheduleTaskRecord>('schedules');
+    });
+  }
+
+  async listScheduleTasks(): Promise<ScheduleTaskRecord[]> {
+    return this.getAllScheduleTasks();
+  }
+
+  async deleteScheduleTaskAtomic(id: string): Promise<SaveResult> {
+    return this.deleteEntityAtomic('schedule', id);
+  }
+
+  /**
    * Atomically deletes an entity and records a delete mutation in outbox.
    */
   async deleteEntityAtomic(
@@ -413,7 +583,13 @@ export class PersonalWorkspaceRepository {
     const timestamp = new Date().toISOString();
     const outboxId = `outbox-del-${entityId}-${Date.now()}`;
     const targetStore: StoreName =
-      entityType === 'notebook' ? 'notebooks' : entityType === 'note' ? 'notes' : 'assets';
+      entityType === 'notebook'
+        ? 'notebooks'
+        : entityType === 'note'
+        ? 'notes'
+        : entityType === 'schedule'
+        ? 'schedules'
+        : 'assets';
 
     const outboxEntry: OutboxEntry = {
       id: outboxId,
@@ -634,15 +810,16 @@ export class PersonalWorkspaceRepository {
    * Explicitly distinguishes committed crash-safe state from unsaved editor buffers.
    */
   async exportLocalStateBundle(includeUnsavedBuffers = true): Promise<LocalStateExportBundle> {
-    const [notebooks, notes, assets, outbox, persistedBuffers, conflicts, metadata] =
+    const [notebooks, notes, assets, schedules, outbox, persistedBuffers, conflicts, metadata] =
       await this.engine.runTransaction(
-        ['notebooks', 'notes', 'assets', 'outbox', 'editor_buffers', 'conflicts', 'metadata'],
+        ['notebooks', 'notes', 'assets', 'schedules', 'outbox', 'editor_buffers', 'conflicts', 'metadata'],
         'readonly',
         (ctx) => {
           return [
             ctx.getAll<NotebookRecord>('notebooks'),
             ctx.getAll<NoteRecord>('notes'),
             ctx.getAll<AssetRecord>('assets'),
+            ctx.getAll<ScheduleTaskRecord>('schedules'),
             ctx.getAll<OutboxEntry>('outbox'),
             ctx.getAll<UnsavedEditorBuffer>('editor_buffers'),
             ctx.getAll<Record<string, unknown>>('conflicts'),
@@ -667,6 +844,7 @@ export class PersonalWorkspaceRepository {
       notebooks,
       notes,
       assets,
+      schedules,
       outbox,
       conflicts,
       metadata,
@@ -707,7 +885,7 @@ export class PersonalWorkspaceRepository {
     const { committedState, unsavedBuffers } = bundle;
 
     await this.engine.runTransaction(
-      ['notebooks', 'notes', 'assets', 'outbox', 'editor_buffers', 'conflicts', 'metadata'],
+      ['notebooks', 'notes', 'assets', 'schedules', 'outbox', 'editor_buffers', 'conflicts', 'metadata'],
       'readwrite',
       (ctx) => {
         for (const nb of committedState.notebooks || []) {
@@ -718,6 +896,9 @@ export class PersonalWorkspaceRepository {
         }
         for (const asset of committedState.assets || []) {
           ctx.put('assets', (asset as { id: string }).id, asset);
+        }
+        for (const sched of (committedState as any).schedules || []) {
+          ctx.put('schedules', (sched as { id: string }).id, sched);
         }
         for (const entry of committedState.outbox || []) {
           ctx.put('outbox', (entry as { id: string }).id, entry);
@@ -749,6 +930,7 @@ export class PersonalWorkspaceRepository {
         notebooks: committedState.notebooks?.length ?? 0,
         notes: committedState.notes?.length ?? 0,
         assets: committedState.assets?.length ?? 0,
+        schedules: (committedState as any).schedules?.length ?? 0,
         outbox: committedState.outbox?.length ?? 0,
         buffers: options.restoreBuffers ? (unsavedBuffers?.length ?? 0) : 0,
         conflicts: committedState.conflicts?.length ?? 0,

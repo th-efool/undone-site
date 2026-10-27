@@ -17,13 +17,17 @@ import type {
   KanbanNoteRecord,
   CanvasNoteData,
   AssetRecord,
+  ScheduleTaskRecord,
   OutboxMutation,
   LocalReceipt,
   SyncSummary,
   SyncStatus,
   LocalStateExportBundle,
 } from '@/src/shared/personal-workspace/contracts';
-import { workspaceScopeSchema } from '@/src/shared/personal-workspace/contracts';
+import {
+  workspaceScopeSchema,
+  scheduleTaskRecordSchema,
+} from '@/src/shared/personal-workspace/contracts';
 import {
   computeSha256,
   validateAssetRecord,
@@ -96,12 +100,21 @@ export type WorkspaceCommand =
     }
   | {
       type: 'delete_entity';
-      entityType: 'notebook' | 'note' | 'asset';
+      entityType: 'notebook' | 'note' | 'asset' | 'schedule';
       entityId: string;
     }
   | {
       type: 'save_asset';
       asset: AssetRecord;
+    }
+  | {
+      type: 'save_schedule_task';
+      task: ScheduleTaskRecord;
+      mutationType?: 'create' | 'update';
+    }
+  | {
+      type: 'delete_schedule_task';
+      taskId: string;
     };
 
 export interface LocalWorkspaceOptions extends PersonalWorkspaceRepoOptions {
@@ -460,6 +473,12 @@ export class LocalWorkspace {
       case 'delete_entity':
         return this.deleteEntity(command.entityType, command.entityId);
 
+      case 'save_schedule_task':
+        return this.saveScheduleTask(command.task);
+
+      case 'delete_schedule_task':
+        return this.deleteScheduleTask(command.taskId);
+
       case 'save_asset': {
         validateAssetRecord(command.asset);
         await this.repo.saveAsset(command.asset);
@@ -606,7 +625,10 @@ export class LocalWorkspace {
    * Atomically deletes an entity and queues outbox deletion.
    * If deleting a notebook, also cascades deletion to its child notes.
    */
-  async deleteEntity(entityType: 'notebook' | 'note' | 'asset', entityId: string): Promise<LocalReceipt> {
+  async deleteEntity(
+    entityType: 'notebook' | 'note' | 'asset' | 'schedule',
+    entityId: string,
+  ): Promise<LocalReceipt> {
     this.isSaving = true;
     this.notifySubscribers();
     try {
@@ -635,6 +657,50 @@ export class LocalWorkspace {
       this.isSaving = false;
       this.notifySubscribers();
     }
+  }
+
+  /**
+   * Atomically saves or updates a schedule / reminder task.
+   */
+  async saveScheduleTask(task: ScheduleTaskRecord): Promise<LocalReceipt> {
+    const validated = scheduleTaskRecordSchema.parse(task);
+    const existing = await this.repo.getScheduleTask(validated.id);
+    const mutationType: MutationType = existing ? 'update' : 'create';
+
+    this.isSaving = true;
+    this.notifySubscribers();
+    try {
+      const receipt = await this.repo.saveScheduleTaskAtomic(validated, mutationType);
+      if (receipt.ok) {
+        this.generation++;
+        await this.refreshStateFromRepo();
+        this.lastError = null;
+      } else {
+        this.lastError = new Error(receipt.error || 'Failed to save schedule task');
+      }
+      return receipt;
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      this.lastError = err instanceof Error ? err : new Error(errorMsg);
+      return { ok: false, committedAt: null, outboxEntryId: null, error: errorMsg };
+    } finally {
+      this.isSaving = false;
+      this.notifySubscribers();
+    }
+  }
+
+  /**
+   * Atomically deletes a schedule / reminder task.
+   */
+  async deleteScheduleTask(taskId: string): Promise<LocalReceipt> {
+    return this.deleteEntity('schedule', taskId);
+  }
+
+  /**
+   * Retrieves all schedule / reminder tasks for this account.
+   */
+  async getScheduleTasks(): Promise<ScheduleTaskRecord[]> {
+    return this.repo.getAllScheduleTasks();
   }
 
   /**

@@ -27,7 +27,8 @@ export type StoreName =
   | 'outbox'
   | 'editor_buffers'
   | 'metadata'
-  | 'conflicts';
+  | 'conflicts'
+  | 'schedules';
 
 export const ALL_STORE_NAMES: readonly StoreName[] = [
   'notebooks',
@@ -37,9 +38,10 @@ export const ALL_STORE_NAMES: readonly StoreName[] = [
   'editor_buffers',
   'metadata',
   'conflicts',
+  'schedules',
 ] as const;
 
-export type EntityType = 'notebook' | 'note' | 'asset';
+export type EntityType = 'notebook' | 'note' | 'asset' | 'schedule';
 export type MutationType = 'create' | 'update' | 'delete';
 
 export interface OutboxEntry {
@@ -90,6 +92,7 @@ export interface CommittedWorkspaceState {
   notebooks: unknown[];
   notes: unknown[];
   assets: unknown[];
+  schedules?: unknown[];
   outbox: OutboxEntry[];
   conflicts?: unknown[];
   metadata?: unknown[];
@@ -275,7 +278,7 @@ export class PersonalWorkspaceDatabase {
 
     await new Promise<void>((resolve) => {
       try {
-        const request = indexedDB.open(this.dbName, 1);
+        const request = indexedDB.open(this.dbName, 2);
 
         request.onupgradeneeded = (event) => {
           const db = (event.target as IDBOpenDBRequest).result;

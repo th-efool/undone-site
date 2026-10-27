@@ -41,7 +41,7 @@ describe('Production Personal Workspace Local Storage Engine & Repository', () =
   });
 
   describe('1. Store Names & Account Isolation', () => {
-    it('verifies all 7 production stores exist in engine', () => {
+    it('verifies all 8 production stores exist in engine', () => {
       expect(ALL_STORE_NAMES).toEqual([
         'notebooks',
         'notes',
@@ -50,6 +50,7 @@ describe('Production Personal Workspace Local Storage Engine & Repository', () =
         'editor_buffers',
         'metadata',
         'conflicts',
+        'schedules',
       ]);
     });
 
@@ -157,6 +158,32 @@ describe('Production Personal Workspace Local Storage Engine & Repository', () =
 
       const outbox = await repo1.getPendingOutbox();
       expect(outbox.some((e) => e.entityId === FIXTURE_KANBAN_NOTE.id)).toBe(true);
+    });
+
+    it('atomically commits schedule task mutations', async () => {
+      const task = {
+        id: 'task-test-1',
+        title: 'Review Excalidraw GIF fixes',
+        date: '2026-10-28',
+        status: 'pending' as const,
+        priority: 'urgent' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const res = await repo1.saveScheduleTaskAtomic(task);
+      expect(res.ok).toBe(true);
+
+      const fetched = await repo1.getScheduleTask('task-test-1');
+      expect(fetched).toBeDefined();
+      expect(fetched?.title).toBe('Review Excalidraw GIF fixes');
+      expect(fetched?.priority).toBe('urgent');
+
+      const allTasks = await repo1.getAllScheduleTasks();
+      expect(allTasks.some((t) => t.id === 'task-test-1')).toBe(true);
+
+      const delRes = await repo1.deleteScheduleTaskAtomic('task-test-1');
+      expect(delRes.ok).toBe(true);
+      expect(await repo1.getScheduleTask('task-test-1')).toBeNull();
     });
 
     it('atomically deletes an entity and queues delete mutation', async () => {
