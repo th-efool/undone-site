@@ -9,13 +9,11 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   PersonalWorkspaceDatabase,
   TabLockCoordinator,
-  QuotaExceededError,
   TransactionAbortError,
   LockAcquisitionTimeoutError,
   FROZEN_OFFLINE_CAPABILITY_PROMISES,
   ALL_STORE_NAMES,
-  computeSha256,
-  secureTimingSafeEqual,
+  type SaveSuccessEvent,
 } from '../database';
 import { PersonalWorkspaceRepository } from '../repository';
 import {
@@ -98,7 +96,7 @@ describe('Production Personal Workspace Local Storage Engine & Repository', () =
 
   describe('2. Atomic Multi-Store Transactions & Outbox Commit', () => {
     it('atomically commits notebook and queues outbox mutation with monotonic generation', async () => {
-      let eventPayload: any = null;
+      let eventPayload: SaveSuccessEvent | null = null;
       repo1.onSaveSuccess((ev) => {
         eventPayload = ev;
       });

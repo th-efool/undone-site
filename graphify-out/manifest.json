@@ -15274,5 +15274,281 @@
     "seen": 1793077841.4440842,
     "ast_hash": "664fdecea9504c854d4bbbc740ff9fe4",
     "semantic_hash": ""
+  },
+  "scripts/test-live-github-sync.ts": {
+    "mtime": 1793083508.1046948,
+    "seen": 1793083643.0254908,
+    "ast_hash": "4bea047cffb988bf2819d724a979f8f3",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/local/__tests__/local-storage.test.ts": {
+    "mtime": 1793083306.7241826,
+    "seen": 1793083643.0987277,
+    "ast_hash": "62b9a09d852f3114568decffd0c61969",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/local/database.ts": {
+    "mtime": 1793083019.876504,
+    "seen": 1793083643.0987315,
+    "ast_hash": "d12f62bbd0154019f40379da061d5aab",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/local/index.ts": {
+    "mtime": 1793081749.7522726,
+    "seen": 1793083643.0987341,
+    "ast_hash": "3550870c4d12d28312a4fd4bd73611b7",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/local/repository.ts": {
+    "mtime": 1793083256.133953,
+    "seen": 1793083643.098737,
+    "ast_hash": "15f446254cee0b14a6d2ccefcf14f7a2",
+    "semantic_hash": ""
+  },
+  "src/shared/personal-workspace/__tests__/personal-workspace.test.ts": {
+    "mtime": 1793079851.8496115,
+    "seen": 1793080003.4250364,
+    "ast_hash": "bd354b9f0ad74ad415de899d1088159f",
+    "semantic_hash": ""
+  },
+  "src/shared/personal-workspace/contracts.ts": {
+    "mtime": 1793082381.9649792,
+    "seen": 1793083643.3652184,
+    "ast_hash": "30cb3c4b39e001d26a340e541415ea81",
+    "semantic_hash": ""
+  },
+  "src/shared/personal-workspace/errors.ts": {
+    "mtime": 1793079608.72782,
+    "seen": 1793080003.4250443,
+    "ast_hash": "faa2bb09d489e6ea52deaf9366dc9156",
+    "semantic_hash": ""
+  },
+  "src/shared/personal-workspace/index.ts": {
+    "mtime": 1793079662.4445143,
+    "seen": 1793080003.4250467,
+    "ast_hash": "3e1b555638e3c67016a3c8ab2a2c25d8",
+    "semantic_hash": ""
+  },
+  "src/shared/personal-workspace/serialization.ts": {
+    "mtime": 1793081622.0912886,
+    "seen": 1793083643.365529,
+    "ast_hash": "65b4705c16a32bfe37bc205ab3218836",
+    "semantic_hash": ""
+  },
+  "MEMORY/MEMORY-ChatnCentrifugo.md": {
+    "mtime": 1792491270.668595,
+    "seen": 1793080003.5880163,
+    "ast_hash": "4343947d80265a8dc97feb77904a421c",
+    "semantic_hash": ""
+  },
+  "MEMORY/Meta-Issue-List.md": {
+    "mtime": 1792328119.3385296,
+    "seen": 1793080003.5880213,
+    "ast_hash": "b3c49237c80218996a2383db3b66eafd",
+    "semantic_hash": ""
+  },
+  "MEMORY/README.md": {
+    "mtime": 1793083576.6561706,
+    "seen": 1793083643.4807653,
+    "ast_hash": "80ed952b65a2c4d733010a4f83014ac1",
+    "semantic_hash": ""
+  },
+  "MEMORY/cache-boundaries.md": {
+    "mtime": 1792486387.3585632,
+    "seen": 1793080003.5880296,
+    "ast_hash": "1f50e5bc8428a4d33c46aac9b4873663",
+    "semantic_hash": ""
+  },
+  "MEMORY/cohort-builder-processing.md": {
+    "mtime": 1792362102.5138593,
+    "seen": 1793080003.588033,
+    "ast_hash": "536d6aec3a4309443b85a2493389a5cc",
+    "semantic_hash": ""
+  },
+  "MEMORY/home-dashboard.md": {
+    "mtime": 1792416871.54697,
+    "seen": 1793080003.5880356,
+    "ast_hash": "412cd6060a9d89cb4445c4b5cda6eb0b",
+    "semantic_hash": ""
+  },
+  "MEMORY/messaging-and-centrifugo.md": {
+    "mtime": 1792539852.5595381,
+    "seen": 1793080003.588038,
+    "ast_hash": "e53f1e2f3fa1e188941639e923e49a89",
+    "semantic_hash": ""
+  },
+  "MEMORY/notes-local-first-sync.md": {
+    "mtime": 1793083566.7280762,
+    "seen": 1793083643.4818754,
+    "ast_hash": "e98b0f675cb6e91fcaffd621e6a1d647",
+    "semantic_hash": ""
+  },
+  "MEMORY/play-playback.md": {
+    "mtime": 1792418381.108898,
+    "seen": 1793080003.5880435,
+    "ast_hash": "43d803aa7c0ed69288124bd49e1ae133",
+    "semantic_hash": ""
+  },
+  "MEMORY/study-rooms.md": {
+    "mtime": 1792568968.8052404,
+    "seen": 1793080003.5880463,
+    "ast_hash": "36df204d6f1e9af90c34a837a47fbe76",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/hooks/useLocalWorkspace.ts": {
+    "mtime": 1793081136.877844,
+    "seen": 1793083643.0987246,
+    "ast_hash": "c03d529fe8968121ab30825dcf254e96",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/local/__tests__/facade.test.ts": {
+    "mtime": 1793083280.0013807,
+    "seen": 1793083643.098726,
+    "ast_hash": "8e394fd5123262334de898740ae1947d",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/local/facade.ts": {
+    "mtime": 1793081016.5419266,
+    "seen": 1793083643.0987327,
+    "ast_hash": "ed8b7b9df23a0be4d1d00461eeb60998",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/ui/__tests__/sync-status-badge.test.tsx": {
+    "mtime": 1793081108.6872394,
+    "seen": 1793083643.0987434,
+    "ast_hash": "3fb2fc985c62d9ed370a994afa8496e7",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/ui/index.ts": {
+    "mtime": 1793082575.3530602,
+    "seen": 1793083643.0987477,
+    "ast_hash": "63406889ce0da245be5ba79e9580f0cb",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/ui/sync-status-badge.tsx": {
+    "mtime": 1793082418.4486651,
+    "seen": 1793083643.0987492,
+    "ast_hash": "45637a035bfba47b319b8bbfcfb5d030",
+    "semantic_hash": ""
+  },
+  "src/app/api/personal-workspace/github/__tests__/api-routes.test.ts": {
+    "mtime": 1793082511.0245316,
+    "seen": 1793083643.0570874,
+    "ast_hash": "98cdc71494f0f515d0b7261beb05c144",
+    "semantic_hash": ""
+  },
+  "src/app/api/personal-workspace/github/connect/route.ts": {
+    "mtime": 1793082337.742404,
+    "seen": 1793083643.0570905,
+    "ast_hash": "7b690472e2c58efcd2407911bc9e86b0",
+    "semantic_hash": ""
+  },
+  "src/app/api/personal-workspace/github/disconnect/route.ts": {
+    "mtime": 1793082342.1275935,
+    "seen": 1793083643.0570924,
+    "ast_hash": "6fbdad70ba03ad3b6b03b75c27da05e9",
+    "semantic_hash": ""
+  },
+  "src/app/api/personal-workspace/github/publish/route.ts": {
+    "mtime": 1793082362.3437881,
+    "seen": 1793083643.0570943,
+    "ast_hash": "13c33dd236f406b49a27865b73cc765b",
+    "semantic_hash": ""
+  },
+  "src/app/api/personal-workspace/github/pull/route.ts": {
+    "mtime": 1793082375.7214284,
+    "seen": 1793083643.0570962,
+    "ast_hash": "df3e43493f53917e200a4f998c290f06",
+    "semantic_hash": ""
+  },
+  "src/app/api/personal-workspace/github/status/route.ts": {
+    "mtime": 1793082329.34674,
+    "seen": 1793083643.0570972,
+    "ast_hash": "470a625b0e11c01b5e049ee27e8f8a8a",
+    "semantic_hash": ""
+  },
+  "src/app/api/personal-workspace/github/vault.ts": {
+    "mtime": 1793082322.604712,
+    "seen": 1793083643.0570984,
+    "ast_hash": "75a075b8ac28a292bde520e71e195f20",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/hooks/__tests__/useLocalWorkspace.test.ts": {
+    "mtime": 1793081095.5980837,
+    "seen": 1793083643.0987217,
+    "ast_hash": "527b1ee97285d09d4433595a6dae1600",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/local/__tests__/recovery.test.ts": {
+    "mtime": 1793081814.6380894,
+    "seen": 1793083643.0987296,
+    "ast_hash": "fa4e08042a8c070acba0579a9c8d87e9",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/local/recovery.ts": {
+    "mtime": 1793081738.481209,
+    "seen": 1793083643.098735,
+    "ast_hash": "2cdf7bc5e02251dfc2d55fb1e1950c45",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/sync/__tests__/coordinator.test.ts": {
+    "mtime": 1793082513.7539818,
+    "seen": 1793083643.098738,
+    "ast_hash": "b83abd516d12c98d028ef08621f9193b",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/sync/coordinator.ts": {
+    "mtime": 1793082475.842228,
+    "seen": 1793083643.0987391,
+    "ast_hash": "a0ced378c0406968a58c0c4a16965333",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/sync/index.ts": {
+    "mtime": 1793082480.6123018,
+    "seen": 1793083643.0987403,
+    "ast_hash": "806d962a5e3961e0f3dd007bd609e183",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/ui/__tests__/connect-github-modal.test.tsx": {
+    "mtime": 1793082594.4410915,
+    "seen": 1793083643.098742,
+    "ast_hash": "658a2ed0bdfa110e24f90c3815db0cee",
+    "semantic_hash": ""
+  },
+  "src/client/personal-workspace/ui/connect-github-modal.tsx": {
+    "mtime": 1793082695.9453518,
+    "seen": 1793083643.0987458,
+    "ast_hash": "45239c3e11b21d8214dfd54b3812e7a4",
+    "semantic_hash": ""
+  },
+  "src/server/infrastructure/github/personal-workspace/__tests__/client.test.ts": {
+    "mtime": 1793081807.2051983,
+    "seen": 1793083643.3498547,
+    "ast_hash": "e9f5ef1859132ee99e052b11aabde4ab",
+    "semantic_hash": ""
+  },
+  "src/server/infrastructure/github/personal-workspace/__tests__/crypto.test.ts": {
+    "mtime": 1793081559.891776,
+    "seen": 1793083643.3498569,
+    "ast_hash": "18c09bbe74e269e629aea0657670c27f",
+    "semantic_hash": ""
+  },
+  "src/server/infrastructure/github/personal-workspace/client.ts": {
+    "mtime": 1793083479.9947472,
+    "seen": 1793083643.3498588,
+    "ast_hash": "24ef33304e1cc602d182dce2530b125c",
+    "semantic_hash": ""
+  },
+  "src/server/infrastructure/github/personal-workspace/crypto.ts": {
+    "mtime": 1793081537.2820852,
+    "seen": 1793083643.3498607,
+    "ast_hash": "50756d2e28f009ba2bd030068af3df54",
+    "semantic_hash": ""
+  },
+  "src/server/infrastructure/github/personal-workspace/index.ts": {
+    "mtime": 1793081648.9189684,
+    "seen": 1793083643.3498619,
+    "ast_hash": "caefd7496320ca2a6872ebd4776bb38c",
+    "semantic_hash": ""
   }
 }

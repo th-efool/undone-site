@@ -27,6 +27,13 @@ import type {
   LocalStateExportBundle,
   PersonalWorkspaceDatabaseOptions,
 } from './database';
+import type {
+  NotebookRecord,
+  NoteRecord,
+  CanvasNoteRecord,
+  KanbanNoteRecord,
+  AssetRecord,
+} from '@/src/shared/personal-workspace/contracts';
 
 export type {
   StoreName,
@@ -135,7 +142,7 @@ export class PersonalWorkspaceRepository {
    * If transaction fails or aborts, neither the notebook nor the outbox entry is written,
    * and save success is NEVER emitted.
    */
-  async saveNotebookAtomic<T extends { id: string } = any>(
+  async saveNotebookAtomic<T extends { id: string } = NotebookRecord>(
     notebook: T,
     mutationType: MutationType = 'create',
   ): Promise<SaveResult> {
@@ -215,7 +222,10 @@ export class PersonalWorkspaceRepository {
    * Atomically saves a canvas note, all referenced assets, and outbox mutations.
    * Commits in one transaction across `notes`, `assets`, `outbox`, and `editor_buffers`.
    */
-  async saveCanvasNoteAtomic<TNote extends { id: string } = any, TAsset extends { id: string } = any>(
+  async saveCanvasNoteAtomic<
+    TNote extends { id: string } = CanvasNoteRecord,
+    TAsset extends { id: string } = AssetRecord,
+  >(
     note: TNote,
     assets: TAsset[] = [],
     mutationType: MutationType = 'create',
@@ -315,7 +325,7 @@ export class PersonalWorkspaceRepository {
   /**
    * Atomically saves a kanban note and queues outbox mutation.
    */
-  async saveKanbanNoteAtomic<T extends { id: string } = any>(
+  async saveKanbanNoteAtomic<T extends { id: string } = KanbanNoteRecord>(
     note: T,
     mutationType: MutationType = 'create',
   ): Promise<SaveResult> {
@@ -441,55 +451,55 @@ export class PersonalWorkspaceRepository {
   // Reading & Querying
   // ==========================================================================
 
-  async getNotebook<T = any>(id: string): Promise<T | null> {
+  async getNotebook<T = NotebookRecord>(id: string): Promise<T | null> {
     return this.engine.runTransaction(['notebooks'], 'readonly', (ctx) => {
       return ctx.get<T>('notebooks', id) || null;
     });
   }
 
-  async getAllNotebooks<T = any>(): Promise<T[]> {
+  async getAllNotebooks<T = NotebookRecord>(): Promise<T[]> {
     return this.engine.runTransaction(['notebooks'], 'readonly', (ctx) => {
       return ctx.getAll<T>('notebooks');
     });
   }
 
-  async listNotebooks<T = any>(): Promise<T[]> {
+  async listNotebooks<T = NotebookRecord>(): Promise<T[]> {
     return this.getAllNotebooks<T>();
   }
 
-  async getNote<T = any>(id: string): Promise<T | null> {
+  async getNote<T = NoteRecord>(id: string): Promise<T | null> {
     return this.engine.runTransaction(['notes'], 'readonly', (ctx) => {
       return ctx.get<T>('notes', id) || null;
     });
   }
 
-  async getAllNotes<T = any>(): Promise<T[]> {
+  async getAllNotes<T = NoteRecord>(): Promise<T[]> {
     return this.engine.runTransaction(['notes'], 'readonly', (ctx) => {
       return ctx.getAll<T>('notes');
     });
   }
 
-  async listNotes<T = any>(): Promise<T[]> {
+  async listNotes<T = NoteRecord>(): Promise<T[]> {
     return this.getAllNotes<T>();
   }
 
-  async getAsset<T = any>(id: string): Promise<T | null> {
+  async getAsset<T = AssetRecord>(id: string): Promise<T | null> {
     return this.engine.runTransaction(['assets'], 'readonly', (ctx) => {
       return ctx.get<T>('assets', id) || null;
     });
   }
 
-  async getAllAssets<T = any>(): Promise<T[]> {
+  async getAllAssets<T = AssetRecord>(): Promise<T[]> {
     return this.engine.runTransaction(['assets'], 'readonly', (ctx) => {
       return ctx.getAll<T>('assets');
     });
   }
 
-  async listAssets<T = any>(): Promise<T[]> {
+  async listAssets<T = AssetRecord>(): Promise<T[]> {
     return this.getAllAssets<T>();
   }
 
-  async saveAsset<T extends { id: string } = any>(asset: T): Promise<void> {
+  async saveAsset<T extends { id: string } = AssetRecord>(asset: T): Promise<void> {
     await this.engine.runTransaction(['assets'], 'readwrite', (ctx) => {
       ctx.put('assets', asset.id, asset);
     });
@@ -630,13 +640,13 @@ export class PersonalWorkspaceRepository {
         'readonly',
         (ctx) => {
           return [
-            ctx.getAll<any>('notebooks'),
-            ctx.getAll<any>('notes'),
-            ctx.getAll<any>('assets'),
+            ctx.getAll<NotebookRecord>('notebooks'),
+            ctx.getAll<NoteRecord>('notes'),
+            ctx.getAll<AssetRecord>('assets'),
             ctx.getAll<OutboxEntry>('outbox'),
             ctx.getAll<UnsavedEditorBuffer>('editor_buffers'),
-            ctx.getAll<any>('conflicts'),
-            ctx.getAll<any>('metadata'),
+            ctx.getAll<Record<string, unknown>>('conflicts'),
+            ctx.getAll<Record<string, unknown>>('metadata'),
           ] as const;
         },
       );
@@ -701,22 +711,24 @@ export class PersonalWorkspaceRepository {
       'readwrite',
       (ctx) => {
         for (const nb of committedState.notebooks || []) {
-          ctx.put('notebooks', nb.id, nb);
+          ctx.put('notebooks', (nb as { id: string }).id, nb);
         }
         for (const note of committedState.notes || []) {
-          ctx.put('notes', (note as any).id, note);
+          ctx.put('notes', (note as { id: string }).id, note);
         }
         for (const asset of committedState.assets || []) {
-          ctx.put('assets', asset.id, asset);
+          ctx.put('assets', (asset as { id: string }).id, asset);
         }
         for (const entry of committedState.outbox || []) {
-          ctx.put('outbox', entry.id, entry);
+          ctx.put('outbox', (entry as { id: string }).id, entry);
         }
         for (const conflict of committedState.conflicts || []) {
-          ctx.put('conflicts', (conflict as any).id || (conflict as any).entityId, conflict);
+          const c = conflict as { id?: string; entityId?: string };
+          ctx.put('conflicts', c.id || c.entityId || '', conflict);
         }
         for (const meta of committedState.metadata || []) {
-          ctx.put('metadata', (meta as any).key || (meta as any).id, meta);
+          const m = meta as { key?: string; id?: string };
+          ctx.put('metadata', m.key || m.id || '', meta);
         }
 
         if (options.restoreBuffers && unsavedBuffers) {

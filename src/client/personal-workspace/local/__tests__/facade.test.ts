@@ -21,8 +21,6 @@ import {
 import { TabLockCoordinator } from '../database';
 import {
   FIXTURE_NOTEBOOK,
-  FIXTURE_CANVAS_NOTE,
-  FIXTURE_CANVAS_ASSET,
   SYNTHETIC_PNG_BASE64,
   SYNTHETIC_ASSET_HASH,
   SYNTHETIC_ASSET_BYTES,
@@ -430,7 +428,7 @@ describe('LocalWorkspace Facade & Hook Integration', () => {
       expect(parsed.committedState.assets[0].hash).toBe(SYNTHETIC_ASSET_HASH);
 
       // Verifies unsaved live editor buffers are preserved in recovery bundle
-      expect(parsed.unsavedBuffers.some((b: any) => b.noteId === 'draft-note')).toBe(true);
+      expect(parsed.unsavedBuffers.some((b: { noteId: string }) => b.noteId === 'draft-note')).toBe(true);
     });
 
     it('restores recovery bundle cleanly into a fresh workspace repository', async () => {

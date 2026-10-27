@@ -8,6 +8,7 @@ export interface GitHubGitDataClientOptions {
   token: string;
   userAgent?: string;
   baseUrl?: string;
+  maxRetries?: number;
 }
 
 export interface GitHubRepositoryInfo {
@@ -131,6 +132,7 @@ export class GitHubGitDataClient {
   private readonly token: string;
   private readonly userAgent: string;
   private readonly baseUrl: string;
+  private readonly maxRetries: number;
 
   constructor(options: GitHubGitDataClientOptions) {
     if (!options.token || typeof options.token !== 'string' || options.token.trim() === '') {
@@ -154,6 +156,7 @@ export class GitHubGitDataClient {
     this.token = options.token.trim();
     this.userAgent = options.userAgent || 'undone-personal-workspace';
     this.baseUrl = (options.baseUrl || 'https://api.github.com').replace(/\/+$/, '');
+    this.maxRetries = options.maxRetries ?? 0;
   }
 
   private getHeaders(): Record<string, string> {
@@ -194,30 +197,49 @@ export class GitHubGitDataClient {
       headers['Content-Type'] = 'application/json';
     }
 
-    const res = await fetch(url, {
-      ...init,
-      headers,
-    });
+    const maxRetries = this.maxRetries;
+    let lastError: unknown = null;
 
-    const contentType = res.headers.get('content-type') || '';
-    const isJson = contentType.includes('application/json') || contentType.includes('+json');
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const res = await fetch(url, {
+          ...init,
+          headers,
+        });
 
-    let rawData: unknown = null;
-    if (isJson) {
-      rawData = await res.json().catch(() => null);
-    } else {
-      const text = await res.text().catch(() => '');
-      rawData = text ? { message: text } : null;
+        const contentType = res.headers.get('content-type') || '';
+        const isJson = contentType.includes('application/json') || contentType.includes('+json');
+
+        let rawData: unknown = null;
+        if (isJson) {
+          rawData = await res.json().catch(() => null);
+        } else {
+          const text = await res.text().catch(() => '');
+          rawData = text ? { message: text } : null;
+        }
+
+        if (!res.ok) {
+          const errorObj = (rawData && typeof rawData === 'object' ? rawData : {}) as RawGitHubError;
+          const message =
+            errorObj.message || `GitHub API request failed: ${init.method || 'GET'} ${url} returned ${res.status}`;
+          throw new GitHubApiError(message, res.status, errorObj.documentation_url, rawData);
+        }
+
+        return { status: res.status, data: rawData as T };
+      } catch (err) {
+        if (err instanceof GitHubApiError) {
+          // Do not retry API errors (e.g. 401, 404, 422)
+          throw err;
+        }
+        lastError = err;
+        if (attempt < maxRetries) {
+          await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+          continue;
+        }
+      }
     }
 
-    if (!res.ok) {
-      const errorObj = (rawData && typeof rawData === 'object' ? rawData : {}) as RawGitHubError;
-      const message =
-        errorObj.message || `GitHub API request failed: ${init.method || 'GET'} ${url} returned ${res.status}`;
-      throw new GitHubApiError(message, res.status, errorObj.documentation_url, rawData);
-    }
-
-    return { status: res.status, data: rawData as T };
+    throw lastError;
   }
 
   /**

@@ -86,23 +86,37 @@ class RealGitHubDataProvider {
       ...(options.headers || {}),
     };
 
-    const res = await fetch(url, { ...options, headers });
-    if (!res.ok) {
-      const errorText = await res.text();
-      let parsed;
+    let lastError: any = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        parsed = JSON.parse(errorText);
-      } catch {
-        parsed = { message: errorText };
-      }
-      const err = new Error(`GitHub API Error [${res.status}]: ${parsed.message || errorText}`);
-      (err as any).status = res.status;
-      (err as any).response = parsed;
-      throw err;
-    }
+        const res = await fetch(url, { ...options, headers });
+        if (!res.ok) {
+          const errorText = await res.text();
+          let parsed;
+          try {
+            parsed = JSON.parse(errorText);
+          } catch {
+            parsed = { message: errorText };
+          }
+          const err = new Error(`GitHub API Error [${res.status}]: ${parsed.message || errorText}`);
+          (err as any).status = res.status;
+          (err as any).response = parsed;
+          throw err;
+        }
 
-    if (res.status === 204) return null;
-    return await res.json();
+        if (res.status === 204) return null;
+        return await res.json();
+      } catch (err: any) {
+        if (err.status && err.status < 500) {
+          throw err;
+        }
+        lastError = err;
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+        }
+      }
+    }
+    throw lastError;
   }
 
   async verifyRepository(): Promise<{ name: string; isPrivate: boolean; defaultBranch: string }> {
