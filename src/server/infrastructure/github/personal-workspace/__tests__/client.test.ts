@@ -586,6 +586,19 @@ describe('GitHubGitDataClient', () => {
       });
     });
 
+    it('refuses to update when the branch head differs from the expected SHA', async () => {
+      const client = new GitHubGitDataClient({ repoFullName: 'user/repo', token: 'token' });
+      mockFetch.mockResolvedValueOnce(new Response(
+        JSON.stringify({ ref: 'refs/heads/main', object: { sha: 'newer_sha' } }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ));
+
+      const result = await client.updateRef('heads/main', 'candidate_sha', { expectedSha: 'stale_sha' });
+
+      expect(result).toMatchObject({ ok: false, status: 422 });
+      expect(mockFetch).toHaveBeenCalledTimes(1);
+    });
+
     it('handles Compare-And-Swap (CAS) 422 conflict when fast-forward fails', async () => {
       const client = new GitHubGitDataClient({
         repoFullName: 'user/repo',

@@ -11,7 +11,7 @@ import {
   AssetRecord,
   WorkspaceManifest,
 } from '@/src/shared/personal-workspace/contracts';
-import { canonicalJsonStringify } from '@/src/shared/personal-workspace/serialization';
+import { canonicalJsonStringify, computeSha256 } from '@/src/shared/personal-workspace/serialization';
 import { VAULT_COOKIE_NAME, VaultCookiePayload } from '../vault';
 import { GET as getStatus } from '../status/route';
 import { POST as postConnect } from '../connect/route';
@@ -395,7 +395,7 @@ describe('Personal Workspace GitHub API Routes', () => {
 
     const sampleAsset: AssetRecord = {
       id: 'asset-img-01',
-      hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+      hash: computeSha256(Buffer.from('iVBORw==', 'base64')),
       mimeType: 'image/png',
       byteLength: 4,
       base64Data: 'iVBORw==',
@@ -425,6 +425,38 @@ describe('Personal Workspace GitHub API Routes', () => {
       expect(data.error).toContain('missing state');
     });
 
+    it('requires an explicit expected remote head', async () => {
+      const cookie = await createCookieHeader();
+      const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/publish', {
+        method: 'POST', headers: { cookie },
+        body: JSON.stringify({ state: { notebooks: [], notes: [], assets: [] } }),
+      });
+
+      const res = await postPublish(req);
+
+      expect(res.status).toBe(400);
+      expect((await res.json()).error).toContain('expectedRemoteCommitSha is required');
+    });
+
+    it('rejects a stale expected head before creating Git objects', async () => {
+      const cookie = await createCookieHeader();
+      const createBlob = vi.spyOn(GitHubGitDataClient.prototype, 'createBlob');
+      vi.spyOn(GitHubGitDataClient.prototype, 'getRef').mockResolvedValue('newer-head');
+      const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/publish', {
+        method: 'POST', headers: { cookie },
+        body: JSON.stringify({
+          expectedRemoteCommitSha: 'stale-head',
+          state: { notebooks: [], notes: [], assets: [] },
+        }),
+      });
+
+      const res = await postPublish(req);
+
+      expect(res.status).toBe(422);
+      expect((await res.json()).currentRemoteCommitSha).toBe('newer-head');
+      expect(createBlob).not.toHaveBeenCalled();
+    });
+
     it('successfully publishes batch mutations, creates tree, creates commit, and updates ref', async () => {
       const cookie = await createCookieHeader();
 
@@ -451,6 +483,7 @@ describe('Personal Workspace GitHub API Routes', () => {
       const refSpy = vi
         .spyOn(GitHubGitDataClient.prototype, 'updateRef')
         .mockResolvedValue({ ok: true, status: 200 });
+      vi.spyOn(GitHubGitDataClient.prototype, 'getRef').mockResolvedValue('parent-sha-000000');
 
       const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/publish', {
         method: 'POST',
@@ -481,7 +514,35 @@ describe('Personal Workspace GitHub API Routes', () => {
         'tree-sha-synthetic-789012',
         ['parent-sha-000000']
       );
-      expect(refSpy).toHaveBeenCalledWith('refs/heads/main', 'commit-sha-synthetic-345678');
+      expect(refSpy).toHaveBeenCalledWith('refs/heads/main', 'commit-sha-synthetic-345678', {
+        expectedSha: 'parent-sha-000000',
+      });
+    });
+
+    it('rejects a canvas with a missing asset before creating Git objects', async () => {
+      const cookie = await createCookieHeader();
+      const createBlob = vi.spyOn(GitHubGitDataClient.prototype, 'createBlob');
+      const missingHash = 'a'.repeat(64);
+      const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/publish', {
+        method: 'POST', headers: { cookie },
+        body: JSON.stringify({
+          expectedRemoteCommitSha: null,
+          state: {
+            notebooks: [sampleNotebook],
+            notes: [{ ...sampleNote, contentType: 'canvas', canvasData: {
+              elements: [{ assetHash: missingHash }], appState: {}, assetFileIds: [missingHash],
+              assetHashes: { [missingHash]: missingHash },
+            } }],
+            assets: [],
+          },
+        }),
+      });
+
+      const response = await postPublish(req);
+
+      expect(response.status).toBe(400);
+      expect((await response.json()).error).toContain(missingHash);
+      expect(createBlob).not.toHaveBeenCalled();
     });
 
     it('handles CAS conflict (HTTP 422) by fetching current remote ref head and returning 422', async () => {
@@ -505,9 +566,9 @@ describe('Personal Workspace GitHub API Routes', () => {
         error: 'Update is not a fast forward',
       });
 
-      vi.spyOn(GitHubGitDataClient.prototype, 'getRef').mockResolvedValue(
-        'remote-diverged-head-sha-999999'
-      );
+      vi.spyOn(GitHubGitDataClient.prototype, 'getRef')
+        .mockResolvedValueOnce('expected-old-sha')
+        .mockResolvedValue('remote-diverged-head-sha-999999');
 
       const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/publish', {
         method: 'POST',
@@ -540,9 +601,13 @@ describe('Personal Workspace GitHub API Routes', () => {
     it('returns error when ref update fails with non-422 status', async () => {
       const cookie = await createCookieHeader();
 
+      vi.spyOn(GitHubGitDataClient.prototype, 'getCommit').mockResolvedValue({
+        sha: 'base-sha', treeSha: 'base-tree', parentShas: [], message: 'base', committedAt: new Date().toISOString(),
+      });
       vi.spyOn(GitHubGitDataClient.prototype, 'createBlob').mockResolvedValue('blob-sha');
       vi.spyOn(GitHubGitDataClient.prototype, 'createTree').mockResolvedValue('tree-sha');
       vi.spyOn(GitHubGitDataClient.prototype, 'createCommit').mockResolvedValue('commit-sha');
+      vi.spyOn(GitHubGitDataClient.prototype, 'getRef').mockResolvedValue('base-sha');
 
       vi.spyOn(GitHubGitDataClient.prototype, 'updateRef').mockResolvedValue({
         ok: false,
@@ -554,6 +619,7 @@ describe('Personal Workspace GitHub API Routes', () => {
         method: 'POST',
         headers: { cookie },
         body: JSON.stringify({
+          expectedRemoteCommitSha: 'base-sha',
           state: { notebooks: [], notes: [], assets: [] },
         }),
       });
@@ -630,14 +696,14 @@ describe('Personal Workspace GitHub API Routes', () => {
           {
             id: 'nb-remote-01',
             path: 'undone/notebooks/nb-remote-01.json',
-            hash: 'hash-nb-1',
+            hash: computeSha256(canonicalJsonStringify(sampleNotebook)),
           },
         ],
         notes: [
           {
             id: 'note-remote-01',
             path: 'undone/notes/note-remote-01.json',
-            hash: 'hash-note-1',
+            hash: computeSha256(canonicalJsonStringify(sampleNote)),
             contentType: 'markdown',
           },
         ],
@@ -645,8 +711,8 @@ describe('Personal Workspace GitHub API Routes', () => {
           {
             id: 'asset-remote-01',
             path: 'undone/assets/hash-asset-1.png',
-            sha256: 'hash-asset-1',
-            gitSha: 'git-sha-asset-1',
+            sha256: computeSha256(Buffer.from('iVBORw==', 'base64')),
+            gitSha: 'a'.repeat(40),
             mimeType: 'image/png',
           },
         ],
@@ -685,7 +751,7 @@ describe('Personal Workspace GitHub API Routes', () => {
           path: 'undone/assets/hash-asset-1.png',
           mode: '100644',
           type: 'blob',
-          sha: 'git-sha-asset-1',
+          sha: 'a'.repeat(40),
           size: 4,
         },
       ]);
@@ -712,7 +778,7 @@ describe('Personal Workspace GitHub API Routes', () => {
             contentBase64: Buffer.from(canonicalJsonStringify(sampleNote)).toString('base64'),
           };
         }
-        if (sha === 'git-sha-asset-1') {
+        if (sha === 'a'.repeat(40)) {
           return {
             sha,
             byteLength: 4,
@@ -727,7 +793,7 @@ describe('Personal Workspace GitHub API Routes', () => {
         headers: { cookie },
       });
       const resGet = await getPull(reqGet);
-      expect(resGet.status).toBe(200);
+      expect(resGet.status, await resGet.clone().text()).toBe(200);
 
       const data = (await resGet.json()) as {
         ok: boolean;
@@ -759,6 +825,15 @@ describe('Personal Workspace GitHub API Routes', () => {
       expect(resPost.status).toBe(200);
       const dataPost = (await resPost.json()) as { ok: boolean };
       expect(dataPost.ok).toBe(true);
+
+      vi.mocked(GitHubGitDataClient.prototype.getTree).mockResolvedValue([
+        { path: 'undone/manifest.json', mode: '100644', type: 'blob', sha: 'sha-manifest-blob' },
+        { path: 'undone/notebooks/nb-remote-01.json', mode: '100644', type: 'blob', sha: 'sha-nb-blob' },
+        { path: 'undone/notes/note-remote-01.json', mode: '100644', type: 'blob', sha: 'sha-note-blob' },
+      ]);
+      const missingAssetResponse = await getPull(reqGet);
+      expect(missingAssetResponse.status).toBe(500);
+      expect((await missingAssetResponse.json()).error).toContain('Manifest asset is missing or changed');
     });
   });
 });

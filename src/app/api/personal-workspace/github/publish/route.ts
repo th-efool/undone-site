@@ -19,6 +19,9 @@ import {
 import {
   canonicalJsonStringify,
   computeSha256,
+  MAX_PUBLICATION_GROUP_BYTES,
+  validateAssetRecord,
+  validateWorkspaceAssetDependencies,
 } from '@/src/shared/personal-workspace/serialization';
 import { getExtensionForMimeType } from '@/src/shared/personal-workspace/media';
 import { resolveAuthUser, resolveCredentials } from '../vault';
@@ -65,15 +68,58 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
+  if (!Object.prototype.hasOwnProperty.call(body, 'expectedRemoteCommitSha')) {
+    return NextResponse.json(
+      { error: 'expectedRemoteCommitSha is required for safe publication' },
+      { status: 400 },
+    );
+  }
+
   const notebooks = body.state.notebooks || [];
   const notes = body.state.notes || [];
   const assets = body.state.assets || [];
+  try {
+    let assetBytes = 0;
+    for (const asset of assets) {
+      validateAssetRecord(asset, { isChunked: true });
+      assetBytes += asset.byteLength;
+    }
+    if (assetBytes > MAX_PUBLICATION_GROUP_BYTES) {
+      return NextResponse.json({ ok: false, error: 'Workspace assets exceed the supported publication size; local edits remain available.' }, { status: 413 });
+    }
+    validateWorkspaceAssetDependencies(notes, assets);
+  } catch (err) {
+    return NextResponse.json(
+      { ok: false, error: err instanceof Error ? err.message : 'Workspace assets failed validation' },
+      { status: 400 },
+    );
+  }
 
   try {
     const client = new GitHubGitDataClient({
       token: credentials.token,
       repoFullName: credentials.repoFullName,
     });
+    const refName = `refs/heads/${credentials.defaultBranch}`;
+    const expectedHead = body.expectedRemoteCommitSha ?? null;
+    const currentHead = await client.getRef(refName);
+    if (currentHead !== expectedHead) {
+      return NextResponse.json(
+        { ok: false, conflict: true, currentRemoteCommitSha: currentHead, error: 'Remote ref has moved' },
+        { status: 422 },
+      );
+    }
+    let baseTreeSha: string | null = null;
+    if (expectedHead) {
+      const parentCommit = await client.getCommit(expectedHead);
+      if (!parentCommit?.treeSha) {
+        return NextResponse.json(
+          { ok: false, conflict: true, currentRemoteCommitSha: currentHead, error: 'Expected remote commit is unavailable' },
+          { status: 422 },
+        );
+      }
+      baseTreeSha = parentCommit.treeSha;
+    }
 
     const treeEntries: TreeEntryInput[] = [];
     const manifestNotebooks: ManifestNotebookEntry[] = [];
@@ -84,7 +130,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // 1. Upload new asset blobs
     for (const asset of assets) {
-      if (!asset.base64Data) continue;
       const ext = getExtensionForMimeType(asset.mimeType);
       const path = `undone/assets/${asset.hash}.${ext}`;
       const sha = await client.createBlob(asset.base64Data);
@@ -202,34 +247,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     });
 
     // 5. Create tree
-    let baseTreeSha: string | null = null;
-    let parentCommitSha = body.expectedRemoteCommitSha || null;
-
-    if (!parentCommitSha) {
-      try {
-        const currentRefSha = await client.getRef(`refs/heads/${credentials.defaultBranch}`);
-        if (currentRefSha) {
-          parentCommitSha = currentRefSha;
-        }
-      } catch {}
-    }
-
-    if (parentCommitSha) {
-      try {
-        const parentCommit = await client.getCommit(parentCommitSha);
-        baseTreeSha = parentCommit?.treeSha || null;
-      } catch {
-        baseTreeSha = null;
-      }
-    }
-
     const treeSha = await client.createTree(
       baseTreeSha,
       treeEntries
     );
 
     // 6. Create commit
-    const parentShas = parentCommitSha ? [parentCommitSha] : [];
+    const parentShas = expectedHead ? [expectedHead] : [];
     const newCommitSha = await client.createCommit(
       'undone(sync): batch publish',
       treeSha,
@@ -237,10 +261,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
 
     // 7. Update ref
-    const refUpdate = await client.updateRef(
-      `refs/heads/${credentials.defaultBranch}`,
-      newCommitSha
-    );
+    const refUpdate = await client.updateRef(refName, newCommitSha, { expectedSha: expectedHead });
 
     if (!refUpdate.ok) {
       if (refUpdate.status === 422) {

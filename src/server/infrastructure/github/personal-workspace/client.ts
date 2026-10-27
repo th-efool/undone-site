@@ -48,6 +48,7 @@ export interface GitHubCommitResult {
 
 export interface UpdateRefOptions {
   force?: boolean;
+  expectedSha?: string | null;
 }
 
 export interface UpdateRefResult {
@@ -517,6 +518,10 @@ export class GitHubGitDataClient {
 
     try {
       const existingSha = await this.getRef(refName);
+
+      if (options && 'expectedSha' in options && existingSha !== options.expectedSha) {
+        return { ok: false, status: 422, error: 'Remote ref no longer matches the expected commit' };
+      }
 
       if (!existingSha) {
         // Ref does not exist yet -> create ref via POST /git/refs

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { notesRepository } from '../notes.repository';
+import { CanvasRepository } from '../canvas.repository';
 import { LocalWorkspace } from '@/src/client/personal-workspace/local/facade';
 import type { NotesStateEntity } from '../../models/notes.models';
 
@@ -10,6 +11,23 @@ describe('NotesRepository -> LocalWorkspace Bridge', () => {
   beforeEach(async () => {
     LocalWorkspace.resetAllInstances();
     localStorage.clear();
+  });
+
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('inventories legacy canvas primary and backup snapshots without modifying them', () => {
+    const primary = JSON.stringify({ elements: [], appState: { viewBackgroundColor: '#fff' } });
+    const backup = JSON.stringify({ elements: [], appState: { viewBackgroundColor: '#000' } });
+    localStorage.setItem('sidequesthq.canvas.note-legacy', primary);
+    localStorage.setItem('sidequesthq.canvas.backup.note-legacy', backup);
+
+    const inventory = new CanvasRepository().getLegacyStorageInventory();
+
+    expect(inventory).toEqual([expect.objectContaining({
+      noteId: 'note-legacy', hasPrimary: true, hasBackup: true, differs: true,
+    })]);
+    expect(localStorage.getItem('sidequesthq.canvas.note-legacy')).toBe(primary);
+    expect(localStorage.getItem('sidequesthq.canvas.backup.note-legacy')).toBe(backup);
   });
 
   it('mirrors state into LocalWorkspace and creates outbox mutations', async () => {
@@ -82,6 +100,94 @@ describe('NotesRepository -> LocalWorkspace Bridge', () => {
     const mutationEntities = outbox.map((m) => m.entityId);
     expect(mutationEntities).toContain('nb-monkey');
     expect(mutationEntities).toContain('note-pikachu');
+
+    const staleRemote = { ...state, notebooks: [], notes: [] };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => staleRemote,
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const reloaded = await notesRepository.load(TEST_USER);
+    expect(reloaded.notes.map((note) => note.id)).toContain('note-pikachu');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('imports legacy server records additively, verifies the result, and archives same-ID versions', async () => {
+    const workspace = LocalWorkspace.getLocalWorkspace(TEST_USER);
+    await workspace.open({ userId: TEST_USER });
+    const notebook = (id: string, title: string) => ({
+      id, title, description: '', color: '#123456', favorite: false, shared: false,
+      archived: false, collapsed: false, order: 0, createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
+    });
+    const note = (id: string, title: string) => ({
+      id, notebookId: 'nb-legacy', title, contentType: 'kanban' as const, order: 0,
+      createdAt: '2026-01-01T00:00:00Z', updatedAt: '2026-01-01T00:00:00Z',
+      ownerId: TEST_USER, permission: 'owner' as const, tags: [], favorite: false, shared: false,
+      archived: false, sharedWith: [], publicLink: false, linkedConceptIds: [], linkedResourceIds: [],
+      learningPathId: null, revision: 1, kanbanCards: [], kanbanColumns: [],
+    });
+    await notesRepository.syncWithLocalWorkspace({
+      notebooks: [notebook('nb-legacy', 'Local notebook')], notes: [note('note-same', 'Local note')],
+      selectedNotebookId: 'nb-legacy', selectedNoteId: 'note-same', notebookSort: 'manual', noteSort: 'manual', filter: 'all',
+    }, TEST_USER);
+
+    await notesRepository.mergeLegacyServerState({
+      notebooks: [notebook('nb-legacy', 'Server notebook'), notebook('nb-server-only', 'Server only')],
+      notes: [note('note-same', 'Server note'), note('note-server-only', 'Server only')],
+      selectedNotebookId: null, selectedNoteId: null, notebookSort: 'manual', noteSort: 'manual', filter: 'all',
+    }, TEST_USER);
+
+    expect((await workspace.getRepository().getAllNotebooks()).map((item) => item.id).sort())
+      .toEqual(['nb-legacy', 'nb-server-only']);
+    expect((await workspace.getRepository().getAllNotes()).map((item) => item.id).sort())
+      .toEqual(['note-same', 'note-server-only']);
+    expect((await workspace.getRepository().getNote('note-same'))?.title).toBe('Local note');
+    expect(await workspace.getRepository().getDatabase().runTransaction(
+      ['conflicts'], 'readonly', (ctx) => ctx.getAll('conflicts'),
+    )).toHaveLength(2);
+    expect(await workspace.getRepository().getDatabase().runTransaction(
+      ['metadata'], 'readonly', (ctx) => ctx.get('metadata', 'legacyServerMergeReceipt'),
+    )).toBeTruthy();
+  });
+
+  it('reports local quota failure before attempting the legacy API write', async () => {
+    const workspace = LocalWorkspace.getLocalWorkspace(TEST_USER);
+    await workspace.open({ userId: TEST_USER });
+    workspace.getRepository().setSimulateQuotaExceeded(true);
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await notesRepository.save({
+      notebooks: [{
+        id: 'nb-quota', title: 'Notebook', description: '', color: '#000000', favorite: false,
+        shared: false, archived: false, collapsed: false, createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(), order: 0,
+      }],
+      notes: [], selectedNotebookId: null, selectedNoteId: null, notebookSort: 'manual',
+      noteSort: 'manual', filter: 'all',
+    }, TEST_USER);
+
+    expect(result.localSaved).toBe(false);
+    expect(result.remoteSaved).toBe(false);
+    expect(result.error).toContain('quota');
+    expect(fetchMock).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it('does not report a canvas save when the atomic local transaction fails', async () => {
+    const workspace = LocalWorkspace.getLocalWorkspace(TEST_USER);
+    await workspace.open({ userId: TEST_USER });
+    workspace.getRepository().setSimulateFailure(true, new Error('disk write failed'));
+    const canvas = new CanvasRepository();
+    canvas.setActiveUserId(TEST_USER);
+
+    const result = await canvas.save({
+      noteId: 'canvas-failure', scene: JSON.stringify({ elements: [], appState: {}, files: {} }),
+      schemaVersion: 1, savedAt: new Date().toISOString(),
+    });
+
+    expect(result).toEqual({ ok: false, error: 'disk write failed' });
   });
 
   it('removes deleted notes from LocalWorkspace and queues outbox deletion', async () => {

@@ -217,6 +217,7 @@ export class LocalWorkspace {
   private cachedNotesState: NotesStateEntity;
   private unsubscribeSaveSuccess: (() => void) | null = null;
   private unsubscribeSaveError: (() => void) | null = null;
+  private unsubscribeRemoteSnapshot: (() => void) | null = null;
 
   private static instances = new Map<string, LocalWorkspace>();
 
@@ -292,9 +293,10 @@ export class LocalWorkspace {
 
     // Hook repository save events to notify subscribers
     if (!this.unsubscribeSaveSuccess) {
-      this.unsubscribeSaveSuccess = this.repo.onSaveSuccess(() => {
-        this.refreshStateFromRepo().then(() => this.notifySubscribers());
-      });
+      this.unsubscribeSaveSuccess = this.repo.onSaveSuccess(() => this.refreshAndNotify());
+    }
+    if (!this.unsubscribeRemoteSnapshot) {
+      this.unsubscribeRemoteSnapshot = this.repo.onRemoteSnapshotApplied(() => this.refreshAndNotify());
     }
     if (!this.unsubscribeSaveError) {
       this.unsubscribeSaveError = this.repo.onSaveError((errEvent) => {
@@ -308,7 +310,7 @@ export class LocalWorkspace {
     if (channel) {
       channel.onmessage = (event) => {
         if (event.data?.type === 'WORKSPACE_MUTATED') {
-          this.refreshStateFromRepo().then(() => this.notifySubscribers());
+          this.refreshAndNotify();
         }
       };
     }
@@ -355,6 +357,15 @@ export class LocalWorkspace {
         console.error('[LocalWorkspace] subscriber listener threw:', err);
       }
     }
+  }
+
+  private refreshAndNotify(): void {
+    void this.refreshStateFromRepo()
+      .then(() => this.notifySubscribers())
+      .catch((err: unknown) => {
+        this.lastError = err instanceof Error ? err : new Error(String(err));
+        this.notifySubscribers();
+      });
   }
 
   /**
@@ -712,9 +723,9 @@ export class LocalWorkspace {
 
     try {
       const conflicts = await this.repo.getDatabase().runTransaction(['conflicts'], 'readonly', (ctx) => {
-        return ctx.getAll('conflicts');
+        return ctx.getAll<{ needsUserAction?: boolean }>('conflicts');
       });
-      conflictCount = conflicts.length;
+      conflictCount = conflicts.filter((conflict) => conflict.needsUserAction === true).length;
     } catch {
       conflictCount = 0;
     }
@@ -821,6 +832,10 @@ export class LocalWorkspace {
     if (this.unsubscribeSaveError) {
       this.unsubscribeSaveError();
       this.unsubscribeSaveError = null;
+    }
+    if (this.unsubscribeRemoteSnapshot) {
+      this.unsubscribeRemoteSnapshot();
+      this.unsubscribeRemoteSnapshot = null;
     }
     await this.repo.getDatabase().close();
     this.isOpen = false;

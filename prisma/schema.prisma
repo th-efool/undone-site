@@ -22,6 +22,7 @@ model User {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   accounts      Account[]
+  personalWorkspaceGitHubConnection PersonalWorkspaceGitHubConnection?
   sessions      Session[]
   publicProfile PublicProfile?
 
@@ -89,6 +90,26 @@ model Account {
   @@unique([provider, providerAccountId])
   @@index([userId])
   @@map("accounts")
+}
+
+model PersonalWorkspaceGitHubConnection {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  installationId    String
+  authorizedGitHubUserId String
+  authorizedGitHubUserLogin String
+  githubAccountId   String
+  githubAccountLogin String
+  repoFullName      String
+  defaultBranch     String   @default("main")
+  isPrivate         Boolean  @default(true)
+  disconnectedAt    DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([installationId])
+  @@map("personal_workspace_github_connections")
 }
 
 model Session {

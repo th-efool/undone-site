@@ -1,5 +1,6 @@
 import type { CanvasDocument, CanvasSceneData } from '../models/canvas.models';
 import { LocalWorkspace } from '@/src/client/personal-workspace/local/facade';
+import { computeSha256 } from '@/src/shared/personal-workspace/serialization';
 
 /** Max size for a single image file added to the canvas (checked at upload time). */
 export const MAX_IMAGE_FILE_BYTES = 25 * 1024 * 1024; // 25 MB per media file
@@ -26,6 +27,44 @@ export class CanvasRepository {
   /** Emergency backup key — written synchronously on every scene change, never throws. */
   private getBackupKey(noteId: string) {
     return `sidequesthq.canvas.backup.${noteId}`;
+  }
+
+  getLegacyStorageInventory(): Array<{
+    noteId: string;
+    hasPrimary: boolean;
+    hasBackup: boolean;
+    primaryHash: string | null;
+    backupHash: string | null;
+    differs: boolean;
+  }> {
+    if (typeof window === 'undefined') return [];
+    const noteIds = new Set<string>();
+    for (let index = 0; index < window.localStorage.length; index += 1) {
+      const key = window.localStorage.key(index);
+      if (key?.startsWith('sidequesthq.canvas.backup.')) noteIds.add(key.slice('sidequesthq.canvas.backup.'.length));
+      else if (key?.startsWith('sidequesthq.canvas.')) noteIds.add(key.slice('sidequesthq.canvas.'.length));
+    }
+    return Array.from(noteIds, (noteId) => {
+      const readHash = (key: string) => {
+        const raw = window.localStorage.getItem(key);
+        if (!raw) return null;
+        try {
+          return computeSha256(JSON.stringify(JSON.parse(raw)));
+        } catch {
+          return 'invalid';
+        }
+      };
+      const primaryHash = readHash(this.getKey(noteId));
+      const backupHash = readHash(this.getBackupKey(noteId));
+      return {
+        noteId,
+        hasPrimary: primaryHash !== null,
+        hasBackup: backupHash !== null,
+        primaryHash,
+        backupHash,
+        differs: primaryHash !== null && backupHash !== null && primaryHash !== backupHash,
+      };
+    });
   }
 
   private getEffectiveUserId(): string {
@@ -144,7 +183,9 @@ export class CanvasRepository {
    * Also maintains a safe, synchronous localStorage emergency backup without image bloat.
    */
   async save(doc: CanvasDocument): Promise<SaveResult> {
-    if (typeof window === 'undefined') return { ok: true, trimmed: false };
+    if (typeof window === 'undefined') {
+      return { ok: false, error: 'Canvas cannot be persisted during server rendering' };
+    }
 
     const userId = this.getEffectiveUserId();
 
@@ -171,8 +212,12 @@ export class CanvasRepository {
 
           return { ok: true, trimmed: false };
         }
+        return { ok: false, error: receipt.error || 'Canvas could not be committed to local storage' };
       } catch (idbErr) {
-        console.warn('[canvas] IndexedDB save error, using localStorage fallback:', idbErr);
+        return {
+          ok: false,
+          error: idbErr instanceof Error ? idbErr.message : 'IndexedDB save failed',
+        };
       }
     }
 
@@ -191,7 +236,7 @@ export class CanvasRepository {
       }
     }
 
-    return { ok: true, trimmed: false };
+    return { ok: false, error: 'Canvas exceeds the local storage limit and was not saved' };
   }
 
   /**

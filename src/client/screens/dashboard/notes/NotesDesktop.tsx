@@ -50,7 +50,7 @@ export function NotesDesktop({ model: notes }: NotesDesktopProps) {
     sceneRef,
     isDirtyRef,
     saveTrigger,
-  } = useCanvasScene(selected?.id ?? null);
+  } = useCanvasScene(selected?.id ?? null, notes.userId);
 
   const handleSaveNote = useCallback(() => {
     if (selected) notes.actions.patchNote(selected.id, {});

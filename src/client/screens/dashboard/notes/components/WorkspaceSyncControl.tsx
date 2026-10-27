@@ -8,12 +8,17 @@ import { getLocalWorkspace } from '@/src/client/personal-workspace/local/facade'
 import { SyncCoordinator } from '@/src/client/personal-workspace/sync/coordinator';
 import type { SyncSummary } from '@/src/shared/personal-workspace/contracts';
 import { notesRepository } from '../repositories/notes.repository';
+import { canvasRepository } from '../repositories/canvas.repository';
+import type { NotesStateEntity } from '../models/notes.models';
 
 interface GitHubStatusInfo {
   connected: boolean;
+  unavailable?: boolean;
   repoFullName?: string;
   defaultBranch?: string;
   isPrivate?: boolean;
+  installationId?: string | null;
+  manageUrl?: string | null;
 }
 
 const DEFAULT_SYNC_SUMMARY: SyncSummary = {
@@ -31,6 +36,10 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
   const [isOAuthLoading, setIsOAuthLoading] = useState(false);
   const [oauthError, setOauthError] = useState<string | null>(null);
   const coordinatorRef = useRef<SyncCoordinator | null>(null);
+  const coordinatorUnsubscribeRef = useRef<(() => void) | null>(null);
+  const localCommitUnsubscribeRef = useRef<(() => void) | null>(null);
+  const commitSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bootstrapPromiseRef = useRef<Promise<void> | null>(null);
 
   // 1. Fetch remote GitHub connection status
   const fetchStatus = useCallback(async () => {
@@ -41,35 +50,198 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         setGithubStatus(data);
         return data;
       } else {
-        const fallback: GitHubStatusInfo = { connected: false };
+        const fallback: GitHubStatusInfo = { connected: false, unavailable: res.status >= 500 };
         setGithubStatus(fallback);
         return fallback;
       }
     } catch {
-      const fallback: GitHubStatusInfo = { connected: false };
+      const fallback: GitHubStatusInfo = { connected: false, unavailable: true };
       setGithubStatus(fallback);
       return fallback;
     }
   }, []);
+
+  const bootstrapWorkspace = useCallback((facade: ReturnType<typeof getLocalWorkspace>) => {
+    if (!bootstrapPromiseRef.current) {
+      bootstrapPromiseRef.current = (async () => {
+        await facade.open({ userId: activeUserId });
+        const localSnapshot = await facade.getRepository().getSyncSnapshot();
+        if (
+          localSnapshot.notebooks.length === 0 && localSnapshot.notes.length === 0 &&
+          localSnapshot.assets.length === 0 && localSnapshot.schedules.length === 0 &&
+          localSnapshot.outbox.length === 0
+        ) {
+          const initialState = notesRepository.getInitialState(activeUserId);
+          if (initialState.notes.length > 0 || initialState.notebooks.length > 0) {
+            await notesRepository.migrateLegacyState(initialState, activeUserId);
+          }
+        }
+      })().catch((error) => {
+        bootstrapPromiseRef.current = null;
+        throw error;
+      });
+    }
+    return bootstrapPromiseRef.current;
+  }, [activeUserId]);
+
+  const startCoordinator = useCallback((facade: ReturnType<typeof getLocalWorkspace>) => {
+    if (coordinatorRef.current) return coordinatorRef.current;
+    const coordinator = new SyncCoordinator(facade.getRepository(), { autoSyncIntervalMs: 20000 });
+    coordinatorRef.current = coordinator;
+    coordinatorUnsubscribeRef.current = coordinator.subscribe((summary) => setSyncSummary(summary));
+    localCommitUnsubscribeRef.current = facade.getRepository().onSaveSuccess(() => {
+      if (commitSyncTimerRef.current) clearTimeout(commitSyncTimerRef.current);
+      commitSyncTimerRef.current = setTimeout(() => {
+        commitSyncTimerRef.current = null;
+        void coordinator.syncNow();
+      }, 150);
+    });
+    coordinator.startAutoSync();
+    void coordinator.syncNow();
+    return coordinator;
+  }, []);
+
+  const stopCoordinator = useCallback(() => {
+    coordinatorUnsubscribeRef.current?.();
+    coordinatorUnsubscribeRef.current = null;
+    localCommitUnsubscribeRef.current?.();
+    localCommitUnsubscribeRef.current = null;
+    if (commitSyncTimerRef.current) clearTimeout(commitSyncTimerRef.current);
+    commitSyncTimerRef.current = null;
+    coordinatorRef.current?.dispose();
+    coordinatorRef.current = null;
+  }, []);
+
+  const connectCoordinator = useCallback(async () => {
+    const facade = getLocalWorkspace(activeUserId);
+    await bootstrapWorkspace(facade);
+    const remote = await fetchStatus();
+    if (remote.connected || remote.unavailable) {
+      startCoordinator(facade);
+    } else {
+      const localSummary = await facade.getSyncSummary();
+      setSyncSummary({
+        ...localSummary,
+        status: localSummary.pendingMutations > 0 ? 'queued' : 'offline',
+      });
+    }
+  }, [activeUserId, bootstrapWorkspace, fetchStatus, startCoordinator]);
+
+  const handleNewGitHubConnection = useCallback(async (info: { repoFullName: string }) => {
+    const facade = getLocalWorkspace(activeUserId);
+    setGithubStatus({ connected: true, repoFullName: info.repoFullName });
+    setIsOAuthLoading(true);
+    setOauthError(null);
+    try {
+      await bootstrapWorkspace(facade);
+      const local = await facade.getRepository().getMigrationInventory();
+      const localSnapshot = await facade.getRepository().getSyncSnapshot();
+      const legacyCanvas = canvasRepository.getLegacyStorageInventory();
+      const ambiguousCanvases = legacyCanvas.filter((entry) => entry.differs || entry.primaryHash === 'invalid' || entry.backupHash === 'invalid');
+      if (ambiguousCanvases.length) {
+        throw new Error(`${ambiguousCanvases.length} legacy canvas backup pair(s) differ or are unreadable. GitHub remains disconnected; the browser data is untouched. Resolve these canvases before connecting.`);
+      }
+      const unimportedCanvases = legacyCanvas.filter((entry) => !local.hashes[`note:${entry.noteId}`]);
+      if (unimportedCanvases.length) {
+        throw new Error(
+          `${unimportedCanvases.length} legacy canvas backup(s) are not linked to this account's imported notes. They remain in this browser's legacy storage; connect GitHub after associating them with a note.`,
+        );
+      }
+      const legacyResponse = await fetch('/api/workspace/notes');
+      if (!legacyResponse.ok) {
+        throw new Error(`Could not inventory legacy notes storage (HTTP ${legacyResponse.status}). The GitHub connection was not used.`);
+      }
+      const rawLegacyState: unknown = await legacyResponse.json();
+      if (!rawLegacyState || typeof rawLegacyState !== 'object' ||
+        !Array.isArray((rawLegacyState as NotesStateEntity).notes) ||
+        !Array.isArray((rawLegacyState as NotesStateEntity).notebooks)) {
+        throw new Error('Legacy notes storage returned an invalid inventory. The GitHub connection was not used.');
+      }
+      const legacyState = rawLegacyState as NotesStateEntity;
+      const sharedRecords = (legacyState.notes || []).filter((note) => Boolean(note.shared || note.publicLink || note.sharedWith?.length)).length +
+        (legacyState.notebooks || []).filter((notebook) => notebook.shared).length +
+        localSnapshot.notes.filter((note) => note.shared).length +
+        localSnapshot.notebooks.filter((notebook) => notebook.shared).length;
+      if (sharedRecords) {
+        throw new Error(`${sharedRecords} legacy or local records have sharing enabled. Personal GitHub sync is blocked so it cannot silently copy shared data into a personal repository.`);
+      }
+      const response = await fetch('/api/personal-workspace/github/pull');
+      const remote = (await response.json().catch(() => ({}))) as {
+        manifest?: { workspaceId?: string } | null;
+        notebooks?: unknown[];
+        notes?: unknown[];
+        assets?: unknown[];
+        schedules?: unknown[];
+        error?: string;
+      };
+      if (!response.ok) throw new Error(remote.error || `Could not inspect ${info.repoFullName} (HTTP ${response.status})`);
+      if (remote.manifest?.workspaceId && remote.manifest.workspaceId !== activeUserId) {
+        throw new Error('That repository is already bound to a different Undone account. Your local notes were not synced.');
+      }
+      const remoteSharedRecords = (remote.notes || []).filter((value) => {
+        if (!value || typeof value !== 'object') return false;
+        const note = value as { shared?: boolean; publicLink?: boolean; sharedWith?: unknown[] };
+        return Boolean(note.shared || note.publicLink || note.sharedWith?.length);
+      }).length + (remote.notebooks || []).filter((value) =>
+        Boolean(value && typeof value === 'object' && (value as { shared?: boolean }).shared),
+      ).length;
+      if (remoteSharedRecords) {
+        throw new Error(`${remoteSharedRecords} selected-repository records have sharing enabled. The repository was not bound because personal sync cannot preserve shared-workspace semantics.`);
+      }
+      const remoteCounts = {
+        notebooks: remote.notebooks?.length || 0,
+        notes: remote.notes?.length || 0,
+        assets: remote.assets?.length || 0,
+        schedules: remote.schedules?.length || 0,
+      };
+      const legacyCounts = {
+        notebooks: Array.isArray(legacyState.notebooks) ? legacyState.notebooks.length : 0,
+        notes: Array.isArray(legacyState.notes) ? legacyState.notes.length : 0,
+      };
+      const localHasData = Object.values(local.counts).some((count) => count > 0) || legacyCanvas.length > 0;
+      const remoteHasData = Object.values(remoteCounts).some((count) => count > 0) || Object.values(legacyCounts).some((count) => count > 0);
+      if (localHasData || remoteHasData) {
+        const legacyWarnings = legacyCanvas.filter((entry) => entry.differs || entry.primaryHash === 'invalid' || entry.backupHash === 'invalid').length;
+        const accepted = window.confirm(
+          `Connect ${info.repoFullName} and reconcile these workspaces?\n\n` +
+          `This device: ${local.counts.notebooks} notebooks, ${local.counts.notes} notes, ${local.counts.assets} assets, ${local.counts.pendingOutbox} pending edits, ${legacyCanvas.length} legacy canvas backups (${legacyWarnings} differ or are unreadable).\n` +
+          `Legacy server storage: ${legacyCounts.notebooks} notebooks, ${legacyCounts.notes} notes.\n` +
+          `GitHub: ${remoteCounts.notebooks} notebooks, ${remoteCounts.notes} notes, ${remoteCounts.assets} assets, ${remoteCounts.schedules} schedules.\n\n` +
+          `Undone will merge the legacy server records into this device, reconcile GitHub records by ID, preserve divergent versions for automatic recovery, and keep the original server/cache/canvas data. Export a backup first if you want a separate copy. Continue?`,
+        );
+        if (!accepted) {
+          await fetch('/api/personal-workspace/github/disconnect', { method: 'POST' });
+          setGithubStatus({ connected: false });
+          setOauthError('GitHub was disconnected. No workspace synchronization was started.');
+          return;
+        }
+      }
+      if (legacyCounts.notebooks || legacyCounts.notes) {
+        await notesRepository.mergeLegacyServerState(legacyState, activeUserId);
+      }
+      const verifiedInventory = await facade.getRepository().getMigrationInventory();
+      if (!verifiedInventory.counts.notes && legacyCounts.notes > 0) {
+        throw new Error('Legacy server migration verification found no restored notes. The original server source was retained.');
+      }
+      setGithubStatus({ connected: true, repoFullName: info.repoFullName });
+      startCoordinator(facade);
+    } catch (error) {
+      await fetch('/api/personal-workspace/github/disconnect', { method: 'POST' }).catch(() => undefined);
+      setGithubStatus({ connected: false });
+      setOauthError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setIsOAuthLoading(false);
+    }
+  }, [activeUserId, bootstrapWorkspace, startCoordinator]);
 
   // 2. Setup LocalWorkspace and SyncCoordinator
   useEffect(() => {
     let isMounted = true;
     const facade = getLocalWorkspace(activeUserId);
 
-    facade
-      .open({ userId: activeUserId })
+    void bootstrapWorkspace(facade)
       .then(async () => {
         if (!isMounted) return;
-
-        // Check if IndexedDB has notes; if empty, seed from notesRepository
-        const idbNotes = await facade.getRepository().getAllNotes();
-        if (idbNotes.length === 0) {
-          const initialState = notesRepository.getInitialState(activeUserId);
-          if (initialState.notes.length > 0 || initialState.notebooks.length > 0) {
-            await notesRepository.syncWithLocalWorkspace(initialState, activeUserId);
-          }
-        }
 
         const localSummary = await facade.getSyncSummary();
         if (isMounted) setSyncSummary(localSummary);
@@ -78,19 +250,8 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         const remote = await fetchStatus();
         if (!isMounted) return;
 
-        if (remote.connected) {
-          const coordinator = new SyncCoordinator(facade.getRepository(), {
-            autoSyncIntervalMs: 20000,
-          });
-          coordinatorRef.current = coordinator;
-
-          coordinator.subscribe((summary) => {
-            if (isMounted) setSyncSummary(summary);
-          });
-
-          coordinator.startAutoSync();
-          // Initial background sync
-          coordinator.syncNow().catch(() => {});
+        if (remote.connected || remote.unavailable) {
+          startCoordinator(facade);
         } else {
           setSyncSummary((prev) => ({
             ...prev,
@@ -106,7 +267,6 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
     if (typeof window !== 'undefined' && window.location.search.includes('github_connected=true')) {
       const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
-      fetchStatus();
     }
 
     // Subscribe to local mutations
@@ -116,10 +276,6 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         const summary = await facade.getSyncSummary();
         if (isMounted) {
           setSyncSummary(summary);
-          // Trigger coordinator sync if connected
-          if (coordinatorRef.current) {
-            coordinatorRef.current.syncNow().catch(() => {});
-          }
         }
       } catch {}
     });
@@ -128,11 +284,11 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
       isMounted = false;
       unsubscribe();
       if (coordinatorRef.current) {
-        coordinatorRef.current.stopAutoSync();
-        coordinatorRef.current = null;
+        stopCoordinator();
       }
+      bootstrapPromiseRef.current = null;
     };
-  }, [activeUserId, fetchStatus]);
+  }, [activeUserId, bootstrapWorkspace, fetchStatus, startCoordinator, stopCoordinator]);
 
   // GitHub App installation flow: opens GitHub's native repo picker popup.
   // GitHub renders: account selector → repo access selector → permission breakdown → "Install & Authorize"
@@ -173,22 +329,7 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
           window.removeEventListener('message', handleMessage);
         }
 
-        const facade = getLocalWorkspace(activeUserId);
-        const coordinator = new SyncCoordinator(facade.getRepository(), {
-          autoSyncIntervalMs: 20000,
-        });
-        coordinatorRef.current = coordinator;
-        coordinator.subscribe(setSyncSummary);
-        coordinator.startAutoSync();
-        facade.getRepository().getAllNotes().then(async (idbNotes) => {
-          if (idbNotes.length === 0) {
-            const initialState = notesRepository.getInitialState(activeUserId);
-            if (initialState.notes.length > 0 || initialState.notebooks.length > 0) {
-              await notesRepository.syncWithLocalWorkspace(initialState, activeUserId);
-            }
-          }
-          coordinator.syncNow().catch(() => {});
-        });
+        void handleNewGitHubConnection({ repoFullName: resolvedRepo });
       } else if (event.data?.type === 'UNDONE_GITHUB_AUTH_ERROR') {
         setOauthError(event.data.description || event.data.error || 'GitHub authorization failed');
         setIsOAuthLoading(false);
@@ -212,7 +353,7 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         fetchStatus();
       }
     }, 1000);
-  }, [activeUserId, fetchStatus]);
+  }, [fetchStatus, handleNewGitHubConnection]);
 
   // Export recovery backup bundle
   const handleExportRecovery = useCallback(async () => {
@@ -234,11 +375,11 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
   // Trigger manual sync
   const handleSyncNow = useCallback(async () => {
     if (coordinatorRef.current) {
-      const currentState = notesRepository.getInitialState(activeUserId);
-      await notesRepository.syncWithLocalWorkspace(currentState, activeUserId);
       await coordinatorRef.current.syncNow();
+    } else {
+      await connectCoordinator();
     }
-  }, [activeUserId]);
+  }, [connectCoordinator]);
 
   const isConnected = Boolean(githubStatus?.connected);
 
@@ -327,29 +468,17 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         }}
         isConnected={isConnected}
         initialRepo={githubStatus?.repoFullName || ''}
+        manageUrl={githubStatus?.manageUrl}
         isSyncing={syncSummary.status === 'syncing'}
         lastSyncedAt={syncSummary.lastSyncedAt}
         onSyncNow={handleSyncNow}
         onExportBackup={handleExportRecovery}
         onConnected={({ repoFullName }) => {
-          setGithubStatus({ connected: true, repoFullName });
-          fetchStatus();
-          // Initialize coordinator immediately
-          const facade = getLocalWorkspace(activeUserId);
-          const coordinator = new SyncCoordinator(facade.getRepository(), {
-            autoSyncIntervalMs: 20000,
-          });
-          coordinatorRef.current = coordinator;
-          coordinator.subscribe(setSyncSummary);
-          coordinator.startAutoSync();
-          coordinator.syncNow().catch(() => {});
+          void handleNewGitHubConnection({ repoFullName });
         }}
         onDisconnected={() => {
           setGithubStatus({ connected: false });
-          if (coordinatorRef.current) {
-            coordinatorRef.current.stopAutoSync();
-            coordinatorRef.current = null;
-          }
+          stopCoordinator();
           setSyncSummary((prev) => ({
             ...prev,
             status: 'offline',

@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { canvasRepository } from '../repositories/canvas.repository';
 import { canvasAdapter, CANVAS_SCHEMA_VERSION } from '../adapters/canvas.adapter';
-import type { CanvasState, CanvasSceneData } from '../models/canvas.models';
+import type { CanvasSceneData, CanvasState } from '../models/canvas.models';
 
 export function useCanvasPersistence(
   noteId: string | null,
@@ -12,14 +12,19 @@ export function useCanvasPersistence(
   onSaveComplete?: () => void,
   userId?: string | null
 ) {
-  const saveTimeout = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const previousNoteId = useRef(noteId);
+  const latest = useRef({ noteId, saveTrigger, onSaveComplete });
+
+  useEffect(() => {
+    latest.current = { noteId, saveTrigger, onSaveComplete };
+  }, [noteId, saveTrigger, onSaveComplete]);
 
   useEffect(() => {
     canvasRepository.setActiveUserId(userId || 'local-user');
   }, [userId]);
 
   useEffect(() => {
-    // Before unloading, warn if there are unsaved changes
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       if (isDirtyRef.current) {
         e.preventDefault();
@@ -28,76 +33,84 @@ export function useCanvasPersistence(
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
+  }, [isDirtyRef]);
+
+  const persist = useCallback(async (
+    targetNoteId: string,
+    scene: CanvasSceneData,
+    trigger: number,
+    updateUi: boolean,
+  ) => {
+    const snapshot = structuredClone(scene);
+    const serialized = canvasAdapter.serialize(snapshot);
+    const now = new Date().toISOString();
+    const result = await canvasRepository.save({
+      noteId: targetNoteId,
+      scene: serialized,
+      schemaVersion: CANVAS_SCHEMA_VERSION,
+      savedAt: now,
+    });
+
+    const stillCurrent =
+      latest.current.noteId === targetNoteId && latest.current.saveTrigger === trigger;
+    if (result.ok) {
+      // Keep the legacy API as a mirror, but only after the local record and outbox commit.
+      void fetch('/api/workspace/canvas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: targetNoteId,
+          elements: snapshot.elements,
+          appState: snapshot.appState,
+          files: snapshot.files,
+        }),
+      }).then((response) => {
+        if (!response.ok) console.warn('[canvas] Legacy mirror save failed:', response.status);
+      }).catch((error) => console.warn('[canvas] Legacy mirror save failed:', error));
+
+      if (updateUi && stillCurrent) {
+        isDirtyRef.current = false;
+        setCanvasState((state) => ({
+          ...state,
+          isDirty: false,
+          status: 'saved',
+          lastSavedAt: now,
+          errorMessage: result.trimmed ? result.reason : null,
+        }));
+        latest.current.onSaveComplete?.();
+      }
+    } else if (updateUi && stillCurrent) {
+      setCanvasState((state) => ({
+        ...state,
+        status: 'error',
+        errorMessage: result.error,
+      }));
+    }
+  }, [isDirtyRef, setCanvasState]);
 
   useEffect(() => {
-    if (!noteId || !isDirtyRef.current) return;
+    const switchedNote = previousNoteId.current !== noteId;
+    previousNoteId.current = noteId;
+    if (!noteId || !isDirtyRef.current || switchedNote) return;
 
-    if (saveTimeout.current) {
-      clearTimeout(saveTimeout.current);
-    }
-
-    saveTimeout.current = setTimeout(async () => {
-      if (!sceneRef.current || !noteId) return;
-
-      const serialized = canvasAdapter.serialize(sceneRef.current);
-      const now = new Date().toISOString();
-
-      const result = await canvasRepository.save({
-        noteId,
-        scene: serialized,
-        schemaVersion: CANVAS_SCHEMA_VERSION,
-        savedAt: now,
-      });
-
-      if (result.ok) {
-        isDirtyRef.current = false;
-        if (result.trimmed) {
-          // Partial save — elements saved, some images were stripped
-          setCanvasState((s) => ({
-            ...s,
-            isDirty: false,
-            status: 'saved',
-            lastSavedAt: now,
-            errorMessage: result.reason, // surfaced in the UI as a warning
-          }));
-        } else {
-          setCanvasState((s) => ({
-            ...s,
-            isDirty: false,
-            status: 'saved',
-            lastSavedAt: now,
-            errorMessage: null,
-          }));
-        }
-        if (onSaveComplete) onSaveComplete();
-      } else {
-        setCanvasState((s) => ({
-          ...s,
-          status: 'error',
-          errorMessage: result.error,
-        }));
-      }
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    const scheduledTrigger = saveTrigger;
+    saveTimeout.current = setTimeout(() => {
+      const scene = sceneRef.current;
+      if (scene) void persist(noteId, scene, scheduledTrigger, true);
     }, 1500);
 
     return () => {
-      if (saveTimeout.current) {
-        clearTimeout(saveTimeout.current);
-
-        if (isDirtyRef.current && sceneRef.current && noteId) {
-          // Emergency backup first (sync, never throws) — belt-and-suspenders
-          canvasRepository.saveImmediate(noteId, sceneRef.current, CANVAS_SCHEMA_VERSION);
-
-          // Then attempt a proper primary save (with partial-save fallback built in)
-          const serialized = canvasAdapter.serialize(sceneRef.current);
-          canvasRepository.save({
-            noteId,
-            scene: serialized,
-            schemaVersion: CANVAS_SCHEMA_VERSION,
-            savedAt: new Date().toISOString(),
-          }).catch(err => console.error('Failed to save on unmount:', err));
-        }
-      }
+      if (saveTimeout.current) clearTimeout(saveTimeout.current);
+      saveTimeout.current = null;
     };
-  }, [noteId, saveTrigger]);
+  }, [noteId, saveTrigger, sceneRef, isDirtyRef, persist]);
+
+  useEffect(() => () => {
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    const scene = sceneRef.current;
+    if (noteId && isDirtyRef.current && scene) {
+      void persist(noteId, scene, latest.current.saveTrigger, false);
+    }
+  }, [noteId, sceneRef, isDirtyRef, persist]);
 }

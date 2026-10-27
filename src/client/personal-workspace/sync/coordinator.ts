@@ -5,8 +5,8 @@
  * Conforms to Evidence Artifact E4 (Frozen Local-First & GitHub Sync Contracts):
  * - Guarantees offline-first durability: local writes succeed immediately and durably.
  * - Atomic CAS publication: checks expected remote commit SHA before pushing trees.
- * - Conflict branching: on CAS divergence, remote conflicts are branched into explicit local copies
- *   so zero user edits are ever lost.
+ * - Race recovery: a stale branch head is pulled and retried; true same-record divergence is archived
+ *   against the last verified per-record base without blocking the user.
  * - Outbox lifecycle: acknowledges pending outbox batches upon verified remote commit.
  * - Auto-sync coordination: online/offline window listeners and periodic background sync.
  */
@@ -20,8 +20,23 @@ import type {
   ScheduleTaskRecord,
   OutboxMutation,
   OutboxEntry,
+  WorkspaceManifest,
 } from '@/src/shared/personal-workspace/contracts';
-import type { PersonalWorkspaceRepository } from '../local/repository';
+import {
+  assetRecordSchema,
+  noteRecordSchema,
+  notebookRecordSchema,
+  scheduleTaskRecordSchema,
+  workspaceManifestSchema,
+} from '@/src/shared/personal-workspace/contracts';
+import {
+  canonicalJsonStringify,
+  computeSha256,
+  MAX_GITHUB_PUBLISH_BODY_BYTES,
+  validateAssetRecord,
+  validateWorkspaceAssetDependencies,
+} from '@/src/shared/personal-workspace/serialization';
+import type { PersonalWorkspaceRepository, RecoverableRecordConflict } from '../local/repository';
 
 export interface SyncCoordinatorOptions {
   autoSyncIntervalMs?: number;
@@ -32,6 +47,7 @@ export interface SyncCoordinatorOptions {
 export interface SyncResult {
   ok: boolean;
   status: SyncStatus;
+  retryable?: boolean;
   newCommitSha?: string;
   conflict?: boolean;
   conflictCount?: number;
@@ -47,6 +63,8 @@ export interface RemotePullState {
 
 export interface RemotePullResponse {
   ok?: boolean;
+  commitSha?: string | null;
+  manifest?: WorkspaceManifest | null;
   remoteCommitSha?: string;
   currentRemoteCommitSha?: string;
   state?: RemotePullState;
@@ -81,7 +99,20 @@ export interface IWorkspaceSyncRepository {
   getPendingOutbox?(): Promise<OutboxEntry[]>;
   getPendingOutboxMutations?(): Promise<OutboxEntry[]>;
   acknowledgeOutboxBatch?(batchEntryIds: string[]): Promise<void>;
+  acknowledgePublishedBatch(batchEntryIds: string[], remoteCommitSha: string): Promise<void>;
   acknowledgeOutboxUpTo?(generation: number): Promise<void>;
+  getRemoteBaseCommitSha(): Promise<string | null>;
+  applyRemoteSnapshot(
+    snapshot: Required<RemotePullState>,
+    remoteCommitSha: string | null,
+  ): Promise<RecoverableRecordConflict[]>;
+  getSyncSnapshot(): Promise<{
+    notebooks: NotebookRecord[];
+    notes: NoteRecord[];
+    assets: AssetRecord[];
+    schedules: ScheduleTaskRecord[];
+    outbox: OutboxEntry[];
+  }>;
   getAllNotebooks<T = NotebookRecord>(): Promise<T[]>;
   getAllNotes<T = NoteRecord>(): Promise<T[]>;
   getAllAssets<T = AssetRecord>(): Promise<T[]>;
@@ -113,21 +144,14 @@ export interface IWorkspaceSyncRepository {
   };
 }
 
-function generateUuid(): string {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
-}
+class ReconnectRequiredError extends Error {}
+class NonRetryableSyncError extends Error {}
 
 export class SyncCoordinator {
   public status: SyncStatus = 'idle';
   public lastSyncedAt: string | null = null;
   public lastRemoteCommitSha: string | null = null;
+  private lastPulledSnapshot: Required<RemotePullState> | null = null;
   public isSyncing = false;
   public conflictCount = 0;
   public errorMessage?: string;
@@ -141,6 +165,10 @@ export class SyncCoordinator {
   private autoSyncTimer: ReturnType<typeof setInterval> | null = null;
   private onlineHandler: (() => void) | null = null;
   private offlineHandler: (() => void) | null = null;
+  private visibilityHandler: (() => void) | null = null;
+  private focusHandler: (() => void) | null = null;
+  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  private retryAttempt = 0;
 
   private activeSyncPromise: Promise<SyncResult> | null = null;
   private queuedSyncPromise: Promise<SyncResult> | null = null;
@@ -166,6 +194,168 @@ export class SyncCoordinator {
       return (await this.repo.getPendingOutbox()) as OutboxMutation[];
     }
     return [];
+  }
+
+  private async getLocalSnapshot() {
+    return this.repo.getSyncSnapshot();
+  }
+
+  private outboxMatchesPulledSnapshot(snapshot: Awaited<ReturnType<SyncCoordinator['getLocalSnapshot']>>): boolean {
+    if (!this.lastPulledSnapshot || !this.lastRemoteCommitSha || snapshot.outbox.length === 0) return false;
+    const localByType = {
+      notebook: new Map(snapshot.notebooks.map((record) => [record.id, record])),
+      note: new Map(snapshot.notes.map((record) => [record.id, record])),
+      asset: new Map(snapshot.assets.map((record) => [record.id, record])),
+      schedule: new Map(snapshot.schedules.map((record) => [record.id, record])),
+    };
+    const remoteByType = {
+      notebook: new Map(this.lastPulledSnapshot.notebooks.map((record) => [record.id, record])),
+      note: new Map(this.lastPulledSnapshot.notes.map((record) => [record.id, record])),
+      asset: new Map(this.lastPulledSnapshot.assets.map((record) => [record.id, record])),
+      schedule: new Map(this.lastPulledSnapshot.schedules.map((record) => [record.id, record])),
+    };
+    return snapshot.outbox.every((mutation) => {
+      const local = localByType[mutation.entityType].get(mutation.entityId);
+      const remote = remoteByType[mutation.entityType].get(mutation.entityId);
+      if (mutation.mutationType === 'delete') return !local && !remote;
+      if (!local || !remote) return false;
+      if (mutation.entityType === 'asset') {
+        const localAsset = local as AssetRecord;
+        const remoteAsset = remote as AssetRecord;
+        return localAsset.hash === remoteAsset.hash && localAsset.mimeType === remoteAsset.mimeType;
+      }
+      return canonicalJsonStringify(local) === canonicalJsonStringify(remote);
+    });
+  }
+
+  private verifyRemotePullData(data: RemotePullResponse): {
+    snapshot: Required<RemotePullState>;
+    commitSha: string | null;
+    hasManifest: boolean;
+  } {
+    const notebooks = data.notebooks;
+    const notes = data.notes;
+    const assets = data.assets;
+    const schedules = data.schedules ?? [];
+    if (
+      data.ok !== true ||
+      (data.commitSha !== null && typeof data.commitSha !== 'string') ||
+      !Array.isArray(notebooks) ||
+      !Array.isArray(notes) ||
+      !Array.isArray(assets) ||
+      !Array.isArray(schedules)
+    ) {
+      throw new Error('Remote pull returned an incomplete workspace snapshot');
+    }
+
+    const manifest = data.manifest;
+    const parsedNotes = noteRecordSchema.array().safeParse(notes);
+    const parsedAssets = assetRecordSchema.array().safeParse(assets);
+    if (!parsedNotes.success || !parsedAssets.success) {
+      throw new Error('Remote workspace contains an invalid note or asset record');
+    }
+    validateWorkspaceAssetDependencies(parsedNotes.data, parsedAssets.data);
+    if (manifest) {
+      const parsedManifest = workspaceManifestSchema.safeParse(manifest);
+      if (
+        data.commitSha === null ||
+        !parsedManifest.success
+      ) {
+        throw new Error('Remote workspace manifest is invalid');
+      }
+      const verifiedManifest = parsedManifest.data;
+      const parsedNotebooks = notebookRecordSchema.array().safeParse(notebooks);
+      const parsedSchedules = scheduleTaskRecordSchema.array().safeParse(schedules);
+      if (!parsedNotebooks.success || !parsedSchedules.success) {
+        throw new Error('Remote workspace contains an invalid record');
+      }
+      if (
+        verifiedManifest.notebooks.length !== notebooks.length ||
+        verifiedManifest.notes.length !== notes.length ||
+        verifiedManifest.assets.length !== assets.length ||
+        (verifiedManifest.schedules?.length ?? 0) !== (schedules.length ? 1 : 0)
+      ) {
+        throw new Error('Remote workspace manifest does not match its records');
+      }
+      const hashesMatch = <T extends { id: string }>(
+        records: T[],
+        entries: Array<{ id: string; hash: string }>,
+      ) => records.every((record) => {
+        const entry = entries.find((candidate) => candidate.id === record.id);
+        return entry?.hash === computeSha256(canonicalJsonStringify(record));
+      });
+      if (
+        !hashesMatch(parsedNotebooks.data, verifiedManifest.notebooks) ||
+        !hashesMatch(parsedNotes.data, verifiedManifest.notes)
+      ) {
+        throw new Error('Remote workspace record hashes do not match its manifest');
+      }
+      const assetsById = new Map(verifiedManifest.assets.map((entry) => [entry.id, entry]));
+      for (const asset of parsedAssets.data) {
+        validateAssetRecord(asset, { isChunked: true });
+        if (assetsById.get(asset.id)?.sha256 !== asset.hash) {
+          throw new Error('Remote asset hash does not match its manifest');
+        }
+      }
+      if (schedules.length) {
+        const taskEntry = verifiedManifest.schedules?.[0];
+        if (
+          verifiedManifest.schedules?.length !== 1 ||
+          taskEntry?.id !== 'tasks' ||
+          taskEntry.hash !== computeSha256(canonicalJsonStringify(schedules))
+        ) {
+          throw new Error('Remote schedule hash does not match its manifest');
+        }
+      }
+    } else if (
+      (data.commitSha === null && (notebooks.length || notes.length || assets.length || schedules.length)) ||
+      (data.commitSha !== null && (notebooks.length || notes.length || assets.length || schedules.length))
+    ) {
+      throw new Error('Remote workspace records have no verifiable manifest');
+    }
+    return {
+      snapshot: { notebooks, notes, assets, schedules },
+      commitSha: data.commitSha ?? null,
+      hasManifest: Boolean(manifest),
+    };
+  }
+
+  private async applyVerifiedRemoteSnapshot(verified: ReturnType<SyncCoordinator['verifyRemotePullData']>): Promise<string | null> {
+    const local = await this.getLocalSnapshot();
+    const hasCleanRecords = (
+      entityType: OutboxMutation['entityType'],
+      records: Array<{ id: string }>,
+    ) => {
+      const dirtyIds = new Set(local.outbox
+        .filter((mutation) => mutation.entityType === entityType)
+        .map((mutation) => mutation.entityId));
+      return records.some((record) => !dirtyIds.has(record.id));
+    };
+    if (
+      !verified.hasManifest &&
+      (hasCleanRecords('notebook', local.notebooks) || hasCleanRecords('note', local.notes) ||
+        hasCleanRecords('asset', local.assets) || hasCleanRecords('schedule', local.schedules))
+    ) {
+      throw new Error('Connected repository has no Undone workspace manifest; local notes were preserved');
+    }
+
+    await this.repo.applyRemoteSnapshot(verified.snapshot, verified.commitSha);
+    this.lastPulledSnapshot = verified.snapshot;
+    this.lastRemoteCommitSha = verified.commitSha;
+    return this.lastRemoteCommitSha;
+  }
+
+  private async pullAndApplyRemoteSnapshot(): Promise<string | null> {
+    const response = await this.fetchFn(`${this.baseUrl}/api/personal-workspace/github/pull`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (response.status === 401 || response.status === 403) {
+      throw new ReconnectRequiredError('GitHub authorization expired or was revoked');
+    }
+    if (!response.ok) throw new Error(`Remote pull returned HTTP ${response.status}`);
+    const verified = this.verifyRemotePullData((await response.json()) as RemotePullResponse);
+    return this.applyVerifiedRemoteSnapshot(verified);
   }
 
   /**
@@ -245,14 +435,32 @@ export class SyncCoordinator {
     this.isSyncing = true;
     this.activeSyncPromise = this.executeSync();
     try {
-      return await this.activeSyncPromise;
+      const result = await this.activeSyncPromise;
+      if (result.ok) {
+        this.retryAttempt = 0;
+        if (this.retryTimer) clearTimeout(this.retryTimer);
+        this.retryTimer = null;
+      } else if (result.status === 'error') {
+        if (result.retryable !== false) this.scheduleRetry();
+      }
+      return result;
     } finally {
       this.isSyncing = false;
       this.activeSyncPromise = null;
     }
   }
 
-  private async executeSync(): Promise<SyncResult> {
+  private scheduleRetry(): void {
+    if (this.retryTimer || this.retryAttempt >= 5) return;
+    const delay = Math.min(1000 * 2 ** this.retryAttempt, 30000);
+    this.retryAttempt += 1;
+    this.retryTimer = setTimeout(() => {
+      this.retryTimer = null;
+      if (typeof navigator === 'undefined' || navigator.onLine) void this.syncNow();
+    }, delay);
+  }
+
+  private async executeSync(casRetry = 0): Promise<SyncResult> {
     try {
       // 2. Check connection status via GET /api/personal-workspace/github/status
       const statusUrl = `${this.baseUrl}/api/personal-workspace/github/status`;
@@ -292,55 +500,61 @@ export class SyncCoordinator {
         return { ok: false, status: this.status, error: 'Not connected' };
       }
 
-      const remoteHeadSha = statusData.lastCommitSha || statusData.headSha || null;
+      this.status = 'syncing';
+      this.errorMessage = undefined;
+      await this.broadcastUpdate();
 
-      // 3. Read outbox mutations from repo
-      const mutations = await this.getPendingMutations();
+      if (this.lastRemoteCommitSha === null) {
+        this.lastRemoteCommitSha = await this.repo.getRemoteBaseCommitSha();
+      }
 
-      // 4. If no pending mutations, check remote ref head
+      // Pull every cycle, including empty-outbox cycles, so remote-only changes appear without reload.
+      await this.pullAndApplyRemoteSnapshot();
+      const snapshot = await this.getLocalSnapshot();
+      const mutations = snapshot.outbox;
+
+      if (this.outboxMatchesPulledSnapshot(snapshot)) {
+        await this.repo.acknowledgePublishedBatch(mutations.map((mutation) => mutation.id), this.lastRemoteCommitSha!);
+        this.lastSyncedAt = new Date().toISOString();
+        this.status = 'synced';
+        this.errorMessage = undefined;
+        await this.broadcastUpdate();
+        return { ok: true, status: 'synced', newCommitSha: this.lastRemoteCommitSha! };
+      }
+
       if (mutations.length === 0) {
-        if (remoteHeadSha) {
-          this.lastRemoteCommitSha = remoteHeadSha;
-        }
+        this.lastSyncedAt = new Date().toISOString();
         this.status = 'synced';
         this.errorMessage = undefined;
         await this.broadcastUpdate();
         return { ok: true, status: 'synced', newCommitSha: this.lastRemoteCommitSha ?? undefined };
       }
 
-      // 5. If pending mutations > 0, set status 'syncing' and gather full committed state
-      this.status = 'syncing';
-      this.errorMessage = undefined;
-      await this.broadcastUpdate();
-
-      const repoWithSchedules = this.repo as unknown as { getAllScheduleTasks?: () => Promise<ScheduleTaskRecord[]> };
-      const [notebooks, notes, assets, schedules] = await Promise.all([
-        this.repo.getAllNotebooks(),
-        this.repo.getAllNotes(),
-        this.repo.getAllAssets(),
-        typeof repoWithSchedules.getAllScheduleTasks === 'function'
-          ? repoWithSchedules.getAllScheduleTasks()
-          : Promise.resolve([]),
-      ]);
-
       const publishUrl = `${this.baseUrl}/api/personal-workspace/github/publish`;
       const publishPayload = {
         expectedRemoteCommitSha: this.lastRemoteCommitSha,
         mutations,
         state: {
-          notebooks,
-          notes,
-          assets,
-          schedules,
+          notebooks: snapshot.notebooks,
+          notes: snapshot.notes,
+          assets: snapshot.assets,
+          schedules: snapshot.schedules,
         },
       };
+      const publishBody = JSON.stringify(publishPayload);
+      const publishBytes = new TextEncoder().encode(publishBody).byteLength;
+      if (publishBytes > MAX_GITHUB_PUBLISH_BODY_BYTES) {
+        throw new NonRetryableSyncError(
+          `Workspace publish is ${publishBytes} bytes; the safe request limit is ${MAX_GITHUB_PUBLISH_BODY_BYTES} bytes. Local edits remain saved. Export a recovery backup or reduce asset sizes before syncing.`,
+        );
+      }
 
       let publishRes: Response;
       try {
         publishRes = await this.fetchFn(publishUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(publishPayload),
+          body: publishBody,
         });
       } catch (pubErr) {
         this.status = 'error';
@@ -361,12 +575,7 @@ export class SyncCoordinator {
       if (publishRes.ok && publishData?.ok && publishData.newCommitSha) {
         const batchEntryIds = mutations.map((m) => m.id);
 
-        if (typeof this.repo.acknowledgeOutboxBatch === 'function') {
-          await this.repo.acknowledgeOutboxBatch(batchEntryIds);
-        } else if (typeof this.repo.acknowledgeOutboxUpTo === 'function') {
-          const highestGen = Math.max(...mutations.map((m) => m.generation ?? 0), 0);
-          await this.repo.acknowledgeOutboxUpTo(highestGen);
-        }
+        await this.repo.acknowledgePublishedBatch(batchEntryIds, publishData.newCommitSha);
 
         this.lastRemoteCommitSha = publishData.newCommitSha;
         this.lastSyncedAt = new Date().toISOString();
@@ -376,12 +585,19 @@ export class SyncCoordinator {
         return { ok: true, status: 'synced', newCommitSha: publishData.newCommitSha };
       }
 
-      // 7. If server returns CAS conflict (status 422, 409, or conflict: true)
+      // 7. A stale-head response triggers pull/rebase/retry; it is not a user-facing merge conflict.
       const isConflict =
         publishRes.status === 422 || publishRes.status === 409 || publishData?.conflict === true;
 
       if (isConflict) {
-        return await this.handleCasConflict(notes, mutations);
+        return await this.handleCasConflict(casRetry);
+      }
+
+      if (publishRes.status === 401 || publishRes.status === 403) {
+        this.status = 'reconnect_required';
+        this.errorMessage = 'GitHub authentication expired or was revoked';
+        await this.broadcastUpdate();
+        return { ok: false, status: this.status, error: this.errorMessage };
       }
 
       // Other failure response
@@ -391,6 +607,18 @@ export class SyncCoordinator {
       await this.broadcastUpdate();
       return { ok: false, status: this.status, error: this.errorMessage };
     } catch (unexpectedError) {
+      if (unexpectedError instanceof ReconnectRequiredError) {
+        this.status = 'reconnect_required';
+        this.errorMessage = unexpectedError.message;
+        await this.broadcastUpdate();
+        return { ok: false, status: this.status, error: this.errorMessage };
+      }
+      if (unexpectedError instanceof NonRetryableSyncError) {
+        this.status = 'error';
+        this.errorMessage = unexpectedError.message;
+        await this.broadcastUpdate();
+        return { ok: false, status: 'error', error: this.errorMessage, retryable: false };
+      }
       this.status = 'error';
       this.errorMessage =
         unexpectedError instanceof Error ? unexpectedError.message : String(unexpectedError);
@@ -399,121 +627,24 @@ export class SyncCoordinator {
     }
   }
 
-  /**
-   * Handles CAS Divergence: pulls remote state, detects modified note overlaps,
-   * branches conflicting notes into explicit local copies with human-readable titles,
-   * updates conflictCount, and advances lastRemoteCommitSha.
-   */
-  private async handleCasConflict(
-    localNotes: NoteRecord[],
-    pendingMutations: OutboxMutation[],
-  ): Promise<SyncResult> {
-    const pullUrl = `${this.baseUrl}/api/personal-workspace/github/pull`;
-    let pullRes: Response;
+  /** A branch-head race is retried automatically and never presented as a merge conflict. */
+  private async handleCasConflict(attempt: number): Promise<SyncResult> {
+    if (attempt >= 3) {
+      this.status = 'error';
+      this.errorMessage = 'Remote changes kept arriving; local edits remain queued for retry';
+      await this.broadcastUpdate();
+      return { ok: false, status: 'error', error: this.errorMessage };
+    }
     try {
-      pullRes = await this.fetchFn(pullUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          expectedRemoteCommitSha: this.lastRemoteCommitSha,
-        }),
-      });
-    } catch (pullErr) {
-      this.status = 'error';
-      this.errorMessage =
-        pullErr instanceof Error ? pullErr.message : 'Failed to pull remote state during conflict';
+      await this.pullAndApplyRemoteSnapshot();
+      return await this.executeSync(attempt + 1);
+    } catch (error) {
+      this.status = error instanceof ReconnectRequiredError ? 'reconnect_required' : 'error';
+      this.errorMessage = error instanceof Error ? error.message : String(error);
       await this.broadcastUpdate();
       return { ok: false, status: this.status, error: this.errorMessage };
     }
-
-    if (!pullRes.ok) {
-      this.status = 'error';
-      this.errorMessage = `Pull failed with HTTP ${pullRes.status}`;
-      await this.broadcastUpdate();
-      return { ok: false, status: this.status, error: this.errorMessage };
-    }
-
-    const pullData = (await pullRes.json()) as RemotePullResponse;
-    const remoteNotes = pullData.state?.notes || pullData.notes || [];
-    const currentRemoteCommitSha =
-      pullData.remoteCommitSha || pullData.currentRemoteCommitSha || null;
-
-    // Detect note IDs locally modified in pending outbox
-    const localModifiedNoteIds = new Set(
-      pendingMutations.filter((m) => m.entityType === 'note').map((m) => m.entityId),
-    );
-
-    let conflictsCreated = 0;
-
-    for (const remoteNote of remoteNotes) {
-      if (localModifiedNoteIds.has(remoteNote.id)) {
-        // Both local and remote have modified this note since last sync:
-        // Create an explicit branched conflict copy locally
-        const conflictNoteId = generateUuid();
-        const conflictTime = new Date().toLocaleTimeString();
-        const conflictTitle = `${remoteNote.title} (Remote Conflict ${conflictTime})`;
-
-        const conflictCopyNote: NoteRecord = {
-          ...remoteNote,
-          id: conflictNoteId,
-          title: conflictTitle,
-          updatedAt: new Date().toISOString(),
-        };
-
-        // Save conflict copy to local repo so zero user edits are ever lost!
-        if (typeof this.repo.saveNoteAtomic === 'function') {
-          await this.repo.saveNoteAtomic(conflictCopyNote, 'create');
-        } else if (
-          conflictCopyNote.contentType === 'canvas' &&
-          typeof this.repo.saveCanvasNoteAtomic === 'function'
-        ) {
-          await this.repo.saveCanvasNoteAtomic(conflictCopyNote, [], 'create');
-        } else if (typeof this.repo.saveKanbanNoteAtomic === 'function') {
-          await this.repo.saveKanbanNoteAtomic(conflictCopyNote, 'create');
-        } else if (typeof this.repo.getDatabase === 'function') {
-          await this.repo.getDatabase()!.runTransaction(['notes'], 'readwrite', (ctx) => {
-            ctx.put('notes', conflictCopyNote.id, conflictCopyNote);
-          });
-        }
-
-        // Record in conflicts store
-        if (typeof this.repo.getDatabase === 'function') {
-          try {
-            await this.repo.getDatabase()!.runTransaction(['conflicts'], 'readwrite', (ctx) => {
-              ctx.put('conflicts', conflictNoteId, {
-                id: conflictNoteId,
-                originalNoteId: remoteNote.id,
-                conflictCopyId: conflictNoteId,
-                detectedAt: new Date().toISOString(),
-                remoteCommitSha: currentRemoteCommitSha,
-              });
-            });
-          } catch {}
-        }
-
-        conflictsCreated++;
-      }
-    }
-
-    this.conflictCount += conflictsCreated;
-    this.status = 'conflict';
-    this.errorMessage = `Sync conflict: ${conflictsCreated} branched conflict ${
-      conflictsCreated === 1 ? 'copy' : 'copies'
-    } created`;
-    if (currentRemoteCommitSha) {
-      this.lastRemoteCommitSha = currentRemoteCommitSha;
-    }
-
-    await this.broadcastUpdate();
-    return {
-      ok: false,
-      status: 'conflict',
-      conflict: true,
-      conflictCount: this.conflictCount,
-      error: this.errorMessage,
-    };
   }
-
   /**
    * Starts periodic background synchronization and listens to online/offline network changes.
    */
@@ -522,6 +653,8 @@ export class SyncCoordinator {
 
     if (typeof window !== 'undefined') {
       this.onlineHandler = () => {
+        if (this.retryTimer) clearTimeout(this.retryTimer);
+        this.retryTimer = null;
         if (this.status === 'offline') {
           this.status = 'idle';
           void this.broadcastUpdate();
@@ -536,6 +669,13 @@ export class SyncCoordinator {
 
       window.addEventListener('online', this.onlineHandler);
       window.addEventListener('offline', this.offlineHandler);
+
+      this.visibilityHandler = () => {
+        if (document.visibilityState === 'visible') void this.syncNow();
+      };
+      this.focusHandler = () => void this.syncNow();
+      document.addEventListener('visibilitychange', this.visibilityHandler);
+      window.addEventListener('focus', this.focusHandler);
     }
 
     this.autoSyncTimer = setInterval(() => {
@@ -554,6 +694,10 @@ export class SyncCoordinator {
       clearInterval(this.autoSyncTimer);
       this.autoSyncTimer = null;
     }
+    if (this.retryTimer) {
+      clearTimeout(this.retryTimer);
+      this.retryTimer = null;
+    }
 
     if (typeof window !== 'undefined') {
       if (this.onlineHandler) {
@@ -563,6 +707,14 @@ export class SyncCoordinator {
       if (this.offlineHandler) {
         window.removeEventListener('offline', this.offlineHandler);
         this.offlineHandler = null;
+      }
+      if (this.focusHandler) {
+        window.removeEventListener('focus', this.focusHandler);
+        this.focusHandler = null;
+      }
+      if (this.visibilityHandler) {
+        document.removeEventListener('visibilitychange', this.visibilityHandler);
+        this.visibilityHandler = null;
       }
     }
   }

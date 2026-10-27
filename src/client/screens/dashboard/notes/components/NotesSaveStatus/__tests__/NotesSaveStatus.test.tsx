@@ -30,7 +30,7 @@ describe('NotesSaveStatus', () => {
 
   it('renders error pill when syncStatus is error', () => {
     render(<NotesSaveStatus syncStatus="error" />);
-    expect(screen.getByText(/Sync failed/i)).toBeTruthy();
+    expect(screen.getByText(/Local save failed/i)).toBeTruthy();
   });
 
   it('renders canvas unsaved changes when state is saving or dirty', () => {

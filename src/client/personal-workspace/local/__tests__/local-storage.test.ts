@@ -16,6 +16,7 @@ import {
   type SaveSuccessEvent,
 } from '../database';
 import { PersonalWorkspaceRepository } from '../repository';
+import type { NoteRecord } from '@/src/shared/personal-workspace/contracts';
 import {
   FIXTURE_NOTEBOOK,
   FIXTURE_CANVAS_NOTE,
@@ -93,6 +94,93 @@ describe('Production Personal Workspace Local Storage Engine & Repository', () =
         'User ID is required for account-scoped repository',
       );
     });
+  });
+
+  it('serializes concurrent transactions so neither staged snapshot overwrites the other', async () => {
+    const db = new PersonalWorkspaceDatabase(TEST_USER_1, { useMemory: true });
+    await db.clear();
+
+    await Promise.all([
+      db.runTransaction(['metadata'], 'readwrite', async (ctx) => {
+        await Promise.resolve();
+        ctx.put('metadata', 'first', { value: 1 });
+      }),
+      db.runTransaction(['metadata'], 'readwrite', async (ctx) => {
+        await Promise.resolve();
+        ctx.put('metadata', 'second', { value: 2 });
+      }),
+    ]);
+
+    const values = await db.runTransaction(['metadata'], 'readonly', (ctx) => ctx.getAll('metadata'));
+    expect(values).toEqual([{ value: 1 }, { value: 2 }]);
+  });
+
+  it('applies a verified remote snapshot without overwriting dirty local rows or queuing remote writes', async () => {
+    const localNotebook = { ...FIXTURE_NOTEBOOK, title: 'Pending local title' };
+    await repo1.saveNotebookAtomic(localNotebook, 'create');
+    const pendingBefore = await repo1.getPendingOutbox();
+    const remoteNotebook = { ...FIXTURE_NOTEBOOK, id: 'remote-notebook', title: 'Remote title' };
+    const remoteApplied = vi.fn();
+    const unsubscribe = repo1.onRemoteSnapshotApplied(remoteApplied);
+
+    await repo1.applyRemoteSnapshot(
+      {
+        notebooks: [remoteNotebook, { ...FIXTURE_NOTEBOOK, title: 'Stale remote title' }],
+        notes: [],
+        assets: [],
+        schedules: [],
+      },
+      'verified-commit-sha',
+    );
+    unsubscribe();
+
+    expect(remoteApplied).toHaveBeenCalledOnce();
+    expect((await repo1.getNotebook(FIXTURE_NOTEBOOK.id))?.title).toBe('Pending local title');
+    expect((await repo1.getNotebook('remote-notebook'))?.title).toBe('Remote title');
+    expect(await repo1.getRemoteBaseCommitSha()).toBe('verified-commit-sha');
+    expect(await repo1.getPendingOutbox()).toEqual(pendingBefore);
+  });
+
+  it('builds a migration inventory with counts and hashes without changing the outbox', async () => {
+    await repo1.saveNotebookAtomic(FIXTURE_NOTEBOOK, 'create');
+    const before = await repo1.getPendingOutbox();
+
+    const inventory = await repo1.getMigrationInventory();
+
+    expect(inventory.schemaVersion).toBe(1);
+    expect(inventory.counts).toMatchObject({ notebooks: 1, notes: 0, pendingOutbox: before.length });
+    expect(inventory.hashes[`notebook:${FIXTURE_NOTEBOOK.id}`]).toMatch(/^[0-9a-f]{64}$/);
+    expect(inventory.serializedBytes).toBeGreaterThan(0);
+    expect(await repo1.getPendingOutbox()).toEqual(before);
+  });
+
+  it('archives both same-record versions once when local and remote diverge from a common base', async () => {
+    const baseNote = FIXTURE_CANVAS_NOTE as unknown as NoteRecord;
+    await repo1.applyRemoteSnapshot({
+      notebooks: [FIXTURE_NOTEBOOK], notes: [baseNote], assets: [], schedules: [],
+    }, 'shared-base-sha');
+    const localVersion = { ...baseNote, title: 'Local edit' };
+    const remoteVersion = { ...baseNote, title: 'Remote edit' };
+    await repo1.saveNoteAtomic(localVersion, 'update');
+
+    const conflicts = await repo1.applyRemoteSnapshot({
+      notebooks: [FIXTURE_NOTEBOOK], notes: [remoteVersion], assets: [], schedules: [],
+    }, 'remote-diverged-sha');
+    const storedConflicts = await repo1.getDatabase().runTransaction(['conflicts'], 'readonly', (ctx) => ctx.getAll('conflicts'));
+
+    expect(conflicts).toHaveLength(1);
+    expect(conflicts[0]).toMatchObject({
+      entityType: 'note', entityId: baseNote.id, baseCommitSha: 'shared-base-sha',
+      localVersion, remoteVersion,
+    });
+    expect(await repo1.getNote(baseNote.id)).toEqual(localVersion);
+    expect(storedConflicts).toHaveLength(1);
+
+    const repeated = await repo1.applyRemoteSnapshot({
+      notebooks: [FIXTURE_NOTEBOOK], notes: [remoteVersion], assets: [], schedules: [],
+    }, 'remote-diverged-sha');
+    expect(repeated).toHaveLength(0);
+    expect((await repo1.getDatabase().runTransaction(['conflicts'], 'readonly', (ctx) => ctx.getAll('conflicts')))).toHaveLength(1);
   });
 
   describe('2. Atomic Multi-Store Transactions & Outbox Commit', () => {
