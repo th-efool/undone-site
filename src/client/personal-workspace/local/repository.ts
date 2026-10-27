@@ -108,6 +108,121 @@ export interface ImportBundleResult {
   };
 }
 
+const VOLATILE_CANVAS_APP_STATE_KEYS = new Set<string>([
+  'width',
+  'height',
+  'offsetLeft',
+  'offsetTop',
+  'name',
+  'cursorButton',
+  'editingElement',
+  'resizingElement',
+  'multiElement',
+  'selectionElement',
+  'editingGroupId',
+  'editingLinearElement',
+  'selectedElementIds',
+  'selectedGroupIds',
+  'selectedLinearElement',
+  'previousSelectedElementIds',
+  'hoveredElementIds',
+  'frameToHighlight',
+  'elementsToHighlight',
+  'activeEmbeddable',
+  'Collaborators',
+  'collaborators',
+  'isBindingEnabled',
+  'startBoundElement',
+  'suggestedBindings',
+  'toast',
+  'contextMenu',
+  'openMenu',
+  'openPopup',
+  'openSidebar',
+  'openDialog',
+  'isSidebarDocked',
+  'lastPointerDownWith',
+  'penDetected',
+  'penMode',
+  'isResizing',
+  'isRotating',
+  'isLoading',
+  'errorMessage',
+  'fileHandle',
+  'stats',
+  'pasteDialog',
+  'pendingImageElementId',
+  'newElement',
+  'draggingElement',
+  'snapLines',
+  'originSnapOffset',
+]);
+
+export function sanitizeCanvasAppStateForStorage(appState: unknown): Record<string, unknown> {
+  if (!appState || typeof appState !== 'object' || Array.isArray(appState)) {
+    return {};
+  }
+  const clean: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(appState as Record<string, unknown>)) {
+    if (VOLATILE_CANVAS_APP_STATE_KEYS.has(key)) continue;
+    if (typeof value === 'function') continue;
+    clean[key] = value;
+  }
+  return clean;
+}
+
+function normalizeRecordForComparison(record: unknown): string {
+  if (!record || typeof record !== 'object' || Array.isArray(record)) {
+    return canonicalJsonStringify(record);
+  }
+  const raw = record as Record<string, unknown>;
+  const clone: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (k === 'updatedAt') continue;
+    if (k === 'canvasData' && v && typeof v === 'object' && !Array.isArray(v)) {
+      const cd = v as Record<string, unknown>;
+      const rawElements = Array.isArray(cd.elements) ? cd.elements : [];
+      const normalizedElements = rawElements
+        .filter((el): el is Record<string, unknown> => Boolean(el && typeof el === 'object' && !(el as Record<string, unknown>).isDeleted))
+        .map((el) => {
+          const elClone: Record<string, unknown> = {};
+          for (const [ek, ev] of Object.entries(el)) {
+            if (ek === 'versionNonce' || ek === 'updated' || ek === 'seed') continue;
+            elClone[ek] = ev;
+          }
+          return elClone;
+        });
+      clone.canvasData = {
+        ...cd,
+        elements: normalizedElements,
+        appState: sanitizeCanvasAppStateForStorage(cd.appState),
+      };
+      continue;
+    }
+    clone[k] = v;
+  }
+  return canonicalJsonStringify(clone);
+}
+
+function coalescePendingOutboxEntry(
+  ctx: { getAll: <R>(store: StoreName) => R[]; delete: (store: StoreName, key: string) => void; put: (store: StoreName, key: string, value: unknown) => void },
+  entry: OutboxEntry,
+): void {
+  if (entry.mutationType === 'update') {
+    for (const existing of ctx.getAll<OutboxEntry>('outbox')) {
+      if (
+        existing.status === 'pending' &&
+        existing.entityType === entry.entityType &&
+        existing.entityId === entry.entityId &&
+        existing.mutationType === 'update'
+      ) {
+        ctx.delete('outbox', existing.id);
+      }
+    }
+  }
+  ctx.put('outbox', entry.id, entry);
+}
+
 export class PersonalWorkspaceRepository {
   readonly userId: string;
   readonly storageName: string;
@@ -203,14 +318,33 @@ export class PersonalWorkspaceRepository {
     };
 
     try {
+      let didMutate = true;
+      let existingOutboxId: string | null = null;
       await this.engine.runTransaction(
         ['notebooks', 'outbox'],
         'readwrite',
         (ctx) => {
+          const existing = ctx.get<T>('notebooks', notebook.id);
+          if (existing && normalizeRecordForComparison(existing) === normalizeRecordForComparison(notebook)) {
+            didMutate = false;
+            const prevOutbox = ctx
+              .getAll<OutboxEntry>('outbox')
+              .find((e) => e.status === 'pending' && e.entityType === 'notebook' && e.entityId === notebook.id);
+            existingOutboxId = prevOutbox?.id ?? null;
+            return;
+          }
           ctx.put('notebooks', notebook.id, notebook);
-          ctx.put('outbox', outboxId, outboxEntry);
+          coalescePendingOutboxEntry(ctx, outboxEntry);
         },
       );
+
+      if (!didMutate) {
+        return {
+          ok: true,
+          committedAt: timestamp,
+          outboxEntryId: existingOutboxId,
+        };
+      }
 
       // EMIT SAVE SUCCESS ONLY AFTER SUCCESSFUL COMMIT
       const event: SaveSuccessEvent = {
@@ -316,13 +450,41 @@ export class PersonalWorkspaceRepository {
     };
 
     try {
+      let didMutate = true;
+      let existingOutboxId: string | null = null;
       await this.engine.runTransaction(
         ['notes', 'assets', 'outbox', 'editor_buffers'],
         'readwrite',
         (ctx) => {
+          const existingNote = ctx.get<TNote>('notes', noteToSave.id);
+          const allAssetsUnchanged = effectiveAssets.every((asset) => {
+            const existingAsset = ctx.get<{ id: string; hash?: string }>('assets', asset.id);
+            const incomingHash = (asset as { hash?: string }).hash;
+            return Boolean(existingAsset && (!incomingHash || existingAsset.hash === incomingHash));
+          });
+
+          if (
+            existingNote &&
+            allAssetsUnchanged &&
+            normalizeRecordForComparison(existingNote) === normalizeRecordForComparison(noteToSave)
+          ) {
+            didMutate = false;
+            ctx.delete('editor_buffers', noteToSave.id);
+            const prevOutbox = ctx
+              .getAll<OutboxEntry>('outbox')
+              .find((e) => e.status === 'pending' && e.entityType === 'note' && e.entityId === noteToSave.id);
+            existingOutboxId = prevOutbox?.id ?? null;
+            return;
+          }
+
           ctx.put('notes', noteToSave.id, noteToSave);
 
           for (const asset of effectiveAssets) {
+            const existingAsset = ctx.get<{ id: string; hash?: string }>('assets', asset.id);
+            const incomingHash = (asset as { hash?: string }).hash;
+            if (existingAsset && incomingHash && existingAsset.hash === incomingHash) {
+              continue;
+            }
             ctx.put('assets', asset.id, asset);
             const assetOutboxId = `outbox-asset-${asset.id}-${Date.now()}`;
             const assetEntry: OutboxEntry = {
@@ -339,12 +501,20 @@ export class PersonalWorkspaceRepository {
             ctx.put('outbox', assetOutboxId, assetEntry);
           }
 
-          ctx.put('outbox', outboxId, noteOutboxEntry);
+          coalescePendingOutboxEntry(ctx, noteOutboxEntry);
           ctx.delete('editor_buffers', noteToSave.id);
         },
       );
 
       this.memoryEditorBuffers.delete(noteToSave.id);
+
+      if (!didMutate) {
+        return {
+          ok: true,
+          committedAt: timestamp,
+          outboxEntryId: existingOutboxId,
+        };
+      }
 
       const event: SaveSuccessEvent = {
         entityType: 'note',
@@ -436,13 +606,39 @@ export class PersonalWorkspaceRepository {
     };
 
     try {
+      let didMutate = true;
+      let existingOutboxId: string | null = null;
       await this.engine.runTransaction(
         ['notes', 'assets', 'outbox', 'editor_buffers'],
         'readwrite',
         (ctx) => {
+          const existingNote = ctx.get<T>('notes', noteToSave.id);
+          const allAssetsUnchanged = extractedAssetsToSave.every((asset) => {
+            const existingAsset = ctx.get<{ id: string; hash?: string }>('assets', asset.id);
+            return Boolean(existingAsset && existingAsset.hash === asset.hash);
+          });
+
+          if (
+            existingNote &&
+            allAssetsUnchanged &&
+            normalizeRecordForComparison(existingNote) === normalizeRecordForComparison(noteToSave)
+          ) {
+            didMutate = false;
+            ctx.delete('editor_buffers', noteToSave.id);
+            const prevOutbox = ctx
+              .getAll<OutboxEntry>('outbox')
+              .find((e) => e.status === 'pending' && e.entityType === 'note' && e.entityId === noteToSave.id);
+            existingOutboxId = prevOutbox?.id ?? null;
+            return;
+          }
+
           ctx.put('notes', noteToSave.id, noteToSave);
 
           for (const asset of extractedAssetsToSave) {
+            const existingAsset = ctx.get<{ id: string; hash?: string }>('assets', asset.id);
+            if (existingAsset && existingAsset.hash === asset.hash) {
+              continue;
+            }
             ctx.put('assets', asset.id, asset);
             const assetOutboxId = `outbox-asset-${asset.id}-${Date.now()}`;
             const assetEntry: OutboxEntry = {
@@ -459,12 +655,20 @@ export class PersonalWorkspaceRepository {
             ctx.put('outbox', assetOutboxId, assetEntry);
           }
 
-          ctx.put('outbox', outboxId, outboxEntry);
+          coalescePendingOutboxEntry(ctx, outboxEntry);
           ctx.delete('editor_buffers', noteToSave.id);
         },
       );
 
       this.memoryEditorBuffers.delete(noteToSave.id);
+
+      if (!didMutate) {
+        return {
+          ok: true,
+          committedAt: timestamp,
+          outboxEntryId: existingOutboxId,
+        };
+      }
 
       const event: SaveSuccessEvent = {
         entityType: 'note',
@@ -535,14 +739,33 @@ export class PersonalWorkspaceRepository {
     };
 
     try {
+      let didMutate = true;
+      let existingOutboxId: string | null = null;
       await this.engine.runTransaction(
         ['schedules', 'outbox'],
         'readwrite',
         (ctx) => {
+          const existing = ctx.get<ScheduleTaskRecord>('schedules', task.id);
+          if (existing && normalizeRecordForComparison(existing) === normalizeRecordForComparison(task)) {
+            didMutate = false;
+            const prevOutbox = ctx
+              .getAll<OutboxEntry>('outbox')
+              .find((e) => e.status === 'pending' && e.entityType === 'schedule' && e.entityId === task.id);
+            existingOutboxId = prevOutbox?.id ?? null;
+            return;
+          }
           ctx.put('schedules', task.id, task);
-          ctx.put('outbox', outboxId, outboxEntry);
+          coalescePendingOutboxEntry(ctx, outboxEntry);
         },
       );
+
+      if (!didMutate) {
+        return {
+          ok: true,
+          committedAt: timestamp,
+          outboxEntryId: existingOutboxId,
+        };
+      }
 
       const event: SaveSuccessEvent = {
         entityType: 'schedule',

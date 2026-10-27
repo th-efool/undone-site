@@ -259,4 +259,94 @@ describe('NotesRepository -> LocalWorkspace Bridge', () => {
     const deleteMutation = outbox.find((m) => m.entityId === 'note-to-delete' && m.mutationType === 'delete');
     expect(deleteMutation).toBeDefined();
   });
+
+  it('does not queue duplicate outbox mutations or advance updatedAt on repeated syncWithLocalWorkspace or volatile Excalidraw appState changes', async () => {
+    const workspace = LocalWorkspace.getLocalWorkspace(TEST_USER);
+    await workspace.open({ userId: TEST_USER });
+
+    const state: NotesStateEntity = {
+      notebooks: [
+        {
+          id: 'nb-diary',
+          title: 'Undone diary',
+          description: '',
+          color: '#ff2b56',
+          favorite: false,
+          shared: false,
+          archived: false,
+          collapsed: false,
+          order: 0,
+          createdAt: '2026-10-27T12:00:00.000Z',
+          updatedAt: '2026-10-27T12:00:00.000Z',
+        },
+      ],
+      notes: [
+        {
+          id: 'note-pika',
+          notebookId: 'nb-diary',
+          title: 'pikachu',
+          contentType: 'canvas',
+          order: 0,
+          createdAt: '2026-10-27T12:00:00.000Z',
+          updatedAt: '2026-10-27T12:00:00.000Z',
+          ownerId: null,
+          permission: 'owner',
+          tags: [],
+          favorite: false,
+          shared: false,
+          archived: false,
+          sharedWith: [],
+          publicLink: false,
+          linkedConceptIds: [],
+          linkedResourceIds: [],
+          learningPathId: null,
+          revision: null,
+        },
+      ],
+      selectedNotebookId: 'nb-diary',
+      selectedNoteId: 'note-pika',
+      notebookSort: 'manual',
+      noteSort: 'manual',
+      filter: 'all',
+    };
+
+    await notesRepository.syncWithLocalWorkspace(state, TEST_USER);
+    await workspace.saveCanvasScene(
+      'note-pika',
+      {
+        elements: [{ id: 'rect-1', type: 'rectangle', x: 10, y: 20, width: 100, height: 80, versionNonce: 111, updated: 1000 }],
+        appState: { viewBackgroundColor: '#ffffff', width: 1253, height: 929, hoveredElementIds: {} },
+      },
+      { title: 'pikachu', notebookId: 'nb-diary' },
+    );
+
+    // Acknowledge initial outbox
+    await workspace.getRepository().acknowledgeOutboxUpTo(workspace.getGeneration());
+    expect(await workspace.getRepository().getPendingOutbox()).toHaveLength(0);
+    const savedBefore = await workspace.getRepository().getNote('note-pika');
+
+    // 1. Re-running syncWithLocalWorkspace with unchanged metadata must be a complete no-op
+    await notesRepository.syncWithLocalWorkspace(
+      {
+        ...state,
+        notes: [{ ...state.notes[0], updatedAt: '2026-10-27T16:30:00.000Z' }],
+      },
+      TEST_USER,
+    );
+    expect(await workspace.getRepository().getPendingOutbox()).toHaveLength(0);
+
+    // 2. Saving canvas scene where only volatile appState (width/height/hover) or element versionNonce changed must be a no-op
+    await workspace.saveCanvasScene(
+      'note-pika',
+      {
+        elements: [{ id: 'rect-1', type: 'rectangle', x: 10, y: 20, width: 100, height: 80, versionNonce: 999, updated: 2000 }],
+        appState: { viewBackgroundColor: '#ffffff', width: 1254, height: 930, hoveredElementIds: { 'rect-1': true } },
+      },
+      { title: 'pikachu', notebookId: 'nb-diary' },
+    );
+    expect(await workspace.getRepository().getPendingOutbox()).toHaveLength(0);
+    const savedAfter = await workspace.getRepository().getNote('note-pika');
+    expect(savedAfter?.updatedAt).toBe(savedBefore?.updatedAt);
+    expect((savedAfter as { canvasData?: { appState?: Record<string, unknown> } })?.canvasData?.appState?.width).toBeUndefined();
+  });
 });

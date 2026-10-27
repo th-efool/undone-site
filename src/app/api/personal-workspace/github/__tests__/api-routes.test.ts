@@ -16,7 +16,7 @@ import { VAULT_COOKIE_NAME, VaultCookiePayload } from '../vault';
 import { GET as getStatus } from '../status/route';
 import { POST as postConnect } from '../connect/route';
 import { POST as postDisconnect } from '../disconnect/route';
-import { POST as postPublish } from '../publish/route';
+import { POST as postPublish, buildPublishCommitMessage } from '../publish/route';
 import { GET as getPull, POST as postPull } from '../pull/route';
 
 describe('Personal Workspace GitHub API Routes', () => {
@@ -918,6 +918,67 @@ describe('Personal Workspace GitHub API Routes', () => {
       const missingAssetResponse = await getPull(reqGet);
       expect(missingAssetResponse.status).toBe(500);
       expect((await missingAssetResponse.json()).error).toContain('Manifest asset is missing or changed');
+    });
+
+    it('generates meaningful descriptive commit messages from outbox mutations and coalesces create+update', () => {
+      const msg = buildPublishCommitMessage(
+        [
+          {
+            id: 'm-1',
+            clientTimestamp: '2026-10-27T12:00:00Z',
+            mutationType: 'create',
+            entityType: 'notebook',
+            entityId: 'nb-diary',
+            payload: { id: 'nb-diary', title: 'Undone diary' },
+            status: 'pending',
+            retryCount: 0,
+            generation: 1,
+          },
+          {
+            id: 'm-2',
+            clientTimestamp: '2026-10-27T12:00:01Z',
+            mutationType: 'create',
+            entityType: 'note',
+            entityId: 'note-pika',
+            payload: { id: 'note-pika', title: 'Untitled Note', notebookId: 'nb-diary', contentType: 'canvas' },
+            status: 'pending',
+            retryCount: 0,
+            generation: 2,
+          },
+          {
+            id: 'm-3',
+            clientTimestamp: '2026-10-27T12:00:02Z',
+            mutationType: 'update',
+            entityType: 'note',
+            entityId: 'note-pika',
+            payload: { id: 'note-pika', title: 'pikachu', notebookId: 'nb-diary', contentType: 'canvas' },
+            status: 'pending',
+            retryCount: 0,
+            generation: 3,
+          },
+        ],
+        {
+          notebooks: [{ id: 'nb-diary', title: 'Undone diary', color: '#e11d48', favorite: false, archived: false, order: 0 }],
+          notes: [
+            {
+              id: 'note-pika',
+              notebookId: 'nb-diary',
+              title: 'pikachu',
+              contentType: 'canvas',
+              order: 0,
+              createdAt: '2026-10-27T12:00:00Z',
+              updatedAt: '2026-10-27T12:00:02Z',
+              canvasData: { elements: [], appState: {} },
+            },
+          ],
+          assets: [],
+          schedules: [],
+        },
+      );
+
+      expect(msg).toContain('undone(sync): create notebook "Undone diary", create canvas "pikachu" in "Undone diary"');
+      expect(msg).toContain('- [create] notebook "Undone diary" (undone/notebooks/nb-diary.json)');
+      expect(msg).toContain('- [create] canvas "pikachu" in "Undone diary" (undone/notes/note-pika.json)');
     });
   });
 });
