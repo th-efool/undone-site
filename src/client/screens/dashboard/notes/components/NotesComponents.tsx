@@ -63,6 +63,7 @@ export function CanvasSwitcher({
             className={styles.titleInputTop}
             value={displayTitle}
             onChange={(e) => onTitleChange(e.target.value)}
+            style={{ width: `${Math.max((displayTitle || '').length + 1, 4)}ch` }}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === 'Escape') {
                 (e.target as HTMLInputElement).blur();

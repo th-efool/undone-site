@@ -384,7 +384,7 @@ describe('Cascade Regression Test Suite & Failure Reproduction (Phase 1, Task 1.
       let buttonResetDecl: RuleDeclaration | null = null;
 
       postcssAst.walkRules((rule) => {
-        if (rule.selector.includes('.bg-zinc-900') && rule.parent?.type === 'atrule') {
+        if (rule.selector === '.bg-zinc-900' && rule.parent?.type === 'atrule') {
           const parentAtRule = rule.parent as PostcssAtRule;
           if (parentAtRule.name === 'layer' && parentAtRule.params.includes('utilities')) {
             rule.walkDecls('background-color', (decl) => {
