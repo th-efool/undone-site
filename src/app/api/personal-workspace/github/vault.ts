@@ -144,9 +144,9 @@ export async function resolveCredentials(
     }
   }
 
-  // Dev/Test fallback: when cookie is not set but test environment variables exist
+  // Dev/Test fallback: in automated tests or when explicit dev mock is opted into
   if (
-    (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test') &&
+    (process.env.NODE_ENV === 'test' || process.env.USE_TEST_GITHUB_REPO_IN_DEV === 'true') &&
     process.env.GITHUB_TEST_TOKEN &&
     process.env.GITHUB_TEST_REPO
   ) {

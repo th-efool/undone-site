@@ -6,9 +6,12 @@ import {
   Key,
   AlertTriangle,
   AlertCircle,
-  Check,
   Loader2,
   X,
+  ExternalLink,
+  RefreshCw,
+  Download,
+  ShieldCheck,
 } from 'lucide-react';
 
 export interface ConnectGitHubModalProps {
@@ -20,6 +23,10 @@ export interface ConnectGitHubModalProps {
   isConnected?: boolean;
   baseUrl?: string;
   fetchFn?: typeof fetch;
+  onSyncNow?: () => Promise<void> | void;
+  onExportBackup?: () => Promise<void> | void;
+  isSyncing?: boolean;
+  lastSyncedAt?: number | null;
 }
 
 /**
@@ -53,6 +60,10 @@ export function ConnectGitHubModal({
   isConnected = false,
   baseUrl = '',
   fetchFn,
+  onSyncNow,
+  onExportBackup,
+  isSyncing = false,
+  lastSyncedAt,
 }: ConnectGitHubModalProps) {
   const [repoFullName, setRepoFullName] = useState(initialRepo);
   const [token, setToken] = useState('');
@@ -84,9 +95,8 @@ export function ConnectGitHubModal({
     setIsOAuthLoading(true);
     setError(null);
 
-    const width = 600;
-    const height = 700;
-    const left = typeof window !== 'undefined' ? window.screenX + (window.outerWidth - width) / 2 : 0;
+    const width = 1024;
+    const height = 800;    const left = typeof window !== 'undefined' ? window.screenX + (window.outerWidth - width) / 2 : 0;
     const top = typeof window !== 'undefined' ? window.screenY + (window.outerHeight - height) / 2 : 0;
 
     const authUrl = `${baseUrl}/api/personal-workspace/github/oauth/authorize`;
@@ -260,7 +270,7 @@ export function ConnectGitHubModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
       data-testid="modal-backdrop"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isLoading) {
@@ -282,10 +292,12 @@ export function ConnectGitHubModal({
             </div>
             <div>
               <h2 id="connect-github-title" className="text-base font-semibold leading-none">
-                Connect GitHub
+                {connected ? 'GitHub Sync Settings' : 'Connect GitHub'}
               </h2>
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                Local-first backup and version control
+                {connected
+                  ? 'Manage versioned synchronization'
+                  : 'Local-first backup and version control'}
               </p>
             </div>
           </div>
@@ -294,55 +306,168 @@ export function ConnectGitHubModal({
             onClick={onClose}
             disabled={isLoading}
             aria-label="Close dialog"
-            className="rounded-lg p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50"
+            className="rounded-lg p-1.5 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors disabled:opacity-50 cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Content & Form */}
-        <form onSubmit={handleConnect} className="p-6 space-y-4">
-          {/* Connection Status Banner */}
-          {connected ? (
+        {/* VIEW 1: Already Connected Dashboard */}
+        {connected ? (
+          <div className="p-6 space-y-5">
+            {/* Connected Banner / Account Card */}
             <div
-              className="flex items-center gap-3 p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-sm"
+              className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200 space-y-3"
               data-testid="connected-banner"
             >
-              <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <div className="flex-1">
-                <p className="font-medium">Repository Connected</p>
-                <p className="text-xs opacity-90 font-mono mt-0.5">
-                  {connectedRepo || repoFullName}
-                </p>
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300">
+                    <ShieldCheck className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold">Repository Connected</h3>
+                    <p className="text-xs text-emerald-700 dark:text-emerald-400">
+                      Private snapshot repository linked
+                    </p>
+                  </div>
+                </div>
+                <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-100 dark:bg-emerald-900/80 text-emerald-800 dark:text-emerald-300">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Active
+                </span>
               </div>
-            </div>
-          ) : null}
 
-          {/* Error Banner */}
-          {error ? (
-            <div
-              role="alert"
-              className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 text-xs"
-              data-testid="error-banner"
-            >
-              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
-              <p className="flex-1 leading-relaxed">{error}</p>
-            </div>
-          ) : null}
+              <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/70 dark:bg-zinc-900/80 border border-emerald-200/60 dark:border-emerald-800/40 font-mono text-xs">
+                <span className="truncate font-medium">{connectedRepo || repoFullName}</span>
+                <a
+                  href={`https://github.com/${connectedRepo || repoFullName}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline shrink-0 ml-2"
+                >
+                  <span>View</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
 
-          {/* 1-Click GitHub Authorization Card */}
-          {!connected ? (
-            <div className="p-4 rounded-xl bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-800/60 dark:to-zinc-800/30 border border-zinc-200 dark:border-zinc-700/80 space-y-3">
+              {lastSyncedAt ? (
+                <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80">
+                  Last synced: {new Date(lastSyncedAt).toLocaleTimeString()}
+                </p>
+              ) : null}
+            </div>
+
+            {/* Error Banner if any */}
+            {error ? (
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 text-xs"
+                data-testid="error-banner"
+              >
+                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                <p className="flex-1 leading-relaxed">{error}</p>
+              </div>
+            ) : null}
+
+            {/* Quick Actions (Sync Now & Export Backup) */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (onSyncNow) {
+                    setIsLoading(true);
+                    try {
+                      await onSyncNow();
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }
+                }}
+                disabled={isLoading || isSyncing}
+                className="flex items-center justify-center gap-2 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs font-medium transition-colors disabled:opacity-50 cursor-pointer shadow-xs"
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${isSyncing || isLoading ? 'animate-spin' : ''}`}
+                />
+                <span>{isSyncing ? 'Syncing...' : 'Sync Now'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  if (onExportBackup) {
+                    await onExportBackup();
+                  }
+                }}
+                className="flex items-center justify-center gap-2 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/50 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200 text-xs font-medium transition-colors cursor-pointer shadow-xs"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Export Backup</span>
+              </button>
+            </div>
+
+            {/* Security Note */}
+            <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 dark:text-zinc-500">
+              <Lock className="w-3 h-3 shrink-0" />
+              <span>Tokens and session data are encrypted at rest with AES-GCM.</span>
+            </div>
+
+            {/* Bottom Actions */}
+            <div className="flex items-center justify-between pt-3 border-t border-zinc-100 dark:border-zinc-800">
+              <button
+                type="button"
+                onClick={handleDisconnect}
+                disabled={isLoading}
+                data-testid="btn-disconnect"
+                className="px-3.5 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-100 dark:hover:bg-rose-900/50 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5 cursor-pointer"
+              >
+                {isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : null}
+                Disconnect
+              </button>
+
+              <button
+                type="button"
+                onClick={onClose}
+                disabled={isLoading}
+                data-testid="btn-close"
+                className="px-4 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors cursor-pointer"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* VIEW 2: Connect Flow (1-Click Primary + Manual Custom Fallback) */
+          <form onSubmit={handleConnect} className="p-6 space-y-4">
+            {/* Error Banner */}
+            {error ? (
+              <div
+                role="alert"
+                className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-700 dark:text-rose-300 text-xs"
+                data-testid="error-banner"
+              >
+                <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                <p className="flex-1 leading-relaxed">{error}</p>
+              </div>
+            ) : null}
+
+            {/* 1-Click GitHub Authorization Card (HERO) */}
+            <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-50/70 via-zinc-50 to-zinc-100 dark:from-indigo-950/30 dark:via-zinc-800/60 dark:to-zinc-800/30 border border-indigo-200/60 dark:border-indigo-800/40 space-y-3.5 shadow-xs">
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shrink-0">
+                <div className="p-2.5 rounded-xl bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shrink-0 shadow-xs">
                   <Github className="w-5 h-5" />
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
                     1-Click GitHub Authorization
                   </h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
-                    Authorize once to automatically synchronize your notes with a private repository (<span className="font-mono text-zinc-700 dark:text-zinc-300">undone-notes</span>). No manual token creation needed.
+                  <p className="text-xs text-zinc-600 dark:text-zinc-400 mt-1 leading-relaxed">
+                    Authorize once to automatically create and sync with your private repository (
+                    <span className="font-mono text-zinc-800 dark:text-zinc-200 font-semibold">
+                      undone-notes
+                    </span>
+                    ). Zero manual tokens or typing required.
                   </p>
                 </div>
               </div>
@@ -366,176 +491,162 @@ export function ConnectGitHubModal({
                   </>
                 )}
               </button>
+            </div>
 
-              <div className="relative my-2">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-zinc-200 dark:border-zinc-700/60" />
-                </div>
-                <div className="relative flex justify-center text-[10px] uppercase font-medium">
-                  <span className="bg-zinc-100 dark:bg-zinc-800 px-2 text-zinc-400">
-                    or custom repository &amp; token
-                  </span>
-                </div>
+            {/* Divider */}
+            <div className="relative my-2">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-zinc-200 dark:border-zinc-800" />
+              </div>
+              <div className="relative flex justify-center text-[10px] uppercase font-medium">
+                <span className="bg-white dark:bg-zinc-900 px-2 text-zinc-400 dark:text-zinc-500">
+                  or custom repository &amp; token
+                </span>
               </div>
             </div>
-          ) : null}
 
-          {/* Repository Name Input */}
-          <div className="space-y-1.5">
-            <label
-              htmlFor="repo-name"
-              className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300"
-            >
-              Repository Name
-            </label>
-            <div className="relative">
-              <input
-                id="repo-name"
-                name="repoFullName"
-                type="text"
-                placeholder="username/undone-notes"
-                value={repoFullName}
-                onChange={(e) => {
-                  setRepoFullName(e.target.value);
-                  setError(null);
-                }}
-                onBlur={() => setTouched((prev) => ({ ...prev, repo: true }))}
-                disabled={isLoading}
-                aria-invalid={showRepoError}
-                aria-describedby={showRepoError ? 'repo-error' : 'repo-hint'}
-                className="w-full px-3.5 py-2 text-sm rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/80 focus:border-zinc-400 dark:focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400 font-mono placeholder:font-sans placeholder:text-zinc-400 disabled:opacity-60"
-              />
-            </div>
-            {showRepoError ? (
-              <p id="repo-error" className="text-xs text-rose-600 dark:text-rose-400">
-                Please enter a valid repository in &apos;owner/repo&apos; format.
-              </p>
-            ) : (
-              <p id="repo-hint" className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                Format: <span className="font-mono">owner/repo</span> (e.g. username/undone-notes)
-              </p>
-            )}
-          </div>
-
-          {/* Personal Access Token Input */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
+            {/* Repository Name Input */}
+            <div className="space-y-1.5">
               <label
-                htmlFor="github-token"
-                className="flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300"
+                htmlFor="repo-name"
+                className="block text-xs font-semibold text-zinc-700 dark:text-zinc-300"
               >
-                <Key className="w-3.5 h-3.5 text-zinc-400" />
-                Personal Access Token
+                Repository Name
               </label>
+              <div className="relative">
+                <input
+                  id="repo-name"
+                  name="repoFullName"
+                  type="text"
+                  placeholder="username/undone-notes"
+                  value={repoFullName}
+                  onChange={(e) => {
+                    setRepoFullName(e.target.value);
+                    setError(null);
+                  }}
+                  onBlur={() => setTouched((prev) => ({ ...prev, repo: true }))}
+                  disabled={isLoading}
+                  aria-invalid={showRepoError}
+                  aria-describedby={showRepoError ? 'repo-error' : 'repo-hint'}
+                  className="w-full px-3.5 py-2 text-sm rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/80 focus:border-zinc-400 dark:focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400 font-mono placeholder:font-sans placeholder:text-zinc-400 disabled:opacity-60"
+                />
+              </div>
+              {showRepoError ? (
+                <p id="repo-error" className="text-xs text-rose-600 dark:text-rose-400">
+                  Please enter a valid repository in &apos;owner/repo&apos; format.
+                </p>
+              ) : (
+                <p id="repo-hint" className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                  Format: <span className="font-mono">owner/repo</span> (e.g. username/undone-notes)
+                </p>
+              )}
             </div>
-            <div className="relative">
-              <input
-                id="github-token"
-                name="token"
-                type="password"
-                placeholder="ghp_... or fine-grained PAT"
-                value={token}
-                onChange={(e) => {
-                  setToken(e.target.value);
-                  setError(null);
-                }}
-                onBlur={() => setTouched((prev) => ({ ...prev, token: true }))}
-                disabled={isLoading}
-                aria-invalid={showTokenError}
-                aria-describedby={showTokenError ? 'token-error' : 'token-hint'}
-                className="w-full px-3.5 py-2 text-sm rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/80 focus:border-zinc-400 dark:focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400 font-mono placeholder:font-sans placeholder:text-zinc-400 disabled:opacity-60"
-              />
+
+            {/* Personal Access Token Input */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label
+                  htmlFor="github-token"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300"
+                >
+                  <Key className="w-3.5 h-3.5 text-zinc-400" />
+                  Personal Access Token
+                </label>
+              </div>
+              <div className="relative">
+                <input
+                  id="github-token"
+                  name="token"
+                  type="password"
+                  placeholder="ghp_... or fine-grained PAT"
+                  value={token}
+                  onChange={(e) => {
+                    setToken(e.target.value);
+                    setError(null);
+                  }}
+                  onBlur={() => setTouched((prev) => ({ ...prev, token: true }))}
+                  disabled={isLoading}
+                  aria-invalid={showTokenError}
+                  aria-describedby={showTokenError ? 'token-error' : 'token-hint'}
+                  className="w-full px-3.5 py-2 text-sm rounded-lg bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/80 focus:border-zinc-400 dark:focus:border-zinc-500 focus:outline-none focus:ring-1 focus:ring-zinc-400 font-mono placeholder:font-sans placeholder:text-zinc-400 disabled:opacity-60"
+                />
+              </div>
+              {showTokenError ? (
+                <p id="token-error" className="text-xs text-rose-600 dark:text-rose-400">
+                  Personal access token is required to authenticate.
+                </p>
+              ) : (
+                <p id="token-hint" className="text-[11px] text-zinc-500 dark:text-zinc-400">
+                  Must include <span className="font-mono">repo</span> scope or Contents read/write.
+                </p>
+              )}
             </div>
-            {showTokenError ? (
-              <p id="token-error" className="text-xs text-rose-600 dark:text-rose-400">
-                Personal access token is required to authenticate.
-              </p>
-            ) : (
-              <p id="token-hint" className="text-[11px] text-zinc-500 dark:text-zinc-400">
-                Must include <span className="font-mono">repo</span> scope or Contents read/write.
-              </p>
-            )}
-          </div>
 
-          {/* Allow Public Repository Checkbox & Warning */}
-          <div className="pt-1 space-y-2">
-            <label className="flex items-start gap-2.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                id="allow-public-repo"
-                name="allowPublic"
-                checked={allowPublic}
-                onChange={(e) => setAllowPublic(e.target.checked)}
-                disabled={isLoading}
-                className="mt-0.5 rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-500"
-              />
-              <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
-                Allow Public Repository
-              </span>
-            </label>
+            {/* Allow Public Repository Checkbox & Warning */}
+            <div className="pt-1 space-y-2">
+              <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  id="allow-public-repo"
+                  name="allowPublic"
+                  checked={allowPublic}
+                  onChange={(e) => setAllowPublic(e.target.checked)}
+                  disabled={isLoading}
+                  className="mt-0.5 rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-500"
+                />
+                <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
+                  Allow Public Repository
+                </span>
+              </label>
 
-            <div
-              className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/40 text-amber-800 dark:text-amber-300 text-xs"
-              data-testid="public-repo-warning"
-            >
-              <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-              <p className="leading-snug">
-                <strong>Warning:</strong> Undone workspace notes may contain private information.
-                Public repositories make all notes and uploaded files publicly accessible.
-              </p>
+              <div
+                className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-50 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/40 text-amber-800 dark:text-amber-300 text-xs"
+                data-testid="public-repo-warning"
+              >
+                <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <p className="leading-snug">
+                  <strong>Warning:</strong> Undone workspace notes may contain private information.
+                  Public repositories make all notes and uploaded files publicly accessible.
+                </p>
+              </div>
             </div>
-          </div>
 
-          {/* Security Assurance */}
-          <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 dark:text-zinc-500">
-            <Lock className="w-3 h-3" />
-            <span>Tokens are stored securely and encrypted at rest in your session.</span>
-          </div>
+            {/* Security Assurance */}
+            <div className="flex items-center gap-1.5 text-[11px] text-zinc-400 dark:text-zinc-500">
+              <Lock className="w-3 h-3" />
+              <span>Tokens are stored securely and encrypted at rest in your session.</span>
+            </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-            {connected ? (
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-100 dark:border-zinc-800">
               <button
                 type="button"
-                onClick={handleDisconnect}
+                onClick={onClose}
                 disabled={isLoading}
-                data-testid="btn-disconnect"
-                className="px-3.5 py-2 text-xs font-medium text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-900/50 hover:bg-rose-100 dark:hover:bg-rose-900/50 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5"
+                data-testid="btn-close"
+                className="px-3.5 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                Close
+              </button>
+
+              <button
+                type="submit"
+                disabled={!canConnect}
+                data-testid="btn-connect"
+                className="px-4 py-2 text-xs font-medium text-white bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-sm cursor-pointer"
               >
                 {isLoading ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : null}
-                Disconnect
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" data-testid="spinner-loading" />
+                    <span>Connecting...</span>
+                  </>
+                ) : (
+                  <span>Connect Repository</span>
+                )}
               </button>
-            ) : null}
-
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={isLoading}
-              data-testid="btn-close"
-              className="px-3.5 py-2 text-xs font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg transition-colors disabled:opacity-50"
-            >
-              Close
-            </button>
-
-            <button
-              type="submit"
-              disabled={!canConnect}
-              data-testid="btn-connect"
-              className="px-4 py-2 text-xs font-medium text-white bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-sm"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" data-testid="spinner-loading" />
-                  <span>Connecting...</span>
-                </>
-              ) : (
-                <span>Connect Repository</span>
-              )}
-            </button>
-          </div>
-        </form>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
