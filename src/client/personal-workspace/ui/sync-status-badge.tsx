@@ -105,7 +105,7 @@ export function getStatusConfig(summary: SyncSummary): StatusConfig {
           />
         ),
         badgeClass:
-          'text-zinc-700 bg-zinc-100 border-zinc-200 dark:text-zinc-300 dark:bg-zinc-800/60 dark:border-zinc-700/60',
+          'text-zinc-400 bg-transparent border-transparent hover:border-zinc-800 hover:bg-zinc-900/60 hover:text-zinc-200',
       };
 
     case 'queued':
@@ -147,7 +147,7 @@ export function getStatusConfig(summary: SyncSummary): StatusConfig {
           />
         ),
         badgeClass:
-          'text-emerald-800 bg-emerald-50 border-emerald-200 dark:text-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-800/60',
+          'text-zinc-400 bg-transparent border-transparent hover:border-zinc-800 hover:bg-zinc-900/60 hover:text-zinc-200',
       };
 
     case 'offline':
@@ -161,7 +161,7 @@ export function getStatusConfig(summary: SyncSummary): StatusConfig {
           />
         ),
         badgeClass:
-          'text-zinc-700 bg-zinc-100 border-zinc-200 dark:text-zinc-400 dark:bg-zinc-800/60 dark:border-zinc-700/60',
+          'text-zinc-400 bg-transparent border-transparent hover:border-zinc-800 hover:bg-zinc-900/60 hover:text-zinc-200',
       };
 
     case 'conflict':
@@ -327,7 +327,7 @@ export function SyncStatusBadge({
         onClick={togglePopover}
         onKeyDown={handleBadgeKeyDown}
         className={clsx(
-          'group inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all duration-150 cursor-pointer select-none shadow-xs hover:opacity-90 focus:outline-hidden focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500',
+          'group inline-flex items-center gap-1.5 h-[30px] px-2.5 rounded-md border text-[11px] font-mono transition-all duration-150 cursor-pointer select-none',
           config.badgeClass,
         )}
       >

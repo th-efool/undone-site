@@ -141,9 +141,12 @@ export function NotesWorkspace({
         <div className={styles.actions}>
           <WorkspaceSyncControl userId={notes.userId} />
           <Tooltip content={<>Share <kbd className={styles.kbd}>O</kbd></>} placement="bottom">
-            <button className={styles.topbarBtn} onClick={() => setShareOpen(true)}>
+            <button
+              className={styles.topbarBtn}
+              onClick={() => setShareOpen(true)}
+              aria-label="Share note"
+            >
               <Share size={15} />
-              <span>Share</span>
             </button>
           </Tooltip>
           <Tooltip content="More options" placement="bottom">
