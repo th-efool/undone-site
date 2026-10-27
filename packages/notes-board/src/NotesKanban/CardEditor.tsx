@@ -28,8 +28,8 @@ interface CardEditorProps {
 export function CardEditor({ card, anchor, onSave, onClose, mode = 'create' }: CardEditorProps) {
   const [label, setLabel]       = useState(card.label ?? '');
   const [desc, setDesc]         = useState(card.description ?? '');
-  const [type, setType]         = useState(card.type ?? 'Audit');
-  const [priority, setPriority] = useState(card.priority ?? 'high');
+  const [type, setType]         = useState(card.type ?? 'Task');
+  const [priority, setPriority] = useState(card.priority ?? 'medium');
   const [deadline, setDeadline] = useState(card.deadline ?? '');
 
   // On mobile, anchor=null tells FormEditor to render as a bottom sheet
@@ -39,23 +39,23 @@ export function CardEditor({ card, anchor, onSave, onClose, mode = 'create' }: C
   const save = () => onSave({ ...card, label, description: desc, type, priority, deadline });
 
   const fields: FieldOrGroup[] = [
-    ...(mode === 'create' ? [{
+    {
       id: 'title',
       type: 'text' as const,
       label: 'Title',
       value: label,
-      placeholder: 'Design System Audit',
+      placeholder: 'Card title...',
       onChange: setLabel,
-      autoFocus: true,
+      autoFocus: mode === 'create',
     },
     {
       id: 'desc',
       type: 'textarea' as const,
       label: 'Description',
       value: desc,
-      placeholder: 'Audit and document all existing components, patterns, and tokens across the product.',
+      placeholder: 'Add a description...',
       onChange: setDesc,
-    }] : []),
+    },
     [
       {
         id: 'type',

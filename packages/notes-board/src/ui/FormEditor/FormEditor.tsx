@@ -73,6 +73,7 @@ export function FormEditor({
         {field.type === 'text' && (
           <input
             className={styles.input}
+            data-composite-input=""
             spellCheck={false}
             value={field.value}
             placeholder={field.placeholder}
@@ -89,6 +90,7 @@ export function FormEditor({
         {field.type === 'textarea' && (
           <textarea
             className={styles.textarea}
+            data-composite-input=""
             spellCheck={false}
             value={field.value}
             rows={1}
@@ -121,6 +123,7 @@ export function FormEditor({
             {field.type === 'select' ? (
               <select
                 className={styles.select}
+                data-composite-input=""
                 value={field.value}
                 onChange={e => field.onChange(e.target.value)}
               >
@@ -134,6 +137,7 @@ export function FormEditor({
               <input
                 type="date"
                 className={`${styles.select} ${styles.selectDate || ''}`}
+                data-composite-input=""
                 value={field.value}
                 onChange={e => field.onChange(e.target.value)}
               />
@@ -177,13 +181,15 @@ export function FormEditor({
   };
 
   return (
-    <div
-      ref={ref}
-      className={styles.editor}
-      style={style}
-      onClick={e => e.stopPropagation()}
-      onKeyDown={onKeyDown}
-    >
+    <>
+      {!anchor && <div className={styles.backdrop} onClick={onClose} />}
+      <div
+        ref={ref}
+        className={`${styles.editor} sqhq-editor`}
+        style={style}
+        onClick={e => e.stopPropagation()}
+        onKeyDown={onKeyDown}
+      >
       {fields.map((item, index) => {
         if (Array.isArray(item)) {
           return (
@@ -208,5 +214,6 @@ export function FormEditor({
         </button>
       </div>
     </div>
+    </>
   );
 }
