@@ -27,7 +27,7 @@ export interface ConnectGitHubModalProps {
   onSyncNow?: () => Promise<void> | void;
   onExportBackup?: () => Promise<void> | void;
   isSyncing?: boolean;
-  lastSyncedAt?: number | null;
+  lastSyncedAt?: number | string | null;
   manageUrl?: string | null;
   installationId?: string | null;
   authType?: 'github_app' | 'pat' | 'oauth';
