@@ -203,9 +203,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // 5. Create tree
     let baseTreeSha: string | null = null;
-    if (body.expectedRemoteCommitSha) {
+    let parentCommitSha = body.expectedRemoteCommitSha || null;
+
+    if (!parentCommitSha) {
       try {
-        const parentCommit = await client.getCommit(body.expectedRemoteCommitSha);
+        const currentRefSha = await client.getRef(`refs/heads/${credentials.defaultBranch}`);
+        if (currentRefSha) {
+          parentCommitSha = currentRefSha;
+        }
+      } catch {}
+    }
+
+    if (parentCommitSha) {
+      try {
+        const parentCommit = await client.getCommit(parentCommitSha);
         baseTreeSha = parentCommit?.treeSha || null;
       } catch {
         baseTreeSha = null;
@@ -213,12 +224,12 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const treeSha = await client.createTree(
-      body.expectedRemoteCommitSha ? baseTreeSha : null,
+      baseTreeSha,
       treeEntries
     );
 
     // 6. Create commit
-    const parentShas = body.expectedRemoteCommitSha ? [body.expectedRemoteCommitSha] : [];
+    const parentShas = parentCommitSha ? [parentCommitSha] : [];
     const newCommitSha = await client.createCommit(
       'undone(sync): batch publish',
       treeSha,

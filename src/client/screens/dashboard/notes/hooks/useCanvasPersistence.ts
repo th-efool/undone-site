@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { canvasRepository } from '../repositories/canvas.repository';
 import { canvasAdapter, CANVAS_SCHEMA_VERSION } from '../adapters/canvas.adapter';
 import type { CanvasState, CanvasSceneData } from '../models/canvas.models';
@@ -9,9 +9,14 @@ export function useCanvasPersistence(
   isDirtyRef: React.MutableRefObject<boolean>,
   setCanvasState: React.Dispatch<React.SetStateAction<CanvasState>>,
   saveTrigger: number,
-  onSaveComplete?: () => void
+  onSaveComplete?: () => void,
+  userId?: string | null
 ) {
   const saveTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    canvasRepository.setActiveUserId(userId || 'local-user');
+  }, [userId]);
 
   useEffect(() => {
     // Before unloading, warn if there are unsaved changes
