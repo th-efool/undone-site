@@ -1260,10 +1260,10 @@
     "semantic_hash": "6108ceaeece8183408be2f8f004da012"
   },
   "packages/notes-board/src/NotesCanvas/NotesCanvas.tsx": {
-    "mtime": 1792510842.8589249,
-    "seen": 1792556795.8296182,
-    "ast_hash": "3a0ce5cf5488f49656d654d2d310b211",
-    "semantic_hash": "3a0ce5cf5488f49656d654d2d310b211"
+    "mtime": 1793087532.6317167,
+    "seen": 1793087738.320633,
+    "ast_hash": "f5920d0a8d49d73fb51b25d52a46a195",
+    "semantic_hash": ""
   },
   "packages/notes-board/src/NotesKanban/CardEditor.tsx": {
     "mtime": 1792231925.4832547,
@@ -1302,10 +1302,10 @@
     "semantic_hash": "f8919f54882b8d6a5e67a5fd8f7a519b"
   },
   "packages/notes-board/src/types.ts": {
-    "mtime": 1792231925.5490994,
-    "seen": 1792556795.8296285,
-    "ast_hash": "d7d911ce869fbf9fbfd91f660740ecb6",
-    "semantic_hash": "d7d911ce869fbf9fbfd91f660740ecb6"
+    "mtime": 1793086891.8745687,
+    "seen": 1793087738.3245463,
+    "ast_hash": "57e6dcd8cefb536952fb20b06594178d",
+    "semantic_hash": ""
   },
   "packages/notes-board/src/ui/FormEditor/FormEditor.tsx": {
     "mtime": 1792231925.562415,
@@ -3912,9 +3912,9 @@
     "semantic_hash": ""
   },
   "src/client/repositories/tasksStorageAdapter.ts": {
-    "mtime": 1792565793.520398,
-    "seen": 1792566554.2281883,
-    "ast_hash": "ee9271ca1f18cb15058b946a6e200e67",
+    "mtime": 1793087154.9697034,
+    "seen": 1793087738.6250844,
+    "ast_hash": "1cc19d8ca5d5a338a415ee9417d13718",
     "semantic_hash": ""
   },
   "src/client/screens/auth/Auth.tsx": {
@@ -6690,10 +6690,10 @@
     "semantic_hash": "ee38e489a954b1c5000ff60236512b7b"
   },
   "src/client/screens/dashboard/notes/repositories/canvas.repository.ts": {
-    "mtime": 1792231941.4726832,
-    "seen": 1792556795.8310206,
-    "ast_hash": "d7430945b15a0a34a61cd8f6db186b4f",
-    "semantic_hash": "d7430945b15a0a34a61cd8f6db186b4f"
+    "mtime": 1793087090.927869,
+    "seen": 1793087739.0366344,
+    "ast_hash": "4957f1cbd873c5953adbfbccd42a65a0",
+    "semantic_hash": ""
   },
   "src/client/screens/dashboard/notes/repositories/notes.repository.ts": {
     "mtime": 1792419478.6448145,
@@ -15282,15 +15282,15 @@
     "semantic_hash": ""
   },
   "src/client/personal-workspace/local/__tests__/local-storage.test.ts": {
-    "mtime": 1793083306.7241826,
-    "seen": 1793083643.0987277,
-    "ast_hash": "62b9a09d852f3114568decffd0c61969",
+    "mtime": 1793086598.5393243,
+    "seen": 1793087738.6030014,
+    "ast_hash": "eab51b15c5d8526f72e533317af52c99",
     "semantic_hash": ""
   },
   "src/client/personal-workspace/local/database.ts": {
-    "mtime": 1793083019.876504,
-    "seen": 1793083643.0987315,
-    "ast_hash": "d12f62bbd0154019f40379da061d5aab",
+    "mtime": 1793086405.38524,
+    "seen": 1793087738.603363,
+    "ast_hash": "1f71b2afa379425425634b21528c2eaf",
     "semantic_hash": ""
   },
   "src/client/personal-workspace/local/index.ts": {
@@ -15300,9 +15300,9 @@
     "semantic_hash": ""
   },
   "src/client/personal-workspace/local/repository.ts": {
-    "mtime": 1793083256.133953,
-    "seen": 1793083643.098737,
-    "ast_hash": "15f446254cee0b14a6d2ccefcf14f7a2",
+    "mtime": 1793087490.1249542,
+    "seen": 1793087738.6040287,
+    "ast_hash": "1ebca0988f245f10ae3a84eba2af0821",
     "semantic_hash": ""
   },
   "src/shared/personal-workspace/__tests__/personal-workspace.test.ts": {
@@ -15312,9 +15312,9 @@
     "semantic_hash": ""
   },
   "src/shared/personal-workspace/contracts.ts": {
-    "mtime": 1793082381.9649792,
-    "seen": 1793083643.3652184,
-    "ast_hash": "30cb3c4b39e001d26a340e541415ea81",
+    "mtime": 1793086092.6917593,
+    "seen": 1793087739.397099,
+    "ast_hash": "1dd4b44b3e7fad385ac27dead0a377ba",
     "semantic_hash": ""
   },
   "src/shared/personal-workspace/errors.ts": {
@@ -15324,9 +15324,9 @@
     "semantic_hash": ""
   },
   "src/shared/personal-workspace/index.ts": {
-    "mtime": 1793079662.4445143,
-    "seen": 1793080003.4250467,
-    "ast_hash": "3e1b555638e3c67016a3c8ab2a2c25d8",
+    "mtime": 1793086187.4679487,
+    "seen": 1793087739.3973472,
+    "ast_hash": "8ac2e777b384c19247f4c0b459e9cb3e",
     "semantic_hash": ""
   },
   "src/shared/personal-workspace/serialization.ts": {
@@ -15408,9 +15408,9 @@
     "semantic_hash": ""
   },
   "src/client/personal-workspace/local/facade.ts": {
-    "mtime": 1793081016.5419266,
-    "seen": 1793083643.0987327,
-    "ast_hash": "ed8b7b9df23a0be4d1d00461eeb60998",
+    "mtime": 1793086566.688148,
+    "seen": 1793087738.6033797,
+    "ast_hash": "9823b44b15714a042c7ccabc63f3aedb",
     "semantic_hash": ""
   },
   "src/client/personal-workspace/ui/__tests__/sync-status-badge.test.tsx": {
@@ -15450,15 +15450,15 @@
     "semantic_hash": ""
   },
   "src/app/api/personal-workspace/github/publish/route.ts": {
-    "mtime": 1793082362.3437881,
-    "seen": 1793083643.0570943,
-    "ast_hash": "13c33dd236f406b49a27865b73cc765b",
+    "mtime": 1793087366.9311528,
+    "seen": 1793087738.4959881,
+    "ast_hash": "fccabd57e3db85331c387bf3176748f1",
     "semantic_hash": ""
   },
   "src/app/api/personal-workspace/github/pull/route.ts": {
-    "mtime": 1793082375.7214284,
-    "seen": 1793083643.0570962,
-    "ast_hash": "df3e43493f53917e200a4f998c290f06",
+    "mtime": 1793087391.5727634,
+    "seen": 1793087738.4959917,
+    "ast_hash": "a03c5d201606ae1cfe6296426591d2f1",
     "semantic_hash": ""
   },
   "src/app/api/personal-workspace/github/status/route.ts": {
@@ -15498,9 +15498,9 @@
     "semantic_hash": ""
   },
   "src/client/personal-workspace/sync/coordinator.ts": {
-    "mtime": 1793082475.842228,
-    "seen": 1793083643.0987391,
-    "ast_hash": "a0ced378c0406968a58c0c4a16965333",
+    "mtime": 1793087495.546569,
+    "seen": 1793087738.6047075,
+    "ast_hash": "d0aff140c4df16079e25902b71428051",
     "semantic_hash": ""
   },
   "src/client/personal-workspace/sync/index.ts": {
@@ -15573,6 +15573,30 @@
     "mtime": 1793083984.8555903,
     "seen": 1793084425.698421,
     "ast_hash": "102c3a855786aeb5c86356847198cc57",
+    "semantic_hash": ""
+  },
+  "packages/notes-board/src/NotesCanvas/MediaOverlay.tsx": {
+    "mtime": 1793087504.8264818,
+    "seen": 1793087738.3206286,
+    "ast_hash": "90a45a043ca72992317e742c22e5b6b1",
+    "semantic_hash": ""
+  },
+  "packages/notes-board/src/NotesCanvas/__tests__/MediaOverlay.test.tsx": {
+    "mtime": 1793087047.5023804,
+    "seen": 1793087738.320635,
+    "ast_hash": "a8f2fdad77f764b7b8da990ca0d42d15",
+    "semantic_hash": ""
+  },
+  "src/shared/personal-workspace/__tests__/media.test.ts": {
+    "mtime": 1793087452.8065197,
+    "seen": 1793087739.3968313,
+    "ast_hash": "de10344a78d17a4841fb2db3cdf1bc52",
+    "semantic_hash": ""
+  },
+  "src/shared/personal-workspace/media.ts": {
+    "mtime": 1793087440.7536867,
+    "seen": 1793087739.3973496,
+    "ast_hash": "b65ecad4b25becfa8e166f708aed9b36",
     "semantic_hash": ""
   }
 }

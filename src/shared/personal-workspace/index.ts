@@ -7,4 +7,5 @@
 
 export * from './contracts';
 export * from './serialization';
+export * from './media';
 export * from './errors';

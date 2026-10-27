@@ -27,4 +27,4 @@ export type CanvasState = {
   errorMessage: string | null;
 };
 
-export const MAX_IMAGE_FILE_BYTES = 5 * 1024 * 1024; // 5 MB per image
+export const MAX_IMAGE_FILE_BYTES = 25 * 1024 * 1024; // 25 MB per media file
