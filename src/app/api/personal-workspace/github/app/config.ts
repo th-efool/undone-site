@@ -74,31 +74,49 @@ export function generateAppJWT(credentials: GitHubAppCredentials): string {
 
 function httpsRequest<T>(
   options: https.RequestOptions,
-  postData?: string
+  postData?: string,
+  retries = 3
 ): Promise<{ status: number; data: T | null }> {
   return new Promise((resolve, reject) => {
-    const req = https.request(options, (res) => {
-      let body = '';
-      res.on('data', (chunk) => (body += chunk));
-      res.on('end', () => {
-        try {
-          const parsed = JSON.parse(body) as T;
-          resolve({ status: res.statusCode || 200, data: parsed });
-        } catch {
-          resolve({ status: res.statusCode || 200, data: null });
+    function attempt(remaining: number) {
+      const mergedOptions: https.RequestOptions = {
+        family: 4,
+        timeout: 8000,
+        ...options,
+      };
+
+      const req = https.request(mergedOptions, (res) => {
+        let body = '';
+        res.on('data', (chunk) => (body += chunk));
+        res.on('end', () => {
+          try {
+            const parsed = JSON.parse(body) as T;
+            resolve({ status: res.statusCode || 200, data: parsed });
+          } catch {
+            resolve({ status: res.statusCode || 200, data: null });
+          }
+        });
+      });
+
+      req.on('timeout', () => {
+        req.destroy(new Error('GitHub API request timed out'));
+      });
+
+      req.on('error', (err) => {
+        if (remaining > 1) {
+          setTimeout(() => attempt(remaining - 1), 600);
+        } else {
+          reject(err);
         }
       });
-    });
 
-    req.on('error', (err) => reject(err));
-    req.setTimeout(15000, () => {
-      req.destroy(new Error('GitHub API request timed out'));
-    });
-
-    if (postData) {
-      req.write(postData);
+      if (postData) {
+        req.write(postData);
+      }
+      req.end();
     }
-    req.end();
+
+    attempt(retries);
   });
 }
 
