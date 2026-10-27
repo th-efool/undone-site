@@ -261,7 +261,9 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
     const unsubscribe = facade.subscribe(async () => {
       if (!isMounted) return;
       try {
-        const summary = await facade.getSyncSummary();
+        const summary = coordinatorRef.current
+          ? await coordinatorRef.current.getSummary()
+          : await facade.getSyncSummary();
         if (isMounted) {
           setSyncSummary(summary);
         }

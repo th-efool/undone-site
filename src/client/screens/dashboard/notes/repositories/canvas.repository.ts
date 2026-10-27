@@ -1,6 +1,7 @@
 import type { CanvasDocument, CanvasSceneData } from '../models/canvas.models';
 import { LocalWorkspace } from '@/src/client/personal-workspace/local/facade';
 import { computeSha256 } from '@/src/shared/personal-workspace/serialization';
+import { notesRepository } from './notes.repository';
 
 /** Max size for a single image file added to the canvas (checked at upload time). */
 export const MAX_IMAGE_FILE_BYTES = 25 * 1024 * 1024; // 25 MB per media file
@@ -27,6 +28,22 @@ export class CanvasRepository {
   /** Emergency backup key — written synchronously on every scene change, never throws. */
   private getBackupKey(noteId: string) {
     return `sidequesthq.canvas.backup.${noteId}`;
+  }
+
+  private resolveNoteMetadata(userId: string, noteId: string): { title?: string; notebookId?: string } {
+    try {
+      const workspaceState = LocalWorkspace.getLocalWorkspace(userId).getNotesState();
+      const wsNote = workspaceState.notes.find((n) => n.id === noteId);
+      if (wsNote) {
+        return { title: wsNote.title, notebookId: wsNote.notebookId };
+      }
+      const cachedState = notesRepository.getInitialState(userId);
+      const cachedNote = cachedState.notes.find((n) => n.id === noteId);
+      if (cachedNote) {
+        return { title: cachedNote.title, notebookId: cachedNote.notebookId };
+      }
+    } catch {}
+    return {};
   }
 
   getLegacyStorageInventory(): Array<{
@@ -157,20 +174,26 @@ export class CanvasRepository {
   }
 
   /**
-   * Transparently migrates a legacy localStorage CanvasDocument into IndexedDB LocalWorkspace.
+   * Transparently migrates a legacy localStorage CanvasDocument into IndexedDB LocalWorkspace
+   * only when note metadata is known, avoiding orphan "Untitled Note" / "default-notebook" writes.
    */
   private async migrateLegacyDocToIndexedDB(userId: string, doc: CanvasDocument): Promise<void> {
     try {
       const workspace = LocalWorkspace.getLocalWorkspace(userId);
       const existing = await workspace.getRepository().getNote(doc.noteId);
       if (!existing) {
+        const meta = this.resolveNoteMetadata(userId, doc.noteId);
+        if (!meta.title && !meta.notebookId) {
+          // Wait for notesRepository migration to import the note with its real notebook & title
+          return;
+        }
         let sceneObj: any;
         try {
           sceneObj = JSON.parse(doc.scene);
         } catch {
           sceneObj = { elements: [], appState: {}, files: {} };
         }
-        await workspace.saveCanvasScene(doc.noteId, sceneObj);
+        await workspace.saveCanvasScene(doc.noteId, sceneObj, meta);
       }
     } catch (e) {
       console.warn('[canvas] Legacy migration notice:', e);
@@ -199,7 +222,8 @@ export class CanvasRepository {
         }
 
         const workspace = LocalWorkspace.getLocalWorkspace(userId);
-        const receipt = await workspace.saveCanvasScene(doc.noteId, sceneObj);
+        const meta = this.resolveNoteMetadata(userId, doc.noteId);
+        const receipt = await workspace.saveCanvasScene(doc.noteId, sceneObj, meta);
 
         if (receipt.ok) {
           // Maintain a lightweight, non-bloated emergency backup in localStorage

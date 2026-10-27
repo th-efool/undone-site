@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { LocalWorkspace } from '@/src/client/personal-workspace/local/facade';
 import { filterNotes, toNotebookItems } from '../adapters/notes.adapter';
 import type {
   NoteDocument,
@@ -11,11 +10,18 @@ import type {
   NotesStateEntity,
   Permission,
 } from '../models/notes.models';
-import { canvasRepository } from '../repositories/canvas.repository';
 import { notesRepository } from '../repositories/notes.repository';
 
 const stamp = () => new Date().toISOString();
 const id = (p: string) => `${p}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+function getPersistentStateFingerprint(s: NotesStateEntity | null): string {
+  if (!s) return '';
+  return JSON.stringify({
+    notebooks: s.notebooks,
+    notes: s.notes,
+  });
+}
 
 function useSafeSession() {
   try {
@@ -30,9 +36,6 @@ export type NotesSyncStatus = 'saved' | 'saving' | 'offline' | 'error';
 export function useNotes() {
   const { data: session } = useSafeSession();
   const userId = session?.user?.id ?? null;
-  const effectiveUserId = userId || 'local-user';
-  canvasRepository.setActiveUserId(effectiveUserId);
-  const skipSaveRef = useRef(false);
   const [state, setState] = useState<NotesStateEntity | null>(() => notesRepository.getInitialState(userId));
   const [hasLoadedRemote, setHasLoadedRemote] = useState(false);
   const [syncStatus, setSyncStatus] = useState<NotesSyncStatus>('saved');
@@ -43,10 +46,13 @@ export function useNotes() {
     notes: NoteDocument[];
     notebooks: NotesStateEntity['notebooks'];
   } | null>(null);
+  const lastSavedFingerprintRef = useRef<string>(getPersistentStateFingerprint(state));
   const [prevUserId, setPrevUserId] = useState(userId);
   if (prevUserId !== userId) {
     setPrevUserId(userId);
-    setState(notesRepository.getInitialState(userId));
+    const initial = notesRepository.getInitialState(userId);
+    setState(initial);
+    lastSavedFingerprintRef.current = getPersistentStateFingerprint(initial);
     setHasLoadedRemote(false);
   }
 
@@ -54,41 +60,25 @@ export function useNotes() {
     let active = true;
     notesRepository.load(userId).then((loaded) => {
       if (!active) return;
+      lastSavedFingerprintRef.current = getPersistentStateFingerprint(loaded);
       setState(loaded);
       setHasLoadedRemote(true);
       setSyncStatus('saved');
     });
-
-    const workspace = LocalWorkspace.getLocalWorkspace(effectiveUserId);
-    const unsubscribeRemote = workspace.getRepository().onRemoteSnapshotApplied(() => {
-      void workspace.open({ userId: effectiveUserId }).then((snapshot) => {
-        if (!active) return;
-        skipSaveRef.current = true;
-        setState((prev) => ({
-          ...snapshot.notesState,
-          selectedNotebookId: prev?.selectedNotebookId ?? snapshot.notesState.selectedNotebookId,
-          selectedNoteId: prev?.selectedNoteId ?? snapshot.notesState.selectedNoteId,
-          notebookSort: prev?.notebookSort ?? snapshot.notesState.notebookSort,
-          noteSort: prev?.noteSort ?? snapshot.notesState.noteSort,
-          filter: prev?.filter ?? snapshot.notesState.filter,
-        }));
-      });
-    });
-
     return () => {
       active = false;
-      unsubscribeRemote();
     };
-  }, [userId, effectiveUserId]);
+  }, [userId]);
 
   useEffect(() => {
     if (!state || !hasLoadedRemote) return;
-    if (skipSaveRef.current) {
-      skipSaveRef.current = false;
+    const nextFingerprint = getPersistentStateFingerprint(state);
+    if (nextFingerprint === lastSavedFingerprintRef.current) {
       return;
     }
     const t = setTimeout(async () => {
       try {
+        lastSavedFingerprintRef.current = nextFingerprint;
         const res = await notesRepository.save(state, userId);
         setSyncStatus(!res.localSaved ? 'error' : res.remoteSaved ? 'saved' : 'offline');
       } catch {
@@ -112,6 +102,14 @@ export function useNotes() {
     },
     [],
   );
+
+  const updateViewPreference = useCallback(
+    (fn: (s: NotesStateEntity) => NotesStateEntity) => {
+      setState((s) => (s ? fn(s) : s));
+    },
+    [],
+  );
+
   const data = useMemo(
     () =>
       state
@@ -143,7 +141,7 @@ export function useNotes() {
 
   const actions = useMemo(() => ({
     selectNotebook: (notebookId: string) =>
-      update((s) => ({
+      updateViewPreference((s) => ({
         ...s,
         selectedNotebookId: notebookId,
         selectedNoteId:
@@ -263,10 +261,13 @@ export function useNotes() {
         };
       }),
     patchNote: (noteId: string, patch: Partial<NoteDocument>) =>
-      update((s) => ({
-        ...s,
-        notes: s.notes.map((n) => (n.id === noteId ? { ...n, ...patch, updatedAt: stamp() } : n)),
-      })),
+      update((s) => {
+        if (Object.keys(patch).length === 0) return s;
+        return {
+          ...s,
+          notes: s.notes.map((n) => (n.id === noteId ? { ...n, ...patch, updatedAt: stamp() } : n)),
+        };
+      }),
     duplicateNote: (noteId: string) =>
       update((s) => {
         const n = s.notes.find((x) => x.id === noteId);
@@ -370,17 +371,17 @@ export function useNotes() {
               : s.selectedNoteId,
         };
       }),
-    selectNote: (id: string) => update((s) => {
+    selectNote: (id: string) => updateViewPreference((s) => {
       const note = s.notes.find(n => n.id === id);
       if (note && note.notebookId !== s.selectedNotebookId) {
         return { ...s, selectedNoteId: id, selectedNotebookId: note.notebookId };
       }
       return { ...s, selectedNoteId: id };
     }),
-    setNotebookSort: (sort: NotesSort) => update((s) => ({ ...s, notebookSort: sort })),
-    setNoteSort: (sort: NotesSort) => update((s) => ({ ...s, noteSort: sort })),
-    setFilter: (filter: NotesFilter) => update((s) => ({ ...s, filter })),
-  }), [update]);
+    setNotebookSort: (sort: NotesSort) => updateViewPreference((s) => ({ ...s, notebookSort: sort })),
+    setNoteSort: (sort: NotesSort) => updateViewPreference((s) => ({ ...s, noteSort: sort })),
+    setFilter: (filter: NotesFilter) => updateViewPreference((s) => ({ ...s, filter })),
+  }), [update, updateViewPreference]);
 
   return {
     userId,
@@ -408,4 +409,3 @@ function reorder(s: NotesStateEntity, key: 'notebooks', fromId: string, toId: st
   arr.splice(to, 0, item);
   return { ...s, [key]: arr.map((x, order) => ({ ...x, order })) };
 }
-
