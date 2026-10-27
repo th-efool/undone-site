@@ -520,6 +520,89 @@ describe('Personal Workspace GitHub API Routes', () => {
       });
     });
 
+    it('publishes state with descriptive commit message when mutations are provided', async () => {
+      const cookie = await createCookieHeader();
+      vi.spyOn(GitHubGitDataClient.prototype, 'getRef').mockResolvedValue('parent-sha-000000');
+      vi.spyOn(GitHubGitDataClient.prototype, 'getCommit').mockResolvedValue({
+        sha: 'parent-sha-000000',
+        treeSha: 'base-tree-sha',
+        parentShas: [],
+        message: 'initial',
+        committedAt: '2026-10-27T10:00:00.000Z',
+      });
+      vi.spyOn(GitHubGitDataClient.prototype, 'createBlob').mockResolvedValue('blob-sha');
+      vi.spyOn(GitHubGitDataClient.prototype, 'createTree').mockResolvedValue('tree-sha-new');
+      const commitSpy = vi.spyOn(GitHubGitDataClient.prototype, 'createCommit').mockResolvedValue('new-commit-sha');
+      vi.spyOn(GitHubGitDataClient.prototype, 'updateRef').mockResolvedValue({ ok: true });
+
+      const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/publish', {
+        method: 'POST',
+        headers: { cookie },
+        body: JSON.stringify({
+          expectedRemoteCommitSha: 'parent-sha-000000',
+          state: {
+            notebooks: [sampleNotebook],
+            notes: [sampleNote],
+            assets: [],
+          },
+          mutations: [
+            {
+              id: 'mut-1',
+              entityType: 'note',
+              entityId: sampleNote.id,
+              mutationType: 'update',
+              timestamp: '2026-10-27T10:00:00.000Z',
+              payload: { title: sampleNote.title, notebookId: sampleNote.notebookId, contentType: 'markdown' },
+            },
+          ],
+        }),
+      });
+
+      const res = await postPublish(req);
+      expect(res.status).toBe(200);
+      expect(commitSpy).toHaveBeenCalledWith(
+        expect.stringContaining(`undone(sync): update markdown "${sampleNote.title}" in "${sampleNotebook.title}"`),
+        'tree-sha-new',
+        ['parent-sha-000000']
+      );
+    });
+
+    it('returns noOp: true without creating a commit if resulting treeSha matches baseTreeSha', async () => {
+      const cookie = await createCookieHeader();
+      vi.spyOn(GitHubGitDataClient.prototype, 'getRef').mockResolvedValue('parent-sha-000000');
+      vi.spyOn(GitHubGitDataClient.prototype, 'getCommit').mockResolvedValue({
+        sha: 'parent-sha-000000',
+        treeSha: 'identical-tree-sha',
+        parentShas: [],
+        message: 'initial',
+        committedAt: '2026-10-27T10:00:00.000Z',
+      });
+      vi.spyOn(GitHubGitDataClient.prototype, 'createBlob').mockResolvedValue('blob-sha');
+      vi.spyOn(GitHubGitDataClient.prototype, 'createTree').mockResolvedValue('identical-tree-sha');
+      const commitSpy = vi.spyOn(GitHubGitDataClient.prototype, 'createCommit');
+
+      const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/publish', {
+        method: 'POST',
+        headers: { cookie },
+        body: JSON.stringify({
+          expectedRemoteCommitSha: 'parent-sha-000000',
+          state: {
+            notebooks: [sampleNotebook],
+            notes: [sampleNote],
+            assets: [],
+          },
+        }),
+      });
+
+      const res = await postPublish(req);
+      expect(res.status).toBe(200);
+      const data = (await res.json()) as { ok: boolean; noOp: boolean; treeSha: string };
+      expect(data.ok).toBe(true);
+      expect(data.noOp).toBe(true);
+      expect(data.treeSha).toBe('identical-tree-sha');
+      expect(commitSpy).not.toHaveBeenCalled();
+    });
+
     it('rejects a canvas with a missing asset before creating Git objects', async () => {
       const cookie = await createCookieHeader();
       const createBlob = vi.spyOn(GitHubGitDataClient.prototype, 'createBlob');
