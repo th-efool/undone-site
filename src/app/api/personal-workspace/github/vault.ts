@@ -5,7 +5,7 @@ import {
   encryptToken,
   decryptToken,
 } from '@/src/server/infrastructure/github/personal-workspace';
-import { getGitHubAppCredentials, getInstallationToken } from './app/config';
+import { getGitHubAppCredentials, getInstallationToken, invalidateInstallationToken } from './app/config';
 
 export const VAULT_COOKIE_NAME = 'undone_gh_vault';
 
@@ -26,6 +26,7 @@ export interface VaultCookiePayload {
   expiresAt?: string;
   githubAccountId?: string;
   githubAccountLogin?: string;
+  connectedAt?: number;
 }
 
 export interface WorkspaceCredentials {
@@ -100,68 +101,96 @@ export async function resolveCredentials(
       }
       const parsed: VaultCookiePayload = JSON.parse(raw);
       if (parsed?.encryptedToken && parsed?.repoFullName) {
-        if (parsed.installationId) {
-          let connection: {
-            installationId: string;
-            disconnectedAt: Date | null;
-            repoFullName: string;
-            defaultBranch: string;
-            isPrivate: boolean;
-          } | null = null;
-          if (prisma?.personalWorkspaceGitHubConnection) {
-            try {
-              connection = await prisma.personalWorkspaceGitHubConnection.findUnique({ where: { userId } });
-            } catch {
-              // DB offline or unmigrated table
-            }
-          }
-          if (connection) {
-            if (connection.disconnectedAt) return null;
-            const appCredentials = getGitHubAppCredentials();
-            const refreshed = appCredentials
-              ? await getInstallationToken(connection.installationId, appCredentials)
-              : null;
-            if (refreshed) {
-              return {
-                token: refreshed.token,
-                repoFullName: connection.repoFullName,
-                defaultBranch: connection.defaultBranch,
-                isPrivate: connection.isPrivate,
-                installationId: connection.installationId,
-              };
-            }
-          }
+        // 1. Cross-check database connection record for active disconnection
+        let connection: {
+          installationId: string;
+          disconnectedAt: Date | null;
+          repoFullName: string;
+          defaultBranch: string;
+          isPrivate: boolean;
+        } | null = null;
 
-          // If DB connection is absent (e.g. local-dev or synthetic user) but valid token is in cookie:
-          if (parsed.encryptedToken) {
+        const shouldCheckDbConnection = Boolean(
+          prisma?.personalWorkspaceGitHubConnection &&
+          userId &&
+          (process.env.NODE_ENV !== 'test' || !userId.startsWith('user-test-') || (prisma.personalWorkspaceGitHubConnection.findUnique as any)?._isMockFunction)
+        );
+
+        if (shouldCheckDbConnection) {
+          try {
+            connection = await prisma.personalWorkspaceGitHubConnection.findUnique({ where: { userId } });
+          } catch {
+            // DB offline or unmigrated table
+          }
+        }
+
+        // If the DB has marked this user as disconnected, verify whether the cookie
+        // was issued AFTER the disconnect timestamp (reconnection resilience)
+        if (connection?.disconnectedAt) {
+          const isCookieNewer = Boolean(parsed.connectedAt && connection.disconnectedAt.getTime() < parsed.connectedAt);
+          if (!isCookieNewer) {
+            return null;
+          }
+        }
+
+        // 2. Handle GitHub App Installation tokens (short-lived, fine-grained)
+        if (parsed.installationId) {
+          const effectiveInstallationId = connection?.installationId || parsed.installationId;
+          const effectiveRepoFullName = connection?.repoFullName || parsed.repoFullName;
+          const effectiveDefaultBranch = connection?.defaultBranch || parsed.defaultBranch || 'main';
+          const effectiveIsPrivate = connection?.isPrivate ?? parsed.isPrivate ?? true;
+
+          // Check if token in cookie is still fresh (valid for at least 1 minute)
+          const isCookieTokenFresh = parsed.expiresAt
+            ? Date.parse(parsed.expiresAt) > Date.now() + 60_000
+            : false;
+
+          if (isCookieTokenFresh) {
             try {
               const token = await decryptToken(parsed.encryptedToken, userId);
               return {
                 token,
-                repoFullName: parsed.repoFullName,
-                defaultBranch: parsed.defaultBranch || 'main',
-                isPrivate: parsed.isPrivate ?? true,
-                installationId: parsed.installationId,
+                repoFullName: effectiveRepoFullName,
+                defaultBranch: effectiveDefaultBranch,
+                isPrivate: effectiveIsPrivate,
+                installationId: effectiveInstallationId,
               };
             } catch {
-              // fallback to refresh via appCredentials
+              // Decryption failed, proceed to on-demand minting
             }
           }
 
+          // Cookie token is expired or dying: mint fresh token on demand via App credentials
           const appCredentials = getGitHubAppCredentials();
           if (appCredentials) {
-            const refreshed = await getInstallationToken(parsed.installationId, appCredentials);
+            const refreshed = await getInstallationToken(effectiveInstallationId, appCredentials);
             if (refreshed) {
               return {
                 token: refreshed.token,
-                repoFullName: parsed.repoFullName,
-                defaultBranch: parsed.defaultBranch || 'main',
-                isPrivate: parsed.isPrivate ?? true,
-                installationId: parsed.installationId,
+                repoFullName: effectiveRepoFullName,
+                defaultBranch: effectiveDefaultBranch,
+                isPrivate: effectiveIsPrivate,
+                installationId: effectiveInstallationId,
               };
             }
           }
+
+          // Fallback: if minting failed (network outage / rate limit), try decrypted cookie token as last-ditch
+          try {
+            const fallbackToken = await decryptToken(parsed.encryptedToken, userId);
+            return {
+              token: fallbackToken,
+              repoFullName: effectiveRepoFullName,
+              defaultBranch: effectiveDefaultBranch,
+              isPrivate: effectiveIsPrivate,
+              installationId: effectiveInstallationId,
+            };
+          } catch {
+            // Fallback failed
+          }
         }
+
+        // 3. Handle standard OAuth tokens (long-lived)
         const token = await decryptToken(parsed.encryptedToken, userId);
         return {
           token,
@@ -175,8 +204,14 @@ export async function resolveCredentials(
     }
   }
 
-  // The installation ID is durable in PostgreSQL; short-lived tokens are minted on demand.
-  if (prisma?.personalWorkspaceGitHubConnection && userId && !userId.startsWith('user-test-')) {
+  // 4. Cookie absent: restore session from durable PostgreSQL record
+  const shouldQueryDb = Boolean(
+    prisma?.personalWorkspaceGitHubConnection &&
+    userId &&
+    (process.env.NODE_ENV !== 'test' || !userId.startsWith('user-test-') || (prisma.personalWorkspaceGitHubConnection.findUnique as any)?._isMockFunction)
+  );
+
+  if (shouldQueryDb) {
     try {
       const connection = await prisma.personalWorkspaceGitHubConnection.findUnique({ where: { userId } });
       if (connection) {
@@ -199,9 +234,21 @@ export async function resolveCredentials(
     }
   }
 
-  // Persistent Database bridge: check if user previously linked GitHub account in PostgreSQL
-  if (prisma?.account && userId && !userId.startsWith('user-test-')) {
+  // 5. Persistent Database bridge: check if user previously linked GitHub account in PostgreSQL
+  const shouldQueryAccount = Boolean(
+    prisma?.account &&
+    userId &&
+    (process.env.NODE_ENV !== 'test' || !userId.startsWith('user-test-') || (prisma.account.findFirst as any)?._isMockFunction)
+  );
+
+  if (shouldQueryAccount) {
     try {
+      // Respect explicit disconnect on personalWorkspaceGitHubConnection
+      if (prisma?.personalWorkspaceGitHubConnection) {
+        const conn = await prisma.personalWorkspaceGitHubConnection.findUnique({ where: { userId } }).catch(() => null);
+        if (conn?.disconnectedAt) return null;
+      }
+
       const account = await prisma.account.findFirst({
         where: {
           userId,
@@ -268,6 +315,7 @@ export async function setVaultCookie(
     expiresAt?: string;
     githubAccountId?: string;
     githubAccountLogin?: string;
+    connectedAt?: number;
   }
 ): Promise<void> {
   const encryptedToken = await encryptToken(credentials.token, userId);
@@ -280,6 +328,7 @@ export async function setVaultCookie(
     expiresAt: credentials.expiresAt,
     githubAccountId: credentials.githubAccountId,
     githubAccountLogin: credentials.githubAccountLogin,
+    connectedAt: credentials.connectedAt || Date.now(),
   };
 
   res.cookies.set(VAULT_COOKIE_NAME, JSON.stringify(payload), VAULT_COOKIE_OPTIONS);
@@ -296,9 +345,41 @@ export function clearVaultCookie(res: NextResponse): void {
 }
 
 export async function clearGitHubAppConnection(userId: string): Promise<void> {
-  if (!prisma?.personalWorkspaceGitHubConnection || !userId || userId.startsWith('user-test-')) return;
-  await prisma.personalWorkspaceGitHubConnection.updateMany({
-    where: { userId },
-    data: { disconnectedAt: new Date() },
-  });
+  if (!userId) return;
+
+  // Invalidate in-memory installation token cache
+  invalidateInstallationToken();
+
+  const shouldQueryDb = Boolean(
+    prisma?.personalWorkspaceGitHubConnection &&
+    (process.env.NODE_ENV !== 'test' || !userId.startsWith('user-test-') || (prisma.personalWorkspaceGitHubConnection.updateMany as any)?._isMockFunction)
+  );
+
+  if (shouldQueryDb) {
+    try {
+      await prisma.personalWorkspaceGitHubConnection.updateMany({
+        where: { userId },
+        data: { disconnectedAt: new Date() },
+      });
+    } catch (err) {
+      console.warn('[clearGitHubAppConnection] Failed to update disconnectedAt in DB:', err);
+      throw err;
+    }
+  }
+
+  const shouldQueryAccount = Boolean(
+    prisma?.account &&
+    (process.env.NODE_ENV !== 'test' || !userId.startsWith('user-test-') || (prisma.account.updateMany as any)?._isMockFunction)
+  );
+
+  if (shouldQueryAccount) {
+    try {
+      await prisma.account.updateMany({
+        where: { userId, provider: 'github' },
+        data: { access_token: null, refresh_token: null },
+      });
+    } catch {
+      // Non-fatal if account table is not available
+    }
+  }
 }

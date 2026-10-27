@@ -59,8 +59,12 @@ export async function finishGitHubAppConnection(
         isPrivate: repo.isPrivate,
       },
     });
-  } catch (dbErr) {
-    console.warn('[GitHubApp] Failed to persist connection in DB (continuing with vault cookie):', dbErr);
+  } catch (dbErr: any) {
+    if (dbErr?.code === 'P2003') {
+      console.warn(`[GitHubApp] User '${userId}' does not exist in users table (P2003 FK violation). Continuing with vault cookie only.`);
+    } else {
+      console.warn('[GitHubApp] Failed to persist connection in DB (continuing with vault cookie):', dbErr);
+    }
   }
 
   const response = new NextResponse(
@@ -85,6 +89,7 @@ export async function finishGitHubAppConnection(
     expiresAt: tokenResult.expiresAt,
     githubAccountId: installation.accountId,
     githubAccountLogin: installation.accountLogin,
+    connectedAt: Date.now(),
   });
   return response;
 }
