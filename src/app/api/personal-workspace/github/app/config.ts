@@ -107,13 +107,22 @@ export function generateAppJWT(credentials: GitHubAppCredentials): string {
   return `${signing}.${signature}`;
 }
 
-export function getAppOAuthRedirectUri(req: NextRequest): string {
+export function getAppOAuthRedirectUri(req: NextRequest, preferredPath?: string): string {
   if (process.env.GITHUB_APP_OAUTH_REDIRECT_URI) {
     return process.env.GITHUB_APP_OAUTH_REDIRECT_URI.trim();
   }
-  const proto = req.headers.get('x-forwarded-proto') || req.nextUrl.protocol.replace(':', '');
-  const host = req.headers.get('x-forwarded-host') || req.headers.get('host') || req.nextUrl.host;
-  return `${proto}://${host}/api/personal-workspace/github/app/oauth/callback`;
+  const rawProto = req.headers.get('x-forwarded-proto');
+  let proto = rawProto ? rawProto.split(',')[0].trim() : req.nextUrl.protocol.replace(':', '');
+  const rawHost = req.headers.get('x-forwarded-host') || req.headers.get('host') || req.nextUrl.host;
+  const host = rawHost ? rawHost.split(',')[0].trim() : 'localhost:3000';
+
+  const isLocal = host.startsWith('localhost') || host.startsWith('127.0.0.1');
+  if (process.env.NODE_ENV === 'production' && !isLocal) {
+    proto = 'https';
+  }
+
+  const path = preferredPath || '/api/personal-workspace/github/app/oauth/callback';
+  return `${proto}://${host}${path}`;
 }
 
 export function getAppOAuthAuthorizeUrl(state: string, redirectUri: string, clientId: string): string {
@@ -168,23 +177,42 @@ export async function tryCreateUserRepo(
 
 export async function exchangeGitHubAppUserCode(
   code: string,
-  redirectUri: string,
+  redirectUri: string | undefined,
   credentials: GitHubAppCredentials,
 ): Promise<string | null> {
   if (!credentials.clientSecret) return null;
-  try {
+
+  async function requestToken(uri?: string): Promise<{ token?: string; error?: string }> {
+    const payload: Record<string, string> = {
+      client_id: credentials.clientId,
+      client_secret: credentials.clientSecret,
+      code,
+    };
+    if (uri) {
+      payload.redirect_uri = uri;
+    }
     const response = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
       headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        client_id: credentials.clientId,
-        client_secret: credentials.clientSecret,
-        code,
-        redirect_uri: redirectUri,
-      }),
+      body: JSON.stringify(payload),
     });
+    if (!response.ok) return { error: `http_${response.status}` };
     const data = (await response.json()) as { access_token?: string; error?: string };
-    return response.ok ? data.access_token || null : null;
+    return { token: data.access_token, error: data.error };
+  }
+
+  try {
+    const primary = await requestToken(redirectUri);
+    if (primary.token) return primary.token;
+
+    // Self-annealing: If redirect_uri was passed but GitHub returned redirect_uri_mismatch,
+    // retry without redirect_uri (useful when user installed directly via GitHub App screen)
+    if (primary.error === 'redirect_uri_mismatch' && redirectUri) {
+      const fallback = await requestToken(undefined);
+      if (fallback.token) return fallback.token;
+    }
+
+    return null;
   } catch {
     return null;
   }

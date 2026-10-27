@@ -61,6 +61,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   // CSRF state nonce
   const stateNonce = createFlowStateNonce();
   const format = req.nextUrl.searchParams.get('format')?.toLowerCase();
+  const redirectUri = getAppOAuthRedirectUri(req);
 
   // Gap 2 Fix: If GITHUB_APP_CLIENT_SECRET is missing, discover existing installations via App JWT
   if (!credentials.clientSecret) {
@@ -151,7 +152,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
       });
       const resolverState: AppFlowState = {
-        ...createAppFlowState(user.id, stateNonce),
+        ...createAppFlowState(user.id, stateNonce, redirectUri),
         resumeInstallationId: primaryInstallation.id,
         githubUser: {
           id: primaryInstallation.accountId,
@@ -169,7 +170,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
     // No installations exist yet: direct to GitHub install screen
     const installUrl = getInstallationUrl(stateNonce);
-    const initialInstallState = JSON.stringify(createAppFlowState(user.id, stateNonce));
+    const initialInstallState = JSON.stringify(createAppFlowState(user.id, stateNonce, redirectUri));
     const encryptedInitialState = await encryptToken(initialInstallState, user.id);
 
     if (format === 'json') {
@@ -191,9 +192,8 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     return res;
   }
 
-  const statePayload = JSON.stringify(createAppFlowState(user.id, stateNonce));
+  const statePayload = JSON.stringify(createAppFlowState(user.id, stateNonce, redirectUri));
   const encryptedState = await encryptToken(statePayload, user.id);
-  const redirectUri = getAppOAuthRedirectUri(req);
   const authorizeUrl = getAppOAuthAuthorizeUrl(stateNonce, redirectUri, credentials.clientId);
 
   if (format === 'json') {

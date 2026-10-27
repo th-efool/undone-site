@@ -25,6 +25,7 @@ packages/notes-board/dist/
 
 # misc
 .DS_Store
+.playwright-mcp/
 *.pem
 *.jks
 *.tgz

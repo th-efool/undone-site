@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { decryptToken } from '@/src/server/infrastructure/github/personal-workspace';
 import { resolveAuthUser } from '../../vault';
 import {
+  exchangeGitHubAppUserCode,
+  getAppOAuthRedirectUri,
   getGitHubAppCredentials,
+  getGitHubUserIdentity,
   getInstallationRepos,
   getInstallationToken,
   getManageInstallationUrl,
@@ -48,6 +51,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const resumeInstallationId = params.get('resume_installation_id');
   const installationId = params.get('installation_id') || resumeInstallationId;
   const setupAction = params.get('setup_action');
+  const code = params.get('code');
   const stateCookie = req.cookies.get(GITHUB_APP_INSTALLATION_COOKIE_NAME)?.value;
 
   if (!user || !stateNonce || !stateCookie || !installationId || !/^\d+$/.test(installationId)) {
@@ -81,7 +85,21 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     });
   }
 
-  if (setupAction !== 'install' && setupAction !== 'update') {
+  // Critical Gap 3 Fix: If both installation_id and code are returned (e.g. "Request user authorization during install"),
+  // exchange the code for a user access token if not already in state.
+  if (code && !state.githubAccessToken && appCredentials.clientSecret) {
+    const redirectUri = state.redirectUri || getAppOAuthRedirectUri(req, req.nextUrl.pathname);
+    const userToken = await exchangeGitHubAppUserCode(code, redirectUri, appCredentials);
+    if (userToken) {
+      const identity = await getGitHubUserIdentity(userToken);
+      if (identity) {
+        state.githubAccessToken = userToken;
+        state.githubUser = identity;
+      }
+    }
+  }
+
+  if (setupAction && setupAction !== 'install' && setupAction !== 'update') {
     return errorResponse('invalid_action', 'Unsupported GitHub installation action.');
   }
 

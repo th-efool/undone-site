@@ -20,6 +20,7 @@ export interface AppFlowState {
   stateNonce: string;
   userId: string;
   createdAt: number;
+  redirectUri?: string;
   githubAccessToken?: string;
   githubUser?: { id: string; login: string };
   resumeInstallationId?: string;
@@ -224,8 +225,20 @@ export async function handleResumeInstallation({
   return htmlRes;
 }
 
-export function createAppFlowState(userId: string, stateNonce: string) {
-  return { stateNonce, userId, createdAt: Date.now() };
+export function createAppFlowState(userId: string, stateNonce: string, redirectUri?: string): AppFlowState {
+  return {
+    stateNonce,
+    userId,
+    createdAt: Date.now(),
+    ...(redirectUri ? { redirectUri } : {}),
+  };
+}
+
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
 }
 
 export function isFreshAppFlowState(
@@ -235,8 +248,14 @@ export function isFreshAppFlowState(
 ): value is AppFlowState {
   const now = Date.now();
   return Boolean(
-    value && stateNonce && value.stateNonce === stateNonce && value.userId === userId &&
-    typeof value.createdAt === 'number' && value.createdAt <= now + 30_000 && now - value.createdAt <= 10 * 60 * 1000,
+    value &&
+      stateNonce &&
+      value.stateNonce &&
+      timingSafeStringEqual(value.stateNonce, stateNonce) &&
+      value.userId === userId &&
+      typeof value.createdAt === 'number' &&
+      value.createdAt <= now + 30_000 &&
+      now - value.createdAt <= 10 * 60 * 1000,
   );
 }
 
