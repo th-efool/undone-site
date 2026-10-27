@@ -19,6 +19,7 @@ import type {
   AssetRecord,
   OutboxMutation,
   WorkspaceManifest,
+  LocalStateExportBundle,
 } from './contracts';
 import {
   notebookRecordSchema,
@@ -29,6 +30,7 @@ import {
   assetRecordSchema,
   outboxMutationSchema,
   workspaceManifestSchema,
+  localStateExportBundleSchema,
 } from './contracts';
 import {
   CorruptAssetIntegrityError,
@@ -489,3 +491,17 @@ export function validateOutboxMutation(data: unknown): OutboxMutation {
   }
   return result.data;
 }
+
+export function validateLocalStateExportBundle(data: unknown): LocalStateExportBundle {
+  if (!data || typeof data !== 'object') {
+    throw new IncompatibleSchemaError('Recovery bundle must be a non-null object');
+  }
+  const result = localStateExportBundleSchema.safeParse(data);
+  if (!result.success) {
+    throw new IncompatibleSchemaError('Recovery bundle does not conform to localStateExportBundleSchema', {
+      validationErrors: result.error.issues,
+    });
+  }
+  return result.data as LocalStateExportBundle;
+}
+

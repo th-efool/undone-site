@@ -424,12 +424,33 @@ export interface UnsavedEditorBuffer {
   recoveredFromBuffer?: boolean;
 }
 
+export const unsavedEditorBufferSchema = z.object({
+  noteId: z.string().min(1, 'noteId is required'),
+  contentType: z.enum(['canvas', 'kanban', 'markdown']),
+  bufferPayload: z.unknown(),
+  lastKeystrokeAt: z.string().min(1, 'lastKeystrokeAt is required'),
+  isDirty: z.boolean(),
+  schemaVersion: z.number().int(),
+  recoveredFromBuffer: z.boolean().optional(),
+});
+
 export interface CommittedWorkspaceState {
   notebooks: NotebookRecord[];
   notes: NoteRecord[];
   assets: AssetRecord[];
   outbox: OutboxMutation[];
+  conflicts?: unknown[];
+  metadata?: unknown[];
 }
+
+export const committedWorkspaceStateSchema = z.object({
+  notebooks: z.array(notebookRecordSchema),
+  notes: z.array(noteRecordSchema),
+  assets: z.array(assetRecordSchema),
+  outbox: z.array(outboxMutationSchema),
+  conflicts: z.array(z.unknown()).optional(),
+  metadata: z.array(z.unknown()).optional(),
+});
 
 export interface LocalStateExportBundle {
   formatVersion: '1.0.0';
@@ -440,3 +461,14 @@ export interface LocalStateExportBundle {
   unsavedBuffers?: UnsavedEditorBuffer[];
   checksum: string; // SHA-256 of canonical bundle payload without checksum field
 }
+
+export const localStateExportBundleSchema = z.object({
+  formatVersion: z.literal('1.0.0'),
+  exportedAt: z.string().min(1, 'exportedAt is required'),
+  sourceUserId: z.string().min(1, 'sourceUserId is required'),
+  storageName: z.string().min(1, 'storageName is required'),
+  committedState: committedWorkspaceStateSchema,
+  unsavedBuffers: z.array(unsavedEditorBufferSchema).optional(),
+  checksum: z.string().regex(/^[0-9a-f]{64}$/, 'checksum must be a 64-character lowercase hexadecimal SHA-256 string'),
+});
+
