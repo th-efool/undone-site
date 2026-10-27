@@ -126,6 +126,14 @@
   outline: none;
 }
 
+.searchInput:focus,
+.searchInput:focus-visible {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
 .searchInput::placeholder {
   color: #949ba4;
 }
