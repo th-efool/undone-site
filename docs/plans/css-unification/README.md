@@ -86,8 +86,8 @@ The lead performs `graphify update .` after integrated code changes at phase che
 | P0 | CSS/classes; themes/portals; visual/behavior baseline | Inventory and evidence ledger | Every entry point/state has an owner and coverage status | **COMPLETE** |
 | P1 | Tokens/naming proposal; primitive/caller contract; regression fixtures | Freeze contracts and precedence decisions | Contracts are concrete and failing cases reproduce | **COMPLETE (Gate Passed)** |
 | P2 | Reset/forms; typography consumers; independent regression review | Global imports/layers | Utilities work; no unexplained baseline regressions | **COMPLETE (Gate Passed)** |
-| P3 | Theme resolver/portals; font consumers; token mapping audit | Root theme, tokens, font loading | Theme matrix and aliases pass | Ready to start |
-| P4 | Buttons/fields; overlays; typography/status primitives | Exports and shared fixture integration | Shared components satisfy state/keyboard/theme contracts | Not started |
+| P3 | Theme resolver/portals; font consumers; token mapping audit | Root theme, tokens, font loading | Theme matrix and aliases pass | **COMPLETE (Gate Passed)** |
+| P4 | Buttons/fields; overlays; typography/status primitives | Exports and shared fixture integration | Shared components satisfy state/keyboard/theme contracts | Ready to start |
 | P5 | Notes share/layout; sync presentation; editor/mobile boundary | Notes shell/shared stylesheet integration | Three screenshot failures resolved with workflow coverage | Not started |
 | P6 | Disjoint feature groups per wave | Shared fixes and cross-route navigation | Each wave passes before next wave | Not started |
 | P7 | Static enforcement; browser acceptance; independent review | Build, memory, release record | Acceptance matrix complete; residual risks explicit | Not started |
