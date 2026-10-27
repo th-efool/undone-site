@@ -42,7 +42,7 @@
 }
 
 .link {
-  color: var(--color-text-secondary);
+  color: var(--ud-color-text-secondary, var(--color-text-secondary));
 
   text-decoration: none;
 
@@ -54,7 +54,7 @@
 }
 
 .link:hover {
-  color: var(--color-brand);
+  color: var(--ud-color-brand, var(--color-brand));
 }
 
 @media (max-width: 768px) {

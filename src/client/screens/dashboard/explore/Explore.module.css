@@ -42,8 +42,8 @@
   gap: 12px;
   height: 44px;
   padding: 0 6px 0 16px;
-  border-radius: var(--radius-lg);
-  background-color: var(--color-surface);
+  border-radius: var(--ud-radius-lg, var(--radius-lg));
+  background-color: var(--ud-color-surface, var(--color-surface));
   color: #ffffff;
   font-family: var(--font-sans);
   font-size: var(--font-button-size);
@@ -53,7 +53,7 @@
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--ud-color-border-subtle, var(--color-border));
   transition: all var(--duration-fast) var(--ease-out);
 }
 

@@ -5,3 +5,6 @@ export * from './Typography/Heading';
 export * from './Typography/Text';
 export * from './Tooltip';
 export * from './TextBar';
+export * from './Dialog';
+export * from './Popover';
+export * from './Field';

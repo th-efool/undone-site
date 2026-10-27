@@ -17,6 +17,7 @@ import { MouseEvent, ReactNode, useState } from 'react';
 import { useNotes } from '../hooks/useNotes';
 import type { NoteDocument, NotebookListItem, Permission } from '../models/notes.models';
 import { Tooltip } from '@/src/client/components/ui/Tooltip';
+import { ShareDialog, type ShareDialogProps } from './ShareDialog';
 
 import styles from '../Notes.module.css';
 
@@ -182,7 +183,7 @@ export function SidebarNavHeader({
       {/* Row 1: Mini-Tabs */}
       <div className={styles.navHeaderRow}>
         <div className={styles.miniTabsGroup} role="tablist" aria-label="Sidebar Navigation">
-          <Tooltip content={<>Explorer <kbd className={styles.kbd}>â‡§E</kbd></>} placement="top">
+          <Tooltip content={<>Explorer <kbd className={styles.kbd}>⇧E</kbd></>} placement="top">
             <button
               type="button"
               role="tab"
@@ -208,7 +209,7 @@ export function SidebarNavHeader({
             </button>
           </Tooltip>
 
-          <Tooltip content={<>Bookmarks <kbd className={styles.kbd}>â‡§B</kbd></>} placement="top">
+          <Tooltip content={<>Bookmarks <kbd className={styles.kbd}>⇧B</kbd></>} placement="top">
             <button
               type="button"
               role="tab"
@@ -246,7 +247,7 @@ export function SidebarNavHeader({
           </button>
         </Tooltip>
 
-        <Tooltip content={<>New notebook <kbd className={styles.kbd}>â‡§N</kbd></>} placement="top">
+        <Tooltip content={<>New notebook <kbd className={styles.kbd}>⇧N</kbd></>} placement="top">
           <button
             type="button"
             aria-label="New notebook"
@@ -291,59 +292,9 @@ export function Menu({ children }: { children: ReactNode }) {
   );
 }
 
-export function ShareModal({
-  note,
-  onClose,
-  onSave,
-}: {
-  note: NoteDocument;
-  onClose: () => void;
-  onSave: (patch: Partial<NoteDocument>) => void;
-}) {
-  const [email, setEmail] = useState('');
+export { ShareDialog } from './ShareDialog';
+export type { ShareDialogProps } from './ShareDialog';
 
-  return (
-    <div className={styles.scrim}>
-      <div className={styles.modal}>
-        <h2>Share â€œ{note.title}â€</h2>
-        <label>
-          <input
-            type="checkbox"
-            checked={Boolean(note.publicLink && String(note.publicLink) !== 'false')}
-            onChange={(event) => onSave({ publicLink: event.target.checked })}
-          />
-          Public link
-        </label>
-        <div className={styles.shareLine}>
-          <input
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="teammate@example.com"
-          />
-          <select
-            value={note.permission}
-            onChange={(event) => onSave({ permission: event.target.value as Permission })}
-          >
-            <option>viewer</option>
-            <option>editor</option>
-            <option>owner</option>
-          </select>
-        </div>
-        <button
-          onClick={() => {
-            if (email) onSave({ shared: true, sharedWith: [...note.sharedWith, email] });
-            setEmail('');
-          }}
-        >
-          Share with user
-        </button>
-        <button
-          onClick={() => navigator.clipboard?.writeText(`${location.origin}/notes/${note.id}`)}
-        >
-          Copy Link
-        </button>
-        <button onClick={onClose}>Done</button>
-      </div>
-    </div>
-  );
+export function ShareModal(props: ShareDialogProps) {
+  return <ShareDialog {...props} />;
 }

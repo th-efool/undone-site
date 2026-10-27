@@ -369,7 +369,7 @@ export function SyncStatusBadge({
           role="dialog"
           aria-label="Sync details"
           data-testid="sync-status-popover"
-          className="absolute right-0 top-full mt-2 w-80 p-3.5 bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-800 text-zinc-900 dark:text-zinc-100 z-50 text-xs space-y-3"
+          className="absolute right-0 top-full mt-2 w-80 p-3.5 bg-[var(--ud-color-surface-elevated)] border border-[var(--ud-color-border-subtle)] text-[var(--ud-color-text-primary)] rounded-xl shadow-xl z-50 text-xs space-y-3"
         >
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-zinc-100 dark:border-zinc-800">

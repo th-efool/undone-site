@@ -1,18 +1,29 @@
+'use client';
+
 import React from 'react';
 import clsx from 'clsx';
-
 import styles from './Button.module.css';
 
-export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'outline' | 'momentum' | 'danger';
+export type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'ghost'
+  | 'destructive'
+  | 'outline'
+  | 'momentum'
+  | 'danger';
 
 export type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
 
-type ButtonOwnProps<T extends React.ElementType = 'button'> = {
+export type ButtonOwnProps<T extends React.ElementType = 'button'> = {
   variant?: ButtonVariant;
   size?: ButtonSize;
   loading?: boolean;
+  disabled?: boolean;
   fullWidth?: boolean;
   iconOnly?: boolean;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
   as?: T;
 };
 
@@ -26,21 +37,28 @@ export function Button<T extends React.ElementType = 'button'>({
   loading = false,
   fullWidth = false,
   iconOnly = false,
+  leftIcon,
+  rightIcon,
   className,
   disabled,
   children,
   ...props
 }: ButtonProps<T>) {
   const Component = (as ?? 'button') as React.ElementType;
-
   const isButton = Component === 'button';
   const isDisabled = Boolean(disabled || loading);
+
+  // Map legacy danger variant to destructive
+  const resolvedVariantClass =
+    variant === 'destructive' || variant === 'danger'
+      ? styles.destructive
+      : styles[variant] || styles.primary;
 
   return (
     <Component
       className={clsx(
         styles.root,
-        styles[variant],
+        resolvedVariantClass,
         styles[size],
         {
           [styles.block]: fullWidth,
@@ -56,12 +74,18 @@ export function Button<T extends React.ElementType = 'button'>({
     >
       {loading ? (
         <>
-          <span className={styles.spinner} />
+          <span className={styles.spinner} aria-hidden="true" />
           {children}
         </>
       ) : (
-        children
+        <>
+          {leftIcon && <span className={styles.leftIcon} aria-hidden="true">{leftIcon}</span>}
+          {children}
+          {rightIcon && <span className={styles.rightIcon} aria-hidden="true">{rightIcon}</span>}
+        </>
       )}
     </Component>
   );
 }
+
+export default Button;

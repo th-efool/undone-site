@@ -12,7 +12,7 @@
   height: 44px;
   border-radius: 50%;
   border: 1px solid var(--color-surface);
-  background: var(--color-surface);
+  background: var(--ud-color-surface, var(--color-surface));
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -50,9 +50,9 @@
   bottom: 0;
   left: calc(100% + var(--space-2));
   min-width: 200px;
-  background: var(--color-surface-elevated, #ffffff);
+  background: var(--ud-color-surface-elevated, var(--color-surface-elevated, #ffffff));
   border: 1px solid var(--color-surface);
-  border-radius: var(--radius-lg);
+  border-radius: var(--ud-radius-lg, var(--radius-lg));
   padding: var(--space-1);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   z-index: 100;

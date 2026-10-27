@@ -6,9 +6,9 @@
   width: 52px;
   height: 52px;
 
-  color: var(--color-text-secondary);
+  color: var(--ud-color-text-secondary, var(--color-text-secondary));
 
-  border-radius: var(--radius-lg);
+  border-radius: var(--ud-radius-lg, var(--radius-lg));
 
   transition:
     background-color var(--duration-fast),
@@ -17,14 +17,14 @@
 }
 
 .item:hover {
-  color: var(--color-text-primary);
-  background: var(--color-surface);
+  color: var(--ud-color-text-primary, var(--color-text-primary));
+  background: var(--ud-color-surface, var(--color-surface));
 }
 
 .active {
-  color: var(--color-brand);
-  background: var(--color-brand-subtle);
-  border-radius: var(--radius-xl);
+  color: var(--ud-color-brand, var(--color-brand));
+  background: var(--ud-color-brand-subtle, var(--color-brand-subtle));
+  border-radius: var(--ud-radius-xl, var(--radius-xl));
 }
 
 .disabled {

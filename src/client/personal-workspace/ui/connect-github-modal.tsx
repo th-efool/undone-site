@@ -274,7 +274,7 @@ export function ConnectGitHubModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-200"
       data-testid="modal-backdrop"
       onClick={(e) => {
         if (e.target === e.currentTarget && !isLoading) {
@@ -596,7 +596,7 @@ export function ConnectGitHubModal({
                   checked={allowPublic}
                   onChange={(e) => setAllowPublic(e.target.checked)}
                   disabled={isLoading}
-                  className="mt-0.5 rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-500"
+                  className="mt-0.5 w-[18px] h-[18px] p-0 shrink-0 rounded border-zinc-300 dark:border-zinc-700 text-zinc-900 focus:ring-zinc-500"
                 />
                 <span className="text-xs font-medium text-zinc-700 dark:text-zinc-300">
                   Allow Public Repository
