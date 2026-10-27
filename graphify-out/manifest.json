@@ -1278,10 +1278,10 @@
     "semantic_hash": "ae9c3edc4607df59d4428a26bf7737ac"
   },
   "packages/notes-board/src/NotesKanban/NotesKanban.tsx": {
-    "mtime": 1792341200.1932783,
-    "seen": 1792556795.8296225,
-    "ast_hash": "8475782bcc740bbe03d8f6622c2a17eb",
-    "semantic_hash": "8475782bcc740bbe03d8f6622c2a17eb"
+    "mtime": 1793090206.3945365,
+    "seen": 1793090764.5476725,
+    "ast_hash": "958fd3c062a610fc732defa8622293ff",
+    "semantic_hash": ""
   },
   "packages/notes-board/src/canvas.ts": {
     "mtime": 1792459794.2360506,
@@ -6564,10 +6564,10 @@
     "semantic_hash": "6b2b2f75b370fc0ff8460c3a23eb83ee"
   },
   "src/client/screens/dashboard/notes/components/NotesComponents.tsx": {
-    "mtime": 1792231940.345729,
-    "seen": 1792556795.8309894,
-    "ast_hash": "c51c88954f43032861cd5d25713ccbc7",
-    "semantic_hash": "c51c88954f43032861cd5d25713ccbc7"
+    "mtime": 1793089600.7188656,
+    "seen": 1793090765.1272757,
+    "ast_hash": "e56225e5e6ff64b16ed6231192f51abe",
+    "semantic_hash": ""
   },
   "src/client/screens/dashboard/notes/components/NotesSaveStatus/NotesSaveStatus.tsx": {
     "mtime": 1792419539.0733368,
@@ -6588,10 +6588,10 @@
     "semantic_hash": "e1c1ae57701891ede92d4001bfd4705c"
   },
   "src/client/screens/dashboard/notes/components/NotesWorkspace.tsx": {
-    "mtime": 1792460451.8474932,
-    "seen": 1792556795.830995,
-    "ast_hash": "cc6158159a441c6568b80ff955ffa6e9",
-    "semantic_hash": "cc6158159a441c6568b80ff955ffa6e9"
+    "mtime": 1793089859.1826096,
+    "seen": 1793090765.1292636,
+    "ast_hash": "081237fb332d02fee1d678e3770bb962",
+    "semantic_hash": ""
   },
   "src/client/screens/dashboard/notes/components/RightColumn/RecentlyClosedSection.tsx": {
     "mtime": 1792231940.6612914,
@@ -6636,10 +6636,10 @@
     "semantic_hash": "c576a0f5885d90befc23a193c2a3b6d6"
   },
   "src/client/screens/dashboard/notes/hooks/useNotes.ts": {
-    "mtime": 1792419836.149626,
-    "seen": 1792556795.8310072,
-    "ast_hash": "a623800e9f22415fa54e638d7d4a5c2d",
-    "semantic_hash": "a623800e9f22415fa54e638d7d4a5c2d"
+    "mtime": 1793089846.5312634,
+    "seen": 1793090765.1337495,
+    "ast_hash": "039a4d3b41d72ed26b063d25ad0858ec",
+    "semantic_hash": ""
   },
   "src/client/screens/dashboard/notes/hooks/useNotesKeyboardShortcuts.ts": {
     "mtime": 1792231941.2389429,
@@ -6696,10 +6696,10 @@
     "semantic_hash": ""
   },
   "src/client/screens/dashboard/notes/repositories/notes.repository.ts": {
-    "mtime": 1792419478.6448145,
-    "seen": 1792556795.8310218,
-    "ast_hash": "5983d6b443575fd6ab8f444fa597c8f1",
-    "semantic_hash": "5983d6b443575fd6ab8f444fa597c8f1"
+    "mtime": 1793089638.1016722,
+    "seen": 1793090765.136563,
+    "ast_hash": "a874213830210002dddb333b6e5f594a",
+    "semantic_hash": ""
   },
   "src/client/screens/dashboard/play/Play.tsx": {
     "mtime": 1792403312.101247,
@@ -7662,10 +7662,10 @@
     "semantic_hash": "c4579e49f428752521b940f1faf95cef"
   },
   "src/middleware.ts": {
-    "mtime": 1792231942.3363364,
-    "seen": 1792556795.8312678,
-    "ast_hash": "4396352bed421b2a408a46750652bec9",
-    "semantic_hash": "4396352bed421b2a408a46750652bec9"
+    "mtime": 1793088924.4394264,
+    "seen": 1793090765.304439,
+    "ast_hash": "8e7ff8d97f683d0989f02b7a410c2ced",
+    "semantic_hash": ""
   },
   "src/server/__tests__/creation-dispatch.test.ts": {
     "mtime": 1792231942.3426497,
@@ -15330,9 +15330,9 @@
     "semantic_hash": ""
   },
   "src/shared/personal-workspace/serialization.ts": {
-    "mtime": 1793081622.0912886,
-    "seen": 1793083643.365529,
-    "ast_hash": "65b4705c16a32bfe37bc205ab3218836",
+    "mtime": 1793089095.5916495,
+    "seen": 1793090766.4665794,
+    "ast_hash": "13a2c76354da48c194de5597cc4dc178",
     "semantic_hash": ""
   },
   "MEMORY/MEMORY-ChatnCentrifugo.md": {
@@ -15468,9 +15468,9 @@
     "semantic_hash": ""
   },
   "src/app/api/personal-workspace/github/vault.ts": {
-    "mtime": 1793084054.8967848,
-    "seen": 1793084425.6988966,
-    "ast_hash": "e0e99649b11a14755a79f975cb806b55",
+    "mtime": 1793089576.9795065,
+    "seen": 1793090764.7278333,
+    "ast_hash": "4f3f53925f5ef7c77af19f6999a6fe38",
     "semantic_hash": ""
   },
   "src/client/personal-workspace/hooks/__tests__/useLocalWorkspace.test.ts": {
@@ -15597,6 +15597,12 @@
     "mtime": 1793087440.7536867,
     "seen": 1793087739.3973496,
     "ast_hash": "b65ecad4b25becfa8e166f708aed9b36",
+    "semantic_hash": ""
+  },
+  "src/client/screens/dashboard/notes/components/WorkspaceSyncControl.tsx": {
+    "mtime": 1793089902.4196584,
+    "seen": 1793090765.133207,
+    "ast_hash": "51f955f64e166ef4bddd34d3931a4cd6",
     "semantic_hash": ""
   }
 }
