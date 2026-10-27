@@ -271,7 +271,7 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
       {oauthError && !isConnected && (
         <div
           role="alert"
-          className="fixed bottom-4 right-4 z-50 p-3.5 rounded-xl bg-rose-950/95 border border-rose-800 text-rose-200 text-xs shadow-2xl flex items-center gap-2.5 max-w-sm animate-in fade-in slide-in-from-bottom-2"
+          className="fixed bottom-4 right-4 z-50 p-3.5 rounded-xl bg-rose-950/95 border border-rose-800 text-rose-200 text-xs shadow-2xl flex items-center gap-2.5 max-w-sm transition-opacity duration-200"
         >
           <span className="flex-1">{oauthError}</span>
           <button

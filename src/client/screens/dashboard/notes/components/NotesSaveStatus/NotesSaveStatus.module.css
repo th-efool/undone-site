@@ -47,10 +47,10 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  color: var(--color-red-500);
-  background: var(--color-red-50);
+  color: var(--ud-color-error, var(--color-red-500, #ef4444));
+  background: var(--ud-color-error-subtle, var(--color-red-50, rgba(239, 68, 68, 0.1)));
   padding: 2px 8px;
-  border-radius: var(--radius-full);
+  border-radius: var(--ud-radius-pill, var(--radius-full, 999px));
 }
 
 .error svg {
