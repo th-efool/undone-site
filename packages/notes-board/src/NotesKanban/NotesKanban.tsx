@@ -15,35 +15,29 @@ const colCssMap: Record<string, string> = {
   done:        'sqhq-col-done',
 };
 
-const now = new Date();
-const daysAgo = (n: number) => new Date(now.getTime() - n * 86400000).toISOString();
-
 let nextColId = 100;
 let nextCardId = 10;
 
-const INITIAL_COLUMNS = [
+const INITIAL_COLUMNS: Column[] = [
   { id: 'todo',       label: 'To Do'       },
   { id: 'inprogress', label: 'In Progress' },
   { id: 'review',     label: 'Review'      },
   { id: 'done',       label: 'Done'        },
 ];
 
-const INITIAL_CARDS: any[] = [
-  { id: 1, column: 'todo',       label: 'Research competitors',    description: 'Analyze top 5 competitors and document key differentiators.', type: 'Research', priority: 'medium', updatedAt: daysAgo(2) },
-  { id: 2, column: 'todo',       label: 'Write documentation',     description: 'Draft onboarding guide and API reference for the platform.',   type: 'Docs',     priority: 'low',    updatedAt: daysAgo(3) },
-  { id: 3, column: 'inprogress', label: 'Implement Kanban board',  description: 'Integrate SVAR React Kanban with dark theme into Notes.',       type: 'Feature',  priority: 'high',   updatedAt: daysAgo(1) },
-  { id: 4, column: 'inprogress', label: 'Design system tokens',    description: 'Define color, spacing, and typography tokens.',                type: 'UI',       priority: 'medium', updatedAt: daysAgo(2) },
-  { id: 5, column: 'review',     label: 'Auth flow revamp',        description: 'Improve sign-in and sign-up UX based on user feedback.',        type: 'Auth',     priority: 'high',   updatedAt: daysAgo(4) },
-  { id: 6, column: 'done',       label: 'Setup project structure', description: 'Scaffold Next.js app with TypeScript, ESLint, and Prettier.',   type: 'DevOps',   priority: 'low',    updatedAt: daysAgo(6) },
-];
+const INITIAL_CARDS: any[] = [];
 
 export interface Column { id: string; label: string }
 
 export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
   const note = notes?.state?.notes?.find((n: any) => n.id === noteId);
 
-  const [columns, _setColumns] = useState<Column[]>(note?.kanbanColumns || INITIAL_COLUMNS);
-  const [cards, _setCards]     = useState<any[]>(note?.kanbanCards || INITIAL_CARDS);
+  const [columns, _setColumns] = useState<Column[]>(
+    note?.kanbanColumns?.length ? note.kanbanColumns : INITIAL_COLUMNS
+  );
+  const [cards, _setCards]     = useState<any[]>(
+    Array.isArray(note?.kanbanCards) ? note.kanbanCards : INITIAL_CARDS
+  );
 
   const setColumns = (updater: any) => {
     _setColumns(prev => {
@@ -76,7 +70,7 @@ export function NotesKanban({ noteId, notes }: { noteId: string, notes: any }) {
   useEffect(() => {
     if (note) {
       if (note.kanbanColumns && note.kanbanColumns !== columns) _setColumns(note.kanbanColumns);
-      if (note.kanbanCards && note.kanbanCards !== cards) _setCards(note.kanbanCards);
+      if (Array.isArray(note.kanbanCards) && note.kanbanCards !== cards) _setCards(note.kanbanCards);
     }
   }, [note?.kanbanColumns, note?.kanbanCards]);
 

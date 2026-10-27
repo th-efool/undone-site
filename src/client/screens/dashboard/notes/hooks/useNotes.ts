@@ -232,6 +232,7 @@ export function useNotes() {
       update((s) => {
         const targetNbId = notebookId || s.selectedNotebookId;
         if (!targetNbId) return s;
+        const isKanban = (options?.contentType || 'canvas') === 'kanban';
         const note = {
           id: id('note'),
           notebookId: targetNbId,
@@ -252,6 +253,17 @@ export function useNotes() {
           linkedResourceIds: [],
           learningPathId: null,
           revision: null,
+          ...(isKanban
+            ? {
+                kanbanColumns: [
+                  { id: 'todo', label: 'To Do' },
+                  { id: 'inprogress', label: 'In Progress' },
+                  { id: 'review', label: 'Review' },
+                  { id: 'done', label: 'Done' },
+                ],
+                kanbanCards: [],
+              }
+            : {}),
         };
         return {
           ...s,
