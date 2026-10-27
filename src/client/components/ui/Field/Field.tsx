@@ -267,7 +267,6 @@ export const RadioField = React.forwardRef<HTMLInputElement, RadioFieldProps>(fu
           id={id}
           disabled={disabled}
           required={required}
-          aria-invalid={Boolean(error) || undefined}
           aria-describedby={describedBy}
           className={styles.radioInput}
           {...props}

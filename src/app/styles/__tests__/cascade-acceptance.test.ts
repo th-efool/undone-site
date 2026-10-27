@@ -13,7 +13,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import postcss, { Root as PostcssRoot, Rule as PostcssRule, AtRule as PostcssAtRule } from 'postcss';
+import postcss, { Root as PostcssRoot, AtRule as PostcssAtRule } from 'postcss';
 import tailwindPostcss from '@tailwindcss/postcss';
 import * as lightningcss from 'lightningcss';
 
@@ -32,7 +32,7 @@ export function calculateSpecificity(selector: string): [number, number, number]
   const classMatches = selector.match(/\.[a-zA-Z0-9_\\-]+/g) || [];
   const attrMatches = selector.match(/\[[^\]]+\]/g) || [];
   const pseudoMatches = selector.match(/::?[a-zA-Z0-9_-]+/g) || [];
-  let cleaned = selector
+  const cleaned = selector
     .replace(/#[a-zA-Z0-9_-]+/g, ' ')
     .replace(/\.[a-zA-Z0-9_\\-]+/g, ' ')
     .replace(/\[[^\]]+\]/g, ' ')
