@@ -42,6 +42,9 @@ export class NotesRepository {
     const memoryKey = userId || 'anon';
     try {
       const response = await fetch('/api/workspace/notes');
+      if (response.status === 401) {
+        return this.getInitialState(userId);
+      }
       if (!response.ok) throw new Error('Failed to fetch notes');
       const loaded = (await response.json()) as NotesStateEntity;
       memoryNotesStateByUser.set(memoryKey, loaded);
@@ -51,8 +54,7 @@ export class NotesRepository {
         } catch {}
       }
       return loaded;
-    } catch (e) {
-      console.error('Failed to load notes from API', e);
+    } catch {
       return this.getInitialState(userId);
     }
   }
@@ -78,15 +80,18 @@ export class NotesRepository {
           body: JSON.stringify(state),
         });
 
+        if (response.status === 401) {
+          return { ok: true, data: state };
+        }
+
         if (!response.ok) {
-          throw new Error('Failed to save notes');
+          return { ok: false, data: state };
         }
 
         const saved = (await response.json()) as NotesStateEntity;
         memoryNotesStateByUser.set(memoryKey, saved);
         return { ok: true, data: saved };
-      } catch (error) {
-        console.error('Failed to save notes to API', error);
+      } catch {
         return { ok: false, data: state };
       }
     }

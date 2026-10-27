@@ -9,7 +9,6 @@
  * - Strongly-typed payload assertion and schema validation
  */
 
-import nodeCrypto from 'node:crypto';
 import type {
   NotebookRecord,
   NoteRecord,
@@ -159,12 +158,6 @@ export function canonicalJsonStringify(value: unknown): string {
  * JavaScript fallback for universal browser compatibility.
  */
 export function computeSha256(data: string | Buffer | Uint8Array): string {
-  // 1. Try Node.js crypto if present
-  if (typeof nodeCrypto !== 'undefined' && typeof nodeCrypto.createHash === 'function') {
-    return nodeCrypto.createHash('sha256').update(data).digest('hex');
-  }
-
-  // 2. Pure JS SHA-256 fallback
   let bytes: Uint8Array;
   if (typeof data === 'string') {
     bytes = new TextEncoder().encode(data);
@@ -278,18 +271,6 @@ function pureJsSha256(data: Uint8Array): string {
  */
 export function secureTimingSafeEqual(a: string, b: string): boolean {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
-
-  // Use Node.js timingSafeEqual when available
-  if (
-    typeof nodeCrypto !== 'undefined' &&
-    typeof nodeCrypto.timingSafeEqual === 'function' &&
-    typeof Buffer !== 'undefined'
-  ) {
-    const bufA = Buffer.from(a, 'utf8');
-    const bufB = Buffer.from(b, 'utf8');
-    if (bufA.length !== bufB.length) return false;
-    return nodeCrypto.timingSafeEqual(bufA, bufB);
-  }
 
   // Constant-time fallback using bitwise XOR over UTF-8 byte representation
   const encoder = new TextEncoder();

@@ -309,7 +309,7 @@ export function ShareModal({
         <label>
           <input
             type="checkbox"
-            checked={note.publicLink}
+            checked={Boolean(note.publicLink && String(note.publicLink) !== 'false')}
             onChange={(event) => onSave({ publicLink: event.target.checked })}
           />
           Public link

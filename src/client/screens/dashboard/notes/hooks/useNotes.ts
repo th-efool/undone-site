@@ -356,6 +356,7 @@ export function useNotes() {
   }), [update]);
 
   return {
+    userId,
     state,
     data,
     notebookQuery,

@@ -65,6 +65,15 @@ export async function resolveAuthUser(req: NextRequest): Promise<AuthenticatedUs
     return { id: 'user-test-01' };
   }
 
+  const localId = req.cookies.get('undone_local_user_id')?.value;
+  if (localId) {
+    return { id: localId };
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    return { id: 'local-user' };
+  }
+
   return null;
 }
 
