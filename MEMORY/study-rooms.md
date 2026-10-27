@@ -1,0 +1,248 @@
+# Study rooms architecture & operational index
+
+- `src/app/(dashboard)/studyroom/page.tsx`: Route entry for `/studyroom` discovery directory. Renders `StudyRoomScreen` synchronously from curated catalog without server polling or client fetches.
+- `src/app/(dashboard)/studyroom/[roomSlug]/page.tsx`: Dynamic route for `/studyroom/{roomSlug}` (`fireplace`, `library`, `developer-den`). Validates slug via `getRoomBySlug`, passes `roomSlug` and `searchParams` (`viewAs`) to `RoomScreen`. Unknown slugs invoke `notFound()`.
+- `src/app/(dashboard)/studyroom/[roomSlug]/loading.tsx`: Clean dark placeholder stage with visually hidden "Entering room" announcement and `aria-busy="true"`.
+- `src/client/config/routeThemeConfig.ts`: Maps `'/studyroom': 'dark'` ensuring dark background across discovery and active rooms.
+- File map (`src/client/screens/dashboard/studyroom/`):
+  - `StudyRoomScreen.tsx`, `StudyRoomScreen.module.css`: Discovery grid rendering 3 room cards from static catalog with live participant count pills.
+  - `components/RoomCard.tsx`, `RoomCard.module.css`: 4:5 aspect ratio card with gradient fallback, image zoom hover effect (disabled under `prefers-reduced-motion`), presence avatars, and stretched-link navigation to `/studyroom/{slug}`.
+  - `components/ParticipantAvatar.tsx`, `ParticipantAvatar.module.css`: Accessible initials avatar fallback using deterministic hue hashing.
+  - `data/`: `roomCatalog.ts` (3 room definitions), `backgroundCatalog.ts` (7 user-supplied illustration scenes from `ai-context/Studyroom Backgrounds` + 6 solid color themes), `ambientCatalog.ts` (10 ambient synthesis presets), `mockRosters.ts` (sample rosters for preview).
+  - `utils/`: `ambientEngine.ts` (pure Web Audio procedural synthesizer; only permitted source of `Math.random`), `chime.ts` (Web Audio 2-tone completion chime), `formatTime.ts` (clock and elapsed formatting), `parseMusicUrl.ts` (YouTube and Spotify URL validation and embed generation), `pomodoroReducer.ts` (pure Pomodoro state machine with action clamping).
+  - `hooks/`: `useNow.ts` (interval wall-clock), `usePomodoro.ts` (Pomodoro timer with document title updates and chime), `usePersonalTasks.ts` (in-memory personal tasks with reordering and limits), `useSessionGoal.ts` (session goal with draft and immediate visibility toggle), `useSharedEnvironment.ts` (in-memory room environment state for background, music, and ambience), `useAmbientPlayback.ts` (bridges environment state to Web Audio ambientEngine).
+  - `room/RoomScreen.tsx`, `RoomScreen.module.css`: Full-screen stage shell matching reference design. Composes floating upper-left `FocusBar`, open center artwork, floating right `RoomSocial` (People + Chat), and on-demand bottom `SceneDock` (audio player + scene/color picker toggled via "Customize room"), alongside panel modals and leave confirmation flow.
+  - `room/components/`: `RoomBackground.tsx` (crossfading background scenes and solid color themes), `RoomTopBar.tsx` (clean frosted glass room title badge, live status indicator, toolbar controls for tasks, customization toggle, and leave), `FocusBar.tsx` (floating upper-left glowing blue timer card with ring, digital countdown, streak counter, Start button, and control icons), `RoomSocial.tsx` (persistent right column with People roster, host crown, mute indicators, invite button, mock chat messages with reactions, and interactive composer), `SceneDock.tsx` (bottom dock with ambience player controls, volume slider, horizontal thumbnail scene picker, solid color theme switcher, and close button), `MusicSettingsModal.tsx` (floating glass modal for link input, audio upload, and queue), `SoundRemixModal.tsx` (ambient multi-layer slider mixing and quick presets), `TimerSettingsPanel.tsx` (Pomodoro duration and auto-start settings), `SessionPanel.tsx` (personal goals, interactive calendar, daily task picker, and unified session task manager), `PanelShell.tsx` (accessible drawer on desktop/tablet, bottom sheet on mobile with scrim), `RoomInfoPanel.tsx` (member read-only room info view), `LeaveRoomDialog.tsx` (Radix dialog protecting active session work), `RoomToast.tsx` (polite notification toasts), `DemoDataNote.tsx` (prototype demo indicator). Redundant `EnvironmentPanel` side drawer cleaned up in favor of `SceneDock` and modals.
+- State Ownership:
+  - Shared Environment: Background, ambient sound preset/volume, and music source URL. In the prototype, held in `RoomScreen` via `useSharedEnvironment` and mutable only by the host/admin (`viewer.role === 'admin'`).
+  - Personal State & Unified Tasks: Pomodoro timer, personal session tasks, session goal text, goal visibility, and `mutedForMe`. Exclusively client-local. In `SessionPanel`, session tasks start completely empty by default (`0` tasks). Calendar dates and daily task lists sync with `/home` (`UpcomingEvents`) and `/notes` (`TasksSection`) via `tasksStorageAdapter` (`sidequest_unified_tasks_v1`) and `useUnifiedTasks()`.
+  - Privacy Invariant: `deriveParticipants` populates `publicGoal` on the viewer's participant record if and only if `goal.visibility === 'room'` and text is non-empty. Private goals are structurally omitted from peer-visible records.
+- Removed Behavior & DB Detachment:
+  - `GET /api/studyroom` and `POST /api/studyroom` are preserved intact with zero modifications, but completely detached from the client discovery and room screens.
+  - Polling, ETags, simulated toast feeds, and `framer-motion` were removed from `StudyRoomScreen.tsx`.
+  - `FocusTimerCard.tsx` was deleted and replaced by `FocusBar.tsx`.
+- Known Boundaries & Deferred Architecture:
+  - Phase 0 Contract Freeze (`src/shared/studyroom/contracts.ts`): Authoritative contracts, DTOs, capabilities, limits, and error taxonomy established for room creation, management, discovery, lifecycle, and lease-fenced entry. Documented in `docs/plans/study-room-phase0-frozen-contracts.md`.
+  - Phase 1 Schema & Policy (`src/server/domain/studyroom/studyroom.policy.ts`, `prisma/studyroom-phase1-product-foundation.sql`): Additive schema for StudyRoom (slug, ownerId, cohortId, listing, capacity, status, revision, lifecycle timestamps), RoomRestriction, RoomOwnershipTransfer, RoomAuditLog. Authoritative policy resolver evaluates capabilities, room eligibility, hierarchy, and quotas. Hardened `sprint.service.ts` (fallback removed), `proxy-auth.service.ts`, `manifest.service.ts`, and legacy `/api/studyroom` routes.
+  - Phase 2 Creation, Management & Governance (`src/server/domain/studyroom/room-management.service.ts`, `src/server/domain/studyroom/room-governance.service.ts`):
+    - `roomManagementService`: Atomic idempotent `createRoom` (provisions room, chat channel, realtime stream, environment, audit log), optimistic concurrency `updateRoomSettings` (`expectedRevision`), `transitionLifecycle` (`DRAFT`, `OPEN`, `CLOSED`, `ARCHIVED`, `RESTORE`; evicts active leases/participants on `CLOSE`), `getRoomBootstrap` (safe public preview vs member capabilities).
+    - `roomGovernanceService`: Delegated controller management (`getControllers`, `setController`, `revokeController`), moderation actions with hierarchy guards (`removeParticipant` with 2-min cooldown, `banParticipant`, `unbanParticipant`, `getRestrictions`), safe ownership handoff lifecycle (`proposeOwnershipTransfer`, `acceptOwnershipTransfer`, `cancelOwnershipTransfer`), and cursor-paginated `getAuditLogs`.
+    - Phase 2 API Routes under `src/app/api/studyroom/`:
+      - `POST /api/studyroom/rooms`: Idempotent room creation.
+      - `GET, PATCH /api/studyroom/[roomSlug]`: Bootstrap view & settings update.
+      - `POST /api/studyroom/[roomSlug]/lifecycle`: Lifecycle transitions.
+      - `GET /api/studyroom/[roomSlug]/controllers`: Controller listing.
+      - `PUT, DELETE /api/studyroom/[roomSlug]/controllers/[userId]`: Assign/revoke delegated controllers.
+      - `POST /api/studyroom/[roomSlug]/participants/[userId]/remove`: Kick with cooldown.
+      - `GET, POST /api/studyroom/[roomSlug]/restrictions`: List & ban participants.
+      - `DELETE /api/studyroom/[roomSlug]/restrictions/[userId]`: Unban participant.
+      - `POST /api/studyroom/[roomSlug]/ownership-transfers`: Propose transfer.
+      - `POST /api/studyroom/[roomSlug]/ownership-transfers/[id]/accept`: Accept transfer.
+      - `DELETE /api/studyroom/[roomSlug]/ownership-transfers/[id]`: Cancel transfer.
+      - `GET /api/studyroom/[roomSlug]/audit`: Query audit logs.
+  - Phase 3 Discovery and Creation UI (`src/server/domain/studyroom/room-discovery.service.ts`, `src/app/api/studyroom/cohorts/route.ts`, `src/app/api/studyroom/cache.ts`):
+    - `roomDiscoveryService`: Query-backed discovery with tab routing (`discover`, `cohorts`, `my-rooms`, `recent`), keyword search, cohort privacy isolation, tag/language filters, available capacity post-filtering, and deterministic cursor pagination. `getEligibleCohortsForCreation` resolves cohorts where actor is creator/moderator.
+    - `GET /api/studyroom`: Serves paginated `{ rooms, nextCursor, totalEstimatedCount }` when query params present (`tab`, `query`, `tag`, `cohortId`, `cursor`, `availableOnly`, `format=v2`), while retaining legacy array fallback for legacy tests.
+    - `GET /api/studyroom/cohorts`: Returns eligible cohorts for room creation.
+    - `StudyRoomScreen.tsx`: Query-driven discovery UI with debounced search, category tabs, filter toggles, loading state, error retry, and cursor pagination.
+    - `components/CreateRoomModal.tsx`: Room creation modal with standalone/cohort scope picker, listing, capacity, language, tags, visual preset, and save draft vs publish immediately.
+    - `components/RoomSettingsModal.tsx`: Manager settings modal with optimistic concurrency (`expectedRevision`) and lifecycle transition buttons (`PUBLISH`, `CLOSE`, `REOPEN`, `ARCHIVE`, `RESTORE`).
+    - `components/RoomCard.tsx`: Polymorphic card handling dynamic `StudyRoomCardDTO` with occupancy pills, scope badges, status banners, alongside legacy `RoomDefinition` fallback.
+  - Phase 5 Roles, Governance, and Sharing UI (`src/client/screens/dashboard/studyroom/components/ParticipantActionsMenu.tsx`, `src/client/screens/dashboard/studyroom/components/RoomSettingsModal.tsx`):
+    - Authoritative role projection (`OWNER`, `MODERATOR`, `HOST`, `PARTICIPANT`) across `RoomScreen`, `RoomSocial`, `ParticipantPanel`, and `ParticipantRow` derived via `deriveParticipants.ts`.
+    - `ParticipantActionsMenu.tsx`: Moderation actions dropdown with strict role-hierarchy guards: promote/demote host, remove participant (kick with 2-minute cooldown), ban participant with optional reason, and kick/ban confirmation dialogs.
+    - `RoomSettingsModal.tsx`: Complete 4-tab manager settings modal:
+      - General: room title, description, listing, capacity, tags, rules, and lifecycle buttons (`PUBLISH`, `CLOSE`, `REOPEN`, `ARCHIVE`, `RESTORE`).
+      - Controllers: delegated controller management (`GET /controllers`, `PUT /controllers/[userId]`, `DELETE /controllers/[userId]`).
+      - Ownership Transfer: durable room ownership proposal and cancellation (`POST /ownership-transfers`, `DELETE /ownership-transfers/[id]`).
+      - Audit Log: real-time room management history (`GET /audit`).
+    - Ownership Transfer Banner: mounted in `RoomScreen.tsx` when current viewer is the designated pending transfer recipient; permits 1-click acceptance (`POST /ownership-transfers/[id]/accept`) with optimistic role upgrade and UI refresh.
+    - Canonical Sharing Links: `${origin}/studyroom/${slug}` with clipboard copy and cohort enrollment requirements notification.
+    - Shared Environment Persistence: `useSharedEnvironment.ts` queries `GET /api/studyroom/[slug]/environment` on mount and debounces updates via `PUT /api/studyroom/[slug]/environment` when user has controller capabilities.
+  - Phase 6 Integrated Prerequisite Release Gate (`docs/plans/study-room-phase0-frozen-contracts.md`, `prisma/studyroom-phase1-product-foundation.sql`):
+    - Removed all production mock imports and fake fallback data in `RoomScreen.tsx`. Empty rooms render only the authoritative active roster.
+    - Public cache and legacy unparameterized `GET /api/studyroom` queries constrained strictly to `{ listing: 'PUBLIC', cohortId: null, status: 'OPEN' }`; discovery queries enforce `Cache-Control: private, no-cache`.
+    - Validated Prisma schema via `npx prisma validate`.
+    - Full test suite passing (46 test files, 387 tests).
+    - Release gate criteria verified and Section 12 integration handoff matrix completed in artifact.
+  - Phase 4 Slug Entry, Lifecycle & Roster Polling (`src/server/domain/studyroom/studyroom.service.ts`, `src/client/screens/dashboard/studyroom/hooks/useRoomLifecycle.ts`, `src/client/screens/dashboard/studyroom/hooks/useRoomRoster.ts`):
+    - `studyRoomService`:
+      - `joinRoom`: Slug/id resolution, `resolveRoomEligibility` capacity/restriction/cohort/status validation, deterministic room order locking on switch (`Promise.all([tx.studyRoom.findUnique(...), ...])`), generation fencing increment, multi-tab presence (same user across multiple tabs shares 1 distinct user occupancy slot), distinct user occupancy recalculation.
+      - `renewLease`: Target room resolution, participant generation matching, 90-second lease extension, stale generation rejection.
+      - `leaveRoom`: Single tab leave vs global leave. User stays in room if other tabs remain; participant row evicted only when last tab lease drops.
+      - `getRoomRoster`: Id/slug resolution, active unexpired lease filtering (`expiresAt > now`), owner and delegated controller role projection (`RoomRole`), tab count aggregation.
+      - `reconcileExpiredLeases`: Periodic background cleanup worker purging expired leases, evicting ghost participants, and repairing `onlineCount` across all rooms.
+    - `POST /api/studyroom`: Lease-aware HTTP join, renew, switch, and leave lifecycle (`tabId`, `generation`, `action: 'join' | 'renew' | 'leave'`). Preserves legacy fallback when `tabId` is omitted.
+    - `GET /api/studyroom/roster`: Authenticated active room participant roster endpoint.
+    - `src/app/(dashboard)/studyroom/[roomSlug]/page.tsx`: Dynamic DB room resolution with fallback to catalog and `notFound()` for archived/missing rooms.
+    - `useRoomLifecycle.ts`: Tab ID via `sessionStorage` (`crypto.randomUUID()`), 30-second heartbeat loop (`renew`), `beforeunload` beacon leave, stale generation eviction callback.
+    - `useRoomRoster.ts`: 15-second polling and window focus revalidation against `/api/studyroom/roster`.
+    - `RoomScreen.tsx`: Honest denied stage (`data-testid="room-denied-stage"`) displaying full/closed/restricted status cards with return navigation, dynamic room definition fallback, and real roster integration.
+  - Single Ownership Invariant: `StudyRoom.ownerId` is the sole room ownership authority. Delegated roles (`MODERATOR`, `HOST`) map to `RoomController`. Cohort governance and platform admin override independently audited.
+  - Real-time synchronization (Centrifugo channels, WebSocket subscriptions, server-side room presence, database-persisted room environments) is strictly deferred to future backend tasks. No `centrifugo`, `ws`, or `localStorage` imports are used.
+  - Audio playback happens purely in the browser (Web Audio procedural synthesis for ambience; native YouTube/Spotify iframes for music). Music play/pause cannot be controlled cross-origin.
+  - Integration Phase 2 Stable Room Identity & Safe Catalog:
+    - Pure GET read idempotency: `environmentService.getRoomEnvironment` returns in-memory default snapshots on miss without database writes. `GET /api/studyroom` queries live catalog without lazy seeding.
+    - Explicit Provisioning: Standard catalog rooms (`fireplace`, `library`, `developer-den`) with slugs and presets seeded explicitly via `prisma/seed.ts` and `studyRoomRepo.seedRooms()`.
+    - Lifecycle Harmonization: `POST /api/studyroom` accommodates both `action: 'renew'` and `action: 'renew_lease'`.
+    - Removed Fabricated UI: Deleted mock `MicOff` icon and arbitrary count fallbacks from `RoomSocial.tsx`.
+    - Automated Verification: Added `src/server/domain/studyroom/__tests__/phase2-catalog-and-identity.test.ts` validating slug collisions, renaming preservation, unlisted/cohort scope isolation, and zero GET writes.
+  - Integration Phase 3 Unified Room Authorization & Bootstrap:
+    - Authoritative Policy Unification: Enforced `studyroomPolicy.resolveRoomEligibility` across bootstrap, roster, join, messaging, and realtime proxy.
+    - Cohort Scope Enforcement: Cohort rooms strictly require active `CohortMember` status. Non-enrolled users denied room entry, roster access, messaging, and Centrifugo subscriptions.
+    - Deny Shared Guest Accounts: `isSharedGuestAccount` denied from room joining, messaging, realtime channel subscriptions, and role delegation. Added `'GUEST_RESTRICTED'` to `RoomEligibilityReason`.
+    - De-mocked & Query Override Removal: Removed `searchParams.viewAs` from `src/app/(dashboard)/studyroom/[roomSlug]/page.tsx`. `deriveViewer` prioritizes server `capabilities` from `getRoomBootstrap` over client overrides. Query parameters cannot grant control.
+    - Read-Only Bootstrap: `getRoomBootstrap` returns `channelId`, `environment`, `sprint`, `serverTime`, and viewer capabilities with zero DB writes; withholds sensitive channel ID from unauthorized users.
+    - Automated Verification: Added `src/server/domain/studyroom/__tests__/phase3-authorization-and-bootstrap.test.ts` (13 tests); 59 test files (508 tests) passing.
+  - Integration Phase 4 Correct Membership, Leases, and Cleanup:
+    - Exclusive Service Routing: `POST /api/studyroom` routes join, renew, and leave exclusively through `studyRoomService`. Removed legacy fallback transactions that bypass leases and directly manipulate `onlineCount`.
+    - Monotonic Persistent Assignment Epochs: `generation` strictly increases and survives room leave / participant deletion (queries highest historical lease & audit log generation).
+    - Idempotent Joins: Submissions with duplicate `requestId` return cached join state without bumping generation.
+    - Fenced Leave Operations: Leave requests with mismatched `generation` or `roomId` (e.g. from previous tab/room after switch) are harmless no-ops (`left: false`) that never damage current room membership.
+    - Periodic Reconciliation Sweep & Grace Window: `reconcileExpiredLeases` uses grace period safety buffer (5000ms) to prevent premature eviction of in-flight renewals, purges expired leases and ghost participants, repairs online counts, and tracks execution duration.
+    - Transactional Outbox Events: Membership transitions emit durable `room.participant.joined`, `room.assignment.changed`, and `room.participant.left` events destined for `room:${roomId}:g${generation}`.
+    - Automated Verification: Added `src/server/domain/studyroom/__tests__/phase4-membership-leases-cleanup.test.ts` (7 tests); all studyroom test suites (188 tests) passing.
+  - Integration Phase 5 Connect the Actual Room Screen:
+    - `useRoomOrchestration` hook (`src/client/screens/dashboard/studyroom/hooks/useRoomOrchestration.ts`):
+      - State machine: `'loading' | 'eligible' | 'joining' | 'joined' | 'reconnecting' | 'switched_elsewhere' | 'denied' | 'unavailable'`.
+      - Stable tab identity via `sessionStorage` (`crypto.randomUUID()`).
+      - Monotonic run ID (`runIdRef`) preventing stale or interleaved responses from rapid room/slug navigation.
+      - Periodic 30s heartbeat renewal with 409 stale-generation handling transitioning to `'switched_elsewhere'`.
+      - Clean teardown: unmount leave and `beforeunload` beacon release tab lease.
+      - Realtime subscription manifest refresh (`realtime.refreshManifest()`) after assignment changes and bootstrap refresh.
+      - Encapsulates `studyRoomRepository` (`getBootstrap`, `joinRoom`, `leaveRoom`).
+    - `RoomScreen.tsx`: Wired directly to `useRoomOrchestration`. Renders honest stages for `loading` (`data-testid="room-loading-stage"`), `switched_elsewhere` (`data-testid="room-switched-stage"` with Rejoin action), `unavailable` (`data-testid="room-unavailable-stage"`), and `denied` (`data-testid="room-denied-stage"`).
+    - `LeaveRoomDialog.tsx`: Provides both single-tab leave (`onLeave`) and global leave ("Leave all devices", `onLeaveAll`).
+    - Repository encapsulation: Added `getBootstrap` to `src/client/repositories/studyRoomRepository.ts`.
+    - Automated Verification: Added `useRoomOrchestration.test.tsx`, `RoomScreen.orchestration.test.tsx`, `LeaveRoomDialog.test.tsx`; 36 client test files (239 tests) and 16 server test files (188 tests) passing; 0 ESLint errors; 0 TypeScript errors.
+  - Integration Phase 6 Room Events and Recovery:
+    - Dynamic Stream Generations: Decoupled user assignment epoch (`RoomLease.generation`) from shared stream generation (`RealtimeStream.generation`). `manifest.service.ts` reflects actual stream generations.
+    - Proxy Auth Hardening: `proxy-auth.service.ts` validates `room:` and `roomchat:` channels against database stream generations, rejecting stale clients with code 103.
+    - Outbox Mutations: Wired `reconcileExpiredLeases` (`LEASE_EXPIRED` & `room.roster.changed`), `removeParticipant`/`banParticipant` (`KICKED`/`BANNED`), and `transitionLifecycle` (increments stream generation and emits `room.lifecycle.changed` on `CLOSE`/`ARCHIVE`).
+    - Event Sync & Recovery: Implemented `studyRoomService.syncRoomEvents` and `GET /api/studyroom/[roomSlug]/sync` providing SNAPSHOT mode on reset/drift (>150 gap) and DELTA mode within catchup window.
+    - Client Orchestration: `useRoomOrchestration.ts` subscribes to `room:${roomId}:g${streamGen}`, tracks sequence cursor, catches up gaps via `/sync`, and applies live events; clearly distinguishes transport disconnects (`'reconnecting'`) from authorization loss (103/403/409 -> `'denied'` or `'switched_elsewhere'`).
+    - Instant Roster Updates with Fallback: `useRoomRoster.ts` triggers immediate roster refresh upon receiving realtime events while retaining 15s bounded HTTP polling fallback.
+    - Automated Verification: Added `src/server/domain/studyroom/__tests__/phase6-room-events-and-recovery.test.ts` (10 tests) and `src/app/api/studyroom/__tests__/sync-route.test.ts` (3 tests); updated `useRoomOrchestration.test.tsx` (10 tests); 100% passing tests across studyroom suites with 0 ESLint errors.
+  - Integration Phase 7 Persistent Room Chat:
+    - Neutral Route Alias & Endpoint Authorization: Added `src/app/api/channels/[channelId]/messages/route.ts` re-exporting `GET` and `POST` handlers. Hardened `GET /api/community/channels/[channelId]/messages` to verify `channel.studyRoom` access (enforces non-closed room status, guest restriction, cohort membership, and active lease/participant).
+    - Client Repository Methods: Added `studyRoomRepository.getChannelMessages` and `studyRoomRepository.sendChannelMessage` with `RoomChatMessageDTO` contracts.
+    - `useRoomChat` Hook (`src/client/screens/dashboard/studyroom/hooks/useRoomChat.ts`):
+      - Fetches 50-item persistent chat history while preserving pending in-flight messages.
+      - Realtime Centrifugo stream subscription (`roomchat:${channelId}:g${streamGeneration}`) with deduplication by message ID and optimistic `clientRequestId`.
+      - Optimistic sending with rollback/failed-state indication and single-click retry.
+    - RoomSocial De-mocking (`src/client/screens/dashboard/studyroom/room/components/RoomSocial.tsx`):
+      - Removed `DEFAULT_MESSAGES` fixture and mock local state; displays empty chat state ("No messages yet. Say hello!").
+      - Integrated pending delivery indicators, failed error messages with retry buttons, and manual refresh.
+      - Connected in `RoomScreen.tsx` with room bootstrap `channelId` and `streamGeneration`.
+    - Automated Verification: Added `src/server/domain/messaging/__tests__/phase7-persistent-room-chat.test.ts` (6 tests); updated `RoomSocial.test.tsx` (5 tests); verified all messaging domain tests (12 suites, 108 tests) and all studyroom client tests (36 suites, 244 tests) pass with 0 ESLint errors.
+  - Integration Phase 8 Durable Personal Focus Sessions:
+    - Domain Service Hardening (`src/server/domain/studyroom/session.service.ts`):
+      - Added optimistic concurrency check (`expectedVersion`) throwing `SessionConflictError` (HTTP 409).
+      - Enforced honest elapsed-time semantics in `completeSession` and `interruptSession` (prevents early completion from crediting entire target duration).
+      - Guarded auto-finalization: active sessions whose deadline has passed auto-complete to `COMPLETED` on `getActiveSession`, `startSession`, and `reconcileExpiredSessions`.
+      - Transactional Outbox: Emits `study.session.updated` on user channel (`user:${userId}:g1`) on all session transitions.
+      - History: Added `getSessionHistory` supporting paginated session history with cursor.
+      - Room Disconnect Invariant: Preserves active personal focus session when leaving a room; separates historical room association from user presence.
+    - Endpoints & Repository:
+      - `PATCH /api/studyroom/session` supports `expectedVersion` and returns 409 on version conflict.
+      - `GET /api/studyroom/session/history` provides paginated user history.
+      - Updated `studyRoomRepository` with `expectedVersion` parameters and `getSessionHistory`.
+    - Client Hook (`src/client/screens/dashboard/studyroom/hooks/usePomodoro.ts`):
+      - Hydrates active running/paused server session on mount with client-server clock offset compensation.
+      - Computes remaining countdown from server deadline.
+      - Connects `start`, `pause`, `resume`, `reset`, `skip`, and natural completion to server commands with expected versions and 409 recovery.
+      - Tab wake-up / sleeping tab recovery: recalculates remaining countdown on `visibilitychange` to eliminate browser timer throttling drift.
+      - Realtime sync: synchronizes state across multiple tabs and devices via `study.session.updated`.
+    - Automated Verification: Added `src/client/screens/dashboard/studyroom/__tests__/usePomodoro.durable.test.tsx` (8 tests); updated `session.service.test.ts` (16 tests) and `session-and-roster-routes.test.ts` (8 tests); all studyroom client tests (37 suites, 252 tests) and server studyroom tests (18 suites, 210 tests) pass with 0 ESLint errors.
+  - Integration Phase 9 Shared Sprints and Environment:
+    - Shared Group Sprint Authority (`src/server/domain/studyroom/sprint.service.ts`):
+      - Strictly isolated from personal Pomodoro focus sessions (`StudySession`). Sprints are room-level shared group events.
+      - Atomic active sprint uniqueness inside `prisma.$transaction`: auto-finalizes expired active sprints and prevents concurrent sprint starts.
+      - Controller enforcement: only room owners or delegated controllers can start, pause, resume, or stop room sprints; guest accounts are restricted.
+      - Transactional Outbox: Emits `room.sprint.updated` to destination `room:${roomId}:g${stream.generation}` on start, pause, resume, stop, complete, join, and leave transitions.
+    - Authoritative Room Environment Persistence (`src/server/domain/studyroom/environment.service.ts`):
+      - Enforces optimistic concurrency via `expectedRevision`; throws `MessagingConflictError` (HTTP 409) on revision clash.
+      - Host whitelist: expanded to include Spotify (`open.spotify.com`, `spotify.com`) and YouTube subdomains (`m.youtube.com`, `music.youtube.com`).
+      - Scene whitelist: aligned with all 13 frontend backgrounds (`BackgroundId`), including 7 illustration scenes, 6 solid color themes, and legacy aliases.
+      - Transactional Outbox: Emits `room.environment.updated` to `room:${roomId}:g${stream.generation}` within the update transaction.
+    - Client Sockets & Hooks:
+      - `useSharedEnvironment.ts`: Maintains server revision, sends `expectedRevision`, handles HTTP 409 by automatically reloading authoritative server state, and subscribes to `room.environment.updated` events.
+      - `useRoomSprint.ts`: Dedicated hook managing shared sprint lifecycle, active countdown ticker, participant join/leave state, controller controls, and realtime updates from `room.sprint.updated`. Adapts bootstrap summaries to snapshots.
+    - UI Integration:
+      - `SharedSprintWidget.tsx`: Accessible frosted glass widget displaying countdown, status pill, participant counter, join/leave button, and host controller actions (duration selector, pause, resume, stop).
+      - `RoomScreen.tsx`: Mounted cleanly inside `focusContainer` above personal `FocusBar`, keeping shared group sprints visually and architecturally distinct from personal Pomodoro sessions.
+    - Automated Verification: Added `useRoomSprint.test.tsx` (7 tests) and `SharedSprintWidget.test.tsx` (5 tests); updated `environment.service.test.ts` and `sprint.service.test.ts`; all 41 client test files (269 tests) and all 13 server test files (157 tests) pass with 0 ESLint errors in touched files.
+  - Integration Phase 10 Real Goals, Tasks, Status, and Activity:
+    - User-Scoped Task & Goal Persistence:
+      - `tasksStorageAdapter`: Added user account scoping (`sidequest_unified_tasks_v1:${userId || 'anon'}`), reactive `setUserId(userId)` switching, explicit user confirmation guard for local task imports (`importLocalTasks(userId, confirmed)`), and cache clearing on logout.
+      - `useSessionGoal`: Added user-scoped persistence (`sidequest_session_goal_v1:${userId || 'anon'}`), preserving personal goals across browser reloads while strictly isolating separate accounts on shared browsers.
+      - Unified Cross-Route Task Sync: `/home`, `/notes`, and `/studyroom` consume the identical user-isolated task storage adapter and sync hooks; avoided creating redundant duplicate PostgreSQL tables.
+    - Realtime Participant Goal Publishing & Immediate Revocation:
+      - Privacy Invariant: A user's goal is shared with peers if and only if `visibility === 'room'` and text is non-empty. When private or empty, `publicGoal` is strictly `null` and structurally omitted from presence rosters.
+      - Dynamic Roster Projection: `studyRoomService.participantGoalsRegistry` maintains active live participant goals in-memory per room. `getRoomRoster` projects `publicGoal` dynamically into participant roster rows.
+      - `updateParticipantGoal`: Validates active lease and generation, updates registry, and emits transactional outbox event `room.participant.updated` targeting `room:${roomId}:g${stream.generation}`.
+      - Cleanup Lifecycle: Evicts participant goals automatically upon explicit room leave (`leaveRoom`) and ghost lease reconciliation sweeps (`reconcileExpiredLeases`).
+      - Client Sync: `RoomScreen.tsx` monitors `goal.committed` and dispatches `studyRoomRepository.updateRoomGoal`; `useRoomRoster.ts` listens to `room.participant.updated` and applies real-time goal changes immediately.
+    - Fabricated Content Removal:
+      - Removed hardcoded `'Studying · System Design'` mock labels from `RoomSocial.tsx`, replacing with authentic `{person.publicGoal || 'Focusing'}`.
+      - Cleaned up dead `.micMuted` CSS classes.
+    - Automated Verification: Added test coverage in `tasksStorageAdapter.test.ts` (4 new tests), `useSessionGoal.test.tsx` (3 new tests), `studyroom.service.test.ts` (3 new tests), `route.test.ts` (2 new tests), `RoomSocial.test.tsx`, and `RoomScreen.shell.test.tsx`; 41 client test files (273 tests) and 18 server test files (219 tests) passing with 0 ESLint errors and 0 TypeScript compilation errors.
+  - Integration Phase 11 Security, Errors, and Operational Completion:
+    - CSRF & Origin Verification: Added `validateMutationOrigin` rejecting cross-origin mutating requests (`POST`, `PUT`, `PATCH`, `DELETE`) with HTTP 403 `INVALID_ORIGIN` across `/api/studyroom`, `/api/studyroom/[roomSlug]/environment`, `/api/studyroom/[roomSlug]/status`, and `/api/studyroom/session`.
+    - Payload Bounds & Input Validation:
+      - Enforced 32KB payload maximum (`parseJsonWithLimit`) with HTTP 413 `INPUT_TOO_LARGE`.
+      - Enforced string bounds on room IDs, tab IDs, request IDs, titles, descriptions, and public goals (max 280 chars) via `validateBoundedString`.
+      - Enforced duration bounds on focus sessions (60s to 14400s) and shared sprints (300s to 7200s).
+      - Enforced scene whitelist (`ALLOWED_SCENES`) and music/stream host whitelist (`ALLOWED_URL_HOSTS`) with SSRF, credential, and port rejection in `environmentService`.
+    - Distributed Rate Limiting:
+      - Extended `rateLimiterService` with database-backed buckets for `checkRoomJoinRateLimit` (15/min), `checkRoomRenewRateLimit` (20/min), `checkRoomControlRateLimit` (30/min), and `checkRoomGoalRateLimit` (20/min).
+      - Returns HTTP 429 `RATE_LIMIT_EXCEEDED` with `Retry-After` and `X-RateLimit-*` headers when budget is exhausted.
+    - Public Cache Sanitization:
+      - Sanitized `GET /api/studyroom` legacy fallback to never leak participant user profiles (`name`, `image`, `username`, `email`) in public cached responses (`Cache-Control: public, s-maxage=5`).
+      - Enforced `Cache-Control: private, no-store` on all authenticated presence and session endpoints (`roster`, `status`, `environment`, `session`, `history`, `sync`).
+    - Study Room Operational Metrics Service:
+      - Implemented `studyRoomMetricsService` (`src/server/domain/studyroom/studyroom-metrics.service.ts`) tracking renewal failures, version conflicts (session, environment, sprint 409s), authorization rejections, reconciliation lag, join latency (average & p95 ms), and outbox backlog depth.
+      - Exposed via `GET /api/internal/studyroom/metrics` guarded by `INTERNAL_API_SECRET`.
+    - Operational Readiness Probe:
+      - Created `scripts/studyroom-readiness.ts` providing automated non-destructive health probes for PostgreSQL, required schema tables, Centrifugo secrets & configuration, outbox backlog, and lease health with Markdown report generation (`formatStudyRoomReadinessMarkdown`).
+    - Automated Verification: Added `src/server/domain/studyroom/__tests__/phase11-security-and-readiness.test.ts` (19 tests); all 19 server test files (238 tests) and 41 client test files (273 tests) pass with 0 ESLint errors and 0 TypeScript compilation errors.
+  - Integration Phase 12 Integrated Multi-User and Load Validation:
+    - Multi-User Load Benchmark Engine (`src/server/domain/studyroom/load/studyroom-benchmark-engine.ts`):
+      - Safety Guardrails: `assertSafeLoadEnvironment()` prevents benchmark execution in `NODE_ENV === 'production'` and blocks remote cloud hosts (`supabase.co`, `neon.tech`, `rds.amazonaws.com`, `railway.app`, etc.). Enforces fixture prefix `fixture:load:studyroom:` via `assertSafeFixtureId()` so synthetic load never touches user entities.
+      - Mathematical Distribution: `calculateDistribution()` evaluates min, max, avg, p50, p95, and p99 latencies without lossy binning.
+      - Safe Hardware Profiler: `getHardwareProfile()` collects CPU core count, platform, node version, and memory usage without leaking environment secrets or hostnames.
+      - Multi-User Workload Runner (`StudyRoomBenchmarkRunner`): Simulates 100 concurrent users across 150 tabs distributed in 10 rooms, plus a 100-user hot-room stress test. Tests lease heartbeat traffic independently from message traffic, measures event fan-out visibility latency, shared environment updates, sprint sync, and simulated reconnect storms (30% tab disruption).
+      - Strict SLO Release Gates: Validates join p95 <= 750ms, renew p95 <= 500ms, event fan-out visibility p95 <= 2000ms, 0 duplicate messages, 0 lost messages, 0 unauthorized deliveries, and lease cleanup target <= 120s.
+    - CLI Load Harness (`scripts/load/studyroom-load-harness.ts`):
+      - Command line interface accepting `--users`, `--tabs`, `--rooms`, `--hot`, `--seconds`, and `--reconnect-storm`.
+      - Formats benchmark summary report to stdout and persists to `.tmp/studyroom-capacity-report.md`.
+      - Integrated into `package.json` under `"studyroom:load": "node --import tsx scripts/load/studyroom-load-harness.ts"`.
+    - Section 9 Authoritative End-to-End Scenarios (`src/server/domain/studyroom/__tests__/phase12-e2e-scenarios.test.ts`):
+      - ROOM-01 to ROOM-07: Room opening by slug, multi-user presence aggregation, multi-tab single-seat lease accounting, tab closure with active peer leases, ghost eviction on tab crash, room switching surviving delayed leaves, and concurrent switch resolution without ghost leases.
+      - ROOM-08 to ROOM-10: Cohort outsider rejection (403), instant enrollment access, and dynamic revocation mid-session.
+      - CHAT-01 to CHAT-02: Message idempotency, retry deduplication, and peer delivery survival.
+      - FOCUS-01 to FOCUS-02: Elapsed time clamping preventing fabricated early completion.
+      - ENV-01 to ENV-02: Optimistic revision conflict detection (409) on stale writes.
+      - PRIV-01 to PRIV-02: Privacy invariant enforcement (private goals omitted from public roster, immediate revocation on visibility switch).
+      - FAIL-01 to FAIL-02: Honest error propagation without fabricated success.
+      - UI-01: Empty rooms render 0 participants without mock placeholders.
+    - Verification: 21 server test files (263 tests) and 41 client test files (273 tests) passing; total 62 test files (536 tests) with 0 ESLint errors and 0 TypeScript compilation errors.
+  - Integration Phase 13 Controlled Rollout and Operational Handoff:
+    - Rollout & Rehearsal Service (`src/server/domain/studyroom/studyroom-rollout.service.ts`):
+      - Pre-Flight Verification: `runPreflightChecks()` verifies database connectivity, model existence (`studyRoom`, `roomLease`, `roomParticipant`), outbox backlog, and realtime secrets without destructive side-effects.
+      - Idempotent Baseline Provisioning: `provisionBaselineRooms()` ensures canonical standard catalog rooms (`fireplace`, `library`, `developer-den`) are created/updated with proper titles, descriptions, thumbnails, capacities, and default environments.
+      - Staged Controlled Rollout: `evaluateRolloutEligibility()` enforces stage gates across `STAGE_0_PREFLIGHT`, `STAGE_1_PROVISION`, `STAGE_2_INTERNAL` (staff pilot), `STAGE_3_COHORT_CANARY` (cohort canary), and `STAGE_4_GA` (general availability).
+      - Emergency Kill-Switch & Rollback: Supports global kill-switch via `STUDYROOM_EMERGENCY_DISABLED=true` environment flag. `executeEmergencyRollback()` atomically freezes rooms to `CLOSED`, clears active tab leases, triggers client-side graceful closed stage, while strictly preserving all historical messages, sessions, tasks, and audit logs.
+    - Section 10 Release Gate Verification Script (`scripts/verify-studyroom-release-gate.ts`):
+      - Validates all 18 Section 10 release gate controls deterministically without paid API or destructive DB actions.
+      - Generates persistent audit report at `.tmp/studyroom-release-gate-report.md`.
+      - Wire into `package.json` under `"studyroom:gate": "node --conditions=react-server --import tsx scripts/verify-studyroom-release-gate.ts"`.
+      - Result: 18 / 18 controls verified (100% pass rate).
+    - Verification: 22 server test files (276 tests) and 41 client test files (273 tests) passing; total 63 test files (549 tests) with 0 ESLint errors and 0 TypeScript compilation errors.
+- Check Commands:
+  - `npm run studyroom:gate` (Section 10 Release Gate Verification)
+  - `npm run studyroom:load` (Multi-user load capacity benchmark)
+  - `npx vitest run src/client/screens/dashboard/studyroom "src/app/(dashboard)/studyroom" src/app/__tests__/tab-titles.test.ts src/app/api/studyroom`
+  - `npx vitest run src/server/domain/studyroom`
+  - `npx eslint src/client/screens/dashboard/studyroom "src/app/(dashboard)/studyroom" src/server/domain/studyroom`
+  - `npx tsc --noEmit --incremental false`
