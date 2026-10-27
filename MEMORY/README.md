@@ -1,21 +1,10 @@
-# MEMORY
+# Repository operational index
 
-AGENT_INDEX_ONLY. Read before broad repository discovery.
+- [home-dashboard.md](home-dashboard.md): cohort card controls, pause dates, learning settings, subscription removal, cache boundaries, and focused checks.
 
-ROOT: `D:\ThisPC\Documents\SideQuestHQ\undone-site`
-
-| Topic | File | Entry triggers |
-| --- | --- | --- |
-| Landing → cohort creation | `MEMORY/cohort-creation.md` | cohort, quest, draft, create, material, processing, publish, worker, creation API |
-| Forge AI site builder | `MEMORY/ai-builder-forge.md` | Forge, builder chat, agent run, SSE, generated React, preview runner, plan confirmation |
-| Puter AI Builder | `MEMORY/ai-builder-puter.md` | Puter Builder, builder chat, tool loop, generated app, preview, publish_site, update_preview |
-| Embedded interaction framework + cohort rebuild | `MEMORY/interaction-builder-plan.md` | reusable interaction builder, chat/workspace synchronization, modular cohort rebuild, architecture, implementation plan |
-| Embedded interaction execution checkpoint | `MEMORY/interaction-builder-execution.md` | current stage, implemented files, verification state, blocker, exact resume steps |
-| Subsystem segregation (Notes & Android) | `MEMORY/subsystem-segregation-plan.md` | notes isolation, excalidraw, kanban, android, capacitor, build performance, packages |
-
-RULES:
-
-- Memory is a locator + dependency graph, not a replacement for source verification.
-- Prefer `rg` on paths named here before a repository-wide search.
-- Update the affected memory file after material cross-cutting changes.
-- No credentials, secret values, copied logs, screenshots, or temporary state.
+- [cohort-builder-processing.md](cohort-builder-processing.md): durable processing acceptance, generated metadata, timed chunk projection, UI inspection and focused checks.
+- [play-playback.md](play-playback.md): /play route, cinematic player composition, usePlayback engine, mobile layout, deferred tool boundaries, and verification checks.
+- [cache-boundaries.md](cache-boundaries.md): /api/explore, /api/feed, and /api/community edge SWR and micro-caching rules, tenant boundaries, and focused checks.
+- [study-rooms.md](study-rooms.md): /studyroom discovery and [roomSlug] stage, Web Audio ambient engine, shared environment vs personal tools, Centrifugo boundary, and focused checks.
+- [messaging-and-centrifugo.md](messaging-and-centrifugo.md): durable messaging foundation, outbox dispatcher, Centrifugo v6 transport, rate limiting, and observability.
+- [notes-local-first-sync.md](notes-local-first-sync.md): local-first durability, GitHub sync production architecture, E1-E6 contracts, client storage engine, BFF routes, token crypto, and R1/R2/R3 gates.

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://undone.app/schemas/v1/bundle.json",
+  "title": "LocalStateExportBundle",
+  "type": "object",
+  "required": ["formatVersion", "exportedAt", "sourceUserId", "storageName", "committedState", "checksum"],
+  "properties": {
+    "formatVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "exportedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sourceUserId": {
+      "type": "string"
+    },
+    "storageName": {
+      "type": "string"
+    },
+    "committedState": {
+      "type": "object",
+      "required": ["notebooks", "notes", "assets", "outbox"],
+      "properties": {
+        "notebooks": {
+          "type": "array",
+          "items": { "$ref": "notebook.json" }
+        },
+        "notes": {
+          "type": "array"
+        },
+        "assets": {
+          "type": "array",
+          "items": { "$ref": "asset.json" }
+        },
+        "outbox": {
+          "type": "array"
+        }
+      }
+    },
+    "unsavedBuffers": {
+      "type": "array"
+    },
+    "checksum": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$",
+      "description": "Cryptographic SHA-256 hash of canonical bundle payload without checksum field"
+    }
+  },
+  "additionalProperties": false
+}
