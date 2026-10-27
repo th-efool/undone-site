@@ -12,21 +12,18 @@ import {
   GITHUB_APP_INSTALLATION_COOKIE_NAME,
   GITHUB_APP_INSTALLATION_COOKIE_OPTIONS,
   getInstallationUrl,
+  getManageInstallationUrl,
   renderAppErrorHtml,
+  renderAppExistingInstallationAccessHtml,
+  tryCreateUserRepo,
 } from '../../config';
 import {
   clearAppFlowCookie,
   finishGitHubAppConnection,
+  handleResumeInstallation,
   isFreshAppFlowState,
 } from '../../flow';
-
-interface AppFlowState {
-  stateNonce: string;
-  userId: string;
-  createdAt: number;
-  githubAccessToken?: string;
-  githubUser?: { id: string; login: string };
-}
+import type { AppFlowState } from '../../flow';
 
 function errorResponse(error: string, description: string, clearCookie = true): NextResponse {
   const response = new NextResponse(renderAppErrorHtml(error, description), {
@@ -49,6 +46,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   const user = await resolveAuthUser(req);
   const stateNonce = params.get('state');
   const code = params.get('code');
+  const resumeInstallationId = params.get('resume_installation_id');
   const stateCookie = req.cookies.get(GITHUB_APP_INSTALLATION_COOKIE_NAME)?.value;
   if (!user || !stateNonce || !stateCookie) {
     return errorResponse('invalid_state', 'GitHub connection expired. Start Connect GitHub again.');
@@ -60,13 +58,28 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   } catch {
     return errorResponse('invalid_state', 'GitHub connection could not be verified. Start Connect GitHub again.');
   }
-  if (!isFreshAppFlowState(state, stateNonce, user.id) || !code) {
+  if (!isFreshAppFlowState(state, stateNonce, user.id)) {
     return errorResponse('invalid_state', 'GitHub connection expired or could not be verified. Start Connect GitHub again.');
   }
 
   const appCredentials = getGitHubAppCredentials();
   if (!appCredentials?.clientSecret) {
     return errorResponse('server_misconfigured', 'GitHub App OAuth is not configured on the server.');
+  }
+
+  // Handle in-popup resume check after user updates access on GitHub
+  if (resumeInstallationId) {
+    return await handleResumeInstallation({
+      req,
+      user,
+      state,
+      installationId: resumeInstallationId,
+      appCredentials,
+    });
+  }
+
+  if (!code) {
+    return errorResponse('invalid_state', 'GitHub connection code was missing. Start Connect GitHub again.');
   }
 
   const userToken = await exchangeGitHubAppUserCode(
@@ -86,9 +99,18 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
   if (!installations) {
     return errorResponse('installations_lookup_failed', 'GitHub could not verify this account’s Undone App installations. Try again.');
   }
+
   for (const installation of installations) {
-    const repos = await getInstallationRepos(installation.id, appCredentials);
+    let repos = await getInstallationRepos(installation.id, appCredentials);
+    if (!repos.length) {
+      // Attempt auto-creating the undone-notes repo if permitted
+      const created = await tryCreateUserRepo(userToken, 'undone-notes');
+      if (created) {
+        repos = await getInstallationRepos(installation.id, appCredentials);
+      }
+    }
     if (!repos.length) continue;
+
     const repo = repos.find((item) => item.fullName.endsWith('/undone-notes')) ||
       repos.find((item) => item.fullName.toLowerCase().includes('undone')) || repos[0];
     const tokenResult = await getInstallationToken(installation.id, appCredentials);
@@ -100,6 +122,46 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
     }
   }
 
+  // Gap 1 Fix: When the user already installed the app on GitHub (installations.length > 0),
+  // NEVER redirect to getInstallationUrl() (/installations/new), which traps the user
+  // on GitHub settings without redirecting back (#61238 / #163512).
+  if (installations.length > 0) {
+    const primaryInstallation = installations[0];
+    const manageUrl = getManageInstallationUrl(
+      primaryInstallation.id,
+      primaryInstallation.accountLogin,
+      primaryInstallation.accountType,
+    );
+
+    const nextState: AppFlowState = {
+      ...state,
+      githubAccessToken: userToken,
+      githubUser: identity,
+      resumeInstallationId: primaryInstallation.id,
+    };
+
+    const html = renderAppExistingInstallationAccessHtml({
+      installationId: primaryInstallation.id,
+      accountLogin: primaryInstallation.accountLogin,
+      accountType: primaryInstallation.accountType,
+      manageUrl,
+      stateNonce,
+    });
+
+    const response = new NextResponse(html, {
+      status: 200,
+      headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
+
+    response.cookies.set(
+      GITHUB_APP_INSTALLATION_COOKIE_NAME,
+      await encryptToken(JSON.stringify(nextState), user.id),
+      GITHUB_APP_INSTALLATION_COOKIE_OPTIONS,
+    );
+    return response;
+  }
+
+  // First-time user with no existing installations: send to GitHub App install flow
   const nextState: AppFlowState = {
     ...state,
     githubAccessToken: userToken,

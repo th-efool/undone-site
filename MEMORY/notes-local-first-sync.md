@@ -47,11 +47,12 @@
   - Cross-device restore verified with 100% SHA-256 payload parity.
 
 ## GitHub App reconnect and credential lifecycle (Phase 1)
-- `src/app/api/personal-workspace/github/app/install/route.ts` starts GitHub App user OAuth first; `app/oauth/callback/route.ts` identifies the regular GitHub account and reuses an installation it can access, avoiding repeated install attempts.
-- New installation return uses `app/callback/route.ts`, which requires a fresh user-bound encrypted state and verifies the callback `installation_id` against `GET /user/installations` for that authorized GitHub account before minting a token.
-- `personal_workspace_github_connections` stores non-secret installation/repository/account IDs in PostgreSQL. Do not persist installation access tokens there. `vault.ts` mints short-lived tokens on demand; the in-process token cache avoids minting on every API call.
-- GitHub App registration must list `/api/personal-workspace/github/app/oauth/callback` as an OAuth callback URL and `/api/personal-workspace/github/app/callback` as its Setup URL with Redirect on update enabled. Keep Request user authorization on installation disabled because the app uses its own preceding OAuth step.
-- Apply `prisma/personal-workspace-github-connection.sql` to deployed PostgreSQL before enabling the new build; `prisma generate` updates the client locally.
+- `src/app/api/personal-workspace/github/app/install/route.ts` starts GitHub App user OAuth first when `GITHUB_APP_CLIENT_SECRET` is configured. If `GITHUB_APP_CLIENT_SECRET` is absent, it falls back to discovering existing installations via App JWT (`GET /app/installations`) instead of returning HTTP 500.
+- When an existing installation is found with 0 accessible repositories, the app **never** redirects to `/apps/<app>/installations/new` (which causes the GitHub `#61238` / `#163512` configuration-page trap). Instead, it attempts auto-creating `undone-notes` or renders an In-Popup Access Resolver (`renderAppExistingInstallationAccessHtml`) with a direct link to GitHub installation settings, a "Resume Connection" action, and automatic `window.onfocus` polling.
+- `src/app/api/personal-workspace/github/app/callback/route.ts` acts as a unified callback handling OAuth (`?code=...`), Setup URL (`?installation_id=...`), and In-Popup Resume (`?resume_installation_id=...`).
+- `personal_workspace_github_connections` stores non-secret installation/repository/account IDs in PostgreSQL. Do not persist installation access tokens there. `vault.ts` mints short-lived tokens on demand; in local development where PostgreSQL is offline or unmigrated for `'local-user'`, `vault.ts` falls back to decrypting or refreshing using the cookie's `installationId`.
+- GitHub App registration must list `/api/personal-workspace/github/app/oauth/callback` or `/api/personal-workspace/github/app/callback` as an OAuth callback URL and `/api/personal-workspace/github/app/callback` as its Setup URL with Redirect on update enabled.
+- The status endpoint (`status/route.ts`) and `ConnectGitHubModal` surface `manageUrl` so users can adjust repository access on GitHub without disconnecting.
 
 ## Notes sync repair implementation (Phase 2)
 - `PersonalWorkspaceDatabase.runTransaction` serializes transactions per engine instance; `clear()` uses the same atomic transaction path. Do not call `runTransaction` from inside its callback (would wait on the current queue slot).

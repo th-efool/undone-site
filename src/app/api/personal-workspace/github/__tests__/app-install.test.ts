@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
 import crypto from 'node:crypto';
+import * as configMod from '../app/config';
+import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import {
   getGitHubAppCredentials,
   generateAppJWT,
@@ -131,5 +133,41 @@ describe('GitHub App & Zero-File Fallback Authentication', () => {
     expect(authorizeUrl.searchParams.get('redirect_uri')).toBe(process.env.GITHUB_APP_OAUTH_REDIRECT_URI);
     expect(authorizeUrl.searchParams.get('state')).toBe(data.state);
     expect(res.cookies.get('undone_gh_app_state')?.httpOnly).toBe(true);
+  });
+
+  it('discovers existing installations via App JWT without throwing HTTP 500 when clientSecret is missing (Gap 2 Fix)', async () => {
+    process.env.GITHUB_APP_ID = '12345';
+    process.env.GITHUB_APP_CLIENT_ID = 'IvTest123';
+    delete process.env.GITHUB_APP_CLIENT_SECRET;
+    process.env.GITHUB_APP_PRIVATE_KEY_BASE64 = base64Key;
+
+    const listSpy = vi.spyOn(configMod, 'listAppInstallations').mockResolvedValue([
+      { id: '175771206', appId: '12345', accountId: '99', accountLogin: 'octocat', accountType: 'User' },
+    ]);
+    const reposSpy = vi.spyOn(configMod, 'getInstallationRepos').mockResolvedValue([
+      { fullName: 'octocat/undone-notes', isPrivate: true, defaultBranch: 'main' },
+    ]);
+    const tokenSpy = vi.spyOn(configMod, 'getInstallationToken').mockResolvedValue({
+      token: 'ghs_installed',
+      expiresAt: '2026-10-27T22:00:00Z',
+    });
+    const upsertSpy = vi.spyOn(prisma.personalWorkspaceGitHubConnection, 'upsert').mockResolvedValue({} as never);
+
+    const req = new NextRequest('https://undone.example/api/personal-workspace/github/app/install?format=json', {
+      headers: { 'x-test-user-id': 'user-test-01' },
+    });
+
+    const res = await getAppInstall(req);
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toMatchObject({
+      connected: true,
+      repoFullName: 'octocat/undone-notes',
+    });
+
+    listSpy.mockRestore();
+    reposSpy.mockRestore();
+    tokenSpy.mockRestore();
+    upsertSpy.mockRestore();
   });
 });

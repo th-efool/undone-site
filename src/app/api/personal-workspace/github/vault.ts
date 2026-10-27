@@ -101,32 +101,66 @@ export async function resolveCredentials(
       const parsed: VaultCookiePayload = JSON.parse(raw);
       if (parsed?.encryptedToken && parsed?.repoFullName) {
         if (parsed.installationId) {
-          if (!prisma?.personalWorkspaceGitHubConnection) return null;
           let connection: {
             installationId: string;
             disconnectedAt: Date | null;
             repoFullName: string;
             defaultBranch: string;
             isPrivate: boolean;
-          } | null;
-          try {
-            connection = await prisma.personalWorkspaceGitHubConnection.findUnique({ where: { userId } });
-          } catch {
-            return null;
+          } | null = null;
+          if (prisma?.personalWorkspaceGitHubConnection) {
+            try {
+              connection = await prisma.personalWorkspaceGitHubConnection.findUnique({ where: { userId } });
+            } catch {
+              // DB offline or unmigrated table
+            }
           }
-          if (!connection || connection.disconnectedAt) return null;
+          if (connection) {
+            if (connection.disconnectedAt) return null;
+            const appCredentials = getGitHubAppCredentials();
+            const refreshed = appCredentials
+              ? await getInstallationToken(connection.installationId, appCredentials)
+              : null;
+            if (refreshed) {
+              return {
+                token: refreshed.token,
+                repoFullName: connection.repoFullName,
+                defaultBranch: connection.defaultBranch,
+                isPrivate: connection.isPrivate,
+                installationId: connection.installationId,
+              };
+            }
+          }
+
+          // If DB connection is absent (e.g. local-dev or synthetic user) but valid token is in cookie:
+          if (parsed.encryptedToken) {
+            try {
+              const token = await decryptToken(parsed.encryptedToken, userId);
+              return {
+                token,
+                repoFullName: parsed.repoFullName,
+                defaultBranch: parsed.defaultBranch || 'main',
+                isPrivate: parsed.isPrivate ?? true,
+                installationId: parsed.installationId,
+              };
+            } catch {
+              // fallback to refresh via appCredentials
+            }
+          }
+
           const appCredentials = getGitHubAppCredentials();
-          const refreshed = appCredentials
-            ? await getInstallationToken(connection.installationId, appCredentials)
-            : null;
-          if (!refreshed) return null;
-          return {
-            token: refreshed.token,
-            repoFullName: connection.repoFullName,
-            defaultBranch: connection.defaultBranch,
-            isPrivate: connection.isPrivate,
-            installationId: connection.installationId,
-          };
+          if (appCredentials) {
+            const refreshed = await getInstallationToken(parsed.installationId, appCredentials);
+            if (refreshed) {
+              return {
+                token: refreshed.token,
+                repoFullName: parsed.repoFullName,
+                defaultBranch: parsed.defaultBranch || 'main',
+                isPrivate: parsed.isPrivate ?? true,
+                installationId: parsed.installationId,
+              };
+            }
+          }
         }
         const token = await decryptToken(parsed.encryptedToken, userId);
         return {

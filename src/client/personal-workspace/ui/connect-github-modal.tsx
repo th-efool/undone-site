@@ -27,6 +27,7 @@ export interface ConnectGitHubModalProps {
   onExportBackup?: () => Promise<void> | void;
   isSyncing?: boolean;
   lastSyncedAt?: number | null;
+  manageUrl?: string | null;
 }
 
 /**
@@ -64,6 +65,7 @@ export function ConnectGitHubModal({
   onExportBackup,
   isSyncing = false,
   lastSyncedAt,
+  manageUrl,
 }: ConnectGitHubModalProps) {
   const [repoFullName, setRepoFullName] = useState(initialRepo);
   const [token, setToken] = useState('');
@@ -340,15 +342,29 @@ export function ConnectGitHubModal({
 
               <div className="flex items-center justify-between p-2.5 rounded-lg bg-white/70 dark:bg-zinc-900/80 border border-emerald-200/60 dark:border-emerald-800/40 font-mono text-xs">
                 <span className="truncate font-medium">{connectedRepo || repoFullName}</span>
-                <a
-                  href={`https://github.com/${connectedRepo || repoFullName}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline shrink-0 ml-2"
-                >
-                  <span>View</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+                <div className="flex items-center gap-2 shrink-0 ml-2">
+                  <a
+                    href={`https://github.com/${connectedRepo || repoFullName}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline"
+                  >
+                    <span>View</span>
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                  {manageUrl ? (
+                    <a
+                      href={manageUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[11px] text-zinc-500 dark:text-zinc-400 hover:underline"
+                      title="Manage GitHub App repository access"
+                    >
+                      <span>Manage Access</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  ) : null}
+                </div>
               </div>
 
               {lastSyncedAt ? (

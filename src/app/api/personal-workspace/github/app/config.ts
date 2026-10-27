@@ -128,6 +128,44 @@ export function getInstallationUrl(state: string): string {
   return `https://github.com/apps/undone-notes/installations/new?state=${encodeURIComponent(state)}`;
 }
 
+export function getManageInstallationUrl(
+  installationId: string,
+  accountLogin?: string,
+  accountType?: string,
+): string {
+  if (accountType?.toLowerCase() === 'organization' && accountLogin) {
+    return `https://github.com/organizations/${encodeURIComponent(accountLogin)}/settings/installations/${encodeURIComponent(installationId)}`;
+  }
+  return `https://github.com/settings/installations/${encodeURIComponent(installationId)}`;
+}
+
+export async function tryCreateUserRepo(
+  userToken: string,
+  name: string = 'undone-notes',
+  description: string = 'Personal workspace notes and canvas data',
+): Promise<boolean> {
+  try {
+    const res = await fetch('https://api.github.com/user/repos', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${userToken}`,
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'undone-notes-app',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        name,
+        description,
+        private: true,
+        auto_init: true,
+      }),
+    });
+    return res.status === 201 || res.status === 422;
+  } catch {
+    return false;
+  }
+}
+
 export async function exchangeGitHubAppUserCode(
   code: string,
   redirectUri: string,
@@ -353,6 +391,48 @@ export async function getInstallationRepos(
   return [];
 }
 
+/**
+ * Lists installations of the GitHub App using the App JWT.
+ * Useful for installation discovery when GITHUB_APP_CLIENT_SECRET is not configured.
+ */
+export async function listAppInstallations(
+  credentials: GitHubAppCredentials,
+): Promise<GitHubAppInstallation[]> {
+  const jwt = generateAppJWT(credentials);
+  try {
+    const { status, data } = await httpsRequest<
+      Array<{
+        id: number;
+        app_id: number;
+        account?: { id?: number; login?: string; type?: string };
+        repository_selection?: string;
+      }>
+    >({
+      hostname: 'api.github.com',
+      path: '/app/installations?per_page=100',
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+        Accept: 'application/vnd.github+json',
+        'User-Agent': 'undone-notes-app',
+      },
+    });
+
+    if (status >= 200 && status < 300 && Array.isArray(data)) {
+      return data.map((item) => ({
+        id: String(item.id),
+        appId: String(item.app_id || credentials.appId),
+        accountId: String(item.account?.id || ''),
+        accountLogin: item.account?.login || '',
+        accountType: item.account?.type || 'User',
+      }));
+    }
+  } catch (err) {
+    console.warn('[GitHubApp] Failed to list app installations via JWT:', err);
+  }
+  return [];
+}
+
 export function renderAppSuccessHtml(data: {
   repoFullName: string;
   defaultBranch: string;
@@ -437,6 +517,134 @@ export function renderAppErrorHtml(error: string, description?: string): string 
           setTimeout(function() { window.close(); }, 2000);
         }
       })();
+    </script>
+  </body>
+</html>`;
+}
+
+export function renderAppExistingInstallationAccessHtml(data: {
+  installationId: string;
+  accountLogin: string;
+  accountType?: string;
+  manageUrl: string;
+  stateNonce: string;
+  notice?: string;
+}): string {
+  const safeLogin = data.accountLogin.replace(/[<>"']/g, '');
+  const safeId = data.installationId.replace(/[<>"']/g, '');
+  const safeNonce = data.stateNonce.replace(/[<>"']/g, '');
+  const safeManageUrl = data.manageUrl.replace(/[<>"']/g, '');
+  const safeNotice = (data.notice || '').replace(/[<>"']/g, '');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Grant Repository Access - Undone</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #09090b; color: #f4f4f5; }
+      .card { text-align: center; padding: 2.25rem 2rem; background: #18181b; border: 1px solid #27272a; border-radius: 1rem; max-width: 440px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
+      .icon-box { width: 56px; height: 56px; margin: 0 auto 1.25rem; border-radius: 50%; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); display: flex; align-items: center; justify-content: center; color: #60a5fa; }
+      h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 0.5rem; }
+      p { font-size: 0.875rem; color: #a1a1aa; line-height: 1.5; margin: 0 0 1rem; }
+      .account-badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 0.375rem; background: #27272a; color: #38bdf8; font-family: monospace; font-size: 0.8125rem; margin-bottom: 1rem; }
+      .steps { text-align: left; background: #121214; border: 1px solid #27272a; border-radius: 0.5rem; padding: 0.875rem 1rem; margin-bottom: 1.5rem; font-size: 0.8125rem; color: #d4d4d8; line-height: 1.6; }
+      .steps ol { margin: 0; padding-left: 1.25rem; }
+      .btn-container { display: flex; flex-direction: column; gap: 0.75rem; }
+      .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.625rem 1.25rem; border-radius: 0.5rem; font-size: 0.875rem; font-weight: 500; cursor: pointer; text-decoration: none; transition: background 0.15s, border-color 0.15s; }
+      .btn-github { background: #27272a; color: #f4f4f5; border: 1px solid #3f3f46; }
+      .btn-github:hover { background: #3f3f46; }
+      .btn-primary { background: #2563eb; color: #ffffff; border: 1px solid #1d4ed8; }
+      .btn-primary:hover { background: #1d4ed8; }
+      .status-msg { margin-top: 1rem; font-size: 0.8125rem; min-height: 1.25rem; }
+    </style>
+  </head>
+  <body>
+    <div class="card" role="region">
+      <div class="icon-box">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+      </div>
+      <h1>Existing Installation Detected</h1>
+      <div><span class="account-badge">@${safeLogin}</span></div>
+      <p>The Undone App is already installed, but doesn't have permission to access any repositories yet.</p>
+      
+      <div class="steps">
+        <ol>
+          <li>Open GitHub settings and select your <code>undone-notes</code> repository (or <i>All repositories</i>).</li>
+          <li>Click <b>Save</b> on GitHub, then return here.</li>
+        </ol>
+      </div>
+
+      <div class="btn-container">
+        <a href="${safeManageUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-github">
+          Configure Repository Access on GitHub &rarr;
+        </a>
+        <button id="resume-btn" onclick="checkAccess()" class="btn btn-primary">
+          I've Updated Access — Resume Connection
+        </button>
+      </div>
+
+      <div id="status-msg" class="status-msg">${safeNotice ? safeNotice : ''}</div>
+    </div>
+
+    <script>
+      var isChecking = false;
+      function checkAccess() {
+        if (isChecking) return;
+        isChecking = true;
+        var btn = document.getElementById('resume-btn');
+        var statusMsg = document.getElementById('status-msg');
+        if (btn) btn.innerText = 'Checking repository access...';
+        if (statusMsg) {
+          statusMsg.style.color = '#a1a1aa';
+          statusMsg.innerText = 'Checking permissions...';
+        }
+
+        fetch('/api/personal-workspace/github/app/callback?resume_installation_id=${safeId}&state=${safeNonce}&format=json', {
+          headers: { Accept: 'application/json' }
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          isChecking = false;
+          if (data && data.success) {
+            if (statusMsg) {
+              statusMsg.style.color = '#10b981';
+              statusMsg.innerText = 'Connected! Closing window...';
+            }
+            var payload = {
+              type: 'UNDONE_GITHUB_AUTH_SUCCESS',
+              repoFullName: data.repoFullName,
+              defaultBranch: data.defaultBranch || 'main',
+              isPrivate: data.isPrivate ?? true
+            };
+            if (window.opener && !window.opener.closed) {
+              window.opener.postMessage(payload, window.location.origin);
+              setTimeout(function() { window.close(); }, 800);
+            } else {
+              window.location.href = '/notes?github_connected=true';
+            }
+          } else {
+            if (btn) btn.innerText = "I've Updated Access — Resume Connection";
+            if (statusMsg) {
+              statusMsg.style.color = '#f59e0b';
+              statusMsg.innerText = (data && data.message) || 'No repositories found yet. Make sure you selected a repository and saved on GitHub.';
+            }
+          }
+        })
+        .catch(function() {
+          isChecking = false;
+          if (btn) btn.innerText = "I've Updated Access — Resume Connection";
+          if (statusMsg) {
+            statusMsg.style.color = '#ef4444';
+            statusMsg.innerText = 'Connection check failed. Please try again.';
+          }
+        });
+      }
+
+      window.addEventListener('focus', function() {
+        setTimeout(checkAccess, 1000);
+      });
     </script>
   </body>
 </html>`;

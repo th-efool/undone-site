@@ -17,6 +17,8 @@ interface GitHubStatusInfo {
   repoFullName?: string;
   defaultBranch?: string;
   isPrivate?: boolean;
+  installationId?: string | null;
+  manageUrl?: string | null;
 }
 
 const DEFAULT_SYNC_SUMMARY: SyncSummary = {
@@ -466,6 +468,7 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         }}
         isConnected={isConnected}
         initialRepo={githubStatus?.repoFullName || ''}
+        manageUrl={githubStatus?.manageUrl}
         isSyncing={syncSummary.status === 'syncing'}
         lastSyncedAt={syncSummary.lastSyncedAt}
         onSyncNow={handleSyncNow}
