@@ -4,7 +4,7 @@
   width: 100%;
   min-height: 100vh;
 
-  background: var(--color-background);
+  background: var(--ud-color-background, var(--color-background));
   overflow-x: clip;
 }
 
@@ -23,7 +23,7 @@
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: #000000 !important;
+  background: var(--ud-color-background, #000000) !important;
 }
 
 .playContent {

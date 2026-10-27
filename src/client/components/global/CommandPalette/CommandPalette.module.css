@@ -13,8 +13,8 @@
   transform: translateX(-50%);
   width: min(640px, calc(100vw - 32px));
   max-height: calc(80vh - 40px);
-  background: var(--color-surface);
-  border-radius: var(--radius-xl);
+  background: var(--ud-color-surface, var(--color-surface));
+  border-radius: var(--ud-radius-xl, var(--radius-xl));
   box-shadow: var(--shadow-2xl), 0 0 0 1px rgba(var(--color-brand-rgb) / 0.05);
   display: flex;
   flex-direction: column;
@@ -42,7 +42,7 @@
   border: none;
   outline: none;
   font-size: var(--text-base);
-  color: var(--color-text-primary);
+  color: var(--ud-color-text-primary, var(--color-text-primary));
   padding: var(--space-1) 0;
 }
 
@@ -81,7 +81,7 @@
 }
 
 .resultItem:hover {
-  background: var(--color-brand-subtle);
+  background: var(--ud-color-brand-subtle, var(--color-brand-subtle));
 }
 
 .resultIcon {
