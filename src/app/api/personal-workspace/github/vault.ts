@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/src/server/infrastructure/auth/getUser';
+import { prisma } from '@/src/server/infrastructure/db/postgres/client';
 import {
   encryptToken,
   decryptToken,
@@ -94,6 +95,43 @@ export async function resolveCredentials(
       }
     } catch {
       // Corrupt, tampered, or invalid cookie
+    }
+  }
+
+  // Persistent Database bridge: check if user previously linked GitHub account in PostgreSQL
+  if (prisma?.account && userId && !userId.startsWith('user-test-')) {
+    try {
+      const account = await prisma.account.findFirst({
+        where: {
+          userId,
+          provider: 'github',
+        },
+      });
+
+      if (account?.access_token) {
+        // Query user handle to form default repoFullName
+        const userGhRes = await fetch('https://api.github.com/user', {
+          headers: {
+            Authorization: `Bearer ${account.access_token}`,
+            Accept: 'application/vnd.github+json',
+            'User-Agent': 'undone-personal-workspace',
+          },
+        }).catch(() => null);
+
+        if (userGhRes && userGhRes.ok) {
+          const ghData = (await userGhRes.json()) as { login?: string };
+          if (ghData?.login) {
+            return {
+              token: account.access_token,
+              repoFullName: `${ghData.login}/undone-notes`,
+              defaultBranch: 'main',
+              isPrivate: true,
+            };
+          }
+        }
+      }
+    } catch {
+      // Database not available or network error
     }
   }
 
