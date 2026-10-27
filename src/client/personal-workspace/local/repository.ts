@@ -39,7 +39,19 @@ import {
   extractAssetsFromCanvasScene,
   extractAssetsFromKanbanCards,
 } from '@/src/shared/personal-workspace/media';
-import { canonicalJsonStringify } from '@/src/shared/personal-workspace/serialization';
+import {
+  canonicalJsonStringify,
+  validateAssetRecord,
+  validateWorkspaceAssetDependencies,
+} from '@/src/shared/personal-workspace/serialization';
+
+export interface MigrationInventory {
+  schemaVersion: 1;
+  counts: { notebooks: number; notes: number; assets: number; schedules: number; pendingOutbox: number };
+  hashes: Record<string, string>;
+  assetBytes: number;
+  serializedBytes: number;
+}
 
 export interface RecoverableRecordConflict {
   id: string;
@@ -747,6 +759,32 @@ export class PersonalWorkspaceRepository {
           .sort((a, b) => a.clientTimestamp.localeCompare(b.clientTimestamp)),
       }),
     );
+  }
+
+  async getMigrationInventory(): Promise<MigrationInventory> {
+    const snapshot = await this.getSyncSnapshot();
+    const assets = snapshot.assets.map((asset) => validateAssetRecord(asset, { isChunked: true }));
+    validateWorkspaceAssetDependencies(snapshot.notes, assets);
+    const records = [...snapshot.notebooks, ...snapshot.notes, ...assets, ...snapshot.schedules];
+    const hashes: Record<string, string> = {};
+    for (const [type, items] of Object.entries({
+      notebook: snapshot.notebooks, note: snapshot.notes, asset: assets, schedule: snapshot.schedules,
+    })) {
+      for (const record of items) hashes[`${type}:${record.id}`] = computeSha256(canonicalJsonStringify(record));
+    }
+    return {
+      schemaVersion: 1,
+      counts: {
+        notebooks: snapshot.notebooks.length,
+        notes: snapshot.notes.length,
+        assets: assets.length,
+        schedules: snapshot.schedules.length,
+        pendingOutbox: snapshot.outbox.length,
+      },
+      hashes,
+      assetBytes: assets.reduce((total, asset) => total + asset.byteLength, 0),
+      serializedBytes: new TextEncoder().encode(canonicalJsonStringify(records)).byteLength,
+    };
   }
 
   async acknowledgeOutboxUpTo(generation: number): Promise<void> {

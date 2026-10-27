@@ -17,6 +17,7 @@ import {
   secureTimingSafeEqual,
   validateRawAssetSize,
   validateAssetRecord,
+  validateWorkspaceAssetDependencies,
   validateNotebookRecord,
   validateNoteRecord,
   validateWorkspaceManifest,
@@ -177,6 +178,25 @@ describe('Physical Limits & Asset Validation', () => {
       byteLength: validAsset.byteLength + 10,
     };
     expect(() => validateAssetRecord(badLengthAsset)).toThrow(CorruptAssetIntegrityError);
+  });
+
+  it('requires every referenced canvas/kanban asset to exist in the workspace snapshot', () => {
+    const hash = 'a'.repeat(64);
+    const note: NoteRecord = {
+      id: 'note-assets', notebookId: 'nb', title: 'Assets', contentType: 'canvas', order: 0,
+      createdAt: '2026-10-27T00:00:00.000Z', updatedAt: '2026-10-27T00:00:00.000Z',
+      canvasData: {
+        elements: [{ id: 'image', type: 'image', assetHash: hash }],
+        appState: {}, files: { image: { dataURL: `asset://${hash}` } },
+        assetFileIds: ['asset-id'], assetHashes: { 'asset-id': hash },
+      },
+    } as NoteRecord;
+    const asset: AssetRecord = {
+      id: 'asset-id', hash, mimeType: 'image/png', byteLength: 1, base64Data: 'YQ==',
+    };
+
+    expect(() => validateWorkspaceAssetDependencies([note], [asset])).not.toThrow();
+    expect(() => validateWorkspaceAssetDependencies([note], [])).toThrow(/asset-id|missing assets/);
   });
 });
 

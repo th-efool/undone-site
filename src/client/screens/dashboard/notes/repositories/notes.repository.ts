@@ -1,6 +1,7 @@
 import type { NotesStateEntity } from '../models/notes.models';
 import { LocalWorkspace } from '@/src/client/personal-workspace/local/facade';
 import { canvasRepository } from './canvas.repository';
+import { canonicalJsonStringify, computeSha256 } from '@/src/shared/personal-workspace/serialization';
 
 const EMPTY_NOTES_STATE: NotesStateEntity = {
   notebooks: [],
@@ -245,6 +246,125 @@ export class NotesRepository {
           requireSaved(await workspace.deleteEntity('note', existing.id));
         }
       }
+  }
+
+  async migrateLegacyState(state: NotesStateEntity, userId?: string | null): Promise<void> {
+    const targetUserId = userId || 'local-user';
+    const workspace = LocalWorkspace.getLocalWorkspace(targetUserId);
+    const repository = workspace.getRepository();
+    const before = await repository.getSyncSnapshot();
+    if (
+      before.notebooks.length || before.notes.length || before.assets.length || before.schedules.length || before.outbox.length
+    ) {
+      throw new Error('Legacy import requires an empty local workspace; existing data was left untouched.');
+    }
+
+    await this.syncWithLocalWorkspace(state, targetUserId);
+    const inventory = await repository.getMigrationInventory();
+    const after = await repository.getSyncSnapshot();
+    const projection = (value: NotesStateEntity) => ({
+      notebooks: value.notebooks.map(({ id, title, color, order }) => ({ id, title, color, order })).sort((a, b) => a.id.localeCompare(b.id)),
+      notes: value.notes.map(({ id, title, notebookId, contentType, order }) => ({ id, title, notebookId, contentType, order })).sort((a, b) => a.id.localeCompare(b.id)),
+    });
+    const importedProjection = {
+      notebooks: after.notebooks.map(({ id, title, color, order }) => ({ id, title, color, order })).sort((a, b) => a.id.localeCompare(b.id)),
+      notes: after.notes.map(({ id, title, notebookId, contentType, order }) => ({ id, title, notebookId, contentType, order })).sort((a, b) => a.id.localeCompare(b.id)),
+    };
+    const sourceHash = computeSha256(canonicalJsonStringify(projection(state)));
+    const importedHash = computeSha256(canonicalJsonStringify(importedProjection));
+    if (
+      inventory.counts.notebooks !== state.notebooks.length ||
+      inventory.counts.notes !== state.notes.length ||
+      sourceHash !== importedHash
+    ) {
+      throw new Error('Legacy notes import verification failed; the original local cache was retained.');
+    }
+    await repository.getDatabase().runTransaction(['metadata'], 'readwrite', (ctx) => {
+      ctx.put('metadata', 'legacyMigrationReceipt', {
+        key: 'legacyMigrationReceipt', schemaVersion: 1, importedAt: new Date().toISOString(),
+        counts: inventory.counts, hashes: inventory.hashes, assetBytes: inventory.assetBytes,
+        serializedBytes: inventory.serializedBytes, sourceHash,
+      });
+    });
+  }
+
+  async mergeLegacyServerState(source: NotesStateEntity, userId?: string | null): Promise<void> {
+    const targetUserId = userId || 'local-user';
+    const workspace = LocalWorkspace.getLocalWorkspace(targetUserId);
+    const repo = workspace.getRepository();
+    const local = workspace.getNotesState();
+    const localNoteIds = new Set(local.notes.map((note) => note.id));
+    const legacyCanvases = new Set(canvasRepository.getLegacyStorageInventory().map((entry) => entry.noteId));
+    const incompleteCanvasIds = source.notes
+      .filter((note) => note.contentType === 'canvas' && !localNoteIds.has(note.id) && !legacyCanvases.has(note.id))
+      .map((note) => note.id);
+    if (incompleteCanvasIds.length) {
+      throw new Error(`Legacy server canvas scenes are unavailable on this device: ${incompleteCanvasIds.join(', ')}`);
+    }
+
+    const mergeById = <T extends { id: string }>(localItems: T[], sourceItems: T[]) => {
+      const merged = new Map(localItems.map((item) => [item.id, item]));
+      const collisions: Array<{ local: T; legacy: T }> = [];
+      for (const item of sourceItems) {
+        const existing = merged.get(item.id);
+        if (!existing) merged.set(item.id, item);
+        else if (canonicalJsonStringify(existing) !== canonicalJsonStringify(item)) {
+          collisions.push({ local: existing, legacy: item });
+        }
+      }
+      return { items: Array.from(merged.values()), collisions };
+    };
+    const notebooks = mergeById(local.notebooks, source.notebooks || []);
+    const notes = mergeById(local.notes, source.notes || []);
+    const mergedState: NotesStateEntity = {
+      ...local,
+      notebooks: notebooks.items,
+      notes: notes.items,
+      selectedNotebookId: local.selectedNotebookId || notebooks.items[0]?.id || null,
+      selectedNoteId: local.selectedNoteId || notes.items[0]?.id || null,
+    };
+
+    const collisionRecords = [...notebooks.collisions.map((entry) => ({ entityType: 'notebook', ...entry })),
+      ...notes.collisions.map((entry) => ({ entityType: 'note', ...entry }))];
+    if (collisionRecords.length) {
+      await repo.getDatabase().runTransaction(['conflicts'], 'readwrite', (ctx) => {
+        for (const entry of collisionRecords) {
+          const localHash = computeSha256(canonicalJsonStringify(entry.local));
+          const legacyHash = computeSha256(canonicalJsonStringify(entry.legacy));
+          const id = `legacy-${computeSha256(`${entry.entityType}:${entry.local.id}:${localHash}:${legacyHash}`)}`;
+          ctx.put('conflicts', id, {
+            id, entityType: entry.entityType, entityId: entry.local.id,
+            recoveredAutomatically: true, source: 'legacy-server',
+            localVersion: entry.local, remoteVersion: entry.legacy,
+            localHash, remoteHash: legacyHash, detectedAt: new Date().toISOString(),
+          });
+        }
+      });
+    }
+
+    await this.syncWithLocalWorkspace(mergedState, targetUserId);
+    const inventory = await repo.getMigrationInventory();
+    const after = await repo.getSyncSnapshot();
+    const expectedNoteIds = new Set(mergedState.notes.map((note) => note.id));
+    const expectedNotebookIds = new Set(mergedState.notebooks.map((notebook) => notebook.id));
+    if (
+      after.notes.length !== expectedNoteIds.size || after.notebooks.length !== expectedNotebookIds.size ||
+      after.notes.some((note) => !expectedNoteIds.has(note.id)) ||
+      after.notebooks.some((notebook) => !expectedNotebookIds.has(notebook.id))
+    ) {
+      throw new Error('Legacy server workspace merge verification failed; the MongoDB source was retained.');
+    }
+    const sourceHash = computeSha256(canonicalJsonStringify({
+      notebooks: [...(source.notebooks || [])].sort((a, b) => a.id.localeCompare(b.id)),
+      notes: [...(source.notes || [])].sort((a, b) => a.id.localeCompare(b.id)),
+    }));
+    await repo.getDatabase().runTransaction(['metadata'], 'readwrite', (ctx) => {
+      ctx.put('metadata', 'legacyServerMergeReceipt', {
+        key: 'legacyServerMergeReceipt', schemaVersion: 1, importedAt: new Date().toISOString(),
+        counts: { notebooks: source.notebooks?.length || 0, notes: source.notes?.length || 0 },
+        sourceHash, localInventory: { counts: inventory.counts, hashes: inventory.hashes },
+      });
+    });
   }
 }
 

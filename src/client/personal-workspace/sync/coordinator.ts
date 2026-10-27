@@ -29,7 +29,13 @@ import {
   scheduleTaskRecordSchema,
   workspaceManifestSchema,
 } from '@/src/shared/personal-workspace/contracts';
-import { canonicalJsonStringify, computeSha256, validateAssetRecord } from '@/src/shared/personal-workspace/serialization';
+import {
+  canonicalJsonStringify,
+  computeSha256,
+  MAX_GITHUB_PUBLISH_BODY_BYTES,
+  validateAssetRecord,
+  validateWorkspaceAssetDependencies,
+} from '@/src/shared/personal-workspace/serialization';
 import type { PersonalWorkspaceRepository, RecoverableRecordConflict } from '../local/repository';
 
 export interface SyncCoordinatorOptions {
@@ -41,6 +47,7 @@ export interface SyncCoordinatorOptions {
 export interface SyncResult {
   ok: boolean;
   status: SyncStatus;
+  retryable?: boolean;
   newCommitSha?: string;
   conflict?: boolean;
   conflictCount?: number;
@@ -138,6 +145,7 @@ export interface IWorkspaceSyncRepository {
 }
 
 class ReconnectRequiredError extends Error {}
+class NonRetryableSyncError extends Error {}
 
 export class SyncCoordinator {
   public status: SyncStatus = 'idle';
@@ -241,6 +249,12 @@ export class SyncCoordinator {
     }
 
     const manifest = data.manifest;
+    const parsedNotes = noteRecordSchema.array().safeParse(notes);
+    const parsedAssets = assetRecordSchema.array().safeParse(assets);
+    if (!parsedNotes.success || !parsedAssets.success) {
+      throw new Error('Remote workspace contains an invalid note or asset record');
+    }
+    validateWorkspaceAssetDependencies(parsedNotes.data, parsedAssets.data);
     if (manifest) {
       const parsedManifest = workspaceManifestSchema.safeParse(manifest);
       if (
@@ -251,10 +265,8 @@ export class SyncCoordinator {
       }
       const verifiedManifest = parsedManifest.data;
       const parsedNotebooks = notebookRecordSchema.array().safeParse(notebooks);
-      const parsedNotes = noteRecordSchema.array().safeParse(notes);
-      const parsedAssets = assetRecordSchema.array().safeParse(assets);
       const parsedSchedules = scheduleTaskRecordSchema.array().safeParse(schedules);
-      if (!parsedNotebooks.success || !parsedNotes.success || !parsedAssets.success || !parsedSchedules.success) {
+      if (!parsedNotebooks.success || !parsedSchedules.success) {
         throw new Error('Remote workspace contains an invalid record');
       }
       if (
@@ -280,7 +292,7 @@ export class SyncCoordinator {
       }
       const assetsById = new Map(verifiedManifest.assets.map((entry) => [entry.id, entry]));
       for (const asset of parsedAssets.data) {
-        validateAssetRecord(asset);
+        validateAssetRecord(asset, { isChunked: true });
         if (assetsById.get(asset.id)?.sha256 !== asset.hash) {
           throw new Error('Remote asset hash does not match its manifest');
         }
@@ -301,7 +313,6 @@ export class SyncCoordinator {
     ) {
       throw new Error('Remote workspace records have no verifiable manifest');
     }
-
     return {
       snapshot: { notebooks, notes, assets, schedules },
       commitSha: data.commitSha ?? null,
@@ -430,7 +441,7 @@ export class SyncCoordinator {
         if (this.retryTimer) clearTimeout(this.retryTimer);
         this.retryTimer = null;
       } else if (result.status === 'error') {
-        this.scheduleRetry();
+        if (result.retryable !== false) this.scheduleRetry();
       }
       return result;
     } finally {
@@ -530,13 +541,20 @@ export class SyncCoordinator {
           schedules: snapshot.schedules,
         },
       };
+      const publishBody = JSON.stringify(publishPayload);
+      const publishBytes = new TextEncoder().encode(publishBody).byteLength;
+      if (publishBytes > MAX_GITHUB_PUBLISH_BODY_BYTES) {
+        throw new NonRetryableSyncError(
+          `Workspace publish is ${publishBytes} bytes; the safe request limit is ${MAX_GITHUB_PUBLISH_BODY_BYTES} bytes. Local edits remain saved. Export a recovery backup or reduce asset sizes before syncing.`,
+        );
+      }
 
       let publishRes: Response;
       try {
         publishRes = await this.fetchFn(publishUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(publishPayload),
+          body: publishBody,
         });
       } catch (pubErr) {
         this.status = 'error';
@@ -594,6 +612,12 @@ export class SyncCoordinator {
         this.errorMessage = unexpectedError.message;
         await this.broadcastUpdate();
         return { ok: false, status: this.status, error: this.errorMessage };
+      }
+      if (unexpectedError instanceof NonRetryableSyncError) {
+        this.status = 'error';
+        this.errorMessage = unexpectedError.message;
+        await this.broadcastUpdate();
+        return { ok: false, status: 'error', error: this.errorMessage, retryable: false };
       }
       this.status = 'error';
       this.errorMessage =

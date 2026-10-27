@@ -6,8 +6,14 @@ import {
   AssetRecord,
   ScheduleTaskRecord,
   WorkspaceManifest,
+  ManifestAssetEntry,
 } from '@/src/shared/personal-workspace/contracts';
-import { computeSha256 } from '@/src/shared/personal-workspace/serialization';
+import {
+  computeSha256,
+  validateAssetRecord,
+  validateWorkspaceAssetDependencies,
+} from '@/src/shared/personal-workspace/serialization';
+import { workspaceManifestSchema } from '@/src/shared/personal-workspace/contracts';
 import { resolveAuthUser, resolveCredentials } from '../vault';
 
 async function pMap<T, R>(
@@ -88,13 +94,16 @@ async function handlePull(req: NextRequest): Promise<NextResponse> {
     let manifest: WorkspaceManifest | null = null;
     if (manifestItem) {
       const manifestBlob = await client.getBlob(manifestItem.sha);
-      if (manifestBlob?.contentBase64) {
-        try {
-          const jsonText = Buffer.from(manifestBlob.contentBase64, 'base64').toString('utf-8');
-          manifest = JSON.parse(jsonText) as WorkspaceManifest;
-        } catch {
-          // Corrupt manifest file
-        }
+      if (!manifestBlob?.contentBase64) throw new Error('Workspace manifest blob is missing');
+      const jsonText = Buffer.from(manifestBlob.contentBase64, 'base64').toString('utf-8');
+      const parsedManifest = workspaceManifestSchema.safeParse(JSON.parse(jsonText));
+      if (!parsedManifest.success) throw new Error('Workspace manifest is invalid');
+      manifest = parsedManifest.data;
+      if (manifest.workspaceId !== user.id) {
+        return NextResponse.json(
+          { ok: false, error: 'Repository is bound to a different Undone account' },
+          { status: 409 },
+        );
       }
     }
 
@@ -107,13 +116,8 @@ async function handlePull(req: NextRequest): Promise<NextResponse> {
     );
     const notebooksRaw = await pMap(notebookItems, async (item) => {
       const blob = await client.getBlob(item.sha);
-      if (!blob?.contentBase64) return null;
-      try {
-        const text = Buffer.from(blob.contentBase64, 'base64').toString('utf-8');
-        return JSON.parse(text) as NotebookRecord;
-      } catch {
-        return null;
-      }
+      if (!blob?.contentBase64) throw new Error(`Notebook blob is missing: ${item.path}`);
+      return JSON.parse(Buffer.from(blob.contentBase64, 'base64').toString('utf-8')) as NotebookRecord;
     });
     const notebooks: NotebookRecord[] = notebooksRaw.filter(
       (nb): nb is NotebookRecord => nb !== null
@@ -128,27 +132,24 @@ async function handlePull(req: NextRequest): Promise<NextResponse> {
     );
     const notesRaw = await pMap(noteItems, async (item) => {
       const blob = await client.getBlob(item.sha);
-      if (!blob?.contentBase64) return null;
-      try {
-        const text = Buffer.from(blob.contentBase64, 'base64').toString('utf-8');
-        return JSON.parse(text) as NoteRecord;
-      } catch {
-        return null;
-      }
+      if (!blob?.contentBase64) throw new Error(`Note blob is missing: ${item.path}`);
+      return JSON.parse(Buffer.from(blob.contentBase64, 'base64').toString('utf-8')) as NoteRecord;
     });
     const notes: NoteRecord[] = notesRaw.filter((note): note is NoteRecord => note !== null);
 
     // 4. Fetch assets
-    const assetItems = treeItems.filter(
-      (item) => item.type === 'blob' && item.path.startsWith('undone/assets/')
-    );
-    const assetsRaw = await pMap(assetItems, async (item) => {
+    const assetItems: Array<{ item: (typeof treeItems)[number]; manifestAsset?: ManifestAssetEntry }> = manifest
+      ? manifest.assets.map((entry) => {
+          const item = treeItems.find((candidate) => candidate.type === 'blob' && candidate.path === entry.path);
+          if (!item || item.sha !== entry.gitSha) throw new Error(`Manifest asset is missing or changed: ${entry.id}`);
+          return { item, manifestAsset: entry };
+        })
+      : treeItems
+          .filter((item) => item.type === 'blob' && item.path.startsWith('undone/assets/'))
+          .map((item) => ({ item, manifestAsset: undefined }));
+    const assetsRaw = await pMap(assetItems, async ({ item, manifestAsset }) => {
       const blob = await client.getBlob(item.sha);
-      if (!blob?.contentBase64) return null;
-
-      const manifestAsset = manifest?.assets?.find(
-        (a) => a.path === item.path || a.gitSha === item.sha
-      );
+      if (!blob?.contentBase64) throw new Error(`Asset blob is missing: ${item.path}`);
       const filename = item.path.split('/').pop() || '';
       const fallbackHash =
         filename.split('.')[0] || computeSha256(Buffer.from(blob.contentBase64, 'base64'));
@@ -163,9 +164,10 @@ async function handlePull(req: NextRequest): Promise<NextResponse> {
         byteLength: blob.byteLength,
         base64Data: blob.contentBase64,
       };
-      return assetRecord;
+      return validateAssetRecord(assetRecord, { isChunked: true });
     });
-    const assets: AssetRecord[] = assetsRaw.filter((a): a is AssetRecord => a !== null);
+    const assets: AssetRecord[] = assetsRaw;
+    validateWorkspaceAssetDependencies(notes, assets);
 
     // 5. Fetch schedules if present
     const scheduleItem = treeItems.find((item) => item.path === 'undone/schedules/tasks.json');

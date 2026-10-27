@@ -19,6 +19,9 @@ import {
 import {
   canonicalJsonStringify,
   computeSha256,
+  MAX_PUBLICATION_GROUP_BYTES,
+  validateAssetRecord,
+  validateWorkspaceAssetDependencies,
 } from '@/src/shared/personal-workspace/serialization';
 import { getExtensionForMimeType } from '@/src/shared/personal-workspace/media';
 import { resolveAuthUser, resolveCredentials } from '../vault';
@@ -75,6 +78,22 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const notebooks = body.state.notebooks || [];
   const notes = body.state.notes || [];
   const assets = body.state.assets || [];
+  try {
+    let assetBytes = 0;
+    for (const asset of assets) {
+      validateAssetRecord(asset, { isChunked: true });
+      assetBytes += asset.byteLength;
+    }
+    if (assetBytes > MAX_PUBLICATION_GROUP_BYTES) {
+      return NextResponse.json({ ok: false, error: 'Workspace assets exceed the supported publication size; local edits remain available.' }, { status: 413 });
+    }
+    validateWorkspaceAssetDependencies(notes, assets);
+  } catch (err) {
+    return NextResponse.json(
+      { ok: false, error: err instanceof Error ? err.message : 'Workspace assets failed validation' },
+      { status: 400 },
+    );
+  }
 
   try {
     const client = new GitHubGitDataClient({
@@ -111,7 +130,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
 
     // 1. Upload new asset blobs
     for (const asset of assets) {
-      if (!asset.base64Data) continue;
       const ext = getExtensionForMimeType(asset.mimeType);
       const path = `undone/assets/${asset.hash}.${ext}`;
       const sha = await client.createBlob(asset.base64Data);

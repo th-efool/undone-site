@@ -80,13 +80,9 @@ export function ConnectGitHubModal({
   const [prevProps, setPrevProps] = useState({ initialRepo, isConnected });
   if (prevProps.initialRepo !== initialRepo || prevProps.isConnected !== isConnected) {
     setPrevProps({ initialRepo, isConnected });
-    if (initialRepo) {
-      setRepoFullName(initialRepo);
-    }
+    setRepoFullName(initialRepo);
     setConnected(isConnected);
-    if (isConnected && initialRepo) {
-      setConnectedRepo(initialRepo);
-    }
+    setConnectedRepo(isConnected && initialRepo ? initialRepo : null);
   }
 
   const effectiveFetch = fetchFn ?? ((...args) => globalThis.fetch(...args));

@@ -57,6 +57,9 @@ export const MAX_RAW_ASSET_CHUNKED_BYTES = 5 * 1024 * 1024; // 5,242,880 bytes
  */
 export const MAX_PUBLICATION_GROUP_BYTES = 15 * 1024 * 1024; // 15,728,640 bytes
 
+/** Leave headroom under the host's 4.5 MiB serverless request-body ceiling. */
+export const MAX_GITHUB_PUBLISH_BODY_BYTES = 4 * 1024 * 1024;
+
 /**
  * Local IndexedDB database threshold before prompting bundle cleanup/export (500 MiB).
  */
@@ -376,6 +379,57 @@ export function validateAssetRecord(
   }
 
   return record;
+}
+
+/** Collects content-addressed asset IDs/hashes referenced anywhere in a workspace note. */
+export function collectReferencedAssetIds(value: unknown): Set<string> {
+  const references = new Set<string>();
+  const visit = (current: unknown, key = '') => {
+    if (typeof current === 'string') {
+      const match = /^asset:\/\/([0-9a-f]{64})$/.exec(current);
+      if (match) references.add(match[1]);
+      if (key === 'assetHash' && current) references.add(current);
+      return;
+    }
+    if (Array.isArray(current)) {
+      if (key === 'assetFileIds') current.forEach((id) => { if (typeof id === 'string' && id) references.add(id); });
+      else current.forEach((item) => visit(item));
+      return;
+    }
+    if (!current || typeof current !== 'object') return;
+    for (const [childKey, child] of Object.entries(current)) {
+      if (childKey === 'assetHashes' && child && typeof child === 'object' && !Array.isArray(child)) {
+        for (const [id, hash] of Object.entries(child)) {
+          references.add(id);
+          if (typeof hash === 'string' && hash) references.add(hash);
+        }
+      } else {
+        visit(child, childKey);
+      }
+    }
+  };
+  visit(value);
+  return references;
+}
+
+/** Rejects snapshots whose canvas/kanban references cannot be restored from the asset set. */
+export function validateWorkspaceAssetDependencies(
+  notes: readonly NoteRecord[],
+  assets: readonly AssetRecord[],
+): void {
+  const available = new Set(assets.flatMap((asset) => [asset.id, asset.hash]));
+  const missing = new Set<string>();
+  for (const note of notes) {
+    for (const reference of collectReferencedAssetIds(note)) {
+      if (!available.has(reference)) missing.add(reference);
+    }
+  }
+  if (missing.size) {
+    throw new IncompatibleSchemaError(
+      `Workspace notes reference missing assets: ${Array.from(missing).join(', ')}`,
+      { validationErrors: { missingAssetIds: Array.from(missing) } },
+    );
+  }
 }
 
 // ============================================================================

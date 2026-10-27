@@ -141,6 +141,19 @@ describe('Production Personal Workspace Local Storage Engine & Repository', () =
     expect(await repo1.getPendingOutbox()).toEqual(pendingBefore);
   });
 
+  it('builds a migration inventory with counts and hashes without changing the outbox', async () => {
+    await repo1.saveNotebookAtomic(FIXTURE_NOTEBOOK, 'create');
+    const before = await repo1.getPendingOutbox();
+
+    const inventory = await repo1.getMigrationInventory();
+
+    expect(inventory.schemaVersion).toBe(1);
+    expect(inventory.counts).toMatchObject({ notebooks: 1, notes: 0, pendingOutbox: before.length });
+    expect(inventory.hashes[`notebook:${FIXTURE_NOTEBOOK.id}`]).toMatch(/^[0-9a-f]{64}$/);
+    expect(inventory.serializedBytes).toBeGreaterThan(0);
+    expect(await repo1.getPendingOutbox()).toEqual(before);
+  });
+
   it('archives both same-record versions once when local and remote diverge from a common base', async () => {
     const baseNote = FIXTURE_CANVAS_NOTE as unknown as NoteRecord;
     await repo1.applyRemoteSnapshot({
