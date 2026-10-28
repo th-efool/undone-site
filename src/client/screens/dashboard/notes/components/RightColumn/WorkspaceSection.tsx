@@ -1,4 +1,4 @@
-import { ChevronRight, FileText, LayoutGrid, ChevronDown, Plus, MoreHorizontal } from 'lucide-react';
+import { ChevronRight, FileText, LayoutGrid, ChevronDown, Plus, MoreHorizontal, Star } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { SearchBar } from '@/src/client/components/global/SearchBar';
 import styles from './RightColumn.module.css';
@@ -15,6 +15,8 @@ interface WorkspaceSectionProps {
   setFoldersByNotebook?: React.Dispatch<React.SetStateAction<Record<string, { id: string, title: string, isOpen: boolean }[]>>>;
   noteFolderMap?: Record<string, string>;
   setNoteFolderMap?: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  onSelectNote?: (id: string) => void;
+  onCreateNote?: (notebookId: string, options?: any) => void;
 }
 
 export function WorkspaceSection(props: WorkspaceSectionProps) {
@@ -73,7 +75,7 @@ export function WorkspaceSection(props: WorkspaceSectionProps) {
       <div 
         className={`${styles.treeItem} ${state?.selectedNoteId === note.id ? styles.selected : ''}`}
         style={{ paddingLeft: `${8 + depth * 16}px` }}
-        onClick={() => actions.selectNote(note.id)}
+        onClick={() => { if (props.onSelectNote) props.onSelectNote(note.id); else actions.selectNote(note.id); }}
         onDoubleClick={(e) => handleDoubleClick(note, e)}
       >
         <span className={styles.chevronSpacer} />
@@ -176,7 +178,11 @@ export function WorkspaceSection(props: WorkspaceSectionProps) {
           onClick={(e) => {
             e.stopPropagation();
             if (state?.selectedNotebookId) {
-              actions.createNote(state.selectedNotebookId);
+              if (props.onCreateNote) {
+                props.onCreateNote(state.selectedNotebookId);
+              } else {
+                actions.createNote(state.selectedNotebookId);
+              }
             }
           }}
           title="New Note"

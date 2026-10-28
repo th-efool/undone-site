@@ -11,9 +11,10 @@ interface SpaceHeaderProps {
   setIsSearchingWorkspace?: (val: boolean) => void;
   foldersByNotebook?: Record<string, { id: string, title: string, isOpen: boolean }[]>;
   setFoldersByNotebook?: React.Dispatch<React.SetStateAction<Record<string, { id: string, title: string, isOpen: boolean }[]>>>;
+  onCreateNote?: (notebookId: string, options?: any) => void;
 }
 
-export function SpaceHeader({ notebook, notes, isSearchingWorkspace, setIsSearchingWorkspace, foldersByNotebook, setFoldersByNotebook }: SpaceHeaderProps) {
+export function SpaceHeader({ notebook, notes, isSearchingWorkspace, setIsSearchingWorkspace, foldersByNotebook, setFoldersByNotebook, onCreateNote }: SpaceHeaderProps) {
   const handleAddFolder = () => {
     if (!notebook?.id || !setFoldersByNotebook) return;
     setFoldersByNotebook(prev => {
@@ -58,10 +59,10 @@ export function SpaceHeader({ notebook, notes, isSearchingWorkspace, setIsSearch
             <ChevronDown size={18} className={styles.titleChevron} />
           </h1>
           <div className={styles.spaceActions}>
-            <button className={styles.iconButton} aria-label="New note" onClick={() => notebook?.id && notes?.actions?.createNote(notebook.id)}>
+            <button className={styles.iconButton} aria-label="New note" onClick={() => notebook?.id && (onCreateNote ? onCreateNote(notebook.id) : notes?.actions?.createNote(notebook.id))}>
               <SquarePen size={16} />
             </button>
-            <button className={styles.iconButton} aria-label="New Kanban Board" onClick={() => notebook?.id && notes?.actions?.createNote(notebook.id, { title: 'New Board', contentType: 'kanban' })}>
+            <button className={styles.iconButton} aria-label="New Kanban Board" onClick={() => notebook?.id && (onCreateNote ? onCreateNote(notebook.id, { title: 'New Board', contentType: 'kanban' }) : notes?.actions?.createNote(notebook.id, { title: 'New Board', contentType: 'kanban' }))}>
               <Layout size={16} />
             </button>
             <button className={styles.iconButton} aria-label="New folder" onClick={handleAddFolder}>

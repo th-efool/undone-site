@@ -16,6 +16,30 @@ export function useNotesNavigation(
   const [allCollapsed, setAllCollapsed] = useState(false);
   const [isNavigationExpanded, setIsNavigationExpanded] = useState(true);
   const [isWorkspaceExpanded, setIsWorkspaceExpanded] = useState(true);
+  const [isNavLocked, setIsNavLocked] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem('undone_notes_nav_locked') === 'true';
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  });
+
+  const toggleNavLocked = () => {
+    setIsNavLocked((prev) => {
+      const next = !prev;
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('undone_notes_nav_locked', String(next));
+        } catch {
+          // ignore
+        }
+      }
+      return next;
+    });
+  };
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -58,16 +82,18 @@ export function useNotesNavigation(
 
   const counts = useMemo(() => {
     if (!notes.state) return { favorites: 0, shared: 0, archive: 0 };
+    const notebooks = notes.state.notebooks || [];
+    const stateNotes = notes.state.notes || [];
     return {
       favorites:
-        notes.state.notebooks.filter((n) => n.favorite && !n.archived).length +
-        notes.state.notes.filter((n) => n.favorite && !n.archived).length,
+        notebooks.filter((n) => n.favorite && !n.archived).length +
+        stateNotes.filter((n) => n.favorite && !n.archived).length,
       shared:
-        notes.state.notebooks.filter((n) => n.shared && !n.archived).length +
-        notes.state.notes.filter((n) => n.shared && !n.archived).length,
+        notebooks.filter((n) => n.shared && !n.archived).length +
+        stateNotes.filter((n) => n.shared && !n.archived).length,
       archive:
-        notes.state.notebooks.filter((n) => n.archived).length +
-        notes.state.notes.filter((n) => n.archived).length,
+        notebooks.filter((n) => n.archived).length +
+        stateNotes.filter((n) => n.archived).length,
     };
   }, [notes.state?.notebooks, notes.state?.notes]);
 
@@ -81,6 +107,9 @@ export function useNotesNavigation(
     setIsNavigationExpanded,
     isWorkspaceExpanded,
     setIsWorkspaceExpanded,
+    isNavLocked,
+    setIsNavLocked,
+    toggleNavLocked,
     searchInputRef,
     toggleExpandCollapseAll,
     displayedNotebooks,

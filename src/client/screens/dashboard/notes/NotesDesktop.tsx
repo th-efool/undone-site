@@ -80,6 +80,8 @@ export function NotesDesktop({ model: notes }: NotesDesktopProps) {
         setIsNavigationExpanded={navigation.setIsNavigationExpanded}
         isWorkspaceExpanded={navigation.isWorkspaceExpanded}
         setIsWorkspaceExpanded={navigation.setIsWorkspaceExpanded}
+        isNavLocked={navigation.isNavLocked}
+        onToggleNavLock={navigation.toggleNavLocked}
       />
       
       <NotesWorkspace

@@ -8,9 +8,10 @@ interface RecentlyClosedSectionProps {
   notes: ReturnType<typeof useNotes>;
   closedNotes: RecentlyClosedNote[];
   onRemove: (id: string) => void;
+  onSelectNote?: (id: string) => void;
 }
 
-export function RecentlyClosedSection({ notes, closedNotes, onRemove }: RecentlyClosedSectionProps) {
+export function RecentlyClosedSection({ notes, closedNotes, onRemove, onSelectNote }: RecentlyClosedSectionProps) {
   const [isSectionExpanded, setIsSectionExpanded] = useState(true);
 
   if (closedNotes.length === 0) {
@@ -34,7 +35,7 @@ export function RecentlyClosedSection({ notes, closedNotes, onRemove }: Recently
                 <div 
                   className={styles.treeItem} 
                   style={{ paddingLeft: '8px' }}
-                  onClick={() => notes.actions.selectNote(note.id)}
+                  onClick={() => { if (onSelectNote) onSelectNote(note.id); else notes.actions.selectNote(note.id); }}
                 >
                   <span 
                     className={styles.sectionChevron} 

@@ -471,3 +471,13 @@
   background-color: rgba(255, 255, 255, 0.06);
   color: #f1f5f9;
 }
+
+.activeLock {
+  color: #fbbf24 !important;
+  background-color: rgba(251, 191, 36, 0.12) !important;
+}
+
+.activeLock:hover {
+  background-color: rgba(251, 191, 36, 0.2) !important;
+  color: #fef08a !important;
+}

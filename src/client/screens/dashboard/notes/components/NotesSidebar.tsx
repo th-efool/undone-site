@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Search, Plus, LayoutGrid, Menu, Pin, Star, Share, Trash2, PanelLeft, PanelLeftOpen, CheckSquare, Calendar as CalendarIcon, MoreHorizontal } from 'lucide-react';
+import { Search, Plus, LayoutGrid, Menu, Pin, Star, Share, Trash2, PanelLeft, PanelLeftOpen, CheckSquare, Calendar as CalendarIcon, MoreHorizontal, Lock, Unlock } from 'lucide-react';
 
 import { SpaceHeader } from './RightColumn/SpaceHeader';
 import { TasksSection } from './RightColumn/TasksSection';
@@ -205,6 +205,8 @@ export const NotebookRow = React.memo(function NotebookRow({
 interface NavigationColumnProps {
   isNavigationExpanded: boolean;
   onCollapseNav: () => void;
+  isNavLocked?: boolean;
+  onToggleNavLock?: () => void;
   isNavIconsOnly: boolean;
   navWidth: number;
   isDraggingNav: boolean;
@@ -229,6 +231,8 @@ interface NavigationColumnProps {
 export const NavigationColumn = React.memo(function NavigationColumn({
   isNavigationExpanded,
   onCollapseNav,
+  isNavLocked = false,
+  onToggleNavLock,
   isNavIconsOnly,
   navWidth,
   isDraggingNav,
@@ -272,6 +276,17 @@ export const NavigationColumn = React.memo(function NavigationColumn({
                 </button>
                 <div style={{ flex: 1 }} />
               </>
+            )}
+            {!isNavIconsOnly && onToggleNavLock && (
+              <button 
+                className={`${styles.iconButton} ${isNavLocked ? styles.activeLock : ''}`}
+                onClick={onToggleNavLock}
+                aria-label={isNavLocked ? "Unlock navigation column (auto-close enabled)" : "Lock navigation column open"}
+                title={isNavLocked ? "Navigation locked open (auto-close disabled)" : "Lock navigation open"}
+                aria-pressed={isNavLocked}
+              >
+                {isNavLocked ? <Lock size={16} /> : <Unlock size={16} />}
+              </button>
             )}
             <button 
               className={styles.iconButton} 
@@ -368,12 +383,16 @@ export function NotesSidebar({
   setIsNavigationExpanded,
   isWorkspaceExpanded,
   setIsWorkspaceExpanded,
+  isNavLocked = false,
+  onToggleNavLock,
 }: {
   notes: NotesContextType;
   isNavigationExpanded: boolean;
   setIsNavigationExpanded: (v: boolean) => void;
   isWorkspaceExpanded: boolean;
   setIsWorkspaceExpanded: (v: boolean) => void;
+  isNavLocked?: boolean;
+  onToggleNavLock?: () => void;
 }) {
   const selectedNoteId = notes.data?.selectedNote?.id ?? null;
   const selectedNoteTitle = notes.data?.selectedNote?.title;
@@ -577,11 +596,25 @@ export function NotesSidebar({
     }
   }, [setIsNavigationExpanded]);
 
+  const handleSelectNote = useCallback((id: string) => {
+    notes.actions.selectNote(id);
+    if (!isNavLocked) {
+      setIsNavigationExpanded(false);
+    }
+  }, [notes.actions, isNavLocked, setIsNavigationExpanded]);
+
+  const handleCreateNote = useCallback((notebookId: string, options?: any) => {
+    notes.actions.createNote(notebookId, options);
+    if (!isNavLocked) {
+      setIsNavigationExpanded(false);
+    }
+  }, [notes.actions, isNavLocked, setIsNavigationExpanded]);
+
   const handleTaskClick = useCallback((task: Task) => {
     if (task.noteId) {
-      notes.actions.selectNote(task.noteId);
+      handleSelectNote(task.noteId);
     }
-  }, [notes.actions]);
+  }, [handleSelectNote]);
 
   const selectedNotebook = useMemo(() => {
     return notes.data?.notebooks?.find((n) => n.id === selectedNotebookId);
@@ -633,6 +666,8 @@ export function NotesSidebar({
       <NavigationColumn
         isNavigationExpanded={isNavigationExpanded}
         onCollapseNav={handleCollapseNav}
+        isNavLocked={isNavLocked}
+        onToggleNavLock={onToggleNavLock}
         isNavIconsOnly={isNavIconsOnly}
         navWidth={navWidth}
         isDraggingNav={isDraggingNav}
@@ -691,11 +726,13 @@ export function NotesSidebar({
             setIsSearchingWorkspace={setIsSearchingWorkspace}
             foldersByNotebook={foldersByNotebook}
             setFoldersByNotebook={setFoldersByNotebook}
+            onCreateNote={handleCreateNote}
           />
           <RecentlyClosedSection 
             notes={notes} 
             closedNotes={closedNotes} 
-            onRemove={removeClosedNote} 
+            onRemove={removeClosedNote}
+            onSelectNote={handleSelectNote}
           />
           <WorkspaceSection 
             notes={notes}
@@ -706,6 +743,8 @@ export function NotesSidebar({
             setFoldersByNotebook={setFoldersByNotebook}
             noteFolderMap={noteFolderMap}
             setNoteFolderMap={setNoteFolderMap}
+            onSelectNote={handleSelectNote}
+            onCreateNote={handleCreateNote}
           />
 
           <div className={rightColStyles.tabSwitcher}>

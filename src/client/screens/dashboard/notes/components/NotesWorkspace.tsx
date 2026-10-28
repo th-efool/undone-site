@@ -124,6 +124,9 @@ export function NotesWorkspace({
             onSelect={(id) => {
               notes.actions.selectNote(id);
               setCanvasSwitcherOpen(false);
+              if (!navigation.isNavLocked) {
+                navigation.setIsNavigationExpanded(false);
+              }
             }}
             title={selected?.title}
             onTitleChange={(newTitle) => {
