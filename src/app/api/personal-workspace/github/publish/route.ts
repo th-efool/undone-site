@@ -264,7 +264,36 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
       sha: manifestSha,
     });
 
-    // 6. Create tree
+    // 6. Remove deleted undone/* blobs from baseTreeSha so zombie files never remain in the Git tree
+    if (baseTreeSha) {
+      try {
+        const existingTreeItems = await client.getTree(baseTreeSha, true);
+        if (existingTreeItems && existingTreeItems.length > 0) {
+          const activePaths = new Set(treeEntries.map((entry) => entry.path));
+          for (const item of existingTreeItems) {
+            if (
+              item.type === 'blob' &&
+              (item.path.startsWith('undone/notebooks/') ||
+                item.path.startsWith('undone/notes/') ||
+                item.path.startsWith('undone/assets/') ||
+                item.path.startsWith('undone/schedules/')) &&
+              !activePaths.has(item.path)
+            ) {
+              treeEntries.push({
+                path: item.path,
+                mode: '100644',
+                type: 'blob',
+                sha: null,
+              });
+            }
+          }
+        }
+      } catch (treeErr) {
+        console.warn('[publish] Non-fatal error inspecting baseTreeSha for deleted files:', treeErr);
+      }
+    }
+
+    // 7. Create tree
     const treeSha = await client.createTree(
       baseTreeSha,
       treeEntries

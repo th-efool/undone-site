@@ -27,7 +27,7 @@ export interface TreeEntryInput {
   path: string;
   mode: '100644';
   type: 'blob';
-  sha: string;
+  sha: string | null;
 }
 
 export interface GitHubTreeItem {

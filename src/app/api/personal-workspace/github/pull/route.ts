@@ -99,7 +99,11 @@ async function handlePull(req: NextRequest): Promise<NextResponse> {
       const parsedManifest = workspaceManifestSchema.safeParse(JSON.parse(jsonText));
       if (!parsedManifest.success) throw new Error('Workspace manifest is invalid');
       manifest = parsedManifest.data;
-      if (manifest.workspaceId !== user.id) {
+      if (
+        manifest.workspaceId !== user.id &&
+        manifest.workspaceId !== 'local-user' &&
+        user.id !== 'local-user'
+      ) {
         return NextResponse.json(
           { ok: false, error: 'Repository is bound to a different Undone account' },
           { status: 409 },
@@ -107,12 +111,20 @@ async function handlePull(req: NextRequest): Promise<NextResponse> {
       }
     }
 
-    // 2. Fetch notebooks
+    const manifestNotebookPaths = manifest
+      ? new Set(manifest.notebooks.map((entry) => entry.path))
+      : null;
+    const manifestNotePaths = manifest
+      ? new Set(manifest.notes.map((entry) => entry.path))
+      : null;
+
+    // 2. Fetch notebooks (scoped to manifest entries when manifest is present to ignore zombie blobs)
     const notebookItems = treeItems.filter(
       (item) =>
         item.type === 'blob' &&
         item.path.startsWith('undone/notebooks/') &&
-        item.path.endsWith('.json')
+        item.path.endsWith('.json') &&
+        (!manifestNotebookPaths || manifestNotebookPaths.has(item.path))
     );
     const notebooksRaw = await pMap(notebookItems, async (item) => {
       const blob = await client.getBlob(item.sha);
@@ -123,12 +135,13 @@ async function handlePull(req: NextRequest): Promise<NextResponse> {
       (nb): nb is NotebookRecord => nb !== null
     );
 
-    // 3. Fetch notes
+    // 3. Fetch notes (scoped to manifest entries when manifest is present to ignore zombie blobs)
     const noteItems = treeItems.filter(
       (item) =>
         item.type === 'blob' &&
         item.path.startsWith('undone/notes/') &&
-        item.path.endsWith('.json')
+        item.path.endsWith('.json') &&
+        (!manifestNotePaths || manifestNotePaths.has(item.path))
     );
     const notesRaw = await pMap(noteItems, async (item) => {
       const blob = await client.getBlob(item.sha);

@@ -403,6 +403,10 @@ describe('Personal Workspace GitHub API Routes', () => {
       base64Data: 'iVBORw==',
     };
 
+    beforeEach(() => {
+      vi.spyOn(GitHubGitDataClient.prototype, 'getTree').mockResolvedValue([]);
+    });
+
     it('returns 400 if workspace is not connected to GitHub', async () => {
       const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/publish', {
         method: 'POST',
@@ -980,6 +984,176 @@ describe('Personal Workspace GitHub API Routes', () => {
       expect(msg).toContain('undone(sync): create notebook "Undone diary", create canvas "pikachu" in "Undone diary"');
       expect(msg).toContain('- [create] notebook "Undone diary" (undone/notebooks/nb-diary.json)');
       expect(msg).toContain('- [create] canvas "pikachu" in "Undone diary" (undone/notes/note-pika.json)');
+    });
+  });
+
+  describe('Zombie blob deletion & manifest-scoped pull resilience', () => {
+    it('emits sha: null for deleted undone/* files when baseTreeSha has removed blobs', async () => {
+      const cookie = await createCookieHeader();
+      vi.spyOn(GitHubGitDataClient.prototype, 'getRef').mockResolvedValue('parent-sha-zombie');
+      vi.spyOn(GitHubGitDataClient.prototype, 'getCommit').mockResolvedValue({
+        sha: 'parent-sha-zombie',
+        treeSha: 'base-tree-zombie',
+        parentShas: [],
+        message: 'parent commit',
+        committedAt: '2026-10-27T10:00:00.000Z',
+      });
+
+      // Old base tree has a deleted note blob
+      vi.spyOn(GitHubGitDataClient.prototype, 'getTree').mockResolvedValue([
+        { path: 'undone/manifest.json', mode: '100644', type: 'blob', sha: 'manifest-sha-old' },
+        { path: 'undone/notes/old-deleted-note.json', mode: '100644', type: 'blob', sha: 'old-note-sha' },
+      ]);
+
+      vi.spyOn(GitHubGitDataClient.prototype, 'createBlob').mockResolvedValue('new-blob-sha');
+      const createTreeSpy = vi
+        .spyOn(GitHubGitDataClient.prototype, 'createTree')
+        .mockResolvedValue('new-tree-sha');
+      vi.spyOn(GitHubGitDataClient.prototype, 'createCommit').mockResolvedValue('new-commit-sha');
+      vi.spyOn(GitHubGitDataClient.prototype, 'updateRef').mockResolvedValue({ ok: true, status: 200 });
+
+      const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/publish', {
+        method: 'POST',
+        headers: { cookie },
+        body: JSON.stringify({
+          expectedRemoteCommitSha: 'parent-sha-zombie',
+          state: {
+            notebooks: [],
+            notes: [],
+            assets: [],
+          },
+        }),
+      });
+
+      const res = await postPublish(req);
+      expect(res.status).toBe(200);
+
+      expect(createTreeSpy).toHaveBeenCalledWith(
+        'base-tree-zombie',
+        expect.arrayContaining([
+          {
+            path: 'undone/notes/old-deleted-note.json',
+            mode: '100644',
+            type: 'blob',
+            sha: null,
+          },
+        ]),
+      );
+    });
+
+    it('ignores zombie blobs in Git tree not referenced in remote manifest during pull', async () => {
+      const cookie = await createCookieHeader();
+      vi.spyOn(GitHubGitDataClient.prototype, 'getRef').mockResolvedValue('head-commit-sha');
+      vi.spyOn(GitHubGitDataClient.prototype, 'getCommit').mockResolvedValue({
+        sha: 'head-commit-sha',
+        treeSha: 'tree-sha-pull',
+        parentShas: [],
+        message: 'sync commit',
+        committedAt: '2026-10-27T10:00:00.000Z',
+      });
+
+      const validNote: NoteRecord = {
+        id: 'note-valid',
+        notebookId: 'nb-1',
+        title: 'Valid Note',
+        contentType: 'markdown',
+        markdownData: { markdown: 'content' },
+        order: 0,
+        createdAt: '2026-10-27T10:00:00.000Z',
+        updatedAt: '2026-10-27T10:00:00.000Z',
+      };
+
+      const manifestPayload: WorkspaceManifest = {
+        manifestVersion: 1,
+        workspaceId: testUserId,
+        notebooks: [],
+        notes: [{ id: 'note-valid', path: 'undone/notes/note-valid.json', hash: computeSha256(canonicalJsonStringify(validNote)), contentType: 'markdown' }],
+        assets: [],
+      };
+
+      // Tree contains manifest, valid note, and zombie note blob
+      vi.spyOn(GitHubGitDataClient.prototype, 'getTree').mockResolvedValue([
+        { path: 'undone/manifest.json', mode: '100644', type: 'blob', sha: 'manifest-blob-sha' },
+        { path: 'undone/notes/note-valid.json', mode: '100644', type: 'blob', sha: 'valid-note-blob-sha' },
+        { path: 'undone/notes/zombie-note.json', mode: '100644', type: 'blob', sha: 'zombie-blob-sha' },
+      ]);
+
+      vi.spyOn(GitHubGitDataClient.prototype, 'getBlob').mockImplementation(async (sha: string) => {
+        if (sha === 'manifest-blob-sha') {
+          return {
+            sha,
+            byteLength: 100,
+            contentBase64: Buffer.from(JSON.stringify(manifestPayload)).toString('base64'),
+          };
+        }
+        if (sha === 'valid-note-blob-sha') {
+          return {
+            sha,
+            byteLength: 100,
+            contentBase64: Buffer.from(JSON.stringify(validNote)).toString('base64'),
+          };
+        }
+        if (sha === 'zombie-blob-sha') {
+          return {
+            sha,
+            byteLength: 100,
+            contentBase64: Buffer.from(JSON.stringify({ id: 'zombie-note', title: 'Zombie' })).toString('base64'),
+          };
+        }
+        return null;
+      });
+
+      const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/pull', {
+        headers: { cookie },
+      });
+
+      const res = await getPull(req);
+      expect(res.status).toBe(200);
+      const data = (await res.json()) as { ok: boolean; notes: NoteRecord[] };
+      expect(data.ok).toBe(true);
+      // Must only contain the 1 note listed in manifest, not the zombie note blob!
+      expect(data.notes).toHaveLength(1);
+      expect(data.notes[0].id).toBe('note-valid');
+    });
+
+    it('allows pulling when remote manifest workspaceId is "local-user"', async () => {
+      const cookie = await createCookieHeader();
+      vi.spyOn(GitHubGitDataClient.prototype, 'getRef').mockResolvedValue('head-commit-sha');
+      vi.spyOn(GitHubGitDataClient.prototype, 'getCommit').mockResolvedValue({
+        sha: 'head-commit-sha',
+        treeSha: 'tree-sha-pull',
+        parentShas: [],
+        message: 'sync commit',
+        committedAt: '2026-10-27T10:00:00.000Z',
+      });
+
+      const manifestPayload: WorkspaceManifest = {
+        manifestVersion: 1,
+        workspaceId: 'local-user',
+        notebooks: [],
+        notes: [],
+        assets: [],
+      };
+
+      vi.spyOn(GitHubGitDataClient.prototype, 'getTree').mockResolvedValue([
+        { path: 'undone/manifest.json', mode: '100644', type: 'blob', sha: 'manifest-blob-sha' },
+      ]);
+
+      vi.spyOn(GitHubGitDataClient.prototype, 'getBlob').mockResolvedValue({
+        sha: 'manifest-blob-sha',
+        byteLength: 100,
+        contentBase64: Buffer.from(JSON.stringify(manifestPayload)).toString('base64'),
+      });
+
+      const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/pull', {
+        headers: { cookie },
+      });
+
+      const res = await getPull(req);
+      expect(res.status).toBe(200);
+      const data = (await res.json()) as { ok: boolean; manifest: WorkspaceManifest };
+      expect(data.ok).toBe(true);
+      expect(data.manifest.workspaceId).toBe('local-user');
     });
   });
 });
