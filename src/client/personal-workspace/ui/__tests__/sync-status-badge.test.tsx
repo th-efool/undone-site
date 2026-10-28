@@ -472,3 +472,74 @@ describe('SyncStatusBadge - Interactive Popover and Details', () => {
     expect(screen.queryByTestId('sync-status-popover')).toBeNull();
   });
 });
+
+describe('SyncStatusBadge - Icon-Only Mode & Unified Sync States', () => {
+  it('renders icon-only button without text label', () => {
+    const summary: SyncSummary = {
+      status: 'synced',
+      pendingMutations: 0,
+      lastSyncedAt: null,
+      conflictCount: 0,
+    };
+
+    render(<SyncStatusBadge summary={summary} iconOnly={true} repoFullName="th-efool/undone-notes" />);
+
+    expect(screen.queryByText('Synced')).toBeNull();
+    expect(screen.getByTestId('icon-synced')).toBeDefined();
+    const btn = screen.getByTestId('sync-status-badge');
+    expect(btn.getAttribute('title')).toContain('Synced');
+    expect(btn.getAttribute('title')).toContain('th-efool/undone-notes');
+  });
+
+  it('renders queued-mutation-dot when iconOnly is true and pendingMutations > 0', () => {
+    const summary: SyncSummary = {
+      status: 'queued',
+      pendingMutations: 3,
+      lastSyncedAt: null,
+      conflictCount: 0,
+    };
+
+    render(<SyncStatusBadge summary={summary} iconOnly={true} />);
+
+    expect(screen.queryByText('Changes queued (3)')).toBeNull();
+    expect(screen.getByTestId('icon-queued')).toBeDefined();
+    expect(screen.getByTestId('queued-mutation-dot')).toBeDefined();
+  });
+
+  it('renders saving locally spinner when isSavingLocal is true', () => {
+    const summary: SyncSummary = {
+      status: 'synced',
+      pendingMutations: 0,
+      lastSyncedAt: null,
+      conflictCount: 0,
+    };
+
+    render(<SyncStatusBadge summary={summary} iconOnly={true} isSavingLocal={true} />);
+
+    expect(screen.getByTestId('icon-saving_locally')).toBeDefined();
+    const btn = screen.getByTestId('sync-status-badge');
+    expect(btn.getAttribute('title')).toContain('Saving locally...');
+  });
+
+  it('renders and triggers onOpenSettings from popover', () => {
+    const onOpenSettings = vi.fn();
+    const summary: SyncSummary = {
+      status: 'synced',
+      pendingMutations: 0,
+      lastSyncedAt: null,
+      conflictCount: 0,
+    };
+
+    render(<SyncStatusBadge summary={summary} iconOnly={true} onOpenSettings={onOpenSettings} />);
+
+    const badge = screen.getByTestId('sync-status-badge');
+    fireEvent.click(badge);
+
+    const settingsBtn = screen.getByTestId('popover-settings-btn');
+    expect(settingsBtn).toBeDefined();
+
+    fireEvent.click(settingsBtn);
+    expect(onOpenSettings).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('sync-status-popover')).toBeNull();
+  });
+});

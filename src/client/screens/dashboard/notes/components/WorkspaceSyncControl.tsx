@@ -29,7 +29,13 @@ const DEFAULT_SYNC_SUMMARY: SyncSummary = {
   conflictCount: 0,
 };
 
-export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
+export function WorkspaceSyncControl({
+  userId,
+  isSavingLocal = false,
+}: {
+  userId?: string | null;
+  isSavingLocal?: boolean;
+}) {
   const activeUserId = userId || 'local-user';
   canvasRepository.setActiveUserId(activeUserId);
   if (typeof window !== 'undefined') {
@@ -376,21 +382,9 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
   const isConnected = Boolean(githubStatus?.connected);
 
   return (
-    <div className="flex items-center gap-2">
-      {/* 1. Connect / Connected Repository Trigger Button */}
-      {isConnected ? (
-        <button
-          type="button"
-          onClick={() => setIsModalOpen(true)}
-          className="inline-flex items-center gap-1.5 h-[30px] px-2 rounded-md border border-transparent hover:border-zinc-800 bg-transparent hover:bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 font-mono text-[11px] transition-colors cursor-pointer"
-          title={`Connected to GitHub: ${githubStatus?.repoFullName || 'repository'}. Click to manage settings.`}
-          data-testid="github-connected-btn"
-        >
-          <Github className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
-          <span className="truncate max-w-[140px]">{githubStatus?.repoFullName}</span>
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 shrink-0" />
-        </button>
-      ) : (
+    <div className="flex items-center gap-1.5">
+      {/* 1. Connect GitHub Button: shown only when not connected */}
+      {!isConnected && (
         <div className="inline-flex items-center rounded-md border border-zinc-800 bg-zinc-900/40 hover:bg-zinc-900/80 transition-all divide-x divide-zinc-800">
           <button
             type="button"
@@ -425,18 +419,26 @@ export function WorkspaceSyncControl({ userId }: { userId?: string | null }) {
         </div>
       )}
 
-      {/* 2. Interactive Status Badge (Shows Synced, Syncing, Offline, Conflicts) */}
-      <SyncStatusBadge
-        summary={syncSummary}
-        repoFullName={githubStatus?.repoFullName}
-        installationId={githubStatus?.installationId}
-        manageUrl={githubStatus?.manageUrl}
-        authType={githubStatus?.authType}
-        onSyncNow={handleSyncNow}
-        onReconnect={() => setIsModalOpen(true)}
-        onExportRecovery={handleExportRecovery}
-        className="shrink-0"
-      />
+      {/* 2. Unified Icon-Only Button:
+          - When connected: Always rendered as a single pure icon button for GitHub + sync status.
+          - When disconnected: Rendered as pure icon button if there are queued changes, saving activity, or errors.
+      */}
+      {(isConnected || syncSummary.pendingMutations > 0 || isSavingLocal || syncSummary.status === 'saving_locally') && (
+        <SyncStatusBadge
+          summary={syncSummary}
+          iconOnly={true}
+          isSavingLocal={isSavingLocal}
+          repoFullName={githubStatus?.repoFullName}
+          installationId={githubStatus?.installationId}
+          manageUrl={githubStatus?.manageUrl}
+          authType={githubStatus?.authType}
+          onSyncNow={handleSyncNow}
+          onReconnect={() => setIsModalOpen(true)}
+          onOpenSettings={() => setIsModalOpen(true)}
+          onExportRecovery={handleExportRecovery}
+          className="shrink-0"
+        />
+      )}
 
       {/* Error Toast if OAuth fails */}
       {oauthError && !isConnected && (

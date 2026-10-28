@@ -16,6 +16,7 @@ import {
   Download,
   RefreshCw,
   ExternalLink,
+  Settings,
 } from 'lucide-react';
 import type { SyncSummary } from '@/src/shared/personal-workspace/contracts';
 
@@ -33,6 +34,9 @@ export interface SyncStatusBadgeProps {
   authType?: 'github_app' | 'pat' | 'oauth';
   onSyncNow?: () => void | Promise<void>;
   onDisconnect?: () => void | Promise<void>;
+  iconOnly?: boolean;
+  isSavingLocal?: boolean;
+  onOpenSettings?: () => void;
 }
 
 export function formatLastSyncedAt(iso: string | null | undefined): string {
@@ -265,6 +269,9 @@ export function SyncStatusBadge({
   authType,
   onSyncNow,
   onDisconnect,
+  iconOnly = false,
+  isSavingLocal = false,
+  onOpenSettings,
 }: SyncStatusBadgeProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -275,6 +282,17 @@ export function SyncStatusBadge({
   const effectiveManageUrl =
     manageUrl ||
     (installationId ? `https://github.com/settings/installations/${installationId}` : null);
+  const effectiveIcon = isSavingLocal ? (
+    <Loader2
+      className="w-3.5 h-3.5 animate-spin text-amber-500"
+      data-testid="icon-saving_locally"
+    />
+  ) : (
+    config.icon
+  );
+  const effectiveLabel = isSavingLocal ? 'Saving locally...' : config.label;
+  const tooltipText = repoFullName ? `${effectiveLabel} · ${repoFullName}` : effectiveLabel;
+
 
   // Close popover on outside click or escape key
   useEffect(() => {
@@ -323,16 +341,26 @@ export function SyncStatusBadge({
         aria-expanded={isOpen}
         aria-haspopup="dialog"
         aria-controls={isOpen ? popoverId : undefined}
-        aria-label={`Sync status: ${config.label}`}
+        aria-label={`Sync status: ${effectiveLabel}`}
+        title={tooltipText}
         onClick={togglePopover}
         onKeyDown={handleBadgeKeyDown}
         className={clsx(
-          'group inline-flex items-center gap-1.5 h-[30px] px-2.5 rounded-md border text-[11px] font-mono transition-all duration-150 cursor-pointer select-none',
-          config.badgeClass,
+          iconOnly
+            ? 'relative inline-flex items-center justify-center w-[30px] h-[30px] p-0 rounded-md border border-transparent hover:border-zinc-800 bg-transparent hover:bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer select-none'
+            : 'group inline-flex items-center gap-1.5 h-[30px] px-2.5 rounded-md border text-[11px] font-mono transition-all duration-150 cursor-pointer select-none',
+          !iconOnly && config.badgeClass,
         )}
+        data-testid="sync-status-badge"
       >
-        {config.icon}
-        <span className="font-medium tracking-tight">{config.label}</span>
+        {effectiveIcon}
+        {iconOnly && summary.status === 'queued' && (summary.pendingMutations ?? 0) > 0 && (
+          <span
+            className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-blue-500 ring-2 ring-zinc-950"
+            data-testid="queued-mutation-dot"
+          />
+        )}
+        {!iconOnly && <span className="font-medium tracking-tight">{config.label}</span>}
 
         {/* Status-specific direct trigger buttons on the badge */}
         {summary.status === 'error' && onExportRecovery && (
@@ -528,6 +556,20 @@ export function SyncStatusBadge({
 
           {/* Actions in popover */}
           <div className="flex flex-col gap-1.5 pt-1">
+            {onOpenSettings && (
+              <button
+                type="button"
+                data-testid="popover-settings-btn"
+                onClick={() => {
+                  setIsOpen(false);
+                  onOpenSettings();
+                }}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg font-medium text-xs bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 transition-colors cursor-pointer"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                Workspace & GitHub settings
+              </button>
+            )}
             {onSyncNow && (
               <button
                 type="button"

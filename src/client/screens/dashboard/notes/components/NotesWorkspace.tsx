@@ -145,14 +145,12 @@ export function NotesWorkspace({
               }
             }}
           />
-          {selected ? (
-            <NotesSaveStatus state={canvasState} />
-          ) : (
-            <NotesSaveStatus syncStatus={notes.syncStatus} />
-          )}
         </div>
         <div className={styles.actions}>
-          <WorkspaceSyncControl userId={notes.userId} />
+          <WorkspaceSyncControl 
+            userId={notes.userId} 
+            isSavingLocal={canvasState?.status === 'saving' || notes.syncStatus === 'saving'}
+          />
           <Tooltip content={<>Share <kbd className={styles.kbd}>O</kbd></>} placement="bottom">
             <button
               className={styles.topbarBtn}
