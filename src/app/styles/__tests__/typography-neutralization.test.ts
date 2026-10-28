@@ -170,7 +170,7 @@ describe('Phase 2, Task 2.2B: Typography Base Neutralization and Roles', () => {
           if (
             currentParent.type === 'atrule' &&
             currentParent.name === 'layer' &&
-            currentParent.params.includes('base')
+            currentParent.params?.includes('base')
           ) {
             h2FoundInBase = true;
             rule.walkDecls('font-size', (decl) => {
@@ -180,7 +180,7 @@ describe('Phase 2, Task 2.2B: Typography Base Neutralization and Roles', () => {
               h2LineHeight = decl.value;
             });
           }
-          currentParent = currentParent.parent;
+          currentParent = currentParent.parent as any;
         }
       });
 
@@ -225,14 +225,14 @@ describe('Phase 2, Task 2.2B: Typography Base Neutralization and Roles', () => {
           if (
             currentParent.type === 'atrule' &&
             currentParent.name === 'layer' &&
-            currentParent.params.includes('utilities')
+            currentParent.params?.includes('utilities')
           ) {
             displaySectionFoundInUtilities = true;
             rule.walkDecls('font-size', (decl) => {
               displaySectionFontSize = decl.value;
             });
           }
-          currentParent = currentParent.parent;
+          currentParent = currentParent.parent as any;
         }
       });
 
@@ -263,7 +263,7 @@ describe('Phase 2, Task 2.2B: Typography Base Neutralization and Roles', () => {
             if (
               currentParent.type === 'atrule' &&
               currentParent.name === 'layer' &&
-              currentParent.params.includes('base')
+              currentParent.params?.includes('base')
             ) {
               inBase = true;
             }
@@ -289,7 +289,7 @@ describe('Phase 2, Task 2.2B: Typography Base Neutralization and Roles', () => {
             if (
               currentParent.type === 'atrule' &&
               currentParent.name === 'layer' &&
-              currentParent.params.includes('utilities')
+              currentParent.params?.includes('utilities')
             ) {
               inUtilities = true;
             }

@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { matchesFilter } from '../adapters/notes.adapter';
-import type { NotesStateEntity } from '../repositories/notes.repository';
-import type { NoteDocument, NotebookEntity } from '../types/notes.types';
+import type { NotesStateEntity, NoteDocument, NotebookEntity } from '../models/notes.models';
 
 describe('Notes UI Features & Filtering Verification (Phase 6)', () => {
   const baseState: NotesStateEntity = {
@@ -17,12 +16,9 @@ describe('Notes UI Features & Filtering Verification (Phase 6)', () => {
     ] as NoteDocument[],
     selectedNotebookId: 'nb-1',
     selectedNoteId: 'n-1',
-    activeNoteId: 'n-1',
-    filter: 'all',
+    notebookSort: 'manual',
     noteSort: 'manual',
-    isSearching: false,
-    searchQuery: '',
-    dirty: false,
+    filter: 'all',
   };
 
   it('matchesFilter correctly surfaces favorite notes and notebook inheritance', () => {
@@ -46,18 +42,18 @@ describe('Notes UI Features & Filtering Verification (Phase 6)', () => {
 
   it('computes accurate non-fake dynamic counts for Favorites, Shared, and Trash', () => {
     const favCount =
-      baseState.notebooks.filter((n) => n.favorite && !n.archived).length +
-      baseState.notes.filter((n) => n.favorite && !n.archived).length;
+      baseState.notebooks.filter((n: NotebookEntity) => n.favorite && !n.archived).length +
+      baseState.notes.filter((n: NoteDocument) => n.favorite && !n.archived).length;
     expect(favCount).toBe(2); // 1 nb + 1 note
 
     const sharedCount =
-      baseState.notebooks.filter((n) => n.shared && !n.archived).length +
-      baseState.notes.filter((n) => (n.shared || n.publicLink || (n.sharedWith?.length ?? 0) > 0) && !n.archived).length;
+      baseState.notebooks.filter((n: NotebookEntity) => n.shared && !n.archived).length +
+      baseState.notes.filter((n: NoteDocument) => (n.shared || n.publicLink || (n.sharedWith?.length ?? 0) > 0) && !n.archived).length;
     expect(sharedCount).toBe(2); // 1 nb + 1 note
 
     const trashCount =
-      baseState.notebooks.filter((n) => n.archived).length +
-      baseState.notes.filter((n) => n.archived).length;
+      baseState.notebooks.filter((n: NotebookEntity) => n.archived).length +
+      baseState.notes.filter((n: NoteDocument) => n.archived).length;
     expect(trashCount).toBe(2); // 1 nb + 1 note
   });
 });

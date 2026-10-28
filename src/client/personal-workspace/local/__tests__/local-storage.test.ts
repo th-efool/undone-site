@@ -196,8 +196,8 @@ describe('Production Personal Workspace Local Storage Engine & Repository', () =
       expect(res.outboxEntryId).toBeTruthy();
 
       expect(eventPayload).toBeDefined();
-      expect(eventPayload.entityType).toBe('notebook');
-      expect(eventPayload.entityId).toBe(FIXTURE_NOTEBOOK.id);
+      expect(eventPayload!.entityType).toBe('notebook');
+      expect(eventPayload!.entityId).toBe(FIXTURE_NOTEBOOK.id);
 
       const notebook = await repo1.getNotebook(FIXTURE_NOTEBOOK.id);
       expect(notebook).toEqual(FIXTURE_NOTEBOOK);
@@ -222,12 +222,12 @@ describe('Production Personal Workspace Local Storage Engine & Repository', () =
       // Note stored
       const note = await repo1.getNote(FIXTURE_CANVAS_NOTE.id);
       expect(note).toBeDefined();
-      expect(note.id).toBe(FIXTURE_CANVAS_NOTE.id);
+      expect(note!.id).toBe(FIXTURE_CANVAS_NOTE.id);
 
       // Asset stored
       const asset = await repo1.getAsset(FIXTURE_CANVAS_ASSET.id);
       expect(asset).toBeDefined();
-      expect(asset.hash).toBe(SYNTHETIC_ASSET_HASH);
+      expect(asset!.hash).toBe(SYNTHETIC_ASSET_HASH);
 
       // Outbox entries created for both note and asset
       const outbox = await repo1.getPendingOutbox();
@@ -242,7 +242,7 @@ describe('Production Personal Workspace Local Storage Engine & Repository', () =
 
       const note = await repo1.getNote(FIXTURE_KANBAN_NOTE.id);
       expect(note).toBeDefined();
-      expect(note.contentType).toBe('kanban');
+      expect(note!.contentType).toBe('kanban');
 
       const outbox = await repo1.getPendingOutbox();
       expect(outbox.some((e) => e.entityId === FIXTURE_KANBAN_NOTE.id)).toBe(true);
@@ -420,7 +420,7 @@ describe('Production Personal Workspace Local Storage Engine & Repository', () =
       expect(restoredNb).toEqual(FIXTURE_NOTEBOOK);
 
       const restoredNote = await repoClean.getNote(FIXTURE_CANVAS_NOTE.id);
-      expect(restoredNote.id).toBe(FIXTURE_CANVAS_NOTE.id);
+      expect(restoredNote!.id).toBe(FIXTURE_CANVAS_NOTE.id);
 
       const restoredBuffer = repoClean.getEditorBuffer('draft-buf-01');
       expect(restoredBuffer?.recoveredFromBuffer).toBe(true);
@@ -433,7 +433,7 @@ describe('Production Personal Workspace Local Storage Engine & Repository', () =
       const bundle = await repo1.exportLocalStateBundle(false);
 
       // Tamper with content
-      bundle.committedState.notebooks[0].title = 'Illegally Modified Title';
+      (bundle.committedState.notebooks[0] as Record<string, unknown>).title = 'Illegally Modified Title';
 
       const repoClean = new PersonalWorkspaceRepository('user-tamper-test', { useMemory: true });
       await expect(repoClean.importLocalStateBundle(bundle)).rejects.toThrow(

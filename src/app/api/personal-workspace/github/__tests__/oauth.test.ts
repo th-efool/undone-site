@@ -287,7 +287,7 @@ describe('GitHub OAuth BFF Routes', () => {
         (call) => typeof call[0] === 'string' && call[0].includes('/user/repos')
       );
       expect(postRepoCall).toBeDefined();
-      const body = JSON.parse(postRepoCall[1].body);
+      const body = JSON.parse(postRepoCall![1].body);
       expect(body.private).toBe(true);
       expect(body.name).toBe('undone-notes');
     });

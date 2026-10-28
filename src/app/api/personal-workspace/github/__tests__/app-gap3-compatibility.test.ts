@@ -56,7 +56,7 @@ describe('Gap 3: Callback Compatibility & Redirect URI Robustness', () => {
 
     it('enforces https in production for non-localhost hosts', () => {
       delete process.env.GITHUB_APP_OAUTH_REDIRECT_URI;
-      process.env.NODE_ENV = 'production';
+      (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
       const req = new NextRequest('http://undone.site/api/personal-workspace/github/app/install', {
         headers: {
           'x-forwarded-proto': 'http',
@@ -70,7 +70,7 @@ describe('Gap 3: Callback Compatibility & Redirect URI Robustness', () => {
 
     it('allows http in production for localhost / 127.0.0.1 development testing', () => {
       delete process.env.GITHUB_APP_OAUTH_REDIRECT_URI;
-      process.env.NODE_ENV = 'production';
+      (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
       const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/app/install', {
         headers: {
           'x-forwarded-proto': 'http',

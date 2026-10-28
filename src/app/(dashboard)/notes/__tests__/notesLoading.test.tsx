@@ -47,6 +47,7 @@ function createMockNotesModel(overrides?: Partial<UseNotesResult>): UseNotesResu
   };
 
   return {
+    userId: null,
     state: {
       notebooks: [notebook],
       notes: [],

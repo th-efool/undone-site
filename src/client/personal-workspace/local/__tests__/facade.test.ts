@@ -250,8 +250,8 @@ describe('LocalWorkspace Facade & Hook Integration', () => {
       // Verify Asset in repository
       const savedAsset = await workspace.getRepository().getAsset('asset-img-01');
       expect(savedAsset).toBeDefined();
-      expect(savedAsset.hash).toBe(SYNTHETIC_ASSET_HASH);
-      expect(savedAsset.byteLength).toBe(SYNTHETIC_ASSET_BYTES.byteLength);
+      expect(savedAsset!.hash).toBe(SYNTHETIC_ASSET_HASH);
+      expect(savedAsset!.byteLength).toBe(SYNTHETIC_ASSET_BYTES.byteLength);
 
       // Verify atomic Outbox entries for both note and asset
       const outbox = await workspace.getRepository().getPendingOutbox();
