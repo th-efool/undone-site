@@ -30,6 +30,8 @@ import {
 } from '@/src/shared/personal-workspace/contracts';
 import {
   computeSha256,
+  normalizeNotebookRecord,
+  normalizeNoteRecord,
   validateAssetRecord,
   validateNotebookRecord,
   validateNoteRecord,
@@ -190,7 +192,7 @@ export function extractAssetsFromSceneFiles(files?: Record<string, unknown>): As
       assetRecord.hash = computedHash;
     }
 
-    validateAssetRecord(assetRecord);
+    validateAssetRecord(assetRecord, { isChunked: true });
     assets.push(assetRecord);
   }
 
@@ -402,13 +404,13 @@ export class LocalWorkspace {
         });
 
       case 'save_canvas_note': {
-        validateNoteRecord(command.note);
-        const existing = await this.repo.getNote(command.note.id);
+        const normalizedNote = normalizeNoteRecord(command.note) as CanvasNoteRecord;
+        const existing = await this.repo.getNote(normalizedNote.id);
         const mutType = command.mutationType || (existing ? 'update' : 'create');
         this.isSaving = true;
         this.notifySubscribers();
         try {
-          const res = await this.repo.saveCanvasNoteAtomic(command.note, command.assets || [], mutType);
+          const res = await this.repo.saveCanvasNoteAtomic(normalizedNote, command.assets || [], mutType);
           if (res.ok) {
             this.generation++;
             await this.refreshStateFromRepo();
@@ -424,13 +426,13 @@ export class LocalWorkspace {
       }
 
       case 'save_kanban_note': {
-        validateNoteRecord(command.note);
-        const existing = await this.repo.getNote(command.note.id);
+        const normalizedNote = normalizeNoteRecord(command.note);
+        const existing = await this.repo.getNote(normalizedNote.id);
         const mutType = command.mutationType || (existing ? 'update' : 'create');
         this.isSaving = true;
         this.notifySubscribers();
         try {
-          const res = await this.repo.saveKanbanNoteAtomic(command.note, mutType);
+          const res = await this.repo.saveKanbanNoteAtomic(normalizedNote, mutType);
           if (res.ok) {
             this.generation++;
             await this.refreshStateFromRepo();
@@ -462,13 +464,13 @@ export class LocalWorkspace {
           });
         }
         // Markdown or other notes
-        validateNoteRecord(command.note);
-        const existing = await this.repo.getNote(command.note.id);
+        const normalizedNote = normalizeNoteRecord(command.note);
+        const existing = await this.repo.getNote(normalizedNote.id);
         const mutType = command.mutationType || (existing ? 'update' : 'create');
         this.isSaving = true;
         this.notifySubscribers();
         try {
-          const res = await this.repo.saveKanbanNoteAtomic(command.note, mutType);
+          const res = await this.repo.saveKanbanNoteAtomic(normalizedNote, mutType);
           if (res.ok) {
             this.generation++;
             await this.refreshStateFromRepo();
@@ -513,7 +515,7 @@ export class LocalWorkspace {
    * Atomically saves or updates a notebook record and writes to outbox.
    */
   async saveNotebook(notebook: NotebookRecord): Promise<LocalReceipt> {
-    const validated = validateNotebookRecord(notebook);
+    const validated = normalizeNotebookRecord(notebook);
     const existing = await this.repo.getNotebook(validated.id);
     const mutationType: MutationType = existing ? 'update' : 'create';
 
@@ -556,7 +558,31 @@ export class LocalWorkspace {
       throw new Error('noteId is required to save canvas scene');
     }
 
-    const assets = extractAssetsFromSceneFiles(scene.files);
+    const rawElements = Array.isArray(scene.elements)
+      ? (scene.elements as Array<Record<string, unknown>>)
+      : [];
+    const deletedFileIds = new Set<string>();
+    const activeFileIds = new Set<string>();
+    for (const el of rawElements) {
+      if (el && typeof el === 'object' && typeof el.fileId === 'string' && el.fileId) {
+        if (el.isDeleted === true) {
+          deletedFileIds.add(el.fileId);
+        } else {
+          activeFileIds.add(el.fileId);
+        }
+      }
+    }
+
+    const filteredFiles =
+      scene.files && typeof scene.files === 'object'
+        ? Object.fromEntries(
+            Object.entries(scene.files).filter(
+              ([fileId]) => !deletedFileIds.has(fileId) || activeFileIds.has(fileId)
+            )
+          )
+        : scene.files;
+
+    const assets = extractAssetsFromSceneFiles(filteredFiles);
     const assetHashes: Record<string, string> = {};
     const assetFileIds: string[] = [];
 
@@ -570,7 +596,7 @@ export class LocalWorkspace {
     const now = new Date().toISOString();
 
     const canvasData: CanvasNoteData = {
-      elements: (scene.elements as Array<Record<string, unknown>>) || [],
+      elements: rawElements,
       appState: sanitizeCanvasAppStateForStorage(scene.appState),
       assetFileIds,
       assetHashes,
@@ -584,7 +610,7 @@ export class LocalWorkspace {
       this.cachedNotesState.notebooks[0]?.id ||
       'default-notebook';
 
-    const noteRecord: CanvasNoteRecord = {
+    const noteRecord = normalizeNoteRecord({
       id: noteId,
       notebookId: targetNotebookId,
       title: meta?.title || existingNote?.title || 'Untitled Note',
@@ -599,9 +625,7 @@ export class LocalWorkspace {
       archived: existingNote?.archived ?? false,
       contentType: 'canvas',
       canvasData,
-    };
-
-    validateNoteRecord(noteRecord);
+    }) as CanvasNoteRecord;
 
     this.isSaving = true;
     this.notifySubscribers();

@@ -527,32 +527,59 @@ export class PersonalWorkspaceDatabase {
 
       // If active IndexedDB connection exists, atomically flush staged mutations to disk
       if (this.idb && !this.useMemory) {
-        await new Promise<void>((resolve, reject) => {
-          try {
-            const tx = this.idb!.transaction(storeNames, 'readwrite');
-            tx.oncomplete = () => resolve();
-            tx.onerror = () => reject(tx.error || new Error('IndexedDB transaction commit failed'));
-            tx.onabort = () => reject(new TransactionAbortError('IndexedDB transaction commit aborted'));
+        const flushToIdb = (dbInstance: IDBDatabase) =>
+          new Promise<void>((resolve, reject) => {
+            try {
+              const tx = dbInstance.transaction(storeNames, 'readwrite');
+              tx.oncomplete = () => resolve();
+              tx.onerror = () => reject(tx.error || new Error('IndexedDB transaction commit failed'));
+              tx.onabort = () => reject(new TransactionAbortError('IndexedDB transaction commit aborted'));
 
-            for (const sName of storeNames) {
-              const store = tx.objectStore(sName);
-              const deletions = stagedDeletions.get(sName);
-              if (deletions) {
-                for (const key of deletions) {
-                  store.delete(key);
+              for (const sName of storeNames) {
+                const store = tx.objectStore(sName);
+                const deletions = stagedDeletions.get(sName);
+                if (deletions) {
+                  for (const key of deletions) {
+                    store.delete(key);
+                  }
+                }
+                const puts = stagedPuts.get(sName);
+                if (puts) {
+                  for (const [key, val] of puts) {
+                    store.put(val, key);
+                  }
                 }
               }
-              const puts = stagedPuts.get(sName);
-              if (puts) {
-                for (const [key, val] of puts) {
-                  store.put(val, key);
-                }
-              }
+            } catch (err) {
+              reject(err);
             }
-          } catch (err) {
-            reject(err);
+          });
+
+        try {
+          await flushToIdb(this.idb);
+        } catch (firstErr) {
+          if (this.simulateFailure || this.simulateQuotaFailure) {
+            throw firstErr;
           }
-        });
+          try {
+            try {
+              this.idb.close();
+            } catch {}
+            this.idb = null;
+            this.isInitialized = false;
+            await this.initialize();
+            if (this.idb) {
+              await flushToIdb(this.idb);
+            }
+          } catch (retryErr) {
+            console.warn(
+              '[PersonalWorkspaceDatabase] IndexedDB flush failed after reconnect attempt; falling back to in-memory persistence:',
+              retryErr,
+            );
+            this.idb = null;
+            this.useMemory = true;
+          }
+        }
       }
 
       // Atomic commit: replace in-memory stores with staging stores only after all validations pass

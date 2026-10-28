@@ -397,6 +397,7 @@ export function collectReferencedAssetIds(value: unknown): Set<string> {
       return;
     }
     if (!current || typeof current !== 'object') return;
+    if ((current as Record<string, unknown>).isDeleted === true) return;
     for (const [childKey, child] of Object.entries(current)) {
       if (childKey === 'assetHashes' && child && typeof child === 'object' && !Array.isArray(child)) {
         for (const [id, hash] of Object.entries(child)) {
@@ -499,6 +500,73 @@ export function validateNoteRecord(data: unknown): NoteRecord {
     });
   }
   return result.data;
+}
+
+/**
+ * Coerces recoverable field anomalies (empty title, float/negative order, null optional fields)
+ * before validating a NotebookRecord so local saves do not fail on benign user input.
+ */
+export function normalizeNotebookRecord(data: unknown): NotebookRecord {
+  if (!data || typeof data !== 'object') {
+    return validateNotebookRecord(data);
+  }
+  const raw = { ...(data as Record<string, unknown>) };
+  const now = new Date().toISOString();
+  if (typeof raw.title !== 'string' || raw.title.trim() === '') {
+    raw.title = 'Untitled Notebook';
+  }
+  if (typeof raw.order === 'number' && Number.isFinite(raw.order)) {
+    raw.order = Math.max(0, Math.floor(raw.order));
+  } else if (raw.order === undefined || raw.order === null) {
+    raw.order = 0;
+  }
+  if (typeof raw.createdAt !== 'string' || raw.createdAt.trim() === '') {
+    raw.createdAt = now;
+  }
+  if (typeof raw.updatedAt !== 'string' || raw.updatedAt.trim() === '') {
+    raw.updatedAt = raw.createdAt;
+  }
+  if (raw.description === null) delete raw.description;
+  if (raw.color === null) delete raw.color;
+  if (raw.icon === null) delete raw.icon;
+  return validateNotebookRecord(raw);
+}
+
+/**
+ * Coerces recoverable field anomalies (empty title, float/negative order, null optional fields)
+ * before validating a NoteRecord so local saves do not fail on benign user input.
+ */
+export function normalizeNoteRecord(data: unknown): NoteRecord {
+  if (!data || typeof data !== 'object') {
+    return validateNoteRecord(data);
+  }
+  const raw = { ...(data as Record<string, unknown>) };
+  const now = new Date().toISOString();
+  if (typeof raw.title !== 'string' || raw.title.trim() === '') {
+    raw.title = 'Untitled Note';
+  }
+  if (typeof raw.order === 'number' && Number.isFinite(raw.order)) {
+    raw.order = Math.max(0, Math.floor(raw.order));
+  } else if (raw.order === undefined || raw.order === null) {
+    raw.order = 0;
+  }
+  if (typeof raw.createdAt !== 'string' || raw.createdAt.trim() === '') {
+    raw.createdAt = now;
+  }
+  if (typeof raw.updatedAt !== 'string' || raw.updatedAt.trim() === '') {
+    raw.updatedAt = raw.createdAt;
+  }
+  if (!Array.isArray(raw.tags)) {
+    raw.tags = [];
+  }
+  if (typeof raw.favorite !== 'boolean') raw.favorite = false;
+  if (typeof raw.shared !== 'boolean') raw.shared = false;
+  if (typeof raw.archived !== 'boolean') raw.archived = false;
+  if (raw.ownerId === undefined) raw.ownerId = null;
+  if (raw.permission !== 'owner' && raw.permission !== 'editor' && raw.permission !== 'viewer') {
+    raw.permission = 'owner';
+  }
+  return validateNoteRecord(raw);
 }
 
 export function validateWorkspaceManifest(data: unknown): WorkspaceManifest {
