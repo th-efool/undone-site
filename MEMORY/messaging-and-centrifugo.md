@@ -31,14 +31,22 @@ Terse, path-first operational guide to the durable messaging backend, outbox dis
 - `src/app/api/centrifugo/token/route.ts`: Client connection JWT token issuer.
 - `src/app/api/community/channels/[channelId]/messages/route.ts`: Authenticated cohort community message send/list.
 
-### SQL Schemas (`prisma/`)
-- `prisma/messaging-phase2-durability.sql`: Core messaging, conversations, outbox, deliveries.
-- `prisma/messaging-phase6-conversations.sql`: DMs, groups, participants.
-- `prisma/messaging-phase7-interactions.sql`: Reactions, read watermarks, edits.
-- `prisma/messaging-phase8-studyrooms.sql`: Room leases, participant fencing.
-- `prisma/messaging-phase9-attachments.sql`: Upload scanning, private attachments.
-- `prisma/messaging-phase10-sprints.sql`: Shared sprints, room revisions, search indices.
-- `prisma/messaging-phase11-hardening.sql`: Rate limit buckets table and indexes.
+### SQL Schemas (`prisma/sql/messaging/`)
+- `prisma/sql/messaging/messaging-durability.sql`: Core messaging, conversations, outbox, deliveries.
+- `prisma/sql/messaging/messaging-invitations-and-restrictions.sql`: Invitations, bans, restrictions.
+- `prisma/sql/messaging/messaging-phase6-direct-and-group.sql`: DMs, groups, participants.
+- `prisma/sql/messaging/messaging-phase7-interactions.sql`: Reactions, read watermarks, edits.
+- `prisma/sql/messaging/messaging-phase8-studyroom.sql`: Room leases, participant fencing.
+- `prisma/sql/messaging/messaging-phase9-attachments-notifications.sql`: Upload scanning, private attachments.
+- `prisma/sql/messaging/messaging-phase10-advanced.sql`: Shared sprints, room revisions, search indices.
+- `prisma/sql/messaging/messaging-phase11-hardening.sql`: Rate limit buckets table and indexes.
+- `prisma/sql/messaging/studyroom-phase1-product-foundation.sql`: Study room catalog, themes, sessions.
+
+### Infrastructure (`infra/centrifugo/`)
+- `infra/centrifugo/centrifugo.config.json`: Centrifugo v6 namespace & proxy config.
+- `infra/centrifugo/docker-compose.yml`: Self-hosted Centrifugo service definition.
+- `infra/centrifugo/nginx.conf`: TLS & WebSocket reverse proxy config.
+- `infra/centrifugo/README.md`: HA Redis/Valkey scaling guide.
 
 ## 3. Verification & Test Commands
 

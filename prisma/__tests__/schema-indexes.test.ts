@@ -3,7 +3,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { describe, expect, it } from 'vitest';
 
 const schemaContent = readFileSync(new URL('../schema.prisma', import.meta.url), 'utf8');
-const sqlContent = readFileSync(new URL('../performance-indexes.sql', import.meta.url), 'utf8');
+const sqlContent = readFileSync(new URL('../sql/workspace/performance-indexes.sql', import.meta.url), 'utf8');
 
 function extractModelBlock(schema: string, modelName: string): string {
   const match = schema.match(new RegExp(`model\\s+${modelName}\\s+\\{([^}]+)\\}`, 's'));

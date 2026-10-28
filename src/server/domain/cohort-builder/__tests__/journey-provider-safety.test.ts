@@ -35,11 +35,11 @@ import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import { planTextJobs } from '../text-job-plan';
 
 const s3Migration = readFileSync(
-  new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url),
+  new URL('../../../../../prisma/sql/interaction/interaction-s3-storage.sql', import.meta.url),
   'utf8'
 );
 const journeyMigration = readFileSync(
-  new URL('../../../../../prisma/interaction-journey-stages.sql', import.meta.url),
+  new URL('../../../../../prisma/sql/interaction/interaction-journey-stages.sql', import.meta.url),
   'utf8'
 );
 

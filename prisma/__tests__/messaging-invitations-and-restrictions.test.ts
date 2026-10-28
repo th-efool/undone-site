@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { describe, expect, it } from 'vitest';
 
-const migration = readFileSync(new URL('../messaging-invitations-and-restrictions.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../sql/messaging/messaging-invitations-and-restrictions.sql', import.meta.url), 'utf8');
 
 describe('messaging invitations and restrictions additive SQL migration', () => {
   it('applies idempotently with zero destructive DDL and enforces constraints', async () => {

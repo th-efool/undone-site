@@ -32,9 +32,9 @@ import { putTextArtifact, type TextArtifactSql } from '../text-artifacts';
 import { computeTextStage } from '../text-pipeline';
 import type { CreationGuideAuthor } from '@/src/server/domain/cohort-creation/generated-guide';
 
-const s3Migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
-const s4bMigration = readFileSync(new URL('../../../../../prisma/interaction-s4b-sources.sql', import.meta.url), 'utf8');
-const journeyMigration = readFileSync(new URL('../../../../../prisma/interaction-journey-stages.sql', import.meta.url), 'utf8');
+const s3Migration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-s3-storage.sql', import.meta.url), 'utf8');
+const s4bMigration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-s4b-sources.sql', import.meta.url), 'utf8');
+const journeyMigration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-journey-stages.sql', import.meta.url), 'utf8');
 
 const now = new Date('2030-01-01T00:00:00.000Z');
 const sampleProposal: GeneratedGuideProposal = {

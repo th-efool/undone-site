@@ -38,11 +38,11 @@ import { CreationStorageError } from '@/src/server/infrastructure/storage/creati
 import { CreationFailure, creationFailure } from '../../cohort-creation/errors';
 
 const s3Migration = readFileSync(
-  new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url),
+  new URL('../../../../../prisma/sql/interaction/interaction-s3-storage.sql', import.meta.url),
   'utf8'
 );
 const journeyMigration = readFileSync(
-  new URL('../../../../../prisma/interaction-journey-stages.sql', import.meta.url),
+  new URL('../../../../../prisma/sql/interaction/interaction-journey-stages.sql', import.meta.url),
   'utf8'
 );
 

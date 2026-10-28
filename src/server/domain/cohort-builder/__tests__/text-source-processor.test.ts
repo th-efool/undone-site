@@ -9,7 +9,7 @@ import { runTextJobTick } from '../text-job-tick';
 import { acceptTextJob, claimTextJob, retryTextJob } from '../text-jobs';
 import { createTextSourceProcessor } from '../text-source-processor';
 
-const migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-s3-storage.sql', import.meta.url), 'utf8');
 const now = new Date('2030-01-01T00:00:00.000Z');
 const workspaceId = 'workspace-a';
 const initial = () => cohortWorkspaceSchema.parse({

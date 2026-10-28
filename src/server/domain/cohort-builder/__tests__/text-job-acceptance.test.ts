@@ -10,7 +10,7 @@ import { claimTextJob } from '../text-jobs';
 import { runDurableTextJobTick } from '../durable-text-worker';
 import { createTextSourceProcessor } from '../text-source-processor';
 
-const migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-s3-storage.sql', import.meta.url), 'utf8');
 const workspaceId = '7d4e49d0-bad0-4aba-a777-122326020002';
 const now = new Date('2030-01-01T00:00:00.000Z');
 const initial = () => cohortWorkspaceSchema.parse({

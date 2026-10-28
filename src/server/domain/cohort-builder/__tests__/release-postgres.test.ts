@@ -10,7 +10,7 @@ import { PostgresReleaseEffectStore } from '../release-store';
 import { releaseWorkspace } from '../release-service';
 import { createReleaseReceipt } from '../release';
 
-const s5EffectsSql = readFs(new URL('../../../../../prisma/interaction-s5-effects.sql', import.meta.url), 'utf8');
+const s5EffectsSql = readFs(new URL('../../../../../prisma/sql/interaction/interaction-s5-effects.sql', import.meta.url), 'utf8');
 
 function createSampleWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorkspace {
   return cohortWorkspaceSchema.parse({

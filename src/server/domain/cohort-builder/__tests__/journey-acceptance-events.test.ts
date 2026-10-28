@@ -12,8 +12,8 @@ import {
   retainJourneyArtifact,
 } from '../journey-job-handlers';
 
-const s3Migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
-const journeyMigration = readFileSync(new URL('../../../../../prisma/interaction-journey-stages.sql', import.meta.url), 'utf8');
+const s3Migration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-s3-storage.sql', import.meta.url), 'utf8');
+const journeyMigration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-journey-stages.sql', import.meta.url), 'utf8');
 
 const now = new Date('2030-01-01T12:00:00.000Z');
 

@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { MessagingOutboxDispatcher } from '../dispatcher';
 import { InMemoryRealtimeTransport } from '../transport';
 
-const phase1Migration = readFileSync(new URL('../../../../../prisma/messaging-invitations-and-restrictions.sql', import.meta.url), 'utf8');
-const phase2Migration = readFileSync(new URL('../../../../../prisma/messaging-durability.sql', import.meta.url), 'utf8');
+const phase1Migration = readFileSync(new URL('../../../../../prisma/sql/messaging/messaging-invitations-and-restrictions.sql', import.meta.url), 'utf8');
+const phase2Migration = readFileSync(new URL('../../../../../prisma/sql/messaging/messaging-durability.sql', import.meta.url), 'utf8');
 
 async function setupTestDb() {
   const db = new PGlite();

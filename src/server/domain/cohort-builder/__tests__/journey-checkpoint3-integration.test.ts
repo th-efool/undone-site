@@ -43,9 +43,9 @@ import type { VideoObservationProvider } from '../journey-video-adapter';
 import type { RetainedVideoObservation } from '@/src/shared/cohort-builder/youtube-video-observation';
 import type { TextJobTransactionPort } from '../text-job-scheduler';
 
-const s3Migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
-const s4bMigration = readFileSync(new URL('../../../../../prisma/interaction-s4b-sources.sql', import.meta.url), 'utf8');
-const journeyMigration = readFileSync(new URL('../../../../../prisma/interaction-journey-stages.sql', import.meta.url), 'utf8');
+const s3Migration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-s3-storage.sql', import.meta.url), 'utf8');
+const s4bMigration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-s4b-sources.sql', import.meta.url), 'utf8');
+const journeyMigration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-journey-stages.sql', import.meta.url), 'utf8');
 
 const now = new Date('2030-01-01T12:00:00.000Z');
 const videoId = 'dQw4w9WgXcQ';

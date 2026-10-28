@@ -13,7 +13,7 @@ import { cohortAssistantPrompt } from '../context';
 import { handleInteractionRequest } from '@/src/server/interaction.runtime';
 import { POST as releasePostHandler } from '@/src/app/api/cohort-builder/workspaces/[workspaceId]/release/route';
 
-const s5EffectsSql = readFs(new URL('../../../../../prisma/interaction-s5-effects.sql', import.meta.url), 'utf8');
+const s5EffectsSql = readFs(new URL('../../../../../prisma/sql/interaction/interaction-s5-effects.sql', import.meta.url), 'utf8');
 
 function createSampleWorkspace(overrides?: Partial<CohortWorkspace>): CohortWorkspace {
   return cohortWorkspaceSchema.parse({

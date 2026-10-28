@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { putTextArtifact, type TextArtifactSql } from '../text-artifacts';
 import { acceptTextJob, claimTextJob, failTextJob, heartbeatTextJob, retryTextJob, supersedeTextSourceJobs } from '../text-jobs';
 
-const migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-s3-storage.sql', import.meta.url), 'utf8');
 const start = new Date('2026-10-13T10:00:00.000Z');
 const later = (ms: number) => new Date(start.getTime() + ms);
 

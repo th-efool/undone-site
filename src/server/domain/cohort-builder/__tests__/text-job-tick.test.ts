@@ -5,7 +5,7 @@ import type { TextArtifactSql } from '../text-artifacts';
 import { acceptTextJob, retryTextJob } from '../text-jobs';
 import { runTextJobTick } from '../text-job-tick';
 
-const migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-s3-storage.sql', import.meta.url), 'utf8');
 const start = new Date('2026-10-13T10:00:00.000Z');
 const later = (ms: number) => new Date(start.getTime() + ms);
 

@@ -22,7 +22,7 @@ import { acceptCurrentTextJob } from '../text-job-acceptance';
 afterEach(() => vi.unstubAllEnvs());
 const id = '7d4e49d0-bad0-4aba-a777-122326020001';
 const ownerId = 'owner';
-const migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-s3-storage.sql', import.meta.url), 'utf8');
 
 // A thin Prisma-shaped SQL bridge exercises the production commit method against PGlite.
 async function fixture() {
@@ -78,7 +78,7 @@ describe('production canonical text repository integration', () => {
     vi.stubEnv('INTERACTION_TEXT_DRIVER','durable');vi.stubEnv('INTERACTION_WEB_ENABLED','1');
     const {db,repo,input,sql,port}=await fixture();
     try {
-      await db.exec(readFileSync(new URL('../../../../../prisma/interaction-s4b-sources.sql',import.meta.url),'utf8'));
+      await db.exec(readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-s4b-sources.sql',import.meta.url),'utf8'));
       await repo.commitAction({...input,envelope:{...input.envelope,action:{type:'add_web_source',sourceId:'web-source',label:'Web',url:'https://docs.example.org/quorum'}}});
       const now=()=>new Date('2030-01-01');
       const loadWorkspace=async()=> (await sql.query(`SELECT snapshot FROM interaction_workspaces WHERE id=$1`,[id])).rows[0].snapshot;
@@ -100,7 +100,7 @@ describe('production canonical text repository integration', () => {
     vi.stubEnv('INTERACTION_TEXT_DRIVER','durable');vi.stubEnv('INTERACTION_PDF_ENABLED','1');vi.stubEnv('INTERACTION_WEB_ENABLED','1');
     const {db,repo,input,sql,port}=await fixture();
     try {
-      await db.exec(readFileSync(new URL('../../../../../prisma/interaction-s4b-sources.sql',import.meta.url),'utf8'));
+      await db.exec(readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-s4b-sources.sql',import.meta.url),'utf8'));
       const upload=await putTextArtifact(sql,{workspaceId:id,kind:'source_input',inputFingerprint:'a'.repeat(64),bytes:sourcePdf(['Quorums overlap.','Majorities prevent conflict.'])});
       const read=async()=>{const row=(await sql.query(`SELECT snapshot,revision FROM interaction_workspaces WHERE id=$1`,[id])).rows[0];return {state:cohortWorkspaceSchema.parse(row.snapshot),revision:Number(row.revision)};};
       const commit=async(action:unknown,entityVersions:unknown[]=[])=>{const row=await read();return repo.commitAction({...input,requestId:crypto.randomUUID(),expectedRevision:row.revision,envelope:{...input.envelope,actionId:crypto.randomUUID(),expectedRevision:row.revision,entityVersions,action}});};

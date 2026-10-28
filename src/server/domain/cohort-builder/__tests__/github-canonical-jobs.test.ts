@@ -17,8 +17,8 @@ afterEach(() => vi.unstubAllEnvs());
 
 const id = '7d4e49d0-bad0-4aba-a777-122326020099';
 const ownerId = 'owner-s4d';
-const s3Migration = readFs(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
-const s4bMigration = readFs(new URL('../../../../../prisma/interaction-s4b-sources.sql', import.meta.url), 'utf8');
+const s3Migration = readFs(new URL('../../../../../prisma/sql/interaction/interaction-s3-storage.sql', import.meta.url), 'utf8');
+const s4bMigration = readFs(new URL('../../../../../prisma/sql/interaction/interaction-s4b-sources.sql', import.meta.url), 'utf8');
 
 const repoUrl = 'https://github.com/facebook/react';
 const ref = 'main';

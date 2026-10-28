@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { describe, expect, it } from 'vitest';
 
-const migration = readFileSync(new URL('../interaction-s3-storage.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../sql/interaction/interaction-s3-storage.sql', import.meta.url), 'utf8');
 const sha = 'a'.repeat(64);
 
 describe('prepared S3 storage migration in isolated PostgreSQL', () => {

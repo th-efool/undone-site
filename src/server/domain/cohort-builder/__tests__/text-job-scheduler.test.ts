@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
 import { enqueueTextJobPlan, type TextJobTransactionPort } from '../text-job-scheduler';
 
-const migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-s3-storage.sql', import.meta.url), 'utf8');
 const workspace = cohortWorkspaceSchema.parse({
   schemaVersion: 1, title: 'Systems', intent: 'Learn consensus', audience: 'Engineers', dailyMinutes: 25, lessons: [],
   sources: [

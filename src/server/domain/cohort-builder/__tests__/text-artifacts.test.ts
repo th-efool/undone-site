@@ -3,7 +3,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { describe, expect, it } from 'vitest';
 import { putTextArtifact, readTextArtifact, type TextArtifactSql } from '../text-artifacts';
 
-const migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-s3-storage.sql', import.meta.url), 'utf8');
 
 describe('owned retained text artifact store', () => {
   it('verifies bytes and hash on reads and never returns another workspace artifact', async () => {

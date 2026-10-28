@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { PGlite } from '@electric-sql/pglite';
 import { describe, expect, it } from 'vitest';
 
-const phase1Migration = readFileSync(new URL('../messaging-invitations-and-restrictions.sql', import.meta.url), 'utf8');
-const phase2Migration = readFileSync(new URL('../messaging-durability.sql', import.meta.url), 'utf8');
+const phase1Migration = readFileSync(new URL('../sql/messaging/messaging-invitations-and-restrictions.sql', import.meta.url), 'utf8');
+const phase2Migration = readFileSync(new URL('../sql/messaging/messaging-durability.sql', import.meta.url), 'utf8');
 
 describe('messaging durability additive SQL migration', () => {
   it('applies idempotently with zero destructive DDL and enforces durability constraints', async () => {

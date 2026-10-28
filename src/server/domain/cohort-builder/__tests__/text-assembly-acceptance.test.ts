@@ -9,7 +9,7 @@ import { claimTextJob } from '../text-jobs';
 import { runDurableTextJobTick } from '../durable-text-worker';
 import { createTextAssemblyProcessor } from '../text-assembly-processor';
 
-const migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-s3-storage.sql', import.meta.url), 'utf8');
 const workspaceId = '7d4e49d0-bad0-4aba-a777-122326020001';
 const now = new Date('2030-01-01T00:00:00.000Z');
 const state = (): CohortWorkspace => cohortWorkspaceSchema.parse({ schemaVersion: 1, title: 'Systems', intent: 'Learn consensus', audience: 'Engineers', dailyMinutes: 25,

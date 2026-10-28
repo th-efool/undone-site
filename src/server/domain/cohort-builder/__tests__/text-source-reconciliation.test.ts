@@ -7,7 +7,7 @@ import { editSourceAndReconcileTextJobs } from '../text-source-reconciliation';
 import { enqueueTextJobPlan, type TextJobTransactionPort } from '../text-job-scheduler';
 import { claimTextJob } from '../text-jobs';
 
-const migration = readFileSync(new URL('../../../../../prisma/interaction-s3-storage.sql', import.meta.url), 'utf8');
+const migration = readFileSync(new URL('../../../../../prisma/sql/interaction/interaction-s3-storage.sql', import.meta.url), 'utf8');
 const workspaceId = 'workspace-a';
 const makeState = () => cohortWorkspaceSchema.parse({ schemaVersion: 1, title: 'x', intent: 'Learn', audience: 'a', dailyMinutes: 10, lessons: [],
   sources: [{ id: 'source-a', version: 0, label: 'A', text: 'Original.', checksum: null, state: 'queued' }] });

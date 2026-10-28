@@ -4,8 +4,8 @@ import { describe, expect, it } from 'vitest';
 
 describe('Centrifugo v6 Configuration and Ingress Hardening', () => {
   const rootDir = resolve(__dirname, '../../../../../');
-  const configPath = resolve(rootDir, 'centrifugo.config.json');
-  const composePath = resolve(rootDir, 'docker-compose.yml');
+  const configPath = resolve(rootDir, 'infra/centrifugo/centrifugo.config.json');
+  const composePath = resolve(rootDir, 'infra/centrifugo/docker-compose.yml');
   const nginxPath = resolve(rootDir, 'infra/centrifugo/nginx.conf');
 
   const configJson = JSON.parse(readFileSync(configPath, 'utf8'));
