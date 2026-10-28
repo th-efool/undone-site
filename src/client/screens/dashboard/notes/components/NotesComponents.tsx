@@ -4,6 +4,8 @@ import {
   Check,
   ChevronDown,
   ChevronsUpDown,
+  FileText,
+  Layout,
   Folder,
   FolderPlus,
   PanelLeftClose,
@@ -63,8 +65,7 @@ export function CanvasSwitcher({
             className={styles.titleInputTop}
             value={displayTitle}
             onChange={(e) => onTitleChange(e.target.value)}
-            style={{ width: `${Math.max((displayTitle || '').length + 1, 4)}ch` }}
-            onKeyDown={(e) => {
+                        onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === 'Escape') {
                 (e.target as HTMLInputElement).blur();
               }
@@ -120,7 +121,7 @@ export function CanvasSwitcher({
           {notes.length === 0 ? (
             <div className={styles.emptyCanvasItem}>No notes in notebook</div>
           ) : (
-            notes.map((note, index) => {
+                        notes.map((note, index) => {
               const isSelected = note.id === selectedId;
               const isFocused = index === focusIndex;
               return (
@@ -135,9 +136,16 @@ export function CanvasSwitcher({
                   onMouseEnter={() => setFocusIndex(index)}
                   onClick={() => onSelect(note.id)}
                 >
-                  <span className={styles.canvasMenuItemTitle}>
-                    {note.title || 'Untitled Note'}
-                  </span>
+                  <div className={styles.canvasMenuItemLeft}>
+                    {note.contentType === 'kanban' ? (
+                      <Layout size={14} className={styles.canvasItemIcon} />
+                    ) : (
+                      <FileText size={14} className={styles.canvasItemIcon} />
+                    )}
+                    <span className={styles.canvasMenuItemTitle}>
+                      {note.title || 'Untitled Note'}
+                    </span>
+                  </div>
                   {isSelected && <Check size={14} className={styles.checkIcon} />}
                 </button>
               );

@@ -349,22 +349,28 @@
   margin-right: 12px;
 }
 
-.crumb strong {
+.crumb strong,
+.crumbNotebook {
   font-weight: 500;
   color: #71717a;
   white-space: nowrap;
   font-size: 13px;
-  transition: color 0.15s ease;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
 }
 
-.crumb strong:hover {
-  color: #a1a1aa;
+.crumb strong:hover,
+.crumbNotebook:hover {
+  color: #f1f5f9;
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .crumbSeparator {
-  color: #3f3f46;
+  color: #52525b;
   font-size: 12px;
-  margin: 0 1px;
+  margin: 0 2px;
   user-select: none;
 }
 
@@ -879,7 +885,7 @@
 /* ============================================ */
 .canvasSwitcher {
   position: relative;
-  display: flex;
+  display: inline-flex;
   align-items: center;
 }
 
@@ -890,21 +896,32 @@
   background: transparent;
   border: 1px solid transparent;
   border-radius: 6px;
-  padding: 1px 4px 1px 6px;
+  padding: 1px 2px 1px 4px;
   height: 28px;
   transition: all 0.15s ease;
   box-shadow: none;
 }
 
 .canvasSwitchControl:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: transparent;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .canvasSwitchControl:focus-within {
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.15);
   box-shadow: none;
+}
+
+.canvasSwitchTitle {
+  font-size: 13px;
+  font-weight: 500;
+  color: #f1f5f9;
+  padding: 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 280px;
 }
 
 .canvasSwitchButton {
@@ -914,37 +931,49 @@
   align-items: center;
   justify-content: center;
   color: #71717a;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border-radius: 4px;
   cursor: pointer;
   padding: 0;
   transition: all 0.15s ease;
+  flex-shrink: 0;
 }
 
 .canvasSwitchButton:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #e4e4e7;
+  background: rgba(255, 255, 255, 0.08);
+  color: #f1f5f9;
+}
+
+.chevron {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), color 0.15s ease;
+  color: #71717a;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), color 0.15s ease;
+  color: #f1f5f9;
 }
 
 .canvasMenu {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 4px);
   left: 0;
-  z-index: 40;
-  min-width: 240px;
+  z-index: 100;
+  min-width: 200px;
   max-width: 320px;
-  background: rgba(9, 9, 11, 0.88);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgba(39, 39, 42, 0.8);
-  border-radius: 10px;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.04);
-  padding: 6px;
+  max-height: 280px;
+  overflow-y: auto;
+  background: #111215;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.7), 0 2px 6px rgba(0, 0, 0, 0.4);
+  padding: 4px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  animation: canvasMenuFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: canvasMenuFadeIn 0.14s cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: top left;
 }
 
@@ -959,7 +988,7 @@
   }
 }
 
-.canvasMenu button {
+.canvasMenuItem {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -967,46 +996,65 @@
   border: 0;
   background: transparent;
   text-align: left;
-  padding: 8px 12px;
-  border-radius: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
   font-size: 13px;
-  font-weight: 500;
-  color: #cbd5e1;
+  font-weight: 450;
+  color: #a1a1aa;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.12s ease;
   line-height: 1.4;
+  gap: 8px;
 }
 
-.canvasMenu button:hover,
+.canvasMenuItem:hover,
 .focusedCanvas {
-  background: rgba(39, 39, 42, 0.9) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
   color: #f1f5f9 !important;
 }
 
 .selectedCanvas {
-  background: rgba(30, 27, 75, 0.85) !important;
-  color: #818cf8 !important;
-  font-weight: 600;
+  background: rgba(255, 255, 255, 0.08) !important;
+  color: #ffffff !important;
+  font-weight: 500;
 }
 
-.selectedCanvas::after,
-.canvasMenu button[aria-selected="true"]::after {
-  content: "";
-  display: inline-block;
-  width: 15px;
-  height: 15px;
-  margin-left: 8px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: center;
-  background-size: contain;
+.canvasMenuItemLeft {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.canvasItemIcon {
+  color: #64748b;
   flex-shrink: 0;
+  transition: color 0.12s ease;
+}
+
+.canvasMenuItem:hover .canvasItemIcon,
+.selectedCanvas .canvasItemIcon {
+  color: #cbd5e1;
+}
+
+.canvasMenuItemTitle {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checkIcon {
+  color: #f1f5f9;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .emptyCanvasItem {
   padding: 10px 12px;
   font-size: 13px;
-  color: #94a3b8;
+  color: #71717a;
   text-align: center;
   font-style: italic;
 }

@@ -103,7 +103,17 @@ export function NotesWorkspace({
           </div>
         )}
         <div className={styles.crumb}>
-          <strong>{notes.data?.selectedNotebook?.title ?? 'Notebook'}</strong>
+          <strong
+            className={styles.crumbNotebook}
+            onClick={() => {
+              if (!isWorkspaceExpanded) {
+                setIsWorkspaceExpanded(true);
+              }
+            }}
+            title="Open diary contents"
+          >
+            {notes.data?.selectedNotebook?.title ?? 'Notebook'}
+          </strong>
           <span className={styles.crumbSeparator}>/</span>
           <CanvasSwitcher
             open={canvasSwitcherOpen}
