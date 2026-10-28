@@ -351,7 +351,7 @@ export class PersonalWorkspaceDatabase {
           };
           this.stores.set(name, map);
         }
-      } catch {
+      } catch (err) {
         reject(err);
       }
     });
@@ -386,7 +386,7 @@ export class PersonalWorkspaceDatabase {
    * are discarded and the database state remains 100% unchanged.
    */
   async runTransaction<R>(
-    storeNames: StoreName[],
+    storeNames: readonly StoreName[],
     mode: 'readonly' | 'readwrite',
     fn: (ctx: TransactionContext) => Promise<R> | R,
   ): Promise<R> {
@@ -404,7 +404,7 @@ export class PersonalWorkspaceDatabase {
   }
 
   private async runTransactionExclusive<R>(
-    storeNames: StoreName[],
+    storeNames: readonly StoreName[],
     mode: 'readonly' | 'readwrite',
     fn: (ctx: TransactionContext) => Promise<R> | R,
   ): Promise<R> {

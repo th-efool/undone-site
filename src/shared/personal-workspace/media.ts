@@ -121,6 +121,7 @@ export function extractAssetsFromCanvasScene(scene: {
   cleanElements: Array<Record<string, unknown>>;
   cleanFiles: Record<string, unknown>;
   extractedAssets: AssetRecord[];
+  sanitizedScene: Record<string, unknown>;
 } {
   const extractedAssets: AssetRecord[] = [];
   const assetHashMap = new Map<string, AssetRecord>();

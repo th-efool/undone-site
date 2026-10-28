@@ -132,7 +132,7 @@ export interface IWorkspaceSyncRepository {
   ): Promise<{ ok: boolean }>;
   getDatabase?(): {
     runTransaction<T>(
-      storeNames: string[],
+      storeNames: readonly any[],
       mode: 'readonly' | 'readwrite',
       callback: (ctx: {
         get<V>(store: string, key: string): V | undefined;
@@ -178,7 +178,7 @@ export class SyncCoordinator {
     repo: PersonalWorkspaceRepository | IWorkspaceSyncRepository,
     options: SyncCoordinatorOptions = {},
   ) {
-    this.repo = repo;
+    this.repo = repo as IWorkspaceSyncRepository;
     this.autoSyncIntervalMs = options.autoSyncIntervalMs ?? 30000;
     this.baseUrl = options.baseUrl ?? '';
     this.fetchFn = options.fetchFn ?? ((...args) => globalThis.fetch(...args));

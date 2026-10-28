@@ -137,26 +137,27 @@ export function extractAssetsFromSceneFiles(files?: Record<string, unknown>): As
 
   for (const [key, file] of Object.entries(files)) {
     if (!file || typeof file !== 'object') continue;
+    const fileObj = file as Record<string, unknown>;
 
-    const fileId = file.id || key;
+    const fileId = (typeof fileObj.id === 'string' ? fileObj.id : undefined) || key;
     let base64Data = '';
-    let mimeType = file.mimeType || 'image/png';
+    let mimeType = (typeof fileObj.mimeType === 'string' ? fileObj.mimeType : undefined) || 'image/png';
 
-    if (typeof file.base64Data === 'string') {
-      base64Data = file.base64Data;
-    } else if (typeof file.dataURL === 'string') {
-      const match = file.dataURL.match(/^data:([^;]+);base64,(.+)$/);
+    if (typeof fileObj.base64Data === 'string') {
+      base64Data = fileObj.base64Data;
+    } else if (typeof fileObj.dataURL === 'string') {
+      const match = fileObj.dataURL.match(/^data:([^;]+);base64,(.+)$/);
       if (match) {
         mimeType = match[1];
         base64Data = match[2];
       } else {
-        base64Data = file.dataURL;
+        base64Data = fileObj.dataURL;
       }
     }
 
     if (!base64Data) continue;
 
-    let byteLength = typeof file.byteLength === 'number' ? file.byteLength : 0;
+    let byteLength = typeof fileObj.byteLength === 'number' ? fileObj.byteLength : 0;
     let decodedBytes: Buffer | Uint8Array;
 
     if (typeof Buffer !== 'undefined') {
@@ -175,16 +176,16 @@ export function extractAssetsFromSceneFiles(files?: Record<string, unknown>): As
 
     const assetRecord: AssetRecord = {
       id: fileId,
-      hash: typeof file.hash === 'string' && file.hash.length === 64 ? file.hash : computedHash,
+      hash: typeof fileObj.hash === 'string' && fileObj.hash.length === 64 ? fileObj.hash : computedHash,
       mimeType,
       byteLength,
       base64Data,
     };
 
     // If caller provided a hash that diverged, prefer computed cryptographic hash
-    if (file.hash && file.hash !== computedHash) {
+    if (fileObj.hash && fileObj.hash !== computedHash) {
       console.warn(
-        `[LocalWorkspace] Provided asset hash ${file.hash} did not match computed ${computedHash}. Using computed SHA-256.`
+        `[LocalWorkspace] Provided asset hash ${fileObj.hash} did not match computed ${computedHash}. Using computed SHA-256.`
       );
       assetRecord.hash = computedHash;
     }
@@ -569,7 +570,7 @@ export class LocalWorkspace {
     const now = new Date().toISOString();
 
     const canvasData: CanvasNoteData = {
-      elements: scene.elements || [],
+      elements: (scene.elements as Array<Record<string, unknown>>) || [],
       appState: sanitizeCanvasAppStateForStorage(scene.appState),
       assetFileIds,
       assetHashes,
@@ -758,7 +759,7 @@ export class LocalWorkspace {
    * Conforms to local bundle schema with canonical SHA-256 checksum.
    */
   async exportRecoveryBundle(): Promise<Blob> {
-    const bundle: LocalStateExportBundle = await this.repo.exportLocalStateBundle(true);
+    const bundle = (await this.repo.exportLocalStateBundle(true)) as unknown as LocalStateExportBundle;
     const json = JSON.stringify(bundle, null, 2);
     return new Blob([json], { type: 'application/json' });
   }

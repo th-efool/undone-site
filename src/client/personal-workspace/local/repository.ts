@@ -32,6 +32,7 @@ import type {
   NoteRecord,
   CanvasNoteRecord,
   KanbanNoteRecord,
+  KanbanCard,
   AssetRecord,
   ScheduleTaskRecord,
 } from '@/src/shared/personal-workspace/contracts';
