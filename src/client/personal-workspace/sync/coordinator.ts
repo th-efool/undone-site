@@ -479,7 +479,8 @@ export class SyncCoordinator {
           headers: { 'Content-Type': 'application/json' },
         });
       } catch (networkErr) {
-        this.status = 'error';
+        const isBrowserOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+        this.status = isBrowserOffline ? 'offline' : 'error';
         this.errorMessage =
           networkErr instanceof Error ? networkErr.message : 'Network failure during status check';
         await this.broadcastUpdate();

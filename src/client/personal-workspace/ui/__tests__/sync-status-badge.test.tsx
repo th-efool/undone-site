@@ -542,4 +542,28 @@ describe('SyncStatusBadge - Icon-Only Mode & Unified Sync States', () => {
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('sync-status-popover')).toBeNull();
   });
+
+  it('does not render inline Export backup button inside 30x30 iconOnly button and labels remote errors accurately', () => {
+    const onExportRecovery = vi.fn();
+    const summary: SyncSummary = {
+      status: 'error',
+      pendingMutations: 1,
+      lastSyncedAt: null,
+      conflictCount: 0,
+      errorMessage: 'Remote workspace manifest does not match its records',
+    };
+
+    render(
+      <SyncStatusBadge
+        summary={summary}
+        iconOnly={true}
+        repoFullName="loofe-ht/undone-notes"
+        onExportRecovery={onExportRecovery}
+      />,
+    );
+
+    expect(screen.queryByTestId('export-backup-btn')).toBeNull();
+    const badge = screen.getByTestId('sync-status-badge');
+    expect(badge.getAttribute('title')).toBe('Sync delayed (saved locally) · loofe-ht/undone-notes');
+  });
 });

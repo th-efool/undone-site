@@ -210,10 +210,17 @@ export function getStatusConfig(summary: SyncSummary): StatusConfig {
           'text-amber-800 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-950/40 dark:border-amber-800/60',
       };
 
-    case 'error':
+    case 'error': {
+      const isRemoteSyncError =
+        typeof summary.errorMessage === 'string' &&
+        /remote|github|http \d+|status check|manifest|publish|pull|network/i.test(
+          summary.errorMessage,
+        );
       return {
-        label: 'Local save failed',
-        description: 'Failed to write changes to local storage. Working buffer is preserved.',
+        label: isRemoteSyncError ? 'Sync delayed (saved locally)' : 'Local save failed',
+        description: isRemoteSyncError
+          ? 'Local changes are committed on this device. GitHub sync will retry automatically.'
+          : 'Failed to write changes to local storage. Working buffer is preserved.',
         icon: (
           <AlertCircle
             className="w-3.5 h-3.5 text-red-600 dark:text-red-400"
@@ -223,6 +230,7 @@ export function getStatusConfig(summary: SyncSummary): StatusConfig {
         badgeClass:
           'text-red-800 bg-red-50 border-red-200 dark:text-red-300 dark:bg-red-950/40 dark:border-red-800/60',
       };
+    }
 
     case 'idle':
     default:
@@ -362,8 +370,8 @@ export function SyncStatusBadge({
         )}
         {!iconOnly && <span className="font-medium tracking-tight">{config.label}</span>}
 
-        {/* Status-specific direct trigger buttons on the badge */}
-        {summary.status === 'error' && onExportRecovery && (
+        {/* Status-specific direct trigger buttons on the badge (hidden in 30x30 iconOnly mode; available in popover) */}
+        {!iconOnly && summary.status === 'error' && onExportRecovery && (
           <button
             type="button"
             data-testid="export-backup-btn"
@@ -377,7 +385,7 @@ export function SyncStatusBadge({
           </button>
         )}
 
-        {summary.status === 'reconnect_required' && onReconnect && (
+        {!iconOnly && summary.status === 'reconnect_required' && onReconnect && (
           <button
             type="button"
             data-testid="reconnect-trigger"
@@ -391,7 +399,7 @@ export function SyncStatusBadge({
           </button>
         )}
 
-        {summary.status === 'conflict' && onResolveConflict && (
+        {!iconOnly && summary.status === 'conflict' && onResolveConflict && (
           <button
             type="button"
             data-testid="resolve-conflict-trigger"
