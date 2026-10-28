@@ -16,7 +16,8 @@ import { VAULT_COOKIE_NAME, VaultCookiePayload } from '../vault';
 import { GET as getStatus } from '../status/route';
 import { POST as postConnect } from '../connect/route';
 import { POST as postDisconnect } from '../disconnect/route';
-import { POST as postPublish, buildPublishCommitMessage } from '../publish/route';
+import { POST as postPublish } from '../publish/route';
+import { buildPublishCommitMessage } from '../publish/commit-message';
 import { GET as getPull, POST as postPull } from '../pull/route';
 
 describe('Personal Workspace GitHub API Routes', () => {
@@ -533,7 +534,7 @@ describe('Personal Workspace GitHub API Routes', () => {
       vi.spyOn(GitHubGitDataClient.prototype, 'createBlob').mockResolvedValue('blob-sha');
       vi.spyOn(GitHubGitDataClient.prototype, 'createTree').mockResolvedValue('tree-sha-new');
       const commitSpy = vi.spyOn(GitHubGitDataClient.prototype, 'createCommit').mockResolvedValue('new-commit-sha');
-      vi.spyOn(GitHubGitDataClient.prototype, 'updateRef').mockResolvedValue({ ok: true });
+      vi.spyOn(GitHubGitDataClient.prototype, 'updateRef').mockResolvedValue({ ok: true, status: 200 });
 
       const req = new NextRequest('http://localhost:3000/api/personal-workspace/github/publish', {
         method: 'POST',
