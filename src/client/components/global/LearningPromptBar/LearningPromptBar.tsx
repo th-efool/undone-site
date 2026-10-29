@@ -158,6 +158,7 @@ export const LearningPromptBar = React.memo(
     const [intakeError, setIntakeError] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [showTemplates, setShowTemplates] = useState(false);
+    const [selectedMode, setSelectedMode] = useState<'search' | 'plan'>('search');
 
     const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -239,12 +240,17 @@ export const LearningPromptBar = React.memo(
     useEffect(() => {
       if (typeof window !== 'undefined') {
         let qFromUrl: string | null = null;
+        let modeFromUrl: 'plan' | 'search' | null = null;
         try {
           const parsedUrl = new URL(window.location.href, 'http://localhost');
           qFromUrl = parsedUrl.searchParams.get('q');
+          const m = parsedUrl.searchParams.get('mode');
+          if (m === 'plan' || m === 'search') modeFromUrl = m;
         } catch {
           const urlParams = new URLSearchParams(window.location.search);
           qFromUrl = urlParams.get('q');
+          const m = urlParams.get('mode');
+          if (m === 'plan' || m === 'search') modeFromUrl = m;
         }
 
         const storedQ =
@@ -261,6 +267,11 @@ export const LearningPromptBar = React.memo(
           localStorage.getItem('sidequest_prompt_source_visible');
 
         const intakeDraft = readIntakeDraft(null);
+        if (modeFromUrl) {
+          setSelectedMode(modeFromUrl);
+        } else if (intakeDraft?.mode === 'plan' || intakeDraft?.mode === 'search') {
+          setSelectedMode(intakeDraft.mode);
+        }
 
         // Restore prompt query if uncontrolled
         if (controlledValue === undefined) {
@@ -320,6 +331,9 @@ export const LearningPromptBar = React.memo(
     };
 
     const isBusy = submitting || composerAttachments.isExtracting;
+    const effectivePlaceholder = selectedMode === 'plan'
+      ? 'Describe what you want to learn, your background, or paste links to plan...'
+      : placeholder;
 
     const handleSubmit = async (mode: 'plan' | 'search' = 'search', valOrEvent?: string | React.FormEvent) => {
       if (typeof valOrEvent === 'object' && valOrEvent && 'preventDefault' in valOrEvent) {
@@ -428,7 +442,7 @@ export const LearningPromptBar = React.memo(
 
     return (
       <div
-        className={`${styles.promptBarContainer} ${className || ''}`.trim()}
+        className={`${styles.promptBarContainer} ${selectedMode === 'plan' ? styles.planModeActive : ''} ${className || ''}`.trim()}
         style={maxWidth ? { maxWidth } : undefined}
       >
         {composerAttachments.files.length > 0 && (
@@ -457,8 +471,8 @@ export const LearningPromptBar = React.memo(
               void handleSubmit('plan');
             }
           }}
-          onSubmit={() => void handleSubmit('search')}
-          placeholder={placeholder}
+          onSubmit={() => void handleSubmit(selectedMode)}
+          placeholder={effectivePlaceholder}
           className={styles.inputCard}
           inputClassName={styles.textInput}
           aria-label={ariaLabel || ariaLabelAlt || 'What do you want to learn about?'}
@@ -567,25 +581,41 @@ export const LearningPromptBar = React.memo(
               <div className={styles.promptRightActions}>
                 <button
                   type="button"
-                  className={styles.promptPlanBtn}
+                  className={`${styles.promptPlanBtn} ${selectedMode === 'plan' ? styles.promptPlanBtnActive : ''}`}
                   disabled={isBusy}
-                  onClick={() => void handleSubmit('plan')}
+                  aria-pressed={selectedMode === 'plan'}
+                  onClick={() => {
+                    const nextMode = selectedMode === 'plan' ? 'search' : 'plan';
+                    setSelectedMode(nextMode);
+                    if (query.trim()) {
+                      void handleSubmit('plan');
+                    }
+                  }}
                   title="Plan collaboratively with AI in conversational chat"
                 >
-                  <Lightbulb size={16} strokeWidth={1.8} />
+                  <Lightbulb size={16} strokeWidth={selectedMode === 'plan' ? 2.2 : 1.8} />
                   <span>{composerAttachments.isExtracting ? 'Reading…' : 'Plan'}</span>
+                  {selectedMode === 'plan' && (
+                    <span className={styles.activePlanBadge} aria-hidden="true">✓</span>
+                  )}
                 </button>
 
                 <span className={styles.promptDivider} aria-hidden="true" />
 
                 <button
                   type="button"
-                  className={styles.promptBeginBtn}
+                  className={`${styles.promptBeginBtn} ${selectedMode === 'plan' ? styles.promptBeginBtnPlan : ''}`}
                   disabled={isBusy}
-                  onClick={(e) => void handleSubmit('search', e)}
-                  title="Search matching cohorts and begin your journey"
+                  onClick={(e) => void handleSubmit(selectedMode, e)}
+                  title={selectedMode === 'plan' ? 'Plan your cohort with AI assistant' : 'Search matching cohorts and begin your journey'}
                 >
-                  <span>{composerAttachments.isExtracting ? 'Reading files…' : 'Begin journey'}</span>
+                  <span>
+                    {composerAttachments.isExtracting
+                      ? 'Reading files…'
+                      : selectedMode === 'plan'
+                      ? 'Start planning'
+                      : 'Begin journey'}
+                  </span>
                   <ArrowRight size={16} strokeWidth={2.0} />
                 </button>
               </div>

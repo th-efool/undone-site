@@ -140,20 +140,54 @@
   align-items: center;
   gap: 6px;
   height: 32px;
-  padding: 0 6px;
+  padding: 0 10px;
   background: transparent;
-  border: none;
+  border: 1px solid transparent;
+  border-radius: 9999px;
   color: #344054;
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  transition: color 150ms ease;
+  transition: all 150ms ease;
   font-family: var(--font-manrope-next), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   white-space: nowrap;
 }
 
 .promptPlanBtn:hover:not(:disabled) {
   color: #2524a4;
+  background: rgba(37, 36, 164, 0.06);
+}
+
+.promptPlanBtnActive {
+  background: rgba(88, 99, 248, 0.12) !important;
+  border-color: rgba(88, 99, 248, 0.35) !important;
+  color: #3533cd !important;
+  font-weight: 650 !important;
+}
+
+.activePlanBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: #3533cd;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.planModeActive :global(.TextBar_inputContainer__3n7i5),
+.planModeActive .inputCard {
+  border-color: rgba(88, 99, 248, 0.6) !important;
+  box-shadow: 0 0 0 3px rgba(88, 99, 248, 0.14), 0 8px 24px rgba(15, 20, 62, 0.08) !important;
+}
+
+.promptBeginBtnPlan {
+  background-color: #3533cd !important;
+  box-shadow: 0 4px 14px rgba(53, 51, 205, 0.3) !important;
 }
 
 .promptDivider {
@@ -361,6 +395,26 @@
 :global([data-theme='dark']) .promptPlanBtn:hover:not(:disabled),
 :global(.dark) .promptPlanBtn:hover:not(:disabled) {
   color: #818cf8;
+  background: rgba(129, 140, 248, 0.1);
+}
+
+:global([data-theme='dark']) .promptPlanBtnActive,
+:global(.dark) .promptPlanBtnActive {
+  background: rgba(88, 99, 248, 0.22) !important;
+  border-color: rgba(129, 140, 248, 0.45) !important;
+  color: #a5b4fc !important;
+}
+
+:global([data-theme='dark']) .activePlanBadge,
+:global(.dark) .activePlanBadge {
+  background: #6366f1;
+  color: #ffffff;
+}
+
+:global([data-theme='dark']) .promptBeginBtnPlan,
+:global(.dark) .promptBeginBtnPlan {
+  background-color: #4f46e5 !important;
+  box-shadow: 0 4px 18px rgba(79, 70, 229, 0.45) !important;
 }
 
 :global([data-theme='dark']) .promptDivider,

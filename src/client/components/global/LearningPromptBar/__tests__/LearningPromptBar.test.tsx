@@ -120,4 +120,31 @@ describe('LearningPromptBar Component', () => {
     expect(screen.getByLabelText('What do you want to learn about?')).toBeDefined();
     expect(screen.getByText('Paxos_Overview.pdf')).toBeDefined();
   });
+
+  it('toggles Plan mode selection when clicked with empty query and updates UI and submit button', () => {
+    render(<LearningPromptBar />);
+
+    const planBtn = screen.getByRole('button', { name: /Plan/i });
+    expect(planBtn.getAttribute('aria-pressed')).toBe('false');
+    expect(screen.getByRole('button', { name: /Begin journey/i })).toBeDefined();
+
+    // Toggle Plan mode ON
+    fireEvent.click(planBtn);
+    expect(planBtn.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: /Start planning/i })).toBeDefined();
+    expect(
+      screen.getByPlaceholderText('Describe what you want to learn, your background, or paste links to plan...')
+    ).toBeDefined();
+
+    // Type query and submit via Start planning button
+    const input = screen.getByLabelText('What do you want to learn about?');
+    fireEvent.change(input, { target: { value: 'Quantum Computing Fundamentals' } });
+    const submitBtn = screen.getByRole('button', { name: /Start planning/i });
+    fireEvent.click(submitBtn);
+
+    const draft = readIntakeDraft();
+    expect(draft).not.toBeNull();
+    expect(draft?.prompt).toBe('Quantum Computing Fundamentals');
+    expect(draft?.mode).toBe('plan');
+  });
 });
