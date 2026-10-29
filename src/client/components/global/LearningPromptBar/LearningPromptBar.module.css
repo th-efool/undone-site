@@ -588,3 +588,58 @@
   color: #f8fafc !important;
 }
 
+
+/* Attachment Tray Container */
+.attachmentTraySection {
+  width: 100%;
+  padding-bottom: 8px;
+}
+
+/* Source Drawer Tabs */
+.drawerTabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 2px;
+  border-radius: 6px;
+}
+
+:global([data-theme='dark']) .drawerTabs,
+:global(.dark) .drawerTabs {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.drawerTabBtn {
+  background: transparent;
+  border: none;
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+:global([data-theme='dark']) .drawerTabBtn,
+:global(.dark) .drawerTabBtn {
+  color: #94a3b8;
+}
+
+.drawerTabBtnActive {
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+:global([data-theme='dark']) .drawerTabBtnActive,
+:global(.dark) .drawerTabBtnActive {
+  background: #272a38;
+  color: #f8fafc;
+}
+
+.linkRowsWrapper {
+  width: 100%;
+  padding: 8px 0;
+}

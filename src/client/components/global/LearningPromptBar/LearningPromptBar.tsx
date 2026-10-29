@@ -15,6 +15,11 @@ import {
 } from 'lucide-react';
 import { TextBar } from '@/src/client/components/ui';
 import { saveIntakeDraft, readIntakeDraft } from '@/src/client/screens/cohortBuilder/intake-draft';
+import {
+  AttachmentTray,
+  LinkRows,
+  useComposerAttachments,
+} from '@/src/client/components/global/Composer';
 import styles from './LearningPromptBar.module.css';
 
 function useSafeSession() {
@@ -113,15 +118,25 @@ export const LearningPromptBar = React.memo(
     const query = controlledValue !== undefined ? controlledValue : internalQuery;
 
     const [showSource, setShowSource] = useState(false);
+    const [sourceTab, setSourceTab] = useState<'links' | 'text'>('links');
     const [sourceText, setSourceText] = useState('');
     const [intakeError, setIntakeError] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [showTemplates, setShowTemplates] = useState(false);
+
     const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const templateMenuRef = useRef<HTMLDivElement>(null);
     const { data: session, status } = useSafeSession();
     const router = useSafeRouter();
+
+    // Client-device composer attachments (PDF offscreen canvas, batch YouTube, GitHub, Web DOM)
+    const composerAttachments = useComposerAttachments({
+      maxFiles: 10,
+      maxLinks: 20,
+      maxPdfSizeMb: 50,
+      maxTextSizeMb: 5,
+    });
 
     useEffect(() => {
       if (!showTemplates && !showSource) return;
@@ -148,48 +163,9 @@ export const LearningPromptBar = React.memo(
     }, [showTemplates, showSource]);
 
     const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      const ext = file.name.split('.').pop()?.toLowerCase();
-      const reader = new FileReader();
-
-      if (ext === 'pdf') {
-        reader.onload = (event) => {
-          try {
-            const buffer = event.target?.result as ArrayBuffer;
-            const uint8 = new Uint8Array(buffer);
-            const raw = new TextDecoder('latin1').decode(uint8);
-            const matches = raw.match(/\(([^()]+)\)Tj/g);
-            let extractedText = '';
-            if (matches && matches.length > 0) {
-              extractedText = matches.map((m) => m.slice(1, -3)).join(' ');
-            }
-            const textContent = extractedText.trim()
-              ? `[Document: ${file.name}]\n${extractedText.trim()}`
-              : `[Attached Document: ${file.name} (${Math.round(file.size / 1024)} KB)]\nReference source material loaded from document.`;
-            setSourceText((prev) => (prev ? `${prev}\n\n---\n${textContent}` : textContent));
-            setShowSource(true);
-          } catch {
-            const fallbackText = `[Attached Document: ${file.name} (${Math.round(file.size / 1024)} KB)]`;
-            setSourceText((prev) => (prev ? `${prev}\n\n---\n${fallbackText}` : fallbackText));
-            setShowSource(true);
-          }
-        };
-        reader.readAsArrayBuffer(file);
-      } else {
-        reader.onload = (event) => {
-          const text = event.target?.result as string;
-          if (typeof text === 'string') {
-            const fileContent = `[Source: ${file.name}]\n${text.trim()}`;
-            setSourceText((prev) => (prev ? `${prev}\n\n---\n${fileContent}` : fileContent));
-            setShowSource(true);
-          }
-        };
-        reader.readAsText(file);
-      }
-
-      // Reset file input value
+      const files = e.target.files;
+      if (!files || files.length === 0) return;
+      void composerAttachments.addFiles(files);
       e.target.value = '';
     };
 
@@ -334,11 +310,23 @@ export const LearningPromptBar = React.memo(
       }
     };
 
-    const handleSubmit = async (valOrEvent?: string | React.FormEvent) => {
+    const handleSubmit = async (mode: 'plan' | 'search' = 'search', valOrEvent?: string | React.FormEvent) => {
       if (typeof valOrEvent === 'object' && valOrEvent && 'preventDefault' in valOrEvent) {
         valOrEvent.preventDefault();
       }
-      const textToSearch = typeof valOrEvent === 'string' ? valOrEvent : query;
+      const rawText = typeof valOrEvent === 'string' ? valOrEvent : query;
+      let textToSearch = rawText.trim();
+
+      // If user submitted without text, but has attached sources or links, synthesize a default intent
+      if (!textToSearch && composerAttachments.totalCount > 0) {
+        const ready = composerAttachments.getReadySources();
+        if (ready.length > 0) {
+          textToSearch = `Study plan for ${ready[0].label}`;
+        } else {
+          textToSearch = 'Curriculum and study plan from reference materials';
+        }
+      }
+
       if (!textToSearch.trim() || submitting) return;
 
       if (customOnSubmit) {
@@ -350,10 +338,14 @@ export const LearningPromptBar = React.memo(
       setIntakeError('');
       try {
         const ownerId: string | null = session?.user?.id ?? null;
+        const readySources = composerAttachments.getReadySources();
+
         const draftPayload = {
           requestId: crypto.randomUUID(),
           prompt: textToSearch.trim(),
-          ...(sourceText.trim() ? { source: { label: 'Pasted text', text: sourceText } } : {}),
+          mode,
+          ...(readySources.length > 0 ? { sources: readySources } : {}),
+          ...(sourceText.trim() ? { source: { label: 'Pasted text', text: sourceText.trim() } } : {}),
         };
 
         sessionStorage.setItem('undone:landing-query', textToSearch.trim());
@@ -370,7 +362,7 @@ export const LearningPromptBar = React.memo(
         } catch {}
 
         if (!ownerId && status === 'unauthenticated') {
-          const returnUrl = `/?q=${encodeURIComponent(textToSearch.trim())}`;
+          const returnUrl = `/?q=${encodeURIComponent(textToSearch.trim())}&mode=${mode}`;
           const authHref = `/auth?returnTo=${encodeURIComponent(returnUrl)}`;
           if (router) router.push(authHref);
           else window.location.href = authHref;
@@ -393,6 +385,7 @@ export const LearningPromptBar = React.memo(
                 localStorage.removeItem('sidequest_prompt_query_draft');
                 sessionStorage.removeItem('sidequest_prompt_source_draft');
                 localStorage.removeItem('sidequest_prompt_source_draft');
+                composerAttachments.clearAll();
               } catch {}
               const buildHref = `/quest/build/${created.workspaceId}`;
               if (router) router.push(buildHref);
@@ -420,11 +413,27 @@ export const LearningPromptBar = React.memo(
       }
     };
 
+    const latestComposerError =
+      composerAttachments.errors.length > 0
+        ? composerAttachments.errors[composerAttachments.errors.length - 1]
+        : '';
+    const displayedError = intakeError || latestComposerError;
+
     return (
       <div
         className={`${styles.promptBarContainer} ${className || ''}`.trim()}
         style={maxWidth ? { maxWidth } : undefined}
       >
+        {composerAttachments.files.length > 0 && (
+          <div className={styles.attachmentTraySection}>
+            <AttachmentTray
+              files={composerAttachments.files}
+              onRemoveFile={composerAttachments.removeFile}
+              disabled={submitting}
+            />
+          </div>
+        )}
+
         <TextBar
           ref={inputRef}
           variant="prompt"
@@ -435,7 +444,7 @@ export const LearningPromptBar = React.memo(
           value={query}
           autoFocus={autoFocus}
           onChange={(e) => handleQueryChange(e.target.value)}
-          onSubmit={handleSubmit}
+          onSubmit={() => void handleSubmit('search')}
           placeholder={placeholder}
           className={styles.inputCard}
           inputClassName={styles.textInput}
@@ -446,26 +455,35 @@ export const LearningPromptBar = React.memo(
                 <button
                   type="button"
                   className={styles.promptPlusPill}
-                  aria-label="Add pasted text source"
+                  aria-label="Add sources"
                   aria-expanded={showSource}
-                  onClick={() => setShowSource((prev) => !prev)}
+                  onClick={() => {
+                    setShowSource((prev) => !prev);
+                    setSourceTab('links');
+                  }}
                 >
                   <Plus size={16} strokeWidth={2.0} />
                 </button>
 
                 <button
                   type="button"
-                  className={styles.promptPill}
-                  onClick={() => setShowSource((prev) => !prev)}
+                  className={`${styles.promptPill} ${showSource ? styles.promptPillActive : ''}`}
+                  onClick={() => {
+                    setShowSource((prev) => !prev);
+                    setSourceTab('links');
+                  }}
                   aria-expanded={showSource}
                 >
                   <FileText size={15} strokeWidth={1.8} />
-                  <span>Add sources</span>
+                  <span>
+                    Add sources{composerAttachments.links.length > 0 ? ` (${composerAttachments.links.length})` : ''}
+                  </span>
                 </button>
 
                 <input
                   ref={fileInputRef}
                   type="file"
+                  multiple
                   accept=".txt,.md,.json,.pdf,text/plain,text/markdown,application/json,application/pdf"
                   style={{ display: 'none' }}
                   onChange={handleFileUpload}
@@ -477,11 +495,13 @@ export const LearningPromptBar = React.memo(
                   type="button"
                   className={styles.promptPill}
                   onClick={() => fileInputRef.current?.click()}
-                  title="Upload reference files (.txt, .md, .json, .pdf)"
+                  title="Upload reference files (.pdf, .txt, .md, .json)"
                   aria-label="Upload reference material"
                 >
                   <Paperclip size={15} strokeWidth={1.8} />
-                  <span>Upload</span>
+                  <span>
+                    Upload{composerAttachments.files.length > 0 ? ` (${composerAttachments.files.length})` : ''}
+                  </span>
                 </button>
 
                 <div className={styles.templateWrapper} ref={templateMenuRef}>
@@ -536,7 +556,8 @@ export const LearningPromptBar = React.memo(
                   type="button"
                   className={styles.promptPlanBtn}
                   disabled={submitting}
-                  onClick={() => void handleSubmit()}
+                  onClick={() => void handleSubmit('plan')}
+                  title="Plan collaboratively with AI in conversational chat"
                 >
                   <Lightbulb size={16} strokeWidth={1.8} />
                   <span>Plan</span>
@@ -545,9 +566,11 @@ export const LearningPromptBar = React.memo(
                 <span className={styles.promptDivider} aria-hidden="true" />
 
                 <button
-                  type="submit"
+                  type="button"
                   className={styles.promptBeginBtn}
                   disabled={submitting}
+                  onClick={(e) => void handleSubmit('search', e)}
+                  title="Search matching cohorts and begin your journey"
                 >
                   <span>Begin journey</span>
                   <ArrowRight size={16} strokeWidth={2.0} />
@@ -560,12 +583,30 @@ export const LearningPromptBar = React.memo(
         {showSource && (
           <div className={styles.sourceTextWrapper} role="region" aria-label="Reference material drawer">
             <div className={styles.sourceTextHeader}>
-              <span className={styles.sourceTextLabel}>Paste reference material or syllabus</span>
+              <div className={styles.drawerTabs}>
+                <button
+                  type="button"
+                  className={`${styles.drawerTabBtn} ${sourceTab === 'links' ? styles.drawerTabBtnActive : ''}`}
+                  onClick={() => setSourceTab('links')}
+                >
+                  Add links ({composerAttachments.links.length})
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.drawerTabBtn} ${sourceTab === 'text' ? styles.drawerTabBtnActive : ''}`}
+                  onClick={() => setSourceTab('text')}
+                >
+                  Paste raw text
+                </button>
+              </div>
+
               <div className={styles.sourceTextActions}>
-                <span className={styles.sourceTextCounter}>
-                  {sourceText.length.toLocaleString()} / 200,000
-                </span>
-                {sourceText.length > 0 && (
+                {sourceTab === 'text' && (
+                  <span className={styles.sourceTextCounter}>
+                    {sourceText.length.toLocaleString()} / 200,000
+                  </span>
+                )}
+                {sourceTab === 'text' && sourceText.length > 0 && (
                   <button
                     type="button"
                     className={styles.sourceTextClear}
@@ -586,28 +627,40 @@ export const LearningPromptBar = React.memo(
                 </button>
               </div>
             </div>
-            <textarea
-              className={styles.sourceTextarea}
-              aria-label="Paste source text"
-              maxLength={200_000}
-              placeholder="Paste articles, code snippets, notes, or lecture outlines to ground your cohort..."
-              value={sourceText}
-              onChange={(event) => setSourceText(event.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  e.stopPropagation();
-                  setShowSource(false);
-                }
-              }}
-              rows={4}
-            />
+
+            {sourceTab === 'links' ? (
+              <div className={styles.linkRowsWrapper}>
+                <LinkRows
+                  links={composerAttachments.links}
+                  onAddLink={composerAttachments.addLink}
+                  onRemoveLink={composerAttachments.removeLink}
+                  disabled={submitting}
+                />
+              </div>
+            ) : (
+              <textarea
+                className={styles.sourceTextarea}
+                aria-label="Paste source text"
+                maxLength={200_000}
+                placeholder="Paste articles, code snippets, notes, or lecture outlines to ground your cohort..."
+                value={sourceText}
+                onChange={(event) => setSourceText(event.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    e.stopPropagation();
+                    setShowSource(false);
+                  }
+                }}
+                rows={4}
+              />
+            )}
           </div>
         )}
 
-        {intakeError && (
+        {displayedError && (
           <div className={styles.intakeErrorBanner} role="alert">
             <AlertCircle size={18} className={styles.intakeErrorIcon} aria-hidden="true" />
-            <span className={styles.intakeErrorText}>{intakeError}</span>
+            <span className={styles.intakeErrorText}>{displayedError}</span>
             <button
               type="button"
               className={styles.intakeErrorDismiss}
