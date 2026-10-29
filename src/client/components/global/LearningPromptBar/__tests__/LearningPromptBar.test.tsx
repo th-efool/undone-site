@@ -2,6 +2,12 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+
+const pushMock = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: pushMock }),
+}));
+
 import { LearningPromptBar } from '../LearningPromptBar';
 import { readIntakeDraft } from '@/src/client/screens/cohortBuilder/intake-draft';
 
@@ -74,5 +80,18 @@ describe('LearningPromptBar Component', () => {
     // Switch back to links tab
     fireEvent.click(screen.getByRole('button', { name: /Add links/i }));
     expect(screen.getByTestId('link-rows-container')).toBeDefined();
+  });
+
+  it('Shift+Enter submits in plan mode', () => {
+    render(<LearningPromptBar />);
+
+    const input = screen.getByLabelText('What do you want to learn about?');
+    fireEvent.change(input, { target: { value: 'Keyboard Plan Shortcut Test' } });
+    fireEvent.keyDown(input, { key: 'Enter', shiftKey: true });
+
+    const draft = readIntakeDraft();
+    expect(draft).not.toBeNull();
+    expect(draft?.prompt).toBe('Keyboard Plan Shortcut Test');
+    expect(draft?.mode).toBe('plan');
   });
 });

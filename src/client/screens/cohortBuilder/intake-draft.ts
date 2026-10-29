@@ -7,7 +7,16 @@ export function saveIntakeDraft(body: CohortIntakeInput, ownerId: string | null)
     if (prior?.ownerId === ownerId && Date.now() - prior.createdAt < 3_600_000 &&
       prior.body.prompt === validated.prompt && JSON.stringify(prior.body.source) === JSON.stringify(validated.source)) validated.requestId = prior.body.requestId;
   } catch { /* Corrupt local drafts are replaced by validated input. */ }
-  sessionStorage.setItem(key, JSON.stringify({ body: validated, ownerId, createdAt: Date.now() }));
+  try {
+    sessionStorage.setItem(key, JSON.stringify({ body: validated, ownerId, createdAt: Date.now() }));
+  } catch {
+    try {
+      const { sources: _dropped, ...lightweight } = validated;
+      sessionStorage.setItem(key, JSON.stringify({ body: lightweight, ownerId, createdAt: Date.now() }));
+    } catch {
+      /* Silently ignore if storage quota is completely exhausted */
+    }
+  }
 }
 export function readIntakeDraft(ownerId?: string | null): CohortIntake | null {
   try {

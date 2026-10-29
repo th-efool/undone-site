@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { X, FileText, AlertCircle } from 'lucide-react';
@@ -6,7 +6,6 @@ import styles from './AttachmentTray.module.css';
 
 export interface ComposerFileItem {
   id: string;
-  file?: File;
   name: string;
   size: number;
   type: string;
@@ -101,3 +100,4 @@ export const AttachmentTray: React.FC<AttachmentTrayProps> = ({
     </div>
   );
 };
+

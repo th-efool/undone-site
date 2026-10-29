@@ -1,14 +1,17 @@
-'use client';
+﻿'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
+import pLimit from 'p-limit';
 import type { CohortSource, ClientSourceExtraction } from '@/src/shared/cohort-builder/contracts';
+import { byteLengthUtf8 } from '@/src/shared/cohort-builder/client-pipeline';
 import { sha256 } from '@/src/shared/cohort-builder/hash';
+import { detectSourceKind } from '@/src/shared/cohort-builder/source-kind';
 import { extractPdfClient } from '@/src/client/lib/sourceExtractors/pdfClientExtractor';
 import { extractYoutubeClient } from '@/src/client/lib/sourceExtractors/youtubeClientExtractor';
 import { extractGithubClient } from '@/src/client/lib/sourceExtractors/githubClientExtractor';
 import { extractWebClient } from '@/src/client/lib/sourceExtractors/webClientExtractor';
-import { detectLinkKind, ComposerLinkItem } from './LinkRows';
-import { ComposerFileItem } from './AttachmentTray';
+import type { ComposerLinkItem } from './LinkRows';
+import type { ComposerFileItem } from './AttachmentTray';
 
 export interface UseComposerAttachmentsOptions {
   maxFiles?: number;
@@ -17,356 +20,193 @@ export interface UseComposerAttachmentsOptions {
   maxTextSizeMb?: number;
 }
 
-export interface ComposerAttachmentState {
-  files: (ComposerFileItem & { extraction?: ClientSourceExtraction })[];
-  links: (ComposerLinkItem & { extraction?: ClientSourceExtraction })[];
-  isExtracting: boolean;
-  totalCount: number;
-  errors: string[];
-  addFiles: (fileList: FileList | File[]) => Promise<void>;
-  removeFile: (id: string) => void;
-  addLink: (url: string) => Promise<void>;
-  removeLink: (id: string) => void;
-  clearAll: () => void;
-  getReadySources: () => CohortSource[];
+type FileItem = ComposerFileItem & { extraction?: ClientSourceExtraction };
+type LinkItem = ComposerLinkItem & { extraction?: ClientSourceExtraction };
+
+/** Intake is a single JSON POST (Vercel limit 4.5 MB) and a sessionStorage draft: keep text well under both. */
+const MAX_TOTAL_TEXT_BYTES = 3 * 1024 * 1024;
+/** Bounded parallelism: protects memory (PDFs) and the YouTube/GitHub APIs (playlists). */
+const limit = pLimit(4);
+
+const patch = <T extends { id: string }>(set: Dispatch<SetStateAction<T[]>>, id: string, change: Partial<T>) =>
+  set((prev) => prev.map((item) => (item.id === id ? { ...item, ...change } : item)));
+
+/** List state mirrored in a ref so several adds in the same tick (multi-line paste) see each other. */
+function useSyncedList<T>(): [T[], MutableRefObject<T[]>, Dispatch<SetStateAction<T[]>>] {
+  const [list, setList] = useState<T[]>([]);
+  const ref = useRef<T[]>([]);
+  const set = useCallback<Dispatch<SetStateAction<T[]>>>((update) => {
+    ref.current = typeof update === 'function' ? (update as (p: T[]) => T[])(ref.current) : update;
+    setList(ref.current);
+  }, []);
+  return [list, ref, set];
 }
 
-const DEFAULT_MAX_FILES = 10;
-const DEFAULT_MAX_LINKS = 20;
-const DEFAULT_MAX_PDF_MB = 50;
-const DEFAULT_MAX_TEXT_MB = 5;
+const messageOf = (err: unknown) => (err instanceof Error ? err.message : 'Extraction failed');
+const isPdfFile = (file: File) => file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 
-export function useComposerAttachments(
-  options: UseComposerAttachmentsOptions = {}
-): ComposerAttachmentState {
-  const {
-    maxFiles = DEFAULT_MAX_FILES,
-    maxLinks = DEFAULT_MAX_LINKS,
-    maxPdfSizeMb = DEFAULT_MAX_PDF_MB,
-    maxTextSizeMb = DEFAULT_MAX_TEXT_MB,
-  } = options;
+interface YoutubeMeta { videoId?: string; title?: string; description?: string; durationMs?: number }
 
-  const [files, setFiles] = useState<(ComposerFileItem & { extraction?: ClientSourceExtraction })[]>([]);
-  const [links, setLinks] = useState<(ComposerLinkItem & { extraction?: ClientSourceExtraction })[]>([]);
+async function extractSingleLink(kind: ReturnType<typeof detectSourceKind>, url: string, meta?: YoutubeMeta) {
+  if (kind === 'youtube') {
+    let info = meta;
+    if (!info) {
+      const res = await fetch(`/api/import/youtube/metadata?url=${encodeURIComponent(url)}`).catch(() => null);
+      info = res?.ok ? await res.json().catch(() => undefined) : undefined;
+    }
+    const extraction = await extractYoutubeClient(url, info);
+    return { title: info?.title || extraction.provenance?.videoTitle || url, extraction };
+  }
+  if (kind === 'github') {
+    const extraction = await extractGithubClient(url);
+    const repo = extraction.provenance?.repoUrl?.split('/').slice(-2).join('/');
+    return { title: repo ? `GitHub: ${repo}` : 'GitHub repository', extraction };
+  }
+  if (kind === 'pdf') throw new Error('Download the PDF and add it with Upload.');
+  const { title, ...extraction } = await extractWebClient(url);
+  return { title: title || 'Web page', extraction };
+}
+
+export function toCohortSource(item: { id: string; label: string; extraction: ClientSourceExtraction }): CohortSource {
+  const { text, locations, provenance, checksum } = item.extraction;
+  return { id: item.id, version: 1, label: item.label, text, locations, provenance, checksum: checksum ?? sha256(text), state: 'ready' };
+}
+
+export function useComposerAttachments(options: UseComposerAttachmentsOptions = {}) {
+  const { maxFiles = 10, maxLinks = 20, maxPdfSizeMb = 50, maxTextSizeMb = 5 } = options;
+
+  const [files, filesRef, setFiles] = useSyncedList<FileItem>();
+  const [links, linksRef, setLinks] = useSyncedList<LinkItem>();
   const [errors, setErrors] = useState<string[]>([]);
+  const bytesById = useRef(new Map<string, number>());
 
-  const addError = useCallback((msg: string) => {
-    setErrors((prev) => [...prev.slice(-4), msg]);
-  }, []);
+  const addError = useCallback((msg: string) => setErrors((prev) => [...prev.slice(-4), msg]), []);
+
+  /** Records extracted size against the shared budget; throws when the budget would be exceeded. */
+  const reserveBytes = (id: string, extraction: ClientSourceExtraction) => {
+    const size = byteLengthUtf8(extraction.text);
+    const used = [...bytesById.current.values()].reduce((a, b) => a + b, 0);
+    if (used + size > MAX_TOTAL_TEXT_BYTES) throw new Error('Material limit reached (3 MB of text). Remove something first.');
+    bytesById.current.set(id, size);
+  };
+
+  type Status = 'idle' | 'extracting' | 'ready' | 'error';
+  const run = <T extends { id: string; status: Status; error?: string }>(
+    set: Dispatch<SetStateAction<(T & { extraction?: ClientSourceExtraction })[]>>,
+    id: string,
+    label: string,
+    work: () => Promise<{ extraction: ClientSourceExtraction } & Partial<T>>,
+  ) =>
+    limit(async () => {
+      try {
+        const result = await work();
+        reserveBytes(id, result.extraction);
+        patch(set, id, { ...result, status: 'ready' } as Partial<T & { extraction?: ClientSourceExtraction }>);
+      } catch (err) {
+        patch(set, id, { status: 'error', error: messageOf(err) } as Partial<T & { extraction?: ClientSourceExtraction }>);
+        addError(`${label}: ${messageOf(err)}`);
+      }
+    });
 
   const removeFile = useCallback((id: string) => {
+    bytesById.current.delete(id);
     setFiles((prev) => prev.filter((f) => f.id !== id));
   }, []);
 
   const removeLink = useCallback((id: string) => {
+    bytesById.current.delete(id);
     setLinks((prev) => prev.filter((l) => l.id !== id));
   }, []);
 
   const clearAll = useCallback(() => {
+    bytesById.current.clear();
     setFiles([]);
     setLinks([]);
     setErrors([]);
   }, []);
 
-  const addFiles = useCallback(
-    async (fileList: FileList | File[]) => {
-      const incoming = Array.from(fileList);
-      if (incoming.length === 0) return;
+  const addFiles = useCallback(async (fileList: FileList | File[]) => {
+    const slots = maxFiles - filesRef.current.length;
+    if (slots <= 0) return addError(`Maximum ${maxFiles} files reached.`);
 
-      const availableSlots = maxFiles - files.length;
-      if (availableSlots <= 0) {
-        addError(`Maximum ${maxFiles} files reached.`);
-        return;
+    for (const file of Array.from(fileList).slice(0, slots)) {
+      const pdf = isPdfFile(file);
+      const limitMb = pdf ? maxPdfSizeMb : maxTextSizeMb;
+      if (file.size > limitMb * 1024 * 1024) {
+        addError(`"${file.name}" exceeds the ${limitMb}MB limit.`);
+        continue;
       }
+      const id = crypto.randomUUID();
+      setFiles((prev) => [...prev, { id, name: file.name, size: file.size, type: pdf ? 'application/pdf' : file.type || 'text/plain', status: 'extracting' }]);
 
-      const accepted = incoming.slice(0, availableSlots);
-
-      for (const file of accepted) {
-        const id = `file_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        const isPdf = file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf';
-        const limitBytes = isPdf ? maxPdfSizeMb * 1024 * 1024 : maxTextSizeMb * 1024 * 1024;
-
-        if (file.size > limitBytes) {
-          addError(
-            `"${file.name}" exceeds the ${isPdf ? maxPdfSizeMb : maxTextSizeMb}MB limit.`
-          );
-          continue;
+      void run<ComposerFileItem>(setFiles, id, file.name, async () => {
+        if (pdf) {
+          const { thumbnailUrl, text, locations, checksum, provenance } = await extractPdfClient(file);
+          return { thumbnailUrl, extraction: { text, locations, checksum, provenance } };
         }
-
-        const newFileItem: ComposerFileItem & { extraction?: ClientSourceExtraction } = {
-          id,
-          file,
-          name: file.name,
-          size: file.size,
-          type: file.type || (isPdf ? 'application/pdf' : 'text/plain'),
-          status: 'extracting',
+        const text = (await file.text()).trim();
+        if (!text) throw new Error('File is empty.');
+        const checksum = sha256(text);
+        return {
+          extraction: {
+            text,
+            checksum,
+            locations: [{ start: 0, end: text.length }],
+            provenance: { parserVersion: 'text-client-v1', rawChecksum: checksum, scope: 'full_text_response' as const },
+          },
         };
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- run/addError are stable closures over refs and setters
+  }, [maxFiles, maxPdfSizeMb, maxTextSizeMb, addError]);
 
-        setFiles((prev) => [...prev, newFileItem]);
+  const addLink = useCallback(async (rawUrl: string) => {
+    const trimmed = rawUrl.trim();
+    if (!trimmed) return;
+    const url = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+    if (linksRef.current.some((l) => l.url === url)) return;
+    if (linksRef.current.length >= maxLinks) return addError(`Maximum ${maxLinks} links reached.`);
 
-        // Start async extraction
-        (async () => {
-          try {
-            if (isPdf) {
-              const result = await extractPdfClient(file);
-              const extraction: ClientSourceExtraction = {
-                text: result.text,
-                locations: result.locations,
-                checksum: result.checksum,
-                provenance: result.provenance,
-              };
+    const kind = detectSourceKind(url);
+    const id = crypto.randomUUID();
+    setLinks((prev) => [...prev, { id, url, kind, status: 'extracting' }]);
 
-              setFiles((prev) =>
-                prev.map((item) =>
-                  item.id === id
-                    ? {
-                        ...item,
-                        status: 'ready',
-                        thumbnailUrl: result.thumbnailUrl,
-                        extraction,
-                      }
-                    : item
-                )
-              );
-            } else {
-              // Text or markdown file
-              const textContent = await file.text();
-              const trimmed = textContent.trim();
-              const hash = sha256(trimmed);
-              const extraction: ClientSourceExtraction = {
-                text: trimmed,
-                checksum: hash,
-                locations: [
-                  {
-                    start: 0,
-                    end: Math.max(1, trimmed.length),
-                  },
-                ],
-                provenance: {
-                  parserVersion: 'text-client-v1',
-                  rawChecksum: hash,
-                  scope: 'full_text_response',
-                },
-              };
+    const extract = (itemId: string, itemUrl: string, meta?: YoutubeMeta) =>
+      run<ComposerLinkItem>(setLinks, itemId, itemUrl, () => extractSingleLink(kind, itemUrl, meta));
 
-              setFiles((prev) =>
-                prev.map((item) =>
-                  item.id === id
-                    ? {
-                        ...item,
-                        status: 'ready',
-                        extraction,
-                      }
-                    : item
-                )
-              );
-            }
-          } catch (err: unknown) {
-            const errorMsg = err instanceof Error ? err.message : 'Extraction failed';
-            setFiles((prev) =>
-              prev.map((item) =>
-                item.id === id
-                  ? {
-                      ...item,
-                      status: 'error',
-                      error: errorMsg,
-                    }
-                  : item
-              )
-            );
-            addError(`Failed to process "${file.name}": ${errorMsg}`);
-          }
-        })();
-      }
-    },
-    [files.length, maxFiles, maxPdfSizeMb, maxTextSizeMb, addError]
-  );
-
-  const addLink = useCallback(
-    async (rawUrl: string) => {
-      const trimmed = rawUrl.trim();
-      if (!trimmed) return;
-
-      if (links.length >= maxLinks) {
-        addError(`Maximum ${maxLinks} links reached.`);
+    // A playlist expands into one card per video (metadata already includes duration + description).
+    if (kind === 'youtube' && /[?&]list=/.test(url)) {
+      const res = await fetch(`/api/import/youtube/metadata?url=${encodeURIComponent(url)}`).catch(() => null);
+      const data = res?.ok ? await res.json().catch(() => null) : null;
+      if (data?.isPlaylist && Array.isArray(data.videos)) {
+        const room = maxLinks - linksRef.current.length + 1; // the placeholder row is replaced below
+        const videos = (data.videos as Array<YoutubeMeta & { videoId: string }>).slice(0, Math.max(room, 0));
+        const rows: LinkItem[] = videos.map((v) => ({
+          id: crypto.randomUUID(), kind, status: 'extracting' as const, title: v.title,
+          url: `https://www.youtube.com/watch?v=${v.videoId}`,
+        }));
+        setLinks((prev) => [...prev.filter((l) => l.id !== id), ...rows]);
+        if (data.videos.length > rows.length) addError(`Added the first ${rows.length} of ${data.videos.length} videos (link limit).`);
+        rows.forEach((row, i) => void extract(row.id, row.url, videos[i]));
         return;
       }
+    }
+    void extract(id, url);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- run/addError are stable closures over refs and setters
+  }, [maxLinks, addError]);
 
-      const formattedUrl =
-        trimmed.startsWith('http://') || trimmed.startsWith('https://')
-          ? trimmed
-          : `https://${trimmed}`;
-
-      const kind = detectLinkKind(formattedUrl);
-      const id = `link_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-      const newLinkItem: ComposerLinkItem & { extraction?: ClientSourceExtraction } = {
-        id,
-        url: formattedUrl,
-        kind,
-        status: 'extracting',
-      };
-
-      setLinks((prev) => [...prev, newLinkItem]);
-
-      // Start async extraction based on kind
-      (async () => {
-        try {
-          if (kind === 'youtube') {
-            // First fetch video or playlist metadata
-            let durationMs = 600000;
-            let description = '';
-            let videoTitle = '';
-
-            try {
-              const res = await fetch(`/api/import/youtube/metadata?url=${encodeURIComponent(formattedUrl)}`);
-              if (res.ok) {
-                const data = await res.json();
-                if (data.videos && data.videos.length > 0) {
-                  durationMs = data.videos[0].durationMs || durationMs;
-                  description = data.videos[0].description || '';
-                  videoTitle = data.videos[0].title || '';
-                } else if (data.durationMs) {
-                  durationMs = data.durationMs;
-                  description = data.description || '';
-                  videoTitle = data.title || '';
-                }
-              }
-            } catch {
-              // Continue with fallback duration and client extractor
-            }
-
-            const extraction = await extractYoutubeClient(formattedUrl, {
-              durationMs,
-              description,
-              title: videoTitle,
-            });
-
-            setLinks((prev) =>
-              prev.map((l) =>
-                l.id === id
-                  ? {
-                      ...l,
-                      status: 'ready',
-                      title: videoTitle || extraction.provenance?.videoTitle || l.url,
-                      extraction,
-                    }
-                  : l
-              )
-            );
-          } else if (kind === 'github') {
-            const extraction = await extractGithubClient(formattedUrl);
-            setLinks((prev) =>
-              prev.map((l) =>
-                l.id === id
-                  ? {
-                      ...l,
-                      status: 'ready',
-                      title: `GitHub: ${extraction.provenance?.repoUrl?.split('/').slice(-2).join('/') || 'Repository'}`,
-                      extraction,
-                    }
-                  : l
-              )
-            );
-          } else {
-            // Web or Notion
-            const extraction = await extractWebClient(formattedUrl);
-            setLinks((prev) =>
-              prev.map((l) =>
-                l.id === id
-                  ? {
-                      ...l,
-                      status: 'ready',
-                      title: extraction.title || 'Web Document',
-                      extraction: {
-                        text: extraction.text,
-                        locations: extraction.locations,
-                        checksum: extraction.checksum,
-                        provenance: extraction.provenance,
-                      },
-                    }
-                  : l
-              )
-            );
-          }
-        } catch (err: unknown) {
-          const errorMsg = err instanceof Error ? err.message : 'Extraction failed';
-          setLinks((prev) =>
-            prev.map((l) =>
-              l.id === id
-                ? {
-                    ...l,
-                    status: 'error',
-                    error: errorMsg,
-                  }
-                : l
-            )
-          );
-          addError(`Failed to extract "${formattedUrl}": ${errorMsg}`);
-        }
-      })();
-    },
-    [links.length, maxLinks, addError]
+  const isExtracting = useMemo(
+    () => files.some((f) => f.status === 'extracting') || links.some((l) => l.status === 'extracting'),
+    [files, links],
   );
 
-  const isExtracting = useMemo(() => {
-    return (
-      files.some((f) => f.status === 'extracting') ||
-      links.some((l) => l.status === 'extracting')
-    );
-  }, [files, links]);
+  const getReadySources = useCallback((): CohortSource[] => [
+    ...files.flatMap((f) => (f.status === 'ready' && f.extraction ? [toCohortSource({ id: f.id, label: f.name, extraction: f.extraction })] : [])),
+    ...links.flatMap((l) => (l.status === 'ready' && l.extraction ? [toCohortSource({ id: l.id, label: l.title || l.url, extraction: l.extraction })] : [])),
+  ], [files, links]);
 
-  const totalCount = files.length + links.length;
-
-  const getReadySources = useCallback((): CohortSource[] => {
-    const readySources: CohortSource[] = [];
-
-    // Map ready files
-    for (const f of files) {
-      if (f.status === 'ready' && f.extraction) {
-        readySources.push({
-          id: f.id,
-          version: 1,
-          label: f.name,
-          text: f.extraction.text,
-          locations: f.extraction.locations,
-          provenance: f.extraction.provenance,
-          checksum: f.extraction.checksum || sha256(f.extraction.text),
-          state: 'ready',
-        });
-      }
-    }
-
-    // Map ready links
-    for (const l of links) {
-      if (l.status === 'ready' && l.extraction) {
-        readySources.push({
-          id: l.id,
-          version: 1,
-          label: l.title || l.url,
-          text: l.extraction.text,
-          locations: l.extraction.locations,
-          provenance: l.extraction.provenance,
-          checksum: l.extraction.checksum || sha256(l.extraction.text),
-          state: 'ready',
-        });
-      }
-    }
-
-    return readySources;
-  }, [files, links]);
-
-  return {
-    files,
-    links,
-    isExtracting,
-    totalCount,
-    errors,
-    addFiles,
-    removeFile,
-    addLink,
-    removeLink,
-    clearAll,
-    getReadySources,
-  };
+  return { files, links, isExtracting, totalCount: files.length + links.length, errors, addFiles, removeFile, addLink, removeLink, clearAll, getReadySources };
 }
+
+
+

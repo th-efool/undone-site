@@ -38,6 +38,41 @@ function useSafeRouter() {
   }
 }
 
+function persistPromptDraft(query: string, sourceText: string, showSource: boolean) {
+  if (typeof window === 'undefined') return;
+  try {
+    if (query) {
+      sessionStorage.setItem('sidequest_prompt_query_draft', query);
+      localStorage.setItem('sidequest_prompt_query_draft', query);
+      sessionStorage.setItem('undone:landing-query', query);
+    } else {
+      sessionStorage.removeItem('sidequest_prompt_query_draft');
+      localStorage.removeItem('sidequest_prompt_query_draft');
+    }
+
+    if (sourceText) {
+      sessionStorage.setItem('sidequest_prompt_source_draft', sourceText);
+      localStorage.setItem('sidequest_prompt_source_draft', sourceText);
+    } else {
+      sessionStorage.removeItem('sidequest_prompt_source_draft');
+      localStorage.removeItem('sidequest_prompt_source_draft');
+    }
+
+    sessionStorage.setItem('sidequest_prompt_source_visible', String(showSource));
+    localStorage.setItem('sidequest_prompt_source_visible', String(showSource));
+  } catch {}
+}
+
+function clearPromptDraft() {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.removeItem('sidequest_prompt_query_draft');
+    localStorage.removeItem('sidequest_prompt_query_draft');
+    sessionStorage.removeItem('sidequest_prompt_source_draft');
+    localStorage.removeItem('sidequest_prompt_source_draft');
+  } catch {}
+}
+
 export interface LearningPromptBarHandle {
   setPrompt: (text: string) => void;
   focus: () => void;
@@ -254,28 +289,7 @@ export const LearningPromptBar = React.memo(
     // Continuously auto-persist unsubmitted prompt queries and pasted sources
     useEffect(() => {
       const timer = window.setTimeout(() => {
-        if (typeof window === 'undefined') return;
-        try {
-          if (query) {
-            sessionStorage.setItem('sidequest_prompt_query_draft', query);
-            localStorage.setItem('sidequest_prompt_query_draft', query);
-            sessionStorage.setItem('undone:landing-query', query);
-          } else {
-            sessionStorage.removeItem('sidequest_prompt_query_draft');
-            localStorage.removeItem('sidequest_prompt_query_draft');
-          }
-
-          if (sourceText) {
-            sessionStorage.setItem('sidequest_prompt_source_draft', sourceText);
-            localStorage.setItem('sidequest_prompt_source_draft', sourceText);
-          } else {
-            sessionStorage.removeItem('sidequest_prompt_source_draft');
-            localStorage.removeItem('sidequest_prompt_source_draft');
-          }
-
-          sessionStorage.setItem('sidequest_prompt_source_visible', String(showSource));
-          localStorage.setItem('sidequest_prompt_source_visible', String(showSource));
-        } catch {}
+        persistPromptDraft(query, sourceText, showSource);
       }, 200);
 
       return () => window.clearTimeout(timer);
@@ -284,18 +298,7 @@ export const LearningPromptBar = React.memo(
     // Flush immediately on accidental navigation or refresh before unload
     useEffect(() => {
       const handleBeforeUnload = () => {
-        try {
-          if (query) {
-            sessionStorage.setItem('sidequest_prompt_query_draft', query);
-            localStorage.setItem('sidequest_prompt_query_draft', query);
-          }
-          if (sourceText) {
-            sessionStorage.setItem('sidequest_prompt_source_draft', sourceText);
-            localStorage.setItem('sidequest_prompt_source_draft', sourceText);
-          }
-          sessionStorage.setItem('sidequest_prompt_source_visible', String(showSource));
-          localStorage.setItem('sidequest_prompt_source_visible', String(showSource));
-        } catch {}
+        persistPromptDraft(query, sourceText, showSource);
       };
 
       window.addEventListener('beforeunload', handleBeforeUnload);
@@ -309,6 +312,8 @@ export const LearningPromptBar = React.memo(
         setInternalQuery(val);
       }
     };
+
+    const isBusy = submitting || composerAttachments.isExtracting;
 
     const handleSubmit = async (mode: 'plan' | 'search' = 'search', valOrEvent?: string | React.FormEvent) => {
       if (typeof valOrEvent === 'object' && valOrEvent && 'preventDefault' in valOrEvent) {
@@ -327,7 +332,7 @@ export const LearningPromptBar = React.memo(
         }
       }
 
-      if (!textToSearch.trim() || submitting) return;
+      if (!textToSearch.trim() || submitting || composerAttachments.isExtracting) return;
 
       if (customOnSubmit) {
         customOnSubmit(textToSearch.trim());
@@ -350,16 +355,7 @@ export const LearningPromptBar = React.memo(
 
         sessionStorage.setItem('undone:landing-query', textToSearch.trim());
         saveIntakeDraft(draftPayload, ownerId);
-
-        // Ensure drafts survive unauthenticated auth redirects
-        try {
-          sessionStorage.setItem('sidequest_prompt_query_draft', textToSearch.trim());
-          localStorage.setItem('sidequest_prompt_query_draft', textToSearch.trim());
-          if (sourceText.trim()) {
-            sessionStorage.setItem('sidequest_prompt_source_draft', sourceText.trim());
-            localStorage.setItem('sidequest_prompt_source_draft', sourceText.trim());
-          }
-        } catch {}
+        persistPromptDraft(textToSearch.trim(), sourceText.trim(), showSource);
 
         if (!ownerId && status === 'unauthenticated') {
           const returnUrl = `/?q=${encodeURIComponent(textToSearch.trim())}&mode=${mode}`;
@@ -379,14 +375,8 @@ export const LearningPromptBar = React.memo(
           if (createRes?.ok) {
             const created = await createRes.json();
             if (created?.workspaceId) {
-              // Clear draft on successful transition
-              try {
-                sessionStorage.removeItem('sidequest_prompt_query_draft');
-                localStorage.removeItem('sidequest_prompt_query_draft');
-                sessionStorage.removeItem('sidequest_prompt_source_draft');
-                localStorage.removeItem('sidequest_prompt_source_draft');
-                composerAttachments.clearAll();
-              } catch {}
+              clearPromptDraft();
+              composerAttachments.clearAll();
               const buildHref = `/quest/build/${created.workspaceId}`;
               if (router) router.push(buildHref);
               else window.location.href = buildHref;
@@ -394,17 +384,10 @@ export const LearningPromptBar = React.memo(
             }
           }
         } catch {
-          // Fall back
+          // Fall back to /quest/start
         }
 
-        // Clear draft on successful transition
-        try {
-          sessionStorage.removeItem('sidequest_prompt_query_draft');
-          localStorage.removeItem('sidequest_prompt_query_draft');
-          sessionStorage.removeItem('sidequest_prompt_source_draft');
-          localStorage.removeItem('sidequest_prompt_source_draft');
-        } catch {}
-
+        clearPromptDraft();
         if (router) router.push('/quest/start');
         else window.location.href = '/quest/start';
       } catch (error) {
@@ -444,6 +427,12 @@ export const LearningPromptBar = React.memo(
           value={query}
           autoFocus={autoFocus}
           onChange={(e) => handleQueryChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && e.shiftKey && !e.ctrlKey && !e.metaKey) {
+              e.preventDefault();
+              void handleSubmit('plan');
+            }
+          }}
           onSubmit={() => void handleSubmit('search')}
           placeholder={placeholder}
           className={styles.inputCard}
@@ -555,12 +544,12 @@ export const LearningPromptBar = React.memo(
                 <button
                   type="button"
                   className={styles.promptPlanBtn}
-                  disabled={submitting}
+                  disabled={isBusy}
                   onClick={() => void handleSubmit('plan')}
                   title="Plan collaboratively with AI in conversational chat"
                 >
                   <Lightbulb size={16} strokeWidth={1.8} />
-                  <span>Plan</span>
+                  <span>{composerAttachments.isExtracting ? 'Reading…' : 'Plan'}</span>
                 </button>
 
                 <span className={styles.promptDivider} aria-hidden="true" />
@@ -568,11 +557,11 @@ export const LearningPromptBar = React.memo(
                 <button
                   type="button"
                   className={styles.promptBeginBtn}
-                  disabled={submitting}
+                  disabled={isBusy}
                   onClick={(e) => void handleSubmit('search', e)}
                   title="Search matching cohorts and begin your journey"
                 >
-                  <span>Begin journey</span>
+                  <span>{composerAttachments.isExtracting ? 'Reading files…' : 'Begin journey'}</span>
                   <ArrowRight size={16} strokeWidth={2.0} />
                 </button>
               </div>

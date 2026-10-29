@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useRef, useCallback } from 'react';
 import { X, Check, AlertCircle } from 'lucide-react';
-import { SourceIcon, SourceIconKind } from './SourceIcon';
+import { SourceIcon, type SourceIconKind } from './SourceIcon';
 import styles from './LinkRows.module.css';
 
 export interface ComposerLinkItem {
@@ -21,15 +21,6 @@ export interface LinkRowsProps {
   maxLinks?: number;
   disabled?: boolean;
   className?: string;
-}
-
-export function detectLinkKind(rawUrl: string): SourceIconKind {
-  const url = rawUrl.toLowerCase().trim();
-  if (url.includes('youtube.com') || url.includes('youtu.be')) return 'youtube';
-  if (url.includes('notion.so') || url.includes('notion.site')) return 'notion';
-  if (url.includes('github.com')) return 'github';
-  if (url.endsWith('.pdf') || url.includes('.pdf?')) return 'pdf';
-  return 'web';
 }
 
 export function formatUrlForDisplay(rawUrl: string): string {
@@ -102,7 +93,7 @@ export const LinkRows: React.FC<LinkRowsProps> = ({
             <li key={item.id} className={styles.linkItem} data-testid={`link-item-${item.id}`}>
               <div className={styles.linkInfo}>
                 <div className={styles.iconWrapper}>
-                  <SourceIcon kind={item.kind} size={18} variant="brand" />
+                  <SourceIcon kind={item.kind} size={18} />
                 </div>
                 <div className={styles.linkText}>
                   <span className={styles.linkTitle} title={item.title || item.url}>
@@ -176,3 +167,4 @@ export const LinkRows: React.FC<LinkRowsProps> = ({
     </div>
   );
 };
+

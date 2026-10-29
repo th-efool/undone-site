@@ -1,192 +1,66 @@
 import React from 'react';
+import type { SourceKind } from '@/src/shared/cohort-builder/source-kind';
 
-export type SourceIconKind = 'youtube' | 'notion' | 'github' | 'pdf' | 'text' | 'web';
+export type SourceIconKind = SourceKind | 'text';
 
-export interface SourceIconProps extends React.SVGProps<SVGSVGElement> {
+export interface SourceIconProps {
   kind: SourceIconKind;
-  variant?: 'brand' | 'mono';
-  size?: number | string;
+  size?: number;
   className?: string;
+  /** When set the icon is exposed to assistive tech; otherwise it is decorative. */
   title?: string;
 }
 
-export function SourceIcon({
-  kind,
-  variant = 'brand',
-  size = 18,
-  className = '',
-  title,
-  ...props
-}: SourceIconProps) {
-  const isBrand = variant === 'brand';
-  const label = title || `${kind} source icon`;
+const STROKE = { stroke: 'currentColor', strokeWidth: 1.75, strokeLinecap: 'round', strokeLinejoin: 'round', fill: 'none' } as const;
 
-  switch (kind) {
-    case 'youtube':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className={className}
-          aria-hidden={!title}
-          role={title ? 'img' : 'presentation'}
-          {...props}
-        >
-          {title && <title>{label}</title>}
-          <path
-            d="M21.582 7.184a2.508 2.508 0 0 0-1.765-1.776C18.257 5 12 5 12 5s-6.257 0-7.817.408a2.508 2.508 0 0 0-1.765 1.776A26.31 26.31 0 0 0 2 12a26.31 26.31 0 0 0 .418 4.816 2.508 2.508 0 0 0 1.765 1.776C5.743 19 12 19 12 19s6.257 0 7.817-.408a2.508 2.508 0 0 0 1.765-1.776A26.31 26.31 0 0 0 22 12a26.31 26.31 0 0 0-.418-4.816z"
-            fill={isBrand ? '#FF0000' : 'currentColor'}
-          />
-          <path d="m10 15 5-3-5-3v6z" fill="#FFFFFF" />
-        </svg>
-      );
+const ICONS: Record<SourceIconKind, React.ReactNode> = {
+  youtube: (
+    <>
+      <path fill="#FF0000" d="M21.58 7.18a2.5 2.5 0 0 0-1.77-1.77C18.26 5 12 5 12 5s-6.26 0-7.82.41A2.5 2.5 0 0 0 2.42 7.18 26.3 26.3 0 0 0 2 12c0 1.63.14 3.25.42 4.82a2.5 2.5 0 0 0 1.76 1.77C5.74 19 12 19 12 19s6.26 0 7.82-.41a2.5 2.5 0 0 0 1.77-1.77c.28-1.57.41-3.19.41-4.82s-.13-3.25-.42-4.82z" />
+      <path fill="#fff" d="m10 15 5-3-5-3z" />
+    </>
+  ),
+  notion: (
+    <>
+      <rect x="3" y="3" width="18" height="18" rx="4" fill="#000" />
+      <path fill="#fff" d="M8 7.5h1.6l5.2 7V7.5H16v9h-1.5l-5.3-7.1v7.1H8z" />
+    </>
+  ),
+  github: (
+    <path fill="#24292e" fillRule="evenodd" clipRule="evenodd" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.56-1.11-4.56-4.95 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.65 0 0 .84-.27 2.75 1.02a9.5 9.5 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.65.64.7 1.03 1.59 1.03 2.68 0 3.85-2.34 4.7-4.57 4.94.36.31.68.92.68 1.85v2.75c0 .27.18.58.69.48A10 10 0 0 0 12 2z" />
+  ),
+  pdf: (
+    <>
+      <path {...STROKE} stroke="#E53E3E" fill="#E53E3E" fillOpacity={0.15} d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zM14 2v6h6" />
+      <text x="6.5" y="17" fontSize="6" fontWeight="bold" fontFamily="sans-serif" fill="#E53E3E">PDF</text>
+    </>
+  ),
+  text: (
+    <>
+      <path {...STROKE} d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8" />
+    </>
+  ),
+  web: (
+    <>
+      <circle {...STROKE} cx="12" cy="12" r="10" />
+      <path {...STROKE} d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </>
+  ),
+};
 
-    case 'notion':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className={className}
-          aria-hidden={!title}
-          role={title ? 'img' : 'presentation'}
-          {...props}
-        >
-          {title && <title>{label}</title>}
-          <rect
-            x="3"
-            y="3"
-            width="18"
-            height="18"
-            rx="4"
-            fill={isBrand ? '#000000' : 'currentColor'}
-          />
-          <path
-            d="M7 7.5c.3.2.7.2 1.1 0l7.2-4.5c.4-.2.8-.2 1.1 0l.6.4c.3.2.5.5.5.8v11.6c0 .5-.3 1-.8 1.1l-1.9.4c-.4.1-.7-.1-.9-.4L9.8 9.5v6.3c0 .5-.4.9-.9.9H7.5c-.5 0-.9-.4-.9-.9V8.6c0-.5.2-.9.4-1.1z"
-            fill="#FFFFFF"
-          />
-        </svg>
-      );
-
-    case 'github':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className={className}
-          aria-hidden={!title}
-          role={title ? 'img' : 'presentation'}
-          {...props}
-        >
-          {title && <title>{label}</title>}
-          <path
-            fillRule="evenodd"
-            clipRule="evenodd"
-            d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z"
-            fill={isBrand ? '#24292e' : 'currentColor'}
-          />
-        </svg>
-      );
-
-    case 'pdf':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className={className}
-          aria-hidden={!title}
-          role={title ? 'img' : 'presentation'}
-          {...props}
-        >
-          {title && <title>{label}</title>}
-          <path
-            d="M6 2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"
-            fill={isBrand ? '#E53E3E' : 'currentColor'}
-            fillOpacity={isBrand ? 0.15 : 0.2}
-            stroke={isBrand ? '#E53E3E' : 'currentColor'}
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M14 2v6h6"
-            stroke={isBrand ? '#E53E3E' : 'currentColor'}
-            strokeWidth="1.5"
-            strokeLinejoin="round"
-          />
-          <text
-            x="7"
-            y="17"
-            fontSize="6"
-            fontWeight="bold"
-            fontFamily="sans-serif"
-            fill={isBrand ? '#E53E3E' : 'currentColor'}
-          >
-            PDF
-          </text>
-        </svg>
-      );
-
-    case 'text':
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className={className}
-          aria-hidden={!title}
-          role={title ? 'img' : 'presentation'}
-          {...props}
-        >
-          {title && <title>{label}</title>}
-          <path
-            d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinejoin="round"
-          />
-          <polyline points="14 2 14 8 20 8" stroke="currentColor" strokeWidth="1.75" />
-          <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-          <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-          <line x1="10" y1="9" x2="8" y2="9" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
-        </svg>
-      );
-
-    case 'web':
-    default:
-      return (
-        <svg
-          width={size}
-          height={size}
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          className={className}
-          aria-hidden={!title}
-          role={title ? 'img' : 'presentation'}
-          {...props}
-        >
-          {title && <title>{label}</title>}
-          <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="1.75" />
-          <line x1="2" y1="12" x2="22" y2="12" stroke="currentColor" strokeWidth="1.75" />
-          <path
-            d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
-            stroke="currentColor"
-            strokeWidth="1.75"
-          />
-        </svg>
-      );
-  }
+export function SourceIcon({ kind, size = 18, className, title }: SourceIconProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+      role={title ? 'img' : 'presentation'}
+      aria-hidden={title ? undefined : true}
+    >
+      {title && <title>{title}</title>}
+      {ICONS[kind] ?? ICONS.web}
+    </svg>
+  );
 }

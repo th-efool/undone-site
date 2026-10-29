@@ -1,4 +1,4 @@
-// @vitest-environment jsdom
+﻿// @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
@@ -7,7 +7,8 @@ afterEach(() => {
   cleanup();
 });
 import { SourceIcon } from '../SourceIcon';
-import { LinkRows, detectLinkKind, formatUrlForDisplay, ComposerLinkItem } from '../LinkRows';
+import { LinkRows, formatUrlForDisplay, ComposerLinkItem } from '../LinkRows';
+import { detectSourceKind as detectLinkKind } from '@/src/shared/cohort-builder/source-kind';
 import { AttachmentTray, ComposerFileItem } from '../AttachmentTray';
 
 describe('Composer Components', () => {
@@ -21,15 +22,6 @@ describe('Composer Components', () => {
       }
     });
 
-    it('renders in brand and monochrome variants', () => {
-      const { unmount: u1 } = render(<SourceIcon kind="youtube" variant="brand" title="yt-brand" />);
-      expect(screen.getByTitle('yt-brand')).toBeDefined();
-      u1();
-
-      const { unmount: u2 } = render(<SourceIcon kind="youtube" variant="mono" title="yt-mono" />);
-      expect(screen.getByTitle('yt-mono')).toBeDefined();
-      u2();
-    });
   });
 
   describe('detectLinkKind and formatUrlForDisplay', () => {
@@ -204,3 +196,4 @@ describe('Composer Components', () => {
     });
   });
 });
+

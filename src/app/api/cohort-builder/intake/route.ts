@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     while (true) {
       const part = await reader.read(); if (part.done) break;
       size += part.value.byteLength;
-      if (size > 850_000) { await reader.cancel(); return reply({ code: 'INPUT_TOO_LARGE' }, 413); }
+      if (size > 3_500_000) { await reader.cancel(); return reply({ code: 'INPUT_TOO_LARGE' }, 413); }
       text += decoder.decode(part.value, { stream: true });
     }
     text += decoder.decode();
