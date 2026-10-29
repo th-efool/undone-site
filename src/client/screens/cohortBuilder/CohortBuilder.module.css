@@ -2758,3 +2758,170 @@ fieldset.formField button:hover:not(:disabled) {
 
 
 
+
+/* ==========================================================================
+   Centered Chat Layout (Plan Mode) & Closable Panel Styles
+   ========================================================================== */
+
+.centeredChatPage {
+  min-height: 100dvh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--creation-paper, #fbf7f0);
+  color: var(--creation-ink, #08143d);
+  font-family: var(--font-manrope-next), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+  position: relative;
+  isolation: isolate;
+}
+
+.centeredChatPage::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: .07;
+  background: url('/images/hero-collage/real-paper-texture.jpg') center / cover;
+  mix-blend-mode: multiply;
+}
+
+.centeredChatPage[data-theme='dark'] {
+  --creation-paper: #171b26;
+  --creation-surface: #202633;
+  --creation-ink: #f5eee1;
+  --creation-muted: #aebbd1;
+  --creation-blue: #9299ff;
+  --creation-line: #394252;
+}
+
+.centeredChatHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 36px;
+  border-bottom: 1px solid color-mix(in srgb, var(--creation-line) 40%, transparent);
+  background: color-mix(in srgb, var(--creation-paper) 80%, transparent);
+  backdrop-filter: blur(8px);
+  z-index: 20;
+}
+
+.centeredChatMain {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  height: 100%;
+  overflow: hidden;
+}
+
+.centeredChatPane {
+  width: 100%;
+  height: 100%;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.closePanelButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--creation-line) 60%, transparent);
+  background: var(--creation-surface, #ffffff);
+  color: var(--creation-muted, #736d66);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.closePanelButton:hover {
+  background: color-mix(in srgb, var(--creation-line) 40%, transparent);
+  color: var(--creation-ink, #08143d);
+  transform: scale(1.05);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modalContent {
+  background: var(--creation-surface, #ffffff);
+  border: 1px solid var(--creation-line, #e9e0d5);
+  border-radius: 16px;
+  max-width: 440px;
+  width: 100%;
+  padding: 24px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modalTitle {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--creation-ink);
+  margin: 0;
+}
+
+.modalDesc {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--creation-muted);
+  margin: 0;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.modalCancelBtn {
+  background: transparent;
+  border: 1px solid var(--creation-line);
+  color: var(--creation-ink);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.modalCancelBtn:hover {
+  background: color-mix(in srgb, var(--creation-line) 30%, transparent);
+}
+
+.modalConfirmBtn {
+  background: #303cff;
+  border: none;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 150ms ease;
+}
+
+.modalConfirmBtn:hover {
+  opacity: 0.9;
+}

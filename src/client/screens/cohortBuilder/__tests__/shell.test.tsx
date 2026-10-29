@@ -244,3 +244,60 @@ it('toolbar and entity reference layout: canvasHeader provides reserved layout s
   expect(chipButton.querySelector('svg')).toBeDefined();
 });
 
+
+
+it('renders centered single-column chat layout when journey.step is chat (PLAN-023)', () => {
+  fake.view = cohortWorkspaceSchema.parse({
+    schemaVersion: 1,
+    title: 'Plan Machine Learning',
+    intent: 'Learn Machine Learning',
+    audience: '',
+    dailyMinutes: 25,
+    lessons: [],
+    journey: {
+      version: 1,
+      step: 'chat',
+      branch: null,
+      processingStarted: false,
+      intentVersion: 0,
+    },
+  });
+
+  render(<CohortInteractionScreen workspaceId="ws-chat-mode" ownerId="owner" initialView={fake.view} />);
+
+  // Centered chat header exists, no split workspace pane exists
+  expect(screen.getByRole('banner', { name: 'Plan chat header' })).toBeDefined();
+  expect(screen.getByRole('main', { name: 'Conversational cohort planning' })).toBeDefined();
+  expect(screen.queryByRole('banner', { name: 'Workspace toolbar' })).toBeNull();
+  expect(screen.queryByRole('navigation', { name: 'Builder views' })).toBeNull();
+});
+
+it('renders close panel button and opens confirmation modal (PLAN-024)', async () => {
+  fake.view = cohortWorkspaceSchema.parse({
+    schemaVersion: 1,
+    title: 'Explore Recommendations',
+    intent: 'Learn ML',
+    audience: '',
+    dailyMinutes: 25,
+    lessons: [],
+    journey: {
+      version: 1,
+      step: 'recommendations',
+      branch: null,
+      processingStarted: false,
+      intentVersion: 0,
+    },
+  });
+
+  render(<CohortInteractionScreen workspaceId="ws-close-panel" ownerId="owner" initialView={fake.view} />);
+
+  const closeBtn = screen.getByRole('button', { name: /Close workspace panel and return to chat/i });
+  expect(closeBtn).toBeDefined();
+
+  // Clicking close button displays confirmation modal
+  fireEvent.click(closeBtn);
+  expect(screen.getByRole('dialog', { name: /Return to conversational chat/i })).toBeDefined();
+  expect(screen.getByText('Return to conversational chat?')).toBeDefined();
+  expect(screen.getByRole('button', { name: 'Close panel' })).toBeDefined();
+  expect(screen.getByRole('button', { name: 'Keep open' })).toBeDefined();
+});

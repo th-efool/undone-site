@@ -31,9 +31,10 @@ interface ChatPaneProps {
   attachedEntity: AttachedEntity | null;
   onClearAttachedEntity: () => void;
   connection?: string;
+  isCentered?: boolean;
 }
 
-export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = 'live' }: ChatPaneProps) {
+export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = 'live', isCentered = false }: ChatPaneProps) {
   const messages = useWorkspaceMessages();
   const sendMessage = useSendMessage();
   const state = useInteractionState<CohortWorkspace>();
@@ -104,7 +105,13 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
 
   const step = state.view?.journey?.step;
 
-  const suggestions = step === 'recommendations'
+  const suggestions = step === 'chat'
+    ? [
+        'Search machine learning cohorts',
+        'Create a hands-on curriculum from scratch',
+        'How does cohort learning work on Undone?',
+      ]
+    : step === 'recommendations'
     ? [
         'Show more advanced ones',
         'I want something more practical',
@@ -150,7 +157,9 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
         'Add a capstone project lesson',
       ];
 
-  const hintTitle = step === 'recommendations'
+  const hintTitle = step === 'chat'
+    ? 'Conversational Planning'
+    : step === 'recommendations'
     ? (state.view?.recommendations?.items.length === 0 ? 'A new path' : 'Why these?')
     : step === 'starting_point'
     ? 'We’ll keep this simple.'
@@ -168,7 +177,9 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
     ? 'Your cohort is live'
     : 'You stay in control';
 
-  const hintText = step === 'recommendations'
+  const hintText = step === 'chat'
+    ? 'Chat collaboratively to plan your cohort or discover existing ones. When you decide on a topic or want to find matches, simply ask!'
+    : step === 'recommendations'
     ? (state.view?.recommendations?.items.length === 0
         ? 'No matching public cohort was found. Create your own from this learning intent.'
         : 'We search public cohorts for your learning intent. You can join a match or create your own.')
@@ -188,7 +199,9 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
     ? 'Your learning experience is published and accessible from your cohort receipt.'
     : 'Suggestions can change titles, descriptions and learning objectives. Source material and publication decisions stay under your control.';
 
-  const placeholder = step === 'recommendations'
+  const placeholder = step === 'chat'
+    ? 'What do you want to learn? Ask a question, explore topics, or paste links...'
+    : step === 'recommendations'
     ? 'Describe what you want to learn...'
     : step === 'starting_point'
     ? 'Describe your starting point or material...'
@@ -203,7 +216,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
   const logoSrc = isDark ? '/undone-logo-dark.svg' : '/undone-logo-transparent.svg';
 
   return (
-    <div className={styles.railBody}>
+    <div className={`${styles.railBody} ${isCentered ? styles.centeredChatPane : ''}`}>
       <div
         className={styles.messages}
         ref={scrollRef}

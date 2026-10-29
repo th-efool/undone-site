@@ -4,15 +4,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { InteractionProvider } from '@/src/client/interaction/provider';
 import { createInteractionStore } from 'interaction-builder/client';
 import { devLogger } from '@/src/shared/lib/dev-logger';
 import {
   useWorkspaceConnection,
   useInteractionState,
+  useDispatchAction,
 } from '@/src/client/interaction/hooks';
-import { type CohortWorkspace, planCohortAction } from '@/src/shared/cohort-builder/contracts';
+import { type CohortWorkspace, type CohortAction, planCohortAction } from '@/src/shared/cohort-builder/contracts';
 import type { EntityRef } from 'interaction-builder/core';
 import { ThemeToggle } from '@/src/client/screens/landing/Hero/components/ThemeToggle';
 import { useTheme } from '@/src/client/hooks/useTheme';
@@ -41,9 +42,11 @@ interface InnerBuilderScreenProps {
 function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
   const connection = useWorkspaceConnection();
   const state = useInteractionState<CohortWorkspace>();
+  const dispatchAction = useDispatchAction<CohortAction>();
   const [attachedEntity, setAttachedEntity] = useState<AttachedEntity | null>(null);
   const [pane, setPane] = useState<'chat' | 'workspace'>('workspace');
   const [collapsed, setCollapsed] = useState(false);
+  const [showCloseModal, setShowCloseModal] = useState(false);
   const { theme, isDark } = useTheme();
 
   useEffect(() => {
@@ -56,6 +59,8 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
     };
   }, []);
 
+  const isChatStep = state.view?.journey?.step === 'chat';
+
   const stage = state.view
     ? state.view.processing.status === 'processing' ||
       state.view.processing.status === 'queued' ||
@@ -66,6 +71,51 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
       : 'material'
     : 'material';
 
+  // Centered ChatGPT-style chat layout for Plan mode (Reference Image 2)
+  if (isChatStep) {
+    return (
+      <div
+        id="main-content"
+        className={styles.centeredChatPage}
+        data-theme={theme}
+      >
+        <header className={styles.centeredChatHeader} aria-label="Plan chat header">
+          <Link className={styles.brand} href="/" aria-label="Undone home">
+            <Image
+              src={isDark ? '/undone-logo-dark.svg' : '/undone-logo-transparent.svg'}
+              width={42}
+              height={42}
+              alt=""
+              priority
+            />
+            <span>
+              <strong>UNDONE</strong>
+              <em>For a more curious you.</em>
+            </span>
+          </Link>
+
+          <div className={styles.tools}>
+            <span className={styles.srOnly}>Rev #{state.revision}</span>
+            <ThemeToggle />
+            <Link href="/home" className={styles.account} aria-label="Open your account">
+              Y
+            </Link>
+          </div>
+        </header>
+
+        <main className={styles.centeredChatMain} aria-label="Conversational cohort planning">
+          <ChatPane
+            isCentered={true}
+            attachedEntity={attachedEntity}
+            onClearAttachedEntity={() => setAttachedEntity(null)}
+            connection={connection}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // Split-panel layout for Search & Cohort Creation workflows
   return (
     <div
       id="main-content"
@@ -92,7 +142,7 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
         </button>
       </nav>
 
-      {/* Left Conversation Rail matching legacy CreationShell */}
+      {/* Left Conversation Rail */}
       <aside className={styles.rail} aria-label="Creation conversation">
         <header className={styles.brandHeader}>
           <Link className={styles.brand} href="/" aria-label="Undone home">
@@ -126,10 +176,19 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
         />
       </aside>
 
-      {/* Right Canvas matching legacy CreationShell with dedicated toolbar header */}
+      {/* Right Canvas with close button and toolbar header */}
       <div className={styles.canvas}>
         <header className={styles.canvasHeader} aria-label="Workspace toolbar">
           <div className={styles.tools}>
+            <button
+              type="button"
+              className={styles.closePanelButton}
+              onClick={() => setShowCloseModal(true)}
+              aria-label="Close workspace panel and return to chat"
+              title="Close workspace panel and return to chat"
+            >
+              <X size={16} />
+            </button>
             <span className={styles.srOnly}>Rev #{state.revision}</span>
             <ThemeToggle />
             <Link href="/home" className={styles.account} aria-label="Open your account">
@@ -149,6 +208,48 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
           />
         </div>
       </div>
+
+      {/* Return to Chat Confirmation Dialog */}
+      {showCloseModal && (
+        <div
+          className={styles.modalOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="close-modal-title"
+          onClick={() => setShowCloseModal(false)}
+        >
+          <div
+            className={styles.modalContent}
+            onClick={e => e.stopPropagation()}
+          >
+            <h3 id="close-modal-title" className={styles.modalTitle}>
+              Return to conversational chat?
+            </h3>
+            <p className={styles.modalDesc}>
+              Closing this workspace panel will return you to the centered conversational chat. Your conversation history and materials are safely preserved.
+            </p>
+            <div className={styles.modalActions}>
+              <button
+                type="button"
+                className={styles.modalCancelBtn}
+                onClick={() => setShowCloseModal(false)}
+              >
+                Keep open
+              </button>
+              <button
+                type="button"
+                className={styles.modalConfirmBtn}
+                onClick={async () => {
+                  setShowCloseModal(false);
+                  await dispatchAction({ type: 'close_panel' });
+                }}
+              >
+                Close panel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
