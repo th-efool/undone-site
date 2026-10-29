@@ -1,6 +1,5 @@
-import { describe, it, expect } from 'vitest';
+﻿import { describe, it, expect } from 'vitest';
 import {
-  formatTimestamp,
   parseTimestampMs,
   extractChaptersFromDescription,
   buildYoutubeClientExtraction,
@@ -18,12 +17,6 @@ describe('sourceExtractors', () => {
       expect(parseIsoDurationMs('PT2H')).toBe(7200 * 1000);
       expect(parseIsoDurationMs('')).toBe(0);
       expect(parseIsoDurationMs(undefined)).toBe(0);
-    });
-
-    it('formatTimestamp formats seconds and hours correctly', () => {
-      expect(formatTimestamp(0)).toBe('00:00');
-      expect(formatTimestamp(65000)).toBe('01:05');
-      expect(formatTimestamp(3661000)).toBe('1:01:01');
     });
 
     it('parseTimestampMs parses string timestamps into ms', () => {
@@ -60,9 +53,27 @@ Course Overview:
       // Validates against authoritative clientSourceExtractionSchema
       const validated = clientSourceExtractionSchema.parse(extraction);
       expect(validated.text).toBeTruthy();
-      expect(validated.locations.length).toBeGreaterThanOrEqual(2);
+      expect(validated.locations.length).toBeGreaterThanOrEqual(1);
       expect(validated.provenance?.videoId).toBe('abc1234');
       expect(validated.checksum).toBeTruthy();
+    });
+
+    it('uses real transcript cues when available (transcript_only, windowed, schema-valid)', () => {
+      const transcript = Array.from({ length: 60 }, (_, i) => ({ startMs: i * 10_000, endMs: i * 10_000 + 9_000, text: `cue ${i}` }));
+      const extraction = clientSourceExtractionSchema.parse(
+        buildYoutubeClientExtraction({ videoId: 'abc12345678', title: 'T', description: '', durationMs: 600_000, transcript }),
+      );
+      expect(extraction.provenance?.scope).toBe('transcript_only');
+      expect(extraction.locations.length).toBeGreaterThan(3);
+      expect(extraction.text).toContain('cue 59');
+    });
+
+    it('metadata-only fallback is factual: one window, no invented titles, flagged as limited', () => {
+      const extraction = buildYoutubeClientExtraction({ videoId: 'abc12345678', title: 'Real Title', description: 'About X.', durationMs: 600_000 });
+      expect(extraction.locations).toHaveLength(1);
+      expect(extraction.text).toContain('About X.');
+      expect(extraction.text).not.toMatch(/Core concept|Introduction and overview/);
+      expect(extraction.provenance?.limitations?.[0]).toMatch(/No transcript/);
     });
   });
 
@@ -87,3 +98,5 @@ Course Overview:
     });
   });
 });
+
+

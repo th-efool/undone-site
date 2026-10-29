@@ -1,3 +1,4 @@
+﻿import pLimit from 'p-limit';
 import { sha256 } from '@/src/shared/cohort-builder/hash';
 import type { ClientSourceExtraction } from '@/src/shared/cohort-builder/contracts';
 
@@ -44,7 +45,7 @@ const IGNORED_PATHS = [
   '.github',
 ];
 
-export async function extractGithubRepoClient(
+export async function extractGithubClient(
   repoUrl: string,
   options: { ref?: string; maxFiles?: number; maxChars?: number } = {}
 ): Promise<ClientSourceExtraction> {
@@ -67,7 +68,7 @@ export async function extractGithubRepoClient(
     if (treeRes.status === 404) {
       // Retry with 'master' branch if 'main' was 404
       if (ref === 'main') {
-        return extractGithubRepoClient(repoUrl, { ...options, ref: 'master' });
+        return extractGithubClient(repoUrl, { ...options, ref: 'master' });
       }
       throw new Error(`Repository or branch "${ref}" not found on GitHub.`);
     }
@@ -102,37 +103,25 @@ export async function extractGithubRepoClient(
     })
     .slice(0, maxFiles);
 
+
+  // Fetch in parallel (bounded), assemble in tree order so output stays deterministic.
+  const limit = pLimit(6);
+  const contents = await Promise.all(eligibleFiles.map((file) => limit(async () => {
+    try {
+      const res = await fetch(`https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${file.path}`);
+      return res.ok ? (await res.text()).trim() : '';
+    } catch {
+      return '';
+    }
+  })));
+
   let fullText = `# Repository: ${owner}/${repo} (${ref})\n\n`;
   const locations: Array<{ start: number; end: number; filePath: string }> = [];
-
-  for (const file of eligibleFiles) {
-    try {
-      const rawFileUrl = `https://raw.githubusercontent.com/${owner}/${repo}/${ref}/${file.path}`;
-      const rawRes = await fetch(rawFileUrl);
-      if (!rawRes.ok) continue;
-
-      const fileContent = await rawRes.text();
-      if (!fileContent.trim()) continue;
-
-      const fileHeader = `### File: ${file.path}\n\n`;
-      const start = fullText.length;
-      fullText += fileHeader + fileContent.trim() + '\n\n';
-      const end = fullText.length;
-
-      locations.push({
-        start,
-        end,
-        filePath: file.path,
-      });
-
-      if (fullText.length >= maxChars) {
-        fullText = fullText.slice(0, maxChars);
-        locations[locations.length - 1].end = fullText.length;
-        break;
-      }
-    } catch {
-      // Skip file if download fails
-    }
+  for (let i = 0; i < eligibleFiles.length && fullText.length < maxChars; i++) {
+    if (!contents[i]) continue;
+    const start = fullText.length;
+    fullText = (fullText + `### File: ${eligibleFiles[i].path}\n\n${contents[i]}\n\n`).slice(0, maxChars);
+    if (fullText.length > start) locations.push({ start, end: fullText.length, filePath: eligibleFiles[i].path });
   }
 
   if (locations.length === 0) {
@@ -156,6 +145,3 @@ export async function extractGithubRepoClient(
     },
   };
 }
-
-export { extractGithubRepoClient as extractGithubClient };
-

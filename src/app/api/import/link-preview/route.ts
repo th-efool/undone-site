@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+﻿import { NextRequest } from 'next/server';
 import { openWebSource, webSourceUrl } from '@/src/server/domain/cohort-creation/materials/web-fetch';
 import { devLogger } from '@/src/shared/lib/dev-logger';
 
@@ -43,7 +43,8 @@ export async function GET(request: NextRequest) {
         if (totalBytes >= MAX_PREVIEW_BYTES) break;
       }
 
-      const rawHtml = Buffer.concat(chunks).toString('utf8');
+      // Strip heavy non-content blocks server-side so the client downloads (and parses) far less.
+      const rawHtml = Buffer.concat(chunks).toString('utf8').replace(/<(script|style|noscript|svg)\b[\s\S]*?<\/\1>/gi, '');
 
       // Extract title from HTML tag if present
       let title = targetUrl.hostname;
@@ -82,3 +83,4 @@ export async function GET(request: NextRequest) {
     clearTimeout(timeoutId);
   }
 }
+

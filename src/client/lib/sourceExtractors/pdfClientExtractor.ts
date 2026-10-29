@@ -1,4 +1,4 @@
-import { sha256 } from '@/src/shared/cohort-builder/hash';
+﻿import { sha256 } from '@/src/shared/cohort-builder/hash';
 import type { ClientSourceExtraction } from '@/src/shared/cohort-builder/contracts';
 
 export interface PdfClientExtractionResult extends ClientSourceExtraction {
@@ -16,8 +16,8 @@ export async function extractPdfClient(
 
   // Dynamically import pdfjs-dist in the browser to keep initial bundle size lean
   const pdfjs = await import('pdfjs-dist');
-  if (typeof window !== 'undefined' && !pdfjs.GlobalWorkerOptions.workerSrc) {
-    pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version || '6.4.299'}/build/pdf.worker.min.mjs`;
+  if (!pdfjs.GlobalWorkerOptions.workerSrc) {
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
   }
 
   const arrayBuffer = await file.arrayBuffer();
@@ -40,27 +40,13 @@ export async function extractPdfClient(
         const scale = targetThumbnailWidth / unscaledViewport.width;
         const viewport = page.getViewport({ scale });
 
-        if (typeof OffscreenCanvas !== 'undefined') {
-          const offscreen = new OffscreenCanvas(viewport.width, viewport.height);
-          const ctx = offscreen.getContext('2d');
-          if (ctx) {
-            await page.render({ canvasContext: ctx as any, viewport }).promise;
-            const blob = await offscreen.convertToBlob({ type: 'image/webp', quality: 0.85 });
-            thumbnailUrl = await new Promise((resolve) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.readAsDataURL(blob);
-            });
-          }
-        } else if (typeof document !== 'undefined') {
-          const canvas = document.createElement('canvas');
-          canvas.width = viewport.width;
-          canvas.height = viewport.height;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            await page.render({ canvasContext: ctx, viewport }).promise;
-            thumbnailUrl = canvas.toDataURL('image/webp', 0.85);
-          }
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+          thumbnailUrl = canvas.toDataURL('image/webp', 0.85);
         }
       } catch {
         // Fallback thumbnail gracefully omitted if canvas rendering fails
@@ -70,12 +56,11 @@ export async function extractPdfClient(
     // Extract text content and build character span locations
     const textContent = await page.getTextContent();
     const pageStrings = textContent.items
-      .map((item: any) => ('str' in item ? item.str : ''))
+      .map((item: { str?: string }) => ('str' in item ? item.str : ''))
       .filter((s: string) => Boolean(s && s.trim()));
 
     const pageText = pageStrings.join(' ').replace(/[\r\n\t]+/g, ' ').trim();
     if (pageText) {
-      const start = fullText.length;
       if (fullText.length > 0) fullText += '\n\n';
       const actualStart = fullText.length;
       fullText += pageText;
@@ -95,10 +80,7 @@ export async function extractPdfClient(
     }
   }
 
-  if (!fullText.trim()) {
-    fullText = `[Document: ${file.name}]\nReference material extracted from document.`;
-    locations.push({ start: 0, end: fullText.length, page: 1 });
-  }
+  if (!fullText.trim()) throw new Error('No selectable text found (scanned or image-only PDF).');
 
   const checksum = sha256(fullText);
 
@@ -116,3 +98,6 @@ export async function extractPdfClient(
     },
   };
 }
+
+
+

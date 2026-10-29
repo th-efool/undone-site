@@ -1,4 +1,4 @@
-import { sha256 } from '@/src/shared/cohort-builder/hash';
+﻿import { sha256 } from '@/src/shared/cohort-builder/hash';
 import type { ClientSourceExtraction } from '@/src/shared/cohort-builder/contracts';
 
 export interface WebExtractionOptions {
@@ -53,7 +53,7 @@ export async function extractWebClient(
       if (tag === 'h1') formatted = `# ${text}`;
       else if (tag === 'h2') formatted = `## ${text}`;
       else if (tag === 'h3') formatted = `### ${text}`;
-      else if (tag === 'li') formatted = `• ${text}`;
+      else if (tag === 'li') formatted = `â€¢ ${text}`;
 
       if (extractedText.length > 0) extractedText += '\n\n';
       const start = extractedText.length;
@@ -70,10 +70,7 @@ export async function extractWebClient(
     }
   }
 
-  if (!extractedText.trim()) {
-    extractedText = `# ${title}\n\n[Web Source: ${url}]\nReference material extracted from public web source.`;
-    locations.push({ start: 0, end: extractedText.length });
-  }
+  if (!extractedText.trim()) throw new Error('No readable text found on this page (it may require JavaScript or a login).');
 
   const checksum = sha256(extractedText);
 
@@ -92,3 +89,4 @@ export async function extractWebClient(
     },
   };
 }
+
