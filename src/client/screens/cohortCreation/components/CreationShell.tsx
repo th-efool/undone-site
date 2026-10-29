@@ -48,11 +48,14 @@ export function CreationShell({ children, query, reply, hintTitle, hint, suggest
       </header>
       <div className={styles.railBody}>
         <div className={styles.messages}>
-          <div className={styles.messageRow}><span className={styles.youAvatar} aria-hidden="true">Y</span>
-            <div className={styles.userBubble}><span className={styles.sender}>You</span><p>{query}</p></div>
+          <div className={`${styles.messageRow} ${styles.messageUser}`}>
+            <div className={styles.userBubble}><p>{query}</p></div>
           </div>
-          <div className={styles.messageRow}><Image className={styles.assistantAvatar} src={isDark ? '/undone-logo-dark.svg' : '/undone-logo-transparent.svg'} width={34} height={34} alt="" />
-            <div className={styles.assistantBubble}><span className={styles.sender}>Undone</span><div>{reply}</div></div>
+          <div className={`${styles.messageRow} ${styles.messageAssistant}`}>
+            <div className={styles.assistantSparkleWrapper} aria-hidden="true">
+              <Sparkles size={18} className={styles.sparkleIcon} />
+            </div>
+            <div className={styles.assistantBubble}><div>{reply}</div></div>
           </div>
           {conversation}
           <div className={styles.hint}><Lightbulb size={27} strokeWidth={1.3} aria-hidden="true" /><div><strong>{hintTitle}</strong><p>{hint}</p></div></div>
