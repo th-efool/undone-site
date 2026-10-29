@@ -14,11 +14,21 @@ describe('AI Tools Optimization & Stage Filtering', () => {
 
   it('filters tools strictly for the recommendations stage', () => {
     const tools = createCohortAiTools({ ...baseDeps, stage: 'recommendations' });
-    const keys = Object.keys(tools);
-    expect(keys).toEqual(['create_own_cohort', 'choose_starting_point', 'set_intent']);
+    const keys = Object.keys(tools).sort();
+    expect(keys).toEqual(['start_search', 'set_intent', 'create_own_cohort', 'choose_starting_point'].sort());
     expect(keys).not.toContain('add_youtube_source');
     expect(keys).not.toContain('edit_lesson');
     expect(keys).not.toContain('commit_release');
+  });
+
+  it('filters tools strictly for the chat stage and excludes add_pdf_source', () => {
+    const tools = createCohortAiTools({ ...baseDeps, stage: 'chat' });
+    const keys = Object.keys(tools);
+    expect(keys).toContain('start_search');
+    expect(keys).toContain('set_intent');
+    expect(keys).toContain('add_web_source');
+    expect(keys).toContain('add_youtube_source');
+    expect(keys).not.toContain('add_pdf_source');
   });
 
   it('filters tools strictly for the material_input stage', () => {

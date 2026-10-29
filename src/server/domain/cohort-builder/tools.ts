@@ -22,28 +22,32 @@ export interface CohortAiToolsDeps {
   ) => Promise<unknown>;
 }
 
+const ALWAYS_TOOLS = ['start_search', 'set_intent'] as const;
+
 const STAGE_TOOL_NAMES: Record<string, string[]> = {
-  chat: ['start_search', 'create_own_cohort', 'choose_starting_point', 'set_intent', 'add_web_source', 'add_pdf_source', 'add_youtube_source', 'add_github_source', 'add_text_source'],
-  recommendations: ['start_search', 'create_own_cohort', 'choose_starting_point', 'set_intent'],
-  starting_point: ['start_search', 'choose_starting_point', 'back_to_recommendations', 'set_intent'],
-  discovery: ['start_search', 'select_discovery_resources', 'start_discovery', 'back_to_starting_point', 'choose_starting_point', 'set_intent'],
-  goal_setup: ['start_search', 'start_goal_generation', 'set_intent', 'set_audience', 'set_daily_minutes', 'back_to_starting_point'],
+  chat: [...ALWAYS_TOOLS, 'create_own_cohort', 'choose_starting_point', 'add_web_source', 'add_youtube_source', 'add_github_source', 'add_text_source'],
+  recommendations: [...ALWAYS_TOOLS, 'create_own_cohort', 'choose_starting_point'],
+  starting_point: [...ALWAYS_TOOLS, 'choose_starting_point', 'back_to_recommendations'],
+  discovery: [...ALWAYS_TOOLS, 'select_discovery_resources', 'start_discovery', 'back_to_starting_point', 'choose_starting_point'],
+  goal_setup: [...ALWAYS_TOOLS, 'start_goal_generation', 'set_audience', 'set_daily_minutes', 'back_to_starting_point'],
   material_input: [
-    'start_search',
+    ...ALWAYS_TOOLS,
     'add_web_source', 'add_pdf_source', 'set_pdf_pages', 'refresh_web_source',
     'add_youtube_source', 'set_youtube_scope', 'add_github_source', 'set_github_scope',
     'add_text_source', 'edit_text_source', 'remove_source',
-    'begin_material_processing', 'cancel_source_processing', 'back_to_starting_point', 'set_intent'
+    'begin_material_processing', 'cancel_source_processing', 'back_to_starting_point'
   ],
   processing: ['cancel_text_processing', 'cancel_source_processing', 'retry_text_job'],
   ready: [
-    'start_search', 'edit_lesson', 'reorder_lessons', 'set_lesson_pin', 'add_lesson', 'remove_lesson',
-    'set_intent', 'set_audience', 'set_daily_minutes', 'prepare_release', 'commit_release',
+    ...ALWAYS_TOOLS,
+    'edit_lesson', 'reorder_lessons', 'set_lesson_pin', 'add_lesson', 'remove_lesson',
+    'set_audience', 'set_daily_minutes', 'prepare_release', 'commit_release',
     'cancel_text_processing', 'retry_text_job'
   ],
   published: [
-    'start_search', 'edit_lesson', 'reorder_lessons', 'set_lesson_pin', 'add_lesson', 'remove_lesson',
-    'set_intent', 'set_audience', 'set_daily_minutes', 'prepare_release', 'commit_release'
+    ...ALWAYS_TOOLS,
+    'edit_lesson', 'reorder_lessons', 'set_lesson_pin', 'add_lesson', 'remove_lesson',
+    'set_audience', 'set_daily_minutes', 'prepare_release', 'commit_release'
   ],
 };
 

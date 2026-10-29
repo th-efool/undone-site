@@ -263,13 +263,33 @@ it('renders centered single-column chat layout when journey.step is chat (PLAN-0
     },
   });
 
-  render(<CohortInteractionScreen workspaceId="ws-chat-mode" ownerId="owner" initialView={fake.view} />);
+  const props = { workspaceId: 'ws-chat-mode', ownerId: 'owner', initialView: fake.view };
+  const result = render(<CohortInteractionScreen {...props} />);
 
   // Centered chat header exists, no split workspace pane exists
+  const main = document.getElementById('main-content')!;
+  expect(main.getAttribute('data-layout')).toBe('centered');
   expect(screen.getByRole('banner', { name: 'Plan chat header' })).toBeDefined();
-  expect(screen.getByRole('main', { name: 'Conversational cohort planning' })).toBeDefined();
+  expect(screen.getByLabelText('Conversational cohort planning')).toBeDefined();
   expect(screen.queryByRole('banner', { name: 'Workspace toolbar' })).toBeNull();
   expect(screen.queryByRole('navigation', { name: 'Builder views' })).toBeNull();
+
+  // Test that ChatPane input draft survives transition from chat -> recommendations without unmounting
+  const composer = screen.getByLabelText('Message the cohort assistant');
+  fireEvent.change(composer, { target: { value: 'My persistent planning draft' } });
+
+  fake.view = {
+    ...fake.view,
+    journey: {
+      ...fake.view.journey!,
+      step: 'recommendations',
+    },
+  };
+  result.rerender(<CohortInteractionScreen {...props} />);
+
+  expect(main.getAttribute('data-layout')).toBe('split');
+  expect((composer as HTMLTextAreaElement).value).toBe('My persistent planning draft');
+  expect(screen.getByLabelText('Message the cohort assistant')).toBe(composer);
 });
 
 it('renders close panel button and opens confirmation modal (PLAN-024)', async () => {

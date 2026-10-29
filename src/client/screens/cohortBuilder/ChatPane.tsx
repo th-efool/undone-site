@@ -31,10 +31,9 @@ interface ChatPaneProps {
   attachedEntity: AttachedEntity | null;
   onClearAttachedEntity: () => void;
   connection?: string;
-  isCentered?: boolean;
 }
 
-export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = 'live', isCentered = false }: ChatPaneProps) {
+export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = 'live' }: ChatPaneProps) {
   const messages = useWorkspaceMessages();
   const sendMessage = useSendMessage();
   const state = useInteractionState<CohortWorkspace>();
@@ -216,7 +215,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
   const logoSrc = isDark ? '/undone-logo-dark.svg' : '/undone-logo-transparent.svg';
 
   return (
-    <div className={`${styles.railBody} ${isCentered ? styles.centeredChatPane : ''}`}>
+    <div className={styles.railBody}>
       <div
         className={styles.messages}
         ref={scrollRef}

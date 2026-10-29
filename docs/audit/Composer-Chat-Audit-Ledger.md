@@ -46,3 +46,38 @@ Deployment: Vercel Serverless (`https://www.undone.one`)
 - Git working tree: Clean.
 - All 5 subagent audits completed.
 - Ledger initialized: **Phase 0 complete. Ready to begin Phase 1.**
+
+---
+
+## Phase 7: Post-Implementation Cleanup & Lean-Down Verification
+
+All cleanup items from `PLAN.md` (A1–A8, B1–B12, C1–C11) have been executed and verified:
+
+1. **Correctness Bugs (Phase A)**:
+   - **A1**: Playlist fan-out in `useComposerAttachments.ts` expands up to 100 individual video links reusing batch metadata without second fetch.
+   - **A2**: YouTube client extractor generates factual chapter labels with `provenance.estimatedIntervals = true` instead of invented concept names.
+   - **A3**: Real transcript proxy at `/api/import/youtube/transcript` fetches YouTube captions when available; falls back cleanly to video metadata and chapters.
+   - **A4**: PDF worker bundled via `new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()`; zero unpkg CDN runtime dependency.
+   - **A5**: Client 3MB text budget enforced in `useComposerAttachments.ts`; server intake stream limit raised to 3.5MB; `saveIntakeDraft` catches storage quota errors and retries storing without `sources`.
+   - **A6**: Shift+Enter shortcut triggers Plan mode submission from the prompt bar.
+   - **A7**: Submission buttons disabled while client extraction is active (`isExtracting === true`).
+   - **A8**: Single-tree `data-layout="centered" | "split"` in `CohortInteractionScreen.tsx` preserves `<ChatPane />` mount state and draft input across step transitions.
+
+2. **Deduplication & Dead Code Elimination (Phase B)**:
+   - **B1 & C6**: Single authoritative deterministic pipeline in `src/shared/cohort-builder/client-pipeline.ts`; server `text-pipeline.ts` and `lesson-projection.ts` import and re-export shared functions.
+   - **B2**: Removed redundant manual `utf8Encode` loop in `src/shared/cohort-builder/hash.ts` in favor of standard `TextEncoder`.
+   - **B3**: Unified timestamp formatting using `formatYoutubeTimestamp`.
+   - **B4 & C10**: GitHub extractor direct export with `pLimit(6)` concurrency.
+   - **B5**: Canonical `detectSourceKind` in `src/shared/cohort-builder/source-kind.ts`.
+   - **B6**: Preserved active import routes required by `/create-cohort` (`importService.ts`).
+   - **B8 & C11**: Consolidated prompt bar draft persistence and extracted helper functions.
+   - **B9**: Dropped `isCentered` prop from `ChatPane.tsx` and removed `!important` CSS overrides.
+
+3. **Lean Architecture & Performance (Phase C)**:
+   - **C1 & C2**: Reduced `useComposerAttachments.ts` from 372 to 198 lines with synchronous ref synchronization.
+   - **C4**: Simplified `SourceIcon.tsx` from 192 to 69 lines.
+   - **C5**: Dropped `File` byte retention from React state in `AttachmentTray.tsx`.
+   - **C7**: Added `ALWAYS_TOOLS` (`start_search`, `set_intent`) across stages and removed `add_pdf_source` from chat stage.
+   - **C8**: Stage-aware context excerpt budget (2,000 chars during early planning; 240 chars once lessons/chunks exist).
+   - **C9**: Server-side script/style/svg tag stripping in `/api/import/link-preview`.
+

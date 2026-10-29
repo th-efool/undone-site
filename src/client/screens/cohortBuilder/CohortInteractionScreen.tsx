@@ -71,80 +71,39 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
       : 'material'
     : 'material';
 
-  // Centered ChatGPT-style chat layout for Plan mode (Reference Image 2)
-  if (isChatStep) {
-    return (
-      <div
-        id="main-content"
-        className={styles.centeredChatPage}
-        data-theme={theme}
-      >
-        <header className={styles.centeredChatHeader} aria-label="Plan chat header">
-          <Link className={styles.brand} href="/" aria-label="Undone home">
-            <Image
-              src={isDark ? '/undone-logo-dark.svg' : '/undone-logo-transparent.svg'}
-              width={42}
-              height={42}
-              alt=""
-              priority
-            />
-            <span>
-              <strong>UNDONE</strong>
-              <em>For a more curious you.</em>
-            </span>
-          </Link>
-
-          <div className={styles.tools}>
-            <span className={styles.srOnly}>Rev #{state.revision}</span>
-            <ThemeToggle />
-            <Link href="/home" className={styles.account} aria-label="Open your account">
-              Y
-            </Link>
-          </div>
-        </header>
-
-        <main className={styles.centeredChatMain} aria-label="Conversational cohort planning">
-          <ChatPane
-            isCentered={true}
-            attachedEntity={attachedEntity}
-            onClearAttachedEntity={() => setAttachedEntity(null)}
-            connection={connection}
-          />
-        </main>
-      </div>
-    );
-  }
-
-  // Split-panel layout for Search & Cohort Creation workflows
+  // Unified layout: centered single-column for Plan mode, split-panel for Search/Creation
   return (
     <div
       id="main-content"
       className={styles.page}
       data-theme={theme}
+      data-layout={isChatStep ? 'centered' : 'split'}
       data-variant={stage}
-      data-rail-collapsed={collapsed}
+      data-rail-collapsed={!isChatStep && collapsed}
       data-pane={pane}
     >
-      <nav className={styles.paneNavigation} aria-label="Builder views">
-        <button
-          type="button"
-          aria-pressed={pane === 'chat'}
-          onClick={() => setPane('chat')}
-        >
-          Chat
-        </button>
-        <button
-          type="button"
-          aria-pressed={pane === 'workspace'}
-          onClick={() => setPane('workspace')}
-        >
-          Workspace
-        </button>
-      </nav>
+      {!isChatStep && (
+        <nav className={styles.paneNavigation} aria-label="Builder views">
+          <button
+            type="button"
+            aria-pressed={pane === 'chat'}
+            onClick={() => setPane('chat')}
+          >
+            Chat
+          </button>
+          <button
+            type="button"
+            aria-pressed={pane === 'workspace'}
+            onClick={() => setPane('workspace')}
+          >
+            Workspace
+          </button>
+        </nav>
+      )}
 
-      {/* Left Conversation Rail */}
-      <aside className={styles.rail} aria-label="Creation conversation">
-        <header className={styles.brandHeader}>
+      {/* Conversation Rail (centered max-width container in chat mode; split rail in workspace mode) */}
+      <aside className={styles.rail} aria-label={isChatStep ? 'Conversational cohort planning' : 'Creation conversation'}>
+        <header className={styles.brandHeader} aria-label={isChatStep ? 'Plan chat header' : undefined}>
           <Link className={styles.brand} href="/" aria-label="Undone home">
             <Image
               src={isDark ? '/undone-logo-dark.svg' : '/undone-logo-transparent.svg'}
@@ -158,15 +117,25 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
               <em>For a more curious you.</em>
             </span>
           </Link>
-          <button
-            type="button"
-            className={styles.railToggle}
-            onClick={() => setCollapsed(value => !value)}
-            aria-label={collapsed ? 'Expand conversation' : 'Collapse conversation'}
-            aria-expanded={!collapsed}
-          >
-            {collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
-          </button>
+          {isChatStep ? (
+            <div className={styles.tools}>
+              <span className={styles.srOnly}>Rev #{state.revision}</span>
+              <ThemeToggle />
+              <Link href="/home" className={styles.account} aria-label="Open your account">
+                Y
+              </Link>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className={styles.railToggle}
+              onClick={() => setCollapsed(value => !value)}
+              aria-label={collapsed ? 'Expand conversation' : 'Collapse conversation'}
+              aria-expanded={!collapsed}
+            >
+              {collapsed ? <PanelLeftOpen size={19} /> : <PanelLeftClose size={19} />}
+            </button>
+          )}
         </header>
 
         <ChatPane
@@ -177,37 +146,39 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
       </aside>
 
       {/* Right Canvas with close button and toolbar header */}
-      <div className={styles.canvas}>
-        <header className={styles.canvasHeader} aria-label="Workspace toolbar">
-          <div className={styles.tools}>
-            <button
-              type="button"
-              className={styles.closePanelButton}
-              onClick={() => setShowCloseModal(true)}
-              aria-label="Close workspace panel and return to chat"
-              title="Close workspace panel and return to chat"
-            >
-              <X size={16} />
-            </button>
-            <span className={styles.srOnly}>Rev #{state.revision}</span>
-            <ThemeToggle />
-            <Link href="/home" className={styles.account} aria-label="Open your account">
-              Y
-            </Link>
-          </div>
-        </header>
+      {!isChatStep && (
+        <div className={styles.canvas}>
+          <header className={styles.canvasHeader} aria-label="Workspace toolbar">
+            <div className={styles.tools}>
+              <button
+                type="button"
+                className={styles.closePanelButton}
+                onClick={() => setShowCloseModal(true)}
+                aria-label="Close workspace panel and return to chat"
+                title="Close workspace panel and return to chat"
+              >
+                <X size={16} />
+              </button>
+              <span className={styles.srOnly}>Rev #{state.revision}</span>
+              <ThemeToggle />
+              <Link href="/home" className={styles.account} aria-label="Open your account">
+                Y
+              </Link>
+            </div>
+          </header>
 
-        <div className={styles.canvasContent}>
-          <CohortWorkspacePane
-            workspaceId={workspaceId}
-            ownerId={ownerId}
-            onSelectLessonForChat={attached => {
-              setAttachedEntity(attached);
-              setPane('chat');
-            }}
-          />
+          <div className={styles.canvasContent}>
+            <CohortWorkspacePane
+              workspaceId={workspaceId}
+              ownerId={ownerId}
+              onSelectLessonForChat={attached => {
+                setAttachedEntity(attached);
+                setPane('chat');
+              }}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Return to Chat Confirmation Dialog */}
       {showCloseModal && (

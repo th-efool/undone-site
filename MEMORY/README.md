@@ -3,6 +3,7 @@
 - [home-dashboard.md](home-dashboard.md): cohort card controls, pause dates, learning settings, subscription removal, cache boundaries, and focused checks.
 
 - [cohort-builder-processing.md](cohort-builder-processing.md): durable processing acceptance, generated metadata, timed chunk projection, UI inspection and focused checks.
+- [composer-and-client-extraction.md](composer-and-client-extraction.md): client-device source extraction, isomorphic SHA-256 pipeline, composer UI, centered chat layout, and draft persistence.
 - [play-playback.md](play-playback.md): /play route, cinematic player composition, usePlayback engine, mobile layout, deferred tool boundaries, and verification checks.
 - [cache-boundaries.md](cache-boundaries.md): /api/explore, /api/feed, and /api/community edge SWR and micro-caching rules, tenant boundaries, and focused checks.
 - [study-rooms.md](study-rooms.md): /studyroom discovery and [roomSlug] stage, Web Audio ambient engine, shared environment vs personal tools, Centrifugo boundary, and focused checks.

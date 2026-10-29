@@ -11,14 +11,19 @@ export function cohortAssistantPrompt(state: CohortWorkspace, revision: number):
     id: chunk.id, sourceId: chunk.sourceId, text: chunk.text.slice(0, 500),
   }));
 
-  // Grounding excerpts from attached and uploaded sources (up to 2,000 chars per source, max 8 sources)
+  // Grounding excerpts from attached and uploaded sources:
+  // Full 2,000-char excerpts during early planning/materials; compact 240-char summaries once lessons/chunks are assembled.
+  const isEarlyStage = state.lessons.length === 0 ||
+    ['chat', 'recommendations', 'starting_point', 'material_input', 'discovery', 'goal_setup'].includes(state.journey?.step ?? '');
+  const excerptLimit = isEarlyStage ? 2000 : 240;
+
   const sourceExcerpts = (state.sources ?? [])
     .slice(0, 8)
     .map(source => ({
       id: source.id,
       label: source.label,
       kind: source.input?.kind ?? 'document',
-      excerpt: (source.text || '').slice(0, 2000),
+      excerpt: (source.text || '').slice(0, excerptLimit),
     }))
     .filter(s => s.excerpt.length > 0);
 
