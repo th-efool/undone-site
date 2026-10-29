@@ -3,7 +3,7 @@
 import { useRef, useState, type ReactNode } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowUp, Lightbulb, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { ArrowUp, Lightbulb, PanelLeftClose, PanelLeftOpen, Sparkles } from 'lucide-react';
 import { ThemeToggle } from '@/src/client/screens/landing/Hero/components/ThemeToggle';
 import { useTheme } from '@/src/client/hooks/useTheme';
 import styles from './CreationShell.module.css';
@@ -71,7 +71,7 @@ export function CreationShell({ children, query, reply, hintTitle, hint, suggest
             <label className={styles.srOnly} htmlFor="creation-conversation-message">{label}</label>
             <textarea id="creation-conversation-message" placeholder={label} value={message} maxLength={2000} minLength={3}
               rows={1} required disabled={busy} onChange={event => setMessage(event.target.value)} />
-            <button type="submit" disabled={busy || message.trim().length < 3} aria-label="Send message"><ArrowUp size={22} /></button>
+            <button type="submit" disabled={busy || message.trim().length < 3} aria-label="Send message" className={styles.sendBtn}><ArrowUp size={18} strokeWidth={2.4} /></button>
           </form>
           {messageError && <p className={styles.messageError} role="alert">{messageError}</p>}
           <div className={styles.suggestions}>{suggestions.map(suggestion => <button type="button" key={suggestion.label}

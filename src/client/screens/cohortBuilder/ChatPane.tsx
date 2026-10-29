@@ -1,13 +1,11 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import Image from 'next/image';
 import { ArrowUp, BookOpen, Paperclip, Sparkles, Square, X } from 'lucide-react';
 import { useWorkspaceMessages, useSendMessage, useInteractionState, useDispatchAction } from '@/src/client/interaction/hooks';
 import type { CohortAction, CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import { useComposerAttachments, AttachmentTray } from '@/src/client/components/global/Composer';
 import { useAssistantActivity } from './useAssistantActivity';
-import { useTheme } from '@/src/client/hooks/useTheme';
 import type { EntityRef } from 'interaction-builder/core';
 import styles from './CohortBuilder.module.css';
 import { ProcessingChecklist } from './stages/ProcessingChecklist';
@@ -40,7 +38,6 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
   const dispatchAction = useDispatchAction<CohortAction>();
   const state = useInteractionState<CohortWorkspace>();
   const activity = useAssistantActivity();
-  const { isDark } = useTheme();
   const [cancelError, setCancelError] = useState('');
   const activeTurn = activity.turns.find(turn => turn.status === 'running' || turn.status === 'queued');
   const selected = attachedEntity && state.view?.lessons.find(lesson => lesson.id === attachedEntity.entity.id);
@@ -243,8 +240,6 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
     : step === 'goal_setup'
     ? 'Describe your goal, pacing, or background...'
     : 'Type an instruction or request...';
-
-  const logoSrc = isDark ? '/undone-logo-dark.svg' : '/undone-logo-transparent.svg';
 
   return (
     <div className={styles.railBody}>

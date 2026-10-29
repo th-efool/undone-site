@@ -188,10 +188,6 @@
   color: #5863f8;
 }
 
-.youAvatar {
-  display: none;
-}
-
 .userBubble {
   width: fit-content;
   max-width: min(75%, 520px);
@@ -203,10 +199,6 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-.sender {
-  display: none;
-}
-
 .userBubble p,
 .userText {
   font-family: var(--font-geist-sans), var(--font-manrope-next), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -215,10 +207,6 @@
   color: var(--creation-heading, #1f1d1a);
   margin: 0;
   overflow-wrap: anywhere;
-}
-
-.assistantAvatar {
-  display: none;
 }
 
 .assistantBubble {
@@ -2971,4 +2959,33 @@ fieldset.formField button:hover:not(:disabled) {
 
 .modalConfirmBtn:hover {
   opacity: 0.9;
+}
+
+/* Dark Theme Enhancements for Gemini/Claude Look */
+.page[data-theme='dark'] .userBubble,
+:global([data-theme='dark']) .userBubble,
+:global(.dark) .userBubble {
+  background: #2b2f3a;
+  border-color: rgba(255, 255, 255, 0.09);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.page[data-theme='dark'] .sendBtn:not(:disabled),
+:global([data-theme='dark']) .sendBtn:not(:disabled),
+:global(.dark) .sendBtn:not(:disabled) {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.page[data-theme='dark'] .sendBtn:hover:not(:disabled),
+:global([data-theme='dark']) .sendBtn:hover:not(:disabled),
+:global(.dark) .sendBtn:hover:not(:disabled) {
+  background: #ffffff;
+}
+
+.page[data-theme='dark'] .sendBtn:disabled,
+:global([data-theme='dark']) .sendBtn:disabled,
+:global(.dark) .sendBtn:disabled {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.25);
 }
