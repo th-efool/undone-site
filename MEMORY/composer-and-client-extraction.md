@@ -24,4 +24,4 @@
 1. **Client-Device Execution First**: Extraction of user files (PDF, web DOM, GitHub files) executes on the user's browser, preventing CPU-intensive processing or binary uploads in Vercel Serverless Lambdas.
 2. **Payload Size Boundaries**: Client enforces 3MB total text budget across all attachments; server intake route accepts up to 3.5MB stream before throwing 413 `INPUT_TOO_LARGE`. `saveIntakeDraft` catches `QuotaExceededError` and retries storing without `sources` to guarantee reliability.
 3. **Draft Retention**: LearningPromptBar drafts are persisted synchronously on debounce and `beforeunload`. Keyboard shortcut `Shift+Enter` submits in `plan` mode. Submit buttons are gated while extraction is in flight (`isExtracting`).
-4. **Tool Parity**: `ALWAYS_TOOLS` (`start_search`, `set_intent`) are exposed in all active interactive journey stages.
+4. **Tool Parity & Context Excerpt Budget**: `ALWAYS_TOOLS` (`start_search`, `set_intent`) are exposed in all active interactive journey stages. Prompt excerpt budget is stage-aware: 2,000 chars per source during early exploration/materials; 240 chars once lessons and chunks are generated.

@@ -81,3 +81,14 @@ All cleanup items from `PLAN.md` (A1–A8, B1–B12, C1–C11) have been execute
    - **C8**: Stage-aware context excerpt budget (2,000 chars during early planning; 240 chars once lessons/chunks exist).
    - **C9**: Server-side script/style/svg tag stripping in `/api/import/link-preview`.
 
+### Phase 7 Verification Evidence
+- `npx vitest run src/shared/cohort-builder/__tests__/source-kind.test.ts`: Passed (6/6).
+- `npx vitest run src/shared/cohort-builder/__tests__/hash.test.ts`: Passed (13/13).
+- `npx vitest run src/shared/cohort-builder/__tests__/client-pipeline.test.ts`: Passed (6/6).
+- `npx vitest run src/client/components/global/Composer/__tests__/useComposerAttachments.test.tsx`: Passed (3/3).
+- `npx vitest run src/client/components/global/LearningPromptBar/__tests__/LearningPromptBar.test.tsx`: Passed (5/5).
+- `npx vitest run src/client/screens/cohortBuilder/__tests__/shell.test.tsx`: Passed (9/9).
+- `npx vitest run src/server/domain/cohort-builder/__tests__/ai-tools-optimization.test.ts`: Passed (7/7).
+- `npx tsc --noEmit`: 0 errors.
+
+
