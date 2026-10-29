@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Lightbulb, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { ArrowRight, Lightbulb, Sparkles, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import type { CohortIntake } from '@/src/shared/cohort-builder/intake';
 import { useTheme } from '@/src/client/hooks/useTheme';
 import { ThemeToggle } from '@/src/client/screens/landing/Hero/components/ThemeToggle';
@@ -127,25 +127,16 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
         <div className={builderStyles.railBody}>
           <div className={builderStyles.messages}>
             <div className={`${builderStyles.messageRow} ${builderStyles.messageUser}`}>
-              <span className={builderStyles.youAvatar} aria-hidden="true">
-                Y
-              </span>
               <div className={builderStyles.userBubble}>
-                <span className={builderStyles.sender}>You</span>
                 <p>{draft?.prompt || 'I’m looking for something new to learn.'}</p>
               </div>
             </div>
 
             <div className={`${builderStyles.messageRow} ${builderStyles.messageAssistant}`}>
-              <Image
-                className={builderStyles.assistantAvatar}
-                src={logoSrc}
-                width={34}
-                height={34}
-                alt=""
-              />
+              <div className={builderStyles.assistantSparkleWrapper} aria-hidden="true">
+                <Sparkles size={18} className={builderStyles.sparkleIcon} />
+              </div>
               <div className={builderStyles.assistantBubble}>
-                <span className={builderStyles.sender}>Undone</span>
                 <p>Let’s make a learning journey that fits you.</p>
               </div>
             </div>

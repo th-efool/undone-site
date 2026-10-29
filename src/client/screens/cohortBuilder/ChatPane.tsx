@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { ArrowUp, BookOpen, Paperclip, Square, X } from 'lucide-react';
+import { ArrowUp, BookOpen, Paperclip, Sparkles, Square, X } from 'lucide-react';
 import { useWorkspaceMessages, useSendMessage, useInteractionState, useDispatchAction } from '@/src/client/interaction/hooks';
 import type { CohortAction, CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import { useComposerAttachments, AttachmentTray } from '@/src/client/components/global/Composer';
@@ -263,21 +263,12 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
                 key={m.id}
                 className={`${styles.messageRow} ${isUser ? styles.messageUser : styles.messageAssistant}`}
               >
-                {isUser ? (
-                  <span className={styles.youAvatar} aria-hidden="true">
-                    Y
-                  </span>
-                ) : (
-                  <Image
-                    className={styles.assistantAvatar}
-                    src={logoSrc}
-                    width={34}
-                    height={34}
-                    alt=""
-                  />
+                {!isUser && (
+                  <div className={styles.assistantSparkleWrapper} aria-hidden="true">
+                    <Sparkles size={18} className={styles.sparkleIcon} />
+                  </div>
                 )}
                 <div className={isUser ? styles.userBubble : styles.assistantBubble}>
-                  <span className={styles.sender}>{isUser ? 'You' : 'Undone'}</span>
                   {m.parts.map((p, idx) => {
                     if (p.type === 'text') {
                       return isUser ? (
@@ -335,15 +326,10 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
 
         {activeTurn && (
           <div className={`${styles.messageRow} ${styles.messageAssistant}`} role="status">
-            <Image
-              className={styles.assistantAvatar}
-              src={logoSrc}
-              width={34}
-              height={34}
-              alt=""
-            />
+            <div className={styles.assistantSparkleWrapper} aria-hidden="true">
+              <Sparkles size={18} className={styles.sparkleIcon} />
+            </div>
             <div className={styles.assistantBubble}>
-              <span className={styles.sender}>Undone</span>
               <div className={styles.thinkingContainer}>
                 <div className={styles.thinkingDots} aria-label="Thinking">
                   <span className={styles.dot} />
@@ -389,56 +375,33 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
       </div>
 
       <div className={styles.composerArea}>
-        {attachedEntity && (
-          <div className={styles.activeRefBar}>
-            <span>
-              Referencing: <strong>{attachedEntity.label}</strong>
-            </span>
-            <button type="button" className={styles.clearRefBtn} onClick={onClearAttachedEntity}>
-              <X size={14} /> Clear
-            </button>
-          </div>
-        )}
-
-        {composerAttachments.files.length > 0 && (
-          <div className={styles.attachmentTraySection}>
-            <AttachmentTray
-              files={composerAttachments.files}
-              onRemoveFile={composerAttachments.removeFile}
-              disabled={sending}
-            />
-          </div>
-        )}
-
         <form
-          className={styles.composer}
+          className={styles.composerCard}
           onSubmit={e => {
             e.preventDefault();
             void handleSend();
           }}
         >
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept=".pdf,.txt,.md,.json,application/pdf,text/plain,text/markdown,application/json"
-            style={{ display: 'none' }}
-            onChange={e => {
-              if (e.target.files) void composerAttachments.addFiles(e.target.files);
-              e.target.value = '';
-            }}
-          />
+          {attachedEntity && (
+            <div className={styles.activeRefBar}>
+              <span>
+                Referencing: <strong>{attachedEntity.label}</strong>
+              </span>
+              <button type="button" className={styles.clearRefBtn} onClick={onClearAttachedEntity}>
+                <X size={14} /> Clear
+              </button>
+            </div>
+          )}
 
-          <button
-            type="button"
-            className={styles.attachBtn}
-            onClick={() => fileInputRef.current?.click()}
-            title="Attach reference files (.pdf, .txt, .md, .json)"
-            aria-label="Attach reference file"
-            disabled={sending || composerAttachments.isExtracting}
-          >
-            <Paperclip size={18} />
-          </button>
+          {composerAttachments.files.length > 0 && (
+            <div className={styles.attachmentTraySection}>
+              <AttachmentTray
+                files={composerAttachments.files}
+                onRemoveFile={composerAttachments.removeFile}
+                disabled={sending}
+              />
+            </div>
+          )}
 
           <textarea
             aria-label="Message the cohort assistant"
@@ -448,19 +411,51 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
             onKeyDown={handleKeyDown}
             rows={1}
             aria-busy={sending || composerAttachments.isExtracting}
+            className={styles.composerTextarea}
           />
-          <button
-            type="submit"
-            aria-label="Send message"
-            disabled={
-              sending ||
-              staleSelection ||
-              composerAttachments.isExtracting ||
-              (!input.trim() && !attachedEntity && composerAttachments.getReadySources().length === 0)
-            }
-          >
-            <ArrowUp size={22} strokeWidth={2.4} />
-          </button>
+
+          <div className={styles.composerToolbar}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.txt,.md,.json,application/pdf,text/plain,text/markdown,application/json"
+              style={{ display: 'none' }}
+              onChange={e => {
+                if (e.target.files) void composerAttachments.addFiles(e.target.files);
+                e.target.value = '';
+              }}
+            />
+
+            <div className={styles.toolbarLeft}>
+              <button
+                type="button"
+                className={styles.attachBtn}
+                onClick={() => fileInputRef.current?.click()}
+                title="Attach reference files (.pdf, .txt, .md, .json)"
+                aria-label="Attach reference file"
+                disabled={sending || composerAttachments.isExtracting}
+              >
+                <Paperclip size={18} />
+              </button>
+            </div>
+
+            <div className={styles.toolbarRight}>
+              <button
+                type="submit"
+                aria-label="Send message"
+                className={styles.sendBtn}
+                disabled={
+                  sending ||
+                  staleSelection ||
+                  composerAttachments.isExtracting ||
+                  (!input.trim() && !attachedEntity && composerAttachments.getReadySources().length === 0)
+                }
+              >
+                <ArrowUp size={18} strokeWidth={2.4} />
+              </button>
+            </div>
+          </div>
         </form>
 
         <div className={styles.suggestions}>
