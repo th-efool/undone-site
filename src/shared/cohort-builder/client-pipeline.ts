@@ -16,24 +16,7 @@ export const MIN_VIDEO_CHUNK_MS = 60_000; // 1 minute target for video chunks
  * Computes UTF-8 byte length isomorphically without Node's `Buffer.byteLength`.
  */
 export function byteLengthUtf8(str: string): number {
-  if (typeof TextEncoder !== 'undefined') {
-    return new TextEncoder().encode(str).byteLength;
-  }
-  let bytes = 0;
-  for (let i = 0; i < str.length; i++) {
-    const codePoint = str.charCodeAt(i);
-    if (codePoint < 0x80) {
-      bytes += 1;
-    } else if (codePoint < 0x800) {
-      bytes += 2;
-    } else if (codePoint >= 0xd800 && codePoint <= 0xdbff && i + 1 < str.length) {
-      bytes += 4;
-      i++;
-    } else {
-      bytes += 3;
-    }
-  }
-  return bytes;
+  return new TextEncoder().encode(str).byteLength;
 }
 
 /**

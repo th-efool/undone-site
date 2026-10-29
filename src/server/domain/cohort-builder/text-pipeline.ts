@@ -1,9 +1,30 @@
-import { createHash } from 'node:crypto';
 import type { DomainActionPlan } from 'interaction-builder/core';
 import type { CohortWorkspace, CohortChunk, CohortLesson } from '@/src/shared/cohort-builder/contracts';
 import { extractSourceConceptTopics, deriveCohortTitle, deriveCohortDescription } from '@/src/shared/cohort-builder/cohort-metadata';
 import { buildCohortSeo } from '@/src/shared/cohort-builder/seo';
-import { projectGeneratedLessons } from './lesson-projection';
+import { sha256 } from '@/src/shared/cohort-builder/hash';
+import {
+  MAX_UNIT_BYTES,
+  MIN_VIDEO_CHUNK_MS,
+  sourceFingerprint,
+  splitSource,
+  validateCoverage,
+  validateChunk,
+  buildGeneratedLessons,
+  validateGeneratedLessonCoverage,
+  projectGeneratedLessons,
+} from '@/src/shared/cohort-builder/client-pipeline';
+
+export {
+  MAX_UNIT_BYTES,
+  MIN_VIDEO_CHUNK_MS,
+  sourceFingerprint,
+  splitSource,
+  validateCoverage,
+  validateChunk,
+  buildGeneratedLessons,
+  validateGeneratedLessonCoverage,
+};
 
 export type TextStage = 'acquisition' | 'understanding' | 'chunking' | 'analysis' | 'assembly';
 
@@ -15,176 +36,6 @@ export interface TextStageAction {
   result: unknown;
 }
 
-const digest = (value: string) => createHash('sha256').update(value).digest('hex');
-const MAX_UNIT_BYTES = 24 * 1024;
-const MIN_VIDEO_CHUNK_MS = 60_000; // Minimum 1 minute target for video chunks
-
-/** Includes retained content, so even a versioning bug cannot accept changed bytes. */
-export function sourceFingerprint(state: CohortWorkspace): string {
-  return digest(JSON.stringify(state.sources.map(source => [source.id, source.version, source.text])));
-}
-
-function pushBoundedTextChunks(
-  chunks: CohortChunk[],
-  source: CohortWorkspace['sources'][number],
-  fullText: string,
-  spanStart: number,
-  spanEnd: number
-): void {
-  const raw = fullText.slice(spanStart, spanEnd);
-  const leading = raw.length - raw.trimStart().length;
-  const value = raw.trim();
-  if (!value) return;
-  const start = spanStart + leading;
-  for (let offset = 0; offset < value.length;) {
-    let end = offset;
-    let bytes = 0;
-    for (const codePoint of value.slice(offset)) {
-      const nextBytes = Buffer.byteLength(codePoint, 'utf8');
-      if (end > offset && bytes + nextBytes > MAX_UNIT_BYTES) break;
-      end += codePoint.length;
-      bytes += nextBytes;
-    }
-    const text = value.slice(offset, end);
-    const anchor = start + offset;
-    chunks.push({
-      id: `${source.id}:v${source.version}:${anchor}`,
-      sourceId: source.id,
-      sourceVersion: source.version,
-      start: anchor,
-      end: anchor + text.length,
-      text,
-      checksum: digest(text),
-    });
-    if (chunks.length > 100) throw new Error('TOO_MANY_CHUNKS');
-    offset = end;
-  }
-}
-
-export function splitSource(source: CohortWorkspace['sources'][number]): CohortChunk[] {
-  const chunks: CohortChunk[] = [];
-  const timedLocations = (source.locations ?? []).filter(
-    loc => loc.startMs !== undefined && loc.endMs !== undefined && loc.end > loc.start
-  );
-
-  // Video sources with timestamped locations: merge consecutive segments to reach >= 60s (1 minute)
-  // while guaranteeing 100% source text coverage and zero dropped segments.
-  if (timedLocations.length > 0) {
-    const sorted = [...timedLocations].sort((a, b) => a.start - b.start);
-    let groupStartChar = 0;
-    let groupStartMs = sorted[0].startMs!;
-    let groupEndMs = sorted[0].endMs!;
-
-    for (let i = 1; i < sorted.length; i++) {
-      const loc = sorted[i];
-      const currentDurationMs = groupEndMs - groupStartMs;
-      const combinedBytes = Buffer.byteLength(source.text.slice(groupStartChar, loc.end), 'utf8');
-
-      if (currentDurationMs < MIN_VIDEO_CHUNK_MS && combinedBytes <= MAX_UNIT_BYTES) {
-        groupEndMs = Math.max(groupEndMs, loc.endMs!);
-      } else {
-        // Include separators and any untimed retained text between observations.
-        pushBoundedTextChunks(chunks, source, source.text, groupStartChar, loc.start);
-        groupStartChar = loc.start;
-        groupStartMs = loc.startMs!;
-        groupEndMs = loc.endMs!;
-      }
-    }
-    pushBoundedTextChunks(chunks, source, source.text, groupStartChar, source.text.length);
-    validateCoverage(source.text, chunks);
-    return chunks;
-  }
-
-  // Standard text / article / markdown sources:
-  const matches = source.text.matchAll(/[^.!?\n]*(?:[.!?]+|(?=\n)|$)/g);
-  for (const match of matches) {
-    const raw = match[0];
-    if (!raw.trim()) continue;
-    const spanStart = match.index ?? 0;
-    const spanEnd = spanStart + raw.length;
-    pushBoundedTextChunks(chunks, source, source.text, spanStart, spanEnd);
-  }
-  validateCoverage(source.text, chunks);
-  return chunks;
-}
-
-function validateCoverage(text: string, chunks: CohortChunk[]): void {
-  let coveredUntil = 0;
-  for (const chunk of chunks) {
-    if (chunk.start < coveredUntil || Buffer.byteLength(chunk.text, 'utf8') > MAX_UNIT_BYTES) throw new Error('INVALID_SELECTED_UNIT');
-    for (let index = coveredUntil; index < chunk.start; index += 1) {
-      if (!/\s/u.test(text[index])) throw new Error('INCOMPLETE_SOURCE_COVERAGE');
-    }
-    coveredUntil = chunk.end;
-  }
-  for (let index = coveredUntil; index < text.length; index += 1) {
-    if (!/\s/u.test(text[index])) throw new Error('INCOMPLETE_SOURCE_COVERAGE');
-  }
-}
-
-function validateChunk(state: CohortWorkspace, chunk: CohortChunk): void {
-  const source = state.sources.find(item => item.id === chunk.sourceId && item.version === chunk.sourceVersion);
-  if (!source || chunk.end > source.text.length || chunk.start >= chunk.end) throw new Error('FOREIGN_OR_STALE_SOURCE_ANCHOR');
-  if (source.text.slice(chunk.start, chunk.end) !== chunk.text || digest(chunk.text) !== chunk.checksum) throw new Error('FABRICATED_SOURCE_ANCHOR');
-}
-
-function isVideoSource(source: CohortWorkspace['sources'][number] | undefined): boolean {
-  return source?.input?.kind === 'youtube'
-    || Boolean(source?.provenance?.videoId)
-    || Boolean(source?.locations?.some(location => location.startMs !== undefined && location.endMs !== undefined));
-}
-
-function lessonCopy(state: CohortWorkspace, chunk: CohortChunk, index: number) {
-  const source = state.sources.find(item => item.id === chunk.sourceId);
-  const cleanChunk = chunk.text.replace(/^[#*\-•\s\d.)]+/, '').replace(/[\r\n\t]+/g, ' ').trim();
-  const firstSentence = cleanChunk.split(/(?<=[.!?])\s+/)[0]?.trim() || cleanChunk;
-  const coreTitle = firstSentence.length > 68 ? `${firstSentence.slice(0, 65).replace(/\s+\S*$/, '')}...` : firstSentence;
-  const title = coreTitle
-    ? (source?.label && state.sources.length > 1 && !coreTitle.toLowerCase().includes(source.label.toLowerCase()) ? `${source.label}: ${coreTitle}` : coreTitle)
-    : (source?.label ? `${source.label} (Part ${index + 1})` : `Part ${index + 1}: Key Concept`);
-  return { cleanChunk, title };
-}
-
-/** Video evidence is one learner lesson per source; bounded evidence chunks become its parts. */
-export function buildGeneratedLessons(state: CohortWorkspace): CohortLesson[] {
-  const lessons: CohortLesson[] = [];
-  for (const source of state.sources) {
-    const chunks = state.chunks.filter(chunk => chunk.sourceId === source.id && chunk.sourceVersion === source.version);
-    if (!chunks.length) continue;
-    if (isVideoSource(source)) {
-      const first = lessonCopy(state, chunks[0], 0).cleanChunk;
-      lessons.push({
-        id: `grounded:video:${source.id}:v${source.version}`,
-        version: 0,
-        title: source.provenance?.videoTitle || source.label,
-        objective: `For ${state.audience.slice(0, 80)}, use this complete video toward ${state.intent.slice(0, 100)} in a ${state.dailyMinutes}-minute study session: ${first.slice(0, 120)}`,
-        sourceChunkIds: chunks.map(chunk => chunk.id),
-        pinned: false,
-      });
-      continue;
-    }
-    chunks.forEach((chunk, index) => {
-      const { cleanChunk, title } = lessonCopy(state, chunk, index);
-      lessons.push({
-        id: `grounded:${chunk.id}`,
-        version: 0,
-        title,
-        objective: `For ${state.audience.slice(0, 80)}, apply this evidence toward ${state.intent.slice(0, 100)} in a ${state.dailyMinutes}-minute study session: ${cleanChunk.slice(0, 120)}`,
-        sourceChunkIds: [chunk.id],
-        pinned: false,
-      });
-    });
-  }
-  return lessons;
-}
-
-/** Generated lessons must cite every retained chunk exactly once, in source order. */
-export function validateGeneratedLessonCoverage(lessons: CohortLesson[], chunks: CohortChunk[]): boolean {
-  const chunkIds = new Set(chunks.map(chunk => chunk.id));
-  const cited = lessons.flatMap(lesson => lesson.sourceChunkIds);
-  return cited.length === chunks.length && new Set(cited).size === cited.length && cited.every(id => chunkIds.has(id));
-}
-
 /** Deterministic, bounded stage computation. No model owns evidence IDs. */
 export function computeTextStage(state: CohortWorkspace): TextStageAction {
   const stage = state.processing.stage;
@@ -193,7 +44,7 @@ export function computeTextStage(state: CohortWorkspace): TextStageAction {
   const fingerprint = sourceFingerprint(state);
   let result: unknown;
   if (stage === 'acquisition') {
-    result = state.sources.map(source => ({ id: source.id, version: source.version, checksum: source.checksum ?? digest(source.text) }));
+    result = state.sources.map(source => ({ id: source.id, version: source.version, checksum: source.checksum ?? sha256(source.text) }));
   } else if (stage === 'understanding') {
     result = state.sources.map(source => state.understanding.find(item => item.sourceId === source.id && item.sourceVersion === source.version) ?? ({
       sourceId: source.id, sourceVersion: source.version,
@@ -232,7 +83,7 @@ export function planTextStage(state: CohortWorkspace, input: unknown, context: {
     if (!Array.isArray(rows) || rows.length !== next.sources.length) throw new Error('INVALID_ACQUISITION');
     for (const source of next.sources) {
       const row = rows.find(item => item.id === source.id && item.version === source.version);
-      if (!row || row.checksum !== digest(source.text)) throw new Error('INVALID_ACQUISITION');
+      if (!row || row.checksum !== sha256(source.text)) throw new Error('INVALID_ACQUISITION');
       source.checksum = row.checksum;
       source.state = 'ready';
     }

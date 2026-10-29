@@ -27,48 +27,11 @@ function rotr(n: number, x: number): number {
   return (x >>> n) | (x << (32 - n));
 }
 
-function utf8Encode(str: string): Uint8Array {
-  if (typeof TextEncoder !== 'undefined') {
-    return new TextEncoder().encode(str);
-  }
-  // Fallback for environments lacking TextEncoder
-  const binary: number[] = [];
-  for (let i = 0; i < str.length; i++) {
-    let codePoint = str.charCodeAt(i);
-    if (codePoint >= 0xd800 && codePoint <= 0xdbff && i + 1 < str.length) {
-      const next = str.charCodeAt(i + 1);
-      if (next >= 0xdc00 && next <= 0xdfff) {
-        codePoint = (codePoint - 0xd800) * 0x400 + (next - 0xdc00) + 0x10000;
-        i++;
-      }
-    }
-    if (codePoint < 0x80) {
-      binary.push(codePoint);
-    } else if (codePoint < 0x800) {
-      binary.push(0xc0 | (codePoint >>> 6), 0x80 | (codePoint & 0x3f));
-    } else if (codePoint < 0x10000) {
-      binary.push(
-        0xe0 | (codePoint >>> 12),
-        0x80 | ((codePoint >>> 6) & 0x3f),
-        0x80 | (codePoint & 0x3f)
-      );
-    } else {
-      binary.push(
-        0xf0 | (codePoint >>> 18),
-        0x80 | ((codePoint >>> 12) & 0x3f),
-        0x80 | ((codePoint >>> 6) & 0x3f),
-        0x80 | (codePoint & 0x3f)
-      );
-    }
-  }
-  return new Uint8Array(binary);
-}
-
 /**
- * Computes SHA-256 digest of a string and returns lowercase hex string.
+ * Computes SHA-256 digest of a string or byte array and returns lowercase hex string.
  */
 export function sha256(value: string | Uint8Array): string {
-  const bytes = typeof value === 'string' ? utf8Encode(value) : value;
+  const bytes = typeof value === 'string' ? new TextEncoder().encode(value) : value;
   const byteLength = bytes.length;
   const bitLength = byteLength * 8;
 
