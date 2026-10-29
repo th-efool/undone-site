@@ -12,7 +12,7 @@ import {
   useWorkspaceConnection,
   useInteractionState,
 } from '@/src/client/interaction/hooks';
-import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
+import { type CohortWorkspace, planCohortAction } from '@/src/shared/cohort-builder/contracts';
 import type { EntityRef } from 'interaction-builder/core';
 import { ThemeToggle } from '@/src/client/screens/landing/Hero/components/ThemeToggle';
 import { useTheme } from '@/src/client/hooks/useTheme';
@@ -171,6 +171,7 @@ export function CohortInteractionScreen({
       initialRevision,
       transport,
       conflictResolution: 'rebase',
+      plan: planCohortAction as any,
     });
   }, [workspaceId, initialView, initialRevision, transport, logger]);
 

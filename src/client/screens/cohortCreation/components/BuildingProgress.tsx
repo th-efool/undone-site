@@ -21,9 +21,9 @@ export function BuildingProgress({ snapshot, disabled, onStart, onCancel, onBack
     <p>Accepted analysis, chunks and source material remain saved.</p>
     {checkpoint && <progress max={checkpoint.total} value={checkpoint.completed.length} aria-label="Content partitions built" />}
     {running ? <div role="status">
-      <p>{checkpoint ? `${checkpoint.completed.length} of ${checkpoint.total} retained content partitions built; ${checkpoint.completed.reduce((sum, item) => sum + item.lessonCount, 0)} lessons saved.`
+      <p>{checkpoint ? `${checkpoint.completed.length} of ${checkpoint.total} sources built; ${checkpoint.completed.reduce((sum, item) => sum + item.lessonCount, 0)} lessons saved.`
         : 'Validating retained analysis; partition total is not known yet.'}</p>
-      <p>You can close this page and return while work continues.</p>
+      <p>Building curriculum lessons and syllabus in real time.</p>
       <button onClick={onCancel}>Cancel building</button>
     </div> : <>
       <p role="status">{operation?.complete ? 'Building complete. Curriculum lessons are saved.'

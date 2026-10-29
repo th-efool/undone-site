@@ -97,8 +97,8 @@ export function ChunkingStageView({ workspace, dispatchAction }: ChunkingStageVi
             </fieldset>
 
             <div className={shared.progress}>
-              <progress max={sources.length || 1} value={chunkedSourcesCount} aria-label="Content partitions chunked" />
-              <span>{chunkedSourcesCount}/{sources.length} partitions</span>
+              <progress max={sources.length || 1} value={chunkedSourcesCount} aria-label="Content sources structured" />
+              <span>{chunkedSourcesCount}/{sources.length} sources structured</span>
             </div>
 
             <div className={shared.controls}>
@@ -111,7 +111,7 @@ export function ChunkingStageView({ workspace, dispatchAction }: ChunkingStageVi
               {isRunning ? (
                 <div role="status">
                   <p>{validChunks.length} chunks generated across {chunkedSourcesCount} sources.</p>
-                  <p>You can close this page and return while work continues.</p>
+                  <p>Organizing material into focused learning units in real time.</p>
                   <button type="button" onClick={() => void dispatchAction({ type: 'cancel_text_processing' })}>
                     Cancel chunking
                   </button>

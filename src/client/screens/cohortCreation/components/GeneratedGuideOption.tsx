@@ -34,7 +34,7 @@ export function GeneratedGuideOption({ snapshot, disabled, onAuthor, onCancel }:
     </>}
     {capacity && <p role="status">Remove a source or reduce selected units before creating a guide.</p>}
     {pending && <p role="status">Saving your guide request…</p>}
-    {running && <div role="status"><p>Authoring and retaining your guide. You can return later; progress is saved.</p><button type="button" onClick={onCancel}>Cancel guide generation</button></div>}
+    {running && <div role="status"><p>Authoring and retaining your structured learning guide right now.</p><button type="button" onClick={onCancel}>Cancel guide generation</button></div>}
     {existing?.status === 'failed' && snapshot.error && <p role="alert">{snapshot.error.message}</p>}
     {error && <p role="alert">{error}</p>}
   </section>;

@@ -23,15 +23,15 @@ export function UnderstandingProgress({ snapshot, disabled, onStart, onCancel, o
   const ready = !!snapshot.materials.length && snapshot.materials.every(source => source.status === 'ready') && snapshot.extractions.length === snapshot.materials.length;
   const controls = <div className={styles.controls}>{running ? <div role="status">
       <p><strong>{checkpoint ? getMilestoneText(checkpoint.completed.length, checkpoint.total) : 'Reading source material…'}</strong></p>
-      <p>{checkpoint ? `${checkpoint.completed.length} of ${checkpoint.total} retained content partitions understood.` : 'Validating retained content; partition total is not known yet.'}</p>
-      <p>Work is saved to your account. You can close this page and return.</p>
+      <p>{checkpoint ? `${checkpoint.completed.length} of ${checkpoint.total} sources understood.` : 'Validating retained content; partition total is not known yet.'}</p>
+      <p>Analyzing your material in real time.</p>
       <button onClick={onCancel}>Cancel understanding</button>
     </div> : <>
-      {snapshot.processing?.complete ? <p role="status">Understanding complete. Retained summaries and concept evidence are saved. Continue to chunking before building your curriculum.</p>
-        : snapshot.stage === 'processing' && <p role="status">Understanding {snapshot.status === 'canceled' ? 'canceled' : 'stopped'}. Accepted partitions remain saved.</p>}
+      {snapshot.processing?.complete ? <p role="status">Understanding complete. Core concepts and evidence are ready. Continue to chunking before building your curriculum.</p>
+        : snapshot.stage === 'processing' && <p role="status">Understanding {snapshot.status === 'canceled' ? 'canceled' : 'stopped'}. Accepted sources remain saved.</p>}
       {snapshot.error && snapshot.stage === 'processing' && <p role="alert">{snapshot.error.message}</p>}
       {error && <p role="alert">{error}</p>}
-      {snapshot.processing && !snapshot.processing.complete && <p>A fresh request starts understanding again. Automatic worker retries reuse saved partitions.</p>}
+      {snapshot.processing && !snapshot.processing.complete && <p>A fresh request starts understanding again.</p>}
       <button disabled={disabled || pending || !ready} onClick={start}>{snapshot.processing ? 'Start fresh understanding' : 'Understand selected material'}</button>
       {snapshot.processing?.complete && (onChunk || onComplete) && <button disabled={disabled || pending} onClick={() => {
         if (onComplete) onComplete();
@@ -66,7 +66,7 @@ export function UnderstandingProgress({ snapshot, disabled, onStart, onCancel, o
         {!!videos.length && <ol className={styles.videos}>{videos.map(unit => <li key={unit.unitId}><span>{unit.title}</span><small>{Math.ceil(unit.durationSeconds / 60)} min</small></li>)}</ol>}
         </li>;
       })}</ul>
-      <div className={styles.progress}>{checkpoint ? <><progress max={checkpoint.total} value={checkpoint.completed.length} aria-label="Content partitions understood" /><span>{getMilestoneText(checkpoint.completed.length, checkpoint.total)} ({checkpoint.completed.length}/{checkpoint.total} partitions)</span></> : <><LoaderCircle size={18} aria-hidden="true" /><span>Reading source material…</span></>}</div>
+      <div className={styles.progress}>{checkpoint ? <><progress max={checkpoint.total} value={checkpoint.completed.length} aria-label="Sources understood" /><span>{getMilestoneText(checkpoint.completed.length, checkpoint.total)} ({checkpoint.completed.length}/{checkpoint.total} sources)</span></> : <><LoaderCircle size={18} aria-hidden="true" /><span>Reading source material…</span></>}</div>
       {controls}
     </div></div><UnderstandingConcepts snapshot={snapshot} /></div>
   </section>;

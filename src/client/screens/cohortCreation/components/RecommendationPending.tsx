@@ -18,8 +18,7 @@ export function RecommendationPending({ creation, initialQuery = '' }: { creatio
       )}
       {snapshot.status === 'running' ? (
         <div role="status" className={styles.status}>
-          <p>Understanding your intent and finding public cohorts…</p>
-          <p>You can return later; this request is saved.</p>
+          <p>Searching for matching cohorts and creators right now…</p>
           <button type="button" className={styles.retry} onClick={creation.cancel}>
             Cancel
           </button>

@@ -12,7 +12,7 @@ export function ReviewConversation({ model, onCancel }: { model: ReviewModel; on
       <ol>{[...model.preview.conversation.entries].reverse().map(entry => <li key={entry.id}><strong>{entry.role === 'user' ? 'You' : 'Undone'}:</strong> {entry.message}</li>)}</ol>
     </details>}
     {model.preview?.conversation.nextBefore && <button disabled={model.disabled} onClick={() => void model.loadOlder()}>Load older conversation</button>}
-    {model.running && <div role="status"><p>Preparing a bounded refinement proposal. You can return later.</p><button onClick={onCancel}>Cancel refinement</button></div>}
+    {model.running && <div role="status"><p>Preparing your curriculum refinements right now.</p><button onClick={onCancel}>Cancel refinement</button></div>}
     {proposal && <section aria-label="Refinement proposal" className={styles.proposal}><h3>Suggested changes</h3><p>{proposal.result.message}</p>
       <ul>{proposal.result.changes.map((change, index) => <li key={index}><strong>{change.type.replaceAll('_', ' ')}:</strong> {Array.isArray(change.value) ? change.value.join('; ') : change.value}</li>)}</ul>
       <button disabled={model.disabled || model.dirty || !model.preview || !!model.error || !!model.review.orphanedLessonIds.length || proposal.baseEditRevision !== model.review.editRevision} onClick={() => void model.applyProposal()}>Apply proposal</button>

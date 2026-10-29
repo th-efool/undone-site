@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { Check, AlertCircle, ArrowLeft } from 'lucide-react';
 import { useWorkspaceView, useDispatchAction, useInteractionState } from '@/src/client/interaction/hooks';
@@ -325,6 +325,15 @@ function InnerCohortWorkspacePane({
     Building: 'assembly',
   };
 
+  useEffect(() => {
+    if (inspectedStage) {
+      const inspectedStep = progress.steps.find(s => stepToStageMap[s.label] === inspectedStage);
+      if (!inspectedStep || (!inspectedStep.isComplete && !inspectedStep.isCurrent && !inspectedStep.isFailed)) {
+        setInspectedStage(null);
+      }
+    }
+  }, [activeStage, progress.steps, inspectedStage]);
+
   return (
     <main className={styles.rightPane} aria-label="Cohort Curriculum Workspace">
       {/* Stepper Navigation */}
@@ -335,26 +344,33 @@ function InnerCohortWorkspacePane({
               const stepStage = stepToStageMap[step.label];
               const isInspected = inspectedStage === stepStage;
               const isCurrent = inspectedStage ? isInspected : step.isCurrent;
+              const isAccessible = step.isComplete || step.isCurrent || step.isFailed;
               return (
                 <li
                   key={step.label}
                   role="button"
-                  tabIndex={0}
+                  tabIndex={isAccessible ? 0 : -1}
+                  aria-disabled={!isAccessible || undefined}
+                  data-disabled={!isAccessible || undefined}
                   aria-current={isCurrent ? 'step' : undefined}
                   data-complete={step.isComplete}
                   data-failed={step.isFailed || undefined}
                   data-inspected={isInspected || undefined}
                   onClick={() => {
-                    // Pure presentation state: sets inspectedStage, no actions dispatched, no store re-creation
+                    if (!isAccessible) return;
                     setInspectedStage(current => (current === stepStage ? null : stepStage));
                   }}
                   onKeyDown={e => {
+                    if (!isAccessible) return;
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
                       setInspectedStage(current => (current === stepStage ? null : stepStage));
                     }
                   }}
-                  style={{ cursor: 'pointer' }}
+                  style={{
+                    cursor: isAccessible ? 'pointer' : 'not-allowed',
+                    opacity: isAccessible ? 1 : 0.45,
+                  }}
                 >
                   <span>
                     {step.isComplete ? (

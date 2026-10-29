@@ -37,7 +37,7 @@ export function DiscoveryMaterials({ snapshot, disabled, onFind, onAcquire, onGi
     {pending && <p role="status">Saving your request…</p>}
     {running && <div role="status">
       <p>{discovery?.checkpoint ? `Observed or accounted for ${discovery.checkpoint.processed} of ${discovery.checkpoint.total} cited resources.` : 'Searching for grounded sources; the citation total is not known yet.'}</p>
-      <p>You can return later; this work is saved.</p><button onClick={onCancel}>Cancel discovery</button>
+      <p>Discovering high quality educational materials right now.</p><button onClick={onCancel}>Cancel discovery</button>
     </div>}
     {snapshot.error && !snapshot.materials.some(source => source.status === 'failed') && <p role="alert">{snapshot.error.message}</p>}
     {error && <p role="alert">{error}</p>}

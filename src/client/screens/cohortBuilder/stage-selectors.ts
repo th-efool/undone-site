@@ -360,16 +360,7 @@ function computeActiveStage(workspace: CohortWorkspace): BuilderStage {
 }
 
 export function getActiveStage(workspace: CohortWorkspace): BuilderStage {
-  if (!workspace || typeof workspace !== 'object') {
-    return computeActiveStage(workspace);
-  }
-  const cached = activeStageCache.get(workspace);
-  if (cached !== undefined) {
-    return cached;
-  }
-  const result = computeActiveStage(workspace);
-  activeStageCache.set(workspace, result);
-  return result;
+  return computeActiveStage(workspace);
 }
 
 /**

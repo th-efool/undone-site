@@ -104,8 +104,8 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
             <div className={styles.progress}>
               {totalCount > 0 ? (
                 <>
-                  <progress max={totalCount} value={understoodCount} aria-label="Content partitions understood" />
-                  <span>{understoodCount}/{totalCount} partitions understood</span>
+                  <progress max={totalCount} value={understoodCount} aria-label="Sources understood" />
+                  <span>{understoodCount}/{totalCount} sources understood</span>
                 </>
               ) : (
                 <>
@@ -120,8 +120,8 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
 
               {isRunning ? (
                 <div role="status">
-                  <p>{understoodCount} of {totalCount} retained content partitions understood.</p>
-                  <p>Work is saved to your account. You can close this page and return.</p>
+                  <p>Analyzing {understoodCount} of {totalCount} sources…</p>
+                  <p>Discovering key concepts in real time.</p>
                   <button type="button" onClick={() => void dispatchAction({ type: 'cancel_text_processing' })}>
                     Cancel understanding
                   </button>
@@ -162,7 +162,7 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
 
           {allTopics.length === 0 ? (
             <p className={styles.empty} role="status">
-              Concepts appear after a retained content partition is understood.
+              Key ideas and concepts will appear here as each source is analyzed.
             </p>
           ) : (
             <ul className={styles.conceptCloud}>
@@ -182,8 +182,8 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
             <summary>Source summaries and limitations ({sources.length})</summary>
             {sources.map(source => <div key={source.id}>
               <strong>{source.label}</strong>
-              <p>{source.text ? source.text.slice(0, 350) : 'Reading retained material. Concepts will appear after it is understood.'}</p>
-              {source.provenance?.scope === 'video_observation' && <p>Video observations are non-exhaustive interpretations with estimated timestamps.</p>}
+              <p>{source.text ? source.text.slice(0, 350) : 'Reading source material. Concepts will appear as it is processed.'}</p>
+              {source.provenance?.scope === 'video_observation' && <p>Video observations with estimated timestamps.</p>}
               {source.provenance?.limitations?.map((limitation, index) => <p key={index}>{limitation}</p>)}
             </div>)}
           </details>
@@ -192,7 +192,7 @@ export function UnderstandingStageView({ workspace, dispatchAction }: Understand
             <Lightbulb size={28} aria-hidden="true" />
             <p>
               <strong>{allTopics.length} key ideas identified.</strong>
-              <span>Entries retain source evidence; repeated ideas may appear across partitions.</span>
+              <span>Core topics and evidence gathered directly from your material.</span>
             </p>
           </div>
         </aside>

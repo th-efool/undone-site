@@ -6,10 +6,12 @@ import { useSession } from 'next-auth/react';
 import {
   AlertCircle,
   CircleCheck,
+  Clock,
   ChevronDown,
   FileText,
   Globe,
   Link as LinkIcon,
+  LoaderCircle,
   Plus,
   Replace,
   Trash2,
@@ -188,6 +190,9 @@ export const SourceItemRow = React.memo(function SourceItemRow({
   onRemove,
 }: SourceItemRowProps) {
   const isFailed = source.state === 'failed';
+  const isProcessing = source.state === 'processing';
+  const isQueued = source.state === 'queued';
+  const isReady = source.state === 'ready' || (Boolean(source.text && source.text.length > 0) && !isFailed && !isProcessing && !isQueued);
   const videoId = extractYoutubeVideoId(source);
   const badgeLabel = getSourceTypeBadge(source);
 
@@ -244,11 +249,26 @@ export const SourceItemRow = React.memo(function SourceItemRow({
       <div className={styles.sourceActions}>
         <div className={styles.sourceIconCol}>
           {isFailed ? (
-            <AlertCircle className={styles.sourceAlertIcon} size={18} aria-label="Failed" />
+            <>
+              <AlertCircle className={styles.sourceAlertIcon} size={18} aria-label="Failed" />
+              <span>Needs attention</span>
+            </>
+          ) : isProcessing ? (
+            <>
+              <LoaderCircle className={styles.spinning} size={18} aria-label="Extracting" />
+              <span>Extracting…</span>
+            </>
+          ) : isQueued ? (
+            <>
+              <Clock className={styles.sourceQueuedIcon} size={18} aria-label="Queued" />
+              <span>Queued</span>
+            </>
           ) : (
-            <CircleCheck className={styles.sourceReadyIcon} data-ready size={18} aria-label="Ready" />
+            <>
+              <CircleCheck className={styles.sourceReadyIcon} data-ready size={18} aria-label="Ready" />
+              <span>Ready</span>
+            </>
           )}
-          <span>{isFailed ? 'Needs attention' : 'Ready'}</span>
         </div>
         <div className={styles.sourceActionButtons}>
           <button
@@ -428,21 +448,23 @@ export function MaterialStageView({
         }
 
         if (metadata?.isPlaylist && metadata.videos && metadata.videos.length > 0) {
-          // For playlists, add videos from the playlist (up to remaining capacity, max 5)
-          const remainingSlots = Math.max(1, 20 - (workspace.sources?.length ?? 0));
-          const videosToAdd = metadata.videos.slice(0, Math.min(5, remainingSlots));
-          let anySuccess = false;
-          for (const v of videosToAdd) {
-            const canonicalVideoUrl = `https://www.youtube.com/watch?v=${v.videoId}`;
-            const added = await dispatchAction({
-              type: 'add_youtube_source',
-              url: canonicalVideoUrl,
-              label: v.title || `Video ${v.videoId}`,
-              mode: 'video_observation',
-            });
-            if (added) anySuccess = true;
+          // For playlists, add all videos from the playlist up to remaining capacity (max 100) in 1 batch action
+          const maxCapacity = 100;
+          const remainingSlots = Math.max(0, maxCapacity - (workspace.sources?.length ?? 0));
+          const videosToAdd = metadata.videos.slice(0, remainingSlots);
+          if (videosToAdd.length === 0) {
+            setError(`Cannot add more sources. Maximum capacity of ${maxCapacity} reached.`);
+            setBusy(false);
+            return;
           }
-          ok = anySuccess;
+          ok = await dispatchAction({
+            type: 'add_youtube_sources_batch',
+            videos: videosToAdd.map(v => ({
+              url: `https://www.youtube.com/watch?v=${v.videoId}`,
+              label: v.title || `Video ${v.videoId}`,
+              mode: 'video_observation' as const,
+            })),
+          });
         } else {
           // Normalize video URL
           let normalizedUrl = trimmedUrl;
@@ -560,7 +582,7 @@ export function MaterialStageView({
             label: source.label,
             mode: source.input.mode ?? 'video_observation',
           });
-        } else {
+        } else if (workspace.journey?.processingStarted) {
           await dispatchAction({ type: 'retry_processing' });
         }
       } catch (err) {
@@ -851,7 +873,7 @@ export function MaterialStageView({
           Public YouTube links retain metadata and video observations. These are AI interpretations with estimated timestamps, not transcripts or exhaustive coverage.
         </p>
         <p>
-          Up to 20 sources. Content that exceeds a limit must be narrowed or supplied as a supported alternative.
+          Up to 100 sources. Content that exceeds a limit must be narrowed or supplied as a supported alternative.
         </p>
       </details>
 

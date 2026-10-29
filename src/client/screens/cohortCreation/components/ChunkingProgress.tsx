@@ -12,9 +12,9 @@ export function ChunkingProgress({ snapshot, disabled, onStart, onCancel, onBack
   return <ChunkingWorkspace snapshot={snapshot}>
     <p>Accepted understanding and source material remain saved.</p>
     {running ? <div role="status">
-      <p>{checkpoint ? `${checkpoint.completed.length} of ${checkpoint.total} retained content partitions chunked; ${checkpoint.completed.reduce((sum, item) => sum + item.chunkCount, 0)} chunks saved.`
+      <p>{checkpoint ? `${checkpoint.completed.length} of ${checkpoint.total} sources structured; ${checkpoint.completed.reduce((sum, item) => sum + item.chunkCount, 0)} chunks saved.`
         : 'Validating retained understanding; partition total is not known yet.'}</p>
-      <p>You can close this page and return while work continues.</p>
+      <p>Organizing content into focused modules in real time.</p>
       <button onClick={onCancel}>Cancel chunking</button>
     </div> : <>
       <p role="status">{operation?.complete ? 'Chunking complete. Grounded chunks are saved.'

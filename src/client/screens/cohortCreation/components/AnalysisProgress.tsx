@@ -13,9 +13,9 @@ export function AnalysisProgress({ snapshot, disabled, onStart, onCancel, onBack
     <h2>Analyzing</h2>
     <p>Accepted chunks, understanding and source material remain saved.</p>
     {running ? <div role="status">
-      <p>{checkpoint ? `${checkpoint.completed.length} of ${checkpoint.total} retained content partitions analyzed; ${checkpoint.completed.reduce((sum, item) => sum + item.chunkCount, 0)} chunk analyses saved.`
+      <p>{checkpoint ? `${checkpoint.completed.length} of ${checkpoint.total} sources analyzed; ${checkpoint.completed.reduce((sum, item) => sum + item.chunkCount, 0)} chunk analyses saved.`
         : 'Validating retained chunks; partition total is not known yet.'}</p>
-      <p>You can close this page and return while work continues.</p>
+      <p>Synthesizing insights and lesson foundations in real time.</p>
       <button onClick={onCancel}>Cancel analysis</button>
     </div> : <>
       <p role="status">{operation?.complete ? 'Analyzing complete. Pedagogical analysis is saved.'

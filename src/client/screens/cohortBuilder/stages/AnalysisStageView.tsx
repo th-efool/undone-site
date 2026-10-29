@@ -109,8 +109,8 @@ export function AnalysisStageView({ workspace, dispatchAction }: AnalysisStageVi
             </fieldset>
 
             <div className={shared.progress}>
-              <progress max={totalChunksCount || 1} value={analyzedTotalCount} aria-label="Content partitions analyzed" />
-              <span>{analyzedTotalCount}/{totalChunksCount} partitions analyzed</span>
+              <progress max={totalChunksCount || 1} value={analyzedTotalCount} aria-label="Chunks analyzed" />
+              <span>{analyzedTotalCount}/{totalChunksCount} chunks analyzed</span>
             </div>
 
             <div className={shared.controls}>
@@ -127,7 +127,7 @@ export function AnalysisStageView({ workspace, dispatchAction }: AnalysisStageVi
               {isRunning && (
                 <div role="status">
                   <p>{analyzedTotalCount} of {totalChunksCount} chunks analyzed.</p>
-                  <p>Work is saved to your account. You can close this page and return.</p>
+                  <p>Synthesizing insights and learning questions in real time.</p>
                   <button type="button" onClick={() => void dispatchAction({ type: 'cancel_text_processing' })}>
                     Cancel analysis
                   </button>

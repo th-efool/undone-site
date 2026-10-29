@@ -19,7 +19,7 @@ export function PublicationStatus({ creation }: { creation: ReturnType<typeof us
   const cohortPath = receipt ? `/cohort/${encodeURIComponent(receipt.cohortId)}` : null;
   return <CreationShell variant="review" query={snapshot.result?.intent.rawQuery ?? snapshot.query} saved={creation.saved}
     reply={receipt ? <><p>That’s done.</p><p>{publicCohort ? 'Your cohort is published and ready to discover.' : 'Your private cohort is ready for you and authorized members.'}</p><p>Open your cohort or start learning from your feed.</p></> : <><p>Your draft is saved.</p><p>Finalization validates the retained learning artifacts before making your cohort available.</p></>}
-    hintTitle="Saved to your account" hint="You can return to this draft at any time." disabled onMessage={() => {}}
+    hintTitle="Cohort ready" hint="Your cohort draft is prepared and ready to explore." disabled onMessage={() => {}}
     conversation={receipt ? <ol className={styles.checklist}>{['Reading through the material', 'Chunking into meaningful pieces', 'Analyzing each piece', 'Building your learning experience', 'Reviewing and refining'].map(label => <li key={label}><CheckCircle2 size={20} aria-hidden="true" /><span>{label}</span></li>)}</ol> : undefined}>
     <section className={styles.workspace} aria-label={receipt ? 'Cohort activated' : 'Finalizing cohort'}>
       {creation.queueNotice && <p role="status">{creation.queueNotice}</p>}

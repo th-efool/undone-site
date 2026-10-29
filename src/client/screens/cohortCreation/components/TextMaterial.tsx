@@ -145,7 +145,7 @@ export function TextMaterial({ snapshot, uploading, pending, onUpload, onCancelU
     </>}
     {error && <p role="alert">{error}</p>}
     {uploading ? <p role="status">Uploading material… <button onClick={onCancelUpload}>Cancel upload</button></p> : pending ? <p role="status">Queuing material acquisition…</p> : null}
-    {snapshot.status === 'running' && <p role="status">Acquiring retained material. You can return later. <button onClick={onCancel}>Cancel acquisition</button></p>}
+    {snapshot.status === 'running' && <p role="status">Acquiring source material in real time. <button onClick={onCancel}>Cancel acquisition</button></p>}
     {queuing && <p role="status">Saving source selection…</p>}
     {snapshot.error && <p role="alert">{snapshot.error.message}</p>}
     {!!snapshot.materials.length && <h2 className={styles.sourceHeading}>Added material</h2>}

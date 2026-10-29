@@ -30,8 +30,7 @@ describe('RecommendationPending Component (Issue 7 Anti-Skeleton)', () => {
     expect(screen.getByRole('heading', { name: 'Finding your people…' })).toBeTruthy();
     const statusBox = screen.getByRole('status');
     expect(statusBox).toBeTruthy();
-    expect(statusBox.textContent).toContain('Understanding your intent and finding public cohorts…');
-    expect(statusBox.textContent).toContain('You can return later; this request is saved.');
+    expect(statusBox.textContent).toContain('Searching for matching cohorts and creators right now…');
 
     // Must preserve cancellation capability
     const cancelBtn = screen.getByRole('button', { name: 'Cancel' });

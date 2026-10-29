@@ -44,15 +44,15 @@ export function AssemblyStageView({ workspace, dispatchAction }: AssemblyStageVi
             <progress
               max={lessonCount > 0 ? lessonCount : 1}
               value={isComplete ? lessonCount : 0}
-              aria-label="Content partitions built"
+              aria-label="Lessons built"
             />
 
             {isRunning ? (
               <div role="status">
                 <p>
-                  {chunkCount} partitions analyzed; {lessonCount} lessons saved.
+                  {chunkCount} chunks analyzed; {lessonCount} lessons structured.
                 </p>
-                <p>You can close this page and return while work continues.</p>
+                <p>Assembling your lessons and syllabus in real time.</p>
                 <button type="button" onClick={() => void dispatchAction({ type: 'cancel_text_processing' })}>
                   Cancel building
                 </button>

@@ -58,7 +58,7 @@ export function ChunkingWorkspace({ snapshot, children, onContinue }: { snapshot
           <small>{loaded?.revision === snapshot.revision ? `${chunks.filter(chunk => chunk.materialId === item.materialId && (!item.unitId || chunk.unitId === item.unitId)).length} chunks` : 'Pending preview'}</small><ChevronRight size={16} aria-hidden="true" />
         </label>)}
       </fieldset>
-      <div className={shared.progress}>{checkpoint ? <><progress max={checkpoint.total} value={accepted} aria-label="Content partitions chunked" /><span>{accepted}/{checkpoint.total} partitions</span></> : <span>Reading retained understanding…</span>}</div>
+      <div className={shared.progress}>{checkpoint ? <><progress max={checkpoint.total} value={accepted} aria-label="Sources chunked" /><span>{accepted}/{checkpoint.total} sources</span></> : <span>Reading understanding…</span>}</div>
       <div className={shared.controls}>{children ?? (onContinue && <button type="button" onClick={onContinue}>Continue to piece scoring →</button>)}</div>
     </div></div>
     <aside className={styles.detail} id="creation-accepted-chunks" aria-label="Accepted chunks">

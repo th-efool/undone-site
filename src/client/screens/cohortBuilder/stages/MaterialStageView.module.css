@@ -378,6 +378,9 @@
 .sourceIconCol { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--creation-muted, #657085); }
 .sourceReadyIcon { color: #3c7356; }
 .sourceAlertIcon { color: #ac463c; }
+.sourceQueuedIcon { color: var(--creation-muted, #657085); }
+.spinning { animation: spin 1s linear infinite; color: #2d5be3; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 .sourceDetails { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 
 .sourceTitle {

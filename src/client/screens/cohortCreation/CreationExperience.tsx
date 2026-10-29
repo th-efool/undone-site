@@ -84,7 +84,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
     return <CreationShell variant="processing" query={snapshot.result?.intent.rawQuery ?? snapshot.query} saved={creation.saved}
       conversation={<ProcessingChecklist snapshot={snapshot} />}
       disabled={creation.materialPending} reply={<><p>I’ve got it.</p><p>{analyzing ? 'I’m analyzing each piece to understand what it’s like and how it fits your learning experience.' : chunking ? 'I’m turning your retained content into meaningful learning pieces. Each chunk keeps its source evidence.' : snapshot.processing.complete ? 'Your material is understood. Review the saved concepts, then continue to chunking.' : 'I’m going through your retained material and understanding what it’s about.'}</p></>}
-      hintTitle="Grounded in your material" hint={analyzing ? 'These scores are AI estimates, saved with their reasoning and source evidence. Expand a chunk to inspect all twelve dimensions.' : chunking ? 'Chunks appear only after their boundaries are saved. Duration estimates are labelled, and analysis comes next.' : 'Concepts appear only after source evidence is saved. Your work keeps running if you close this page.'}
+      hintTitle="Grounded in your material" hint={analyzing ? 'These scores are AI estimates, saved with their reasoning and source evidence. Expand a chunk to inspect all twelve dimensions.' : chunking ? 'Chunks appear only after their boundaries are saved. Duration estimates are labelled, and analysis comes next.' : 'Concepts appear as source material is analyzed and understood.'}
       onMessage={message => {
         if ((analyzing ? /analys|score|dimension|reason/i : chunking ? /chunk|piece|boundar/i : /concept|idea|summary|summaries/i).test(message)) document.getElementById(target)?.scrollIntoView({ behavior: 'auto', block: 'start' });
         else throw new Error('Use the saved evidence panel to inspect this stage, or the processing controls to cancel, restart or continue.');
@@ -101,8 +101,8 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
     const ready = snapshot.stage === 'ready' || creation.activatingReady;
     return <CreationShell query={snapshot.result?.intent.rawQuery ?? snapshot.query} saved={creation.saved} disabled={creation.materialPending}
       reply={ready ? <><p>That’s done.</p><p>Your material is processed and the lessons are saved. Review them, or activate this cohort privately to start learning.</p></> : <><p>One more step.</p><p>I’m building lessons from your accepted analysis, chunks and source material.</p></>}
-      hintTitle={ready ? 'You choose what happens next' : 'Your work stays saved'}
-      hint={ready ? 'Go to your feed activates this cohort privately. Review cohort lets you edit it first. Public publishing is always a separate choice.' : 'Building progress reflects saved work. You can close this page and return while processing continues.'}
+      hintTitle={ready ? 'You choose what happens next' : 'Building in real time'}
+      hint={ready ? 'Go to your feed activates this cohort privately. Review cohort lets you edit it first. Public publishing is always a separate choice.' : 'Building your cohort syllabus and lessons in real time.'}
       onMessage={message => {
         if (/source|material|lesson|progress|ready/i.test(message)) document.getElementById('creation-ready-workspace')?.scrollIntoView({ behavior: 'auto', block: 'start' });
         else throw new Error(ready ? 'Use Review cohort to edit your learning experience, or Go to my feed to activate it privately.' : 'Use the processing controls to cancel, restart or inspect saved progress.');
@@ -146,7 +146,7 @@ export function CreationExperience({ draftId, initialQuery = '', resume = false 
             <textarea id="learning-query" name="query" defaultValue={snapshot.query || initialQuery} minLength={3} maxLength={2000} required rows={3} />
             <button type="submit" disabled={snapshot.status === 'running' || creation.queryPending}>Find cohorts</button>
           </form>
-          {snapshot.status === 'running' && <div role="status"><p>Understanding your intent and finding public cohorts…</p><p>You can return later; this request is saved.</p><button type="button" onClick={creation.cancel}>Cancel</button></div>}
+          {snapshot.status === 'running' && <div role="status"><p>Searching for matching cohorts and creators right now…</p><button type="button" onClick={creation.cancel}>Cancel</button></div>}
           {snapshot.error && <div role="alert"><p>{snapshot.error.message}</p>{snapshot.error.retryable && <button type="button" onClick={() => void creation.runQuery(snapshot.query)}>Retry</button>}</div>}
           {snapshot.status === 'canceled' && <div role="status"><p>Generation stopped. Your query is still here.</p><button type="button" onClick={() => void creation.runQuery(snapshot.query)}>Retry</button></div>}
           {snapshot.result && <RecommendationResults result={snapshot.result} onCreateOwn={createOwn} />}

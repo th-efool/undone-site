@@ -58,7 +58,7 @@ export function AnalysisWorkspace({ snapshot, children, onContinue }: { snapshot
           <small>{preview ? `${sourceChunks(item).filter(chunk => analyses.has(chunk.id)).length}/${sourceChunks(item).length} analyzed` : 'Pending preview'}</small><ChevronRight size={16} aria-hidden="true" />
         </label>)}
       </fieldset>
-      <div className={shared.progress}>{checkpoint ? <><progress max={checkpoint.total} value={accepted} aria-label="Content partitions analyzed" /><span>{accepted}/{checkpoint.total} partitions</span></> : <span>Validating retained chunks…</span>}</div>
+      <div className={shared.progress}>{checkpoint ? <><progress max={checkpoint.total} value={accepted} aria-label="Sources analyzed" /><span>{accepted}/{checkpoint.total} sources</span></> : <span>Evaluating structured material…</span>}</div>
       <div className={shared.controls}>{children ?? (onContinue && <button type="button" onClick={onContinue}>Continue to review →</button>)}</div>
     </div></div>
     <aside className={chunks.detail} id="creation-accepted-analysis" aria-label="Accepted analysis">

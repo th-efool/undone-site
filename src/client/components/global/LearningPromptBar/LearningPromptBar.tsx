@@ -349,19 +349,7 @@ export const LearningPromptBar = React.memo(
       setSubmitting(true);
       setIntakeError('');
       try {
-        let ownerId: string | null = session?.user?.id ?? null;
-        let enabled = false;
-        try {
-          const response = await fetch('/api/cohort-builder/intake', { cache: 'no-store' });
-          if (response.ok) {
-            const policy = await response.json();
-            ownerId = policy?.ownerId ?? ownerId;
-            enabled = Boolean(policy?.enabled);
-          }
-        } catch {
-          // Proceed with fallback ownerId
-        }
-
+        const ownerId: string | null = session?.user?.id ?? null;
         const draftPayload = {
           requestId: crypto.randomUUID(),
           prompt: textToSearch.trim(),
@@ -389,32 +377,31 @@ export const LearningPromptBar = React.memo(
           return;
         }
 
-        if (ownerId && enabled) {
-          try {
-            const createRes = await fetch('/api/cohort-builder/intake', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...draftPayload, expectedOwnerId: ownerId }),
-            });
-            if (createRes?.ok) {
-              const created = await createRes.json();
-              if (created?.workspaceId) {
-                // Clear draft on successful transition
-                try {
-                  sessionStorage.removeItem('sidequest_prompt_query_draft');
-                  localStorage.removeItem('sidequest_prompt_query_draft');
-                  sessionStorage.removeItem('sidequest_prompt_source_draft');
-                  localStorage.removeItem('sidequest_prompt_source_draft');
-                } catch {}
-                const buildHref = `/quest/build/${created.workspaceId}`;
-                if (router) router.push(buildHref);
-                else window.location.href = buildHref;
-                return;
-              }
+        // Direct POST to intake endpoint without blocking on a pre-flight GET
+        try {
+          const createRes = await fetch('/api/cohort-builder/intake', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...draftPayload, ...(ownerId ? { expectedOwnerId: ownerId } : {}) }),
+          });
+          if (createRes?.ok) {
+            const created = await createRes.json();
+            if (created?.workspaceId) {
+              // Clear draft on successful transition
+              try {
+                sessionStorage.removeItem('sidequest_prompt_query_draft');
+                localStorage.removeItem('sidequest_prompt_query_draft');
+                sessionStorage.removeItem('sidequest_prompt_source_draft');
+                localStorage.removeItem('sidequest_prompt_source_draft');
+              } catch {}
+              const buildHref = `/quest/build/${created.workspaceId}`;
+              if (router) router.push(buildHref);
+              else window.location.href = buildHref;
+              return;
             }
-          } catch {
-            // Fall back
           }
+        } catch {
+          // Fall back
         }
 
         // Clear draft on successful transition

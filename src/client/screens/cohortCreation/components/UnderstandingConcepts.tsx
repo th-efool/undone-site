@@ -25,13 +25,13 @@ export function UnderstandingConcepts({ snapshot }: { snapshot: CreationSnapshot
     <header><Brain size={46} strokeWidth={1.5} aria-hidden="true" /><div><h2>Finding key ideas…</h2><p>Identifying the main topics, concepts,<br />and how they appear throughout the material.</p></div></header>
     <span className={styles.paperNote} aria-hidden="true">Important ideas,<br />grounded in<br />your material.</span>
     {error?.revision === snapshot.revision ? <p role="alert">{error.message} <button onClick={() => setRetry(value => value + 1)}>Reload concepts</button></p> : !concepts.length ?
-      <p className={styles.empty} role="status">{count ? 'Loading accepted concepts…' : 'Concepts appear after a retained content partition is understood.'}</p> :
+      <p className={styles.empty} role="status">{count ? 'Loading accepted concepts…' : 'Key ideas and concepts will appear here as each source is analyzed.'}</p> :
       <ul className={styles.conceptCloud}>{concepts.map(concept => <li key={concept.key}><details><summary>{concept.label}</summary>
         <p>{concept.summary}</p><small>Source {snapshot.materials.findIndex(source => source.id === concept.materialId) + 1} · {concept.segmentIds.length} cited segments</small>
       </details></li>)}</ul>}
     {!!partitions.length && <details className={styles.limitations}><summary>Source summaries and limitations</summary>
       {partitions.map(partition => <div key={partition.partitionId}><p>{partition.proposal.summary}</p><ul>{partition.proposal.limitations.map((item, index) => <li key={index}>{item}</li>)}</ul></div>)}
     </details>}
-    <div className={styles.insight}><Lightbulb size={28} aria-hidden="true" /><p><strong>{loaded?.revision === snapshot.revision ? `${concepts.length} accepted concept ${concepts.length === 1 ? 'entry' : 'entries'} loaded.` : 'Waiting for accepted concept preview.'}</strong><span>Entries retain source evidence; repeated ideas may appear across partitions.</span></p></div>
+    <div className={styles.insight}><Lightbulb size={28} aria-hidden="true" /><p><strong>{loaded?.revision === snapshot.revision ? `${concepts.length} accepted concept ${concepts.length === 1 ? 'entry' : 'entries'} loaded.` : 'Waiting for accepted concept preview.'}</strong><span>Core topics and evidence gathered directly from your material.</span></p></div>
   </aside>;
 }
