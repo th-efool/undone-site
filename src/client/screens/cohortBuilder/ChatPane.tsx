@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { ArrowUp, BookOpen, Lightbulb, Paperclip, Square, X } from 'lucide-react';
+import { ArrowUp, BookOpen, Paperclip, Square, X } from 'lucide-react';
 import { useWorkspaceMessages, useSendMessage, useInteractionState, useDispatchAction } from '@/src/client/interaction/hooks';
 import type { CohortAction, CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
 import { useComposerAttachments, AttachmentTray } from '@/src/client/components/global/Composer';
@@ -168,11 +168,21 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
 
   const step = state.view?.journey?.step;
 
-  const suggestions = step === 'chat'
+  const goal = state.view?.intent?.trim();
+  const lessons = state.view?.lessons ?? [];
+  const latestAssistantText = messages.filter(message => message.role === 'assistant').at(-1)?.parts
+    .filter(part => part.type === 'text').map(part => part.text).join(' ') ?? '';
+  const asksAboutBackground = /\b(background|experience|familiar|prerequisites)\b/i.test(latestAssistantText);
+  const suggestions = step === 'chat' || step === 'review'
     ? [
-        'Search machine learning cohorts',
-        'Create a hands-on curriculum from scratch',
-        'How does cohort learning work on Undone?',
+        lessons.length
+          ? `Refine the objectives for ${lessons[0].title}`
+          : goal ? `Draft a deep-dive syllabus for ${goal}` : 'Help me choose a learning goal',
+        asksAboutBackground
+          ? `Help me assess my background${goal ? ` for ${goal}` : ''}`
+          : goal ? `Add hands-on projects for ${goal}` : 'Help me assess my current background',
+        `Set pace to ${state.view?.dailyMinutes === 45 ? 30 : 45} mins/day`,
+        goal ? `Find external resources for ${goal}` : 'Help me choose a daily study pace',
       ]
     : step === 'recommendations'
     ? [
@@ -220,48 +230,6 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
         'Add a capstone project lesson',
       ];
 
-  const hintTitle = step === 'chat'
-    ? 'Conversational Planning'
-    : step === 'recommendations'
-    ? (state.view?.recommendations?.items.length === 0 ? 'A new path' : 'Why these?')
-    : step === 'starting_point'
-    ? 'We’ll keep this simple.'
-    : step === 'material_input'
-    ? 'You can give me multiple sources'
-    : step === 'discovery'
-    ? 'Discovering sources'
-    : step === 'goal_setup'
-    ? 'AI-authored guide'
-    : step === 'processing'
-    ? 'Building in real time'
-    : step === 'ready'
-    ? 'You choose what happens next'
-    : step === 'published'
-    ? 'Your cohort is live'
-    : 'You stay in control';
-
-  const hintText = step === 'chat'
-    ? 'Chat collaboratively to plan your cohort or discover existing ones. When you decide on a topic or want to find matches, simply ask!'
-    : step === 'recommendations'
-    ? (state.view?.recommendations?.items.length === 0
-        ? 'No matching public cohort was found. Create your own from this learning intent.'
-        : 'We search public cohorts for your learning intent. You can join a match or create your own.')
-    : step === 'starting_point'
-    ? 'You can start with the material you already have, have me find the best resources, or just tell me your goal and I’ll figure out the rest.'
-    : step === 'material_input'
-    ? 'A playlist, some PDFs, a GitHub repo, articles — whatever you’ve got. I’ll understand it, break it down, and turn it into a structured learning journey.'
-    : step === 'discovery'
-    ? 'Review observed sources before acquiring them, or search again.'
-    : step === 'goal_setup'
-    ? 'Shape your learning goal and pacing. We will generate a structured learning guide.'
-    : step === 'processing'
-    ? 'Building your cohort syllabus and lessons in real time.'
-    : step === 'ready'
-    ? 'Go to your feed activates this cohort privately. Review cohort lets you edit it first. Public publishing is always a separate choice.'
-    : step === 'published'
-    ? 'Your learning experience is published and accessible from your cohort receipt.'
-    : 'Suggestions can change titles, descriptions and learning objectives. Source material and publication decisions stay under your control.';
-
   const placeholder = step === 'chat'
     ? 'What do you want to learn? Ask a question, explore topics, or paste links...'
     : step === 'recommendations'
@@ -288,46 +256,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
           if (node) nearBottom.current = node.scrollHeight - node.scrollTop - node.clientHeight < 80;
         }}
       >
-        {messages.length === 0 ? (
-          <>
-            <div className={`${styles.messageRow} ${styles.messageUser}`}>
-              <span className={styles.youAvatar} aria-hidden="true">
-                Y
-              </span>
-              <div className={styles.userBubble}>
-                <span className={styles.sender}>You</span>
-                <p>{state.view?.intent || 'I’m looking for something new to learn.'}</p>
-              </div>
-            </div>
-
-            <div className={`${styles.messageRow} ${styles.messageAssistant}`}>
-              <Image
-                className={styles.assistantAvatar}
-                src={logoSrc}
-                width={34}
-                height={34}
-                alt=""
-              />
-              <div className={styles.assistantBubble}>
-                <span className={styles.sender}>Undone</span>
-                <p>
-                  {step === 'recommendations'
-                    ? (state.view?.recommendations?.items.length
-                        ? 'I found a few existing cohorts that might be a good fit, or we can build your own.'
-                        : 'Let’s make a learning journey that fits you.')
-                    : step === 'starting_point'
-                    ? 'Let’s make something that fits what you actually want. Pick a starting point or describe it.'
-                    : step === 'discovery'
-                    ? 'I can search for grounded sources to fit your goal, or you can provide your own.'
-                    : step === 'goal_setup'
-                    ? 'Let’s shape your goal and daily pace to generate your learning guide.'
-                    : 'I’ve got it. Let’s make a learning journey that fits you.'}
-                </p>
-              </div>
-            </div>
-          </>
-        ) : (
-          messages.map(m => {
+        {messages.map(m => {
             const isUser = m.role === 'user';
             return (
               <div
@@ -398,8 +327,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
                 </div>
               </div>
             );
-          })
-        )}
+          })}
 
         {(step === 'processing' || step === 'ready') && state.view && (
           <ProcessingChecklist workspace={state.view} />
@@ -458,14 +386,6 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
             <span>Selected lesson changed or was removed. Clear the selection, then select its current version.</span>
           </div>
         )}
-
-        <div className={styles.hint}>
-          <Lightbulb size={27} strokeWidth={1.3} aria-hidden="true" />
-          <div>
-            <strong>{hintTitle}</strong>
-            <p>{hintText}</p>
-          </div>
-        </div>
       </div>
 
       <div className={styles.composerArea}>

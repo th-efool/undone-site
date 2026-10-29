@@ -23,14 +23,14 @@ describe('AI Tools Optimization & Stage Filtering', () => {
     expect(keys).not.toContain('commit_release');
   });
 
-  it('filters tools strictly for the chat stage and excludes add_pdf_source', () => {
+  it('filters tools strictly for the chat stage and includes owned PDF attachment', () => {
     const tools = createCohortAiTools({ ...baseDeps, stage: 'chat' });
     const keys = Object.keys(tools);
     expect(keys).toContain('start_search');
     expect(keys).toContain('set_intent');
     expect(keys).toContain('add_web_source');
     expect(keys).toContain('add_youtube_source');
-    expect(keys).not.toContain('add_pdf_source');
+    expect(keys).toContain('add_pdf_source');
   });
 
   it('filters tools strictly for the material_input stage', () => {
@@ -41,7 +41,7 @@ describe('AI Tools Optimization & Stage Filtering', () => {
     expect(keys).toContain('add_pdf_source');
     expect(keys).toContain('add_github_source');
     expect(keys).toContain('begin_material_processing');
-    expect(keys).not.toContain('edit_lesson');
+    expect(keys).toContain('edit_lesson');
     expect(keys).not.toContain('commit_release');
   });
 

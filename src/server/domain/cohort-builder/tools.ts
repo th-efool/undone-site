@@ -24,18 +24,24 @@ export interface CohortAiToolsDeps {
 
 const ALWAYS_TOOLS = ['start_search', 'set_intent'] as const;
 
+const CO_DESIGN_TOOLS = [
+  ...ALWAYS_TOOLS, 'set_audience', 'set_daily_minutes', 'edit_presentation',
+  'add_lesson', 'draft_curriculum', 'edit_lesson', 'remove_lesson', 'reorder_lessons', 'set_lesson_pin',
+  'start_goal_generation', 'add_web_source', 'add_youtube_source', 'add_github_source',
+  'add_text_source', 'add_pdf_source', 'begin_material_processing', 'start_discovery',
+];
+
 const STAGE_TOOL_NAMES: Record<string, string[]> = {
-  chat: [...ALWAYS_TOOLS, 'create_own_cohort', 'choose_starting_point', 'add_web_source', 'add_youtube_source', 'add_github_source', 'add_text_source'],
+  chat: [...CO_DESIGN_TOOLS, 'create_own_cohort', 'choose_starting_point'],
+  review: [...CO_DESIGN_TOOLS, 'prepare_release', 'commit_release'],
   recommendations: [...ALWAYS_TOOLS, 'create_own_cohort', 'choose_starting_point'],
   starting_point: [...ALWAYS_TOOLS, 'choose_starting_point', 'back_to_recommendations'],
   discovery: [...ALWAYS_TOOLS, 'select_discovery_resources', 'start_discovery', 'back_to_starting_point', 'choose_starting_point'],
-  goal_setup: [...ALWAYS_TOOLS, 'start_goal_generation', 'set_audience', 'set_daily_minutes', 'back_to_starting_point'],
+  goal_setup: [...CO_DESIGN_TOOLS, 'back_to_starting_point'],
   material_input: [
-    ...ALWAYS_TOOLS,
-    'add_web_source', 'add_pdf_source', 'set_pdf_pages', 'refresh_web_source',
-    'add_youtube_source', 'set_youtube_scope', 'add_github_source', 'set_github_scope',
-    'add_text_source', 'edit_text_source', 'remove_source',
-    'begin_material_processing', 'cancel_source_processing', 'back_to_starting_point'
+    ...CO_DESIGN_TOOLS,
+    'set_pdf_pages', 'refresh_web_source', 'set_youtube_scope', 'set_github_scope',
+    'edit_text_source', 'remove_source', 'cancel_source_processing', 'back_to_starting_point'
   ],
   processing: ['cancel_text_processing', 'cancel_source_processing', 'retry_text_job'],
   ready: [
@@ -131,7 +137,7 @@ export function createCohortAiTools(deps: CohortAiToolsDeps) {
 
   const allTools = {
     start_search: tool({
-      description: 'Search for public cohorts matching a learning topic or query when the user indicates what they want to learn or asks to find cohorts.',
+      description: 'Search for public cohorts matching a learning topic or query only when the user explicitly asks to search or browse existing community cohorts.',
       inputSchema: z.object({
         query: z.string().trim().min(1).max(400).describe('The search query or topic the user wants to learn.'),
       }),
@@ -274,6 +280,33 @@ export function createCohortAiTools(deps: CohortAiToolsDeps) {
         dailyMinutes: z.number().int().min(1).max(1440).describe('Target daily learning time in minutes.'),
       }),
       execute: async ({ dailyMinutes }: any) => executeAction('set_daily_minutes', { dailyMinutes }, { type: 'set_daily_minutes', dailyMinutes }),
+    }),
+
+    edit_presentation: tool({
+      description: 'Update the cohort title, description, learning outcomes or prerequisites. Use set_audience for the target persona.',
+      inputSchema: z.object({
+        title: z.string().trim().min(1).max(2_000).optional(),
+        description: z.string().trim().max(4_000).optional(),
+        learningOutcomes: z.array(z.string().trim().min(1).max(500)).max(20).optional(),
+        requirements: z.array(z.string().trim().min(1).max(500)).max(20).optional(),
+      }).refine(input => Object.keys(input).length > 0, 'Presentation edit needs a field'),
+      execute: async (input) => executeAction('edit_presentation', input, { type: 'edit_presentation', ...input }),
+    }),
+
+    draft_curriculum: tool({
+      description: 'Append tailored lessons to the existing curriculum. Existing lessons are retained.',
+      inputSchema: z.object({ lessons: z.array(z.object({
+        title: z.string().trim().min(1).max(2_000),
+        objective: z.string().trim().min(1).max(2_000),
+      })).min(1).max(40) }),
+      execute: async ({ lessons }) => {
+        // shortcut: each lesson commits separately; use an atomic action if all-or-nothing drafting is needed.
+        const results = [];
+        for (const lesson of lessons) {
+          results.push(await executeAction('add_lesson', lesson, { type: 'add_lesson', ...lesson }));
+        }
+        return results;
+      },
     }),
 
     edit_lesson: tool({

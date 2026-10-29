@@ -386,7 +386,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   }
   if (action.type === 'choose_starting_point') {
     const current = journey();
-    if (current.step === 'starting_point') {
+    if (['starting_point', 'recommendations', 'chat'].includes(current.step)) {
       current.branch = action.choice;
       current.step = action.choice === 'have_material' ? 'material_input' : action.choice === 'find_material' ? 'discovery' : 'goal_setup';
       return navigationResult('Starting point selected.');
@@ -438,7 +438,9 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     return navigationResult('Resource discovery canceled.');
   }
   if (action.type === 'start_discovery') {
-    const current = requireStep('discovery'); if (current.branch !== 'find_material') throw new Error('INVALID_JOURNEY_BRANCH');
+    const current = requireStep('discovery', 'chat', 'review', 'goal_setup', 'material_input');
+    if (current.step !== 'discovery') { current.branch = 'find_material'; current.step = 'discovery'; }
+    if (current.branch !== 'find_material') throw new Error('INVALID_JOURNEY_BRANCH');
     if (next.discovery && ['queued', 'running', 'ready'].includes(next.discovery.status)) return navigationResult('Existing discovery retained.');
     next.discovery = { requestId: context.actionId, fingerprint: `pending:${current.intentVersion}:${context.actionId}`, status: 'queued', generation: (next.discovery?.generation ?? -1) + 1, items: [] };
     return navigationResult('Resource discovery requested.');
@@ -465,9 +467,11 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     return navigationResult('Selected resources retained.');
   }
   if (action.type === 'start_goal_generation' || action.type === 'begin_material_processing') {
-    const current = requireStep(action.type === 'start_goal_generation' ? 'goal_setup' : 'material_input');
+    const current = requireStep('goal_setup', 'material_input', 'chat', 'review');
     if (action.type === 'start_goal_generation') {
-      if (current.branch !== 'have_goal' || !next.intent.trim() || next.dailyMinutes < 1) throw new Error('GOAL_NOT_CONFIRMED');
+      current.branch = 'have_goal';
+      next.dailyMinutes ??= 30;
+      if (!next.intent.trim() || next.dailyMinutes < 1) throw new Error('GOAL_NOT_CONFIRMED');
       const sourceId = `generated-guide:${current.intentVersion}`;
       const input = { kind: 'generated_guide' as const, goal: next.intent, audience: next.audience, dailyMinutes: next.dailyMinutes, intentVersion: current.intentVersion };
       const existing = next.sources.find(item => item.id === sourceId);
@@ -479,7 +483,10 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
         existing.input = input; existing.version++; existing.text = ''; existing.state = 'queued'; existing.checksum = null;
         delete existing.retainedInputId; delete existing.extractionId; delete existing.locations; delete existing.provenance;
       }
-    } else if (!['have_material', 'find_material'].includes(current.branch ?? '') || !next.sources.length) throw new Error('NO_SOURCES');
+    } else {
+      if (!next.sources.length) throw new Error('NO_SOURCES');
+      current.branch ??= 'have_material';
+    }
     current.processingStarted = true; invalidateRelease();
     if (canRunDeterministicPipeline(next)) {
       const processed = runDeterministicPipeline(next);
@@ -770,6 +777,13 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
       pinned: false,
     };
     next.lessons.push(newLesson);
+    if (next.journey?.step === 'chat') {
+      next.journey.step = 'review';
+      if (!['queued', 'processing'].includes(next.processing.status) &&
+          !next.processing.jobs?.some(job => ['queued', 'running'].includes(job.status))) {
+        next.processing = { ...next.processing, status: 'ready', stage: 'done', error: null };
+      }
+    }
     touch(newLesson);
     invalidated.push('curriculum');
     return { nextState: next, changed, invalidated, summary: `Added lesson: ${newLesson.title}`, undoable: true };

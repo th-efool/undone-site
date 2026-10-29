@@ -62,3 +62,36 @@ describe('cohort builder action plan', () => {
     expect(() => planCohortAction(base(), { type: 'retry_processing' }, context)).toThrow('NO_SOURCES');
   });
 });
+
+describe('conversational co-design transitions', () => {
+  const chat = () => ({ ...base(), lessons: [], journey: { version: 1 as const, step: 'chat' as const, branch: null, processingStarted: false, intentVersion: 0 } });
+  it('opens requested navigation directly from chat', () => {
+    expect(planCohortAction(chat(), { type: 'create_own_cohort' }, context).nextState.journey?.step).toBe('starting_point');
+    for (const choice of ['have_goal', 'have_material', 'find_material'] as const) {
+      expect(planCohortAction(chat(), { type: 'choose_starting_point', choice }, context).nextState.journey?.branch).toBe(choice);
+    }
+  });
+  it('opens review when drafting without masking active processing', () => {
+    const action = { type: 'add_lesson' as const, title: 'Foundations', objective: 'Apply foundations' };
+    expect(planCohortAction(chat(), action, context).nextState).toMatchObject({ journey: { step: 'review' }, processing: { status: 'ready' } });
+    const busy = chat(); busy.processing.status = 'queued';
+    expect(planCohortAction(busy, action, context).nextState.processing.status).toBe('queued');
+  });
+  it.each(['chat', 'review'] as const)('generates a guide directly from %s', step => {
+    const state: CohortWorkspace = chat(); state.journey!.step = step;
+    const result = planCohortAction(state, { type: 'start_goal_generation' }, context).nextState;
+    expect(result.journey).toMatchObject({ branch: 'have_goal', processingStarted: true });
+    expect(result.sources[0].input).toMatchObject({ kind: 'generated_guide', dailyMinutes: 20 });
+  });
+  it.each(['chat', 'review'] as const)('processes retained sources directly from %s and rejects missing sources', step => {
+    const state: CohortWorkspace = chat(); state.journey!.step = step;
+    expect(() => planCohortAction(state, { type: 'begin_material_processing' }, context)).toThrow('NO_SOURCES');
+    const retained = planCohortAction(state, { type: 'add_text_source', label: 'Notes', text: 'Quorum consensus requires overlapping majorities.' }, context).nextState;
+    const result = planCohortAction(retained, { type: 'begin_material_processing' }, context).nextState;
+    expect(result.journey).toMatchObject({ processingStarted: true, branch: 'have_material' });
+    expect(result.processing.status).not.toBe('idle');
+  });
+  it('starts resource discovery directly from chat', () => {
+    expect(planCohortAction(chat(), { type: 'start_discovery' }, context).nextState).toMatchObject({ journey: { step: 'discovery', branch: 'find_material' }, discovery: { status: 'queued' } });
+  });
+});

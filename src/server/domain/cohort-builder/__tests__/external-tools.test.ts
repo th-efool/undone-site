@@ -125,3 +125,26 @@ it('forbids deterministic transport fixtures outside explicit isolated developme
   vi.stubEnv('NODE_ENV','development');vi.stubEnv('DATABASE_URL','postgresql://shared@example.org/s3test');
   expect(()=>localSourceFixture()).toThrow('LOCAL_SOURCE_FIXTURE_FORBIDDEN');
 });
+
+it.each(['chat', 'review', 'goal_setup', 'material_input'])('exposes co-design tools in %s and commits draft lessons in order', async stage => {
+  let revision = 1;
+  const commitAction = vi.fn(async (_input: unknown) => ({ revision: ++revision, receipt: { summary: 'accepted', changed: [] } }));
+  const tools = createCohortAiTools({ workspaceId: 'workspace', ownerId: 'owner', observedRevision: 1, stage, repo: { commitAction } as any, domain: { plan: () => {} } as any });
+  for (const name of ['edit_presentation', 'draft_curriculum', 'add_lesson', 'edit_lesson', 'remove_lesson', 'reorder_lessons', 'set_lesson_pin', 'set_audience', 'set_daily_minutes', 'start_goal_generation', 'begin_material_processing', 'start_discovery', 'add_pdf_source']) expect(Object.keys(tools)).toContain(name);
+  await tools.edit_presentation.execute!({ title: 'Consensus', learningOutcomes: ['Explain quorums'], requirements: ['Basic networking'] }, {} as any);
+  await tools.draft_curriculum.execute!({ lessons: [{ title: 'Quorums', objective: 'Explain overlap' }, { title: 'Raft', objective: 'Elect a leader' }] }, {} as any);
+  expect(commitAction.mock.calls.map(call => (call[0] as any).expectedRevision)).toEqual([1, 2, 3]);
+  const actions = commitAction.mock.calls.map(call => (call[0] as any).envelope.action);
+  expect(actions[0]).toMatchObject({ type: 'edit_presentation', title: 'Consensus' });
+  expect(actions.slice(1).map(action => action.title)).toEqual(['Quorums', 'Raft']);
+  expect(actions[1].lessonId).not.toBe(actions[2].lessonId);
+});
+
+it('grounds co-design in presentation and keeps search explicit', () => {
+  const state = cohortWorkspaceSchema.parse({ schemaVersion: 1, title: 'Consensus', description: 'Distributed protocols', intent: 'Learn consensus', audience: 'Engineers', dailyMinutes: 30, lessons: [{ id: 'raft', version: 0, title: 'Raft', objective: 'Explain election safety', sourceChunkIds: [], pinned: false }] });
+  const prompt = cohortAssistantPrompt(state, 1);
+  expect(prompt).toContain('Distributed protocols');
+  expect(prompt).toContain('Explain election safety');
+  expect(prompt).toContain('Only call start_search when the user explicitly asks');
+  expect(prompt).not.toContain('IMMEDIATELY call the `start_search`');
+});

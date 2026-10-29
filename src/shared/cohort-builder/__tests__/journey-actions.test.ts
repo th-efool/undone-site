@@ -264,8 +264,8 @@ describe('Cohort Journey: Step transitions & prerequisites', () => {
     const ws = initialCohort('Learn Haskell');
     const ctx = createActionContext();
 
-    // In recommendations step
-    expect(() => planCohortAction(ws, { type: 'choose_starting_point', choice: 'have_material' }, ctx)).toThrow('INVALID_JOURNEY_TRANSITION');
+    // Recommendations can now select a branch directly.
+    expect(planCohortAction(ws, { type: 'choose_starting_point', choice: 'have_material' }, ctx).nextState.journey?.step).toBe('material_input');
 
     // In processing step
     ws.journey!.step = 'processing';
@@ -333,7 +333,7 @@ describe('Cohort Journey: Step transitions & prerequisites', () => {
     const ctx = createActionContext();
 
     // Wrong step
-    ws.journey!.step = 'material_input';
+    ws.journey!.step = 'processing';
     ws.journey!.branch = 'find_material';
     expect(() => planCohortAction(ws, { type: 'start_discovery' }, ctx)).toThrow('INVALID_JOURNEY_TRANSITION');
 
@@ -465,23 +465,23 @@ describe('Cohort Journey: Step transitions & prerequisites', () => {
     });
   });
 
-  it('start_goal_generation rejects wrong branch or wrong step', () => {
+  it('start_goal_generation selects the goal branch but rejects processing stage', () => {
     const ctx = createActionContext();
 
     // Wrong branch (have_material instead of have_goal)
     const wsWrongBranch = initialCohort('Master Kubernetes');
     wsWrongBranch.journey!.step = 'goal_setup';
     wsWrongBranch.journey!.branch = 'have_material';
-    expect(() => planCohortAction(wsWrongBranch, { type: 'start_goal_generation' }, ctx)).toThrow('GOAL_NOT_CONFIRMED');
+    expect(planCohortAction(wsWrongBranch, { type: 'start_goal_generation' }, ctx).nextState.journey?.branch).toBe('have_goal');
 
-    // Wrong step (material_input instead of goal_setup)
+    // Active processing cannot start another guide.
     const wsWrongStep = initialCohort('Master Kubernetes');
-    wsWrongStep.journey!.step = 'material_input';
+    wsWrongStep.journey!.step = 'processing';
     wsWrongStep.journey!.branch = 'have_goal';
     expect(() => planCohortAction(wsWrongStep, { type: 'start_goal_generation' }, ctx)).toThrow('INVALID_JOURNEY_TRANSITION');
   });
 
-  it('begin_material_processing requires material_input step, valid branch, and at least one source', () => {
+  it('begin_material_processing requires retained sources and accepts an existing goal branch', () => {
     const ws = initialCohort('Learn Linux Internals');
     ws.journey!.step = 'material_input';
     ws.journey!.branch = 'have_material';
@@ -500,11 +500,11 @@ describe('Cohort Journey: Step transitions & prerequisites', () => {
       state: 'ready',
     });
 
-    // Wrong branch (have_goal on material_input)
+    // A goal branch can process attached materials too.
     ws.journey!.branch = 'have_goal';
-    expect(() => planCohortAction(ws, { type: 'begin_material_processing' }, ctx)).toThrow('NO_SOURCES');
+    expect(planCohortAction(ws, { type: 'begin_material_processing' }, ctx).nextState.journey?.processingStarted).toBe(true);
 
-    // Valid branch -> succeeds
+    // Material branch -> succeeds
     ws.journey!.branch = 'have_material';
     const plan = planCohortAction(ws, { type: 'begin_material_processing' }, ctx);
     expect(plan.nextState.journey?.step).toBe('processing');

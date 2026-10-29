@@ -72,6 +72,23 @@ describe('ChatPane & Interactive Linking (ISSUE-24)', () => {
     ],
   });
 
+  it('renders no synthetic transcript or banner and derives suggestions from the goal', () => {
+    fakeState.view = { ...baseWorkspace, lessons: [], journey: { version: 1, step: 'chat', branch: null, processingStarted: false, intentVersion: 0 } };
+    render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
+    expect(screen.queryByText('Undone')).toBeNull();
+    expect(screen.queryByText('Conversational Planning')).toBeNull();
+    expect(screen.queryByText('Search machine learning cohorts')).toBeNull();
+    expect(screen.getByText('Draft a deep-dive syllabus for Master distributed consensus')).toBeTruthy();
+  });
+
+  it('adapts planning suggestions to the latest assistant question', () => {
+    fakeState.view = { ...baseWorkspace, journey: { version: 1, step: 'review', branch: null, processingStarted: false, intentVersion: 0 } };
+    fakeState.messages = [{ id: 'background-question', role: 'assistant', parts: [{ type: 'text', text: 'What is your background in distributed systems?' }] }];
+    render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
+    expect(screen.getByText('Help me assess my background for Master distributed consensus')).toBeTruthy();
+    expect(screen.getByText('Refine the objectives for Paxos & Consensus Basics')).toBeTruthy();
+  });
+
   it('renders assistant markdown content with headings, lists, and formatted code blocks', async () => {
     fakeState.view = baseWorkspace;
     fakeState.messages = [
