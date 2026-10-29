@@ -1,14 +1,26 @@
 import { z } from 'zod';
-import { cohortSourceSchema, cohortWorkspaceSchema } from './contracts';
+import { cohortSourceSchema, cohortWorkspaceSchema, type CohortSource } from './contracts';
 
 export const cohortIntakeSchema = z.strictObject({
   requestId: z.uuid(),
   prompt: z.string().trim().min(1).max(4_000),
-  source: z.strictObject({ label: cohortSourceSchema.shape.label, text: z.string().min(1).max(200_000).refine(value => !!value.trim()) }).optional(),
+  mode: z.enum(['plan', 'search']).default('search'),
+  source: z.strictObject({
+    label: cohortSourceSchema.shape.label,
+    text: z.string().min(1).max(200_000).refine(value => !!value.trim()),
+  }).optional(),
+  sources: z.array(cohortSourceSchema).max(100).optional(),
 });
-export type CohortIntake = z.infer<typeof cohortIntakeSchema>;
+export type CohortIntakeInput = z.input<typeof cohortIntakeSchema>;
+export type CohortIntake = z.output<typeof cohortIntakeSchema>;
 
-export function initialCohort(prompt: string) {
+export function initialCohort(
+  prompt: string,
+  options?: { mode?: 'plan' | 'search'; sources?: CohortSource[] }
+) {
+  const mode = options?.mode ?? 'search';
+  const initialSources = options?.sources ?? [];
+
   return cohortWorkspaceSchema.parse({
     schemaVersion: 1,
     title: 'Draft Curriculum',
@@ -16,6 +28,7 @@ export function initialCohort(prompt: string) {
     audience: '',
     dailyMinutes: 25,
     lessons: [],
+    sources: initialSources,
     processing: {
       status: 'idle',
       stage: 'done',
@@ -26,7 +39,7 @@ export function initialCohort(prompt: string) {
     },
     journey: {
       version: 1,
-      step: 'recommendations',
+      step: mode === 'plan' ? 'chat' : 'recommendations',
       branch: null,
       processingStarted: false,
       intentVersion: 0,

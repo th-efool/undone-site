@@ -1,6 +1,6 @@
-import { cohortIntakeSchema, type CohortIntake } from '@/src/shared/cohort-builder/intake';
+import { cohortIntakeSchema, type CohortIntake, type CohortIntakeInput } from '@/src/shared/cohort-builder/intake';
 const key = 'undone:cohort-intake';
-export function saveIntakeDraft(body: CohortIntake, ownerId: string | null) {
+export function saveIntakeDraft(body: CohortIntakeInput, ownerId: string | null) {
   const validated = cohortIntakeSchema.parse(body);
   try {
     const prior = JSON.parse(sessionStorage.getItem(key) ?? 'null');
@@ -9,7 +9,7 @@ export function saveIntakeDraft(body: CohortIntake, ownerId: string | null) {
   } catch { /* Corrupt local drafts are replaced by validated input. */ }
   sessionStorage.setItem(key, JSON.stringify({ body: validated, ownerId, createdAt: Date.now() }));
 }
-export function readIntakeDraft(ownerId?: string | null) {
+export function readIntakeDraft(ownerId?: string | null): CohortIntake | null {
   try {
     const saved = JSON.parse(sessionStorage.getItem(key) ?? 'null');
     if (!saved || Date.now() - saved.createdAt > 3_600_000 || (saved.ownerId !== null && ownerId !== undefined && ownerId !== null && saved.ownerId !== ownerId)) {

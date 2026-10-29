@@ -16,11 +16,10 @@ export function planJourneyJobs(state: CohortWorkspace): JourneyJobIntent[] {
   const query = state.intent.trim().toLowerCase();
 
   const shouldPlanRecommendations =
-    state.journey.step === 'recommendations' ||
-    (state.journey.step !== 'published' &&
-      (!state.recommendations ||
-        state.recommendations.status === 'failed' ||
-        state.recommendations.status === 'queued'));
+    state.journey.step === 'recommendations' &&
+    (!state.recommendations ||
+      state.recommendations.status === 'failed' ||
+      state.recommendations.status === 'queued');
 
   if (shouldPlanRecommendations) {
     const payload = {

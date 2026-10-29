@@ -42,7 +42,8 @@ export async function acceptCohortIntake(ownerId: string, input: unknown, prisma
     const repo = createPostgresInteractionRepository(scoped);
     // Canonical 10-screen journey is enabled by default unless explicitly opted out ('0').
     const journeyEnabled = process.env.INTERACTION_COHORT_JOURNEY_ENABLED !== '0';
-    const initial = initialCohort(body.prompt);
+    const isPlanMode = body.mode === 'plan';
+    const initial = initialCohort(body.prompt, { mode: body.mode, sources: body.sources });
     if (!journeyEnabled) delete initial.journey;
     await repo.createWorkspace({ id: workspaceId, ownerId, domainId: 'cohort', domainVersion: 1,
       initialSnapshot: initial });
@@ -54,8 +55,8 @@ export async function acceptCohortIntake(ownerId: string, input: unknown, prisma
     }
     await repo.appendMessage({ id: deterministicUuid(`${workspaceId}:message`), workspaceId, ownerId,
       role: 'user', parts: [{ type: 'text', text: body.prompt }], requestId: `${body.requestId}:message`,
-      ...(journeyEnabled ? { scheduleAssistant: false, scheduleRun: false } : {}) });
-    if (journeyEnabled) {
+      ...(journeyEnabled ? { scheduleAssistant: isPlanMode, scheduleRun: isPlanMode } : {}) });
+    if (journeyEnabled && !isPlanMode) {
       const current = await tx.interactionWorkspace.findUniqueOrThrow({ where: { id: workspaceId } });
       await enqueueJourneyJobPlanInTransaction(
         { query: async (sql, values) => ({ rows: await tx.$queryRawUnsafe(sql, ...values) }) },

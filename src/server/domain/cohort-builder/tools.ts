@@ -23,11 +23,13 @@ export interface CohortAiToolsDeps {
 }
 
 const STAGE_TOOL_NAMES: Record<string, string[]> = {
-  recommendations: ['create_own_cohort', 'choose_starting_point', 'set_intent'],
-  starting_point: ['choose_starting_point', 'back_to_recommendations', 'set_intent'],
-  discovery: ['select_discovery_resources', 'start_discovery', 'back_to_starting_point', 'choose_starting_point', 'set_intent'],
-  goal_setup: ['start_goal_generation', 'set_intent', 'set_audience', 'set_daily_minutes', 'back_to_starting_point'],
+  chat: ['start_search', 'create_own_cohort', 'choose_starting_point', 'set_intent', 'add_web_source', 'add_pdf_source', 'add_youtube_source', 'add_github_source', 'add_text_source'],
+  recommendations: ['start_search', 'create_own_cohort', 'choose_starting_point', 'set_intent'],
+  starting_point: ['start_search', 'choose_starting_point', 'back_to_recommendations', 'set_intent'],
+  discovery: ['start_search', 'select_discovery_resources', 'start_discovery', 'back_to_starting_point', 'choose_starting_point', 'set_intent'],
+  goal_setup: ['start_search', 'start_goal_generation', 'set_intent', 'set_audience', 'set_daily_minutes', 'back_to_starting_point'],
   material_input: [
+    'start_search',
     'add_web_source', 'add_pdf_source', 'set_pdf_pages', 'refresh_web_source',
     'add_youtube_source', 'set_youtube_scope', 'add_github_source', 'set_github_scope',
     'add_text_source', 'edit_text_source', 'remove_source',
@@ -35,12 +37,12 @@ const STAGE_TOOL_NAMES: Record<string, string[]> = {
   ],
   processing: ['cancel_text_processing', 'cancel_source_processing', 'retry_text_job'],
   ready: [
-    'edit_lesson', 'reorder_lessons', 'set_lesson_pin', 'add_lesson', 'remove_lesson',
+    'start_search', 'edit_lesson', 'reorder_lessons', 'set_lesson_pin', 'add_lesson', 'remove_lesson',
     'set_intent', 'set_audience', 'set_daily_minutes', 'prepare_release', 'commit_release',
     'cancel_text_processing', 'retry_text_job'
   ],
   published: [
-    'edit_lesson', 'reorder_lessons', 'set_lesson_pin', 'add_lesson', 'remove_lesson',
+    'start_search', 'edit_lesson', 'reorder_lessons', 'set_lesson_pin', 'add_lesson', 'remove_lesson',
     'set_intent', 'set_audience', 'set_daily_minutes', 'prepare_release', 'commit_release'
   ],
 };
@@ -124,6 +126,14 @@ export function createCohortAiTools(deps: CohortAiToolsDeps) {
   }
 
   const allTools = {
+    start_search: tool({
+      description: 'Search for public cohorts matching a learning topic or query when the user indicates what they want to learn or asks to find cohorts.',
+      inputSchema: z.object({
+        query: z.string().trim().min(1).max(400).describe('The search query or topic the user wants to learn.'),
+      }),
+      execute: async ({ query }: { query: string }) =>
+        executeAction('start_search', { query }, { type: 'start_search', query }),
+    }),
     create_own_cohort: tool({
       description: 'Navigate from recommendations to starting point selection.',
       inputSchema: z.object({}),
