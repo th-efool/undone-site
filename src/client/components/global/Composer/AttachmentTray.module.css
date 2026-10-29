@@ -1,0 +1,161 @@
+.trayContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--ud-space-3, 12px);
+  width: 100%;
+  overflow-x: auto;
+  padding: var(--ud-space-2, 8px) var(--ud-space-1, 4px);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.trayContainer::-webkit-scrollbar {
+  height: 6px;
+}
+
+.trayContainer::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.fileCard {
+  position: relative;
+  width: 148px;
+  height: 106px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background-color: #212121;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: transform 150ms ease, border-color 150ms ease;
+}
+
+.fileCard:hover {
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.thumbnailContainer {
+  width: 100%;
+  height: 64px;
+  background-color: #303030;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.thumbnailImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  background-color: #ffffff;
+}
+
+.placeholderThumbnail {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.extractingOverlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 22px;
+  height: 22px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.bottomBar {
+  flex: 1;
+  background-color: #171717;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px;
+  min-width: 0;
+}
+
+.pdfBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #e53e3e;
+  color: #ffffff;
+  font-size: 8px;
+  font-weight: 700;
+  padding: 2px 4px;
+  border-radius: 3px;
+  line-height: 1;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.fileName {
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.removeButton {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.65);
+  border: none;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 150ms ease, background-color 150ms ease, transform 150ms ease;
+  z-index: 2;
+}
+
+.fileCard:hover .removeButton {
+  opacity: 1;
+}
+
+.removeButton:hover {
+  background-color: rgba(220, 38, 38, 0.85);
+  transform: scale(1.1);
+}
+
+.errorBadge {
+  position: absolute;
+  bottom: 2px;
+  right: 6px;
+  font-size: 9px;
+  color: #ef4444;
+}

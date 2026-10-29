@@ -156,3 +156,6 @@ export async function extractGithubRepoClient(
     },
   };
 }
+
+export { extractGithubRepoClient as extractGithubClient };
+

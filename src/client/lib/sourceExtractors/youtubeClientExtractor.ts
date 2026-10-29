@@ -151,3 +151,37 @@ export function buildYoutubeClientExtraction(video: YoutubeVideoInput): ClientSo
     },
   };
 }
+
+export function extractYoutubeVideoId(rawUrl: string): string | null {
+  try {
+    const url = new URL(rawUrl.startsWith('http') ? rawUrl : `https://${rawUrl}`);
+    if (url.hostname === 'youtu.be') {
+      const id = url.pathname.slice(1).split('/')[0];
+      return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : null;
+    }
+    if (url.hostname.includes('youtube.com')) {
+      const v = url.searchParams.get('v');
+      if (v && /^[A-Za-z0-9_-]{11}$/.test(v)) return v;
+      const parts = url.pathname.split('/').filter(Boolean);
+      const last = parts[parts.length - 1];
+      if (last && /^[A-Za-z0-9_-]{11}$/.test(last)) return last;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function extractYoutubeClient(
+  url: string,
+  options: { durationMs?: number; description?: string; title?: string } = {}
+): Promise<ClientSourceExtraction> {
+  const videoId = extractYoutubeVideoId(url) || 'unknown_video';
+  return buildYoutubeClientExtraction({
+    videoId,
+    title: options.title || 'YouTube Video',
+    description: options.description || '',
+    durationMs: options.durationMs || 180_000,
+  });
+}
+
