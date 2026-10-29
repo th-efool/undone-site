@@ -161,13 +161,13 @@ describe('ChatPane & Interactive Linking (ISSUE-24)', () => {
 
     const { rerender } = render(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
 
-    expect(screen.getByText('Undone is drafting updates…')).toBeTruthy();
+    expect(screen.getByText('Thinking…')).toBeTruthy();
     expect(screen.getByRole('button', { name: /Stop assistant turn/i })).toBeTruthy();
 
     fakeState.turns = [{ messageId: 'msg-turn', runId: 'run-1', status: 'queued' }];
     rerender(<ChatPane attachedEntity={null} onClearAttachedEntity={() => {}} />);
 
-    expect(screen.getByText('Queued in line…')).toBeTruthy();
+    expect(screen.getByText('Thinking…')).toBeTruthy();
   });
 
   it('switches CurriculumStageView to questline tab and focuses lesson on cohort:highlight-entity', async () => {

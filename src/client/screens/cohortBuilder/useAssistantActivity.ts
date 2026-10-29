@@ -93,7 +93,7 @@ export function useAssistantActivity() {
           setUnavailable(false);
 
           const hasActiveRun = body.turns?.some(
-            (t: AssistantTurnView) => t.status === 'pending' || t.status === 'running'
+            (t: AssistantTurnView) => t.status === 'pending' || t.status === 'running' || t.status === 'queued'
           );
           currentDelay = hasActiveRun ? FAST_POLL_INTERVAL_MS : IDLE_POLL_INTERVAL_MS;
           scheduleNext(currentDelay);

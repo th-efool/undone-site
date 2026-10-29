@@ -17,6 +17,7 @@ import {
   recordWorkerHeartbeat,
   deregisterWorker,
   initWorkerSupervisionTables,
+  ensureWorkerSupervisionTables,
   type SupervisionSql,
 } from './domain/cohort-builder/worker-supervision';
 import { devLogger } from '@/src/shared/lib/dev-logger';
@@ -67,7 +68,7 @@ export async function runInteractionWorkerLoop(
 
   if (supervisionSql) {
     try {
-      await initWorkerSupervisionTables(supervisionSql);
+      await ensureWorkerSupervisionTables(supervisionSql);
       await recordWorkerHeartbeat(supervisionSql, {
         workerId,
         driver: textDriver(),

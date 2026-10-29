@@ -50,7 +50,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ work
 
   const turns =
     (await prisma.$queryRaw<Array<{ messageId: string; runId: string | null; status: string }>>`
-      SELECT m.id AS "messageId", r.id AS "runId", COALESCE(r.status,'pending') AS status
+      SELECT m.id AS "messageId", r.id AS "runId",
+        CASE
+          WHEN r.status IS NOT NULL THEN r.status
+          WHEN EXISTS (SELECT 1 FROM interaction_requests s WHERE s."workspaceId"=m."workspaceId" AND s.operation='assistantSchedulingSuppressed' AND s."requestId"=m.id) THEN 'completed'
+          ELSE 'pending'
+        END AS status
       FROM interaction_messages m LEFT JOIN LATERAL
         (SELECT id,status FROM interaction_runs WHERE "workspaceId"=m."workspaceId" AND "triggeringMessageId"=m.id ORDER BY "createdAt" DESC LIMIT 1) r ON true
       WHERE m."workspaceId"=${workspaceId} AND m.role='user' ORDER BY m.sequence DESC LIMIT 50`) ?? [];

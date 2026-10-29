@@ -32,6 +32,18 @@ export interface WorkerSupervisionReport {
   oldestHeartbeatAgeSeconds: number | null;
 }
 
+let supervisionInitPromise: Promise<void> | null = null;
+
+export async function ensureWorkerSupervisionTables(sql: SupervisionSql): Promise<void> {
+  if (!supervisionInitPromise) {
+    supervisionInitPromise = initWorkerSupervisionTables(sql).catch((err) => {
+      supervisionInitPromise = null;
+      throw err;
+    });
+  }
+  return supervisionInitPromise;
+}
+
 export async function initWorkerSupervisionTables(sql: SupervisionSql): Promise<void> {
   await sql.query(`
     CREATE TABLE IF NOT EXISTS "interaction_worker_heartbeats" (

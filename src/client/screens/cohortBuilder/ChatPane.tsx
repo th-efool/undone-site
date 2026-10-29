@@ -351,7 +351,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
                   <span className={styles.dot} />
                 </div>
                 <span className={styles.thinkingLabel}>
-                  {activeTurn.status === 'queued' ? 'Queued in line…' : 'Undone is drafting updates…'}
+                  Thinking…
                 </span>
                 <button
                   type="button"

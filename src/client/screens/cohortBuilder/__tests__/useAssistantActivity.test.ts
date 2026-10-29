@@ -218,6 +218,35 @@ describe('useAssistantActivity', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it('uses 2000ms polling interval when a turn is queued', async () => {
+    const queuedTurn = [{ messageId: 'msg-queued', runId: 'run-queued', status: 'queued' }];
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ ETag: '"etag-queued"' }),
+      json: async () => ({ turns: queuedTurn }),
+    });
+
+    renderHook(() => useAssistantActivity());
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // At 1999ms, no new poll yet
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1999);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    // At 2000ms, second poll executes
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('backs off to 20000ms polling interval when turns are idle or completed', async () => {
     const completedTurn = [{ messageId: 'msg-done', runId: 'run-done', status: 'completed' }];
     fetchMock.mockResolvedValue({

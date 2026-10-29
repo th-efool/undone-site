@@ -21,6 +21,45 @@ import { githubSourceReadiness } from '@/src/server/domain/cohort-builder/github
 import { LiveGithubSourceProvider } from '@/src/server/domain/cohort-builder/github-source-live';
 
 /** Same database as canonical commits; one checked-out connection per acceptance transaction. */
+let sharedPool: Pool | null = null;
+let sharedPoolConnectionString: string | null = null;
+
+function getOrCreateSharedPool(connectionString: string): Pool {
+  if (!sharedPool || sharedPoolConnectionString !== connectionString) {
+    if (sharedPool) {
+      sharedPool.end().catch(() => {});
+    }
+    sharedPool = new Pool({
+      connectionString,
+      max: 10,
+      connectionTimeoutMillis: 15_000,
+      query_timeout: 15_000,
+    });
+    sharedPoolConnectionString = connectionString;
+  }
+  return sharedPool;
+}
+
+let schemasAssertedPromise: Promise<void> | null = null;
+
+async function ensureTextJobSchemas(sql: TextArtifactSql): Promise<void> {
+  if (!schemasAssertedPromise) {
+    schemasAssertedPromise = (async () => {
+      await ensureJourneyStageSchema(sql);
+      await assertTextJobSchema(sql);
+      const external = await sql.query(`SELECT "id" FROM "interaction_workspaces" WHERE "domainId"='cohort' AND "lifecycle"='active'
+        AND EXISTS(SELECT 1 FROM jsonb_array_elements("snapshot"->'sources') source WHERE source ? 'input') LIMIT 1`, []);
+      if (process.env.INTERACTION_PDF_ENABLED === '1' || process.env.INTERACTION_WEB_ENABLED === '1' || process.env.INTERACTION_YOUTUBE_ENABLED === '1' || external.rows.length) {
+        await assertSourceSchema(sql);
+      }
+    })().catch((err) => {
+      schemasAssertedPromise = null;
+      throw err;
+    });
+  }
+  return schemasAssertedPromise;
+}
+
 export async function createTextJobRuntime(
   connectionString: string,
   workerId: string,
@@ -29,19 +68,19 @@ export async function createTextJobRuntime(
     youtubeTranscriptProvider?: YoutubeTranscriptProvider;
     githubSourceProvider?: GithubSourceProvider;
     sourceConcurrency?: number;
+    pool?: Pool;
   }
 ) {
-  const pool = new Pool({ connectionString, max: 10, connectionTimeoutMillis: 15_000,
-    query_timeout: 15_000 });
+  const isCustomPool = Boolean(options?.pool);
+  const pool = options?.pool ?? getOrCreateSharedPool(connectionString);
   const sql: TextArtifactSql = { query: (statement, parameters) => pool.query(statement, parameters) };
-  const webTransport=localSourceFixture();
+  const webTransport = localSourceFixture();
   try {
-    await ensureJourneyStageSchema(sql);
-    await assertTextJobSchema(sql);
-    const external=await sql.query(`SELECT "id" FROM "interaction_workspaces" WHERE "domainId"='cohort' AND "lifecycle"='active'
-      AND EXISTS(SELECT 1 FROM jsonb_array_elements("snapshot"->'sources') source WHERE source ? 'input') LIMIT 1`,[]);
-    if(process.env.INTERACTION_PDF_ENABLED==='1' || process.env.INTERACTION_WEB_ENABLED==='1' || process.env.INTERACTION_YOUTUBE_ENABLED==='1' || external.rows.length) await assertSourceSchema(sql);
-  } catch (error) { await pool.end(); throw error; }
+    await ensureTextJobSchemas(sql);
+  } catch (error) {
+    if (isCustomPool) await pool.end();
+    throw error;
+  }
   const transaction: TextJobTransactionPort = { transaction: async work => {
     const client = await pool.connect();
     try {
@@ -58,7 +97,7 @@ export async function createTextJobRuntime(
     Math.max(1, Math.min(8, parseInt(process.env.SOURCE_PROCESSING_CONCURRENCY || '4', 10)));
 
   return {
-    close: () => pool.end(),
+    close: async () => { if (isCustomPool) await pool.end(); },
     tick: async (overrideConcurrency?: number) => {
       const concurrency = overrideConcurrency ?? configuredConcurrency;
       const now = Date.now();
