@@ -23,6 +23,7 @@ vi.mock('@/src/client/interaction/hooks', () => ({
   useWorkspaceMessages: () => fakeState.messages,
   useSendMessage: () => fakeState.send,
   useInteractionState: () => ({ workspaceId: 'ws-test', view: fakeState.view, pending: {} }),
+  useDispatchAction: () => vi.fn().mockResolvedValue(true),
 }));
 
 vi.mock('../useAssistantActivity', () => ({

@@ -26,6 +26,9 @@ import type { EntityRef } from 'interaction-builder/core';
 import { useInteractionState } from '@/src/client/interaction/hooks';
 import { InkUnderline } from '@/src/client/screens/cohortCreation/components/InkUnderline';
 import { singleYoutubeVideo } from '@/src/shared/cohort-builder/youtube-transcript';
+import { extractPdfClient } from '@/src/client/lib/sourceExtractors/pdfClientExtractor';
+import { extractWebClient } from '@/src/client/lib/sourceExtractors/webClientExtractor';
+import { extractYoutubeClient } from '@/src/client/lib/sourceExtractors/youtubeClientExtractor';
 import styles from './MaterialStageView.module.css';
 
 export interface MaterialStageViewProps {
@@ -342,35 +345,34 @@ export function MaterialStageView({
     setBusy(true);
     try {
       if (isPdf) {
-        const idempotencyKey = crypto.randomUUID();
-        const response = await fetch(
-          `/api/cohort-builder/workspaces/${effectiveWorkspaceId}/pdf`,
-          {
-            method: 'POST',
-            body: selectedFile,
-            headers: {
-              'Content-Type': 'application/pdf',
-              'Idempotency-Key': idempotencyKey,
-              'X-Workspace-Revision': String(effectiveRevision),
-              'X-Owner-Id': effectiveOwnerId,
-              'X-Source-Label': encodeURIComponent(selectedFile.name),
-            },
-          }
-        );
-
-        if (!response.ok) {
-          let code = 'UPLOAD_UNAVAILABLE';
-          try {
-            const resJson = await response.json();
-            code = resJson.code ?? code;
-          } catch {}
-          setError(mapPdfErrorCode(code));
-          setFile(selectedFile); // Preserve failed input for retry
+        let extraction;
+        try {
+          extraction = await extractPdfClient(selectedFile);
+        } catch (extractErr) {
+          setError(extractErr instanceof Error ? extractErr.message : 'Failed to extract text from PDF.');
+          setFile(selectedFile);
           return;
         }
 
-        setFile(null);
-        setReplacingSourceId(null);
+        const ok = await dispatchAction({
+          type: 'add_pdf_source',
+          label: selectedFile.name,
+          extraction: {
+            text: extraction.text,
+            locations: extraction.locations,
+            provenance: extraction.provenance,
+            checksum: extraction.checksum,
+          },
+          sourceId: replacingSourceId ?? undefined,
+        });
+
+        if (ok) {
+          setFile(null);
+          setReplacingSourceId(null);
+        } else {
+          setError('Could not save PDF source. Your input was preserved for retry.');
+          setFile(selectedFile);
+        }
       } else {
         const textContent = await selectedFile.text();
         if (!textContent.trim()) {
@@ -483,6 +485,13 @@ export function MaterialStageView({
             }
           } catch {}
 
+          let extraction = undefined;
+          try {
+            extraction = await extractYoutubeClient(normalizedUrl, {
+              title: metadata?.title,
+            });
+          } catch {}
+
           const label = metadata?.title || trimmedUrl;
           ok = await dispatchAction({
             type: 'add_youtube_source',
@@ -490,14 +499,27 @@ export function MaterialStageView({
             label,
             mode: 'video_observation',
             sourceId: replacingSourceId ?? undefined,
+            ...(extraction ? { extraction } : {}),
           });
         }
       } else {
+        let extraction = undefined;
+        try {
+          const extracted = await extractWebClient(trimmedUrl);
+          extraction = {
+            text: extracted.text,
+            locations: extracted.locations,
+            provenance: extracted.provenance,
+            checksum: extracted.checksum,
+          };
+        } catch {}
+
         ok = await dispatchAction({
           type: 'add_web_source',
           url: trimmedUrl,
           label: trimmedUrl,
           sourceId: replacingSourceId ?? undefined,
+          ...(extraction ? { extraction } : {}),
         });
       }
 

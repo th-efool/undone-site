@@ -2,9 +2,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { ArrowUp, BookOpen, Lightbulb, Square, X } from 'lucide-react';
-import { useWorkspaceMessages, useSendMessage, useInteractionState } from '@/src/client/interaction/hooks';
-import type { CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
+import { ArrowUp, BookOpen, Lightbulb, Paperclip, Square, X } from 'lucide-react';
+import { useWorkspaceMessages, useSendMessage, useInteractionState, useDispatchAction } from '@/src/client/interaction/hooks';
+import type { CohortAction, CohortWorkspace } from '@/src/shared/cohort-builder/contracts';
+import { useComposerAttachments, AttachmentTray } from '@/src/client/components/global/Composer';
 import { useAssistantActivity } from './useAssistantActivity';
 import { useTheme } from '@/src/client/hooks/useTheme';
 import type { EntityRef } from 'interaction-builder/core';
@@ -36,6 +37,7 @@ interface ChatPaneProps {
 export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = 'live' }: ChatPaneProps) {
   const messages = useWorkspaceMessages();
   const sendMessage = useSendMessage();
+  const dispatchAction = useDispatchAction<CohortAction>();
   const state = useInteractionState<CohortWorkspace>();
   const activity = useAssistantActivity();
   const { isDark } = useTheme();
@@ -46,9 +48,12 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const nearBottom = useRef(true);
   const isInitialMount = useRef(true);
   const showsProcessing = state.view?.journey?.step === 'processing' || state.view?.journey?.step === 'ready';
+
+  const composerAttachments = useComposerAttachments({ maxFiles: 10, maxLinks: 20 });
 
   useEffect(() => {
     if (isInitialMount.current) {
@@ -64,15 +69,74 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
   }, [messages.length, showsProcessing]);
 
   const handleSend = async (customText?: string) => {
-    const textToSend = customText ?? input;
-    if (sending || staleSelection || (!textToSend.trim() && !attachedEntity)) return;
+    if (sending || staleSelection || composerAttachments.isExtracting) return;
+    const readySources = composerAttachments.getReadySources();
+    const rawText = customText ?? input;
+    let textToSend = rawText.trim();
+
+    if (!textToSend && !attachedEntity && readySources.length === 0) return;
+
+    if (!textToSend && readySources.length > 0) {
+      textToSend = readySources.length === 1
+        ? `I attached ${readySources[0].label} as reference material.`
+        : `I attached ${readySources.length} reference materials for our study plan.`;
+    }
+
     setSending(true);
 
     try {
+      // 1. Dispatch attached sources directly into workspace
+      for (const source of readySources) {
+        const extraction = {
+          text: source.text,
+          locations: source.locations && source.locations.length > 0 ? source.locations : [{ start: 0, end: Math.max(source.text.length, 1) }],
+          provenance: source.provenance,
+          checksum: source.checksum ?? undefined,
+        };
+
+        if (source.label.toLowerCase().endsWith('.pdf') || (source.provenance as any)?.pageCount !== undefined) {
+          await dispatchAction({
+            type: 'add_pdf_source',
+            label: source.label,
+            extraction,
+          });
+        } else if (source.input?.kind === 'youtube' || source.label.includes('youtube.com') || source.label.includes('youtu.be')) {
+          await dispatchAction({
+            type: 'add_youtube_source',
+            url: (source.input as any)?.url || source.label,
+            label: source.label,
+            mode: 'video_observation',
+            extraction,
+          });
+        } else if (source.input?.kind === 'github' || source.label.includes('github.com')) {
+          await dispatchAction({
+            type: 'add_github_source',
+            repoUrl: (source.input as any)?.repoUrl || source.label,
+            ref: (source.input as any)?.ref || 'main',
+            label: source.label,
+            extraction,
+          });
+        } else if (source.input?.kind === 'web' || source.label.startsWith('http')) {
+          await dispatchAction({
+            type: 'add_web_source',
+            url: (source.input as any)?.url || source.label,
+            label: source.label,
+            extraction,
+          });
+        } else {
+          await dispatchAction({
+            type: 'add_text_source',
+            label: source.label,
+            text: source.text,
+          });
+        }
+      }
+
       const entityRefs = attachedEntity ? [attachedEntity] : [];
       const ok = await sendMessage(textToSend, entityRefs);
       if (ok) {
-        if (!customText) setInput(current => current === textToSend ? '' : current);
+        if (!customText) setInput(current => current === rawText ? '' : current);
+        composerAttachments.clearAll();
         onClearAttachedEntity();
       }
     } finally {
@@ -96,7 +160,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       void handleSend();
     }
@@ -416,6 +480,16 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
           </div>
         )}
 
+        {composerAttachments.files.length > 0 && (
+          <div className={styles.attachmentTraySection}>
+            <AttachmentTray
+              files={composerAttachments.files}
+              onRemoveFile={composerAttachments.removeFile}
+              disabled={sending}
+            />
+          </div>
+        )}
+
         <form
           className={styles.composer}
           onSubmit={e => {
@@ -423,6 +497,29 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
             void handleSend();
           }}
         >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".pdf,.txt,.md,.json,application/pdf,text/plain,text/markdown,application/json"
+            style={{ display: 'none' }}
+            onChange={e => {
+              if (e.target.files) void composerAttachments.addFiles(e.target.files);
+              e.target.value = '';
+            }}
+          />
+
+          <button
+            type="button"
+            className={styles.attachBtn}
+            onClick={() => fileInputRef.current?.click()}
+            title="Attach reference files (.pdf, .txt, .md, .json)"
+            aria-label="Attach reference file"
+            disabled={sending || composerAttachments.isExtracting}
+          >
+            <Paperclip size={18} />
+          </button>
+
           <textarea
             aria-label="Message the cohort assistant"
             placeholder={placeholder}
@@ -430,12 +527,17 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             rows={1}
-            aria-busy={sending}
+            aria-busy={sending || composerAttachments.isExtracting}
           />
           <button
             type="submit"
             aria-label="Send message"
-            disabled={sending || staleSelection || (!input.trim() && !attachedEntity)}
+            disabled={
+              sending ||
+              staleSelection ||
+              composerAttachments.isExtracting ||
+              (!input.trim() && !attachedEntity && composerAttachments.getReadySources().length === 0)
+            }
           >
             <ArrowUp size={22} strokeWidth={2.4} />
           </button>
@@ -447,7 +549,7 @@ export function ChatPane({ attachedEntity, onClearAttachedEntity, connection = '
               key={idx}
               type="button"
               onClick={() => void handleSend(s)}
-              disabled={sending}
+              disabled={sending || !!activeTurn}
             >
               {s}
             </button>

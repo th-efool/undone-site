@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -61,6 +61,16 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
 
   const isChatStep = state.view?.journey?.step === 'chat';
 
+  const [layoutAnnouncement, setLayoutAnnouncement] = useState('');
+  const prevIsChatStepRef = useRef(isChatStep);
+
+  useEffect(() => {
+    if (prevIsChatStepRef.current !== isChatStep) {
+      setLayoutAnnouncement(isChatStep ? 'Returned to centered chat' : 'Workspace panel opened');
+      prevIsChatStepRef.current = isChatStep;
+    }
+  }, [isChatStep]);
+
   const stage = state.view
     ? state.view.processing.status === 'processing' ||
       state.view.processing.status === 'queued' ||
@@ -82,6 +92,9 @@ function InnerBuilderScreen({ workspaceId, ownerId }: InnerBuilderScreenProps) {
       data-rail-collapsed={!isChatStep && collapsed}
       data-pane={pane}
     >
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {layoutAnnouncement}
+      </div>
       {!isChatStep && (
         <nav className={styles.paneNavigation} aria-label="Builder views">
           <button
@@ -249,7 +262,7 @@ export function CohortInteractionScreen({
 
   const identityLost =
     status === 'unauthenticated' ||
-    (status === 'authenticated' && ownerId && session?.user?.id !== ownerId);
+    (status === 'authenticated' && !!ownerId && session?.user?.id !== ownerId);
 
   useEffect(() => {
     if (identityLost) {

@@ -1,4 +1,4 @@
-﻿import { sha256 } from '@/src/shared/cohort-builder/hash';
+import { sha256 } from '@/src/shared/cohort-builder/hash';
 import type { ClientSourceExtraction } from '@/src/shared/cohort-builder/contracts';
 
 export interface PdfClientExtractionResult extends ClientSourceExtraction {
@@ -17,7 +17,7 @@ export async function extractPdfClient(
   // Dynamically import pdfjs-dist in the browser to keep initial bundle size lean
   const pdfjs = await import('pdfjs-dist');
   if (!pdfjs.GlobalWorkerOptions.workerSrc) {
-    pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
+    pdfjs.GlobalWorkerOptions.workerSrc = typeof window !== 'undefined' ? '/pdf.worker.min.mjs' : new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString();
   }
 
   const arrayBuffer = await file.arrayBuffer();

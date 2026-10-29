@@ -155,7 +155,9 @@ export function RecommendationsStageView({
       error: null,
       query: workspace.intent,
     },
-    cancel: handleCreateOwn,
+    cancel: () => {
+      void dispatchAction({ type: 'close_panel' });
+    },
     runQuery: () => {},
     queryPending: false,
   } as unknown as ReturnType<typeof useCreation>;

@@ -41,6 +41,17 @@ vi.mock('@/src/client/interaction/provider', () => ({
   InteractionProvider: ({ children }: any) => <>{children}</>,
 }));
 
+vi.mock('@/src/client/lib/sourceExtractors/pdfClientExtractor', () => ({
+  extractPdfClient: vi.fn().mockResolvedValue({
+    text: 'Extracted PDF text content',
+    locations: [{ page: 1, start: 0, end: 26 }],
+    provenance: { parserVersion: 'test', pageCount: 1, rawChecksum: 'a'.repeat(64) },
+    checksum: 'a'.repeat(64),
+    thumbnailUrl: '',
+    pageCount: 1,
+  }),
+}));
+
 import { MaterialStageView } from '../stages/MaterialStageView';
 import { CohortWorkspacePane } from '../CohortWorkspacePane';
 
@@ -136,13 +147,13 @@ describe('Checkpoint 3: Client MaterialStageView & Workspace Pane Suite', () => 
       fireEvent.click(screen.getByRole('button', { name: /Save and acquire material/i }));
     });
 
-    expect(fake.actions).toContainEqual({
+    expect(fake.actions).toContainEqual(expect.objectContaining({
       type: 'add_youtube_source',
       url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
       label: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
       mode: 'video_observation',
       sourceId: undefined,
-    });
+    }));
 
     fake.actions = [];
 
@@ -154,12 +165,12 @@ describe('Checkpoint 3: Client MaterialStageView & Workspace Pane Suite', () => 
       fireEvent.click(screen.getByRole('button', { name: /Save and acquire material/i }));
     });
 
-    expect(fake.actions).toContainEqual({
+    expect(fake.actions).toContainEqual(expect.objectContaining({
       type: 'add_web_source',
       url: 'https://example.com/consensus-guide',
       label: 'https://example.com/consensus-guide',
       sourceId: undefined,
-    });
+    }));
   });
 
   it('4. Preserves failed URL input for retry when dispatchAction fails', async () => {
@@ -211,12 +222,8 @@ describe('Checkpoint 3: Client MaterialStageView & Workspace Pane Suite', () => 
     });
   });
 
-  it('6. Uploads PDF to owned PDF binary endpoint with required headers and never decodes with FileReader', async () => {
+    it('6. Extracts PDF client-side and dispatches add_pdf_source with extraction payload', async () => {
     const ws = createMaterialWorkspace();
-    (global.fetch as any).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ sourceId: 'src-pdf-1', uploadId: 'up-1' }),
-    });
 
     render(
       <MaterialStageView
@@ -229,23 +236,21 @@ describe('Checkpoint 3: Client MaterialStageView & Workspace Pane Suite', () => 
     );
 
     const fileInput = document.getElementById('material-file-picker') as HTMLInputElement;
-    const fakePdf = new File(['%PDF-1.4 binary stream'], 'distributed-systems.pdf', { type: 'application/pdf' });
+    const fakePdf = new File(['%PDF-1.4 fake binary content'], 'whitepaper.pdf', { type: 'application/pdf' });
 
     await act(async () => {
       fireEvent.change(fileInput, { target: { files: [fakePdf] } });
     });
 
-    expect(global.fetch).toHaveBeenCalledTimes(1);
-    const [fetchUrl, fetchOptions] = (global.fetch as any).mock.calls[0];
-
-    expect(fetchUrl).toBe('/api/cohort-builder/workspaces/ws-test-123/pdf');
-    expect(fetchOptions.method).toBe('POST');
-    expect(fetchOptions.headers['Content-Type']).toBe('application/pdf');
-    expect(fetchOptions.headers['X-Workspace-Revision']).toBe('2');
-    expect(fetchOptions.headers['X-Owner-Id']).toBe('owner-alice');
-    expect(fetchOptions.headers['X-Source-Label']).toBe('distributed-systems.pdf');
-    expect(fetchOptions.headers['Idempotency-Key']).toBeTruthy();
-    expect(fetchOptions.body).toBe(fakePdf);
+    expect(fake.actions).toContainEqual(
+      expect.objectContaining({
+        type: 'add_pdf_source',
+        label: 'whitepaper.pdf',
+        extraction: expect.objectContaining({
+          text: 'Extracted PDF text content',
+        }),
+      })
+    );
   });
 
   it('7. Reads .txt or .md files with file.text() and dispatches add_text_source', async () => {

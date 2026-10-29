@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState, useCallback, useMemo, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from 'react';
 import pLimit from 'p-limit';
@@ -195,6 +195,52 @@ export function useComposerAttachments(options: UseComposerAttachmentsOptions = 
   // eslint-disable-next-line react-hooks/exhaustive-deps -- run/addError are stable closures over refs and setters
   }, [maxLinks, addError]);
 
+  const restoreSources = useCallback((sources: CohortSource[]) => {
+    if (!sources || !sources.length) return;
+    const newFiles: FileItem[] = [];
+    const newLinks: LinkItem[] = [];
+
+    for (const s of sources) {
+      if (!s.text) continue;
+      const extraction: ClientSourceExtraction = {
+        text: s.text,
+        locations: s.locations ?? [{ start: 0, end: s.text.length }],
+        provenance: s.provenance,
+        checksum: s.checksum ?? sha256(s.text),
+      };
+      try {
+        reserveBytes(s.id, extraction);
+      } catch {
+        break; // Stop restoring if text budget is reached
+      }
+
+      const isFile = s.label.toLowerCase().endsWith('.pdf') || s.input?.kind === 'pdf' || (s.provenance as any)?.pageCount !== undefined;
+      if (isFile) {
+        newFiles.push({
+          id: s.id,
+          name: s.label,
+          size: byteLengthUtf8(s.text),
+          type: 'application/pdf',
+          status: 'ready',
+          extraction,
+        });
+      } else {
+        const url = s.input?.kind === 'web' ? s.input.url : s.input?.kind === 'youtube' ? s.input.url : s.label;
+        newLinks.push({
+          id: s.id,
+          url,
+          title: s.label,
+          kind: detectSourceKind(url),
+          status: 'ready',
+          extraction,
+        });
+      }
+    }
+
+    if (newFiles.length) setFiles((prev) => [...prev, ...newFiles]);
+    if (newLinks.length) setLinks((prev) => [...prev, ...newLinks]);
+  }, [setFiles, setLinks]);
+
   const isExtracting = useMemo(
     () => files.some((f) => f.status === 'extracting') || links.some((l) => l.status === 'extracting'),
     [files, links],
@@ -205,7 +251,7 @@ export function useComposerAttachments(options: UseComposerAttachmentsOptions = 
     ...links.flatMap((l) => (l.status === 'ready' && l.extraction ? [toCohortSource({ id: l.id, label: l.title || l.url, extraction: l.extraction })] : [])),
   ], [files, links]);
 
-  return { files, links, isExtracting, totalCount: files.length + links.length, errors, addFiles, removeFile, addLink, removeLink, clearAll, getReadySources };
+  return { files, links, isExtracting, totalCount: files.length + links.length, errors, addFiles, removeFile, addLink, removeLink, clearAll, getReadySources, restoreSources };
 }
 
 

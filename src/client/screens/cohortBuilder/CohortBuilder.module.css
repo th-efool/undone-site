@@ -585,6 +585,27 @@
   cursor: not-allowed;
 }
 
+.composer button.attachBtn {
+  border: 1px solid color-mix(in srgb, var(--creation-line, #d8dcf0) 60%, transparent);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  background: color-mix(in srgb, var(--creation-surface, #ffffff) 80%, transparent);
+  color: var(--creation-ink, #1f2937);
+  box-shadow: none;
+}
+
+.composer button.attachBtn:hover {
+  background: color-mix(in srgb, var(--creation-primary, #333afa) 10%, transparent);
+  color: var(--creation-primary, #333afa);
+}
+
+.attachmentTraySection {
+  margin-bottom: 10px;
+  width: 100%;
+  overflow-x: auto;
+}
+
 .suggestions {
   display: flex;
   flex-direction: column;

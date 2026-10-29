@@ -321,3 +321,27 @@ it('renders close panel button and opens confirmation modal (PLAN-024)', async (
   expect(screen.getByRole('button', { name: 'Close panel' })).toBeDefined();
   expect(screen.getByRole('button', { name: 'Keep open' })).toBeDefined();
 });
+
+it('renders attach file button in chat composer (PATCH-01)', () => {
+  fake.view = cohortWorkspaceSchema.parse({
+    schemaVersion: 1,
+    title: 'Chat Attachment Test',
+    intent: 'Learn Algorithms',
+    audience: '',
+    dailyMinutes: 20,
+    lessons: [],
+    journey: {
+      version: 1,
+      step: 'chat',
+      branch: null,
+      processingStarted: false,
+      intentVersion: 0,
+    },
+  });
+
+  render(<CohortInteractionScreen workspaceId="ws-chat-attach" ownerId="owner" initialView={fake.view} />);
+
+  const attachBtn = screen.getByRole('button', { name: 'Attach reference file' });
+  expect(attachBtn).toBeDefined();
+  expect(attachBtn.getAttribute('title')).toBe('Attach reference files (.pdf, .txt, .md, .json)');
+});

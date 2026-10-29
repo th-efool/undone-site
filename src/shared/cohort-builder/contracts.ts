@@ -359,6 +359,8 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   if (action.type === 'close_panel') {
     const current = journey();
     current.step = 'chat';
+    delete next.recommendations;
+    delete next.discovery;
     if (next.processing.status === 'queued' || next.processing.status === 'processing') {
       next.processing = {
         status: 'idle',

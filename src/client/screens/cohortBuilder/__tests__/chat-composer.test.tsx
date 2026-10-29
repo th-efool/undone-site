@@ -6,6 +6,7 @@ const fake = vi.hoisted(() => ({ send: vi.fn(), view: null as import('@/src/shar
 vi.mock('@/src/client/interaction/hooks', () => ({
   useWorkspaceMessages: () => [], useSendMessage: () => fake.send,
   useInteractionState: () => ({ workspaceId: 'workspace', view: fake.view, pending: {} }),
+  useDispatchAction: () => vi.fn().mockResolvedValue(true),
 }));
 vi.mock('../useAssistantActivity', () => ({ useAssistantActivity: () => ({ turns: [] }) }));
 vi.mock('@/src/client/hooks/useTheme', () => ({ useTheme: () => ({ isDark: false }) }));

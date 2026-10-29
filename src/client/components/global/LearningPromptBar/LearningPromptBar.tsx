@@ -283,6 +283,12 @@ export const LearningPromptBar = React.memo(
         } else if (storedShow === 'true') {
           setShowSource(true);
         }
+
+        // Restore attached files and links from intake draft (e.g. after auth redirect)
+        if (intakeDraft?.sources && intakeDraft.sources.length > 0) {
+          composerAttachments.restoreSources(intakeDraft.sources);
+          setShowSource(true);
+        }
       }
     }, [controlledValue]);
 
@@ -366,8 +372,9 @@ export const LearningPromptBar = React.memo(
         }
 
         // Direct POST to intake endpoint without blocking on a pre-flight GET
+        let createRes: Response | null = null;
         try {
-          const createRes = await fetch('/api/cohort-builder/intake', {
+          createRes = await fetch('/api/cohort-builder/intake', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...draftPayload, ...(ownerId ? { expectedOwnerId: ownerId } : {}) }),
@@ -382,12 +389,29 @@ export const LearningPromptBar = React.memo(
               else window.location.href = buildHref;
               return;
             }
+          } else {
+            const errBody = await createRes.json().catch(() => ({}));
+            const code = errBody?.code;
+            if (createRes.status === 413 || code === 'INPUT_TOO_LARGE') {
+              setIntakeError('Reference material exceeds the 3.5MB server limit. Please remove an attachment.');
+              setSubmitting(false);
+              return;
+            }
+            if (createRes.status === 400 || code === 'INVALID_INPUT') {
+              setIntakeError('Please provide a valid learning topic or curriculum intent.');
+              setSubmitting(false);
+              return;
+            }
+            if (code) {
+              setIntakeError(`Could not initialize cohort (${code}). Please retry.`);
+              setSubmitting(false);
+              return;
+            }
           }
         } catch {
-          // Fall back to /quest/start
+          // Network failure: fall back to /quest/start
         }
 
-        clearPromptDraft();
         if (router) router.push('/quest/start');
         else window.location.href = '/quest/start';
       } catch (error) {

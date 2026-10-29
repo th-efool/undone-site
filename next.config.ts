@@ -29,7 +29,7 @@ const nextConfig: NextConfig = {
         trailingSlash: true,
       }
     : {}),
-  serverExternalPackages: ['pdfjs-dist'],
+  serverExternalPackages: [],
   outputFileTracingIncludes: {
     '/.well-known/workflow/**': ['./src/server/domain/cohort-creation/materials/pdf-parser.worker.mjs', './node_modules/pdfjs-dist/legacy/build/**'],
   },

@@ -9,7 +9,7 @@ vi.mock('next/navigation', () => ({
 }));
 
 import { LearningPromptBar } from '../LearningPromptBar';
-import { readIntakeDraft } from '@/src/client/screens/cohortBuilder/intake-draft';
+import { readIntakeDraft, saveIntakeDraft } from '@/src/client/screens/cohortBuilder/intake-draft';
 
 afterEach(() => {
   cleanup();
@@ -93,5 +93,31 @@ describe('LearningPromptBar Component', () => {
     expect(draft).not.toBeNull();
     expect(draft?.prompt).toBe('Keyboard Plan Shortcut Test');
     expect(draft?.mode).toBe('plan');
+  });
+
+  it('restores sources from intake draft on mount', () => {
+    saveIntakeDraft(
+      {
+        requestId: '54103d7b-2709-4dd6-bb18-522f96b97241',
+        prompt: 'Distributed Systems',
+        mode: 'plan',
+        sources: [
+          {
+            id: 's1',
+            version: 1,
+            label: 'Paxos_Overview.pdf',
+            text: 'Paxos algorithm consensus details...',
+            checksum: '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
+            state: 'ready',
+          },
+        ],
+      },
+      null
+    );
+
+    render(<LearningPromptBar />);
+
+    expect(screen.getByLabelText('What do you want to learn about?')).toBeDefined();
+    expect(screen.getByText('Paxos_Overview.pdf')).toBeDefined();
   });
 });

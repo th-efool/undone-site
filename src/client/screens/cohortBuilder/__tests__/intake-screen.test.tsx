@@ -8,6 +8,7 @@ import { saveIntakeDraft } from '../intake-draft';
 const draft = {
   requestId: '54103d7b-2709-4dd6-bb18-522f96b97241',
   prompt: 'Learn distributed systems',
+  mode: 'search' as const,
 };
 
 let assignMock = vi.fn();

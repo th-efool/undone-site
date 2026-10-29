@@ -208,7 +208,7 @@ describe('Checkpoint 2: Journey Stages & Selectors', () => {
       // Cancel button in pending view dispatches create_own_cohort
       const cancelBtn = screen.getByRole('button', { name: 'Cancel' });
       fireEvent.click(cancelBtn);
-      expect(dispatchAction).toHaveBeenCalledWith({ type: 'create_own_cohort' });
+      expect(dispatchAction).toHaveBeenCalledWith({ type: 'close_panel' });
 
       // Bottom CTA also dispatches create_own_cohort
       const createOwnBtn = screen.getByRole('button', { name: /Create my own cohort/i });

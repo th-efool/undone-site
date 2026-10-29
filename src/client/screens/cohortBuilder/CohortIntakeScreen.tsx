@@ -19,6 +19,7 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
   const [collapsed, setCollapsed] = useState(false);
   const [pane, setPane] = useState<'chat' | 'workspace'>('workspace');
   const { theme, isDark } = useTheme();
+  const isPlanMode = draft?.mode === 'plan';
   const logoSrc = isDark ? '/undone-logo-dark.svg' : '/undone-logo-transparent.svg';
 
   const submitDraft = async (intake: CohortIntake) => {
@@ -72,11 +73,13 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
       id="main-content"
       className={builderStyles.page}
       data-theme={theme}
+      data-layout={isPlanMode ? 'centered' : 'split'}
       data-variant="material"
-      data-rail-collapsed={collapsed}
+      data-rail-collapsed={!isPlanMode && collapsed}
       data-pane={pane}
     >
-      <nav className={builderStyles.paneNavigation} aria-label="Builder views">
+      {!isPlanMode && (
+        <nav className={builderStyles.paneNavigation} aria-label="Builder views">
         <button
           type="button"
           aria-pressed={pane === 'chat'}
@@ -92,6 +95,7 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
           Workspace
         </button>
       </nav>
+      )}
 
       {/* Left Conversation Rail matching AI Builder Workspace */}
       <aside className={builderStyles.rail} aria-label="Creation conversation">
@@ -158,7 +162,8 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
       </aside>
 
       {/* Right Workspace Canvas matching AI Builder Workspace */}
-      <div className={builderStyles.canvas}>
+      {!isPlanMode && (
+        <div className={builderStyles.canvas}>
         <header className={builderStyles.canvasHeader} aria-label="Workspace toolbar">
           <div className={builderStyles.tools}>
             <ThemeToggle />
@@ -279,6 +284,7 @@ export function CohortIntakeScreen({ ownerId, enabled }: { ownerId: string; enab
           </main>
         </div>
       </div>
+      )}
     </div>
   );
 }
