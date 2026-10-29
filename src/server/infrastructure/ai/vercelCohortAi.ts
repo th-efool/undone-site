@@ -56,6 +56,13 @@ export class VercelCohortAi implements CohortAi {
           prompt,
           output: Output.object({ schema: creationOutputSchema(schema, this.model) }), maxOutputTokens: 2000,
           maxRetries: this.execution?.maxRetries ?? 2, timeout: { totalMs: 15_000 }, abortSignal: signal,
+          providerOptions: {
+            google: {
+              thinkingConfig: {
+                thinkingBudget: 0,
+              },
+            },
+          },
           telemetry: { isEnabled: false, recordInputs: false, recordOutputs: false },
         });
         const u = (result as any)?.usage ?? {};

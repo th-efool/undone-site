@@ -28,9 +28,10 @@ export async function createTextJobRuntime(
   options?: {
     youtubeTranscriptProvider?: YoutubeTranscriptProvider;
     githubSourceProvider?: GithubSourceProvider;
+    sourceConcurrency?: number;
   }
 ) {
-  const pool = new Pool({ connectionString, max: 3, connectionTimeoutMillis: 15_000,
+  const pool = new Pool({ connectionString, max: 10, connectionTimeoutMillis: 15_000,
     query_timeout: 15_000 });
   const sql: TextArtifactSql = { query: (statement, parameters) => pool.query(statement, parameters) };
   const webTransport=localSourceFixture();
@@ -52,13 +53,24 @@ export async function createTextJobRuntime(
     } catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }
   } };
+  let lastRecoveryTime = 0;
+  const configuredConcurrency = options?.sourceConcurrency ??
+    Math.max(1, Math.min(8, parseInt(process.env.SOURCE_PROCESSING_CONCURRENCY || '4', 10)));
+
   return {
     close: () => pool.end(),
-    tick: async () => {
-      const candidates = await sql.query(`SELECT "id" FROM "interaction_workspaces" WHERE "domainId"='cohort'
-        AND "lifecycle"='active' AND "snapshot"->'processing'->>'status' IN ('queued','failed')
-        ORDER BY "updatedAt" LIMIT 20`, []);
-      for (const row of candidates.rows) await recoverTextWorkspace(transaction, String(row.id));
+    tick: async (overrideConcurrency?: number) => {
+      const concurrency = overrideConcurrency ?? configuredConcurrency;
+      const now = Date.now();
+      if (now - lastRecoveryTime >= 10_000) {
+        lastRecoveryTime = now;
+        try {
+          const candidates = await sql.query(`SELECT "id" FROM "interaction_workspaces" WHERE "domainId"='cohort'
+            AND "lifecycle"='active' AND "snapshot"->'processing'->>'status' IN ('queued','failed')
+            ORDER BY "updatedAt" LIMIT 20`, []);
+          for (const row of candidates.rows) await recoverTextWorkspace(transaction, String(row.id));
+        } catch {}
+      }
       const youtubeTranscriptProvider = options?.youtubeTranscriptProvider ??
         localYoutubeFixture() ??
         (youtubeTranscriptReadiness().enabled ? new LiveYoutubeTranscriptProvider() : undefined);
@@ -68,7 +80,8 @@ export async function createTextJobRuntime(
       const videoObservationProvider = localVideoObservationFixture();
       const guideAuthor = localGuideAuthorFixture();
       const discoveryObserver = localDiscoveryObserverFixture();
-      return runDurableTextJobTick({
+
+      const runSingleTick = () => runDurableTextJobTick({
         sql, workerId, leaseMs, now: () => new Date(), transaction, webTransport,
         youtubeTranscriptProvider, githubSourceProvider, videoObservationProvider, guideAuthor,
         ...(discoveryObserver ? { discoveryDeps: { observer: discoveryObserver, sql } } : {}),
@@ -78,6 +91,14 @@ export async function createTextJobRuntime(
           if (!row) throw new Error('WORKSPACE_NOT_ACTIVE');
           return row.snapshot;
         },
-      }); },
+      });
+
+      if (concurrency <= 1) {
+        return runSingleTick();
+      }
+
+      const tasks = Array.from({ length: concurrency }, () => runSingleTick());
+      return Promise.all(tasks);
+    },
   };
 }

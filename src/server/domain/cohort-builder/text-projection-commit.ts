@@ -17,5 +17,6 @@ export async function commitTextProjection(tx: TextArtifactSql, workspaceId: str
   await tx.query(`INSERT INTO "interaction_events" ("id", "workspaceId", "sequence", "protocolVersion", "type", "revision", "payload")
     VALUES ($1, $2, $3, 1, 'workspace.committed', $4, $5::jsonb)`, [crypto.randomUUID(), workspaceId,
     Number(updated.rows[0].sequence), commit.revision, JSON.stringify({ receipt: commit.receipt,
-      baseRevision: revision, revision: commit.revision, changeSet: commit.receipt.changed })]);
+      baseRevision: revision, revision: commit.revision, changeSet: commit.receipt.changed,
+      snapshot: commit.state })]);
 }

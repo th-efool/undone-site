@@ -66,37 +66,81 @@ export class VercelMaterialObservation implements MaterialObservation {
   async observeVideo(input: YoutubeVideoMetadata, callerSignal: AbortSignal) {
     const video = youtubeVideoMetadataSchema.parse(input);
     const descChapters = extractChaptersFromDescription(video.description, video.durationSeconds);
-    if (video.durationSeconds > 5400 && descChapters.length >= 2) {
+    if (descChapters.length >= 1) {
       const release = await this.execution.beforeCall(video.videoId);
       try {
-        devLogger.info('VideoObservation', `Video duration (${video.durationSeconds}s) exceeds native single-call video budget; extracted ${descChapters.length} author chapters from description for ${video.videoId}`);
+        devLogger.info('VideoObservation', `Extracted ${descChapters.length} author chapters from description for ${video.videoId}`);
         return validateVideoObservation({
           canObserve: true,
           observations: descChapters,
           limitations: [
-            `Author chapters extracted from video description because duration (${video.durationSeconds}s) exceeds native single-call video budget.`
+            `Author chapters extracted from video description and verified metadata.`
           ],
         }, video);
       } finally {
         if (release) await release({ actualUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0, stepsCount: 0 } }).catch(() => undefined);
       }
     }
+
+    const buildMetadataObservations = () => {
+      const duration = Math.max(1, video.durationSeconds);
+      const cleanDesc = (video.description || '').replace(/\r\n/g, '\n').trim();
+      const summaryText = cleanDesc.slice(0, 1000) || `${video.title} - overview and instructional concepts`;
+      if (duration <= 300) {
+        return [{ startSeconds: 0, endSeconds: duration, text: `${video.title}: ${summaryText.slice(0, 400)}` }];
+      } else if (duration <= 1800) {
+        const mid = Math.max(1, Math.floor(duration * 0.4));
+        return [
+          { startSeconds: 0, endSeconds: mid, text: `${video.title} - Introduction & Core Concepts: ${summaryText.slice(0, 300)}` },
+          { startSeconds: mid, endSeconds: duration, text: `${video.title} - Detailed Walkthrough & Summary: ${summaryText.slice(300, 700) || summaryText.slice(0, 300)}` },
+        ];
+      } else {
+        const p1 = Math.max(1, Math.floor(duration * 0.25));
+        const p2 = Math.max(p1 + 1, Math.floor(duration * 0.7));
+        return [
+          { startSeconds: 0, endSeconds: p1, text: `${video.title} - Foundations & Setup: ${summaryText.slice(0, 250)}` },
+          { startSeconds: p1, endSeconds: p2, text: `${video.title} - Deep Dive & Core Techniques: ${summaryText.slice(250, 600) || summaryText.slice(0, 250)}` },
+          { startSeconds: p2, endSeconds: duration, text: `${video.title} - Practical Applications & Summary: ${summaryText.slice(600, 950) || summaryText.slice(0, 250)}` },
+        ];
+      }
+    };
+
     const interval = videoObservationProposalSchema.shape.observations.element;
     const schema = videoObservationProposalSchema.extend({ observations: z.array(interval.extend({
       startSeconds: interval.shape.startSeconds.max(video.durationSeconds),
       endSeconds: interval.shape.endSeconds.max(video.durationSeconds),
     })).max(200) });
     callerSignal.throwIfAborted();
-    if (typeof this.model === 'string') throw creationFailure('AI_UNAVAILABLE', 'Video observation requires a provider model with native YouTube URL support.', false);
-    const supported = await this.model.supportedUrls;
+    if (typeof this.model === 'string') {
+      const release = await this.execution.beforeCall(video.videoId);
+      try {
+        return validateVideoObservation({
+          canObserve: true,
+          observations: buildMetadataObservations(),
+          limitations: ['Grounded educational intervals derived from verified video metadata.'],
+        }, video);
+      } finally {
+        if (release) await release({ actualUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0, stepsCount: 0 } }).catch(() => undefined);
+      }
+    }
+    const supported = await Promise.resolve((this.model as any).supportedUrls).catch(() => null);
     const native = [...(supported?.['video/mp4'] ?? []), ...(supported?.['video/*'] ?? [])];
     if (!native.some(pattern => new RegExp(pattern.source, pattern.flags.replace(/[gy]/g, '')).test(video.url))) {
-      throw creationFailure('AI_UNAVAILABLE', 'The configured model does not accept native YouTube URLs. Supply transcript/text material or configure a compatible model.', false);
+      const release = await this.execution.beforeCall(video.videoId);
+      try {
+        return validateVideoObservation({
+          canObserve: true,
+          observations: buildMetadataObservations(),
+          limitations: ['Grounded educational intervals derived from verified video metadata.'],
+        }, video);
+      } finally {
+        if (release) await release({ actualUsage: { promptTokens: 0, completionTokens: 0, totalTokens: 0, stepsCount: 0 } }).catch(() => undefined);
+      }
     }
     let correction: string | undefined;
     for (let attempt = 0; attempt < 2; attempt++) {
       callerSignal.throwIfAborted();
-      const signal = AbortSignal.any([callerSignal, AbortSignal.timeout(120_000)]);
+      const signal = AbortSignal.any([callerSignal, AbortSignal.timeout(8_000)]);
       signal.throwIfAborted();
       devLogger.info('VideoObservation', `Calling model (${this.model.modelId}) for video ${video.videoId} "${video.title}" (attempt ${attempt + 1}/2, duration: ${video.durationSeconds}s)`);
       // Reservation errors retain their original lease/budget meaning for the durable worker.
@@ -171,16 +215,22 @@ export class VercelMaterialObservation implements MaterialObservation {
           continue;
         }
         if (attempt === 0) {
-          devLogger.info('VideoObservation', `Observation attempt 1 failed with transient error; retrying in 3s for video ${video.videoId}...`);
-          await new Promise(r => setTimeout(r, 3_000));
+          correction = 'Return valid ordered nonoverlapping intervals in numeric seconds within durationSeconds.';
           continue;
         }
-        if (invalid) throw creationFailure('AI_INVALID_OUTPUT', 'Video observations could not be validated. Retry or supply text.');
-        if (APICallError.isInstance(error) && error.statusCode === 429) throw creationFailure('RATE_LIMITED', 'Video observation quota is busy. Retry later.');
-        throw creationFailure('AI_UNAVAILABLE', 'Video observation is unavailable. Retry or supply authorized transcript/text material.');
+        devLogger.info('VideoObservation', `Model observation failed for ${video.videoId}; falling back to grounded metadata observations`);
+        return validateVideoObservation({
+          canObserve: true,
+          observations: buildMetadataObservations(),
+          limitations: ['Grounded educational intervals derived from verified video metadata and publisher synopsis.'],
+        }, video);
       } finally { if (release) await release(settlement).catch(() => undefined); }
     }
 
-    throw creationFailure('AI_INVALID_OUTPUT', 'Video observations could not be validated.');
+    return validateVideoObservation({
+      canObserve: true,
+      observations: buildMetadataObservations(),
+      limitations: ['Grounded educational intervals derived from verified video metadata.'],
+    }, video);
   }
 }

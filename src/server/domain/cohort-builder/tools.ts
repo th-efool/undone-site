@@ -12,6 +12,7 @@ export interface CohortAiToolsDeps {
   repo: InteractionRepository;
   domain: DomainDefinition<CohortWorkspace>;
   observedRevision?: number;
+  stage?: string;
   selectedLesson?: SelectedLesson | null;
   runFence?: { runId: string; leaseToken: string };
   onToolStep?: (
@@ -20,6 +21,29 @@ export interface CohortAiToolsDeps {
     actionFn: (meta?: { ordinal: number; requestId: string }) => Promise<unknown>
   ) => Promise<unknown>;
 }
+
+const STAGE_TOOL_NAMES: Record<string, string[]> = {
+  recommendations: ['create_own_cohort', 'choose_starting_point', 'set_intent'],
+  starting_point: ['choose_starting_point', 'back_to_recommendations', 'set_intent'],
+  discovery: ['select_discovery_resources', 'start_discovery', 'back_to_starting_point', 'choose_starting_point', 'set_intent'],
+  goal_setup: ['start_goal_generation', 'set_intent', 'set_audience', 'set_daily_minutes', 'back_to_starting_point'],
+  material_input: [
+    'add_web_source', 'add_pdf_source', 'set_pdf_pages', 'refresh_web_source',
+    'add_youtube_source', 'set_youtube_scope', 'add_github_source', 'set_github_scope',
+    'add_text_source', 'edit_text_source', 'remove_source',
+    'begin_material_processing', 'cancel_source_processing', 'back_to_starting_point', 'set_intent'
+  ],
+  processing: ['cancel_text_processing', 'cancel_source_processing', 'retry_text_job'],
+  ready: [
+    'edit_lesson', 'reorder_lessons', 'set_lesson_pin', 'add_lesson', 'remove_lesson',
+    'set_intent', 'set_audience', 'set_daily_minutes', 'prepare_release', 'commit_release',
+    'cancel_text_processing', 'retry_text_job'
+  ],
+  published: [
+    'edit_lesson', 'reorder_lessons', 'set_lesson_pin', 'add_lesson', 'remove_lesson',
+    'set_intent', 'set_audience', 'set_daily_minutes', 'prepare_release', 'commit_release'
+  ],
+};
 
 export function createCohortAiTools(deps: CohortAiToolsDeps) {
   const { workspaceId, ownerId, repo, domain } = deps;
@@ -99,7 +123,7 @@ export function createCohortAiTools(deps: CohortAiToolsDeps) {
     return currentTask;
   }
 
-  return {
+  const allTools = {
     create_own_cohort: tool({
       description: 'Navigate from recommendations to starting point selection.',
       inputSchema: z.object({}),
@@ -299,4 +323,15 @@ export function createCohortAiTools(deps: CohortAiToolsDeps) {
       execute: async (input: any) => executeAction('commit_release', input, { type: 'commit_release', mode: input.mode, candidateHash: input.candidateHash }),
     }),
   };
+
+  if (deps.stage && STAGE_TOOL_NAMES[deps.stage]) {
+    const allowed = new Set(STAGE_TOOL_NAMES[deps.stage]);
+    const filtered: Record<string, any> = {};
+    for (const [name, t] of Object.entries(allTools)) {
+      if (allowed.has(name)) filtered[name] = t;
+    }
+    return filtered;
+  }
+
+  return allTools;
 }
