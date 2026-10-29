@@ -543,5 +543,51 @@ describe('grounded cohort workspace UI', () => {
     expect(screen.getByText('Editable preview')).toBeDefined();
     expect(fake.actions).toEqual([]);
   });
+
+  it('locks future unreached steps from being clicked or keyboard activated', () => {
+    // Workspace currently in understanding stage (step 0), future steps (Chunking, Analyzing, Building) unreached
+    fake.state = cohortWorkspaceSchema.parse({
+      schemaVersion: 1,
+      title: 'Active Processing Workspace',
+      intent: 'Learn testing',
+      audience: 'Engineers',
+      dailyMinutes: 20,
+      lessons: [],
+      sources: [
+        { id: 'src-1', version: 0, label: 'Source 1', text: 'Text', state: 'processing', checksum: 'a'.repeat(64) },
+      ],
+      processing: {
+        status: 'processing',
+        stage: 'understanding',
+        generation: 1,
+        sourceFingerprint: null,
+        error: null,
+        jobs: [
+          { id: 'j-1', sourceId: 'src-1', stage: 'understanding', status: 'running', attempts: 1, error: null, retryable: true },
+        ],
+      },
+    });
+
+    render(<CohortWorkspacePane onSelectLessonForChat={() => undefined} />);
+
+    const steps = screen.getByLabelText('Creation journey progress').querySelectorAll('li');
+    expect(steps.length).toBe(4);
+
+    // Step 0 is active (current)
+    expect(steps[0].getAttribute('tabIndex')).toBe('0');
+    expect(steps[0].getAttribute('aria-disabled')).toBeNull();
+
+    // Step 1 (Chunking) is future unreached
+    expect(steps[1].getAttribute('tabIndex')).toBe('-1');
+    expect(steps[1].getAttribute('aria-disabled')).toBe('true');
+
+    // Clicking Step 1 does NOT navigate or open inspection banner
+    fireEvent.click(steps[1]);
+    expect(screen.queryByTestId('stage-inspection-banner')).toBeNull();
+
+    // Keyboard on Step 2 (Analyzing) does NOT navigate
+    fireEvent.keyDown(steps[2], { key: 'Enter' });
+    expect(screen.queryByTestId('stage-inspection-banner')).toBeNull();
+  });
 });
 

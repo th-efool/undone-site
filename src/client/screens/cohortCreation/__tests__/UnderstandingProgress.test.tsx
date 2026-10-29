@@ -27,7 +27,7 @@ describe('real understanding progress controls', () => {
     const checkpoint = { phase: 'understanding' as const, requestId: state.activeRequestId!, inputRevision: 2, inputFingerprint: 'a'.repeat(64),
       total: 2, partitionIds: ['a'.repeat(64), 'b'.repeat(64)], completed: [{ partitionId: 'a'.repeat(64), artifact: { id: randomUUID(), kind: 'artifact' as const, checksum: 'c'.repeat(64), byteLength: 500 } }] };
     await act(async () => root.render(<UnderstandingProgress snapshot={{ ...state, processing: { ...state.processing!, checkpoint } }} {...props} />));
-    expect(host.textContent).toContain('1 of 2 retained content partitions understood');
+    expect(host.textContent).toContain('1 of 2 sources understood');
     expect(host.textContent).toContain('Identifying core pedagogical concepts…');
     const fullCheckpoint = { ...checkpoint, completed: [...checkpoint.completed, { partitionId: 'b'.repeat(64), artifact: { id: randomUUID(), kind: 'artifact' as const, checksum: 'd'.repeat(64), byteLength: 500 } }] };
     await act(async () => root.render(<UnderstandingProgress snapshot={{ ...state, processing: { ...state.processing!, checkpoint: fullCheckpoint } }} {...props} />));

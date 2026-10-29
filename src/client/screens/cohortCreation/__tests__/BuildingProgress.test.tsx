@@ -38,7 +38,7 @@ describe('real building progress controls', () => {
         artifact: { id: randomUUID(), kind: 'artifact' as const, checksum: 'e'.repeat(64), byteLength: 300 } }] };
     const progress = creationSnapshotSchema.parse({ ...state, processing: { ...state.processing!, building: { ...state.processing!.building!, checkpoint } } });
     await act(async () => root.render(<BuildingProgress snapshot={progress} {...props} />));
-    expect(host.textContent).toContain('1 of 1 retained content partitions built; 3 lessons saved');
+    expect(host.textContent).toContain('1 of 1 sources built; 3 lessons saved');
     await act(async () => host.querySelector('button')!.click()); expect(onCancel).toHaveBeenCalledOnce(); await act(async () => root.unmount());
   });
   it('guards duplicate fresh requests and keeps accepted understanding visible', async () => {

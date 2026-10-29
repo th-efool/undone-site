@@ -31,7 +31,7 @@ describe('real chunking progress controls', () => {
         artifact: { id: randomUUID(), kind: 'artifact' as const, checksum: 'e'.repeat(64), byteLength: 300 } }] };
     const progress = creationSnapshotSchema.parse({ ...state, processing: { ...state.processing!, chunking: { ...state.processing!.chunking!, checkpoint } } });
     await act(async () => root.render(<ChunkingProgress snapshot={progress} {...props} />));
-    expect(host.textContent).toContain('1 of 1 retained content partitions chunked; 3 chunks saved');
+    expect(host.textContent).toContain('1 of 1 sources structured; 3 chunks saved');
     await act(async () => host.querySelector('button')!.click()); expect(onCancel).toHaveBeenCalledOnce(); await act(async () => root.unmount());
   });
   it('guards duplicate fresh requests and keeps accepted understanding visible', async () => {

@@ -807,7 +807,7 @@ describe('Cohort Journey: Detailed Source & Discovery Edge Cases', () => {
     const ws = initialCohort('Many Sources Goal');
     ws.journey!.step = 'goal_setup';
     ws.journey!.branch = 'have_goal';
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 100; i++) {
       ws.sources.push({
         id: `s-${i}`,
         version: 0,
@@ -863,7 +863,7 @@ describe('Cohort Journey: Detailed Source & Discovery Edge Cases', () => {
     const ws = initialCohort('Docker Guides');
     ws.journey!.step = 'discovery';
     ws.journey!.branch = 'find_material';
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < 100; i++) {
       ws.sources.push({
         id: `s-${i}`,
         version: 0,
@@ -1121,6 +1121,35 @@ describe('Cohort Journey: Detailed Source & Discovery Edge Cases', () => {
       const plan = planCohortAction(ws, { type: 'start_discovery' }, ctx);
       expect(plan.nextState.discovery?.status).toBe('queued');
       expect(plan.nextState.discovery?.generation).toBe(1);
+    });
+
+    it('adds multiple YouTube sources atomically via add_youtube_sources_batch', () => {
+      const ws = initialCohort('Learn Distributed Systems');
+      ws.journey!.step = 'material_input';
+      ws.journey!.branch = 'have_material';
+      const ctx = createActionContext({ actionId: 'batch-yt' });
+      const plan = planCohortAction(ws, {
+        type: 'add_youtube_sources_batch',
+        videos: [
+          { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', label: 'Video 1', mode: 'video_observation' },
+          { url: 'https://www.youtube.com/watch?v=9bZkp7q19f0', label: 'Video 2', mode: 'video_observation' },
+        ],
+      }, ctx);
+      expect(plan.nextState.sources).toHaveLength(2);
+      expect(plan.nextState.sources[0].id).toBe('batch-yt:yt:0');
+      expect(plan.nextState.sources[1].id).toBe('batch-yt:yt:1');
+      expect(plan.nextState.sources[0].input?.kind).toBe('youtube');
+    });
+
+    it('cancels processing even if jobs array is empty', () => {
+      const ws = initialCohort('Learn Distributed Systems');
+      ws.journey!.step = 'processing';
+      ws.journey!.processingStarted = true;
+      ws.processing = { status: 'queued', stage: 'acquisition', generation: 1, sourceFingerprint: null, error: null, jobs: [] };
+      const ctx = createActionContext({ actionId: 'cancel-proc' });
+      const plan = planCohortAction(ws, { type: 'cancel_text_processing' }, ctx);
+      expect(plan.nextState.processing.status).toBe('idle');
+      expect(plan.nextState.journey?.processingStarted).toBe(true);
     });
   });
 });

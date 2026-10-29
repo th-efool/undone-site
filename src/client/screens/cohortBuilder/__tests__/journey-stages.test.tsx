@@ -202,7 +202,7 @@ describe('Checkpoint 2: Journey Stages & Selectors', () => {
 
       expect(screen.getByText('Finding your people…')).toBeDefined();
       expect(
-        screen.getByText('Understanding your intent and finding public cohorts…')
+        screen.getByText('Searching for matching cohorts and creators right now…')
       ).toBeDefined();
 
       // Cancel button in pending view dispatches create_own_cohort

@@ -260,7 +260,7 @@ describe('owned creation workspace', () => {
   it('observes durable recommendations after reload without resubmitting or canceling work', async () => {
     saved = applyCommand(saved, { type: 'request_recommendations', query: result.intent.rawQuery, requestId: result.requestId });
     render(<CreationExperience draftId={draftId} resume />);
-    await screen.findByText('Understanding your intent and finding public cohorts…');
+    await screen.findByText(/Searching for matching cohorts|Understanding your intent/i);
     saved = applyEvent(saved, { type: 'recommendations_received', result });
     expect(await screen.findByText('Real rendering cohort', {}, { timeout: 3500 })).toBeTruthy();
     cleanup();

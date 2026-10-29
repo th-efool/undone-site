@@ -89,7 +89,7 @@ describe('Checkpoint 2 — Stage Canonical Progress Contracts', () => {
     const dispatchAction = vi.fn().mockResolvedValue(true);
     const { unmount } = render(React.createElement(ChunkingStageView, { workspace, dispatchAction }));
     expect(screen.getByText('Finding natural')).toBeTruthy();
-    expect(screen.getByText('1/2 partitions')).toBeTruthy();
+    expect(screen.getByText('1/2 sources structured')).toBeTruthy();
     unmount();
   });
 
