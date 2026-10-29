@@ -3,6 +3,8 @@ import { entityRefSchema, type DomainActionPlan } from 'interaction-builder/core
 import { youtubeVideoUrlSchema, youtubeTrackSchema, youtubeTimeScopeSchema } from './youtube-transcript';
 import { githubRepoUrlSchema, githubRefSchema, githubPathsSchema } from './github-source';
 import { cohortSeoSchema } from './seo';
+import { sha256 } from './hash';
+import { canRunDeterministicPipeline, runDeterministicPipeline } from './client-pipeline';
 
 const text = z.string().trim().min(1).max(4_000);
 const id = z.string().min(1).max(200);
@@ -80,6 +82,24 @@ export const cohortSourceSchema = z.strictObject({
 }).superRefine((source,ctx) => { if (!source.input && !source.text.trim()) ctx.addIssue({ code:'custom',message:'Text sources require retained text' }); });
 export type CohortSource = z.infer<typeof cohortSourceSchema>;
 
+export const clientSourceExtractionSchema = z.strictObject({
+  text: z.string().min(1).max(200_000),
+  locations: z.array(z.strictObject({
+    start: z.number().int().nonnegative(),
+    end: z.number().int().positive(),
+    page: z.number().int().positive().optional(),
+    startMs: z.number().int().nonnegative().optional(),
+    endMs: z.number().int().nonnegative().optional(),
+    segmentId: z.string().optional(),
+    filePath: z.string().optional(),
+    startLine: z.number().int().positive().optional(),
+    endLine: z.number().int().positive().optional(),
+  })).min(1).max(1000),
+  provenance: cohortSourceProvenanceSchema.optional(),
+  checksum: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+});
+export type ClientSourceExtraction = z.infer<typeof clientSourceExtractionSchema>;
+
 export const MAX_COHORT_SOURCES = 100;
 
 export const cohortChunkSchema = z.strictObject({
@@ -136,7 +156,7 @@ export type CohortReleaseState = z.infer<typeof cohortReleaseStateSchema>;
 
 export const cohortJourneySchema = z.strictObject({
   version: z.literal(1),
-  step: z.enum(['recommendations', 'starting_point', 'material_input', 'discovery', 'goal_setup', 'processing', 'ready', 'review', 'published']),
+  step: z.enum(['chat', 'recommendations', 'starting_point', 'material_input', 'discovery', 'goal_setup', 'processing', 'ready', 'review', 'published']),
   branch: z.enum(['have_material', 'find_material', 'have_goal']).nullable(),
   processingStarted: z.boolean(),
   intentVersion: z.number().int().nonnegative(),
@@ -214,10 +234,13 @@ export const youtubeBatchItemSchema = z.strictObject({
   mode: z.enum(['transcript', 'video_observation']).optional(),
   track: youtubeTrackSchema.optional(),
   scope: youtubeTimeScopeSchema.optional(),
+  extraction: clientSourceExtractionSchema.optional(),
 });
 export type YoutubeBatchItem = z.infer<typeof youtubeBatchItemSchema>;
 
 export const cohortActionSchema = z.discriminatedUnion('type', [
+  z.strictObject({ type: z.literal('start_search'), query: z.string().trim().min(1).max(400) }),
+  z.strictObject({ type: z.literal('close_panel') }),
   z.strictObject({ type: z.literal('create_own_cohort') }),
   z.strictObject({ type: z.literal('choose_starting_point'), choice: z.enum(['have_material', 'find_material', 'have_goal']) }),
   z.strictObject({ type: z.literal('back_to_recommendations') }),
@@ -227,8 +250,8 @@ export const cohortActionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('start_goal_generation') }),
   z.strictObject({ type: z.literal('begin_material_processing') }),
   z.strictObject({ type: z.literal('open_review') }),
-  z.strictObject({ type: z.literal('add_pdf_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), uploadId: z.uuid() }),
-  z.strictObject({ type: z.literal('add_web_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), url: publicSourceUrlSchema }),
+  z.strictObject({ type: z.literal('add_pdf_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), uploadId: z.uuid().optional(), extraction: clientSourceExtractionSchema.optional() }).superRefine((v, ctx) => { if (!v.uploadId && !v.extraction) ctx.addIssue({ code: 'custom', message: 'PDF source requires uploadId or client extraction' }); }),
+  z.strictObject({ type: z.literal('add_web_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), url: publicSourceUrlSchema, extraction: clientSourceExtractionSchema.optional() }),
   z.strictObject({
     type: z.literal('add_youtube_source'),
     sourceId: id.optional(),
@@ -237,8 +260,9 @@ export const cohortActionSchema = z.discriminatedUnion('type', [
     mode: z.enum(['transcript', 'video_observation']).optional(),
     track: youtubeTrackSchema.optional(),
     scope: youtubeTimeScopeSchema.optional(),
+    extraction: clientSourceExtractionSchema.optional(),
   }).superRefine((data, ctx) => {
-    if (data.mode === 'transcript' && !data.track) {
+    if (!data.extraction && data.mode === 'transcript' && !data.track) {
       ctx.addIssue({ code: 'custom', message: 'Transcript mode requires a track' });
     }
   }),
@@ -256,7 +280,7 @@ export const cohortActionSchema = z.discriminatedUnion('type', [
       ctx.addIssue({ code: 'custom', message: 'Transcript mode requires a track' });
     }
   }),
-  z.strictObject({ type: z.literal('add_github_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), repoUrl: githubRepoUrlSchema, ref: githubRefSchema.default('main'), paths: githubPathsSchema.optional() }),
+  z.strictObject({ type: z.literal('add_github_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), repoUrl: githubRepoUrlSchema, ref: githubRefSchema.default('main'), paths: githubPathsSchema.optional(), extraction: clientSourceExtractionSchema.optional() }),
   z.strictObject({ type: z.literal('set_pdf_pages'), sourceId: id, pages: z.array(z.number().int().min(1).max(200)).min(1).max(200) }),
   z.strictObject({ type: z.literal('refresh_web_source'), sourceId: id, url: publicSourceUrlSchema.optional() }),
   z.strictObject({ type: z.literal('set_youtube_scope'), sourceId: id, scope: youtubeTimeScopeSchema.optional() }),
@@ -271,7 +295,7 @@ export const cohortActionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('remove_lesson'), lessonId: id }),
   z.strictObject({ type: z.literal('reorder_lessons'), lessonIds: z.array(id).min(1).max(200) }),
   z.strictObject({ type: z.literal('set_lesson_pin'), lessonId: id, pinned: z.boolean() }),
-  z.strictObject({ type: z.literal('add_text_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), text: sourceText }),
+  z.strictObject({ type: z.literal('add_text_source'), sourceId: id.optional(), label: z.string().trim().min(1).max(300), text: sourceText, extraction: clientSourceExtractionSchema.optional() }),
   z.strictObject({ type: z.literal('edit_text_source'), sourceId: id, label: z.string().trim().min(1).max(300), text: sourceText }),
   z.strictObject({ type: z.literal('remove_source'), sourceId: id }),
   z.strictObject({ type: z.literal('retry_recommendations') }),
@@ -322,9 +346,34 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     if (!steps.includes(current.step)) throw new Error('INVALID_JOURNEY_TRANSITION');
     return current;
   };
+  if (action.type === 'start_search') {
+    const current = journey();
+    if (current.step === 'published') throw new Error('INVALID_JOURNEY_TRANSITION');
+    next.intent = action.query;
+    current.intentVersion = (current.intentVersion ?? 0) + 1;
+    current.step = 'recommendations';
+    delete next.recommendations;
+    delete next.discovery;
+    return navigationResult(`Searching cohorts for "${action.query}".`);
+  }
+  if (action.type === 'close_panel') {
+    const current = journey();
+    current.step = 'chat';
+    if (next.processing.status === 'queued' || next.processing.status === 'processing') {
+      next.processing = {
+        status: 'idle',
+        stage: 'done',
+        generation: next.processing.generation + 1,
+        sourceFingerprint: null,
+        error: null,
+        driver: 'durable',
+      };
+    }
+    return navigationResult('Workspace panel closed; returned to chat.');
+  }
   if (action.type === 'create_own_cohort') {
     const current = journey();
-    if (current.step === 'recommendations') {
+    if (current.step === 'chat' || current.step === 'recommendations') {
       current.step = 'starting_point';
       return navigationResult('Starting point opened.');
     }
@@ -429,7 +478,18 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
         delete existing.retainedInputId; delete existing.extractionId; delete existing.locations; delete existing.provenance;
       }
     } else if (!['have_material', 'find_material'].includes(current.branch ?? '') || !next.sources.length) throw new Error('NO_SOURCES');
-    current.processingStarted = true; current.step = 'processing'; invalidateRelease();
+    current.processingStarted = true; invalidateRelease();
+    if (canRunDeterministicPipeline(next)) {
+      const processed = runDeterministicPipeline(next);
+      return {
+        nextState: processed,
+        changed,
+        invalidated: ['sources', 'chunks', 'analysis', 'curriculum', 'release'],
+        summary: 'Curriculum generated and ready for review.',
+        undoable: false,
+      };
+    }
+    current.step = 'processing';
     next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
     return navigationResult('Source processing requested.');
   }
@@ -486,6 +546,11 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
       next.processing = { ...next.processing, status: 'idle', stage: 'done', error: null };
       return;
     }
+    if (canRunDeterministicPipeline(next)) {
+      const processed = runDeterministicPipeline(next);
+      Object.assign(next, processed);
+      return;
+    }
     next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
   };
 
@@ -495,7 +560,20 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     if (next.sources.some(source => source.id === sourceId)) throw new Error('DUPLICATE_SOURCE');
     if (next.sources.length >= MAX_COHORT_SOURCES) throw new Error('TOO_MANY_SOURCES');
     if (new TextEncoder().encode(action.text).byteLength > 200_000) throw new Error('SOURCE_TOO_LARGE');
-    next.sources.push({ id: sourceId, version: 0, label: action.label, text: action.text, checksum: null, state: 'queued' });
+    if (action.extraction) {
+      next.sources.push({
+        id: sourceId,
+        version: 0,
+        label: action.label,
+        text: action.extraction.text,
+        locations: action.extraction.locations,
+        provenance: action.extraction.provenance,
+        checksum: action.extraction.checksum ?? sha256(action.extraction.text),
+        state: 'ready',
+      });
+    } else {
+      next.sources.push({ id: sourceId, version: 0, label: action.label, text: action.text, checksum: null, state: 'queued' });
+    }
     queueProcessing();
     return { nextState: next, changed: [], invalidated: ['sources', 'chunks', 'analysis', 'curriculum'], summary: `Added source: ${action.label}`, undoable: true };
   }
@@ -505,7 +583,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     if (next.sources.some(source => source.id === sourceId)) throw new Error('DUPLICATE_SOURCE');
     if (next.sources.length >= MAX_COHORT_SOURCES) throw new Error('TOO_MANY_SOURCES');
     const input = action.type === 'add_pdf_source'
-      ? { kind: 'pdf' as const, uploadId: action.uploadId }
+      ? (action.uploadId ? { kind: 'pdf' as const, uploadId: action.uploadId } : undefined)
       : action.type === 'add_web_source'
       ? { kind: 'web' as const, url: new URL(action.url).href.split('#')[0] }
       : action.type === 'add_youtube_source'
@@ -517,7 +595,21 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
           ...(action.scope ? { scope: action.scope } : {}),
         }
       : { kind: 'github' as const, repoUrl: action.repoUrl, ref: action.ref, ...(action.paths ? { paths: action.paths } : {}) };
-    next.sources.push({ id: sourceId, version: 0, label: action.label, text: '', checksum: null, state: 'queued', input });
+    if (action.extraction) {
+      next.sources.push({
+        id: sourceId,
+        version: 0,
+        label: action.label,
+        text: action.extraction.text,
+        locations: action.extraction.locations,
+        provenance: action.extraction.provenance,
+        checksum: action.extraction.checksum ?? sha256(action.extraction.text),
+        state: 'ready',
+        ...(input ? { input } : {}),
+      });
+    } else {
+      next.sources.push({ id: sourceId, version: 0, label: action.label, text: '', checksum: null, state: 'queued', input });
+    }
     queueProcessing();
     const labelKind = action.type === 'add_pdf_source' ? 'PDF' : action.type === 'add_web_source' ? 'web' : action.type === 'add_youtube_source' ? 'YouTube' : 'GitHub';
     return { nextState: next, changed: [], invalidated: ['sources', 'curriculum'], summary: `Added ${labelKind} source: ${action.label}`, undoable: true };
@@ -537,7 +629,21 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
         ...(video.track ? { track: video.track } : {}),
         ...(video.scope ? { scope: video.scope } : {}),
       };
-      next.sources.push({ id: sourceId, version: 0, label: video.label, text: '', checksum: null, state: 'queued', input });
+      if (video.extraction) {
+        next.sources.push({
+          id: sourceId,
+          version: 0,
+          label: video.label,
+          text: video.extraction.text,
+          locations: video.extraction.locations,
+          provenance: video.extraction.provenance,
+          checksum: video.extraction.checksum ?? sha256(video.extraction.text),
+          state: 'ready',
+          input,
+        });
+      } else {
+        next.sources.push({ id: sourceId, version: 0, label: video.label, text: '', checksum: null, state: 'queued', input });
+      }
     });
     queueProcessing();
     return { nextState: next, changed: [], invalidated: ['sources', 'curriculum'], summary: `Added ${action.videos.length} YouTube sources`, undoable: true };

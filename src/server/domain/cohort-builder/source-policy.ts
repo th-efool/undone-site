@@ -48,7 +48,7 @@ export async function validateSourceAction(sql: TextArtifactSql, workspaceId: st
     : 'web';
   if (!sourceCapability(kind)) throw new Error('SOURCE_CAPABILITY_DISABLED');
   await assertSourceSchema(sql);
-  if (action.type === 'add_pdf_source') {
+  if (action.type === 'add_pdf_source' && action.uploadId) {
     const artifact = await readTextArtifact(sql,workspaceId,action.uploadId);
     if (artifact.ref.kind !== 'source_input' || artifact.bytes.length > PDF_SOURCE_BYTES || artifact.bytes.subarray(0,5).toString() !== '%PDF-') throw new Error('INVALID_PDF_UPLOAD');
   }

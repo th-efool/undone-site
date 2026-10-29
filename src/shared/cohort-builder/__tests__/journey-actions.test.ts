@@ -1151,6 +1151,78 @@ describe('Cohort Journey: Detailed Source & Discovery Edge Cases', () => {
       expect(plan.nextState.processing.status).toBe('idle');
       expect(plan.nextState.journey?.processingStarted).toBe(true);
     });
+
+    it('start_search switches journey to recommendations and updates intent and intentVersion', () => {
+      const ws = initialCohort('Original topic');
+      ws.journey!.step = 'chat';
+      const ctx = createActionContext({ actionId: 'search-1' });
+      const plan = planCohortAction(ws, { type: 'start_search', query: 'machine learning' }, ctx);
+      expect(plan.nextState.journey?.step).toBe('recommendations');
+      expect(plan.nextState.intent).toBe('machine learning');
+      expect(plan.nextState.journey?.intentVersion).toBe(1);
+      expect(plan.nextState.recommendations).toBeUndefined();
+    });
+
+    it('close_panel switches journey step to chat and resets queued processing', () => {
+      const ws = initialCohort('Topic');
+      ws.journey!.step = 'recommendations';
+      ws.processing = { status: 'queued', stage: 'acquisition', generation: 1, sourceFingerprint: null, error: null };
+      const ctx = createActionContext({ actionId: 'close-1' });
+      const plan = planCohortAction(ws, { type: 'close_panel' }, ctx);
+      expect(plan.nextState.journey?.step).toBe('chat');
+      expect(plan.nextState.processing.status).toBe('idle');
+    });
+
+    it('create_own_cohort from chat step opens starting_point', () => {
+      const ws = initialCohort('Topic');
+      ws.journey!.step = 'chat';
+      const ctx = createActionContext({ actionId: 'create-own' });
+      const plan = planCohortAction(ws, { type: 'create_own_cohort' }, ctx);
+      expect(plan.nextState.journey?.step).toBe('starting_point');
+    });
+
+    it('adds client-extracted PDF source with ready state directly', () => {
+      const ws = initialCohort('Topic');
+      ws.journey!.step = 'material_input';
+      ws.journey!.branch = 'have_material';
+      const ctx = createActionContext({ actionId: 'add-pdf' });
+      const plan = planCohortAction(ws, {
+        type: 'add_pdf_source',
+        label: 'Lecture Notes.pdf',
+        extraction: {
+          text: 'Introduction to linear algebra and vector spaces. Essential for machine learning.',
+          locations: [{ start: 0, end: 77, page: 1 }],
+        },
+      }, ctx);
+      expect(plan.nextState.sources).toHaveLength(1);
+      const src = plan.nextState.sources[0];
+      expect(src.state).toBe('ready');
+      expect(src.text).toBe('Introduction to linear algebra and vector spaces. Essential for machine learning.');
+      expect(src.checksum).toBeTruthy();
+    });
+
+    it('begin_material_processing synchronously completes deterministic curriculum for client-ready sources', () => {
+      const ws = initialCohort('Topic');
+      ws.journey!.step = 'material_input';
+      ws.journey!.branch = 'have_material';
+      ws.sources = [
+        {
+          id: 'src-1',
+          version: 0,
+          label: 'Module 1',
+          text: 'First concept in detail. Second concept explained clearly.',
+          checksum: 'a'.repeat(64),
+          state: 'ready',
+          locations: [{ start: 0, end: 58 }],
+        },
+      ];
+      const ctx = createActionContext({ actionId: 'begin-proc' });
+      const plan = planCohortAction(ws, { type: 'begin_material_processing' }, ctx);
+      expect(plan.nextState.journey?.step).toBe('ready');
+      expect(plan.nextState.processing.status).toBe('ready');
+      expect(plan.nextState.lessons.length).toBeGreaterThan(0);
+      expect(plan.nextState.chunks.length).toBeGreaterThan(0);
+    });
   });
 });
 

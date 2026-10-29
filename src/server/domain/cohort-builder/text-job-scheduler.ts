@@ -31,7 +31,8 @@ export async function enqueueTextJobPlanInTransaction(
     [workspaceId, intents.map(intent => intent.jobKey)]
   );
 
-  if (intents.length === 0) {
+  // If there are no intents, or if the workspace processing is already ready and all sources are ready (client-extracted), skip enqueuing
+  if (intents.length === 0 || (state.processing.status === 'ready' && state.sources.every(s => s.state === 'ready'))) {
     return { jobIds: [], inserted: 0, superseded: obsolete.rows.length };
   }
 
