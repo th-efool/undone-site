@@ -28,7 +28,8 @@ export interface InteractionWorkerOptions {
   leaseDurationMs?: number;
   heartbeatIntervalMs?: number;
   supervisionSql?: SupervisionSql | null;
-  durable?: { tick: () => Promise<void>; close: () => Promise<void> } | null;
+  sourceConcurrency?: number;
+  durable?: { tick: (concurrency?: number) => Promise<any>; close: () => Promise<void> } | null;
   textWorkspaceCandidates?: () => Promise<Array<{ id: string; ownerId: string }>>;
   /** Bounded execution for durable hosting steps; SQL leases remain authoritative. */
   maxIterations?: number;
@@ -106,16 +107,28 @@ export async function runInteractionWorkerLoop(
 
       if (!run) {
         // No pending interactive runs; execute background text processing DAG tick
-        if (durable) await durable.tick();
+        let didWork = false;
+        if (durable) {
+          const durableWork = await durable.tick(options.sourceConcurrency);
+          if (Array.isArray(durableWork) ? durableWork.some(w => w && w.status !== 'idle') : (durableWork && durableWork.status !== 'idle')) {
+            didWork = true;
+          }
+        }
         const candidates = durable ? [] : await textWorkspaceCandidates();
         if (candidates.length > 0) {
+          didWork = true;
           devLogger.debug('InteractionWorker', `Processing ${candidates.length} text workspace candidate(s)`);
         }
         for (const candidate of candidates) {
           if (signal.aborted) break;
           await advanceTextWorkspace(repo, candidate.ownerId, candidate.id);
         }
-        await new Promise(resolve => setTimeout(resolve, pollIntervalMs));
+        // Zero-delay loop: if work was done, immediately drain queue without sleeping; otherwise sleep bounded interval
+        if (didWork) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        } else {
+          await new Promise(resolve => setTimeout(resolve, Math.min(pollIntervalMs, 200)));
+        }
         continue;
       }
 
@@ -144,19 +157,24 @@ export async function runInteractionWorkerLoop(
 
         const current = await repo.loadWorkspace<CohortWorkspace>({ workspaceId: run.workspaceId, ownerId: wsRow.ownerId });
         if (!current) throw new Error('WORKSPACE_NOT_FOUND');
+        const parsedSnapshot = cohortWorkspaceSchema.parse(current.snapshot);
+        const stage = parsedSnapshot.journey?.step;
         const selectedLesson = await selectedLessonForLatestTurn(repo, wsRow.ownerId, run.workspaceId, run.triggeringMessageId);
         const { createInteractionModelAdapter } = await import('./infrastructure/ai/interactionModel');
         const model = await createInteractionModelAdapter(selectedLesson);
         const res = await runAssistantTurn({
           workspaceId: run.workspaceId,
           ownerId: wsRow.ownerId,
+          initialWorkspace: current,
+          triggeringMessageId: run.triggeringMessageId,
+          observedRevision: current.revision,
           repo: bindAssistantLease(repo, run.id, leaseToken),
           domain: cohortDomain,
           model,
-          createTools: deps => createCohortAiTools({ ...deps, selectedLesson }),
+          createTools: deps => createCohortAiTools({ ...deps, selectedLesson, stage }),
           runId: run.id,
           leaseToken,
-          systemPrompt: cohortAssistantPrompt(cohortWorkspaceSchema.parse(current.snapshot), current.revision),
+          systemPrompt: cohortAssistantPrompt(parsedSnapshot, current.revision),
         });
 
         if (heartbeatTimer) {

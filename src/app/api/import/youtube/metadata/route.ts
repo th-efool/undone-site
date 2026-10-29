@@ -111,18 +111,24 @@ export async function GET(request: NextRequest) {
         if (snippet) {
           let videos: Array<{ videoId: string; title: string }> = [];
           try {
-            const itemsRes = await fetch(`${YT_BASE}/playlistItems?part=snippet&maxResults=10&playlistId=${playlistId}&key=${apiKey}`);
-            if (itemsRes.ok) {
-              const itemsData = await itemsRes.json().catch(() => null);
-              videos = (itemsData?.items ?? [])
+            let pageToken: string | undefined = undefined;
+            while (videos.length < 100) {
+              const pageParam: string = pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : '';
+              const itemsRes: Response = await fetch(`${YT_BASE}/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${apiKey}${pageParam}`);
+              if (!itemsRes.ok) break;
+              const itemsData: any = await itemsRes.json().catch(() => null);
+              const batch = (itemsData?.items ?? [])
                 .map((it: any) => ({
                   videoId: it?.snippet?.resourceId?.videoId,
                   title: it?.snippet?.title || 'YouTube Video',
                 }))
                 .filter((v: any) => v.videoId && !v.title.includes('Private video') && !v.title.includes('Deleted video'));
+              videos.push(...batch);
+              pageToken = itemsData?.nextPageToken;
+              if (!pageToken) break;
             }
           } catch {
-            // Proceed without items list
+            // Proceed with collected items
           }
           const payload = {
             title: snippet.title ?? url,
