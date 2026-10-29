@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createCohortAiTools } from '../tools';
+import { cohortAssistantPrompt } from '../context';
 import { cohortDomain } from '../domain';
+import { cohortWorkspaceSchema } from '@/src/shared/cohort-builder/contracts';
 import type { InteractionRepository } from 'interaction-builder/runtime';
 
 describe('AI Tools Optimization & Stage Filtering', () => {
@@ -72,5 +74,79 @@ describe('AI Tools Optimization & Stage Filtering', () => {
     expect(keys).toContain('add_youtube_source');
     expect(keys).toContain('edit_lesson');
     expect(keys).toContain('commit_release');
+  });
+
+  it('limits source excerpt budget to 2000 chars in early stages and 240 chars after lessons are created', () => {
+    const longText = 'A'.repeat(3000);
+    const earlyWorkspace = cohortWorkspaceSchema.parse({
+      schemaVersion: 1,
+      title: 'ML Cohort',
+      intent: 'Learn ML',
+      audience: 'Engineers',
+      dailyMinutes: 30,
+      journey: {
+        version: 1,
+        step: 'chat',
+        branch: 'have_material',
+        processingStarted: false,
+        intentVersion: 1,
+      },
+      sources: [
+        {
+          id: 'src-1',
+          version: 1,
+          label: 'Long Source',
+          checksum: 'a'.repeat(64),
+          state: 'ready',
+          text: longText,
+          input: { kind: 'web', url: 'https://example.com' },
+        },
+      ],
+      lessons: [],
+    });
+
+    const earlyPrompt = cohortAssistantPrompt(earlyWorkspace, 1);
+    expect(earlyPrompt).toContain('"excerpt":"' + 'A'.repeat(2000) + '"');
+    expect(earlyPrompt).not.toContain('A'.repeat(2001));
+
+    const readyWorkspace = cohortWorkspaceSchema.parse({
+      schemaVersion: 1,
+      title: 'ML Cohort',
+      intent: 'Learn ML',
+      audience: 'Engineers',
+      dailyMinutes: 30,
+      journey: {
+        version: 1,
+        step: 'ready',
+        branch: 'have_material',
+        processingStarted: true,
+        intentVersion: 1,
+      },
+      sources: [
+        {
+          id: 'src-1',
+          version: 1,
+          label: 'Long Source',
+          checksum: 'a'.repeat(64),
+          state: 'ready',
+          text: longText,
+          input: { kind: 'web', url: 'https://example.com' },
+        },
+      ],
+      lessons: [
+        {
+          id: 'lesson-1',
+          version: 1,
+          title: 'Lesson 1',
+          objective: 'Objective 1',
+          pinned: false,
+          sourceChunkIds: [],
+        },
+      ],
+    });
+
+    const readyPrompt = cohortAssistantPrompt(readyWorkspace, 2);
+    expect(readyPrompt).toContain('"excerpt":"' + 'A'.repeat(240) + '"');
+    expect(readyPrompt).not.toContain('A'.repeat(241));
   });
 });
