@@ -80,6 +80,8 @@ export const cohortSourceSchema = z.strictObject({
 }).superRefine((source,ctx) => { if (!source.input && !source.text.trim()) ctx.addIssue({ code:'custom',message:'Text sources require retained text' }); });
 export type CohortSource = z.infer<typeof cohortSourceSchema>;
 
+export const MAX_COHORT_SOURCES = 100;
+
 export const cohortChunkSchema = z.strictObject({
   id,
   sourceId: id,
@@ -185,7 +187,7 @@ export const cohortWorkspaceSchema = z.strictObject({
   audience: z.string().max(500),
   dailyMinutes: z.number().int().min(1).max(1_440),
   lessons: z.array(cohortLessonSchema).max(1_000),
-  sources: z.array(cohortSourceSchema).max(20).default([]),
+  sources: z.array(cohortSourceSchema).max(MAX_COHORT_SOURCES).default([]),
   chunks: z.array(cohortChunkSchema).max(2_000).default([]),
   understanding: z.array(z.strictObject({ sourceId: id, sourceVersion: z.number().int().nonnegative(), topics: z.array(z.string().max(120)).max(40) })).default([]),
   analyses: z.array(z.strictObject({ chunkId: id, summary: z.string().max(500), question: z.string().max(500) })).default([]),
@@ -195,7 +197,7 @@ export const cohortWorkspaceSchema = z.strictObject({
     generation: z.number().int().nonnegative().default(0),
     sourceFingerprint: z.string().nullable(),
     error: z.string().nullable(),
-    jobs: z.array(cohortTextJobViewSchema).max(101).optional(),
+    jobs: z.array(cohortTextJobViewSchema).max(505).optional(),
     driver: z.enum(['snapshot', 'durable']).optional(),
   }).default({ status: 'idle', stage: 'done', generation: 0, sourceFingerprint: null, error: null }),
   release: cohortReleaseStateSchema.optional(),
@@ -205,6 +207,15 @@ export const cohortWorkspaceSchema = z.strictObject({
   seo: cohortSeoSchema.optional(),
 });
 export type CohortWorkspace = z.infer<typeof cohortWorkspaceSchema>;
+
+export const youtubeBatchItemSchema = z.strictObject({
+  url: youtubeVideoUrlSchema,
+  label: z.string().trim().min(1).max(300),
+  mode: z.enum(['transcript', 'video_observation']).optional(),
+  track: youtubeTrackSchema.optional(),
+  scope: youtubeTimeScopeSchema.optional(),
+});
+export type YoutubeBatchItem = z.infer<typeof youtubeBatchItemSchema>;
 
 export const cohortActionSchema = z.discriminatedUnion('type', [
   z.strictObject({ type: z.literal('create_own_cohort') }),
@@ -230,6 +241,10 @@ export const cohortActionSchema = z.discriminatedUnion('type', [
     if (data.mode === 'transcript' && !data.track) {
       ctx.addIssue({ code: 'custom', message: 'Transcript mode requires a track' });
     }
+  }),
+  z.strictObject({
+    type: z.literal('add_youtube_sources_batch'),
+    videos: z.array(youtubeBatchItemSchema).min(1).max(MAX_COHORT_SOURCES),
   }),
   z.strictObject({
     type: z.literal('set_youtube_mode'),
@@ -388,7 +403,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
       if (!candidate || !projection.items.some(item => item.id === candidate.id && item.url === candidate.url && item.kind === candidate.kind)) throw new Error('INVALID_DISCOVERY_CANDIDATE');
       return candidate;
     });
-    if (next.sources.length + selected.length > 20) throw new Error('TOO_MANY_SOURCES');
+    if (next.sources.length + selected.length > MAX_COHORT_SOURCES) throw new Error('TOO_MANY_SOURCES');
     selected.forEach((candidate, index) => {
       const sourceId = `${context.actionId}:discovery:${index}`;
       if (sourceId.length > 200 || next.sources.some(item => item.id === sourceId)) throw new Error('DUPLICATE_SOURCE');
@@ -407,7 +422,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
       const existing = next.sources.find(item => item.id === sourceId);
       if (existing && existing.input?.kind !== 'generated_guide') throw new Error('DUPLICATE_SOURCE');
       if (!existing) {
-        if (next.sources.length >= 20) throw new Error('TOO_MANY_SOURCES');
+        if (next.sources.length >= MAX_COHORT_SOURCES) throw new Error('TOO_MANY_SOURCES');
         next.sources.push({ id: sourceId, version: 0, label: 'Generated learning guide', text: '', input, checksum: null, state: 'queued' });
       } else if (JSON.stringify(existing.input) !== JSON.stringify(input)) {
         existing.input = input; existing.version++; existing.text = ''; existing.state = 'queued'; existing.checksum = null;
@@ -431,8 +446,8 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     return { nextState: next, changed: [], invalidated: [], summary: 'Failed source job queued for retry.', undoable: false };
   }
   if (action.type === 'cancel_text_processing') {
-    if (!next.processing.jobs?.length) throw new Error('NO_DURABLE_JOBS');
-    next.processing.status = 'idle'; next.processing.error = null;
+    next.processing.status = 'idle';
+    next.processing.error = null;
     return { nextState: next, changed: [], invalidated: [], summary: 'Source processing canceled.', undoable: false };
   }
   if(action.type==='cancel_source_processing') {
@@ -478,7 +493,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     invalidateRelease();
     const sourceId = action.sourceId ?? context.actionId;
     if (next.sources.some(source => source.id === sourceId)) throw new Error('DUPLICATE_SOURCE');
-    if (next.sources.length >= 20) throw new Error('TOO_MANY_SOURCES');
+    if (next.sources.length >= MAX_COHORT_SOURCES) throw new Error('TOO_MANY_SOURCES');
     if (new TextEncoder().encode(action.text).byteLength > 200_000) throw new Error('SOURCE_TOO_LARGE');
     next.sources.push({ id: sourceId, version: 0, label: action.label, text: action.text, checksum: null, state: 'queued' });
     queueProcessing();
@@ -488,7 +503,7 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     invalidateRelease();
     const sourceId = action.sourceId ?? context.actionId;
     if (next.sources.some(source => source.id === sourceId)) throw new Error('DUPLICATE_SOURCE');
-    if (next.sources.length >= 20) throw new Error('TOO_MANY_SOURCES');
+    if (next.sources.length >= MAX_COHORT_SOURCES) throw new Error('TOO_MANY_SOURCES');
     const input = action.type === 'add_pdf_source'
       ? { kind: 'pdf' as const, uploadId: action.uploadId }
       : action.type === 'add_web_source'
@@ -506,6 +521,26 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
     queueProcessing();
     const labelKind = action.type === 'add_pdf_source' ? 'PDF' : action.type === 'add_web_source' ? 'web' : action.type === 'add_youtube_source' ? 'YouTube' : 'GitHub';
     return { nextState: next, changed: [], invalidated: ['sources', 'curriculum'], summary: `Added ${labelKind} source: ${action.label}`, undoable: true };
+  }
+  if (action.type === 'add_youtube_sources_batch') {
+    invalidateRelease();
+    if (next.sources.length + action.videos.length > MAX_COHORT_SOURCES) throw new Error('TOO_MANY_SOURCES');
+    action.videos.forEach((video, index) => {
+      const sourceId = action.videos.length === 1 && index === 0
+        ? context.actionId
+        : `${context.actionId}:yt:${index}`;
+      if (next.sources.some(source => source.id === sourceId)) throw new Error('DUPLICATE_SOURCE');
+      const input = {
+        kind: 'youtube' as const,
+        url: video.url,
+        mode: video.mode ?? (video.track ? 'transcript' : 'video_observation'),
+        ...(video.track ? { track: video.track } : {}),
+        ...(video.scope ? { scope: video.scope } : {}),
+      };
+      next.sources.push({ id: sourceId, version: 0, label: video.label, text: '', checksum: null, state: 'queued', input });
+    });
+    queueProcessing();
+    return { nextState: next, changed: [], invalidated: ['sources', 'curriculum'], summary: `Added ${action.videos.length} YouTube sources`, undoable: true };
   }
   if (action.type === 'set_youtube_mode') {
     invalidateRelease();
@@ -608,6 +643,10 @@ export function planCohortAction(state: CohortWorkspace, actionInput: unknown, c
   }
   if (action.type === 'retry_processing') {
     if (next.sources.length === 0) throw new Error('NO_SOURCES');
+    if (next.journey) {
+      next.journey.processingStarted = true;
+      next.journey.step = 'processing';
+    }
     next.processing = { status: 'queued', stage: 'acquisition', generation: next.processing.generation + 1, sourceFingerprint: null, error: null };
     return { nextState: next, changed: [], invalidated: [], summary: 'Source processing queued.', undoable: false };
   }
