@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import { Check, Sparkles } from 'lucide-react';
+import { Check } from 'lucide-react';
 import styles from './HomeStreakWidget.module.css';
 
 export interface HomeStreakWidgetProps {
@@ -16,28 +16,26 @@ export interface HomeStreakWidgetProps {
 
 const DEFAULT_DAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const DEFAULT_HEIGHTS = [0.45, 0.65, 0.88, 0.72, 0.95, 0.25, 0.18];
-const DEFAULT_ACTIVITY = [true, true, true, true, true, false, false];
 
 const ENCOURAGEMENTS = [
   'Keep exploring!',
-  'Unstoppable! 🔥',
-  '12 days strong! ⚡',
   'Leveling up! 🚀',
   'Brain on fire! ✨',
 ];
 
 export const HomeStreakWidget = React.memo(function HomeStreakWidget({
-  todayMinutes = 18,
-  dailyGoalMinutes = 30,
-  streakDays = 12,
-  weekActivity = DEFAULT_ACTIVITY,
-  weekBarHeights = DEFAULT_HEIGHTS,
+  todayMinutes,
+  dailyGoalMinutes,
+  streakDays,
+  weekActivity,
+  weekBarHeights,
   className,
 }: HomeStreakWidgetProps) {
   const [hoveredDayIdx, setHoveredDayIdx] = useState<number | null>(null);
   const [cheerIdx, setCheerIdx] = useState(0);
   const [mascotBouncing, setMascotBouncing] = useState(false);
+
+  const hasActivityData = typeof todayMinutes === 'number' || typeof streakDays === 'number';
 
   const handleMascotClick = () => {
     setCheerIdx((prev) => (prev + 1) % ENCOURAGEMENTS.length);
@@ -45,55 +43,68 @@ export const HomeStreakWidget = React.memo(function HomeStreakWidget({
     setTimeout(() => setMascotBouncing(false), 500);
   };
 
+  const safeTodayMinutes = todayMinutes ?? 0;
+  const safeDailyGoal = dailyGoalMinutes ?? 30;
+  const safeStreakDays = streakDays ?? 0;
+
   return (
     <div className={`${styles.card} ${className || ''}`.trim()}>
       <div className={styles.leftContent}>
         <h3 className={styles.title}>You&apos;re doing great!</h3>
-        <span className={styles.progressLabel}>
-          {todayMinutes} / {dailyGoalMinutes} min &bull; {streakDays} day streak
-        </span>
 
-        <div className={styles.chartContainer}>
-          {DEFAULT_DAYS.map((day, idx) => {
-            const isCompleted = weekActivity[idx];
-            const heightPct = Math.round((weekBarHeights[idx] || 0.3) * 100);
-            const estMinutes = Math.round(dailyGoalMinutes * (weekBarHeights[idx] || 0.3));
+        {hasActivityData ? (
+          <>
+            <span className={styles.progressLabel}>
+              {safeTodayMinutes} / {safeDailyGoal} min &bull; {safeStreakDays} day streak
+            </span>
 
-            return (
-              <div
-                key={idx}
-                className={styles.dayColumn}
-                onMouseEnter={() => setHoveredDayIdx(idx)}
-                onMouseLeave={() => setHoveredDayIdx(null)}
-                tabIndex={0}
-                role="button"
-                aria-label={`${DAY_NAMES[idx]}: ${estMinutes} minutes studied${isCompleted ? ', goal completed' : ''}`}
-              >
-                {hoveredDayIdx === idx && (
-                  <div className={styles.barTooltip}>
-                    <span>{DAY_NAMES[idx]}</span>
-                    <strong>{estMinutes}m</strong>
-                  </div>
-                )}
+            {Array.isArray(weekActivity) && Array.isArray(weekBarHeights) && (
+              <div className={styles.chartContainer}>
+                {DEFAULT_DAYS.map((day, idx) => {
+                  const isCompleted = Boolean(weekActivity[idx]);
+                  const heightPct = Math.round((weekBarHeights[idx] ?? 0.3) * 100);
+                  const estMinutes = Math.round(safeDailyGoal * (weekBarHeights[idx] ?? 0.3));
 
-                <div className={styles.barTrack}>
-                  <div
-                    className={`${styles.barFill} ${isCompleted ? styles.barFillCompleted : ''}`}
-                    style={{ height: `${heightPct}%` }}
-                  />
-                </div>
-                <span className={styles.dayInitial}>{day}</span>
-                {isCompleted ? (
-                  <div className={styles.checkIndicator}>
-                    <Check size={9} strokeWidth={3.5} />
-                  </div>
-                ) : (
-                  <div className={styles.checkPlaceholder} />
-                )}
+                  return (
+                    <div
+                      key={idx}
+                      className={styles.dayColumn}
+                      onMouseEnter={() => setHoveredDayIdx(idx)}
+                      onMouseLeave={() => setHoveredDayIdx(null)}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`${DAY_NAMES[idx]}: ${estMinutes} minutes studied${isCompleted ? ', goal completed' : ''}`}
+                    >
+                      {hoveredDayIdx === idx && (
+                        <div className={styles.barTooltip}>
+                          <span>{DAY_NAMES[idx]}</span>
+                          <strong>{estMinutes}m</strong>
+                        </div>
+                      )}
+
+                      <div className={styles.barTrack}>
+                        <div
+                          className={`${styles.barFill} ${isCompleted ? styles.barFillCompleted : ''}`}
+                          style={{ height: `${heightPct}%` }}
+                        />
+                      </div>
+                      <span className={styles.dayInitial}>{day}</span>
+                      {isCompleted ? (
+                        <div className={styles.checkIndicator}>
+                          <Check size={9} strokeWidth={3.5} />
+                        </div>
+                      ) : (
+                        <div className={styles.checkPlaceholder} />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+            )}
+          </>
+        ) : (
+          <p className={styles.unavailableText}>Activity statistics are not available yet</p>
+        )}
       </div>
 
       <div className={styles.rightContent}>

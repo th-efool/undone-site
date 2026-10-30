@@ -238,3 +238,15 @@
   background: #3b49df;
   color: #ffffff;
 }
+
+.unavailableText {
+  margin: 10px 0 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+:global([data-theme='dark']) .unavailableText {
+  color: #94a3b8;
+}

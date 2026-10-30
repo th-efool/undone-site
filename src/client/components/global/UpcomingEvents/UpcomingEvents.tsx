@@ -50,199 +50,13 @@ interface CalendarCell {
   isCurrentMonth: boolean;
 }
 
-const INITIAL_EVENTS: CalendarEvent[] = [
-  // August 2026
-  {
-    id: 'e1',
-    year: 2026,
-    month: 7,
-    day: 6,
-    title: 'Frontend Architecture Review',
-    subtitle: 'Performance & Web Vitals',
-    dateStr: 'Today',
-    timeStr: '9:00 AM',
-    endTimeStr: '10:00 AM',
-    tone: 'blue',
-  },
-  {
-    id: 'e2',
-    year: 2026,
-    month: 7,
-    day: 6,
-    title: 'System Design Interview Prep',
-    subtitle: 'Distributed Caching',
-    dateStr: 'Today',
-    timeStr: '1:00 PM',
-    endTimeStr: '1:30 PM',
-    tone: 'orange',
-  },
-  {
-    id: 'e3',
-    year: 2026,
-    month: 7,
-    day: 6,
-    title: 'Open Source Contribution Hour',
-    subtitle: 'Triage & Issue Hunting',
-    dateStr: 'Today',
-    timeStr: '4:00 PM',
-    endTimeStr: '5:00 PM',
-    tone: 'blue',
-  },
-  {
-    id: 'e4',
-    year: 2026,
-    month: 7,
-    day: 6,
-    title: 'Read: Designing Data-Intensive...',
-    subtitle: 'Chapter 3',
-    dateStr: 'Today',
-    timeStr: '8:00 PM',
-    endTimeStr: '8:30 PM',
-    tone: 'blue',
-  },
-  {
-    id: 'e5',
-    year: 2026,
-    month: 7,
-    day: 12,
-    title: 'Distributed Caching Deep Dive',
-    subtitle: 'System Architecture',
-    dateStr: 'Aug 12',
-    timeStr: '6:30 PM',
-    endTimeStr: '7:30 PM',
-    tone: 'blue',
-  },
-  {
-    id: 'e6',
-    year: 2026,
-    month: 7,
-    day: 19,
-    title: 'Open Source Contribution Hour',
-    subtitle: 'Triage & Issue Hunting',
-    dateStr: 'Aug 19',
-    timeStr: '10:00 AM',
-    endTimeStr: '11:00 AM',
-    tone: 'blue',
-  },
-  {
-    id: 'e7',
-    year: 2026,
-    month: 7,
-    day: 25,
-    title: 'Algorithm Deep Dive',
-    subtitle: 'Dynamic Programming Patterns',
-    dateStr: 'Aug 25',
-    timeStr: '8:00 PM',
-    endTimeStr: '9:00 PM',
-    tone: 'blue',
-  },
-  {
-    id: 'e8',
-    year: 2026,
-    month: 7,
-    day: 27,
-    title: 'Cloud Native Deployment',
-    subtitle: 'Kubernetes Workshop',
-    dateStr: 'Aug 27',
-    timeStr: '2:00 PM',
-    endTimeStr: '3:30 PM',
-    tone: 'blue',
-  },
-  {
-    id: 'e9',
-    year: 2026,
-    month: 7,
-    day: 28,
-    title: 'Hackathon Kickoff',
-    subtitle: 'Team Formation',
-    dateStr: 'Aug 28',
-    timeStr: '9:00 AM',
-    endTimeStr: '10:30 AM',
-    tone: 'orange',
-  },
-  {
-    id: 'e10',
-    year: 2026,
-    month: 7,
-    day: 29,
-    title: 'AI Prompt Engineering',
-    subtitle: 'Hands-on Lab',
-    dateStr: 'Aug 29',
-    timeStr: '11:00 AM',
-    endTimeStr: '12:00 PM',
-    tone: 'blue',
-  },
-  // July 2026
-  {
-    id: 'e-j1',
-    year: 2026,
-    month: 6,
-    day: 15,
-    title: 'Mid-Year Engineering Retrospective',
-    subtitle: 'Roadmap & Milestones',
-    dateStr: 'Jul 15',
-    timeStr: '11:00 AM',
-    endTimeStr: '12:30 PM',
-    tone: 'blue',
-  },
-  {
-    id: 'e-j2',
-    year: 2026,
-    month: 6,
-    day: 22,
-    title: 'Rust Concurrency Sprint',
-    subtitle: 'Channels & Mutexes',
-    dateStr: 'Jul 22',
-    timeStr: '3:00 PM',
-    endTimeStr: '4:30 PM',
-    tone: 'orange',
-  },
-  // September 2026
-  {
-    id: 'e-s1',
-    year: 2026,
-    month: 8,
-    day: 4,
-    title: 'Autumn Cohort Launch',
-    subtitle: 'Orientation & Networking',
-    dateStr: 'Sep 4',
-    timeStr: '10:00 AM',
-    endTimeStr: '11:30 AM',
-    tone: 'orange',
-  },
-  {
-    id: 'e-s2',
-    year: 2026,
-    month: 8,
-    day: 16,
-    title: 'Distributed Storage Consensus',
-    subtitle: 'Raft Paper Walkthrough',
-    dateStr: 'Sep 16',
-    timeStr: '2:00 PM',
-    endTimeStr: '3:30 PM',
-    tone: 'blue',
-  },
-  {
-    id: 'e-s3',
-    year: 2026,
-    month: 8,
-    day: 24,
-    title: 'Full-Stack Performance Audits',
-    subtitle: 'Serverless Latency Triage',
-    dateStr: 'Sep 24',
-    timeStr: '5:00 PM',
-    endTimeStr: '6:00 PM',
-    tone: 'purple',
-  },
-];
-
 const weekDays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
-const PROVIDERS: { id: CalendarProvider; name: string; tag?: string }[] = [
-  { id: 'Google Calendar', name: 'Google Calendar' },
-  { id: 'Outlook', name: 'Outlook Calendar' },
-  { id: 'Apple Calendar', name: 'Apple Calendar' },
-  { id: 'Sidequest Native', name: 'Sidequest Native', tag: 'Synced' },
+const PROVIDERS: { id: CalendarProvider; name: string; tag?: string; disabled?: boolean }[] = [
+  { id: 'Sidequest Native', name: 'Undone tasks', tag: 'Connected' },
+  { id: 'Google Calendar', name: 'Google Calendar', tag: 'Coming later', disabled: true },
+  { id: 'Outlook', name: 'Outlook Calendar', tag: 'Coming later', disabled: true },
+  { id: 'Apple Calendar', name: 'Apple Calendar', tag: 'Coming later', disabled: true },
 ];
 
 interface TimelineItemProps {
@@ -358,12 +172,47 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
 }: UpcomingEventsProps) {
   const isLight = variant === 'light';
 
-  // Calendar Date State (August 6, 2026)
-  const [activeDate, setActiveDate] = useState(() => new Date(2026, 7, 6));
-  const currentDay = 6;
-  const isCurrentActiveMonth = activeDate.getFullYear() === 2026 && activeDate.getMonth() === 7;
-  const [selectedDay, setSelectedDay] = useState<number>(6);
+  // Real calendar state based on local now
+  const [nowDate, setNowDate] = useState(() => new Date());
+  const todayYear = nowDate.getFullYear();
+  const todayMonth = nowDate.getMonth();
+  const todayDay = nowDate.getDate();
+
+  const [activeDate, setActiveDate] = useState(() => new Date());
+  const [selectedDay, setSelectedDay] = useState<number>(() => new Date().getDate());
   const [hoveredDay, setHoveredDay] = useState<number | null>(null);
+
+  const activeYear = activeDate.getFullYear();
+  const activeMonth = activeDate.getMonth();
+  const isCurrentActiveMonth = activeYear === todayYear && activeMonth === todayMonth;
+
+  // Midnight timer & visibility update
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleMidnightUpdate = () => {
+      const now = new Date();
+      const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 1);
+      const msUntilMidnight = Math.max(1000, nextMidnight.getTime() - now.getTime());
+      timer = setTimeout(() => {
+        setNowDate(new Date());
+        scheduleMidnightUpdate();
+      }, msUntilMidnight);
+    };
+
+    scheduleMidnightUpdate();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setNowDate(new Date());
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
 
   // Events List State
   const {
@@ -375,7 +224,7 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
   } = useUnifiedTasks();
 
   // Provider State
-  const [selectedProvider, setSelectedProvider] = useState<CalendarProvider>('Google Calendar');
+  const [selectedProvider, setSelectedProvider] = useState<CalendarProvider>('Sidequest Native');
   const [isProviderOpen, setIsProviderOpen] = useState(false);
   const providerRef = useRef<HTMLDivElement>(null);
 
@@ -435,8 +284,8 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
     });
   };
 
-  const currentYear = activeDate.getFullYear();
-  const currentMonth = activeDate.getMonth();
+  const currentYear = activeYear;
+  const currentMonth = activeMonth;
   const monthNameStr = activeDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   // Recalculate 42-cell dynamic calendar grid (memoized to avoid layout churn on hover)
@@ -474,7 +323,7 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
           dateStr: ev.dateStr || `${activeDate.toLocaleDateString('en-US', { month: 'short' })} ${ev.day}`,
           timeStr: ev.timeStr || '9:00 AM',
           endTimeStr: ev.endTimeStr || '10:00 AM',
-          tone: (ev.tone as any) || 'blue',
+          tone: ev.tone === 'purple' || ev.tone === 'orange' ? ev.tone : 'blue',
           completed: ev.status === 'completed',
         }));
     },
@@ -565,25 +414,28 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
     [removeUnifiedTask],
   );
 
-  const handleSelectProvider = (prov: CalendarProvider) => {
-    setSelectedProvider(prov);
+  const handleSelectProvider = (provId: CalendarProvider) => {
+    const prov = PROVIDERS.find((p) => p.id === provId);
+    if (prov?.disabled) {
+      setToastMessage(`${prov.name} is not connected (Coming later)`);
+      return;
+    }
+    setSelectedProvider(provId);
     setIsProviderOpen(false);
-    setToastMessage(`Active sync: ${prov}`);
+    setToastMessage(`Active sync: ${prov?.name || provId}`);
   };
 
-  const isSelectedToday = isCurrentActiveMonth && selectedDay === currentDay;
+  const isSelectedToday = isCurrentActiveMonth && selectedDay === todayDay;
 
   const formattedSelectedDate = (() => {
-    if (isSelectedToday) {
-      return 'Thu, Aug 6, 2026';
-    }
     const d = new Date(currentYear, currentMonth, selectedDay);
-    return d.toLocaleDateString('en-US', {
+    const dateFormatted = d.toLocaleDateString('en-US', {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
       year: 'numeric',
     });
+    return isSelectedToday ? `Today (${dateFormatted})` : dateFormatted;
   })();
 
   const renderProviderIcon = (provider: CalendarProvider) => {
@@ -651,10 +503,10 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
             onClick={() => setIsProviderOpen((prev) => !prev)}
             aria-expanded={isProviderOpen}
             aria-haspopup="listbox"
-            aria-label="Calendar integration provider"
+            aria-label={`Calendar integration provider: ${PROVIDERS.find((p) => p.id === selectedProvider)?.name || selectedProvider}`}
           >
             {renderProviderIcon(selectedProvider)}
-            <span>{selectedProvider}</span>
+            <span>{PROVIDERS.find((p) => p.id === selectedProvider)?.name || selectedProvider}</span>
             <ChevronDown
               size={13}
               className={`${styles.providerChevron} ${isProviderOpen ? styles.chevronOpen : ''}`}
@@ -674,7 +526,7 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
                   <button
                     key={prov.id}
                     type="button"
-                    className={`${styles.providerOption} ${isSelected ? styles.providerOptionActive : ''}`}
+                    className={`${styles.providerOption} ${isSelected ? styles.providerOptionActive : ''} ${prov.disabled ? styles.providerOptionDisabled : ''}`}
                     onClick={() => handleSelectProvider(prov.id)}
                     role="option"
                     aria-selected={isSelected}
@@ -683,6 +535,7 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
                       {renderProviderIcon(prov.id)}
                       <span>{prov.name}</span>
                     </div>
+                    {prov.tag && <span className={styles.providerTag}>{prov.tag}</span>}
                     {isSelected && <Check size={13} className={styles.providerCheck} />}
                   </button>
                 );
@@ -727,7 +580,7 @@ export const UpcomingEvents = React.memo(function UpcomingEvents({
             const { day, isCurrentMonth } = cell;
             const events = getDayEvents(day, isCurrentMonth);
             const hasEvent = events.length > 0;
-            const isToday = isCurrentActiveMonth && isCurrentMonth && day === currentDay;
+            const isToday = isCurrentActiveMonth && isCurrentMonth && day === todayDay;
             const isSelected = isCurrentMonth && day === selectedDay;
 
             return (

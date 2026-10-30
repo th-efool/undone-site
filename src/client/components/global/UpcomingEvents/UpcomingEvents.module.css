@@ -1187,3 +1187,22 @@
   border-color: rgba(255, 255, 255, 0.22);
 }
 
+
+.providerOptionDisabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.providerTag {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.06);
+  color: #64748b;
+  margin-left: auto;
+}
+
+:global([data-theme='dark']) .providerTag {
+  background: rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+}
