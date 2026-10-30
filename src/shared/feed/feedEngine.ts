@@ -5,7 +5,7 @@ import type {
   ChunkProgress,
   FeedChunkInput,
 } from './feedEngine.types';
-import { calculateChunkScore } from './feedScoring';
+import { calculateChunkScore, DEFAULT_WEIGHTS } from './feedScoring';
 import * as curriculum from '@/src/shared/curriculum';
 import type { ChannelId } from '@/src/shared/curriculum';
 
@@ -192,6 +192,7 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
     curriculum.vectorToArray(
       curriculum.computeTargetVector({
         currentTime,
+        localHour: input.localHour,
         activeChannel: resolvedChannel,
         channelSliderValues,
         rawStringPrefs,
@@ -222,6 +223,7 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
       (channelSliderValues.context_need !== undefined && channelSliderValues.context_need > 0.65));
 
   const candidateChunks: FeedChunkInput[] = [];
+  const excludedSet = input.excludedChunkIds;
 
   chunksByLesson.forEach((lessonChunks) => {
     lessonChunks.sort((a, b) => a.chunkOrder - b.chunkOrder);
@@ -240,12 +242,20 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
         : cohortMeta?.isStrictlyLinear ?? isLinearByOrderStyle;
 
     if (enforceStrictFrontier && lessonIsLinear && orderStyle !== 'Randomize') {
-      const frontierChunk = lessonChunks.find((c) => {
-        const prog = chunkProgress[c.chunkId];
-        return !prog || prog.status !== 'completed';
-      });
-      if (frontierChunk) {
-        candidateChunks.push(frontierChunk);
+      const maxFrontierCandidates = resolvedChannel === 'deep_dive' || requestedLessonId ? 2 : 1;
+      let added = 0;
+      for (const chunk of lessonChunks) {
+        const prog = chunkProgress[chunk.chunkId];
+        const isCompleted = prog?.status === 'completed';
+        if (isCompleted) continue;
+        // If this chunk was already served in the current pagination session,
+        // advance the linear frontier past it so pagination does not dead-end.
+        if (excludedSet && excludedSet.has(chunk.chunkId)) {
+          continue;
+        }
+        candidateChunks.push(chunk);
+        added++;
+        if (added >= maxFrontierCandidates) break;
       }
     } else {
       for (const chunk of lessonChunks) {
@@ -257,10 +267,18 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
     }
   });
 
-  const eligibleChunks = candidateChunks.length > 0 ? candidateChunks : allChunks;
+  const requested = requestedChunkId
+    ? allChunks.find((chunk) => chunk.chunkId === requestedChunkId)
+    : undefined;
+  if (requested && !candidateChunks.some((c) => c.chunkId === requested.chunkId)) {
+    candidateChunks.push(requested);
+  }
+
+  const eligibleChunks = excludedSet && excludedSet.size > 0
+    ? candidateChunks.filter((chunk) => !excludedSet.has(chunk.chunkId))
+    : candidateChunks;
 
   // 3. Score Eligible Chunks with Channel-Weighted 12D Vector + Modality Rules + RAG Context
-  const previousCohortId: string | null = null;
   const scoredItems: FeedItem[] = [];
 
   for (let i = 0; i < eligibleChunks.length; i++) {
@@ -280,8 +298,9 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
       chunk,
       progress,
       cohortState,
-      previousCohortId,
-      currentTime
+      currentTime,
+      DEFAULT_WEIGHTS,
+      input.localDayOfWeek,
     );
 
     const hasMacroVec = chunk.fullLessonVector || cohortVectorMap[chunk.cohortId]?.fullVector;
@@ -369,7 +388,7 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
       cohortProvider: chunk.cohortProvider,
       lessonVideoId: chunk.lessonVideoId,
       lessonVideoUrl: chunk.lessonVideoUrl,
-      sourceUrl: chunk.lessonVideoUrl ?? (chunk as any).sourceUrl,
+      sourceUrl: chunk.lessonVideoUrl ?? chunk.sourceUrl,
       lessonType: chunk.lessonType,
       content: chunk.content,
       lessonThumbnail: chunk.lessonThumbnail,
@@ -391,6 +410,9 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
   // 5. Channel-Aware Interleaving:
   // - In `deep_dive` or when `requestedLessonId` is set, allow up to 2 consecutive chunks from the same lesson (in chunkOrder).
   // - In other channels (`spark`, `explore`, `quick`, `build`, `listen`), interleave across lessons for variety.
+  const targetLimit = input.targetLimit;
+  const targetFeedSize = targetLimit !== undefined ? targetLimit + 1 : (feedSize || 20);
+
   const maxSameLesson = requestedLessonId ? 5 : resolvedChannel === 'deep_dive' ? 2 : 1;
   const interleaved: FeedItem[] = [];
   const pool = [...scoredItems];
@@ -399,7 +421,19 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
   let lastCohortId: string | null = null;
   let sameCohortCount = 0;
 
-  while (pool.length > 0) {
+  if (requestedChunkId && targetFeedSize > 0) {
+    const requestedIndex = pool.findIndex((item) => item.chunkId === requestedChunkId);
+    if (requestedIndex !== -1) {
+      const [requestedItem] = pool.splice(requestedIndex, 1);
+      interleaved.push(requestedItem);
+      lastLessonId = requestedItem.lessonId;
+      sameLessonCount = 1;
+      lastCohortId = requestedItem.cohortId;
+      sameCohortCount = 1;
+    }
+  }
+
+  while (pool.length > 0 && interleaved.length < targetFeedSize) {
     let nextIndex = 0;
 
     const diffLessonIndex = pool.findIndex((item) => item.lessonId !== lastLessonId);
@@ -428,20 +462,26 @@ export function generateFeed(input: FeedEngineInput): FeedEngineOutput {
     }
 
     interleaved.push(selected);
-
-    if (interleaved.length >= feedSize) break;
   }
 
+  const hasMore = targetLimit !== undefined
+    ? interleaved.length > targetLimit
+    : pool.length > 0;
+  const finalItems = targetLimit !== undefined && hasMore
+    ? interleaved.slice(0, targetLimit)
+    : interleaved;
+
   // 6. Calculate summary metrics
-  const uniqueCohorts = new Set(interleaved.map((item) => item.cohortId));
-  const estimatedMinutes = interleaved.reduce((sum, item) => {
+  const uniqueCohorts = new Set(finalItems.map((item) => item.cohortId));
+  const estimatedMinutes = finalItems.reduce((sum, item) => {
     return sum + parseDurationToSeconds(item.chunkDuration) / 60;
   }, 0);
 
   const goalPercent = Math.min(100, Math.round((completedTodayMinutes / dailyGoalMinutes) * 100));
 
   return {
-    items: interleaved,
+    items: finalItems,
+    hasMore,
     totalAvailable: allChunks.length,
     dailyGoalProgress: {
       current: completedTodayMinutes,

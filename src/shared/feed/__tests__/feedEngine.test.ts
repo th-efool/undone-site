@@ -159,4 +159,141 @@ describe('generateFeed', () => {
     expect(ragFeed.items[0].chunkId).toBe('theory_long');
     expect(ragFeed.items[0].matchReason).toContain('RAG Match');
   });
+
+  describe('explicit chunk selection & replay priority before ranking (FH-03)', () => {
+    const chunk1: FeedChunkInput = {
+      chunkId: 'chunk1',
+      chunkTitle: 'Chunk 1 Introduction',
+      chunkOrder: 1,
+      chunkDuration: '3m',
+      startSeconds: 0,
+      endSeconds: 180,
+      lessonId: 'lesson1',
+      lessonTitle: 'Lesson 1',
+      lessonThumbnail: '',
+      lessonOrder: 1,
+      lessonType: 'video',
+      seasonId: 'season1',
+      seasonTitle: 'Season 1',
+      seasonOrder: 1,
+      cohortId: 'cohort1',
+      cohortTitle: 'Cohort 1',
+      cohortCoverImage: '',
+      cohortProvider: 'Provider 1',
+      isStrictlyLinear: true,
+    };
+
+    const chunk2: FeedChunkInput = {
+      ...chunk1,
+      chunkId: 'chunk2',
+      chunkTitle: 'Chunk 2 Deep Concept',
+      chunkOrder: 2,
+      startSeconds: 180,
+      endSeconds: 360,
+    };
+
+    const baseInput: FeedEngineInput = {
+      allChunks: [chunk1, chunk2],
+      chunkProgress: {},
+      cohortStates: [
+        {
+          cohortId: 'cohort1',
+          orderStyle: 'Sequential',
+          subscribedAt: new Date().toISOString(),
+          lastActiveAt: new Date().toISOString(),
+          dailyGoalMinutes: 20,
+          scheduleDays: [],
+          priority: 1,
+        },
+      ],
+      currentTime: new Date(),
+      dailyGoalMinutes: 20,
+      completedTodayMinutes: 0,
+      feedSize: 5,
+    };
+
+    it('requests chunk 2 in a sequential lesson with chunk 1 incomplete: first output is chunk 2', () => {
+      const result = generateFeed({
+        ...baseInput,
+        requestedChunkId: 'chunk2',
+      });
+
+      expect(result.items.length).toBeGreaterThanOrEqual(1);
+      expect(result.items[0].chunkId).toBe('chunk2');
+    });
+
+    it('replays completed chunk 1 while chunk 2 incomplete: first output is chunk 1', () => {
+      const result = generateFeed({
+        ...baseInput,
+        chunkProgress: {
+          chunk1: {
+            chunkId: 'chunk1',
+            lessonId: 'lesson1',
+            cohortId: 'cohort1',
+            status: 'completed',
+            watchedSeconds: 180,
+            totalSeconds: 180,
+          },
+        },
+        requestedChunkId: 'chunk1',
+      });
+
+      expect(result.items.length).toBeGreaterThanOrEqual(1);
+      expect(result.items[0].chunkId).toBe('chunk1');
+    });
+
+    it('returns empty feed when all chunks are completed and no explicit selection exists', () => {
+      const result = generateFeed({
+        ...baseInput,
+        chunkProgress: {
+          chunk1: {
+            chunkId: 'chunk1',
+            lessonId: 'lesson1',
+            cohortId: 'cohort1',
+            status: 'completed',
+            watchedSeconds: 180,
+            totalSeconds: 180,
+          },
+          chunk2: {
+            chunkId: 'chunk2',
+            lessonId: 'lesson1',
+            cohortId: 'cohort1',
+            status: 'completed',
+            watchedSeconds: 180,
+            totalSeconds: 180,
+          },
+        },
+      });
+
+      expect(result.items).toHaveLength(0);
+    });
+
+    it('returns requested chunk once when all chunks are completed with explicit selection', () => {
+      const result = generateFeed({
+        ...baseInput,
+        chunkProgress: {
+          chunk1: {
+            chunkId: 'chunk1',
+            lessonId: 'lesson1',
+            cohortId: 'cohort1',
+            status: 'completed',
+            watchedSeconds: 180,
+            totalSeconds: 180,
+          },
+          chunk2: {
+            chunkId: 'chunk2',
+            lessonId: 'lesson1',
+            cohortId: 'cohort1',
+            status: 'completed',
+            watchedSeconds: 180,
+            totalSeconds: 180,
+          },
+        },
+        requestedChunkId: 'chunk1',
+      });
+
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0].chunkId).toBe('chunk1');
+    });
+  });
 });

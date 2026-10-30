@@ -432,8 +432,8 @@ export const CHANNEL_SLIDER_DELTAS: Record<ChannelId, ChannelControlDelta[]> = {
 // VECTOR MATHEMATICS ENGINE
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function getTimeOfDaySlot(date: Date): TimeOfDaySlot {
-  const hour = date.getHours();
+export function getTimeOfDaySlot(date: Date, localHour?: number): TimeOfDaySlot {
+  const hour = typeof localHour === 'number' ? localHour : date.getHours();
   if (hour >= 6 && hour < 12) return 'morning';
   if (hour >= 12 && hour < 17) return 'afternoon';
   if (hour >= 17 && hour < 22) return 'evening';
@@ -463,7 +463,7 @@ export function computeTargetVector(context: ChunkScoringContext): PedagogicalVe
     timeBlendWeight = 0.30,
   } = context;
 
-  const timeSlot = getTimeOfDaySlot(currentTime);
+  const timeSlot = getTimeOfDaySlot(currentTime, context.localHour);
   const timeVec = TIME_OF_DAY_VECTORS[timeSlot];
   const channelBaseVec = CHANNEL_BASE_VECTORS[activeChannel];
 

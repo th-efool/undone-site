@@ -17,6 +17,7 @@ export interface FeedChunkInput {
   lessonThumbnail: string;
   lessonVideoId?: string;
   lessonVideoUrl?: string;
+  sourceUrl?: string;
   totalChunksInLesson?: number;
   totalLessonsInSeason?: number;
   totalVideos?: number;
@@ -72,6 +73,8 @@ export interface FeedEngineInput {
   chunkProgress: Record<string, ChunkProgress>;
   cohortStates: CohortLearnerState[];
   currentTime: Date;
+  localDayOfWeek?: number;
+  localHour?: number;
   dailyGoalMinutes: number;
   completedTodayMinutes: number;
   feedSize?: number;              // default 20
@@ -85,6 +88,8 @@ export interface FeedEngineInput {
   requestedCohortId?: string;
   requestedLessonId?: string;
   requestedChunkId?: string;
+  excludedChunkIds?: ReadonlySet<string>;
+  targetLimit?: number;
 }
 
 export interface FeedItem {
@@ -138,4 +143,5 @@ export interface FeedEngineOutput {
     chunksRemaining: number;
     estimatedMinutes: number;
   };
+  hasMore?: boolean;
 }

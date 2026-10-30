@@ -61,6 +61,7 @@ export interface PedagogicalChunkMetadata {
 
 export interface ChunkScoringContext {
   currentTime: Date;
+  localHour?: number;
   activeChannel: ChannelId;
   channelSliderValues?: Record<string, number>; // controlId -> normalized float (0.0 to 1.0)
   rawStringPrefs?: Record<string, string>; // e.g. { "quick_length": "short" }

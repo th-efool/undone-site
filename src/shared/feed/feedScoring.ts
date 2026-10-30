@@ -1,20 +1,18 @@
 import type { FeedChunkInput, ChunkProgress, CohortLearnerState } from './feedEngine.types';
 
 export interface ScoreWeights {
-  continuity: number;     // 0.35
-  cohortPriority: number; // 0.20
+  continuity: number;     // 0.40
+  cohortPriority: number; // 0.25
   recency: number;        // 0.15
-  variety: number;        // 0.15
-  scheduleMatch: number;  // 0.10
+  scheduleMatch: number;  // 0.15
   freshness: number;      // 0.05
 }
 
 export const DEFAULT_WEIGHTS: ScoreWeights = {
-  continuity: 0.35,
-  cohortPriority: 0.20,
+  continuity: 0.40,
+  cohortPriority: 0.25,
   recency: 0.15,
-  variety: 0.15,
-  scheduleMatch: 0.10,
+  scheduleMatch: 0.15,
   freshness: 0.05,
 };
 
@@ -32,9 +30,9 @@ export function calculateChunkScore(
   chunk: FeedChunkInput,
   progress: ChunkProgress | undefined,
   cohortState: CohortLearnerState | undefined,
-  previousCohortId: string | null,
   now: Date,
   weights: ScoreWeights = DEFAULT_WEIGHTS,
+  localDayOfWeek?: number,
 ): { score: number; reason: string } {
   let score = 0;
   let primaryReason = `Study ${chunk.cohortTitle}`;
@@ -67,17 +65,11 @@ export function calculateChunkScore(
     else recencyScore = 0.4;
   }
 
-  // 4. Variety Score (0 to 1)
-  // Penalize consecutive chunks from the exact same cohort
-  let varietyScore = 1.0;
-  if (previousCohortId === chunk.cohortId) {
-    varietyScore = 0.4;
-  }
-
-  // 5. Schedule Match Score (0 to 1)
+  // 4. Schedule Match Score (0 to 1)
   let scheduleScore = 0.5;
   if (cohortState?.scheduleDays?.length) {
-    const todayName = WEEKDAYS[now.getDay()];
+    const dayIndex = typeof localDayOfWeek === 'number' ? localDayOfWeek : now.getDay();
+    const todayName = WEEKDAYS[dayIndex];
     if (cohortState.scheduleDays.includes(todayName)) {
       scheduleScore = 1.0;
     } else {
@@ -85,7 +77,7 @@ export function calculateChunkScore(
     }
   }
 
-  // 6. Freshness Score (0 to 1)
+  // 5. Freshness Score (0 to 1)
   let freshnessScore = 0.8;
   if (!progress || progress.status === 'not-started') {
     freshnessScore = 1.0;
@@ -93,12 +85,11 @@ export function calculateChunkScore(
     freshnessScore = 0.2;
   }
 
-  // Composite Weighted Score
+  // Composite Weighted Score (normalized weights sum to 1.00)
   score =
     continuityScore * weights.continuity +
     priorityScore * weights.cohortPriority +
     recencyScore * weights.recency +
-    varietyScore * weights.variety +
     scheduleScore * weights.scheduleMatch +
     freshnessScore * weights.freshness;
 
