@@ -118,3 +118,21 @@
   font-size: 14px;
   text-decoration: none;
 }
+
+
+.errorAlert {
+  padding: 10px 14px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  border-radius: 10px;
+  font-size: 13px;
+  margin: 0;
+}
+
+.noMatches {
+  text-align: center;
+  padding: 32px 16px;
+  color: #64748b;
+  font-size: 14px;
+}

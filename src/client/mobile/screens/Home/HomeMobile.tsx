@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { Play } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { ActiveCohorts } from '@/src/client/screens/dashboard/home/components/ActiveCohorts/ActiveCohorts';
+import { ChannelHub } from '@/src/client/screens/dashboard/home/components/ChannelHub/ChannelHub';
+import { RecentlyCompleted } from '@/src/client/screens/dashboard/home/components/RecentlyCompleted/RecentlyCompleted';
+import { getSubscribedCohorts } from '@/src/client/screens/dashboard/home/utils';
 import type { UseHomeResult } from '@/src/client/screens/dashboard/home/hooks/useHome';
 
 import styles from './HomeMobile.module.css';
@@ -13,10 +15,24 @@ interface HomeMobileProps {
 
 export function HomeMobile({ model: home }: HomeMobileProps) {
   const [query, setQuery] = useState('');
+  const [isCompletedOpen, setIsCompletedOpen] = useState(false);
 
-  const activeCohorts = home.activeCohorts.filter((item) =>
-    !query || item.title.toLowerCase().includes(query.toLowerCase()) || item.provider.toLowerCase().includes(query.toLowerCase())
+  const handlePause = useCallback(
+    (cohortId: string, pausedUntil?: Date, reason?: string) =>
+      home.actions.pauseActiveCohort(cohortId, pausedUntil, reason),
+    [home.actions],
   );
+
+  const allSubscribed = getSubscribedCohorts(home.activeCohorts, home.continueLater);
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredCohorts = normalizedQuery
+    ? allSubscribed.filter(
+        (cohort) =>
+          cohort.title.toLowerCase().includes(normalizedQuery) ||
+          cohort.provider.toLowerCase().includes(normalizedQuery),
+      )
+    : allSubscribed;
 
   return (
     <main className={styles.mobileHome}>
@@ -27,30 +43,47 @@ export function HomeMobile({ model: home }: HomeMobileProps) {
           <input
             type="text"
             className={styles.searchInput}
-            placeholder={home.searchPlaceholder || 'Search active quests…'}
+            aria-label="Search cohorts"
+            placeholder={home.searchPlaceholder || 'Search cohorts…'}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
       </header>
 
-      <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Active Quests</h2>
-        <div className={styles.cardList}>
-          {activeCohorts.map((cohort) => (
-            <div key={cohort.id} className={styles.mobileCohortCard}>
-              <div className={styles.cardTop}>
-                <span className={styles.provider}>{cohort.provider}</span>
-              </div>
-              <h3 className={styles.cardTitle}>{cohort.title}</h3>
-              <Link href={`/cohort/${cohort.id}`} className={styles.continueBtn}>
-                <Play size={16} fill="currentColor" />
-                <span>Continue Quest</span>
-              </Link>
-            </div>
-          ))}
+      <ChannelHub />
+
+      {home.syncError && (
+        <p role="alert" className={styles.errorAlert}>
+          {home.syncError}
+        </p>
+      )}
+
+      {normalizedQuery && filteredCohorts.length === 0 ? (
+        <div className={styles.noMatches}>
+          <p>No matching cohorts found.</p>
         </div>
-      </section>
+      ) : (
+        <ActiveCohorts
+          heading={home.sections.activeCohorts}
+          items={filteredCohorts}
+          isLoading={home.loading && allSubscribed.length === 0}
+          mutationPending={home.mutationPending}
+          onPause={handlePause}
+          onResume={home.actions.resumePausedCohort}
+          onSave={home.actions.saveLearningSettings}
+          onDelete={home.actions.removeSubscribedCohort}
+        />
+      )}
+
+      {home.recentlyCompleted.length > 0 && (
+        <RecentlyCompleted
+          heading={home.sections.recentlyCompleted}
+          items={home.recentlyCompleted}
+          isOpen={isCompletedOpen}
+          onToggle={() => setIsCompletedOpen((open) => !open)}
+        />
+      )}
     </main>
   );
 }
